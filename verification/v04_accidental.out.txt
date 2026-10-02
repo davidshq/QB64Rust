@@ -1,0 +1,14 @@
+== _BIT * 33 scalars (8-byte C type, 4 bytes reserved) ==
+ 4294967295 -1 
+ 2147483647  9223372036854775807 
+== static SELECT CASE temporary in recursion ==
+ 0  1  0  0 
+== ON n GOTO range (QB4.5: error 5 for n < 0 or n > 255) ==
+n =-1  trapped error 5 
+ fell through
+n = 0  fell through
+n = 1  -> l1
+n = 2  -> l2
+n = 256 fell through
+n = 257 (257 AND 255 = 1) fell through
+exit=0

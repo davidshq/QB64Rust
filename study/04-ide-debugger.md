@@ -1,6 +1,6 @@
 # 04 — IDE, IDE/compiler coupling, and the `$DEBUG` debugger
 
-Study of QB64 Phoenix Edition (`C:\code\qb64-new\QB64pe`) for the ground-up rewrite. Read-only study; nothing in the repo was modified and nothing was executed — every behavioural statement comes from reading source.
+Study of QB64 Phoenix Edition (`..\QB64pe`) for the ground-up rewrite. Read-only study; nothing in the repo was modified and nothing was executed — every behavioural statement comes from reading source.
 
 ## How to use this document
 
@@ -144,7 +144,7 @@ In the other direction the compiler reads IDE globals: `ideprogname$` and `idepa
 
 *(Section numbers below are local to Part B.)*
 
-Source: `C:\code\qb64-new\QB64pe\source\ide\ide_methods.bas` lines 1-6975 (all refs below are to this file unless prefixed), plus `source\ide\ide_global.bas` 131-242 (shared declarations).
+Source: `..\QB64pe\source\ide\ide_methods.bas` lines 1-6975 (all refs below are to this file unless prefixed), plus `source\ide\ide_global.bas` 131-242 (shared declarations).
 
 Conventions: `L123` = line 123 of `ide_methods.bas`. "Verified" means the line was read; anything not verified is marked **(unverified)**.
 
@@ -929,7 +929,7 @@ Not referenced directly in L1-6975 (checked by reading, not by an exhaustive sea
 
 *(Section numbers below are local to Part C.)*
 
-Sources (all paths relative to `C:\code\qb64-new\QB64pe\source\`):
+Sources (all paths relative to `..\QB64pe\source\`):
 
 | Abbrev. | File |
 |---|---|
@@ -1562,7 +1562,7 @@ Scans `text$` from column 1 to `cursor` (clamped to the length). `"` toggles `q`
 
 *(Section numbers below are local to Part D.)*
 
-Scope: `C:\code\qb64-new\QB64pe\source\ide\ide_methods.bas` lines 13701-14928, 15773-16968, 17127-18804, 18936-20654. All `file:line` references are to that file unless another file is named. Line numbers were read directly from the source.
+Scope: `..\QB64pe\source\ide\ide_methods.bas` lines 13701-14928, 15773-16968, 17127-18804, 18936-20654. All `file:line` references are to that file unless another file is named. Line numbers were read directly from the source.
 
 Out of scope (documented by other sections, only referenced here): the main loop `ide2` (82-6960), debugger dialogs (6976-10848), toolkit primitives (`idedrawobj`, `ideobjupdate`, `idemessagebox`, `idefiledialog$`, `idefind$`, `idechange$`, `ideshowtext`, `GetInput`, `OpenFile$`/`SaveFile$`), wiki/config/export files.
 
@@ -2211,7 +2211,7 @@ Non-dialog routines in range: `Help_ShowText` (18936), `IdeImportBookmarks` (191
 
 *(Section numbers below are local to Part E.)*
 
-Scope: read-only study of `C:\code\qb64-new\QB64pe`. All paths are relative to that repo root. `file:line` references were checked against the file unless marked "(not verified)". Abbreviation: `ide_methods.bas` = `source\ide\ide_methods.bas`.
+Scope: read-only study of `..\QB64pe`. All paths are relative to that repo root. `file:line` references were checked against the file unless marked "(not verified)". Abbreviation: `ide_methods.bas` = `source\ide\ide_methods.bas`.
 
 ---
 
@@ -2830,7 +2830,7 @@ Declared at qb64pe.bas:126-128: `NoIDEMode, ConsoleMode, FormatMode, NoCCompileM
 
 *(Section numbers below are local to Part F.)*
 
-Scope: how QB64-PE implements source-level debugging. All paths are relative to `C:\code\qb64-new\QB64pe`. Abbreviations used for file references:
+Scope: how QB64-PE implements source-level debugging. All paths are relative to `..\QB64pe`. Abbreviations used for file references:
 
 | Abbrev | File |
 |---|---|

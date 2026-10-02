@@ -1,0 +1,4938 @@
+{
+ "compiler": "../QB64pe/qb64pe.exe",
+ "summary": {
+  "compile_tests": {
+   "PASS": 403,
+   "FAIL": 1
+  },
+  "qbasic_testcases": {
+   "PASS": 143,
+   "FAIL": 0
+  }
+ },
+ "results": [
+  {
+   "suite": "compile_tests",
+   "test": "arrays/01_basic_long_arrays",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 7.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/01_default_base0_normal_and_classic_udt",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/01_integer_family_1d",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/01_redim_byte",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/02_fixed_string_and_scalars",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/02_integer_family_2d",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/02_option_base1_only_affects_later_normal_arrays",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/02_redim_ubyte",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/03_integer_family_3d",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/03_option_base1_affects_later_classic_udt_member_arrays",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/03_redim_integer",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/03_udt_member_arrays",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/04_float_family",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 14.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/04_option_base1_affects_later_as_list_member_arrays",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/04_option_base_explicit_bounds",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/04_redim_uinteger",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/05_explicit_bounds_ignore_option_base1",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/05_fixed_length_string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/05_redim_long",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/06_option_base1_classic_udt_two_dimensions",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/06_redim_ulong",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/06_variable_string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/07_nested_udt",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/07_option_base1_as_list_udt_two_dimensions",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/07_redim_integer64",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 9.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/08_redim_uinteger64",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 11.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/08_whole_member_array_memops_numeric",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/09_layout_and_mixed_members",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/09_redim_single",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/10_redim_double",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/11_redim_float",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/12_redim_fixed_string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/13_redim_2d_long",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/14_redim_instance_isolation",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/15_redim_deep_nested",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/21_redim_preserve_byte",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/22_redim_preserve_ubyte",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 10.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/23_redim_preserve_integer",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/24_redim_preserve_uinteger",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/25_redim_preserve_long",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/26_redim_preserve_ulong",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/27_redim_preserve_integer64",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/28_redim_preserve_uinteger64",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/29_redim_preserve_single",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/30_redim_preserve_double",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/31_redim_preserve_float",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/32_redim_preserve_fixed_string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/33_redim_preserve_2d_long",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/34_redim_preserve_instance_isolation",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/35_redim_preserve_deep_nested",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 13.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/36_redim_preserve_packed_bit_shrink_grow",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/37_redim_retain_packed_bit_2d",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/39_err_member_must_be_const",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/40_err_undefined_type",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/41_err_undefined_array",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/42_err_solved_bug_Incorrect_nr_of_args",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/43_err_solved_bug_Incorrect_nr_of_args",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/44_err_solved_bug_Incorrect_nr_of_args",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/45_err_solved_bug_Incorrect_nr_of_args",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/46_Mem_Parent",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/47_zero_fill_fixed_strings_erase_redim",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/90_type_codegen_inline_varstrings",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/91_type_codegen_nested_inline_owner",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/92_type_codegen_dynamic_varstrings",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/93_type_codegen_dynamic_owner_udt",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/94_type_codegen_inline_descriptor_udt",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/95_type_codegen_clear_inline_owner",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/array_arg_dimensions_transitive",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/array_elements_change",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/ArrayCopyTest",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 13.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/ArrayCopyTest_1",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 11.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/ArrayCopyTest_2",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/ArrayCopyTest_3",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/comma_array_parameter",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/datatype_coverage_strings_and_sizes",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/erase_dynamic_string_array_reuse",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/multiple_arrays_same_type",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/negative_array_size",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/negative_array_size_2",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/nested_udt_array_of_udt_with_array",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/nonzero_bounds_negative",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/nonzero_bounds_positive",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/put_get_write_read_fixed_string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/put_get_write_read_UDT_fixed_string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 13.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/Retain_Preserve",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/retain_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/size",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t001_whole_array_core",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t002_whole_array_udt_ownership",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 7.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t003_whole_array_member_assign",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t024_whole_target_bare_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t025_bare_target_whole_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t026_whole_target_indexed_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t027_indexed_target_whole_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t028_member_target_no_index",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t029_member_source_no_index",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t030_member_indexed_target_bare_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t031_member_bare_target_indexed_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t032_both_members_bare",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t033_member_whole_target_bare_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t034_member_bare_target_whole_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t035_member_whole_target_indexed_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t036_member_indexed_target_whole_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t037_scalar_target_whole_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t038_whole_target_scalar_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t039_scalar_member_target_whole_member_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t040_scalar_equals_whole_array",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t040_whole_member_target_scalar_member_source",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t041_whole_array_equals_scalar",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t042_scalar_member_equals_whole_member",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t043_whole_member_equals_scalar_member",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t044_both_members_bare",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t045_function_scalar_array",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t046_sub_scalar_array",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t200_dynfield_numeric_per_parent",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t201_dynfield_2d_retain",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t202_dynfield_parent_retain",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t203_dynfield_array_assign_deepcopy",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t204_dynfield_erase_reuse",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t205_dynfield_string_retain",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t206_dynfield_nested_udt_owner",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t207_dynfield_nested_udt_deepcopy",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t208_dynfield_option_base_1",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t209_dynfield_mixed_legacy_inline",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t210_dynfield_static_fixed_string_mix",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t210_negative_bounds_1d",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 11.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t211_positive_nonzero_bounds_1d",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t212_single_element_explicit_bound",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t213_parent_nonzero_bounds",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t214_parent_negative_bounds",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t215_two_dim_mixed_bounds",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t216_three_dim_small_cube",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t217_multi_members_independent",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t218_scalar_members_around_dynfields",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t219_fixed_string_scalar_around_dynfield",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t220_2",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t220_varstring_scalar_around_dynfield",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t221_signed_byte_dynamic",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t222_unsigned_byte_dynamic",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t223_integer_dynamic",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t224_unsigned_integer_dynamic",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t225_long_dynamic_arithmetic",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t226_unsigned_long_dynamic",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t227_integer64_dynamic",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t228_unsigned_integer64_dynamic",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t229_single_dynamic_tolerance",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t230_double_dynamic_tolerance",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t231_fixed_len_string_dynamic_field",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t232_static_fixed_len_string_array",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t232_staticfield_fixed_len_string_array",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t233_unmarked_inline_numeric_array_redim_parent",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t234_unmarked_inline_varstring_array_redim_parent",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t235_member_redim_expand_no_retain",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 17.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t236_member_redim_retain_expand",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t237_member_redim_retain_shrink",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t238_member_redim_preserve_expand",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t239_ordinary_member_redim_clears",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t240_erase_member_then_redim",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t241_swap_parent_elements",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t242_swap_indexed_member_values",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t243_computed_index_access",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t244_nested_fixed_udt_dynamic_field",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t245_nested_fixed_udt_2d_dynamic_field",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t246_nested_owner_scalar_gap",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 9.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t247_parent_redim_ordinary_resets",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 14.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t248_parent_redim_retain_expands",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t249_fixed_len_string_2d_dynamic_field",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t260_preserve_1d_member_expand_nonzero_parent",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t261_preserve_1d_member_shrink_fixed_string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t262_retain_member_multi_resize_numeric",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t263_retain_parent_multi_resize_with_member",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t264_erase_member_then_rebuild_bounds",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t265_swap_parent_elements_different_member_bounds",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t266_putget_fixed_dynamic_fields",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t267_putget_fixed_scalar_string_nonzero_bounds",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t268_negative_put_scalar_varstring",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t269_negative_get_dynamic_varstring_field",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t270_dynamic_static_same_type_bounds",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t271_dynamic_static_parent_retain",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 19.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t272_dynamic_static_array_assign_deepcopy",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t273_dynamic_static_option_base_1",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t274_nested_dynamic_static_owner",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t275_static_dynamic_member_erase_rebuild_heavy",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t276_static_dynamic_dim_parent_member_redim",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t277_static_dynamic_parent_redim_reset_retain",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t278_nested_static_dynamic_copy_erase_rebuild",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t279_static_dynamic_2d_retain_parent_resize",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t280_static_dynamic_swap_erase_parent_reuse",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 7.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t281_static_dynamic_option_base1_heavy",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 15.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t659_array_assignment_control",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t659_explicit_call_control",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t659_sub_call_comparisons",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t659_variable_boolean_expr",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t_qb64pe_refactor_inline_reset_owner_udt",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t_qb64pe_refactor_inline_reset_strings",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t_qb64pe_refactor_preserve_inline_varstrings",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t_qb64pe_refactor_raw_redim_descriptor",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t_qb64pe_refactor_raw_redim_preserve",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t_qb64pe_refactor_retain_coordinate_payloads",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 9.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t_qb64pe_refactor_retain_descriptor_udt",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 16.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/t_qb64pe_refactor_retain_nested_owner_array",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/test_mem_vs_len",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/test_mem_vs_len_classic",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/type_dynamic_string_member_array_param",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/type_dynamic_string_slot_32bit",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/type_inline_nested_descriptor_preserve",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/type_inline_nested_descriptor_retain",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/type_member_arrays_as_parameters",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/type_nested_descriptor_payload_clone",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/type_owner_self_assignment",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "arrays/whole_member_array_ops_nonzero_bounds",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 14.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "audio_handle_test/handle_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 23.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "audio_mem_test/newsound_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "audio_mem_test/sndopen_mem_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "audio_out/test",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "audio_sound_test/sound_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 43.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "audio_test/test",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "auto_include/am-trigger",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "auto_include/color0",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "auto_include/color32",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "auto_include/debug",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "auto_include/general",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "auto_include/no-debug",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "basic/test",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 16.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "basic/val_default_large_integer_decimal",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "basic/val_default_regression",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "basic/val_typed_floating_precision",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "basic/val_typed_large_integer_decimal",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "basic/val_typed_nondecimal_precision",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "basic/val_typed_tostr_overload",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "cast/cast_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "clipboard/clipboard_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "colors/color_with_dest",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "colors/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "console/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "console_only/audio_out",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "console_only/data",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 13.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "console_only/devices",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 7.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "console_only/image",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 11.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "console_only/libz",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "console_only/midi",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "console_only/network",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "console_only/print_console_null_char",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "console_only/screenimage",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/bad_boolean_arg",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/bad_not_no_arg",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/bad_not_to_many_args",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/bad_single_arg",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/comma",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 15.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/const_float",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/const_replace",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/const_sub",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/expression",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/hex_literals",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/math_funcs",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/not_bad_identifier",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/not_string",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/offset",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/rho_test",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/too_few_arguments_to_boolean",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/type_mismatch_string_integer",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/type_mismatch_string_subtract",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/undefined_argument",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "const/undefined_argument_first",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "data/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "declare_library/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "declare_library_dynamic/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "declare_library_external/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "declare_library_external/test_stripped",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "declare_library_header/test-compile-base-directory",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "declare_library_header/test-compile-base",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "declare_library_header/test-include",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "declare_library_header/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "declare_library_static/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "deviceinput/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "dollar$sign$test/dollar$sign",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "embed/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "embed_relative/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "environ/set_environ",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "filename/filename.extra.extension",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "filesystem/filesys_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "font/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "func_tostr/double",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "func_tostr/float",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "func_tostr/mmConst",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "func_tostr/mmLiteral",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "func_tostr/mmVariable",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "func_tostr/single",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/desktopheight",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/desktopwidth",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/icon",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 17.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/mousecursor",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 7.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/mousehide",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/mouseshow",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/screenexists",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/screenhide",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/screenhide_commands",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/screenhide_sub",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/screenicon",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/screenshow",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/screenx",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/screeny",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/title",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/title_func",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/windowhandle",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/windowhasfocus",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "glut/windowsizelimit",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "hash/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "http/invalid_url",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "http/read_example",
+   "kind": "output",
+   "status": "FAIL",
+   "stage": "result",
+   "detail": "program output differs from .output",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "http/statuscode_invalid_handle",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "icon/test",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "icon_relative/test",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "iif/iif_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "image/curico_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 23.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "image/pcx_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "image/svg_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "image/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "image/webp_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "include_once/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "include_paths/include_fixed_compile_location",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "include_paths/include_multiple",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "include_paths/include_relative",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "keyboard/devices_windows",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "libz/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "logging/commands",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "logging/consts",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "mem/mem_checking_off",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "midi/midisoundbank_embed_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "midi/midisoundbank_file_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "midi/midisoundbank_memory_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "name with spaces/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "noprompt/noprompt-continue-fatal",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "noprompt/noprompt-continue",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "noprompt/noprompt-y",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "offset/offset_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "on_error/errtest",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "opengl/test",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 18.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "operators_test/op_exp",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "overloaded/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "paint/tile_border_black_bg",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "paint/tile_border_black_nocolor",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "paint/tile_border_white_bg",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "paint/tile_border_white_nocolor",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "paint/tile_noborder_black_bg",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "paint/tile_noborder_white_bg",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "parens()/parens()",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "precomp-flags/all",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 10.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "precomp-flags/asserts",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "precomp-flags/assertscon",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "precomp-flags/console",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "precomp-flags/consoleonly",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "precomp-flags/debug",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "precomp-flags/explicit",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "precomp-flags/explicitarr",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "precomp-flags/socket",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "print/auto_semicolon_insertion",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "putimage/putimage_test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "qb64pe/dwd",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 29.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "qb64pe/element",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "qb64pe/element_createElementString",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "qb64pe/element_getnextelement",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "qb64pe/element_getprevelement",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "qb64pe/element_getStringValue",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "qb64pe/file",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "qb64pe/hasFunctionElement",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 7.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "qb64pe/prepass",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 24.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "qb64pe/string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 9.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "rotations/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "screenimage/test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "single'quote'test/single'quote'test",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.9
+  },
+  {
+   "suite": "compile_tests",
+   "test": "sockets/test",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 19.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "source_ordering/checking_off",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "source_ordering/data_positioning",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "source_ordering/define",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.8
+  },
+  {
+   "suite": "compile_tests",
+   "test": "source_ordering/goto_gosub",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "source_ordering/sub_after_main",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "source_ordering/sub_before_main",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "timer/sleep_ends_early",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "timer/timer_delayed_run",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 10.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "timer/timer_first_run",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 16.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "timer/timer_stop",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 11.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/all_types",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/dim",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/dim_array",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/dim_bad_bit_no_length",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/dim_bad_string_no_length",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/dim_bad_typename_byte",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/dim_bad_typename_string",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/nested_udt",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/static",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/static_array",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/static_bad_bit_no_length",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/static_bad_string_no_length",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/static_bad_typename_byte",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/static_bad_typename_string",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/udt",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "compile_tests",
+   "test": "types/udt_array",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "compile_tests",
+   "test": "versioninfo/test",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.2
+  },
+  {
+   "suite": "compile_tests",
+   "test": "versioninfo2/test",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 13.0
+  },
+  {
+   "suite": "compile_tests",
+   "test": "versioninfo3/test",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.7
+  },
+  {
+   "suite": "compile_tests",
+   "test": "view/window_view_mandelbrot",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.1
+  },
+  {
+   "suite": "compile_tests",
+   "test": "view/window_view_screen_line",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "compile_tests",
+   "test": "winresource/test",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "n54/big/3dsviewer/3dsviewer.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "n54/big/jpegmake.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "n54/big/tictac.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/25lines/3dcube25.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/25lines/npplasma.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/25lines/starfild.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/alyman.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/asciiconversion.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/averager.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/battleship.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 15.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/beatdown/bdt.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 9.4
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/beatdown/beatdown.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/beatdown/clickme.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/bj.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/booger/booger.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/bush.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/calc.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/calc_2.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/carracingenglish.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/cc2.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/coolscr.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/cr/cr.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.4
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/darokin.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.8
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/darpong/darpong.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 14.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/degrees.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.5
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/diceit.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/drug3d.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/fight.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/gravity.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/hgm30e/hgm30e.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/html/test.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/invader1/invader.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/kbdparse.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/lineswin.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/makebig.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.4
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/monopoly/monopoly.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/mooncr/mooncr.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 18.4
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/move.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/mrguessit.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/nlcm2006/nlcm.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.5
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/optimus/deedsaks.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.8
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/pall2.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/picdimreader.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/pongsource.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/pongtennis/tennis.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.9
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/pp256/usersubs.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 7.5
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/qbb.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/rats1.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.5
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/raytra1b.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/rect2.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/rectong/rectong.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/roboraid/roboraid.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/rotate.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/rug.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/screen.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/simpire/ssimpire.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/skydiver.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/space1.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.9
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/stones.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.7
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/su2/shoote.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 11.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/su2/su2t.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/sudoku.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/tank/tcv2.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.9
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/time.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/tor/qbdemo.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/torndc.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/upperlowerconversion.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/vektor.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/vsphere.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/wetspot/wetspot.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.9
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "pete/zodiac4.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "qb45com/action/4pong.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "qb45com/action/arcdemo/arcdemo.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "qb45com/action/arqanoid/arqanoid.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 28.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "qb45com/action/arqanoid/lvldesgn.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "qb45com/action/astrowars.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.6
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/abacus/a12gfx.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/abacus/abacus12.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/animax/animax.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/animax/axgfx.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/biochart/bcgfx.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.8
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/biochart/biochart.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 14.4
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/chess/chess.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/chess/chesssubs.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/kong/k1.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/kong/k2.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/kong/kong.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.8
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/leapfrog/leapfrog.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/leapfrog/lfgx.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/monopoly/mboard.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.8
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/pongg/pgfx.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.6
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/pongg/pongg.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/rattler/rattler.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 10.6
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/sol/s3gfx.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.7
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "thebob/sol/sol3.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "open_gl/3d_model_viewer.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "open_gl/simple_example.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/3dballs.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/3dexp2.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/acalc.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/aklabeth.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/ascipong.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/audio.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/cabsmous.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/carols.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.5
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/chess.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.6
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/cuberot.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 10.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/djsok.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/flrmp.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/forest.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/frac1.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/frac2.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/frac3.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/frog.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/gor64.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/gujero.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/intrprtr.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/kite.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/lissaj.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.8
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/mandala.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 14.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/mandelb.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/matrix.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/mclock.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.7
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/message.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/mzupd2.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.6
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/nib64.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/pattern.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/rc-ent6.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/replicat.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/ripples.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/rot13.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/rotozoom.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/scramble.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.5
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/shoot.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 18.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/sinecube.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/ssaver.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/strfld.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.0
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/temple.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/tower.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/twirl2.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/vortex.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/wumpus.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "qbasic_testcases",
+   "test": "misc/xwing.bas",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  }
+ ]
+}

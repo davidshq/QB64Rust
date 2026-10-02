@@ -1,0 +1,6305 @@
+{
+ "source": "QB64pe/source/subs_functions/subs_functions.bas (SUB reginternal)",
+ "special_argument_codes": {
+  "-1": "any-numeric",
+  "-2": "offset+size (largest safe block; CALL INTERRUPT)",
+  "-3": "offset+size (largest safe block, restricted; graphics GET/PUT)",
+  "-4": "offset+size (element size; file GET/PUT)",
+  "-5": "offset",
+  "-6": "size",
+  "-7": "_MEM of passed variable",
+  "-8": "_MEM helper {offset, fullsize, typeval, elementsize, lock} (evaluatetotyp 22406)"
+ },
+ "anomalies": [
+  {
+   "line": 4383,
+   "statement": "ideret = LONGTYPE - ISPOINTER",
+   "note": "statement inside a clearid/regid block that is not an id field"
+  }
+ ],
+ "entries": [
+  {
+   "name": "Asc",
+   "line": 32,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 3
+  },
+  {
+   "name": "Asc",
+   "line": 34,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 3
+  },
+  {
+   "name": "End",
+   "line": 36,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 8
+  },
+  {
+   "name": "LSet",
+   "line": 38,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 3
+  },
+  {
+   "name": "RSet",
+   "line": 40,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Mid",
+   "line": 42,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "musthave": "$",
+   "category": "stub"
+  },
+  {
+   "name": "Print",
+   "line": 44,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 3
+  },
+  {
+   "name": "Option",
+   "line": 46,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "Swap",
+   "line": 48,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "System",
+   "line": 50,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Write",
+   "line": 52,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "Read",
+   "line": 54,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Close",
+   "line": 56,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Reset",
+   "line": 58,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "Input",
+   "line": 60,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 5
+  },
+  {
+   "name": "TrOn",
+   "line": 63,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub"
+  },
+  {
+   "name": "TrOff",
+   "line": 65,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub"
+  },
+  {
+   "name": "List",
+   "line": 67,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Def",
+   "line": 69,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "secondargcantbe": "SEG",
+   "category": "stub"
+  },
+  {
+   "name": "IoCtl",
+   "line": 71,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub"
+  },
+  {
+   "name": "IoCtl",
+   "line": 73,
+   "kind": "function",
+   "callname": "func_stub",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "category": "stub"
+  },
+  {
+   "name": "Fre",
+   "line": 75,
+   "kind": "function",
+   "callname": "func_stub",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "category": "stub"
+  },
+  {
+   "name": "SetMem",
+   "line": 77,
+   "kind": "function",
+   "callname": "func_stub",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "category": "stub"
+  },
+  {
+   "name": "FileAttr",
+   "line": 79,
+   "kind": "function",
+   "callname": "func_stub",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "category": "stub"
+  },
+  {
+   "name": "_MemGet",
+   "line": 81,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "_MemPut",
+   "line": 83,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_MemFill",
+   "line": 85,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_Continue",
+   "line": 87,
+   "kind": "sub",
+   "callname": "sub_stub",
+   "category": "stub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_Cast",
+   "line": 90,
+   "kind": "function",
+   "callname": "",
+   "args": 2,
+   "arg_types": [
+    "any-numeric",
+    "any-numeric"
+   ],
+   "ret": "any-numeric",
+   "hr_syntax": "_CAST(numericalType, numericalValue)",
+   "comments": [
+    "overridden in qb64pe.bas",
+    "overridden in qb64pe.bas"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "_IIf",
+   "line": 99,
+   "kind": "function",
+   "callname": "",
+   "args": 3,
+   "arg_types": [
+    "_OFFSET",
+    "STRING",
+    "STRING"
+   ],
+   "ret": "STRING",
+   "hr_syntax": "_IIF(expression, truePart, falsePart)",
+   "comments": [
+    "overridden in qb64pe.bas",
+    "overridden in qb64pe.bas"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_Min",
+   "line": 108,
+   "kind": "function",
+   "callname": "",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "STRING"
+   ],
+   "ret": "STRING",
+   "hr_syntax": "_Min(value1, value2)",
+   "comments": [
+    "overridden in qb64pe.bas",
+    "overridden in qb64pe.bas"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_Max",
+   "line": 117,
+   "kind": "function",
+   "callname": "",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "STRING"
+   ],
+   "ret": "STRING",
+   "hr_syntax": "_Max(value1, value2)",
+   "comments": [
+    "overridden in qb64pe.bas",
+    "overridden in qb64pe.bas"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_Clamp",
+   "line": 126,
+   "kind": "function",
+   "callname": "",
+   "args": 3,
+   "arg_types": [
+    "STRING",
+    "STRING",
+    "STRING"
+   ],
+   "ret": "STRING",
+   "hr_syntax": "_Clamp(value, minimum, maximum)",
+   "comments": [
+    "overridden in qb64pe.bas",
+    "overridden in qb64pe.bas"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_Resize",
+   "line": 135,
+   "kind": "sub",
+   "callname": "sub__resize",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[{On|Off}][,{_Stretch|_Smooth}]",
+   "hr_syntax": "_RESIZE [{ON|OFF}][, {_STRETCH|_SMOOTH}]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Resize",
+   "line": 145,
+   "kind": "function",
+   "callname": "func__resize",
+   "ret": "LONG",
+   "hr_syntax": "_RESIZE",
+   "category": "plain function"
+  },
+  {
+   "name": "_ResizeWidth",
+   "line": 153,
+   "kind": "function",
+   "callname": "func__resizewidth",
+   "ret": "LONG",
+   "hr_syntax": "_RESIZEWIDTH",
+   "category": "plain function"
+  },
+  {
+   "name": "_ResizeHeight",
+   "line": 161,
+   "kind": "function",
+   "callname": "func__resizeheight",
+   "ret": "LONG",
+   "hr_syntax": "_RESIZEHEIGHT",
+   "category": "plain function"
+  },
+  {
+   "name": "_ScaledWidth",
+   "line": 169,
+   "kind": "function",
+   "callname": "func__scaledwidth",
+   "ret": "LONG",
+   "hr_syntax": "_SCALEDWIDTH",
+   "category": "plain function"
+  },
+  {
+   "name": "_ScaledHeight",
+   "line": 177,
+   "kind": "function",
+   "callname": "func__scaledheight",
+   "ret": "LONG",
+   "hr_syntax": "_SCALEDHEIGHT",
+   "category": "plain function"
+  },
+  {
+   "name": "_GLRender",
+   "line": 186,
+   "kind": "sub",
+   "callname": "sub__glrender",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "{_Behind|_OnTop|_Only}",
+   "hr_syntax": "_GLRENDER {_Behind|_OnTop|_Only}",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_DisplayOrder",
+   "line": 196,
+   "kind": "sub",
+   "callname": "sub__displayorder",
+   "args": 4,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[{_Software|_Hardware|_Hardware1|_GLRender}[,{_Software|_Hardware|_Hardware1|_GLRender}[,{_Software|_Hardware|_Hardware1|_GLRender}[,{_Software|_Hardware|_Hardware1|_GLRender}]]]]",
+   "hr_syntax": "_DISPLAYORDER {_Software|_Hardware|_Hardware1|_GLRender} (any combination/order)",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_MemGet",
+   "line": 206,
+   "kind": "function",
+   "callname": "func__memget",
+   "args": 3,
+   "arg_types": [
+    "_MEM",
+    "_OFFSET",
+    "any-numeric"
+   ],
+   "ret": "any-numeric",
+   "hr_syntax": "_MEMGET(block, offset, type)",
+   "comments": [
+    "x = _MEMGET(block, offset, type)"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "_Mem",
+   "line": 216,
+   "kind": "function",
+   "callname": "func__mem",
+   "args": 2,
+   "arg_types": [
+    "_OFFSET",
+    "_OFFSET"
+   ],
+   "ret": "_MEM",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_MEM(referenceVariable) or _MEM(offset, byteSize)",
+   "comments": [
+    "the _MEM type is the first TYPE defined"
+   ],
+   "category": "special-format statement",
+   "compiler_mentions": 3
+  },
+  {
+   "name": "_MemElement",
+   "line": 230,
+   "kind": "function",
+   "callname": "func__mem",
+   "args": 1,
+   "arg_types": [
+    "_MEM helper {offset, fullsize, typeval, elementsize, lock} (evaluatetotyp 22406)"
+   ],
+   "ret": "_MEM",
+   "hr_syntax": "_MEMELEMENT(referenceVariable)",
+   "comments": [
+    "the _MEM type is the first TYPE defined"
+   ],
+   "category": "plain function"
+  },
+  {
+   "name": "_MemFree",
+   "line": 241,
+   "kind": "sub",
+   "callname": "sub__memfree",
+   "args": 1,
+   "arg_types": [
+    "_MEM"
+   ],
+   "hr_syntax": "_MEMFREE memoryVariable",
+   "category": "plain sub"
+  },
+  {
+   "name": "_MemExists",
+   "line": 250,
+   "kind": "function",
+   "callname": "func__memexists",
+   "args": 1,
+   "arg_types": [
+    "_MEM"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_MEMEXISTS(memBlock)",
+   "category": "plain function"
+  },
+  {
+   "name": "_MemNew",
+   "line": 260,
+   "kind": "function",
+   "callname": "func__memnew",
+   "args": 1,
+   "arg_types": [
+    "_OFFSET"
+   ],
+   "ret": "_MEM",
+   "hr_syntax": "_MEMNEW(byteSize)",
+   "comments": [
+    "the _MEM type is the first TYPE defined"
+   ],
+   "category": "plain function"
+  },
+  {
+   "name": "_MemImage",
+   "line": 270,
+   "kind": "function",
+   "callname": "func__memimage",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "_MEM",
+   "specialformat": "[?]",
+   "hr_syntax": "_MEMIMAGE[(imageHandle&)]",
+   "comments": [
+    "dest is default",
+    "the _MEM type is the first TYPE defined"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "_MemSound",
+   "line": 281,
+   "kind": "function",
+   "callname": "func__memsound",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "ret": "_MEM",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_MEMSOUND(soundHandle&)",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "comments": [
+    "the _MEM type is the first TYPE defined"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "_MemCopy",
+   "line": 292,
+   "kind": "sub",
+   "callname": "sub__memcopy",
+   "args": 5,
+   "arg_types": [
+    "_MEM",
+    "_OFFSET",
+    "_OFFSET",
+    "_MEM",
+    "_OFFSET"
+   ],
+   "specialformat": "?,?,?{To}?,?",
+   "hr_syntax": "_MEMCOPY sourceBlock, sourceBlock.OFFSET, sourceBlock.SIZE TO destBlock, destBlock.OFFSET",
+   "comments": [
+    "_MEMCOPY a, aoffset, bytes TO b, boffset",
+    "dest is default"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "_ConsoleTitle",
+   "line": 302,
+   "kind": "sub",
+   "callname": "sub__consoletitle",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "_CONSOLETITLE title$",
+   "category": "plain sub"
+  },
+  {
+   "name": "_ScreenShow",
+   "line": 311,
+   "kind": "sub",
+   "callname": "sub__screenshow",
+   "hr_syntax": "_SCREENSHOW",
+   "category": "plain sub"
+  },
+  {
+   "name": "_ScreenHide",
+   "line": 318,
+   "kind": "sub",
+   "callname": "sub__screenhide",
+   "hr_syntax": "_SCREENHIDE",
+   "category": "plain sub"
+  },
+  {
+   "name": "_ScreenHide",
+   "line": 325,
+   "kind": "function",
+   "callname": "func__screenhide",
+   "ret": "LONG",
+   "hr_syntax": "_SCREENHIDE",
+   "category": "plain function"
+  },
+  {
+   "name": "_Console",
+   "line": 333,
+   "kind": "function",
+   "callname": "func__console",
+   "ret": "LONG",
+   "hr_syntax": "_CONSOLE",
+   "category": "plain function"
+  },
+  {
+   "name": "_Console",
+   "line": 341,
+   "kind": "sub",
+   "callname": "sub__console",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "{On|Off}",
+   "hr_syntax": "_CONSOLE {On|Off}",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_ControlChr",
+   "line": 351,
+   "kind": "sub",
+   "callname": "sub__controlchr",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "{On|Off}",
+   "hr_syntax": "_CONTROLCHR {On|Off}",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Blink",
+   "line": 361,
+   "kind": "sub",
+   "callname": "sub__blink",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "{On|Off}",
+   "hr_syntax": "_BLINK {On|Off}",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Blink",
+   "line": 371,
+   "kind": "function",
+   "callname": "func__blink",
+   "ret": "LONG",
+   "hr_syntax": "_BLINK",
+   "category": "plain function"
+  },
+  {
+   "name": "_FileExists",
+   "line": 379,
+   "kind": "function",
+   "callname": "func__fileexists",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_FILEEXISTS(fileName$)",
+   "category": "plain function"
+  },
+  {
+   "name": "_DirExists",
+   "line": 389,
+   "kind": "function",
+   "callname": "func__direxists",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_DIREXISTS(path$)",
+   "category": "plain function"
+  },
+  {
+   "name": "Stick",
+   "line": 401,
+   "kind": "function",
+   "callname": "func_stick",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,?]",
+   "hr_syntax": "STICK(direction%) or STICK(direction%, axis_number%)",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Strig",
+   "line": 412,
+   "kind": "function",
+   "callname": "func_strig",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,?]",
+   "hr_syntax": "STRIG(button_function%) or STRIG(button_function%, device_number%)",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Strig",
+   "line": 423,
+   "kind": "sub",
+   "callname": "sub_strig",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[(?[,?])]{On|Off|Stop}",
+   "hr_syntax": "STRIG(button%) {On|Off|Stop}",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "comments": [
+    "In previous versions of BASIC, the statement STRIG ON enables testing of the joystick triggers; STRIG OFF disables joystick trigger testing. QuickBASIC ignores STRIG ON and STRIG OFF statements--the statements are provided for compatibility with earlier versions."
+   ],
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_Devices",
+   "line": 434,
+   "kind": "function",
+   "callname": "func__devices",
+   "ret": "LONG",
+   "hr_syntax": "_DEVICES",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "category": "plain function"
+  },
+  {
+   "name": "_Device",
+   "line": 442,
+   "kind": "function",
+   "callname": "func__device",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "[?]",
+   "hr_syntax": "_DEVICE$(device_number)",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_DeviceInput",
+   "line": 454,
+   "kind": "function",
+   "callname": "func__deviceinput",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_DEVICEINPUT[(device_number&)]",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_LastButton",
+   "line": 465,
+   "kind": "function",
+   "callname": "func__lastbutton",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_LASTBUTTON(deviceNumber)",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_LastAxis",
+   "line": 476,
+   "kind": "function",
+   "callname": "func__lastaxis",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_LASTAXIS(deviceNumber)",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_LastWheel",
+   "line": 487,
+   "kind": "function",
+   "callname": "func__lastwheel",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_LASTWHEEL(deviceNumber)",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Button",
+   "line": 498,
+   "kind": "function",
+   "callname": "func__button",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_BUTTON(button_number%)",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_ButtonChange",
+   "line": 509,
+   "kind": "function",
+   "callname": "func__buttonchange",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_BUTTONCHANGE(button_number%)",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Axis",
+   "line": 520,
+   "kind": "function",
+   "callname": "func__axis",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "DOUBLE",
+   "specialformat": "[?]",
+   "hr_syntax": "_AXIS(axis_number%)",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Wheel",
+   "line": 531,
+   "kind": "function",
+   "callname": "func__wheel",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "DOUBLE",
+   "specialformat": "[?]",
+   "hr_syntax": "_WHEEL(wheelNumber%)",
+   "dependency": "DEPENDENCY_DEVICEINPUT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Key",
+   "line": 542,
+   "kind": "sub",
+   "callname": "sub_key",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "(?){On|Off|Stop}",
+   "hr_syntax": "KEY(number) {On|Off|Stop}",
+   "category": "special-format statement",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "_ScreenX",
+   "line": 552,
+   "kind": "function",
+   "callname": "func__screenx",
+   "ret": "LONG",
+   "hr_syntax": "_SCREENX",
+   "category": "plain function"
+  },
+  {
+   "name": "_ScreenY",
+   "line": 560,
+   "kind": "function",
+   "callname": "func__screeny",
+   "ret": "LONG",
+   "hr_syntax": "_SCREENY",
+   "category": "plain function"
+  },
+  {
+   "name": "_ScreenMove",
+   "line": 568,
+   "kind": "sub",
+   "callname": "sub__screenmove",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[{_Middle}][?,?]",
+   "hr_syntax": "_SCREENMOVE x, y or _SCREENMOVE _Middle",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_MouseMove",
+   "line": 578,
+   "kind": "sub",
+   "callname": "sub__mousemove",
+   "args": 2,
+   "arg_types": [
+    "DOUBLE",
+    "DOUBLE"
+   ],
+   "hr_syntax": "_MOUSEMOVE x, y",
+   "category": "plain sub"
+  },
+  {
+   "name": "_OS",
+   "line": 587,
+   "kind": "function",
+   "callname": "func__os",
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_OS$",
+   "category": "plain function"
+  },
+  {
+   "name": "_CompileDate",
+   "line": 596,
+   "kind": "function",
+   "callname": "func__compdate",
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_COMPILEDATE$",
+   "category": "plain function"
+  },
+  {
+   "name": "_CompileTime",
+   "line": 605,
+   "kind": "function",
+   "callname": "func__comptime",
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_COMPILETIME$",
+   "category": "plain function"
+  },
+  {
+   "name": "_CompilerVersion",
+   "line": 614,
+   "kind": "function",
+   "callname": "func__compvers",
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_COMPILERVERSION$",
+   "category": "plain function"
+  },
+  {
+   "name": "_Title",
+   "line": 623,
+   "kind": "function",
+   "callname": "func__title",
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_TITLE$",
+   "category": "plain function"
+  },
+  {
+   "name": "_MapUnicode",
+   "line": 632,
+   "kind": "sub",
+   "callname": "sub__mapunicode",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "?{To}?",
+   "hr_syntax": "_MAPUNICODE unicode& TO asciiCode%",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_MapUnicode",
+   "line": 642,
+   "kind": "function",
+   "callname": "func__mapunicode",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_MAPUNICODE(asciiCode%)",
+   "category": "plain function"
+  },
+  {
+   "name": "_KeyDown",
+   "line": 652,
+   "kind": "function",
+   "callname": "func__keydown",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_KEYDOWN(code&)",
+   "category": "plain function"
+  },
+  {
+   "name": "_KeyHit",
+   "line": 662,
+   "kind": "function",
+   "callname": "func__keyhit",
+   "ret": "LONG",
+   "hr_syntax": "_KEYHIT",
+   "category": "plain function"
+  },
+  {
+   "name": "_WindowHandle",
+   "line": 670,
+   "kind": "function",
+   "callname": "func__windowhandle",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "_UNSIGNED _OFFSET",
+   "specialformat": "[?]",
+   "hr_syntax": "_WINDOWHANDLE[(handleType&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Files",
+   "line": 681,
+   "kind": "sub",
+   "callname": "sub_files",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "specialformat": "[?]",
+   "hr_syntax": "FILES fileSpec$",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Files",
+   "line": 691,
+   "kind": "function",
+   "callname": "func__files",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "[?]",
+   "hr_syntax": "_FILES$([fileSpec$])",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_FullPath",
+   "line": 703,
+   "kind": "function",
+   "callname": "func__fullpath",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_FULLPATH$(pathName$)",
+   "category": "plain function"
+  },
+  {
+   "name": "_PrintImage",
+   "line": 714,
+   "kind": "sub",
+   "callname": "sub__printimage",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "hr_syntax": "_PRINTIMAGE imageHandle&",
+   "dependency": "DEPENDENCY_PRINTER",
+   "comments": [
+    "'proposed version:",
+    "'id.specialformat = \"[_SQUAREPIXELS][?][,(?,?)-(?,?)]\""
+   ],
+   "category": "plain sub"
+  },
+  {
+   "name": "_ScreenClick",
+   "line": 727,
+   "kind": "sub",
+   "callname": "sub__screenclick",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "?,?[,?]",
+   "hr_syntax": "_SCREENCLICK x, y[, button%]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_ScreenPrint",
+   "line": 737,
+   "kind": "sub",
+   "callname": "sub__screenprint",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "_SCREENPRINT text$",
+   "category": "plain sub"
+  },
+  {
+   "name": "_ScreenImage",
+   "line": 746,
+   "kind": "function",
+   "callname": "func__screenimage",
+   "args": 4,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?,?,?,?]",
+   "hr_syntax": "_SCREENIMAGE(column1, row1, column2, row2)",
+   "dependency": "DEPENDENCY_SCREENIMAGE",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Lock",
+   "line": 757,
+   "kind": "sub",
+   "callname": "sub_lock",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "_INTEGER64",
+    "_INTEGER64"
+   ],
+   "specialformat": "[#]?[,[?][{To}?]]",
+   "hr_syntax": "LOCK #fileNumber%, record& or LOCK #fileNumber% firstRecord& TO lastRecord&",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Unlock",
+   "line": 767,
+   "kind": "sub",
+   "callname": "sub_unlock",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "_INTEGER64",
+    "_INTEGER64"
+   ],
+   "specialformat": "[#]?[,[?][{To}?]]",
+   "hr_syntax": "UNLOCK #fileNumber%, record& or UNLOCK #fileNumber% firstRecord& TO lastRecord&",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_FreeTimer",
+   "line": 777,
+   "kind": "function",
+   "callname": "func__freetimer",
+   "ret": "LONG",
+   "hr_syntax": "_FREETIMER",
+   "category": "plain function"
+  },
+  {
+   "name": "Timer",
+   "line": 785,
+   "kind": "sub",
+   "callname": "sub_timer",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[(?)]{On|Off|Stop|Free}",
+   "hr_syntax": "TIMER[(number%)] {On|Off|Stop|Free}",
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_FullScreen",
+   "line": 795,
+   "kind": "sub",
+   "callname": "sub__fullscreen",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "[{_Off|_Stretch|_SquarePixels|Off}][,{_Smooth}]",
+   "hr_syntax": "_FULLSCREEN [{_Off|_Stretch|_SquarePixels|Off}][,{_Smooth}]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_AllowFullScreen",
+   "line": 805,
+   "kind": "sub",
+   "callname": "sub__allowfullscreen",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[{_Stretch|_SquarePixels|_Off|_All|Off}][,{_Smooth|_Off|_All|Off}]",
+   "hr_syntax": "_ALLOWFULLSCREEN [{_Stretch|_SquarePixels|_Off|_All|Off}][,{_Smooth|_Off|_All|Off}]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_FullScreen",
+   "line": 815,
+   "kind": "function",
+   "callname": "func__fullscreen",
+   "ret": "LONG",
+   "hr_syntax": "_FULLSCREEN",
+   "category": "plain function"
+  },
+  {
+   "name": "_Smooth",
+   "line": 823,
+   "kind": "function",
+   "callname": "func__fullscreensmooth",
+   "ret": "LONG",
+   "hr_syntax": "_SMOOTH",
+   "category": "plain function"
+  },
+  {
+   "name": "_WindowHasFocus",
+   "line": 831,
+   "kind": "function",
+   "callname": "func__hasfocus",
+   "ret": "LONG",
+   "hr_syntax": "_WINDOWHASFOCUS",
+   "category": "plain function"
+  },
+  {
+   "name": "_WindowSizeLimit",
+   "line": 839,
+   "kind": "sub",
+   "callname": "sub__windowsizelimit",
+   "args": 4,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[(?,?)][-(?,?)]",
+   "hr_syntax": "_WINDOWSIZELIMIT [(minWidth, minHeight)] [- (maxWidth, maxHeight)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Clipboard",
+   "line": 849,
+   "kind": "sub",
+   "callname": "sub__clipboard",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "musthave": "$",
+   "specialformat": "=?",
+   "hr_syntax": "_CLIPBOARD$ = text$",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Clipboard",
+   "line": 860,
+   "kind": "function",
+   "callname": "func__clipboard",
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_CLIPBOARD$",
+   "category": "plain function"
+  },
+  {
+   "name": "_ClipboardImage",
+   "line": 869,
+   "kind": "function",
+   "callname": "func__clipboardimage",
+   "ret": "LONG",
+   "hr_syntax": "_CLIPBOARDIMAGE",
+   "dependency": "DEPENDENCY_SCREENIMAGE",
+   "category": "plain function"
+  },
+  {
+   "name": "_ClipboardImage",
+   "line": 877,
+   "kind": "sub",
+   "callname": "sub__clipboardimage",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "=?",
+   "hr_syntax": "_CLIPBOARDIMAGE = existingImageHandle&",
+   "dependency": "DEPENDENCY_SCREENIMAGE",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Exit",
+   "line": 887,
+   "kind": "function",
+   "callname": "func__exit",
+   "ret": "LONG",
+   "hr_syntax": "_EXIT",
+   "category": "plain function"
+  },
+  {
+   "name": "_OpenHost",
+   "line": 895,
+   "kind": "function",
+   "callname": "func__openhost",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_OPENHOST(TCP/IP:portNumber)",
+   "dependency": "DEPENDENCY_SOCKETS",
+   "category": "plain function"
+  },
+  {
+   "name": "_Connected",
+   "line": 905,
+   "kind": "function",
+   "callname": "func__connected",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_CONNECTED(connectionHandle&)",
+   "category": "plain function"
+  },
+  {
+   "name": "_ConnectionAddress",
+   "line": 915,
+   "kind": "function",
+   "callname": "func__connectionaddress",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "STRING",
+   "mayhave": "$",
+   "hr_syntax": "_CONNECTIONADDRESS(connectionHandle&)",
+   "category": "plain function"
+  },
+  {
+   "name": "_OpenConnection",
+   "line": 926,
+   "kind": "function",
+   "callname": "func__openconnection",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_OPENCONNECTION(hostHandle)",
+   "category": "plain function"
+  },
+  {
+   "name": "_OpenClient",
+   "line": 936,
+   "kind": "function",
+   "callname": "func__openclient",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_OPENCLIENT(TCP/IP:port:address)",
+   "dependency": "DEPENDENCY_SOCKETS",
+   "category": "plain function"
+  },
+  {
+   "name": "_StatusCode",
+   "line": 946,
+   "kind": "function",
+   "callname": "func__statusCode",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_STATUSCODE(httpHandle&)",
+   "category": "plain function"
+  },
+  {
+   "name": "_EnvironCount",
+   "line": 956,
+   "kind": "function",
+   "callname": "func__environcount",
+   "ret": "LONG",
+   "hr_syntax": "_ENVIRONCOUNT",
+   "category": "plain function"
+  },
+  {
+   "name": "Environ",
+   "line": 964,
+   "kind": "function",
+   "callname": "func_environ",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "ENVIRON$(listIndex%) or ENVIRON$(systemID$)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Environ",
+   "line": 975,
+   "kind": "sub",
+   "callname": "sub_environ",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "ENVIRON stringExpression$",
+   "category": "plain sub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_ErrorLine",
+   "line": 984,
+   "kind": "function",
+   "callname": "func__errorline",
+   "ret": "LONG",
+   "hr_syntax": "_ERRORLINE",
+   "category": "plain function"
+  },
+  {
+   "name": "_InclErrorLine",
+   "line": 992,
+   "kind": "function",
+   "callname": "func__inclerrorline",
+   "ret": "LONG",
+   "hr_syntax": "_INCLERRORLINE",
+   "category": "plain function"
+  },
+  {
+   "name": "_ErrorMessage",
+   "line": 1000,
+   "kind": "function",
+   "callname": "func__errormessage",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "[?]",
+   "hr_syntax": "_ERRORMESSAGE$[(errorCode&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Assert",
+   "line": 1012,
+   "kind": "sub",
+   "callname": "sub__assert",
+   "args": 2,
+   "arg_types": [
+    "INTEGER",
+    "STRING"
+   ],
+   "specialformat": "?[,?]",
+   "hr_syntax": "_ASSERT condition[, errorMessage$]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Display",
+   "line": 1022,
+   "kind": "sub",
+   "callname": "sub__display",
+   "hr_syntax": "_DISPLAY",
+   "category": "plain sub"
+  },
+  {
+   "name": "_AutoDisplay",
+   "line": 1029,
+   "kind": "sub",
+   "callname": "sub__autodisplay",
+   "hr_syntax": "_AUTODISPLAY",
+   "category": "plain sub"
+  },
+  {
+   "name": "_Limit",
+   "line": 1036,
+   "kind": "sub",
+   "callname": "sub__limit",
+   "args": 1,
+   "arg_types": [
+    "DOUBLE"
+   ],
+   "hr_syntax": "_LIMIT framesPerSecond!",
+   "category": "plain sub"
+  },
+  {
+   "name": "_FPS",
+   "line": 1045,
+   "kind": "sub",
+   "callname": "sub__fps",
+   "args": 1,
+   "arg_types": [
+    "DOUBLE"
+   ],
+   "specialformat": "[{_Auto}][?]",
+   "hr_syntax": "_FPS fps! or _FPS _Auto",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Delay",
+   "line": 1055,
+   "kind": "sub",
+   "callname": "sub__delay",
+   "args": 1,
+   "arg_types": [
+    "DOUBLE"
+   ],
+   "hr_syntax": "_DELAY seconds!",
+   "category": "plain sub"
+  },
+  {
+   "name": "_Icon",
+   "line": 1064,
+   "kind": "sub",
+   "callname": "sub__icon",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[?[,?]]",
+   "hr_syntax": "_ICON [mainImageHandle&[, smallImageHandle&]]",
+   "dependency": "DEPENDENCY_ICON",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Title",
+   "line": 1074,
+   "kind": "sub",
+   "callname": "sub__title",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "_TITLE text$",
+   "category": "plain sub"
+  },
+  {
+   "name": "_Echo",
+   "line": 1083,
+   "kind": "sub",
+   "callname": "sub__echo",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "_ECHO text$",
+   "category": "plain sub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_ReadFile",
+   "line": 1092,
+   "kind": "function",
+   "callname": "func__readfile",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_READFILE$(fileSpec$)",
+   "category": "plain function"
+  },
+  {
+   "name": "_WriteFile",
+   "line": 1103,
+   "kind": "sub",
+   "callname": "sub__writefile",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "STRING"
+   ],
+   "hr_syntax": "_WRITEFILE fileSpec$, contents$",
+   "category": "plain sub"
+  },
+  {
+   "name": "_AcceptFileDrop",
+   "line": 1112,
+   "kind": "sub",
+   "callname": "sub__filedrop",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "[{On|Off}]",
+   "hr_syntax": "_ACCEPTFILEDROP [{On|Off}]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_AcceptFileDrop",
+   "line": 1122,
+   "kind": "function",
+   "callname": "func__filedrop",
+   "ret": "LONG",
+   "hr_syntax": "_ACCEPTFILEDROP",
+   "category": "plain function"
+  },
+  {
+   "name": "_FinishDrop",
+   "line": 1130,
+   "kind": "sub",
+   "callname": "sub__finishdrop",
+   "hr_syntax": "_FINISHDROP",
+   "category": "plain sub"
+  },
+  {
+   "name": "_TotalDroppedFiles",
+   "line": 1137,
+   "kind": "function",
+   "callname": "func__totaldroppedfiles",
+   "ret": "LONG",
+   "hr_syntax": "_TOTALDROPPEDFILES",
+   "category": "plain function"
+  },
+  {
+   "name": "_DroppedFile",
+   "line": 1145,
+   "kind": "function",
+   "callname": "func__droppedfile",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "STRING",
+   "mayhave": "$",
+   "specialformat": "[?]",
+   "hr_syntax": "_DROPPEDFILE$[(index&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Clear",
+   "line": 1157,
+   "kind": "sub",
+   "callname": "sub_clear",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[?][,[?][,?]]",
+   "hr_syntax": "CLEAR",
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_NewImage",
+   "line": 1169,
+   "kind": "function",
+   "callname": "func__newimage",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?,?[,?]",
+   "hr_syntax": "_NEWIMAGE(width&, height&, mode)",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_LoadImage",
+   "line": 1180,
+   "kind": "function",
+   "callname": "func__loadimage",
+   "args": 3,
+   "arg_types": [
+    "STRING",
+    "LONG",
+    "STRING"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,[?][,?]]",
+   "hr_syntax": "_LOADIMAGE(fileName$[, [mode&][, requirements$]])",
+   "dependency": "DEPENDENCY_IMAGE_CODEC",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_FreeImage",
+   "line": 1192,
+   "kind": "sub",
+   "callname": "sub__freeimage",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "[?]",
+   "hr_syntax": "_FREEIMAGE handle&",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_CopyImage",
+   "line": 1202,
+   "kind": "function",
+   "callname": "func__copyimage",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_COPYIMAGE(imageHandle&[, mode])",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_SaveImage",
+   "line": 1213,
+   "kind": "sub",
+   "callname": "sub__saveimage",
+   "args": 3,
+   "arg_types": [
+    "STRING",
+    "LONG",
+    "STRING"
+   ],
+   "specialformat": "?[,[?][,?]]",
+   "hr_syntax": "_SAVEIMAGE fileName$[, imageHandle&][, requirements$])",
+   "dependency": "DEPENDENCY_IMAGE_CODEC",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Source",
+   "line": 1226,
+   "kind": "sub",
+   "callname": "sub__source",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "?",
+   "hr_syntax": "_SOURCE handle&",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Dest",
+   "line": 1236,
+   "kind": "sub",
+   "callname": "sub__dest",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "?",
+   "hr_syntax": "_DEST imageHandle&",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Source",
+   "line": 1246,
+   "kind": "function",
+   "callname": "func__source",
+   "ret": "LONG",
+   "hr_syntax": "_SOURCE",
+   "category": "plain function"
+  },
+  {
+   "name": "_Dest",
+   "line": 1254,
+   "kind": "function",
+   "callname": "func__dest",
+   "ret": "LONG",
+   "hr_syntax": "_DEST",
+   "category": "plain function"
+  },
+  {
+   "name": "_Display",
+   "line": 1262,
+   "kind": "function",
+   "callname": "func__display",
+   "ret": "LONG",
+   "hr_syntax": "_DISPLAY",
+   "category": "plain function"
+  },
+  {
+   "name": "_Blend",
+   "line": 1272,
+   "kind": "sub",
+   "callname": "sub__blend",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "[?]",
+   "hr_syntax": "_BLEND [imageHandle&]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_DontBlend",
+   "line": 1282,
+   "kind": "sub",
+   "callname": "sub__dontblend",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "[?]",
+   "hr_syntax": "_DONTBLEND [imageHandle&]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_ClearColor",
+   "line": 1292,
+   "kind": "sub",
+   "callname": "sub__clearcolor",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED LONG",
+    "LONG"
+   ],
+   "specialformat": "[{_None}][?][,?]",
+   "hr_syntax": "_CLEARCOLOR {color&|_None}[,dest_handle&]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_PutImage",
+   "line": 1304,
+   "kind": "sub",
+   "callname": "sub__putimage",
+   "args": 10,
+   "arg_types": [
+    "DOUBLE",
+    "DOUBLE",
+    "DOUBLE",
+    "DOUBLE",
+    "LONG",
+    "LONG",
+    "DOUBLE",
+    "DOUBLE",
+    "DOUBLE",
+    "DOUBLE"
+   ],
+   "specialformat": "[[{Step}](?,?)[-[{Step}](?,?)]][,[?][,[?][,[[{Step}](?,?)[-[{Step}](?,?)]][,{_Smooth}]]]]",
+   "hr_syntax": "_PUTIMAGE [STEP] [(dx1, dy1)-[STEP][(dx2, dy2)]][, sourceHandle&][, destHandle&][, ][STEP][(sx1, sy1)[-STEP][(sx2, sy2)]][_SMOOTH]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_MapTriangle",
+   "line": 1314,
+   "kind": "sub",
+   "callname": "sub__maptriangle",
+   "args": 19,
+   "arg_types": [
+    "LONG",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "LONG",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[{_Clockwise|_AntiClockwise}][{_Seamless}](?,?)-(?,?)-(?,?)[,?]{To}(?,?[,?])-(?,?[,?])-(?,?[,?])[,[?][,{_Smooth|_SmoothShrunk|_SmoothStretched}]]",
+   "hr_syntax": "_MAPTRIANGLE [{_SEAMLESS}] (sx1, sy1)-(sx2, sy2)-(sx3, sy3), source& TO (dx1, dy1)-(dx2, dy2)-(dx3, dy3)[, destination&][{_SMOOTH|_SMOOTHSHRUNK|_SMOOTHSTRETCHED}]]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_DepthBuffer",
+   "line": 1324,
+   "kind": "sub",
+   "callname": "sub__depthbuffer",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "{On|Off|Lock|_Clear}[,?]",
+   "hr_syntax": "_DEPTHBUFFER {On|Off|Lock|_Clear}[,handle&]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_SetAlpha",
+   "line": 1334,
+   "kind": "sub",
+   "callname": "sub__setalpha",
+   "args": 4,
+   "arg_types": [
+    "_UNSIGNED LONG",
+    "_UNSIGNED LONG",
+    "_UNSIGNED LONG",
+    "LONG"
+   ],
+   "specialformat": "?[,[?[{To}?]][,?]]",
+   "hr_syntax": "_SETALPHA alpha& or _SETALPHA color1& TO color2&[, imageHandle&]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Width",
+   "line": 1346,
+   "kind": "function",
+   "callname": "func__width",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_WIDTH(imageHandle&)",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Height",
+   "line": 1357,
+   "kind": "function",
+   "callname": "func__height",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_HEIGHT(imageHandle&)",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_PixelSize",
+   "line": 1368,
+   "kind": "function",
+   "callname": "func__pixelsize",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_PIXELSIZE[(imageHandle&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_ClearColor",
+   "line": 1379,
+   "kind": "function",
+   "callname": "func__clearcolor",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_CLEARCOLOR[(sourceHandle&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Blend",
+   "line": 1390,
+   "kind": "function",
+   "callname": "func__blend",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_BLEND[(imageHandle&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_DefaultColor",
+   "line": 1401,
+   "kind": "function",
+   "callname": "func__defaultcolor",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "_UNSIGNED LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_DEFAULTCOLOR[(imageHandle&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_BackgroundColor",
+   "line": 1412,
+   "kind": "function",
+   "callname": "func__backgroundcolor",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "_UNSIGNED LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_BACKGROUNDCOLOR(imageHandle&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_PaletteColor",
+   "line": 1425,
+   "kind": "function",
+   "callname": "func__palettecolor",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_PALETTECOLOR(attributeNumber%, imgHandle&)",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_PaletteColor",
+   "line": 1436,
+   "kind": "sub",
+   "callname": "sub__palettecolor",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "_UNSIGNED LONG",
+    "LONG"
+   ],
+   "specialformat": "?,?[,?]",
+   "hr_syntax": "_PALETTECOLOR attribute%, newColor&[, imgHandle&]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_CopyPalette",
+   "line": 1446,
+   "kind": "sub",
+   "callname": "sub__copypalette",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[?][,?]",
+   "hr_syntax": "_COPYPALETTE [sourceImageHandle&[, destinationImageHandle&]]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_LoadFont",
+   "line": 1458,
+   "kind": "function",
+   "callname": "func__loadfont",
+   "args": 4,
+   "arg_types": [
+    "STRING",
+    "LONG",
+    "STRING",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?,?[,[?][,[?]]]",
+   "hr_syntax": "_LOADFONT(fileName$, size&[, {MONOSPACE|, UNICODE|, DONTBLEND|, MEMORY|, AUTOMONO}][, fontIndex])",
+   "dependency": "DEPENDENCY_LOADFONT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Font",
+   "line": 1469,
+   "kind": "sub",
+   "callname": "sub__font",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "?[,?]",
+   "hr_syntax": "_FONT fontHandle&[, imageHandle&]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_FontWidth",
+   "line": 1479,
+   "kind": "function",
+   "callname": "func__fontwidth",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_FONTWIDTH[(fontHandle&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_FontHeight",
+   "line": 1490,
+   "kind": "function",
+   "callname": "func__fontheight",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_FONTHEIGHT[(fontHandle&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Font",
+   "line": 1501,
+   "kind": "function",
+   "callname": "func__font",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_FONT[(imageHandle&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_PrintString",
+   "line": 1512,
+   "kind": "sub",
+   "callname": "sub__printstring",
+   "args": 4,
+   "arg_types": [
+    "DOUBLE",
+    "DOUBLE",
+    "STRING",
+    "LONG"
+   ],
+   "specialformat": "[{Step}](?,?),?[,?]",
+   "hr_syntax": "_PRINTSTRING(x, y), text$[, imageHandle&]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_PrintWidth",
+   "line": 1522,
+   "kind": "function",
+   "callname": "func__printwidth",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_PRINTWIDTH(textToPrint$[, destinationHandle&])",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_FreeFont",
+   "line": 1533,
+   "kind": "sub",
+   "callname": "sub__freefont",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "?",
+   "hr_syntax": "_FREEFONT fontHandle&",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_PrintMode",
+   "line": 1543,
+   "kind": "sub",
+   "callname": "sub__printmode",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "{_FillBackground|_KeepBackground|_OnlyBackground}[,?]",
+   "hr_syntax": "_PRINTMODE {_FillBackground|_KeepBackground|_OnlyBackground}[, imageHandle&]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_PrintMode",
+   "line": 1553,
+   "kind": "function",
+   "callname": "func__printmode",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_PRINTMODE[(imageHandle&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_UFontHeight",
+   "line": 1564,
+   "kind": "function",
+   "callname": "func__UFontHeight",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_UFONTHEIGHT&[(fontHandle&)]",
+   "dependency": "DEPENDENCY_LOADFONT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_UPrintWidth",
+   "line": 1576,
+   "kind": "function",
+   "callname": "func__UPrintWidth",
+   "args": 3,
+   "arg_types": [
+    "STRING",
+    "LONG",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,[?][,?]]",
+   "hr_syntax": "_UPRINTWIDTH&(text$[, utfEncoding&][, fontHandle&])",
+   "dependency": "DEPENDENCY_LOADFONT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_ULineSpacing",
+   "line": 1588,
+   "kind": "function",
+   "callname": "func__ULineSpacing",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_ULINESPACING&[(fontHandle&)]",
+   "dependency": "DEPENDENCY_LOADFONT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_UPrintString",
+   "line": 1600,
+   "kind": "sub",
+   "callname": "sub__UPrintString",
+   "args": 7,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "STRING",
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "(?,?),?[,[?][,[?][,[?][,?]]]]",
+   "hr_syntax": "_UPRINTSTRING (x&, y&), text$[, maxWidth&][, utfEncoding&][, fontHandle&][, imageHandle&]",
+   "dependency": "DEPENDENCY_LOADFONT",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_UCharPos",
+   "line": 1611,
+   "kind": "function",
+   "callname": "func__UCharPos",
+   "args": 4,
+   "arg_types": [
+    "STRING",
+    "offset+size (largest safe block; CALL INTERRUPT)",
+    "LONG",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,[?][,[?][,?]]]",
+   "hr_syntax": "_UCHARPOS&(text$[, posArray&([index&])][, utfEncoding&][, fontHandle&])",
+   "dependency": "DEPENDENCY_LOADFONT",
+   "comments": [
+    "arg 2 has special handling code in evaluatefunc()"
+   ],
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_RGBA",
+   "line": 1625,
+   "kind": "function",
+   "callname": "func__rgba",
+   "args": 5,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "ret": "_UNSIGNED LONG",
+   "specialformat": "?,?,?,?[,?]",
+   "hr_syntax": "_RGBA(red&, green&, blue&, alpha&[, imageHandle&])",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_RGB",
+   "line": 1636,
+   "kind": "function",
+   "callname": "func__rgb",
+   "args": 4,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "ret": "_UNSIGNED LONG",
+   "specialformat": "?,?,?[,?]",
+   "hr_syntax": "_RGB(red&, green&, blue&[, imageHandle&])",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Red",
+   "line": 1647,
+   "kind": "function",
+   "callname": "func__red",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED LONG",
+    "_UNSIGNED LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_RED(rgbaColorIndex&[, imageHandle&])",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Green",
+   "line": 1658,
+   "kind": "function",
+   "callname": "func__green",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED LONG",
+    "_UNSIGNED LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_GREEN(rgbaColorIndex&[, imageHandle&])",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Blue",
+   "line": 1669,
+   "kind": "function",
+   "callname": "func__blue",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED LONG",
+    "_UNSIGNED LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_BLUE(rgbaColorIndex&[, imageHandle&])",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Alpha",
+   "line": 1680,
+   "kind": "function",
+   "callname": "func__alpha",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED LONG",
+    "_UNSIGNED LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_ALPHA(color~&[, imageHandle&])",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_RGBA32",
+   "line": 1691,
+   "kind": "function",
+   "callname": "func__rgba32",
+   "args": 4,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "ret": "_UNSIGNED LONG",
+   "hr_syntax": "_RGBA32(red&, green&, blue&, alpha&)",
+   "category": "plain function"
+  },
+  {
+   "name": "_RGB32",
+   "line": 1701,
+   "kind": "function",
+   "callname": "func__rgb32",
+   "args": 4,
+   "minargs": 1,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "ret": "_UNSIGNED LONG",
+   "hr_syntax": "_RGB32(red&, green&, blue&[, alpha&]) or _RGB32(intensity&[, alpha&])",
+   "overloaded": true,
+   "category": "overloaded"
+  },
+  {
+   "name": "_Red32",
+   "line": 1713,
+   "kind": "function",
+   "callname": "func__red32",
+   "args": 1,
+   "arg_types": [
+    "_UNSIGNED LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_RED32(rgbaColor&)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Green32",
+   "line": 1723,
+   "kind": "function",
+   "callname": "func__green32",
+   "args": 1,
+   "arg_types": [
+    "_UNSIGNED LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_GREEN32(rgbaColor&)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Blue32",
+   "line": 1733,
+   "kind": "function",
+   "callname": "func__blue32",
+   "args": 1,
+   "arg_types": [
+    "_UNSIGNED LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_BLUE32(rgbaColor&)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Alpha32",
+   "line": 1743,
+   "kind": "function",
+   "callname": "func__alpha32",
+   "args": 1,
+   "arg_types": [
+    "_UNSIGNED LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_ALPHA32(rgbaColor&)",
+   "category": "plain function"
+  },
+  {
+   "name": "_HSB32",
+   "line": 1753,
+   "kind": "function",
+   "callname": "func__hsb32",
+   "args": 3,
+   "arg_types": [
+    "DOUBLE",
+    "DOUBLE",
+    "DOUBLE"
+   ],
+   "ret": "_UNSIGNED LONG",
+   "hr_syntax": "_HSB32(hue#, saturation#, brightness#)",
+   "category": "plain function"
+  },
+  {
+   "name": "_HSBA32",
+   "line": 1763,
+   "kind": "function",
+   "callname": "func__hsba32",
+   "args": 4,
+   "arg_types": [
+    "DOUBLE",
+    "DOUBLE",
+    "DOUBLE",
+    "DOUBLE"
+   ],
+   "ret": "_UNSIGNED LONG",
+   "hr_syntax": "_HSBA32(hue#, saturation#, brightness#, alpha#)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Hue32",
+   "line": 1773,
+   "kind": "function",
+   "callname": "func__hue32",
+   "args": 1,
+   "arg_types": [
+    "_UNSIGNED LONG"
+   ],
+   "ret": "DOUBLE",
+   "hr_syntax": "_HUE32(rgbaColor&)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Saturation32",
+   "line": 1783,
+   "kind": "function",
+   "callname": "func__sat32",
+   "args": 1,
+   "arg_types": [
+    "_UNSIGNED LONG"
+   ],
+   "ret": "DOUBLE",
+   "hr_syntax": "_SATURATION32(rgbaColor&)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Brightness32",
+   "line": 1793,
+   "kind": "function",
+   "callname": "func__bri32",
+   "args": 1,
+   "arg_types": [
+    "_UNSIGNED LONG"
+   ],
+   "ret": "DOUBLE",
+   "hr_syntax": "_BRIGHTNESS32(rgbaColor&)",
+   "category": "plain function"
+  },
+  {
+   "name": "Draw",
+   "line": 1803,
+   "kind": "sub",
+   "callname": "sub_draw",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "DRAW drawString$",
+   "category": "plain sub"
+  },
+  {
+   "name": "_MouseShow",
+   "line": 1814,
+   "kind": "sub",
+   "callname": "sub__mouseshow",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "specialformat": "[?]",
+   "hr_syntax": "_MOUSESHOW [cursorShape$]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_MouseCursor",
+   "line": 1824,
+   "kind": "sub",
+   "callname": "sub__mousecursor",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "?[,(?,?)]",
+   "hr_syntax": "_MOUSECURSOR imageHandle& [, (hotspotX&, hotspotY&)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_MouseHide",
+   "line": 1834,
+   "kind": "sub",
+   "callname": "sub__mousehide",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "[{_Hide|_Disable}]",
+   "hr_syntax": "_MOUSEHIDE [_DISABLE]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_MouseDisabled",
+   "line": 1844,
+   "kind": "function",
+   "callname": "func__mousedisabled",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_MOUSEDISABLED",
+   "category": "plain function"
+  },
+  {
+   "name": "_MouseHidden",
+   "line": 1853,
+   "kind": "function",
+   "callname": "func__mousehidden",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_MOUSEHIDDEN",
+   "category": "plain function"
+  },
+  {
+   "name": "_MouseInput",
+   "line": 1862,
+   "kind": "function",
+   "callname": "func__mouseinput",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_MOUSEINPUT",
+   "category": "plain function"
+  },
+  {
+   "name": "_MouseX",
+   "line": 1871,
+   "kind": "function",
+   "callname": "func__mousex",
+   "args": 0,
+   "ret": "DOUBLE",
+   "hr_syntax": "_MOUSEX",
+   "category": "plain function"
+  },
+  {
+   "name": "_MouseY",
+   "line": 1880,
+   "kind": "function",
+   "callname": "func__mousey",
+   "args": 0,
+   "ret": "DOUBLE",
+   "hr_syntax": "_MOUSEY",
+   "category": "plain function"
+  },
+  {
+   "name": "_MouseMovementX",
+   "line": 1889,
+   "kind": "function",
+   "callname": "func__mousemovementx",
+   "args": 0,
+   "ret": "DOUBLE",
+   "hr_syntax": "_MOUSEMOVEMENTX",
+   "category": "plain function"
+  },
+  {
+   "name": "_MouseMovementY",
+   "line": 1898,
+   "kind": "function",
+   "callname": "func__mousemovementy",
+   "args": 0,
+   "ret": "DOUBLE",
+   "hr_syntax": "_MOUSEMOVEMENTY",
+   "category": "plain function"
+  },
+  {
+   "name": "_MouseButton",
+   "line": 1907,
+   "kind": "function",
+   "callname": "func__mousebutton",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_MOUSEBUTTON(buttonNumber)",
+   "category": "plain function"
+  },
+  {
+   "name": "_MouseWheel",
+   "line": 1917,
+   "kind": "function",
+   "callname": "func__mousewheel",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "DOUBLE",
+   "specialformat": "[?]",
+   "hr_syntax": "_MOUSEWHEEL [axis]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "FreeFile",
+   "line": 1928,
+   "kind": "function",
+   "callname": "func_freefile",
+   "ret": "LONG",
+   "hr_syntax": "_FREEFILE",
+   "category": "plain function"
+  },
+  {
+   "name": "Name",
+   "line": 1936,
+   "kind": "sub",
+   "callname": "sub_name",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "STRING"
+   ],
+   "specialformat": "?{As}?",
+   "hr_syntax": "NAME oldFileOrFolderName$ AS newFileOrFolderName$",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Kill",
+   "line": 1946,
+   "kind": "sub",
+   "callname": "sub_kill",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "KILL fileSpec$",
+   "category": "plain sub"
+  },
+  {
+   "name": "ChDir",
+   "line": 1955,
+   "kind": "sub",
+   "callname": "sub_chdir",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "CHDIR path$",
+   "category": "plain sub"
+  },
+  {
+   "name": "MkDir",
+   "line": 1964,
+   "kind": "sub",
+   "callname": "sub_mkdir",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "MKDIR pathSpec$",
+   "category": "plain sub"
+  },
+  {
+   "name": "RmDir",
+   "line": 1973,
+   "kind": "sub",
+   "callname": "sub_rmdir",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "RMDIR path$",
+   "category": "plain sub"
+  },
+  {
+   "name": "Chain",
+   "line": 1982,
+   "kind": "sub",
+   "callname": "sub_chain",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "CHAIN moduleName$",
+   "category": "plain sub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Shell",
+   "line": 1991,
+   "kind": "sub",
+   "callname": "sub_shell2",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "specialformat": "{_Hide}[{_DontWait}][?]",
+   "hr_syntax": "SHELL [_DONTWAIT] [_HIDE] commandToRun$",
+   "secondargmustbe": "_Hide",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Shell",
+   "line": 2002,
+   "kind": "sub",
+   "callname": "sub_shell3",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "specialformat": "{_DontWait}[{_Hide}][?]",
+   "hr_syntax": "SHELL [_DONTWAIT] [_HIDE] commandToRun$",
+   "secondargmustbe": "_DontWait",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Shell",
+   "line": 2013,
+   "kind": "sub",
+   "callname": "sub_shell",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "specialformat": "[?]",
+   "hr_syntax": "SHELL [_DONTWAIT] [_HIDE] commandToRun$",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Shell",
+   "line": 2024,
+   "kind": "function",
+   "callname": "func_shell",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "_INTEGER64",
+   "hr_syntax": "SHELL(commandToRun$)",
+   "category": "plain function"
+  },
+  {
+   "name": "_ShellHide",
+   "line": 2034,
+   "kind": "function",
+   "callname": "func__shellhide",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "_INTEGER64",
+   "hr_syntax": "_SHELLHIDE(commandToRun$)",
+   "category": "plain function"
+  },
+  {
+   "name": "Command",
+   "line": 2044,
+   "kind": "function",
+   "callname": "func_command",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "[?]",
+   "hr_syntax": "COMMAND$[(index%)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_CommandCount",
+   "line": 2056,
+   "kind": "function",
+   "callname": "func__commandcount",
+   "ret": "LONG",
+   "hr_syntax": "_COMMANDCOUNT",
+   "category": "plain function"
+  },
+  {
+   "name": "Beep",
+   "line": 2066,
+   "kind": "sub",
+   "callname": "sub_beep",
+   "args": 0,
+   "hr_syntax": "BEEP",
+   "comments": [
+    "BEEP no longers pulls in miniaudio and other parts of the audio library"
+   ],
+   "category": "plain sub"
+  },
+  {
+   "name": "Play",
+   "line": 2074,
+   "kind": "sub",
+   "callname": "sub_play",
+   "args": 4,
+   "arg_types": [
+    "STRING",
+    "STRING",
+    "STRING",
+    "STRING"
+   ],
+   "specialformat": "?[,[?][,[?][,?]]]",
+   "hr_syntax": "PLAY voiceCommands1$[, voiceCommands2$][, voiceCommands3$][, voiceCommands4$]",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Play",
+   "line": 2084,
+   "kind": "function",
+   "callname": "func_play",
+   "args": 1,
+   "arg_types": [
+    "_UNSIGNED LONG"
+   ],
+   "ret": "DOUBLE",
+   "specialformat": "[?]",
+   "hr_syntax": "PLAY [voice&]",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Sound",
+   "line": 2095,
+   "kind": "sub",
+   "callname": "sub_sound",
+   "args": 8,
+   "arg_types": [
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "LONG",
+    "SINGLE",
+    "_UNSIGNED LONG",
+    "LONG"
+   ],
+   "specialformat": "[?,?[,[?][,[?][,[?][,[?][,?]]]]]][{Wait|Resume}]",
+   "hr_syntax": "SOUND [frequency!, duration![, volume!][, panPosition!][, waveform&][, waveformParameters!][, voice&]] [{Wait|Resume}]",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Wave",
+   "line": 2105,
+   "kind": "sub",
+   "callname": "sub__wave",
+   "args": 3,
+   "arg_types": [
+    "_UNSIGNED LONG",
+    "offset+size (largest safe block, restricted; graphics GET/PUT)",
+    "_UNSIGNED LONG"
+   ],
+   "specialformat": "?,?[,?]",
+   "hr_syntax": "_WAVE voice&, waveDefinition%%([index&])[, frameCount&]",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_SndRate",
+   "line": 2115,
+   "kind": "function",
+   "callname": "func__sndrate",
+   "ret": "LONG",
+   "hr_syntax": "_SNDRATE",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain function"
+  },
+  {
+   "name": "_SndRaw",
+   "line": 2123,
+   "kind": "sub",
+   "callname": "sub__sndraw",
+   "args": 3,
+   "arg_types": [
+    "SINGLE",
+    "SINGLE",
+    "LONG"
+   ],
+   "specialformat": "?[,[?][,?]]",
+   "hr_syntax": "_SNDRAW leftSample[, rightSample][, pipeHandle&]",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_SndRawBatch",
+   "line": 2133,
+   "kind": "sub",
+   "callname": "sub__sndrawbatch",
+   "args": 4,
+   "arg_types": [
+    "offset+size (largest safe block, restricted; graphics GET/PUT)",
+    "LONG",
+    "LONG",
+    "_UNSIGNED LONG"
+   ],
+   "specialformat": "?[,[?][,[?][,?]]]",
+   "hr_syntax": "_SNDRAWBATCH sampleFrameArray!([index&])[, channels&][, pipeHandle&][, frameCount&]",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_SndRawDone",
+   "line": 2143,
+   "kind": "sub",
+   "callname": "sub__sndrawdone",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "[?]",
+   "hr_syntax": "_SNDRAWDONE [pipeHandle&]",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_SndOpenRaw",
+   "line": 2153,
+   "kind": "function",
+   "callname": "func__sndopenraw",
+   "ret": "LONG",
+   "hr_syntax": "_SNDOPENRAW",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain function"
+  },
+  {
+   "name": "_SndRawLen",
+   "line": 2161,
+   "kind": "function",
+   "callname": "func__sndrawlen",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "DOUBLE",
+   "specialformat": "[?]",
+   "hr_syntax": "_SNDRAWLEN [pipeHandle&]",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_SndLen",
+   "line": 2172,
+   "kind": "function",
+   "callname": "func__sndlen",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "DOUBLE",
+   "hr_syntax": "_SNDLEN(handle&)",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain function"
+  },
+  {
+   "name": "_SndPaused",
+   "line": 2182,
+   "kind": "function",
+   "callname": "func__sndpaused",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_SNDPAUSED(handle&)",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain function"
+  },
+  {
+   "name": "_SndPlayFile",
+   "line": 2192,
+   "kind": "sub",
+   "callname": "sub__sndplayfile",
+   "args": 3,
+   "arg_types": [
+    "STRING",
+    "LONG",
+    "SINGLE"
+   ],
+   "specialformat": "?[,[?][,?]]",
+   "hr_syntax": "_SNDPLAYFILE fileName$[, , volume!]",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_SndPlayCopy",
+   "line": 2202,
+   "kind": "sub",
+   "callname": "sub__sndplaycopy",
+   "args": 5,
+   "arg_types": [
+    "LONG",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE"
+   ],
+   "specialformat": "?[,[?][,[?][,[?][,[?]]]]]",
+   "hr_syntax": "_SNDPLAYCOPY handle&[, volume!][, x!][, y!][, z!]",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_SndStop",
+   "line": 2212,
+   "kind": "sub",
+   "callname": "sub__sndstop",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "hr_syntax": "_SNDSTOP handle&",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain sub"
+  },
+  {
+   "name": "_SndLoop",
+   "line": 2221,
+   "kind": "sub",
+   "callname": "sub__sndloop",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "hr_syntax": "_SNDLOOP handle&",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain sub"
+  },
+  {
+   "name": "_SndLimit",
+   "line": 2230,
+   "kind": "sub",
+   "callname": "sub__sndlimit",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "DOUBLE"
+   ],
+   "hr_syntax": "_SNDLIMIT handle&, numberOfSeconds#",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain sub"
+  },
+  {
+   "name": "_SndOpen",
+   "line": 2239,
+   "kind": "function",
+   "callname": "func__sndopen",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "STRING"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_SNDOPEN(fileName$[, capabilities$])",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_SndSetPos",
+   "line": 2250,
+   "kind": "sub",
+   "callname": "sub__sndsetpos",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "DOUBLE"
+   ],
+   "hr_syntax": "_SNDSETPOS handle&, position#",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain sub"
+  },
+  {
+   "name": "_SndGetPos",
+   "line": 2259,
+   "kind": "function",
+   "callname": "func__sndgetpos",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "DOUBLE",
+   "hr_syntax": "_SNDGETPOS(handle&)",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain function"
+  },
+  {
+   "name": "_SndPlaying",
+   "line": 2269,
+   "kind": "function",
+   "callname": "func__sndplaying",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_SNDPLAYING(handle&)",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain function"
+  },
+  {
+   "name": "_SndPause",
+   "line": 2279,
+   "kind": "sub",
+   "callname": "sub__sndpause",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "hr_syntax": "_SNDPAUSE handle&",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain sub"
+  },
+  {
+   "name": "_SndBal",
+   "line": 2288,
+   "kind": "sub",
+   "callname": "sub__sndbal",
+   "args": 5,
+   "arg_types": [
+    "LONG",
+    "SINGLE",
+    "SINGLE",
+    "SINGLE",
+    "LONG"
+   ],
+   "specialformat": "?,[?][,[?][,[?][,[?]]]]",
+   "hr_syntax": "_SNDBAL handle&[, x!][, y!][, z!]",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_SndVol",
+   "line": 2298,
+   "kind": "sub",
+   "callname": "sub__sndvol",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "SINGLE"
+   ],
+   "hr_syntax": "_SNDVOL handle&, volume!",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain sub"
+  },
+  {
+   "name": "_SndPlay",
+   "line": 2307,
+   "kind": "sub",
+   "callname": "sub__sndplay",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "hr_syntax": "_SNDPLAY handle&",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain sub"
+  },
+  {
+   "name": "_SndCopy",
+   "line": 2316,
+   "kind": "function",
+   "callname": "func__sndcopy",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_SNDCOPY(handle&)",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain function"
+  },
+  {
+   "name": "_SndClose",
+   "line": 2326,
+   "kind": "sub",
+   "callname": "sub__sndclose",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "hr_syntax": "_SNDCLOSE handle&",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "plain sub"
+  },
+  {
+   "name": "_SndNew",
+   "line": 2335,
+   "kind": "function",
+   "callname": "func__sndnew",
+   "args": 4,
+   "arg_types": [
+    "_UNSIGNED LONG",
+    "LONG",
+    "LONG",
+    "_UNSIGNED LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?[,[?][,[?][,?]]]",
+   "hr_syntax": "_SNDNEW(frames&[, channels&][, bits&][, sampleRate&])",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_MIDISoundBank",
+   "line": 2347,
+   "kind": "sub",
+   "callname": "sub__midisoundbank",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "STRING"
+   ],
+   "specialformat": "?[,?]",
+   "hr_syntax": "_MIDISOUNDBANK fileName$[, capabilities$]",
+   "dependency": "DEPENDENCY_MINIAUDIO",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Input",
+   "line": 2358,
+   "kind": "function",
+   "callname": "func_input",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "?[,?]",
+   "hr_syntax": "INPUT$(numberOfBytes%[, fileOrPortNumber])",
+   "category": "special-format statement",
+   "compiler_mentions": 5
+  },
+  {
+   "name": "Seek",
+   "line": 2370,
+   "kind": "sub",
+   "callname": "sub_seek",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[#]?,?",
+   "hr_syntax": "SEEK filenumber&, position",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Seek",
+   "line": 2380,
+   "kind": "function",
+   "callname": "func_seek",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "SEEK(filenumber&)",
+   "category": "plain function"
+  },
+  {
+   "name": "Loc",
+   "line": 2390,
+   "kind": "function",
+   "callname": "func_loc",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "LOC(fileOrPortNumber%)",
+   "category": "plain function"
+  },
+  {
+   "name": "EOF",
+   "line": 2400,
+   "kind": "function",
+   "callname": "func_eof",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "EOF(fileNumber&)",
+   "category": "plain function"
+  },
+  {
+   "name": "LOF",
+   "line": 2410,
+   "kind": "function",
+   "callname": "func_lof",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "LOF(fileNumber&)",
+   "category": "plain function"
+  },
+  {
+   "name": "Screen",
+   "line": 2420,
+   "kind": "function",
+   "callname": "func_screen",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "ret": "_UNSIGNED LONG",
+   "specialformat": "?,?[,?]",
+   "hr_syntax": "SCREEN(x, y[, colorflag%])",
+   "category": "special-format statement"
+  },
+  {
+   "name": "PMap",
+   "line": 2431,
+   "kind": "function",
+   "callname": "func_pmap",
+   "args": 2,
+   "arg_types": [
+    "SINGLE",
+    "LONG"
+   ],
+   "ret": "SINGLE",
+   "hr_syntax": "PMAP(coordinate, function_number%)",
+   "category": "plain function"
+  },
+  {
+   "name": "Point",
+   "line": 2441,
+   "kind": "function",
+   "callname": "func_point",
+   "args": 2,
+   "arg_types": [
+    "SINGLE",
+    "SINGLE"
+   ],
+   "ret": "DOUBLE",
+   "specialformat": "?[,?]",
+   "hr_syntax": "POINT(x, y) or POINT({0|1|2|3})",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Tab",
+   "line": 2452,
+   "kind": "function",
+   "callname": "func_tab",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "STRING",
+   "hr_syntax": "TAB(column%)",
+   "category": "plain function"
+  },
+  {
+   "name": "Spc",
+   "line": 2462,
+   "kind": "function",
+   "callname": "func_spc",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "STRING",
+   "hr_syntax": "SPC(count%)",
+   "category": "plain function"
+  },
+  {
+   "name": "Wait",
+   "line": 2472,
+   "kind": "sub",
+   "callname": "sub_wait",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "?,?[,?]",
+   "hr_syntax": "WAIT port%, andMask%[, xorMask%]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Inp",
+   "line": 2482,
+   "kind": "function",
+   "callname": "func_inp",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "INP(address)",
+   "category": "plain function"
+  },
+  {
+   "name": "Pos",
+   "line": 2492,
+   "kind": "function",
+   "callname": "func_pos",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "POS(0)",
+   "category": "plain function"
+  },
+  {
+   "name": "Sgn",
+   "line": 2502,
+   "kind": "function",
+   "callname": "func_sgn",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "SGN(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "LBound",
+   "line": 2512,
+   "kind": "function",
+   "callname": "",
+   "args": 2,
+   "arg_types": [
+    "any-numeric",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?,[?]",
+   "hr_syntax": "LBOUND(arrayName[, dimension%])",
+   "category": "special-format statement",
+   "compiler_mentions": 3
+  },
+  {
+   "name": "UBound",
+   "line": 2522,
+   "kind": "function",
+   "callname": "",
+   "args": 2,
+   "arg_types": [
+    "any-numeric",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "?,[?]",
+   "hr_syntax": "UBOUND(arrayName[, dimension%])",
+   "category": "special-format statement",
+   "compiler_mentions": 6
+  },
+  {
+   "name": "_Bin",
+   "line": 2532,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_BIN$(number)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Oct",
+   "line": 2542,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "OCT$(number)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Hex",
+   "line": 2552,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "HEX$(decimalNumber)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Sleep",
+   "line": 2562,
+   "kind": "sub",
+   "callname": "sub_sleep",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "[?]",
+   "hr_syntax": "SLEEP seconds%",
+   "category": "special-format statement",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "Exp",
+   "line": 2572,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "any-numeric",
+   "hr_syntax": "EXP(numericExpression)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Fix",
+   "line": 2581,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "any-numeric",
+   "hr_syntax": "FIX(expression)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Int",
+   "line": 2590,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "any-numeric",
+   "hr_syntax": "INT(expression)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "CDbl",
+   "line": 2599,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "DOUBLE",
+   "hr_syntax": "CDBL(expression)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "CSng",
+   "line": 2608,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "SINGLE",
+   "hr_syntax": "CSNG(expression)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_Round",
+   "line": 2617,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "_INTEGER64",
+   "hr_syntax": "_ROUND(number)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "CInt",
+   "line": 2626,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "INTEGER",
+   "hr_syntax": "CINT(expression)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "CLng",
+   "line": 2635,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "INTEGER",
+   "hr_syntax": "CLNG(expression)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Time",
+   "line": 2644,
+   "kind": "sub",
+   "callname": "sub_time",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "musthave": "$",
+   "specialformat": "=?",
+   "hr_syntax": "TIME$ = timeToSet$",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Time",
+   "line": 2655,
+   "kind": "function",
+   "callname": "func_time",
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "TIME$",
+   "category": "plain function"
+  },
+  {
+   "name": "Date",
+   "line": 2664,
+   "kind": "sub",
+   "callname": "sub_date",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "musthave": "$",
+   "specialformat": "=?",
+   "hr_syntax": "DATE$ = dateToSet$",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Date",
+   "line": 2675,
+   "kind": "function",
+   "callname": "func_date",
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "DATE$",
+   "category": "plain function"
+  },
+  {
+   "name": "CsrLin",
+   "line": 2684,
+   "kind": "function",
+   "callname": "func_csrlin",
+   "ret": "LONG",
+   "hr_syntax": "CSRLIN",
+   "category": "plain function"
+  },
+  {
+   "name": "Paint",
+   "line": 2693,
+   "kind": "sub",
+   "callname": "sub_paint",
+   "args": 5,
+   "arg_types": [
+    "_FLOAT",
+    "_FLOAT",
+    "_UNSIGNED LONG",
+    "_UNSIGNED LONG",
+    "STRING"
+   ],
+   "specialformat": "[{Step}](?,?)[,[?][,[?][,?]]]",
+   "hr_syntax": "PAINT [STEP] (x!, y!)[,[fillColor&] [,[bordercolor&] [,pattern$]]]",
+   "comments": [
+    "PAINT [STEP] (x!,y!)[,[paint] [,[bordercolor&] [,background$]]]"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "Circle",
+   "line": 2704,
+   "kind": "sub",
+   "callname": "sub_circle",
+   "args": 7,
+   "arg_types": [
+    "_FLOAT",
+    "_FLOAT",
+    "_FLOAT",
+    "_UNSIGNED LONG",
+    "_FLOAT",
+    "_FLOAT",
+    "_FLOAT"
+   ],
+   "specialformat": "[{Step}](?,?),?[,[?][,[?][,[?][,?]]]]",
+   "hr_syntax": "CIRCLE [STEP] (x!, y!), radius![, [color&] [, [start!] [, [end!] [, aspect!]]]]",
+   "comments": [
+    "CIRCLE [STEP] (x!,y!),radius![,[color&] [,[start!] [,[end!] [,aspect!]]]]"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "BLoad",
+   "line": 2715,
+   "kind": "sub",
+   "callname": "sub_bload",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "LONG"
+   ],
+   "specialformat": "?[,?]",
+   "hr_syntax": "BLOAD fileName$, VARPTR(imageArray%(index))",
+   "category": "special-format statement"
+  },
+  {
+   "name": "BSave",
+   "line": 2725,
+   "kind": "sub",
+   "callname": "sub_bsave",
+   "args": 3,
+   "arg_types": [
+    "STRING",
+    "LONG",
+    "LONG"
+   ],
+   "hr_syntax": "BSAVE saveFile$, VARPTR(array(index)), fileSize&",
+   "category": "plain sub"
+  },
+  {
+   "name": "Get",
+   "line": 2735,
+   "kind": "sub",
+   "callname": "sub_graphics_get",
+   "args": 6,
+   "arg_types": [
+    "_FLOAT",
+    "_FLOAT",
+    "_FLOAT",
+    "_FLOAT",
+    "offset+size (largest safe block, restricted; graphics GET/PUT)",
+    "_UNSIGNED LONG"
+   ],
+   "specialformat": "[{Step}](?,?)-[{Step}](?,?),?[,?]",
+   "hr_syntax": "GET [STEP] (column1, row1)-[STEP](column2, row2), array([index])[, offscreenColor]",
+   "secondargmustbe": "Step",
+   "category": "special-format statement",
+   "compiler_mentions": 4
+  },
+  {
+   "name": "Get",
+   "line": 2746,
+   "kind": "sub",
+   "callname": "sub_graphics_get",
+   "args": 6,
+   "arg_types": [
+    "_FLOAT",
+    "_FLOAT",
+    "_FLOAT",
+    "_FLOAT",
+    "offset+size (largest safe block, restricted; graphics GET/PUT)",
+    "_UNSIGNED LONG"
+   ],
+   "specialformat": "[{Step}](?,?)-[{Step}](?,?),?[,?]",
+   "hr_syntax": "GET [STEP] (column1, row1)-[STEP](column2, row2), array([index])[, offscreenColor]",
+   "secondargmustbe": "(",
+   "category": "special-format statement",
+   "compiler_mentions": 4
+  },
+  {
+   "name": "Put",
+   "line": 2758,
+   "kind": "sub",
+   "callname": "sub_graphics_put",
+   "args": 5,
+   "arg_types": [
+    "_FLOAT",
+    "_FLOAT",
+    "offset+size (largest safe block, restricted; graphics GET/PUT)",
+    "LONG",
+    "_UNSIGNED LONG"
+   ],
+   "specialformat": "[{Step}](?,?),?[,[{_Clip}][{PSet|PReset|And|Or|Xor}][,?]]",
+   "hr_syntax": "PUT [STEP](column, row), Array([index])[,] [_CLIP]  [{PSET|PRESET|AND|OR|XOR}]][, omitcolor]",
+   "secondargmustbe": "Step",
+   "comments": [
+    "PUT [STEP] (x!,y!),arrayname# [(indexes%)] [,actionverb]",
+    "PUT (10, 10), myimage, _CLIP, 0"
+   ],
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Put",
+   "line": 2771,
+   "kind": "sub",
+   "callname": "sub_graphics_put",
+   "args": 5,
+   "arg_types": [
+    "_FLOAT",
+    "_FLOAT",
+    "offset+size (largest safe block, restricted; graphics GET/PUT)",
+    "LONG",
+    "_UNSIGNED LONG"
+   ],
+   "specialformat": "[{Step}](?,?),?[,[{_Clip}][{PSet|PReset|And|Or|Xor}][,?]]",
+   "hr_syntax": "PUT [STEP](column, row), Array([index])[,] [_CLIP]  [{PSET|PRESET|AND|OR|XOR}]][, omitcolor]",
+   "secondargmustbe": "(",
+   "comments": [
+    "PUT [STEP] (x!,y!),arrayname# [(indexes%)] [,actionverb]",
+    "PUT (10, 10), myimage, _CLIP, 0"
+   ],
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Get",
+   "line": 2784,
+   "kind": "sub",
+   "callname": "sub_get",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "offset+size (element size; file GET/PUT)"
+   ],
+   "specialformat": "[#]?[,[?][,?]]",
+   "hr_syntax": "GET #fileNumber&, [position][, targetVariable|targetArray()}]",
+   "comments": [
+    "field compliant definition"
+   ],
+   "category": "special-format statement",
+   "compiler_mentions": 4
+  },
+  {
+   "name": "Put",
+   "line": 2795,
+   "kind": "sub",
+   "callname": "sub_put",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "offset+size (element size; file GET/PUT)"
+   ],
+   "specialformat": "[#]?[,[?][,?]]",
+   "hr_syntax": "PUT #filenumber&, [position][, {holdingvariable|holdingarray()}]",
+   "comments": [
+    "field compliant definition"
+   ],
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Open",
+   "line": 2806,
+   "kind": "sub",
+   "callname": "sub_open",
+   "args": 6,
+   "arg_types": [
+    "STRING",
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "?[{For Random|For Binary|For Input|For Output|For Append}][{Access Read Write|Access Read|Access Write}][{Shared|Lock Read Write|Lock Read|Lock Write}]{As}[#]?[{Len =}?]",
+   "hr_syntax": "OPEN fileName$ [FOR mode] [ACCESS|LOCK|SHARED [{READ|WRITE}] AS [#]fileNumber& [LEN = recordLength]",
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Open",
+   "line": 2816,
+   "kind": "sub",
+   "callname": "sub_open_gwbasic",
+   "args": 4,
+   "arg_types": [
+    "STRING",
+    "LONG",
+    "STRING",
+    "LONG"
+   ],
+   "specialformat": "?,[#]?,?[,?]",
+   "hr_syntax": "OPEN modeLetter$, [#]fileNumber&, fileName$[, recordLength]",
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Val",
+   "line": 2826,
+   "kind": "function",
+   "callname": "",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "STRING"
+   ],
+   "ret": "STRING",
+   "specialformat": "?[,?]",
+   "hr_syntax": "VAL(stringValue$[, numericalType])",
+   "comments": [
+    "Appropriate id.callname is set in qb64pe.bas",
+    "2nd argument type is overridden in qb64pe.bas",
+    "overridden in qb64pe.bas"
+   ],
+   "category": "special-format statement",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "MKSMBF",
+   "line": 2837,
+   "kind": "function",
+   "callname": "func_mksmbf",
+   "args": 1,
+   "arg_types": [
+    "SINGLE"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "MKSMBF$(value!)",
+   "category": "plain function"
+  },
+  {
+   "name": "MKDMBF",
+   "line": 2848,
+   "kind": "function",
+   "callname": "func_mkdmbf",
+   "args": 1,
+   "arg_types": [
+    "DOUBLE"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "MKDMBF$(value#)",
+   "category": "plain function"
+  },
+  {
+   "name": "MKI",
+   "line": 2859,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "INTEGER"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "MKI$(integerVariableOrLiteral%)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "MKL",
+   "line": 2870,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "MKL$(longVariableOrLiteral&)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "MKS",
+   "line": 2881,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "SINGLE"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "MKS$(singlePrecisionVariableOrLiteral!)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "MKD",
+   "line": 2892,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "DOUBLE"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "MKD$(doublePrecisionVariableOrLiteral#)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_MK",
+   "line": 2903,
+   "kind": "function",
+   "callname": "",
+   "args": 2,
+   "arg_types": [
+    "any-numeric",
+    "any-numeric"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_MK$(numericalType, numericalValue)",
+   "category": "plain function",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "CVSMBF",
+   "line": 2914,
+   "kind": "function",
+   "callname": "func_cvsmbf",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "SINGLE",
+   "hr_syntax": "CVSMBF(stringData$)",
+   "category": "plain function"
+  },
+  {
+   "name": "CVDMBF",
+   "line": 2924,
+   "kind": "function",
+   "callname": "func_cvdmbf",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "DOUBLE",
+   "hr_syntax": "CVDMBF(stringData$)",
+   "category": "plain function"
+  },
+  {
+   "name": "CVI",
+   "line": 2934,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "INTEGER",
+   "hr_syntax": "CVI(stringData$)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "CVL",
+   "line": 2944,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "CVL(stringData$)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "CVS",
+   "line": 2954,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "SINGLE",
+   "hr_syntax": "CVS(stringData$)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "CVD",
+   "line": 2964,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "DOUBLE",
+   "hr_syntax": "CVD(stringData$)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_CV",
+   "line": 2974,
+   "kind": "function",
+   "callname": "",
+   "args": 2,
+   "arg_types": [
+    "any-numeric",
+    "STRING"
+   ],
+   "ret": "any-numeric",
+   "hr_syntax": "_CV(numericalType, MKstringValue$)",
+   "category": "plain function",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "String",
+   "line": 2984,
+   "kind": "function",
+   "callname": "func_string",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "STRING$(count&, {character$ | ASCIIcode%})",
+   "category": "plain function",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "Space",
+   "line": 2995,
+   "kind": "function",
+   "callname": "func_space",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "SPACE$(count&)",
+   "category": "plain function"
+  },
+  {
+   "name": "InStr",
+   "line": 3006,
+   "kind": "function",
+   "callname": "func_instr",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "STRING",
+    "STRING"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?],?,?",
+   "hr_syntax": "INSTR([start%,] baseString$, searchString$)",
+   "comments": [
+    "checked!"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "_InStrRev",
+   "line": 3017,
+   "kind": "function",
+   "callname": "func__instrrev",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "STRING",
+    "STRING"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?],?,?",
+   "hr_syntax": "_INSTRREV([start%,] baseString$, searchString$)",
+   "comments": [
+    "checked!"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "Mid",
+   "line": 3028,
+   "kind": "function",
+   "callname": "func_mid",
+   "args": 3,
+   "arg_types": [
+    "STRING",
+    "LONG",
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "?,?,[?]",
+   "hr_syntax": "MID$(stringValue$, startPosition%[, bytes%])",
+   "comments": [
+    "checked!"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "SAdd",
+   "line": 3040,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "SADD(stringVariable$)",
+   "comments": [
+    "!this value is ignored, the qb64 compiler handles this function"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Cls",
+   "line": 3050,
+   "kind": "sub",
+   "callname": "sub_clsDest",
+   "args": 3,
+   "arg_types": [
+    "LONG",
+    "_UNSIGNED LONG",
+    "LONG"
+   ],
+   "specialformat": "[?][,[?][,?]]",
+   "hr_syntax": "CLS [method%][, bgColor&][, dest&]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Sqr",
+   "line": 3060,
+   "kind": "function",
+   "callname": "func_sqr",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "SQR(value)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Chr",
+   "line": 3070,
+   "kind": "function",
+   "callname": "func_chr",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "CHR$(code%)",
+   "category": "plain function"
+  },
+  {
+   "name": "VarPtr",
+   "line": 3081,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "VARPTR(variable_name[(reference_index%)])",
+   "comments": [
+    "!this value is ignored, the qb64 compiler handles this function"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "VarPtr",
+   "line": 3092,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "VARPTR(variable_name[(reference_index%)])",
+   "comments": [
+    "!this value is ignored, the qb64 compiler handles this function"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_Offset",
+   "line": 3102,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "_UNSIGNED _OFFSET",
+   "hr_syntax": "_OFFSET(variable)",
+   "comments": [
+    "!this value is ignored, the qb64 compiler handles this function"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "VarSeg",
+   "line": 3112,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "VARSEG(variable_name[(start_index)])",
+   "comments": [
+    "!this value is ignored, the qb64 compiler handles this function"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Poke",
+   "line": 3122,
+   "kind": "sub",
+   "callname": "sub_poke",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "hr_syntax": "POKE segment_offset, offset_value",
+   "category": "plain sub"
+  },
+  {
+   "name": "Peek",
+   "line": 3131,
+   "kind": "function",
+   "callname": "func_peek",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "PEEK(segment_offset)",
+   "category": "plain function"
+  },
+  {
+   "name": "Def",
+   "line": 3141,
+   "kind": "sub",
+   "callname": "sub_defseg",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "{Seg}[=?]",
+   "hr_syntax": "DEF SEG [=][{segment|VARSEG(variable}]",
+   "secondargmustbe": "Seg",
+   "comments": [
+    "checked!"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "Sin",
+   "line": 3152,
+   "kind": "function",
+   "callname": "std::sin",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "SIN(radian_angle!)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Cos",
+   "line": 3162,
+   "kind": "function",
+   "callname": "std::cos",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "COS(radian_angle!)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Tan",
+   "line": 3172,
+   "kind": "function",
+   "callname": "std::tan",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "TAN(radian_angle!)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Atn",
+   "line": 3182,
+   "kind": "function",
+   "callname": "std::atan",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "ATN(tangent!)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Log",
+   "line": 3192,
+   "kind": "function",
+   "callname": "func_log",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "LOG(value)",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Abs",
+   "line": 3202,
+   "kind": "function",
+   "callname": "func_abs",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "ABS(numericalValue)",
+   "comments": [
+    "takes anything numerical",
+    "***overridden by function evaluatefunc***"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Erl",
+   "line": 3212,
+   "kind": "function",
+   "callname": "get_error_erl",
+   "args": 0,
+   "ret": "DOUBLE",
+   "hr_syntax": "ERL",
+   "category": "plain function"
+  },
+  {
+   "name": "Err",
+   "line": 3221,
+   "kind": "function",
+   "callname": "get_error_err",
+   "args": 0,
+   "ret": "_UNSIGNED LONG",
+   "hr_syntax": "ERR",
+   "category": "plain function"
+  },
+  {
+   "name": "Error",
+   "line": 3230,
+   "kind": "sub",
+   "callname": "error",
+   "args": 1,
+   "arg_types": [
+    "_UNSIGNED LONG"
+   ],
+   "hr_syntax": "ERROR codeNumber%",
+   "category": "plain sub"
+  },
+  {
+   "name": "Line",
+   "line": 3239,
+   "kind": "sub",
+   "callname": "sub_line",
+   "args": 7,
+   "arg_types": [
+    "_FLOAT",
+    "_FLOAT",
+    "_FLOAT",
+    "_FLOAT",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[[{Step}](?,?)]-[{Step}](?,?)[,[?][,[{B|BF}][,?]]]",
+   "hr_syntax": "LINE [STEP] [(column1, row1)]-[STEP] (column2, row2), color[, [{B|BF}], style%]",
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Timer",
+   "line": 3249,
+   "kind": "function",
+   "callname": "func_timer",
+   "args": 1,
+   "arg_types": [
+    "DOUBLE"
+   ],
+   "ret": "SINGLE",
+   "specialformat": "[?]",
+   "hr_syntax": "TIMER[(accuracy!)]",
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_Uptime",
+   "line": 3260,
+   "kind": "function",
+   "callname": "GLUTEmu_TimeGet",
+   "ret": "DOUBLE",
+   "hr_syntax": "_UPTIME",
+   "category": "plain function"
+  },
+  {
+   "name": "Rnd",
+   "line": 3268,
+   "kind": "function",
+   "callname": "func_rnd",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "SINGLE",
+   "specialformat": "[?]",
+   "hr_syntax": "RND[(behavior)]",
+   "comments": [
+    "checked!"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "Randomize",
+   "line": 3279,
+   "kind": "sub",
+   "callname": "sub_randomize",
+   "args": 1,
+   "arg_types": [
+    "DOUBLE"
+   ],
+   "specialformat": "[[{Using}]?]",
+   "hr_syntax": "RANDOMIZE [USING] {seednumber|TIMER}",
+   "comments": [
+    "checked!"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "Out",
+   "line": 3289,
+   "kind": "sub",
+   "callname": "sub_out",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "hr_syntax": "OUT registerAddress%, value%",
+   "category": "plain sub"
+  },
+  {
+   "name": "PCopy",
+   "line": 3298,
+   "kind": "sub",
+   "callname": "sub_pcopy",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "hr_syntax": "PCOPY sourcePage%, destinationPage%",
+   "category": "plain sub"
+  },
+  {
+   "name": "View",
+   "line": 3307,
+   "kind": "sub",
+   "callname": "qbg_sub_view",
+   "args": 6,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[[{Screen}](?,?)-(?,?)[,[?][,?]]]",
+   "hr_syntax": "VIEW [SCREEN] (column1, row1)-(column2, row2)[, color][, border]",
+   "secondargcantbe": "Print",
+   "category": "special-format statement"
+  },
+  {
+   "name": "View",
+   "line": 3318,
+   "kind": "sub",
+   "callname": "qbg_sub_view_print",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "{Print}[?{To}?]",
+   "hr_syntax": "VIEW PRINT [topRow% TO bottomRow%]",
+   "secondargmustbe": "Print",
+   "comments": [
+    "new!"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "Window",
+   "line": 3329,
+   "kind": "sub",
+   "callname": "qbg_sub_window",
+   "args": 4,
+   "arg_types": [
+    "_FLOAT",
+    "_FLOAT",
+    "_FLOAT",
+    "_FLOAT"
+   ],
+   "specialformat": "[[{Screen}](?,?)-(?,?)]",
+   "hr_syntax": "WINDOW [[SCREEN] (x1!, y1!) - (x2!, y2!)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Locate",
+   "line": 3339,
+   "kind": "sub",
+   "callname": "qbg_sub_locate",
+   "args": 5,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[?][,[?][,[?][,[?][,?]]]]",
+   "hr_syntax": "LOCATE [row%][, column%] [, cursor%][, cursorStart%, cursorStop%]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Color",
+   "line": 3349,
+   "kind": "sub",
+   "callname": "qbg_sub_color",
+   "args": 4,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[?][,[?][,[?][,?]]]",
+   "hr_syntax": "COLOR [foreground&][, background&][, , destHandle&]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Palette",
+   "line": 3359,
+   "kind": "sub",
+   "callname": "qbg_palette",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[?,?]",
+   "hr_syntax": "PALETTE [attribute%, red% + (green% * 256) + (blue% * 65536)] or PALETTE [existingAttribute%, newAttribute%]",
+   "category": "special-format statement",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "Width",
+   "line": 3369,
+   "kind": "sub",
+   "callname": "qbsub_width",
+   "args": 5,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[{#|LPrint}][?][,[?][,[?][,[?]]]]",
+   "hr_syntax": "WIDTH [columns%][, rows%] or WIDTH {file_number|device}, columnwidth%",
+   "comments": [
+    "new!"
+   ],
+   "category": "special-format statement",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "Screen",
+   "line": 3380,
+   "kind": "sub",
+   "callname": "qbg_screen",
+   "args": 5,
+   "arg_types": [
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[?][,[?][,[?][,[?][,[{_ManualDisplay}?]]]]]",
+   "hr_syntax": "SCREEN {mode%|imagehandle&} [, , active_page, visual_page]",
+   "comments": [
+    "a temp format for transition reasons\""
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "PSet",
+   "line": 3393,
+   "kind": "sub",
+   "callname": "sub_pset",
+   "args": 3,
+   "arg_types": [
+    "_FLOAT",
+    "_FLOAT",
+    "LONG"
+   ],
+   "specialformat": "[{Step}](?,?)[,?]",
+   "hr_syntax": "PSET [STEP](column%, row%)[, colorAttribute]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "PReset",
+   "line": 3403,
+   "kind": "sub",
+   "callname": "sub_preset",
+   "args": 3,
+   "arg_types": [
+    "_FLOAT",
+    "_FLOAT",
+    "LONG"
+   ],
+   "specialformat": "[{Step}](?,?)[,?]",
+   "hr_syntax": "PRESET [STEP](column%, row%)[, colorAttribute]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "Asc",
+   "line": 3413,
+   "kind": "function",
+   "callname": "qbs_asc",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "ASC(text$[, position%])",
+   "category": "plain function",
+   "compiler_mentions": 3
+  },
+  {
+   "name": "Len",
+   "line": 3423,
+   "kind": "function",
+   "callname": "",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "LEN(literalTextOrVariable$)",
+   "comments": [
+    "callname is not used",
+    "note: LEN is a special case, any input is actually accepted"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 2
+  },
+  {
+   "name": "InKey",
+   "line": 3433,
+   "kind": "function",
+   "callname": "qbs_inkey",
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "INKEY$",
+   "category": "plain function"
+  },
+  {
+   "name": "Str",
+   "line": 3442,
+   "kind": "function",
+   "callname": "qbs_str",
+   "args": 1,
+   "arg_types": [
+    "any-numeric"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "STR$(number)",
+   "category": "plain function"
+  },
+  {
+   "name": "_ToStr",
+   "line": 3453,
+   "kind": "function",
+   "callname": "qbs__tostr",
+   "args": 2,
+   "arg_types": [
+    "any-numeric",
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_TOSTR$(number[,digits])",
+   "category": "special-format statement"
+  },
+  {
+   "name": "UCase",
+   "line": 3465,
+   "kind": "function",
+   "callname": "qbs_ucase",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "UCASE$(text$)",
+   "category": "plain function"
+  },
+  {
+   "name": "LCase",
+   "line": 3476,
+   "kind": "function",
+   "callname": "qbs_lcase",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "LCASE$(text$)",
+   "category": "plain function"
+  },
+  {
+   "name": "Left",
+   "line": 3487,
+   "kind": "function",
+   "callname": "qbs_left",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "LEFT$(stringValue$, numberOfCharacters%)",
+   "category": "plain function"
+  },
+  {
+   "name": "Right",
+   "line": 3498,
+   "kind": "function",
+   "callname": "qbs_right",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "RIGHT$(stringValue$, numberOfCharacters%)",
+   "category": "plain function"
+  },
+  {
+   "name": "LTrim",
+   "line": 3509,
+   "kind": "function",
+   "callname": "qbs_ltrim",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "LTRIM$(text$)",
+   "category": "plain function"
+  },
+  {
+   "name": "RTrim",
+   "line": 3520,
+   "kind": "function",
+   "callname": "qbs_rtrim",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "RTRIM$(text$)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Trim",
+   "line": 3531,
+   "kind": "function",
+   "callname": "qbs__trim",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_TRIM$(text$)",
+   "category": "plain function"
+  },
+  {
+   "name": "Print",
+   "line": 3542,
+   "kind": "sub",
+   "callname": "qbs_print",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "PRINT [expression] [{;|,] [expression...]",
+   "comments": [
+    "not called directly"
+   ],
+   "category": "plain sub",
+   "compiler_mentions": 3
+  },
+  {
+   "name": "LPrint",
+   "line": 3551,
+   "kind": "sub",
+   "callname": "qbs_lprint",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "LPRINT [expression] [{;|,}]",
+   "dependency": "DEPENDENCY_PRINTER",
+   "comments": [
+    "not called directly"
+   ],
+   "category": "plain sub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "LPos",
+   "line": 3560,
+   "kind": "function",
+   "callname": "func_lpos",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "LPOS(index%)",
+   "dependency": "DEPENDENCY_PRINTER",
+   "category": "plain function"
+  },
+  {
+   "name": "_CWD",
+   "line": 3571,
+   "kind": "function",
+   "callname": "func__cwd",
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_CWD$",
+   "category": "plain function"
+  },
+  {
+   "name": "_StartDir",
+   "line": 3581,
+   "kind": "function",
+   "callname": "func__startdir",
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_STARTDIR$",
+   "category": "plain function"
+  },
+  {
+   "name": "_Dir",
+   "line": 3591,
+   "kind": "function",
+   "callname": "func__dir",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_DIR$(folderspecification)",
+   "category": "plain function"
+  },
+  {
+   "name": "_InclErrorFile",
+   "line": 3603,
+   "kind": "function",
+   "callname": "func__inclerrorfile",
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_INCLERRORFILE$",
+   "category": "plain function"
+  },
+  {
+   "name": "_KeyClear",
+   "line": 3612,
+   "kind": "sub",
+   "callname": "sub__keyclear",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "[?]",
+   "hr_syntax": "_KEYCLEAR buffer&",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_D2R",
+   "line": 3622,
+   "kind": "function",
+   "callname": "func_deg2rad",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_D2R(angleInDegrees!)",
+   "category": "plain function"
+  },
+  {
+   "name": "_D2G",
+   "line": 3632,
+   "kind": "function",
+   "callname": "func_deg2grad",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_D2G(angleInDegrees!)",
+   "category": "plain function"
+  },
+  {
+   "name": "_R2D",
+   "line": 3642,
+   "kind": "function",
+   "callname": "func_rad2deg",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_R2D(angleInRadians!)",
+   "category": "plain function"
+  },
+  {
+   "name": "_R2G",
+   "line": 3652,
+   "kind": "function",
+   "callname": "func_rad2grad",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_R2G(angleInRadians!)",
+   "category": "plain function"
+  },
+  {
+   "name": "_G2D",
+   "line": 3662,
+   "kind": "function",
+   "callname": "func_grad2deg",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_G2D(gradient!)",
+   "category": "plain function"
+  },
+  {
+   "name": "_G2R",
+   "line": 3672,
+   "kind": "function",
+   "callname": "func_grad2rad",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_G2R(gradient!)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Atan2",
+   "line": 3682,
+   "kind": "function",
+   "callname": "std::atan2",
+   "args": 2,
+   "arg_types": [
+    "_FLOAT",
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_ATAN2(y, x)",
+   "comments": [
+    "Clear the old id info so we set the slate for a new one",
+    "The name of our new one",
+    "And this is a function",
+    "The C name of the function",
+    "It takes 2 parameters to work",
+    "These simply add up to represent the 2 parameters from what I can tell",
+    "we want it to return to us a nice _FLOAT value"
+   ],
+   "category": "plain function"
+  },
+  {
+   "name": "_Hypot",
+   "line": 3692,
+   "kind": "function",
+   "callname": "std::hypot",
+   "args": 2,
+   "arg_types": [
+    "_FLOAT",
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_HYPOT(x, y)",
+   "comments": [
+    "Clear the old id info so we set the slate for a new one",
+    "The name of our new one",
+    "And this is a function",
+    "The C name of the function",
+    "It takes 2 parameters to work",
+    "These simply add up to represent the 2 parameters from what I can tell",
+    "we want it to return to us a nice _FLOAT value"
+   ],
+   "category": "plain function"
+  },
+  {
+   "name": "_Asin",
+   "line": 3702,
+   "kind": "function",
+   "callname": "std::asin",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_ASIN(sine_value!)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Acos",
+   "line": 3712,
+   "kind": "function",
+   "callname": "std::acos",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_ACOS(cosine_value!)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Sinh",
+   "line": 3722,
+   "kind": "function",
+   "callname": "std::sinh",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_SINH(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Cosh",
+   "line": 3732,
+   "kind": "function",
+   "callname": "std::cosh",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_COSH(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Tanh",
+   "line": 3742,
+   "kind": "function",
+   "callname": "std::tanh",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_TANH(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Asinh",
+   "line": 3752,
+   "kind": "function",
+   "callname": "std::asinh",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_ASINH(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Acosh",
+   "line": 3762,
+   "kind": "function",
+   "callname": "std::acosh",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_ACOSH(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Atanh",
+   "line": 3772,
+   "kind": "function",
+   "callname": "std::atanh",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_ATANH(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Ceil",
+   "line": 3782,
+   "kind": "function",
+   "callname": "std::ceil",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_CEIL(expression)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Pi",
+   "line": 3792,
+   "kind": "function",
+   "callname": "func_pi",
+   "args": 1,
+   "arg_types": [
+    "DOUBLE"
+   ],
+   "ret": "DOUBLE",
+   "specialformat": "[?]",
+   "hr_syntax": "_PI[(multiplier)]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_DesktopHeight",
+   "line": 3803,
+   "kind": "function",
+   "callname": "func__desktopheight",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_DESKTOPHEIGHT",
+   "category": "plain function"
+  },
+  {
+   "name": "_DesktopWidth",
+   "line": 3812,
+   "kind": "function",
+   "callname": "func__desktopwidth",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_DESKTOPWIDTH",
+   "category": "plain function"
+  },
+  {
+   "name": "_DesktopRefreshRate",
+   "line": 3821,
+   "kind": "function",
+   "callname": "func__desktoprefreshrate",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_DESKTOPREFRESHRATE",
+   "category": "plain function"
+  },
+  {
+   "name": "_ScreenIcon",
+   "line": 3830,
+   "kind": "sub",
+   "callname": "sub_screenicon",
+   "hr_syntax": "_SCREENICON",
+   "comments": [
+    "name change to from _ICONIFYWINDOW to _SCREENICON to match the screenshow and screenhide"
+   ],
+   "category": "plain sub"
+  },
+  {
+   "name": "_ScreenExists",
+   "line": 3837,
+   "kind": "function",
+   "callname": "func_windowexists",
+   "hr_syntax": "_SCREENEXISTS",
+   "category": "plain function"
+  },
+  {
+   "name": "_ControlChr",
+   "line": 3844,
+   "kind": "function",
+   "callname": "func__controlchr",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_CONTROLCHR",
+   "category": "plain function"
+  },
+  {
+   "name": "_StriCmp",
+   "line": 3853,
+   "kind": "function",
+   "callname": "func__str_nc_compare",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "STRING"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_STRICMP(string1$, string2$)",
+   "category": "plain function"
+  },
+  {
+   "name": "_StrCmp",
+   "line": 3863,
+   "kind": "function",
+   "callname": "func__str_compare",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "STRING"
+   ],
+   "ret": "LONG",
+   "hr_syntax": "_STRCMP(string1$, string2$)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Arcsec",
+   "line": 3873,
+   "kind": "function",
+   "callname": "func_arcsec",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_ARCSEC(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Arccsc",
+   "line": 3883,
+   "kind": "function",
+   "callname": "func_arccsc",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_ARCCSC(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Arccot",
+   "line": 3893,
+   "kind": "function",
+   "callname": "func_arccot",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_ARCCOT(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Sech",
+   "line": 3903,
+   "kind": "function",
+   "callname": "func_sech",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_SECH(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Csch",
+   "line": 3913,
+   "kind": "function",
+   "callname": "func_csch",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_CSCH(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Coth",
+   "line": 3923,
+   "kind": "function",
+   "callname": "func_coth",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_COTH(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Sec",
+   "line": 3933,
+   "kind": "function",
+   "callname": "func_sec",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_SEC(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Csc",
+   "line": 3943,
+   "kind": "function",
+   "callname": "func_csc",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_CSC(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_Cot",
+   "line": 3953,
+   "kind": "function",
+   "callname": "func_cot",
+   "args": 1,
+   "arg_types": [
+    "_FLOAT"
+   ],
+   "ret": "_FLOAT",
+   "hr_syntax": "_COT(value)",
+   "category": "plain function"
+  },
+  {
+   "name": "_ScreenIcon",
+   "line": 3963,
+   "kind": "function",
+   "callname": "func_screenicon",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_SCREENICON",
+   "category": "plain function"
+  },
+  {
+   "name": "_AutoDisplay",
+   "line": 3972,
+   "kind": "function",
+   "callname": "func__autodisplay",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_AUTODISPLAY",
+   "category": "plain function"
+  },
+  {
+   "name": "_ShR",
+   "line": 3981,
+   "kind": "function",
+   "callname": "func__shr",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED _INTEGER64",
+    "LONG"
+   ],
+   "ret": "_UNSIGNED _INTEGER64",
+   "hr_syntax": "_SHR(numericalVariable, numericalValue)",
+   "category": "plain function"
+  },
+  {
+   "name": "_ShL",
+   "line": 3991,
+   "kind": "function",
+   "callname": "func__shl",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED _INTEGER64",
+    "LONG"
+   ],
+   "ret": "_UNSIGNED _INTEGER64",
+   "hr_syntax": "_SHL(numericalVariable, numericalValue)",
+   "category": "plain function"
+  },
+  {
+   "name": "_RoL",
+   "line": 4001,
+   "kind": "function",
+   "callname": "",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED _INTEGER64",
+    "_UNSIGNED LONG"
+   ],
+   "ret": "_UNSIGNED _INTEGER64",
+   "hr_syntax": "_ROL(numericalVariable, numericalValue)",
+   "comments": [
+    "***overridden by function evaluatefunc***",
+    "***overridden by function evaluatefunc***"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_RoR",
+   "line": 4010,
+   "kind": "function",
+   "callname": "",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED _INTEGER64",
+    "_UNSIGNED LONG"
+   ],
+   "ret": "_UNSIGNED _INTEGER64",
+   "hr_syntax": "_ROR(numericalVariable, numericalValue)",
+   "comments": [
+    "***overridden by function evaluatefunc***",
+    "***overridden by function evaluatefunc***"
+   ],
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_Adler32",
+   "line": 4019,
+   "kind": "function",
+   "callname": "func__adler32",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "_UNSIGNED LONG",
+   "hr_syntax": "_ADLER32(dataString$)",
+   "dependency": "DEPENDENCY_ZLIB",
+   "category": "plain function"
+  },
+  {
+   "name": "_Crc32",
+   "line": 4030,
+   "kind": "function",
+   "callname": "func__crc32",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "_UNSIGNED LONG",
+   "hr_syntax": "_CRC32(dataString$)",
+   "dependency": "DEPENDENCY_ZLIB",
+   "category": "plain function"
+  },
+  {
+   "name": "_Deflate",
+   "line": 4041,
+   "kind": "function",
+   "callname": "func__deflate",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_DEFLATE$(stringToCompress$[, compressionLevel&])",
+   "dependency": "DEPENDENCY_ZLIB",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Inflate",
+   "line": 4054,
+   "kind": "function",
+   "callname": "func__inflate",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "_INTEGER64"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "?[,?]",
+   "hr_syntax": "_INFLATE$(stringToDecompress$[, originalSize&])",
+   "dependency": "DEPENDENCY_ZLIB",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Md5",
+   "line": 4067,
+   "kind": "function",
+   "callname": "func__md5",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_MD5$(dataString$)",
+   "dependency": "DEPENDENCY_LOADFONT",
+   "category": "plain function"
+  },
+  {
+   "name": "_Base64Decode",
+   "line": 4079,
+   "kind": "function",
+   "callname": "func__base64decode",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_BASE64DECODE$(stringToDecode$)",
+   "dependency": "DEPENDENCY_ZLIB",
+   "category": "plain function"
+  },
+  {
+   "name": "_Base64Encode",
+   "line": 4091,
+   "kind": "function",
+   "callname": "func__base64encode",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_BASE64ENCODE$(stringToEncode$)",
+   "dependency": "DEPENDENCY_ZLIB",
+   "category": "plain function"
+  },
+  {
+   "name": "_Embedded",
+   "line": 4103,
+   "kind": "function",
+   "callname": "func__embedded",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "hr_syntax": "_EMBEDDED$(handle)",
+   "dependency": "DEPENDENCY_EMBED",
+   "category": "plain function",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_CInp",
+   "line": 4115,
+   "kind": "function",
+   "callname": "func__cinp",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?]",
+   "hr_syntax": "_CINP",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_CapsLock",
+   "line": 4126,
+   "kind": "function",
+   "callname": "func__capslock",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_CAPSLOCK",
+   "category": "plain function"
+  },
+  {
+   "name": "_ScrollLock",
+   "line": 4135,
+   "kind": "function",
+   "callname": "func__scrolllock",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_SCROLLLOCK",
+   "category": "plain function"
+  },
+  {
+   "name": "_NumLock",
+   "line": 4144,
+   "kind": "function",
+   "callname": "func__numlock",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_NUMLOCK",
+   "category": "plain function"
+  },
+  {
+   "name": "_CapsLock",
+   "line": 4153,
+   "kind": "sub",
+   "callname": "sub__capslock",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "{On|Off|_Toggle}",
+   "hr_syntax": "_CAPSLOCK {On|Off|_Toggle}",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Scrolllock",
+   "line": 4163,
+   "kind": "sub",
+   "callname": "sub__scrolllock",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "{On|Off|_Toggle}",
+   "hr_syntax": "_SCROLLLOCK {On|Off|_Toggle}",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_Numlock",
+   "line": 4173,
+   "kind": "sub",
+   "callname": "sub__numlock",
+   "args": 1,
+   "arg_types": [
+    "LONG"
+   ],
+   "specialformat": "{On|Off|_Toggle}",
+   "hr_syntax": "_NUMLOCK {On|Off|_Toggle}",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_ConsoleFont",
+   "line": 4183,
+   "kind": "sub",
+   "callname": "sub__consolefont",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "INTEGER"
+   ],
+   "hr_syntax": "_CONSOLEFONT fontFile$",
+   "category": "plain sub"
+  },
+  {
+   "name": "_ConsoleCursor",
+   "line": 4192,
+   "kind": "sub",
+   "callname": "sub__console_cursor",
+   "args": 2,
+   "arg_types": [
+    "LONG",
+    "LONG"
+   ],
+   "specialformat": "[{_Show|_Hide}][,?]",
+   "hr_syntax": "_CONSOLECURSOR {_Show|_Hide}[, size%]",
+   "category": "special-format statement"
+  },
+  {
+   "name": "_ConsoleInput",
+   "line": 4202,
+   "kind": "function",
+   "callname": "func__getconsoleinput",
+   "args": 0,
+   "ret": "LONG",
+   "hr_syntax": "_CONSOLEINPUT",
+   "category": "plain function"
+  },
+  {
+   "name": "_ReadBit",
+   "line": 4211,
+   "kind": "function",
+   "callname": "func__readbit",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED _INTEGER64",
+    "LONG"
+   ],
+   "ret": "_INTEGER64",
+   "hr_syntax": "_READBIT(numericalVariable, numericalValue)",
+   "category": "plain function"
+  },
+  {
+   "name": "_SetBit",
+   "line": 4221,
+   "kind": "function",
+   "callname": "func__setbit",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED _INTEGER64",
+    "LONG"
+   ],
+   "ret": "_UNSIGNED _INTEGER64",
+   "hr_syntax": "_SETBIT(numericalVariable, numericalValue)",
+   "category": "plain function"
+  },
+  {
+   "name": "_ResetBit",
+   "line": 4231,
+   "kind": "function",
+   "callname": "func__resetbit",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED _INTEGER64",
+    "LONG"
+   ],
+   "ret": "_UNSIGNED _INTEGER64",
+   "hr_syntax": "_RESETBIT(numericalVariable, numericalValue)",
+   "category": "plain function"
+  },
+  {
+   "name": "_ToggleBit",
+   "line": 4241,
+   "kind": "function",
+   "callname": "func__togglebit",
+   "args": 2,
+   "arg_types": [
+    "_UNSIGNED _INTEGER64",
+    "LONG"
+   ],
+   "ret": "_UNSIGNED _INTEGER64",
+   "hr_syntax": "_TOGGLEBIT(numericalVariable, numericalValue)",
+   "category": "plain function"
+  },
+  {
+   "name": "_NotifyPopup",
+   "line": 4251,
+   "kind": "sub",
+   "callname": "sub__guiNotifyPopup",
+   "args": 3,
+   "arg_types": [
+    "STRING",
+    "STRING",
+    "STRING"
+   ],
+   "specialformat": "[?][,[?][,?]]",
+   "hr_syntax": "_NOTIFYPOPUP [title$][, message$][, iconType$]",
+   "comments": [
+    "1 = function, 2 = sub"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "_MessageBox",
+   "line": 4261,
+   "kind": "sub",
+   "callname": "sub__guiMessageBox",
+   "args": 3,
+   "arg_types": [
+    "STRING",
+    "STRING",
+    "STRING"
+   ],
+   "specialformat": "[?][,[?][,?]]",
+   "hr_syntax": "_MESSAGEBOX [title$][, message$][, iconType$]",
+   "comments": [
+    "1 = function, 2 = sub"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "_SelectFolderDialog",
+   "line": 4271,
+   "kind": "function",
+   "callname": "func__guiSelectFolderDialog",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "[?][,?]",
+   "hr_syntax": "_SELECTFOLDERDIALOG$([title$][, defaultPath$])",
+   "comments": [
+    "1 = function, 2 = sub",
+    "return type for functions"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "_ColorChooserDialog",
+   "line": 4283,
+   "kind": "function",
+   "callname": "func__guiColorChooserDialog",
+   "args": 2,
+   "arg_types": [
+    "STRING",
+    "_UNSIGNED LONG"
+   ],
+   "ret": "_UNSIGNED LONG",
+   "specialformat": "[?][,?]",
+   "hr_syntax": "_COLORCHOOSERDIALOG&([title$][, defaultRGB&])",
+   "comments": [
+    "1 = function, 2 = sub",
+    "return type for functions"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "_MessageBox",
+   "line": 4294,
+   "kind": "function",
+   "callname": "func__guiMessageBox",
+   "args": 5,
+   "arg_types": [
+    "STRING",
+    "STRING",
+    "STRING",
+    "STRING",
+    "LONG"
+   ],
+   "ret": "LONG",
+   "specialformat": "[?][,[?][,[?][,[?][,?]]]]",
+   "hr_syntax": "_MESSAGEBOX&([title$][, message$][, dialogType$][, iconType$][, defaultButton&])",
+   "comments": [
+    "1 = function, 2 = sub",
+    "return type for functions"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "_InputBox",
+   "line": 4305,
+   "kind": "function",
+   "callname": "func__guiInputBox",
+   "args": 3,
+   "arg_types": [
+    "STRING",
+    "STRING",
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "[?][,[?][,?]]",
+   "hr_syntax": "_INPUTBOX$([title$][, message$][, defaultInput$])",
+   "comments": [
+    "1 = function, 2 = sub",
+    "return type for functions"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "_OpenFileDialog",
+   "line": 4317,
+   "kind": "function",
+   "callname": "func__guiOpenFileDialog",
+   "args": 5,
+   "arg_types": [
+    "STRING",
+    "STRING",
+    "STRING",
+    "STRING",
+    "LONG"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "[?][,[?][,[?][,[?][,?]]]]",
+   "hr_syntax": "_OPENFILEDIALOG$([title$][, defaultPathAndFile$][, filterPatterns$][, singleFilterDescription$][, allowMultipleSelects&])",
+   "comments": [
+    "1 = function, 2 = sub",
+    "return type for functions"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "_SaveFileDialog",
+   "line": 4329,
+   "kind": "function",
+   "callname": "func__guiSaveFileDialog",
+   "args": 4,
+   "arg_types": [
+    "STRING",
+    "STRING",
+    "STRING",
+    "STRING"
+   ],
+   "ret": "STRING",
+   "musthave": "$",
+   "specialformat": "[?][,[?][,[?][,?]]]",
+   "hr_syntax": "_SAVEFILEDIALOG$([title$][, defaultPathAndFile$][, filterPatterns$][, singleFilterDescription$])",
+   "comments": [
+    "1 = function, 2 = sub",
+    "return type for functions"
+   ],
+   "category": "special-format statement"
+  },
+  {
+   "name": "_LogTrace",
+   "line": 4341,
+   "kind": "sub",
+   "callname": "sub__log_trace",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "_LOGTRACE msg$",
+   "category": "plain sub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_LogInfo",
+   "line": 4350,
+   "kind": "sub",
+   "callname": "sub__log_info",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "_LOGINFO msg$",
+   "category": "plain sub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_LogWarn",
+   "line": 4359,
+   "kind": "sub",
+   "callname": "sub__log_warn",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "_LOGWARN msg$",
+   "category": "plain sub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_LogError",
+   "line": 4368,
+   "kind": "sub",
+   "callname": "sub__log_error",
+   "args": 1,
+   "arg_types": [
+    "STRING"
+   ],
+   "hr_syntax": "_LOGERROR msg$",
+   "category": "plain sub",
+   "compiler_mentions": 1
+  },
+  {
+   "name": "_LogMinLevel",
+   "line": 4377,
+   "kind": "function",
+   "callname": "func__logminlevel",
+   "args": 0,
+   "arg_types": [],
+   "hr_syntax": "_LOGMINLEVEL",
+   "comments": [
+    "ANOMALY: ideret = LONGTYPE - ISPOINTER"
+   ],
+   "category": "plain function"
+  }
+ ]
+}

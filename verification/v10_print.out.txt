@@ -1,0 +1,23 @@
+1. numbers:
+[ 5 -3  1.5 ]
+2. auto-semicolon:
+[a 1  7 b]
+3. USING in the middle of PRINT:
+[ 3.1]
+[ 7  42]
+5. WRITE to screen:
+1,-2.5,"q"x","s"
+6. PRINT USING after an earlier PRINT, in a SUB (tqbs reuse):
+[ 5]
+keep-t keep-u
+7. file output:
+[ 1 -2 a]
+[x             y 3            4 ]
+[1,-2.5,"q"x"]
+[1,2,"after"]
+[ 3.14 2.50]
+[b7]
+[]
+8. INPUT # items:
+[abc][ 12 ][q,x][ 300 ][ 16 ]
+exit=0

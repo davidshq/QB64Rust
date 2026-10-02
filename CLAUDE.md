@@ -14,7 +14,7 @@ copy, but never the only copy.
    or `study\`). Memory may hold a pointer or copy in addition.
 3. **`..\QB64pe\` is a read-only reference clone.** Do not modify it. Study notes and design documents go in `study\`.
 4. **This repo (`QB64Rust`) is the project.** Paths in this file are relative to it. The parent folder
-   `C:\code\qb64-new` has symlinks `CLAUDE.md`, `SOMEDAY.md` and `study` pointing here, so sessions started in the
+   (`..`) has symlinks `CLAUDE.md`, `SOMEDAY.md` and `study` pointing here, so sessions started in the
    parent see the same files; edit the real files here, not copies.
 
 ## Project decisions
@@ -32,6 +32,8 @@ copy, but never the only copy.
 
 Open decisions and the expert-panel recommendations: `study\07-expert-panel.md`.
 
+**Start each session by reading `STATUS.md`** (current phase and next steps).
+
 ## Layout
 
 | Path | Content |
@@ -42,4 +44,11 @@ Open decisions and the expert-panel recommendations: `study\07-expert-panel.md`.
 | `study\06-vscode-parity.md` | IDE features mapped to VS Code mechanisms |
 | `study\07-expert-panel.md` | Panel discussion and recommendations |
 | `study\08-qb45-strict-mode.md` | Changes a strict QuickBASIC 4.5 mode would need (not planned) |
+| `study\09-verification.md` | Study claims checked by running the old compiler |
+| `study\10-gaps.md` | DIM/REDIM/STATIC/COMMON, PRINT/INPUT/WRITE emission, built-in table (M0 study gaps) |
+| `verification\` | Small programs behind `study\09` and `study\10`, their outputs, and `run.sh` |
+| `tools\builtins\` | Extractor for the built-in table (`extract_builtins.py`) and its output `builtins.json` |
 | `SOMEDAY.md` | Deferred features and ideas |
+| `STATUS.md` | Current phase, what is done, next steps |
+| `tools\legacy_tests\` | Windows runner for the QB64pe test suites (old or new compiler) |
+| `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure) |

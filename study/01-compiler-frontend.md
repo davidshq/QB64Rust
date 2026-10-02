@@ -1,6 +1,6 @@
 # QB64-PE compiler front end and pipeline — study report
 
-Source studied: `C:\code\qb64-new\QB64pe` (version string `4.7.0-GLFW`, `source\global\version.bas:13`).
+Source studied: `..\QB64pe` (version string `4.7.0-GLFW`, `source\global\version.bas:13`).
 All `file:line` references are to `source\qb64pe.bas` unless another file is named.
 
 **This tree is not stock QB64-PE.** It carries extensions that a rewrite must decide on explicitly:

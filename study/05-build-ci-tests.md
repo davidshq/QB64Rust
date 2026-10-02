@@ -1,6 +1,6 @@
 # 05 - Build system, bootstrap, CI/release and test suite (QB64pe)
 
-Repo: `C:\code\qb64-new\QB64pe` (HEAD 16f629784e, "Automatic update of ./internal/source"; `git describe` says `v4.1.0-751-...` only because later tags are absent from the clone; `source\global\version.bas:13` says `4.7.0-GLFW`). Paths below are repo-relative. Study was read-only; nothing was built or run.
+Repo: `..\QB64pe` (HEAD 16f629784e, "Automatic update of ./internal/source"; `git describe` says `v4.1.0-751-...` only because later tags are absent from the clone; `source\global\version.bas:13` says `4.7.0-GLFW`). Paths below are repo-relative. Study was read-only; nothing was built or run.
 
 ## 0. Big picture
 

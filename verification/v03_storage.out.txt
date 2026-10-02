@@ -1,0 +1,12 @@
+== fixed-length string initial bytes ==
+ 0  0  0  0 
+ 0  0  0 
+ 97  98  32  32 
+== REDIM _PRESERVE of a 2-D array ==
+ 11  22  0 
+ 21  13  0 
+ 12  23  0 
+-- last dimension grown --
+ 11  12  0 
+ 21  22  0 
+exit=0

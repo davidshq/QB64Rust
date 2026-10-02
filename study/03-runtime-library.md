@@ -1,6 +1,6 @@
 # 03 — QB64pe C++ Runtime Library Study
 
-Repo studied: `C:\code\qb64-new\QB64pe` (HEAD `16f62978`, "Automatic update of ./internal/source", 2026-09-30). Read-only study.
+Repo studied: `..\QB64pe` (HEAD `16f62978`, "Automatic update of ./internal/source", 2026-09-30). Read-only study.
 All paths below are relative to `internal\c\` unless stated. `libqb.cpp:N` means line N of `internal\c\libqb.cpp`.
 
 **Coverage honesty note.** Read in full: `qbx.cpp`, `common.h`, `os.h`, most `libqb\include\*.h`, `qbs.cpp` (1-420), `qbs_cmem.cpp`, `error_handle.cpp`, `main-thread-*.cpp`, `threading-windows.cpp`, `threading.cpp`, all `build.mk` files. `libqb.cpp` (27,119 lines): a complete function outline was extracted (all ~297 top-level definitions) and roughly 4,000 lines were read directly (startup/main loop, display pipeline head/tail, GL render request, image core, conventional memory, CPU/interrupt emulation, OUT/INP/WAIT, RND, OPEN, END/RUN, SLEEP, start of PRINT / PRINT USING / SCREEN / _PUTIMAGE). The bodies of the big drawing/printing/input routines (PAINT, CIRCLE, DRAW, GET/PUT, `qbs_input`, `print_using`, `printchr`, text-mode renderer middle, `sub__screenprint`, hardware_img_* internals) were **sampled, not read line by line**. Other `libqb\src` modules were outlined by function signature with selective reads. Vendored code in `parts\` was identified from headers and makefiles only.
@@ -223,7 +223,8 @@ Flow:
 3. Generated code reaches `evnt()` → `fix_error()` (`364-433`):
    - No handler, already handling, or error 300-315: dialog "Unhandled Error #n / Line: X (in main module|file) / Continue?" via `gui_alert` (tinyfiledialogs). "No" → `close_program=1; end()`. Env `QB64PE_NOPROMPT=y|continue` routes to stderr instead (`295-360`).
    - Handler present: set `error_err`, `error_erl=last_line`, `error_occurred=1`, then **call `QBMAIN(NULL)` recursively** (`431`, with a "FIXME: EWWWWW" comment). The re-entered QBMAIN runs `mainerr.txt` which dispatches on `error_occurred`/`error_goto_line` to the handler label; RESUME / RESUME NEXT jump back via generated tables. Native stack grows per handled error and is never unwound.
-4. Critical (never trappable) errors: 257 and 502-518 (out of memory), **11 division by zero**, 256 stack, 259-261 DLL, 270/271 GL scope (`error_handle.cpp:443-497`). Note that QB45's error 11 is trappable; here integer divide by zero is fatal (delivered via SIGFPE handler `qbx.cpp:1545`). Float division by zero follows IEEE (inf) — behaviour difference from QB45 worth a design decision.
+4. Critical (never trappable) errors: 257 and 502-518 (out of memory), **11 division by zero**, 256 stack, 259-261 DLL, 270/271 GL scope (`error_handle.cpp:443-497`). Note that QB45's error 11 is trappable; here integer divide by zero is fatal (delivered via SIGFPE handler `qbx.cpp:1545`). *Verified in `09`: fatal
+confirmed, but `\` and `MOD` reach it through `qb_safe_idiv`/`qb_safe_mod` calling `error(11)`; SIGFPE is only a backstop.* Float division by zero follows IEEE (inf) — behaviour difference from QB45 worth a design decision.
 5. `libqb_check_stack()` (`91-142`) emitted per user SUB/FUNCTION → error 256 with 256 KB reserve.
 6. `$ErrorLocation:ON` line tracking: `error_track_line` (`269`).
 7. `ERR`/`ERL`/`_ERRORLINE`/`_INCLERRORLINE`/`_INCLERRORFILE$`/`_ERRORMESSAGE$` accessors `233-280`. Message table `144-227`.

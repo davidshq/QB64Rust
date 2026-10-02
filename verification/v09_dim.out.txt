@@ -1,0 +1,15 @@
+1. OPTION BASE 1 + DIM z(0): 0  0 
+   DIM y(3) under base 1: 1  3 
+2. static array skipped by GOTO: 7 
+3. REDIM without type adopts REDIM AS type: 4 
+4. REDIM of a static array: [error 10 ] ubound 5 
+5. ERASE static keeps bounds, clears data: 5  0 
+   ERASE dynamic, then UBOUND: [error 9 ]6. DIM twice in a SUB loop:
+   pass 1 ubound 3 
+ [error 10 ]   pass 2 ubound 3 
+7. STATIC a(3) keeps values across calls: 1  2 
+8. STATIC a() list array, DIM a(3) on each call: 1  [error 10 ] 2 
+9. SUB ... STATIC keeps a constant-bound array: 1  2 
+10. COMMON SHARED cs() then DIM CS(3) (different case), seen in SUB: 5 
+11. DIM in SUB runs on each call (fresh zeroed array): 1  1 
+exit=0

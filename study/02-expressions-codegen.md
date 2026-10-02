@@ -1,7 +1,7 @@
 # QB64pe study 02 — Expression evaluation, built-in registration, C++ code generation
 
 Scope: `source\qb64pe.bas` (28,828 lines), `source\subs_functions\`, `source\utilities\{const_eval,type,elements}.bas`, `source\utilities\arrcpy.bm`, `internal\c\qbx.cpp`, and the runtime headers the emitted code touches.
-All `file:line` references are to the tree at `C:\code\qb64-new\QB64pe` (HEAD `16f629784e`, `Version$ = "4.7.0-GLFW"`, `source\global\version.bas:13`). Unqualified line numbers mean `source\qb64pe.bas`.
+All `file:line` references are to the tree at `..\QB64pe` (HEAD `16f629784e`, `Version$ = "4.7.0-GLFW"`, `source\global\version.bas:13`). Unqualified line numbers mean `source\qb64pe.bas`.
 
 > **Tree caveat.** This tree contains machinery that, to my knowledge, is not in stock QB64-PE: arrays as TYPE members (`udtearrayelements`, `_Static`/`_Dynamic` member storage, `id.dynudt`), whole-array assignment `a() = b()`, `_ARRAYCOPY`, and a coordinate-preserving REDIM mode (`redimoption = 3`, called "_Retain" in comments). It is interleaved with the classic paths in `evaluate`, `udtreference`, `refer`, `setrefer`, `evaluatetotyp`, `allocarray`, `dim2`. I describe the classic behaviour and mark the extra layer as **[member-array layer]**. I did not diff against upstream, so treat "not in stock" as unverified.
 

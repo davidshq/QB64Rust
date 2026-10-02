@@ -2,7 +2,7 @@
 
 Written 2026-10-02 from the five study reports in this folder (01–05), all of which I read in full except
 `04-ide-debugger.md`, where I read the summary, Part A (compiler interface), Part G (assessment) and Part H (coverage).
-Tree studied: `C:\code\qb64-new\QB64pe`, HEAD `16f629784e`, `Version$ = "4.7.0-GLFW"`, remote `davidshq-contribute/QB64pe`.
+Tree studied: `..\QB64pe`, HEAD `16f629784e`, `Version$ = "4.7.0-GLFW"`, remote `davidshq-contribute/QB64pe`.
 
 ## Confidence
 
@@ -145,3 +145,7 @@ Each of these changes the shape of everything after it. They are listed in depen
 
 The first three are the ones worth closing before design starts; they are bounded reads (roughly 3,500 lines of
 `qb64pe.bas` plus the 4,000-line registration table).
+
+Update (session 3): the first three are closed in `10-gaps.md`, which also covers ERASE. "Nothing was executed"
+is addressed by `09-verification.md` and the checks in `10-gaps.md`. The member-array layer is deferred
+(`SOMEDAY.md`); the other rows remain open and can be read when the matching part of the rewrite starts.

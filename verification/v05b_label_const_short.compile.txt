@@ -1,0 +1,5 @@
+
+Unexpected element '='
+Caused by (or after):
+LINE 3:CONST MYCONSTANT = 42 , OTHER = 7
+exit=1

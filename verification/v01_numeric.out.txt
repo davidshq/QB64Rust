@@ -1,0 +1,49 @@
+== int/int division ==
+ .3333333333333333 
+ .6666666666666666 
+ 2.5 
+ .3333333333333333 
+ .3333333 
+ .3333333 
+== integer overflow ==
+-32768 
+ 4464 
+-2147483648 
+ 40000 
+-25536 
+== single literal stored in double ==
+ .1 
+ .1 
+ .1000000014901161 
+== float comparison narrowing ==
+s! = 2.1 true
+s! = d# true
+d# = 2.1# true
+== rounding ==
+ 0  2  2  4 -2 
+ 2 
+ 4 
+ 2 
+ 2 
+ 2  4 
+ 2  4 
+ 16777218 
+== hex and literal typing ==
+-1 -32768  65535  32768 
+-1 -2147483648 
+-1 
+-2147483648 
+-4294967296 
+ 2 
+-2 
+ 4294967296 
+== power ==
+ 64 
+-4 
+ .5 
+ 512 
+-4 
+== DOUBLE narrowed to SINGLE before rounding into INTEGER ==
+ 2 
+ 3 
+exit=0
