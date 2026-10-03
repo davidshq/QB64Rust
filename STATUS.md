@@ -29,7 +29,7 @@ OpenSpec change `m1-vscode-extension-v0`: all 18 tasks done; archived 2026-10-03
 `DEVELOPMENT.md`): grammar, build/run (commands and tasks), diagnostics from `qb64pe -z -q -w`, formatting via `-y`,
 CP437 default. Written fresh, ids `qb64rust`. Measured old-compiler output formats are in the archived change's `design.md`.
 
-- Tests: unit 39, grammar 4, integration 37 on VS Code stable and on 1.100 (the minimum, `study\17`); also passes
+- Tests: unit 40, grammar 4, integration 37 on VS Code stable and on 1.100 (the minimum, `study\17`); also passes
   against the QB64pe 4.7.0 release download. CI for Windows in `.github\workflows\vscode-extension.yml`, inactive
   until the repo has a GitHub remote.
 - Walkthrough of the packaged `.vsix` (`verification\m1-extension.md`): 11 of 11 steps done; one expectation
@@ -43,11 +43,19 @@ CP437 default. Written fresh, ids `qb64rust`. Measured old-compiler output forma
   fixture `build_clean` added to `scripts\record-fixtures.sh`). Progress moved to the language status item
   instead (panel, 2026-10-03): "qb64pe: generating C++ n%", then "qb64pe: compiling C++…". Measured: generating
   C++ for `qb64pe.bas` (28,828 lines) takes 33 s, a small program 0.2 s; the terminal build task still shows the
-  original bar. Not yet seen by eye in a real build. For the new compiler: report progress as structured
+  original bar. For the new compiler: report progress as structured
   messages (or LSP `$/progress`), not a `\r` bar. The heading "Qb64rust: Compiler Path" is left as is:
   it appears in the filtered search view that "Open Setting" opens, where VS Code shows the key's prefix; the
-  extension's `name` already matches the prefix, so the tree view should show "Compiler Path". Removing the prefix
-  from search results would need renamed keys (not wanted). Not yet checked by eye in the tree view.
+  extension's `name` already matches the prefix, so the tree view shows "Compiler Path". Removing the prefix
+  from search results would need renamed keys (not wanted).
+- Both checked by eye (2026-10-03, VS Code 1.140, build of `qb64pe.bas`): the settings tree view (Extensions >
+  QB64) shows "Compiler Path" without the prefix. The status item shows "qb64pe: building…", then "qb64pe:
+  generating C++ n%", "qb64pe: compiling C++…", and "qb64pe" again when done; the output channel has no bar lines.
+  Measured with a pipe: qb64pe prints nothing for the first 31 s (the prepass, which draws no bar; the bar is drawn
+  only in the main pass), then 2 %–100 % arrive within 2 s, then compiling C++ takes 17 s (50 s in all). So for
+  most of the C++ generation the item said only "building…", and the percentage flashes by at the end. Fixed: the
+  item switches to "qb64pe: generating C++…" when the line "Beginning C++ output from QB64 code..." arrives (0.2 s
+  in; unit test added, 40 unit tests; seen by eye in the same build).
 
 ## FreeBASIC reviewed (2026-10-03)
 

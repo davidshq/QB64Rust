@@ -2,15 +2,20 @@
 // item. Pure: no `vscode` import.
 import { PROGRESS } from "./parseQb64peOutput";
 
-/** Where a `-x` build is: generating C++ (with the percentage of the bar), or compiling it. */
-export type BuildProgress = { phase: "generating"; percent: number } | { phase: "compiling" };
+/**
+ * Where a `-x` build is: generating C++ (with the percentage of the bar once it is drawn), or compiling it. The bar
+ * is drawn only in the main pass; the prepass before it draws nothing (31 of the 33 s for `qb64pe.bas`).
+ */
+export type BuildProgress = { phase: "generating"; percent?: number } | { phase: "compiling" };
 
+const GENERATING = /^Beginning C\+\+ output/;
 const COMPILING = /^Compiling C\+\+ code/;
 
 /**
  * Collects streamed output into whole lines. The `-x` progress bar redraws itself with `\r` on one line, about
- * 50 times per build; a line shows only its last redraw, and progress-bar lines are dropped. Each redraw of the
- * bar, and the start of the C++ step, is reported to `onProgress` as soon as it arrives.
+ * 50 times per build; a line shows only its last redraw, and progress-bar lines are dropped. The start of C++
+ * generation, each redraw of the bar, and the start of the C++ step are reported to `onProgress` as soon as they
+ * arrive.
  */
 export class BuildOutputLines {
     /** Text since the last `\r` or `\n`. */
@@ -56,7 +61,9 @@ export class BuildOutputLines {
             return;
         }
         const t = s.trim();
-        if (PROGRESS.test(t)) {
+        if (GENERATING.test(t)) {
+            this.onProgress?.({ phase: "generating" });
+        } else if (PROGRESS.test(t)) {
             this.onProgress?.({ phase: "generating", percent: Number(/(\d+)%$/.exec(t)![1]) });
         } else if (COMPILING.test(t)) {
             this.onProgress?.({ phase: "compiling" });
@@ -72,5 +79,8 @@ export class BuildOutputLines {
 
 /** Status text for a build in progress. */
 export function progressText(progress: BuildProgress): string {
-    return progress.phase === "generating" ? `generating C++ ${progress.percent}%` : "compiling C++…";
+    if (progress.phase === "compiling") {
+        return "compiling C++…";
+    }
+    return progress.percent === undefined ? "generating C++…" : `generating C++ ${progress.percent}%`;
 }

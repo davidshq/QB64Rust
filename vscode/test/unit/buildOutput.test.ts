@@ -49,8 +49,9 @@ describe("BuildOutputLines progress", () => {
         return seen;
     }
 
-    // The recorded bar: 2%, 4%, …, 100%, with 100% drawn twice, then the C++ step.
+    // The start of C++ generation, the recorded bar: 2%, 4%, …, 100%, with 100% drawn twice, then the C++ step.
     const expectedProgress = [
+        "generating C++…",
         ...Array.from({ length: 50 }, (_, i) => `generating C++ ${2 * (i + 1)}%`),
         "generating C++ 100%",
         "compiling C++…",
@@ -58,6 +59,13 @@ describe("BuildOutputLines progress", () => {
 
     it("recorded -x build: every redraw of the bar, then the C++ step", () => {
         assert.deepStrictEqual(progress([recorded]), expectedProgress);
+    });
+
+    it("generation is reported before the bar, which the prepass does not draw", () => {
+        const seen: string[] = [];
+        const lines = new BuildOutputLines((p) => seen.push(progressText(p)));
+        lines.push("QB64-PE Compiler V4.7.0-GLFW-UNKNOWN\n\nBeginning C++ output from QB64 code... \n");
+        assert.deepStrictEqual(seen, ["generating C++…"]);
     });
 
     it("reported while the line is still being drawn, not at its end", () => {
