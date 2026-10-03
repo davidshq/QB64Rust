@@ -1,0 +1,4 @@
+
+Cannot redefine a static array!
+Caused by (or after):DIM A ( 1 TO 2 ) AS LONG
+LINE 7:DIM a(1 TO 2) AS LONG

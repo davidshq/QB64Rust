@@ -47,6 +47,13 @@ Same compiler and machine, `run_legacy_tests.py --suite format` (added in the re
 baseline). 5 sources in `tests\format_tests`, 24 flag variants: **24 pass, 0 fail.** This is the oracle for
 formatting through `-y` (M1) and for the new formatter (M2).
 
+## `qb64pe-16f629784e-win64-corpus.json` — golden corpus, 2026-10-03
+
+Same compiler and machine, `run_legacy_tests.py --suite corpus` against `tests\corpus` right after recording it
+(`tests\corpus\README.md`): 263 programs, **258 pass, 0 fail, 5 KFAIL** (237 output, 20 compile error, 1 compile
+only; the 5 known failures hang and are compiled but not run, see `known_failures.txt`). 921 s of test time (about
+2.5 s per program, slower in stretches when other work ran on the machine).
+
 ### What these baselines do not cover
 
 Graphics output beyond 12 image tests, audio, interactive input, the IDE, and the 143 qbasic programs' run-time

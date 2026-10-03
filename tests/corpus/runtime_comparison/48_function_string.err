@@ -1,0 +1,4 @@
+
+Name already in use (name)
+Caused by (or after):FUNCTION GREET$ ( NAME AS STRING )
+LINE 8:FUNCTION greet$ (name AS STRING)

@@ -1,0 +1,5 @@
+_clamp 5 0 10: 5 
+_clamp -1 0 10: 0 
+_clamp 15 0 10: 10 
+
+Press any key to continue

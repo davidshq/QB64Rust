@@ -1,0 +1,6 @@
+instr hello ll: 3 
+instr abc x: 0 
+instr 3 hello ll: 3 
+instr 1 a a: 1 
+
+Press any key to continue

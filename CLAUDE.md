@@ -68,6 +68,8 @@ copy, but never the only copy.
 | 2026-10-03 | Extension needs **VS Code 1.100 or later** (`engines.vscode ^1.100.0`), raised from 1.85: allows ESM-only mocha 12 (no audit findings) and `TextDocument.encoding`. Tests stay on mocha + `@vscode/test-electron` like most large extensions, and run on stable and on 1.100 (`study\17-vscode-extension-testing.md`). |
 | 2026-10-03 | Panel decision on the FreeBASIC follow-ups (`study\16` §8): **LONG overflow wraps** (generated code and constant folding; matches the old compiler's default build, differs from its `-O2`); test mode lines, typed-tree assertions, snapshot tests and one-error-per-statement recovery in M2; "cannot raise" flag only as a field defaulting to "may raise". |
 | 2026-10-03 | Extension CI on **Windows** with GitHub Actions against the QB64pe `v4.7.0-GLFW` release; macOS/Linux later (`study\18` G). |
+| 2026-10-03 | **`_INTEGER64` overflow wraps** too, like LONG (generated code and constant folding). Measured: same exposure as LONG, default build wraps, `-O2` does not (`verification\v12_wrap_int64`, `study\16` §8). |
+| 2026-10-03 | **Test cadence** (`study\19`): the full golden corpus is not part of the edit loop. Tier 1 `cargo test` (incl. corpus front end only, no C++) on every edit; tier 2 a `--glob` slice before commits; tier 3 the full corpus in parallel in CI on each push/PR; tier 4 everything (`-O2`, legacy suites) nightly and before releases. The old compiler is rerun only for new corpus programs or a new reference version. |
 
 Expert-panel recommendations: `study\07-expert-panel.md` (its "Decisions for the user" are answered above). Open
 questions: `STATUS.md`.
@@ -93,6 +95,7 @@ questions: `STATUS.md`.
 | `vscode\` | M1 VS Code extension (`qb64rust`): sources, tests, fixtures, `README.md`, `DEVELOPMENT.md` |
 | `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release |
 | `study\18-vscode-extension-practices.md` | Other extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
+| `study\19-test-cadence.md` | How often each test layer runs (four tiers), what a full run costs, and how the new compiler's runs are kept fast |
 | `study\archive\` | Closed reviews of other repositories, kept for the record only: `11` existing VS Code extensions, `12` QB64Fresh (the user's earlier Rust rewrite), `13` reference-doc sources, `14` the `docs-new-2` branch, and `qb64fresh-scripts\` (measurements behind `12`). Their conclusions are in `study\00` §11; nothing in the active plan depends on reading them. |
 | `verification\` | Small programs behind `study\09` and `study\10`, their outputs, and `run.sh` |
 | `tools\builtins\` | Extractor for the built-in table (`extract_builtins.py`) and its output `builtins.json` |
@@ -100,5 +103,6 @@ questions: `STATUS.md`.
 | `<qb64contain>`, `<share>` | Placeholders for the user's local folder of earlier projects (QB64Fresh, qb64pe-vscode, a QB64pe clone with notes) and its network copy; used in `study\` and `STATUS.md` instead of machine-specific paths. Do not write full local paths or host names into this repo. |
 | `SOMEDAY.md` | Deferred features and ideas |
 | `STATUS.md` | Current phase, what is done, next steps |
+| `tests\corpus\` | Golden corpus: 263 programs with the old compiler's recorded output or compile error (`README.md`); checked by `run_legacy_tests.py --suite corpus` |
 | `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler) and its `known_failures.txt` |
 | `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure; format tests 24 of 24) |

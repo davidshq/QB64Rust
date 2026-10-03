@@ -1,0 +1,5 @@
+ucase Hello:HELLO
+lcase World:world
+ucase aBc:ABC
+
+Press any key to continue

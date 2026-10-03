@@ -335,7 +335,8 @@ def write_expected(path: Path, data: bytes, other: Path) -> str:
     return f"warning: {path.name} changed" if old is not None else f"warning: {other.name} replaced by {path.name}"
 
 
-def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path) -> Result:
+def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path,
+                known: dict[str, str]) -> Result:
     group = bas.parent.relative_to(corpus_root).as_posix()
     name = bas.stem
     tdir = bas.parent
@@ -356,9 +357,11 @@ def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path
     def fail(stage, detail=""):
         return finish("FAIL", stage, detail)
 
+    # A known failure without an expected file (it hangs, or loops forever) cannot pass: compile it, never run it.
+    skip_run = not present and f"corpus:{group}/{name}" in known
     if len(present) > 1:
         return fail("expected", f"more than one of .output, .err, .norun: {', '.join(present)}")
-    if not present and not args.record:
+    if not present and not args.record and not skip_run:
         return fail("expected", "no .output, .err or .norun (record it with --record)")
     rules = load_normalize(tdir / f"{name}.normalize")
 
@@ -387,6 +390,8 @@ def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path
         if exe.exists():
             return fail("exe exists", "exe produced although the compile failed")
         got = apply_normalize(compile_out.read_bytes(), rules)
+        if skip_run:
+            return fail("compile", f"exit code {rc}")
         if args.record and not norun:
             r.kind = "error"
             return passed(write_expected(err_file, got, out_file))
@@ -402,6 +407,9 @@ def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path
         return fail("exe exists", "no executable produced")
     if norun:
         return passed()
+    if skip_run:
+        shutil.rmtree(work, ignore_errors=True)
+        return fail("run", "not run: known failure with no expected file")
 
     r.kind = "output"
     env = dict(os.environ)
@@ -534,7 +542,7 @@ def main() -> int:
                 elif suite == "format":
                     rs = format_tests(bas, args, results, qb_root)
                 elif suite == "corpus":
-                    rs = [corpus_test(bas, args, results, qb_root, corpus_root)]
+                    rs = [corpus_test(bas, args, results, qb_root, corpus_root, known)]
                 else:
                     rs = [qbasic_test(bas, args, results, qb_root)]
             except Exception as e:  # one broken test must not lose a long run's results

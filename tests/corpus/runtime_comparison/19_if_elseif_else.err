@@ -1,0 +1,4 @@
+
+THEN without IF
+Caused by (or after):IF X = 1 THEN
+LINE 7:IF x = 1 THEN PRINT "one" ELSEIF x = 2 THEN PRINT "two" ELSE PRINT "other"

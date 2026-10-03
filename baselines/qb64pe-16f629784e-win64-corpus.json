@@ -1,0 +1,2379 @@
+{
+ "compiler": "../QB64pe/qb64pe.exe",
+ "summary": {
+  "corpus": {
+   "PASS": 258,
+   "FAIL": 0,
+   "KFAIL": 5
+  }
+ },
+ "results": [
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/01_string_ops",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/02_lbound_ubound",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/03_on_error_resume_next",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/04_gosub_return",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/05_file_io",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/06_math_abs",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/07_math_sqr",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.7
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/08_math_int",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 16.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/09_math_sgn",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.8
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/100_str_negative",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/101_while_empty",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/102_for_empty",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/103_do_while",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/104_const_expr",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.9
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/105_let",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/106_atan2",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/107_hypot",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/108_clamp",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.0
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/109_implicit_dim",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 10.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/10_math_mod",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/110_array_assign",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/111_concat_multiple",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/112_numeric_compare",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/113_if_then_inline",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/114_select_multiple",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/115_sub_no_call",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/116_read_restore_label",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/117_mid_three_args",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/118_string_concat_long",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/119_for_step_two",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/11_math_backslash",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/120_redim_no_preserve",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 10.9
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/121_type_nested",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/122_function_double",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/123_function_single",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/124_sub_string_param",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/125_error_codes",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/126_print_comma",
+   "kind": "output",
+   "status": "KFAIL",
+   "stage": "run",
+   "detail": "not run: known failure with no expected file (known: PRINT with a comma never ends when stdout is redirected (Windows console))",
+   "seconds": 2.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/127_for_double_step",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/128_string_repeat",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.8
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/129_len_string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/12_chr_asc",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/130_assign_chain",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/131_expression_priority",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.1
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/132_hex_literal",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/133_octal_literal",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 10.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/134_float_literal",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/135_negate",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/136_and_or_mixed",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/137_not_condition",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/138_string_eq",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/139_loop_counter",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/13_str_val",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/140_sub_multiple_call",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/141_function_in_expr",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/142_array_in_func",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/143_read_multiple",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/144_dim_multiple",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/145_end_early",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/146_if_elseif_else_block",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.7
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/147_on_error_resume_0",
+   "kind": "output",
+   "status": "KFAIL",
+   "stage": "run",
+   "detail": "not run: known failure with no expected file (known: the program loops forever by design: RESUME 0 re-runs ERROR 5 (QuickBASIC would too))",
+   "seconds": 10.8
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/148_on_error_resume_line",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/149_select_case_else",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/14_instr",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/150_for_next_double",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/151_exit_select",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/152_while_wend_nested",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/153_do_loop_until_while",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/154_math_asin_acos",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/155_math_sinh_cosh_tanh",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/156_math_sec_csc_cot",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/157_math_d2r_r2d",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/158_math_negate",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/159_bitwise_shl_shr",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/15_ucase_lcase",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/160_bitwise_rol_ror",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 17.9
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/161_integer_division",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/162_mod_edge",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/163_single_precision",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/164_exp_overflow",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/165_sqr_negative",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/166_strcmp_stricmp",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/167_oct_hex",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/168_bin_dollar",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/169_string_with_char",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/16_ltrim_rtrim",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/170_mid_empty",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/171_left_right_zero",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/172_val_hex_oct",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/173_chr_asc_unicode",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/174_input_hash",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.9
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/175_get_put",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/176_open_random",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/177_open_binary",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/178_write_hash",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/179_file_lock",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/17_string_space",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/180_eof_empty_file",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/181_loc_after_write",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/182_lof_binary",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/183_freefile_multiple",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/184_print_tab",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/185_print_spc",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/186_print_using",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.0
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/187_print_comma_zones",
+   "kind": "output",
+   "status": "KFAIL",
+   "stage": "run",
+   "detail": "not run: known failure with no expected file (known: PRINT with a comma never ends when stdout is redirected (Windows console))",
+   "seconds": 14.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/188_print_semicolon",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/189_width",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/18_for_next",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.0
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/190_sub_byref",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/191_function_byref",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/192_optional_param",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.9
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/193_sub_optional",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/194_array_param_2d",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/195_type_param",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/196_default_param",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/197_type_array_field",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/198_type_fixed_string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/199_type_nested_deep",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/19_if_elseif_else",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/200_type_assign_whole",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.8
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/201_erase_udt_array",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.9
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/202_redim_preserve",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/203_redim_multiple",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/204_lbound_ubound_2d",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.8
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/205_dim_to_same",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/206_shared_redim",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/207_const_string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/208_hex_literal_big",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/209_octal_literal",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/20_select_case",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/210_scientific_literal",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/211_type_suffix_literal",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/212_environ_dollar",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/213_chdir",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/214_mkdir_rmdir",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/215_shell",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/216_kill_nonexistent",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/217_command_dollar",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/218_fre",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/219_fileexists_direxists",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.0
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/21_while_wend",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 13.8
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/220_read_type_mismatch",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.7
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/221_restore_without_label",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/222_data_empty",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/223_read_past_eof",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/224_goto_same_line",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.0
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/225_gosub_nested_deep",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/226_on_goto",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/227_on_gosub",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/228_err_erl_values",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/229_resume_next_after_print",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/22_do_loop",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/230_error_statement",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 13.7
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/231_resume_0_line",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/232_rnd_zero",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/233_rnd_negative",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/234_timer_value",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/235_deftype",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/236_option_base",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/237_csrlin_pos",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/238_chain",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/239_lprint",
+   "kind": "compile-only",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.1
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/23_goto",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/240_data",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/241_const_simple",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/242_types_simple",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/243_iif",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/244_op_exp",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 16.0
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/245_str_variants",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/246_environ_set",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.8
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/247_on_error_simple",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/248_str",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/24_sub_call",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/250_rot13_mini",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/251_print_chain",
+   "kind": "output",
+   "status": "KFAIL",
+   "stage": "run",
+   "detail": "not run: known failure with no expected file (known: PRINT with a comma never ends when stdout is redirected (Windows console))",
+   "seconds": 2.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/252_for_read_data",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/253_select_simple",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/254_gosub_simple",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/255_type_print",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.0
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/256_const_use",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/257_math_builtin",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/258_string_builtin",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 11.9
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/259_control_mix",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.7
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/25_function_call",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/260_long_line",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/261_many_dimensions",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/262_deep_nesting",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/263_many_locals",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/264_string_concat_chain",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/26_const",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/27_dim_types",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/28_redim",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/29_multi_dim",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/30_type_udt",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/31_math_sin_cos",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/32_math_log_exp",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.1
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/33_math_atn",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/34_cint_clng",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 10.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/35_fix",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/36_binary_ops",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/37_logical_and_or",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/38_comparison_ops",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/39_nested_control",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/40_erase",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/41_swap",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/42_mid_assign",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/43_array_string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/44_data_read",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/46_restore",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.1
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/47_sub_byref",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/48_function_string",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/49_empty_string",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.1
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/50_mid_two_args",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/51_asc_two_args",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/52_open_write",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.7
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/53_open_append",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/54_freefile",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/56_rnd_seed",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/57_type_string_field",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/58_array_udt",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/59_seek",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/60_eof",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/61_do_until",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/62_exit_for",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/63_exit_do",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/64_exit_sub",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/65_exit_function",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/66_for_step_negative",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.1
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/67_select_case_to",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 12.1
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/68_if_block",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/69_sub_params",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/70_function_params",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/71_dim_zero_bound",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/72_three_dim",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/73_string_compare",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/74_single_double",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/75_integer_overflow",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/76_pi",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/77_ceil_round",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/78_min_max",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/79_tan",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/80_print_semicolon",
+   "kind": "output",
+   "status": "KFAIL",
+   "stage": "run",
+   "detail": "not run: known failure with no expected file (known: PRINT with a comma never ends when stdout is redirected (Windows console))",
+   "seconds": 4.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/81_multiple_gosub",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 7.9
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/82_nested_gosub",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 5.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/83_recursive_function",
+   "kind": "error",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.2
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/84_shared_array",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.5
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/85_static_sub",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/86_name_rename",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.1
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/87_instr_not_found",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/88_val_junk",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/89_xor",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/90_mod_negative",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/91_backslash_negative",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 4.9
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/92_type_suffix",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 6.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/93_left_right_edge",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 8.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/94_mid_edge",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 3.6
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/95_two_files",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/96_lof",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/97_loc",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.4
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/98_select_case_is",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "runtime_comparison/99_chr_zero",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "verification/v11_wrap_o2",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  },
+  {
+   "suite": "corpus",
+   "test": "verification/v12_wrap_int64",
+   "kind": "output",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 2.3
+  }
+ ]
+}

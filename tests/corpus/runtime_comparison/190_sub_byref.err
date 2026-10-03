@@ -1,0 +1,4 @@
+
+Syntax error - check your brackets
+Caused by (or after):
+LINE 10:SUB ADDONE ( BYREF X AS LONG )

@@ -1,0 +1,4 @@
+instr x in abc: 0 
+instr 2 abc x: 0 
+
+Press any key to continue

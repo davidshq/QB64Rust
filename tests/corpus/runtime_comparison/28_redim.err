@@ -1,0 +1,4 @@
+
+DIM: Expected ,
+Caused by (or after):REDIM PRESERVE A ( 1 TO 5 ) AS LONG
+LINE 9:REDIM PRESERVE a(1 TO 5) AS LONG

@@ -1,0 +1,2 @@
+# CHAIN to a missing program: its last attempt runs "<program folder>\qb64pe.exe -c" (sub_chain, qbx.cpp) and cmd names the folder
+^'.*\\qb64pe\.exe' is not recognized as an internal or external command,$	'<DIR>\\qb64pe.exe' is not recognized as an internal or external command,

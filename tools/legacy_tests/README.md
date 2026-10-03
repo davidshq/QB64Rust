@@ -36,6 +36,9 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
 - `<name>.normalize`: one rule per line, a Python regular expression, a tab, a replacement (`#` lines are
   comments), applied in order to each output line before comparing and before recording. Keep rules anchored and
   narrow, e.g. `^timer: *[0-9.]+ *$` → `timer: <TIMER>` (`PRINT` puts a space after a number).
+- A program listed in `known_failures.txt` that has no expected file (it hangs or loops forever, so nothing can
+  be recorded) is compiled but never run, and reported as KFAIL `not run`. To try it again, remove the entry and
+  record it.
 - `--cpp-opt` adds `-f:OptimizeCppProgram=true`; its failures list the programs whose behaviour depends on the
   C++ optimiser (`tests\corpus\README.md`). It cannot be combined with `--record`.
 - On Windows, `END` in a console program waits for a key from the console ("Press any key to continue"), which

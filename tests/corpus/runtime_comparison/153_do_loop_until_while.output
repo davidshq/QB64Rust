@@ -1,0 +1,6 @@
+DO LOOP UNTIL n>=2:
+ 0  1 
+DO LOOP WHILE n<2:
+ 0  1 
+
+Press any key to continue

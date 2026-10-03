@@ -1,0 +1,4 @@
+
+Expected )
+Caused by (or after):
+LINE 10:FUNCTION DOUBLEIT ( BYREF X AS LONG ) AS LONG

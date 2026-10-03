@@ -235,6 +235,13 @@ runtime engineer (RT, for 2 and 6) and an editor-tooling engineer (E, for 5 and 
 | 5 | **Accepted** as an M5 evaluation | E: `#line` helps stepping, not variables. C: the only earlier requirement is that IR keeps source spans down to codegen, which diagnostics need anyway. |
 | 6 | **Accepted** as an M6 reading note | RT: libqb stays as it is until M6. |
 
+**Measured for decision 1 (2026-10-03, `verification\v12_wrap_int64`, also in `tests\corpus\verification\`):**
+`_INTEGER64` has the same exposure as LONG. With `x&& = 9223372036854775807`, `x + 1 > x` is **false** in the
+default build and **true** with `-O2`; the stored and printed value of `x + 1` wraps to `-9223372036854775808` in
+both. The golden corpus itself had no `_INTEGER64` program and no LONG overflow (its `-O2` run differs only in
+`v11` and `v12`, `tests\corpus\README.md`). **Decided (user, 2026-10-03): `_INTEGER64` overflow wraps too**
+(`CLAUDE.md`); the constant folder uses `wrapping_*` on `i64` as well.
+
 **M1 leftovers** (not FreeBASIC, decided in the same session):
 
 - `-x` progress bar filling about 50 lines of the output channel: **fix before M2** (P: users see it on every

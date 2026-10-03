@@ -1,3 +1,11 @@
 # Tests whose failure does not fail a run: <suite>:<test>  <reason>
 # They are reported as KFAIL. Remove an entry once the cause is fixed. Details: baselines\README.md.
 compile_tests:http/read_example  downloads www.example.com and compares it with a saved copy; the site changed
+# Golden corpus (tests\corpus\README.md). On Windows each program runs with a console whose stdout goes to a file;
+# PRINT with a comma pads to the next zone by asking that console for the cursor column, which never moves, so
+# the program prints spaces until the timeout (old-runtime bug, study\00 section 5).
+corpus:runtime_comparison/80_print_semicolon  PRINT with a comma never ends when stdout is redirected (Windows console)
+corpus:runtime_comparison/126_print_comma  PRINT with a comma never ends when stdout is redirected (Windows console)
+corpus:runtime_comparison/187_print_comma_zones  PRINT with a comma never ends when stdout is redirected (Windows console)
+corpus:runtime_comparison/251_print_chain  PRINT with a comma never ends when stdout is redirected (Windows console)
+corpus:runtime_comparison/147_on_error_resume_0  the program loops forever by design: RESUME 0 re-runs ERROR 5 (QuickBASIC would too)

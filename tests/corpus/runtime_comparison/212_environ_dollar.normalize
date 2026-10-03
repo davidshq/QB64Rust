@@ -1,0 +1,2 @@
+# LEN(ENVIRON$("PATH")) depends on the machine; the second line still checks a missing variable
+^PATH len: *[0-9]+ *$	PATH len: <LEN>

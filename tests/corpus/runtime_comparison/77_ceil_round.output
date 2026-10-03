@@ -1,0 +1,6 @@
+_ceil 3.2: 4 
+_ceil -3.2:-3 
+_round 3.5: 4 
+_round 3.4: 3 
+
+Press any key to continue

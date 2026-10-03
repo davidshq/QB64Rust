@@ -1,0 +1,4 @@
+
+Illegal string-number conversion
+Caused by (or after):PRINT "trim:",5 ; TRIM$ ( "  xy  ",6 )
+LINE 5:PRINT "trim:"; TRIM$("  xy  ")

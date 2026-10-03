@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-03 (session 7). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-03 (session 8). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) is next.**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) started: golden corpus done.**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -57,6 +57,32 @@ CP437 default. Written fresh, ids `qb64rust`. Measured old-compiler output forma
   item switches to "qb64pe: generating C++…" when the line "Beginning C++ output from QB64 code..." arrives (0.2 s
   in; unit test added, 40 unit tests; seen by eye in the same build).
 
+## M2: golden corpus (2026-10-03, session 8)
+
+OpenSpec change `m2-golden-corpus`: all tasks done; archived 2026-10-03 to
+`openspec\changes\archive\2026-10-03-m2-golden-corpus\`, its spec now the main spec `openspec\specs\testing\golden-corpus`. `tests\corpus\` holds 263 programs
+(QB64Fresh's 261 `runtime_comparison` programs, unchanged, plus `verification\` v11 and v12) with the old
+compiler's recorded output: 237 `.output`, 20 `.err`, 1 compile-only (`239_lprint`), 5 known failures
+(`tests\corpus\README.md`). Checked by `run_legacy_tests.py --suite corpus` (about 11 min with the old compiler);
+baseline `baselines\qb64pe-16f629784e-win64-corpus.json`. A second `--record` changed no file.
+
+Found while recording:
+- On Windows, `END` waits for a console key event; the runner feeds key presses (`press_any_key.py`).
+- `PRINT` with a comma prints spaces forever when the console's stdout is redirected (80, 126, 187, 251): known
+  failures, compiled but not run. Same cause: `CSRLIN`/`POS` always report 1, 1 (237).
+- `CHAIN` to a missing program tries `<program folder>\qb64pe.exe -c` (238; path masked by `.normalize`).
+- 20 programs use syntax QB64pe rejects (mostly `FUNCTION f (...) AS type`); kept as compile-error tests.
+- `-O2` changes only `v11` (LONG) and the new `v12` (`_INTEGER64`): `_INTEGER64` overflow has the same exposure
+  as LONG (`study\16` §8).
+
+Test cadence decided (`study\19`): the full corpus is not part of the edit loop; four tiers from `cargo test` to
+nightly.
+
+Decided 2026-10-03: `_INTEGER64` overflow wraps too, like LONG (`CLAUDE.md`, `study\16` §8).
+
+**Next:** the next M2 change: Rust workspace and end-to-end vertical slice
+(`study\15` §2), divergence register and numeric-semantics spec.
+
 ## FreeBASIC reviewed (2026-10-03)
 
 `..\FreeBASIC\` cloned (reference only, GPL/LGPL). Findings in `study\16-freebasic.md`. Reviewed by a panel and a second
@@ -70,7 +96,7 @@ M1 leftovers: done (see above).
 
 | When | Item |
 |---|---|
-| Start of M2 | Rust workspace; record QB64Fresh's 261 `runtime_comparison` programs with the old compiler as golden outputs; create the divergence register and the numeric-semantics spec; build the end-to-end vertical slice first (`study\15` §2) |
+| Start of M2 | Rust workspace; create the divergence register and the numeric-semantics spec; build the end-to-end vertical slice first (`study\15` §2) |
 | Before M3 codegen | Decide the bug-compatibility choices in `study\00` §6 |
 | M3 | Plain copy of `..\QB64pe\internal\c` at the pinned commit (`CLAUDE.md`) |
 | Help/hover work | Ask the QB64pe maintainers about the wiki licence before shipping any wiki text |

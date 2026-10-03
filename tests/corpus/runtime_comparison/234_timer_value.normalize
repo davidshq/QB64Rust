@@ -1,0 +1,2 @@
+# TIMER is the time of day
+^timer: *[0-9.]+ *$	timer: <TIMER>

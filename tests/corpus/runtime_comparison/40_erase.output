@@ -1,0 +1,4 @@
+before: 1  2  3 
+
+Runtime error: Line: 9 (in main module)
+Duplicate definition

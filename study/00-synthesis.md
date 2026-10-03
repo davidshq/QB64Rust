@@ -224,7 +224,10 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
   and the 143 qbasic programs. Tied to the old implementation: the `.err` texts, `qb64pe/*` internals tests,
   formatter tests, licence tests.
 - **Planned layers (R11):** (1) existing suite; (2) golden corpus: run the 143 qbasic programs and QB64Fresh's 261
-  `runtime_comparison` programs through the old compiler and freeze their output; (3) differential testing of
+  `runtime_comparison` programs through the old compiler and freeze their output (**the 261 done 2026-10-03**:
+  `tests\corpus\`, 263 programs with `verification\` v11 and v12; 237 `.output`, 20 `.err`, 1 compile-only, 5
+  known failures; baseline `baselines\qb64pe-16f629784e-win64-corpus.json`; how often it runs: `study\19`. The 143
+  qbasic programs are still compile-only); (3) differential testing of
   random expressions old vs. new; (4) formatter goldens from `-y` over all available `.bas`; plus golden images for
   LINE/CIRCLE/PAINT/DRAW/GET/PUT (only 12 image tests exist).
 - **Not covered by anything yet:** the IDE, real graphics output, audio, interactive input, run-time behaviour of
