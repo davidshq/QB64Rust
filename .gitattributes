@@ -1,0 +1,3 @@
+# Recorded program output and compiler output: keep the bytes exactly as recorded (tests/corpus/README.md)
+tests/corpus/**/*.output -text
+tests/corpus/**/*.err -text

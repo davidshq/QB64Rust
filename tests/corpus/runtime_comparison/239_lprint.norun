@@ -1,0 +1,1 @@
+LPRINT sends a page to the default printer on Windows (sub__printimage in libqb.cpp, enabled by DEPENDENCY_PRINTER).
