@@ -1,0 +1,4 @@
+
+Expected variable/value after '+'
+Caused by (or after):X = 1 +
+LINE 2:x = 1 +

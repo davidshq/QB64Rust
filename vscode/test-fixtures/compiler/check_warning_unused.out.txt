@@ -1,0 +1,2 @@
+warning_unused.bas:1: warning: Unused variable
+    unusedvar%   INTEGER

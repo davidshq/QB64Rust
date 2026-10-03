@@ -1,0 +1,80 @@
+# Tests the VS Code extension in vscode\ on Windows: lint, unit, grammar, and the integration suite on VS Code stable
+# and on the oldest supported version (engines.vscode), against the QB64pe release the extension is tested with.
+name: VS Code extension
+
+on:
+  push:
+    paths:
+      - "vscode/**"
+      - ".github/workflows/vscode-extension.yml"
+  pull_request:
+    paths:
+      - "vscode/**"
+      - ".github/workflows/vscode-extension.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Same version as the reference clone (..\QB64pe) the fixtures were recorded with.
+  QB64PE_TAG: v4.7.0-GLFW
+  QB64PE_ASSET: qb64pe_win-x64-4.7.0-GLFW.7z
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: vscode
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+
+      # The archive is about 100 MB. The cache is saved after the first run, so it also keeps the runtime library
+      # that QB64pe compiles on its first build.
+      - name: Cache QB64pe
+        id: qb64pe-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}\qb64pe
+          key: qb64pe-${{ env.QB64PE_ASSET }}
+
+      - name: Download QB64pe
+        if: steps.qb64pe-cache.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download $env:QB64PE_TAG -R QB64-Phoenix-Edition/QB64pe -p $env:QB64PE_ASSET
+          7z x -y $env:QB64PE_ASSET
+          Remove-Item $env:QB64PE_ASSET
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run test:grammar
+
+      - name: Integration tests (VS Code stable)
+        run: npm run test:integration
+        env:
+          QB64RUST_TEST_QB64PE: ${{ runner.temp }}\qb64pe\qb64pe.exe
+
+      - name: Integration tests (oldest supported VS Code)
+        run: npm run test:integration:min
+        env:
+          QB64RUST_TEST_QB64PE: ${{ runner.temp }}\qb64pe\qb64pe.exe
+
+      - run: npm run package
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: qb64rust-vsix
+          path: vscode/*.vsix
+          if-no-files-found: error

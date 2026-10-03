@@ -1,0 +1,13 @@
+src/**
+test/**
+test-fixtures/**
+scripts/**
+out/test/**
+**/*.map
+**/*.ts
+.vscode-test/**
+.vscode/**
+tsconfig.json
+eslint.config.mjs
+DEVELOPMENT.md
+*.vsix

@@ -1,0 +1,4 @@
+
+Expected variable/value after '+' in line 2 of <FIXTURES>\include_error/inc.bi included
+Caused by (or after):Y = 1 +
+LINE 2:y = 1 +

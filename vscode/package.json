@@ -1,0 +1,206 @@
+{
+  "name": "qb64rust",
+  "displayName": "QB64 (qb64rust)",
+  "description": "QB64 language support: highlighting, build and run, diagnostics and formatting with the QB64pe compiler.",
+  "version": "0.1.0",
+  "publisher": "qb64rust",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Formatters"
+  ],
+  "main": "./out/src/extension.js",
+  "activationEvents": [],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Highlighting works everywhere. Checking, formatting, building and running call the compiler and need a trusted workspace."
+    },
+    "virtualWorkspaces": {
+      "supported": "limited",
+      "description": "Only highlighting works. Checking, formatting, building and running need files on disk and a local compiler."
+    }
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "qb64rust",
+        "aliases": [
+          "QB64",
+          "qb64rust"
+        ],
+        "extensions": [
+          ".bas",
+          ".bi",
+          ".bm"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "qb64rust",
+        "scopeName": "source.qb64rust",
+        "path": "./syntaxes/qb64rust.tmLanguage.json"
+      }
+    ],
+    "configurationDefaults": {
+      "[qb64rust]": {
+        "files.encoding": "cp437",
+        "files.autoGuessEncoding": false
+      }
+    },
+    "configuration": {
+      "title": "QB64",
+      "properties": {
+        "qb64rust.compilerPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "Full path to `qb64pe.exe` (or `qb64pe`). When empty, `qb64pe` is looked up on `PATH`."
+        },
+        "qb64rust.checkOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check the program with the compiler (C++ generation only, no build) when a file is saved."
+        },
+        "qb64rust.checkTimeoutSeconds": {
+          "type": "number",
+          "default": 30,
+          "minimum": 1,
+          "description": "A check or format that runs longer than this is stopped."
+        },
+        "qb64rust.runArguments": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Arguments passed to the program by **Run** (visible to it as `COMMAND$`)."
+        },
+        "qb64rust.noPrompt": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Set `QB64PE_NOPROMPT=y` when running a program, so untrapped runtime errors are printed instead of shown in a dialog."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "qb64rust.build",
+        "title": "Build",
+        "category": "QB64",
+        "icon": "$(tools)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "qb64rust.run",
+        "title": "Run",
+        "category": "QB64",
+        "icon": "$(play)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "qb64rust.buildAndRun",
+        "title": "Build and Run",
+        "category": "QB64",
+        "icon": "$(run-all)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "qb64rust.check",
+        "title": "Check Program",
+        "category": "QB64",
+        "enablement": "isWorkspaceTrusted"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "qb64rust.build",
+          "when": "editorLangId == qb64rust && !virtualWorkspace"
+        },
+        {
+          "command": "qb64rust.run",
+          "when": "editorLangId == qb64rust && !virtualWorkspace"
+        },
+        {
+          "command": "qb64rust.buildAndRun",
+          "when": "editorLangId == qb64rust && !virtualWorkspace"
+        },
+        {
+          "command": "qb64rust.check",
+          "when": "editorLangId == qb64rust && !virtualWorkspace"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "command": "qb64rust.buildAndRun",
+          "when": "resourceLangId == qb64rust && !virtualWorkspace",
+          "group": "navigation@0"
+        },
+        {
+          "command": "qb64rust.run",
+          "when": "resourceLangId == qb64rust && !virtualWorkspace",
+          "group": "navigation@1"
+        },
+        {
+          "command": "qb64rust.build",
+          "when": "resourceLangId == qb64rust && !virtualWorkspace",
+          "group": "navigation@2"
+        }
+      ]
+    },
+    "taskDefinitions": [
+      {
+        "type": "qb64rust",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "build",
+              "run"
+            ],
+            "description": "Build the program, or run its executable."
+          },
+          "file": {
+            "type": "string",
+            "description": "The .bas file. Defaults to the active editor's file."
+          }
+        },
+        "when": "isWorkspaceTrusted"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "lint": "eslint src test",
+    "test:unit": "npm run compile && mocha \"out/test/unit/**/*.test.js\"",
+    "test:grammar": "vscode-tmgrammar-test \"test/grammar/**/*.bas\"",
+    "test:integration": "npm run compile && node ./out/test/integration/runTests.js",
+    "test:integration:min": "npm run compile && node ./out/test/integration/runTests.js --min",
+    "test": "npm run test:unit && npm run test:grammar && npm run test:integration && npm run test:integration:min",
+    "vscode:prepublish": "npm run compile",
+    "package": "vsce package --allow-missing-repository --skip-license"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.19.43",
+    "@types/vscode": "~1.100.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
+    "eslint": "^10.12.0",
+    "mocha": "^12.0.3",
+    "typescript": "~5.6",
+    "typescript-eslint": "^8.71.0",
+    "vscode-tmgrammar-test": "^0.1.3"
+  },
+  "dependencies": {
+    "iconv-lite": "^0.7.3"
+  }
+}

@@ -1,3 +1,25 @@
+# Rust build output (also the legacy test runner's results, target/legacy-tests/)
 /target/
+
+# Python
 __pycache__/
+
+# Compiled verification programs
 /verification/*.exe
+
+# QB64pe wiki cache: no licence stated, local reference only (CLAUDE.md)
+/tools/wiki/cache/
+
+# VS Code extension
+/vscode/node_modules/
+/vscode/out/
+/vscode/.vscode-test/
+/vscode/*.vsix
+/vscode/*.tsbuildinfo
+/vscode/test-fixtures/**/*.exe
+
+# OS and editor clutter
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log

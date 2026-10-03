@@ -1,0 +1,4 @@
+
+File nothere.bi not found
+Caused by (or after):
+LINE 2:
