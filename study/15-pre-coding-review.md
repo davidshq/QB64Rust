@@ -1,7 +1,7 @@
 # 15 — Pre-coding review: are the broad strokes right?
 
 Written 2026-10-02 (session 6), before the first line of M1 code. One pass over `STATUS.md`, `00`, `06`, `07`,
-`archive\12`, `archive\13`, `SOMEDAY.md` and the M1 OpenSpec change (`openspec\changes\m1-vscode-extension-v0`), looking for
+`archive\12`, `archive\13`, `SOMEDAY.md` and the M1 OpenSpec change (`openspec\changes\m1-vscode-extension-v0`, archived 2026-10-03 to `openspec\changes\archive\2026-10-03-m1-vscode-extension-v0`), looking for
 direction errors, not nits.
 
 **Verdict:** no major error. The strategy (rewrite the compiler, refactor libqb in place, replace the IDE with

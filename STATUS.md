@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-03 (session 6). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-03 (session 7). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 (baseline) complete. M1 is next.**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) is next.**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -21,24 +21,25 @@ Test hygiene learned in M0 (details `study\00` §5, §10): run programs with `QB
 errors from output, not exit code (always 0); never use screen `PRINT` with a comma in a `$CONSOLE` program with
 redirected stdout (hangs).
 
-All open questions were answered on 2026-10-02 (`CLAUDE.md` decision table). **Nothing blocks M1.**
+## M1 done: VS Code extension v0 on the old compiler (2026-10-03, session 7)
 
-Open manual task for the user: the CP437 round trip in VS Code (`study\09`, last section); also M1 task 8.2.
+OpenSpec change `m1-vscode-extension-v0`: all 18 tasks done; archived 2026-10-03 to
+`openspec\changes\archive\2026-10-03-m1-vscode-extension-v0\`, its specs now the main specs in
+`openspec\specs\editor\` (build-run, compiler-diagnostics, formatting, language-support). `vscode\` holds the extension (`README.md`,
+`DEVELOPMENT.md`): grammar, build/run (commands and tasks), diagnostics from `qb64pe -z -q -w`, formatting via `-y`,
+CP437 default. Written fresh, ids `qb64rust`. Measured old-compiler output formats are in the archived change's `design.md`.
 
-## Next: M1, VS Code extension v0 on the old compiler
-
-Planned as OpenSpec change `openspec\changes\m1-vscode-extension-v0` (proposal, design, four specs under
-`editor\`, tasks; validates with `--strict`). Scope: grammar, build/run, diagnostics from `qb64pe -z -q -w`,
-formatting via `-y`, CP437 default. Written fresh in `vscode\`, ids `qb64rust`. Nothing copied from `qb64pe-vscode`;
-small pieces of `vscode-qb64fresh` allowed (`CLAUDE.md` rule 5). Measured old-compiler output formats are in the change's `design.md`.
-
-**Implemented 2026-10-03 (session 7): 15 of 18 tasks.** `vscode\` holds the extension (README, DEVELOPMENT.md);
-unit 31, grammar 4, integration 37 tests pass on VS Code stable and on 1.100 (the minimum since 2026-10-03,
-`study\17`); `qb64rust-0.1.0.vsix` packages. Open:
-task 8.1 and the rest of 8.2 need a person: the hand walkthrough in `verification\m1-extension.md` (install the
-`.vsix`, steps 1–11). Practice proposals A–D from `study\18` are done (prepublish script,
-virtual workspaces declared, language status item, fewer notifications); E and F wait until publishing; G is
-done for Windows (`.github\workflows\vscode-extension.yml`, inactive until the repo has a GitHub remote). Then 8.3 (mark M1 done here, `study\00`, `CLAUDE.md` layout) and `/opsx:archive`.
+- Tests: unit 31, grammar 4, integration 37 on VS Code stable and on 1.100 (the minimum, `study\17`); also passes
+  against the QB64pe 4.7.0 release download. CI for Windows in `.github\workflows\vscode-extension.yml`, inactive
+  until the repo has a GitHub remote.
+- Walkthrough of the packaged `.vsix` (`verification\m1-extension.md`): 11 of 11 steps done; one expectation
+  corrected (a program without `$CONSOLE` opens its own window, not the terminal).
+- CP437 round trip (`study\09`): every byte survives except a lone 0x0D; a file containing 0x00 cannot be opened as
+  text in VS Code at all, even with "Open Anyway".
+- Practices (`study\18`): A–D done (prepublish, virtual workspaces, language status item, fewer notifications);
+  E (bundling) and F (Marketplace metadata) wait until publishing; G done for Windows.
+- Small follow-ups seen in the walkthrough, not done: the `-x` progress bar fills about 50 lines of the output
+  channel; Settings shows the heading "Qb64rust: Compiler Path".
 
 ## FreeBASIC reviewed (2026-10-03)
 

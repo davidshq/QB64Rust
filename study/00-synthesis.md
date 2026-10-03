@@ -37,15 +37,16 @@ From the expert panel (`07`), whose recommendations R1–R13 the decisions above
   longer produces code for it. Keep a C++ back end while C/C++ `DECLARE LIBRARY` and `SUB _GL` are supported.
 - **Built-ins (R9):** table as data, extracted mechanically (done, §9); parse `specialformat` once.
 - **Encoding (R12):** VS Code opens `.bas` as CP437 by default, per-file override; the compiler reads bytes.
-  Pending a manual round-trip check (`09`, last section).
+  Round trip checked (`09`, last section): every byte survives except a lone 0x0D (becomes the line ending);
+  a file containing 0x00 cannot be opened as text in VS Code at all, even with "Open Anyway".
 - **Toolchain (R13):** pin and checksum the Windows C++ toolchain (QB64pe's setup downloads the latest llvm-mingw
   with no checksum; build problems in `baselines\README.md`).
 
 | # | Milestone | Done when | State |
 |---|---|---|---|
 | M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
-| M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | next |
-| M2 | Front end | Lossless parser with recovery, resolution, type checker, formatter matching `-y`, language server | |
+| M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | **done** (`vscode\`) |
+| M2 | Front end | Lossless parser with recovery, resolution, type checker, formatter matching `-y`, language server | next |
 | M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests | |
 | M4 | Parity | 143 corpus programs match golden output; deferred array features; `qb64pe.bas` compiles (stretch) | |
 | M5 | Debugger | Debug symbol file + DAP adapter | |
@@ -250,7 +251,7 @@ In every case: the wiki, manuals and docs are hypotheses; `qb64pe.exe` is the an
 
 ## 12. Open questions and next steps
 
-Kept in one place, `STATUS.md`, so they don't go stale here. As of 2026-10-03 no open question blocks M1.
+Kept in one place, `STATUS.md`, so they don't go stale here. As of 2026-10-03 M1 is done and no open question blocks M2.
 
 ## 13. Remaining study gaps
 
@@ -289,4 +290,6 @@ as a reading of the code, not a measurement.
 | `10` | Study gaps closed: DIM family, PRINT/INPUT/WRITE, built-in table |
 | `15` | Pre-coding review: bytes not strings, early vertical slice, diagnostics policy, minimal M1 backend, libqb copy |
 | `16` | FreeBASIC: lessons to take, things not to take, proposed follow-ups |
+| `17` | How VS Code extensions are tested; how M1 compares |
+| `18` | Other VS Code extension practices compared with five large extensions; proposals A–G |
 | `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |

@@ -81,7 +81,7 @@ Legend: **Confirmed** = the study claim holds. **Corrected** = the observed beha
 | `nm` dynamic retry opens the static dump (13870–13875) | Not executed: it needs a C++ DLL used with `DECLARE DYNAMIC LIBRARY` | Confirmed by reading: the branch generates `nm_output_file_dynamic$` and then reads `nm_output_file$` | Confirmed by reading only |
 | Warning exit code (14228) | `v07_warning` (`$UNSTABLE:HTTP` gives an unconditional warning). With `-x`: exit 0 and the warning is not printed under `-q` | `-c` not executed (it may open windows); the code is `IF (compfailed <> 0 OR warningsissued <> 0) AND NOT ConsoleMode THEN END 1` | `-x` behaviour confirmed; `-c` confirmed by reading only |
 
-## Manual check: CP437 round trip in VS Code (open)
+## Manual check: CP437 round trip in VS Code (done)
 
 `verification\cp437_all_bytes.bin` holds bytes 0–255 in order; `cp437_all_bytes.sha256` holds its hash
 (`40aff2e9…944880`). To check: copy it to a `.bas` name, open it in VS Code with encoding "DOS (CP 437)", type a
@@ -98,7 +98,10 @@ character and delete it, save, and compare the hash (`sha256sum`). Watch especia
 
 Consequences: a QB64 source with a literal NUL byte cannot be opened as text without "Open Anyway", and a lone CR
 inside a string literal is rewritten on save. Both are rare in real programs (`CHR$(0)` and `CHR$(13)` are the usual
-way to write them). Still open for a person: whether "Open Anyway" plus save keeps 0x00 intact.
+way to write them). **"Open Anyway" (2026-10-03, M1 walkthrough step 11, VS Code 1.140).** It does not help: it opens an editor
+picker, and choosing "Text Editor" shows the binary notice again. The same happens for a `.txt` copy opened as
+UTF-8, so it is VS Code's behaviour, not the extension's. A source file containing a literal 0x00 byte cannot be
+edited in VS Code at all; QB64 programs should use `CHR$(0)` (record: `verification\m1-extension.md`).
 
 ## Consequences for the rewrite
 

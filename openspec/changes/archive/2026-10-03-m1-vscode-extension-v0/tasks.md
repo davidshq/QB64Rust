@@ -78,10 +78,10 @@
 
 ## 8. Integration and wrap-up
 
-- [ ] 8.1 Package with `npm run package`, install the `.vsix` in VS Code, and walk through the scenarios by hand
+- [x] 8.1 Package with `npm run package`, install the `.vsix` in VS Code, and walk through the scenarios by hand
   on a real program from `..\QB64pe\tests\` (open, highlight, check on save, format, build and run). Verify: a
   short record of the walkthrough in `verification\m1-extension.md`.
-- [ ] 8.2 Do the open CP437 round-trip check from `study\09` (last section) with the installed extension and
+- [x] 8.2 Do the open CP437 round-trip check from `study\09` (last section) with the installed extension and
   record the result there.
-- [ ] 8.3 Update `STATUS.md` (M1 done, next steps), `study\00-synthesis.md`, and `CLAUDE.md`'s layout table
+- [x] 8.3 Update `STATUS.md` (M1 done, next steps), `study\00-synthesis.md`, and `CLAUDE.md`'s layout table
   (`vscode\`). Verify: `openspec validate m1-vscode-extension-v0 --strict` passes.
