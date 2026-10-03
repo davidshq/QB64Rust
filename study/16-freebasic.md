@@ -178,7 +178,7 @@ model for a compiler that must also serve an editor. Our planned
 architecture already goes further in the front end; FreeBASIC is most useful for the **middle and back**:
 runtime-call tables (L2), error/resume lowering (L3), defined C output (L4), and test conventions (L8).
 
-## 6. Proposed follow-ups (for the user to accept or drop)
+## 6. Proposed follow-ups (decided 2026-10-03, see §8)
 
 | # | Proposal | When |
 |---|---|---|
@@ -219,6 +219,28 @@ overflow), two claims were corrected (INTEGER wrap, forward calls), one lesson w
 
 Rule: FreeBASIC is reference only (`CLAUDE.md` rule 5). Reading how a problem was approached is fine; no code,
 tests, tables or documentation text are copied.
+
+## 8. Panel decision on the follow-ups (2026-10-03)
+
+Asked for by the user; "the panel" as defined in `CLAUDE.md` rule 6, role-played inline. Roles: pragmatic
+engineer (P), QB64 engineer (Q), compiler/languages engineer (C), Rust engineer (R), test engineer (T), plus a
+runtime engineer (RT, for 2 and 6) and an editor-tooling engineer (E, for 5 and the M1 leftovers).
+
+| # | Decision | Notes from the panel |
+|---|---|---|
+| 1 | **Accepted, decided now:** LONG overflow wraps | Q: almost everyone runs the default build, which wraps; QB4.5's Overflow error was never QB64 behaviour. C: wrap must hold in two places, the generated C++ (`-fwrapv` is the starting mechanism; emitting unsigned arithmetic stays open until M3) and the **constant folder**. R: the folder uses `wrapping_*` on `i32`/`i64`, never plain `+` (debug builds panic). T: differential tests run the old compiler in its default build; `v11_wrap_o2` joins the golden corpus. Q/T: `_INTEGER64` has the same exposure; measure it when the corpus is recorded before extending the rule to it. Divergence register entry: differs from QB64pe built with `-O2`. |
+| 2 | **Accepted in reduced form** | P: the flag is only an optimisation (skip the error check after a call); "may raise" everywhere is correct. RT: agreed. The built-in table gets the field at M3, default "may raise"; nothing is flagged by hand until profiling shows the checks cost something. |
+| 3 | **Accepted** for M2 | T: mode line in every new test; a debug dump of the typed tree for literal-typing assertions; snapshot tests for diagnostics and lowering pairs. R: snapshots with the `insta` crate (standard, reviewable `.snap` files). Q: the QB64pe test suites under `tools\legacy_tests` are not edited; mode lines are for our own tests. The mode-line syntax is fixed in the M2 change. |
+| 4 | **Accepted** for M2 | C: BASIC statements end at a newline or colon, so "skip to statement end" is cheap and reliable. Block errors (missing `END IF`, `NEXT` without `FOR`) are not statement-local; they are reported at the block boundary, not by skipping. P: cap value chosen in M2. E: the language server still shows only errors the old compiler also reports (`15`), so this governs the CLI first. |
+| 5 | **Accepted** as an M5 evaluation | E: `#line` helps stepping, not variables. C: the only earlier requirement is that IR keeps source spans down to codegen, which diagnostics need anyway. |
+| 6 | **Accepted** as an M6 reading note | RT: libqb stays as it is until M6. |
+
+**M1 leftovers** (not FreeBASIC, decided in the same session):
+
+- `-x` progress bar filling about 50 lines of the output channel: **fix before M2** (P: users see it on every
+  build). T: add a unit test using recorded `-x` output.
+- Settings heading "Qb64rust: Compiler Path": **fix only if possible without renaming the `qb64rust.*` keys**
+  (`CLAUDE.md` decision of 2026-10-02); otherwise leave it. E: cosmetic, look it up once, no more.
 
 Not consulted: the earlier report `reports\FreeBASIC and QB64pe codebases.md` in `<qb64contain>\QB64pe`
 (decision of 2026-10-02: no more material from there is brought into `study\`).

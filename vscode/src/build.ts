@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import * as config from "./config";
+import { BuildOutputLines, progressText } from "./compiler/buildOutput";
 import * as qb64pe from "./compiler/qb64pe";
 import { RunQueue } from "./compiler/runQueue";
 import { Diagnostics } from "./diagnostics";
@@ -54,17 +55,11 @@ export class Builder implements vscode.Disposable {
         this.output.clear();
         this.output.show(true);
         this.output.appendLine(`> ${compiler} ${qb64pe.buildArgs(file).join(" ")}`);
-        let tail = "";
-        const result = await qb64pe.build(this.queue, compiler, file, (text) => {
-            // The -x progress bar redraws with \r; show each step on its own line.
-            const all = (tail + text).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-            const cut = all.lastIndexOf("\n");
-            this.output.append(all.slice(0, cut + 1));
-            tail = all.slice(cut + 1);
-        });
-        if (tail) {
-            this.output.appendLine(tail);
-        }
+        // Progress goes to the status item, not the output channel, which cannot redraw a line.
+        const lines = new BuildOutputLines((p) => this.status.setBusy(progressText(p)));
+        const show = (completed: string[]) => completed.forEach((l) => this.output.appendLine(l));
+        const result = await qb64pe.build(this.queue, compiler, file, (text) => show(lines.push(text)));
+        show(lines.flush());
         if (result.cancelled) {
             return undefined;
         }

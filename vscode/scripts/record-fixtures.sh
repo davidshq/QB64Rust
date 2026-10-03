@@ -14,8 +14,9 @@ fi
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 tmpw=$(cygpath -w "$tmp")
-# Backslashes doubled for use as a sed pattern.
+# Backslashes doubled for use as a sed pattern. The temporary output folder becomes <OUT>.
 fxw=$(cygpath -w "$fx" | sed 's/\\/\\\\/g')
+tmpe=$(echo "$tmpw" | sed 's/\\/\\\\/g')
 
 # case name | source (relative to $fx) | mode
 cases="
@@ -26,6 +27,7 @@ check_include_error|include_error/main.bas|-z -q -w
 check_missing_include|missing_include/main.bas|-z -q -w
 check_warning_unused|warning_unused.bas|-z -q -w
 check_error_progress|error_main.bas|-z -x -w
+build_clean|clean.bas|-c -x -w
 format_ok|format_ok.bas|-y -q
 format_cp437|format_cp437.bas|-y -q
 format_error|error_main.bas|-y -q
@@ -42,7 +44,7 @@ echo "$cases" | while IFS='|' read -r name src mode; do
     # shellcheck disable=SC2086
     "$qb" $mode "$src" -o "$target" > "$tmp/raw.txt" 2>&1
     echo $? > "$name.exit"
-    sed "s/$fxw/<FIXTURES>/g" "$tmp/raw.txt" > "$name.out.txt"
+    sed -e "s/$fxw/<FIXTURES>/g" -e "s/$tmpe/<OUT>/g" "$tmp/raw.txt" > "$name.out.txt"
     if [ -f "$tmp/out.bas" ]; then
         cp "$tmp/out.bas" "$name.formatted.bas"
     fi

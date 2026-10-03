@@ -40,6 +40,9 @@ copy, but never the only copy.
      `qb64pe.exe`. QB64Fresh's 261 `runtime_comparison` BASIC programs are taken as test inputs.
      *Why:* the reviews (`study\archive`) found their architecture unreliable, not their provenance; a blanket
      ban would be a handicap (user, 2026-10-03).
+6. **"The panel"** means a review by these roles: a pragmatic engineer, a QB64 engineer, a compiler/languages
+   engineer, a Rust engineer, a test engineer, and any other role Claude thinks fits the topic (name the extra
+   roles and say why). The panel is role-played inline; it is not a set of subagents (rule 1) (user, 2026-10-03).
 
 ## Project decisions
 
@@ -61,8 +64,9 @@ copy, but never the only copy.
 | 2026-10-02 | QB64pe wiki: fetched now with `tools\wiki\fetch_wiki.py` into the git-ignored `tools\wiki\cache\` (1,124 pages, main + Template namespaces). **Local reference only**: the wiki states no licence, so no wiki text is committed or shipped until the maintainers have been asked (when help/hover work starts). |
 | 2026-10-02 | libqb comes into this repo at M3 as a **plain copy** of `..\QB64pe\internal\c` at the pinned commit (recorded in a file next to it), not a git subtree. Upstream changes are merged by hand when wanted. |
 | 2026-10-02 | Pre-coding review (`study\15-pre-coding-review.md`): the Rust front end lexes **bytes, never `&str`**; an end-to-end vertical slice (PRINT of a few expression types through IR to C++ linked with libqb) is built **early in M2** to validate the IR/ABI design; the language server reports only errors the old compiler also reports until differential tests say otherwise; M1's backend interface stays minimal because the language server replaces check and format in M2. |
-| 2026-10-03 | FreeBASIC (`github.com/freebasic/fbc`) cloned to `..\FreeBASIC\` as a second **read-only reference**; no code reused (GPL/LGPL). Lessons and six proposed follow-ups (not yet accepted): `study\16-freebasic.md`. |
+| 2026-10-03 | FreeBASIC (`github.com/freebasic/fbc`) cloned to `..\FreeBASIC\` as a second **read-only reference**; no code reused (GPL/LGPL). Lessons and six follow-ups: `study\16-freebasic.md` (follow-ups decided 2026-10-03, below). |
 | 2026-10-03 | Extension needs **VS Code 1.100 or later** (`engines.vscode ^1.100.0`), raised from 1.85: allows ESM-only mocha 12 (no audit findings) and `TextDocument.encoding`. Tests stay on mocha + `@vscode/test-electron` like most large extensions, and run on stable and on 1.100 (`study\17-vscode-extension-testing.md`). |
+| 2026-10-03 | Panel decision on the FreeBASIC follow-ups (`study\16` §8): **LONG overflow wraps** (generated code and constant folding; matches the old compiler's default build, differs from its `-O2`); test mode lines, typed-tree assertions, snapshot tests and one-error-per-statement recovery in M2; "cannot raise" flag only as a field defaulting to "may raise". |
 | 2026-10-03 | Extension CI on **Windows** with GitHub Actions against the QB64pe `v4.7.0-GLFW` release; macOS/Linux later (`study\18` G). |
 
 Expert-panel recommendations: `study\07-expert-panel.md` (its "Decisions for the user" are answered above). Open

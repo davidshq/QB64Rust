@@ -22,7 +22,7 @@ const WARNING = /^(.+?):(\d+): warning: (.*)$/;
 const LINE = /^LINE (\d+):/;
 const CAUSED_BY = /^Caused by \(or after\):/;
 const INCLUDE_SUFFIX = / in line (\d+) of (.+) included$/;
-const PROGRESS = /^\[[. ]*\]\s*\d+%$/;
+export const PROGRESS = /^\[[. ]*\]\s*\d+%$/;
 
 /** Splits output into meaningful lines: no blank lines, no control bytes, no progress bar. */
 function cleanLines(output: string): string[] {

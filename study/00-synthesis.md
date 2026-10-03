@@ -162,11 +162,13 @@ From `10` (checked by `verification\v09_dim.bas`, `v10_print.bas`):
 
 From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence register (R2).
 
-**Decide (result-changing; current default is "keep"):** CONST `^` right-associativity; 32-bit wrap of
-INTEGER/LONG arithmetic inside expressions; round-half-to-even with single-precision narrowing for INTEGER targets;
+**Decide (result-changing; current default is "keep"):** CONST `^` right-associativity; INTEGER
+arithmetic computed in 32 bits inside expressions (`i% + 1` gives 32768; LONG wrap is decided below); round-half-to-even with single-precision narrowing for INTEGER targets;
 NUL-filled fixed-length strings (QB4.5: spaces); linear `REDIM _PRESERVE`; fatal integer division by zero; console
-comma zones 10 wide (or 14 like everywhere else); LONG overflow, where the old compiler itself gives two answers
-(wraps in the default build, not under `-O2`; `16` L4, `verification\v11_wrap_o2`; recommended: defined wrap); INPUT prompts as literals only (or allow expressions).
+comma zones 10 wide (or 14 like everywhere else); INPUT prompts as literals only (or allow expressions).
+
+**Decided:** LONG overflow **wraps** (two's complement), defined in the generated code and in constant folding;
+matches the old compiler's default build, differs from its `-O2` build (`16` §8, `verification\v11_wrap_o2`).
 
 **Fix (no compatibility value):** `_BIT * n` with n > 32 overlapping the next variable by 4 bytes; static `SELECT CASE`
 temporaries overwritten by recursion; `label: CONST …` on one line failing to compile; `ELSE` while an inner `FOR`
