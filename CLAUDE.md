@@ -46,8 +46,13 @@ Open decisions and the expert-panel recommendations: `study\07-expert-panel.md`.
 | `study\08-qb45-strict-mode.md` | Changes a strict QuickBASIC 4.5 mode would need (not planned) |
 | `study\09-verification.md` | Study claims checked by running the old compiler |
 | `study\10-gaps.md` | DIM/REDIM/STATIC/COMMON, PRINT/INPUT/WRITE emission, built-in table (M0 study gaps) |
-| `verification\` | Small programs behind `study\09` and `study\10`, their outputs, and `run.sh` |
+| `study\11-existing-vscode-extension.md` | Panel review of existing extensions: the user's `vscode-qb64fresh` (M1 base) and the community `qb64pe-vscode` (help, snippets only) |
+| `study\12-qb64fresh-review.md` | Panel review of the user's earlier Rust rewrite QB64Fresh: use none of its code; take its test programs |
+| `study\13-reference-docs.md` | Reference sources (QB64pe wiki API, QuickBASIC manuals, QB64Fresh specs): what to trust, where to get them |
+| `study\14-docs-new-2-branch.md` | The user's QB64pe-fork branch `docs-new-2` (internals docs, rules): reference by commit, verify before use |
+| `verification\` | Small programs behind `study\09` and `study\10`, their outputs, and `run.sh`; `qb64fresh\` holds the scripts and results behind `study\12` |
 | `tools\builtins\` | Extractor for the built-in table (`extract_builtins.py`) and its output `builtins.json` |
+| `<qb64contain>`, `<share>` | Placeholders for the user's local folder of earlier projects (QB64Fresh, qb64pe-vscode, a QB64pe clone with notes) and its network copy; used in `study\` and `STATUS.md` instead of machine-specific paths. Do not write full local paths or host names into this repo. |
 | `SOMEDAY.md` | Deferred features and ideas |
 | `STATUS.md` | Current phase, what is done, next steps |
 | `tools\legacy_tests\` | Windows runner for the QB64pe test suites (old or new compiler) |
