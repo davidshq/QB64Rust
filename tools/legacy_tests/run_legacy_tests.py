@@ -20,6 +20,20 @@ Rules followed from format_tests.sh:
   * each variant: qb64 -y -m <flags> <name>.bas -o <out>, run in the test's folder;
     must succeed, write the output, and match the expected file with all CRs
     removed and trailing newlines ignored
+The corpus suite (tests/corpus of this repo, recorded with the old compiler; no bash original):
+  * every *.bas under <corpus-root>/<group>/ is a test; it has exactly one of
+    <name>.output (compile, run, merged stdout+stderr == .output),
+    <name>.err (compile must fail, no exe, compiler stdout == .err ignoring CRs) or
+    <name>.norun (compile only, the exe is never started; the file holds the reason)
+  * the .bas is copied into a fresh folder <results>/corpus/<group>-<name>/ and compiled
+    there with -q -m -x only; the exe runs there with no arguments, stdin from the null
+    device, QB64PE_NOPROMPT=y and a 60 s timeout; the folder is deleted on a pass
+  * <name>.normalize: one rule per line, <regex><TAB><replacement> ('#' lines are comments),
+    applied in order to each line of the actual output before comparing or recording
+  * --record compiles once, runs twice, and writes .output (or .err for a failed compile)
+    only if both normalised runs are equal; otherwise the program is reported
+    non-deterministic and nothing is written
+  * --cpp-opt adds -f:OptimizeCppProgram=true and compares against the same files
 Differences from the bash runners (all deliberate):
   * .err and .license comparisons ignore CR characters (line-ending normalisation)
   * .output comparison treats CRLF as LF (bare CR still significant); the bash
@@ -36,6 +50,7 @@ import fnmatch
 import glob
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -45,6 +60,7 @@ from pathlib import Path
 
 COMPILE_TIMEOUT = 900   # seconds; first compiles build libqb for each feature set
 RUN_TIMEOUT = 120
+CORPUS_RUN_TIMEOUT = 60
 
 
 @dataclass
@@ -110,12 +126,12 @@ def kill_tree(p: subprocess.Popen) -> None:
         pass
 
 
-def run_proc(args, cwd, stdout_path: Path, timeout, env=None, merge_stderr=False):
+def run_proc(args, cwd, stdout_path: Path, timeout, env=None, merge_stderr=False, creationflags=0):
     with open(stdout_path, "wb") as out:
         p = subprocess.Popen(
             args, cwd=cwd, stdout=out,
             stderr=subprocess.STDOUT if merge_stderr else subprocess.DEVNULL,
-            stdin=subprocess.DEVNULL, env=env,
+            stdin=subprocess.DEVNULL, env=env, creationflags=creationflags,
         )
         try:
             return p.wait(timeout=timeout), False
@@ -265,6 +281,163 @@ def format_tests(bas: Path, args, results: Path, qb_root: Path) -> list[Result]:
     return out
 
 
+def load_normalize(path: Path) -> list[tuple[re.Pattern, str]]:
+    # Lines: <regex><TAB><replacement>; '#' lines and blank lines are skipped.
+    rules: list[tuple[re.Pattern, str]] = []
+    if path.is_file():
+        for n, line in enumerate(path.read_text(encoding="latin-1").splitlines(), 1):
+            if not line.strip() or line.startswith("#"):
+                continue
+            if "\t" not in line:
+                raise ValueError(f"{path.name} line {n}: no tab between pattern and replacement")
+            pattern, repl = line.split("\t", 1)
+            rules.append((re.compile(pattern), repl))
+    return rules
+
+
+def apply_normalize(data: bytes, rules: list[tuple[re.Pattern, str]]) -> bytes:
+    # Applied per line; a line's CR (CRLF line ends) stays outside the text the rules see,
+    # so '$' anchors work and the recorded bytes keep their line ends.
+    if not rules:
+        return data
+    lines = []
+    for line in data.split(b"\n"):
+        cr = line.endswith(b"\r")
+        text = (line[:-1] if cr else line).decode("latin-1")
+        for pattern, repl in rules:
+            text = pattern.sub(repl, text)
+        lines.append(text.encode("latin-1") + (b"\r" if cr else b""))
+    return b"\n".join(lines)
+
+
+def reset_folder(folder: Path, keep: set[str]) -> None:
+    # Removes everything a previous run of the program left behind.
+    for p in folder.iterdir():
+        if p.name in keep:
+            continue
+        if p.is_dir():
+            shutil.rmtree(p)
+        else:
+            p.unlink()
+
+
+def write_expected(path: Path, data: bytes, other: Path) -> str:
+    # Writes a recorded result; removes the other kind of expected file. Returns what changed.
+    old = path.read_bytes() if path.is_file() else None
+    replaced_other = other.is_file()
+    if replaced_other:
+        other.unlink()
+    if old == data and not replaced_other:
+        return ""
+    path.write_bytes(data)
+    if old is None and not replaced_other:
+        return f"recorded new {path.name}"
+    return f"warning: {path.name} changed" if old is not None else f"warning: {other.name} replaced by {path.name}"
+
+
+def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path) -> Result:
+    group = bas.parent.relative_to(corpus_root).as_posix()
+    name = bas.stem
+    tdir = bas.parent
+    key = f"{group.replace('/', '-')}-{name}"
+    err_file = tdir / f"{name}.err"
+    out_file = tdir / f"{name}.output"
+    norun = (tdir / f"{name}.norun").is_file()
+    present = [p.suffix for p in (out_file, err_file) if p.is_file()] + ([".norun"] if norun else [])
+    kind = "compile-only" if norun else ("error" if err_file.is_file() else "output")
+    r = Result("corpus", f"{group}/{name}", kind)
+    t0 = time.time()
+
+    def finish(status="PASS", stage="", detail=""):
+        r.status, r.stage, r.detail = status, stage, detail
+        r.seconds = round(time.time() - t0, 1)
+        return r
+
+    def fail(stage, detail=""):
+        return finish("FAIL", stage, detail)
+
+    if len(present) > 1:
+        return fail("expected", f"more than one of .output, .err, .norun: {', '.join(present)}")
+    if not present and not args.record:
+        return fail("expected", "no .output, .err or .norun (record it with --record)")
+    rules = load_normalize(tdir / f"{name}.normalize")
+
+    # A fresh folder per program: files it creates stay out of the repo and out of other tests.
+    work = results / key
+    if work.exists():
+        shutil.rmtree(work)
+    work.mkdir(parents=True)
+    shutil.copyfile(bas, work / bas.name)
+    exe = work / f"{name}.exe"
+    compile_out = results / f"{key}-compile_result.txt"
+
+    clear_temp(qb_root)
+    flags = ["-f:OptimizeCppProgram=true"] if args.cpp_opt else []
+    rc, timed_out = run_proc([str(args.qb64), *flags, "-q", "-m", "-x", bas.name, "-o", str(exe)],
+                             work, compile_out, COMPILE_TIMEOUT)
+    copy_if_exists(qb_root / "internal" / "temp" / "compilelog.txt", results / f"{key}-compilelog.txt")
+    if timed_out:
+        return fail("compile", "timeout")
+
+    def passed(detail=""):
+        shutil.rmtree(work, ignore_errors=True)
+        return finish(detail=detail)
+
+    if rc != 0:
+        if exe.exists():
+            return fail("exe exists", "exe produced although the compile failed")
+        got = apply_normalize(compile_out.read_bytes(), rules)
+        if args.record and not norun:
+            r.kind = "error"
+            return passed(write_expected(err_file, got, out_file))
+        if kind != "error":
+            return fail("compile", f"exit code {rc}")
+        if norm_text(err_file.read_bytes()) != norm_text(got):
+            return fail("error result", "compiler output differs from .err")
+        return passed()
+
+    if kind == "error" and not args.record:
+        return fail("compile", "compiled successfully, expected an error")
+    if not exe.exists():
+        return fail("exe exists", "no executable produced")
+    if norun:
+        return passed()
+
+    r.kind = "output"
+    env = dict(os.environ)
+    env.update({
+        "QB64PE_NOPROMPT": "y",
+        "QB64PE_LOG_HANDLERS": "file",
+        "QB64PE_LOG_SCOPES": "qb64,libqb,libqb-image,libqb-audio",
+        "QB64PE_LOG_FILE_PATH": str(results / f"{key}-log.txt"),
+    })
+    if os.name == "nt":
+        # END waits for a console key event, which the null device never sends (press_any_key.py).
+        cmd = [sys.executable, str(Path(__file__).with_name("press_any_key.py")), str(exe)]
+        flags = subprocess.CREATE_NO_WINDOW
+    else:
+        cmd, flags = [str(exe)], 0
+    outputs: list[bytes] = []
+    for run in range(1, 3 if args.record else 2):
+        reset_folder(work, {bas.name, exe.name})
+        run_out = results / f"{key}-run{run}-output.txt"
+        rc, timed_out = run_proc(cmd, work, run_out, CORPUS_RUN_TIMEOUT, env=env, merge_stderr=True,
+                                 creationflags=flags)
+        if timed_out:
+            return fail("run", "timeout")
+        if rc != 0:
+            return fail("run", f"exit code {rc}")
+        outputs.append(apply_normalize(run_out.read_bytes(), rules))
+
+    if args.record:
+        if outputs[0] != outputs[1]:
+            return fail("record", "non-deterministic: the two runs differ after normalisation")
+        return passed(write_expected(out_file, outputs[0], err_file))
+    if norm_output(out_file.read_bytes()) != norm_output(outputs[0]):
+        return fail("result", "program output differs from .output")
+    return passed()
+
+
 def load_known_failures(path: Path) -> dict[str, str]:
     # Lines: <suite>:<test>  <reason...>; '#' starts a comment.
     known: dict[str, str] = {}
@@ -296,17 +469,29 @@ def main() -> int:
     ap.add_argument("--qb-root", type=Path, default=default_qb_root,
                     help="QB64pe checkout holding tests/ and internal/ (default: %(default)s)")
     ap.add_argument("--qb64", type=Path, help="compiler executable (default: <qb-root>/qb64pe.exe)")
-    ap.add_argument("--suite", choices=["compile", "qbasic", "format", "all"], default="compile")
-    ap.add_argument("--category", help="only this category (compile and format suites)")
+    ap.add_argument("--suite", choices=["compile", "qbasic", "format", "corpus", "all"], default="compile")
+    ap.add_argument("--category", help="only this category (compile and format suites) or group (corpus)")
     ap.add_argument("--glob", default="*.bas", help="file-name pattern within the category")
     ap.add_argument("--results", type=Path, default=here.parents[2] / "target" / "legacy-tests",
                     help="where exes, logs and results.json go (default: %(default)s)")
     ap.add_argument("--os-tag", default="win", help="OS tag for .<os>.license files")
     ap.add_argument("--known-failures", type=Path, default=here.parent / "known_failures.txt",
                     help="tests whose failure does not fail the run (default: %(default)s)")
+    ap.add_argument("--corpus-root", type=Path, default=here.parents[2] / "tests" / "corpus",
+                    help="golden corpus for --suite corpus (default: %(default)s)")
+    ap.add_argument("--record", action="store_true",
+                    help="corpus: write .output/.err from this compiler instead of comparing")
+    ap.add_argument("--cpp-opt", action="store_true",
+                    help="corpus: build with -f:OptimizeCppProgram=true (the -O2 report)")
     args = ap.parse_args()
     if args.category and args.suite in ("qbasic", "all"):
-        print("--category applies to the compile and format suites only", file=sys.stderr)
+        print("--category applies to the compile, format and corpus suites only", file=sys.stderr)
+        return 2
+    if (args.record or args.cpp_opt) and args.suite != "corpus":
+        print("--record and --cpp-opt apply to --suite corpus only", file=sys.stderr)
+        return 2
+    if args.record and args.cpp_opt:
+        print("--record uses the default build; it cannot be combined with --cpp-opt", file=sys.stderr)
         return 2
     known = load_known_failures(args.known_failures)
 
@@ -318,11 +503,18 @@ def main() -> int:
 
     all_results: list[Result] = []
     known_passed: list[str] = []
-    suites = ["compile", "qbasic", "format"] if args.suite == "all" else [args.suite]
+    corpus_root = args.corpus_root.resolve()
+    suites = ["compile", "qbasic", "format", "corpus"] if args.suite == "all" else [args.suite]
     for suite in suites:
-        results = (args.results / suite).resolve()
+        results = (args.results / (suite + ("-cpp-opt" if args.cpp_opt else ""))).resolve()
         results.mkdir(parents=True, exist_ok=True)
-        if suite in ("compile", "format"):
+        if suite == "corpus":
+            root = corpus_root / args.category if args.category else corpus_root
+            if not root.is_dir():
+                print(f"no such corpus folder: {root}", file=sys.stderr)
+                return 2
+            tests = sorted(p for p in root.rglob("*.bas") if fnmatch.fnmatch(p.name, args.glob))
+        elif suite in ("compile", "format"):
             root = qb_root / "tests" / ("compile_tests" if suite == "compile" else "format_tests")
             if args.category:
                 root = root / args.category
@@ -341,12 +533,18 @@ def main() -> int:
                     rs = [compile_test(bas, args, results, qb_root, args.os_tag)]
                 elif suite == "format":
                     rs = format_tests(bas, args, results, qb_root)
+                elif suite == "corpus":
+                    rs = [corpus_test(bas, args, results, qb_root, corpus_root)]
                 else:
                     rs = [qbasic_test(bas, args, results, qb_root)]
             except Exception as e:  # one broken test must not lose a long run's results
-                rs = [Result(f"{suite}_tests" if suite != "qbasic" else "qbasic_testcases",
-                             bas.relative_to(qb_root / "tests").as_posix(), "?", "FAIL", "runner",
-                             f"{type(e).__name__}: {e}")]
+                if suite == "corpus":
+                    rs = [Result("corpus", bas.relative_to(corpus_root).with_suffix("").as_posix(), "?",
+                                 "FAIL", "runner", f"{type(e).__name__}: {e}")]
+                else:
+                    rs = [Result(f"{suite}_tests" if suite != "qbasic" else "qbasic_testcases",
+                                 bas.relative_to(qb_root / "tests").as_posix(), "?", "FAIL", "runner",
+                                 f"{type(e).__name__}: {e}")]
             for r in rs:
                 key = f"{r.suite}:{r.test}"
                 if r.status == "FAIL" and key in known:
@@ -358,6 +556,8 @@ def main() -> int:
                 line = f"[{i}/{len(tests)}] {r.status} {key} ({r.kind}, {r.seconds}s)"
                 if r.status != "PASS":
                     line += f"  {r.stage}: {r.detail}"
+                elif r.detail:  # corpus --record: what was written
+                    line += f"  {r.detail}"
                 print(line, flush=True)
 
     summary: dict = {}
@@ -368,7 +568,8 @@ def main() -> int:
     if args.category or args.glob != "*.bas":
         name = "results-partial.json"
     else:
-        name = "results.json" if args.suite == "all" else f"results-{args.suite}.json"
+        mode = "-record" if args.record else ("-cpp-opt" if args.cpp_opt else "")
+        name = "results.json" if args.suite == "all" else f"results-{args.suite}{mode}.json"
     out = args.results.resolve() / name
     out.parent.mkdir(parents=True, exist_ok=True)
     # Record the compiler relative to this repo so results do not reveal local absolute paths.

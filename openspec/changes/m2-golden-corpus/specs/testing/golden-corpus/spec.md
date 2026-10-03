@@ -26,8 +26,9 @@ where its programs came from, the source commit and the licence.
 
 ### Requirement: Running a compiler against the corpus
 `run_legacy_tests.py --suite corpus` SHALL, for each program, compile it with `-q -m -x` and no other build flags
-in a fresh empty folder under the git-ignored results folder (never in the corpus folder), run the executable there with no arguments, stdin from the null
-device, `QB64PE_NOPROMPT=y` and a 60 s timeout, and compare the merged stdout and stderr with `<name>.output`
+in a fresh empty folder under the git-ignored results folder (never in the corpus folder), run the executable there with no arguments, `QB64PE_NOPROMPT=y` and a 60 s timeout, with stdin from the null
+device, except on Windows, where the program SHALL run in a console of its own, with no window, whose input
+receives key presses so that `END` ("Press any key to continue") returns, and compare the merged stdout and stderr with `<name>.output`
 after applying `<name>.normalize`, treating CRLF as LF and ignoring trailing newlines. For a `.err` test it SHALL
 require a failed compile, no executable, and compiler output equal to `<name>.err` ignoring CR characters.
 

@@ -14,7 +14,8 @@ QB64Fresh's current `HEAD`.
 | Feature | Programs | Consequence |
 |---|---|---|
 | `$CONSOLE:ONLY` | all 261 | Headless; stdout can be redirected. The "screen `PRINT` with a comma hangs" problem (`study\00` §10) needs a screen, so it does not apply. |
-| Keyboard `INPUT` / `INKEY$` | none (the 14 `INPUT` hits are `OPEN … FOR INPUT`, `LINE INPUT #`, `INPUT #`) | stdin can be the null device. |
+| Keyboard `INPUT` / `INKEY$` | none (the 14 `INPUT` hits are `OPEN … FOR INPUT`, `LINE INPUT #`, `INPUT #`); no `SLEEP` or `_KEYHIT` either | stdin can be the null device, except for `END` (next row). |
+| `END` | all 261 (`v11_wrap_o2` ends with `SYSTEM`) | On Windows, `END` in a console program prints `Press any key to continue` and waits for a **console key event** (`sub_end`, `libqb.cpp`; `func__getconsoleinput`, `libqb\src\console.cpp`). The null device or a pipe never sends one, so the program hangs (found in task 2.1; QB64Fresh ran the corpus on Linux, where `END` reads one byte from stdin and gets end-of-file). The runner feeds key presses (D2). The trailer (an empty line, then `Press any key to continue` with no line end) is part of every recorded `.output` of a program that reaches `END`. |
 | Files and folders created in the working directory | 05, 52–54, 59, 60, 86, 95–97, 174–183, 213, 214, 219 (all relative names; 213 does `CHDIR ".."` back to its own folder; none reaches outside it) | Each program must run in its own empty folder, never inside the repo. |
 | **Real side effect** | `LPRINT` (239): the compiler then enables `DEPENDENCY_PRINTER`, and on Windows the runtime sends the page to the **default printer** (`sub__printimage`, `internal\c\libqb.cpp`) | Compile only, never run (`.norun`, D4). |
 | Machine-dependent output | `LEN(ENVIRON$("PATH"))` (212), `TIMER` (234), `FRE` (218) | `.normalize` sidecar (D4); 218 decided by the double run. |
@@ -69,8 +70,15 @@ Add `--suite corpus` (included in `all`), with `--corpus-root` defaulting to `te
    and run there, so files it creates (`rt_*.txt`, directories) never touch the repo and cannot leak between
    programs. The folder is deleted after a pass and kept after a failure.
 3. **Arguments and environment:** the exe gets no arguments (the legacy runner passes the results path, which
-   would put a local path into `COMMAND$`). Environment as the legacy runner plus `QB64PE_NOPROMPT=y`; stdin is
-   the null device.
+   would put a local path into `COMMAND$`). Environment as the legacy runner plus `QB64PE_NOPROMPT=y`. On Linux
+   and macOS stdin is the null device. On Windows the program needs a console to get past `END` (table above):
+   the runner starts `tools\legacy_tests\press_any_key.py` with a console of its own and no window
+   (`CREATE_NO_WINDOW`), stdout and stderr going to the result file; the helper starts the program in that console
+   with stdin `CONIN$` and writes a Shift key press into the console input every 50 ms until the program exits.
+   `END` empties the input buffer and then waits, so the next press ends it. This is safe only because no corpus
+   program reads the keyboard; a later group that does needs another way. *Alternatives rejected:* editing the
+   programs (`END` → `SYSTEM`) breaks D1's unchanged copies; killing the program after its output stops loses the
+   trailer (written with `std::cout`, flushed only at exit) and waits for a timeout on every program.
 4. **Timeout** 60 s per run (all programs are small; a hang is a failure, recorded as such).
 
 The shared helpers (`run_proc`, `kill_tree`, `clear_temp`, `norm_output`, `norm_text`) are reused, not copied.

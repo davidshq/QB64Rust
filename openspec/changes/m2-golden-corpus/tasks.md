@@ -20,18 +20,31 @@
 
 ## 2. Runner (design D2–D4, D6)
 
-- [ ] 2.1 Add `--suite corpus` and `--corpus-root` to `tools\legacy_tests\run_legacy_tests.py`: compile with
+- [x] 2.1 Add `--suite corpus` and `--corpus-root` to `tools\legacy_tests\run_legacy_tests.py`: compile with
   `-q -m -x` in a fresh scratch folder per program under the results folder, run with no arguments, null stdin,
   `QB64PE_NOPROMPT=y`, 60 s timeout; compare `.output` / `.err` as the compile suite does; for `.norun`, compile
   only; delete the folder on pass. Update the docstring and `tools\legacy_tests\README.md`. Verify: on 3
   hand-written expected files (one pass, one wrong output, one `.err`) the runner reports PASS, FAIL `result`, PASS; the repo's `git status` is unchanged after the run.
-- [ ] 2.2 Add `.normalize` support (D4) applied before comparison and recording. Verify: a sidecar for
+  (Done 2026-10-03: PASS, FAIL `result`, PASS; `git status` unchanged; the passing program's folder, holding the
+  file it wrote, was deleted. Found: on Windows `END` waits for a console key event and the null device never
+  sends one, so every corpus program hung until the timeout. Fixed with `tools\legacy_tests\press_any_key.py`
+  (a console of its own with no window, Shift presses); design "What the programs touch" and D2, and the spec,
+  updated. Also checked: a `DO: LOOP` program fails at `run: timeout` after 60 s with no process left; a `.norun`
+  program compiles and never runs.)
+- [x] 2.2 Add `.normalize` support (D4) applied before comparison and recording. Verify: a sidecar for
   `234_timer_value` makes two runs compare equal.
-- [ ] 2.3 Add `--record` (compile once, run twice, write only on agreement, warn on change, report
+  (Done 2026-10-03, on a scratch copy: without the sidecar `--record` reports it non-deterministic and writes
+  nothing (`57226.92` vs `57227.14`); with it both runs give `timer: <TIMER>`, the file is written with CRLF
+  kept, and a check run passes. The real sidecar is added in 3.1.)
+- [x] 2.3 Add `--record` (compile once, run twice, write only on agreement, warn on change, report
   non-deterministic). Verify:
   recording `--glob "0*.bas"` twice leaves `git status` unchanged after the second run.
-- [ ] 2.4 Add `--cpp-opt` (adds `-f:OptimizeCppProgram=true`). Verify: on `v11_wrap_o2` with an expected file
+  (Done 2026-10-03: 9 `.output` files written by the first run; after the second, `git status` and the files'
+  SHA-256 are unchanged.)
+- [x] 2.4 Add `--cpp-opt` (adds `-f:OptimizeCppProgram=true`). Verify: on `v11_wrap_o2` with an expected file
   recorded in the default build, `--cpp-opt` fails with `result`.
+  (Done 2026-10-03: default build `x + 1 > x : false` / `-2147483648`; `-O2` build `true` / ` 2147483648`, FAIL
+  `result`; the default build still passes. `--record` with `--cpp-opt` is refused.)
 
 ## 3. Record and check (design D3, D7, D8)
 

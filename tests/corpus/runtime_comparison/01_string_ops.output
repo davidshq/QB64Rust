@@ -1,0 +1,9 @@
+concat: Hello World
+len a:  5 
+mid 2,3: ell
+left 2: He
+right 2: lo
+a<b: -1 
+a=a: -1 
+
+Press any key to continue

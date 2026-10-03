@@ -10,7 +10,7 @@ another machine, or the new compiler) is compared with these.
 | Compiler | QB64pe `main` at `16f629784e` (version 4.7.0-GLFW), built locally with `setup_win.cmd` |
 | C++ toolchain | llvm-mingw 20260922 (clang 23.1.2), UCRT, x86_64 |
 | Machine | Windows 11 Pro 10.0.26200, 64-bit |
-| Runner | `tools\legacy_tests\run_legacy_tests.py --suite all` |
+| Runner | `tools\legacy_tests\run_legacy_tests.py --suite all` (before the `corpus` suite existed; `all` now includes it, so a rerun also checks `tests\corpus`) |
 | Duration | about 37 minutes (2,211 s), tests run one at a time |
 
 | Suite | Kind | Pass | Fail |
