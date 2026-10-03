@@ -733,7 +733,7 @@ Three mechanisms coexist:
 1. **Main module:** `a$ = "message": GOTO errmes`.
 2. **Inside SUB/FUNCTIONs:** `Give_Error msg` sets `Error_Happened`/`Error_Message` and the routine exits; *every* caller
    must then test `IF Error_Happened THEN GOTO errmes` (or `EXIT …`). There are hundreds of these checks; a missed one
-   means compilation continues on garbage.
+   means compilation continues on invalid state.
 3. **Runtime errors of the compiler itself:** `ON ERROR GOTO qberror` (14236). `qberrorhappened` set to -1/-2/-3 before a
    risky `OPEN` turns the trap into a `RESUME` at `qberrorhappened1/2/3` (1681, 12554, 3139). `ON ERROR GOTO qberror_test`
    with flag `E` is used for "try KILL / try OPEN" (14232–14234). Any other trap becomes
@@ -921,7 +921,7 @@ A change of `TARGET_BITS` triggers `make clean` using the marker `internal/c/.qb
 12. **`'$DYNAMIC`/`'$STATIC` take effect on the following line;** `$INCLUDE` is processed after its whole line.
 13. **Auto-include positions and files,** `_IKW_` internal keyword mechanism, `_GL` detection, `$COLOR` constant files.
 14. **`$IF` semantics** including left-to-right boolean folding, `DEFINED/UNDEFINED`, version comparison, and the
-    preset names. Existing programs depend on the sloppy grammar (e.g. `$IF WIN THEN`).
+    preset names. Existing programs depend on the permissive grammar (e.g. `$IF WIN THEN`).
 15. **Emitted names and file contract** if the existing `qbx.cpp`/libqb/Makefile are kept: `SUB_X`, `FUNC_X`,
     `LABEL_x`, `S_n`, `RETURN_n`, `sc_n`, `__ASCII_CHR_046__`, variable prefixes (`__LONG_…`, `__STRING_…`,
     `__ARRAY_…`, `UDT_…`), the temp file set in §10, and the `DEP_*` variables.
@@ -929,7 +929,7 @@ A change of `TARGET_BITS` triggers `make clean` using the marker `internal/c/.qb
 17. **Formatter output:** keyword casing table, spacing rules (`sp`/`sp2`), indentation, and "leave the line alone if
     not understood / if it has `_` continuation".
 
-### 11.2 Implementation hacks that can be dropped (replace with normal compiler structure)
+### 11.2 Implementation techniques a rewrite can replace (with conventional compiler structure)
 
 1. **Whole-program restarts.** Six unrelated reasons re-run both passes, sometimes several times. A real symbol
    table + deferred emission (or a proper semantic pass before codegen) removes all of them. `RCStateVar` exists only
@@ -955,7 +955,7 @@ A change of `TARGET_BITS` triggers `make clean` using the marker `internal/c/.qb
     comment or string at the start of a line).
 14. **Layout computed inside semantic handlers.**
 
-### 11.3 Fragile spots and probable defects noticed while reading (not tested)
+### 11.3 Edge cases and probable defects noticed while reading (not tested)
 
 *Update: five of these were later run against the old compiler; results in `09-verification.md` ("Probable
 defects"). The label + CONST prepass bug and the ELSE level check are confirmed and reachable; `symboltype("##")`

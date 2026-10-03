@@ -1,10 +1,12 @@
 # 00 — Synthesis: start here
 
-The one-page entry point to this folder. It summarises every study (`01`–`14`), the decisions, the plan, what was
-measured, and what is still open. Details live in the numbered documents; each section points to them.
+The one-page entry point to this folder. It summarises every study, the decisions, the plan, what was
+measured, and what is still open. Details live in the numbered documents; each section points to them. The reviews
+of other repositories (`11`–`14`) are closed and live in `archive\`; their conclusions are in §11 here.
 
 First written 2026-10-02 from `01`–`05`; rewritten 2026-10-02 (session 5) to cover `06`–`14`, `baselines\` and
-`verification\`. Tree studied: `..\QB64pe`, HEAD `16f629784e`, `Version$ = "4.7.0-GLFW"` (upstream QB64pe `main`).
+`verification\`; trimmed 2026-10-03 when `11`–`14` were archived. Tree studied: `..\QB64pe`, HEAD `16f629784e`,
+`Version$ = "4.7.0-GLFW"` (upstream QB64pe `main`).
 Current phase and next steps: `STATUS.md`. Rules and the decision log: `CLAUDE.md`.
 
 ## 1. Decisions
@@ -42,7 +44,7 @@ From the expert panel (`07`), whose recommendations R1–R13 the decisions above
 | # | Milestone | Done when | State |
 |---|---|---|---|
 | M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
-| M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-c`, formatting via `-y`, CP437 default | next |
+| M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | next |
 | M2 | Front end | Lossless parser with recovery, resolution, type checker, formatter matching `-y`, language server | |
 | M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests | |
 | M4 | Parity | 143 corpus programs match golden output; deferred array features; `qb64pe.bas` compiles (stretch) | |
@@ -162,7 +164,8 @@ From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence
 **Decide (result-changing; current default is "keep"):** CONST `^` right-associativity; 32-bit wrap of
 INTEGER/LONG arithmetic inside expressions; round-half-to-even with single-precision narrowing for INTEGER targets;
 NUL-filled fixed-length strings (QB4.5: spaces); linear `REDIM _PRESERVE`; fatal integer division by zero; console
-comma zones 10 wide (or 14 like everywhere else); INPUT prompts as literals only (or allow expressions).
+comma zones 10 wide (or 14 like everywhere else); LONG overflow, where the old compiler itself gives two answers
+(wraps in the default build, not under `-O2`; `16` L4, `verification\v11_wrap_o2`; recommended: defined wrap); INPUT prompts as literals only (or allow expressions).
 
 **Fix (no compatibility value):** `_BIT * n` with n > 32 overlapping the next variable by 4 bytes; static `SELECT CASE`
 temporaries overwritten by recursion; `label: CONST …` on one line failing to compile; `ELSE` while an inner `FOR`
@@ -205,7 +208,7 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
   `_MEM*`, `VARPTR`, `LBOUND`/`UBOUND`, statements with their own parsers such as PRINT, INPUT, OPEN, GET/PUT,
   LINE): these need code, not just a table row.
 - **Gap:** names defined in the auto-included BASIC files (`_TRUE`, `_FALSE`, color constants) are not in the
-  table yet (`10` §3.4, `13`).
+  table yet (`10` §3.4).
 
 ## 10. Testing position
 
@@ -225,28 +228,29 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
   the 143 qbasic programs, and classic QBasic areas (PRINT USING, file modes, string functions) beyond light use.
 - **Test hygiene:** run every program with `QB64PE_NOPROMPT=y`; detect fatal errors from output, not exit code;
   never use screen `PRINT` with a comma under a redirected `$CONSOLE`.
-- `verification\` holds 14 small programs with recorded outputs behind `09` and `10` (`run.sh` reruns them).
+- `verification\` holds 15 small programs with recorded outputs behind `09`, `10` and `16` (`run.sh` reruns them).
 
-## 11. Existing work and sources: what to reuse
+## 11. Other repositories and sources: conclusions (reviews archived)
 
-| Source | Verdict | Study |
-|---|---|---|
-| `vscode-qb64fresh` (the user's own extension, MIT, thin LSP client with tests) | **M1 base.** Import with history, add an old-compiler backend (`-c`, `-x`, `-y` and an error-output parser), rename once, drop the `BASIC`/`QBasic` aliases, split `extension.ts`. Newest copy is on `<share>` | `11` |
-| `qb64pe-vscode` (community extension) | Take only the help pipeline (after a licence check), `language-configuration.json`, snippets, and its feature list as a parity checklist. Its regex diagnostics invent errors (calls `DEFINT` deprecated) | `11` |
-| QB64Fresh (the user's earlier Rust rewrite) | **Use none of its code.** Matches QB64pe output on 19 of 331 tests; front end not lossless, IR name-based, own runtimes. Take its 261 test programs, read its LSP before M2, and its process lessons: measure against `qb64pe.exe` from day one; one layer at a time; no special cases for one program; no status claims without measurements; one compiler API; one diagnostic type; thin dispatchers; small verified refactors; written phase contracts | `12` |
-| `rewrite-decision.md` (earlier review, untracked in `<qb64contain>\QB64pe\docs\`) | Advised keeping QB64Fresh's front end and against a rewrite from an empty repository. `12` supports the ground-up rewrite given `07`'s architecture; the user has not yet confirmed (open question) | `12` |
-| QB64pe wiki (MediaWiki API, 1,035 articles) | Primary documentation source; fetch fresh; no licence stated, so ask before shipping its text | `13` |
-| Microsoft QuickBASIC manuals (text, on `<share>`) | Best source for QB4.5 questions; copyrighted, never commit | `13` |
-| QB64Fresh's machine-written specs | Checklists only; spot check found errors | `13` |
-| `docs-new-2` branch (internals docs on the user's QB64pe fork) | A map for M3/M5, never a spec: of 13 checks, 8 right (copied code), 5 wrong (explanations, examples) | `14` |
+What may be taken from other projects is `CLAUDE.md` rule 5. The reviews behind these verdicts are closed and kept
+in `study\archive\` (`11`–`14`, plus the measurement scripts); nothing in the active plan needs them.
+
+| Source | Conclusion |
+|---|---|
+| `qb64pe-vscode` (community extension) | Reference only, nothing copied. Its regex-based checks can flag code the compiler accepts, which our design avoids. Its feature list is a parity checklist. |
+| `vscode-qb64fresh` (the user's extension) | Not the base (written fresh instead); small self-contained pieces may be taken after reading them in full. Lessons: one structured output parser, not a list of known messages; one file per concern. |
+| QB64Fresh (the user's earlier Rust rewrite) | Not a base: matched QB64pe output on 19 of 331 tests; front end not lossless, IR name-based. Taken: its 261 `runtime_comparison` BASIC programs (recorded against the old compiler at the start of M2), small pieces per rule 5, and process lessons: measure against `qb64pe.exe` from day one; one layer at a time; no special cases for one program; no status claims without measurements. |
+| `rewrite-decision.md` (earlier external review) | Advised against an empty-repo rewrite; considered and overruled 2026-10-02 (`CLAUDE.md`). |
+| FreeBASIC (`..\FreeBASIC`, GPL/LGPL) | No code. More modular than QB64pe but single-pass with a symbol-aware lexer: not a front-end model. Useful for runtime-call tables, defined C output (`-fwrapv`), lowering notes, test conventions (`16`, panel-reviewed). |
+| QB64pe wiki | Primary documentation source. Fetched 2026-10-02 with `tools\wiki\fetch_wiki.py` (1,124 pages, git-ignored cache). No licence stated: local reference only until the maintainers are asked. |
+| Microsoft QuickBASIC manuals (text, on `<share>`) | Best source for QB4.5 questions; copyrighted, never commit. |
+| `docs-new-2` branch (internals docs on the user's QB64pe fork) | A map for M3/M5, never a spec: 5 of 13 checked explanations were wrong. |
 
 In every case: the wiki, manuals and docs are hypotheses; `qb64pe.exe` is the answer.
 
 ## 12. Open questions and next steps
 
-Open questions for the user (blocking M1) and the next steps are kept in one place, `STATUS.md`, so they don't go
-stale here. The first M1 task is to check whether the old compiler reports BASIC-level errors without a full C++
-build (`11` E3), which decides how the extension produces on-save diagnostics.
+Kept in one place, `STATUS.md`, so they don't go stale here. As of 2026-10-03 no open question blocks M1.
 
 ## 13. Remaining study gaps
 
@@ -265,9 +269,9 @@ matching milestone starts:
 
 `01`–`05` come from reading source; each states what was read fully and what was sampled (`04` was only partly
 read for this synthesis: summary, Parts A, G, H). Claims marked ✓ above were confirmed by running the old compiler
-(`09`, `10`); three study claims were corrected that way (`09`, "Corrected"). Facts about other projects (`11`–`14`)
-come from reading and running them on 2026-10-02. Anything not marked as run should be treated as a reading of the
-code, not a measurement.
+(`09`, `10`); three study claims were corrected that way (`09`, "Corrected"). Facts about other projects
+(`archive\11`–`14`) come from reading and running them on 2026-10-02. Anything not marked as run should be treated
+as a reading of the code, not a measurement.
 
 ## Document map
 
@@ -283,7 +287,6 @@ code, not a measurement.
 | `08` | What a strict QuickBASIC 4.5 mode would need (not planned) |
 | `09` | Study claims checked by running the old compiler; bug-compatibility list |
 | `10` | Study gaps closed: DIM family, PRINT/INPUT/WRITE, built-in table |
-| `11` | Existing VS Code extensions: `vscode-qb64fresh` as M1 base |
-| `12` | QB64Fresh review: no code, take tests and lessons |
-| `13` | Reference documentation sources |
-| `14` | The `docs-new-2` branch: use as a map only |
+| `15` | Pre-coding review: bytes not strings, early vertical slice, diagnostics policy, minimal M1 backend, libqb copy |
+| `16` | FreeBASIC: lessons to take, things not to take, proposed follow-ups |
+| `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |

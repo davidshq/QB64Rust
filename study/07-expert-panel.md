@@ -141,7 +141,7 @@ behaviour, every vendored library, for free. The new compiler only has to produc
 
 **COMP:** My objection to (a) is the ABI itself: every variable is a pointer, strings are `qbs*` on a moving heap,
 optional arguments use a `passed` bitmask whose bit allocation comes from a backtracking interpreter of the
-`specialformat` mini-language (`02` §4.3). Binding a clean compiler to that ABI forever would be a mistake.
+`specialformat` mini-language (`02` §4.3). Binding the new compiler to that ABI forever would limit it.
 
 **RT:** Not forever. Bind to it first, then move it. Once the new compiler is the only producer of calls into libqb,
 the ABI becomes internal and can change on both sides at once. While the old compiler is still the oracle, it can't.

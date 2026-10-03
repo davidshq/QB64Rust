@@ -1072,7 +1072,7 @@ only values above 255 fall through. The rest are untested.*
 
 ### 9.3 Structural observations for the rewrite
 
-- The "expression IR" is text; type information is a bit-packed LONG; references are `sp3`-separated strings re-parsed by every consumer (the same four-field split is copy-pasted dozens of times). A typed AST with an explicit lvalue node (variable / array element / UDT path) replaces `refer`/`setrefer`/`evaluatetotyp -2…-8`; the pseudo-types map to "address-of", "sizeof", "span to end of object" and "_MEM descriptor" operations on an lvalue.
+- The "expression IR" is text; type information is a bit-packed LONG; references are `sp3`-separated strings re-parsed by every consumer (the same four-field split is repeated in dozens of places). A typed AST with an explicit lvalue node (variable / array element / UDT path) replaces `refer`/`setrefer`/`evaluatetotyp -2…-8`; the pseudo-types map to "address-of", "sizeof", "span to end of object" and "_MEM descriptor" operations on an lvalue.
 - The argument-passing logic is duplicated between `evaluatefunc` and the SUB path, and the optional-argument logic exists in two different interpreters; one implementation suffices if the format is parsed once into a small grammar at registration time.
 - Emitted C++ depends on C++ implicit conversion rules for arithmetic typing. A rewrite must either emit the same operand C types or encode the resulting types explicitly; this is the highest-risk area for silent numeric differences.
 - Evaluation has side effects on compiler state (auto-DIM, `recompile`, dependency flags); these need to become explicit passes.

@@ -86,7 +86,19 @@ Legend: **Confirmed** = the study claim holds. **Corrected** = the observed beha
 `verification\cp437_all_bytes.bin` holds bytes 0–255 in order; `cp437_all_bytes.sha256` holds its hash
 (`40aff2e9…944880`). To check: copy it to a `.bas` name, open it in VS Code with encoding "DOS (CP 437)", type a
 character and delete it, save, and compare the hash (`sha256sum`). Watch especially 0x00, 0x0A, 0x0D, 0x1A and 0x7F.
-Not done yet; needs a person at VS Code.
+
+**Automated result (2026-10-03, M1 task 8.2).** Run by the M1 extension's integration tests
+(`vscode\test\integration\suite\language.test.ts`, "study 09") in VS Code 1.140 with the extension loaded, so the
+`[qb64rust]` default `cp437` applies:
+
+| Bytes | Result |
+|---|---|
+| The whole file (0x00–0xFF) | **Not opened.** VS Code refuses it as binary because it contains 0x00 ("File seems to be binary"). The API cannot override that; the UI offers "Open Anyway". |
+| 0x01–0xFF (file without the 0x00 byte) | Every byte comes back unchanged, including 0x0A, 0x1A and 0x7F, **except a lone 0x0D**: VS Code treats it as a line break and saves it as the document's end-of-line sequence (0x0A in this file). |
+
+Consequences: a QB64 source with a literal NUL byte cannot be opened as text without "Open Anyway", and a lone CR
+inside a string literal is rewritten on save. Both are rare in real programs (`CHR$(0)` and `CHR$(13)` are the usual
+way to write them). Still open for a person: whether "Open Anyway" plus save keeps 0x00 intact.
 
 ## Consequences for the rewrite
 

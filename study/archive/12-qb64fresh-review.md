@@ -30,7 +30,7 @@ project's architecture (`study\07` R5–R12), which differs from what that docum
 
 ## Evidence
 
-All runs on Windows 11, Rust 1.88, MSYS2 gcc 15.2, debug build. Scripts and raw results are in `verification\qb64fresh\` (`measure.sh`, `measure.tsv`, `fmtcheck.py`,
+All runs on Windows 11, Rust 1.88, MSYS2 gcc 15.2, debug build. Scripts and raw results are in `study\archive\qb64fresh-scripts\` (`measure.sh`, `measure.tsv`, `fmtcheck.py`,
 `lsp_smoke.py`). They take their locations from environment variables (`QBF_WORK`, `QBF_BIN`, `QB64PE`; see each
 script's header); the run used a scratch directory with QB64Fresh cloned to `qbf\` and built into `qbf-target\`.
 

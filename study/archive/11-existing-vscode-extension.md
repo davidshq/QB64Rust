@@ -23,11 +23,11 @@ on 2026-10-02; each is listed under "Evidence" with a file and line.
 | E2 | No automated tests. Mocha is a dev dependency but there is no `test` script; root `test_*.bas`/`.js` are manual. | `CLAUDE.md` of the extension, `package.json` |
 | E3 | Compiler diagnostics run a **full compile** (`-c src -o exe -x -w`) on every save, then delete the exe. | `src\lintFunctions.ts:48`, `:95` |
 | E4 | Errors are recognised by a hard-coded list of 37 message prefixes ("Illegal ", "DIM: ", …); any other message is dropped. The column comes from a regex search for the reported code text. | `src\lintFunctions.ts:162-198`, `:227` |
-| E5 | A second, regex-based "real-time" checker reports type mismatches, undefined and unused variables, missing declarations, and "deprecated" syntax. It treats `SCREEN n` and `DEF…` (including `DEFINT`) as deprecated, and identifiers as `[A-Za-z_][A-Za-z0-9_]*` (no `$ % & ! # ~` suffixes, no `.` in names). In a language with implicit declaration this produces false positives. | `src\providers\DiagnosticsProvider.ts:37-40`, `:181`, `:247-266` |
+| E5 | A second, regex-based "real-time" checker reports type mismatches, undefined and unused variables, missing declarations, and "deprecated" syntax. It treats `SCREEN n` and `DEF…` (including `DEFINT`) as deprecated, and identifiers as `[A-Za-z_][A-Za-z0-9_]*` (no `$ % & ! # ~` suffixes, no `.` in names). In a language with implicit declaration this can flag valid code. | `src\providers\DiagnosticsProvider.ts:37-40`, `:181`, `:247-266` |
 | E6 | Formatter is a line-by-line regex rewriter, off by default. It formats only the text before the first `"` on a line, so it does not corrupt strings, but everything after a string literal is left unformatted. It does not use `qb64pe -y`. | `src\providers\DocumentFormattingEditProvider.ts:212`, `:351-359` |
 | E7 | "Remove line numbers" deletes **every digit on every line**: `20 x = 10: PRINT "Score 100"` becomes `x = : PRINT "Score "` (run with node on the copied code). "Renumber lines" uses the same expression. | `src\extension.ts:292`, `:320` |
 | E8 | Symbols (outline, go-to-definition, references, completion, hover for user code) come from a regex `SymbolParser` with `$INCLUDE` following and an mtime cache. | `src\providers\SymbolParser.ts` |
-| E9 | The "debugger" is not a debugger: it sends a shell command to a terminal. | `package.json` `contributes.debuggers`, `src\providers\DebugAdapterDescriptorFactory.ts` |
+| E9 | The "debugger" entry launches the program by sending a shell command to a terminal; it is not a DAP debug adapter. | `package.json` `contributes.debuggers`, `src\providers\DebugAdapterDescriptorFactory.ts` |
 | E10 | On activation it writes `qb64pe.helpPath` into the user's **global** settings, and can create `.gitignore` and `-bak` files. | `src\extension.ts:186-197`, `:39-43` |
 | E11 | Language id `QB64PE` on `.bas .bi .bm .inc`. Settings, commands (`extension.*`) and grammar scope (`source.QB64PE`) use generic or same names an extension of ours would want. | `package.json` |
 | E12 | Help corpus: 1,050 Markdown pages produced by grymmjack's `qb64pe-wiki-to-markdown`, used for hover and a help view, with an online-wiki fallback. Licence of the wiki content is not stated in the repo. | `help\`, `src\extension.ts:368-377` |
@@ -39,13 +39,14 @@ completion including inline templates, signature help, hover with wiki help, qui
 diagnostics, a TODO tree, an ASCII chart, line-number tools, "open in QB64PE IDE". On paper that already covers most
 of the "static" row of `study\06` and much of M1.
 
-**TEST:** On paper. None of it is tested (E2), and the two parts M1 cares most about are the weakest. Diagnostics
-drop any error whose text isn't on a list of 37 prefixes (E4); the old compiler has hundreds of messages. And the
-regex checker (E5) invents errors. It calls `DEFINT A-Z` deprecated.
+**TEST:** It's a broad feature set. There are no automated tests (E2), and the two parts M1 cares most about work
+differently from what we need. Diagnostics show errors whose text is on a list of 37 prefixes (E4); the old
+compiler has hundreds of messages. And the regex checker (E5) can report problems the compiler doesn't, for
+example marking `DEFINT A-Z` as deprecated.
 
-**QB64:** That one would annoy real users. Half the community code starts with `DEFINT A-Z` or `SCREEN 12`. Flagging
-those as deprecated is wrong on the language, not just a style opinion. And names like `player.x` or `a$` are
-ordinary QB64 identifiers that the regexes don't model.
+**QB64:** For us that matters: a lot of community code starts with `DEFINT A-Z` or `SCREEN 12`, and QB64pe still
+fully supports both, so we'd want those treated as normal. Names like `player.x` or `a$` are ordinary QB64
+identifiers that a regex approach finds hard to model.
 
 **PRAG:** What's the cost of the full compile on save (E3)?
 
@@ -53,10 +54,10 @@ ordinary QB64 identifiers that the regexes don't model.
 competes with the user's own build for `internal\temp`. `study\06` planned `-c` output parsing too, but the old
 compiler can stop after the BASIC phase; that needs checking before we copy the full-compile approach.
 
-**REF:** Code quality: it compiles, and it's readable. It is also the typical shape of a regex-grown extension:
-`CompletionItemProvider` 1,574 lines, `CodeActionProvider` 978, `DiagnosticsProvider` 891, every provider parsing text
-on its own. E7 shows the risk: a destructive command with an obvious bug that nobody caught, because nothing is
-tested.
+**REF:** Code quality: it compiles, and it's readable. It follows the usual shape of an extension without a
+language server: `CompletionItemProvider` 1,574 lines, `CodeActionProvider` 978, `DiagnosticsProvider` 891, each
+provider parsing text on its own. E7 shows why we want tests from the start: an editing command can change more
+than intended without a test noticing.
 
 ## Session 2 — Fork it, or start fresh?
 
@@ -66,20 +67,21 @@ tested.
 our Rust language server in M2+. In our architecture the extension is a thin client: grammar, language
 configuration, tasks, an LSP client, and later a debug adapter. About 80 % of the TypeScript here is the part we're
 going to delete: regex parsing in each provider. Forking means inheriting it, then ripping it out while users of the
-existing listing watch features regress.
+existing listing watch features change.
 
-**PL:** Plus the regex layer encodes wrong language rules (E5). If we keep it until the LSP arrives, we ship false
-errors under our name for a whole phase.
+**PL:** Plus the regex layer makes language-rule choices that differ from the compiler's (E5). Keeping it until the
+LSP arrives would mean reconciling two sets of rules for a whole phase.
 
-**REF:** I'd normally argue for forking working code. Not here: what we'd keep is small and separable, and what
-we'd remove is the bulk. Harvest, don't fork.
+**REF:** I'd normally argue for forking working code. Here the fit is the issue: what we'd keep is small and
+separable, and what we'd replace is most of it. Learn from it rather than fork it.
 
 **QB64:** The coexistence problem matters too (E11). Many QB64 users already have this extension installed. If ours
 also claims language id `QB64PE` and the `extension.*` command names, the two will fight over `.bas` files. Ours
 needs its own ids and scope names and should say so in the README.
 
-**PRAG:** And the governance question: it's someone else's project, and the local copy has 1,200 lines of
-uncommitted changes. Building on that means first deciding whose version we're forking. Starting fresh avoids it.
+**PRAG:** And the governance question: it's someone else's project with its own direction, and the local copy has
+1,200 lines of uncommitted changes. Building on that means first deciding whose version we're forking. Starting
+fresh avoids stepping on the maintainers' plans.
 
 **Consensus:** do not fork. Build the M1 extension fresh in this repo, small and tested, and take the assets below.
 
@@ -93,8 +95,8 @@ uncommitted changes. Building on that means first deciding whose version we're f
 | `language-configuration.json`, snippets | Take, with attribution | Small, low risk; MIT allows reuse with the copyright notice. |
 | Feature list | Take as a checklist | Merge into `study\06` as "what users of the existing extension will expect" (TODO tree, ASCII chart, line-number tools, open in IDE). |
 | Error-message prefix list (E4) | Do not use | Parse the old compiler's output by its structure, not a fixed list of messages (see `study\09`). |
-| Regex diagnostics, formatter, symbol parser | Do not use | Replaced by `-y`, `-c` output in M1 and by the language server in M2+. |
-| "Debugger" | Do not use | It's a terminal command; ours will be a task in M1 and a real DAP later. |
+| Regex diagnostics, formatter, symbol parser | Do not use | Different approach: ours uses `-y`, `-c` output in M1 and the language server in M2+. |
+| "Debugger" launch entry | Do not use | Ours will be a task in M1 and a DAP adapter later. |
 
 **TEST:** One more use: its manual test files (`test_*.bas`) and the bug in E7 are good regression cases for our
 own formatter and line-number tooling later.
@@ -113,7 +115,7 @@ could meet in the middle: their extension could use our LSP one day.
 4. **Add the existing extension's feature list to `study\06`** as a parity checklist.
 5. **Check before copying the full-compile-on-save approach (E3):** does the old compiler report BASIC-level errors
    without building C++ (for example `-z`, or the order of `-c` output)? Verify with `verification\`.
-6. Optional: report bug E7 to the maintainers.
+6. Optional: report E7 to the maintainers, with the example above.
 
 ## Also found in `<qb64contain>`
 

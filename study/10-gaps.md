@@ -367,7 +367,7 @@ OPTION, KEY, STRIG, TIMER, PALETTE, WIDTH, LINE).
 - Fix the two missing return types (3.2).
 - `callname` gives the runtime entry point per built-in; it is the list of runtime functions the generated code
   must be able to call if the runtime ABI is kept (00-synthesis decision 2).
-- **Gap (found 2026-10-02, `study\13`):** the table covers `subs_functions.bas` only. Names defined in the
+- **Gap (found 2026-10-02, `study\archive\13`):** the table covers `subs_functions.bas` only. Names defined in the
   auto-included BASIC files are missing, for example `CONST _TRUE = -1, _FALSE = 0`
   (`internal\support\include\beforefirstline.bi:35`). Extend the extractor, or add a second table, for
   `beforefirstline.bi`, `afterlastline.bm` and the color-constant includes.

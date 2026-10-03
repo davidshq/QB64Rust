@@ -78,7 +78,7 @@ Every `GLUTEmu_*` mutator checks "am I the main thread"; if not it posts a messa
 - `libqb_start_main_thread()` just calls `MAIN_LOOP(NULL)` on the initial thread; no window, no GL thread. `display()` still runs but returns early because `screen_hide`.
 - `new_hardware_img` is a stub (`libqb.cpp:196-231`).
 - PRINT goes to `std::cout` when `write_page->console` (`libqb.cpp:10586-10598`); console input via `func__getconsoleinput` (`libqb\src\console.cpp:143`, Windows console API; mostly Windows-only).
-- Note: `parts\audio`, `data`, `gui`, `font`, `image` are *always* compiled with `-DDEPENDENCY_CONSOLE_ONLY` just to keep GL headers out (`parts\audio\build.mk:16-19`) — a hack, not a semantic statement.
+- Note: `parts\audio`, `data`, `gui`, `font`, `image` are *always* compiled with `-DDEPENDENCY_CONSOLE_ONLY` to keep GL headers out (`parts\audio\build.mk:16-19`) — a build workaround, not a semantic statement.
 
 ### 1.5 Locking (all ad hoc)
 
@@ -635,14 +635,14 @@ Net effect: the runtime is **recompiled per program** with a different macro set
 - Events and errors are only serviced at statement boundaries (`qbevent` polling) and inside `_LIMIT`/`_DELAY`/`SLEEP`/INPUT waits. ON TIMER catch-up rule (`qbx.cpp:1374-1385`). `SLEEP` broken by key or timer event.
 - Auto-display ~31 fps on a separate thread vs manual `_DISPLAY`; `_DISPLAYORDER` layering; hardware-image commands bound to the next `_DISPLAY`.
 
-### 9.2 Hazards / tech debt
+### 9.2 Hazards and areas to improve
 
 1. **Error model without unwinding.** `error()` returns; every function must early-out; forgetting to means operating on bad state. Handled errors recurse into `QBMAIN` (`error_handle.cpp:430-431`) — unbounded native stack growth in programs that trap many errors.
-2. **`static` locals everywhere** (892 in `libqb.cpp`) as a 2000s-era optimisation → functions are non-reentrant. Dangerous because `SUB _GL` and ON-event handlers do re-enter runtime functions (GL thread vs QBMAIN are serialised only by the display-lock handshake; timer GOSUBs re-enter on the same thread mid-`evnt`).
-3. **Data races by design**: `lock_display`, `autodisplay`, `display_frame[].state`, `exit_ok`, `stop_program`, `qbevent`, `ontimer[]`, `img[]` (realloc'd on QBMAIN while `display()` reads `display_page`), palettes and page memory are all shared across threads without atomics. `display()` copies pixels while QBMAIN draws (tearing is accepted). Busy-wait spins (`Sleep(0)`, bare `while` in `stop_timers`).
+2. **`static` locals** (892 in `libqb.cpp`), an optimisation common when the code was written → functions are non-reentrant. A risk because `SUB _GL` and ON-event handlers do re-enter runtime functions (GL thread vs QBMAIN are serialised only by the display-lock handshake; timer GOSUBs re-enter on the same thread mid-`evnt`).
+3. **Unsynchronised shared state**: `lock_display`, `autodisplay`, `display_frame[].state`, `exit_ok`, `stop_program`, `qbevent`, `ontimer[]`, `img[]` (realloc'd on QBMAIN while `display()` reads `display_page`), palettes and page memory are all shared across threads without atomics. `display()` copies pixels while QBMAIN draws (tearing is accepted). Busy-wait spins (`Sleep(0)`, bare `while` in `stop_timers`).
 4. **Moving string heap**: any allocation may relocate all string data; code holding `chr` pointers across calls is a latent bug class. `qbs_add` aliasing rules are subtle. 32 bytes of slack per string; descriptors and old arenas are never returned to the OS. `uint32` heap offsets cap total string space at 4 GB and `len` at 2 GB.
-5. **Global mutable state** for everything (hundreds of globals shared via `extern` between `libqb.cpp`, `qbx.cpp` and modules; headers carry `REFACTOR_TODO`/`FIXME` notes, e.g. `graphics.h:220-242`, `cmem.h`, `qbs.h:92`).
-6. **Monster functions with `goto`** (628 gotos): `sub__putimage` 1,600 lines, `sub__maptriangle` ~2,600, `qbs_input` ~1,050, `display` ~750, `qbsub_width` ~750, `print_using` ~600, `qbg_screen` ~600, `keyboard_keydown` ~440. Near-duplicate code: `imgframe`/`imgrevert`, six SHELL variants, four PAINTs.
+5. **Global mutable state** for most things (hundreds of globals shared via `extern` between `libqb.cpp`, `qbx.cpp` and modules; headers carry `REFACTOR_TODO`/`FIXME` notes, e.g. `graphics.h:220-242`, `cmem.h`, `qbs.h:92`).
+6. **Very large functions with `goto`** (628 gotos): `sub__putimage` 1,600 lines, `sub__maptriangle` ~2,600, `qbs_input` ~1,050, `display` ~750, `qbsub_width` ~750, `print_using` ~600, `qbg_screen` ~600, `keyboard_keydown` ~440. Near-duplicate code: `imgframe`/`imgrevert`, six SHELL variants, four PAINTs.
 7. **Fixed-function OpenGL + GLU** in the presentation path and exposed to users via `SUB _GL` (compat profile). A core-profile/modern backend cannot keep `_gl*` user code working without a compatibility context.
 8. **Memory footprint constants**: `cmem` 1.1 MB, `cmem_dynamic_link[147137]` + free list (~6.5 MB), `onstrig` 65,536 entries, `keyon[65536]`, 16 MB blend LUT on first 32-bit image, 65,536-entry rings.
 9. **Windows-only features with silent no-ops** elsewhere (§8.2) and unsupported devices (`KYBD:`, `CONS:`, real `LPTn:`).
@@ -653,7 +653,7 @@ Net effect: the runtime is **recompiled per program** with a different macro set
 13. **`MAIN_LOOP` uses `Sleep(15)+Sleep(1)`** for pacing; on Windows timer granularity makes the "32 fps" nominal. The emulated retrace bit is a 1 ms pulse per 16 ms.
 14. **printf-dependent float formatting** and `long double` width differences across compilers (MinGW vs MSVC vs ARM).
 15. **Winsock 1.1, IPv4-oriented, hand-rolled non-blocking sockets**; `_CONNECTIONADDRESS$` depends on BASIC-side helper functions linked into every program.
-16. Dead code and stale comments: SDL remnants (`27044-27114`), unused scancode table, `generic_put/get` "largely redundant" (`12941`), `array_ok` "kept to compile legacy versions", "FreeGLUT" naming over GLFW, `GLFW_TODO` markers (maximise/minimise handling, console terminal emulator hook).
+16. Leftover code and outdated comments: SDL remnants (`27044-27114`), unused scancode table, `generic_put/get` "largely redundant" (`12941`), `array_ok` "kept to compile legacy versions", "FreeGLUT" naming over GLFW, `GLFW_TODO` markers (maximise/minimise handling, console terminal emulator hook).
 17. `list` implementation leaks old blocks by design (`qblist.h:19-21`), and thread safety covers add/remove but not `list_get` vs growth.
 18. Type aliases as macros (`#define int32 int32_t`, `os.h`) leak into every including file and conflict with Windows headers (`common.h:44-48`).
 

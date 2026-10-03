@@ -43,7 +43,7 @@ Size of the subject: `ide_methods.bas` is 21,424 lines (885 KB) holding about 11
 
 ## 3. UI framework
 
-- Text mode drawn to page 3 and copied to page 0. Dialogs use two record types, `idedbptype` (window) and `idedbotype` (control; five control types), a 1000-entry string pool (`idenewtxt`), `idedrawobj`/`ideobjupdate`, and a copy-pasted ~100-line event loop per dialog (Part C §3, Part D §0.1). Input comes through `GetInput` into globals (`K$`, `KB`, `mX`, `mY`, `mCLICK`, …) (Part C §4).
+- Text mode drawn to page 3 and copied to page 0. Dialogs use two record types, `idedbptype` (window) and `idedbotype` (control; five control types), a 1000-entry string pool (`idenewtxt`), `idedrawobj`/`ideobjupdate`, and a ~100-line event loop repeated in each dialog (Part C §3, Part D §0.1). Input comes through `GetInput` into globals (`K$`, `KB`, `mX`, `mY`, `mCLICK`, …) (Part C §4).
 - Menus are string arrays `menu$(m, i)`; handlers dispatch by comparing the literal item text (Part B §6). Full menu table with definition and handler lines: Part B §6.3. All dialogs with implementing routine: Part D §9.
 - Main loop phases with line ranges: Part B §3.
 
@@ -160,7 +160,7 @@ The protocol header comment is at L1-33.
 
 ### 1.2 `FUNCTION ide` (L35-80) — fast path
 
-`ide` is a thin wrapper that avoids entering the huge `ide2` for the most common message (3 = "give me the next line"):
+`ide` is a thin wrapper that avoids entering the large `ide2` for the most common message (3 = "give me the next line"):
 
 - L39: `cmd = ASC(idecommand$)`.
 - L40-77: if `cmd = 3` and there are lines left (`idecompiledline < iden`, L41) and the line just compiled is **off-screen** (`idecompiledline < idesy OR > idesy + (idewy - 9)`, L42), and no exit request (`_EXIT AND 1` sets `ideexit = 1`, L43), it calls `GetInput` (L45). If there is no input (`iCHANGED = 0 AND mB = 0`, L46):
@@ -1570,7 +1570,7 @@ Out of scope (documented by other sections, only referenced here): the main loop
 
 ### 0.1 The dialog skeleton
 
-Every dialog in this section is a copy-pasted instance of the same roughly 100-line template. There is no shared dialog runner; each function contains its own event loop.
+Every dialog in this section follows the same roughly 100-line template, written out in each function. There is no shared dialog runner; each function contains its own event loop.
 
 | Step | Code (example from `ideLayoutBox`) | Meaning |
 |---|---|---|
@@ -3518,7 +3518,7 @@ Protocol and robustness:
 7. **The debugger depends on code-generation details**: mangled C names emitted as string literals, pointer-table layout, `qbs` and array descriptor layouts, type names as strings, and compiler routines (`udtreference$`, `Evaluate_Expression$`, `getid`) called from dialog code with compiler globals temporarily mutated (Part F §8).
 8. **Shared infrastructure**: config globals are read by both sides; the IDE builds its helper tools by running itself with `-x … -o` (Part E §4, §6.2); part of the language surface (`_TRUE`, `_KEY_*`, …) lives in auto-included BASIC files that the IDE special-cases by file name (Part E §5).
 
-The IDE's own SUB/FUNCTION list (SUBs dialog, contextual menu "Go to SUB") is *not* coupled: it re-scans the edit buffer by line prefix (Part D §1.1), which is a second, weaker parser that can disagree with the compiler.
+The IDE's own SUB/FUNCTION list (SUBs dialog, contextual menu "Go to SUB") is *not* coupled: it re-scans the edit buffer by line prefix (Part D §1.1), which is a second, simpler parser that can disagree with the compiler.
 
 ## G.2 What a clean interface would need to expose
 
@@ -3542,7 +3542,7 @@ A language-server-style boundary (in-process API or a separate process) that cov
 | "Is this program a debug build" and "does it use console" flags | `GetRCStateVar(vWatchOn)`, `ConsoleOn` | |
 | Settings passed explicitly | shared config globals | |
 
-For the debugger itself, a defined wire protocol with request ids, acknowledgements and versioning (or DAP) should replace the current ad-hoc text commands; see Part F §3 and §8.
+For the debugger itself, a defined wire protocol with request ids, acknowledgements and versioning (or DAP) should replace the current text commands; see Part F §3 and §8.
 
 ## G.3 Features users will expect at parity
 
