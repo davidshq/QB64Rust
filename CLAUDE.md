@@ -70,6 +70,7 @@ copy, but never the only copy.
 | 2026-10-03 | Extension CI on **Windows** with GitHub Actions against the QB64pe `v4.7.0-GLFW` release; macOS/Linux later (`study\18` G). |
 | 2026-10-03 | **`_INTEGER64` overflow wraps** too, like LONG (generated code and constant folding). Measured: same exposure as LONG, default build wraps, `-O2` does not (`verification\v12_wrap_int64`, `study\16` §8). |
 | 2026-10-03 | **Test cadence** (`study\19`): the full golden corpus is not part of the edit loop. Tier 1 `cargo test` (incl. corpus front end only, no C++) on every edit; tier 2 a `--glob` slice before commits; tier 3 the full corpus in parallel in CI on each push/PR; tier 4 everything (`-O2`, legacy suites) nightly and before releases. The old compiler is rerun only for new corpus programs or a new reference version. |
+| 2026-10-03 | Until M3's libqb copy, the new compiler builds through `..\QB64pe`'s `Makefile` with overrides (`m2-workspace-and-slice` design D8): its own fragments, `qbx.cpp` copy and exe stay outside the clone; **libqb objects may be built into the clone's git-ignored folders** (as `qb64pe.exe` does). Tracked files of the clone still never change (rule 3). |
 
 Expert-panel recommendations: `study\07-expert-panel.md` (its "Decisions for the user" are answered above). Open
 questions: `STATUS.md`.
