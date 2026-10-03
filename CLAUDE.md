@@ -30,7 +30,8 @@ copy, but never the only copy.
 | 2026-10-02 | Recent upstream QB64pe features: keep `$USELIBRARY`, `$ERRORLOCATION`, GLFW runtime; defer the complex array work (TYPE member arrays, `_ARRAYCOPY`, whole-array assignment, `REDIM _RETAIN`) to `SOMEDAY.md`. |
 | 2026-10-02 | Do not use the user's old `windsurf` branch (removed from the local clone). |
 
-Open decisions and the expert-panel recommendations: `study\07-expert-panel.md`.
+Expert-panel recommendations: `study\07-expert-panel.md` (its "Decisions for the user" are answered above). Open
+questions: `STATUS.md`.
 
 **Start each session by reading `STATUS.md`** (current phase and next steps).
 
@@ -39,7 +40,7 @@ Open decisions and the expert-panel recommendations: `study\07-expert-panel.md`.
 | Path | Content |
 |---|---|
 | `..\QB64pe\` | Reference clone of QB64pe (`davidshq-contribute/QB64pe`, tracks upstream `main`, version 4.7.0-GLFW) |
-| `study\00-synthesis.md` | Summary of the codebase study and the design decisions |
+| `study\00-synthesis.md` | Start here: summary of all studies, decisions, plan, measured facts, reuse verdicts |
 | `study\01`–`05` | Detailed studies: compiler front end, expressions/codegen, runtime, IDE/debugger, build/CI/tests |
 | `study\06-vscode-parity.md` | IDE features mapped to VS Code mechanisms |
 | `study\07-expert-panel.md` | Panel discussion and recommendations |
@@ -55,5 +56,5 @@ Open decisions and the expert-panel recommendations: `study\07-expert-panel.md`.
 | `<qb64contain>`, `<share>` | Placeholders for the user's local folder of earlier projects (QB64Fresh, qb64pe-vscode, a QB64pe clone with notes) and its network copy; used in `study\` and `STATUS.md` instead of machine-specific paths. Do not write full local paths or host names into this repo. |
 | `SOMEDAY.md` | Deferred features and ideas |
 | `STATUS.md` | Current phase, what is done, next steps |
-| `tools\legacy_tests\` | Windows runner for the QB64pe test suites (old or new compiler) |
-| `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure) |
+| `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler) and its `known_failures.txt` |
+| `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure; format tests 24 of 24) |

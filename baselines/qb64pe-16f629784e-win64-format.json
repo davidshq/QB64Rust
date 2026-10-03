@@ -1,0 +1,228 @@
+{
+ "compiler": "../QB64pe/qb64pe.exe",
+ "summary": {
+  "format_tests": {
+   "PASS": 24,
+   "FAIL": 0,
+   "KFAIL": 0
+  }
+ },
+ "results": [
+  {
+   "suite": "format_tests",
+   "test": "dynamic_member_redim/dynamic_member_redim/spacing-cc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "general/general/noformat-uc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "general/general/noformat-cc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "general/general/noformat-lc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "general/general/indent-uc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "general/general/indentsubs-cc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "general/general/spacing-lc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "general/general/full-uc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "general/general/full-cc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "general/general/full-lc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "lbound_ubound/lbound_ubound/noformat-cc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "lbound_ubound/lbound_ubound/spacing-cc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "lineup/lineup/noformat-uc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "lineup/lineup/noformat-cc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "lineup/lineup/noformat-lc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "lineup/lineup/indent-uc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "lineup/lineup/indentsubs-cc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "lineup/lineup/spacing-lc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.5
+  },
+  {
+   "suite": "format_tests",
+   "test": "lineup/lineup/full-uc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.5
+  },
+  {
+   "suite": "format_tests",
+   "test": "lineup/lineup/full-cc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "lineup/lineup/full-lc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "meta_format/meta_format/meta-full-cc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "meta_format/meta_format/meta-noindent-cc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  },
+  {
+   "suite": "format_tests",
+   "test": "meta_format/meta_format/meta-nolayout-cc.out",
+   "kind": "format",
+   "status": "PASS",
+   "stage": "",
+   "detail": "",
+   "seconds": 0.4
+  }
+ ]
+}

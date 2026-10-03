@@ -39,7 +39,15 @@ another machine, or the new compiler) is compared with these.
 4. The clone's `.output` files have LF line endings while programs on Windows write CRLF. The runner treats CRLF
    as LF; the bash runner relies on git converting expected files on checkout.
 
-### What this baseline does not cover
+The failure is listed in `tools\legacy_tests\known_failures.txt`, so the runner reports it as `KFAIL`.
+
+## `qb64pe-16f629784e-win64-format.json` — formatter tests, 2026-10-02
+
+Same compiler and machine, `run_legacy_tests.py --suite format` (added in the review session after the main
+baseline). 5 sources in `tests\format_tests`, 24 flag variants: **24 pass, 0 fail.** This is the oracle for
+formatting through `-y` (M1) and for the new formatter (M2).
+
+### What these baselines do not cover
 
 Graphics output beyond 12 image tests, audio, interactive input, the IDE, and the 143 qbasic programs' run-time
 behaviour (they are only compiled). See `study\07-expert-panel.md` Session 5 for the planned additional layers.

@@ -27,13 +27,12 @@ These appear to be the internals documents `rewrite-decision.md` §2.7 mentions 
 |---|---|
 | Function names cited as `name(` | 164 of 169 exist in QB64pe's source; the other 5 are Windows or third-party APIs. The docs point at real code. |
 | Code snippets | Some are invented. `PRINT-FORMATTING.md` shows `#define PRINT_ZONE_WIDTH 14` and `next_zone()`; neither exists in `internal\c`. The behaviour they describe (14-column zones) is right. |
-| Line numbers | Correct for February, stale now. `isoperator` is cited at `qb64pe.bas` 20142; in our pinned 4.7.0 it is at 24518 (file grew from 20.8k to 25.0k lines). |
+| Line numbers | Correct for February, stale now. `isoperator` is cited at `qb64pe.bas` 20142; in our pinned 4.7.0 it is at 24518 (`qb64pe.bas` now has 28,828 lines). |
 | `OPERATOR-PRECEDENCE.md` (added today) | **Wrong:** says `^` is right-associative (`2^3^4` → `2^(3^4)`). At run time QB64pe is left-associative (`2 ^ 3 ^ 2` = 64, `study\09`); only CONST evaluation is right-associative (512). Also says "AND has higher precedence than =" while its own table, and its example, show the opposite. |
 | `TYPE-SYSTEM.md` | **Wrong:** "float to integer … overflow triggers error". QB64pe wraps silently (`x% = 70000` → 4464, `study\09`). |
 | `CONST-EVAL.md` | Right: CONST `^` is right-associative, `2^3^2` = 512. |
 | `ERROR-CODES.md`, `ERROR-HANDLING.md` | Right: error 11 (division by zero) is critical and ends the program (`study\09`). |
 | `MATH-FUNCTIONS.md` | Right: `_ROUND` uses banker's rounding. |
-
 | `STRING-INTERNALS.md` `struct qbs` | Right: matches `internal\c\libqb\include\qbs.h:14-31` field for field. |
 | `ARRAY-IMPLEMENTATION.md` descriptor size and flags | Right: `(4*dims+5)*ptrsz`, flags 1 defined / 2 static / 4 cmem (matches `study\02` §3.4; flag 8 was added later). |
 | `ARRAY-IMPLEMENTATION.md` generated indexing example | **Wrong:** for `arr(i, j, k)` it pairs `i` with `array[4]` and `k` with `array[12]`. Dimensions are stored in reverse order, so the first index uses the highest slot (`study\02` §3.4: `array_check((i1)-A[4*(n-1)+4], …)`). The layout table omits the reverse order; only the quoted `func_lbound` code shows it. |
@@ -49,7 +48,7 @@ are (numeric semantics, generated-code shapes).
    feature. Go from the doc to the code, not from the doc to a conclusion.
 2. **Never as a spec.** Numeric and formatting behaviour comes from `qb64pe.exe` (`study\07` R2, R8); generated
    code shapes come from `qbx.cpp` and the C++ the old compiler emits (`internal\temp`), not from doc examples.
-3. **Line numbers:** translate by function name; the file has moved by about 4,400 lines since February.
+3. **Line numbers:** translate by function name; `isoperator` alone has moved by about 4,400 lines since February.
 4. **Our `study\01`–`05`, `09`, `10` take precedence.** They were written from 4.7.0's code and checked by
    running programs. Where a branch doc adds something they lack, verify it and add it to the matching study.
 
@@ -75,6 +74,7 @@ are (numeric semantics, generated-code shapes).
 
 ## If the branch is meant for upstream QB64pe
 
-Not this project's concern, but worth noting for the user: before proposing these docs upstream, fix the two
-wrong claims above, replace invented snippets with real code or mark them as illustrative, rebase onto current
+Not this project's concern, but worth noting for the user: before proposing these docs upstream, fix the four
+wrong claims above (`OPERATOR-PRECEDENCE.md` twice, `TYPE-SYSTEM.md`, the `ARRAY-IMPLEMENTATION.md` indexing
+example), replace invented snippets with real code or mark them as illustrative, rebase onto current
 `main` (565 commits behind) and refresh line numbers.

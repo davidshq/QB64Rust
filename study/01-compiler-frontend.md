@@ -957,6 +957,10 @@ A change of `TARGET_BITS` triggers `make clean` using the marker `internal/c/.qb
 
 ### 11.3 Fragile spots and probable defects noticed while reading (not tested)
 
+*Update: five of these were later run against the old compiler; results in `09-verification.md` ("Probable
+defects"). The label + CONST prepass bug and the ELSE level check are confirmed and reachable; `symboltype("##")`
+is harmless; the `nm` retry and the warning exit code were confirmed by reading only.*
+
 | Where | Observation |
 |---|---|
 | 2130–2131 | Prepass label stripping: `wholeline$` is shortened first, then `cwholeline$ = RIGHT$(cwholeline$, LEN(wholeline$) - x3)` uses the *already shortened* length, so the case-preserved copy loses `x3` extra characters. Affects `label: CONST …` / `label: TYPE …` / `label: SUB …` lines (original-case names would be misaligned). Worth a test before relying on it either way |

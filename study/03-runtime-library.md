@@ -647,7 +647,8 @@ Net effect: the runtime is **recompiled per program** with a different macro set
 8. **Memory footprint constants**: `cmem` 1.1 MB, `cmem_dynamic_link[147137]` + free list (~6.5 MB), `onstrig` 65,536 entries, `keyon[65536]`, 16 MB blend LUT on first 32-bit image, 65,536-entry rings.
 9. **Windows-only features with silent no-ops** elsewhere (§8.2) and unsupported devices (`KYBD:`, `CONS:`, real `LPTn:`).
 10. **Tiny x86 emulator**: only supports the canonical mouse stub; anything else pops an "X86 Error" dialog.
-11. **Integer division by zero is fatal** (SIGFPE → critical error), unlike QB45's trappable error 11.
+11. **Integer division by zero is fatal** (critical error 11, raised by `qb_safe_idiv`/`qb_safe_mod`; the SIGFPE
+    handler is only a backstop, verified in `09`), unlike QB45's trappable error 11.
 12. **`end()` parks the BASIC thread forever**; shutdown depends on the `exit_ok` bit dance; `exit()` runs with other threads alive.
 13. **`MAIN_LOOP` uses `Sleep(15)+Sleep(1)`** for pacing; on Windows timer granularity makes the "32 fps" nominal. The emulated retrace bit is a 1 ms pulse per 16 ms.
 14. **printf-dependent float formatting** and `long double` width differences across compilers (MinGW vs MSVC vs ARM).

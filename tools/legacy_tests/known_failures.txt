@@ -1,0 +1,3 @@
+# Tests whose failure does not fail a run: <suite>:<test>  <reason>
+# They are reported as KFAIL. Remove an entry once the cause is fixed. Details: baselines\README.md.
+compile_tests:http/read_example  downloads www.example.com and compares it with a saved copy; the site changed

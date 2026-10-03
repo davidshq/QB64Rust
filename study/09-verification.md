@@ -4,10 +4,12 @@ Run on 2026-10-02 with `..\QB64pe\qb64pe.exe` (4.7.0-GLFW, llvm-mingw, Windows 1
 (`*.compile.txt`) and program output (`*.out.txt`) are in `verification\`. Rerun with `verification\run.sh [name...]`
 (Git Bash).
 
-**Caution:** a program stopped by an untrapped runtime error opens a native message box that someone must click,
-even under `$CONSOLE:ONLY`. `run.sh` skips `v02_errors`, `v02b_idiv_zero` and `v02c_no_handler` unless they are
-named explicitly. For the same reason the exit codes recorded for those three are not reliable (the box was
-dismissed by hand).
+**Runtime-error dialogs:** a program stopped by an untrapped runtime error opens a native message box that someone
+must click, even under `$CONSOLE:ONLY`, unless the environment variable `QB64PE_NOPROMPT=y` is set
+(`internal\c\libqb\src\error_handle.cpp:295`). Then the runtime writes the error to stderr and ends the program.
+`run.sh` sets it, so all programs run unattended (re-recorded 2026-10-02, review session; the only change was
+that the dialog's "Continue?" line no longer appears in `v02c`'s output). **A fatal runtime error still exits with
+code 0**, so a test runner must detect it from the output, not the exit code.
 
 Legend: **Confirmed** = the study claim holds. **Corrected** = the observed behaviour differs from the claim.
 **New** = something not in the study.
@@ -46,7 +48,7 @@ Legend: **Confirmed** = the study claim holds. **Corrected** = the observed beha
 | `7 MOD z%` (z% = 0) with `ON ERROR` | Not trapped: "Runtime error: Division by zero", program ends | Confirmed: fatal |
 | `7 \ z%` (z% = 0) with `ON ERROR` | Same, not trapped | Confirmed: fatal |
 | Mechanism | Error 11 comes from `qb_safe_idiv`/`qb_safe_mod` calling `error(11)`, and 11 is in the critical list (`error_handle.cpp`), so it is fatal. Not a SIGFPE as `study\03` §2.10 says; the SIGFPE handler is only a backstop | **Corrected** |
-| Untrapped error (`CINT(40000)`, no handler) | Message box "Unhandled error #6 … Line: 3 … Overflow … Continue?" | New for the study: the run-time error UI is a native dialog even for console-only programs; a rewrite needs a non-interactive mode for tests |
+| Untrapped error (`CINT(40000)`, no handler) | Message box "Unhandled error #6 … Line: 3 … Overflow … Continue?"; with `QB64PE_NOPROMPT=y` the same text on stderr, no dialog, exit code 0 | New for the study: the run-time error UI is a native dialog even for console-only programs. `QB64PE_NOPROMPT` (already in `study\05` §2) is the non-interactive mode; the rewrite's runtime must keep an equivalent, ideally with a non-zero exit code |
 
 ## Storage (`v03_storage`)
 
@@ -95,7 +97,8 @@ Not done yet; needs a person at VS Code.
 - Fix without compatibility concern: `_BIT * n` (n > 32) overlap, static SELECT temporaries in recursion, label +
   CONST prepass bug, ELSE inside an open inner block, `INF` print formatting, the endless `tab()` loop on a
   redirected console and the `CONOUT$` handle leak in `func_pos` (`study\10` §2.2).
-- Test infrastructure: run-time errors must not open dialogs in test runs (or the runner must handle them). Screen
-  `PRINT` with a comma must not be used in `$CONSOLE` programs whose output is redirected (it never terminates).
+- Test infrastructure: set `QB64PE_NOPROMPT=y` for every test run (the legacy runner and `run.sh` do), and treat
+  a "Runtime error" in the output as a failure, because the exit code stays 0. Screen `PRINT` with a comma must not
+  be used in `$CONSOLE` programs whose output is redirected (it never terminates).
 
 Later checks (session 3) are in `study\10-gaps.md`: `v09_dim` (§1) and `v10_print` (§2).

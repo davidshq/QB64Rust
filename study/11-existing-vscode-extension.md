@@ -118,9 +118,9 @@ could meet in the middle: their extension could use our LSP one day.
 ## Also found in `<qb64contain>`
 
 `QB64Fresh` (`davidshq/QB64Fresh`) is an **earlier Rust rewrite** of QB64pe: `src\codegen\c_backend`,
-`src\semantic`, `runtime\`, with recent commits about a Windows QB64pe bootstrap and uncommitted work. It is not
-mentioned anywhere in this repo. It is outside the scope of this review, but it bears directly on M2 (crate layout,
-what was tried, what went wrong) and deserves its own review before M2 starts.
+`src\semantic`, `runtime\`, with recent commits about a Windows QB64pe bootstrap and uncommitted work. It is
+outside the scope of this review, but it bears directly on M2 (crate layout, what was tried, what went wrong).
+Reviewed since in `study\12`.
 
 ## Session 4 — The user's own extension, `vscode-qb64fresh`
 

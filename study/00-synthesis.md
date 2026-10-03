@@ -1,28 +1,55 @@
-# 00 — Synthesis: what QB64pe is, and what a rewrite has to decide
+# 00 — Synthesis: start here
 
-Written 2026-10-02 from the five study reports in this folder (01–05), all of which I read in full except
-`04-ide-debugger.md`, where I read the summary, Part A (compiler interface), Part G (assessment) and Part H (coverage).
-Tree studied: `..\QB64pe`, HEAD `16f629784e`, `Version$ = "4.7.0-GLFW"`, remote `davidshq-contribute/QB64pe`.
+The one-page entry point to this folder. It summarises every study (`01`–`14`), the decisions, the plan, what was
+measured, and what is still open. Details live in the numbered documents; each section points to them.
 
-## Confidence
+First written 2026-10-02 from `01`–`05`; rewritten 2026-10-02 (session 5) to cover `06`–`14`, `baselines\` and
+`verification\`. Tree studied: `..\QB64pe`, HEAD `16f629784e`, `Version$ = "4.7.0-GLFW"` (upstream QB64pe `main`).
+Current phase and next steps: `STATUS.md`. Rules and the decision log: `CLAUDE.md`.
 
-The reports come from reading source; nothing was built or run. Each report states what was read fully and what was
-only sampled. What I checked myself against the source:
+## 1. Decisions
 
-| Claim | Check | Result |
-|---|---|---|
-| ELSE handler tests `controlstate(controllevel)`, not the matched IF's level | read `qb64pe.bas:6627-6638` | as described |
-| Procedure prologue, `do{…if(!qbevent)break;evnt(…);}while(r);` wrapper, `S_n` labels, `-(a==b)` booleans, `\|\|is_error_pending()` on conditions, `#line` emission | read `internal\source\main1.txt:1-40` (the compiler's own generated C++) | as described |
-| Integer `+` emitted with no casts on dereferenced pointers | same file, line 32 | as described |
-| `mainfree.txt` is generated but never included | grep of `internal\c` `.cpp`/`.h` | no include found |
-| Test counts (404 / 331 / 143 / 56) | file counts on disk | match |
-| Fork keywords (`_RETAIN`, `TYPEFIELDS`, `$USELIBRARY`, `$ERRORLOCATION`, `_ARRAYCOPY`) present | grep of `qb64pe.bas` | 24 hits |
+All taken 2026-10-02; the authoritative list is in `CLAUDE.md`.
 
-Everything else below is as reported by the studies. Two reports said no generated C++ was available to compare
-against; that is wrong in a useful way: `internal\source` *is* generated output (the compiler compiled by itself,
-2,079 files), so codegen claims can be checked there without building anything.
+| Decision | Consequence |
+|---|---|
+| Ground-up rewrite of QB64pe | Understand the old code first (done: `01`–`05`, checked in `09`–`10`) |
+| Do not port the text-mode IDE; reach parity with a VS Code extension | Compiler must be a library with an analysis API, a separate formatter, column-accurate diagnostics, debug symbols (`06`) |
+| New compiler in **Rust** | Self-hosting is not a goal; compiling the old `qb64pe.bas` remains a large test case |
+| **New error messages** (columns, several errors per run) | The 56 `.err` tests compare old texts; use them loosely (must fail, right line). Old texts optional during a transition |
+| No strict QuickBASIC 4.5 mode | What one would need is recorded in `08` |
+| Target dialect = upstream QB64pe 4.7.0 | The "fork" features turned out to be upstream work. Keep `$USELIBRARY`, `$ERRORLOCATION`, GLFW; defer TYPE member arrays, `_ARRAYCOPY`, whole-array assignment, `REDIM _RETAIN` (`SOMEDAY.md`) |
 
-## 1. The system in one page
+## 2. Plan: architecture and roadmap
+
+From the expert panel (`07`), whose recommendations R1–R13 the decisions above adopt or leave standing:
+
+- **Strategy (R1):** rewrite the compiler, refactor the runtime (libqb) in place, replace the IDE with VS Code.
+- **Correctness (R2, R8):** the target is QB64pe behaviour **as observed** at a pinned commit, plus a divergence
+  register for intentional differences. Fix memory-corrupting accidents; keep result-changing ones until decided
+  (§7). Numeric rules get a written spec driven by differential testing.
+- **Architecture (R5):** lossless syntax tree (keeps every byte: needed for formatter, LSP, include positions) →
+  resolved, typed AST → typed IR with explicit conversions and explicit error/resume points → C++ emitter.
+- **Back end (R6, R7):** first target is the existing libqb ABI and `qbx.cpp`, so every runtime behaviour and
+  `DECLARE LIBRARY` keep working; the IR must not encode that ABI. Change the ABI only once the old compiler no
+  longer produces code for it. Keep a C++ back end while C/C++ `DECLARE LIBRARY` and `SUB _GL` are supported.
+- **Built-ins (R9):** table as data, extracted mechanically (done, §9); parse `specialformat` once.
+- **Encoding (R12):** VS Code opens `.bas` as CP437 by default, per-file override; the compiler reads bytes.
+  Pending a manual round-trip check (`09`, last section).
+- **Toolchain (R13):** pin and checksum the Windows C++ toolchain (QB64pe's setup downloads the latest llvm-mingw
+  with no checksum; build problems in `baselines\README.md`).
+
+| # | Milestone | Done when | State |
+|---|---|---|---|
+| M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
+| M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-c`, formatting via `-y`, CP437 default | next |
+| M2 | Front end | Lossless parser with recovery, resolution, type checker, formatter matching `-y`, language server | |
+| M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests | |
+| M4 | Parity | 143 corpus programs match golden output; deferred array features; `qb64pe.bas` compiles (stretch) | |
+| M5 | Debugger | Debug symbol file + DAP adapter | |
+| M6 | Runtime modernisation | ABI owned by the new compiler; error model, string heap, threading redesigned behind golden tests | |
+
+## 3. The old system in one page
 
 ```
 source text
@@ -43,109 +70,220 @@ source text
 | IDE `source\ide\ide_methods.bas` | 21,424 lines | `$INCLUDE`d into the compiler; one function (`ide2`) is 6,880 lines |
 | Runtime `internal\c\libqb.cpp` | 27,119 lines | ~297 functions, 892 static locals, 628 gotos; plus ~24.5k lines already modularised in `libqb\src` |
 | Skeleton `internal\c\qbx.cpp` | 1,608 lines | The TU user code is pasted into; owns `QBMAIN`, events, CHAIN |
-| Vendored libs `internal\c\parts` | ~1,100 files | GLFW, miniaudio, FreeType, curl, stb, etc. (table in 05 §3) |
-| Bootstrap `internal\source` | 2,079 files | Generated C++ of the compiler, committed by CI |
-| Tests | 404 + 143 `.bas` | 331 with expected stdout, 56 with expected error text |
+| Vendored libs `internal\c\parts` | ~1,100 files | GLFW, miniaudio, FreeType, curl, stb, etc. (table in `05` §3) |
+| Bootstrap `internal\source` | 2,079 files | Generated C++ of the compiler, committed by CI; usable to check codegen claims without building |
+| Tests | 404 + 143 `.bas` | 331 with expected stdout, 56 with expected error text, 17 compile-only; plus 5 formatter sources |
 
-## 2. Five properties that define the current design
+Five properties define the current design (details `01`, `02`):
 
 1. **No AST, no IR.** A line is a delimiter-separated string; expressions are rewritten in place into bracketed
    strings and then into C++ text. Types are one bit-packed LONG. Lvalues are strings like `id␚udt␚element␚offset`.
-2. **Parse, check, emit and format in one step.** Each statement handler emits C++ and also builds the pretty-printed
-   line. There is no formatter separate from the compiler, and no analysis without code generation.
-3. **Fixpoint by restart.** Facts discovered late (a variable needs a 16-bit address, an array parameter's dimension
-   count, a metacommand, a label that is really a SUB call) set a flag and re-run both passes from scratch.
+2. **Parse, check, emit and format in one step.** No formatter separate from the compiler, no analysis without code
+   generation.
+3. **Fixpoint by restart.** Late facts (a variable needs a 16-bit address, an array parameter's dimension count, a
+   metacommand, a label that is really a SUB call) set a flag and re-run both passes.
 4. **C++ is the semantic back end.** Arithmetic typing is delegated to C++ promotion rules; the runtime ABI is
    "whatever libqb's C++ overloads accept", including `passed` bitmasks for optional arguments.
-5. **The IDE lives inside the compiler.** It is a coroutine entered by `ide(0)` and left by `GOTO`; it reads compiler
-   globals directly (variables, warnings, formatted line, UDT tables).
+5. **The IDE lives inside the compiler** as a coroutine reading compiler globals (`04`; dropped entirely by the
+   VS Code decision, `06`).
 
-## 3. What a rewrite must reproduce (compatibility contract)
+## 4. Compatibility contract (what user programs depend on)
 
-These are the behaviours user programs depend on. Full lists: 01 §11.1, 02 §9.1, 03 §9.1.
+Full lists: `01` §11.1, `02` §9.1, `03` §9.1. Items marked ✓ were confirmed by running the old compiler (`09`, `10`).
 
 **Language front end**
-- Lexical rules: suffix forms, `&H/&O/&B` typed by digit count with signed wrap, float literals typed by significant
-  digits, periods in names vs. UDT member access, 40-char names, `?` = PRINT, DATA captured raw.
-- Name resolution: `x%`, `x&`, `x$` are different variables; `musthave`/`mayhave` suffix rules; four-step lookup
-  (local, local+DEFtype suffix, global, global+suffix); scalar and array of the same name coexist.
-- Implicit declaration of scalars and of arrays (upper bound 10); `OPTION _EXPLICIT` turns it off.
-- Operator precedence (16 levels): `MOD` below `\` below `* /`; unary minus below `^`; `^` left-associative;
-  `NOT` below comparisons.
-- Single-line IF forms, position-dependent DEFxxx, `'$DYNAMIC` taking effect on the next line, `$IF` with its
-  left-to-right, no-parentheses evaluation.
-- Three different compile-time evaluators (CONST, `$IF`, and ordinary constant folding) with different rules.
+- Lexical rules: suffix forms, `&H/&O/&B` typed by digit count with signed wrap (✓ `&HFFFF` = −1, `&HFFFF&` = 65535),
+  float literals typed by significant digits, periods in names vs. UDT member access, 40-char names, `?` = PRINT,
+  DATA captured raw.
+- Name resolution: `x%`, `x&`, `x$` are different variables; `musthave`/`mayhave` suffix rules; four-step lookup;
+  scalar and array of the same name coexist.
+- Implicit declaration of scalars and arrays (upper bound 10); `OPTION _EXPLICIT` turns it off.
+- Operator precedence (16 levels): `MOD` below `\` below `* /`; unary minus below `^` (✓ `-2 ^ 2` = −4); `^`
+  left-associative (✓ `2 ^ 3 ^ 2` = 64); `NOT` below comparisons.
+- Single-line IF forms, position-dependent DEFxxx, `'$DYNAMIC` from the next line, `$IF` evaluated left to right
+  without parentheses.
+- Three compile-time evaluators with different rules: CONST (✓ right-associative `^`: `CONST c = 2 ^ 3 ^ 2` is
+  512), `$IF`, and ordinary constant folding.
 
 **Numeric semantics** (highest risk of silent differences)
-- Float → integer is round-half-to-even everywhere, via x87 `fistp`, with no range check on store.
-- Integer `+ - *` on ≤32-bit operands is computed in 32-bit C `int`; no overflow error.
-- `int / int` is `long double`; `^` always goes through `long double` pow; `_FLOAT` is 80-bit `long double`.
-- SINGLE literals are emitted as C++ doubles.
-- Comparisons yield -1/0; logical operators are bitwise; float-vs-float comparisons narrow to the smaller type.
+- Float → integer is round-half-to-even (✓ `CINT(2.5)` = 2, `CINT(3.5)` = 4), with no range check on store
+  (✓ `x% = 70000` → 4464). INTEGER targets round the **single-precision** value (✓ `d# = 2.5000001: x% = d#` → 2,
+  but `l& = d#` → 3).
+- Integer `+ - *` on ≤32-bit operands is computed in 32-bit C `int`, no overflow error (✓ `32767 + 1` → −32768;
+  `c% * d%` with 200 × 200 prints 40000 but stores −25536). Even two LONG **literals** wrap
+  (✓ `2147483647 * 2` = −2).
+- `int / int` is computed in `long double`, but prints with 16 digits like DOUBLE (✓ `PRINT 1 / 3` →
+  ` .3333333333333333`; QB4.5 printed ` .3333333`). `^` goes through `long double` pow.
+- SINGLE literals are emitted as C++ doubles (✓ even `d# = 0.1!` gives the exact double 0.1).
+- Comparisons yield −1/0; logical operators are bitwise; float-vs-float comparisons narrow to the smaller type
+  (✓ `s! = 2.1: IF s! = 2.1` is true).
 
 **Runtime model**
 - By-reference arguments, with a silent by-value temporary (no copy-back) on type mismatch, expression, or `(x)`.
-- Arrays: column-major, descriptor layout, static-vs-dynamic rule, `REDIM _PRESERVE` by linear position.
-- Errors and events are serviced only at statement boundaries; `RESUME`/`RESUME NEXT` are statement-granular.
+- Arrays: column-major, descriptor layout, static-vs-dynamic rule; `REDIM _PRESERVE` keeps the flat position, not
+  coordinates, unless only the last dimension changes (✓).
+- Errors and events are serviced only at statement boundaries; `RESUME`/`RESUME NEXT` are statement-granular; a
+  runtime error in one PRINT item skips the rest of the statement (`10` §2.1).
+- Integer division or `MOD` by zero is **fatal** (critical error 11 from `qb_safe_idiv`/`qb_safe_mod`; not trappable,
+  unlike QB4.5) (✓). Float division by zero gives IEEE infinity (✓). `CINT(40000)` raises a trappable error 6 (✓).
 - One DATA blob for the whole program in source order.
 - Emulated DOS memory is observable: SCREEN 13 at `&HA000`, SCREEN 0 at `&HB800`, BIOS keyboard buffer, DGROUP at
   segment `&H50`, `VARPTR`/`VARSEG` values, DAC ports, INT 33h mouse.
 - Bit-exact library behaviour: `STR$`/PRINT number formatting, PRINT USING, `VAL`, the RND generator, `TIMER`
   quantisation, MBF conversions, screen-mode table, GET/PUT image format, INKEY$/`_KEYHIT` codes, file semantics.
+- Part of the language is implemented in BASIC: the auto-included files (`beforefirstline.bi`, `aftermain.bas`,
+  `afterlastline.bm`, color constants, `vwatch`) and `_IKW_` routines. The new front end must compile them.
 
-## 4. What can be dropped (implementation, not behaviour)
+## 5. Statement semantics worth knowing (measured)
+
+From `10` (checked by `verification\v09_dim.bas`, `v10_print.bas`):
+
+- **DIM in the main module** with constant bounds (no `$DYNAMIC`) is allocated at program start: the array exists
+  even if the `DIM` line is skipped by `GOTO`. Executing a `DIM` of an existing dynamic array, or the same `DIM`
+  twice in one procedure call → runtime error 10. `REDIM` of a static array compiles and fails at run time with
+  error 10.
+- `DIM a(0)` is `0 TO 0` even under `OPTION BASE 1` (recent upstream rule; follow it). `REDIM x(10)` without a type
+  reuses the type of an earlier `REDIM x(5) AS LONG`. `STATIC a()` followed by `DIM a(n)` creates a persistent but
+  dynamically allocated array. `ERASE` clears a static array but frees a dynamic one (then `UBOUND` → error 9).
+- **PRINT** turns each number into `STR$(e) + " "`. Comma zones: 14 columns on a screen and in files; **10 on the
+  Windows console**, where `PRINT` with a comma and redirected stdout **never terminates** (`func_pos` asks the
+  console cursor). A `;` is auto-inserted next to string literals (`PRINT "a"1`). `PRINT … USING` may follow
+  ordinary items in one statement.
+- **WRITE** does not escape embedded quotes; a trailing comma leaves the separator. **INPUT** prompts must be string
+  literals. **INPUT #** reads every integer narrower than 64 bits through a floating-point reader.
+- **Runtime-error UI:** an untrapped error opens a native dialog, even under `$CONSOLE:ONLY`, unless
+  `QB64PE_NOPROMPT=y` is set; then the message goes to stderr. Either way the program **exits with code 0**.
+- With `-x`, a compile that only issues warnings exits 0, and `-q` hides the warning.
+
+## 6. Bug-compatibility choices still to make
+
+From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence register (R2).
+
+**Decide (result-changing; current default is "keep"):** CONST `^` right-associativity; 32-bit wrap of
+INTEGER/LONG arithmetic inside expressions; round-half-to-even with single-precision narrowing for INTEGER targets;
+NUL-filled fixed-length strings (QB4.5: spaces); linear `REDIM _PRESERVE`; fatal integer division by zero; console
+comma zones 10 wide (or 14 like everywhere else); INPUT prompts as literals only (or allow expressions).
+
+**Fix (no compatibility value):** `_BIT * n` with n > 32 overlapping the next variable by 4 bytes; static `SELECT CASE`
+temporaries overwritten by recursion; `label: CONST …` on one line failing to compile; `ELSE` while an inner `FOR`
+is open passing the front end and failing in C++; `INF` printed with padding and a stray `D`; the console `tab()`
+hang and the `CONOUT$` handle leak; `_LogMinLevel` and `_ScreenExists` registered without a return type;
+`ON n GOTO` with n > 255 falling through silently (QB4.5: error 5). Runtime errors should exit non-zero.
+
+The full catalogue of about 45 accidental behaviours: `01` §11.3, `02` §9.2, `04` G.4; only the ones above have been
+run.
+
+## 7. What can be dropped (implementation, not behaviour)
 
 - Whole-program restarts and `RCStateVar` → a real symbol table and a semantic pass before code generation.
 - String-of-elements representation, the scratch `id` + `findanotherid` protocol, the 64 MB hash table.
 - Hidden parameters passed through globals (`dimshared`, `dimstatic`, `reginternalsubfunc`, …).
 - Duplicated logic: two include managers; TYPE/CONST/SUB-header parsing in both passes; argument passing written
   twice; two interpreters for the optional-argument format.
-- Text-fragment stitching through `qbx.cpp`, buffer handles swapped under the emitters, `retN.txt` pasted at every RETURN.
+- Text-fragment stitching through `qbx.cpp`, buffer handles swapped under the emitters, `retN.txt` pasted at every
+  RETURN (but M3 must still produce what `qbx.cpp` includes).
 - "Did the exe appear?" as the only build result.
 - Fixed limits (100 parameters, 1000 control levels, 4095 UDTs, …).
-- The IDE-as-coroutine protocol and its shared-memory results.
+- All IDE coupling: the `ide(0)` coroutine, shared globals, the vWATCH wire protocol (known defects; `06`).
 
-## 5. Decisions the design has to make first
+## 8. Runtime (libqb)
 
-Each of these changes the shape of everything after it. They are listed in dependency order.
+From `03` and `07` Session 7. Leave alone: vendored libraries, `libqb\src` modules, the bit-exact units
+(`rounding.h`, `qbs_str.cpp`, `qbs_val.cpp`, PRINT USING, RND, number parsers). Fix early, low risk: `#define int32`
+macros leaking everywhere; the 892 `static` locals that make functions non-reentrant (`SUB _GL` and event handlers
+re-enter). Redesign only in M6: the error model (`error()` returns, every function early-outs, a trapped error calls
+`QBMAIN` recursively and never unwinds), the moving string heap, flag-based thread synchronisation. The IR models
+"statement may raise; resume point here" explicitly so the error model can change without touching the front end.
 
-| # | Decision | Options | What the study says |
-|---|---|---|---|
-| 1 | **Target dialect** | Stock QB64-PE, or this tree including its extras (TYPE member arrays, `REDIM _RETAIN`, `_ARRAYCOPY`, whole-array assignment, `$USELIBRARY`, `$ERRORLOCATION`) | The extras are woven through `evaluate`, `refer`, `setrefer`, `dim2`, `allocarray`. They were flagged but not studied in depth, and nobody compared against upstream. 211 of the 404 compile tests are in `arrays`, much of it this layer. |
-| 2 | **Scope of "rewrite"** | (a) compiler only, keep libqb + Makefile; (b) compiler + runtime; (c) all three including IDE | (a) keeps ~600 runtime entry points and every bit-exact behaviour for free, but binds the new compiler to the current ABI (pointer-per-variable, `qbs`, descriptor layout, `passed` bitmasks, `qbx.cpp` fragments). The runtime report lists which modules are reusable as-is (03 §9.3). |
-| 3 | **Back end** | Emit C++ as today; emit C; own IR + LLVM/other; interpreter/VM | Today's numeric semantics *are* C++ promotion rules plus x87. Any non-C++ back end must encode those rules explicitly. Emitting C++ against the existing libqb is the lowest-risk first target. |
-| 4 | **Implementation language** | BASIC (self-hosting, as now) or another language | Self-hosting forces the new compiler to compile itself early and keeps the `internal\source` bootstrap loop. Another language removes the bootstrap problem but the compiler stops being a QB64 program. |
-| 5 | **IDE** | **Decided 2026-10-02: do not port the text-mode IDE. Reach feature parity with a VS Code extension.** | Requires the compiler to expose a language-server boundary (04 Part G.2) and a debug adapter. Formatting must become separable from code generation. Mapping: `06-vscode-parity.md`. |
-| 6 | **Error model at run time** | Keep flag-polling + recursive `QBMAIN`; or structured unwinding | Changes every runtime function and the statement wrapper. Only relevant if the runtime is in scope. |
-| 7 | **Bug compatibility** | Reproduce the ~45 catalogued accidental behaviours, or fix them | Lists: 01 §11.3, 02 §9.2, 04 G.4. Some are harmless (unused `mainfree.txt`), some change program results (`_BIT*n` >32 gets 4 bytes; CONST `^` is right-associative; integer divide by zero is fatal, unlike QB4.5). |
+## 9. Built-in table
 
-## 6. Testing position
+`tools\builtins\extract_builtins.py` → `tools\builtins\builtins.json` (`10` §3; rerun when the reference clone moves):
 
-- Reusable as a black-box conformance suite: 331 expected-output tests (357 of 404 test programs are
-  `$CONSOLE:ONLY`, so stdout only) and 143 compile-only real-world programs.
-- Tied to the current implementation: 56 expected-error-text tests, `qb64pe/*` internals tests, formatter tests,
-  licence tests.
-- Not covered at all: the IDE, real graphics output, audio, interactive input, and most classic QBasic semantics
-  (PRINT USING, file modes, string/math functions are only lightly tested).
-- The runners are bash. A Windows harness (PowerShell or Python) is a prerequisite; rules are in 05 §5.7.
-- The existing compiler is the oracle. Differential testing (same program through old and new, compare stdout and,
-  for the C++-emitting option, compare generated code shape) covers the gap the test suite leaves.
+- 455 registrations, 404 distinct names, 289 functions and 166 subs; 172 use the `specialformat` mini-language,
+  28 are stubs. Argument and return types decoded for every entry.
+- 86 names are also handled by hand in `qb64pe.bas` (type-generic math, variadic `_MIN`/`_MAX`/`_CLAMP`/`_IIF`,
+  `_MEM*`, `VARPTR`, `LBOUND`/`UBOUND`, statements with their own parsers such as PRINT, INPUT, OPEN, GET/PUT,
+  LINE): these need code, not just a table row.
+- **Gap:** names defined in the auto-included BASIC files (`_TRUE`, `_FALSE`, color constants) are not in the
+  table yet (`10` §3.4, `13`).
 
-## 7. Gaps in the study
+## 10. Testing position
 
-| Gap | Why it matters | Where |
+- **Runner:** `tools\legacy_tests\run_legacy_tests.py` re-implements the bash suites on Windows (compile,
+  qbasic, format) for the old or the new compiler; `known_failures.txt` marks expected failures.
+- **Baseline** (`baselines\`, old compiler at `16f629784e`): compile_tests 330 of 331 expected-output, 56 of 56
+  expected-error, 17 of 17 compile-only; qbasic_testcases 143 of 143 (compile only); format_tests 24 of 24. The one
+  failure (`http/read_example`) depends on a web page that changed.
+- **Reusable as black-box conformance:** the 331 expected-output tests (357 of 404 programs are `$CONSOLE:ONLY`)
+  and the 143 qbasic programs. Tied to the old implementation: the `.err` texts, `qb64pe/*` internals tests,
+  formatter tests, licence tests.
+- **Planned layers (R11):** (1) existing suite; (2) golden corpus: run the 143 qbasic programs and QB64Fresh's 261
+  `runtime_comparison` programs through the old compiler and freeze their output; (3) differential testing of
+  random expressions old vs. new; (4) formatter goldens from `-y` over all available `.bas`; plus golden images for
+  LINE/CIRCLE/PAINT/DRAW/GET/PUT (only 12 image tests exist).
+- **Not covered by anything yet:** the IDE, real graphics output, audio, interactive input, run-time behaviour of
+  the 143 qbasic programs, and classic QBasic areas (PRINT USING, file modes, string functions) beyond light use.
+- **Test hygiene:** run every program with `QB64PE_NOPROMPT=y`; detect fatal errors from output, not exit code;
+  never use screen `PRINT` with a comma under a redirected `$CONSOLE`.
+- `verification\` holds 14 small programs with recorded outputs behind `09` and `10` (`run.sh` reruns them).
+
+## 11. Existing work and sources: what to reuse
+
+| Source | Verdict | Study |
 |---|---|---|
-| DIM / REDIM / STATIC / COMMON block and `dim2` numeric branches | Core declaration semantics; only entry conditions and samples read | `qb64pe.bas` 8767–9685, 17624–18939 |
-| PRINT / INPUT / WRITE / PRINT USING emission | Most-used statements; located, not read | `qb64pe.bas` 11017–11316, `xprint` 27713 |
-| Built-in table | 455 registrations studied by grep and sampling; no per-built-in argument table | `subs_functions.bas` |
-| FOR/DO/WHILE bodies, ON TIMER/KEY/STRIG, FIELD, ERASE, `_MEM*` statements | Skimmed in 01; partly covered in 02 §6 from a helper's read | `qb64pe.bas` 6212–8765 |
-| Fork-specific member-array layer | Flagged, not studied; upstream comparison not done | throughout core functions, `arrcpy.bm`, `array-copy.cpp` |
-| Runtime drawing/printing/input bodies | Outlined only (PAINT, CIRCLE, DRAW, GET/PUT, `qbs_input`, `print_using`, `display()` middle) | `libqb.cpp` |
-| Nothing was executed | All "probable defect" entries are unconfirmed | — |
+| `vscode-qb64fresh` (the user's own extension, MIT, thin LSP client with tests) | **M1 base.** Import with history, add an old-compiler backend (`-c`, `-x`, `-y` and an error-output parser), rename once, drop the `BASIC`/`QBasic` aliases, split `extension.ts`. Newest copy is on `<share>` | `11` |
+| `qb64pe-vscode` (community extension) | Take only the help pipeline (after a licence check), `language-configuration.json`, snippets, and its feature list as a parity checklist. Its regex diagnostics invent errors (calls `DEFINT` deprecated) | `11` |
+| QB64Fresh (the user's earlier Rust rewrite) | **Use none of its code.** Matches QB64pe output on 19 of 331 tests; front end not lossless, IR name-based, own runtimes. Take its 261 test programs, read its LSP before M2, and its process lessons: measure against `qb64pe.exe` from day one; one layer at a time; no special cases for one program; no status claims without measurements; one compiler API; one diagnostic type; thin dispatchers; small verified refactors; written phase contracts | `12` |
+| `rewrite-decision.md` (earlier review, untracked in `<qb64contain>\QB64pe\docs\`) | Advised keeping QB64Fresh's front end and against a rewrite from an empty repository. `12` supports the ground-up rewrite given `07`'s architecture; the user has not yet confirmed (open question) | `12` |
+| QB64pe wiki (MediaWiki API, 1,035 articles) | Primary documentation source; fetch fresh; no licence stated, so ask before shipping its text | `13` |
+| Microsoft QuickBASIC manuals (text, on `<share>`) | Best source for QB4.5 questions; copyrighted, never commit | `13` |
+| QB64Fresh's machine-written specs | Checklists only; spot check found errors | `13` |
+| `docs-new-2` branch (internals docs on the user's QB64pe fork) | A map for M3/M5, never a spec: of 13 checks, 8 right (copied code), 5 wrong (explanations, examples) | `14` |
 
-The first three are the ones worth closing before design starts; they are bounded reads (roughly 3,500 lines of
-`qb64pe.bas` plus the 4,000-line registration table).
+In every case: the wiki, manuals and docs are hypotheses; `qb64pe.exe` is the answer.
 
-Update (session 3): the first three are closed in `10-gaps.md`, which also covers ERASE. "Nothing was executed"
-is addressed by `09-verification.md` and the checks in `10-gaps.md`. The member-array layer is deferred
-(`SOMEDAY.md`); the other rows remain open and can be read when the matching part of the rewrite starts.
+## 12. Open questions and next steps
+
+Open questions for the user (blocking M1) and the next steps are kept in one place, `STATUS.md`, so they don't go
+stale here. The first M1 task is to check whether the old compiler reports BASIC-level errors without a full C++
+build (`11` E3), which decides how the extension produces on-save diagnostics.
+
+## 13. Remaining study gaps
+
+Closed: DIM/REDIM/STATIC/COMMON/ERASE, PRINT/INPUT/WRITE emission, the built-in table (`10`); "nothing was
+executed" (`09`, `10`). Deferred with the array features: the member-array layer. Still open, to be read when the
+matching milestone starts:
+
+| Gap | Milestone | Where |
+|---|---|---|
+| FOR/DO/WHILE bodies, ON TIMER/KEY/STRIG, FIELD, `_MEM*` statements (skimmed) | M2/M3 | `qb64pe.bas` 6212–8765 |
+| Runtime drawing/printing/input bodies (PAINT, CIRCLE, DRAW, GET/PUT, `qbs_input`, `print_using`) | M3/M6 | `libqb.cpp` |
+| CHAIN array COMMON handling | M4 | `10` §1.6 |
+| Most of the ~45 accidental behaviours (only those in §6 were run) | M2–M4 | `01` §11.3, `02` §9.2, `04` G.4 |
+
+## How reliable this is
+
+`01`–`05` come from reading source; each states what was read fully and what was sampled (`04` was only partly
+read for this synthesis: summary, Parts A, G, H). Claims marked ✓ above were confirmed by running the old compiler
+(`09`, `10`); three study claims were corrected that way (`09`, "Corrected"). Facts about other projects (`11`–`14`)
+come from reading and running them on 2026-10-02. Anything not marked as run should be treated as a reading of the
+code, not a measurement.
+
+## Document map
+
+| Doc | Content |
+|---|---|
+| `01` | Compiler front end: lexer, passes, name resolution, restarts, metacommands |
+| `02` | Expressions and code generation: typing, storage, arrays, built-in calls, generated C++ |
+| `03` | Runtime library: error model, strings, screen modes, graphics, files, input |
+| `04` | IDE and debugger (vWATCH protocol), with the parity list used by `06` |
+| `05` | Build, bootstrap, CI, vendored libraries, test suites |
+| `06` | IDE features mapped to LSP, DAP, tasks and settings |
+| `07` | Expert panel: strategy, architecture, roadmap, recommendations R1–R13 |
+| `08` | What a strict QuickBASIC 4.5 mode would need (not planned) |
+| `09` | Study claims checked by running the old compiler; bug-compatibility list |
+| `10` | Study gaps closed: DIM family, PRINT/INPUT/WRITE, built-in table |
+| `11` | Existing VS Code extensions: `vscode-qb64fresh` as M1 base |
+| `12` | QB64Fresh review: no code, take tests and lessons |
+| `13` | Reference documentation sources |
+| `14` | The `docs-new-2` branch: use as a map only |

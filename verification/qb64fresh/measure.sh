@@ -1,6 +1,10 @@
 #!/bin/bash
 # Measures QB64Fresh (committed HEAD, scratch build) against QB64pe's test programs.
-# Output: one TSV line per test: suite cat name kind parse check emit cc match
+# Output: one TSV line per test, no header row: index suite cat name kind parse check emit cc match
+#   kind         output | err | none (which expectation file the test has)
+#   parse check  exit codes of --ast and --typed-ir (0 = success, 124 = timeout)
+#   emit         exit code of --emit-c, or - if not attempted (only for kind=output that passed the checker)
+#   cc           OK | FAIL (gcc), or -;   match  YES | NO (output vs .output), or -
 # Usage: QBF_WORK=<work dir> QBF_BIN=<dir with qb64fresh.exe> measure.sh
 #   QBF_WORK  scratch directory for intermediate files and measure.tsv (required)
 #   QBF_BIN   directory holding the built qb64fresh.exe (default: $QBF_WORK/qbf-target/debug)

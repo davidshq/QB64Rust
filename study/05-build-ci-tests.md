@@ -23,7 +23,7 @@ QB64pe is a self-hosting BASIC-to-C++ translator. `source\qb64pe.bas` (28,828 li
 ### How `internal\source` is compiled (`BUILD_QB64=y`)
 `Makefile:292-308`: copies `internal\source\*` into `internal\temp<TEMP_ID>\` at make-parse time (`$(shell $(CP) ...)`), forces `DEP_FONT, DEP_ICON, DEP_ICON_RC, DEP_SOCKETS, DEP_HTTP, DEP_CONSOLE, DEP_ZLIB = y`, and `EXE ?= qb64pe[.exe]` (:215-221). It does not set `DEP_GL`, `DEP_IMAGE_CODEC`, `DEP_AUDIO_MINIAUDIO`, `DEP_SCREENIMAGE`, `DEP_DEVICEINPUT` (see open items). Then the normal link pipeline (section 2) runs; Windows resources come from `internal\source\icon.rc/icon.ico/qb64pe.manifest`, linked by `ICON_OBJ`.
 
-### Contents of `internal\source` (2,078 files, ~25 MB, tracked in git)
+### Contents of `internal\source` (2,079 files, ~25 MB, tracked in git)
 It is exactly the per-compile output directory:
 - `main.txt`: list of `#include "mainN.txt"` (written at `qb64pe.bas:17594`). `main<N>.txt`, N=0..511: N=0 is the main module (3.8 MB), N>=1 one file per SUB/FUNCTION (`qb64pe.bas:5430`), i.e. 511 subs/functions. Statements are prefixed by `#line <n> "file.bas"`.
 - `ret<N>.txt` per-sub RETURN dispatch (`:5433`), `data<N>.txt`, `free<N>.txt` per-sub static data init/free, `maindata.txt` (global var init, 511 KB), `mainfree.txt`, `mainerr.txt`, `runline.txt`, `ontimer/onkey/onstrig(.j).txt`, `chain.txt`, `inpchain.txt`, `clear.txt`.
@@ -159,7 +159,7 @@ Runner chain: `tests/run_tests.sh` runs four suites through `tests/assert.sh <sc
 Compile-only smoke test over `tests/qbasic_testcases/{n54 (3), open_gl (2), pete (68), qb45com (5), thebob (19), misc (46)}` = 143 `.bas` (plus data files: spr, lev, txt, etc.). One assert each ("Compile"); no run, no output check. `docs\testing.md` calls the folder `qb64_testcases` (stale).
 
 ### 5.3 format_tests (`tests/format_tests.sh`)
-Tests the formatter (`-y`). 5 categories (general, lineup, lbound_ubound, meta_format, dynamic_member_redim), 5 `.bas`, each with a `.flagmap` listing `<expected-file> -f:flags...` lines; about 36 expected `.out` variants, 3 asserts each. Output compared with `\r` stripped. Tied to QB64pe layout rules.
+Tests the formatter (`-y`). 5 categories (general, lineup, lbound_ubound, meta_format, dynamic_member_redim), 5 `.bas`, each with a `.flagmap` listing `<expected-file> -f:flags...` lines; 24 expected `.out` variants, 3 asserts each (all 24 pass with the old compiler: `baselines\`). Output compared with `\r` stripped. Tied to QB64pe layout rules.
 
 ### 5.4 converter_tests (`tests/add_prefix_test.sh`)
 One test: build `internal/support/converter/AddPREFIX.bas` (adds `_` prefix to `$NOPREFIX` code), run it on `converter_tests/addprefix.bas`, diff against `addprefix.output` (3 asserts).

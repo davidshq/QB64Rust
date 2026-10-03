@@ -23,7 +23,7 @@ this cheap: most items below are lowering rules, not parser changes.
 |---|---|---|---|
 | Integer arithmetic overflow raises error 6 | No check; ≤32-bit operands computed in C `int`, wraps (signed overflow is undefined behaviour in C++) | Checked add/sub/mul per integer width | `02` §1.4 |
 | Storing an out-of-range value raises error 6 (`x% = 70000`) | Rounds, then truncates silently | Range check on every narrowing store | `02` §1.5 |
-| Integer division or MOD by zero: trappable error 11 | Fatal, delivered via SIGFPE; not trappable | Check divisor before dividing; make error 11 trappable | `03` §2.10 |
+| Integer division or MOD by zero: trappable error 11 | Fatal: `qb_safe_idiv`/`qb_safe_mod` raise critical error 11; not trappable (`09`) | Check divisor before dividing; make error 11 trappable | `03` §2.10 |
 | Float division by zero: error 11 (*verify*) | IEEE infinity | Check divisor | `03` §2.10 |
 | SINGLE expression results stay SINGLE (e.g. `1 / 3` is SINGLE) (*verify*) | `int / int` typed `_FLOAT` (long double); SINGLE literals emitted as C doubles | QB4.5 typing rules in lowering; emit `float` constants | `02` §1.4 |
 | `^` result type follows operands | Always computed via `long double` pow | Typed power | `02` §1.4 |

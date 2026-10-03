@@ -116,10 +116,21 @@ def parse_table():
             code, comment = strip_comment(raw.rstrip("\r\n"))
             for st in split_statements(code):
                 if st == "clearid":
+                    if cur is not None:
+                        anomalies.append({"line": cur["line"], "statement": "clearid",
+                                          "note": "block not closed by regid; dropped"})
                     cur = {"line": lineno, "fields": {}, "comments": []}
                 elif st == "regid":
-                    records.append(cur)
+                    if cur is None:
+                        anomalies.append({"line": lineno, "statement": st, "note": "regid without clearid"})
+                    else:
+                        records.append(cur)
                     cur = None
+                elif cur is None:
+                    # Expected framing: the SUB lines and the reginternalsubfunc flag set around the table.
+                    if not re.fullmatch(r"(?i)(SUB reginternal|END SUB|reginternalsubfunc\s*=\s*[01])", st):
+                        anomalies.append({"line": lineno, "statement": st,
+                                          "note": "statement outside a clearid/regid block (ignored)"})
                 elif cur is not None:
                     m = re.fullmatch(r"id\.(\w+)\s*=\s*(.*)", st)
                     if m:

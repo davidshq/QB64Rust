@@ -69,17 +69,35 @@ for name, text in docs.items():
 send("initialize", {"processId": None, "rootUri": d.as_uri(), "capabilities": {}}, True)
 print("initialize:", "ok" if wait(lambda m: m.get("id") == 1) else "NO REPLY")
 send("initialized", {})
+
+
+def drain(seconds):
+    """Collect every publishDiagnostics message for a while; a server may publish several times, and for other
+    URIs (e.g. an included file) than the one just opened. Returns {uri: last diagnostics list}."""
+    got = {}
+    end = time.time() + seconds
+    while time.time() < end:
+        try:
+            m = q.get(timeout=0.2)
+        except queue.Empty:
+            continue
+        if m.get("method") == "textDocument/publishDiagnostics":
+            got[m["params"]["uri"]] = m["params"]["diagnostics"]
+    return got
+
+
 for name in ["errors.bas", "semantic.bas", "main.bas", "fine.bas"]:
     uri = (d / name).as_uri()
     send("textDocument/didOpen", {"textDocument": {"uri": uri, "languageId": "qb64fresh", "version": 1, "text": docs[name]}})
-    m = wait(lambda m: m.get("method") == "textDocument/publishDiagnostics" and m["params"]["uri"].lower() == uri.lower())
+    got = drain(5)
     print(f"--- {name}")
-    if not m:
+    if not got:
         print("   no diagnostics message")
-        continue
-    for dg in m["params"]["diagnostics"]:
-        r = dg["range"]
-        print(f"   {r['start']['line']+1}:{r['start']['character']+1}-{r['end']['line']+1}:{r['end']['character']+1}  {dg.get('severity')}  {dg['message'][:90]!r}")
+    for u, diags in got.items():
+        print(f"   [{u.rsplit('/', 1)[-1]}] {len(diags)} diagnostic(s)")
+        for dg in diags:
+            r = dg["range"]
+            print(f"   {r['start']['line']+1}:{r['start']['character']+1}-{r['end']['line']+1}:{r['end']['character']+1}  {dg.get('severity')}  {dg['message'][:90]!r}")
 uri = (d / "fine.bas").as_uri()
 rid = send("textDocument/hover", {"textDocument": {"uri": uri}, "position": {"line": 1, "character": 6}}, True)
 m = wait(lambda m: m.get("id") == rid)

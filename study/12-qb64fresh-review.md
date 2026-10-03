@@ -31,8 +31,8 @@ project's architecture (`study\07` R5–R12), which differs from what that docum
 ## Evidence
 
 All runs on Windows 11, Rust 1.88, MSYS2 gcc 15.2, debug build. Scripts and raw results are in `verification\qb64fresh\` (`measure.sh`, `measure.tsv`, `fmtcheck.py`,
-`lsp_smoke.py`); their paths point at the scratch directory used for the run (QB64Fresh cloned to `qbf\`, built
-into `qbf-target\`) and need adjusting to rerun.
+`lsp_smoke.py`). They take their locations from environment variables (`QBF_WORK`, `QBF_BIN`, `QB64PE`; see each
+script's header); the run used a scratch directory with QB64Fresh cloned to `qbf\` and built into `qbf-target\`.
 
 | # | Finding |
 |---|---|
@@ -42,7 +42,7 @@ into `qbf-target\`) and need adjusting to rerun.
 | Q4 | Probes: `PRINT 1 / 3` prints `0` (constant folded as integer division); `x / y` prints `0.333333` (QB64pe ` .3333333 `); `PRINT 1; 2` prints `12` (QB64pe ` 1  2 `); `7.5 \ 2` gives `3` (QB64pe `4`). Integer division by zero exits the process with code 127 instead of reporting the error. |
 | Q5 | QB64pe test programs (547): output matches QB64pe on **19 of 331** expected-output tests (5.7 %); see "Measurement" below. |
 | Q6 | Formatter `qb64fresh-fmt` over the 547 programs: 510 keep all strings, comments and tokens; 25 are refused, mostly "stream did not contain valid UTF-8" (CP437 sources); 9 change tokens (joins `_` continuation lines); 3 change comments. It inserts a space after `'`, appends a "Summary" block to `--stdout` output, and indents wrongly (code after `END TYPE` indented one level; `IF` bodies not indented). |
-| Q7 | LSP `qb64fresh-lsp`: starts; for semantic errors it reports several at once with correct ranges and suggestions; hover shows the inferred type. A single parse error hides all other diagnostics. An error inside a `$INCLUDE`d file is not reported. |
+| Q7 | LSP `qb64fresh-lsp`: starts; for semantic errors it reports several at once with correct ranges and suggestions; hover shows the inferred type. A single parse error hides all other diagnostics. An error inside a `$INCLUDE`d file is not reported (rechecked in session 5 with `lsp_smoke.py` collecting every `publishDiagnostics` message for any URI for 5 s: none for `inc.bi`). |
 | Q8 | Lexer discards whitespace and line continuations (`logos(skip)`); comments are tokens but spacing is lost. 277 keywords are distinct token kinds and the AST has about 288 statement kinds: most built-in statements are hard-coded into the grammar (`parser\graphics.rs`, `audio.rs`, `file_io.rs`). Several metacommands are single regex tokens (`$RESIZE:ON`); `$CONSOLE` patterns are commented out with "causes logos bug". |
 | Q9 | Preprocessor joins continued lines and pastes `$INCLUDE` files into one string before lexing (`src\preprocessor.rs:462-530`). `Span` is byte offset + line with no file id (`src\ast\mod.rs:47`). Positions in included files and after continuations cannot be mapped back exactly. |
 | Q10 | Typed IR refers to variables, arrays and procedures by name string (`src\semantic\typed_ir.rs:55`, `:83-113`, `:545`); no symbol ids. Codegen re-derives scoping (`analysis.rs` 1.4k lines, `implicit_vars.rs`) and contains special cases for `qb64pe.bas` (`HASHFLAG_`, `DEPENDENCY_`, `qberror_test`, `regid`: 9 sites). |
@@ -53,7 +53,8 @@ into `qbf-target\`) and need adjusting to rerun.
 
 Every `.bas` under `..\QB64pe\tests\compile_tests` and `qbasic_testcases` (547) was run three ways: parse only
 (`--ast`), parse + check (`--typed-ir`), and for expected-output tests, emit C (`--emit-c --headless`), compile with
-gcc, run, and compare with the `.output` file (CR and trailing blank lines ignored, as QB64pe's runner does).
+gcc, run, and compare with the `.output` file (all CRs and trailing blank lines ignored; looser than QB64pe's
+runner, which only drops trailing line endings).
 60 s timeout per stage; one timeout, no crashes.
 
 | Set | Programs | Parses | Passes checker | Emits C | C compiles | Output matches |
@@ -185,7 +186,8 @@ care which server it starts.
 1. **Do not build on QB64Fresh's code.** Its front end conflicts with the lossless-tree requirement (R5), its typed
    IR and backend with R5–R6, its runtimes with R6, and its documented divergences with R2.
 2. **Record outputs for `tests\runtime_comparison\` with the old compiler** and add the programs to this repo's
-   conformance tests (with a note of origin). Skip programs that open a message box (see `STATUS.md`).
+   conformance tests (with a note of origin). Run them with `QB64PE_NOPROMPT=y` so runtime errors do not open a
+   message box (`study\09`).
 3. **Bring the earlier review into this repo**: a short note in `study\` summarising `rewrite-decision.md` and why
    this project departs from its "keep the front end" advice, and its harness scripts under `tools\` if they
    prove reusable.

@@ -17,8 +17,8 @@ wait until the core compiler works (roadmap M4 or later, `study\07-expert-panel.
 
 Features from the same period that are **kept** in scope: `$USELIBRARY`, `$ERRORLOCATION`, the GLFW runtime.
 
-Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. They are marked expected-to-fail
-until the features land.
+Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
+measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
 
 ## Strict QuickBASIC 4.5 mode
 

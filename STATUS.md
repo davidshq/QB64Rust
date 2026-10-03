@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-02 at the end of the fourth session.
+Updated 2026-10-02 after the fifth session (review of documents and tools).
 
 ## Where we are
 
@@ -14,8 +14,8 @@ M0 work:
 - Upstream diff: not needed. Git history shows the "fork" features are upstream QB64pe work; decision recorded in
   `CLAUDE.md`.
 - Verification checks (session 2): `study\09-verification.md`, programs and outputs in `verification\`
-  (rerun with `verification\run.sh`). Programs that stop on an untrapped runtime error open a native message box
-  the user has to click; `run.sh` skips them by default. Do not add such programs to default runs.
+  (rerun with `verification\run.sh`). `run.sh` sets `QB64PE_NOPROMPT=y`, so programs that stop on an untrapped
+  runtime error report it on stderr instead of opening a message box (exit code stays 0).
 - Study gaps closed (session 3), all in `study\10-gaps.md`:
   - §1 DIM / REDIM / STATIC / COMMON / ERASE statement semantics; checked by `verification\v09_dim.bas`.
   - §2 PRINT / PRINT USING / WRITE / INPUT emission, files included; checked by `verification\v10_print.bas`.
@@ -27,8 +27,20 @@ Findings from session 3 worth remembering (details in `study\10`, decisions list
   `tab()` loops on `POS`, which reads the console window cursor). Do not use it in verification programs.
 - `_LogMinLevel` and `_ScreenExists` are registered without a return type; they work by accident.
 
-Not yet committed (user commits): session 4's `CLAUDE.md` and `STATUS.md` edits, `study\10` note, `study\11`,
-`study\12`, `study\13`, `study\14`, `verification\qb64fresh\`.
+Session 5 (review of documents and tools; not yet committed, user commits):
+- Runner: `--suite format` added (24 of 24 pass, `baselines\qb64pe-16f629784e-win64-format.json`);
+  `known_failures.txt` (`KFAIL`, today only `http/read_example`); whole process tree killed on timeout; partial
+  runs write `results-partial.json` / `results-<suite>.json` instead of overwriting `results.json`.
+- `verification\run.sh` uses `QB64PE_NOPROMPT=y` and runs all programs; `v02c` re-recorded (no "Continue?").
+- Stale or wrong statements fixed in `CLAUDE.md`, `SOMEDAY.md`, `study\00`, `01`, `02`, `03`, `05`, `07`, `08`,
+  `09`, `11`, `12`, `14`; `measure.sh` header documents its TSV columns.
+- Second pass over the code: runner exits 2 on an unknown category or empty selection, records an exception in
+  one test as a FAIL instead of aborting, notes known failures that pass, escapes glob characters in test names,
+  reads sidecar files as Latin-1, and keeps compiler paths outside the repo's parent folder out of the JSON.
+  Extractor reports unclosed `clearid` blocks and stray statements (output unchanged). `run.sh` times out hung
+  programs after 60 s (all 14 outputs reproduce exactly). `lsp_smoke.py` collects diagnostics for every URI;
+  rerun confirmed `study\12` Q7.
+- `study\00-synthesis.md` rewritten as the entry point covering `01`–`14`, `baselines\` and `verification\`.
 
 Open manual task for the user: the CP437 round trip in VS Code (instructions in `study\09`, last section).
 
@@ -37,6 +49,10 @@ Open manual task for the user: the CP437 round trip in VS Code (instructions in 
 From `study\07` (roadmap table, R4) and `study\06-vscode-parity.md`: syntax highlighting, build/run tasks,
 diagnostics parsed from the old compiler's `-c` output, formatting via `-y`, CP437 as the default encoding.
 No subagents (see `CLAUDE.md`).
+
+First M1 check (open, from `study\11` recommendations 5 and 6): can the old compiler report BASIC-level errors
+without a full C++ build (for example `-z`, or stopping early with `-c`)? This decides whether on-save diagnostics
+cost seconds per save. Verify with a small program in `verification\`.
 
 ### Session 4: existing work reviewed (no M1 code written yet)
 

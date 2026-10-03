@@ -178,7 +178,8 @@ The type code is the compiler's *belief* about the result; **no cast is emitted*
 Practical consequences a rewrite must reproduce:
 
 - `INTEGER + INTEGER`, `LONG * LONG` etc. are computed in C `int` (32-bit) even though the compiler labels them int64; mixing in an `_INTEGER64` operand gives real 64-bit arithmetic. There is **no overflow error** (QB4.5 raised error 6); signed overflow is C++ UB that wraps in practice. The source comment admits it: "THIS IS THE IDEAL MARKUP FOR A 64-BIT SYSTEM / In reality 32-bit C++ only marks-up to 32-bit integers" (20076-20077).
-- `int / int` is evaluated as `a/ ((long double)(b))` -> 80-bit result typed _FLOAT. `PRINT 1 / 3` therefore prints more digits than QB4.5's SINGLE. `single / int` stays SINGLE-typed, `int / single` too (no cast on either side).
+- `int / int` is evaluated as `a/ ((long double)(b))` -> 80-bit result typed _FLOAT. `PRINT 1 / 3` therefore prints more digits than QB4.5's SINGLE. *(Verified in `09`:
+it prints 16 digits, ` .3333333333333333`, i.e. DOUBLE-style formatting, not the ~19 digits of a `_FLOAT`.)* `single / int` stays SINGLE-typed, `int / single` too (no cast on either side).
 - A SINGLE literal is a C++ double constant, so `d# = 0.1` stores the double 0.1, not QB4.5's widened single.
 - `pow2` (`internal\c\libqb\include\qbmath.h:59`): `error(5)` for negative base with non-integer exponent, else `std::pow` in long double.
 
@@ -1039,6 +1040,10 @@ DECLARE LIBRARY emission (4445-5320, 5445-5916): static/header libraries -> plai
 20. Integer arithmetic does not trap overflow, and stores truncate silently.
 
 ### 9.2 Looks accidental / hazardous
+
+*Update: a few of these were run against the old compiler (`09-verification.md`, `v04_accidental`): the `_BIT * 33`
+overlap and the static SELECT temporary in recursion are confirmed; `ON n GOTO` does check negative values (error 5),
+only values above 255 fall through. The rest are untested.*
 
 | Item | Where |
 |---|---|
