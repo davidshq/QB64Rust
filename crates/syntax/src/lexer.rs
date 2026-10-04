@@ -22,7 +22,7 @@ pub fn tokenize(bytes: &[u8]) -> Vec<Token> {
         debug_assert!(lexer.pos > start);
         tokens.push(Token {
             kind,
-            len: (lexer.pos - start) as u32,
+            len: qb64rust_base::to_u32(lexer.pos - start),
         });
         if kind == Newline || kind == LineContinuation || kind == Colon {
             lexer.line_start = true;

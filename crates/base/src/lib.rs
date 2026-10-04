@@ -5,6 +5,16 @@
 
 use std::fmt;
 
+/// The largest source file, in bytes: offsets are `u32`. A caller that reads a file checks this before handing
+/// the bytes to any stage; every count derived from one file (lines, tokens, names) then fits a `u32`.
+pub const MAX_SOURCE_LEN: usize = u32::MAX as usize;
+
+/// A length, offset or index that fits a `u32` because it is bounded by [`MAX_SOURCE_LEN`] (or by a table of
+/// fewer entries). Panics otherwise: that is a compiler bug, not an error in the program.
+pub fn to_u32(n: usize) -> u32 {
+    u32::try_from(n).expect("count bounded by MAX_SOURCE_LEN")
+}
+
 /// Index of a file in a [`SourceMap`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct FileId(pub u32);
@@ -46,7 +56,9 @@ pub struct SourceFile {
 }
 
 impl SourceFile {
+    /// Panics if `bytes` is longer than [`MAX_SOURCE_LEN`].
     pub fn new(name: impl Into<String>, bytes: Vec<u8>) -> SourceFile {
+        assert!(bytes.len() <= MAX_SOURCE_LEN, "source file larger than MAX_SOURCE_LEN");
         let line_starts = line_starts(&bytes);
         SourceFile {
             name: name.into(),
@@ -62,11 +74,11 @@ impl SourceFile {
             Ok(i) => i,
             Err(i) => i - 1,
         };
-        (line as u32 + 1, offset - self.line_starts[line] + 1)
+        (to_u32(line) + 1, offset - self.line_starts[line] + 1)
     }
 
     pub fn line_count(&self) -> u32 {
-        self.line_starts.len() as u32
+        to_u32(self.line_starts.len())
     }
 }
 
@@ -78,11 +90,11 @@ fn line_starts(bytes: &[u8]) -> Vec<u32> {
         match bytes[i] {
             b'\r' if bytes.get(i + 1) == Some(&b'\n') => {
                 i += 2;
-                starts.push(i as u32);
+                starts.push(to_u32(i));
             }
             b'\r' | b'\n' => {
                 i += 1;
-                starts.push(i as u32);
+                starts.push(to_u32(i));
             }
             _ => i += 1,
         }
@@ -103,7 +115,7 @@ impl SourceMap {
 
     pub fn add(&mut self, name: impl Into<String>, bytes: Vec<u8>) -> FileId {
         self.files.push(SourceFile::new(name, bytes));
-        FileId(self.files.len() as u32 - 1)
+        FileId(to_u32(self.files.len() - 1))
     }
 
     pub fn file(&self, id: FileId) -> &SourceFile {

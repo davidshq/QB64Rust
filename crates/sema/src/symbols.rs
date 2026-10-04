@@ -3,7 +3,7 @@
 //! suffix included. Variables of every storage class and procedures are recorded; labels follow.
 
 use crate::{ProcId, ProcKind, Program, Storage, VarId};
-use qb64rust_base::{FileId, SourceFile, Span};
+use qb64rust_base::{FileId, SourceFile, Span, to_u32};
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
@@ -39,7 +39,7 @@ impl Symbols {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (SymbolId, &Symbol)> {
-        self.list.iter().enumerate().map(|(i, s)| (SymbolId(i as u32), s))
+        self.list.iter().enumerate().map(|(i, s)| (SymbolId(to_u32(i)), s))
     }
 
     /// The symbol whose name covers `offset` (from its first byte up to, not including, its end).
@@ -63,7 +63,7 @@ impl Symbols {
                     id
                 }
                 None => {
-                    let id = SymbolId(self.list.len() as u32);
+                    let id = SymbolId(to_u32(self.list.len()));
                     self.list.push(Symbol {
                         kind,
                         def: span,

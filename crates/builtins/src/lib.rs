@@ -45,7 +45,7 @@ pub fn find_function(name: &[u8]) -> Option<BuiltinId> {
     BUILTINS
         .iter()
         .position(|b| b.kind == Kind::Function && b.name.as_bytes().eq_ignore_ascii_case(name))
-        .map(|i| BuiltinId(i as u16))
+        .map(|i| BuiltinId(u16::try_from(i).expect("fewer than 65536 built-ins")))
 }
 
 /// Every entry (function or SUB form) for a name without suffix, compared without regard to ASCII case.

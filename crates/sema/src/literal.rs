@@ -108,11 +108,8 @@ pub fn number(text: &[u8], negative: bool) -> Result<NumLit, LitError> {
     if magnitude > 1 << 64 {
         return Err(LitError::Overflow);
     }
-    let value: i128 = if negative {
-        -(magnitude as i128)
-    } else {
-        magnitude as i128
-    };
+    let magnitude_signed = i128::try_from(magnitude).map_err(|_| LitError::Overflow)?;
+    let value = if negative { -magnitude_signed } else { magnitude_signed };
     let ty = match suffix {
         b"" => {
             if negative {
@@ -144,7 +141,7 @@ pub fn number(text: &[u8], negative: bool) -> Result<NumLit, LitError> {
         return Err(LitError::Overflow);
     }
     Ok(NumLit::Int {
-        value: value as i64,
+        value: i64::try_from(value).map_err(|_| LitError::Overflow)?,
         ty,
     })
 }
@@ -152,6 +149,10 @@ pub fn number(text: &[u8], negative: bool) -> Result<NumLit, LitError> {
 /// SINGLE when at most 7 significant digits and the first one's position is within SINGLE's range; DOUBLE when
 /// at most 16 and within DOUBLE's range; `_FLOAT` otherwise. As in `lineformat$`, the position is taken from the
 /// digits alone (only literals without an exponent letter get here).
+#[expect(
+    clippy::cast_possible_wrap,
+    reason = "digit counts are bounded by MAX_SOURCE_LEN, far below i64::MAX"
+)]
 fn auto_float_type(whole: &str, frac: &str) -> Ty {
     let (offset, sig): (i64, usize) = if !whole.is_empty() {
         (whole.len() as i64 - 1, whole.len() + frac.len())
@@ -222,6 +223,8 @@ fn radix(text: &[u8]) -> Result<NumLit, LitError> {
     if bits < 64 && value >> bits != 0 {
         return Err(LitError::Overflow);
     }
+    // `value` fits `bits` bits (checked above); reading those bits as signed is the point.
+    #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap, reason = "see above")]
     let signed = if bits == 64 {
         value as u64 as i64
     } else if value >> (bits - 1) != 0 {

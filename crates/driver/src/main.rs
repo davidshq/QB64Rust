@@ -65,6 +65,9 @@ fn run() -> Result<ExitCode, String> {
     let o = parse_args().map_err(|e| format!("{e}\n{USAGE}"))?;
     let input = o.input.clone().ok_or_else(|| format!("no input file\n{USAGE}"))?;
     let bytes = std::fs::read(&input).map_err(|e| format!("cannot read {}: {e}", input.display()))?;
+    if bytes.len() > qb64rust_base::MAX_SOURCE_LEN {
+        return Err(format!("{} is larger than 4 GiB", input.display()));
+    }
     let name = input.to_string_lossy().to_string();
 
     if o.dump.as_deref() == Some("tokens") {

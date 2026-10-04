@@ -11,7 +11,7 @@ use crate::{
     Arg, BinOp, ConvKind, Expr, ExprKind, PrintItem, Proc, ProcId, ProcKind, Program, Stmt, StmtKind, Storage,
     SymbolKind, Ty, Var, VarId,
 };
-use qb64rust_base::{Diagnostics, SourceFile, Span, show_bytes};
+use qb64rust_base::{Diagnostics, SourceFile, Span, show_bytes, to_u32};
 use qb64rust_builtins::{BuiltinId, find_any, find_function};
 use qb64rust_syntax::SyntaxKind::{self, Minus, Number, Plus, Slash, Star};
 use qb64rust_syntax::ast::{self, PrintPart};
@@ -310,7 +310,7 @@ impl Checker<'_> {
         if self.procs_by_name.contains_key(&name) {
             return Err(self.in_use(name_tok));
         }
-        let id = ProcId(self.prog.procs.len() as u32);
+        let id = ProcId(to_u32(self.prog.procs.len()));
         self.prog.procs.push(Proc {
             name: name.clone(),
             kind,
@@ -346,7 +346,7 @@ impl Checker<'_> {
         } else {
             ProcKind::Sub
         };
-        let id = ProcId(self.prog.procs.len() as u32);
+        let id = ProcId(to_u32(self.prog.procs.len()));
         self.prog.procs.push(Proc {
             name: name.clone(),
             kind,
@@ -476,7 +476,7 @@ impl Checker<'_> {
     }
 
     fn new_var(&mut self, name: String, ty: Ty, storage: Storage) -> VarId {
-        let id = VarId(self.prog.vars.len() as u32);
+        let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var { name, ty, storage });
         id
     }
@@ -1133,6 +1133,10 @@ fn promote(t: Ty) -> Ty {
 }
 
 /// Keeps the low bits of `v` that fit `ty` (integer overflow wraps, D-001, D-002).
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "BASIC integer overflow wraps: the truncation is the point"
+)]
 fn wrap(v: i64, ty: Ty) -> i64 {
     match ty {
         Ty::I16 => i64::from(v as i16),

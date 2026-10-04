@@ -24,6 +24,10 @@ unsafe_code = "forbid"
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
+# Numeric semantics is the compiler's job: every `as` that can lose or reinterpret bits is deliberate (study\21).
+cast_possible_truncation = "warn"
+cast_possible_wrap = "warn"
+cast_sign_loss = "warn"
 
 # An overflow in the compiler's own arithmetic is a bug: panic in release too, so tests and the shipped binary
 # behave the same (study\21). Wrapping that BASIC semantics needs is written as `wrapping_*`.
