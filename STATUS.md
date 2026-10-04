@@ -113,19 +113,21 @@ task groups 1–5 done: procedures and error handling (labels, `ON ERROR GOTO`, 
 `CHR$`) compile end to end, slice list at 54 (all pass, also with folding off), `SYSTEM` supported; next is group
 6, the full corpus run and documentation).
 
-**Next** (order accepted 2026-10-04 after the review and panel of `study\20`, reasons there):
+**Next** (order accepted 2026-10-04 after the second review, `study\22` §5, reasons there; it replaces the order
+of `study\20` §4):
 
-1. Finish `m2-procedures-and-errors`; add the symbol side table and typed tree accessors inside it.
-2. ~~Rust CI workflow~~ (done 2026-10-04, `study\21`); shared `Ty`/`BinOp`/`Conv`; a "not supported yet" marker
-   on diagnostics.
-3. Parser breadth (a): blocks, control flow, labels, `DATA`, comment metacommands. Add the driver's panic hook
-   ("internal compiler error") at the start (`study\21` item 6).
-4. Differential tester (type pairs per operator), then the full numeric type set, with `Ty` as a type table (with
-   an explicit promotion rank: today promotion relies on the declaration order of `Ty`'s variants).
-5. Plain built-ins (249 of 455), table-driven, with generated tests.
-6. Control flow through the pipeline.
-7. Arrays and `TYPE`, then the IR review (`study\20` §3.4).
-8. Parser breadth (b) and (c): `$IF`, `$INCLUDE`, the `specialformat` statements.
+1. Finish `m2-procedures-and-errors` (group 6).
+2. OpenSpec change `m2-upstream-tests` (proposed): upstream test files copied into `tests\upstream\`; tier 1 over
+   upstream, `qbasic_testcases` and the old compiler's sources; the "not supported yet" marker; ratchet lists;
+   upstream progress reported as x of 279 (125 programs need deferred array features); the QB64Fresh snippets as
+   labelled inputs; shared `Ty`/`BinOp`/`Conv`; a seeded mutation test.
+3. Parser breadth, the whole language: blocks, control flow, labels, line numbers, `DATA`, comment metacommands,
+   `$IF`/`$INCLUDE`, the `specialformat` statements; `sema` keyed by (`FileId`, offset). Panic hook at the start.
+4. A thin language server (diagnostics, go to definition) in the extension.
+5. Bug-compatibility decisions (`study\00` §6), then the differential tester, `Ty` as a type table, unsigned types.
+6. Plain built-ins (249 of 455), table-driven, with generated tests.
+7. Control flow through the pipeline, with `CONST`, `OPTION _EXPLICIT`, `DEFxxx`.
+8. Arrays and `TYPE` (storage designed so member arrays fit later), then the IR review (`study\20` §3.4).
 
 ## FreeBASIC reviewed (2026-10-03)
 
@@ -140,6 +142,8 @@ M1 leftovers: done (see above).
 
 | When | Item |
 |---|---|
-| Before M3 codegen | Decide the bug-compatibility choices in `study\00` §6 |
+| Step 5 of "Next" | Decide the bug-compatibility choices in `study\00` §6 (32-bit INTEGER arithmetic and half-to-even rounding are already implemented as "keep") |
 | M3 | Plain copy of `..\QB64pe\internal\c` at the pinned commit (`CLAUDE.md`) |
+| M3 | Programs without `$CONSOLE:ONLY`, with an oracle such as a screen-state dump at exit compared between old and new compiler (`study\22` §3.2) |
+| M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\22` §4.2) |
 | Help/hover work | Ask the QB64pe maintainers about the wiki licence before shipping any wiki text |

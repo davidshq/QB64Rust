@@ -46,9 +46,9 @@ From the expert panel (`07`), whose recommendations R1–R13 the decisions above
 |---|---|---|---|
 | M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
 | M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | **done** (`vscode\`) |
-| M2 | Front end | Lossless parser with recovery, resolution, type checker, formatter matching `-y`, language server | **in progress**: golden corpus; Rust workspace and end-to-end slice (`crates\`, all stages from bytes to a linked executable for a small subset; 14 corpus programs pass) |
-| M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests | |
-| M4 | Parity | 143 corpus programs match golden output; deferred array features; `qb64pe.bas` compiles (stretch) | |
+| M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server; formatter matching `-y` | **in progress**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling (`crates\`; 54 corpus programs pass end to end). Order of work: `STATUS.md`, `study\22` §5 |
+| M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests; programs without `$CONSOLE:ONLY` with a screen-state oracle | started early: the slice already links with libqb |
+| M4 | Parity | The corpus (275) and the upstream tests in reach (279 of 404; 125 need the deferred array features) match; `qb64pe.bas` compiles and the result passes the suite (exit criterion, `study\20`) | |
 | M5 | Debugger | Debug symbol file + DAP adapter | |
 | M6 | Runtime modernisation | ABI owned by the new compiler; error model, string heap, threading redesigned behind golden tests | |
 
@@ -328,5 +328,7 @@ as a reading of the code, not a measurement.
 | `17` | How VS Code extensions are tested; how M1 compares |
 | `18` | Other VS Code extension practices compared with five large extensions; proposals A–G |
 | `19` | Test cadence: four tiers, what a full run costs |
-| `20` | Review of code and plan after the first slice; panel outcome; the order of work |
+| `20` | Review of code and plan after the first slice; panel outcome; the order of work (replaced by `22` §5) |
+| `21` | Rust review of the workspace setup: lints, CI, the repo check |
+| `22` | Second review: test inputs from QB64pe and QB64Fresh, the upstream yardstick (x of 279), the current order of work |
 | `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |
