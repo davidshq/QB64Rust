@@ -77,7 +77,18 @@ pub fn check_with(root: Node, file: &SourceFile, parse_diags: &Diagnostics, fold
             Err(Failed)
         };
         match id {
-            Ok(id) => declared.push((def, id)),
+            Ok(id) => {
+                let line_of = |n: Node| {
+                    c.file
+                        .line_col(n.first_token().map_or(n.span().start, |t| t.span.start))
+                        .0
+                };
+                let line = line_of(header.node());
+                let end_line = def.end().map_or(line, |e| line_of(e.node()));
+                let proc = &mut c.prog.procs[id.0 as usize];
+                (proc.line, proc.end_line) = (line, end_line);
+                declared.push((def, id))
+            }
             Err(Failed) => c.declare_broken(header),
         }
     }
@@ -255,6 +266,9 @@ impl Checker<'_> {
         } else if ast::EndStmt::cast(node).is_some() {
             self.push(node, StmtKind::End);
             Ok(())
+        } else if ast::SystemStmt::cast(node).is_some() {
+            self.push(node, StmtKind::System);
+            Ok(())
         } else if let Some(s) = ast::CallStmt::cast(node) {
             self.call_stmt(s)
         } else if ast::ExitStmt::cast(node).is_some() {
@@ -317,6 +331,8 @@ impl Checker<'_> {
             params: Vec::new(),
             result: None,
             stmts: Vec::new(),
+            line: 0,
+            end_line: 0,
         });
         self.param_scopes.push(Scope::default());
         self.procs_by_name.insert(name, id);
@@ -353,6 +369,8 @@ impl Checker<'_> {
             params: Vec::new(),
             result: None,
             stmts: Vec::new(),
+            line: 0,
+            end_line: 0,
         });
         self.param_scopes.push(Scope::default());
         self.procs_by_name.insert(name, id);

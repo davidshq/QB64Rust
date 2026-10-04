@@ -23,6 +23,11 @@ fn metacommand_and_comments() {
 }
 
 #[test]
+fn system_with_and_without_exit_code() {
+    insta::assert_snapshot!(tree("SYSTEM\nsystem: END\nSYSTEM 3\n"));
+}
+
+#[test]
 fn print_forms() {
     insta::assert_snapshot!(tree("PRINT \"a\"; x; -3, 1.5;\n? \"[\" \"a\"1; x \"b\" \"]\"\nPRINT\n"));
 }

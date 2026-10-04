@@ -34,6 +34,7 @@ node_wrapper!(
     AsClause,
     AssignStmt,
     EndStmt,
+    SystemStmt,
     ProcDef,
     ProcHeader,
     ParamList,

@@ -66,16 +66,29 @@
 
 ## 4. Procedures: IR, emitter, end to end (D6, D7)
 
-- [ ] 4.1 IR: `Proc`, storage classes, `Body`, `Op::Call`, `Op::Exit`, `ValueKind::CallProc`, `Arg`. Verify:
+- [x] 4.1 IR: `Proc`, storage classes, `Body`, `Op::Call`, `Op::Exit`, `ValueKind::CallProc`, `Arg`. Verify:
   `ir` snapshot of a lowering-pair file with each argument form, a function in a PRINT, `EXIT`; `cargo tree -p
   qb64rust-ir` still has no `codegen-cpp`.
-- [ ] 4.2 Emitter: `mainK`/`dataK`/`freeK`, prototypes, `main.txt` includes, `passN`, string parameter guard,
+  Done (`tests\frontend\proc_lowering.bas`). Differences from D6's sketch: `Storage::Param(ProcId)` carries no
+  index (the position is the index in `Proc::params`, as in `sema`); `Body` has only `stmts` until labels arrive
+  in 5.2; `Proc` also carries the header and `END` lines for the `#line` directives (`sema::Proc` gained them
+  too). Also `Op::System` (below).
+- [x] 4.2 Emitter: `mainK`/`dataK`/`freeK`, prototypes, `main.txt` includes, `passN`, string parameter guard,
   result return, `STATIC` storage. Verify: `cpp` snapshot of the same file; compared by eye with the probe's
   fragments (Context) for the same constructs.
-- [ ] 4.3 Tier 2: add 24, 64, 69, 84, 85, 115, 124, 140, 192, 193, 196, 263, `s08`–`s10` to `slice.list`. Verify:
+  Done (`tests\frontend\proc_lowering_cpp.bas`). Compared with `qb64pe.exe -z` output for `s08`–`s10` (scratch
+  folder): prologue and epilogue verbatim, the same prototypes, `passN` placement (`maindata.txt` / `dataK.txt`),
+  string guard and its `freeK` part, `qbs_maketmp` for a string result, `STATIC` variables in `global.txt` and
+  `maindata.txt` with the procedure's prefix, `qbs_cleanup` after a call with string parameters. `Fragments`
+  names are now `String`s (three files per procedure).
+- [x] 4.3 Tier 2: add 24, 64, 69, 84, 85, 115, 124, 140, 192, 193, 196, 263, `s08`–`s10` to `slice.list`. Verify:
   the whole list passes, also with `QB64RUST_NO_FOLD=1`; `git -C ..\QB64pe status --porcelain` unchanged.
   Found in 3.2, not planned: `s08`–`s12` end with `SYSTEM`, which the subset does not have (the front end says
   "`SYSTEM` is not supported yet"); it is needed before they can pass. Remove `check_lowerable` (3.2) here.
+  Done: 46 of 46 pass, also with folding off; clone unchanged; `check_lowerable` removed. `SYSTEM` without an
+  exit code added end to end (`SystemStmt`, `StmtKind::System`, `Op::System`; emitted as the old compiler does:
+  `if (sub_gl_called) error(271); close_program=1; end();`); `SYSTEM n` is "not supported yet" (parse snapshot
+  `system_with_and_without_exit_code`).
 
 ## 5. Error handling (D1, D5–D7)
 

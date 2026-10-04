@@ -64,16 +64,6 @@ pub fn frontend(name: &str, bytes: Vec<u8>) -> Frontend {
     }
 }
 
-/// Until the IR has procedures (task 4 of `m2-procedures-and-errors`), a program that defines one passes the
-/// front end but cannot be lowered; this reports it as not supported yet. Called before any stage that lowers.
-pub fn check_lowerable(fe: &mut Frontend) {
-    if !fe.has_errors() && !fe.program.procs.is_empty() {
-        let at = qb64rust_base::Span::new(fe.file, 0, 0);
-        fe.diagnostics
-            .error(at, "code generation for SUB and FUNCTION is not supported yet");
-    }
-}
-
 /// The IR of a checked program.
 pub fn lower(fe: &Frontend) -> qb64rust_ir::Program {
     qb64rust_ir::lower(&fe.program)

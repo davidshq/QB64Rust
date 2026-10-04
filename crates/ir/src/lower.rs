@@ -1,6 +1,9 @@
 //! Typed tree to IR. One IR statement per source statement.
 
-use crate::{BinOp, Const, Conv, Op, PrintItem, Program, Stmt, Ty, Value, ValueKind, Var, VarId};
+use crate::{
+    Arg, BinOp, Body, Const, Conv, Op, PrintItem, Proc, ProcId, ProcKind, Program, Stmt, Storage, Ty, Value, ValueKind,
+    Var, VarId,
+};
 use qb64rust_sema as sema;
 
 pub fn lower(p: &sema::Program) -> Program {
@@ -10,10 +13,34 @@ pub fn lower(p: &sema::Program) -> Program {
         .map(|v| Var {
             name: v.name.clone(),
             ty: ty(v.ty),
+            storage: storage(v.storage),
         })
         .collect();
-    let main = p
-        .stmts
+    let procs = p
+        .procs
+        .iter()
+        .map(|q| Proc {
+            name: q.name.clone(),
+            kind: match q.kind {
+                sema::ProcKind::Sub => ProcKind::Sub,
+                sema::ProcKind::Function(t) => ProcKind::Function(ty(t)),
+            },
+            params: q.params.iter().map(|v| VarId(v.0)).collect(),
+            result: q.result.map(|v| VarId(v.0)),
+            body: body(&q.stmts),
+            line: q.line,
+            end_line: q.end_line,
+        })
+        .collect();
+    Program {
+        vars,
+        procs,
+        main: body(&p.stmts),
+    }
+}
+
+fn body(stmts: &[sema::Stmt]) -> Body {
+    let stmts = stmts
         .iter()
         .map(|s| {
             let ops = vec![op(&s.kind)];
@@ -26,12 +53,13 @@ pub fn lower(p: &sema::Program) -> Program {
             }
         })
         .collect();
-    Program { vars, main }
+    Body { stmts }
 }
 
 fn op_may_raise(op: &Op) -> bool {
     match op {
-        Op::SelectConsole | Op::End => false,
+        Op::SelectConsole | Op::End | Op::System | Op::Exit => false,
+        Op::Call { .. } => true,
         Op::Assign { value, .. } => value.may_raise(),
         Op::Print { items, .. } => items.iter().any(|i| match i {
             PrintItem::Str(v) | PrintItem::Num(v) => v.may_raise(),
@@ -52,10 +80,23 @@ fn ty(t: sema::Ty) -> Ty {
     }
 }
 
+fn storage(s: sema::Storage) -> Storage {
+    let id = |p: sema::ProcId| ProcId(p.0);
+    match s {
+        sema::Storage::Main => Storage::Global,
+        sema::Storage::Static(p) => Storage::Static(id(p)),
+        sema::Storage::Local(p) => Storage::Local(id(p)),
+        sema::Storage::Param(p) => Storage::Param(id(p)),
+        sema::Storage::Result(p) => Storage::Result(id(p)),
+    }
+}
+
 fn op(k: &sema::StmtKind) -> Op {
     match k {
         sema::StmtKind::ConsoleOnly => Op::SelectConsole,
         sema::StmtKind::End => Op::End,
+        sema::StmtKind::System => Op::System,
+        sema::StmtKind::Exit => Op::Exit,
         sema::StmtKind::Assign { var, value } => Op::Assign {
             place: VarId(var.0),
             value: value_of(value),
@@ -71,13 +112,21 @@ fn op(k: &sema::StmtKind) -> Op {
                 .collect(),
             newline: *newline,
         },
-        sema::StmtKind::Call { .. } | sema::StmtKind::Exit => unreachable!("{PROCS_NOT_LOWERED}"),
+        sema::StmtKind::Call { proc, args } => Op::Call {
+            proc: ProcId(proc.0),
+            args: args_of(args),
+        },
     }
 }
 
-/// Until the IR has procedures (task 4.1 of `m2-procedures-and-errors`), the driver rejects programs that define
-/// any before lowering them, so neither calls nor `EXIT` reach this module.
-const PROCS_NOT_LOWERED: &str = "procedures are rejected before lowering";
+fn args_of(args: &[sema::Arg]) -> Vec<Arg> {
+    args.iter()
+        .map(|a| match a {
+            sema::Arg::Ref(v) => Arg::Ref(VarId(v.0)),
+            sema::Arg::Temp(e) => Arg::Temp(value_of(e)),
+        })
+        .collect()
+}
 
 fn value_of(e: &sema::Expr) -> Value {
     let kind = match &e.kind {
@@ -110,7 +159,10 @@ fn value_of(e: &sema::Expr) -> Value {
             id: *builtin,
             args: args.iter().map(|a| a.as_ref().map(value_of)).collect(),
         },
-        sema::ExprKind::CallProc { .. } => unreachable!("{PROCS_NOT_LOWERED}"),
+        sema::ExprKind::CallProc { proc, args } => ValueKind::CallProc {
+            proc: ProcId(proc.0),
+            args: args_of(args),
+        },
     };
     Value { ty: ty(e.ty), kind }
 }

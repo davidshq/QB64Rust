@@ -60,6 +60,8 @@ pub enum SyntaxKind {
     AsClause,
     AssignStmt,
     EndStmt,
+    /// `SYSTEM` (without an exit code).
+    SystemStmt,
     /// `SUB`/`FUNCTION` block: a `ProcHeader`, the body statements and, unless missing, a `ProcEnd`.
     ProcDef,
     /// `SUB name [(params)]` or `FUNCTION name[suffix] [(params)]`; also inside a `DeclareStmt`.

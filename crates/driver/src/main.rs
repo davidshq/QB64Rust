@@ -3,7 +3,7 @@
 //! `qb64rust [-x] [-q] [-m] [-w] [-z] <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
 //! [--qb64pe-root <dir>] [--keep-build]`
 
-use qb64rust_driver::{build, check_lowerable, dump_cpp, dump_ir, emit, frontend};
+use qb64rust_driver::{build, dump_cpp, dump_ir, emit, frontend};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -78,10 +78,7 @@ fn run() -> Result<ExitCode, String> {
         print!("{}", qb64rust_syntax::dump_tokens(&bytes));
         return Ok(ExitCode::SUCCESS);
     }
-    let mut fe = frontend(&name, bytes);
-    if !matches!(o.dump.as_deref(), Some("tree" | "typed")) {
-        check_lowerable(&mut fe);
-    }
+    let fe = frontend(&name, bytes);
     let errors = fe.diagnostics.error_count();
     let report = |fe: &qb64rust_driver::Frontend| {
         if errors > 0 {

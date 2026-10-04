@@ -112,6 +112,9 @@ pub struct Proc {
     /// The FUNCTION's result variable.
     pub result: Option<VarId>,
     pub stmts: Vec<Stmt>,
+    /// 1-based source lines of the header and of the closing `END SUB`/`END FUNCTION`.
+    pub line: u32,
+    pub end_line: u32,
 }
 
 /// How an argument is passed to a procedure (design D4).
@@ -210,6 +213,8 @@ pub enum StmtKind {
         newline: bool,
     },
     End,
+    /// `SYSTEM`: ends the program at once, without the "press any key" prompt of `END`.
+    System,
     /// A SUB call; one argument per parameter.
     Call {
         proc: ProcId,

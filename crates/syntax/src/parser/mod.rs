@@ -281,6 +281,8 @@ impl<'a> Parser<'a> {
             assign::assign_stmt(self)
         } else if self.at_word("END") {
             self.end_stmt()
+        } else if self.at_word("SYSTEM") {
+            self.system_stmt()
         } else if self.at_word("CALL") {
             call::call_stmt(self)
         } else if self.at_word("EXIT") {
@@ -337,6 +339,18 @@ impl<'a> Parser<'a> {
             let span = self.current_span().cover(self.next_span(1));
             let text = format!("END {}", qb64rust_base::show_bytes(self.nth_text(1)));
             self.error_at(span, format!("`{text}` is not supported yet"));
+            self.recover();
+        }
+    }
+
+    /// `SYSTEM` without an exit code.
+    fn system_stmt(&mut self) {
+        if self.nth(1).is_none_or(|k| matches!(k, Newline | Colon)) {
+            self.start_node(SystemStmt);
+            self.bump();
+            self.finish_node();
+        } else {
+            self.error("`SYSTEM` with an exit code is not supported yet");
             self.recover();
         }
     }

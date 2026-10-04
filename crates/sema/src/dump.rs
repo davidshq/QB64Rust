@@ -63,6 +63,7 @@ fn stmts(p: &Program, list: &[Stmt], out: &mut String) {
         match &s.kind {
             StmtKind::ConsoleOnly => writeln!(out, "line {}: ConsoleOnly", s.line).unwrap(),
             StmtKind::End => writeln!(out, "line {}: End", s.line).unwrap(),
+            StmtKind::System => writeln!(out, "line {}: System", s.line).unwrap(),
             StmtKind::Exit => writeln!(out, "line {}: Exit", s.line).unwrap(),
             StmtKind::Call { proc, args: a } => {
                 writeln!(out, "line {}: Call {}", s.line, p.proc(*proc).name).unwrap();

@@ -37,12 +37,64 @@ pub enum Ty {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct VarId(pub u32);
 
-/// A main-module variable. `name` is the BASIC name in upper case without suffix; two variables may share a name
-/// when their types differ.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ProcId(pub u32);
+
+/// Where a variable lives and how long.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Storage {
+    /// One for the whole program, seen by the main module (and by procedures through `SHARED`).
+    Global,
+    /// One for the whole program, seen by one procedure only.
+    Static(ProcId),
+    /// New on every call of the procedure, zero or empty at the start of the call.
+    Local(ProcId),
+    /// A parameter: the caller's variable or a copy made for the call ([`Arg`]). Its position is its index in
+    /// [`Proc::params`].
+    Param(ProcId),
+    /// A FUNCTION's result: new on every call, zero or empty at the start; its value at the end is returned.
+    Result(ProcId),
+}
+
+/// A variable. `name` is the BASIC name in upper case without suffix; two variables may share a name when their
+/// types or their storage differ.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Var {
     pub name: String,
     pub ty: Ty,
+    pub storage: Storage,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProcKind {
+    Sub,
+    /// A FUNCTION returning a value of this type.
+    Function(Ty),
+}
+
+/// A SUB or FUNCTION.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Proc {
+    /// The BASIC name in upper case without suffix.
+    pub name: String,
+    pub kind: ProcKind,
+    /// One variable per parameter, in order.
+    pub params: Vec<VarId>,
+    /// The FUNCTION's result variable.
+    pub result: Option<VarId>,
+    pub body: Body,
+    /// Source lines of the header and of the closing `END SUB`/`END FUNCTION`.
+    pub line: u32,
+    pub end_line: u32,
+}
+
+/// How an argument reaches a parameter (design D4 of `m2-procedures-and-errors`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum Arg {
+    /// The variable itself: assignments to the parameter change it.
+    Ref(VarId),
+    /// A fresh copy of the value, which already has the parameter's type; changes to it are lost (no copy-back).
+    Temp(Value),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -101,6 +153,11 @@ pub enum ValueKind {
         id: BuiltinId,
         args: Vec<Option<Value>>,
     },
+    /// A FUNCTION call; one argument per parameter. Always may raise.
+    CallProc {
+        proc: ProcId,
+        args: Vec<Arg>,
+    },
 }
 
 impl Value {
@@ -111,7 +168,7 @@ impl Value {
             ValueKind::Const(_) | ValueKind::Var(_) => false,
             ValueKind::Convert { from, .. } | ValueKind::Neg(from) => from.may_raise(),
             ValueKind::Binary { lhs, rhs, .. } => lhs.may_raise() || rhs.may_raise(),
-            ValueKind::Concat(..) | ValueKind::CallBuiltin { .. } => true,
+            ValueKind::Concat(..) | ValueKind::CallBuiltin { .. } | ValueKind::CallProc { .. } => true,
         }
     }
 
@@ -125,7 +182,18 @@ impl Value {
                     lhs.uses_strings() || rhs.uses_strings()
                 }
                 ValueKind::CallBuiltin { args, .. } => args.iter().flatten().any(Value::uses_strings),
+                ValueKind::CallProc { args, .. } => args.iter().any(Arg::uses_strings),
             }
+    }
+}
+
+impl Arg {
+    /// Whether passing this argument involves strings: a string copy (a temporary), or a string variable.
+    pub fn uses_strings(&self) -> bool {
+        match self {
+            Arg::Ref(_) => false,
+            Arg::Temp(v) => v.uses_strings(),
+        }
     }
 }
 
@@ -152,6 +220,15 @@ pub enum Op {
         newline: bool,
     },
     End,
+    /// End the program at once (`SYSTEM`).
+    System,
+    /// A SUB call; one argument per parameter. Always may raise.
+    Call {
+        proc: ProcId,
+        args: Vec<Arg>,
+    },
+    /// Leave the procedure (`EXIT SUB`, `EXIT FUNCTION`); a FUNCTION returns its result variable's value.
+    Exit,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -162,14 +239,27 @@ pub struct Stmt {
     pub may_raise: bool,
 }
 
+/// A sequence of statements: the main module's, or a procedure's.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Body {
+    pub stmts: Vec<Stmt>,
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Program {
+    /// Every variable, of every storage class.
     pub vars: Vec<Var>,
-    pub main: Vec<Stmt>,
+    /// Procedures in definition order.
+    pub procs: Vec<Proc>,
+    pub main: Body,
 }
 
 impl Program {
     pub fn var(&self, id: VarId) -> &Var {
         &self.vars[id.0 as usize]
+    }
+
+    pub fn proc(&self, id: ProcId) -> &Proc {
+        &self.procs[id.0 as usize]
     }
 }

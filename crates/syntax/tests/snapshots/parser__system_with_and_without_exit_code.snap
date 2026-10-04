@@ -1,0 +1,21 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"SYSTEM\\nsystem: END\\nSYSTEM 3\\n\")"
+---
+SourceFile 0..28
+  SystemStmt 0..6
+    Ident SYSTEM
+  Newline \x0A
+  SystemStmt 7..13
+    Ident system
+  Colon :
+  Whitespace  
+  EndStmt 15..18
+    Ident END
+  Newline \x0A
+  Error 19..27
+    Ident SYSTEM
+    Whitespace  
+    Number 3
+  Newline \x0A
+t.bas:3:1: error: `SYSTEM` with an exit code is not supported yet
