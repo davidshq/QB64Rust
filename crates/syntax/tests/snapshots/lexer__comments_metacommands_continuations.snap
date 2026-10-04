@@ -1,0 +1,37 @@
+---
+source: crates/syntax/tests/lexer.rs
+assertion_line: 22
+expression: "dump_tokens(b\"$CONSOLE:ONLY\\nREM all of this: PRINT\\nPRINT 1 ' rest \\\"x\\nPRINT 1 + _\\n  2: REMARK = 3\\r\\\"open\\n_x\\rend\")"
+---
+Metacommand 0..13 $CONSOLE:ONLY
+Newline 13..14 \x0A
+Comment 14..36 REM all of this: PRINT
+Newline 36..37 \x0A
+Ident 37..42 PRINT
+Whitespace 42..43  
+Number 43..44 1
+Whitespace 44..45  
+Comment 45..54 ' rest "x
+Newline 54..55 \x0A
+Ident 55..60 PRINT
+Whitespace 60..61  
+Number 61..62 1
+Whitespace 62..63  
+Plus 63..64 +
+Whitespace 64..65  
+LineContinuation 65..67 _\x0A
+Whitespace 67..69   
+Number 69..70 2
+Colon 70..71 :
+Whitespace 71..72  
+Ident 72..78 REMARK
+Whitespace 78..79  
+Eq 79..80 =
+Whitespace 80..81  
+Number 81..82 3
+Newline 82..83 \x0D
+StringLit 83..88 "open
+Newline 88..89 \x0A
+Ident 89..91 _x
+Newline 91..92 \x0D
+Ident 92..95 end

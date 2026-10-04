@@ -1,0 +1,30 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 32
+expression: "tree(\"DIM a AS LONG, b$, c AS _INTEGER64\\n\")"
+---
+SourceFile 0..35
+  DimStmt 0..34
+    Ident DIM
+    Whitespace  
+    DimItem 4..13
+      Ident a
+      Whitespace  
+      AsClause 6..13
+        Ident AS
+        Whitespace  
+        Ident LONG
+    Comma ,
+    Whitespace  
+    DimItem 15..17
+      Ident b$
+    Comma ,
+    Whitespace  
+    DimItem 19..34
+      Ident c
+      Whitespace  
+      AsClause 21..34
+        Ident AS
+        Whitespace  
+        Ident _INTEGER64
+  Newline \x0A

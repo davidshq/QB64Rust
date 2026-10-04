@@ -1,0 +1,43 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 100
+expression: snap
+---
+line 2: ConsoleOnly
+line 4: Assign I:I16
+  Int 32767 : I16
+line 4: Print newline
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Convert Widen : I32
+          Var I : I16
+        Int 1 : I32
+line 5: Assign X:I32
+  Int 2147483647 : I32
+line 5: Print newline
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Var X : I32
+        Int 1 : I32
+line 6: Print newline
+  Num
+    Int -2 : I64
+line 7: Assign X:I64
+  Int 9223372036854775807 : I64
+line 7: Print newline
+  Num
+    Binary Add : I64
+      Var X : I64
+      Int 1 : I64
+line 8: Print newline
+  Num
+    Binary Mul : I64
+      Convert Widen : I64
+        Var X : I32
+      Int 50000 : I64
+line 9: Print newline
+  Num
+    Int 32768 : I64
+line 10: End

@@ -16,8 +16,8 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus           # golden 
 
 ### Golden corpus (`--suite corpus`)
 
-Checks a compiler against `tests\corpus\<group>\` (`--corpus-root` for another folder; `--category <group>`
-and `--glob` narrow the run). Each `<name>.bas` has exactly one of `<name>.output` (compile, run, compare the
+Checks a compiler against `tests\corpus\<group>\` (`--corpus-root` for another folder; `--category <group>`,
+`--glob` and `--list` narrow the run). Each `<name>.bas` has exactly one of `<name>.output` (compile, run, compare the
 merged stdout and stderr), `<name>.err` (the compile must fail with this output) or `<name>.norun` (compile only,
 never run; the file says why). Unlike the compile suite, each program is copied into a fresh folder
 `target\legacy-tests\corpus\<group>-<name>\`, compiled there with `-q -m -x` only (no `-O2`), and run there with
@@ -39,6 +39,9 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
 - A program listed in `known_failures.txt` that has no expected file (it hangs or loops forever, so nothing can
   be recorded) is compiled but never run, and reported as KFAIL `not run`. To try it again, remove the entry and
   record it.
+- `--list <file>` runs only the programs named in the file: one `<group>/<name>` per line (no `.bas`), `#`
+  starts a comment. A name with no program is an error. Combines with `--category` and `--glob` (both must match).
+  `tests\corpus\slice.list` names the programs the new compiler's first slice must pass.
 - `--cpp-opt` adds `-f:OptimizeCppProgram=true`; its failures list the programs whose behaviour depends on the
   C++ optimiser (`tests\corpus\README.md`). It cannot be combined with `--record`.
 - On Windows, `END` in a console program waits for a key from the console ("Press any key to continue"), which
@@ -51,7 +54,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
 
 Results (executables, compiler output, run output, a JSON summary) go to `target\legacy-tests\` (ignored by
 git). The summary is `results.json` for `--suite all`, `results-<suite>.json` for one whole suite, and
-`results-partial.json` when `--category` or `--glob` narrows the run, so a partial run never overwrites a full one.
+`results-partial.json` when `--category`, `--glob` or `--list` narrows the run, so a partial run never overwrites a full one.
 
 Known failures: `known_failures.txt` lists tests (`<suite>:<test>  <reason>`) whose failure is reported as
 `KFAIL` and does not fail the run. Today only `http/read_example` (environment-dependent, see `baselines\`).

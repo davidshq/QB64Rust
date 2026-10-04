@@ -1,0 +1,23 @@
+[package]
+name = "qb64rust-driver"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+qb64rust-base.workspace = true
+qb64rust-builtins.workspace = true
+qb64rust-syntax.workspace = true
+qb64rust-sema.workspace = true
+qb64rust-ir.workspace = true
+qb64rust-codegen-cpp.workspace = true
+
+[[bin]]
+name = "qb64rust"
+path = "src/main.rs"
+
+[dev-dependencies]
+insta.workspace = true

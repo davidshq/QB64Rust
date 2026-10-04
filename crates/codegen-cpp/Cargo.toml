@@ -1,0 +1,13 @@
+[package]
+name = "qb64rust-codegen-cpp"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+qb64rust-base.workspace = true
+qb64rust-ir.workspace = true
+qb64rust-builtins.workspace = true

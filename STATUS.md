@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-03 (session 8). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-03 (session 9). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) started: golden corpus done.**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice done.**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -80,8 +80,32 @@ nightly.
 
 Decided 2026-10-03: `_INTEGER64` overflow wraps too, like LONG (`CLAUDE.md`, `study\16` §8).
 
-**Next:** the next M2 change: Rust workspace and end-to-end vertical slice
-(`study\15` §2), divergence register and numeric-semantics spec.
+## M2: Rust workspace and end-to-end slice (2026-10-03, session 9)
+
+OpenSpec change `m2-workspace-and-slice`: all tasks done (not yet archived). The new compiler `qb64rust` exists:
+`Cargo.toml`, `crates\` (seven crates, one per stage; `crates\README.md`), Rust 1.88. Every stage has its final
+shape: bytes in, lossless tree (our own, over bytes), typed tree with explicit conversions, ABI-neutral IR, C++
+fragments for `qbx.cpp`, built through the reference clone's `Makefile` with overrides (libqb reused, clone
+untouched, about 2 s per program). The subset: `$CONSOLE:ONLY`, `DIM` of scalars, assignments, implicit
+variables, `PRINT` (`;`, `,`, auto-semicolon), `END`, literals, `+ - * /`, unary `-`, string `+`, `INSTR`.
+
+- Tier 2: the 14 programs of `tests\corpus\slice.list` (7 new ones in `tests\corpus\slice\`, recorded with
+  `qb64pe.exe`, and 7 of `runtime_comparison`) pass end to end, also with constant folding off. Full corpus once:
+  31 pass, the rest are rejected with a diagnostic; no crash, no wrong executable (`tests\corpus\README.md`).
+- Tier 1 (`cargo test`): unit and `insta` snapshot tests, `tests\frontend\` by mode line, the front end over every
+  corpus program (round trip, no panic).
+- `DIVERGENCES.md` (D-001, D-002: integer overflow wraps) and the numeric-semantics spec (in the change; a main
+  spec once archived).
+- Measured on the way (`study\00` §5): a variable is a name plus a type (`verification\v13*`); `INSTR(0, …)` does
+  not raise; negating an integer is believed `_INTEGER64`. The corpus runner now keeps the clone's tracked
+  `internal\temp\temp.bin` (it deleted it; `qb64pe.exe` recreates it, `qb64rust` does not).
+
+**Next:** archive `m2-workspace-and-slice` (its four specs become main specs). Then the next M2 change. Its first
+task: add the 17 other corpus programs that already pass to `tests\corpus\slice.list` (125, 130, 132, 133,
+144, 145, 163, 188, 208–211, 27, 74, 75, 87, 92; `tests\corpus\README.md`), and change the count in the tier-1
+test `crates\driver\tests\corpus.rs` from 14 to 31. Not done in this change: its specs and design say 14. Then grow
+the slice (procedures, by-reference arguments, `ON ERROR`, which also pins the "error inside a PRINT" scenario end
+to end).
 
 ## FreeBASIC reviewed (2026-10-03)
 
@@ -96,7 +120,6 @@ M1 leftovers: done (see above).
 
 | When | Item |
 |---|---|
-| Start of M2 | Rust workspace; create the divergence register and the numeric-semantics spec; build the end-to-end vertical slice first (`study\15` §2) |
 | Before M3 codegen | Decide the bug-compatibility choices in `study\00` §6 |
 | M3 | Plain copy of `..\QB64pe\internal\c` at the pinned commit (`CLAUDE.md`) |
 | Help/hover work | Ask the QB64pe maintainers about the wiki licence before shipping any wiki text |

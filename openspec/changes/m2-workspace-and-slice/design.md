@@ -14,12 +14,13 @@ A program using everything in the slice produces, in `internal\temp\`:
 | Fragment | Content for the slice | Notes |
 |---|---|---|
 | `global.txt` | `qb_safe_idiv`/`qb_safe_mod` templates; `int32 *__LONG_A=NULL;` per main-module variable; `console=1`, `screen_hide_startup=0`, `asserts=0`, `vwatch=0`, `data_size=0`, `data=(uint8*)calloc(1,1)` | the six globals are referenced by `qbx.cpp`/libqb |
-| `maindata.txt` | `if(__LONG_A==NULL){ __LONG_A=(int32*)mem_static_malloc(4); *__LONG_A=0; }` | strings: `qbs_new(0,0)`-based, to be recorded in task 4.1 |
-| `clear.txt` | `*__LONG_A=0;` | |
+| `maindata.txt` | `if(__LONG_A==NULL){ __LONG_A=(int32*)mem_static_malloc(4); *__LONG_A=0; }` | strings: `qbs *__STRING_S=NULL;` in `global.txt`, `if (!__STRING_S)__STRING_S=qbs_new(0,0);` here (task 4.1) |
+| `clear.txt` | `*__LONG_A=0;` | strings: `__STRING_S->len=0;` |
+| `mainfree.txt` | `qbs_free(__STRING_S);` | not included by `qbx.cpp` (`study\02` §8); the slice writes it for readers only |
 | `mainerr.txt` | `if (!error_handler_history) …; if (error_occurred){ error_occurred=0; exit(99); }` | no `ON ERROR` in the slice |
 | `main.txt` | `#include "main0.txt"` … + `func__compdate`, `func__comptime`, `func__compvers` | the three functions are required by libqb |
-| `main0.txt` | `S_0:;`, one `do{ … if(!qbevent)break;evnt(N);}while(r);` per statement, then `sub_end(); return; }` | `$CONSOLE:ONLY` emits `sub__dest(func__console()); sub__source(func__console());` as statement 1 |
-| `regsf.txt`, `main1..3.txt` | `SUB_VWATCH`, `FUNC__ENCODEURL`, `FUNC__DECODEURL` from the auto-included BASIC files | nothing in `internal\c` references them; the slice omits them (task 4.2 confirms by linking) |
+| `main0.txt` | `error_track_line(0,0,NULL);` (for `$ERRORLOCATION`; the slice omits it, the spike links without it), `S_0:;`, one `do{ … if(!qbevent)break;evnt(N);}while(r);` per statement, then `sub_end(); return; }` | `$CONSOLE:ONLY` emits `sub__dest(func__console()); sub__source(func__console());` as statement 1 |
+| `regsf.txt`, `main1..3.txt` | `SUB_VWATCH`, `FUNC__ENCODEURL`, `FUNC__DECODEURL` from the auto-included BASIC files | nothing in `internal\c` references them; the slice omits them (confirmed by the task 4.2 spike: an empty `regsf.txt` links) |
 | the other ~15 `.txt` files `qbx.cpp` includes | empty | must exist |
 
 Per PRINT statement: `tqbs=qbs_new(0,0);`, then per item `qbs_set(tqbs, <string expr>); if (is_error_pending()) goto skipK; makefit(tqbs); qbs_print(tqbs,0);`; a numeric item is
@@ -29,6 +30,21 @@ then `skipK: qbs_free(tqbs); qbs_cleanup(qbs_tmp_base,0);`. Casts seen: `(int16)
 `(long double)( 7 / ((long double)( 2 )))`. `INSTR("hello","ll")` is `func_instr(NULL, s1, s2, 0)`;
 `INSTR(3, …)` is `func_instr( 3 , s1, s2, 0|1)`: the optional argument becomes a placeholder plus a bit in the
 `passed` mask. Every line is preceded by `#line N "file"`.
+
+Recorded in task 4.1 for all 14 programs of `slice.list` (scratch folder, not the repo):
+- Assignments: `*__INTEGER_X=qbr_float_to_long( 2.5E+0 );` (float to INTEGER), `*__LONG_L=qbr(…)` (float to LONG
+  or `_INTEGER64`; the int64 result is truncated by C), `*__SINGLE_X= 42 ;` (plain C conversion otherwise); string
+  `qbs_set(__STRING_Z,qbs_new_txt_len("implicit",8)); qbs_cleanup(qbs_tmp_base,0);`. No skip check after an
+  assignment.
+- `END` is `sub_end();` inside its statement wrapper.
+- A float argument to `INSTR`'s LONG slot is `qbr(2.6E+0)`; every PRINT item, including one with `INSTR`, is
+  followed by `if (is_error_pending()) goto skipK;`.
+- Literals: integer literals print with the C type of their QB type (`(int16)( 5 )`, `(int64)( 2147483648ll )`);
+  SINGLE literals are emitted as C `double` constants (`1.5E+0`, `3E+0` for `3!`), DOUBLE likewise, `_FLOAT` with
+  an `L` suffix. `+ - *` get no cast (C promotion: `int16*int16` is `int`); `int / int` casts the right operand to
+  `long double`; a numeric PRINT item is cast to the QB type the old compiler believes (`int64` for any integer
+  operation, the widest float operand's type for float operations, `long double` for integer `/`).
+- Variable names: `__SINGLE_X` (implicit), `__INTEGER64_Q`, `__STRING_A` (`DIM a AS STRING`).
 
 ## Goals / Non-Goals
 
@@ -104,7 +120,17 @@ Produces a **typed tree**: a separate arena of typed expression and statement no
 syntax node by `Span`. Rules implemented (all with tests, values from `language/numeric-semantics`):
 - Variables: `x`, `x%`, `x&`, `x&&`, `x!`, `x#`, `x$` are distinct; a `DIM x AS T` declares the suffix-less name
   with type T and makes `x<suffix of T>` the same variable; what the old compiler does with a *different* suffix
-  on a DIMmed name (error or separate variable) is measured in task 3.3 and implemented as measured. Undeclared
+  on a DIMmed name was measured in task 3.3 (`verification\v13_dim_suffix`, `v13b_dim_suffix_error`) and is
+  implemented as measured: **a variable is a name plus a type.** A suffixed name `x%` always means the variable
+  (x, INTEGER). The plain name `x` means (x, SINGLE) until a `DIM x AS T`, and (x, T) from that statement on
+  (resolution is positional, in statement order); so after `DIM x AS LONG`, `x` and `x&` are one variable while
+  `x!` and `x%` are separate ones. `DIM x%` declares (x, INTEGER) and leaves the plain name alone. A `DIM` whose
+  variable already exists, declared or implicit, is an error ("name already in use"): `x& = 3: DIM x AS LONG`,
+  `DIM x AS LONG, x AS LONG`; `x = 2.5: DIM x AS LONG` is not (the earlier `x` was (x, SINGLE)). Added after
+  the code review (`v13`, `v13c`, `v13d`): `DIM x AS T` is also an error once an earlier `DIM x AS …` typed the
+  plain name, whatever the type; a plain `DIM x` after that is accepted and changes nothing; a plain `DIM x`
+  before any `DIM x AS` declares (x, SINGLE) (an error if that exists, even implicitly) and does not stop a later
+  `DIM x AS LONG` from retyping the plain name. Undeclared
   names are implicitly SINGLE
   (no `DEFxxx` in the slice). `OPTION _EXPLICIT` is not in the slice.
 - Literal typing (spec): integer literals take the smallest of INTEGER, LONG, `_INTEGER64` that holds the value;
@@ -178,6 +204,13 @@ is unchanged by a build. *Alternatives:* (a) copy `internal\c` into this repo no
 `qb64pe.exe` (`study\05`), races with the corpus runner and the extension, and edits the clone's working tree;
 (c) compile `qbx.cpp` ourselves without make: duplicates the Makefile's flag and library logic.
 
+Spike result (task 4.2, 2026-10-03): the overrides work as written; no fallback needed. A hand-written
+`PRINT "hello"` fragment set built in 1.8 s (compile `qbx.cpp` + link; libqb reused), wrote `qbx.o` into
+`<build>\c\` and the `.sym` into `<build>	emp\`, and printed `hello` and the `END` trailer under
+`press_any_key.py`. Make links `libqb_make_00100000.o`, the same object (and the same `-D` set) that `qb64pe.exe`
+links for a `$CONSOLE:ONLY` program. Note: `CXXFLAGS_EXTRA` also applies to libqb objects when make has to build
+them; they are only built if missing, so `-fwrapv` normally reaches only `qbx.o`.
+
 ### D9. Command line
 `qb64rust [-x] [-q] [-m] [-w] [-z] <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
 [--qb64pe-root <dir>] [--keep-build]`. `-x -q -m -w` are accepted for compatibility with the runner and the M1
@@ -237,4 +270,5 @@ are measured examples and each one is a test in the slice group or `tests\fronte
 
 ## Open Questions
 
-- Whether `func_instr` with start 0 raises error 5 or returns 0: recorded by `s05_instr` (task 3.1).
+- ~~Whether `func_instr` with start 0 raises error 5 or returns 0~~: answered by `s05_instr` (task 1.4): neither;
+  a start of 0 behaves like 1 (`INSTR(0, "hello world", "o")` = 5).

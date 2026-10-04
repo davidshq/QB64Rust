@@ -1,0 +1,13 @@
+[package]
+name = "qb64rust-builtins"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+
+[build-dependencies]
+serde_json.workspace = true

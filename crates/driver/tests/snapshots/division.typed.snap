@@ -1,0 +1,38 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 100
+expression: snap
+---
+line 2: ConsoleOnly
+line 4: Print newline
+  Num
+    Binary Div : F80
+      Convert Nearest : F80
+        Int 1 : I16
+      Convert Nearest : F80
+        Int 3 : I16
+line 5: Assign D:F64
+  Float 2.5E+0 : F64 (qb F32)
+line 5: Print newline
+  Num
+    Binary Div : F64
+      Var D : F64
+      Convert Nearest : F64
+        Int 3 : I16
+line 6: Assign S:F32
+  Convert Nearest : F32
+    Float 2.5E+0 : F64 (qb F32)
+line 6: Print newline
+  Num
+    Binary Div : F32
+      Var S : F32
+      Convert Nearest : F32
+        Int 3 : I16
+line 7: Print newline
+  Num
+    Convert Nearest : F32
+      Binary Div : F64 (qb F32)
+        Convert Nearest : F64
+          Int 2 : I16
+        Float 3.0E+0 : F64 (qb F32)
+line 8: End

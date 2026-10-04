@@ -1,0 +1,36 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 100
+expression: snap
+---
+line 2: ConsoleOnly
+line 4: Assign X:I16
+  Convert Truncate : I16
+    Convert RoundEven : I32
+      Convert Nearest : F32
+        Float 2.5E+0 : F64 (qb F32)
+line 5: Assign X:I16
+  Convert Truncate : I16
+    Convert RoundEven : I32
+      Convert Nearest : F32
+        Float 3.5E+0 : F64 (qb F32)
+line 6: Assign D:F64
+  Float 2.5000001E+0 : F64
+line 6: Assign X:I16
+  Convert Truncate : I16
+    Convert RoundEven : I32
+      Convert Nearest : F32
+        Var D : F64
+line 6: Assign L:I32
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Var D : F64
+line 7: Assign X:I16
+  Int 4464 : I16
+line 8: Assign Q:I64
+  Convert RoundEven : I64
+    Float 2.5E+0 : F64
+line 9: Assign S:F32
+  Convert Nearest : F32
+    Int 7 : I16
+line 10: End

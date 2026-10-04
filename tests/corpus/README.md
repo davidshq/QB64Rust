@@ -11,6 +11,8 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
+| `slice\` | 7 programs written for the new compiler's first slice (numeric rules, PRINT forms, CP437 bytes; `SOURCE.md`) |
+| `slice.list` | The 14 programs the slice must pass: the 7 of `slice\` and 7 of `runtime_comparison` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -27,13 +29,13 @@ trailer is part of its `.output`.
 
 ## Counts (recorded 2026-10-03)
 
-| Kind | `runtime_comparison` | `verification` |
-|---|---|---|
-| `.output` | 235 | 2 |
-| `.err` | 20 | 0 |
-| `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 |
-| Known failure, no expected file | 5 | 0 |
-| `.normalize` sidecars | 3 (`212` `PATH` length, `234` `TIMER`, `238` a folder name in `cmd`'s error) | 0 |
+| Kind | `runtime_comparison` | `verification` | `slice` |
+|---|---|---|---|
+| `.output` | 235 | 2 | 7 |
+| `.err` | 20 | 0 | 0 |
+| `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
+| Known failure, no expected file | 5 | 0 | 0 |
+| `.normalize` sidecars | 3 (`212` `PATH` length, `234` `TIMER`, `238` a folder name in `cmd`'s error) | 0 | 0 |
 
 The 20 compile errors are programs written against QB64Fresh's idea of the language. They still test that a
 compiler rejects them, but not what their names say:
@@ -104,3 +106,35 @@ Measured 2026-10-03; every `runtime_comparison` program gives the same output in
 `_INTEGER64` program and no LONG overflow, which is why `v12` was added (`study\16` §8). Both differences come from
 signed overflow being undefined in the generated C++ (no `-fwrapv`); the new compiler wraps for both LONG and
 `_INTEGER64` (`CLAUDE.md`, 2026-10-03), so it must match the default-build files.
+
+## The `slice` group and `slice.list` (new compiler)
+
+`slice\` holds programs written for QB64Rust by the change `m2-workspace-and-slice`, recorded with `qb64pe.exe`
+like the rest; each is named after what it pins (`s02_integer_wrap`, `s05_instr`...). `s07_cp437_bytes` has CRLF
+line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
+
+`slice.list` names the programs the new compiler must pass (tier 2, `study\19`):
+
+```
+cargo build --release
+python tools\legacy_tests\run_legacy_tests.py --suite corpus --qb64 target\release\qb64rust.exe --list tests\corpus\slice.list
+```
+
+`cargo test` (tier 1) runs the front end over every corpus program and requires no diagnostics for the listed
+ones. Add a program to the list when the compiler supports everything it uses.
+
+### Full corpus with `qb64rust` (2026-10-03, not a pass criterion)
+
+One run of the whole corpus with the slice compiler, to check that it fails safely outside the slice:
+
+| Result | Programs |
+|---|---|
+| Pass | 31: the 14 of `slice.list`, and 17 others that use only slice features (`125`, `130`, `132`, `133`, `144`, `145`, `163`, `188`, `208`–`211`, `27`, `74`, `75`, `87`, `92`) |
+| Rejected with a diagnostic (exit status 1) | 214 |
+| `.err` programs rejected, with the new compiler's message instead of the old text | 20 |
+| Known failures | 5 (the four `PRINT`-comma programs compile but are never run; `147` is rejected) |
+| Compiler crash, or an executable with wrong output | 0 |
+
+Time per program: rejected ones at most 0.1 s; built ones 2.8 s on average (1.9–11 s; the C++ compile of
+`qbx.cpp` and the link, libqb reused). The whole run took 1 min 53 s, against about 11 min with `qb64pe.exe`;
+input for the runner's parallel option (`study\19` §5).

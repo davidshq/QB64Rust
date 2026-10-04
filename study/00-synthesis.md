@@ -46,7 +46,7 @@ From the expert panel (`07`), whose recommendations R1–R13 the decisions above
 |---|---|---|---|
 | M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
 | M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | **done** (`vscode\`) |
-| M2 | Front end | Lossless parser with recovery, resolution, type checker, formatter matching `-y`, language server | next |
+| M2 | Front end | Lossless parser with recovery, resolution, type checker, formatter matching `-y`, language server | **in progress**: golden corpus; Rust workspace and end-to-end slice (`crates\`, all stages from bytes to a linked executable for a small subset; 14 corpus programs pass) |
 | M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests | |
 | M4 | Parity | 143 corpus programs match golden output; deferred array features; `qb64pe.bas` compiles (stretch) | |
 | M5 | Debugger | Debug symbol file + DAP adapter | |
@@ -158,6 +158,18 @@ From `10` (checked by `verification\v09_dim.bas`, `v10_print.bas`):
   `QB64PE_NOPROMPT=y` is set; then the message goes to stderr. Either way the program **exits with code 0**.
 - With `-x`, a compile that only issues warnings exits 0, and `-q` hides the warning.
 
+Measured for the first slice of the new compiler (2026-10-03, `m2-workspace-and-slice`; `verification\v13*`,
+`tests\corpus\slice\`):
+
+- **A variable is a name plus a type.** `x%` always means (x, INTEGER); plain `x` means (x, SINGLE) until
+  `DIM x AS T` and (x, T) from that statement on, so `x` and `x&` are one variable after `DIM x AS LONG` while `x!`
+  stays separate. `DIM x%` leaves plain `x` alone. `DIM` of a variable that already exists (even implicitly) is
+  "Name already in use", and so is a second `DIM x AS …` of the same plain name with any type; a plain `DIM x`
+  after `DIM x AS T` changes nothing.
+- `INSTR(0, a$, b$)` does not raise an error: a start of 0 behaves like 1.
+- Negating an integer is believed `_INTEGER64` (`-x%` with `x% = -32768` prints ` 32768`); negating a float keeps
+  its type. `7E38` is SINGLE and prints `inf`.
+
 ## 6. Bug-compatibility choices still to make
 
 From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence register (R2).
@@ -234,7 +246,14 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
   the 143 qbasic programs, and classic QBasic areas (PRINT USING, file modes, string functions) beyond light use.
 - **Test hygiene:** run every program with `QB64PE_NOPROMPT=y`; detect fatal errors from output, not exit code;
   never use screen `PRINT` with a comma under a redirected `$CONSOLE`.
-- `verification\` holds 15 small programs with recorded outputs behind `09`, `10` and `16` (`run.sh` reruns them).
+- `verification\` holds 17 small programs with recorded outputs behind `09`, `10`, `16` and the slice's design
+  (`v13`, `v13b`: type suffixes on DIMmed names) (`run.sh` reruns them).
+- **New compiler (2026-10-03, `crates\README.md`):** tier 1 `cargo test` runs unit and snapshot tests (`insta`),
+  `tests\frontend\` by mode line (`' TEST: parse-ok|check-ok|check-fail|typed|ir|cpp`), and the front end over every
+  corpus program (no panic, exact byte round trip; no diagnostics for `tests\corpus\slice.list`). Tier 2 runs the
+  14 programs of `slice.list` end to end with the corpus runner's `--list`: all pass. Intentional differences from
+  the old compiler are in `DIVERGENCES.md` (D-001, D-002: integer overflow wraps); the numeric rules are the spec
+  `openspec\specs\language\numeric-semantics`.
 
 ## 11. Other repositories and sources: conclusions (reviews archived)
 

@@ -1,0 +1,9 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+leftover_tokens.bas:4:7: error: expected the end of the statement
+leftover_tokens.bas:5:6: error: expected the end of the statement
+leftover_tokens.bas:6:7: error: expected the end of the statement
+leftover_tokens.bas:7:7: error: expected the end of the statement
