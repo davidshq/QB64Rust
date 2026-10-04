@@ -81,6 +81,7 @@ copy, but never the only copy.
 | 2026-10-03 | Until M3's libqb copy, the new compiler builds through `..\QB64pe`'s `Makefile` with overrides (`m2-workspace-and-slice` design D8): its own fragments, `qbx.cpp` copy and exe stay outside the clone; **libqb objects may be built into the clone's git-ignored folders** (as `qb64pe.exe` does). Tracked files of the clone still never change (rule 3). |
 | 2026-10-03 | Compiler structure (change `m2-workspace-and-slice`): Rust workspace at the repo root, **one crate per stage** (`crates\README.md`), Rust 1.88 pinned; **our own lossless tree over bytes** (not `rowan`, whose text is `str`); **one error per statement, at most 100 per run**; front-end tests in `tests\frontend\` with a first-line **mode line** `' TEST: <mode>` and `insta` snapshots; intentional differences from the old compiler go into **`DIVERGENCES.md`**. |
 | 2026-10-04 | Review after the first slice and panel (`study\20-review-and-order.md`): direction unchanged; **order of work** set (`STATUS.md`, "Next"). Also: progress is reported on the corpus **and** the upstream expected-output tests; "compiles `qb64pe.bas` and the result passes the suite" is the **M4 exit criterion** (was a stretch); **no incremental (salsa-style) analysis**, a full reparse and recheck with cancellation instead; the IR stays and is reviewed after arrays and `TYPE`; one home per measured fact. |
+| 2026-10-04 | Rust review of the workspace setup (`study\21-rust-review.md`), accepted: **no `_ =>` on semantic enums** in `sema`, `ir`, `codegen-cpp`; **"source is bytes" enforced** by clippy's `disallowed-methods` (`clippy.toml`); **cast lints** with `base::to_u32` and a 4 GiB source limit; **overflow checks in release**, BASIC wrapping written `wrapping_*`; `rust-version` in the manifest; **Rust CI** (tier 1, Windows, `-D warnings`) and a **repo check** for rules 2 and 7 on every push. Panic hook at step 3; `cargo-deny` when a real dependency arrives; no `clippy::pedantic` as a whole. |
 
 Expert-panel recommendations: `study\07-expert-panel.md` (its "Decisions for the user" are answered above). Open
 questions: `STATUS.md`.
@@ -104,10 +105,11 @@ questions: `STATUS.md`.
 | `study\16-freebasic.md` | What to learn from FreeBASIC (module split, runtime-call tables, `-fwrapv`, lowering notes, test conventions), what not to take, and the panel review |
 | `study\17-vscode-extension-testing.md` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do) and how M1 compares |
 | `vscode\` | M1 VS Code extension (`qb64rust`): sources, tests, fixtures, `README.md`, `DEVELOPMENT.md` |
-| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release |
+| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release; `rust.yml` runs fmt, clippy and `cargo test` (tier 1) on Windows; `repo-check.yml` runs `tools\repo_check` on every push |
 | `study\18-vscode-extension-practices.md` | Other extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
 | `study\19-test-cadence.md` | How often each test layer runs (four tiers), what a full run costs, and how the new compiler's runs are kept fast |
 | `study\20-review-and-order.md` | Review of code and plan after the first slice (2026-10-04), the panel's outcome, and the accepted order of work |
+| `study\21-rust-review.md` | Rust review of the workspace setup: lints adopted and not, CI, the repo check, how to apply them |
 | `study\archive\` | Closed reviews of other repositories, kept for the record only: `11` existing VS Code extensions, `12` QB64Fresh (the user's earlier Rust rewrite), `13` reference-doc sources, `14` the `docs-new-2` branch, and `qb64fresh-scripts\` (measurements behind `12`). Their conclusions are in `study\00` §11; nothing in the active plan depends on reading them. |
 | `verification\` | Small programs behind `study\09`, `study\10` and later measurements (`v13*`: type suffixes on DIMmed names), their outputs, and `run.sh` |
 | `tools\builtins\` | Extractor for the built-in table (`extract_builtins.py`) and its output `builtins.json` |
@@ -120,4 +122,5 @@ questions: `STATUS.md`.
 | `tests\frontend\` | Front-end tests of the new compiler, run by mode line (`' TEST: <mode>`; modes `parse-ok`, `check-ok`, `check-fail`, `typed`, `ir`, `cpp`) |
 | `DIVERGENCES.md` | Divergence register: decided differences from the old compiler's observed behaviour |
 | `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler) and its `known_failures.txt` |
+| `tools\repo_check\` | `check_repo.py`: tracked files must hold no local paths, temp folders or network shares (rule 2) and no stray control bytes (rule 7) |
 | `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure; format tests 24 of 24) |
