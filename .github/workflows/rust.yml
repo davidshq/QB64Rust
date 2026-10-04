@@ -1,0 +1,46 @@
+# Tier 1 of the test cadence (study\19) for the compiler workspace on Windows: formatting, clippy with warnings as
+# errors, and cargo test (unit, snapshots, tests\frontend, the corpus front end). Needs no QB64pe: the tests that
+# build an executable are #[ignore]d. Lint choices: study\21.
+name: Rust
+
+on:
+  push:
+    paths-ignore:
+      - "vscode/**"
+      - "study/**"
+      - "openspec/**"
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "vscode/**"
+      - "study/**"
+      - "openspec/**"
+      - "**.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      # The runner's default (core.autocrlf true) would turn LF into CR LF; tests and snapshots see the bytes as
+      # committed, as on a development machine with autocrlf input.
+      - run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+
+      # Installs the toolchain and components named in rust-toolchain.toml.
+      - run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      # CI is set, so insta fails on a changed snapshot instead of writing a .snap.new file.
+      - run: cargo test --workspace --locked
