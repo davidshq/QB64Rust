@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-03 (session 9). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-04 (session 10). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
@@ -82,7 +82,9 @@ Decided 2026-10-03: `_INTEGER64` overflow wraps too, like LONG (`CLAUDE.md`, `st
 
 ## M2: Rust workspace and end-to-end slice (2026-10-03, session 9)
 
-OpenSpec change `m2-workspace-and-slice`: all tasks done (not yet archived). The new compiler `qb64rust` exists:
+OpenSpec change `m2-workspace-and-slice`: all tasks done; archived 2026-10-04 to
+`openspec\changes\archive\2026-10-04-m2-workspace-and-slice\`, its specs now the main specs `openspec\specs\compiler\cli`,
+`compiler\pipeline`, `language\numeric-semantics` and `testing\compiler-tests`. The new compiler `qb64rust` exists:
 `Cargo.toml`, `crates\` (seven crates, one per stage; `crates\README.md`), Rust 1.88. Every stage has its final
 shape: bytes in, lossless tree (our own, over bytes), typed tree with explicit conversions, ABI-neutral IR, C++
 fragments for `qbx.cpp`, built through the reference clone's `Makefile` with overrides (libqb reused, clone
@@ -94,14 +96,13 @@ variables, `PRINT` (`;`, `,`, auto-semicolon), `END`, literals, `+ - * /`, unary
   31 pass, the rest are rejected with a diagnostic; no crash, no wrong executable (`tests\corpus\README.md`).
 - Tier 1 (`cargo test`): unit and `insta` snapshot tests, `tests\frontend\` by mode line, the front end over every
   corpus program (round trip, no panic).
-- `DIVERGENCES.md` (D-001, D-002: integer overflow wraps) and the numeric-semantics spec (in the change; a main
-  spec once archived).
+- `DIVERGENCES.md` (D-001, D-002: integer overflow wraps) and the numeric-semantics spec
+  (`openspec\specs\language\numeric-semantics`).
 - Measured on the way (`study\00` §5): a variable is a name plus a type (`verification\v13*`); `INSTR(0, …)` does
   not raise; negating an integer is believed `_INTEGER64`. The corpus runner now keeps the clone's tracked
   `internal\temp\temp.bin` (it deleted it; `qb64pe.exe` recreates it, `qb64rust` does not).
 
-**Next:** archive `m2-workspace-and-slice` (its four specs become main specs). Then the next M2 change. Its first
-task: add the 17 other corpus programs that already pass to `tests\corpus\slice.list` (125, 130, 132, 133,
+**Next:** the next M2 change. Its first task: add the 17 other corpus programs that already pass to `tests\corpus\slice.list` (125, 130, 132, 133,
 144, 145, 163, 188, 208–211, 27, 74, 75, 87, 92; `tests\corpus\README.md`), and change the count in the tier-1
 test `crates\driver\tests\corpus.rs` from 14 to 31. Not done in this change: its specs and design say 14. Then grow
 the slice (procedures, by-reference arguments, `ON ERROR`, which also pins the "error inside a PRINT" scenario end
