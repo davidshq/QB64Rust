@@ -1,0 +1,110 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 81
+expression: "tree(\"DECLARE SUB s (a AS LONG)\\nDECLARE FUNCTION f$ ()\\nDIM SHARED g AS LONG, h$\\nSUB s (a AS LONG)\\n  SHARED k AS LONG, m\\n  STATIC c AS LONG\\n  EXIT SUB\\nEND SUB\\n\")"
+---
+SourceFile 0..152
+  DeclareStmt 0..25
+    Ident DECLARE
+    Whitespace  
+    ProcHeader 8..25
+      Ident SUB
+      Whitespace  
+      Ident s
+      Whitespace  
+      ParamList 14..25
+        LParen (
+        Param 15..24
+          Ident a
+          Whitespace  
+          AsClause 17..24
+            Ident AS
+            Whitespace  
+            Ident LONG
+        RParen )
+  Newline \x0A
+  DeclareStmt 26..48
+    Ident DECLARE
+    Whitespace  
+    ProcHeader 34..48
+      Ident FUNCTION
+      Whitespace  
+      Ident f$
+      Whitespace  
+      ParamList 46..48
+        LParen (
+        RParen )
+  Newline \x0A
+  DimStmt 49..73
+    Ident DIM
+    Whitespace  
+    Ident SHARED
+    Whitespace  
+    DimItem 60..69
+      Ident g
+      Whitespace  
+      AsClause 62..69
+        Ident AS
+        Whitespace  
+        Ident LONG
+    Comma ,
+    Whitespace  
+    DimItem 71..73
+      Ident h$
+  Newline \x0A
+  ProcDef 74..152
+    ProcHeader 74..91
+      Ident SUB
+      Whitespace  
+      Ident s
+      Whitespace  
+      ParamList 80..91
+        LParen (
+        Param 81..90
+          Ident a
+          Whitespace  
+          AsClause 83..90
+            Ident AS
+            Whitespace  
+            Ident LONG
+        RParen )
+    Newline \x0A
+    Whitespace   
+    SharedStmt 94..113
+      Ident SHARED
+      Whitespace  
+      DimItem 101..110
+        Ident k
+        Whitespace  
+        AsClause 103..110
+          Ident AS
+          Whitespace  
+          Ident LONG
+      Comma ,
+      Whitespace  
+      DimItem 112..113
+        Ident m
+    Newline \x0A
+    Whitespace   
+    StaticStmt 116..132
+      Ident STATIC
+      Whitespace  
+      DimItem 123..132
+        Ident c
+        Whitespace  
+        AsClause 125..132
+          Ident AS
+          Whitespace  
+          Ident LONG
+    Newline \x0A
+    Whitespace   
+    ExitStmt 135..143
+      Ident EXIT
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+    ProcEnd 144..151
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A

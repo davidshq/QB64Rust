@@ -77,5 +77,8 @@ fn rejected_programs_stay_rejected() {
         n += 1;
     }
     assert!(n > 0, "found no corpus programs with an .err file");
-    assert!(accepted.is_empty(), "accepted, but the old compiler rejects them: {accepted:?}");
+    assert!(
+        accepted.is_empty(),
+        "accepted, but the old compiler rejects them: {accepted:?}"
+    );
 }

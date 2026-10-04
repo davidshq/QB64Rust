@@ -58,6 +58,72 @@ fn two_errors_reported() {
 }
 
 #[test]
+fn sub_and_function_definitions() {
+    insta::assert_snapshot!(tree(
+        "SUB s (a AS LONG, b$, c)\n  PRINT a\nEND SUB\nFUNCTION f& (x AS _UNSIGNED LONG)\n  f& = x\nEND FUNCTION\nSUB t\nEND SUB\nPRINT f&(1)\n"
+    ));
+}
+
+#[test]
+fn calls() {
+    insta::assert_snapshot!(tree("CALL s(n, 2)\nCALL t\ns n, \"x\"\ns (n)\nt\nbump n + 1: t\n"));
+}
+
+/// Without `CALL`, arguments that are not an expression list are kept in an `Error` node with no diagnostic
+/// (built-in statements such as `LOCATE , 5`); with `CALL` they are an error.
+#[test]
+fn call_arguments_the_parser_cannot_read() {
+    insta::assert_snapshot!(tree("LOCATE , 5\nCOLOR 4,\ns (1, 2)\nCALL s(1,)\n"));
+}
+
+#[test]
+fn exit_declare_shared_static() {
+    insta::assert_snapshot!(tree(
+        "DECLARE SUB s (a AS LONG)\nDECLARE FUNCTION f$ ()\nDIM SHARED g AS LONG, h$\nSUB s (a AS LONG)\n  SHARED k AS LONG, m\n  STATIC c AS LONG\n  EXIT SUB\nEND SUB\n"
+    ));
+}
+
+/// An array element assignment is not a call: `a(1) = 2` still says arrays are not supported.
+#[test]
+fn array_assignment_is_not_a_call() {
+    insta::assert_snapshot!(tree("a(1) = 2\nEXIT FOR\nDECLARE LIBRARY\n"));
+}
+
+#[test]
+fn recovery_nested_sub() {
+    insta::assert_snapshot!(tree("SUB a\n  PRINT 1\nSUB b\n  PRINT 2\nEND SUB\nPRINT 3\n"));
+}
+
+#[test]
+fn recovery_missing_end_sub() {
+    insta::assert_snapshot!(tree("PRINT 0\nSUB a\n  PRINT 1\n"));
+}
+
+#[test]
+fn recovery_stray_end_sub() {
+    insta::assert_snapshot!(tree("PRINT 0\nEND SUB\nPRINT 1\n"));
+}
+
+#[test]
+fn recovery_wrong_end_kind() {
+    insta::assert_snapshot!(tree("SUB a\n  PRINT 1\nEND FUNCTION\nPRINT 2\n"));
+}
+
+/// A file that ends inside a SUB with no line end after the last statement.
+#[test]
+fn file_ends_inside_a_sub() {
+    insta::assert_snapshot!(tree("SUB a\nPRINT 1"));
+}
+
+/// A header with an error still parses its body; `FUNCTION f AS LONG` is rejected (the old compiler does too).
+#[test]
+fn header_errors() {
+    insta::assert_snapshot!(tree(
+        "FUNCTION f (a) AS LONG\nf = 1\nEND FUNCTION\nSUB\nEND SUB\nSUB s (BYVAL x)\nEND SUB\n"
+    ));
+}
+
+#[test]
 fn unsupported_statement_message() {
     let p = parse(FileId(0), b"PRINT 1\n\nFOR i = 1 TO 2\n");
     let d = &p.diagnostics.list()[0];

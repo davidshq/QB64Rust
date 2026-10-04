@@ -34,6 +34,16 @@ node_wrapper!(
     AsClause,
     AssignStmt,
     EndStmt,
+    ProcDef,
+    ProcHeader,
+    ParamList,
+    Param,
+    ProcEnd,
+    CallStmt,
+    ExitStmt,
+    DeclareStmt,
+    SharedStmt,
+    StaticStmt,
     Literal,
     NameRef,
     CallExpr,
@@ -83,8 +93,130 @@ impl<'a> PrintStmt<'a> {
 }
 
 impl<'a> DimStmt<'a> {
+    /// The `SHARED` word of `DIM SHARED`.
+    pub fn shared(self) -> Option<Tok> {
+        self.0.child_tokens().nth(1).filter(|t| t.kind == Ident)
+    }
+
     pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
         self.0.child_nodes().filter_map(DimItem::cast)
+    }
+}
+
+impl<'a> SharedStmt<'a> {
+    pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
+        self.0.child_nodes().filter_map(DimItem::cast)
+    }
+}
+
+impl<'a> StaticStmt<'a> {
+    pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
+        self.0.child_nodes().filter_map(DimItem::cast)
+    }
+}
+
+impl<'a> ProcDef<'a> {
+    pub fn header(self) -> Option<ProcHeader<'a>> {
+        child(self.0, ProcHeader::cast)
+    }
+
+    /// The body's statement nodes, `Error` nodes included; not the header or the `END SUB`.
+    pub fn body(self) -> impl Iterator<Item = Node<'a>> + 'a {
+        self.0
+            .child_nodes()
+            .filter(|n| !matches!(n.kind(), SyntaxKind::ProcHeader | SyntaxKind::ProcEnd))
+    }
+
+    /// The closing `END SUB`/`END FUNCTION`; `None` when it is missing.
+    pub fn end(self) -> Option<ProcEnd<'a>> {
+        child(self.0, ProcEnd::cast)
+    }
+}
+
+impl<'a> ProcHeader<'a> {
+    /// The `SUB` or `FUNCTION` word.
+    pub fn keyword(self) -> Option<Tok> {
+        self.0.child_tokens().next()
+    }
+
+    /// The procedure's name, with its suffix.
+    pub fn name(self) -> Option<Tok> {
+        self.0.child_tokens().nth(1).filter(|t| t.kind == Ident)
+    }
+
+    pub fn param_list(self) -> Option<ParamList<'a>> {
+        child(self.0, ParamList::cast)
+    }
+
+    /// The parameters; none without a parameter list.
+    pub fn params(self) -> impl Iterator<Item = Param<'a>> + 'a {
+        self.param_list().into_iter().flat_map(|l| l.params())
+    }
+}
+
+impl<'a> ParamList<'a> {
+    pub fn params(self) -> impl Iterator<Item = Param<'a>> + 'a {
+        self.0.child_nodes().filter_map(Param::cast)
+    }
+}
+
+impl<'a> Param<'a> {
+    /// The parameter's name, with its suffix.
+    pub fn name(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Ident)
+    }
+
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
+}
+
+impl ProcEnd<'_> {
+    /// The `SUB` or `FUNCTION` word after `END`.
+    pub fn keyword(self) -> Option<Tok> {
+        self.0.child_tokens().nth(1)
+    }
+}
+
+impl<'a> CallStmt<'a> {
+    /// The `CALL` word, when written.
+    pub fn call_keyword(self) -> Option<Tok> {
+        self.0
+            .children()
+            .take_while(|e| e.as_node().is_none())
+            .filter_map(|e| e.as_token())
+            .find(|t| t.kind == Ident)
+    }
+
+    /// The called name, with its suffix.
+    pub fn name(self) -> Option<Tok> {
+        child(self.0, NameRef::cast).and_then(|n| n.name())
+    }
+
+    /// The arguments, with or without parentheses; `None` when there are none.
+    pub fn arg_list(self) -> Option<ArgList<'a>> {
+        child(self.0, ArgList::cast)
+    }
+
+    /// Arguments the parser could not read as expressions (only without `CALL`; no diagnostic was reported).
+    pub fn unparsed_args(self) -> Option<Node<'a>> {
+        self.arg_list()?
+            .node()
+            .child_nodes()
+            .find(|n| n.kind() == SyntaxKind::Error)
+    }
+}
+
+impl ExitStmt<'_> {
+    /// The `SUB` or `FUNCTION` word after `EXIT`.
+    pub fn keyword(self) -> Option<Tok> {
+        self.0.child_tokens().nth(1)
+    }
+}
+
+impl<'a> DeclareStmt<'a> {
+    pub fn header(self) -> Option<ProcHeader<'a>> {
+        child(self.0, ProcHeader::cast)
     }
 }
 
@@ -195,7 +327,7 @@ impl<'a> ParenExpr<'a> {
 }
 
 impl<'a> PrefixExpr<'a> {
-    /// The operator token (`-`, `+`, `NOT`, `_NEGATE`).
+    /// The operator token (`-`, `NOT`, `_NEGATE`).
     pub fn op(self) -> Option<Tok> {
         self.0.child_tokens().next()
     }
@@ -293,6 +425,111 @@ mod tests {
         assert_eq!(words, vec![9]);
         assert!(items[1].as_clause().is_none());
         assert_eq!(items[1].name().map(|t| t.span.start), Some(15));
+    }
+
+    fn procs(green: &crate::tree::GreenNode) -> Vec<ProcDef<'_>> {
+        let root = SourceFile::cast(Node::root(green, FileId(0))).unwrap();
+        root.statements().filter_map(ProcDef::cast).collect()
+    }
+
+    #[test]
+    fn procedure_parts() {
+        let src = b"FUNCTION f& (a AS LONG, b$)\nf& = a\nEND FUNCTION\n";
+        let p = crate::parse(FileId(0), src);
+        let [f] = procs(&p.green)[..] else {
+            panic!("one ProcDef")
+        };
+        let h = f.header().unwrap();
+        assert_eq!(h.keyword().map(|t| t.span.start), Some(0));
+        assert_eq!(h.name().map(|t| (t.span.start, t.span.end)), Some((9, 11)));
+        let params: Vec<_> = h.params().collect();
+        assert_eq!(params.len(), 2);
+        assert!(params[0].as_clause().is_some());
+        assert_eq!(params[1].name().map(|t| t.span.start), Some(24));
+        assert!(params[1].as_clause().is_none());
+        assert_eq!(f.body().count(), 1);
+        assert!(AssignStmt::cast(f.body().next().unwrap()).is_some());
+        assert_eq!(f.end().and_then(|e| e.keyword()).map(|t| t.span.start), Some(39));
+    }
+
+    #[test]
+    fn missing_end_gives_none() {
+        let p = crate::parse(FileId(0), b"SUB a\nPRINT 1\n");
+        let [a] = procs(&p.green)[..] else {
+            panic!("one ProcDef")
+        };
+        assert!(a.end().is_none());
+        assert_eq!(a.body().count(), 1);
+    }
+
+    #[test]
+    fn nested_header_ends_the_outer_block() {
+        let p = crate::parse(FileId(0), b"SUB a\nPRINT 1\nSUB b\nEND SUB\n");
+        let [a, b] = procs(&p.green)[..] else {
+            panic!("two ProcDefs")
+        };
+        assert!(a.end().is_none());
+        assert!(b.end().is_some());
+    }
+
+    #[test]
+    fn wrong_end_kind_still_closes() {
+        let p = crate::parse(FileId(0), b"SUB a\nEND FUNCTION\n");
+        let [a] = procs(&p.green)[..] else {
+            panic!("one ProcDef")
+        };
+        assert_eq!(a.end().and_then(|e| e.keyword()).map(|t| t.span.start), Some(10));
+    }
+
+    #[test]
+    fn header_without_a_name() {
+        let p = crate::parse(FileId(0), b"SUB\nEND SUB\n");
+        let [a] = procs(&p.green)[..] else {
+            panic!("one ProcDef")
+        };
+        let h = a.header().unwrap();
+        assert!(h.keyword().is_some());
+        assert!(h.name().is_none());
+        assert_eq!(h.params().count(), 0);
+    }
+
+    #[test]
+    fn call_statement_parts() {
+        let p = crate::parse(FileId(0), b"CALL s(n)\n");
+        let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(c.call_keyword().is_some());
+        assert_eq!(c.name().map(|t| t.span.start), Some(5));
+        assert!(matches!(c.arg_list().unwrap().args().next(), Some(Expr::NameRef(_))));
+        assert!(c.unparsed_args().is_none());
+
+        // Without CALL the parentheses make a ParenExpr argument (by value).
+        let p = crate::parse(FileId(0), b"s (n)\n");
+        let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(c.call_keyword().is_none());
+        assert!(matches!(c.arg_list().unwrap().args().next(), Some(Expr::Paren(_))));
+
+        let p = crate::parse(FileId(0), b"t\n");
+        let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(c.arg_list().is_none());
+        assert!(c.unparsed_args().is_none());
+
+        let p = crate::parse(FileId(0), b"LOCATE , 5\n");
+        assert!(p.diagnostics.list().is_empty());
+        let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(c.unparsed_args().is_some());
+    }
+
+    #[test]
+    fn declare_exit_shared() {
+        let p = crate::parse(FileId(0), b"DECLARE SUB s (a)\nDIM SHARED g\nDIM h\nEXIT SUB\n");
+        let root = SourceFile::cast(Node::root(&p.green, FileId(0))).unwrap();
+        let s: Vec<_> = root.statements().collect();
+        let d = DeclareStmt::cast(s[0]).unwrap();
+        assert_eq!(d.header().unwrap().params().count(), 1);
+        assert!(DimStmt::cast(s[1]).unwrap().shared().is_some());
+        assert!(DimStmt::cast(s[2]).unwrap().shared().is_none());
+        // `EXIT` starts at 37, `SUB` at 42.
+        assert_eq!(ExitStmt::cast(s[3]).unwrap().keyword().map(|t| t.span.start), Some(42));
     }
 
     #[test]

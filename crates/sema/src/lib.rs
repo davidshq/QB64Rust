@@ -61,12 +61,60 @@ impl Ty {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct VarId(pub u32);
 
-/// A main-module variable: a name plus a type (design D5).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ProcId(pub u32);
+
+/// Where a variable lives (design D2, D6 of `m2-procedures-and-errors`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Storage {
+    /// A main-module variable (also when a procedure names it with `SHARED`, or sees it through `DIM SHARED`).
+    Main,
+    /// `STATIC` in a procedure: one for the program, keeps its value between calls.
+    Static(ProcId),
+    /// `DIM` or implicit in a procedure: new on every call.
+    Local(ProcId),
+    /// A parameter of the procedure.
+    Param(ProcId),
+    /// The result of a FUNCTION.
+    Result(ProcId),
+}
+
+/// A variable: a name plus a type (design D5), and its storage.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Var {
     /// The name without suffix, in upper case.
     pub name: String,
     pub ty: Ty,
+    pub storage: Storage,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProcKind {
+    Sub,
+    /// A FUNCTION with its result type (its suffix, or SINGLE).
+    Function(Ty),
+}
+
+/// A SUB or FUNCTION.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Proc {
+    /// The name without suffix, in upper case.
+    pub name: String,
+    pub kind: ProcKind,
+    /// One variable per parameter, in order.
+    pub params: Vec<VarId>,
+    /// The FUNCTION's result variable.
+    pub result: Option<VarId>,
+    pub stmts: Vec<Stmt>,
+}
+
+/// How an argument is passed to a procedure (design D4).
+#[derive(Clone, Debug, PartialEq)]
+pub enum Arg {
+    /// The variable itself: the procedure's assignments to the parameter change it.
+    Ref(VarId),
+    /// A fresh copy of a value, already converted to the parameter's type; changes to it are lost.
+    Temp(Expr),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -125,6 +173,12 @@ pub enum ExprKind {
         builtin: BuiltinId,
         args: Vec<Option<Expr>>,
     },
+    /// A FUNCTION call; one argument per parameter. Its `ty` and `qb` are the function's type (measured: printed
+    /// with the function's type, not as an integer operation).
+    CallProc {
+        proc: ProcId,
+        args: Vec<Arg>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -150,6 +204,13 @@ pub enum StmtKind {
         newline: bool,
     },
     End,
+    /// A SUB call; one argument per parameter.
+    Call {
+        proc: ProcId,
+        args: Vec<Arg>,
+    },
+    /// `EXIT SUB` / `EXIT FUNCTION`: leaves the procedure (either word leaves either kind, measured).
+    Exit,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -160,17 +221,25 @@ pub struct Stmt {
     pub kind: StmtKind,
 }
 
-/// The typed main module.
+/// The typed program.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Program {
+    /// Every variable of the program, of every storage class.
     pub vars: Vec<Var>,
+    /// Procedures in definition order.
+    pub procs: Vec<Proc>,
+    /// The main module's statements.
     pub stmts: Vec<Stmt>,
-    /// Where each variable is defined and used (design D12).
+    /// Where each variable and procedure is defined and used (design D12).
     pub symbols: Symbols,
 }
 
 impl Program {
     pub fn var(&self, id: VarId) -> &Var {
         &self.vars[id.0 as usize]
+    }
+
+    pub fn proc(&self, id: ProcId) -> &Proc {
+        &self.procs[id.0 as usize]
     }
 }

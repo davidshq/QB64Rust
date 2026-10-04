@@ -1,8 +1,8 @@
 //! The symbol table (design D12 of `m2-procedures-and-errors`): every resolved name with its definition and
 //! references, and a lookup from a byte position to the symbol named there. Spans are those of the name token,
-//! suffix included. For now only main-module variables are recorded; procedures and labels follow.
+//! suffix included. Variables of every storage class and procedures are recorded; labels follow.
 
-use crate::{Program, VarId};
+use crate::{ProcId, ProcKind, Program, Storage, VarId};
 use qb64rust_base::{FileId, SourceFile, Span};
 use std::collections::HashMap;
 use std::fmt::Write as _;
@@ -13,12 +13,13 @@ pub struct SymbolId(pub u32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SymbolKind {
     Var(VarId),
+    Proc(ProcId),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Symbol {
     pub kind: SymbolKind,
-    /// The name in the `DIM`, or the first use of an implicit variable.
+    /// The name in the `DIM` or procedure header, or the first use of an implicit variable.
     pub def: Span,
     /// The other uses, in source order.
     pub refs: Vec<Span>,
@@ -91,7 +92,22 @@ pub fn dump_symbols(p: &Program, file: &SourceFile) -> String {
         match s.kind {
             SymbolKind::Var(v) => {
                 let v = p.var(v);
-                write!(out, "Var {} : {} def {}", v.name, v.ty.qb_name(), pos(s.def)).unwrap();
+                let storage = match v.storage {
+                    Storage::Main => String::new(),
+                    Storage::Static(q) => format!(" (static in {})", p.proc(q).name),
+                    Storage::Local(q) => format!(" (local in {})", p.proc(q).name),
+                    Storage::Param(q) => format!(" (param of {})", p.proc(q).name),
+                    Storage::Result(q) => format!(" (result of {})", p.proc(q).name),
+                };
+                write!(out, "Var {} : {}{storage} def {}", v.name, v.ty.qb_name(), pos(s.def)).unwrap();
+            }
+            SymbolKind::Proc(q) => {
+                let q = p.proc(q);
+                let kind = match q.kind {
+                    ProcKind::Sub => "SUB".to_string(),
+                    ProcKind::Function(t) => format!("FUNCTION : {}", t.qb_name()),
+                };
+                write!(out, "Proc {} {kind} def {}", q.name, pos(s.def)).unwrap();
             }
         }
         let refs: Vec<String> = s.refs.iter().map(|&r| pos(r)).collect();

@@ -24,6 +24,8 @@ pub struct Builtin {
     pub specialformat: Option<&'static str>,
     /// Return type name for functions.
     pub ret: Option<&'static str>,
+    /// The suffix the name must be written with (`$` for `LEFT$`, `CHR$`); `None` when it is written bare.
+    pub musthave: Option<&'static str>,
 }
 
 include!(concat!(env!("OUT_DIR"), "/builtins_table.rs"));
@@ -46,6 +48,13 @@ pub fn find_function(name: &[u8]) -> Option<BuiltinId> {
         .map(|i| BuiltinId(i as u16))
 }
 
+/// Every entry (function or SUB form) for a name without suffix, compared without regard to ASCII case.
+pub fn find_any(name: &[u8]) -> impl Iterator<Item = &'static Builtin> + '_ {
+    BUILTINS
+        .iter()
+        .filter(move |b| b.name.as_bytes().eq_ignore_ascii_case(name))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -57,6 +66,13 @@ mod tests {
         assert_eq!(b.arg_types, &["LONG", "STRING", "STRING"]);
         assert_eq!(b.optional, Some(&[true, false, false][..]));
         assert_eq!(b.ret, Some("LONG"));
+    }
+
+    #[test]
+    fn required_suffix() {
+        assert!(find_any(b"left").all(|b| b.musthave == Some("$")));
+        assert!(find_any(b"len").all(|b| b.musthave.is_none()));
+        assert!(find_any(b"cls").next().is_some());
     }
 
     #[test]

@@ -35,18 +35,34 @@
   `Symbols::at`, `dump_symbols`. Verify: `cargo test` with no snapshot changed; a `sema` snapshot of the symbol
   dump for the scenario "Definition and references of a variable"; a unit test of `Symbols::at` on a position
   inside, before and after a name.
-- [ ] 3.1 Parser: `ProcDef`/`ProcHeader`/`ParamList`/`Param`, `CallStmt` (with and without `CALL`), `ExitStmt`,
+- [x] 3.1 Parser: `ProcDef`/`ProcHeader`/`ParamList`/`Param`, `CallStmt` (with and without `CALL`), `ExitStmt`,
   `DeclareStmt`, `SharedStmt`, `StaticStmt`, the keyword list (`parser\keywords.rs`), block recovery of D1.
   Verify: parse snapshots for each form and each recovery case (nested SUB, missing `END SUB`, stray `END SUB`,
   wrong `END` kind); corpus round trip; a file that ends inside a SUB. Accessors (D11) for each new node kind,
   returning `None` for the children a recovery case leaves out (unit test per recovery case).
-- [ ] 3.2 `sema`: procedure table (pass 1), scopes, parameters, result variable, calls in statements and
+  Done. Also `ProcEnd` (the closing `END SUB`) and `DIM SHARED`. The keyword list is the old compiler's reserved
+  words (33 of them checked as variable names with `qb64pe.exe`: all rejected). Without `CALL`, arguments that do
+  not parse as expressions (`LOCATE , 5`) go into an `Error` node with no diagnostic, so built-in statements are
+  reported by `sema` ("not supported yet") and a user SUB's by `sema` too (`s (1, 2)`).
+- [x] 3.2 `sema`: procedure table (pass 1), scopes, parameters, result variable, calls in statements and
   expressions, argument passing of D4, reserved names (D3), `EXIT`, `DECLARE`, `STATIC`, `SHARED`, `DIM SHARED`,
   the errors of D8 as measured. Typed dump shows procedures, storage classes and each argument as `ref` or `temp`.
   Verify: `typed` tests for every argument form of D4 and every scope rule; `check-fail` tests for every error of
   D8; tier 1: programs 25, 47, 48, 122, 141, 190, 191 still rejected. Symbols (D12) for procedures, parameters,
   results, locals, `STATIC` and `SHARED` names; verify: symbol-dump snapshots for the scenarios "Same name,
   different symbols" and "Call before definition", and for a `SHARED` line that creates the main-module variable.
+  Done (`tests\frontend\proc_*.bas`, `reserved_names*.bas`, `crates\sema\tests\symbols.rs`). Corrected on the
+  way, measured: pass 2 checks in **file order** (D2); plain `SHARED g` is always the SINGLE `g!`, and `SHARED h
+  AS LONG` types main's plain `h` for the code after it (`verification\v14_shared_plain_*`); a string variable in
+  parentheses is still passed by reference (D4, `s08` output). Until task 4 lowers procedures, the driver stops a
+  program that defines one with "code generation for SUB and FUNCTION is not supported yet" before lowering
+  (`check_lowerable`; `--dump tree|typed` still work). The front end accepts all 12 procedure programs of 4.3
+  (24 … 263). Fixed after review: reserved names measured for every keyword and built-in
+  (`verification\v15_builtin_names.*`; names starting with `_` are never free, `WIDTH` is; checked by
+  `crates\driver\tests\names.rs`), and a local `DIM` shadows a `DIM SHARED` name (`v14_dim_local_*`, D2). Also:
+  there is no unary `+` (measured, `verification\v15_plus_*`: `PRINT +5`, `x = +n`, `2 * +n`, `+s$` are all
+  compile errors; the slice parser had accepted it), and a procedure whose header has an error is entered as
+  broken, so its calls add no second error (`tests\frontend\proc_header_errors.bas`).
 
 ## 4. Procedures: IR, emitter, end to end (D6, D7)
 
@@ -58,6 +74,8 @@
   fragments (Context) for the same constructs.
 - [ ] 4.3 Tier 2: add 24, 64, 69, 84, 85, 115, 124, 140, 192, 193, 196, 263, `s08`–`s10` to `slice.list`. Verify:
   the whole list passes, also with `QB64RUST_NO_FOLD=1`; `git -C ..\QB64pe status --porcelain` unchanged.
+  Found in 3.2, not planned: `s08`–`s12` end with `SYSTEM`, which the subset does not have (the front end says
+  "`SYSTEM` is not supported yet"); it is needed before they can pass. Remove `check_lowerable` (3.2) here.
 
 ## 5. Error handling (D1, D5–D7)
 

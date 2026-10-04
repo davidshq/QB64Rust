@@ -1,0 +1,5 @@
+
+Expected variable/value before '+'
+Caused by (or after):PRINT + 5
+LINE 5:PRINT +5
+exit=1

@@ -1,0 +1,1030 @@
+abs rejected Incorrect number of arguments - Reference: ABS(numericalValue)
+abs& rejected Name already in use (abs)
+access rejected Name already in use (access)
+access& rejected Name already in use (access)
+and rejected Expected variable/value before 'AND'
+and& rejected Name already in use (and)
+any rejected Name already in use (any)
+any& rejected Name already in use (any)
+append rejected Name already in use (append)
+append& rejected Name already in use (append)
+as rejected Name already in use (as)
+as& rejected Name already in use (as)
+asc rejected Expected ( after ASC
+asc& rejected Name already in use (asc)
+atn rejected Incorrect number of arguments - Reference: ATN(tangent!)
+atn& rejected Name already in use (atn)
+base rejected Name already in use (base)
+base& rejected Name already in use (base)
+beep rejected Name already in use (beep)
+beep& rejected Name already in use (beep)
+binary rejected Name already in use (binary)
+binary& rejected Name already in use (binary)
+bload rejected Name already in use (bload)
+bload& rejected Name already in use (bload)
+bsave rejected Name already in use (bsave)
+bsave& rejected Name already in use (bsave)
+call rejected Expected CALL sub-name (...)
+call& rejected Name already in use (call)
+case rejected CASE without SELECT CASE
+case& rejected Name already in use (case)
+cdbl rejected Incorrect number of arguments - Reference: CDBL(expression)
+cdbl& rejected Name already in use (cdbl)
+chain rejected Name already in use (chain)
+chain& rejected Name already in use (chain)
+chdir rejected Name already in use (chdir)
+chdir& rejected Name already in use (chdir)
+chr variable prints: 5
+chr& variable prints: 5
+chr$ rejected Incorrect number of arguments - Reference: CHR$(code%)
+cint rejected Incorrect number of arguments - Reference: CINT(expression)
+cint& rejected Name already in use (cint)
+circle rejected Name already in use (circle)
+circle& rejected Name already in use (circle)
+clear rejected Name already in use (clear)
+clear& rejected Name already in use (clear)
+clng rejected Incorrect number of arguments - Reference: CLNG(expression)
+clng& rejected Name already in use (clng)
+close rejected Name already in use (close)
+close& rejected Name already in use (close)
+cls rejected Name already in use (cls)
+cls& rejected Name already in use (cls)
+color rejected Name already in use (color)
+color& rejected Name already in use (color)
+com rejected Name already in use (com)
+com& rejected Name already in use (com)
+command variable prints: 5
+command& variable prints: 5
+command$ rejected Expected variable =, look for conflict with a CONST name
+common rejected Invalid variable name
+common& rejected Name already in use (common)
+const rejected Expected =
+const& rejected Name already in use (const)
+cos rejected Incorrect number of arguments - Reference: COS(radian_angle!)
+cos& rejected Name already in use (cos)
+csng rejected Incorrect number of arguments - Reference: CSNG(expression)
+csng& rejected Name already in use (csng)
+csrlin rejected Expected variable =, look for conflict with a CONST name
+csrlin& rejected Name already in use (csrlin)
+cvd rejected Incorrect number of arguments - Reference: CVD(stringData$)
+cvd& rejected Name already in use (cvd)
+cvdmbf rejected Incorrect number of arguments - Reference: CVDMBF(stringData$)
+cvdmbf& rejected Name already in use (cvdmbf)
+cvi rejected Incorrect number of arguments - Reference: CVI(stringData$)
+cvi& rejected Name already in use (cvi)
+cvl rejected Incorrect number of arguments - Reference: CVL(stringData$)
+cvl& rejected Name already in use (cvl)
+cvs rejected Incorrect number of arguments - Reference: CVS(stringData$)
+cvs& rejected Name already in use (cvs)
+cvsmbf rejected Incorrect number of arguments - Reference: CVSMBF(stringData$)
+cvsmbf& rejected Name already in use (cvsmbf)
+data rejected Name already in use (DATA)
+data& rejected Name already in use (DATA)
+date variable prints: 5
+date& variable prints: 5
+date$ statement prints: 10-04-2026
+declare rejected Name already in use (declare)
+declare& rejected Name already in use (declare)
+def rejected Name already in use (def)
+def& rejected Name already in use (def)
+defdbl rejected _DEFINE: Expected an alphabet letter or the underscore character (_)
+defdbl& rejected Name already in use (defdbl)
+defint rejected _DEFINE: Expected an alphabet letter or the underscore character (_)
+defint& rejected Name already in use (defint)
+deflng rejected _DEFINE: Expected an alphabet letter or the underscore character (_)
+deflng& rejected Name already in use (deflng)
+defsng rejected _DEFINE: Expected an alphabet letter or the underscore character (_)
+defsng& rejected Name already in use (defsng)
+defstr rejected _DEFINE: Expected an alphabet letter or the underscore character (_)
+defstr& rejected Name already in use (defstr)
+dim rejected Invalid variable name
+dim& rejected Name already in use (dim)
+do rejected DO ERROR! Expected WHILE or UNTIL after DO.
+do& rejected Name already in use (do)
+double rejected Name already in use (DOUBLE)
+double& rejected Name already in use (double)
+draw rejected Name already in use (draw)
+draw& rejected Name already in use (draw)
+else rejected ELSE without IF
+else& rejected Name already in use (else)
+elseif rejected Expected THEN
+elseif& rejected Name already in use (elseif)
+end rejected Expected variable/value before '='
+end& rejected Name already in use (end)
+endif rejected Name already in use (endif)
+endif& rejected Name already in use (endif)
+environ rejected Name already in use (environ)
+environ& rejected Name already in use (environ)
+environ$ rejected Incorrect number of arguments - Reference: ENVIRON$(listIndex%) or ENVIRON$(systemID$)
+eof rejected Incorrect number of arguments - Reference: EOF(fileNumber&)
+eof& rejected Name already in use (eof)
+eqv rejected Expected variable/value before 'EQV'
+eqv& rejected Name already in use (eqv)
+erl rejected Expected variable =, look for conflict with a CONST name
+erl& rejected Name already in use (erl)
+err rejected Expected variable =, look for conflict with a CONST name
+err& rejected Name already in use (err)
+error rejected Name already in use (error)
+error& rejected Name already in use (error)
+exit rejected Name already in use (exit)
+exit& rejected Name already in use (exit)
+exp rejected Incorrect number of arguments - Reference: EXP(numericExpression)
+exp& rejected Name already in use (exp)
+field rejected Expected FIELD #filenumber, characters AS variable$, ...
+field& rejected Name already in use (field)
+fileattr rejected Command not implemented
+fileattr& rejected Name already in use (fileattr)
+files rejected Name already in use (files)
+files& rejected Name already in use (files)
+fix rejected Incorrect number of arguments - Reference: FIX(expression)
+fix& rejected Name already in use (fix)
+for rejected Expected FOR name = start TO end
+for& rejected Name already in use (for)
+fre rejected Command not implemented
+fre& rejected Name already in use (fre)
+freefile rejected Expected variable =, look for conflict with a CONST name
+freefile& rejected Name already in use (freefile)
+function rejected Expected (
+function& rejected Name already in use (function)
+get rejected Name already in use (get)
+get& rejected Name already in use (get)
+gosub rejected Name already in use (gosub)
+gosub& rejected Name already in use (gosub)
+goto rejected Name already in use (goto)
+goto& rejected Name already in use (goto)
+hex variable prints: 5
+hex& variable prints: 5
+hex$ rejected Incorrect number of arguments - Reference: HEX$(decimalNumber)
+if rejected Expected IF expression THEN/GOTO
+if& rejected Name already in use (if)
+imp rejected Expected variable/value before 'IMP'
+imp& rejected Name already in use (imp)
+inkey variable prints: 5
+inkey& variable prints: 5
+inkey$ rejected Expected variable =, look for conflict with a CONST name
+inp rejected Incorrect number of arguments - Reference: INP(address)
+inp& rejected Name already in use (inp)
+input rejected Name already in use (input)
+input& rejected Name already in use (input)
+input$ rejected Incorrect number of arguments - Reference: INPUT$(numberOfBytes%[, fileOrPortNumber])
+instr rejected Incorrect number of arguments - Reference: INSTR([start%,] baseString$, searchString$)
+instr& rejected Name already in use (instr)
+int rejected Incorrect number of arguments - Reference: INT(expression)
+int& rejected Name already in use (int)
+integer rejected Name already in use (INTEGER)
+integer& rejected Name already in use (integer)
+ioctl rejected Name already in use (ioctl)
+ioctl& rejected Name already in use (ioctl)
+ioctl$ rejected Command not implemented
+is rejected Name already in use (is)
+is& rejected Name already in use (is)
+key rejected Name already in use (key)
+key& rejected Name already in use (key)
+kill rejected Name already in use (kill)
+kill& rejected Name already in use (kill)
+lbound rejected Incorrect number of arguments - Reference: LBOUND(arrayName[, dimension%])
+lbound& rejected Name already in use (lbound)
+lcase variable prints: 5
+lcase& variable prints: 5
+lcase$ rejected Incorrect number of arguments - Reference: LCASE$(text$)
+left variable prints: 5
+left& variable prints: 5
+left$ rejected Incorrect number of arguments - Reference: LEFT$(stringValue$, numberOfCharacters%)
+len rejected Incorrect number of arguments - Reference: LEN(literalTextOrVariable$)
+len& rejected Name already in use (len)
+let rejected Expected ... =
+let& rejected Name already in use (let)
+line rejected Name already in use (line)
+line& rejected Name already in use (line)
+list rejected Name already in use (list)
+list& rejected Name already in use (list)
+loc rejected Incorrect number of arguments - Reference: LOC(fileOrPortNumber%)
+loc& rejected Name already in use (loc)
+locate rejected Name already in use (locate)
+locate& rejected Name already in use (locate)
+lock rejected Name already in use (lock)
+lock& rejected Name already in use (lock)
+lof rejected Incorrect number of arguments - Reference: LOF(fileNumber&)
+lof& rejected Name already in use (lof)
+log rejected Incorrect number of arguments - Reference: LOG(value)
+log& rejected Name already in use (log)
+long rejected Name already in use (LONG)
+long& rejected Name already in use (long)
+loop rejected PROGRAM FLOW ERROR!
+loop& rejected Name already in use (loop)
+lpos rejected Incorrect number of arguments - Reference: LPOS(index%)
+lpos& rejected Name already in use (lpos)
+lprint rejected Name already in use (lprint)
+lprint& rejected Name already in use (lprint)
+lset rejected Name already in use (lset)
+lset& rejected Name already in use (lset)
+ltrim variable prints: 5
+ltrim& variable prints: 5
+ltrim$ rejected Incorrect number of arguments - Reference: LTRIM$(text$)
+mid variable prints: 5
+mid& variable prints: 5
+mid$ rejected Expected ( after MID$
+mkd variable prints: 5
+mkd& variable prints: 5
+mkd$ rejected Incorrect number of arguments - Reference: MKD$(doublePrecisionVariableOrLiteral#)
+mkdir rejected Name already in use (mkdir)
+mkdir& rejected Name already in use (mkdir)
+mkdmbf variable prints: 5
+mkdmbf& variable prints: 5
+mkdmbf$ rejected Incorrect number of arguments - Reference: MKDMBF$(value#)
+mki variable prints: 5
+mki& variable prints: 5
+mki$ rejected Incorrect number of arguments - Reference: MKI$(integerVariableOrLiteral%)
+mkl variable prints: 5
+mkl& variable prints: 5
+mkl$ rejected Incorrect number of arguments - Reference: MKL$(longVariableOrLiteral&)
+mks variable prints: 5
+mks& variable prints: 5
+mks$ rejected Incorrect number of arguments - Reference: MKS$(singlePrecisionVariableOrLiteral!)
+mksmbf variable prints: 5
+mksmbf& variable prints: 5
+mksmbf$ rejected Incorrect number of arguments - Reference: MKSMBF$(value!)
+mod rejected Expected variable/value before 'MOD'
+mod& rejected Name already in use (mod)
+name rejected Name already in use (name)
+name& rejected Name already in use (name)
+next rejected Expected variable/value before '='
+next& rejected Name already in use (next)
+not rejected Expected variable/value after 'NOT'
+not& rejected Name already in use (not)
+oct variable prints: 5
+oct& variable prints: 5
+oct$ rejected Incorrect number of arguments - Reference: OCT$(number)
+off rejected Name already in use (off)
+off& rejected Name already in use (off)
+on rejected Expected ON expression GOTO/GOSUB label,label,...
+on& rejected Name already in use (on)
+open rejected Name already in use (open)
+open& rejected Name already in use (open)
+option rejected Name already in use (option)
+option& rejected Name already in use (option)
+or rejected Expected variable/value before 'OR'
+or& rejected Name already in use (or)
+out rejected Name already in use (out)
+out& rejected Name already in use (out)
+output rejected Name already in use (output)
+output& rejected Name already in use (output)
+paint rejected Name already in use (paint)
+paint& rejected Name already in use (paint)
+palette rejected Name already in use (palette)
+palette& rejected Name already in use (palette)
+pcopy rejected Name already in use (pcopy)
+pcopy& rejected Name already in use (pcopy)
+peek rejected Incorrect number of arguments - Reference: PEEK(segment_offset)
+peek& rejected Name already in use (peek)
+pen rejected Name already in use (pen)
+pen& rejected Name already in use (pen)
+play rejected Expected variable =, look for conflict with a CONST name
+play& rejected Name already in use (play)
+pmap rejected Incorrect number of arguments - Reference: PMAP(coordinate, function_number%)
+pmap& rejected Name already in use (pmap)
+point rejected Incorrect number of arguments - Reference: POINT(x, y) or POINT({0|1|2|3})
+point& rejected Name already in use (point)
+poke rejected Name already in use (poke)
+poke& rejected Name already in use (poke)
+pos rejected Incorrect number of arguments - Reference: POS(0)
+pos& rejected Name already in use (pos)
+preset rejected Name already in use (preset)
+preset& rejected Name already in use (preset)
+print rejected Name already in use (print)
+print& rejected Name already in use (print)
+pset rejected Name already in use (pset)
+pset& rejected Name already in use (pset)
+put rejected Name already in use (put)
+put& rejected Name already in use (put)
+random rejected Name already in use (random)
+random& rejected Name already in use (random)
+randomize rejected Name already in use (randomize)
+randomize& rejected Name already in use (randomize)
+read rejected Name already in use (read)
+read& rejected Name already in use (read)
+redim rejected Invalid variable name
+redim& rejected Name already in use (redim)
+rem statement prints: 
+rem& statement prints: 
+reset rejected Name already in use (reset)
+reset& rejected Name already in use (reset)
+restore rejected Syntax error - too many parameters (expected RESTORE label/line number)
+restore& rejected Name already in use (restore)
+resume rejected Too many parameters
+resume& rejected Name already in use (resume)
+return rejected Expected linelabel/linenumber after RETURN
+return& rejected Name already in use (return)
+right variable prints: 5
+right& variable prints: 5
+right$ rejected Incorrect number of arguments - Reference: RIGHT$(stringValue$, numberOfCharacters%)
+rmdir rejected Name already in use (rmdir)
+rmdir& rejected Name already in use (rmdir)
+rnd rejected Expected variable =, look for conflict with a CONST name
+rnd& rejected Name already in use (rnd)
+rset rejected Name already in use (rset)
+rset& rejected Name already in use (rset)
+rtrim variable prints: 5
+rtrim& variable prints: 5
+rtrim$ rejected Incorrect number of arguments - Reference: RTRIM$(text$)
+run rejected Expected variable/value before '='
+run& rejected Name already in use (run)
+sadd rejected Incorrect number of arguments - Reference: SADD(stringVariable$)
+sadd& rejected Name already in use (sadd)
+screen rejected Incorrect number of arguments - Reference: SCREEN(x, y[, colorflag%])
+screen& rejected Name already in use (screen)
+seek rejected Incorrect number of arguments - Reference: SEEK(filenumber&)
+seek& rejected Name already in use (seek)
+seg rejected Name already in use (seg)
+seg& rejected Name already in use (seg)
+select rejected Expected CASE or EVERYCASE
+select& rejected Name already in use (select)
+setmem rejected Command not implemented
+setmem& rejected Name already in use (setmem)
+sgn rejected Incorrect number of arguments - Reference: SGN(value)
+sgn& rejected UNEXPECTED INTERNAL COMPILER ERROR!
+shared rejected SHARED must be used within a SUB/FUNCTION
+shared& rejected Name already in use (shared)
+shell rejected Incorrect number of arguments - Reference: SHELL(commandToRun$)
+shell& rejected Name already in use (shell)
+sin rejected Incorrect number of arguments - Reference: SIN(radian_angle!)
+sin& rejected Name already in use (sin)
+single rejected Name already in use (SINGLE)
+single& rejected Name already in use (single)
+sleep rejected Name already in use (sleep)
+sleep& rejected Name already in use (sleep)
+sound rejected Name already in use (sound)
+sound& rejected Name already in use (sound)
+space variable prints: 5
+space& variable prints: 5
+space$ rejected Incorrect number of arguments - Reference: SPACE$(count&)
+spc rejected Incorrect number of arguments - Reference: SPC(count%)
+spc& rejected Name already in use (spc)
+sqr rejected Incorrect number of arguments - Reference: SQR(value)
+sqr& rejected Name already in use (sqr)
+static rejected STATIC must be used within a SUB/FUNCTION
+static& rejected Name already in use (static)
+step rejected Name already in use (step)
+step& rejected Name already in use (step)
+stick rejected Incorrect number of arguments - Reference: STICK(direction%) or STICK(direction%, axis_number%)
+stick& rejected Name already in use (stick)
+stop rejected Expected variable/value before '='
+stop& rejected Name already in use (stop)
+str variable prints: 5
+str& variable prints: 5
+str$ rejected Incorrect number of arguments - Reference: STR$(number)
+strig rejected Incorrect number of arguments - Reference: STRIG(button_function%) or STRIG(button_function%, device_number%)
+strig& rejected Name already in use (strig)
+string rejected Name already in use (STRING)
+string& rejected Name already in use (string)
+string$ rejected Incorrect number of arguments - Reference: STRING$(count&, {character$ | ASCIIcode%})
+sub rejected Expected (
+sub& rejected Name already in use (sub)
+swap rejected Name already in use (swap)
+swap& rejected Name already in use (swap)
+system rejected Expected variable/value before '='
+system& rejected Name already in use (system)
+tab rejected Incorrect number of arguments - Reference: TAB(column%)
+tab& rejected Name already in use (tab)
+tan rejected Incorrect number of arguments - Reference: TAN(radian_angle!)
+tan& rejected Name already in use (tan)
+then rejected THEN without IF
+then& rejected Name already in use (then)
+time variable prints: 5
+time& variable prints: 5
+time$ statement prints: 15:03:03
+timer rejected Expected variable =, look for conflict with a CONST name
+timer& rejected Name already in use (timer)
+to rejected Name already in use (to)
+to& rejected Name already in use (to)
+troff rejected Name already in use (troff)
+troff& rejected Name already in use (troff)
+tron rejected Name already in use (tron)
+tron& rejected Name already in use (tron)
+type rejected Expected TYPE typename
+type& rejected Name already in use (type)
+ubound rejected Incorrect number of arguments - Reference: UBOUND(arrayName[, dimension%])
+ubound& rejected Name already in use (ubound)
+ucase variable prints: 5
+ucase& variable prints: 5
+ucase$ rejected Incorrect number of arguments - Reference: UCASE$(text$)
+uevent rejected Name already in use (uevent)
+uevent& rejected Name already in use (uevent)
+unlock rejected Name already in use (unlock)
+unlock& rejected Name already in use (unlock)
+until rejected Name already in use (until)
+until& rejected Name already in use (until)
+using rejected Name already in use (using)
+using& rejected Name already in use (using)
+val rejected Incorrect number of arguments - Reference: VAL(stringValue$[, numericalType])
+val& rejected Name already in use (val)
+varptr rejected Incorrect number of arguments - Reference: VARPTR(variable_name[(reference_index%)])
+varptr& rejected Name already in use (varptr)
+varptr$ rejected Incorrect number of arguments - Reference: VARPTR(variable_name[(reference_index%)])
+varseg rejected Incorrect number of arguments - Reference: VARSEG(variable_name[(start_index)])
+varseg& rejected Name already in use (varseg)
+view rejected Name already in use (view)
+view& rejected Name already in use (view)
+wait rejected Name already in use (wait)
+wait& rejected Name already in use (wait)
+wend rejected Name already in use (wend)
+wend& rejected Name already in use (wend)
+while rejected Expected variable/value before '='
+while& rejected Name already in use (while)
+width variable prints: 5
+width& variable prints: 5
+window rejected Name already in use (window)
+window& rejected Name already in use (window)
+write rejected Name already in use (write)
+write& rejected Name already in use (write)
+xor rejected Expected variable/value before 'XOR'
+xor& rejected Name already in use (xor)
+_acceptfiledrop rejected Expected variable =, look for conflict with a CONST name
+_acceptfiledrop& rejected Invalid variable name
+_acos rejected Incorrect number of arguments - Reference: _ACOS(cosine_value!)
+_acos& rejected Invalid variable name
+_acosh rejected Incorrect number of arguments - Reference: _ACOSH(value)
+_acosh& rejected Invalid variable name
+_adler32 rejected Incorrect number of arguments - Reference: _ADLER32(dataString$)
+_adler32& rejected Invalid variable name
+_allowfullscreen rejected Invalid variable name
+_allowfullscreen& rejected Invalid variable name
+_alpha rejected Incorrect number of arguments - Reference: _ALPHA(color~&[, imageHandle&])
+_alpha& rejected Invalid variable name
+_alpha32 rejected Incorrect number of arguments - Reference: _ALPHA32(rgbaColor&)
+_alpha32& rejected Invalid variable name
+_andalso rejected Expected variable/value before '_ANDALSO'
+_andalso& rejected Invalid variable name
+_arccot rejected Incorrect number of arguments - Reference: _ARCCOT(value)
+_arccot& rejected Invalid variable name
+_arccsc rejected Incorrect number of arguments - Reference: _ARCCSC(value)
+_arccsc& rejected Invalid variable name
+_arcsec rejected Incorrect number of arguments - Reference: _ARCSEC(value)
+_arcsec& rejected Invalid variable name
+_asin rejected Incorrect number of arguments - Reference: _ASIN(sine_value!)
+_asin& rejected Invalid variable name
+_asinh rejected Incorrect number of arguments - Reference: _ASINH(value)
+_asinh& rejected Invalid variable name
+_assert rejected Invalid variable name
+_assert& rejected Invalid variable name
+_atan2 rejected Incorrect number of arguments - Reference: _ATAN2(y, x)
+_atan2& rejected Invalid variable name
+_atanh rejected Incorrect number of arguments - Reference: _ATANH(value)
+_atanh& rejected Invalid variable name
+_autodisplay rejected Expected variable =, look for conflict with a CONST name
+_autodisplay& rejected Invalid variable name
+_axis rejected Expected variable =, look for conflict with a CONST name
+_axis& rejected Invalid variable name
+_backgroundcolor rejected Expected variable =, look for conflict with a CONST name
+_backgroundcolor& rejected Invalid variable name
+_base64decode rejected Invalid variable name
+_base64decode& rejected Invalid variable name
+_base64decode$ rejected Incorrect number of arguments - Reference: _BASE64DECODE$(stringToDecode$)
+_base64encode rejected Invalid variable name
+_base64encode& rejected Invalid variable name
+_base64encode$ rejected Incorrect number of arguments - Reference: _BASE64ENCODE$(stringToEncode$)
+_bin rejected Invalid variable name
+_bin& rejected Invalid variable name
+_bin$ rejected Incorrect number of arguments - Reference: _BIN$(number)
+_bit rejected Invalid variable name
+_bit& rejected Invalid variable name
+_blend rejected Expected variable =, look for conflict with a CONST name
+_blend& rejected Invalid variable name
+_blink rejected Expected variable =, look for conflict with a CONST name
+_blink& rejected Invalid variable name
+_blue rejected Incorrect number of arguments - Reference: _BLUE(rgbaColorIndex&[, imageHandle&])
+_blue& rejected Invalid variable name
+_blue32 rejected Incorrect number of arguments - Reference: _BLUE32(rgbaColor&)
+_blue32& rejected Invalid variable name
+_brightness32 rejected Incorrect number of arguments - Reference: _BRIGHTNESS32(rgbaColor&)
+_brightness32& rejected Invalid variable name
+_button rejected Expected variable =, look for conflict with a CONST name
+_button& rejected Invalid variable name
+_buttonchange rejected Expected variable =, look for conflict with a CONST name
+_buttonchange& rejected Invalid variable name
+_byte rejected Invalid variable name
+_byte& rejected Invalid variable name
+_capslock rejected Expected variable =, look for conflict with a CONST name
+_capslock& rejected Invalid variable name
+_cast rejected Incorrect number of arguments - Reference: _CAST(numericalType, numericalValue)
+_cast& rejected Invalid variable name
+_ceil rejected Incorrect number of arguments - Reference: _CEIL(expression)
+_ceil& rejected Invalid variable name
+_cinp rejected Expected variable =, look for conflict with a CONST name
+_cinp& rejected Invalid variable name
+_clamp rejected Incorrect number of arguments - Reference: _Clamp(value, minimum, maximum)
+_clamp& rejected Invalid variable name
+_clearcolor rejected Expected variable =, look for conflict with a CONST name
+_clearcolor& rejected Invalid variable name
+_clipboard rejected Invalid variable name
+_clipboard& rejected Invalid variable name
+_clipboard$ statement prints: a
+_clipboardimage statement prints: -11
+_clipboardimage& rejected Invalid variable name
+_colorchooserdialog rejected Expected variable =, look for conflict with a CONST name
+_colorchooserdialog& rejected Invalid variable name
+_commandcount rejected Expected variable =, look for conflict with a CONST name
+_commandcount& rejected Invalid variable name
+_compiledate rejected Invalid variable name
+_compiledate& rejected Invalid variable name
+_compiledate$ rejected Expected variable =, look for conflict with a CONST name
+_compilerversion rejected Invalid variable name
+_compilerversion& rejected Invalid variable name
+_compilerversion$ rejected Expected variable =, look for conflict with a CONST name
+_compiletime rejected Invalid variable name
+_compiletime& rejected Invalid variable name
+_compiletime$ rejected Expected variable =, look for conflict with a CONST name
+_connected rejected Incorrect number of arguments - Reference: _CONNECTED(connectionHandle&)
+_connected& rejected Invalid variable name
+_connectionaddress rejected Incorrect number of arguments - Reference: _CONNECTIONADDRESS(connectionHandle&)
+_connectionaddress& rejected Invalid variable name
+_console rejected Expected variable =, look for conflict with a CONST name
+_console& rejected Invalid variable name
+_consolecursor rejected Invalid variable name
+_consolecursor& rejected Invalid variable name
+_consolefont rejected Invalid variable name
+_consolefont& rejected Invalid variable name
+_consoleinput rejected Expected variable =, look for conflict with a CONST name
+_consoleinput& rejected Invalid variable name
+_consoletitle rejected Invalid variable name
+_consoletitle& rejected Invalid variable name
+_continue rejected Invalid variable name
+_continue& rejected Invalid variable name
+_controlchr rejected Expected variable =, look for conflict with a CONST name
+_controlchr& rejected Invalid variable name
+_copyimage rejected Incorrect number of arguments - Reference: _COPYIMAGE(imageHandle&[, mode])
+_copyimage& rejected Invalid variable name
+_copypalette rejected Invalid variable name
+_copypalette& rejected Invalid variable name
+_cosh rejected Incorrect number of arguments - Reference: _COSH(value)
+_cosh& rejected Invalid variable name
+_cot rejected Incorrect number of arguments - Reference: _COT(value)
+_cot& rejected Invalid variable name
+_coth rejected Incorrect number of arguments - Reference: _COTH(value)
+_coth& rejected Invalid variable name
+_crc32 rejected Incorrect number of arguments - Reference: _CRC32(dataString$)
+_crc32& rejected Invalid variable name
+_csc rejected Incorrect number of arguments - Reference: _CSC(value)
+_csc& rejected Invalid variable name
+_csch rejected Incorrect number of arguments - Reference: _CSCH(value)
+_csch& rejected Invalid variable name
+_cv rejected Incorrect number of arguments - Reference: _CV(numericalType, MKstringValue$)
+_cv& rejected Invalid variable name
+_cwd rejected Invalid variable name
+_cwd& rejected Invalid variable name
+_cwd$ rejected Expected variable =, look for conflict with a CONST name
+_d2g rejected Incorrect number of arguments - Reference: _D2G(angleInDegrees!)
+_d2g& rejected Invalid variable name
+_d2r rejected Incorrect number of arguments - Reference: _D2R(angleInDegrees!)
+_d2r& rejected Invalid variable name
+_defaultcolor rejected Expected variable =, look for conflict with a CONST name
+_defaultcolor& rejected Invalid variable name
+_deflate rejected Invalid variable name
+_deflate& rejected Invalid variable name
+_deflate$ rejected Incorrect number of arguments - Reference: _DEFLATE$(stringToCompress$[, compressionLevel&])
+_delay rejected Invalid variable name
+_delay& rejected Invalid variable name
+_depthbuffer rejected Invalid variable name
+_depthbuffer& rejected Invalid variable name
+_desktopheight rejected Expected variable =, look for conflict with a CONST name
+_desktopheight& rejected Invalid variable name
+_desktoprefreshrate rejected Expected variable =, look for conflict with a CONST name
+_desktoprefreshrate& rejected Invalid variable name
+_desktopwidth rejected Expected variable =, look for conflict with a CONST name
+_desktopwidth& rejected Invalid variable name
+_dest rejected Expected variable =, look for conflict with a CONST name
+_dest& rejected Invalid variable name
+_device rejected Invalid variable name
+_device& rejected Invalid variable name
+_device$ rejected Expected variable =, look for conflict with a CONST name
+_deviceinput rejected Expected variable =, look for conflict with a CONST name
+_deviceinput& rejected Invalid variable name
+_devices rejected Expected variable =, look for conflict with a CONST name
+_devices& rejected Invalid variable name
+_dir rejected Invalid variable name
+_dir& rejected Invalid variable name
+_dir$ rejected Incorrect number of arguments - Reference: _DIR$("folderspecification")
+_direxists rejected Incorrect number of arguments - Reference: _DIREXISTS(path$)
+_direxists& rejected Invalid variable name
+_display rejected Expected variable =, look for conflict with a CONST name
+_display& rejected Invalid variable name
+_displayorder rejected Invalid variable name
+_displayorder& rejected Invalid variable name
+_dontblend rejected Invalid variable name
+_dontblend& rejected Invalid variable name
+_droppedfile rejected Expected variable =, look for conflict with a CONST name
+_droppedfile& rejected Invalid variable name
+_dynamic rejected Invalid variable name
+_dynamic& rejected Invalid variable name
+_echo rejected Invalid variable name
+_echo& rejected Invalid variable name
+_embedded rejected Invalid variable name
+_embedded& rejected Invalid variable name
+_embedded$ rejected Incorrect number of arguments - Reference: _EMBEDDED$("handle")
+_environcount rejected Expected variable =, look for conflict with a CONST name
+_environcount& rejected Invalid variable name
+_errorline rejected Expected variable =, look for conflict with a CONST name
+_errorline& rejected Invalid variable name
+_errormessage rejected Invalid variable name
+_errormessage& rejected Invalid variable name
+_errormessage$ rejected Expected variable =, look for conflict with a CONST name
+_exit rejected Expected variable =, look for conflict with a CONST name
+_exit& rejected Invalid variable name
+_explicit rejected Invalid variable name
+_explicit& rejected Invalid variable name
+_explicitarray rejected Invalid variable name
+_explicitarray& rejected Invalid variable name
+_fileexists rejected Incorrect number of arguments - Reference: _FILEEXISTS(fileName$)
+_fileexists& rejected Invalid variable name
+_files rejected Invalid variable name
+_files& rejected Invalid variable name
+_files$ rejected Expected variable =, look for conflict with a CONST name
+_finishdrop rejected Invalid variable name
+_finishdrop& rejected Invalid variable name
+_float rejected Invalid variable name
+_float& rejected Invalid variable name
+_font rejected Expected variable =, look for conflict with a CONST name
+_font& rejected Invalid variable name
+_fontheight rejected Expected variable =, look for conflict with a CONST name
+_fontheight& rejected Invalid variable name
+_fontwidth rejected Expected variable =, look for conflict with a CONST name
+_fontwidth& rejected Invalid variable name
+_fps rejected Invalid variable name
+_fps& rejected Invalid variable name
+_freefont rejected Invalid variable name
+_freefont& rejected Invalid variable name
+_freeimage rejected Invalid variable name
+_freeimage& rejected Invalid variable name
+_freetimer rejected Expected variable =, look for conflict with a CONST name
+_freetimer& rejected Invalid variable name
+_fullpath rejected Invalid variable name
+_fullpath& rejected Invalid variable name
+_fullpath$ rejected Incorrect number of arguments - Reference: _FULLPATH$(pathName$)
+_fullscreen rejected Expected variable =, look for conflict with a CONST name
+_fullscreen& rejected Invalid variable name
+_g2d rejected Incorrect number of arguments - Reference: _G2D(gradient!)
+_g2d& rejected Invalid variable name
+_g2r rejected Incorrect number of arguments - Reference: _G2R(gradient!)
+_g2r& rejected Invalid variable name
+_glrender rejected Invalid variable name
+_glrender& rejected Invalid variable name
+_green rejected Incorrect number of arguments - Reference: _GREEN(rgbaColorIndex&[, imageHandle&])
+_green& rejected Invalid variable name
+_green32 rejected Incorrect number of arguments - Reference: _GREEN32(rgbaColor&)
+_green32& rejected Invalid variable name
+_height rejected Expected variable =, look for conflict with a CONST name
+_height& rejected Invalid variable name
+_hsb32 rejected Incorrect number of arguments - Reference: _HSB32(hue#, saturation#, brightness#)
+_hsb32& rejected Invalid variable name
+_hsba32 rejected Incorrect number of arguments - Reference: _HSBA32(hue#, saturation#, brightness#, alpha#)
+_hsba32& rejected Invalid variable name
+_hue32 rejected Incorrect number of arguments - Reference: _HUE32(rgbaColor&)
+_hue32& rejected Invalid variable name
+_hypot rejected Incorrect number of arguments - Reference: _HYPOT(x, y)
+_hypot& rejected Invalid variable name
+_icon rejected Invalid variable name
+_icon& rejected Invalid variable name
+_iif rejected Incorrect number of arguments - Reference: _IIF(expression, truePart, falsePart)
+_iif& rejected Invalid variable name
+_inclerrorfile rejected Invalid variable name
+_inclerrorfile& rejected Invalid variable name
+_inclerrorfile$ rejected Expected variable =, look for conflict with a CONST name
+_inclerrorline rejected Expected variable =, look for conflict with a CONST name
+_inclerrorline& rejected Invalid variable name
+_inflate rejected Invalid variable name
+_inflate& rejected Invalid variable name
+_inflate$ rejected Incorrect number of arguments - Reference: _INFLATE$(stringToDecompress$[, originalSize&])
+_inputbox rejected Invalid variable name
+_inputbox& rejected Invalid variable name
+_inputbox$ rejected Expected variable =, look for conflict with a CONST name
+_instrrev rejected Incorrect number of arguments - Reference: _INSTRREV([start%,] baseString$, searchString$)
+_instrrev& rejected Invalid variable name
+_integer64 rejected Invalid variable name
+_integer64& rejected Invalid variable name
+_keyclear rejected Invalid variable name
+_keyclear& rejected Invalid variable name
+_keydown rejected Incorrect number of arguments - Reference: _KEYDOWN(code&)
+_keydown& rejected Invalid variable name
+_keyhit rejected Expected variable =, look for conflict with a CONST name
+_keyhit& rejected Invalid variable name
+_lastaxis rejected Expected variable =, look for conflict with a CONST name
+_lastaxis& rejected Invalid variable name
+_lastbutton rejected Expected variable =, look for conflict with a CONST name
+_lastbutton& rejected Invalid variable name
+_lastwheel rejected Expected variable =, look for conflict with a CONST name
+_lastwheel& rejected Invalid variable name
+_limit rejected Invalid variable name
+_limit& rejected Invalid variable name
+_loadfont rejected Incorrect number of arguments - Reference: _LOADFONT(fileName$, size&[, "{MONOSPACE|, UNICODE|, DONTBLEND|, MEMORY|, AUTOMONO}"][, fontIndex])
+_loadfont& rejected Invalid variable name
+_loadimage rejected Incorrect number of arguments - Reference: _LOADIMAGE(fileName$[, [mode&][, requirements$]])
+_loadimage& rejected Invalid variable name
+_logerror rejected Invalid variable name
+_logerror& rejected Invalid variable name
+_loginfo rejected Invalid variable name
+_loginfo& rejected Invalid variable name
+_logminlevel rejected Expected variable =, look for conflict with a CONST name
+_logminlevel& rejected Invalid variable name
+_logtrace rejected Invalid variable name
+_logtrace& rejected Invalid variable name
+_logwarn rejected Invalid variable name
+_logwarn& rejected Invalid variable name
+_maptriangle rejected Invalid variable name
+_maptriangle& rejected Invalid variable name
+_mapunicode rejected Incorrect number of arguments - Reference: _MAPUNICODE(asciiCode%)
+_mapunicode& rejected Invalid variable name
+_max rejected Incorrect number of arguments - Reference: _Max(value1, value2)
+_max& rejected Invalid variable name
+_md5 rejected Invalid variable name
+_md5& rejected Invalid variable name
+_md5$ rejected Incorrect number of arguments - Reference: _MD5$(dataString$)
+_mem rejected Incorrect number of arguments - Reference: _MEM(referenceVariable) or _MEM(offset, byteSize)
+_mem& rejected Invalid variable name
+_memcopy rejected Invalid variable name
+_memcopy& rejected Invalid variable name
+_memelement rejected Incorrect number of arguments - Reference: _MEMELEMENT(referenceVariable)
+_memelement& rejected Invalid variable name
+_memexists rejected Incorrect number of arguments - Reference: _MEMEXISTS(memBlock)
+_memexists& rejected Invalid variable name
+_memfill rejected Expected _MEMFILL mem-reference, offset, bytes, variable|value[AS type]
+_memfill& rejected Invalid variable name
+_memfree rejected Invalid variable name
+_memfree& rejected Invalid variable name
+_memget rejected Expected _MEMGET mem-reference, offset, variable
+_memget& rejected Invalid variable name
+_memimage rejected Expected variable =, look for conflict with a CONST name
+_memimage& rejected Invalid variable name
+_memnew rejected Incorrect number of arguments - Reference: _MEMNEW(byteSize)
+_memnew& rejected Invalid variable name
+_memput rejected Expected _MEMPUT mem-reference, offset, variable|value[AS type]
+_memput& rejected Invalid variable name
+_memsound rejected Incorrect number of arguments - Reference: _MEMSOUND(soundHandle&)
+_memsound& rejected Invalid variable name
+_messagebox rejected Expected variable =, look for conflict with a CONST name
+_messagebox& rejected Invalid variable name
+_midisoundbank rejected Invalid variable name
+_midisoundbank& rejected Invalid variable name
+_min rejected Incorrect number of arguments - Reference: _Min(value1, value2)
+_min& rejected Invalid variable name
+_mk rejected Invalid variable name
+_mk& rejected Invalid variable name
+_mk$ rejected Incorrect number of arguments - Reference: _MK$(numericalType, numericalValue)
+_mousebutton rejected Incorrect number of arguments - Reference: _MOUSEBUTTON(buttonNumber)
+_mousebutton& rejected Invalid variable name
+_mousecursor rejected Invalid variable name
+_mousecursor& rejected Invalid variable name
+_mousedisabled rejected Expected variable =, look for conflict with a CONST name
+_mousedisabled& rejected Invalid variable name
+_mousehidden rejected Expected variable =, look for conflict with a CONST name
+_mousehidden& rejected Invalid variable name
+_mousehide rejected Invalid variable name
+_mousehide& rejected Invalid variable name
+_mouseinput rejected Expected variable =, look for conflict with a CONST name
+_mouseinput& rejected Invalid variable name
+_mousemove rejected Invalid variable name
+_mousemove& rejected Invalid variable name
+_mousemovementx rejected Expected variable =, look for conflict with a CONST name
+_mousemovementx& rejected Invalid variable name
+_mousemovementy rejected Expected variable =, look for conflict with a CONST name
+_mousemovementy& rejected Invalid variable name
+_mouseshow rejected Invalid variable name
+_mouseshow& rejected Invalid variable name
+_mousewheel rejected Expected variable =, look for conflict with a CONST name
+_mousewheel& rejected Invalid variable name
+_mousex rejected Expected variable =, look for conflict with a CONST name
+_mousex& rejected Invalid variable name
+_mousey rejected Expected variable =, look for conflict with a CONST name
+_mousey& rejected Invalid variable name
+_negate rejected Expected variable/value after '_NEGATE'
+_negate& rejected Invalid variable name
+_newimage rejected Incorrect number of arguments - Reference: _NEWIMAGE(width&, height&, mode)
+_newimage& rejected Invalid variable name
+_notifypopup rejected Invalid variable name
+_notifypopup& rejected Invalid variable name
+_numlock rejected Expected variable =, look for conflict with a CONST name
+_numlock& rejected Invalid variable name
+_offset rejected Incorrect number of arguments - Reference: _OFFSET(variable)
+_offset& rejected Invalid variable name
+_openclient rejected Incorrect number of arguments - Reference: _OPENCLIENT("TCP/IP:port:address")
+_openclient& rejected Invalid variable name
+_openconnection rejected Incorrect number of arguments - Reference: _OPENCONNECTION(hostHandle)
+_openconnection& rejected Invalid variable name
+_openfiledialog rejected Invalid variable name
+_openfiledialog& rejected Invalid variable name
+_openfiledialog$ rejected Expected variable =, look for conflict with a CONST name
+_openhost rejected Incorrect number of arguments - Reference: _OPENHOST("TCP/IP:portNumber")
+_openhost& rejected Invalid variable name
+_orelse rejected Expected variable/value before '_ORELSE'
+_orelse& rejected Invalid variable name
+_os rejected Invalid variable name
+_os& rejected Invalid variable name
+_os$ rejected Expected variable =, look for conflict with a CONST name
+_palettecolor rejected Incorrect number of arguments - Reference: _PALETTECOLOR(attributeNumber%, imgHandle&)
+_palettecolor& rejected Invalid variable name
+_pi rejected Expected variable =, look for conflict with a CONST name
+_pi& rejected Invalid variable name
+_pixelsize rejected Expected variable =, look for conflict with a CONST name
+_pixelsize& rejected Invalid variable name
+_printimage rejected Invalid variable name
+_printimage& rejected Invalid variable name
+_printmode rejected Expected variable =, look for conflict with a CONST name
+_printmode& rejected Invalid variable name
+_printstring rejected Invalid variable name
+_printstring& rejected Invalid variable name
+_printwidth rejected Incorrect number of arguments - Reference: _PRINTWIDTH(textToPrint$[, destinationHandle&])
+_printwidth& rejected Invalid variable name
+_putimage rejected Invalid variable name
+_putimage& rejected Invalid variable name
+_r2d rejected Incorrect number of arguments - Reference: _R2D(angleInRadians!)
+_r2d& rejected Invalid variable name
+_r2g rejected Incorrect number of arguments - Reference: _R2G(angleInRadians!)
+_r2g& rejected Invalid variable name
+_readbit rejected Incorrect number of arguments - Reference: _READBIT(numericalVariable, numericalValue)
+_readbit& rejected Invalid variable name
+_readfile rejected Invalid variable name
+_readfile& rejected Invalid variable name
+_readfile$ rejected Incorrect number of arguments - Reference: _READFILE$(fileSpec$)
+_red rejected Incorrect number of arguments - Reference: _RED(rgbaColorIndex&[, imageHandle&])
+_red& rejected Invalid variable name
+_red32 rejected Incorrect number of arguments - Reference: _RED32(rgbaColor&)
+_red32& rejected Invalid variable name
+_resetbit rejected Incorrect number of arguments - Reference: _RESETBIT(numericalVariable, numericalValue)
+_resetbit& rejected Invalid variable name
+_resize rejected Expected variable =, look for conflict with a CONST name
+_resize& rejected Invalid variable name
+_resizeheight rejected Expected variable =, look for conflict with a CONST name
+_resizeheight& rejected Invalid variable name
+_resizewidth rejected Expected variable =, look for conflict with a CONST name
+_resizewidth& rejected Invalid variable name
+_rgb rejected Incorrect number of arguments - Reference: _RGB(red&, green&, blue&[, imageHandle&])
+_rgb& rejected Invalid variable name
+_rgb32 rejected Incorrect number of arguments - Reference: _RGB32(red&, green&, blue&[, alpha&]) or _RGB32(intensity&[, alpha&])
+_rgb32& rejected Invalid variable name
+_rgba rejected Incorrect number of arguments - Reference: _RGBA(red&, green&, blue&, alpha&[, imageHandle&])
+_rgba& rejected Invalid variable name
+_rgba32 rejected Incorrect number of arguments - Reference: _RGBA32(red&, green&, blue&, alpha&)
+_rgba32& rejected Invalid variable name
+_rol rejected Incorrect number of arguments - Reference: _ROL(numericalVariable, numericalValue)
+_rol& rejected Invalid variable name
+_ror rejected Incorrect number of arguments - Reference: _ROR(numericalVariable, numericalValue)
+_ror& rejected Invalid variable name
+_round rejected Incorrect number of arguments - Reference: _ROUND(number)
+_round& rejected Invalid variable name
+_saturation32 rejected Incorrect number of arguments - Reference: _SATURATION32(rgbaColor&)
+_saturation32& rejected Invalid variable name
+_savefiledialog rejected Invalid variable name
+_savefiledialog& rejected Invalid variable name
+_savefiledialog$ rejected Expected variable =, look for conflict with a CONST name
+_saveimage rejected Invalid variable name
+_saveimage& rejected Invalid variable name
+_scaledheight rejected Expected variable =, look for conflict with a CONST name
+_scaledheight& rejected Invalid variable name
+_scaledwidth rejected Expected variable =, look for conflict with a CONST name
+_scaledwidth& rejected Invalid variable name
+_screenclick rejected Invalid variable name
+_screenclick& rejected Invalid variable name
+_screenexists rejected Expected variable =, look for conflict with a CONST name
+_screenexists& rejected Invalid variable name
+_screenhide rejected Expected variable =, look for conflict with a CONST name
+_screenhide& rejected Invalid variable name
+_screenicon rejected Expected variable =, look for conflict with a CONST name
+_screenicon& rejected Invalid variable name
+_screenimage rejected Expected variable =, look for conflict with a CONST name
+_screenimage& rejected Invalid variable name
+_screenmove rejected Invalid variable name
+_screenmove& rejected Invalid variable name
+_screenprint rejected Invalid variable name
+_screenprint& rejected Invalid variable name
+_screenshow rejected Invalid variable name
+_screenshow& rejected Invalid variable name
+_screenx rejected Expected variable =, look for conflict with a CONST name
+_screenx& rejected Invalid variable name
+_screeny rejected Expected variable =, look for conflict with a CONST name
+_screeny& rejected Invalid variable name
+_scrolllock rejected Expected variable =, look for conflict with a CONST name
+_scrolllock& rejected Invalid variable name
+_sec rejected Incorrect number of arguments - Reference: _SEC(value)
+_sec& rejected Invalid variable name
+_sech rejected Incorrect number of arguments - Reference: _SECH(value)
+_sech& rejected Invalid variable name
+_selectfolderdialog rejected Invalid variable name
+_selectfolderdialog& rejected Invalid variable name
+_selectfolderdialog$ rejected Expected variable =, look for conflict with a CONST name
+_setalpha rejected Invalid variable name
+_setalpha& rejected Invalid variable name
+_setbit rejected Incorrect number of arguments - Reference: _SETBIT(numericalVariable, numericalValue)
+_setbit& rejected Invalid variable name
+_shellhide rejected Incorrect number of arguments - Reference: _SHELLHIDE(commandToRun$)
+_shellhide& rejected Invalid variable name
+_shl rejected Incorrect number of arguments - Reference: _SHL(numericalVariable, numericalValue)
+_shl& rejected Invalid variable name
+_shr rejected Incorrect number of arguments - Reference: _SHR(numericalVariable, numericalValue)
+_shr& rejected Invalid variable name
+_sinh rejected Incorrect number of arguments - Reference: _SINH(value)
+_sinh& rejected Invalid variable name
+_smooth rejected Expected variable =, look for conflict with a CONST name
+_smooth& rejected Invalid variable name
+_sndbal rejected Invalid variable name
+_sndbal& rejected Invalid variable name
+_sndclose rejected Invalid variable name
+_sndclose& rejected Invalid variable name
+_sndcopy rejected Incorrect number of arguments - Reference: _SNDCOPY(handle&)
+_sndcopy& rejected Invalid variable name
+_sndgetpos rejected Incorrect number of arguments - Reference: _SNDGETPOS(handle&)
+_sndgetpos& rejected Invalid variable name
+_sndlen rejected Incorrect number of arguments - Reference: _SNDLEN(handle&)
+_sndlen& rejected Invalid variable name
+_sndlimit rejected Invalid variable name
+_sndlimit& rejected Invalid variable name
+_sndloop rejected Invalid variable name
+_sndloop& rejected Invalid variable name
+_sndnew rejected Incorrect number of arguments - Reference: _SNDNEW(frames&[, channels&][, bits&][, sampleRate&])
+_sndnew& rejected Invalid variable name
+_sndopen rejected Incorrect number of arguments - Reference: _SNDOPEN(fileName$[, capabilities$])
+_sndopen& rejected Invalid variable name
+_sndopenraw rejected Expected variable =, look for conflict with a CONST name
+_sndopenraw& rejected Invalid variable name
+_sndpause rejected Invalid variable name
+_sndpause& rejected Invalid variable name
+_sndpaused rejected Incorrect number of arguments - Reference: _SNDPAUSED(handle&)
+_sndpaused& rejected Invalid variable name
+_sndplay rejected Invalid variable name
+_sndplay& rejected Invalid variable name
+_sndplaycopy rejected Invalid variable name
+_sndplaycopy& rejected Invalid variable name
+_sndplayfile rejected Invalid variable name
+_sndplayfile& rejected Invalid variable name
+_sndplaying rejected Incorrect number of arguments - Reference: _SNDPLAYING(handle&)
+_sndplaying& rejected Invalid variable name
+_sndrate rejected Expected variable =, look for conflict with a CONST name
+_sndrate& rejected Invalid variable name
+_sndraw rejected Invalid variable name
+_sndraw& rejected Invalid variable name
+_sndrawbatch rejected Invalid variable name
+_sndrawbatch& rejected Invalid variable name
+_sndrawdone rejected Invalid variable name
+_sndrawdone& rejected Invalid variable name
+_sndrawlen rejected Expected variable =, look for conflict with a CONST name
+_sndrawlen& rejected Invalid variable name
+_sndsetpos rejected Invalid variable name
+_sndsetpos& rejected Invalid variable name
+_sndstop rejected Invalid variable name
+_sndstop& rejected Invalid variable name
+_sndvol rejected Invalid variable name
+_sndvol& rejected Invalid variable name
+_source rejected Expected variable =, look for conflict with a CONST name
+_source& rejected Invalid variable name
+_startdir rejected Invalid variable name
+_startdir& rejected Invalid variable name
+_startdir$ rejected Expected variable =, look for conflict with a CONST name
+_static rejected Invalid variable name
+_static& rejected Invalid variable name
+_statuscode rejected Incorrect number of arguments - Reference: _STATUSCODE(httpHandle&)
+_statuscode& rejected Invalid variable name
+_strcmp rejected Incorrect number of arguments - Reference: _STRCMP(string1$, string2$)
+_strcmp& rejected Invalid variable name
+_stricmp rejected Incorrect number of arguments - Reference: _STRICMP(string1$, string2$)
+_stricmp& rejected Invalid variable name
+_tanh rejected Incorrect number of arguments - Reference: _TANH(value)
+_tanh& rejected Invalid variable name
+_title rejected Invalid variable name
+_title& rejected Invalid variable name
+_title$ rejected Expected variable =, look for conflict with a CONST name
+_togglebit rejected Incorrect number of arguments - Reference: _TOGGLEBIT(numericalVariable, numericalValue)
+_togglebit& rejected Invalid variable name
+_tostr rejected Invalid variable name
+_tostr& rejected Invalid variable name
+_tostr$ rejected Incorrect number of arguments - Reference: _TOSTR$(number[,digits])
+_totaldroppedfiles rejected Expected variable =, look for conflict with a CONST name
+_totaldroppedfiles& rejected Invalid variable name
+_trim rejected Invalid variable name
+_trim& rejected Invalid variable name
+_trim$ rejected Incorrect number of arguments - Reference: _TRIM$(text$)
+_ucharpos rejected Incorrect number of arguments - Reference: _UCHARPOS&(text$[, posArray&([index&])][, utfEncoding&][, fontHandle&])
+_ucharpos& rejected Invalid variable name
+_ufontheight rejected Expected variable =, look for conflict with a CONST name
+_ufontheight& rejected Invalid variable name
+_ulinespacing rejected Expected variable =, look for conflict with a CONST name
+_ulinespacing& rejected Invalid variable name
+_unsigned rejected Invalid variable name
+_unsigned& rejected Invalid variable name
+_uprintstring rejected Invalid variable name
+_uprintstring& rejected Invalid variable name
+_uprintwidth rejected Incorrect number of arguments - Reference: _UPRINTWIDTH&(text$[, utfEncoding&][, fontHandle&])
+_uprintwidth& rejected Invalid variable name
+_uptime rejected Expected variable =, look for conflict with a CONST name
+_uptime& rejected Invalid variable name
+_wave rejected Invalid variable name
+_wave& rejected Invalid variable name
+_wheel rejected Expected variable =, look for conflict with a CONST name
+_wheel& rejected Invalid variable name
+_width rejected Expected variable =, look for conflict with a CONST name
+_width& rejected Invalid variable name
+_windowhandle rejected Expected variable =, look for conflict with a CONST name
+_windowhandle& rejected Invalid variable name
+_windowhasfocus rejected Expected variable =, look for conflict with a CONST name
+_windowhasfocus& rejected Invalid variable name
+_windowsizelimit rejected Invalid variable name
+_windowsizelimit& rejected Invalid variable name
+_writefile rejected Invalid variable name
+_writefile& rejected Invalid variable name

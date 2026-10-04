@@ -7,6 +7,7 @@ mod parser;
 pub mod tree;
 
 pub use kind::SyntaxKind;
+pub use parser::keywords::is_keyword;
 pub use parser::{Parse, parse};
 
 use qb64rust_base::show_bytes;

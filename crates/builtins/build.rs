@@ -40,12 +40,13 @@ fn main() {
         writeln!(
             out,
             "    Builtin {{ name: {:?}, kind: {kind}, callname: {:?}, arg_types: &[{}], optional: {slots}, \
-             specialformat: {:?}, ret: {:?} }},",
+             specialformat: {:?}, ret: {:?}, musthave: {:?} }},",
             s("name").unwrap(),
             s("callname").unwrap_or(""),
             arg_types.join(", "),
             format,
             s("ret"),
+            s("musthave"),
         )
         .unwrap();
     }

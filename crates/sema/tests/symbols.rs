@@ -39,12 +39,44 @@ fn statement_with_an_error_records_nothing() {
     insta::assert_snapshot!(dump_symbols(&p, &file), @"Var Z : SINGLE def 3:1");
 }
 
+/// Scenario "Same name, different symbols": main's `x` and the SUB's implicit `x`.
+#[test]
+fn same_name_different_symbols() {
+    let src = b"$CONSOLE:ONLY\nx = 1\nshow\nPRINT x\nSUB show\n    x = 2\n    PRINT x\nEND SUB\n";
+    let (file, p) = check_source(src);
+    insta::assert_snapshot!(dump_symbols(&p, &file));
+    // `x` in the SUB starts at 46 (line 6); main's `x` at 14.
+    let in_sub = p.symbols.at(FileId(0), 46).unwrap();
+    let in_main = p.symbols.at(FileId(0), 14).unwrap();
+    assert_ne!(in_sub, in_main);
+}
+
+/// Scenario "Call before definition": the call is a reference of the procedure, defined by the header's name;
+/// the function's own name assigned in its body is the result variable, not the procedure.
+#[test]
+fn call_before_definition() {
+    let src =
+        b"$CONSOLE:ONLY\nn& = 3\nPRINT twice&(n&)\nFUNCTION twice& (a AS LONG)\n    twice& = a * 2\nEND FUNCTION\n";
+    let (file, p) = check_source(src);
+    insta::assert_snapshot!(dump_symbols(&p, &file));
+}
+
+/// A `SHARED` line that creates the main-module variable is its definition; main's later uses refer to it.
+#[test]
+fn shared_line_creates_the_main_variable() {
+    let src = b"$CONSOLE:ONLY\nSUB s\n    SHARED h AS LONG\n    h = 1\nEND SUB\nh = 2\nPRINT h&\n";
+    let (file, p) = check_source(src);
+    insta::assert_snapshot!(dump_symbols(&p, &file));
+}
+
 #[test]
 fn symbol_at_a_position() {
     // Offsets: `DIM nn AS LONG` starts at 14, `nn` at 18..20; `PRINT nn` starts at 29, `nn` at 35..37.
     let (_, p) = check_source(b"$CONSOLE:ONLY\nDIM nn AS LONG\nPRINT nn\n");
     let id = p.symbols.at(FileId(0), 18).expect("first byte of the definition");
-    let SymbolKind::Var(v) = p.symbols.get(id).kind;
+    let SymbolKind::Var(v) = p.symbols.get(id).kind else {
+        panic!("not a variable")
+    };
     assert_eq!(p.var(v).name, "NN");
     assert_eq!(p.symbols.at(FileId(0), 19), Some(id), "inside the definition");
     assert_eq!(p.symbols.at(FileId(0), 36), Some(id), "inside the reference");

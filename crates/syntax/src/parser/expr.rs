@@ -43,10 +43,10 @@ fn binary_level(p: &Parser) -> Option<u8> {
 }
 
 /// Precedence level of a prefix operator at the current token: the operand takes operators of this level and up.
+/// There is no unary `+` (measured: `PRINT +5`, `x = +n` and `2 * +n` are compile errors, `verification\v15_plus_*`).
 fn prefix_level(p: &Parser) -> Option<u8> {
     match p.current()? {
         Minus => Some(15),
-        Plus => Some(15),
         Ident if p.at_word("NOT") => Some(9),
         Ident if p.at_word("_NEGATE") => Some(8),
         _ => None,
@@ -130,7 +130,8 @@ fn primary(p: &mut Parser) -> bool {
     }
 }
 
-fn arg_list(p: &mut Parser) -> bool {
+/// `(` expressions separated by commas `)`, at the `(`.
+pub(super) fn arg_list(p: &mut Parser) -> bool {
     p.start_node(ArgList);
     p.bump(); // (
     let mut ok = true;

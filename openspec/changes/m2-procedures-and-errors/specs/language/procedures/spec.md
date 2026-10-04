@@ -53,6 +53,10 @@ string variable passed to a string parameter SHALL be passed by reference.
 - **WHEN** the same SUB is called as `bump (n)` and as `bump n + 1`
 - **THEN** `n` is unchanged
 
+#### Scenario: String variable in parentheses
+- **WHEN** `SUB addbang (t AS STRING)` appends `"!"` to `t` and is called as `addbang (s$)`
+- **THEN** `s$` has the `"!"` afterwards (a string variable is passed by reference even in parentheses)
+
 #### Scenario: Different type passes a rounded copy
 - **WHEN** `2.5` is passed to an INTEGER parameter
 - **THEN** the procedure sees 2 (half to even, as for an assignment)
@@ -76,6 +80,14 @@ variables SHALL NOT be visible in a procedure otherwise.
 #### Scenario: SHARED variable
 - **WHEN** the main module sets a LONG `g` to 10 and a SUB with `SHARED g AS LONG` prints it and sets it to 20
 - **THEN** the SUB prints 10 and the main module then prints 20
+
+#### Scenario: SHARED with a type in an earlier procedure
+- **WHEN** a SUB with `SHARED h AS LONG` comes first in the file and the main module then does `h = 9.5`
+- **THEN** main's `h` is the LONG `h&` and holds 10
+
+#### Scenario: SHARED without a type
+- **WHEN** the main module has `DIM g AS LONG` and `g = 7`, and a SUB with `SHARED g` prints `g`
+- **THEN** the SUB prints 0 (its `g` is main's SINGLE `g!`, not the LONG `g`)
 
 #### Scenario: DIM SHARED after the procedure
 - **WHEN** a SUB that prints `g` comes before `DIM SHARED g AS LONG` and `g = 7` in the file

@@ -71,8 +71,13 @@ fn op(k: &sema::StmtKind) -> Op {
                 .collect(),
             newline: *newline,
         },
+        sema::StmtKind::Call { .. } | sema::StmtKind::Exit => unreachable!("{PROCS_NOT_LOWERED}"),
     }
 }
+
+/// Until the IR has procedures (task 4.1 of `m2-procedures-and-errors`), the driver rejects programs that define
+/// any before lowering them, so neither calls nor `EXIT` reach this module.
+const PROCS_NOT_LOWERED: &str = "procedures are rejected before lowering";
 
 fn value_of(e: &sema::Expr) -> Value {
     let kind = match &e.kind {
@@ -105,6 +110,7 @@ fn value_of(e: &sema::Expr) -> Value {
             id: *builtin,
             args: args.iter().map(|a| a.as_ref().map(value_of)).collect(),
         },
+        sema::ExprKind::CallProc { .. } => unreachable!("{PROCS_NOT_LOWERED}"),
     };
     Value { ty: ty(e.ty), kind }
 }

@@ -66,6 +66,13 @@ Scopes and handlers (programs that run):
 | `v14_error_256` | `ERROR 256` is critical ("Out of stack space") and ends the program although a handler is active (runtime: 256, 257 and 500+ are critical; the compiler only calls `error()`) |
 | `v14_err_exit_sub_in_function`, `v14_err_exit_function_in_sub` | both compile and run: `EXIT SUB` and `EXIT FUNCTION` are interchangeable inside any procedure |
 | `v14_declare_mismatch_ok`, `v14_declare_only` | a `DECLARE` that disagrees with the definition, and one for a SUB that does not exist, are both accepted: `DECLARE` is ignored |
+| `v14_shared_plain_main` (task 3.2) | after `SHARED h AS LONG` in an **earlier** SUB, plain `h` in main is `h&` (`h = 9.5` stores 10): the `SHARED … AS` acts like a main-module `DIM h AS LONG` |
+| `v14_shared_plain_typed`, `_before` (task 3.2) | plain `SHARED g` in a SUB, after or before main's `DIM g AS LONG`, binds the SINGLE `g!`, not the LONG `g` |
+
+Also measured in task 3.2: a string variable in parentheses, `addbang (s$)`, is passed **by reference**
+(`s08_byref`'s recorded output: `s$` changes); and 33 reserved words used as variable names (`key`, `list`,
+`base`, `timer`, `input`, `len`, `using`, `common`, …; compiled with `qb64pe.exe -z` in a scratch folder) are
+all rejected, so the old compiler's reserved-word list is the keyword list of D1/D3.
 
 Reserved names (old compiler's message in brackets):
 
@@ -135,21 +142,32 @@ built-in table (D1 of the last change: `syntax` does not depend on `builtins`).
 Pass 1 collects every `ProcDef` header into a procedure table: name, SUB or FUNCTION, result type (suffix or
 SINGLE), parameters (name, type). Duplicates and reserved names are errors. `DECLARE` lines are parsed (their
 header must be well formed) and otherwise ignored, as measured (`v14_declare_mismatch_ok`, `v14_declare_only`).
-Pass 2 checks the main module, then each procedure, so calls may come before definitions (`qb64pe` has the same
-prepass; probe: `twice&` used on line 11, defined on line 37). A main-module variable with the name of a
-procedure is an error (`v14_res_sub_main_var`).
+Pass 2 checks every statement in **file order**, main-module statements and procedure bodies as they come
+(corrected in task 3.2; it said "the main module, then each procedure"). Calls may still come before definitions,
+because pass 1 has the headers (`qb64pe` has the same prepass; probe: `twice&` used on line 11, defined on line
+37). File order is what the measured scope rules follow: a later `DIM SHARED` is not seen, and an earlier
+procedure's `SHARED h AS LONG` changes main's plain `h` (`v14_shared_plain_main`). A main-module variable with the
+name of a procedure is an error (`v14_res_sub_main_var`).
 
 Scopes, each a "name plus type" table as in D5 of the last change:
 - **main module**: as now; variables are global storage.
 - **procedure**: parameters, the result variable (FUNCTION), `DIM` and implicit locals (per call), `STATIC`
   (one per procedure, global storage), `SHARED name [AS type]` (binds the main-module variable of that name and
-  type, created if missing; `v14_shared_implicit`), and the `DIM SHARED` variables of the main module that come
+  type, created if missing; `v14_shared_implicit`; without `AS` or a suffix the type is SINGLE whatever main's
+  plain name means, `v14_shared_plain_typed`), and the `DIM SHARED` variables of the main module that come
   **before the procedure in the file** (`v14_dim_shared_after`: a later one is not seen, and the name is an
   implicit local).
-A `SHARED name AS T` in a procedure creates the main-module variable; a main-module `DIM` of the same name and
-type after that is "name already in use" (the old compiler fails in C++ there, `v14_shared_then_dim`, so
-rejecting it accepts nothing it accepts). The main module is checked first, but `SHARED` lines are collected in
-pass 1 so this order does not matter.
+A `SHARED name AS T` in a procedure creates the main-module variable if missing and types main's plain `name` as
+`T`, as a main-module `DIM` would; a main-module `DIM` of the same name after that is "name already in use" (the
+old compiler fails in C++ there, `v14_shared_then_dim`, so rejecting it accepts nothing it accepts). Cases not
+measured are rejected as "not supported yet" rather than guessed: `SHARED … AS` with another type than main's
+plain name, a `STATIC` of a name a `DIM SHARED` makes visible, `DIM SHARED` inside a procedure, and `SHARED` or
+`STATIC` in the main module.
+
+A local `DIM` of a name a `DIM SHARED` makes visible **shadows** it (measured after the review of task 3.2,
+`v14_dim_local_plain`, `_same`, `_other`): `DIM g AS LONG` and `DIM g AS STRING` make new locals, and a plain
+`DIM g` makes the procedure's plain `g` mean the local SINGLE `g!` even though `DIM SHARED g AS LONG` typed it;
+`g&` still means the shared one unless the local is that type.
 
 Inside `FUNCTION f&`, an assignment to `f` or `f&` stores the result; any other use of the name is a call
 (recursion). A name used as a variable is checked against the procedure table: a function name in an expression
@@ -162,10 +180,19 @@ built-in (any kind in the table) that is written **without a required suffix** (
 A suffix does not free such a name (`len&`). A built-in whose suffix is required (`LEFT$`, `CHR$`) reserves only
 the suffixed form: `left` and `chr` are free, `left$` is taken. Today `resolve` only rejects function names.
 
+Checked against every keyword and built-in after the review of task 3.2 (`verification\v15_builtin_names.py`,
+results in `v15_builtin_names.txt`: 1,030 forms, each bare, with `&`, and with `$` where required; each program
+that compiled was also run, to tell a variable from a statement such as `DATE$ = "a"`). Two corrections to the rule
+above: **no name starting with `_` can name a variable, parameter or procedure**, built-in or not ("Invalid
+variable name" / "Invalid name", `v15_underscore_*`), which the rule above missed for 28 `$` built-ins (`_trim`,
+`_cwd`, …) and for any other `_name`; and **`WIDTH` is free** although it has no required suffix (`v15_width_var`).
+`crates\driver\tests\names.rs` checks the compiler against every line of the results file.
+
 ### D4. Arguments
 For each argument and parameter type `T` (`study\02` §4.1, probe 1):
 - a **plain variable** (a `NameRef`, not in parentheses) of exactly type `T` → passed **by reference**;
-- a string parameter and any string expression → by reference to the variable, or to a temporary;
+- a string parameter and any string expression → by reference to the variable (also in parentheses: `(s$)` is
+  passed by reference, measured), or to a temporary;
 - anything else (another numeric type, an expression, a parenthesized variable) → converted as for an assignment
   (`store`, numeric spec) into a **by-value temporary**; the callee's changes are lost (no copy-back);
 - string ↔ number mismatch, wrong argument count → error.

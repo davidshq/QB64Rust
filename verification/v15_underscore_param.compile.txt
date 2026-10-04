@@ -1,0 +1,5 @@
+
+Invalid name
+Caused by (or after):
+LINE 5:SUB S ( _P )
+exit=1

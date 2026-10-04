@@ -1,0 +1,31 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 109
+expression: "tree(\"SUB a\\n  PRINT 1\\nEND FUNCTION\\nPRINT 2\\n\")"
+---
+SourceFile 0..37
+  ProcDef 0..29
+    ProcHeader 0..5
+      Ident SUB
+      Whitespace  
+      Ident a
+    Newline \x0A
+    Whitespace   
+    PrintStmt 8..15
+      Ident PRINT
+      Whitespace  
+      Literal 14..15
+        Number 1
+    Newline \x0A
+    ProcEnd 16..28
+      Ident END
+      Whitespace  
+      Ident FUNCTION
+    Newline \x0A
+  PrintStmt 29..36
+    Ident PRINT
+    Whitespace  
+    Literal 35..36
+      Number 2
+  Newline \x0A
+t.bas:3:1: error: `END FUNCTION` cannot close a SUB; expected `END SUB`

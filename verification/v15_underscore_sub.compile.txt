@@ -1,0 +1,5 @@
+
+Invalid name
+Caused by (or after):
+LINE 5:SUB _BAR
+exit=1

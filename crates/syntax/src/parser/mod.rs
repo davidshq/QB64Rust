@@ -2,13 +2,17 @@
 //! dispatched by the first token (FreeBASIC lesson L1).
 //!
 //! Recovery: at most one error per statement. After an error the rest of the statement (up to a line end, or a
-//! `:` outside parentheses) goes into an `Error` node and parsing continues with the next statement.
+//! `:` outside parentheses) goes into an `Error` node and parsing continues with the next statement. Procedures
+//! are blocks (`proc.rs`); their recovery is described there.
 
 mod assign;
+mod call;
 mod decl;
 mod expr;
+pub(crate) mod keywords;
 mod meta;
 mod print;
+mod proc;
 
 use crate::SyntaxKind::{self, *};
 use crate::lexer::{Token, tokenize};
@@ -38,6 +42,8 @@ pub fn parse(file: FileId, bytes: &[u8]) -> Parse {
         builder: TreeBuilder::default(),
         diags: Diagnostics::new(),
         stmt_error: false,
+        quiet: false,
+        quiet_failed: false,
         last_kind: None,
     };
     p.source_file();
@@ -57,6 +63,9 @@ pub(crate) struct Parser<'a> {
     diags: Diagnostics,
     /// An error was already reported for the current statement.
     stmt_error: bool,
+    /// Errors are not reported but only noted in `quiet_failed` (arguments of a call without `CALL`).
+    quiet: bool,
+    quiet_failed: bool,
     /// Kind of the last non-trivia token added to the tree.
     last_kind: Option<SyntaxKind>,
 }
@@ -153,7 +162,9 @@ impl<'a> Parser<'a> {
 
     /// Reports an error at `span` unless the statement already has one.
     fn error_at(&mut self, span: Span, message: impl Into<String>) {
-        if !self.stmt_error {
+        if self.quiet {
+            self.quiet_failed = true;
+        } else if !self.stmt_error {
             self.stmt_error = true;
             self.diags.error(span, message);
         }
@@ -171,6 +182,11 @@ impl<'a> Parser<'a> {
             return;
         }
         self.error("expected the end of the statement");
+        self.rest_into_error_node();
+    }
+
+    /// Puts the rest of the statement into an `Error` node, without a diagnostic.
+    fn rest_into_error_node(&mut self) {
         self.start_node(Error);
         let mut depth = 0i32;
         while let Some(k) = self.current() {
@@ -200,19 +216,39 @@ impl<'a> Parser<'a> {
 
     fn source_file(&mut self) {
         self.builder.start_node(SourceFile);
+        // A procedure ended by a nested header leaves that header's error in place, so the header reports no
+        // second one.
+        let mut keep_error = false;
         while self.current().is_some() {
-            self.stmt_error = false;
-            self.statement();
-            if !self.at_stmt_end() {
-                self.error("expected the end of the statement");
-                self.recover();
+            if !keep_error {
+                self.stmt_error = false;
             }
-            if matches!(self.current(), Some(Newline | Colon)) {
-                self.bump();
+            keep_error = false;
+            if self.at_proc_start() {
+                keep_error = proc::proc_def(self);
+            } else {
+                self.statement_and_separator();
             }
         }
         self.eat_trivia();
         self.finish_node();
+    }
+
+    /// At `SUB` or `FUNCTION` (the start of a procedure; only called at the start of a statement).
+    fn at_proc_start(&self) -> bool {
+        self.at_word("SUB") || self.at_word("FUNCTION")
+    }
+
+    /// One statement and the line end or `:` after it.
+    fn statement_and_separator(&mut self) {
+        self.statement();
+        if !self.at_stmt_end() {
+            self.error("expected the end of the statement");
+            self.recover();
+        }
+        if matches!(self.current(), Some(Newline | Colon)) {
+            self.bump();
+        }
     }
 
     fn statement(&mut self) {
@@ -237,15 +273,53 @@ impl<'a> Parser<'a> {
             print::print_stmt(self)
         } else if self.at_word("DIM") {
             decl::dim_stmt(self)
+        } else if self.at_word("SHARED") {
+            decl::list_stmt(self, SharedStmt)
+        } else if self.at_word("STATIC") {
+            decl::list_stmt(self, StaticStmt)
         } else if self.at_word("LET") {
             assign::assign_stmt(self)
         } else if self.at_word("END") {
             self.end_stmt()
-        } else if self.nth(1) == Some(Eq) {
+        } else if self.at_word("CALL") {
+            call::call_stmt(self)
+        } else if self.at_word("EXIT") {
+            proc::exit_stmt(self)
+        } else if self.at_word("DECLARE") {
+            proc::declare_stmt(self)
+        } else if self.nth(1) == Some(Eq) || (self.nth(1) == Some(LParen) && self.parens_then_eq()) {
             assign::assign_stmt(self)
-        } else {
+        } else if keywords::is_keyword(name_part(self.nth_text(0))) {
             self.not_supported_statement()
+        } else {
+            // A SUB call without `CALL`, or a built-in statement (`CLS`); `sema` tells them apart.
+            call::call_stmt(self)
         }
+    }
+
+    /// The token after the name is `(`, and the token after its matching `)` is `=` (`a(1) = 2`).
+    fn parens_then_eq(&self) -> bool {
+        let mut depth = 0i32;
+        let mut n = 1;
+        loop {
+            match self.nth(n) {
+                Some(LParen) => depth += 1,
+                Some(RParen) => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return self.nth(n + 1) == Some(Eq);
+                    }
+                }
+                None | Some(Newline) => return false,
+                _ => {}
+            }
+            n += 1;
+        }
+    }
+
+    /// The n-th non-trivia token ahead is an identifier spelled `word` (ASCII case ignored).
+    fn nth_is_word(&self, n: usize, word: &str) -> bool {
+        self.nth(n) == Some(Ident) && self.nth_text(n).eq_ignore_ascii_case(word.as_bytes())
     }
 
     fn end_stmt(&mut self) {
@@ -253,6 +327,12 @@ impl<'a> Parser<'a> {
             self.start_node(EndStmt);
             self.bump();
             self.finish_node();
+        } else if self.nth_is_word(1, "SUB") || self.nth_is_word(1, "FUNCTION") {
+            // Inside a procedure the block loop takes `END SUB` before it gets here.
+            let span = self.current_span().cover(self.next_span(1));
+            let word = qb64rust_base::show_bytes(self.nth_text(1)).to_ascii_uppercase();
+            self.error_at(span, format!("`END {word}` without a `{word}`"));
+            self.recover();
         } else {
             let span = self.current_span().cover(self.next_span(1));
             let text = format!("END {}", qb64rust_base::show_bytes(self.nth_text(1)));
@@ -268,10 +348,19 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// A statement word the slice does not handle (`FOR`, `CLS`, a SUB call, an array element assignment...).
+    /// A language word the parser does not handle yet (`FOR`, `IF`, `GOTO`...).
     fn not_supported_statement(&mut self) {
         let word = qb64rust_base::show_bytes(self.nth_text(0));
         self.error(format!("`{word}` is not supported yet"));
         self.recover();
     }
+}
+
+/// A name without its type suffix (`a$` -> `a`).
+pub(crate) fn name_part(text: &[u8]) -> &[u8] {
+    let end = text
+        .iter()
+        .position(|&b| !(b.is_ascii_alphanumeric() || b == b'_' || b == b'.'))
+        .unwrap_or(text.len());
+    &text[..end]
 }

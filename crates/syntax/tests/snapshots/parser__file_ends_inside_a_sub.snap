@@ -1,0 +1,18 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 115
+expression: "tree(\"SUB a\\nPRINT 1\")"
+---
+SourceFile 0..13
+  ProcDef 0..13
+    ProcHeader 0..5
+      Ident SUB
+      Whitespace  
+      Ident a
+    Newline \x0A
+    PrintStmt 6..13
+      Ident PRINT
+      Whitespace  
+      Literal 12..13
+        Number 1
+t.bas:1:1: error: `SUB` without `END SUB`

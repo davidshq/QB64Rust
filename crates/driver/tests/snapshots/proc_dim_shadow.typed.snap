@@ -1,0 +1,25 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+line 2: ConsoleOnly
+SUB PLAIN
+  local G:F32
+line 9: Assign G (local):F32
+  Convert Nearest : F32
+    Float 2.5E+0 : F64 (qb F32)
+line 10: Assign G:I32
+  Int 1 : I32
+SUB SAME
+  local G:I32
+line 15: Assign G (local):I32
+  Int 3 : I32
+line 16: Assign G (local):I32
+  Int 4 : I32
+SUB OTHER
+  local G:Str
+line 21: Assign G (local):Str
+  Str "x" : Str
+line 22: Assign G:I32
+  Int 5 : I32

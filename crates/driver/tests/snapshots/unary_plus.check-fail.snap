@@ -1,0 +1,10 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+unary_plus.bas:5:7: error: expected an expression
+unary_plus.bas:6:5: error: expected an expression
+unary_plus.bas:7:11: error: expected an expression
+unary_plus.bas:8:6: error: expected an expression
+unary_plus.bas:10:3: error: cannot read the arguments of `t`; expected expressions separated by `,`

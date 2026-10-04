@@ -1,0 +1,5 @@
+
+Expected variable/value before '+'
+Caused by (or after):X = + N
+LINE 4:x = +n
+exit=1

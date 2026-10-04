@@ -60,6 +60,27 @@ pub enum SyntaxKind {
     AsClause,
     AssignStmt,
     EndStmt,
+    /// `SUB`/`FUNCTION` block: a `ProcHeader`, the body statements and, unless missing, a `ProcEnd`.
+    ProcDef,
+    /// `SUB name [(params)]` or `FUNCTION name[suffix] [(params)]`; also inside a `DeclareStmt`.
+    ProcHeader,
+    /// `(param, ...)` of a procedure header.
+    ParamList,
+    /// `name[suffix] [AS type]`
+    Param,
+    /// `END SUB` / `END FUNCTION` closing a `ProcDef`.
+    ProcEnd,
+    /// `CALL name[(args)]` or `name [args]`. Without `CALL`, arguments the parser cannot read are kept in an
+    /// `Error` node without a diagnostic; `sema` reports them, because only it knows built-in statement names.
+    CallStmt,
+    /// `EXIT SUB` / `EXIT FUNCTION`
+    ExitStmt,
+    /// `DECLARE SUB|FUNCTION <header>`
+    DeclareStmt,
+    /// `SHARED name [AS type], ...` inside a procedure; items are `DimItem`s.
+    SharedStmt,
+    /// `STATIC name [AS type], ...` inside a procedure; items are `DimItem`s.
+    StaticStmt,
     Literal,
     NameRef,
     CallExpr,
