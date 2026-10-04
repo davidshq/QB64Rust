@@ -230,7 +230,11 @@ them (the probe's `retK` are included only by `RETURN`, which is not in this cha
 §3.1 (`_SUB_BUMP_LONG_X`, `_FUNC_TWICE_LONG_TWICE`). `Arg::Temp` becomes `&(passN=<value>)` with `passN` declared
 in `maindata.txt` (main) or `dataK.txt` (procedure); string temporaries pass the `qbs*` directly. Handler numbers
 are assigned in order of first `SetHandler`; `mainerr.txt` gets one dispatch line per handler. Labels and the
-three `Resume` forms are emitted as in the Context table. As before, `error_track_line` is not emitted.
+three `Resume` forms are emitted as in the Context table. `main0.txt` now starts with `error_track_line(0,0,NULL);`
+as in the old compiler (corrected in task 5.3; the last change left it out): without that call the runtime treats
+the program as built by an old bootstrap compiler and reports a critical error with a line number instead of "Enable
+$ErrorLocation:ON for source location details." (`s11_on_error`, error 11; `libqb\src\error_handle.cpp`,
+`explicit_line_tracking_seen`). Per-statement tracking (`$ERRORLOCATION:ON`) is still not emitted.
 
 ### D8. Diagnostics for the new statements
 Only errors the old compiler also reports, or "not supported yet" (the policy of `study\15` §3). Where we report

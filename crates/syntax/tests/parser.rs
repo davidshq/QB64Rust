@@ -129,6 +129,29 @@ fn header_errors() {
 }
 
 #[test]
+fn labels() {
+    // A label on its own line, before a statement, two in a row; `a$:` and keywords are not labels; `END:` and
+    // `SYSTEM:` are the statements.
+    insta::assert_snapshot!(tree(
+        "handler:\nback: PRINT 1\na: b.c: PRINT 2\nx$: PRINT 3\nEND: SYSTEM:\n"
+    ));
+}
+
+#[test]
+fn error_handling_statements() {
+    insta::assert_snapshot!(tree(
+        "ON ERROR GOTO h\nON ERROR GOTO 0\nRESUME\nRESUME 0\nRESUME NEXT\nRESUME back\nERROR 5\nERROR k + 1\n"
+    ));
+}
+
+#[test]
+fn error_handling_statement_errors() {
+    insta::assert_snapshot!(tree(
+        "ON ERROR GOTO\nON ERROR RESUME NEXT\nON TIMER(1) GOSUB t\nRESUME NEXT x\nERROR\nON ERROR GOTO h 1\nON\nON ERROR\n"
+    ));
+}
+
+#[test]
 fn unsupported_statement_message() {
     let p = parse(FileId(0), b"PRINT 1\n\nFOR i = 1 TO 2\n");
     let d = &p.diagnostics.list()[0];

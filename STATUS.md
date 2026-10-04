@@ -109,8 +109,9 @@ variables, `PRINT` (`;`, `,`, auto-semicolon), `END`, literals, `+ - * /`, unary
 (`tools\repo_check`, rules 2 and 7). Both workflows have not run on GitHub yet (not pushed).
 
 **In progress:** OpenSpec change `m2-procedures-and-errors` (procedures, by-reference arguments, `ON ERROR`;
-task groups 1–4 done: procedures compile end to end, slice list at 46 (all pass, also with folding off),
-`SYSTEM` supported; next is group 5, error handling).
+task groups 1–5 done: procedures and error handling (labels, `ON ERROR GOTO`, `RESUME`, `ERROR`, `ERR`, `ERL`,
+`CHR$`) compile end to end, slice list at 54 (all pass, also with folding off), `SYSTEM` supported; next is group
+6, the full corpus run and documentation).
 
 **Next** (order accepted 2026-10-04 after the review and panel of `study\20`, reasons there):
 

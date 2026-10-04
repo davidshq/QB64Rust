@@ -8,8 +8,8 @@
 
 use crate::literal::{self, LitError, NumLit};
 use crate::{
-    Arg, BinOp, ConvKind, Expr, ExprKind, PrintItem, Proc, ProcId, ProcKind, Program, Stmt, StmtKind, Storage,
-    SymbolKind, Ty, Var, VarId,
+    Arg, BinOp, ConvKind, Expr, ExprKind, Label, LabelId, PrintItem, Proc, ProcId, ProcKind, Program, Resume, Stmt,
+    StmtKind, Storage, SymbolKind, Ty, Var, VarId,
 };
 use qb64rust_base::{Diagnostics, SourceFile, Span, show_bytes, to_u32};
 use qb64rust_builtins::{BuiltinId, find_any, find_function};
@@ -40,6 +40,8 @@ pub fn check_with(root: Node, file: &SourceFile, parse_diags: &Diagnostics, fold
         broken: HashSet::new(),
         dim_shared: HashSet::new(),
         dim_shared_plain: HashMap::new(),
+        labels_by_name: HashMap::new(),
+        label_of_def: HashMap::new(),
         diags: Diagnostics::new(),
         stmt_error: false,
         console_only: false,
@@ -100,6 +102,20 @@ pub fn check_with(root: Node, file: &SourceFile, parse_diags: &Diagnostics, fold
             c.proc_of_def.insert(def.node().offset, id);
         } else {
             c.broken.insert(id);
+        }
+    }
+
+    // The main module's labels, so that `ON ERROR GOTO` may name one further down.
+    for &stmt in &statements {
+        if skips.past_cap(stmt) {
+            break;
+        }
+        if let Some(l) = ast::LabelDef::cast(stmt)
+            && skips.usable(stmt)
+        {
+            c.stmt_error = false;
+            let _ = c.declare_label(l);
+            c.flush_names();
         }
     }
 
@@ -180,6 +196,9 @@ struct Checker<'a> {
     /// Main-module variables declared with `DIM SHARED` so far (in file order), and the plain names they typed.
     dim_shared: HashSet<VarId>,
     dim_shared_plain: HashMap<String, Ty>,
+    /// The main module's labels by name, and the label of each `LabelDef` node (by offset).
+    labels_by_name: HashMap<String, LabelId>,
+    label_of_def: HashMap<u32, LabelId>,
     diags: Diagnostics,
     stmt_error: bool,
     console_only: bool,
@@ -280,6 +299,14 @@ impl Checker<'_> {
             self.shared(s)
         } else if let Some(s) = ast::StaticStmt::cast(node) {
             self.static_stmt(s)
+        } else if let Some(s) = ast::LabelDef::cast(node) {
+            self.label_stmt(s)
+        } else if let Some(s) = ast::OnErrorStmt::cast(node) {
+            self.on_error(s)
+        } else if let Some(s) = ast::ResumeStmt::cast(node) {
+            self.resume(s)
+        } else if let Some(s) = ast::ErrorStmt::cast(node) {
+            self.error_stmt(s)
         } else {
             Err(self.error(
                 node.span(),
@@ -710,6 +737,134 @@ impl Checker<'_> {
         Ok(())
     }
 
+    // ---- labels and error handling ----
+
+    /// Enters a main-module label (before pass 2). The old compiler does not take a built-in name as a label
+    /// (`CLS:` is a call of `CLS`), and may take a SUB name as a call; both are left unsupported here.
+    fn declare_label(&mut self, l: ast::LabelDef) -> R<()> {
+        let node = l.node();
+        let t = self.need(l.name(), node.span())?;
+        let name = self.word(t);
+        let shown = show_bytes(self.text(t.span));
+        if find_any(name.as_bytes()).next().is_some() {
+            return Err(self.error(
+                t.span,
+                format!("`{shown}:` is not supported yet (`{shown}` is a built-in)"),
+            ));
+        }
+        if self.procs_by_name.contains_key(&name) {
+            let msg = format!("a label with the name of a SUB or FUNCTION is not supported yet: `{shown}`");
+            return Err(self.error(t.span, msg));
+        }
+        if self.labels_by_name.contains_key(&name) {
+            return Err(self.error(t.span, format!("duplicate label: `{shown}`")));
+        }
+        let id = LabelId(to_u32(self.prog.labels.len()));
+        let line = self.file.line_col(t.span.start).0;
+        self.prog.labels.push(Label {
+            name: name.clone(),
+            line,
+            at: 0,
+        });
+        self.labels_by_name.insert(name, id);
+        self.label_of_def.insert(node.offset, id);
+        self.names.push((SymbolKind::Label(id), t.span));
+        Ok(())
+    }
+
+    /// A label in pass 2: it stands before the next statement of the main module.
+    fn label_stmt(&mut self, l: ast::LabelDef) -> R<()> {
+        if self.cur.is_some() {
+            let span = l.node().span();
+            return Err(self.error(span, "labels inside a SUB or FUNCTION are not supported yet"));
+        }
+        if let Some(&id) = self.label_of_def.get(&l.node().offset) {
+            self.prog.labels[id.0 as usize].at = self.prog.stmts.len();
+        }
+        Ok(())
+    }
+
+    /// A label named by `ON ERROR GOTO` or `RESUME`: one of the main module's.
+    fn label_ref(&mut self, t: Tok) -> R<LabelId> {
+        let shown = show_bytes(self.text(t.span));
+        let (name, suffix) = self.split_name(t)?;
+        if suffix.is_some() {
+            return Err(self.error(t.span, format!("`{shown}` is not a valid label")));
+        }
+        let Some(&id) = self.labels_by_name.get(&name) else {
+            return Err(self.error(t.span, format!("label `{shown}` is not defined")));
+        };
+        self.names.push((SymbolKind::Label(id), t.span));
+        Ok(id)
+    }
+
+    /// The number after `GOTO` or `RESUME`: only `0` is supported (other numbers are line numbers).
+    fn zero(&mut self, t: Tok) -> R<()> {
+        if self.text(t.span) == b"0" {
+            Ok(())
+        } else {
+            Err(self.error(t.span, "line numbers are not supported yet"))
+        }
+    }
+
+    /// `ON ERROR GOTO label|0`. Inside a procedure the label is one of the main module's (measured,
+    /// `v14_on_error_sub_to_main`): the handler is the program's.
+    fn on_error(&mut self, s: ast::OnErrorStmt) -> R<()> {
+        let node = s.node();
+        let t = self.need(s.target(), node.span())?;
+        let handler = if t.kind == Number {
+            self.zero(t)?;
+            None
+        } else {
+            Some(self.label_ref(t)?)
+        };
+        self.push(node, StmtKind::OnError(handler));
+        Ok(())
+    }
+
+    /// `RESUME`, `RESUME 0`, `RESUME NEXT`, `RESUME label`. Inside a procedure a label is an error, as with the old
+    /// compiler (a procedure has no labels here, and the main module's are not visible); the other forms are not
+    /// measured there and not supported yet.
+    fn resume(&mut self, s: ast::ResumeStmt) -> R<()> {
+        let node = s.node();
+        let target = s.target();
+        let is_next = target.is_some_and(|t| t.kind != Number && self.word(t) == "NEXT");
+        if self.cur.is_some() {
+            if let Some(t) = target.filter(|t| t.kind != Number && !is_next) {
+                let msg = format!(
+                    "label `{}` is not defined in this SUB or FUNCTION (the main module's labels are not visible here)",
+                    show_bytes(self.text(t.span))
+                );
+                return Err(self.error(t.span, msg));
+            }
+            return Err(self.error(node.span(), "`RESUME` inside a SUB or FUNCTION is not supported yet"));
+        }
+        let resume = match target {
+            None => Resume::Retry,
+            Some(t) if t.kind == Number => {
+                self.zero(t)?;
+                Resume::Retry
+            }
+            Some(_) if is_next => Resume::Next,
+            Some(t) => Resume::To(self.label_ref(t)?),
+        };
+        self.push(node, StmtKind::Resume(resume));
+        Ok(())
+    }
+
+    /// `ERROR n`: `n` is stored as a LONG (the old compiler emits `error(qbr(x))`: half to even).
+    fn error_stmt(&mut self, s: ast::ErrorStmt) -> R<()> {
+        let node = s.node();
+        let value = self.need(s.value(), node.span())?;
+        let e = self.expr(value)?;
+        if e.ty == Ty::Str {
+            return Err(self.error(e.span, "`ERROR` needs a number"));
+        }
+        let code = self.store(e, Ty::I32)?;
+        self.push(node, StmtKind::Error(code));
+        Ok(())
+    }
+
     // ---- statements ----
 
     fn assign(&mut self, stmt: ast::AssignStmt) -> R<()> {
@@ -892,6 +1047,24 @@ impl Checker<'_> {
                 if let Some(&p) = self.procs_by_name.get(&name) {
                     return self.call_function(p, t, suffix, None, span);
                 }
+                // `ERR` is typed LONG, not `_UNSIGNED LONG` as in the table (design D5); `ERL` is DOUBLE.
+                let err_erl = match (name.as_str(), suffix) {
+                    ("ERR", None) => Some(Ty::I32),
+                    ("ERL", None) => Some(Ty::F64),
+                    _ => None,
+                };
+                if let Some(ty) = err_erl {
+                    let builtin = find_function(name.as_bytes()).expect("ERR and ERL are built-ins");
+                    return Ok(Expr {
+                        span,
+                        ty,
+                        qb: ty,
+                        kind: ExprKind::Call {
+                            builtin,
+                            args: Vec::new(),
+                        },
+                    });
+                }
                 if is_builtin_function(&name, suffix) {
                     let shown = show_bytes(self.text(t.span));
                     return Err(self.error(t.span, format!("`{shown}` is not supported yet")));
@@ -1062,17 +1235,47 @@ impl Checker<'_> {
             let args = self.need(node.arg_list(), span)?;
             return self.call_function(p, name_tok, suffix, Some(args), span);
         }
-        let name = self.text(name_tok.span).to_vec();
-        let Some(id) = find_function(&name).filter(|_| name.eq_ignore_ascii_case(b"INSTR")) else {
-            let shown = show_bytes(&name);
-            let msg = if find_function(&name).is_some() {
-                format!("`{shown}` is not supported yet")
-            } else {
-                format!("`{shown}(...)`: arrays and functions are not supported yet")
-            };
-            return Err(self.error(name_tok.span, msg));
+        match (proc_name.as_str(), suffix) {
+            ("INSTR", None) => {
+                let id = find_function(b"INSTR").expect("INSTR is a built-in");
+                return self.instr(span, id, node);
+            }
+            ("CHR", Some(Ty::Str)) => {
+                let id = find_function(b"CHR").expect("CHR$ is a built-in");
+                return self.chr(span, id, node);
+            }
+            _ => {}
+        }
+        let shown = show_bytes(self.text(name_tok.span));
+        let msg = if is_builtin_function(&proc_name, suffix) {
+            format!("`{shown}` is not supported yet")
+        } else {
+            format!("`{shown}(...)`: arrays and functions are not supported yet")
         };
-        self.instr(span, id, node)
+        Err(self.error(name_tok.span, msg))
+    }
+
+    /// `CHR$(code)`: one LONG slot (stored as for an assignment); raises error 5 outside 0-255 at run time.
+    fn chr(&mut self, span: Span, id: BuiltinId, node: ast::CallExpr) -> R<Expr> {
+        let args_node = self.need(node.arg_list(), span)?;
+        let args: Vec<ast::Expr> = args_node.args().collect();
+        let [arg] = args[..] else {
+            return Err(self.error(span, "`CHR$` takes 1 argument"));
+        };
+        let e = self.expr(arg)?;
+        if e.ty == Ty::Str {
+            return Err(self.error(e.span, "`CHR$` needs a number"));
+        }
+        let code = self.store(e, Ty::I32)?;
+        Ok(Expr {
+            span,
+            ty: Ty::Str,
+            qb: Ty::Str,
+            kind: ExprKind::Call {
+                builtin: id,
+                args: vec![Some(code)],
+            },
+        })
     }
 
     /// `INSTR([start,] base$, search$)`: table slots LONG, STRING, STRING; the first optional.

@@ -92,16 +92,34 @@
 
 ## 5. Error handling (D1, D5–D7)
 
-- [ ] 5.1 Parser and `sema`: `LabelDef`, `OnErrorStmt`, `ResumeStmt` (all four forms), `ErrorStmt`, `ERR`, `ERL`,
+- [x] 5.1 Parser and `sema`: `LabelDef`, `OnErrorStmt`, `ResumeStmt` (all four forms), `ErrorStmt`, `ERR`, `ERL`,
   `CHR$`; label table per body (main only), handler and resume targets resolved; `ON ERROR GOTO` inside a
   procedure resolves against main's labels, `RESUME label` inside a procedure and a label inside a procedure are
   errors (D8). Verify: parse snapshots;
   `check-fail` tests for the label errors of D8; `typed` test for `ERR`, `ERL`, `CHR$`; a symbol-dump snapshot
   with a label, its `ON ERROR GOTO` and `RESUME` references (D12).
-- [ ] 5.2 IR and emitter: `SetHandler`, `Raise`, `Resume`, labels, `mainerr.txt` dispatch. Verify: `ir` and `cpp`
+  Done (`parser\errors.rs`; parse snapshots `labels`, `error_handling_statements`, `_statement_errors`;
+  `tests\frontend\error_handling_errors.bas`, `error_handling_typed.bas`; `symbols.rs`
+  `label_with_handler_and_resume_references`). A label is `name:` without suffix whose name is not a reserved word,
+  nor `END` or `SYSTEM` (the old compiler's `validlabel` refuses built-in names: `SYSTEM:` is the statement). The
+  parser cannot see the other built-ins or the procedures, so `sema` rejects a label named like one ("not
+  supported yet": the old compiler reads `CLS:` as a call, and a zero-argument SUB's name possibly too). Labels
+  are collected before pass 2, so `ON ERROR GOTO` may name one further down; a label's definition is recorded
+  first in the symbol table. `RESUME`/`RESUME NEXT` inside a procedure are "not supported yet" (not measured, and
+  the emitted `return;` would not compile in a FUNCTION); `ON ERROR RESUME …`, other `ON` statements and numeric
+  targets other than `0` too. `ERROR n` stores `n` as a LONG (`error(qbr(x))` in the old compiler, probe in a
+  scratch folder).
+- [x] 5.2 IR and emitter: `SetHandler`, `Raise`, `Resume`, labels, `mainerr.txt` dispatch. Verify: `ir` and `cpp`
   snapshots of a lowering-pair file with each form.
-- [ ] 5.3 Tier 2: add 03, 148, 228, 229, 230, 247, `s11`, `s12` to `slice.list`. Verify: the whole list passes,
+  Done (`tests\frontend\error_lowering.bas`, `error_lowering_cpp.bas`). `Body` gained `labels` (positions, as in
+  D6); handler numbers are given in the order the emitter meets them, and `mainerr.txt` is written last. Compared
+  with `qb64pe.exe -z` output for a probe with each form (scratch folder): labels with their event check, the
+  three `RESUME` lines, `ON ERROR GOTO 0`, the dispatch lines, `func_chr`, `get_error_err`/`get_error_erl`.
+- [x] 5.3 Tier 2: add 03, 148, 228, 229, 230, 247, `s11`, `s12` to `slice.list`. Verify: the whole list passes,
   also with `QB64RUST_NO_FOLD=1`; clone unchanged.
+  Done: 54 of 54, also with folding off; clone unchanged. Found: `s11`'s last line (critical error 11) printed
+  "Line: 24 (in main module)" instead of the old program's "Enable $ErrorLocation:ON …", because `main0.txt` lacked
+  the old compiler's `error_track_line(0,0,NULL);` (D7 corrected; three `cpp` snapshots gained that line).
 
 ## 6. Full corpus and documentation
 

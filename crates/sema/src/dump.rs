@@ -1,14 +1,14 @@
 //! `--dump typed`: one node per line, indented, with its type (FreeBASIC lesson L8: assertions on types).
 
-use crate::{Arg, Expr, ExprKind, PrintItem, ProcKind, Program, Stmt, StmtKind, Storage, Ty, VarId};
+use crate::{Arg, Expr, ExprKind, Label, PrintItem, ProcKind, Program, Resume, Stmt, StmtKind, Storage, Ty, VarId};
 use qb64rust_base::show_bytes;
 use std::fmt::Write as _;
 
-/// The main module's statements, then each procedure: its header, its variables by storage class, its statements.
-/// Variables other than main-module ones are shown with their storage (`A (param)`).
+/// The main module's statements and labels, then each procedure: its header, its variables by storage class, its
+/// statements. Variables other than main-module ones are shown with their storage (`A (param)`).
 pub fn dump_typed(p: &Program) -> String {
     let mut out = String::new();
-    stmts(p, &p.stmts, &mut out);
+    stmts(p, &p.stmts, &p.labels, &mut out);
     for (i, proc) in p.procs.iter().enumerate() {
         match proc.kind {
             ProcKind::Sub => writeln!(out, "SUB {}", proc.name).unwrap(),
@@ -27,7 +27,7 @@ pub fn dump_typed(p: &Program) -> String {
             };
             writeln!(out, "  {class} {}:{}", v.name, ty(v.ty)).unwrap();
         }
-        stmts(p, &proc.stmts, &mut out);
+        stmts(p, &proc.stmts, &[], &mut out);
     }
     out
 }
@@ -58,13 +58,34 @@ fn args(p: &Program, args: &[Arg], depth: usize, out: &mut String) {
     }
 }
 
-fn stmts(p: &Program, list: &[Stmt], out: &mut String) {
-    for s in list {
+/// The statements, each label before the statement it stands before (labels after the last statement at the end).
+fn stmts(p: &Program, list: &[Stmt], labels: &[Label], out: &mut String) {
+    let label_lines = |at: usize, out: &mut String| {
+        for l in labels.iter().filter(|l| l.at == at) {
+            writeln!(out, "line {}: Label {}", l.line, l.name).unwrap();
+        }
+    };
+    for (i, s) in list.iter().enumerate() {
+        label_lines(i, out);
         match &s.kind {
             StmtKind::ConsoleOnly => writeln!(out, "line {}: ConsoleOnly", s.line).unwrap(),
             StmtKind::End => writeln!(out, "line {}: End", s.line).unwrap(),
             StmtKind::System => writeln!(out, "line {}: System", s.line).unwrap(),
             StmtKind::Exit => writeln!(out, "line {}: Exit", s.line).unwrap(),
+            StmtKind::OnError(Some(l)) => writeln!(out, "line {}: OnError {}", s.line, p.label(*l).name).unwrap(),
+            StmtKind::OnError(None) => writeln!(out, "line {}: OnError 0", s.line).unwrap(),
+            StmtKind::Resume(r) => {
+                let to = match r {
+                    Resume::Retry => "Retry".to_string(),
+                    Resume::Next => "Next".to_string(),
+                    Resume::To(l) => format!("To {}", p.label(*l).name),
+                };
+                writeln!(out, "line {}: Resume {to}", s.line).unwrap();
+            }
+            StmtKind::Error(code) => {
+                writeln!(out, "line {}: Error", s.line).unwrap();
+                expr(p, code, 1, out);
+            }
             StmtKind::Call { proc, args: a } => {
                 writeln!(out, "line {}: Call {}", s.line, p.proc(*proc).name).unwrap();
                 args(p, a, 1, out);
@@ -92,6 +113,7 @@ fn stmts(p: &Program, list: &[Stmt], out: &mut String) {
             }
         }
     }
+    label_lines(list.len(), out);
 }
 
 fn ty(t: Ty) -> &'static str {

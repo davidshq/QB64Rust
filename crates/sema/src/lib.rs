@@ -70,6 +70,32 @@ pub struct VarId(pub u32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ProcId(pub u32);
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct LabelId(pub u32);
+
+/// A label of the main module (labels inside procedures are not supported yet).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Label {
+    /// The name in upper case.
+    pub name: String,
+    /// 1-based source line of the label.
+    pub line: u32,
+    /// Index in [`Program::stmts`] of the statement the label stands before (the number of statements when it
+    /// stands after the last one).
+    pub at: usize,
+}
+
+/// Where `RESUME` continues (spec `language/error-handling`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Resume {
+    /// `RESUME` / `RESUME 0`: run the statement that raised the error again.
+    Retry,
+    /// `RESUME NEXT`: continue after the statement that raised the error.
+    Next,
+    /// `RESUME label`.
+    To(LabelId),
+}
+
 /// Where a variable lives (design D2, D6 of `m2-procedures-and-errors`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Storage {
@@ -222,6 +248,12 @@ pub enum StmtKind {
     },
     /// `EXIT SUB` / `EXIT FUNCTION`: leaves the procedure (either word leaves either kind, measured).
     Exit,
+    /// `ON ERROR GOTO label` (`Some`) or `ON ERROR GOTO 0` (`None`): sets or removes the program's error handler.
+    OnError(Option<LabelId>),
+    /// `RESUME ...`: ends the running error handler.
+    Resume(Resume),
+    /// `ERROR n`: raises error `n`, already converted to LONG (rounded half to even).
+    Error(Expr),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -241,6 +273,8 @@ pub struct Program {
     pub procs: Vec<Proc>,
     /// The main module's statements.
     pub stmts: Vec<Stmt>,
+    /// The main module's labels, in source order.
+    pub labels: Vec<Label>,
     /// Where each variable and procedure is defined and used (design D12).
     pub symbols: Symbols,
 }
@@ -252,5 +286,9 @@ impl Program {
 
     pub fn proc(&self, id: ProcId) -> &Proc {
         &self.procs[id.0 as usize]
+    }
+
+    pub fn label(&self, id: LabelId) -> &Label {
+        &self.labels[id.0 as usize]
     }
 }

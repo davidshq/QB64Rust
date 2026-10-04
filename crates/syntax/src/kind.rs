@@ -83,6 +83,14 @@ pub enum SyntaxKind {
     SharedStmt,
     /// `STATIC name [AS type], ...` inside a procedure; items are `DimItem`s.
     StaticStmt,
+    /// `name:` at the start of a statement: a label (the statement after it, if any, is a sibling node).
+    LabelDef,
+    /// `ON ERROR GOTO label` / `ON ERROR GOTO 0`
+    OnErrorStmt,
+    /// `RESUME`, `RESUME 0`, `RESUME NEXT`, `RESUME label`
+    ResumeStmt,
+    /// `ERROR n`
+    ErrorStmt,
     Literal,
     NameRef,
     CallExpr,

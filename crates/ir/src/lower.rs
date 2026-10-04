@@ -1,8 +1,8 @@
 //! Typed tree to IR. One IR statement per source statement.
 
 use crate::{
-    Arg, BinOp, Body, Const, Conv, Op, PrintItem, Proc, ProcId, ProcKind, Program, Stmt, Storage, Ty, Value, ValueKind,
-    Var, VarId,
+    Arg, BinOp, Body, Const, Conv, Label, LabelId, Op, PrintItem, Proc, ProcId, ProcKind, Program, Resume, Stmt,
+    Storage, Ty, Value, ValueKind, Var, VarId,
 };
 use qb64rust_sema as sema;
 
@@ -27,7 +27,7 @@ pub fn lower(p: &sema::Program) -> Program {
             },
             params: q.params.iter().map(|v| VarId(v.0)).collect(),
             result: q.result.map(|v| VarId(v.0)),
-            body: body(&q.stmts),
+            body: body(&q.stmts, &[]),
             line: q.line,
             end_line: q.end_line,
         })
@@ -35,11 +35,19 @@ pub fn lower(p: &sema::Program) -> Program {
     Program {
         vars,
         procs,
-        main: body(&p.stmts),
+        main: body(&p.stmts, &p.labels),
     }
 }
 
-fn body(stmts: &[sema::Stmt]) -> Body {
+fn body(stmts: &[sema::Stmt], labels: &[sema::Label]) -> Body {
+    let labels = labels
+        .iter()
+        .map(|l| Label {
+            name: l.name.clone(),
+            line: l.line,
+            at: l.at,
+        })
+        .collect();
     let stmts = stmts
         .iter()
         .map(|s| {
@@ -53,13 +61,14 @@ fn body(stmts: &[sema::Stmt]) -> Body {
             }
         })
         .collect();
-    Body { stmts }
+    Body { labels, stmts }
 }
 
 fn op_may_raise(op: &Op) -> bool {
     match op {
-        Op::SelectConsole | Op::End | Op::System | Op::Exit => false,
-        Op::Call { .. } => true,
+        Op::SelectConsole | Op::End | Op::System | Op::Exit | Op::SetHandler(_) => false,
+        // `RESUME` outside a handler raises error 20.
+        Op::Call { .. } | Op::Raise(_) | Op::Resume(_) => true,
         Op::Assign { value, .. } => value.may_raise(),
         Op::Print { items, .. } => items.iter().any(|i| match i {
             PrintItem::Str(v) | PrintItem::Num(v) => v.may_raise(),
@@ -97,6 +106,13 @@ fn op(k: &sema::StmtKind) -> Op {
         sema::StmtKind::End => Op::End,
         sema::StmtKind::System => Op::System,
         sema::StmtKind::Exit => Op::Exit,
+        sema::StmtKind::OnError(l) => Op::SetHandler(l.map(label)),
+        sema::StmtKind::Resume(r) => Op::Resume(match r {
+            sema::Resume::Retry => Resume::Retry,
+            sema::Resume::Next => Resume::Next,
+            sema::Resume::To(l) => Resume::To(label(*l)),
+        }),
+        sema::StmtKind::Error(code) => Op::Raise(value_of(code)),
         sema::StmtKind::Assign { var, value } => Op::Assign {
             place: VarId(var.0),
             value: value_of(value),
@@ -117,6 +133,10 @@ fn op(k: &sema::StmtKind) -> Op {
             args: args_of(args),
         },
     }
+}
+
+fn label(l: sema::LabelId) -> LabelId {
+    LabelId(l.0)
 }
 
 fn args_of(args: &[sema::Arg]) -> Vec<Arg> {

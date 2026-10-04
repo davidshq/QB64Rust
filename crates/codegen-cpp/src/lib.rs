@@ -10,13 +10,19 @@
 //! allocated in the procedure's `dataK.txt` on every call, from the `mem_static` arena that the epilogue rewinds;
 //! a parameter is the C parameter itself. An [`Arg::Temp`] becomes `&(passN=<value>)` with `passN` declared in the
 //! data fragment of the body that makes the call; a string copy passes the temporary `qbs*` directly.
+//!
+//! Error handling (D7): each label used by [`Op::SetHandler`] gets a handler number from 1, in the order the
+//! emitter meets them; `error_goto_line` holds the active one, and `mainerr.txt`, which `qbx.cpp` places at the top
+//! of `QBMAIN`, jumps to it. The runtime runs a handler by calling `QBMAIN` again from the statement boundary
+//! (`evnt`); the handler's resume returns from that call (retry and next) or jumps to a label in it.
 
 // A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
 #![warn(clippy::wildcard_enum_match_arm)]
 
 use qb64rust_builtins::BuiltinId;
 use qb64rust_ir::{
-    Arg, BinOp, Body, Const, Conv, Op, PrintItem, Proc, ProcKind, Program, Storage, Ty, Value, ValueKind, Var, VarId,
+    Arg, BinOp, Body, Const, Conv, LabelId, Op, PrintItem, Proc, ProcKind, Program, Resume, Storage, Ty, Value,
+    ValueKind, Var, VarId,
 };
 use std::fmt::Write as _;
 
@@ -65,6 +71,7 @@ pub fn emit(p: &Program, source_name: &str) -> Fragments {
         skip: 0,
         pass: 0,
         pass_decls: Vec::new(),
+        handlers: Vec::new(),
     };
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
     let mut set = |name: &str, text: String| files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
@@ -86,12 +93,6 @@ pub fn emit(p: &Program, source_name: &str) -> Fragments {
                 String::new()
             }
         }),
-    );
-    set(
-        "mainerr.txt",
-        "if (!error_handler_history) error_handler_history = qbs_new(0, 0);\n\
-         if (error_occurred){ error_occurred=0;\nexit(99);\n}\n"
-            .to_string(),
     );
     let mut main = String::from("#include \"main0.txt\"\n");
     for k in 1..=p.procs.len() {
@@ -120,6 +121,21 @@ pub fn emit(p: &Program, source_name: &str) -> Fragments {
         files.push((format!("data{k}.txt"), data_k));
         files.push((format!("free{k}.txt"), free_k));
     }
+    // Last: the handlers are numbered while the bodies are emitted.
+    let mut mainerr = String::from(
+        "if (!error_handler_history) error_handler_history = qbs_new(0, 0);\nif (error_occurred){ error_occurred=0;\n",
+    );
+    for (i, &l) in e.handlers.iter().enumerate() {
+        writeln!(
+            mainerr,
+            "if (error_goto_line=={}){{error_handling=1; goto {};}}",
+            i + 1,
+            e.label_name(l)
+        )
+        .unwrap();
+    }
+    mainerr.push_str("exit(99);\n}\n");
+    files.iter_mut().find(|(n, _)| n == "mainerr.txt").unwrap().1 = mainerr;
     Fragments { files }
 }
 
@@ -275,9 +291,27 @@ struct Emitter<'a> {
     pass: u32,
     /// Declarations of the `passN` of the body being emitted.
     pass_decls: Vec<String>,
+    /// Handler labels; handler number N is entry N - 1.
+    handlers: Vec<LabelId>,
 }
 
 impl Emitter<'_> {
+    /// `LABEL_<NAME>` of a main-module label.
+    fn label_name(&self, l: LabelId) -> String {
+        format!("LABEL_{}", c_ident(&self.p.main.labels[l.0 as usize].name))
+    }
+
+    /// The handler number of a label, assigned on first use.
+    fn handler(&mut self, l: LabelId) -> usize {
+        match self.handlers.iter().position(|&h| h == l) {
+            Some(i) => i + 1,
+            None => {
+                self.handlers.push(l);
+                self.handlers.len()
+            }
+        }
+    }
+
     fn name(&self, id: VarId) -> String {
         var_name(self.p, self.p.var(id))
     }
@@ -340,7 +374,11 @@ impl Emitter<'_> {
     }
 
     fn main0(&mut self) -> String {
-        let mut out = String::from("S_0:;\n");
+        // Tells the runtime that this program tracks error locations itself (it does not: no `$ERRORLOCATION`),
+        // so a critical error says "Enable $ErrorLocation:ON" as with the old compiler, instead of a line number
+        // from the runtime's fallback for old executables (measured with `s11_on_error`, error 11). Runs again
+        // each time a handler re-enters `QBMAIN`, as in the old compiler.
+        let mut out = String::from("error_track_line(0,0,NULL);\nS_0:;\n");
         let p = self.p;
         self.body(&p.main, &mut out);
         out.push_str("sub_end();\nreturn;\n}\n");
@@ -436,7 +474,8 @@ impl Emitter<'_> {
     }
 
     fn body(&mut self, b: &Body, out: &mut String) {
-        for s in &b.stmts {
+        for (i, s) in b.stmts.iter().enumerate() {
+            self.labels(b, i, out);
             let mut body = Vec::new();
             for op in &s.ops {
                 self.op(op, &mut body);
@@ -445,6 +484,18 @@ impl Emitter<'_> {
             lines.extend(body);
             lines.push(format!("if(!qbevent)break;evnt({});}}while(r);", s.line));
             self.lines(s.line, &lines, out);
+        }
+        self.labels(b, b.stmts.len(), out);
+    }
+
+    /// The labels that stand before statement `at`, each with the old compiler's event check.
+    fn labels(&self, b: &Body, at: usize, out: &mut String) {
+        for l in b.labels.iter().filter(|l| l.at == at) {
+            let lines = [
+                format!("LABEL_{}:;", c_ident(&l.name)),
+                format!("if(qbevent){{evnt({});r=0;}}", l.line),
+            ];
+            self.lines(l.line, &lines, out);
         }
     }
 
@@ -461,6 +512,28 @@ impl Emitter<'_> {
                 out.push("end();".into());
             }
             Op::Exit => out.push("goto exit_subfunc;".into()),
+            Op::SetHandler(Some(l)) => {
+                let n = self.handler(*l);
+                out.push(format!("error_goto_line={n};"));
+            }
+            Op::SetHandler(None) => {
+                out.push("error_goto_line=0;".into());
+                out.push("qbs_set(error_handler_history, qbs_new_txt_len(\"\", 0));".into());
+            }
+            Op::Raise(v) => {
+                out.push(format!("error({});", self.value(v)));
+                if v.uses_strings() {
+                    out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+                }
+            }
+            Op::Resume(r) => {
+                let then = match r {
+                    Resume::Retry => "error_retry=1; qbevent=1; error_handling=0; error_err=0; return;".to_string(),
+                    Resume::Next => "error_handling=0; error_err=0; return;".to_string(),
+                    Resume::To(l) => format!("error_handling=0; error_err=0; goto {};", self.label_name(*l)),
+                };
+                out.push(format!("if (!error_handling){{error(20);}}else{{{then}}}"));
+            }
             Op::Assign { place, value } => {
                 let name = self.name(*place);
                 let v = self.value(value);

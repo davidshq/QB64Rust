@@ -1,6 +1,8 @@
 //! `--dump ir`: the lowering-pair text of design D6.
 
-use crate::{Arg, BinOp, Body, Const, Op, PrintItem, ProcKind, Program, Storage, Ty, Value, ValueKind, VarId};
+use crate::{
+    Arg, BinOp, Body, Const, LabelId, Op, PrintItem, ProcKind, Program, Resume, Storage, Ty, Value, ValueKind, VarId,
+};
 use qb64rust_base::show_bytes;
 use std::fmt::Write as _;
 
@@ -40,7 +42,13 @@ pub fn dump(p: &Program) -> String {
 }
 
 fn body(p: &Program, b: &Body, out: &mut String) {
-    for s in &b.stmts {
+    let labels = |at: usize, out: &mut String| {
+        for l in b.labels.iter().filter(|l| l.at == at) {
+            writeln!(out, "Label {} line {}", l.name, l.line).unwrap();
+        }
+    };
+    for (i, s) in b.stmts.iter().enumerate() {
+        labels(i, out);
         writeln!(
             out,
             "Stmt line {}{}",
@@ -54,6 +62,12 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 Op::End => writeln!(out, "  End").unwrap(),
                 Op::System => writeln!(out, "  System").unwrap(),
                 Op::Exit => writeln!(out, "  Exit").unwrap(),
+                Op::SetHandler(Some(l)) => writeln!(out, "  SetHandler {}", label(p, *l)).unwrap(),
+                Op::SetHandler(None) => writeln!(out, "  SetHandler none").unwrap(),
+                Op::Raise(v) => writeln!(out, "  Raise {}", val(p, v)).unwrap(),
+                Op::Resume(Resume::Retry) => writeln!(out, "  Resume Retry").unwrap(),
+                Op::Resume(Resume::Next) => writeln!(out, "  Resume Next").unwrap(),
+                Op::Resume(Resume::To(l)) => writeln!(out, "  Resume To {}", label(p, *l)).unwrap(),
                 Op::Assign { place, value } => {
                     let v = p.var(*place);
                     writeln!(out, "  Assign {}:{:?} = {}", var(p, *place), v.ty, val(p, value)).unwrap();
@@ -74,6 +88,11 @@ fn body(p: &Program, b: &Body, out: &mut String) {
             }
         }
     }
+    labels(b.stmts.len(), out);
+}
+
+fn label(p: &Program, l: LabelId) -> &str {
+    &p.main.labels[l.0 as usize].name
 }
 
 fn ty(t: Ty) -> String {

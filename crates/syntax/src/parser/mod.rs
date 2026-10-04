@@ -8,6 +8,7 @@
 mod assign;
 mod call;
 mod decl;
+mod errors;
 mod expr;
 pub(crate) mod keywords;
 mod meta;
@@ -241,6 +242,9 @@ impl<'a> Parser<'a> {
 
     /// One statement and the line end or `:` after it.
     fn statement_and_separator(&mut self) {
+        while self.at_label() {
+            errors::label_def(self);
+        }
         self.statement();
         if !self.at_stmt_end() {
             self.error("expected the end of the statement");
@@ -289,6 +293,12 @@ impl<'a> Parser<'a> {
             proc::exit_stmt(self)
         } else if self.at_word("DECLARE") {
             proc::declare_stmt(self)
+        } else if self.at_word("ON") {
+            errors::on_stmt(self)
+        } else if self.at_word("RESUME") {
+            errors::resume_stmt(self)
+        } else if self.at_word("ERROR") {
+            errors::error_stmt(self)
         } else if self.nth(1) == Some(Eq) || (self.nth(1) == Some(LParen) && self.parens_then_eq()) {
             assign::assign_stmt(self)
         } else if keywords::is_keyword(name_part(self.nth_text(0))) {

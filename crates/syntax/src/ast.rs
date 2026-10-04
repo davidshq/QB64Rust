@@ -45,6 +45,10 @@ node_wrapper!(
     DeclareStmt,
     SharedStmt,
     StaticStmt,
+    LabelDef,
+    OnErrorStmt,
+    ResumeStmt,
+    ErrorStmt,
     Literal,
     NameRef,
     CallExpr,
@@ -218,6 +222,40 @@ impl ExitStmt<'_> {
 impl<'a> DeclareStmt<'a> {
     pub fn header(self) -> Option<ProcHeader<'a>> {
         child(self.0, ProcHeader::cast)
+    }
+}
+
+impl LabelDef<'_> {
+    /// The label's name (without the `:`).
+    pub fn name(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Ident)
+    }
+}
+
+impl OnErrorStmt<'_> {
+    /// The label after `GOTO`, or the `Number` token (`0`).
+    pub fn target(self) -> Option<Tok> {
+        self.0
+            .child_tokens()
+            .filter(|t| matches!(t.kind, Ident | Number))
+            .nth(3)
+    }
+}
+
+impl ResumeStmt<'_> {
+    /// The word or number after `RESUME` (`NEXT`, `0`, a label); `None` for a bare `RESUME`.
+    pub fn target(self) -> Option<Tok> {
+        self.0
+            .child_tokens()
+            .filter(|t| matches!(t.kind, Ident | Number))
+            .nth(1)
+    }
+}
+
+impl<'a> ErrorStmt<'a> {
+    /// The error number's expression.
+    pub fn value(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
     }
 }
 
@@ -531,6 +569,32 @@ mod tests {
         assert!(DimStmt::cast(s[2]).unwrap().shared().is_none());
         // `EXIT` starts at 37, `SUB` at 42.
         assert_eq!(ExitStmt::cast(s[3]).unwrap().keyword().map(|t| t.span.start), Some(42));
+    }
+
+    #[test]
+    fn labels_and_error_statements() {
+        let src = b"h: ON ERROR GOTO h\nON ERROR GOTO 0\nRESUME\nRESUME NEXT\nERROR 5\nON ERROR GOTO\n";
+        let p = crate::parse(FileId(0), src);
+        let root = SourceFile::cast(Node::root(&p.green, FileId(0))).unwrap();
+        let s: Vec<_> = root.statements().collect();
+        assert_eq!(LabelDef::cast(s[0]).unwrap().name().map(|t| t.span), Some(t(0, 1)));
+        let on = OnErrorStmt::cast(s[1]).unwrap();
+        assert_eq!(on.target().map(|t| (t.kind, t.span)), Some((Ident, t(17, 18))));
+        let on0 = OnErrorStmt::cast(s[2]).unwrap();
+        assert_eq!(on0.target().map(|t| t.kind), Some(Number));
+        assert!(ResumeStmt::cast(s[3]).unwrap().target().is_none());
+        assert_eq!(
+            ResumeStmt::cast(s[4]).unwrap().target().map(|t| t.span),
+            Some(t(49, 53))
+        );
+        assert!(matches!(ErrorStmt::cast(s[5]).unwrap().value(), Some(Expr::Literal(_))));
+        // `ON ERROR GOTO` without a target: the node is there, the target is not.
+        assert!(OnErrorStmt::cast(s[6]).unwrap().target().is_none());
+        assert_eq!(p.diagnostics.list().len(), 1);
+    }
+
+    fn t(start: u32, end: u32) -> qb64rust_base::Span {
+        qb64rust_base::Span::new(FileId(0), start, end)
     }
 
     #[test]

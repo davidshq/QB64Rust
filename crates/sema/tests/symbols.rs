@@ -69,6 +69,20 @@ fn shared_line_creates_the_main_variable() {
     insta::assert_snapshot!(dump_symbols(&p, &file));
 }
 
+/// A label is defined where it stands, even when `ON ERROR GOTO` names it first; `ON ERROR GOTO` in a SUB and
+/// `RESUME` refer to the same main-module label.
+#[test]
+fn label_with_handler_and_resume_references() {
+    let src =
+        b"$CONSOLE:ONLY\nON ERROR GOTO h\ns\nback: SYSTEM\nh:\nRESUME back\nSUB s\n    ON ERROR GOTO H\nEND SUB\n";
+    let (file, p) = check_source(src);
+    insta::assert_snapshot!(dump_symbols(&p, &file));
+    // `h` in `ON ERROR GOTO h` (offset 28) is the label defined at `h:` (offset 45).
+    let id = p.symbols.at(FileId(0), 28).unwrap();
+    assert_eq!(p.symbols.at(FileId(0), 45), Some(id));
+    assert!(matches!(p.symbols.get(id).kind, SymbolKind::Label(_)));
+}
+
 #[test]
 fn symbol_at_a_position() {
     // Offsets: `DIM nn AS LONG` starts at 14, `nn` at 18..20; `PRINT nn` starts at 29, `nn` at 35..37.

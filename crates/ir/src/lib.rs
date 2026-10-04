@@ -5,7 +5,9 @@
 //!
 //! - **Errors are handled per statement.** An operation marked as possibly raising a runtime error is followed by
 //!   an implicit check; on error the rest of its statement is skipped. Errors and events are serviced at the
-//!   statement boundary (where `RESUME` re-runs and `RESUME NEXT` continues after the statement).
+//!   statement boundary: a pending error goes to the active handler ([`Op::SetHandler`]). [`Resume::Retry`]
+//!   re-runs the statement that raised, [`Resume::Next`] continues after it, [`Resume::To`] at a label; a
+//!   statement in a procedure resumes in that procedure.
 //! - **Optional arguments are present or absent** ([`Value::CallBuiltin`] slots are `Option`s in table order).
 //! - **Every conversion is explicit** ([`ValueKind::Convert`]); every operation states the type it computes in.
 //! - **Integer overflow wraps** in two's complement (`DIVERGENCES.md` D-001, D-002).
@@ -39,6 +41,31 @@ pub struct VarId(pub u32);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ProcId(pub u32);
+
+/// A label of the main module's body ([`Program::main`]); procedures have none yet.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct LabelId(pub u32);
+
+/// A position in a body: before statement `at` (at the end when `at` is the number of statements). Labels are
+/// positions, not operations, so the IR has no jumps.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Label {
+    /// The BASIC name in upper case.
+    pub name: String,
+    pub line: u32,
+    pub at: usize,
+}
+
+/// Where a resume continues.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Resume {
+    /// Run the statement that raised the error again, from its start.
+    Retry,
+    /// Continue after the statement that raised the error.
+    Next,
+    /// Continue at a label of the main module.
+    To(LabelId),
+}
 
 /// Where a variable lives and how long.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -229,6 +256,13 @@ pub enum Op {
     },
     /// Leave the procedure (`EXIT SUB`, `EXIT FUNCTION`); a FUNCTION returns its result variable's value.
     Exit,
+    /// Make the statements from a label the program's error handler, or (`None`) remove it. One handler for the
+    /// whole program, also when set inside a procedure.
+    SetHandler(Option<LabelId>),
+    /// Raise the runtime error with this number (an `I32`).
+    Raise(Value),
+    /// End the running handler and continue as stated; outside a handler it raises error 20.
+    Resume(Resume),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -242,6 +276,8 @@ pub struct Stmt {
 /// A sequence of statements: the main module's, or a procedure's.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Body {
+    /// In source order; only the main module has labels.
+    pub labels: Vec<Label>,
     pub stmts: Vec<Stmt>,
 }
 

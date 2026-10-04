@@ -1,8 +1,8 @@
 //! The symbol table (design D12 of `m2-procedures-and-errors`): every resolved name with its definition and
 //! references, and a lookup from a byte position to the symbol named there. Spans are those of the name token,
-//! suffix included. Variables of every storage class and procedures are recorded; labels follow.
+//! suffix included. Variables of every storage class, procedures and labels are recorded.
 
-use crate::{ProcId, ProcKind, Program, Storage, VarId};
+use crate::{LabelId, ProcId, ProcKind, Program, Storage, VarId};
 use qb64rust_base::{FileId, SourceFile, Span, to_u32};
 use std::collections::HashMap;
 use std::fmt::Write as _;
@@ -14,12 +14,13 @@ pub struct SymbolId(pub u32);
 pub enum SymbolKind {
     Var(VarId),
     Proc(ProcId),
+    Label(LabelId),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Symbol {
     pub kind: SymbolKind,
-    /// The name in the `DIM` or procedure header, or the first use of an implicit variable.
+    /// The name in the `DIM` or procedure header, the label's definition, or the first use of an implicit variable.
     pub def: Span,
     /// The other uses, in source order.
     pub refs: Vec<Span>,
@@ -109,6 +110,7 @@ pub fn dump_symbols(p: &Program, file: &SourceFile) -> String {
                 };
                 write!(out, "Proc {} {kind} def {}", q.name, pos(s.def)).unwrap();
             }
+            SymbolKind::Label(l) => write!(out, "Label {} def {}", p.label(l).name, pos(s.def)).unwrap(),
         }
         let refs: Vec<String> = s.refs.iter().map(|&r| pos(r)).collect();
         if !refs.is_empty() {
