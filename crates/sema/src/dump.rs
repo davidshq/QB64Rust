@@ -20,7 +20,10 @@ pub fn dump_typed(p: &Program) -> String {
                 Storage::Result(q) if q.0 as usize == i => "result",
                 Storage::Static(q) if q.0 as usize == i => "static",
                 Storage::Local(q) if q.0 as usize == i => "local",
-                _ => continue,
+                // Variables of other procedures and of the main module.
+                Storage::Main | Storage::Static(_) | Storage::Local(_) | Storage::Param(_) | Storage::Result(_) => {
+                    continue;
+                }
             };
             writeln!(out, "  {class} {}:{}", v.name, ty(v.ty)).unwrap();
         }

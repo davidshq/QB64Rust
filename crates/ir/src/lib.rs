@@ -10,6 +10,9 @@
 //! - **Every conversion is explicit** ([`ValueKind::Convert`]); every operation states the type it computes in.
 //! - **Integer overflow wraps** in two's complement (`DIVERGENCES.md` D-001, D-002).
 
+// A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
+#![warn(clippy::wildcard_enum_match_arm)]
+
 mod dump;
 mod lower;
 

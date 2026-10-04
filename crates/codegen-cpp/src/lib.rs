@@ -4,6 +4,9 @@
 //! fragment set, the statement wrapper and the per-item error check of PRINT. Spelling and layout are free;
 //! variable names follow the old scheme (`__LONG_A`) for readers of generated code and the M5 debugger.
 
+// A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
+#![warn(clippy::wildcard_enum_match_arm)]
+
 use qb64rust_builtins::BuiltinId;
 use qb64rust_ir::{BinOp, Const, Conv, Op, PrintItem, Program, Ty, Value, ValueKind, Var};
 use std::fmt::Write as _;
@@ -58,7 +61,7 @@ pub fn emit(p: &Program, source_name: &str) -> Fragments {
         "maindata.txt",
         e.per_var(|v, n| match v.ty {
             Ty::Str => format!("if (!{n}){n}=qbs_new(0,0);\n"),
-            t => format!(
+            t @ (Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => format!(
                 "if({n}==NULL){{\n{n}=({c}*)mem_static_malloc({size});\n*{n}=0;\n}}\n",
                 c = c_type(t),
                 size = size(t)
@@ -69,7 +72,7 @@ pub fn emit(p: &Program, source_name: &str) -> Fragments {
         "clear.txt",
         e.per_var(|v, n| match v.ty {
             Ty::Str => format!("{n}->len=0;\n"),
-            _ => format!("*{n}=0;\n"),
+            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => format!("*{n}=0;\n"),
         }),
     );
     set(
@@ -189,7 +192,9 @@ impl Emitter<'_> {
         for v in &self.p.vars {
             match v.ty {
                 Ty::Str => writeln!(out, "qbs *{}=NULL;", var_name(v)).unwrap(),
-                t => writeln!(out, "{} *{}=NULL;", c_type(t), var_name(v)).unwrap(),
+                t @ (Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => {
+                    writeln!(out, "{} *{}=NULL;", c_type(t), var_name(v)).unwrap()
+                }
             }
         }
         // Globals that qbx.cpp and libqb refer to.

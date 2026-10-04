@@ -803,7 +803,16 @@ impl Checker<'_> {
             let plain_name = matches!(node, ast::Expr::NameRef(_));
             args.push(match e.kind {
                 ExprKind::Var(v) if e.ty == pty && (plain_name || pty == Ty::Str) => Arg::Ref(v),
-                _ => Arg::Temp(self.store(e, pty)?),
+                ExprKind::Var(_)
+                | ExprKind::Int(_)
+                | ExprKind::Float(_)
+                | ExprKind::Str(_)
+                | ExprKind::Convert { .. }
+                | ExprKind::Binary { .. }
+                | ExprKind::Neg(_)
+                | ExprKind::Concat(..)
+                | ExprKind::Call { .. }
+                | ExprKind::CallProc { .. } => Arg::Temp(self.store(e, pty)?),
             });
         }
         Ok(args)
@@ -917,44 +926,42 @@ impl Checker<'_> {
         let span = node.node().span();
         let op = self.need(node.op(), span)?;
         let operand = self.need(node.operand(), span)?;
-        match op.kind {
-            Minus => {
-                // A minus directly before a decimal literal is part of the literal (step C).
-                if let ast::Expr::Literal(lit) = operand {
-                    let t = self.need(lit.token(), span)?;
-                    if t.kind == Number && self.text(t.span)[0] != b'&' {
-                        let mut e = self.number(t, true)?;
-                        e.span = span;
-                        return Ok(e);
-                    }
-                }
-                let e = self.expr(operand)?;
-                if !e.ty.is_numeric() {
-                    return Err(self.error(span, "unary `-` needs a number"));
-                }
-                // Negating an integer is believed `_INTEGER64`, a float keeps its type (measured: `-x%` with
-                // `x% = -32768` prints ` 32768 `).
-                let qb = if e.qb.is_int() { Ty::I64 } else { e.qb };
-                let ty = promote(e.ty);
-                let e = self.convert_exact(e, ty);
-                if let (ExprKind::Int(v), true) = (&e.kind, self.fold) {
-                    let v = *v;
-                    return Ok(Expr {
-                        span,
-                        ty,
-                        qb,
-                        kind: ExprKind::Int(wrap(v.wrapping_neg(), ty)),
-                    });
-                }
-                Ok(Expr {
-                    span,
-                    ty,
-                    qb,
-                    kind: ExprKind::Neg(Box::new(e)),
-                })
-            }
-            _ => Err(self.error(op.span, format!("operator `{}` is not supported yet", self.word(op)))),
+        if op.kind != Minus {
+            return Err(self.error(op.span, format!("operator `{}` is not supported yet", self.word(op))));
         }
+        // A minus directly before a decimal literal is part of the literal (step C).
+        if let ast::Expr::Literal(lit) = operand {
+            let t = self.need(lit.token(), span)?;
+            if t.kind == Number && self.text(t.span)[0] != b'&' {
+                let mut e = self.number(t, true)?;
+                e.span = span;
+                return Ok(e);
+            }
+        }
+        let e = self.expr(operand)?;
+        if !e.ty.is_numeric() {
+            return Err(self.error(span, "unary `-` needs a number"));
+        }
+        // Negating an integer is believed `_INTEGER64`, a float keeps its type (measured: `-x%` with
+        // `x% = -32768` prints ` 32768 `).
+        let qb = if e.qb.is_int() { Ty::I64 } else { e.qb };
+        let ty = promote(e.ty);
+        let e = self.convert_exact(e, ty);
+        if let (ExprKind::Int(v), true) = (&e.kind, self.fold) {
+            let v = *v;
+            return Ok(Expr {
+                span,
+                ty,
+                qb,
+                kind: ExprKind::Int(wrap(v.wrapping_neg(), ty)),
+            });
+        }
+        Ok(Expr {
+            span,
+            ty,
+            qb,
+            kind: ExprKind::Neg(Box::new(e)),
+        })
     }
 
     fn binary(&mut self, node: ast::BinExpr) -> R<Expr> {
@@ -962,6 +969,10 @@ impl Checker<'_> {
         let l = self.need(node.lhs(), span)?;
         let op_tok = self.need(node.op(), span)?;
         let r = self.need(node.rhs(), span)?;
+        #[expect(
+            clippy::wildcard_enum_match_arm,
+            reason = "token kinds: every other operator is unsupported"
+        )]
         let op = match op_tok.kind {
             Plus => BinOp::Add,
             Minus => BinOp::Sub,
