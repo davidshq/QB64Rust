@@ -123,9 +123,9 @@
 
 ## 6. Full corpus and documentation
 
-- [ ] 6.1 Run the full corpus with `qb64rust` once (not a pass criterion). Verify: no crash, no wrong executable,
+- [x] 6.1 Run the full corpus with `qb64rust` once (not a pass criterion). Verify: no crash, no wrong executable,
   every `.err` program rejected; record the counts in `tests\corpus\README.md`; any further program that now
   passes is added to `slice.list`.
-- [ ] 6.2 Update `crates\README.md` (supported subset, `ast.rs` and the symbol table in the crate map), `tests\corpus\README.md` (slice group, list size),
+- [x] 6.2 Update `crates\README.md` (supported subset, `ast.rs` and the symbol table in the crate map), `tests\corpus\README.md` (slice group, list size),
   `STATUS.md`, `study\00` (§2 progress, §5 measured facts from the Context and task 2.1), `CLAUDE.md` (layout table:
   list size; decisions taken here). Verify: `openspec validate m2-procedures-and-errors --strict` passes.

@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-04 (session 10). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-04 (session 11). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice done.**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling done.**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -108,26 +108,40 @@ variables, `PRINT` (`;`, `,`, auto-semicolon), `END`, literals, `+ - * /`, unary
 (the folder wraps with `wrapping_*`), `rust-version`, CI workflows `rust.yml` (tier 1) and `repo-check.yml`
 (`tools\repo_check`, rules 2 and 7). Both workflows have not run on GitHub yet (not pushed).
 
-**In progress:** OpenSpec change `m2-procedures-and-errors` (procedures, by-reference arguments, `ON ERROR`;
-task groups 1–5 done: procedures and error handling (labels, `ON ERROR GOTO`, `RESUME`, `ERROR`, `ERR`, `ERL`,
-`CHR$`) compile end to end, slice list at 54 (all pass, also with folding off), `SYSTEM` supported; next is group
-6, the full corpus run and documentation).
+## M2: procedures and error handling (2026-10-04, sessions 10–11)
+
+OpenSpec change `m2-procedures-and-errors`: all tasks done; archived 2026-10-04 to
+`openspec\changes\archive\2026-10-04-m2-procedures-and-errors\`, its specs now the main specs
+`openspec\specs\language\procedures` and `language\error-handling` (and updates of `compiler\pipeline` and
+`testing\compiler-tests`). Supported now (`crates\README.md`): `SUB`/`FUNCTION`, calls by
+reference and by value, `EXIT`, `DECLARE`, `STATIC`, `SHARED`, `DIM SHARED`, reserved names, `SYSTEM`; labels,
+`ON ERROR GOTO`, the three `RESUME` forms, `ERROR`, `ERR`, `ERL`, `CHR$`. `sema` reads the tree through typed
+accessors (`ast.rs`) and keeps a symbol table for the language server.
+
+- Tier 2: `slice.list` has 54 programs (the 12 of `slice\`, 5 of them new: `s08`–`s12`; 42 of
+  `runtime_comparison`); all pass, also with folding off. Tier 1 now also requires an error for every `.err`
+  program and checks reserved names against 1,030 measured forms (`verification\v15_builtin_names`).
+- Full corpus once (`tests\corpus\README.md`): exactly the 54 pass, 216 are rejected with a diagnostic (20 of them
+  `.err` programs), 5 known failures not run; no crash, no wrong executable; 4 min 47 s.
+- Measured on the way (`study\00` §5, `verification\v14_*`, `v15_*`): argument passing, scopes in file order,
+  `DECLARE` ignored, reserved names, `RESUME` granularity, `ERROR` values, no unary `+`.
+- Noted for `TYPE`: an unsupported `TYPE` block gives follow-on errors on its member lines and member assignments
+  (3 corpus programs).
 
 **Next** (order accepted 2026-10-04 after the second review, `study\22` §5, reasons there; it replaces the order
 of `study\20` §4):
 
-1. Finish `m2-procedures-and-errors` (group 6).
-2. OpenSpec change `m2-upstream-tests` (proposed): upstream test files copied into `tests\upstream\`; tier 1 over
+1. OpenSpec change `m2-upstream-tests` (proposed): upstream test files copied into `tests\upstream\`; tier 1 over
    upstream, `qbasic_testcases` and the old compiler's sources; the "not supported yet" marker; ratchet lists;
    upstream progress reported as x of 279 (125 programs need deferred array features); the QB64Fresh snippets as
    labelled inputs; shared `Ty`/`BinOp`/`Conv`; a seeded mutation test.
-3. Parser breadth, the whole language: blocks, control flow, labels, line numbers, `DATA`, comment metacommands,
+2. Parser breadth, the whole language: blocks, control flow, labels, line numbers, `DATA`, comment metacommands,
    `$IF`/`$INCLUDE`, the `specialformat` statements; `sema` keyed by (`FileId`, offset). Panic hook at the start.
-4. A thin language server (diagnostics, go to definition) in the extension.
-5. Bug-compatibility decisions (`study\00` §6), then the differential tester, `Ty` as a type table, unsigned types.
-6. Plain built-ins (249 of 455), table-driven, with generated tests.
-7. Control flow through the pipeline, with `CONST`, `OPTION _EXPLICIT`, `DEFxxx`.
-8. Arrays and `TYPE` (storage designed so member arrays fit later), then the IR review (`study\20` §3.4).
+3. A thin language server (diagnostics, go to definition) in the extension.
+4. Bug-compatibility decisions (`study\00` §6), then the differential tester, `Ty` as a type table, unsigned types.
+5. Plain built-ins (249 of 455), table-driven, with generated tests.
+6. Control flow through the pipeline, with `CONST`, `OPTION _EXPLICIT`, `DEFxxx`.
+7. Arrays and `TYPE` (storage designed so member arrays fit later), then the IR review (`study\20` §3.4).
 
 ## FreeBASIC reviewed (2026-10-03)
 
@@ -142,7 +156,7 @@ M1 leftovers: done (see above).
 
 | When | Item |
 |---|---|
-| Step 5 of "Next" | Decide the bug-compatibility choices in `study\00` §6 (32-bit INTEGER arithmetic and half-to-even rounding are already implemented as "keep") |
+| Step 4 of "Next" | Decide the bug-compatibility choices in `study\00` §6 (32-bit INTEGER arithmetic and half-to-even rounding are already implemented as "keep") |
 | M3 | Plain copy of `..\QB64pe\internal\c` at the pinned commit (`CLAUDE.md`) |
 | M3 | Programs without `$CONSOLE:ONLY`, with an oracle such as a screen-state dump at exit compared between old and new compiler (`study\22` §3.2) |
 | M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\22` §4.2) |

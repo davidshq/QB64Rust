@@ -181,6 +181,35 @@ same in the first three):
 - An `&&` literal above `_INTEGER64` range wraps: `PRINT 18446744073709551615&&` prints `-1`. The new compiler
   reports "overflow" (not yet in `DIVERGENCES.md`).
 
+Measured for procedures and error handling (2026-10-04, `m2-procedures-and-errors`; `verification\v14_*`,
+`v15_*`, `tests\corpus\slice\s08`–`s12`; full tables in `openspec\changes\archive\2026-10-04-m2-procedures-and-errors\design.md`, Context):
+
+- **Arguments:** a plain variable of exactly the parameter's type is passed by reference; anything else (other
+  type, expression, `(x)`) goes into a by-value temporary, converted as for an assignment, with no copy-back. A
+  string is passed by reference even in parentheses: `addbang (s$)` changes `s$`.
+- **A function call prints with the function's own type** (`PRINT twice&(n)` as LONG), not as an integer
+  operation (`_INTEGER64`).
+- **Scopes follow file order.** A SUB before `DIM SHARED g` does not see `g` (its `g` is an implicit local).
+  `SHARED h AS LONG` in a SUB creates main's `h&` if missing and types main's plain `h` as LONG for the code after
+  it; plain `SHARED g` always binds the SINGLE `g!`. A local `DIM` shadows a `DIM SHARED` name. A main-module
+  `DIM h` after such a `SHARED` makes the C++ compile fail (the new compiler rejects it).
+- `DECLARE` is ignored: one that disagrees with the definition, or names nothing, is accepted. `EXIT SUB` and
+  `EXIT FUNCTION` are interchangeable inside any procedure.
+- **Reserved names:** a keyword, or a built-in written without a required suffix (`LEN`, `CLS`, `NAME`, `ERR`),
+  cannot name a variable, parameter or procedure, with any suffix (`len&`). `left` and `chr` are free (`LEFT$`,
+  `CHR$` need their `$`); `WIDTH` is free; no name starting with `_` is (1,030 forms checked, `v15_builtin_names`).
+  There is no unary `+` (`PRINT +5` is a compile error).
+- **Errors:** `RESUME` re-runs the whole statement that raised, including `PRINT` items already printed; `RESUME
+  NEXT` skips the rest of it, including the line end. An `ERROR` inside a FUNCTION called from a `PRINT`, with a
+  `RESUME NEXT` handler in main, continues inside the function. `ON ERROR GOTO` inside a SUB may name a main-module
+  label; a label inside a SUB used that way is a compile error. `ERR` is 0 again after `RESUME`; `ERL` is 0 without
+  line numbers.
+- `ERROR 0` and `ERROR -1` raise 5; a fractional value is rounded half to even; `ERROR 256` (and 257, 500+) is
+  critical and ends the program even with a handler. Under `QB64PE_NOPROMPT=y` an untrapped error ends the
+  program; `QB64PE_NOPROMPT=continue` reports it and goes on with the next statement.
+- The generated `main0.txt` must start with `error_track_line(0,0,NULL);`; without it the runtime reports a
+  critical error with a line number instead of "Enable $ErrorLocation:ON …" (`libqb\src\error_handle.cpp`).
+
 ## 6. Bug-compatibility choices still to make
 
 From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence register (R2).
@@ -249,7 +278,7 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
 - **Planned layers (R11):** (1) existing suite; (2) golden corpus: run the 143 qbasic programs and QB64Fresh's 261
   `runtime_comparison` programs through the old compiler and freeze their output (**the 261 done 2026-10-03**:
   `tests\corpus\`, 263 programs with `verification\` v11 and v12; 237 `.output`, 20 `.err`, 1 compile-only, 5
-  known failures; baseline `baselines\qb64pe-16f629784e-win64-corpus.json`; how often it runs: `study\19`. The 143
+  known failures; with the 12 `slice\` programs written for the new compiler, 275; baseline `baselines\qb64pe-16f629784e-win64-corpus.json`; how often it runs: `study\19`. The 143
   qbasic programs are still compile-only); (3) differential testing of
   random expressions old vs. new; (4) formatter goldens from `-y` over all available `.bas`; plus golden images for
   LINE/CIRCLE/PAINT/DRAW/GET/PUT (only 12 image tests exist).
@@ -257,14 +286,18 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
   the 143 qbasic programs, and classic QBasic areas (PRINT USING, file modes, string functions) beyond light use.
 - **Test hygiene:** run every program with `QB64PE_NOPROMPT=y`; detect fatal errors from output, not exit code;
   never use screen `PRINT` with a comma under a redirected `$CONSOLE`.
-- `verification\` holds 17 small programs with recorded outputs behind `09`, `10`, `16` and the slice's design
-  (`v13`, `v13b`: type suffixes on DIMmed names) (`run.sh` reruns them).
+- `verification\` holds 77 small programs with recorded outputs behind `09`, `10`, `16`, the slice's design
+  (`v13`, `v13b`: type suffixes on DIMmed names) and `m2-procedures-and-errors` (`v14_*`: scopes, reserved names,
+  compile errors, `ERROR` values; `v15_*`: names of built-ins, unary `+`) (`run.sh` reruns them).
 - **New compiler (2026-10-03, `crates\README.md`):** tier 1 `cargo test` runs unit and snapshot tests (`insta`),
   `tests\frontend\` by mode line (`' TEST: parse-ok|check-ok|check-fail|typed|ir|cpp`), and the front end over every
-  corpus program (no panic, exact byte round trip; no diagnostics for `tests\corpus\slice.list`). Tier 2 runs the
-  14 programs of `slice.list` end to end with the corpus runner's `--list`: all pass. Intentional differences from
-  the old compiler are in `DIVERGENCES.md` (D-001, D-002: integer overflow wraps); the numeric rules are the spec
-  `openspec\specs\language\numeric-semantics`.
+  corpus program (no panic, exact byte round trip; no diagnostics for `tests\corpus\slice.list`; at least one error
+  for every `.err` program). Tier 2 runs the 54 programs of `slice.list` end to end with the corpus runner's
+  `--list`: all pass, also with constant folding off (2026-10-04). The full corpus with `qb64rust`: those 54 pass,
+  the 5 known failures are not run, everything else is rejected with a diagnostic (`tests\corpus\README.md`).
+  Intentional differences from the old compiler are in `DIVERGENCES.md` (D-001, D-002: integer overflow wraps);
+  the numeric rules are the spec `openspec\specs\language\numeric-semantics`, procedures and error handling the
+  specs `language\procedures` and `language\error-handling`.
 
 ## 11. Other repositories and sources: conclusions (reviews archived)
 

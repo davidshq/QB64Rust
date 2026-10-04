@@ -12,7 +12,7 @@ not say whether that behaviour is right (that is the divergence register's job).
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
 | `slice\` | 12 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling; `SOURCE.md`) |
-| `slice.list` | The 31 programs the new compiler must pass: `s01`–`s07` of `slice\` and 24 of `runtime_comparison` (see below) |
+| `slice.list` | The 54 programs the new compiler must pass: the 12 of `slice\` and 42 of `runtime_comparison` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -112,11 +112,13 @@ signed overflow being undefined in the generated C++ (no `-fwrapv`); the new com
 
 ## The `slice` group and `slice.list` (new compiler)
 
-`slice\` holds programs written for QB64Rust by the change `m2-workspace-and-slice`, recorded with `qb64pe.exe`
-like the rest; each is named after what it pins (`s02_integer_wrap`, `s05_instr`...). `s07_cp437_bytes` has CRLF
+`slice\` holds programs written for QB64Rust, recorded with `qb64pe.exe` like the rest: `s01`–`s07` by the change
+`m2-workspace-and-slice`, `s08`–`s12` (procedures, error handling) by `m2-procedures-and-errors` (`SOURCE.md`).
+Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
 line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
 
-`slice.list` names the programs the new compiler must pass (tier 2, `study\19`):
+`slice.list` names the 54 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`:
 
 ```
 cargo build --release
@@ -124,20 +126,25 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --qb64 target\relea
 ```
 
 `cargo test` (tier 1) runs the front end over every corpus program and requires no diagnostics for the listed
-ones. Add a program to the list when the compiler supports everything it uses.
+ones and at least one error for every program with an `.err` file. Add a program to the list when the compiler supports everything it uses.
 
-### Full corpus with `qb64rust` (2026-10-03, not a pass criterion)
+### Full corpus with `qb64rust` (2026-10-04, not a pass criterion)
 
-One run of the whole corpus with the slice compiler, to check that it fails safely outside the slice:
+One run of the whole corpus (275 programs) after `m2-procedures-and-errors`, to check that the compiler fails
+safely outside what it supports:
 
 | Result | Programs |
 |---|---|
-| Pass | 31: the 14 of `slice.list`, and 17 others that use only slice features (`125`, `130`, `132`, `133`, `144`, `145`, `163`, `188`, `208`–`211`, `27`, `74`, `75`, `87`, `92`) |
-| Rejected with a diagnostic (exit status 1) | 214 |
+| Pass | 54: exactly the programs of `slice.list` (none passes outside it) |
+| Rejected with a diagnostic (exit status 1) | 196 (195 `.output` programs and the compile-only `239_lprint`) |
 | `.err` programs rejected, with the new compiler's message instead of the old text | 20 |
-| Known failures | 5 (the four `PRINT`-comma programs compile but are never run; `147` is rejected) |
-| Compiler crash, or an executable with wrong output | 0 |
+| Known failures | 5: the four `PRINT`-comma programs and `147` compile but are never run |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
 
-Time per program: rejected ones at most 0.1 s; built ones 2.8 s on average (1.9–11 s; the C++ compile of
-`qbx.cpp` and the link, libqb reused). The whole run took 1 min 53 s, against about 11 min with `qb64pe.exe`;
-input for the runner's parallel option (`study\19` §5).
+The rejections are almost all "not supported yet" (statements, operators, arrays, `TYPE`). One wording to fix
+when `TYPE` arrives: a `TYPE` block also gives follow-on errors (`` `n` is not a SUB `` for each member line,
+"cannot store a string in a number variable" for `v.s = "..."`), 3 programs.
+
+Time per program: rejected ones at most 0.4 s; built ones 4.7 s on average (1.8–23 s; the C++ compile of
+`qbx.cpp` and the link, libqb reused; the slow ones vary from run to run). The whole run took 4 min 47 s, against
+about 11 min with `qb64pe.exe`. The first run (2026-10-03, slice compiler) passed 31 in 1 min 53 s.

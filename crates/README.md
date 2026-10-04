@@ -6,10 +6,10 @@ The new compiler, `qb64rust`. One crate per pipeline stage, so the layering is e
 | Crate | Package | What it holds |
 |---|---|---|
 | `base` | `qb64rust-base` | `FileId`, byte `Span`, `SourceMap` with the line index (CR LF, LF, lone CR), `Diagnostic`, the 100-error cap |
-| `syntax` | `qb64rust-syntax` | Byte lexer, lossless tree (green nodes + cursor; printing it gives back the file byte for byte), parser with one module per statement family |
+| `syntax` | `qb64rust-syntax` | Byte lexer, lossless tree (green nodes + cursor; printing it gives back the file byte for byte), parser with one module per statement family (`parser\keywords.rs`: the reserved words), typed accessors over the tree (`ast.rs`: one wrapper per node kind, every child an `Option` or an iterator) |
 | `builtins` | `qb64rust-builtins` | The built-in table, generated at build time from `tools\builtins\builtins.json` |
-| `sema` | `qb64rust-sema` | Variables (a name plus a type), literal typing, computation types, explicit conversions, integer constant folding; the typed tree |
-| `ir` | `qb64rust-ir` | The ABI-neutral IR (no libqb names, no C types) and its lowering from the typed tree |
+| `sema` | `qb64rust-sema` | Procedure table, scopes (main, procedure, `STATIC`, `SHARED`), variables (a name plus a type), labels, literal typing, computation types, explicit conversions, by-reference or by-value arguments, integer constant folding; the typed tree; the symbol table (`symbols.rs`: definition and references of every variable, procedure and label, `Symbols::at` for a position, `dump_symbols`) |
+| `ir` | `qb64rust-ir` | The ABI-neutral IR (no libqb names, no C types: procedures, storage classes, `Arg::Ref`/`Arg::Temp`, handlers and `RESUME` as statement-level rules) and its lowering from the typed tree |
 | `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...) |
 | `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, build through the reference clone's `Makefile` |
 
@@ -50,16 +50,26 @@ fragments, the copy of `qbx.cpp`, `qbx.o` and the `.sym` file go into `<exe>.qb6
 (deleted after a successful build unless `--keep-build`); libqb objects are built into the clone's git-ignored
 folders if missing. No tracked file of the clone changes.
 
-What the compiler supports so far (the first slice): `$CONSOLE:ONLY`, comments, `:`, `DIM` of scalars (`INTEGER`,
-`LONG`, `_INTEGER64`, `SINGLE`, `DOUBLE`, `_FLOAT`, `STRING`), `[LET] v = e`, implicit variables with suffixes,
-`PRINT` with `;`, `,` and the auto-semicolon, `END`, numeric and string literals, unary `-`, `+ - * /`,
-parentheses, string `+`, and `INSTR`. Anything else gets a "not supported yet" error, never wrong code.
+What the compiler supports so far:
+
+- the first slice (`m2-workspace-and-slice`): `$CONSOLE:ONLY`, comments, `:`, `DIM` of scalars (`INTEGER`,
+  `LONG`, `_INTEGER64`, `SINGLE`, `DOUBLE`, `_FLOAT`, `STRING`), `[LET] v = e`, implicit variables with suffixes,
+  `PRINT` with `;`, `,` and the auto-semicolon, `END`, numeric and string literals, unary `-`, `+ - * /`,
+  parentheses, string `+`, and `INSTR`;
+- procedures (`m2-procedures-and-errors`): `SUB` and `FUNCTION` with parameters, calls with and without `CALL`
+  (by reference or by value as in QB64pe), function calls in expressions, `EXIT SUB`/`EXIT FUNCTION`, `DECLARE`
+  (ignored, as QB64pe does), local and implicit variables, `STATIC`, `SHARED`, `DIM SHARED`, reserved names;
+  `SYSTEM` without an exit code;
+- error handling: labels in the main module, `ON ERROR GOTO label` and `ON ERROR GOTO 0` (also inside a
+  procedure), `RESUME`, `RESUME NEXT`, `RESUME label`, `ERROR n`, `ERR`, `ERL`, `CHR$`.
+
+Anything else gets a "not supported yet" error, never wrong code.
 
 ## Tests
 
 | Tier (`study\19`) | Command | What |
 |---|---|---|
-| 1 | `cargo test` | Unit tests; lexer and parser snapshots; `tests\frontend\` by mode line; every corpus program through the front end (no panic, exact round trip); the programs of `tests\corpus\slice.list` without diagnostics; the command line |
+| 1 | `cargo test` | Unit tests; lexer and parser snapshots; symbol-table snapshots; `tests\frontend\` by mode line; every corpus program through the front end (no panic, exact round trip); the programs of `tests\corpus\slice.list` without diagnostics; every corpus program with an `.err` file rejected; reserved names against the measured list (`names.rs`); the command line |
 | 1, by hand | `cargo test -p qb64rust-driver --test cli -- --ignored` | The command-line scenarios that build an executable |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --qb64 target\release\qb64rust.exe --list tests\corpus\slice.list` | The listed corpus programs end to end against the output recorded from `qb64pe.exe` |
 
@@ -77,7 +87,7 @@ The mode line is a comment, so `qb64pe.exe` ignores it.
 ### Snapshots
 
 Snapshot tests use [`insta`](https://insta.rs). The `.snap` files are committed next to the tests
-(`crates\syntax\tests\snapshots\`, `crates\driver\tests\snapshots\`, the latter named `<file>.<mode>.snap`). A
+(`crates\syntax\tests\snapshots\`, `crates\sema\tests\snapshots\`, `crates\driver\tests\snapshots\`, the last named `<file>.<mode>.snap`). A
 changed output fails `cargo test` and writes a `.snap.new` file. Review with `cargo insta review` (install with
 `cargo install cargo-insta`) or read the `.snap.new` file and rename it over the `.snap` file to accept it. To
 write all new snapshots in one run: `INSTA_FORCE_PASS=1 INSTA_UPDATE=new cargo test`, then review every
