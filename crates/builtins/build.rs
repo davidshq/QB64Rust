@@ -7,6 +7,7 @@ fn main() {
     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
     let json_path = manifest.join("../../tools/builtins/builtins.json");
     println!("cargo:rerun-if-changed={}", json_path.display());
+    #[expect(clippy::disallowed_methods, reason = "JSON, not BASIC source")]
     let text = std::fs::read_to_string(&json_path).expect("read tools/builtins/builtins.json");
     let doc: serde_json::Value = serde_json::from_str(&text).expect("parse builtins.json");
     let entries = doc["entries"].as_array().expect("entries array");

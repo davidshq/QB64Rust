@@ -42,6 +42,7 @@ fn every_corpus_program_goes_through_the_front_end() {
 #[test]
 fn slice_list_programs_have_no_diagnostics() {
     let root = corpus_root();
+    #[expect(clippy::disallowed_methods, reason = "a list of file names, not BASIC source")]
     let list = std::fs::read_to_string(root.join("slice.list")).unwrap();
     let mut n = 0;
     for line in list.lines() {

@@ -86,12 +86,18 @@ pub fn build(root: &Path, build: &Path, exe: &Path, quiet: bool) -> Result<(), S
         Ok(())
     } else {
         let _ = std::fs::remove_file(exe);
+        #[expect(
+            clippy::disallowed_methods,
+            reason = "the C++ toolchain's messages, shown as they are"
+        )]
+        let (stdout, stderr) = (
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr),
+        );
         Err(format!(
-            "C++ build failed (make exit status {:?}); build folder kept: {}\n{}{}",
+            "C++ build failed (make exit status {:?}); build folder kept: {}\n{stdout}{stderr}",
             out.status.code(),
             build.display(),
-            String::from_utf8_lossy(&out.stdout),
-            String::from_utf8_lossy(&out.stderr)
         ))
     }
 }

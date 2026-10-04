@@ -36,7 +36,7 @@ pub fn number(text: &[u8], negative: bool) -> Result<NumLit, LitError> {
         while *i < text.len() && text[*i].is_ascii_digit() {
             *i += 1;
         }
-        std::str::from_utf8(&text[s..*i]).unwrap().to_string()
+        text[s..*i].iter().map(|&b| char::from(b)).collect::<String>()
     };
     let mut whole = digits(&mut i);
     let mut frac = String::new();

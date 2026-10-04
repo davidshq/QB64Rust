@@ -23,6 +23,7 @@ fn qb64rust(dir: &Path, args: &[&str]) -> Output {
         .unwrap()
 }
 
+#[expect(clippy::disallowed_methods, reason = "the compiler's own messages")]
 fn stdout(o: &Output) -> String {
     String::from_utf8_lossy(&o.stdout).to_string()
 }

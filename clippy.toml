@@ -1,0 +1,8 @@
+# Source is bytes throughout (study\15 §1, study\21): files are never converted to `str`. A place that must show
+# bytes as text (a diagnostic, a name for generated code) uses `#[expect(clippy::disallowed_methods, reason = ...)]`.
+disallowed-methods = [
+    { path = "std::fs::read_to_string", reason = "source is bytes: read with std::fs::read" },
+    { path = "std::str::from_utf8", reason = "source is bytes: keep &[u8]" },
+    { path = "std::string::String::from_utf8", reason = "source is bytes: keep Vec<u8>" },
+    { path = "std::string::String::from_utf8_lossy", reason = "lossy: distinct bytes become U+FFFD" },
+]

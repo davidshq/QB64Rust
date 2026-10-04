@@ -12,6 +12,7 @@ use std::path::Path;
 #[test]
 fn reserved_names_match_the_old_compiler() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../verification/v15_builtin_names.txt");
+    #[expect(clippy::disallowed_methods, reason = "a recorded list of names, not BASIC source")]
     let text = std::fs::read_to_string(&path).unwrap();
     let mut checked = 0;
     let mut wrong = Vec::new();

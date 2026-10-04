@@ -204,8 +204,9 @@ impl Checker<'_> {
         text(self.file, span)
     }
 
+    /// The token in upper case, other than printable ASCII escaped (`\xC9`).
     fn word(&self, t: Tok) -> String {
-        String::from_utf8_lossy(self.text(t.span)).to_ascii_uppercase()
+        show_bytes(&self.text(t.span).to_ascii_uppercase())
     }
 
     /// Records the names of the statement just checked, unless it had an error (one error per statement).
@@ -335,7 +336,7 @@ impl Checker<'_> {
             .iter()
             .position(|&b| !(b.is_ascii_alphanumeric() || b == b'_' || b == b'.'))
             .unwrap_or(raw.len());
-        let name = String::from_utf8_lossy(&raw[..end]).to_ascii_uppercase();
+        let name = show_bytes(&raw[..end].to_ascii_uppercase());
         if self.procs_by_name.contains_key(&name) {
             return;
         }
@@ -413,7 +414,7 @@ impl Checker<'_> {
             .iter()
             .position(|&b| !(b.is_ascii_alphanumeric() || b == b'_' || b == b'.'));
         let (name, suffix) = bytes.split_at(end.unwrap_or(bytes.len()));
-        let name = String::from_utf8_lossy(name).to_ascii_uppercase();
+        let name = show_bytes(&name.to_ascii_uppercase());
         let ty = match suffix {
             b"" => None,
             b"%" => Some(Ty::I16),
@@ -979,7 +980,7 @@ impl Checker<'_> {
             Star => BinOp::Mul,
             Slash => BinOp::Div,
             _ => {
-                let shown = show_bytes(self.text(op_tok.span)).to_ascii_uppercase();
+                let shown = self.word(op_tok);
                 return Err(self.error(op_tok.span, format!("operator `{shown}` is not supported yet")));
             }
         };
