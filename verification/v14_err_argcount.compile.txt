@@ -1,0 +1,5 @@
+
+Syntax error - Reference: s a AS LONG
+Caused by (or after):CALL S ( 1 , 2 )
+LINE 6:CALL s(1, 2)
+exit=1

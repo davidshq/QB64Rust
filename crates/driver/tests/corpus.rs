@@ -1,6 +1,7 @@
 //! Tier 1 (`study\19`, spec `testing/compiler-tests`): the front end over the golden corpus, without C++.
 //! Every corpus program must go through lexer, parser and `sema` without a panic and round-trip its tree; the
-//! programs named in `tests/corpus/slice.list` must give no diagnostics.
+//! programs named in `tests/corpus/slice.list` must give no diagnostics, and the programs the old compiler rejects
+//! (those with an `.err` file) must get at least one error.
 
 use qb64rust_driver::frontend;
 use qb64rust_syntax::tree::print;
@@ -53,5 +54,28 @@ fn slice_list_programs_have_no_diagnostics() {
         assert!(fe.diagnostics.list().is_empty(), "{line}:\n{}", fe.render_diagnostics());
         n += 1;
     }
-    assert_eq!(n, 14);
+    assert!(n > 0, "slice.list names no programs");
+}
+
+/// A program the old compiler rejects (it has an `.err` file) must get at least one error, so that support for a
+/// new construct cannot make the new compiler accept it.
+#[test]
+fn rejected_programs_stay_rejected() {
+    let mut files = Vec::new();
+    bas_files(&corpus_root(), &mut files);
+    let mut n = 0;
+    let mut accepted = Vec::new();
+    for f in &files {
+        if !f.with_extension("err").exists() {
+            continue;
+        }
+        let name = f.file_name().unwrap().to_string_lossy().to_string();
+        let fe = frontend(&name, std::fs::read(f).unwrap());
+        if !fe.diagnostics.has_errors() {
+            accepted.push(name);
+        }
+        n += 1;
+    }
+    assert!(n > 0, "found no corpus programs with an .err file");
+    assert!(accepted.is_empty(), "accepted, but the old compiler rejects them: {accepted:?}");
 }

@@ -11,8 +11,8 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 7 programs written for the new compiler's first slice (numeric rules, PRINT forms, CP437 bytes; `SOURCE.md`) |
-| `slice.list` | The 14 programs the slice must pass: the 7 of `slice\` and 7 of `runtime_comparison` (see below) |
+| `slice\` | 12 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling; `SOURCE.md`) |
+| `slice.list` | The 31 programs the new compiler must pass: `s01`–`s07` of `slice\` and 24 of `runtime_comparison` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -22,20 +22,23 @@ Each `<name>.bas` has exactly one of:
 - `<name>.norun`: compile only, never run; the file gives the reason;
 
 and may have `<name>.normalize`: rules (a Python regular expression, a tab, a replacement; `#` lines are comments)
-applied to each output line before comparing and before recording, for values that differ between machines or runs.
+applied to each output line before comparing and before recording, for values that differ between machines or runs,
+and `<name>.noprompt`: the value of `QB64PE_NOPROMPT` for the run instead of `y` (`continue` lets a program go on
+after an untrapped runtime error; `slice\s12_error_in_print`).
 
 A program that reaches `END` prints an empty line and `Press any key to continue` (no line end) on Windows; that
 trailer is part of its `.output`.
 
-## Counts (recorded 2026-10-03)
+## Counts (recorded 2026-10-03; `slice` `s08`–`s12` 2026-10-04)
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 7 |
+| `.output` | 235 | 2 | 12 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
 | `.normalize` sidecars | 3 (`212` `PATH` length, `234` `TIMER`, `238` a folder name in `cmd`'s error) | 0 | 0 |
+| `.noprompt` sidecars | 0 | 0 | 1 (`s12_error_in_print`: `continue`) |
 
 The 20 compile errors are programs written against QB64Fresh's idea of the language. They still test that a
 compiler rejects them, but not what their names say:
@@ -74,8 +77,8 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --glob "1*.bas"    
 ```
 
 Each program is compiled with `-q -m -x` in its own scratch folder under `target\legacy-tests\corpus\` and run
-there with no arguments and `QB64PE_NOPROMPT=y`; details and options in `tools\legacy_tests\README.md`. Known
-failures without an expected file are compiled but not run. A full run takes about 11 minutes with the old
+there with no arguments and `QB64PE_NOPROMPT=y` (or its `.noprompt`); details and options in
+`tools\legacy_tests\README.md`. Known failures without an expected file are compiled but not run. A full run takes about 11 minutes with the old
 compiler, almost all of it the C++ compile of each program. Baseline: `baselines\qb64pe-16f629784e-win64-corpus.json`.
 
 ## Recording

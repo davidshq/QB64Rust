@@ -30,8 +30,9 @@ OpenSpec change `m1-vscode-extension-v0`: all 18 tasks done; archived 2026-10-03
 CP437 default. Written fresh, ids `qb64rust`. Measured old-compiler output formats are in the archived change's `design.md`.
 
 - Tests: unit 40, grammar 4, integration 37 on VS Code stable and on 1.100 (the minimum, `study\17`); also passes
-  against the QB64pe 4.7.0 release download. CI for Windows in `.github\workflows\vscode-extension.yml`, inactive
-  until the repo has a GitHub remote.
+  against the QB64pe 4.7.0 release download. CI for Windows in `.github\workflows\vscode-extension.yml`, active
+  on `davidshq/QB64Rust` (last run on `main` 2026-10-03: success). No workflow for the Rust workspace yet
+  (`study\20` §3.6, step 2 of "Next").
 - Walkthrough of the packaged `.vsix` (`verification\m1-extension.md`): 11 of 11 steps done; one expectation
   corrected (a program without `$CONSOLE` opens its own window, not the terminal).
 - CP437 round trip (`study\09`): every byte survives except a lone 0x0D; a file containing 0x00 cannot be opened as
@@ -102,11 +103,19 @@ variables, `PRINT` (`;`, `,`, auto-semicolon), `END`, literals, `+ - * /`, unary
   not raise; negating an integer is believed `_INTEGER64`. The corpus runner now keeps the clone's tracked
   `internal\temp\temp.bin` (it deleted it; `qb64pe.exe` recreates it, `qb64rust` does not).
 
-**Next:** the next M2 change. Its first task: add the 17 other corpus programs that already pass to `tests\corpus\slice.list` (125, 130, 132, 133,
-144, 145, 163, 188, 208–211, 27, 74, 75, 87, 92; `tests\corpus\README.md`), and change the count in the tier-1
-test `crates\driver\tests\corpus.rs` from 14 to 31. Not done in this change: its specs and design say 14. Then grow
-the slice (procedures, by-reference arguments, `ON ERROR`, which also pins the "error inside a PRINT" scenario end
-to end).
+**In progress:** OpenSpec change `m2-procedures-and-errors` (procedures, by-reference arguments, `ON ERROR`;
+task groups 1 and 2 done: slice list at 31, measurements `verification\v14_*`, slice programs `s08`–`s12`).
+
+**Next** (order accepted 2026-10-04 after the review and panel of `study\20`, reasons there):
+
+1. Finish `m2-procedures-and-errors`; add the symbol side table and typed tree accessors inside it.
+2. Rust CI workflow; shared `Ty`/`BinOp`/`Conv`; a "not supported yet" marker on diagnostics.
+3. Parser breadth (a): blocks, control flow, labels, `DATA`, comment metacommands.
+4. Differential tester (type pairs per operator), then the full numeric type set, with `Ty` as a type table.
+5. Plain built-ins (249 of 455), table-driven, with generated tests.
+6. Control flow through the pipeline.
+7. Arrays and `TYPE`, then the IR review (`study\20` §3.4).
+8. Parser breadth (b) and (c): `$IF`, `$INCLUDE`, the `specialformat` statements.
 
 ## FreeBASIC reviewed (2026-10-03)
 

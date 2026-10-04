@@ -1,0 +1,5 @@
+
+Syntax error - Reference: s a AS LONG, b AS LONG
+Caused by (or after):S ( 1 , 2 )
+LINE 6:s (1, 2)
+exit=1

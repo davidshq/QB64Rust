@@ -1,0 +1,5 @@
+
+Name already in use (print)
+Caused by (or after):DIM PRINT AS LONG
+LINE 3:DIM print AS LONG
+exit=1

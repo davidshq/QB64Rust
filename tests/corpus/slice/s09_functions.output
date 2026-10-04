@@ -1,0 +1,13 @@
+before definition: 6 
+ 7  8 
+ 7000  700000  70000000000 
+ 2.333333  2.333333333333333  2.333333333333333 
+ 2.333333 
+[abab]
+rounded: 2  4 -2 
+assigned without suffix: 5 
+exit early: 0 []
+zero args: 42  43 
+ 20  2 
+ 20  1 
+xyyz

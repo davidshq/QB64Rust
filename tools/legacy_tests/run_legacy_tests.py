@@ -27,7 +27,8 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     <name>.norun (compile only, the exe is never started; the file holds the reason)
   * the .bas is copied into a fresh folder <results>/corpus/<group>-<name>/ and compiled
     there with -q -m -x only; the exe runs there with no arguments, stdin from the null
-    device, QB64PE_NOPROMPT=y and a 60 s timeout; the folder is deleted on a pass
+    device, QB64PE_NOPROMPT=y (or the contents of <name>.noprompt, e.g. 'continue') and a 60 s
+    timeout; the folder is deleted on a pass
   * <name>.normalize: one rule per line, <regex><TAB><replacement> ('#' lines are comments),
     applied in order to each line of the actual output before comparing or recording
   * --record compiles once, runs twice, and writes .output (or .err for a failed compile)
@@ -418,9 +419,13 @@ def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path
         return fail("run", "not run: known failure with no expected file")
 
     r.kind = "output"
+    noprompt = "y"
+    np_file = tdir / f"{name}.noprompt"
+    if np_file.is_file():
+        noprompt = np_file.read_text(encoding="latin-1").strip()
     env = dict(os.environ)
     env.update({
-        "QB64PE_NOPROMPT": "y",
+        "QB64PE_NOPROMPT": noprompt,
         "QB64PE_LOG_HANDLERS": "file",
         "QB64PE_LOG_SCOPES": "qb64,libqb,libqb-image,libqb-audio",
         "QB64PE_LOG_FILE_PATH": str(results / f"{key}-log.txt"),

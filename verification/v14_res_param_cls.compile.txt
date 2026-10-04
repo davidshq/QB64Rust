@@ -1,0 +1,5 @@
+
+Name already in use (cls)
+Caused by (or after):SUB T ( CLS AS LONG )
+LINE 3:SUB t (cls AS LONG)
+exit=1

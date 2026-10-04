@@ -1,0 +1,5 @@
+
+Expected END SUB/FUNCTION before SUB
+Caused by (or after):SUB B
+LINE 4:SUB b
+exit=1

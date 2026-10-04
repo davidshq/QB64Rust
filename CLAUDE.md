@@ -80,6 +80,7 @@ copy, but never the only copy.
 | 2026-10-03 | **Test cadence** (`study\19`): the full golden corpus is not part of the edit loop. Tier 1 `cargo test` (incl. corpus front end only, no C++) on every edit; tier 2 a `--glob` slice before commits; tier 3 the full corpus in parallel in CI on each push/PR; tier 4 everything (`-O2`, legacy suites) nightly and before releases. The old compiler is rerun only for new corpus programs or a new reference version. |
 | 2026-10-03 | Until M3's libqb copy, the new compiler builds through `..\QB64pe`'s `Makefile` with overrides (`m2-workspace-and-slice` design D8): its own fragments, `qbx.cpp` copy and exe stay outside the clone; **libqb objects may be built into the clone's git-ignored folders** (as `qb64pe.exe` does). Tracked files of the clone still never change (rule 3). |
 | 2026-10-03 | Compiler structure (change `m2-workspace-and-slice`): Rust workspace at the repo root, **one crate per stage** (`crates\README.md`), Rust 1.88 pinned; **our own lossless tree over bytes** (not `rowan`, whose text is `str`); **one error per statement, at most 100 per run**; front-end tests in `tests\frontend\` with a first-line **mode line** `' TEST: <mode>` and `insta` snapshots; intentional differences from the old compiler go into **`DIVERGENCES.md`**. |
+| 2026-10-04 | Review after the first slice and panel (`study\20-review-and-order.md`): direction unchanged; **order of work** set (`STATUS.md`, "Next"). Also: progress is reported on the corpus **and** the upstream expected-output tests; "compiles `qb64pe.bas` and the result passes the suite" is the **M4 exit criterion** (was a stretch); **no incremental (salsa-style) analysis**, a full reparse and recheck with cancellation instead; the IR stays and is reviewed after arrays and `TYPE`; one home per measured fact. |
 
 Expert-panel recommendations: `study\07-expert-panel.md` (its "Decisions for the user" are answered above). Open
 questions: `STATUS.md`.
@@ -106,6 +107,7 @@ questions: `STATUS.md`.
 | `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release |
 | `study\18-vscode-extension-practices.md` | Other extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
 | `study\19-test-cadence.md` | How often each test layer runs (four tiers), what a full run costs, and how the new compiler's runs are kept fast |
+| `study\20-review-and-order.md` | Review of code and plan after the first slice (2026-10-04), the panel's outcome, and the accepted order of work |
 | `study\archive\` | Closed reviews of other repositories, kept for the record only: `11` existing VS Code extensions, `12` QB64Fresh (the user's earlier Rust rewrite), `13` reference-doc sources, `14` the `docs-new-2` branch, and `qb64fresh-scripts\` (measurements behind `12`). Their conclusions are in `study\00` §11; nothing in the active plan depends on reading them. |
 | `verification\` | Small programs behind `study\09`, `study\10` and later measurements (`v13*`: type suffixes on DIMmed names), their outputs, and `run.sh` |
 | `tools\builtins\` | Extractor for the built-in table (`extract_builtins.py`) and its output `builtins.json` |
@@ -113,7 +115,7 @@ questions: `STATUS.md`.
 | `<qb64contain>`, `<share>` | Placeholders for the user's local folder of earlier projects (QB64Fresh, qb64pe-vscode, a QB64pe clone with notes) and its network copy; used in `study\` and `STATUS.md` instead of machine-specific paths. Do not write full local paths or host names into this repo. |
 | `SOMEDAY.md` | Deferred features and ideas |
 | `STATUS.md` | Current phase, what is done, next steps |
-| `tests\corpus\` | Golden corpus: 270 programs with the old compiler's recorded output or compile error (`README.md`), including the `slice\` group; checked by `run_legacy_tests.py --suite corpus`; `slice.list` names the 14 the new compiler must pass |
+| `tests\corpus\` | Golden corpus: 270 programs with the old compiler's recorded output or compile error (`README.md`), including the `slice\` group; checked by `run_legacy_tests.py --suite corpus`; `slice.list` names the ones the new compiler must pass |
 | `Cargo.toml`, `crates\` | The new compiler `qb64rust` (Rust workspace, one crate per stage; `crates\README.md`: crate map, build, tests, snapshots) |
 | `tests\frontend\` | Front-end tests of the new compiler, run by mode line (`' TEST: <mode>`; modes `parse-ok`, `check-ok`, `check-fail`, `typed`, `ir`, `cpp`) |
 | `DIVERGENCES.md` | Divergence register: decided differences from the old compiler's observed behaviour |

@@ -14,3 +14,15 @@ runner's `--record`.
 | `s05_instr.bas` | `INSTR` with and without the optional start; a start of 0 as the last statement (does it raise?) |
 | `s06_print_items.bas` | PRINT items: `;`, trailing `;`, auto-semicolon next to string literals, empty `PRINT`, mixed types, unary minus. No `,` items (they hang under a redirected `$CONSOLE`, `study\10` §2.2) |
 | `s07_cp437_bytes.bas` | Bytes 0x80–0xFF in string literals and comments, CRLF line ends (kept by `.gitattributes`) |
+
+`s08`–`s12` were written by the OpenSpec change `m2-procedures-and-errors` (2026-10-04) to pin
+`openspec\specs\language\procedures` and `language\error-handling`, recorded the same way. Like the others they use
+no `PRINT` comma and no control flow.
+
+| Program | Covers |
+|---|---|
+| `s08_byref.bas` | By reference (plain variable of the parameter's type) and by copy (parentheses, expressions, other types, rounded and wrapped as for an assignment); a parameter passed on; string parameters with a variable, a literal and an expression |
+| `s09_functions.bas` | Results of every slice type printed with the function's own type; a call before the definition; the result assigned without its suffix; `EXIT FUNCTION` before any assignment; zero-argument functions; a function changing its argument inside a `PRINT` |
+| `s10_scopes.bas` | Locals (`DIM` and implicit) new on each call; `STATIC` numbers and strings; `SHARED`; `DIM SHARED` not seen by a SUB before it in the file; `DECLARE` lines; a parameter named like a main variable |
+| `s11_on_error.bas` | `RESUME NEXT`, `RESUME label`, retry reaching a second handler, `ERR` and `ERL`, `ERROR` with 0, -1, 2.5, 3.5, 70000, errors inside a SUB and a FUNCTION, a handler set inside a SUB, `ON ERROR GOTO 0`, critical error 11 ending the program |
+| `s12_error_in_print.bas` | `CHR$` raising inside a `PRINT`: retry re-runs the whole `PRINT`, `RESUME NEXT` skips the rest and the line end; `ERROR` in a FUNCTION called from a `PRINT`; an untrapped error (run with `QB64PE_NOPROMPT=continue`, `s12_error_in_print.noprompt`) |

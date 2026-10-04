@@ -327,4 +327,6 @@ as a reading of the code, not a measurement.
 | `16` | FreeBASIC: lessons to take, things not to take, proposed follow-ups |
 | `17` | How VS Code extensions are tested; how M1 compares |
 | `18` | Other VS Code extension practices compared with five large extensions; proposals A–G |
+| `19` | Test cadence: four tiers, what a full run costs |
+| `20` | Review of code and plan after the first slice; panel outcome; the order of work |
 | `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |

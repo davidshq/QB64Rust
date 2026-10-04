@@ -1,0 +1,5 @@
+
+Number required for sub
+Caused by (or after):CALL S ( "x",1 )
+LINE 6:CALL s("x")
+exit=1

@@ -1,0 +1,32 @@
+ in bump: 2 
+after CALL bump(n): 2 
+ in bump: 3 
+after bump n: 3 
+ in bump: 4 
+after bump (n): 3 
+ in bump: 5 
+after bump n + 1: 3 
+ in bump: 4 
+after CALL bump((n)): 3 
+ in bump: 11 
+after bump x&: 11 
+ in bump: 6 
+INTEGER after bump i: 5 
+ in bump: 3 
+DOUBLE after bump d: 2.5 
+showint: 2 
+showint: 4 
+showint: 2 
+showint:-25536 
+ in bump: 2 
+ in bump: 3 
+after twice n: 3 
+ in addbang: abc!
+after CALL addbang(s$): abc!
+ in addbang: abc!!
+after addbang (s$): abc!!
+ in addbang: abc!!?!
+after addbang s$ + ?: abc!!
+ in addbang: lit!
+greet: abc!! 2 
+greet: xabc!! 3 

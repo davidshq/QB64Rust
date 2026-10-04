@@ -1,0 +1,5 @@
+
+Name already in use (len)
+Caused by (or after):
+LINE 3:FUNCTION LEN& ( A AS LONG )
+exit=1

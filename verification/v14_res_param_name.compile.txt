@@ -1,0 +1,5 @@
+
+Name already in use (name)
+Caused by (or after):SUB T ( NAME AS STRING )
+LINE 3:SUB t (name AS STRING)
+exit=1
