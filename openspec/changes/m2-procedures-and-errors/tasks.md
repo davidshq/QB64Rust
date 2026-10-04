@@ -29,7 +29,7 @@
 
 ## 3. Procedures: front end (D1–D5, D11, D12)
 
-- [ ] 3.0 Typed accessors (D11): `crates\syntax\src\ast.rs` with a wrapper for each existing node kind; move
+- [x] 3.0 Typed accessors (D11): `crates\syntax\src\ast.rs` with a wrapper for each existing node kind; move
   `crates\sema\src\check.rs` to them (no `child_nodes().next().unwrap()` on statement or expression nodes left).
   Then the symbol table for what exists today (D12): main-module variables, definition and reference spans,
   `Symbols::at`, `dump_symbols`. Verify: `cargo test` with no snapshot changed; a `sema` snapshot of the symbol

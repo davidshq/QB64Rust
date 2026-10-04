@@ -1,0 +1,7 @@
+---
+source: crates/sema/tests/symbols.rs
+expression: "dump_symbols(&p, &file)"
+---
+Var X : SINGLE def 2:1 refs 2:5 3:7
+Var X : INTEGER def 3:10 refs 4:1
+Var Y : STRING def 3:14

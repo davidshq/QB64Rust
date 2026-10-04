@@ -1,11 +1,12 @@
 //! From the syntax tree to the typed [`Program`].
 
 use crate::literal::{self, LitError, NumLit};
-use crate::{BinOp, ConvKind, Expr, ExprKind, PrintItem, Program, Stmt, StmtKind, Ty, Var, VarId};
+use crate::{BinOp, ConvKind, Expr, ExprKind, PrintItem, Program, Stmt, StmtKind, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{Diagnostics, SourceFile, Span, show_bytes};
 use qb64rust_builtins::{BuiltinId, find_function};
-use qb64rust_syntax::SyntaxKind::{self, *};
-use qb64rust_syntax::tree::{Element, Node, Tok};
+use qb64rust_syntax::SyntaxKind::{self, Minus, Number, Plus, Slash, Star};
+use qb64rust_syntax::ast::{self, PrintPart};
+use qb64rust_syntax::tree::{Node, Tok};
 use std::collections::HashMap;
 
 /// Checks a parsed file. Statements that already have a parse error are skipped (one error per statement).
@@ -25,22 +26,29 @@ pub fn check_with(root: Node, file: &SourceFile, parse_diags: &Diagnostics, fold
         diags: Diagnostics::new(),
         stmt_error: false,
         console_only: false,
+        names: Vec::new(),
     };
     let error_starts: Vec<u32> = parse_diags.list().iter().map(|d| d.span.start).collect();
     // Past the error cap the parser records no more errors, so statements from the cap on may be malformed.
     let cap_start = parse_diags
         .is_capped()
         .then(|| parse_diags.list().last().map_or(0, |d| d.span.start));
-    for stmt in root.child_nodes() {
+    let statements = ast::SourceFile::cast(root).into_iter().flat_map(|f| f.statements());
+    for stmt in statements {
         let s = stmt.span();
         if cap_start.is_some_and(|c| s.end >= c) {
             break;
         }
-        if error_starts.iter().any(|&o| o >= s.start && o <= s.end) || stmt.kind() == Error {
+        if error_starts.iter().any(|&o| o >= s.start && o <= s.end) || stmt.kind() == SyntaxKind::Error {
             continue;
         }
         c.stmt_error = false;
         c.statement(stmt);
+        // A statement with an error records no symbols (one error per statement).
+        let names = std::mem::take(&mut c.names);
+        if !c.stmt_error {
+            c.prog.symbols.record(names);
+        }
     }
     if !c.console_only {
         let at = Span::new(root.file, 0, 0);
@@ -61,6 +69,8 @@ struct Checker<'a> {
     stmt_error: bool,
     console_only: bool,
     fold: bool,
+    /// Names resolved in the current statement, for the symbol table.
+    names: Vec<(SymbolKind, Span)>,
 }
 
 /// An expression could not be typed; the error is already reported.
@@ -96,22 +106,32 @@ impl Checker<'_> {
         self.prog.stmts.push(Stmt { span, line, kind });
     }
 
+    /// A child the parser always builds for a statement without a parse error. Missing means a parser bug; it is
+    /// reported rather than skipped, so no statement is silently dropped.
+    fn need<T>(&mut self, x: Option<T>, span: Span) -> R<T> {
+        x.ok_or_else(|| self.error(span, "internal error: incomplete syntax tree"))
+    }
+
     fn statement(&mut self, node: Node) {
-        let _ = match node.kind() {
-            MetaStmt => self.meta(node),
-            PrintStmt => self.print(node),
-            DimStmt => self.dim(node),
-            AssignStmt => self.assign(node),
-            EndStmt => {
-                self.push(node, StmtKind::End);
-                Ok(())
-            }
-            _ => Ok(()),
+        let _ = if let Some(s) = ast::MetaStmt::cast(node) {
+            self.meta(s)
+        } else if let Some(s) = ast::PrintStmt::cast(node) {
+            self.print(s)
+        } else if let Some(s) = ast::DimStmt::cast(node) {
+            self.dim(s)
+        } else if let Some(s) = ast::AssignStmt::cast(node) {
+            self.assign(s)
+        } else if ast::EndStmt::cast(node).is_some() {
+            self.push(node, StmtKind::End);
+            Ok(())
+        } else {
+            Ok(())
         };
     }
 
-    fn meta(&mut self, node: Node) -> R<()> {
-        let tok = node.first_token().unwrap();
+    fn meta(&mut self, stmt: ast::MetaStmt) -> R<()> {
+        let node = stmt.node();
+        let tok = self.need(stmt.token(), node.span())?;
         let raw = self.text(tok.span);
         let trimmed: Vec<u8> = raw.iter().copied().filter(|b| !b.is_ascii_whitespace()).collect();
         if trimmed.eq_ignore_ascii_case(b"$CONSOLE:ONLY") {
@@ -168,25 +188,28 @@ impl Checker<'_> {
             let shown = show_bytes(self.text(t.span));
             return Err(self.error(t.span, format!("`{shown}` is not supported yet")));
         }
-        Ok(match self.vars.get(&(name.clone(), ty)) {
+        let id = match self.vars.get(&(name.clone(), ty)) {
             Some(&id) => id,
             None => self.new_var(name, ty),
-        })
+        };
+        self.names.push((SymbolKind::Var(id), t.span));
+        Ok(id)
     }
 
-    fn dim(&mut self, node: Node) -> R<()> {
-        for item in node.child_nodes().filter(|n| n.kind() == DimItem) {
-            let name_tok = item.child_tokens().next().unwrap();
+    fn dim(&mut self, stmt: ast::DimStmt) -> R<()> {
+        for item in stmt.items() {
+            let name_tok = self.need(item.name(), item.node().span())?;
             let (name, suffix) = self.split_name(name_tok)?;
-            let as_clause = item.child_nodes().find(|n| n.kind() == AsClause);
+            let as_clause = item.as_clause();
             let ty = match (suffix, as_clause) {
                 (Some(_), Some(a)) => {
-                    return Err(self.error(a.span(), "a name with a type suffix cannot have an `AS` clause"));
+                    let span = a.node().span();
+                    return Err(self.error(span, "a name with a type suffix cannot have an `AS` clause"));
                 }
                 (Some(t), None) => t,
                 (None, None) => Ty::F32,
                 (None, Some(a)) => {
-                    let words: Vec<String> = a.child_tokens().skip(1).map(|t| self.word(t)).collect();
+                    let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
                     match words.join(" ").as_str() {
                         "INTEGER" => Ty::I16,
                         "LONG" => Ty::I32,
@@ -197,7 +220,7 @@ impl Checker<'_> {
                         "STRING" => Ty::Str,
                         other => {
                             let msg = format!("the type `{other}` is not supported yet");
-                            return Err(self.error(a.span(), msg));
+                            return Err(self.error(a.node().span(), msg));
                         }
                     }
                 }
@@ -206,13 +229,17 @@ impl Checker<'_> {
             // name, whatever the type; a plain `DIM x` after that is accepted and changes nothing.
             let typed_plain = suffix.is_none() && self.plain.contains_key(&name);
             if typed_plain && as_clause.is_none() {
+                // The name still refers to the typed variable.
+                let id = self.vars[&(name.clone(), self.plain[&name])];
+                self.names.push((SymbolKind::Var(id), name_tok.span));
                 continue;
             }
             if typed_plain || self.vars.contains_key(&(name.clone(), ty)) {
                 let msg = format!("name already in use: `{}`", show_bytes(self.text(name_tok.span)));
                 return Err(self.error(name_tok.span, msg));
             }
-            self.new_var(name.clone(), ty);
+            let id = self.new_var(name.clone(), ty);
+            self.names.push((SymbolKind::Var(id), name_tok.span));
             // Only `DIM x AS T` changes what the plain name means; `DIM x` declares the default (SINGLE) one.
             if suffix.is_none() && as_clause.is_some() {
                 self.plain.insert(name, ty);
@@ -221,28 +248,29 @@ impl Checker<'_> {
         Ok(())
     }
 
-    fn assign(&mut self, node: Node) -> R<()> {
-        let mut parts = node.child_nodes();
-        let (name, value_node) = (parts.next().unwrap(), parts.next().unwrap());
+    fn assign(&mut self, stmt: ast::AssignStmt) -> R<()> {
+        let node = stmt.node();
+        let target = self.need(stmt.target().and_then(|n| n.name()), node.span())?;
+        let value_node = self.need(stmt.value(), node.span())?;
         let value = self.expr(value_node)?;
-        let var = self.resolve(name.first_token().unwrap())?;
+        let var = self.resolve(target)?;
         let target = self.prog.var(var).ty;
         let value = self.store(value, target)?;
         self.push(node, StmtKind::Assign { var, value });
         Ok(())
     }
 
-    fn print(&mut self, node: Node) -> R<()> {
+    fn print(&mut self, stmt: ast::PrintStmt) -> R<()> {
         let mut items = Vec::new();
         let mut newline = true;
-        for e in node.children().skip(1) {
-            match e {
-                Element::Token(t) if t.kind == Semicolon => newline = false,
-                Element::Token(t) if t.kind == Comma => {
+        for part in stmt.parts() {
+            match part {
+                PrintPart::Semicolon(_) => newline = false,
+                PrintPart::Comma(_) => {
                     items.push(PrintItem::Zone);
                     newline = false;
                 }
-                Element::Node(n) => {
+                PrintPart::Expr(n) => {
                     let e = self.expr(n)?;
                     items.push(if e.ty == Ty::Str {
                         PrintItem::Str(e)
@@ -252,20 +280,19 @@ impl Checker<'_> {
                     });
                     newline = true;
                 }
-                _ => {}
             }
         }
-        self.push(node, StmtKind::Print { items, newline });
+        self.push(stmt.node(), StmtKind::Print { items, newline });
         Ok(())
     }
 
     // ---- expressions ----
 
-    fn expr(&mut self, node: Node) -> R<Expr> {
-        let span = node.span();
-        match node.kind() {
-            Literal => {
-                let t = node.first_token().unwrap();
+    fn expr(&mut self, node: ast::Expr) -> R<Expr> {
+        let span = node.node().span();
+        match node {
+            ast::Expr::Literal(lit) => {
+                let t = self.need(lit.token(), span)?;
                 if t.kind == SyntaxKind::StringLit {
                     let raw = self.text(t.span);
                     let inner = &raw[1..];
@@ -280,8 +307,9 @@ impl Checker<'_> {
                     self.number(t, false)
                 }
             }
-            NameRef => {
-                let id = self.resolve(node.first_token().unwrap())?;
+            ast::Expr::NameRef(name) => {
+                let t = self.need(name.name(), span)?;
+                let id = self.resolve(t)?;
                 let ty = self.prog.var(id).ty;
                 Ok(Expr {
                     span,
@@ -290,16 +318,15 @@ impl Checker<'_> {
                     kind: ExprKind::Var(id),
                 })
             }
-            ParenExpr => {
-                let inner = node.child_nodes().next().unwrap();
+            ast::Expr::Paren(paren) => {
+                let inner = self.need(paren.inner(), span)?;
                 let mut e = self.expr(inner)?;
                 e.span = span;
                 Ok(e)
             }
-            PrefixExpr => self.prefix(node),
-            BinExpr => self.binary(node),
-            CallExpr => self.call(node),
-            _ => Err(self.error(span, "expected an expression")),
+            ast::Expr::Prefix(prefix) => self.prefix(prefix),
+            ast::Expr::Bin(bin) => self.binary(bin),
+            ast::Expr::Call(call) => self.call(call),
         }
     }
 
@@ -327,10 +354,10 @@ impl Checker<'_> {
         }
     }
 
-    fn prefix(&mut self, node: Node) -> R<Expr> {
-        let span = node.span();
-        let op = node.first_token().unwrap();
-        let operand = node.child_nodes().next().unwrap();
+    fn prefix(&mut self, node: ast::PrefixExpr) -> R<Expr> {
+        let span = node.node().span();
+        let op = self.need(node.op(), span)?;
+        let operand = self.need(node.operand(), span)?;
         match op.kind {
             Plus => {
                 let mut e = self.expr(operand)?;
@@ -339,8 +366,8 @@ impl Checker<'_> {
             }
             Minus => {
                 // A minus directly before a decimal literal is part of the literal (step C).
-                if operand.kind() == Literal {
-                    let t = operand.first_token().unwrap();
+                if let ast::Expr::Literal(lit) = operand {
+                    let t = self.need(lit.token(), span)?;
                     if t.kind == Number && self.text(t.span)[0] != b'&' {
                         let mut e = self.number(t, true)?;
                         e.span = span;
@@ -376,11 +403,11 @@ impl Checker<'_> {
         }
     }
 
-    fn binary(&mut self, node: Node) -> R<Expr> {
-        let span = node.span();
-        let mut operands = node.child_nodes();
-        let (l, r) = (operands.next().unwrap(), operands.next().unwrap());
-        let op_tok = node.child_tokens().next().unwrap();
+    fn binary(&mut self, node: ast::BinExpr) -> R<Expr> {
+        let span = node.node().span();
+        let l = self.need(node.lhs(), span)?;
+        let op_tok = self.need(node.op(), span)?;
+        let r = self.need(node.rhs(), span)?;
         let op = match op_tok.kind {
             Plus => BinOp::Add,
             Minus => BinOp::Sub,
@@ -442,9 +469,9 @@ impl Checker<'_> {
         })
     }
 
-    fn call(&mut self, node: Node) -> R<Expr> {
-        let span = node.span();
-        let name_tok = node.first_token().unwrap();
+    fn call(&mut self, node: ast::CallExpr) -> R<Expr> {
+        let span = node.node().span();
+        let name_tok = self.need(node.name(), span)?;
         let name = self.text(name_tok.span).to_vec();
         let Some(id) = find_function(&name).filter(|_| name.eq_ignore_ascii_case(b"INSTR")) else {
             let shown = show_bytes(&name);
@@ -459,10 +486,10 @@ impl Checker<'_> {
     }
 
     /// `INSTR([start,] base$, search$)`: table slots LONG, STRING, STRING; the first optional.
-    fn instr(&mut self, span: Span, id: BuiltinId, node: Node) -> R<Expr> {
-        let args_node = node.child_nodes().find(|n| n.kind() == ArgList).unwrap();
+    fn instr(&mut self, span: Span, id: BuiltinId, node: ast::CallExpr) -> R<Expr> {
+        let args_node = self.need(node.arg_list(), span)?;
         let mut args = Vec::new();
-        for a in args_node.child_nodes() {
+        for a in args_node.args() {
             args.push(self.expr(a)?);
         }
         let mut slots: Vec<Option<Expr>> = match args.len() {

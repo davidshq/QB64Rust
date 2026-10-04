@@ -163,7 +163,7 @@ impl<'a> Node<'a> {
         Span::new(self.file, self.offset, self.offset + self.green.len)
     }
 
-    pub fn children(&self) -> impl Iterator<Item = Element<'a>> + 'a {
+    pub fn children(&self) -> impl Iterator<Item = Element<'a>> + use<'a> {
         let file = self.file;
         let mut offset = self.offset;
         let green: &'a GreenNode = self.green;
@@ -184,12 +184,12 @@ impl<'a> Node<'a> {
         })
     }
 
-    pub fn child_nodes(&self) -> impl Iterator<Item = Node<'a>> + 'a {
+    pub fn child_nodes(&self) -> impl Iterator<Item = Node<'a>> + use<'a> {
         self.children().filter_map(|e| e.as_node())
     }
 
     /// Child tokens that are not trivia.
-    pub fn child_tokens(&self) -> impl Iterator<Item = Tok> + 'a {
+    pub fn child_tokens(&self) -> impl Iterator<Item = Tok> + use<'a> {
         self.children()
             .filter_map(|e| e.as_token())
             .filter(|t| !t.kind.is_trivia())

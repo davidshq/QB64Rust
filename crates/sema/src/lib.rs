@@ -11,9 +11,11 @@
 mod check;
 mod dump;
 pub mod literal;
+mod symbols;
 
 pub use check::{check, check_with};
 pub use dump::dump_typed;
+pub use symbols::{Symbol, SymbolId, SymbolKind, Symbols, dump_symbols};
 
 use qb64rust_base::Span;
 use qb64rust_builtins::BuiltinId;
@@ -163,6 +165,8 @@ pub struct Stmt {
 pub struct Program {
     pub vars: Vec<Var>,
     pub stmts: Vec<Stmt>,
+    /// Where each variable is defined and used (design D12).
+    pub symbols: Symbols,
 }
 
 impl Program {
