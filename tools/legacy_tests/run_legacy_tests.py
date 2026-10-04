@@ -34,6 +34,8 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     only if both normalised runs are equal; otherwise the program is reported
     non-deterministic and nothing is written
   * --cpp-opt adds -f:OptimizeCppProgram=true and compares against the same files
+  * --list <file> runs only the programs named in the file: one <group>/<name> per line
+    (no .bas), '#' starts a comment
 Differences from the bash runners (all deliberate):
   * .err and .license comparisons ignore CR characters (line-ending normalisation)
   * .output comparison treats CRLF as LF (bare CR still significant); the bash
@@ -98,6 +100,10 @@ def clear_temp(qb_root: Path) -> None:
     if not temp.is_dir():
         return
     for p in temp.iterdir():
+        # temp.bin is tracked in the clone (the Makefile's clean keeps it too); qb64pe.exe rewrites it,
+        # another compiler would not, and deleting it would change the clone.
+        if p.name == "temp.bin":
+            continue
         if p.is_dir():
             shutil.rmtree(p, ignore_errors=True)
         else:
@@ -446,6 +452,20 @@ def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path
     return passed()
 
 
+def load_list(path: Path, corpus_root: Path) -> set[Path]:
+    # Lines: <group>/<name> (no .bas); '#' starts a comment. Every named program must exist.
+    wanted: set[Path] = set()
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        bas = (corpus_root / f"{line}.bas").resolve()
+        if not bas.is_file():
+            raise ValueError(f"{path.name} line {n}: no corpus program {line}.bas")
+        wanted.add(bas)
+    return wanted
+
+
 def load_known_failures(path: Path) -> dict[str, str]:
     # Lines: <suite>:<test>  <reason...>; '#' starts a comment.
     known: dict[str, str] = {}
@@ -491,12 +511,14 @@ def main() -> int:
                     help="corpus: write .output/.err from this compiler instead of comparing")
     ap.add_argument("--cpp-opt", action="store_true",
                     help="corpus: build with -f:OptimizeCppProgram=true (the -O2 report)")
+    ap.add_argument("--list", type=Path,
+                    help="corpus: run only the programs named in this file (<group>/<name> per line)")
     args = ap.parse_args()
     if args.category and args.suite in ("qbasic", "all"):
         print("--category applies to the compile, format and corpus suites only", file=sys.stderr)
         return 2
-    if (args.record or args.cpp_opt) and args.suite != "corpus":
-        print("--record and --cpp-opt apply to --suite corpus only", file=sys.stderr)
+    if (args.record or args.cpp_opt or args.list) and args.suite != "corpus":
+        print("--record, --cpp-opt and --list apply to --suite corpus only", file=sys.stderr)
         return 2
     if args.record and args.cpp_opt:
         print("--record uses the default build; it cannot be combined with --cpp-opt", file=sys.stderr)
@@ -522,6 +544,13 @@ def main() -> int:
                 print(f"no such corpus folder: {root}", file=sys.stderr)
                 return 2
             tests = sorted(p for p in root.rglob("*.bas") if fnmatch.fnmatch(p.name, args.glob))
+            if args.list:
+                try:
+                    wanted = load_list(args.list, corpus_root)
+                except (ValueError, OSError) as e:
+                    print(e, file=sys.stderr)
+                    return 2
+                tests = [p for p in tests if p in wanted]
         elif suite in ("compile", "format"):
             root = qb_root / "tests" / ("compile_tests" if suite == "compile" else "format_tests")
             if args.category:
@@ -573,7 +602,7 @@ def main() -> int:
         s = summary.setdefault(r.suite, {"PASS": 0, "FAIL": 0, "KFAIL": 0})
         s[r.status] += 1
     # A partial run must not overwrite the results of a fuller one.
-    if args.category or args.glob != "*.bas":
+    if args.category or args.glob != "*.bas" or args.list:
         name = "results-partial.json"
     else:
         mode = "-record" if args.record else ("-cpp-opt" if args.cpp_opt else "")

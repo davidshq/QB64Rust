@@ -1,0 +1,61 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 53
+expression: "tree(\"x = 1\\nFOR i = 1 TO 3: PRINT i\\nPRINT x\\nPRINT x;\\nPRINT (2\\nEND\\n\")"
+---
+SourceFile 0..60
+  AssignStmt 0..5
+    NameRef 0..1
+      Ident x
+    Whitespace  
+    Eq =
+    Whitespace  
+    Literal 4..5
+      Number 1
+  Newline \x0A
+  Error 6..20
+    Ident FOR
+    Whitespace  
+    Ident i
+    Whitespace  
+    Eq =
+    Whitespace  
+    Number 1
+    Whitespace  
+    Ident TO
+    Whitespace  
+    Number 3
+  Colon :
+  Whitespace  
+  PrintStmt 22..29
+    Ident PRINT
+    Whitespace  
+    NameRef 28..29
+      Ident i
+  Newline \x0A
+  PrintStmt 30..37
+    Ident PRINT
+    Whitespace  
+    NameRef 36..37
+      Ident x
+  Newline \x0A
+  PrintStmt 38..46
+    Ident PRINT
+    Whitespace  
+    NameRef 44..45
+      Ident x
+    Semicolon ;
+  Newline \x0A
+  PrintStmt 47..55
+    Ident PRINT
+    Whitespace  
+    ParenExpr 53..55
+      LParen (
+      Literal 54..55
+        Number 2
+  Newline \x0A
+  EndStmt 56..59
+    Ident END
+  Newline \x0A
+t.bas:2:1: error: `FOR` is not supported yet
+t.bas:5:9: error: expected `)`

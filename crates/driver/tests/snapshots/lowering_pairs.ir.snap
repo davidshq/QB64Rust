@@ -1,0 +1,55 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 100
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 5 may_raise
+  Print console newline
+    Str Const "x="
+    Num Var A:F32
+    Num CallBuiltin INSTR:I32 [Some(Const 3:I32), Some(Var S:Str), Some(Const "l")]
+Stmt line 6
+  Print console
+    Str Const "a"
+    Num Const 1:I16
+    Num Var X:F32
+    Str Const "b"
+Stmt line 7
+  Print console newline
+Stmt line 8 may_raise
+  Print console newline
+    Str Concat(Var S:Str, Const "!")
+    Num Neg:F32(Var A:F32)
+    Num (Const 1.5E+0:F64 -> Convert F32 Nearest)
+    Num Div:F80((Const 1:I16 -> Convert F80 Nearest), (Const 3:I16 -> Convert F80 Nearest))
+Stmt line 10
+  Assign I:I16 = Const 7:I16
+Stmt line 10
+  Assign L:I32 = (Var I:I16 -> Convert I32 Widen)
+Stmt line 10
+  Assign I:I16 = (Var L:I32 -> Convert I16 Truncate)
+Stmt line 11
+  Assign D:F64 = Const 2.5E+0:F64
+Stmt line 11
+  Assign X:I16 = (((Var D:F64 -> Convert F32 Nearest) -> Convert I32 RoundEven) -> Convert I16 Truncate)
+Stmt line 11
+  Assign L:I32 = ((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)
+Stmt line 11
+  Assign Q:I64 = (Var D:F64 -> Convert I64 RoundEven)
+Stmt line 12
+  Assign S:F32 = (Var D:F64 -> Convert F32 Nearest)
+Stmt line 12
+  Assign D:F64 = (Const 1:I16 -> Convert F64 Nearest)
+Stmt line 12
+  Assign S:F32 = (Var I:I16 -> Convert F32 Nearest)
+Stmt line 12
+  Assign F:F80 = (Var S:F32 -> Convert F80 Widen)
+Stmt line 14 may_raise
+  Print console newline
+    Num CallBuiltin INSTR:I32 [None, Some(Var S:Str), Some(Const "l")]
+    Num CallBuiltin INSTR:I32 [Some(Const 3:I32), Some(Var S:Str), Some(Const "l")]
+    Num CallBuiltin INSTR:I32 [Some(((Const 2.6E+0:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Some(Var S:Str), Some(Const "l")]
+Stmt line 15
+  End

@@ -1,0 +1,16 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 22
+expression: "tree(\"$CONSOLE:ONLY\\n' c\\nREM r\\nEND\\n\")"
+---
+SourceFile 0..28
+  MetaStmt 0..13
+    Metacommand $CONSOLE:ONLY
+  Newline \x0A
+  Comment ' c
+  Newline \x0A
+  Comment REM r
+  Newline \x0A
+  EndStmt 24..27
+    Ident END
+  Newline \x0A

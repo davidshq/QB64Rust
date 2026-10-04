@@ -1,0 +1,51 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 27
+expression: "tree(\"PRINT \\\"a\\\"; x; -3, 1.5;\\n? \\\"[\\\" \\\"a\\\"1; x \\\"b\\\" \\\"]\\\"\\nPRINT\\n\")"
+---
+SourceFile 0..51
+  PrintStmt 0..22
+    Ident PRINT
+    Whitespace  
+    Literal 6..9
+      StringLit "a"
+    Semicolon ;
+    Whitespace  
+    NameRef 11..12
+      Ident x
+    Semicolon ;
+    Whitespace  
+    PrefixExpr 14..16
+      Minus -
+      Literal 15..16
+        Number 3
+    Comma ,
+    Whitespace  
+    Literal 18..21
+      Number 1.5
+    Semicolon ;
+  Newline \x0A
+  PrintStmt 23..44
+    Question ?
+    Whitespace  
+    Literal 25..28
+      StringLit "["
+    Whitespace  
+    Literal 29..32
+      StringLit "a"
+    Literal 32..33
+      Number 1
+    Semicolon ;
+    Whitespace  
+    NameRef 35..36
+      Ident x
+    Whitespace  
+    Literal 37..40
+      StringLit "b"
+    Whitespace  
+    Literal 41..44
+      StringLit "]"
+  Newline \x0A
+  PrintStmt 45..50
+    Ident PRINT
+  Newline \x0A

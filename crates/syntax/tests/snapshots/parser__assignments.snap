@@ -1,0 +1,33 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 37
+expression: "tree(\"x = 1: LET y% = x + 2\\n\")"
+---
+SourceFile 0..22
+  AssignStmt 0..5
+    NameRef 0..1
+      Ident x
+    Whitespace  
+    Eq =
+    Whitespace  
+    Literal 4..5
+      Number 1
+  Colon :
+  Whitespace  
+  AssignStmt 7..21
+    Ident LET
+    Whitespace  
+    NameRef 11..13
+      Ident y%
+    Whitespace  
+    Eq =
+    Whitespace  
+    BinExpr 16..21
+      NameRef 16..17
+        Ident x
+      Whitespace  
+      Plus +
+      Whitespace  
+      Literal 20..21
+        Number 2
+  Newline \x0A

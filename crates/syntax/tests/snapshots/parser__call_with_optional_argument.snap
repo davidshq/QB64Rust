@@ -1,0 +1,40 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 42
+expression: "tree(\"PRINT INSTR(3, s$, \\\"l\\\"); INSTR(s$, \\\"l\\\")\\n\")"
+---
+SourceFile 0..40
+  PrintStmt 0..39
+    Ident PRINT
+    Whitespace  
+    CallExpr 6..23
+      NameRef 6..11
+        Ident INSTR
+      ArgList 11..23
+        LParen (
+        Literal 12..13
+          Number 3
+        Comma ,
+        Whitespace  
+        NameRef 15..17
+          Ident s$
+        Comma ,
+        Whitespace  
+        Literal 19..22
+          StringLit "l"
+        RParen )
+    Semicolon ;
+    Whitespace  
+    CallExpr 25..39
+      NameRef 25..30
+        Ident INSTR
+      ArgList 30..39
+        LParen (
+        NameRef 31..33
+          Ident s$
+        Comma ,
+        Whitespace  
+        Literal 35..38
+          StringLit "l"
+        RParen )
+  Newline \x0A

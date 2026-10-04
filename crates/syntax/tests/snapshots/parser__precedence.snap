@@ -1,0 +1,97 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 47
+expression: "tree(\"x = -2 ^ 2 + 2 ^ -3 * 4 - a MOD b \\\\ c * d\\ny = NOT a = b AND c OR d\\n\")"
+---
+SourceFile 0..67
+  AssignStmt 0..41
+    NameRef 0..1
+      Ident x
+    Whitespace  
+    Eq =
+    Whitespace  
+    BinExpr 4..41
+      BinExpr 4..23
+        PrefixExpr 4..10
+          Minus -
+          BinExpr 5..10
+            Literal 5..6
+              Number 2
+            Whitespace  
+            Caret ^
+            Whitespace  
+            Literal 9..10
+              Number 2
+        Whitespace  
+        Plus +
+        Whitespace  
+        BinExpr 13..23
+          BinExpr 13..19
+            Literal 13..14
+              Number 2
+            Whitespace  
+            Caret ^
+            Whitespace  
+            PrefixExpr 17..19
+              Minus -
+              Literal 18..19
+                Number 3
+          Whitespace  
+          Star *
+          Whitespace  
+          Literal 22..23
+            Number 4
+      Whitespace  
+      Minus -
+      Whitespace  
+      BinExpr 26..41
+        NameRef 26..27
+          Ident a
+        Whitespace  
+        Ident MOD
+        Whitespace  
+        BinExpr 32..41
+          NameRef 32..33
+            Ident b
+          Whitespace  
+          Backslash \
+          Whitespace  
+          BinExpr 36..41
+            NameRef 36..37
+              Ident c
+            Whitespace  
+            Star *
+            Whitespace  
+            NameRef 40..41
+              Ident d
+  Newline \x0A
+  AssignStmt 42..66
+    NameRef 42..43
+      Ident y
+    Whitespace  
+    Eq =
+    Whitespace  
+    BinExpr 46..66
+      BinExpr 46..61
+        PrefixExpr 46..55
+          Ident NOT
+          Whitespace  
+          BinExpr 50..55
+            NameRef 50..51
+              Ident a
+            Whitespace  
+            Eq =
+            Whitespace  
+            NameRef 54..55
+              Ident b
+        Whitespace  
+        Ident AND
+        Whitespace  
+        NameRef 60..61
+          Ident c
+      Whitespace  
+      Ident OR
+      Whitespace  
+      NameRef 65..66
+        Ident d
+  Newline \x0A

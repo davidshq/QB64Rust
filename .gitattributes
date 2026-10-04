@@ -1,3 +1,5 @@
 # Recorded program output and compiler output: keep the bytes exactly as recorded (tests/corpus/README.md)
 tests/corpus/**/*.output -text
 tests/corpus/**/*.err -text
+# CP437 bytes and CRLF line ends are the point of this program (design D2 of m2-workspace-and-slice)
+tests/corpus/slice/s07_cp437_bytes.bas -text

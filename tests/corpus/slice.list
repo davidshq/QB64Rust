@@ -1,0 +1,16 @@
+# Corpus programs the first end-to-end slice of the new compiler must pass (m2-workspace-and-slice, design D11).
+# One <group>/<name> per line; run with: run_legacy_tests.py --suite corpus --list tests/corpus/slice.list
+slice/s01_literals
+slice/s02_integer_wrap
+slice/s03_float_to_int
+slice/s04_division
+slice/s05_instr
+slice/s06_print_items
+slice/s07_cp437_bytes
+runtime_comparison/105_let
+runtime_comparison/109_implicit_dim
+runtime_comparison/111_concat_multiple
+runtime_comparison/131_expression_priority
+runtime_comparison/134_float_literal
+runtime_comparison/135_negate
+runtime_comparison/14_instr

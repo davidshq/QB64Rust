@@ -1,0 +1,10 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+dim_in_use.bas:5:5: error: name already in use: `x`
+dim_in_use.bas:6:16: error: name already in use: `y`
+dim_in_use.bas:7:8: error: a name with a type suffix cannot have an `AS` clause
+dim_in_use.bas:9:5: error: name already in use: `w`
+dim_in_use.bas:11:5: error: name already in use: `v`

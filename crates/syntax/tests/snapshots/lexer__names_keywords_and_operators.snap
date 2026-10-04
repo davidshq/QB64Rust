@@ -1,0 +1,53 @@
+---
+source: crates/syntax/tests/lexer.rs
+assertion_line: 15
+expression: "dump_tokens(b\"DIM a AS _INTEGER64, b$, c.d%: LET e## = -a MOD 2 <> b =< c >< d\\r\\n?\\\"x\\\";\\\"y\\\" , x\")"
+---
+Ident 0..3 DIM
+Whitespace 3..4  
+Ident 4..5 a
+Whitespace 5..6  
+Ident 6..8 AS
+Whitespace 8..9  
+Ident 9..19 _INTEGER64
+Comma 19..20 ,
+Whitespace 20..21  
+Ident 21..23 b$
+Comma 23..24 ,
+Whitespace 24..25  
+Ident 25..29 c.d%
+Colon 29..30 :
+Whitespace 30..31  
+Ident 31..34 LET
+Whitespace 34..35  
+Ident 35..38 e##
+Whitespace 38..39  
+Eq 39..40 =
+Whitespace 40..41  
+Minus 41..42 -
+Ident 42..43 a
+Whitespace 43..44  
+Ident 44..47 MOD
+Whitespace 47..48  
+Number 48..49 2
+Whitespace 49..50  
+Ne 50..52 <>
+Whitespace 52..53  
+Ident 53..54 b
+Whitespace 54..55  
+Le 55..57 =<
+Whitespace 57..58  
+Ident 58..59 c
+Whitespace 59..60  
+Ne 60..62 ><
+Whitespace 62..63  
+Ident 63..64 d
+Newline 64..66 \x0D\x0A
+Question 66..67 ?
+StringLit 67..70 "x"
+Semicolon 70..71 ;
+StringLit 71..74 "y"
+Whitespace 74..75  
+Comma 75..76 ,
+Whitespace 76..77  
+Ident 77..78 x
