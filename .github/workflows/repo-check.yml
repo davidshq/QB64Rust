@@ -1,0 +1,19 @@
+# Project rules that a script can check (CLAUDE.md rules 2 and 7): no local paths, temp folders or network shares
+# in tracked files, no stray control bytes. Runs on every change, documents included.
+name: Repo check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 tools/repo_check/check_repo.py

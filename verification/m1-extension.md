@@ -47,7 +47,7 @@ folder first: building writes an `.exe` next to the source, and `..\QB64pe\` is 
 
 | # | Step | Expected | Result |
 |---|---|---|---|
-| 1 | Open `wumpus.bas` | Language mode "QB64"; language status (`{}` next to "QB64" in the status bar) shows `qb64pe`; comments, strings, keywords, numbers coloured | Pass. Status bar "QB64", "CP437"; hover shows `qb64pe — C:/code/qb64-new/QB64pe/qb64pe.exe (setting)`. `REM` keyword and comment text, `DIM`/`READ`, `PRINT`/`INPUT`, strings, numbers each coloured |
+| 1 | Open `wumpus.bas` | Language mode "QB64"; language status (`{}` next to "QB64" in the status bar) shows `qb64pe`; comments, strings, keywords, numbers coloured | Pass. Status bar "QB64", "CP437"; hover shows `qb64pe — <full path of ..\QB64pe>/qb64pe.exe (setting)`. `REM` keyword and comment text, `DIM`/`READ`, `PRINT`/`INPUT`, strings, numbers each coloured |
 | 2 | Toggle Line Comment on a line; fold a `SUB` | `'` added/removed; the `SUB` folds | Pass. `DIM p(5)` → `' DIM p(5)` → back. `wumpus.bas` has no `SUB`, so one was appended to the copy; it folds to `SUB Demo ⋯` |
 | 3 | Add a line `x = 1 +`, save | Within about a second, Problems shows "Expected variable/value after '+'" on that line; the whole line is underlined | Pass. 237 ms after save; Problems: "Expected variable/value after '+' qb64pe [Ln 3, Col 1]", error, columns 0–7 underlined |
 | 4 | Type anything | The problem disappears | Pass (0 diagnostics 300 ms after typing a space) |
