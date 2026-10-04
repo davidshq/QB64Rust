@@ -74,6 +74,10 @@ off.
 
 - A match on `Ty`, an operator or an expression kind lists its variants. When a variant really should take a
   default, say why in `#[expect(clippy::wildcard_enum_match_arm, reason = "...")]`.
+- The lint sees only `match`. A default written as `t == Ty::Str`, `if … else`, `matches!` or `.max()` on the
+  derived order escapes it, so a type predicate or a per-type choice is written as a `match` too
+  (`Ty::is_numeric`, `promote`, codegen's `is_qbs`; found in the review of these changes). Promotion by `.max()`
+  over the declaration order stays until step 4's type table gives each type an explicit rank.
 - Bytes from a source file stay `&[u8]`/`Vec<u8>`; shown in a diagnostic through `show_bytes`.
 - A length, offset or id goes through `to_u32`; an `as` that can lose bits gets `#[expect]` with the semantic
   reason (usually D-001/D-002).

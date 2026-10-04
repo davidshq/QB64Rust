@@ -66,7 +66,11 @@ fn run() -> Result<ExitCode, String> {
     let input = o.input.clone().ok_or_else(|| format!("no input file\n{USAGE}"))?;
     let bytes = std::fs::read(&input).map_err(|e| format!("cannot read {}: {e}", input.display()))?;
     if bytes.len() > qb64rust_base::MAX_SOURCE_LEN {
-        return Err(format!("{} is larger than 4 GiB", input.display()));
+        let max = qb64rust_base::MAX_SOURCE_LEN;
+        return Err(format!(
+            "{} is too large: a source file has at most {max} bytes",
+            input.display()
+        ));
     }
     let name = input.to_string_lossy().to_string();
 

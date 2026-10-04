@@ -2,6 +2,10 @@
 # bytes as text (a diagnostic, a name for generated code) uses `#[expect(clippy::disallowed_methods, reason = ...)]`.
 disallowed-methods = [
     { path = "std::fs::read_to_string", reason = "source is bytes: read with std::fs::read" },
+    { path = "std::io::read_to_string", reason = "source is bytes: read with read_to_end" },
+    { path = "std::io::Read::read_to_string", reason = "source is bytes: read with read_to_end" },
+    { path = "std::io::BufRead::read_line", reason = "source is bytes: read with read_until" },
+    { path = "std::io::BufRead::lines", reason = "source is bytes: split with split(b'\\n') or read_until" },
     { path = "std::str::from_utf8", reason = "source is bytes: keep &[u8]" },
     { path = "std::string::String::from_utf8", reason = "source is bytes: keep Vec<u8>" },
     { path = "std::string::String::from_utf8_lossy", reason = "lossy: distinct bytes become U+FFFD" },

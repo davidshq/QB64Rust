@@ -27,9 +27,10 @@ columns in diagnostics are byte columns.
 (`study\21`):
 
 - `sema`, `ir`, `codegen-cpp`: no `_ =>` arm on an enum (`wildcard_enum_match_arm`). List the variants; where a
-  default is right, say why in `#[expect(clippy::wildcard_enum_match_arm, reason = "...")]`.
-- `clippy.toml` disallows converting bytes to `str` (`from_utf8`, `from_utf8_lossy`, `read_to_string`). Show
-  source bytes with `show_bytes`.
+  default is right, say why in `#[expect(clippy::wildcard_enum_match_arm, reason = "...")]`. The lint sees only
+  `match`: write a type predicate or a per-type choice as a `match`, not as `==` or `if … else`.
+- `clippy.toml` disallows converting bytes to `str` (`from_utf8`, `from_utf8_lossy`) and reading text
+  (`read_to_string`, `read_line`, `BufRead::lines`). Show source bytes with `show_bytes`.
 - Casts that can lose or reinterpret bits are linted. Lengths, offsets and ids use `base::to_u32` (source files are
   at most `MAX_SOURCE_LEN`); a deliberate wrap keeps its `as` with `#[expect]` and the reason.
 - Release builds keep overflow checks: arithmetic BASIC defines as wrapping is written `wrapping_*`.

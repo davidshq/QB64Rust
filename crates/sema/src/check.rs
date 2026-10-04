@@ -1129,7 +1129,10 @@ fn is_builtin_function(name: &str, suffix: Option<Ty>) -> bool {
 
 /// Integer operands are computed in at least 32 bits (C promotion).
 fn promote(t: Ty) -> Ty {
-    if t == Ty::I16 { Ty::I32 } else { t }
+    match t {
+        Ty::I16 => Ty::I32,
+        Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => t,
+    }
 }
 
 /// Keeps the low bits of `v` that fit `ty` (integer overflow wraps, D-001, D-002).

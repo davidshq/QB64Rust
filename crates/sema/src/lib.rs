@@ -44,7 +44,10 @@ impl Ty {
     }
 
     pub fn is_numeric(self) -> bool {
-        self != Ty::Str
+        match self {
+            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => true,
+            Ty::Str => false,
+        }
     }
 
     /// The QB type name (`INTEGER`, `_FLOAT`...).

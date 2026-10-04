@@ -78,7 +78,7 @@ pub fn emit(p: &Program, source_name: &str) -> Fragments {
     set(
         "mainfree.txt",
         e.per_var(|v, n| {
-            if v.ty == Ty::Str {
+            if is_qbs(v.ty) {
                 format!("qbs_free({n});\n")
             } else {
                 String::new()
@@ -129,6 +129,15 @@ pub fn c_type(t: Ty) -> &'static str {
         Ty::F64 => "double",
         Ty::F80 => "long double",
         Ty::Str => "qbs*",
+    }
+}
+
+/// Whether a variable of this type is a `qbs *` (freed, assigned with `qbs_set`, used without `*`); otherwise it
+/// is a pointer to a C scalar.
+fn is_qbs(t: Ty) -> bool {
+    match t {
+        Ty::Str => true,
+        Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => false,
     }
 }
 
@@ -233,7 +242,7 @@ impl Emitter<'_> {
             Op::Assign { place, value } => {
                 let name = var_name(self.p.var(*place));
                 let v = self.value(value);
-                if value.ty == Ty::Str {
+                if is_qbs(value.ty) {
                     out.push(format!("qbs_set({name},{v});"));
                 } else {
                     out.push(format!("*{name}={v};"));
@@ -291,7 +300,7 @@ impl Emitter<'_> {
             ValueKind::Const(Const::Str(s)) => format!("qbs_new_txt_len({},{})", c_string(s), s.len()),
             ValueKind::Var(id) => {
                 let var = self.p.var(*id);
-                if var.ty == Ty::Str {
+                if is_qbs(var.ty) {
                     var_name(var)
                 } else {
                     format!("*{}", var_name(var))

@@ -1,7 +1,8 @@
 """Checks tracked files for two project rules (CLAUDE.md):
 
-* Rule 2: nothing private goes into the repo. Flags full local paths (C:\\Users\\..., C:\\code\\..., /c/Users/...,
-  /c/code/...), temp folders (AppData\\Local\\Temp) and network shares (\\\\host\\share).
+* Rule 2: nothing private goes into the repo. Flags full local paths (any drive path such as C:\\Users\\... or
+  D:\\work\\..., and /c/Users/..., /c/code/...), home folders (/home/<name>/, /Users/<name>/), temp folders
+  (AppData\\Local\\Temp) and network shares (\\\\host\\share). Host names cannot be recognised; check by eye.
 * Rule 7: text passed through a shell can collapse backslash escapes into control characters. Flags bytes
   0x00-0x1F other than tab, LF and the CR of CR LF.
 
@@ -18,16 +19,23 @@ import subprocess
 import sys
 
 PATH_PATTERNS = [
-    (re.compile(rb"\b[A-Za-z]:[\\/]+(Users|code)[\\/]", re.IGNORECASE), "local path"),
+    (re.compile(rb"(?<![\w%])[A-Za-z]:[\\/]+[\w$ .-]+[\\/]"), "local path"),
     (re.compile(rb"(?<![\w.])/[a-z]/(Users|code)/", re.IGNORECASE), "local path (POSIX form)"),
+    (re.compile(rb"(?<![\w.])/(home|Users)/[\w.-]+/"), "home folder"),
     (re.compile(rb"AppData[\\/]+Local[\\/]+Temp", re.IGNORECASE), "temp folder"),
     (re.compile(rb"(?<![\\\w])\\\\[A-Za-z][\w.-]*\\[\w$]"), "network share"),
 ]
 
-# (file, bytes the line contains): examples of what not to write, in the rules themselves.
+# (file glob, bytes the line contains): paths that are not private. The examples in the rules themselves; a path
+# made up to not exist; GitHub's runner folder (public); and the compiler-discovery unit tests, which are about
+# made-up paths (C:\qb, /home/u/proj).
 ALLOWED = [
     ("CLAUDE.md", rb"no full local paths"),
     ("tools/repo_check/check_repo.py", rb""),
+    ("*", rb"does\\not\\exist"),
+    ("*", rb"does/not/exist"),
+    ("*", rb"/home/runner/"),
+    ("vscode/test/unit/discovery.test.ts", rb""),
 ]
 
 BINARY_SUFFIXES = (".bin", ".exe", ".png", ".ico", ".7z", ".zip", ".vsix")
@@ -49,7 +57,7 @@ def unchecked_text(root: str, paths: list[str]) -> set[str]:
 
 
 def allowed(path: str, line: bytes) -> bool:
-    return any(path == f and text in line for f, text in ALLOWED)
+    return any(fnmatch.fnmatch(path, f) and text in line for f, text in ALLOWED)
 
 
 def control_bytes(data: bytes) -> list[tuple[int, int]]:

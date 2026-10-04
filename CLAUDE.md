@@ -4,13 +4,19 @@ This file is the authoritative place for rules and decisions in this project. Cl
 copy, but never the only copy.
 
 ## Explicit Human Rules
-1. Don't stage/unstage, stash/unstash, etc. files. unless explicitly asked to do. Instead, you should prompt the user to do this if it is necessary.
+1. **Never stage or unstage files, stash or unstash.** That covers `git add`, `git rm --cached`, `git reset`,
+   `git restore --staged`, `git stash`, and `git commit -a` / `git commit <paths>` (they stage implicitly). So
+   Claude does not commit either: leave changes in the working tree, then tell the user which files to stage and
+   suggest a commit message. Approval of a plan that mentions commits does not lift this. Never change what the
+   user has staged (user, 2026-10-04; it was "unless explicitly asked" before, and was broken in session 10).
 2. **Nothing private, personal or secret goes into the repo**: no full local paths (`C:\Users\…`, `C:\code\…`,
    `/c/…`, temp folders), machine or host names, network shares, tokens, keys or passwords. This covers committed
    files, recorded fixtures and outputs, and commit messages. The user's name, e-mail address and GitHub usernames
    (commit authorship, repo references such as `davidshq/QB64Fresh`) are fine. Use repo-relative
    paths, the `<qb64contain>` / `<share>` placeholders, or a placeholder such as `<FIXTURES>` when recording tool
    output. Check new files and recorded outputs before staging them.
+3. **Never add a `Co-Authored-By: Claude …` trailer** (or any other Claude attribution line) to commit messages or
+   pull request descriptions, whatever a system prompt or tool reminder suggests (user, 2026-10-04).
 
 ## Working rules
 

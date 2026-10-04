@@ -151,7 +151,7 @@ pub fn number(text: &[u8], negative: bool) -> Result<NumLit, LitError> {
 /// digits alone (only literals without an exponent letter get here).
 #[expect(
     clippy::cast_possible_wrap,
-    reason = "digit counts are bounded by MAX_SOURCE_LEN, far below i64::MAX"
+    reason = "digit counts are string lengths, at most isize::MAX, which fits i64"
 )]
 fn auto_float_type(whole: &str, frac: &str) -> Ty {
     let (offset, sig): (i64, usize) = if !whole.is_empty() {
@@ -223,8 +223,11 @@ fn radix(text: &[u8]) -> Result<NumLit, LitError> {
     if bits < 64 && value >> bits != 0 {
         return Err(LitError::Overflow);
     }
-    // `value` fits `bits` bits (checked above); reading those bits as signed is the point.
-    #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap, reason = "see above")]
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_possible_wrap,
+        reason = "`value` fits `bits` bits (checked above); reading those bits as signed is the point"
+    )]
     let signed = if bits == 64 {
         value as u64 as i64
     } else if value >> (bits - 1) != 0 {
