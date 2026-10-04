@@ -1,0 +1,7 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+literal_overflow.bas:4:7: error: overflow
+literal_overflow.bas:5:8: error: overflow
+literal_overflow.bas:6:7: error: overflow

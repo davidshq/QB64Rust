@@ -99,6 +99,7 @@ fn typed_dump() {
 fn no_clone_found() {
     let d = scratch("noclone");
     std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    std::fs::write(d.join("p.exe"), b"stale").unwrap();
     let o = Command::new(env!("CARGO_BIN_EXE_qb64rust"))
         .current_dir(&d)
         .env("QB64RUST_QB64PE_ROOT", d.join("no-such-clone"))

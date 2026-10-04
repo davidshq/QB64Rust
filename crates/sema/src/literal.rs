@@ -104,6 +104,10 @@ pub fn number(text: &[u8], negative: bool) -> Result<NumLit, LitError> {
     } else {
         whole.parse().map_err(|_| LitError::Overflow)?
     };
+    // No literal type is wider than 64 bits; checked before the cast so a huge magnitude cannot wrap into range.
+    if magnitude > 1 << 64 {
+        return Err(LitError::Overflow);
+    }
     let value: i128 = if negative {
         -(magnitude as i128)
     } else {

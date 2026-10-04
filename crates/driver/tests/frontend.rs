@@ -104,3 +104,13 @@ fn frontend_files() {
         }
     });
 }
+
+/// Statements past the error cap are not checked: the parser no longer records their errors, so they may be
+/// malformed (`x =` used to panic in the checker).
+#[test]
+fn error_cap_stops_checking() {
+    let src = format!("$CONSOLE:ONLY\n{}", "x =\n".repeat(qb64rust_base::MAX_ERRORS + 5));
+    let fe = frontend("cap.bas", src.into_bytes());
+    assert!(fe.diagnostics.is_capped());
+    assert_eq!(fe.diagnostics.error_count(), qb64rust_base::MAX_ERRORS);
+}

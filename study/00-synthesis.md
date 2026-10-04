@@ -170,6 +170,17 @@ Measured for the first slice of the new compiler (2026-10-03, `m2-workspace-and-
 - Negating an integer is believed `_INTEGER64` (`-x%` with `x% = -32768` prints ` 32768`); negating a float keeps
   its type. `7E38` is SINGLE and prints `inf`.
 
+Malformed literals (2026-10-04, while checking the PR review of the slice; the new compiler already behaves the
+same in the first three):
+
+- A string without its closing quote ends at the line end: `PRINT "hello` prints `hello`.
+- `&H`, `&O`, `&B` with no digits are 0: `PRINT &H` prints ` 0 `.
+- An exponent letter with no digits is exponent 0: `PRINT 1E+` prints ` 1 `.
+- A literal wider than 64 bits is not caught: `PRINT 340282366920938463463374607431768211455&&` fails in the C++
+  compiler. The new compiler reports "overflow".
+- An `&&` literal above `_INTEGER64` range wraps: `PRINT 18446744073709551615&&` prints `-1`. The new compiler
+  reports "overflow" (not yet in `DIVERGENCES.md`).
+
 ## 6. Bug-compatibility choices still to make
 
 From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence register (R2).

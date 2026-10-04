@@ -206,7 +206,7 @@ is unchanged by a build. *Alternatives:* (a) copy `internal\c` into this repo no
 
 Spike result (task 4.2, 2026-10-03): the overrides work as written; no fallback needed. A hand-written
 `PRINT "hello"` fragment set built in 1.8 s (compile `qbx.cpp` + link; libqb reused), wrote `qbx.o` into
-`<build>\c\` and the `.sym` into `<build>	emp\`, and printed `hello` and the `END` trailer under
+`<build>\c\` and the `.sym` into `<build>\temp\`, and printed `hello` and the `END` trailer under
 `press_any_key.py`. Make links `libqb_make_00100000.o`, the same object (and the same `-D` set) that `qb64pe.exe`
 links for a `$CONSOLE:ONLY` program. Note: `CXXFLAGS_EXTRA` also applies to libqb objects when make has to build
 them; they are only built if missing, so `-fwrapv` normally reaches only `qbx.o`.

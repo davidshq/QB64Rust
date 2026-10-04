@@ -27,8 +27,15 @@ pub fn check_with(root: Node, file: &SourceFile, parse_diags: &Diagnostics, fold
         console_only: false,
     };
     let error_starts: Vec<u32> = parse_diags.list().iter().map(|d| d.span.start).collect();
+    // Past the error cap the parser records no more errors, so statements from the cap on may be malformed.
+    let cap_start = parse_diags
+        .is_capped()
+        .then(|| parse_diags.list().last().map_or(0, |d| d.span.start));
     for stmt in root.child_nodes() {
         let s = stmt.span();
+        if cap_start.is_some_and(|c| s.end >= c) {
+            break;
+        }
         if error_starts.iter().any(|&o| o >= s.start && o <= s.end) || stmt.kind() == Error {
             continue;
         }

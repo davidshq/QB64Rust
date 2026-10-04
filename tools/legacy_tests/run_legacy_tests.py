@@ -547,7 +547,7 @@ def main() -> int:
             if args.list:
                 try:
                     wanted = load_list(args.list, corpus_root)
-                except ValueError as e:
+                except (ValueError, OSError) as e:
                     print(e, file=sys.stderr)
                     return 2
                 tests = [p for p in tests if p in wanted]

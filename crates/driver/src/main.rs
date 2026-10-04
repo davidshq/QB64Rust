@@ -114,6 +114,8 @@ fn run() -> Result<ExitCode, String> {
         println!("{}", temp.display());
         return Ok(ExitCode::SUCCESS);
     }
+    // Before any step that can fail, so a failed build never leaves an older executable behind.
+    let _ = std::fs::remove_file(&exe);
     let root = build::find_root(o.root.as_deref())?;
     build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
     build::build(&root, &build_dir, &exe, o.quiet)?;

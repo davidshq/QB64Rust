@@ -11,7 +11,8 @@ behaviour of `qb64pe.exe` 4.7.0 (`16f629784e`) in its **default** build; each in
 ### Requirement: Integer literal typing
 An integer literal without a type suffix SHALL have the smallest of INTEGER, LONG and `_INTEGER64` that holds its
 value. A literal with a suffix (`%`, `&`, `&&`) SHALL have the suffix's type. A unary minus directly before an
-integer literal SHALL be part of the literal for this purpose.
+integer literal SHALL be part of the literal for this purpose. One exception, as in the old compiler: `-2147483648`
+SHALL be `_INTEGER64`, not LONG.
 
 #### Scenario: Small literal is INTEGER
 - **WHEN** a program prints `-3`
@@ -20,6 +21,10 @@ integer literal SHALL be part of the literal for this purpose.
 #### Scenario: Literal beyond INTEGER range
 - **WHEN** a program prints `40000`
 - **THEN** the value is typed LONG and prints as ` 40000 `
+
+#### Scenario: LONG's minimum is `_INTEGER64`
+- **WHEN** a program prints `-2147483648`
+- **THEN** the value is typed `_INTEGER64` and prints as `-2147483648 `
 
 ### Requirement: Float literal typing
 A floating-point literal without a suffix SHALL be SINGLE if it has at most 7 significant digits and is in SINGLE
