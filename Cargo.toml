@@ -5,6 +5,8 @@ members = ["crates/*"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
+# Same as rust-toolchain.toml.
+rust-version = "1.88"
 publish = false
 
 [workspace.dependencies]
@@ -22,3 +24,8 @@ unsafe_code = "forbid"
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
+
+# An overflow in the compiler's own arithmetic is a bug: panic in release too, so tests and the shipped binary
+# behave the same (study\21). Wrapping that BASIC semantics needs is written as `wrapping_*`.
+[profile.release]
+overflow-checks = true

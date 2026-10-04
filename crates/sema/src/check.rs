@@ -943,7 +943,7 @@ impl Checker<'_> {
                         span,
                         ty,
                         qb,
-                        kind: ExprKind::Int(wrap(-(v as i128), ty)),
+                        kind: ExprKind::Int(wrap(v.wrapping_neg(), ty)),
                     });
                 }
                 Ok(Expr {
@@ -997,11 +997,12 @@ impl Checker<'_> {
         let lhs = self.convert_exact(lhs, ty);
         let rhs = self.convert_exact(rhs, ty);
         if let (ExprKind::Int(a), ExprKind::Int(b), true) = (&lhs.kind, &rhs.kind, self.fold) {
-            let (a, b) = (*a as i128, *b as i128);
+            // Wrapping in 64 bits, then to `ty`, keeps the same low bits as the exact result (D-001, D-002).
+            let (a, b) = (*a, *b);
             let v = match op {
-                BinOp::Add => a + b,
-                BinOp::Sub => a - b,
-                BinOp::Mul => a * b,
+                BinOp::Add => a.wrapping_add(b),
+                BinOp::Sub => a.wrapping_sub(b),
+                BinOp::Mul => a.wrapping_mul(b),
                 BinOp::Div => unreachable!("integer division is computed in _FLOAT"),
             };
             return Ok(Expr {
@@ -1119,11 +1120,13 @@ fn promote(t: Ty) -> Ty {
     if t == Ty::I16 { Ty::I32 } else { t }
 }
 
-fn wrap(v: i128, ty: Ty) -> i64 {
+/// Keeps the low bits of `v` that fit `ty` (integer overflow wraps, D-001, D-002).
+fn wrap(v: i64, ty: Ty) -> i64 {
     match ty {
-        Ty::I16 => v as i16 as i64,
-        Ty::I32 => v as i32 as i64,
-        _ => v as i64,
+        Ty::I16 => i64::from(v as i16),
+        Ty::I32 => i64::from(v as i32),
+        Ty::I64 => v,
+        Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => unreachable!("integer constant folded to {ty:?}"),
     }
 }
 
@@ -1145,7 +1148,7 @@ impl Checker<'_> {
         }
         debug_assert!(e.ty.is_numeric() && to.is_numeric() && !(e.ty.is_float() && to.is_int()));
         if let (ExprKind::Int(v), true, true) = (&e.kind, to.is_int(), self.fold) {
-            let v = wrap(*v as i128, to);
+            let v = wrap(*v, to);
             return Expr {
                 span: e.span,
                 ty: to,
