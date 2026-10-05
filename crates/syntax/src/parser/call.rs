@@ -18,7 +18,7 @@ pub(crate) fn call_stmt(p: &mut Parser) {
         p.bump();
     }
     if !p.at(Ident) {
-        p.error("expected a SUB name after `CALL`");
+        p.syntax_error("expected a SUB name after `CALL`");
         p.recover();
         p.finish_node();
         return;

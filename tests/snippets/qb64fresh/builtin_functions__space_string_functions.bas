@@ -1,0 +1,2 @@
+PRINT SPACE$(10)
+PRINT STRING$(10, "*")

@@ -1,0 +1,3 @@
+$IF _WIN OR _LINUX OR _MAC THEN
+    PRINT "Desktop OS"
+$END IF

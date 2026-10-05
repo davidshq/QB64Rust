@@ -124,7 +124,7 @@ fn primary(p: &mut Parser) -> bool {
             }
         }
         _ => {
-            p.error("expected an expression");
+            p.syntax_error("expected an expression");
             false
         }
     }

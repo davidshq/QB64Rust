@@ -1,0 +1,5 @@
+DIM s AS STRING
+DIM n AS DOUBLE
+s = STR$(123.45)
+n = VAL("42.5")
+PRINT s, n

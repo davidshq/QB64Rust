@@ -1,0 +1,3 @@
+DIM x AS LONG
+x = 1000000
+PRINT x

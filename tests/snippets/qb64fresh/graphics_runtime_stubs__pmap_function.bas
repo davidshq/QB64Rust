@@ -1,0 +1,2 @@
+DIM x AS LONG
+x = PMAP(100, 0)

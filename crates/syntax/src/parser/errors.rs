@@ -41,7 +41,7 @@ pub(crate) fn on_stmt(p: &mut Parser) {
         } else {
             let span = p.current_span().cover(p.next_span(n));
             let next = qb64rust_base::show_bytes(&p.nth_text(n).to_ascii_uppercase());
-            p.error_at(span, format!("`{lead} {next}` is not supported yet"));
+            p.unsupported_at(span, format!("`{lead} {next}`"));
         }
         p.recover();
         return;
@@ -53,7 +53,7 @@ pub(crate) fn on_stmt(p: &mut Parser) {
     if p.at(Ident) || p.at(Number) {
         p.bump();
     } else {
-        p.error("expected a label or `0` after `ON ERROR GOTO`");
+        p.syntax_error("expected a label or `0` after `ON ERROR GOTO`");
     }
     p.recover();
     p.finish_node();

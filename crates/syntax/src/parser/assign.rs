@@ -16,9 +16,9 @@ pub(crate) fn assign_stmt(p: &mut Parser) {
         p.bump(); // =
         expr(p);
     } else if p.at(Ident) && p.nth(1) == Some(LParen) {
-        p.error("arrays are not supported yet");
+        p.unsupported("arrays");
     } else {
-        p.error("expected `<name> = <expression>`");
+        p.syntax_error("expected `<name> = <expression>`");
     }
     p.recover();
     p.finish_node();

@@ -5,5 +5,5 @@ expression: snap
 ---
 proc_header_errors.bas:9:5: error: name already in use: `cls`
 proc_header_errors.bas:11:8: error: name already in use: `name`
-proc_header_errors.bas:13:5: error: a SUB name with a type suffix is not supported yet
+proc_header_errors.bas:13:5: error: not supported yet: a SUB name with a type suffix
 proc_header_errors.bas:15:1: error: `FUNCTION` without `END FUNCTION`

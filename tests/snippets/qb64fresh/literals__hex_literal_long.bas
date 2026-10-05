@@ -1,0 +1,3 @@
+DIM x AS LONG
+x = &HFFFF
+PRINT x

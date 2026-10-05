@@ -1,0 +1,3 @@
+DIM x AS LONG
+x = 10 MOD 3
+PRINT x

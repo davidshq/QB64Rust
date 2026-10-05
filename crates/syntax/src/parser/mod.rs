@@ -18,7 +18,7 @@ mod proc;
 use crate::SyntaxKind::{self, *};
 use crate::lexer::{Token, tokenize};
 use crate::tree::{GreenNode, TreeBuilder};
-use qb64rust_base::{Diagnostics, FileId, Span};
+use qb64rust_base::{Diagnostic, Diagnostics, FileId, Span};
 
 pub struct Parse {
     pub green: GreenNode,
@@ -161,19 +161,76 @@ impl<'a> Parser<'a> {
 
     // ---- errors ----
 
-    /// Reports an error at `span` unless the statement already has one.
-    fn error_at(&mut self, span: Span, message: impl Into<String>) {
+    /// Reports a diagnostic unless the statement already has one.
+    fn report(&mut self, d: Diagnostic) {
         if self.quiet {
             self.quiet_failed = true;
         } else if !self.stmt_error {
             self.stmt_error = true;
-            self.diags.error(span, message);
+            self.diags.push(d);
         }
+    }
+
+    /// Reports an error at `span` unless the statement already has one.
+    fn error_at(&mut self, span: Span, message: impl Into<String>) {
+        self.report(Diagnostic::error(span, message));
     }
 
     fn error(&mut self, message: impl Into<String>) {
         let span = self.current_span();
         self.error_at(span, message);
+    }
+
+    /// A generic syntax error at the current token ("expected ..."). When that token is a BASIC word or operator
+    /// the parser does not handle there yet, the error is marked "not supported yet" and names the token (design
+    /// D3 of `m2-upstream-tests`; a heuristic, its misses show up in `tests\known_false_errors.list`). Specific
+    /// errors the old compiler also reports use [`Self::error`].
+    fn syntax_error(&mut self, message: impl Into<String>) {
+        let span = self.current_span();
+        let message = message.into();
+        match self.unhandled_token() {
+            Some(what) => self.unsupported_at(span, format!("{what} ({message})")),
+            None => self.error_at(span, message),
+        }
+    }
+
+    /// `operator `MOD``, `word `TO``, `` `#` ``... when the current token is a known BASIC word or operator.
+    fn unhandled_token(&self) -> Option<String> {
+        let op = |s: &str| Some(format!("operator `{s}`"));
+        match self.current()? {
+            Backslash => op("\\"),
+            Caret => op("^"),
+            Eq => op("="),
+            Ne => op("<>"),
+            Lt => op("<"),
+            Gt => op(">"),
+            Le => op("<="),
+            Ge => op(">="),
+            Hash => Some("`#`".to_string()),
+            Semicolon => Some("`;`".to_string()),
+            Ident => {
+                let text = self.nth_text(0);
+                let word = qb64rust_base::show_bytes(text).to_ascii_uppercase();
+                if ["MOD", "AND", "OR", "NOT", "XOR", "EQV", "IMP"].contains(&word.as_str()) {
+                    op(&word)
+                } else if keywords::is_keyword(text) {
+                    Some(format!("word `{word}`"))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
+    /// Reports a construct the parser does not handle yet, marked "not supported yet"; `message` names it.
+    fn unsupported_at(&mut self, span: Span, message: impl Into<String>) {
+        self.report(Diagnostic::unsupported(span, message));
+    }
+
+    fn unsupported(&mut self, message: impl Into<String>) {
+        let span = self.current_span();
+        self.unsupported_at(span, message);
     }
 
     /// Puts the rest of the statement into an `Error` node. Tokens left over without an error reported yet (e.g.
@@ -182,7 +239,7 @@ impl<'a> Parser<'a> {
         if self.at_stmt_end() {
             return;
         }
-        self.error("expected the end of the statement");
+        self.syntax_error("expected the end of the statement");
         self.rest_into_error_node();
     }
 
@@ -208,7 +265,7 @@ impl<'a> Parser<'a> {
             self.bump();
             true
         } else {
-            self.error(format!("expected {what}"));
+            self.syntax_error(format!("expected {what}"));
             false
         }
     }
@@ -247,7 +304,7 @@ impl<'a> Parser<'a> {
         }
         self.statement();
         if !self.at_stmt_end() {
-            self.error("expected the end of the statement");
+            self.syntax_error("expected the end of the statement");
             self.recover();
         }
         if matches!(self.current(), Some(Newline | Colon)) {
@@ -262,11 +319,11 @@ impl<'a> Parser<'a> {
             Some(Question) => print::print_stmt(self),
             Some(Ident) => self.word_statement(),
             Some(Number) => {
-                self.error("line numbers and labels are not supported yet");
+                self.unsupported("line numbers and numeric labels");
                 self.recover();
             }
             Some(_) => {
-                self.error("expected a statement");
+                self.syntax_error("expected a statement");
                 self.recover();
             }
         }
@@ -348,7 +405,7 @@ impl<'a> Parser<'a> {
         } else {
             let span = self.current_span().cover(self.next_span(1));
             let text = format!("END {}", qb64rust_base::show_bytes(self.nth_text(1)));
-            self.error_at(span, format!("`{text}` is not supported yet"));
+            self.unsupported_at(span, format!("`{text}`"));
             self.recover();
         }
     }
@@ -360,7 +417,7 @@ impl<'a> Parser<'a> {
             self.bump();
             self.finish_node();
         } else {
-            self.error("`SYSTEM` with an exit code is not supported yet");
+            self.unsupported("`SYSTEM` with an exit code");
             self.recover();
         }
     }
@@ -375,7 +432,7 @@ impl<'a> Parser<'a> {
     /// A language word the parser does not handle yet (`FOR`, `IF`, `GOTO`...).
     fn not_supported_statement(&mut self) {
         let word = qb64rust_base::show_bytes(self.nth_text(0));
-        self.error(format!("`{word}` is not supported yet"));
+        self.unsupported(format!("statement `{word}`"));
         self.recover();
     }
 }

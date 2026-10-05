@@ -1,0 +1,4 @@
+
+Illegal string-number conversion
+Caused by (or after):X = "hello",5
+LINE 2:x = "hello"

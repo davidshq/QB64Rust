@@ -1,0 +1,2 @@
+DIM img AS LONG
+img = _NEWIMAGE(640, 480, 32)

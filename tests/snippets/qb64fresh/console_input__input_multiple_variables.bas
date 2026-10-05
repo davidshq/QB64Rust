@@ -1,0 +1,3 @@
+DIM x AS LONG
+DIM y AS LONG
+INPUT x, y

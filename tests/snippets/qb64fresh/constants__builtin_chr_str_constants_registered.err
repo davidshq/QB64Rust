@@ -1,0 +1,4 @@
+
+Invalid variable name
+Caused by (or after):S = _STR_LF + _STR_CR
+LINE 6:s = _STR_LF + _STR_CR

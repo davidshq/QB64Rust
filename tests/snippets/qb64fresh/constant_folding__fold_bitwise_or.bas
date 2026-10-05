@@ -1,0 +1,2 @@
+DIM x AS INTEGER
+x = 12 OR 10

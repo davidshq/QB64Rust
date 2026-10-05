@@ -1,5 +1,6 @@
 ---
 source: crates/syntax/tests/parser.rs
+assertion_line: 149
 expression: "tree(\"ON ERROR GOTO\\nON ERROR RESUME NEXT\\nON TIMER(1) GOSUB t\\nRESUME NEXT x\\nERROR\\nON ERROR GOTO h 1\\nON\\nON ERROR\\n\")"
 ---
 SourceFile 0..105
@@ -63,8 +64,8 @@ SourceFile 0..105
     Ident ERROR
   Newline \x0A
 t.bas:1:14: error: expected a label or `0` after `ON ERROR GOTO`
-t.bas:2:1: error: `ON ERROR RESUME` is not supported yet
-t.bas:3:1: error: `ON TIMER` is not supported yet
+t.bas:2:1: error: not supported yet: `ON ERROR RESUME`
+t.bas:3:1: error: not supported yet: `ON TIMER`
 t.bas:4:13: error: expected the end of the statement
 t.bas:5:6: error: expected an expression
 t.bas:6:17: error: expected the end of the statement

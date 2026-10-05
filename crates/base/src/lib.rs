@@ -150,6 +150,10 @@ pub struct Diagnostic {
     pub severity: Severity,
     pub span: Span,
     pub message: String,
+    /// The program may well be correct: it uses a construct this compiler does not handle yet (spec
+    /// `compiler/pipeline`). The message names the construct without saying "not supported yet"; the renderer
+    /// adds that.
+    pub unsupported: bool,
 }
 
 impl Diagnostic {
@@ -158,14 +162,33 @@ impl Diagnostic {
             severity: Severity::Error,
             span,
             message: message.into(),
+            unsupported: false,
         }
     }
 
-    /// `<file>:<line>:<column>: error: <message>` (spec `compiler/cli`).
+    /// An error marked "not supported yet".
+    pub fn unsupported(span: Span, message: impl Into<String>) -> Diagnostic {
+        Diagnostic {
+            unsupported: true,
+            ..Diagnostic::error(span, message)
+        }
+    }
+
+    /// An error in the program, not a construct the compiler does not handle yet.
+    pub fn is_real_error(&self) -> bool {
+        self.severity == Severity::Error && !self.unsupported
+    }
+
+    /// `<file>:<line>:<column>: error: <message>`, or `...: error: not supported yet: <message>` when marked
+    /// (spec `compiler/cli`).
     pub fn render(&self, map: &SourceMap) -> String {
         let file = map.file(self.span.file);
         let (line, col) = file.line_col(self.span.start);
-        format!("{}:{}:{}: {}: {}", file.name, line, col, self.severity, self.message)
+        let mark = if self.unsupported { "not supported yet: " } else { "" };
+        format!(
+            "{}:{}:{}: {}: {mark}{}",
+            file.name, line, col, self.severity, self.message
+        )
     }
 }
 
@@ -177,6 +200,7 @@ pub const MAX_ERRORS: usize = 100;
 pub struct Diagnostics {
     list: Vec<Diagnostic>,
     errors: usize,
+    unsupported: usize,
     capped: bool,
 }
 
@@ -196,6 +220,9 @@ impl Diagnostics {
                 return;
             }
             self.errors += 1;
+            if d.unsupported {
+                self.unsupported += 1;
+            }
         }
         self.list.push(d);
     }
@@ -204,12 +231,37 @@ impl Diagnostics {
         self.push(Diagnostic::error(span, message));
     }
 
+    /// An error marked "not supported yet"; `message` names the construct.
+    pub fn unsupported(&mut self, span: Span, message: impl Into<String>) {
+        self.push(Diagnostic::unsupported(span, message));
+    }
+
     pub fn has_errors(&self) -> bool {
         self.errors > 0
     }
 
     pub fn error_count(&self) -> usize {
         self.errors
+    }
+
+    /// How many of the errors are marked "not supported yet".
+    pub fn unsupported_count(&self) -> usize {
+        self.unsupported
+    }
+
+    /// Whether any error is an error in the program, not a construct not handled yet.
+    pub fn has_real_errors(&self) -> bool {
+        self.errors > self.unsupported
+    }
+
+    /// The summary line: `1 error`, `3 errors`, `3 errors (2 not supported yet)` (spec `compiler/cli`).
+    pub fn summary(&self) -> String {
+        let n = self.errors;
+        let s = if n == 1 { "" } else { "s" };
+        match self.unsupported {
+            0 => format!("{n} error{s}"),
+            m => format!("{n} error{s} ({m} not supported yet)"),
+        }
     }
 
     pub fn is_capped(&self) -> bool {
@@ -295,8 +347,8 @@ mod tests {
     fn render_and_cap() {
         let mut map = SourceMap::new();
         let f = map.add("p.bas", b"x\nFOR i\n".to_vec());
-        let d = Diagnostic::error(Span::new(f, 2, 5), "`FOR` is not supported yet");
-        assert_eq!(d.render(&map), "p.bas:2:1: error: `FOR` is not supported yet");
+        let d = Diagnostic::error(Span::new(f, 2, 5), "expected `=`");
+        assert_eq!(d.render(&map), "p.bas:2:1: error: expected `=`");
 
         let mut ds = Diagnostics::new();
         for _ in 0..105 {
@@ -305,6 +357,32 @@ mod tests {
         assert_eq!(ds.error_count(), MAX_ERRORS);
         assert_eq!(ds.list().len(), MAX_ERRORS + 1);
         assert!(ds.list().last().unwrap().message.starts_with("too many errors"));
+    }
+
+    #[test]
+    fn unsupported_marker() {
+        let mut map = SourceMap::new();
+        let f = map.add("p.bas", b"x\nFOR i\n".to_vec());
+        let d = Diagnostic::unsupported(Span::new(f, 2, 5), "statement `FOR`");
+        assert_eq!(d.render(&map), "p.bas:2:1: error: not supported yet: statement `FOR`");
+        assert!(!d.is_real_error());
+        assert!(Diagnostic::error(Span::new(f, 0, 1), "e").is_real_error());
+
+        let mut ds = Diagnostics::new();
+        ds.error(Span::new(f, 0, 1), "e");
+        assert_eq!(ds.summary(), "1 error");
+        assert!(ds.has_real_errors());
+        ds.unsupported(Span::new(f, 2, 5), "statement `FOR`");
+        ds.unsupported(Span::new(f, 2, 5), "statement `FOR`");
+        assert_eq!(ds.error_count(), 3);
+        assert_eq!(ds.unsupported_count(), 2);
+        assert_eq!(ds.summary(), "3 errors (2 not supported yet)");
+
+        let mut only = Diagnostics::new();
+        only.unsupported(Span::new(f, 2, 5), "statement `FOR`");
+        assert!(only.has_errors());
+        assert!(!only.has_real_errors());
+        assert_eq!(only.summary(), "1 error (1 not supported yet)");
     }
 
     #[test]

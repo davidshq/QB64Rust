@@ -63,3 +63,21 @@ test.
 3. CI (tier 3) needs a Windows runner with the new compiler's C++ toolchain; nightly (tier 4) also needs the QB64pe
    release for the legacy suites. Planned with the CI work, not now.
 4. The result cache waits until the full corpus run is slow enough to matter.
+
+## 6. Since `m2-upstream-tests` (2026-10-04)
+
+- **Tier 1** (`cargo test`, about 3 s in debug) now covers every BASIC file available, not only the corpus:
+  `crates\driver\tests\inputs.rs` runs the front end over the corpus, the copy of QB64pe's compile tests
+  (`tests\upstream`), the QB64Fresh snippets (`tests\snippets`) and, from the reference clone when present,
+  `qbasic_testcases` and the old compiler's sources (about 1,000 files, on all cores). Checks: no panic, exact
+  round trip, the copy equals the clone, and two shrink-only lists, `tests\known_false_errors.list` (programs
+  `qb64pe` accepts that get an error not marked "not supported yet") and
+  `tests\known_unsupported_rejections.list` (programs it rejects that get only marked errors). Comparing the
+  `.err` texts (§5 item 2) is not done: `.err` files mean "must reject", the new messages differ. A seeded mutation
+  test (`mutate.rs`, 5,500 mutants of the corpus programs, under a second) checks no panic and exact round trip on
+  broken input.
+- **Tier 2** gains the upstream suite: `run_legacy_tests.py --suite compile --qb64 target\release\qb64rust.exe
+  --list tests\upstream\pass.list` (10 programs on 2026-10-04; progress "x of 279", `tests\upstream\README.md`).
+- **CI**: the `tier2` job of `rust.yml` runs the slice list and the upstream pass list against the QB64pe Windows
+  release (no clone needed: `--compile-tests tests\upstream\compile_tests`). This is a first part of §5 item 3; the
+  full corpus in parallel (tier 3) is still to come.

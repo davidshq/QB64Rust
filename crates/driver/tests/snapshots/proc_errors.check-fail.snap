@@ -13,15 +13,15 @@ proc_errors.bas:12:1: error: `EXIT SUB` must be inside a SUB or FUNCTION
 proc_errors.bas:13:1: error: `EXIT FUNCTION` must be inside a SUB or FUNCTION
 proc_errors.bas:14:7: error: name already in use: `s`
 proc_errors.bas:15:7: error: name already in use: `f%`
-proc_errors.bas:16:1: error: calling the FUNCTION `f` as a statement is not supported yet
-proc_errors.bas:17:1: error: `nothere` is not a SUB, or not supported yet
-proc_errors.bas:18:1: error: `CLS` is not supported yet
-proc_errors.bas:19:1: error: `SHARED` in the main module is not supported yet
-proc_errors.bas:20:1: error: `STATIC` in the main module is not supported yet
+proc_errors.bas:16:1: error: not supported yet: calling the FUNCTION `f` as a statement
+proc_errors.bas:17:1: error: not supported yet: `nothere` as a statement (no SUB of this name)
+proc_errors.bas:18:1: error: not supported yet: `CLS`
+proc_errors.bas:19:1: error: not supported yet: `SHARED` in the main module
+proc_errors.bas:20:1: error: not supported yet: `STATIC` in the main module
 proc_errors.bas:21:1: error: name already in use: `y`
-proc_errors.bas:23:5: error: `DIM SHARED` inside a SUB or FUNCTION is not supported yet
-proc_errors.bas:24:12: error: a `STATIC` `w` beside the `DIM SHARED` one is not supported yet
+proc_errors.bas:23:5: error: not supported yet: `DIM SHARED` inside a SUB or FUNCTION
+proc_errors.bas:24:12: error: not supported yet: a `STATIC` `w` beside the `DIM SHARED` one
 proc_errors.bas:29:10: error: cannot store a string in a number variable
 proc_errors.bas:30:5: error: name already in use: `f!`
 proc_errors.bas:32:5: error: name already in use: `s`
-proc_errors.bas:36:5: error: a SUB name with a type suffix is not supported yet
+proc_errors.bas:36:5: error: not supported yet: a SUB name with a type suffix

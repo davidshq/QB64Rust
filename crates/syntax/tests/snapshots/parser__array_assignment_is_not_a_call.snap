@@ -1,6 +1,6 @@
 ---
 source: crates/syntax/tests/parser.rs
-assertion_line: 89
+assertion_line: 94
 expression: "tree(\"a(1) = 2\\nEXIT FOR\\nDECLARE LIBRARY\\n\")"
 ---
 SourceFile 0..34
@@ -25,6 +25,6 @@ SourceFile 0..34
     Whitespace  
     Ident LIBRARY
   Newline \x0A
-t.bas:1:1: error: arrays are not supported yet
-t.bas:2:1: error: `EXIT FOR` is not supported yet
-t.bas:3:1: error: `DECLARE LIBRARY` is not supported yet
+t.bas:1:1: error: not supported yet: arrays
+t.bas:2:1: error: not supported yet: `EXIT FOR`
+t.bas:3:1: error: not supported yet: `DECLARE LIBRARY`

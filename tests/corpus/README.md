@@ -125,8 +125,12 @@ cargo build --release
 python tools\legacy_tests\run_legacy_tests.py --suite corpus --qb64 target\release\qb64rust.exe --list tests\corpus\slice.list
 ```
 
-`cargo test` (tier 1) runs the front end over every corpus program and requires no diagnostics for the listed
-ones and at least one error for every program with an `.err` file. Add a program to the list when the compiler supports everything it uses.
+`cargo test` (tier 1, `crates\driver\tests\inputs.rs` since `m2-upstream-tests`, together with the upstream
+copy and the other input sets of `tests\upstream\README.md`) runs the front end over every corpus program and
+requires no panic, an exact round trip, no diagnostics for the listed ones, at least one error for every program
+with an `.err` file, and the two shrink-only lists `tests\known_false_errors.list` and
+`tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
+uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
 
 ### Full corpus with `qb64rust` (2026-10-04, not a pass criterion)
 

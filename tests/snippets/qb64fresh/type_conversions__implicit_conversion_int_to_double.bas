@@ -1,0 +1,3 @@
+DIM d AS DOUBLE
+d = 42
+PRINT d

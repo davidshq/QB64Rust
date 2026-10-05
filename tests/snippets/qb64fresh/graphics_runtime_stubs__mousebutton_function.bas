@@ -1,0 +1,2 @@
+DIM b AS LONG
+b = _MOUSEBUTTON(1)

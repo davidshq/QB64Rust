@@ -1,0 +1,4 @@
+
+Illegal string-number conversion
+Caused by (or after):PRINT TRIM$ ( S )
+LINE 5:PRINT TRIM$(s)

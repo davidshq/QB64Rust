@@ -1,0 +1,4 @@
+
+Name already in use (pos)
+Caused by (or after):DIM POS AS INTEGER
+LINE 1:DIM pos AS INTEGER

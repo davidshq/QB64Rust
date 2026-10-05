@@ -44,6 +44,55 @@ fn runners_compile_line() {
 }
 
 #[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn compile_suites_settings() {
+    let d = scratch("settings");
+    std::fs::write(d.join("prog.bas"), SLICE_PROGRAM).unwrap();
+    let exe = d.join("prog - output.exe"); // the suite's naming: spaces in the name
+    let o = qb64rust(
+        &d,
+        &[
+            "-f:OptimizeCppProgram=true",
+            "-f:StripDebugSymbols=false",
+            "-q",
+            "-m",
+            "-x",
+            "prog.bas",
+            "-o",
+            exe.to_str().unwrap(),
+        ],
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(exe.is_file());
+}
+
+#[test]
+fn unknown_setting() {
+    let d = scratch("setting");
+    std::fs::write(d.join("prog.bas"), SLICE_PROGRAM).unwrap();
+    std::fs::write(d.join("prog.exe"), b"stale").unwrap();
+    let o = qb64rust(
+        &d,
+        &[
+            "-f:GenerateLicenseFile=true",
+            "-q",
+            "-m",
+            "-x",
+            "prog.bas",
+            "-o",
+            "prog.exe",
+        ],
+    );
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    assert!(
+        out.contains("setting `GenerateLicenseFile` is not supported yet"),
+        "{out}"
+    );
+    assert!(!d.join("prog.exe").exists(), "no executable is left at the output path");
+}
+
+#[test]
 fn program_with_an_error() {
     let d = scratch("error");
     std::fs::write(d.join("prog.bas"), "$CONSOLE:ONLY\nPRINT 1 +\n").unwrap();
@@ -63,10 +112,22 @@ fn unknown_statement() {
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
     assert!(
-        stdout(&o).lines().any(|l| l.starts_with("p.bas:3:1: error:")),
+        stdout(&o)
+            .lines()
+            .any(|l| l.starts_with("p.bas:3:1: error: not supported yet:")),
         "{}",
         stdout(&o)
     );
+}
+
+#[test]
+fn summary() {
+    let d = scratch("summary");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nFOR i = 1 TO 2\nPRINT 1 +\nCLS\n").unwrap();
+    let o = qb64rust(&d, &["p.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    assert_eq!(out.lines().last(), Some("3 errors (2 not supported yet)"), "{out}");
 }
 
 #[test]

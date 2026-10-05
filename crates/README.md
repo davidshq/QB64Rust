@@ -47,8 +47,11 @@ target\release\qb64rust.exe --dump typed prog.bas          # tokens | tree | typ
 Building an executable uses the QB64pe reference clone for `qbx.cpp`, libqb and the toolchain: `--qb64pe-root
 <dir>`, else the environment variable `QB64RUST_QB64PE_ROOT`, else `..\QB64pe` next to this repository. The
 fragments, the copy of `qbx.cpp`, `qbx.o` and the `.sym` file go into `<exe>.qb64rust\` next to the executable
-(deleted after a successful build unless `--keep-build`); libqb objects are built into the clone's git-ignored
-folders if missing. No tracked file of the clone changes.
+(characters other than `A-Z a-z 0-9 . _ -` in that folder name become `_`, because `make` cannot take them; the
+executable is linked there and moved into place; the folder is deleted after a successful build unless
+`--keep-build`); libqb objects are built into the clone's git-ignored folders if missing. No tracked file of the
+clone changes. The QB64pe Windows release works as the root too (CI uses it). `-f:OptimizeCppProgram=true` builds
+with `-O2` as `qb64pe` does; `-f:StripDebugSymbols=...` is ignored; other `-f:` settings are "not supported yet".
 
 What the compiler supports so far:
 
@@ -69,9 +72,24 @@ Anything else gets a "not supported yet" error, never wrong code.
 
 | Tier (`study\19`) | Command | What |
 |---|---|---|
-| 1 | `cargo test` | Unit tests; lexer and parser snapshots; symbol-table snapshots; `tests\frontend\` by mode line; every corpus program through the front end (no panic, exact round trip); the programs of `tests\corpus\slice.list` without diagnostics; every corpus program with an `.err` file rejected; reserved names against the measured list (`names.rs`); the command line |
+| 1 | `cargo test` | Unit tests; lexer and parser snapshots; symbol-table snapshots; `tests\frontend\` by mode line; every input set through the front end (`inputs.rs`: corpus, `tests\upstream`, snippets, and from the clone `qbasic_testcases` and the old compiler's sources; no panic, exact round trip, the copy equals the clone, the two lists of `tests\upstream\README.md`); the programs of `tests\corpus\slice.list` without diagnostics; every program with an `.err` file rejected; reserved names against the measured list (`names.rs`); the seeded mutation test (`mutate.rs`); the command line |
 | 1, by hand | `cargo test -p qb64rust-driver --test cli -- --ignored` | The command-line scenarios that build an executable |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --qb64 target\release\qb64rust.exe --list tests\corpus\slice.list` | The listed corpus programs end to end against the output recorded from `qb64pe.exe` |
+| 2 | `python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\release\qb64rust.exe --list tests\upstream\pass.list` | The upstream programs of the pass list end to end (`tests\upstream\README.md`); also in CI (`rust.yml`, job `tier2`) |
+
+**"Not supported yet."** A diagnostic either reports an error in the program or is marked "not supported yet"
+(`Diagnostic::unsupported`, printed `error: not supported yet: <message>`; the summary says how many). `sema` and
+the parser mark every construct they do not handle; the parser also marks a generic syntax error ("expected ...")
+at a BASIC word or operator (`syntax_error`). The two lists in `tests\` hold the programs where this does not yet
+match the old compiler's verdict; after a change, regenerate them with `QB64RUST_UPDATE_LISTS=1 cargo test -p
+qb64rust-driver --test inputs` and review the diff (entries may only go away).
+
+**Mutation test.** `QB64RUST_MUTATE_SEED` and `QB64RUST_MUTATE_COUNT` (mutants per corpus program, default 20)
+change the run; a failure prints the seed to rerun with and writes the mutant to `target\mutate-failure.bas`.
+
+Time of tier 1, measured 2026-10-04 (debug build already built, 16 threads, clone present): `cargo test` takes
+about 3 s (1.4 s before `inputs.rs`; `inputs.rs` alone 1.4–2.9 s for about 1,000 files, run on all cores).
+The budget is a minute (design of `m2-upstream-tests`); past it, the clone sets would run in release only.
 
 `tests\frontend\*.bas` start with a mode line, `' TEST: <mode>`:
 

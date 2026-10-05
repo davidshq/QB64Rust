@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-04 (session 11). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-04 (session 12). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling done.**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests done (its CI job not yet seen on GitHub).**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -128,14 +128,46 @@ accessors (`ast.rs`) and keeps a symbol table for the language server.
 - Noted for `TYPE`: an unsupported `TYPE` block gives follow-on errors on its member lines and member assignments
   (3 corpus programs).
 
+## M2: upstream tests (2026-10-04, session 12)
+
+OpenSpec change `m2-upstream-tests`: archived 2026-10-04 to
+`openspec\changes\archive\2026-10-04-m2-upstream-tests\` with 16 of 17 tasks done, its specs now the main specs
+(new: `openspec\specs\testing\upstream-tests`; updated: `compiler\cli`, `compiler\pipeline`,
+`testing\compiler-tests`). Open: task 6.5, the CI job `tier2` in `rust.yml` showing green on GitHub; its two steps
+pass locally against the downloaded release. Check it after the next push and tick 6.5 in the archived
+`tasks.md`.
+
+- `tests\upstream\`: QB64pe's compile tests copied (404 `.bas`, 836 text files, 2.5 MB, `SOURCE.md`); tier 1
+  (`inputs.rs`) runs the front end over about 1,000 files: corpus, upstream, 406 QB64Fresh snippets labelled by
+  `qb64pe.exe` (`tests\snippets\`), and from the clone `qbasic_testcases` and the old compiler's sources. No panic,
+  exact round trip everywhere. `cargo test` takes about 3 s in debug.
+- Diagnostics carry a "not supported yet" marker (`error: not supported yet: ...`, summary `N errors (M not
+  supported yet)`). Baseline for parser breadth: **181 programs accepted by `qb64pe` still get a real error**
+  (`tests\known_false_errors.list`), **82 rejected programs get only marked errors**
+  (`tests\known_unsupported_rejections.list`); breakdown in `tests\upstream\README.md`.
+- Seeded mutation test (`mutate.rs`): 5,500 mutants in under a second; 220,000 more with other seeds found nothing.
+- **Upstream progress: 10 of 279** (`tests\upstream\pass.list`, `deferred.list` with the 125). `qb64rust` accepts
+  the suite's `-f:` settings; the runner's `--list` and the new `--compile-tests` work for `--suite compile`.
+- `Ty`, `BinOp`, `ConvKind` are defined once, in `sema`.
+- Bugs found and fixed on the way: `#line` wrote `\` in a path as `\134`, which clang rejects (any absolute
+  Windows path failed to build); build folders with spaces, `$` or `'` in the name broke `make` (every
+  compile-suite program, `<test> - output.exe`); the runner's stale-file cleanup failed on kept build folders.
+- **Found, not fixed: wrong code.** Comment metacommands (`'$INCLUDE: 'x.bm'`, `REM $INCLUDE`) are ignored as
+  comments, so 4 upstream programs build and print the wrong output (`include_once`, `include_paths`). This breaks
+  "never wrong code"; first item of step 2 below: mark them "not supported yet" until `$INCLUDE` is implemented.
+- **Open question:** the runner compares an `.err` program's compiler output with the old text, so the 56 upstream
+  `.err` programs (counted in the 279) cannot pass tier 2 with the new messages. Either the runner treats `.err`
+  as "must fail, no executable" for compilers other than `qb64pe` (the meaning tier 1 already uses), or they leave
+  the denominator.
+- Your index: files staged before `.gitattributes` gained the `-text` lines were stored with LF (7 upstream `.bas`
+  show `AM`); staging them again stores the bytes as upstream has them.
+
 **Next** (order accepted 2026-10-04 after the second review, `study\22` §5, reasons there; it replaces the order
 of `study\20` §4):
 
-1. OpenSpec change `m2-upstream-tests` (proposed): upstream test files copied into `tests\upstream\`; tier 1 over
-   upstream, `qbasic_testcases` and the old compiler's sources; the "not supported yet" marker; ratchet lists;
-   upstream progress reported as x of 279 (125 programs need deferred array features); the QB64Fresh snippets as
-   labelled inputs; shared `Ty`/`BinOp`/`Conv`; a seeded mutation test.
-2. Parser breadth, the whole language: blocks, control flow, labels, line numbers, `DATA`, comment metacommands,
+1. OpenSpec change `m2-upstream-tests`: done and archived; its CI job still to be seen green after a push (above).
+2. Parser breadth, the whole language (first: comment metacommands marked "not supported yet", the wrong-code
+   finding above; measured by the two lists): blocks, control flow, labels, line numbers, `DATA`, comment metacommands,
    `$IF`/`$INCLUDE`, the `specialformat` statements; `sema` keyed by (`FileId`, offset). Panic hook at the start.
 3. A thin language server (diagnostics, go to definition) in the extension.
 4. Bug-compatibility decisions (`study\00` §6), then the differential tester, `Ty` as a type table, unsigned types.

@@ -9,7 +9,7 @@ pub(crate) fn print_stmt(p: &mut Parser) {
     p.start_node(PrintStmt);
     p.bump(); // PRINT or ?
     if p.at(Hash) {
-        p.error("`PRINT #` is not supported yet");
+        p.unsupported("`PRINT #`");
     }
     while !p.stmt_error && !p.at_stmt_end() {
         if p.at(Semicolon) || p.at(Comma) {
@@ -17,7 +17,7 @@ pub(crate) fn print_stmt(p: &mut Parser) {
             continue;
         }
         if p.at_word("USING") {
-            p.error("`PRINT USING` is not supported yet");
+            p.unsupported("`PRINT USING`");
             break;
         }
         if !expr(p) {
@@ -25,7 +25,7 @@ pub(crate) fn print_stmt(p: &mut Parser) {
         }
         let after_string = p.last_kind == Some(StringLit);
         if !(p.at_stmt_end() || p.at(Semicolon) || p.at(Comma) || after_string || p.at(StringLit)) {
-            p.error("expected `;` or `,` between PRINT items");
+            p.syntax_error("expected `;` or `,` between PRINT items");
         }
     }
     p.recover();

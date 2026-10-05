@@ -113,7 +113,7 @@ questions: `STATUS.md`.
 | `study\16-freebasic.md` | What to learn from FreeBASIC (module split, runtime-call tables, `-fwrapv`, lowering notes, test conventions), what not to take, and the panel review |
 | `study\17-vscode-extension-testing.md` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do) and how M1 compares |
 | `vscode\` | M1 VS Code extension (`qb64rust`): sources, tests, fixtures, `README.md`, `DEVELOPMENT.md` |
-| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release; `rust.yml` runs fmt, clippy and `cargo test` (tier 1) on Windows; `repo-check.yml` runs `tools\repo_check` on every push |
+| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release; `rust.yml` runs fmt, clippy and `cargo test` (tier 1) on Windows, and tier 2 (slice list, upstream pass list) against the QB64pe release; `repo-check.yml` runs `tools\repo_check` on every push |
 | `study\18-vscode-extension-practices.md` | Other extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
 | `study\19-test-cadence.md` | How often each test layer runs (four tiers), what a full run costs, and how the new compiler's runs are kept fast |
 | `study\20-review-and-order.md` | Review of code and plan after the first slice (2026-10-04), the panel's outcome, and the accepted order of work |
@@ -129,7 +129,12 @@ questions: `STATUS.md`.
 | `tests\corpus\` | Golden corpus: 275 programs with the old compiler's recorded output or compile error (`README.md`), including the `slice\` group; checked by `run_legacy_tests.py --suite corpus`; `slice.list` names the 54 the new compiler must pass |
 | `Cargo.toml`, `crates\` | The new compiler `qb64rust` (Rust workspace, one crate per stage; `crates\README.md`: crate map, build, tests, snapshots) |
 | `tests\frontend\` | Front-end tests of the new compiler, run by mode line (`' TEST: <mode>`; modes `parse-ok`, `check-ok`, `check-fail`, `typed`, `ir`, `cpp`) |
+| `tests\upstream\` | Copy of the text files of QB64pe's `tests\compile_tests` (MIT, `SOURCE.md`, never edited by hand); `pass.list` (upstream programs the new compiler passes) and `deferred.list` (the 125 that need deferred array features); progress "x of 279" (`README.md`) |
+| `tests\snippets\` | QB64Fresh's inline test snippets as inputs, labelled by `qb64pe.exe` (`.err` when it rejects one; `SOURCE.md`) |
+| `tests\known_false_errors.list`, `tests\known_unsupported_rejections.list` | Shrink-only lists of tier 1: programs the old compiler accepts that get a real error, and programs it rejects that get only "not supported yet" errors (`tests\upstream\README.md`) |
+| `tools\upstream\` | `copy_upstream_tests.py`: redoes the copy in `tests\upstream\` from the clone at the pinned commit |
+| `tools\snippets\` | `extract_qb64fresh_snippets.py`: extracts and labels the snippets in `tests\snippets\` |
 | `DIVERGENCES.md` | Divergence register: decided differences from the old compiler's observed behaviour |
 | `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler) and its `known_failures.txt` |
-| `tools\repo_check\` | `check_repo.py`: tracked files must hold no local paths, temp folders or network shares (rule 2) and no stray control bytes (rule 7) |
+| `tools\repo_check\` | `check_repo.py`: tracked files must hold no local paths, temp folders or network shares (rule 2) and no stray control bytes (rule 7); `--untracked` also checks new files before they are staged |
 | `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure; format tests 24 of 24) |

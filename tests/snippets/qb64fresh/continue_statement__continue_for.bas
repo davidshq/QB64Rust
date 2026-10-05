@@ -1,0 +1,3 @@
+FOR i = 1 TO 10
+    _CONTINUE FOR
+NEXT i

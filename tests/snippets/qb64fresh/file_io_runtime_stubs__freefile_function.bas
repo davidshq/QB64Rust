@@ -1,0 +1,2 @@
+DIM f AS LONG
+f = FREEFILE

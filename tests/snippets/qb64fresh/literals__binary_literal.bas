@@ -1,0 +1,3 @@
+DIM x AS LONG
+x = &B1010
+PRINT x

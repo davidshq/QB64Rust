@@ -1,0 +1,128 @@
+# Upstream programs that need a feature deferred to SOMEDAY.md (spec testing/upstream-tests, "Upstream progress"),
+# with the features each one uses. Found by pattern ($UNSTABLE:TYPEFIELDS, REDIM _RETAIN, _ARRAYCOPY, NAME() = ...)
+# and checked by eye, 2026-10-04 (task 6.3 of m2-upstream-tests). Progress is reported over the other programs.
+arrays/07_nested_udt  # whole-array assignment
+arrays/37_redim_retain_packed_bit_2d  # REDIM _RETAIN
+arrays/90_type_codegen_inline_varstrings  # whole-array assignment
+arrays/91_type_codegen_nested_inline_owner  # whole-array assignment
+arrays/92_type_codegen_dynamic_varstrings  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN, whole-array assignment
+arrays/93_type_codegen_dynamic_owner_udt  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN, whole-array assignment
+arrays/94_type_codegen_inline_descriptor_udt  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/array_elements_change  # REDIM _RETAIN
+arrays/ArrayCopyTest  # _ARRAYCOPY
+arrays/ArrayCopyTest_1  # $UNSTABLE:TYPEFIELDS, _ARRAYCOPY
+arrays/ArrayCopyTest_2  # $UNSTABLE:TYPEFIELDS, _ARRAYCOPY
+arrays/ArrayCopyTest_3  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN, _ARRAYCOPY
+arrays/put_get_write_read_UDT_fixed_string  # $UNSTABLE:TYPEFIELDS
+arrays/Retain_Preserve  # REDIM _RETAIN
+arrays/retain_test  # REDIM _RETAIN
+arrays/t001_whole_array_core  # whole-array assignment
+arrays/t002_whole_array_udt_ownership  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/t003_whole_array_member_assign  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN, whole-array assignment
+arrays/t024_whole_target_bare_source  # whole-array assignment
+arrays/t026_whole_target_indexed_source  # whole-array assignment
+arrays/t028_member_target_no_index  # $UNSTABLE:TYPEFIELDS
+arrays/t029_member_source_no_index  # $UNSTABLE:TYPEFIELDS
+arrays/t030_member_indexed_target_bare_source  # $UNSTABLE:TYPEFIELDS
+arrays/t031_member_bare_target_indexed_source  # $UNSTABLE:TYPEFIELDS
+arrays/t032_both_members_bare  # $UNSTABLE:TYPEFIELDS
+arrays/t033_member_whole_target_bare_source  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/t034_member_bare_target_whole_source  # $UNSTABLE:TYPEFIELDS
+arrays/t035_member_whole_target_indexed_source  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/t036_member_indexed_target_whole_source  # $UNSTABLE:TYPEFIELDS
+arrays/t038_whole_target_scalar_source  # whole-array assignment
+arrays/t039_scalar_member_target_whole_member_source  # $UNSTABLE:TYPEFIELDS
+arrays/t040_whole_member_target_scalar_member_source  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/t041_whole_array_equals_scalar  # whole-array assignment
+arrays/t042_scalar_member_equals_whole_member  # $UNSTABLE:TYPEFIELDS
+arrays/t043_whole_member_equals_scalar_member  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/t044_both_members_bare  # $UNSTABLE:TYPEFIELDS
+arrays/t200_dynfield_numeric_per_parent  # $UNSTABLE:TYPEFIELDS
+arrays/t201_dynfield_2d_retain  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t202_dynfield_parent_retain  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t203_dynfield_array_assign_deepcopy  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/t204_dynfield_erase_reuse  # $UNSTABLE:TYPEFIELDS
+arrays/t205_dynfield_string_retain  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t206_dynfield_nested_udt_owner  # $UNSTABLE:TYPEFIELDS
+arrays/t207_dynfield_nested_udt_deepcopy  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/t208_dynfield_option_base_1  # $UNSTABLE:TYPEFIELDS
+arrays/t209_dynfield_mixed_legacy_inline  # $UNSTABLE:TYPEFIELDS
+arrays/t210_dynfield_static_fixed_string_mix  # $UNSTABLE:TYPEFIELDS
+arrays/t210_negative_bounds_1d  # $UNSTABLE:TYPEFIELDS
+arrays/t211_positive_nonzero_bounds_1d  # $UNSTABLE:TYPEFIELDS
+arrays/t212_single_element_explicit_bound  # $UNSTABLE:TYPEFIELDS
+arrays/t213_parent_nonzero_bounds  # $UNSTABLE:TYPEFIELDS
+arrays/t214_parent_negative_bounds  # $UNSTABLE:TYPEFIELDS
+arrays/t215_two_dim_mixed_bounds  # $UNSTABLE:TYPEFIELDS
+arrays/t216_three_dim_small_cube  # $UNSTABLE:TYPEFIELDS
+arrays/t217_multi_members_independent  # $UNSTABLE:TYPEFIELDS
+arrays/t218_scalar_members_around_dynfields  # $UNSTABLE:TYPEFIELDS
+arrays/t219_fixed_string_scalar_around_dynfield  # $UNSTABLE:TYPEFIELDS
+arrays/t220_2  # $UNSTABLE:TYPEFIELDS
+arrays/t220_varstring_scalar_around_dynfield  # $UNSTABLE:TYPEFIELDS
+arrays/t221_signed_byte_dynamic  # $UNSTABLE:TYPEFIELDS
+arrays/t222_unsigned_byte_dynamic  # $UNSTABLE:TYPEFIELDS
+arrays/t223_integer_dynamic  # $UNSTABLE:TYPEFIELDS
+arrays/t224_unsigned_integer_dynamic  # $UNSTABLE:TYPEFIELDS
+arrays/t225_long_dynamic_arithmetic  # $UNSTABLE:TYPEFIELDS
+arrays/t226_unsigned_long_dynamic  # $UNSTABLE:TYPEFIELDS
+arrays/t227_integer64_dynamic  # $UNSTABLE:TYPEFIELDS
+arrays/t228_unsigned_integer64_dynamic  # $UNSTABLE:TYPEFIELDS
+arrays/t229_single_dynamic_tolerance  # $UNSTABLE:TYPEFIELDS
+arrays/t230_double_dynamic_tolerance  # $UNSTABLE:TYPEFIELDS
+arrays/t231_fixed_len_string_dynamic_field  # $UNSTABLE:TYPEFIELDS
+arrays/t232_static_fixed_len_string_array  # $UNSTABLE:TYPEFIELDS
+arrays/t232_staticfield_fixed_len_string_array  # $UNSTABLE:TYPEFIELDS
+arrays/t233_unmarked_inline_numeric_array_redim_parent  # $UNSTABLE:TYPEFIELDS
+arrays/t234_unmarked_inline_varstring_array_redim_parent  # $UNSTABLE:TYPEFIELDS
+arrays/t235_member_redim_expand_no_retain  # $UNSTABLE:TYPEFIELDS
+arrays/t236_member_redim_retain_expand  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t237_member_redim_retain_shrink  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t238_member_redim_preserve_expand  # $UNSTABLE:TYPEFIELDS
+arrays/t239_ordinary_member_redim_clears  # $UNSTABLE:TYPEFIELDS
+arrays/t240_erase_member_then_redim  # $UNSTABLE:TYPEFIELDS
+arrays/t241_swap_parent_elements  # $UNSTABLE:TYPEFIELDS
+arrays/t242_swap_indexed_member_values  # $UNSTABLE:TYPEFIELDS
+arrays/t243_computed_index_access  # $UNSTABLE:TYPEFIELDS
+arrays/t244_nested_fixed_udt_dynamic_field  # $UNSTABLE:TYPEFIELDS
+arrays/t245_nested_fixed_udt_2d_dynamic_field  # $UNSTABLE:TYPEFIELDS
+arrays/t246_nested_owner_scalar_gap  # $UNSTABLE:TYPEFIELDS
+arrays/t247_parent_redim_ordinary_resets  # $UNSTABLE:TYPEFIELDS
+arrays/t248_parent_redim_retain_expands  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t249_fixed_len_string_2d_dynamic_field  # $UNSTABLE:TYPEFIELDS
+arrays/t260_preserve_1d_member_expand_nonzero_parent  # $UNSTABLE:TYPEFIELDS
+arrays/t261_preserve_1d_member_shrink_fixed_string  # $UNSTABLE:TYPEFIELDS
+arrays/t262_retain_member_multi_resize_numeric  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t263_retain_parent_multi_resize_with_member  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t264_erase_member_then_rebuild_bounds  # $UNSTABLE:TYPEFIELDS
+arrays/t265_swap_parent_elements_different_member_bounds  # $UNSTABLE:TYPEFIELDS
+arrays/t266_putget_fixed_dynamic_fields  # $UNSTABLE:TYPEFIELDS
+arrays/t267_putget_fixed_scalar_string_nonzero_bounds  # $UNSTABLE:TYPEFIELDS
+arrays/t268_negative_put_scalar_varstring  # $UNSTABLE:TYPEFIELDS
+arrays/t269_negative_get_dynamic_varstring_field  # $UNSTABLE:TYPEFIELDS
+arrays/t270_dynamic_static_same_type_bounds  # $UNSTABLE:TYPEFIELDS
+arrays/t271_dynamic_static_parent_retain  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t272_dynamic_static_array_assign_deepcopy  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/t273_dynamic_static_option_base_1  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t274_nested_dynamic_static_owner  # $UNSTABLE:TYPEFIELDS
+arrays/t275_static_dynamic_member_erase_rebuild_heavy  # $UNSTABLE:TYPEFIELDS
+arrays/t276_static_dynamic_dim_parent_member_redim  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t277_static_dynamic_parent_redim_reset_retain  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t278_nested_static_dynamic_copy_erase_rebuild  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/t279_static_dynamic_2d_retain_parent_resize  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t280_static_dynamic_swap_erase_parent_reuse  # $UNSTABLE:TYPEFIELDS
+arrays/t281_static_dynamic_option_base1_heavy  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t_qb64pe_refactor_inline_reset_owner_udt  # $UNSTABLE:TYPEFIELDS
+arrays/t_qb64pe_refactor_inline_reset_strings  # $UNSTABLE:TYPEFIELDS
+arrays/t_qb64pe_refactor_raw_redim_descriptor  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t_qb64pe_refactor_raw_redim_preserve  # REDIM _RETAIN
+arrays/t_qb64pe_refactor_retain_coordinate_payloads  # REDIM _RETAIN
+arrays/t_qb64pe_refactor_retain_descriptor_udt  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/t_qb64pe_refactor_retain_nested_owner_array  # REDIM _RETAIN
+arrays/type_dynamic_string_member_array_param  # $UNSTABLE:TYPEFIELDS
+arrays/type_dynamic_string_slot_32bit  # $UNSTABLE:TYPEFIELDS
+arrays/type_inline_nested_descriptor_preserve  # $UNSTABLE:TYPEFIELDS
+arrays/type_inline_nested_descriptor_retain  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
+arrays/type_member_arrays_as_parameters  # $UNSTABLE:TYPEFIELDS
+arrays/type_nested_descriptor_payload_clone  # $UNSTABLE:TYPEFIELDS
+arrays/type_owner_self_assignment  # $UNSTABLE:TYPEFIELDS

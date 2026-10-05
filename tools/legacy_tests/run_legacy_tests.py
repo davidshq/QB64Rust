@@ -36,7 +36,8 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     non-deterministic and nothing is written
   * --cpp-opt adds -f:OptimizeCppProgram=true and compares against the same files
   * --list <file> runs only the programs named in the file: one <group>/<name> per line
-    (no .bas), '#' starts a comment
+    (no .bas), '#' starts a comment; also for --suite compile, with <category>/<name>
+    (e.g. tests/upstream/pass.list)
 Differences from the bash runners (all deliberate):
   * .err and .license comparisons ignore CR characters (line-ending normalisation)
   * .output comparison treats CRLF as LF (bare CR still significant); the bash
@@ -161,8 +162,12 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
 
     clear_temp(qb_root)
     # glob.escape: test and category names may contain glob characters (e.g. "parens()", "[").
+    # A folder is a build folder qb64rust kept after a failed build.
     for stale in results.glob(glob.escape(f"{category}-{name} - output.exe") + "*"):
-        stale.unlink(missing_ok=True)
+        if stale.is_dir():
+            shutil.rmtree(stale, ignore_errors=True)
+        else:
+            stale.unlink(missing_ok=True)
 
     flags: list[str] = []
     flags_file = tdir / f"{name}.flags"
@@ -179,7 +184,8 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
 
     base = ["-f:OptimizeCppProgram=true", "-f:StripDebugSymbols=false", *flags, "-q", "-m", "-x"]
     if (tdir / f"{name}.compile-from-base").is_file():
-        cmd = [str(args.qb64), *base, str(bas.relative_to(qb_root)), "-o", str(exe)]
+        # relpath, not relative_to: with --compile-tests the program is outside qb_root.
+        cmd = [str(args.qb64), *base, os.path.relpath(bas, qb_root), "-o", str(exe)]
         cwd = qb_root
     else:
         cmd = [str(args.qb64), *base, f"{name}.bas", "-o", str(exe)]
@@ -457,16 +463,17 @@ def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path
     return passed()
 
 
-def load_list(path: Path, corpus_root: Path) -> set[Path]:
-    # Lines: <group>/<name> (no .bas); '#' starts a comment. Every named program must exist.
+def load_list(path: Path, root: Path) -> set[Path]:
+    # Lines: <group>/<name> (no .bas) relative to root (the corpus, or the compile suite's tests/compile_tests);
+    # '#' starts a comment. Every named program must exist.
     wanted: set[Path] = set()
     for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         line = line.split("#", 1)[0].strip()
         if not line:
             continue
-        bas = (corpus_root / f"{line}.bas").resolve()
+        bas = (root / f"{line}.bas").resolve()
         if not bas.is_file():
-            raise ValueError(f"{path.name} line {n}: no corpus program {line}.bas")
+            raise ValueError(f"{path.name} line {n}: no program {line}.bas in {root.name}")
         wanted.add(bas)
     return wanted
 
@@ -516,14 +523,20 @@ def main() -> int:
                     help="corpus: write .output/.err from this compiler instead of comparing")
     ap.add_argument("--cpp-opt", action="store_true",
                     help="corpus: build with -f:OptimizeCppProgram=true (the -O2 report)")
+    ap.add_argument("--compile-tests", type=Path,
+                    help="compile suite's test folder (default: <qb-root>/tests/compile_tests; CI passes the copy "
+                         "tests/upstream/compile_tests, which has no binary assets)")
     ap.add_argument("--list", type=Path,
-                    help="corpus: run only the programs named in this file (<group>/<name> per line)")
+                    help="corpus and compile: run only the programs named in this file (<group>/<name> per line)")
     args = ap.parse_args()
     if args.category and args.suite in ("qbasic", "all"):
         print("--category applies to the compile, format and corpus suites only", file=sys.stderr)
         return 2
-    if (args.record or args.cpp_opt or args.list) and args.suite != "corpus":
-        print("--record, --cpp-opt and --list apply to --suite corpus only", file=sys.stderr)
+    if (args.record or args.cpp_opt) and args.suite != "corpus":
+        print("--record and --cpp-opt apply to --suite corpus only", file=sys.stderr)
+        return 2
+    if args.list and args.suite not in ("corpus", "compile"):
+        print("--list applies to --suite corpus and --suite compile only", file=sys.stderr)
         return 2
     if args.record and args.cpp_opt:
         print("--record uses the default build; it cannot be combined with --cpp-opt", file=sys.stderr)
@@ -536,6 +549,7 @@ def main() -> int:
         print(f"compiler not found: {args.qb64}", file=sys.stderr)
         return 2
 
+    compile_root = (args.compile_tests or qb_root / "tests" / "compile_tests").resolve()
     all_results: list[Result] = []
     known_passed: list[str] = []
     corpus_root = args.corpus_root.resolve()
@@ -557,13 +571,23 @@ def main() -> int:
                     return 2
                 tests = [p for p in tests if p in wanted]
         elif suite in ("compile", "format"):
-            root = qb_root / "tests" / ("compile_tests" if suite == "compile" else "format_tests")
+            if suite == "compile":
+                root = compile_root
+            else:
+                root = qb_root / "tests" / "format_tests"
             if args.category:
                 root = root / args.category
             if not root.is_dir():
                 print(f"no such test folder: {root}", file=sys.stderr)
                 return 2
             tests = sorted(p for p in root.rglob("*.bas") if fnmatch.fnmatch(p.name, args.glob))
+            if args.list and suite == "compile":
+                try:
+                    wanted = load_list(args.list, compile_root)
+                except (ValueError, OSError) as e:
+                    print(e, file=sys.stderr)
+                    return 2
+                tests = [p for p in tests if p.resolve() in wanted]
         else:
             tests = qbasic_sources(qb_root)
         if not tests:
@@ -583,6 +607,10 @@ def main() -> int:
                 if suite == "corpus":
                     rs = [Result("corpus", bas.relative_to(corpus_root).with_suffix("").as_posix(), "?",
                                  "FAIL", "runner", f"{type(e).__name__}: {e}")]
+                elif suite == "compile":
+                    # Named like compile_test's results: <category>/<name>.
+                    rs = [Result("compile_tests", f"{bas.parent.name}/{bas.stem}", "?", "FAIL", "runner",
+                                 f"{type(e).__name__}: {e}")]
                 else:
                     rs = [Result(f"{suite}_tests" if suite != "qbasic" else "qbasic_testcases",
                                  bas.relative_to(qb_root / "tests").as_posix(), "?", "FAIL", "runner",

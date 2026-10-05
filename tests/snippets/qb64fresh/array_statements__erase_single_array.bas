@@ -1,0 +1,2 @@
+DIM arr(10) AS INTEGER
+ERASE arr

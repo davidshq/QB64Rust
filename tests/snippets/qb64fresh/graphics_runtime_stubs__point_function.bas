@@ -1,0 +1,2 @@
+DIM c AS LONG
+c = POINT(100, 100)

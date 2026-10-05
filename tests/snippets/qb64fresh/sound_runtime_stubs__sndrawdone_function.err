@@ -1,0 +1,4 @@
+
+Invalid variable name
+Caused by (or after):IF _SNDRAWDONE THEN
+LINE 1:IF _SNDRAWDONE THEN PRINT "Buffer empty"

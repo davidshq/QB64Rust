@@ -155,8 +155,15 @@ fn error_handling_statement_errors() {
 fn unsupported_statement_message() {
     let p = parse(FileId(0), b"PRINT 1\n\nFOR i = 1 TO 2\n");
     let d = &p.diagnostics.list()[0];
-    assert_eq!(d.message, "`FOR` is not supported yet");
+    assert_eq!(d.message, "statement `FOR`");
+    assert!(d.unsupported);
     assert_eq!(d.span.start, 9);
+}
+
+/// Errors at a BASIC word or operator the parser does not handle there are marked; a genuine syntax error is not.
+#[test]
+fn marked_parse_errors() {
+    insta::assert_snapshot!(tree("x = a MOD b\nIF a < b THEN\nPRINT #1, x\nx = 5 TO 6\nx = 5 6\n"));
 }
 
 #[test]

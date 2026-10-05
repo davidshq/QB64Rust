@@ -1,0 +1,5 @@
+DIM h AS LONG
+h = 1
+IF _SNDPLAYING(h) THEN
+    _SNDSTOP h
+END IF

@@ -144,8 +144,7 @@ pub fn check_with(root: Node, file: &SourceFile, parse_diags: &Diagnostics, fold
     }
     if !c.console_only {
         let at = Span::new(root.file, 0, 0);
-        c.diags
-            .error(at, "programs without `$CONSOLE:ONLY` are not supported yet");
+        c.diags.unsupported(at, "programs without `$CONSOLE:ONLY`");
     }
     (c.prog, c.diags)
 }
@@ -221,6 +220,15 @@ impl Checker<'_> {
         if !self.stmt_error {
             self.stmt_error = true;
             self.diags.error(span, msg);
+        }
+        Failed
+    }
+
+    /// Like [`Self::error`], for a construct not handled yet: marked "not supported yet", `msg` names it.
+    fn unsupported(&mut self, span: Span, msg: impl Into<String>) -> Failed {
+        if !self.stmt_error {
+            self.stmt_error = true;
+            self.diags.unsupported(span, msg);
         }
         Failed
     }
@@ -328,7 +336,7 @@ impl Checker<'_> {
             Ok(())
         } else {
             let shown = show_bytes(raw.split(|&b| b == b':' || b == b' ').next().unwrap_or(raw));
-            Err(self.error(tok.span, format!("metacommand `{shown}` is not supported yet")))
+            Err(self.unsupported(tok.span, format!("metacommand `{shown}`")))
         }
     }
 
@@ -343,7 +351,7 @@ impl Checker<'_> {
         let kind = if self.word(keyword) == "FUNCTION" {
             ProcKind::Function(suffix.unwrap_or(Ty::F32))
         } else if suffix.is_some() {
-            return Err(self.error(name_tok.span, "a SUB name with a type suffix is not supported yet"));
+            return Err(self.unsupported(name_tok.span, "a SUB name with a type suffix"));
         } else {
             ProcKind::Sub
         };
@@ -470,8 +478,8 @@ impl Checker<'_> {
             b"##" => Some(Ty::F80),
             b"$" => Some(Ty::Str),
             other => {
-                let msg = format!("the type suffix `{}` is not supported yet", show_bytes(other));
-                return Err(self.error(t.span, msg));
+                let msg = format!("the type suffix `{}`", show_bytes(other));
+                return Err(self.unsupported(t.span, msg));
             }
         };
         Ok((name, ty))
@@ -514,8 +522,8 @@ impl Checker<'_> {
             "_FLOAT" => Ty::F80,
             "STRING" => Ty::Str,
             other => {
-                let msg = format!("the type `{other}` is not supported yet");
-                return Err(self.error(a.node().span(), msg));
+                let msg = format!("the type `{other}`");
+                return Err(self.unsupported(a.node().span(), msg));
             }
         })
     }
@@ -634,10 +642,10 @@ impl Checker<'_> {
                     || (suffix.is_none() && self.dim_shared_plain.contains_key(&name)));
             if shadows_shared && matches!(storage, Storage::Static(_)) {
                 let msg = format!(
-                    "a `STATIC` `{}` beside the `DIM SHARED` one is not supported yet",
+                    "a `STATIC` `{}` beside the `DIM SHARED` one",
                     show_bytes(self.text(name_tok.span))
                 );
-                return Err(self.error(name_tok.span, msg));
+                return Err(self.unsupported(name_tok.span, msg));
             }
             self.reserved(name_tok, &name, suffix)?;
             let id = self.new_var(name.clone(), ty, storage);
@@ -667,7 +675,7 @@ impl Checker<'_> {
             (None, _) => Storage::Main,
             (Some(_), true) => {
                 let span = stmt.node().span();
-                return Err(self.error(span, "`DIM SHARED` inside a SUB or FUNCTION is not supported yet"));
+                return Err(self.unsupported(span, "`DIM SHARED` inside a SUB or FUNCTION"));
             }
             (Some(p), false) => Storage::Local(p),
         };
@@ -677,7 +685,7 @@ impl Checker<'_> {
     fn static_stmt(&mut self, stmt: ast::StaticStmt) -> R<()> {
         let Some(p) = self.cur else {
             let span = stmt.node().span();
-            return Err(self.error(span, "`STATIC` in the main module is not supported yet"));
+            return Err(self.unsupported(span, "`STATIC` in the main module"));
         };
         self.declare_items(stmt.items(), Storage::Static(p), false)
     }
@@ -689,7 +697,7 @@ impl Checker<'_> {
     fn shared(&mut self, stmt: ast::SharedStmt) -> R<()> {
         if self.cur.is_none() {
             let span = stmt.node().span();
-            return Err(self.error(span, "`SHARED` in the main module is not supported yet"));
+            return Err(self.unsupported(span, "`SHARED` in the main module"));
         }
         for item in stmt.items() {
             let name_tok = self.need(item.name(), item.node().span())?;
@@ -713,10 +721,10 @@ impl Checker<'_> {
             }
             if as_clause.is_some() && self.main.plain.get(&name).is_some_and(|&t| t != ty) {
                 let msg = format!(
-                    "`SHARED {}` with another type than the main module's is not supported yet",
+                    "`SHARED {}` with another type than the main module's",
                     show_bytes(self.text(name_tok.span))
                 );
-                return Err(self.error(name_tok.span, msg));
+                return Err(self.unsupported(name_tok.span, msg));
             }
             let id = match self.main.vars.get(&key) {
                 Some(&id) => id,
@@ -747,14 +755,11 @@ impl Checker<'_> {
         let name = self.word(t);
         let shown = show_bytes(self.text(t.span));
         if find_any(name.as_bytes()).next().is_some() {
-            return Err(self.error(
-                t.span,
-                format!("`{shown}:` is not supported yet (`{shown}` is a built-in)"),
-            ));
+            return Err(self.unsupported(t.span, format!("the label `{shown}:` (`{shown}` is a built-in)")));
         }
         if self.procs_by_name.contains_key(&name) {
-            let msg = format!("a label with the name of a SUB or FUNCTION is not supported yet: `{shown}`");
-            return Err(self.error(t.span, msg));
+            let msg = format!("a label with the name of a SUB or FUNCTION: `{shown}`");
+            return Err(self.unsupported(t.span, msg));
         }
         if self.labels_by_name.contains_key(&name) {
             return Err(self.error(t.span, format!("duplicate label: `{shown}`")));
@@ -776,7 +781,7 @@ impl Checker<'_> {
     fn label_stmt(&mut self, l: ast::LabelDef) -> R<()> {
         if self.cur.is_some() {
             let span = l.node().span();
-            return Err(self.error(span, "labels inside a SUB or FUNCTION are not supported yet"));
+            return Err(self.unsupported(span, "labels inside a SUB or FUNCTION"));
         }
         if let Some(&id) = self.label_of_def.get(&l.node().offset) {
             self.prog.labels[id.0 as usize].at = self.prog.stmts.len();
@@ -803,7 +808,7 @@ impl Checker<'_> {
         if self.text(t.span) == b"0" {
             Ok(())
         } else {
-            Err(self.error(t.span, "line numbers are not supported yet"))
+            Err(self.unsupported(t.span, "line numbers"))
         }
     }
 
@@ -837,7 +842,7 @@ impl Checker<'_> {
                 );
                 return Err(self.error(t.span, msg));
             }
-            return Err(self.error(node.span(), "`RESUME` inside a SUB or FUNCTION is not supported yet"));
+            return Err(self.unsupported(node.span(), "`RESUME` inside a SUB or FUNCTION"));
         }
         let resume = match target {
             None => Resume::Retry,
@@ -926,15 +931,15 @@ impl Checker<'_> {
                 Ok(())
             }
             Some((_, ProcKind::Function(_))) => {
-                let msg = format!("calling the FUNCTION `{shown}` as a statement is not supported yet");
-                Err(self.error(name_tok.span, msg))
+                let msg = format!("calling the FUNCTION `{shown}` as a statement");
+                Err(self.unsupported(name_tok.span, msg))
             }
             _ if is_keyword(name.as_bytes()) || find_any(name.as_bytes()).next().is_some() => {
-                Err(self.error(name_tok.span, format!("`{shown}` is not supported yet")))
+                Err(self.unsupported(name_tok.span, format!("`{shown}`")))
             }
             _ => {
-                let msg = format!("`{shown}` is not a SUB, or not supported yet");
-                Err(self.error(name_tok.span, msg))
+                let msg = format!("`{shown}` as a statement (no SUB of this name)");
+                Err(self.unsupported(name_tok.span, msg))
             }
         }
     }
@@ -1067,7 +1072,7 @@ impl Checker<'_> {
                 }
                 if is_builtin_function(&name, suffix) {
                     let shown = show_bytes(self.text(t.span));
-                    return Err(self.error(t.span, format!("`{shown}` is not supported yet")));
+                    return Err(self.unsupported(t.span, format!("`{shown}`")));
                 }
                 let id = self.variable(t, name, suffix)?;
                 let ty = self.prog.var(id).ty;
@@ -1110,7 +1115,7 @@ impl Checker<'_> {
                 })
             }
             Err(LitError::Overflow) => Err(self.error(span, "overflow")),
-            Err(LitError::Unsupported(what)) => Err(self.error(span, format!("{what} are not supported yet"))),
+            Err(LitError::Unsupported(what)) => Err(self.unsupported(span, what)),
         }
     }
 
@@ -1119,7 +1124,7 @@ impl Checker<'_> {
         let op = self.need(node.op(), span)?;
         let operand = self.need(node.operand(), span)?;
         if op.kind != Minus {
-            return Err(self.error(op.span, format!("operator `{}` is not supported yet", self.word(op))));
+            return Err(self.unsupported(op.span, format!("operator `{}`", self.word(op))));
         }
         // A minus directly before a decimal literal is part of the literal (step C).
         if let ast::Expr::Literal(lit) = operand {
@@ -1172,7 +1177,7 @@ impl Checker<'_> {
             Slash => BinOp::Div,
             _ => {
                 let shown = self.word(op_tok);
-                return Err(self.error(op_tok.span, format!("operator `{shown}` is not supported yet")));
+                return Err(self.unsupported(op_tok.span, format!("operator `{shown}`")));
             }
         };
         let lhs = self.expr(l)?;
@@ -1248,11 +1253,11 @@ impl Checker<'_> {
         }
         let shown = show_bytes(self.text(name_tok.span));
         let msg = if is_builtin_function(&proc_name, suffix) {
-            format!("`{shown}` is not supported yet")
+            format!("`{shown}`")
         } else {
-            format!("`{shown}(...)`: arrays and functions are not supported yet")
+            format!("`{shown}(...)` (an array, or no FUNCTION of this name)")
         };
-        Err(self.error(name_tok.span, msg))
+        Err(self.unsupported(name_tok.span, msg))
     }
 
     /// `CHR$(code)`: one LONG slot (stored as for an assignment); raises error 5 outside 0-255 at run time.

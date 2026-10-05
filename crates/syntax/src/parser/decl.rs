@@ -11,7 +11,7 @@ pub(crate) fn dim_stmt(p: &mut Parser) {
         p.bump();
     }
     if p.at_word("_PRESERVE") {
-        p.error("`DIM _PRESERVE` is not supported yet");
+        p.unsupported("`DIM _PRESERVE`");
     } else {
         items(p);
     }
@@ -43,13 +43,13 @@ fn items(p: &mut Parser) {
 
 fn dim_item(p: &mut Parser) -> bool {
     if !p.at(Ident) {
-        p.error("expected a variable name");
+        p.syntax_error("expected a variable name");
         return false;
     }
     p.start_node(DimItem);
     p.bump();
     let ok = if p.at(LParen) {
-        p.error("arrays are not supported yet");
+        p.unsupported("arrays");
         false
     } else if p.at_word("AS") {
         as_clause(p)
@@ -66,14 +66,14 @@ pub(super) fn as_clause(p: &mut Parser) -> bool {
     p.bump();
     let mut ok = true;
     if !p.at(Ident) {
-        p.error("expected a type name after `AS`");
+        p.syntax_error("expected a type name after `AS`");
         ok = false;
     }
     while p.at(Ident) {
         p.bump();
     }
     if p.at(Star) {
-        p.error("fixed-length strings are not supported yet");
+        p.unsupported("fixed-length strings");
         ok = false;
     }
     p.finish_node();

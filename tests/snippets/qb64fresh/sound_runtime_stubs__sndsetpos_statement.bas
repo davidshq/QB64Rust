@@ -1,0 +1,3 @@
+DIM h AS LONG
+h = 1
+_SNDSETPOS h, 5.0

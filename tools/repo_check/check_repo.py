@@ -10,7 +10,8 @@ Files marked -text in .gitattributes (recorded program output, byte-exact test p
 output (RECORDED below) and binary files are not checked for control bytes; every file is checked for paths. A line that must show such a path as an example
 (as CLAUDE.md does) is allowed by ALLOWED below, by file and text.
 
-Usage: python tools/repo_check/check_repo.py      (from anywhere in the repo; exit status 1 on findings)
+Usage: python tools/repo_check/check_repo.py [--untracked]   (from anywhere in the repo; exit status 1 on
+findings; --untracked also checks new files that are not staged yet, unless git ignores them)
 """
 
 import fnmatch
@@ -36,6 +37,10 @@ ALLOWED = [
     ("*", rb"does/not/exist"),
     ("*", rb"/home/runner/"),
     ("vscode/test/unit/discovery.test.ts", rb""),
+    # Upstream's test of its relative-path function, copied unedited (design D1 of m2-upstream-tests): made-up
+    # paths (/home/user/proj, C:\proj).
+    ("tests/upstream/compile_tests/qb64pe/file.bas", rb""),
+    ("tests/upstream/compile_tests/qb64pe/file.output", rb""),
 ]
 
 BINARY_SUFFIXES = (".bin", ".exe", ".png", ".ico", ".7z", ".zip", ".vsix")
@@ -74,7 +79,11 @@ def control_bytes(data: bytes) -> list[tuple[int, int]]:
 
 def main() -> int:
     root = git("rev-parse", "--show-toplevel").decode().strip()
-    paths = [p for p in git("ls-files", "-z", cwd=root).decode().split("\0") if p]
+    listing = ["ls-files", "-z"]
+    if "--untracked" in sys.argv[1:]:
+        # Also new files not yet staged (and not ignored), to check them before staging (CLAUDE.md rule 2).
+        listing += ["--cached", "--others", "--exclude-standard"]
+    paths = [p for p in git(*listing, cwd=root).decode().split("\0") if p]
     skip_bytes = unchecked_text(root, paths) if paths else set()
     findings = []
     for path in paths:

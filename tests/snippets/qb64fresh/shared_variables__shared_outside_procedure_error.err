@@ -1,0 +1,4 @@
+
+SHARED must be used within a SUB/FUNCTION
+Caused by (or after):SHARED X
+LINE 2:SHARED x

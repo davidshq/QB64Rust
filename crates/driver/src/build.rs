@@ -37,12 +37,23 @@ pub fn find_root(option: Option<&Path>) -> Result<PathBuf, String> {
     ))
 }
 
-/// The build folder for an executable: `<exe folder>/<exe file name>.qb64rust`.
+/// The build folder for an executable: `<exe folder>/<exe file name>.qb64rust`, with every byte of the file name
+/// other than `A-Z a-z 0-9 . _ -` replaced by `_`. `make` splits paths at spaces and expands `$`, and the shell it
+/// runs takes `'`; the compile suite has names such as `<test> - output.exe`, `dollar$sign`, `single'quote'test`.
 pub fn build_dir(exe: &Path) -> PathBuf {
-    let name = exe
+    let name: String = exe
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
     exe.with_file_name(format!("{name}.qb64rust"))
 }
 
@@ -60,30 +71,38 @@ fn slash(p: &Path) -> String {
     p.to_string_lossy().replace('\\', "/")
 }
 
-/// Builds the executable. On failure the build folder is kept and the make output is returned.
-pub fn build(root: &Path, build: &Path, exe: &Path, quiet: bool) -> Result<(), String> {
+/// Builds the executable; `optimize` adds `-O2` as `qb64pe`'s `OptimizeCppProgram` does (`-fwrapv` stays, so
+/// overflow still wraps). The executable is linked inside the build folder (whose name has no spaces, see
+/// [`build_dir`]) and then moved to `exe`. On failure the build folder is kept and the make output is returned.
+pub fn build(root: &Path, build: &Path, exe: &Path, quiet: bool, optimize: bool) -> Result<(), String> {
     let c = build.join("c");
     std::fs::create_dir_all(&c).map_err(|e| e.to_string())?;
     std::fs::copy(root.join("internal/c/qbx.cpp"), c.join("qbx.cpp")).map_err(|e| format!("copying qbx.cpp: {e}"))?;
     let _ = std::fs::remove_file(c.join("qbx.o"));
     let _ = std::fs::remove_file(exe);
+    let linked = build.join("program.exe");
+    let _ = std::fs::remove_file(&linked);
     let make = root.join("internal/c/c_compiler/bin/mingw32-make.exe");
     let mut cmd = Command::new(&make);
     cmd.arg("-C")
         .arg(root)
         .arg("-j3")
         .args(["OS=win", "BITS=64", "DEP_CONSOLE_ONLY=y", "exe"])
-        .arg(format!("EXE={}", slash(exe)))
+        .arg(format!("EXE={}", slash(&linked)))
         .arg(format!("QB_QBX_SRC={}/qbx.cpp", slash(&c)))
         .arg(format!("PATH_INTERNAL_TEMP={}", slash(&build.join("temp"))))
         // -fwrapv: LONG and _INTEGER64 overflow wraps (DIVERGENCES.md D-001, D-002).
-        .arg(format!("CXXFLAGS_EXTRA=-fwrapv -I{}/internal/c", slash(root)));
+        .arg(format!(
+            "CXXFLAGS_EXTRA={}-fwrapv -I{}/internal/c",
+            if optimize { "-O2 " } else { "" },
+            slash(root)
+        ));
     if !quiet {
         println!("building {}", exe.display());
     }
     let out = cmd.output().map_err(|e| format!("running {}: {e}", make.display()))?;
-    if out.status.success() && exe.is_file() {
-        Ok(())
+    if out.status.success() && linked.is_file() {
+        std::fs::rename(&linked, exe).map_err(|e| format!("moving the executable to {}: {e}", exe.display()))
     } else {
         let _ = std::fs::remove_file(exe);
         #[expect(
@@ -99,5 +118,19 @@ pub fn build(root: &Path, build: &Path, exe: &Path, quiet: bool) -> Result<(), S
             out.status.code(),
             build.display(),
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn build_folder_names_are_safe_for_make() {
+        let dir = build_dir(Path::new("out/single'quote'test-dollar$sign - output.exe"));
+        assert_eq!(
+            dir,
+            Path::new("out/single_quote_test-dollar_sign_-_output.exe.qb64rust")
+        );
     }
 }

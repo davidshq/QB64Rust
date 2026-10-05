@@ -1,0 +1,4 @@
+
+Number required for function
+Caused by (or after):PRINT ABS ( "hello",5 )
+LINE 1:PRINT ABS("hello")

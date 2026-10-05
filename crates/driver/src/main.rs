@@ -1,13 +1,13 @@
 //! `qb64rust`: the command line (design D9, spec `compiler/cli`).
 //!
-//! `qb64rust [-x] [-q] [-m] [-w] [-z] <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
+//! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
 //! [--qb64pe-root <dir>] [--keep-build]`
 
 use qb64rust_driver::{build, dump_cpp, dump_ir, emit, frontend};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] <file.bas> [-o <exe>] \
+const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--keep-build]";
 
 #[derive(Default)]
@@ -19,6 +19,29 @@ struct Options {
     dump: Option<String>,
     root: Option<PathBuf>,
     keep_build: bool,
+    /// `-f:<setting>=<value>` as given, checked by [`optimize_setting`].
+    settings: Vec<String>,
+}
+
+/// Whether to optimise the C++ (`-f:OptimizeCppProgram=true`, as `qb64pe` turns it into `-O2`).
+/// `-f:StripDebugSymbols` is accepted and ignored; any other setting is not supported yet (spec `compiler/cli`).
+fn optimize_setting(settings: &[String]) -> Result<bool, String> {
+    let mut optimize = false;
+    for s in settings {
+        let (name, value) = s.split_once('=').unwrap_or((s, ""));
+        match name {
+            "OptimizeCppProgram" => {
+                optimize = match value.to_ascii_lowercase().as_str() {
+                    "true" => true,
+                    "false" => false,
+                    _ => return Err(format!("setting `{name}` needs `true` or `false`, not `{value}`")),
+                }
+            }
+            "StripDebugSymbols" => {}
+            _ => return Err(format!("setting `{name}` is not supported yet")),
+        }
+    }
+    Ok(optimize)
 }
 
 fn parse_args() -> Result<Options, String> {
@@ -43,6 +66,7 @@ fn parse_args() -> Result<Options, String> {
             }
             "--qb64pe-root" => o.root = Some(PathBuf::from(value("--qb64pe-root")?)),
             "--keep-build" => o.keep_build = true,
+            _ if s.starts_with("-f:") => o.settings.push(s["-f:".len()..].to_string()),
             _ if s.starts_with('-') => return Err(format!("unknown option `{s}`")),
             _ if o.input.is_some() => return Err("more than one input file".into()),
             _ => o.input = Some(PathBuf::from(a)),
@@ -83,7 +107,7 @@ fn run() -> Result<ExitCode, String> {
     let report = |fe: &qb64rust_driver::Frontend| {
         if errors > 0 {
             print!("{}", fe.render_diagnostics());
-            println!("{errors} error{}", if errors == 1 { "" } else { "s" });
+            println!("{}", fe.diagnostics.summary());
         }
     };
     if let Some(stage) = o.dump.as_deref() {
@@ -108,6 +132,9 @@ fn run() -> Result<ExitCode, String> {
         None => input.with_extension("exe"),
     };
     let exe = std::path::absolute(&exe).map_err(|e| e.to_string())?;
+    let optimize = optimize_setting(&o.settings).inspect_err(|_| {
+        let _ = std::fs::remove_file(&exe);
+    })?;
     if errors > 0 {
         let _ = std::fs::remove_file(&exe);
         report(&fe);
@@ -125,7 +152,7 @@ fn run() -> Result<ExitCode, String> {
     let _ = std::fs::remove_file(&exe);
     let root = build::find_root(o.root.as_deref())?;
     build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
-    build::build(&root, &build_dir, &exe, o.quiet)?;
+    build::build(&root, &build_dir, &exe, o.quiet, optimize)?;
     if !o.keep_build {
         let _ = std::fs::remove_dir_all(&build_dir);
     }

@@ -1,0 +1,2 @@
+PRINT CHR$(65)
+PRINT ASC("A")

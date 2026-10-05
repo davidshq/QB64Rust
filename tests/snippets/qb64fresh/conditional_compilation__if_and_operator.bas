@@ -1,0 +1,3 @@
+$IF _LINUX AND _64BIT THEN
+    PRINT "64-bit Linux"
+$END IF

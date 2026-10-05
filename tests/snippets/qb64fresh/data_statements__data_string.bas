@@ -1,0 +1,4 @@
+DIM s AS STRING
+READ s
+PRINT s
+DATA "Hello"

@@ -67,7 +67,7 @@ impl Fragments {
 pub fn emit(p: &Program, source_name: &str) -> Fragments {
     let mut e = Emitter {
         p,
-        line_file: c_string(source_name.as_bytes()),
+        line_file: line_name(source_name),
         skip: 0,
         pass: 0,
         pass_decls: Vec::new(),
@@ -252,6 +252,24 @@ fn c_string(bytes: &[u8]) -> String {
             s.push(b as char);
         } else {
             write!(s, "\\{b:03o}").unwrap();
+        }
+    }
+    s.push('"');
+    s
+}
+
+/// The file name of a `#line` directive. Its string is unevaluated, where clang rejects numeric escapes (`\134`),
+/// so only `\\` and `\"` are escaped; other bytes stay as they are (the name is UTF-8), control bytes become `_`.
+fn line_name(name: &str) -> String {
+    let mut s = String::from("\"");
+    for c in name.chars() {
+        match c {
+            '\\' | '"' => {
+                s.push('\\');
+                s.push(c);
+            }
+            c if c.is_control() => s.push('_'),
+            c => s.push(c),
         }
     }
     s.push('"');
@@ -709,6 +727,16 @@ mod tests {
     #[test]
     fn strings_escape_every_non_printable_byte() {
         assert_eq!(c_string(b"a\"\\?\x00\xC9"), "\"a\\042\\134\\077\\000\\311\"");
+    }
+
+    /// clang rejects numeric escapes in a `#line` file name; an absolute Windows path must still work.
+    #[test]
+    fn line_names_use_simple_escapes_only() {
+        assert_eq!(
+            line_name("C:\\does\\not\\exist\\p q.bas"),
+            r#""C:\\does\\not\\exist\\p q.bas""#
+        );
+        assert_eq!(line_name("a\"b\u{1}\u{e9}.bas"), "\"a\\\"b_\u{e9}.bas\"");
     }
 
     #[test]

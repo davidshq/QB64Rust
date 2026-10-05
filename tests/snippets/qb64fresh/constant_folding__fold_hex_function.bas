@@ -1,0 +1,2 @@
+DIM s AS STRING
+s = HEX$(255)

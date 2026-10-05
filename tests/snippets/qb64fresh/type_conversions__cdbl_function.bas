@@ -1,0 +1,1 @@
+PRINT CDBL(42)

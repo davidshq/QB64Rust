@@ -1,0 +1,4 @@
+DIM x AS DOUBLE
+DIM y AS INTEGER
+x = 3.14
+y = _CAST(INTEGER, x)

@@ -74,7 +74,7 @@ fn proc_header(p: &mut Parser) {
     p.start_node(ProcHeader);
     p.bump(); // SUB or FUNCTION
     if !p.at(Ident) {
-        p.error("expected a procedure name");
+        p.syntax_error("expected a procedure name");
         p.finish_node();
         return;
     }
@@ -83,7 +83,7 @@ fn proc_header(p: &mut Parser) {
         param_list(p);
     }
     if p.at_word("STATIC") {
-        p.error("`STATIC` after a procedure header is not supported yet");
+        p.unsupported("`STATIC` after a procedure header");
     } else if p.at_word("AS") {
         p.error("a FUNCTION's type is given by a suffix on its name, not by `AS`");
     }
@@ -112,13 +112,13 @@ fn param_list(p: &mut Parser) {
 /// `name[suffix] [AS type]`. Returns false after an error.
 fn param(p: &mut Parser) -> bool {
     if !p.at(Ident) {
-        p.error("expected a parameter name");
+        p.syntax_error("expected a parameter name");
         return false;
     }
     p.start_node(Param);
     p.bump();
     let ok = if p.at(LParen) {
-        p.error("array parameters are not supported yet");
+        p.unsupported("array parameters");
         false
     } else if p.at_word("AS") {
         as_clause(p)
@@ -139,7 +139,7 @@ pub(crate) fn exit_stmt(p: &mut Parser) {
     } else {
         let span = p.current_span().cover(p.next_span(1));
         let text = format!("EXIT {}", qb64rust_base::show_bytes(p.nth_text(1)).to_ascii_uppercase());
-        p.error_at(span, format!("`{}` is not supported yet", text.trim_end()));
+        p.unsupported_at(span, format!("`{}`", text.trim_end()));
         p.recover();
     }
 }
@@ -158,7 +158,7 @@ pub(crate) fn declare_stmt(p: &mut Parser) {
             "DECLARE {}",
             qb64rust_base::show_bytes(p.nth_text(1)).to_ascii_uppercase()
         );
-        p.error_at(span, format!("`{}` is not supported yet", text.trim_end()));
+        p.unsupported_at(span, format!("`{}`", text.trim_end()));
         p.recover();
     }
 }

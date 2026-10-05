@@ -1,0 +1,3 @@
+DIM a(5) AS INTEGER
+DIM b(10) AS STRING
+ERASE a, b

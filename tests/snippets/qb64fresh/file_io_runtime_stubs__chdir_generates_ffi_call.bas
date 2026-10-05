@@ -1,0 +1,1 @@
+CHDIR "/home/user"

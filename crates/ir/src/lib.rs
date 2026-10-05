@@ -24,17 +24,9 @@ pub use lower::lower;
 use qb64rust_base::Span;
 use qb64rust_builtins::BuiltinId;
 
-/// The IR's own types: integers by width, floats by width (`F80` is extended precision), strings.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Ty {
-    I16,
-    I32,
-    I64,
-    F32,
-    F64,
-    F80,
-    Str,
-}
+/// Types, binary operators and conversion kinds are `sema`'s (`study\20` §3.4): integers by width, floats by
+/// width (`F80` is extended precision), strings. They name no C type, so the IR stays ABI-neutral.
+pub use qb64rust_sema::{BinOp, ConvKind as Conv, Ty};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct VarId(pub u32);
@@ -122,26 +114,6 @@ pub enum Arg {
     Ref(VarId),
     /// A fresh copy of the value, which already has the parameter's type; changes to it are lost (no copy-back).
     Temp(Value),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Conv {
-    /// Exact widening (integer or float).
-    Widen,
-    /// Integer narrowing: keep the low bits.
-    Truncate,
-    /// Float to integer, half to even.
-    RoundEven,
-    /// To the nearest float value.
-    Nearest,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum BinOp {
-    Add,
-    Sub,
-    Mul,
-    Div,
 }
 
 #[derive(Clone, Debug, PartialEq)]

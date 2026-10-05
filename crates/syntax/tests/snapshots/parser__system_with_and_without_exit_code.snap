@@ -1,5 +1,6 @@
 ---
 source: crates/syntax/tests/parser.rs
+assertion_line: 27
 expression: "tree(\"SYSTEM\\nsystem: END\\nSYSTEM 3\\n\")"
 ---
 SourceFile 0..28
@@ -18,4 +19,4 @@ SourceFile 0..28
     Whitespace  
     Number 3
   Newline \x0A
-t.bas:3:1: error: `SYSTEM` with an exit code is not supported yet
+t.bas:3:1: error: not supported yet: `SYSTEM` with an exit code
