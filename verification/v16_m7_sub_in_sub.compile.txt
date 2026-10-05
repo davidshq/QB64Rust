@@ -1,0 +1,5 @@
+
+Expected END SUB/FUNCTION before SUB in line 1 of <verification>\v16_inc/sub_in.bi included
+Caused by (or after):SUB INNER
+LINE 6:SUB inner
+exit=1

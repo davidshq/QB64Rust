@@ -1,0 +1,5 @@
+i 1 
+after for 2 
+j 1 
+after do 2 
+exit=0

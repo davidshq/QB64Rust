@@ -8,7 +8,8 @@
 `crates/driver/tests/inputs.rs` puts every file of the copy through the new compiler's front end on every
 `cargo test`, together with the corpus, the snippets and (when the reference clone is present) QB64pe's
 `qbasic_testcases` and its compiler sources: no panic, exact round trip, and the two shrink-only lists
-`tests/known_false_errors.list` and `tests/known_unsupported_rejections.list` (spec `testing/upstream-tests`).
+`tests/known_false_errors.list` and `tests/known_unsupported_rejections.list`, and the third list below (spec
+`testing/upstream-tests`).
 
 Baseline, 2026-10-04 (after the "not supported yet" marker, before parser breadth):
 
@@ -28,7 +29,24 @@ not know yet: the constants of QB64pe's auto-included BASIC files (`_TRUE`, `_FA
 known gap of `tools\builtins\builtins.json`), `SUB _GL`, and `_CLIPBOARD$ = ...`; they should become "not
 supported yet". Parser breadth works the list down.
 
-After a change, regenerate both lists with `QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs`
+**Third list, `tests/known_parse_gaps.list`** (2026-10-04, change `m2-parser-breadth` D1): programs the old
+compiler accepts, and every file of its own sources, whose parse reports a diagnostic or leaves an `Error` node;
+the comment is the first parser diagnostic. Parser breadth is done when this list and `known_false_errors.list`
+are empty. Baseline: **673 of 1,139 files** (466 parse cleanly).
+
+| Set | Files checked | In `known_parse_gaps.list` |
+|---|---|---|
+| `corpus/` | 255 accepted `.bas` | 109 |
+| `upstream/` | 348 accepted `.bas` | 268 |
+| `snippets/` | 342 accepted `.bas` | 111 |
+| `qbasic/` (clone) | 143 `.bas` | 141 |
+| `qb64pe-source/` (clone) | `qb64pe.bas` and 50 includes | 44 |
+| **All** | **1,139** | **673** |
+
+(The design's estimate of about 790 counted 1,280 files, include files of the other sets among them; the list
+covers what the spec names.)
+
+After a change, regenerate the three lists with `QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs`
 and review the diff: entries may only go away (a new entry is a regression to fix, unless it is a program new to
 the inputs).
 
@@ -57,3 +75,11 @@ pass criterion, 29 s of test time, since most programs stop in the front end; th
 (they use `'$INCLUDE`, which the front end ignores as a comment: to be fixed, see `STATUS.md`); the 56 `.err`
 programs fail on the message text, since the runner compares it with the old compiler's; the rest are rejected
 with a diagnostic, 1 known failure (`http/read_example`).
+
+**`.err` programs, 2026-10-04 (`m2-parser-breadth` tasks 2.1, 2.3).** For a compiler other than `qb64pe` the
+runner now passes an `.err` program when the compile fails, writes no executable and the summary line counts at
+least one error not marked "not supported yet"; the message text is not compared. Of the 56: 54 fail with only
+marked errors (the same 54 as the `upstream/` entries of `known_unsupported_rejections.list`), 2 pass
+(`arrays/42_` and `43_err_solved_bug_Incorrect_nr_of_args`) but are **not added to `pass.list`**: their only real
+error is the parse gap `expected , or )` at `f(10).a(5)`, not the old compiler's reason (wrong argument count to
+`UBOUND`/`LBOUND`), so they would leave the ratchet once member access parses. **Progress stays 10 of 279.**

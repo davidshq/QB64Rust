@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):10 PRINT "after lab: 10",13
+LINE 4:lab: 10 PRINT "after lab: 10"
+exit=1

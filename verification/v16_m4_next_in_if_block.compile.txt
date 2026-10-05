@@ -1,0 +1,5 @@
+
+NEXT without FOR
+Caused by (or after):NEXT
+LINE 6:NEXT
+exit=1

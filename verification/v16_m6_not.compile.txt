@@ -1,0 +1,5 @@
+
+Invalid Resolution of $IF; check statements
+Caused by (or after):
+LINE 3:$IF NOT WIN THEN
+exit=1

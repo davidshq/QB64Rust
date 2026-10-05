@@ -210,6 +210,70 @@ Measured for procedures and error handling (2026-10-04, `m2-procedures-and-error
 - The generated `main0.txt` must start with `error_track_line(0,0,NULL);`; without it the runtime reports a
   critical error with a line number instead of "Enable $ErrorLocation:ON …" (`libqb\src\error_handle.cpp`).
 
+Measured for parser breadth (2026-10-05, `m2-parser-breadth` M1–M8; `verification\v16_*`, one program per
+question, include files in `v16_inc\` and `v16_*.bi`):
+
+- **Comment metacommands (M1):** `PRINT "x" '$INCLUDE:'f.bi'` and `PRINT "x": REM $INCLUDE: 'f.bi'` include `f.bi`
+  after the statement. `' $DYNAMIC` (blank before `$`) counts; `' note $DYNAMIC` does not (then `REDIM` of the
+  `DIM a(5)` array fails at run time, error 10); `'$FOO x$DYNAMIC` counts (anywhere, glued). With two `$INCLUDE`s
+  in one comment only the last is included. Blanks around the colon are allowed (`'$INCLUDE :  'f.bi'`).
+  **`$INCLUDE` without a comment is a syntax error** (`$INCLUDE:'f.bi'`): only the comment forms exist.
+- **`DATA` (M2):** an unquoted item keeps `'`, `REM`, inner `"` and its letter case (`a'b`, `a REM b`, `a"b`);
+  **a `:` outside quotes ends the statement** (`DATA a: PRINT 1` runs the `PRINT`); inside quotes it is data.
+  Blanks around unquoted items are dropped, quoted blanks kept; an empty item (`,,`, a trailing `,`, `DATA ,`
+  gives two) reads as `""` or 0; `&H10` reads as 16. `READ` of a text item into a number is runtime error 2.
+- **Line numbers (M3):** `10 PRINT`, `20 :`, `30` alone, `70 '…`, indented `10`, glued `10PRINT`, `10.5`, `10&`,
+  `4294967296`, out of order, and the same number in main and in a SUB are accepted. A number after a label on
+  one line (`lab: 10 PRINT`) and a number after `:` are syntax errors; `10 lab: PRINT` is accepted. The same
+  number twice: "Duplicate label (10)"; `GOTO 99` missing: "Label '99' not defined".
+- **Blocks (M4):** `NEXT j, i` closes both; wrong order or the outer variable: "Incorrect variable after NEXT".
+  A `NEXT` inside a multi-line or single-line `IF`, closing an outer `FOR`: "NEXT without FOR". `LOOP` closing a
+  `WHILE` or crossing blocks (`DO`/`FOR`/`LOOP`/`NEXT`): "PROGRAM FLOW ERROR!"; `WEND` closing a `DO`: "WEND without
+  WHILE"; `END IF` alone or after a single-line `IF …: END IF`: "END IF without IF"; `EXIT FOR` outside: "EXIT FOR
+  without FOR". A missing `END IF`/`END SELECT` is reported against the auto-included `vwatch_stub.bm` ("IF without
+  END IF in line 3 of internal\support\vwatch\vwatch_stub.bm"). Single-line `IF`: **each `ELSE` binds to the
+  innermost `IF`**; `THEN 10 ELSE 20` and `IF 0 GOTO 20` work. `ENDIF` is accepted; `ELSE IF` is an `ELSE` holding
+  a new `IF` block. Only comments may stand between `SELECT CASE` and the first `CASE` (a statement: "Expected
+  CASE expression"). `EXIT FOR` inside `DO` inside `FOR`, and `EXIT DO` inside `FOR` inside `DO`, work.
+- **Template statements (M5):** a wrong `LINE` form (unknown word, no parentheses, an argument too many) is
+  "Syntax error - Reference: <the template>". With variables `B = 7` and `BF = 9`: `LINE …, B` and `LINE …, BF, BF`
+  take the first as a colour and the second as the box word; words match in any case (`bf`, `step`). Graphics
+  `PUT (x, y), arr()` and file `PUT #1, , v` / `PUT 1, , v` (no `#`) are both accepted; `PUT (0, 0), x` with a
+  scalar compiles and fails at run time (error 5).
+- **`$IF` (M6):** operators `=`, `<>`, `<`, `>`, `<=`, `>=` (and, read in the source, not measured: `=<`, `=>`,
+  `><`), `AND`, `OR`, `XOR`, and a bare name (true when its value is not `0` or empty); names and values are
+  compared in upper case. `NOT`, and a value of two words, are "Invalid Resolution of $IF; check statements";
+  `(A = 1)` and `DEFINED(A)` are **silently false**. `name = DEFINED` / `name = UNDEFINED` test existence.
+  Predefined on Windows 64-bit: `WIN`, `WINDOWS`, `64BIT`, `_QB64PE_` true; `LINUX`, `MAC`, `MACOSX`, `32BIT`,
+  `_ARM_` false; `VERSION` compares as a version (`VERSION >= 4.7.0` true). `$LET A = 2` redefines `A`, but
+  **`$LET WIN = 0` does not override `WIN`** (it adds a second entry; the bare-name test stops at the first true
+  one). `$LET E` without `=` is an error. `$ENDIF` is accepted; garbage and unknown metacommands in an inactive
+  branch are ignored, nested `$IF`s there are counted. `$IF`/`$LET` **only at the start of a line**: after `:` or
+  in a single-line `IF` it is "Unexpected character on line". **`$IF` and blocks must nest properly**: `$IF`
+  pushes an entry on the block stack and `$END IF` pops the top one, whatever it is (`qb64pe.bas` 3430–3436), so a
+  block header inside an active `$IF` closed outside it (one header, or two split by `$ELSE`), and an `IF` opened
+  before a `$IF` and closed inside it, are both "END IF without IF" (reported at the `END IF`). A `$IF` inside a
+  block, an inactive header, a whole `SUB` inside an active `$IF`, and `EXIT FOR` from inside a `$IF` inside a
+  `FOR` are fine. Messages: "$IF without THEN", "$IF without $END IF", "$IF block already has $ELSE statement in
+  it", active `$ERROR x`: "Compilation check failed: X".
+- **`$INCLUDE` (M7):** a nested include is looked up in the including file's folder, then as written relative to
+  **the compiler's own folder**, **never in the main file's folder** (a file only there, compiled from that
+  folder, is "File … not found"; `qb64pe.bas` 3120–3171). Every QB64 program, `qb64pe.exe` included, changes to
+  its exe's folder at start (`libqb.cpp` 25997), so the caller's working directory plays no part. The upstream
+  tests `include_paths\include_fixed_compile_location` and `include_multiple` depend on this
+  (`'$include:'tests/compile_tests/extra/include_extra.bi'`). `.\` or `./` at the front is dropped. The same file
+  twice is included twice; `$INCLUDEONCE` works on its first line and on a later line. Blocks may cross files (a
+  `FOR` closed by a `NEXT` in an include, a `SUB` closed by an `END SUB` in one); a file with a `SUB` included
+  inside a `SUB` is "Expected END SUB/FUNCTION before SUB"; at the end of main it is fine. A `$LET` in an include
+  reaches the main file. Missing file: "File x not found". There is no cycle check: a self-include stops at 100
+  levels ("Too many indwelling INCLUDE files", listing every level), and one guarded by `$IF` and `$LET` is
+  accepted (included twice, the second time inactive; `v16_m7_self_guarded`). Messages from inside an include
+  name the file by its full path and carry a 0x01 byte before " in line n of …".
+- **Member access (M8):** `a.b` without a `TYPE` is a plain variable (separate from `a`); `DIM x.y AS LONG` and
+  `x.z$` too. A plain `a.b`, then `DIM a AS t` with member `b`, is accepted and `a.b` is the member from then on.
+  With `a` a `TYPE` variable, `a.c` for a non-member is "Element not defined". `a(2) .b` and `a(2). b` (blanks
+  around the dot) are member access.
+
 ## 6. Bug-compatibility choices still to make
 
 From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence register (R2).

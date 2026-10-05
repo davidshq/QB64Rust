@@ -20,6 +20,9 @@ Rules followed from format_tests.sh:
   * each variant: qb64 -y -m <flags> <name>.bas -o <out>, run in the test's folder;
     must succeed, write the output, and match the expected file with all CRs
     removed and trailing newlines ignored
+For a compiler other than qb64pe (both the compile and the corpus suite), an .err program passes when
+the compile fails, writes no exe and the compiler's last line is its error summary with at least one
+error not marked "not supported yet" ("2 errors (1 not supported yet)"); the .err text is not compared.
 The corpus suite (tests/corpus of this repo, recorded with the old compiler; no bash original):
   * every *.bas under <corpus-root>/<group>/ is a test; it has exactly one of
     <name>.output (compile, run, merged stdout+stderr == .output),
@@ -95,6 +98,35 @@ def norm_output(data: bytes) -> bytes:
 
 def norm_text(data: bytes) -> list[str]:
     return data.decode("latin-1").replace("\r", "").rstrip("\n").split("\n")
+
+
+def is_old_compiler(qb64: Path) -> bool:
+    """True for qb64pe, whose .err files hold its exact message text."""
+    return qb64.stem.lower() == "qb64pe"
+
+
+# The new compiler's last line after errors in the program (spec compiler/cli): "1 error", "3 errors",
+# "3 errors (2 not supported yet)". Only the front end prints it, so a failed C++ build or an internal
+# compiler error (exit code 3) never matches, even when clang's output holds "error:" lines.
+SUMMARY_RE = re.compile(r"^(\d+) errors?(?: \((\d+) not supported yet\))?$")
+
+
+def new_compiler_rejection(rc: int, out: bytes) -> str:
+    """Why a failed compile by a compiler other than qb64pe does not count as a rejection, or "" if it does.
+
+    An .err program passes when the compile fails, writes no executable (checked by the caller) and reports
+    at least one error not marked "not supported yet" (CLAUDE.md, 2026-10-04); the message text is not
+    compared."""
+    if rc == 3:
+        return "internal compiler error (exit code 3)"
+    lines = [ln.strip() for ln in out.decode("latin-1").splitlines() if ln.strip()]
+    m = SUMMARY_RE.match(lines[-1]) if lines else None
+    if not m:
+        return f"exit code {rc} without an error summary (not an error in the program)"
+    total, marked = int(m.group(1)), int(m.group(2) or 0)
+    if total <= marked:
+        return f"only errors marked not supported yet ({lines[-1]})"
+    return ""
 
 
 def clear_temp(qb_root: Path) -> None:
@@ -207,7 +239,11 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
             return fail("compile", "compiled successfully, expected an error")
         if exe.exists():
             return fail("exe exists", "exe produced although an error was expected")
-        if norm_text(err_file.read_bytes()) != norm_text(compile_out.read_bytes()):
+        if not is_old_compiler(args.qb64):
+            why = new_compiler_rejection(rc, compile_out.read_bytes())
+            if why:
+                return fail("error result", why)
+        elif norm_text(err_file.read_bytes()) != norm_text(compile_out.read_bytes()):
             return fail("error result", "compiler output differs from .err")
         r.seconds = round(time.time() - t0, 1)
         return r
@@ -410,6 +446,9 @@ def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path
             return passed(write_expected(err_file, got, out_file))
         if kind != "error":
             return fail("compile", f"exit code {rc}")
+        if not is_old_compiler(args.qb64):
+            why = new_compiler_rejection(rc, compile_out.read_bytes())
+            return fail("error result", why) if why else passed()
         if norm_text(err_file.read_bytes()) != norm_text(got):
             return fail("error result", "compiler output differs from .err")
         return passed()

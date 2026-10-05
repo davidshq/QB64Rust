@@ -47,7 +47,7 @@ BINARY_SUFFIXES = (".bin", ".exe", ".png", ".ico", ".7z", ".zip", ".vsix")
 
 # Output recorded from the old compiler or its programs: control bytes there are measured behaviour (NULs after
 # `INF` in v02, a 0x01 in a qb64pe include message, the `-x` progress bar's CRs).
-RECORDED = ["verification/*.out.txt", "vscode/test-fixtures/compiler/*.out.txt"]
+RECORDED = ["verification/*.out.txt", "verification/*.compile.txt", "vscode/test-fixtures/compiler/*.out.txt"]
 
 
 def git(*args: str, stdin: bytes = b"", cwd: str | None = None) -> bytes:

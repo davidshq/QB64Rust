@@ -1,0 +1,4 @@
+before
+in v16_inc_a.bi
+after
+exit=0

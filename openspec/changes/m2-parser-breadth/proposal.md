@@ -36,7 +36,7 @@ code depends on it.
 - **Expressions:** member access after an index (`a(1).b.c(2)`), omitted arguments (`f(a, , b)`), and the
   remaining word forms.
 - **Metacommands:** `$IF`/`$ELSEIF`/`$ELSE`/`$END IF` with `$LET` and the predefined names, evaluated while
-  parsing; `$INCLUDE` and `'$INCLUDE` with **one tree per file** and `$INCLUDEONCE`; every other metacommand
+  parsing; `'$INCLUDE` (only the comment forms exist, M1) with **one tree per file** and `$INCLUDEONCE`; every other metacommand
   parsed into name and argument.
 - **`sema`**: keyed by (`FileId`, offset) and reading text through the `SourceMap`; every new node kind it does
   not compile yet gets one "not supported yet" error at its statement (the same verdict as today, one stage

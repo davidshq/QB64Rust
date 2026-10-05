@@ -1,0 +1,4 @@
+[MixedCase]
+[a"b]
+[x]
+exit=0

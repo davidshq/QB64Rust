@@ -13,7 +13,8 @@
 //! note, when it is missing. Every file gets the no-panic and round-trip check; include-only files nothing else.
 
 use qb64rust_driver::{build, frontend};
-use qb64rust_syntax::tree::print;
+use qb64rust_syntax::SyntaxKind;
+use qb64rust_syntax::tree::{Node, print};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -38,6 +39,17 @@ struct Outcome {
     errors: bool,
     /// The first error without the "not supported yet" marker, as `<line>:<column>: <message>`.
     first_real_error: Option<String>,
+    /// The first parser diagnostic, else the first `Error` node, as `<line>:<column>: <message>`; `None` when the
+    /// file parses cleanly.
+    parse_gap: Option<String>,
+}
+
+/// The first `Error` node below `n` in source order.
+fn first_error_node(n: Node<'_>) -> Option<Node<'_>> {
+    if n.kind() == SyntaxKind::Error {
+        return Some(n);
+    }
+    n.child_nodes().find_map(first_error_node)
 }
 
 fn repo() -> PathBuf {
@@ -143,16 +155,35 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
             let (line, col) = fe.map.file(d.span.file).line_col(d.span.start);
             format!("{line}:{col}: {}", d.message)
         });
-        (round_trip, fe.has_errors(), first_real_error)
+        let file = fe.map.file(fe.file);
+        let parse_gap = fe
+            .parse
+            .diagnostics
+            .list()
+            .iter()
+            .min_by_key(|d| d.span.start)
+            .map(|d| {
+                let (line, col) = file.line_col(d.span.start);
+                let mark = if d.unsupported { "not supported yet: " } else { "" };
+                format!("{line}:{col}: {mark}{}", d.message)
+            })
+            .or_else(|| {
+                first_error_node(fe.root()).map(|n| {
+                    let (line, col) = file.line_col(n.span().start);
+                    format!("{line}:{col}: `Error` node without a parser diagnostic")
+                })
+            });
+        (round_trip, fe.has_errors(), first_real_error, parse_gap)
     }));
     match result {
-        Ok((round_trip, errors, first_real_error)) => Outcome {
+        Ok((round_trip, errors, first_real_error, parse_gap)) => Outcome {
             name,
             verdict,
             panic: None,
             round_trip,
             errors,
             first_real_error,
+            parse_gap,
         },
         Err(e) => Outcome {
             name,
@@ -166,6 +197,7 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
             round_trip: false,
             errors: false,
             first_real_error: None,
+            parse_gap: None,
         },
     }
 }
@@ -282,6 +314,26 @@ const UNSUPPORTED_REJECTIONS: List = List {
              --test inputs.\n",
 };
 
+const PARSE_GAPS: List = List {
+    file: "known_parse_gaps.list",
+    header: "# Programs the old compiler accepts, and every file of its own sources, whose parse reports a diagnostic \
+             or\n# leaves an `Error` node (spec testing/upstream-tests, \"Parse gaps\"; design D1 of m2-parser-breadth). \
+             Shrink-only:\n# parser breadth empties it. The comment is the first parser diagnostic, else the first \
+             `Error` node.\n# Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.\n",
+};
+
+/// Entries `want` has and the list `have` lacks (new), and entries of `have` that `want` lacks (stale); a
+/// `have` entry is judged only when `checked` says its set was run.
+fn list_diff<'a>(have: &'a [String], want: &[&'a str], checked: impl Fn(&str) -> bool) -> (Vec<&'a str>, Vec<&'a str>) {
+    let new = want.iter().copied().filter(|e| !have.iter().any(|h| h == e)).collect();
+    let stale = have
+        .iter()
+        .map(String::as_str)
+        .filter(|h| checked(h) && !want.contains(h))
+        .collect();
+    (new, stale)
+}
+
 impl List {
     fn path(&self) -> PathBuf {
         repo().join("tests").join(self.file)
@@ -314,16 +366,7 @@ impl List {
         let (header, have) = self.read();
         let checked = |e: &str| have_clone || !CLONE_SETS.iter().any(|s| e.starts_with(s));
         let want_names: Vec<&str> = want.iter().map(|(e, _)| e.as_str()).collect();
-        let new: Vec<&str> = want_names
-            .iter()
-            .copied()
-            .filter(|e| !have.iter().any(|h| h == e))
-            .collect();
-        let stale: Vec<&str> = have
-            .iter()
-            .map(String::as_str)
-            .filter(|h| checked(h) && !want_names.contains(h))
-            .collect();
+        let (new, stale) = list_diff(&have, &want_names, checked);
         let mut counts: Vec<(String, usize)> = Vec::new();
         for (e, _) in want {
             let set = e.split('/').next().unwrap().to_string();
@@ -384,8 +427,41 @@ impl List {
     }
 }
 
-/// "No false errors" and "Rejected programs stay rejected" (spec `testing/upstream-tests`): the two lists name
-/// exactly the programs that need an entry.
+/// "Parse gaps", scenarios "New parse gap" and "Gap closed" (spec `testing/upstream-tests`): a program that newly
+/// fails to parse is reported with its diagnostic, and one that parses cleanly asks for its entry to go.
+#[test]
+fn parse_gap_list_reports_new_and_closed_gaps() {
+    let have = vec!["upstream/a.bas".to_string(), "upstream/closed.bas".to_string()];
+    let (new, stale) = list_diff(&have, &["upstream/a.bas", "upstream/regressed.bas"], |_| true);
+    assert_eq!(new, ["upstream/regressed.bas"]);
+    assert_eq!(stale, ["upstream/closed.bas"]);
+    // Without the clone, entries of its sets are kept, never reported stale.
+    let have = vec!["qbasic/x.bas".to_string()];
+    let checked = |e: &str| !CLONE_SETS.iter().any(|s| e.starts_with(s));
+    assert_eq!(list_diff(&have, &[], checked), (vec![], vec![]));
+    // The comment is the first parser diagnostic, else the first `Error` node.
+    let gap = |src: &[u8]| run("t.bas".into(), &write_temp(src), Verdict::Accepted).parse_gap;
+    assert_eq!(gap(b"PRINT 1\n"), None);
+    assert!(
+        gap(b"PRINT (1\n").is_some_and(|g| g.starts_with("1:")),
+        "{:?}",
+        gap(b"PRINT (1\n")
+    );
+}
+
+/// A file in the test binary's temp folder holding `bytes`.
+fn write_temp(bytes: &[u8]) -> PathBuf {
+    use std::sync::atomic::{AtomicU32, Ordering};
+    static N: AtomicU32 = AtomicU32::new(0);
+    let dir = std::env::temp_dir().join(format!("qb64rust-inputs-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let p = dir.join(format!("{}.bas", N.fetch_add(1, Ordering::Relaxed)));
+    std::fs::write(&p, bytes).unwrap();
+    p
+}
+
+/// "No false errors", "Rejected programs stay rejected" and "Parse gaps" (spec `testing/upstream-tests`): the
+/// three lists name exactly the programs that need an entry.
 #[test]
 fn known_lists_are_exact() {
     let have_clone = clone_root().is_some();
@@ -402,9 +478,17 @@ fn known_lists_are_exact() {
         .filter(|o| o.verdict == Verdict::Rejected && o.errors && o.first_real_error.is_none())
         .map(|o| (o.name.clone(), None))
         .collect();
+    let parse_gaps: Vec<(String, Option<String>)> = outcomes()
+        .iter()
+        .filter(ok)
+        .filter(|o| o.verdict == Verdict::Accepted || o.name.starts_with("qb64pe-source/"))
+        .filter(|o| o.parse_gap.is_some())
+        .map(|o| (o.name.clone(), o.parse_gap.clone()))
+        .collect();
     let failures: Vec<String> = [
         FALSE_ERRORS.check(&false_errors, have_clone),
         UNSUPPORTED_REJECTIONS.check(&unsupported_rejections, have_clone),
+        PARSE_GAPS.check(&parse_gaps, have_clone),
     ]
     .into_iter()
     .flatten()

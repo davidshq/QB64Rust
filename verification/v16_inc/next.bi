@@ -1,0 +1,2 @@
+    PRINT "body"; i
+NEXT

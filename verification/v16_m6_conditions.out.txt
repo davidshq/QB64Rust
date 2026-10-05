@@ -1,0 +1,25 @@
+A = 1: true
+A <> 1: false
+A < 2: true
+A > 0: true
+A >= 1: true
+A <= 0: false
+A = 1 AND S = hello: true
+A = 2 OR S = HELLO: true
+A = 1 XOR S = hello: false
+bare A: true
+lower-case a = 1: true
+elseif chain: 1
+after $LET A = 2: A = 2 true
+WIN
+WINDOWS = -1
+64BIT
+_QB64PE_
+VERSION > 3.0
+VERSION >= 4.7.0
+VERSION < 99
+B = DEFINED: false
+B = UNDEFINED: true
+A = DEFINED: true
+undefined bare name: false
+exit=0

@@ -1,0 +1,5 @@
+
+$IF block already has $ELSE statement in it
+Caused by (or after):
+LINE 7:$ELSE
+exit=1

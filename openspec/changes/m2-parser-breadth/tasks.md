@@ -16,19 +16,30 @@ passes with the release build. "Verify" below names what is checked on top of th
 
 ## 2. Tier 2 `.err` meaning and the third list (D1, D11)
 
-- [ ] 2.1 `run_legacy_tests.py`: the `.err` meaning for compilers other than `qb64pe`. Verify: an upstream `.err`
+- [x] 2.1 `run_legacy_tests.py`: the `.err` meaning for compilers other than `qb64pe`. Verify: an upstream `.err`
   program that gets a real error passes; one that gets only marked errors fails with a reason that says so;
   `--qb64 qb64pe.exe` runs compare the text as before (one `.err` program checked each way).
-- [ ] 2.2 `inputs.rs`: `tests\known_parse_gaps.list` (D1), with the spec scenarios as tests. Generate it; record
-  the count per set in `tests\upstream\README.md`.
-- [ ] 2.3 Run the 56 upstream `.err` programs with `--list` against the release build; add the ones that pass to
-  `pass.list`. Record the new "x of 279".
+  Done 2026-10-04: judged by the summary line (`N errors (M not supported yet)`, pass when N > M), not by
+  `error:` lines, so a failed C++ build (clang prints `file:line:col: error:`) or an internal compiler error
+  (exit code 3) never counts as a rejection; applies to the compile and the corpus suite.
+- [x] 2.2 `inputs.rs`: `tests\known_parse_gaps.list` (D1), with the spec scenarios as tests. Generate it; record
+  the count per set in `tests\upstream\README.md`. Done 2026-10-04: 673 of 1,139 files (the estimate of 790
+  counted include files of the other sets too).
+- [x] 2.3 Run the 56 upstream `.err` programs with `--list` against the release build; add the ones that pass to
+  `pass.list`. Record the new "x of 279". Done 2026-10-04: 2 pass, but only through the parse gap at
+  `f(10).a(5)` (task 5.1), so neither is added; still **10 of 279** (`tests\upstream\README.md`).
 
 ## 3. Measurements (M1–M8)
 
-- [ ] 3.1 Write and run `verification\v16_*` for M1–M8 with `qb64pe.exe` (`run.sh`), record outputs, and note
+- [x] 3.1 Write and run `verification\v16_*` for M1–M8 with `qb64pe.exe` (`run.sh`), record outputs, and note
   the findings in `study\00` §5. Update this design where a finding changes a decision (and say so in the
-  decision).
+  decision). Done 2026-10-05: 94 programs (4 added by the reviews; include files in `v16_inc\`). Eight decisions
+  changed: (1) `$IF` and blocks nest properly, `$IF` is an entry on the parser's block stack (D8, spec); (2) only
+  comment `$INCLUDE` exists (D9, spec); (3) include depth 100, not 32 (D9, spec); (4) lookup in the including
+  file's folder, then the compiler root (`--include-root`, default the exe's folder), never the main file's folder
+  or the working directory (D9, both specs); (5) no cycle check (D9, spec); (6) `DATA` ends only at `:` (D3);
+  (7) `a(2) .b` is member access (D3); (8) every block crossing tried is rejected, crossing files is accepted (D4).
+  Open question closed.
 
 ## 4. Many files at once: keys, loader, trees (D9, D10 keys)
 
@@ -62,8 +73,9 @@ passes with the release build. "Verify" below names what is checked on top of th
 
 - [ ] 7.1 Metacommands: `syntax::meta` splits `$NAME[:arg]` per `qb64pe.bas` (read, cite the lines); `$IF`/
   `$ELSEIF`/`$ELSE`/`$END IF`/`$LET`/`$ERROR` evaluated with `PpState` (per M6), `InactiveCode` node. `sema`:
-  inactive code is skipped; active `$ERROR` is a real error. Verify: `parse-ok` tests with a `$IF` splitting a
-  block; the 55 `$IF` files leave `known_parse_gaps.list` where nothing else is missing.
+  inactive code is skipped; active `$ERROR` is a real error. Verify: `parse-ok` tests with a `$IF` inside a block
+  and an inactive block header; a `check-fail` test for a header in an active `$IF` closed outside it (M6, D8); the
+  55 `$IF` files leave `known_parse_gaps.list` where nothing else is missing.
 - [ ] 7.2 Declarations (`decl.rs`): every `DIM`/`REDIM` form, `CONST`, `DEFxxx`, `_DEFINE`, `COMMON`, `ERASE`,
   `OPTION`, `SUB … STATIC`, array parameters. `sema` marks what it does not compile.
 - [ ] 7.3 Control transfer (`flow.rs`): `GOTO`, `GOSUB`, `RETURN`, `ON … GOTO/GOSUB`, event `ON …` forms, `STOP`.
@@ -75,10 +87,14 @@ passes with the release build. "Verify" below names what is checked on top of th
 
 ## 8. Included files and follow-on errors (D9, D10)
 
-- [ ] 8.1 The driver's file loader (path resolution per M7), `$INCLUDE`, comment `$INCLUDE` (replaces the marking
-  of 1.1 for `$INCLUDE`), `$INCLUDEONCE`; errors for missing files, depth and cycles. Verify: the upstream
-  `include_once\*` and `include_paths\*` programs pass tier 2 and go into `pass.list`; `qb64pe-source/` files are
-  parsed through `qb64pe.bas`'s includes (clone present).
+- [ ] 8.1 The driver's file loader (path resolution per M7: including file's folder, then the compiler root),
+  `--include-root` (default the exe's folder; CLI spec), comment `$INCLUDE` (replaces the marking of 1.1 for
+  `$INCLUDE`; a bare `$INCLUDE:` stays an error, M1), `$INCLUDEONCE`; errors for missing files and depth (100, no
+  cycle check; the error names the deepest file); blocks crossing an include boundary (M7). `run_legacy_tests.py`
+  passes `--include-root tests/upstream` to `qb64rust`, and the loader in `inputs.rs` (tier 1) uses the same root.
+  Verify: a `check-ok` test for the guarded self-include (`v16_m7_self_guarded`); the upstream `include_once\*` and
+  `include_paths\*` programs (including `include_fixed_compile_location`, `include_multiple`) pass tier 2 and go
+  into `pass.list`; `qb64pe-source/` files are parsed through `qb64pe.bas`'s includes (clone present).
 - [ ] 8.2 Unknown names after unsupported declarations (D10); the auto-include name list from
   `extract_builtins.py` (re-run it; `builtins.json` gains the names with their source file); `_GL` and built-in
   assignment targets marked. Verify: the type-error and reserved-name entries leave `known_false_errors.list`; any

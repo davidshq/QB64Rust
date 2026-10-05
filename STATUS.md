@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-04 (session 12). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-05 (session 13). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
@@ -169,10 +169,16 @@ of `study\20` §4):
 
 1. OpenSpec change `m2-upstream-tests`: done and archived; its CI job still to be seen green after a push (above).
 2. Parser breadth, the whole language: OpenSpec change **`m2-parser-breadth`** (started 2026-10-04;
-   `openspec\changes\m2-parser-breadth\`). Done: task 1.1 (the wrong-code fix, comment metacommands) and 1.2 (panic
-   hook: "internal compiler error", exit code 3). Next: the `.err` meaning (2.1); then a third shrink-only list
-   (`tests\known_parse_gaps.list`, about 790 accepted files that do not parse cleanly today: 491 of 1,280 do),
-   measurements `v16_*`, `sema` keyed by (`TreeId`, offset), blocks, statements, `specialformat` templates (new
+   `openspec\changes\m2-parser-breadth\`). Done: task 1.1 (the wrong-code fix, comment metacommands), 1.2 (panic
+   hook: "internal compiler error", exit code 3), and group 2: the tier-2 `.err` meaning in the runner (judged
+   by the summary line), the third shrink-only list `tests\known_parse_gaps.list` (**673 of 1,139** files do not
+   parse cleanly), and the 56 upstream `.err` programs run: 54 only marked, 2 pass only through a parse gap and
+   are not added, so still **10 of 279** (`tests\upstream\README.md`). Task 3.1 done 2026-10-05: 94
+   measurement programs `verification\v16_*` (M1–M8, four added by the reviews), findings in `study\00` §5;
+   they changed eight design decisions (listed in task 3.1), among them: `$IF` and blocks must nest properly;
+   only comment `$INCLUDE`; includes found next to the including file, then under a compiler root
+   (`--include-root`, default the exe's folder, as the old compiler uses its own folder); depth 100, no cycle
+   check. Next: `sema` keyed by (`TreeId`, offset), blocks, statements, `specialformat` templates (new
    dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree per file, and no follow-on errors after an
    unsupported declaration. Done when the parse-gap and false-error lists are empty.
 3. A thin language server (diagnostics, go to definition) in the extension.

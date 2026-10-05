@@ -1,0 +1,5 @@
+
+Invalid Syntax.  $LET <flag> = <value>
+Caused by (or after):
+LINE 3:$LET E
+exit=1

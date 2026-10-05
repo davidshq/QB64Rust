@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):10 PRINT "b",1
+LINE 3:PRINT "a": 10 PRINT "b"
+exit=1

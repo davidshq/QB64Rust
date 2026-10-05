@@ -73,14 +73,17 @@ or `$DYNAMIC` as "not supported yet", which removes the wrong code found in `m2-
 programs). D9 later compiles `'$INCLUDE`; `$STATIC`/`$DYNAMIC` stay marked until arrays.
 
 ### D3. Lexer changes
-- `.` directly followed by a name character, after a token that can end an operand (`)`), is a `Dot` token, so
-  `a(1).b` lexes as `a ( 1 ) . b`. `a.b` stays one `Ident` (QB64 names may contain dots; `sema` decides between
-  a dotted name and member access, as the old compiler does).
+- `.` after a token that can end an operand (`)`), with or without blanks on either side, followed by a name, is
+  a `Dot` token, so `a(1).b` lexes as `a ( 1 ) . b`; `a(2) .b` and `a(2). b` are member access too (M8). `a.b`
+  stays one `Ident` (QB64 names may contain dots; `sema` decides between a dotted name and member access, as the
+  old compiler does: without a `TYPE` variable `a`, `a.b` is a plain variable, M8).
 - `DATA` at the start of a statement switches the lexer to data mode: the rest of the statement becomes one
-  `DataText` token (items and commas are split by the parser from the bytes, never re-tokenized). Where data mode
-  ends (`:` outside quotes, `'`) is measured first (M2) and written in the lexer's comment.
+  `DataText` token (items and commas are split by the parser from the bytes, never re-tokenized). Measured (M2):
+  data mode ends only at a `:` outside quotes or the line end; `'` and `REM` inside an unquoted item are data.
 - A `Number` at the start of a line (not after `:`) is a line number; the lexer does not change, the parser gives
-  it a `LineNumber` node. Forms measured in M3.
+  it a `LineNumber` node. Measured (M3): decimals (`10.5`), a suffix (`10&`), numbers above 32 bits and a number
+  glued to the statement (`10PRINT`) are accepted; a label may follow the number (`10 lab:`) but not precede it
+  (`lab: 10` is a syntax error); a number after `:` is a syntax error.
 
 ### D4. Blocks are nodes
 Every block statement becomes a node holding its header, body and closer, like `ProcDef`: `IfBlock` (branches
@@ -94,11 +97,15 @@ Recovery (the parser keeps one error per statement): the parser keeps a stack of
 matches the innermost block closes it; a closer that matches an outer block is an error at the closer ("`END IF`
 without `IF`" style, wording measured in M4) when the old compiler rejects it, and the innermost block then ends
 at the end of its parent; a missing closer is an error at the block's header; a `SUB`/`FUNCTION` header still ends
-every open block (as now for procedures). `NEXT i, j` closes two `FOR` blocks: the `NextStmt` is the closer of the
+every open block (as now for procedures) except `$IF` entries (D8: a whole `SUB` inside an active `$IF` is
+accepted). `NEXT i, j` closes two `FOR` blocks: the `NextStmt` is the closer of the
 inner block, and the outer `ForBlock` records that it was closed by its child (an accessor, not a second node).
-Crossing forms the old compiler accepts (M4: `NEXT` inside an `IF` closing an outer `FOR`, `EXIT` forms, a block
-opened in one file and closed in an included one) are written down; any it accepts that does not fit a tree is
-reported "not supported yet" at the closer, never as a syntax error.
+Crossing forms the old compiler accepts are written down; any it accepts that does not fit a tree is reported "not
+supported yet" at the closer, never as a syntax error. Measured (M4, M7): it **rejects** every crossing tried
+(`NEXT` inside an `IF` closing an outer `FOR`, `LOOP` closing a `WHILE`, `DO`/`FOR` crossed), so a block tree
+fits; it **accepts** `EXIT FOR`/`EXIT DO` from inside nested other blocks, and a block opened in one file and
+closed in an included one (`FOR` … `NEXT`, `SUB` … `END SUB`, M7), which D9 must handle. Single-line `IF`: each
+`ELSE` belongs to the innermost `IF`; `ELSE IF` is an `ELSE` branch holding a new `IfBlock`.
 
 ### D5. Statements: one module per family
 `parser\` gets one module per family, dispatched by the first word as now (FreeBASIC lesson L1): `flow.rs`
@@ -145,9 +152,23 @@ name = value`, `$ERROR text` are **evaluated in the parser**, in file order, wit
 the predefined ones: the condition grammar and the predefined names, such as `WIN`, `WINDOWS`, `LINUX`, `MAC`,
 `32BIT`, `64BIT`, `VERSION`, are read from `qb64pe.bas` and checked with M6). The target is Windows 64-bit. An
 inactive branch becomes one `InactiveCode` node holding its tokens (lexed, not parsed, so lossless); nested
-`$IF`s inside it are counted to find its end. `$IF` lines are statements, not block nodes, because the old
-compiler works per line and a `$IF` may split a block (`$IF WIN THEN` / `IF a THEN` / `$ELSE` / `IF b THEN` /
-`$END IF` / … / `END IF` gives one `IfBlock` with an `InactiveCode` inside). An active `$ERROR` is a real error.
+`$IF`s inside it are counted to find its end. `$IF` lines are statements, not block nodes. An active `$ERROR` is
+a real error.
+
+Changed by M6 (2026-10-05): the design said a `$IF` may split a block (`$IF WIN THEN` / `IF a THEN` / `$ELSE` /
+`IF b THEN` / `$END IF` / … / `END IF`). The old compiler rejects that ("END IF without IF"), even with a single
+header inside an active `$IF`; a `$IF` inside a block is fine. The cause (`qb64pe.bas` 3430–3436): `$IF` pushes an
+entry on the block stack and `$END IF` pops the top entry, whatever it is. Measured in the review (2026-10-05):
+an `IF` opened before a `$IF` and closed inside it is rejected too, a whole `SUB` inside an active `$IF` is
+accepted, and `EXIT FOR` works from inside a `$IF` inside a `FOR`. So the parser does the same: an active `$IF`
+is an entry on its block stack, and a closer that does not match the top entry (a block closer meeting the `$IF`
+entry, or `$ELSE`/`$END IF` meeting a block) is a real error; `SUB`/`FUNCTION` headers and `EXIT` look past the
+`$IF` entry. Proper nesting falls out of the stack, with no special case and no splitting. The error is reported
+where the nesting breaks: at the `$ELSE`/`$END IF` that meets an open block (the old compiler, whose `$END IF`
+pops without checking, reports the later `END IF` instead; our messages are new anyway). Also measured:
+`$IF`/`$LET` only at the start of a line (after `:` or in a single-line `IF`: real error); conditions as in
+`study\00` §5 (no `NOT`, no parentheses; `DEFINED(A)` and `(A = 1)` are silently false, which we follow);
+`$LET` of a predefined name does not override it.
 
 ### D9. Included files: one tree per inclusion
 - The parser does no I/O. `parse` takes an `&mut dyn Loader` (`fn load(&mut self, from: FileId, path: &[u8]) ->
@@ -158,9 +179,24 @@ compiler works per line and a `$IF` may split a block (`$IF WIN THEN` / `IF a TH
   of the include statement) to the included tree. The same file included twice gives two trees (they may differ by
   `$IF` state); `$INCLUDEONCE` in a file makes later inclusions of it empty (the old compiler's rule: read in
   `qb64pe.bas` 3141–3165, the `$INCLUDEONCE` line itself).
-- Path resolution as the old compiler does it (read and measured in M7; the upstream tests `include_paths\*` and
-  `include_once\*` are the check). Missing file, empty name: real errors at the include; depth over 32 or a cycle:
-  real error.
+- Path resolution as the old compiler does it (the upstream tests `include_paths\*` and `include_once\*` are the
+  check). Read in `qb64pe.bas` 3120–3171 and measured (M7, 2026-10-05): a leading `.\` or `./` is dropped; the
+  including file's folder first (the main file's folder at the top level), then the path as written relative to
+  the compiler's own folder (every QB64 program changes to its exe's folder at start, `libqb.cpp` 25997); the main
+  file's folder is not searched for a nested include, and the caller's working directory plays no part. We do the
+  same with a **compiler root**: by default the folder of `qb64rust.exe`, set with `--include-root <dir>`; an
+  absolute include path is used as written. The tier-2 runner passes `--include-root tests/upstream`, and tier 1's
+  loader in `inputs.rs` uses the same root, so the upstream tests that include `'tests/compile_tests/extra/…'`
+  (`include_fixed_compile_location`, `include_multiple`) resolve against our copy in both tiers.
+  Missing file, empty name: real errors at the include. Changed by M7: the depth limit is **100** (the old
+  compiler's, "Too many indwelling INCLUDE files"), not 32. Changed by the review (2026-10-05): **no cycle check**,
+  as in the old compiler; a file that includes itself under a `$IF` whose condition a `$LET` changes ends on its
+  own and is accepted there (measured: `verification\v16_m7_self_guarded`), so a cycle check would be a false
+  error. Past the limit, the error names the file at
+  the deepest level instead of listing every level.
+- Changed by M1 (2026-10-05): only the comment forms exist (`'$INCLUDE:'f'`, `REM $INCLUDE:'f'`, also after a
+  statement on the same line, blanks around the colon allowed); `$INCLUDE:'f'` without a comment is a syntax error
+  in the old compiler, and stays a real error here.
 - Each tree is lossless for its file. `--dump tree` prints every tree, headed by its file name.
 - A file's tree is parsed as statements at file level; whether its content is legal at the include point (a `SUB`
   in a file included inside a `SUB`) is checked by `sema` against the old compiler's verdict (M7).
@@ -229,5 +265,4 @@ compiler works per line and a `$IF` may split a block (`$IF WIN THEN` / `IF a TH
 
 ## Open Questions
 
-- Where exactly an active `$IF` may appear inside a single-line `IF` or after `:`. M6 decides; until then, only at
-  the start of a line.
+- None left. (Where a `$IF` may appear: decided by M6, only at the start of a line.)

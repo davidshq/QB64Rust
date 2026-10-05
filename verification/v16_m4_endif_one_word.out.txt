@@ -1,0 +1,3 @@
+one
+else if
+exit=0

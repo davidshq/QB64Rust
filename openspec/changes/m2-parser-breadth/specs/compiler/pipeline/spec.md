@@ -12,7 +12,7 @@ line ends, inactive `$IF` branches and any text it could not parse.
 - **THEN** printing each tree gives the file's exact bytes, and no parse panics
 
 #### Scenario: Round trip of an included file
-- **WHEN** a program includes `lib.bi` with `$INCLUDE:'lib.bi'`
+- **WHEN** a program includes `lib.bi` with `'$INCLUDE:'lib.bi'`
 - **THEN** printing the main tree gives the main file's bytes, and printing the included tree gives `lib.bi`'s
   bytes
 
@@ -71,15 +71,45 @@ SHALL be an error.
 - **WHEN** a program contains `$IF LINUX THEN`, a line that is not valid BASIC, and `$END IF`
 - **THEN** no error is reported for that line
 
+#### Scenario: Block header in a $IF branch, closer outside
+- **WHEN** a program contains `$IF WIN THEN`, `IF x THEN`, `$END IF`, a statement and `END IF`
+- **THEN** the compile fails with an error at the `$END IF` (the old compiler rejects it too, reporting the
+  `END IF`)
+
+#### Scenario: SUB inside a $IF branch
+- **WHEN** a program contains `$IF WIN THEN`, a whole `SUB` … `END SUB`, and `$END IF`
+- **THEN** no error is reported for the nesting
+
+#### Scenario: Guarded self-include
+- **WHEN** `a.bi` contains `$IF DONE = UNDEFINED THEN`, `$LET DONE = 1`, `'$INCLUDE:'a.bi'` and `$END IF`, and the
+  main file includes `a.bi`
+- **THEN** no error is reported, and `a.bi` is parsed twice, the second time with the branch inactive
+
 #### Scenario: $LET in an included file
 - **WHEN** `lib.bi` contains `$LET FAST = 1` and the main file, after including it, contains `$IF FAST = 1 THEN`
 - **THEN** the branch is active
 
 ### Requirement: Included files
-`$INCLUDE:'file'` SHALL include the file, found as the old compiler finds it, after the line it is on.
-`$INCLUDEONCE` in a file SHALL make later inclusions of that file empty. A missing file, an empty name, an
-inclusion deeper than 32 levels, or a cycle SHALL be an error at the include. Diagnostics in an included file SHALL
-name that file and its line and column.
+A comment `'$INCLUDE:'file'` (or `REM $INCLUDE:'file'`) SHALL include the file after the line it is on;
+`$INCLUDE:'file'` without a comment SHALL be an error, as in the old compiler. An absolute path SHALL be used as
+written; a relative one SHALL be looked up in the including file's folder, then relative to the compiler root (see
+the CLI spec), never relative to the working directory. `$INCLUDEONCE` in a file SHALL make later inclusions of that file empty. A missing file, an empty name,
+or an inclusion deeper than 100 levels SHALL be an error at the include; a file that includes itself SHALL NOT be
+an error by itself. Diagnostics in an included file SHALL name that file and its line and column.
+
+#### Scenario: Nested include not looked up in the main file's folder
+- **WHEN** the main file includes `sub/a.bi`, `sub/a.bi` includes `b.bi`, and `b.bi` exists only next to the
+  main file (and not under the compiler root)
+- **THEN** the compile fails with "file not found" at the include in `sub/a.bi`
+
+#### Scenario: Include relative to the compiler root
+- **WHEN** a program includes `'$INCLUDE:'extra/x.bi'`, which exists only under the directory given with
+  `--include-root`
+- **THEN** that file is included
+
+#### Scenario: Include without a comment
+- **WHEN** a program contains `$INCLUDE:'lib.bi'` (no `'` or `REM`)
+- **THEN** the compile fails with an error at that line
 
 #### Scenario: Error in an included file
 - **WHEN** `lib.bm` has a syntax error on its line 4 and the main file includes it
