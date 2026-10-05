@@ -124,9 +124,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// At a line end, a `:` or the end of the file.
+    /// At a line end, a `:`, a metacommand comment or the end of the file.
     fn at_stmt_end(&self) -> bool {
-        matches!(self.current(), None | Some(Newline) | Some(Colon))
+        ends_stmt(self.current())
     }
 
     // ---- tree building ----
@@ -249,7 +249,7 @@ impl<'a> Parser<'a> {
         let mut depth = 0i32;
         while let Some(k) = self.current() {
             match k {
-                Newline => break,
+                Newline | MetaComment => break,
                 Colon if depth <= 0 => break,
                 LParen => depth += 1,
                 RParen => depth -= 1,
@@ -316,6 +316,7 @@ impl<'a> Parser<'a> {
         match self.current() {
             None | Some(Newline) | Some(Colon) => {}
             Some(Metacommand) => meta::metacommand(self),
+            Some(MetaComment) => meta::meta_comment(self),
             Some(Question) => print::print_stmt(self),
             Some(Ident) => self.word_statement(),
             Some(Number) => {
@@ -379,7 +380,7 @@ impl<'a> Parser<'a> {
                         return self.nth(n + 1) == Some(Eq);
                     }
                 }
-                None | Some(Newline) => return false,
+                None | Some(Newline) | Some(MetaComment) => return false,
                 _ => {}
             }
             n += 1;
@@ -392,7 +393,7 @@ impl<'a> Parser<'a> {
     }
 
     fn end_stmt(&mut self) {
-        if self.nth(1).is_none_or(|k| matches!(k, Newline | Colon)) {
+        if ends_stmt(self.nth(1)) {
             self.start_node(EndStmt);
             self.bump();
             self.finish_node();
@@ -412,7 +413,7 @@ impl<'a> Parser<'a> {
 
     /// `SYSTEM` without an exit code.
     fn system_stmt(&mut self) {
-        if self.nth(1).is_none_or(|k| matches!(k, Newline | Colon)) {
+        if ends_stmt(self.nth(1)) {
             self.start_node(SystemStmt);
             self.bump();
             self.finish_node();
@@ -435,6 +436,11 @@ impl<'a> Parser<'a> {
         self.unsupported(format!("statement `{word}`"));
         self.recover();
     }
+}
+
+/// Whether a token of kind `k` (`None`: the end of the file) ends a statement.
+pub(crate) fn ends_stmt(k: Option<SyntaxKind>) -> bool {
+    matches!(k, None | Some(Newline | Colon | MetaComment))
 }
 
 /// A name without its type suffix (`a$` -> `a`).

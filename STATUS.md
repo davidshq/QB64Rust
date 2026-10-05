@@ -152,13 +152,15 @@ pass locally against the downloaded release. Check it after the next push and ti
 - Bugs found and fixed on the way: `#line` wrote `\` in a path as `\134`, which clang rejects (any absolute
   Windows path failed to build); build folders with spaces, `$` or `'` in the name broke `make` (every
   compile-suite program, `<test> - output.exe`); the runner's stale-file cleanup failed on kept build folders.
-- **Found, not fixed: wrong code.** Comment metacommands (`'$INCLUDE: 'x.bm'`, `REM $INCLUDE`) are ignored as
+- **Found, fixed 2026-10-04 (`m2-parser-breadth` task 1.1: comment `$INCLUDE`/`$STATIC`/`$DYNAMIC` are now "not
+  supported yet", a malformed comment `$INCLUDE` an error, by the old compiler's rule): wrong code.** Comment metacommands (`'$INCLUDE: 'x.bm'`, `REM $INCLUDE`) are ignored as
   comments, so 4 upstream programs build and print the wrong output (`include_once`, `include_paths`). This breaks
   "never wrong code"; first item of step 2 below: mark them "not supported yet" until `$INCLUDE` is implemented.
-- **Open question:** the runner compares an `.err` program's compiler output with the old text, so the 56 upstream
-  `.err` programs (counted in the 279) cannot pass tier 2 with the new messages. Either the runner treats `.err`
-  as "must fail, no executable" for compilers other than `qb64pe` (the meaning tier 1 already uses), or they leave
-  the denominator.
+- **Decided 2026-10-04 (was an open question):** the runner compared an `.err` program's compiler output with the
+  old text, so the 56 upstream `.err` programs (counted in the 279) could not pass tier 2 with the new messages.
+  For compilers other than `qb64pe`, an `.err` program now passes when the compile fails, writes no executable
+  and reports at least one error not marked "not supported yet"; they stay in the 279 (`CLAUDE.md`; implemented
+  in `m2-parser-breadth` task 2.1).
 - Your index: files staged before `.gitattributes` gained the `-text` lines were stored with LF (7 upstream `.bas`
   show `AM`); staging them again stores the bytes as upstream has them.
 
@@ -166,9 +168,13 @@ pass locally against the downloaded release. Check it after the next push and ti
 of `study\20` §4):
 
 1. OpenSpec change `m2-upstream-tests`: done and archived; its CI job still to be seen green after a push (above).
-2. Parser breadth, the whole language (first: comment metacommands marked "not supported yet", the wrong-code
-   finding above; measured by the two lists): blocks, control flow, labels, line numbers, `DATA`, comment metacommands,
-   `$IF`/`$INCLUDE`, the `specialformat` statements; `sema` keyed by (`FileId`, offset). Panic hook at the start.
+2. Parser breadth, the whole language: OpenSpec change **`m2-parser-breadth`** (started 2026-10-04;
+   `openspec\changes\m2-parser-breadth\`). Done: task 1.1 (the wrong-code fix, comment metacommands) and 1.2 (panic
+   hook: "internal compiler error", exit code 3). Next: the `.err` meaning (2.1); then a third shrink-only list
+   (`tests\known_parse_gaps.list`, about 790 accepted files that do not parse cleanly today: 491 of 1,280 do),
+   measurements `v16_*`, `sema` keyed by (`TreeId`, offset), blocks, statements, `specialformat` templates (new
+   dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree per file, and no follow-on errors after an
+   unsupported declaration. Done when the parse-gap and false-error lists are empty.
 3. A thin language server (diagnostics, go to definition) in the extension.
 4. Bug-compatibility decisions (`study\00` §6), then the differential tester, `Ty` as a type table, unsigned types.
 5. Plain built-ins (249 of 455), table-driven, with generated tests.

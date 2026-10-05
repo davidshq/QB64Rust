@@ -28,6 +28,8 @@ node_wrapper!(
     SourceFile,
     /// `$CONSOLE:ONLY` and other metacommands.
     MetaStmt,
+    /// A metacommand comment (`'$INCLUDE:'x.bi'`, `REM $DYNAMIC`).
+    MetaCommentStmt,
     PrintStmt,
     DimStmt,
     DimItem,
@@ -74,6 +76,13 @@ impl MetaStmt<'_> {
     /// The `Metacommand` token: `$` and the rest of the line.
     pub fn token(self) -> Option<Tok> {
         self.0.child_tokens().find(|t| t.kind == Metacommand)
+    }
+}
+
+impl MetaCommentStmt<'_> {
+    /// The `MetaComment` token: `'` or `REM` and the rest of the line.
+    pub fn token(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == MetaComment)
     }
 }
 

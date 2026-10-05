@@ -3,6 +3,7 @@
 pub mod ast;
 mod kind;
 pub mod lexer;
+pub mod meta;
 mod parser;
 pub mod tree;
 

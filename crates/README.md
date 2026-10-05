@@ -6,7 +6,7 @@ The new compiler, `qb64rust`. One crate per pipeline stage, so the layering is e
 | Crate | Package | What it holds |
 |---|---|---|
 | `base` | `qb64rust-base` | `FileId`, byte `Span`, `SourceMap` with the line index (CR LF, LF, lone CR), `Diagnostic`, the 100-error cap |
-| `syntax` | `qb64rust-syntax` | Byte lexer, lossless tree (green nodes + cursor; printing it gives back the file byte for byte), parser with one module per statement family (`parser\keywords.rs`: the reserved words), typed accessors over the tree (`ast.rs`: one wrapper per node kind, every child an `Option` or an iterator) |
+| `syntax` | `qb64rust-syntax` | Byte lexer, lossless tree (green nodes + cursor; printing it gives back the file byte for byte), parser with one module per statement family (`parser\keywords.rs`: the reserved words), typed accessors over the tree (`ast.rs`: one wrapper per node kind, every child an `Option` or an iterator), the old compiler's rule for metacommands in comments (`meta.rs`) |
 | `builtins` | `qb64rust-builtins` | The built-in table, generated at build time from `tools\builtins\builtins.json` |
 | `sema` | `qb64rust-sema` | Procedure table, scopes (main, procedure, `STATIC`, `SHARED`), variables (a name plus a type), labels, literal typing, computation types, explicit conversions, by-reference or by-value arguments, integer constant folding; the typed tree; the symbol table (`symbols.rs`: definition and references of every variable, procedure and label, `Symbols::at` for a position, `dump_symbols`) |
 | `ir` | `qb64rust-ir` | The ABI-neutral IR (no libqb names, no C types: procedures, storage classes, `Arg::Ref`/`Arg::Temp`, handlers and `RESUME` as statement-level rules) and its lowering from the typed tree |
@@ -67,6 +67,10 @@ What the compiler supports so far:
   procedure), `RESUME`, `RESUME NEXT`, `RESUME label`, `ERROR n`, `ERR`, `ERL`, `CHR$`.
 
 Anything else gets a "not supported yet" error, never wrong code.
+
+A panic is reported as `qb64rust: internal compiler error: <message> at <source location>`, with the input file;
+the executable is removed and the exit code is 3 (every other failure exits with 1). `QB64RUST_TEST_PANIC=1`
+panics on purpose, for the CLI test only.
 
 ## Tests
 

@@ -98,10 +98,7 @@ impl Lexer<'_> {
                 self.eat_newline();
                 Newline
             }
-            b'\'' => {
-                self.skip_to_line_end();
-                Comment
-            }
+            b'\'' => self.comment(self.pos),
             b'"' => {
                 self.pos += 1;
                 while let Some(c) = self.peek(0) {
@@ -163,11 +160,20 @@ impl Lexer<'_> {
         }
         // `REM` starts a comment that runs to the end of the line.
         if self.bytes[start..self.pos].eq_ignore_ascii_case(b"REM") {
-            self.skip_to_line_end();
-            return Comment;
+            return self.comment(start);
         }
         self.suffix();
         Ident
+    }
+
+    /// The rest of a comment that started at `start`: `Comment`, or `MetaComment` when it is a metacommand comment.
+    fn comment(&mut self, start: usize) -> SyntaxKind {
+        self.skip_to_line_end();
+        if crate::meta::is_meta_comment(&self.bytes[start..self.pos]) {
+            MetaComment
+        } else {
+            Comment
+        }
     }
 
     fn suffix(&mut self) {

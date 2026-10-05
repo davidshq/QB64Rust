@@ -1,0 +1,10 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+comment_metacommands.bas:4:1: error: not supported yet: metacommand `$INCLUDE` in a comment
+comment_metacommands.bas:5:1: error: not supported yet: metacommand `$DYNAMIC` in a comment
+comment_metacommands.bas:6:9: error: not supported yet: metacommand `$STATIC` in a comment
+comment_metacommands.bas:10:1: error: not supported yet: metacommand `$DYNAMIC` in a comment
+comment_metacommands.bas:11:1: error: expected `$INCLUDE:'filename'`

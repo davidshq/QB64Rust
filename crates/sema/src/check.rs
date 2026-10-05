@@ -16,6 +16,7 @@ use qb64rust_builtins::{BuiltinId, find_any, find_function};
 use qb64rust_syntax::SyntaxKind::{self, Minus, Number, Plus, Slash, Star};
 use qb64rust_syntax::ast::{self, PrintPart};
 use qb64rust_syntax::is_keyword;
+use qb64rust_syntax::meta::{MemoryMode, comment_directives};
 use qb64rust_syntax::tree::{Node, Tok};
 use std::collections::{HashMap, HashSet};
 
@@ -284,6 +285,8 @@ impl Checker<'_> {
     fn statement(&mut self, node: Node) {
         let _ = if let Some(s) = ast::MetaStmt::cast(node) {
             self.meta(s)
+        } else if let Some(s) = ast::MetaCommentStmt::cast(node) {
+            self.meta_comment(s)
         } else if let Some(s) = ast::PrintStmt::cast(node) {
             self.print(s)
         } else if let Some(s) = ast::DimStmt::cast(node) {
@@ -337,6 +340,21 @@ impl Checker<'_> {
         } else {
             let shown = show_bytes(raw.split(|&b| b == b':' || b == b' ').next().unwrap_or(raw));
             Err(self.unsupported(tok.span, format!("metacommand `{shown}`")))
+        }
+    }
+
+    /// A metacommand comment. Its `$INCLUDE`, `$STATIC` and `$DYNAMIC` are never ignored (that gave wrong code):
+    /// they are not supported yet; a malformed `$INCLUDE` is an error, as in the old compiler.
+    fn meta_comment(&mut self, stmt: ast::MetaCommentStmt) -> R<()> {
+        let tok = self.need(stmt.token(), stmt.node().span())?;
+        match comment_directives(self.text(tok.span)) {
+            Err(msg) => Err(self.error(tok.span, msg)),
+            Ok(d) if d.include.is_some() => Err(self.unsupported(tok.span, "metacommand `$INCLUDE` in a comment")),
+            Ok(d) => match d.memory {
+                Some(MemoryMode::Static) => Err(self.unsupported(tok.span, "metacommand `$STATIC` in a comment")),
+                Some(MemoryMode::Dynamic) => Err(self.unsupported(tok.span, "metacommand `$DYNAMIC` in a comment")),
+                None => Ok(()),
+            },
         }
     }
 

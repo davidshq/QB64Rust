@@ -11,6 +11,9 @@ pub enum SyntaxKind {
     Comment,
 
     // ---- tokens ----
+    /// A comment whose text after `'` or `REM` starts with `$` (`'$INCLUDE:'x.bi'`), without the line end. Not
+    /// trivia: it ends the statement before it and is a statement of its own (`MetaCommentStmt`; `crate::meta`).
+    MetaComment,
     /// CR LF, LF or a lone CR.
     Newline,
     /// `$` at the start of a statement and the rest of the line (`$CONSOLE:ONLY`).
@@ -53,6 +56,8 @@ pub enum SyntaxKind {
     /// Tokens of a statement the parser could not handle, kept for the round trip.
     Error,
     MetaStmt,
+    /// A `MetaComment` token as a statement.
+    MetaCommentStmt,
     PrintStmt,
     DimStmt,
     DimItem,

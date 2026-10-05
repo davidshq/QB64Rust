@@ -4,8 +4,10 @@
 //! [--qb64pe-root <dir>] [--keep-build]`
 
 use qb64rust_driver::{build, dump_cpp, dump_ir, emit, frontend};
+use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::sync::Mutex;
 
 const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--keep-build]";
@@ -75,7 +77,48 @@ fn parse_args() -> Result<Options, String> {
     Ok(o)
 }
 
+/// What the panic hook needs to know about the run: the input file, and the executable to remove (none in `--dump`
+/// and `-z` runs, which never touch it).
+struct PanicContext {
+    input: Option<String>,
+    exe: Option<PathBuf>,
+}
+
+static PANIC_CONTEXT: Mutex<PanicContext> = Mutex::new(PanicContext { input: None, exe: None });
+
+/// Exit code of an internal compiler error; every other failure exits with 1 (spec `compiler/cli`).
+const ICE_EXIT_CODE: i32 = 3;
+
+/// A panic is an internal compiler error (`study\21` item 6, design D11 of `m2-parser-breadth`): one message with
+/// its location and the input file, no executable left behind, exit code 3.
+fn install_panic_hook() {
+    std::panic::set_hook(Box::new(|info| {
+        let payload = info.payload();
+        let msg = payload
+            .downcast_ref::<&str>()
+            .copied()
+            .or_else(|| payload.downcast_ref::<String>().map(String::as_str))
+            .unwrap_or("(no message)");
+        let at = info
+            .location()
+            .map_or(String::new(), |l| format!(" at {}:{}", l.file(), l.line()));
+        // A panic while the lock was held must not hide the report.
+        let ctx = PANIC_CONTEXT.lock().unwrap_or_else(|e| e.into_inner());
+        println!("qb64rust: internal compiler error: {msg}{at}");
+        if let Some(input) = &ctx.input {
+            println!("qb64rust: while compiling {input}");
+        }
+        println!("qb64rust: this is a bug in qb64rust, not in the program");
+        if let Some(exe) = &ctx.exe {
+            let _ = std::fs::remove_file(exe);
+        }
+        let _ = std::io::stdout().flush();
+        std::process::exit(ICE_EXIT_CODE);
+    }));
+}
+
 fn main() -> ExitCode {
+    install_panic_hook();
     match run() {
         Ok(code) => code,
         Err(msg) => {
@@ -97,6 +140,20 @@ fn run() -> Result<ExitCode, String> {
         ));
     }
     let name = input.to_string_lossy().to_string();
+    let exe = match &o.output {
+        Some(p) => p.clone(),
+        None => input.with_extension("exe"),
+    };
+    let exe = std::path::absolute(&exe).map_err(|e| e.to_string())?;
+    {
+        let mut ctx = PANIC_CONTEXT.lock().unwrap_or_else(|e| e.into_inner());
+        ctx.input = Some(name.clone());
+        ctx.exe = (o.dump.is_none() && !o.cpp_only).then(|| exe.clone());
+    }
+    // For the CLI test of the panic hook only.
+    if std::env::var_os("QB64RUST_TEST_PANIC").is_some_and(|v| v == "1") {
+        panic!("QB64RUST_TEST_PANIC=1 is set");
+    }
 
     if o.dump.as_deref() == Some("tokens") {
         print!("{}", qb64rust_syntax::dump_tokens(&bytes));
@@ -127,11 +184,6 @@ fn run() -> Result<ExitCode, String> {
         });
     }
 
-    let exe = match &o.output {
-        Some(p) => p.clone(),
-        None => input.with_extension("exe"),
-    };
-    let exe = std::path::absolute(&exe).map_err(|e| e.to_string())?;
     let optimize = optimize_setting(&o.settings).inspect_err(|_| {
         let _ = std::fs::remove_file(&exe);
     })?;

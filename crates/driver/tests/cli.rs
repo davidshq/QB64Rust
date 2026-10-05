@@ -176,3 +176,36 @@ fn no_clone_found() {
     );
     assert!(!d.join("p.exe").exists());
 }
+
+/// Scenario "Forced panic" (change `m2-parser-breadth`, D11).
+#[test]
+fn internal_compiler_error() {
+    let d = scratch("ice");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let run = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_qb64rust"))
+            .current_dir(&d)
+            .env("QB64RUST_TEST_PANIC", "1")
+            .args(args)
+            .output()
+            .unwrap()
+    };
+
+    std::fs::write(d.join("p.exe"), b"stale").unwrap();
+    let o = run(&["-q", "p.bas"]);
+    assert_eq!(o.status.code(), Some(3));
+    let out = stdout(&o);
+    assert!(
+        out.starts_with("qb64rust: internal compiler error: QB64RUST_TEST_PANIC=1 is set at "),
+        "{out}"
+    );
+    assert!(out.contains("while compiling p.bas"), "{out}");
+    assert!(o.stderr.is_empty(), "the default panic message is replaced");
+    assert!(!d.join("p.exe").exists(), "no executable left behind");
+
+    // A dump never touches the executable.
+    std::fs::write(d.join("p.exe"), b"kept").unwrap();
+    let o = run(&["--dump", "typed", "p.bas"]);
+    assert_eq!(o.status.code(), Some(3));
+    assert!(d.join("p.exe").exists());
+}
