@@ -104,7 +104,11 @@ Crossing forms the old compiler accepts are written down; any it accepts that do
 supported yet" at the closer, never as a syntax error. Measured (M4, M7): it **rejects** every crossing tried
 (`NEXT` inside an `IF` closing an outer `FOR`, `LOOP` closing a `WHILE`, `DO`/`FOR` crossed), so a block tree
 fits; it **accepts** `EXIT FOR`/`EXIT DO` from inside nested other blocks, and a block opened in one file and
-closed in an included one (`FOR` … `NEXT`, `SUB` … `END SUB`, M7), which D9 must handle. Single-line `IF`: each
+closed in an included one (`FOR` … `NEXT`, `SUB` … `END SUB`, M7). Decided 2026-10-05 (`study\23` §2.4): a block
+node cannot span two trees, so such a block is **"not supported yet"**, never a syntax error: a block still open at
+the end of its file, and a closer without an opener in its file, are marked when an include boundary lies between
+them (the block is open where a file is included, or the file being parsed is an included one). The lists show
+whether any input needs more. Single-line `IF`: each
 `ELSE` belongs to the innermost `IF`; `ELSE IF` is an `ELSE` branch holding a new `IfBlock`.
 
 ### D5. Statements: one module per family
@@ -211,17 +215,21 @@ pops without checking, reports the later `END IF` instead; our messages are new 
 - **Marking.** Every new statement or expression kind `sema` does not compile yet gets one "not supported yet"
   diagnostic at its first token, naming it (same words as the parser uses today, so most messages stay). The
   statements inside an unsupported block are still checked, as today.
-- **No follow-on errors.** When a declaration is not supported, what it declares is recorded as *unknown*: the
-  names of `DIM`/`REDIM`/`COMMON`/`SHARED`/`STATIC` items that failed, `CONST` names, `TYPE` names and every
-  variable declared with one, procedures of `DECLARE LIBRARY` and `DEF FN`, and the letter ranges of `DEFxxx` and
-  `_DEFINE` (for implicit variables from that point in file order). An expression or assignment that refers to an
-  unknown name fails silently (`Err(Failed)` with no new diagnostic): the program already has the marked error at
-  the declaration, so it is still rejected, and the type of an unknown is never guessed. Names that the old
+- **No follow-on errors.** Changed 2026-10-05 (`study\23` §2.3; the first design recorded the names of each
+  unsupported declaration as *unknown* and silenced their uses, which is scaffolding that goes away as each
+  feature is compiled). The rule is blunt instead: after the first **declaration** reported "not supported yet", in
+  file order (`DIM`/`REDIM`/`COMMON`/`SHARED`/`STATIC`, `CONST`, a `TYPE` block, `DECLARE LIBRARY`, `DEF FN`,
+  `DEFxxx`, `_DEFINE`), `sema` reports only "not supported yet" errors for the rest of the program; a real error
+  found after that point is dropped (the statement still fails, with no diagnostic). Parser errors are not
+  affected. The program already has the marked error, so it is still rejected, and no type is guessed. Name
+  tracking as first designed is added only for a declaration kind whose new entries in
+  `known_unsupported_rejections.list` the user does not accept on review (D1). Names that the old
   compiler knows and we do not (the constants and functions of the auto-included files, from a list extracted by
   `tools\builtins\extract_builtins.py` from the clone's auto-include files; `_GL`; built-in statement names used as
   assignment targets) get a "not supported yet" error instead of the reserved-name error.
-- **Risk to "rejected stays rejected":** silencing can hide a real error in a program the old compiler rejects. The
-  third list rule (D1) makes every such case visible and reviewed.
+- **Risk to "rejected stays rejected":** dropping real errors can hide one in a program the old compiler rejects
+  (the test engineer's dissent, `study\23` §2.3). The third list rule (D1) makes every such case visible and
+  reviewed.
 
 ### D11. Panic hook and the tier-2 `.err` meaning
 - `main` installs a panic hook: it prints `qb64rust: internal compiler error: <message> at <file>:<line>` and the
@@ -262,7 +270,9 @@ pops without checking, reports the later `END IF` instead; our messages are new 
   lists and M5 show it; a mismatch is a false error, which tier 1 catches.
 - **The preprocessor in the parser** couples parsing to `$LET` state and the target platform. Accepted: the old
   compiler does the same, and only active code has a meaning.
-- **Silencing follow-on errors** can hide a real error (D10). Mitigation: the rejection list and its review rule.
+- **Dropping follow-on errors** can hide a real error (D10). Mitigation: the rejection list and its review rule.
+- **The change pauses after group 6** for the control-flow slice (`study\23` §4 step 3), which may change block
+  nodes or their accessors. Groups 7 to 9 start from whatever that slice leaves.
 - **Tier-1 time**: more work per file. Measured at the end (task 9.2); the budget is a minute.
 
 ## Open Questions

@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-05 (session 14). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-05 (session 15). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
@@ -164,11 +164,26 @@ pass locally against the downloaded release. Check it after the next push and ti
 - Your index: files staged before `.gitattributes` gained the `-text` lines were stored with LF (7 upstream `.bas`
   show `AM`); staging them again stores the bytes as upstream has them.
 
-**Next** (order accepted 2026-10-04 after the second review, `study\22` §5, reasons there; it replaces the order
-of `study\20` §4):
+**Next** (order accepted 2026-10-05 after the third review and panel, `study\23` §4, reasons there; it replaces
+the order of `study\22` §5):
 
-1. OpenSpec change `m2-upstream-tests`: done and archived; its CI job still to be seen green after a push (above).
-2. Parser breadth, the whole language: OpenSpec change **`m2-parser-breadth`** (started 2026-10-04;
+1. Push; see `rust.yml` (with the `tier2` job, task 6.5 of `m2-upstream-tests`), `repo-check.yml` and
+   `vscode-extension.yml` green on GitHub.
+2. `m2-parser-breadth` groups 5 and 6 (member access, `DATA`, line numbers, blocks); state of the change below.
+3. A control-flow slice through to C++, its own OpenSpec change (not proposed yet): `IF`, `FOR`, `DO`, `WHILE`,
+   `GOTO`, `GOSUB`/`RETURN`, `CONST`, `OPTION _EXPLICIT`, labels inside blocks and procedures, `RESUME NEXT` after
+   an error in a block header. First count the corpus and upstream programs blocked only by these. Then the IR
+   review (keep, or merge into the typed tree; `study\20` §3.4).
+4. `m2-parser-breadth` groups 7 to 9, with the blunt follow-on rule and block crossing marked (`study\23` §2.3,
+   §2.4; design D10, D4).
+5. A thin language server in the extension: syntax errors, outline, folding, go to definition for procedures and
+   labels (`study\23` §2.6).
+6. Bug-compatibility decisions (`study\00` §6), then the differential tester, `Ty` as a type table, unsigned types.
+7. Plain built-ins (249 of 455), table-driven, with generated tests.
+8. The rest of control flow (`SELECT CASE`, `ON … GOTO/GOSUB`, `DEFxxx`), then arrays and `TYPE` (storage designed
+   so member arrays fit later).
+
+State of **`m2-parser-breadth`** (started 2026-10-04;
    `openspec\changes\m2-parser-breadth\`). Done: task 1.1 (the wrong-code fix, comment metacommands), 1.2 (panic
    hook: "internal compiler error", exit code 3), and group 2: the tier-2 `.err` meaning in the runner (judged
    by the summary line), the third shrink-only list `tests\known_parse_gaps.list` (**673 of 1,139** files do not
@@ -180,14 +195,10 @@ of `study\20` §4):
    (`--include-root`, default the exe's folder, as the old compiler uses its own folder); depth 100, no cycle
    check. Group 4 done 2026-10-05 (no behaviour change): one `Tree` per file per inclusion in a
    `ParsedProgram`, `parse` takes a `Loader` (none loads anything yet), `sema` keyed by (`TreeId`, offset),
-   `--dump tree` headed per tree. Next: group 5 (`Dot`/`FieldExpr`, `DATA`, line numbers), then blocks,
-   statements, `specialformat` templates (new dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree
-   per file, and no follow-on errors after an unsupported declaration. Done when the parse-gap and false-error lists are empty.
-3. A thin language server (diagnostics, go to definition) in the extension.
-4. Bug-compatibility decisions (`study\00` §6), then the differential tester, `Ty` as a type table, unsigned types.
-5. Plain built-ins (249 of 455), table-driven, with generated tests.
-6. Control flow through the pipeline, with `CONST`, `OPTION _EXPLICIT`, `DEFxxx`.
-7. Arrays and `TYPE` (storage designed so member arrays fit later), then the IR review (`study\20` §3.4).
+   `--dump tree` headed per tree. Next: group 5 (`Dot`/`FieldExpr`, `DATA`, line numbers), then group 6
+   (blocks); the change then pauses for the control-flow slice (step 3 above) and resumes with statements,
+   `specialformat` templates (new dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree per file, and
+   the follow-on rule. Done when the parse-gap and false-error lists are empty.
 
 ## FreeBASIC reviewed (2026-10-03)
 

@@ -115,20 +115,31 @@ an error by itself. Diagnostics in an included file SHALL name that file and its
 - **WHEN** `lib.bm` has a syntax error on its line 4 and the main file includes it
 - **THEN** the error is reported at `lib.bm` line 4
 
+#### Scenario: Block closed in an included file
+- **WHEN** the main file opens a `FOR` and the matching `NEXT` is in a file it includes
+- **THEN** the compile fails with a "not supported yet" error, not a syntax error
+
 #### Scenario: Included twice
 - **WHEN** a file that does not contain `$INCLUDEONCE` is included twice
 - **THEN** it is parsed twice, and the names in each inclusion are distinct symbols
 
 ### Requirement: No follow-on errors after an unsupported construct
-When a declaration is reported "not supported yet", the names it declares (or, for `DEFxxx` and `_DEFINE`, the
-implicit variables of its letter ranges from that point on) SHALL be unknown, and no further error SHALL be
-reported for an expression or statement because it uses an unknown name. Names the old compiler knows but the new
-one does not yet (such as the constants of the auto-included files) SHALL be reported "not supported yet", not as
-reserved names.
+After the first declaration reported "not supported yet", in file order, only "not supported yet" errors SHALL be
+reported by the check of the rest of the program; syntax errors SHALL still be reported. Names the old compiler
+knows but the new one does not yet (such as the constants of the auto-included files) SHALL be reported "not
+supported yet", not as reserved names.
 
 #### Scenario: Fixed-length string not supported
 - **WHEN** a program has `DIM s AS STRING * 5` and then `s = "hello"`
 - **THEN** the only error is the "not supported yet" error at the `DIM`
+
+#### Scenario: Real error after an unsupported declaration
+- **WHEN** a program has `DIM s AS STRING * 5` and, later, a statement that stores a string in a number variable
+- **THEN** the only error is the "not supported yet" error at the `DIM`, and the compile fails
+
+#### Scenario: Real error before an unsupported declaration
+- **WHEN** a program has a statement that stores a string in a number variable and, later, `DIM s AS STRING * 5`
+- **THEN** both errors are reported
 
 #### Scenario: Auto-included constant
 - **WHEN** a program contains `PRINT _TRUE`

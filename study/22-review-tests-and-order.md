@@ -107,7 +107,7 @@ test, though "no panic, exact round trip" and "rejects what the old compiler rej
 | `tests\bootstrap_tests.rs`, `tests\qb64pe_incremental` | Compiling `qb64pe.bas` in phases through extracted sections and stubs, against QB64Fresh's own C output | **The idea is taken, not the files:** reach `qb64pe.bas` (the M4 exit criterion) through its own include files, smallest first |
 | `fuzz\`, `tests\proptest_tests.rs` | No-panic fuzzing of lexer and parser, inputs converted to `str` | Not taken (bytes rule); a fresh seeded mutation test over the corpus instead (§5 step 2) |
 
-## 5. Order of work (accepted 2026-10-04, replaces `study\20` §4)
+## 5. Order of work (accepted 2026-10-04, replaces `study\20` §4; replaced 2026-10-05 by `study\23` §4)
 
 1. Finish `m2-procedures-and-errors` (group 6).
 2. **`m2-upstream-tests`**: copy the upstream text files; tier 1 over upstream, `qbasic_testcases` and the old

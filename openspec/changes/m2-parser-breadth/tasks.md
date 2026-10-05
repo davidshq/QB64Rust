@@ -75,6 +75,9 @@ passes with the release build. "Verify" below names what is checked on top of th
 - [ ] 6.4 `sema` marks every block kind; statements inside are still checked. Verify: `parse-ok` tests per block
   kind; the IF/FOR/DO/SELECT entries leave `known_parse_gaps.list`.
 
+**Pause here** (order of work, `study\23` §4, accepted 2026-10-05): after group 6 the control-flow slice goes
+through to C++ as its own OpenSpec change, with the IR review after it. Groups 7 to 9 resume afterwards.
+
 ## 7. Statements (D5, D8)
 
 - [ ] 7.1 Metacommands: `syntax::meta` splits `$NAME[:arg]` per `qb64pe.bas` (read, cite the lines); `$IF`/
@@ -96,15 +99,19 @@ passes with the release build. "Verify" below names what is checked on top of th
 - [ ] 8.1 The driver's file loader (path resolution per M7: including file's folder, then the compiler root),
   `--include-root` (default the exe's folder; CLI spec), comment `$INCLUDE` (replaces the marking of 1.1 for
   `$INCLUDE`; a bare `$INCLUDE:` stays an error, M1), `$INCLUDEONCE`; errors for missing files and depth (100, no
-  cycle check; the error names the deepest file); blocks crossing an include boundary (M7). `run_legacy_tests.py`
+  cycle check; the error names the deepest file); a block crossing an include boundary is "not supported yet"
+  (D4, changed 2026-10-05; `check-fail` tests from `v16_m7_*`: `FOR` closed in an include, `SUB` closed in one).
+  `run_legacy_tests.py`
   passes `--include-root tests/upstream` to `qb64rust`, and the loader in `inputs.rs` (tier 1) uses the same root.
   Verify: a `check-ok` test for the guarded self-include (`v16_m7_self_guarded`); the upstream `include_once\*` and
   `include_paths\*` programs (including `include_fixed_compile_location`, `include_multiple`) pass tier 2 and go
   into `pass.list`; `qb64pe-source/` files are parsed through `qb64pe.bas`'s includes (clone present).
-- [ ] 8.2 Unknown names after unsupported declarations (D10); the auto-include name list from
+- [ ] 8.2 The follow-on rule (D10, changed 2026-10-05): after the first unsupported declaration `sema` reports only
+  "not supported yet" errors; the two spec scenarios as `check-fail` tests. The auto-include name list from
   `extract_builtins.py` (re-run it; `builtins.json` gains the names with their source file); `_GL` and built-in
-  assignment targets marked. Verify: the type-error and reserved-name entries leave `known_false_errors.list`; any
-  new entry in `known_unsupported_rejections.list` is named here with its reason.
+  assignment targets marked. Verify: the type-error and reserved-name entries leave `known_false_errors.list`; the
+  new entries in `known_unsupported_rejections.list` are listed here by declaration kind and shown to the user,
+  who decides whether any kind gets name tracking instead.
 - [ ] 8.3 The last entries of `known_parse_gaps.list` and `known_false_errors.list`, one by one, until both are
   empty. Anything that turns out not to fit is decided with the user, not left in the lists.
 
