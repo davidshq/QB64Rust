@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-05 (session 13). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-05 (session 14). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
@@ -178,9 +178,11 @@ of `study\20` §4):
    they changed eight design decisions (listed in task 3.1), among them: `$IF` and blocks must nest properly;
    only comment `$INCLUDE`; includes found next to the including file, then under a compiler root
    (`--include-root`, default the exe's folder, as the old compiler uses its own folder); depth 100, no cycle
-   check. Next: `sema` keyed by (`TreeId`, offset), blocks, statements, `specialformat` templates (new
-   dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree per file, and no follow-on errors after an
-   unsupported declaration. Done when the parse-gap and false-error lists are empty.
+   check. Group 4 done 2026-10-05 (no behaviour change): one `Tree` per file per inclusion in a
+   `ParsedProgram`, `parse` takes a `Loader` (none loads anything yet), `sema` keyed by (`TreeId`, offset),
+   `--dump tree` headed per tree. Next: group 5 (`Dot`/`FieldExpr`, `DATA`, line numbers), then blocks,
+   statements, `specialformat` templates (new dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree
+   per file, and no follow-on errors after an unsupported declaration. Done when the parse-gap and false-error lists are empty.
 3. A thin language server (diagnostics, go to definition) in the extension.
 4. Bug-compatibility decisions (`study\00` §6), then the differential tester, `Ty` as a type table, unsigned types.
 5. Plain built-ins (249 of 455), table-driven, with generated tests.

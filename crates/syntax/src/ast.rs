@@ -410,16 +410,17 @@ fn expr_after(node: Node<'_>, offset: u32) -> Option<Expr<'_>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tree::TreeId;
     use qb64rust_base::FileId;
 
     fn first_stmt<'a>(green: &'a crate::tree::GreenNode) -> Node<'a> {
-        let root = SourceFile::cast(Node::root(green, FileId(0))).unwrap();
+        let root = SourceFile::cast(Node::root(green, TreeId(0), FileId(0))).unwrap();
         root.statements().next().unwrap()
     }
 
     #[test]
     fn binary_operands_and_operator() {
-        let p = crate::parse(FileId(0), b"x = a + -b\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"x = a + -b\n");
         let assign = AssignStmt::cast(first_stmt(&p.green)).unwrap();
         assert_eq!(assign.target().and_then(|n| n.name()).map(|t| t.span.start), Some(0));
         let Some(Expr::Bin(bin)) = assign.value() else {
@@ -432,7 +433,7 @@ mod tests {
 
     #[test]
     fn assignment_of_a_name() {
-        let p = crate::parse(FileId(0), b"LET d# = s!\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"LET d# = s!\n");
         let assign = AssignStmt::cast(first_stmt(&p.green)).unwrap();
         assert_eq!(assign.target().and_then(|n| n.name()).map(|t| t.span.start), Some(4));
         let Some(Expr::NameRef(value)) = assign.value() else {
@@ -444,12 +445,12 @@ mod tests {
     #[test]
     fn missing_children_give_none() {
         // `x = ` has no value; `a +` has no right operand.
-        let p = crate::parse(FileId(0), b"x =\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"x =\n");
         let assign = AssignStmt::cast(first_stmt(&p.green)).unwrap();
         assert!(assign.target().is_some());
         assert!(assign.value().is_none());
 
-        let p = crate::parse(FileId(0), b"x = a +\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"x = a +\n");
         let assign = AssignStmt::cast(first_stmt(&p.green)).unwrap();
         let Some(Expr::Bin(bin)) = assign.value() else {
             panic!("not a BinExpr")
@@ -460,7 +461,7 @@ mod tests {
 
     #[test]
     fn dim_items_and_type_words() {
-        let p = crate::parse(FileId(0), b"DIM a AS LONG, b%\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"DIM a AS LONG, b%\n");
         let dim = DimStmt::cast(first_stmt(&p.green)).unwrap();
         let items: Vec<_> = dim.items().collect();
         assert_eq!(items.len(), 2);
@@ -476,14 +477,14 @@ mod tests {
     }
 
     fn procs(green: &crate::tree::GreenNode) -> Vec<ProcDef<'_>> {
-        let root = SourceFile::cast(Node::root(green, FileId(0))).unwrap();
+        let root = SourceFile::cast(Node::root(green, TreeId(0), FileId(0))).unwrap();
         root.statements().filter_map(ProcDef::cast).collect()
     }
 
     #[test]
     fn procedure_parts() {
         let src = b"FUNCTION f& (a AS LONG, b$)\nf& = a\nEND FUNCTION\n";
-        let p = crate::parse(FileId(0), src);
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), src);
         let [f] = procs(&p.green)[..] else {
             panic!("one ProcDef")
         };
@@ -502,7 +503,7 @@ mod tests {
 
     #[test]
     fn missing_end_gives_none() {
-        let p = crate::parse(FileId(0), b"SUB a\nPRINT 1\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"SUB a\nPRINT 1\n");
         let [a] = procs(&p.green)[..] else {
             panic!("one ProcDef")
         };
@@ -512,7 +513,7 @@ mod tests {
 
     #[test]
     fn nested_header_ends_the_outer_block() {
-        let p = crate::parse(FileId(0), b"SUB a\nPRINT 1\nSUB b\nEND SUB\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"SUB a\nPRINT 1\nSUB b\nEND SUB\n");
         let [a, b] = procs(&p.green)[..] else {
             panic!("two ProcDefs")
         };
@@ -522,7 +523,7 @@ mod tests {
 
     #[test]
     fn wrong_end_kind_still_closes() {
-        let p = crate::parse(FileId(0), b"SUB a\nEND FUNCTION\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"SUB a\nEND FUNCTION\n");
         let [a] = procs(&p.green)[..] else {
             panic!("one ProcDef")
         };
@@ -531,7 +532,7 @@ mod tests {
 
     #[test]
     fn header_without_a_name() {
-        let p = crate::parse(FileId(0), b"SUB\nEND SUB\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"SUB\nEND SUB\n");
         let [a] = procs(&p.green)[..] else {
             panic!("one ProcDef")
         };
@@ -543,7 +544,7 @@ mod tests {
 
     #[test]
     fn call_statement_parts() {
-        let p = crate::parse(FileId(0), b"CALL s(n)\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"CALL s(n)\n");
         let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
         assert!(c.call_keyword().is_some());
         assert_eq!(c.name().map(|t| t.span.start), Some(5));
@@ -551,17 +552,17 @@ mod tests {
         assert!(c.unparsed_args().is_none());
 
         // Without CALL the parentheses make a ParenExpr argument (by value).
-        let p = crate::parse(FileId(0), b"s (n)\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"s (n)\n");
         let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
         assert!(c.call_keyword().is_none());
         assert!(matches!(c.arg_list().unwrap().args().next(), Some(Expr::Paren(_))));
 
-        let p = crate::parse(FileId(0), b"t\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"t\n");
         let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
         assert!(c.arg_list().is_none());
         assert!(c.unparsed_args().is_none());
 
-        let p = crate::parse(FileId(0), b"LOCATE , 5\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"LOCATE , 5\n");
         assert!(p.diagnostics.list().is_empty());
         let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
         assert!(c.unparsed_args().is_some());
@@ -569,8 +570,12 @@ mod tests {
 
     #[test]
     fn declare_exit_shared() {
-        let p = crate::parse(FileId(0), b"DECLARE SUB s (a)\nDIM SHARED g\nDIM h\nEXIT SUB\n");
-        let root = SourceFile::cast(Node::root(&p.green, FileId(0))).unwrap();
+        let p = crate::parser::parse_tree(
+            TreeId(0),
+            FileId(0),
+            b"DECLARE SUB s (a)\nDIM SHARED g\nDIM h\nEXIT SUB\n",
+        );
+        let root = SourceFile::cast(Node::root(&p.green, TreeId(0), FileId(0))).unwrap();
         let s: Vec<_> = root.statements().collect();
         let d = DeclareStmt::cast(s[0]).unwrap();
         assert_eq!(d.header().unwrap().params().count(), 1);
@@ -583,8 +588,8 @@ mod tests {
     #[test]
     fn labels_and_error_statements() {
         let src = b"h: ON ERROR GOTO h\nON ERROR GOTO 0\nRESUME\nRESUME NEXT\nERROR 5\nON ERROR GOTO\n";
-        let p = crate::parse(FileId(0), src);
-        let root = SourceFile::cast(Node::root(&p.green, FileId(0))).unwrap();
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), src);
+        let root = SourceFile::cast(Node::root(&p.green, TreeId(0), FileId(0))).unwrap();
         let s: Vec<_> = root.statements().collect();
         assert_eq!(LabelDef::cast(s[0]).unwrap().name().map(|t| t.span), Some(t(0, 1)));
         let on = OnErrorStmt::cast(s[1]).unwrap();
@@ -608,7 +613,7 @@ mod tests {
 
     #[test]
     fn cast_checks_the_kind() {
-        let p = crate::parse(FileId(0), b"PRINT 1; 2\n");
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"PRINT 1; 2\n");
         let stmt = first_stmt(&p.green);
         assert!(DimStmt::cast(stmt).is_none());
         let print = PrintStmt::cast(stmt).unwrap();

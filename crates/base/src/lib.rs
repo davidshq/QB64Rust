@@ -4,6 +4,7 @@
 //! are 1-based byte columns, which equal character columns under CP437.
 
 use std::fmt;
+use std::sync::Arc;
 
 /// The largest source file, in bytes: offsets are `u32`. A caller that reads a file checks this before handing
 /// the bytes to any stage; every count derived from one file (lines, tokens, names) then fits a `u32`.
@@ -48,10 +49,11 @@ impl Span {
     }
 }
 
-/// One source file: its name as given (used in diagnostics and `#line`), its bytes and its line starts.
+/// One source file: its name as given (used in diagnostics and `#line`), its bytes and its line starts. The bytes
+/// are shared, so the parser can hold one file's bytes while a loader adds another file to the [`SourceMap`].
 pub struct SourceFile {
     pub name: String,
-    pub bytes: Vec<u8>,
+    pub bytes: Arc<[u8]>,
     line_starts: Vec<u32>,
 }
 
@@ -62,7 +64,7 @@ impl SourceFile {
         let line_starts = line_starts(&bytes);
         SourceFile {
             name: name.into(),
-            bytes,
+            bytes: bytes.into(),
             line_starts,
         }
     }

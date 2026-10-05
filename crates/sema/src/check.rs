@@ -11,26 +11,28 @@ use crate::{
     Arg, BinOp, ConvKind, Expr, ExprKind, Label, LabelId, PrintItem, Proc, ProcId, ProcKind, Program, Resume, Stmt,
     StmtKind, Storage, SymbolKind, Ty, Var, VarId,
 };
-use qb64rust_base::{Diagnostics, SourceFile, Span, show_bytes, to_u32};
+use qb64rust_base::{Diagnostics, SourceMap, Span, show_bytes, to_u32};
 use qb64rust_builtins::{BuiltinId, find_any, find_function};
 use qb64rust_syntax::SyntaxKind::{self, Minus, Number, Plus, Slash, Star};
 use qb64rust_syntax::ast::{self, PrintPart};
-use qb64rust_syntax::is_keyword;
 use qb64rust_syntax::meta::{MemoryMode, comment_directives};
-use qb64rust_syntax::tree::{Node, Tok};
+use qb64rust_syntax::tree::{Node, Tok, TreeId};
+use qb64rust_syntax::{ParsedProgram, is_keyword};
 use std::collections::{HashMap, HashSet};
 
-/// Checks a parsed file. Statements that already have a parse error are skipped (one error per statement).
-pub fn check(root: Node, file: &SourceFile, parse_diags: &Diagnostics) -> (Program, Diagnostics) {
-    check_with(root, file, parse_diags, true)
+/// Checks a parsed program. Statements that already have a parse error are skipped (one error per statement). Text
+/// is read through `map`, by each span's file.
+pub fn check(map: &SourceMap, program: &ParsedProgram) -> (Program, Diagnostics) {
+    check_with(map, program, true)
 }
 
 /// [`check`] with integer constant folding switched on or off. Off is for tests only: the slice programs must
 /// print the same either way (design D5).
-pub fn check_with(root: Node, file: &SourceFile, parse_diags: &Diagnostics, fold: bool) -> (Program, Diagnostics) {
+pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Program, Diagnostics) {
+    let root = program.main().root();
     let mut c = Checker {
         fold,
-        file,
+        map,
         prog: Program::default(),
         main: Scope::default(),
         local: Scope::default(),
@@ -48,13 +50,7 @@ pub fn check_with(root: Node, file: &SourceFile, parse_diags: &Diagnostics, fold
         console_only: false,
         names: Vec::new(),
     };
-    let skips = Skips {
-        error_starts: parse_diags.list().iter().map(|d| d.span.start).collect(),
-        // Past the error cap the parser records no more errors, so statements from the cap on may be malformed.
-        cap_start: parse_diags
-            .is_capped()
-            .then(|| parse_diags.list().last().map_or(0, |d| d.span.start)),
-    };
+    let skips = Skips::new(program);
     let statements: Vec<Node> = ast::SourceFile::cast(root)
         .into_iter()
         .flat_map(|f| f.statements())
@@ -81,11 +77,7 @@ pub fn check_with(root: Node, file: &SourceFile, parse_diags: &Diagnostics, fold
         };
         match id {
             Ok(id) => {
-                let line_of = |n: Node| {
-                    c.file
-                        .line_col(n.first_token().map_or(n.span().start, |t| t.span.start))
-                        .0
-                };
+                let line_of = |n: Node| c.line(n.first_token().map_or(n.span(), |t| t.span));
                 let line = line_of(header.node());
                 let end_line = def.end().map_or(line, |e| line_of(e.node()));
                 let proc = &mut c.prog.procs[id.0 as usize];
@@ -100,7 +92,7 @@ pub fn check_with(root: Node, file: &SourceFile, parse_diags: &Diagnostics, fold
         let ok = c.declare_params(def.header().unwrap(), id).is_ok();
         c.flush_names();
         if ok {
-            c.proc_of_def.insert(def.node().offset, id);
+            c.proc_of_def.insert(def.node().key(), id);
         } else {
             c.broken.insert(id);
         }
@@ -127,7 +119,7 @@ pub fn check_with(root: Node, file: &SourceFile, parse_diags: &Diagnostics, fold
         }
         match ast::ProcDef::cast(stmt) {
             Some(def) => {
-                let Some(&id) = c.proc_of_def.get(&def.node().offset) else {
+                let Some(&id) = c.proc_of_def.get(&def.node().key()) else {
                     continue;
                 };
                 c.cur = Some(id);
@@ -150,22 +142,42 @@ pub fn check_with(root: Node, file: &SourceFile, parse_diags: &Diagnostics, fold
     (c.prog, c.diags)
 }
 
-/// Which statements the checker skips: those with a parse error, and those past the parser's error cap.
+/// Which statements the checker skips: those with a parse error, and those past the parser's error cap. Kept per
+/// tree, since one file included twice has two trees whose errors may differ.
 struct Skips {
-    error_starts: Vec<u32>,
-    cap_start: Option<u32>,
+    /// Per tree: the start offsets of its parse errors.
+    error_starts: HashMap<TreeId, Vec<u32>>,
+    /// Per capped tree: where the parser stopped recording errors.
+    cap_start: HashMap<TreeId, u32>,
 }
 
 impl Skips {
+    fn new(program: &ParsedProgram) -> Skips {
+        let mut skips = Skips {
+            error_starts: HashMap::new(),
+            cap_start: HashMap::new(),
+        };
+        for t in &program.trees {
+            let list = t.diagnostics.list();
+            skips
+                .error_starts
+                .insert(t.id, list.iter().map(|d| d.span.start).collect());
+            // Past the error cap the parser records no more errors, so statements from the cap on may be malformed.
+            if t.diagnostics.is_capped() {
+                skips.cap_start.insert(t.id, list.last().map_or(0, |d| d.span.start));
+            }
+        }
+        skips
+    }
+
     fn past_cap(&self, node: Node) -> bool {
-        self.cap_start.is_some_and(|c| node.span().end >= c)
+        self.cap_start.get(&node.tree).is_some_and(|&c| node.span().end >= c)
     }
 
     fn usable(&self, node: Node) -> bool {
         let s = node.span();
-        node.kind() != SyntaxKind::Error
-            && !self.past_cap(node)
-            && !self.error_starts.iter().any(|&o| o >= s.start && o <= s.end)
+        let errors = self.error_starts.get(&node.tree).map_or(&[][..], Vec::as_slice);
+        node.kind() != SyntaxKind::Error && !self.past_cap(node) && !errors.iter().any(|&o| o >= s.start && o <= s.end)
     }
 }
 
@@ -179,7 +191,7 @@ struct Scope {
 }
 
 struct Checker<'a> {
-    file: &'a SourceFile,
+    map: &'a SourceMap,
     prog: Program,
     main: Scope,
     /// The scope of the procedure being checked (only meaningful while `cur` is set).
@@ -187,8 +199,8 @@ struct Checker<'a> {
     /// The procedure being checked; `None` in the main module.
     cur: Option<ProcId>,
     procs_by_name: HashMap<String, ProcId>,
-    /// Offset of a `ProcDef` node whose header was declared without errors -> its procedure.
-    proc_of_def: HashMap<u32, ProcId>,
+    /// Key of a `ProcDef` node whose header was declared without errors -> its procedure.
+    proc_of_def: HashMap<(TreeId, u32), ProcId>,
     /// Per procedure: the scope holding its parameters, which each check of the body starts from.
     param_scopes: Vec<Scope>,
     /// Procedures whose parameter list has an error: calls of them fail without a second error.
@@ -196,9 +208,9 @@ struct Checker<'a> {
     /// Main-module variables declared with `DIM SHARED` so far (in file order), and the plain names they typed.
     dim_shared: HashSet<VarId>,
     dim_shared_plain: HashMap<String, Ty>,
-    /// The main module's labels by name, and the label of each `LabelDef` node (by offset).
+    /// The main module's labels by name, and the label of each `LabelDef` node (by its key).
     labels_by_name: HashMap<String, LabelId>,
-    label_of_def: HashMap<u32, LabelId>,
+    label_of_def: HashMap<(TreeId, u32), LabelId>,
     diags: Diagnostics,
     stmt_error: bool,
     console_only: bool,
@@ -211,10 +223,6 @@ struct Checker<'a> {
 struct Failed;
 
 type R<T> = Result<T, Failed>;
-
-fn text(file: &SourceFile, span: Span) -> &[u8] {
-    &file.bytes[span.start as usize..span.end as usize]
-}
 
 impl Checker<'_> {
     fn error(&mut self, span: Span, msg: impl Into<String>) -> Failed {
@@ -240,7 +248,12 @@ impl Checker<'_> {
     }
 
     fn text(&self, span: Span) -> &[u8] {
-        text(self.file, span)
+        self.map.text(span)
+    }
+
+    /// The 1-based line a span starts on, in its own file.
+    fn line(&self, span: Span) -> u32 {
+        self.map.file(span.file).line_col(span.start).0
     }
 
     /// The token in upper case, other than printable ASCII escaped (`\xC9`).
@@ -267,8 +280,7 @@ impl Checker<'_> {
 
     fn push(&mut self, node: Node, kind: StmtKind) {
         let span = node.span();
-        let start = node.first_token().map_or(span.start, |t| t.span.start);
-        let line = self.file.line_col(start).0;
+        let line = self.line(node.first_token().map_or(span, |t| t.span));
         let stmt = Stmt { span, line, kind };
         match self.cur {
             Some(p) => self.prog.procs[p.0 as usize].stmts.push(stmt),
@@ -783,14 +795,14 @@ impl Checker<'_> {
             return Err(self.error(t.span, format!("duplicate label: `{shown}`")));
         }
         let id = LabelId(to_u32(self.prog.labels.len()));
-        let line = self.file.line_col(t.span.start).0;
+        let line = self.line(t.span);
         self.prog.labels.push(Label {
             name: name.clone(),
             line,
             at: 0,
         });
         self.labels_by_name.insert(name, id);
-        self.label_of_def.insert(node.offset, id);
+        self.label_of_def.insert(node.key(), id);
         self.names.push((SymbolKind::Label(id), t.span));
         Ok(())
     }
@@ -801,7 +813,7 @@ impl Checker<'_> {
             let span = l.node().span();
             return Err(self.unsupported(span, "labels inside a SUB or FUNCTION"));
         }
-        if let Some(&id) = self.label_of_def.get(&l.node().offset) {
+        if let Some(&id) = self.label_of_def.get(&l.node().key()) {
             self.prog.labels[id.0 as usize].at = self.prog.stmts.len();
         }
         Ok(())

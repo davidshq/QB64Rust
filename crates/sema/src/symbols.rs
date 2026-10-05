@@ -3,7 +3,7 @@
 //! suffix included. Variables of every storage class, procedures and labels are recorded.
 
 use crate::{LabelId, ProcId, ProcKind, Program, Storage, VarId};
-use qb64rust_base::{FileId, SourceFile, Span, to_u32};
+use qb64rust_base::{FileId, SourceMap, Span, to_u32};
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
@@ -83,9 +83,9 @@ impl Symbols {
 }
 
 /// One line per symbol: kind, name and type, then definition and references as `line:column`.
-pub fn dump_symbols(p: &Program, file: &SourceFile) -> String {
+pub fn dump_symbols(p: &Program, map: &SourceMap) -> String {
     let pos = |s: Span| {
-        let (l, c) = file.line_col(s.start);
+        let (l, c) = map.file(s.file).line_col(s.start);
         format!("{l}:{c}")
     };
     let mut out = String::new();

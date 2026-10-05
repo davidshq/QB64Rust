@@ -5,13 +5,14 @@ mod kind;
 pub mod lexer;
 pub mod meta;
 mod parser;
+pub mod program;
 pub mod tree;
 
 pub use kind::SyntaxKind;
 pub use parser::keywords::is_keyword;
-pub use parser::{Parse, parse};
+pub use program::{LoadError, Loader, NoLoader, ParsedProgram, Tree, parse};
 
-use qb64rust_base::show_bytes;
+use qb64rust_base::{SourceMap, show_bytes};
 use std::fmt::Write as _;
 use tree::{Element, Node};
 
@@ -27,7 +28,18 @@ pub fn dump_tokens(bytes: &[u8]) -> String {
     out
 }
 
-/// `--dump tree`: nodes indented by depth, tokens with their text.
+/// `--dump tree`: every tree, each headed by `tree <n>: <file name>`.
+pub fn dump_trees(program: &ParsedProgram, map: &SourceMap) -> String {
+    let mut out = String::new();
+    for t in &program.trees {
+        let file = map.file(t.file);
+        writeln!(out, "tree {}: {}", t.id.0, file.name).unwrap();
+        out.push_str(&dump_tree(t.root(), &file.bytes));
+    }
+    out
+}
+
+/// One tree: nodes indented by depth, tokens with their text.
 pub fn dump_tree(root: Node, bytes: &[u8]) -> String {
     let mut out = String::new();
     dump_node(root, bytes, 0, &mut out);

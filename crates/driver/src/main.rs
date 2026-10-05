@@ -169,7 +169,7 @@ fn run() -> Result<ExitCode, String> {
     };
     if let Some(stage) = o.dump.as_deref() {
         match stage {
-            "tree" => print!("{}", qb64rust_syntax::dump_tree(fe.root(), fe.bytes())),
+            "tree" => print!("{}", qb64rust_syntax::dump_trees(&fe.parsed, &fe.map)),
             _ if errors > 0 => {}
             "typed" => print!("{}", qb64rust_sema::dump_typed(&fe.program)),
             "ir" => print!("{}", dump_ir(&fe)),

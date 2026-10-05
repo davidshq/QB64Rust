@@ -17,15 +17,12 @@ mod proc;
 
 use crate::SyntaxKind::{self, *};
 use crate::lexer::{Token, tokenize};
-use crate::tree::{GreenNode, TreeBuilder};
+use crate::program::Tree;
+use crate::tree::{TreeBuilder, TreeId};
 use qb64rust_base::{Diagnostic, Diagnostics, FileId, Span};
 
-pub struct Parse {
-    pub green: GreenNode,
-    pub diagnostics: Diagnostics,
-}
-
-pub fn parse(file: FileId, bytes: &[u8]) -> Parse {
+/// Parses one file into tree `id`.
+pub(crate) fn parse_tree(id: TreeId, file: FileId, bytes: &[u8]) -> Tree {
     let tokens = tokenize(bytes);
     let mut offsets = Vec::with_capacity(tokens.len() + 1);
     let mut o = 0u32;
@@ -48,7 +45,9 @@ pub fn parse(file: FileId, bytes: &[u8]) -> Parse {
         last_kind: None,
     };
     p.source_file();
-    Parse {
+    Tree {
+        id,
+        file,
         green: p.builder.finish(),
         diagnostics: p.diags,
     }

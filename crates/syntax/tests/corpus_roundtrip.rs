@@ -1,8 +1,8 @@
 //! Tier 1 (`study\19`): every corpus program parses without a panic and its tree prints back to the exact bytes.
 
-use qb64rust_base::FileId;
-use qb64rust_syntax::parse;
+use qb64rust_base::SourceMap;
 use qb64rust_syntax::tree::print;
+use qb64rust_syntax::{NoLoader, parse};
 use std::path::{Path, PathBuf};
 
 fn bas_files(dir: &Path, out: &mut Vec<PathBuf>) {
@@ -24,7 +24,13 @@ fn corpus_round_trip() {
     assert!(files.len() >= 270, "found only {} .bas files under tests/", files.len());
     for f in &files {
         let bytes = std::fs::read(f).unwrap();
-        let p = parse(FileId(0), &bytes);
-        assert!(print(&p.green, &bytes) == bytes, "round trip failed: {}", f.display());
+        let mut map = SourceMap::new();
+        let file = map.add(f.display().to_string(), bytes.clone());
+        let p = parse(&mut map, file, &mut NoLoader);
+        assert!(
+            print(&p.main().green, &bytes) == bytes,
+            "round trip failed: {}",
+            f.display()
+        );
     }
 }

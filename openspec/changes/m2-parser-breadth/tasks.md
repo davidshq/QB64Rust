@@ -43,11 +43,17 @@ passes with the release build. "Verify" below names what is checked on top of th
 
 ## 4. Many files at once: keys, loader, trees (D9, D10 keys)
 
-- [ ] 4.1 `TreeId`; `Node` carries it; `ParsedProgram`; `parse` takes a `Loader` (a no-op loader in tests);
+- [x] 4.1 `TreeId`; `Node` carries it; `ParsedProgram`; `parse` takes a `Loader` (a no-op loader in tests);
   `--dump tree` prints every tree. No behaviour change. Verify: snapshots unchanged except the dump header.
-- [ ] 4.2 `sema`: `check` takes the `SourceMap` and the `ParsedProgram`; every node-keyed map keyed by
+  Done 2026-10-05: `syntax\src\program.rs` (`Tree`, `ParsedProgram`, `Loader`, `NoLoader`, `parse`);
+  `Node::key()`; the loader takes the `SourceMap` as an argument and source bytes are shared (`Arc<[u8]>`), see D9.
+  No snapshot changed; the header (`tree 0: p.bas`) has a CLI test (`tree_dump`), since no snapshot dumps a tree
+  through the command line. Tier 2 unchanged: slice 54 of 54, upstream 10 of 10.
+- [x] 4.2 `sema`: `check` takes the `SourceMap` and the `ParsedProgram`; every node-keyed map keyed by
   (`TreeId`, offset); `text()` through the `SourceMap`. Verify: no snapshot changes; `grep` finds no map keyed by
-  a bare `u32` offset in `sema`.
+  a bare `u32` offset in `sema`. Done 2026-10-05: `proc_of_def`, `label_of_def` keyed by `Node::key()`; the
+  skipped statements (parse errors, error cap) kept per tree; `dump_symbols` takes the `SourceMap`. Verified as
+  stated.
 
 ## 5. Lexer and expressions (D3, D7)
 

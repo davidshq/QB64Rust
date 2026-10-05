@@ -1,15 +1,22 @@
 //! Parse snapshots for each statement form of the slice, precedence, and recovery (task 3.2).
 
-use qb64rust_base::{FileId, SourceMap};
-use qb64rust_syntax::tree::{Node, print};
-use qb64rust_syntax::{dump_tree, parse};
+use qb64rust_base::SourceMap;
+use qb64rust_syntax::tree::print;
+use qb64rust_syntax::{NoLoader, ParsedProgram, dump_tree, parse};
+
+fn parse_one(src: &[u8]) -> ParsedProgram {
+    let mut map = SourceMap::new();
+    let file = map.add("t.bas", src.to_vec());
+    parse(&mut map, file, &mut NoLoader)
+}
 
 fn tree(src: &str) -> String {
-    let p = parse(FileId(0), src.as_bytes());
-    assert_eq!(print(&p.green, src.as_bytes()), src.as_bytes(), "round trip");
-    let mut out = dump_tree(Node::root(&p.green, FileId(0)), src.as_bytes());
     let mut map = SourceMap::new();
-    map.add("t.bas", src.as_bytes().to_vec());
+    let file = map.add("t.bas", src.as_bytes().to_vec());
+    let program = parse(&mut map, file, &mut NoLoader);
+    let p = program.main();
+    assert_eq!(print(&p.green, src.as_bytes()), src.as_bytes(), "round trip");
+    let mut out = dump_tree(p.root(), src.as_bytes());
     for d in p.diagnostics.list() {
         out.push_str(&d.render(&map));
         out.push('\n');
@@ -153,8 +160,9 @@ fn error_handling_statement_errors() {
 
 #[test]
 fn unsupported_statement_message() {
-    let p = parse(FileId(0), b"PRINT 1\n\nFOR i = 1 TO 2\n");
-    let d = &p.diagnostics.list()[0];
+    let p = parse_one(b"PRINT 1\n\nFOR i = 1 TO 2\n");
+    let diags = p.diagnostics();
+    let d = &diags.list()[0];
     assert_eq!(d.message, "statement `FOR`");
     assert!(d.unsupported);
     assert_eq!(d.span.start, 9);
@@ -169,7 +177,7 @@ fn marked_parse_errors() {
 #[test]
 fn error_cap() {
     let src = "FOR\n".repeat(150);
-    let p = parse(FileId(0), src.as_bytes());
-    assert_eq!(p.diagnostics.error_count(), 100);
-    assert!(p.diagnostics.is_capped());
+    let p = parse_one(src.as_bytes());
+    assert_eq!(p.diagnostics().error_count(), 100);
+    assert!(p.diagnostics().is_capped());
 }

@@ -129,7 +129,7 @@ fn corpus_programs() -> Vec<PathBuf> {
 fn check(bytes: &[u8]) -> Option<String> {
     let result = catch_unwind(AssertUnwindSafe(|| {
         let fe = frontend("mutant.bas", bytes.to_vec());
-        print(&fe.parse.green, bytes) == bytes
+        print(&fe.parsed.main().green, bytes) == bytes
     }));
     match result {
         Ok(true) => None,

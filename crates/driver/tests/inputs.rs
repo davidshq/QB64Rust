@@ -145,7 +145,7 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
     let bytes = std::fs::read(path).unwrap();
     let result = catch_unwind(AssertUnwindSafe(|| {
         let fe = frontend(&name, bytes.clone());
-        let round_trip = print(&fe.parse.green, &bytes) == bytes;
+        let round_trip = print(&fe.parsed.main().green, &bytes) == bytes;
         let mut list: Vec<_> = fe.diagnostics.list().to_vec();
         if fe.diagnostics.is_capped() {
             list.pop(); // "too many errors; stopping" is not an error of its own
@@ -157,7 +157,8 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
         });
         let file = fe.map.file(fe.file);
         let parse_gap = fe
-            .parse
+            .parsed
+            .main()
             .diagnostics
             .list()
             .iter()
@@ -168,7 +169,7 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
                 format!("{line}:{col}: {mark}{}", d.message)
             })
             .or_else(|| {
-                first_error_node(fe.root()).map(|n| {
+                first_error_node(fe.parsed.main().root()).map(|n| {
                     let (line, col) = file.line_col(n.span().start);
                     format!("{line}:{col}: `Error` node without a parser diagnostic")
                 })

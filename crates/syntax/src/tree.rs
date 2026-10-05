@@ -99,10 +99,16 @@ impl TreeBuilder {
     }
 }
 
-/// A node with its absolute position in a file.
+/// Index of a tree in a [`crate::ParsedProgram`]: one per file at each place it is included (design D9), so one
+/// file included twice gives two trees.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct TreeId(pub u32);
+
+/// A node with its tree and its absolute position in the tree's file.
 #[derive(Clone, Copy, Debug)]
 pub struct Node<'a> {
     pub green: &'a GreenNode,
+    pub tree: TreeId,
     pub file: FileId,
     pub offset: u32,
 }
@@ -151,8 +157,19 @@ impl<'a> Element<'a> {
 }
 
 impl<'a> Node<'a> {
-    pub fn root(green: &'a GreenNode, file: FileId) -> Node<'a> {
-        Node { green, file, offset: 0 }
+    pub fn root(green: &'a GreenNode, tree: TreeId, file: FileId) -> Node<'a> {
+        Node {
+            green,
+            tree,
+            file,
+            offset: 0,
+        }
+    }
+
+    /// Identifies the node across all trees of a program (design D10): an offset alone is not enough, and neither
+    /// is the file, which can be included twice.
+    pub fn key(&self) -> (TreeId, u32) {
+        (self.tree, self.offset)
     }
 
     pub fn kind(&self) -> SyntaxKind {
@@ -164,7 +181,7 @@ impl<'a> Node<'a> {
     }
 
     pub fn children(&self) -> impl Iterator<Item = Element<'a>> + use<'a> {
-        let file = self.file;
+        let (tree, file) = (self.tree, self.file);
         let mut offset = self.offset;
         let green: &'a GreenNode = self.green;
         green.children.iter().map(move |c| {
@@ -173,6 +190,7 @@ impl<'a> Node<'a> {
             match c {
                 GreenElement::Node(n) => Element::Node(Node {
                     green: n,
+                    tree,
                     file,
                     offset: start,
                 }),
@@ -219,7 +237,7 @@ impl<'a> Node<'a> {
 
 /// Prints the tree back to bytes: the concatenation of its tokens' bytes in `source`.
 pub fn print(green: &GreenNode, source: &[u8]) -> Vec<u8> {
-    let root = Node::root(green, FileId(0));
+    let root = Node::root(green, TreeId(0), FileId(0));
     let mut out = Vec::with_capacity(source.len());
     for t in root.tokens() {
         out.extend_from_slice(&source[t.span.start as usize..t.span.end as usize]);

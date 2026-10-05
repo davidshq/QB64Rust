@@ -157,6 +157,17 @@ fn typed_dump() {
     assert_eq!(o.status.code(), Some(1));
 }
 
+/// Every tree is printed, headed by its number and file name (design D9 of `m2-parser-breadth`).
+#[test]
+fn tree_dump() {
+    let d = scratch("tree");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\n").unwrap();
+    let o = qb64rust(&d, &["--dump", "tree", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0));
+    let out = stdout(&o);
+    assert!(out.starts_with("tree 0: p.bas\nSourceFile 0..22\n"), "{out}");
+}
+
 #[test]
 fn no_clone_found() {
     let d = scratch("noclone");

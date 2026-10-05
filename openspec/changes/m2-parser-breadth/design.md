@@ -171,8 +171,10 @@ pops without checking, reports the later `END IF` instead; our messages are new 
 `$LET` of a predefined name does not override it.
 
 ### D9. Included files: one tree per inclusion
-- The parser does no I/O. `parse` takes an `&mut dyn Loader` (`fn load(&mut self, from: FileId, path: &[u8]) ->
-  Result<FileId, LoadError>` adding the file to the `SourceMap`). At an active `$INCLUDE:'…'` (or comment
+- The parser does no I/O. `parse` takes an `&mut dyn Loader` (`fn load(&mut self, map: &mut SourceMap, from:
+  FileId, path: &[u8]) -> Result<FileId, LoadError>` adding the file to the `SourceMap`). Changed in task 4.1: the
+  map is an argument of `parse` and `load` rather than held by the loader, and a `SourceFile`'s bytes are an
+  `Arc<[u8]>`, so the parser can hold the including file's bytes while the loader adds another file. At an active `$INCLUDE:'…'` (or comment
   `$INCLUDE`, after its line), the parser parses the included file at once, with the current `PpState`, and
   continues with the state the include leaves behind (a `$LET` in a `.bi` reaches the main file).
 - The result is a `ParsedProgram`: trees, each with a `TreeId` and its `FileId`, and a map from (`TreeId`, offset
