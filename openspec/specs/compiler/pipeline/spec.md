@@ -48,8 +48,10 @@ The IR SHALL NOT refer to libqb or `qbx.cpp` symbols, C types, `passed` masks, b
 allocation or the event loop. Optional arguments SHALL be represented as present or absent; procedure arguments
 as a reference to a variable or a by-value copy of a value; variables SHALL carry a storage class (main module,
 procedure-static, per-call local, parameter, function result); operations that may raise a runtime error SHALL be
-marked; labels SHALL be positions in a body, not jumps. The IR SHALL state that errors are handled per statement:
-after a raising operation the rest of the statement is skipped, errors are serviced at the statement boundary, a
+marked; labels SHALL be positions in a body, not jumps. The IR SHALL state that errors are pending and handled per
+statement: a raising operation records a pending error and yields a placeholder value, the statement goes on (a
+store or a call made with that value still happens), only the points the IR names check for a pending error (each
+`PRINT` item: a raising item skips the rest of its statement), errors are serviced at the statement boundary, a
 retry re-runs the statement that raised, and resuming next continues after it, in the procedure where it raised.
 
 #### Scenario: Optional argument absent

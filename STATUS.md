@@ -176,7 +176,12 @@ the order of `study\22` §5):
    NEXT` after an error in a block header, and the check of `NEXT` variables against their `FOR` (left out of the
    parser, design D4 "As built"). The block nodes and accessors exist (`ast.rs`); `sema` marks them in
    `check.rs` `block_parts`. First count the corpus and upstream programs blocked only by these. Then the IR
-   review (keep, or merge into the typed tree; `study\20` §3.4).
+   review (keep, or merge into the typed tree; `study\20` §3.4). Fourth review (2026-10-05, order unchanged),
+   written into the change `m2-control-flow-slice`: the IR's error rule is restated (a pending error and
+   placeholder values, checked at named points; "skips the rest of the statement" was true only of `PRINT`) and
+   measured first; operator typing lives in one function so the type table of step 6 rewrites one place;
+   constants and `OPTION` are done after the IR and emitter tasks; the IR review leaves open how the IR names
+   an array element or a `TYPE` member (step 8).
 4. `m2-parser-breadth` groups 7 to 9, with the blunt follow-on rule and block crossing marked (`study\23` §2.3,
    §2.4; design D10, D4).
 5. A thin language server in the extension: syntax errors, outline, folding, go to definition for procedures and

@@ -3,11 +3,13 @@
 //! The IR is ABI-neutral: it names no libqb or `qbx.cpp` symbol, no C type, no `passed` mask and no event loop.
 //! Those are the C++ emitter's encoding of the rules stated here:
 //!
-//! - **Errors are handled per statement.** An operation marked as possibly raising a runtime error is followed by
-//!   an implicit check; on error the rest of its statement is skipped. Errors and events are serviced at the
-//!   statement boundary: a pending error goes to the active handler ([`Op::SetHandler`]). [`Resume::Retry`]
-//!   re-runs the statement that raised, [`Resume::Next`] continues after it, [`Resume::To`] at a label; a
-//!   statement in a procedure resumes in that procedure.
+//! - **Errors are pending, and handled per statement.** A raising operation records a pending error and yields a
+//!   placeholder value; the statement goes on. A store or a call made with that value still happens
+//!   ([`Op::Assign`], [`Op::Call`]). Only the points named here check for a pending error: each item of an
+//!   [`Op::Print`] (a raising item skips the rest of the statement, line end included). Errors and events are
+//!   serviced at the statement boundary: a pending error goes to the active handler ([`Op::SetHandler`]).
+//!   [`Resume::Retry`] re-runs the statement that raised, [`Resume::Next`] continues after it, [`Resume::To`] at
+//!   a label; a statement in a procedure resumes in that procedure.
 //! - **Optional arguments are present or absent** ([`Value::CallBuiltin`] slots are `Option`s in table order).
 //! - **Every conversion is explicit** ([`ValueKind::Convert`]); every operation states the type it computes in.
 //! - **Integer overflow wraps** in two's complement (`DIVERGENCES.md` D-001, D-002).
