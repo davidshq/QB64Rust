@@ -3,7 +3,6 @@
 # parser breadth empties it. The comment is the first parser diagnostic, else the first `Error` node.
 # Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.
 corpus/runtime_comparison/02_lbound_ubound.bas  # 4:8: not supported yet: arrays
-corpus/runtime_comparison/04_gosub_return.bas  # 4:1: not supported yet: statement `GOSUB`
 corpus/runtime_comparison/05_file_io.bas  # 5:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/101_while_empty.bas  # 5:1: not supported yet: statement `WHILE`
 corpus/runtime_comparison/102_for_empty.bas  # 4:1: not supported yet: statement `FOR`
@@ -12,7 +11,6 @@ corpus/runtime_comparison/104_const_expr.bas  # 3:1: not supported yet: statemen
 corpus/runtime_comparison/110_array_assign.bas  # 3:6: not supported yet: arrays
 corpus/runtime_comparison/113_if_then_inline.bas  # 5:1: not supported yet: statement `IF`
 corpus/runtime_comparison/114_select_multiple.bas  # 5:1: not supported yet: statement `SELECT`
-corpus/runtime_comparison/116_read_restore_label.bas  # 4:1: not supported yet: statement `READ`
 corpus/runtime_comparison/119_for_step_two.bas  # 4:1: not supported yet: statement `FOR`
 corpus/runtime_comparison/120_redim_no_preserve.bas  # 3:6: not supported yet: arrays
 corpus/runtime_comparison/121_type_nested.bas  # 3:1: not supported yet: statement `TYPE`
@@ -20,7 +18,6 @@ corpus/runtime_comparison/127_for_double_step.bas  # 4:1: not supported yet: sta
 corpus/runtime_comparison/136_and_or_mixed.bas  # 6:1: not supported yet: statement `IF`
 corpus/runtime_comparison/137_not_condition.bas  # 5:1: not supported yet: statement `IF`
 corpus/runtime_comparison/139_loop_counter.bas  # 4:1: not supported yet: statement `FOR`
-corpus/runtime_comparison/143_read_multiple.bas  # 4:1: not supported yet: statement `READ`
 corpus/runtime_comparison/146_if_elseif_else_block.bas  # 5:1: not supported yet: statement `IF`
 corpus/runtime_comparison/149_select_case_else.bas  # 5:1: not supported yet: statement `SELECT`
 corpus/runtime_comparison/150_for_next_double.bas  # 4:1: not supported yet: statement `FOR`
@@ -52,12 +49,7 @@ corpus/runtime_comparison/20_select_case.bas  # 5:1: not supported yet: statemen
 corpus/runtime_comparison/213_chdir.bas  # 7:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/219_fileexists_direxists.bas  # 4:21: `Error` node without a parser diagnostic
 corpus/runtime_comparison/21_while_wend.bas  # 5:1: not supported yet: statement `WHILE`
-corpus/runtime_comparison/220_read_type_mismatch.bas  # 5:1: not supported yet: statement `READ`
-corpus/runtime_comparison/221_restore_without_label.bas  # 4:1: not supported yet: statement `READ`
-corpus/runtime_comparison/222_data_empty.bas  # 4:1: not supported yet: statement `READ`
-corpus/runtime_comparison/223_read_past_eof.bas  # 5:1: not supported yet: statement `READ`
 corpus/runtime_comparison/224_goto_same_line.bas  # 7:1: not supported yet: statement `IF`
-corpus/runtime_comparison/225_gosub_nested_deep.bas  # 4:1: not supported yet: statement `GOSUB`
 corpus/runtime_comparison/226_on_goto.bas  # 5:1: not supported yet: `ON N`
 corpus/runtime_comparison/227_on_gosub.bas  # 3:1: not supported yet: `ON 1`
 corpus/runtime_comparison/22_do_loop.bas  # 5:1: not supported yet: statement `DO`
@@ -65,14 +57,12 @@ corpus/runtime_comparison/231_resume_0_line.bas  # 9:1: not supported yet: state
 corpus/runtime_comparison/235_deftype.bas  # 3:1: not supported yet: statement `DEFINT`
 corpus/runtime_comparison/236_option_base.bas  # 4:6: not supported yet: arrays
 corpus/runtime_comparison/239_lprint.bas  # 3:1: not supported yet: statement `LPRINT`
-corpus/runtime_comparison/23_goto.bas  # 4:1: not supported yet: statement `GOTO`
 corpus/runtime_comparison/240_data.bas  # 3:1: not supported yet: statement `FOR`
 corpus/runtime_comparison/241_const_simple.bas  # 3:1: not supported yet: statement `CONST`
 corpus/runtime_comparison/242_types_simple.bas  # 3:1: not supported yet: statement `TYPE`
 corpus/runtime_comparison/250_rot13_mini.bas  # 4:1: not supported yet: statement `FOR`
 corpus/runtime_comparison/252_for_read_data.bas  # 3:1: not supported yet: statement `FOR`
 corpus/runtime_comparison/253_select_simple.bas  # 5:1: not supported yet: statement `SELECT`
-corpus/runtime_comparison/254_gosub_simple.bas  # 4:1: not supported yet: statement `GOSUB`
 corpus/runtime_comparison/255_type_print.bas  # 3:1: not supported yet: statement `TYPE`
 corpus/runtime_comparison/256_const_use.bas  # 3:1: not supported yet: statement `CONST`
 corpus/runtime_comparison/259_control_mix.bas  # 4:1: not supported yet: statement `WHILE`
@@ -83,10 +73,7 @@ corpus/runtime_comparison/29_multi_dim.bas  # 3:6: not supported yet: arrays
 corpus/runtime_comparison/30_type_udt.bas  # 3:1: not supported yet: statement `TYPE`
 corpus/runtime_comparison/39_nested_control.bas  # 4:1: not supported yet: statement `FOR`
 corpus/runtime_comparison/40_erase.bas  # 3:8: not supported yet: arrays
-corpus/runtime_comparison/42_mid_assign.bas  # 5:1: not supported yet: arrays
 corpus/runtime_comparison/43_array_string.bas  # 3:6: not supported yet: arrays
-corpus/runtime_comparison/44_data_read.bas  # 4:1: not supported yet: statement `READ`
-corpus/runtime_comparison/46_restore.bas  # 4:1: not supported yet: statement `READ`
 corpus/runtime_comparison/52_open_write.bas  # 4:1: not supported yet: statement `WRITE`
 corpus/runtime_comparison/53_open_append.bas  # 4:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/54_freefile.bas  # 7:7: not supported yet: `PRINT #`
@@ -102,8 +89,6 @@ corpus/runtime_comparison/67_select_case_to.bas  # 5:1: not supported yet: state
 corpus/runtime_comparison/68_if_block.bas  # 5:1: not supported yet: statement `IF`
 corpus/runtime_comparison/71_dim_zero_bound.bas  # 3:6: not supported yet: arrays
 corpus/runtime_comparison/72_three_dim.bas  # 3:6: not supported yet: arrays
-corpus/runtime_comparison/81_multiple_gosub.bas  # 4:1: not supported yet: statement `GOSUB`
-corpus/runtime_comparison/82_nested_gosub.bas  # 4:1: not supported yet: statement `GOSUB`
 corpus/runtime_comparison/86_name_rename.bas  # 4:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/95_two_files.bas  # 5:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/96_lof.bas  # 4:7: not supported yet: `PRINT #`
@@ -155,49 +140,49 @@ qb64pe-source/source/utilities/strings.bas  # 6:12: not supported yet: word `LON
 qb64pe-source/source/utilities/terminal.bas  # 8:14: not supported yet: arrays
 qb64pe-source/source/utilities/type.bas  # 11:5: not supported yet: statement `IF`
 qb64pe-source/source/utilities/type.bi  # 7:1: not supported yet: statement `CONST`
-qbasic/misc/3dballs.bas  # 4:1: not supported yet: line numbers and numeric labels
+qbasic/misc/3dballs.bas  # 4:3: not supported yet: statement `IF`
 qbasic/misc/3dexp2.bas  # 13:1: not supported yet: statement `DEFINT`
 qbasic/misc/acalc.bas  # 4:1: not supported yet: statement `SCREEN`
-qbasic/misc/aklabeth.bas  # 3:1: not supported yet: line numbers and numeric labels
+qbasic/misc/aklabeth.bas  # 5:4: not supported yet: statement `SCREEN`
 qbasic/misc/ascipong.bas  # 9:1: not supported yet: statement `DEFINT`
 qbasic/misc/audio.bas  # 1:1: not supported yet: statement `DEFLNG`
 qbasic/misc/cabsmous.bas  # 39:1: not supported yet: statement `DO`
-qbasic/misc/carols.bas  # 1:1: not supported yet: line numbers and numeric labels
+qbasic/misc/carols.bas  # 8:9: not supported yet: statement `INPUT`
 qbasic/misc/chess.bas  # 1:1: not supported yet: statement `DEFINT`
-qbasic/misc/cuberot.bas  # 4:1: not supported yet: line numbers and numeric labels
+qbasic/misc/cuberot.bas  # 4:3: not supported yet: statement `IF`
 qbasic/misc/djsok.bas  # 36:1: not supported yet: statement `DEFINT`
-qbasic/misc/flrmp.bas  # 4:1: not supported yet: line numbers and numeric labels
-qbasic/misc/forest.bas  # 5:1: not supported yet: line numbers and numeric labels
+qbasic/misc/flrmp.bas  # 4:3: not supported yet: statement `SCREEN`
+qbasic/misc/forest.bas  # 5:3: not supported yet: statement `SCREEN`
 qbasic/misc/frac1.bas  # 1:7: not supported yet: arrays
 qbasic/misc/frac2.bas  # 2:1: not supported yet: statement `SCREEN`
 qbasic/misc/frac3.bas  # 1:1: not supported yet: statement `SCREEN`
 qbasic/misc/frog.bas  # 4:1: not supported yet: statement `DEFINT`
 qbasic/misc/gor64.bas  # 24:1: not supported yet: statement `DEFINT`
-qbasic/misc/gujero.bas  # 10:1: not supported yet: line numbers and numeric labels
+qbasic/misc/gujero.bas  # 10:3: not supported yet: statement `IF`
 qbasic/misc/intrprtr.bas  # 28:30: not supported yet: arrays
 qbasic/misc/kite.bas  # 12:1: not supported yet: statement `FOR`
-qbasic/misc/lissaj.bas  # 5:1: not supported yet: line numbers and numeric labels
-qbasic/misc/mandala.bas  # 5:1: not supported yet: line numbers and numeric labels
-qbasic/misc/mandelb.bas  # 7:1: not supported yet: line numbers and numeric labels
-qbasic/misc/matrix.bas  # 4:1: not supported yet: line numbers and numeric labels
+qbasic/misc/lissaj.bas  # 5:3: not supported yet: statement `IF`
+qbasic/misc/mandala.bas  # 5:3: not supported yet: statement `SCREEN`
+qbasic/misc/mandelb.bas  # 7:3: not supported yet: statement `IF`
+qbasic/misc/matrix.bas  # 4:3: not supported yet: statement `DEF`
 qbasic/misc/mclock.bas  # 11:1: not supported yet: statement `SCREEN`
 qbasic/misc/message.bas  # 5:1: not supported yet: statement `DO`
 qbasic/misc/mzupd2.bas  # 30:7: not supported yet: arrays
 qbasic/misc/nib64.bas  # 21:1: not supported yet: statement `DEFINT`
-qbasic/misc/pattern.bas  # 4:1: not supported yet: line numbers and numeric labels
+qbasic/misc/pattern.bas  # 4:3: not supported yet: statement `SCREEN`
 qbasic/misc/rc-ent6.bas  # 23:1: not supported yet: statement `SCREEN`
 qbasic/misc/ripples.bas  # 23:1: not supported yet: statement `DEFINT`
 qbasic/misc/rot13.bas  # 4:1: not supported yet: statement `for`
-qbasic/misc/rotozoom.bas  # 5:1: not supported yet: line numbers and numeric labels
+qbasic/misc/rotozoom.bas  # 5:3: not supported yet: statement `SCREEN`
 qbasic/misc/scramble.bas  # 6:1: not supported yet: statement `DEFINT`
 qbasic/misc/shoot.bas  # 3:1: not supported yet: statement `DEFLNG`
 qbasic/misc/sinecube.bas  # 4:9: not supported yet: arrays
 qbasic/misc/ssaver.bas  # 3:1: not supported yet: statement `SCREEN`
-qbasic/misc/strfld.bas  # 5:1: not supported yet: line numbers and numeric labels
-qbasic/misc/temple.bas  # 4:1: not supported yet: line numbers and numeric labels
+qbasic/misc/strfld.bas  # 5:3: not supported yet: statement `SCREEN`
+qbasic/misc/temple.bas  # 7:4: not supported yet: statement `INPUT`
 qbasic/misc/tower.bas  # 7:1: not supported yet: statement `DEFINT`
-qbasic/misc/twirl2.bas  # 5:1: not supported yet: line numbers and numeric labels
-qbasic/misc/vortex.bas  # 4:1: not supported yet: line numbers and numeric labels
+qbasic/misc/twirl2.bas  # 5:3: not supported yet: statement `IF`
+qbasic/misc/vortex.bas  # 4:3: not supported yet: statement `SCREEN`
 qbasic/misc/wumpus.bas  # 2:6: not supported yet: arrays
 qbasic/misc/xwing.bas  # 7:1: not supported yet: statement `DEFINT`
 qbasic/n54/big/3dsviewer/3dsviewer.bas  # 10:38: not supported yet: array parameters
@@ -205,9 +190,9 @@ qbasic/n54/big/jpegmake.bas  # 7:80: not supported yet: array parameters
 qbasic/n54/big/tictac.bas  # 11:21: not supported yet: arrays
 qbasic/open_gl/3d_model_viewer.bas  # 27:1: not supported yet: statement `TYPE`
 qbasic/open_gl/simple_example.bas  # 6:1: not supported yet: statement `TYPE`
-qbasic/pete/25lines/3dcube25.bas  # 7:1: not supported yet: line numbers and numeric labels
-qbasic/pete/25lines/npplasma.bas  # 5:1: not supported yet: line numbers and numeric labels
-qbasic/pete/25lines/starfild.bas  # 5:1: not supported yet: line numbers and numeric labels
+qbasic/pete/25lines/3dcube25.bas  # 7:3: not supported yet: statement `IF`
+qbasic/pete/25lines/npplasma.bas  # 5:3: not supported yet: statement `SCREEN`
+qbasic/pete/25lines/starfild.bas  # 5:3: not supported yet: statement `TYPE`
 qbasic/pete/alyman.bas  # 7:17: not supported yet: arrays
 qbasic/pete/asciiconversion.bas  # 17:1: not supported yet: statement `INPUT`
 qbasic/pete/averager.bas  # 1:1: not supported yet: statement `DO`
@@ -218,7 +203,7 @@ qbasic/pete/beatdown/clickme.bas  # 3:1: not supported yet: statement `INPUT`
 qbasic/pete/bj.bas  # 21:19: not supported yet: arrays
 qbasic/pete/booger/booger.bas  # 53:1: not supported yet: statement `DEFINT`
 qbasic/pete/bush.bas  # 25:1: not supported yet: statement `PLAY`
-qbasic/pete/calc.bas  # 1:1: not supported yet: line numbers and numeric labels
+qbasic/pete/calc.bas  # 7:1: not supported yet: statement `INPUT`
 qbasic/pete/calc_2.bas  # 18:1: not supported yet: statement `INPUT`
 qbasic/pete/carracingenglish.bas  # 9:1: not supported yet: statement `SCREEN`
 qbasic/pete/cc2.bas  # 8:1: not supported yet: statement `INPUT`
@@ -228,7 +213,7 @@ qbasic/pete/darokin.bas  # 11:1: not supported yet: statement `SCREEN`
 qbasic/pete/darpong/darpong.bas  # 12:1: not supported yet: statement `DO`
 qbasic/pete/degrees.bas  # 4:1: not supported yet: statement `CONST`
 qbasic/pete/drug3d.bas  # 1:34: not supported yet: array parameters
-qbasic/pete/fight.bas  # 2:1: not supported yet: statement `DATA`
+qbasic/pete/fight.bas  # 50:1: not supported yet: statement `SCREEN`
 qbasic/pete/gravity.bas  # 2:1: not supported yet: statement `SCREEN`
 qbasic/pete/hgm30e/hgm30e.bas  # 27:19: not supported yet: fixed-length strings
 qbasic/pete/html/test.bas  # 6:1: not supported yet: statement `INPUT`
@@ -244,7 +229,7 @@ qbasic/pete/nlcm2006/nlcm.bas  # 25:21: not supported yet: arrays
 qbasic/pete/optimus/deedsaks.bas  # 9:26: not supported yet: array parameters
 qbasic/pete/pall2.bas  # 1:11: not supported yet: arrays
 qbasic/pete/picdimreader.bas  # 6:1: not supported yet: statement `SCREEN`
-qbasic/pete/pongsource.bas  # 3:1: not supported yet: statement `GOTO`
+qbasic/pete/pongsource.bas  # 6:1: not supported yet: statement `SCREEN`
 qbasic/pete/pongtennis/tennis.bas  # 18:18: not supported yet: arrays
 qbasic/pete/pp256/usersubs.bas  # 35:1: not supported yet: statement `TYPE`
 qbasic/pete/qbb.bas  # 203:1: not supported yet: statement `CONST`
@@ -259,7 +244,7 @@ qbasic/pete/screen.bas  # 27:1: not supported yet: statement `IF`
 qbasic/pete/simpire/ssimpire.bas  # 29:1: not supported yet: statement `DEFINT`
 qbasic/pete/skydiver.bas  # 11:1: not supported yet: statement `DO`
 qbasic/pete/space1.bas  # 7:7: not supported yet: arrays
-qbasic/pete/stones.bas  # 1:1: not supported yet: line numbers and numeric labels
+qbasic/pete/stones.bas  # 4:4: not supported yet: statement `FOR`
 qbasic/pete/su2/shoote.bas  # 5:1: not supported yet: statement `SCREEN`
 qbasic/pete/su2/su2t.bas  # 13:16: not supported yet: arrays
 qbasic/pete/sudoku.bas  # 1:8: not supported yet: arrays
@@ -340,11 +325,6 @@ snippets/qb64fresh/control_flow__select_case_fixed_length_string.bas  # 1:17: no
 snippets/qb64fresh/control_flow__select_case_is.bas  # 3:1: not supported yet: statement `SELECT`
 snippets/qb64fresh/control_flow__select_case_range.bas  # 3:1: not supported yet: statement `SELECT`
 snippets/qb64fresh/control_flow__while_wend_loop.bas  # 3:1: not supported yet: statement `WHILE`
-snippets/qb64fresh/data_statements__data_string.bas  # 2:1: not supported yet: statement `READ`
-snippets/qb64fresh/data_statements__labeled_data.bas  # 2:1: not supported yet: statement `RESTORE`
-snippets/qb64fresh/data_statements__multiple_data_values.bas  # 4:1: not supported yet: statement `READ`
-snippets/qb64fresh/data_statements__restore_statement.bas  # 2:1: not supported yet: statement `READ`
-snippets/qb64fresh/data_statements__simple_data_read.bas  # 2:1: not supported yet: statement `READ`
 snippets/qb64fresh/deftype_statements__defdbl_statement.bas  # 1:1: not supported yet: statement `DEFDBL`
 snippets/qb64fresh/deftype_statements__defint_range.bas  # 1:1: not supported yet: statement `DEFINT`
 snippets/qb64fresh/deftype_statements__defint_single_letter.bas  # 1:1: not supported yet: statement `DEFINT`
@@ -392,8 +372,6 @@ snippets/qb64fresh/metacommands_session036__select_everycase.bas  # 3:1: not sup
 snippets/qb64fresh/mid_assignment__mid_array_element.bas  # 1:9: not supported yet: arrays
 snippets/qb64fresh/mid_assignment__mid_fixed_length_string.bas  # 1:17: not supported yet: fixed-length strings
 snippets/qb64fresh/mid_assignment__mid_fixed_length_string_array.bas  # 1:8: not supported yet: arrays
-snippets/qb64fresh/mid_assignment__mid_simple.bas  # 3:1: not supported yet: arrays
-snippets/qb64fresh/mid_assignment__mid_with_length.bas  # 3:1: not supported yet: arrays
 snippets/qb64fresh/procedures__exit_sub.bas  # 6:5: not supported yet: statement `IF`
 snippets/qb64fresh/procedures__recursive_function.bas  # 5:5: not supported yet: statement `IF`
 snippets/qb64fresh/recursion__mutual_recursive_subs.bas  # 6:5: not supported yet: statement `IF`
@@ -562,7 +540,7 @@ upstream/arrays/t280_static_dynamic_swap_erase_parent_reuse.bas  # 6:1: not supp
 upstream/arrays/t281_static_dynamic_option_base1_heavy.bas  # 7:1: not supported yet: statement `TYPE`
 upstream/arrays/t659_array_assignment_control.bas  # 4:11: not supported yet: arrays
 upstream/arrays/t659_explicit_call_control.bas  # 12:5: not supported yet: statement `IF`
-upstream/arrays/t659_sub_call_comparisons.bas  # 4:1: not supported yet: arrays
+upstream/arrays/t659_sub_call_comparisons.bas  # 15:5: not supported yet: statement `IF`
 upstream/arrays/t659_variable_boolean_expr.bas  # 4:8: not supported yet: word `LONG` (expected the end of the statement)
 upstream/arrays/t_qb64pe_refactor_inline_reset_owner_udt.bas  # 5:1: not supported yet: statement `Type`
 upstream/arrays/t_qb64pe_refactor_inline_reset_strings.bas  # 5:1: not supported yet: statement `Type`
@@ -630,12 +608,11 @@ upstream/http/read_example.bas  # 9:1: not supported yet: statement `WHILE`
 upstream/iif/iif_test.bas  # 5:1: not supported yet: statement `CONST`
 upstream/image/curico_test.bas  # 1:1: not supported yet: statement `DEFLNG`
 upstream/image/pcx_test.bas  # 5:1: not supported yet: statement `CONST`
-upstream/image/svg_test.bas  # 8:1: not supported yet: statement `READ`
+upstream/image/svg_test.bas  # 9:1: not supported yet: statement `WHILE`
 upstream/image/webp_test.bas  # 5:1: not supported yet: statement `CONST`
 upstream/keyboard/devices_windows.bas  # 142:9: not supported yet: statement `IF`
 upstream/libz/test.bas  # 5:1: not supported yet: statement `CONST`
 upstream/mem/mem_checking_off.bas  # 6:1: not supported yet: statement `CONST`
-upstream/midi/midisoundbank_memory_test.bas  # 4:1: not supported yet: statement `RESTORE`
 upstream/offset/offset_test.bas  # 4:12: not supported yet: arrays
 upstream/on_error/errtest.bas  # 4:1: not supported yet: `DECLARE LIBRARY`
 upstream/opengl/test.bas  # 2:9: not supported yet: `STATIC` after a procedure header
@@ -658,9 +635,9 @@ upstream/qb64pe/file.bas  # 1:1: not supported yet: statement `DEFLNG`
 upstream/qb64pe/hasFunctionElement.bas  # 2:1: not supported yet: statement `DEFLNG`
 upstream/qb64pe/prepass.bas  # 1:1: not supported yet: statement `DEFLNG`
 upstream/qb64pe/string.bas  # 1:1: not supported yet: statement `DEFLNG`
-upstream/source_ordering/data_positioning.bas  # 4:9: not supported yet: statement `Data`
+upstream/source_ordering/data_positioning.bas  # 6:1: not supported yet: statement `For`
 upstream/source_ordering/define.bas  # 10:1: not supported yet: statement `DefLng`
-upstream/source_ordering/goto_gosub.bas  # 6:1: not supported yet: statement `GoTo`
+upstream/source_ordering/goto_gosub.bas  # 23:1: not supported yet: statement `If`
 upstream/timer/sleep_ends_early.bas  # 3:1: not supported yet: `ON TIMER`
 upstream/timer/timer_delayed_run.bas  # 3:1: not supported yet: `ON TIMER`
 upstream/timer/timer_first_run.bas  # 3:1: not supported yet: `ON TIMER`

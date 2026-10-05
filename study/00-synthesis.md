@@ -225,7 +225,9 @@ question, include files in `v16_inc\` and `v16_*.bi`):
 - **Line numbers (M3):** `10 PRINT`, `20 :`, `30` alone, `70 '…`, indented `10`, glued `10PRINT`, `10.5`, `10&`,
   `4294967296`, out of order, and the same number in main and in a SUB are accepted. A number after a label on
   one line (`lab: 10 PRINT`) and a number after `:` are syntax errors; `10 lab: PRINT` is accepted. The same
-  number twice: "Duplicate label (10)"; `GOTO 99` missing: "Label '99' not defined".
+  number twice: "Duplicate label (10)"; `GOTO 99` missing: "Label '99' not defined". A number before a `SUB`
+  header is accepted (`10 SUB s`); inside a `SUB`, `10 SUB t` is "Expected END SUB/FUNCTION before SUB"
+  (`v16_m3_sub_header`, `v16_m3_nested_sub`, added in the group 5 review).
 - **Blocks (M4):** `NEXT j, i` closes both; wrong order or the outer variable: "Incorrect variable after NEXT".
   A `NEXT` inside a multi-line or single-line `IF`, closing an outer `FOR`: "NEXT without FOR". `LOOP` closing a
   `WHILE` or crossing blocks (`DO`/`FOR`/`LOOP`/`NEXT`): "PROGRAM FLOW ERROR!"; `WEND` closing a `DO`: "WEND without

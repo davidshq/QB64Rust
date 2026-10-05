@@ -57,12 +57,36 @@ passes with the release build. "Verify" below names what is checked on top of th
 
 ## 5. Lexer and expressions (D3, D7)
 
-- [ ] 5.1 `Dot` token and `FieldExpr`; omitted arguments in `ArgList` and the `Option` accessor; `sema` marks
+- [x] 5.1 `Dot` token and `FieldExpr`; omitted arguments in `ArgList` and the `Option` accessor; `sema` marks
   `FieldExpr` "not supported yet". Verify: the member-access entries leave `known_false_errors.list` (about 120).
-- [ ] 5.2 `DATA` mode in the lexer (per M2), `DataStmt` with items, `READ`, `RESTORE`. Lexer snapshots for the M2
-  cases.
-- [ ] 5.3 Line numbers (`LineNumber` node, per M3); `GOTO`/`GOSUB` to numbers. Verify: the `qbasic/` entries with
+  Done 2026-10-05: `known_false_errors.list` 184 to 68 lines (none left from member access), parse gaps 677 to
+  674. Also: an index or member assignment target (`a(1) = 2`, `a(1).b = 5`) is an `AssignStmt` with a
+  `CallExpr`/`FieldExpr` target and `sema` (not the parser) marks it; a statement with a `,` outside parentheses
+  is never an assignment (`s (5 / 2) = 2, 0` is a call); `ArgList::args` gives one `Option` per position and
+  `sema` marks an omitted argument. Two entries added to `known_unsupported_rejections.list`, as task 2.3
+  foresaw: `upstream/arrays/42_` and `43_err_solved_bug_Incorrect_nr_of_args` were rejected only through the
+  parse gap at `f(10).a(5)`, not for the old compiler's reason (`UBOUND` argument count); now they get the
+  marked `TYPE` errors. Test `tests\frontend\member_access.bas`, parser snapshot `member_access`.
+- [x] 5.2 `DATA` mode in the lexer (per M2), `DataStmt` with items, `READ`, `RESTORE`. Lexer snapshots for the M2
+  cases. Done 2026-10-05: one scanner, `syntax\src\data.rs`, follows the old compiler's rule (read in
+  `qb64pe.bas` 25210–25310): a `"` opens a quoted item only as its first non-blank character, so `DATA a"b: x`
+  ends at the `:`; text after a closing quote is a real error, as there. The word `DATA` starts data mode
+  wherever it stands (an input has `… ELSE DATA 1,&h5`), except as a member name or with a suffix.
+  `DataStmt::items` takes the file's bytes. Parse gaps 674 to 660. One entry came back into
+  `known_false_errors.list`: `upstream/font/test.bas`, whose 584 `DATA` lines gave parser errors that filled the
+  100-error cap and hid a real error at 36:15 (a `CONST` used as a string argument, a follow-on case for 8.2).
+  Tests: lexer snapshot `data_text`, parser snapshot `data_read_restore`, unit tests in `data.rs`,
+  `tests\frontend\data_read_restore.bas`.
+- [x] 5.3 Line numbers (`LineNumber` node, per M3); `GOTO`/`GOSUB` to numbers. Verify: the `qbasic/` entries with
   line numbers leave `known_parse_gaps.list`.
+  Done 2026-10-05: `parser\flow.rs`: `LineNumber` (a sibling statement, like `LabelDef`) for a `Number` at the
+  start of a line, then labels; a number after a label or `:` is a real error (M3). Plain `GOTO`, `GOSUB`,
+  `RETURN` with a label or number (the `ON …` forms stay in 7.3). The procedure loop takes the line prefix
+  before looking for `END SUB` (`80 END SUB` closes the block), and the line number before looking for a
+  `SUB`/`FUNCTION` header (review: `10 SUB s` is accepted, `10 SUB t` inside a `SUB` is the nested error;
+  `verification\v16_m3_sub_header`, `v16_m3_nested_sub`). `sema` marks all four "not supported yet".
+  Parse gaps 660 to 654; the 22 entries whose first gap was a line number all moved on to later families (`IF`,
+  `ON … GOTO`) or left. Tests: parser snapshot `line_numbers_and_jumps`, `tests\frontend\line_numbers.bas`.
 
 ## 6. Blocks (D4)
 

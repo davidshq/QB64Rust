@@ -1,0 +1,10 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line_numbers.bas:5:1: error: not supported yet: line numbers
+line_numbers.bas:6:1: error: not supported yet: `GOTO`
+line_numbers.bas:7:1: error: not supported yet: `GOSUB`
+line_numbers.bas:8:1: error: not supported yet: `RETURN`
+line_numbers.bas:9:6: error: a line number must stand first on its line
+line_numbers.bas:10:10: error: a line number must stand first on its line

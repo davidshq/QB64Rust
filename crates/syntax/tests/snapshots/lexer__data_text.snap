@@ -1,0 +1,57 @@
+---
+source: crates/syntax/tests/lexer.rs
+expression: "dump_tokens(b\"DATA   x  ,  y y  ,,\\\"  q  \\\",\\nDATA a'b, c REM d\\ndata \\\"a:b\\\", c: PRINT 1\\nDATA a\\\"b: x\\nIF 1 THEN 2 ELSE DATA 1,&h5\\nDATA:DATA\\nDATA$ = a(1).data\\n\")"
+---
+Ident 0..4 DATA
+Whitespace 4..7    
+DataText 7..28 x  ,  y y  ,,"  q  ",
+Newline 28..29 \x0A
+Ident 29..33 DATA
+Whitespace 33..34  
+DataText 34..46 a'b, c REM d
+Newline 46..47 \x0A
+Ident 47..51 data
+Whitespace 51..52  
+DataText 52..60 "a:b", c
+Colon 60..61 :
+Whitespace 61..62  
+Ident 62..67 PRINT
+Whitespace 67..68  
+Number 68..69 1
+Newline 69..70 \x0A
+Ident 70..74 DATA
+Whitespace 74..75  
+DataText 75..78 a"b
+Colon 78..79 :
+Whitespace 79..80  
+Ident 80..81 x
+Newline 81..82 \x0A
+Ident 82..84 IF
+Whitespace 84..85  
+Number 85..86 1
+Whitespace 86..87  
+Ident 87..91 THEN
+Whitespace 91..92  
+Number 92..93 2
+Whitespace 93..94  
+Ident 94..98 ELSE
+Whitespace 98..99  
+Ident 99..103 DATA
+Whitespace 103..104  
+DataText 104..109 1,&h5
+Newline 109..110 \x0A
+Ident 110..114 DATA
+Colon 114..115 :
+Ident 115..119 DATA
+Newline 119..120 \x0A
+Ident 120..125 DATA$
+Whitespace 125..126  
+Eq 126..127 =
+Whitespace 127..128  
+Ident 128..129 a
+LParen 129..130 (
+Number 130..131 1
+RParen 131..132 )
+Dot 132..133 .
+Ident 133..137 data
+Newline 137..138 \x0A

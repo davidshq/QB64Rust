@@ -4,7 +4,7 @@ Updated 2026-10-05 (session 15). Session-by-session history is in `git log`; mea
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests done (its CI job not yet seen on GitHub).**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests done.**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -106,7 +106,7 @@ variables, `PRINT` (`;`, `,`, auto-semicolon), `END`, literals, `+ - * /`, unary
 **Rust review of the workspace setup** (2026-10-04, `study\21`, accepted): no `_ =>` on semantic enums,
 `disallowed-methods` for byte-to-`str` conversions, cast lints with `base::to_u32`, overflow checks in release
 (the folder wraps with `wrapping_*`), `rust-version`, CI workflows `rust.yml` (tier 1) and `repo-check.yml`
-(`tools\repo_check`, rules 2 and 7). Both workflows have not run on GitHub yet (not pushed).
+(`tools\repo_check`, rules 2 and 7). Both run green on GitHub since 2026-10-05.
 
 ## M2: procedures and error handling (2026-10-04, sessions 10–11)
 
@@ -131,11 +131,10 @@ accessors (`ast.rs`) and keeps a symbol table for the language server.
 ## M2: upstream tests (2026-10-04, session 12)
 
 OpenSpec change `m2-upstream-tests`: archived 2026-10-04 to
-`openspec\changes\archive\2026-10-04-m2-upstream-tests\` with 16 of 17 tasks done, its specs now the main specs
+`openspec\changes\archive\2026-10-04-m2-upstream-tests\`, its specs now the main specs
 (new: `openspec\specs\testing\upstream-tests`; updated: `compiler\cli`, `compiler\pipeline`,
-`testing\compiler-tests`). Open: task 6.5, the CI job `tier2` in `rust.yml` showing green on GitHub; its two steps
-pass locally against the downloaded release. Check it after the next push and tick 6.5 in the archived
-`tasks.md`.
+`testing\compiler-tests`). Task 6.5, the last one, done 2026-10-05: the CI job `tier2` in `rust.yml` is green on
+GitHub.
 
 - `tests\upstream\`: QB64pe's compile tests copied (404 `.bas`, 836 text files, 2.5 MB, `SOURCE.md`); tier 1
   (`inputs.rs`) runs the front end over about 1,000 files: corpus, upstream, 406 QB64Fresh snippets labelled by
@@ -167,12 +166,14 @@ pass locally against the downloaded release. Check it after the next push and ti
 **Next** (order accepted 2026-10-05 after the third review and panel, `study\23` §4, reasons there; it replaces
 the order of `study\22` §5):
 
-1. Push; see `rust.yml` (with the `tier2` job, task 6.5 of `m2-upstream-tests`), `repo-check.yml` and
-   `vscode-extension.yml` green on GitHub.
+1. Done 2026-10-05: `rust.yml` (with `tier2`) and `repo-check.yml` green on GitHub for `1289c20`;
+   `vscode-extension.yml` last ran green on `main` (2026-10-03), nothing under `vscode\` changed since. Push the
+   later commits and glance at their runs.
 2. `m2-parser-breadth` groups 5 and 6 (member access, `DATA`, line numbers, blocks); state of the change below.
 3. A control-flow slice through to C++, its own OpenSpec change (not proposed yet): `IF`, `FOR`, `DO`, `WHILE`,
    `GOTO`, `GOSUB`/`RETURN`, `CONST`, `OPTION _EXPLICIT`, labels inside blocks and procedures, `RESUME NEXT` after
-   an error in a block header. First count the corpus and upstream programs blocked only by these. Then the IR
+   an error in a block header. Single-line `IF … ELSE`: the call-or-assignment test (`comma_outside_parens`)
+   must stop at `ELSE` (TODO in `parser\mod.rs`). First count the corpus and upstream programs blocked only by these. Then the IR
    review (keep, or merge into the typed tree; `study\20` §3.4).
 4. `m2-parser-breadth` groups 7 to 9, with the blunt follow-on rule and block crossing marked (`study\23` §2.3,
    §2.4; design D10, D4).
@@ -195,10 +196,12 @@ State of **`m2-parser-breadth`** (started 2026-10-04;
    (`--include-root`, default the exe's folder, as the old compiler uses its own folder); depth 100, no cycle
    check. Group 4 done 2026-10-05 (no behaviour change): one `Tree` per file per inclusion in a
    `ParsedProgram`, `parse` takes a `Loader` (none loads anything yet), `sema` keyed by (`TreeId`, offset),
-   `--dump tree` headed per tree. Next: group 5 (`Dot`/`FieldExpr`, `DATA`, line numbers), then group 6
-   (blocks); the change then pauses for the control-flow slice (step 3 above) and resumes with statements,
-   `specialformat` templates (new dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree per file, and
-   the follow-on rule. Done when the parse-gap and false-error lists are empty.
+   `--dump tree` headed per tree. Group 5 done 2026-10-05: member access (`FieldExpr`), omitted arguments,
+   `DATA`/`READ`/`RESTORE` (the old compiler's `DATA` scanner), line numbers, plain `GOTO`/`GOSUB`/`RETURN`, all
+   parsed and marked by `sema`; **false errors 184 to 69**, parse gaps 677 to 654, two `.err` programs moved to
+   the rejection list (task 5.1 says why); tier 2 unchanged. Next: group 6 (blocks); the change then pauses
+   for the control-flow slice (step 3 above) and resumes with statements, `specialformat` templates (new
+   dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree per file, and the follow-on rule. Done when the parse-gap and false-error lists are empty.
 
 ## FreeBASIC reviewed (2026-10-03)
 

@@ -32,6 +32,8 @@ snippets/qb64fresh/system_statements__shellhide_statement.bas
 upstream/arrays/39_err_member_must_be_const.bas
 upstream/arrays/40_err_undefined_type.bas
 upstream/arrays/41_err_undefined_array.bas
+upstream/arrays/42_err_solved_bug_Incorrect_nr_of_args.bas
+upstream/arrays/43_err_solved_bug_Incorrect_nr_of_args.bas
 upstream/arrays/44_err_solved_bug_Incorrect_nr_of_args.bas
 upstream/arrays/45_err_solved_bug_Incorrect_nr_of_args.bas
 upstream/arrays/array_elements_change.bas

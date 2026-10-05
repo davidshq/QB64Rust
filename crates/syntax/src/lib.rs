@@ -1,6 +1,7 @@
 //! Byte lexer, lossless syntax tree and parser (design D2–D4).
 
 pub mod ast;
+mod data;
 mod kind;
 pub mod lexer;
 pub mod meta;

@@ -1,0 +1,127 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"10 PRINT 1\\n20 :\\n30\\n  40 ' c\\n50 lab: GOTO 10\\n60PRINT 2\\n10.5 GOSUB lab\\n70& RETURN\\nRETURN 30\\nSUB s\\n80 END SUB\\nlab2: 90 PRINT\\nPRINT: 100\\nGOTO\\n110 SUB u\\n120 SUB v\\nEND SUB\\n\")"
+---
+SourceFile 0..166
+  LineNumber 0..2
+    Number 10
+  Whitespace  
+  PrintStmt 3..10
+    Ident PRINT
+    Whitespace  
+    Literal 9..10
+      Number 1
+  Newline \x0A
+  LineNumber 11..13
+    Number 20
+  Whitespace  
+  Colon :
+  Newline \x0A
+  LineNumber 16..18
+    Number 30
+  Newline \x0A
+  Whitespace   
+  LineNumber 21..23
+    Number 40
+  Whitespace  
+  Comment ' c
+  Newline \x0A
+  LineNumber 28..30
+    Number 50
+  Whitespace  
+  LabelDef 31..35
+    Ident lab
+    Colon :
+  Whitespace  
+  GotoStmt 36..43
+    Ident GOTO
+    Whitespace  
+    Number 10
+  Newline \x0A
+  LineNumber 44..46
+    Number 60
+  PrintStmt 46..53
+    Ident PRINT
+    Whitespace  
+    Literal 52..53
+      Number 2
+  Newline \x0A
+  LineNumber 54..58
+    Number 10.5
+  Whitespace  
+  GosubStmt 59..68
+    Ident GOSUB
+    Whitespace  
+    Ident lab
+  Newline \x0A
+  LineNumber 69..72
+    Number 70&
+  Whitespace  
+  ReturnStmt 73..79
+    Ident RETURN
+  Newline \x0A
+  ReturnStmt 80..89
+    Ident RETURN
+    Whitespace  
+    Number 30
+  Newline \x0A
+  ProcDef 90..107
+    ProcHeader 90..95
+      Ident SUB
+      Whitespace  
+      Ident s
+    Newline \x0A
+    LineNumber 96..98
+      Number 80
+    Whitespace  
+    ProcEnd 99..106
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+  LabelDef 107..112
+    Ident lab2
+    Colon :
+  Whitespace  
+  Error 113..121
+    Number 90
+    Whitespace  
+    Ident PRINT
+  Newline \x0A
+  PrintStmt 122..127
+    Ident PRINT
+  Colon :
+  Whitespace  
+  Error 129..132
+    Number 100
+  Newline \x0A
+  GotoStmt 133..137
+    Ident GOTO
+  Newline \x0A
+  LineNumber 138..141
+    Number 110
+  Whitespace  
+  ProcDef 142..151
+    ProcHeader 142..147
+      Ident SUB
+      Whitespace  
+      Ident u
+    Newline \x0A
+    LineNumber 148..151
+      Number 120
+  Whitespace  
+  ProcDef 152..166
+    ProcHeader 152..157
+      Ident SUB
+      Whitespace  
+      Ident v
+    Newline \x0A
+    ProcEnd 158..165
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+t.bas:12:7: error: a line number must stand first on its line
+t.bas:13:8: error: a line number must stand first on its line
+t.bas:14:5: error: expected a label or line number
+t.bas:16:5: error: a SUB or FUNCTION cannot be defined inside another; expected `END SUB` before it

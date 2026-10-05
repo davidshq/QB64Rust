@@ -48,6 +48,12 @@ pub enum SyntaxKind {
     /// `?`, short for `PRINT`.
     Question,
     Hash,
+    /// `.` of member access (`a(1).b`): after `)` or a member name, followed (blanks allowed) by a name. Elsewhere
+    /// a dot is part of a name (`a.b`) or a number.
+    Dot,
+    /// The items of a `DATA` statement, raw: everything after `DATA` and its blanks up to the line end or a `:`
+    /// outside quotes (measured M2: `'` and `REM` are data there). The parser splits it into items.
+    DataText,
     /// A byte that starts no token (e.g. `@`, or 0x80–0xFF outside strings and comments).
     Unknown,
 
@@ -96,10 +102,27 @@ pub enum SyntaxKind {
     ResumeStmt,
     /// `ERROR n`
     ErrorStmt,
+    /// A `Number` at the start of a line: a line number (the statement after it, if any, is a sibling node).
+    LineNumber,
+    /// `GOTO label|number`
+    GotoStmt,
+    /// `GOSUB label|number`
+    GosubStmt,
+    /// `RETURN [label|number]`
+    ReturnStmt,
+    /// `DATA` and a `DataText` token (none for `DATA` alone).
+    DataStmt,
+    /// `READ target, ...`
+    ReadStmt,
+    /// `RESTORE`, `RESTORE label`, `RESTORE 100`
+    RestoreStmt,
     Literal,
     NameRef,
     CallExpr,
+    /// `(` arguments `)`; an argument may be left out (`f(a, , b)`).
     ArgList,
+    /// Member access after an index, call or other member: `<expr> . name [(args)]` (`a(1).b`, `a(1).b(2).c`).
+    FieldExpr,
     ParenExpr,
     PrefixExpr,
     BinExpr,

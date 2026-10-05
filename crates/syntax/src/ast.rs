@@ -4,6 +4,7 @@
 
 use crate::SyntaxKind::{self, *};
 use crate::tree::{Element, Node, Tok};
+use qb64rust_base::Span;
 
 macro_rules! node_wrapper {
     ($($(#[$doc:meta])* $name:ident),* $(,)?) => {$(
@@ -51,10 +52,18 @@ node_wrapper!(
     OnErrorStmt,
     ResumeStmt,
     ErrorStmt,
+    LineNumber,
+    GotoStmt,
+    GosubStmt,
+    ReturnStmt,
+    DataStmt,
+    ReadStmt,
+    RestoreStmt,
     Literal,
     NameRef,
     CallExpr,
     ArgList,
+    FieldExpr,
     ParenExpr,
     PrefixExpr,
     BinExpr,
@@ -268,6 +277,83 @@ impl<'a> ErrorStmt<'a> {
     }
 }
 
+impl LineNumber<'_> {
+    /// The `Number` token.
+    pub fn number(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Number)
+    }
+}
+
+/// The label or line number after the statement's word; `None` when missing (or for a bare `RETURN`).
+fn jump_target(node: Node<'_>) -> Option<Tok> {
+    node.child_tokens().filter(|t| matches!(t.kind, Ident | Number)).nth(1)
+}
+
+impl GotoStmt<'_> {
+    pub fn target(self) -> Option<Tok> {
+        jump_target(self.0)
+    }
+}
+
+impl GosubStmt<'_> {
+    pub fn target(self) -> Option<Tok> {
+        jump_target(self.0)
+    }
+}
+
+impl ReturnStmt<'_> {
+    pub fn target(self) -> Option<Tok> {
+        jump_target(self.0)
+    }
+}
+
+/// One item of a `DATA` statement: its text without the blanks around it (`span`), quotes included when
+/// `quoted`. An empty item (`DATA a,,b`, a trailing `,`) has an empty span.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DataItem {
+    pub span: Span,
+    pub quoted: bool,
+}
+
+impl DataStmt<'_> {
+    /// The `DataText` token; `None` for `DATA` with nothing after it.
+    pub fn text(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == DataText)
+    }
+
+    /// The items, split from `bytes` (the file's bytes) by the old compiler's rule (`crate::data`); `n` commas
+    /// give `n + 1` items (measured M2). None without a `DataText` token; whether the old compiler gives bare
+    /// `DATA` one empty item is not measured (matters once `READ` is implemented).
+    pub fn items(self, bytes: &[u8]) -> Vec<DataItem> {
+        let Some(t) = self.text() else {
+            return Vec::new();
+        };
+        let span = |s: usize, e: usize| Span::new(t.span.file, qb64rust_base::to_u32(s), qb64rust_base::to_u32(e));
+        crate::data::scan(bytes, t.span.start as usize)
+            .items
+            .into_iter()
+            .map(|it| DataItem {
+                span: span(it.start, it.end),
+                quoted: it.quoted,
+            })
+            .collect()
+    }
+}
+
+impl<'a> ReadStmt<'a> {
+    /// The targets, in order (parsed as expressions; `sema` checks that each is a variable).
+    pub fn targets(self) -> impl Iterator<Item = Expr<'a>> + 'a {
+        self.0.child_nodes().filter_map(Expr::cast)
+    }
+}
+
+impl RestoreStmt<'_> {
+    /// The label or line number after `RESTORE`; `None` for a bare `RESTORE`.
+    pub fn target(self) -> Option<Tok> {
+        jump_target(self.0)
+    }
+}
+
 impl<'a> DimItem<'a> {
     /// The declared name, with its suffix.
     pub fn name(self) -> Option<Tok> {
@@ -287,9 +373,18 @@ impl<'a> AsClause<'a> {
 }
 
 impl<'a> AssignStmt<'a> {
-    /// The assigned name (after an optional `LET`).
-    pub fn target(self) -> Option<NameRef<'a>> {
-        child(self.0, NameRef::cast)
+    /// What is assigned (after an optional `LET`): a `NameRef`, or a `CallExpr` or `FieldExpr` for an index or
+    /// member access.
+    pub fn target(self) -> Option<Expr<'a>> {
+        let eq_start = self
+            .0
+            .child_tokens()
+            .find(|t| t.kind == Eq)
+            .map_or(u32::MAX, |t| t.span.start);
+        self.0
+            .child_nodes()
+            .filter(|n| n.offset < eq_start)
+            .find_map(Expr::cast)
     }
 
     /// The expression after `=`.
@@ -305,6 +400,7 @@ pub enum Expr<'a> {
     Literal(Literal<'a>),
     NameRef(NameRef<'a>),
     Call(CallExpr<'a>),
+    Field(FieldExpr<'a>),
     Paren(ParenExpr<'a>),
     Prefix(PrefixExpr<'a>),
     Bin(BinExpr<'a>),
@@ -316,6 +412,7 @@ impl<'a> Expr<'a> {
             SyntaxKind::Literal => Expr::Literal(Literal(node)),
             SyntaxKind::NameRef => Expr::NameRef(NameRef(node)),
             SyntaxKind::CallExpr => Expr::Call(CallExpr(node)),
+            SyntaxKind::FieldExpr => Expr::Field(FieldExpr(node)),
             SyntaxKind::ParenExpr => Expr::Paren(ParenExpr(node)),
             SyntaxKind::PrefixExpr => Expr::Prefix(PrefixExpr(node)),
             SyntaxKind::BinExpr => Expr::Bin(BinExpr(node)),
@@ -328,6 +425,7 @@ impl<'a> Expr<'a> {
             Expr::Literal(x) => x.0,
             Expr::NameRef(x) => x.0,
             Expr::Call(x) => x.0,
+            Expr::Field(x) => x.0,
             Expr::Paren(x) => x.0,
             Expr::Prefix(x) => x.0,
             Expr::Bin(x) => x.0,
@@ -363,8 +461,48 @@ impl<'a> CallExpr<'a> {
 }
 
 impl<'a> ArgList<'a> {
-    pub fn args(self) -> impl Iterator<Item = Expr<'a>> + 'a {
-        self.0.child_nodes().filter_map(Expr::cast)
+    /// One entry per argument position, `None` where the argument is left out (`f(a, , b)` gives three, the
+    /// second `None`); `()` gives none.
+    pub fn args(self) -> Vec<Option<Expr<'a>>> {
+        let mut out = Vec::new();
+        let mut cur = None;
+        let mut any = false;
+        for e in self.0.children() {
+            match e {
+                Element::Node(n) => {
+                    if let Some(x) = Expr::cast(n) {
+                        cur = Some(x);
+                        any = true;
+                    }
+                }
+                Element::Token(t) if t.kind == Comma => {
+                    out.push(cur.take());
+                    any = true;
+                }
+                Element::Token(_) => {}
+            }
+        }
+        if any {
+            out.push(cur);
+        }
+        out
+    }
+}
+
+impl<'a> FieldExpr<'a> {
+    /// The expression whose member is taken (`a(1)` in `a(1).b`).
+    pub fn base(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+
+    /// The member name, with its suffix.
+    pub fn member(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Ident)
+    }
+
+    /// The index of an array member (`(2)` in `a(1).b(2)`).
+    pub fn arg_list(self) -> Option<ArgList<'a>> {
+        child(self.0, ArgList::cast)
     }
 }
 
@@ -413,6 +551,13 @@ mod tests {
     use crate::tree::TreeId;
     use qb64rust_base::FileId;
 
+    fn target_name(assign: AssignStmt) -> Option<Tok> {
+        match assign.target() {
+            Some(Expr::NameRef(n)) => n.name(),
+            _ => None,
+        }
+    }
+
     fn first_stmt<'a>(green: &'a crate::tree::GreenNode) -> Node<'a> {
         let root = SourceFile::cast(Node::root(green, TreeId(0), FileId(0))).unwrap();
         root.statements().next().unwrap()
@@ -422,7 +567,7 @@ mod tests {
     fn binary_operands_and_operator() {
         let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"x = a + -b\n");
         let assign = AssignStmt::cast(first_stmt(&p.green)).unwrap();
-        assert_eq!(assign.target().and_then(|n| n.name()).map(|t| t.span.start), Some(0));
+        assert_eq!(target_name(assign).map(|t| t.span.start), Some(0));
         let Some(Expr::Bin(bin)) = assign.value() else {
             panic!("not a BinExpr")
         };
@@ -435,7 +580,7 @@ mod tests {
     fn assignment_of_a_name() {
         let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"LET d# = s!\n");
         let assign = AssignStmt::cast(first_stmt(&p.green)).unwrap();
-        assert_eq!(assign.target().and_then(|n| n.name()).map(|t| t.span.start), Some(4));
+        assert_eq!(target_name(assign).map(|t| t.span.start), Some(4));
         let Some(Expr::NameRef(value)) = assign.value() else {
             panic!("not a NameRef")
         };
@@ -548,14 +693,20 @@ mod tests {
         let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
         assert!(c.call_keyword().is_some());
         assert_eq!(c.name().map(|t| t.span.start), Some(5));
-        assert!(matches!(c.arg_list().unwrap().args().next(), Some(Expr::NameRef(_))));
+        assert!(matches!(
+            c.arg_list().unwrap().args().first(),
+            Some(Some(Expr::NameRef(_)))
+        ));
         assert!(c.unparsed_args().is_none());
 
         // Without CALL the parentheses make a ParenExpr argument (by value).
         let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"s (n)\n");
         let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
         assert!(c.call_keyword().is_none());
-        assert!(matches!(c.arg_list().unwrap().args().next(), Some(Expr::Paren(_))));
+        assert!(matches!(
+            c.arg_list().unwrap().args().first(),
+            Some(Some(Expr::Paren(_)))
+        ));
 
         let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"t\n");
         let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
@@ -609,6 +760,66 @@ mod tests {
 
     fn t(start: u32, end: u32) -> qb64rust_base::Span {
         qb64rust_base::Span::new(FileId(0), start, end)
+    }
+
+    #[test]
+    fn member_access_and_omitted_arguments() {
+        // `a(1).b.c(2)`: FieldExpr(FieldExpr(CallExpr a(1), b), c, (2)).
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"PRINT a(1).b.c(2); x(2) .y; z(3). w\n");
+        assert!(p.diagnostics.list().is_empty());
+        let print = PrintStmt::cast(first_stmt(&p.green)).unwrap();
+        let exprs: Vec<_> = print
+            .parts()
+            .filter_map(|part| match part {
+                PrintPart::Expr(e) => Some(e),
+                PrintPart::Semicolon(_) | PrintPart::Comma(_) => None,
+            })
+            .collect();
+        assert_eq!(exprs.len(), 3);
+        let Expr::Field(outer) = exprs[0] else {
+            panic!("not a FieldExpr")
+        };
+        assert_eq!(outer.member().map(|t| t.span), Some(t(13, 14)));
+        assert_eq!(outer.arg_list().unwrap().args().len(), 1);
+        let Some(Expr::Field(inner)) = outer.base() else {
+            panic!("not a FieldExpr")
+        };
+        assert_eq!(inner.member().map(|t| t.span), Some(t(11, 12)));
+        assert!(inner.arg_list().is_none());
+        assert!(matches!(inner.base(), Some(Expr::Call(_))));
+        assert!(matches!(exprs[1], Expr::Field(_)));
+        assert!(matches!(exprs[2], Expr::Field(_)));
+
+        // A dotted name without an index stays one name.
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"PRINT a.b\n");
+        let print = PrintStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(matches!(print.parts().next(), Some(PrintPart::Expr(Expr::NameRef(_)))));
+
+        // Assignment to a member.
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"a(1).b(2).c = 5\n");
+        assert!(p.diagnostics.list().is_empty());
+        let assign = AssignStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(matches!(assign.target(), Some(Expr::Field(_))));
+        assert!(matches!(assign.value(), Some(Expr::Literal(_))));
+
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"x = f(a, , b) + g(, ) + h()\n");
+        assert!(p.diagnostics.list().is_empty());
+        let assign = AssignStmt::cast(first_stmt(&p.green)).unwrap();
+        let mut calls = Vec::new();
+        let mut e = assign.value();
+        while let Some(Expr::Bin(b)) = e {
+            let Some(Expr::Call(c)) = b.rhs() else {
+                panic!("not a call")
+            };
+            calls.push(c);
+            e = b.lhs();
+        }
+        let Some(Expr::Call(f)) = e else { panic!("not a call") };
+        calls.push(f);
+        let shape = |c: CallExpr| -> Vec<bool> { c.arg_list().unwrap().args().iter().map(Option::is_some).collect() };
+        assert_eq!(shape(calls[2]), vec![true, false, true]);
+        assert_eq!(shape(calls[1]), vec![false, false]);
+        assert_eq!(shape(calls[0]), Vec::<bool>::new());
     }
 
     #[test]

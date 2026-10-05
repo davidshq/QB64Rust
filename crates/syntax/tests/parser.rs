@@ -82,10 +82,18 @@ fn calls() {
 }
 
 /// Without `CALL`, arguments that are not an expression list are kept in an `Error` node with no diagnostic
-/// (built-in statements such as `LOCATE , 5`); with `CALL` they are an error.
+/// (built-in statements such as `LOCATE , 5`); with `CALL` they are an error. In parentheses an argument may be
+/// left out (`CALL s(1,)`); `sema` reports that.
 #[test]
 fn call_arguments_the_parser_cannot_read() {
-    insta::assert_snapshot!(tree("LOCATE , 5\nCOLOR 4,\ns (1, 2)\nCALL s(1,)\n"));
+    insta::assert_snapshot!(tree("LOCATE , 5\nCOLOR 4,\ns (1, 2)\nCALL s(1,)\nCALL s(1 2)\n"));
+}
+
+/// Member access after an index or a member (`.` is a `Dot` token there), with blanks around the dot; a dotted
+/// name (`a.b`) stays one name.
+#[test]
+fn member_access() {
+    insta::assert_snapshot!(tree("PRINT a(1).b.c(2), a(2) .b, a(2). b, a.b\na(i).x(j).y = q(1).r\n"));
 }
 
 #[test]
@@ -95,10 +103,31 @@ fn exit_declare_shared_static() {
     ));
 }
 
-/// An array element assignment is not a call: `a(1) = 2` still says arrays are not supported.
+/// `DATA` holds one `DataText` token; `READ` targets are expressions; `RESTORE` takes a label or a number. Text
+/// after a closing quote is an error, as in the old compiler.
+#[test]
+fn data_read_restore() {
+    insta::assert_snapshot!(tree(
+        "DATA 1, \"a, b\": READ x, a$(2), t(1).f\nRESTORE\nRESTORE lab\nRESTORE 100\nDATA\nDATA \"a\" b, 2\n"
+    ));
+}
+
+/// Line numbers (measured M3): at the start of a line, also alone, before `:`, a comment, a label, glued to the
+/// statement, with a decimal point or a suffix, and before `END SUB`. After a label or a `:` a number is an error.
+/// `GOTO`/`GOSUB`/`RETURN` take a label or a number. Before a `SUB` header a number is allowed, and inside a `SUB`
+/// such a header is still the nested-procedure error (`verification\v16_m3_sub_header`, `v16_m3_nested_sub`).
+#[test]
+fn line_numbers_and_jumps() {
+    insta::assert_snapshot!(tree(
+        "10 PRINT 1\n20 :\n30\n  40 ' c\n50 lab: GOTO 10\n60PRINT 2\n10.5 GOSUB lab\n70& RETURN\nRETURN 30\nSUB s\n80 END SUB\nlab2: 90 PRINT\nPRINT: 100\nGOTO\n110 SUB u\n120 SUB v\nEND SUB\n"
+    ));
+}
+
+/// An array element assignment is not a call: `a(1) = 2` is an `AssignStmt` (`sema` says arrays are not
+/// supported). With a `,` outside parentheses it is a call: `s (5 / 2) = 2, 0` is a `CallStmt`.
 #[test]
 fn array_assignment_is_not_a_call() {
-    insta::assert_snapshot!(tree("a(1) = 2\nEXIT FOR\nDECLARE LIBRARY\n"));
+    insta::assert_snapshot!(tree("a(1) = 2\nEXIT FOR\nDECLARE LIBRARY\ns (5 / 2) = 2, 0\n"));
 }
 
 #[test]

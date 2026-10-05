@@ -5,6 +5,7 @@
 
 use super::Parser;
 use crate::SyntaxKind::{self, *};
+use crate::tree::Checkpoint;
 
 /// Precedence level of a binary operator at the current token, if it is one.
 fn binary_level(p: &Parser) -> Option<u8> {
@@ -74,7 +75,7 @@ fn expr_bp(p: &mut Parser, min: u8) -> bool {
         if !ok {
             return false;
         }
-    } else if !primary(p) {
+    } else if !primary(p) || !fields(p, cp) {
         return false;
     }
     while let Some(level) = binary_level(p) {
@@ -130,14 +131,31 @@ fn primary(p: &mut Parser) -> bool {
     }
 }
 
-/// `(` expressions separated by commas `)`, at the `(`.
+/// Member accesses after the operand that started at `cp`: each `. name [(args)]` wraps what came before in a
+/// `FieldExpr`. The lexer gives a `Dot` only after `)` or a member name. Returns false after an error.
+pub(super) fn fields(p: &mut Parser, cp: Checkpoint) -> bool {
+    while p.at(Dot) {
+        p.builder.start_node_at(cp, FieldExpr);
+        p.bump(); // .
+        let ok = p.expect(Ident, "a member name after `.`") && (!p.at(LParen) || arg_list(p));
+        p.finish_node();
+        if !ok {
+            return false;
+        }
+    }
+    true
+}
+
+/// `(` arguments separated by commas `)`, at the `(`. An argument may be left out (`f(a, , b)`, `f(, b)`); `()`
+/// is an empty list, not one omitted argument.
 pub(super) fn arg_list(p: &mut Parser) -> bool {
     p.start_node(ArgList);
     p.bump(); // (
     let mut ok = true;
     if !p.at(RParen) {
         loop {
-            if !expr(p) {
+            let omitted = p.at(Comma) || p.at(RParen);
+            if !omitted && !expr(p) {
                 ok = false;
                 break;
             }

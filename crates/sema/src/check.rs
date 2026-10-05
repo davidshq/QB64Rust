@@ -330,6 +330,20 @@ impl Checker<'_> {
             self.resume(s)
         } else if let Some(s) = ast::ErrorStmt::cast(node) {
             self.error_stmt(s)
+        } else if ast::LineNumber::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "line numbers"))
+        } else if ast::GotoStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "`GOTO`"))
+        } else if ast::GosubStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "`GOSUB`"))
+        } else if ast::ReturnStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "`RETURN`"))
+        } else if ast::DataStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "`DATA`"))
+        } else if ast::ReadStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "`READ`"))
+        } else if ast::RestoreStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "`RESTORE`"))
         } else {
             Err(self.error(
                 node.span(),
@@ -904,7 +918,17 @@ impl Checker<'_> {
 
     fn assign(&mut self, stmt: ast::AssignStmt) -> R<()> {
         let node = stmt.node();
-        let target = self.need(stmt.target().and_then(|n| n.name()), node.span())?;
+        let target = match self.need(stmt.target(), node.span())? {
+            ast::Expr::NameRef(n) => self.need(n.name(), node.span())?,
+            ast::Expr::Call(c) => {
+                let span = c.node().span();
+                return Err(self.unsupported(span, "arrays"));
+            }
+            ast::Expr::Field(f) => return Err(self.field(f)),
+            e @ (ast::Expr::Literal(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_)) => {
+                return Err(self.error(e.node().span(), "cannot assign to this expression"));
+            }
+        };
         let value_node = self.need(stmt.value(), node.span())?;
         let value = self.expr(value_node)?;
         let var = self.target(target)?;
@@ -954,7 +978,7 @@ impl Checker<'_> {
                     let msg = format!("cannot read the arguments of `{shown}`; expected expressions separated by `,`");
                     return Err(self.error(span, msg));
                 }
-                let nodes: Vec<ast::Expr> = stmt.arg_list().map(|l| l.args().collect()).unwrap_or_default();
+                let nodes = self.present_args(stmt.arg_list())?;
                 let args = self.args(p, name_tok, &nodes, node.span())?;
                 self.names.push((SymbolKind::Proc(p), name_tok.span));
                 self.push(node, StmtKind::Call { proc: p, args });
@@ -1044,7 +1068,7 @@ impl Checker<'_> {
         if suffix.is_some_and(|s| s != ty) {
             return Err(self.in_use(t));
         }
-        let nodes: Vec<ast::Expr> = args.map(|l| l.args().collect()).unwrap_or_default();
+        let nodes = self.present_args(args)?;
         let args = self.args(p, t, &nodes, span)?;
         self.names.push((SymbolKind::Proc(p), t.span));
         Ok(Expr {
@@ -1122,7 +1146,30 @@ impl Checker<'_> {
             ast::Expr::Prefix(prefix) => self.prefix(prefix),
             ast::Expr::Bin(bin) => self.binary(bin),
             ast::Expr::Call(call) => self.call(call),
+            ast::Expr::Field(field) => Err(self.field(field)),
         }
+    }
+
+    /// Member access (`a(1).b`): needs `TYPE`, not supported yet.
+    fn field(&mut self, node: ast::FieldExpr) -> Failed {
+        let span = node.node().span();
+        self.unsupported(span, "member access (`TYPE`)")
+    }
+
+    /// The arguments of a call, in order; none without an argument list. An omitted argument (`f(a, , b)`) is not
+    /// supported yet.
+    fn present_args<'t>(&mut self, list: Option<ast::ArgList<'t>>) -> R<Vec<ast::Expr<'t>>> {
+        let Some(list) = list else {
+            return Ok(Vec::new());
+        };
+        let mut out = Vec::new();
+        for a in list.args() {
+            match a {
+                Some(e) => out.push(e),
+                None => return Err(self.unsupported(list.node().span(), "omitted arguments")),
+            }
+        }
+        Ok(out)
     }
 
     fn number(&mut self, t: Tok, negative: bool) -> R<Expr> {
@@ -1292,8 +1339,7 @@ impl Checker<'_> {
 
     /// `CHR$(code)`: one LONG slot (stored as for an assignment); raises error 5 outside 0-255 at run time.
     fn chr(&mut self, span: Span, id: BuiltinId, node: ast::CallExpr) -> R<Expr> {
-        let args_node = self.need(node.arg_list(), span)?;
-        let args: Vec<ast::Expr> = args_node.args().collect();
+        let args = self.present_args(node.arg_list())?;
         let [arg] = args[..] else {
             return Err(self.error(span, "`CHR$` takes 1 argument"));
         };
@@ -1315,9 +1361,8 @@ impl Checker<'_> {
 
     /// `INSTR([start,] base$, search$)`: table slots LONG, STRING, STRING; the first optional.
     fn instr(&mut self, span: Span, id: BuiltinId, node: ast::CallExpr) -> R<Expr> {
-        let args_node = self.need(node.arg_list(), span)?;
         let mut args = Vec::new();
-        for a in args_node.args() {
+        for a in self.present_args(node.arg_list())? {
             args.push(self.expr(a)?);
         }
         let mut slots: Vec<Option<Expr>> = match args.len() {
@@ -1368,6 +1413,11 @@ impl Checker<'_> {
         }
         Ok(self.convert_exact(e, to))
     }
+}
+
+/// The span of a statement's first token (where a "not supported yet" mark goes, design D10).
+fn first_token_span(node: Node) -> Span {
+    node.first_token().map_or(node.span(), |t| t.span)
 }
 
 /// Whether `name` with `suffix` names a built-in function as it must be written: `LEN` bare, `LEFT$` with its `$`

@@ -32,6 +32,7 @@ pub(crate) fn proc_def(p: &mut Parser) -> bool {
             p.error_at(header_span, format!("`{word}` without `END {word}`"));
             break;
         }
+        p.line_number();
         if p.at_proc_start() {
             p.error(format!(
                 "a SUB or FUNCTION cannot be defined inside another; expected `END {word}` before it"
@@ -39,6 +40,8 @@ pub(crate) fn proc_def(p: &mut Parser) -> bool {
             nested = true;
             break;
         }
+        // A line number or label may stand before `END SUB` (`10 END SUB`); it belongs to the body.
+        p.line_prefix();
         if p.at_word("END") && (p.nth_is_word(1, "SUB") || p.nth_is_word(1, "FUNCTION")) {
             proc_end(p, word);
             p.recover();

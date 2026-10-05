@@ -62,7 +62,8 @@ Starts after `m2-procedures-and-errors` is archived (design, Context).
   criterion; about as long as the old compiler's run); put every passing program into `tests\upstream\pass.list`.
   Verify: the `--list` run passes all of them, also with `QB64RUST_NO_FOLD=1`; `git -C ..\QB64pe status
   --porcelain` unchanged.
-- [ ] 6.5 If 6.1 said yes: the CI job of D9. Verify: it runs green on a push of the branch.
+- [x] 6.5 If 6.1 said yes: the CI job of D9. Verify: it runs green on a push of the branch.
+  Done 2026-10-05: `tier2` green on GitHub (Rust workflow, push of `1289c20`).
 
 ## 7. Documentation
 

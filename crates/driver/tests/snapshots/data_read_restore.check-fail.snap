@@ -1,0 +1,8 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+data_read_restore.bas:5:1: error: not supported yet: `DATA`
+data_read_restore.bas:5:25: error: not supported yet: `READ`
+data_read_restore.bas:6:1: error: not supported yet: `RESTORE`
+data_read_restore.bas:7:10: error: expected `,` after a quoted `DATA` item

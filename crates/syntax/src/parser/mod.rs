@@ -7,9 +7,11 @@
 
 mod assign;
 mod call;
+mod data;
 mod decl;
 mod errors;
 mod expr;
+mod flow;
 pub(crate) mod keywords;
 mod meta;
 mod print;
@@ -281,6 +283,7 @@ impl<'a> Parser<'a> {
                 self.stmt_error = false;
             }
             keep_error = false;
+            self.line_number();
             if self.at_proc_start() {
                 keep_error = proc::proc_def(self);
             } else {
@@ -298,9 +301,7 @@ impl<'a> Parser<'a> {
 
     /// One statement and the line end or `:` after it.
     fn statement_and_separator(&mut self) {
-        while self.at_label() {
-            errors::label_def(self);
-        }
+        self.line_prefix();
         self.statement();
         if !self.at_stmt_end() {
             self.syntax_error("expected the end of the statement");
@@ -319,7 +320,9 @@ impl<'a> Parser<'a> {
             Some(Question) => print::print_stmt(self),
             Some(Ident) => self.word_statement(),
             Some(Number) => {
-                self.unsupported("line numbers and numeric labels");
+                // A line number at the start of a line is taken by `line_prefix`; anywhere else (after a label or
+                // a `:`) the old compiler rejects it too (measured M3).
+                self.error("a line number must stand first on its line");
                 self.recover();
             }
             Some(_) => {
@@ -356,7 +359,21 @@ impl<'a> Parser<'a> {
             errors::resume_stmt(self)
         } else if self.at_word("ERROR") {
             errors::error_stmt(self)
-        } else if self.nth(1) == Some(Eq) || (self.nth(1) == Some(LParen) && self.parens_then_eq()) {
+        } else if self.at_word("GOTO") {
+            flow::jump_stmt(self, GotoStmt)
+        } else if self.at_word("GOSUB") {
+            flow::jump_stmt(self, GosubStmt)
+        } else if self.at_word("RETURN") {
+            flow::jump_stmt(self, ReturnStmt)
+        } else if self.at_word("DATA") {
+            data::data_stmt(self)
+        } else if self.at_word("READ") {
+            data::read_stmt(self)
+        } else if self.at_word("RESTORE") {
+            data::restore_stmt(self)
+        } else if self.nth(1) == Some(Eq)
+            || (self.nth(1) == Some(LParen) && self.parens_then_eq() && !self.comma_outside_parens())
+        {
             assign::assign_stmt(self)
         } else if keywords::is_keyword(name_part(self.nth_text(0))) {
             self.not_supported_statement()
@@ -366,20 +383,57 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// The token after the name is `(`, and the token after its matching `)` is `=` (`a(1) = 2`).
+    /// The token after the name is `(`, and after its matching `)` and any member accesses (`.b`, `.b(2)`) comes
+    /// `=` (`a(1) = 2`, `a(1).b = 2`).
     fn parens_then_eq(&self) -> bool {
-        let mut depth = 0i32;
         let mut n = 1;
+        loop {
+            if self.nth(n) == Some(LParen) {
+                match self.skip_parens(n) {
+                    Some(after) => n = after,
+                    None => return false,
+                }
+            }
+            match self.nth(n) {
+                Some(Eq) => return true,
+                Some(Dot) if self.nth(n + 1) == Some(Ident) => n += 2,
+                _ => return false,
+            }
+        }
+    }
+
+    /// The statement has a `,` outside parentheses. Then `s (5 / 2) = 2, 0` is a SUB call with a comparison as
+    /// its first argument, not an assignment, which has no such comma.
+    // TODO(single-line IF): the scan runs to the line end or `:`, so in `IF c THEN a(1) = 2 ELSE s 1, 2` it would
+    // see the `ELSE` branch's comma and make `a(1) = 2` a call. Stop at `ELSE` when `IF` is parsed.
+    fn comma_outside_parens(&self) -> bool {
+        let mut depth = 0i32;
+        let mut n = 0;
+        while !ends_stmt(self.nth(n)) {
+            match self.nth(n) {
+                Some(LParen) => depth += 1,
+                Some(RParen) => depth -= 1,
+                Some(Comma) if depth == 0 => return true,
+                _ => {}
+            }
+            n += 1;
+        }
+        false
+    }
+
+    /// At the `(` at `n`: the index just after its matching `)`, or `None` if the statement ends first.
+    fn skip_parens(&self, mut n: usize) -> Option<usize> {
+        let mut depth = 0i32;
         loop {
             match self.nth(n) {
                 Some(LParen) => depth += 1,
                 Some(RParen) => {
                     depth -= 1;
                     if depth == 0 {
-                        return self.nth(n + 1) == Some(Eq);
+                        return Some(n + 1);
                     }
                 }
-                None | Some(Newline) | Some(MetaComment) => return false,
+                None | Some(Newline) | Some(MetaComment) => return None,
                 _ => {}
             }
             n += 1;

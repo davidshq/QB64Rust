@@ -2,19 +2,10 @@
 # testing/upstream-tests, "No false errors"). Shrink-only: parser breadth empties it. The comment is the first
 # such error. Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.
 corpus/runtime_comparison/198_type_fixed_string.bas  # 7:7: cannot store a string in a number variable
-corpus/runtime_comparison/201_erase_udt_array.bas  # 9:13: expected `;` or `,` between PRINT items
 corpus/runtime_comparison/242_types_simple.bas  # 11:7: cannot store a string in a number variable
 corpus/runtime_comparison/57_type_string_field.bas  # 8:10: cannot store a string in a number variable
-corpus/runtime_comparison/58_array_udt.bas  # 10:11: expected `;` or `,` between PRINT items
-qbasic/misc/3dexp2.bas  # 99:19: expected the end of the statement
-qbasic/misc/nib64.bas  # 193:32: expected `)`
-qbasic/open_gl/3d_model_viewer.bas  # 217:16: expected the end of the statement
 qbasic/open_gl/simple_example.bas  # 43:5: names starting with `_` are reserved: `_GL`
-qbasic/pete/monopoly/monopoly.bas  # 122:12: expected `;` or `,` between PRINT items
 qbasic/pete/screen.bas  # 43:18: name already in use: `list$`
-qbasic/pete/vektor.bas  # 301:16: expected the end of the statement
-qbasic/thebob/monopoly/mboard.bas  # 130:21: expected the end of the statement
-qbasic/thebob/pongg/pongg.bas  # 235:51: expected `,` or `)`
 snippets/qb64fresh/control_flow__select_case_fixed_length_string.bas  # 2:5: cannot store a string in a number variable
 snippets/qb64fresh/deftype_statements__defstr_statement.bas  # 3:9: cannot store a string in a number variable
 snippets/qb64fresh/error_extensions__on_error_goto_newhandler_compiles_and_emits_handler.bas  # 1:27: expected the end of the statement
@@ -24,115 +15,12 @@ snippets/qb64fresh/opengl_integration__sub_gl_defines_opengl_macro.bas  # 1:5: n
 snippets/qb64fresh/system_statements__clipboard_set_statement.bas  # 1:1: names starting with `_` are reserved: `_CLIPBOARD$`
 snippets/qb64fresh/system_statements__clipboard_set_with_variable.bas  # 3:1: names starting with `_` are reserved: `_CLIPBOARD$`
 snippets/qb64fresh/system_statements__clipboardimage_assignment.bas  # 1:1: names starting with `_` are reserved: `_CLIPBOARDIMAGE`
-upstream/arrays/01_redim_byte.bas  # 26:99: expected `;` or `,` between PRINT items
-upstream/arrays/02_redim_ubyte.bas  # 26:100: expected `;` or `,` between PRINT items
-upstream/arrays/03_redim_integer.bas  # 26:102: expected `;` or `,` between PRINT items
-upstream/arrays/04_redim_uinteger.bas  # 26:103: expected `;` or `,` between PRINT items
 upstream/arrays/05_fixed_length_string.bas  # 22:11: cannot store a string in a number variable
-upstream/arrays/05_redim_long.bas  # 26:99: expected `;` or `,` between PRINT items
-upstream/arrays/06_redim_ulong.bas  # 26:100: expected `;` or `,` between PRINT items
-upstream/arrays/06_variable_string.bas  # 26:25: cannot read the arguments of `CheckText`; expected expressions separated by `,`
-upstream/arrays/07_nested_udt.bas  # 35:36: cannot read the arguments of `CheckTrue`; expected expressions separated by `,`
-upstream/arrays/07_redim_integer64.bas  # 26:104: expected `;` or `,` between PRINT items
-upstream/arrays/08_redim_uinteger64.bas  # 26:105: expected `;` or `,` between PRINT items
-upstream/arrays/09_layout_and_mixed_members.bas  # 29:48: cannot read the arguments of `CheckTrue`; expected expressions separated by `,`
-upstream/arrays/09_redim_single.bas  # 26:101: expected `;` or `,` between PRINT items
-upstream/arrays/10_redim_double.bas  # 26:101: expected `;` or `,` between PRINT items
-upstream/arrays/11_redim_float.bas  # 26:100: expected `;` or `,` between PRINT items
-upstream/arrays/12_redim_fixed_string.bas  # 26:107: expected `;` or `,` between PRINT items
-upstream/arrays/13_redim_2d_long.bas  # 26:112: expected `;` or `,` between PRINT items
-upstream/arrays/14_redim_instance_isolation.bas  # 27:114: expected `;` or `,` between PRINT items
-upstream/arrays/15_redim_deep_nested.bas  # 30:107: expected `;` or `,` between PRINT items
-upstream/arrays/21_redim_preserve_byte.bas  # 26:108: expected `;` or `,` between PRINT items
-upstream/arrays/22_redim_preserve_ubyte.bas  # 26:109: expected `;` or `,` between PRINT items
-upstream/arrays/23_redim_preserve_integer.bas  # 26:111: expected `;` or `,` between PRINT items
-upstream/arrays/24_redim_preserve_uinteger.bas  # 26:112: expected `;` or `,` between PRINT items
-upstream/arrays/25_redim_preserve_long.bas  # 26:108: expected `;` or `,` between PRINT items
-upstream/arrays/26_redim_preserve_ulong.bas  # 26:109: expected `;` or `,` between PRINT items
-upstream/arrays/27_redim_preserve_integer64.bas  # 26:113: expected `;` or `,` between PRINT items
-upstream/arrays/28_redim_preserve_uinteger64.bas  # 26:114: expected `;` or `,` between PRINT items
-upstream/arrays/29_redim_preserve_single.bas  # 26:110: expected `;` or `,` between PRINT items
-upstream/arrays/30_redim_preserve_double.bas  # 26:110: expected `;` or `,` between PRINT items
-upstream/arrays/31_redim_preserve_float.bas  # 26:109: expected `;` or `,` between PRINT items
-upstream/arrays/32_redim_preserve_fixed_string.bas  # 26:116: expected `;` or `,` between PRINT items
-upstream/arrays/33_redim_preserve_2d_long.bas  # 26:121: expected `;` or `,` between PRINT items
-upstream/arrays/34_redim_preserve_instance_isolation.bas  # 27:123: expected `;` or `,` between PRINT items
-upstream/arrays/35_redim_preserve_deep_nested.bas  # 30:116: expected `;` or `,` between PRINT items
-upstream/arrays/46_Mem_Parent.bas  # 11:19: expected `,` or `)`
+upstream/arrays/06_variable_string.bas  # 35:25: a string is required for this parameter
 upstream/arrays/Retain_Preserve.bas  # 30:18: cannot store a string in a number variable
-upstream/arrays/datatype_coverage_strings_and_sizes.bas  # 35:38: cannot read the arguments of `CheckTrue`; expected expressions separated by `,`
-upstream/arrays/multiple_arrays_same_type.bas  # 44:37: cannot read the arguments of `CheckTrue`; expected expressions separated by `,`
-upstream/arrays/nested_udt_array_of_udt_with_array.bas  # 29:38: cannot read the arguments of `CheckTrue`; expected expressions separated by `,`
-upstream/arrays/nonzero_bounds_negative.bas  # 21:29: expected the end of the statement
-upstream/arrays/nonzero_bounds_positive.bas  # 27:35: cannot read the arguments of `CheckTrue`; expected expressions separated by `,`
-upstream/arrays/put_get_write_read_UDT_fixed_string.bas  # 40:19: expected `;` or `,` between PRINT items
 upstream/arrays/t001_whole_array_core.bas  # 63:12: expected the end of the statement
-upstream/arrays/t210_negative_bounds_1d.bas  # 19:21: expected `,` or `)`
-upstream/arrays/t211_positive_nonzero_bounds_1d.bas  # 17:21: expected `,` or `)`
-upstream/arrays/t212_single_element_explicit_bound.bas  # 14:21: expected `,` or `)`
-upstream/arrays/t213_parent_nonzero_bounds.bas  # 15:56: expected `)`
-upstream/arrays/t214_parent_negative_bounds.bas  # 16:58: expected `)`
-upstream/arrays/t215_two_dim_mixed_bounds.bas  # 15:21: expected `,` or `)`
-upstream/arrays/t216_three_dim_small_cube.bas  # 15:21: expected `,` or `)`
-upstream/arrays/t217_multi_members_independent.bas  # 18:14: expected `)`
-upstream/arrays/t218_scalar_members_around_dynfields.bas  # 22:14: expected `)`
-upstream/arrays/t219_fixed_string_scalar_around_dynfield.bas  # 18:14: expected `)`
 upstream/arrays/t220_2.bas  # 15:17: cannot store a string in a number variable
-upstream/arrays/t220_varstring_scalar_around_dynfield.bas  # 18:14: expected `)`
-upstream/arrays/t221_signed_byte_dynamic.bas  # 16:14: expected `)`
-upstream/arrays/t222_unsigned_byte_dynamic.bas  # 16:14: expected `)`
-upstream/arrays/t223_integer_dynamic.bas  # 16:14: expected `)`
-upstream/arrays/t224_unsigned_integer_dynamic.bas  # 16:14: expected `)`
-upstream/arrays/t225_long_dynamic_arithmetic.bas  # 18:19: expected the end of the statement
-upstream/arrays/t226_unsigned_long_dynamic.bas  # 16:14: expected `)`
-upstream/arrays/t227_integer64_dynamic.bas  # 16:14: expected `)`
-upstream/arrays/t228_unsigned_integer64_dynamic.bas  # 16:14: expected `)`
-upstream/arrays/t229_single_dynamic_tolerance.bas  # 16:18: expected `,` or `)`
-upstream/arrays/t230_double_dynamic_tolerance.bas  # 16:18: expected `,` or `)`
-upstream/arrays/t231_fixed_len_string_dynamic_field.bas  # 16:14: expected `)`
-upstream/arrays/t232_static_fixed_len_string_array.bas  # 18:14: expected `)`
-upstream/arrays/t232_staticfield_fixed_len_string_array.bas  # 18:14: expected `)`
-upstream/arrays/t233_unmarked_inline_numeric_array_redim_parent.bas  # 16:14: expected `)`
-upstream/arrays/t234_unmarked_inline_varstring_array_redim_parent.bas  # 16:14: expected `)`
-upstream/arrays/t235_member_redim_expand_no_retain.bas  # 15:21: expected `,` or `)`
-upstream/arrays/t236_member_redim_retain_expand.bas  # 18:21: expected `,` or `)`
-upstream/arrays/t237_member_redim_retain_shrink.bas  # 18:21: expected `,` or `)`
-upstream/arrays/t238_member_redim_preserve_expand.bas  # 17:21: expected `,` or `)`
-upstream/arrays/t239_ordinary_member_redim_clears.bas  # 17:14: expected `)`
-upstream/arrays/t240_erase_member_then_redim.bas  # 18:21: expected `,` or `)`
-upstream/arrays/t241_swap_parent_elements.bas  # 19:14: expected `)`
-upstream/arrays/t242_swap_indexed_member_values.bas  # 16:14: expected `)`
-upstream/arrays/t243_computed_index_access.bas  # 19:14: expected `)`
-upstream/arrays/t244_nested_fixed_udt_dynamic_field.bas  # 22:14: expected `)`
-upstream/arrays/t245_nested_fixed_udt_2d_dynamic_field.bas  # 22:14: expected `)`
-upstream/arrays/t246_nested_owner_scalar_gap.bas  # 24:14: expected `)`
-upstream/arrays/t247_parent_redim_ordinary_resets.bas  # 17:14: expected `)`
-upstream/arrays/t248_parent_redim_retain_expands.bas  # 19:14: expected `)`
-upstream/arrays/t249_fixed_len_string_2d_dynamic_field.bas  # 17:21: expected `,` or `)`
-upstream/arrays/t260_preserve_1d_member_expand_nonzero_parent.bas  # 28:21: expected `,` or `)`
-upstream/arrays/t261_preserve_1d_member_shrink_fixed_string.bas  # 21:21: expected `,` or `)`
-upstream/arrays/t262_retain_member_multi_resize_numeric.bas  # 22:21: expected `,` or `)`
-upstream/arrays/t263_retain_parent_multi_resize_with_member.bas  # 28:21: expected `)`
-upstream/arrays/t264_erase_member_then_rebuild_bounds.bas  # 22:21: expected `,` or `)`
-upstream/arrays/t265_swap_parent_elements_different_member_bounds.bas  # 27:21: expected `,` or `)`
-upstream/arrays/t266_putget_fixed_dynamic_fields.bas  # 42:13: expected `)`
-upstream/arrays/t267_putget_fixed_scalar_string_nonzero_bounds.bas  # 39:27: expected `,` or `)`
-upstream/arrays/t270_dynamic_static_same_type_bounds.bas  # 30:21: expected `,` or `)`
-upstream/arrays/t271_dynamic_static_parent_retain.bas  # 26:21: expected `)`
-upstream/arrays/t272_dynamic_static_array_assign_deepcopy.bas  # 35:13: expected `)`
-upstream/arrays/t273_dynamic_static_option_base_1.bas  # 21:21: expected `,` or `)`
-upstream/arrays/t274_nested_dynamic_static_owner.bas  # 32:14: expected `)`
-upstream/arrays/t275_static_dynamic_member_erase_rebuild_heavy.bas  # 49:14: expected `)`
-upstream/arrays/t276_static_dynamic_dim_parent_member_redim.bas  # 41:21: expected `)`
-upstream/arrays/t277_static_dynamic_parent_redim_reset_retain.bas  # 35:21: expected `)`
-upstream/arrays/t278_nested_static_dynamic_copy_erase_rebuild.bas  # 44:13: expected `)`
-upstream/arrays/t279_static_dynamic_2d_retain_parent_resize.bas  # 34:21: expected `)`
-upstream/arrays/t280_static_dynamic_swap_erase_parent_reuse.bas  # 35:14: expected `)`
-upstream/arrays/t281_static_dynamic_option_base1_heavy.bas  # 47:28: expected `,` or `)`
-upstream/arrays/test_mem_vs_len.bas  # 11:19: expected `,` or `)`
-upstream/arrays/type_member_arrays_as_parameters.bas  # 33:39: expected `,` or `)`
 upstream/arrays/type_owner_self_assignment.bas  # 12:18: cannot store a string in a number variable
-upstream/arrays/whole_member_array_ops_nonzero_bounds.bas  # 32:32: cannot read the arguments of `CheckTrue`; expected expressions separated by `,`
 upstream/auto_include/am-trigger.bas  # 12:9: a SUB or FUNCTION cannot be defined inside another; expected `END FUNCTION` before it
 upstream/auto_include/general.bas  # 10:37: names starting with `_` are reserved: `_E`
 upstream/clipboard/clipboard_test.bas  # 11:1: names starting with `_` are reserved: `_CLIPBOARD$`
@@ -144,7 +32,7 @@ upstream/declare_library_header/test-compile-base-directory.bas  # 4:4: `FUNCTIO
 upstream/declare_library_header/test-compile-base.bas  # 6:4: `FUNCTION` without `END FUNCTION`
 upstream/declare_library_header/test.bas  # 4:4: `FUNCTION` without `END FUNCTION`
 upstream/declare_library_static/test.bas  # 6:40: expected `,` or `)`
-upstream/font/test.bas  # 67:72: expected an expression
+upstream/font/test.bas  # 36:15: a string is required for this parameter
 upstream/glut/desktopheight.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
 upstream/glut/desktopwidth.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
 upstream/glut/mousecursor.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
@@ -165,14 +53,12 @@ upstream/logging/consts.bas  # 3:7: names starting with `_` are reserved: `_LOG_
 upstream/mem/mem_checking_off.bas  # 20:28: a string is required for this parameter
 upstream/on_error/errtest.bas  # 6:5: a SUB or FUNCTION cannot be defined inside another; expected `END FUNCTION` before it
 upstream/opengl/test.bas  # 2:5: names starting with `_` are reserved: `_GL`
-upstream/overloaded/test.bas  # 149:18: expected `,` or `)`
 upstream/qb64pe/dwd.bas  # 7:6: cannot store a string in a number variable
 upstream/qb64pe/element.bas  # 9:6: cannot store a string in a number variable
 upstream/qb64pe/element_createElementString.bas  # 9:6: cannot store a string in a number variable
 upstream/qb64pe/element_getStringValue.bas  # 9:6: cannot store a string in a number variable
 upstream/qb64pe/element_getnextelement.bas  # 9:6: cannot store a string in a number variable
 upstream/qb64pe/element_getprevelement.bas  # 9:6: cannot store a string in a number variable
-upstream/qb64pe/file.bas  # 41:41: expected `,` or `)`
 upstream/qb64pe/hasFunctionElement.bas  # 9:6: cannot store a string in a number variable
 upstream/qb64pe/prepass.bas  # 7:6: cannot store a string in a number variable
 upstream/qb64pe/string.bas  # 7:6: cannot store a string in a number variable
@@ -181,4 +67,3 @@ upstream/types/dim.bas  # 34:6: cannot store a string in a number variable
 upstream/types/nested_udt.bas  # 19:12: cannot store a string in a number variable
 upstream/types/static.bas  # 39:10: cannot store a string in a number variable
 upstream/types/udt.bas  # 61:10: cannot store a string in a number variable
-upstream/types/udt_array.bas  # 13:28: expected `;` or `,` between PRINT items

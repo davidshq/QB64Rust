@@ -1,0 +1,62 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"DATA 1, \\\"a, b\\\": READ x, a$(2), t(1).f\\nRESTORE\\nRESTORE lab\\nRESTORE 100\\nDATA\\nDATA \\\"a\\\" b, 2\\n\")"
+---
+SourceFile 0..89
+  DataStmt 0..14
+    Ident DATA
+    Whitespace  
+    DataText 1, "a, b"
+  Colon :
+  Whitespace  
+  ReadStmt 16..37
+    Ident READ
+    Whitespace  
+    NameRef 21..22
+      Ident x
+    Comma ,
+    Whitespace  
+    CallExpr 24..29
+      NameRef 24..26
+        Ident a$
+      ArgList 26..29
+        LParen (
+        Literal 27..28
+          Number 2
+        RParen )
+    Comma ,
+    Whitespace  
+    FieldExpr 31..37
+      CallExpr 31..35
+        NameRef 31..32
+          Ident t
+        ArgList 32..35
+          LParen (
+          Literal 33..34
+            Number 1
+          RParen )
+      Dot .
+      Ident f
+  Newline \x0A
+  RestoreStmt 38..45
+    Ident RESTORE
+  Newline \x0A
+  RestoreStmt 46..57
+    Ident RESTORE
+    Whitespace  
+    Ident lab
+  Newline \x0A
+  RestoreStmt 58..69
+    Ident RESTORE
+    Whitespace  
+    Number 100
+  Newline \x0A
+  DataStmt 70..74
+    Ident DATA
+  Newline \x0A
+  DataStmt 75..88
+    Ident DATA
+    Whitespace  
+    DataText "a" b, 2
+  Newline \x0A
+t.bas:6:10: error: expected `,` after a quoted `DATA` item
