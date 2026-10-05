@@ -40,7 +40,7 @@ columns in diagnostics are byte columns.
 ```
 cargo build --release
 target\release\qb64rust.exe -x prog.bas -o prog.exe        # compile (needs ..\QB64pe, see below)
-target\release\qb64rust.exe -z prog.bas                    # write the C++ fragments only, print their folder
+target\release\qb64rust.exe -z prog.bas                    # write the C++ fragments only, print their folder (kept)
 target\release\qb64rust.exe --dump typed prog.bas          # tokens | tree | typed | ir | cpp
 ```
 
@@ -50,7 +50,9 @@ fragments, the copy of `qbx.cpp`, `qbx.o` and the `.sym` file go into `<exe>.qb6
 (characters other than `A-Z a-z 0-9 . _ -` in that folder name become `_`, because `make` cannot take them; the
 executable is linked there and moved into place; the folder is deleted after a successful build unless
 `--keep-build`); libqb objects are built into the clone's git-ignored folders if missing. No tracked file of the
-clone changes. The QB64pe Windows release works as the root too (CI uses it). `-f:OptimizeCppProgram=true` builds
+clone changes. `-z` keeps that folder: run over many files (to collect diagnostics), it leaves a
+`<name>.exe.qb64rust\temp\` next to every program without errors, so give `-o` a scratch folder outside the repo and
+the clone, or use `--dump tree`. The QB64pe Windows release works as the root too (CI uses it). `-f:OptimizeCppProgram=true` builds
 with `-O2` as `qb64pe` does; `-f:StripDebugSymbols=...` is ignored; other `-f:` settings are "not supported yet".
 
 What the compiler supports so far:
@@ -66,7 +68,10 @@ What the compiler supports so far:
 - error handling: labels in the main module, `ON ERROR GOTO label` and `ON ERROR GOTO 0` (also inside a
   procedure), `RESUME`, `RESUME NEXT`, `RESUME label`, `ERROR n`, `ERR`, `ERL`, `CHR$`.
 
-Anything else gets a "not supported yet" error, never wrong code.
+Anything else gets a "not supported yet" error, never wrong code. Parsed into typed nodes but still marked by
+`sema` (`m2-parser-breadth`, in progress): member access, `DATA`/`READ`/`RESTORE`, line numbers,
+`GOTO`/`GOSUB`/`RETURN`, and every block (`IF` in both forms, `FOR`, `DO`, `WHILE`, `SELECT CASE`, `TYPE`,
+`DECLARE LIBRARY`, `EXIT` of each); `DEF FN` is an error, as in QB64pe.
 
 A panic is reported as `qb64rust: internal compiler error: <message> at <source location>`, with the input file;
 the executable is removed and the exit code is 3 (every other failure exits with 1). `QB64RUST_TEST_PANIC=1`

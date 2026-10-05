@@ -1,0 +1,140 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"TYPE t\\n  a AS LONG\\n  AS INTEGER b, c(1 TO 2)\\n  s AS STRING * 8\\n  AS STRING * 4 u, v\\n  w AS _UNSIGNED _BYTE\\n\\n  e(-1 TO 1, 3) _DYNAMIC AS t2\\n  _STATIC f(9) AS DOUBLE\\nEND TYPE\\n\")"
+---
+SourceFile 0..173
+  TypeBlock 0..173
+    TypeHeader 0..6
+      Ident TYPE
+      Whitespace  
+      Ident t
+    Newline \x0A
+    Whitespace   
+    TypeField 9..18
+      FieldName 9..10
+        Ident a
+      Whitespace  
+      AsClause 11..18
+        Ident AS
+        Whitespace  
+        Ident LONG
+    Newline \x0A
+    Whitespace   
+    TypeField 21..44
+      AsClause 21..31
+        Ident AS
+        Whitespace  
+        Ident INTEGER
+      Whitespace  
+      FieldName 32..33
+        Ident b
+      Comma ,
+      Whitespace  
+      FieldName 35..44
+        Ident c
+        ArrayBounds 36..44
+          LParen (
+          Literal 37..38
+            Number 1
+          Whitespace  
+          Ident TO
+          Whitespace  
+          Literal 42..43
+            Number 2
+          RParen )
+    Newline \x0A
+    Whitespace   
+    TypeField 47..62
+      FieldName 47..48
+        Ident s
+      Whitespace  
+      AsClause 49..62
+        Ident AS
+        Whitespace  
+        Ident STRING
+        Whitespace  
+        Star *
+        Whitespace  
+        Number 8
+    Newline \x0A
+    Whitespace   
+    TypeField 65..83
+      AsClause 65..78
+        Ident AS
+        Whitespace  
+        Ident STRING
+        Whitespace  
+        Star *
+        Whitespace  
+        Number 4
+      Whitespace  
+      FieldName 79..80
+        Ident u
+      Comma ,
+      Whitespace  
+      FieldName 82..83
+        Ident v
+    Newline \x0A
+    Whitespace   
+    TypeField 86..106
+      FieldName 86..87
+        Ident w
+      Whitespace  
+      AsClause 88..106
+        Ident AS
+        Whitespace  
+        Ident _UNSIGNED
+        Whitespace  
+        Ident _BYTE
+    Newline \x0A
+    Newline \x0A
+    Whitespace   
+    TypeField 110..138
+      FieldName 110..132
+        Ident e
+        ArrayBounds 111..123
+          LParen (
+          PrefixExpr 112..114
+            Minus -
+            Literal 113..114
+              Number 1
+          Whitespace  
+          Ident TO
+          Whitespace  
+          Literal 118..119
+            Number 1
+          Comma ,
+          Whitespace  
+          Literal 121..122
+            Number 3
+          RParen )
+        Whitespace  
+        Ident _DYNAMIC
+      Whitespace  
+      AsClause 133..138
+        Ident AS
+        Whitespace  
+        Ident t2
+    Newline \x0A
+    Whitespace   
+    TypeField 141..163
+      Ident _STATIC
+      Whitespace  
+      FieldName 149..153
+        Ident f
+        ArrayBounds 150..153
+          LParen (
+          Literal 151..152
+            Number 9
+          RParen )
+      Whitespace  
+      AsClause 154..163
+        Ident AS
+        Whitespace  
+        Ident DOUBLE
+    Newline \x0A
+    BlockEnd 164..172
+      Ident END
+      Whitespace  
+      Ident TYPE
+    Newline \x0A

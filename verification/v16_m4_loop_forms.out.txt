@@ -1,0 +1,9 @@
+ 8 
+ 5 
+ 10  7  4  1 
+gt1
+five
+range
+string range
+empty select
+exit=0

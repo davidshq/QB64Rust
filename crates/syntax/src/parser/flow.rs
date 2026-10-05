@@ -21,13 +21,17 @@ impl Parser<'_> {
             self.start_node(LineNumber);
             self.bump();
             self.finish_node();
+            self.after_line_number = self.pos;
         }
     }
 
-    /// What may stand before a statement: a line number at the start of a line, then labels.
+    /// What may stand before a statement at the start of a line: a line number, then a label. After a `:` a name
+    /// and a colon are a call (`PRINT "a": s: PRINT "b"` calls `s`; with a label `lab` it is a syntax error in the
+    /// old compiler, `verification\v16_m3_label_after_colon`, `v16_m3_call_after_colon`).
     pub(super) fn line_prefix(&mut self) {
         self.line_number();
-        while self.at_label() {
+        let at_start = self.at_line_start() || self.after_line_number == self.pos;
+        if at_start && self.at_label() {
             super::errors::label_def(self);
         }
     }

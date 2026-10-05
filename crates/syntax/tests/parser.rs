@@ -64,9 +64,7 @@ fn precedence() {
 #[test]
 fn two_errors_reported() {
     // Errors on lines 2 and 5, one each; the statements around them parse.
-    insta::assert_snapshot!(tree(
-        "x = 1\nFOR i = 1 TO 3: PRINT i\nPRINT x\nPRINT x;\nPRINT (2\nEND\n"
-    ));
+    insta::assert_snapshot!(tree("x = 1\nCONST c = 3: PRINT i\nPRINT x\nPRINT x;\nPRINT (2\nEND\n"));
 }
 
 #[test]
@@ -127,7 +125,7 @@ fn line_numbers_and_jumps() {
 /// supported). With a `,` outside parentheses it is a call: `s (5 / 2) = 2, 0` is a `CallStmt`.
 #[test]
 fn array_assignment_is_not_a_call() {
-    insta::assert_snapshot!(tree("a(1) = 2\nEXIT FOR\nDECLARE LIBRARY\ns (5 / 2) = 2, 0\n"));
+    insta::assert_snapshot!(tree("a(1) = 2\ns (5 / 2) = 2, 0\n"));
 }
 
 #[test]
@@ -166,8 +164,9 @@ fn header_errors() {
 
 #[test]
 fn labels() {
-    // A label on its own line, before a statement, two in a row; `a$:` and keywords are not labels; `END:` and
-    // `SYSTEM:` are the statements.
+    // A label on its own line, before a statement; after a `:` a name and a colon are a call (`b.c`, measured
+    // `verification\v16_m3_call_after_colon`); `a$:` and keywords are not labels; `END:` and `SYSTEM:` are the
+    // statements.
     insta::assert_snapshot!(tree(
         "handler:\nback: PRINT 1\na: b.c: PRINT 2\nx$: PRINT 3\nEND: SYSTEM:\n"
     ));
@@ -189,10 +188,10 @@ fn error_handling_statement_errors() {
 
 #[test]
 fn unsupported_statement_message() {
-    let p = parse_one(b"PRINT 1\n\nFOR i = 1 TO 2\n");
+    let p = parse_one(b"PRINT 1\n\nCONST c = 2\n");
     let diags = p.diagnostics();
     let d = &diags.list()[0];
-    assert_eq!(d.message, "statement `FOR`");
+    assert_eq!(d.message, "statement `CONST`");
     assert!(d.unsupported);
     assert_eq!(d.span.start, 9);
 }
@@ -200,7 +199,108 @@ fn unsupported_statement_message() {
 /// Errors at a BASIC word or operator the parser does not handle there are marked; a genuine syntax error is not.
 #[test]
 fn marked_parse_errors() {
-    insta::assert_snapshot!(tree("x = a MOD b\nIF a < b THEN\nPRINT #1, x\nx = 5 TO 6\nx = 5 6\n"));
+    insta::assert_snapshot!(tree("x = a MOD b\nREDIM a(5)\nPRINT #1, x\nx = 5 TO 6\nx = 5 6\n"));
+}
+
+/// Multi-line `IF` (design D4 of `m2-parser-breadth`): `ELSEIF … THEN` and `ELSE` with a statement on the same
+/// line, `ENDIF`, `ELSE IF` as an `ELSE` holding a new block, a `'` comment after `THEN`.
+#[test]
+fn if_blocks() {
+    insta::assert_snapshot!(tree(
+        "IF a THEN ' c\n  x = 1\nELSEIF b THEN y = 2\nELSE z = 3: w = 4\nEND IF\nIF a THEN\nELSE IF b THEN\n  x = 1\n  END IF\nENDIF\n"
+    ));
+}
+
+/// Single-line `IF`: each `ELSE` belongs to the innermost `IF`, `THEN 10 ELSE 20`, `IF c GOTO`, `THEN :`, a whole
+/// `FOR` block on the line, `THEN REM` (a single-line `IF`), empty branches, the comma scan stopping at `ELSE`, and
+/// statements after a jump and `:` staying in the branch (`THEN 10: PRINT 5`, `GOTO 30: PRINT 6`).
+#[test]
+fn single_line_if() {
+    insta::assert_snapshot!(tree(
+        "IF a THEN IF b THEN x ELSE y ELSE z\nIF a THEN 10 ELSE 20\nIF a GOTO 30 ELSE PRINT 1\nIF a THEN 10: PRINT 5\nIF a GOTO 30: PRINT 6\nIF a THEN : FOR i = 1 TO 2: PRINT i: NEXT: PRINT 2\nIF a THEN REM c\nIF a THEN ELSE PRINT 3\nIF a THEN PRINT 4 ELSE\nIF a THEN q(1) = 2 ELSE s 1, 2\n"
+    ));
+}
+
+/// `FOR`/`NEXT` (`STEP`, `NEXT j, i` closing two blocks), `DO` with a condition at either end, `WHILE`/`WEND`, and
+/// the `EXIT` forms inside them.
+#[test]
+fn loops() {
+    insta::assert_snapshot!(tree(
+        "FOR i = 1 TO 9 STEP 2\n  FOR j% = i TO 1 STEP -1\n    EXIT FOR\nNEXT j%, i\nDO WHILE a: EXIT DO: LOOP\nDO\nLOOP UNTIL b\nWHILE c\n  IF c THEN EXIT WHILE\nWEND\n"
+    ));
+}
+
+/// `SELECT CASE` and `SELECT EVERYCASE`: `IS`, ranges, lists, `CASE ELSE`, a comment before the first `CASE`,
+/// `EXIT SELECT` and `EXIT CASE`.
+#[test]
+fn select_case() {
+    insta::assert_snapshot!(tree(
+        "SELECT CASE x\n  ' c\n  CASE IS < 1: PRINT 1\n  CASE 1, 2 TO 3, IS = 6\n    EXIT SELECT\n  CASE ELSE\nEND SELECT\nSELECT EVERYCASE y\n  CASE 1: EXIT CASE\nEND SELECT\n"
+    ));
+}
+
+/// `TYPE` fields: `name AS type`, `AS type name, ...`, element arrays with bounds, `_DYNAMIC`/`_STATIC` before and
+/// after the name, fixed-length strings, `_UNSIGNED`.
+#[test]
+fn type_block() {
+    insta::assert_snapshot!(tree(
+        "TYPE t\n  a AS LONG\n  AS INTEGER b, c(1 TO 2)\n  s AS STRING * 8\n  AS STRING * 4 u, v\n  w AS _UNSIGNED _BYTE\n\n  e(-1 TO 1, 3) _DYNAMIC AS t2\n  _STATIC f(9) AS DOUBLE\nEND TYPE\n"
+    ));
+}
+
+/// `DECLARE LIBRARY` blocks: the header forms, `ALIAS` as a string or a name, `BYVAL` parameters, a FUNCTION
+/// without parentheses, and a comment.
+#[test]
+fn declare_library() {
+    insta::assert_snapshot!(tree(
+        "DECLARE DYNAMIC LIBRARY \"a\", \"b\"\n  FUNCTION f& ALIAS \"g\" (BYVAL x AS LONG, y AS _OFFSET)\n  ' c\n  SUB s ALIAS t\n  FUNCTION h~&\nEND DECLARE\n"
+    ));
+}
+
+/// `DEF FN` in both forms (the old compiler rejects them; `sema` says so); `DEF SEG` is another statement.
+#[test]
+fn def_fn() {
+    insta::assert_snapshot!(tree(
+        "DEF FNa (x) = x * 2\nDEF FNb\n  EXIT DEF\n  FNb = 1\nEND DEF\nDEF SEG = 0\n"
+    ));
+}
+
+/// Block recovery (design D4): a closer of an outer block ends the inner ones with one error; stray closers;
+/// missing closers at the end of the file and at a SUB header; a closer in a single-line `IF`; a block left open
+/// in one; a statement before the first `CASE`; a statement inside `TYPE`; `NEXT` naming too many variables;
+/// `EXIT` outside its block; a second `ELSE`.
+#[test]
+fn block_recovery() {
+    insta::assert_snapshot!(tree(
+        "FOR i = 1 TO 2\n  IF a THEN\nNEXT\nEND IF\nWEND\nFOR k = 1 TO 2: IF a THEN NEXT\nNEXT k\nIF a THEN DO\nSELECT CASE x\n  PRINT 1\nEND SELECT\nTYPE t\n  PRINT 2\nEND TYPE\nFOR j = 1 TO 2: NEXT j, i\nEXIT DO\nIF a THEN\nELSE\nELSE\nEND IF\nIF a THEN x ELSE y ELSE z\nWHILE b\nSUB s\nEND SUB\nDO\n"
+    ));
+}
+
+/// Spec `compiler/pipeline`, "Missing END IF": one error at the header's line; the statements after it are parsed.
+#[test]
+fn spec_missing_end_if() {
+    let p = parse_one(b"x = 1\nIF a THEN\nPRINT 2\ny = 3\n");
+    let diags = p.diagnostics();
+    assert_eq!(diags.list().len(), 1);
+    assert_eq!(diags.list()[0].span.start, 6);
+    let dump = dump_tree(p.main().root(), b"x = 1\nIF a THEN\nPRINT 2\ny = 3\n");
+    assert!(
+        dump.contains("PrintStmt 16..23") && dump.contains("AssignStmt 24..29"),
+        "{dump}"
+    );
+}
+
+/// Spec `compiler/pipeline`, "One NEXT closes two loops".
+#[test]
+fn spec_one_next_closes_two_loops() {
+    let p = parse_one(b"FOR i = 1 TO 2\nFOR j = 1 TO 2\nNEXT j, i\nPRINT 1\n");
+    assert!(p.diagnostics().list().is_empty());
+}
+
+/// Labels stand only at the start of a line, after an optional line number (measured, group 6 review).
+#[test]
+fn labels_only_at_line_start() {
+    insta::assert_snapshot!(tree("10 lab: PRINT 1\nWHILE a: s: WEND\n"));
 }
 
 #[test]

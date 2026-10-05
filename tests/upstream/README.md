@@ -46,6 +46,18 @@ are empty. Baseline: **673 of 1,139 files** (466 parse cleanly).
 (The design's estimate of about 790 counted 1,280 files, include files of the other sets among them; the list
 covers what the spec names.)
 
+Progress (number of entries per set):
+
+| Date, step | `corpus/` | `upstream/` | `snippets/` | `qbasic/` | `qb64pe-source/` | Parse gaps | False errors | Only marked |
+|---|---|---|---|---|---|---|---|---|
+| 2026-10-04 baseline | 109 | 268 | 111 | 141 | 44 | 673 | 181 | 82 |
+| 2026-10-05 group 5 (member access, `DATA`, line numbers) | 94 | 267 | 104 | 141 | 44 | 650 | 66 | 84 |
+| 2026-10-05 group 6 (blocks) | 47 | 236 | 68 | 137 | 39 | 527 | 59 | 81 |
+
+The set columns count parse gaps. After group 6 no first gap is a block any more; the most frequent first gaps are
+arrays (93), `REDIM` (144), `SCREEN` (47), `DEFINT` and the other `DEFxxx` (65), `CONST` (41) and statements whose
+arguments the parser cannot read yet (`OPEN … FOR`, `LINE INPUT`, `NAME … AS`; 37 `Error` nodes).
+
 After a change, regenerate the three lists with `QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs`
 and review the diff: entries may only go away (a new entry is a regression to fix, unless it is a program new to
 the inputs).

@@ -56,7 +56,7 @@ fn prefix_level(p: &Parser) -> Option<u8> {
 
 /// Word operators and other words that cannot start an operand.
 const RESERVED_IN_EXPR: &[&str] = &[
-    "MOD", "AND", "OR", "XOR", "EQV", "IMP", "_ANDALSO", "_ORELSE", "THEN", "TO",
+    "MOD", "AND", "OR", "XOR", "EQV", "IMP", "_ANDALSO", "_ORELSE", "THEN", "TO", "ELSE",
 ];
 
 pub(crate) fn expr(p: &mut Parser) -> bool {

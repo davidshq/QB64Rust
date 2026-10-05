@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-05 (session 15). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-05 (session 16). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
@@ -169,11 +169,13 @@ the order of `study\22` §5):
 1. Done 2026-10-05: `rust.yml` (with `tier2`) and `repo-check.yml` green on GitHub for `1289c20`;
    `vscode-extension.yml` last ran green on `main` (2026-10-03), nothing under `vscode\` changed since. Push the
    later commits and glance at their runs.
-2. `m2-parser-breadth` groups 5 and 6 (member access, `DATA`, line numbers, blocks); state of the change below.
-3. A control-flow slice through to C++, its own OpenSpec change (not proposed yet): `IF`, `FOR`, `DO`, `WHILE`,
-   `GOTO`, `GOSUB`/`RETURN`, `CONST`, `OPTION _EXPLICIT`, labels inside blocks and procedures, `RESUME NEXT` after
-   an error in a block header. Single-line `IF … ELSE`: the call-or-assignment test (`comma_outside_parens`)
-   must stop at `ELSE` (TODO in `parser\mod.rs`). First count the corpus and upstream programs blocked only by these. Then the IR
+2. Done 2026-10-05: `m2-parser-breadth` groups 5 and 6 (member access, `DATA`, line numbers, blocks); state of
+   the change below. The change now pauses.
+3. **Next:** a control-flow slice through to C++, its own OpenSpec change (not proposed yet): `IF`, `FOR`, `DO`,
+   `WHILE`, `GOTO`, `GOSUB`/`RETURN`, `CONST`, `OPTION _EXPLICIT`, labels inside blocks and procedures, `RESUME
+   NEXT` after an error in a block header, and the check of `NEXT` variables against their `FOR` (left out of the
+   parser, design D4 "As built"). The block nodes and accessors exist (`ast.rs`); `sema` marks them in
+   `check.rs` `block_parts`. First count the corpus and upstream programs blocked only by these. Then the IR
    review (keep, or merge into the typed tree; `study\20` §3.4).
 4. `m2-parser-breadth` groups 7 to 9, with the blunt follow-on rule and block crossing marked (`study\23` §2.3,
    §2.4; design D10, D4).
@@ -199,9 +201,16 @@ State of **`m2-parser-breadth`** (started 2026-10-04;
    `--dump tree` headed per tree. Group 5 done 2026-10-05: member access (`FieldExpr`), omitted arguments,
    `DATA`/`READ`/`RESTORE` (the old compiler's `DATA` scanner), line numbers, plain `GOTO`/`GOSUB`/`RETURN`, all
    parsed and marked by `sema`; **false errors 184 to 69**, parse gaps 677 to 654, two `.err` programs moved to
-   the rejection list (task 5.1 says why); tier 2 unchanged. Next: group 6 (blocks); the change then pauses
-   for the control-flow slice (step 3 above) and resumes with statements, `specialformat` templates (new
-   dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree per file, and the follow-on rule. Done when the parse-gap and false-error lists are empty.
+   the rejection list (task 5.1 says why); tier 2 unchanged. Group 6 done 2026-10-05: every block is a node
+   (`IF` both forms, `FOR`, `DO`, `WHILE`, `SELECT CASE`, `TYPE`, `DECLARE LIBRARY`, `DEF FN`), one statement
+   loop and block stack for the main module, procedures and blocks (`parser\blocks.rs`), recovery with one
+   error per mistake, `EXIT` checked against the open blocks, `sema` marks every block and checks what is inside;
+   19 more measurements; labels only at the start of a line (measured; it was wrong before). In entries (header
+   comments not counted): **parse gaps 650 to 527**, no first gap a block any more; **false errors 66 to 59**;
+   only-marked rejections 84 to 81; tier 2 unchanged, still **10 of 279** (task 6.4 has the details). The change
+   pauses here for the control-flow slice (step 3 above) and resumes with statements, `specialformat` templates
+   (new dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree per file, and the follow-on rule. Done
+   when the parse-gap and false-error lists are empty.
 
 ## FreeBASIC reviewed (2026-10-03)
 

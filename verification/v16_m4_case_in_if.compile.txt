@@ -1,0 +1,5 @@
+
+CASE without SELECT CASE
+Caused by (or after):CASE 2
+LINE 6:CASE 2
+exit=1

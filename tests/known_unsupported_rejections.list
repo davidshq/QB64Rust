@@ -3,7 +3,6 @@
 # leaves the list. Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.
 corpus/runtime_comparison/16_ltrim_rtrim.bas
 corpus/runtime_comparison/194_array_param_2d.bas
-corpus/runtime_comparison/19_if_elseif_else.bas
 corpus/runtime_comparison/202_redim_preserve.bas
 corpus/runtime_comparison/205_dim_to_same.bas
 corpus/runtime_comparison/218_fre.bas
@@ -18,8 +17,6 @@ snippets/qb64fresh/continue_statement__continue_while.bas
 snippets/qb64fresh/error_detection__function_wrong_args.bas
 snippets/qb64fresh/error_detection__invalid_syntax.bas
 snippets/qb64fresh/error_detection__mismatched_next.bas
-snippets/qb64fresh/error_detection__unclosed_for.bas
-snippets/qb64fresh/error_detection__unclosed_if.bas
 snippets/qb64fresh/error_detection__undefined_sub_call.bas
 snippets/qb64fresh/file_io_runtime_stubs__shellhide_generates_ffi_call.bas
 snippets/qb64fresh/inline_conditional_functions__iif_string.bas

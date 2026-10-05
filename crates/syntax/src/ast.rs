@@ -59,6 +59,41 @@ node_wrapper!(
     DataStmt,
     ReadStmt,
     RestoreStmt,
+    /// `END IF`/`ENDIF`, `END SELECT`, `WEND`, `END TYPE`, `END DECLARE`, `END DEF`.
+    BlockEnd,
+    IfBlock,
+    /// `IF cond THEN`, `ELSEIF cond THEN`, or `IF cond` before `GOTO` in a single-line `IF`.
+    IfHeader,
+    IfBranch,
+    ElseIfBranch,
+    ElseBranch,
+    /// A single-line `IF`.
+    IfStmt,
+    LineBranch,
+    ImplicitGoto,
+    ForBlock,
+    ForHeader,
+    NextStmt,
+    DoBlock,
+    DoHeader,
+    LoopStmt,
+    WhileBlock,
+    WhileHeader,
+    SelectBlock,
+    SelectHeader,
+    CaseClause,
+    CaseHeader,
+    CaseItem,
+    TypeBlock,
+    TypeHeader,
+    TypeField,
+    FieldName,
+    ArrayBounds,
+    DeclareLibraryBlock,
+    DeclareLibraryHeader,
+    DefFnBlock,
+    DefFnHeader,
+    DefFnStmt,
     Literal,
     NameRef,
     CallExpr,
@@ -175,6 +210,13 @@ impl<'a> ProcHeader<'a> {
     pub fn params(self) -> impl Iterator<Item = Param<'a>> + 'a {
         self.param_list().into_iter().flat_map(|l| l.params())
     }
+
+    /// The C name after `ALIAS` (a string or a name; only inside `DECLARE LIBRARY`).
+    pub fn alias(self) -> Option<Tok> {
+        let mut tokens = self.0.child_tokens().skip(2);
+        tokens.next().filter(|t| t.kind == Ident)?;
+        tokens.next()
+    }
 }
 
 impl<'a> ParamList<'a> {
@@ -186,7 +228,14 @@ impl<'a> ParamList<'a> {
 impl<'a> Param<'a> {
     /// The parameter's name, with its suffix.
     pub fn name(self) -> Option<Tok> {
-        self.0.child_tokens().find(|t| t.kind == Ident)
+        self.0.child_tokens().filter(|t| t.kind == Ident).last()
+    }
+
+    /// The `BYVAL` word (only inside `DECLARE LIBRARY`).
+    pub fn byval(self) -> Option<Tok> {
+        let mut words = self.0.child_tokens().filter(|t| t.kind == Ident);
+        let first = words.next();
+        words.next().and(first)
     }
 
     pub fn as_clause(self) -> Option<AsClause<'a>> {
@@ -354,6 +403,458 @@ impl RestoreStmt<'_> {
     }
 }
 
+/// The child nodes of a block or branch that are statements: all but the given header and closer kinds.
+fn body_of<'a>(node: Node<'a>, skip: &'static [SyntaxKind]) -> impl Iterator<Item = Node<'a>> + 'a {
+    node.child_nodes().filter(move |n| !skip.contains(&n.kind()))
+}
+
+/// The child `Ident` tokens of a node (its words: `FOR`, `TO`, `STEP`...), in order.
+fn words(node: Node<'_>) -> impl Iterator<Item = Tok> + '_ {
+    node.child_tokens().filter(|t| t.kind == Ident)
+}
+
+impl BlockEnd<'_> {
+    /// The closer's words (`END` `IF`, or `ENDIF`, `WEND`).
+    pub fn keywords(self) -> impl Iterator<Item = Tok> {
+        words(self.0)
+    }
+}
+
+impl<'a> IfBlock<'a> {
+    /// The first branch (`IF cond THEN` and its statements).
+    pub fn if_branch(self) -> Option<IfBranch<'a>> {
+        child(self.0, IfBranch::cast)
+    }
+
+    pub fn else_if_branches(self) -> impl Iterator<Item = ElseIfBranch<'a>> + 'a {
+        self.0.child_nodes().filter_map(ElseIfBranch::cast)
+    }
+
+    pub fn else_branch(self) -> Option<ElseBranch<'a>> {
+        child(self.0, ElseBranch::cast)
+    }
+
+    /// The `END IF`; `None` when it is missing.
+    pub fn end(self) -> Option<BlockEnd<'a>> {
+        child(self.0, BlockEnd::cast)
+    }
+}
+
+impl<'a> IfHeader<'a> {
+    /// The `IF` or `ELSEIF` word.
+    pub fn keyword(self) -> Option<Tok> {
+        words(self.0).next()
+    }
+
+    pub fn condition(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
+impl<'a> IfBranch<'a> {
+    pub fn header(self) -> Option<IfHeader<'a>> {
+        child(self.0, IfHeader::cast)
+    }
+
+    pub fn body(self) -> impl Iterator<Item = Node<'a>> + 'a {
+        body_of(self.0, &[SyntaxKind::IfHeader])
+    }
+}
+
+impl<'a> ElseIfBranch<'a> {
+    pub fn header(self) -> Option<IfHeader<'a>> {
+        child(self.0, IfHeader::cast)
+    }
+
+    pub fn body(self) -> impl Iterator<Item = Node<'a>> + 'a {
+        body_of(self.0, &[SyntaxKind::IfHeader])
+    }
+}
+
+impl<'a> ElseBranch<'a> {
+    /// The `ELSE` word.
+    pub fn keyword(self) -> Option<Tok> {
+        words(self.0).next()
+    }
+
+    pub fn body(self) -> impl Iterator<Item = Node<'a>> + 'a {
+        body_of(self.0, &[])
+    }
+}
+
+impl<'a> IfStmt<'a> {
+    pub fn header(self) -> Option<IfHeader<'a>> {
+        child(self.0, IfHeader::cast)
+    }
+
+    /// The statements after `THEN` (or the `GotoStmt` of `IF c GOTO x`).
+    pub fn then_branch(self) -> Option<LineBranch<'a>> {
+        child(self.0, LineBranch::cast)
+    }
+
+    /// The statements after `ELSE`; `None` without `ELSE`.
+    pub fn else_branch(self) -> Option<LineBranch<'a>> {
+        self.0.child_nodes().filter_map(LineBranch::cast).nth(1)
+    }
+}
+
+impl<'a> LineBranch<'a> {
+    /// The statement nodes (an `ImplicitGoto` for `THEN 10`).
+    pub fn statements(self) -> impl Iterator<Item = Node<'a>> + 'a {
+        body_of(self.0, &[])
+    }
+}
+
+impl ImplicitGoto<'_> {
+    /// The line number jumped to.
+    pub fn number(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Number)
+    }
+}
+
+impl<'a> ForBlock<'a> {
+    pub fn header(self) -> Option<ForHeader<'a>> {
+        child(self.0, ForHeader::cast)
+    }
+
+    pub fn body(self) -> impl Iterator<Item = Node<'a>> + 'a {
+        body_of(self.0, &[SyntaxKind::ForHeader, SyntaxKind::NextStmt])
+    }
+
+    /// The `NEXT` that closes this loop: its own, or, when an inner `NEXT j, i` closed it, that one (an inner
+    /// `FOR` nested `d` deep closes this one when its `NEXT` names more than `d` variables). `None` when missing.
+    pub fn next(self) -> Option<NextStmt<'a>> {
+        if let Some(n) = child(self.0, NextStmt::cast) {
+            return Some(n);
+        }
+        let mut depth = 1;
+        let mut inner = self.body().last().and_then(ForBlock::cast);
+        while let Some(f) = inner {
+            if let Some(n) = child(f.0, NextStmt::cast) {
+                return (n.vars().count() > depth).then_some(n);
+            }
+            depth += 1;
+            inner = f.body().last().and_then(ForBlock::cast);
+        }
+        None
+    }
+}
+
+impl<'a> ForHeader<'a> {
+    /// The loop variable.
+    pub fn var(self) -> Option<NameRef<'a>> {
+        child(self.0, NameRef::cast)
+    }
+
+    pub fn start(self) -> Option<Expr<'a>> {
+        let eq = self.0.child_tokens().find(|t| t.kind == Eq)?;
+        expr_after(self.0, eq.span.end)
+    }
+
+    /// The expression after `TO`.
+    pub fn end(self) -> Option<Expr<'a>> {
+        expr_after(self.0, words(self.0).nth(1)?.span.end)
+    }
+
+    /// The expression after `STEP`; `None` without `STEP`.
+    pub fn step(self) -> Option<Expr<'a>> {
+        expr_after(self.0, words(self.0).nth(2)?.span.end)
+    }
+}
+
+impl<'a> NextStmt<'a> {
+    /// The variables named after `NEXT`; none for `NEXT` alone.
+    pub fn vars(self) -> impl Iterator<Item = NameRef<'a>> + 'a {
+        self.0.child_nodes().filter_map(NameRef::cast)
+    }
+}
+
+impl<'a> DoBlock<'a> {
+    pub fn header(self) -> Option<DoHeader<'a>> {
+        child(self.0, DoHeader::cast)
+    }
+
+    pub fn body(self) -> impl Iterator<Item = Node<'a>> + 'a {
+        body_of(self.0, &[SyntaxKind::DoHeader, SyntaxKind::LoopStmt])
+    }
+
+    /// The `LOOP`; `None` when it is missing.
+    pub fn end(self) -> Option<LoopStmt<'a>> {
+        child(self.0, LoopStmt::cast)
+    }
+}
+
+impl<'a> DoHeader<'a> {
+    /// `WHILE` or `UNTIL`; `None` when the condition is at `LOOP` or nowhere.
+    pub fn cond_word(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+
+    pub fn condition(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
+impl<'a> LoopStmt<'a> {
+    /// `WHILE` or `UNTIL`; `None` without a condition.
+    pub fn cond_word(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+
+    pub fn condition(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
+impl<'a> WhileBlock<'a> {
+    pub fn header(self) -> Option<WhileHeader<'a>> {
+        child(self.0, WhileHeader::cast)
+    }
+
+    pub fn body(self) -> impl Iterator<Item = Node<'a>> + 'a {
+        body_of(self.0, &[SyntaxKind::WhileHeader, SyntaxKind::BlockEnd])
+    }
+
+    /// The `WEND`; `None` when it is missing.
+    pub fn end(self) -> Option<BlockEnd<'a>> {
+        child(self.0, BlockEnd::cast)
+    }
+}
+
+impl<'a> WhileHeader<'a> {
+    pub fn condition(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
+impl<'a> SelectBlock<'a> {
+    pub fn header(self) -> Option<SelectHeader<'a>> {
+        child(self.0, SelectHeader::cast)
+    }
+
+    /// Statements before the first `CASE` (each one an error; kept for recovery).
+    pub fn before_cases(self) -> impl Iterator<Item = Node<'a>> + 'a {
+        body_of(
+            self.0,
+            &[SyntaxKind::SelectHeader, SyntaxKind::CaseClause, SyntaxKind::BlockEnd],
+        )
+    }
+
+    pub fn cases(self) -> impl Iterator<Item = CaseClause<'a>> + 'a {
+        self.0.child_nodes().filter_map(CaseClause::cast)
+    }
+
+    /// The `END SELECT`; `None` when it is missing.
+    pub fn end(self) -> Option<BlockEnd<'a>> {
+        child(self.0, BlockEnd::cast)
+    }
+}
+
+impl<'a> SelectHeader<'a> {
+    /// `CASE` or `EVERYCASE`.
+    pub fn kind_word(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+
+    /// The expression the cases are compared with.
+    pub fn selector(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
+impl<'a> CaseClause<'a> {
+    pub fn header(self) -> Option<CaseHeader<'a>> {
+        child(self.0, CaseHeader::cast)
+    }
+
+    pub fn body(self) -> impl Iterator<Item = Node<'a>> + 'a {
+        body_of(self.0, &[SyntaxKind::CaseHeader])
+    }
+}
+
+impl<'a> CaseHeader<'a> {
+    /// The `ELSE` of `CASE ELSE`.
+    pub fn else_word(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+
+    pub fn items(self) -> impl Iterator<Item = CaseItem<'a>> + 'a {
+        self.0.child_nodes().filter_map(CaseItem::cast)
+    }
+}
+
+impl<'a> CaseItem<'a> {
+    /// The comparison operator of `IS <op> expr`; `None` for the other forms.
+    pub fn is_op(self) -> Option<Tok> {
+        self.0
+            .child_tokens()
+            .find(|t| matches!(t.kind, Eq | Ne | Lt | Gt | Le | Ge))
+    }
+
+    /// The expression; for `a TO b`, `a`.
+    pub fn value(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+
+    /// `b` of `a TO b`; `None` for the other forms.
+    pub fn upper(self) -> Option<Expr<'a>> {
+        let first_end = self.value()?.node().span().end;
+        let to = words(self.0).find(|t| t.span.start >= first_end)?;
+        expr_after(self.0, to.span.end)
+    }
+}
+
+impl<'a> TypeBlock<'a> {
+    pub fn header(self) -> Option<TypeHeader<'a>> {
+        child(self.0, TypeHeader::cast)
+    }
+
+    pub fn fields(self) -> impl Iterator<Item = TypeField<'a>> + 'a {
+        self.0.child_nodes().filter_map(TypeField::cast)
+    }
+
+    /// The `END TYPE`; `None` when it is missing.
+    pub fn end(self) -> Option<BlockEnd<'a>> {
+        child(self.0, BlockEnd::cast)
+    }
+}
+
+impl TypeHeader<'_> {
+    /// The type's name.
+    pub fn name(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+}
+
+impl<'a> TypeField<'a> {
+    /// The field names (one for `name AS type`, several for `AS type a, b`).
+    pub fn names(self) -> impl Iterator<Item = FieldName<'a>> + 'a {
+        self.0.child_nodes().filter_map(FieldName::cast)
+    }
+
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
+}
+
+impl<'a> FieldName<'a> {
+    pub fn name(self) -> Option<Tok> {
+        words(self.0).next()
+    }
+
+    /// The element bounds of an array field.
+    pub fn bounds(self) -> Option<ArrayBounds<'a>> {
+        child(self.0, ArrayBounds::cast)
+    }
+
+    /// `_DYNAMIC` or `_STATIC`.
+    pub fn modifier(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+}
+
+impl<'a> ArrayBounds<'a> {
+    /// One `(lower, upper)` per dimension: `(None, Some(u))` for `u`, `(Some(l), Some(u))` for `l TO u`.
+    pub fn ranges(self) -> Vec<(Option<Expr<'a>>, Option<Expr<'a>>)> {
+        let mut out = Vec::new();
+        let mut cur: (Option<Expr>, Option<Expr>) = (None, None);
+        let mut after_to = false;
+        for e in self.0.children() {
+            match e {
+                Element::Node(n) => {
+                    if let Some(x) = Expr::cast(n) {
+                        if after_to {
+                            cur.1 = Some(x);
+                        } else {
+                            cur = (None, Some(x));
+                        }
+                    }
+                }
+                Element::Token(t) if t.kind == Ident => {
+                    // `TO`: the expression before it is the lower bound.
+                    cur = (cur.1, None);
+                    after_to = true;
+                }
+                Element::Token(t) if t.kind == Comma => {
+                    out.push(std::mem::take(&mut cur));
+                    after_to = false;
+                }
+                Element::Token(_) => {}
+            }
+        }
+        if cur.0.is_some() || cur.1.is_some() {
+            out.push(cur);
+        }
+        out
+    }
+}
+
+impl<'a> DeclareLibraryBlock<'a> {
+    pub fn header(self) -> Option<DeclareLibraryHeader<'a>> {
+        child(self.0, DeclareLibraryHeader::cast)
+    }
+
+    /// The declared procedures.
+    pub fn procs(self) -> impl Iterator<Item = ProcHeader<'a>> + 'a {
+        self.0.child_nodes().filter_map(ProcHeader::cast)
+    }
+
+    /// The `END DECLARE`; `None` when it is missing.
+    pub fn end(self) -> Option<BlockEnd<'a>> {
+        child(self.0, BlockEnd::cast)
+    }
+}
+
+impl DeclareLibraryHeader<'_> {
+    /// The `CUSTOMTYPE`, `DYNAMIC` or `STATIC` word, if any.
+    pub fn kind_word(self) -> Option<Tok> {
+        let w: Vec<Tok> = words(self.0).collect();
+        (w.len() == 3).then(|| w[1])
+    }
+
+    /// The library names (string literals).
+    pub fn names(self) -> impl Iterator<Item = Tok> {
+        self.0.child_tokens().filter(|t| t.kind == SyntaxKind::StringLit)
+    }
+}
+
+impl<'a> DefFnBlock<'a> {
+    pub fn header(self) -> Option<DefFnHeader<'a>> {
+        child(self.0, DefFnHeader::cast)
+    }
+
+    pub fn body(self) -> impl Iterator<Item = Node<'a>> + 'a {
+        body_of(self.0, &[SyntaxKind::DefFnHeader, SyntaxKind::BlockEnd])
+    }
+
+    /// The `END DEF`; `None` when it is missing.
+    pub fn end(self) -> Option<BlockEnd<'a>> {
+        child(self.0, BlockEnd::cast)
+    }
+}
+
+impl<'a> DefFnHeader<'a> {
+    /// The function's name (`FNname`).
+    pub fn name(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+
+    pub fn param_list(self) -> Option<ParamList<'a>> {
+        child(self.0, ParamList::cast)
+    }
+}
+
+impl<'a> DefFnStmt<'a> {
+    pub fn header(self) -> Option<DefFnHeader<'a>> {
+        child(self.0, DefFnHeader::cast)
+    }
+
+    /// The expression after `=`.
+    pub fn value(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
 impl<'a> DimItem<'a> {
     /// The declared name, with its suffix.
     pub fn name(self) -> Option<Tok> {
@@ -368,7 +869,16 @@ impl<'a> DimItem<'a> {
 impl<'a> AsClause<'a> {
     /// The type words after `AS` (`LONG`, or `_UNSIGNED` `LONG`).
     pub fn type_words(self) -> impl Iterator<Item = Tok> + 'a {
-        self.0.child_tokens().filter(|t| t.kind == Ident).skip(1)
+        self.0
+            .child_tokens()
+            .take_while(|t| t.kind != Star)
+            .filter(|t| t.kind == Ident)
+            .skip(1)
+    }
+
+    /// The size after `*` (`8` in `AS STRING * 8`; only in a `TYPE` field).
+    pub fn size(self) -> Option<Tok> {
+        self.0.child_tokens().skip_while(|t| t.kind != Star).nth(1)
     }
 }
 
@@ -820,6 +1330,99 @@ mod tests {
         assert_eq!(shape(calls[2]), vec![true, false, true]);
         assert_eq!(shape(calls[1]), vec![false, false]);
         assert_eq!(shape(calls[0]), Vec::<bool>::new());
+    }
+
+    fn stmts(green: &crate::tree::GreenNode) -> Vec<Node<'_>> {
+        SourceFile::cast(Node::root(green, TreeId(0), FileId(0)))
+            .unwrap()
+            .statements()
+            .collect()
+    }
+
+    #[test]
+    fn if_block_and_single_line_if_parts() {
+        let src = b"IF a THEN\nx = 1\nELSEIF b THEN y = 2\nELSE\nEND IF\nIF c THEN p ELSE q: r\n";
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), src);
+        assert!(p.diagnostics.list().is_empty());
+        let s = stmts(&p.green);
+        let b = IfBlock::cast(s[0]).unwrap();
+        let first = b.if_branch().unwrap();
+        assert!(matches!(first.header().unwrap().condition(), Some(Expr::NameRef(_))));
+        assert_eq!(first.body().count(), 1);
+        let elseif: Vec<_> = b.else_if_branches().collect();
+        assert_eq!(elseif.len(), 1);
+        assert_eq!(elseif[0].header().unwrap().keyword().map(|t| t.span.start), Some(16));
+        assert_eq!(elseif[0].body().count(), 1);
+        assert_eq!(b.else_branch().unwrap().body().count(), 0);
+        assert!(b.end().is_some());
+        let line = IfStmt::cast(s[1]).unwrap();
+        assert_eq!(line.then_branch().unwrap().statements().count(), 1);
+        assert_eq!(line.else_branch().unwrap().statements().count(), 2);
+    }
+
+    #[test]
+    fn loop_parts_and_next_of_two_blocks() {
+        let src = b"FOR i = 1 TO 9 STEP 2\nFOR j = 0 TO i\nNEXT j, i\nFOR k = 1 TO 2\nNEXT\nDO\nLOOP UNTIL x\n";
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), src);
+        assert!(p.diagnostics.list().is_empty());
+        let s = stmts(&p.green);
+        let outer = ForBlock::cast(s[0]).unwrap();
+        let h = outer.header().unwrap();
+        assert_eq!(h.var().and_then(|v| v.name()).map(|t| t.span.start), Some(4));
+        assert_eq!(h.start().map(|e| e.node().span().start), Some(8));
+        assert_eq!(h.end().map(|e| e.node().span().start), Some(13));
+        assert_eq!(h.step().map(|e| e.node().span().start), Some(20));
+        // The outer FOR has no NEXT of its own: the inner one's `NEXT j, i` closes it.
+        let inner = ForBlock::cast(outer.body().next().unwrap()).unwrap();
+        assert!(inner.header().unwrap().step().is_none());
+        let next = outer.next().unwrap();
+        assert_eq!(next.node().span(), inner.next().unwrap().node().span());
+        assert_eq!(next.vars().count(), 2);
+        let k = ForBlock::cast(s[1]).unwrap();
+        assert_eq!(k.next().unwrap().vars().count(), 0);
+        let d = DoBlock::cast(s[2]).unwrap();
+        assert!(d.header().unwrap().cond_word().is_none());
+        let l = d.end().unwrap();
+        assert!(l.cond_word().is_some() && l.condition().is_some());
+    }
+
+    #[test]
+    fn missing_next_is_none() {
+        // The inner `NEXT` names one variable, so it does not close the outer block.
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"FOR i = 1 TO 2\nFOR j = 1 TO 2\nNEXT j\n");
+        let outer = ForBlock::cast(stmts(&p.green)[0]).unwrap();
+        assert!(outer.next().is_none());
+    }
+
+    #[test]
+    fn select_type_library_parts() {
+        let src = b"SELECT CASE x\nCASE IS > 1, 2 TO 3\nCASE ELSE\nEND SELECT\nTYPE t\nAS LONG a, b(1 TO 2, 5)\nEND TYPE\nDECLARE LIBRARY\nSUB s ALIAS \"c\" (BYVAL v AS LONG, w)\nEND DECLARE\n";
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), src);
+        assert!(p.diagnostics.list().is_empty());
+        let s = stmts(&p.green);
+        let sel = SelectBlock::cast(s[0]).unwrap();
+        assert!(sel.header().unwrap().selector().is_some());
+        let cases: Vec<_> = sel.cases().collect();
+        let items: Vec<_> = cases[0].header().unwrap().items().collect();
+        assert_eq!(items[0].is_op().map(|t| t.kind), Some(Gt));
+        assert!(items[0].upper().is_none());
+        assert!(items[1].is_op().is_none() && items[1].upper().is_some());
+        assert!(cases[1].header().unwrap().else_word().is_some());
+        let ty = TypeBlock::cast(s[1]).unwrap();
+        let field = ty.fields().next().unwrap();
+        let names: Vec<_> = field.names().collect();
+        assert_eq!(names.len(), 2);
+        let ranges = names[1].bounds().unwrap().ranges();
+        assert_eq!(ranges.len(), 2);
+        assert!(ranges[0].0.is_some() && ranges[0].1.is_some());
+        assert!(ranges[1].0.is_none() && ranges[1].1.is_some());
+        let lib = DeclareLibraryBlock::cast(s[2]).unwrap();
+        let h = lib.procs().next().unwrap();
+        assert_eq!(h.alias().map(|t| t.kind), Some(SyntaxKind::StringLit));
+        let params: Vec<_> = h.params().collect();
+        assert!(params[0].byval().is_some());
+        assert_eq!(params[0].name().map(|t| t.span.start), Some(134));
+        assert!(params[1].byval().is_none() && params[1].name().is_some());
     }
 
     #[test]

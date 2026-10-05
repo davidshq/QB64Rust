@@ -35,7 +35,7 @@ pub(crate) fn on_stmt(p: &mut Parser) {
         if p.nth_is_word(n, word) {
             continue;
         }
-        if super::ends_stmt(p.nth(n)) {
+        if p.ends_at(n) {
             let span = p.current_span().cover(p.next_span(n - 1));
             p.error_at(span, format!("expected `{word}` after `{lead}`"));
         } else {

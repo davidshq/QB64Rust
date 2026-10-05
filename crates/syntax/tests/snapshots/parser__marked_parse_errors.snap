@@ -1,9 +1,8 @@
 ---
 source: crates/syntax/tests/parser.rs
-assertion_line: 166
-expression: "tree(\"x = a MOD b\\nIF a < b THEN\\nPRINT #1, x\\nx = 5 TO 6\\nx = 5 6\\n\")"
+expression: "tree(\"x = a MOD b\\nREDIM a(5)\\nPRINT #1, x\\nx = 5 TO 6\\nx = 5 6\\n\")"
 ---
-SourceFile 0..57
+SourceFile 0..54
   AssignStmt 0..11
     NameRef 0..1
       Ident x
@@ -19,54 +18,51 @@ SourceFile 0..57
       NameRef 10..11
         Ident b
   Newline \x0A
-  Error 12..25
-    Ident IF
+  Error 12..22
+    Ident REDIM
     Whitespace  
     Ident a
-    Whitespace  
-    Lt <
-    Whitespace  
-    Ident b
-    Whitespace  
-    Ident THEN
+    LParen (
+    Number 5
+    RParen )
   Newline \x0A
-  PrintStmt 26..37
+  PrintStmt 23..34
     Ident PRINT
     Whitespace  
-    Error 32..37
+    Error 29..34
       Hash #
       Number 1
       Comma ,
       Whitespace  
       Ident x
   Newline \x0A
-  AssignStmt 38..48
-    NameRef 38..39
+  AssignStmt 35..45
+    NameRef 35..36
       Ident x
     Whitespace  
     Eq =
     Whitespace  
-    Literal 42..43
+    Literal 39..40
       Number 5
     Whitespace  
-    Error 44..48
+    Error 41..45
       Ident TO
       Whitespace  
       Number 6
   Newline \x0A
-  AssignStmt 49..56
-    NameRef 49..50
+  AssignStmt 46..53
+    NameRef 46..47
       Ident x
     Whitespace  
     Eq =
     Whitespace  
-    Literal 53..54
+    Literal 50..51
       Number 5
     Whitespace  
-    Error 55..56
+    Error 52..53
       Number 6
   Newline \x0A
-t.bas:2:1: error: not supported yet: statement `IF`
+t.bas:2:1: error: not supported yet: statement `REDIM`
 t.bas:3:7: error: not supported yet: `PRINT #`
 t.bas:4:7: error: not supported yet: word `TO` (expected the end of the statement)
 t.bas:5:7: error: expected the end of the statement

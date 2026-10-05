@@ -21,9 +21,10 @@ SourceFile 0..64
     Ident a
     Colon :
   Whitespace  
-  LabelDef 26..30
-    Ident b.c
-    Colon :
+  CallStmt 26..29
+    NameRef 26..29
+      Ident b.c
+  Colon :
   Whitespace  
   PrintStmt 31..38
     Ident PRINT

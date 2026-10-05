@@ -1,0 +1,5 @@
+
+FOR without NEXT
+Caused by (or after):END SUB
+LINE 5:END SUB
+exit=1

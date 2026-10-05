@@ -1,0 +1,7 @@
+zero
+one (same line)
+else (same line)
+second
+b
+c
+exit=0

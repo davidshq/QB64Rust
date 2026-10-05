@@ -1,8 +1,8 @@
 ---
 source: crates/syntax/tests/parser.rs
-expression: "tree(\"a(1) = 2\\nEXIT FOR\\nDECLARE LIBRARY\\ns (5 / 2) = 2, 0\\n\")"
+expression: "tree(\"a(1) = 2\\ns (5 / 2) = 2, 0\\n\")"
 ---
-SourceFile 0..51
+SourceFile 0..26
   AssignStmt 0..8
     CallExpr 0..4
       NameRef 0..1
@@ -18,42 +18,30 @@ SourceFile 0..51
     Literal 7..8
       Number 2
   Newline \x0A
-  Error 9..17
-    Ident EXIT
-    Whitespace  
-    Ident FOR
-  Newline \x0A
-  Error 18..33
-    Ident DECLARE
-    Whitespace  
-    Ident LIBRARY
-  Newline \x0A
-  CallStmt 34..50
-    NameRef 34..35
+  CallStmt 9..25
+    NameRef 9..10
       Ident s
     Whitespace  
-    ArgList 36..50
-      BinExpr 36..47
-        ParenExpr 36..43
+    ArgList 11..25
+      BinExpr 11..22
+        ParenExpr 11..18
           LParen (
-          BinExpr 37..42
-            Literal 37..38
+          BinExpr 12..17
+            Literal 12..13
               Number 5
             Whitespace  
             Slash /
             Whitespace  
-            Literal 41..42
+            Literal 16..17
               Number 2
           RParen )
         Whitespace  
         Eq =
         Whitespace  
-        Literal 46..47
+        Literal 21..22
           Number 2
       Comma ,
       Whitespace  
-      Literal 49..50
+      Literal 24..25
         Number 0
   Newline \x0A
-t.bas:2:1: error: not supported yet: `EXIT FOR`
-t.bas:3:1: error: not supported yet: `DECLARE LIBRARY`

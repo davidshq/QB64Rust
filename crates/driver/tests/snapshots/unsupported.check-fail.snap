@@ -1,14 +1,13 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 103
 expression: snap
 ---
-unsupported.bas:4:1: error: not supported yet: statement `FOR`
+unsupported.bas:4:1: error: not supported yet: statement `CONST`
 unsupported.bas:5:9: error: not supported yet: operator `^`
 unsupported.bas:6:5: error: not supported yet: `a(...)` (an array, or no FUNCTION of this name)
 unsupported.bas:7:17: error: not supported yet: fixed-length strings
-unsupported.bas:8:1: error: not supported yet: statement `IF`
+unsupported.bas:8:1: error: not supported yet: single-line `IF`
 unsupported.bas:8:30: error: not supported yet: operator `MOD`
 unsupported.bas:9:11: error: this operator cannot be used on strings
 unsupported.bas:10:6: error: cannot store a string in a number variable
-unsupported.bas:11:1: error: not supported yet: `END IF`
+unsupported.bas:11:1: error: not supported yet: `SWAP`

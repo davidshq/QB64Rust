@@ -1,0 +1,114 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"IF a THEN ' c\\n  x = 1\\nELSEIF b THEN y = 2\\nELSE z = 3: w = 4\\nEND IF\\nIF a THEN\\nELSE IF b THEN\\n  x = 1\\n  END IF\\nENDIF\\n\")"
+---
+SourceFile 0..115
+  IfBlock 0..67
+    IfBranch 0..22
+      IfHeader 0..9
+        Ident IF
+        Whitespace  
+        NameRef 3..4
+          Ident a
+        Whitespace  
+        Ident THEN
+      Whitespace  
+      Comment ' c
+      Newline \x0A
+      Whitespace   
+      AssignStmt 16..21
+        NameRef 16..17
+          Ident x
+        Whitespace  
+        Eq =
+        Whitespace  
+        Literal 20..21
+          Number 1
+      Newline \x0A
+    ElseIfBranch 22..42
+      IfHeader 22..35
+        Ident ELSEIF
+        Whitespace  
+        NameRef 29..30
+          Ident b
+        Whitespace  
+        Ident THEN
+      Whitespace  
+      AssignStmt 36..41
+        NameRef 36..37
+          Ident y
+        Whitespace  
+        Eq =
+        Whitespace  
+        Literal 40..41
+          Number 2
+      Newline \x0A
+    ElseBranch 42..60
+      Ident ELSE
+      Whitespace  
+      AssignStmt 47..52
+        NameRef 47..48
+          Ident z
+        Whitespace  
+        Eq =
+        Whitespace  
+        Literal 51..52
+          Number 3
+      Colon :
+      Whitespace  
+      AssignStmt 54..59
+        NameRef 54..55
+          Ident w
+        Whitespace  
+        Eq =
+        Whitespace  
+        Literal 58..59
+          Number 4
+      Newline \x0A
+    BlockEnd 60..66
+      Ident END
+      Whitespace  
+      Ident IF
+    Newline \x0A
+  IfBlock 67..115
+    IfBranch 67..77
+      IfHeader 67..76
+        Ident IF
+        Whitespace  
+        NameRef 70..71
+          Ident a
+        Whitespace  
+        Ident THEN
+      Newline \x0A
+    ElseBranch 77..109
+      Ident ELSE
+      Whitespace  
+      IfBlock 82..109
+        IfBranch 82..100
+          IfHeader 82..91
+            Ident IF
+            Whitespace  
+            NameRef 85..86
+              Ident b
+            Whitespace  
+            Ident THEN
+          Newline \x0A
+          Whitespace   
+          AssignStmt 94..99
+            NameRef 94..95
+              Ident x
+            Whitespace  
+            Eq =
+            Whitespace  
+            Literal 98..99
+              Number 1
+          Newline \x0A
+        Whitespace   
+        BlockEnd 102..108
+          Ident END
+          Whitespace  
+          Ident IF
+        Newline \x0A
+    BlockEnd 109..114
+      Ident ENDIF
+    Newline \x0A

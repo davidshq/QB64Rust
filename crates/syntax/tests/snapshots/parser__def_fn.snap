@@ -1,0 +1,65 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"DEF FNa (x) = x * 2\\nDEF FNb\\n  EXIT DEF\\n  FNb = 1\\nEND DEF\\nDEF SEG = 0\\n\")"
+---
+SourceFile 0..69
+  DefFnStmt 0..19
+    DefFnHeader 0..11
+      Ident DEF
+      Whitespace  
+      Ident FNa
+      Whitespace  
+      ParamList 8..11
+        LParen (
+        Param 9..10
+          Ident x
+        RParen )
+    Whitespace  
+    Eq =
+    Whitespace  
+    BinExpr 14..19
+      NameRef 14..15
+        Ident x
+      Whitespace  
+      Star *
+      Whitespace  
+      Literal 18..19
+        Number 2
+  Newline \x0A
+  DefFnBlock 20..57
+    DefFnHeader 20..27
+      Ident DEF
+      Whitespace  
+      Ident FNb
+    Newline \x0A
+    Whitespace   
+    ExitStmt 30..38
+      Ident EXIT
+      Whitespace  
+      Ident DEF
+    Newline \x0A
+    Whitespace   
+    AssignStmt 41..48
+      NameRef 41..44
+        Ident FNb
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 47..48
+        Number 1
+    Newline \x0A
+    BlockEnd 49..56
+      Ident END
+      Whitespace  
+      Ident DEF
+    Newline \x0A
+  Error 57..68
+    Ident DEF
+    Whitespace  
+    Ident SEG
+    Whitespace  
+    Eq =
+    Whitespace  
+    Number 0
+  Newline \x0A
+t.bas:6:1: error: not supported yet: statement `DEF`

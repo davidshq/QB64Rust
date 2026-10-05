@@ -90,14 +90,38 @@ passes with the release build. "Verify" below names what is checked on top of th
 
 ## 6. Blocks (D4)
 
-- [ ] 6.1 Block stack and recovery rules, with `IfBlock`, `IfStmt` (single-line) first; `check-fail` tests for each
+- [x] 6.1 Block stack and recovery rules, with `IfBlock`, `IfStmt` (single-line) first; `check-fail` tests for each
   recovery rule.
-- [ ] 6.2 `ForBlock`/`NextStmt` (including `NEXT j, i`), `DoBlock`/`LoopStmt`, `WhileBlock`, `SelectBlock`,
+- [x] 6.2 `ForBlock`/`NextStmt` (including `NEXT j, i`), `DoBlock`/`LoopStmt`, `WhileBlock`, `SelectBlock`,
   `EXIT FOR/DO/WHILE/SELECT`.
-- [ ] 6.3 `TypeBlock`, `DeclareLibraryBlock` (`BYVAL`, `ALIAS`, `CUSTOMTYPE`/`DYNAMIC`/`STATIC` forms found in the
+- [x] 6.3 `TypeBlock`, `DeclareLibraryBlock` (`BYVAL`, `ALIAS`, `CUSTOMTYPE`/`DYNAMIC`/`STATIC` forms found in the
   inputs), `DefFnBlock`/`DefFnStmt`.
-- [ ] 6.4 `sema` marks every block kind; statements inside are still checked. Verify: `parse-ok` tests per block
+- [x] 6.4 `sema` marks every block kind; statements inside are still checked. Verify: `parse-ok` tests per block
   kind; the IF/FOR/DO/SELECT entries leave `known_parse_gaps.list`.
+
+  Group 6 done 2026-10-05, in one piece: `parser\blocks.rs` (one statement loop for the main module, procedures
+  and blocks; the block stack; closers; recovery), `proc.rs` (procedures through that loop, `EXIT`, `DECLARE
+  LIBRARY` with `ALIAS`/`BYVAL`), 32 node kinds with accessors in `ast.rs`, `sema` marking (`check.rs`,
+  `block_parts`); the tree shape and the decisions taken are in design D4 "As built". 19 more measurements
+  (`verification\v16_m4_*`, `v16_m3_*_after_colon`; `study\00` §5 "Blocks, more", "Labels"). No first parse gap is
+  a block any more: **parse gaps 650 to 527**, **false errors 66 to 59**, **only-marked rejections 84 to 81**
+  (`corpus/…/19_if_elseif_else` and the two `error_detection__unclosed_*` snippets now get the real error the old
+  compiler gives); with the error cap lifted, no input file gets a block error the old compiler does not give.
+  Found on the way and fixed: labels were taken after a `:` (`WHILE …: increaseUDTArrays: WEND` in `qb64pe.bas`
+  is a call; measured); reserved names with a suffix other than `&` were extrapolated as taken (`name$`, `not$`
+  are variables; now "not supported yet" until measured); a label with a SUB's name made `ON ERROR GOTO` to it a
+  real error. Review of the group (same day): statements after `THEN 10:`, `GOTO 20:` or `ELSE 30:` were put after
+  the `IF` instead of into the branch (measured `v16_m4_line_if_jump_colon`; it would have been wrong code once `IF`
+  compiles), a stray `ELSE` within a statement was marked instead of a real error, two impossible loop exits
+  could have spun, and messages counted lines wrong after a lone CR; all fixed. Three entries came back into `known_false_errors.list`, all task 8.2 families found behind gaps that
+  are gone now: `upstream/putimage/putimage_test` (`_TRUE`), `qbasic/open_gl/3d_model_viewer` (`_GL`),
+  `qbasic/misc/mzupd2` (`TIME$ = …`, a built-in assignment target). Upstream `.err` programs: none gets a real
+  error yet; still **10 of 279**. Tier 2 unchanged: slice 54 of 54, upstream 10 of 10. Tests: parser snapshots
+  `if_blocks`, `single_line_if`, `loops`, `select_case`, `type_block`, `declare_library`, `def_fn`,
+  `block_recovery`, `labels_only_at_line_start`, the two block spec scenarios; accessor unit tests in `ast.rs`;
+  `tests\frontend\blocks_*.bas` (four `parse-ok`, three `check-fail`). Not done here: `NEXT` variables against the
+  `FOR` variables (a `sema` check for the control-flow slice); a `^Z` (0x1A) at the end of
+  `qbasic/qb45com/action/arcdemo` is "expected a statement" (lexer, task 8.3; hidden behind the error cap so far).
 
 **Pause here** (order of work, `study\23` §4, accepted 2026-10-05): after group 6 the control-flow slice goes
 through to C++ as its own OpenSpec change, with the IR review after it. Groups 7 to 9 resume afterwards.

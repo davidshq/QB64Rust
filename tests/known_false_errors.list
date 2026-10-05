@@ -4,8 +4,9 @@
 corpus/runtime_comparison/198_type_fixed_string.bas  # 7:7: cannot store a string in a number variable
 corpus/runtime_comparison/242_types_simple.bas  # 11:7: cannot store a string in a number variable
 corpus/runtime_comparison/57_type_string_field.bas  # 8:10: cannot store a string in a number variable
+qbasic/misc/mzupd2.bas  # 46:44: name already in use: `TIME$`
+qbasic/open_gl/3d_model_viewer.bas  # 158:5: names starting with `_` are reserved: `_GL`
 qbasic/open_gl/simple_example.bas  # 43:5: names starting with `_` are reserved: `_GL`
-qbasic/pete/screen.bas  # 43:18: name already in use: `list$`
 snippets/qb64fresh/control_flow__select_case_fixed_length_string.bas  # 2:5: cannot store a string in a number variable
 snippets/qb64fresh/deftype_statements__defstr_statement.bas  # 3:9: cannot store a string in a number variable
 snippets/qb64fresh/error_extensions__on_error_goto_newhandler_compiles_and_emits_handler.bas  # 1:27: expected the end of the statement
@@ -21,17 +22,8 @@ upstream/arrays/Retain_Preserve.bas  # 30:18: cannot store a string in a number 
 upstream/arrays/t001_whole_array_core.bas  # 63:12: expected the end of the statement
 upstream/arrays/t220_2.bas  # 15:17: cannot store a string in a number variable
 upstream/arrays/type_owner_self_assignment.bas  # 12:18: cannot store a string in a number variable
-upstream/auto_include/am-trigger.bas  # 12:9: a SUB or FUNCTION cannot be defined inside another; expected `END FUNCTION` before it
 upstream/auto_include/general.bas  # 10:37: names starting with `_` are reserved: `_E`
 upstream/clipboard/clipboard_test.bas  # 11:1: names starting with `_` are reserved: `_CLIPBOARD$`
-upstream/declare_library/test.bas  # 4:5: `FUNCTION` without `END FUNCTION`
-upstream/declare_library_dynamic/test.bas  # 5:36: expected `,` or `)`
-upstream/declare_library_external/test.bas  # 12:36: expected `,` or `)`
-upstream/declare_library_external/test_stripped.bas  # 7:5: `FUNCTION` without `END FUNCTION`
-upstream/declare_library_header/test-compile-base-directory.bas  # 4:4: `FUNCTION` without `END FUNCTION`
-upstream/declare_library_header/test-compile-base.bas  # 6:4: `FUNCTION` without `END FUNCTION`
-upstream/declare_library_header/test.bas  # 4:4: `FUNCTION` without `END FUNCTION`
-upstream/declare_library_static/test.bas  # 6:40: expected `,` or `)`
 upstream/font/test.bas  # 36:15: a string is required for this parameter
 upstream/glut/desktopheight.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
 upstream/glut/desktopwidth.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
@@ -51,8 +43,9 @@ upstream/image/pcx_test.bas  # 28:13: a string is required for this parameter
 upstream/image/webp_test.bas  # 13:13: a string is required for this parameter
 upstream/logging/consts.bas  # 3:7: names starting with `_` are reserved: `_LOG_TRACE`
 upstream/mem/mem_checking_off.bas  # 20:28: a string is required for this parameter
-upstream/on_error/errtest.bas  # 6:5: a SUB or FUNCTION cannot be defined inside another; expected `END FUNCTION` before it
+upstream/on_error/errtest.bas  # 18:15: label `_LASTHANDLER` is not defined
 upstream/opengl/test.bas  # 2:5: names starting with `_` are reserved: `_GL`
+upstream/putimage/putimage_test.bas  # 61:13: names starting with `_` are reserved: `_TRUE`
 upstream/qb64pe/dwd.bas  # 7:6: cannot store a string in a number variable
 upstream/qb64pe/element.bas  # 9:6: cannot store a string in a number variable
 upstream/qb64pe/element_createElementString.bas  # 9:6: cannot store a string in a number variable

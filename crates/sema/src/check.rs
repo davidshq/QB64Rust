@@ -98,19 +98,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         }
     }
 
-    // The main module's labels, so that `ON ERROR GOTO` may name one further down.
-    for &stmt in &statements {
-        if skips.past_cap(stmt) {
-            break;
-        }
-        if let Some(l) = ast::LabelDef::cast(stmt)
-            && skips.usable(stmt)
-        {
-            c.stmt_error = false;
-            let _ = c.declare_label(l);
-            c.flush_names();
-        }
-    }
+    // The main module's labels, also those inside blocks, so that `ON ERROR GOTO` may name one further down.
+    c.declare_labels(&statements, &skips);
 
     // Pass 2: everything in file order.
     for stmt in statements {
@@ -270,12 +259,54 @@ impl Checker<'_> {
     }
 
     fn check_statement(&mut self, stmt: Node, skips: &Skips) {
+        if let Some(block) = block_parts(stmt) {
+            self.block(stmt, block, skips);
+            return;
+        }
         if !skips.usable(stmt) {
             return;
         }
         self.stmt_error = false;
         self.statement(stmt);
         self.flush_names();
+    }
+
+    /// A block (design D10 of `m2-parser-breadth`): one "not supported yet" error at its first token, unless its
+    /// header has a parse error; then the statements inside are checked one by one, as everywhere else.
+    fn block(&mut self, node: Node, block: BlockParts, skips: &Skips) {
+        if block.header.is_none_or(|h| skips.usable(h)) && !skips.past_cap(node) {
+            self.stmt_error = false;
+            let span = first_token_span(node);
+            let _ = match block.verdict {
+                Verdict::Unsupported(what) => self.unsupported(span, what),
+                Verdict::Error(msg) => self.error(span, msg),
+            };
+            self.flush_names();
+        }
+        for s in block.inner {
+            if skips.past_cap(s) {
+                break;
+            }
+            self.check_statement(s, skips);
+        }
+    }
+
+    /// Enters the main module's labels among `statements` and inside their blocks (not inside procedures).
+    fn declare_labels(&mut self, statements: &[Node], skips: &Skips) {
+        for &stmt in statements {
+            if skips.past_cap(stmt) {
+                break;
+            }
+            if let Some(block) = block_parts(stmt) {
+                self.declare_labels(&block.inner, skips);
+            } else if let Some(l) = ast::LabelDef::cast(stmt)
+                && skips.usable(stmt)
+            {
+                self.stmt_error = false;
+                let _ = self.declare_label(l);
+                self.flush_names();
+            }
+        }
     }
 
     fn push(&mut self, node: Node, kind: StmtKind) {
@@ -330,7 +361,7 @@ impl Checker<'_> {
             self.resume(s)
         } else if let Some(s) = ast::ErrorStmt::cast(node) {
             self.error_stmt(s)
-        } else if ast::LineNumber::cast(node).is_some() {
+        } else if ast::LineNumber::cast(node).is_some() || ast::ImplicitGoto::cast(node).is_some() {
             Err(self.unsupported(first_token_span(node), "line numbers"))
         } else if ast::GotoStmt::cast(node).is_some() {
             Err(self.unsupported(first_token_span(node), "`GOTO`"))
@@ -536,6 +567,10 @@ impl Checker<'_> {
     /// - a keyword, or a built-in written without a required suffix, is taken whatever suffix the name carries
     ///   (`len&`, `cls`); a built-in with its required suffix (`left$`) is taken, the bare name (`left`) is free;
     /// - `WIDTH` is the one built-in without a required suffix that is still free (`width = 5` makes a variable).
+    ///
+    /// Only the bare name and the `&` suffix were measured for keywords and built-ins without a required suffix;
+    /// other suffixes are "not supported yet". (The old compiler accepts `name$`, `not$` and `key$`, found in
+    /// `qbasic_testcases` in task 6.4 of `m2-parser-breadth`; the rule above is not "whatever suffix".)
     fn reserved(&mut self, t: Tok, name: &str, suffix: Option<Ty>) -> R<()> {
         if name.starts_with('_') {
             let msg = format!(
@@ -544,14 +579,20 @@ impl Checker<'_> {
             );
             return Err(self.error(t.span, msg));
         }
-        let taken = is_keyword(name.as_bytes())
-            || (name != "WIDTH"
-                && find_any(name.as_bytes()).any(|b| match b.musthave {
-                    None => true,
-                    Some("$") => suffix == Some(Ty::Str),
-                    Some(_) => false,
-                }));
-        if taken { Err(self.in_use(t)) } else { Ok(()) }
+        let word_taken =
+            is_keyword(name.as_bytes()) || (name != "WIDTH" && find_any(name.as_bytes()).any(|b| b.musthave.is_none()));
+        let with_dollar_taken = suffix == Some(Ty::Str) && find_any(name.as_bytes()).any(|b| b.musthave == Some("$"));
+        if with_dollar_taken || (word_taken && matches!(suffix, None | Some(Ty::I32))) {
+            Err(self.in_use(t))
+        } else if word_taken {
+            let msg = format!(
+                "`{}` as a name (a reserved word with this suffix is not measured)",
+                show_bytes(self.text(t.span))
+            );
+            Err(self.unsupported(t.span, msg))
+        } else {
+            Ok(())
+        }
     }
 
     /// The type named by an `AS` clause.
@@ -841,6 +882,11 @@ impl Checker<'_> {
             return Err(self.error(t.span, format!("`{shown}` is not a valid label")));
         }
         let Some(&id) = self.labels_by_name.get(&name) else {
+            // A label with such a name is "not supported yet" (`declare_label`), so it may exist.
+            if self.procs_by_name.contains_key(&name) || find_any(name.as_bytes()).next().is_some() {
+                let msg = format!("a label with the name of a SUB, FUNCTION or built-in: `{shown}`");
+                return Err(self.unsupported(t.span, msg));
+            }
             return Err(self.error(t.span, format!("label `{shown}` is not defined")));
         };
         self.names.push((SymbolKind::Label(id), t.span));
@@ -999,6 +1045,14 @@ impl Checker<'_> {
     }
 
     fn exit(&mut self, node: Node) -> R<()> {
+        let word = ast::ExitStmt::cast(node)
+            .and_then(|e| e.keyword())
+            .map(|t| self.word(t));
+        if !matches!(word.as_deref(), Some("SUB" | "FUNCTION")) {
+            // `EXIT FOR`, `EXIT DO`... (the parser checked that the block is open).
+            let words = node.child_tokens().map(|t| self.word(t)).collect::<Vec<_>>().join(" ");
+            return Err(self.unsupported(first_token_span(node), format!("`{words}`")));
+        }
         if self.cur.is_none() {
             let words = node.child_tokens().map(|t| self.word(t)).collect::<Vec<_>>().join(" ");
             let msg = format!("`{words}` must be inside a SUB or FUNCTION");
@@ -1416,6 +1470,78 @@ impl Checker<'_> {
 }
 
 /// The span of a statement's first token (where a "not supported yet" mark goes, design D10).
+/// What `sema` says about a block it does not compile.
+enum Verdict {
+    /// Not supported yet; names the construct.
+    Unsupported(&'static str),
+    /// A real error: the old compiler rejects the construct too.
+    Error(&'static str),
+}
+
+/// A block statement as `sema` sees it for now: its header (whose parse errors suppress the verdict), the
+/// verdict, and the statements inside it, in order.
+struct BlockParts<'a> {
+    header: Option<Node<'a>>,
+    verdict: Verdict,
+    inner: Vec<Node<'a>>,
+}
+
+fn unsupported<'a>(header: Option<Node<'a>>, what: &'static str, inner: Vec<Node<'a>>) -> Option<BlockParts<'a>> {
+    Some(BlockParts {
+        header,
+        verdict: Verdict::Unsupported(what),
+        inner,
+    })
+}
+
+/// The parts of a block statement; `None` for any other statement.
+fn block_parts(node: Node) -> Option<BlockParts> {
+    const DEF_FN: &str = "`DEF FN` is not available in QB64; use a FUNCTION";
+    if let Some(b) = ast::IfBlock::cast(node) {
+        let first = b.if_branch();
+        let mut inner: Vec<Node> = first.into_iter().flat_map(|f| f.body()).collect();
+        for e in b.else_if_branches() {
+            inner.extend(e.body());
+        }
+        inner.extend(b.else_branch().into_iter().flat_map(|e| e.body()));
+        unsupported(first.and_then(|f| f.header()).map(|h| h.node()), "`IF` blocks", inner)
+    } else if let Some(s) = ast::IfStmt::cast(node) {
+        let mut inner: Vec<Node> = s.then_branch().into_iter().flat_map(|b| b.statements()).collect();
+        inner.extend(s.else_branch().into_iter().flat_map(|b| b.statements()));
+        unsupported(s.header().map(|h| h.node()), "single-line `IF`", inner)
+    } else if let Some(b) = ast::ForBlock::cast(node) {
+        unsupported(b.header().map(|h| h.node()), "`FOR` loops", b.body().collect())
+    } else if let Some(b) = ast::DoBlock::cast(node) {
+        unsupported(b.header().map(|h| h.node()), "`DO` loops", b.body().collect())
+    } else if let Some(b) = ast::WhileBlock::cast(node) {
+        unsupported(b.header().map(|h| h.node()), "`WHILE` loops", b.body().collect())
+    } else if let Some(b) = ast::SelectBlock::cast(node) {
+        let mut inner: Vec<Node> = b.before_cases().collect();
+        for c in b.cases() {
+            inner.extend(c.body());
+        }
+        unsupported(b.header().map(|h| h.node()), "`SELECT CASE`", inner)
+    } else if let Some(b) = ast::TypeBlock::cast(node) {
+        unsupported(b.header().map(|h| h.node()), "`TYPE` blocks", Vec::new())
+    } else if let Some(b) = ast::DeclareLibraryBlock::cast(node) {
+        unsupported(b.header().map(|h| h.node()), "`DECLARE LIBRARY`", Vec::new())
+    } else if let Some(b) = ast::DefFnBlock::cast(node) {
+        Some(BlockParts {
+            header: b.header().map(|h| h.node()),
+            verdict: Verdict::Error(DEF_FN),
+            inner: b.body().collect(),
+        })
+    } else if ast::DefFnStmt::cast(node).is_some() {
+        Some(BlockParts {
+            header: Some(node),
+            verdict: Verdict::Error(DEF_FN),
+            inner: Vec::new(),
+        })
+    } else {
+        None
+    }
+}
+
 fn first_token_span(node: Node) -> Span {
     node.first_token().map_or(node.span(), |t| t.span)
 }

@@ -3,9 +3,11 @@
 //!
 //! Recovery: at most one error per statement. After an error the rest of the statement (up to a line end, or a
 //! `:` outside parentheses) goes into an `Error` node and parsing continues with the next statement. Procedures
-//! are blocks (`proc.rs`); their recovery is described there.
+//! and the other blocks share one statement loop and one stack of open blocks (`blocks.rs`); their recovery is
+//! described there.
 
 mod assign;
+mod blocks;
 mod call;
 mod data;
 mod decl;
@@ -42,9 +44,14 @@ pub(crate) fn parse_tree(id: TreeId, file: FileId, bytes: &[u8]) -> Tree {
         builder: TreeBuilder::default(),
         diags: Diagnostics::new(),
         stmt_error: false,
+        carry_error: false,
         quiet: false,
         quiet_failed: false,
         last_kind: None,
+        blocks: Vec::new(),
+        line_if: 0,
+        pending_next: None,
+        after_line_number: usize::MAX,
     };
     p.source_file();
     Tree {
@@ -65,11 +72,22 @@ pub(crate) struct Parser<'a> {
     diags: Diagnostics,
     /// An error was already reported for the current statement.
     stmt_error: bool,
+    /// The next statement the loop looks at already has its error (a closer reported by an inner block, a nested
+    /// `SUB` header), so `stmt_error` is not reset for it.
+    carry_error: bool,
     /// Errors are not reported but only noted in `quiet_failed` (arguments of a call without `CALL`).
     quiet: bool,
     quiet_failed: bool,
     /// Kind of the last non-trivia token added to the tree.
     last_kind: Option<SyntaxKind>,
+    /// The open blocks, innermost last (`blocks.rs`).
+    blocks: Vec<blocks::Open>,
+    /// How many single-line `IF`s are open: inside one, the line end and `ELSE` end every statement.
+    line_if: u32,
+    /// `NEXT j, i` closed an inner `FOR` and still has this many `FOR` blocks to close (and its span).
+    pending_next: Option<(u32, Span)>,
+    /// Token index just after the last line number: a label may stand there (`10 lab: PRINT`).
+    after_line_number: usize,
 }
 
 impl<'a> Parser<'a> {
@@ -125,9 +143,14 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// At a line end, a `:`, a metacommand comment or the end of the file.
+    /// At a line end, a `:`, a metacommand comment or the end of the file; inside a single-line `IF` also at `ELSE`.
     fn at_stmt_end(&self) -> bool {
-        ends_stmt(self.current())
+        self.ends_at(0)
+    }
+
+    /// The n-th non-trivia token ahead ends a statement (see [`Self::at_stmt_end`]).
+    fn ends_at(&self, n: usize) -> bool {
+        ends_stmt(self.nth(n)) || (self.line_if > 0 && self.nth_is_word(n, "ELSE"))
     }
 
     // ---- tree building ----
@@ -214,6 +237,10 @@ impl<'a> Parser<'a> {
                 let word = qb64rust_base::show_bytes(text).to_ascii_uppercase();
                 if ["MOD", "AND", "OR", "NOT", "XOR", "EQV", "IMP"].contains(&word.as_str()) {
                     op(&word)
+                } else if word == "ELSE" {
+                    // Outside a single-line `IF`, an `ELSE` within a statement is an error for the old compiler
+                    // too ("Invalid Syntax for ELSE", `qb64pe.bas` 6594-6624).
+                    None
                 } else if keywords::is_keyword(text) {
                     Some(format!("word `{word}`"))
                 } else {
@@ -252,6 +279,7 @@ impl<'a> Parser<'a> {
             match k {
                 Newline | MetaComment => break,
                 Colon if depth <= 0 => break,
+                Ident if depth <= 0 && self.line_if > 0 && self.at_word("ELSE") => break,
                 LParen => depth += 1,
                 RParen => depth -= 1,
                 _ => {}
@@ -275,19 +303,17 @@ impl<'a> Parser<'a> {
 
     fn source_file(&mut self) {
         self.builder.start_node(SourceFile);
-        // A procedure ended by a nested header leaves that header's error in place, so the header reports no
-        // second one.
-        let mut keep_error = false;
-        while self.current().is_some() {
-            if !keep_error {
-                self.stmt_error = false;
-            }
-            keep_error = false;
-            self.line_number();
-            if self.at_proc_start() {
-                keep_error = proc::proc_def(self);
-            } else {
-                self.statement_and_separator();
+        loop {
+            match self.body() {
+                // A procedure ended by a nested header leaves that header's error in place, so the header reports
+                // no second one.
+                blocks::Stop::ProcHeader => self.carry_error = proc::proc_def(self),
+                blocks::Stop::Eof => break,
+                // Cannot happen: with no block open, every closer is a stray one (reported by `body`). If it did,
+                // take a token so that the loop always ends.
+                blocks::Stop::Closer(_) | blocks::Stop::Outer | blocks::Stop::LineEnd | blocks::Stop::InnerNext => {
+                    self.bump()
+                }
             }
         }
         self.eat_trivia();
@@ -299,26 +325,41 @@ impl<'a> Parser<'a> {
         self.at_word("SUB") || self.at_word("FUNCTION")
     }
 
-    /// One statement and the line end or `:` after it.
+    /// One statement and the line end or `:` after it. A multi-line block takes care of its own end.
     fn statement_and_separator(&mut self) {
         self.line_prefix();
-        self.statement();
+        if self.statement() {
+            return;
+        }
         if !self.at_stmt_end() {
             self.syntax_error("expected the end of the statement");
             self.recover();
         }
-        if matches!(self.current(), Some(Newline | Colon)) {
+        self.separator();
+    }
+
+    /// The `:` or line end after a statement. Inside a single-line `IF` the line end is left for the statement
+    /// that holds the `IF`.
+    fn separator(&mut self) {
+        if self.at(Colon) || (self.at(Newline) && self.line_if == 0) {
             self.bump();
         }
     }
 
-    fn statement(&mut self) {
+    /// The end of a block header or closer: anything left over is an error; then the separator.
+    fn header_end(&mut self) {
+        self.recover();
+        self.separator();
+    }
+
+    /// One statement. Returns true for a multi-line block, which has consumed its separator already.
+    fn statement(&mut self) -> bool {
         match self.current() {
             None | Some(Newline) | Some(Colon) => {}
             Some(Metacommand) => meta::metacommand(self),
             Some(MetaComment) => meta::meta_comment(self),
             Some(Question) => print::print_stmt(self),
-            Some(Ident) => self.word_statement(),
+            Some(Ident) => return self.word_statement(),
             Some(Number) => {
                 // A line number at the start of a line is taken by `line_prefix`; anywhere else (after a label or
                 // a `:`) the old compiler rejects it too (measured M3).
@@ -330,9 +371,53 @@ impl<'a> Parser<'a> {
                 self.recover();
             }
         }
+        false
     }
 
-    fn word_statement(&mut self) {
+    /// A statement that starts with a word. Returns true for a multi-line block (see [`Self::statement`]).
+    fn word_statement(&mut self) -> bool {
+        if let Some(c) = self.closer_here() {
+            // Only reached where the statement loop does not look for closers (a single-line `IF`).
+            self.stray_closer(c);
+            return false;
+        }
+        let opens_block = ["IF", "FOR", "DO", "WHILE", "SELECT", "TYPE", "DEF", "DECLARE"]
+            .iter()
+            .any(|w| self.at_word(w));
+        if opens_block && self.blocks.len() >= blocks::MAX_DEPTH {
+            // Each open block is a few frames of recursion; this keeps a pathological file from overflowing the
+            // stack.
+            self.unsupported(format!("blocks nested more than {} deep", blocks::MAX_DEPTH));
+            self.recover();
+            return false;
+        }
+        if self.at_word("IF") {
+            return blocks::if_stmt(self);
+        } else if self.at_word("FOR") {
+            blocks::for_block(self);
+            return true;
+        } else if self.at_word("DO") {
+            blocks::do_block(self);
+            return true;
+        } else if self.at_word("WHILE") {
+            blocks::while_block(self);
+            return true;
+        } else if self.at_word("SELECT") {
+            blocks::select_block(self);
+            return true;
+        } else if self.at_word("TYPE") {
+            blocks::type_block(self);
+            return true;
+        } else if self.at_word("DEF") {
+            return blocks::def_stmt(self);
+        } else if self.at_word("DECLARE") {
+            return proc::declare_stmt(self);
+        }
+        self.simple_word_statement();
+        false
+    }
+
+    fn simple_word_statement(&mut self) {
         if self.at_word("PRINT") {
             print::print_stmt(self)
         } else if self.at_word("DIM") {
@@ -351,8 +436,6 @@ impl<'a> Parser<'a> {
             call::call_stmt(self)
         } else if self.at_word("EXIT") {
             proc::exit_stmt(self)
-        } else if self.at_word("DECLARE") {
-            proc::declare_stmt(self)
         } else if self.at_word("ON") {
             errors::on_stmt(self)
         } else if self.at_word("RESUME") {
@@ -403,13 +486,12 @@ impl<'a> Parser<'a> {
     }
 
     /// The statement has a `,` outside parentheses. Then `s (5 / 2) = 2, 0` is a SUB call with a comparison as
-    /// its first argument, not an assignment, which has no such comma.
-    // TODO(single-line IF): the scan runs to the line end or `:`, so in `IF c THEN a(1) = 2 ELSE s 1, 2` it would
-    // see the `ELSE` branch's comma and make `a(1) = 2` a call. Stop at `ELSE` when `IF` is parsed.
+    /// its first argument, not an assignment, which has no such comma. The scan stops at `ELSE` inside a
+    /// single-line `IF` (`IF c THEN a(1) = 2 ELSE s 1, 2`).
     fn comma_outside_parens(&self) -> bool {
         let mut depth = 0i32;
         let mut n = 0;
-        while !ends_stmt(self.nth(n)) {
+        while !self.ends_at(n) {
             match self.nth(n) {
                 Some(LParen) => depth += 1,
                 Some(RParen) => depth -= 1,
@@ -445,17 +527,12 @@ impl<'a> Parser<'a> {
         self.nth(n) == Some(Ident) && self.nth_text(n).eq_ignore_ascii_case(word.as_bytes())
     }
 
+    /// `END`, or `END` and a word that is not a block closer (those are taken by the statement loop).
     fn end_stmt(&mut self) {
-        if ends_stmt(self.nth(1)) {
+        if self.ends_at(1) {
             self.start_node(EndStmt);
             self.bump();
             self.finish_node();
-        } else if self.nth_is_word(1, "SUB") || self.nth_is_word(1, "FUNCTION") {
-            // Inside a procedure the block loop takes `END SUB` before it gets here.
-            let span = self.current_span().cover(self.next_span(1));
-            let word = qb64rust_base::show_bytes(self.nth_text(1)).to_ascii_uppercase();
-            self.error_at(span, format!("`END {word}` without a `{word}`"));
-            self.recover();
         } else {
             let span = self.current_span().cover(self.next_span(1));
             let text = format!("END {}", qb64rust_base::show_bytes(self.nth_text(1)));
@@ -466,7 +543,7 @@ impl<'a> Parser<'a> {
 
     /// `SYSTEM` without an exit code.
     fn system_stmt(&mut self) {
-        if ends_stmt(self.nth(1)) {
+        if self.ends_at(1) {
             self.start_node(SystemStmt);
             self.bump();
             self.finish_node();

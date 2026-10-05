@@ -1,0 +1,5 @@
+
+END IF without IF
+Caused by (or after):END IF
+LINE 3:IF 1 THEN FOR i = 1 TO 2: PRINT i
+exit=1

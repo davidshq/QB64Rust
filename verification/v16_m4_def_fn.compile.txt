@@ -1,0 +1,5 @@
+
+Command not implemented
+Caused by (or after):DEF FNA ( X ) = X * 2
+LINE 3:DEF FNa (x) = x * 2
+exit=1

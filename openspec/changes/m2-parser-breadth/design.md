@@ -111,6 +111,32 @@ them (the block is open where a file is included, or the file being parsed is an
 whether any input needs more. Single-line `IF`: each
 `ELSE` belongs to the innermost `IF`; `ELSE IF` is an `ELSE` branch holding a new `IfBlock`.
 
+As built (group 6, 2026-10-05; measurements added then in `study\00` §5, "Blocks, more"):
+- **Every block has a header node** (`IfHeader`, `ForHeader`, `DoHeader`, `WhileHeader`, `SelectHeader`,
+  `CaseHeader`, `TypeHeader`, `DeclareLibraryHeader`, `DefFnHeader`), as `ProcDef` has `ProcHeader`, so `sema` can
+  tell a header with a parse error from a body that has one. `IF` and `ELSEIF` share `IfHeader`. Word closers
+  (`END IF`, `ENDIF`, `WEND`, `END SELECT`, `END TYPE`, `END DECLARE`, `END DEF`) are one kind, `BlockEnd`;
+  `NextStmt` and `LoopStmt` have their own kinds because they carry variables and conditions. A single-line `IF`
+  is `IfStmt` (`IfHeader`, `LineBranch`, optional `ELSE` and second `LineBranch`); `THEN 10` is an `ImplicitGoto`.
+- **One statement loop** (`parser\blocks.rs`, `Parser::body`) serves the main module, procedures and every block;
+  it stops at a procedure header, the end of the file, a closer, or (inside a single-line `IF`) the line end and
+  `ELSE`. Inside a single-line `IF` a block must close on its line (measured: a whole `FOR` there works, one closed
+  on the next line is rejected), and a closer cannot close a block outside the `IF`.
+- **`TYPE` and `DECLARE LIBRARY` hold no statements**: a statement inside, or the end of the file, ends the block
+  with one error, and the rest of the file is parsed as usual (the old compiler stops there; a later `END TYPE`
+  then gets its own "without" error).
+- **`EXIT FOR/DO/WHILE/SELECT/CASE/DEF`** is checked by the parser against the open blocks of the current
+  procedure (measured for `EXIT FOR`; read in `qb64pe.bas` 7440–7530 for the others).
+- **`NEXT` variables** are not compared with the `FOR` variables by the parser (a name with and without a suffix
+  can be one variable); `NEXT i, j` in the wrong order is left to `sema` in the control-flow slice and is only
+  marked until then.
+- **Labels** stand only at the start of a line, after an optional line number (measured, M3 addition); after a
+  `:` a name and a colon are a call. Before group 6 every statement start took labels; no input depended on it.
+- **Nesting** stops at 200 open blocks (the rest is "not supported yet"), so a pathological file cannot overflow
+  the stack through the recursion.
+- **`DEF FN`** parses (`DefFnStmt`, `DefFnBlock`); `sema` reports it as a real error, as the old compiler does
+  ("Command not implemented"). `DEF SEG` stays "not supported yet" (group 7).
+
 ### D5. Statements: one module per family
 `parser\` gets one module per family, dispatched by the first word as now (FreeBASIC lesson L1): `flow.rs`
 (`GOTO`, `GOSUB`, `RETURN`, `ON … GOTO/GOSUB`, `ON TIMER/KEY/STRIG/… GOSUB`, `STOP`, `SLEEP`-like plain calls stay
@@ -214,7 +240,9 @@ pops without checking, reports the later `END IF` instead; our messages are new 
   included tree at its include statement. The symbol table keeps spans with `FileId` (unchanged format).
 - **Marking.** Every new statement or expression kind `sema` does not compile yet gets one "not supported yet"
   diagnostic at its first token, naming it (same words as the parser uses today, so most messages stay). The
-  statements inside an unsupported block are still checked, as today.
+  statements inside an unsupported block are still checked, as today. (Group 6: a block is marked unless its
+  header has a parse error; its statements are checked one by one; main-module labels inside blocks are entered in
+  pass 1, so `ON ERROR GOTO` may name them.)
 - **No follow-on errors.** Changed 2026-10-05 (`study\23` §2.3; the first design recorded the names of each
   unsupported declaration as *unknown* and silenced their uses, which is scaffolding that goes away as each
   feature is compiled). The rule is blunt instead: after the first **declaration** reported "not supported yet", in

@@ -237,6 +237,29 @@ question, include files in `v16_inc\` and `v16_*.bi`):
   innermost `IF`**; `THEN 10 ELSE 20` and `IF 0 GOTO 20` work. `ENDIF` is accepted; `ELSE IF` is an `ELSE` holding
   a new `IF` block. Only comments may stand between `SELECT CASE` and the first `CASE` (a statement: "Expected
   CASE expression"). `EXIT FOR` inside `DO` inside `FOR`, and `EXIT DO` inside `FOR` inside `DO`, work.
+- **Blocks, more (M4, group 6, 2026-10-05; `verification\v16_m4_*` added then):** a whole block inside a
+  single-line `IF` works (`IF c THEN : FOR …: NEXT: PRINT`; `THEN :` is a single-line `IF`); a `FOR` opened there
+  and closed on the next line is "END IF without IF" (the old compiler turns a single-line `IF` into a block with
+  an implied `END IF` at the line end). `IF c THEN REM x` is a single-line `IF` (`qb64pe.bas` 25203), `THEN ' x` a
+  block. Empty branches (`THEN ELSE PRINT`, `PRINT … ELSE` at the line end) are fine. After a jump (`THEN 10`, `GOTO
+  20`, `ELSE 30`) and a `:`, the statements that follow still belong to the branch (`v16_m4_line_if_jump_colon`).
+  In a block `IF`, `ELSEIF c THEN stmt` and `ELSE stmt` may carry a statement on the same line, and `ELSE` and
+  `END IF` may follow a `:`.
+  Crossings: `ELSE` inside a `FOR` inside a block `IF` passes the BASIC checks and fails in C++; `CASE` inside an
+  `IF` inside a `SELECT` is "CASE without SELECT CASE"; `END SUB` with a `FOR` open is "FOR without NEXT"; an `IF`
+  open at a `SUB` header is "IF without END IF"; `DO WHILE` closed by `LOOP UNTIL` is "PROGRAM FLOW ERROR!".
+  `TYPE`: every field form found in the inputs works (`AS LONG b, c`, `AS STRING * 2 t`, `_UNSIGNED _BYTE`,
+  element arrays, a nested type); a statement inside, or a missing `END TYPE`, is "Expected element-name AS type,
+  AS type element-list, or END TYPE"; a `TYPE` inside a `SUB` is accepted. `DECLARE LIBRARY`: `ALIAS "c_name"`,
+  `ALIAS c_name`, `BYVAL`, `~&` work; a statement inside is "Expected SUB/FUNCTION definition or END DECLARE".
+  `DEF FN` (either form) is "Command not implemented".
+- **Labels (M3, group 6):** a label stands only at the start of a line (after an optional line number): `PRINT
+  "a": lab: PRINT "b"` is a syntax error, and `PRINT "a": s: PRINT "b"` calls `s`
+  (`v16_m3_label_after_colon`, `v16_m3_call_after_colon`; `qb64pe.bas` has `WHILE … : increaseUDTArrays: WEND`).
+- **Reserved names with a suffix:** `name$` and `not$` are variables for the old compiler (checked with
+  `qb64pe.exe`; found in `qbasic_testcases`, which also uses `SHARED Key$`); `verification\v15_builtin_names`
+  measured only the bare name and `&` for keywords and built-ins without a required suffix, so other suffixes are
+  "not supported yet" until measured.
 - **Template statements (M5):** a wrong `LINE` form (unknown word, no parentheses, an argument too many) is
   "Syntax error - Reference: <the template>". With variables `B = 7` and `BF = 9`: `LINE …, B` and `LINE …, BF, BF`
   take the first as a colour and the second as the box word; words match in any case (`bf`, `step`). Graphics
