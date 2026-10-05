@@ -1,0 +1,4 @@
+
+Name already in use (x)
+Caused by (or after):DIM X AS STRING
+LINE 2:DIM x AS STRING

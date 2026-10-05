@@ -1,0 +1,4 @@
+
+Array 'scores' not defined
+Caused by (or after):SHARED SCORES ( )
+LINE 8:SHARED scores()

@@ -1,0 +1,74 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"DECLARE DYNAMIC LIBRARY \\\"a\\\", \\\"b\\\"\\n  FUNCTION f& ALIAS \\\"g\\\" (BYVAL x AS LONG, y AS _OFFSET)\\n  ' c\\n  SUB s ALIAS t\\n  FUNCTION h~&\\nEND DECLARE\\n\")"
+---
+SourceFile 0..138
+  DeclareLibraryBlock 0..138
+    DeclareLibraryHeader 0..32
+      Ident DECLARE
+      Whitespace  
+      Ident DYNAMIC
+      Whitespace  
+      Ident LIBRARY
+      Whitespace  
+      StringLit "a"
+      Comma ,
+      Whitespace  
+      StringLit "b"
+    Newline \x0A
+    Whitespace   
+    ProcHeader 35..88
+      Ident FUNCTION
+      Whitespace  
+      Ident f&
+      Whitespace  
+      Ident ALIAS
+      Whitespace  
+      StringLit "g"
+      Whitespace  
+      ParamList 57..88
+        LParen (
+        Param 58..73
+          Ident BYVAL
+          Whitespace  
+          Ident x
+          Whitespace  
+          AsClause 66..73
+            Ident AS
+            Whitespace  
+            Ident LONG
+        Comma ,
+        Whitespace  
+        Param 75..87
+          Ident y
+          Whitespace  
+          AsClause 77..87
+            Ident AS
+            Whitespace  
+            Ident _OFFSET
+        RParen )
+    Newline \x0A
+    Whitespace   
+    Comment ' c
+    Newline \x0A
+    Whitespace   
+    ProcHeader 97..110
+      Ident SUB
+      Whitespace  
+      Ident s
+      Whitespace  
+      Ident ALIAS
+      Whitespace  
+      Ident t
+    Newline \x0A
+    Whitespace   
+    ProcHeader 113..125
+      Ident FUNCTION
+      Whitespace  
+      Ident h~&
+    Newline \x0A
+    BlockEnd 126..137
+      Ident END
+      Whitespace  
+      Ident DECLARE
+    Newline \x0A

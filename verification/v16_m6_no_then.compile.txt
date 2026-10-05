@@ -1,0 +1,5 @@
+
+$IF without THEN
+Caused by (or after):
+LINE 3:$IF WIN
+exit=1

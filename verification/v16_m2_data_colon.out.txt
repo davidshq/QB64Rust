@@ -1,0 +1,3 @@
+after colon
+[a]
+exit=0

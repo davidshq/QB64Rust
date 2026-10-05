@@ -1,0 +1,100 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 62
+expression: "tree(\"SUB s (a AS LONG, b$, c)\\n  PRINT a\\nEND SUB\\nFUNCTION f& (x AS _UNSIGNED LONG)\\n  f& = x\\nEND FUNCTION\\nSUB t\\nEND SUB\\nPRINT f&(1)\\n\")"
+---
+SourceFile 0..125
+  ProcDef 0..43
+    ProcHeader 0..24
+      Ident SUB
+      Whitespace  
+      Ident s
+      Whitespace  
+      ParamList 6..24
+        LParen (
+        Param 7..16
+          Ident a
+          Whitespace  
+          AsClause 9..16
+            Ident AS
+            Whitespace  
+            Ident LONG
+        Comma ,
+        Whitespace  
+        Param 18..20
+          Ident b$
+        Comma ,
+        Whitespace  
+        Param 22..23
+          Ident c
+        RParen )
+    Newline \x0A
+    Whitespace   
+    PrintStmt 27..34
+      Ident PRINT
+      Whitespace  
+      NameRef 33..34
+        Ident a
+    Newline \x0A
+    ProcEnd 35..42
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+  ProcDef 43..99
+    ProcHeader 43..76
+      Ident FUNCTION
+      Whitespace  
+      Ident f&
+      Whitespace  
+      ParamList 55..76
+        LParen (
+        Param 56..75
+          Ident x
+          Whitespace  
+          AsClause 58..75
+            Ident AS
+            Whitespace  
+            Ident _UNSIGNED
+            Whitespace  
+            Ident LONG
+        RParen )
+    Newline \x0A
+    Whitespace   
+    AssignStmt 79..85
+      NameRef 79..81
+        Ident f&
+      Whitespace  
+      Eq =
+      Whitespace  
+      NameRef 84..85
+        Ident x
+    Newline \x0A
+    ProcEnd 86..98
+      Ident END
+      Whitespace  
+      Ident FUNCTION
+    Newline \x0A
+  ProcDef 99..113
+    ProcHeader 99..104
+      Ident SUB
+      Whitespace  
+      Ident t
+    Newline \x0A
+    ProcEnd 105..112
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+  PrintStmt 113..124
+    Ident PRINT
+    Whitespace  
+    CallExpr 119..124
+      NameRef 119..121
+        Ident f&
+      ArgList 121..124
+        LParen (
+        Literal 122..123
+          Number 1
+        RParen )
+  Newline \x0A

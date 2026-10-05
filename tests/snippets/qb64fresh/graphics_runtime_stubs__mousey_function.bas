@@ -1,0 +1,2 @@
+DIM y AS LONG
+y = _MOUSEY

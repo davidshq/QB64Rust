@@ -1,0 +1,5 @@
+
+Name already in use (cls)
+Caused by (or after):DIM CLS AS LONG
+LINE 3:DIM cls AS LONG
+exit=1

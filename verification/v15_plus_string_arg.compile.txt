@@ -1,0 +1,5 @@
+
+Expected variable/value before '+'
+Caused by (or after):T + S$
+LINE 5:t +s$
+exit=1

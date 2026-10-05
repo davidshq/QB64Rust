@@ -1,0 +1,5 @@
+
+Name already in use (len)
+Caused by (or after):SUB T ( LEN AS LONG )
+LINE 3:SUB t (len AS LONG)
+exit=1

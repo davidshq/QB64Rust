@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):F& = "x",1
+LINE 4:f& = "x"
+exit=1

@@ -1,0 +1,11 @@
+afixk 5 
+aAb
+cskip 5 
+eskip 7 
+ 2 g
+hiiskip 5 
+Hi!
+
+Runtime error: Line: 16 (in main module)
+Illegal function call
+untrappedafter untrapped

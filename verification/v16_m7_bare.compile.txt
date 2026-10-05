@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ INCLUDE
+LINE 3:$INCLUDE:'v16_inc_a.bi'
+exit=1

@@ -1,0 +1,69 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 121
+expression: "tree(\"FUNCTION f (a) AS LONG\\nf = 1\\nEND FUNCTION\\nSUB\\nEND SUB\\nSUB s (BYVAL x)\\nEND SUB\\n\")"
+---
+SourceFile 0..78
+  ProcDef 0..42
+    ProcHeader 0..14
+      Ident FUNCTION
+      Whitespace  
+      Ident f
+      Whitespace  
+      ParamList 11..14
+        LParen (
+        Param 12..13
+          Ident a
+        RParen )
+    Whitespace  
+    Error 15..22
+      Ident AS
+      Whitespace  
+      Ident LONG
+    Newline \x0A
+    AssignStmt 23..28
+      NameRef 23..24
+        Ident f
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 27..28
+        Number 1
+    Newline \x0A
+    ProcEnd 29..41
+      Ident END
+      Whitespace  
+      Ident FUNCTION
+    Newline \x0A
+  ProcDef 42..54
+    ProcHeader 42..45
+      Ident SUB
+    Newline \x0A
+    ProcEnd 46..53
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+  ProcDef 54..78
+    ProcHeader 54..66
+      Ident SUB
+      Whitespace  
+      Ident s
+      Whitespace  
+      ParamList 60..66
+        LParen (
+        Param 61..66
+          Ident BYVAL
+    Whitespace  
+    Error 67..69
+      Ident x
+      RParen )
+    Newline \x0A
+    ProcEnd 70..77
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+t.bas:1:16: error: a FUNCTION's type is given by a suffix on its name, not by `AS`
+t.bas:4:4: error: expected a procedure name
+t.bas:6:14: error: expected `,` or `)`

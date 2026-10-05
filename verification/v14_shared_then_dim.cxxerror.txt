@@ -1,0 +1,3 @@
+internal\c/../temp/global.txt:5:8: error: redefinition of '__LONG_H'
+    5 | int32 *__LONG_H=NULL;
+      |        ^

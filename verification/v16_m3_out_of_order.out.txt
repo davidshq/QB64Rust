@@ -1,0 +1,4 @@
+thirty
+ten
+twenty
+exit=0

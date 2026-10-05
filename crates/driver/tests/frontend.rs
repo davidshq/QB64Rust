@@ -33,13 +33,13 @@ fn mode_of(bytes: &[u8]) -> Option<&'static str> {
 /// Runs one file. Returns the snapshot text for snapshot modes, or an error message.
 fn run(name: &str, bytes: Vec<u8>, mode: &str) -> Result<Option<String>, String> {
     let fe = frontend(name, bytes.clone());
-    let syntax_errors = fe.parse.diagnostics.has_errors();
+    let syntax_errors = fe.parsed.diagnostics().has_errors();
     match mode {
         "parse-ok" => {
             if syntax_errors {
                 return Err(format!("syntax errors:\n{}", fe.render_diagnostics()));
             }
-            if print(&fe.parse.green, &bytes) != bytes {
+            if print(&fe.parsed.main().green, &bytes) != bytes {
                 return Err("the tree does not print back to the file".into());
             }
             Ok(None)

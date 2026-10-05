@@ -1,0 +1,4 @@
+
+DIM: Expected ,
+Caused by (or after):DIM S$ AS STRING
+LINE 1:DIM s$ AS STRING

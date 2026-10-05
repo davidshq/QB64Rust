@@ -46,9 +46,9 @@ From the expert panel (`07`), whose recommendations R1–R13 the decisions above
 |---|---|---|---|
 | M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
 | M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | **done** (`vscode\`) |
-| M2 | Front end | Lossless parser with recovery, resolution, type checker, formatter matching `-y`, language server | **in progress**: golden corpus; Rust workspace and end-to-end slice (`crates\`, all stages from bytes to a linked executable for a small subset; 14 corpus programs pass) |
-| M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests | |
-| M4 | Parity | 143 corpus programs match golden output; deferred array features; `qb64pe.bas` compiles (stretch) | |
+| M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server; formatter matching `-y` | **in progress**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling (`crates\`; 54 corpus programs pass end to end). Order of work: `STATUS.md`, `study\22` §5 |
+| M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests; programs without `$CONSOLE:ONLY` with a screen-state oracle | started early: the slice already links with libqb |
+| M4 | Parity | The corpus (275) and the upstream tests in reach (279 of 404; 125 need the deferred array features) match; `qb64pe.bas` compiles and the result passes the suite (exit criterion, `study\20`) | |
 | M5 | Debugger | Debug symbol file + DAP adapter | |
 | M6 | Runtime modernisation | ABI owned by the new compiler; error model, string heap, threading redesigned behind golden tests | |
 
@@ -181,6 +181,124 @@ same in the first three):
 - An `&&` literal above `_INTEGER64` range wraps: `PRINT 18446744073709551615&&` prints `-1`. The new compiler
   reports "overflow" (not yet in `DIVERGENCES.md`).
 
+Measured for procedures and error handling (2026-10-04, `m2-procedures-and-errors`; `verification\v14_*`,
+`v15_*`, `tests\corpus\slice\s08`–`s12`; full tables in `openspec\changes\archive\2026-10-04-m2-procedures-and-errors\design.md`, Context):
+
+- **Arguments:** a plain variable of exactly the parameter's type is passed by reference; anything else (other
+  type, expression, `(x)`) goes into a by-value temporary, converted as for an assignment, with no copy-back. A
+  string is passed by reference even in parentheses: `addbang (s$)` changes `s$`.
+- **A function call prints with the function's own type** (`PRINT twice&(n)` as LONG), not as an integer
+  operation (`_INTEGER64`).
+- **Scopes follow file order.** A SUB before `DIM SHARED g` does not see `g` (its `g` is an implicit local).
+  `SHARED h AS LONG` in a SUB creates main's `h&` if missing and types main's plain `h` as LONG for the code after
+  it; plain `SHARED g` always binds the SINGLE `g!`. A local `DIM` shadows a `DIM SHARED` name. A main-module
+  `DIM h` after such a `SHARED` makes the C++ compile fail (the new compiler rejects it).
+- `DECLARE` is ignored: one that disagrees with the definition, or names nothing, is accepted. `EXIT SUB` and
+  `EXIT FUNCTION` are interchangeable inside any procedure.
+- **Reserved names:** a keyword, or a built-in written without a required suffix (`LEN`, `CLS`, `NAME`, `ERR`),
+  cannot name a variable, parameter or procedure, with any suffix (`len&`). `left` and `chr` are free (`LEFT$`,
+  `CHR$` need their `$`); `WIDTH` is free; no name starting with `_` is (1,030 forms checked, `v15_builtin_names`).
+  There is no unary `+` (`PRINT +5` is a compile error).
+- **Errors:** `RESUME` re-runs the whole statement that raised, including `PRINT` items already printed; `RESUME
+  NEXT` skips the rest of it, including the line end. An `ERROR` inside a FUNCTION called from a `PRINT`, with a
+  `RESUME NEXT` handler in main, continues inside the function. `ON ERROR GOTO` inside a SUB may name a main-module
+  label; a label inside a SUB used that way is a compile error. `ERR` is 0 again after `RESUME`; `ERL` is 0 without
+  line numbers.
+- `ERROR 0` and `ERROR -1` raise 5; a fractional value is rounded half to even; `ERROR 256` (and 257, 500+) is
+  critical and ends the program even with a handler. Under `QB64PE_NOPROMPT=y` an untrapped error ends the
+  program; `QB64PE_NOPROMPT=continue` reports it and goes on with the next statement.
+- The generated `main0.txt` must start with `error_track_line(0,0,NULL);`; without it the runtime reports a
+  critical error with a line number instead of "Enable $ErrorLocation:ON …" (`libqb\src\error_handle.cpp`).
+
+Measured for parser breadth (2026-10-05, `m2-parser-breadth` M1–M8; `verification\v16_*`, one program per
+question, include files in `v16_inc\` and `v16_*.bi`):
+
+- **Comment metacommands (M1):** `PRINT "x" '$INCLUDE:'f.bi'` and `PRINT "x": REM $INCLUDE: 'f.bi'` include `f.bi`
+  after the statement. `' $DYNAMIC` (blank before `$`) counts; `' note $DYNAMIC` does not (then `REDIM` of the
+  `DIM a(5)` array fails at run time, error 10); `'$FOO x$DYNAMIC` counts (anywhere, glued). With two `$INCLUDE`s
+  in one comment only the last is included. Blanks around the colon are allowed (`'$INCLUDE :  'f.bi'`).
+  **`$INCLUDE` without a comment is a syntax error** (`$INCLUDE:'f.bi'`): only the comment forms exist.
+- **`DATA` (M2):** an unquoted item keeps `'`, `REM`, inner `"` and its letter case (`a'b`, `a REM b`, `a"b`);
+  **a `:` outside quotes ends the statement** (`DATA a: PRINT 1` runs the `PRINT`); inside quotes it is data.
+  Blanks around unquoted items are dropped, quoted blanks kept; an empty item (`,,`, a trailing `,`, `DATA ,`
+  gives two) reads as `""` or 0; `&H10` reads as 16. `READ` of a text item into a number is runtime error 2.
+- **Line numbers (M3):** `10 PRINT`, `20 :`, `30` alone, `70 '…`, indented `10`, glued `10PRINT`, `10.5`, `10&`,
+  `4294967296`, out of order, and the same number in main and in a SUB are accepted. A number after a label on
+  one line (`lab: 10 PRINT`) and a number after `:` are syntax errors; `10 lab: PRINT` is accepted. The same
+  number twice: "Duplicate label (10)"; `GOTO 99` missing: "Label '99' not defined". A number before a `SUB`
+  header is accepted (`10 SUB s`); inside a `SUB`, `10 SUB t` is "Expected END SUB/FUNCTION before SUB"
+  (`v16_m3_sub_header`, `v16_m3_nested_sub`, added in the group 5 review).
+- **Blocks (M4):** `NEXT j, i` closes both; wrong order or the outer variable: "Incorrect variable after NEXT".
+  A `NEXT` inside a multi-line or single-line `IF`, closing an outer `FOR`: "NEXT without FOR". `LOOP` closing a
+  `WHILE` or crossing blocks (`DO`/`FOR`/`LOOP`/`NEXT`): "PROGRAM FLOW ERROR!"; `WEND` closing a `DO`: "WEND without
+  WHILE"; `END IF` alone or after a single-line `IF …: END IF`: "END IF without IF"; `EXIT FOR` outside: "EXIT FOR
+  without FOR". A missing `END IF`/`END SELECT` is reported against the auto-included `vwatch_stub.bm` ("IF without
+  END IF in line 3 of internal\support\vwatch\vwatch_stub.bm"). Single-line `IF`: **each `ELSE` binds to the
+  innermost `IF`**; `THEN 10 ELSE 20` and `IF 0 GOTO 20` work. `ENDIF` is accepted; `ELSE IF` is an `ELSE` holding
+  a new `IF` block. Only comments may stand between `SELECT CASE` and the first `CASE` (a statement: "Expected
+  CASE expression"). `EXIT FOR` inside `DO` inside `FOR`, and `EXIT DO` inside `FOR` inside `DO`, work.
+- **Blocks, more (M4, group 6, 2026-10-05; `verification\v16_m4_*` added then):** a whole block inside a
+  single-line `IF` works (`IF c THEN : FOR …: NEXT: PRINT`; `THEN :` is a single-line `IF`); a `FOR` opened there
+  and closed on the next line is "END IF without IF" (the old compiler turns a single-line `IF` into a block with
+  an implied `END IF` at the line end). `IF c THEN REM x` is a single-line `IF` (`qb64pe.bas` 25203), `THEN ' x` a
+  block. Empty branches (`THEN ELSE PRINT`, `PRINT … ELSE` at the line end) are fine. After a jump (`THEN 10`, `GOTO
+  20`, `ELSE 30`) and a `:`, the statements that follow still belong to the branch (`v16_m4_line_if_jump_colon`).
+  In a block `IF`, `ELSEIF c THEN stmt` and `ELSE stmt` may carry a statement on the same line, and `ELSE` and
+  `END IF` may follow a `:`.
+  Crossings: `ELSE` inside a `FOR` inside a block `IF` passes the BASIC checks and fails in C++; `CASE` inside an
+  `IF` inside a `SELECT` is "CASE without SELECT CASE"; `END SUB` with a `FOR` open is "FOR without NEXT"; an `IF`
+  open at a `SUB` header is "IF without END IF"; `DO WHILE` closed by `LOOP UNTIL` is "PROGRAM FLOW ERROR!".
+  `TYPE`: every field form found in the inputs works (`AS LONG b, c`, `AS STRING * 2 t`, `_UNSIGNED _BYTE`,
+  element arrays, a nested type); a statement inside, or a missing `END TYPE`, is "Expected element-name AS type,
+  AS type element-list, or END TYPE"; a `TYPE` inside a `SUB` is accepted. `DECLARE LIBRARY`: `ALIAS "c_name"`,
+  `ALIAS c_name`, `BYVAL`, `~&` work; a statement inside is "Expected SUB/FUNCTION definition or END DECLARE".
+  `DEF FN` (either form) is "Command not implemented".
+- **Labels (M3, group 6):** a label stands only at the start of a line (after an optional line number): `PRINT
+  "a": lab: PRINT "b"` is a syntax error, and `PRINT "a": s: PRINT "b"` calls `s`
+  (`v16_m3_label_after_colon`, `v16_m3_call_after_colon`; `qb64pe.bas` has `WHILE … : increaseUDTArrays: WEND`).
+- **Reserved names with a suffix:** `name$` and `not$` are variables for the old compiler (checked with
+  `qb64pe.exe`; found in `qbasic_testcases`, which also uses `SHARED Key$`); `verification\v15_builtin_names`
+  measured only the bare name and `&` for keywords and built-ins without a required suffix, so other suffixes are
+  "not supported yet" until measured.
+- **Template statements (M5):** a wrong `LINE` form (unknown word, no parentheses, an argument too many) is
+  "Syntax error - Reference: <the template>". With variables `B = 7` and `BF = 9`: `LINE …, B` and `LINE …, BF, BF`
+  take the first as a colour and the second as the box word; words match in any case (`bf`, `step`). Graphics
+  `PUT (x, y), arr()` and file `PUT #1, , v` / `PUT 1, , v` (no `#`) are both accepted; `PUT (0, 0), x` with a
+  scalar compiles and fails at run time (error 5).
+- **`$IF` (M6):** operators `=`, `<>`, `<`, `>`, `<=`, `>=` (and, read in the source, not measured: `=<`, `=>`,
+  `><`), `AND`, `OR`, `XOR`, and a bare name (true when its value is not `0` or empty); names and values are
+  compared in upper case. `NOT`, and a value of two words, are "Invalid Resolution of $IF; check statements";
+  `(A = 1)` and `DEFINED(A)` are **silently false**. `name = DEFINED` / `name = UNDEFINED` test existence.
+  Predefined on Windows 64-bit: `WIN`, `WINDOWS`, `64BIT`, `_QB64PE_` true; `LINUX`, `MAC`, `MACOSX`, `32BIT`,
+  `_ARM_` false; `VERSION` compares as a version (`VERSION >= 4.7.0` true). `$LET A = 2` redefines `A`, but
+  **`$LET WIN = 0` does not override `WIN`** (it adds a second entry; the bare-name test stops at the first true
+  one). `$LET E` without `=` is an error. `$ENDIF` is accepted; garbage and unknown metacommands in an inactive
+  branch are ignored, nested `$IF`s there are counted. `$IF`/`$LET` **only at the start of a line**: after `:` or
+  in a single-line `IF` it is "Unexpected character on line". **`$IF` and blocks must nest properly**: `$IF`
+  pushes an entry on the block stack and `$END IF` pops the top one, whatever it is (`qb64pe.bas` 3430–3436), so a
+  block header inside an active `$IF` closed outside it (one header, or two split by `$ELSE`), and an `IF` opened
+  before a `$IF` and closed inside it, are both "END IF without IF" (reported at the `END IF`). A `$IF` inside a
+  block, an inactive header, a whole `SUB` inside an active `$IF`, and `EXIT FOR` from inside a `$IF` inside a
+  `FOR` are fine. Messages: "$IF without THEN", "$IF without $END IF", "$IF block already has $ELSE statement in
+  it", active `$ERROR x`: "Compilation check failed: X".
+- **`$INCLUDE` (M7):** a nested include is looked up in the including file's folder, then as written relative to
+  **the compiler's own folder**, **never in the main file's folder** (a file only there, compiled from that
+  folder, is "File … not found"; `qb64pe.bas` 3120–3171). Every QB64 program, `qb64pe.exe` included, changes to
+  its exe's folder at start (`libqb.cpp` 25997), so the caller's working directory plays no part. The upstream
+  tests `include_paths\include_fixed_compile_location` and `include_multiple` depend on this
+  (`'$include:'tests/compile_tests/extra/include_extra.bi'`). `.\` or `./` at the front is dropped. The same file
+  twice is included twice; `$INCLUDEONCE` works on its first line and on a later line. Blocks may cross files (a
+  `FOR` closed by a `NEXT` in an include, a `SUB` closed by an `END SUB` in one); a file with a `SUB` included
+  inside a `SUB` is "Expected END SUB/FUNCTION before SUB"; at the end of main it is fine. A `$LET` in an include
+  reaches the main file. Missing file: "File x not found". There is no cycle check: a self-include stops at 100
+  levels ("Too many indwelling INCLUDE files", listing every level), and one guarded by `$IF` and `$LET` is
+  accepted (included twice, the second time inactive; `v16_m7_self_guarded`). Messages from inside an include
+  name the file by its full path and carry a 0x01 byte before " in line n of …".
+- **Member access (M8):** `a.b` without a `TYPE` is a plain variable (separate from `a`); `DIM x.y AS LONG` and
+  `x.z$` too. A plain `a.b`, then `DIM a AS t` with member `b`, is accepted and `a.b` is the member from then on.
+  With `a` a `TYPE` variable, `a.c` for a non-member is "Element not defined". `a(2) .b` and `a(2). b` (blanks
+  around the dot) are member access.
+
 ## 6. Bug-compatibility choices still to make
 
 From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence register (R2).
@@ -249,7 +367,7 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
 - **Planned layers (R11):** (1) existing suite; (2) golden corpus: run the 143 qbasic programs and QB64Fresh's 261
   `runtime_comparison` programs through the old compiler and freeze their output (**the 261 done 2026-10-03**:
   `tests\corpus\`, 263 programs with `verification\` v11 and v12; 237 `.output`, 20 `.err`, 1 compile-only, 5
-  known failures; baseline `baselines\qb64pe-16f629784e-win64-corpus.json`; how often it runs: `study\19`. The 143
+  known failures; with the 12 `slice\` programs written for the new compiler, 275; baseline `baselines\qb64pe-16f629784e-win64-corpus.json`; how often it runs: `study\19`. The 143
   qbasic programs are still compile-only); (3) differential testing of
   random expressions old vs. new; (4) formatter goldens from `-y` over all available `.bas`; plus golden images for
   LINE/CIRCLE/PAINT/DRAW/GET/PUT (only 12 image tests exist).
@@ -257,14 +375,18 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
   the 143 qbasic programs, and classic QBasic areas (PRINT USING, file modes, string functions) beyond light use.
 - **Test hygiene:** run every program with `QB64PE_NOPROMPT=y`; detect fatal errors from output, not exit code;
   never use screen `PRINT` with a comma under a redirected `$CONSOLE`.
-- `verification\` holds 17 small programs with recorded outputs behind `09`, `10`, `16` and the slice's design
-  (`v13`, `v13b`: type suffixes on DIMmed names) (`run.sh` reruns them).
+- `verification\` holds 77 small programs with recorded outputs behind `09`, `10`, `16`, the slice's design
+  (`v13`, `v13b`: type suffixes on DIMmed names) and `m2-procedures-and-errors` (`v14_*`: scopes, reserved names,
+  compile errors, `ERROR` values; `v15_*`: names of built-ins, unary `+`) (`run.sh` reruns them).
 - **New compiler (2026-10-03, `crates\README.md`):** tier 1 `cargo test` runs unit and snapshot tests (`insta`),
   `tests\frontend\` by mode line (`' TEST: parse-ok|check-ok|check-fail|typed|ir|cpp`), and the front end over every
-  corpus program (no panic, exact byte round trip; no diagnostics for `tests\corpus\slice.list`). Tier 2 runs the
-  14 programs of `slice.list` end to end with the corpus runner's `--list`: all pass. Intentional differences from
-  the old compiler are in `DIVERGENCES.md` (D-001, D-002: integer overflow wraps); the numeric rules are the spec
-  `openspec\specs\language\numeric-semantics`.
+  corpus program (no panic, exact byte round trip; no diagnostics for `tests\corpus\slice.list`; at least one error
+  for every `.err` program). Tier 2 runs the 54 programs of `slice.list` end to end with the corpus runner's
+  `--list`: all pass, also with constant folding off (2026-10-04). The full corpus with `qb64rust`: those 54 pass,
+  the 5 known failures are not run, everything else is rejected with a diagnostic (`tests\corpus\README.md`).
+  Intentional differences from the old compiler are in `DIVERGENCES.md` (D-001, D-002: integer overflow wraps);
+  the numeric rules are the spec `openspec\specs\language\numeric-semantics`, procedures and error handling the
+  specs `language\procedures` and `language\error-handling`.
 
 ## 11. Other repositories and sources: conclusions (reviews archived)
 
@@ -327,4 +449,8 @@ as a reading of the code, not a measurement.
 | `16` | FreeBASIC: lessons to take, things not to take, proposed follow-ups |
 | `17` | How VS Code extensions are tested; how M1 compares |
 | `18` | Other VS Code extension practices compared with five large extensions; proposals A–G |
+| `19` | Test cadence: four tiers, what a full run costs |
+| `20` | Review of code and plan after the first slice; panel outcome; the order of work (replaced by `22` §5) |
+| `21` | Rust review of the workspace setup: lints, CI, the repo check |
+| `22` | Second review: test inputs from QB64pe and QB64Fresh, the upstream yardstick (x of 279), the current order of work |
 | `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |

@@ -1,0 +1,564 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+int32 *__LONG_N=NULL;
+int16 *__INTEGER_I=NULL;
+qbs *__STRING_S=NULL;
+int32 *_SUB_COUNTER_LONG_C=NULL;
+qbs *_SUB_COUNTER_STRING_ACC=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+void SUB_BUMP(int32*_SUB_BUMP_LONG_X);
+void SUB_GREET(qbs*_SUB_GREET_STRING_T,int16*_SUB_GREET_INTEGER_K);
+int32 FUNC_TWICE(int32*_FUNC_TWICE_LONG_A);
+qbs* FUNC_DBL(qbs*_FUNC_DBL_STRING_T);
+void SUB_COUNTER();
+==> clear.txt <==
+*__LONG_N=0;
+*__INTEGER_I=0;
+__STRING_S->len=0;
+*_SUB_COUNTER_LONG_C=0;
+_SUB_COUNTER_STRING_ACC->len=0;
+==> maindata.txt <==
+if(__LONG_N==NULL){
+__LONG_N=(int32*)mem_static_malloc(4);
+*__LONG_N=0;
+}
+if(__INTEGER_I==NULL){
+__INTEGER_I=(int16*)mem_static_malloc(2);
+*__INTEGER_I=0;
+}
+if (!__STRING_S)__STRING_S=qbs_new(0,0);
+if(_SUB_COUNTER_LONG_C==NULL){
+_SUB_COUNTER_LONG_C=(int32*)mem_static_malloc(4);
+*_SUB_COUNTER_LONG_C=0;
+}
+if (!_SUB_COUNTER_STRING_ACC)_SUB_COUNTER_STRING_ACC=qbs_new(0,0);
+int32 pass1;
+int32 pass2;
+int32 pass3;
+int16 pass4;
+int16 pass5;
+int16 pass6;
+int32 pass7;
+int32 pass8;
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+#include "main2.txt"
+#include "main3.txt"
+#include "main4.txt"
+#include "main5.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "proc_lowering_cpp.bas"
+do{
+#line 2 "proc_lowering_cpp.bas"
+sub__dest(func__console());
+#line 2 "proc_lowering_cpp.bas"
+sub__source(func__console());
+#line 2 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 6 "proc_lowering_cpp.bas"
+do{
+#line 6 "proc_lowering_cpp.bas"
+SUB_BUMP(__LONG_N);
+#line 6 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(6);}while(r);
+#line 6 "proc_lowering_cpp.bas"
+do{
+#line 6 "proc_lowering_cpp.bas"
+SUB_BUMP(__LONG_N);
+#line 6 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(6);}while(r);
+#line 6 "proc_lowering_cpp.bas"
+do{
+#line 6 "proc_lowering_cpp.bas"
+SUB_BUMP(&(pass1=*__LONG_N));
+#line 6 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(6);}while(r);
+#line 6 "proc_lowering_cpp.bas"
+do{
+#line 6 "proc_lowering_cpp.bas"
+SUB_BUMP(&(pass2=(*__LONG_N+1)));
+#line 6 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(6);}while(r);
+#line 6 "proc_lowering_cpp.bas"
+do{
+#line 6 "proc_lowering_cpp.bas"
+SUB_BUMP(&(pass3=((int32)(*__INTEGER_I))));
+#line 6 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(6);}while(r);
+#line 8 "proc_lowering_cpp.bas"
+do{
+#line 8 "proc_lowering_cpp.bas"
+SUB_GREET(__STRING_S,&(pass4=((int16)(qbr_float_to_long(((float)(2.5E+0)))))));
+#line 8 "proc_lowering_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 8 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 8 "proc_lowering_cpp.bas"
+do{
+#line 8 "proc_lowering_cpp.bas"
+SUB_GREET(__STRING_S,&(pass5=((int16)(*__LONG_N))));
+#line 8 "proc_lowering_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 8 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 8 "proc_lowering_cpp.bas"
+do{
+#line 8 "proc_lowering_cpp.bas"
+SUB_GREET(qbs_add(__STRING_S,qbs_new_txt_len("!",1)),__INTEGER_I);
+#line 8 "proc_lowering_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 8 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 8 "proc_lowering_cpp.bas"
+do{
+#line 8 "proc_lowering_cpp.bas"
+SUB_GREET(qbs_new_txt_len("lit",3),&(pass6=1));
+#line 8 "proc_lowering_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 8 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 9 "proc_lowering_cpp.bas"
+do{
+#line 9 "proc_lowering_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 9 "proc_lowering_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(FUNC_TWICE(__LONG_N))),qbs_new_txt(" ")));
+#line 9 "proc_lowering_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 9 "proc_lowering_cpp.bas"
+makefit(tqbs);
+#line 9 "proc_lowering_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "proc_lowering_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(FUNC_TWICE(&(pass7=FUNC_TWICE(&(pass8=2)))))),qbs_new_txt(" ")));
+#line 9 "proc_lowering_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 9 "proc_lowering_cpp.bas"
+makefit(tqbs);
+#line 9 "proc_lowering_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "proc_lowering_cpp.bas"
+qbs_set(tqbs,FUNC_DBL(qbs_new_txt_len("x",1)));
+#line 9 "proc_lowering_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 9 "proc_lowering_cpp.bas"
+makefit(tqbs);
+#line 9 "proc_lowering_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "proc_lowering_cpp.bas"
+qbs_print(nothingstring,1);
+#line 9 "proc_lowering_cpp.bas"
+skip1:
+#line 9 "proc_lowering_cpp.bas"
+qbs_free(tqbs);
+#line 9 "proc_lowering_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 9 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+#line 10 "proc_lowering_cpp.bas"
+do{
+#line 10 "proc_lowering_cpp.bas"
+SUB_COUNTER();
+#line 10 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 11 "proc_lowering_cpp.bas"
+do{
+#line 11 "proc_lowering_cpp.bas"
+if (sub_gl_called) error(271);
+#line 11 "proc_lowering_cpp.bas"
+close_program=1;
+#line 11 "proc_lowering_cpp.bas"
+end();
+#line 11 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(__STRING_S);
+qbs_free(_SUB_COUNTER_STRING_ACC);
+==> main1.txt <==
+#line 13 "proc_lowering_cpp.bas"
+void SUB_BUMP(int32*_SUB_BUMP_LONG_X){
+#line 13 "proc_lowering_cpp.bas"
+qbs *tqbs;
+#line 13 "proc_lowering_cpp.bas"
+ptrszint tmp_long;
+#line 13 "proc_lowering_cpp.bas"
+int32 tmp_fileno;
+#line 13 "proc_lowering_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 13 "proc_lowering_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 13 "proc_lowering_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 13 "proc_lowering_cpp.bas"
+#include "data1.txt"
+#line 13 "proc_lowering_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 13 "proc_lowering_cpp.bas"
+new_mem_lock();
+#line 13 "proc_lowering_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 13 "proc_lowering_cpp.bas"
+sf_mem_lock->type=3;
+#line 13 "proc_lowering_cpp.bas"
+libqb_check_stack();
+#line 13 "proc_lowering_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 14 "proc_lowering_cpp.bas"
+do{
+#line 14 "proc_lowering_cpp.bas"
+*_SUB_BUMP_LONG_X=(*_SUB_BUMP_LONG_X+1);
+#line 14 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 15 "proc_lowering_cpp.bas"
+do{
+#line 15 "proc_lowering_cpp.bas"
+*_SUB_BUMP_LONG_Y=*_SUB_BUMP_LONG_X;
+#line 15 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "proc_lowering_cpp.bas"
+do{
+#line 16 "proc_lowering_cpp.bas"
+goto exit_subfunc;
+#line 16 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "proc_lowering_cpp.bas"
+exit_subfunc:;
+#line 17 "proc_lowering_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 17 "proc_lowering_cpp.bas"
+#include "free1.txt"
+#line 17 "proc_lowering_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 17 "proc_lowering_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 17 "proc_lowering_cpp.bas"
+}
+==> data1.txt <==
+int32 *_SUB_BUMP_LONG_Y=NULL;
+if(_SUB_BUMP_LONG_Y==NULL){
+_SUB_BUMP_LONG_Y=(int32*)mem_static_malloc(4);
+*_SUB_BUMP_LONG_Y=0;
+}
+==> main2.txt <==
+#line 19 "proc_lowering_cpp.bas"
+void SUB_GREET(qbs*_SUB_GREET_STRING_T,int16*_SUB_GREET_INTEGER_K){
+#line 19 "proc_lowering_cpp.bas"
+qbs *tqbs;
+#line 19 "proc_lowering_cpp.bas"
+ptrszint tmp_long;
+#line 19 "proc_lowering_cpp.bas"
+int32 tmp_fileno;
+#line 19 "proc_lowering_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 19 "proc_lowering_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 19 "proc_lowering_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 19 "proc_lowering_cpp.bas"
+#include "data2.txt"
+#line 19 "proc_lowering_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 19 "proc_lowering_cpp.bas"
+new_mem_lock();
+#line 19 "proc_lowering_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 19 "proc_lowering_cpp.bas"
+sf_mem_lock->type=3;
+#line 19 "proc_lowering_cpp.bas"
+libqb_check_stack();
+#line 19 "proc_lowering_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 22 "proc_lowering_cpp.bas"
+do{
+#line 22 "proc_lowering_cpp.bas"
+qbs_set(_SUB_GREET_STRING_LOCAL,qbs_add(_SUB_GREET_STRING_T,qbs_new_txt_len("\077",1)));
+#line 22 "proc_lowering_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 22 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "proc_lowering_cpp.bas"
+do{
+#line 23 "proc_lowering_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 23 "proc_lowering_cpp.bas"
+qbs_set(tqbs,_SUB_GREET_STRING_LOCAL);
+#line 23 "proc_lowering_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 23 "proc_lowering_cpp.bas"
+makefit(tqbs);
+#line 23 "proc_lowering_cpp.bas"
+qbs_print(tqbs,0);
+#line 23 "proc_lowering_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int16)(*_SUB_GREET_INTEGER_K)),qbs_new_txt(" ")));
+#line 23 "proc_lowering_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 23 "proc_lowering_cpp.bas"
+makefit(tqbs);
+#line 23 "proc_lowering_cpp.bas"
+qbs_print(tqbs,0);
+#line 23 "proc_lowering_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(*__LONG_N)),qbs_new_txt(" ")));
+#line 23 "proc_lowering_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 23 "proc_lowering_cpp.bas"
+makefit(tqbs);
+#line 23 "proc_lowering_cpp.bas"
+qbs_print(tqbs,0);
+#line 23 "proc_lowering_cpp.bas"
+qbs_print(nothingstring,1);
+#line 23 "proc_lowering_cpp.bas"
+skip2:
+#line 23 "proc_lowering_cpp.bas"
+qbs_free(tqbs);
+#line 23 "proc_lowering_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 23 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "proc_lowering_cpp.bas"
+exit_subfunc:;
+#line 24 "proc_lowering_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 24 "proc_lowering_cpp.bas"
+#include "free2.txt"
+#line 24 "proc_lowering_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 24 "proc_lowering_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 24 "proc_lowering_cpp.bas"
+}
+==> data2.txt <==
+qbs *_SUB_GREET_STRING_LOCAL=NULL;
+if (!_SUB_GREET_STRING_LOCAL)_SUB_GREET_STRING_LOCAL=qbs_new(0,0);
+qbs*oldstr0=NULL;
+if(_SUB_GREET_STRING_T->tmp||_SUB_GREET_STRING_T->fixed||_SUB_GREET_STRING_T->readonly){
+oldstr0=_SUB_GREET_STRING_T;
+if (oldstr0->cmem_descriptor){
+_SUB_GREET_STRING_T=qbs_new_cmem(oldstr0->len,0);
+}else{
+_SUB_GREET_STRING_T=qbs_new(oldstr0->len,0);
+}
+memcpy(_SUB_GREET_STRING_T->chr,oldstr0->chr,oldstr0->len);
+}
+==> free2.txt <==
+qbs_free(_SUB_GREET_STRING_LOCAL);
+if(oldstr0){
+if(oldstr0->fixed)qbs_set(oldstr0,_SUB_GREET_STRING_T);
+qbs_free(_SUB_GREET_STRING_T);
+}
+==> main3.txt <==
+#line 26 "proc_lowering_cpp.bas"
+int32 FUNC_TWICE(int32*_FUNC_TWICE_LONG_A){
+#line 26 "proc_lowering_cpp.bas"
+qbs *tqbs;
+#line 26 "proc_lowering_cpp.bas"
+ptrszint tmp_long;
+#line 26 "proc_lowering_cpp.bas"
+int32 tmp_fileno;
+#line 26 "proc_lowering_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 26 "proc_lowering_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 26 "proc_lowering_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 26 "proc_lowering_cpp.bas"
+#include "data3.txt"
+#line 26 "proc_lowering_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 26 "proc_lowering_cpp.bas"
+new_mem_lock();
+#line 26 "proc_lowering_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 26 "proc_lowering_cpp.bas"
+sf_mem_lock->type=3;
+#line 26 "proc_lowering_cpp.bas"
+libqb_check_stack();
+#line 26 "proc_lowering_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 27 "proc_lowering_cpp.bas"
+do{
+#line 27 "proc_lowering_cpp.bas"
+*_FUNC_TWICE_LONG_TWICE=(*_FUNC_TWICE_LONG_A*2);
+#line 27 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(27);}while(r);
+#line 28 "proc_lowering_cpp.bas"
+do{
+#line 28 "proc_lowering_cpp.bas"
+goto exit_subfunc;
+#line 28 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(28);}while(r);
+#line 29 "proc_lowering_cpp.bas"
+exit_subfunc:;
+#line 29 "proc_lowering_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 29 "proc_lowering_cpp.bas"
+#include "free3.txt"
+#line 29 "proc_lowering_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 29 "proc_lowering_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 29 "proc_lowering_cpp.bas"
+return *_FUNC_TWICE_LONG_TWICE;
+#line 29 "proc_lowering_cpp.bas"
+}
+==> data3.txt <==
+int32 *_FUNC_TWICE_LONG_TWICE=NULL;
+if(_FUNC_TWICE_LONG_TWICE==NULL){
+_FUNC_TWICE_LONG_TWICE=(int32*)mem_static_malloc(4);
+*_FUNC_TWICE_LONG_TWICE=0;
+}
+==> main4.txt <==
+#line 31 "proc_lowering_cpp.bas"
+qbs* FUNC_DBL(qbs*_FUNC_DBL_STRING_T){
+#line 31 "proc_lowering_cpp.bas"
+qbs *tqbs;
+#line 31 "proc_lowering_cpp.bas"
+ptrszint tmp_long;
+#line 31 "proc_lowering_cpp.bas"
+int32 tmp_fileno;
+#line 31 "proc_lowering_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 31 "proc_lowering_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 31 "proc_lowering_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 31 "proc_lowering_cpp.bas"
+#include "data4.txt"
+#line 31 "proc_lowering_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 31 "proc_lowering_cpp.bas"
+new_mem_lock();
+#line 31 "proc_lowering_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 31 "proc_lowering_cpp.bas"
+sf_mem_lock->type=3;
+#line 31 "proc_lowering_cpp.bas"
+libqb_check_stack();
+#line 31 "proc_lowering_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 32 "proc_lowering_cpp.bas"
+do{
+#line 32 "proc_lowering_cpp.bas"
+qbs_set(_FUNC_DBL_STRING_DBL,qbs_add(_FUNC_DBL_STRING_T,_FUNC_DBL_STRING_T));
+#line 32 "proc_lowering_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 32 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(32);}while(r);
+#line 33 "proc_lowering_cpp.bas"
+exit_subfunc:;
+#line 33 "proc_lowering_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 33 "proc_lowering_cpp.bas"
+#include "free4.txt"
+#line 33 "proc_lowering_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 33 "proc_lowering_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 33 "proc_lowering_cpp.bas"
+qbs_maketmp(_FUNC_DBL_STRING_DBL);return _FUNC_DBL_STRING_DBL;
+#line 33 "proc_lowering_cpp.bas"
+}
+==> data4.txt <==
+qbs *_FUNC_DBL_STRING_DBL=NULL;
+if (!_FUNC_DBL_STRING_DBL)_FUNC_DBL_STRING_DBL=qbs_new(0,0);
+qbs*oldstr0=NULL;
+if(_FUNC_DBL_STRING_T->tmp||_FUNC_DBL_STRING_T->fixed||_FUNC_DBL_STRING_T->readonly){
+oldstr0=_FUNC_DBL_STRING_T;
+if (oldstr0->cmem_descriptor){
+_FUNC_DBL_STRING_T=qbs_new_cmem(oldstr0->len,0);
+}else{
+_FUNC_DBL_STRING_T=qbs_new(oldstr0->len,0);
+}
+memcpy(_FUNC_DBL_STRING_T->chr,oldstr0->chr,oldstr0->len);
+}
+==> free4.txt <==
+if(oldstr0){
+if(oldstr0->fixed)qbs_set(oldstr0,_FUNC_DBL_STRING_T);
+qbs_free(_FUNC_DBL_STRING_T);
+}
+==> main5.txt <==
+#line 35 "proc_lowering_cpp.bas"
+void SUB_COUNTER(){
+#line 35 "proc_lowering_cpp.bas"
+qbs *tqbs;
+#line 35 "proc_lowering_cpp.bas"
+ptrszint tmp_long;
+#line 35 "proc_lowering_cpp.bas"
+int32 tmp_fileno;
+#line 35 "proc_lowering_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 35 "proc_lowering_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 35 "proc_lowering_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 35 "proc_lowering_cpp.bas"
+#include "data5.txt"
+#line 35 "proc_lowering_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 35 "proc_lowering_cpp.bas"
+new_mem_lock();
+#line 35 "proc_lowering_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 35 "proc_lowering_cpp.bas"
+sf_mem_lock->type=3;
+#line 35 "proc_lowering_cpp.bas"
+libqb_check_stack();
+#line 35 "proc_lowering_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 37 "proc_lowering_cpp.bas"
+do{
+#line 37 "proc_lowering_cpp.bas"
+*_SUB_COUNTER_LONG_C=(*_SUB_COUNTER_LONG_C+1);
+#line 37 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(37);}while(r);
+#line 38 "proc_lowering_cpp.bas"
+do{
+#line 38 "proc_lowering_cpp.bas"
+qbs_set(_SUB_COUNTER_STRING_ACC,qbs_add(_SUB_COUNTER_STRING_ACC,qbs_new_txt_len("a",1)));
+#line 38 "proc_lowering_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 38 "proc_lowering_cpp.bas"
+if(!qbevent)break;evnt(38);}while(r);
+#line 39 "proc_lowering_cpp.bas"
+exit_subfunc:;
+#line 39 "proc_lowering_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 39 "proc_lowering_cpp.bas"
+#include "free5.txt"
+#line 39 "proc_lowering_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 39 "proc_lowering_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 39 "proc_lowering_cpp.bas"
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt free1.txt free3.txt data5.txt free5.txt

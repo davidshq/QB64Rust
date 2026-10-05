@@ -1,0 +1,67 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"LOCATE , 5\\nCOLOR 4,\\ns (1, 2)\\nCALL s(1,)\\nCALL s(1 2)\\n\")"
+---
+SourceFile 0..52
+  CallStmt 0..10
+    NameRef 0..6
+      Ident LOCATE
+    Whitespace  
+    ArgList 7..10
+      Error 7..10
+        Comma ,
+        Whitespace  
+        Number 5
+  Newline \x0A
+  CallStmt 11..19
+    NameRef 11..16
+      Ident COLOR
+    Whitespace  
+    ArgList 17..19
+      Literal 17..18
+        Number 4
+      Comma ,
+      Error 19..19
+  Newline \x0A
+  CallStmt 20..28
+    NameRef 20..21
+      Ident s
+    Whitespace  
+    ArgList 22..28
+      ParenExpr 22..24
+        LParen (
+        Literal 23..24
+          Number 1
+      Error 24..28
+        Comma ,
+        Whitespace  
+        Number 2
+        RParen )
+  Newline \x0A
+  CallStmt 29..39
+    Ident CALL
+    Whitespace  
+    NameRef 34..35
+      Ident s
+    ArgList 35..39
+      LParen (
+      Literal 36..37
+        Number 1
+      Comma ,
+      RParen )
+  Newline \x0A
+  CallStmt 40..51
+    Ident CALL
+    Whitespace  
+    NameRef 45..46
+      Ident s
+    ArgList 46..48
+      LParen (
+      Literal 47..48
+        Number 1
+    Whitespace  
+    Error 49..51
+      Number 2
+      RParen )
+  Newline \x0A
+t.bas:5:10: error: expected `,` or `)`

@@ -4,28 +4,20 @@ pub mod build;
 
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_sema::Program;
-use qb64rust_syntax::tree::Node;
-use qb64rust_syntax::{Parse, parse};
+use qb64rust_syntax::{NoLoader, ParsedProgram, parse};
 
-/// The result of the front end for one file: the parse, and the typed program if parsing and checking gave no
+/// The result of the front end for one program: its trees, and the typed program if parsing and checking gave no
 /// errors.
 pub struct Frontend {
     pub map: SourceMap,
+    /// The main file.
     pub file: FileId,
-    pub parse: Parse,
+    pub parsed: ParsedProgram,
     pub program: Program,
     pub diagnostics: Diagnostics,
 }
 
 impl Frontend {
-    pub fn root(&self) -> Node<'_> {
-        Node::root(&self.parse.green, self.file)
-    }
-
-    pub fn bytes(&self) -> &[u8] {
-        &self.map.file(self.file).bytes
-    }
-
     pub fn has_errors(&self) -> bool {
         self.diagnostics.has_errors()
     }
@@ -47,18 +39,17 @@ impl Frontend {
 pub fn frontend(name: &str, bytes: Vec<u8>) -> Frontend {
     let mut map = SourceMap::new();
     let file = map.add(name, bytes);
-    let parse = parse(file, &map.file(file).bytes);
-    let root = Node::root(&parse.green, file);
+    // Included files are loaded from task 8.1 of `m2-parser-breadth` on.
+    let parsed = parse(&mut map, file, &mut NoLoader);
     // QB64RUST_NO_FOLD=1 turns integer constant folding off (test use only, design D5).
     let fold = std::env::var_os("QB64RUST_NO_FOLD").is_none_or(|v| v != "1");
-    let (program, sema_diags) = qb64rust_sema::check_with(root, map.file(file), &parse.diagnostics, fold);
-    let mut diagnostics = Diagnostics::new();
-    diagnostics.extend(parse.diagnostics.clone());
+    let (program, sema_diags) = qb64rust_sema::check_with(&map, &parsed, fold);
+    let mut diagnostics = parsed.diagnostics();
     diagnostics.extend(sema_diags);
     Frontend {
         map,
         file,
-        parse,
+        parsed,
         program,
         diagnostics,
     }

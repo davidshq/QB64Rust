@@ -1,0 +1,3 @@
+indented ten
+ten in s
+exit=0

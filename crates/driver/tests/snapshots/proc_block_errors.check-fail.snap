@@ -1,0 +1,12 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+proc_block_errors.bas:6:1: error: `END SUB` without a `SUB`
+proc_block_errors.bas:7:5: error: cannot store a string in a number variable
+proc_block_errors.bas:9:9: error: cannot store a string in a number variable
+proc_block_errors.bas:10:1: error: a SUB or FUNCTION cannot be defined inside another; expected `END SUB` before it
+proc_block_errors.bas:12:1: error: `END FUNCTION` cannot close a SUB; expected `END SUB`
+proc_block_errors.bas:13:5: error: cannot store a string in a number variable
+proc_block_errors.bas:14:1: error: `FUNCTION` without `END FUNCTION`

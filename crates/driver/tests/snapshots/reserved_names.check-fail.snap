@@ -1,0 +1,17 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+reserved_names.bas:6:5: error: name already in use: `cls`
+reserved_names.bas:7:5: error: name already in use: `err`
+reserved_names.bas:8:1: error: name already in use: `key`
+reserved_names.bas:9:1: error: name already in use: `len&`
+reserved_names.bas:10:1: error: name already in use: `left$`
+reserved_names.bas:11:8: error: name already in use: `name`
+reserved_names.bas:13:8: error: name already in use: `cls`
+reserved_names.bas:15:10: error: name already in use: `len&`
+reserved_names.bas:17:5: error: name already in use: `timer`
+reserved_names.bas:19:1: error: names starting with `_` are reserved: `_foo`
+reserved_names.bas:20:5: error: names starting with `_` are reserved: `_bar`
+reserved_names.bas:22:8: error: names starting with `_` are reserved: `_p`

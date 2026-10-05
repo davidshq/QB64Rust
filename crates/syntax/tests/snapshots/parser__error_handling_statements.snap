@@ -1,0 +1,59 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"ON ERROR GOTO h\\nON ERROR GOTO 0\\nRESUME\\nRESUME 0\\nRESUME NEXT\\nRESUME back\\nERROR 5\\nERROR k + 1\\n\")"
+---
+SourceFile 0..92
+  OnErrorStmt 0..15
+    Ident ON
+    Whitespace  
+    Ident ERROR
+    Whitespace  
+    Ident GOTO
+    Whitespace  
+    Ident h
+  Newline \x0A
+  OnErrorStmt 16..31
+    Ident ON
+    Whitespace  
+    Ident ERROR
+    Whitespace  
+    Ident GOTO
+    Whitespace  
+    Number 0
+  Newline \x0A
+  ResumeStmt 32..38
+    Ident RESUME
+  Newline \x0A
+  ResumeStmt 39..47
+    Ident RESUME
+    Whitespace  
+    Number 0
+  Newline \x0A
+  ResumeStmt 48..59
+    Ident RESUME
+    Whitespace  
+    Ident NEXT
+  Newline \x0A
+  ResumeStmt 60..71
+    Ident RESUME
+    Whitespace  
+    Ident back
+  Newline \x0A
+  ErrorStmt 72..79
+    Ident ERROR
+    Whitespace  
+    Literal 78..79
+      Number 5
+  Newline \x0A
+  ErrorStmt 80..91
+    Ident ERROR
+    Whitespace  
+    BinExpr 86..91
+      NameRef 86..87
+        Ident k
+      Whitespace  
+      Plus +
+      Whitespace  
+      Literal 90..91
+        Number 1
+  Newline \x0A

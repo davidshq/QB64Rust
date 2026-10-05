@@ -1,0 +1,4 @@
+
+Cannot convert number to string
+Caused by (or after):MESSAGE = MESSAGE + " World",6
+LINE 9:message = message + " World"

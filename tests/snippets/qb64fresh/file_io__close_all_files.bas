@@ -1,0 +1,3 @@
+OPEN "test1.txt" FOR OUTPUT AS #1
+OPEN "test2.txt" FOR OUTPUT AS #2
+CLOSE

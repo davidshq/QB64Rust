@@ -1,0 +1,5 @@
+
+Compilation check failed: STOP HERE
+Caused by (or after):
+LINE 4:$ERROR stop here
+exit=1

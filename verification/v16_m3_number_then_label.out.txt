@@ -1,0 +1,2 @@
+after 10 lab:
+exit=0

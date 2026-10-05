@@ -1,0 +1,1 @@
+PRINT CSNG(42)

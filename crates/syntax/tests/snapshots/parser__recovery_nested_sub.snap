@@ -1,0 +1,44 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 94
+expression: "tree(\"SUB a\\n  PRINT 1\\nSUB b\\n  PRINT 2\\nEND SUB\\nPRINT 3\\n\")"
+---
+SourceFile 0..48
+  ProcDef 0..16
+    ProcHeader 0..5
+      Ident SUB
+      Whitespace  
+      Ident a
+    Newline \x0A
+    Whitespace   
+    PrintStmt 8..15
+      Ident PRINT
+      Whitespace  
+      Literal 14..15
+        Number 1
+    Newline \x0A
+  ProcDef 16..40
+    ProcHeader 16..21
+      Ident SUB
+      Whitespace  
+      Ident b
+    Newline \x0A
+    Whitespace   
+    PrintStmt 24..31
+      Ident PRINT
+      Whitespace  
+      Literal 30..31
+        Number 2
+    Newline \x0A
+    ProcEnd 32..39
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+  PrintStmt 40..47
+    Ident PRINT
+    Whitespace  
+    Literal 46..47
+      Number 3
+  Newline \x0A
+t.bas:3:1: error: a SUB or FUNCTION cannot be defined inside another; expected `END SUB` before it

@@ -1,0 +1,68 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"x = a MOD b\\nREDIM a(5)\\nPRINT #1, x\\nx = 5 TO 6\\nx = 5 6\\n\")"
+---
+SourceFile 0..54
+  AssignStmt 0..11
+    NameRef 0..1
+      Ident x
+    Whitespace  
+    Eq =
+    Whitespace  
+    BinExpr 4..11
+      NameRef 4..5
+        Ident a
+      Whitespace  
+      Ident MOD
+      Whitespace  
+      NameRef 10..11
+        Ident b
+  Newline \x0A
+  Error 12..22
+    Ident REDIM
+    Whitespace  
+    Ident a
+    LParen (
+    Number 5
+    RParen )
+  Newline \x0A
+  PrintStmt 23..34
+    Ident PRINT
+    Whitespace  
+    Error 29..34
+      Hash #
+      Number 1
+      Comma ,
+      Whitespace  
+      Ident x
+  Newline \x0A
+  AssignStmt 35..45
+    NameRef 35..36
+      Ident x
+    Whitespace  
+    Eq =
+    Whitespace  
+    Literal 39..40
+      Number 5
+    Whitespace  
+    Error 41..45
+      Ident TO
+      Whitespace  
+      Number 6
+  Newline \x0A
+  AssignStmt 46..53
+    NameRef 46..47
+      Ident x
+    Whitespace  
+    Eq =
+    Whitespace  
+    Literal 50..51
+      Number 5
+    Whitespace  
+    Error 52..53
+      Number 6
+  Newline \x0A
+t.bas:2:1: error: not supported yet: statement `REDIM`
+t.bas:3:7: error: not supported yet: `PRINT #`
+t.bas:4:7: error: not supported yet: word `TO` (expected the end of the statement)
+t.bas:5:7: error: expected the end of the statement

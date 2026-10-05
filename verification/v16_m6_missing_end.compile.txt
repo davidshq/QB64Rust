@@ -1,0 +1,5 @@
+
+$IF without $END IF
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 0:
+exit=1

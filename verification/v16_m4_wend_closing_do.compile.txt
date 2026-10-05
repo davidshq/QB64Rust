@@ -1,0 +1,5 @@
+
+WEND without WHILE
+Caused by (or after):WEND
+LINE 6:WEND
+exit=1

@@ -1,0 +1,4 @@
+DIM x AS INTEGER
+DIM s AS STRING
+x = 1000
+s = _MK$(INTEGER, x)

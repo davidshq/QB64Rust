@@ -1,0 +1,5 @@
+
+Element not defined
+Caused by (or after):A . C = 6
+LINE 8:a.c = 6
+exit=1

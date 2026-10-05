@@ -8,12 +8,17 @@
 //! operand is `_INTEGER64` but believed `_INTEGER64`; a SINGLE literal is held as a DOUBLE; and a float operation
 //! with a SINGLE literal operand is computed in DOUBLE but believed SINGLE.
 
+// A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
+#![warn(clippy::wildcard_enum_match_arm)]
+
 mod check;
 mod dump;
 pub mod literal;
+mod symbols;
 
 pub use check::{check, check_with};
 pub use dump::dump_typed;
+pub use symbols::{Symbol, SymbolId, SymbolKind, Symbols, dump_symbols};
 
 use qb64rust_base::Span;
 use qb64rust_builtins::BuiltinId;
@@ -39,7 +44,10 @@ impl Ty {
     }
 
     pub fn is_numeric(self) -> bool {
-        self != Ty::Str
+        match self {
+            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => true,
+            Ty::Str => false,
+        }
     }
 
     /// The QB type name (`INTEGER`, `_FLOAT`...).
@@ -59,12 +67,89 @@ impl Ty {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct VarId(pub u32);
 
-/// A main-module variable: a name plus a type (design D5).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ProcId(pub u32);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct LabelId(pub u32);
+
+/// A label of the main module (labels inside procedures are not supported yet).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Label {
+    /// The name in upper case.
+    pub name: String,
+    /// 1-based source line of the label.
+    pub line: u32,
+    /// Index in [`Program::stmts`] of the statement the label stands before (the number of statements when it
+    /// stands after the last one).
+    pub at: usize,
+}
+
+/// Where `RESUME` continues (spec `language/error-handling`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Resume {
+    /// `RESUME` / `RESUME 0`: run the statement that raised the error again.
+    Retry,
+    /// `RESUME NEXT`: continue after the statement that raised the error.
+    Next,
+    /// `RESUME label`.
+    To(LabelId),
+}
+
+/// Where a variable lives (design D2, D6 of `m2-procedures-and-errors`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Storage {
+    /// A main-module variable (also when a procedure names it with `SHARED`, or sees it through `DIM SHARED`).
+    Main,
+    /// `STATIC` in a procedure: one for the program, keeps its value between calls.
+    Static(ProcId),
+    /// `DIM` or implicit in a procedure: new on every call.
+    Local(ProcId),
+    /// A parameter of the procedure.
+    Param(ProcId),
+    /// The result of a FUNCTION.
+    Result(ProcId),
+}
+
+/// A variable: a name plus a type (design D5), and its storage.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Var {
     /// The name without suffix, in upper case.
     pub name: String,
     pub ty: Ty,
+    pub storage: Storage,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProcKind {
+    Sub,
+    /// A FUNCTION with its result type (its suffix, or SINGLE).
+    Function(Ty),
+}
+
+/// A SUB or FUNCTION.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Proc {
+    /// The name without suffix, in upper case.
+    pub name: String,
+    pub kind: ProcKind,
+    /// One variable per parameter, in order.
+    pub params: Vec<VarId>,
+    /// The FUNCTION's result variable.
+    pub result: Option<VarId>,
+    pub stmts: Vec<Stmt>,
+    /// 1-based source lines of the header and of the closing `END SUB`/`END FUNCTION`.
+    pub line: u32,
+    pub end_line: u32,
+}
+
+/// How an argument is passed to a procedure (design D4).
+#[derive(Clone, Debug, PartialEq)]
+pub enum Arg {
+    /// The variable itself: the procedure's assignments to the parameter change it.
+    Ref(VarId),
+    /// A fresh copy of a value, already converted to the parameter's type; changes to it are lost.
+    Temp(Expr),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -123,6 +208,12 @@ pub enum ExprKind {
         builtin: BuiltinId,
         args: Vec<Option<Expr>>,
     },
+    /// A FUNCTION call; one argument per parameter. Its `ty` and `qb` are the function's type (measured: printed
+    /// with the function's type, not as an integer operation).
+    CallProc {
+        proc: ProcId,
+        args: Vec<Arg>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -148,6 +239,21 @@ pub enum StmtKind {
         newline: bool,
     },
     End,
+    /// `SYSTEM`: ends the program at once, without the "press any key" prompt of `END`.
+    System,
+    /// A SUB call; one argument per parameter.
+    Call {
+        proc: ProcId,
+        args: Vec<Arg>,
+    },
+    /// `EXIT SUB` / `EXIT FUNCTION`: leaves the procedure (either word leaves either kind, measured).
+    Exit,
+    /// `ON ERROR GOTO label` (`Some`) or `ON ERROR GOTO 0` (`None`): sets or removes the program's error handler.
+    OnError(Option<LabelId>),
+    /// `RESUME ...`: ends the running error handler.
+    Resume(Resume),
+    /// `ERROR n`: raises error `n`, already converted to LONG (rounded half to even).
+    Error(Expr),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -158,15 +264,31 @@ pub struct Stmt {
     pub kind: StmtKind,
 }
 
-/// The typed main module.
+/// The typed program.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Program {
+    /// Every variable of the program, of every storage class.
     pub vars: Vec<Var>,
+    /// Procedures in definition order.
+    pub procs: Vec<Proc>,
+    /// The main module's statements.
     pub stmts: Vec<Stmt>,
+    /// The main module's labels, in source order.
+    pub labels: Vec<Label>,
+    /// Where each variable and procedure is defined and used (design D12).
+    pub symbols: Symbols,
 }
 
 impl Program {
     pub fn var(&self, id: VarId) -> &Var {
         &self.vars[id.0 as usize]
+    }
+
+    pub fn proc(&self, id: ProcId) -> &Proc {
+        &self.procs[id.0 as usize]
+    }
+
+    pub fn label(&self, id: LabelId) -> &Label {
+        &self.labels[id.0 as usize]
     }
 }

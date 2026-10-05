@@ -14,6 +14,9 @@ pub fn tokenize(bytes: &[u8]) -> Vec<Token> {
         bytes,
         pos: 0,
         line_start: true,
+        prev: None,
+        member: false,
+        data: false,
     };
     let mut tokens = Vec::new();
     while lexer.pos < bytes.len() {
@@ -22,12 +25,16 @@ pub fn tokenize(bytes: &[u8]) -> Vec<Token> {
         debug_assert!(lexer.pos > start);
         tokens.push(Token {
             kind,
-            len: (lexer.pos - start) as u32,
+            len: qb64rust_base::to_u32(lexer.pos - start),
         });
         if kind == Newline || kind == LineContinuation || kind == Colon {
             lexer.line_start = true;
         } else if !kind.is_trivia() {
             lexer.line_start = false;
+        }
+        if !kind.is_trivia() {
+            lexer.member = kind == Ident && lexer.prev == Some(Dot);
+            lexer.prev = Some(kind);
         }
     }
     tokens
@@ -51,6 +58,12 @@ struct Lexer<'a> {
     pos: usize,
     /// At the start of a statement (only trivia since the last line end or `:`); `$` starts a metacommand there.
     line_start: bool,
+    /// Kind of the last non-trivia token.
+    prev: Option<SyntaxKind>,
+    /// The last non-trivia token is a member name (an `Ident` after a `Dot`).
+    member: bool,
+    /// After the word `DATA`: the next token that is not a blank is `DataText` (unless the statement ends there).
+    data: bool,
 }
 
 impl Lexer<'_> {
@@ -87,6 +100,12 @@ impl Lexer<'_> {
 
     fn next_kind(&mut self) -> SyntaxKind {
         let b = self.bytes[self.pos];
+        if self.data && !matches!(b, b' ' | b'\t') {
+            self.data = false;
+            if !matches!(b, b'\r' | b'\n' | b':') {
+                return self.data_text();
+            }
+        }
         match b {
             b' ' | b'\t' => {
                 while matches!(self.peek(0), Some(b' ' | b'\t')) {
@@ -98,10 +117,7 @@ impl Lexer<'_> {
                 self.eat_newline();
                 Newline
             }
-            b'\'' => {
-                self.skip_to_line_end();
-                Comment
-            }
+            b'\'' => self.comment(self.pos),
             b'"' => {
                 self.pos += 1;
                 while let Some(c) = self.peek(0) {
@@ -129,6 +145,10 @@ impl Lexer<'_> {
             }
             b'0'..=b'9' => self.number(),
             b'.' if self.peek(1).is_some_and(|c| c.is_ascii_digit()) => self.number(),
+            b'.' if self.is_member_dot() => {
+                self.pos += 1;
+                Dot
+            }
             b'&' if matches!(self.peek(1), Some(b'H' | b'h' | b'O' | b'o' | b'B' | b'b')) => self.radix_number(),
             _ if is_ident_start(b) => self.ident(),
             _ => self.punct(),
@@ -148,26 +168,67 @@ impl Lexer<'_> {
         true
     }
 
+    /// A `.` at the current position is member access (design D3 of `m2-parser-breadth`, measured M8): it follows
+    /// `)` or a member name, and a name follows it, with or without blanks on either side (`a(2) .b`, `a(2). b`).
+    fn is_member_dot(&self) -> bool {
+        if !(self.prev == Some(RParen) || self.member) {
+            return false;
+        }
+        let mut i = self.pos + 1;
+        while matches!(self.bytes.get(i), Some(b' ' | b'\t')) {
+            i += 1;
+        }
+        self.bytes.get(i).is_some_and(|&c| is_ident_start(c))
+    }
+
     fn ident(&mut self) -> SyntaxKind {
         let start = self.pos;
+        // A member name ends at the next dot, which is member access again (`a(1).b.c`).
+        let member = self.prev == Some(Dot);
         loop {
             while self.peek(0).is_some_and(is_ident_char) {
                 self.pos += 1;
             }
             // Dots join name parts (`a.b`); a dot must be followed by a name character.
-            if self.peek(0) == Some(b'.') && self.peek(1).is_some_and(is_ident_char) {
+            if !member && self.peek(0) == Some(b'.') && self.peek(1).is_some_and(is_ident_char) {
                 self.pos += 1;
                 continue;
             }
             break;
         }
         // `REM` starts a comment that runs to the end of the line.
-        if self.bytes[start..self.pos].eq_ignore_ascii_case(b"REM") {
-            self.skip_to_line_end();
-            return Comment;
+        if !member && self.bytes[start..self.pos].eq_ignore_ascii_case(b"REM") {
+            return self.comment(start);
+        }
+        // `DATA` is reserved and never part of an expression, so it starts data mode wherever it stands (also
+        // after `THEN`/`ELSE` of a single-line `IF`).
+        if !member && self.bytes[start..self.pos].eq_ignore_ascii_case(b"DATA") && !self.has_suffix() {
+            self.data = true;
+            return Ident;
         }
         self.suffix();
         Ident
+    }
+
+    /// The rest of a comment that started at `start`: `Comment`, or `MetaComment` when it is a metacommand comment.
+    fn comment(&mut self, start: usize) -> SyntaxKind {
+        self.skip_to_line_end();
+        if crate::meta::is_meta_comment(&self.bytes[start..self.pos]) {
+            MetaComment
+        } else {
+            Comment
+        }
+    }
+
+    /// A type suffix starts at the current position.
+    fn has_suffix(&self) -> bool {
+        SUFFIXES.iter().any(|s| self.at(s))
+    }
+
+    /// The items of a `DATA` statement up to the line end or a `:` outside quotes (`crate::data`).
+    fn data_text(&mut self) -> SyntaxKind {
+        self.pos = crate::data::scan(self.bytes, self.pos).end;
+        DataText
     }
 
     fn suffix(&mut self) {

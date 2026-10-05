@@ -1,0 +1,4 @@
+
+Expected )
+Caused by (or after):
+LINE 4:FUNCTION REVERSESTR$ ( S AS STRING ) AS STRING

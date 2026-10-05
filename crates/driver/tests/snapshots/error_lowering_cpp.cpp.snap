@@ -1,0 +1,288 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+int32 *__LONG_K=NULL;
+int32 *__LONG_F=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+int32 FUNC_TWICE(int32*_FUNC_TWICE_LONG_A);
+==> clear.txt <==
+*__LONG_K=0;
+*__LONG_F=0;
+==> maindata.txt <==
+if(__LONG_K==NULL){
+__LONG_K=(int32*)mem_static_malloc(4);
+*__LONG_K=0;
+}
+if(__LONG_F==NULL){
+__LONG_F=(int32*)mem_static_malloc(4);
+*__LONG_F=0;
+}
+int32 pass1;
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+if (error_goto_line==1){error_handling=1; goto LABEL_HANDLER;}
+if (error_goto_line==2){error_handling=1; goto LABEL_H2;}
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "error_lowering_cpp.bas"
+do{
+#line 2 "error_lowering_cpp.bas"
+sub__dest(func__console());
+#line 2 "error_lowering_cpp.bas"
+sub__source(func__console());
+#line 2 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 6 "error_lowering_cpp.bas"
+do{
+#line 6 "error_lowering_cpp.bas"
+error_goto_line=1;
+#line 6 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(6);}while(r);
+#line 7 "error_lowering_cpp.bas"
+do{
+#line 7 "error_lowering_cpp.bas"
+*__LONG_K=(-1);
+#line 7 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(7);}while(r);
+#line 8 "error_lowering_cpp.bas"
+LABEL_BACK:;
+#line 8 "error_lowering_cpp.bas"
+if(qbevent){evnt(8);r=0;}
+#line 8 "error_lowering_cpp.bas"
+do{
+#line 8 "error_lowering_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 8 "error_lowering_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("a",1));
+#line 8 "error_lowering_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 8 "error_lowering_cpp.bas"
+makefit(tqbs);
+#line 8 "error_lowering_cpp.bas"
+qbs_print(tqbs,0);
+#line 8 "error_lowering_cpp.bas"
+qbs_set(tqbs,func_chr(*__LONG_K));
+#line 8 "error_lowering_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 8 "error_lowering_cpp.bas"
+makefit(tqbs);
+#line 8 "error_lowering_cpp.bas"
+qbs_print(tqbs,0);
+#line 8 "error_lowering_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("b",1));
+#line 8 "error_lowering_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 8 "error_lowering_cpp.bas"
+makefit(tqbs);
+#line 8 "error_lowering_cpp.bas"
+qbs_print(tqbs,0);
+#line 8 "error_lowering_cpp.bas"
+qbs_print(nothingstring,1);
+#line 8 "error_lowering_cpp.bas"
+skip1:
+#line 8 "error_lowering_cpp.bas"
+qbs_free(tqbs);
+#line 8 "error_lowering_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 8 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 9 "error_lowering_cpp.bas"
+do{
+#line 9 "error_lowering_cpp.bas"
+error(((int32)(qbr(2.5E+0))));
+#line 9 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+#line 10 "error_lowering_cpp.bas"
+do{
+#line 10 "error_lowering_cpp.bas"
+*__LONG_F=FUNC_TWICE(&(pass1=3));
+#line 10 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 11 "error_lowering_cpp.bas"
+do{
+#line 11 "error_lowering_cpp.bas"
+error_goto_line=2;
+#line 11 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 12 "error_lowering_cpp.bas"
+do{
+#line 12 "error_lowering_cpp.bas"
+error_goto_line=0;
+#line 12 "error_lowering_cpp.bas"
+qbs_set(error_handler_history, qbs_new_txt_len("", 0));
+#line 12 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 13 "error_lowering_cpp.bas"
+do{
+#line 13 "error_lowering_cpp.bas"
+if (sub_gl_called) error(271);
+#line 13 "error_lowering_cpp.bas"
+close_program=1;
+#line 13 "error_lowering_cpp.bas"
+end();
+#line 13 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 14 "error_lowering_cpp.bas"
+LABEL_HANDLER:;
+#line 14 "error_lowering_cpp.bas"
+if(qbevent){evnt(14);r=0;}
+#line 15 "error_lowering_cpp.bas"
+do{
+#line 15 "error_lowering_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 15 "error_lowering_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(get_error_err())),qbs_new_txt(" ")));
+#line 15 "error_lowering_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 15 "error_lowering_cpp.bas"
+makefit(tqbs);
+#line 15 "error_lowering_cpp.bas"
+qbs_print(tqbs,0);
+#line 15 "error_lowering_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((double)(get_error_erl())),qbs_new_txt(" ")));
+#line 15 "error_lowering_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 15 "error_lowering_cpp.bas"
+makefit(tqbs);
+#line 15 "error_lowering_cpp.bas"
+qbs_print(tqbs,0);
+#line 15 "error_lowering_cpp.bas"
+qbs_print(nothingstring,1);
+#line 15 "error_lowering_cpp.bas"
+skip2:
+#line 15 "error_lowering_cpp.bas"
+qbs_free(tqbs);
+#line 15 "error_lowering_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 15 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "error_lowering_cpp.bas"
+do{
+#line 16 "error_lowering_cpp.bas"
+*__LONG_K=65;
+#line 16 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "error_lowering_cpp.bas"
+do{
+#line 17 "error_lowering_cpp.bas"
+if (!error_handling){error(20);}else{error_retry=1; qbevent=1; error_handling=0; error_err=0; return;}
+#line 17 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "error_lowering_cpp.bas"
+LABEL_H2:;
+#line 18 "error_lowering_cpp.bas"
+if(qbevent){evnt(18);r=0;}
+#line 19 "error_lowering_cpp.bas"
+do{
+#line 19 "error_lowering_cpp.bas"
+if (!error_handling){error(20);}else{error_handling=0; error_err=0; return;}
+#line 19 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "error_lowering_cpp.bas"
+do{
+#line 20 "error_lowering_cpp.bas"
+if (!error_handling){error(20);}else{error_handling=0; error_err=0; goto LABEL_BACK;}
+#line 20 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "error_lowering_cpp.bas"
+LABEL_LAST:;
+#line 21 "error_lowering_cpp.bas"
+if(qbevent){evnt(21);r=0;}
+sub_end();
+return;
+}
+==> main1.txt <==
+#line 23 "error_lowering_cpp.bas"
+int32 FUNC_TWICE(int32*_FUNC_TWICE_LONG_A){
+#line 23 "error_lowering_cpp.bas"
+qbs *tqbs;
+#line 23 "error_lowering_cpp.bas"
+ptrszint tmp_long;
+#line 23 "error_lowering_cpp.bas"
+int32 tmp_fileno;
+#line 23 "error_lowering_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 23 "error_lowering_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 23 "error_lowering_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 23 "error_lowering_cpp.bas"
+#include "data1.txt"
+#line 23 "error_lowering_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 23 "error_lowering_cpp.bas"
+new_mem_lock();
+#line 23 "error_lowering_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 23 "error_lowering_cpp.bas"
+sf_mem_lock->type=3;
+#line 23 "error_lowering_cpp.bas"
+libqb_check_stack();
+#line 23 "error_lowering_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 24 "error_lowering_cpp.bas"
+do{
+#line 24 "error_lowering_cpp.bas"
+error_goto_line=2;
+#line 24 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "error_lowering_cpp.bas"
+do{
+#line 25 "error_lowering_cpp.bas"
+error(7);
+#line 25 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(25);}while(r);
+#line 26 "error_lowering_cpp.bas"
+do{
+#line 26 "error_lowering_cpp.bas"
+*_FUNC_TWICE_LONG_TWICE=(*_FUNC_TWICE_LONG_A*2);
+#line 26 "error_lowering_cpp.bas"
+if(!qbevent)break;evnt(26);}while(r);
+#line 27 "error_lowering_cpp.bas"
+exit_subfunc:;
+#line 27 "error_lowering_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 27 "error_lowering_cpp.bas"
+#include "free1.txt"
+#line 27 "error_lowering_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 27 "error_lowering_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 27 "error_lowering_cpp.bas"
+return *_FUNC_TWICE_LONG_TWICE;
+#line 27 "error_lowering_cpp.bas"
+}
+==> data1.txt <==
+int32 *_FUNC_TWICE_LONG_TWICE=NULL;
+if(_FUNC_TWICE_LONG_TWICE==NULL){
+_FUNC_TWICE_LONG_TWICE=(int32*)mem_static_malloc(4);
+*_FUNC_TWICE_LONG_TWICE=0;
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt free1.txt

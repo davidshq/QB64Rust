@@ -1,0 +1,4 @@
+self_guarded.bi: first level
+self_guarded.bi: end of a level
+self_guarded.bi: end of a level
+exit=0

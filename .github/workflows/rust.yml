@@ -1,0 +1,100 @@
+# Tier 1 of the test cadence (study\19) for the compiler workspace on Windows: formatting, clippy with warnings as
+# errors, and cargo test (unit, snapshots, tests\frontend, the corpus front end). Needs no QB64pe: the tests that
+# build an executable are #[ignore]d. Lint choices: study\21.
+name: Rust
+
+on:
+  push:
+    paths-ignore:
+      - "vscode/**"
+      - "study/**"
+      - "openspec/**"
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "vscode/**"
+      - "study/**"
+      - "openspec/**"
+      - "**.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      # The runner's default (core.autocrlf true) would turn LF into CR LF; tests and snapshots see the bytes as
+      # committed, as on a development machine with autocrlf input.
+      - run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+
+      # Installs the toolchain and components named in rust-toolchain.toml.
+      - run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      # CI is set, so insta fails on a changed snapshot instead of writing a .snap.new file.
+      - run: cargo test --workspace --locked
+
+  # Tier 2 (study\19): the slice list of the corpus and the upstream pass list end to end, built against the QB64pe
+  # release instead of the reference clone (design D9 of m2-upstream-tests; checked to work in task 6.1). The
+  # upstream programs come from the copy in tests\upstream, which holds every file the pass list needs.
+  tier2:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      QB64PE_TAG: v4.7.0-GLFW
+      QB64PE_ASSET: qb64pe_win-x64-4.7.0-GLFW.7z
+    steps:
+      - run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+
+      - run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      # Its own key: the cache also keeps the libqb objects qb64rust's builds compile (console-only settings),
+      # which differ from those the extension's workflow caches.
+      - name: Cache QB64pe
+        id: qb64pe-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}\qb64pe
+          key: qb64pe-${{ env.QB64PE_ASSET }}-qb64rust-1
+
+      - name: Download QB64pe
+        if: steps.qb64pe-cache.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download $env:QB64PE_TAG -R QB64-Phoenix-Edition/QB64pe -p $env:QB64PE_ASSET
+          7z x -y $env:QB64PE_ASSET
+          Remove-Item $env:QB64PE_ASSET
+
+      - run: cargo build --release --locked
+
+      - name: Corpus slice list
+        env:
+          QB64RUST_QB64PE_ROOT: ${{ runner.temp }}\qb64pe
+        run: >
+          python tools/legacy_tests/run_legacy_tests.py --suite corpus --qb-root $env:QB64RUST_QB64PE_ROOT
+          --qb64 target/release/qb64rust.exe --list tests/corpus/slice.list
+
+      - name: Upstream pass list
+        env:
+          QB64RUST_QB64PE_ROOT: ${{ runner.temp }}\qb64pe
+        run: >
+          python tools/legacy_tests/run_legacy_tests.py --suite compile --qb-root $env:QB64RUST_QB64PE_ROOT
+          --compile-tests tests/upstream/compile_tests --qb64 target/release/qb64rust.exe
+          --list tests/upstream/pass.list

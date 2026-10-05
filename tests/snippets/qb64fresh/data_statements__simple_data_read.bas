@@ -1,0 +1,4 @@
+DIM x AS LONG
+READ x
+PRINT x
+DATA 42

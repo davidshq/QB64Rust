@@ -1,0 +1,3 @@
+[a REM b]
+[c]
+exit=0

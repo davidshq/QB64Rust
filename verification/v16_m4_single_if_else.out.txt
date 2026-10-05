@@ -1,0 +1,18 @@
+ 0  0 :C
+ 0  0 :|
+ 0  1 :C
+ 0  1 :|
+ 1  0 :B
+ 1  0 :E
+|
+ 1  1 :A
+ 1  1 :D
+|
+x
+y
+z
+w
+then 10
+if goto not taken
+twenty
+exit=0

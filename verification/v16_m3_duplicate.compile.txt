@@ -1,0 +1,5 @@
+
+Duplicate label (10)
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 4:10 PRINT "b"
+exit=1

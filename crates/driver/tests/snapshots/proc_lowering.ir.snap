@@ -1,0 +1,72 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 6 may_raise
+  Call BUMP [Ref N:I32]
+Stmt line 6 may_raise
+  Call BUMP [Ref N:I32]
+Stmt line 6 may_raise
+  Call BUMP [Temp(Var N:I32)]
+Stmt line 6 may_raise
+  Call BUMP [Temp(Add:I32(Var N:I32, Const 1:I32) wrap)]
+Stmt line 6 may_raise
+  Call BUMP [Temp((Var I:I16 -> Convert I32 Widen))]
+Stmt line 8 may_raise
+  Call GREET [Ref S:Str, Temp((((Const 2.5E+0:F64 -> Convert F32 Nearest) -> Convert I32 RoundEven) -> Convert I16 Truncate))]
+Stmt line 8 may_raise
+  Call GREET [Ref S:Str, Temp((Var N:I32 -> Convert I16 Truncate))]
+Stmt line 8 may_raise
+  Call GREET [Temp(Concat(Var S:Str, Const "!")), Ref I:I16]
+Stmt line 8 may_raise
+  Call GREET [Temp(Const "lit"), Temp(Const 1:I16)]
+Stmt line 9 may_raise
+  Print console newline
+    Num CallProc TWICE:I32 [Ref N:I32]
+    Num CallProc TWICE:I32 [Temp(CallProc TWICE:I32 [Temp(Const 2:I32)])]
+    Str CallProc DBL:Str [Temp(Const "x")]
+Stmt line 10 may_raise
+  Call COUNTER []
+Stmt line 11
+  System
+Sub BUMP lines 13-17
+  param X:I32
+  local Y:I32
+Stmt line 14
+  Assign X(param):I32 = Add:I32(Var X(param):I32, Const 1:I32) wrap
+Stmt line 15
+  Assign Y(local):I32 = Var X(param):I32
+Stmt line 16
+  Exit
+Sub GREET lines 19-24
+  param T:Str
+  param K:I16
+  local LOCAL:Str
+Stmt line 22 may_raise
+  Assign LOCAL(local):Str = Concat(Var T(param):Str, Const "?")
+Stmt line 23
+  Print console newline
+    Str Var LOCAL(local):Str
+    Num Var K(param):I16
+    Num Var N:I32
+Function TWICE:I32 lines 26-29
+  param A:I32
+  result TWICE:I32
+Stmt line 27
+  Assign TWICE(result):I32 = Mul:I32(Var A(param):I32, Const 2:I32) wrap
+Stmt line 28
+  Exit
+Function DBL:Str lines 31-33
+  param T:Str
+  result DBL:Str
+Stmt line 32 may_raise
+  Assign DBL(result):Str = Concat(Var T(param):Str, Var T(param):Str)
+Sub COUNTER lines 35-39
+  static C:I32
+  static ACC:Str
+Stmt line 37
+  Assign C(static):I32 = Add:I32(Var C(static):I32, Const 1:I32) wrap
+Stmt line 38 may_raise
+  Assign ACC(static):Str = Concat(Var ACC(static):Str, Const "a")

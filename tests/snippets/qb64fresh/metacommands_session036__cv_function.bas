@@ -1,0 +1,4 @@
+DIM s AS STRING
+DIM x AS INTEGER
+s = "AB"
+x = _CV(INTEGER, s)

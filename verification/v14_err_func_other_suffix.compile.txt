@@ -1,0 +1,5 @@
+
+Name already in use (f)
+Caused by (or after):PRINT F% ( 1 )
+LINE 6:PRINT f%(1)
+exit=1

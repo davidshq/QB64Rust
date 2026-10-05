@@ -1,0 +1,5 @@
+
+EXIT SUB must be used within a SUB
+Caused by (or after):EXIT SUB
+LINE 4:EXIT SUB
+exit=1

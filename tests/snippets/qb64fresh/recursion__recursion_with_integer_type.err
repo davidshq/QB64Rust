@@ -1,0 +1,4 @@
+
+Expected )
+Caused by (or after):
+LINE 4:FUNCTION GCD% ( A AS INTEGER , B AS INTEGER ) AS INTEGER

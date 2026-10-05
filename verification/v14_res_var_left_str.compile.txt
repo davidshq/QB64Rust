@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: LEFT$(stringValue$, numberOfCharacters%)
+Caused by (or after):LEFT$ = "x",1
+LINE 3:left$ = "x"
+exit=1

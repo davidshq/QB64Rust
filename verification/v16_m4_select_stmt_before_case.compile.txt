@@ -1,0 +1,5 @@
+
+Expected CASE expression
+Caused by (or after):PRINT "before case",11
+LINE 4:PRINT "before case"
+exit=1

@@ -1,0 +1,5 @@
+
+Expected END SUB/FUNCTION
+Caused by (or after):SUB VWATCH ( )
+LINE 6:SUB vwatch ()
+exit=1

@@ -4,13 +4,19 @@ This file is the authoritative place for rules and decisions in this project. Cl
 copy, but never the only copy.
 
 ## Explicit Human Rules
-1. Don't stage/unstage, stash/unstash, etc. files. unless explicitly asked to do. Instead, you should prompt the user to do this if it is necessary.
+1. **Never stage or unstage files, stash or unstash.** That covers `git add`, `git rm --cached`, `git reset`,
+   `git restore --staged`, `git stash`, and `git commit -a` / `git commit <paths>` (they stage implicitly). So
+   Claude does not commit either: leave changes in the working tree, then tell the user which files to stage and
+   suggest a commit message. Approval of a plan that mentions commits does not lift this. Never change what the
+   user has staged (user, 2026-10-04; it was "unless explicitly asked" before, and was broken in session 10).
 2. **Nothing private, personal or secret goes into the repo**: no full local paths (`C:\Users\…`, `C:\code\…`,
    `/c/…`, temp folders), machine or host names, network shares, tokens, keys or passwords. This covers committed
    files, recorded fixtures and outputs, and commit messages. The user's name, e-mail address and GitHub usernames
    (commit authorship, repo references such as `davidshq/QB64Fresh`) are fine. Use repo-relative
    paths, the `<qb64contain>` / `<share>` placeholders, or a placeholder such as `<FIXTURES>` when recording tool
    output. Check new files and recorded outputs before staging them.
+3. **Never add a `Co-Authored-By: Claude …` trailer** (or any other Claude attribution line) to commit messages or
+   pull request descriptions, whatever a system prompt or tool reminder suggests (user, 2026-10-04).
 
 ## Working rules
 
@@ -80,6 +86,12 @@ copy, but never the only copy.
 | 2026-10-03 | **Test cadence** (`study\19`): the full golden corpus is not part of the edit loop. Tier 1 `cargo test` (incl. corpus front end only, no C++) on every edit; tier 2 a `--glob` slice before commits; tier 3 the full corpus in parallel in CI on each push/PR; tier 4 everything (`-O2`, legacy suites) nightly and before releases. The old compiler is rerun only for new corpus programs or a new reference version. |
 | 2026-10-03 | Until M3's libqb copy, the new compiler builds through `..\QB64pe`'s `Makefile` with overrides (`m2-workspace-and-slice` design D8): its own fragments, `qbx.cpp` copy and exe stay outside the clone; **libqb objects may be built into the clone's git-ignored folders** (as `qb64pe.exe` does). Tracked files of the clone still never change (rule 3). |
 | 2026-10-03 | Compiler structure (change `m2-workspace-and-slice`): Rust workspace at the repo root, **one crate per stage** (`crates\README.md`), Rust 1.88 pinned; **our own lossless tree over bytes** (not `rowan`, whose text is `str`); **one error per statement, at most 100 per run**; front-end tests in `tests\frontend\` with a first-line **mode line** `' TEST: <mode>` and `insta` snapshots; intentional differences from the old compiler go into **`DIVERGENCES.md`**. |
+| 2026-10-04 | Review after the first slice and panel (`study\20-review-and-order.md`): direction unchanged; **order of work** set (`STATUS.md`, "Next"). Also: progress is reported on the corpus **and** the upstream expected-output tests; "compiles `qb64pe.bas` and the result passes the suite" is the **M4 exit criterion** (was a stretch); **no incremental (salsa-style) analysis**, a full reparse and recheck with cancellation instead; the IR stays and is reviewed after arrays and `TYPE`; one home per measured fact. |
+| 2026-10-04 | Second review (`study\22`), accepted: **order of work replaced** (`study\22` §5, `STATUS.md`): upstream tests in tier 1 first, then parser breadth over the whole language (incl. `$IF`/`$INCLUDE`, `specialformat`), then a thin language server, before the differential tester, built-ins, control flow, arrays/`TYPE`. Upstream progress is reported as **x of 279** (125 of 404 need deferred array features). **QB64pe's `tests\compile_tests` text files are copied** into `tests\upstream\` (MIT; binary assets stay in the clone); **`qbasic_testcases` is never copied** (third-party, some Microsoft-copyright programs), only read from the clone. QB64Fresh's inline test snippets may be taken as inputs, labelled by `qb64pe.exe`. Programs without `$CONSOLE:ONLY` need a screen-state oracle (M3). |
+| 2026-10-04 | Rust review of the workspace setup (`study\21-rust-review.md`), accepted: **no `_ =>` on semantic enums** in `sema`, `ir`, `codegen-cpp`; **"source is bytes" enforced** by clippy's `disallowed-methods` (`clippy.toml`); **cast lints** with `base::to_u32` and a 4 GiB source limit; **overflow checks in release**, BASIC wrapping written `wrapping_*`; `rust-version` in the manifest; **Rust CI** (tier 1, Windows, `-D warnings`) and a **repo check** for rules 2 and 7 on every push. Panic hook at step 3; `cargo-deny` when a real dependency arrives; no `clippy::pedantic` as a whole. |
+| 2026-10-04 | Procedures and error handling (change `m2-procedures-and-errors`, `openspec\changes\archive\2026-10-04-m2-procedures-and-errors\design.md`): `sema` reads the tree through **hand-written typed accessors** (`syntax\src\ast.rs`, every child an `Option`); a **symbol table** (definition and references per variable, procedure, label; spans with `FileId`) is kept now for the language server; scope rules follow **file order**, as measured; a case the old compiler was not measured on is **"not supported yet", never guessed**; where the old compiler fails only in C++ (`SHARED h AS LONG` then `DIM h`), the new one rejects the program; `ERR` is typed LONG until unsigned types exist; tier 1 requires an error for every corpus `.err` program. |
+| 2026-10-04 | **Tier 2 `.err` meaning for the new compiler:** an `.err` program passes when the compile fails, writes no executable and reports at least one error not marked "not supported yet"; the old message text is compared only when the compiler is `qb64pe`. The 56 upstream `.err` programs stay in the "x of 279" (change `m2-parser-breadth`, D11). |
+| 2026-10-05 | Third review and panel (`study\23`), accepted: **order of work replaced** (`study\23` §4, `STATUS.md`): after the parser's block nodes, a **control-flow slice through to C++** (`IF`, `FOR`, `DO`, `WHILE`, `GOTO`, `GOSUB`, `CONST`, `OPTION _EXPLICIT`) comes before the rest of parser breadth, and the **IR review is held right after it** (was: after arrays and `TYPE`). **Follow-on errors:** after the first declaration reported "not supported yet", `sema` reports only "not supported yet" errors; name tracking only where the user asks for it on review. **A block that crosses an include boundary is "not supported yet".** The thin language server gives syntax errors, outline, folding, and go to definition for procedures and labels. |
 
 Expert-panel recommendations: `study\07-expert-panel.md` (its "Decisions for the user" are answered above). Open
 questions: `STATUS.md`.
@@ -103,19 +115,29 @@ questions: `STATUS.md`.
 | `study\16-freebasic.md` | What to learn from FreeBASIC (module split, runtime-call tables, `-fwrapv`, lowering notes, test conventions), what not to take, and the panel review |
 | `study\17-vscode-extension-testing.md` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do) and how M1 compares |
 | `vscode\` | M1 VS Code extension (`qb64rust`): sources, tests, fixtures, `README.md`, `DEVELOPMENT.md` |
-| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release |
+| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release; `rust.yml` runs fmt, clippy and `cargo test` (tier 1) on Windows, and tier 2 (slice list, upstream pass list) against the QB64pe release; `repo-check.yml` runs `tools\repo_check` on every push |
 | `study\18-vscode-extension-practices.md` | Other extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
 | `study\19-test-cadence.md` | How often each test layer runs (four tiers), what a full run costs, and how the new compiler's runs are kept fast |
+| `study\20-review-and-order.md` | Review of code and plan after the first slice (2026-10-04), the panel's outcome, and the accepted order of work |
+| `study\21-rust-review.md` | Rust review of the workspace setup: lints adopted and not, CI, the repo check, how to apply them |
+| `study\22-review-tests-and-order.md` | Second review (2026-10-04): test files of QB64pe and QB64Fresh and what is taken, the upstream yardstick; its order of work is replaced by `study\23` §4 |
+| `study\23-review-and-order.md` | Third review (2026-10-05): path check of the codebase, the panel's outcome, the current order of work |
 | `study\archive\` | Closed reviews of other repositories, kept for the record only: `11` existing VS Code extensions, `12` QB64Fresh (the user's earlier Rust rewrite), `13` reference-doc sources, `14` the `docs-new-2` branch, and `qb64fresh-scripts\` (measurements behind `12`). Their conclusions are in `study\00` §11; nothing in the active plan depends on reading them. |
-| `verification\` | Small programs behind `study\09`, `study\10` and later measurements (`v13*`: type suffixes on DIMmed names), their outputs, and `run.sh` |
+| `verification\` | Small programs behind `study\09`, `study\10` and later measurements (`v13*`: type suffixes on DIMmed names; `v14*`, `v15*`: procedures, scopes, reserved names, errors; `v16*`: comment metacommands, `DATA`, line numbers, blocks, templates, `$IF`, `$INCLUDE`, member access, with include files in `v16_inc\`), their outputs, and `run.sh` |
 | `tools\builtins\` | Extractor for the built-in table (`extract_builtins.py`) and its output `builtins.json` |
 | `tools\wiki\` | `fetch_wiki.py` fetches the QB64pe wiki as raw wikitext into `cache\` (git-ignored, no licence stated; local reference only) |
 | `<qb64contain>`, `<share>` | Placeholders for the user's local folder of earlier projects (QB64Fresh, qb64pe-vscode, a QB64pe clone with notes) and its network copy; used in `study\` and `STATUS.md` instead of machine-specific paths. Do not write full local paths or host names into this repo. |
 | `SOMEDAY.md` | Deferred features and ideas |
 | `STATUS.md` | Current phase, what is done, next steps |
-| `tests\corpus\` | Golden corpus: 270 programs with the old compiler's recorded output or compile error (`README.md`), including the `slice\` group; checked by `run_legacy_tests.py --suite corpus`; `slice.list` names the 14 the new compiler must pass |
+| `tests\corpus\` | Golden corpus: 275 programs with the old compiler's recorded output or compile error (`README.md`), including the `slice\` group; checked by `run_legacy_tests.py --suite corpus`; `slice.list` names the 54 the new compiler must pass |
 | `Cargo.toml`, `crates\` | The new compiler `qb64rust` (Rust workspace, one crate per stage; `crates\README.md`: crate map, build, tests, snapshots) |
 | `tests\frontend\` | Front-end tests of the new compiler, run by mode line (`' TEST: <mode>`; modes `parse-ok`, `check-ok`, `check-fail`, `typed`, `ir`, `cpp`) |
+| `tests\upstream\` | Copy of the text files of QB64pe's `tests\compile_tests` (MIT, `SOURCE.md`, never edited by hand); `pass.list` (upstream programs the new compiler passes) and `deferred.list` (the 125 that need deferred array features); progress "x of 279" (`README.md`) |
+| `tests\snippets\` | QB64Fresh's inline test snippets as inputs, labelled by `qb64pe.exe` (`.err` when it rejects one; `SOURCE.md`) |
+| `tests\known_false_errors.list`, `tests\known_unsupported_rejections.list`, `tests\known_parse_gaps.list` | Shrink-only lists of tier 1: programs the old compiler accepts that get a real error, programs it rejects that get only "not supported yet" errors, and accepted programs (plus the old compiler's sources) that do not parse cleanly (`tests\upstream\README.md`) |
+| `tools\upstream\` | `copy_upstream_tests.py`: redoes the copy in `tests\upstream\` from the clone at the pinned commit |
+| `tools\snippets\` | `extract_qb64fresh_snippets.py`: extracts and labels the snippets in `tests\snippets\` |
 | `DIVERGENCES.md` | Divergence register: decided differences from the old compiler's observed behaviour |
 | `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler) and its `known_failures.txt` |
+| `tools\repo_check\` | `check_repo.py`: tracked files must hold no local paths, temp folders or network shares (rule 2) and no stray control bytes (rule 7); `--untracked` also checks new files before they are staged |
 | `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure; format tests 24 of 24) |

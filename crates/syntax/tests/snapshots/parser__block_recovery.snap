@@ -1,0 +1,250 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"FOR i = 1 TO 2\\n  IF a THEN\\nNEXT\\nEND IF\\nWEND\\nFOR k = 1 TO 2: IF a THEN NEXT\\nNEXT k\\nIF a THEN DO\\nSELECT CASE x\\n  PRINT 1\\nEND SELECT\\nTYPE t\\n  PRINT 2\\nEND TYPE\\nFOR j = 1 TO 2: NEXT j, i\\nEXIT DO\\nIF a THEN\\nELSE\\nELSE\\nEND IF\\nIF a THEN x ELSE y ELSE z\\nWHILE b\\nSUB s\\nEND SUB\\nDO\\n\")"
+---
+SourceFile 0..268
+  ForBlock 0..32
+    ForHeader 0..14
+      Ident FOR
+      Whitespace  
+      NameRef 4..5
+        Ident i
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 8..9
+        Number 1
+      Whitespace  
+      Ident TO
+      Whitespace  
+      Literal 13..14
+        Number 2
+    Newline \x0A
+    Whitespace   
+    IfBlock 17..27
+      IfBranch 17..27
+        IfHeader 17..26
+          Ident IF
+          Whitespace  
+          NameRef 20..21
+            Ident a
+          Whitespace  
+          Ident THEN
+        Newline \x0A
+    NextStmt 27..31
+      Ident NEXT
+    Newline \x0A
+  Error 32..38
+    Ident END
+    Whitespace  
+    Ident IF
+  Newline \x0A
+  Error 39..43
+    Ident WEND
+  Newline \x0A
+  ForBlock 44..82
+    ForHeader 44..58
+      Ident FOR
+      Whitespace  
+      NameRef 48..49
+        Ident k
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 52..53
+        Number 1
+      Whitespace  
+      Ident TO
+      Whitespace  
+      Literal 57..58
+        Number 2
+    Colon :
+    Whitespace  
+    IfStmt 60..74
+      IfHeader 60..69
+        Ident IF
+        Whitespace  
+        NameRef 63..64
+          Ident a
+        Whitespace  
+        Ident THEN
+      Whitespace  
+      LineBranch 70..74
+        Error 70..74
+          Ident NEXT
+    Newline \x0A
+    NextStmt 75..81
+      Ident NEXT
+      Whitespace  
+      NameRef 80..81
+        Ident k
+    Newline \x0A
+  IfStmt 82..94
+    IfHeader 82..91
+      Ident IF
+      Whitespace  
+      NameRef 85..86
+        Ident a
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    LineBranch 92..94
+      DoBlock 92..94
+        DoHeader 92..94
+          Ident DO
+  Newline \x0A
+  SelectBlock 95..130
+    SelectHeader 95..108
+      Ident SELECT
+      Whitespace  
+      Ident CASE
+      Whitespace  
+      NameRef 107..108
+        Ident x
+    Newline \x0A
+    Whitespace   
+    PrintStmt 111..118
+      Ident PRINT
+      Whitespace  
+      Error 117..118
+        Number 1
+    Newline \x0A
+    BlockEnd 119..129
+      Ident END
+      Whitespace  
+      Ident SELECT
+    Newline \x0A
+  TypeBlock 130..137
+    TypeHeader 130..136
+      Ident TYPE
+      Whitespace  
+      Ident t
+    Newline \x0A
+  Whitespace   
+  PrintStmt 139..146
+    Ident PRINT
+    Whitespace  
+    Error 145..146
+      Number 2
+  Newline \x0A
+  Error 147..155
+    Ident END
+    Whitespace  
+    Ident TYPE
+  Newline \x0A
+  ForBlock 156..182
+    ForHeader 156..170
+      Ident FOR
+      Whitespace  
+      NameRef 160..161
+        Ident j
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 164..165
+        Number 1
+      Whitespace  
+      Ident TO
+      Whitespace  
+      Literal 169..170
+        Number 2
+    Colon :
+    Whitespace  
+    NextStmt 172..181
+      Ident NEXT
+      Whitespace  
+      NameRef 177..178
+        Ident j
+      Comma ,
+      Whitespace  
+      NameRef 180..181
+        Ident i
+    Newline \x0A
+  ExitStmt 182..189
+    Ident EXIT
+    Whitespace  
+    Ident DO
+  Newline \x0A
+  IfBlock 190..217
+    IfBranch 190..200
+      IfHeader 190..199
+        Ident IF
+        Whitespace  
+        NameRef 193..194
+          Ident a
+        Whitespace  
+        Ident THEN
+      Newline \x0A
+    ElseBranch 200..205
+      Ident ELSE
+      Newline \x0A
+    ElseBranch 205..210
+      Ident ELSE
+      Newline \x0A
+    BlockEnd 210..216
+      Ident END
+      Whitespace  
+      Ident IF
+    Newline \x0A
+  IfStmt 217..242
+    IfHeader 217..226
+      Ident IF
+      Whitespace  
+      NameRef 220..221
+        Ident a
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    LineBranch 227..228
+      CallStmt 227..228
+        NameRef 227..228
+          Ident x
+    Whitespace  
+    Ident ELSE
+    Whitespace  
+    LineBranch 234..235
+      CallStmt 234..235
+        NameRef 234..235
+          Ident y
+    Whitespace  
+    Error 236..242
+      Ident ELSE
+      Whitespace  
+      Ident z
+  Newline \x0A
+  WhileBlock 243..251
+    WhileHeader 243..250
+      Ident WHILE
+      Whitespace  
+      NameRef 249..250
+        Ident b
+    Newline \x0A
+  ProcDef 251..265
+    ProcHeader 251..256
+      Ident SUB
+      Whitespace  
+      Ident s
+    Newline \x0A
+    ProcEnd 257..264
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+  DoBlock 265..268
+    DoHeader 265..267
+      Ident DO
+    Newline \x0A
+t.bas:3:1: error: `NEXT` while the `IF` on line 2 is still open; expected `END IF` first
+t.bas:4:1: error: `END IF` without `IF`
+t.bas:5:1: error: `WEND` without `WHILE`
+t.bas:6:27: error: `NEXT` inside a single-line `IF` cannot close a block outside it
+t.bas:8:11: error: `DO` without `LOOP` before the end of the single-line `IF`
+t.bas:10:3: error: only comments may stand between `SELECT CASE` and the first `CASE`
+t.bas:13:3: error: expected a field (`name AS type` or `AS type name, ...`) or `END TYPE`
+t.bas:14:1: error: `END TYPE` without `TYPE`
+t.bas:15:17: error: `NEXT` names more variables than there are `FOR` blocks open around it
+t.bas:16:1: error: `EXIT DO` without `DO`
+t.bas:19:1: error: this `IF` already has an `ELSE`
+t.bas:21:20: error: this `IF` already has an `ELSE`
+t.bas:22:1: error: `WHILE` without `WEND`
+t.bas:25:1: error: `DO` without `LOOP`

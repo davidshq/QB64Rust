@@ -1,0 +1,125 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"FOR i = 1 TO 9 STEP 2\\n  FOR j% = i TO 1 STEP -1\\n    EXIT FOR\\nNEXT j%, i\\nDO WHILE a: EXIT DO: LOOP\\nDO\\nLOOP UNTIL b\\nWHILE c\\n  IF c THEN EXIT WHILE\\nWEND\\n\")"
+---
+SourceFile 0..150
+  ForBlock 0..72
+    ForHeader 0..21
+      Ident FOR
+      Whitespace  
+      NameRef 4..5
+        Ident i
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 8..9
+        Number 1
+      Whitespace  
+      Ident TO
+      Whitespace  
+      Literal 13..14
+        Number 9
+      Whitespace  
+      Ident STEP
+      Whitespace  
+      Literal 20..21
+        Number 2
+    Newline \x0A
+    Whitespace   
+    ForBlock 24..72
+      ForHeader 24..47
+        Ident FOR
+        Whitespace  
+        NameRef 28..30
+          Ident j%
+        Whitespace  
+        Eq =
+        Whitespace  
+        NameRef 33..34
+          Ident i
+        Whitespace  
+        Ident TO
+        Whitespace  
+        Literal 38..39
+          Number 1
+        Whitespace  
+        Ident STEP
+        Whitespace  
+        PrefixExpr 45..47
+          Minus -
+          Literal 46..47
+            Number 1
+      Newline \x0A
+      Whitespace     
+      ExitStmt 52..60
+        Ident EXIT
+        Whitespace  
+        Ident FOR
+      Newline \x0A
+      NextStmt 61..71
+        Ident NEXT
+        Whitespace  
+        NameRef 66..68
+          Ident j%
+        Comma ,
+        Whitespace  
+        NameRef 70..71
+          Ident i
+      Newline \x0A
+  DoBlock 72..98
+    DoHeader 72..82
+      Ident DO
+      Whitespace  
+      Ident WHILE
+      Whitespace  
+      NameRef 81..82
+        Ident a
+    Colon :
+    Whitespace  
+    ExitStmt 84..91
+      Ident EXIT
+      Whitespace  
+      Ident DO
+    Colon :
+    Whitespace  
+    LoopStmt 93..97
+      Ident LOOP
+    Newline \x0A
+  DoBlock 98..114
+    DoHeader 98..100
+      Ident DO
+    Newline \x0A
+    LoopStmt 101..113
+      Ident LOOP
+      Whitespace  
+      Ident UNTIL
+      Whitespace  
+      NameRef 112..113
+        Ident b
+    Newline \x0A
+  WhileBlock 114..150
+    WhileHeader 114..121
+      Ident WHILE
+      Whitespace  
+      NameRef 120..121
+        Ident c
+    Newline \x0A
+    Whitespace   
+    IfStmt 124..144
+      IfHeader 124..133
+        Ident IF
+        Whitespace  
+        NameRef 127..128
+          Ident c
+        Whitespace  
+        Ident THEN
+      Whitespace  
+      LineBranch 134..144
+        ExitStmt 134..144
+          Ident EXIT
+          Whitespace  
+          Ident WHILE
+    Newline \x0A
+    BlockEnd 145..149
+      Ident WEND
+    Newline \x0A

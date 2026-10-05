@@ -1,0 +1,47 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+line 2: ConsoleOnly
+line 6: OnError HANDLER
+line 7: Error
+  Int 5 : I32
+line 8: Error
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Float 2.5E+0 : F64 (qb F32)
+line 9: Error
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Var D : F64
+line 10: Label BACK
+line 10: Print newline
+  Str
+    Call CHR : Str
+      Var K : I32
+  Str
+    Call CHR : Str
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var D : F64
+  Num
+    Call ERR : I32
+  Num
+    Call ERL : F64
+line 11: Call SETTER
+line 12: OnError 0
+line 13: System
+line 14: Label HANDLER
+line 15: Print newline
+  Num
+    Call ERR : I32
+line 16: Resume Next
+line 17: Resume Retry
+line 18: Resume Retry
+line 19: Resume To BACK
+line 20: Label DONE
+SUB SETTER
+line 23: OnError HANDLER
+line 24: Error
+  Int 7 : I32

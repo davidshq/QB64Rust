@@ -1,0 +1,9 @@
+---
+source: crates/sema/tests/symbols.rs
+assertion_line: 60
+expression: "dump_symbols(&p, &file)"
+---
+Proc TWICE FUNCTION : LONG def 4:10 refs 3:7
+Var A : LONG (param of TWICE) def 4:18 refs 5:14
+Var N : LONG def 2:1 refs 3:14
+Var TWICE : LONG (result of TWICE) def 5:5

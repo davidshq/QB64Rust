@@ -1,0 +1,4 @@
+
+Expected )
+Caused by (or after):
+LINE 4:FUNCTION TAILFACTORIAL ( N AS LONG , ACC AS LONG ) AS LONG

@@ -1,0 +1,5 @@
+e256
+
+Runtime error: Out of stack space
+Enable $ErrorLocation:ON for source location details.
+exit=0

@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: f&(a AS LONG, b AS LONG)
+Caused by (or after):PRINT F& ( 1 )
+LINE 6:PRINT f&(1)
+exit=1

@@ -1,0 +1,3 @@
+DIM x AS DOUBLE
+x = 3.14
+PRINT x

@@ -1,0 +1,5 @@
+
+Name already in use (s)
+Caused by (or after):X = S ( 1 )
+LINE 6:x = s(1)
+exit=1

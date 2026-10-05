@@ -1,0 +1,5 @@
+
+Invalid Resolution of $IF; check statements
+Caused by (or after):
+LINE 4:$IF Q = TWO WORDS THEN
+exit=1

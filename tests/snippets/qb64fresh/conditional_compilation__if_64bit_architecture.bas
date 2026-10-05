@@ -1,0 +1,5 @@
+$IF _64BIT THEN
+    PRINT "64-bit"
+$ELSEIF _32BIT THEN
+    PRINT "32-bit"
+$END IF

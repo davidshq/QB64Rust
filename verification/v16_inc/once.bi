@@ -1,0 +1,2 @@
+$INCLUDEONCE
+PRINT "once.bi"

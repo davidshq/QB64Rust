@@ -1,0 +1,2 @@
+suffix
+exit=0

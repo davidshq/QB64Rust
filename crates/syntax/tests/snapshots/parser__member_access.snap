@@ -1,0 +1,95 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"PRINT a(1).b.c(2), a(2) .b, a(2). b, a.b\\na(i).x(j).y = q(1).r\\n\")"
+---
+SourceFile 0..62
+  PrintStmt 0..40
+    Ident PRINT
+    Whitespace  
+    FieldExpr 6..17
+      FieldExpr 6..12
+        CallExpr 6..10
+          NameRef 6..7
+            Ident a
+          ArgList 7..10
+            LParen (
+            Literal 8..9
+              Number 1
+            RParen )
+        Dot .
+        Ident b
+      Dot .
+      Ident c
+      ArgList 14..17
+        LParen (
+        Literal 15..16
+          Number 2
+        RParen )
+    Comma ,
+    Whitespace  
+    FieldExpr 19..26
+      CallExpr 19..23
+        NameRef 19..20
+          Ident a
+        ArgList 20..23
+          LParen (
+          Literal 21..22
+            Number 2
+          RParen )
+      Whitespace  
+      Dot .
+      Ident b
+    Comma ,
+    Whitespace  
+    FieldExpr 28..35
+      CallExpr 28..32
+        NameRef 28..29
+          Ident a
+        ArgList 29..32
+          LParen (
+          Literal 30..31
+            Number 2
+          RParen )
+      Dot .
+      Whitespace  
+      Ident b
+    Comma ,
+    Whitespace  
+    NameRef 37..40
+      Ident a.b
+  Newline \x0A
+  AssignStmt 41..61
+    FieldExpr 41..52
+      FieldExpr 41..50
+        CallExpr 41..45
+          NameRef 41..42
+            Ident a
+          ArgList 42..45
+            LParen (
+            NameRef 43..44
+              Ident i
+            RParen )
+        Dot .
+        Ident x
+        ArgList 47..50
+          LParen (
+          NameRef 48..49
+            Ident j
+          RParen )
+      Dot .
+      Ident y
+    Whitespace  
+    Eq =
+    Whitespace  
+    FieldExpr 55..61
+      CallExpr 55..59
+        NameRef 55..56
+          Ident q
+        ArgList 56..59
+          LParen (
+          Literal 57..58
+            Number 1
+          RParen )
+      Dot .
+      Ident r
+  Newline \x0A

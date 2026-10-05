@@ -1,0 +1,2 @@
+PRINT INT(3.7)
+PRINT INT(-3.7)

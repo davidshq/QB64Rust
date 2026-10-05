@@ -21,8 +21,8 @@ Checks a compiler against `tests\corpus\<group>\` (`--corpus-root` for another f
 merged stdout and stderr), `<name>.err` (the compile must fail with this output) or `<name>.norun` (compile only,
 never run; the file says why). Unlike the compile suite, each program is copied into a fresh folder
 `target\legacy-tests\corpus\<group>-<name>\`, compiled there with `-q -m -x` only (no `-O2`), and run there with
-no arguments, `QB64PE_NOPROMPT=y` and a 60 s timeout. The folder is deleted when the test passes and kept when it
-fails.
+no arguments, `QB64PE_NOPROMPT=y` (or the contents of `<name>.noprompt`) and a 60 s timeout. The folder is
+deleted when the test passes and kept when it fails.
 
 ```
 python tools\legacy_tests\run_legacy_tests.py --suite corpus --record                  # write .output / .err
@@ -68,8 +68,8 @@ Notes:
 - Tests run one at a time: the compiler builds in the shared `QB64pe\internal\temp`, which the
   runner empties before each compile. The reference clone is written to only in that folder
   (git-ignored) and by the compiler's cached `.o` files.
-- Programs run with `QB64PE_NOPROMPT` set (default `y`, or the test's `.noprompt` file; always `y` in the corpus), so runtime errors
-  do not open dialogs. A fatal runtime error still exits with code 0; the output comparison catches it.
+- Programs run with `QB64PE_NOPROMPT` set (default `y`, or the test's `.noprompt` file, in both suites), so
+  runtime errors do not open dialogs. A fatal runtime error still exits with code 0; the output comparison catches it.
 - Deliberate differences from the bash runners: `.err` and `.license` comparisons ignore CR characters;
   `.output` comparison treats CRLF as LF (bare CR still counts); each compile and run has a timeout, and on a
   timeout the whole process tree is killed (`taskkill /T`); known failures do not fail the run.

@@ -1,0 +1,4 @@
+
+Name already in use (val)
+Caused by (or after):DIM VAL AS SINGLE
+LINE 1:DIM val AS SINGLE

@@ -1,0 +1,62 @@
+# Programs the old compiler accepts that still get an error without the "not supported yet" marker (spec
+# testing/upstream-tests, "No false errors"). Shrink-only: parser breadth empties it. The comment is the first
+# such error. Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.
+corpus/runtime_comparison/198_type_fixed_string.bas  # 7:7: cannot store a string in a number variable
+corpus/runtime_comparison/242_types_simple.bas  # 11:7: cannot store a string in a number variable
+corpus/runtime_comparison/57_type_string_field.bas  # 8:10: cannot store a string in a number variable
+qbasic/misc/mzupd2.bas  # 46:44: name already in use: `TIME$`
+qbasic/open_gl/3d_model_viewer.bas  # 158:5: names starting with `_` are reserved: `_GL`
+qbasic/open_gl/simple_example.bas  # 43:5: names starting with `_` are reserved: `_GL`
+snippets/qb64fresh/control_flow__select_case_fixed_length_string.bas  # 2:5: cannot store a string in a number variable
+snippets/qb64fresh/deftype_statements__defstr_statement.bas  # 3:9: cannot store a string in a number variable
+snippets/qb64fresh/error_extensions__on_error_goto_newhandler_compiles_and_emits_handler.bas  # 1:27: expected the end of the statement
+snippets/qb64fresh/mid_assignment__mid_fixed_length_string.bas  # 2:5: cannot store a string in a number variable
+snippets/qb64fresh/opengl_integration__gl_begin_call_in_sub_gl.bas  # 1:5: names starting with `_` are reserved: `_GL`
+snippets/qb64fresh/opengl_integration__sub_gl_defines_opengl_macro.bas  # 1:5: names starting with `_` are reserved: `_GL`
+snippets/qb64fresh/system_statements__clipboard_set_statement.bas  # 1:1: names starting with `_` are reserved: `_CLIPBOARD$`
+snippets/qb64fresh/system_statements__clipboard_set_with_variable.bas  # 3:1: names starting with `_` are reserved: `_CLIPBOARD$`
+snippets/qb64fresh/system_statements__clipboardimage_assignment.bas  # 1:1: names starting with `_` are reserved: `_CLIPBOARDIMAGE`
+upstream/arrays/05_fixed_length_string.bas  # 22:11: cannot store a string in a number variable
+upstream/arrays/06_variable_string.bas  # 35:25: a string is required for this parameter
+upstream/arrays/Retain_Preserve.bas  # 30:18: cannot store a string in a number variable
+upstream/arrays/t001_whole_array_core.bas  # 63:12: expected the end of the statement
+upstream/arrays/t220_2.bas  # 15:17: cannot store a string in a number variable
+upstream/arrays/type_owner_self_assignment.bas  # 12:18: cannot store a string in a number variable
+upstream/auto_include/general.bas  # 10:37: names starting with `_` are reserved: `_E`
+upstream/clipboard/clipboard_test.bas  # 11:1: names starting with `_` are reserved: `_CLIPBOARD$`
+upstream/font/test.bas  # 36:15: a string is required for this parameter
+upstream/glut/desktopheight.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
+upstream/glut/desktopwidth.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
+upstream/glut/mousecursor.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
+upstream/glut/screenexists.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
+upstream/glut/screenhide_commands.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
+upstream/glut/screenhide_sub.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
+upstream/glut/screenicon.bas  # 4:11: names starting with `_` are reserved: `_FALSE`
+upstream/glut/screenx.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
+upstream/glut/screeny.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
+upstream/glut/windowhandle.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
+upstream/glut/windowhasfocus.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
+upstream/glut/windowsizelimit.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
+upstream/iif/iif_test.bas  # 15:22: cannot store a number in a string variable
+upstream/image/curico_test.bas  # 65:56: cannot mix strings and numbers
+upstream/image/pcx_test.bas  # 28:13: a string is required for this parameter
+upstream/image/webp_test.bas  # 13:13: a string is required for this parameter
+upstream/logging/consts.bas  # 3:7: names starting with `_` are reserved: `_LOG_TRACE`
+upstream/mem/mem_checking_off.bas  # 20:28: a string is required for this parameter
+upstream/on_error/errtest.bas  # 18:15: label `_LASTHANDLER` is not defined
+upstream/opengl/test.bas  # 2:5: names starting with `_` are reserved: `_GL`
+upstream/putimage/putimage_test.bas  # 61:13: names starting with `_` are reserved: `_TRUE`
+upstream/qb64pe/dwd.bas  # 7:6: cannot store a string in a number variable
+upstream/qb64pe/element.bas  # 9:6: cannot store a string in a number variable
+upstream/qb64pe/element_createElementString.bas  # 9:6: cannot store a string in a number variable
+upstream/qb64pe/element_getStringValue.bas  # 9:6: cannot store a string in a number variable
+upstream/qb64pe/element_getnextelement.bas  # 9:6: cannot store a string in a number variable
+upstream/qb64pe/element_getprevelement.bas  # 9:6: cannot store a string in a number variable
+upstream/qb64pe/hasFunctionElement.bas  # 9:6: cannot store a string in a number variable
+upstream/qb64pe/prepass.bas  # 7:6: cannot store a string in a number variable
+upstream/qb64pe/string.bas  # 7:6: cannot store a string in a number variable
+upstream/types/all_types.bas  # 69:10: cannot store a string in a number variable
+upstream/types/dim.bas  # 34:6: cannot store a string in a number variable
+upstream/types/nested_udt.bas  # 19:12: cannot store a string in a number variable
+upstream/types/static.bas  # 39:10: cannot store a string in a number variable
+upstream/types/udt.bas  # 61:10: cannot store a string in a number variable

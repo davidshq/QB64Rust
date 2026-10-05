@@ -1,0 +1,58 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+line 2: ConsoleOnly
+line 17: Assign H:I32
+  Int 4 : I32
+line 18: Assign X:F32
+  Convert Nearest : F32
+    Int 5 : I16
+line 19: Call BEFORE
+line 20: Call LATER
+  ref G : I32
+SUB BEFORE
+  local G:F32
+line 8: Assign G (local):F32
+  Convert Nearest : F32
+    Int 1 : I16
+line 11: Assign H:I32
+  Int 2 : I32
+line 14: Assign M:F32
+  Convert Nearest : F32
+    Int 3 : I16
+SUB LATER
+  param A:I32
+  local X:F32
+  local K:I32
+  static C:I32
+line 23: Assign G:I32
+  Binary Add : I32 (qb I64)
+    Var A (param) : I32
+    Var A (param) : I32
+line 24: Assign X (local):F32
+  Convert Nearest : F32
+    Int 6 : I16
+line 27: Assign C (static):I32
+  Binary Add : I32 (qb I64)
+    Var C (static) : I32
+    Var K (local) : I32
+line 28: Exit
+FUNCTION F : F64
+  param V:F32
+  result F:F64
+line 32: Assign F (result):F64
+  Convert Widen : F64
+    Var V (param) : F32
+line 33: Assign F (result):F64
+  Binary Add : F64
+    CallProc F : F64
+      temp
+        Binary Sub : F32
+          Var V (param) : F32
+          Convert Nearest : F32
+            Int 1 : I16
+    Convert Nearest : F64
+      Int 1 : I16
+line 34: Exit

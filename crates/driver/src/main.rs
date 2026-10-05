@@ -1,13 +1,15 @@
 //! `qb64rust`: the command line (design D9, spec `compiler/cli`).
 //!
-//! `qb64rust [-x] [-q] [-m] [-w] [-z] <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
+//! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
 //! [--qb64pe-root <dir>] [--keep-build]`
 
 use qb64rust_driver::{build, dump_cpp, dump_ir, emit, frontend};
+use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::sync::Mutex;
 
-const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] <file.bas> [-o <exe>] \
+const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--keep-build]";
 
 #[derive(Default)]
@@ -19,6 +21,29 @@ struct Options {
     dump: Option<String>,
     root: Option<PathBuf>,
     keep_build: bool,
+    /// `-f:<setting>=<value>` as given, checked by [`optimize_setting`].
+    settings: Vec<String>,
+}
+
+/// Whether to optimise the C++ (`-f:OptimizeCppProgram=true`, as `qb64pe` turns it into `-O2`).
+/// `-f:StripDebugSymbols` is accepted and ignored; any other setting is not supported yet (spec `compiler/cli`).
+fn optimize_setting(settings: &[String]) -> Result<bool, String> {
+    let mut optimize = false;
+    for s in settings {
+        let (name, value) = s.split_once('=').unwrap_or((s, ""));
+        match name {
+            "OptimizeCppProgram" => {
+                optimize = match value.to_ascii_lowercase().as_str() {
+                    "true" => true,
+                    "false" => false,
+                    _ => return Err(format!("setting `{name}` needs `true` or `false`, not `{value}`")),
+                }
+            }
+            "StripDebugSymbols" => {}
+            _ => return Err(format!("setting `{name}` is not supported yet")),
+        }
+    }
+    Ok(optimize)
 }
 
 fn parse_args() -> Result<Options, String> {
@@ -43,6 +68,7 @@ fn parse_args() -> Result<Options, String> {
             }
             "--qb64pe-root" => o.root = Some(PathBuf::from(value("--qb64pe-root")?)),
             "--keep-build" => o.keep_build = true,
+            _ if s.starts_with("-f:") => o.settings.push(s["-f:".len()..].to_string()),
             _ if s.starts_with('-') => return Err(format!("unknown option `{s}`")),
             _ if o.input.is_some() => return Err("more than one input file".into()),
             _ => o.input = Some(PathBuf::from(a)),
@@ -51,7 +77,48 @@ fn parse_args() -> Result<Options, String> {
     Ok(o)
 }
 
+/// What the panic hook needs to know about the run: the input file, and the executable to remove (none in `--dump`
+/// and `-z` runs, which never touch it).
+struct PanicContext {
+    input: Option<String>,
+    exe: Option<PathBuf>,
+}
+
+static PANIC_CONTEXT: Mutex<PanicContext> = Mutex::new(PanicContext { input: None, exe: None });
+
+/// Exit code of an internal compiler error; every other failure exits with 1 (spec `compiler/cli`).
+const ICE_EXIT_CODE: i32 = 3;
+
+/// A panic is an internal compiler error (`study\21` item 6, design D11 of `m2-parser-breadth`): one message with
+/// its location and the input file, no executable left behind, exit code 3.
+fn install_panic_hook() {
+    std::panic::set_hook(Box::new(|info| {
+        let payload = info.payload();
+        let msg = payload
+            .downcast_ref::<&str>()
+            .copied()
+            .or_else(|| payload.downcast_ref::<String>().map(String::as_str))
+            .unwrap_or("(no message)");
+        let at = info
+            .location()
+            .map_or(String::new(), |l| format!(" at {}:{}", l.file(), l.line()));
+        // A panic while the lock was held must not hide the report.
+        let ctx = PANIC_CONTEXT.lock().unwrap_or_else(|e| e.into_inner());
+        println!("qb64rust: internal compiler error: {msg}{at}");
+        if let Some(input) = &ctx.input {
+            println!("qb64rust: while compiling {input}");
+        }
+        println!("qb64rust: this is a bug in qb64rust, not in the program");
+        if let Some(exe) = &ctx.exe {
+            let _ = std::fs::remove_file(exe);
+        }
+        let _ = std::io::stdout().flush();
+        std::process::exit(ICE_EXIT_CODE);
+    }));
+}
+
 fn main() -> ExitCode {
+    install_panic_hook();
     match run() {
         Ok(code) => code,
         Err(msg) => {
@@ -65,7 +132,28 @@ fn run() -> Result<ExitCode, String> {
     let o = parse_args().map_err(|e| format!("{e}\n{USAGE}"))?;
     let input = o.input.clone().ok_or_else(|| format!("no input file\n{USAGE}"))?;
     let bytes = std::fs::read(&input).map_err(|e| format!("cannot read {}: {e}", input.display()))?;
+    if bytes.len() > qb64rust_base::MAX_SOURCE_LEN {
+        let max = qb64rust_base::MAX_SOURCE_LEN;
+        return Err(format!(
+            "{} is too large: a source file has at most {max} bytes",
+            input.display()
+        ));
+    }
     let name = input.to_string_lossy().to_string();
+    let exe = match &o.output {
+        Some(p) => p.clone(),
+        None => input.with_extension("exe"),
+    };
+    let exe = std::path::absolute(&exe).map_err(|e| e.to_string())?;
+    {
+        let mut ctx = PANIC_CONTEXT.lock().unwrap_or_else(|e| e.into_inner());
+        ctx.input = Some(name.clone());
+        ctx.exe = (o.dump.is_none() && !o.cpp_only).then(|| exe.clone());
+    }
+    // For the CLI test of the panic hook only.
+    if std::env::var_os("QB64RUST_TEST_PANIC").is_some_and(|v| v == "1") {
+        panic!("QB64RUST_TEST_PANIC=1 is set");
+    }
 
     if o.dump.as_deref() == Some("tokens") {
         print!("{}", qb64rust_syntax::dump_tokens(&bytes));
@@ -76,12 +164,12 @@ fn run() -> Result<ExitCode, String> {
     let report = |fe: &qb64rust_driver::Frontend| {
         if errors > 0 {
             print!("{}", fe.render_diagnostics());
-            println!("{errors} error{}", if errors == 1 { "" } else { "s" });
+            println!("{}", fe.diagnostics.summary());
         }
     };
     if let Some(stage) = o.dump.as_deref() {
         match stage {
-            "tree" => print!("{}", qb64rust_syntax::dump_tree(fe.root(), fe.bytes())),
+            "tree" => print!("{}", qb64rust_syntax::dump_trees(&fe.parsed, &fe.map)),
             _ if errors > 0 => {}
             "typed" => print!("{}", qb64rust_sema::dump_typed(&fe.program)),
             "ir" => print!("{}", dump_ir(&fe)),
@@ -96,11 +184,9 @@ fn run() -> Result<ExitCode, String> {
         });
     }
 
-    let exe = match &o.output {
-        Some(p) => p.clone(),
-        None => input.with_extension("exe"),
-    };
-    let exe = std::path::absolute(&exe).map_err(|e| e.to_string())?;
+    let optimize = optimize_setting(&o.settings).inspect_err(|_| {
+        let _ = std::fs::remove_file(&exe);
+    })?;
     if errors > 0 {
         let _ = std::fs::remove_file(&exe);
         report(&fe);
@@ -118,7 +204,7 @@ fn run() -> Result<ExitCode, String> {
     let _ = std::fs::remove_file(&exe);
     let root = build::find_root(o.root.as_deref())?;
     build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
-    build::build(&root, &build_dir, &exe, o.quiet)?;
+    build::build(&root, &build_dir, &exe, o.quiet, optimize)?;
     if !o.keep_build {
         let _ = std::fs::remove_dir_all(&build_dir);
     }

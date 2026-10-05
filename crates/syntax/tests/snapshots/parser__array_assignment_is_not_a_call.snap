@@ -1,0 +1,47 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"a(1) = 2\\ns (5 / 2) = 2, 0\\n\")"
+---
+SourceFile 0..26
+  AssignStmt 0..8
+    CallExpr 0..4
+      NameRef 0..1
+        Ident a
+      ArgList 1..4
+        LParen (
+        Literal 2..3
+          Number 1
+        RParen )
+    Whitespace  
+    Eq =
+    Whitespace  
+    Literal 7..8
+      Number 2
+  Newline \x0A
+  CallStmt 9..25
+    NameRef 9..10
+      Ident s
+    Whitespace  
+    ArgList 11..25
+      BinExpr 11..22
+        ParenExpr 11..18
+          LParen (
+          BinExpr 12..17
+            Literal 12..13
+              Number 5
+            Whitespace  
+            Slash /
+            Whitespace  
+            Literal 16..17
+              Number 2
+          RParen )
+        Whitespace  
+        Eq =
+        Whitespace  
+        Literal 21..22
+          Number 2
+      Comma ,
+      Whitespace  
+      Literal 24..25
+        Number 0
+  Newline \x0A

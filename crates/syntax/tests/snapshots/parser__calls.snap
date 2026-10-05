@@ -1,0 +1,73 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 69
+expression: "tree(\"CALL s(n, 2)\\nCALL t\\ns n, \\\"x\\\"\\ns (n)\\nt\\nbump n + 1: t\\n\")"
+---
+SourceFile 0..51
+  CallStmt 0..12
+    Ident CALL
+    Whitespace  
+    NameRef 5..6
+      Ident s
+    ArgList 6..12
+      LParen (
+      NameRef 7..8
+        Ident n
+      Comma ,
+      Whitespace  
+      Literal 10..11
+        Number 2
+      RParen )
+  Newline \x0A
+  CallStmt 13..19
+    Ident CALL
+    Whitespace  
+    NameRef 18..19
+      Ident t
+  Newline \x0A
+  CallStmt 20..28
+    NameRef 20..21
+      Ident s
+    Whitespace  
+    ArgList 22..28
+      NameRef 22..23
+        Ident n
+      Comma ,
+      Whitespace  
+      Literal 25..28
+        StringLit "x"
+  Newline \x0A
+  CallStmt 29..34
+    NameRef 29..30
+      Ident s
+    Whitespace  
+    ArgList 31..34
+      ParenExpr 31..34
+        LParen (
+        NameRef 32..33
+          Ident n
+        RParen )
+  Newline \x0A
+  CallStmt 35..36
+    NameRef 35..36
+      Ident t
+  Newline \x0A
+  CallStmt 37..47
+    NameRef 37..41
+      Ident bump
+    Whitespace  
+    ArgList 42..47
+      BinExpr 42..47
+        NameRef 42..43
+          Ident n
+        Whitespace  
+        Plus +
+        Whitespace  
+        Literal 46..47
+          Number 1
+  Colon :
+  Whitespace  
+  CallStmt 49..50
+    NameRef 49..50
+      Ident t
+  Newline \x0A

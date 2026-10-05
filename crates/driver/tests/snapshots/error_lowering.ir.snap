@@ -1,0 +1,51 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 6
+  SetHandler HANDLER
+Stmt line 7
+  Assign K:I32 = Const -1:I32
+Label BACK line 8
+Stmt line 8 may_raise
+  Print console newline
+    Str Const "a"
+    Str CallBuiltin CHR:Str [Some(Var K:I32)]
+    Str Const "b"
+Stmt line 9 may_raise
+  Raise ((Const 2.5E+0:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)
+Stmt line 10 may_raise
+  Assign F:I32 = CallProc TWICE:I32 [Temp(Const 3:I32)]
+Stmt line 11
+  SetHandler H2
+Stmt line 12
+  SetHandler none
+Stmt line 13
+  System
+Label HANDLER line 14
+Stmt line 15 may_raise
+  Print console newline
+    Num CallBuiltin ERR:I32 []
+    Num CallBuiltin ERL:F64 []
+Stmt line 16
+  Assign K:I32 = Const 65:I32
+Stmt line 17 may_raise
+  Resume Retry
+Label H2 line 18
+Stmt line 19 may_raise
+  Resume Next
+Stmt line 20 may_raise
+  Resume To BACK
+Label LAST line 21
+Function TWICE:I32 lines 23-27
+  param A:I32
+  result TWICE:I32
+Stmt line 24
+  SetHandler H2
+Stmt line 25 may_raise
+  Raise Const 7:I32
+Stmt line 26
+  Assign TWICE(result):I32 = Mul:I32(Var A(param):I32, Const 2:I32) wrap

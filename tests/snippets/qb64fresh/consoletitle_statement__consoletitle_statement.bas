@@ -1,0 +1,1 @@
+_CONSOLETITLE "My App"

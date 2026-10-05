@@ -1,0 +1,2 @@
+OPEN "data.dat" FOR RANDOM AS #1 LEN = 128
+CLOSE #1

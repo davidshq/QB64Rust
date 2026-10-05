@@ -36,7 +36,7 @@ pub fn number(text: &[u8], negative: bool) -> Result<NumLit, LitError> {
         while *i < text.len() && text[*i].is_ascii_digit() {
             *i += 1;
         }
-        std::str::from_utf8(&text[s..*i]).unwrap().to_string()
+        text[s..*i].iter().map(|&b| char::from(b)).collect::<String>()
     };
     let mut whole = digits(&mut i);
     let mut frac = String::new();
@@ -108,11 +108,8 @@ pub fn number(text: &[u8], negative: bool) -> Result<NumLit, LitError> {
     if magnitude > 1 << 64 {
         return Err(LitError::Overflow);
     }
-    let value: i128 = if negative {
-        -(magnitude as i128)
-    } else {
-        magnitude as i128
-    };
+    let magnitude_signed = i128::try_from(magnitude).map_err(|_| LitError::Overflow)?;
+    let value = if negative { -magnitude_signed } else { magnitude_signed };
     let ty = match suffix {
         b"" => {
             if negative {
@@ -144,7 +141,7 @@ pub fn number(text: &[u8], negative: bool) -> Result<NumLit, LitError> {
         return Err(LitError::Overflow);
     }
     Ok(NumLit::Int {
-        value: value as i64,
+        value: i64::try_from(value).map_err(|_| LitError::Overflow)?,
         ty,
     })
 }
@@ -152,6 +149,10 @@ pub fn number(text: &[u8], negative: bool) -> Result<NumLit, LitError> {
 /// SINGLE when at most 7 significant digits and the first one's position is within SINGLE's range; DOUBLE when
 /// at most 16 and within DOUBLE's range; `_FLOAT` otherwise. As in `lineformat$`, the position is taken from the
 /// digits alone (only literals without an exponent letter get here).
+#[expect(
+    clippy::cast_possible_wrap,
+    reason = "digit counts are string lengths, at most isize::MAX, which fits i64"
+)]
 fn auto_float_type(whole: &str, frac: &str) -> Ty {
     let (offset, sig): (i64, usize) = if !whole.is_empty() {
         (whole.len() as i64 - 1, whole.len() + frac.len())
@@ -182,7 +183,8 @@ pub fn range(ty: Ty) -> (i128, i128) {
     match ty {
         Ty::I16 => (i16::MIN as i128, i16::MAX as i128),
         Ty::I32 => (i32::MIN as i128, i32::MAX as i128),
-        _ => (i64::MIN as i128, i64::MAX as i128),
+        Ty::I64 => (i64::MIN as i128, i64::MAX as i128),
+        Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => unreachable!("range of {ty:?}"),
     }
 }
 
@@ -215,11 +217,17 @@ fn radix(text: &[u8]) -> Result<NumLit, LitError> {
     let bits = match ty {
         Ty::I16 => 16,
         Ty::I32 => 32,
-        _ => 64,
+        Ty::I64 => 64,
+        Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => unreachable!("radix literal of {ty:?}"),
     };
     if bits < 64 && value >> bits != 0 {
         return Err(LitError::Overflow);
     }
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_possible_wrap,
+        reason = "`value` fits `bits` bits (checked above); reading those bits as signed is the point"
+    )]
     let signed = if bits == 64 {
         value as u64 as i64
     } else if value >> (bits - 1) != 0 {

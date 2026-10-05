@@ -1,0 +1,8 @@
+4,B box: inside 0 edge 4 
+4,BF: inside 4 
+B (var) colour: diagonal 7 edge 0 
+B,B: inside 0 edge 7 
+BF,BF: inside 9 
+,BF: inside 15 
+-STEP: point 0 
+exit=0

@@ -24,6 +24,16 @@ fn comments_metacommands_continuations() {
     ));
 }
 
+/// `DATA` items are one `DataText` token up to the line end or a `:` outside quotes; `'`, `REM` and inner `"` are
+/// data (measured M2, `verification\v16_m2_*`); an inner `"` does not protect a `:`, a leading one does. Also after
+/// `ELSE` and in lower case; `DATA:` and `DATA` alone have no `DataText`; `DATA$` and `a(1).data` are names.
+#[test]
+fn data_text() {
+    insta::assert_snapshot!(dump_tokens(
+        b"DATA   x  ,  y y  ,,\"  q  \",\nDATA a'b, c REM d\ndata \"a:b\", c: PRINT 1\nDATA a\"b: x\nIF 1 THEN 2 ELSE DATA 1,&h5\nDATA:DATA\nDATA$ = a(1).data\n"
+    ));
+}
+
 /// Every byte value 0x01-0xFF inside a string literal and inside a comment stays inside that one token.
 #[test]
 fn every_byte_in_string_and_comment() {

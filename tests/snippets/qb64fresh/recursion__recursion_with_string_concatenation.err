@@ -1,0 +1,4 @@
+
+Expected )
+Caused by (or after):
+LINE 4:FUNCTION REPEATCHAR$ ( C AS STRING , N AS LONG ) AS STRING

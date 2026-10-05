@@ -1,0 +1,5 @@
+
+EXIT FOR without FOR
+Caused by (or after):EXIT FOR
+LINE 4:EXIT FOR
+exit=1

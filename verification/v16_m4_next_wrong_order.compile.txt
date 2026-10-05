@@ -1,0 +1,5 @@
+
+Incorrect variable after NEXT
+Caused by (or after):NEXT I , J
+LINE 6:NEXT i, j
+exit=1

@@ -1,0 +1,261 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"IF a THEN IF b THEN x ELSE y ELSE z\\nIF a THEN 10 ELSE 20\\nIF a GOTO 30 ELSE PRINT 1\\nIF a THEN 10: PRINT 5\\nIF a GOTO 30: PRINT 6\\nIF a THEN : FOR i = 1 TO 2: PRINT i: NEXT: PRINT 2\\nIF a THEN REM c\\nIF a THEN ELSE PRINT 3\\nIF a THEN PRINT 4 ELSE\\nIF a THEN q(1) = 2 ELSE s 1, 2\\n\")"
+---
+SourceFile 0..271
+  IfStmt 0..35
+    IfHeader 0..9
+      Ident IF
+      Whitespace  
+      NameRef 3..4
+        Ident a
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    LineBranch 10..28
+      IfStmt 10..28
+        IfHeader 10..19
+          Ident IF
+          Whitespace  
+          NameRef 13..14
+            Ident b
+          Whitespace  
+          Ident THEN
+        Whitespace  
+        LineBranch 20..21
+          CallStmt 20..21
+            NameRef 20..21
+              Ident x
+        Whitespace  
+        Ident ELSE
+        Whitespace  
+        LineBranch 27..28
+          CallStmt 27..28
+            NameRef 27..28
+              Ident y
+    Whitespace  
+    Ident ELSE
+    Whitespace  
+    LineBranch 34..35
+      CallStmt 34..35
+        NameRef 34..35
+          Ident z
+  Newline \x0A
+  IfStmt 36..56
+    IfHeader 36..45
+      Ident IF
+      Whitespace  
+      NameRef 39..40
+        Ident a
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    LineBranch 46..48
+      ImplicitGoto 46..48
+        Number 10
+    Whitespace  
+    Ident ELSE
+    Whitespace  
+    LineBranch 54..56
+      ImplicitGoto 54..56
+        Number 20
+  Newline \x0A
+  IfStmt 57..82
+    IfHeader 57..61
+      Ident IF
+      Whitespace  
+      NameRef 60..61
+        Ident a
+    Whitespace  
+    LineBranch 62..69
+      GotoStmt 62..69
+        Ident GOTO
+        Whitespace  
+        Number 30
+    Whitespace  
+    Ident ELSE
+    Whitespace  
+    LineBranch 75..82
+      PrintStmt 75..82
+        Ident PRINT
+        Whitespace  
+        Literal 81..82
+          Number 1
+  Newline \x0A
+  IfStmt 83..104
+    IfHeader 83..92
+      Ident IF
+      Whitespace  
+      NameRef 86..87
+        Ident a
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    LineBranch 93..104
+      ImplicitGoto 93..95
+        Number 10
+      Colon :
+      Whitespace  
+      PrintStmt 97..104
+        Ident PRINT
+        Whitespace  
+        Literal 103..104
+          Number 5
+  Newline \x0A
+  IfStmt 105..126
+    IfHeader 105..109
+      Ident IF
+      Whitespace  
+      NameRef 108..109
+        Ident a
+    Whitespace  
+    LineBranch 110..126
+      GotoStmt 110..117
+        Ident GOTO
+        Whitespace  
+        Number 30
+      Colon :
+      Whitespace  
+      PrintStmt 119..126
+        Ident PRINT
+        Whitespace  
+        Literal 125..126
+          Number 6
+  Newline \x0A
+  IfStmt 127..177
+    IfHeader 127..136
+      Ident IF
+      Whitespace  
+      NameRef 130..131
+        Ident a
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    LineBranch 137..177
+      Colon :
+      Whitespace  
+      ForBlock 139..169
+        ForHeader 139..153
+          Ident FOR
+          Whitespace  
+          NameRef 143..144
+            Ident i
+          Whitespace  
+          Eq =
+          Whitespace  
+          Literal 147..148
+            Number 1
+          Whitespace  
+          Ident TO
+          Whitespace  
+          Literal 152..153
+            Number 2
+        Colon :
+        Whitespace  
+        PrintStmt 155..162
+          Ident PRINT
+          Whitespace  
+          NameRef 161..162
+            Ident i
+        Colon :
+        Whitespace  
+        NextStmt 164..168
+          Ident NEXT
+        Colon :
+      Whitespace  
+      PrintStmt 170..177
+        Ident PRINT
+        Whitespace  
+        Literal 176..177
+          Number 2
+  Newline \x0A
+  IfStmt 178..193
+    IfHeader 178..187
+      Ident IF
+      Whitespace  
+      NameRef 181..182
+        Ident a
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    Comment REM c
+    LineBranch 193..193
+  Newline \x0A
+  IfStmt 194..216
+    IfHeader 194..203
+      Ident IF
+      Whitespace  
+      NameRef 197..198
+        Ident a
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    LineBranch 204..204
+    Ident ELSE
+    Whitespace  
+    LineBranch 209..216
+      PrintStmt 209..216
+        Ident PRINT
+        Whitespace  
+        Literal 215..216
+          Number 3
+  Newline \x0A
+  IfStmt 217..239
+    IfHeader 217..226
+      Ident IF
+      Whitespace  
+      NameRef 220..221
+        Ident a
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    LineBranch 227..234
+      PrintStmt 227..234
+        Ident PRINT
+        Whitespace  
+        Literal 233..234
+          Number 4
+    Whitespace  
+    Ident ELSE
+    LineBranch 239..239
+  Newline \x0A
+  IfStmt 240..270
+    IfHeader 240..249
+      Ident IF
+      Whitespace  
+      NameRef 243..244
+        Ident a
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    LineBranch 250..258
+      AssignStmt 250..258
+        CallExpr 250..254
+          NameRef 250..251
+            Ident q
+          ArgList 251..254
+            LParen (
+            Literal 252..253
+              Number 1
+            RParen )
+        Whitespace  
+        Eq =
+        Whitespace  
+        Literal 257..258
+          Number 2
+    Whitespace  
+    Ident ELSE
+    Whitespace  
+    LineBranch 264..270
+      CallStmt 264..270
+        NameRef 264..265
+          Ident s
+        Whitespace  
+        ArgList 266..270
+          Literal 266..267
+            Number 1
+          Comma ,
+          Whitespace  
+          Literal 269..270
+            Number 2
+  Newline \x0A

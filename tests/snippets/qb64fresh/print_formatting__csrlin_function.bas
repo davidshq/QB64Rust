@@ -1,0 +1,2 @@
+DIM row AS INTEGER
+row = CSRLIN

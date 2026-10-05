@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):_FOO = 5
+LINE 3:_foo = 5
+exit=1

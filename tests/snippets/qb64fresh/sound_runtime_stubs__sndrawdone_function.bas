@@ -1,0 +1,1 @@
+IF _SNDRAWDONE THEN PRINT "Buffer empty"

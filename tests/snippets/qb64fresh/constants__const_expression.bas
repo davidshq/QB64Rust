@@ -1,0 +1,4 @@
+CONST A = 10
+CONST B = 20
+CONST C = A + B
+PRINT C

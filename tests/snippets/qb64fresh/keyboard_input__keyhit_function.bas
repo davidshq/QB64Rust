@@ -1,0 +1,2 @@
+DIM k AS LONG
+k = _KEYHIT

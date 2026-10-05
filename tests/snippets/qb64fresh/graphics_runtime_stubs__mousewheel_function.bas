@@ -1,0 +1,2 @@
+DIM w AS LONG
+w = _MOUSEWHEEL

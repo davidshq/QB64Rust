@@ -1,0 +1,4 @@
+
+Expected )
+Caused by (or after):
+LINE 4:FUNCTION POWER ( B AS DOUBLE , EXPONENT AS LONG ) AS DOUBLE

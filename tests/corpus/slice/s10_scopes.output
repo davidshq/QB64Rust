@@ -1,0 +1,16 @@
+g in early: 0 
+x in localx: 0 
+k in localx: 0 
+x in localx: 0 
+k in localx: 0 
+main x: 99 
+count: 1 a
+count: 2 aa
+count: 3 aaa
+getg:g in getg: 10 
+ 40 
+main g after getg: 20 
+h in useshared: 9 
+main h& after useshared: 5 
+y in samename: 5 
+main y: 0 

@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):LAB
+LINE 3:PRINT "a": lab: PRINT "b"
+exit=1

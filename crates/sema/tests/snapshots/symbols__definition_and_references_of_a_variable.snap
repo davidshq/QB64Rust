@@ -1,0 +1,5 @@
+---
+source: crates/sema/tests/symbols.rs
+expression: "dump_symbols(&p, &file)"
+---
+Var N : LONG def 2:5 refs 3:1 4:7

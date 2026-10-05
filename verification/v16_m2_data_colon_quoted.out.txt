@@ -1,0 +1,4 @@
+after colon
+[a:b]
+[c]
+exit=0

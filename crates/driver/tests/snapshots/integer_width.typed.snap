@@ -1,6 +1,6 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 100
+assertion_line: 103
 expression: snap
 ---
 line 2: ConsoleOnly
@@ -40,4 +40,7 @@ line 8: Print newline
 line 9: Print newline
   Num
     Int 32768 : I64
-line 10: End
+line 10: Print newline
+  Num
+    Int 9223372036854775805 : I64
+line 11: End

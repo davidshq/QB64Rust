@@ -1,4 +1,4 @@
-# Corpus programs the first end-to-end slice of the new compiler must pass (m2-workspace-and-slice, design D11).
+# Corpus programs the new compiler must pass (changes m2-workspace-and-slice and m2-procedures-and-errors).
 # One <group>/<name> per line; run with: run_legacy_tests.py --suite corpus --list tests/corpus/slice.list
 slice/s01_literals
 slice/s02_integer_wrap
@@ -14,3 +14,43 @@ runtime_comparison/131_expression_priority
 runtime_comparison/134_float_literal
 runtime_comparison/135_negate
 runtime_comparison/14_instr
+runtime_comparison/125_error_codes
+runtime_comparison/130_assign_chain
+runtime_comparison/132_hex_literal
+runtime_comparison/133_octal_literal
+runtime_comparison/144_dim_multiple
+runtime_comparison/145_end_early
+runtime_comparison/163_single_precision
+runtime_comparison/188_print_semicolon
+runtime_comparison/208_hex_literal_big
+runtime_comparison/209_octal_literal
+runtime_comparison/210_scientific_literal
+runtime_comparison/211_type_suffix_literal
+runtime_comparison/27_dim_types
+runtime_comparison/74_single_double
+runtime_comparison/75_integer_overflow
+runtime_comparison/87_instr_not_found
+runtime_comparison/92_type_suffix
+slice/s08_byref
+slice/s09_functions
+slice/s10_scopes
+runtime_comparison/24_sub_call
+runtime_comparison/64_exit_sub
+runtime_comparison/69_sub_params
+runtime_comparison/84_shared_array
+runtime_comparison/85_static_sub
+runtime_comparison/115_sub_no_call
+runtime_comparison/124_sub_string_param
+runtime_comparison/140_sub_multiple_call
+runtime_comparison/192_optional_param
+runtime_comparison/193_sub_optional
+runtime_comparison/196_default_param
+runtime_comparison/263_many_locals
+slice/s11_on_error
+slice/s12_error_in_print
+runtime_comparison/03_on_error_resume_next
+runtime_comparison/148_on_error_resume_line
+runtime_comparison/228_err_erl_values
+runtime_comparison/229_resume_next_after_print
+runtime_comparison/230_error_statement
+runtime_comparison/247_on_error_simple

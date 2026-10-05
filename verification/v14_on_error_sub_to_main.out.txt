@@ -1,0 +1,4 @@
+main handler, err 5 
+after error in t
+back in main
+exit=0

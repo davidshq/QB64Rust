@@ -155,6 +155,7 @@ dependencies = [
 name = "qb64rust-sema"
 version = "0.1.0"
 dependencies = [
+ "insta",
  "qb64rust-base",
  "qb64rust-builtins",
  "qb64rust-syntax",

@@ -1,0 +1,91 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+line 2: ConsoleOnly
+line 6: Call BUMP
+  ref N : I32
+line 7: Call BUMP
+  ref N : I32
+line 8: Call BUMP
+  temp
+    Var N : I32
+line 9: Call BUMP
+  temp
+    Var N : I32
+line 10: Call BUMP
+  temp
+    Binary Add : I32 (qb I64)
+      Var N : I32
+      Int 1 : I32
+line 11: Call BUMP
+  temp
+    Convert Widen : I32
+      Var I : I16
+line 12: Call BUMP
+  temp
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Float 2.5E+0 : F64 (qb F32)
+line 13: Call BUMP
+  ref X : I32
+line 14: Call GREET
+  ref S : Str
+  temp
+    Convert Truncate : I16
+      Var N : I32
+line 15: Call GREET
+  ref S : Str
+  temp
+    Convert Truncate : I16
+      Convert RoundEven : I32
+        Convert Nearest : F32
+          Float 2.5E+0 : F64 (qb F32)
+line 16: Call GREET
+  temp
+    Concat : Str
+      Var S : Str
+      Str "!" : Str
+  ref I : I16
+line 17: Call GREET
+  temp
+    Str "lit" : Str
+  temp
+    Convert Truncate : I16
+      Neg : I32 (qb I64)
+        Var N : I32
+line 18: Print newline
+  Num
+    CallProc F : I32
+      ref N : I32
+  Num
+    CallProc F : I32
+      temp
+        Var N : I32
+  Num
+    CallProc F : I32
+      temp
+        Convert Widen : I32
+          Var I : I16
+SUB BUMP
+  param X:I32
+line 20: Assign X (param):I32
+  Binary Add : I32 (qb I64)
+    Var X (param) : I32
+    Int 1 : I32
+line 21: Call BUMP
+  ref X (param) : I32
+SUB GREET
+  param T:Str
+  param K:I16
+line 24: Print newline
+  Str
+    Var T (param) : Str
+  Num
+    Var K (param) : I16
+FUNCTION F : I32
+  param A:I32
+  result F:I32
+line 27: Assign F (result):I32
+  Var A (param) : I32

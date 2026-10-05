@@ -88,6 +88,7 @@ qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
 }
 ==> main0.txt <==
+error_track_line(0,0,NULL);
 S_0:;
 #line 2 "lowering_pairs_cpp.bas"
 do{

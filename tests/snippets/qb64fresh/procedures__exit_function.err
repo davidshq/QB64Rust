@@ -1,0 +1,4 @@
+
+Expected )
+Caused by (or after):
+LINE 5:FUNCTION SAFEDIVIDE ( A AS DOUBLE , B AS DOUBLE ) AS DOUBLE

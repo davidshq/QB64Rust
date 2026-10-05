@@ -1,0 +1,5 @@
+
+SELECT CASE without END SELECT in line 3 of internal\support\vwatch\vwatch_stub.bm auto-included
+Caused by (or after):SUB VWATCH ( )
+LINE 4:SUB vwatch ()
+exit=1

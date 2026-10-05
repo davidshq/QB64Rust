@@ -20,6 +20,9 @@ Rules followed from format_tests.sh:
   * each variant: qb64 -y -m <flags> <name>.bas -o <out>, run in the test's folder;
     must succeed, write the output, and match the expected file with all CRs
     removed and trailing newlines ignored
+For a compiler other than qb64pe (both the compile and the corpus suite), an .err program passes when
+the compile fails, writes no exe and the compiler's last line is its error summary with at least one
+error not marked "not supported yet" ("2 errors (1 not supported yet)"); the .err text is not compared.
 The corpus suite (tests/corpus of this repo, recorded with the old compiler; no bash original):
   * every *.bas under <corpus-root>/<group>/ is a test; it has exactly one of
     <name>.output (compile, run, merged stdout+stderr == .output),
@@ -27,7 +30,8 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     <name>.norun (compile only, the exe is never started; the file holds the reason)
   * the .bas is copied into a fresh folder <results>/corpus/<group>-<name>/ and compiled
     there with -q -m -x only; the exe runs there with no arguments, stdin from the null
-    device, QB64PE_NOPROMPT=y and a 60 s timeout; the folder is deleted on a pass
+    device, QB64PE_NOPROMPT=y (or the contents of <name>.noprompt, e.g. 'continue') and a 60 s
+    timeout; the folder is deleted on a pass
   * <name>.normalize: one rule per line, <regex><TAB><replacement> ('#' lines are comments),
     applied in order to each line of the actual output before comparing or recording
   * --record compiles once, runs twice, and writes .output (or .err for a failed compile)
@@ -35,7 +39,8 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     non-deterministic and nothing is written
   * --cpp-opt adds -f:OptimizeCppProgram=true and compares against the same files
   * --list <file> runs only the programs named in the file: one <group>/<name> per line
-    (no .bas), '#' starts a comment
+    (no .bas), '#' starts a comment; also for --suite compile, with <category>/<name>
+    (e.g. tests/upstream/pass.list)
 Differences from the bash runners (all deliberate):
   * .err and .license comparisons ignore CR characters (line-ending normalisation)
   * .output comparison treats CRLF as LF (bare CR still significant); the bash
@@ -93,6 +98,35 @@ def norm_output(data: bytes) -> bytes:
 
 def norm_text(data: bytes) -> list[str]:
     return data.decode("latin-1").replace("\r", "").rstrip("\n").split("\n")
+
+
+def is_old_compiler(qb64: Path) -> bool:
+    """True for qb64pe, whose .err files hold its exact message text."""
+    return qb64.stem.lower() == "qb64pe"
+
+
+# The new compiler's last line after errors in the program (spec compiler/cli): "1 error", "3 errors",
+# "3 errors (2 not supported yet)". Only the front end prints it, so a failed C++ build or an internal
+# compiler error (exit code 3) never matches, even when clang's output holds "error:" lines.
+SUMMARY_RE = re.compile(r"^(\d+) errors?(?: \((\d+) not supported yet\))?$")
+
+
+def new_compiler_rejection(rc: int, out: bytes) -> str:
+    """Why a failed compile by a compiler other than qb64pe does not count as a rejection, or "" if it does.
+
+    An .err program passes when the compile fails, writes no executable (checked by the caller) and reports
+    at least one error not marked "not supported yet" (CLAUDE.md, 2026-10-04); the message text is not
+    compared."""
+    if rc == 3:
+        return "internal compiler error (exit code 3)"
+    lines = [ln.strip() for ln in out.decode("latin-1").splitlines() if ln.strip()]
+    m = SUMMARY_RE.match(lines[-1]) if lines else None
+    if not m:
+        return f"exit code {rc} without an error summary (not an error in the program)"
+    total, marked = int(m.group(1)), int(m.group(2) or 0)
+    if total <= marked:
+        return f"only errors marked not supported yet ({lines[-1]})"
+    return ""
 
 
 def clear_temp(qb_root: Path) -> None:
@@ -160,8 +194,12 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
 
     clear_temp(qb_root)
     # glob.escape: test and category names may contain glob characters (e.g. "parens()", "[").
+    # A folder is a build folder qb64rust kept after a failed build.
     for stale in results.glob(glob.escape(f"{category}-{name} - output.exe") + "*"):
-        stale.unlink(missing_ok=True)
+        if stale.is_dir():
+            shutil.rmtree(stale, ignore_errors=True)
+        else:
+            stale.unlink(missing_ok=True)
 
     flags: list[str] = []
     flags_file = tdir / f"{name}.flags"
@@ -178,7 +216,8 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
 
     base = ["-f:OptimizeCppProgram=true", "-f:StripDebugSymbols=false", *flags, "-q", "-m", "-x"]
     if (tdir / f"{name}.compile-from-base").is_file():
-        cmd = [str(args.qb64), *base, str(bas.relative_to(qb_root)), "-o", str(exe)]
+        # relpath, not relative_to: with --compile-tests the program is outside qb_root.
+        cmd = [str(args.qb64), *base, os.path.relpath(bas, qb_root), "-o", str(exe)]
         cwd = qb_root
     else:
         cmd = [str(args.qb64), *base, f"{name}.bas", "-o", str(exe)]
@@ -200,7 +239,11 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
             return fail("compile", "compiled successfully, expected an error")
         if exe.exists():
             return fail("exe exists", "exe produced although an error was expected")
-        if norm_text(err_file.read_bytes()) != norm_text(compile_out.read_bytes()):
+        if not is_old_compiler(args.qb64):
+            why = new_compiler_rejection(rc, compile_out.read_bytes())
+            if why:
+                return fail("error result", why)
+        elif norm_text(err_file.read_bytes()) != norm_text(compile_out.read_bytes()):
             return fail("error result", "compiler output differs from .err")
         r.seconds = round(time.time() - t0, 1)
         return r
@@ -403,6 +446,9 @@ def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path
             return passed(write_expected(err_file, got, out_file))
         if kind != "error":
             return fail("compile", f"exit code {rc}")
+        if not is_old_compiler(args.qb64):
+            why = new_compiler_rejection(rc, compile_out.read_bytes())
+            return fail("error result", why) if why else passed()
         if norm_text(err_file.read_bytes()) != norm_text(got):
             return fail("error result", "compiler output differs from .err")
         return passed()
@@ -418,9 +464,13 @@ def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path
         return fail("run", "not run: known failure with no expected file")
 
     r.kind = "output"
+    noprompt = "y"
+    np_file = tdir / f"{name}.noprompt"
+    if np_file.is_file():
+        noprompt = np_file.read_text(encoding="latin-1").strip()
     env = dict(os.environ)
     env.update({
-        "QB64PE_NOPROMPT": "y",
+        "QB64PE_NOPROMPT": noprompt,
         "QB64PE_LOG_HANDLERS": "file",
         "QB64PE_LOG_SCOPES": "qb64,libqb,libqb-image,libqb-audio",
         "QB64PE_LOG_FILE_PATH": str(results / f"{key}-log.txt"),
@@ -452,16 +502,17 @@ def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path
     return passed()
 
 
-def load_list(path: Path, corpus_root: Path) -> set[Path]:
-    # Lines: <group>/<name> (no .bas); '#' starts a comment. Every named program must exist.
+def load_list(path: Path, root: Path) -> set[Path]:
+    # Lines: <group>/<name> (no .bas) relative to root (the corpus, or the compile suite's tests/compile_tests);
+    # '#' starts a comment. Every named program must exist.
     wanted: set[Path] = set()
     for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         line = line.split("#", 1)[0].strip()
         if not line:
             continue
-        bas = (corpus_root / f"{line}.bas").resolve()
+        bas = (root / f"{line}.bas").resolve()
         if not bas.is_file():
-            raise ValueError(f"{path.name} line {n}: no corpus program {line}.bas")
+            raise ValueError(f"{path.name} line {n}: no program {line}.bas in {root.name}")
         wanted.add(bas)
     return wanted
 
@@ -511,14 +562,20 @@ def main() -> int:
                     help="corpus: write .output/.err from this compiler instead of comparing")
     ap.add_argument("--cpp-opt", action="store_true",
                     help="corpus: build with -f:OptimizeCppProgram=true (the -O2 report)")
+    ap.add_argument("--compile-tests", type=Path,
+                    help="compile suite's test folder (default: <qb-root>/tests/compile_tests; CI passes the copy "
+                         "tests/upstream/compile_tests, which has no binary assets)")
     ap.add_argument("--list", type=Path,
-                    help="corpus: run only the programs named in this file (<group>/<name> per line)")
+                    help="corpus and compile: run only the programs named in this file (<group>/<name> per line)")
     args = ap.parse_args()
     if args.category and args.suite in ("qbasic", "all"):
         print("--category applies to the compile, format and corpus suites only", file=sys.stderr)
         return 2
-    if (args.record or args.cpp_opt or args.list) and args.suite != "corpus":
-        print("--record, --cpp-opt and --list apply to --suite corpus only", file=sys.stderr)
+    if (args.record or args.cpp_opt) and args.suite != "corpus":
+        print("--record and --cpp-opt apply to --suite corpus only", file=sys.stderr)
+        return 2
+    if args.list and args.suite not in ("corpus", "compile"):
+        print("--list applies to --suite corpus and --suite compile only", file=sys.stderr)
         return 2
     if args.record and args.cpp_opt:
         print("--record uses the default build; it cannot be combined with --cpp-opt", file=sys.stderr)
@@ -531,6 +588,7 @@ def main() -> int:
         print(f"compiler not found: {args.qb64}", file=sys.stderr)
         return 2
 
+    compile_root = (args.compile_tests or qb_root / "tests" / "compile_tests").resolve()
     all_results: list[Result] = []
     known_passed: list[str] = []
     corpus_root = args.corpus_root.resolve()
@@ -552,13 +610,23 @@ def main() -> int:
                     return 2
                 tests = [p for p in tests if p in wanted]
         elif suite in ("compile", "format"):
-            root = qb_root / "tests" / ("compile_tests" if suite == "compile" else "format_tests")
+            if suite == "compile":
+                root = compile_root
+            else:
+                root = qb_root / "tests" / "format_tests"
             if args.category:
                 root = root / args.category
             if not root.is_dir():
                 print(f"no such test folder: {root}", file=sys.stderr)
                 return 2
             tests = sorted(p for p in root.rglob("*.bas") if fnmatch.fnmatch(p.name, args.glob))
+            if args.list and suite == "compile":
+                try:
+                    wanted = load_list(args.list, compile_root)
+                except (ValueError, OSError) as e:
+                    print(e, file=sys.stderr)
+                    return 2
+                tests = [p for p in tests if p.resolve() in wanted]
         else:
             tests = qbasic_sources(qb_root)
         if not tests:
@@ -578,6 +646,10 @@ def main() -> int:
                 if suite == "corpus":
                     rs = [Result("corpus", bas.relative_to(corpus_root).with_suffix("").as_posix(), "?",
                                  "FAIL", "runner", f"{type(e).__name__}: {e}")]
+                elif suite == "compile":
+                    # Named like compile_test's results: <category>/<name>.
+                    rs = [Result("compile_tests", f"{bas.parent.name}/{bas.stem}", "?", "FAIL", "runner",
+                                 f"{type(e).__name__}: {e}")]
                 else:
                     rs = [Result(f"{suite}_tests" if suite != "qbasic" else "qbasic_testcases",
                                  bas.relative_to(qb_root / "tests").as_posix(), "?", "FAIL", "runner",

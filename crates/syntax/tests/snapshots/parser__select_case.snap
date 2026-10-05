@@ -1,0 +1,112 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"SELECT CASE x\\n  ' c\\n  CASE IS < 1: PRINT 1\\n  CASE 1, 2 TO 3, IS = 6\\n    EXIT SELECT\\n  CASE ELSE\\nEND SELECT\\nSELECT EVERYCASE y\\n  CASE 1: EXIT CASE\\nEND SELECT\\n\")"
+---
+SourceFile 0..157
+  SelectBlock 0..107
+    SelectHeader 0..13
+      Ident SELECT
+      Whitespace  
+      Ident CASE
+      Whitespace  
+      NameRef 12..13
+        Ident x
+    Newline \x0A
+    Whitespace   
+    Comment ' c
+    Newline \x0A
+    Whitespace   
+    CaseClause 22..43
+      CaseHeader 22..33
+        Ident CASE
+        Whitespace  
+        CaseItem 27..33
+          Ident IS
+          Whitespace  
+          Lt <
+          Whitespace  
+          Literal 32..33
+            Number 1
+      Colon :
+      Whitespace  
+      PrintStmt 35..42
+        Ident PRINT
+        Whitespace  
+        Literal 41..42
+          Number 1
+      Newline \x0A
+    Whitespace   
+    CaseClause 45..84
+      CaseHeader 45..67
+        Ident CASE
+        Whitespace  
+        CaseItem 50..51
+          Literal 50..51
+            Number 1
+        Comma ,
+        Whitespace  
+        CaseItem 53..59
+          Literal 53..54
+            Number 2
+          Whitespace  
+          Ident TO
+          Whitespace  
+          Literal 58..59
+            Number 3
+        Comma ,
+        Whitespace  
+        CaseItem 61..67
+          Ident IS
+          Whitespace  
+          Eq =
+          Whitespace  
+          Literal 66..67
+            Number 6
+      Newline \x0A
+      Whitespace     
+      ExitStmt 72..83
+        Ident EXIT
+        Whitespace  
+        Ident SELECT
+      Newline \x0A
+    Whitespace   
+    CaseClause 86..96
+      CaseHeader 86..95
+        Ident CASE
+        Whitespace  
+        Ident ELSE
+      Newline \x0A
+    BlockEnd 96..106
+      Ident END
+      Whitespace  
+      Ident SELECT
+    Newline \x0A
+  SelectBlock 107..157
+    SelectHeader 107..125
+      Ident SELECT
+      Whitespace  
+      Ident EVERYCASE
+      Whitespace  
+      NameRef 124..125
+        Ident y
+    Newline \x0A
+    Whitespace   
+    CaseClause 128..146
+      CaseHeader 128..134
+        Ident CASE
+        Whitespace  
+        CaseItem 133..134
+          Literal 133..134
+            Number 1
+      Colon :
+      Whitespace  
+      ExitStmt 136..145
+        Ident EXIT
+        Whitespace  
+        Ident CASE
+      Newline \x0A
+    BlockEnd 146..156
+      Ident END
+      Whitespace  
+      Ident SELECT
+    Newline \x0A

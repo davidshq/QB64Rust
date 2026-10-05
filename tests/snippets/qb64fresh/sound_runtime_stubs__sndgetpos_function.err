@@ -1,0 +1,4 @@
+
+Name already in use (pos)
+Caused by (or after):DIM H AS LONG , POS AS DOUBLE
+LINE 1:DIM h AS LONG, pos AS DOUBLE

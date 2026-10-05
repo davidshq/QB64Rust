@@ -1,0 +1,2 @@
+DIM h AS LONG
+h = _SNDOPENRAW

@@ -1,0 +1,2 @@
+_DEFINE A-Z AS _INTEGER64
+DIM myVar
