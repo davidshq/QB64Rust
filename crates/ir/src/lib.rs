@@ -26,9 +26,9 @@ pub use lower::lower;
 use qb64rust_base::Span;
 use qb64rust_builtins::BuiltinId;
 
-/// Types, binary operators and conversion kinds are `sema`'s (`study\20` §3.4): integers by width, floats by
-/// width (`F80` is extended precision), strings. They name no C type, so the IR stays ABI-neutral.
-pub use qb64rust_sema::{BinOp, ConvKind as Conv, Ty};
+/// Types, operators and conversion kinds are `sema`'s (`study\20` §3.4): integers by width, floats by width (`F80`
+/// is extended precision), strings. They name no C type, so the IR stays ABI-neutral.
+pub use qb64rust_sema::{BinOp, ConvKind as Conv, Ty, UnOp};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct VarId(pub u32);
@@ -141,14 +141,26 @@ pub enum ValueKind {
         how: Conv,
         from: Box<Value>,
     },
-    /// Both operands have the value's type; integer overflow wraps.
+    /// Both operands have the same type: the value's, except for comparisons, `_ANDALSO` and `_ORELSE`, whose
+    /// operands share a type of their own and whose value is LONG. Integer overflow wraps. `_ANDALSO` and `_ORELSE`
+    /// evaluate the right operand only when the left one does not decide.
     Binary {
         op: BinOp,
         lhs: Box<Value>,
         rhs: Box<Value>,
     },
-    Neg(Box<Value>),
+    /// The operand has the value's type, except for `_NEGATE`, whose value is LONG.
+    Unary {
+        op: UnOp,
+        operand: Box<Value>,
+    },
     Concat(Box<Value>, Box<Value>),
+    /// A comparison of two strings, byte by byte (`op` is one of the six comparisons): -1 or 0, LONG.
+    StrCompare {
+        op: BinOp,
+        lhs: Box<Value>,
+        rhs: Box<Value>,
+    },
     /// `None` = optional argument absent.
     CallBuiltin {
         id: BuiltinId,
@@ -167,9 +179,12 @@ impl Value {
     pub fn may_raise(&self) -> bool {
         match &self.kind {
             ValueKind::Const(_) | ValueKind::Var(_) => false,
-            ValueKind::Convert { from, .. } | ValueKind::Neg(from) => from.may_raise(),
-            ValueKind::Binary { lhs, rhs, .. } => lhs.may_raise() || rhs.may_raise(),
-            ValueKind::Concat(..) | ValueKind::CallBuiltin { .. } | ValueKind::CallProc { .. } => true,
+            ValueKind::Convert { from, .. } | ValueKind::Unary { operand: from, .. } => from.may_raise(),
+            ValueKind::Binary { op, lhs, rhs } => op_may_raise(*op) || lhs.may_raise() || rhs.may_raise(),
+            ValueKind::Concat(..)
+            | ValueKind::StrCompare { .. }
+            | ValueKind::CallBuiltin { .. }
+            | ValueKind::CallProc { .. } => true,
         }
     }
 
@@ -178,10 +193,10 @@ impl Value {
         self.ty == Ty::Str
             || match &self.kind {
                 ValueKind::Const(_) | ValueKind::Var(_) => false,
-                ValueKind::Convert { from, .. } | ValueKind::Neg(from) => from.uses_strings(),
-                ValueKind::Binary { lhs, rhs, .. } | ValueKind::Concat(lhs, rhs) => {
-                    lhs.uses_strings() || rhs.uses_strings()
-                }
+                ValueKind::Convert { from, .. } | ValueKind::Unary { operand: from, .. } => from.uses_strings(),
+                ValueKind::Binary { lhs, rhs, .. }
+                | ValueKind::Concat(lhs, rhs)
+                | ValueKind::StrCompare { lhs, rhs, .. } => lhs.uses_strings() || rhs.uses_strings(),
                 ValueKind::CallBuiltin { args, .. } => args.iter().flatten().any(Value::uses_strings),
                 ValueKind::CallProc { args, .. } => args.iter().any(Arg::uses_strings),
             }
@@ -195,6 +210,31 @@ impl Arg {
             Arg::Ref(_) => false,
             Arg::Temp(v) => v.uses_strings(),
         }
+    }
+}
+
+/// Whether the operator itself may raise: `\` and `MOD` by 0 (error 11), `^` with a negative base and a non-integer
+/// exponent (error 5).
+fn op_may_raise(op: BinOp) -> bool {
+    match op {
+        BinOp::IDiv | BinOp::Mod | BinOp::Pow => true,
+        BinOp::Add
+        | BinOp::Sub
+        | BinOp::Mul
+        | BinOp::Div
+        | BinOp::Eq
+        | BinOp::Ne
+        | BinOp::Lt
+        | BinOp::Gt
+        | BinOp::Le
+        | BinOp::Ge
+        | BinOp::And
+        | BinOp::Or
+        | BinOp::Xor
+        | BinOp::Eqv
+        | BinOp::Imp
+        | BinOp::AndAlso
+        | BinOp::OrElse => false,
     }
 }
 

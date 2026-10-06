@@ -170,6 +170,61 @@ pub enum BinOp {
     Sub,
     Mul,
     Div,
+    /// `=`, `<>`, `<`, `>`, `<=`, `>=`: -1 or 0, typed LONG.
+    Eq,
+    Ne,
+    Lt,
+    Gt,
+    Le,
+    Ge,
+    /// Bit by bit on integers.
+    And,
+    Or,
+    Xor,
+    Eqv,
+    Imp,
+    /// `_ANDALSO`, `_ORELSE`: -1 or 0; the right operand is evaluated only when the left one does not decide.
+    AndAlso,
+    OrElse,
+    /// `\`: integer division truncating toward zero; a divisor of 0 raises error 11.
+    IDiv,
+    /// `MOD`: remainder with the sign of the dividend; a divisor of 0 raises error 11.
+    Mod,
+    /// `^`: computed in `_FLOAT`; a negative base with a non-integer exponent raises error 5.
+    Pow,
+}
+
+impl BinOp {
+    /// The six comparisons.
+    pub fn is_comparison(self) -> bool {
+        match self {
+            BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => true,
+            BinOp::Add
+            | BinOp::Sub
+            | BinOp::Mul
+            | BinOp::Div
+            | BinOp::And
+            | BinOp::Or
+            | BinOp::Xor
+            | BinOp::Eqv
+            | BinOp::Imp
+            | BinOp::AndAlso
+            | BinOp::OrElse
+            | BinOp::IDiv
+            | BinOp::Mod
+            | BinOp::Pow => false,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UnOp {
+    /// Unary minus.
+    Neg,
+    /// `NOT`: bit by bit.
+    Not,
+    /// `_NEGATE`: -1 for 0, else 0; typed LONG.
+    Negate,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -193,15 +248,25 @@ pub enum ExprKind {
         how: ConvKind,
         from: Box<Expr>,
     },
-    /// Both operands have the node's `ty`. Integer overflow wraps.
+    /// Both operands have the same type: the node's `ty`, except for comparisons, `_ANDALSO` and `_ORELSE`, whose
+    /// operands share a type of their own and whose node is LONG. Integer overflow wraps.
     Binary {
         op: BinOp,
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
-    /// The operand has the node's `ty`.
-    Neg(Box<Expr>),
+    /// The operand has the node's `ty`, except for `_NEGATE`, whose node is LONG.
+    Unary {
+        op: UnOp,
+        operand: Box<Expr>,
+    },
     Concat(Box<Expr>, Box<Expr>),
+    /// A comparison (`op` is one of the six) of two strings, byte by byte: -1 or 0, typed LONG.
+    StrCompare {
+        op: BinOp,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    },
     /// A built-in function call; one slot per table argument, `None` for an absent optional argument. Each
     /// present argument is already converted to the slot's type.
     Call {

@@ -12,7 +12,7 @@ not say whether that behaviour is right (that is the divergence register's job).
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
 | `slice\` | 19 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants; `SOURCE.md`) |
-| `slice.list` | The 54 programs the new compiler must pass: `s01`–`s12` of `slice\` and 42 of `runtime_comparison` (see below) |
+| `slice.list` | The 70 programs the new compiler must pass: `s01`–`s12` and `s17` of `slice\` and 57 of `runtime_comparison` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -120,9 +120,9 @@ signed overflow being undefined in the generated C++ (no `-fwrapv`); the new com
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
 line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
 
-`slice.list` names the 54 programs the new compiler must pass (tier 2, `study\19`), also with
+`slice.list` names the 70 programs the new compiler must pass (tier 2, `study\19`), also with
 `QB64RUST_NO_FOLD=1`. `s13`–`s19` join it as `m2-control-flow-slice` makes them pass (its tasks 3.2, 4.2, 7.1–7.3);
-until then they are recorded but not listed.
+until then they are recorded but not listed (`s17` joined with task 3.2).
 
 ```
 cargo build --release
@@ -135,6 +135,20 @@ requires no panic, an exact round trip, no diagnostics for the listed ones, at l
 with an `.err` file, and the two shrink-only lists `tests\known_false_errors.list` and
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
+
+### Full corpus with `qb64rust` (2026-10-06, not a pass criterion)
+
+After the operators (`m2-control-flow-slice` tasks 3.1, 3.2), 282 programs, in 3 min 14 s of compile and run time:
+
+| Result | Programs |
+|---|---|
+| Pass | 84: the 70 of `slice.list` and 14 `.err` programs (rejected with at least one error not marked "not supported yet", the tier-2 meaning since `m2-parser-breadth` task 2.1) |
+| Rejected with a diagnostic (exit status 1) | 187 (186 `.output` programs and the compile-only `239_lprint`) |
+| `.err` programs that get only "not supported yet" errors | 6 |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+The 15 `runtime_comparison` programs that joined `slice.list` use comparisons, logic, `\`, `MOD` or `^`.
 
 ### Full corpus with `qb64rust` (2026-10-04, not a pass criterion)
 

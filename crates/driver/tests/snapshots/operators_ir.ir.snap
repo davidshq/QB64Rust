@@ -1,0 +1,21 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 6 may_raise
+  Assign L:I32 = IDiv:I32(Var L:I32, Const 2:I32)
+Stmt line 7 may_raise
+  Assign L:I32 = Mod:I32(Var L:I32, Const 2:I32)
+Stmt line 8 may_raise
+  Assign S:F32 = (Pow:F80((Var S:F32 -> Convert F80 Widen), (Const 2:I16 -> Convert F80 Nearest)) -> Convert F32 Nearest)
+Stmt line 9
+  Assign L:I32 = Lt:I32(Var L:I32, Const 2:I32)
+Stmt line 10
+  Assign L:I32 = And:I32(Var L:I32, Const 2:I32)
+Stmt line 11
+  Assign L:I32 = AndAlso:I32(Var L:I32, Const 2:I32)
+Stmt line 12
+  End

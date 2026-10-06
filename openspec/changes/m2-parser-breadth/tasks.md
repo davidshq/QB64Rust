@@ -133,8 +133,9 @@ through to C++ as its own OpenSpec change, with the IR review after it. Groups 7
   inactive code is skipped; active `$ERROR` is a real error. Verify: `parse-ok` tests with a `$IF` inside a block
   and an inactive block header; a `check-fail` test for a header in an active `$IF` closed outside it (M6, D8); the
   55 `$IF` files leave `known_parse_gaps.list` where nothing else is missing.
-- [ ] 7.2 Declarations (`decl.rs`): every `DIM`/`REDIM` form, `CONST`, `DEFxxx`, `_DEFINE`, `COMMON`, `ERASE`,
-  `OPTION`, `SUB … STATIC`, array parameters. `sema` marks what it does not compile.
+- [ ] 7.2 Declarations (`decl.rs`): every `DIM`/`REDIM` form, `DEFxxx`, `_DEFINE`, `COMMON`, `ERASE`,
+  `SUB … STATIC`, array parameters. `sema` marks what it does not compile. `CONST` and `OPTION` are parsed and
+  compiled by `m2-control-flow-slice` (its design D2), not here.
 - [ ] 7.3 Control transfer (`flow.rs`): `GOTO`, `GOSUB`, `RETURN`, `ON … GOTO/GOSUB`, event `ON …` forms, `STOP`.
 - [ ] 7.4 I/O statements (`io.rs`) and assignment forms (`assign.rs`), D5 list.
 - [ ] 7.5 `specialformat` templates: grammar values in `builtins` (build-time parse, tests over all 172), `syntax ->

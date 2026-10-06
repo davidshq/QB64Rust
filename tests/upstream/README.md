@@ -95,3 +95,8 @@ marked errors (the same 54 as the `upstream/` entries of `known_unsupported_reje
 (`arrays/42_` and `43_err_solved_bug_Incorrect_nr_of_args`) but are **not added to `pass.list`**: their only real
 error is the parse gap `expected , or )` at `f(10).a(5)`, not the old compiler's reason (wrong argument count to
 `UBOUND`/`LBOUND`), so they would leave the ratchet once member access parses. **Progress stays 10 of 279.**
+
+**Upstream progress, 2026-10-06: 11 of 279** (`m2-control-flow-slice` tasks 3.1, 3.2, the operators). Full run:
+11 pass (`noprompt/noprompt-continue-fatal`, a fatal `1 \ 0`, added to `pass.list`); none builds and prints the
+wrong output; the 56 `.err` programs all get only "not supported yet" errors; the rest are rejected with a
+diagnostic, 1 known failure.

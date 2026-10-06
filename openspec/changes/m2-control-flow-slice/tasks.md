@@ -70,28 +70,59 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
     `ASC` forms of the scenarios are `v17_a_pending`); `ir` snapshots FOR loop lowered (6.2), Header error follows
     from the pending-error rule (7.3). D-003 (`RETURN label` with nothing pending) cannot be a slice program, the
     old program crashes: a frontend or CLI test in 7.2.
-- [ ] 1.3 `m2-parser-breadth`: take `CONST` and `OPTION` out of its task 7.2 (pointing here), and change the
+- [x] 1.3 `m2-parser-breadth`: take `CONST` and `OPTION` out of its task 7.2 (pointing here), and change the
   example of its pipeline delta's scenario "Statement not compiled yet" from `FOR` to `SELECT CASE`. Verify:
   `openspec validate m2-parser-breadth` and `openspec validate m2-control-flow-slice` pass.
+  Done 2026-10-06: also its design D5's `decl.rs` list. Both validate; the new example
+  (`SELECT CASE x: CASE 1: PRINT x: END SELECT`) gives a `SelectBlock` with a `CaseClause` holding the `PRINT`,
+  and one "not supported yet" error at `SELECT`, checked with `qb64rust -z` and `--dump tree`.
 
 ## 2. `sema` split (D3)
 
-- [ ] 2.1 Split `crates\sema\src\check.rs` by family into `check\` modules (expressions, declarations,
+- [x] 2.1 Split `crates\sema\src\check.rs` by family into `check\` modules (expressions, declarations,
   procedures, flow and error handling, blocks), moving code only. Verify: `cargo test` with no snapshot changed;
   `cargo clippy --workspace --all-targets -- -D warnings` clean; no module over about 600 lines.
+  Done 2026-10-06: `mod.rs` 437 lines (entry points, `Skips`, `Scope`, `Checker`, shared helpers, the statement
+  dispatcher, metacommands, `assign`, `print`), `expr.rs` 417 (expressions, `store`, conversions, folding helpers),
+  `decl.rs` 308 (names, reserved names, variables by scope, `DIM`/`STATIC`/`SHARED`), `proc.rs` 252 (pass 1,
+  calls, arguments, `EXIT SUB`/`FUNCTION`), `flow.rs` 159 (labels, `ON ERROR`, `RESUME`, `ERROR`), `blocks.rs` 99
+  (`block`, `block_parts`). Moved by a line-range script that checked every source line arrives once; only
+  imports, `pub(super)` where another module calls an item, and one misplaced doc comment
+  (`first_token_span`'s) changed. `cargo test` passes with no snapshot changed, clippy and `cargo fmt --check`
+  clean.
 
 ## 3. Operators (D4)
 
-- [ ] 3.1 `sema`: comparisons (numeric with the float-narrowing rule, strings as `StrCompare`), `NOT`, `AND`, `OR`,
+- [x] 3.1 `sema`: comparisons (numeric with the float-narrowing rule, strings as `StrCompare`), `NOT`, `AND`, `OR`,
   `XOR`, `EQV`, `IMP`, `_ANDALSO`, `_ORELSE`, `_NEGATE`, `\`, `MOD`, `^`, with the types and conversions of D4 and
   `UnOp` replacing `Neg`; folding for comparisons and logic on integers, never for `\`/`MOD` by 0 or `^`. The
   typing rules are one function in `check\expr.rs` (D4), the only place that matches on `Ty` to type an operator.
   Verify:
   `typed` frontend tests for each operator family (types and conversion nodes shown); unit tests of folding,
   including wrap at the 32- and 64-bit limits; `check-fail` for a string compared with a number.
-- [ ] 3.2 IR and emitter for the operators (`qb_safe_idiv`, `qb_safe_mod`, `pow2`, the string comparison calls,
+  Done 2026-10-06, together with 3.2 (the IR reuses `sema`'s `BinOp`, and the emitter matches every variant, so
+  neither can lag behind). As built: the typing function `op_typing` and the folding live in their own module
+  `check\ops.rs` (pure functions, no `Checker`), not in `check\expr.rs`, which would otherwise have passed 2.1's
+  600 lines; `expr.rs` calls them. `\` and `MOD` also stay unfolded for the smallest value of the type by -1
+  (unspecified, the old program crashes), so a folded and an unfolded build agree. Tests: `typed`
+  `operators_compare`, `operators_logic`, `operators_div_mod_pow`; `check-fail` `operators_errors` (string against
+  number, string operands, `NOT`/`_NEGATE`/`_ANDALSO` of a string, the `IMP` chain with and without parentheses,
+  and `5 IMP (3 IMP 0)` accepted); 7 unit tests in `ops.rs` (folding at the 32- and 64-bit limits, `\`/`MOD`
+  by 0 and `MIN \ -1` not folded, the typing of each family, strings). Two snapshots changed as expected:
+  `unsupported` (line 5 now stops at `LEN`; line 8 got `SQR(2)` so the `IF` line still shows an inner error) and
+  `member_access` (`s (5 / 2) = 2, 0` is now a valid call, as in upstream `t659_sub_call_comparisons`).
+- [x] 3.2 IR and emitter for the operators (`qb_safe_idiv`, `qb_safe_mod`, `pow2`, the string comparison calls,
   `-(a==b)` forms, `&&`/`||` for the short-circuit pair). Verify: `cpp` snapshot per family; tier 2 `s17_operators`
   passes, also with `QB64RUST_NO_FOLD=1`; `crates\README.md` lists the operators as supported.
+  Done 2026-10-06: `ValueKind::Unary` replaces `Neg`, `ValueKind::StrCompare` added; `\`, `MOD` and `^` make a
+  statement `may_raise` (pinned by the `ir` test `operators_ir`); the IR dump marks only `+ - *` as wrapping. `cpp`
+  snapshot `operators_cpp` (one line per family). **Bug found and fixed:** `/` was emitted as `(a/b)`, so `*__A/*__B` (two variables) opened a C comment
+  and the C++ did not compile (the program was rejected, no wrong code); `/` is now followed by a space, as in the
+  old compiler (`a/ b`; `lowering_pairs_cpp` snapshot changed by that space). Tier 2: `s17_operators` passes with
+  and without folding. The full corpus run then passed 15 more `runtime_comparison` programs (comparisons, logic,
+  `\`, `MOD`, `^`), so `slice.list` grew from 54 to 70 (`s17` and those 15), all passing with and without folding;
+  no corpus program fails at run time. Upstream: `noprompt/noprompt-continue-fatal` (`1 \ 0` is fatal) passes,
+  **11 of 279**.
 
 ## 4. Constants and `OPTION _EXPLICIT` (D2, D6, D7)
 

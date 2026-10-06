@@ -1,0 +1,71 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+line 2: ConsoleOnly
+line 7: Print newline
+  Num
+    Binary Eq : I32
+      Convert Widen : I32
+        Var I : I16
+      Var L : I32
+  Num
+    Binary Lt : I32
+      Convert Widen : I64
+        Var L : I32
+      Var Q : I64
+  Num
+    Binary Ne : I32
+      Convert Widen : I32
+        Var I : I16
+      Int 3 : I32
+line 8: Print newline
+  Num
+    Binary Eq : I32
+      Var S : F32
+      Convert Nearest : F32
+        Float 2.1E+0 : F64 (qb F32)
+  Num
+    Binary Eq : I32
+      Convert Nearest : F32
+        Float 2.1E+0 : F64 (qb F32)
+      Var S : F32
+  Num
+    Binary Ge : I32
+      Var S : F32
+      Convert Nearest : F32
+        Var D : F64
+  Num
+    Binary Le : I32
+      Var D : F64
+      Convert Nearest : F64
+        Var F : F80
+line 9: Print newline
+  Num
+    Binary Gt : I32
+      Convert Nearest : F32
+        Var L : I32
+      Var S : F32
+  Num
+    Binary Eq : I32
+      Convert Nearest : F64
+        Var Q : I64
+      Var D : F64
+line 10: Print newline
+  Num
+    StrCompare Lt : I32
+      Str "a" : Str
+      Str "b" : Str
+  Num
+    StrCompare Eq : I32
+      Var A : Str
+      Var B : Str
+line 11: Print newline
+  Num
+    Int -1 : I32
+  Num
+    Int 0 : I32
+  Num
+    Int -1 : I32
+line 12: End

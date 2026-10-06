@@ -141,7 +141,8 @@ operand outside `_INTEGER64` range. `a IMP b IMP c` gives `a OR b OR c` in the o
 supported yet". The smallest LONG or `_INTEGER64` `\ -1` and `MOD -1` crash the old program; `qb_safe_idiv` and
 `qb_safe_mod` do the same, kept for now (`study\00` §6, "Fix").
 
-The typing rules live in one place: one function in `check\expr.rs` takes the operator and the operands' (`ty`,
+The typing rules live in one place: one function (as built: `op_typing` in `check\ops.rs`, beside the folding;
+task 3.1) takes the operator and the operands' (`ty`,
 `qb`) pairs and returns the computation type, the believed type and the conversion of each operand; nothing else
 in `sema`, the folder or the constant evaluator (D6) matches on `Ty` to type an operator. *Why:* `Ty` becomes a
 type table with unsigned types at step 6 of the order of work (`study\23` §2.5), after these 16 operators exist;

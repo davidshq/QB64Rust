@@ -175,7 +175,7 @@ the order of `study\22` §5):
    `WHILE`, `GOTO`, `GOSUB`/`RETURN`, `CONST`, `OPTION _EXPLICIT`, labels inside blocks and procedures, `RESUME
    NEXT` after an error in a block header, and the check of `NEXT` variables against their `FOR` (left out of the
    parser, design D4 "As built"). The block nodes and accessors exist (`ast.rs`); `sema` marks them in
-   `check.rs` `block_parts`. First count the corpus and upstream programs blocked only by these. Then the IR
+   `check\blocks.rs` `block_parts`. First count the corpus and upstream programs blocked only by these. Then the IR
    review (keep, or merge into the typed tree; `study\20` §3.4). Fourth review (2026-10-05, order unchanged),
    written into the change `m2-control-flow-slice`: the IR's error rule is restated (a pending error and
    placeholder values, checked at named points; "skips the rest of the statement" was true only of `PRINT`) and
@@ -188,8 +188,13 @@ the order of `study\22` §5):
    program-wide. Decided 2026-10-06: `RETURN label` with nothing pending is guarded (the old program crashes on
    the next `GOSUB`), `DIVERGENCES.md` D-003. Task 1.2 done 2026-10-06: slice programs `s13`–`s19` recorded
    (corpus now 282 programs); they agree with every spec scenario, coverage listed in the task; they join
-   `slice.list` as they pass. Next: task 1.3 (`m2-parser-breadth` hands `CONST`/`OPTION` over), then 2.1, the
-   `check.rs` split.
+   `slice.list` as they pass. Tasks 1.3 and 2.1 done 2026-10-06: `m2-parser-breadth` handed `CONST`/`OPTION`
+   over; `sema`'s `check.rs` split into `check\` (`mod.rs`, `expr.rs`, `decl.rs`, `proc.rs`, `flow.rs`,
+   `blocks.rs`; code moved only, no snapshot changed). Tasks 3.1 and 3.2 done 2026-10-06: every operator through
+   to C++ (typing in `check\ops.rs`); `s17_operators` and 15 `runtime_comparison` programs pass, so `slice.list`
+   has **70** programs (54 before); full corpus 84 pass, none wrong at run time; upstream **11 of 279**. Found on
+   the way: `/` between two variables was emitted as `/*` (a C comment; the C++ failed to compile), fixed. Next:
+   group 4, constants and `OPTION _EXPLICIT` (task 4.1, the parser).
 4. `m2-parser-breadth` groups 7 to 9, with the blunt follow-on rule and block crossing marked (`study\23` §2.3,
    §2.4; design D10, D4).
 5. A thin language server in the extension: syntax errors, outline, folding, go to definition for procedures and

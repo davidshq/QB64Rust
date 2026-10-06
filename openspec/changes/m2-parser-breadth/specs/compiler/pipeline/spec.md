@@ -24,9 +24,9 @@ parser diagnostic. A construct that the later stages do not compile yet SHALL be
 `sema` at that node, not by the parser.
 
 #### Scenario: Statement not compiled yet
-- **WHEN** a program contains `FOR i = 1 TO 3: PRINT i: NEXT`
-- **THEN** the tree has a `ForBlock` holding the `PRINT` statement and a `NextStmt`, and the only diagnostic is
-  one "not supported yet" error at `FOR`
+- **WHEN** a program contains `SELECT CASE x: CASE 1: PRINT x: END SELECT`
+- **THEN** the tree has a `SelectBlock` holding a `CaseClause` with the `PRINT` statement, and the only
+  diagnostic is one "not supported yet" error at `SELECT`
 
 #### Scenario: Built-in statement read by its template
 - **WHEN** a program contains `LINE (0, 0)-(9, 9), , BF`

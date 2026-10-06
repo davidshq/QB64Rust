@@ -223,7 +223,7 @@ makefit(tqbs);
 #line 8 "lowering_pairs_cpp.bas"
 qbs_print(tqbs,0);
 #line 8 "lowering_pairs_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((long double)((((long double)(1))/((long double)(3))))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((long double)((((long double)(1))/ ((long double)(3))))),qbs_new_txt(" ")));
 #line 8 "lowering_pairs_cpp.bas"
 if (is_error_pending()) goto skip4;
 #line 8 "lowering_pairs_cpp.bas"

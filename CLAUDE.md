@@ -130,7 +130,7 @@ questions: `STATUS.md`.
 | `<qb64contain>`, `<share>` | Placeholders for the user's local folder of earlier projects (QB64Fresh, qb64pe-vscode, a QB64pe clone with notes) and its network copy; used in `study\` and `STATUS.md` instead of machine-specific paths. Do not write full local paths or host names into this repo. |
 | `SOMEDAY.md` | Deferred features and ideas |
 | `STATUS.md` | Current phase, what is done, next steps |
-| `tests\corpus\` | Golden corpus: 282 programs with the old compiler's recorded output or compile error (`README.md`), including the `slice\` group; checked by `run_legacy_tests.py --suite corpus`; `slice.list` names the 54 the new compiler must pass |
+| `tests\corpus\` | Golden corpus: 282 programs with the old compiler's recorded output or compile error (`README.md`), including the `slice\` group; checked by `run_legacy_tests.py --suite corpus`; `slice.list` names the 70 the new compiler must pass |
 | `Cargo.toml`, `crates\` | The new compiler `qb64rust` (Rust workspace, one crate per stage; `crates\README.md`: crate map, build, tests, snapshots) |
 | `tests\frontend\` | Front-end tests of the new compiler, run by mode line (`' TEST: <mode>`; modes `parse-ok`, `check-ok`, `check-fail`, `typed`, `ir`, `cpp`) |
 | `tests\upstream\` | Copy of the text files of QB64pe's `tests\compile_tests` (MIT, `SOURCE.md`, never edited by hand); `pass.list` (upstream programs the new compiler passes) and `deferred.list` (the 125 that need deferred array features); progress "x of 279" (`README.md`) |

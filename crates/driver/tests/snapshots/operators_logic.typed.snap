@@ -1,0 +1,103 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+line 2: ConsoleOnly
+line 7: Print newline
+  Num
+    Convert Widen : I64
+      Not : I32 (qb I64)
+        Convert Widen : I32
+          Var I : I16
+  Num
+    Convert Widen : I64
+      Binary And : I32 (qb I64)
+        Convert Widen : I32
+          Var I : I16
+        Convert Widen : I32
+          Var I : I16
+  Num
+    Convert Widen : I64
+      Binary Or : I32 (qb I64)
+        Var L : I32
+        Convert Widen : I32
+          Var I : I16
+  Num
+    Binary Xor : I64
+      Convert Widen : I64
+        Var L : I32
+      Var Q : I64
+line 8: Print newline
+  Num
+    Convert Widen : I64
+      Binary Eqv : I32 (qb I64)
+        Convert Widen : I32
+          Var I : I16
+        Var L : I32
+  Num
+    Binary Imp : I64
+      Convert Widen : I64
+        Var I : I16
+      Var Q : I64
+line 9: Print newline
+  Num
+    Not : I64
+      Convert RoundEven : I64
+        Var S : F32
+  Num
+    Binary And : I64
+      Convert RoundEven : I64
+        Var S : F32
+      Int 3 : I64
+  Num
+    Binary Or : I64
+      Convert RoundEven : I64
+        Float 1.5E+0 : F64 (qb F32)
+      Convert Widen : I64
+        Var I : I16
+line 10: Print newline
+  Num
+    Convert Widen : I64
+      Binary AndAlso : I32 (qb I64)
+        Convert Widen : I32
+          Var I : I16
+        Var L : I32
+  Num
+    Convert Widen : I64
+      Binary OrElse : I32 (qb I64)
+        Var Q : I64
+        Convert Widen : I64
+          Var I : I16
+  Num
+    Convert Widen : I64
+      Negate : I32 (qb I64)
+        Convert Widen : I32
+          Var I : I16
+  Num
+    Convert Widen : I64
+      Negate : I32 (qb I64)
+        Convert RoundEven : I64
+          Var S : F32
+  Num
+    Convert Widen : I64
+      Binary AndAlso : I32 (qb I64)
+        Convert RoundEven : I64
+          Var S : F32
+        Int 1 : I64
+line 11: Print newline
+  Num
+    Int 2 : I64
+  Num
+    Int -6 : I64
+  Num
+    Int -7 : I64
+  Num
+    Int -5 : I64
+  Num
+    Int -1 : I64
+  Num
+    Int 0 : I64
+  Num
+    Int -1 : I64
+line 12: End

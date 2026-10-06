@@ -130,17 +130,14 @@ fn val(p: &Program, v: &Value) -> String {
         ValueKind::Var(id) => format!("Var {}:{}", var(p, *id), ty(v.ty)),
         ValueKind::Convert { how, from } => format!("({} -> Convert {} {how:?})", val(p, from), ty(v.ty)),
         ValueKind::Binary { op, lhs, rhs } => {
-            let o = match op {
-                BinOp::Add => "Add",
-                BinOp::Sub => "Sub",
-                BinOp::Mul => "Mul",
-                BinOp::Div => "Div",
-            };
-            let wrap = if v.ty <= Ty::I64 { " wrap" } else { "" };
-            format!("{o}:{}({}, {}){wrap}", ty(v.ty), val(p, lhs), val(p, rhs))
+            // Only `+`, `-` and `*` can overflow an integer type (and `\` of the smallest value by -1, unspecified).
+            let wraps = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul) && v.ty <= Ty::I64;
+            let wrap = if wraps { " wrap" } else { "" };
+            format!("{op:?}:{}({}, {}){wrap}", ty(v.ty), val(p, lhs), val(p, rhs))
         }
-        ValueKind::Neg(x) => format!("Neg:{}({})", ty(v.ty), val(p, x)),
+        ValueKind::Unary { op, operand } => format!("{op:?}:{}({})", ty(v.ty), val(p, operand)),
         ValueKind::Concat(a, b) => format!("Concat({}, {})", val(p, a), val(p, b)),
+        ValueKind::StrCompare { op, lhs, rhs } => format!("StrCompare {op:?}({}, {})", val(p, lhs), val(p, rhs)),
         ValueKind::CallBuiltin { id, args } => {
             let args: Vec<String> = args
                 .iter()

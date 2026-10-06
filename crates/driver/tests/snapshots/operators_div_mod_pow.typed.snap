@@ -1,0 +1,80 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+line 2: ConsoleOnly
+line 7: Print newline
+  Num
+    Convert Widen : I64
+      Binary IDiv : I32 (qb I64)
+        Convert Widen : I32
+          Var I : I16
+        Int 2 : I32
+  Num
+    Convert Widen : I64
+      Binary Mod : I32 (qb I64)
+        Var L : I32
+        Convert Widen : I32
+          Var I : I16
+  Num
+    Binary IDiv : I64
+      Var Q : I64
+      Convert Widen : I64
+        Var L : I32
+  Num
+    Binary Mod : I64
+      Convert RoundEven : I64
+        Var S : F32
+      Int 2 : I64
+line 8: Print newline
+  Num
+    Int 3 : I64
+  Num
+    Int -1 : I64
+  Num
+    Convert Widen : I64
+      Binary IDiv : I32 (qb I64)
+        Int 1 : I32
+        Int 0 : I32
+  Num
+    Convert Widen : I64
+      Binary Mod : I32 (qb I64)
+        Int 5 : I32
+        Int 0 : I32
+line 9: Print newline
+  Num
+    Convert Nearest : F32
+      Binary Pow : F80 (qb F32)
+        Convert Nearest : F80
+          Var I : I16
+        Convert Nearest : F80
+          Int 2 : I16
+  Num
+    Convert Nearest : F64
+      Binary Pow : F80 (qb F64)
+        Convert Nearest : F80
+          Var L : I32
+        Convert Nearest : F80
+          Int 2 : I16
+  Num
+    Binary Pow : F80
+      Convert Nearest : F80
+        Var Q : I64
+      Convert Nearest : F80
+        Int 2 : I16
+  Num
+    Convert Nearest : F64
+      Binary Pow : F80 (qb F64)
+        Convert Nearest : F80
+          Var I : I16
+        Convert Widen : F80
+          Var D : F64
+  Num
+    Convert Nearest : F32
+      Binary Pow : F80 (qb F32)
+        Convert Nearest : F80
+          Int 2 : I16
+        Convert Widen : F80
+          Float 0.5E+0 : F64 (qb F32)
+line 10: End

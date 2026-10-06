@@ -21,7 +21,7 @@
 
 use qb64rust_builtins::BuiltinId;
 use qb64rust_ir::{
-    Arg, BinOp, Body, Const, Conv, LabelId, Op, PrintItem, Proc, ProcKind, Program, Resume, Storage, Ty, Value,
+    Arg, BinOp, Body, Const, Conv, LabelId, Op, PrintItem, Proc, ProcKind, Program, Resume, Storage, Ty, UnOp, Value,
     ValueKind, Var, VarId,
 };
 use std::fmt::Write as _;
@@ -656,16 +656,66 @@ impl Emitter<'_> {
                 }
             }
             ValueKind::Binary { op, lhs, rhs } => {
-                let o = match op {
-                    BinOp::Add => "+",
-                    BinOp::Sub => "-",
-                    BinOp::Mul => "*",
-                    BinOp::Div => "/",
-                };
-                format!("({}{o}{})", self.value(lhs), self.value(rhs))
+                let (a, b) = (self.value(lhs), self.value(rhs));
+                // As the old compiler writes them (`study\02` §1.4); comparisons turn C's 1 into -1. `/` is followed
+                // by a space: `*a/*b` would open a comment.
+                match op {
+                    BinOp::Add => format!("({a}+{b})"),
+                    BinOp::Sub => format!("({a}-{b})"),
+                    BinOp::Mul => format!("({a}*{b})"),
+                    BinOp::Div => format!("({a}/ {b})"),
+                    BinOp::Eq => format!("(-({a}=={b}))"),
+                    BinOp::Ne => format!("(-({a}!={b}))"),
+                    BinOp::Lt => format!("(-({a}<{b}))"),
+                    BinOp::Gt => format!("(-({a}>{b}))"),
+                    BinOp::Le => format!("(-({a}<={b}))"),
+                    BinOp::Ge => format!("(-({a}>={b}))"),
+                    BinOp::And => format!("({a}&{b})"),
+                    BinOp::Or => format!("({a}|{b})"),
+                    BinOp::Xor => format!("({a}^{b})"),
+                    BinOp::Eqv => format!("(~({a}^{b}))"),
+                    BinOp::Imp => format!("((~({a}))|{b})"),
+                    BinOp::AndAlso => format!("(-({a}&&{b}))"),
+                    BinOp::OrElse => format!("(-({a}||{b}))"),
+                    BinOp::IDiv => format!("qb_safe_idiv({a},{b})"),
+                    BinOp::Mod => format!("qb_safe_mod({a},{b})"),
+                    BinOp::Pow => format!("pow2({a},{b})"),
+                }
             }
-            ValueKind::Neg(x) => format!("(-({}))", self.value(x)),
+            ValueKind::Unary { op, operand } => {
+                let x = self.value(operand);
+                match op {
+                    UnOp::Neg => format!("(-({x}))"),
+                    UnOp::Not => format!("(~({x}))"),
+                    UnOp::Negate => format!("(-(!({x})))"),
+                }
+            }
             ValueKind::Concat(a, b) => format!("qbs_add({},{})", self.value(a), self.value(b)),
+            ValueKind::StrCompare { op, lhs, rhs } => {
+                let f = match op {
+                    BinOp::Eq => "qbs_equal",
+                    BinOp::Ne => "qbs_notequal",
+                    BinOp::Lt => "qbs_lessthan",
+                    BinOp::Gt => "qbs_greaterthan",
+                    BinOp::Le => "qbs_lessorequal",
+                    BinOp::Ge => "qbs_greaterorequal",
+                    BinOp::Add
+                    | BinOp::Sub
+                    | BinOp::Mul
+                    | BinOp::Div
+                    | BinOp::And
+                    | BinOp::Or
+                    | BinOp::Xor
+                    | BinOp::Eqv
+                    | BinOp::Imp
+                    | BinOp::AndAlso
+                    | BinOp::OrElse
+                    | BinOp::IDiv
+                    | BinOp::Mod
+                    | BinOp::Pow => unreachable!("a string comparison with {op:?}"),
+                };
+                format!("{f}({},{})", self.value(lhs), self.value(rhs))
+            }
             ValueKind::CallBuiltin { id, args } => self.call(*id, args),
             ValueKind::CallProc { proc, args } => {
                 let a = self.args(args);

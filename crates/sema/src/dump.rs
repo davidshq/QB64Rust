@@ -149,14 +149,19 @@ fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
             expr(p, lhs, depth + 1, out);
             expr(p, rhs, depth + 1, out);
         }
-        ExprKind::Neg(x) => {
-            writeln!(out, "{pad}Neg : {types}").unwrap();
-            expr(p, x, depth + 1, out);
+        ExprKind::Unary { op, operand } => {
+            writeln!(out, "{pad}{op:?} : {types}").unwrap();
+            expr(p, operand, depth + 1, out);
         }
         ExprKind::Concat(a, b) => {
             writeln!(out, "{pad}Concat : {types}").unwrap();
             expr(p, a, depth + 1, out);
             expr(p, b, depth + 1, out);
+        }
+        ExprKind::StrCompare { op, lhs, rhs } => {
+            writeln!(out, "{pad}StrCompare {op:?} : {types}").unwrap();
+            expr(p, lhs, depth + 1, out);
+            expr(p, rhs, depth + 1, out);
         }
         ExprKind::Call { builtin, args: slots } => {
             writeln!(out, "{pad}Call {} : {types}", builtin.get().name.to_ascii_uppercase()).unwrap();

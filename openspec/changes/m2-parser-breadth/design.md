@@ -142,7 +142,8 @@ As built (group 6, 2026-10-05; measurements added then in `study\00` §5, "Block
 (`GOTO`, `GOSUB`, `RETURN`, `ON … GOTO/GOSUB`, `ON TIMER/KEY/STRIG/… GOSUB`, `STOP`, `SLEEP`-like plain calls stay
 calls), `blocks.rs` (D4), `decl.rs` (`DIM`/`REDIM` with bounds `a(1 TO 5, 3)`, `a()`, `_PRESERVE`, `SHARED`,
 `AS [_UNSIGNED] type`, `AS STRING * n`, `AS type name`, `DIM AS type a, b`; `CONST`, `DEFxxx` and `_DEFINE`
-letter ranges, `COMMON [SHARED]`, `ERASE`, `OPTION BASE/_EXPLICIT/_EXPLICITARRAY`, `STATIC` header suffix),
+letter ranges, `COMMON [SHARED]`, `ERASE`, `OPTION BASE/_EXPLICIT/_EXPLICITARRAY`, `STATIC` header suffix;
+`CONST` and `OPTION` moved to `m2-control-flow-slice` D2 on 2026-10-06),
 `data.rs` (`DATA`, `READ`, `RESTORE`), `io.rs` (`PRINT [#n,] [USING fmt;]`, `LPRINT`, `WRITE`, `INPUT [;]
 ["prompt"{;|,}] vars`, `INPUT #`, `LINE INPUT`, `OPEN` both forms, `CLOSE`, `GET`/`PUT` file forms, `FIELD`,
 `SEEK`, `NAME … AS`), `assign.rs` (`LET`, `MID$(…) = `, `LSET`/`RSET`, `SWAP`, and assignments to built-in

@@ -1,4 +1,4 @@
-# Corpus programs the new compiler must pass (changes m2-workspace-and-slice and m2-procedures-and-errors).
+# Corpus programs the new compiler must pass (changes m2-workspace-and-slice, m2-procedures-and-errors and m2-control-flow-slice).
 # One <group>/<name> per line; run with: run_legacy_tests.py --suite corpus --list tests/corpus/slice.list
 slice/s01_literals
 slice/s02_integer_wrap
@@ -54,3 +54,19 @@ runtime_comparison/228_err_erl_values
 runtime_comparison/229_resume_next_after_print
 runtime_comparison/230_error_statement
 runtime_comparison/247_on_error_simple
+runtime_comparison/10_math_mod
+runtime_comparison/112_numeric_compare
+runtime_comparison/11_math_backslash
+runtime_comparison/138_string_eq
+runtime_comparison/158_math_negate
+runtime_comparison/161_integer_division
+runtime_comparison/162_mod_edge
+runtime_comparison/244_op_exp
+runtime_comparison/36_binary_ops
+runtime_comparison/37_logical_and_or
+runtime_comparison/38_comparison_ops
+runtime_comparison/73_string_compare
+runtime_comparison/89_xor
+runtime_comparison/90_mod_negative
+runtime_comparison/91_backslash_negative
+slice/s17_operators

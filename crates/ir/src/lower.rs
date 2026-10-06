@@ -151,8 +151,16 @@ fn value_of(e: &sema::Expr) -> Value {
             lhs: Box::new(value_of(lhs)),
             rhs: Box::new(value_of(rhs)),
         },
-        sema::ExprKind::Neg(x) => ValueKind::Neg(Box::new(value_of(x))),
+        sema::ExprKind::Unary { op, operand } => ValueKind::Unary {
+            op: *op,
+            operand: Box::new(value_of(operand)),
+        },
         sema::ExprKind::Concat(a, b) => ValueKind::Concat(Box::new(value_of(a)), Box::new(value_of(b))),
+        sema::ExprKind::StrCompare { op, lhs, rhs } => ValueKind::StrCompare {
+            op: *op,
+            lhs: Box::new(value_of(lhs)),
+            rhs: Box::new(value_of(rhs)),
+        },
         sema::ExprKind::Call { builtin, args } => ValueKind::CallBuiltin {
             id: *builtin,
             args: args.iter().map(|a| a.as_ref().map(value_of)).collect(),

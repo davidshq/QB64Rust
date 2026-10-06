@@ -475,9 +475,10 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
 - **New compiler (2026-10-03, `crates\README.md`):** tier 1 `cargo test` runs unit and snapshot tests (`insta`),
   `tests\frontend\` by mode line (`' TEST: parse-ok|check-ok|check-fail|typed|ir|cpp`), and the front end over every
   corpus program (no panic, exact byte round trip; no diagnostics for `tests\corpus\slice.list`; at least one error
-  for every `.err` program). Tier 2 runs the 54 programs of `slice.list` end to end with the corpus runner's
-  `--list`: all pass, also with constant folding off (2026-10-04). The full corpus with `qb64rust`: those 54 pass,
-  the 5 known failures are not run, everything else is rejected with a diagnostic (`tests\corpus\README.md`).
+  for every `.err` program). Tier 2 runs the programs of `slice.list` end to end with the corpus runner's
+  `--list` (70 on 2026-10-06): all pass, also with constant folding off. The full corpus with `qb64rust`: those
+  pass, and so do the `.err` programs that get a real error; the 5 known failures are not run; everything else is
+  rejected with a diagnostic (`tests\corpus\README.md`).
   Intentional differences from the old compiler are in `DIVERGENCES.md` (D-001, D-002: integer overflow wraps);
   the numeric rules are the spec `openspec\specs\language\numeric-semantics`, procedures and error handling the
   specs `language\procedures` and `language\error-handling`.

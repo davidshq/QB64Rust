@@ -6,6 +6,7 @@ dollar$sign$test/dollar$sign
 filename/filename.extra.extension
 name with spaces/test
 noprompt/noprompt-continue
+noprompt/noprompt-continue-fatal
 noprompt/noprompt-y
 parens()/parens()
 single'quote'test/single'quote'test
