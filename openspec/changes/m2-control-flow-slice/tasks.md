@@ -37,12 +37,39 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
   - D3, D4, D5, D10 and the numeric-semantics delta: `FOR` variable and string-condition errors; a `TYPE` member
     as `FOR` variable "not supported yet"; float operands of `_ANDALSO`/`_ORELSE`/`_NEGATE` rounded; chained `IMP`
     "not supported yet"; the smallest integer `\ -1` crash left unspecified (listed under "Fix").
-- [ ] 1.2 Write the slice programs of D11 (`s13_if` … `s19_header_errors`), update `tests\corpus\slice\SOURCE.md`,
+- [x] 1.2 Write the slice programs of D11 (`s13_if` … `s19_header_errors`), update `tests\corpus\slice\SOURCE.md`,
   record them with the old compiler (`--suite corpus --category slice --record`). Compare each result with the
   scenarios of the five spec deltas; correct the **spec** where they disagree and note it here. Verify: a second
   `--record` changes no file; every scenario of `language/control-flow`, `language/constants` and the new ones of
   `language/numeric-semantics` and `language/error-handling` is covered by a slice program or a planned frontend
   test (list which).
+  *Done 2026-10-06:* seven programs recorded (`s19` with a `.noprompt` of `continue` for its untrapped part); a
+  second `--record` changed no file. Every result agrees with the spec scenarios: **no spec correction**. They
+  raise errors only with `CHR$` (also inside `INSTR`), the built-ins the compiler has; the `ASC`/`LEN` forms stay
+  in `verification\v17_*`. Found on the way: `INSTR(s, "")` is 1 (so a failed `CHR$` inside `INSTR` gives 1, not
+  0); a nested single-line `IF`'s `ELSE` binds to the inner `IF`; `DO UNTIL` with a raising condition enters the
+  body, as D8 predicts; a `FOR` header error leaves the variable at its old value also when untrapped. With
+  `--cpp-opt` only `s17` differs (two LONG products, the known missing `-fwrapv`; `tests\corpus\README.md`).
+  `s18_const` is a parse gap until 4.1 (`tests\known_parse_gaps.list`, allowed as a new input). `_BYTE` loops are
+  not in `s15` (no `_BYTE` in the slice types; `v17_probe_for` has them). The programs join `slice.list` as they
+  pass (3.2, 4.2, 7.1–7.3). Coverage:
+  - `language/control-flow`: `s13` ELSEIF chain, Single-line IF with ELSE; `s14` LOOP UNTIL runs at least once;
+    `s15` Limits rounded to the wider type, _INTEGER64 variable at its maximum, Limits evaluated once, Body changes
+    the variable, Loop that does not run, INTEGER variable passes its range, SINGLE steps, EXIT FOR from inside an
+    IF; `s16` Jump into an IF body, RETURN in a SUB during a main GOSUB, GOSUB inside a SUB; frontend `check-fail`
+    Wrong order (5.2), GOTO from a SUB to a main-module label (5.1).
+  - `language/constants`: `s18` Constant used in a later SUB, Procedure constant shadows a main constant, CONST
+    inside a skipped block, Integer-valued constant is 64-bit, Right-associative power, Suffix rounds; frontend
+    `check-fail` Name used before its CONST line, Assignment to a constant (4.2), OPTION inside a SUB, Undeclared
+    variable (4.3); `check-ok` Declared variable and constant (4.3).
+  - `language/numeric-semantics` (new): all seven in `s17`.
+  - `language/error-handling` (new): `s19` IF condition raises, LOOP UNTIL condition raises, FOR header raises,
+    WHILE condition raises; `s16` RETURN without GOSUB inside a SUB (case added after the first recording).
+  - `compiler/pipeline` (new, for 7.3): `s19` ELSEIF condition raises, FOR limits computed with a placeholder
+    value, A SUB called with a raising argument and A store made with a placeholder value (both with `CHR$`; the
+    `ASC` forms of the scenarios are `v17_a_pending`); `ir` snapshots FOR loop lowered (6.2), Header error follows
+    from the pending-error rule (7.3). D-003 (`RETURN label` with nothing pending) cannot be a slice program, the
+    old program crashes: a frontend or CLI test in 7.2.
 - [ ] 1.3 `m2-parser-breadth`: take `CONST` and `OPTION` out of its task 7.2 (pointing here), and change the
   example of its pipeline delta's scenario "Statement not compiled yet" from `FOR` to `SELECT CASE`. Verify:
   `openspec validate m2-parser-breadth` and `openspec validate m2-control-flow-slice` pass.

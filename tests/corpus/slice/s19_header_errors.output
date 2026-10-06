@@ -1,0 +1,156 @@
+RESUME NEXT
+single-line IF
+  handler 5 
+  then
+block IF
+  handler 5 
+  then
+ELSEIF, the placeholder makes it false
+  handler 5 
+  else 2
+ELSEIF, the placeholder makes it true
+  handler 5 
+  elseif
+two ELSEIFs, the first raises and is false
+  handler 5 
+  elseif 2
+IF ... GOTO
+  handler 5 
+  after
+WHILE
+  handler 5 
+  body 1 
+  handler 5 
+  body 2 
+  handler 5 
+  body 3 
+DO WHILE
+  handler 5 
+  body 1 
+  handler 5 
+  body 2 
+  handler 5 
+  body 3 
+DO UNTIL
+  handler 5 
+  body 1 
+  handler 5 
+  body 2 
+  handler 5 
+  body 3 
+LOOP WHILE
+  body 1 
+  handler 5 
+  after 1 
+LOOP UNTIL
+  body 1 
+  handler 5 
+  after 1 
+FOR limit
+  handler 5 
+  body 0 
+  body 1 
+  body 2 
+  body 3 
+  after 4 
+FOR start
+  handler 5 
+  body 7 
+  after 8 
+FOR step
+  handler 5 
+  body 0 
+  body 1 
+  body 2 
+  body 3 
+  after 4 
+a store made with a placeholder value
+  handler 5 
+  []
+  handler 5 
+  [<>]
+  handler 5 
+  y 1 
+a SUB called with a raising argument
+  handler 5 
+  after showstr
+RESUME
+IF
+  handler 5 
+  then
+ELSEIF
+  handler 5 
+  else
+WHILE
+  handler 5 
+  body 1 
+  body 2 
+DO WHILE
+  handler 5 
+  body 1 
+  body 2 
+DO UNTIL
+  handler 5 
+  body 1 
+  body 2 
+LOOP WHILE
+  body 1 
+  handler 5 
+  body 2 
+  body 3 
+LOOP UNTIL
+  body 1 
+  handler 5 
+  body 2 
+  body 3 
+FOR start
+  handler 5 
+  body 3 
+  body 4 
+  after 5 
+FOR limit
+  handler 5 
+  body 1 
+  body 2 
+  body 3 
+  after 4 
+FOR step
+  handler 5 
+  body 1 
+  body 3 
+  body 5 
+  after 7 
+untrapped
+IF
+
+Runtime error: Line: 188 (in main module)
+Illegal function call
+  then
+WHILE
+
+Runtime error: Line: 191 (in main module)
+Illegal function call
+  body 1 
+
+Runtime error: Line: 191 (in main module)
+Illegal function call
+  body 2 
+
+Runtime error: Line: 191 (in main module)
+Illegal function call
+  body 3 
+LOOP UNTIL
+  body 1 
+
+Runtime error: Line: 200 (in main module)
+Illegal function call
+FOR limit
+
+Runtime error: Line: 203 (in main module)
+Illegal function call
+  body 0 
+  body 1 
+  body 2 
+  body 3 
+  after 4 
+end

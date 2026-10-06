@@ -49,6 +49,7 @@ corpus/runtime_comparison/86_name_rename.bas  # 4:7: not supported yet: `PRINT #
 corpus/runtime_comparison/95_two_files.bas  # 5:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/96_lof.bas  # 4:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/97_loc.bas  # 4:7: not supported yet: `PRINT #`
+corpus/slice/s18_const.bas  # 9:1: not supported yet: statement `CONST`
 qb64pe-source/internal/support/color/color0.bi  # 6:1: not supported yet: statement `CONST`
 qb64pe-source/internal/support/color/color32.bi  # 6:1: not supported yet: statement `CONST`
 qb64pe-source/internal/support/converter/AddPREFIX.bas  # 4:1: not supported yet: statement `DEFLNG`

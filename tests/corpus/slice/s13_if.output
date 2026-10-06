@@ -1,0 +1,36 @@
+ELSEIF chain
+  one
+  two
+  three or four
+  other 7 
+conditions are numbers
+  5 is true
+  -1 is true
+  0.4 is true
+  0 is false
+  2 AND 1 is false
+  c$ is b
+  c$ is still b
+single-line IF with ELSE
+b
+c
+a
+a2
+d
+single-line IF without ELSE
+  after
+single-line IF inside a single-line IF
+  inner else
+  after
+nested block IF
+  a, not b
+  still in a
+  a is 1
+block IF, false, no ELSE
+  after END IF
+IF ... GOTO and IF ... THEN GOTO
+  pass 1 
+  pass 2 
+  pass 3 
+  after the jump
+  no jump

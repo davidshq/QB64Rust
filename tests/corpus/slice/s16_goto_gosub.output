@@ -1,0 +1,72 @@
+GOTO into an IF branch whose condition is false
+  then 2
+  after END IF
+GOTO into a FOR that never ran (capped)
+  body 2 0 
+  body 1 0 
+  body 2 0 
+  body 1 0 
+  body 2 0 
+  after 0 
+GOTO out of a FOR, then the FOR again
+  body 1 
+  out at 2 
+  second run 1 
+  second run 2 
+GOTO into a WHILE body
+  in 1 
+  top 1 
+  in 2 
+  top 2 
+  in 3 
+  after 3 
+GOTO into a DO ... LOOP UNTIL body
+  in 1 
+  top 1 
+  in 2 
+  top 2 
+  in 3 
+  after 3 
+a backward GOTO as a loop
+  n 3 
+GOSUB
+  in g1
+  back from g1
+  in g1
+  in g1
+GOSUB nested
+  in outer
+  in inner
+  outer again
+  back from outer
+RETURN label
+  in g2
+  at back2
+  in g1
+  GOSUB after RETURN label works
+SUBs with their own labels
+  in s1
+  lab in s1
+  s1 done
+  s2 n 3 
+  lab2 in s2
+  s2 done
+RETURN with nothing pending
+  handler 3 
+  after RETURN
+  in sret
+  handler 3 
+  sret after RETURN
+  back from sret
+GOSUB from a handler
+  handler 9 
+  in hsub
+  after ERROR 9
+RETURN in a SUB while a main GOSUB is pending (ends the program)
+  in g3
+  in sret
+  handler 3 
+  sret after RETURN
+  g3 after sret
+  handler 3 
+  after g3's RETURN

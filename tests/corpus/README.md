@@ -11,8 +11,8 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 12 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling; `SOURCE.md`) |
-| `slice.list` | The 54 programs the new compiler must pass: the 12 of `slice\` and 42 of `runtime_comparison` (see below) |
+| `slice\` | 19 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants; `SOURCE.md`) |
+| `slice.list` | The 54 programs the new compiler must pass: `s01`–`s12` of `slice\` and 42 of `runtime_comparison` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -29,16 +29,16 @@ after an untrapped runtime error; `slice\s12_error_in_print`).
 A program that reaches `END` prints an empty line and `Press any key to continue` (no line end) on Windows; that
 trailer is part of its `.output`.
 
-## Counts (recorded 2026-10-03; `slice` `s08`–`s12` 2026-10-04)
+## Counts (recorded 2026-10-03; `slice` `s08`–`s12` 2026-10-04, `s13`–`s19` 2026-10-06)
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 12 |
+| `.output` | 235 | 2 | 19 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
 | `.normalize` sidecars | 3 (`212` `PATH` length, `234` `TIMER`, `238` a folder name in `cmd`'s error) | 0 | 0 |
-| `.noprompt` sidecars | 0 | 0 | 1 (`s12_error_in_print`: `continue`) |
+| `.noprompt` sidecars | 0 | 0 | 2 (`s12_error_in_print`, `s19_header_errors`: `continue`) |
 
 The 20 compile errors are programs written against QB64Fresh's idea of the language. They still test that a
 compiler rejects them, but not what their names say:
@@ -104,8 +104,10 @@ Programs that fail there:
 |---|---|---|
 | `verification/v11_wrap_o2` | `x + 1 > x` false for `x& = 2147483647`; `PRINT x + 1` gives `-2147483648` | `x + 1 > x` true; `PRINT x + 1` gives ` 2147483648` (the stored `y = x + 1` still wraps) |
 | `verification/v12_wrap_int64` | `x + 1 > x` false for `x&& = 9223372036854775807` | `x + 1 > x` true; the printed and stored values wrap in both builds |
+| `slice/s17_operators` | `(l AND l) * 1000000000` and `(l \ 1) * 1000000000` with `l& = 5` and `7` wrap in 32 bits (`705032704`, `-1589934592`) | they print `5000000000` and `7000000000` |
 
-Measured 2026-10-03; every `runtime_comparison` program gives the same output in both builds. That group has no
+Measured 2026-10-03 (`s17` 2026-10-06, the other `s13`–`s19` give the same output in both builds); every
+`runtime_comparison` program gives the same output in both builds. That group has no
 `_INTEGER64` program and no LONG overflow, which is why `v12` was added (`study\16` §8). Both differences come from
 signed overflow being undefined in the generated C++ (no `-fwrapv`); the new compiler wraps for both LONG and
 `_INTEGER64` (`CLAUDE.md`, 2026-10-03), so it must match the default-build files.
@@ -113,12 +115,14 @@ signed overflow being undefined in the generated C++ (no `-fwrapv`); the new com
 ## The `slice` group and `slice.list` (new compiler)
 
 `slice\` holds programs written for QB64Rust, recorded with `qb64pe.exe` like the rest: `s01`–`s07` by the change
-`m2-workspace-and-slice`, `s08`–`s12` (procedures, error handling) by `m2-procedures-and-errors` (`SOURCE.md`).
+`m2-workspace-and-slice`, `s08`–`s12` (procedures, error handling) by `m2-procedures-and-errors`, `s13`–`s19`
+(control flow, operators, constants, header errors) by `m2-control-flow-slice` (`SOURCE.md`).
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
 line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
 
 `slice.list` names the 54 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`:
+`QB64RUST_NO_FOLD=1`. `s13`–`s19` join it as `m2-control-flow-slice` makes them pass (its tasks 3.2, 4.2, 7.1–7.3);
+until then they are recorded but not listed.
 
 ```
 cargo build --release

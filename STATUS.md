@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-05 (session 16). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-06 (session 17). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
@@ -186,7 +186,10 @@ the order of `study\22` §5):
    called while an error is pending returns at once, an `ELSEIF` error is serviced at the next statement, one
    `GOSUB` stack for the program, a name used before its `CONST` line is an error, `OPTION _EXPLICIT` is
    program-wide. Decided 2026-10-06: `RETURN label` with nothing pending is guarded (the old program crashes on
-   the next `GOSUB`), `DIVERGENCES.md` D-003. Next: task 1.2, the slice programs `s13`–`s19`.
+   the next `GOSUB`), `DIVERGENCES.md` D-003. Task 1.2 done 2026-10-06: slice programs `s13`–`s19` recorded
+   (corpus now 282 programs); they agree with every spec scenario, coverage listed in the task; they join
+   `slice.list` as they pass. Next: task 1.3 (`m2-parser-breadth` hands `CONST`/`OPTION` over), then 2.1, the
+   `check.rs` split.
 4. `m2-parser-breadth` groups 7 to 9, with the blunt follow-on rule and block crossing marked (`study\23` §2.3,
    §2.4; design D10, D4).
 5. A thin language server in the extension: syntax errors, outline, folding, go to definition for procedures and

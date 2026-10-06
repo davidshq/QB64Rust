@@ -1,0 +1,29 @@
+c1: 5 
+late sees c1: 5 
+late's k: 2 
+late's v: 9 
+main k after late: 1  v: 7 
+literal 3 * 1000000000:-1294967296 
+i3, f2: 3000000000 -9223372036854775808 
+h2 = 2.5 * 2: 4611686018427387904  sm = 2.5: 1.152921504606847D+19 
+l3: 3000000000  12000000000 
+1 / 3: .3333333333333333  .3333333  .3333333333333333  .3333333 
+floats: .1  .3  3.333333333333333D-02  1D+30  25000000000 
+comparisons:-1  0 
+logic: 2 -1  2  6 -7 -5  5 
+2 ^ 0.5: 1.414213562373095 
+power: 512  64  1024  at run time: 64 
+suffixes round: 4  2  4 -2  2 
+negatives:-5 -1 
+strings: xyz
+c1 * 2: 10 
+\ and MOD: 3 -1  4  0 -3 
+64-bit: 2147483648  32768  9223372036854775807  12000000000 
+hex: 255 -1 -1 
+precedence: 7  9 -4  5 
+with a numeric suffix: 5  5  5  5 
+the same CONST again: 5 
+in a single-line IF: 4 
+in a FOR body: 6 
+in a skipped IF block: 8 
+stored in an INTEGER:-25536  2 
