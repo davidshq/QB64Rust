@@ -1,0 +1,19 @@
+1 OR 2 IMP 0:-4 |-4 
+(1 OR 2) IMP 0:-4 |-4 
+x OR y IMP z:-4 |-4 
+1 + 1 IMP 0:-3 |-3 
+x + y IMP z:-4 |-4 
+NOT 0 IMP 0: 0 | 0 
+1 IMP 2 OR 4:-2 |-2 
+1 IMP 0 EQV 0:-1 |-1 
+0 EQV 0 IMP 0: 0 | 0 
+3 EQV 1 EQV 0: 2 | 2 
+1 OR 2 EQV 3:-1 |-1 
+1 EQV 2 XOR 3:-1 |-1 
+x XOR y EQV z:-4 |-4 
+1.5 IMP 0:-3 |-3 
+2.5 EQV 2:-1 |-1 
+IMP type:-1705032704  EQV type:-1705032704 
+a > b IMP c: 0 | 0 
+a IMP b > c:-1 |-1 
+exit=0

@@ -44,7 +44,9 @@ NEXT`; in the header program it also makes the failing call succeed every third 
 | `GOSUB lab` inside a SUB, `lab:` in the SUB | works; `RETURN` continues in the SUB |
 | `RETURN` in a SUB with no `GOSUB` pending | error 3, trapped by the main handler; `RESUME NEXT` continues in the SUB |
 
-The rest (D1) is measured as task 1 and recorded in `verification\v17_*`.
+The rest (D1) was measured as task 1.1 (2026-10-06): the programs and outputs are `verification\v17_*` (the three
+probes above are `v17_probe_*`), the findings `study\00` §5, and the corrections they made are marked
+"**Measured (1.1):**" in D3–D10 below and listed in task 1.1.
 
 ## Goals / Non-Goals
 
@@ -112,6 +114,12 @@ supported yet" as measured). `NEXT` variables are resolved like any variable and
 variables of the `FOR` blocks they close (`NEXT j, i`: the inner block's `NextStmt` and the outer block's
 "closed by child" accessor of `m2-parser-breadth` D4).
 
+**Measured (1.1):** a string, a `CONST` or an array element as the `FOR` variable is an error ("Unsupported
+variable used in FOR statement"); a `TYPE` member is accepted by the old compiler, so it is "not supported yet"
+here until `TYPE`. A string start, limit or step is an error ("Illegal string-number conversion"). A string
+condition is an error in `IF`, `WHILE`, `DO` and `LOOP`, each with its own old message. Identity confirmed: `NEXT
+i!` closes `FOR i` (`v17_c_next_suffix_single`), `NEXT i` does not close `FOR i%` (`v17_c_next_suffix`).
+
 ### D4. Operators
 `BinOp` gains `Eq, Ne, Lt, Gt, Le, Ge, And, Or, Xor, Eqv, Imp, AndAlso, OrElse, IDiv, Mod, Pow`; a unary
 `UnOp { Neg, Not, Negate }` replaces `ExprKind::Neg`. Types follow `study\02` §1.4 with the `ty`/`qb` pair of the
@@ -123,6 +131,15 @@ computes in F80 with the `qb` of §1.4. Constant folding extends to comparisons 
 integers (wrapping); `\` and `MOD` by a literal 0 are never folded (error 11 belongs to run time) and `^` is not
 folded. `may_raise`: `IDiv`, `Mod` (error 11) and `Pow` (error 5). `_ANDALSO`/`_ORELSE` keep their short circuit
 into the IR (`BinOp` with that meaning; the emitter writes `&&`/`||`).
+
+**Measured (1.1):** the precedence table of `study\02` §1.3 and the typing above hold (`NOT i%` and `i% AND i%`
+compute in 32 bits). Float operands of `_ANDALSO`, `_ORELSE` and `_NEGATE` are rounded half to even first, like
+those of the other logical operators (`0.4 _ANDALSO 1` is 0), so they get the same `Convert` nodes. A float beyond
+2^63 converts modulo 2^64; the emitter uses the old compiler's conversion, and the folder does not fold a float
+operand outside `_INTEGER64` range. `a IMP b IMP c` gives `a OR b OR c` in the old compiler (`5 IMP 3 IMP 0` is
+7): an `IMP` whose left operand is an `IMP` (with or without parentheses, the second unmeasured) is "not
+supported yet". The smallest LONG or `_INTEGER64` `\ -1` and `MOD -1` crash the old program; `qb_safe_idiv` and
+`qb_safe_mod` do the same, kept for now (`study\00` §6, "Fix").
 
 The typing rules live in one place: one function in `check\expr.rs` takes the operator and the operands' (`ty`,
 `qb`) pairs and returns the computation type, the believed type and the conversion of each operand; nothing else
@@ -136,6 +153,10 @@ resolves and the language server can find labels without the statement pass (`st
 block belongs to the enclosing body. `LabelId` stays program-wide; each `Label` records its body. `ON ERROR GOTO`
 accepts only main-module labels (measured). The symbol table records labels as before.
 
+**Measured (1.1):** confirmed: the same name in main and two SUBs is three labels; a jump to another body's label
+is "Label 'x' not defined", a label twice in one body "Duplicate label". `RETURN label` inside a procedure is a
+compile error ("RETURN linelabel/linenumber invalid within a SUB/FUNCTION").
+
 ### D6. Constants
 A new `sema\consteval.rs` implements the old compiler's evaluator (`study\02` §7) over the typed syntax, not over
 text: 64-bit signed integer arithmetic with wrap (unsigned arithmetic waits for unsigned types), `/` in F80, `^`
@@ -148,10 +169,42 @@ compiler treats the substituted text). Scope: main-module constants are visible 
 procedures defined later; procedure constants in that procedure from their line on. Right-associative `^` is
 implemented as measured, the "keep" default of `study\00` §6, where it stays listed for the step-6 decisions.
 
+**Measured (1.1), correcting the scope and typing above:**
+- *Scope.* A constant is defined at compile time wherever its line stands (inside a skipped `IF` block, a
+  single-line `IF`, a `FOR` body). **Using a main constant's name before its `CONST` line**, in main or in a
+  procedure earlier in the file, is an error ("name already in use", reported at the use), measured for the plain
+  name, for `name$`, and for numeric suffixes both written and read (`c1% = 3`, `PRINT c1&`;
+  `v17_e_const_before_numsuffix*`). A variable followed by a `CONST` of
+  its name is that error too. A procedure's constant may reuse a main constant's name (it shadows it in the
+  procedure) and a main variable's; it is invisible in main. A parameter may have a main constant's name; a `DIM`
+  of that name in a procedure is "name already in use". The same `CONST` twice with an equal value (same type and
+  value) is accepted, with another value an error. A plain constant used with `%`, `&`, `!` or `#` is the
+  constant; with `$` (numeric constant) "type mismatch". So the check is: a name use resolves to a visible constant
+  first; a use before the line is recorded and becomes the error when the line is reached.
+- *Typing.* An integer result, and a float result with an integer value inside `_INTEGER64` range, is
+  `_INTEGER64` (so `CONST i3 = 3` makes `i3 * 1000000000` a 64-bit operation); any other float is DOUBLE (prints
+  `1D+30`, `.3333333333333333`). A float result with an integer value outside that range is "not supported yet"
+  (`2 ^ 70` wraps, `1E+19 / 1` does not). `&HFFFF` is -1, as the literal is.
+- *Errors* (the old compiler rejects each): `\ 0` and `MOD 0` (it crashes), `(-8) ^ (1 / 3)` (internal error),
+  `--5`, `LEN(…)` and other names outside the evaluator's function list, a variable, `"a" + 1`, a string
+  comparison, a suffix of the wrong kind (`CONST n% = "x"`, `CONST s$ = 5`), assignment to a constant, `DIM` of a
+  constant's name. "Not supported yet": a function from the evaluator's list (`study\02` §7), `1 / 0` (the old
+  compiler gives 0), and `label: CONST` (the old compiler's "NULL string" error is in the "Fix" list).
+
 ### D7. `OPTION _EXPLICIT`
 The `OPTION` statement sets a flag for the rest of the file (or as measured in D1). With it, the place where
 `resolve` would create an implicit variable reports "variable `x` is not declared" instead. `_EXPLICITARRAY` sets
 only the array flag, which matters once arrays exist; today an implicit array is "not supported yet" anyway.
+
+**Measured (1.1), replacing "for the rest of the file":** the flag is **program-wide**. One `OPTION _EXPLICIT`
+anywhere (after other statements, inside an `IF` block, as the last line, inside a SUB, twice) makes every implicit
+variable in every body an error, also those before its line. So `sema` finds `OPTION` statements in a pass over
+the trees before checking statements. Declarations: `DIM`, `CONST`, `DIM SHARED`, `SHARED x` naming a declared
+main variable, `STATIC`, a parameter, the function's own name. Not declarations: a `FOR` variable, `SHARED w AS
+LONG` naming nothing in main (an error under the flag, a new main variable without it). A variable is a name plus
+a type, so after `DIM x AS LONG` the use `x&` is declared and `x%` is not. `OPTION EXPLICIT` without the
+underscore is an error (no `$NOPREFIX` in this change), and `OPTION _EXPLICITARRAY` leaves implicit scalars
+allowed.
 
 ### D8. The IR: flat bodies, explicit jumps
 ```
@@ -169,9 +222,11 @@ only of `PRINT`: the emitter stores an assignment's value and makes a call witho
 does. The rule the IR states from this change on (module documentation, pipeline spec):
 
 - A raising operation records a pending error and yields a placeholder value; the statement goes on, and a store
-  or a call made with that value still happens (pinned by the first question of D1).
-- Only named points check for a pending error: each `PRINT` item (skips the rest of the statement), `Jump` and
-  `Gosub` (not taken), and `Branch` with `on_error: Skip` (not taken).
+  made with that value still happens (measured: `x = ASC("")` leaves 0). A call is made too, but a procedure's
+  entry is a check point: a procedure entered while an error is pending returns at once (measured: a SUB called
+  with a raising argument prints nothing; the emitter already writes this check, as the old compiler does).
+- Only named points check for a pending error: each `PRINT` item (skips the rest of the statement), procedure
+  entry (returns at once), `Jump` and `Gosub` (not taken), and `Branch` with `on_error: Skip` (not taken).
 - `Branch` with `on_error: UseValue` does not check: it tests the placeholder value.
 - Errors are serviced at the statement boundary; retry and resume work on statements, as before.
 
@@ -181,7 +236,8 @@ happen. With the lowering below, the rule gives the measured header behaviour:
 | Source | Lowered (each line one statement; `L…` labels made by the lowering) |
 |---|---|
 | `IF c THEN a ELSE b` | `Branch(c, Zero → Lelse)`; `a`; `Jump(Lend)`; `Lelse:` `b`; `Lend:` |
-| `ELSEIF c THEN` | `Branch(c, Zero → Lnext, on_error: UseValue)` if D1 confirms the placeholder rule, else `Skip` |
+| `ELSEIF c THEN` | `Branch(c, Zero → Lnext, on_error: UseValue)` (measured: the placeholder decides) |
+| `IF c GOTO x`, `IF c THEN n` | as `IF c THEN GOTO x`: the `Branch`, then `Jump(x)` as the next statement (measured for both: a raising `c` jumps, `v17_b_elseif` case 9, `v17_b_if_then_line`; `THEN n` takes a line number, "not supported yet" here (D10); a name after `THEN` is a syntax error, `v17_b_if_then_label`) |
 | `WHILE c` … `WEND` | `Ltop:` `Branch(c, Zero → Lexit)`; body; `Jump(Ltop)`; `Lexit:` |
 | `DO UNTIL c` / `DO WHILE c` | as `WHILE` with `NonZero` / `Zero` |
 | `LOOP UNTIL c` / `LOOP WHILE c` | `Branch(c, Zero / NonZero → Ltop)`, falling through to `Lexit:` |
@@ -199,6 +255,29 @@ is stored, the step would stay 0 and the loop would never end. `t`, `f`, `st` ar
 LONG, LONG/`_INTEGER64` → `_INTEGER64`); `past(t, f, st)` is `(st < 0 AND t < f) OR (st >= 0 AND t > f)` written
 with the IR's own operators. Statements the lowering makes (`Lnext`, `Lentry`) carry the `NEXT` line and cannot
 raise unless their values can.
+
+**Measured (1.1):**
+- Every header row above behaves as the rule predicts, with `RESUME NEXT`, with `RESUME` (the whole header is
+  re-run, so the `FOR` header's `AssignAll` and `Jump(Lentry)` are one statement) and with untrapped errors under
+  `QB64PE_NOPROMPT=continue`. An error in a `FOR` start or step behaves like one in the limit; the body sees the
+  variable's old value, not 0.
+- `ELSEIF` uses the placeholder. When it is false the `Branch` leaves the statement before its boundary, so the
+  error stays pending and is serviced at the end of the next statement that runs (the next `ELSEIF`, or the first
+  statement of the `ELSE` branch, whose `PRINT` items the rule skips); `RESUME` and `RESUME NEXT` then refer to that
+  statement. The emitter gets this for free if a `UseValue` branch is a plain `goto` out of the statement's
+  `do{}`, so 7.3 checks it with the `v17_b_elseif` and `v17_b_resume` cases.
+- `FOR` temporaries (`qb64pe.bas` 6510–6522): `_BYTE` → INTEGER as well as the widths above, `_INTEGER64` stays
+  `_INTEGER64` (a loop near its maximum wraps and does not end). Start, limit and step are converted to the
+  temporary's type with rounding (`TO 2.6` for an INTEGER variable is 3), and the step's sign is taken once at the
+  header, so `past` tests a sign flag stored with the step. Jumping into a body that never ran finds the
+  temporaries at 0. The old compiler leaves them uninitialised in a procedure; ours are zero-initialised, which is
+  what was observed.
+- `GOSUB` uses one stack for the whole program, as libqb's `return_point` is: `Return(None)` in a procedure pops
+  whatever entry is on top, and an entry of another body is error 3 with the entry consumed. The emitter's per-body
+  `retK.txt` switch (D9) reproduces this without an IR change; the spec states it.
+- `RETURN label` with nothing pending raises 3 and then underflows the stack counter, so the next `GOSUB` crashes
+  the old program. Decided (user, 2026-10-06): the emitter guards the decrement (`if (!next_return_point)
+  error(3); else next_return_point--;`), recorded as `DIVERGENCES.md` D-003 and pinned in task 7.2.
 
 **Alternatives.** A structured IR (`If`, `Loop`, `For` nodes with nested bodies) mirrors the typed tree, which is
 exactly what the review questions (`study\20` §3.4), and it still needs jumps for `GOTO` into a block and a rule
@@ -232,6 +311,13 @@ wrong `NEXT` variable, a jump to a label of another body, `ON ERROR GOTO` to a p
 variable under `OPTION _EXPLICIT`, an assignment to a constant, a constant the evaluator rejects, a `FOR` variable
 that is not a numeric scalar, as measured in D1. "Not supported yet": line-number targets, `RESUME` in a
 procedure, functions in `CONST`, `OPTION BASE`, `SELECT CASE`, `ON … GOTO`.
+
+**Measured (1.1), added:** errors: a string `WHILE`, `DO` or `LOOP` condition; a string `FOR` start, limit or step;
+`RETURN label` in a procedure; a name used before the main `CONST` line that defines it, with or without a suffix; `DIM` of a constant's
+name (also in a procedure, for a main constant); the same `CONST` with another value; a string use (`c$`) of a
+numeric constant; `OPTION EXPLICIT` without the underscore; the constant errors of D6. "Not supported yet": a
+`TYPE` member as `FOR` variable; an `IMP` whose left operand is an `IMP`; the D6 corners (`CONST … 1 / 0`, an
+integer-valued float constant beyond `_INTEGER64`, `label: CONST`).
 
 ### D11. Tests and corpus
 - New `tests\corpus\slice\` programs, recorded with `qb64pe.exe` (`SOURCE.md` updated; no `PRINT` with a comma,

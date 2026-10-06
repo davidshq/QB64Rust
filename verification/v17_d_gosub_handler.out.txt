@@ -1,0 +1,5 @@
+handler 7 
+in hsub
+handler after GOSUB 7 
+after ERROR 7
+exit=0

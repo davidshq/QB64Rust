@@ -1,0 +1,5 @@
+
+Variable 'y' (SINGLE) not defined
+Caused by (or after):PRINT Y
+LINE 4:PRINT y
+exit=1

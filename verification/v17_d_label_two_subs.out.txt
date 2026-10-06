@@ -1,0 +1,4 @@
+main a
+t1 a
+t2 a
+exit=0

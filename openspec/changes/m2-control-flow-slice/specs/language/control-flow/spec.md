@@ -25,7 +25,18 @@ true (`IF`, then each `ELSEIF` in order) or else the `ELSE` branch. A single-lin
 `FOR v = a TO b [STEP s]` SHALL evaluate `a`, `b` and `s` once, in that order, assign `a` to `v`, and run the body
 while `v` has not passed `b` (above `b` for a step of 0 or more, below it for a negative step). `NEXT` SHALL add
 `s` to the current value of `v` (changes made in the body count). The comparison SHALL use a value wider than `v`,
-after `v` has been assigned, as in the old compiler.
+after `v` has been assigned, as in the old compiler: `a`, `b` and `s` converted with rounding to a type wider
+than `v` (`_BYTE` → INTEGER, INTEGER → LONG, LONG → `_INTEGER64`, `_INTEGER64` unchanged, SINGLE → DOUBLE, DOUBLE
+and `_FLOAT` → `_FLOAT`), and the direction taken from the sign of `s` at the header. `v` SHALL be a numeric scalar
+variable; a string, a constant or an array element SHALL be a compile error, and so SHALL a string `a`, `b` or `s`.
+
+#### Scenario: Limits rounded to the wider type
+- **WHEN** `FOR i% = 1 TO 2.6: PRINT i%;: NEXT: PRINT i%` runs
+- **THEN** it prints ` 1  2  3  4 `
+
+#### Scenario: _INTEGER64 variable at its maximum
+- **WHEN** `FOR q&& = 9223372036854775800 TO 9223372036854775807 STEP 5` runs a body capped at five passes
+- **THEN** the third pass sees `-9223372036854775806` (the value wraps and the loop does not end by itself)
 
 #### Scenario: Limits evaluated once
 - **WHEN** `e = 3: FOR m = 1 TO e: e = 10: PRINT m;: NEXT` runs
@@ -49,7 +60,8 @@ after `v` has been assigned, as in the old compiler.
 
 ### Requirement: NEXT variables
 A `NEXT` that names variables SHALL name the variables of the `FOR` blocks it closes, innermost first; any other
-variable SHALL be a compile error. A `NEXT` without a variable SHALL close the innermost `FOR`.
+variable SHALL be a compile error. A `NEXT` without a variable SHALL close the innermost `FOR`. A variable is a
+name plus a type: `NEXT i!` closes `FOR i` (plain `i` being SINGLE), and `NEXT i` does not close `FOR i%`.
 
 #### Scenario: Wrong order
 - **WHEN** `FOR i = 1 TO 2: FOR j = 1 TO 2: NEXT i, j` is compiled
@@ -58,7 +70,7 @@ variable SHALL be a compile error. A `NEXT` without a variable SHALL close the i
 ### Requirement: DO and WHILE loops
 `DO WHILE c` and `WHILE c` SHALL test before each pass and run the body while `c` is true; `DO UNTIL c` while it is
 false; `LOOP WHILE c` and `LOOP UNTIL c` SHALL test after each pass; a `DO … LOOP` without a condition SHALL loop
-until left by `EXIT DO` or a jump.
+until left by `EXIT DO` or a jump. A string condition SHALL be a compile error.
 
 #### Scenario: LOOP UNTIL runs at least once
 - **WHEN** `n = 5: DO: PRINT n;: n = n + 1: LOOP UNTIL n > 3` runs
@@ -84,8 +96,16 @@ procedure). The label MAY stand inside a block.
 ### Requirement: GOSUB and RETURN
 `GOSUB label` SHALL continue at the label and remember where it was; `RETURN` SHALL continue after the most
 recent `GOSUB` not yet returned from; `RETURN label` SHALL forget it and continue at the label. `GOSUB` SHALL work
-in the main module and inside procedures, with labels of the same body. `RETURN` without a pending `GOSUB` SHALL
-raise error 3 at run time.
+in the main module and inside procedures, with labels of the same body; `RETURN label` inside a procedure SHALL be
+a compile error. The program SHALL have one stack of pending `GOSUB`s, as the old compiler has: `RETURN` without a
+pending `GOSUB` SHALL raise error 3 at run time, and a `RETURN` in a procedure whose most recent pending `GOSUB`
+belongs to another body SHALL raise error 3 and remove that `GOSUB` from the stack. A procedure left with its own
+`GOSUB` pending SHALL leave it on the stack.
+
+#### Scenario: RETURN in a SUB during a main GOSUB
+- **WHEN** main executes `GOSUB g1`, `g1` calls a SUB that executes `RETURN`, the handler executes `RESUME NEXT`,
+  and `g1` then executes `RETURN`
+- **THEN** both `RETURN`s raise error 3, and execution continues after `g1`'s `RETURN`, as with the old compiler
 
 #### Scenario: GOSUB inside a SUB
 - **WHEN** a SUB executes `GOSUB lab`, `lab` (in the SUB) prints `lab in s` and executes `RETURN`, and the SUB then

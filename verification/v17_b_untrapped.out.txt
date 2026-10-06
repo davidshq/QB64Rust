@@ -1,0 +1,49 @@
+IF
+
+Runtime error: Line: 7 (in main module)
+Illegal function call
+  then
+WHILE
+
+Runtime error: Line: 10 (in main module)
+Illegal function call
+  body 1 
+
+Runtime error: Line: 10 (in main module)
+Illegal function call
+  body 2 
+
+Runtime error: Line: 10 (in main module)
+Illegal function call
+  body 3 
+
+Runtime error: Line: 10 (in main module)
+Illegal function call
+  body 4 
+
+Runtime error: Line: 10 (in main module)
+Illegal function call
+  body 5 
+
+Runtime error: Line: 10 (in main module)
+Illegal function call
+  body 6 
+
+Runtime error: Line: 10 (in main module)
+Illegal function call
+  body 7 
+LOOP UNTIL
+  body 1 
+
+Runtime error: Line: 19 (in main module)
+Illegal function call
+FOR limit
+
+Runtime error: Line: 22 (in main module)
+Illegal function call
+  body 0 
+  body 1 
+  body 2 
+  after 3 
+end
+exit=0

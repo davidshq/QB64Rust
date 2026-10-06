@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):JUMPED
+LINE 5:IF ASC("") = 7 THEN jumped
+exit=1

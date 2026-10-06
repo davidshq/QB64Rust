@@ -17,6 +17,12 @@ for n in $names; do
     "$qb" -x -q -m "$n.bas" -o "$here/$n.exe" > "$n.compile.txt" 2>&1
     echo "exit=$?" >> "$n.compile.txt"
     if [ -f "$n.exe" ]; then
+        # <name>.noprompt (as in tests/corpus) overrides the setting, e.g. "continue" to go on after an error.
+        if [ -f "$n.noprompt" ]; then
+            QB64PE_NOPROMPT=$(tr -d '\r\n' < "$n.noprompt")
+        else
+            QB64PE_NOPROMPT=y
+        fi
         # A hung program (e.g. screen PRINT with a comma under a redirected $CONSOLE) would block forever.
         timeout 60 ./"$n.exe" < /dev/null > "$n.out.txt" 2>&1
         rc=$?

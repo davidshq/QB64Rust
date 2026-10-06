@@ -1,0 +1,5 @@
+
+Variable 'y' (SINGLE) not defined
+Caused by (or after):Y = 1
+LINE 7:y = 1
+exit=1

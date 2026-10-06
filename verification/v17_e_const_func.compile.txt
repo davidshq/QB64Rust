@@ -1,0 +1,5 @@
+
+Unexpected element 'LEN'
+Caused by (or after):
+LINE 3:CONST FL = LEN ( "abc",3 ) , FA = ABS ( - 2 )
+exit=1

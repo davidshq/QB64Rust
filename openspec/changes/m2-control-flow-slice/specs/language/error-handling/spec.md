@@ -41,7 +41,9 @@ An error raised while a block header is evaluated SHALL be handled like an error
 SHALL be the statement that `RESUME` re-runs. After `RESUME NEXT`, and after an untrapped error the runtime goes on
 from, execution SHALL continue as in the old compiler: inside the `THEN` branch for an `IF` condition, inside the
 body for a `WHILE` or `DO WHILE`/`DO UNTIL` condition, after the loop for a `LOOP WHILE`/`LOOP UNTIL` condition,
-and at the start of the body for a `FOR` header, without assigning the loop variable.
+and at the start of the body for a `FOR` header, without assigning the loop variable. `IF c GOTO label` SHALL jump
+when `c` raises. An `ELSEIF` condition that raises SHALL be tested with the placeholder value (spec
+`compiler/pipeline`, "ELSEIF condition raises").
 
 #### Scenario: IF condition raises
 - **WHEN** `IF CHR$(k) = "a" THEN PRINT "in then" ELSE PRINT "in else"` runs with `k = -1` and the handler

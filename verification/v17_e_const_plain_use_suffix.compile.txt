@@ -1,0 +1,5 @@
+
+Type mismatch
+Caused by (or after):PRINT C ; C% ; C& ; C! ; C$
+LINE 4:PRINT c; c%; c&; c!; c$
+exit=1

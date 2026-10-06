@@ -1,0 +1,5 @@
+
+Unsupported variable used in FOR statement
+Caused by (or after):FOR S$ = 1 TO 2
+LINE 3:FOR s$ = 1 TO 2
+exit=1

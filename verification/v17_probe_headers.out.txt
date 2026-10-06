@@ -1,0 +1,28 @@
+single-line IF
+  handler 5 
+  then
+block IF
+  handler 5 
+  then
+WHILE
+  handler 5 
+  body 1 
+  body 2 
+DO WHILE
+  handler 5 
+  body 1 
+  handler 5 
+  body 2 
+  handler 5 
+  body 3 
+LOOP UNTIL
+  body 1 
+  handler 5 
+  after 1 
+FOR
+  handler 5 
+  body 0 
+  body 1 
+  body 2 
+  after 3 
+exit=0

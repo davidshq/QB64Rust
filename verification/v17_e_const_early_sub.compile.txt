@@ -1,0 +1,5 @@
+
+Name already in use (c1)
+Caused by (or after):PRINT "early:",6 ; C1
+LINE 4:PRINT "early:"; c1
+exit=1

@@ -1,0 +1,5 @@
+
+Expected IF LEN(stringexpression) THEN
+Caused by (or after):IF A$ THEN
+LINE 4:IF a$ THEN PRINT "yes"
+exit=1

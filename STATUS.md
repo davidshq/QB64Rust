@@ -171,7 +171,7 @@ the order of `study\22` §5):
    later commits and glance at their runs.
 2. Done 2026-10-05: `m2-parser-breadth` groups 5 and 6 (member access, `DATA`, line numbers, blocks); state of
    the change below. The change now pauses.
-3. **Next:** a control-flow slice through to C++, its own OpenSpec change (not proposed yet): `IF`, `FOR`, `DO`,
+3. **Next:** a control-flow slice through to C++, its own OpenSpec change (`m2-control-flow-slice`, proposed 2026-10-05, in progress): `IF`, `FOR`, `DO`,
    `WHILE`, `GOTO`, `GOSUB`/`RETURN`, `CONST`, `OPTION _EXPLICIT`, labels inside blocks and procedures, `RESUME
    NEXT` after an error in a block header, and the check of `NEXT` variables against their `FOR` (left out of the
    parser, design D4 "As built"). The block nodes and accessors exist (`ast.rs`); `sema` marks them in
@@ -181,7 +181,12 @@ the order of `study\22` §5):
    placeholder values, checked at named points; "skips the rest of the statement" was true only of `PRINT`) and
    measured first; operator typing lives in one function so the type table of step 6 rewrites one place;
    constants and `OPTION` are done after the IR and emitter tasks; the IR review leaves open how the IR names
-   an array element or a `TYPE` member (step 8).
+   an array element or a `TYPE` member (step 8). Task 1.1 done 2026-10-06: 115 measurements `verification\v17_*`,
+   findings in `study\00` §5 and §6; they corrected the design and five spec deltas (list in task 1.1): a procedure
+   called while an error is pending returns at once, an `ELSEIF` error is serviced at the next statement, one
+   `GOSUB` stack for the program, a name used before its `CONST` line is an error, `OPTION _EXPLICIT` is
+   program-wide. Decided 2026-10-06: `RETURN label` with nothing pending is guarded (the old program crashes on
+   the next `GOSUB`), `DIVERGENCES.md` D-003. Next: task 1.2, the slice programs `s13`–`s19`.
 4. `m2-parser-breadth` groups 7 to 9, with the blunt follow-on rule and block crossing marked (`study\23` §2.3,
    §2.4; design D10, D4).
 5. A thin language server in the extension: syntax errors, outline, folding, go to definition for procedures and

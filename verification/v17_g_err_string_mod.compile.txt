@@ -1,0 +1,5 @@
+
+Expected variable/value before 'MOD'
+Caused by (or after):PRINT "a",1 MOD 2
+LINE 3:PRINT "a" MOD 2
+exit=1

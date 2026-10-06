@@ -1,0 +1,18 @@
+_NEGATE 0 = 5:-1 
+NOT 0 = 5:-1 
+NOT 0 AND 1: 1 
+_NEGATE 0 AND 2: 2 
+_NEGATE 0 + 5: 0 
+NOT 0 + 5:-6 
+1 OR 2 XOR 3: 0 
+1 XOR 3 EQV 0:-3 
+0 EQV 0 IMP 0: 0 
+5 IMP 3 IMP 0: 7 
+0 _ORELSE 1 _ANDALSO 0: 0 
+1 _ANDALSO 2 AND 4: 0 
+1 _ORELSE 0 OR 2:-1 
+6 AND 3 = 2: 0 
+-2 MOD 3:-2 
+- 7 \ 2 (unary minus first):-3 
+2 ^ -1 + 1: 1.5 
+exit=0

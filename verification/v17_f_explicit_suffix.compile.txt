@@ -1,0 +1,5 @@
+
+Variable 'x' (INTEGER) not defined
+Caused by (or after):X% = 2
+LINE 7:x% = 2
+exit=1

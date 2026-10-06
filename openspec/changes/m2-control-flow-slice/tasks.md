@@ -5,7 +5,7 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
 
 ## 1. Measurements before code (design D1)
 
-- [ ] 1.1 Write and run `verification\v17_*` with `qb64pe.exe` (`verification\run.sh`) for every question of D1:
+- [x] 1.1 Write and run `verification\v17_*` with `qb64pe.exe` (`verification\run.sh`) for every question of D1:
   the pending-error rule (a store and a call made after a raising operation, placeholder values), `ELSEIF` and
   other header errors with `RESUME` and `RESUME NEXT`, jumps into and out of blocks, `NEXT`
   variables, `GOSUB`/`RETURN` across bodies, labels per body, `CONST` visibility and typing, `OPTION _EXPLICIT`
@@ -14,6 +14,29 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
   deltas where they disagree, and list the corrections here. Verify: `run.sh` output recorded for each program;
   `python tools\repo_check\check_repo.py --untracked` clean (no local paths in the outputs); no loop in a program
   runs without a cap.
+  *Done 2026-10-06:* 110 programs (`v17_a`–`v17_g`, `v17_probe_*`; `v17_e_const_int_float` added while writing
+  up, to settle constant typing), and 5 more after review (`v17_c_next_suffix_single`, `v17_b_if_then_line`,
+  `v17_b_if_then_label`, `v17_e_const_before_numsuffix*`) for claims that had no program. Findings in `study\00`
+  §5, new items in §6. Corrections, each marked "Measured (1.1)" in the design:
+  - D8, the pipeline and the error-handling deltas: a store with a placeholder happens (`x` is 0), but **a call does not do its work**:
+    a procedure's entry is a check point (returns at once while an error is pending). `ELSEIF` uses the
+    placeholder, and when it is false the error is serviced at the **next** statement that runs, which `RESUME`
+    then re-runs (new scenarios "A SUB called with a raising argument", "ELSEIF condition raises"). `IF c GOTO x`
+    jumps when `c` raises, so it lowers as a `Branch` and a separate `Jump`.
+  - D8 and the control-flow delta: `_BYTE` → INTEGER temporaries, start/limit/step rounded to the temporary's type,
+    the step's sign taken once; `_INTEGER64` loops wrap. **One `GOSUB` stack for the whole program** (a SUB's
+    `RETURN` consumes main's entry); `RETURN label` in a procedure is a compile error. `RETURN label` with nothing
+    pending crashes the old program on the next `GOSUB`: the emitter guards the decrement (decided by the user
+    2026-10-06, `DIVERGENCES.md` D-003).
+  - D6 and the constants delta: **a name used before its main `CONST` line is an error**, with any suffix (was: means what it would
+    without the constant); procedure constants may shadow main ones; `CONST` twice with the same value is fine;
+    integer-valued results are `_INTEGER64`, other floats DOUBLE; the evaluator's errors and the "not supported
+    yet" corners listed.
+  - D7 and the constants delta: **`OPTION _EXPLICIT` is program-wide** wherever it stands (was: for the rest of
+    the file); a `FOR` variable is not a declaration; `OPTION EXPLICIT` is an error.
+  - D3, D4, D5, D10 and the numeric-semantics delta: `FOR` variable and string-condition errors; a `TYPE` member
+    as `FOR` variable "not supported yet"; float operands of `_ANDALSO`/`_ORELSE`/`_NEGATE` rounded; chained `IMP`
+    "not supported yet"; the smallest integer `\ -1` crash left unspecified (listed under "Fix").
 - [ ] 1.2 Write the slice programs of D11 (`s13_if` … `s19_header_errors`), update `tests\corpus\slice\SOURCE.md`,
   record them with the old compiler (`--suite corpus --category slice --record`). Compare each result with the
   scenarios of the five spec deltas; correct the **spec** where they disagree and note it here. Verify: a second
@@ -83,8 +106,9 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
 - [ ] 7.1 Jumps, branches with the error-pending rule, lowering labels, user labels in procedures, `Temp`
   declarations, `AssignAll`. Verify: `cpp` snapshots; tier 2 `s13_if`, `s14_loops`, `s15_for` pass, also with
   `QB64RUST_NO_FOLD=1`.
-- [ ] 7.2 `GOSUB`/`RETURN` with `retK.txt` per body, `RETURN label`, `error(3)` in procedures. Verify: `cpp`
-  snapshot; tier 2 `s16_goto_gosub` passes.
+- [ ] 7.2 `GOSUB`/`RETURN` with `retK.txt` per body, `RETURN label` with the guarded decrement (D-003),
+  `error(3)` in procedures. Verify: `cpp` snapshot; tier 2 `s16_goto_gosub` passes; a frontend or slice test runs
+  `RETURN label` with nothing pending, then a `GOSUB` and `RETURN`, and gets error 3 and no crash.
 - [ ] 7.3 Header errors end to end. Verify: tier 2 `s19_header_errors` passes; the pipeline scenarios "FOR loop
   lowered", "Header error follows from the pending-error rule", "A store made with a placeholder value" and "FOR
   limits computed with a placeholder value" are pinned by an `ir` snapshot and by `s19`.

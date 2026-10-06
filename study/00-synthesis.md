@@ -299,6 +299,92 @@ question, include files in `v16_inc\` and `v16_*.bi`):
   With `a` a `TYPE` variable, `a.c` for a non-member is "Element not defined". `a(2) .b` and `a(2). b` (blanks
   around the dot) are member access.
 
+Measured for the control-flow slice (2026-10-06, `m2-control-flow-slice` task 1.1; `verification\v17_*`, one
+program per question, `v17_probe_*` the three probes of the change's design; handlers resume next unless named):
+
+- **Pending errors (`v17_a_pending`):** a raising call yields a placeholder (`ASC("")` 0, `CHR$(-1)` `""`, `SQR(-1)`
+  0, `(-8) ^ (1 / 3)` 0) and **a scalar store still happens**: after `x = 5: x = ASC("")`, `x` is 0; after `x = 10 +
+  ASC("")` it is 10; `s$ = "<" + CHR$(-1) + ">"` stores `"<>"`. **A SUB called with a raising argument is entered
+  and returns at once** (every procedure starts with `if (is_error_pending()) goto exit_subfunc;`, `qb64pe.bas`
+  5822), so its body does nothing. Array element stores are guarded (`qb64pe.bas` 26957–27021, read, not run).
+  `MID$("abc", 0, 1)` does not raise (gives `""`).
+- **Errors in block headers (`v17_b_*`, `v17_probe_headers`):** an `IF`, `WHILE`, `DO WHILE` or `DO UNTIL` condition
+  that raises lets control into the branch or body; a `LOOP WHILE`/`LOOP UNTIL` condition leaves the loop; a `FOR`
+  header that raises in its start, limit or step stores all three from placeholder values and runs the body with
+  the variable unchanged (`i = 99` before: the body sees 99, `NEXT` adds the step to it). `IF c GOTO x` with a
+  raising `c` **jumps**, and so does `IF c THEN 100` (`IF c THEN 300 ELSE 400` goes to 300; `v17_b_if_then_line`);
+  a name after `THEN` (`IF c THEN jumped`) is "Syntax error" (`v17_b_if_then_label`). `RESUME` re-runs the whole header (`FOR i = ASC(CHR$(k)) - 63 TO 4` with `k` fixed runs 2,
+  3, 4). Untrapped errors under `QB64PE_NOPROMPT=continue` behave like `RESUME NEXT`. **`ELSEIF` tests the
+  placeholder value** (`ELSEIF CHR$(-1) = "" THEN` is taken); when it is false the error stays pending past the
+  `ELSEIF` and is handled at the end of the next statement that runs: the next `ELSEIF` (whose branch then runs), or
+  the first statement of the `ELSE` branch, a `PRINT` there being skipped by its item check, so with `RESUME` the
+  `ELSE` branch's `PRINT` is the statement re-run.
+- **`FOR` (`v17_c_*`, `v17_probe_for`):** temporaries (`qb64pe.bas` 6510–6522): `_BYTE` → INTEGER, INTEGER →
+  LONG, LONG and `_INTEGER64` → `_INTEGER64`, SINGLE → DOUBLE, DOUBLE and `_FLOAT` → `_FLOAT`; start, limit and step
+  are converted to that type with rounding (`FOR i% = 1 TO 2.6` runs to 3, `STEP 0.6` is 1, `STEP -0.6` is -1); the
+  step's sign is taken once at the header. An `_INTEGER64` loop near the maximum wraps and goes on (`STEP 5` from
+  9223372036854775800 continues at -9223372036854775806). A `_BYTE` loop 120 to 127 step 5 ends at -126. `FOR d# = 0
+  TO 1 STEP 0.1` runs 11 times (`NEXT` adds the step to the stored DOUBLE). The variable may be a `TYPE` member
+  (`FOR r.v = 1 TO 2` works); a string, a `CONST` or an array element is "Unsupported variable used in FOR
+  statement"; a string limit is "Illegal string-number conversion". `NEXT i!` closes `FOR i` (the same variable,
+  `v17_c_next_suffix_single`) and `NEXT i&` closes `FOR i` after `DIM i AS LONG` (`v17_c_next_suffix_dim`); `NEXT i` after `FOR i%` is "Incorrect variable after NEXT".
+  String conditions: `IF a$ THEN` is "Expected IF LEN(stringexpression) THEN", `WHILE "x"` "WHILE ERROR! Cannot
+  accept a STRING type.", `LOOP UNTIL "x"` "LOOP ERROR! …" (and `DO` "DO ERROR! …", `qb64pe.bas` 6355, read).
+- **Jumps (`v17_c_jumps`, `v17_d_label_in_block_sub`):** `GOTO` into an `IF` branch runs the rest of the branch,
+  then continues after `END IF`. `GOTO` into a `FOR` body that never ran finds the temporaries at 0 and loops with
+  the variable at 0 forever (capped in the program); in a SUB the same (the old temporaries there are uninitialised
+  locals that happened to be 0). `GOTO` into a `FOR` that ran before reuses its old limit and step. `GOTO` into
+  `WHILE` and `DO … LOOP UNTIL` bodies, `EXIT FOR` from a `WHILE` inside a `FOR`, `EXIT DO` from a `FOR` inside a
+  `DO`, `EXIT WHILE` from an `IF`: all as expected.
+- **`GOSUB`/`RETURN` (`v17_d_*`):** **one return stack for the whole program**: a `RETURN` in a SUB while a main
+  `GOSUB` is pending pops main's entry, finds no matching case in the SUB, raises error 3, and main's `GOSUB` is
+  lost (its later `RETURN` raises 3 too). A SUB left by `EXIT SUB` with its own `GOSUB` pending leaves the entry on
+  the stack. `GOSUB` works from an error handler (`ERR` kept), recursively, in a FUNCTION called from a `PRINT`, in
+  a SUB called from a main subroutine. `RETURN label` works in main; **with nothing pending it raises error 3 and
+  breaks the stack: the next `GOSUB` crashes** (exit code 139; `qb64pe.bas` 9948 decrements the counter
+  regardless). `RETURN label` in a SUB is "RETURN linelabel/linenumber invalid within a SUB/FUNCTION".
+- **Labels per body:** the same label in main and in two SUBs is three labels, each `GOTO`/`GOSUB` staying in its
+  body. A jump from a SUB to a main label, or from main to a SUB label, is "Label 'x' not defined"; a label twice in
+  one SUB is "Duplicate label (a)".
+- **`CONST` (`v17_e_*`):** a constant is a compile-time fact: one in a skipped `IF` block, in a single-line `IF` or
+  in a `FOR` body is defined all the same. **A main constant's name used before its `CONST` line**, in main or in a
+  SUB earlier in the file, plain, as `c1$`, or with a numeric suffix (`c1% = 3`, `PRINT c1&`), **is "Name already
+  in use"** (reported at the use); a variable then a
+  `CONST` of its name likewise. A SUB's constant may reuse the name of a main constant (it shadows it in the SUB)
+  or of a main variable; it is not visible in main (`pc` there is an implicit variable). A parameter may have a
+  main constant's name; a `DIM` of it in a SUB is "Name already in use". `CONST a = 1` twice is accepted, with
+  different values "Name already in use". A plain constant used as `c%`, `c&`, `c!`, `c#` is the constant; `c$` is
+  "Type mismatch". **Typing: an integer result, or a float result with an integer value within `_INTEGER64`
+  range, is `_INTEGER64`** (`CONST i3 = 3: PRINT i3 * 1000000000` gives 3000000000 where `3 * 1000000000` wraps;
+  `4 / 2`, `2.5 * 2`, `2.5E+10` are `_INTEGER64`); other floats print as DOUBLE (`1 / 3` gives `.3333333333333333`,
+  `2 ^ 0.5` 16 digits, `1E+30` gives `1D+30`); `2 ^ 70` gives -9223372036854775808 while `1E+19 / 1` stays `1D+19`.
+  `&HFFFF` is -1. `\`, `MOD`, precedence and suffix rounding as at run time (`CONST rh% = 2.5` is 2); `^` is
+  right-associative (512). `1 / 0` gives 0; **`1 \ 0` and `5 MOD 0` crash the compiler** ("Runtime error: Division
+  by zero", no executable); `(-8) ^ (1 / 3)` is "UNEXPECTED INTERNAL COMPILER ERROR!". Errors: `--5` ("Unexpected
+  element '+'"), `LEN(…)` ("Unexpected element 'LEN'"), a variable, `"a" + 1`, `"a" < "b"`, `CONST n% = "x"` and
+  `CONST s$ = 5` ("Type mismatch"), assignment to a constant ("Expected variable =, look for conflict with a CONST
+  name"), `DIM` of a constant name; `lbl1: CONST k = 4` is "NULL string; nothing to evaluate".
+- **`OPTION _EXPLICIT` (`v17_f_*`): it applies to the whole program wherever it stands**: after other statements,
+  inside an `IF` block, as the last line, inside a SUB (then main's implicit variables are errors too), twice. A
+  variable used implicitly anywhere, before or after the `OPTION` line, is "Variable 'x' (SINGLE) not defined". It
+  is satisfied by `DIM`, `CONST`, `DIM SHARED`, `SHARED x` of a declared main variable, `STATIC`, a parameter and
+  the function's own name; not by a `FOR` variable or a `SHARED w AS LONG` naming nothing in main. After `DIM x AS
+  LONG`, `x&` is fine and `x%` is "Variable 'x' (INTEGER) not defined". `OPTION EXPLICIT` (no underscore) is
+  "Expected OPTION BASE or OPTION _EXPLICIT or OPTION _EXPLICITARRAY". `OPTION _EXPLICITARRAY` allows implicit
+  scalars and rejects an implicit array ("Array 'a' (SINGLE) not defined").
+- **Operators (`v17_g_*`, `v17_probe_ops`):** the precedence table of `02` §1.3 holds (`NOT 1 = 2` is -1, `5 MOD 3
+  \ 2` is 0, `0 _ORELSE 0 OR 2` is -1, `1 _ANDALSO 2 AND 4` is 0, `_NEGATE 0 AND 2` is 2, comparisons chain left to
+  right). `NOT`, `AND`, `OR`, `IMP` on INTEGER and LONG compute in 32 bits, with an `_INTEGER64` in 64. **Float
+  operands are rounded half to even before `_ANDALSO`, `_ORELSE` and `_NEGATE` too** (`0.4 _ANDALSO 1` is 0,
+  `_NEGATE 0.4` is -1). A float beyond 2^63 converts modulo 2^64 (`1E+19 \ 3` is -2815581357903183872). Strings
+  compare by unsigned bytes (`CHR$(128) < "a"` is 0). SINGLE and DOUBLE compare at SINGLE (`s! = d#` with both 0.1
+  is -1). **`5 IMP 3 IMP 0` gives 7** (the left `IMP`'s text loses its parentheses: `~~5|3|0`); every other
+  `IMP`/`EQV` combination tried matches the definition. `^` typing as `02` §1.4 (`2% ^ 0.5` SINGLE, `2& ^ 0.5`
+  DOUBLE); `(-8) ^ (1 / 3)` raises 5. `MOD` by zero is fatal like `\` (not trapped). **The smallest LONG or
+  `_INTEGER64` divided by -1 with `\` or `MOD` crashes the program** (exit code 127, no output, even with a
+  handler). String operands of `AND`, `MOD`, `^`, `-`, `NOT`, `_NEGATE`, `_ANDALSO` and a string compared with a
+  number are compile errors.
+
 ## 6. Bug-compatibility choices still to make
 
 From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence register (R2).
@@ -306,7 +392,11 @@ From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence
 **Decide (result-changing; current default is "keep"):** CONST `^` right-associativity; INTEGER
 arithmetic computed in 32 bits inside expressions (`i% + 1` gives 32768; LONG wrap is decided below); round-half-to-even with single-precision narrowing for INTEGER targets;
 NUL-filled fixed-length strings (QB4.5: spaces); linear `REDIM _PRESERVE`; fatal integer division by zero; console
-comma zones 10 wide (or 14 like everywhere else); INPUT prompts as literals only (or allow expressions).
+comma zones 10 wide (or 14 like everywhere else); INPUT prompts as literals only (or allow expressions). From the
+control-flow measurements (§5, 2026-10-06): `RESUME NEXT` after an error in a `WHILE` condition looping forever;
+an error in an `ELSEIF` condition testing the placeholder value and being handled at the next statement; one
+`GOSUB` stack for the whole program (a SUB's `RETURN` consumes main's entry); `CONST` typing an integer-valued float
+as `_INTEGER64`; a SUB called with a raising argument doing nothing.
 
 **Decided:** LONG overflow **wraps** (two's complement), defined in the generated code and in constant folding;
 matches the old compiler's default build, differs from its `-O2` build (`16` §8, `verification\v11_wrap_o2`).
@@ -315,7 +405,11 @@ matches the old compiler's default build, differs from its `-O2` build (`16` §8
 temporaries overwritten by recursion; `label: CONST …` on one line failing to compile; `ELSE` while an inner `FOR`
 is open passing the front end and failing in C++; `INF` printed with padding and a stray `D`; the console `tab()`
 hang and the `CONOUT$` handle leak; `_LogMinLevel` and `_ScreenExists` registered without a return type;
-`ON n GOTO` with n > 255 falling through silently (QB4.5: error 5). Runtime errors should exit non-zero.
+`ON n GOTO` with n > 255 falling through silently (QB4.5: error 5). Runtime errors should exit non-zero. From §5
+(2026-10-06): `RETURN label` with no `GOSUB` pending breaking the `GOSUB` stack (the next `GOSUB` crashes); the
+smallest LONG/`_INTEGER64` `\ -1` and `MOD -1` crashing the program; `CONST … \ 0` and `MOD 0` crashing the
+compiler and `CONST (-8) ^ (1 / 3)` an internal compiler error; `CONST 1 / 0` giving 0; `CONST 2 ^ 70` wrapping
+while `1E+19 / 1` does not; `a IMP b IMP c` computing `a OR b OR c`.
 
 The full catalogue of about 45 accidental behaviours: `01` §11.3, `02` §9.2, `04` G.4; only the ones above have been
 run.

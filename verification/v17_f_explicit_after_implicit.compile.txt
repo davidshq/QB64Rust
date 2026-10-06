@@ -1,0 +1,5 @@
+
+Variable 'z' (SINGLE) not defined
+Caused by (or after):Z = 1
+LINE 3:z = 1
+exit=1

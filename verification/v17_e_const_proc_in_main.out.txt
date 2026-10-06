@@ -1,0 +1,3 @@
+in s: 9 
+main: 0 
+exit=0

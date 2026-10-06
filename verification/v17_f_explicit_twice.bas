@@ -1,0 +1,8 @@
+$CONSOLE:ONLY
+' Verification (m2-control-flow-slice, D1): OPTION _EXPLICIT twice.
+OPTION _EXPLICIT
+OPTION _EXPLICIT
+DIM x
+x = 1
+PRINT x
+SYSTEM

@@ -1,0 +1,5 @@
+
+WHILE ERROR! Cannot accept a STRING type.
+Caused by (or after):WHILE "x",1
+LINE 3:WHILE "x"
+exit=1

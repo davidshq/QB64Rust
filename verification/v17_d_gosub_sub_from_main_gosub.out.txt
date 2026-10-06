@@ -1,0 +1,6 @@
+in g1
+in sg l
+sg done
+g1 after sg
+back in main
+exit=0

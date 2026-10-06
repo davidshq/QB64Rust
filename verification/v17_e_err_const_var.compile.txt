@@ -1,0 +1,5 @@
+
+Unexpected element 'V'
+Caused by (or after):
+LINE 4:CONST CV = V + 1
+exit=1

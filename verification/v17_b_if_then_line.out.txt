@@ -1,0 +1,8 @@
+case 1: IF c THEN 100, placeholder makes it false
+  handler 5 
+  jumped
+case 2: IF c THEN 300 ELSE 400, placeholder makes it false
+  handler 5 
+  then
+end
+exit=0
