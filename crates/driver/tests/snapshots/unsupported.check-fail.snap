@@ -1,13 +1,11 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 103
 expression: snap
 ---
 unsupported.bas:4:8: error: not supported yet: `OPTION BASE`
 unsupported.bas:5:14: error: not supported yet: `LEN`
 unsupported.bas:6:5: error: not supported yet: `a(...)` (an array, or no FUNCTION of this name)
 unsupported.bas:7:17: error: not supported yet: fixed-length strings
-unsupported.bas:8:1: error: not supported yet: single-line `IF`
 unsupported.bas:8:37: error: not supported yet: `SQR`
 unsupported.bas:9:11: error: this operator cannot be used on strings
 unsupported.bas:10:6: error: cannot store a string in a number variable

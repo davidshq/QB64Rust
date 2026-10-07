@@ -120,6 +120,16 @@ here until `TYPE`. A string start, limit or step is an error ("Illegal string-nu
 condition is an error in `IF`, `WHILE`, `DO` and `LOOP`, each with its own old message. Identity confirmed: `NEXT
 i!` closes `FOR i` (`v17_c_next_suffix_single`), `NEXT i` does not close `FOR i%` (`v17_c_next_suffix`).
 
+**As built (5.2):** `ELSEIF` branches are `Branch`es after the first in `StmtKind::If` (the IR tells them apart by
+position); `For` also carries `temp`, the type the loop counts in, with start, limit and step already converted
+to it (`store`, so a float limit rounds half to even), and the `NEXT`, `LOOP` and `WEND` lines for the lowering.
+Statements inside a block go to the innermost of a stack of statement lists (`Checker::sinks`). A block whose
+header has an error is not built, but its statements are still checked. The `NEXT` variable is looked up, never
+created (`lookup_var`), after the body, as a statement of its own; in `NEXT j, i` only the first mismatch is
+reported. `FOR a(1) = …` is a parse error ("expected `=`"), which keeps the old compiler's rejection. The label
+pre-pass reads every block's statements through `nested_statements`; `block_parts` keeps only `SELECT CASE`,
+`TYPE`, `DECLARE LIBRARY` and `DEF FN`.
+
 ### D4. Operators
 `BinOp` gains `Eq, Ne, Lt, Gt, Le, Ge, And, Or, Xor, Eqv, Imp, AndAlso, OrElse, IDiv, Mod, Pow`; a unary
 `UnOp { Neg, Not, Negate }` replaces `ExprKind::Neg`. Types follow `study\02` §1.4 with the `ty`/`qb` pair of the
@@ -157,6 +167,19 @@ accepts only main-module labels (measured). The symbol table records labels as b
 **Measured (1.1):** confirmed: the same name in main and two SUBs is three labels; a jump to another body's label
 is "Label 'x' not defined", a label twice in one body "Duplicate label". `RETURN label` inside a procedure is a
 compile error ("RETURN linelabel/linenumber invalid within a SUB/FUNCTION").
+
+**As built (5.1):** a label is a statement of the typed tree (`StmtKind::Label`) and `Label` records its body
+(`proc`), not a position, since a position in one flat list cannot name a place inside a block; the IR lowering
+turns each label statement back into a position in its body and numbers labels per body (`ir\lower.rs`
+`LabelIds`), so a label inside a SUB builds today. `sema` keys labels by (body, name) (`check\flow.rs`). Measured
+on the way: `ON ERROR GOTO` in a SUB naming its own label is the error also when main has a label of that name; in
+main, naming a label that stands only in a SUB is "not defined"; `RESUME label` in a SUB to its own label compiles
+(`RESUME` there stays "not supported yet"). An undefined label is "not supported yet" only in a program with an
+`$INCLUDE` (the label may stand in the file not loaded yet); the follow-on rule of D7 is not needed, since a
+label is entered wherever its line parses. Until the IR has jumps (6.2), the driver stops `GOTO`, `GOSUB` and
+`RETURN` (and the blocks of 5.2) before lowering with "not supported yet: … in code generation"
+(`ir::not_lowered`, `driver::check_backend`); `--dump typed`, the `check` modes and the language server see the
+front end alone.
 
 ### D6. Constants
 A new `sema\consteval.rs` implements the old compiler's evaluator (`study\02` §7) over the typed syntax, not over

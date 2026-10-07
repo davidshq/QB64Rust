@@ -139,7 +139,7 @@ questions: `STATUS.md`.
 | `tests\known_false_errors.list`, `tests\known_unsupported_rejections.list`, `tests\known_parse_gaps.list` | Shrink-only lists of tier 1: programs the old compiler accepts that get a real error, programs it rejects that get only "not supported yet" errors, and accepted programs (plus the old compiler's sources) that do not parse cleanly (`tests\upstream\README.md`) |
 | `tools\upstream\` | `copy_upstream_tests.py`: redoes the copy in `tests\upstream\` from the clone at the pinned commit |
 | `tools\snippets\` | `extract_qb64fresh_snippets.py`: extracts and labels the snippets in `tests\snippets\` |
-| `GLOSSARY.md` | Plain-language definitions of compiler terms (compiler, parsing, semantic analysis, `sema`, IR, codegen, driver) |
+| `GLOSSARY.md` | Plain-language definitions of compiler terms: the compiler pipeline, runtime and build, editor tooling |
 | `DIVERGENCES.md` | Divergence register: decided differences from the old compiler's observed behaviour |
 | `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler) and its `known_failures.txt` |
 | `tools\repo_check\` | `check_repo.py`: tracked files must hold no local paths, temp folders or network shares (rule 2) and no stray control bytes (rule 7); `--untracked` also checks new files before they are staged |

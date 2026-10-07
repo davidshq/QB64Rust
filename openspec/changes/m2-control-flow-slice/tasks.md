@@ -175,15 +175,25 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
 
 ## 5. Blocks in `sema` (D3, D5)
 
-- [ ] 5.1 Labels per body (D5): pre-pass per body, labels inside blocks and procedures, jumps checked against the
+- [x] 5.1 Labels per body (D5): pre-pass per body, labels inside blocks and procedures, jumps checked against the
   body, `ON ERROR GOTO` only to main labels. `GOTO`, `GOSUB`, `RETURN`, `RETURN label` typed. Verify: `check-fail`
   tests (duplicate label in one body, jump to another body's label, `ON ERROR GOTO` to a SUB label); `check-ok`
   for the same name in two bodies; symbol-table snapshot with a label in a SUB.
-- [ ] 5.2 `IF` (both forms), `FOR`, `DO`, `WHILE`, `EXIT FOR/DO/WHILE` as typed block statements; `NEXT`
+  Done 2026-10-07 (D5 "As built"): `tests\frontend\labels_errors.bas`, `labels_bodies.bas` (typed, stronger than
+  `check-ok`), `labels_ir.bas`, `labels_in_blocks.bas`; symbol test `label_in_a_sub`; CLI test
+  `jumps_wait_for_the_ir`. Four more measurements (`verification\v17_d_on_error_main_to_sub_label`,
+  `v17_d_on_error_sub_label_both`, `v17_d_resume_sub_label`, `v17_d_resume_main_label_from_sub_both`), written into
+  the error-handling delta. Lists unchanged; tier 2 75 of 75 and 20 of 20.
+- [x] 5.2 `IF` (both forms), `FOR`, `DO`, `WHILE`, `EXIT FOR/DO/WHILE` as typed block statements; `NEXT`
   variables compared (D3); `block_parts` reduced to the blocks still marked. Verify: `typed` snapshots per block
   kind; `check-fail` for a string condition, a wrong `NEXT` variable and order, a non-scalar `FOR` variable, an
   undeclared `FOR` variable under `OPTION _EXPLICIT` (`v17_f_explicit_for`, left from 4.3);
   regenerated lists lose entries and gain none; the tier-1 `.err` test still passes.
+  Done 2026-10-07 (D3 "As built"): `tests\frontend\blocks_typed_if.bas`, `blocks_typed_loops.bas`,
+  `blocks_errors.bas`, `explicit_for.bas`; `blocks_not_compiled_yet.bas` now uses the spec's `SELECT CASE` example
+  (task 1.3 changed the spec, not the test). `known_unsupported_rejections.list` 74 to 72 (`NEXT j` after `FOR i`,
+  a reserved name in an `IF` condition: now real errors); the other two lists unchanged. Tier 2 75 of 75 and 20 of
+  20 (the blocks stop at the IR gate, so nothing new passes before 6.2 and 7.1).
 
 ## 6. IR (D8)
 

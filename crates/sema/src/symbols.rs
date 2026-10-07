@@ -114,7 +114,11 @@ pub fn dump_symbols(p: &Program, map: &SourceMap) -> String {
                 };
                 write!(out, "Proc {} {kind} def {}", q.name, pos(s.def)).unwrap();
             }
-            SymbolKind::Label(l) => write!(out, "Label {} def {}", p.label(l).name, pos(s.def)).unwrap(),
+            SymbolKind::Label(l) => {
+                let l = p.label(l);
+                let owner = l.proc.map_or(String::new(), |q| format!(" (in {})", p.proc(q).name));
+                write!(out, "Label {}{owner} def {}", l.name, pos(s.def)).unwrap()
+            }
             SymbolKind::Const(c) => {
                 let c = p.constant(c);
                 let value = match &c.value {

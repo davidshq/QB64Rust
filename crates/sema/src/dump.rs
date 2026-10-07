@@ -1,6 +1,6 @@
 //! `--dump typed`: one node per line, indented, with its type (FreeBASIC lesson L8: assertions on types).
 
-use crate::{Arg, Expr, ExprKind, Label, PrintItem, ProcKind, Program, Resume, Stmt, StmtKind, Storage, Ty, VarId};
+use crate::{Arg, Expr, ExprKind, PrintItem, ProcKind, Program, Resume, Stmt, StmtKind, Storage, Ty, VarId};
 use qb64rust_base::show_bytes;
 use std::fmt::Write as _;
 
@@ -8,7 +8,7 @@ use std::fmt::Write as _;
 /// statements. Variables other than main-module ones are shown with their storage (`A (param)`).
 pub fn dump_typed(p: &Program) -> String {
     let mut out = String::new();
-    stmts(p, &p.stmts, &p.labels, &mut out);
+    stmts(p, &p.stmts, 0, &mut out);
     for (i, proc) in p.procs.iter().enumerate() {
         match proc.kind {
             ProcKind::Sub => writeln!(out, "SUB {}", proc.name).unwrap(),
@@ -27,7 +27,7 @@ pub fn dump_typed(p: &Program) -> String {
             };
             writeln!(out, "  {class} {}:{}", v.name, ty(v.ty)).unwrap();
         }
-        stmts(p, &proc.stmts, &[], &mut out);
+        stmts(p, &proc.stmts, 0, &mut out);
     }
     out
 }
@@ -58,62 +58,124 @@ fn args(p: &Program, args: &[Arg], depth: usize, out: &mut String) {
     }
 }
 
-/// The statements, each label before the statement it stands before (labels after the last statement at the end).
-fn stmts(p: &Program, list: &[Stmt], labels: &[Label], out: &mut String) {
-    let label_lines = |at: usize, out: &mut String| {
-        for l in labels.iter().filter(|l| l.at == at) {
-            writeln!(out, "line {}: Label {}", l.line, l.name).unwrap();
-        }
-    };
-    for (i, s) in list.iter().enumerate() {
-        label_lines(i, out);
+/// The statements at nesting depth `d`: each is `line N: …` indented by `d` steps, its parts one step deeper, and
+/// the statements of a block's bodies at `d + 1` under a heading (`Then`, `ElseIf`, `Else`, `Body`).
+fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
+    let pad = "  ".repeat(d);
+    for s in list {
+        let line = |out: &mut String, text: &str| writeln!(out, "{pad}line {}: {text}", s.line).unwrap();
+        let heading = |out: &mut String, text: &str| writeln!(out, "{pad}  {text}").unwrap();
         match &s.kind {
-            StmtKind::ConsoleOnly => writeln!(out, "line {}: ConsoleOnly", s.line).unwrap(),
-            StmtKind::End => writeln!(out, "line {}: End", s.line).unwrap(),
-            StmtKind::System => writeln!(out, "line {}: System", s.line).unwrap(),
-            StmtKind::Exit => writeln!(out, "line {}: Exit", s.line).unwrap(),
-            StmtKind::OnError(Some(l)) => writeln!(out, "line {}: OnError {}", s.line, p.label(*l).name).unwrap(),
-            StmtKind::OnError(None) => writeln!(out, "line {}: OnError 0", s.line).unwrap(),
+            StmtKind::Label(l) => line(out, &format!("Label {}", p.label(*l).name)),
+            StmtKind::Goto(l) => line(out, &format!("Goto {}", p.label(*l).name)),
+            StmtKind::Gosub(l) => line(out, &format!("Gosub {}", p.label(*l).name)),
+            StmtKind::Return(None) => line(out, "Return"),
+            StmtKind::Return(Some(l)) => line(out, &format!("Return {}", p.label(*l).name)),
+            StmtKind::ConsoleOnly => line(out, "ConsoleOnly"),
+            StmtKind::End => line(out, "End"),
+            StmtKind::System => line(out, "System"),
+            StmtKind::Exit => line(out, "Exit"),
+            StmtKind::ExitLoop(k) => line(out, &format!("Exit {k:?}")),
+            StmtKind::OnError(Some(l)) => line(out, &format!("OnError {}", p.label(*l).name)),
+            StmtKind::OnError(None) => line(out, "OnError 0"),
             StmtKind::Resume(r) => {
                 let to = match r {
                     Resume::Retry => "Retry".to_string(),
                     Resume::Next => "Next".to_string(),
                     Resume::To(l) => format!("To {}", p.label(*l).name),
                 };
-                writeln!(out, "line {}: Resume {to}", s.line).unwrap();
+                line(out, &format!("Resume {to}"));
             }
             StmtKind::Error(code) => {
-                writeln!(out, "line {}: Error", s.line).unwrap();
-                expr(p, code, 1, out);
+                line(out, "Error");
+                expr(p, code, d + 1, out);
             }
             StmtKind::Call { proc, args: a } => {
-                writeln!(out, "line {}: Call {}", s.line, p.proc(*proc).name).unwrap();
-                args(p, a, 1, out);
+                line(out, &format!("Call {}", p.proc(*proc).name));
+                args(p, a, d + 1, out);
             }
             StmtKind::Assign { var, value } => {
                 let v = p.var(*var);
-                writeln!(out, "line {}: Assign {}:{}", s.line, var_name(p, *var), ty(v.ty)).unwrap();
-                expr(p, value, 1, out);
+                line(out, &format!("Assign {}:{}", var_name(p, *var), ty(v.ty)));
+                expr(p, value, d + 1, out);
             }
             StmtKind::Print { items, newline } => {
-                writeln!(out, "line {}: Print{}", s.line, if *newline { " newline" } else { "" }).unwrap();
+                line(out, &format!("Print{}", if *newline { " newline" } else { "" }));
                 for i in items {
                     match i {
                         PrintItem::Str(e) => {
-                            writeln!(out, "  Str").unwrap();
-                            expr(p, e, 2, out);
+                            heading(out, "Str");
+                            expr(p, e, d + 2, out);
                         }
                         PrintItem::Num(e) => {
-                            writeln!(out, "  Num").unwrap();
-                            expr(p, e, 2, out);
+                            heading(out, "Num");
+                            expr(p, e, d + 2, out);
                         }
-                        PrintItem::Zone => writeln!(out, "  Zone").unwrap(),
+                        PrintItem::Zone => heading(out, "Zone"),
                     }
                 }
             }
+            StmtKind::If { branches, else_ } => {
+                line(out, "If");
+                for (i, b) in branches.iter().enumerate() {
+                    heading(out, if i == 0 { "If" } else { "ElseIf" });
+                    expr(p, &b.cond, d + 2, out);
+                    stmts(p, &b.body, d + 2, out);
+                }
+                if let Some(body) = else_ {
+                    heading(out, "Else");
+                    stmts(p, body, d + 2, out);
+                }
+            }
+            StmtKind::For {
+                var,
+                temp,
+                start,
+                end,
+                step,
+                body,
+                end_line,
+            } => {
+                let v = p.var(*var);
+                line(
+                    out,
+                    &format!(
+                        "For {}:{} counting in {} (NEXT line {end_line})",
+                        var_name(p, *var),
+                        ty(v.ty),
+                        ty(*temp)
+                    ),
+                );
+                heading(out, "From");
+                expr(p, start, d + 2, out);
+                heading(out, "To");
+                expr(p, end, d + 2, out);
+                if let Some(step) = step {
+                    heading(out, "Step");
+                    expr(p, step, d + 2, out);
+                }
+                heading(out, "Body");
+                stmts(p, body, d + 2, out);
+            }
+            StmtKind::Do { test, body, end_line } => {
+                line(out, &format!("Do (LOOP line {end_line})"));
+                if let Some(t) = test {
+                    let word = if t.until { "Until" } else { "While" };
+                    heading(out, &format!("{word} at {:?}", t.at));
+                    expr(p, &t.cond, d + 2, out);
+                }
+                heading(out, "Body");
+                stmts(p, body, d + 2, out);
+            }
+            StmtKind::While { cond, body, end_line } => {
+                line(out, &format!("While (WEND line {end_line})"));
+                heading(out, "Cond");
+                expr(p, cond, d + 2, out);
+                heading(out, "Body");
+                stmts(p, body, d + 2, out);
+            }
         }
     }
-    label_lines(list.len(), out);
 }
 
 fn ty(t: Ty) -> &'static str {

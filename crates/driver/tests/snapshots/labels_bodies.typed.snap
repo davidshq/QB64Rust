@@ -1,0 +1,29 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 5: Goto A
+line 6: Label A
+line 7: Gosub G
+line 8: Call T1
+line 9: Call T2
+line 10: System
+line 11: Label G
+line 12: Return
+line 13: Label H
+line 14: Resume Next
+SUB T1
+line 16: Goto A
+line 17: Label A
+line 18: Gosub G
+line 19: Exit
+line 20: Label G
+line 21: Return
+SUB T2
+line 24: OnError H
+line 25: Label A
+line 25: Print newline
+  Str
+    Str "t2" : Str
+line 26: Goto A

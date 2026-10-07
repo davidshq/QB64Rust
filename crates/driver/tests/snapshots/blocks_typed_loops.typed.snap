@@ -1,0 +1,144 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 7: For I:I16 counting in I32 (NEXT line 7)
+  From
+    Int 1 : I32
+  To
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Float 2.6E+0 : F64 (qb F32)
+  Body
+line 8: For L:I32 counting in I64 (NEXT line 8)
+  From
+    Int 1 : I64
+  To
+    Int 2 : I64
+  Body
+line 9: For Q:I64 counting in I64 (NEXT line 9)
+  From
+    Int 1 : I64
+  To
+    Int 2 : I64
+  Body
+line 10: For S:F32 counting in F64 (NEXT line 10)
+  From
+    Convert Nearest : F64
+      Int 0 : I16
+  To
+    Convert Nearest : F64
+      Int 1 : I16
+  Step
+    Float 0.1E+0 : F64 (qb F32)
+  Body
+line 11: For D:F64 counting in F80 (NEXT line 11)
+  From
+    Convert Nearest : F80
+      Int 1 : I16
+  To
+    Convert Nearest : F80
+      Int 2 : I16
+  Body
+line 12: For F:F80 counting in F80 (NEXT line 12)
+  From
+    Convert Nearest : F80
+      Int 1 : I16
+  To
+    Convert Nearest : F80
+      Int 2 : I16
+  Body
+line 13: For J:F32 counting in F64 (NEXT line 16)
+  From
+    Convert Nearest : F64
+      Int 1 : I16
+  To
+    Convert Nearest : F64
+      Int 3 : I16
+  Body
+    line 14: For K:F32 counting in F64 (NEXT line 16)
+      From
+        Convert Nearest : F64
+          Int 1 : I16
+      To
+        Convert Nearest : F64
+          Int 3 : I16
+      Body
+        line 15: If
+          If
+            Binary Eq : I32
+              Var K : F32
+              Convert Nearest : F32
+                Int 2 : I16
+            line 15: Exit For
+line 17: Do (LOOP line 19)
+  Body
+    line 18: Exit Do
+line 20: Do (LOOP line 20)
+  While at Top
+    Binary Lt : I32
+      Var A : F32
+      Convert Nearest : F32
+        Int 3 : I16
+  Body
+    line 20: Assign A:F32
+      Binary Add : F32
+        Var A : F32
+        Convert Nearest : F32
+          Int 1 : I16
+line 21: Do (LOOP line 21)
+  Until at Top
+    Binary Eq : I32
+      Var A : F32
+      Convert Nearest : F32
+        Int 0 : I16
+  Body
+    line 21: Assign A:F32
+      Binary Sub : F32
+        Var A : F32
+        Convert Nearest : F32
+          Int 1 : I16
+line 22: Do (LOOP line 22)
+  While at Bottom
+    Binary Lt : I32
+      Var A : F32
+      Convert Nearest : F32
+        Int 3 : I16
+  Body
+    line 22: Assign A:F32
+      Binary Add : F32
+        Var A : F32
+        Convert Nearest : F32
+          Int 1 : I16
+line 23: Do (LOOP line 23)
+  Until at Bottom
+    Binary Eq : I32
+      Var A : F32
+      Convert Nearest : F32
+        Int 0 : I16
+  Body
+    line 23: Assign A:F32
+      Binary Sub : F32
+        Var A : F32
+        Convert Nearest : F32
+          Int 1 : I16
+line 24: While (WEND line 27)
+  Cond
+    Binary Lt : I32
+      Var A : F32
+      Convert Nearest : F32
+        Int 2 : I16
+  Body
+    line 25: Assign A:F32
+      Binary Add : F32
+        Var A : F32
+        Convert Nearest : F32
+          Int 1 : I16
+    line 26: If
+      If
+        Binary Eq : I32
+          Var A : F32
+          Convert Nearest : F32
+            Int 1 : I16
+        line 26: Exit While

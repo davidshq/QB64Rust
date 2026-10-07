@@ -16,7 +16,6 @@ snippets/qb64fresh/continue_statement__continue_for.bas
 snippets/qb64fresh/continue_statement__continue_while.bas
 snippets/qb64fresh/error_detection__function_wrong_args.bas
 snippets/qb64fresh/error_detection__invalid_syntax.bas
-snippets/qb64fresh/error_detection__mismatched_next.bas
 snippets/qb64fresh/error_detection__undefined_sub_call.bas
 snippets/qb64fresh/file_io_runtime_stubs__shellhide_generates_ffi_call.bas
 snippets/qb64fresh/inline_conditional_functions__iif_string.bas
@@ -24,7 +23,6 @@ snippets/qb64fresh/interrupt_statements__interrupt_statement.bas
 snippets/qb64fresh/interrupt_statements__interruptx_statement.bas
 snippets/qb64fresh/shared_variables__shared_array.bas
 snippets/qb64fresh/shared_variables__shared_outside_procedure_error.bas
-snippets/qb64fresh/sound_runtime_stubs__sndrawdone_function.bas
 snippets/qb64fresh/system_statements__shellhide_statement.bas
 upstream/arrays/39_err_member_must_be_const.bas
 upstream/arrays/40_err_undefined_type.bas

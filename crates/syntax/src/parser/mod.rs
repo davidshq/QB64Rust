@@ -35,11 +35,14 @@ pub(crate) fn parse_tree(id: TreeId, file: FileId, bytes: &[u8]) -> Tree {
         o += t.len;
     }
     offsets.push(o);
+    let significant = (0..tokens.len()).filter(|&i| !tokens[i].kind.is_trivia()).collect();
     let mut p = Parser {
         file,
         bytes,
         tokens,
         offsets,
+        significant,
+        next_significant: 0,
         pos: 0,
         builder: TreeBuilder::default(),
         diags: Diagnostics::new(),
@@ -53,6 +56,7 @@ pub(crate) fn parse_tree(id: TreeId, file: FileId, bytes: &[u8]) -> Tree {
         pending_next: None,
         after_line_number: usize::MAX,
         in_const: false,
+        expr_nesting: 0,
     };
     p.source_file();
     Tree {
@@ -68,6 +72,10 @@ pub(crate) struct Parser<'a> {
     bytes: &'a [u8],
     tokens: Vec<Token>,
     offsets: Vec<u32>,
+    /// Indices of the tokens that are not trivia, in order.
+    significant: Vec<usize>,
+    /// Index into `significant` of the first such token at or after `pos`.
+    next_significant: usize,
     pos: usize,
     builder: TreeBuilder,
     diags: Diagnostics,
@@ -91,24 +99,19 @@ pub(crate) struct Parser<'a> {
     after_line_number: usize,
     /// Inside a `CONST` value, where the old compiler's evaluator also knows the operator `ROOT` (`study\02` §7).
     in_const: bool,
+    /// Expression nodes open around the one being parsed (`expr.rs`, [`Self::within_expr_depth`]). While an
+    /// expression is built, its own place counts too: a node built there at height `h` reaches depth
+    /// `expr_nesting + h - 1`. The statement is not counted, so a top-level expression's root has depth 1.
+    expr_nesting: u32,
 }
 
 impl<'a> Parser<'a> {
     // ---- token access (trivia skipped) ----
 
+    /// Token index of the n-th non-trivia token ahead. Constant time, so that the look-ahead scans over a whole
+    /// statement (`parens_then_eq`, `block_if_ahead`) stay linear in its length.
     fn nth_index(&self, n: usize) -> Option<usize> {
-        let mut seen = 0;
-        let mut i = self.pos;
-        while i < self.tokens.len() {
-            if !self.tokens[i].kind.is_trivia() {
-                if seen == n {
-                    return Some(i);
-                }
-                seen += 1;
-            }
-            i += 1;
-        }
-        None
+        self.significant.get(self.next_significant + n).copied()
     }
 
     /// Kind of the n-th non-trivia token ahead; `None` at the end of the file.
@@ -174,6 +177,7 @@ impl<'a> Parser<'a> {
             self.builder.token(t.kind, t.len);
             self.last_kind = Some(t.kind);
             self.pos += 1;
+            self.next_significant += 1;
         }
     }
 
@@ -264,6 +268,23 @@ impl<'a> Parser<'a> {
     fn unsupported(&mut self, message: impl Into<String>) {
         let span = self.current_span();
         self.unsupported_at(span, message);
+    }
+
+    /// Whether an expression node `extra` levels below the open expression nodes stays within
+    /// [`expr::MAX_EXPR_DEPTH`]; if not, reports it, marked "not supported yet". The report is made even while
+    /// errors are quiet (arguments of a call without `CALL`): reading the statement another way would not help.
+    fn within_expr_depth(&mut self, extra: u32) -> bool {
+        if self.expr_nesting + extra <= expr::MAX_EXPR_DEPTH {
+            return true;
+        }
+        let quiet = std::mem::replace(&mut self.quiet, false);
+        self.unsupported(format!(
+            "an expression nested more than {} levels deep",
+            expr::MAX_EXPR_DEPTH
+        ));
+        self.quiet = quiet;
+        self.quiet_failed |= quiet;
+        false
     }
 
     /// Puts the rest of the statement into an `Error` node. Tokens left over without an error reported yet (e.g.

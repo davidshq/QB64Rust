@@ -1,0 +1,5 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+explicit_for.bas:8:5: error: variable `i` (SINGLE) is not declared (`OPTION _EXPLICIT`)

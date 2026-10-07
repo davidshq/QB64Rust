@@ -1,0 +1,29 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 5
+  SetHandler H
+Stmt line 6 may_raise
+  Call T []
+Label START line 7
+Stmt line 8
+  Print console newline
+    Num Const 1:I16
+Stmt line 9
+  System
+Label H line 10
+Stmt line 11 may_raise
+  Resume Next
+Sub T lines 12-17
+Label TOP line 13
+Stmt line 14
+  Print console newline
+    Num Const 2:I16
+Label HERE line 15
+Stmt line 15
+  Print console newline
+    Num Const 3:I16
+Label LAST line 16

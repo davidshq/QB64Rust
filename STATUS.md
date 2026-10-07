@@ -199,7 +199,16 @@ the order of `study\22` §5):
    Task 4.2 done 2026-10-06: the constant evaluator (`sema\consteval.rs`, `check\constants.rs`); floats in `f64`
    with an exactness check against the old `_FLOAT` path, "not supported yet" where it cannot be shown; a float
    beyond `_INTEGER64` is DOUBLE (corrects D6); `slice.list` **75**, full corpus 89, upstream **20 of 279**, none
-   wrong; `s18_const` waits for `IF`/`FOR` (8.1). Task 4.3 done 2026-10-07: `OPTION _EXPLICIT` program-wide (pre-pass), `SHARED` must name a main variable of that type declared earlier (two new measurements); under the option an undeclared variable after anything marked "not supported yet" is only marked (follow-on rule, design D7 "As built"); false errors lose 12, `slice.list` 75 of 75, upstream still **20 of 279**. Next: task 5.1, labels per body.
+   wrong; `s18_const` waits for `IF`/`FOR` (8.1). Task 4.3 done 2026-10-07: `OPTION _EXPLICIT` program-wide
+   (pre-pass), `SHARED` must name a main variable of that type declared earlier (two new measurements); under the
+   option an undeclared variable after anything marked "not supported yet" is only marked (follow-on rule, design
+   D7 "As built"); false errors lose 12, `slice.list` 75 of 75, upstream still **20 of 279**. Tasks 5.1 and 5.2
+   done 2026-10-07 (session 20): labels per body (a label is a typed statement; labels in procedures and inside
+   blocks; four more measurements `verification\v17_d_*`), `GOTO`/`GOSUB`/`RETURN` typed, and `IF` (both forms),
+   `FOR`, `DO`, `WHILE`, `EXIT FOR/DO/WHILE` as typed block statements with their errors (string conditions and
+   limits, `NEXT` variable by identity, `FOR` variable a numeric scalar). Until the IR has jumps they stop at a
+   gate before lowering ("not supported yet: … in code generation", `ir::not_lowered`); `--dump typed` shows them.
+   Rejections with only marks 74 to 72; tier 2 75 of 75 and 20 of 20, unchanged. Next: task 6.1, the IR types.
 4. `m2-parser-breadth` groups 7 to 9, with the blunt follow-on rule and block crossing marked (`study\23` §2.3,
    §2.4; design D10, D4).
 5. A thin language server in the extension: syntax errors, outline, folding, go to definition for procedures and
@@ -246,12 +255,16 @@ M1 leftovers: done (see above).
 
 ## Known bugs
 
-- **Deeply nested expressions overflow the stack** (found 2026-10-07 in the review of task 4.3): `x = 1 + 1 + …`
-  with 20,000 terms, or 3,000 nested parentheses, crash `qb64rust` ("thread 'main' has overflowed its stack"),
-  also with `--dump tree` alone, so the parser or the tree walk is the cause, not `sema`. A stack overflow aborts
-  the process, so the panic hook never reports "internal compiler error". Fix: a nesting limit in the parser (as
-  `MAX_DEPTH` = 200 for blocks, `parser\blocks.rs`) with an error, then a mutation or `check-fail` test with deep
-  input. Every recursive walk (the parser, `sema`'s `expr`, the `OPTION _EXPLICIT` pre-pass) relies on it.
+None open. Fixed 2026-10-07 (session 20): **deeply nested expressions overflowed the stack** (`x = 1 + 1 + …`
+with 20,000 terms, 3,000 nested parentheses; the debug build already at 250 terms, since a left-associative chain
+is parsed in a loop but nests one tree level per operator). Now: the parser counts each expression's tree height
+and marks one deeper than 1,000 levels "not supported yet" (`parser\expr.rs` `MAX_EXPR_DEPTH`); the compiler runs
+on a 64 MiB thread (`driver::with_stack`; a debug build needs about 4 KiB per level, the Windows main thread has
+1 MiB), so both limits fit at once. Measured: the old compiler overflows its own stack at 150–200 nested
+parentheses and under 50 nested calls, takes flat chains of 3,000 operators; of 1,780 `.bas`/`.bi`/`.bm` inputs
+only one goes past 40 levels. CLI test `deep_expressions`. Found on the way and fixed: the parser's look-ahead
+(`nth`) rescanned from the current token, so classifying `a(1).b.b… = 1` was quadratic (48 s for 20,000
+members in debug); it is now constant time.
 
 ## Queued for later milestones
 

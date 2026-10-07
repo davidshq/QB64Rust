@@ -21,7 +21,7 @@ mod dump;
 mod lower;
 
 pub use dump::dump;
-pub use lower::lower;
+pub use lower::{lower, not_lowered};
 
 use qb64rust_base::Span;
 use qb64rust_builtins::BuiltinId;
@@ -36,7 +36,8 @@ pub struct VarId(pub u32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ProcId(pub u32);
 
-/// A label of the main module's body ([`Program::main`]); procedures have none yet.
+/// A label of one body: its index in that body's [`Body::labels`]. [`Resume::To`] and [`Op::SetHandler`] name
+/// labels of the main module ([`Program::main`]).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct LabelId(pub u32);
 

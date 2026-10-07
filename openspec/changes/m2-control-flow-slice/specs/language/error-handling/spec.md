@@ -16,8 +16,10 @@ that does not exist, SHALL be compile errors.
 An error raised by a statement inside a procedure SHALL be handled by the main module's active handler, and
 `RESUME NEXT` SHALL continue with the statement after it **inside the procedure**. `ON ERROR GOTO` inside a
 procedure SHALL name a main-module label and set the same, program-wide handler; naming a label of the procedure
-SHALL be a compile error, as with the old compiler. `RESUME` inside a procedure is not supported yet; `RESUME
-label` there naming a main-module label SHALL be a compile error, as with the old compiler.
+SHALL be a compile error, as with the old compiler, also when the main module has a label of that name. In the
+main module, `ON ERROR GOTO` naming a label that stands only in a procedure SHALL be a compile error. `RESUME`
+inside a procedure is not supported yet; `RESUME label` there naming a main-module label SHALL be a compile error,
+as with the old compiler.
 
 #### Scenario: Handler set inside a SUB
 - **WHEN** a SUB executes `ON ERROR GOTO mainh` (a main-module label), then `ERROR 5`, then prints a line, and

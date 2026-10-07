@@ -2,25 +2,18 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-blocks_marked.bas:6:1: error: not supported yet: `FOR` loops
-blocks_marked.bas:7:10: error: cannot store a string in a number variable
-blocks_marked.bas:9:1: error: not supported yet: `DO` loops
-blocks_marked.bas:10:10: error: cannot store a string in a number variable
-blocks_marked.bas:11:5: error: not supported yet: `EXIT DO`
-blocks_marked.bas:13:1: error: not supported yet: `WHILE` loops
-blocks_marked.bas:14:10: error: cannot store a string in a number variable
-blocks_marked.bas:16:1: error: not supported yet: `IF` blocks
-blocks_marked.bas:17:10: error: cannot store a string in a number variable
-blocks_marked.bas:19:10: error: cannot store a string in a number variable
-blocks_marked.bas:21:10: error: cannot store a string in a number variable
-blocks_marked.bas:23:1: error: not supported yet: single-line `IF`
-blocks_marked.bas:23:16: error: cannot store a string in a number variable
-blocks_marked.bas:23:33: error: cannot store a string in a number variable
-blocks_marked.bas:24:1: error: not supported yet: `SELECT CASE`
-blocks_marked.bas:26:14: error: cannot store a string in a number variable
-blocks_marked.bas:28:1: error: not supported yet: `TYPE` blocks
-blocks_marked.bas:31:1: error: not supported yet: `DECLARE LIBRARY`
-blocks_marked.bas:34:1: error: `DEF FN` is not available in QB64; use a FUNCTION
+blocks_marked.bas:8:10: error: cannot store a string in a number variable
+blocks_marked.bas:11:10: error: cannot store a string in a number variable
+blocks_marked.bas:15:10: error: cannot store a string in a number variable
+blocks_marked.bas:18:10: error: cannot store a string in a number variable
+blocks_marked.bas:20:10: error: cannot store a string in a number variable
+blocks_marked.bas:22:10: error: cannot store a string in a number variable
+blocks_marked.bas:24:16: error: cannot store a string in a number variable
+blocks_marked.bas:24:33: error: cannot store a string in a number variable
+blocks_marked.bas:25:1: error: not supported yet: `SELECT CASE`
+blocks_marked.bas:27:14: error: cannot store a string in a number variable
+blocks_marked.bas:29:1: error: not supported yet: `TYPE` blocks
+blocks_marked.bas:32:1: error: not supported yet: `DECLARE LIBRARY`
 blocks_marked.bas:35:1: error: `DEF FN` is not available in QB64; use a FUNCTION
-blocks_marked.bas:36:10: error: cannot store a string in a number variable
-blocks_marked.bas:39:1: error: not supported yet: `FOR` loops
+blocks_marked.bas:36:1: error: `DEF FN` is not available in QB64; use a FUNCTION
+blocks_marked.bas:37:10: error: cannot store a string in a number variable

@@ -227,6 +227,68 @@ fn unsupported_statement_message() {
     assert_eq!(d.span.start, 9);
 }
 
+/// The expression depth limit counts tree levels the same way for every kind of node: an expression exactly 1,000
+/// levels deep parses, one a level deeper is one "not supported yet" error. Runs on a large stack, as the compiler
+/// does (`driver::with_stack`); a test thread's 2 MiB would not hold the parser at this depth in a debug build.
+#[test]
+fn expression_depth_limit() {
+    // (name, statement at 1,000 levels, the same at 1,001 levels).
+    let cases = [
+        // A left-associative chain: one `BinExpr` per operator over the first literal.
+        (
+            "chain",
+            format!("x = 1{}", " + 1".repeat(999)),
+            format!("x = 1{}", " + 1".repeat(1000)),
+        ),
+        (
+            "parens",
+            format!("x = {}1{}", "(".repeat(999), ")".repeat(999)),
+            format!("x = {}1{}", "(".repeat(1000), ")".repeat(1000)),
+        ),
+        (
+            "negations",
+            format!("x = {}1", "- ".repeat(999)),
+            format!("x = {}1", "- ".repeat(1000)),
+        ),
+        // Each call is two levels (`CallExpr`, `ArgList`); `(1)` adds two more.
+        (
+            "calls",
+            format!("x = {}(1){}", "f(".repeat(499), ")".repeat(499)),
+            format!("x = {}((1)){}", "f(".repeat(499), ")".repeat(499)),
+        ),
+        // `a(1)` is three levels (`CallExpr`, `ArgList`, `Literal`); each member one more.
+        (
+            "members",
+            format!("x = a(1){}", ".b".repeat(997)),
+            format!("x = a(1){}", ".b".repeat(998)),
+        ),
+        (
+            "target",
+            format!("a(1){} = 1", ".b".repeat(997)),
+            format!("a(1){} = 1", ".b".repeat(998)),
+        ),
+    ];
+    let run = move || {
+        for (name, fits, too_deep) in cases {
+            let p = parse_one(format!("{fits}\n").as_bytes());
+            assert!(p.diagnostics().list().is_empty(), "{name}: 1,000 levels must parse");
+            let p = parse_one(format!("{too_deep}\n").as_bytes());
+            let diags = p.diagnostics();
+            assert_eq!(diags.list().len(), 1, "{name}: 1,001 levels");
+            let d = &diags.list()[0];
+            assert_eq!(d.message, "an expression nested more than 1000 levels deep", "{name}");
+            assert!(d.unsupported, "{name}");
+        }
+    };
+    let thread = std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(run)
+        .unwrap();
+    if let Err(e) = thread.join() {
+        std::panic::resume_unwind(e);
+    }
+}
+
 /// Errors at a BASIC word or operator the parser does not handle there are marked; a genuine syntax error is not.
 #[test]
 fn marked_parse_errors() {

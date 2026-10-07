@@ -1,0 +1,69 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 5: Assign A:F32
+  Convert Nearest : F32
+    Int 1 : I16
+line 5: Assign B:I16
+  Int 2 : I16
+line 6: If
+  If
+    Binary Gt : I32
+      Var A : F32
+      Convert Nearest : F32
+        Int 0 : I16
+    line 7: Print newline
+      Str
+        Str "a" : Str
+  ElseIf
+    Var B : I16
+    line 9: If
+      If
+        Var A : F32
+        line 9: Print newline
+          Str
+            Str "nested" : Str
+      Else
+        line 9: Print newline
+          Str
+            Str "no" : Str
+  ElseIf
+    Binary Eq : I32
+      Binary Add : F32
+        Var A : F32
+        Convert Nearest : F32
+          Var B : I16
+      Convert Nearest : F32
+        Int 3 : I16
+  Else
+    line 12: Print newline
+      Str
+        Str "else" : Str
+line 14: If
+  If
+    Binary Eq : I32
+      Convert Widen : I32
+        Var B : I16
+      Int 2 : I32
+    line 14: Print newline
+      Str
+        Str "one" : Str
+    line 14: Print newline
+      Str
+        Str "two" : Str
+line 15: If
+  If
+    Var A : F32
+    line 15: Goto DONE
+line 16: Print newline
+  Str
+    Str "skipped" : Str
+line 17: Label DONE
+line 18: If
+  If
+    Binary Ne : I32
+      Var A : F32
+      Convert Nearest : F32
+        Int 1 : I16

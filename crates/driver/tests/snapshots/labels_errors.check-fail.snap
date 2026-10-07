@@ -1,0 +1,12 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+labels_errors.bas:4:6: error: label `inside` is not defined in the main module
+labels_errors.bas:5:15: error: label `inside` is not defined in the main module
+labels_errors.bas:10:5: error: duplicate label: `a`
+labels_errors.bas:11:10: error: label `done` is not defined in this SUB or FUNCTION
+labels_errors.bas:12:11: error: label `done` is not defined in this SUB or FUNCTION
+labels_errors.bas:13:19: error: `ON ERROR GOTO` needs a label of the main module, not one of this SUB or FUNCTION: `a`
+labels_errors.bas:14:12: error: `RETURN` with a label or line number is not allowed in a SUB or FUNCTION
+labels_errors.bas:15:12: error: label `done` is not defined in this SUB or FUNCTION

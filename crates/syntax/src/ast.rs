@@ -571,6 +571,24 @@ impl<'a> ForBlock<'a> {
         }
         None
     }
+
+    /// The variable the closing `NEXT` names for this loop: the first of its own `NEXT`, or the one at this loop's
+    /// depth in an inner `NEXT j, i`. `None` for a plain `NEXT` (or when the `NEXT` is missing).
+    pub fn next_var(self) -> Option<NameRef<'a>> {
+        if let Some(n) = child(self.0, NextStmt::cast) {
+            return n.vars().next();
+        }
+        let mut depth = 1;
+        let mut inner = self.body().last().and_then(ForBlock::cast);
+        while let Some(f) = inner {
+            if let Some(n) = child(f.0, NextStmt::cast) {
+                return n.vars().nth(depth);
+            }
+            depth += 1;
+            inner = f.body().last().and_then(ForBlock::cast);
+        }
+        None
+    }
 }
 
 impl<'a> ForHeader<'a> {

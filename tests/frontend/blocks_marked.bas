@@ -1,8 +1,9 @@
 ' TEST: check-fail
 $CONSOLE:ONLY
-' sema marks every block kind "not supported yet" at its first word and still checks the statements inside (the
-' strings stored in numbers below are real errors); `EXIT FOR` and the like are marked; `DEF FN` is a real error,
-' as in the old compiler (m2-parser-breadth task 6.4)
+' sema checks the statements inside every block kind (the strings stored in numbers below are real errors); it
+' marks `SELECT CASE`, `TYPE` and `DECLARE LIBRARY` "not supported yet" at their first word (IF, FOR, DO, WHILE
+' and EXIT FOR/DO/WHILE are typed since m2-control-flow-slice task 5.2); `DEF FN` is a real error, as in the old
+' compiler (m2-parser-breadth task 6.4)
 FOR i = 1 TO 2
     a% = "for"
 NEXT

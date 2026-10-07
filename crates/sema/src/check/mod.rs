@@ -14,7 +14,7 @@ mod flow;
 mod ops;
 mod proc;
 
-use blocks::block_parts;
+use blocks::nested_statements;
 
 use crate::{ConstId, LabelId, PrintItem, ProcId, Program, Stmt, StmtKind, SymbolKind, Ty, VarId};
 use qb64rust_base::{Diagnostics, FileId, SourceMap, Span, show_bytes};
@@ -60,6 +60,9 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         used_local: HashMap::new(),
         label_line: None,
         explicit: false,
+        has_include: false,
+        sinks: Vec::new(),
+        bad_next: None,
         parse_marks: program
             .trees
             .iter()
@@ -117,8 +120,16 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         }
     }
 
-    // The main module's labels, also those inside blocks, so that `ON ERROR GOTO` may name one further down.
-    c.declare_labels(&statements, &skips);
+    // The labels of each body, also those inside blocks, so that a jump or `ON ERROR GOTO` may name one further
+    // down (design D5).
+    c.has_include = has_include(map, root);
+    c.declare_labels(&statements, &skips, None);
+    for &def in &defs {
+        if let Some(&id) = c.proc_of_def.get(&def.node().key()) {
+            let body: Vec<Node> = def.body().collect();
+            c.declare_labels(&body, &skips, Some(id));
+        }
+    }
 
     // Pass 2: everything in file order.
     for stmt in statements {
@@ -218,8 +229,8 @@ struct Checker<'a> {
     /// Main-module variables declared with `DIM SHARED` so far (in file order), and the plain names they typed.
     dim_shared: HashSet<VarId>,
     dim_shared_plain: HashMap<String, Ty>,
-    /// The main module's labels by name, and the label of each `LabelDef` node (by its key).
-    labels_by_name: HashMap<String, LabelId>,
+    /// The labels by body (`None`: the main module) and name, and the label of each `LabelDef` node (by its key).
+    labels_by_name: HashMap<(Option<ProcId>, String), LabelId>,
     label_of_def: HashMap<(TreeId, u32), LabelId>,
     diags: Diagnostics,
     stmt_error: bool,
@@ -234,12 +245,18 @@ struct Checker<'a> {
     /// a later `CONST` of the name is an error there (design D6).
     used_names: HashMap<String, Span>,
     used_local: HashMap<String, Span>,
-    /// File and line of the last main-module label.
+    /// File and line of the last label, in any body (a `CONST` after it on that line is not supported yet).
     label_line: Option<(FileId, u32)>,
+    /// An `$INCLUDE` stands somewhere in the program: what it would bring in is not seen yet.
+    has_include: bool,
     /// `OPTION _EXPLICIT` stands somewhere in the program (it applies to the whole program, design D7).
     explicit: bool,
     /// Where the parser marked something "not supported yet".
     parse_marks: Vec<Span>,
+    /// The statement lists of the blocks being checked, innermost last; [`Self::push`] adds to the last one.
+    sinks: Vec<Vec<Stmt>>,
+    /// The last `NEXT` statement (by key) whose variable did not match its `FOR` (`check\blocks.rs`).
+    bad_next: Option<(TreeId, u32)>,
 }
 
 /// An expression could not be typed; the error is already reported.
@@ -293,8 +310,7 @@ impl Checker<'_> {
     }
 
     fn check_statement(&mut self, stmt: Node, skips: &Skips) {
-        if let Some(block) = block_parts(stmt) {
-            self.block(stmt, block, skips);
+        if self.block_statement(stmt, skips) {
             return;
         }
         if !skips.usable(stmt) {
@@ -309,6 +325,10 @@ impl Checker<'_> {
         let span = node.span();
         let line = self.line(node.first_token().map_or(span, |t| t.span));
         let stmt = Stmt { span, line, kind };
+        if let Some(sink) = self.sinks.last_mut() {
+            sink.push(stmt);
+            return;
+        }
         match self.cur {
             Some(p) => self.prog.procs[p.0 as usize].stmts.push(stmt),
             None => self.prog.stmts.push(stmt),
@@ -359,12 +379,12 @@ impl Checker<'_> {
             self.error_stmt(s)
         } else if ast::LineNumber::cast(node).is_some() || ast::ImplicitGoto::cast(node).is_some() {
             Err(self.unsupported(first_token_span(node), "line numbers"))
-        } else if ast::GotoStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "`GOTO`"))
-        } else if ast::GosubStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "`GOSUB`"))
-        } else if ast::ReturnStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "`RETURN`"))
+        } else if let Some(s) = ast::GotoStmt::cast(node) {
+            self.goto(s)
+        } else if let Some(s) = ast::GosubStmt::cast(node) {
+            self.gosub(s)
+        } else if let Some(s) = ast::ReturnStmt::cast(node) {
+            self.return_stmt(s)
         } else if ast::DataStmt::cast(node).is_some() {
             Err(self.unsupported(first_token_span(node), "`DATA`"))
         } else if ast::ReadStmt::cast(node).is_some() {
@@ -475,6 +495,16 @@ fn has_option_explicit(map: &SourceMap, node: Node, skips: &Skips) -> bool {
                 .is_some_and(|w| map.text(w.span).eq_ignore_ascii_case(b"_EXPLICIT"));
     }
     node.child_nodes().any(|n| has_option_explicit(map, n, skips))
+}
+
+/// Whether the tree holds an `$INCLUDE` (only the comment form exists, `study\00` §5), wherever it stands.
+fn has_include(map: &SourceMap, node: Node) -> bool {
+    if let Some(s) = ast::MetaCommentStmt::cast(node) {
+        return s
+            .token()
+            .is_some_and(|t| comment_directives(map.text(t.span)).is_ok_and(|d| d.include.is_some()));
+    }
+    node.child_nodes().any(|n| has_include(map, n))
 }
 
 /// The span of a statement's first token (where a "not supported yet" mark goes, design D10).

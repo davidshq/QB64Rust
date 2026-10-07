@@ -2,4 +2,4 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-blocks_not_compiled_yet.bas:5:1: error: not supported yet: `FOR` loops
+blocks_not_compiled_yet.bas:7:1: error: not supported yet: `SELECT CASE`

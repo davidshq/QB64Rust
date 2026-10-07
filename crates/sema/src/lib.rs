@@ -88,16 +88,16 @@ pub struct Const {
     pub proc: Option<ProcId>,
 }
 
-/// A label of the main module (labels inside procedures are not supported yet).
+/// A label (design D5 of `m2-control-flow-slice`). It belongs to one body, the main module or a procedure, also
+/// when it stands inside a block; where it stands is its [`StmtKind::Label`] statement.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Label {
     /// The name in upper case.
     pub name: String,
     /// 1-based source line of the label.
     pub line: u32,
-    /// Index in [`Program::stmts`] of the statement the label stands before (the number of statements when it
-    /// stands after the last one).
-    pub at: usize,
+    /// The procedure whose body holds the label; `None` for the main module.
+    pub proc: Option<ProcId>,
 }
 
 /// Where `RESUME` continues (spec `language/error-handling`).
@@ -334,6 +334,83 @@ pub enum StmtKind {
     Resume(Resume),
     /// `ERROR n`: raises error `n`, already converted to LONG (rounded half to even).
     Error(Expr),
+    /// Where a label stands: before the next statement of its body.
+    Label(LabelId),
+    /// `GOTO label`: a label of the same body.
+    Goto(LabelId),
+    /// `GOSUB label`: a label of the same body; `RETURN` comes back after this statement.
+    Gosub(LabelId),
+    /// `RETURN` (`None`): back to after the last `GOSUB`, also one made in another body (one stack for the program,
+    /// measured). `RETURN label` (main module only): forget the last `GOSUB` and continue at the label. Either
+    /// raises error 3 when no `GOSUB` is pending.
+    Return(Option<LabelId>),
+    /// `IF` (block or single line, which the old compiler also turns into a block): the first branch is the `IF`,
+    /// the others are `ELSEIF`s, tried in order; `else_` runs when no condition is true. Conditions are numeric;
+    /// true is non-zero.
+    If {
+        branches: Vec<Branch>,
+        else_: Option<Vec<Stmt>>,
+    },
+    /// `FOR var = start TO end [STEP step]` … `NEXT`. `start`, `end` and `step` are converted to `temp`, the type
+    /// the loop counts in (wider than `var`'s, `study\02` §6.5, measured); each pass stores the count into `var`.
+    For {
+        var: VarId,
+        temp: Ty,
+        start: Expr,
+        end: Expr,
+        /// `None` without `STEP` (a step of 1).
+        step: Option<Expr>,
+        body: Vec<Stmt>,
+        /// 1-based source line of the `NEXT` that closes the loop.
+        end_line: u32,
+    },
+    /// `DO` … `LOOP`, with at most one condition, at the top or at the bottom.
+    Do {
+        test: Option<LoopTest>,
+        body: Vec<Stmt>,
+        /// 1-based source line of the `LOOP`.
+        end_line: u32,
+    },
+    /// `WHILE cond` … `WEND`.
+    While {
+        cond: Expr,
+        body: Vec<Stmt>,
+        /// 1-based source line of the `WEND`.
+        end_line: u32,
+    },
+    /// `EXIT FOR`, `EXIT DO`, `EXIT WHILE`: leaves the innermost loop of that kind (the parser checked there is
+    /// one).
+    ExitLoop(LoopKind),
+}
+
+/// One branch of an [`StmtKind::If`]: its condition and its statements.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Branch {
+    pub cond: Expr,
+    pub body: Vec<Stmt>,
+}
+
+/// The condition of a `DO` loop.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LoopTest {
+    /// At `DO` (checked before each pass) or at `LOOP` (after each pass).
+    pub at: TestAt,
+    /// `UNTIL` (leave when true) rather than `WHILE` (leave when false).
+    pub until: bool,
+    pub cond: Expr,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TestAt {
+    Top,
+    Bottom,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LoopKind {
+    For,
+    Do,
+    While,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -353,7 +430,7 @@ pub struct Program {
     pub procs: Vec<Proc>,
     /// The main module's statements.
     pub stmts: Vec<Stmt>,
-    /// The main module's labels, in source order.
+    /// The labels of every body, in source order.
     pub labels: Vec<Label>,
     /// Every `CONST`, in source order.
     pub consts: Vec<Const>,

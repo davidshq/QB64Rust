@@ -1,11 +1,10 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 103
 expression: snap
 ---
 error_handling_errors.bas:5:1: error: duplicate label: `a`
-error_handling_errors.bas:6:15: error: label `nowhere` is not defined
-error_handling_errors.bas:7:8: error: label `nowhere` is not defined
+error_handling_errors.bas:6:15: error: label `nowhere` is not defined in the main module
+error_handling_errors.bas:7:8: error: label `nowhere` is not defined in the main module
 error_handling_errors.bas:8:15: error: not supported yet: line numbers
 error_handling_errors.bas:9:8: error: not supported yet: line numbers
 error_handling_errors.bas:10:15: error: `a$` is not a valid label
@@ -15,6 +14,5 @@ error_handling_errors.bas:13:7: error: `CHR$` takes 1 argument
 error_handling_errors.bas:14:1: error: not supported yet: the label `cls:` (`cls` is a built-in)
 error_handling_errors.bas:15:1: error: not supported yet: a label with the name of a SUB or FUNCTION: `s`
 error_handling_errors.bas:16:7: error: not supported yet: `ERR`
-error_handling_errors.bas:19:12: error: label `a` is not defined in this SUB or FUNCTION (the main module's labels are not visible here)
+error_handling_errors.bas:19:12: error: label `a` is not defined in this SUB or FUNCTION
 error_handling_errors.bas:20:5: error: not supported yet: `RESUME` inside a SUB or FUNCTION
-error_handling_errors.bas:21:5: error: not supported yet: labels inside a SUB or FUNCTION

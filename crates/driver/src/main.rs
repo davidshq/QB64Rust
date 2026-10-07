@@ -3,7 +3,7 @@
 //! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
 //! [--qb64pe-root <dir>] [--keep-build]`
 
-use qb64rust_driver::{build, dump_cpp, dump_ir, emit, frontend};
+use qb64rust_driver::{build, check_backend, dump_cpp, dump_ir, emit, frontend};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -119,7 +119,7 @@ fn install_panic_hook() {
 
 fn main() -> ExitCode {
     install_panic_hook();
-    match run() {
+    match qb64rust_driver::with_stack(run) {
         Ok(code) => code,
         Err(msg) => {
             println!("qb64rust: {msg}");
@@ -159,7 +159,10 @@ fn run() -> Result<ExitCode, String> {
         print!("{}", qb64rust_syntax::dump_tokens(&bytes));
         return Ok(ExitCode::SUCCESS);
     }
-    let fe = frontend(&name, bytes);
+    let mut fe = frontend(&name, bytes);
+    if !matches!(o.dump.as_deref(), Some("tree" | "typed")) {
+        check_backend(&mut fe);
+    }
     let errors = fe.diagnostics.error_count();
     let report = |fe: &qb64rust_driver::Frontend| {
         if errors > 0 {

@@ -103,10 +103,16 @@ impl Checker<'_> {
         }
     }
 
-    /// The variable a name (not a procedure's) refers to at this point of the program, created on first use. In
-    /// a procedure: its own variables (parameters, `STATIC`, `SHARED`, `DIM`, implicit), then the main module's
-    /// `DIM SHARED` variables declared earlier in the file, else a new local.
-    pub(super) fn variable(&mut self, t: Tok, name: String, suffix: Option<Ty>) -> R<VarId> {
+    /// The variable a name refers to at this point of the program, if it exists (as [`Self::variable`] finds it,
+    /// without creating one).
+    pub(super) fn lookup_var(&mut self, name: String, suffix: Option<Ty>) -> Option<VarId> {
+        let key = self.var_key(name, suffix);
+        self.find_var(&key)
+    }
+
+    /// A name's variable key: the name and the type it means here (its suffix, or the type a `DIM … AS` gave the
+    /// plain name, or SINGLE).
+    fn var_key(&mut self, name: String, suffix: Option<Ty>) -> (String, Ty) {
         let ty = match suffix {
             Some(t) => t,
             None => {
@@ -116,15 +122,28 @@ impl Checker<'_> {
                 plain.or(shared).unwrap_or(Ty::F32)
             }
         };
+        (name, ty)
+    }
+
+    /// The variable of `key` in the current scope, or in a procedure a main-module `DIM SHARED` one.
+    fn find_var(&mut self, key: &(String, Ty)) -> Option<VarId> {
+        self.scope().vars.get(key).copied().or_else(|| {
+            let main = self.main.vars.get(key).copied();
+            main.filter(|v| self.cur.is_some() && self.dim_shared.contains(v))
+        })
+    }
+
+    /// The variable a name (not a procedure's) refers to at this point of the program, created on first use. In
+    /// a procedure: its own variables (parameters, `STATIC`, `SHARED`, `DIM`, implicit), then the main module's
+    /// `DIM SHARED` variables declared earlier in the file, else a new local.
+    pub(super) fn variable(&mut self, t: Tok, name: String, suffix: Option<Ty>) -> R<VarId> {
+        let key = self.var_key(name, suffix);
+        let ty = key.1;
         let storage = match self.cur {
             Some(p) => Storage::Local(p),
             None => Storage::Main,
         };
-        let key = (name, ty);
-        let found = self.scope().vars.get(&key).copied().or_else(|| {
-            let main = self.main.vars.get(&key).copied();
-            main.filter(|v| self.cur.is_some() && self.dim_shared.contains(v))
-        });
+        let found = self.find_var(&key);
         let id = match found {
             Some(id) => id,
             None => {

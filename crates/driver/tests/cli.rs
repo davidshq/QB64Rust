@@ -188,6 +188,78 @@ fn no_clone_found() {
     assert!(!d.join("p.exe").exists());
 }
 
+/// `GOTO`, `GOSUB` and `RETURN` are checked by the front end (`--dump typed` succeeds) but are not supported yet by
+/// the IR, so `--dump ir` and a build stop with a marked error (`m2-control-flow-slice` task 5.1, until 6.2).
+#[test]
+fn jumps_wait_for_the_ir() {
+    let d = scratch("jumps");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nGOTO a\na: SYSTEM\n").unwrap();
+    let o = qb64rust(&d, &["--dump", "typed", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    for args in [&["--dump", "ir", "p.bas"][..], &["-z", "p.bas"][..]] {
+        let o = qb64rust(&d, args);
+        assert_eq!(o.status.code(), Some(1));
+        let out = stdout(&o);
+        assert!(
+            out.contains(
+                "p.bas:2:1: error: not supported yet: `GOTO` in code generation\n1 error (1 not supported yet)"
+            ),
+            "{out}"
+        );
+    }
+}
+
+/// Deeply nested expressions are one "not supported yet" error, not a stack overflow (the known bug of
+/// 2026-10-07). Through the binary, which runs on its own large stack; a test thread's 2 MiB would not hold the
+/// later walks of an expression 1,000 levels deep in a debug build.
+#[test]
+fn deep_expressions() {
+    let d = scratch("deep");
+    let depth = 990;
+    let cases = [
+        ("chain_ok", format!("x = 1{}", " + 1".repeat(depth)), true),
+        (
+            "parens_ok",
+            format!("x = {}1{}", "(".repeat(depth), ")".repeat(depth)),
+            true,
+        ),
+        ("chain", format!("x = 1{}", " + 1".repeat(20_000)), false),
+        (
+            "parens",
+            format!("x = {}1{}", "(".repeat(3_000), ")".repeat(3_000)),
+            false,
+        ),
+        ("negations", format!("x = {}1", "- ".repeat(20_000)), false),
+        ("members", format!("x = a(1){}", ".b".repeat(20_000)), false),
+        ("target", format!("a(1){} = 1", ".b".repeat(20_000)), false),
+        // A call without `CALL`, whose arguments are parsed with errors held back.
+        (
+            "quiet_args",
+            format!("CLS {}1{}", "(".repeat(3_000), ")".repeat(3_000)),
+            false,
+        ),
+    ];
+    for (name, line, fits) in cases {
+        let file = format!("{name}.bas");
+        std::fs::write(d.join(&file), format!("$CONSOLE:ONLY\n{line}\nPRINT x\n")).unwrap();
+        let o = qb64rust(&d, &["--dump", "typed", &file]);
+        let out = stdout(&o);
+        assert!(
+            o.stderr.is_empty(),
+            "{name}: no stack overflow or other message on stderr"
+        );
+        if fits {
+            assert_eq!(o.status.code(), Some(0), "{name}: {out}");
+        } else {
+            assert_eq!(o.status.code(), Some(1), "{name}: {out}");
+            assert!(
+                out.contains("error: not supported yet: an expression nested more than 1000 levels deep\n1 error (1 not supported yet)"),
+                "{name}: {out}"
+            );
+        }
+    }
+}
+
 /// Scenario "Forced panic" (change `m2-parser-breadth`, D11).
 #[test]
 fn internal_compiler_error() {

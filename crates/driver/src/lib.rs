@@ -6,6 +6,23 @@ use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_sema::Program;
 use qb64rust_syntax::{NoLoader, ParsedProgram, parse};
 
+/// Stack size of the thread the compiler runs on. Every stage walks the tree recursively; the parser's limits
+/// (blocks nested 200 deep, expressions 1,000 levels) keep that bounded, and this leaves room for both at once
+/// in a debug build (a debug build needs about 4 KiB per expression level; the main thread has 1 MiB on Windows).
+pub const STACK_SIZE: usize = 64 * 1024 * 1024;
+
+/// Runs `f` on a new thread with [`STACK_SIZE`] of stack and returns its result. A panic in `f` is passed on.
+pub fn with_stack<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
+    let thread = std::thread::Builder::new()
+        .stack_size(STACK_SIZE)
+        .spawn(f)
+        .expect("cannot start the compiler thread");
+    match thread.join() {
+        Ok(v) => v,
+        Err(e) => std::panic::resume_unwind(e),
+    }
+}
+
 /// The result of the front end for one program: its trees, and the typed program if parsing and checking gave no
 /// errors.
 pub struct Frontend {
@@ -55,7 +72,17 @@ pub fn frontend(name: &str, bytes: Vec<u8>) -> Frontend {
     }
 }
 
-/// The IR of a checked program.
+/// Adds a "not supported yet" error for each statement the front end accepts but the IR cannot express yet
+/// ([`qb64rust_ir::not_lowered`]). Called before [`lower`], [`dump_ir`], [`emit`] and [`dump_cpp`], and only then:
+/// `--dump typed` and the language server see the front end's result alone.
+pub fn check_backend(fe: &mut Frontend) {
+    if !fe.has_errors() {
+        let gaps = qb64rust_ir::not_lowered(&fe.program);
+        fe.diagnostics.extend(gaps);
+    }
+}
+
+/// The IR of a checked program, after [`check_backend`] found nothing.
 pub fn lower(fe: &Frontend) -> qb64rust_ir::Program {
     qb64rust_ir::lower(&fe.program)
 }

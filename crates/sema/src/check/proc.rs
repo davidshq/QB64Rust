@@ -1,6 +1,6 @@
 //! Procedures: headers and parameters (pass 1), calls and their arguments, `EXIT SUB`/`FUNCTION`.
 
-use super::{Checker, Failed, R, Scope, first_token_span};
+use super::{Checker, Failed, R, Scope};
 use crate::{Arg, Expr, ExprKind, Proc, ProcId, ProcKind, StmtKind, Storage, SymbolKind, Ty};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::find_any;
@@ -167,8 +167,7 @@ impl Checker<'_> {
             .map(|t| self.word(t));
         if !matches!(word.as_deref(), Some("SUB" | "FUNCTION")) {
             // `EXIT FOR`, `EXIT DO`... (the parser checked that the block is open).
-            let words = node.child_tokens().map(|t| self.word(t)).collect::<Vec<_>>().join(" ");
-            return Err(self.unsupported(first_token_span(node), format!("`{words}`")));
+            return self.exit_loop(node, word.as_deref().unwrap_or(""));
         }
         if self.cur.is_none() {
             let words = node.child_tokens().map(|t| self.word(t)).collect::<Vec<_>>().join(" ");

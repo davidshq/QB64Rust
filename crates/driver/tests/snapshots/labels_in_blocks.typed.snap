@@ -1,0 +1,45 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 6: Goto INMAIN
+line 7: If
+  If
+    Int 1 : I16
+    line 8: Label INMAIN
+    line 9: Print newline
+      Str
+        Str "in" : Str
+line 11: Call T
+line 12: System
+SUB T
+  local I:F32
+  local N:F32
+line 14: Goto INL
+line 15: For I (local):F32 counting in F64 (NEXT line 19)
+  From
+    Convert Nearest : F64
+      Int 1 : I16
+  To
+    Convert Nearest : F64
+      Int 2 : I16
+  Body
+    line 16: Label INL
+    line 17: Assign N (local):F32
+      Binary Add : F32
+        Var N (local) : F32
+        Convert Nearest : F32
+          Int 1 : I16
+    line 17: Print newline
+      Str
+        Str "in" : Str
+      Num
+        Var I (local) : F32
+    line 18: If
+      If
+        Binary Gt : I32
+          Var N (local) : F32
+          Convert Nearest : F32
+            Int 6 : I16
+        line 18: Exit For
