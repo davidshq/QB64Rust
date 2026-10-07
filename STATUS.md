@@ -170,12 +170,8 @@ GitHub.
    its last green run).
 2. Done 2026-10-05: `m2-parser-breadth` groups 5 and 6 (member access, `DATA`, line numbers, blocks). The change
    pauses until step 5.
-3. **Now: `m2-control-flow-slice`, task 8.1** (`openspec\changes\m2-control-flow-slice\tasks.md`). Groups 1–7 are
-   done (measurements `v17_*`, slice programs `s13`–`s19`, the `check\` split, every operator through to C++,
-   `CONST` and `OPTION _EXPLICIT`, labels per body, blocks typed by `sema`, the IR with jumps and every block
-   lowered, the emitter for jumps, `GOSUB`/`RETURN` and temporaries; `s13`–`s19` pass end to end). Left: 8 (lists;
-   up to 53 corpus and 12 upstream programs expected to join), 9 (documents). Then the **IR review** (`study\20` §3.4): the jump and error model; "keep or
-   merge" stays provisional until step 4.
+3. **Now: `m2-control-flow-slice`, task 9.1** (`openspec\changes\m2-control-flow-slice\tasks.md`); then the **IR
+   review** (`study\20` §3.4), whose "keep or merge" stays provisional until step 4.
 4. A **minimal arrays-and-`TYPE` slice**, its own OpenSpec change, measured first (`study\24` §2): static
    `DIM a(n)` of scalars, element read and write, an element by reference, `LBOUND`/`UBOUND`, `TYPE` with scalar
    members, member read and write. It closes the IR review's place question.
@@ -187,8 +183,8 @@ GitHub.
 9. The rest of control flow (`SELECT CASE`, `ON … GOTO/GOSUB`, `DEFxxx`), then the rest of arrays and `TYPE`
    (`REDIM`, dynamic arrays, `OPTION BASE`; member arrays stay in `SOMEDAY.md`).
 
-Numbers at the last full runs (2026-10-07): `slice.list` 75 of 75, full corpus 89 pass and none wrong at run time,
-upstream **20 of 279**; shrink-only lists: 43 false errors, 72 only-marked rejections, 500 parse gaps
+Numbers at the last full runs (2026-10-07, task 8.2): `slice.list` 113 of 113, full corpus 127 pass and none wrong
+at run time, upstream **23 of 279**; shrink-only lists: 43 false errors, 72 only-marked rejections, 500 parse gaps
 (`tests\upstream\README.md`).
 
 **`m2-parser-breadth`** (started 2026-10-04, paused at group 6; `openspec\changes\m2-parser-breadth\tasks.md`):

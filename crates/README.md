@@ -105,9 +105,10 @@ qb64rust-driver --test inputs` and review the diff (entries may only go away).
 **Mutation test.** `QB64RUST_MUTATE_SEED` and `QB64RUST_MUTATE_COUNT` (mutants per corpus program, default 20)
 change the run; a failure prints the seed to rerun with and writes the mutant to `target\mutate-failure.bas`.
 
-Time of tier 1, measured 2026-10-04 (debug build already built, 16 threads, clone present): `cargo test` takes
-about 3 s (1.4 s before `inputs.rs`; `inputs.rs` alone 1.4–2.9 s for about 1,000 files, run on all cores).
-The budget is a minute (design of `m2-upstream-tests`); past it, the clone sets would run in release only.
+Time of tier 1, measured 2026-10-07 after `m2-control-flow-slice` (debug build already built, 16 threads, clone
+present): `cargo test` takes 4.9–5.4 s over three runs, `inputs.rs` 2.4 s of it (on 2026-10-04: about 3 s, `inputs.rs`
+1.4–2.9 s for about 1,000 files, run on all cores). The budget is a minute (design of `m2-upstream-tests`); past
+it, the clone sets would run in release only.
 
 `tests\frontend\*.bas` start with a mode line, `' TEST: <mode>`:
 

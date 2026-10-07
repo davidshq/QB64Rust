@@ -12,7 +12,7 @@ not say whether that behaviour is right (that is the divergence register's job).
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
 | `slice\` | 19 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants; `SOURCE.md`) |
-| `slice.list` | The 75 programs the new compiler must pass: `s01`–`s12` and `s17` of `slice\` and 62 of `runtime_comparison` (see below) |
+| `slice.list` | The 113 programs the new compiler must pass: all 19 of `slice\` and 94 of `runtime_comparison` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -120,10 +120,9 @@ signed overflow being undefined in the generated C++ (no `-fwrapv`); the new com
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
 line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
 
-`slice.list` names the 75 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`. `s13`–`s19` join it as `m2-control-flow-slice` makes them pass (its tasks 3.2, 7.1–7.3,
-8.1); until then they are recorded but not listed (`s17` joined with task 3.2; `s18_const` needs `IF` and `FOR`,
-so it waits for the blocks although its constants pass, task 4.2).
+`slice.list` names the 113 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`. `s13`–`s19` joined it with `m2-control-flow-slice` (`s17` with task 3.2, the rest with task
+8.1).
 
 ```
 cargo build --release
@@ -136,6 +135,29 @@ requires no panic, an exact round trip, no diagnostics for the listed ones, at l
 with an `.err` file, and the two shrink-only lists `tests\known_false_errors.list` and
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
+
+### Full corpus with `qb64rust` (2026-10-07, not a pass criterion)
+
+After the control-flow slice (`m2-control-flow-slice` task 8.2, release build), 282 programs:
+
+| Result | Programs |
+|---|---|
+| Pass | 127: the 113 of `slice.list` and the same 14 `.err` programs as before |
+| Rejected with a diagnostic (exit status 1) | 144 (143 `.output` programs and the compile-only `239_lprint`) |
+| `.err` programs that get only "not supported yet" errors | 6 (`16`, `28`, `194`, `202`, `205`, `218`: arrays, `REDIM`, `FRE`, `LTRIM$`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+The whole run took 4 min 24 s; built programs 2.2 s on average (1.9–5.2 s), rejected ones under 1 s.
+
+Task 8.1 added 38 programs to `slice.list`: `s13`–`s16`, `s18`, `s19` and 32 of `runtime_comparison` (`IF`, `FOR`,
+`DO`, `WHILE`, `GOTO`, `GOSUB`, `EXIT`; all also pass with `QB64RUST_NO_FOLD=1`). With the 20 that joined with
+tasks 3.1, 3.2 and 4.2, 52 `runtime_comparison` programs joined over the change, against the 53 its proposal
+counted on 2026-10-05 as blocked only by its constructs. That count was not recorded by name, so the missing one
+cannot be named; likely a program the count took for `EXIT` or `GOTO` (`151_exit_select`, `226_on_goto`). Every
+corpus program still rejected is blocked by something outside the change: a built-in function (most of them; e.g.
+`LEN`, `VAL`, `STR$`, `MID$`, `SQR`), `SELECT CASE` (6 programs blocked by it alone), `ON … GOTO`, `DEFINT`,
+`OPTION BASE`, `EXIT SELECT`, `SWAP`, `PRINT USING`, `TAB`/`SPC`, arrays, `TYPE` and file statements.
 
 ### Full corpus with `qb64rust` (2026-10-06, not a pass criterion)
 

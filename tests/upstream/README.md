@@ -112,3 +112,12 @@ without an operand) and pass; added to `pass.list`. The rest of `const/` waits f
 `const/type_mismatch_string_*` (`.err`, now a real error for the old compiler's reason); none builds and prints
 the wrong output. `const/undefined_argument*` stay "not supported yet": a name that is neither a constant nor a
 variable may be a constant of an auto-included file (`$COLOR`), which the compiler does not have yet.
+
+**Upstream progress, 2026-10-07: 23 of 279** (`m2-control-flow-slice` task 8.1, the blocks through to C++). Full
+run (404 programs, 41 s): 23 pass; added to `pass.list`: `source_ordering/goto_gosub` and the two
+`arrays/t659_*` (`CALL` and a `SUB` call with comparisons as arguments, `IF` in the `SUB`; both `.output`
+programs); none builds and prints the wrong output; 1 known failure. Over the change 13 programs joined, against
+the 12 its proposal expected. No program outside `deferred.list` is blocked only by a construct of the change any
+more; the most frequent single blockers are `VAL` (5), a malformed whole-array assignment (4 `.err` programs,
+`arrays/t025`, `t027`, `t037`, `t040`; the rest of `t024`–`t041` is in `deferred.list`), comment `$INCLUDE` (4)
+and `REDIM` (3).

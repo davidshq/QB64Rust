@@ -245,14 +245,24 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
 
 ## 8. Lists and progress
 
-- [ ] 8.1 Add to `tests\corpus\slice.list` every corpus program that now passes tier 2 (the count expects up to
+- [x] 8.1 Add to `tests\corpus\slice.list` every corpus program that now passes tier 2 (the count expects up to
   53, listed in `tests\corpus\README.md` with the reason for any that does not pass), and to
   `tests\upstream\pass.list` every upstream program that passes (up to 12 expected). Regenerate the three
   shrink-only lists. Verify: tier 2 with both lists passes, also with `QB64RUST_NO_FOLD=1`; CI job `tier2` green
   after the push; the list diffs only remove entries.
-- [ ] 8.2 Full corpus once with the release build: no crash, no wrong executable, every `.err` program rejected;
+  Done 2026-10-07: `slice.list` 75 → 113 (`s13`–`s16`, `s18`, `s19`, 32 of `runtime_comparison`; 52 joined over
+  the change against the 53 counted, the one missing cannot be named since the count kept no names; every program
+  still rejected is blocked by something outside the change, `tests\corpus\README.md`). `pass.list` 20 → 23
+  (`source_ordering/goto_gosub`, `arrays/t659_explicit_call_control`, `arrays/t659_sub_call_comparisons`; 13
+  joined over the change against 12 expected). The three shrink-only lists were already exact (regenerating
+  changed nothing; the earlier tasks kept them current). Tier 2: corpus 113 of 113 and upstream 23 of 23, both also
+  with `QB64RUST_NO_FOLD=1`. Still open: CI `tier2` green after the push.
+- [x] 8.2 Full corpus once with the release build: no crash, no wrong executable, every `.err` program rejected;
   record counts and time in `tests\corpus\README.md`. Measure tier-1 time and record it in `crates\README.md`
   (budget a minute). Verify: the numbers are in both files.
+  Done 2026-10-07: 127 pass (113 `.output`, 14 `.err`), 144 rejected with a diagnostic, 6 `.err` programs with
+  only marked errors (every `.err` program rejected, no executable), 5 known failures, 0 crashes or wrong
+  executables; 4 min 24 s. Full upstream run: 23 pass, 41 s. Tier 1: 4.9–5.4 s (`inputs.rs` 2.4 s).
 
 ## 9. Documents
 
