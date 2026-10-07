@@ -7,7 +7,7 @@ relative paths. Binary assets (images, fonts, sound, libraries) and `.gitignore`
 upstream tests that need them are run from the clone (`tools/legacy_tests/run_legacy_tests.py --suite compile`).
 
 Licence: MIT, QB64pe's `licenses/license_qb64.txt`, copied as `LICENSE-QB64pe.txt` (decision of 2026-10-04 in
-`CLAUDE.md`; `study/22` §4).
+`DECISIONS.md`; `study/22` §4).
 
 Made by `tools/upstream/copy_upstream_tests.py`; rerun it after updating the clone (with `--commit-ok`). Do not
 edit the copied files by hand.

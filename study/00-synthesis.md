@@ -7,11 +7,11 @@ of other repositories (`11`–`14`) are closed and live in `archive\`; their con
 First written 2026-10-02 from `01`–`05`; rewritten 2026-10-02 (session 5) to cover `06`–`14`, `baselines\` and
 `verification\`; trimmed 2026-10-03 when `11`–`14` were archived. Tree studied: `..\QB64pe`, HEAD `16f629784e`,
 `Version$ = "4.7.0-GLFW"` (upstream QB64pe `main`).
-Current phase and next steps: `STATUS.md`. Rules and the decision log: `CLAUDE.md`.
+Current phase and next steps: `STATUS.md`. Rules: `CLAUDE.md`. Decision log: `DECISIONS.md`.
 
 ## 1. Decisions
 
-All taken 2026-10-02; the authoritative list is in `CLAUDE.md`.
+All taken 2026-10-02; the authoritative list is in `DECISIONS.md`.
 
 | Decision | Consequence |
 |---|---|
@@ -46,7 +46,7 @@ From the expert panel (`07`), whose recommendations R1–R13 the decisions above
 |---|---|---|---|
 | M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
 | M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | **done** (`vscode\`) |
-| M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server; formatter matching `-y` | **in progress**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling (`crates\`; 54 corpus programs pass end to end). Order of work: `STATUS.md`, `study\22` §5 |
+| M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server; formatter matching `-y` | **in progress**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling; upstream tests; control flow and constants (`crates\`; 113 corpus programs and 23 of 279 upstream ones pass end to end). Order of work: `STATUS.md`, `study\24` §4 |
 | M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests; programs without `$CONSOLE:ONLY` with a screen-state oracle | started early: the slice already links with libqb |
 | M4 | Parity | The corpus (275) and the upstream tests in reach (279 of 404; 125 need the deferred array features) match; `qb64pe.bas` compiles and the result passes the suite (exit criterion, `study\20`) | |
 | M5 | Debugger | Debug symbol file + DAP adapter | |
@@ -385,6 +385,71 @@ program per question, `v17_probe_*` the three probes of the change's design; han
   handler). String operands of `AND`, `MOD`, `^`, `-`, `NOT`, `_NEGATE`, `_ANDALSO` and a string compared with a
   number are compile errors.
 
+Measured for the arrays-and-`TYPE` slice (2026-10-07, `m2-arrays-and-types` task 2.1; `verification\v18_*`, one
+program per question; handlers print `ERR` and resume next):
+
+- **Store rule per place (`v18_a_*`, `v18_b_member_store`, `v18_h_member_index_order`, `v18_h_string_member`):** an
+  **element store evaluates the index first; with an error pending after it the value is not evaluated and nothing
+  is stored** (`x(11) = ASC("")` reports 9 only, no element changes); a value that raises is stored as its
+  placeholder (`x(9) = ASC("")` leaves 0). A **member store is not guarded**: `u.m = ASC("")` leaves 0, and **a
+  member of an element with a bad index writes element 0** (`a(9).m = 5` and `a(-1).m = 6` set `a(0).m`, also for a
+  `STRING` member): `array_check` returns 0 after raising (`qbx.cpp` 474). In a member-of-element store the
+  **value is evaluated before the index** (C++17 sequences the right side of `=` first), so `a(9).m = ASC("")`
+  reports 5 and writes the placeholder 0 into `a(0).m`. **The first error of a statement wins** (`error()` in
+  `error_handle.cpp` keeps a pending error). **A read with a bad index gives element 0's value**, not 0 (`y = x(11)`
+  is `x(0)`, also for strings and members of elements); `x(x(11) + 3) = 9` computes its index from `x(0)` and is
+  skipped.
+- **By reference (`v18_c_*`):** an element or a member (also of an element) passed to a parameter of its exact type
+  is passed by reference (`bump x(3)`, `CALL bump(x(3))`, `bump u.m`, `bump a(2).m` change it; `f(x(3))` in a FUNCTION
+  too); in parentheses, or of another type (`DOUBLE`, `INTEGER` element to a LONG parameter), a copy. **An element
+  with a bad index raises 9 and the SUB is not entered** (procedure entry check), so nothing is written, also for
+  `a(9).m`. Arguments are evaluated left to right and the first error wins (`two x(9), ASC("")` reports 9, `two
+  ASC(""), x(9)` 5).
+- **Indexes (`v18_d_*`):** a float index is **rounded half to even** (`x(1.5)` and `x(2.5)` are `x(2)`, `x(0.5)` and
+  `x(-0.5)` are `x(0)`, `x(-0.6)` raises 9, `x(10.5)` is `x(10)`), as an assignment to `_INTEGER64`. Indexes
+  beyond 32 or 64 bits and `1E+30` raise 9. **Each dimension is checked on its own** (`m(1, 4)` for `DIM m(2, 3)`
+  raises 9 though its flat position is inside). Several indexes are evaluated left to right, first error wins. A
+  string index is "Illegal string-number conversion"; a wrong number of indexes is "Cannot change the number of
+  elements an array has!"; an array name without indexes in an expression (`PRINT x`) is the scalar `x`.
+- **Bounds and `DIM` (`v18_e_*`):** `DIM b(-2 TO 3, 5)`, `DIM z(0)` (0 to 0), `DIM one(7 TO 7)`, bounds from
+  `CONST`s and any constant expression (`-(2 ^ 2) TO 10 \ 3` is -4 to 3), **float bounds rounded half to even**
+  (`DIM a(2.5)` is 0 to 2). `DIM a(-1)` and `DIM a(5 TO 1)` are "Invalid array bounds"; **a second `DIM` of the
+  same static array is "Cannot redefine a static array!"**, also after an implicit use (`a(1) = 5` then `DIM a(5)`,
+  `v18_g_before_dim`). **The `DIM` of a static array does nothing when it runs** (in a loop, values survive).
+  A non-constant bound in the main module compiles (a dynamic array); `DIM t(5)` in a SUB is new on each call. A
+  static array of 10,000,001 LONGs works. Every element starts at 0 or `""`.
+- **`LBOUND`/`UBOUND` (`v18_e_bounds*`, `v18_f_*`):** both are **`_INTEGER64`** (`UBOUND(b) / 7` prints 16
+  digits, `UBOUND(b) * 1000000000` does not wrap; `qb64pe.bas` 22048 `INTEGER64TYPE`, the built-in table's LONG is
+  wrong). Without a dimension, the first; the dimension is rounded half to even (`LBOUND(b, 1.5)` is dimension 2); a
+  dimension below 1 or above the number of dimensions raises 9 (`func_lbound`, `libqb.cpp` 16291). **`LBOUND(x)` of a
+  scalar or an unknown name gives 0**: it makes an implicit array `x()`. `LBOUND(x())` is "Expected ." for numeric
+  and `TYPE` arrays.
+- **Names (`v18_g_*`):** an array and a scalar of the same name are different variables (`a = 5: a(1) = 2`). An
+  array is a name plus a type like a scalar: after `DIM c(3) AS LONG`, `c&(2)` is the same array, but **`c!(1)` is
+  another, implicit array**; `DIM e(2) AS STRING` is `e$()`. An array and a FUNCTION of the same name is "Name
+  already in use". An element as `FOR` variable is "Unsupported variable used in FOR statement". **An array used
+  without `DIM` is implicit**: in the main module 0 to 10 (`z(11)` raises 9); in a SUB, where a main array is not
+  seen without `SHARED`, the name is an implicit array of the SUB that raises 9 on every access. `DIM SHARED`
+  arrays work in SUBs and FUNCTIONs; `SHARED x() AS LONG` in a SUB works. Element types behave as scalars of their
+  type (stores round half to even, `i(1) + 1` wraps on store, `c(1) / 3` prints as DOUBLE for LONG).
+- **`TYPE` (`v18_h_*`):** members of every slice type and of another `TYPE`; **the layout is the members in order
+  without padding** (`LEN` of INTEGER, LONG, `_INTEGER64`, SINGLE, DOUBLE, `_FLOAT` and a 6-byte inner type is 64:
+  **`_FLOAT` takes 32 bytes**); `LEN` of a type with a `STRING` member is "UDT must have fixed size". A member reads
+  and stores like a scalar of its type (`p.i = 2.5` stores 2, `p.l / 3` prints as DOUBLE). `p.x&` and `p.s$` with
+  the member's own suffix are fine; another suffix (`p.x%`) is "Incorrect symbol after element name"; a member
+  declared with a suffix (`x&` or `x& AS LONG`) is an error. **A `TYPE` may be used before its block** (types are
+  collected first) and **a `TYPE` block inside a SUB is accepted**. Names like built-ins (`v18_h_type_named_*`,
+  `v18_h_member_names*`, corpus `30_type_udt`): `TYPE Point` and `TYPE cls` are accepted, `TYPE len`, `TYPE print`
+  and `TYPE long` are "Name already in use"; members `left`, `len`, `color`, `name` are fine, `print` is "Name
+  already in use" (as variable names all of these are taken: a rule of its own, not found). `DIM pt AS pt` is fine; `DIM p& AS pt` is
+  "DIM: Expected ,". A local `TYPE` variable is zero on each call, a `STATIC` one keeps its value, `SHARED m AS pt`
+  and `DIM SHARED` work. A whole value in an expression, `PRINT p` and `y& = p` are "User defined types in
+  expressions are invalid"; `p = 5` is "Expected = similar user defined type"; **`q = p` and a whole `TYPE` passed
+  to a `TYPE` parameter are accepted** (a copy; by reference). `a.b` for an **array** `a` of a `TYPE` is "Invalid
+  expression" (not a dotted name); a member of an element of a numeric array likewise; an unknown member of an
+  element is "Element not defined". `STRING` members start empty (also locals on each call), follow the same store
+  rules, and pass by reference to a `STRING` parameter.
+
 ## 6. Bug-compatibility choices still to make
 
 From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence register (R2).
@@ -396,10 +461,16 @@ comma zones 10 wide (or 14 like everywhere else); INPUT prompts as literals only
 control-flow measurements (§5, 2026-10-06): `RESUME NEXT` after an error in a `WHILE` condition looping forever;
 an error in an `ELSEIF` condition testing the placeholder value and being handled at the next statement; one
 `GOSUB` stack for the whole program (a SUB's `RETURN` consumes main's entry); `CONST` typing an integer-valued float
-as `_INTEGER64`; a SUB called with a raising argument doing nothing.
+as `_INTEGER64`; a SUB called with a raising argument doing nothing. `m2-control-flow-slice` implements these five and
+CONST `^` as "keep"; they are decided with the rest of this list at step 7 of `STATUS.md` "Next". From the
+arrays-and-`TYPE` measurements (§5, 2026-10-07): a read with a bad index giving element 0's value; the value of a
+member-of-element store evaluated before its index (so `ERR` reports the value's error); `LBOUND`/`UBOUND` typed
+`_INTEGER64`. `m2-arrays-and-types` implements these three as "keep".
 
 **Decided:** LONG overflow **wraps** (two's complement), defined in the generated code and in constant folding;
-matches the old compiler's default build, differs from its `-O2` build (`16` §8, `verification\v11_wrap_o2`).
+matches the old compiler's default build, differs from its `-O2` build (`16` §8, `verification\v11_wrap_o2`). A
+member store into an element with a bad index **is skipped** (the old compiler writes element 0; the order of
+evaluation and the error reported stay as measured): user, 2026-10-07, `DIVERGENCES.md` D-004.
 
 **Fix (no compatibility value):** `_BIT * n` with n > 32 overlapping the next variable by 4 bytes; static `SELECT CASE`
 temporaries overwritten by recursion; `label: CONST …` on one line failing to compile; `ELSE` while an inner `FOR`
@@ -493,7 +564,7 @@ in `study\archive\` (`11`–`14`, plus the measurement scripts); nothing in the 
 | `qb64pe-vscode` (community extension) | Reference only, nothing copied. Its regex-based checks can flag code the compiler accepts, which our design avoids. Its feature list is a parity checklist. |
 | `vscode-qb64fresh` (the user's extension) | Not the base (written fresh instead); small self-contained pieces may be taken after reading them in full. Lessons: one structured output parser, not a list of known messages; one file per concern. |
 | QB64Fresh (the user's earlier Rust rewrite) | Not a base: matched QB64pe output on 19 of 331 tests; front end not lossless, IR name-based. Taken: its 261 `runtime_comparison` BASIC programs (recorded against the old compiler at the start of M2), small pieces per rule 5, and process lessons: measure against `qb64pe.exe` from day one; one layer at a time; no special cases for one program; no status claims without measurements. |
-| `rewrite-decision.md` (earlier external review) | Advised against an empty-repo rewrite; considered and overruled 2026-10-02 (`CLAUDE.md`). |
+| `rewrite-decision.md` (earlier external review) | Advised against an empty-repo rewrite; considered and overruled 2026-10-02 (`DECISIONS.md`). |
 | FreeBASIC (`..\FreeBASIC`, GPL/LGPL) | No code. More modular than QB64pe but single-pass with a symbol-aware lexer: not a front-end model. Useful for runtime-call tables, defined C output (`-fwrapv`), lowering notes, test conventions (`16`, panel-reviewed). |
 | QB64pe wiki | Primary documentation source. Fetched 2026-10-02 with `tools\wiki\fetch_wiki.py` (1,124 pages, git-ignored cache). No licence stated: local reference only until the maintainers are asked. |
 | Microsoft QuickBASIC manuals (text, on `<share>`) | Best source for QB4.5 questions; copyrighted, never commit. |
@@ -513,7 +584,7 @@ matching milestone starts:
 
 | Gap | Milestone | Where |
 |---|---|---|
-| FOR/DO/WHILE bodies, ON TIMER/KEY/STRIG, FIELD, `_MEM*` statements (skimmed) | M2/M3 | `qb64pe.bas` 6212–8765 |
+| ON TIMER/KEY/STRIG, FIELD, `_MEM*` statements (skimmed; FOR/DO/WHILE closed by `verification\v17_*` and the `FOR` temporaries at 6510–6522, 2026-10-06) | M2/M3 | `qb64pe.bas` 6212–8765 |
 | Runtime drawing/printing/input bodies (PAINT, CIRCLE, DRAW, GET/PUT, `qbs_input`, `print_using`) | M3/M6 | `libqb.cpp` |
 | CHAIN array COMMON handling | M4 | `10` §1.6 |
 | Most of the ~45 accidental behaviours (only those in §6 were run) | M2–M4 | `01` §11.3, `02` §9.2, `04` G.4 |
@@ -541,11 +612,16 @@ as a reading of the code, not a measurement.
 | `09` | Study claims checked by running the old compiler; bug-compatibility list |
 | `10` | Study gaps closed: DIM family, PRINT/INPUT/WRITE, built-in table |
 | `15` | Pre-coding review: bytes not strings, early vertical slice, diagnostics policy, minimal M1 backend, libqb copy |
-| `16` | FreeBASIC: lessons to take, things not to take, proposed follow-ups |
-| `17` | How VS Code extensions are tested; how M1 compares |
-| `18` | Other VS Code extension practices compared with five large extensions; proposals A–G |
-| `19` | Test cadence: four tiers, what a full run costs |
-| `20` | Review of code and plan after the first slice; panel outcome; the order of work (replaced by `22` §5) |
-| `21` | Rust review of the workspace setup: lints, CI, the repo check |
-| `22` | Second review: test inputs from QB64pe and QB64Fresh, the upstream yardstick (x of 279), the current order of work |
+| `16` | FreeBASIC: lessons to take (module split, runtime-call tables, `-fwrapv`, lowering notes, test conventions), things not to take, proposed follow-ups and the panel review |
+| `17` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do); how M1 compares |
+| `18` | Other VS Code extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
+| `19` | Test cadence: four tiers, what a full run costs, how the new compiler's runs are kept fast |
+| `20` | Review of code and plan after the first slice (2026-10-04); panel outcome; the order of work (replaced by `22` §5) |
+| `21` | Rust review of the workspace setup: lints adopted and not, CI, the repo check, how to apply them |
+| `22` | Second review (2026-10-04): test inputs from QB64pe and QB64Fresh and what is taken, the upstream yardstick (x of 279); its order of work is replaced by `23` §4 |
+| `23` | Third review (2026-10-05): path check of the codebase, the panel's outcome; its order of work is replaced by `24` §4 |
+| `24` | Fourth review (2026-10-07): code against plan after the control-flow slice's groups 1–5, why arrays and `TYPE` move before the type table and built-ins, `STATUS.md` as entry point; the current order of work |
+| `25` | IR review (2026-10-07): what the lowering does and the emitter still does, keep or merge, the place question for the arrays-and-`TYPE` slice with the old compiler's store rules to measure |
 | `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |
+
+Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

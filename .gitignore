@@ -4,6 +4,9 @@
 # Python
 __pycache__/
 
+# qb64rust's build folders, next to the executable (`<exe>.qb64rust/`; `-z` and `--keep-build` leave them)
+*.qb64rust/
+
 # Compiled verification programs
 /verification/*.exe
 

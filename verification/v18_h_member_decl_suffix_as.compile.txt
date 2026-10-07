@@ -1,0 +1,5 @@
+
+Invalid name
+Caused by (or after):
+LINE 4:X& AS LONG
+exit=1

@@ -8,13 +8,21 @@
 //!   [`Op::Jump`], [`Op::Branch`], [`Op::Gosub`] and [`Op::Return`], always within one body. Blocks (`IF`,
 //!   `FOR`, `DO`, `WHILE`) exist only in the typed tree; the lowering turns each into statements and jumps.
 //! - **Errors are pending, and handled per statement.** A raising operation records a pending error and yields a
-//!   placeholder value; the statement goes on. A store or a call made with that value still happens
-//!   ([`Op::Assign`], [`Op::AssignAll`], [`Op::Call`]; measured: `x = ASC("")` leaves 0 in `x`). Only these
-//!   points check for a pending error:
+//!   placeholder value; the statement goes on. The first error of a statement is the one serviced. A store or a
+//!   call made with that value still happens ([`Op::Assign`], [`Op::AssignAll`], [`Op::Call`]; measured: `x =
+//!   ASC("")` leaves 0 in `x`). Only these points check for a pending error:
 //!   - each item of an [`Op::Print`]: a raising item skips the rest of the statement, line end included;
 //!   - a procedure's entry: a procedure entered while an error is pending returns at once;
 //!   - [`Op::Jump`] and [`Op::Gosub`]: not taken while an error is pending;
-//!   - [`Op::Branch`] with [`OnError::Skip`]: not taken while an error is pending.
+//!   - [`Op::Branch`] with [`OnError::Skip`]: not taken while an error is pending;
+//!   - a store into a [`Place::Element`]: its indexes are evaluated first, left to right; while an error is pending
+//!     after them the value is not evaluated and nothing is stored.
+//!
+//!   A store into a [`Place::Member`] with an element on the way (`a(i).m`) evaluates the value first, then the
+//!   indexes, and is skipped when an index is out of range or when the indexes raised an error while none was
+//!   pending before them (`DIVERGENCES.md` D-004; the old compiler writes the first element). A store into a
+//!   variable or into a member of one does not check. An index out of range raises error 9, and a read with it
+//!   gives the value at the array's first position (measured, `verification\v18_*`).
 //!
 //!   [`Op::Branch`] with [`OnError::UseValue`] does not check: it tests the placeholder value (measured for
 //!   `ELSEIF`).
@@ -30,8 +38,8 @@
 //! `LOOP UNTIL` is not taken, so the loop is left; a `FOR` header stores its three limits from the placeholder
 //! values ([`Op::AssignAll`]), does not take its jump to the loop's entry, and runs the body with the variable
 //! unassigned.
-//! - **Optional arguments are present or absent** ([`Value::CallBuiltin`] slots are `Option`s in table order).
-//! - **Every conversion is explicit** ([`ValueKind::Convert`]); every operation states the type it computes in.
+//! - **Optional arguments are present or absent** ([`ExprKind::Call`] slots are `Option`s in table order).
+//! - **Every conversion is explicit** ([`ExprKind::Convert`]); every operation states the type it computes in.
 //! - **Integer overflow wraps** in two's complement (`DIVERGENCES.md` D-001, D-002).
 
 // A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
@@ -39,22 +47,23 @@
 
 mod dump;
 mod lower;
+mod validate;
 
 pub use dump::dump;
 pub use lower::lower;
+pub use validate::validate;
 
 use qb64rust_base::Span;
-use qb64rust_builtins::BuiltinId;
 
 /// Types, operators and conversion kinds are `sema`'s (`study\20` §3.4): integers by width, floats by width (`F80`
-/// is extended precision), strings. They name no C type, so the IR stays ABI-neutral.
-pub use qb64rust_sema::{BinOp, ConvKind as Conv, Ty, UnOp};
+/// is extended precision), strings, user types. They name no C type, so the IR stays ABI-neutral.
+pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, UnOp, UserType};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct VarId(pub u32);
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct ProcId(pub u32);
+/// Values, places and arguments are `sema`'s typed tree too (design D10 of `m2-arrays-and-types`: the lowering did
+/// no work on them, only a variant-for-variant copy). The emitter ignores an [`Expr`]'s `span` and `qb`. Variable and
+/// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended
+/// ([`Program::vars`]).
+pub use qb64rust_sema::{Arg, Expr, ExprKind, Place, ProcId, VarId};
 
 /// A label of one body: its index in that body's [`Body::labels`]. [`Resume::To`] and [`Op::SetHandler`] name
 /// labels of the main module ([`Program::main`]); the jumps name labels of their own body.
@@ -102,12 +111,21 @@ pub enum Storage {
 }
 
 /// A variable. `name` is the BASIC name in upper case without suffix; two variables may share a name when their
-/// types or their storage differ.
+/// types or their storage differ. An array has `dims`, the lower and upper bound of each dimension (first
+/// dimension first), known when compiling; `ty` is its element type. Only the main module has arrays so far.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Var {
     pub name: String,
     pub ty: Ty,
     pub storage: Storage,
+    /// Empty for a scalar.
+    pub dims: Vec<(i64, i64)>,
+}
+
+impl Var {
+    pub fn is_array(&self) -> bool {
+        !self.dims.is_empty()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -133,105 +151,69 @@ pub struct Proc {
     pub end_line: u32,
 }
 
-/// How an argument reaches a parameter (design D4 of `m2-procedures-and-errors`).
-#[derive(Clone, Debug, PartialEq)]
-pub enum Arg {
-    /// The variable itself: assignments to the parameter change it.
-    Ref(VarId),
-    /// A fresh copy of the value, which already has the parameter's type; changes to it are lost (no copy-back).
-    Temp(Value),
+/// What the error rule and the emitter ask of a value, a place or an argument of the shared tree.
+pub trait Facts {
+    /// Whether evaluating it may raise a runtime error. Built-in calls and string operations always may, until
+    /// built-ins carry a "cannot raise" flag (M3, `study\16` §8); an element's index check may.
+    fn may_raise(&self) -> bool;
+    /// Whether it involves strings (string results need temporary cleanup at the statement's end).
+    fn uses_strings(&self) -> bool;
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum Const {
-    Int(i64),
-    /// Decimal text (`1.5E+2`); the value is the nearest value of the constant's type. (A SINGLE literal is held
-    /// as `F64`, the nearest double, as in the old compiler.)
-    Float(String),
-    Str(Vec<u8>),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Value {
-    pub ty: Ty,
-    pub kind: ValueKind,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum ValueKind {
-    Const(Const),
-    Var(VarId),
-    Convert {
-        how: Conv,
-        from: Box<Value>,
-    },
-    /// Both operands have the same type: the value's, except for comparisons, `_ANDALSO` and `_ORELSE`, whose
-    /// operands share a type of their own and whose value is LONG. Integer overflow wraps. `_ANDALSO` and `_ORELSE`
-    /// evaluate the right operand only when the left one does not decide.
-    Binary {
-        op: BinOp,
-        lhs: Box<Value>,
-        rhs: Box<Value>,
-    },
-    /// The operand has the value's type, except for `_NEGATE`, whose value is LONG.
-    Unary {
-        op: UnOp,
-        operand: Box<Value>,
-    },
-    Concat(Box<Value>, Box<Value>),
-    /// A comparison of two strings, byte by byte (`op` is one of the six comparisons): -1 or 0, LONG.
-    StrCompare {
-        op: BinOp,
-        lhs: Box<Value>,
-        rhs: Box<Value>,
-    },
-    /// `None` = optional argument absent.
-    CallBuiltin {
-        id: BuiltinId,
-        args: Vec<Option<Value>>,
-    },
-    /// A FUNCTION call; one argument per parameter. Always may raise.
-    CallProc {
-        proc: ProcId,
-        args: Vec<Arg>,
-    },
-}
-
-impl Value {
-    /// Whether evaluating this value may raise a runtime error. Built-in calls and string operations always may,
-    /// until built-ins carry a "cannot raise" flag (M3, `study\16` §8).
-    pub fn may_raise(&self) -> bool {
+impl Facts for Expr {
+    fn may_raise(&self) -> bool {
         match &self.kind {
-            ValueKind::Const(_) | ValueKind::Var(_) => false,
-            ValueKind::Convert { from, .. } | ValueKind::Unary { operand: from, .. } => from.may_raise(),
-            ValueKind::Binary { op, lhs, rhs } => op_may_raise(*op) || lhs.may_raise() || rhs.may_raise(),
-            ValueKind::Concat(..)
-            | ValueKind::StrCompare { .. }
-            | ValueKind::CallBuiltin { .. }
-            | ValueKind::CallProc { .. } => true,
+            ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => false,
+            ExprKind::Load(place) => Facts::may_raise(place),
+            ExprKind::Bound { .. } => true,
+            ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.may_raise(),
+            ExprKind::Binary { op, lhs, rhs } => op_may_raise(*op) || lhs.may_raise() || rhs.may_raise(),
+            ExprKind::Concat(..) | ExprKind::StrCompare { .. } | ExprKind::Call { .. } | ExprKind::CallProc { .. } => {
+                true
+            }
         }
     }
 
-    /// Whether this value involves strings (string results need temporary cleanup at the statement's end).
-    pub fn uses_strings(&self) -> bool {
+    fn uses_strings(&self) -> bool {
         self.ty == Ty::Str
             || match &self.kind {
-                ValueKind::Const(_) | ValueKind::Var(_) => false,
-                ValueKind::Convert { from, .. } | ValueKind::Unary { operand: from, .. } => from.uses_strings(),
-                ValueKind::Binary { lhs, rhs, .. }
-                | ValueKind::Concat(lhs, rhs)
-                | ValueKind::StrCompare { lhs, rhs, .. } => lhs.uses_strings() || rhs.uses_strings(),
-                ValueKind::CallBuiltin { args, .. } => args.iter().flatten().any(Value::uses_strings),
-                ValueKind::CallProc { args, .. } => args.iter().any(Arg::uses_strings),
+                ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => false,
+                ExprKind::Load(place) => place.uses_strings(),
+                ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(Expr::uses_strings),
+                ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.uses_strings(),
+                ExprKind::Binary { lhs, rhs, .. }
+                | ExprKind::Concat(lhs, rhs)
+                | ExprKind::StrCompare { lhs, rhs, .. } => lhs.uses_strings() || rhs.uses_strings(),
+                ExprKind::Call { args, .. } => args.iter().flatten().any(Expr::uses_strings),
+                ExprKind::CallProc { args, .. } => args.iter().any(Arg::uses_strings),
             }
     }
 }
 
-impl Arg {
-    /// Whether passing this argument involves strings: a string copy (a temporary), or a string variable.
-    pub fn uses_strings(&self) -> bool {
+impl Facts for Place {
+    /// An element's index may raise error 9; a member's base may be an element.
+    fn may_raise(&self) -> bool {
+        Place::may_raise(self)
+    }
+
+    fn uses_strings(&self) -> bool {
+        self.indexes().iter().any(|v| v.uses_strings())
+    }
+}
+
+impl Facts for Arg {
+    /// Finding a place passed by reference may raise (its index); a copy as its value does.
+    fn may_raise(&self) -> bool {
         match self {
-            Arg::Ref(_) => false,
+            Arg::Ref(place) => Facts::may_raise(place),
+            Arg::Temp(v) => v.may_raise(),
+        }
+    }
+
+    /// A string copy (a temporary), or a place whose index involves strings.
+    fn uses_strings(&self) -> bool {
+        match self {
+            Arg::Ref(place) => place.uses_strings(),
             Arg::Temp(v) => v.uses_strings(),
         }
     }
@@ -264,9 +246,9 @@ fn op_may_raise(op: BinOp) -> bool {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PrintItem {
-    Str(Value),
+    Str(Expr),
     /// Printed as `STR$` of the value plus one space.
-    Num(Value),
+    Num(Expr),
     /// Move to the next print zone.
     Zone,
 }
@@ -275,9 +257,10 @@ pub enum PrintItem {
 pub enum Op {
     /// Send output to (and read input from) the console instead of a window.
     SelectConsole,
+    /// A store, by the rule of its place (see the crate documentation).
     Assign {
-        place: VarId,
-        value: Value,
+        place: Place,
+        value: Expr,
     },
     /// Items in order; a raising item skips the rest, including the line end.
     Print {
@@ -298,7 +281,7 @@ pub enum Op {
     /// whole program, also when set inside a procedure.
     SetHandler(Option<LabelId>),
     /// Raise the runtime error with this number (an `I32`).
-    Raise(Value),
+    Raise(Expr),
     /// End the running handler and continue as stated; outside a handler it raises error 20.
     Resume(Resume),
     /// Continue at a label of this body; not taken while an error is pending.
@@ -306,14 +289,14 @@ pub enum Op {
     /// Continue at a label of this body when `cond` (a number) is zero or non-zero as `when` says; otherwise go on
     /// with the next operation. `on_error` says what a pending error does.
     Branch {
-        cond: Value,
+        cond: Expr,
         when: When,
         to: LabelId,
         on_error: OnError,
     },
     /// Evaluate and store each value in order, every store made also after a raising value; then the statement
     /// rule as for [`Op::Assign`]. (A `FOR` header: all its limits are stored before an error is serviced.)
-    AssignAll(Vec<(VarId, Value)>),
+    AssignAll(Vec<(VarId, Expr)>),
     /// Continue at a label of this body; a [`Op::Return`] without label comes back after this statement. One
     /// stack of pending `GOSUB`s for the whole program. Not taken while an error is pending.
     Gosub(LabelId),
@@ -331,7 +314,7 @@ impl Op {
             }
             // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
             Op::Call { .. } | Op::Raise(_) | Op::Resume(_) | Op::Return(_) => true,
-            Op::Assign { value, .. } => value.may_raise(),
+            Op::Assign { place, value } => place.may_raise() || value.may_raise(),
             Op::AssignAll(stores) => stores.iter().any(|(_, v)| v.may_raise()),
             Op::Branch { cond, .. } => cond.may_raise(),
             Op::Print { items, .. } => items.iter().any(|i| match i {
@@ -381,9 +364,31 @@ pub struct Program {
     /// Procedures in definition order.
     pub procs: Vec<Proc>,
     pub main: Body,
+    /// The user types; a type's layout is the emitter's.
+    pub types: Vec<UserType>,
 }
 
 impl Program {
+    pub fn user_type(&self, id: TypeId) -> &UserType {
+        &self.types[id.0 as usize]
+    }
+
+    /// The member of a place of user type `base`.
+    pub fn member(&self, base: Ty, m: MemberId) -> &Member {
+        let Ty::User(t) = base else {
+            panic!("a member of a place of type {base:?}");
+        };
+        &self.user_type(t).members[m.0 as usize]
+    }
+
+    /// The type of a place.
+    pub fn place_ty(&self, p: &Place) -> Ty {
+        match p {
+            Place::Var(v) | Place::Element { array: v, .. } => self.var(*v).ty,
+            Place::Member { base, member } => self.member(self.place_ty(base), *member).ty,
+        }
+    }
+
     pub fn var(&self, id: VarId) -> &Var {
         &self.vars[id.0 as usize]
     }

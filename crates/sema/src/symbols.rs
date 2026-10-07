@@ -104,7 +104,9 @@ pub fn dump_symbols(p: &Program, map: &SourceMap) -> String {
                     Storage::Param(q) => format!(" (param of {})", p.proc(q).name),
                     Storage::Result(q) => format!(" (result of {})", p.proc(q).name),
                 };
-                write!(out, "Var {} : {}{storage} def {}", v.name, v.ty.qb_name(), pos(s.def)).unwrap();
+                let shape = if v.is_array() { "()" } else { "" };
+                let t = p.type_name(v.ty);
+                write!(out, "Var {}{shape} : {t}{storage} def {}", v.name, pos(s.def)).unwrap();
             }
             SymbolKind::Proc(q) => {
                 let q = p.proc(q);

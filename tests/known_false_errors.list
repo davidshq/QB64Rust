@@ -33,7 +33,7 @@ upstream/glut/windowhandle.bas  # 4:11: names starting with `_` are reserved: `_
 upstream/glut/windowhasfocus.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
 upstream/glut/windowsizelimit.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
 upstream/logging/consts.bas  # 3:7: names starting with `_` are reserved: `_LOG_TRACE`
-upstream/on_error/errtest.bas  # 18:15: label `_LASTHANDLER` is not defined
+upstream/on_error/errtest.bas  # 18:15: label `_LASTHANDLER` is not defined in the main module
 upstream/opengl/test.bas  # 2:5: names starting with `_` are reserved: `_GL`
 upstream/putimage/putimage_test.bas  # 61:13: names starting with `_` are reserved: `_TRUE`
 upstream/qb64pe/dwd.bas  # 7:6: cannot store a string in a number variable

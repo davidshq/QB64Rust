@@ -915,6 +915,11 @@ impl<'a> DimItem<'a> {
     pub fn as_clause(self) -> Option<AsClause<'a>> {
         child(self.0, AsClause::cast)
     }
+
+    /// The bounds of an array (`(5)`, `(1 TO 3, 2)`, `()`); `None` for a scalar.
+    pub fn bounds(self) -> Option<ArrayBounds<'a>> {
+        child(self.0, ArrayBounds::cast)
+    }
 }
 
 impl<'a> AsClause<'a> {

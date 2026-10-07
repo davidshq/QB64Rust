@@ -31,8 +31,8 @@
 use qb64rust_base::to_u32;
 use qb64rust_builtins::BuiltinId;
 use qb64rust_ir::{
-    Arg, BinOp, Body, Const, Conv, LabelId, OnError, Op, PrintItem, Proc, ProcId, ProcKind, Program, Resume, Storage,
-    Ty, UnOp, Value, ValueKind, Var, VarId, When,
+    Arg, BinOp, Body, Conv, Expr, ExprKind, Facts, LabelId, MemberId, OnError, Op, Place, PrintItem, Proc, ProcId,
+    ProcKind, Program, Resume, Storage, Ty, UnOp, Var, VarId, When,
 };
 use std::fmt::Write as _;
 
@@ -78,6 +78,7 @@ impl Fragments {
 pub fn emit(p: &Program, source_name: &str) -> Fragments {
     let mut e = Emitter {
         p,
+        type_sizes: type_sizes(p),
         line_file: line_name(source_name),
         skip: 0,
         pass: 0,
@@ -93,17 +94,11 @@ pub fn emit(p: &Program, source_name: &str) -> Fragments {
     let mut set = |name: &str, text: String| files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
     set("global.txt", e.global());
     set("regsf.txt", e.prototypes());
-    set(
-        "clear.txt",
-        e.per_program_var(|v, n| match v.ty {
-            Ty::Str => format!("{n}->len=0;\n"),
-            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => format!("*{n}=0;\n"),
-        }),
-    );
+    set("clear.txt", e.per_program_var(|v, n| e.clear(v, n)));
     set(
         "mainfree.txt",
         e.per_program_var(|v, n| {
-            if is_qbs(v.ty) {
+            if is_qbs(v.ty) && !v.is_array() {
                 format!("qbs_free({n});\n")
             } else {
                 String::new()
@@ -125,7 +120,7 @@ pub fn emit(p: &Program, source_name: &str) -> Fragments {
     // main0 first: it collects the `passN` declarations that go into maindata.txt.
     let main0 = e.main0();
     set("main0.txt", main0);
-    let mut maindata = e.per_program_var(alloc);
+    let mut maindata = e.per_program_var(|v, n| e.alloc(v, n));
     maindata.push_str(&e.temps(None));
     for d in std::mem::take(&mut e.pass_decls) {
         maindata.push_str(&d);
@@ -187,46 +182,58 @@ pub fn c_type(t: Ty) -> &'static str {
         Ty::F64 => "double",
         Ty::F80 => "long double",
         Ty::Str => "qbs*",
+        Ty::User(_) => unreachable!("no value has a user type"),
     }
 }
 
 /// Whether a variable of this type is a `qbs *` (freed, assigned with `qbs_set`, used without `*`); otherwise it
-/// is a pointer to a C scalar.
+/// is a pointer to a C scalar or (a user type) to its bytes.
 fn is_qbs(t: Ty) -> bool {
     match t {
         Ty::Str => true,
-        Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => false,
+        Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::User(_) => false,
     }
 }
 
-/// Storage size; a `_FLOAT` takes 32 bytes as in the old compiler (`study\02` §1.7).
+/// Storage size of a numeric type; a `_FLOAT` takes 32 bytes as in the old compiler (`study\02` §1.7, measured in
+/// a `TYPE` with `LEN`, `verification\v18_h_type_members`).
 fn size(t: Ty) -> u32 {
     match t {
         Ty::I16 => 2,
         Ty::I32 | Ty::F32 => 4,
         Ty::I64 | Ty::F64 => 8,
         Ty::F80 => 32,
-        Ty::Str => unreachable!(),
+        Ty::Str | Ty::User(_) => unreachable!("size of {t:?}: see `Emitter::ty_size`"),
     }
 }
 
-/// The declaration of a variable's pointer.
+/// The size of each user type: its members' sizes added up, in order, without padding (measured, `LEN` of a type
+/// with one member of each numeric type and a 6-byte type is 64). A member's type is defined earlier.
+fn type_sizes(p: &Program) -> Vec<u32> {
+    let mut sizes: Vec<u32> = Vec::with_capacity(p.types.len());
+    for t in &p.types {
+        let total = t
+            .members
+            .iter()
+            .map(|m| match m.ty {
+                Ty::User(id) => sizes[id.0 as usize],
+                other @ (Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str) => size(other),
+            })
+            .sum();
+        sizes.push(total);
+    }
+    sizes
+}
+
+/// The declaration of a variable's pointer: an array's descriptor, a user type's bytes, a scalar.
 fn declare(v: &Var, n: &str) -> String {
+    if v.is_array() {
+        return format!("ptrszint *{n}=NULL;\n");
+    }
     match v.ty {
         Ty::Str => format!("qbs *{n}=NULL;\n"),
+        Ty::User(_) => format!("void *{n}=NULL;\n"),
         t @ (Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => format!("{} *{n}=NULL;\n", c_type(t)),
-    }
-}
-
-/// The allocation of a variable, zero or empty; it runs once per lifetime of the pointer.
-fn alloc(v: &Var, n: &str) -> String {
-    match v.ty {
-        Ty::Str => format!("if (!{n}){n}=qbs_new(0,0);\n"),
-        t @ (Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => format!(
-            "if({n}==NULL){{\n{n}=({c}*)mem_static_malloc({size});\n*{n}=0;\n}}\n",
-            c = c_type(t),
-            size = size(t)
-        ),
     }
 }
 
@@ -240,7 +247,15 @@ fn type_word(t: Ty) -> &'static str {
         Ty::F64 => "DOUBLE",
         Ty::F80 => "FLOAT",
         Ty::Str => "STRING",
+        Ty::User(_) => "UDT",
     }
+}
+
+/// The descriptor slot of dimension `k` (0 for the first) of an array of `n` dimensions: libqb keeps the
+/// dimensions in reverse order, four slots each from slot 4 (lower bound, count, multiplier, unused;
+/// `study\02` §3.4).
+fn dim_slot(n: usize, k: usize) -> usize {
+    4 * (n - 1 - k) + 4
 }
 
 /// A BASIC name as part of a C identifier: a `.` becomes `__046__`.
@@ -273,7 +288,8 @@ pub fn var_name(p: &Program, v: &Var) -> String {
         Storage::Static(q) | Storage::Local(q) | Storage::Param(q) | Storage::Result(q) => proc_name(p.proc(q)),
         Storage::Temp(_) => return format!("temp_{}", v.name.replace('.', "_")),
     };
-    format!("_{scope}_{}_{}", type_word(v.ty), c_ident(&v.name))
+    let array = if v.is_array() { "ARRAY_" } else { "" };
+    format!("_{scope}_{array}{}_{}", type_word(v.ty), c_ident(&v.name))
 }
 
 /// Whether a variable is a plain C variable (a temporary), not a pointer.
@@ -356,6 +372,8 @@ const EPILOGUE_AFTER_FREE: &[&str] = &[
 
 struct Emitter<'a> {
     p: &'a Program,
+    /// The size of each user type ([`type_sizes`]).
+    type_sizes: Vec<u32>,
     line_file: String,
     /// Counter for the `skipN` labels of PRINT statements.
     skip: u32,
@@ -515,7 +533,7 @@ impl<'a> Emitter<'a> {
         for v in per_call {
             let n = var_name(self.p, v);
             data.push_str(&declare(v, &n));
-            data.push_str(&alloc(v, &n));
+            data.push_str(&self.alloc(v, &n));
             // The result is returned with `qbs_maketmp`, so the caller's cleanup frees it.
             if is_qbs(v.ty) && !matches!(v.storage, Storage::Result(_)) {
                 writeln!(free, "qbs_free({n});").unwrap();
@@ -656,10 +674,10 @@ impl<'a> Emitter<'a> {
                 };
                 out.push(format!("if (!error_handling){{error(20);}}else{{{then}}}"));
             }
-            Op::Assign { place, value } => self.assign(*place, value, out),
+            Op::Assign { place, value } => self.assign(place, value, out),
             Op::AssignAll(stores) => {
                 for (place, value) in stores {
-                    self.assign(*place, value, out);
+                    self.assign(&Place::Var(*place), value, out);
                 }
             }
             Op::Jump(l) => out.push(format!("{unless_error}goto {};", self.local_label(*l))),
@@ -764,25 +782,288 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    fn assign(&mut self, place: VarId, value: &Value, out: &mut Vec<String>) {
-        let v = self.value(value);
-        if is_qbs(value.ty) {
-            out.push(format!("qbs_set({},{v});", self.name(place)));
-        } else {
-            out.push(format!("{}={v};", self.scalar(place)));
+    /// A store, by the rule of its place (the IR's error rule; `study\02` §2.3 for the old compiler's forms).
+    fn assign(&mut self, place: &Place, value: &Expr, out: &mut Vec<String>) {
+        let cleanup = value.uses_strings() || place.indexes().iter().any(|i| i.uses_strings());
+        match place {
+            Place::Var(id) => {
+                let v = self.value(value);
+                if is_qbs(value.ty) {
+                    out.push(format!("qbs_set({},{v});", self.name(*id)));
+                } else {
+                    out.push(format!("{}={v};", self.scalar(*id)));
+                }
+            }
+            // The index first; with an error pending after it, neither the value nor the store.
+            Place::Element { array, index } => {
+                let flat = self.flat_index(*array, index);
+                out.push(format!("tmp_long={flat};"));
+                let element = self.element_at(*array, "tmp_long");
+                let v = self.value(value);
+                if is_qbs(value.ty) {
+                    out.push(format!("if (!is_error_pending()) qbs_set({element},{v});"));
+                } else {
+                    out.push(format!("if (!is_error_pending()) {element}={v};"));
+                }
+            }
+            Place::Member { .. } if place.has_element() => self.store_member_of_element(place, value, out),
+            Place::Member { .. } => {
+                let v = self.value(value);
+                out.push(format!("{}={v};", self.load_place(place)));
+            }
         }
-        if value.uses_strings() {
+        if cleanup {
             out.push("qbs_cleanup(qbs_tmp_base,0);".into());
         }
     }
 
-    /// Arguments of a procedure call: a variable's own pointer, a string temporary as it is, or a numeric copy in
-    /// a new `passN`.
+    /// A store into a member of an element (`a(i).m = v`): the value first, then the indexes, as the old compiler
+    /// (measured, `verification\v18_h_member_index_order`); each index checked against its dimension. The store is
+    /// skipped when an index is out of range or the indexes raised an error while none was pending before them;
+    /// the old compiler writes the first element then (`DIVERGENCES.md` D-004). The block's own variables are in
+    /// braces, so no `goto` crosses their initialisation.
+    fn store_member_of_element(&mut self, place: &Place, value: &Expr, out: &mut Vec<String>) {
+        let ty = self.p.place_ty(place);
+        let (array, index, offset) = self.element_root(place);
+        let n = self.p.var(array).dims.len();
+        let name = self.name(array);
+        let size = self.ty_size(self.p.var(array).ty);
+        out.push("{".into());
+        out.push(format!("{} mbr_value={};", c_type(ty), self.value(value)));
+        out.push("int32 mbr_pending=is_error_pending();".into());
+        out.push("int32 mbr_bad=0;".into());
+        out.push("int64 mbr_k;".into());
+        out.push("ptrszint mbr_flat=0;".into());
+        for (k, i) in index.iter().enumerate() {
+            let s = dim_slot(n, k);
+            out.push(format!("mbr_k=({})-{name}[{s}];", self.value(i)));
+            out.push(format!(
+                "if ((uptrszint)mbr_k>=(uptrszint){name}[{}]){{error(9);mbr_bad=1;}}",
+                s + 1
+            ));
+            if k == 0 {
+                out.push("mbr_flat=mbr_k;".into());
+            } else {
+                out.push(format!("mbr_flat+=mbr_k*{name}[{}];", s + 2));
+            }
+        }
+        out.push(format!(
+            "if (!mbr_bad&&(mbr_pending||!is_error_pending())) *({}*)(((char*){name}[0])+(mbr_flat*{size}+{offset}))=mbr_value;",
+            c_type(ty)
+        ));
+        out.push("}".into());
+    }
+
+    /// The element a member place is found in, its indexes, and the member's byte offset in the element.
+    fn element_root<'v>(&self, place: &'v Place) -> (VarId, &'v [Expr], u32) {
+        match place {
+            Place::Element { array, index } => (*array, index, 0),
+            Place::Member { base, member } => {
+                let (array, index, offset) = self.element_root(base);
+                (
+                    array,
+                    index,
+                    offset + self.member_offset(self.p.place_ty(base), *member),
+                )
+            }
+            Place::Var(_) => unreachable!("a member place without an element"),
+        }
+    }
+
+    /// The size of a value of a type in memory: a number's, a user type's, a string's descriptor pointer.
+    fn ty_size(&self, t: Ty) -> u32 {
+        match t {
+            Ty::User(id) => self.type_sizes[id.0 as usize],
+            Ty::Str => 8,
+            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => size(t),
+        }
+    }
+
+    /// The byte offset of a member in a value of user type `base`: the sizes of the members before it.
+    fn member_offset(&self, base: Ty, m: MemberId) -> u32 {
+        let Ty::User(t) = base else {
+            unreachable!("a member of {base:?}");
+        };
+        self.p.user_type(t).members[..m.0 as usize]
+            .iter()
+            .map(|x| self.ty_size(x.ty))
+            .sum()
+    }
+
+    /// The flat position of an element, with libqb's `array_check` per dimension (error 9 outside the bounds; it
+    /// then gives 0, the first position, as the old compiler reads), first dimension fastest.
+    fn flat_index(&mut self, array: VarId, index: &[Expr]) -> String {
+        let n = index.len();
+        let name = self.name(array);
+        let parts: Vec<String> = index
+            .iter()
+            .enumerate()
+            .map(|(k, i)| {
+                let s = dim_slot(n, k);
+                let check = format!("array_check(({})-{name}[{s}],{name}[{}])", self.value(i), s + 1);
+                if k == 0 {
+                    check
+                } else {
+                    format!("{check}*{name}[{}]", s + 2)
+                }
+            })
+            .collect();
+        parts.join("+")
+    }
+
+    /// The element at flat position `flat` of a numeric or string array, as an lvalue.
+    fn element_at(&self, array: VarId, flat: &str) -> String {
+        let (v, name) = (self.p.var(array), self.name(array));
+        if is_qbs(v.ty) {
+            format!("(((qbs**)({name}[0]))[{flat}])")
+        } else {
+            format!("(({}*)({name}[0]))[{flat}]", c_type(v.ty))
+        }
+    }
+
+    /// The address of a place of a user type, or of a member, as a `char*` expression.
+    fn bytes_of(&mut self, place: &Place) -> String {
+        match place {
+            Place::Var(v) => format!("((char*){})", self.name(*v)),
+            Place::Element { array, index } => {
+                let flat = self.flat_index(*array, index);
+                let size = self.ty_size(self.p.var(*array).ty);
+                format!("(((char*){}[0])+(({flat})*{size}))", self.name(*array))
+            }
+            Place::Member { base, member } => {
+                let offset = self.member_offset(self.p.place_ty(base), *member);
+                format!("({}+{offset})", self.bytes_of(base))
+            }
+        }
+    }
+
+    /// A place as a C lvalue: a scalar as [`Self::scalar`], an element, a member through a typed pointer.
+    fn load_place(&mut self, place: &Place) -> String {
+        match place {
+            Place::Var(id) => self.scalar(*id),
+            Place::Element { array, index } => {
+                let flat = self.flat_index(*array, index);
+                self.element_at(*array, &flat)
+            }
+            Place::Member { .. } => {
+                let c = c_type(self.p.place_ty(place));
+                format!("*({c}*)({})", self.bytes_of(place))
+            }
+        }
+    }
+
+    /// A place passed by reference: a pointer to it, or a string's own `qbs*`; found in argument order, as the old
+    /// compiler passes them (`study\02` §4.1).
+    fn place_ref(&mut self, place: &Place) -> String {
+        match place {
+            Place::Var(id) => self.name(*id),
+            Place::Element { array, index } => {
+                let flat = self.flat_index(*array, index);
+                let element = self.element_at(*array, &flat);
+                if is_qbs(self.p.var(*array).ty) {
+                    element
+                } else {
+                    format!("(&{element})")
+                }
+            }
+            Place::Member { .. } => {
+                let c = c_type(self.p.place_ty(place));
+                format!("({c}*)(void*)({})", self.bytes_of(place))
+            }
+        }
+    }
+
+    /// The allocation of a variable, zero or empty; it runs once per lifetime of the pointer. A static array gets
+    /// its descriptor and its zeroed elements (empty strings) as the old compiler builds them (`study\02` §3.4).
+    fn alloc(&self, v: &Var, n: &str) -> String {
+        if v.is_array() {
+            return self.alloc_array(v, n);
+        }
+        match v.ty {
+            Ty::Str => format!("if (!{n}){n}=qbs_new(0,0);\n"),
+            Ty::User(_) => {
+                let size = self.ty_size(v.ty);
+                format!("if({n}==NULL){{\n{n}=(void*)mem_static_malloc({size});\nmemset({n},0,{size});\n}}\n")
+            }
+            t @ (Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => format!(
+                "if({n}==NULL){{\n{n}=({c}*)mem_static_malloc({size});\n*{n}=0;\n}}\n",
+                c = c_type(t),
+                size = size(t)
+            ),
+        }
+    }
+
+    fn alloc_array(&self, v: &Var, n: &str) -> String {
+        let dims = v.dims.len();
+        let lock = 4 * dims + 4;
+        let mut out = format!(
+            "if (!{n}){{\n{n}=(ptrszint*)mem_static_malloc({}*ptrsz);\nnew_mem_lock();\nmem_lock_tmp->type=4;\n\
+             ((ptrszint*){n})[{lock}]=(ptrszint)mem_lock_tmp;\n",
+            lock + 1
+        );
+        for (k, &(lower, upper)) in v.dims.iter().enumerate() {
+            let s = dim_slot(dims, k);
+            writeln!(out, "{n}[{s}]={};", int_const(lower, Ty::I64)).unwrap();
+            writeln!(out, "{n}[{}]=({})-{n}[{s}]+1;", s + 1, int_const(upper, Ty::I64)).unwrap();
+            writeln!(out, "if ({n}[{}]<=0) error(5);", s + 1).unwrap();
+            if k == 0 {
+                writeln!(out, "{n}[{}]=1;", s + 2).unwrap();
+            } else {
+                let p = dim_slot(dims, k - 1);
+                writeln!(out, "{n}[{}]={n}[{}]*{n}[{}];", s + 2, p + 2, p + 1).unwrap();
+            }
+        }
+        let count = self.element_count(v, n);
+        if is_qbs(v.ty) {
+            write!(
+                out,
+                "{n}[0]=(ptrszint)mem_static_malloc({count}*ptrsz);\ntmp_long={count};\nwhile(tmp_long--){{\n\
+                 ((qbs**)({n}[0]))[tmp_long]=qbs_new(0,0);\n}}\n"
+            )
+            .unwrap();
+        } else {
+            let bytes = format!("{count}*{}", self.ty_size(v.ty));
+            write!(
+                out,
+                "{n}[0]=(ptrszint)mem_static_malloc({bytes});\nmemset((void*)({n}[0]),0,{bytes});\n"
+            )
+            .unwrap();
+        }
+        write!(out, "{n}[2]=1+2;\n}}\n").unwrap();
+        out
+    }
+
+    /// The number of elements of an array as a C expression over its descriptor.
+    fn element_count(&self, v: &Var, n: &str) -> String {
+        let dims = v.dims.len();
+        let counts: Vec<String> = (0..dims).map(|k| format!("{n}[{}]", dim_slot(dims, k) + 1)).collect();
+        counts.join("*")
+    }
+
+    /// `clear.txt`: what `CLEAR` resets in a variable that lives as long as the program.
+    fn clear(&self, v: &Var, n: &str) -> String {
+        if v.is_array() {
+            let count = self.element_count(v, n);
+            return if is_qbs(v.ty) {
+                format!("tmp_long={count};\nwhile(tmp_long--){{\n(((qbs**)({n}[0]))[tmp_long])->len=0;\n}}\n")
+            } else {
+                format!("memset((void*)({n}[0]),0,{count}*{});\n", self.ty_size(v.ty))
+            };
+        }
+        match v.ty {
+            Ty::Str => format!("{n}->len=0;\n"),
+            Ty::User(_) => format!("memset((void*){n},0,{});\n", self.ty_size(v.ty)),
+            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => format!("*{n}=0;\n"),
+        }
+    }
+
+    /// Arguments of a procedure call: a place's own pointer, a string temporary as it is, or a numeric copy in a
+    /// new `passN`.
     fn args(&mut self, args: &[Arg]) -> String {
         let parts: Vec<String> = args
             .iter()
             .map(|a| match a {
-                Arg::Ref(v) => self.name(*v),
+                Arg::Ref(place) => self.place_ref(place),
                 Arg::Temp(v) if is_qbs(v.ty) => self.value(v),
                 Arg::Temp(v) => {
                     self.pass += 1;
@@ -795,10 +1076,10 @@ impl<'a> Emitter<'a> {
         parts.join(",")
     }
 
-    fn value(&mut self, v: &Value) -> String {
+    fn value(&mut self, v: &Expr) -> String {
         match &v.kind {
-            ValueKind::Const(Const::Int(i)) => int_const(*i, v.ty),
-            ValueKind::Const(Const::Float(t)) => {
+            ExprKind::Int(i) => int_const(*i, v.ty),
+            ExprKind::Float(t) => {
                 let suffix = if v.ty == Ty::F80 { "L" } else { "" };
                 if t.starts_with('-') {
                     format!("({t}{suffix})")
@@ -806,9 +1087,16 @@ impl<'a> Emitter<'a> {
                     format!("{t}{suffix}")
                 }
             }
-            ValueKind::Const(Const::Str(s)) => format!("qbs_new_txt_len({},{})", c_string(s), s.len()),
-            ValueKind::Var(id) => self.scalar(*id),
-            ValueKind::Convert { how, from } => {
+            ExprKind::Str(s) => format!("qbs_new_txt_len({},{})", c_string(s), s.len()),
+            ExprKind::Load(place) => self.load_place(place),
+            // libqb's functions take the descriptor, the dimension and the number of dimensions.
+            ExprKind::Bound { upper, array, dim } => {
+                let f = if *upper { "func_ubound" } else { "func_lbound" };
+                let d = dim.as_deref().map_or("1".to_string(), |d| self.value(d));
+                let n = self.p.var(*array).dims.len();
+                format!("((int64){f}({},{d},{n}))", self.name(*array))
+            }
+            ExprKind::Convert { how, from } => {
                 let x = self.value(from);
                 match (how, v.ty) {
                     (Conv::RoundEven, Ty::I32) => format!("qbr_float_to_long({x})"),
@@ -816,7 +1104,7 @@ impl<'a> Emitter<'a> {
                     _ => format!("(({})({x}))", c_type(v.ty)),
                 }
             }
-            ValueKind::Binary { op, lhs, rhs } => {
+            ExprKind::Binary { op, lhs, rhs } => {
                 let (a, b) = (self.value(lhs), self.value(rhs));
                 // As the old compiler writes them (`study\02` §1.4); comparisons turn C's 1 into -1. `/` is followed
                 // by a space: `*a/*b` would open a comment.
@@ -843,7 +1131,7 @@ impl<'a> Emitter<'a> {
                     BinOp::Pow => format!("pow2({a},{b})"),
                 }
             }
-            ValueKind::Unary { op, operand } => {
+            ExprKind::Unary { op, operand } => {
                 let x = self.value(operand);
                 match op {
                     UnOp::Neg => format!("(-({x}))"),
@@ -851,8 +1139,8 @@ impl<'a> Emitter<'a> {
                     UnOp::Negate => format!("(-(!({x})))"),
                 }
             }
-            ValueKind::Concat(a, b) => format!("qbs_add({},{})", self.value(a), self.value(b)),
-            ValueKind::StrCompare { op, lhs, rhs } => {
+            ExprKind::Concat(a, b) => format!("qbs_add({},{})", self.value(a), self.value(b)),
+            ExprKind::StrCompare { op, lhs, rhs } => {
                 let f = match op {
                     BinOp::Eq => "qbs_equal",
                     BinOp::Ne => "qbs_notequal",
@@ -877,8 +1165,8 @@ impl<'a> Emitter<'a> {
                 };
                 format!("{f}({},{})", self.value(lhs), self.value(rhs))
             }
-            ValueKind::CallBuiltin { id, args } => self.call(*id, args),
-            ValueKind::CallProc { proc, args } => {
+            ExprKind::Call { builtin: id, args } => self.call(*id, args),
+            ExprKind::CallProc { proc, args } => {
                 let a = self.args(args);
                 format!("{}({a})", proc_name(self.p.proc(*proc)))
             }
@@ -887,7 +1175,7 @@ impl<'a> Emitter<'a> {
 
     /// A built-in with optional slots gets a placeholder for each absent argument and, last, the `passed` mask:
     /// bit n set when the n-th optional slot is present (`study\02` §4.3).
-    fn call(&mut self, id: BuiltinId, args: &[Option<Value>]) -> String {
+    fn call(&mut self, id: BuiltinId, args: &[Option<Expr>]) -> String {
         let b = id.get();
         let optional = b.optional.unwrap_or(&[]);
         let mut parts = Vec::new();
@@ -964,6 +1252,7 @@ mod tests {
             name: name.into(),
             ty,
             storage,
+            dims: Vec::new(),
         };
         let mut p = Program::default();
         for (name, kind) in [("BUMP", ProcKind::Sub), ("TWICE", ProcKind::Function(Ty::I32))] {

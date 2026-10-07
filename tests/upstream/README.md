@@ -54,6 +54,7 @@ Progress (number of entries per set):
 | 2026-10-05 group 5 (member access, `DATA`, line numbers) | 94 | 267 | 104 | 141 | 44 | 650 | 66 | 84 |
 | 2026-10-05 group 6 (blocks) | 47 | 236 | 68 | 137 | 39 | 527 | 59 | 81 |
 | 2026-10-06 `CONST` and `OPTION` parsed (`m2-control-flow-slice` 4.1) | 42 | 224 | 62 | 137 | 35 | 500 | 59 | 77 |
+| 2026-10-07 `m2-control-flow-slice` done (constants, `OPTION _EXPLICIT`, blocks in `sema`) | 42 | 224 | 62 | 137 | 35 | 500 | 43 | 72 |
 
 The set columns count parse gaps. After group 6 no first gap is a block any more; the most frequent first gaps are
 arrays (93), `REDIM` (144), `SCREEN` (47), `DEFINT` and the other `DEFxxx` (65), `CONST` (41) and statements whose
@@ -121,3 +122,12 @@ the 12 its proposal expected. No program outside `deferred.list` is blocked only
 more; the most frequent single blockers are `VAL` (5), a malformed whole-array assignment (4 `.err` programs,
 `arrays/t025`, `t027`, `t037`, `t040`; the rest of `t024`–`t041` is in `deferred.list`), comment `$INCLUDE` (4)
 and `REDIM` (3).
+
+**Upstream progress, 2026-10-07: 24 of 279** (`m2-arrays-and-types`, static arrays and `TYPE`). Full run (404
+programs, 36 s): 24 pass; added to `pass.list`: `arrays/t659_array_assignment_control`; none builds and prints
+the wrong output; 1 known failure. Of the 11 programs outside `deferred.list` that got only array or `TYPE`
+diagnostics before the change, the other 10 need array parameters (`array_arg_dimensions_transitive`,
+`comma_array_parameter`), whole arrays `x()` (6 `.err` programs, `t025`–`t046`, whose old message is about the
+whole array; they stay "not supported yet" until whole arrays exist) or `_MEM` (`types/dim_array`,
+`types/static_array`). The suite's array programs mostly need what the slice left out (`REDIM`, dynamic arrays,
+array parameters).

@@ -1,7 +1,7 @@
 # 19. How often each test layer runs
 
 Written 2026-10-03, after the first full golden-corpus runs (`tests\corpus\README.md`). Decided with the user the
-same day (`CLAUDE.md` decisions table). Goal: conformance testing must not slow down day-to-day work on the new
+same day (`DECISIONS.md`). Goal: conformance testing must not slow down day-to-day work on the new
 compiler.
 
 ## 1. What a full run costs today
@@ -59,7 +59,7 @@ test.
    executables).
 2. The Rust test harness reads `tests\corpus` directly for tier 1: one test per program, front end only, comparing
    `.err` programs' diagnostics with the expected file once the new error messages and the old texts are mapped
-   (`CLAUDE.md`: new error messages, optional old texts).
+   (`DECISIONS.md`: new error messages, optional old texts).
 3. CI (tier 3) needs a Windows runner with the new compiler's C++ toolchain; nightly (tier 4) also needs the QB64pe
    release for the legacy suites. Planned with the CI work, not now.
 4. The result cache waits until the full corpus run is slow enough to matter.

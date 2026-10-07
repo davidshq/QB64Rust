@@ -7,7 +7,7 @@ timestamp so the text can be converted later (hover help, documentation) and ref
 
 Licence: the wiki states no licence (`meta=siteinfo&siprop=rightsinfo` is empty). The fetched text is a local
 reference only. The cache folder is ignored by git; do not commit or ship wiki text until the QB64pe
-maintainers have been asked (decision 2026-10-02, CLAUDE.md).
+maintainers have been asked (decision 2026-10-02, DECISIONS.md).
 
 Usage:
     python tools\\wiki\\fetch_wiki.py                  # main + Template namespaces into tools\\wiki\\cache

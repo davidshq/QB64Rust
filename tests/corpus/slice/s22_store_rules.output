@@ -1,0 +1,61 @@
+handler 5 
+x(9) = raising value: 0 
+handler 9 
+after x(11) = 5: 77  88 
+handler 9 
+after x(-1) = 6: 77  88 
+handler 9 
+after x(11) = raising value: 77  88 
+handler 5 
+after x(raising index) = 5: 77 
+handler 9 
+after s(4) = four: [zero] []
+handler 5 
+s(1) = CHR$(-1): []
+handler 9 
+y = x(11): 77 
+handler 9 
+x(2) = x(-1) + 1: 78 
+handler 9 
+x(x(11) + 3) = 9: 77  4 
+handler 9 
+t$ = s(9): [zero]
+printhandler 9 
+after print
+handler 5 
+u.m = raising value: 0 
+handler 5 
+a(2).n = raising value: 0 
+handler 9 
+a(1).n = a(9).n: 60 
+handler 9 
+after bad(9).m = 5: 71  72  73 
+handler 5 
+after bad(9).m = raising value: 71  72  73 
+value 5 
+index 1 
+a(1).m: 5 
+index 2 
+value 6 
+x(2): 6 
+index 2 
+value 0 
+y&: 6 
+index 1 
+index 2 
+mm(1, 2): 5 
+mm(1, 4):handler 9 
+handler 9 
+after mm(9, raising) = 1
+handler 5 
+after mm(raising, 9) = 1
+handler 9 
+bump x(11): 50 
+handler 9 
+after bump bad(9).m: 71 
+handler 9 
+after two x(11), raising
+handler 5 
+after two raising, x(11)
+LBOUND(mm, 3):handler 9 
+UBOUND(x, 0):handler 9 

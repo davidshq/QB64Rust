@@ -1,0 +1,5 @@
+
+Invalid array bounds
+Caused by (or after):DIM A ( 5 TO 1 ) AS LONG
+LINE 3:DIM a(5 TO 1) AS LONG
+exit=1

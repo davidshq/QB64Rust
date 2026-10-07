@@ -12,7 +12,6 @@ blocks_recovery.bas:15:1: error: not supported yet: `SELECT CASE`
 blocks_recovery.bas:16:5: error: only comments may stand between `SELECT CASE` and the first `CASE`
 blocks_recovery.bas:19:5: error: `CASE` while the `IF` on line 18 is still open; expected `END IF` first
 blocks_recovery.bas:20:9: error: `END IF` without `IF`
-blocks_recovery.bas:22:1: error: not supported yet: `TYPE` blocks
 blocks_recovery.bas:24:5: error: expected a field (`name AS type` or `AS type name, ...`) or `END TYPE`
 blocks_recovery.bas:25:1: error: `END TYPE` without `TYPE`
 blocks_recovery.bas:26:1: error: not supported yet: `DECLARE LIBRARY`

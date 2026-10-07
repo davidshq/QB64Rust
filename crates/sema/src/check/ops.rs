@@ -154,6 +154,7 @@ fn pow_qb(t: Ty) -> Ty {
         Ty::I32 => Ty::F64,
         Ty::I64 => Ty::F80,
         Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => t,
+        Ty::User(_) => unreachable!("a whole `TYPE` value is never an operand"),
     }
 }
 
@@ -162,6 +163,7 @@ fn promote(t: Ty) -> Ty {
     match t {
         Ty::I16 => Ty::I32,
         Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => t,
+        Ty::User(_) => unreachable!("a whole `TYPE` value is never an operand"),
     }
 }
 
@@ -202,7 +204,7 @@ fn int_min(ty: Ty) -> i64 {
         Ty::I16 => i16::MIN.into(),
         Ty::I32 => i32::MIN.into(),
         Ty::I64 => i64::MIN,
-        Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => unreachable!("integer constant folded to {ty:?}"),
+        Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::User(_) => unreachable!("integer constant folded to {ty:?}"),
     }
 }
 
@@ -231,7 +233,7 @@ pub(super) fn wrap(v: i64, ty: Ty) -> i64 {
         Ty::I16 => i64::from(v as i16),
         Ty::I32 => i64::from(v as i32),
         Ty::I64 => v,
-        Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => unreachable!("integer constant folded to {ty:?}"),
+        Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::User(_) => unreachable!("integer constant folded to {ty:?}"),
     }
 }
 

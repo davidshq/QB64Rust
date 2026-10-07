@@ -115,7 +115,7 @@ def new_compiler_rejection(rc: int, out: bytes) -> str:
     """Why a failed compile by a compiler other than qb64pe does not count as a rejection, or "" if it does.
 
     An .err program passes when the compile fails, writes no executable (checked by the caller) and reports
-    at least one error not marked "not supported yet" (CLAUDE.md, 2026-10-04); the message text is not
+    at least one error not marked "not supported yet" (DECISIONS.md, 2026-10-04); the message text is not
     compared."""
     if rc == 3:
         return "internal compiler error (exit code 3)"

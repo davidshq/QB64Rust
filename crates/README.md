@@ -8,8 +8,8 @@ The new compiler, `qb64rust`. One crate per pipeline stage, so the layering is e
 | `base` | `qb64rust-base` | `FileId`, byte `Span`, `SourceMap` with the line index (CR LF, LF, lone CR), `Diagnostic`, the 100-error cap |
 | `syntax` | `qb64rust-syntax` | Byte lexer, lossless tree (green nodes + cursor; printing it gives back the file byte for byte), parser with one module per statement family (`parser\keywords.rs`: the reserved words), typed accessors over the tree (`ast.rs`: one wrapper per node kind, every child an `Option` or an iterator), the old compiler's rule for metacommands in comments (`meta.rs`); the program's trees (`program.rs`: one `Tree` per file per inclusion, `ParsedProgram`, the `Loader` for included files; a node's `key()` is its tree and offset) |
 | `builtins` | `qb64rust-builtins` | The built-in table, generated at build time from `tools\builtins\builtins.json` |
-| `sema` | `qb64rust-sema` | Procedure table, scopes (main, procedure, `STATIC`, `SHARED`), variables (a name plus a type), labels, constants (`CONST`, `consteval.rs`), literal typing, computation types, explicit conversions, by-reference or by-value arguments, integer constant folding; the typed tree; the symbol table (`symbols.rs`: definition and references of every variable, procedure, label and constant, `Symbols::at` for a position, `dump_symbols`) |
-| `ir` | `qb64rust-ir` | The ABI-neutral IR (no libqb names, no C types: procedures, storage classes, `Arg::Ref`/`Arg::Temp`, handlers and `RESUME` as statement-level rules) and its lowering from the typed tree |
+| `sema` | `qb64rust-sema` | Procedure table, scopes (main, procedure, `STATIC`, `SHARED`), variables (a name plus a type), arrays, user types, places (variable, element, member), labels, constants (`CONST`, `consteval.rs`), literal typing, computation types, explicit conversions, by-reference or by-value arguments, integer constant folding; the typed tree; the symbol table (`symbols.rs`: definition and references of every variable, procedure, label and constant, `Symbols::at` for a position, `dump_symbols`) |
+| `ir` | `qb64rust-ir` | The ABI-neutral IR (no libqb names, no C types: procedures, storage classes, places and their store rules, handlers and `RESUME` as statement-level rules; values, places and arguments are `sema`'s typed tree) and its lowering from the typed tree; `validate` checks its structure |
 | `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...) |
 | `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, build through the reference clone's `Makefile` |
 
@@ -75,12 +75,27 @@ What the compiler supports so far:
   walk in `sema\src\check\constants.rs`), its typing (`_INTEGER64`, DOUBLE, or the suffix's type), main and
   procedure scopes as measured; uses become literal nodes. Floats are computed in `f64` and checked for being the
   value the old compiler's `_FLOAT` path gives; where that cannot be shown, and for the evaluator's functions,
-  the constant is "not supported yet".
+  the constant is "not supported yet";
+- `OPTION _EXPLICIT` and `_EXPLICITARRAY`, program-wide wherever they stand, as measured;
+- control flow (`m2-control-flow-slice`): `IF` in both forms with `ELSEIF`/`ELSE`, `IF c GOTO label`, `FOR …
+  NEXT` (with `STEP`, `NEXT j, i`, the old compiler's temporaries and their widths), `DO … LOOP` in its four
+  forms, `WHILE … WEND`, `EXIT FOR`/`DO`/`WHILE`, `GOTO`, `GOSUB`, `RETURN` and `RETURN label`, labels in every
+  body (main and procedures, also inside blocks). The IR is flat with explicit jumps (`ir\src\lower.rs`); a
+  raising block header behaves as in QB64pe (the pending-error rule, `ir\src\lib.rs`);
+- arrays and `TYPE` (`m2-arrays-and-types`, `sema\src\check\places.rs`): static arrays of the main module (`DIM`
+  and `DIM SHARED`, one or more dimensions, `lower TO upper`, bounds that are constant expressions) of the numeric
+  types, `STRING` and user types; element read and write (indexes rounded half to even, error 9 outside the
+  bounds), elements passed by reference, `LBOUND`/`UBOUND`; `TYPE` blocks of the main module with numeric and
+  nested members, used anywhere in the file; `TYPE` variables in every storage class; member read and write
+  (`p.x`, `p.a.b`, `a(i).m`), members passed by reference, dotted plain names (`a.b` without a `TYPE` variable
+  `a`). Each place has its own store rule (`ir\src\lib.rs`); a member store into an element with a bad index
+  stores nothing (`DIVERGENCES.md` D-004). The IR shares `sema`'s value tree (`Expr`, `Place`, `Arg`).
 
 Anything else gets a "not supported yet" error, never wrong code. Parsed into typed nodes but still marked by
-`sema` (`m2-parser-breadth`, in progress): member access, `DATA`/`READ`/`RESTORE`, line numbers,
-`GOTO`/`GOSUB`/`RETURN`, and every block (`IF` in both forms, `FOR`, `DO`, `WHILE`, `SELECT CASE`, `TYPE`,
-`DECLARE LIBRARY`, `EXIT` of each); `DEF FN` is an error, as in QB64pe.
+`sema` (`m2-parser-breadth`, in progress): `DATA`/`READ`/`RESTORE`, line numbers and jumps to them, `SELECT CASE`,
+`DECLARE LIBRARY`, `OPTION BASE`; of arrays and `TYPE`: `REDIM`, dynamic and implicit arrays, arrays in
+procedures, whole arrays (`x()`), array and `TYPE` parameters, `STRING`, fixed-length and array members, whole-`TYPE`
+assignment; `DEF FN` is an error, as in QB64pe.
 
 A panic is reported as `qb64rust: internal compiler error: <message> at <source location>`, with the input file;
 the executable is removed and the exit code is 3 (every other failure exits with 1). `QB64RUST_TEST_PANIC=1`

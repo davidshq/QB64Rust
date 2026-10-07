@@ -1,8 +1,9 @@
-//! `DIM [SHARED] name [AS type], ...`, `SHARED ...` and `STATIC ...` for scalars. Type names are kept as words;
+//! `DIM [SHARED] name[(bounds)] [AS type], ...`, `SHARED ...` and `STATIC ...`. Type names are kept as words;
 //! `sema` decides which it supports. Also `CONST name = expr, ...` and `OPTION word` (design D2 of
 //! `m2-control-flow-slice`).
 
 use super::Parser;
+use super::blocks::array_bounds;
 use super::expr::expr;
 use crate::SyntaxKind::{self, *};
 
@@ -43,6 +44,7 @@ fn items(p: &mut Parser) {
     }
 }
 
+/// `name[(bounds)] [AS type]`; the bounds as in a `TYPE` field (design D2 of `m2-arrays-and-types`).
 fn dim_item(p: &mut Parser) -> bool {
     if !p.at(Ident) {
         p.syntax_error("expected a variable name");
@@ -50,14 +52,7 @@ fn dim_item(p: &mut Parser) -> bool {
     }
     p.start_node(DimItem);
     p.bump();
-    let ok = if p.at(LParen) {
-        p.unsupported("arrays");
-        false
-    } else if p.at_word("AS") {
-        as_clause(p)
-    } else {
-        true
-    };
+    let ok = (!p.at(LParen) || array_bounds(p)) && (!p.at_word("AS") || as_clause(p));
     p.finish_node();
     ok
 }

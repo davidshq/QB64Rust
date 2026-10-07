@@ -41,7 +41,7 @@ the test instance as plain Node.
 **Why mocha 12 and VS Code 1.100.** The integration tests run inside VS Code's extension host, which loads the
 runner with `require`. Mocha 12 is ESM-only; Node can `require` ESM from 20.19 / 22.12. Measured 2026-10-03: it fails
 on VS Code 1.99 (Node 20.18, `ERR_REQUIRE_ESM`) and works on 1.100 (Node 20.19.0), so `engines.vscode` is
-`^1.100.0` (decision 2026-10-03, `CLAUDE.md`). 1.100 also gives `TextDocument.encoding`, which `config.ts` uses.
+`^1.100.0` (decision 2026-10-03, `DECISIONS.md`). 1.100 also gives `TextDocument.encoding`, which `config.ts` uses.
 Mocha is what VS Code's own test tooling (`@vscode/test-cli`) and most large extensions use; Jest and Vitest run
 tests in their own workers where the `vscode` module does not exist, so they only suit unit tests with a fake
 `vscode` (survey in `study\17-vscode-extension-testing.md`).

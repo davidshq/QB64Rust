@@ -215,6 +215,38 @@ fn return_label_with_nothing_pending() {
     );
 }
 
+/// A store into a member of an element whose index is out of range, or raises with no error pending before it,
+/// stores nothing (`DIVERGENCES.md` D-004; the old compiler writes element 0, so this cannot be a corpus program
+/// recorded with `qb64pe.exe`). The value is still evaluated first: with both raising, `ERR` is the value's error.
+/// A raising value with a good index is stored as its placeholder, as in the old compiler.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn member_store_with_bad_index() {
+    let d = scratch("member-bad-index");
+    let program = "$CONSOLE:ONLY\nTYPE t\nm AS LONG\nEND TYPE\nDIM a(3) AS t\nDIM k AS LONG\nk = -1\n\
+                   ON ERROR GOTO handler\na(0).m = 70\na(9).m = 5\nPRINT \"after a(9):\"; a(0).m\n\
+                   a(-1).m = 6\nPRINT \"after a(-1):\"; a(0).m\na(9).m = INSTR(CHR$(k), \"x\")\n\
+                   PRINT \"after both:\"; a(0).m\na(INSTR(CHR$(k), \"x\")).m = 7\nPRINT \"after raising index:\"; a(0).m\n\
+                   a(2).m = 3: a(2).m = INSTR(CHR$(k), \"x\")\nPRINT \"a(2).m:\"; a(2).m\nSYSTEM\n\
+                   handler:\nPRINT \"error\"; ERR\nRESUME NEXT\n";
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let run = Command::new(&exe)
+        .current_dir(&d)
+        .env("QB64PE_NOPROMPT", "y")
+        .stdin(std::process::Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
+    assert_eq!(
+        stdout(&run).replace("\r\n", "\n"),
+        "error 9 \nafter a(9): 70 \nerror 9 \nafter a(-1): 70 \nerror 5 \nafter both: 70 \nerror 5 \n\
+         after raising index: 70 \nerror 5 \na(2).m: 0 \n"
+    );
+}
+
 /// Deeply nested expressions are one "not supported yet" error, not a stack overflow (the known bug of
 /// 2026-10-07). Through the binary, which runs on its own large stack; a test thread's 2 MiB would not hold the
 /// later walks of an expression 1,000 levels deep in a debug build.

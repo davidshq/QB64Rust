@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):X ( "a",1 ) = 1
+LINE 4:x("a") = 1
+exit=1

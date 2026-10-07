@@ -12,7 +12,7 @@
 //! The clone sets are read from the QB64pe reference clone (found as the driver finds it) and skipped, with a
 //! note, when it is missing. Every file gets the no-panic and round-trip check; include-only files nothing else.
 
-use qb64rust_driver::{build, frontend};
+use qb64rust_driver::{build, frontend, lower};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::tree::{Node, print};
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -42,6 +42,10 @@ struct Outcome {
     /// The first parser diagnostic, else the first `Error` node, as `<line>:<column>: <message>`; `None` when the
     /// file parses cleanly.
     parse_gap: Option<String>,
+    /// Whether the front end accepted the file, so it was lowered, validated and emitted.
+    lowered: bool,
+    /// The first problem `ir::validate` found in the lowered program.
+    invalid_ir: Option<String>,
 }
 
 /// The first `Error` node below `n` in source order.
@@ -174,10 +178,27 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
                     format!("{line}:{col}: `Error` node without a parser diagnostic")
                 })
             });
-        (round_trip, fe.has_errors(), first_real_error, parse_gap)
+        // Everything the front end accepts is lowered, validated and emitted (design D8 of `m2-arrays-and-types`);
+        // a panic in either stage is caught below like one in the front end.
+        let (lowered, invalid_ir) = if fe.has_errors() {
+            (false, None)
+        } else {
+            let ir = lower(&fe);
+            let invalid_ir = qb64rust_ir::validate(&ir).err().map(|p| p.join("; "));
+            qb64rust_codegen_cpp::emit(&ir, &name);
+            (true, invalid_ir)
+        };
+        (
+            round_trip,
+            fe.has_errors(),
+            first_real_error,
+            parse_gap,
+            lowered,
+            invalid_ir,
+        )
     }));
     match result {
-        Ok((round_trip, errors, first_real_error, parse_gap)) => Outcome {
+        Ok((round_trip, errors, first_real_error, parse_gap, lowered, invalid_ir)) => Outcome {
             name,
             verdict,
             panic: None,
@@ -185,6 +206,8 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
             errors,
             first_real_error,
             parse_gap,
+            lowered,
+            invalid_ir,
         },
         Err(e) => Outcome {
             name,
@@ -199,6 +222,8 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
             errors: false,
             first_real_error: None,
             parse_gap: None,
+            lowered: false,
+            invalid_ir: None,
         },
     }
 }
@@ -248,6 +273,20 @@ fn every_input_goes_through_the_front_end() {
             None if !o.round_trip => Some(format!("{}: round trip failed", o.name)),
             None => None,
         })
+        .collect();
+    assert!(bad.is_empty(), "{}", bad.join("\n"));
+}
+
+/// "Tier 1 corpus checks" (spec `testing/compiler-tests`): every input the front end accepts is lowered, validated
+/// and emitted without a panic or an IR problem. The floor catches a set that went missing.
+#[test]
+fn accepted_inputs_lower_and_emit() {
+    let lowered = outcomes().iter().filter(|o| o.lowered).count();
+    eprintln!("lowered, validated and emitted: {lowered} inputs");
+    assert!(lowered >= 130, "only {lowered} inputs were accepted and lowered");
+    let bad: Vec<String> = outcomes()
+        .iter()
+        .filter_map(|o| o.invalid_ir.as_ref().map(|p| format!("{}: invalid IR: {p}", o.name)))
         .collect();
     assert!(bad.is_empty(), "{}", bad.join("\n"));
 }

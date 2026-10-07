@@ -21,6 +21,8 @@ impl Checker<'_> {
             self.do_block(b, skips);
         } else if let Some(b) = ast::WhileBlock::cast(node) {
             self.while_block(b, skips);
+        } else if let Some(b) = ast::TypeBlock::cast(node) {
+            self.type_block(b, skips);
         } else if let Some(block) = block_parts(node) {
             self.marked_block(node, block, skips);
         } else {
@@ -201,6 +203,9 @@ impl Checker<'_> {
             return Err(self.error(t.span, format!("the constant `{shown}` cannot be a `FOR` variable")));
         }
         let var = self.variable(t, name, suffix)?;
+        if let Ty::User(_) = self.prog.var(var).ty {
+            return Err(self.unsupported(t.span, format!("the `TYPE` variable `{shown}` as a `FOR` variable")));
+        }
         if self.prog.var(var).ty == Ty::Str {
             return Err(self.error(
                 t.span,
@@ -322,6 +327,7 @@ fn for_temp(ty: Ty) -> Ty {
         Ty::F32 => Ty::F64,
         Ty::F64 | Ty::F80 => Ty::F80,
         Ty::Str => Ty::Str,
+        Ty::User(_) => unreachable!("a `TYPE` variable as a `FOR` variable is rejected first"),
     }
 }
 
@@ -383,8 +389,6 @@ fn block_parts(node: Node) -> Option<BlockParts> {
             inner.extend(c.body());
         }
         unsupported(b.header().map(|h| h.node()), "`SELECT CASE`", inner)
-    } else if let Some(b) = ast::TypeBlock::cast(node) {
-        unsupported(b.header().map(|h| h.node()), "`TYPE` blocks", Vec::new())
     } else if let Some(b) = ast::DeclareLibraryBlock::cast(node) {
         unsupported(b.header().map(|h| h.node()), "`DECLARE LIBRARY`", Vec::new())
     } else if let Some(b) = ast::DefFnBlock::cast(node) {

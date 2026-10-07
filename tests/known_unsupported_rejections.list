@@ -4,7 +4,6 @@
 corpus/runtime_comparison/16_ltrim_rtrim.bas
 corpus/runtime_comparison/194_array_param_2d.bas
 corpus/runtime_comparison/202_redim_preserve.bas
-corpus/runtime_comparison/205_dim_to_same.bas
 corpus/runtime_comparison/218_fre.bas
 corpus/runtime_comparison/28_redim.bas
 snippets/qb64fresh/arrays__redim_dynamic_array.bas

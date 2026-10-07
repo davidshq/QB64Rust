@@ -1,0 +1,5 @@
+
+Cannot redefine a static array!
+Caused by (or after):DIM A ( 5 ) AS SINGLE
+LINE 4:DIM a(5) AS SINGLE
+exit=1

@@ -2,8 +2,8 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-member_access.bas:4:7: error: not supported yet: member access (`TYPE`)
-member_access.bas:5:7: error: not supported yet: member access (`TYPE`)
-member_access.bas:6:1: error: not supported yet: member access (`TYPE`)
-member_access.bas:7:1: error: not supported yet: arrays
-member_access.bas:8:10: error: not supported yet: omitted arguments
+member_access.bas:5:7: error: not supported yet: `a(...)` (an array used without `DIM`, or no FUNCTION of this name)
+member_access.bas:6:16: error: not supported yet: arrays as `TYPE` members
+member_access.bas:7:1: error: not supported yet: `a(...)` (an array used without `DIM`, or no FUNCTION of this name)
+member_access.bas:8:1: error: not supported yet: `a(...)` (an array used without `DIM`, or no FUNCTION of this name)
+member_access.bas:9:10: error: not supported yet: omitted arguments

@@ -1,0 +1,28 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 12 may_raise
+  Assign X((Var I:F32 -> Convert I64 RoundEven)):I32 = Const 1:I32
+Stmt line 13
+  Assign P.M:I32 = Const 2:I32
+Stmt line 14 may_raise
+  Assign A((Var I:F32 -> Convert I64 RoundEven), Const 0:I64).M:I32 = Const 3:I32
+Stmt line 15 may_raise
+  Assign Y:F32 = (Add:F64((Add:I32(Load X((Var I:F32 -> Convert I64 RoundEven)):I32, Load P.M:I32) wrap -> Convert F64 Nearest), Load A(Const 2:I64, (Var I:F32 -> Convert I64 RoundEven)).N:F64) -> Convert F32 Nearest)
+Stmt line 16 may_raise
+  Assign S(Const 1:I64):Str = Concat(Load S(Const 0:I64):Str, Const "b")
+Stmt line 17 may_raise
+  Call BUMP [Ref X(Const 3:I64):I32]
+Stmt line 18 may_raise
+  Call BUMP [Ref A(Const 1:I64, Const 1:I64).M:I32]
+Stmt line 19 may_raise
+  Print console newline
+    Num LBound A(Const 2:I32):I64
+    Num UBound X(1):I64
+Sub BUMP lines 20-22
+  param V:I32
+Stmt line 21
+  Assign V(param):I32 = Add:I32(Var V(param):I32, Const 1:I32) wrap

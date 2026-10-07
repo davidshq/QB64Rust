@@ -67,7 +67,7 @@ Patterns:
 | Grammar tests | `vscode-tmgrammar-test` with annotated fixtures (common in language extensions) |
 | Mocks (`sinon`, fake `vscode`) | None: the logic that needs no VS Code is in modules that do not import it, and the rest is tested for real |
 
-Decision (user, 2026-10-03): minimum VS Code 1.100 (released April 2025), mocha 12. Recorded in `CLAUDE.md`.
+Decision (user, 2026-10-03): minimum VS Code 1.100 (released April 2025), mocha 12. Recorded in `DECISIONS.md`.
 
 ## Sources
 

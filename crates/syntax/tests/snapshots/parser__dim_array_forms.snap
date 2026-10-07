@@ -1,0 +1,102 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"DIM a(5) AS LONG, b(1 TO 3, -2 TO n), c$(2)\\nDIM SHARED d(0)\\nSTATIC e(4) AS t\\nSHARED f() AS LONG, g\\n\")"
+---
+SourceFile 0..99
+  DimStmt 0..43
+    Ident DIM
+    Whitespace  
+    DimItem 4..16
+      Ident a
+      ArrayBounds 5..8
+        LParen (
+        Literal 6..7
+          Number 5
+        RParen )
+      Whitespace  
+      AsClause 9..16
+        Ident AS
+        Whitespace  
+        Ident LONG
+    Comma ,
+    Whitespace  
+    DimItem 18..36
+      Ident b
+      ArrayBounds 19..36
+        LParen (
+        Literal 20..21
+          Number 1
+        Whitespace  
+        Ident TO
+        Whitespace  
+        Literal 25..26
+          Number 3
+        Comma ,
+        Whitespace  
+        PrefixExpr 28..30
+          Minus -
+          Literal 29..30
+            Number 2
+        Whitespace  
+        Ident TO
+        Whitespace  
+        NameRef 34..35
+          Ident n
+        RParen )
+    Comma ,
+    Whitespace  
+    DimItem 38..43
+      Ident c$
+      ArrayBounds 40..43
+        LParen (
+        Literal 41..42
+          Number 2
+        RParen )
+  Newline \x0A
+  DimStmt 44..59
+    Ident DIM
+    Whitespace  
+    Ident SHARED
+    Whitespace  
+    DimItem 55..59
+      Ident d
+      ArrayBounds 56..59
+        LParen (
+        Literal 57..58
+          Number 0
+        RParen )
+  Newline \x0A
+  StaticStmt 60..76
+    Ident STATIC
+    Whitespace  
+    DimItem 67..76
+      Ident e
+      ArrayBounds 68..71
+        LParen (
+        Literal 69..70
+          Number 4
+        RParen )
+      Whitespace  
+      AsClause 72..76
+        Ident AS
+        Whitespace  
+        Ident t
+  Newline \x0A
+  SharedStmt 77..98
+    Ident SHARED
+    Whitespace  
+    DimItem 84..95
+      Ident f
+      ArrayBounds 85..87
+        LParen (
+        RParen )
+      Whitespace  
+      AsClause 88..95
+        Ident AS
+        Whitespace  
+        Ident LONG
+    Comma ,
+    Whitespace  
+    DimItem 97..98
+      Ident g
+  Newline \x0A

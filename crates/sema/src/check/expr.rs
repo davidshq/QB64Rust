@@ -3,7 +3,7 @@
 use super::ops::{Op, TypeError, Typed, Typing, fold_binary, fold_unary, op_typing, wrap};
 use super::{Checker, Failed, R};
 use crate::literal::{self, LitError, NumLit};
-use crate::{BinOp, ConvKind, Expr, ExprKind, Ty, UnOp};
+use crate::{BinOp, ConvKind, Expr, ExprKind, Place, Ty, UnOp};
 use qb64rust_base::{Span, show_bytes};
 use qb64rust_builtins::{BuiltinId, find_any, find_function};
 use qb64rust_syntax::SyntaxKind::{self, Minus, Number};
@@ -63,14 +63,11 @@ impl Checker<'_> {
                     let shown = show_bytes(self.text(t.span));
                     return Err(self.unsupported(t.span, format!("`{shown}`")));
                 }
+                if let Some(place) = self.dotted(t, &name, suffix)? {
+                    return self.load(place, span);
+                }
                 let id = self.variable(t, name, suffix)?;
-                let ty = self.prog.var(id).ty;
-                Ok(Expr {
-                    span,
-                    ty,
-                    qb: ty,
-                    kind: ExprKind::Var(id),
-                })
+                self.load(Place::Var(id), span)
             }
             ast::Expr::Paren(paren) => {
                 let inner = self.need(paren.inner(), span)?;
@@ -81,14 +78,17 @@ impl Checker<'_> {
             ast::Expr::Prefix(prefix) => self.prefix(prefix),
             ast::Expr::Bin(bin) => self.binary(bin),
             ast::Expr::Call(call) => self.call(call),
-            ast::Expr::Field(field) => Err(self.field(field)),
+            ast::Expr::Field(field) => {
+                let place = self.field_place(field)?;
+                self.load(place, span)
+            }
         }
     }
 
-    /// Member access (`a(1).b`): needs `TYPE`, not supported yet.
+    /// A member of an element (`a(1).b`) where only constants may stand: not supported yet.
     pub(super) fn field(&mut self, node: ast::FieldExpr) -> Failed {
         let span = node.node().span();
-        self.unsupported(span, "member access (`TYPE`)")
+        self.unsupported(span, "a `TYPE` member here")
     }
 
     /// The arguments of a call, in order; none without an argument list. An omitted argument (`f(a, , b)`) is not
@@ -321,15 +321,21 @@ impl Checker<'_> {
                 let id = find_function(b"CHR").expect("CHR$ is a built-in");
                 return self.chr(span, id, node);
             }
+            ("LBOUND", None) => return self.bound_fn(node, false, span),
+            ("UBOUND", None) => return self.bound_fn(node, true, span),
             _ => {}
         }
-        let shown = show_bytes(self.text(name_tok.span));
-        let msg = if is_builtin_function(&proc_name, suffix) {
-            format!("`{shown}`")
-        } else {
-            format!("`{shown}(...)` (an array, or no FUNCTION of this name)")
-        };
-        Err(self.unsupported(name_tok.span, msg))
+        if is_builtin_function(&proc_name, suffix) {
+            let shown = show_bytes(self.text(name_tok.span));
+            return Err(self.unsupported(name_tok.span, format!("`{shown}`")));
+        }
+        match self.find_array(&proc_name, suffix) {
+            Some(a) => {
+                let place = self.element(node, a, name_tok)?;
+                self.load(place, span)
+            }
+            None => Err(self.not_an_array(name_tok, &proc_name)),
+        }
     }
 
     /// `CHR$(code)`: one LONG slot (stored as for an assignment); raises error 5 outside 0-255 at run time.

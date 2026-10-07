@@ -1,5 +1,6 @@
 //! Names and declarations: suffixes, reserved names, variables by scope, `DIM`, `STATIC`, `SHARED`, `OPTION`.
 
+use super::places::numeric_type;
 use super::{Checker, Failed, R, Scope};
 use crate::{ProcKind, Storage, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{show_bytes, to_u32};
@@ -71,27 +72,28 @@ impl Checker<'_> {
         }
     }
 
-    /// The type named by an `AS` clause.
+    /// The type named by an `AS` clause: a slice type, `STRING`, or a user type.
     pub(super) fn type_of(&mut self, a: ast::AsClause) -> R<Ty> {
         let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
-        Ok(match words.join(" ").as_str() {
-            "INTEGER" => Ty::I16,
-            "LONG" => Ty::I32,
-            "_INTEGER64" => Ty::I64,
-            "SINGLE" => Ty::F32,
-            "DOUBLE" => Ty::F64,
-            "_FLOAT" => Ty::F80,
-            "STRING" => Ty::Str,
-            other => {
-                let msg = format!("the type `{other}`");
-                return Err(self.unsupported(a.node().span(), msg));
-            }
-        })
+        let text = words.join(" ");
+        if text == "STRING" {
+            return Ok(Ty::Str);
+        }
+        if let Some(t) = numeric_type(&text).or_else(|| self.user_type_of(&text)) {
+            return Ok(t);
+        }
+        let msg = format!("the type `{text}`");
+        Err(self.unsupported(a.node().span(), msg))
     }
 
     pub(super) fn new_var(&mut self, name: String, ty: Ty, storage: Storage) -> VarId {
         let id = VarId(to_u32(self.prog.vars.len()));
-        self.prog.vars.push(Var { name, ty, storage });
+        self.prog.vars.push(Var {
+            name,
+            ty,
+            storage,
+            dims: Vec::new(),
+        });
         id
     }
 
@@ -147,6 +149,14 @@ impl Checker<'_> {
         let id = match found {
             Some(id) => id,
             None => {
+                let typed_array = self.scope().array_plain.contains_key(&key.0)
+                    || (self.cur.is_some() && self.dim_shared_array_plain.contains_key(&key.0));
+                if suffix.is_none() && typed_array {
+                    // Whether `DIM a(3) AS LONG` types the plain scalar `a` too was not measured.
+                    let shown = show_bytes(self.text(t.span));
+                    let msg = format!("the plain scalar `{shown}` beside an array typed by `DIM … AS`");
+                    return Err(self.unsupported(t.span, msg));
+                }
                 self.reserved(t, &key.0, suffix)?;
                 if self.explicit {
                     return Err(self.undeclared(t, ty));
@@ -202,6 +212,7 @@ impl Checker<'_> {
             let as_clause = item.as_clause();
             let ty = match (suffix, as_clause) {
                 (Some(_), Some(a)) => {
+                    // Measured also for a `TYPE` (`DIM p& AS pt`: "DIM: Expected ,", `v18_h_dim_type_suffix`).
                     let span = a.node().span();
                     return Err(self.error(span, "a name with a type suffix cannot have an `AS` clause"));
                 }
@@ -209,6 +220,17 @@ impl Checker<'_> {
                 (None, None) => Ty::F32,
                 (None, Some(a)) => self.type_of(a)?,
             };
+            if let Some(bounds) = item.bounds() {
+                self.declare_array(item, bounds, (name_tok, name, suffix, ty), storage, shared)?;
+                continue;
+            }
+            if name.contains('.') && matches!(ty, Ty::User(_)) {
+                let shown = show_bytes(self.text(name_tok.span));
+                return Err(self.unsupported(
+                    name_tok.span,
+                    format!("a `TYPE` variable with a dotted name: `{shown}`"),
+                ));
+            }
             if self.procs_by_name.contains_key(&name) {
                 return Err(self.in_use(name_tok));
             }
@@ -342,6 +364,9 @@ impl Checker<'_> {
         }
         for item in stmt.items() {
             let name_tok = self.need(item.name(), item.node().span())?;
+            if let Some(b) = item.bounds() {
+                return Err(self.unsupported(b.node().span(), "`SHARED` of an array"));
+            }
             let (name, suffix) = self.split_name(name_tok)?;
             let as_clause = item.as_clause();
             let ty = match (suffix, as_clause) {

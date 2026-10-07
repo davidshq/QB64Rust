@@ -113,6 +113,12 @@ impl Lexer<'_> {
                 }
                 Whitespace
             }
+            // A DOS end-of-file byte that ends a line is dropped by the old compiler's line reader (`qb64pe.bas`
+            // 28060, `lineinput3`); elsewhere it stays an unexpected byte.
+            0x1A if matches!(self.bytes.get(self.pos + 1), None | Some(b'\r' | b'\n')) => {
+                self.pos += 1;
+                Whitespace
+            }
             b'\r' | b'\n' => {
                 self.eat_newline();
                 Newline

@@ -1,0 +1,5 @@
+
+User defined types in expressions are invalid
+Caused by (or after):Y = P + 1
+LINE 7:y = p + 1
+exit=1

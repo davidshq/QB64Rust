@@ -1,0 +1,5 @@
+
+Name already in use (LEN)
+Caused by (or after):
+LINE 4:TYPE LEN
+exit=1

@@ -44,6 +44,46 @@ fn dim_forms() {
     insta::assert_snapshot!(tree("DIM a AS LONG, b$, c AS _INTEGER64\n"));
 }
 
+/// Array bounds in `DIM`, `DIM SHARED`, `STATIC` and `SHARED` (design D2 of `m2-arrays-and-types`).
+#[test]
+fn dim_array_forms() {
+    insta::assert_snapshot!(tree(
+        "DIM a(5) AS LONG, b(1 TO 3, -2 TO n), c$(2)\nDIM SHARED d(0)\nSTATIC e(4) AS t\nSHARED f() AS LONG, g\n"
+    ));
+}
+
+/// A DOS end-of-file byte (0x1A) ending a line is whitespace, as the old compiler's line reader drops it
+/// (`qb64pe.bas` 28060); one inside a line is still an error.
+#[test]
+fn eof_byte_at_line_end() {
+    for src in [&b"PRINT 1\n\x1a"[..], b"PRINT 1\x1a\nPRINT 2\n", b"PRINT 1\r\n\x1a\r\n"] {
+        let p = parse_one(src);
+        assert!(p.main().diagnostics.list().is_empty(), "{src:?}");
+        assert_eq!(print(&p.main().green, src), src);
+    }
+    assert!(!parse_one(b"PRINT \x1a 1\n").main().diagnostics.list().is_empty());
+}
+
+#[test]
+fn dim_bounds_accessor() {
+    use qb64rust_syntax::ast::{DimStmt, SourceFile};
+    let src = b"DIM a(5) AS LONG, b(1 TO 3, 2), c\n";
+    let program = parse_one(src);
+    let root = SourceFile::cast(program.main().root()).unwrap();
+    let dim = root.statements().find_map(DimStmt::cast).unwrap();
+    let shapes: Vec<Vec<(bool, bool)>> = dim
+        .items()
+        .map(|i| {
+            i.bounds()
+                .map(|b| b.ranges().iter().map(|(l, u)| (l.is_some(), u.is_some())).collect())
+                .unwrap_or_default()
+        })
+        .collect();
+    assert_eq!(shapes, [vec![(false, true)], vec![(true, true), (false, true)], vec![]]);
+    assert!(dim.items().all(|i| i.name().is_some()));
+    assert!(dim.items().next().unwrap().as_clause().is_some());
+}
+
 #[test]
 fn assignments() {
     insta::assert_snapshot!(tree("x = 1: LET y% = x + 2\n"));

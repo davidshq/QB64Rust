@@ -12,11 +12,12 @@ mod decl;
 mod expr;
 mod flow;
 mod ops;
+mod places;
 mod proc;
 
 use blocks::nested_statements;
 
-use crate::{ConstId, LabelId, PrintItem, ProcId, Program, Stmt, StmtKind, SymbolKind, Ty, VarId};
+use crate::{ConstId, LabelId, Place, PrintItem, ProcId, Program, Stmt, StmtKind, SymbolKind, Ty, TypeId, VarId};
 use qb64rust_base::{Diagnostics, FileId, SourceMap, Span, show_bytes};
 use qb64rust_syntax::ParsedProgram;
 use qb64rust_syntax::SyntaxKind;
@@ -63,6 +64,11 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         has_include: false,
         sinks: Vec::new(),
         bad_next: None,
+        types_by_name: HashMap::new(),
+        types_seen: HashSet::new(),
+        type_defs: HashSet::new(),
+        dim_shared_array_plain: HashMap::new(),
+        whole_type_arg: false,
         parse_marks: program
             .trees
             .iter()
@@ -78,9 +84,10 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         .flat_map(|f| f.statements())
         .collect();
 
-    // Pass 1: procedure names, then their parameters (a parameter may not have the name of any procedure).
+    // Pass 1: the user types (a parameter may name one), then procedure names, then their parameters (a parameter may not have the name of any procedure).
     // A header with an error (a parse error, a reserved name...) still enters its name as a broken procedure, so
     // calls of it fail without a second error.
+    c.declare_types(&statements, &skips);
     let defs: Vec<ast::ProcDef> = statements
         .iter()
         .filter_map(|&s| ast::ProcDef::cast(s))
@@ -202,13 +209,18 @@ impl Skips {
     }
 }
 
-/// The variables a name can mean in one scope: a name plus a type (design D5 of the last change).
+/// The variables a name can mean in one scope: a name plus a type (design D5 of the last change). Arrays have a
+/// name space of their own (design D4 of `m2-arrays-and-types`).
 #[derive(Clone, Default)]
 struct Scope {
     /// (name, type) -> variable.
     vars: HashMap<(String, Ty), VarId>,
     /// Type of the plain (suffix-less) name after a `DIM name AS type` (or a parameter or `SHARED` with `AS`).
     plain: HashMap<String, Ty>,
+    /// (name, element type) -> array.
+    arrays: HashMap<(String, Ty), VarId>,
+    /// Element type of an array's plain name after `DIM name(…) AS type`.
+    array_plain: HashMap<String, Ty>,
 }
 
 struct Checker<'a> {
@@ -257,6 +269,15 @@ struct Checker<'a> {
     sinks: Vec<Vec<Stmt>>,
     /// The last `NEXT` statement (by key) whose variable did not match its `FOR` (`check\blocks.rs`).
     bad_next: Option<(TreeId, u32)>,
+    /// The user types by name.
+    types_by_name: HashMap<String, TypeId>,
+    /// The main module's `TYPE` blocks met in pass 1 (by key), and those of them that define a type.
+    types_seen: HashSet<(TreeId, u32)>,
+    type_defs: HashSet<(TreeId, u32)>,
+    /// Element types of the plain names of main-module `DIM SHARED` arrays declared so far.
+    dim_shared_array_plain: HashMap<String, Ty>,
+    /// An argument is being typed: a whole user-type value there is "not supported yet", not an error.
+    whole_type_arg: bool,
 }
 
 /// An expression could not be typed; the error is already reported.
@@ -437,26 +458,66 @@ impl Checker<'_> {
 
     // ---- statements ----
 
+    /// `place = value`. A plain variable is resolved after the value, as before places existed (an implicit
+    /// variable in the value is created first); an element or a member before it.
     fn assign(&mut self, stmt: ast::AssignStmt) -> R<()> {
         let node = stmt.node();
-        let target = match self.need(stmt.target(), node.span())? {
-            ast::Expr::NameRef(n) => self.need(n.name(), node.span())?,
-            ast::Expr::Call(c) => {
-                let span = c.node().span();
-                return Err(self.unsupported(span, "arrays"));
+        let target_node = self.need(stmt.target(), node.span())?;
+        let value_node = self.need(stmt.value(), node.span())?;
+        let place = match target_node {
+            ast::Expr::NameRef(n) => {
+                let t = self.need(n.name(), node.span())?;
+                let (name, suffix) = self.split_name(t)?;
+                match self.dotted(t, &name, suffix)? {
+                    Some(place) => place,
+                    None => {
+                        let whole = self.lookup_var(name, suffix).filter(|&v| self.is_whole_type(v));
+                        match whole {
+                            Some(v) => {
+                                self.names.push((SymbolKind::Var(v), t.span));
+                                Place::Var(v)
+                            }
+                            None => {
+                                let value = self.expr(value_node)?;
+                                let var = self.target(t)?;
+                                let ty = self.prog.var(var).ty;
+                                let value = self.store(value, ty)?;
+                                let place = Place::Var(var);
+                                self.push(node, StmtKind::Assign { place, value });
+                                return Ok(());
+                            }
+                        }
+                    }
+                }
             }
-            ast::Expr::Field(f) => return Err(self.field(f)),
+            ast::Expr::Call(c) => self.call_place(c)?,
+            ast::Expr::Field(f) => self.field_place(f)?,
             e @ (ast::Expr::Literal(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_)) => {
                 return Err(self.error(e.node().span(), "cannot assign to this expression"));
             }
         };
-        let value_node = self.need(stmt.value(), node.span())?;
+        let ty = self.prog.place_ty(&place);
+        if let Ty::User(_) = ty {
+            // Measured: `q = p` is accepted (a copy), `p = 5` is "Expected = similar user defined type".
+            return Err(match value_node {
+                ast::Expr::NameRef(_) | ast::Expr::Call(_) | ast::Expr::Field(_) => {
+                    self.unsupported(node.span(), "assigning a whole `TYPE` value")
+                }
+                ast::Expr::Literal(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_) => self.error(
+                    value_node.node().span(),
+                    "a `TYPE` variable takes only a value of its `TYPE`",
+                ),
+            });
+        }
         let value = self.expr(value_node)?;
-        let var = self.target(target)?;
-        let target = self.prog.var(var).ty;
-        let value = self.store(value, target)?;
-        self.push(node, StmtKind::Assign { var, value });
+        let value = self.store(value, ty)?;
+        self.push(node, StmtKind::Assign { place, value });
         Ok(())
+    }
+
+    /// Whether a variable holds a whole user-type value.
+    fn is_whole_type(&self, v: VarId) -> bool {
+        matches!(self.prog.var(v).ty, Ty::User(_))
     }
 
     fn print(&mut self, stmt: ast::PrintStmt) -> R<()> {

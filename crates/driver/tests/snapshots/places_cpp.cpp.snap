@@ -1,0 +1,354 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+ptrszint *__ARRAY_LONG_X=NULL;
+ptrszint *__ARRAY_STRING_S=NULL;
+void *__UDT_P=NULL;
+ptrszint *__ARRAY_UDT_A=NULL;
+float *__SINGLE_I=NULL;
+float *__SINGLE_Y=NULL;
+void *_SUB_SHOW_UDT_R=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+void SUB_BUMP(int32*_SUB_BUMP_LONG_V);
+void SUB_SHOW();
+==> clear.txt <==
+memset((void*)(__ARRAY_LONG_X[0]),0,__ARRAY_LONG_X[5]*4);
+tmp_long=__ARRAY_STRING_S[5];
+while(tmp_long--){
+(((qbs**)(__ARRAY_STRING_S[0]))[tmp_long])->len=0;
+}
+memset((void*)__UDT_P,0,38);
+memset((void*)(__ARRAY_UDT_A[0]),0,__ARRAY_UDT_A[9]*__ARRAY_UDT_A[5]*38);
+*__SINGLE_I=0;
+*__SINGLE_Y=0;
+memset((void*)_SUB_SHOW_UDT_R,0,38);
+==> maindata.txt <==
+if (!__ARRAY_LONG_X){
+__ARRAY_LONG_X=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_X)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_X[4]=0ll;
+__ARRAY_LONG_X[5]=(10ll)-__ARRAY_LONG_X[4]+1;
+if (__ARRAY_LONG_X[5]<=0) error(5);
+__ARRAY_LONG_X[6]=1;
+__ARRAY_LONG_X[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_X[5]*4);
+memset((void*)(__ARRAY_LONG_X[0]),0,__ARRAY_LONG_X[5]*4);
+__ARRAY_LONG_X[2]=1+2;
+}
+if (!__ARRAY_STRING_S){
+__ARRAY_STRING_S=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING_S)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING_S[4]=0ll;
+__ARRAY_STRING_S[5]=(2ll)-__ARRAY_STRING_S[4]+1;
+if (__ARRAY_STRING_S[5]<=0) error(5);
+__ARRAY_STRING_S[6]=1;
+__ARRAY_STRING_S[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING_S[5]*ptrsz);
+tmp_long=__ARRAY_STRING_S[5];
+while(tmp_long--){
+((qbs**)(__ARRAY_STRING_S[0]))[tmp_long]=qbs_new(0,0);
+}
+__ARRAY_STRING_S[2]=1+2;
+}
+if(__UDT_P==NULL){
+__UDT_P=(void*)mem_static_malloc(38);
+memset(__UDT_P,0,38);
+}
+if (!__ARRAY_UDT_A){
+__ARRAY_UDT_A=(ptrszint*)mem_static_malloc(13*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_A)[12]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_A[8]=1ll;
+__ARRAY_UDT_A[9]=(3ll)-__ARRAY_UDT_A[8]+1;
+if (__ARRAY_UDT_A[9]<=0) error(5);
+__ARRAY_UDT_A[10]=1;
+__ARRAY_UDT_A[4]=0ll;
+__ARRAY_UDT_A[5]=(2ll)-__ARRAY_UDT_A[4]+1;
+if (__ARRAY_UDT_A[5]<=0) error(5);
+__ARRAY_UDT_A[6]=__ARRAY_UDT_A[10]*__ARRAY_UDT_A[9];
+__ARRAY_UDT_A[0]=(ptrszint)mem_static_malloc(__ARRAY_UDT_A[9]*__ARRAY_UDT_A[5]*38);
+memset((void*)(__ARRAY_UDT_A[0]),0,__ARRAY_UDT_A[9]*__ARRAY_UDT_A[5]*38);
+__ARRAY_UDT_A[2]=1+2;
+}
+if(__SINGLE_I==NULL){
+__SINGLE_I=(float*)mem_static_malloc(4);
+*__SINGLE_I=0;
+}
+if(__SINGLE_Y==NULL){
+__SINGLE_Y=(float*)mem_static_malloc(4);
+*__SINGLE_Y=0;
+}
+if(_SUB_SHOW_UDT_R==NULL){
+_SUB_SHOW_UDT_R=(void*)mem_static_malloc(38);
+memset(_SUB_SHOW_UDT_R,0,38);
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+#include "main2.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "places_cpp.bas"
+do{
+#line 2 "places_cpp.bas"
+sub__dest(func__console());
+#line 2 "places_cpp.bas"
+sub__source(func__console());
+#line 2 "places_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 15 "places_cpp.bas"
+do{
+#line 15 "places_cpp.bas"
+tmp_long=array_check((qbr(*__SINGLE_I))-__ARRAY_LONG_X[4],__ARRAY_LONG_X[5]);
+#line 15 "places_cpp.bas"
+if (!is_error_pending()) ((int32*)(__ARRAY_LONG_X[0]))[tmp_long]=1;
+#line 15 "places_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "places_cpp.bas"
+do{
+#line 16 "places_cpp.bas"
+tmp_long=array_check((1ll)-__ARRAY_STRING_S[4],__ARRAY_STRING_S[5]);
+#line 16 "places_cpp.bas"
+if (!is_error_pending()) qbs_set((((qbs**)(__ARRAY_STRING_S[0]))[tmp_long]),qbs_new_txt_len("b",1));
+#line 16 "places_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 16 "places_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "places_cpp.bas"
+do{
+#line 17 "places_cpp.bas"
+*(int16*)((((char*)__UDT_P)+36))=2;
+#line 17 "places_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "places_cpp.bas"
+do{
+#line 18 "places_cpp.bas"
+{
+#line 18 "places_cpp.bas"
+int16 mbr_value=((int16)(((int32*)(__ARRAY_LONG_X[0]))[array_check((3ll)-__ARRAY_LONG_X[4],__ARRAY_LONG_X[5])]));
+#line 18 "places_cpp.bas"
+int32 mbr_pending=is_error_pending();
+#line 18 "places_cpp.bas"
+int32 mbr_bad=0;
+#line 18 "places_cpp.bas"
+int64 mbr_k;
+#line 18 "places_cpp.bas"
+ptrszint mbr_flat=0;
+#line 18 "places_cpp.bas"
+mbr_k=(qbr(*__SINGLE_I))-__ARRAY_UDT_A[8];
+#line 18 "places_cpp.bas"
+if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[9]){error(9);mbr_bad=1;}
+#line 18 "places_cpp.bas"
+mbr_flat=mbr_k;
+#line 18 "places_cpp.bas"
+mbr_k=(0ll)-__ARRAY_UDT_A[4];
+#line 18 "places_cpp.bas"
+if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[5]){error(9);mbr_bad=1;}
+#line 18 "places_cpp.bas"
+mbr_flat+=mbr_k*__ARRAY_UDT_A[6];
+#line 18 "places_cpp.bas"
+if (!mbr_bad&&(mbr_pending||!is_error_pending())) *(int16*)(((char*)__ARRAY_UDT_A[0])+(mbr_flat*38+36))=mbr_value;
+#line 18 "places_cpp.bas"
+}
+#line 18 "places_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "places_cpp.bas"
+do{
+#line 19 "places_cpp.bas"
+*__SINGLE_Y=((float)(((((int32*)(__ARRAY_LONG_X[0]))[array_check((qbr(*__SINGLE_I))-__ARRAY_LONG_X[4],__ARRAY_LONG_X[5])]+*(int32*)((((char*)__UDT_P)+0)))+((int32)(*(int16*)(((((char*)__ARRAY_UDT_A[0])+((array_check((2ll)-__ARRAY_UDT_A[8],__ARRAY_UDT_A[9])+array_check((qbr(*__SINGLE_I))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5])*__ARRAY_UDT_A[6])*38))+36)))))));
+#line 19 "places_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "places_cpp.bas"
+do{
+#line 20 "places_cpp.bas"
+SUB_BUMP((&((int32*)(__ARRAY_LONG_X[0]))[array_check((3ll)-__ARRAY_LONG_X[4],__ARRAY_LONG_X[5])]));
+#line 20 "places_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "places_cpp.bas"
+do{
+#line 21 "places_cpp.bas"
+SUB_BUMP((int32*)(void*)((((char*)__UDT_P)+0)));
+#line 21 "places_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 22 "places_cpp.bas"
+do{
+#line 22 "places_cpp.bas"
+SUB_BUMP((int32*)(void*)(((((char*)__ARRAY_UDT_A[0])+((array_check((1ll)-__ARRAY_UDT_A[8],__ARRAY_UDT_A[9])+array_check((1ll)-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5])*__ARRAY_UDT_A[6])*38))+0)));
+#line 22 "places_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "places_cpp.bas"
+do{
+#line 23 "places_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 23 "places_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)func_lbound(__ARRAY_UDT_A,2,2)))),qbs_new_txt(" ")));
+#line 23 "places_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 23 "places_cpp.bas"
+makefit(tqbs);
+#line 23 "places_cpp.bas"
+qbs_print(tqbs,0);
+#line 23 "places_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)func_ubound(__ARRAY_LONG_X,1,1)))),qbs_new_txt(" ")));
+#line 23 "places_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 23 "places_cpp.bas"
+makefit(tqbs);
+#line 23 "places_cpp.bas"
+qbs_print(tqbs,0);
+#line 23 "places_cpp.bas"
+qbs_set(tqbs,(((qbs**)(__ARRAY_STRING_S[0]))[array_check((1ll)-__ARRAY_STRING_S[4],__ARRAY_STRING_S[5])]));
+#line 23 "places_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 23 "places_cpp.bas"
+makefit(tqbs);
+#line 23 "places_cpp.bas"
+qbs_print(tqbs,0);
+#line 23 "places_cpp.bas"
+qbs_print(nothingstring,1);
+#line 23 "places_cpp.bas"
+skip1:
+#line 23 "places_cpp.bas"
+qbs_free(tqbs);
+#line 23 "places_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 23 "places_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "places_cpp.bas"
+do{
+#line 24 "places_cpp.bas"
+SUB_SHOW();
+#line 24 "places_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+sub_end();
+return;
+}
+==> main1.txt <==
+#line 25 "places_cpp.bas"
+void SUB_BUMP(int32*_SUB_BUMP_LONG_V){
+#line 25 "places_cpp.bas"
+qbs *tqbs;
+#line 25 "places_cpp.bas"
+ptrszint tmp_long;
+#line 25 "places_cpp.bas"
+int32 tmp_fileno;
+#line 25 "places_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 25 "places_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 25 "places_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 25 "places_cpp.bas"
+#include "data1.txt"
+#line 25 "places_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 25 "places_cpp.bas"
+new_mem_lock();
+#line 25 "places_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 25 "places_cpp.bas"
+sf_mem_lock->type=3;
+#line 25 "places_cpp.bas"
+libqb_check_stack();
+#line 25 "places_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 26 "places_cpp.bas"
+do{
+#line 26 "places_cpp.bas"
+*_SUB_BUMP_LONG_V=(*_SUB_BUMP_LONG_V+1);
+#line 26 "places_cpp.bas"
+if(!qbevent)break;evnt(26);}while(r);
+#line 27 "places_cpp.bas"
+exit_subfunc:;
+#line 27 "places_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 27 "places_cpp.bas"
+#include "free1.txt"
+#line 27 "places_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 27 "places_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 27 "places_cpp.bas"
+}
+==> main2.txt <==
+#line 28 "places_cpp.bas"
+void SUB_SHOW(){
+#line 28 "places_cpp.bas"
+qbs *tqbs;
+#line 28 "places_cpp.bas"
+ptrszint tmp_long;
+#line 28 "places_cpp.bas"
+int32 tmp_fileno;
+#line 28 "places_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 28 "places_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 28 "places_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 28 "places_cpp.bas"
+#include "data2.txt"
+#line 28 "places_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 28 "places_cpp.bas"
+new_mem_lock();
+#line 28 "places_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 28 "places_cpp.bas"
+sf_mem_lock->type=3;
+#line 28 "places_cpp.bas"
+libqb_check_stack();
+#line 28 "places_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 31 "places_cpp.bas"
+do{
+#line 31 "places_cpp.bas"
+*(int16*)((((char*)_SUB_SHOW_UDT_Q)+36))=*(int16*)((((char*)_SUB_SHOW_UDT_R)+36));
+#line 31 "places_cpp.bas"
+if(!qbevent)break;evnt(31);}while(r);
+#line 32 "places_cpp.bas"
+exit_subfunc:;
+#line 32 "places_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 32 "places_cpp.bas"
+#include "free2.txt"
+#line 32 "places_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 32 "places_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 32 "places_cpp.bas"
+}
+==> data2.txt <==
+void *_SUB_SHOW_UDT_Q=NULL;
+if(_SUB_SHOW_UDT_Q==NULL){
+_SUB_SHOW_UDT_Q=(void*)mem_static_malloc(38);
+memset(_SUB_SHOW_UDT_Q,0,38);
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt data1.txt free1.txt free2.txt

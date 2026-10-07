@@ -24,6 +24,8 @@ pub use symbols::{Symbol, SymbolId, SymbolKind, Symbols, dump_symbols};
 use qb64rust_base::Span;
 use qb64rust_builtins::BuiltinId;
 
+/// A type. The numeric types are ordered by width within integers and within floats (`I16 < I32 < I64`, `F32 <
+/// F64 < F80`), which the conversions use; `User` comes last.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Ty {
     I16,
@@ -33,6 +35,8 @@ pub enum Ty {
     F64,
     F80,
     Str,
+    /// A `TYPE` of the program ([`Program::types`]), design D3 of `m2-arrays-and-types`.
+    User(TypeId),
 }
 
 impl Ty {
@@ -47,11 +51,11 @@ impl Ty {
     pub fn is_numeric(self) -> bool {
         match self {
             Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => true,
-            Ty::Str => false,
+            Ty::Str | Ty::User(_) => false,
         }
     }
 
-    /// The QB type name (`INTEGER`, `_FLOAT`...).
+    /// The QB type name (`INTEGER`, `_FLOAT`...); `TYPE` for a user type, whose name is [`Program::type_name`]'s.
     pub fn qb_name(self) -> &'static str {
         match self {
             Ty::I16 => "INTEGER",
@@ -61,8 +65,33 @@ impl Ty {
             Ty::F64 => "DOUBLE",
             Ty::F80 => "_FLOAT",
             Ty::Str => "STRING",
+            Ty::User(_) => "TYPE",
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TypeId(pub u32);
+
+/// A member of a user type: its index in [`UserType::members`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct MemberId(pub u32);
+
+/// A `TYPE … END TYPE` of the main module. Its layout (sizes, offsets) is the emitter's.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UserType {
+    /// The name in upper case.
+    pub name: String,
+    /// In declaration order.
+    pub members: Vec<Member>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Member {
+    /// The name in upper case, without suffix.
+    pub name: String,
+    /// A numeric type or a user type defined before this one.
+    pub ty: Ty,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -126,13 +155,73 @@ pub enum Storage {
     Result(ProcId),
 }
 
-/// A variable: a name plus a type (design D5), and its storage.
+/// A variable: a name plus a type (design D5), and its storage. An array is a variable with dimensions; its `ty`
+/// is the type of its elements. Arrays and scalars of the same name and type are different variables.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Var {
     /// The name without suffix, in upper case.
     pub name: String,
     pub ty: Ty,
     pub storage: Storage,
+    /// The lower and upper bound of each dimension, first dimension first; empty for a scalar. Only static arrays
+    /// exist so far: the bounds are known when compiling (design D4 of `m2-arrays-and-types`).
+    pub dims: Vec<(i64, i64)>,
+}
+
+impl Var {
+    pub fn is_array(&self) -> bool {
+        !self.dims.is_empty()
+    }
+}
+
+/// Where a value is read from and stored to (design D5 of `m2-arrays-and-types`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum Place {
+    /// A scalar variable.
+    Var(VarId),
+    /// An element of an array: one index per dimension, each already converted to `_INTEGER64`. An index outside
+    /// its dimension's bounds raises error 9.
+    Element { array: VarId, index: Vec<Expr> },
+    /// A member of a place whose type is a user type.
+    Member { base: Box<Place>, member: MemberId },
+}
+
+impl Place {
+    /// Whether finding the place may raise an error: an element's indexes are checked, a member's base may be an
+    /// element.
+    pub fn may_raise(&self) -> bool {
+        match self {
+            Place::Var(_) => false,
+            Place::Element { .. } => true,
+            Place::Member { base, .. } => base.may_raise(),
+        }
+    }
+
+    /// The variable the place is part of.
+    pub fn root(&self) -> VarId {
+        match self {
+            Place::Var(v) | Place::Element { array: v, .. } => *v,
+            Place::Member { base, .. } => base.root(),
+        }
+    }
+
+    /// Whether an element lies on the way to the place (`a(i).m`, `a(i)`).
+    pub fn has_element(&self) -> bool {
+        match self {
+            Place::Var(_) => false,
+            Place::Element { .. } => true,
+            Place::Member { base, .. } => base.has_element(),
+        }
+    }
+
+    /// The indexes on the way to the place, outermost element first.
+    pub fn indexes(&self) -> Vec<&Expr> {
+        match self {
+            Place::Var(_) => Vec::new(),
+            Place::Element { index, .. } => index.iter().collect(),
+            Place::Member { base, .. } => base.indexes(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -161,8 +250,8 @@ pub struct Proc {
 /// How an argument is passed to a procedure (design D4).
 #[derive(Clone, Debug, PartialEq)]
 pub enum Arg {
-    /// The variable itself: the procedure's assignments to the parameter change it.
-    Ref(VarId),
+    /// The place itself (a variable, an element, a member): the procedure's assignments to the parameter change it.
+    Ref(Place),
     /// A fresh copy of a value, already converted to the parameter's type; changes to it are lost.
     Temp(Expr),
 }
@@ -258,7 +347,15 @@ pub enum ExprKind {
     /// Decimal text in C form, see [`literal::NumLit::Float`].
     Float(String),
     Str(Vec<u8>),
-    Var(VarId),
+    /// The value of a place; never of a user type (a whole `TYPE` value is not a value, measured).
+    Load(Place),
+    /// `LBOUND` (`upper` false) or `UBOUND` of an array: a dimension's bound, typed `_INTEGER64` (measured). `dim`
+    /// is LONG; absent for the first dimension. A dimension outside 1 to the number of dimensions raises error 9.
+    Bound {
+        upper: bool,
+        array: VarId,
+        dim: Option<Box<Expr>>,
+    },
     Convert {
         how: ConvKind,
         from: Box<Expr>,
@@ -310,8 +407,10 @@ pub enum PrintItem {
 pub enum StmtKind {
     /// `$CONSOLE:ONLY`: output and input go to the console.
     ConsoleOnly,
+    /// A store; the value has the place's type (never a user type). The store rule depends on the place (design D6
+    /// of `m2-arrays-and-types`).
     Assign {
-        var: VarId,
+        place: Place,
         value: Expr,
     },
     Print {
@@ -438,6 +537,8 @@ pub struct Program {
     pub labels: Vec<Label>,
     /// Every `CONST`, in source order.
     pub consts: Vec<Const>,
+    /// The user types, in source order.
+    pub types: Vec<UserType>,
     /// Where each variable and procedure is defined and used (design D12).
     pub symbols: Symbols,
 }
@@ -445,6 +546,34 @@ pub struct Program {
 impl Program {
     pub fn var(&self, id: VarId) -> &Var {
         &self.vars[id.0 as usize]
+    }
+
+    pub fn user_type(&self, id: TypeId) -> &UserType {
+        &self.types[id.0 as usize]
+    }
+
+    /// The member of a place of user type `base`.
+    pub fn member(&self, base: Ty, m: MemberId) -> &Member {
+        let Ty::User(t) = base else {
+            panic!("a member of a place of type {base:?}");
+        };
+        &self.user_type(t).members[m.0 as usize]
+    }
+
+    /// The type of a place: a variable's, an array's element type, a member's.
+    pub fn place_ty(&self, p: &Place) -> Ty {
+        match p {
+            Place::Var(v) | Place::Element { array: v, .. } => self.var(*v).ty,
+            Place::Member { base, member } => self.member(self.place_ty(base), *member).ty,
+        }
+    }
+
+    /// The QB name of a type, a user type's own name for one.
+    pub fn type_name(&self, t: Ty) -> String {
+        match t {
+            Ty::User(id) => self.user_type(id).name.clone(),
+            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => t.qb_name().to_string(),
+        }
     }
 
     pub fn proc(&self, id: ProcId) -> &Proc {

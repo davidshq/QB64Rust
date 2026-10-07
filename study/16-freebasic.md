@@ -240,14 +240,14 @@ runtime engineer (RT, for 2 and 6) and an editor-tooling engineer (E, for 5 and 
 default build and **true** with `-O2`; the stored and printed value of `x + 1` wraps to `-9223372036854775808` in
 both. The golden corpus itself had no `_INTEGER64` program and no LONG overflow (its `-O2` run differs only in
 `v11` and `v12`, `tests\corpus\README.md`). **Decided (user, 2026-10-03): `_INTEGER64` overflow wraps too**
-(`CLAUDE.md`); the constant folder uses `wrapping_*` on `i64` as well.
+(`DECISIONS.md`); the constant folder uses `wrapping_*` on `i64` as well.
 
 **M1 leftovers** (not FreeBASIC, decided in the same session):
 
 - `-x` progress bar filling about 50 lines of the output channel: **fix before M2** (P: users see it on every
   build). T: add a unit test using recorded `-x` output.
 - Settings heading "Qb64rust: Compiler Path": **fix only if possible without renaming the `qb64rust.*` keys**
-  (`CLAUDE.md` decision of 2026-10-02); otherwise leave it. E: cosmetic, look it up once, no more.
+  (`DECISIONS.md` decision of 2026-10-02); otherwise leave it. E: cosmetic, look it up once, no more.
 
 Not consulted: the earlier report `reports\FreeBASIC and QB64pe codebases.md` in `<qb64contain>\QB64pe`
 (decision of 2026-10-02: no more material from there is brought into `study\`).

@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-07 (session 21). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-07 (session 22). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests done.**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice done (closing).**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -79,7 +79,7 @@ Found while recording:
 Test cadence decided (`study\19`): the full corpus is not part of the edit loop; four tiers from `cargo test` to
 nightly.
 
-Decided 2026-10-03: `_INTEGER64` overflow wraps too, like LONG (`CLAUDE.md`, `study\16` §8).
+Decided 2026-10-03: `_INTEGER64` overflow wraps too, like LONG (`DECISIONS.md`, `study\16` §8).
 
 ## M2: Rust workspace and end-to-end slice (2026-10-03, session 9)
 
@@ -158,10 +158,33 @@ GitHub.
 - **Decided 2026-10-04 (was an open question):** the runner compared an `.err` program's compiler output with the
   old text, so the 56 upstream `.err` programs (counted in the 279) could not pass tier 2 with the new messages.
   For compilers other than `qb64pe`, an `.err` program now passes when the compile fails, writes no executable
-  and reports at least one error not marked "not supported yet"; they stay in the 279 (`CLAUDE.md`; implemented
+  and reports at least one error not marked "not supported yet"; they stay in the 279 (`DECISIONS.md`; implemented
   in `m2-parser-breadth` task 2.1).
 - Your index: files staged before `.gitattributes` gained the `-text` lines were stored with LF (7 upstream `.bas`
   show `AM`); staging them again stores the bytes as upstream has them.
+
+## M2: control-flow slice (2026-10-05 to 2026-10-07)
+
+OpenSpec change `m2-control-flow-slice`: all tasks done; archived 2026-10-07 to
+`openspec\changes\archive\2026-10-07-m2-control-flow-slice\` (record in its `tasks.md`), its specs now the main
+specs (new: `openspec\specs\language\control-flow`, `language\constants`; updated: `compiler\pipeline`,
+`language\error-handling`, `language\numeric-semantics`). Supported now
+(`crates\README.md`): every operator, `CONST` (the old evaluator, as measured), `OPTION _EXPLICIT`, `IF`, `FOR`,
+`DO`, `WHILE`, `EXIT`, `GOTO`, `GOSUB`, `RETURN`, labels in every body. The IR is flat with explicit jumps and
+states the pending-error rule (a raising header behaves as in QB64pe, measured by `verification\v17_*`).
+`slice.list` 54 → 113, upstream 10 → 23 of 279. The CI job `tier2`'s steps, run locally against the QB64pe
+4.7.0 release (2026-10-07): 113 of 113 and 23 of 23.
+
+## M2: arrays-and-`TYPE` slice (2026-10-07)
+
+OpenSpec change `m2-arrays-and-types` (`openspec\changes\m2-arrays-and-types\`): tasks 1–8 and the documents of 9.1
+done; open: 9.2 (the CI `tier2` steps against the QB64pe 4.7.0 release, then archive after the user has seen the
+record). Supported now (`crates\README.md`): static arrays of the main module (numeric, `STRING`, `TYPE`
+elements), elements by reference, `LBOUND`/`UBOUND`, `TYPE` with numeric and nested members, members by
+reference, dotted plain names. Measured first (`verification\v18_*`, 67 programs, `study\00` §5). Decided by the
+user: a member store into an element with a bad index stores nothing (`DIVERGENCES.md` D-004). The IR now shares
+`sema`'s value tree (design D10). Tier 1 lowers, validates and emits every accepted input (`ir::validate`).
+`slice.list` 113 → 129, full corpus 127 → 144, upstream 23 → 24 of 279.
 
 **Next** (order accepted 2026-10-07 after the fourth review, `study\24` §4, reasons there; it replaces the order of
 `study\23` §4). One line per step; the per-task record of a change is its `tasks.md`, and `git log`.
@@ -170,11 +193,10 @@ GitHub.
    its last green run).
 2. Done 2026-10-05: `m2-parser-breadth` groups 5 and 6 (member access, `DATA`, line numbers, blocks). The change
    pauses until step 5.
-3. **Now: `m2-control-flow-slice`, task 9.1** (`openspec\changes\m2-control-flow-slice\tasks.md`); then the **IR
-   review** (`study\20` §3.4), whose "keep or merge" stays provisional until step 4.
-4. A **minimal arrays-and-`TYPE` slice**, its own OpenSpec change, measured first (`study\24` §2): static
-   `DIM a(n)` of scalars, element read and write, an element by reference, `LBOUND`/`UBOUND`, `TYPE` with scalar
-   members, member read and write. It closes the IR review's place question.
+3. Done 2026-10-07: `m2-control-flow-slice` (archived); the IR review (`study\25`): **IR kept**, the jump and
+   error model final, the value-tree copy decided after step 4, the place question stated for step 4 (§3).
+4. **Now (closing):** `m2-arrays-and-types`, task 9.2 (CI `tier2` steps against the 4.7.0 release; archive). The
+   place question and the value-tree question of the IR review are answered (design D5, D10).
 5. `m2-parser-breadth` groups 7 to 9 (statements, `specialformat` templates, `$IF`, `$INCLUDE`, the follow-on rule,
    block crossing marked; `study\23` §2.3, §2.4). May run before 4.
 6. The thin language server (`study\23` §2.6).
@@ -183,9 +205,9 @@ GitHub.
 9. The rest of control flow (`SELECT CASE`, `ON … GOTO/GOSUB`, `DEFxxx`), then the rest of arrays and `TYPE`
    (`REDIM`, dynamic arrays, `OPTION BASE`; member arrays stay in `SOMEDAY.md`).
 
-Numbers at the last full runs (2026-10-07, task 8.2): `slice.list` 113 of 113, full corpus 127 pass and none wrong
-at run time, upstream **23 of 279**; shrink-only lists: 43 false errors, 72 only-marked rejections, 500 parse gaps
-(`tests\upstream\README.md`).
+Numbers at the last full runs (2026-10-07, `m2-arrays-and-types` task 7.2): `slice.list` 129 of 129, full corpus
+144 pass and none wrong at run time, upstream **24 of 279**; shrink-only lists: 43 false errors, 71 only-marked
+rejections, 461 parse gaps (`tests\upstream\README.md`).
 
 **`m2-parser-breadth`** (started 2026-10-04, paused at group 6; `openspec\changes\m2-parser-breadth\tasks.md`):
 done are the wrong-code fix for comment metacommands, the panic hook, the tier-2 `.err` meaning, the parse-gap
@@ -205,7 +227,12 @@ M1 leftovers: done (see above).
 
 ## Known bugs
 
-None open. Fixed 2026-10-07 (session 20): **deeply nested expressions overflowed the stack** (`x = 1 + 1 + …`
+Open (found 2026-10-07, `m2-arrays-and-types` task 3.1): **a SUB named like a built-in function is a false
+error**: `SUB loc` gives "name already in use" (`LOC` is a built-in), while the old compiler accepts it and calls it.
+The reserved-name rule (`m2-procedures-and-errors` D3) was measured for variables only; procedure names need their
+own measurement. No list entry yet (no input has one).
+
+Fixed 2026-10-07 (session 20): **deeply nested expressions overflowed the stack** (`x = 1 + 1 + …`
 with 20,000 terms, 3,000 nested parentheses; the debug build already at 250 terms, since a left-associative chain
 is parsed in a loop but nests one tree level per operator). Now: the parser counts each expression's tree height
 and marks one deeper than 1,000 levels "not supported yet" (`parser\expr.rs` `MAX_EXPR_DEPTH`); the compiler runs
@@ -221,7 +248,7 @@ members in debug); it is now constant time.
 | When | Item |
 |---|---|
 | Step 7 of "Next" | Decide the bug-compatibility choices in `study\00` §6 (32-bit INTEGER arithmetic and half-to-even rounding are already implemented as "keep") |
-| M3 | Plain copy of `..\QB64pe\internal\c` at the pinned commit (`CLAUDE.md`) |
+| M3 | Plain copy of `..\QB64pe\internal\c` at the pinned commit (`DECISIONS.md`) |
 | M3 | Programs without `$CONSOLE:ONLY`, with an oracle such as a screen-state dump at exit compared between old and new compiler (`study\22` §3.2) |
 | M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\22` §4.2) |
 | Help/hover work | Ask the QB64pe maintainers about the wiki licence before shipping any wiki text |

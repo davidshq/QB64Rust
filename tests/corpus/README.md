@@ -12,7 +12,7 @@ not say whether that behaviour is right (that is the divergence register's job).
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
 | `slice\` | 19 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants; `SOURCE.md`) |
-| `slice.list` | The 113 programs the new compiler must pass: all 19 of `slice\` and 94 of `runtime_comparison` (see below) |
+| `slice.list` | The 129 programs the new compiler must pass: all 22 of `slice\` and 107 of `runtime_comparison` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -110,19 +110,20 @@ Measured 2026-10-03 (`s17` 2026-10-06, the other `s13`–`s19` give the same out
 `runtime_comparison` program gives the same output in both builds. That group has no
 `_INTEGER64` program and no LONG overflow, which is why `v12` was added (`study\16` §8). Both differences come from
 signed overflow being undefined in the generated C++ (no `-fwrapv`); the new compiler wraps for both LONG and
-`_INTEGER64` (`CLAUDE.md`, 2026-10-03), so it must match the default-build files.
+`_INTEGER64` (`DECISIONS.md`, 2026-10-03), so it must match the default-build files.
 
 ## The `slice` group and `slice.list` (new compiler)
 
 `slice\` holds programs written for QB64Rust, recorded with `qb64pe.exe` like the rest: `s01`–`s07` by the change
 `m2-workspace-and-slice`, `s08`–`s12` (procedures, error handling) by `m2-procedures-and-errors`, `s13`–`s19`
-(control flow, operators, constants, header errors) by `m2-control-flow-slice` (`SOURCE.md`).
+(control flow, operators, constants, header errors) by `m2-control-flow-slice`, `s20`–`s22` (arrays, `TYPE`, the
+store rule of each place) by `m2-arrays-and-types` (`SOURCE.md`).
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
 line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
 
-`slice.list` names the 113 programs the new compiler must pass (tier 2, `study\19`), also with
+`slice.list` names the 129 programs the new compiler must pass (tier 2, `study\19`), also with
 `QB64RUST_NO_FOLD=1`. `s13`–`s19` joined it with `m2-control-flow-slice` (`s17` with task 3.2, the rest with task
-8.1).
+8.1), `s20`–`s22` and 13 `runtime_comparison` programs with `m2-arrays-and-types` task 7.1.
 
 ```
 cargo build --release
@@ -135,6 +136,26 @@ requires no panic, an exact round trip, no diagnostics for the listed ones, at l
 with an `.err` file, and the two shrink-only lists `tests\known_false_errors.list` and
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
+
+### Full corpus with `qb64rust` (2026-10-07, after arrays and `TYPE`; not a pass criterion)
+
+After the arrays-and-`TYPE` slice (`m2-arrays-and-types` task 7.2, release build), 285 programs (`s20`–`s22`
+new):
+
+| Result | Programs |
+|---|---|
+| Pass | 144: the 129 of `slice.list` and 15 `.err` programs (the 14 before, and `205_dim_to_same`, now rejected for the old compiler's reason: a second `DIM` of a static array) |
+| Rejected with a diagnostic (exit status 1) | 131 (130 `.output` programs and the compile-only `239_lprint`) |
+| `.err` programs that get only "not supported yet" errors | 5 (`16`, `28`, `194`, `202`, `218`: `REDIM`, array parameters, `FRE`, `LTRIM$`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+The 13 `runtime_comparison` programs that joined `slice.list` (`02_lbound_ubound`, `110_array_assign`,
+`121_type_nested`, `199_type_nested_deep`, `204_lbound_ubound_2d`, `255_type_print`, `261_many_dimensions`,
+`29_multi_dim`, `30_type_udt`, `43_array_string`, `58_array_udt`, `71_dim_zero_bound`, `72_three_dim`) are 13 of
+the 17 the change's proposal counted as blocked only by array or `TYPE` diagnostics; the other 4 need whole-`TYPE`
+assignment (`200`), member arrays (`197`), `SHARED a()` and `REDIM` (`206`) or `MID$` (`42`). `30_type_udt`
+(`TYPE Point`) joined after the `TYPE`-name measurements `v18_h_type_named_*` (design D3).
 
 ### Full corpus with `qb64rust` (2026-10-07, not a pass criterion)
 

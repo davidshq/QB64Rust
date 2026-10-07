@@ -2,10 +2,8 @@
 # leaves an `Error` node (spec testing/upstream-tests, "Parse gaps"; design D1 of m2-parser-breadth). Shrink-only:
 # parser breadth empties it. The comment is the first parser diagnostic, else the first `Error` node.
 # Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.
-corpus/runtime_comparison/02_lbound_ubound.bas  # 4:8: not supported yet: arrays
 corpus/runtime_comparison/05_file_io.bas  # 5:7: not supported yet: `PRINT #`
-corpus/runtime_comparison/110_array_assign.bas  # 3:6: not supported yet: arrays
-corpus/runtime_comparison/120_redim_no_preserve.bas  # 3:6: not supported yet: arrays
+corpus/runtime_comparison/120_redim_no_preserve.bas  # 4:1: not supported yet: statement `REDIM`
 corpus/runtime_comparison/174_input_hash.bas  # 4:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/175_get_put.bas  # 3:23: `Error` node without a parser diagnostic
 corpus/runtime_comparison/176_open_random.bas  # 4:23: `Error` node without a parser diagnostic
@@ -17,29 +15,19 @@ corpus/runtime_comparison/181_loc_after_write.bas  # 5:7: not supported yet: `PR
 corpus/runtime_comparison/182_lof_binary.bas  # 4:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/183_freefile_multiple.bas  # 9:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/186_print_using.bas  # 3:7: not supported yet: `PRINT USING`
-corpus/runtime_comparison/201_erase_udt_array.bas  # 6:8: not supported yet: arrays
-corpus/runtime_comparison/203_redim_multiple.bas  # 3:6: not supported yet: arrays
-corpus/runtime_comparison/204_lbound_ubound_2d.bas  # 3:6: not supported yet: arrays
-corpus/runtime_comparison/206_shared_redim.bas  # 3:6: not supported yet: arrays
+corpus/runtime_comparison/203_redim_multiple.bas  # 4:1: not supported yet: statement `REDIM`
 corpus/runtime_comparison/213_chdir.bas  # 7:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/219_fileexists_direxists.bas  # 4:21: `Error` node without a parser diagnostic
 corpus/runtime_comparison/226_on_goto.bas  # 5:1: not supported yet: `ON N`
 corpus/runtime_comparison/227_on_gosub.bas  # 3:1: not supported yet: `ON 1`
 corpus/runtime_comparison/235_deftype.bas  # 3:1: not supported yet: statement `DEFINT`
-corpus/runtime_comparison/236_option_base.bas  # 4:6: not supported yet: arrays
 corpus/runtime_comparison/239_lprint.bas  # 3:1: not supported yet: statement `LPRINT`
-corpus/runtime_comparison/261_many_dimensions.bas  # 3:6: not supported yet: arrays
-corpus/runtime_comparison/29_multi_dim.bas  # 3:6: not supported yet: arrays
-corpus/runtime_comparison/40_erase.bas  # 3:8: not supported yet: arrays
-corpus/runtime_comparison/43_array_string.bas  # 3:6: not supported yet: arrays
+corpus/runtime_comparison/40_erase.bas  # 9:1: not supported yet: statement `REDIM`
 corpus/runtime_comparison/52_open_write.bas  # 4:1: not supported yet: statement `WRITE`
 corpus/runtime_comparison/53_open_append.bas  # 4:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/54_freefile.bas  # 7:7: not supported yet: `PRINT #`
-corpus/runtime_comparison/58_array_udt.bas  # 6:6: not supported yet: arrays
 corpus/runtime_comparison/59_seek.bas  # 4:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/60_eof.bas  # 4:7: not supported yet: `PRINT #`
-corpus/runtime_comparison/71_dim_zero_bound.bas  # 3:6: not supported yet: arrays
-corpus/runtime_comparison/72_three_dim.bas  # 3:6: not supported yet: arrays
 corpus/runtime_comparison/86_name_rename.bas  # 4:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/95_two_files.bas  # 5:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/96_lof.bas  # 4:7: not supported yet: `PRINT #`
@@ -55,7 +43,7 @@ qb64pe-source/source/global/version.bas  # 20:33: `Error` node without a parser 
 qb64pe-source/source/ide/config/cfg_global.bas  # 1:15: not supported yet: word `LONG` (expected the end of the statement)
 qb64pe-source/source/ide/ide_converters.bas  # 45:21: not supported yet: statement `SCREEN`
 qb64pe-source/source/ide/ide_export.bas  # 30:17: not supported yet: statement `SCREEN`
-qb64pe-source/source/ide/ide_global.bas  # 14:31: not supported yet: arrays
+qb64pe-source/source/ide/ide_global.bas  # 36:1: not supported yet: statement `REDIM`
 qb64pe-source/source/ide/ide_methods.bas  # 143:29: not supported yet: statement `SCREEN`
 qb64pe-source/source/ide/wiki/wiki_global.bas  # 35:1: not supported yet: statement `REDIM`
 qb64pe-source/source/ide/wiki/wiki_methods.bas  # 111:19: not supported yet: `PRINT #`
@@ -69,14 +57,14 @@ qb64pe-source/source/utilities/const_eval.bi  # 7:1: not supported yet: statemen
 qb64pe-source/source/utilities/elements.bas  # 334:55: not supported yet: array parameters
 qb64pe-source/source/utilities/file.bas  # 8:31: expected the end of the statement
 qb64pe-source/source/utilities/hash.bas  # 53:13: not supported yet: statement `REDIM`
-qb64pe-source/source/utilities/hash.bi  # 21:21: not supported yet: arrays
+qb64pe-source/source/utilities/hash.bi  # 48:1: not supported yet: statement `REDIM`
 qb64pe-source/source/utilities/ini-manager/ini.bm  # 52:34: `Error` node without a parser diagnostic
 qb64pe-source/source/utilities/s-buffer/sb_qb64pe_extension.bi  # 6:1: not supported yet: statement `REDIM`
 qb64pe-source/source/utilities/s-buffer/sb_qb64pe_extension.bm  # 62:9: not supported yet: statement `REDIM`
 qb64pe-source/source/utilities/s-buffer/simplebuffer.bi  # 32:1: not supported yet: statement `REDIM`
 qb64pe-source/source/utilities/s-buffer/simplebuffer.bm  # 48:9: not supported yet: statement `REDIM`
 qb64pe-source/source/utilities/strings.bas  # 6:12: not supported yet: word `LONG` (expected the end of the statement)
-qb64pe-source/source/utilities/terminal.bas  # 8:14: not supported yet: arrays
+qb64pe-source/source/utilities/terminal.bas  # 31:31: expected the end of the statement
 qb64pe-source/source/utilities/type.bas  # 763:5: not supported yet: statement `REDIM`
 qb64pe-source/source/utilities/type.bi  # 67:1: not supported yet: statement `REDIM`
 qbasic/misc/3dballs.bas  # 4:42: not supported yet: statement `SCREEN`
@@ -92,20 +80,20 @@ qbasic/misc/cuberot.bas  # 4:18: not supported yet: statement `SCREEN`
 qbasic/misc/djsok.bas  # 36:1: not supported yet: statement `DEFINT`
 qbasic/misc/flrmp.bas  # 4:3: not supported yet: statement `SCREEN`
 qbasic/misc/forest.bas  # 5:3: not supported yet: statement `SCREEN`
-qbasic/misc/frac1.bas  # 1:7: not supported yet: arrays
+qbasic/misc/frac1.bas  # 3:1: not supported yet: statement `SCREEN`
 qbasic/misc/frac2.bas  # 2:1: not supported yet: statement `SCREEN`
 qbasic/misc/frac3.bas  # 1:1: not supported yet: statement `SCREEN`
 qbasic/misc/frog.bas  # 4:1: not supported yet: statement `DEFINT`
 qbasic/misc/gor64.bas  # 24:1: not supported yet: statement `DEFINT`
 qbasic/misc/gujero.bas  # 10:17: not supported yet: statement `SCREEN`
-qbasic/misc/intrprtr.bas  # 28:30: not supported yet: arrays
+qbasic/misc/intrprtr.bas  # 238:1: not supported yet: statement `INPUT`
 qbasic/misc/kite.bas  # 10:7: `Error` node without a parser diagnostic
 qbasic/misc/lissaj.bas  # 5:17: not supported yet: statement `SCREEN`
 qbasic/misc/mandala.bas  # 5:3: not supported yet: statement `SCREEN`
 qbasic/misc/mandelb.bas  # 7:18: not supported yet: statement `SCREEN`
 qbasic/misc/matrix.bas  # 4:3: not supported yet: statement `DEF`
 qbasic/misc/mclock.bas  # 11:1: not supported yet: statement `SCREEN`
-qbasic/misc/mzupd2.bas  # 30:7: not supported yet: arrays
+qbasic/misc/mzupd2.bas  # 55:1: not supported yet: statement `SCREEN`
 qbasic/misc/nib64.bas  # 21:1: not supported yet: statement `DEFINT`
 qbasic/misc/pattern.bas  # 4:3: not supported yet: statement `SCREEN`
 qbasic/misc/rc-ent6.bas  # 23:1: not supported yet: statement `SCREEN`
@@ -113,31 +101,31 @@ qbasic/misc/ripples.bas  # 23:1: not supported yet: statement `DEFINT`
 qbasic/misc/rotozoom.bas  # 5:3: not supported yet: statement `SCREEN`
 qbasic/misc/scramble.bas  # 6:1: not supported yet: statement `DEFINT`
 qbasic/misc/shoot.bas  # 3:1: not supported yet: statement `DEFLNG`
-qbasic/misc/sinecube.bas  # 4:9: not supported yet: arrays
+qbasic/misc/sinecube.bas  # 6:1: not supported yet: statement `SCREEN`
 qbasic/misc/ssaver.bas  # 3:1: not supported yet: statement `SCREEN`
 qbasic/misc/strfld.bas  # 5:3: not supported yet: statement `SCREEN`
 qbasic/misc/temple.bas  # 7:4: not supported yet: statement `INPUT`
 qbasic/misc/tower.bas  # 7:1: not supported yet: statement `DEFINT`
 qbasic/misc/twirl2.bas  # 5:64: not supported yet: statement `SCREEN`
 qbasic/misc/vortex.bas  # 4:3: not supported yet: statement `SCREEN`
-qbasic/misc/wumpus.bas  # 2:6: not supported yet: arrays
+qbasic/misc/wumpus.bas  # 4:1: not supported yet: statement `INPUT`
 qbasic/misc/xwing.bas  # 7:1: not supported yet: statement `DEFINT`
 qbasic/n54/big/3dsviewer/3dsviewer.bas  # 10:38: not supported yet: array parameters
 qbasic/n54/big/jpegmake.bas  # 7:80: not supported yet: array parameters
-qbasic/n54/big/tictac.bas  # 11:21: not supported yet: arrays
-qbasic/open_gl/3d_model_viewer.bas  # 33:33: not supported yet: arrays
+qbasic/n54/big/tictac.bas  # 28:1: not supported yet: statement `SCREEN`
+qbasic/open_gl/3d_model_viewer.bas  # 35:1: not supported yet: statement `REDIM`
 qbasic/open_gl/simple_example.bas  # 10:1: not supported yet: statement `REDIM`
 qbasic/pete/25lines/3dcube25.bas  # 7:18: not supported yet: statement `SCREEN`
 qbasic/pete/25lines/npplasma.bas  # 5:3: not supported yet: statement `SCREEN`
-qbasic/pete/25lines/starfild.bas  # 10:12: not supported yet: arrays
-qbasic/pete/alyman.bas  # 7:17: not supported yet: arrays
+qbasic/pete/25lines/starfild.bas  # 17:4: not supported yet: statement `SCREEN`
+qbasic/pete/alyman.bas  # 9:1: not supported yet: statement `COMMON`
 qbasic/pete/asciiconversion.bas  # 17:1: not supported yet: statement `INPUT`
 qbasic/pete/averager.bas  # 4:5: not supported yet: statement `INPUT`
-qbasic/pete/battleship.bas  # 2:13: not supported yet: arrays
+qbasic/pete/battleship.bas  # 10:1: not supported yet: statement `INPUT`
 qbasic/pete/beatdown/bdt.bas  # 83:1: not supported yet: statement `PLAY`
 qbasic/pete/beatdown/beatdown.bas  # 27:1: not supported yet: statement `SCREEN`
 qbasic/pete/beatdown/clickme.bas  # 3:1: not supported yet: statement `INPUT`
-qbasic/pete/bj.bas  # 21:19: not supported yet: arrays
+qbasic/pete/bj.bas  # 68:7: not supported yet: statement `INPUT`
 qbasic/pete/booger/booger.bas  # 53:1: not supported yet: statement `DEFINT`
 qbasic/pete/bush.bas  # 25:1: not supported yet: statement `PLAY`
 qbasic/pete/calc.bas  # 7:1: not supported yet: statement `INPUT`
@@ -155,35 +143,35 @@ qbasic/pete/gravity.bas  # 2:1: not supported yet: statement `SCREEN`
 qbasic/pete/hgm30e/hgm30e.bas  # 27:19: not supported yet: fixed-length strings
 qbasic/pete/html/test.bas  # 6:1: not supported yet: statement `INPUT`
 qbasic/pete/invader1/invader.bas  # 13:1: not supported yet: statement `DEFINT`
-qbasic/pete/kbdparse.bas  # 26:18: not supported yet: arrays
+qbasic/pete/kbdparse.bas  # 97:9: not supported yet: statement `INPUT`
 qbasic/pete/lineswin.bas  # 8:1: not supported yet: statement `SCREEN`
 qbasic/pete/makebig.bas  # 5:7: not supported yet: statement `SCREEN`
 qbasic/pete/monopoly/monopoly.bas  # 1:1: not supported yet: statement `DEFINT`
 qbasic/pete/mooncr/mooncr.bas  # 7:1: not supported yet: statement `SCREEN`
 qbasic/pete/move.bas  # 11:1: not supported yet: statement `INPUT`
 qbasic/pete/mrguessit.bas  # 9:1: not supported yet: statement `INPUT`
-qbasic/pete/nlcm2006/nlcm.bas  # 25:21: not supported yet: arrays
+qbasic/pete/nlcm2006/nlcm.bas  # 118:1: not supported yet: statement `COMMON`
 qbasic/pete/optimus/deedsaks.bas  # 9:26: not supported yet: array parameters
-qbasic/pete/pall2.bas  # 1:11: not supported yet: arrays
+qbasic/pete/pall2.bas  # 3:1: not supported yet: statement `SCREEN`
 qbasic/pete/picdimreader.bas  # 6:1: not supported yet: statement `SCREEN`
 qbasic/pete/pongsource.bas  # 6:1: not supported yet: statement `SCREEN`
-qbasic/pete/pongtennis/tennis.bas  # 18:18: not supported yet: arrays
+qbasic/pete/pongtennis/tennis.bas  # 59:1: not supported yet: statement `COMMON`
 qbasic/pete/pp256/usersubs.bas  # 42:54: not supported yet: array parameters
-qbasic/pete/qbb.bas  # 240:21: not supported yet: arrays
+qbasic/pete/qbb.bas  # 798:11: not supported yet: `PRINT #`
 qbasic/pete/rats1.bas  # 4:1: not supported yet: statement `SCREEN`
-qbasic/pete/raytra1b.bas  # 13:8: not supported yet: arrays
+qbasic/pete/raytra1b.bas  # 21:5: not supported yet: statement `SCREEN`
 qbasic/pete/rect2.bas  # 1:1: not supported yet: statement `SCREEN`
-qbasic/pete/rectong/rectong.bas  # 30:16: not supported yet: arrays
+qbasic/pete/rectong/rectong.bas  # 43:7: not supported yet: statement `SCREEN`
 qbasic/pete/roboraid/roboraid.bas  # 49:1: not supported yet: statement `SCREEN`
 qbasic/pete/rotate.bas  # 2:1: not supported yet: statement `SCREEN`
 qbasic/pete/screen.bas  # 28:18: not supported yet: statement `SCREEN`
 qbasic/pete/simpire/ssimpire.bas  # 29:1: not supported yet: statement `DEFINT`
-qbasic/pete/skydiver.bas  # 19:14: not supported yet: arrays
-qbasic/pete/space1.bas  # 7:7: not supported yet: arrays
+qbasic/pete/skydiver.bas  # 20:1: not supported yet: statement `SCREEN`
+qbasic/pete/space1.bas  # 54:1: not supported yet: statement `SCREEN`
 qbasic/pete/stones.bas  # 9:4: not supported yet: statement `INPUT`
 qbasic/pete/su2/shoote.bas  # 5:1: not supported yet: statement `SCREEN`
-qbasic/pete/su2/su2t.bas  # 13:16: not supported yet: arrays
-qbasic/pete/sudoku.bas  # 1:8: not supported yet: arrays
+qbasic/pete/su2/su2t.bas  # 26:1: not supported yet: statement `SCREEN`
+qbasic/pete/sudoku.bas  # 1:29: not supported yet: statement `SCREEN`
 qbasic/pete/tank/tcv2.bas  # 103:1: not supported yet: statement `DEFINT`
 qbasic/pete/tor/qbdemo.bas  # 18:1: not supported yet: statement `DEFINT`
 qbasic/pete/torndc.bas  # 294:1: not supported yet: statement `PLAY`
@@ -196,7 +184,7 @@ qbasic/qb45com/action/4pong.bas  # 1:1: not supported yet: statement `SCREEN`
 qbasic/qb45com/action/arcdemo/arcdemo.bas  # 5:1: not supported yet: statement `screen`
 qbasic/qb45com/action/arqanoid/arqanoid.bas  # 23:42: not supported yet: array parameters
 qbasic/qb45com/action/arqanoid/lvldesgn.bas  # 27:1: not supported yet: statement `DEFINT`
-qbasic/qb45com/action/astrowars.bas  # 22:21: not supported yet: arrays
+qbasic/qb45com/action/astrowars.bas  # 32:1: not supported yet: statement `COMMON`
 qbasic/thebob/abacus/a12gfx.bas  # 12:1: not supported yet: statement `DEFINT`
 qbasic/thebob/abacus/abacus12.bas  # 10:1: not supported yet: statement `DEFINT`
 qbasic/thebob/animax/animax.bas  # 9:1: not supported yet: statement `DEFINT`
@@ -210,22 +198,12 @@ qbasic/thebob/kong/k2.bas  # 5:1: not supported yet: statement `DEFINT`
 qbasic/thebob/kong/kong.bas  # 33:1: not supported yet: statement `DEFINT`
 qbasic/thebob/leapfrog/leapfrog.bas  # 10:1: not supported yet: statement `DEFINT`
 qbasic/thebob/leapfrog/lfgx.bas  # 11:1: not supported yet: statement `DEFINT`
-qbasic/thebob/monopoly/mboard.bas  # 11:17: not supported yet: arrays
+qbasic/thebob/monopoly/mboard.bas  # 244:1: not supported yet: statement `PLAY`
 qbasic/thebob/pongg/pgfx.bas  # 7:1: not supported yet: statement `DEFINT`
 qbasic/thebob/pongg/pongg.bas  # 8:1: not supported yet: statement `DEFINT`
 qbasic/thebob/rattler/rattler.bas  # 14:1: not supported yet: statement `DEFINT`
 qbasic/thebob/sol/s3gfx.bas  # 3:1: not supported yet: statement `DEFINT`
 qbasic/thebob/sol/sol3.bas  # 8:1: not supported yet: statement `DEFINT`
-snippets/qb64fresh/array_statements__erase_multiple_arrays.bas  # 1:6: not supported yet: arrays
-snippets/qb64fresh/array_statements__erase_single_array.bas  # 1:8: not supported yet: arrays
-snippets/qb64fresh/arrays__array_in_loop.bas  # 1:8: not supported yet: arrays
-snippets/qb64fresh/arrays__multidimensional_array.bas  # 1:8: not supported yet: arrays
-snippets/qb64fresh/arrays__option_base_0.bas  # 2:8: not supported yet: arrays
-snippets/qb64fresh/arrays__option_base_1.bas  # 2:8: not supported yet: arrays
-snippets/qb64fresh/arrays__option_base_1_multidimensional.bas  # 2:8: not supported yet: arrays
-snippets/qb64fresh/arrays__option_base_1_with_loop.bas  # 2:8: not supported yet: arrays
-snippets/qb64fresh/arrays__static_array.bas  # 1:8: not supported yet: arrays
-snippets/qb64fresh/arrays__static_array_with_range.bas  # 1:8: not supported yet: arrays
 snippets/qb64fresh/console_input__input_multiple_variables.bas  # 3:1: not supported yet: statement `INPUT`
 snippets/qb64fresh/console_input__input_single_variable.bas  # 2:1: not supported yet: statement `INPUT`
 snippets/qb64fresh/console_input__input_with_prompt.bas  # 2:1: not supported yet: statement `INPUT`
@@ -240,17 +218,16 @@ snippets/qb64fresh/deftype_statements__defsng_statement.bas  # 1:1: not supporte
 snippets/qb64fresh/deftype_statements__defstr_statement.bas  # 1:1: not supported yet: statement `DEFSTR`
 snippets/qb64fresh/error_extensions__on_error_goto_newhandler_compiles_and_emits_handler.bas  # 1:27: expected the end of the statement
 snippets/qb64fresh/extended_graphics__draw_in_viewport.bas  # 1:10: `Error` node without a parser diagnostic
-snippets/qb64fresh/extended_graphics__graphics_get_basic.bas  # 1:11: not supported yet: arrays
-snippets/qb64fresh/extended_graphics__graphics_get_put_roundtrip.bas  # 1:11: not supported yet: arrays
-snippets/qb64fresh/extended_graphics__graphics_get_with_array_index.bas  # 1:11: not supported yet: arrays
-snippets/qb64fresh/extended_graphics__graphics_get_with_step.bas  # 1:11: not supported yet: arrays
-snippets/qb64fresh/extended_graphics__graphics_put_basic.bas  # 1:11: not supported yet: arrays
-snippets/qb64fresh/extended_graphics__graphics_put_with_and.bas  # 1:11: not supported yet: arrays
-snippets/qb64fresh/extended_graphics__graphics_put_with_or.bas  # 1:11: not supported yet: arrays
-snippets/qb64fresh/extended_graphics__graphics_put_with_preset.bas  # 1:11: not supported yet: arrays
-snippets/qb64fresh/extended_graphics__graphics_put_with_pset.bas  # 1:11: not supported yet: arrays
-snippets/qb64fresh/extended_graphics__graphics_put_with_step.bas  # 1:11: not supported yet: arrays
-snippets/qb64fresh/extended_graphics__graphics_put_with_xor.bas  # 1:11: not supported yet: arrays
+snippets/qb64fresh/extended_graphics__graphics_get_basic.bas  # 2:7: `Error` node without a parser diagnostic
+snippets/qb64fresh/extended_graphics__graphics_get_put_roundtrip.bas  # 3:9: `Error` node without a parser diagnostic
+snippets/qb64fresh/extended_graphics__graphics_get_with_array_index.bas  # 2:7: `Error` node without a parser diagnostic
+snippets/qb64fresh/extended_graphics__graphics_get_with_step.bas  # 2:8: `Error` node without a parser diagnostic
+snippets/qb64fresh/extended_graphics__graphics_put_basic.bas  # 2:8: `Error` node without a parser diagnostic
+snippets/qb64fresh/extended_graphics__graphics_put_with_and.bas  # 2:8: `Error` node without a parser diagnostic
+snippets/qb64fresh/extended_graphics__graphics_put_with_or.bas  # 2:8: `Error` node without a parser diagnostic
+snippets/qb64fresh/extended_graphics__graphics_put_with_preset.bas  # 2:8: `Error` node without a parser diagnostic
+snippets/qb64fresh/extended_graphics__graphics_put_with_pset.bas  # 2:8: `Error` node without a parser diagnostic
+snippets/qb64fresh/extended_graphics__graphics_put_with_xor.bas  # 2:8: `Error` node without a parser diagnostic
 snippets/qb64fresh/extended_graphics__image_copy_and_display.bas  # 4:13: `Error` node without a parser diagnostic
 snippets/qb64fresh/extended_graphics__view_window_combination.bas  # 3:1: not supported yet: statement `PSET`
 snippets/qb64fresh/file_io__close_all_files.bas  # 1:18: `Error` node without a parser diagnostic
@@ -270,9 +247,8 @@ snippets/qb64fresh/file_io_runtime_stubs__open_for_output.bas  # 2:7: not suppor
 snippets/qb64fresh/graphics_runtime_stubs__putimage_basic.bas  # 3:13: `Error` node without a parser diagnostic
 snippets/qb64fresh/lprint_statement__lprint_simple.bas  # 1:1: not supported yet: statement `LPRINT`
 snippets/qb64fresh/metacommands_session036__define_statement.bas  # 1:13: `Error` node without a parser diagnostic
-snippets/qb64fresh/mid_assignment__mid_array_element.bas  # 1:9: not supported yet: arrays
 snippets/qb64fresh/mid_assignment__mid_fixed_length_string.bas  # 1:17: not supported yet: fixed-length strings
-snippets/qb64fresh/mid_assignment__mid_fixed_length_string_array.bas  # 1:8: not supported yet: arrays
+snippets/qb64fresh/mid_assignment__mid_fixed_length_string_array.bas  # 1:23: not supported yet: fixed-length strings
 snippets/qb64fresh/run_statement__run_with_filename.bas  # 1:1: not supported yet: statement `RUN`
 snippets/qb64fresh/sound_runtime_stubs__play_mml_string.bas  # 1:1: not supported yet: statement `PLAY`
 snippets/qb64fresh/sound_runtime_stubs__play_with_variable.bas  # 3:1: not supported yet: statement `PLAY`
@@ -296,13 +272,10 @@ upstream/arrays/05_fixed_length_string.bas  # 15:18: not supported yet: fixed-le
 upstream/arrays/05_redim_long.bas  # 8:1: not supported yet: statement `ReDim`
 upstream/arrays/06_option_base1_classic_udt_two_dimensions.bas  # 9:1: not supported yet: statement `ReDim`
 upstream/arrays/06_redim_ulong.bas  # 8:1: not supported yet: statement `ReDim`
-upstream/arrays/06_variable_string.bas  # 15:6: not supported yet: arrays
-upstream/arrays/07_nested_udt.bas  # 25:6: not supported yet: arrays
 upstream/arrays/07_option_base1_as_list_udt_two_dimensions.bas  # 9:1: not supported yet: statement `ReDim`
 upstream/arrays/07_redim_integer64.bas  # 8:1: not supported yet: statement `ReDim`
 upstream/arrays/08_redim_uinteger64.bas  # 8:1: not supported yet: statement `ReDim`
 upstream/arrays/08_whole_member_array_memops_numeric.bas  # 50:36: `Error` node without a parser diagnostic
-upstream/arrays/09_layout_and_mixed_members.bas  # 16:6: not supported yet: arrays
 upstream/arrays/09_redim_single.bas  # 8:1: not supported yet: statement `ReDim`
 upstream/arrays/10_redim_double.bas  # 8:1: not supported yet: statement `ReDim`
 upstream/arrays/11_redim_float.bas  # 8:1: not supported yet: statement `ReDim`
@@ -327,31 +300,23 @@ upstream/arrays/34_redim_preserve_instance_isolation.bas  # 8:1: not supported y
 upstream/arrays/35_redim_preserve_deep_nested.bas  # 16:1: not supported yet: statement `ReDim`
 upstream/arrays/36_redim_preserve_packed_bit_shrink_grow.bas  # 5:1: not supported yet: statement `ReDim`
 upstream/arrays/37_redim_retain_packed_bit_2d.bas  # 7:1: not supported yet: statement `ReDim`
-upstream/arrays/46_Mem_Parent.bas  # 7:11: not supported yet: arrays
-upstream/arrays/47_zero_fill_fixed_strings_erase_redim.bas  # 8:10: not supported yet: arrays
+upstream/arrays/47_zero_fill_fixed_strings_erase_redim.bas  # 8:29: not supported yet: fixed-length strings
 upstream/arrays/90_type_codegen_inline_varstrings.bas  # 10:1: not supported yet: statement `REDIM`
-upstream/arrays/91_type_codegen_nested_inline_owner.bas  # 16:8: not supported yet: arrays
 upstream/arrays/92_type_codegen_dynamic_varstrings.bas  # 10:1: not supported yet: statement `REDIM`
 upstream/arrays/93_type_codegen_dynamic_owner_udt.bas  # 15:1: not supported yet: statement `REDIM`
 upstream/arrays/94_type_codegen_inline_descriptor_udt.bas  # 15:1: not supported yet: statement `REDIM`
-upstream/arrays/95_type_codegen_clear_inline_owner.bas  # 9:10: not supported yet: arrays
-upstream/arrays/ArrayCopyTest.bas  # 4:6: not supported yet: arrays
-upstream/arrays/ArrayCopyTest_1.bas  # 11:7: not supported yet: arrays
-upstream/arrays/ArrayCopyTest_2.bas  # 30:16: not supported yet: arrays
-upstream/arrays/ArrayCopyTest_3.bas  # 17:13: not supported yet: arrays
+upstream/arrays/ArrayCopyTest.bas  # 27:9: not supported yet: `SYSTEM` with an exit code
+upstream/arrays/ArrayCopyTest_1.bas  # 12:1: not supported yet: statement `ReDim`
+upstream/arrays/ArrayCopyTest_2.bas  # 40:26: `Error` node without a parser diagnostic
+upstream/arrays/ArrayCopyTest_3.bas  # 50:1: not supported yet: statement `ReDim`
 upstream/arrays/Retain_Preserve.bas  # 20:30: not supported yet: fixed-length strings
-upstream/arrays/array_arg_dimensions_transitive.bas  # 11:8: not supported yet: arrays
+upstream/arrays/array_arg_dimensions_transitive.bas  # 18:17: not supported yet: array parameters
 upstream/arrays/comma_array_parameter.bas  # 2:13: not supported yet: array parameters
-upstream/arrays/datatype_coverage_strings_and_sizes.bas  # 18:6: not supported yet: arrays
 upstream/arrays/erase_dynamic_string_array_reuse.bas  # 7:1: not supported yet: statement `REDIM`
-upstream/arrays/multiple_arrays_same_type.bas  # 17:6: not supported yet: arrays
-upstream/arrays/nested_udt_array_of_udt_with_array.bas  # 17:6: not supported yet: arrays
-upstream/arrays/nonzero_bounds_negative.bas  # 12:6: not supported yet: arrays
-upstream/arrays/nonzero_bounds_positive.bas  # 13:6: not supported yet: arrays
 upstream/arrays/put_get_write_read_UDT_fixed_string.bas  # 13:1: not supported yet: statement `REDIM`
 upstream/arrays/put_get_write_read_fixed_string.bas  # 3:1: not supported yet: statement `REDIM`
 upstream/arrays/retain_test.bas  # 4:1: not supported yet: statement `REDIM`
-upstream/arrays/size.bas  # 7:6: not supported yet: arrays
+upstream/arrays/size.bas  # 9:1: not supported yet: statement `ReDim`
 upstream/arrays/t001_whole_array_core.bas  # 3:1: not supported yet: statement `DEFLNG`
 upstream/arrays/t002_whole_array_udt_ownership.bas  # 3:1: not supported yet: statement `DEFLNG`
 upstream/arrays/t003_whole_array_member_assign.bas  # 3:1: not supported yet: statement `DEFLNG`
@@ -422,37 +387,34 @@ upstream/arrays/t272_dynamic_static_array_assign_deepcopy.bas  # 12:1: not suppo
 upstream/arrays/t273_dynamic_static_option_base_1.bas  # 13:1: not supported yet: statement `REDIM`
 upstream/arrays/t274_nested_dynamic_static_owner.bas  # 17:1: not supported yet: statement `REDIM`
 upstream/arrays/t275_static_dynamic_member_erase_rebuild_heavy.bas  # 14:1: not supported yet: statement `REDIM`
-upstream/arrays/t276_static_dynamic_dim_parent_member_redim.bas  # 13:9: not supported yet: arrays
+upstream/arrays/t276_static_dynamic_dim_parent_member_redim.bas  # 24:1: not supported yet: statement `REDIM`
 upstream/arrays/t277_static_dynamic_parent_redim_reset_retain.bas  # 13:1: not supported yet: statement `REDIM`
 upstream/arrays/t278_nested_static_dynamic_copy_erase_rebuild.bas  # 17:1: not supported yet: statement `REDIM`
 upstream/arrays/t279_static_dynamic_2d_retain_parent_resize.bas  # 12:1: not supported yet: statement `REDIM`
 upstream/arrays/t280_static_dynamic_swap_erase_parent_reuse.bas  # 13:1: not supported yet: statement `REDIM`
 upstream/arrays/t281_static_dynamic_option_base1_heavy.bas  # 14:1: not supported yet: statement `REDIM`
-upstream/arrays/t659_array_assignment_control.bas  # 4:11: not supported yet: arrays
 upstream/arrays/t659_variable_boolean_expr.bas  # 4:8: not supported yet: word `LONG` (expected the end of the statement)
 upstream/arrays/t_qb64pe_refactor_inline_reset_owner_udt.bas  # 33:78: not supported yet: `SYSTEM` with an exit code
-upstream/arrays/t_qb64pe_refactor_inline_reset_strings.bas  # 10:12: not supported yet: arrays
+upstream/arrays/t_qb64pe_refactor_inline_reset_strings.bas  # 21:69: not supported yet: `SYSTEM` with an exit code
 upstream/arrays/t_qb64pe_refactor_preserve_inline_varstrings.bas  # 8:1: not supported yet: statement `ReDim`
 upstream/arrays/t_qb64pe_refactor_raw_redim_descriptor.bas  # 15:1: not supported yet: statement `ReDim`
 upstream/arrays/t_qb64pe_refactor_raw_redim_preserve.bas  # 7:1: not supported yet: statement `ReDim`
 upstream/arrays/t_qb64pe_refactor_retain_coordinate_payloads.bas  # 11:1: not supported yet: statement `ReDim`
 upstream/arrays/t_qb64pe_refactor_retain_descriptor_udt.bas  # 15:1: not supported yet: statement `ReDim`
 upstream/arrays/t_qb64pe_refactor_retain_nested_owner_array.bas  # 13:1: not supported yet: statement `ReDim`
-upstream/arrays/test_mem_vs_len.bas  # 8:11: not supported yet: arrays
-upstream/arrays/test_mem_vs_len_classic.bas  # 4:6: not supported yet: arrays
 upstream/arrays/type_dynamic_string_member_array_param.bas  # 15:1: not supported yet: statement `REDIM`
 upstream/arrays/type_dynamic_string_slot_32bit.bas  # 7:1: not supported yet: statement `ReDim`
 upstream/arrays/type_inline_nested_descriptor_preserve.bas  # 14:1: not supported yet: statement `ReDim`
 upstream/arrays/type_inline_nested_descriptor_retain.bas  # 14:1: not supported yet: statement `ReDim`
 upstream/arrays/type_member_arrays_as_parameters.bas  # 15:1: not supported yet: statement `ReDim`
-upstream/arrays/whole_member_array_ops_nonzero_bounds.bas  # 14:6: not supported yet: arrays
+upstream/arrays/whole_member_array_ops_nonzero_bounds.bas  # 48:33: `Error` node without a parser diagnostic
 upstream/audio_mem_test/sndopen_mem_test.bas  # 11:7: not supported yet: `PRINT USING`
 upstream/audio_out/test.bas  # 5:1: not supported yet: statement `PLAY`
 upstream/audio_sound_test/sound_test.bas  # 6:8: not supported yet: word `LONG` (expected the end of the statement)
-upstream/cast/cast_test.bas  # 20:6: not supported yet: arrays
-upstream/colors/color_with_dest.bas  # 5:9: not supported yet: arrays
+upstream/cast/cast_test.bas  # 33:23: not supported yet: word `_BYTE` (expected `,` or `)`)
+upstream/colors/color_with_dest.bas  # 30:25: `Error` node without a parser diagnostic
 upstream/console_only/audio_out.bas  # 3:1: not supported yet: statement `PLAY`
-upstream/const/math_funcs.bas  # 52:23: expected the end of the statement
+upstream/const/math_funcs.bas  # 52:23: not supported yet: operator `ROOT` (expected the end of the statement)
 upstream/filesystem/filesys_test.bas  # 77:1: not supported yet: `SYSTEM` with an exit code
 upstream/font/test.bas  # 87:20: `Error` node without a parser diagnostic
 upstream/func_tostr/double.bas  # 8:11: not supported yet: `PRINT USING`
@@ -461,12 +423,12 @@ upstream/func_tostr/single.bas  # 8:11: not supported yet: `PRINT USING`
 upstream/glut/mousecursor.bas  # 14:21: `Error` node without a parser diagnostic
 upstream/glut/windowsizelimit.bas  # 12:22: `Error` node without a parser diagnostic
 upstream/http/read_example.bas  # 11:9: `Error` node without a parser diagnostic
-upstream/iif/iif_test.bas  # 21:6: not supported yet: arrays
+upstream/iif/iif_test.bas  # 41:1: not supported yet: statement `WRITE`
 upstream/image/curico_test.bas  # 1:1: not supported yet: statement `DEFLNG`
 upstream/keyboard/devices_windows.bas  # 182:35: `Error` node without a parser diagnostic
 upstream/libz/test.bas  # 44:15: not supported yet: `PRINT USING`
 upstream/mem/mem_checking_off.bas  # 54:24: not supported yet: fixed-length strings
-upstream/offset/offset_test.bas  # 4:12: not supported yet: arrays
+upstream/offset/offset_test.bas  # 25:20: not supported yet: array parameters
 upstream/on_error/errtest.bas  # 39:31: expected the end of the statement
 upstream/opengl/test.bas  # 2:9: not supported yet: `STATIC` after a procedure header
 upstream/operators_test/op_exp.bas  # 5:8: not supported yet: word `LONG` (expected the end of the statement)
@@ -495,10 +457,9 @@ upstream/timer/timer_first_run.bas  # 3:1: not supported yet: `ON TIMER`
 upstream/timer/timer_stop.bas  # 3:1: not supported yet: `ON TIMER`
 upstream/types/all_types.bas  # 6:22: not supported yet: fixed-length strings
 upstream/types/dim.bas  # 6:18: not supported yet: fixed-length strings
-upstream/types/dim_array.bas  # 3:6: not supported yet: arrays
-upstream/types/nested_udt.bas  # 25:8: not supported yet: arrays
+upstream/types/dim_array.bas  # 6:21: not supported yet: fixed-length strings
 upstream/types/static.bas  # 11:25: not supported yet: fixed-length strings
-upstream/types/static_array.bas  # 8:13: not supported yet: arrays
-upstream/types/udt_array.bas  # 8:7: not supported yet: arrays
+upstream/types/static_array.bas  # 11:28: not supported yet: fixed-length strings
+upstream/types/udt_array.bas  # 18:1: not supported yet: statement `ReDim`
 upstream/view/window_view_mandelbrot.bas  # 1:1: not supported yet: statement `DEFLNG`
 upstream/view/window_view_screen_line.bas  # 15:5: `Error` node without a parser diagnostic

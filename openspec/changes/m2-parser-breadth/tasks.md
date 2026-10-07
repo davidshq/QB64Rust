@@ -135,7 +135,9 @@ through to C++ as its own OpenSpec change, with the IR review after it. Groups 7
   55 `$IF` files leave `known_parse_gaps.list` where nothing else is missing.
 - [ ] 7.2 Declarations (`decl.rs`): every `DIM`/`REDIM` form, `DEFxxx`, `_DEFINE`, `COMMON`, `ERASE`,
   `SUB … STATIC`, array parameters. `sema` marks what it does not compile. `CONST` and `OPTION` are parsed and
-  compiled by `m2-control-flow-slice` (its design D2), not here.
+  compiled by `m2-control-flow-slice` (its design D2), not here; array bounds in `DIM`, `DIM SHARED`, `STATIC` and
+  `SHARED` items (`DimItem::bounds`) by `m2-arrays-and-types` (its design D2), not here. `REDIM` and array
+  parameters stay here.
 - [ ] 7.3 Control transfer (`flow.rs`): `GOTO`, `GOSUB`, `RETURN`, `ON … GOTO/GOSUB`, event `ON …` forms, `STOP`.
 - [ ] 7.4 I/O statements (`io.rs`) and assignment forms (`assign.rs`), D5 list.
 - [ ] 7.5 `specialformat` templates: grammar values in `builtins` (build-time parse, tests over all 172), `syntax ->

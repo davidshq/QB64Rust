@@ -24,7 +24,7 @@ Its user-facing tooling (`vscode-qb64fresh`, see `study\11`) is the most reusabl
 repo's studies began) reports a five-reviewer assessment of QB64Fresh. Its main results: output matched QB64pe on
 22 of 331 expected-output tests (6.6 %); tests are shallow; typed IR is name-based; the bootstrap claim is
 unconfirmed. Its recommendation was to keep QB64Fresh's front end, freeze the rest, and **not** start a new rewrite
-from an empty repository. This project then decided on a ground-up rewrite (`CLAUDE.md`, 2026-10-02) without
+from an empty repository. This project then decided on a ground-up rewrite (`DECISIONS.md`, 2026-10-02) without
 referring to it. This review checks that document's key claims independently and answers the question for this
 project's architecture (`study\07` R5–R12), which differs from what that document assumed.
 
@@ -195,7 +195,7 @@ care which server it starts.
 5. **At M2**, read QB64Fresh's LSP (`position.rs`, `incremental.rs`, tests) before writing ours; copy small
    pieces only with their tests.
 6. **Reconcile the two decisions explicitly.** `rewrite-decision.md` advised against "a new rewrite from an empty
-   repository"; `CLAUDE.md` records a ground-up rewrite. This review supports the ground-up rewrite *given*
+   repository"; `DECISIONS.md` records a ground-up rewrite. This review supports the ground-up rewrite *given*
    `study\07`'s architecture, but the user should confirm that the earlier advice was considered.
 
 ## Addendum: branch `broken` (checked 2026-10-02)
@@ -208,7 +208,7 @@ none of it):
 | Content | Assessment |
 |---|---|
 | Splits of `expr.rs`, `stmt\mod.rs`, `semantic\builtins.rs` into submodules; `src\compiler_api.rs` facade (347 lines); runtime tweaks for the QB64pe IDE | Structure only. The IR stays name-based and the `qb64pe.bas` special cases remain (`rewrite-decision.md` §2.7 agrees). Built it: the probes (`PRINT 1 / 3` → `0` etc.) and all 14 `verification\` programs give **byte-identical results** to `fixing-reapply`. No behavioural progress. |
-| `ide_layers\` (layer0–2g): step-by-step C and BASIC repros for running the QB64pe IDE under QB64Fresh | Tied to QB64Fresh's runtime; the IDE is not ported here (`CLAUDE.md`). Commits **23 Linux executables of ~25 MB each (~575 MB)** to git. Leave. |
+| `ide_layers\` (layer0–2g): step-by-step C and BASIC repros for running the QB64pe IDE under QB64Fresh | Tied to QB64Fresh's runtime; the IDE is not ported here (`DECISIONS.md`). Commits **23 Linux executables of ~25 MB each (~575 MB)** to git. Leave. |
 | `tests\ide_equivalence\` (GUI automation via PyMCPAutoGUI) | Leave; same reason. |
 | `docs\CODEBASE_EVALUATION_AND_LESSONS_LEARNED.md`, `STRATEGIC_GUIDANCE_MULTI_PERSPECTIVE_REVIEW.md` | Self-assessment. Calls the architecture "sound" and repeats "99.1 %" — both contradicted by Sessions 1–2. It misses the main lesson (no oracle) but has sound process lessons, listed below. |
 | `docs\reference\TYPED_IR_CONTRACT.md`, `BYREF_BYVAL_CONTRACT.md` | Describe QB64Fresh's own structs; no QB64pe facts. The *idea* — a written contract per phase boundary, listing every variant and invariant — is worth copying for our typed IR at M2/M3. |
@@ -224,7 +224,7 @@ Process lessons from the self-assessment that apply here (added to Session 5's l
 5. **Expose one compiler API** (parse only / parse + check / generate) that the LSP, formatter and tests use, so
    tools never reach into internals.
 6. **One diagnostic type across phases** (span with file id, severity, phase), which our "new error messages"
-   decision (`CLAUDE.md`) needs anyway.
+   decision (`DECISIONS.md`) needs anyway.
 7. **Keep dispatchers thin from the start**; add a module per statement family instead of growing one file.
 8. **Refactor in small, verified steps**: build and test after each file.
 9. **Keep IDE- or tool-specific behaviour out of the runtime.**

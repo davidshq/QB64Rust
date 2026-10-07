@@ -1,0 +1,6 @@
+ 0  12  23 
+m(3, 0):handler 9 
+m(0, 4):handler 9 
+m(1, 4) (flat index in range):handler 9 
+c(1, 0, 1): 5  0 
+exit=0

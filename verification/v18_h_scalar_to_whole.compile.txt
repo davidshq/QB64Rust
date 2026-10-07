@@ -1,0 +1,5 @@
+
+Expected = similar user defined type
+Caused by (or after):P = 5
+LINE 7:p = 5
+exit=1

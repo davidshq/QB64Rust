@@ -335,7 +335,7 @@ the new project, pin a version and verify a hash, or the C++ side of builds will
 
 ## Decisions for the user
 
-*All five answered on 2026-10-02; see the decision table in `CLAUDE.md`.*
+*All five answered on 2026-10-02; see the decision table in `DECISIONS.md`.*
 
 1. **Are the fork features yours?** (TYPE member arrays, `REDIM _RETAIN`, `_ARRAYCOPY`, whole-array assignment,
    `$USELIBRARY`, `$ERRORLOCATION`, GLFW runtime.) If yes, they are requirements. If not, the upstream diff in M0

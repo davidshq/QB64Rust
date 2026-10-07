@@ -35,6 +35,20 @@ fn implicit_variables() {
     insta::assert_snapshot!(dump_symbols(&p, &map));
 }
 
+/// An array and a `TYPE` variable (m2-arrays-and-types task 4.2): an element's or a member's use is a reference
+/// of its variable, at the name; a dotted plain name is a variable of its own.
+#[test]
+fn arrays_and_members() {
+    let src =
+        b"$CONSOLE:ONLY\nTYPE t\nm AS LONG\nEND TYPE\nDIM a(3) AS t, p AS t\na(1).m = p.m\nPRINT LBOUND(a)\nq.r = 1\n";
+    let (map, p) = check_source(src);
+    insta::assert_snapshot!(dump_symbols(&p, &map), @r"
+    Var A() : T def 5:5 refs 6:1 7:14
+    Var P : T def 5:16 refs 6:10
+    Var Q.R : SINGLE def 8:1
+    ");
+}
+
 /// A statement with an error records nothing; the name's first clean use defines it.
 #[test]
 fn statement_with_an_error_records_nothing() {

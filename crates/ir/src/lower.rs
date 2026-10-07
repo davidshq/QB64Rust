@@ -16,8 +16,8 @@
 //! [`OnError::Skip`] branches.
 
 use crate::{
-    Arg, Body, Const, Conv, Label, LabelId, OnError, Op, PrintItem, Proc, ProcId, ProcKind, Program, Resume, Stmt,
-    Storage, Ty, Value, ValueKind, Var, VarId, When,
+    Body, Conv, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId, ProcKind, Program, Resume,
+    Stmt, Storage, Ty, Var, VarId, When,
 };
 use qb64rust_base::{Span, to_u32};
 use qb64rust_sema as sema;
@@ -33,6 +33,7 @@ pub fn lower(p: &sema::Program) -> Program {
             name: v.name.clone(),
             ty: v.ty,
             storage: storage(v.storage),
+            dims: v.dims.clone(),
         })
         .collect();
     // The main module first, so the temporaries are numbered in source order as far as possible.
@@ -54,7 +55,18 @@ pub fn lower(p: &sema::Program) -> Program {
             end_line: q.end_line,
         });
     }
-    Program { vars, procs, main }
+    let program = Program {
+        vars,
+        procs,
+        main,
+        types: p.types.clone(),
+    };
+    if cfg!(debug_assertions)
+        && let Err(problems) = crate::validate(&program)
+    {
+        panic!("the lowering made an invalid IR:\n{}", problems.join("\n"));
+    }
+    program
 }
 
 /// The lowering of one body.
@@ -105,10 +117,6 @@ impl<'a> Lowerer<'a> {
 
     fn body(mut self, stmts: &[sema::Stmt]) -> Body {
         self.stmts_of(stmts);
-        debug_assert!(
-            self.labels.iter().all(|l| l.at <= self.stmts.len()),
-            "a label never placed"
-        );
         Body {
             labels: self.labels,
             stmts: self.stmts,
@@ -209,17 +217,17 @@ impl<'a> Lowerer<'a> {
                 sema::Resume::Next => Resume::Next,
                 sema::Resume::To(l) => Resume::To(self.ids.get(*l)),
             }),
-            sema::StmtKind::Error(code) => Op::Raise(value_of(code)),
-            sema::StmtKind::Assign { var, value } => Op::Assign {
-                place: VarId(var.0),
-                value: value_of(value),
+            sema::StmtKind::Error(code) => Op::Raise(code.clone()),
+            sema::StmtKind::Assign { place, value } => Op::Assign {
+                place: place.clone(),
+                value: value.clone(),
             },
             sema::StmtKind::Print { items, newline } => Op::Print {
                 items: items
                     .iter()
                     .map(|i| match i {
-                        sema::PrintItem::Str(e) => PrintItem::Str(value_of(e)),
-                        sema::PrintItem::Num(e) => PrintItem::Num(value_of(e)),
+                        sema::PrintItem::Str(e) => PrintItem::Str(e.clone()),
+                        sema::PrintItem::Num(e) => PrintItem::Num(e.clone()),
                         sema::PrintItem::Zone => PrintItem::Zone,
                     })
                     .collect(),
@@ -227,7 +235,7 @@ impl<'a> Lowerer<'a> {
             },
             sema::StmtKind::Call { proc, args } => Op::Call {
                 proc: ProcId(proc.0),
-                args: args_of(args),
+                args: args.clone(),
             },
         };
         self.emit(s.span, s.line, vec![op]);
@@ -248,7 +256,7 @@ impl<'a> Lowerer<'a> {
             };
             let on_error = if k == 0 { OnError::Skip } else { OnError::UseValue };
             let branch = Op::Branch {
-                cond: value_of(&b.cond),
+                cond: b.cond.clone(),
                 when: When::Zero,
                 to: next,
                 on_error,
@@ -283,7 +291,7 @@ impl<'a> Lowerer<'a> {
         let leave = |t: &sema::LoopTest| if t.until { When::NonZero } else { When::Zero };
         if let Some(t) = test.filter(|t| t.at == sema::TestAt::Top) {
             let branch = Op::Branch {
-                cond: value_of(&t.cond),
+                cond: t.cond.clone(),
                 when: leave(t),
                 to: exit,
                 on_error: OnError::Skip,
@@ -296,7 +304,7 @@ impl<'a> Lowerer<'a> {
         let back = match test.filter(|t| t.at == sema::TestAt::Bottom) {
             // `LOOP WHILE c` goes back when `c` is not zero, `LOOP UNTIL c` when it is.
             Some(t) => Op::Branch {
-                cond: value_of(&t.cond),
+                cond: t.cond.clone(),
                 when: if t.until { When::Zero } else { When::NonZero },
                 to: top,
                 on_error: OnError::Skip,
@@ -332,16 +340,21 @@ impl<'a> Lowerer<'a> {
         let neg = self.temp(format!("for{n}.negative"), Ty::I32);
         let var_ty = self.vars[f.var.0 as usize].ty;
 
+        // The made values carry the `FOR` statement's span.
+        let m = Make(s.span);
         let step = match f.step {
-            Some(e) => value_of(e),
-            None => number(1, f.temp),
+            Some(e) => e.clone(),
+            None => m.number(1, f.temp),
         };
         let header = vec![
             Op::AssignAll(vec![
-                (t, value_of(f.start)),
-                (lim, value_of(f.end)),
+                (t, f.start.clone()),
+                (lim, f.end.clone()),
                 (st, step),
-                (neg, binary(BinOp::Lt, Ty::I32, var(st, f.temp), number(0, f.temp))),
+                (
+                    neg,
+                    m.binary(BinOp::Lt, Ty::I32, m.var(st, f.temp), m.number(0, f.temp)),
+                ),
             ]),
             Op::Jump(entry),
         ];
@@ -353,33 +366,33 @@ impl<'a> Lowerer<'a> {
         self.exits.pop();
 
         // The step is added to the variable's current value (measured: `k = k + 1` in the body counts on from it).
-        let current = convert(var(f.var, var_ty), f.temp);
+        let current = m.convert(m.var(f.var, var_ty), f.temp);
         let next = Op::Assign {
-            place: t,
-            value: binary(BinOp::Add, f.temp, var(st, f.temp), current),
+            place: Place::Var(t),
+            value: m.binary(BinOp::Add, f.temp, m.var(st, f.temp), current),
         };
         self.emit(s.span, end_line, vec![next]);
 
         self.place(entry);
         let store = Op::Assign {
-            place: f.var,
-            value: convert(var(t, f.temp), var_ty),
+            place: Place::Var(f.var),
+            value: m.convert(m.var(t, f.temp), var_ty),
         };
-        let neg_v = || var(neg, Ty::I32);
-        let below = binary(BinOp::Lt, Ty::I32, var(t, f.temp), var(lim, f.temp));
-        let above = binary(BinOp::Gt, Ty::I32, var(t, f.temp), var(lim, f.temp));
-        let not_neg = Value {
-            ty: Ty::I32,
-            kind: ValueKind::Unary {
+        let neg_v = || m.var(neg, Ty::I32);
+        let below = m.binary(BinOp::Lt, Ty::I32, m.var(t, f.temp), m.var(lim, f.temp));
+        let above = m.binary(BinOp::Gt, Ty::I32, m.var(t, f.temp), m.var(lim, f.temp));
+        let not_neg = m.expr(
+            Ty::I32,
+            ExprKind::Unary {
                 op: UnOp::Not,
                 operand: Box::new(neg_v()),
             },
-        };
-        let past = binary(
+        );
+        let past = m.binary(
             BinOp::Or,
             Ty::I32,
-            binary(BinOp::And, Ty::I32, neg_v(), below),
-            binary(BinOp::And, Ty::I32, not_neg, above),
+            m.binary(BinOp::And, Ty::I32, neg_v(), below),
+            m.binary(BinOp::And, Ty::I32, not_neg, above),
         );
         let test = Op::Branch {
             cond: past,
@@ -397,6 +410,7 @@ impl<'a> Lowerer<'a> {
             name,
             ty,
             storage: Storage::Temp(self.owner.map(|q| ProcId(q.0))),
+            dims: Vec::new(),
         });
         VarId(to_u32(self.vars.len() - 1))
     }
@@ -412,51 +426,54 @@ struct ForParts<'e> {
     step: Option<&'e sema::Expr>,
 }
 
-fn var(id: VarId, ty: Ty) -> Value {
-    Value {
-        ty,
-        kind: ValueKind::Var(id),
-    }
-}
+/// Makes the values of a lowered statement, all with its span (`qb` is the type: the emitter does not read it).
+struct Make(Span);
 
-/// A whole number of a numeric type.
-fn number(n: i64, ty: Ty) -> Value {
-    let c = if ty.is_float() {
-        Const::Float(n.to_string())
-    } else {
-        Const::Int(n)
-    };
-    Value {
-        ty,
-        kind: ValueKind::Const(c),
+impl Make {
+    fn expr(&self, ty: Ty, kind: ExprKind) -> Expr {
+        Expr {
+            span: self.0,
+            ty,
+            qb: ty,
+            kind,
+        }
     }
-}
 
-fn binary(op: BinOp, ty: Ty, lhs: Value, rhs: Value) -> Value {
-    Value {
-        ty,
-        kind: ValueKind::Binary {
+    fn var(&self, id: VarId, ty: Ty) -> Expr {
+        self.expr(ty, ExprKind::Load(Place::Var(id)))
+    }
+
+    /// A whole number of a numeric type.
+    fn number(&self, n: i64, ty: Ty) -> Expr {
+        let kind = if ty.is_float() {
+            ExprKind::Float(n.to_string())
+        } else {
+            ExprKind::Int(n)
+        };
+        self.expr(ty, kind)
+    }
+
+    fn binary(&self, op: BinOp, ty: Ty, lhs: Expr, rhs: Expr) -> Expr {
+        let kind = ExprKind::Binary {
             op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
-        },
+        };
+        self.expr(ty, kind)
     }
-}
 
-/// Between a `FOR` variable's type and the type its loop counts in: wider (exact), or back (an integer keeps its
-/// low bits, measured: `FOR i% = 32760 TO 32767 STEP 4` ends with -32768; a float rounds to nearest).
-fn convert(v: Value, to: Ty) -> Value {
-    if v.ty == to {
-        return v;
-    }
-    let how = match (v.ty.is_int(), to > v.ty) {
-        (_, true) => Conv::Widen,
-        (true, false) => Conv::Truncate,
-        (false, false) => Conv::Nearest,
-    };
-    Value {
-        ty: to,
-        kind: ValueKind::Convert { how, from: Box::new(v) },
+    /// Between a `FOR` variable's type and the type its loop counts in: wider (exact), or back (an integer keeps
+    /// its low bits, measured: `FOR i% = 32760 TO 32767 STEP 4` ends with -32768; a float rounds to nearest).
+    fn convert(&self, v: Expr, to: Ty) -> Expr {
+        if v.ty == to {
+            return v;
+        }
+        let how = match (v.ty.is_int(), to > v.ty) {
+            (_, true) => Conv::Widen,
+            (true, false) => Conv::Truncate,
+            (false, false) => Conv::Nearest,
+        };
+        self.expr(to, ExprKind::Convert { how, from: Box::new(v) })
     }
 }
 
@@ -492,50 +509,4 @@ impl LabelIds {
     fn get(&self, l: sema::LabelId) -> LabelId {
         self.0[l.0 as usize]
     }
-}
-
-fn args_of(args: &[sema::Arg]) -> Vec<Arg> {
-    args.iter()
-        .map(|a| match a {
-            sema::Arg::Ref(v) => Arg::Ref(VarId(v.0)),
-            sema::Arg::Temp(e) => Arg::Temp(value_of(e)),
-        })
-        .collect()
-}
-
-fn value_of(e: &sema::Expr) -> Value {
-    let kind = match &e.kind {
-        sema::ExprKind::Int(v) => ValueKind::Const(Const::Int(*v)),
-        sema::ExprKind::Float(t) => ValueKind::Const(Const::Float(t.clone())),
-        sema::ExprKind::Str(s) => ValueKind::Const(Const::Str(s.clone())),
-        sema::ExprKind::Var(id) => ValueKind::Var(VarId(id.0)),
-        sema::ExprKind::Convert { how, from } => ValueKind::Convert {
-            how: *how,
-            from: Box::new(value_of(from)),
-        },
-        sema::ExprKind::Binary { op, lhs, rhs } => ValueKind::Binary {
-            op: *op,
-            lhs: Box::new(value_of(lhs)),
-            rhs: Box::new(value_of(rhs)),
-        },
-        sema::ExprKind::Unary { op, operand } => ValueKind::Unary {
-            op: *op,
-            operand: Box::new(value_of(operand)),
-        },
-        sema::ExprKind::Concat(a, b) => ValueKind::Concat(Box::new(value_of(a)), Box::new(value_of(b))),
-        sema::ExprKind::StrCompare { op, lhs, rhs } => ValueKind::StrCompare {
-            op: *op,
-            lhs: Box::new(value_of(lhs)),
-            rhs: Box::new(value_of(rhs)),
-        },
-        sema::ExprKind::Call { builtin, args } => ValueKind::CallBuiltin {
-            id: *builtin,
-            args: args.iter().map(|a| a.as_ref().map(value_of)).collect(),
-        },
-        sema::ExprKind::CallProc { proc, args } => ValueKind::CallProc {
-            proc: ProcId(proc.0),
-            args: args_of(args),
-        },
-    };
-    Value { ty: e.ty, kind }
 }

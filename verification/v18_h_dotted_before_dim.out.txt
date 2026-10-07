@@ -1,0 +1,4 @@
+before DIM: 3 
+after DIM: 0 
+after a.b = 5: 5 
+exit=0

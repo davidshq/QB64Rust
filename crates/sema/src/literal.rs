@@ -184,7 +184,7 @@ pub fn range(ty: Ty) -> (i128, i128) {
         Ty::I16 => (i16::MIN as i128, i16::MAX as i128),
         Ty::I32 => (i32::MIN as i128, i32::MAX as i128),
         Ty::I64 => (i64::MIN as i128, i64::MAX as i128),
-        Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => unreachable!("range of {ty:?}"),
+        Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::User(_) => unreachable!("range of {ty:?}"),
     }
 }
 
@@ -218,7 +218,7 @@ fn radix(text: &[u8]) -> Result<NumLit, LitError> {
         Ty::I16 => 16,
         Ty::I32 => 32,
         Ty::I64 => 64,
-        Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => unreachable!("radix literal of {ty:?}"),
+        Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::User(_) => unreachable!("radix literal of {ty:?}"),
     };
     if bits < 64 && value >> bits != 0 {
         return Err(LitError::Overflow);

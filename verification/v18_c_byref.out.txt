@@ -1,0 +1,27 @@
+in bump 10 
+bump x(3): 11 
+in bump 10 
+bump (x(3)): 10 
+in bump 10 
+CALL bump(x(3)): 11 
+handler 9 
+bump x(9): 50  11 
+in bump 20 
+bump u.m: 21 
+in bump 30 
+bump a(2).m: 31 
+handler 9 
+bump a(9).m: 40 
+handler 9 
+after two x(9), ASC(empty)
+handler 5 
+after two ASC(empty), x(9)
+handler 9 
+after two a(9).m, ASC(empty)
+handler 5 
+after two ASC(empty), a(9).m
+swapper x(1), x(2): 2  1 
+in bump 7 
+bump v&: 8 
+f(x(3)): 22  22 
+exit=0

@@ -1,6 +1,6 @@
 //! `--dump typed`: one node per line, indented, with its type (FreeBASIC lesson L8: assertions on types).
 
-use crate::{Arg, Expr, ExprKind, PrintItem, ProcKind, Program, Resume, Stmt, StmtKind, Storage, Ty, VarId};
+use crate::{Arg, Expr, ExprKind, Place, PrintItem, ProcKind, Program, Resume, Stmt, StmtKind, Storage, Ty, VarId};
 use qb64rust_base::show_bytes;
 use std::fmt::Write as _;
 
@@ -8,11 +8,23 @@ use std::fmt::Write as _;
 /// statements. Variables other than main-module ones are shown with their storage (`A (param)`).
 pub fn dump_typed(p: &Program) -> String {
     let mut out = String::new();
+    // The user types and the arrays first, when there are any.
+    for t in &p.types {
+        writeln!(out, "TYPE {}", t.name).unwrap();
+        for m in &t.members {
+            writeln!(out, "  {}:{}", m.name, ty(p, m.ty)).unwrap();
+        }
+    }
+    for (i, v) in p.vars.iter().enumerate().filter(|(_, v)| v.is_array()) {
+        let dims: Vec<String> = v.dims.iter().map(|(l, u)| format!("{l} TO {u}")).collect();
+        let name = var_name(p, VarId(qb64rust_base::to_u32(i)));
+        writeln!(out, "ARRAY {name}:{}({})", ty(p, v.ty), dims.join(", ")).unwrap();
+    }
     stmts(p, &p.stmts, 0, &mut out);
     for (i, proc) in p.procs.iter().enumerate() {
         match proc.kind {
             ProcKind::Sub => writeln!(out, "SUB {}", proc.name).unwrap(),
-            ProcKind::Function(t) => writeln!(out, "FUNCTION {} : {}", proc.name, ty(t)).unwrap(),
+            ProcKind::Function(t) => writeln!(out, "FUNCTION {} : {}", proc.name, ty(p, t)).unwrap(),
         }
         for v in &p.vars {
             let class = match v.storage {
@@ -25,7 +37,7 @@ pub fn dump_typed(p: &Program) -> String {
                     continue;
                 }
             };
-            writeln!(out, "  {class} {}:{}", v.name, ty(v.ty)).unwrap();
+            writeln!(out, "  {class} {}:{}", v.name, ty(p, v.ty)).unwrap();
         }
         stmts(p, &proc.stmts, 0, &mut out);
     }
@@ -45,11 +57,40 @@ fn var_name(p: &Program, id: VarId) -> String {
     format!("{} ({class})", v.name)
 }
 
+/// A place as text: `X`, `X(…)` for an element (its indexes are printed by [`indexes`]), `P.M` for a member.
+fn place_text(p: &Program, place: &Place) -> String {
+    match place {
+        Place::Var(v) => var_name(p, *v),
+        Place::Element { array, .. } => format!("{}(…)", var_name(p, *array)),
+        Place::Member { base, member } => {
+            let m = &p.member(p.place_ty(base), *member).name;
+            format!("{}.{m}", place_text(p, base))
+        }
+    }
+}
+
+/// The indexes of the elements on the way to a place, outermost first, each at `depth`.
+fn indexes(p: &Program, place: &Place, depth: usize, out: &mut String) {
+    match place {
+        Place::Var(_) => {}
+        Place::Element { index, .. } => {
+            for e in index {
+                expr(p, e, depth, out);
+            }
+        }
+        Place::Member { base, .. } => indexes(p, base, depth, out),
+    }
+}
+
 fn args(p: &Program, args: &[Arg], depth: usize, out: &mut String) {
     let pad = "  ".repeat(depth);
     for a in args {
         match a {
-            Arg::Ref(v) => writeln!(out, "{pad}ref {} : {}", var_name(p, *v), ty(p.var(*v).ty)).unwrap(),
+            Arg::Ref(place) => {
+                let t = ty(p, p.place_ty(place));
+                writeln!(out, "{pad}ref {} : {t}", place_text(p, place)).unwrap();
+                indexes(p, place, depth + 1, out);
+            }
             Arg::Temp(e) => {
                 writeln!(out, "{pad}temp").unwrap();
                 expr(p, e, depth + 1, out);
@@ -94,10 +135,17 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 line(out, &format!("Call {}", p.proc(*proc).name));
                 args(p, a, d + 1, out);
             }
-            StmtKind::Assign { var, value } => {
-                let v = p.var(*var);
-                line(out, &format!("Assign {}:{}", var_name(p, *var), ty(v.ty)));
-                expr(p, value, d + 1, out);
+            StmtKind::Assign { place, value } => {
+                let t = ty(p, p.place_ty(place));
+                line(out, &format!("Assign {}:{t}", place_text(p, place)));
+                if place.has_element() {
+                    heading(out, "Index");
+                    indexes(p, place, d + 2, out);
+                    heading(out, "Value");
+                    expr(p, value, d + 2, out);
+                } else {
+                    expr(p, value, d + 1, out);
+                }
             }
             StmtKind::Print { items, newline } => {
                 line(out, &format!("Print{}", if *newline { " newline" } else { "" }));
@@ -149,8 +197,8 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                     &format!(
                         "For {}:{} counting in {} (NEXT line {end_line})",
                         var_name(p, *var),
-                        ty(v.ty),
-                        ty(*temp)
+                        ty(p, v.ty),
+                        ty(p, *temp)
                     ),
                 );
                 heading(out, "From");
@@ -185,30 +233,47 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
     }
 }
 
-fn ty(t: Ty) -> &'static str {
+/// A type's short name; a user type by its name (`T:PT`).
+fn ty(p: &Program, t: Ty) -> String {
     match t {
-        Ty::I16 => "I16",
-        Ty::I32 => "I32",
-        Ty::I64 => "I64",
-        Ty::F32 => "F32",
-        Ty::F64 => "F64",
-        Ty::F80 => "F80",
-        Ty::Str => "Str",
+        Ty::I16 => "I16".into(),
+        Ty::I32 => "I32".into(),
+        Ty::I64 => "I64".into(),
+        Ty::F32 => "F32".into(),
+        Ty::F64 => "F64".into(),
+        Ty::F80 => "F80".into(),
+        Ty::Str => "Str".into(),
+        Ty::User(id) => format!("T:{}", p.user_type(id).name),
     }
 }
 
 fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
     let pad = "  ".repeat(depth);
     let types = if e.qb == e.ty {
-        ty(e.ty).to_string()
+        ty(p, e.ty)
     } else {
-        format!("{} (qb {})", ty(e.ty), ty(e.qb))
+        format!("{} (qb {})", ty(p, e.ty), ty(p, e.qb))
     };
     match &e.kind {
         ExprKind::Int(v) => writeln!(out, "{pad}Int {v} : {types}").unwrap(),
         ExprKind::Float(t) => writeln!(out, "{pad}Float {t} : {types}").unwrap(),
         ExprKind::Str(s) => writeln!(out, "{pad}Str \"{}\" : {types}", show_bytes(s)).unwrap(),
-        ExprKind::Var(id) => writeln!(out, "{pad}Var {} : {types}", var_name(p, *id)).unwrap(),
+        ExprKind::Load(Place::Var(id)) => writeln!(out, "{pad}Var {} : {types}", var_name(p, *id)).unwrap(),
+        ExprKind::Load(place @ Place::Element { .. }) => {
+            writeln!(out, "{pad}Element {} : {types}", place_text(p, place)).unwrap();
+            indexes(p, place, depth + 1, out);
+        }
+        ExprKind::Load(place @ Place::Member { .. }) => {
+            writeln!(out, "{pad}Member {} : {types}", place_text(p, place)).unwrap();
+            indexes(p, place, depth + 1, out);
+        }
+        ExprKind::Bound { upper, array, dim } => {
+            let word = if *upper { "UBound" } else { "LBound" };
+            writeln!(out, "{pad}{word} {} : {types}", var_name(p, *array)).unwrap();
+            if let Some(d) = dim {
+                expr(p, d, depth + 1, out);
+            }
+        }
         ExprKind::Convert { how, from } => {
             writeln!(out, "{pad}Convert {how:?} : {types}").unwrap();
             expr(p, from, depth + 1, out);

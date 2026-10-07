@@ -1,7 +1,7 @@
 //! `--dump ir`: the lowering-pair text of design D6.
 
 use crate::{
-    Arg, BinOp, Body, Const, LabelId, OnError, Op, PrintItem, ProcKind, Program, Resume, Storage, Ty, Value, ValueKind,
+    Arg, BinOp, Body, Expr, ExprKind, LabelId, OnError, Op, Place, PrintItem, ProcKind, Program, Resume, Storage, Ty,
     VarId, When,
 };
 use qb64rust_base::{show_bytes, to_u32};
@@ -18,7 +18,7 @@ pub fn dump(p: &Program) -> String {
                 out,
                 "Function {}:{} lines {}-{}",
                 proc.name,
-                ty(t),
+                ty(p, t),
                 proc.line,
                 proc.end_line
             )
@@ -41,7 +41,7 @@ pub fn dump(p: &Program) -> String {
                     continue;
                 }
             };
-            writeln!(out, "  {class} {}:{}", v.name, ty(v.ty)).unwrap();
+            writeln!(out, "  {class} {}:{}", v.name, ty(p, v.ty)).unwrap();
         }
         body(p, &proc.body, &mut out);
     }
@@ -98,12 +98,13 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 Op::AssignAll(stores) => {
                     writeln!(out, "  AssignAll").unwrap();
                     for (place, value) in stores {
-                        writeln!(out, "    {}:{:?} = {}", var(p, *place), p.var(*place).ty, val(p, value)).unwrap();
+                        let t = ty(p, p.var(*place).ty);
+                        writeln!(out, "    {}:{t} = {}", var(p, *place), val(p, value)).unwrap();
                     }
                 }
                 Op::Assign { place, value } => {
-                    let v = p.var(*place);
-                    writeln!(out, "  Assign {}:{:?} = {}", var(p, *place), v.ty, val(p, value)).unwrap();
+                    let t = ty(p, p.place_ty(place));
+                    writeln!(out, "  Assign {}:{t} = {}", place_text(p, place), val(p, value)).unwrap();
                 }
                 Op::Print { items, newline } => {
                     writeln!(out, "  Print console{}", if *newline { " newline" } else { "" }).unwrap();
@@ -132,8 +133,27 @@ fn label(b: &Body, l: LabelId) -> String {
     }
 }
 
-fn ty(t: Ty) -> String {
-    format!("{t:?}")
+/// A type as `Ty` prints it; a user type by its name (`T:PT`).
+fn ty(p: &Program, t: Ty) -> String {
+    match t {
+        Ty::User(id) => format!("T:{}", p.user_type(id).name),
+        Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => format!("{t:?}"),
+    }
+}
+
+/// A place: a variable as [`var`] shows it, `X(i, …)` for an element, `P.M` for a member.
+fn place_text(p: &Program, place: &Place) -> String {
+    match place {
+        Place::Var(v) => var(p, *v),
+        Place::Element { array, index } => {
+            let i: Vec<String> = index.iter().map(|v| val(p, v)).collect();
+            format!("{}({})", var(p, *array), i.join(", "))
+        }
+        Place::Member { base, member } => {
+            let m = &p.member(p.place_ty(base), *member).name;
+            format!("{}.{m}", place_text(p, base))
+        }
+    }
 }
 
 /// A variable's name, with its storage class unless it is global (`X(param)`).
@@ -153,30 +173,36 @@ fn var(p: &Program, id: VarId) -> String {
 fn args(p: &Program, args: &[Arg]) -> String {
     args.iter()
         .map(|a| match a {
-            Arg::Ref(v) => format!("Ref {}:{}", var(p, *v), ty(p.var(*v).ty)),
+            Arg::Ref(place) => format!("Ref {}:{}", place_text(p, place), ty(p, p.place_ty(place))),
             Arg::Temp(v) => format!("Temp({})", val(p, v)),
         })
         .collect::<Vec<_>>()
         .join(", ")
 }
 
-fn val(p: &Program, v: &Value) -> String {
+fn val(p: &Program, v: &Expr) -> String {
     match &v.kind {
-        ValueKind::Const(Const::Int(i)) => format!("Const {i}:{}", ty(v.ty)),
-        ValueKind::Const(Const::Float(t)) => format!("Const {t}:{}", ty(v.ty)),
-        ValueKind::Const(Const::Str(s)) => format!("Const \"{}\"", show_bytes(s)),
-        ValueKind::Var(id) => format!("Var {}:{}", var(p, *id), ty(v.ty)),
-        ValueKind::Convert { how, from } => format!("({} -> Convert {} {how:?})", val(p, from), ty(v.ty)),
-        ValueKind::Binary { op, lhs, rhs } => {
+        ExprKind::Int(i) => format!("Const {i}:{}", ty(p, v.ty)),
+        ExprKind::Float(t) => format!("Const {t}:{}", ty(p, v.ty)),
+        ExprKind::Str(s) => format!("Const \"{}\"", show_bytes(s)),
+        ExprKind::Load(Place::Var(id)) => format!("Var {}:{}", var(p, *id), ty(p, v.ty)),
+        ExprKind::Load(place) => format!("Load {}:{}", place_text(p, place), ty(p, v.ty)),
+        ExprKind::Bound { upper, array, dim } => {
+            let word = if *upper { "UBound" } else { "LBound" };
+            let d = dim.as_deref().map_or("1".to_string(), |d| val(p, d));
+            format!("{word} {}({d}):{}", var(p, *array), ty(p, v.ty))
+        }
+        ExprKind::Convert { how, from } => format!("({} -> Convert {} {how:?})", val(p, from), ty(p, v.ty)),
+        ExprKind::Binary { op, lhs, rhs } => {
             // Only `+`, `-` and `*` can overflow an integer type (and `\` of the smallest value by -1, unspecified).
             let wraps = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul) && v.ty <= Ty::I64;
             let wrap = if wraps { " wrap" } else { "" };
-            format!("{op:?}:{}({}, {}){wrap}", ty(v.ty), val(p, lhs), val(p, rhs))
+            format!("{op:?}:{}({}, {}){wrap}", ty(p, v.ty), val(p, lhs), val(p, rhs))
         }
-        ValueKind::Unary { op, operand } => format!("{op:?}:{}({})", ty(v.ty), val(p, operand)),
-        ValueKind::Concat(a, b) => format!("Concat({}, {})", val(p, a), val(p, b)),
-        ValueKind::StrCompare { op, lhs, rhs } => format!("StrCompare {op:?}({}, {})", val(p, lhs), val(p, rhs)),
-        ValueKind::CallBuiltin { id, args } => {
+        ExprKind::Unary { op, operand } => format!("{op:?}:{}({})", ty(p, v.ty), val(p, operand)),
+        ExprKind::Concat(a, b) => format!("Concat({}, {})", val(p, a), val(p, b)),
+        ExprKind::StrCompare { op, lhs, rhs } => format!("StrCompare {op:?}({}, {})", val(p, lhs), val(p, rhs)),
+        ExprKind::Call { builtin: id, args } => {
             let args: Vec<String> = args
                 .iter()
                 .map(|a| match a {
@@ -187,12 +213,12 @@ fn val(p: &Program, v: &Value) -> String {
             format!(
                 "CallBuiltin {}:{} [{}]",
                 id.get().name.to_ascii_uppercase(),
-                ty(v.ty),
+                ty(p, v.ty),
                 args.join(", ")
             )
         }
-        ValueKind::CallProc { proc, args: a } => {
-            format!("CallProc {}:{} [{}]", p.proc(*proc).name, ty(v.ty), args(p, a))
+        ExprKind::CallProc { proc, args: a } => {
+            format!("CallProc {}:{} [{}]", p.proc(*proc).name, ty(p, v.ty), args(p, a))
         }
     }
 }

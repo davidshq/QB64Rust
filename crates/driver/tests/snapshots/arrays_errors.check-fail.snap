@@ -1,0 +1,24 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+arrays_errors.bas:6:1: error: `x` has 1 dimension, not 2
+arrays_errors.bas:7:1: error: `y` has 2 dimensions, not 1
+arrays_errors.bas:8:3: error: an array index must be a number
+arrays_errors.bas:9:5: error: the static array `x` is already declared
+arrays_errors.bas:10:9: error: invalid bounds for `neg`: 0 TO -1
+arrays_errors.bas:11:14: error: invalid bounds for `rev`: 5 TO 1
+arrays_errors.bas:12:5: error: name already in use: `f`
+arrays_errors.bas:13:14: error: `LBOUND` takes the array's name without `()`
+arrays_errors.bas:14:6: error: expected `=`
+arrays_errors.bas:16:9: error: not supported yet: an array bound that is not constant (a dynamic array)
+arrays_errors.bas:17:1: error: not supported yet: `z(...)` (an array used without `DIM`, or no FUNCTION of this name)
+arrays_errors.bas:19:1: error: not supported yet: `x!(...)`: an array of another type, used without `DIM` (an implicit array)
+arrays_errors.bas:20:14: error: not supported yet: `LBOUND` of `scalar`, which is no array (an implicit array)
+arrays_errors.bas:21:1: error: not supported yet: the whole array `x()`
+arrays_errors.bas:22:1: error: not supported yet: statement `REDIM`
+arrays_errors.bas:23:8: error: not supported yet: `OPTION BASE`
+arrays_errors.bas:25:1: error: not supported yet: the plain scalar `c` beside an array typed by `DIM … AS`
+arrays_errors.bas:31:10: error: not supported yet: arrays in a SUB or FUNCTION
+arrays_errors.bas:32:13: error: not supported yet: arrays in a SUB or FUNCTION
+arrays_errors.bas:33:11: error: not supported yet: `x(...)` (an array used without `DIM`, or no FUNCTION of this name)

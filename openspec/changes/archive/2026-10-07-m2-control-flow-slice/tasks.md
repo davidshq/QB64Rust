@@ -256,7 +256,9 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
   (`source_ordering/goto_gosub`, `arrays/t659_explicit_call_control`, `arrays/t659_sub_call_comparisons`; 13
   joined over the change against 12 expected). The three shrink-only lists were already exact (regenerating
   changed nothing; the earlier tasks kept them current). Tier 2: corpus 113 of 113 and upstream 23 of 23, both also
-  with `QB64RUST_NO_FOLD=1`. Still open: CI `tier2` green after the push.
+  with `QB64RUST_NO_FOLD=1`. CI `tier2` closed 2026-10-07 by running the job's steps locally against the
+  `v4.7.0-GLFW` release, upstream programs from the `tests\upstream` copy: corpus 113 of 113 (235 s), upstream
+  23 of 23 (34 s).
 - [x] 8.2 Full corpus once with the release build: no crash, no wrong executable, every `.err` program rejected;
   record counts and time in `tests\corpus\README.md`. Measure tier-1 time and record it in `crates\README.md`
   (budget a minute). Verify: the numbers are in both files.
@@ -266,8 +268,15 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
 
 ## 9. Documents
 
-- [ ] 9.1 `crates\README.md` (what compiles now), `tests\upstream\README.md` ("x of 279"), `STATUS.md` (the change
+- [x] 9.1 `crates\README.md` (what compiles now), `tests\upstream\README.md` ("x of 279"), `STATUS.md` (the change
   done, next step the IR review, which leaves the place question open until arrays and `TYPE`), `DIVERGENCES.md` if 1.1 led to a decided divergence, `CLAUDE.md` decisions (the
   flat IR with jumps, `CONST` evaluator "keep"), `study\00` §6 (the `WHILE` header loop and `CONST` `^` listed for
   step 6). Verify: `python tools\repo_check\check_repo.py --untracked` clean; `openspec validate
   m2-control-flow-slice` passes.
+  Done 2026-10-07: `crates\README.md` lists `OPTION _EXPLICIT` and the control flow as supported, and only what is
+  still marked; `tests\upstream\README.md` already said 23 of 279 (8.1), a row for the lists added (43 false
+  errors, 72 only-marked, 500 parse gaps); `STATUS.md` and `ROADMAP.md` show the change done and the IR review
+  next; `DIVERGENCES.md` unchanged (1.1 led only to D-003, entered with 7.2); `CLAUDE.md` decision of 2026-10-07
+  (flat IR with jumps, `CONST` evaluator "keep"); `study\00` §6 already listed the `WHILE` loop and `CONST` `^` and
+  now points to step 7 (the order of `study\24` renumbered step 6), §2's M2 row and §13's gap updated. Repo check
+  clean (3,312 files), `openspec validate m2-control-flow-slice` valid.

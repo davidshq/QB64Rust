@@ -1,7 +1,7 @@
 //! Procedures: headers and parameters (pass 1), calls and their arguments, `EXIT SUB`/`FUNCTION`.
 
 use super::{Checker, Failed, R, Scope};
-use crate::{Arg, Expr, ExprKind, Proc, ProcId, ProcKind, StmtKind, Storage, SymbolKind, Ty};
+use crate::{Arg, Expr, ExprKind, Place, Proc, ProcId, ProcKind, StmtKind, Storage, SymbolKind, Ty};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::find_any;
 use qb64rust_syntax::ast;
@@ -106,6 +106,10 @@ impl Checker<'_> {
                 (None, None) => Ty::F32,
                 (None, Some(a)) => self.type_of(a)?,
             };
+            if let Ty::User(_) = ty {
+                // Measured: accepted (by reference, `v18_h_whole_arg`); whole `TYPE` values come later.
+                return Err(self.unsupported(param.node().span(), "a `TYPE` parameter"));
+            }
             self.reserved(name_tok, &name, suffix)?;
             if self.procs_by_name.contains_key(&name) || scope.vars.contains_key(&(name.clone(), ty)) {
                 return Err(self.in_use(name_tok));
@@ -195,29 +199,40 @@ impl Checker<'_> {
         let mut args = Vec::with_capacity(nodes.len());
         for (&node, param) in nodes.iter().zip(params) {
             let pty = self.prog.var(param).ty;
-            let e = self.expr(node)?;
+            self.whole_type_arg = true;
+            let e = self.expr(node);
+            self.whole_type_arg = false;
+            let e = e?;
             match (e.ty == Ty::Str, pty == Ty::Str) {
                 (true, false) => return Err(self.error(e.span, "a number is required for this parameter")),
                 (false, true) => return Err(self.error(e.span, "a string is required for this parameter")),
                 _ => {}
             }
-            // A number in parentheses, `(n)`, is a ParenExpr in the tree and passed as a copy; a string variable
-            // is passed by reference even in parentheses (measured, `s08_byref`: `addbang (s$)` changes `s$`).
-            let plain_name = matches!(node, ast::Expr::NameRef(_));
-            args.push(match e.kind {
-                ExprKind::Var(v) if e.ty == pty && (plain_name || pty == Ty::Str) => Arg::Ref(v),
-                ExprKind::Var(_)
-                | ExprKind::Int(_)
-                | ExprKind::Float(_)
-                | ExprKind::Str(_)
-                | ExprKind::Convert { .. }
-                | ExprKind::Binary { .. }
-                | ExprKind::Unary { .. }
-                | ExprKind::Concat(..)
-                | ExprKind::StrCompare { .. }
-                | ExprKind::Call { .. }
-                | ExprKind::CallProc { .. } => Arg::Temp(self.store(e, pty)?),
-            });
+            // A place of exactly the parameter's type is passed by reference: a variable, an element, a member
+            // (measured, `v18_c_byref`). In parentheses, `(n)`, it is a copy; a string variable is passed by reference
+            // even in parentheses (measured, `s08_byref`: `addbang (s$)` changes `s$`), a string element or member
+            // in parentheses was not measured.
+            let parenthesized = matches!(node, ast::Expr::Paren(_));
+            if let ExprKind::Load(place) = &e.kind
+                && e.ty == pty
+            {
+                match (parenthesized, place) {
+                    (false, _) => {
+                        args.push(Arg::Ref(place.clone()));
+                        continue;
+                    }
+                    (true, Place::Var(_)) if pty == Ty::Str => {
+                        args.push(Arg::Ref(place.clone()));
+                        continue;
+                    }
+                    (true, Place::Element { .. } | Place::Member { .. }) if pty == Ty::Str => {
+                        let msg = "a string element or member in parentheses as an argument";
+                        return Err(self.unsupported(e.span, msg));
+                    }
+                    (true, _) => {}
+                }
+            }
+            args.push(Arg::Temp(self.store(e, pty)?));
         }
         Ok(args)
     }
