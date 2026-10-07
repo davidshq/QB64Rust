@@ -188,15 +188,18 @@ fn no_clone_found() {
     assert!(!d.join("p.exe").exists());
 }
 
-/// `GOTO`, `GOSUB` and `RETURN` are checked by the front end (`--dump typed` succeeds) but are not supported yet by
-/// the IR, so `--dump ir` and a build stop with a marked error (`m2-control-flow-slice` task 5.1, until 6.2).
+/// `GOTO`, `GOSUB` and `RETURN` are checked by the front end (`--dump typed` succeeds) and lowered to the IR
+/// (`--dump ir` succeeds), but the C++ emitter does not write jumps yet, so `--dump cpp` and a build stop with a
+/// marked error (`m2-control-flow-slice` task 6.2, until 7.1).
 #[test]
-fn jumps_wait_for_the_ir() {
+fn jumps_wait_for_the_emitter() {
     let d = scratch("jumps");
     std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nGOTO a\na: SYSTEM\n").unwrap();
-    let o = qb64rust(&d, &["--dump", "typed", "p.bas"]);
-    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
-    for args in [&["--dump", "ir", "p.bas"][..], &["-z", "p.bas"][..]] {
+    for stage in ["typed", "ir"] {
+        let o = qb64rust(&d, &["--dump", stage, "p.bas"]);
+        assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    }
+    for args in [&["--dump", "cpp", "p.bas"][..], &["-z", "p.bas"][..]] {
         let o = qb64rust(&d, args);
         assert_eq!(o.status.code(), Some(1));
         let out = stdout(&o);

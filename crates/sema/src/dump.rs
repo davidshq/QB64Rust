@@ -115,10 +115,17 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                     }
                 }
             }
-            StmtKind::If { branches, else_ } => {
-                line(out, "If");
+            StmtKind::If {
+                branches,
+                else_,
+                end_line,
+            } => {
+                line(out, &format!("If (END IF line {end_line})"));
                 for (i, b) in branches.iter().enumerate() {
-                    heading(out, if i == 0 { "If" } else { "ElseIf" });
+                    heading(
+                        out,
+                        &format!("{} line {}", if i == 0 { "If" } else { "ElseIf" }, b.line),
+                    );
                     expr(p, &b.cond, d + 2, out);
                     stmts(p, &b.body, d + 2, out);
                 }

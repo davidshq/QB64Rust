@@ -197,14 +197,23 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
 
 ## 6. IR (D8)
 
-- [ ] 6.1 IR types: lowering labels, `Storage::Temp`, `Jump`, `Branch`, `AssignAll`, `Gosub`, `Return`; the
+- [x] 6.1 IR types: lowering labels, `Storage::Temp`, `Jump`, `Branch`, `AssignAll`, `Gosub`, `Return`; the
   module documentation states the pending-error rule of D8 with its check points (`PRINT` items, `Jump`, `Gosub`,
   `Branch` by `on_error`), corrected by 1.1 if the measurement disagrees; the IR dump shows them. Verify:
   `cargo test`;
   `cargo clippy` clean (no `_ =>` on the new enums).
-- [ ] 6.2 Lowering of every row of the D8 table, `ELSEIF` with the `on_error` value fixed by 1.1. Verify: `ir`
+  Done 2026-10-07 (D8 "As built"): `ir\src\lib.rs` (`When`, `OnError`, `Label::name` an `Option`, the rule with
+  procedure entry as a check point and the "next statement that runs" case of 1.1); the dump writes lowering
+  labels `@n`. `cargo test`, `cargo clippy --all-targets -D warnings` and `cargo fmt --check` clean.
+- [x] 6.2 Lowering of every row of the D8 table, `ELSEIF` with the `on_error` value fixed by 1.1. Verify: `ir`
   frontend snapshots per row, including a `GOTO` into a block, `NEXT j, i`, an `EXIT FOR` from inside an `IF`, and
   a `FOR` in a procedure (its temporaries are per call).
+  Done 2026-10-07 (D8 "As built"): `ir\src\lower.rs`; `ir` snapshots `tests\frontend\lower_if.bas`,
+  `lower_loops.bas`, `lower_for.bas` (also a raising limit), `lower_jumps_proc.bas`. The gate moved from the IR to
+  the emitter (`driver::check_backend(fe, to_cpp)`): `--dump ir` and the `ir` mode see every block, `--dump cpp`,
+  `-z` and builds still stop with "`…` in code generation" until 7.1 (CLI test renamed `jumps_wait_for_the_emitter`).
+  `sema` gained the `IF`/`ELSEIF` and `END IF` lines (typed snapshots `blocks_typed_if`, `blocks_typed_loops`,
+  `labels_in_blocks` show them). Lists unchanged; tier 2 75 of 75 and 20 of 20.
 
 ## 7. Emitter (D9)
 

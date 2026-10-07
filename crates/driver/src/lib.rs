@@ -72,14 +72,49 @@ pub fn frontend(name: &str, bytes: Vec<u8>) -> Frontend {
     }
 }
 
-/// Adds a "not supported yet" error for each statement the front end accepts but the IR cannot express yet
-/// ([`qb64rust_ir::not_lowered`]). Called before [`lower`], [`dump_ir`], [`emit`] and [`dump_cpp`], and only then:
-/// `--dump typed` and the language server see the front end's result alone.
-pub fn check_backend(fe: &mut Frontend) {
-    if !fe.has_errors() {
-        let gaps = qb64rust_ir::not_lowered(&fe.program);
+/// Adds a "not supported yet" error for each statement the front end accepts but the back end cannot handle yet.
+/// Called before [`lower`] and [`dump_ir`] (`to_cpp` false), or before [`emit`] and [`dump_cpp`] (`to_cpp` true),
+/// and only then: `--dump typed` and the language server see the front end's result alone. Everything lowers to
+/// the IR; the C++ emitter does not handle jumps yet ([`not_emitted`]).
+pub fn check_backend(fe: &mut Frontend, to_cpp: bool) {
+    if to_cpp && !fe.has_errors() {
+        let gaps = not_emitted(&fe.program);
         fe.diagnostics.extend(gaps);
     }
+}
+
+/// The statements whose IR the C++ emitter cannot write yet: those that lower to jumps, branches, `GOSUB`,
+/// `RETURN` or temporaries (task 7 of `m2-control-flow-slice`). Only the bodies' own statements are looked at: a
+/// block is reported as a whole.
+fn not_emitted(p: &Program) -> Diagnostics {
+    use qb64rust_sema::StmtKind;
+    let mut diags = Diagnostics::new();
+    for s in p.stmts.iter().chain(p.procs.iter().flat_map(|q| &q.stmts)) {
+        let what = match s.kind {
+            StmtKind::Goto(_) => "`GOTO`",
+            StmtKind::Gosub(_) => "`GOSUB`",
+            StmtKind::Return(_) => "`RETURN`",
+            StmtKind::If { .. } => "`IF`",
+            StmtKind::For { .. } => "`FOR`",
+            StmtKind::Do { .. } => "`DO`",
+            StmtKind::While { .. } => "`WHILE`",
+            // Only inside a loop, which is reported itself.
+            StmtKind::ExitLoop(_) => "`EXIT`",
+            StmtKind::ConsoleOnly
+            | StmtKind::Assign { .. }
+            | StmtKind::Print { .. }
+            | StmtKind::End
+            | StmtKind::System
+            | StmtKind::Call { .. }
+            | StmtKind::Exit
+            | StmtKind::OnError(_)
+            | StmtKind::Resume(_)
+            | StmtKind::Error(_)
+            | StmtKind::Label(_) => continue,
+        };
+        diags.unsupported(s.span, format!("{what} in code generation"));
+    }
+    diags
 }
 
 /// The IR of a checked program, after [`check_backend`] found nothing.

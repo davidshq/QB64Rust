@@ -65,8 +65,8 @@ line 13: For J:F32 counting in F64 (NEXT line 16)
         Convert Nearest : F64
           Int 3 : I16
       Body
-        line 15: If
-          If
+        line 15: If (END IF line 15)
+          If line 15
             Binary Eq : I32
               Var K : F32
               Convert Nearest : F32
@@ -135,8 +135,8 @@ line 24: While (WEND line 27)
         Var A : F32
         Convert Nearest : F32
           Int 1 : I16
-    line 26: If
-      If
+    line 26: If (END IF line 26)
+      If line 26
         Binary Eq : I32
           Var A : F32
           Convert Nearest : F32

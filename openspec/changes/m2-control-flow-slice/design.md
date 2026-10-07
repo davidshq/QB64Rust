@@ -345,6 +345,24 @@ raise unless their values can.
   the old program. Decided (user, 2026-10-06): the emitter guards the decrement (`if (!next_return_point)
   error(3); else next_return_point--;`), recorded as `DIVERGENCES.md` D-003 and pinned in task 7.2.
 
+**As built (6.1, 6.2):**
+- `Branch { cond, when: When, to, on_error: OnError }`; a lowering label has `name: None` and is written `@n` (its
+  index in the body) by `--dump ir`. A body's own labels come first, in source order, so the ids `sema` labels
+  get stay their indexes; the lowering's follow.
+- `FOR` uses four temporaries, not three: the step's sign is a fourth (`for<n>.negative`, LONG, stored by the
+  header's `AssignAll` as `st < 0`), as the 1.1 measurement asks; `past` is `(neg AND t < f) OR (NOT neg AND t >
+  f)`. The temporaries are named `for<n>.value`, `.limit`, `.step`, `.negative` (`n` counts the program's `FOR`
+  loops, main module first); the emitter gives them C names (7.1). There is no `Lnext` label (nothing jumps
+  there until `_CONTINUE`); the entry statement holds `v = t`, the `Branch` and `Jump(Lbody)`, none of which can
+  raise. `t = st + v` converts `v` to the count's type (`Widen`); `v = t` converts back with `Truncate` (integer,
+  measured wrap of `i%`) or `Nearest` (float).
+- Lines: a branch statement carries its `IF` or `ELSEIF` line (`sema::Branch::line`, added), the jumps to the end
+  of an `IF` its `END IF` line (`StmtKind::If::end_line`, added; a single-line `IF`'s own line), the bottom of a
+  loop its `NEXT`, `LOOP` or `WEND` line.
+- The gate moved: `ir::not_lowered` is gone, since everything lowers; the same check now sits before the C++
+  emitter (`driver::check_backend(fe, to_cpp)`, private `not_emitted`), so `--dump ir` shows the blocks and builds
+  stop until 7.1 and 7.2. The emitter treats the new operations and `Storage::Temp` as unreachable meanwhile.
+
 **Alternatives.** A structured IR (`If`, `Loop`, `For` nodes with nested bodies) mirrors the typed tree, which is
 exactly what the review questions (`study\20` §3.4), and it still needs jumps for `GOTO` into a block and a rule
 per node kind for header errors. A graph of basic blocks gives the most freedom for later optimisation, but

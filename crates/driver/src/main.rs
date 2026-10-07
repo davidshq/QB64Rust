@@ -161,7 +161,7 @@ fn run() -> Result<ExitCode, String> {
     }
     let mut fe = frontend(&name, bytes);
     if !matches!(o.dump.as_deref(), Some("tree" | "typed")) {
-        check_backend(&mut fe);
+        check_backend(&mut fe, o.dump.as_deref() != Some("ir"));
     }
     let errors = fe.diagnostics.error_count();
     let report = |fe: &qb64rust_driver::Frontend| {

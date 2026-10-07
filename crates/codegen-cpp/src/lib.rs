@@ -21,10 +21,15 @@
 
 use qb64rust_builtins::BuiltinId;
 use qb64rust_ir::{
-    Arg, BinOp, Body, Const, Conv, LabelId, Op, PrintItem, Proc, ProcKind, Program, Resume, Storage, Ty, UnOp, Value,
-    ValueKind, Var, VarId,
+    Arg, BinOp, Body, Const, Conv, Label, LabelId, Op, PrintItem, Proc, ProcKind, Program, Resume, Storage, Ty, UnOp,
+    Value, ValueKind, Var, VarId,
 };
 use std::fmt::Write as _;
+
+/// Why the emitter never meets jumps, branches, `GOSUB`, `RETURN` and temporaries yet: the driver stops the
+/// statements that lower to them before code generation (`driver::check_backend`, until task 7 of
+/// `m2-control-flow-slice`).
+const NOT_EMITTED: &str = "stopped before code generation by `driver::check_backend`";
 
 /// The version string `func__compvers` returns (measured from `qb64pe.exe` 4.7.0).
 pub const COMPILER_VERSION: &str = "QB64-PE v4.7.0-GLFW-UNKNOWN";
@@ -234,11 +239,20 @@ pub fn proc_name(proc: &Proc) -> String {
     format!("{prefix}_{}", c_ident(&proc.name))
 }
 
+/// `LABEL_<NAME>` of a user label.
+fn label_name(l: &Label) -> String {
+    match &l.name {
+        Some(name) => format!("LABEL_{}", c_ident(name)),
+        None => unreachable!("{NOT_EMITTED}"),
+    }
+}
+
 /// `__<TYPE>_<NAME>` for a global variable; `_<SUB_P>_<TYPE>_<NAME>` for any variable of procedure P.
 pub fn var_name(p: &Program, v: &Var) -> String {
     let scope = match v.storage {
         Storage::Global => String::new(),
         Storage::Static(q) | Storage::Local(q) | Storage::Param(q) | Storage::Result(q) => proc_name(p.proc(q)),
+        Storage::Temp(_) => unreachable!("{NOT_EMITTED}"),
     };
     format!("_{scope}_{}_{}", type_word(v.ty), c_ident(&v.name))
 }
@@ -316,7 +330,7 @@ struct Emitter<'a> {
 impl Emitter<'_> {
     /// `LABEL_<NAME>` of a main-module label.
     fn label_name(&self, l: LabelId) -> String {
-        format!("LABEL_{}", c_ident(&self.p.main.labels[l.0 as usize].name))
+        label_name(&self.p.main.labels[l.0 as usize])
     }
 
     /// The handler number of a label, assigned on first use.
@@ -342,6 +356,7 @@ impl Emitter<'_> {
             .filter(|v| match v.storage {
                 Storage::Global | Storage::Static(_) => true,
                 Storage::Local(_) | Storage::Param(_) | Storage::Result(_) => false,
+                Storage::Temp(_) => unreachable!("{NOT_EMITTED}"),
             })
             .map(|v| f(v, &var_name(self.p, v)))
             .collect()
@@ -409,6 +424,7 @@ impl Emitter<'_> {
         let mine = |s: Storage| match s {
             Storage::Local(q) | Storage::Result(q) => q.0 as usize == i,
             Storage::Global | Storage::Static(_) | Storage::Param(_) => false,
+            Storage::Temp(_) => unreachable!("{NOT_EMITTED}"),
         };
         // The result first, then locals in order of creation.
         let mut per_call: Vec<&Var> = proc.result.iter().map(|&r| self.p.var(r)).collect();
@@ -510,7 +526,7 @@ impl Emitter<'_> {
     fn labels(&self, b: &Body, at: usize, out: &mut String) {
         for l in b.labels.iter().filter(|l| l.at == at) {
             let lines = [
-                format!("LABEL_{}:;", c_ident(&l.name)),
+                format!("{}:;", label_name(l)),
                 format!("if(qbevent){{evnt({});r=0;}}", l.line),
             ];
             self.lines(l.line, &lines, out);
@@ -572,6 +588,9 @@ impl Emitter<'_> {
                 if strings {
                     out.push("qbs_cleanup(qbs_tmp_base,0);".into());
                 }
+            }
+            Op::Jump(_) | Op::Branch { .. } | Op::AssignAll(_) | Op::Gosub(_) | Op::Return(_) => {
+                unreachable!("{NOT_EMITTED}")
             }
             Op::Print { items, newline } => {
                 // The IR's raise rule for PRINT: a raising item skips the rest of the statement.

@@ -1,0 +1,64 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Label @0 line 7
+Stmt line 7
+  Branch Zero -> @1 Skip: Lt:I32(Var A:F32, (Const 2:I16 -> Convert F32 Nearest))
+Stmt line 8
+  Assign A:F32 = Add:F32(Var A:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 9
+  Branch Zero -> @2 Skip: Eq:I32(Var A:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 9
+  Jump @1
+Label @2 line 9
+Stmt line 10
+  Jump @0
+Label @1 line 10
+Label @3 line 11
+Stmt line 11
+  Branch Zero -> @4 Skip: Lt:I32(Var A:F32, (Const 3:I16 -> Convert F32 Nearest))
+Stmt line 11
+  Assign A:F32 = Add:F32(Var A:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 11
+  Jump @3
+Label @4 line 11
+Label @5 line 12
+Stmt line 12
+  Branch NonZero -> @6 Skip: Eq:I32(Var A:F32, (Const 0:I16 -> Convert F32 Nearest))
+Stmt line 12
+  Assign A:F32 = Sub:F32(Var A:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 12
+  Jump @5
+Label @6 line 12
+Label @7 line 13
+Stmt line 13
+  Assign A:F32 = Add:F32(Var A:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 13
+  Branch NonZero -> @7 Skip: Lt:I32(Var A:F32, (Const 3:I16 -> Convert F32 Nearest))
+Label @8 line 13
+Label @9 line 14
+Stmt line 14
+  Assign A:F32 = Sub:F32(Var A:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 14
+  Branch Zero -> @9 Skip: Eq:I32(Var A:F32, (Const 0:I16 -> Convert F32 Nearest))
+Label @10 line 14
+Label @11 line 15
+Label @13 line 16
+Stmt line 16
+  Branch Zero -> @14 Skip: Lt:I32(Var A:F32, (Const 5:I16 -> Convert F32 Nearest))
+Stmt line 17
+  Assign A:F32 = Add:F32(Var A:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 18
+  Jump @12
+Stmt line 19
+  Jump @13
+Label @14 line 19
+Stmt line 20
+  Jump @11
+Label @12 line 20
+Stmt line 21
+  Print console newline
+    Num Var A:F32

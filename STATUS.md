@@ -170,11 +170,11 @@ GitHub.
    its last green run).
 2. Done 2026-10-05: `m2-parser-breadth` groups 5 and 6 (member access, `DATA`, line numbers, blocks). The change
    pauses until step 5.
-3. **Now: `m2-control-flow-slice`, task 6.1** (`openspec\changes\m2-control-flow-slice\tasks.md`). Groups 1–5 are
+3. **Now: `m2-control-flow-slice`, task 7.1** (`openspec\changes\m2-control-flow-slice\tasks.md`). Groups 1–6 are
    done (measurements `v17_*`, slice programs `s13`–`s19`, the `check\` split, every operator through to C++,
-   `CONST` and `OPTION _EXPLICIT`, labels per body, blocks typed by `sema`; the blocks stop at the IR gate
-   `ir::not_lowered`). Left: 6 (IR with jumps), 7 (emitter), 8 (lists; up to 53 corpus and 12 upstream programs
-   expected to join), 9 (documents). Then the **IR review** (`study\20` §3.4): the jump and error model; "keep or
+   `CONST` and `OPTION _EXPLICIT`, labels per body, blocks typed by `sema`, the IR with jumps and every block
+   lowered; the blocks now stop at the emitter gate in `driver::check_backend`). Left: 7 (emitter), 8 (lists; up
+   to 53 corpus and 12 upstream programs expected to join), 9 (documents). Then the **IR review** (`study\20` §3.4): the jump and error model; "keep or
    merge" stays provisional until step 4.
 4. A **minimal arrays-and-`TYPE` slice**, its own OpenSpec change, measured first (`study\24` §2): static
    `DIM a(n)` of scalars, element read and write, an element by reference, `LBOUND`/`UBOUND`, `TYPE` with scalar

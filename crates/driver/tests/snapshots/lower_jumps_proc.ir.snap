@@ -1,0 +1,59 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 6
+  Gosub AGAIN
+Stmt line 7
+  Jump SKIP
+Label AGAIN line 8
+Stmt line 9
+  Print console newline
+    Str Const "sub"
+Stmt line 10 may_raise
+  Return
+Label SKIP line 11
+Stmt line 12
+  Gosub BACK
+Stmt line 13 may_raise
+  Call SHOW [Temp((Const 2:I16 -> Convert F32 Nearest))]
+Stmt line 14
+  End
+Label BACK line 15
+Stmt line 16 may_raise
+  Return To SKIP
+Sub SHOW lines 17-25
+  param N:F32
+  local I:F32
+  temp for1.value:F64
+  temp for1.limit:F64
+  temp for1.step:F64
+  temp for1.negative:I32
+Stmt line 18
+  Gosub AGAIN
+Stmt line 19
+  Exit
+Label AGAIN line 20
+Stmt line 21
+  AssignAll
+    for1.value(temp):F64 = (Const 1:I16 -> Convert F64 Nearest)
+    for1.limit(temp):F64 = (Var N(param):F32 -> Convert F64 Widen)
+    for1.step(temp):F64 = Const 1:F64
+    for1.negative(temp):I32 = Lt:I32(Var for1.step(temp):F64, Const 0:F64)
+  Jump @2
+Label @1 line 21
+Stmt line 22
+  Print console newline
+    Num Var I(local):F32
+Stmt line 23
+  Assign for1.value(temp):F64 = Add:F64(Var for1.step(temp):F64, (Var I(local):F32 -> Convert F64 Widen))
+Label @2 line 23
+Stmt line 23
+  Assign I(local):F32 = (Var for1.value(temp):F64 -> Convert F32 Nearest)
+  Branch NonZero -> @3 Skip: Or:I32(And:I32(Var for1.negative(temp):I32, Lt:I32(Var for1.value(temp):F64, Var for1.limit(temp):F64)), And:I32(Not:I32(Var for1.negative(temp):I32), Gt:I32(Var for1.value(temp):F64, Var for1.limit(temp):F64)))
+  Jump @1
+Label @3 line 23
+Stmt line 24 may_raise
+  Return

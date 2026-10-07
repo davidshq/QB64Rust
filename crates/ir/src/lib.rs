@@ -3,13 +3,33 @@
 //! The IR is ABI-neutral: it names no libqb or `qbx.cpp` symbol, no C type, no `passed` mask and no event loop.
 //! Those are the C++ emitter's encoding of the rules stated here:
 //!
+//! - **A body is flat** (design D8 of `m2-control-flow-slice`): a list of statements, with labels as positions
+//!   in it ([`Label`]), the program's own and those the lowering makes. Control moves between them only by
+//!   [`Op::Jump`], [`Op::Branch`], [`Op::Gosub`] and [`Op::Return`], always within one body. Blocks (`IF`,
+//!   `FOR`, `DO`, `WHILE`) exist only in the typed tree; the lowering turns each into statements and jumps.
 //! - **Errors are pending, and handled per statement.** A raising operation records a pending error and yields a
 //!   placeholder value; the statement goes on. A store or a call made with that value still happens
-//!   ([`Op::Assign`], [`Op::Call`]). Only the points named here check for a pending error: each item of an
-//!   [`Op::Print`] (a raising item skips the rest of the statement, line end included). Errors and events are
-//!   serviced at the statement boundary: a pending error goes to the active handler ([`Op::SetHandler`]).
-//!   [`Resume::Retry`] re-runs the statement that raised, [`Resume::Next`] continues after it, [`Resume::To`] at
-//!   a label; a statement in a procedure resumes in that procedure.
+//!   ([`Op::Assign`], [`Op::AssignAll`], [`Op::Call`]; measured: `x = ASC("")` leaves 0 in `x`). Only these
+//!   points check for a pending error:
+//!   - each item of an [`Op::Print`]: a raising item skips the rest of the statement, line end included;
+//!   - a procedure's entry: a procedure entered while an error is pending returns at once;
+//!   - [`Op::Jump`] and [`Op::Gosub`]: not taken while an error is pending;
+//!   - [`Op::Branch`] with [`OnError::Skip`]: not taken while an error is pending.
+//!
+//!   [`Op::Branch`] with [`OnError::UseValue`] does not check: it tests the placeholder value (measured for
+//!   `ELSEIF`).
+//! - **Errors and events are serviced at the statement boundary**: a pending error goes to the active handler
+//!   ([`Op::SetHandler`]). [`Resume::Retry`] re-runs the statement where the error is serviced,
+//!   [`Resume::Next`] continues after it, [`Resume::To`] at a label; a statement in a procedure resumes in that
+//!   procedure. A jump or branch taken leaves its statement before the boundary, so an error still pending then
+//!   (only possible after a `UseValue` branch) is serviced at the boundary of the next statement that runs, and
+//!   retry and resume refer to that statement (measured, `verification\v17_b_elseif`).
+//!
+//! With the lowering's layout ([`lower`]), this rule gives the measured behaviour of a raising block header: the
+//! branch of an `IF`, `WHILE` or `DO WHILE` condition is not taken, so the body runs; the backward branch of a
+//! `LOOP UNTIL` is not taken, so the loop is left; a `FOR` header stores its three limits from the placeholder
+//! values ([`Op::AssignAll`]), does not take its jump to the loop's entry, and runs the body with the variable
+//! unassigned.
 //! - **Optional arguments are present or absent** ([`Value::CallBuiltin`] slots are `Option`s in table order).
 //! - **Every conversion is explicit** ([`ValueKind::Convert`]); every operation states the type it computes in.
 //! - **Integer overflow wraps** in two's complement (`DIVERGENCES.md` D-001, D-002).
@@ -21,7 +41,7 @@ mod dump;
 mod lower;
 
 pub use dump::dump;
-pub use lower::{lower, not_lowered};
+pub use lower::lower;
 
 use qb64rust_base::Span;
 use qb64rust_builtins::BuiltinId;
@@ -37,16 +57,16 @@ pub struct VarId(pub u32);
 pub struct ProcId(pub u32);
 
 /// A label of one body: its index in that body's [`Body::labels`]. [`Resume::To`] and [`Op::SetHandler`] name
-/// labels of the main module ([`Program::main`]).
+/// labels of the main module ([`Program::main`]); the jumps name labels of their own body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct LabelId(pub u32);
 
 /// A position in a body: before statement `at` (at the end when `at` is the number of statements). Labels are
-/// positions, not operations, so the IR has no jumps.
+/// positions, not operations; the jumps move between them.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Label {
-    /// The BASIC name in upper case.
-    pub name: String,
+    /// The BASIC name in upper case; `None` for a label the lowering made.
+    pub name: Option<String>,
     pub line: u32,
     pub at: usize,
 }
@@ -76,6 +96,9 @@ pub enum Storage {
     Param(ProcId),
     /// A FUNCTION's result: new on every call, zero or empty at the start; its value at the end is returned.
     Result(ProcId),
+    /// A hidden variable the lowering made (the limits of a `FOR`), of the main module (`None`) or of a procedure.
+    /// Zero at the start: once for the program in the main module, on every call in a procedure.
+    Temp(Option<ProcId>),
 }
 
 /// A variable. `name` is the BASIC name in upper case without suffix; two variables may share a name when their
@@ -278,6 +301,41 @@ pub enum Op {
     Raise(Value),
     /// End the running handler and continue as stated; outside a handler it raises error 20.
     Resume(Resume),
+    /// Continue at a label of this body; not taken while an error is pending.
+    Jump(LabelId),
+    /// Continue at a label of this body when `cond` (a number) is zero or non-zero as `when` says; otherwise go on
+    /// with the next operation. `on_error` says what a pending error does.
+    Branch {
+        cond: Value,
+        when: When,
+        to: LabelId,
+        on_error: OnError,
+    },
+    /// Evaluate and store each value in order, every store made also after a raising value; then the statement
+    /// rule as for [`Op::Assign`]. (A `FOR` header: all its limits are stored before an error is serviced.)
+    AssignAll(Vec<(VarId, Value)>),
+    /// Continue at a label of this body; a [`Op::Return`] without label comes back after this statement. One
+    /// stack of pending `GOSUB`s for the whole program. Not taken while an error is pending.
+    Gosub(LabelId),
+    /// Back to after the last pending [`Op::Gosub`], also one made in another body (`None`), or forget it and
+    /// continue at a label of the main module (`Some`). Raises error 3 when no `GOSUB` is pending.
+    Return(Option<LabelId>),
+}
+
+/// When an [`Op::Branch`] is taken.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum When {
+    Zero,
+    NonZero,
+}
+
+/// What a pending error does to an [`Op::Branch`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OnError {
+    /// Not taken while an error is pending (`IF`, `WHILE`, `DO`, `LOOP` conditions).
+    Skip,
+    /// Taken or not by the value, which after a raising condition is the placeholder (`ELSEIF`, measured).
+    UseValue,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -291,7 +349,7 @@ pub struct Stmt {
 /// A sequence of statements: the main module's, or a procedure's.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Body {
-    /// In source order; only the main module has labels.
+    /// The body's own labels in source order, then the labels the lowering made.
     pub labels: Vec<Label>,
     pub stmts: Vec<Stmt>,
 }

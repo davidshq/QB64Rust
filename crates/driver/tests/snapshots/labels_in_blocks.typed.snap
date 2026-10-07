@@ -4,8 +4,8 @@ expression: snap
 ---
 line 2: ConsoleOnly
 line 6: Goto INMAIN
-line 7: If
-  If
+line 7: If (END IF line 10)
+  If line 7
     Int 1 : I16
     line 8: Label INMAIN
     line 9: Print newline
@@ -36,8 +36,8 @@ line 15: For I (local):F32 counting in F64 (NEXT line 19)
         Str "in" : Str
       Num
         Var I (local) : F32
-    line 18: If
-      If
+    line 18: If (END IF line 18)
+      If line 18
         Binary Gt : I32
           Var N (local) : F32
           Convert Nearest : F32

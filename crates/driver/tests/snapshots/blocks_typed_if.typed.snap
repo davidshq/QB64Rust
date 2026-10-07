@@ -8,8 +8,8 @@ line 5: Assign A:F32
     Int 1 : I16
 line 5: Assign B:I16
   Int 2 : I16
-line 6: If
-  If
+line 6: If (END IF line 13)
+  If line 6
     Binary Gt : I32
       Var A : F32
       Convert Nearest : F32
@@ -17,10 +17,10 @@ line 6: If
     line 7: Print newline
       Str
         Str "a" : Str
-  ElseIf
+  ElseIf line 8
     Var B : I16
-    line 9: If
-      If
+    line 9: If (END IF line 9)
+      If line 9
         Var A : F32
         line 9: Print newline
           Str
@@ -29,7 +29,7 @@ line 6: If
         line 9: Print newline
           Str
             Str "no" : Str
-  ElseIf
+  ElseIf line 10
     Binary Eq : I32
       Binary Add : F32
         Var A : F32
@@ -41,8 +41,8 @@ line 6: If
     line 12: Print newline
       Str
         Str "else" : Str
-line 14: If
-  If
+line 14: If (END IF line 14)
+  If line 14
     Binary Eq : I32
       Convert Widen : I32
         Var B : I16
@@ -53,16 +53,16 @@ line 14: If
     line 14: Print newline
       Str
         Str "two" : Str
-line 15: If
-  If
+line 15: If (END IF line 15)
+  If line 15
     Var A : F32
     line 15: Goto DONE
 line 16: Print newline
   Str
     Str "skipped" : Str
 line 17: Label DONE
-line 18: If
-  If
+line 18: If (END IF line 19)
+  If line 18
     Binary Ne : I32
       Var A : F32
       Convert Nearest : F32

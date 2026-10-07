@@ -34,7 +34,7 @@ fn mode_of(bytes: &[u8]) -> Option<&'static str> {
 fn run(name: &str, bytes: Vec<u8>, mode: &str) -> Result<Option<String>, String> {
     let mut fe = frontend(name, bytes.clone());
     if mode == "ir" || mode == "cpp" {
-        check_backend(&mut fe);
+        check_backend(&mut fe, mode == "cpp");
     }
     let syntax_errors = fe.parsed.diagnostics().has_errors();
     match mode {

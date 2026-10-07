@@ -1,9 +1,10 @@
 //! `--dump ir`: the lowering-pair text of design D6.
 
 use crate::{
-    Arg, BinOp, Body, Const, LabelId, Op, PrintItem, ProcKind, Program, Resume, Storage, Ty, Value, ValueKind, VarId,
+    Arg, BinOp, Body, Const, LabelId, OnError, Op, PrintItem, ProcKind, Program, Resume, Storage, Ty, Value, ValueKind,
+    VarId, When,
 };
-use qb64rust_base::show_bytes;
+use qb64rust_base::{show_bytes, to_u32};
 use std::fmt::Write as _;
 
 /// The main module's statements, then each procedure: its header, its variables by storage class, its statements.
@@ -29,8 +30,14 @@ pub fn dump(p: &Program) -> String {
                 Storage::Result(q) if q.0 as usize == i => "result",
                 Storage::Static(q) if q.0 as usize == i => "static",
                 Storage::Local(q) if q.0 as usize == i => "local",
+                Storage::Temp(Some(q)) if q.0 as usize == i => "temp",
                 // Variables of other procedures and global ones.
-                Storage::Global | Storage::Static(_) | Storage::Local(_) | Storage::Param(_) | Storage::Result(_) => {
+                Storage::Global
+                | Storage::Static(_)
+                | Storage::Local(_)
+                | Storage::Param(_)
+                | Storage::Result(_)
+                | Storage::Temp(_) => {
                     continue;
                 }
             };
@@ -43,8 +50,8 @@ pub fn dump(p: &Program) -> String {
 
 fn body(p: &Program, b: &Body, out: &mut String) {
     let labels = |at: usize, out: &mut String| {
-        for l in b.labels.iter().filter(|l| l.at == at) {
-            writeln!(out, "Label {} line {}", l.name, l.line).unwrap();
+        for (i, l) in b.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
+            writeln!(out, "Label {} line {}", label(b, LabelId(to_u32(i))), l.line).unwrap();
         }
     };
     for (i, s) in b.stmts.iter().enumerate() {
@@ -62,12 +69,38 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 Op::End => writeln!(out, "  End").unwrap(),
                 Op::System => writeln!(out, "  System").unwrap(),
                 Op::Exit => writeln!(out, "  Exit").unwrap(),
-                Op::SetHandler(Some(l)) => writeln!(out, "  SetHandler {}", label(p, *l)).unwrap(),
+                Op::SetHandler(Some(l)) => writeln!(out, "  SetHandler {}", label(&p.main, *l)).unwrap(),
                 Op::SetHandler(None) => writeln!(out, "  SetHandler none").unwrap(),
                 Op::Raise(v) => writeln!(out, "  Raise {}", val(p, v)).unwrap(),
                 Op::Resume(Resume::Retry) => writeln!(out, "  Resume Retry").unwrap(),
                 Op::Resume(Resume::Next) => writeln!(out, "  Resume Next").unwrap(),
-                Op::Resume(Resume::To(l)) => writeln!(out, "  Resume To {}", label(p, *l)).unwrap(),
+                Op::Resume(Resume::To(l)) => writeln!(out, "  Resume To {}", label(&p.main, *l)).unwrap(),
+                Op::Jump(l) => writeln!(out, "  Jump {}", label(b, *l)).unwrap(),
+                Op::Gosub(l) => writeln!(out, "  Gosub {}", label(b, *l)).unwrap(),
+                Op::Return(None) => writeln!(out, "  Return").unwrap(),
+                Op::Return(Some(l)) => writeln!(out, "  Return To {}", label(&p.main, *l)).unwrap(),
+                Op::Branch {
+                    cond,
+                    when,
+                    to,
+                    on_error,
+                } => {
+                    let when = match when {
+                        When::Zero => "Zero",
+                        When::NonZero => "NonZero",
+                    };
+                    let on_error = match on_error {
+                        OnError::Skip => "Skip",
+                        OnError::UseValue => "UseValue",
+                    };
+                    writeln!(out, "  Branch {when} -> {} {on_error}: {}", label(b, *to), val(p, cond)).unwrap();
+                }
+                Op::AssignAll(stores) => {
+                    writeln!(out, "  AssignAll").unwrap();
+                    for (place, value) in stores {
+                        writeln!(out, "    {}:{:?} = {}", var(p, *place), p.var(*place).ty, val(p, value)).unwrap();
+                    }
+                }
                 Op::Assign { place, value } => {
                     let v = p.var(*place);
                     writeln!(out, "  Assign {}:{:?} = {}", var(p, *place), v.ty, val(p, value)).unwrap();
@@ -91,8 +124,12 @@ fn body(p: &Program, b: &Body, out: &mut String) {
     labels(b.stmts.len(), out);
 }
 
-fn label(p: &Program, l: LabelId) -> &str {
-    &p.main.labels[l.0 as usize].name
+/// A label of body `b`: its BASIC name, or `@n` (its index) for a label the lowering made.
+fn label(b: &Body, l: LabelId) -> String {
+    match &b.labels[l.0 as usize].name {
+        Some(name) => name.clone(),
+        None => format!("@{}", l.0),
+    }
 }
 
 fn ty(t: Ty) -> String {
@@ -108,6 +145,7 @@ fn var(p: &Program, id: VarId) -> String {
         Storage::Local(_) => "local",
         Storage::Param(_) => "param",
         Storage::Result(_) => "result",
+        Storage::Temp(_) => "temp",
     };
     format!("{}({class})", v.name)
 }

@@ -350,6 +350,8 @@ pub enum StmtKind {
     If {
         branches: Vec<Branch>,
         else_: Option<Vec<Stmt>>,
+        /// 1-based source line of the `END IF`; the statement's own line for a single-line `IF`.
+        end_line: u32,
     },
     /// `FOR var = start TO end [STEP step]` … `NEXT`. `start`, `end` and `step` are converted to `temp`, the type
     /// the loop counts in (wider than `var`'s, `study\02` §6.5, measured); each pass stores the count into `var`.
@@ -388,6 +390,8 @@ pub enum StmtKind {
 pub struct Branch {
     pub cond: Expr,
     pub body: Vec<Stmt>,
+    /// 1-based source line of the `IF` or `ELSEIF`.
+    pub line: u32,
 }
 
 /// The condition of a `DO` loop.

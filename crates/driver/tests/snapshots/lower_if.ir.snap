@@ -1,0 +1,71 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 7
+  Assign A:F32 = (Const 2:I16 -> Convert F32 Nearest)
+Stmt line 8
+  Branch Zero -> @2 Skip: Eq:I32(Var A:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 9
+  Print console newline
+    Str Const "one"
+Stmt line 16
+  Jump @1
+Label @2 line 16
+Stmt line 10 may_raise
+  Branch Zero -> @3 UseValue: StrCompare Eq(CallBuiltin CHR:Str [Some(((Var A:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))], Const "b")
+Stmt line 11
+  Print console newline
+    Str Const "b"
+Stmt line 16
+  Jump @1
+Label @3 line 16
+Stmt line 12
+  Branch Zero -> @4 UseValue: Eq:I32(Var A:F32, (Const 2:I16 -> Convert F32 Nearest))
+Stmt line 13
+  Print console newline
+    Str Const "two"
+Stmt line 16
+  Jump @1
+Label @4 line 16
+Stmt line 15
+  Print console newline
+    Str Const "other"
+Label @1 line 16
+Stmt line 17
+  Branch Zero -> @5 Skip: Gt:I32(Var A:F32, (Const 0:I16 -> Convert F32 Nearest))
+Stmt line 18
+  Print console newline
+    Str Const "positive"
+Label @5 line 19
+Stmt line 20
+  Branch Zero -> @7 Skip: Var A:F32
+Stmt line 20
+  Print console newline
+    Str Const "yes"
+Stmt line 20
+  Jump @6
+Label @7 line 20
+Stmt line 20
+  Print console newline
+    Str Const "no"
+Label @6 line 20
+Stmt line 21
+  Branch Zero -> @8 Skip: Eq:I32(Var A:F32, (Const 2:I16 -> Convert F32 Nearest))
+Stmt line 21
+  Jump DONE
+Label @8 line 21
+Stmt line 22
+  Branch Zero -> @9 Skip: Eq:I32(Var A:F32, (Const 3:I16 -> Convert F32 Nearest))
+Stmt line 22
+  Jump DONE
+Label @9 line 22
+Stmt line 23
+  Print console newline
+    Str Const "not reached"
+Label DONE line 24
+Stmt line 25
+  Print console newline
+    Str Const "done"

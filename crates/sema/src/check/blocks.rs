@@ -74,6 +74,7 @@ impl Checker<'_> {
         let first = b.if_branch().map(|f| (f.header(), f.body().collect::<Vec<_>>()));
         let others = b.else_if_branches().map(|e| (e.header(), e.body().collect::<Vec<_>>()));
         for (header, body) in first.into_iter().chain(others) {
+            let line = header.map_or(0, |h| self.line(first_token_span(h.node())));
             let cond = self.header(header.map(|h| h.node()), skips, |c| {
                 let h = header.expect("checked by `header`");
                 let what = h.keyword().map_or("IF".to_string(), |k| c.word(k));
@@ -81,13 +82,19 @@ impl Checker<'_> {
             });
             let body = self.block_body(body.into_iter(), skips);
             match (cond, &mut branches) {
-                (Some(cond), Some(list)) => list.push(Branch { cond, body }),
+                (Some(cond), Some(list)) => list.push(Branch { cond, body, line }),
                 _ => branches = None,
             }
         }
         let else_ = b.else_branch().map(|e| self.block_body(e.body(), skips));
+        let end_line = b.end().map_or(0, |e| self.line(first_token_span(e.node())));
         if let Some(branches) = branches.filter(|l| !l.is_empty()) {
-            self.push(node, StmtKind::If { branches, else_ });
+            let kind = StmtKind::If {
+                branches,
+                else_,
+                end_line,
+            };
+            self.push(node, kind);
         }
     }
 
@@ -101,8 +108,14 @@ impl Checker<'_> {
         let body = self.block_body(s.then_branch().into_iter().flat_map(|b| b.statements()), skips);
         let else_ = s.else_branch().map(|b| self.block_body(b.statements(), skips));
         if let Some(cond) = cond {
-            let branches = vec![Branch { cond, body }];
-            self.push(s.node(), StmtKind::If { branches, else_ });
+            let line = self.line(first_token_span(s.node()));
+            let branches = vec![Branch { cond, body, line }];
+            let kind = StmtKind::If {
+                branches,
+                else_,
+                end_line: line,
+            };
+            self.push(s.node(), kind);
         }
     }
 
