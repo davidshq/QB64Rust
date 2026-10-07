@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-07 (session 19). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-07 (session 21). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
@@ -163,86 +163,40 @@ GitHub.
 - Your index: files staged before `.gitattributes` gained the `-text` lines were stored with LF (7 upstream `.bas`
   show `AM`); staging them again stores the bytes as upstream has them.
 
-**Next** (order accepted 2026-10-05 after the third review and panel, `study\23` §4, reasons there; it replaces
-the order of `study\22` §5):
+**Next** (order accepted 2026-10-07 after the fourth review, `study\24` §4, reasons there; it replaces the order of
+`study\23` §4). One line per step; the per-task record of a change is its `tasks.md`, and `git log`.
 
-1. Done 2026-10-05: `rust.yml` (with `tier2`) and `repo-check.yml` green on GitHub for `1289c20`;
-   `vscode-extension.yml` last ran green on `main` (2026-10-03), nothing under `vscode\` changed since. Push the
-   later commits and glance at their runs.
-2. Done 2026-10-05: `m2-parser-breadth` groups 5 and 6 (member access, `DATA`, line numbers, blocks); state of
-   the change below. The change now pauses.
-3. **Next:** a control-flow slice through to C++, its own OpenSpec change (`m2-control-flow-slice`, proposed 2026-10-05, in progress): `IF`, `FOR`, `DO`,
-   `WHILE`, `GOTO`, `GOSUB`/`RETURN`, `CONST`, `OPTION _EXPLICIT`, labels inside blocks and procedures, `RESUME
-   NEXT` after an error in a block header, and the check of `NEXT` variables against their `FOR` (left out of the
-   parser, design D4 "As built"). The block nodes and accessors exist (`ast.rs`); `sema` marks them in
-   `check\blocks.rs` `block_parts`. First count the corpus and upstream programs blocked only by these. Then the IR
-   review (keep, or merge into the typed tree; `study\20` §3.4). Fourth review (2026-10-05, order unchanged),
-   written into the change `m2-control-flow-slice`: the IR's error rule is restated (a pending error and
-   placeholder values, checked at named points; "skips the rest of the statement" was true only of `PRINT`) and
-   measured first; operator typing lives in one function so the type table of step 6 rewrites one place;
-   constants and `OPTION` are done after the IR and emitter tasks; the IR review leaves open how the IR names
-   an array element or a `TYPE` member (step 8). Task 1.1 done 2026-10-06: 115 measurements `verification\v17_*`,
-   findings in `study\00` §5 and §6; they corrected the design and five spec deltas (list in task 1.1): a procedure
-   called while an error is pending returns at once, an `ELSEIF` error is serviced at the next statement, one
-   `GOSUB` stack for the program, a name used before its `CONST` line is an error, `OPTION _EXPLICIT` is
-   program-wide. Decided 2026-10-06: `RETURN label` with nothing pending is guarded (the old program crashes on
-   the next `GOSUB`), `DIVERGENCES.md` D-003. Task 1.2 done 2026-10-06: slice programs `s13`–`s19` recorded
-   (corpus now 282 programs); they agree with every spec scenario, coverage listed in the task; they join
-   `slice.list` as they pass. Tasks 1.3 and 2.1 done 2026-10-06: `m2-parser-breadth` handed `CONST`/`OPTION`
-   over; `sema`'s `check.rs` split into `check\` (`mod.rs`, `expr.rs`, `decl.rs`, `proc.rs`, `flow.rs`,
-   `blocks.rs`; code moved only, no snapshot changed). Tasks 3.1 and 3.2 done 2026-10-06: every operator through
-   to C++ (typing in `check\ops.rs`); `s17_operators` and 15 `runtime_comparison` programs pass, so `slice.list`
-   has **70** programs (54 before); full corpus 84 pass, none wrong at run time; upstream **11 of 279**. Found on
-   the way: `/` between two variables was emitted as `/*` (a C comment; the C++ failed to compile), fixed. Task
-   4.1 done 2026-10-06: `CONST` and `OPTION` parse (`sema` still marks them); parse gaps 527 to 500, four `const/`
-   `.err` programs pass, upstream **15 of 279**; `ROOT` (constant evaluator only) "not supported yet" in a `CONST`.
-   Task 4.2 done 2026-10-06: the constant evaluator (`sema\consteval.rs`, `check\constants.rs`); floats in `f64`
-   with an exactness check against the old `_FLOAT` path, "not supported yet" where it cannot be shown; a float
-   beyond `_INTEGER64` is DOUBLE (corrects D6); `slice.list` **75**, full corpus 89, upstream **20 of 279**, none
-   wrong; `s18_const` waits for `IF`/`FOR` (8.1). Task 4.3 done 2026-10-07: `OPTION _EXPLICIT` program-wide
-   (pre-pass), `SHARED` must name a main variable of that type declared earlier (two new measurements); under the
-   option an undeclared variable after anything marked "not supported yet" is only marked (follow-on rule, design
-   D7 "As built"); false errors lose 12, `slice.list` 75 of 75, upstream still **20 of 279**. Tasks 5.1 and 5.2
-   done 2026-10-07 (session 20): labels per body (a label is a typed statement; labels in procedures and inside
-   blocks; four more measurements `verification\v17_d_*`), `GOTO`/`GOSUB`/`RETURN` typed, and `IF` (both forms),
-   `FOR`, `DO`, `WHILE`, `EXIT FOR/DO/WHILE` as typed block statements with their errors (string conditions and
-   limits, `NEXT` variable by identity, `FOR` variable a numeric scalar). Until the IR has jumps they stop at a
-   gate before lowering ("not supported yet: … in code generation", `ir::not_lowered`); `--dump typed` shows them.
-   Rejections with only marks 74 to 72; tier 2 75 of 75 and 20 of 20, unchanged. Next: task 6.1, the IR types.
-4. `m2-parser-breadth` groups 7 to 9, with the blunt follow-on rule and block crossing marked (`study\23` §2.3,
-   §2.4; design D10, D4).
-5. A thin language server in the extension: syntax errors, outline, folding, go to definition for procedures and
-   labels (`study\23` §2.6).
-6. Bug-compatibility decisions (`study\00` §6), then the differential tester, `Ty` as a type table, unsigned types.
-7. Plain built-ins (249 of 455), table-driven, with generated tests.
-8. The rest of control flow (`SELECT CASE`, `ON … GOTO/GOSUB`, `DEFxxx`), then arrays and `TYPE` (storage designed
-   so member arrays fit later).
+1. Done 2026-10-05: CI green (`rust.yml` with `tier2`, `repo-check.yml`; `vscode-extension.yml` unchanged since
+   its last green run).
+2. Done 2026-10-05: `m2-parser-breadth` groups 5 and 6 (member access, `DATA`, line numbers, blocks). The change
+   pauses until step 5.
+3. **Now: `m2-control-flow-slice`, task 6.1** (`openspec\changes\m2-control-flow-slice\tasks.md`). Groups 1–5 are
+   done (measurements `v17_*`, slice programs `s13`–`s19`, the `check\` split, every operator through to C++,
+   `CONST` and `OPTION _EXPLICIT`, labels per body, blocks typed by `sema`; the blocks stop at the IR gate
+   `ir::not_lowered`). Left: 6 (IR with jumps), 7 (emitter), 8 (lists; up to 53 corpus and 12 upstream programs
+   expected to join), 9 (documents). Then the **IR review** (`study\20` §3.4): the jump and error model; "keep or
+   merge" stays provisional until step 4.
+4. A **minimal arrays-and-`TYPE` slice**, its own OpenSpec change, measured first (`study\24` §2): static
+   `DIM a(n)` of scalars, element read and write, an element by reference, `LBOUND`/`UBOUND`, `TYPE` with scalar
+   members, member read and write. It closes the IR review's place question.
+5. `m2-parser-breadth` groups 7 to 9 (statements, `specialformat` templates, `$IF`, `$INCLUDE`, the follow-on rule,
+   block crossing marked; `study\23` §2.3, §2.4). May run before 4.
+6. The thin language server (`study\23` §2.6).
+7. Bug-compatibility decisions (`study\00` §6), the differential tester, `Ty` as a type table, unsigned types.
+8. Plain built-ins (249 of 455), table-driven, with generated tests.
+9. The rest of control flow (`SELECT CASE`, `ON … GOTO/GOSUB`, `DEFxxx`), then the rest of arrays and `TYPE`
+   (`REDIM`, dynamic arrays, `OPTION BASE`; member arrays stay in `SOMEDAY.md`).
 
-State of **`m2-parser-breadth`** (started 2026-10-04;
-   `openspec\changes\m2-parser-breadth\`). Done: task 1.1 (the wrong-code fix, comment metacommands), 1.2 (panic
-   hook: "internal compiler error", exit code 3), and group 2: the tier-2 `.err` meaning in the runner (judged
-   by the summary line), the third shrink-only list `tests\known_parse_gaps.list` (**673 of 1,139** files do not
-   parse cleanly), and the 56 upstream `.err` programs run: 54 only marked, 2 pass only through a parse gap and
-   are not added, so still **10 of 279** (`tests\upstream\README.md`). Task 3.1 done 2026-10-05: 94
-   measurement programs `verification\v16_*` (M1–M8, four added by the reviews), findings in `study\00` §5;
-   they changed eight design decisions (listed in task 3.1), among them: `$IF` and blocks must nest properly;
-   only comment `$INCLUDE`; includes found next to the including file, then under a compiler root
-   (`--include-root`, default the exe's folder, as the old compiler uses its own folder); depth 100, no cycle
-   check. Group 4 done 2026-10-05 (no behaviour change): one `Tree` per file per inclusion in a
-   `ParsedProgram`, `parse` takes a `Loader` (none loads anything yet), `sema` keyed by (`TreeId`, offset),
-   `--dump tree` headed per tree. Group 5 done 2026-10-05: member access (`FieldExpr`), omitted arguments,
-   `DATA`/`READ`/`RESTORE` (the old compiler's `DATA` scanner), line numbers, plain `GOTO`/`GOSUB`/`RETURN`, all
-   parsed and marked by `sema`; **false errors 184 to 69**, parse gaps 677 to 654, two `.err` programs moved to
-   the rejection list (task 5.1 says why); tier 2 unchanged. Group 6 done 2026-10-05: every block is a node
-   (`IF` both forms, `FOR`, `DO`, `WHILE`, `SELECT CASE`, `TYPE`, `DECLARE LIBRARY`, `DEF FN`), one statement
-   loop and block stack for the main module, procedures and blocks (`parser\blocks.rs`), recovery with one
-   error per mistake, `EXIT` checked against the open blocks, `sema` marks every block and checks what is inside;
-   19 more measurements; labels only at the start of a line (measured; it was wrong before). In entries (header
-   comments not counted): **parse gaps 650 to 527**, no first gap a block any more; **false errors 66 to 59**;
-   only-marked rejections 84 to 81; tier 2 unchanged, still **10 of 279** (task 6.4 has the details). The change
-   pauses here for the control-flow slice (step 3 above) and resumes with statements, `specialformat` templates
-   (new dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree per file, and the follow-on rule. Done
-   when the parse-gap and false-error lists are empty.
+Numbers at the last full runs (2026-10-07): `slice.list` 75 of 75, full corpus 89 pass and none wrong at run time,
+upstream **20 of 279**; shrink-only lists: 43 false errors, 72 only-marked rejections, 500 parse gaps
+(`tests\upstream\README.md`).
+
+**`m2-parser-breadth`** (started 2026-10-04, paused at group 6; `openspec\changes\m2-parser-breadth\tasks.md`):
+done are the wrong-code fix for comment metacommands, the panic hook, the tier-2 `.err` meaning, the parse-gap
+list, the `v16_*` measurements (which changed eight design decisions, listed in its task 3.1), one tree per file,
+member access, `DATA`, line numbers, plain jumps, and every block as a node with recovery. It resumes at step 5
+with statements, `specialformat` templates (new dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree
+per file, and the follow-on rule; done when the parse-gap and false-error lists are empty.
 
 ## FreeBASIC reviewed (2026-10-03)
 
@@ -270,7 +224,7 @@ members in debug); it is now constant time.
 
 | When | Item |
 |---|---|
-| Step 4 of "Next" | Decide the bug-compatibility choices in `study\00` §6 (32-bit INTEGER arithmetic and half-to-even rounding are already implemented as "keep") |
+| Step 7 of "Next" | Decide the bug-compatibility choices in `study\00` §6 (32-bit INTEGER arithmetic and half-to-even rounding are already implemented as "keep") |
 | M3 | Plain copy of `..\QB64pe\internal\c` at the pinned commit (`CLAUDE.md`) |
 | M3 | Programs without `$CONSOLE:ONLY`, with an oracle such as a screen-state dump at exit compared between old and new compiler (`study\22` §3.2) |
 | M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\22` §4.2) |

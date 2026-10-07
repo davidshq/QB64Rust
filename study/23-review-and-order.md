@@ -96,7 +96,10 @@ To fix as the code grows, not decisions:
 - `crates\sema\src\check.rs` (1,443 lines for a small subset) is split by family, as the parser is.
 - `STATUS.md` has grown back into a history; "one home per fact" (`study\20` §3.7) still holds.
 
-## 4. Order of work (accepted 2026-10-05, replaces `study\22` §5)
+## 4. Order of work (accepted 2026-10-05, replaces `study\22` §5; replaced by `study\24` §4 on 2026-10-07)
+
+*Replaced:* `study\24` §4 keeps steps 1–3 and inserts a minimal arrays-and-`TYPE` slice after the IR review,
+before the type table, unsigned types and the built-ins (reasons in `study\24` §2).
 
 1. Push; see `rust.yml` (with `tier2`), `repo-check.yml` and `vscode-extension.yml` green.
 2. `m2-parser-breadth` groups 5 and 6: member access, `DATA`, line numbers, blocks.
