@@ -116,6 +116,12 @@ pub enum SyntaxKind {
     ReadStmt,
     /// `RESTORE`, `RESTORE label`, `RESTORE 100`
     RestoreStmt,
+    /// `CONST item, ...`
+    ConstStmt,
+    /// `name[suffix] = expr` of a `CONST`.
+    ConstItem,
+    /// `OPTION BASE n`, `OPTION _EXPLICIT`, `OPTION _EXPLICITARRAY` (and the spellings without `_`).
+    OptionStmt,
 
     // ---- blocks (design D4): a header node, the body statements and, unless missing, the closer ----
     /// `END IF`/`ENDIF`, `END SELECT`, `WEND`, `END TYPE`, `END DECLARE` or `END DEF` closing a block.

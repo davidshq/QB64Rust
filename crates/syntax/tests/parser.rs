@@ -64,7 +64,38 @@ fn precedence() {
 #[test]
 fn two_errors_reported() {
     // Errors on lines 2 and 5, one each; the statements around them parse.
-    insta::assert_snapshot!(tree("x = 1\nCONST c = 3: PRINT i\nPRINT x\nPRINT x;\nPRINT (2\nEND\n"));
+    insta::assert_snapshot!(tree("x = 1\nREDIM c(3): PRINT i\nPRINT x\nPRINT x;\nPRINT (2\nEND\n"));
+}
+
+#[test]
+fn const_forms() {
+    insta::assert_snapshot!(tree(
+        "CONST a = 1\nCONST b% = 2.5, c$ = \"x\" + \"y\", d# = -a ^ 2\nIF 1 THEN CONST e = 4\nSUB s\n  CONST f& = a * 2\nEND SUB\n"
+    ));
+}
+
+#[test]
+fn const_errors() {
+    // One error per statement; the statements after each parse. `ROOT` is an operator only in a `CONST` value
+    // (marked "not supported yet" there), elsewhere a plain syntax error.
+    insta::assert_snapshot!(tree(
+        "CONST\nCONST a\nCONST a = 1,\nCONST 5 = 1\nCONST a = 1 2\nCONST r = 20 ROOT 3\nCONST q = (8 ROOT 3) + 1\nx = 20 ROOT 3\nPRINT a\n"
+    ));
+}
+
+#[test]
+fn option_forms() {
+    insta::assert_snapshot!(tree(
+        "OPTION BASE 1\nOPTION _EXPLICIT: DIM x\nOPTION _EXPLICITARRAY\nOPTION EXPLICIT\nSUB s\n  OPTION _EXPLICIT\nEND SUB\n"
+    ));
+}
+
+#[test]
+fn option_errors() {
+    // `option` alone or before `=` is a name (not a reserved word).
+    insta::assert_snapshot!(tree(
+        "OPTION BASE\nOPTION FOO\nOPTION _EXPLICIT 1\noption = 3\nOPTION\n"
+    ));
 }
 
 #[test]
@@ -188,10 +219,10 @@ fn error_handling_statement_errors() {
 
 #[test]
 fn unsupported_statement_message() {
-    let p = parse_one(b"PRINT 1\n\nCONST c = 2\n");
+    let p = parse_one(b"PRINT 1\n\nREDIM c(2)\n");
     let diags = p.diagnostics();
     let d = &diags.list()[0];
-    assert_eq!(d.message, "statement `CONST`");
+    assert_eq!(d.message, "statement `REDIM`");
     assert!(d.unsupported);
     assert_eq!(d.span.start, 9);
 }

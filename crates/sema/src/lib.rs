@@ -12,6 +12,7 @@
 #![warn(clippy::wildcard_enum_match_arm)]
 
 mod check;
+pub mod consteval;
 mod dump;
 pub mod literal;
 mod symbols;
@@ -72,6 +73,20 @@ pub struct ProcId(pub u32);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct LabelId(pub u32);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ConstId(pub u32);
+
+/// A `CONST` (design D6 of `m2-control-flow-slice`). Its uses are literal nodes in the typed tree.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Const {
+    /// The name without suffix, in upper case.
+    pub name: String,
+    pub ty: Ty,
+    pub value: consteval::Value,
+    /// The procedure the constant belongs to; `None` for the main module's.
+    pub proc: Option<ProcId>,
+}
 
 /// A label of the main module (labels inside procedures are not supported yet).
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -340,6 +355,8 @@ pub struct Program {
     pub stmts: Vec<Stmt>,
     /// The main module's labels, in source order.
     pub labels: Vec<Label>,
+    /// Every `CONST`, in source order.
+    pub consts: Vec<Const>,
     /// Where each variable and procedure is defined and used (design D12).
     pub symbols: Symbols,
 }
@@ -355,5 +372,9 @@ impl Program {
 
     pub fn label(&self, id: LabelId) -> &Label {
         &self.labels[id.0 as usize]
+    }
+
+    pub fn constant(&self, id: ConstId) -> &Const {
+        &self.consts[id.0 as usize]
     }
 }

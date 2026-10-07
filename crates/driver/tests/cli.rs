@@ -123,7 +123,7 @@ fn unknown_statement() {
 #[test]
 fn summary() {
     let d = scratch("summary");
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nCONST c = 2\nPRINT 1 +\nCLS\n").unwrap();
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nREDIM c(2)\nPRINT 1 +\nCLS\n").unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
     let out = stdout(&o);

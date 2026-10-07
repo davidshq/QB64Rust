@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-06 (session 17). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-06 (session 18). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
@@ -193,8 +193,13 @@ the order of `study\22` §5):
    `blocks.rs`; code moved only, no snapshot changed). Tasks 3.1 and 3.2 done 2026-10-06: every operator through
    to C++ (typing in `check\ops.rs`); `s17_operators` and 15 `runtime_comparison` programs pass, so `slice.list`
    has **70** programs (54 before); full corpus 84 pass, none wrong at run time; upstream **11 of 279**. Found on
-   the way: `/` between two variables was emitted as `/*` (a C comment; the C++ failed to compile), fixed. Next:
-   group 4, constants and `OPTION _EXPLICIT` (task 4.1, the parser).
+   the way: `/` between two variables was emitted as `/*` (a C comment; the C++ failed to compile), fixed. Task
+   4.1 done 2026-10-06: `CONST` and `OPTION` parse (`sema` still marks them); parse gaps 527 to 500, four `const/`
+   `.err` programs pass, upstream **15 of 279**; `ROOT` (constant evaluator only) "not supported yet" in a `CONST`.
+   Task 4.2 done 2026-10-06: the constant evaluator (`sema\consteval.rs`, `check\constants.rs`); floats in `f64`
+   with an exactness check against the old `_FLOAT` path, "not supported yet" where it cannot be shown; a float
+   beyond `_INTEGER64` is DOUBLE (corrects D6); `slice.list` **75**, full corpus 89, upstream **20 of 279**, none
+   wrong; `s18_const` waits for `IF`/`FOR` (8.1). Next: task 4.3, `OPTION _EXPLICIT`.
 4. `m2-parser-breadth` groups 7 to 9, with the blunt follow-on rule and block crossing marked (`study\23` §2.3,
    §2.4; design D10, D4).
 5. A thin language server in the extension: syntax errors, outline, folding, go to definition for procedures and

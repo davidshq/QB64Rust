@@ -24,7 +24,7 @@ upstream/arrays/t220_2.bas  # 15:17: cannot store a string in a number variable
 upstream/arrays/type_owner_self_assignment.bas  # 12:18: cannot store a string in a number variable
 upstream/auto_include/general.bas  # 10:37: names starting with `_` are reserved: `_E`
 upstream/clipboard/clipboard_test.bas  # 11:1: names starting with `_` are reserved: `_CLIPBOARD$`
-upstream/font/test.bas  # 36:15: a string is required for this parameter
+upstream/font/test.bas  # 181:21: cannot store a number in a string variable
 upstream/glut/desktopheight.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
 upstream/glut/desktopwidth.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
 upstream/glut/mousecursor.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
@@ -37,12 +37,8 @@ upstream/glut/screeny.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
 upstream/glut/windowhandle.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
 upstream/glut/windowhasfocus.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
 upstream/glut/windowsizelimit.bas  # 4:11: names starting with `_` are reserved: `_TRUE`
-upstream/iif/iif_test.bas  # 15:22: cannot store a number in a string variable
-upstream/image/curico_test.bas  # 65:56: cannot mix strings and numbers
-upstream/image/pcx_test.bas  # 28:13: a string is required for this parameter
-upstream/image/webp_test.bas  # 13:13: a string is required for this parameter
 upstream/logging/consts.bas  # 3:7: names starting with `_` are reserved: `_LOG_TRACE`
-upstream/mem/mem_checking_off.bas  # 20:28: a string is required for this parameter
+upstream/mem/mem_checking_off.bas  # 71:14: cannot store a string in a number variable
 upstream/on_error/errtest.bas  # 18:15: label `_LASTHANDLER` is not defined
 upstream/opengl/test.bas  # 2:5: names starting with `_` are reserved: `_GL`
 upstream/putimage/putimage_test.bas  # 61:13: names starting with `_` are reserved: `_TRUE`

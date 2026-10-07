@@ -192,6 +192,32 @@ implemented as measured, the "keep" default of `study\00` §6, where it stays li
   constant's name. "Not supported yet": a function from the evaluator's list (`study\02` §7), `1 / 0` (the old
   compiler gives 0), and `label: CONST` (the old compiler's "NULL string" error is in the "Fix" list).
 
+**As built (4.2):** `sema\src\consteval.rs` holds the arithmetic on values (pure, unit-tested),
+`sema\src\check\constants.rs` the walk over the tree, the scopes and the uses. Points the text above left open:
+- *Precision.* The old evaluator computes floats in `_FLOAT` and re-reads each parenthesised group and the result
+  from 19-digit text (`_TOSTR$`, `const_eval.bas`); Rust has no 80-bit float. Floats are computed in `f64`, each
+  marked exact or rounded. An operation needs exact operands; a rounded result is kept only when it lies far
+  enough from a rounding boundary (by the exact error from `mul_add` or two-sum, or for a literal by reading it
+  back with the 21st digit moved) that the old path, which moves the value by less than 1E-18 relative, gives the
+  same `double`. Otherwise, and for a `_FLOAT` suffix that needs more than `double`, the constant is "not supported
+  yet". `^` with a float operand is supported for a whole exponent with an exact result and for the exponent 0.5
+  (square root); two integers give an integer, as the old evaluator stores the power back into `_INTEGER64`.
+- *Beyond `_INTEGER64`.* Correcting the measured paragraph: only an **integer** power beyond range is "not
+  supported yet" (`2 ^ 70`, which the old evaluator wraps); a float beyond range stays DOUBLE, as measured for
+  `1E+19 / 1` and `1E+30` (`s18_const`).
+- *Names in a value.* A variable is an error (measured); a name that is neither a constant nor a variable is "not
+  supported yet", since it may be a constant of an auto-included file (`$COLOR`, the known gap of `study\10` §3.4)
+  or one whose own `CONST` was not supported. A constant with a type suffix inside a `CONST` value, a string
+  constant used with a number suffix, `NOT` as an operand of an arithmetic or comparison operator, and `STATIC` or
+  `SHARED` of a constant's name are "not supported yet" (not measured). A procedure `CONST` beside a variable of
+  the same name in that procedure (also a parameter or a `DIM SHARED` one) is "not supported yet"; only the main
+  module's case is measured.
+- *A use before the line.* Every variable name used or declared (not parameters) is noted with its first span;
+  a main `CONST` of a noted name reports "name already in use" at that span.
+- *Uses.* A use with a suffix converts as the old compiler's substitution does (`consteval::convert`): an integer
+  suffix rounds half to even and must hold the value, otherwise "not supported yet" (the old compiler has no
+  range check).
+
 ### D7. `OPTION _EXPLICIT`
 The `OPTION` statement sets a flag for the rest of the file (or as measured in D1). With it, the place where
 `resolve` would create an implicit variable reports "variable `x` is not declared" instead. `_EXPLICITARRAY` sets
@@ -318,7 +344,8 @@ procedure, functions in `CONST`, `OPTION BASE`, `SELECT CASE`, `ON … GOTO`.
 name (also in a procedure, for a main constant); the same `CONST` with another value; a string use (`c$`) of a
 numeric constant; `OPTION EXPLICIT` without the underscore; the constant errors of D6. "Not supported yet": a
 `TYPE` member as `FOR` variable; an `IMP` whose left operand is an `IMP`; the D6 corners (`CONST … 1 / 0`, an
-integer-valued float constant beyond `_INTEGER64`, `label: CONST`).
+integer power beyond `_INTEGER64` (corrected in D6 "As built"), `label: CONST`, a value that needs `_FLOAT`
+precision).
 
 ### D11. Tests and corpus
 - New `tests\corpus\slice\` programs, recorded with `qb64pe.exe` (`SOURCE.md` updated; no `PRINT` with a comma,

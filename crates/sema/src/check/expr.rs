@@ -38,6 +38,9 @@ impl Checker<'_> {
                 if let Some(&p) = self.procs_by_name.get(&name) {
                     return self.call_function(p, t, suffix, None, span);
                 }
+                if let Some(c) = self.visible_const(&name) {
+                    return self.const_use(c, t, suffix, span);
+                }
                 // `ERR` is typed LONG, not `_UNSIGNED LONG` as in the table (design D5); `ERL` is DOUBLE.
                 let err_erl = match (name.as_str(), suffix) {
                     ("ERR", None) => Some(Ty::I32),
@@ -246,7 +249,7 @@ impl Checker<'_> {
     }
 
     /// The binary operator a token stands for; `None` for a token that is not one.
-    fn bin_op(&self, t: Tok) -> Option<BinOp> {
+    pub(super) fn bin_op(&self, t: Tok) -> Option<BinOp> {
         #[expect(
             clippy::wildcard_enum_match_arm,
             reason = "token kinds: every other token is not a binary operator"

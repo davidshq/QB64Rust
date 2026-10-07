@@ -1,0 +1,40 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"OPTION BASE\\nOPTION FOO\\nOPTION _EXPLICIT 1\\noption = 3\\nOPTION\\n\")"
+---
+SourceFile 0..60
+  OptionStmt 0..11
+    Ident OPTION
+    Whitespace  
+    Ident BASE
+  Newline \x0A
+  OptionStmt 12..22
+    Ident OPTION
+    Whitespace  
+    Error 19..22
+      Ident FOO
+  Newline \x0A
+  OptionStmt 23..41
+    Ident OPTION
+    Whitespace  
+    Ident _EXPLICIT
+    Whitespace  
+    Error 40..41
+      Number 1
+  Newline \x0A
+  AssignStmt 42..52
+    NameRef 42..48
+      Ident option
+    Whitespace  
+    Eq =
+    Whitespace  
+    Literal 51..52
+      Number 3
+  Newline \x0A
+  CallStmt 53..59
+    NameRef 53..59
+      Ident OPTION
+  Newline \x0A
+t.bas:1:12: error: expected `0` or `1` after `OPTION BASE`
+t.bas:2:8: error: expected `BASE`, `_EXPLICIT` or `_EXPLICITARRAY` after `OPTION`
+t.bas:3:18: error: expected the end of the statement

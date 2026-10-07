@@ -87,6 +87,16 @@ fn label_with_handler_and_resume_references() {
     assert!(matches!(p.symbols.get(id).kind, SymbolKind::Label(_)));
 }
 
+/// Constants are their own kind of symbol (`m2-control-flow-slice` task 4.2): a main constant used in main, in a
+/// later SUB and in another `CONST`; a SUB constant with the same name is another symbol; a suffixed use refers to
+/// the constant; the same `CONST` again is a reference.
+#[test]
+fn constants_are_their_own_kind() {
+    let src = b"$CONSOLE:ONLY\nCONST k = 1, s = \"a\" + \"b\"\nCONST k2# = k * 2\nPRINT k; k2#; s; k%\nCONST k = 1\nx = k\ns1\nSUB s1\n    CONST k = 2.5\n    PRINT k\nEND SUB\n";
+    let (map, p) = check_source(src);
+    insta::assert_snapshot!(dump_symbols(&p, &map));
+}
+
 #[test]
 fn symbol_at_a_position() {
     // Offsets: `DIM nn AS LONG` starts at 14, `nn` at 18..20; `PRINT nn` starts at 29, `nn` at 35..37.

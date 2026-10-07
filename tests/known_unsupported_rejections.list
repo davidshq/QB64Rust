@@ -62,16 +62,9 @@ upstream/arrays/t045_function_scalar_array.bas
 upstream/arrays/t046_sub_scalar_array.bas
 upstream/arrays/t268_negative_put_scalar_varstring.bas
 upstream/arrays/t269_negative_get_dynamic_varstring_field.bas
-upstream/const/bad_boolean_arg.bas
-upstream/const/bad_not_no_arg.bas
-upstream/const/bad_not_to_many_args.bas
 upstream/const/bad_single_arg.bas
 upstream/const/not_bad_identifier.bas
-upstream/const/not_string.bas
 upstream/const/offset.bas
-upstream/const/too_few_arguments_to_boolean.bas
-upstream/const/type_mismatch_string_integer.bas
-upstream/const/type_mismatch_string_subtract.bas
 upstream/const/undefined_argument.bas
 upstream/const/undefined_argument_first.bas
 upstream/types/dim_bad_bit_no_length.bas

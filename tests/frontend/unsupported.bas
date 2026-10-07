@@ -1,7 +1,7 @@
 ' TEST: check-fail
 $CONSOLE:ONLY
 ' Constructs outside the slice: one error per statement, then the next statement is checked
-CONST k = 3
+OPTION BASE 1
 PRINT 2 ^ 3; LEN("x")
 x = a(1)
 DIM s AS STRING * 4

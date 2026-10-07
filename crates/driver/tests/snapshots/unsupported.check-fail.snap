@@ -1,8 +1,9 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 103
 expression: snap
 ---
-unsupported.bas:4:1: error: not supported yet: statement `CONST`
+unsupported.bas:4:1: error: not supported yet: statement `OPTION`
 unsupported.bas:5:14: error: not supported yet: `LEN`
 unsupported.bas:6:5: error: not supported yet: `a(...)` (an array, or no FUNCTION of this name)
 unsupported.bas:7:17: error: not supported yet: fixed-length strings

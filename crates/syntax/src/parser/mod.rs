@@ -52,6 +52,7 @@ pub(crate) fn parse_tree(id: TreeId, file: FileId, bytes: &[u8]) -> Tree {
         line_if: 0,
         pending_next: None,
         after_line_number: usize::MAX,
+        in_const: false,
     };
     p.source_file();
     Tree {
@@ -88,6 +89,8 @@ pub(crate) struct Parser<'a> {
     pending_next: Option<(u32, Span)>,
     /// Token index just after the last line number: a label may stand there (`10 lab: PRINT`).
     after_line_number: usize,
+    /// Inside a `CONST` value, where the old compiler's evaluator also knows the operator `ROOT` (`study\02` §7).
+    in_const: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -235,7 +238,9 @@ impl<'a> Parser<'a> {
             Ident => {
                 let text = self.nth_text(0);
                 let word = qb64rust_base::show_bytes(text).to_ascii_uppercase();
-                if ["MOD", "AND", "OR", "NOT", "XOR", "EQV", "IMP"].contains(&word.as_str()) {
+                if ["MOD", "AND", "OR", "NOT", "XOR", "EQV", "IMP"].contains(&word.as_str())
+                    || (self.in_const && word == "ROOT")
+                {
                     op(&word)
                 } else if word == "ELSE" {
                     // Outside a single-line `IF`, an `ELSE` within a statement is an error for the old compiler
@@ -422,6 +427,11 @@ impl<'a> Parser<'a> {
             print::print_stmt(self)
         } else if self.at_word("DIM") {
             decl::dim_stmt(self)
+        } else if self.at_word("CONST") {
+            decl::const_stmt(self)
+        } else if self.at_word("OPTION") && self.nth(1) == Some(Ident) {
+            // `OPTION` is not a reserved word; followed by anything but a word it is a name.
+            decl::option_stmt(self)
         } else if self.at_word("SHARED") {
             decl::list_stmt(self, SharedStmt)
         } else if self.at_word("STATIC") {

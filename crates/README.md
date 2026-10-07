@@ -8,7 +8,7 @@ The new compiler, `qb64rust`. One crate per pipeline stage, so the layering is e
 | `base` | `qb64rust-base` | `FileId`, byte `Span`, `SourceMap` with the line index (CR LF, LF, lone CR), `Diagnostic`, the 100-error cap |
 | `syntax` | `qb64rust-syntax` | Byte lexer, lossless tree (green nodes + cursor; printing it gives back the file byte for byte), parser with one module per statement family (`parser\keywords.rs`: the reserved words), typed accessors over the tree (`ast.rs`: one wrapper per node kind, every child an `Option` or an iterator), the old compiler's rule for metacommands in comments (`meta.rs`); the program's trees (`program.rs`: one `Tree` per file per inclusion, `ParsedProgram`, the `Loader` for included files; a node's `key()` is its tree and offset) |
 | `builtins` | `qb64rust-builtins` | The built-in table, generated at build time from `tools\builtins\builtins.json` |
-| `sema` | `qb64rust-sema` | Procedure table, scopes (main, procedure, `STATIC`, `SHARED`), variables (a name plus a type), labels, literal typing, computation types, explicit conversions, by-reference or by-value arguments, integer constant folding; the typed tree; the symbol table (`symbols.rs`: definition and references of every variable, procedure and label, `Symbols::at` for a position, `dump_symbols`) |
+| `sema` | `qb64rust-sema` | Procedure table, scopes (main, procedure, `STATIC`, `SHARED`), variables (a name plus a type), labels, constants (`CONST`, `consteval.rs`), literal typing, computation types, explicit conversions, by-reference or by-value arguments, integer constant folding; the typed tree; the symbol table (`symbols.rs`: definition and references of every variable, procedure, label and constant, `Symbols::at` for a position, `dump_symbols`) |
 | `ir` | `qb64rust-ir` | The ABI-neutral IR (no libqb names, no C types: procedures, storage classes, `Arg::Ref`/`Arg::Temp`, handlers and `RESUME` as statement-level rules) and its lowering from the typed tree |
 | `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...) |
 | `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, build through the reference clone's `Makefile` |
@@ -70,7 +70,12 @@ What the compiler supports so far:
 - every operator (`m2-control-flow-slice`): comparisons (`=`, `<>`, `<`, `>`, `<=`, `>=`, numbers and strings),
   `NOT`, `AND`, `OR`, `XOR`, `EQV`, `IMP`, `_ANDALSO`, `_ORELSE`, `_NEGATE`, `\`, `MOD`, `^`, typed as QB64pe types
   them (`sema\src\check\ops.rs`); an `IMP` whose left operand is an `IMP` is "not supported yet" (QB64pe
-  computes `a IMP b IMP c` as `a OR b OR c`).
+  computes `a IMP b IMP c` as `a OR b OR c`);
+- `CONST` (`m2-control-flow-slice` task 4.2): the old compiler's constant evaluator (`sema\src\consteval.rs`, the
+  walk in `sema\src\check\constants.rs`), its typing (`_INTEGER64`, DOUBLE, or the suffix's type), main and
+  procedure scopes as measured; uses become literal nodes. Floats are computed in `f64` and checked for being the
+  value the old compiler's `_FLOAT` path gives; where that cannot be shown, and for the evaluator's functions,
+  the constant is "not supported yet".
 
 Anything else gets a "not supported yet" error, never wrong code. Parsed into typed nodes but still marked by
 `sema` (`m2-parser-breadth`, in progress): member access, `DATA`/`READ`/`RESTORE`, line numbers,

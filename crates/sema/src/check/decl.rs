@@ -116,6 +116,10 @@ impl Checker<'_> {
                 plain.or(shared).unwrap_or(Ty::F32)
             }
         };
+        let storage = match self.cur {
+            Some(p) => Storage::Local(p),
+            None => Storage::Main,
+        };
         let key = (name, ty);
         let found = self.scope().vars.get(&key).copied().or_else(|| {
             let main = self.main.vars.get(&key).copied();
@@ -125,15 +129,13 @@ impl Checker<'_> {
             Some(id) => id,
             None => {
                 self.reserved(t, &key.0, suffix)?;
-                let storage = match self.cur {
-                    Some(p) => Storage::Local(p),
-                    None => Storage::Main,
-                };
                 let id = self.new_var(key.0.clone(), ty, storage);
                 self.scope().vars.insert(key, id);
                 id
             }
         };
+        let (name, storage) = (self.prog.var(id).name.clone(), self.prog.var(id).storage);
+        self.note_var_name(&name, storage, t);
         self.names.push((SymbolKind::Var(id), t.span));
         Ok(id)
     }
@@ -153,6 +155,11 @@ impl Checker<'_> {
                 return Ok(v);
             }
             return Err(self.in_use(t));
+        }
+        if self.visible_const(&name).is_some() {
+            // Measured: "Expected variable =, look for conflict with a CONST name".
+            let shown = show_bytes(self.text(t.span));
+            return Err(self.error(t.span, format!("cannot assign to the constant `{shown}`")));
         }
         self.variable(t, name, suffix)
     }
@@ -183,12 +190,22 @@ impl Checker<'_> {
             if self.procs_by_name.contains_key(&name) {
                 return Err(self.in_use(name_tok));
             }
+            if self.visible_const(&name).is_some() {
+                // Measured for `DIM`, in main and in a procedure (`v17_e_err_dim_after_const`,
+                // `v17_e_const_sub_dim_same`); not for `STATIC`.
+                if matches!(storage, Storage::Static(_)) {
+                    let shown = show_bytes(self.text(name_tok.span));
+                    return Err(self.unsupported(name_tok.span, format!("`STATIC` of the constant name `{shown}`")));
+                }
+                return Err(self.in_use(name_tok));
+            }
             // Measured (verification\v13*): `DIM x AS T` fails once an earlier `DIM … AS` typed the plain
             // name, whatever the type; a plain `DIM x` after that is accepted and changes nothing.
             let typed_plain = self.scope().plain.get(&name).copied();
             if let (true, Some(plain_ty), None) = (suffix.is_none(), typed_plain, as_clause) {
                 // The name still refers to the typed variable.
                 let id = self.scope().vars[&(name.clone(), plain_ty)];
+                self.note_var_name(&name, storage, name_tok);
                 self.names.push((SymbolKind::Var(id), name_tok.span));
                 continue;
             }
@@ -211,6 +228,7 @@ impl Checker<'_> {
             self.reserved(name_tok, &name, suffix)?;
             let id = self.new_var(name.clone(), ty, storage);
             self.scope().vars.insert(key, id);
+            self.note_var_name(&name, storage, name_tok);
             self.names.push((SymbolKind::Var(id), name_tok.span));
             if suffix.is_none() && as_clause.is_some() {
                 // `DIM x AS T` changes what the plain name means.
@@ -276,6 +294,10 @@ impl Checker<'_> {
             if self.procs_by_name.contains_key(&name) {
                 return Err(self.in_use(name_tok));
             }
+            if self.visible_const(&name).is_some() {
+                let shown = show_bytes(self.text(name_tok.span));
+                return Err(self.unsupported(name_tok.span, format!("`SHARED` of the constant name `{shown}`")));
+            }
             let key = (name.clone(), ty);
             if self.local.vars.contains_key(&key) {
                 return Err(self.in_use(name_tok));
@@ -297,6 +319,7 @@ impl Checker<'_> {
                 }
             };
             self.local.vars.insert(key, id);
+            self.note_var_name(&name, Storage::Main, name_tok);
             if as_clause.is_some() {
                 self.main.plain.insert(name.clone(), ty);
                 self.local.plain.insert(name, ty);

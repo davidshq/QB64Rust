@@ -1,8 +1,8 @@
 ---
 source: crates/syntax/tests/parser.rs
-expression: "tree(\"x = 1\\nCONST c = 3: PRINT i\\nPRINT x\\nPRINT x;\\nPRINT (2\\nEND\\n\")"
+expression: "tree(\"x = 1\\nREDIM c(3): PRINT i\\nPRINT x\\nPRINT x;\\nPRINT (2\\nEND\\n\")"
 ---
-SourceFile 0..57
+SourceFile 0..56
   AssignStmt 0..5
     NameRef 0..1
       Ident x
@@ -12,45 +12,44 @@ SourceFile 0..57
     Literal 4..5
       Number 1
   Newline \x0A
-  Error 6..17
-    Ident CONST
+  Error 6..16
+    Ident REDIM
     Whitespace  
     Ident c
-    Whitespace  
-    Eq =
-    Whitespace  
+    LParen (
     Number 3
+    RParen )
   Colon :
   Whitespace  
-  PrintStmt 19..26
+  PrintStmt 18..25
     Ident PRINT
     Whitespace  
-    NameRef 25..26
+    NameRef 24..25
       Ident i
   Newline \x0A
-  PrintStmt 27..34
+  PrintStmt 26..33
     Ident PRINT
     Whitespace  
-    NameRef 33..34
+    NameRef 32..33
       Ident x
   Newline \x0A
-  PrintStmt 35..43
+  PrintStmt 34..42
     Ident PRINT
     Whitespace  
-    NameRef 41..42
+    NameRef 40..41
       Ident x
     Semicolon ;
   Newline \x0A
-  PrintStmt 44..52
+  PrintStmt 43..51
     Ident PRINT
     Whitespace  
-    ParenExpr 50..52
+    ParenExpr 49..51
       LParen (
-      Literal 51..52
+      Literal 50..51
         Number 2
   Newline \x0A
-  EndStmt 53..56
+  EndStmt 52..55
     Ident END
   Newline \x0A
-t.bas:2:1: error: not supported yet: statement `CONST`
+t.bas:2:1: error: not supported yet: statement `REDIM`
 t.bas:5:9: error: expected `)`

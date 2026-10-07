@@ -1,7 +1,9 @@
 //! `DIM [SHARED] name [AS type], ...`, `SHARED ...` and `STATIC ...` for scalars. Type names are kept as words;
-//! `sema` decides which it supports.
+//! `sema` decides which it supports. Also `CONST name = expr, ...` and `OPTION word` (design D2 of
+//! `m2-control-flow-slice`).
 
 use super::Parser;
+use super::expr::expr;
 use crate::SyntaxKind::{self, *};
 
 pub(crate) fn dim_stmt(p: &mut Parser) {
@@ -58,6 +60,58 @@ fn dim_item(p: &mut Parser) -> bool {
     };
     p.finish_node();
     ok
+}
+
+/// `CONST name[suffix] = expr {, name[suffix] = expr}`; each item a `ConstItem`.
+pub(crate) fn const_stmt(p: &mut Parser) {
+    p.start_node(ConstStmt);
+    p.bump(); // CONST
+    p.in_const = true;
+    loop {
+        if !const_item(p) {
+            break;
+        }
+        if p.at(Comma) {
+            p.bump();
+        } else {
+            break;
+        }
+    }
+    p.recover();
+    p.in_const = false;
+    p.finish_node();
+}
+
+fn const_item(p: &mut Parser) -> bool {
+    if !p.at(Ident) {
+        p.syntax_error("expected a constant name");
+        return false;
+    }
+    p.start_node(ConstItem);
+    p.bump();
+    let ok = p.expect(Eq, "`=`") && expr(p);
+    p.finish_node();
+    ok
+}
+
+/// `OPTION` and one word: `BASE n`, `_EXPLICIT` or `_EXPLICITARRAY`. The spellings without the underscore are
+/// kept too: they are valid only after `$NOPREFIX`, which `sema` knows about, not the parser.
+pub(crate) fn option_stmt(p: &mut Parser) {
+    p.start_node(OptionStmt);
+    p.bump(); // OPTION
+    if p.at_word("BASE") {
+        p.bump();
+        p.expect(Number, "`0` or `1` after `OPTION BASE`");
+    } else if ["_EXPLICIT", "_EXPLICITARRAY", "EXPLICIT", "EXPLICITARRAY"]
+        .iter()
+        .any(|w| p.at_word(w))
+    {
+        p.bump();
+    } else {
+        p.error("expected `BASE`, `_EXPLICIT` or `_EXPLICITARRAY` after `OPTION`");
+    }
+    p.recover();
+    p.finish_node();
 }
 
 /// `AS <type words>` at `AS`. Returns false after an error.

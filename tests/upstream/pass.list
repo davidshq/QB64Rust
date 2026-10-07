@@ -2,6 +2,15 @@
 # ratchet: programs are added when they pass, never removed. Run: python tools/legacy_tests/run_legacy_tests.py
 # --suite compile --qb64 target/release/qb64rust.exe --list tests/upstream/pass.list
 console/test
+const/bad_boolean_arg
+const/bad_not_no_arg
+const/bad_not_to_many_args
+const/comma
+const/const_sub
+const/not_string
+const/too_few_arguments_to_boolean
+const/type_mismatch_string_integer
+const/type_mismatch_string_subtract
 dollar$sign$test/dollar$sign
 filename/filename.extra.extension
 name with spaces/test

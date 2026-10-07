@@ -126,14 +126,38 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
 
 ## 4. Constants and `OPTION _EXPLICIT` (D2, D6, D7)
 
-- [ ] 4.1 Parser: `ConstStmt`/`ConstItem`, `OptionStmt`, accessors. Verify: parse snapshots for each form
+- [x] 4.1 Parser: `ConstStmt`/`ConstItem`, `OptionStmt`, accessors. Verify: parse snapshots for each form
   (several items, suffixes, `OPTION BASE 1`, `OPTION _EXPLICITARRAY`); `QB64RUST_UPDATE_LISTS=1 cargo test -p
   qb64rust-driver --test inputs` removes entries from `tests\known_parse_gaps.list` and adds none.
-- [ ] 4.2 `sema\consteval.rs` and constant scopes (D6): evaluation, typing as measured in 1.1, visibility from
+  *Done 2026-10-06:* `parser\decl.rs` (`const_stmt`, `option_stmt`), accessors `ConstStmt::items`,
+  `ConstItem::name`/`value`, `OptionStmt::word`/`base`; `sema` marks both statements "not supported yet" until 4.2
+  and 4.3. Snapshots `const_forms`, `const_errors`, `option_forms`, `option_errors` (`crates\syntax\tests\parser.rs`);
+  three older tests that used `CONST` as their unsupported statement now use `REDIM`. `OPTION` is not reserved, so
+  it is a statement only when a word follows (`option = 3` stays an assignment); the spellings `EXPLICIT` and
+  `EXPLICITARRAY` parse, and `sema` rejects them (no `$NOPREFIX`). `ROOT`, an operator of the old constant
+  evaluator only (`study\02` §7), is "not supported yet" inside a `CONST` value (it was the one new false error,
+  `upstream/const/math_funcs`). Lists: parse gaps 527 to 500 (28 entries gone, none new; the others' first gap moved
+  on), only-marked rejections 81 to 77, false errors unchanged at 59. Four `const/` `.err` programs now pass tier
+  2: upstream **15 of 279** (`tests\upstream\README.md`).
+- [x] 4.2 `sema\consteval.rs` and constant scopes (D6): evaluation, typing as measured in 1.1, visibility from
   the line on, procedure constants, uses as literal nodes, assignment to a constant an error, functions "not
   supported yet". Verify: unit tests of the evaluator (each operator, `^` associativity, suffix rounding, overflow);
   `check-fail` tests for the D10 constant errors; `s18_const` passes in tier 2; the symbol table records constants
   as their own kind (snapshot).
+  *Done 2026-10-06:* `sema\src\consteval.rs` (arithmetic on values, 7 unit tests) and `sema\src\check\constants.rs`
+  (walk, scopes, uses); `Program::consts`, `SymbolKind::Const`. Decisions in D6 "As built": floats in `f64` with an
+  exactness check against the old `_FLOAT` path, else "not supported yet"; **corrected:** a float beyond
+  `_INTEGER64` range is DOUBLE (measured `1E+19 / 1`, `1E+30`), only an integer power beyond it is "not supported
+  yet" (spec delta updated, scenario "Float beyond _INTEGER64" added); an unknown name in a value is "not
+  supported yet" (may be a `$COLOR` constant), a variable an error. Tests: `check-fail` `const_errors` (every D10
+  constant error) and `const_unsupported`, `typed` `const_uses`, symbol snapshot `constants_are_their_own_kind`;
+  `unsupported.bas` now uses `OPTION BASE 1` as its unsupported statement. **`s18_const` cannot run in tier 2 yet**:
+  it needs `IF` and `FOR` (groups 5–7), so it joins in 8.1 as the header says; every line of it without a block
+  was compiled and its output matches the recording exactly. Tier 2: `slice.list` 70 to **75** (`26_const`,
+  `104_const_expr`, `207_const_string`, `241_const_simple`, `256_const_use`; also with folding off); full corpus 89
+  pass, none wrong at run time; upstream **20 of 279** (`const/comma`, `const/const_sub`, `const/not_string`, the
+  two `const/type_mismatch_string_*`), none wrong. Lists: false errors lose 4 entries (two others now fail later),
+  only-marked rejections lose 3; nothing added.
 - [ ] 4.3 `OPTION _EXPLICIT` and `_EXPLICITARRAY` (D7), placement as measured. Verify: `check-ok` and `check-fail`
   tests for each declaration kind of 1.1; the scenarios of "OPTION _EXPLICIT" as frontend tests.
 

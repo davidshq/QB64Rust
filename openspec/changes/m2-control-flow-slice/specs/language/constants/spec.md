@@ -40,8 +40,13 @@ string constants. An integer result, and a floating-point result with an integer
 SHALL be typed `_INTEGER64`; any other floating-point result DOUBLE. A suffix on the name SHALL convert the value
 to that type (rounding half to even). An expression the old evaluator rejects (a variable, a string mixed with a
 number, a string comparison, a function outside its list, integer division or `MOD` by 0, a suffix of the wrong
-kind) SHALL be a compile error; a function from its list, a `/` by 0, and a float result with an integer value
-outside `_INTEGER64` range SHALL be "not supported yet".
+kind) SHALL be a compile error; a function from its list, a `/` by 0, a power of two integers outside
+`_INTEGER64` range, and a floating-point value the compiler cannot show to equal the old evaluator's `_FLOAT`
+result SHALL be "not supported yet". A floating-point result outside `_INTEGER64` range SHALL be DOUBLE.
+
+#### Scenario: Float beyond _INTEGER64
+- **WHEN** `CONST a = 1E+19 / 1: PRINT a` runs
+- **THEN** it prints ` 1D+19 `
 
 #### Scenario: Integer-valued constant is 64-bit
 - **WHEN** `CONST i3 = 3, f2 = 4 / 2: PRINT i3 * 1000000000; f2 * 4611686018427387904` runs

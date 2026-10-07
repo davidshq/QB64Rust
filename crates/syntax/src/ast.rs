@@ -59,6 +59,9 @@ node_wrapper!(
     DataStmt,
     ReadStmt,
     RestoreStmt,
+    ConstStmt,
+    ConstItem,
+    OptionStmt,
     /// `END IF`/`ENDIF`, `END SELECT`, `WEND`, `END TYPE`, `END DECLARE`, `END DEF`.
     BlockEnd,
     IfBlock,
@@ -400,6 +403,36 @@ impl RestoreStmt<'_> {
     /// The label or line number after `RESTORE`; `None` for a bare `RESTORE`.
     pub fn target(self) -> Option<Tok> {
         jump_target(self.0)
+    }
+}
+
+impl<'a> ConstStmt<'a> {
+    pub fn items(self) -> impl Iterator<Item = ConstItem<'a>> + 'a {
+        self.0.child_nodes().filter_map(ConstItem::cast)
+    }
+}
+
+impl<'a> ConstItem<'a> {
+    /// The constant's name, with its suffix.
+    pub fn name(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Ident)
+    }
+
+    /// The expression after `=`.
+    pub fn value(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
+impl OptionStmt<'_> {
+    /// The word after `OPTION` (`BASE`, `_EXPLICIT`, `_EXPLICITARRAY`, or a spelling without `_`).
+    pub fn word(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+
+    /// The `Number` token after `OPTION BASE`.
+    pub fn base(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Number)
     }
 }
 

@@ -53,6 +53,7 @@ Progress (number of entries per set):
 | 2026-10-04 baseline | 109 | 268 | 111 | 141 | 44 | 673 | 181 | 82 |
 | 2026-10-05 group 5 (member access, `DATA`, line numbers) | 94 | 267 | 104 | 141 | 44 | 650 | 66 | 84 |
 | 2026-10-05 group 6 (blocks) | 47 | 236 | 68 | 137 | 39 | 527 | 59 | 81 |
+| 2026-10-06 `CONST` and `OPTION` parsed (`m2-control-flow-slice` 4.1) | 42 | 224 | 62 | 137 | 35 | 500 | 59 | 77 |
 
 The set columns count parse gaps. After group 6 no first gap is a block any more; the most frequent first gaps are
 arrays (93), `REDIM` (144), `SCREEN` (47), `DEFINT` and the other `DEFxxx` (65), `CONST` (41) and statements whose
@@ -100,3 +101,14 @@ error is the parse gap `expected , or )` at `f(10).a(5)`, not the old compiler's
 11 pass (`noprompt/noprompt-continue-fatal`, a fatal `1 \ 0`, added to `pass.list`); none builds and prints the
 wrong output; the 56 `.err` programs all get only "not supported yet" errors; the rest are rejected with a
 diagnostic, 1 known failure.
+
+**Upstream progress, 2026-10-06: 15 of 279** (`m2-control-flow-slice` task 4.1, the `CONST` parser). Four
+`const/` `.err` programs now get a real parse error for the old compiler's reason (`1 ASDF 2`, `NOT` or `OR`
+without an operand) and pass; added to `pass.list`. The rest of `const/` waits for the evaluator (task 4.2).
+`ROOT`, an operator of the old constant evaluator only, is "not supported yet" inside a `CONST` value.
+
+**Upstream progress, 2026-10-06: 20 of 279** (`m2-control-flow-slice` task 4.2, the constant evaluator). Full run:
+20 pass; added to `pass.list`: `const/comma` and `const/const_sub` (output), `const/not_string` and the two
+`const/type_mismatch_string_*` (`.err`, now a real error for the old compiler's reason); none builds and prints
+the wrong output. `const/undefined_argument*` stay "not supported yet": a name that is neither a constant nor a
+variable may be a constant of an auto-included file (`$COLOR`), which the compiler does not have yet.

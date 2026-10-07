@@ -4,7 +4,6 @@
 # Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.
 corpus/runtime_comparison/02_lbound_ubound.bas  # 4:8: not supported yet: arrays
 corpus/runtime_comparison/05_file_io.bas  # 5:7: not supported yet: `PRINT #`
-corpus/runtime_comparison/104_const_expr.bas  # 3:1: not supported yet: statement `CONST`
 corpus/runtime_comparison/110_array_assign.bas  # 3:6: not supported yet: arrays
 corpus/runtime_comparison/120_redim_no_preserve.bas  # 3:6: not supported yet: arrays
 corpus/runtime_comparison/174_input_hash.bas  # 4:7: not supported yet: `PRINT #`
@@ -22,7 +21,6 @@ corpus/runtime_comparison/201_erase_udt_array.bas  # 6:8: not supported yet: arr
 corpus/runtime_comparison/203_redim_multiple.bas  # 3:6: not supported yet: arrays
 corpus/runtime_comparison/204_lbound_ubound_2d.bas  # 3:6: not supported yet: arrays
 corpus/runtime_comparison/206_shared_redim.bas  # 3:6: not supported yet: arrays
-corpus/runtime_comparison/207_const_string.bas  # 3:1: not supported yet: statement `CONST`
 corpus/runtime_comparison/213_chdir.bas  # 7:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/219_fileexists_direxists.bas  # 4:21: `Error` node without a parser diagnostic
 corpus/runtime_comparison/226_on_goto.bas  # 5:1: not supported yet: `ON N`
@@ -30,10 +28,7 @@ corpus/runtime_comparison/227_on_gosub.bas  # 3:1: not supported yet: `ON 1`
 corpus/runtime_comparison/235_deftype.bas  # 3:1: not supported yet: statement `DEFINT`
 corpus/runtime_comparison/236_option_base.bas  # 4:6: not supported yet: arrays
 corpus/runtime_comparison/239_lprint.bas  # 3:1: not supported yet: statement `LPRINT`
-corpus/runtime_comparison/241_const_simple.bas  # 3:1: not supported yet: statement `CONST`
-corpus/runtime_comparison/256_const_use.bas  # 3:1: not supported yet: statement `CONST`
 corpus/runtime_comparison/261_many_dimensions.bas  # 3:6: not supported yet: arrays
-corpus/runtime_comparison/26_const.bas  # 3:1: not supported yet: statement `CONST`
 corpus/runtime_comparison/29_multi_dim.bas  # 3:6: not supported yet: arrays
 corpus/runtime_comparison/40_erase.bas  # 3:8: not supported yet: arrays
 corpus/runtime_comparison/43_array_string.bas  # 3:6: not supported yet: arrays
@@ -49,18 +44,13 @@ corpus/runtime_comparison/86_name_rename.bas  # 4:7: not supported yet: `PRINT #
 corpus/runtime_comparison/95_two_files.bas  # 5:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/96_lof.bas  # 4:7: not supported yet: `PRINT #`
 corpus/runtime_comparison/97_loc.bas  # 4:7: not supported yet: `PRINT #`
-corpus/slice/s18_const.bas  # 9:1: not supported yet: statement `CONST`
-qb64pe-source/internal/support/color/color0.bi  # 6:1: not supported yet: statement `CONST`
-qb64pe-source/internal/support/color/color32.bi  # 6:1: not supported yet: statement `CONST`
 qb64pe-source/internal/support/converter/AddPREFIX.bas  # 4:1: not supported yet: statement `DEFLNG`
 qb64pe-source/internal/support/converter/QB45BIN.bas  # 7:1: not supported yet: statement `DEFINT`
-qb64pe-source/internal/support/converter/qbjs-build.bas  # 2:1: not supported yet: statement `CONST`
+qb64pe-source/internal/support/converter/qbjs-build.bas  # 5:15: not supported yet: word `STRING` (expected the end of the statement)
 qb64pe-source/internal/support/include/afterlastline.bm  # 155:27: `Error` node without a parser diagnostic
-qb64pe-source/internal/support/include/beforefirstline.bi  # 35:1: not supported yet: statement `CONST`
 qb64pe-source/internal/support/vwatch/vwatch.bi  # 3:15: not supported yet: word `LONG` (expected the end of the statement)
 qb64pe-source/internal/support/vwatch/vwatch.bm  # 4:15: not supported yet: word `LONG` (expected the end of the statement)
 qb64pe-source/source/global/constants.bas  # 5:25: not supported yet: fixed-length strings
-qb64pe-source/source/global/settings.bas  # 2:1: not supported yet: statement `CONST`
 qb64pe-source/source/global/version.bas  # 20:33: `Error` node without a parser diagnostic
 qb64pe-source/source/ide/config/cfg_global.bas  # 1:15: not supported yet: word `LONG` (expected the end of the statement)
 qb64pe-source/source/ide/ide_converters.bas  # 45:21: not supported yet: statement `SCREEN`
@@ -83,12 +73,12 @@ qb64pe-source/source/utilities/hash.bi  # 21:21: not supported yet: arrays
 qb64pe-source/source/utilities/ini-manager/ini.bm  # 52:34: `Error` node without a parser diagnostic
 qb64pe-source/source/utilities/s-buffer/sb_qb64pe_extension.bi  # 6:1: not supported yet: statement `REDIM`
 qb64pe-source/source/utilities/s-buffer/sb_qb64pe_extension.bm  # 62:9: not supported yet: statement `REDIM`
-qb64pe-source/source/utilities/s-buffer/simplebuffer.bi  # 31:1: not supported yet: statement `CONST`
+qb64pe-source/source/utilities/s-buffer/simplebuffer.bi  # 32:1: not supported yet: statement `REDIM`
 qb64pe-source/source/utilities/s-buffer/simplebuffer.bm  # 48:9: not supported yet: statement `REDIM`
 qb64pe-source/source/utilities/strings.bas  # 6:12: not supported yet: word `LONG` (expected the end of the statement)
 qb64pe-source/source/utilities/terminal.bas  # 8:14: not supported yet: arrays
 qb64pe-source/source/utilities/type.bas  # 763:5: not supported yet: statement `REDIM`
-qb64pe-source/source/utilities/type.bi  # 7:1: not supported yet: statement `CONST`
+qb64pe-source/source/utilities/type.bi  # 67:1: not supported yet: statement `REDIM`
 qbasic/misc/3dballs.bas  # 4:42: not supported yet: statement `SCREEN`
 qbasic/misc/3dexp2.bas  # 13:1: not supported yet: statement `DEFINT`
 qbasic/misc/acalc.bas  # 4:1: not supported yet: statement `SCREEN`
@@ -158,7 +148,7 @@ qbasic/pete/coolscr.bas  # 2:1: not supported yet: statement `SCREEN`
 qbasic/pete/cr/cr.bas  # 9:1: not supported yet: statement `DEFINT`
 qbasic/pete/darokin.bas  # 11:1: not supported yet: statement `SCREEN`
 qbasic/pete/darpong/darpong.bas  # 18:1: not supported yet: statement `SCREEN`
-qbasic/pete/degrees.bas  # 4:1: not supported yet: statement `CONST`
+qbasic/pete/degrees.bas  # 12:1: not supported yet: statement `INPUT`
 qbasic/pete/drug3d.bas  # 1:34: not supported yet: array parameters
 qbasic/pete/fight.bas  # 50:1: not supported yet: statement `SCREEN`
 qbasic/pete/gravity.bas  # 2:1: not supported yet: statement `SCREEN`
@@ -179,9 +169,9 @@ qbasic/pete/picdimreader.bas  # 6:1: not supported yet: statement `SCREEN`
 qbasic/pete/pongsource.bas  # 6:1: not supported yet: statement `SCREEN`
 qbasic/pete/pongtennis/tennis.bas  # 18:18: not supported yet: arrays
 qbasic/pete/pp256/usersubs.bas  # 42:54: not supported yet: array parameters
-qbasic/pete/qbb.bas  # 203:1: not supported yet: statement `CONST`
+qbasic/pete/qbb.bas  # 240:21: not supported yet: arrays
 qbasic/pete/rats1.bas  # 4:1: not supported yet: statement `SCREEN`
-qbasic/pete/raytra1b.bas  # 10:1: not supported yet: statement `CONST`
+qbasic/pete/raytra1b.bas  # 13:8: not supported yet: arrays
 qbasic/pete/rect2.bas  # 1:1: not supported yet: statement `SCREEN`
 qbasic/pete/rectong/rectong.bas  # 30:16: not supported yet: arrays
 qbasic/pete/roboraid/roboraid.bas  # 49:1: not supported yet: statement `SCREEN`
@@ -195,7 +185,7 @@ qbasic/pete/su2/shoote.bas  # 5:1: not supported yet: statement `SCREEN`
 qbasic/pete/su2/su2t.bas  # 13:16: not supported yet: arrays
 qbasic/pete/sudoku.bas  # 1:8: not supported yet: arrays
 qbasic/pete/tank/tcv2.bas  # 103:1: not supported yet: statement `DEFINT`
-qbasic/pete/tor/qbdemo.bas  # 15:1: not supported yet: statement `CONST`
+qbasic/pete/tor/qbdemo.bas  # 18:1: not supported yet: statement `DEFINT`
 qbasic/pete/torndc.bas  # 294:1: not supported yet: statement `PLAY`
 qbasic/pete/upperlowerconversion.bas  # 17:1: not supported yet: statement `INPUT`
 qbasic/pete/vektor.bas  # 53:1: not supported yet: statement `SCREEN`
@@ -236,17 +226,11 @@ snippets/qb64fresh/arrays__option_base_1_multidimensional.bas  # 2:8: not suppor
 snippets/qb64fresh/arrays__option_base_1_with_loop.bas  # 2:8: not supported yet: arrays
 snippets/qb64fresh/arrays__static_array.bas  # 1:8: not supported yet: arrays
 snippets/qb64fresh/arrays__static_array_with_range.bas  # 1:8: not supported yet: arrays
-snippets/qb64fresh/builtin_functions__trig_functions.bas  # 1:1: not supported yet: statement `CONST`
 snippets/qb64fresh/console_input__input_multiple_variables.bas  # 3:1: not supported yet: statement `INPUT`
 snippets/qb64fresh/console_input__input_single_variable.bas  # 2:1: not supported yet: statement `INPUT`
 snippets/qb64fresh/console_input__input_with_prompt.bas  # 2:1: not supported yet: statement `INPUT`
 snippets/qb64fresh/console_input__line_input_statement.bas  # 2:12: `Error` node without a parser diagnostic
 snippets/qb64fresh/console_input__line_input_with_prompt.bas  # 2:12: `Error` node without a parser diagnostic
-snippets/qb64fresh/constants__const_double.bas  # 1:1: not supported yet: statement `CONST`
-snippets/qb64fresh/constants__const_expression.bas  # 1:1: not supported yet: statement `CONST`
-snippets/qb64fresh/constants__const_in_expression.bas  # 1:1: not supported yet: statement `CONST`
-snippets/qb64fresh/constants__const_integer.bas  # 1:1: not supported yet: statement `CONST`
-snippets/qb64fresh/constants__const_string.bas  # 1:1: not supported yet: statement `CONST`
 snippets/qb64fresh/control_flow__select_case_fixed_length_string.bas  # 1:17: not supported yet: fixed-length strings
 snippets/qb64fresh/deftype_statements__defdbl_statement.bas  # 1:1: not supported yet: statement `DEFDBL`
 snippets/qb64fresh/deftype_statements__defint_range.bas  # 1:1: not supported yet: statement `DEFINT`
@@ -465,35 +449,23 @@ upstream/arrays/whole_member_array_ops_nonzero_bounds.bas  # 14:6: not supported
 upstream/audio_mem_test/sndopen_mem_test.bas  # 11:7: not supported yet: `PRINT USING`
 upstream/audio_out/test.bas  # 5:1: not supported yet: statement `PLAY`
 upstream/audio_sound_test/sound_test.bas  # 6:8: not supported yet: word `LONG` (expected the end of the statement)
-upstream/auto_include/color0.bas  # 8:1: not supported yet: statement `CONST`
-upstream/auto_include/color32.bas  # 8:1: not supported yet: statement `CONST`
-upstream/cast/cast_test.bas  # 5:1: not supported yet: statement `CONST`
-upstream/clipboard/clipboard_test.bas  # 5:1: not supported yet: statement `CONST`
+upstream/cast/cast_test.bas  # 20:6: not supported yet: arrays
 upstream/colors/color_with_dest.bas  # 5:9: not supported yet: arrays
 upstream/console_only/audio_out.bas  # 3:1: not supported yet: statement `PLAY`
-upstream/const/comma.bas  # 4:1: not supported yet: statement `CONST`
-upstream/const/const_float.bas  # 3:1: not supported yet: statement `CONST`
-upstream/const/const_replace.bas  # 3:1: not supported yet: statement `CONST`
-upstream/const/const_sub.bas  # 2:1: not supported yet: statement `CONST`
-upstream/const/expression.bas  # 3:1: not supported yet: statement `CONST`
-upstream/const/hex_literals.bas  # 3:1: not supported yet: statement `CONST`
-upstream/const/math_funcs.bas  # 5:1: not supported yet: statement `CONST`
-upstream/const/rho_test.bas  # 2:1: not supported yet: statement `CONST`
+upstream/const/math_funcs.bas  # 52:23: expected the end of the statement
 upstream/filesystem/filesys_test.bas  # 77:1: not supported yet: `SYSTEM` with an exit code
-upstream/font/test.bas  # 5:1: not supported yet: statement `CONST`
+upstream/font/test.bas  # 87:20: `Error` node without a parser diagnostic
 upstream/func_tostr/double.bas  # 8:11: not supported yet: `PRINT USING`
 upstream/func_tostr/float.bas  # 8:11: not supported yet: `PRINT USING`
 upstream/func_tostr/single.bas  # 8:11: not supported yet: `PRINT USING`
 upstream/glut/mousecursor.bas  # 14:21: `Error` node without a parser diagnostic
 upstream/glut/windowsizelimit.bas  # 12:22: `Error` node without a parser diagnostic
 upstream/http/read_example.bas  # 11:9: `Error` node without a parser diagnostic
-upstream/iif/iif_test.bas  # 5:1: not supported yet: statement `CONST`
+upstream/iif/iif_test.bas  # 21:6: not supported yet: arrays
 upstream/image/curico_test.bas  # 1:1: not supported yet: statement `DEFLNG`
-upstream/image/pcx_test.bas  # 5:1: not supported yet: statement `CONST`
-upstream/image/webp_test.bas  # 5:1: not supported yet: statement `CONST`
 upstream/keyboard/devices_windows.bas  # 182:35: `Error` node without a parser diagnostic
-upstream/libz/test.bas  # 5:1: not supported yet: statement `CONST`
-upstream/mem/mem_checking_off.bas  # 6:1: not supported yet: statement `CONST`
+upstream/libz/test.bas  # 44:15: not supported yet: `PRINT USING`
+upstream/mem/mem_checking_off.bas  # 54:24: not supported yet: fixed-length strings
 upstream/offset/offset_test.bas  # 4:12: not supported yet: arrays
 upstream/on_error/errtest.bas  # 39:31: expected the end of the statement
 upstream/opengl/test.bas  # 2:9: not supported yet: `STATIC` after a procedure header
@@ -529,4 +501,4 @@ upstream/types/static.bas  # 11:25: not supported yet: fixed-length strings
 upstream/types/static_array.bas  # 8:13: not supported yet: arrays
 upstream/types/udt_array.bas  # 8:7: not supported yet: arrays
 upstream/view/window_view_mandelbrot.bas  # 1:1: not supported yet: statement `DEFLNG`
-upstream/view/window_view_screen_line.bas  # 6:1: not supported yet: statement `CONST`
+upstream/view/window_view_screen_line.bas  # 15:5: `Error` node without a parser diagnostic

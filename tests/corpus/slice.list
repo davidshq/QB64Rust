@@ -70,3 +70,8 @@ runtime_comparison/89_xor
 runtime_comparison/90_mod_negative
 runtime_comparison/91_backslash_negative
 slice/s17_operators
+runtime_comparison/26_const
+runtime_comparison/104_const_expr
+runtime_comparison/207_const_string
+runtime_comparison/241_const_simple
+runtime_comparison/256_const_use

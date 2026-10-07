@@ -7,6 +7,7 @@
 //! main-module `DIM x AS T` for the main-module code after it.
 
 mod blocks;
+mod constants;
 mod decl;
 mod expr;
 mod flow;
@@ -15,8 +16,8 @@ mod proc;
 
 use blocks::block_parts;
 
-use crate::{LabelId, PrintItem, ProcId, Program, Stmt, StmtKind, SymbolKind, Ty, VarId};
-use qb64rust_base::{Diagnostics, SourceMap, Span, show_bytes};
+use crate::{ConstId, LabelId, PrintItem, ProcId, Program, Stmt, StmtKind, SymbolKind, Ty, VarId};
+use qb64rust_base::{Diagnostics, FileId, SourceMap, Span, show_bytes};
 use qb64rust_syntax::ParsedProgram;
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast::{self, PrintPart};
@@ -53,6 +54,11 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         stmt_error: false,
         console_only: false,
         names: Vec::new(),
+        consts_main: HashMap::new(),
+        consts_local: HashMap::new(),
+        used_names: HashMap::new(),
+        used_local: HashMap::new(),
+        label_line: None,
     };
     let skips = Skips::new(program);
     let statements: Vec<Node> = ast::SourceFile::cast(root)
@@ -117,6 +123,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
                 };
                 c.cur = Some(id);
                 c.local = c.param_scopes[id.0 as usize].clone();
+                c.consts_local.clear();
+                c.used_local.clear();
                 for s in def.body() {
                     if skips.past_cap(s) {
                         break;
@@ -210,6 +218,15 @@ struct Checker<'a> {
     fold: bool,
     /// Names resolved in the current statement, for the symbol table.
     names: Vec<(SymbolKind, Span)>,
+    /// Constants by name (without suffix): the main module's so far, and those of the procedure being checked.
+    consts_main: HashMap<String, ConstId>,
+    consts_local: HashMap<String, ConstId>,
+    /// The first use or declaration of each variable name so far, anywhere, and in the procedure being checked:
+    /// a later `CONST` of the name is an error there (design D6).
+    used_names: HashMap<String, Span>,
+    used_local: HashMap<String, Span>,
+    /// File and line of the last main-module label.
+    label_line: Option<(FileId, u32)>,
 }
 
 /// An expression could not be typed; the error is already reported.
@@ -341,6 +358,10 @@ impl Checker<'_> {
             Err(self.unsupported(first_token_span(node), "`READ`"))
         } else if ast::RestoreStmt::cast(node).is_some() {
             Err(self.unsupported(first_token_span(node), "`RESTORE`"))
+        } else if let Some(s) = ast::ConstStmt::cast(node) {
+            self.const_stmt(s)
+        } else if ast::OptionStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "statement `OPTION`"))
         } else {
             Err(self.error(
                 node.span(),

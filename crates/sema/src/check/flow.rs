@@ -68,6 +68,8 @@ impl Checker<'_> {
         if let Some(&id) = self.label_of_def.get(&l.node().key()) {
             self.prog.labels[id.0 as usize].at = self.prog.stmts.len();
         }
+        let span = l.node().span();
+        self.label_line = Some((span.file, self.line(span)));
         Ok(())
     }
 

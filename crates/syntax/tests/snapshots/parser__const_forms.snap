@@ -1,0 +1,109 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"CONST a = 1\\nCONST b% = 2.5, c$ = \\\"x\\\" + \\\"y\\\", d# = -a ^ 2\\nIF 1 THEN CONST e = 4\\nSUB s\\n  CONST f& = a * 2\\nEND SUB\\n\")"
+---
+SourceFile 0..111
+  ConstStmt 0..11
+    Ident CONST
+    Whitespace  
+    ConstItem 6..11
+      Ident a
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 10..11
+        Number 1
+  Newline \x0A
+  ConstStmt 12..55
+    Ident CONST
+    Whitespace  
+    ConstItem 18..26
+      Ident b%
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 23..26
+        Number 2.5
+    Comma ,
+    Whitespace  
+    ConstItem 28..42
+      Ident c$
+      Whitespace  
+      Eq =
+      Whitespace  
+      BinExpr 33..42
+        Literal 33..36
+          StringLit "x"
+        Whitespace  
+        Plus +
+        Whitespace  
+        Literal 39..42
+          StringLit "y"
+    Comma ,
+    Whitespace  
+    ConstItem 44..55
+      Ident d#
+      Whitespace  
+      Eq =
+      Whitespace  
+      PrefixExpr 49..55
+        Minus -
+        BinExpr 50..55
+          NameRef 50..51
+            Ident a
+          Whitespace  
+          Caret ^
+          Whitespace  
+          Literal 54..55
+            Number 2
+  Newline \x0A
+  IfStmt 56..77
+    IfHeader 56..65
+      Ident IF
+      Whitespace  
+      Literal 59..60
+        Number 1
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    LineBranch 66..77
+      ConstStmt 66..77
+        Ident CONST
+        Whitespace  
+        ConstItem 72..77
+          Ident e
+          Whitespace  
+          Eq =
+          Whitespace  
+          Literal 76..77
+            Number 4
+  Newline \x0A
+  ProcDef 78..111
+    ProcHeader 78..83
+      Ident SUB
+      Whitespace  
+      Ident s
+    Newline \x0A
+    Whitespace   
+    ConstStmt 86..102
+      Ident CONST
+      Whitespace  
+      ConstItem 92..102
+        Ident f&
+        Whitespace  
+        Eq =
+        Whitespace  
+        BinExpr 97..102
+          NameRef 97..98
+            Ident a
+          Whitespace  
+          Star *
+          Whitespace  
+          Literal 101..102
+            Number 2
+    Newline \x0A
+    ProcEnd 103..110
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A

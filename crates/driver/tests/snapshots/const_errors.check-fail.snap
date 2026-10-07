@@ -1,0 +1,24 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+const_errors.bas:9:7: error: name already in use: `early` (a `CONST` of this name follows on line 10)
+const_errors.bas:11:1: error: name already in use: `used%` (a `CONST` of this name follows on line 12)
+const_errors.bas:13:1: error: name already in use: `x` (a `CONST` of this name follows on line 14)
+const_errors.bas:16:7: error: name already in use: `twice`
+const_errors.bas:18:1: error: cannot assign to the constant `a`
+const_errors.bas:19:5: error: name already in use: `a`
+const_errors.bas:20:7: error: type mismatch
+const_errors.bas:22:17: error: `q` is a variable, not a constant
+const_errors.bas:23:17: error: `LEN` cannot be used in a `CONST`
+const_errors.bas:24:19: error: cannot mix strings and numbers
+const_errors.bas:25:20: error: strings cannot be compared in a `CONST`
+const_errors.bas:26:7: error: type mismatch
+const_errors.bas:27:7: error: type mismatch
+const_errors.bas:28:17: error: division by zero
+const_errors.bas:29:16: error: division by zero
+const_errors.bas:30:17: error: a negative number to a fractional power
+const_errors.bas:31:14: error: `-` directly before another `-` in a `CONST`
+const_errors.bas:37:11: error: name already in use: `late` (a `CONST` of this name follows on line 40)
+const_errors.bas:43:9: error: name already in use: `insub`
