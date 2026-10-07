@@ -217,15 +217,31 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
 
 ## 7. Emitter (D9)
 
-- [ ] 7.1 Jumps, branches with the error-pending rule, lowering labels, user labels in procedures, `Temp`
+- [x] 7.1 Jumps, branches with the error-pending rule, lowering labels, user labels in procedures, `Temp`
   declarations, `AssignAll`. Verify: `cpp` snapshots; tier 2 `s13_if`, `s14_loops`, `s15_for` pass, also with
   `QB64RUST_NO_FOLD=1`.
-- [ ] 7.2 `GOSUB`/`RETURN` with `retK.txt` per body, `RETURN label` with the guarded decrement (D-003),
+  Done 2026-10-07 (D9 "As built"): `codegen-cpp\src\lib.rs`; `Op::may_raise` moved from the lowering into
+  `ir\src\lib.rs` for the jump guard. The gate is gone (`driver::check_backend` and `not_emitted` removed; the
+  CLI test `jumps_wait_for_the_emitter` replaced, 7.2). `cpp` snapshot `tests\frontend\emit_blocks_cpp.bas`. Tier 2
+  `s13`–`s19` pass, also with `QB64RUST_NO_FOLD=1`.
+- [x] 7.2 `GOSUB`/`RETURN` with `retK.txt` per body, `RETURN label` with the guarded decrement (D-003),
   `error(3)` in procedures. Verify: `cpp` snapshot; tier 2 `s16_goto_gosub` passes; a frontend or slice test runs
   `RETURN label` with nothing pending, then a `GOSUB` and `RETURN`, and gets error 3 and no crash.
-- [ ] 7.3 Header errors end to end. Verify: tier 2 `s19_header_errors` passes; the pipeline scenarios "FOR loop
+  Done 2026-10-07: `cpp` snapshot `tests\frontend\emit_gosub_cpp.bas` (main and SUB, the same label in both,
+  `RETURN label`, a `FOR` in the SUB). `s16_goto_gosub` passes. D-003 is a CLI test,
+  `return_label_with_nothing_pending` (builds and runs; output `error 3`, then two `GOSUB`/`RETURN` round trips,
+  exit 0). It is `#[ignore]`d like the other tests that need the clone, so CI does not run it; it passed by hand.
+  It cannot be a slice program: the corpus holds only output recorded with `qb64pe.exe`, whose program crashes
+  here.
+- [x] 7.3 Header errors end to end. Verify: tier 2 `s19_header_errors` passes; the pipeline scenarios "FOR loop
   lowered", "Header error follows from the pending-error rule", "A store made with a placeholder value" and "FOR
   limits computed with a placeholder value" are pinned by an `ir` snapshot and by `s19`.
+  Done 2026-10-07: no emitter change needed beyond 7.1. `ir` snapshot `tests\frontend\lower_header_errors.bas` (a
+  raising `WHILE` condition as a Skip branch, a store with a raising value, a raising `FOR` limit in the header's
+  `AssignAll` before the `Jump`, a raising `ELSEIF` as a UseValue branch); "FOR loop lowered" is also
+  `lower_for.bas`. `s19_header_errors` passes, also with `QB64RUST_NO_FOLD=1`. Tier 1 green (`fmt --check`,
+  `clippy -D warnings`); tier 2 `slice.list` 75 of 75 with and without folding, upstream `pass.list` 20 of 20.
+  The lists are not extended yet (8.1).
 
 ## 8. Lists and progress
 

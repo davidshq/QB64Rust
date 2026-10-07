@@ -389,6 +389,19 @@ the optimisation yet. The flat form keeps the current model (labels are position
 - No declaration is ever emitted inside a statement, so a `goto` into a block never crosses an initialisation
   (C++ rejects that).
 
+**As built (7.1–7.3):**
+- A `Skip` branch always carries the `is_error_pending()` term, as the old compiler's `(c)||is_error_pending()`
+  does. `Jump` and `Gosub` are guarded only after a raising operation of their own statement (in practice the
+  `FOR` header's `Jump(Lentry)`), so a jump reached with an error still pending from a `UseValue` branch is
+  taken, as the old compiler's plain `goto` is.
+- A string condition is wrapped as `qbs_cleanup(qbs_tmp_base, c)`; libqb's `qbs_cleanup` is a template that
+  returns its argument's type, so a float condition is not truncated.
+- `retK.txt` is written only for a body that has a `RETURN` without label. Its layout is the old compiler's
+  (`qb64pe.bas` 3311, 5433, 17588), including the `error(3)` after the switch, which also catches an entry pushed
+  by another body. `RETURN label` is `if (!next_return_point) error(3); else next_return_point--;` and then the
+  `goto`, which is taken even with error 3 pending; the error is serviced at the label's event check.
+- Temporaries are plain C variables named `temp_<name>` (`temp_for1_value`), so a read or store has no `*`.
+
 ### D10. Diagnostics
 As before: only errors the old compiler also reports, or "not supported yet". New errors: a string condition, a
 wrong `NEXT` variable, a jump to a label of another body, `ON ERROR GOTO` to a procedure label, an undeclared

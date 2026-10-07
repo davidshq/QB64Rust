@@ -322,6 +322,26 @@ pub enum Op {
     Return(Option<LabelId>),
 }
 
+impl Op {
+    /// Whether this operation may raise a runtime error.
+    pub fn may_raise(&self) -> bool {
+        match self {
+            Op::SelectConsole | Op::End | Op::System | Op::Exit | Op::SetHandler(_) | Op::Jump(_) | Op::Gosub(_) => {
+                false
+            }
+            // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
+            Op::Call { .. } | Op::Raise(_) | Op::Resume(_) | Op::Return(_) => true,
+            Op::Assign { value, .. } => value.may_raise(),
+            Op::AssignAll(stores) => stores.iter().any(|(_, v)| v.may_raise()),
+            Op::Branch { cond, .. } => cond.may_raise(),
+            Op::Print { items, .. } => items.iter().any(|i| match i {
+                PrintItem::Str(v) | PrintItem::Num(v) => v.may_raise(),
+                PrintItem::Zone => false,
+            }),
+        }
+    }
+}
+
 /// When an [`Op::Branch`] is taken.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum When {

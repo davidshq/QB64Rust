@@ -188,28 +188,31 @@ fn no_clone_found() {
     assert!(!d.join("p.exe").exists());
 }
 
-/// `GOTO`, `GOSUB` and `RETURN` are checked by the front end (`--dump typed` succeeds) and lowered to the IR
-/// (`--dump ir` succeeds), but the C++ emitter does not write jumps yet, so `--dump cpp` and a build stop with a
-/// marked error (`m2-control-flow-slice` task 6.2, until 7.1).
+/// `RETURN label` with no `GOSUB` pending raises error 3 and leaves the `GOSUB` stack intact, so a later `GOSUB`
+/// and `RETURN` work (`DIVERGENCES.md` D-003; the old compiler's program crashes at that `GOSUB`, so this cannot be
+/// a corpus program recorded with `qb64pe.exe`). The error is serviced at the label `RETURN` jumps to.
 #[test]
-fn jumps_wait_for_the_emitter() {
-    let d = scratch("jumps");
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nGOTO a\na: SYSTEM\n").unwrap();
-    for stage in ["typed", "ir"] {
-        let o = qb64rust(&d, &["--dump", stage, "p.bas"]);
-        assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
-    }
-    for args in [&["--dump", "cpp", "p.bas"][..], &["-z", "p.bas"][..]] {
-        let o = qb64rust(&d, args);
-        assert_eq!(o.status.code(), Some(1));
-        let out = stdout(&o);
-        assert!(
-            out.contains(
-                "p.bas:2:1: error: not supported yet: `GOTO` in code generation\n1 error (1 not supported yet)"
-            ),
-            "{out}"
-        );
-    }
+#[ignore = "needs the QB64pe reference clone"]
+fn return_label_with_nothing_pending() {
+    let d = scratch("return-label");
+    let program = "$CONSOLE:ONLY\nON ERROR GOTO handler\nRETURN back\nPRINT \"not printed\"\nback:\n\
+                   PRINT \"at back\"\nGOSUB sub1\nPRINT \"after sub1\"\nGOSUB sub1\nPRINT \"after sub1 again\"\nSYSTEM\n\
+                   sub1:\nPRINT \"in sub1\"\nRETURN\nhandler:\nPRINT \"error\"; ERR\nRESUME NEXT\n";
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let run = Command::new(&exe)
+        .current_dir(&d)
+        .env("QB64PE_NOPROMPT", "y")
+        .stdin(std::process::Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
+    assert_eq!(
+        stdout(&run).replace("\r\n", "\n"),
+        "error 3 \nat back\nin sub1\nafter sub1\nin sub1\nafter sub1 again\n"
+    );
 }
 
 /// Deeply nested expressions are one "not supported yet" error, not a stack overflow (the known bug of

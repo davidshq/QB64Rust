@@ -10,7 +10,7 @@
 //! `cargo insta review`. `QB64RUST_FRONTEND_DIR` points the harness at another folder (used once to check that
 //! the harness itself fails bad files).
 
-use qb64rust_driver::{check_backend, dump_cpp, dump_ir, frontend};
+use qb64rust_driver::{dump_cpp, dump_ir, frontend};
 use qb64rust_syntax::tree::print;
 use std::path::{Path, PathBuf};
 
@@ -32,10 +32,7 @@ fn mode_of(bytes: &[u8]) -> Option<&'static str> {
 
 /// Runs one file. Returns the snapshot text for snapshot modes, or an error message.
 fn run(name: &str, bytes: Vec<u8>, mode: &str) -> Result<Option<String>, String> {
-    let mut fe = frontend(name, bytes.clone());
-    if mode == "ir" || mode == "cpp" {
-        check_backend(&mut fe, mode == "cpp");
-    }
+    let fe = frontend(name, bytes.clone());
     let syntax_errors = fe.parsed.diagnostics().has_errors();
     match mode {
         "parse-ok" => {

@@ -137,7 +137,7 @@ impl<'a> Lowerer<'a> {
     }
 
     fn emit(&mut self, span: Span, line: u32, ops: Vec<Op>) {
-        let may_raise = ops.iter().any(op_may_raise);
+        let may_raise = ops.iter().any(Op::may_raise);
         self.stmts.push(Stmt {
             span,
             line,
@@ -457,21 +457,6 @@ fn convert(v: Value, to: Ty) -> Value {
     Value {
         ty: to,
         kind: ValueKind::Convert { how, from: Box::new(v) },
-    }
-}
-
-fn op_may_raise(op: &Op) -> bool {
-    match op {
-        Op::SelectConsole | Op::End | Op::System | Op::Exit | Op::SetHandler(_) | Op::Jump(_) | Op::Gosub(_) => false,
-        // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
-        Op::Call { .. } | Op::Raise(_) | Op::Resume(_) | Op::Return(_) => true,
-        Op::Assign { value, .. } => value.may_raise(),
-        Op::AssignAll(stores) => stores.iter().any(|(_, v)| v.may_raise()),
-        Op::Branch { cond, .. } => cond.may_raise(),
-        Op::Print { items, .. } => items.iter().any(|i| match i {
-            PrintItem::Str(v) | PrintItem::Num(v) => v.may_raise(),
-            PrintItem::Zone => false,
-        }),
     }
 }
 

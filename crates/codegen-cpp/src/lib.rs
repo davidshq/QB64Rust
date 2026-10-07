@@ -15,21 +15,26 @@
 //! emitter meets them; `error_goto_line` holds the active one, and `mainerr.txt`, which `qbx.cpp` places at the top
 //! of `QBMAIN`, jumps to it. The runtime runs a handler by calling `QBMAIN` again from the statement boundary
 //! (`evnt`); the handler's resume returns from that call (retry and next) or jumps to a label in it.
+//!
+//! Control flow (design D9 of `m2-control-flow-slice`): a body's labels are C++ labels of its function, user labels
+//! `LABEL_<NAME>` followed by the old compiler's event check, the lowering's `L_<n>` without one. A jump or branch
+//! is a `goto` out of its statement's `do{…}while(r);`, which skips the statement's boundary, as in the old
+//! compiler. `GOSUB` pushes a program-wide return id G on libqb's `return_point` stack and jumps; `RETURN_G:;`
+//! inside the same statement is where `RETURN` comes back, through the switch in `retK.txt` of its body (K = 0 for
+//! the main module), which the `RETURN` statement includes. The lowering's temporaries are plain C variables:
+//! `static` in `maindata.txt` for the main module, per call in `dataK.txt`; none is declared inside a statement,
+//! so no `goto` crosses an initialisation.
 
 // A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
 #![warn(clippy::wildcard_enum_match_arm)]
 
+use qb64rust_base::to_u32;
 use qb64rust_builtins::BuiltinId;
 use qb64rust_ir::{
-    Arg, BinOp, Body, Const, Conv, Label, LabelId, Op, PrintItem, Proc, ProcKind, Program, Resume, Storage, Ty, UnOp,
-    Value, ValueKind, Var, VarId,
+    Arg, BinOp, Body, Const, Conv, LabelId, OnError, Op, PrintItem, Proc, ProcId, ProcKind, Program, Resume, Storage,
+    Ty, UnOp, Value, ValueKind, Var, VarId, When,
 };
 use std::fmt::Write as _;
-
-/// Why the emitter never meets jumps, branches, `GOSUB`, `RETURN` and temporaries yet: the driver stops the
-/// statements that lower to them before code generation (`driver::check_backend`, until task 7 of
-/// `m2-control-flow-slice`).
-const NOT_EMITTED: &str = "stopped before code generation by `driver::check_backend`";
 
 /// The version string `func__compvers` returns (measured from `qb64pe.exe` 4.7.0).
 pub const COMPILER_VERSION: &str = "QB64-PE v4.7.0-GLFW-UNKNOWN";
@@ -57,7 +62,8 @@ pub const FRAGMENTS: &[&str] = &[
     "mainfree.txt",
 ];
 
-/// The emitted fragments: (file name, contents), one per entry of [`FRAGMENTS`], then three per procedure.
+/// The emitted fragments: (file name, contents), one per entry of [`FRAGMENTS`], then three per procedure, and a
+/// `retK.txt` for each body that has a `RETURN` without label (`ret0.txt` for the main module).
 pub struct Fragments {
     pub files: Vec<(String, String)>,
 }
@@ -77,6 +83,11 @@ pub fn emit(p: &Program, source_name: &str) -> Fragments {
         pass: 0,
         pass_decls: Vec::new(),
         handlers: Vec::new(),
+        body: &p.main,
+        k: 0,
+        gosubs: 0,
+        ret_cases: String::new(),
+        returns: false,
     };
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
     let mut set = |name: &str, text: String| files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
@@ -115,16 +126,23 @@ pub fn emit(p: &Program, source_name: &str) -> Fragments {
     let main0 = e.main0();
     set("main0.txt", main0);
     let mut maindata = e.per_program_var(alloc);
+    maindata.push_str(&e.temps(None));
     for d in std::mem::take(&mut e.pass_decls) {
         maindata.push_str(&d);
     }
     set("maindata.txt", maindata);
+    if let Some(ret) = e.take_ret(0) {
+        files.push(("ret0.txt".into(), ret));
+    }
     for (i, proc) in p.procs.iter().enumerate() {
         let k = i + 1;
         let (main_k, data_k, free_k) = e.procedure(i, proc, k);
         files.push((format!("main{k}.txt"), main_k));
         files.push((format!("data{k}.txt"), data_k));
         files.push((format!("free{k}.txt"), free_k));
+        if let Some(ret) = e.take_ret(k) {
+            files.push((format!("ret{k}.txt"), ret));
+        }
     }
     // Last: the handlers are numbered while the bodies are emitted.
     let mut mainerr = String::from(
@@ -239,22 +257,44 @@ pub fn proc_name(proc: &Proc) -> String {
     format!("{prefix}_{}", c_ident(&proc.name))
 }
 
-/// `LABEL_<NAME>` of a user label.
-fn label_name(l: &Label) -> String {
-    match &l.name {
+/// The C++ label of a body's label: `LABEL_<NAME>` for a user label, `L_<n>` (its index) for one the lowering made.
+fn label_name(b: &Body, l: LabelId) -> String {
+    match &b.labels[l.0 as usize].name {
         Some(name) => format!("LABEL_{}", c_ident(name)),
-        None => unreachable!("{NOT_EMITTED}"),
+        None => format!("L_{}", l.0),
     }
 }
 
-/// `__<TYPE>_<NAME>` for a global variable; `_<SUB_P>_<TYPE>_<NAME>` for any variable of procedure P.
+/// `__<TYPE>_<NAME>` for a global variable; `_<SUB_P>_<TYPE>_<NAME>` for any variable of procedure P;
+/// `temp_<name>` for a temporary of the lowering (`for1.value` is `temp_for1_value`).
 pub fn var_name(p: &Program, v: &Var) -> String {
     let scope = match v.storage {
         Storage::Global => String::new(),
         Storage::Static(q) | Storage::Local(q) | Storage::Param(q) | Storage::Result(q) => proc_name(p.proc(q)),
-        Storage::Temp(_) => unreachable!("{NOT_EMITTED}"),
+        Storage::Temp(_) => return format!("temp_{}", v.name.replace('.', "_")),
     };
     format!("_{scope}_{}_{}", type_word(v.ty), c_ident(&v.name))
+}
+
+/// Whether a variable is a plain C variable (a temporary), not a pointer.
+fn is_plain(v: &Var) -> bool {
+    match v.storage {
+        Storage::Temp(_) => true,
+        Storage::Global | Storage::Static(_) | Storage::Local(_) | Storage::Param(_) | Storage::Result(_) => false,
+    }
+}
+
+/// The declaration of a temporary, zero; `static` in the main module.
+fn declare_temp(v: &Var, n: &str) -> String {
+    let static_ = match v.storage {
+        Storage::Temp(None) => "static ",
+        Storage::Temp(Some(_)) => "",
+        Storage::Global | Storage::Static(_) | Storage::Local(_) | Storage::Param(_) | Storage::Result(_) => {
+            unreachable!("not a temporary")
+        }
+    };
+    assert!(!is_qbs(v.ty), "the lowering makes numeric temporaries only");
+    format!("{static_}{} {n}=0;\n", c_type(v.ty))
 }
 
 /// A C string literal for arbitrary bytes: printable ASCII as is, everything else (and `"`, `\`, `?`) as a
@@ -325,12 +365,26 @@ struct Emitter<'a> {
     pass_decls: Vec<String>,
     /// Handler labels; handler number N is entry N - 1.
     handlers: Vec<LabelId>,
+    /// The body being emitted, whose labels the jumps name, and its number K (0 for the main module).
+    body: &'a Body,
+    k: usize,
+    /// Return ids of `GOSUB`s emitted so far in the program; the next one is this plus 1.
+    gosubs: u32,
+    /// The `case`s of `retK.txt` of the body being emitted, one per `GOSUB` in it.
+    ret_cases: String,
+    /// Whether the body being emitted has a `RETURN` without label (which includes its `retK.txt`).
+    returns: bool,
 }
 
-impl Emitter<'_> {
+impl<'a> Emitter<'a> {
     /// `LABEL_<NAME>` of a main-module label.
     fn label_name(&self, l: LabelId) -> String {
-        label_name(&self.p.main.labels[l.0 as usize])
+        label_name(&self.p.main, l)
+    }
+
+    /// The C++ label of a label of the body being emitted.
+    fn local_label(&self, l: LabelId) -> String {
+        label_name(self.body, l)
     }
 
     /// The handler number of a label, assigned on first use.
@@ -355,8 +409,7 @@ impl Emitter<'_> {
             .iter()
             .filter(|v| match v.storage {
                 Storage::Global | Storage::Static(_) => true,
-                Storage::Local(_) | Storage::Param(_) | Storage::Result(_) => false,
-                Storage::Temp(_) => unreachable!("{NOT_EMITTED}"),
+                Storage::Local(_) | Storage::Param(_) | Storage::Result(_) | Storage::Temp(_) => false,
             })
             .map(|v| f(v, &var_name(self.p, v)))
             .collect()
@@ -413,18 +466,43 @@ impl Emitter<'_> {
         // each time a handler re-enters `QBMAIN`, as in the old compiler.
         let mut out = String::from("error_track_line(0,0,NULL);\nS_0:;\n");
         let p = self.p;
-        self.body(&p.main, &mut out);
+        self.body(&p.main, 0, &mut out);
         out.push_str("sub_end();\nreturn;\n}\n");
         out
     }
 
+    /// The declarations of the temporaries of a body (`None`: the main module), in order of creation.
+    fn temps(&self, owner: Option<ProcId>) -> String {
+        self.p
+            .vars
+            .iter()
+            .filter(|v| v.storage == Storage::Temp(owner))
+            .map(|v| declare_temp(v, &var_name(self.p, v)))
+            .collect()
+    }
+
+    /// `retK.txt` of the body just emitted, if it has a `RETURN` without label: pop the last return id and go back
+    /// to its `GOSUB`, if that was made in this body; otherwise, or with no `GOSUB` pending, error 3. Id 0 (pushed by
+    /// event dispatch, which this compiler does not have yet) returns from `QBMAIN` in the main module and is error 3
+    /// in a procedure, as in the old compiler (`qb64pe.bas` 3311, 5433, 17588).
+    fn take_ret(&mut self, k: usize) -> Option<String> {
+        let cases = std::mem::take(&mut self.ret_cases);
+        if !std::mem::take(&mut self.returns) {
+            return None;
+        }
+        let zero = if k == 0 { "return;" } else { "error(3);" };
+        Some(format!(
+            "if (next_return_point){{\nnext_return_point--;\nswitch(return_point[next_return_point]){{\n\
+             case 0:\n{zero}\nbreak;\n{cases}}}\n}}\nerror(3);\n"
+        ))
+    }
+
     /// `mainK.txt`, `dataK.txt` and `freeK.txt` of procedure `i` (K = i + 1).
-    fn procedure(&mut self, i: usize, proc: &Proc, k: usize) -> (String, String, String) {
+    fn procedure(&mut self, i: usize, proc: &'a Proc, k: usize) -> (String, String, String) {
         let (mut data, mut free) = (String::new(), String::new());
         let mine = |s: Storage| match s {
             Storage::Local(q) | Storage::Result(q) => q.0 as usize == i,
-            Storage::Global | Storage::Static(_) | Storage::Param(_) => false,
-            Storage::Temp(_) => unreachable!("{NOT_EMITTED}"),
+            Storage::Global | Storage::Static(_) | Storage::Param(_) | Storage::Temp(_) => false,
         };
         // The result first, then locals in order of creation.
         let mut per_call: Vec<&Var> = proc.result.iter().map(|&r| self.p.var(r)).collect();
@@ -470,6 +548,7 @@ impl Emitter<'_> {
             )
             .unwrap();
         }
+        data.push_str(&self.temps(Some(ProcId(to_u32(i)))));
 
         let mut main = String::new();
         let mut header = vec![format!("{}{{", self.signature(proc))];
@@ -477,7 +556,7 @@ impl Emitter<'_> {
         header.push(format!("#include \"data{k}.txt\""));
         header.extend(PROLOGUE_AFTER_DATA.iter().map(|s| s.to_string()));
         self.lines(proc.line, &header, &mut main);
-        self.body(&proc.body, &mut main);
+        self.body(&proc.body, k, &mut main);
         let mut footer = vec![
             "exit_subfunc:;".to_string(),
             "free_mem_lock(sf_mem_lock);".to_string(),
@@ -507,33 +586,42 @@ impl Emitter<'_> {
         }
     }
 
-    fn body(&mut self, b: &Body, out: &mut String) {
+    /// Body number `k` (0 for the main module, K for procedure K).
+    fn body(&mut self, b: &'a Body, k: usize, out: &mut String) {
+        self.body = b;
+        self.k = k;
         for (i, s) in b.stmts.iter().enumerate() {
-            self.labels(b, i, out);
+            self.labels(i, out);
             let mut body = Vec::new();
+            // Whether an earlier operation of the statement may have left an error pending.
+            let mut raised = false;
             for op in &s.ops {
-                self.op(op, &mut body);
+                self.op(op, raised, &mut body);
+                raised |= op.may_raise();
             }
             let mut lines = vec!["do{".to_string()];
             lines.extend(body);
             lines.push(format!("if(!qbevent)break;evnt({});}}while(r);", s.line));
             self.lines(s.line, &lines, out);
         }
-        self.labels(b, b.stmts.len(), out);
+        self.labels(b.stmts.len(), out);
     }
 
-    /// The labels that stand before statement `at`, each with the old compiler's event check.
-    fn labels(&self, b: &Body, at: usize, out: &mut String) {
-        for l in b.labels.iter().filter(|l| l.at == at) {
-            let lines = [
-                format!("{}:;", label_name(l)),
-                format!("if(qbevent){{evnt({});r=0;}}", l.line),
-            ];
+    /// The labels that stand before statement `at`; a user label with the old compiler's event check.
+    fn labels(&self, at: usize, out: &mut String) {
+        for (i, l) in self.body.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
+            let mut lines = vec![format!("{}:;", self.local_label(LabelId(to_u32(i))))];
+            if l.name.is_some() {
+                lines.push(format!("if(qbevent){{evnt({});r=0;}}", l.line));
+            }
             self.lines(l.line, &lines, out);
         }
     }
 
-    fn op(&mut self, op: &Op, out: &mut Vec<String>) {
+    /// One operation. `raised`: an earlier operation of the statement may have raised, so a jump checks for a
+    /// pending error (design D9).
+    fn op(&mut self, op: &Op, raised: bool, out: &mut Vec<String>) {
+        let unless_error = if raised { "if (!is_error_pending()) " } else { "" };
         match op {
             Op::SelectConsole => {
                 out.push("sub__dest(func__console());".into());
@@ -568,17 +656,59 @@ impl Emitter<'_> {
                 };
                 out.push(format!("if (!error_handling){{error(20);}}else{{{then}}}"));
             }
-            Op::Assign { place, value } => {
-                let name = self.name(*place);
-                let v = self.value(value);
-                if is_qbs(value.ty) {
-                    out.push(format!("qbs_set({name},{v});"));
-                } else {
-                    out.push(format!("*{name}={v};"));
+            Op::Assign { place, value } => self.assign(*place, value, out),
+            Op::AssignAll(stores) => {
+                for (place, value) in stores {
+                    self.assign(*place, value, out);
                 }
-                if value.uses_strings() {
-                    out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+            }
+            Op::Jump(l) => out.push(format!("{unless_error}goto {};", self.local_label(*l))),
+            Op::Branch {
+                cond,
+                when,
+                to,
+                on_error,
+            } => {
+                let mut c = self.value(cond);
+                if cond.uses_strings() {
+                    c = format!("qbs_cleanup(qbs_tmp_base,{c})");
                 }
+                let test = match when {
+                    When::Zero => format!("!({c})"),
+                    When::NonZero => format!("({c})"),
+                };
+                // The condition is evaluated first, so a raising condition never jumps.
+                let test = match on_error {
+                    OnError::Skip => format!("({test})&&(!is_error_pending())"),
+                    OnError::UseValue => test,
+                };
+                out.push(format!("if ({test}) goto {};", self.local_label(*to)));
+            }
+            Op::Gosub(l) => {
+                self.gosubs += 1;
+                let g = self.gosubs;
+                // With an error pending the jump is not taken and nothing is pushed.
+                if raised {
+                    out.push("if (!is_error_pending()){".into());
+                }
+                out.push(format!("return_point[next_return_point++]={g};"));
+                out.push("if (next_return_point>=return_points) more_return_points();".into());
+                out.push(format!("goto {};", self.local_label(*l)));
+                if raised {
+                    out.push("}".into());
+                }
+                out.push(format!("RETURN_{g}:;"));
+                writeln!(self.ret_cases, "case {g}:\ngoto RETURN_{g};\nbreak;").unwrap();
+            }
+            Op::Return(None) => {
+                self.returns = true;
+                out.push(format!("#include \"ret{}.txt\"", self.k));
+            }
+            // The decrement is guarded, unlike the old compiler's, whose counter wrapped below zero (DIVERGENCES.md
+            // D-003).
+            Op::Return(Some(l)) => {
+                out.push("if (!next_return_point) error(3); else next_return_point--;".into());
+                out.push(format!("goto {};", self.label_name(*l)));
             }
             Op::Call { proc, args } => {
                 let q = self.p.proc(*proc);
@@ -588,9 +718,6 @@ impl Emitter<'_> {
                 if strings {
                     out.push("qbs_cleanup(qbs_tmp_base,0);".into());
                 }
-            }
-            Op::Jump(_) | Op::Branch { .. } | Op::AssignAll(_) | Op::Gosub(_) | Op::Return(_) => {
-                unreachable!("{NOT_EMITTED}")
             }
             Op::Print { items, newline } => {
                 // The IR's raise rule for PRINT: a raising item skips the rest of the statement.
@@ -627,6 +754,28 @@ impl Emitter<'_> {
         }
     }
 
+    /// A variable as a C expression: a `qbs*` or a temporary as it is, any other through its pointer.
+    fn scalar(&self, id: VarId) -> String {
+        let (v, name) = (self.p.var(id), self.name(id));
+        if is_qbs(v.ty) || is_plain(v) {
+            name
+        } else {
+            format!("*{name}")
+        }
+    }
+
+    fn assign(&mut self, place: VarId, value: &Value, out: &mut Vec<String>) {
+        let v = self.value(value);
+        if is_qbs(value.ty) {
+            out.push(format!("qbs_set({},{v});", self.name(place)));
+        } else {
+            out.push(format!("{}={v};", self.scalar(place)));
+        }
+        if value.uses_strings() {
+            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        }
+    }
+
     /// Arguments of a procedure call: a variable's own pointer, a string temporary as it is, or a numeric copy in
     /// a new `passN`.
     fn args(&mut self, args: &[Arg]) -> String {
@@ -658,14 +807,7 @@ impl Emitter<'_> {
                 }
             }
             ValueKind::Const(Const::Str(s)) => format!("qbs_new_txt_len({},{})", c_string(s), s.len()),
-            ValueKind::Var(id) => {
-                let name = self.name(*id);
-                if is_qbs(self.p.var(*id).ty) {
-                    name
-                } else {
-                    format!("*{name}")
-                }
-            }
+            ValueKind::Var(id) => self.scalar(*id),
             ValueKind::Convert { how, from } => {
                 let x = self.value(from);
                 match (how, v.ty) {
