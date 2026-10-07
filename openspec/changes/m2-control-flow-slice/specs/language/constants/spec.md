@@ -79,6 +79,10 @@ allowed. `OPTION EXPLICIT` without the underscore SHALL be a compile error.
 - **WHEN** a program starts with `OPTION _EXPLICIT` and then has `x = 1` without `DIM x`
 - **THEN** it is a compile error naming `x`
 
+#### Scenario: SHARED before the main module's DIM
+- **WHEN** a program has `OPTION _EXPLICIT`, a SUB with `SHARED w AS LONG`, and after the SUB `DIM w AS LONG`
+- **THEN** it is a compile error naming `w` at the `SHARED`
+
 #### Scenario: Declared variable and constant
 - **WHEN** a program starts with `OPTION _EXPLICIT`, then `DIM x AS LONG`, `CONST k = 2`, `x = k`
 - **THEN** it compiles

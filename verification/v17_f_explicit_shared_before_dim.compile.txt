@@ -1,0 +1,5 @@
+
+Variable 'w' (LONG) not defined
+Caused by (or after):SHARED W AS LONG
+LINE 5:SHARED w AS LONG
+exit=1

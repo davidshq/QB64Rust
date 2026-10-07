@@ -1,6 +1,6 @@
-//! Names and declarations: suffixes, reserved names, variables by scope, `DIM`, `STATIC`, `SHARED`.
+//! Names and declarations: suffixes, reserved names, variables by scope, `DIM`, `STATIC`, `SHARED`, `OPTION`.
 
-use super::{Checker, R, Scope};
+use super::{Checker, Failed, R, Scope};
 use crate::{ProcKind, Storage, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{show_bytes, to_u32};
 use qb64rust_builtins::find_any;
@@ -129,6 +129,9 @@ impl Checker<'_> {
             Some(id) => id,
             None => {
                 self.reserved(t, &key.0, suffix)?;
+                if self.explicit {
+                    return Err(self.undeclared(t, ty));
+                }
                 let id = self.new_var(key.0.clone(), ty, storage);
                 self.scope().vars.insert(key, id);
                 id
@@ -269,10 +272,50 @@ impl Checker<'_> {
         self.declare_items(stmt.items(), Storage::Static(p), false)
     }
 
+    /// `OPTION _EXPLICIT` and `OPTION _EXPLICITARRAY` (design D7). The flag was set by the pre-pass, since it
+    /// applies to the whole program; `_EXPLICITARRAY` only concerns arrays, which are "not supported yet" anyway.
+    pub(super) fn option_stmt(&mut self, stmt: ast::OptionStmt) -> R<()> {
+        let node = stmt.node();
+        let word = self.need(stmt.word(), node.span())?;
+        match self.word(word).as_str() {
+            "_EXPLICIT" | "_EXPLICITARRAY" => Ok(()),
+            "BASE" => Err(self.unsupported(word.span, "`OPTION BASE`")),
+            // Measured without `$NOPREFIX` (`v17_f_explicit_no_underscore`): "Expected OPTION BASE or OPTION
+            // _EXPLICIT or OPTION _EXPLICITARRAY".
+            _ => Err(self.error(
+                word.span,
+                "expected `OPTION BASE`, `OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`",
+            )),
+        }
+    }
+
+    /// A variable used without a declaration under `OPTION _EXPLICIT`. Once something was marked "not supported
+    /// yet", the use is only "not supported yet" too: that construct may declare the name (an `$INCLUDE`, `DIM AS
+    /// LONG x`, a `TYPE` variable, a suffix not supported yet), so a real error could be false (the follow-on rule
+    /// of `study\23` §2.3, applied here first). Counted: the parser's marks earlier in the same file, and every
+    /// mark `sema` made so far. The latter are earlier in the file, except those of pass 1 (procedure headers)
+    /// and of the label pre-pass, which may stand anywhere; counting them too only hides more real errors.
+    fn undeclared(&mut self, t: Tok, ty: Ty) -> Failed {
+        let shown = show_bytes(self.text(t.span));
+        let parse_mark_before = self
+            .parse_marks
+            .iter()
+            .any(|m| m.file == t.span.file && m.start < t.span.start);
+        if self.diags.unsupported_count() > 0 || parse_mark_before {
+            let msg = format!("`{shown}` under `OPTION _EXPLICIT` after a construct not supported yet");
+            return self.unsupported(t.span, msg);
+        }
+        let msg = format!(
+            "variable `{shown}` ({}) is not declared (`OPTION _EXPLICIT`)",
+            ty.qb_name()
+        );
+        self.error(t.span, msg)
+    }
+
     /// `SHARED name [AS type]` in a procedure: binds the main-module variable of that name and type, created if
     /// missing. Measured: without `AS` or a suffix the type is SINGLE, whatever the main module's plain name
     /// means (`v14_shared_plain_typed`); with `AS` it types the main module's plain name too, as a `DIM` there
-    /// would (`v14_shared_plain_main`).
+    /// would (`v14_shared_plain_main`). Under `OPTION _EXPLICIT` a missing one is an error instead.
     pub(super) fn shared(&mut self, stmt: ast::SharedStmt) -> R<()> {
         if self.cur.is_none() {
             let span = stmt.node().span();
@@ -313,6 +356,11 @@ impl Checker<'_> {
                 Some(&id) => id,
                 None => {
                     self.reserved(name_tok, &name, suffix)?;
+                    if self.explicit {
+                        // Measured: also when the main module declares the name later in the file
+                        // (`v17_f_explicit_shared_before_dim`) or with another type (`..._shared_other_type`).
+                        return Err(self.undeclared(name_tok, ty));
+                    }
                     let id = self.new_var(name.clone(), ty, Storage::Main);
                     self.main.vars.insert(key.clone(), id);
                     id

@@ -233,6 +233,22 @@ a type, so after `DIM x AS LONG` the use `x&` is declared and `x%` is not. `OPTI
 underscore is an error (no `$NOPREFIX` in this change), and `OPTION _EXPLICITARRAY` leaves implicit scalars
 allowed.
 
+**As built (4.3):** a pre-pass over the main tree (`check\mod.rs` `has_option_explicit`, every node, so also inside
+blocks and procedures) sets the flag; the `OPTION` statement itself only checks its word (`check\decl.rs`
+`option_stmt`; `OPTION BASE` stays "not supported yet" until arrays). The check sits where `variable` would create
+an implicit variable and where `SHARED` would create a main variable. `SHARED` must find the main variable of that
+name **and type declared earlier in the file**: measured after the design (`verification\v17_f_explicit_shared_before_dim`:
+the main module's `DIM` comes after the SUB; `v17_f_explicit_shared_other_type`: `SHARED x` without `AS` beside a
+main `DIM x AS LONG`), both "not defined" in the old compiler. **Follow-on rule, applied here first:** once
+anything earlier in the file was marked "not supported yet", by the parser or by `sema`, an undeclared variable
+is only "not supported yet" too, since that construct may declare it. A narrower first try (only names of
+declarations that had an error) still gave 15 accepted programs a false error (an `$INCLUDE` not loaded yet, `DIM
+AS LONG x`, `CONST CI%& = 255`, `TYPE` variables, `_DEFINE`). The rule counts the parser's marks earlier in the
+same file and every mark `sema` made so far, which includes those of pass 1 (procedure headers) and the label
+pre-pass wherever they stand. It is blunter than needed (a marked `LEN` also hides a later real error) and gives
+way to the general rule of `m2-parser-breadth` D10 when that lands. The `FOR` variable is checked when `FOR` is (5.2); a test of it
+belongs there.
+
 ### D8. The IR: flat bodies, explicit jumps
 ```
 Body    { labels: Vec<Label>, stmts: Vec<Stmt> }

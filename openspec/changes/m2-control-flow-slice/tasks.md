@@ -158,8 +158,20 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
   pass, none wrong at run time; upstream **20 of 279** (`const/comma`, `const/const_sub`, `const/not_string`, the
   two `const/type_mismatch_string_*`), none wrong. Lists: false errors lose 4 entries (two others now fail later),
   only-marked rejections lose 3; nothing added.
-- [ ] 4.3 `OPTION _EXPLICIT` and `_EXPLICITARRAY` (D7), placement as measured. Verify: `check-ok` and `check-fail`
+- [x] 4.3 `OPTION _EXPLICIT` and `_EXPLICITARRAY` (D7), placement as measured. Verify: `check-ok` and `check-fail`
   tests for each declaration kind of 1.1; the scenarios of "OPTION _EXPLICIT" as frontend tests.
+  *Done 2026-10-07:* pre-pass `has_option_explicit` (`check\mod.rs`), `option_stmt` and `undeclared`
+  (`check\decl.rs`); details in D7 "As built". Three more measurements: `v17_f_explicit_shared_before_dim` and
+  `v17_f_explicit_shared_other_type` (both "not defined": `SHARED` needs the main variable of that type declared
+  earlier in the file; scenario added to the spec delta), `v17_f_explicit_const_in_sub` (a SUB's own `CONST`, a
+  main `CONST` in a SUB, a FUNCTION read by its name: accepted). Tests: `check-ok` `explicit_declared` (every
+  declaration kind, OPTION after a statement, twice, after a colon, with `_EXPLICITARRAY`; `x&` after `DIM x AS
+  LONG`) and `explicit_array_only`; `check-fail` `explicit_undeclared` (every error of 1.1 and the two new ones,
+  `OPTION EXPLICIT`), `explicit_in_sub`, `explicit_in_block`, `explicit_after_unsupported` (the follow-on rule,
+  marks by the parser and by `sema`); `unsupported.bas` now shows `OPTION BASE` marked on its word. The `FOR`
+  variable waits for 5.2 (added there). Lists: false errors lose 12 entries (the follow-on rule turns the
+  first errors of `$INCLUDE`/`TYPE` programs into marks), nothing added. Tier 2: `slice.list` 75 of 75; upstream
+  unchanged at **20 of 279** (the same 20), no program built that gives wrong output.
 
 ## 5. Blocks in `sema` (D3, D5)
 
@@ -169,7 +181,8 @@ and the emitter have met jumps (design, Risks); `s18_const` and the `CONST` prog
   for the same name in two bodies; symbol-table snapshot with a label in a SUB.
 - [ ] 5.2 `IF` (both forms), `FOR`, `DO`, `WHILE`, `EXIT FOR/DO/WHILE` as typed block statements; `NEXT`
   variables compared (D3); `block_parts` reduced to the blocks still marked. Verify: `typed` snapshots per block
-  kind; `check-fail` for a string condition, a wrong `NEXT` variable and order, a non-scalar `FOR` variable;
+  kind; `check-fail` for a string condition, a wrong `NEXT` variable and order, a non-scalar `FOR` variable, an
+  undeclared `FOR` variable under `OPTION _EXPLICIT` (`v17_f_explicit_for`, left from 4.3);
   regenerated lists lose entries and gain none; the tier-1 `.err` test still passes.
 
 ## 6. IR (D8)

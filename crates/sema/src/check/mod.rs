@@ -59,8 +59,17 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         used_names: HashMap::new(),
         used_local: HashMap::new(),
         label_line: None,
+        explicit: false,
+        parse_marks: program
+            .trees
+            .iter()
+            .flat_map(|t| t.diagnostics.list())
+            .filter(|d| d.unsupported)
+            .map(|d| d.span)
+            .collect(),
     };
     let skips = Skips::new(program);
+    c.explicit = has_option_explicit(map, root, &skips);
     let statements: Vec<Node> = ast::SourceFile::cast(root)
         .into_iter()
         .flat_map(|f| f.statements())
@@ -227,6 +236,10 @@ struct Checker<'a> {
     used_local: HashMap<String, Span>,
     /// File and line of the last main-module label.
     label_line: Option<(FileId, u32)>,
+    /// `OPTION _EXPLICIT` stands somewhere in the program (it applies to the whole program, design D7).
+    explicit: bool,
+    /// Where the parser marked something "not supported yet".
+    parse_marks: Vec<Span>,
 }
 
 /// An expression could not be typed; the error is already reported.
@@ -360,8 +373,8 @@ impl Checker<'_> {
             Err(self.unsupported(first_token_span(node), "`RESTORE`"))
         } else if let Some(s) = ast::ConstStmt::cast(node) {
             self.const_stmt(s)
-        } else if ast::OptionStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "statement `OPTION`"))
+        } else if let Some(s) = ast::OptionStmt::cast(node) {
+            self.option_stmt(s)
         } else {
             Err(self.error(
                 node.span(),
@@ -451,6 +464,17 @@ impl Checker<'_> {
         self.push(stmt.node(), StmtKind::Print { items, newline });
         Ok(())
     }
+}
+
+/// Whether an `OPTION _EXPLICIT` without a parse error stands anywhere in the tree: in the main module, a
+/// procedure or a block, before or after the variables it concerns (measured, `verification\v17_f_*`).
+fn has_option_explicit(map: &SourceMap, node: Node, skips: &Skips) -> bool {
+    if let Some(s) = ast::OptionStmt::cast(node) {
+        return skips.usable(node)
+            && s.word()
+                .is_some_and(|w| map.text(w.span).eq_ignore_ascii_case(b"_EXPLICIT"));
+    }
+    node.child_nodes().any(|n| has_option_explicit(map, n, skips))
 }
 
 /// The span of a statement's first token (where a "not supported yet" mark goes, design D10).

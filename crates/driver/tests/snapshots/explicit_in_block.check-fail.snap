@@ -1,0 +1,8 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+explicit_in_block.bas:6:1: error: not supported yet: `IF` blocks
+explicit_in_block.bas:9:1: error: not supported yet: `x` under `OPTION _EXPLICIT` after a construct not supported yet
+explicit_in_block.bas:10:7: error: not supported yet: `x` under `OPTION _EXPLICIT` after a construct not supported yet

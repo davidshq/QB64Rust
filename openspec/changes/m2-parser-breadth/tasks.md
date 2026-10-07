@@ -154,9 +154,13 @@ through to C++ as its own OpenSpec change, with the IR review after it. Groups 7
   passes `--include-root tests/upstream` to `qb64rust`, and the loader in `inputs.rs` (tier 1) uses the same root.
   Verify: a `check-ok` test for the guarded self-include (`v16_m7_self_guarded`); the upstream `include_once\*` and
   `include_paths\*` programs (including `include_fixed_compile_location`, `include_multiple`) pass tier 2 and go
-  into `pass.list`; `qb64pe-source/` files are parsed through `qb64pe.bas`'s includes (clone present).
+  into `pass.list`; `qb64pe-source/` files are parsed through `qb64pe.bas`'s includes (clone present). Also (from
+  `m2-control-flow-slice` 4.3): `sema`'s `OPTION _EXPLICIT` pre-pass (`check\mod.rs` `has_option_explicit`) reads
+  only the main tree; it must read every tree, with a `check-fail` test where the only `OPTION _EXPLICIT` stands
+  in an included file (measure it with `qb64pe.exe` first).
 - [ ] 8.2 The follow-on rule (D10, changed 2026-10-05): after the first unsupported declaration `sema` reports only
-  "not supported yet" errors; the two spec scenarios as `check-fail` tests. The auto-include name list from
+  "not supported yet" errors; the two spec scenarios as `check-fail` tests. It replaces the narrower rule of
+  `m2-control-flow-slice` 4.3 (`check\decl.rs` `undeclared`, design D7 "As built"). The auto-include name list from
   `extract_builtins.py` (re-run it; `builtins.json` gains the names with their source file); `_GL` and built-in
   assignment targets marked. Verify: the type-error and reserved-name entries leave `known_false_errors.list`; the
   new entries in `known_unsupported_rejections.list` are listed here by declaration kind and shown to the user,

@@ -371,7 +371,7 @@ program per question, `v17_probe_*` the three probes of the change's design; han
   the function's own name; not by a `FOR` variable or a `SHARED w AS LONG` naming nothing in main. After `DIM x AS
   LONG`, `x&` is fine and `x%` is "Variable 'x' (INTEGER) not defined". `OPTION EXPLICIT` (no underscore) is
   "Expected OPTION BASE or OPTION _EXPLICIT or OPTION _EXPLICITARRAY". `OPTION _EXPLICITARRAY` allows implicit
-  scalars and rejects an implicit array ("Array 'a' (SINGLE) not defined").
+  scalars and rejects an implicit array ("Array 'a' (SINGLE) not defined"). `SHARED w AS LONG` in a SUB that comes before the main module's `DIM w AS LONG`, and `SHARED x` (SINGLE) beside a main `DIM x AS LONG`, are both "not defined": `SHARED` needs the main variable of that name and type declared earlier in the file (`v17_f_explicit_shared_*`).
 - **Operators (`v17_g_*`, `v17_probe_ops`):** the precedence table of `02` §1.3 holds (`NOT 1 = 2` is -1, `5 MOD 3
   \ 2` is 0, `0 _ORELSE 0 OR 2` is -1, `1 _ANDALSO 2 AND 4` is 0, `_NEGATE 0 AND 2` is 2, comparisons chain left to
   right). `NOT`, `AND`, `OR`, `IMP` on INTEGER and LONG compute in 32 bits, with an `_INTEGER64` in 64. **Float

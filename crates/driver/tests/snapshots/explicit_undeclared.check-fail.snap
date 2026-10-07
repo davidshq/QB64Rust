@@ -1,0 +1,15 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+explicit_undeclared.bas:7:1: error: variable `z` (SINGLE) is not declared (`OPTION _EXPLICIT`)
+explicit_undeclared.bas:9:5: error: variable `y` (SINGLE) is not declared (`OPTION _EXPLICIT`)
+explicit_undeclared.bas:12:1: error: variable `a` (SINGLE) is not declared (`OPTION _EXPLICIT`)
+explicit_undeclared.bas:13:7: error: variable `b` (SINGLE) is not declared (`OPTION _EXPLICIT`)
+explicit_undeclared.bas:16:1: error: variable `x%` (INTEGER) is not declared (`OPTION _EXPLICIT`)
+explicit_undeclared.bas:21:5: error: variable `w` (SINGLE) is not declared (`OPTION _EXPLICIT`)
+explicit_undeclared.bas:22:12: error: variable `never` (LONG) is not declared (`OPTION _EXPLICIT`)
+explicit_undeclared.bas:23:12: error: variable `later` (LONG) is not declared (`OPTION _EXPLICIT`)
+explicit_undeclared.bas:24:12: error: variable `x` (SINGLE) is not declared (`OPTION _EXPLICIT`)
+explicit_undeclared.bas:28:8: error: expected `OPTION BASE`, `OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`
