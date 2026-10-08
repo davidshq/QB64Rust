@@ -1,0 +1,7 @@
+LONG before, LONG after: 5  6 -1 
+SINGLE before: 1.5 
+two INTEGERs before: 1  2 
+_UNSIGNED _BIT * 3 before: 0 
+_INTEGER64 before: 7 
+_BIT * 8 after: 9 
+exit=0

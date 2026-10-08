@@ -1,0 +1,5 @@
+
+Number expected after *
+Caused by (or after):DIM T AS _BIT * ( 3 + 4 )
+LINE 3:DIM t AS _BIT * (3 + 4)
+exit=1

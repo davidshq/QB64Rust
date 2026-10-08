@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-08 (session 25). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-08 (session 27). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Next: step 8.**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Step 8's bug-compatibility decisions are taken (2026-10-08); next: the rest of step 8.**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -247,8 +247,16 @@ is its `tasks.md`, and `git log`.
 7. Done 2026-10-08 (session 25), checked locally: the thin language server (`study\23` §2.6; design points
    `study\27` §6): OpenSpec change `m2-language-server`, archived, section above. Left: see the CI run on GitHub
    after the next push (task 5.1).
-8. **Next:** bug-compatibility decisions (`study\00` §6), the differential tester, the full numeric type set and
-   fixed-length strings (`Ty` stays an enum with an explicit rank; no type table, `study\27` §5).
+8. **Next:** bug-compatibility decisions done 2026-10-08 (session 26; all of `study\00` §6, `DECISIONS.md`,
+   `DIVERGENCES.md` D-005–D-013, `DIVERGENCES-QB45.md` Q-003–Q-008). Left: OpenSpec change `m2-numeric-types`
+   (proposed 2026-10-08): the differential tester, the full numeric type set and fixed-length strings
+   (`Ty` stays an enum with an explicit rank; no type table, `study\27` §5), and the decided fixes D-005–D-009 and the
+   `CONST` `^` warning. D-010–D-012 are libqb's and wait for the runtime copy (M3); D-013 for its two built-ins.
+   **Group 1 (measurements) done 2026-10-08 (session 27):** `verification\v21_*` (`study\00` §5), the spec deltas
+   and design corrected (listed in its `tasks.md` 1.5), four oddities decided by the user (`DECISIONS.md`); then the
+   user's rule "do what QB64pe does" (questionable behaviours listed in `SOMEDAY.md` for review), so task 1.6
+   measured and brought in the forms first left "not supported yet" (`verification\v21_f_*`). **Next:
+   group 2, the differential tester (`crates\difftest`).**
 9. Built-in statements and functions by demand (`study\27` §3): a built-in statement operation in the IR, then
    sequential file I/O, `DATA`/`READ`/`RESTORE`, `SWAP`, `RANDOMIZE`/`RND`/`TIMER`, console `INPUT`/`LINE INPUT`,
    `SHELL`/`COMMAND$`/`ENVIRON$`, each measured first; the remaining plain functions as the corpus, upstream or a
@@ -316,7 +324,6 @@ members in debug); it is now constant time.
 
 | When | Item |
 |---|---|
-| Step 8 of "Next" | Decide the bug-compatibility choices in `study\00` §6 (32-bit INTEGER arithmetic and half-to-even rounding are already implemented as "keep") |
 | M3 | Plain copy of `..\QB64pe\internal\c` at the pinned commit (`DECISIONS.md`) |
 | M3 | Programs that draw (without `$CONSOLE:ONLY` and not writing to `_DEST _CONSOLE`), with an oracle such as a screen-state dump at exit compared between old and new compiler (`study\22` §3.2); `$CONSOLE` + `_DEST _CONSOLE` programs are M2 work (step 10 of "Next", `study\26` §5) |
 | M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\22` §4.2) |

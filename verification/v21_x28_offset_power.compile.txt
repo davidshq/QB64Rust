@@ -1,0 +1,5 @@
+
+Operator '^' cannot be used with an _OFFSET
+Caused by (or after):PRINT O ^ 2
+LINE 4:PRINT o ^ 2
+exit=1

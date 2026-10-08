@@ -1,0 +1,5 @@
+
+$NOPREFIX is a deprecated feature, QB64(PE) specific keywords MUST have the underscore. To convert this program, open it in the IDE.
+Caused by (or after):
+LINE 3:$NOPREFIX
+exit=1

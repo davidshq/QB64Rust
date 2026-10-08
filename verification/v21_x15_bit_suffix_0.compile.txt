@@ -1,0 +1,5 @@
+
+Cannot create a _BIT variable of size 0 bits
+Caused by (or after):K`0 = 1
+LINE 3:k`0 = 1
+exit=1

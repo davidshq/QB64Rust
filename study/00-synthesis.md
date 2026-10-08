@@ -179,7 +179,8 @@ same in the first three):
 - A literal wider than 64 bits is not caught: `PRINT 340282366920938463463374607431768211455&&` fails in the C++
   compiler. The new compiler reports "overflow".
 - An `&&` literal above `_INTEGER64` range wraps: `PRINT 18446744073709551615&&` prints `-1`. The new compiler
-  reports "overflow" (not yet in `DIVERGENCES.md`).
+  reports "overflow"; decided 2026-10-08 to do as QB64pe, as for every out-of-range suffixed literal
+  (`m2-numeric-types`, `DECISIONS.md`; QB64pe converts such a literal only where its C++ casts it, §5 below).
 
 Measured for procedures and error handling (2026-10-04, `m2-procedures-and-errors`; `verification\v14_*`,
 `v15_*`, `tests\corpus\slice\s08`–`s12`; full tables in `openspec\changes\archive\2026-10-04-m2-procedures-and-errors\design.md`, Context):
@@ -559,48 +560,176 @@ Measured for the core built-ins, `SELECT CASE` and `ON … GOTO/GOSUB` (2026-10-
   the 100-error cap). The 0.6 s of `study\27` §2 was a whole `--dump tree` process (start, parse, printing the
   trees); a 100 ms debounce costs more than any parse but the old compiler's own source.
 
-## 6. Bug-compatibility choices still to make
+Measured for the new numeric types and fixed-length strings (2026-10-08, `m2-numeric-types` group 1;
+`verification\v21_*`: 15 programs with output, `v21_x01`–`x36` one rejection each, and the C++ read with
+`qb64pe -z`):
 
-From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence register (R2).
+- **Declarations (`v21_a_decls`, `v21_a_suffixes`):** `AS` takes `_BYTE`, `INTEGER`, `LONG`, `_INTEGER64`,
+  `_OFFSET`, each with `_UNSIGNED`, and `_BIT`, `_UNSIGNED _BIT`, `_BIT * n`, `_UNSIGNED _BIT * n` (`_BIT*7` without
+  blanks too). **n is a number literal from 1 to 64** (0 and 65 are errors; a `CONST` name or an expression is
+  "Number expected after *"); a `_BIT` **array** stops at 63. `BYTE` without the underscore is "Unknown type";
+  `$NOPREFIX` is refused ("deprecated feature"). `_UNSIGNED SINGLE` is "Type cannot be _UNSIGNED", `AS _UNSIGNED`
+  alone "Unknown type", but **`_UNSIGNED STRING` and `_UNSIGNED STRING * n` are accepted and behave as `STRING`**.
+  Suffixes `%%`, `~%%`, `~%`, `~&`, `~&&`, `%&`, `~%&`, `` ` ``, `` `n ``, `` ~` ``, `` ~`n `` work on implicit and
+  DIMmed names (`` `65 `` "Invalid symbol", `` `0 `` an error); `DIM a%% AS _BYTE` is "Expected ,". **One name with
+  each suffix is a different variable** (`nm%%`, `nm~%%`, … `nm~`2`: 14 variables). Stores wrap to the width (`b%% =
+  200` is -56, `x~% = -1` 65535). `LEN` of `_BYTE` 1, of the unsigned types their width, of `_OFFSET` 8; **`LEN` of
+  any `_BIT` variable is an error** ("Variable/element cannot be _BIT aligned").
+- **Literals (`v21_a_literals`, `v21_d_const`, C++):** **a suffixed decimal literal is emitted as its own digits**
+  (`ll`/`ull` added for the 64-bit types) and only *typed* by its suffix: the value is converted only where the
+  generated code casts (`PRINT 300~%%` is `qbs_str((uint8)(300))`, 44; a store), **not inside an expression**
+  (`300~%% + 0` is 300, `-1~& < 0` is true, `200%% + 0` is 200, `-1~&& + 0` is -1). In range, the two agree. The same
+  holds for `%`, `&`, `&&` (`PRINT 32768%` is -32768). **A `CONST` with a suffix behaves the same way** (`CONST
+  b~%% = -1`: `PRINT b~%%` is 255, `b~%% + 0` is -1 and `b~%% < 0` is false, because the evaluator's unsigned value
+  is written as `18446744073709551615`). `&H`/`&O`/`&B` literals are converted when read (`&HFF%%` is -1 everywhere;
+  `&H1FF~%%` is 511 raw). **Bit literals and bit constants are never converted** and are believed `_INTEGER64`
+  (`` PRINT 1` `` is 1, `` 3`2 `` is 3, `` CONST j~`3 = -1 `` prints -1). `18446744073709551616~&&` fails in the C++
+  compiler; `5%&` is "Cannot use _OFFSET symbols after numbers"; `2.5~%`, `1.5%%` and `3E2%%` "Unexpected
+  character". `HEX$` of a suffixed literal uses the suffix's width (`HEX$(-1%%)` `FF`, `HEX$(-1~&&)` `""` as a
+  64-bit non-place, `` HEX$(-1`) `` `F`: a `_BIT * n` gets ceil(n / 4) digits).
+- **FUNCTION names (`v21_a_functions`):** every new suffix works, the result stored as into a variable
+  (`` fb3`3(5) `` is -3, `fub~%%(300)` 44); **a FUNCTION named with `` ` `` or `` ~` `` (no width) can be defined but
+  not called** ("Name already in use", `v21_x16`, `x17`).
+- **`_BIT` stores (`v21_b_bit_stores`, C++):** unsigned `v = e & mask`; signed: assign, then sign-extend from bit
+  n-1 (`_BIT * 3`: 5 → -3, 13 → -3, -5 → 3; `_BIT`: 1 → -1, 2 → 0). **A float stored into any `_BIT * n` is rounded
+  by `qbr` from `_FLOAT`** (half to even, then masked): not the SINGLE or DOUBLE path of `study\02` §1.5
+  (`2.5000001#` into `_BIT * 16` is 3, where INTEGER gets 2); beyond `_INTEGER64` the unsigned path of `qbr`
+  (`_UNSIGNED _BIT * 64 = 1.8E+19` holds 18000000000000000000). **A `_BIT` value is read through `(int64)`**:
+  `_UNSIGNED _BIT * 64` holding 2^64-1 prints -1. In arithmetic a `_BIT * n` up to 32 is its `int32`/`uint32`
+  storage, so C++'s rules apply: `u3 * 1000000000` with `u3 = 7` is 2705032704 (32-bit unsigned),
+  `b3 - u3` is 4294967286, `u3 > b3` is false for -3, `ub32 > -1` false.
+- **Other integer stores (`v21_b_float_stores`):** from a float, **every target of 16 bits or fewer, signed or
+  unsigned, is rounded from SINGLE** (`2.5000001#` into `_BYTE`, `~%%`, `%`, `~%` is 2), every wider one from
+  `_FLOAT` (3); `1.8D+19` into `~&&` and `~%&` is exact, into `&&` and `%&` the same bits read signed; -1.5 into
+  `~%%` is 254.
+- **`_BIT` scope, overlap, places (`v21_b_bit_scopes`, `v21_b_bit_overlap`, `v21_x20`–`x30`):** `_BIT` scalars work
+  `STATIC`, local (zero on each call), `DIM SHARED`. **A `_BIT * n` above 32 overwrites the `_BIT` scalar of any width
+  allocated just before it** (they share conventional memory; other variables are not hit: D-009). `_BIT` arrays
+  are bit-packed and work, but a `_BIT * 63` element stored -1 reads 144115188075855871. **Any SUB or FUNCTION with a
+  `_BIT` parameter fails the C++ build** (the parameter is declared twice), even when never called; a `_BIT`
+  member is "Cannot use _BIT inside user defined types"; a `_BIT` `FOR` variable "Unsupported variable used in FOR
+  statement"; `_OFFSET ^ x` "Operator '^' cannot be used with an _OFFSET".
+- **Passing (`v21_b_passing`):** a variable of the parameter's width and the other signedness is passed by
+  reference (`_BYTE` ↔ `_UNSIGNED _BYTE`, …, and any two of `_INTEGER64`, `_UNSIGNED _INTEGER64`, `_OFFSET`,
+  `_UNSIGNED _OFFSET`): the
+  procedure reads the bytes with its own signedness and its stores reach the caller. **A `_BIT` variable is always
+  passed as a copy**, even to a LONG parameter of its storage width.
+- **Fixed-length strings (`v21_c_*`):** n is a literal or a `CONST` name (an expression, a float or a negative is
+  "Number/Constant expected after *", 0 "Cannot create a fixed string of length 0"); **n is read as a 32-bit
+  integer**: 2147483647 works (2 GB); a value that becomes negative (2147483648, 4294967295, 6442450945) fails in
+  C++; 4294967296 is "length 0"; 4294967297 is length 1, 8589934595 length 3. Bytes start NUL (a local on
+  each call, a member, an element); a store copies the first n bytes and pads with spaces (`""` gives n blanks);
+  reading gives all n bytes; comparison and `SELECT CASE` see the padding; `MID$` as a statement writes inside the
+  n bytes only. **Suffix form `name$n`** for `DIM`, implicit variables and parameters (`p$3` is another variable
+  than `p$`). **A fixed string passed to a `STRING` parameter is passed by reference, also in parentheses, member or
+  element**: the procedure's stores reach it, cut and padded (`t = "longer text"` leaves `longe`). **A parameter
+  declared `STRING * n` (or `t$n`) is an ordinary `STRING` parameter except that `LEN(t)` is the constant n**: any
+  string is accepted and changed by reference uncut (a `STRING` variable becomes `changed!`), a `STRING * 3`
+  argument reports `LEN` 5. `FUNCTION f$5` returns a 5-byte padded string.
+- **`FOR` (`v21_d_for`, C++):** the hidden copies are `int16` for 8-bit variables, `int32` for 16-bit, `int64` for 32-
+  and 64-bit ones and `_OFFSET`, signed or not, as the control-flow spec says; so `FOR u~% = 2 TO 0 STEP -1` ends
+  after 0 (the hidden -1 is past the limit, `u~%` is 65535), and **an unsigned 64-bit limit above 2^63 is negative in
+  the hidden copy** (`FOR uq~&& = 1 TO 18446744073709551615~&&` runs no pass).
+- **`SELECT CASE` (`v21_d_select`, C++):** **an integer item is compared in C++ as written, not converted to the
+  selector's type** (`CASE -1` misses a `~%` 65535 but matches a `~&` 4294967295 and a `~&&` 2^64-1; `CASE 0 TO -1`
+  matches a `~&&`); a float item is rounded to the selector's type (`qbr_double_to_long`, for a 64-bit unsigned
+  selector `qbr_longdouble_to_uint64`). The hidden copy of a non-variable selector is `int32` for signed up to 32
+  bits (also `_BIT` elements), `uint32` for unsigned up to 32, `int64`/`uint64` for 64 bits and `_OFFSET`; an
+  expression's copy has its believed type (`ub + 0` `int64`, `uq + 1~&&` `uint64`).
+- **Built-ins (`v21_d_builtins`, C++):** `HEX$`/`OCT$`/`_BIN$` of a variable use its width (`_BIT * 3` -4 is `C`, `4`,
+  `100`); `ABS` keeps the type (`ABS(uq)` `func_abs((uint64)…)`); `SGN` of an unsigned is 1; `INT`/`FIX` of any
+  integer is the value; `CINT`/`CLNG` raise 6 past their range (`CLNG` of an unsigned 64-bit uses
+  `func_clng_uint64`); `_ROUND` of an integer is the value (typed `_INTEGER64`, an `_OFFSET` argument keeps its
+  type); `SQR`/`SIN`/… are SINGLE for 8- and 16-bit and `_BIT * 3`, DOUBLE for 32-bit, `_FLOAT` for 64-bit, `_OFFSET`
+  and `_BIT * 40` (other `_BIT` widths not run); `EXP` SINGLE for 8- and 16-bit, `_FLOAT` for the rest (`_BIT * 3`
+  too).
+  **`VAL(s$, <unsigned type>)` is libqb's `qbs_val<uint64_t>`: not narrowed, and the minus sign is dropped**
+  (`VAL("-1", _UNSIGNED LONG)` is 1, `VAL("300", _UNSIGNED _BYTE)` 300); `VAL(s$, _BIT)` is "VAL TYPE unsupported".
+  A LONG slot takes the low 32 bits (`LEFT$(s, uq)` with `uq` 4294967298 is 2 characters).
+- **Every scenario of the change's spec deltas that the old compiler can run gives the delta's expected output**
+  (`v21_e_scenarios`, and `v21_f_scenarios` for those added by task 1.6); the corrections to the deltas are listed
+  in the change's `tasks.md` tasks 1.5 and 1.6.
+- **Where a suffixed literal is converted (`v21_f_literal_uses`, `v21_f_radix`, task 1.6):** the literal is held as
+  written (the C++ type of its digits) and converted to its suffix's type only by `PRINT`, `STR$` and a built-in
+  that keeps its argument's type (`ABS(-1~&)` 4294967295, `ABS(300~%%)` 44); parentheses keep the suffix's type
+  (`PRINT (300~%%)` 44). A store converts the held value to the target (`l& = 300~%%` 300, `u~%% = 300~%%` 44,
+  `k% = 40000%` -25536), as do a procedure argument by value, a built-in's LONG slot (`CHR$(321~%%)` raises 5), a
+  `CASE` item (`CASE 300~%%` misses 44 and matches 300), a `SELECT` on such a literal, a `FOR` limit, an `IF`
+  condition and an array bound (`DIM a(258~%%)`: `UBOUND` 258). Unary minus on a parenthesised literal or a constant
+  and `NOT` are not believed the suffix's type (`-(300~%%)` -300, `NOT 300~%%` -301). `HEX$` takes the held value
+  (`HEX$(300~%%)` `12C`, `HEX$(40000%)` `9C40`). A suffixed `CONST` behaves the same (`CONST c~%% = 300`: `PRINT`
+  44, a store into a LONG 300). Bit literals and constants the same, never narrowed (`` 9`3 `` 9 everywhere). An
+  unsigned radix literal wider than its type holds its whole value (`&H1FF~%%` prints 255, `+ 0` 511; `&O777~%%`,
+  `&B111111111~%%` likewise); a signed one is "Overflow" at compile time (`v21_x37`–`x41`).
+- **A parameter declared `STRING * n` (`v21_f_fixed_param`):** only `LEN` of the parameter itself is n; the value is
+  the caller's string uncut (`RIGHT$`, `MID$`, `INSTR`, comparison, `SELECT CASE`, `LEN(t + "!")` see the real
+  string), a store is not cut and reaches a `STRING` caller (a fixed caller cuts it with its own length), and the
+  parameter passed on to a `STRING` parameter is the real string. `t$4` the same. A SUB named `s` and a variable
+  `s$` cannot both exist ("Name already in use").
 
-**Decide (result-changing; current default is "keep"):** CONST `^` right-associativity; INTEGER
-arithmetic computed in 32 bits inside expressions (`i% + 1` gives 32768; LONG wrap is decided below); round-half-to-even with single-precision narrowing for INTEGER targets;
-NUL-filled fixed-length strings (QB4.5: spaces); linear `REDIM _PRESERVE`; fatal integer division by zero; console
-comma zones 10 wide (or 14 like everywhere else); INPUT prompts as literals only (or allow expressions). From the
-control-flow measurements (§5, 2026-10-06): `RESUME NEXT` after an error in a `WHILE` condition looping forever;
-an error in an `ELSEIF` condition testing the placeholder value and being handled at the next statement; one
-`GOSUB` stack for the whole program (a SUB's `RETURN` consumes main's entry); `CONST` typing an integer-valued float
-as `_INTEGER64`; a SUB called with a raising argument doing nothing. `m2-control-flow-slice` implements these five and
-CONST `^` as "keep"; they are decided with the rest of this list at step 7 of `STATUS.md` "Next". From the
-arrays-and-`TYPE` measurements (§5, 2026-10-07): a read with a bad index giving element 0's value; the value of a
-member-of-element store evaluated before its index (so `ERR` reports the value's error); `LBOUND`/`UBOUND` typed
-`_INTEGER64`. `m2-arrays-and-types` implements these three as "keep". From the core built-ins measurements (§5,
-2026-10-07; kept for now by the user, 2026-10-08, `DECISIONS.md`): `HEX$` of a 64-bit expression that is not a
-place printing `""` for -1; `STRING$(n, "")` reading the first byte of the empty string (QB 4.5: error 5); `CSNG`
-of an integer and `VAL(s$, <integer type>)` not narrowed; a DOUBLE `ON n` narrowed to SINGLE before rounding (beyond
-LONG it raises 5); a raising `CASE` item running its body (as `IF`); `_ROUND` and `VAL(…, _INTEGER64)` beyond the
-`_INTEGER64` range giving its smallest value without an error. `m2-core-builtins` implements these six as "keep".
+## 6. Bug-compatibility choices (all decided)
 
-**Decided:** LONG overflow **wraps** (two's complement), defined in the generated code and in constant folding;
-matches the old compiler's default build, differs from its `-O2` build (`16` §8, `verification\v11_wrap_o2`). A
-member store into an element with a bad index **is skipped** (the old compiler writes element 0; the order of
-evaluation and the error reported stay as measured): user, 2026-10-07, `DIVERGENCES.md` D-004. **Kept**
-(user, 2026-10-07, change `m2-core-builtins`; moved from "Fix" below): `ON n GOTO` with n > 255 continues with the
-next statement (QB 4.5: error 5; `DIVERGENCES-QB45.md` Q-001); the static `SELECT CASE` temporary, overwritten by
-recursion, which QB64pe has had since its first version (QB 4.5 believed per call, to be measured under DOSBox;
-Q-002).
+From the end of `09` and `10` §2.8, §3.2 and the measurements in §5. **All decided by the user on 2026-10-08**
+(step 8 of `STATUS.md` "Next", `DECISIONS.md`), except where an earlier date is given. The rule applied: a
+deterministic behaviour that changes results is **kept** (QB64pe programs rely on it, and the differential tester can
+then expect equal output); a crash, memory corruption or failed compile is **fixed**. A difference from QB64pe is a
+row in `DIVERGENCES.md`; a kept behaviour that differs from QuickBASIC 4.5 is a row in `DIVERGENCES-QB45.md`.
 
-**Fix (no compatibility value):** `_BIT * n` with n > 32 overlapping the next variable by 4 bytes; `label: CONST …` on one line failing to compile; `ELSE` while an inner `FOR`
-is open passing the front end and failing in C++; `INF` printed with padding and a stray `D`; the console `tab()`
-hang and the `CONOUT$` handle leak; `_LogMinLevel` and `_ScreenExists` registered without a return type.
-Runtime errors should exit non-zero. From §5
-(2026-10-06): `RETURN label` with no `GOSUB` pending breaking the `GOSUB` stack (the next `GOSUB` crashes); the
-smallest LONG/`_INTEGER64` `\ -1` and `MOD -1` crashing the program; `CONST … \ 0` and `MOD 0` crashing the
-compiler and `CONST (-8) ^ (1 / 3)` an internal compiler error; `CONST 1 / 0` giving 0; `CONST 2 ^ 70` wrapping
-while `1E+19 / 1` does not; `a IMP b IMP c` computing `a OR b OR c`.
+**Kept, as QB64pe:**
+- Numbers: LONG and `_INTEGER64` overflow **wraps** (2026-10-03, D-001, D-002; also in the old compiler's default
+  build, not its `-O2` build: `16` §8, `verification\v11_wrap_o2`); INTEGER arithmetic computed in 32 bits inside
+  expressions (`i% + 1` gives 32768; Q-004); rounding half to even, with a DOUBLE narrowed to SINGLE before it is
+  rounded into an INTEGER target (`d# = 2.5000001: x% = d#` gives 2, `l& = d#` gives 3); integer division by zero
+  (`\ 0`, `MOD 0`) **fatal**, error 11 not trappable (Q-003).
+- `CONST`: `^` right-associative (`CONST c = 2 ^ 3 ^ 2` is 512, 64 at run time; Q-008) and an integer-valued float
+  typed `_INTEGER64`. **With a new compiler warning** for a `CONST` expression that chains `^` without parentheses
+  (no effect on output).
+- Control flow (`m2-control-flow-slice`): `RESUME NEXT` after an error in a `WHILE` condition loops forever; an
+  error in an `ELSEIF` condition tests the placeholder value and is handled at the next statement; one `GOSUB` stack
+  for the whole program (a SUB's `RETURN` consumes main's entry); a SUB called with a raising argument does
+  nothing; a raising `CASE` item runs its body (as `IF`). `ON n GOTO` with n > 255 continues with the next statement
+  and the static `SELECT CASE` copy (2026-10-07, Q-001, Q-002).
+- Arrays (`m2-arrays-and-types`): a read with a bad index gives element 0's value; the value of a member-of-element
+  store is evaluated before its index (so `ERR` reports the value's error); `LBOUND`/`UBOUND` typed `_INTEGER64`.
+  Except: a member store into an element with a bad index **is skipped** (2026-10-07, D-004).
+- Built-ins (`m2-core-builtins`; "for now" on 2026-10-08, final the same day): `HEX$` of a 64-bit expression that
+  is not a place prints `""` for -1; `STRING$(n, "")` reads the first byte of the empty string (Q-007); `CSNG` of an
+  integer and `VAL(s$, <integer type>)` not narrowed; a DOUBLE `ON n` narrowed to SINGLE before rounding (beyond
+  LONG it raises 5); `_ROUND` and `VAL(…, _INTEGER64)` beyond the `_INTEGER64` range give its smallest value with no
+  error.
+- Not implemented yet, decided now: fixed-length strings start as NUL bytes (Q-005); `REDIM _PRESERVE` of several
+  dimensions keeps each element's flat (column-major) position; `INPUT` prompts are string literals only (an
+  expression prompt as an extension is in `SOMEDAY.md`).
+- **Console comma zones exactly as QB64pe** (Q-006): a comma pads to a multiple of 10 columns on the Windows console
+  and new-lines past `width - 10` (`libqb.cpp` `tab()`, measured); on the Linux and macOS console it prints **one
+  space** (read, not run: console `PRINT` writes to `std::cout` without moving the page's cursor, so the text-screen
+  code sees column 1). Window, graphics screens and files keep their 14-column (or 112-pixel) zones. The runtime
+  tracks the console column itself instead of asking Windows, so a redirected program no longer hangs (D-011).
+  Making it 14 everywhere is to be evaluated (`SOMEDAY.md`).
+
+**Fixed (no compatibility value):** `RETURN label` with no `GOSUB` pending breaking the `GOSUB` stack (2026-10-06,
+D-003); `a IMP b IMP c` computing `a OR b OR c` (D-005); the smallest LONG/`_INTEGER64` `\ -1` and `MOD -1`
+crashing the program (D-006); `CONST 1 / 0` giving 0 and `CONST 2 ^ 70` wrapping while `1E+19 / 1` does not
+(D-007); `label: CONST …` on one line failing to compile (D-008); `_BIT * n` with n > 32 overwriting 4 bytes
+of the `_BIT` scalar allocated before it (D-009; the victim measured by `verification\v21_b_bit_overlap`); `INF` printed with padding and a stray `D` (D-010); the console `tab()` hang and the
+`CONOUT$` handle leak (D-011); runtime errors exiting 0 (D-012); `_LogMinLevel` and `_ScreenExists` registered
+without a return type (D-013). Rejected by both compilers, so no register row, only a proper message: `ELSE` while an
+inner `FOR` is open (the old one fails in C++), `CONST … \ 0` and `MOD 0` (the old compiler crashes) and
+`CONST (-8) ^ (1 / 3)` (an internal compiler error).
+
+Found by the `m2-numeric-types` measurements and decided the same day (`DECISIONS.md`): out-of-range suffixed
+literals and `CONST`s, bit-suffixed literals and constants, `STRING * n` parameters and `f$n` FUNCTIONs behave as in
+QB64pe (first "not supported yet", then brought in by the user's "do what QB64pe does" rule; listed for review in
+`SOMEDAY.md`); a `_BIT` parameter, a literal beyond 64 bits and a `STRING * n` whose n becomes 0 or negative in 32
+bits are compile errors, as QB64pe fails to build them, and a signed radix literal wider than its type is one as in
+QB64pe ("Overflow"); `STRING * n` wraps n to 32 bits,
+a `_BIT` value reads as `_INTEGER64` and a FUNCTION named with a bare `` ` `` cannot be called, as in QB64pe.
+Improvements in `SOMEDAY.md`.
 
 The full catalogue of about 45 accidental behaviours: `01` §11.3, `02` §9.2, `04` G.4; only the ones above have been
-run.
+run. A newly measured oddity follows the same rule, without asking the user: a crash, hang, memory corruption or
+failed build is fixed (a `DIVERGENCES.md` row); anything else is implemented as QB64pe does it and, if it looks
+questionable, listed in `SOMEDAY.md` "QB64pe behaviours to review" (user, 2026-10-08, `DECISIONS.md`).
 
 ## 7. What can be dropped (implementation, not behaviour)
 

@@ -1,0 +1,5 @@
+
+Type cannot be _UNSIGNED
+Caused by (or after):DIM A AS _UNSIGNED SINGLE
+LINE 3:DIM a AS _UNSIGNED SINGLE
+exit=1

@@ -1,0 +1,5 @@
+
+Unknown type
+Caused by (or after):DIM A AS _UNSIGNED
+LINE 3:DIM a AS _UNSIGNED
+exit=1

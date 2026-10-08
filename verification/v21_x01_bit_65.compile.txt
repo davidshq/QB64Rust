@@ -1,0 +1,5 @@
+
+Cannot create a _BIT variable of size > 64 bits
+Caused by (or after):DIM T AS _BIT * 65
+LINE 3:DIM t AS _BIT * 65
+exit=1

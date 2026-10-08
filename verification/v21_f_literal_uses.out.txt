@@ -1,0 +1,32 @@
+store: 300 -1  300  44 
+store const: 300 -1  9 
+store bit: 9 -1 
+store 40000%:-25536  40000 
+showl: 300 
+showl: 300 
+showl: 9 
+showl: 40000 
+showd: 300 
+showq:-1 
+STR$: 44 44 9 4294967295
+ABS: 4294967295  4294967295  44 
+LEFT$: 10  10 
+CHR$:[handler 5 ]
+neg:-300 -300 -9  1 
+paren: 44  44  4294967295  9 
+mix: 600  600  150  18  44 -301  42 
+mix2: 300  40000  0 -1 
+&& held 64-bit: 2147483648 -2147483648  4294967296  0 
+case 300~%%, selector 44: misses
+case 300~%%, selector 300: matches
+case 300~%%, selector x~%% 44: misses
+selector 300~%%, case 300: matches
+FOR to 260~%%: 260 
+FOR to c~%%: 300 
+FOR to 9`3: 9 
+IF 256~%%: true
+300~%% = 44: false
+UBOUND: 258 
+HEX$:12C 12C 9 9C40
+fn: 300  44  9 
+exit=0

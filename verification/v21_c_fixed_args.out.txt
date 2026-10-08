@@ -1,0 +1,17 @@
+var to STRING, longer: [longe]
+var to STRING, shorter: [x    ]
+STRING param sees: [ab   ] 5 
+(var) to STRING: [longe]
+member to STRING: [longe]
+element to STRING: [longe]
+STRING * 5 param: [ab   ] 5 
+var to STRING * 5: [chang]
+STRING * 5 param: [xyz] 5 
+STRING * 3 var to STRING * 5: [cha]
+STRING * 5 param: [hello world] 5 
+STRING var to STRING * 5: [changed!]
+STRING * 5 param: [lit] 5 
+t$5 param: [chang] 5 
+var to t$5: [q    ]
+FUNCTION fs$5: [ab   ] 5 
+exit=0

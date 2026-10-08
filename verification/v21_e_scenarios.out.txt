@@ -1,0 +1,51 @@
+[numeric: unsigned byte] 255  1 
+[numeric: suffix names the type] 65535 
+[numeric: narrow operands widened] 256  131070 
+[numeric: offset division] 4 
+[numeric: offset division 5 / 2] 2 
+[numeric: offset * 1.5, + 1.5, \ 2, MOD 4] 10  9  3  3 
+[numeric: offset - 8, -offset, NOT offset]-1 -7 -8 
+[numeric: signed bit field]-3 
+[numeric: unsigned bit field] 5 
+[numeric: single bit]-1 
+[numeric: wide bit fields] 4294967295 
+[numeric: unsigned literal] 4294967295  255 
+[numeric: INTEGER rounds the SINGLE value] 2  3 
+[numeric: negative into unsigned] 65535  18446744073709551615 
+[numeric: signed byte wraps]-56 
+[arrays: unsigned elements] 65535  0 
+[arrays: members of the new types]-1  255  65535  4294967295  18446744073709551615 -1  24 
+[procedures: unsigned function and parameter] 4294967295 
+[procedures: same width, other signedness] 4294967295 
+[procedures: same width, other signedness, after] 5 
+[control-flow: unsigned byte passes its range] 250  253  0 
+[constants: unsigned suffix] 65535  65536 
+[numeric: one name, two suffixes] 1  2 
+[numeric: unsigned 64-bit bit field]-1 
+[numeric: unsigned bit field in arithmetic] 2705032704  0 
+[numeric: hexadecimal literal]-1 -1 
+[numeric: unsigned and bit targets] 2  3 
+[control-flow: unsigned counts down through 0] 2  1  0  65535 
+[control-flow: negative item against unsigned selectors] else -1
+[procedures: _INTEGER64 to _OFFSET] 18446744073709551615 
+[procedures: _INTEGER64 to _OFFSET, after] 7 
+[procedures: bit variable passes a copy]-16 
+[fixed: length read as 32 bits] 1 
+[fixed: suffix form]abc 3 x
+[fixed: STRING parameter sees] 5 
+[fixed: passed to STRING, after]longe
+[fixed: STRING parameter sees] 5 
+[fixed: in parentheses]longe
+[fixed: STRING parameter sees] 5 
+[fixed: member]longe
+[fixed: STRING parameter sees] 5 
+[fixed: element]longe
+[fixed: initial bytes] 4  0  0 
+[fixed: short value padded][ab  ] 32 
+[fixed: long value cut]abcd
+[fixed: compared with its padding] 0 -1 
+[fixed: member in the layout] 10 [bob   ]
+[fixed: array] 0 [x  ]
+[fixed: built-in argument] 2 AB   
+[builtin: unsigned argument]FFFFFFFF 4294967295 4294967295 
+exit=0

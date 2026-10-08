@@ -1,0 +1,5 @@
+
+Name already in use (fu)
+Caused by (or after):PRINT FU~` ( 1 )
+LINE 3:PRINT fu~`(1)
+exit=1

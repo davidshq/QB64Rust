@@ -1,0 +1,34 @@
+initial: 4  0  0 
+short: [ab  ] 32  4 
+long: [abcd]
+compare: 0 -1 -1 -1 -1 
+into STRING: [ab  ] 4 
+concat: [ab  !]
+f = f + x: [ab  ]
+f = MID$(f, 2): [bcd ]
+empty: [    ] 32 
+MID$ statement: [ax  ]
+MID$ statement past end: [ax y]
+fixed from longer fixed: [xy  ]
+fixed from shorter fixed: [xy    ]
+built-ins: 2  [AB   ] [ab ] [  ] [b  ] 3  2  97  32 
+STR$/VAL: [ab   ] 0  2 
+DIM p$3: [abc] 3 
+implicit q$2: [xy] 2 
+p$ and p$3:[plain] [abc]
+STRING * CONST: [abc]
+_UNSIGNED STRING * 3: [abc] 3 
+100000: 100000  0 
+100000 after store: 97  32  32 
+member initial: 12  0  0  6 
+member: [bob   ] 32  7 
+member cut: [abcdef] 7 
+array: 0  [x  ] 3 
+array cut: [abc] [x  ]
+member of element: [q     ] 0 
+case: ab + 2 blanks
+local: 0  shared: [sha]
+local: 0  shared: [sha]
+static: 0 
+static: 115 
+exit=0
