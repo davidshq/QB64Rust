@@ -2,17 +2,36 @@
 //! clone and its toolchain; they are `#[ignore]`d and run by hand: `cargo test -p qb64rust-driver --test cli --
 //! --ignored`.
 
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 const SLICE_PROGRAM: &str = "$CONSOLE:ONLY\nx = 1 / 4\nPRINT \"x=\"; x; INSTR(3, \"hello\", \"l\")\nEND\n";
 
-/// A fresh scratch folder for one test (under the system temp folder, never the repo).
-fn scratch(name: &str) -> PathBuf {
-    let d = std::env::temp_dir().join(format!("qb64rust-cli-test-{name}"));
-    let _ = std::fs::remove_dir_all(&d);
-    std::fs::create_dir_all(&d).unwrap();
-    d
+/// A fresh scratch folder for one test (under the system temp folder, never the repo), deleted when dropped, also
+/// when the test fails. Used as a `Path`.
+struct Scratch(tempfile::TempDir);
+
+impl Deref for Scratch {
+    type Target = Path;
+    fn deref(&self) -> &Path {
+        self.0.path()
+    }
+}
+
+impl AsRef<Path> for Scratch {
+    fn as_ref(&self) -> &Path {
+        self.0.path()
+    }
+}
+
+fn scratch(name: &str) -> Scratch {
+    Scratch(
+        tempfile::Builder::new()
+            .prefix(&format!("qb64rust-cli-{name}-"))
+            .tempdir()
+            .unwrap(),
+    )
 }
 
 fn qb64rust(dir: &Path, args: &[&str]) -> Output {

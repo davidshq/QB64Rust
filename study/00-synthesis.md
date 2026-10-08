@@ -498,13 +498,16 @@ member-of-element store evaluated before its index (so `ERR` reports the value's
 **Decided:** LONG overflow **wraps** (two's complement), defined in the generated code and in constant folding;
 matches the old compiler's default build, differs from its `-O2` build (`16` §8, `verification\v11_wrap_o2`). A
 member store into an element with a bad index **is skipped** (the old compiler writes element 0; the order of
-evaluation and the error reported stay as measured): user, 2026-10-07, `DIVERGENCES.md` D-004.
+evaluation and the error reported stay as measured): user, 2026-10-07, `DIVERGENCES.md` D-004. **Kept**
+(user, 2026-10-07, change `m2-core-builtins`; moved from "Fix" below): `ON n GOTO` with n > 255 continues with the
+next statement (QB 4.5: error 5; `DIVERGENCES-QB45.md` Q-001); the static `SELECT CASE` temporary, overwritten by
+recursion, which QB64pe has had since its first version (QB 4.5 believed per call, to be measured under DOSBox;
+Q-002).
 
-**Fix (no compatibility value):** `_BIT * n` with n > 32 overlapping the next variable by 4 bytes; static `SELECT CASE`
-temporaries overwritten by recursion; `label: CONST …` on one line failing to compile; `ELSE` while an inner `FOR`
+**Fix (no compatibility value):** `_BIT * n` with n > 32 overlapping the next variable by 4 bytes; `label: CONST …` on one line failing to compile; `ELSE` while an inner `FOR`
 is open passing the front end and failing in C++; `INF` printed with padding and a stray `D`; the console `tab()`
-hang and the `CONOUT$` handle leak; `_LogMinLevel` and `_ScreenExists` registered without a return type;
-`ON n GOTO` with n > 255 falling through silently (QB4.5: error 5). Runtime errors should exit non-zero. From §5
+hang and the `CONOUT$` handle leak; `_LogMinLevel` and `_ScreenExists` registered without a return type.
+Runtime errors should exit non-zero. From §5
 (2026-10-06): `RETURN label` with no `GOSUB` pending breaking the `GOSUB` stack (the next `GOSUB` crashes); the
 smallest LONG/`_INTEGER64` `\ -1` and `MOD -1` crashing the program; `CONST … \ 0` and `MOD 0` crashing the
 compiler and `CONST (-8) ^ (1 / 3)` an internal compiler error; `CONST 1 / 0` giving 0; `CONST 2 ^ 70` wrapping
@@ -650,7 +653,7 @@ as a reading of the code, not a measurement.
 | `23` | Third review (2026-10-05): path check of the codebase, the panel's outcome; its order of work is replaced by `24` §4 |
 | `24` | Fourth review (2026-10-07): code against plan after the control-flow slice's groups 1–5, why arrays and `TYPE` move before the type table and built-ins, `STATUS.md` as entry point; the current order of work |
 | `25` | IR review (2026-10-07): what the lowering does and the emitter still does, keep or merge, the place question for the arrays-and-`TYPE` slice with the old compiler's store rules to measure |
-| `26` | Fifth review (2026-10-07): a wrong-code bug in `$IF`, clean programs that tier 2 never runs, member arrays no longer behind `$UNSTABLE`, `$CONSOLE` tests as M2 work, blockers by kind and the proposed order (awaiting the user) |
+| `26` | Fifth review (2026-10-07): a wrong-code bug in `$IF`, clean programs that tier 2 never runs, member arrays no longer behind `$UNSTABLE`, `$CONSOLE` tests as M2 work, blockers by kind and the new order (all accepted 2026-10-07; plain member arrays un-deferred) |
 | `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

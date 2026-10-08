@@ -168,3 +168,21 @@ write all new snapshots in one run: `INSTA_FORCE_PASS=1 INSTA_UPDATE=new cargo t
 
 `QB64RUST_NO_FOLD=1` turns integer constant folding off; it is for checking that folding changes no result (run
 tier 2 with it set), not for normal use.
+
+## Dependencies
+
+The compiler itself has none; `serde_json` reads the built-in table at build time and `insta` and `tempfile` serve
+the tests. The policy (decided 2026-10-07):
+
+- Take a crate for a protocol or for test infrastructure when the need arrives: `lsp-types` and `lsp-server` for
+  the language server, their DAP equivalents for the debugger, `insta` for snapshots, `tempfile` for scratch
+  folders that are deleted when a test fails.
+- No crate that takes source as `str` (`rowan`, `logos`, `ariadne`, `codespan-reporting`): source is bytes
+  (`study\15` §1). No crate that replaces a pipeline stage or the analysis model (`salsa`; `DECISIONS.md`,
+  2026-10-04).
+- Performance crates (`memchr`, `rustc-hash`, `indexmap`, `rayon`) only after a measurement shows the need.
+- Not needed at this size: `clap` (the flags copy `qb64pe`'s `-x`, `-z`, `-f:name=value`, about 80 lines by hand),
+  `thiserror`/`anyhow` (driver errors are messages), per-file test runners (`libtest-mimic`: the harnesses already
+  name each failing file and share one run over all inputs).
+- `cargo-deny` comes with the first dependency that is not build- or dev-only (`study\21` item 7); it also
+  enforces rule 5 of `CLAUDE.md` (no GPL code by way of a crate).

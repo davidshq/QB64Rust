@@ -53,6 +53,23 @@ IR, validated, and emitted as C++ fragments, without panicking and without a val
 - **WHEN** the emitter panics on an accepted corpus program
 - **THEN** `cargo test` fails and names that program and the panic message
 
+### Requirement: Clean programs are listed
+`cargo test` SHALL fail when a corpus or upstream program that the old compiler accepts compiles without an error
+and is named in none of `tests/corpus/slice.list`, `tests/upstream/pass.list` and
+`tests/known_clean_not_passing.list`, so that every program the new compiler builds an executable for is run in
+tier 2 or has a recorded reason why not (`study\26` §3). `tests/known_clean_not_passing.list` SHALL be shrink-only
+and kept by hand, one entry per program with its reason; `cargo test` SHALL fail for an entry that no longer
+compiles cleanly or that a pass list names.
+
+#### Scenario: Newly clean program
+- **WHEN** a change makes an upstream program compile without an error and it is on no list
+- **THEN** `cargo test` fails and names the program, until it is run in tier 2 and added to `pass.list` or, with
+  the reason, to `tests/known_clean_not_passing.list`
+
+#### Scenario: Known failure fixed
+- **WHEN** a program of `tests/known_clean_not_passing.list` is added to a pass list
+- **THEN** `cargo test` fails until its entry is removed
+
 ### Requirement: Tier 2 slice run
 The corpus runner SHALL accept `--list <file>` to run only the programs named in it (one `<group>/<name>` per
 line, `#` comments allowed). Running it with `--qb64 <qb64rust.exe> --list tests/corpus/slice.list` SHALL pass

@@ -10,7 +10,7 @@ wait until the core compiler works (roadmap M4 or later, `study\07-expert-panel.
 
 | Feature | Upstream origin | Why deferred | Details |
 |---|---|---|---|
-| Arrays as TYPE members (`_Static` / `_Dynamic` member storage, `$UNSTABLE:TYPEFIELDS`) | Petr, from 2026-06-12 | Still behind `$UNSTABLE`; woven through `evaluate`, `refer`, `setrefer`, `dim2`, `allocarray` | `study\02` "[member-array layer]" notes; `study\01` §6.4 |
+| The `_STATIC` / `_DYNAMIC` storage markers of TYPE member arrays (`$UNSTABLE:TYPEFIELDS`) | Petr, from 2026-06-12 | Still behind `$UNSTABLE`; woven through `evaluate`, `refer`, `setrefer`, `dim2`, `allocarray`. Plain member arrays (`AS LONG a(12, 15)` in a `TYPE`) no longer need `$UNSTABLE` and are on the roadmap (2026-10-07, `study\26` §4) | `study\02` "[member-array layer]" notes; `study\01` §6.4 |
 | `_ARRAYCOPY` | Petr, 2026-09-12 | Weeks old; depends on the member-array layer; 954-line runtime (`array-copy.cpp`) | `study\01` §8.2, `study\03` §2.3 |
 | Whole-array assignment `a() = b()` | Same work | Same layer | `study\02` §2.3 |
 | `REDIM _RETAIN` (coordinate-preserving REDIM) | Same work | Same layer; `_PRESERVE` (linear) is kept | `study\02` §3.4 |

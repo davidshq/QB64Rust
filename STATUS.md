@@ -4,7 +4,7 @@ Updated 2026-10-07 (session 23). Session-by-session history is in `git log`; mea
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. Open: the decisions of `study\26` §9.**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. Next: a core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below).**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -187,8 +187,9 @@ user: a member store into an element with a bad index stores nothing (`DIVERGENC
 `sema`'s value tree (design D10). Tier 1 lowers, validates and emits every accepted input (`ir::validate`).
 `slice.list` 113 → 129, full corpus 127 → 144, upstream 23 → 24 of 279.
 
-**Next** (order accepted 2026-10-07 after the fourth review, `study\24` §4, reasons there; it replaces the order of
-`study\23` §4). One line per step; the per-task record of a change is its `tasks.md`, and `git log`.
+**Next** (steps 1–5: order accepted 2026-10-07 after the fourth review, `study\24` §4; from step 6 on: reordered
+2026-10-07 after the fifth review, `study\26` §6, reasons there). One line per step; the per-task record of a change
+is its `tasks.md`, and `git log`.
 
 1. Done 2026-10-05: CI green (`rust.yml` with `tier2`, `repo-check.yml`; `vscode-extension.yml` unchanged since
    its last green run).
@@ -201,12 +202,21 @@ user: a member store into an element with a bad index stores nothing (`DIVERGENC
 5. Done 2026-10-07 (session 23): `m2-parser-breadth` groups 7 and 8 (preprocessor, declarations, control
    transfer, I/O statements, `specialformat` templates, `$INCLUDE` with one tree per file, the follow-on rule,
    auto-include names) and group 9; `known_parse_gaps.list` and `known_false_errors.list` are empty. Both changes
-   archived 2026-10-07. **Now:** the decisions of `study\26` §9.
-6. The thin language server (`study\23` §2.6).
-7. Bug-compatibility decisions (`study\00` §6), the differential tester, `Ty` as a type table, unsigned types.
-8. Plain built-ins (249 of 455), table-driven, with generated tests.
-9. The rest of control flow (`SELECT CASE`, `ON … GOTO/GOSUB`, `DEFxxx`), then the rest of arrays and `TYPE`
-   (`REDIM`, dynamic arrays, `OPTION BASE`; member arrays stay in `SOMEDAY.md`).
+   archived 2026-10-07. The decisions of `study\26` §9 taken the same day (`DECISIONS.md`); its tier-1 check
+   "clean programs are listed" is in (`tests\known_clean_not_passing.list`).
+6. **Now:** a core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB`: the plain string and math built-ins
+   that block corpus programs on their own (`LEN`, `VAL`, `STR$`, `MID$`, `ASC`, `SQR`, `STRING$`, `ABS`, `INT`, …;
+   `study\26` §6), with `sema`'s checking of built-ins made table-driven (§8). OpenSpec change
+   `m2-core-builtins` proposed 2026-10-07 (artifacts complete, not started): 37 more built-ins, `SELECT CASE`/`EVERYCASE`,
+   `ON … GOTO/GOSUB`; census: 58 corpus and 11 upstream programs carry only marks it removes. Decided the same day:
+   `ON n` above 255 falls through and the `SELECT` copy stays static, both as QB64pe (`DIVERGENCES-QB45.md`, new).
+7. The thin language server (`study\23` §2.6).
+8. Bug-compatibility decisions (`study\00` §6), the differential tester, `Ty` as a type table, unsigned types.
+9. The remaining plain built-ins (249 of 455 in all), table-driven, with generated tests.
+10. `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE`, measured first (`study\26` §5); check once that the GitHub
+    Windows runner can start the hidden window.
+11. `DEFxxx`, then the rest of arrays and `TYPE`: `REDIM`, dynamic arrays, `OPTION BASE`, plain member arrays
+    (`study\26` §4; their `_STATIC`/`_DYNAMIC` markers stay in `SOMEDAY.md`).
 
 Numbers at the last full runs (2026-10-07, session 23, release build against the QB64pe 4.7.0 release):
 `slice.list` 131 of 131, full corpus 147 pass and none wrong at run time, upstream **34 of 279** (none wrong);
@@ -264,8 +274,8 @@ members in debug); it is now constant time.
 
 | When | Item |
 |---|---|
-| Step 7 of "Next" | Decide the bug-compatibility choices in `study\00` §6 (32-bit INTEGER arithmetic and half-to-even rounding are already implemented as "keep") |
+| Step 8 of "Next" | Decide the bug-compatibility choices in `study\00` §6 (32-bit INTEGER arithmetic and half-to-even rounding are already implemented as "keep") |
 | M3 | Plain copy of `..\QB64pe\internal\c` at the pinned commit (`DECISIONS.md`) |
-| M3 | Programs without `$CONSOLE:ONLY`, with an oracle such as a screen-state dump at exit compared between old and new compiler (`study\22` §3.2) |
+| M3 | Programs that draw (without `$CONSOLE:ONLY` and not writing to `_DEST _CONSOLE`), with an oracle such as a screen-state dump at exit compared between old and new compiler (`study\22` §3.2); `$CONSOLE` + `_DEST _CONSOLE` programs are M2 work (step 10 of "Next", `study\26` §5) |
 | M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\22` §4.2) |
 | Help/hover work | Ask the QB64pe maintainers about the wiki licence before shipping any wiki text |

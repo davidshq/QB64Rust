@@ -530,7 +530,7 @@ fn parse_gap_list_reports_new_and_closed_gaps() {
     let checked = |e: &str| !CLONE_SETS.iter().any(|s| e.starts_with(s));
     assert_eq!(list_diff(&have, &[], checked), (vec![], vec![]));
     // The comment is the first parser diagnostic, else the first `Error` node.
-    let gap = |src: &[u8]| run("t.bas".into(), &write_temp(src), Verdict::Accepted).parse_gap;
+    let gap = |src: &[u8]| run("t.bas".into(), write_temp(src).path(), Verdict::Accepted).parse_gap;
     assert_eq!(gap(b"PRINT 1\n"), None);
     assert!(
         gap(b"PRINT (1\n").is_some_and(|g| g.starts_with("1:")),
@@ -539,15 +539,11 @@ fn parse_gap_list_reports_new_and_closed_gaps() {
     );
 }
 
-/// A file in the test binary's temp folder holding `bytes`.
-fn write_temp(bytes: &[u8]) -> PathBuf {
-    use std::sync::atomic::{AtomicU32, Ordering};
-    static N: AtomicU32 = AtomicU32::new(0);
-    let dir = std::env::temp_dir().join(format!("qb64rust-inputs-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    let p = dir.join(format!("{}.bas", N.fetch_add(1, Ordering::Relaxed)));
-    std::fs::write(&p, bytes).unwrap();
-    p
+/// A temporary `.bas` file holding `bytes`, deleted when dropped.
+fn write_temp(bytes: &[u8]) -> tempfile::NamedTempFile {
+    let mut f = tempfile::Builder::new().suffix(".bas").tempfile().unwrap();
+    std::io::Write::write_all(&mut f, bytes).unwrap();
+    f
 }
 
 /// "No false errors", "Rejected programs stay rejected" and "Parse gaps" (spec `testing/upstream-tests`): the
@@ -624,6 +620,57 @@ fn upstream_progress() {
         deferred.len()
     );
     assert!(pass.len() <= in_reach);
+}
+
+/// Programs that compile cleanly but are known not to pass tier 2, each with its reason (`study\26` §3).
+const CLEAN_NOT_PASSING: &str = "known_clean_not_passing.list";
+
+/// "Clean programs are listed" (spec `testing/compiler-tests`, `study\26` §3): every corpus or upstream program the
+/// old compiler accepts and the new one compiles without an error is in `slice.list`, `pass.list` or
+/// `known_clean_not_passing.list`, so "never wrong code" covers every program that gets an executable. The fourth
+/// list is shrink-only and hand-kept: an entry that no longer compiles cleanly, or that a pass list names, must go.
+#[test]
+fn clean_programs_are_listed() {
+    let have_clone = clone_root().is_some();
+    let checked = |e: &str| have_clone || !CLONE_SETS.iter().any(|s| e.starts_with(s));
+    #[expect(clippy::disallowed_methods, reason = "a list of file names, not BASIC source")]
+    let slice = std::fs::read_to_string(repo().join("tests/corpus/slice.list")).unwrap();
+    let passing: Vec<String> = slice
+        .lines()
+        .map(|l| l.split('#').next().unwrap().trim())
+        .filter(|l| !l.is_empty())
+        .map(|e| format!("corpus/{e}.bas"))
+        .chain(upstream_list("pass.list").iter().map(|e| format!("upstream/{e}.bas")))
+        .collect();
+    let known = List {
+        file: CLEAN_NOT_PASSING,
+        header: "",
+    }
+    .read()
+    .1;
+    let clean: Vec<&str> = outcomes()
+        .iter()
+        .filter(|o| o.panic.is_none() && o.verdict == Verdict::Accepted && !o.errors)
+        .map(|o| o.name.as_str())
+        .filter(|n| n.starts_with("corpus/") || n.starts_with("upstream/"))
+        .collect();
+    eprintln!("clean corpus and upstream programs: {}", clean.len());
+    let mut problems = Vec::new();
+    for n in clean.iter().filter(|n| !passing.iter().chain(&known).any(|e| e == *n)) {
+        problems.push(format!(
+            "compiles cleanly but is on no list (run it in tier 2, then add it to a pass list or to tests/{CLEAN_NOT_PASSING} with the reason): {n}"
+        ));
+    }
+    for e in known.iter().filter(|e| checked(e)) {
+        if !clean.contains(&e.as_str()) {
+            problems.push(format!(
+                "tests/{CLEAN_NOT_PASSING}: no longer compiles cleanly, remove it: {e}"
+            ));
+        } else if passing.contains(e) {
+            problems.push(format!("tests/{CLEAN_NOT_PASSING}: on a pass list too, remove it: {e}"));
+        }
+    }
+    assert!(problems.is_empty(), "{}", problems.join("\n"));
 }
 
 /// Extensions `tools\upstream\copy_upstream_tests.py` copies (design D1).

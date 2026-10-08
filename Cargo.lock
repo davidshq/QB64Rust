@@ -140,6 +140,7 @@ dependencies = [
  "qb64rust-ir",
  "qb64rust-sema",
  "qb64rust-syntax",
+ "tempfile",
 ]
 
 [[package]]

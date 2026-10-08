@@ -76,6 +76,12 @@ After a change, regenerate the three lists with `QB64RUST_UPDATE_LISTS=1 cargo t
 and review the diff: entries may only go away (a new entry is a regression to fix, unless it is a program new to
 the inputs).
 
+**Fourth list, `tests/known_clean_not_passing.list`** (2026-10-07, `study\26` §3; spec `testing/compiler-tests`,
+"Clean programs are listed"): every corpus or upstream program the old compiler accepts that the new compiler
+compiles without an error must be on `tests/corpus/slice.list`, on `pass.list` or here, with the reason it does not
+pass tier 2. It is kept by hand (not regenerated) and shrink-only; today it holds the five corpus `KFAIL` programs.
+A program that becomes clean fails tier 1 until it has been run in tier 2 and listed.
+
 ## Tier 2 and upstream progress
 
 ```

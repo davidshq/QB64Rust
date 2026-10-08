@@ -126,6 +126,10 @@ keeps milestones and done/not done only, no numbers and no "Now" marker, and poi
 
 ## 9. Decisions for the user
 
+**Decided 2026-10-07** (`DECISIONS.md`): 1 was already done (the six names are "not supported yet"); 2 yes,
+implemented (`tests\known_clean_not_passing.list`; of the four upstream programs, three were already on `pass.list`
+and `auto_include\no-debug` is no longer clean, its `$IF _DEBUG_` now marked); 3 option (a); 4, 5 and 6 yes.
+
 1. §2: mark the six `$IF` flag names "not supported yet" before committing group 7. (Bug fix; no real choice.)
 2. §3: the tier-1 "clean implies listed" check and the fourth list; add the four upstream programs to `pass.list`.
 3. §4: (a) un-defer plain member arrays, or (b) move the 55 programs to `deferred.list`.

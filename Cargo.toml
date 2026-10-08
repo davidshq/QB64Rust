@@ -18,6 +18,7 @@ qb64rust-ir = { path = "crates/ir" }
 qb64rust-codegen-cpp = { path = "crates/codegen-cpp" }
 insta = "1"
 serde_json = "1"
+tempfile = "3"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
