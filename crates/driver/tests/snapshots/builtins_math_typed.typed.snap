@@ -1,0 +1,225 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 9: Print newline
+  Num
+    Call ABS : I16
+      Var I : I16
+  Num
+    Call ABS : I16
+      Int -7 : I16
+  Num
+    Call ABS : I32
+      Var L : I32
+  Num
+    Call ABS : I64
+      Var Q : I64
+  Num
+    Call ABS : F32
+      Var F : F32
+  Num
+    Call ABS : F32
+      Convert Nearest : F32
+        Float 2.5E+0 : F64 (qb F32)
+  Num
+    Call ABS : F80
+      Var X : F80
+line 10: Print newline
+  Num
+    Call INT : I16
+      Var I : I16
+  Num
+    Call INT : F32
+      Var F : F32
+  Num
+    Convert Nearest : F32
+      Call INT : F64 (qb F32)
+        Float 2.5E+0 : F64 (qb F32)
+  Num
+    Call FIX : F64
+      Var D : F64
+  Num
+    Call FIX : F80
+      Var X : F80
+  Num
+    Call FIX : I64
+      Var Q : I64
+line 11: Print newline
+  Num
+    Convert Nearest : F32
+      Call SIN : F64 (qb F32)
+        Var I : I16
+  Num
+    Call SIN : F64
+      Var L : I32
+  Num
+    Convert Widen : F80
+      Call SIN : F64 (qb F80)
+        Var Q : I64
+  Num
+    Call SIN : F32
+      Var F : F32
+  Num
+    Call SIN : F64
+      Var D : F64
+  Num
+    Call SIN : F80
+      Var X : F80
+  Num
+    Convert Nearest : F32
+      Call COS : F64 (qb F32)
+        Float 2.5E+0 : F64 (qb F32)
+  Num
+    Call TAN : F64
+      Var D : F64
+  Num
+    Call ATN : F64
+      Var L : I32
+line 12: Print newline
+  Num
+    Convert Nearest : F32
+      Call SQR : F64 (qb F32)
+        Var I : I16
+  Num
+    Call SQR : F64
+      Var L : I32
+  Num
+    Convert Nearest : F32
+      Call SQR : F64 (qb F32)
+        Var F : F32
+  Num
+    Convert Widen : F80
+      Call SQR : F64 (qb F80)
+        Var X : F80
+  Num
+    Convert Nearest : F32
+      Call LOG : F64 (qb F32)
+        Var I : I16
+  Num
+    Convert Widen : F80
+      Call LOG : F64 (qb F80)
+        Var Q : I64
+  Num
+    Call LOG : F64
+      Var D : F64
+line 13: Print newline
+  Num
+    Convert Nearest : F32
+      Call EXP : F64 (qb F32)
+        Var I : I16
+  Num
+    Call EXP : F80
+      Var L : I32
+  Num
+    Convert Nearest : F32
+      Call EXP : F64 (qb F32)
+        Var F : F32
+  Num
+    Call EXP : F80
+      Var D : F64
+  Num
+    Convert Nearest : F32
+      Call EXP : F64 (qb F32)
+        Float 2.5E+0 : F64 (qb F32)
+line 14: Print newline
+  Num
+    Convert Truncate : I16
+      Call CINT : I32 (qb I16)
+        Var D : F64
+  Num
+    Convert Truncate : I16
+      Call CINT : I64 (qb I16)
+        Var X : F80
+  Num
+    Call CINT : I16
+      Var L : I32
+  Num
+    Call CINT : I16
+      Var Q : I64
+  Num
+    Call CINT : I16
+      Var I : I16
+  Num
+    Call CLNG : I32
+      Var F : F32
+  Num
+    Convert Truncate : I32
+      Call CLNG : I64 (qb I32)
+        Var X : F80
+  Num
+    Call CLNG : I32
+      Var Q : I64
+  Num
+    Convert Widen : I32
+      Call CLNG : I16 (qb I32)
+        Var I : I16
+line 15: Print newline
+  Num
+    Convert Nearest : F32
+      Call CSNG : F64 (qb F32)
+        Var L : I32
+  Num
+    Convert Nearest : F32
+      Call CSNG : F64 (qb F32)
+        Var D : F64
+  Num
+    Call CSNG : F32
+      Var F : F32
+  Num
+    Convert Nearest : F32
+      Call CSNG : F64 (qb F32)
+        Float 2.5E+0 : F64 (qb F32)
+  Num
+    Call CDBL : F64
+      Var I : I16
+  Num
+    Convert Widen : F64
+      Call CDBL : F32 (qb F64)
+        Var F : F32
+  Num
+    Call CDBL : F64
+      Var X : F80
+  Num
+    Call _ROUND : I64
+      Var D : F64
+  Num
+    Call _ROUND : I64
+      Var X : F80
+  Num
+    Convert Widen : I64
+      Call _ROUND : I32 (qb I64)
+        Var L : I32
+line 16: Print newline
+  Num
+    Convert Widen : F80
+      Call _ATAN2 : F64 (qb F80)
+        Var I : I16
+        Var L : I32
+  Num
+    Convert Widen : F80
+      Call _ATAN2 : F32 (qb F80)
+        Var F : F32
+        Var F : F32
+  Num
+    Call _HYPOT : F80
+      Var D : F64
+      Var X : F80
+  Num
+    Call _PI : F64
+      (absent)
+  Num
+    Call _PI : F64
+      Convert Nearest : F64
+        Int 2 : I16
+  Num
+    Call _PI : F64
+      Convert Widen : F64
+        Var F : F32
+  Num
+    Call SGN : I32
+      Var I : I16
+  Num
+    Call SGN : I32
+      Var D : F64

@@ -53,6 +53,7 @@ it names; this table is the index.
 | 2026-10-07 | **A second register, `DIVERGENCES-QB45.md`**: differences of QB64Rust from QuickBASIC 4.5 (most inherited from QB64pe), beside `DIVERGENCES.md` for differences from QB64pe. Each row says whether its QB 4.5 behaviour is documented, believed or measured; unmeasured rows are to be checked once QB 4.5 runs under DOSBox. |
 | 2026-10-07 | **`ON n GOTO/GOSUB` with `n` above 255 continues with the next statement**, as in QB64pe (QB 4.5: error 5): `DIVERGENCES-QB45.md` Q-001, change `m2-core-builtins`. |
 | 2026-10-07 | **`SELECT CASE` keeps one static copy of its test value per statement**, as QB64pe always has (a recursive call overwrites it), not one per call; QB 4.5 is believed to keep it per call, to be measured under DOSBox: `DIVERGENCES-QB45.md` Q-002, change `m2-core-builtins`. |
+| 2026-10-08 | **Six old-compiler oddities found by `m2-core-builtins` task 2.1 are kept as measured** for now and decided with the other bug-compatibility choices at step 8: `HEX$` of a 64-bit non-place `-1` is `""`; `STRING$(n, "")` reads the first byte of the empty string; `CSNG` of an integer and `VAL(s$, <integer type>)` are not narrowed; a DOUBLE `ON n` is narrowed to SINGLE first; a raising `CASE` item runs its body; `_ROUND`/`VAL` beyond `_INTEGER64` give its smallest value without an error. Details `study\00` §5, listed in §6. |
 
 Expert-panel recommendations: `study\07-expert-panel.md` (its "Decisions for the user" are answered above). Open
 questions: `STATUS.md`.

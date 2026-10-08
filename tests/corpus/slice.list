@@ -1,4 +1,4 @@
-# Corpus programs the new compiler must pass (changes m2-workspace-and-slice, m2-procedures-and-errors, m2-control-flow-slice, m2-arrays-and-types and m2-parser-breadth).
+# Corpus programs the new compiler must pass (changes m2-workspace-and-slice, m2-procedures-and-errors, m2-control-flow-slice, m2-arrays-and-types, m2-parser-breadth and m2-core-builtins).
 # One <group>/<name> per line; run with: run_legacy_tests.py --suite corpus --list tests/corpus/slice.list
 slice/s01_literals
 slice/s02_integer_wrap
@@ -131,3 +131,69 @@ runtime_comparison/58_array_udt
 runtime_comparison/71_dim_zero_bound
 runtime_comparison/72_three_dim
 runtime_comparison/30_type_udt
+# m2-core-builtins: string built-ins (task 4.1)
+runtime_comparison/100_str_negative
+runtime_comparison/117_mid_three_args
+runtime_comparison/128_string_repeat
+runtime_comparison/15_ucase_lcase
+runtime_comparison/169_string_with_char
+runtime_comparison/171_left_right_zero
+runtime_comparison/17_string_space
+runtime_comparison/245_str_variants
+runtime_comparison/248_str
+runtime_comparison/50_mid_two_args
+runtime_comparison/93_left_right_edge
+runtime_comparison/94_mid_edge
+# m2-core-builtins: LEN, ASC, VAL, HEX$, OCT$, _BIN$ (task 4.2)
+slice/s25_string_builtins
+runtime_comparison/01_string_ops
+runtime_comparison/118_string_concat_long
+runtime_comparison/129_len_string
+runtime_comparison/12_chr_asc
+runtime_comparison/13_str_val
+runtime_comparison/167_oct_hex
+runtime_comparison/168_bin_dollar
+runtime_comparison/170_mid_empty
+runtime_comparison/172_val_hex_oct
+runtime_comparison/173_chr_asc_unicode
+runtime_comparison/250_rot13_mini
+runtime_comparison/258_string_builtin
+runtime_comparison/260_long_line
+runtime_comparison/264_string_concat_chain
+runtime_comparison/49_empty_string
+runtime_comparison/51_asc_two_args
+runtime_comparison/88_val_junk
+runtime_comparison/99_chr_zero
+verification/v11_wrap_o2
+verification/v12_wrap_int64
+# m2-core-builtins: math built-ins (task 5.1)
+slice/s26_val_len_radix
+slice/s27_math_builtins
+runtime_comparison/06_math_abs
+runtime_comparison/07_math_sqr
+runtime_comparison/08_math_int
+runtime_comparison/09_math_sgn
+runtime_comparison/106_atan2
+runtime_comparison/107_hypot
+runtime_comparison/164_exp_overflow
+runtime_comparison/165_sqr_negative
+runtime_comparison/257_math_builtin
+runtime_comparison/31_math_sin_cos
+runtime_comparison/32_math_log_exp
+runtime_comparison/33_math_atn
+runtime_comparison/34_cint_clng
+runtime_comparison/35_fix
+runtime_comparison/76_pi
+runtime_comparison/79_tan
+# m2-core-builtins: SELECT CASE (task 6.2)
+slice/s28_select_case
+runtime_comparison/114_select_multiple
+runtime_comparison/149_select_case_else
+runtime_comparison/20_select_case
+runtime_comparison/253_select_simple
+runtime_comparison/67_select_case_to
+runtime_comparison/98_select_case_is
+# m2-core-builtins: ON … GOTO/GOSUB (task 7.1)
+slice/s29_on_goto
+runtime_comparison/226_on_goto
+runtime_comparison/227_on_gosub

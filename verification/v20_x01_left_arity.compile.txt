@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: LEFT$(stringValue$, numberOfCharacters%)
+Caused by (or after):PRINT LEFT$ ( "abc",3 )
+LINE 3:PRINT LEFT$("abc")
+exit=1

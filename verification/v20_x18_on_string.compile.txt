@@ -1,0 +1,5 @@
+
+Expected numeric expression
+Caused by (or after):ON S$ GOTO L1
+LINE 4:ON s$ GOTO l1
+exit=1

@@ -1,0 +1,253 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+qbs *__STRING_S=NULL;
+int16 *__INTEGER_I=NULL;
+int32 *__LONG_L=NULL;
+int64 *__INTEGER64_Q=NULL;
+double *__DOUBLE_D=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> clear.txt <==
+__STRING_S->len=0;
+*__INTEGER_I=0;
+*__LONG_L=0;
+*__INTEGER64_Q=0;
+*__DOUBLE_D=0;
+==> maindata.txt <==
+if (!__STRING_S)__STRING_S=qbs_new(0,0);
+if(__INTEGER_I==NULL){
+__INTEGER_I=(int16*)mem_static_malloc(2);
+*__INTEGER_I=0;
+}
+if(__LONG_L==NULL){
+__LONG_L=(int32*)mem_static_malloc(4);
+*__LONG_L=0;
+}
+if(__INTEGER64_Q==NULL){
+__INTEGER64_Q=(int64*)mem_static_malloc(8);
+*__INTEGER64_Q=0;
+}
+if(__DOUBLE_D==NULL){
+__DOUBLE_D=(double*)mem_static_malloc(8);
+*__DOUBLE_D=0;
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "builtins_len_val_cpp.bas"
+do{
+#line 2 "builtins_len_val_cpp.bas"
+sub__dest(func__console());
+#line 2 "builtins_len_val_cpp.bas"
+sub__source(func__console());
+#line 2 "builtins_len_val_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 7 "builtins_len_val_cpp.bas"
+do{
+#line 7 "builtins_len_val_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 7 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(((int32)(__STRING_S)->len))),qbs_new_txt(" ")));
+#line 7 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 7 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 7 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 7 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(4)),qbs_new_txt(" ")));
+#line 7 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 7 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 7 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 7 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(qbs_asc(__STRING_S))),qbs_new_txt(" ")));
+#line 7 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 7 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 7 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 7 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(qbs_asc(__STRING_S,2))),qbs_new_txt(" ")));
+#line 7 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 7 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 7 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 7 "builtins_len_val_cpp.bas"
+qbs_print(nothingstring,1);
+#line 7 "builtins_len_val_cpp.bas"
+skip1:
+#line 7 "builtins_len_val_cpp.bas"
+qbs_free(tqbs);
+#line 7 "builtins_len_val_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 7 "builtins_len_val_cpp.bas"
+if(!qbevent)break;evnt(7);}while(r);
+#line 8 "builtins_len_val_cpp.bas"
+do{
+#line 8 "builtins_len_val_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 8 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((long double)(qbs_val<long double>(__STRING_S))),qbs_new_txt(" ")));
+#line 8 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 8 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 8 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 8 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((float)(((float)qbs_val<long double>(__STRING_S)))),qbs_new_txt(" ")));
+#line 8 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 8 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 8 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 8 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((double)(((double)qbs_val<long double>(__STRING_S)))),qbs_new_txt(" ")));
+#line 8 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 8 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 8 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 8 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(qbs_val<int64_t>(__STRING_S))),qbs_new_txt(" ")));
+#line 8 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 8 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 8 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 8 "builtins_len_val_cpp.bas"
+qbs_print(nothingstring,1);
+#line 8 "builtins_len_val_cpp.bas"
+skip2:
+#line 8 "builtins_len_val_cpp.bas"
+qbs_free(tqbs);
+#line 8 "builtins_len_val_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 8 "builtins_len_val_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 9 "builtins_len_val_cpp.bas"
+do{
+#line 9 "builtins_len_val_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,func_hex(*__INTEGER_I,4));
+#line 9 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 9 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,func_hex(*__LONG_L,8));
+#line 9 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 9 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,func_hex(*__INTEGER64_Q,16));
+#line 9 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 9 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,func_hex((*__INTEGER64_Q*1ll),0));
+#line 9 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 9 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,func_hex_float(*__DOUBLE_D));
+#line 9 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 9 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,func_oct(*__INTEGER64_Q,64));
+#line 9 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 9 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,func_oct((((int32)(*__INTEGER_I))*1),0));
+#line 9 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 9 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,func__bin(*__LONG_L,32));
+#line 9 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 9 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_set(tqbs,func__bin_float(*__DOUBLE_D));
+#line 9 "builtins_len_val_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 9 "builtins_len_val_cpp.bas"
+makefit(tqbs);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_print(nothingstring,1);
+#line 9 "builtins_len_val_cpp.bas"
+skip3:
+#line 9 "builtins_len_val_cpp.bas"
+qbs_free(tqbs);
+#line 9 "builtins_len_val_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 9 "builtins_len_val_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(__STRING_S);
+==> empty: regsf.txt dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt

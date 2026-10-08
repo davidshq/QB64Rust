@@ -479,6 +479,46 @@ impl GosubStmt<'_> {
     }
 }
 
+impl<'a> OnJumpStmt<'a> {
+    /// The value `n` of `ON n GOTO …`.
+    pub fn value(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+
+    /// `GOTO` or `GOSUB`.
+    pub fn keyword(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+
+    /// The targets after the keyword, in order, each a label name or a line number; `None` where one is left out
+    /// (`ON n GOTO a, , b` gives three, the second `None`).
+    pub fn targets(self) -> Vec<Option<Tok>> {
+        let Some(kw) = self.keyword() else {
+            return Vec::new();
+        };
+        let mut out = Vec::new();
+        let mut cur = None;
+        let mut any = false;
+        for t in self.0.child_tokens().filter(|t| t.span.start > kw.span.start) {
+            match t.kind {
+                Ident | Number => {
+                    cur = Some(t);
+                    any = true;
+                }
+                Comma => {
+                    out.push(cur.take());
+                    any = true;
+                }
+                _ => {}
+            }
+        }
+        if any {
+            out.push(cur);
+        }
+        out
+    }
+}
+
 impl ReturnStmt<'_> {
     pub fn target(self) -> Option<Tok> {
         jump_target(self.0)

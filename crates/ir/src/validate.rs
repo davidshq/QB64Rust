@@ -256,7 +256,8 @@ impl Validator<'_> {
                 self.value(rhs, owner, at);
             }
             ExprKind::Call { builtin: id, args } => {
-                let slots = id.get().arg_types.len();
+                // The table's slots, or as many as the built-in's rule gives it (`ASC` has two).
+                let slots = qb64rust_sema::builtins::slot_count(*id);
                 if args.len() != slots {
                     self.problem(format!(
                         "{at}: {} with {} argument slots for {slots}",

@@ -59,6 +59,10 @@ use qb64rust_base::{FileId, Span};
 /// is extended precision), strings, user types. They name no C type, so the IR stays ABI-neutral.
 pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, UnOp, UserType};
 
+/// Which built-in functions are compiled and the rule each follows; the emitter writes a call by its rule.
+pub use qb64rust_sema::builtins;
+/// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place).
+pub use qb64rust_sema::size_of;
 /// Values, places and arguments are `sema`'s typed tree too (design D10 of `m2-arrays-and-types`: the lowering did
 /// no work on them, only a variant-for-variant copy). The emitter ignores an [`Expr`]'s `span` and `qb`. Variable and
 /// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended

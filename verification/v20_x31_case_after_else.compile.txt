@@ -1,0 +1,5 @@
+
+Expected END SELECT
+Caused by (or after):CASE 5
+LINE 6:CASE 5: PRINT "five"
+exit=1

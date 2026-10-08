@@ -1,6 +1,8 @@
 //! `--dump typed`: one node per line, indented, with its type (FreeBASIC lesson L8: assertions on types).
 
-use crate::{Arg, Expr, ExprKind, Place, PrintItem, ProcKind, Program, Resume, Stmt, StmtKind, Storage, Ty, VarId};
+use crate::{
+    Arg, CaseItem, Expr, ExprKind, Place, PrintItem, ProcKind, Program, Resume, Stmt, StmtKind, Storage, Ty, VarId,
+};
 use qb64rust_base::show_bytes;
 use std::fmt::Write as _;
 
@@ -228,6 +230,47 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 expr(p, cond, d + 2, out);
                 heading(out, "Body");
                 stmts(p, body, d + 2, out);
+            }
+            StmtKind::OnJump { value, gosub, targets } => {
+                let names: Vec<&str> = targets.iter().map(|l| p.label(*l).name.as_str()).collect();
+                let kw = if *gosub { "Gosub" } else { "Goto" };
+                line(out, &format!("On{kw} {}", names.join(", ")));
+                expr(p, value, d + 1, out);
+            }
+            StmtKind::Select {
+                selector,
+                copied,
+                every,
+                cases,
+                else_,
+                end_line,
+            } => {
+                let kind = if *every { "SelectEveryCase" } else { "SelectCase" };
+                let read = if *copied { "copied once" } else { "read at each test" };
+                line(out, &format!("{kind}, selector {read} (END SELECT line {end_line})"));
+                expr(p, selector, d + 2, out);
+                for c in cases {
+                    heading(out, &format!("Case line {}", c.line));
+                    for item in &c.items {
+                        match item {
+                            CaseItem::Is(op, v) => {
+                                writeln!(out, "{pad}    Is {op:?}").unwrap();
+                                expr(p, v, d + 3, out);
+                            }
+                            CaseItem::Range(low, high) => {
+                                writeln!(out, "{pad}    Range").unwrap();
+                                expr(p, low, d + 3, out);
+                                expr(p, high, d + 3, out);
+                            }
+                        }
+                    }
+                    writeln!(out, "{pad}    Body").unwrap();
+                    stmts(p, &c.body, d + 3, out);
+                }
+                if let Some(body) = else_ {
+                    heading(out, "Else");
+                    stmts(p, body, d + 2, out);
+                }
             }
         }
     }

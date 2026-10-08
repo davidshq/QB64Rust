@@ -4,7 +4,12 @@
 arrays/t659_array_assignment_control
 arrays/t659_explicit_call_control
 arrays/t659_sub_call_comparisons
+basic/val_default_regression
+basic/val_typed_floating_precision
+basic/val_typed_nondecimal_precision
+basic/val_typed_tostr_overload
 console/test
+console_only/print_console_null_char
 const/bad_boolean_arg
 const/bad_not_no_arg
 const/bad_not_to_many_args
@@ -18,6 +23,8 @@ declare_library_external/test
 declare_library_external/test_stripped
 dollar$sign$test/dollar$sign
 filename/filename.extra.extension
+func_tostr/mmLiteral
+func_tostr/mmVariable
 include_once/test
 include_paths/include_fixed_compile_location
 include_paths/include_multiple
@@ -27,6 +34,7 @@ noprompt/noprompt-continue
 noprompt/noprompt-continue-fatal
 noprompt/noprompt-y
 parens()/parens()
+print/auto_semicolon_insertion
 single'quote'test/single'quote'test
 source_ordering/goto_gosub
 source_ordering/sub_after_main

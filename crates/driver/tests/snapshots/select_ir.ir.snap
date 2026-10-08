@@ -1,0 +1,64 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 7
+  Assign X:F32 = (Const 3:I16 -> Convert F32 Nearest)
+Stmt line 9
+  Branch Zero -> @1 Skip: OrElse:I32(Eq:I32(Var X:F32, (Const 1:I16 -> Convert F32 Nearest)), Eq:I32(Var X:F32, (Const 2:I16 -> Convert F32 Nearest)))
+Stmt line 9
+  Print console newline
+    Str Const "a"
+Stmt line 12
+  Jump @0
+Label @1 line 12
+Stmt line 10
+  Branch Zero -> @2 Skip: AndAlso:I32(Ge:I32(Var X:F32, (Const 3:I16 -> Convert F32 Nearest)), Le:I32(Var X:F32, (Const 4:I16 -> Convert F32 Nearest)))
+Stmt line 10
+  Print console newline
+    Str Const "b"
+Stmt line 12
+  Jump @0
+Label @2 line 12
+Stmt line 11
+  Print console newline
+    Str Const "c"
+Label @0 line 12
+Stmt line 13
+  Assign 2SELECT:F32 = Mul:F32(Var X:F32, (Const 2:I16 -> Convert F32 Nearest))
+  Assign select2.matched(temp):I32 = Const 0:I32
+Stmt line 14
+  Branch Zero -> @4 Skip: Gt:I32(Var 2SELECT:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 14
+  Print console newline
+    Str Const "d"
+Stmt line 16
+  Assign select2.matched(temp):I32 = Const -1:I32
+Label @4 line 16
+Stmt line 16
+  Branch NonZero -> @3 UseValue: Var select2.matched(temp):I32
+Stmt line 15
+  Print console newline
+    Str Const "e"
+Label @3 line 16
+Stmt line 17 may_raise
+  Print console newline
+    Num CallProc F:F32 [Temp((Const 1:I16 -> Convert F32 Nearest))]
+Function F:F32 lines 18-23
+  param N:F32
+  result F:F32
+  static 3SELECT:F32
+Stmt line 19
+  Assign 3SELECT(static):F32 = Mul:F32(Var N(param):F32, (Const 10:I16 -> Convert F32 Nearest))
+Stmt line 20
+  Branch Zero -> @1 Skip: Eq:I32(Var 3SELECT(static):F32, (Const 10:I16 -> Convert F32 Nearest))
+Stmt line 20
+  Assign F(result):F32 = (Const 1:I16 -> Convert F32 Nearest)
+Stmt line 22
+  Jump @0
+Label @1 line 22
+Stmt line 21
+  Assign F(result):F32 = (Const 2:I16 -> Convert F32 Nearest)
+Label @0 line 22

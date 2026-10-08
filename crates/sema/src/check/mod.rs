@@ -7,6 +7,7 @@
 //! main-module `DIM x AS T` for the main-module code after it.
 
 mod blocks;
+mod builtins;
 mod constants;
 mod decl;
 mod expr;
@@ -69,6 +70,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         type_defs: HashSet::new(),
         dim_shared_array_plain: HashMap::new(),
         whole_type_arg: false,
+        len_place: None,
         types_marked: HashSet::new(),
         follow_on: false,
     };
@@ -258,6 +260,9 @@ struct Checker<'a> {
     dim_shared_array_plain: HashMap<String, Ty>,
     /// An argument is being typed: a whole user-type value there is "not supported yet", not an error.
     whole_type_arg: bool,
+    /// The span of a `LEN` argument being typed: a whole user-type place loaded with exactly this span is taken as
+    /// a place (its size), not rejected as a value.
+    len_place: Option<Span>,
     /// Main-module `TYPE` blocks (by key) that pass 1 marked "not supported yet".
     types_marked: HashSet<(TreeId, u32)>,
     /// The follow-on rule is on (design D10): a declaration was marked "not supported yet", so real errors are
@@ -432,8 +437,8 @@ impl Checker<'_> {
             self.end_or_system(node, StmtKind::End)
         } else if ast::SystemStmt::cast(node).is_some() {
             self.end_or_system(node, StmtKind::System)
-        } else if ast::OnJumpStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "`ON … GOTO` and `ON … GOSUB`"))
+        } else if let Some(s) = ast::OnJumpStmt::cast(node) {
+            self.on_jump(s)
         } else if ast::OnEventStmt::cast(node).is_some() {
             Err(self.unsupported(first_token_span(node), "event handlers (`ON TIMER`, `ON KEY`, …)"))
         } else if ast::EventSwitchStmt::cast(node).is_some() {

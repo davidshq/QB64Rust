@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: INSTR([start%,] baseString$, searchString$)
+Caused by (or after):PRINT INSTR ( "a",1 )
+LINE 3:PRINT INSTR("a")
+exit=1

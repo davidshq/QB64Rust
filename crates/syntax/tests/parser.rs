@@ -385,6 +385,13 @@ fn loops() {
     ));
 }
 
+/// Spec `compiler/pipeline`, "Statement not compiled yet": a `DoBlock` holding a `SwapStmt` (`sema` marks the `SWAP`,
+/// `tests\frontend\blocks_not_compiled_yet.bas`).
+#[test]
+fn swap_in_a_do() {
+    insta::assert_snapshot!(tree("DO: SWAP a, b: LOOP UNTIL a > 0\n"));
+}
+
 /// `SELECT CASE` and `SELECT EVERYCASE`: `IS`, ranges, lists, `CASE ELSE`, a comment before the first `CASE`,
 /// `EXIT SELECT` and `EXIT CASE`.
 #[test]

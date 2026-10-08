@@ -37,11 +37,11 @@ pub fn lower(p: &sema::Program) -> Program {
         })
         .collect();
     // The main module first, so the temporaries are numbered in source order as far as possible.
-    let mut fors = 0;
-    let main = Lowerer::new(p, &ids, None, &mut vars, &mut fors).body(&p.stmts);
+    let mut counts = Counts::default();
+    let main = Lowerer::new(p, &ids, None, &mut vars, &mut counts).body(&p.stmts);
     let mut procs = Vec::new();
     for (q, i) in p.procs.iter().zip(0..) {
-        let body = Lowerer::new(p, &ids, Some(sema::ProcId(i)), &mut vars, &mut fors).body(&q.stmts);
+        let body = Lowerer::new(p, &ids, Some(sema::ProcId(i)), &mut vars, &mut counts).body(&q.stmts);
         procs.push(Proc {
             name: q.name.clone(),
             kind: match q.kind {
@@ -69,6 +69,14 @@ pub fn lower(p: &sema::Program) -> Program {
     program
 }
 
+/// How many blocks of each kind with hidden variables the lowering has met in the program.
+#[derive(Default)]
+struct Counts {
+    fors: u32,
+    selects: u32,
+    ons: u32,
+}
+
 /// The lowering of one body.
 struct Lowerer<'a> {
     ids: &'a LabelIds,
@@ -76,8 +84,8 @@ struct Lowerer<'a> {
     owner: Option<sema::ProcId>,
     /// The program's variables; the lowering adds its temporaries.
     vars: &'a mut Vec<Var>,
-    /// `FOR` loops lowered so far in the program, for the temporaries' names.
-    fors: &'a mut u32,
+    /// Blocks lowered so far in the program, for the names of their hidden variables.
+    counts: &'a mut Counts,
     labels: Vec<Label>,
     stmts: Vec<Stmt>,
     /// The exit labels of the loops around the statement being lowered, innermost last.
@@ -90,7 +98,7 @@ impl<'a> Lowerer<'a> {
         ids: &'a LabelIds,
         owner: Option<sema::ProcId>,
         vars: &'a mut Vec<Var>,
-        fors: &'a mut u32,
+        counts: &'a mut Counts,
     ) -> Self {
         // The body's own labels keep their order, so a label's IR id is its index among its own body's labels
         // ([`LabelIds`]); their positions are set where their statements stand.
@@ -109,7 +117,7 @@ impl<'a> Lowerer<'a> {
             ids,
             owner,
             vars,
-            fors,
+            counts,
             labels,
             stmts: Vec::new(),
             exits: Vec::new(),
@@ -196,6 +204,25 @@ impl<'a> Lowerer<'a> {
                     step: step.as_ref(),
                 };
                 return self.for_loop(s, parts, body, *end_line);
+            }
+            sema::StmtKind::OnJump { value, gosub, targets } => return self.on_jump(s, value, *gosub, targets),
+            sema::StmtKind::Select {
+                selector,
+                copied,
+                every,
+                cases,
+                else_,
+                end_line,
+            } => {
+                let parts = SelectParts {
+                    selector,
+                    copied: *copied,
+                    every: *every,
+                    cases,
+                    else_: else_.as_deref(),
+                    end_line: *end_line,
+                };
+                return self.select(s, parts);
             }
             sema::StmtKind::ExitLoop(kind) => {
                 let (_, exit) = *self
@@ -334,8 +361,8 @@ impl<'a> Lowerer<'a> {
         let lbody = self.label(s.line);
         let entry = self.label(end_line);
         let exit = self.label(end_line);
-        *self.fors += 1;
-        let n = *self.fors;
+        self.counts.fors += 1;
+        let n = self.counts.fors;
         let t = self.temp(format!("for{n}.value"), f.temp);
         let lim = self.temp(format!("for{n}.limit"), f.temp);
         let st = self.temp(format!("for{n}.step"), f.temp);
@@ -406,16 +433,192 @@ impl<'a> Lowerer<'a> {
         self.place(exit);
     }
 
+    /// `SELECT CASE` / `SELECT EVERYCASE` (design D7 of `m2-core-builtins`, as the old compiler emits it,
+    /// `qb64pe.bas` 6790–7209):
+    ///
+    /// ```text
+    ///         copy = selector; matched = 0                            SELECT line, one statement (each part if any)
+    ///         Branch(items, Zero → Lnext1, Skip)                      CASE line
+    ///         body; Jump(Lend)   (EVERYCASE: matched = -1)
+    /// Lnext1: Branch(items, Zero → Lnext2, Skip)                      next CASE line
+    ///         …
+    /// Lnextk: (EVERYCASE: Branch(matched, NonZero → Lend))  CASE ELSE body
+    /// Lend:
+    /// ```
+    ///
+    /// The items of a `CASE` are joined by `_ORELSE` and a range is `>=` `_ANDALSO` `<=`, as the old compiler's
+    /// `||` and `&&` (a later item is not evaluated once one matched). A test that raises takes its `CASE`, as `IF`
+    /// does (measured). The copy of a selector that is not a plain variable is one per `SELECT` statement: a global
+    /// variable in the main module, a `STATIC` one in a procedure, so a recursive call overwrites it
+    /// (`DIVERGENCES-QB45.md` Q-002); its name starts with a digit, so no BASIC name meets it. The `EVERYCASE` flag
+    /// is a temporary of the body (per call in a procedure, measured from the C++).
+    fn select(&mut self, s: &sema::Stmt, sel: SelectParts) {
+        self.counts.selects += 1;
+        let n = self.counts.selects;
+        let m = Make(s.span);
+        let end = self.label(sel.end_line);
+        let mut head = Vec::new();
+        let value = if sel.copied {
+            let storage = match self.owner {
+                None => Storage::Global,
+                Some(q) => Storage::Static(ProcId(q.0)),
+            };
+            let copy = self.hidden(format!("{n}SELECT"), sel.selector.ty, storage);
+            head.push(Op::Assign {
+                place: Place::Var(copy),
+                value: sel.selector.clone(),
+            });
+            m.var(copy, sel.selector.ty)
+        } else {
+            sel.selector.clone()
+        };
+        let matched = sel.every.then(|| {
+            let f = self.temp(format!("select{n}.matched"), Ty::I32);
+            head.push(Op::Assign {
+                place: Place::Var(f),
+                value: m.number(0, Ty::I32),
+            });
+            f
+        });
+        if !head.is_empty() {
+            self.emit(s.span, s.line, head);
+        }
+        for c in sel.cases {
+            let next = self.label(sel.end_line);
+            let mut tests = c.items.iter().map(|item| match item {
+                sema::CaseItem::Is(op, v) => m.compare(*op, &value, v),
+                sema::CaseItem::Range(low, high) => m.binary(
+                    BinOp::AndAlso,
+                    Ty::I32,
+                    m.compare(BinOp::Ge, &value, low),
+                    m.compare(BinOp::Le, &value, high),
+                ),
+            });
+            let first = tests.next().expect("a `CASE` has an item");
+            let cond = tests.fold(first, |acc, t| m.binary(BinOp::OrElse, Ty::I32, acc, t));
+            let branch = Op::Branch {
+                cond,
+                when: When::Zero,
+                to: next,
+                on_error: OnError::Skip,
+            };
+            self.emit(s.span, c.line, vec![branch]);
+            self.stmts_of(&c.body);
+            let leave = match matched {
+                Some(f) => Op::Assign {
+                    place: Place::Var(f),
+                    value: m.number(-1, Ty::I32),
+                },
+                None => Op::Jump(end),
+            };
+            self.emit(s.span, sel.end_line, vec![leave]);
+            self.place(next);
+        }
+        if let Some(body) = sel.else_ {
+            if let Some(f) = matched {
+                let skip = Op::Branch {
+                    cond: m.var(f, Ty::I32),
+                    when: When::NonZero,
+                    to: end,
+                    on_error: OnError::UseValue,
+                };
+                self.emit(s.span, sel.end_line, vec![skip]);
+            }
+            self.stmts_of(body);
+        }
+        self.place(end);
+    }
+
+    /// `ON n GOTO …` / `ON n GOSUB …` (design D8 of `m2-core-builtins`, as the old compiler emits it, `qb64pe.bas`
+    /// 27620–27709), all statements on the `ON` line:
+    ///
+    /// ```text
+    ///         n = value; Branch(n = 1 → l1, UseValue); …; Branch(n = k → lk, UseValue)     GOTO: one statement
+    ///         n = value                                                                     GOSUB: the store, then
+    ///         Branch(n <> 1 → Lskip1, UseValue); Gosub(l1); Jump(Lend)                      per target
+    /// Lskip1: …
+    ///         Branch(n >= 0 → Lend, UseValue)
+    ///         Raise 5
+    /// Lend:
+    /// ```
+    ///
+    /// The tests use the value even when computing it raised (measured: `ON ASC("") + 1 GOTO` goes to the first
+    /// label); such an error is serviced at the first event check reached, the target label's or the store's
+    /// statement's, as in the old compiler.
+    fn on_jump(&mut self, s: &sema::Stmt, value: &Expr, gosub: bool, targets: &[sema::LabelId]) {
+        self.counts.ons += 1;
+        let n = self.counts.ons;
+        let m = Make(s.span);
+        let v = self.temp(format!("on{n}.value"), Ty::I32);
+        let end = self.label(s.line);
+        let targets: Vec<LabelId> = targets.iter().map(|l| self.ids.get(*l)).collect();
+        let test = |op: BinOp, k: i64| m.binary(op, Ty::I32, m.var(v, Ty::I32), m.number(k, Ty::I32));
+        let store = Op::Assign {
+            place: Place::Var(v),
+            value: value.clone(),
+        };
+        if gosub {
+            self.emit(s.span, s.line, vec![store]);
+            for (k, &l) in (1..).zip(&targets) {
+                let skip = self.label(s.line);
+                let other = Op::Branch {
+                    cond: test(BinOp::Ne, k),
+                    when: When::NonZero,
+                    to: skip,
+                    on_error: OnError::UseValue,
+                };
+                self.emit(s.span, s.line, vec![other, Op::Gosub(l), Op::Jump(end)]);
+                self.place(skip);
+            }
+        } else {
+            let mut ops = vec![store];
+            for (k, &l) in (1..).zip(&targets) {
+                ops.push(Op::Branch {
+                    cond: test(BinOp::Eq, k),
+                    when: When::NonZero,
+                    to: l,
+                    on_error: OnError::UseValue,
+                });
+            }
+            self.emit(s.span, s.line, ops);
+        }
+        let not_negative = Op::Branch {
+            cond: test(BinOp::Ge, 0),
+            when: When::NonZero,
+            to: end,
+            on_error: OnError::UseValue,
+        };
+        self.emit(s.span, s.line, vec![not_negative]);
+        self.emit(s.span, s.line, vec![Op::Raise(m.number(5, Ty::I32))]);
+        self.place(end);
+    }
+
     /// A new hidden variable of this body.
     fn temp(&mut self, name: String, ty: Ty) -> VarId {
+        let storage = Storage::Temp(self.owner.map(|q| ProcId(q.0)));
+        self.hidden(name, ty, storage)
+    }
+
+    /// A new variable the lowering makes, of any storage class.
+    fn hidden(&mut self, name: String, ty: Ty, storage: Storage) -> VarId {
         self.vars.push(Var {
             name,
             ty,
-            storage: Storage::Temp(self.owner.map(|q| ProcId(q.0))),
+            storage,
             dims: Vec::new(),
         });
         VarId(to_u32(self.vars.len() - 1))
     }
+}
+
+/// A `SELECT`, with its parts still typed-tree values and statements.
+struct SelectParts<'e> {
+    selector: &'e sema::Expr,
+    copied: bool,
+    every: bool,
+    cases: &'e [sema::Case],
+    else_: Option<&'e [sema::Stmt]>,
+    end_line: u32,
 }
 
 /// The header of a `FOR`, with its values still typed-tree expressions.
@@ -462,6 +665,20 @@ impl Make {
             rhs: Box::new(rhs),
         };
         self.expr(ty, kind)
+    }
+
+    /// A comparison of a `SELECT`'s value with a `CASE` value, which is already of the comparison's type (the value
+    /// is converted to it, never narrower): -1 or 0, LONG.
+    fn compare(&self, op: BinOp, value: &Expr, item: &Expr) -> Expr {
+        if item.ty == Ty::Str {
+            let kind = ExprKind::StrCompare {
+                op,
+                lhs: Box::new(value.clone()),
+                rhs: Box::new(item.clone()),
+            };
+            return self.expr(Ty::I32, kind);
+        }
+        self.binary(op, Ty::I32, self.convert(value.clone(), item.ty), item.clone())
     }
 
     /// Between a `FOR` variable's type and the type its loop counts in: wider (exact), or back (an integer keeps

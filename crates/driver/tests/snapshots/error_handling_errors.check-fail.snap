@@ -13,6 +13,6 @@ error_handling_errors.bas:12:12: error: `CHR$` needs a number
 error_handling_errors.bas:13:7: error: `CHR$` takes 1 argument
 error_handling_errors.bas:14:1: error: not supported yet: the label `cls:` (`cls` is a built-in)
 error_handling_errors.bas:15:1: error: not supported yet: a label with the name of a SUB or FUNCTION: `s`
-error_handling_errors.bas:16:7: error: not supported yet: `ERR`
+error_handling_errors.bas:16:7: error: not supported yet: `ERR` with arguments
 error_handling_errors.bas:19:12: error: label `a` is not defined in this SUB or FUNCTION
 error_handling_errors.bas:20:5: error: not supported yet: `RESUME` inside a SUB or FUNCTION

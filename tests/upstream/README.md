@@ -159,3 +159,14 @@ after `*`). None builds and prints the wrong output: an earlier run of the chang
 `precomp-flags/consoleonly` doing so (`$IF _CONSOLE_` false), now marked "not supported yet" (`study\26` §2).
 `auto_include/no-debug` passed by luck before the fix (its `_DEBUG_` is 0) and is marked now. 1 known failure.
 The tier-2 runner passes `--include-root tests/upstream/root` to the new compiler on its own.
+
+**Upstream progress, 2026-10-08: 42 of 279** (`m2-core-builtins`: 43 built-in functions, `SELECT CASE`, `ON …
+GOTO/GOSUB`). Full run with the release build against the reference clone (404 programs, 64 s): 44 pass; none
+builds and prints the wrong output; 1 known failure. Added to `pass.list` (42 pass there against the QB64pe 4.7.0
+release, as the CI job runs them): `basic/val_default_regression`, `val_typed_floating_precision`,
+`val_typed_nondecimal_precision`, `val_typed_tostr_overload`, `console_only/print_console_null_char`,
+`func_tostr/mmLiteral`, `func_tostr/mmVariable`, `print/auto_semicolon_insertion`. The other two that pass against
+the clone, `basic/val_default_large_integer_decimal` and `val_typed_large_integer_decimal`, expect the `VAL` of
+libqb after 4.7.0: against the release they print other digits, with the release's own `qb64pe.exe` too, so they
+are in `tests\known_clean_not_passing.list` until CI moves to a newer release. The proposal counted 11 upstream
+programs carrying only marks the change removes; 10 compile and pass against the clone.

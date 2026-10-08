@@ -1,0 +1,182 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+float *__SINGLE_X=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> clear.txt <==
+*__SINGLE_X=0;
+==> maindata.txt <==
+if(__SINGLE_X==NULL){
+__SINGLE_X=(float*)mem_static_malloc(4);
+*__SINGLE_X=0;
+}
+static int32 temp_on1_value=0;
+static int32 temp_on2_value=0;
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "on_goto_cpp.bas"
+do{
+#line 2 "on_goto_cpp.bas"
+sub__dest(func__console());
+#line 2 "on_goto_cpp.bas"
+sub__source(func__console());
+#line 2 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 5 "on_goto_cpp.bas"
+do{
+#line 5 "on_goto_cpp.bas"
+*__SINGLE_X=((float)(2));
+#line 5 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(5);}while(r);
+#line 6 "on_goto_cpp.bas"
+do{
+#line 6 "on_goto_cpp.bas"
+temp_on1_value=qbr_float_to_long(*__SINGLE_X);
+#line 6 "on_goto_cpp.bas"
+if (((-(temp_on1_value==1)))) goto LABEL_A;
+#line 6 "on_goto_cpp.bas"
+if (((-(temp_on1_value==2)))) goto LABEL_B;
+#line 6 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(6);}while(r);
+#line 6 "on_goto_cpp.bas"
+do{
+#line 6 "on_goto_cpp.bas"
+if (((-(temp_on1_value>=0)))) goto L_2;
+#line 6 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(6);}while(r);
+#line 6 "on_goto_cpp.bas"
+do{
+#line 6 "on_goto_cpp.bas"
+error(5);
+#line 6 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(6);}while(r);
+#line 6 "on_goto_cpp.bas"
+L_2:;
+#line 7 "on_goto_cpp.bas"
+do{
+#line 7 "on_goto_cpp.bas"
+temp_on2_value=qbr_float_to_long(*__SINGLE_X);
+#line 7 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(7);}while(r);
+#line 7 "on_goto_cpp.bas"
+do{
+#line 7 "on_goto_cpp.bas"
+if (((-(temp_on2_value!=1)))) goto L_4;
+#line 7 "on_goto_cpp.bas"
+return_point[next_return_point++]=1;
+#line 7 "on_goto_cpp.bas"
+if (next_return_point>=return_points) more_return_points();
+#line 7 "on_goto_cpp.bas"
+goto LABEL_A;
+#line 7 "on_goto_cpp.bas"
+RETURN_1:;
+#line 7 "on_goto_cpp.bas"
+goto L_3;
+#line 7 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(7);}while(r);
+#line 7 "on_goto_cpp.bas"
+L_4:;
+#line 7 "on_goto_cpp.bas"
+do{
+#line 7 "on_goto_cpp.bas"
+if (((-(temp_on2_value!=2)))) goto L_5;
+#line 7 "on_goto_cpp.bas"
+return_point[next_return_point++]=2;
+#line 7 "on_goto_cpp.bas"
+if (next_return_point>=return_points) more_return_points();
+#line 7 "on_goto_cpp.bas"
+goto LABEL_B;
+#line 7 "on_goto_cpp.bas"
+RETURN_2:;
+#line 7 "on_goto_cpp.bas"
+goto L_3;
+#line 7 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(7);}while(r);
+#line 7 "on_goto_cpp.bas"
+L_5:;
+#line 7 "on_goto_cpp.bas"
+do{
+#line 7 "on_goto_cpp.bas"
+if (((-(temp_on2_value>=0)))) goto L_3;
+#line 7 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(7);}while(r);
+#line 7 "on_goto_cpp.bas"
+do{
+#line 7 "on_goto_cpp.bas"
+error(5);
+#line 7 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(7);}while(r);
+#line 7 "on_goto_cpp.bas"
+L_3:;
+#line 8 "on_goto_cpp.bas"
+do{
+#line 8 "on_goto_cpp.bas"
+sub_end();
+#line 8 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 9 "on_goto_cpp.bas"
+LABEL_A:;
+#line 9 "on_goto_cpp.bas"
+if(qbevent){evnt(9);r=0;}
+#line 9 "on_goto_cpp.bas"
+do{
+#line 9 "on_goto_cpp.bas"
+#include "ret0.txt"
+#line 9 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+#line 10 "on_goto_cpp.bas"
+LABEL_B:;
+#line 10 "on_goto_cpp.bas"
+if(qbevent){evnt(10);r=0;}
+#line 10 "on_goto_cpp.bas"
+do{
+#line 10 "on_goto_cpp.bas"
+#include "ret0.txt"
+#line 10 "on_goto_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+sub_end();
+return;
+}
+==> ret0.txt <==
+if (next_return_point){
+next_return_point--;
+switch(return_point[next_return_point]){
+case 0:
+return;
+break;
+case 1:
+goto RETURN_1;
+break;
+case 2:
+goto RETURN_2;
+break;
+}
+}
+error(3);
+==> empty: regsf.txt dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt

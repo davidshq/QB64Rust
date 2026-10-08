@@ -1,0 +1,37 @@
+n = 0 : fell through
+n = 1 : t1
+n = 3 : t3
+n = 4 : fell through
+n = 255 : fell through
+n = 256 : fell through
+n = 258 : fell through
+n =-1 : [handler 5 ]
+ fell through
+n = 1.5 : t2
+n = 2.5 : t2
+n = 2.4 : t2
+n = 4294967298 : [handler 5 ]
+ fell through
+n =-.4 : fell through
+n = 65537 : fell through
+n =-65535 : [handler 5 ]
+ fell through
+_INTEGER64 4294967298: u2
+INTEGER 2: w2
+error in n: [handler 5 ]
+ after ON ASC(empty)
+error in n, then 1: [handler 5 ]
+ f1
+in g
+back
+in g2
+back again
+back from nothing
+ [handler 5 ]
+after ON -1 GOSUB
+a1
+back in sg 1 
+a2
+back in sg 2 
+back in sg 0 
+exit=0

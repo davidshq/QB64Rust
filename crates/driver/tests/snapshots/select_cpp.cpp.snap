@@ -1,0 +1,341 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+qbs *__STRING_S=NULL;
+float *__SINGLE_X=NULL;
+qbs *__STRING_2SELECT=NULL;
+float *_SUB_SP_SINGLE_3SELECT=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+void SUB_SP(float*_SUB_SP_SINGLE_N);
+==> clear.txt <==
+__STRING_S->len=0;
+*__SINGLE_X=0;
+__STRING_2SELECT->len=0;
+*_SUB_SP_SINGLE_3SELECT=0;
+==> maindata.txt <==
+if (!__STRING_S)__STRING_S=qbs_new(0,0);
+if(__SINGLE_X==NULL){
+__SINGLE_X=(float*)mem_static_malloc(4);
+*__SINGLE_X=0;
+}
+if (!__STRING_2SELECT)__STRING_2SELECT=qbs_new(0,0);
+if(_SUB_SP_SINGLE_3SELECT==NULL){
+_SUB_SP_SINGLE_3SELECT=(float*)mem_static_malloc(4);
+*_SUB_SP_SINGLE_3SELECT=0;
+}
+static int32 temp_select2_matched=0;
+float pass1;
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "select_cpp.bas"
+do{
+#line 2 "select_cpp.bas"
+sub__dest(func__console());
+#line 2 "select_cpp.bas"
+sub__source(func__console());
+#line 2 "select_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 7 "select_cpp.bas"
+do{
+#line 7 "select_cpp.bas"
+*__SINGLE_X=((float)(3));
+#line 7 "select_cpp.bas"
+if(!qbevent)break;evnt(7);}while(r);
+#line 9 "select_cpp.bas"
+do{
+#line 9 "select_cpp.bas"
+if ((!((-((-(*__SINGLE_X==((float)(1))))||(-(*__SINGLE_X==((float)(2))))))))&&(!is_error_pending())) goto L_1;
+#line 9 "select_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+#line 9 "select_cpp.bas"
+do{
+#line 9 "select_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 9 "select_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("a",1));
+#line 9 "select_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 9 "select_cpp.bas"
+makefit(tqbs);
+#line 9 "select_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "select_cpp.bas"
+qbs_print(nothingstring,1);
+#line 9 "select_cpp.bas"
+skip1:
+#line 9 "select_cpp.bas"
+qbs_free(tqbs);
+#line 9 "select_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 9 "select_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+#line 12 "select_cpp.bas"
+do{
+#line 12 "select_cpp.bas"
+goto L_0;
+#line 12 "select_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 12 "select_cpp.bas"
+L_1:;
+#line 10 "select_cpp.bas"
+do{
+#line 10 "select_cpp.bas"
+if ((!((-((-(*__SINGLE_X>=((float)(3))))&&(-(*__SINGLE_X<=((float)(4))))))))&&(!is_error_pending())) goto L_2;
+#line 10 "select_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 10 "select_cpp.bas"
+do{
+#line 10 "select_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 10 "select_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("b",1));
+#line 10 "select_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 10 "select_cpp.bas"
+makefit(tqbs);
+#line 10 "select_cpp.bas"
+qbs_print(tqbs,0);
+#line 10 "select_cpp.bas"
+qbs_print(nothingstring,1);
+#line 10 "select_cpp.bas"
+skip2:
+#line 10 "select_cpp.bas"
+qbs_free(tqbs);
+#line 10 "select_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 10 "select_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 12 "select_cpp.bas"
+do{
+#line 12 "select_cpp.bas"
+goto L_0;
+#line 12 "select_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 12 "select_cpp.bas"
+L_2:;
+#line 11 "select_cpp.bas"
+do{
+#line 11 "select_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 11 "select_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("c",1));
+#line 11 "select_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 11 "select_cpp.bas"
+makefit(tqbs);
+#line 11 "select_cpp.bas"
+qbs_print(tqbs,0);
+#line 11 "select_cpp.bas"
+qbs_print(nothingstring,1);
+#line 11 "select_cpp.bas"
+skip3:
+#line 11 "select_cpp.bas"
+qbs_free(tqbs);
+#line 11 "select_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 11 "select_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 12 "select_cpp.bas"
+L_0:;
+#line 13 "select_cpp.bas"
+do{
+#line 13 "select_cpp.bas"
+qbs_set(__STRING_2SELECT,qbs_add(__STRING_S,qbs_new_txt_len("x",1)));
+#line 13 "select_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 13 "select_cpp.bas"
+temp_select2_matched=0;
+#line 13 "select_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 14 "select_cpp.bas"
+do{
+#line 14 "select_cpp.bas"
+if ((!(qbs_cleanup(qbs_tmp_base,qbs_equal(__STRING_2SELECT,qbs_new_txt_len("ax",2)))))&&(!is_error_pending())) goto L_4;
+#line 14 "select_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 14 "select_cpp.bas"
+do{
+#line 14 "select_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 14 "select_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("d",1));
+#line 14 "select_cpp.bas"
+if (is_error_pending()) goto skip4;
+#line 14 "select_cpp.bas"
+makefit(tqbs);
+#line 14 "select_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "select_cpp.bas"
+qbs_print(nothingstring,1);
+#line 14 "select_cpp.bas"
+skip4:
+#line 14 "select_cpp.bas"
+qbs_free(tqbs);
+#line 14 "select_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 14 "select_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 16 "select_cpp.bas"
+do{
+#line 16 "select_cpp.bas"
+temp_select2_matched=(-1);
+#line 16 "select_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 16 "select_cpp.bas"
+L_4:;
+#line 16 "select_cpp.bas"
+do{
+#line 16 "select_cpp.bas"
+if ((temp_select2_matched)) goto L_3;
+#line 16 "select_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 15 "select_cpp.bas"
+do{
+#line 15 "select_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 15 "select_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("e",1));
+#line 15 "select_cpp.bas"
+if (is_error_pending()) goto skip5;
+#line 15 "select_cpp.bas"
+makefit(tqbs);
+#line 15 "select_cpp.bas"
+qbs_print(tqbs,0);
+#line 15 "select_cpp.bas"
+qbs_print(nothingstring,1);
+#line 15 "select_cpp.bas"
+skip5:
+#line 15 "select_cpp.bas"
+qbs_free(tqbs);
+#line 15 "select_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 15 "select_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "select_cpp.bas"
+L_3:;
+#line 17 "select_cpp.bas"
+do{
+#line 17 "select_cpp.bas"
+SUB_SP(&(pass1=((float)(1))));
+#line 17 "select_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(__STRING_S);
+qbs_free(__STRING_2SELECT);
+==> main1.txt <==
+#line 18 "select_cpp.bas"
+void SUB_SP(float*_SUB_SP_SINGLE_N){
+#line 18 "select_cpp.bas"
+qbs *tqbs;
+#line 18 "select_cpp.bas"
+ptrszint tmp_long;
+#line 18 "select_cpp.bas"
+int32 tmp_fileno;
+#line 18 "select_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 18 "select_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 18 "select_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 18 "select_cpp.bas"
+#include "data1.txt"
+#line 18 "select_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 18 "select_cpp.bas"
+new_mem_lock();
+#line 18 "select_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 18 "select_cpp.bas"
+sf_mem_lock->type=3;
+#line 18 "select_cpp.bas"
+libqb_check_stack();
+#line 18 "select_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 19 "select_cpp.bas"
+do{
+#line 19 "select_cpp.bas"
+*_SUB_SP_SINGLE_3SELECT=(*_SUB_SP_SINGLE_N*((float)(10)));
+#line 19 "select_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "select_cpp.bas"
+do{
+#line 20 "select_cpp.bas"
+if ((!((-(*_SUB_SP_SINGLE_3SELECT==((float)(10))))))&&(!is_error_pending())) goto L_1;
+#line 20 "select_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 20 "select_cpp.bas"
+do{
+#line 20 "select_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 20 "select_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("f",1));
+#line 20 "select_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 20 "select_cpp.bas"
+makefit(tqbs);
+#line 20 "select_cpp.bas"
+qbs_print(tqbs,0);
+#line 20 "select_cpp.bas"
+qbs_print(nothingstring,1);
+#line 20 "select_cpp.bas"
+skip6:
+#line 20 "select_cpp.bas"
+qbs_free(tqbs);
+#line 20 "select_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 20 "select_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "select_cpp.bas"
+do{
+#line 21 "select_cpp.bas"
+goto L_0;
+#line 21 "select_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 21 "select_cpp.bas"
+L_0:;
+#line 21 "select_cpp.bas"
+L_1:;
+#line 22 "select_cpp.bas"
+exit_subfunc:;
+#line 22 "select_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 22 "select_cpp.bas"
+#include "free1.txt"
+#line 22 "select_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 22 "select_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 22 "select_cpp.bas"
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt data1.txt free1.txt

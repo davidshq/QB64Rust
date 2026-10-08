@@ -1,0 +1,54 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 6
+  Assign X:F32 = (Const 2:I16 -> Convert F32 Nearest)
+Stmt line 7
+  Assign on1.value(temp):I32 = (Var X:F32 -> Convert I32 RoundEven)
+  Branch NonZero -> A UseValue: Eq:I32(Var on1.value(temp):I32, Const 1:I32)
+  Branch NonZero -> B UseValue: Eq:I32(Var on1.value(temp):I32, Const 2:I32)
+Stmt line 7
+  Branch NonZero -> @2 UseValue: Ge:I32(Var on1.value(temp):I32, Const 0:I32)
+Stmt line 7 may_raise
+  Raise Const 5:I32
+Label @2 line 7
+Stmt line 8
+  Print console newline
+    Str Const "next"
+Stmt line 9
+  Assign on2.value(temp):I32 = (Var X:F32 -> Convert I32 RoundEven)
+Stmt line 9
+  Branch NonZero -> @4 UseValue: Ne:I32(Var on2.value(temp):I32, Const 1:I32)
+  Gosub A
+  Jump @3
+Label @4 line 9
+Stmt line 9
+  Branch NonZero -> @5 UseValue: Ne:I32(Var on2.value(temp):I32, Const 2:I32)
+  Gosub B
+  Jump @3
+Label @5 line 9
+Stmt line 9
+  Branch NonZero -> @3 UseValue: Ge:I32(Var on2.value(temp):I32, Const 0:I32)
+Stmt line 9 may_raise
+  Raise Const 5:I32
+Label @3 line 9
+Stmt line 10
+  Print console newline
+    Str Const "back"
+Stmt line 11
+  End
+Label A line 12
+Stmt line 12
+  Print console newline
+    Str Const "a"
+Stmt line 12 may_raise
+  Return
+Label B line 13
+Stmt line 13
+  Print console newline
+    Str Const "b"
+Stmt line 13 may_raise
+  Return

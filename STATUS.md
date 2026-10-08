@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-07 (session 23). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-08 (session 24). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. Next: a core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below).**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). Next: the thin language server (step 7).**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -204,13 +204,17 @@ is its `tasks.md`, and `git log`.
    auto-include names) and group 9; `known_parse_gaps.list` and `known_false_errors.list` are empty. Both changes
    archived 2026-10-07. The decisions of `study\26` §9 taken the same day (`DECISIONS.md`); its tier-1 check
    "clean programs are listed" is in (`tests\known_clean_not_passing.list`).
-6. **Now:** a core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB`: the plain string and math built-ins
-   that block corpus programs on their own (`LEN`, `VAL`, `STR$`, `MID$`, `ASC`, `SQR`, `STRING$`, `ABS`, `INT`, …;
-   `study\26` §6), with `sema`'s checking of built-ins made table-driven (§8). OpenSpec change
-   `m2-core-builtins` proposed 2026-10-07 (artifacts complete, not started): 37 more built-ins, `SELECT CASE`/`EVERYCASE`,
-   `ON … GOTO/GOSUB`; census: 58 corpus and 11 upstream programs carry only marks it removes. Decided the same day:
-   `ON n` above 255 falls through and the `SELECT` copy stays static, both as QB64pe (`DIVERGENCES-QB45.md`, new).
-7. The thin language server (`study\23` §2.6).
+6. Done 2026-10-08 (session 24): OpenSpec change `m2-core-builtins`, all tasks done; archived to
+   `openspec\changes\archive\2026-10-08-m2-core-builtins\` (record in its `tasks.md`), its specs now the main specs
+   (new: `openspec\specs\language\builtin-functions`; updated: `compiler\pipeline`, `language\control-flow`,
+   `testing\compiler-tests`): the emitter split by concern; `verification\v20_*` measured first (`study\00` §5); `sema`'s
+   built-ins table-driven (`sema\src\builtins.rs`, one rule per kind of special-casing, held and believed result
+   types); 43 built-in functions; `SELECT CASE`/`EVERYCASE`; `ON … GOTO/GOSUB`; slice programs `s25`–`s29`; tier-1
+   coverage check for built-ins. Decided 2026-10-07: `ON n` above 255 falls through and the `SELECT` copy stays
+   static, both as QB64pe (`DIVERGENCES-QB45.md` Q-001, Q-002, now pinned by `s29`, `s28`); 2026-10-08: six
+   old-compiler oddities found by the measurements are kept for now (`DECISIONS.md`, `study\00` §6). CI `tier2`
+   steps against the QB64pe 4.7.0 release: 192 of 192, 42 of 42.
+7. **Now:** the thin language server (`study\23` §2.6).
 8. Bug-compatibility decisions (`study\00` §6), the differential tester, `Ty` as a type table, unsigned types.
 9. The remaining plain built-ins (249 of 455 in all), table-driven, with generated tests.
 10. `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE`, measured first (`study\26` §5); check once that the GitHub
@@ -218,10 +222,11 @@ is its `tasks.md`, and `git log`.
 11. `DEFxxx`, then the rest of arrays and `TYPE`: `REDIM`, dynamic arrays, `OPTION BASE`, plain member arrays
     (`study\26` §4; their `_STATIC`/`_DYNAMIC` markers stay in `SOMEDAY.md`).
 
-Numbers at the last full runs (2026-10-07, session 23, release build against the QB64pe 4.7.0 release):
-`slice.list` 131 of 131, full corpus 147 pass and none wrong at run time, upstream **34 of 279** (none wrong);
-shrink-only lists: **0 false errors, 0 parse gaps**, 66 only-marked rejections (`tests\upstream\README.md`).
-Tier 1: 9.5–9.9 s.
+Numbers at the last full runs (2026-10-08, session 24, release build against the reference clone):
+`slice.list` 192 of 192, full corpus 208 pass and none wrong at run time, upstream **42 of 279** (44 pass against
+the clone; two need the `VAL` of libqb after the 4.7.0 release, `tests\upstream\README.md`; none wrong);
+shrink-only lists: **0 false errors, 0 parse gaps**, 65 only-marked rejections (`tests\upstream\README.md`).
+Tier 1: about 10 s.
 
 **`m2-parser-breadth`** (2026-10-04 to 2026-10-07; archived 2026-10-07 to
 `openspec\changes\archive\2026-10-07-m2-parser-breadth\`, record in its `tasks.md`, its specs now the main specs:

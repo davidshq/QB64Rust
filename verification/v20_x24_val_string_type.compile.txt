@@ -1,0 +1,5 @@
+
+VAL TYPE unsupported
+Caused by (or after):PRINT VAL ( "1",1 , STRING )
+LINE 3:PRINT VAL("1", STRING)
+exit=1

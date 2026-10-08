@@ -673,6 +673,89 @@ fn clean_programs_are_listed() {
     assert!(problems.is_empty(), "{}", problems.join("\n"));
 }
 
+/// The BASIC code of a source, without comments and string literals (a `'` outside a string starts a comment; a
+/// line starting with `REM` is one), so names in them do not count as calls.
+fn code_only(source: &[u8]) -> String {
+    let mut out = String::new();
+    for line in source.split(|&b| b == b'\n') {
+        let trimmed = line.trim_ascii_start();
+        if trimmed.len() >= 3 && trimmed[..3].eq_ignore_ascii_case(b"REM") {
+            out.push('\n');
+            continue;
+        }
+        let mut in_string = false;
+        for &b in line {
+            match (b, in_string) {
+                (b'"', _) => in_string = !in_string,
+                (b'\'', false) => break,
+                (_, true) => {}
+                (_, false) => out.push(char::from(b.to_ascii_uppercase())),
+            }
+        }
+        out.push('\n');
+    }
+    out
+}
+
+/// Whether `code` (from [`code_only`]) uses `name` (upper case, with its suffix) as a word: not part of a longer
+/// name, and for a name without suffix not followed by one (`ERR` does not match `ERROR` or `ERR%`).
+fn uses_word(code: &str, name: &str) -> bool {
+    let ident = |c: char| c.is_ascii_alphanumeric() || c == '_' || c == '.';
+    let suffix = |c: char| matches!(c, '$' | '%' | '&' | '!' | '#' | '~' | '`');
+    code.match_indices(name).any(|(at, _)| {
+        let before = code[..at].chars().next_back();
+        let after = code[at + name.len()..].chars().next();
+        !before.is_some_and(ident) && !after.is_some_and(|c| ident(c) || (!name.ends_with('$') && suffix(c)))
+    })
+}
+
+/// "Built-in coverage" (spec `testing/compiler-tests`, design D9 of `m2-core-builtins`): every built-in function
+/// `sema` compiles is called in a program of `slice.list` (its output is compared with the old compiler's in tier 2)
+/// and in a `typed` front-end test (its result type and argument conversions are pinned in tier 1).
+#[test]
+fn every_supported_builtin_is_covered() {
+    let corpus = repo().join("tests/corpus");
+    #[expect(clippy::disallowed_methods, reason = "a list of file names, not BASIC source")]
+    let list = std::fs::read_to_string(corpus.join("slice.list")).unwrap();
+    let slice: Vec<String> = list
+        .lines()
+        .map(|l| l.split('#').next().unwrap().trim())
+        .filter(|l| !l.is_empty())
+        .map(|l| code_only(&std::fs::read(corpus.join(format!("{l}.bas"))).unwrap()))
+        .collect();
+    let typed: Vec<String> = files(&repo().join("tests/frontend"), &["bas"])
+        .iter()
+        .map(|p| std::fs::read(p).unwrap())
+        .filter(|b| b.starts_with(b"' TEST: typed"))
+        .map(|b| code_only(&b))
+        .collect();
+    assert!(!slice.is_empty() && !typed.is_empty());
+    let mut missing = Vec::new();
+    for s in qb64rust_sema::builtins::supported() {
+        if !slice.iter().any(|c| uses_word(c, s.name)) {
+            missing.push(format!(
+                "`{}` is called in no program of tests/corpus/slice.list",
+                s.name
+            ));
+        }
+        if !typed.iter().any(|c| uses_word(c, s.name)) {
+            missing.push(format!("`{}` is called in no `typed` test of tests/frontend", s.name));
+        }
+    }
+    assert!(missing.is_empty(), "{}", missing.join("\n"));
+}
+
+#[test]
+fn coverage_words() {
+    let code = code_only(b"PRINT err; Chr$(1) ' LEN(x)\nx$ = \"INSTR(\"\nREM LEFT$(a, 1)\nERROR 5: e = errx\n");
+    assert!(uses_word(&code, "ERR"));
+    assert!(uses_word(&code, "CHR$"));
+    assert!(!uses_word(&code, "LEN"), "in a comment");
+    assert!(!uses_word(&code, "INSTR"), "in a string");
+    assert!(!uses_word(&code, "LEFT$"), "in a REM line");
+    assert!(!uses_word(&code_only(b"ERROR 1: e = errx: f = err%\n"), "ERR"));
+}
+
 /// Extensions `tools\upstream\copy_upstream_tests.py` copies (design D1).
 const COPIED: &[&str] = &[
     "bas",

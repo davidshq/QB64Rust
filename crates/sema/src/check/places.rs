@@ -485,6 +485,15 @@ impl Checker<'_> {
     pub(super) fn load(&mut self, place: Place, span: Span) -> R<Expr> {
         let ty = self.prog.place_ty(&place);
         if let Ty::User(_) = ty {
+            if self.len_place == Some(span) {
+                // `LEN` of a whole `TYPE` place (`check\builtins.rs`): its size, never a value.
+                return Ok(Expr {
+                    span,
+                    ty,
+                    qb: ty,
+                    kind: ExprKind::Load(place),
+                });
+            }
             let shown = show_bytes(self.text(span));
             if self.whole_type_arg {
                 return Err(self.unsupported(span, format!("a whole `TYPE` value as an argument: `{shown}`")));
@@ -502,8 +511,15 @@ impl Checker<'_> {
     /// `LBOUND(array[, dimension])` and `UBOUND(…)` (design D4, measured `v18_e_bounds*`, `v18_f_*`).
     pub(super) fn bound_fn(&mut self, call: ast::CallExpr, upper: bool, span: Span) -> R<Expr> {
         let word = if upper { "UBOUND" } else { "LBOUND" };
+        // Its row in the supported list gives the arity and the result type (`crate::builtins`).
+        let row = crate::builtins::lookup(word, false).expect("LBOUND and UBOUND are supported");
+        let crate::builtins::Rule::Fixed(ty) = row.rule else {
+            unreachable!("LBOUND and UBOUND have a fixed result type");
+        };
+        let slots = crate::builtins::slots(row);
+        let required = slots.iter().filter(|(_, optional)| !optional).count();
         let args = self.present_args(call.arg_list())?;
-        if !(1..=2).contains(&args.len()) {
+        if !(required..=slots.len()).contains(&args.len()) {
             return Err(self.unsupported(span, format!("`{word}` with {} arguments", args.len())));
         }
         let array = match args[0] {
@@ -548,8 +564,8 @@ impl Checker<'_> {
         };
         Ok(Expr {
             span,
-            ty: Ty::I64,
-            qb: Ty::I64,
+            ty,
+            qb: ty,
             kind: ExprKind::Bound { upper, array, dim },
         })
     }

@@ -1,0 +1,5 @@
+
+Expected numeric expression
+Caused by (or after):CASE "a",1
+LINE 5:CASE "a": PRINT "a"
+exit=1

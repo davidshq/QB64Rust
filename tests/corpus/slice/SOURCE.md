@@ -63,3 +63,18 @@ there: `s22` never prints that element, and D-004 is pinned by a CLI test.
 |---|---|
 | `s23_preprocessor.bas` | The predefined names on Windows 64-bit; `$LET`; `$IF` with `$ELSEIF`, `$ELSE IF`, `$ELSE`, `$END IF` and `$ENDIF`; nested `$IF`s (a true one inside a skipped branch stays skipped); `=`, `<>`, `>`, `>=`, `<` with `VERSION`; `AND`, `OR`, `XOR`; `DEFINED`/`UNDEFINED`; `$LET WIN = 0` not overriding `WIN`; a `$IF` in a `FOR` body and in a SUB; a whole SUB inside an active `$IF`; skipped branches holding an unclosed `FOR`, a `SUB`, garbage and an unknown metacommand |
 | `s24_proc_names.bas` | SUBs named like built-in functions (`LOC`, `ABS` with an argument, `FRE` with two), called bare and with `CALL`; FUNCTIONs named like built-in statements (`BEEP`, `WIDTH&`, `CLOSE`) in an expression; a SUB and a FUNCTION with the bare name of a built-in written with `$` (`LEFT`, `CHR`) |
+
+`s25`–`s29` were written by the OpenSpec change `m2-core-builtins` (2026-10-07, design D9) to pin
+`openspec\specs\language\builtin-functions` and the `SELECT CASE` and `ON … GOTO/GOSUB` requirements of
+`language\control-flow`, from the measurements in `verification\v20_*`; recorded the same way. No `PRINT` comma;
+errors are trapped by a handler that prints `ERR` and resumes next. `DIVERGENCES-QB45.md` Q-001 (`ON 258 GOTO`) is
+pinned by `s29`, Q-002 (recursion across a `SELECT`) by `s28`. Nothing depends on undefined behaviour of the old
+compiler (no `STRING$(n, "")`, no DOUBLE `ON n` beyond LONG).
+
+| Program | Covers |
+|---|---|
+| `s25_string_builtins.bas` | `LEFT$`, `RIGHT$`, `MID$` (with and without a length) with zero, negative and past-the-end lengths and starts; float and beyond-LONG arguments to LONG slots; `ASC` with one and two arguments and its errors; `CHR$` (rounding, error 5); `STRING$` with a string and a code (low 8 bits), `SPACE$`; `STR$` and `_TOSTR$` of every slice type, with digits, the -1 error; `LTRIM$`, `RTRIM$`, `_TRIM$` (spaces only); `UCASE$`, `LCASE$` (ASCII only); `INSTR` with a start; nested calls |
+| `s26_val_len_radix.bas` | `VAL` of edge texts (`&H`, `&O`, `&B`, blanks, exponents, junk) and with each type argument (integer types `_INTEGER64`, not narrowed); `LEN` of string expressions, of variables of each type, `TYPE` variables, members, elements and implicit variables; `HEX$`, `OCT$`, `_BIN$` of each type, of places and expressions (the width of a negative value), of literals, calls and floats, the overflow error |
+| `s27_math_builtins.bas` | `ABS`, `INT`, `FIX` typed by the argument; `SGN`; `SQR`, `SIN`, `COS`, `TAN`, `ATN`, `LOG`, `EXP` for each argument type (printed digits), in arithmetic; `CINT`, `CLNG`, `CSNG` (not narrowed), `CDBL`, `_ROUND` with halves; `_PI` bare and with an argument; `_ATAN2`, `_HYPOT`; every measured error (5 and 6) with the placeholder it leaves |
+| `s28_select_case.bas` | `SELECT CASE` with a FUNCTION selector (evaluated once), a plain variable (read at each test), an element and a member (copied); items converted to the selector's type; an `_INTEGER64` and an expression selector; string selectors with `TO`, `IS`, lists; `IS` with each operator; `EVERYCASE` (also in a SUB); errors in the selector and in items of each kind; a bad index in the selector; `GOTO` out of and into a `CASE` body, `EXIT SUB` and `EXIT FOR` from a `CASE`; an empty `SELECT`; a recursive FUNCTION across a `SELECT` (Q-002) |
+| `s29_on_goto.bas` | `ON n GOTO` for n = 0, 1, the count, count + 1, 255, 256, 258 (Q-001), 65537, negative values (error 5), floats (half to even), an `_INTEGER64` beyond LONG, an INTEGER, a DOUBLE; an error in `n` (the jump uses the placeholder); `ON n GOSUB` returning, out of range, negative, in a loop and in a SUB |

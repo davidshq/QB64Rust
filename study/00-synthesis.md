@@ -478,6 +478,82 @@ Measured during parser breadth groups 7 and 8 (2026-10-07, `m2-parser-breadth` s
   `OPEN "f" FOR INPUT #1`, `LOCATE` with six arguments, `SCREEN 12 13` is rejected ("Syntax error - Reference: …",
   `SCREEN 12 13` "Expected operator in equation"); `tests\frontend\template_errors.bas`.
 
+Measured for the core built-ins, `SELECT CASE` and `ON … GOTO/GOSUB` (2026-10-07, `m2-core-builtins` task 2.1;
+`verification\v20_*`, and the C++ the old compiler writes, read with `qb64pe -z`):
+
+- **Argument slots (`v20_a_slots`):** a **LONG slot** (`LEFT$`, `RIGHT$`, `MID$`, `SPACE$`, `STRING$`, `CHR$`,
+  `ASC`'s position, `INSTR`'s start, `_TOSTR$`'s digits) converts as a store into a LONG: a float rounded half to
+  even to `_INTEGER64`, then the low 32 bits (`LEFT$(s, 2.5)` 2 characters, `3.5` 4, `-0.5` 0; `4294967298#` and
+  the `_INTEGER64` 4294967298 are 2; `3E9` is negative). A **`_FLOAT` slot** (`SQR`, `SIN` … `EXP`, `_ATAN2`,
+  `_HYPOT`) takes the argument as it is: the C++ passes the value in its own type (`std::hypot(*__INTEGER_I,
+  *__LONG_L)`, `func_sqr(*__INTEGER_I)`). A **DOUBLE slot** (`_PI`) converts like a float widening. An
+  **any-numeric slot** (`STR$`, `_TOSTR$`, `HEX$`, `SGN`, `ABS`, …) keeps the argument's type.
+- **Result types (`v20_b_result_types`, C++):** `ABS`, `INT`, `FIX` have the argument's type (`ABS` of the smallest
+  INTEGER is -32768; `INT`/`FIX` of an integer emit the value itself; of a float `std::floor`, `func_fix_double`,
+  `func_fix_float`). `SQR`, `SIN`, `COS`, `TAN`, `ATN`, `LOG` are **SINGLE for `_BYTE`, INTEGER, SINGLE; DOUBLE
+  for LONG, DOUBLE; `_FLOAT` for `_INTEGER64` and `_FLOAT`**. **`EXP` is SINGLE for 8- and 16-bit integers and
+  SINGLE (`func_exp_single`), `_FLOAT` for everything else (`func_exp_float`)** (`qb64pe.bas` 21066). `SGN` is LONG.
+  `CINT` INTEGER, **`CLNG` LONG** (the table's INTEGER is wrong), `CDBL` DOUBLE, `_ROUND` `_INTEGER64`, `CSNG`
+  SINGLE: **`CSNG` of an integer is not narrowed** (`((double)(e))` typed SINGLE: `CSNG(16777217&) - 16777216` is
+  1, `PRINT CSNG(l)` prints `1.677722E+07`). `_PI` is DOUBLE; `_ATAN2`, `_HYPOT` `_FLOAT` (as the table). `ASC`,
+  `LEN`, `INSTR` LONG. **`VAL(s$)` is `_FLOAT`; `VAL(s$, SINGLE)` and `VAL(s$, DOUBLE)` are narrowed to their type;
+  `VAL(s$, t)` for any integer type `t` is `_INTEGER64`, not narrowed** (`qbs_val<int64_t>`: `VAL("40000",
+  INTEGER)` prints 40000); `VAL(s$, _FLOAT)` is `_FLOAT`; `VAL(s$, STRING)` is "VAL TYPE unsupported".
+- **String edges (`v20_c_string_edges`):** **a zero or negative length or count gives an empty string and no
+  error** in `LEFT$`, `RIGHT$`, `MID$`, `SPACE$`, `STRING$`; a length past the end gives what there is; `MID$`
+  with a start of 0 or below starts at 1 (`MID$("abc", 0, 2)` is `a`: the length counts from position 0), past the
+  end gives `""`. **`ASC("")`, `ASC(s, 0)`, `ASC(s, past end)`, `ASC(s, -1)` raise 5 and give 0.** `CHR$(256)`,
+  `CHR$(-1)` raise 5 and give `""`. `STRING$(n, code)` uses the code's low 8 bits (256 is 0, -1 is 255) without
+  error; `STRING$(n, s$)` uses the first byte, **read even from an empty string** (`s->chr[0]`). `STR$` puts a
+  blank before a value that is not negative (`-0` too), `D` for a DOUBLE exponent. `_TOSTR$` drops the blank; with
+  digits it rounds; digits -1 raise 5. `LTRIM$`, `RTRIM$`, `_TRIM$` remove spaces only (not tabs or NULs).
+  `UCASE$`/`LCASE$` change ASCII letters only. `INSTR(0, …)` searches from 1; a start past the end gives 0.
+- **`VAL` (`v20_d_val`):** blanks anywhere are skipped (`" 1 2"` is 12), a tab before the number too; `&H`, `&O`,
+  `&B` alone are 0, `&HFFFFFFFF` is 4294967295; `1e3` and `1d3` are 1000; junk ends the number (`12abc` 12,
+  `1,5` 1); `1e400` is `inf` without error; `VAL("1e30", _INTEGER64)` is the smallest `_INTEGER64`.
+- **`HEX$`, `OCT$`, `_BIN$` (`v20_e_radix`, `qb64pe.bas` 20978–21062):** the width a negative value is printed
+  with comes from the argument's believed type: 8 bits 2 hex digits, 16 bits 4, 32 bits 8; **64 bits: 16 for a
+  variable, element or member, 0 for any other expression** (an integer `+`, `*`, `AND` or negation is 64 bits
+  in the old compiler's belief: `HEX$(i% * 1)` with `i% = -2` is `FFFE`). With width 0, libqb's `func_hex`
+  prints the shortest width, and **`HEX$` of a 64-bit expression equal to -1 is the empty string**; `OCT$` and
+  `_BIN$` print at least 16 bits. A float uses `func_hex_float` (rounded half to even, then 8 digits for a
+  negative value); beyond the `_INTEGER64` range it raises 6 and gives `""`.
+- **Math edges (`v20_f_math_edges`):** `SQR(-1)`, `LOG(0)`, `LOG(-1)` raise 5 and give 0. `EXP` overflow raises
+  6 and gives 0, at the result type's limit (`EXP(709)` overflows: 709 is INTEGER, so SINGLE), `EXP(-1000)` is 0.
+  `CINT` outside -32768.5 … 32767.5 (half to even at the ends) raises 6 and gives 0, also for a LONG or
+  `_INTEGER64` argument; `CLNG` likewise at its limits. `CSNG(1D+300)` and `CDBL` of a `_FLOAT` beyond DOUBLE raise
+  6. `_ROUND(1E30)` gives the smallest `_INTEGER64` without error. Halves round to even in `CINT`, `CLNG`,
+  `_ROUND`; `INT` floors, `FIX` truncates. `SGN(-0)` is 0. `_PI(0)` is 0.
+- **`LEN` (`v20_g_len`, `qb64pe.bas` 20961):** a string expression gives its length; a variable, element or member
+  gives its size (INTEGER 2, LONG 4, `_INTEGER64` 8, SINGLE 4, DOUBLE 8, `_FLOAT` 32, `_BYTE` 1, a `TYPE` its
+  layout size, a `STRING` element its length; an implicit variable its default type's). **`LEN(5)` and `LEN(i + 1)`
+  are compile errors** ("String expression or variable name required in LEN statement"). The result is LONG.
+- **Rejections (`v20_x01`–`x30`):** every one is a compile error: the wrong number of arguments ("Incorrect number
+  of arguments - Reference: …"), a string where a number is needed ("Number required for function", for `HEX$`
+  "Expected numeric value") and the reverse ("1st function argument requires a string", `VAL(5)` "Expected STRING
+  argument"), `LEN$(…)` and `LEFT%(…)` ("Illegal string-number conversion"), a function as a statement ("Syntax
+  error"), `SIN()`, `LEN()`, `_PI()` ("Expected (...)"), a mismatched `CASE` item or range ("Expected numeric
+  expression" / "Expected string expression"), `ON s$ GOTO` ("Expected numeric expression"), a label of another
+  body ("Label 'l1' not defined"). `ON 1.5 GOTO l1, l2` compiles and goes to `l2` (`x28`).
+- **`SELECT CASE` (`v20_h_select`, C++):** **a plain variable selector (a parameter too) is read at each test**; any
+  other selector (an element, a member, an expression, a FUNCTION call) is evaluated once into a hidden variable of
+  its believed type (`i% + 1` an `int64`, an INTEGER element an `int32`, a string a `qbs`), **`static` also in a
+  procedure** (recursion overwrites it: `rec(1) = 2`, Q-002 pinned). **Each item is converted to the selector's
+  type**: to an integer selector by `qbr_double_to_long` (`CASE 2.4` and `CASE 1.5` match 2, `CASE 2.5 TO 3`
+  matches 2, `CASE IS > 1.9` does not), to a float one exactly. A test is `if ((items)||is_error_pending())`: items
+  joined by `||`, a range `sel>=a&&sel<=b` (`9 TO 1` never matches), then the body and a `goto` to the end. **An
+  error in the selector or in an item runs that `CASE`'s body** (the selector's placeholder 0 matches `CASE 0`; an
+  item that raises makes its `CASE` match), as `IF` does. `EVERYCASE` tests every `CASE` (a plain variable changed
+  by a body is seen by later tests) and runs `CASE ELSE` only when none matched, through a flag (`sc_N_var`, per
+  call in a procedure). A `GOTO` into a `CASE` body runs the rest of that body, then leaves the `SELECT`. A
+  `SELECT` with no `CASE` compiles. A `CASE` with no match and no `ELSE` does nothing.
+- **`ON n GOTO/GOSUB` (`v20_i_on_goto`, `qb64pe.bas` 27620):** `n` is stored into a `static int32`: an integer as
+  it is (the low 32 bits: `_INTEGER64` 4294967298 goes to the second label), **a float through `qbr_float_to_long`,
+  which narrows to SINGLE first** (1.5, 2.4, 2.5 go to the second label; DOUBLE 4294967298 raises 5). Then each
+  label is tested (`n==k`), **with the value even when `n` raised** (an error in `n` leaves 0: no jump; `ON ASC("")
+  + 1` goes to the first label), then `n < 0` raises 5; 0 and values past the count (255, 256, 258, 65537) fall
+  through. `ON … GOSUB` pushes a return point and continues after the statement on `RETURN`; it works in a SUB.
+
 ## 6. Bug-compatibility choices still to make
 
 From the end of `09` and `10` §2.8, §3.2. Each choice goes into the divergence register (R2).
@@ -493,7 +569,12 @@ as `_INTEGER64`; a SUB called with a raising argument doing nothing. `m2-control
 CONST `^` as "keep"; they are decided with the rest of this list at step 7 of `STATUS.md` "Next". From the
 arrays-and-`TYPE` measurements (§5, 2026-10-07): a read with a bad index giving element 0's value; the value of a
 member-of-element store evaluated before its index (so `ERR` reports the value's error); `LBOUND`/`UBOUND` typed
-`_INTEGER64`. `m2-arrays-and-types` implements these three as "keep".
+`_INTEGER64`. `m2-arrays-and-types` implements these three as "keep". From the core built-ins measurements (§5,
+2026-10-07; kept for now by the user, 2026-10-08, `DECISIONS.md`): `HEX$` of a 64-bit expression that is not a
+place printing `""` for -1; `STRING$(n, "")` reading the first byte of the empty string (QB 4.5: error 5); `CSNG`
+of an integer and `VAL(s$, <integer type>)` not narrowed; a DOUBLE `ON n` narrowed to SINGLE before rounding (beyond
+LONG it raises 5); a raising `CASE` item running its body (as `IF`); `_ROUND` and `VAL(…, _INTEGER64)` beyond the
+`_INTEGER64` range giving its smallest value without an error. `m2-core-builtins` implements these six as "keep".
 
 **Decided:** LONG overflow **wraps** (two's complement), defined in the generated code and in constant folding;
 matches the old compiler's default build, differs from its `-O2` build (`16` §8, `verification\v11_wrap_o2`). A
@@ -549,6 +630,14 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
   LINE): these need code, not just a table row.
 - **Gap:** names defined in the auto-included BASIC files (`_TRUE`, `_FALSE`, color constants) are not in the
   table yet (`10` §3.4).
+- **Used by `sema`** since `m2-core-builtins` (2026-10-08): the supported built-ins are rows `(name, Rule)` in
+  `crates\sema\src\builtins.rs`; the table gives slots, optional masks, required suffixes and plain return types,
+  and a rule overrides it where the old compiler special-cases a function. **Facts of the table found wrong by
+  measurement** (§5, `verification\v20_*`; the table is not edited, the rule says so): `CLNG` returns LONG (table:
+  INTEGER); `ASC` takes two arguments (table: one slot); `LBOUND`/`UBOUND` are `_INTEGER64` (table: LONG); `ERR` is
+  LONG (table: `_UNSIGNED LONG`); `ABS`, `INT`, `FIX`, `EXP` and the float functions are typed by their argument
+  (table: `_FLOAT` or any-numeric); `VAL` returns a number (table: STRING) and takes a type name as its second
+  argument; `_FLOAT` slots pass the argument in its own type, not converted.
 
 ## 10. Testing position
 

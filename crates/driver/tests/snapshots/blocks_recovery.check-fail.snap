@@ -8,7 +8,6 @@ blocks_recovery.bas:10:5: error: cannot store a string in a number variable
 blocks_recovery.bas:11:1: error: `WEND` without `WHILE`
 blocks_recovery.bas:12:27: error: `NEXT` inside a single-line `IF` cannot close a block outside it
 blocks_recovery.bas:14:11: error: `FOR` without `NEXT` before the end of the single-line `IF`
-blocks_recovery.bas:15:1: error: not supported yet: `SELECT CASE`
 blocks_recovery.bas:16:5: error: only comments may stand between `SELECT CASE` and the first `CASE`
 blocks_recovery.bas:19:5: error: `CASE` while the `IF` on line 18 is still open; expected `END IF` first
 blocks_recovery.bas:20:9: error: `END IF` without `IF`

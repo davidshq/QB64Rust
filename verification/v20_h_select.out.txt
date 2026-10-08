@@ -1,0 +1,69 @@
+-- selector read once
+noisy called
+three
+-- plain variable selector
+case 2
+-- element selector
+else
+-- member selector
+else
+-- float items, integer selector 2
+2.4
+1.5
+2.5 TO 3
+else
+-- float selector 2.5, integer items
+2 TO 3
+0.1 matches DOUBLE 0.1
+0.1# matches SINGLE 0.1
+-- string selector
+a TO m
+IS >= dog
+cat, dog
+-- IS with each operator, selector 5
+= 5
+< 6
+> 4
+<= 5
+-- items of each kind
+first
+second
+third
+else
+9 TO 1 did not match 7
+-- no match, no ELSE
+after
+-- EVERYCASE
+> 1
+> 2
+else
+5
+6 after the body changed x
+-- error in the selector
+[handler 5 ]
+case 0
+-- error in the selector, EVERYCASE
+[handler 5 ]
+case 0
+-- error in an item
+[handler 5 ]
+case ASC(empty)
+[handler 5 ]
+case ASC(empty) for 5
+[handler 5 ]
+case 1, ASC(empty), 2 for 5
+[handler 5 ]
+case ASC(empty) TO 9 for 5
+[handler 5 ]
+case IS > ASC(empty) for 5
+-- jumps
+in case 1, GOTO out
+out1
+inside case 2
+after jump in
+EXIT SUB from a CASE
+empty SELECT ran
+-- recursion (Q-002)
+rec(1) = 2 
+rec(3) = 3 
+exit=0

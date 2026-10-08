@@ -1,0 +1,35 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"DO: SWAP a, b: LOOP UNTIL a > 0\\n\")"
+---
+SourceFile 0..32
+  DoBlock 0..32
+    DoHeader 0..2
+      Ident DO
+    Colon :
+    Whitespace  
+    SwapStmt 4..13
+      Ident SWAP
+      Whitespace  
+      NameRef 9..10
+        Ident a
+      Comma ,
+      Whitespace  
+      NameRef 12..13
+        Ident b
+    Colon :
+    Whitespace  
+    LoopStmt 15..31
+      Ident LOOP
+      Whitespace  
+      Ident UNTIL
+      Whitespace  
+      BinExpr 26..31
+        NameRef 26..27
+          Ident a
+        Whitespace  
+        Gt >
+        Whitespace  
+        Literal 30..31
+          Number 0
+    Newline \x0A

@@ -1,11 +1,13 @@
 //! Expressions, and the conversions for storing a value.
 
+use super::builtins::supported_builtin;
 use super::ops::{Op, TypeError, Typed, Typing, fold_binary, fold_unary, op_typing, wrap};
 use super::{Checker, Failed, R};
+use crate::builtins::slots;
 use crate::literal::{self, LitError, NumLit};
 use crate::{BinOp, ConvKind, Expr, ExprKind, Place, ProcId, ProcKind, Ty, UnOp};
-use qb64rust_base::{Span, show_bytes};
-use qb64rust_builtins::{BuiltinId, find_any, find_function};
+use qb64rust_base::show_bytes;
+use qb64rust_builtins::find_any;
 use qb64rust_syntax::SyntaxKind::{self, Minus, Number};
 use qb64rust_syntax::ast;
 use qb64rust_syntax::tree::Tok;
@@ -41,23 +43,11 @@ impl Checker<'_> {
                 if let Some(c) = self.visible_const(&name) {
                     return self.const_use(c, t, suffix, span);
                 }
-                // `ERR` is typed LONG, not `_UNSIGNED LONG` as in the table (design D5); `ERL` is DOUBLE.
-                let err_erl = match (name.as_str(), suffix) {
-                    ("ERR", None) => Some(Ty::I32),
-                    ("ERL", None) => Some(Ty::F64),
-                    _ => None,
-                };
-                if let Some(ty) = err_erl {
-                    let builtin = find_function(name.as_bytes()).expect("ERR and ERL are built-ins");
-                    return Ok(Expr {
-                        span,
-                        ty,
-                        qb: ty,
-                        kind: ExprKind::Call {
-                            builtin,
-                            args: Vec::new(),
-                        },
-                    });
+                // A built-in that needs no argument is called by its bare name (`ERR`, `ERL`, `_PI`).
+                if let Some(s) = supported_builtin(&name, suffix)
+                    && slots(s).iter().all(|&(_, optional)| optional)
+                {
+                    return self.builtin(s, None, span);
                 }
                 if is_builtin_function(&name, suffix) {
                     let shown = show_bytes(self.text(t.span));
@@ -324,17 +314,12 @@ impl Checker<'_> {
             return self.call_function(p, name_tok, suffix, Some(args), span);
         }
         match (proc_name.as_str(), suffix) {
-            ("INSTR", None) => {
-                let id = find_function(b"INSTR").expect("INSTR is a built-in");
-                return self.instr(span, id, node);
-            }
-            ("CHR", Some(Ty::Str)) => {
-                let id = find_function(b"CHR").expect("CHR$ is a built-in");
-                return self.chr(span, id, node);
-            }
             ("LBOUND", None) => return self.bound_fn(node, false, span),
             ("UBOUND", None) => return self.bound_fn(node, true, span),
             _ => {}
+        }
+        if let Some(s) = supported_builtin(&proc_name, suffix) {
+            return self.builtin(s, node.arg_list(), span);
         }
         if is_builtin_function(&proc_name, suffix) {
             let shown = show_bytes(self.text(name_tok.span));
@@ -347,62 +332,6 @@ impl Checker<'_> {
             }
             None => Err(self.not_an_array(name_tok, &proc_name)),
         }
-    }
-
-    /// `CHR$(code)`: one LONG slot (stored as for an assignment); raises error 5 outside 0-255 at run time.
-    fn chr(&mut self, span: Span, id: BuiltinId, node: ast::CallExpr) -> R<Expr> {
-        let args = self.present_args(node.arg_list())?;
-        let [arg] = args[..] else {
-            return Err(self.error(span, "`CHR$` takes 1 argument"));
-        };
-        let e = self.expr(arg)?;
-        if e.ty == Ty::Str {
-            return Err(self.error(e.span, "`CHR$` needs a number"));
-        }
-        let code = self.store(e, Ty::I32)?;
-        Ok(Expr {
-            span,
-            ty: Ty::Str,
-            qb: Ty::Str,
-            kind: ExprKind::Call {
-                builtin: id,
-                args: vec![Some(code)],
-            },
-        })
-    }
-
-    /// `INSTR([start,] base$, search$)`: table slots LONG, STRING, STRING; the first optional.
-    fn instr(&mut self, span: Span, id: BuiltinId, node: ast::CallExpr) -> R<Expr> {
-        let mut args = Vec::new();
-        for a in self.present_args(node.arg_list())? {
-            args.push(self.expr(a)?);
-        }
-        let mut slots: Vec<Option<Expr>> = match args.len() {
-            2 => vec![None],
-            3 => vec![Some(args.remove(0))],
-            _ => return Err(self.error(span, "`INSTR` takes 2 or 3 arguments")),
-        };
-        if let Some(start) = slots[0].take() {
-            if !start.ty.is_numeric() {
-                return Err(self.error(start.span, "the start of `INSTR` must be a number"));
-            }
-            slots[0] = Some(self.store(start, Ty::I32)?);
-        }
-        for a in args {
-            if a.ty != Ty::Str {
-                return Err(self.error(a.span, "`INSTR` searches strings"));
-            }
-            slots.push(Some(a));
-        }
-        Ok(Expr {
-            span,
-            ty: Ty::I32,
-            qb: Ty::I32,
-            kind: ExprKind::Call {
-                builtin: id,
-                args: slots,
-            },
-        })
     }
 
     /// Converts a value for storing into a variable or argument of type `to` (spec: storing into an integer).
@@ -466,7 +395,7 @@ fn is_builtin_function(name: &str, suffix: Option<Ty>) -> bool {
     })
 }
 
-fn conv(e: Expr, to: Ty, how: ConvKind) -> Expr {
+pub(super) fn conv(e: Expr, to: Ty, how: ConvKind) -> Expr {
     Expr {
         span: e.span,
         ty: to,

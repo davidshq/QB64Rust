@@ -1,0 +1,5 @@
+
+String expression or variable name required in LEN statement
+Caused by (or after):PRINT LEN ( 5 )
+LINE 3:PRINT LEN(5)
+exit=1

@@ -3,7 +3,7 @@
 use super::{Checker, Failed, R, Scope};
 use crate::{Arg, Expr, ExprKind, Place, Proc, ProcId, ProcKind, StmtKind, Storage, SymbolKind, Ty};
 use qb64rust_base::{Span, show_bytes, to_u32};
-use qb64rust_builtins::find_any;
+use qb64rust_builtins::{Kind, find_any};
 use qb64rust_syntax::ast;
 use qb64rust_syntax::is_keyword;
 use qb64rust_syntax::tree::{Node, Tok};
@@ -160,6 +160,13 @@ impl Checker<'_> {
             Some((_, ProcKind::Function(_))) => {
                 let msg = format!("calling the FUNCTION `{shown}` as a statement");
                 Err(self.unsupported(name_tok.span, msg))
+            }
+            // A built-in function that is no statement too (measured: `LEN("a")` alone is "Syntax error",
+            // `verification\v20_x06_function_as_statement`).
+            None if super::builtins::supported_builtin(&name, suffix).is_some()
+                && !find_any(name.as_bytes()).any(|b| b.kind == Kind::Sub) =>
+            {
+                Err(self.error(name_tok.span, format!("`{shown}` is a function, not a statement")))
             }
             _ if is_keyword(name.as_bytes()) || find_any(name.as_bytes()).next().is_some() => {
                 Err(self.unsupported(name_tok.span, format!("`{shown}`")))

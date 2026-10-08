@@ -10,7 +10,7 @@ The new compiler, `qb64rust`. One crate per pipeline stage, so the layering is e
 | `builtins` | `qb64rust-builtins` | The built-in table, generated at build time from `tools\builtins\builtins.json`; the grammar of the `specialformat` templates (`template.rs`, checked for every template by `build.rs`); the names of QB64pe's auto-included files |
 | `sema` | `qb64rust-sema` | Procedure table, scopes (main, procedure, `STATIC`, `SHARED`), variables (a name plus a type), arrays, user types, places (variable, element, member), labels, constants (`CONST`, `consteval.rs`), literal typing, computation types, explicit conversions, by-reference or by-value arguments, integer constant folding; the typed tree; the symbol table (`symbols.rs`: definition and references of every variable, procedure, label and constant, `Symbols::at` for a position, `dump_symbols`) |
 | `ir` | `qb64rust-ir` | The ABI-neutral IR (no libqb names, no C types: procedures, storage classes, places and their store rules, handlers and `RESUME` as statement-level rules; values, places and arguments are `sema`'s typed tree) and its lowering from the typed tree; `validate` checks its structure |
-| `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...) |
+| `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...): `lib.rs` the entry points and the fragment set, one module per concern adding the emitter's methods (`names.rs`: C types, identifiers, labels, literals, `#line`; `decl.rs`: sizes, declarations, allocation, temporaries; `procs.rs`: procedures, bodies, labels, `retK.txt`; `stmt.rs`: operations and stores; `place.rs`: places; `value.rs`: values and procedure arguments; `builtins.rs`: built-in calls) |
 | `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, the file loader for included files (`FileLoader`), build through the reference clone's `Makefile` |
 
 ```
@@ -101,12 +101,29 @@ What the compiler supports so far:
   `InactiveCode`), comment `$INCLUDE` with the old compiler's lookup, `$INCLUDEONCE`; the program is checked and
   compiled across its files, and a runtime error in an included file names it as QB64pe does;
 - procedures named like built-ins as measured (`verification\v19_proc_names`): a SUB may take a built-in
-  function's name, a FUNCTION a built-in statement's.
+  function's name, a FUNCTION a built-in statement's;
+- 43 built-in functions (`m2-core-builtins`), checked by one table-driven checker: `sema\src\builtins.rs` lists
+  them, each with its `Rule` (one per kind of special-casing in the old compiler's `evaluatefunc`, not per
+  function), and gives each call a held type (the C++ type of the libqb call) and a believed type (the old
+  compiler's); `sema\src\check\builtins.rs` checks arity, argument kinds and the conversion of each argument to
+  its slot (LONG as a store, DOUBLE exactly, `_FLOAT` as it is, any-numeric cast to its believed type);
+  `codegen-cpp\src\builtins.rs` writes each rule as the old compiler does. String: `LEN`, `LEFT$`, `RIGHT$`,
+  `MID$`, `ASC` (one and two arguments), `CHR$`, `STR$`, `VAL` (also with a type), `STRING$`, `SPACE$`, `LTRIM$`,
+  `RTRIM$`, `_TRIM$`, `UCASE$`, `LCASE$`, `HEX$`, `OCT$`, `_BIN$`, `_TOSTR$`, `INSTR`; math: `ABS`, `SGN`, `INT`,
+  `FIX`, `SQR`, `SIN`, `COS`, `TAN`, `ATN`, `LOG`, `EXP`, `CINT`, `CLNG`, `CSNG`, `CDBL`, `_ROUND`, `_PI` (also
+  bare), `_ATAN2`, `_HYPOT`; and `LBOUND`, `UBOUND`, `ERR`, `ERL`. Adding one of the remaining built-ins is a row
+  plus tests where an existing rule fits; tier 1 requires each listed one in a `slice.list` program and a `typed`
+  test;
+- `SELECT CASE` and `SELECT EVERYCASE` (lists, `TO`, `IS`, `CASE ELSE`; the selector copied once into a static
+  hidden variable unless it is a plain variable, as QB64pe; `DIVERGENCES-QB45.md` Q-002) and `ON n GOTO`/`ON n
+  GOSUB` to labels (`n` above 255 falls through, Q-001), lowered to the IR's branches and jumps
+  (`ir\src\lower.rs`).
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
-are `DATA`/`READ`/`RESTORE`, line numbers and jumps to them, `SELECT CASE`, `DECLARE LIBRARY`, `OPTION BASE`,
-`ON … GOTO/GOSUB`, event handlers and switches, `STOP`, `RUN`, `END`/`SYSTEM` with an exit code, the I/O statements
+are `DATA`/`READ`/`RESTORE`, line numbers and jumps to them (also as `ON … GOTO` targets), `EXIT SELECT`/`EXIT
+CASE`, the other built-in functions, `DECLARE LIBRARY`, `OPTION BASE`, event handlers and switches, `STOP`, `RUN`,
+`END`/`SYSTEM` with an exit code, the I/O statements
 (`PRINT #`, `PRINT USING`, `LPRINT`, `WRITE`, `INPUT`, `LINE INPUT`, `CLOSE`, `FIELD`, `LSET`/`RSET`, `SWAP`), every
 built-in statement read by its template (`LINE`, `SCREEN`, `OPEN`, `GET`/`PUT`, `TIME$ =`, ...), the declaration
 forms (`REDIM`, `COMMON`, `ERASE`, `DEFxxx`, `_DEFINE`, the type before the names, fixed-length strings, array

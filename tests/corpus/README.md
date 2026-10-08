@@ -137,6 +137,26 @@ with an `.err` file, and the two shrink-only lists `tests\known_false_errors.lis
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
 
+### Full corpus with `qb64rust` (2026-10-08, after the core built-ins; not a pass criterion)
+
+After the core built-ins, `SELECT CASE` and `ON … GOTO/GOSUB` (`m2-core-builtins` task 8.1, release build, against
+the reference clone), 292 programs (`s25`–`s29` new):
+
+| Result | Programs |
+|---|---|
+| Pass | 208: the 192 of `slice.list` and 16 `.err` programs (the 15 before, and `194_array_param_2d`, now rejected with a real error) |
+| Rejected with a diagnostic (exit status 1) | 75 (74 `.output` programs and the compile-only `239_lprint`) |
+| `.err` programs that get only "not supported yet" errors | 4 (`16` `TRIM$` read as an implicit array, `28` and `202` `REDIM`, `218` `FRE`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+61 programs joined `slice.list` over the change: the five slice programs, `v11_wrap_o2`, `v12_wrap_int64` and 54
+of `runtime_comparison`. The proposal's census (58 programs carrying only marks the change removes, not recorded
+by name) cannot be matched one by one; every corpus program still rejected that uses one of the change's
+constructs is blocked by something outside it: file statements (`176`, `177`, `179`, `213`, `214`, `216`, `219`),
+`DATA`/`READ` (`220`, `223`), `ENVIRON$` (`212`), `COMMAND$` (`217`), `_CEIL` (`77`), `EXIT SELECT` (`151`), the
+`MID$` statement (`42`).
+
 ### Full corpus with `qb64rust` (2026-10-07, after arrays and `TYPE`; not a pass criterion)
 
 After the arrays-and-`TYPE` slice (`m2-arrays-and-types` task 7.2, release build), 285 programs (`s20`–`s22`

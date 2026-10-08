@@ -3,8 +3,12 @@
 //! a whole, with the statements inside checked one by one.
 
 use super::{Checker, R, Skips, first_token_span};
-use crate::{Branch, Expr, LoopKind, LoopTest, Stmt, StmtKind, SymbolKind, TestAt, Ty, VarId};
+use crate::{
+    BinOp, Branch, Case, CaseItem, Expr, ExprKind, LoopKind, LoopTest, Place, Stmt, StmtKind, SymbolKind, TestAt, Ty,
+    VarId,
+};
 use qb64rust_base::show_bytes;
+use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::tree::{Node, Tok};
 
@@ -21,6 +25,8 @@ impl Checker<'_> {
             self.do_block(b, skips);
         } else if let Some(b) = ast::WhileBlock::cast(node) {
             self.while_block(b, skips);
+        } else if let Some(b) = ast::SelectBlock::cast(node) {
+            self.select_block(b, skips);
         } else if let Some(b) = ast::TypeBlock::cast(node) {
             self.type_block(b, skips);
         } else if let Some(block) = block_parts(node) {
@@ -282,6 +288,130 @@ impl Checker<'_> {
         }
     }
 
+    /// `SELECT CASE` / `SELECT EVERYCASE` (design D7 of `m2-core-builtins`). The header and each `CASE` are checked
+    /// as statements of their own; the items of a `CASE` can be typed only when the selector could.
+    fn select_block(&mut self, b: ast::SelectBlock, skips: &Skips) {
+        let header = b.header();
+        let head = self.header(header.map(|h| h.node()), skips, |c| {
+            c.select_header(header.expect("checked by `header`"))
+        });
+        // Statements before the first `CASE` are parse errors; checked for recovery only.
+        let _ = self.block_body(b.before_cases(), skips);
+        let mut cases = Some(Vec::new());
+        let mut else_ = None;
+        for clause in b.cases() {
+            let h = clause.header();
+            if else_.is_some() {
+                // Measured: "Expected END SELECT" (`verification\v20_x31_case_after_else`); also a second `CASE ELSE`.
+                self.header(h.map(|h| h.node()), skips, |c| -> R<()> {
+                    let at = first_token_span(h.expect("checked by `header`").node());
+                    Err(c.error(at, "a `CASE` after `CASE ELSE` (`CASE ELSE` comes last)"))
+                });
+                let _ = self.block_body(clause.body(), skips);
+                cases = None;
+                continue;
+            }
+            let line = h.map_or(0, |h| self.line(first_token_span(h.node())));
+            let is_else = h.and_then(|h| h.else_word()).is_some();
+            let items = match (&head, is_else) {
+                (_, true) => None,
+                (Some((selector, _, _)), false) => self.header(h.map(|h| h.node()), skips, |c| {
+                    c.case_items(h.expect("checked by `header`"), selector)
+                }),
+                (None, false) => None,
+            };
+            let body = self.block_body(clause.body(), skips);
+            match (is_else, items, &mut cases) {
+                (true, _, _) => else_ = Some(body),
+                (false, Some(items), Some(list)) => list.push(Case { items, body, line }),
+                (false, _, _) => cases = None,
+            }
+        }
+        let end_line = b.end().map_or(0, |e| self.line(first_token_span(e.node())));
+        if let (Some((selector, copied, every)), Some(cases)) = (head, cases) {
+            let kind = StmtKind::Select {
+                selector,
+                copied,
+                every,
+                cases,
+                else_,
+                end_line,
+            };
+            self.push(b.node(), kind);
+        }
+    }
+
+    /// `SELECT CASE e` / `SELECT EVERYCASE e`: the selector, whether it is copied, and `EVERYCASE`. A plain scalar
+    /// variable is read at each test; anything else is copied once into a variable of the old compiler's type for
+    /// it (`qb64pe.bas` 6831–6884: a string, `int64`, `int32` for narrower integers, the float type it believes).
+    fn select_header(&mut self, h: ast::SelectHeader) -> R<(Expr, bool, bool)> {
+        let span = h.node().span();
+        let every = h.kind_word().is_some_and(|w| self.word(w) == "EVERYCASE");
+        let node = self.need(h.selector(), span)?;
+        let e = self.expr(node)?;
+        if matches!(e.kind, ExprKind::Load(Place::Var(_))) {
+            return Ok((e, false, every));
+        }
+        let copy = match e.qb {
+            Ty::Str => return Ok((e, true, every)),
+            Ty::I16 | Ty::I32 => Ty::I32,
+            t @ (Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => t,
+            Ty::User(_) => unreachable!("a whole `TYPE` value is no value"),
+        };
+        Ok((self.convert_exact(e, copy), true, every))
+    }
+
+    /// The items of a `CASE`, each converted for its comparison with `selector` ([`CaseItem`]).
+    fn case_items(&mut self, h: ast::CaseHeader, selector: &Expr) -> R<Vec<CaseItem>> {
+        let mut items = Vec::new();
+        for item in h.items() {
+            let span = item.node().span();
+            let op = match item.is_op().map(|t| t.kind) {
+                None | Some(SyntaxKind::Eq) => BinOp::Eq,
+                Some(SyntaxKind::Ne) => BinOp::Ne,
+                Some(SyntaxKind::Lt) => BinOp::Lt,
+                Some(SyntaxKind::Gt) => BinOp::Gt,
+                Some(SyntaxKind::Le) => BinOp::Le,
+                Some(SyntaxKind::Ge) => BinOp::Ge,
+                Some(other) => unreachable!("`IS` with {other:?}"),
+            };
+            let low = self.need(item.value(), span)?;
+            let low = self.case_value(low, selector)?;
+            items.push(match item.upper() {
+                Some(high) => CaseItem::Range(low, self.case_value(high, selector)?),
+                None => CaseItem::Is(op, low),
+            });
+        }
+        Ok(items)
+    }
+
+    /// A `CASE` value converted for the comparison (`qb64pe.bas` 7091–7107, 7167–7188): a string for a string
+    /// selector; for an integer selector a float rounded half to even (to `_INTEGER64` for an `_INTEGER64` selector,
+    /// else to LONG: measured, `CASE 2.4` matches 2), then both sides in C's common type; for a float selector the
+    /// value converted to the selector's type.
+    fn case_value(&mut self, node: ast::Expr, selector: &Expr) -> R<Expr> {
+        let e = self.expr(node)?;
+        match (selector.ty == Ty::Str, e.ty == Ty::Str) {
+            (true, true) => return Ok(e),
+            // Measured: "Expected string expression" / "Expected numeric expression" (`v20_x16`, `x17`, `x25`, `x26`).
+            (true, false) => return Err(self.error(e.span, "a `CASE` of a string `SELECT CASE` needs a string")),
+            (false, true) => return Err(self.error(e.span, "a `CASE` of a numeric `SELECT CASE` needs a number")),
+            (false, false) => {}
+        }
+        let s = selector.ty;
+        if s.is_float() {
+            return Ok(self.convert_exact(e, s));
+        }
+        let e = if e.ty.is_float() {
+            self.store(e, if s == Ty::I64 { Ty::I64 } else { Ty::I32 })?
+        } else {
+            e
+        };
+        let promote = |t: Ty| if t == Ty::I16 { Ty::I32 } else { t };
+        let common = promote(s).max(promote(e.ty));
+        Ok(self.convert_exact(e, common))
+    }
+
     /// `EXIT FOR`, `EXIT DO`, `EXIT WHILE` (`word`); the parser checked that such a block is open.
     pub(super) fn exit_loop(&mut self, node: Node, word: &str) -> R<()> {
         let kind = match word {
@@ -355,6 +485,12 @@ pub(super) fn nested_statements(node: Node) -> Option<Vec<Node>> {
         Some(b.body().collect())
     } else if let Some(b) = ast::WhileBlock::cast(node) {
         Some(b.body().collect())
+    } else if let Some(b) = ast::SelectBlock::cast(node) {
+        let mut inner: Vec<Node> = b.before_cases().collect();
+        for c in b.cases() {
+            inner.extend(c.body());
+        }
+        Some(inner)
     } else {
         block_parts(node).map(|p| p.inner)
     }
@@ -387,13 +523,7 @@ fn unsupported<'a>(header: Option<Node<'a>>, what: &'static str, inner: Vec<Node
 /// The parts of a block statement still marked as a whole; `None` for any other statement.
 fn block_parts(node: Node) -> Option<BlockParts> {
     const DEF_FN: &str = "`DEF FN` is not available in QB64; use a FUNCTION";
-    if let Some(b) = ast::SelectBlock::cast(node) {
-        let mut inner: Vec<Node> = b.before_cases().collect();
-        for c in b.cases() {
-            inner.extend(c.body());
-        }
-        unsupported(b.header().map(|h| h.node()), "`SELECT CASE`", inner)
-    } else if let Some(b) = ast::DeclareLibraryBlock::cast(node) {
+    if let Some(b) = ast::DeclareLibraryBlock::cast(node) {
         unsupported(b.header().map(|h| h.node()), "`DECLARE LIBRARY`", Vec::new())
     } else if let Some(b) = ast::DefFnBlock::cast(node) {
         Some(BlockParts {

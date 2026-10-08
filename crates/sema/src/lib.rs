@@ -11,6 +11,7 @@
 // A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
 #![warn(clippy::wildcard_enum_match_arm)]
 
+pub mod builtins;
 mod check;
 pub mod consteval;
 mod dump;
@@ -67,6 +68,20 @@ impl Ty {
             Ty::Str => "STRING",
             Ty::User(_) => "TYPE",
         }
+    }
+}
+
+/// The size of a value of a numeric or user type in memory: what `LEN` of a place gives and what the layout of a
+/// `TYPE` is made of. A `_FLOAT` takes 32 bytes as in the old compiler (`study\02` §1.7); a user type is its members'
+/// sizes added up, in order, without padding (measured, `verification\v18_h_type_members`, `v20_g_len`).
+pub fn size_of(types: &[UserType], t: Ty) -> u32 {
+    match t {
+        Ty::I16 => 2,
+        Ty::I32 | Ty::F32 => 4,
+        Ty::I64 | Ty::F64 => 8,
+        Ty::F80 => 32,
+        Ty::User(id) => types[id.0 as usize].members.iter().map(|m| size_of(types, m.ty)).sum(),
+        Ty::Str => unreachable!("a string has no fixed size"),
     }
 }
 
@@ -484,6 +499,48 @@ pub enum StmtKind {
     /// `EXIT FOR`, `EXIT DO`, `EXIT WHILE`: leaves the innermost loop of that kind (the parser checked there is
     /// one).
     ExitLoop(LoopKind),
+    /// `ON n GOTO l1, l2, …` (`gosub` false) or `ON n GOSUB …`: to the n-th label of the same body; 0 and values past
+    /// the count (also above 255, `DIVERGENCES-QB45.md` Q-001) continue with the next statement, a negative value
+    /// raises error 5. `value` is LONG (design D8 of `m2-core-builtins`, measured `verification\v20_i_on_goto`).
+    OnJump {
+        value: Expr,
+        gosub: bool,
+        targets: Vec<LabelId>,
+    },
+    /// `SELECT CASE` or `SELECT EVERYCASE` (design D7 of `m2-core-builtins`, measured `verification\v20_h_select`).
+    Select {
+        /// What the cases are compared with. A plain scalar variable is read at each test (`copied` false); anything
+        /// else is evaluated once, at the `SELECT`, into a hidden variable of this expression's type, which is the
+        /// old compiler's: a string, `_INTEGER64`, LONG for every narrower integer, or the float type it believes.
+        selector: Expr,
+        copied: bool,
+        /// `EVERYCASE`: every matching `CASE` runs, and `CASE ELSE` only when none did.
+        every: bool,
+        cases: Vec<Case>,
+        else_: Option<Vec<Stmt>>,
+        /// 1-based source line of the `END SELECT`.
+        end_line: u32,
+    },
+}
+
+/// A `CASE` with its items (any of them matching runs the body) and its statements.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Case {
+    pub items: Vec<CaseItem>,
+    pub body: Vec<Stmt>,
+    /// 1-based source line of the `CASE`.
+    pub line: u32,
+}
+
+/// An item of a `CASE`, compared with the selector. Every value is already converted to the type the comparison is
+/// computed in (the old compiler's: the item converted to the selector's type, a float item for an integer selector
+/// rounded half to even; then C's usual conversions); the selector is converted to it where it is narrower.
+#[derive(Clone, Debug, PartialEq)]
+pub enum CaseItem {
+    /// `value` (as `IS = value`) or `IS op value`; `op` is one of the six comparisons.
+    Is(BinOp, Expr),
+    /// `low TO high`: from `low` to `high` inclusive (`9 TO 1` matches nothing).
+    Range(Expr, Expr),
 }
 
 /// One branch of an [`StmtKind::If`]: its condition and its statements.

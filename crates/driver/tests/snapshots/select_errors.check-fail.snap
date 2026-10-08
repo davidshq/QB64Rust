@@ -1,0 +1,12 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+select_errors.bas:7:10: error: a `CASE` of a numeric `SELECT CASE` needs a number
+select_errors.bas:10:10: error: a `CASE` of a string `SELECT CASE` needs a string
+select_errors.bas:13:15: error: a `CASE` of a string `SELECT CASE` needs a string
+select_errors.bas:16:15: error: a `CASE` of a numeric `SELECT CASE` needs a number
+select_errors.bas:17:14: error: cannot store a string in a number variable
+select_errors.bas:22:5: error: a `CASE` after `CASE ELSE` (`CASE ELSE` comes last)
+select_errors.bas:23:14: error: cannot store a string in a number variable
+select_errors.bas:28:5: error: a `CASE` after `CASE ELSE` (`CASE ELSE` comes last)

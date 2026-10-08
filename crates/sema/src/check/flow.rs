@@ -5,7 +5,7 @@
 //! of its own body; `ON ERROR GOTO` names one of the main module's, from any body (all measured).
 
 use super::{Checker, R, Skips, nested_statements};
-use crate::{Label, LabelId, ProcId, Resume, StmtKind, SymbolKind, Ty};
+use crate::{ConvKind, Label, LabelId, ProcId, Resume, StmtKind, SymbolKind, Ty};
 use qb64rust_base::{show_bytes, to_u32};
 use qb64rust_builtins::find_any;
 use qb64rust_syntax::SyntaxKind::Number;
@@ -138,6 +138,41 @@ impl Checker<'_> {
         let t = self.need(s.target(), node.span())?;
         let l = self.jump_target(t)?;
         self.push(node, StmtKind::Gosub(l));
+        Ok(())
+    }
+
+    /// `ON n GOTO l1, l2, …` / `ON n GOSUB …` (design D8 of `m2-core-builtins`, `qb64pe.bas` 27620): `n` converted
+    /// to LONG as the old compiler does, a float through `qbr_float_to_long` (narrowed to SINGLE, then rounded half
+    /// to even), an integer keeping its low 32 bits; each target a label of this body (line numbers are not
+    /// supported yet).
+    pub(super) fn on_jump(&mut self, s: ast::OnJumpStmt) -> R<()> {
+        let node = s.node();
+        let span = node.span();
+        let n = self.need(s.value(), span)?;
+        let kw = self.need(s.keyword(), span)?;
+        let gosub = self.word(kw) == "GOSUB";
+        let e = self.expr(n)?;
+        if e.ty == Ty::Str {
+            // Measured: "Expected numeric expression" (`verification\v20_x18_on_string`).
+            return Err(self.error(
+                e.span,
+                format!("the value of `ON … {}` must be a number", self.word(kw)),
+            ));
+        }
+        let value = if e.qb.is_float() {
+            let single = self.convert_exact(e, Ty::F32);
+            super::expr::conv(single, Ty::I32, ConvKind::RoundEven)
+        } else {
+            self.convert_exact(e, Ty::I32)
+        };
+        let mut targets = Vec::new();
+        for t in s.targets() {
+            let Some(t) = t else {
+                return Err(self.unsupported(span, "an omitted target of `ON … GOTO`/`ON … GOSUB`"));
+            };
+            targets.push(self.jump_target(t)?);
+        }
+        self.push(node, StmtKind::OnJump { value, gosub, targets });
         Ok(())
     }
 
