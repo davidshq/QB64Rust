@@ -4,6 +4,7 @@
 use crate::tree::{GreenNode, Node, TreeId};
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 
 /// The lossless tree of one file at one inclusion, with the parse errors found in it.
 pub struct Tree {
@@ -61,6 +62,20 @@ pub enum LoadError {
 /// name as written in the include.
 pub trait Loader {
     fn load(&mut self, map: &mut SourceMap, from: FileId, path: &[u8]) -> Result<FileId, LoadError>;
+}
+
+/// The file name an include statement gives, as the old compiler reads it: the name as written (taken as UTF-8; the
+/// inputs use ASCII names), a leading `.\` or `./` dropped. A loader looks a relative name up in the including
+/// file's folder, then relative to the compiler root, never the working directory; an absolute name as written
+/// (design D9, measured M7).
+pub fn include_name(written: &[u8]) -> PathBuf {
+    #[expect(clippy::disallowed_methods, reason = "a file name, not BASIC source")]
+    let written = String::from_utf8_lossy(written).into_owned();
+    let name = written
+        .strip_prefix(".\\")
+        .or_else(|| written.strip_prefix("./"))
+        .unwrap_or(&written);
+    PathBuf::from(name)
 }
 
 /// A loader that finds no file, for tests of single files.

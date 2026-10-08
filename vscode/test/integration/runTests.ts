@@ -17,6 +17,14 @@ async function main(): Promise<void> {
     if (fromEnv && !fs.existsSync(compiler)) {
         throw new Error(`QB64RUST_TEST_QB64PE=${fromEnv}: no such file`);
     }
+    // The new compiler's binary for the language server tests: QB64RUST_TEST_QB64RUST only (no fallback, so a run
+    // without it is the M1 extension as before). Those tests skip when it is unset; one that does not exist is an
+    // error.
+    const serverEnv = process.env.QB64RUST_TEST_QB64RUST;
+    const server = serverEnv ? path.resolve(serverEnv) : "";
+    if (server && !fs.existsSync(server)) {
+        throw new Error(`QB64RUST_TEST_QB64RUST=${serverEnv}: no such file`);
+    }
     const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "qb64rust-it-"));
     fs.cpSync(path.join(root, "test-fixtures", "workspace"), workspace, { recursive: true });
 
@@ -26,6 +34,8 @@ async function main(): Promise<void> {
     if (fs.existsSync(compiler)) {
         settings["qb64rust.compilerPath"] = compiler;
     }
+    // Without a binary named, one on PATH is not used either: the run is the M1 extension.
+    settings["qb64rust.path"] = server || path.join(workspace, "no-qb64rust-here");
     fs.writeFileSync(path.join(settingsDir, "settings.json"), JSON.stringify(settings, null, 2));
 
     // `--min` tests the oldest version package.json accepts (engines.vscode), as rust-analyzer does.
@@ -37,7 +47,11 @@ async function main(): Promise<void> {
             version,
             extensionDevelopmentPath: root,
             extensionTestsPath: path.join(__dirname, "suite", "index.js"),
-            extensionTestsEnv: { QB64RUST_TEST_WORKSPACE: workspace, QB64RUST_TEST_COMPILER: fs.existsSync(compiler) ? compiler : "" },
+            extensionTestsEnv: {
+                QB64RUST_TEST_WORKSPACE: workspace,
+                QB64RUST_TEST_COMPILER: fs.existsSync(compiler) ? compiler : "",
+                QB64RUST_TEST_SERVER: server,
+            },
             launchArgs: [workspace, "--disable-extensions", "--disable-workspace-trust"],
         });
     } finally {

@@ -2,7 +2,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { closeAll, compiler, dismissingNotifications, open, setSetting, waitFor, writeFile } from "./helpers";
+import { closeAll, compiler, dismissingNotifications, open, setSetting, waitFor, writeFile, qb64peDiagnostics } from "./helpers";
 
 const exeOf = (uri: vscode.Uri) => uri.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
 
@@ -31,7 +31,7 @@ describe("build and run", function () {
         const ran = await dismissingNotifications(vscode.commands.executeCommand<boolean>("qb64rust.buildAndRun"));
         assert.strictEqual(ran, false);
         assert.ok(!fs.existsSync(exeOf(uri)));
-        const diags = vscode.languages.getDiagnostics(uri);
+        const diags = qb64peDiagnostics(uri);
         assert.deepStrictEqual(diags.map((d) => [d.range.start.line, d.message]), [[1, "Expected variable/value after '+'"]]);
         assert.strictEqual(vscode.window.terminals.length, terminalsBefore);
     });

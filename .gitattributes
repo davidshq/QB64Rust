@@ -13,3 +13,5 @@ tests/upstream/compile_tests/**/*.license -text
 # QB64Fresh snippets: CR LF sources and qb64pe's output as recorded (design D5 of m2-upstream-tests)
 tests/snippets/**/*.bas -text
 tests/snippets/**/*.err -text
+# The language server's encoding fixtures: raw bytes, CR and LF among them (tools/encodings/gen_tables.js)
+crates/lsp/tests/fixtures/*.bin -text

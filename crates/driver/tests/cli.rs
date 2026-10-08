@@ -376,3 +376,57 @@ fn internal_compiler_error() {
     assert_eq!(o.status.code(), Some(3));
     assert!(d.join("p.exe").exists());
 }
+
+/// Scenario "Subcommand" (change `m2-language-server`): the language server over stdin and stdout, ending with
+/// exit code 0 after `shutdown` and `exit`.
+#[test]
+fn language_server() {
+    use std::io::{Read as _, Write as _};
+    use std::process::Stdio;
+    let d = scratch("lsp");
+    let mut child = Command::new(env!("CARGO_BIN_EXE_qb64rust"))
+        .current_dir(&d)
+        .arg("lsp")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let messages = [
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}"#,
+        r#"{"jsonrpc":"2.0","method":"initialized","params":{}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"shutdown"}"#,
+        r#"{"jsonrpc":"2.0","method":"exit"}"#,
+    ];
+    let mut stdin = child.stdin.take().unwrap();
+    for m in messages {
+        write!(stdin, "Content-Length: {}\r\n\r\n{m}", m.len()).unwrap();
+    }
+    drop(stdin);
+    let mut out = Vec::new();
+    child.stdout.take().unwrap().read_to_end(&mut out).unwrap();
+    let status = child.wait().unwrap();
+    #[expect(clippy::disallowed_methods, reason = "protocol messages, not BASIC source")]
+    let out = String::from_utf8_lossy(&out).to_string();
+    assert_eq!(status.code(), Some(0), "{out}");
+    assert!(
+        out.contains(r#""id":1"#) && out.contains("documentSymbolProvider"),
+        "{out}"
+    );
+    assert!(out.contains(r#""id":2"#), "{out}");
+
+    // Only the exact word, alone.
+    let o = qb64rust(&d, &["lsp", "extra"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(o.stdout.is_empty(), "stdout is the protocol's");
+}
+
+/// Scenario "Not a file name": `lsp.bas` is a program.
+#[test]
+fn lsp_named_program() {
+    let d = scratch("lsp-file");
+    std::fs::write(d.join("lsp.bas"), SLICE_PROGRAM).unwrap();
+    let o = qb64rust(&d, &["lsp.bas", "--dump", "typed"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(stdout(&o).contains("INSTR"), "{}", stdout(&o));
+}

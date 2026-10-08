@@ -1,4 +1,5 @@
-// Compiler messages → Problems. Check on save and on command; cleared on edit and close.
+// The old compiler's messages → Problems (source `qb64pe`). Check on save and on command; cleared on edit and close.
+// The language server's diagnostics (source `qb64rust`) are in the client's own collection; neither clears the other.
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
@@ -9,7 +10,7 @@ import { RunQueue } from "./compiler/runQueue";
 import { CompilerStatus } from "./statusBar";
 
 export class Diagnostics implements vscode.Disposable {
-    readonly collection = vscode.languages.createDiagnosticCollection("qb64rust");
+    readonly collection = vscode.languages.createDiagnosticCollection("qb64pe");
     /** For each checked program, the files it last put diagnostics on (itself and include files). */
     private readonly owned = new Map<string, vscode.Uri[]>();
     private readonly disposables: vscode.Disposable[] = [];

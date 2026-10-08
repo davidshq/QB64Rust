@@ -49,18 +49,18 @@ pub fn number(text: &[u8], negative: bool) -> Result<NumLit, LitError> {
     let mut letter: Option<u8> = None;
     let mut exp_neg = false;
     let mut exp = String::new();
-    if let Some(&c) = text.get(i) {
-        if matches!(c.to_ascii_uppercase(), b'E' | b'D' | b'F') {
-            letter = Some(c.to_ascii_uppercase());
+    if let Some(&c) = text.get(i)
+        && matches!(c.to_ascii_uppercase(), b'E' | b'D' | b'F')
+    {
+        letter = Some(c.to_ascii_uppercase());
+        i += 1;
+        if let Some(&s) = text.get(i)
+            && (s == b'+' || s == b'-')
+        {
+            exp_neg = s == b'-';
             i += 1;
-            if let Some(&s) = text.get(i) {
-                if s == b'+' || s == b'-' {
-                    exp_neg = s == b'-';
-                    i += 1;
-                }
-            }
-            exp = digits(&mut i);
         }
+        exp = digits(&mut i);
     }
     let suffix = &text[i..];
     let whole_trim = whole.trim_start_matches('0').to_string();

@@ -32,5 +32,4 @@ Not planned (QB64pe has no such mode). What it would take: `study\08-qb45-strict
 | New compiler compiles the old `qb64pe.bas` as a stress test | `study\07-expert-panel.md` R10 |
 | Redesign the runtime ABI (variables as pointers, `qbs` moving heap, `passed` bitmasks) once the old compiler is no longer a producer | `study\07-expert-panel.md` R6 |
 | Fuzz the lexer and parser with a coverage-guided fuzzer: "no panic, exact round trip" is an ideal fuzz property. A seeded mutation test over the corpus comes first, in `m2-upstream-tests` (`study\22` §5) | `study\21-rust-review.md` §4 |
-| A policy for bumping the pinned Rust toolchain (1.88, about 15 months old on 2026-10-04) | `study\21-rust-review.md` §4 |
-| `cargo-deny` for licences and advisories, once a dependency beyond `insta` and `serde_json` is added | `study\21-rust-review.md` item 7 |
+| The language server notices included files that change on disk while not open (`workspace/didChangeWatchedFiles`, or parsing the includers again on `didSave`); today the change shows at the includer's next edit | Review of `m2-language-server`, 2026-10-08 |

@@ -2,6 +2,8 @@
 //!
 //! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
 //! [--qb64pe-root <dir>] [--include-root <dir>] [--keep-build]`
+//!
+//! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
 
 use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit, frontend_with};
 use std::io::Write as _;
@@ -10,7 +12,8 @@ use std::process::ExitCode;
 use std::sync::Mutex;
 
 const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
-[--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--include-root <dir>] [--keep-build]";
+[--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--include-root <dir>] [--keep-build]\n\
+       qb64rust lsp     (the language server, over stdin and stdout)";
 
 #[derive(Default)]
 struct Options {
@@ -121,11 +124,38 @@ fn install_panic_hook() {
 }
 
 fn main() -> ExitCode {
+    // `qb64rust lsp`: the exact word as the only argument (spec `compiler/cli`); `lsp.bas` is a file to compile.
+    let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if args.first().is_some_and(|a| a == "lsp") {
+        return lsp(args.len());
+    }
     install_panic_hook();
     match qb64rust_driver::with_stack(run) {
         Ok(code) => code,
         Err(msg) => {
             println!("qb64rust: {msg}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// The language server over stdin and stdout (spec `editor/language-server`). Stdout carries the protocol, so the
+/// compile run's panic hook (which prints there) is not installed: a panic is reported on stderr, which the editor
+/// shows in the server's output.
+fn lsp(arg_count: usize) -> ExitCode {
+    if arg_count > 1 {
+        eprintln!("qb64rust: `lsp` takes no other argument\n{USAGE}");
+        return ExitCode::FAILURE;
+    }
+    // The include root when the client names none: the folder of this executable, as for a compile.
+    let root = std::env::current_exe()
+        .ok()
+        .and_then(|e| e.parent().map(Path::to_path_buf))
+        .unwrap_or_default();
+    match qb64rust_driver::with_stack(move || qb64rust_lsp::run_stdio(root)) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(msg) => {
+            eprintln!("qb64rust lsp: {msg}");
             ExitCode::FAILURE
         }
     }

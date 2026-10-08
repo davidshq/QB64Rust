@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-08 (session 24). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-08 (session 25). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). Next: the thin language server (step 7).**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Next: step 8.**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -187,6 +187,36 @@ user: a member store into an element with a bad index stores nothing (`DIVERGENC
 `sema`'s value tree (design D10). Tier 1 lowers, validates and emits every accepted input (`ir::validate`).
 `slice.list` 113 → 129, full corpus 127 → 144, upstream 23 → 24 of 279.
 
+## M2: language server (2026-10-08, session 25)
+
+OpenSpec change `m2-language-server`, archived to `openspec\changes\archive\2026-10-08-m2-language-server\` (record
+in its `tasks.md`, details settled while applying in its `design.md` "As built"); its specs are now the main specs
+(new: `openspec\specs\editor\language-server`; updated: `compiler\cli`, `editor\compiler-diagnostics`,
+`editor\language-support`). `qb64rust lsp` (new crate `crates\lsp`, `lsp-server` and `lsp-types`, the workspace's first
+dependencies, so `cargo deny` came with them: `deny.toml`, CI job `deny`) gives, from the parser alone: syntax
+errors as you type (100 ms debounce, a parse worker, cancellation), the outline (procedures, `TYPE` with members,
+labels), folding of every block, `$IF` region and comment run, and go to definition for procedures, labels and
+line numbers across included files. Included files come from open documents first, then the disk, by the
+compiler's lookup. The document's text is parsed as the bytes of its encoding, with tables generated from
+`iconv-lite` (`tools\encodings\gen_tables.js`); positions are UTF-16 columns, the only encoding VS Code's client
+accepts (checked, task 1.1). The extension starts it when `qb64rust.path` (or `PATH`) names the binary, in a
+trusted workspace; its diagnostics (source `qb64rust`) live beside the old compiler's (`qb64pe`).
+
+- Does not do: anything `sema` knows (variables, constants, "not supported yet" of statements), hover,
+  completion, rename, references, semantic highlighting, formatting; the server is not shipped inside the `.vsix`.
+  It does not watch the disk: an included file that is not open and changes on disk is read again at the
+  includer's next parse (its next edit).
+- Review fixes (session 25): closing one includer no longer clears an include's diagnostics that another open
+  program still shows; a request after a failed parse gets an empty answer instead of waiting for good; an
+  overtaken restart of the client no longer sets the state; a relative `qb64rust.includeRoot` without a workspace
+  folder is ignored.
+- Tests: `cargo test -p qb64rust-lsp` (unit; symbols and folding snapshots and every go-to-definition form;
+  16 protocol scenarios in-process; the walks over 696 corpus and upstream programs in 1.6 s), two CLI tests of
+  the subcommand; the extension: unit 47, integration 42 with the server on VS Code stable and on 1.100 (37 and 5
+  skipped without it). Measured (`study\00` §5): parsing `qb64pe.bas` with its includes takes 111 ms in release.
+- CI: `vscode-extension.yml` builds `qb64rust` first and runs the integration suites with it; not yet run on
+  GitHub (task 5.1, left open when the change was archived: check the run after the next push).
+
 **Next** (steps 1–5: order accepted 2026-10-07 after the fourth review, `study\24` §4; from step 6 on: reordered
 2026-10-07 after the fifth review, `study\26` §6, reasons there). One line per step; the per-task record of a change
 is its `tasks.md`, and `git log`.
@@ -214,9 +244,15 @@ is its `tasks.md`, and `git log`.
    static, both as QB64pe (`DIVERGENCES-QB45.md` Q-001, Q-002, now pinned by `s29`, `s28`); 2026-10-08: six
    old-compiler oddities found by the measurements are kept for now (`DECISIONS.md`, `study\00` §6). CI `tier2`
    steps against the QB64pe 4.7.0 release: 192 of 192, 42 of 42.
-7. **Now:** the thin language server (`study\23` §2.6).
-8. Bug-compatibility decisions (`study\00` §6), the differential tester, `Ty` as a type table, unsigned types.
-9. The remaining plain built-ins (249 of 455 in all), table-driven, with generated tests.
+7. Done 2026-10-08 (session 25), checked locally: the thin language server (`study\23` §2.6; design points
+   `study\27` §6): OpenSpec change `m2-language-server`, archived, section above. Left: see the CI run on GitHub
+   after the next push (task 5.1).
+8. **Next:** bug-compatibility decisions (`study\00` §6), the differential tester, the full numeric type set and
+   fixed-length strings (`Ty` stays an enum with an explicit rank; no type table, `study\27` §5).
+9. Built-in statements and functions by demand (`study\27` §3): a built-in statement operation in the IR, then
+   sequential file I/O, `DATA`/`READ`/`RESTORE`, `SWAP`, `RANDOMIZE`/`RND`/`TIMER`, console `INPUT`/`LINE INPUT`,
+   `SHELL`/`COMMAND$`/`ENVIRON$`, each measured first; the remaining plain functions as the corpus, upstream or a
+   user names them.
 10. `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE`, measured first (`study\26` §5); check once that the GitHub
     Windows runner can start the hidden window.
 11. `DEFxxx`, then the rest of arrays and `TYPE`: `REDIM`, dynamic arrays, `OPTION BASE`, plain member arrays
@@ -226,7 +262,8 @@ Numbers at the last full runs (2026-10-08, session 24, release build against the
 `slice.list` 192 of 192, full corpus 208 pass and none wrong at run time, upstream **42 of 279** (44 pass against
 the clone; two need the `VAL` of libqb after the 4.7.0 release, `tests\upstream\README.md`; none wrong);
 shrink-only lists: **0 false errors, 0 parse gaps**, 65 only-marked rejections (`tests\upstream\README.md`).
-Tier 1: about 10 s.
+Tier 1: about 10 s. Upstream's number is expected to stay near 42 until steps 8, 10 and 11 (its blockers are
+types, `_DEST` and the rest of arrays, `study\27` §4); the corpus is the signal for steps 7–9.
 
 **`m2-parser-breadth`** (2026-10-04 to 2026-10-07; archived 2026-10-07 to
 `openspec\changes\archive\2026-10-07-m2-parser-breadth\`, record in its `tasks.md`, its specs now the main specs:

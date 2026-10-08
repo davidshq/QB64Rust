@@ -303,10 +303,7 @@ impl PpState {
     pub fn eval(&self, text: &[u8]) -> Result<bool, String> {
         let mut temp = text.to_vec();
         // Comparisons first, leftmost first, each replaced by ` -1 ` or ` 0 `.
-        loop {
-            let Some(first) = temp.iter().position(|b| b"=<>".contains(b)) else {
-                break;
-            };
+        while let Some(first) = temp.iter().position(|b| b"=<>".contains(b)) {
             let first_sym = temp[first];
             let mut second = None;
             for (i, &c) in temp.iter().enumerate().skip(first + 1) {

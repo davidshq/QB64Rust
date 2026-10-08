@@ -553,6 +553,11 @@ Measured for the core built-ins, `SELECT CASE` and `ON … GOTO/GOSUB` (2026-10-
   label is tested (`n==k`), **with the value even when `n` raised** (an error in `n` leaves 0: no jump; `ON ASC("")
   + 1` goes to the first label), then `n < 0` raises 5; 0 and values past the count (255, 256, 258, 65537) fall
   through. `ON … GOSUB` pushes a return point and continues after the statement on `RETURN`; it works in a SUB.
+- **Parse only, as the language server does it** (`m2-language-server` task 1.3, 2026-10-08, release build, best
+  of 5, `parse` with no `sema`): `qb64pe.bas` with its includes (40 trees, 1.3 MB) 111 ms; the largest corpus
+  program (`slice\s28_select_case`, 6 KB) 0.2 ms; 1,000 lines with a syntax error on every tenth 1.8 ms (stopped at
+  the 100-error cap). The 0.6 s of `study\27` §2 was a whole `--dump tree` process (start, parse, printing the
+  trees); a 100 ms debounce costs more than any parse but the old compiler's own source.
 
 ## 6. Bug-compatibility choices still to make
 
@@ -743,6 +748,7 @@ as a reading of the code, not a measurement.
 | `24` | Fourth review (2026-10-07): code against plan after the control-flow slice's groups 1–5, why arrays and `TYPE` move before the type table and built-ins, `STATUS.md` as entry point; the current order of work |
 | `25` | IR review (2026-10-07): what the lowering does and the emitter still does, keep or merge, the place question for the arrays-and-`TYPE` slice with the old compiler's store rules to measure |
 | `26` | Fifth review (2026-10-07): a wrong-code bug in `$IF`, clean programs that tier 2 never runs, member arrays no longer behind `$UNSTABLE`, `$CONSOLE` tests as M2 work, blockers by kind and the new order (all accepted 2026-10-07; plain member arrays un-deferred) |
+| `27` | Sixth review (2026-10-08): architecture holds, no bug found; the corpus is blocked by built-in statements, file I/O and `DATA` that no step names (step 9 to become "by demand"), upstream by types and arrays; "`Ty` as a type table" dropped; the language server's design points (one binary, parser only, the encoding boundary, includes from open documents, two diagnostic sources); all accepted 2026-10-08 |
 | `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

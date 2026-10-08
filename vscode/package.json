@@ -17,7 +17,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "Highlighting works everywhere. Checking, formatting, building and running call the compiler and need a trusted workspace."
+      "description": "Highlighting works everywhere. Checking, formatting, building and running call the compiler, and the language server runs the qb64rust binary: they need a trusted workspace."
     },
     "virtualWorkspaces": {
       "supported": "limited",
@@ -61,6 +61,18 @@
           "default": "",
           "scope": "machine-overridable",
           "markdownDescription": "Full path to `qb64pe.exe` (or `qb64pe`). When empty, `qb64pe` is looked up on `PATH`."
+        },
+        "qb64rust.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "Full path to the `qb64rust` binary (the new compiler), which runs the language server: syntax errors as you type, the outline, folding and go to definition. When empty, `qb64rust` is looked up on `PATH`; without it the extension works as before."
+        },
+        "qb64rust.includeRoot": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "Where the language server looks up `$INCLUDE` files after the including file's folder, as `qb64rust --include-root` does. When empty, the folder of the `qb64rust` binary. A relative path is resolved against the workspace folder (without a workspace folder it is ignored)."
         },
         "qb64rust.checkOnSave": {
           "type": "boolean",
@@ -201,6 +213,7 @@
     "vscode-tmgrammar-test": "^0.1.3"
   },
   "dependencies": {
-    "iconv-lite": "^0.7.3"
+    "iconv-lite": "^0.7.3",
+    "vscode-languageclient": "^10.1.2"
   }
 }

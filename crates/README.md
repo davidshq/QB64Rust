@@ -11,14 +11,18 @@ The new compiler, `qb64rust`. One crate per pipeline stage, so the layering is e
 | `sema` | `qb64rust-sema` | Procedure table, scopes (main, procedure, `STATIC`, `SHARED`), variables (a name plus a type), arrays, user types, places (variable, element, member), labels, constants (`CONST`, `consteval.rs`), literal typing, computation types, explicit conversions, by-reference or by-value arguments, integer constant folding; the typed tree; the symbol table (`symbols.rs`: definition and references of every variable, procedure, label and constant, `Symbols::at` for a position, `dump_symbols`) |
 | `ir` | `qb64rust-ir` | The ABI-neutral IR (no libqb names, no C types: procedures, storage classes, places and their store rules, handlers and `RESUME` as statement-level rules; values, places and arguments are `sema`'s typed tree) and its lowering from the typed tree; `validate` checks its structure |
 | `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...): `lib.rs` the entry points and the fragment set, one module per concern adding the emitter's methods (`names.rs`: C types, identifiers, labels, literals, `#line`; `decl.rs`: sizes, declarations, allocation, temporaries; `procs.rs`: procedures, bodies, labels, `retK.txt`; `stmt.rs`: operations and stores; `place.rs`: places; `value.rs`: values and procedure arguments; `builtins.rs`: built-in calls) |
-| `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, the file loader for included files (`FileLoader`), build through the reference clone's `Makefile` |
+| `lsp` | `qb64rust-lsp` | The language server (`qb64rust lsp`, OpenSpec change `m2-language-server`): the message loop with debounce, a parse worker and cancellation (`server.rs`), one program's parse with included files from open documents first (`analysis.rs`), the encoding boundary (`encoding.rs`: tables generated from `iconv-lite` by `tools\encodings\gen_tables.js`, UTF-16 columns), `file:` URIs (`uri.rs`), and the features from the trees alone: diagnostics, document symbols (`symbols.rs`), folding ranges (`folding.rs`), go to definition for procedures and labels (`definition.rs`) |
+| `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, the file loader for included files (`FileLoader`), build through the reference clone's `Makefile`; `qb64rust lsp` starts the language server |
 
 ```
 driver -> codegen-cpp -> ir -> sema -> syntax -> base
-                     \      \--> builtins <--/
+   \                 \      \--> builtins <--/   /
+    \--> lsp ------------------------------------/   (lsp -> syntax, base: never sema)
 ```
 
-`syntax -> builtins` (data only) came with the template statements (design D6 of `m2-parser-breadth`).
+`syntax -> builtins` (data only) came with the template statements (design D6 of `m2-parser-breadth`). `lsp`
+reads the parser's trees only, so the server cannot report anything `sema` decides (design D1 of
+`m2-language-server`).
 
 Source is bytes throughout (`study\15` §1): files are never converted to `str`; positions are byte offsets;
 columns in diagnostics are byte columns.
@@ -44,7 +48,14 @@ cargo build --release
 target\release\qb64rust.exe -x prog.bas -o prog.exe        # compile (needs ..\QB64pe, see below)
 target\release\qb64rust.exe -z prog.bas                    # write the C++ fragments only, print their folder (kept)
 target\release\qb64rust.exe --dump typed prog.bas          # tokens | tree | typed | ir | cpp
+target\release\qb64rust.exe lsp                            # the language server, over stdin and stdout
 ```
+
+`qb64rust lsp` (only that word, no other argument) speaks the Language Server Protocol to an editor; the VS Code
+extension starts it when `qb64rust.path` names the binary (`vscode\README.md`). It parses each open program after
+every change (100 ms debounce) and gives syntax errors, the outline, folding ranges and go to definition for
+procedures and labels; positions are UTF-16 columns, the document's text is parsed as the bytes of its encoding
+(CP437 unless the editor says otherwise). It exits with 0 after `shutdown` and `exit`, with 1 otherwise.
 
 Included files (`'$INCLUDE:'file'`) are looked up in the including file's folder, then relative to the compiler
 root: the folder of `qb64rust.exe`, or `--include-root <dir>` (the old compiler's rule; never the working
@@ -143,6 +154,7 @@ panics on purpose, for the CLI test only.
 | Tier (`study\19`) | Command | What |
 |---|---|---|
 | 1 | `cargo test` | Unit tests; lexer and parser snapshots; symbol-table snapshots; `tests\frontend\` by mode line (included files under `tests\frontend\inc\`); every input set through the front end with its included files (`inputs.rs`: corpus, `tests\upstream`, snippets, and from the clone `qbasic_testcases` and the old compiler's sources, `qb64pe.bas` through all its includes; no panic, exact round trip of every tree, the copy equals the clone, the three lists of `tests\upstream\README.md`); the programs of `tests\corpus\slice.list` without diagnostics; every program with an `.err` file rejected; reserved names of variables and procedures against the measured lists (`names.rs`); the seeded mutation test (`mutate.rs`); the command line |
+| 1 | `cargo test -p qb64rust-lsp` | The language server: encoding tables against `iconv-lite`'s bytes, positions, URIs (unit); symbols and folding snapshots and every go-to-definition form on `lsp\tests\fixtures\outline.bas` (`features.rs`); the protocol scenarios of spec `editor/language-server` through an in-process connection (`server.rs`); the walks over every corpus and upstream program (`walk.rs`) |
 | 1, by hand | `cargo test -p qb64rust-driver --test cli -- --ignored` | The command-line scenarios that build an executable |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --qb64 target\release\qb64rust.exe --list tests\corpus\slice.list` | The listed corpus programs end to end against the output recorded from `qb64pe.exe` |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\release\qb64rust.exe --list tests\upstream\pass.list` | The upstream programs of the pass list end to end (`tests\upstream\README.md`); also in CI (`rust.yml`, job `tier2`) |
@@ -188,8 +200,12 @@ tier 2 with it set), not for normal use.
 
 ## Dependencies
 
-The compiler itself has none; `serde_json` reads the built-in table at build time and `insta` and `tempfile` serve
-the tests. The policy (decided 2026-10-07):
+The compiler itself has none. The language server (`lsp`) has `lsp-server` (the transport and message loop,
+synchronous) and `lsp-types` (the protocol types), with `serde_json` for their messages; they bring `serde`,
+`crossbeam-channel`, `fluent-uri` and a few more. `serde_json` also reads the built-in table at build time, and
+`insta` and `tempfile` serve the tests. `cargo deny check` (`deny.toml`; CI job `deny` in `rust.yml`; install with
+`cargo install cargo-deny --locked`) keeps licences (MIT, Apache-2.0, Unicode-3.0), advisories and sources in view.
+The policy (decided 2026-10-07):
 
 - Take a crate for a protocol or for test infrastructure when the need arrives: `lsp-types` and `lsp-server` for
   the language server, their DAP equivalents for the debugger, `insta` for snapshots, `tempfile` for scratch
@@ -201,5 +217,5 @@ the tests. The policy (decided 2026-10-07):
 - Not needed at this size: `clap` (the flags copy `qb64pe`'s `-x`, `-z`, `-f:name=value`, about 80 lines by hand),
   `thiserror`/`anyhow` (driver errors are messages), per-file test runners (`libtest-mimic`: the harnesses already
   name each failing file and share one run over all inputs).
-- `cargo-deny` comes with the first dependency that is not build- or dev-only (`study\21` item 7); it also
-  enforces rule 5 of `CLAUDE.md` (no GPL code by way of a crate).
+- `cargo-deny` comes with the first dependency that is not build- or dev-only (`study\21` item 7; added with the
+  language server, 2026-10-08); it also enforces rule 5 of `CLAUDE.md` (no GPL code by way of a crate).

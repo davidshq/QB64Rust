@@ -1,0 +1,18 @@
+---
+source: crates/lsp/tests/features.rs
+assertion_line: 87
+expression: out
+---
+0-2 Some(Comment)
+5-7 None
+13-16 None
+18-19 None
+21-22 None
+24-25 None
+27-31 None
+28-29 None
+30-31 None
+33-34 Some(Region)
+35-36 Some(Region)
+47-51 None
+54-55 None

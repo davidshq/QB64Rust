@@ -19,21 +19,50 @@ package it (below).
 
 | Command | What | Needs |
 |---|---|---|
-| `npm run test:unit` | Output parser (against recorded fixtures), compiler discovery, run queue | Node only |
+| `npm run test:unit` | Output parser (against recorded fixtures), compiler discovery (`qb64pe` and `qb64rust`), run queue, the language server's initialization options and encoding notification | Node only |
 | `npm run test:grammar` | Annotated `test\grammar\*.bas` against the TextMate grammar | Node only |
-| `npm run test:integration` | Downloads a VS Code build into `.vscode-test\` and runs `test\integration\suite` in it, in a temporary copy of `test-fixtures\workspace` | A compiler for the compiler tests (skipped without one): `QB64RUST_TEST_QB64PE`, else `..\..\QB64pe\qb64pe.exe` |
+| `npm run test:integration` | Downloads a VS Code build into `.vscode-test\` and runs `test\integration\suite` in it, in a temporary copy of `test-fixtures\workspace` | A compiler for the compiler tests (skipped without one): `QB64RUST_TEST_QB64PE`, else `..\..\QB64pe\qb64pe.exe`; the `qb64rust` binary for the language server tests (skipped without it): `QB64RUST_TEST_QB64RUST` |
 | `npm run test:integration:min` | The same on the oldest version `engines.vscode` accepts (1.100.0) | as above |
 | `npm test` | All four | |
 
 Integration options (environment variables): `QB64RUST_TEST_QB64PE` (path to `qb64pe.exe`; an error if it does
-not exist, so CI cannot silently skip the compiler tests), `QB64RUST_TEST_VSCODE_VERSION` (default `stable`),
+not exist, so CI cannot silently skip the compiler tests), `QB64RUST_TEST_QB64RUST` (path to `qb64rust.exe`, same
+rule; without it `qb64rust.path` is set to a file that does not exist, so a `qb64rust` on `PATH` is not used and
+the run is the extension without the server), `QB64RUST_TEST_VSCODE_VERSION` (default `stable`),
 `QB64RUST_TEST_GREP` (run only tests whose name matches).
 
-**CI.** `.github\workflows\vscode-extension.yml` (repo root) runs on `windows-latest` for changes under `vscode\`:
-lint, unit, grammar, integration on stable and on 1.100, then packages the `.vsix` as a build artifact. It downloads
-the QB64pe `v4.7.0-GLFW` Windows release (the version the fixtures were recorded with) and caches it, including the
-runtime library QB64pe compiles on its first build. Checked locally 2026-10-03: the integration suite passes against
-that release freshly extracted (37 passing, none skipped, about a minute). macOS and Linux are not in CI yet.
+## The language server
+
+`src\languageServer.ts` starts `qb64rust lsp` (`vscode-languageclient`, stdio) when `qb64rust.path` or `PATH`
+names a binary and the workspace is trusted; `src\server\protocol.ts` holds the parts without VS Code (the
+initialization options, the `qb64rust/documentEncoding` notification). The server itself is the Rust crate
+`crates\lsp` (its tests: `cargo test -p qb64rust-lsp`). To run the extension against it:
+
+```sh
+cargo build --release                                     # from the repository root
+QB64RUST_TEST_QB64RUST=../target/release/qb64rust.exe npm run test:integration
+```
+
+For F5, set `qb64rust.path` to `<repo>\target\release\qb64rust.exe` in the development host's settings. The
+server writes nothing to stdout but the protocol; its own messages (a panic, a failed parse) go to stderr, which
+VS Code shows in the "QB64 language server (qb64rust)" output channel.
+
+`tsconfig.json` uses `"module": "node16"`: `vscode-languageclient` 10 publishes its entry points through the
+`exports` map of its `package.json` (`vscode-languageclient/node`), which TypeScript resolves only with `node16`
+module resolution. The output is still CommonJS (`package.json` has no `"type": "module"`).
+
+The server's encoding tables (`crates\lsp\src\encoding_tables.rs`) are generated from this folder's `iconv-lite`,
+the library VS Code reads and writes those encodings with: `node tools\encodings\gen_tables.js` from the repository
+root, after `npm ci` here.
+
+**CI.** `.github\workflows\vscode-extension.yml` (repo root) runs on `windows-latest` for changes under `vscode\`,
+`crates\` and the Rust workspace's manifests: it builds `qb64rust` (release), then lint, unit, grammar,
+integration on stable and on 1.100 with `QB64RUST_TEST_QB64RUST` set, then packages the `.vsix` as a build
+artifact. It downloads the QB64pe `v4.7.0-GLFW` Windows release (the version the fixtures were recorded with) and
+caches it, including the runtime library QB64pe compiles on its first build. Checked locally 2026-10-03: the
+integration suite passes against that release freshly extracted (then 37 passing, none skipped, about a minute);
+2026-10-08, with the language server: 42 passing, or 37 passing and 5 pending without `QB64RUST_TEST_QB64RUST`.
+macOS and Linux are not in CI yet.
 
 The integration runner clears `ELECTRON_RUN_AS_NODE`, which is set in terminals inside VS Code and would start
 the test instance as plain Node.

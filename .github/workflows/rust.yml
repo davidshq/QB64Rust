@@ -1,6 +1,7 @@
 # Tier 1 of the test cadence (study\19) for the compiler workspace on Windows: formatting, clippy with warnings as
-# errors, and cargo test (unit, snapshots, tests\frontend, the corpus front end). Needs no QB64pe: the tests that
-# build an executable are #[ignore]d. Lint choices: study\21.
+# errors, and cargo test (unit, snapshots, tests\frontend, the corpus front end, the language server). Needs no
+# QB64pe: the tests that build an executable are #[ignore]d. Lint choices: study\21. `cargo deny check` in its own
+# job.
 name: Rust
 
 on:
@@ -44,6 +45,15 @@ jobs:
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       # CI is set, so insta fails on a changed snapshot instead of writing a .snap.new file.
       - run: cargo test --workspace --locked
+
+  # Licences, advisories and sources of the dependencies (deny.toml; study\21 item 7). The action runs on Linux;
+  # the dependency graph is the same on every platform.
+  deny:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: EmbarkStudios/cargo-deny-action@v2
 
   # Tier 2 (study\19): the slice list of the corpus and the upstream pass list end to end, built against the QB64pe
   # release instead of the reference clone (design D9 of m2-upstream-tests; checked to work in task 6.1). The

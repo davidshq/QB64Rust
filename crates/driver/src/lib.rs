@@ -4,14 +4,11 @@ pub mod build;
 
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_sema::Program;
-use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, parse};
+use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_name, parse};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-/// Stack size of the thread the compiler runs on. Every stage walks the tree recursively; the parser's limits
-/// (blocks nested 200 deep, expressions 1,000 levels) keep that bounded, and this leaves room for both at once
-/// in a debug build (a debug build needs about 4 KiB per expression level; the main thread has 1 MiB on Windows).
-pub const STACK_SIZE: usize = 64 * 1024 * 1024;
+pub use qb64rust_base::STACK_SIZE;
 
 /// Runs `f` on a new thread with [`STACK_SIZE`] of stack and returns its result. A panic in `f` is passed on.
 pub fn with_stack<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
@@ -81,14 +78,7 @@ impl FileLoader {
 
 impl Loader for FileLoader {
     fn load(&mut self, map: &mut SourceMap, from: FileId, path: &[u8]) -> Result<FileId, LoadError> {
-        // The name as written; a file name is taken as UTF-8 (the inputs use ASCII names).
-        #[expect(clippy::disallowed_methods, reason = "a file name, not BASIC source")]
-        let written = String::from_utf8_lossy(path).into_owned();
-        let written = written
-            .strip_prefix(".\\")
-            .or_else(|| written.strip_prefix("./"))
-            .unwrap_or(&written);
-        let rel = Path::new(written);
+        let rel = &include_name(path);
         let from_dir = self.dirs.get(&from).cloned().unwrap_or_default();
         let shown_dir = Path::new(&map.file(from).name)
             .parent()

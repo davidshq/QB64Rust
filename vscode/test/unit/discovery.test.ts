@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { findCompiler } from "../../src/compiler/discovery";
+import { QB64RUST, findCompiler } from "../../src/compiler/discovery";
 
 const files = (...paths: string[]) => (p: string) => paths.includes(p);
 
@@ -43,5 +43,19 @@ describe("findCompiler", () => {
     it("not found anywhere", () => {
         const r = findCompiler({ setting: "", envPath: "C:\\a", platform: "win32", isFile: () => false });
         assert.strictEqual(r.found, false);
+    });
+
+    it("finds qb64rust by its own setting and name", () => {
+        const r = findCompiler({ setting: "", envPath: "/usr/bin:/opt/q", platform: "linux", isFile: files("/opt/q/qb64pe", "/opt/q/qb64rust") }, QB64RUST);
+        assert.deepStrictEqual(r, { found: true, path: "/opt/q/qb64rust", source: "PATH" });
+        const w = findCompiler({ setting: "C:\\q", envPath: "", platform: "win32", isFile: files("C:\\q\\qb64rust.exe") }, QB64RUST);
+        assert.deepStrictEqual(w, { found: true, path: "C:\\q\\qb64rust.exe", source: "setting" });
+    });
+
+    it("names qb64rust's setting when it is not found", () => {
+        const r = findCompiler({ setting: "", envPath: "", platform: "win32", isFile: () => false }, QB64RUST);
+        assert.strictEqual(r.found ? "" : r.reason, "qb64rust was not found: set qb64rust.path or add the folder of qb64rust to PATH.");
+        const m = findCompiler({ setting: "C:\\nope", envPath: "", platform: "win32", isFile: () => false }, QB64RUST);
+        assert.match(m.found ? "" : m.reason, /^qb64rust\.path points to/);
     });
 });

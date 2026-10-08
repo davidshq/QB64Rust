@@ -10,6 +10,12 @@ use std::sync::Arc;
 /// the bytes to any stage; every count derived from one file (lines, tokens, names) then fits a `u32`.
 pub const MAX_SOURCE_LEN: usize = u32::MAX as usize;
 
+/// Stack size of the threads the compiler and the language server run on. Every stage walks the tree recursively;
+/// the parser's limits (blocks nested 200 deep, expressions 1,000 levels) keep that bounded, and this leaves room
+/// for both at once in a debug build (a debug build needs about 4 KiB per expression level; the main thread has
+/// 1 MiB on Windows).
+pub const STACK_SIZE: usize = 64 * 1024 * 1024;
+
 /// A length, offset or index that fits a `u32` because it is bounded by [`MAX_SOURCE_LEN`] (or by a table of
 /// fewer entries). Panics otherwise: that is a compiler bug, not an error in the program.
 pub fn to_u32(n: usize) -> u32 {
@@ -81,6 +87,23 @@ impl SourceFile {
 
     pub fn line_count(&self) -> u32 {
         to_u32(self.line_starts.len())
+    }
+
+    /// The bytes of a 0-based line without its line end, as an offset range; `None` past the last line.
+    pub fn line_content(&self, line: u32) -> Option<(u32, u32)> {
+        let start = *self.line_starts.get(line as usize)?;
+        let mut end = self
+            .line_starts
+            .get(line as usize + 1)
+            .copied()
+            .unwrap_or(to_u32(self.bytes.len()));
+        if end > start && self.bytes[end as usize - 1] == b'\n' {
+            end -= 1;
+        }
+        if end > start && self.bytes[end as usize - 1] == b'\r' {
+            end -= 1;
+        }
+        Some((start, end))
     }
 }
 
@@ -342,6 +365,18 @@ mod tests {
         assert_eq!(f.line_col(7), (4, 1));
         assert_eq!(f.line_col(8), (4, 2));
         assert_eq!(lc(b"", 0), (1, 1));
+    }
+
+    #[test]
+    fn line_content_without_line_end() {
+        let f = SourceFile::new("t.bas", b"ab\r\ncd\nx\r\r".to_vec());
+        assert_eq!(f.line_content(0), Some((0, 2)));
+        assert_eq!(f.line_content(1), Some((4, 6)));
+        assert_eq!(f.line_content(2), Some((7, 8)));
+        assert_eq!(f.line_content(3), Some((9, 9)));
+        assert_eq!(f.line_content(4), Some((10, 10)));
+        assert_eq!(f.line_content(5), None);
+        assert_eq!(SourceFile::new("t.bas", Vec::new()).line_content(0), Some((0, 0)));
     }
 
     #[test]
