@@ -3,7 +3,7 @@
 
 use crate::tree::{GreenNode, Node, TreeId};
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// The lossless tree of one file at one inclusion, with the parse errors found in it.
 pub struct Tree {
@@ -72,11 +72,51 @@ impl Loader for NoLoader {
     }
 }
 
-/// Parses the main file and, from task 8.1 of `m2-parser-breadth` on, the files it includes through `_loader`.
-pub fn parse(map: &mut SourceMap, main: FileId, _loader: &mut dyn Loader) -> ParsedProgram {
+/// What the parser needs to include files (design D9): the source map and loader, the trees made so far (by id;
+/// a tree's slot is filled when its file is done, so an including tree's id comes before its includes'), the
+/// include map, the files that hold `$INCLUDEONCE`, and how deep the inclusion is.
+pub(crate) struct Includer<'h> {
+    pub(crate) map: &'h mut SourceMap,
+    pub(crate) loader: &'h mut dyn Loader,
+    pub(crate) trees: Vec<Option<Tree>>,
+    pub(crate) includes: HashMap<(TreeId, u32), TreeId>,
+    pub(crate) once: HashSet<FileId>,
+    pub(crate) depth: u32,
+}
+
+impl<'h> Includer<'h> {
+    pub(crate) fn new(map: &'h mut SourceMap, loader: &'h mut dyn Loader) -> Includer<'h> {
+        Includer {
+            map,
+            loader,
+            trees: Vec::new(),
+            includes: HashMap::new(),
+            once: HashSet::new(),
+            depth: 0,
+        }
+    }
+
+    /// Reserves the next tree id.
+    pub(crate) fn next_tree(&mut self) -> TreeId {
+        self.trees.push(None);
+        TreeId(qb64rust_base::to_u32(self.trees.len() - 1))
+    }
+}
+
+/// Parses the main file and the files it includes through `loader`, in file order, with one preprocessor state
+/// for all of them.
+pub fn parse(map: &mut SourceMap, main: FileId, loader: &mut dyn Loader) -> ParsedProgram {
     let bytes = map.file(main).bytes.clone();
+    let mut inc = Includer::new(map, loader);
+    let id = inc.next_tree();
+    let (tree, _) = crate::parser::parse_tree_with(id, main, &bytes, crate::pp::PpState::default(), &mut inc, false);
+    inc.trees[0] = Some(tree);
     ParsedProgram {
-        trees: vec![crate::parser::parse_tree(TreeId(0), main, &bytes)],
-        includes: HashMap::new(),
+        trees: inc
+            .trees
+            .into_iter()
+            .map(|t| t.expect("every tree is filled when its file is done"))
+            .collect(),
+        includes: inc.includes,
     }
 }

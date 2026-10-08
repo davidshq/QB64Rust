@@ -2,25 +2,25 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-types_errors.bas:9:1: error: not supported yet: a `TYPE` without members
-types_errors.bas:10:5: error: expected a field (`name AS type` or `AS type name, ...`) or `END TYPE`
-types_errors.bas:11:1: error: `END TYPE` without `TYPE`
-types_errors.bas:13:5: error: a `TYPE` member cannot have a type suffix: `y&`
-types_errors.bas:16:7: error: not supported yet: `STRING` members
-types_errors.bas:19:7: error: not supported yet: fixed-length strings
-types_errors.bas:22:6: error: not supported yet: arrays as `TYPE` members
-types_errors.bas:27:7: error: a whole `TYPE` value cannot be used here: `p`
-types_errors.bas:28:5: error: a whole `TYPE` value cannot be used here: `p`
-types_errors.bas:29:6: error: a whole `TYPE` value cannot be used here: `p`
-types_errors.bas:30:5: error: a `TYPE` variable takes only a value of its `TYPE`
-types_errors.bas:31:1: error: not supported yet: assigning a whole `TYPE` value
-types_errors.bas:32:1: error: `C` is not a member of `TYPE PT` (`p.c`)
-types_errors.bas:33:1: error: `p.x%`: the member is LONG, not INTEGER
-types_errors.bas:34:1: error: `arr.x`: `ARR` is an array; a member needs an index
-types_errors.bas:35:1: error: only a value of a `TYPE` has members
-types_errors.bas:36:8: error: `C` is not a member of `TYPE PT` (`c`)
-types_errors.bas:37:9: error: a name with a type suffix cannot have an `AS` clause
-types_errors.bas:38:5: error: not supported yet: the `TYPE` variable `p` as a `FOR` variable
-types_errors.bas:41:11: error: not supported yet: a `TYPE` parameter
-types_errors.bas:44:5: error: not supported yet: `TYPE` blocks inside a SUB, FUNCTION or block
-types_errors.bas:49:5: error: not supported yet: `p.x` in a SUB or FUNCTION that does not share the `TYPE` variable `P`
+types_errors.bas:12:5: error: a `TYPE` member cannot have a type suffix: `y&`
+types_errors.bas:17:7: error: a whole `TYPE` value cannot be used here: `p`
+types_errors.bas:18:5: error: a whole `TYPE` value cannot be used here: `p`
+types_errors.bas:19:6: error: a whole `TYPE` value cannot be used here: `p`
+types_errors.bas:20:5: error: a `TYPE` variable takes only a value of its `TYPE`
+types_errors.bas:21:1: error: not supported yet: assigning a whole `TYPE` value
+types_errors.bas:22:1: error: `C` is not a member of `TYPE PT` (`p.c`)
+types_errors.bas:23:1: error: `p.x%`: the member is LONG, not INTEGER
+types_errors.bas:24:1: error: `arr.x`: `ARR` is an array; a member needs an index
+types_errors.bas:25:1: error: only a value of a `TYPE` has members
+types_errors.bas:26:8: error: `C` is not a member of `TYPE PT` (`c`)
+types_errors.bas:27:9: error: a name with a type suffix cannot have an `AS` clause
+types_errors.bas:28:5: error: not supported yet: the `TYPE` variable `p` as a `FOR` variable
+types_errors.bas:31:11: error: not supported yet: a `TYPE` parameter
+types_errors.bas:34:5: error: not supported yet: `p.x` in a SUB or FUNCTION that does not share the `TYPE` variable `P`
+types_errors.bas:37:5: error: not supported yet: `TYPE` blocks inside a SUB, FUNCTION or block
+types_errors.bas:41:1: error: not supported yet: a `TYPE` without members
+types_errors.bas:42:5: error: expected a field (`name AS type` or `AS type name, ...`) or `END TYPE`
+types_errors.bas:43:1: error: `END TYPE` without `TYPE`
+types_errors.bas:45:7: error: not supported yet: `STRING` members
+types_errors.bas:48:7: error: not supported yet: fixed-length strings
+types_errors.bas:51:6: error: not supported yet: arrays as `TYPE` members

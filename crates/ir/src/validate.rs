@@ -299,6 +299,7 @@ mod tests {
         Label {
             name: None,
             line: 1,
+            file: None,
             at,
         }
     }

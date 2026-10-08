@@ -29,9 +29,26 @@ node_wrapper!(
     SourceFile,
     /// `$CONSOLE:ONLY` and other metacommands.
     MetaStmt,
+    /// A `$IF` branch that is not taken (tokens only).
+    InactiveCode,
     /// A metacommand comment (`'$INCLUDE:'x.bi'`, `REM $DYNAMIC`).
     MetaCommentStmt,
     PrintStmt,
+    LprintStmt,
+    FileNumber,
+    UsingClause,
+    WriteStmt,
+    InputStmt,
+    LineInputStmt,
+    CloseStmt,
+    FieldStmt,
+    LsetStmt,
+    SwapStmt,
+    MemStmt,
+    ArrayCopyStmt,
+    BuiltinStmt,
+    FormWord,
+    FormArg,
     DimStmt,
     DimItem,
     AsClause,
@@ -62,6 +79,16 @@ node_wrapper!(
     ConstStmt,
     ConstItem,
     OptionStmt,
+    OnJumpStmt,
+    OnEventStmt,
+    EventSwitchStmt,
+    StopStmt,
+    RunStmt,
+    RedimStmt,
+    CommonStmt,
+    EraseStmt,
+    DefTypeStmt,
+    LetterRange,
     /// `END IF`/`ENDIF`, `END SELECT`, `WEND`, `END TYPE`, `END DECLARE`, `END DEF`.
     BlockEnd,
     IfBlock,
@@ -105,6 +132,7 @@ node_wrapper!(
     ParenExpr,
     PrefixExpr,
     BinExpr,
+    TypeArg,
 );
 
 /// The first child node that casts to `T`.
@@ -123,6 +151,20 @@ impl MetaStmt<'_> {
     /// The `Metacommand` token: `$` and the rest of the line.
     pub fn token(self) -> Option<Tok> {
         self.0.child_tokens().find(|t| t.kind == Metacommand)
+    }
+
+    /// The parser evaluated it (`$IF`, `$ELSEIF`, `$ELSE`, `$END IF`, `$LET`, `$ERROR`); nothing is left to do.
+    pub fn is_preprocessor(self, text: &[u8]) -> bool {
+        !matches!(crate::pp::directive(text), crate::pp::Directive::Other)
+    }
+
+    /// The precompiler flag (`_CONSOLE_`, ...) a `$IF`/`$ELSEIF` line names, which the parser could not evaluate
+    /// (`crate::pp::precompiler_flag`).
+    pub fn precompiler_flag(self, text: &[u8]) -> Option<&'static str> {
+        match crate::pp::directive(text) {
+            crate::pp::Directive::If(c) | crate::pp::Directive::ElseIf(c) => crate::pp::precompiler_flag(&c),
+            _ => None,
+        }
     }
 }
 
@@ -151,6 +193,16 @@ impl<'a> PrintStmt<'a> {
             Element::Token(_) => None,
         })
     }
+
+    /// `#n,` of `PRINT #n, …`.
+    pub fn file(self) -> Option<FileNumber<'a>> {
+        child(self.0, FileNumber::cast)
+    }
+
+    /// `USING format;`.
+    pub fn using(self) -> Option<UsingClause<'a>> {
+        child(self.0, UsingClause::cast)
+    }
 }
 
 impl<'a> DimStmt<'a> {
@@ -162,17 +214,75 @@ impl<'a> DimStmt<'a> {
     pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
         self.0.child_nodes().filter_map(DimItem::cast)
     }
+
+    /// The type of `DIM AS type name, ...`, before the names (then no item has its own).
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
+}
+
+impl<'a> RedimStmt<'a> {
+    pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
+        self.0.child_nodes().filter_map(DimItem::cast)
+    }
+}
+
+impl<'a> CommonStmt<'a> {
+    pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
+        self.0.child_nodes().filter_map(DimItem::cast)
+    }
+}
+
+impl<'a> EraseStmt<'a> {
+    pub fn names(self) -> impl Iterator<Item = NameRef<'a>> + 'a {
+        self.0.child_nodes().filter_map(NameRef::cast)
+    }
+}
+
+impl<'a> DefTypeStmt<'a> {
+    /// `DEFINT`, `DEFLNG`, `DEFSNG`, `DEFDBL`, `DEFSTR` or `_DEFINE`.
+    pub fn keyword(self) -> Option<Tok> {
+        self.0.child_tokens().next()
+    }
+
+    pub fn ranges(self) -> impl Iterator<Item = LetterRange<'a>> + 'a {
+        self.0.child_nodes().filter_map(LetterRange::cast)
+    }
+
+    /// The type of `_DEFINE … AS type`.
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
+}
+
+impl LetterRange<'_> {
+    /// The first and the last letter (the same for a single letter).
+    pub fn letters(self) -> Option<(Tok, Tok)> {
+        let mut words = self.0.child_tokens().filter(|t| t.kind == Ident);
+        let first = words.next()?;
+        Some((first, words.next().unwrap_or(first)))
+    }
 }
 
 impl<'a> SharedStmt<'a> {
     pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
         self.0.child_nodes().filter_map(DimItem::cast)
     }
+
+    /// The type of `SHARED AS type name, ...`, before the names.
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
 }
 
 impl<'a> StaticStmt<'a> {
     pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
         self.0.child_nodes().filter_map(DimItem::cast)
+    }
+
+    /// The type of `STATIC AS type name, ...`, before the names.
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
     }
 }
 
@@ -220,6 +330,12 @@ impl<'a> ProcHeader<'a> {
         tokens.next().filter(|t| t.kind == Ident)?;
         tokens.next()
     }
+
+    /// The `STATIC` word after the header (`SUB s (x) STATIC`: every local is static).
+    pub fn static_word(self) -> Option<Tok> {
+        let last = self.0.child_tokens().filter(|t| t.kind != Newline).last()?;
+        (self.0.child_tokens().count() > 2 && last.kind == Ident && self.alias() != Some(last)).then_some(last)
+    }
 }
 
 impl<'a> ParamList<'a> {
@@ -243,6 +359,11 @@ impl<'a> Param<'a> {
 
     pub fn as_clause(self) -> Option<AsClause<'a>> {
         child(self.0, AsClause::cast)
+    }
+
+    /// The `(` of an array parameter (`a()`, `a(,)`).
+    pub fn array_parens(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == LParen)
     }
 }
 
@@ -303,12 +424,17 @@ impl LabelDef<'_> {
 }
 
 impl OnErrorStmt<'_> {
-    /// The label after `GOTO`, or the `Number` token (`0`).
+    /// The label after `GOTO` (and after `_NEWHANDLER`), or the `Number` token (`0`).
     pub fn target(self) -> Option<Tok> {
-        self.0
-            .child_tokens()
-            .filter(|t| matches!(t.kind, Ident | Number))
-            .nth(3)
+        let mut words = self.0.child_tokens().filter(|t| matches!(t.kind, Ident | Number));
+        words.nth(3).map(|third| words.next().unwrap_or(third))
+    }
+
+    /// `_NEWHANDLER` or `_LASTHANDLER` before the label (QB64's handler chain).
+    pub fn handler_word(self) -> Option<Tok> {
+        let mut words = self.0.child_tokens().filter(|t| matches!(t.kind, Ident | Number));
+        let word = words.nth(3)?;
+        words.next().map(|_| word)
     }
 }
 
@@ -1053,6 +1179,12 @@ impl<'a> ArgList<'a> {
         }
         out
     }
+
+    /// The first type name given as an argument (`_UNSIGNED _INTEGER64` in `VAL(s, _UNSIGNED _INTEGER64)`); its
+    /// position reads as a left-out argument in [`Self::args`].
+    pub fn type_arg(self) -> Option<Node<'a>> {
+        self.0.child_nodes().find(|n| n.kind() == SyntaxKind::TypeArg)
+    }
 }
 
 impl<'a> FieldExpr<'a> {
@@ -1279,10 +1411,15 @@ mod tests {
         assert!(c.arg_list().is_none());
         assert!(c.unparsed_args().is_none());
 
-        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"LOCATE , 5\n");
+        // A name without a template (a SUB, or a built-in statement without one): arguments it cannot read are
+        // kept without a diagnostic (`LOCATE , 5` has a template since task 7.5 and parses as a `BuiltinStmt`).
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"s , 5\n");
         assert!(p.diagnostics.list().is_empty());
         let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
         assert!(c.unparsed_args().is_some());
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"LOCATE , 5\n");
+        assert!(p.diagnostics.list().is_empty());
+        assert!(BuiltinStmt::cast(first_stmt(&p.green)).is_some());
     }
 
     #[test]

@@ -51,41 +51,45 @@ SourceFile 0..120
   ConstStmt 53..72
     Ident CONST
     Whitespace  
-    ConstItem 59..65
+    ConstItem 59..72
       Ident r
       Whitespace  
       Eq =
       Whitespace  
-      Literal 63..65
-        Number 20
-    Whitespace  
-    Error 66..72
-      Ident ROOT
-      Whitespace  
-      Number 3
+      BinExpr 63..72
+        Literal 63..65
+          Number 20
+        Whitespace  
+        Ident ROOT
+        Whitespace  
+        Literal 71..72
+          Number 3
   Newline \x0A
   ConstStmt 73..97
     Ident CONST
     Whitespace  
-    ConstItem 79..85
+    ConstItem 79..97
       Ident q
       Whitespace  
       Eq =
       Whitespace  
-      ParenExpr 83..85
-        LParen (
-        Literal 84..85
-          Number 8
-    Whitespace  
-    Error 86..97
-      Ident ROOT
-      Whitespace  
-      Number 3
-      RParen )
-      Whitespace  
-      Plus +
-      Whitespace  
-      Number 1
+      BinExpr 83..97
+        ParenExpr 83..93
+          LParen (
+          BinExpr 84..92
+            Literal 84..85
+              Number 8
+            Whitespace  
+            Ident ROOT
+            Whitespace  
+            Literal 91..92
+              Number 3
+          RParen )
+        Whitespace  
+        Plus +
+        Whitespace  
+        Literal 96..97
+          Number 1
   Newline \x0A
   AssignStmt 98..111
     NameRef 98..99
@@ -112,6 +116,4 @@ t.bas:2:8: error: expected `=`
 t.bas:3:13: error: expected a constant name
 t.bas:4:7: error: expected a constant name
 t.bas:5:13: error: expected the end of the statement
-t.bas:6:14: error: not supported yet: operator `ROOT` (expected the end of the statement)
-t.bas:7:14: error: not supported yet: operator `ROOT` (expected `)`)
 t.bas:8:8: error: expected the end of the statement

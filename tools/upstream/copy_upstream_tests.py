@@ -75,6 +75,14 @@ def main():
         counts[ext] = counts.get(ext, 0) + 1
         total_bytes += f.stat().st_size
 
+    # The compiler root for the upstream tests (design D9 of m2-parser-breadth, task 8.1): two tests include
+    # 'tests/compile_tests/extra/…' relative to the compiler's folder, so `root/` holds that path, a mirror of
+    # `compile_tests/extra`. The runners pass `--include-root tests/upstream/root`.
+    root = DEST / "root"
+    if root.exists():
+        shutil.rmtree(root)
+    shutil.copytree(out / "extra", root / SUITE / "extra")
+
     shutil.copyfile(clone / "licenses" / "license_qb64.txt", DEST / "LICENSE-QB64pe.txt")
 
     table = "\n".join(f"| `{ext}` | {counts.get(ext, 0)} |" for ext in EXTENSIONS)
@@ -86,6 +94,10 @@ Commit: `{head}` ({date}) of QB64pe (`github.com/QB64-Phoenix-Edition/QB64pe`), 
 `compile_tests/` holds the text files of the clone's `tests/compile_tests`, byte for byte, under the same
 relative paths. Binary assets (images, fonts, sound, libraries) and `.gitignore` files are not copied; the
 upstream tests that need them are run from the clone (`tools/legacy_tests/run_legacy_tests.py --suite compile`).
+
+`root/tests/compile_tests/extra/` mirrors `compile_tests/extra/`: it is the compiler root for these tests
+(`--include-root tests/upstream/root`), where `include_paths/include_fixed_compile_location` and
+`include_multiple` find `'tests/compile_tests/extra/…'`, as the old compiler finds it under its own folder.
 
 Licence: MIT, QB64pe's `licenses/license_qb64.txt`, copied as `LICENSE-QB64pe.txt` (decision of 2026-10-04 in
 `DECISIONS.md`; `study/22` §4).

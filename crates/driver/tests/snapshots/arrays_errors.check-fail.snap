@@ -16,7 +16,7 @@ arrays_errors.bas:17:1: error: not supported yet: `z(...)` (an array used withou
 arrays_errors.bas:19:1: error: not supported yet: `x!(...)`: an array of another type, used without `DIM` (an implicit array)
 arrays_errors.bas:20:14: error: not supported yet: `LBOUND` of `scalar`, which is no array (an implicit array)
 arrays_errors.bas:21:1: error: not supported yet: the whole array `x()`
-arrays_errors.bas:22:1: error: not supported yet: statement `REDIM`
+arrays_errors.bas:22:1: error: not supported yet: `REDIM`
 arrays_errors.bas:23:8: error: not supported yet: `OPTION BASE`
 arrays_errors.bas:25:1: error: not supported yet: the plain scalar `c` beside an array typed by `DIM … AS`
 arrays_errors.bas:31:10: error: not supported yet: arrays in a SUB or FUNCTION

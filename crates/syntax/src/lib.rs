@@ -6,6 +6,7 @@ mod kind;
 pub mod lexer;
 pub mod meta;
 mod parser;
+pub mod pp;
 pub mod program;
 pub mod tree;
 

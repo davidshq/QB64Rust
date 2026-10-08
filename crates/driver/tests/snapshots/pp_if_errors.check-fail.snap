@@ -1,0 +1,24 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+pp_if_errors.bas:8:1: error: `$END IF` while the `IF` on line 7 is still open; expected `END IF` first
+pp_if_errors.bas:13:1: error: `END IF` while the `$IF` on line 12 is still open; expected `$END IF` first
+pp_if_errors.bas:18:1: error: `NEXT` while the `$IF` on line 17 is still open; expected `$END IF` first
+pp_if_errors.bas:21:1: error: cannot evaluate this `$IF` condition (one word or comparison expected per operand)
+pp_if_errors.bas:23:1: error: duplicate operator `=` in `$IF`
+pp_if_errors.bas:25:1: error: `$IF` without `THEN`
+pp_if_errors.bas:27:1: error: expected `$LET name = value`
+pp_if_errors.bas:28:1: error: invalid `$LET` name `1A`
+pp_if_errors.bas:32:1: error: this `$IF` already has an `$ELSE`
+pp_if_errors.bas:36:1: error: `$ELSEIF` cannot follow `$ELSE`
+pp_if_errors.bas:38:1: error: `$ELSE` without `$IF`
+pp_if_errors.bas:39:1: error: `$END IF` without `$IF`
+pp_if_errors.bas:41:8: error: a preprocessor metacommand must stand at the start of a line
+pp_if_errors.bas:46:1: error: `$ERROR`: STOP HERE
+pp_if_errors.bas:48:1: error: not supported yet: the precompiler flag `_CONSOLE_` in `$IF`
+pp_if_errors.bas:49:1: error: not supported yet: the precompiler flag `_DEBUG_` in `$IF`
+pp_if_errors.bas:55:1: error: `$IF` without `THEN`
+pp_if_errors.bas:57:1: error: duplicate operator `=` in `$IF`
+pp_if_errors.bas:61:1: error: this `$IF` already has an `$ELSE`
+pp_if_errors.bas:67:1: error: `$IF` without `$END IF`

@@ -3,7 +3,7 @@
 use super::ops::{Op, TypeError, Typed, Typing, fold_binary, fold_unary, op_typing, wrap};
 use super::{Checker, Failed, R};
 use crate::literal::{self, LitError, NumLit};
-use crate::{BinOp, ConvKind, Expr, ExprKind, Place, Ty, UnOp};
+use crate::{BinOp, ConvKind, Expr, ExprKind, Place, ProcId, ProcKind, Ty, UnOp};
 use qb64rust_base::{Span, show_bytes};
 use qb64rust_builtins::{BuiltinId, find_any, find_function};
 use qb64rust_syntax::SyntaxKind::{self, Minus, Number};
@@ -35,7 +35,7 @@ impl Checker<'_> {
             ast::Expr::NameRef(name) => {
                 let t = self.need(name.name(), span)?;
                 let (name, suffix) = self.split_name(t)?;
-                if let Some(&p) = self.procs_by_name.get(&name) {
+                if let Some(p) = self.proc_in_expr(&name, suffix) {
                     return self.call_function(p, t, suffix, None, span);
                 }
                 if let Some(c) = self.visible_const(&name) {
@@ -97,6 +97,9 @@ impl Checker<'_> {
         let Some(list) = list else {
             return Ok(Vec::new());
         };
+        if let Some(t) = list.type_arg() {
+            return Err(self.unsupported(t.span(), "a type name as an argument"));
+        }
         let mut out = Vec::new();
         for a in list.args() {
             match a {
@@ -304,11 +307,19 @@ impl Checker<'_> {
         self.convert_exact(e, typing.operands)
     }
 
+    /// The procedure a name in an expression calls. A SUB named like a built-in function (`SUB loc`, allowed,
+    /// `verification\v19_proc_names.txt`) leaves the name to the built-in there.
+    fn proc_in_expr(&self, name: &str, suffix: Option<Ty>) -> Option<ProcId> {
+        let &p = self.procs_by_name.get(name)?;
+        let sub = matches!(self.prog.proc(p).kind, ProcKind::Sub);
+        (!(sub && is_builtin_function(name, suffix))).then_some(p)
+    }
+
     pub(super) fn call(&mut self, node: ast::CallExpr) -> R<Expr> {
         let span = node.node().span();
         let name_tok = self.need(node.name(), span)?;
         let (proc_name, suffix) = self.split_name(name_tok)?;
-        if let Some(&p) = self.procs_by_name.get(&proc_name) {
+        if let Some(p) = self.proc_in_expr(&proc_name, suffix) {
             let args = self.need(node.arg_list(), span)?;
             return self.call_function(p, name_tok, suffix, Some(args), span);
         }

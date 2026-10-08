@@ -105,6 +105,33 @@ fn program_with_an_error() {
     assert!(!d.join("prog.exe").exists(), "no executable is left at the output path");
 }
 
+/// Spec scenarios "Default root" and `--include-root` (design D9): a file found only under the root given is
+/// included; without `--include-root` the root is the executable's folder, where it is not, and the include is
+/// "not found"; the working directory plays no part (the file is also there, and not taken).
+#[test]
+fn include_root() {
+    let d = scratch("include-root");
+    let main = d.join("main");
+    let root = d.join("root");
+    std::fs::create_dir_all(root.join("extra")).unwrap();
+    std::fs::create_dir_all(&main).unwrap();
+    std::fs::write(root.join("extra/x.bi"), "x = 1\n").unwrap();
+    std::fs::create_dir_all(d.join("extra")).unwrap();
+    std::fs::write(d.join("extra/x.bi"), "x = 2\n").unwrap();
+    std::fs::write(main.join("p.bas"), "$CONSOLE:ONLY\n'$INCLUDE:'extra/x.bi'\nPRINT x\n").unwrap();
+    let p = main.join("p.bas");
+    let o = qb64rust(&d, &["--dump", "typed", p.to_str().unwrap(), "--include-root", "root"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(stdout(&o).contains("Int 1"), "{}", stdout(&o));
+    let o = qb64rust(&d, &["--dump", "typed", p.to_str().unwrap()]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(
+        stdout(&o).contains("included file `extra/x.bi` not found"),
+        "{}",
+        stdout(&o)
+    );
+}
+
 #[test]
 fn unknown_statement() {
     let d = scratch("unknown");

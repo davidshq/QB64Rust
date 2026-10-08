@@ -1,0 +1,5 @@
+
+Variable 'undeclared' (SINGLE) not defined
+Caused by (or after):UNDECLARED = 2
+LINE 3:undeclared = 2
+exit=1

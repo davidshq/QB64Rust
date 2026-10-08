@@ -57,8 +57,12 @@ impl Checker<'_> {
                 continue;
             }
             self.stmt_error = false;
+            let marks = self.diags.unsupported_count();
             if self.declare_type(b).is_ok() {
                 self.type_defs.insert(s.key());
+            } else if self.diags.unsupported_count() > marks {
+                // Pass 2 starts the follow-on rule when it reaches this block (design D10).
+                self.types_marked.insert(s.key());
             }
             self.flush_names();
         }
@@ -161,6 +165,9 @@ impl Checker<'_> {
     pub(super) fn type_block(&mut self, b: ast::TypeBlock, skips: &Skips) {
         let node = b.node();
         if self.types_seen.contains(&node.key()) {
+            if self.types_marked.contains(&node.key()) {
+                self.follow_on = true;
+            }
             return;
         }
         let Some(header) = b.header().map(|h| h.node()) else {
@@ -170,6 +177,7 @@ impl Checker<'_> {
             self.stmt_error = false;
             let _ = self.unsupported(header.span(), "`TYPE` blocks inside a SUB, FUNCTION or block");
             self.flush_names();
+            self.follow_on = true;
         }
     }
 
@@ -455,11 +463,11 @@ impl Checker<'_> {
         let base = match self.need(f.base(), span)? {
             ast::Expr::Call(c) => self.call_place(c)?,
             ast::Expr::Field(inner) => self.field_place(inner)?,
-            other @ (ast::Expr::Literal(_)
-            | ast::Expr::NameRef(_)
-            | ast::Expr::Paren(_)
-            | ast::Expr::Prefix(_)
-            | ast::Expr::Bin(_)) => {
+            ast::Expr::NameRef(n) => {
+                // `a . s`: the old compiler drops the blanks, so this is the name `a.s` (`v19_dot_blanks_*`).
+                return Err(self.unsupported(n.node().span(), "blanks around `.` after a name"));
+            }
+            other @ (ast::Expr::Literal(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_)) => {
                 return Err(self.unsupported(other.node().span(), "a member of this expression"));
             }
         };

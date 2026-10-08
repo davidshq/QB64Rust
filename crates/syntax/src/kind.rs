@@ -61,17 +61,53 @@ pub enum SyntaxKind {
     SourceFile,
     /// Tokens of a statement the parser could not handle, kept for the round trip.
     Error,
+    /// A metacommand line: `$CONSOLE:ONLY`, and the preprocessor's `$IF`, `$ELSEIF`, `$ELSE`, `$END IF`, `$LET`
+    /// and `$ERROR` (evaluated by the parser, `crate::pp`).
     MetaStmt,
+    /// The lines of a `$IF` branch that is not taken, lexed but not parsed (nested `$IF`s inside are counted to
+    /// find its end); a sibling of the statements around it.
+    InactiveCode,
     /// A `MetaComment` token as a statement.
     MetaCommentStmt,
     PrintStmt,
+    /// `LPRINT [USING format;] items` (items as in `PrintStmt`).
+    LprintStmt,
+    /// `#n,` of an I/O statement: the `#`, the number and the `,`.
+    FileNumber,
+    /// `USING format;` of `PRINT`/`LPRINT`.
+    UsingClause,
+    /// `WRITE [#n,] item, ...`
+    WriteStmt,
+    /// `INPUT [;] ["prompt" {;|,}] target, ...` or `INPUT #n, target, ...`
+    InputStmt,
+    /// `LINE INPUT [;] ["prompt" {;|,}] target` or `LINE INPUT #n, target`
+    LineInputStmt,
+    /// `CLOSE [[#]n, ...]`
+    CloseStmt,
+    /// `FIELD [#]n, width AS target, ...`
+    FieldStmt,
+    /// `LSET target = value` or `RSET target = value`
+    LsetStmt,
+    /// `SWAP a, b`
+    SwapStmt,
+    /// `_MEMPUT mem, offset, value [AS type]` or `_MEMFILL mem, offset, bytes, value [AS type]`
+    MemStmt,
+    /// `_ARRAYCOPY source TO target` (each side a `DimItem`: an array, a slice or a member array)
+    ArrayCopyStmt,
+    /// A built-in statement read by its template (design D6): the name, then `FormWord` nodes, punctuation tokens
+    /// and `FormArg` nodes in the order of the template (`LINE (0, 0)-(9, 9), , BF`).
+    BuiltinStmt,
+    /// A word of a template (`STEP`, `BF`, `FOR INPUT`'s words one by one, `AS`).
+    FormWord,
+    /// An argument of a template (`?`): one expression.
+    FormArg,
     DimStmt,
     DimItem,
     /// `AS <type words>`; in a `TypeField` also `* <size>` (`AS STRING * 8`).
     AsClause,
     AssignStmt,
     EndStmt,
-    /// `SYSTEM` (without an exit code).
+    /// `SYSTEM [code]` (`EndStmt` likewise: `END [code]`).
     SystemStmt,
     /// `SUB`/`FUNCTION` block: a `ProcHeader`, the body statements and, unless missing, a `ProcEnd`.
     ProcDef,
@@ -86,6 +122,16 @@ pub enum SyntaxKind {
     /// `CALL name[(args)]` or `name [args]`. Without `CALL`, arguments the parser cannot read are kept in an
     /// `Error` node without a diagnostic; `sema` reports them, because only it knows built-in statement names.
     CallStmt,
+    /// `ON expr GOTO|GOSUB target, ...`
+    OnJumpStmt,
+    /// `ON TIMER|KEY|STRIG|PLAY|PEN|COM|UEVENT[(args)] GOSUB label` or `… name` (a SUB).
+    OnEventStmt,
+    /// `TIMER|KEY|STRIG|…[(args)] ON|OFF|STOP|FREE`
+    EventSwitchStmt,
+    /// `STOP [code]`
+    StopStmt,
+    /// `RUN [line number|label|file name]`
+    RunStmt,
     /// `EXIT SUB|FUNCTION|FOR|DO|WHILE|SELECT|CASE|DEF`
     ExitStmt,
     /// `DECLARE SUB|FUNCTION <header>`
@@ -122,6 +168,16 @@ pub enum SyntaxKind {
     ConstItem,
     /// `OPTION BASE n`, `OPTION _EXPLICIT`, `OPTION _EXPLICITARRAY` (and the spellings without `_`).
     OptionStmt,
+    /// `REDIM [_PRESERVE] [SHARED] [AS type] item, ...`; items are `DimItem`s.
+    RedimStmt,
+    /// `COMMON [SHARED] [/name/] [AS type] item, ...`; items are `DimItem`s.
+    CommonStmt,
+    /// `ERASE name[()], ...`; each name a `NameRef`.
+    EraseStmt,
+    /// `DEFINT`/`DEFLNG`/`DEFSNG`/`DEFDBL`/`DEFSTR` `range, ...`, or `_DEFINE range, ... AS type`.
+    DefTypeStmt,
+    /// `a` or `a-z` in a `DefTypeStmt`.
+    LetterRange,
 
     // ---- blocks (design D4): a header node, the body statements and, unless missing, the closer ----
     /// `END IF`/`ENDIF`, `END SELECT`, `WEND`, `END TYPE`, `END DECLARE` or `END DEF` closing a block.
@@ -197,6 +253,8 @@ pub enum SyntaxKind {
     CallExpr,
     /// `(` arguments `)`; an argument may be left out (`f(a, , b)`).
     ArgList,
+    /// A type name as an argument of a built-in: `[_UNSIGNED] type` (`VAL(s, _UNSIGNED _INTEGER64)`).
+    TypeArg,
     /// Member access after an index, call or other member: `<expr> . name [(args)]` (`a(1).b`, `a(1).b(2).c`).
     FieldExpr,
     ParenExpr,

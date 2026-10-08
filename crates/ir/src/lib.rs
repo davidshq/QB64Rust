@@ -53,7 +53,7 @@ pub use dump::dump;
 pub use lower::lower;
 pub use validate::validate;
 
-use qb64rust_base::Span;
+use qb64rust_base::{FileId, Span};
 
 /// Types, operators and conversion kinds are `sema`'s (`study\20` §3.4): integers by width, floats by width (`F80`
 /// is extended precision), strings, user types. They name no C type, so the IR stays ABI-neutral.
@@ -77,6 +77,8 @@ pub struct Label {
     /// The BASIC name in upper case; `None` for a label the lowering made.
     pub name: Option<String>,
     pub line: u32,
+    /// The file of a BASIC label (`None` for one the lowering made).
+    pub file: Option<FileId>,
     pub at: usize,
 }
 

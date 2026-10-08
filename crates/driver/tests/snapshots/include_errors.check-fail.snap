@@ -1,0 +1,11 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+include_errors.bas:7:1: error: included file `inc/missing.bi` not found
+include_errors.bas:10:1: error: not supported yet: a block closed in another file (`FOR` without `NEXT` in this file)
+include_errors.bas:19:1: error: not supported yet: a `$IF` closed in another file
+inc/sub/a.bi:3:1: error: included file `b.bi` not found
+inc/self_loop.bi:2:1: error: `$INCLUDE` nested more than 100 files deep (in `inc/self_loop.bi`)
+inc/next.bi:2:1: error: not supported yet: a block closed in another file (`NEXT` without its block in this file)
+inc/subs.bm:2:1: error: a SUB or FUNCTION from an included file cannot stand inside a SUB, FUNCTION or block

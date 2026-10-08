@@ -1,0 +1,1948 @@
+abs sub proc prints: s
+abs call proc prints: s
+abs func rejected Name already in use (abs)
+abs func& rejected Name already in use (abs)
+access sub rejected Name already in use (access)
+access call rejected Name already in use (access)
+access func rejected Name already in use (access)
+access func& rejected Name already in use (access)
+and sub rejected Name already in use (and)
+and call rejected Name already in use (and)
+and func rejected Name already in use (and)
+and func& rejected Name already in use (and)
+any sub rejected Name already in use (any)
+any call rejected Name already in use (any)
+any func rejected Name already in use (any)
+any func& rejected Name already in use (any)
+append sub rejected Name already in use (append)
+append call rejected Name already in use (append)
+append func rejected Name already in use (append)
+append func& rejected Name already in use (append)
+as sub rejected Name already in use (as)
+as call rejected Name already in use (as)
+as func rejected Name already in use (as)
+as func& rejected Name already in use (as)
+asc sub rejected Name already in use (asc)
+asc call rejected Name already in use (asc)
+asc func rejected Name already in use (asc)
+asc func& rejected Name already in use (asc)
+atn sub proc prints: s
+atn call proc prints: s
+atn func rejected Name already in use (atn)
+atn func& rejected Name already in use (atn)
+base sub rejected Name already in use (base)
+base call rejected Name already in use (base)
+base func rejected Name already in use (base)
+base func& rejected Name already in use (base)
+beep sub rejected Name already in use (beep)
+beep call rejected Name already in use (beep)
+beep func proc prints: 5
+beep func& proc prints: 5
+binary sub rejected Name already in use (binary)
+binary call rejected Name already in use (binary)
+binary func rejected Name already in use (binary)
+binary func& rejected Name already in use (binary)
+bload sub rejected Name already in use (bload)
+bload call rejected Name already in use (bload)
+bload func proc prints: 5
+bload func& proc prints: 5
+bsave sub rejected Name already in use (bsave)
+bsave call rejected Name already in use (bsave)
+bsave func proc prints: 5
+bsave func& proc prints: 5
+call sub rejected Name already in use (call)
+call call rejected Name already in use (call)
+call func rejected Name already in use (call)
+call func& rejected Name already in use (call)
+case sub rejected Name already in use (case)
+case call rejected Name already in use (case)
+case func rejected Name already in use (case)
+case func& rejected Name already in use (case)
+cdbl sub proc prints: s
+cdbl call proc prints: s
+cdbl func rejected Name already in use (cdbl)
+cdbl func& rejected Name already in use (cdbl)
+chain sub rejected Name already in use (chain)
+chain call rejected Name already in use (chain)
+chain func proc prints: 5
+chain func& proc prints: 5
+chdir sub rejected Name already in use (chdir)
+chdir call rejected Name already in use (chdir)
+chdir func proc prints: 5
+chdir func& proc prints: 5
+chr sub proc prints: s
+chr call proc prints: s
+chr func proc prints: 5
+chr func& proc prints: 5
+cint sub proc prints: s
+cint call proc prints: s
+cint func rejected Name already in use (cint)
+cint func& rejected Name already in use (cint)
+circle sub rejected Name already in use (circle)
+circle call rejected Name already in use (circle)
+circle func proc prints: 5
+circle func& proc prints: 5
+clear sub rejected Name already in use (clear)
+clear call rejected Name already in use (clear)
+clear func proc prints: 5
+clear func& proc prints: 5
+clng sub proc prints: s
+clng call proc prints: s
+clng func rejected Name already in use (clng)
+clng func& rejected Name already in use (clng)
+close sub rejected Name already in use (close)
+close call rejected Name already in use (close)
+close func proc prints: 5
+close func& proc prints: 5
+cls sub rejected Name already in use (cls)
+cls call rejected Name already in use (cls)
+cls func proc prints: 5
+cls func& proc prints: 5
+color sub rejected Name already in use (color)
+color call rejected Name already in use (color)
+color func proc prints: 5
+color func& proc prints: 5
+com sub rejected Name already in use (com)
+com call rejected Name already in use (com)
+com func rejected Name already in use (com)
+com func& rejected Name already in use (com)
+command sub proc prints: s
+command call proc prints: s
+command func proc prints: 5
+command func& proc prints: 5
+common sub rejected Name already in use (common)
+common call rejected Name already in use (common)
+common func rejected Name already in use (common)
+common func& rejected Name already in use (common)
+const sub rejected Expected CONST name = value/expression
+const call rejected Name already in use (const)
+const func rejected Name already in use (const)
+const func& rejected Name already in use (const)
+cos sub proc prints: s
+cos call proc prints: s
+cos func rejected Name already in use (cos)
+cos func& rejected Name already in use (cos)
+csng sub proc prints: s
+csng call proc prints: s
+csng func rejected Name already in use (csng)
+csng func& rejected Name already in use (csng)
+csrlin sub proc prints: s
+csrlin call proc prints: s
+csrlin func rejected Name already in use (csrlin)
+csrlin func& rejected Name already in use (csrlin)
+cvd sub proc prints: s
+cvd call proc prints: s
+cvd func rejected Name already in use (cvd)
+cvd func& rejected Name already in use (cvd)
+cvdmbf sub proc prints: s
+cvdmbf call proc prints: s
+cvdmbf func rejected Name already in use (cvdmbf)
+cvdmbf func& rejected Name already in use (cvdmbf)
+cvi sub proc prints: s
+cvi call proc prints: s
+cvi func rejected Name already in use (cvi)
+cvi func& rejected Name already in use (cvi)
+cvl sub proc prints: s
+cvl call proc prints: s
+cvl func rejected Name already in use (cvl)
+cvl func& rejected Name already in use (cvl)
+cvs sub proc prints: s
+cvs call proc prints: s
+cvs func rejected Name already in use (cvs)
+cvs func& rejected Name already in use (cvs)
+cvsmbf sub proc prints: s
+cvsmbf call proc prints: s
+cvsmbf func rejected Name already in use (cvsmbf)
+cvsmbf func& rejected Name already in use (cvsmbf)
+data sub rejected Name already in use (DATA)
+data call rejected Name already in use (DATA)
+data func rejected Name already in use (DATA)
+data func& rejected Name already in use (DATA)
+date sub proc prints: s
+date call proc prints: s
+date func proc prints: 5
+date func& proc prints: 5
+declare sub rejected Name already in use (declare)
+declare call rejected Name already in use (declare)
+declare func rejected Name already in use (declare)
+declare func& rejected Name already in use (declare)
+def sub rejected Name already in use (def)
+def call rejected Name already in use (def)
+def func rejected Name already in use (def)
+def func& rejected Name already in use (def)
+defdbl sub rejected Name already in use (defdbl)
+defdbl call rejected Name already in use (defdbl)
+defdbl func rejected Name already in use (defdbl)
+defdbl func& rejected Name already in use (defdbl)
+defint sub rejected Name already in use (defint)
+defint call rejected Name already in use (defint)
+defint func rejected Name already in use (defint)
+defint func& rejected Name already in use (defint)
+deflng sub rejected Name already in use (deflng)
+deflng call rejected Name already in use (deflng)
+deflng func rejected Name already in use (deflng)
+deflng func& rejected Name already in use (deflng)
+defsng sub rejected Name already in use (defsng)
+defsng call rejected Name already in use (defsng)
+defsng func rejected Name already in use (defsng)
+defsng func& rejected Name already in use (defsng)
+defstr sub rejected Name already in use (defstr)
+defstr call rejected Name already in use (defstr)
+defstr func rejected Name already in use (defstr)
+defstr func& rejected Name already in use (defstr)
+dim sub rejected Name already in use (dim)
+dim call rejected Name already in use (dim)
+dim func rejected Name already in use (dim)
+dim func& rejected Name already in use (dim)
+do sub rejected Name already in use (do)
+do call rejected Name already in use (do)
+do func rejected Name already in use (do)
+do func& rejected Name already in use (do)
+double sub rejected Name already in use (double)
+double call rejected Name already in use (double)
+double func rejected Name already in use (double)
+double func& rejected Name already in use (double)
+draw sub rejected Name already in use (draw)
+draw call rejected Name already in use (draw)
+draw func proc prints: 5
+draw func& proc prints: 5
+else sub rejected Expected name after SUB/FUNCTION
+else call rejected Expected name after SUB/FUNCTION
+else func rejected Expected name after SUB/FUNCTION
+else func& rejected Name already in use (else)
+elseif sub rejected Name already in use (elseif)
+elseif call rejected Name already in use (elseif)
+elseif func rejected Name already in use (elseif)
+elseif func& rejected Name already in use (elseif)
+end sub rejected Name already in use (end)
+end call rejected Name already in use (end)
+end func rejected Expected variable/value before '='
+end func& proc prints: 5
+endif sub rejected Name already in use (endif)
+endif call rejected Name already in use (endif)
+endif func rejected Name already in use (endif)
+endif func& rejected Name already in use (endif)
+environ sub rejected Name already in use (environ)
+environ call rejected Name already in use (environ)
+environ func proc prints: 5
+environ func& proc prints: 5
+eof sub proc prints: s
+eof call proc prints: s
+eof func rejected Name already in use (eof)
+eof func& rejected Name already in use (eof)
+eqv sub rejected Name already in use (eqv)
+eqv call rejected Name already in use (eqv)
+eqv func rejected Name already in use (eqv)
+eqv func& rejected Name already in use (eqv)
+erl sub proc prints: s
+erl call proc prints: s
+erl func rejected Name already in use (erl)
+erl func& rejected Name already in use (erl)
+err sub proc prints: s
+err call proc prints: s
+err func rejected Name already in use (err)
+err func& rejected Name already in use (err)
+error sub rejected Name already in use (error)
+error call rejected Name already in use (error)
+error func rejected Name already in use (error)
+error func& rejected Name already in use (error)
+exit sub rejected Name already in use (exit)
+exit call rejected Name already in use (exit)
+exit func rejected Name already in use (exit)
+exit func& rejected Name already in use (exit)
+exp sub proc prints: s
+exp call proc prints: s
+exp func rejected Name already in use (exp)
+exp func& rejected Name already in use (exp)
+field sub rejected Name already in use (field)
+field call rejected Name already in use (field)
+field func rejected Name already in use (field)
+field func& rejected Name already in use (field)
+fileattr sub proc prints: s
+fileattr call proc prints: s
+fileattr func rejected Name already in use (fileattr)
+fileattr func& rejected Name already in use (fileattr)
+files sub rejected Name already in use (files)
+files call rejected Name already in use (files)
+files func proc prints: 5
+files func& proc prints: 5
+fix sub proc prints: s
+fix call proc prints: s
+fix func rejected Name already in use (fix)
+fix func& rejected Name already in use (fix)
+for sub rejected Name already in use (for)
+for call rejected Name already in use (for)
+for func rejected Name already in use (for)
+for func& rejected Name already in use (for)
+fre sub proc prints: s
+fre call proc prints: s
+fre func rejected Name already in use (fre)
+fre func& rejected Name already in use (fre)
+freefile sub proc prints: s
+freefile call proc prints: s
+freefile func rejected Name already in use (freefile)
+freefile func& rejected Name already in use (freefile)
+function sub rejected Expected name after SUB/FUNCTION
+function call rejected Name already in use (function)
+function func rejected Name already in use (function)
+function func& rejected Name already in use (function)
+get sub rejected Name already in use (get)
+get call rejected Name already in use (get)
+get func proc prints: 5
+get func& proc prints: 5
+gosub sub rejected Name already in use (gosub)
+gosub call rejected Name already in use (gosub)
+gosub func rejected Name already in use (gosub)
+gosub func& rejected Name already in use (gosub)
+goto sub rejected Name already in use (goto)
+goto call rejected Name already in use (goto)
+goto func rejected Name already in use (goto)
+goto func& rejected Name already in use (goto)
+hex sub proc prints: s
+hex call proc prints: s
+hex func proc prints: 5
+hex func& proc prints: 5
+if sub rejected Name already in use (if)
+if call rejected Name already in use (if)
+if func rejected Name already in use (if)
+if func& rejected Name already in use (if)
+imp sub rejected Name already in use (imp)
+imp call rejected Name already in use (imp)
+imp func rejected Name already in use (imp)
+imp func& rejected Name already in use (imp)
+inkey sub proc prints: s
+inkey call proc prints: s
+inkey func proc prints: 5
+inkey func& proc prints: 5
+inp sub proc prints: s
+inp call proc prints: s
+inp func rejected Name already in use (inp)
+inp func& rejected Name already in use (inp)
+input sub rejected Name already in use (input)
+input call rejected Name already in use (input)
+input func rejected Name already in use (input)
+input func& rejected Name already in use (input)
+instr sub proc prints: s
+instr call proc prints: s
+instr func rejected Name already in use (instr)
+instr func& rejected Name already in use (instr)
+int sub proc prints: s
+int call proc prints: s
+int func rejected Name already in use (int)
+int func& rejected Name already in use (int)
+integer sub rejected Name already in use (integer)
+integer call rejected Name already in use (integer)
+integer func rejected Name already in use (integer)
+integer func& rejected Name already in use (integer)
+ioctl sub rejected Name already in use (ioctl)
+ioctl call rejected Name already in use (ioctl)
+ioctl func proc prints: 5
+ioctl func& proc prints: 5
+is sub rejected Name already in use (is)
+is call rejected Name already in use (is)
+is func rejected Name already in use (is)
+is func& rejected Name already in use (is)
+key sub rejected Name already in use (key)
+key call rejected Name already in use (key)
+key func rejected Name already in use (key)
+key func& rejected Name already in use (key)
+kill sub rejected Name already in use (kill)
+kill call rejected Name already in use (kill)
+kill func proc prints: 5
+kill func& proc prints: 5
+lbound sub proc prints: s
+lbound call proc prints: s
+lbound func rejected Name already in use (lbound)
+lbound func& rejected Name already in use (lbound)
+lcase sub proc prints: s
+lcase call proc prints: s
+lcase func proc prints: 5
+lcase func& proc prints: 5
+left sub proc prints: s
+left call proc prints: s
+left func proc prints: 5
+left func& proc prints: 5
+len sub rejected Name already in use (len)
+len call rejected Name already in use (len)
+len func rejected Name already in use (len)
+len func& rejected Name already in use (len)
+let sub rejected Name already in use (let)
+let call rejected Name already in use (let)
+let func rejected Name already in use (let)
+let func& rejected Name already in use (let)
+line sub rejected Name already in use (line)
+line call rejected Name already in use (line)
+line func proc prints: 5
+line func& proc prints: 5
+list sub rejected Name already in use (list)
+list call rejected Name already in use (list)
+list func rejected Name already in use (list)
+list func& rejected Name already in use (list)
+loc sub proc prints: s
+loc call proc prints: s
+loc func rejected Name already in use (loc)
+loc func& rejected Name already in use (loc)
+locate sub rejected Name already in use (locate)
+locate call rejected Name already in use (locate)
+locate func proc prints: 5
+locate func& proc prints: 5
+lock sub rejected Name already in use (lock)
+lock call rejected Name already in use (lock)
+lock func rejected Name already in use (lock)
+lock func& rejected Name already in use (lock)
+lof sub proc prints: s
+lof call proc prints: s
+lof func rejected Name already in use (lof)
+lof func& rejected Name already in use (lof)
+log sub proc prints: s
+log call proc prints: s
+log func rejected Name already in use (log)
+log func& rejected Name already in use (log)
+long sub rejected Name already in use (long)
+long call rejected Name already in use (long)
+long func rejected Name already in use (long)
+long func& rejected Name already in use (long)
+loop sub rejected Name already in use (loop)
+loop call rejected Name already in use (loop)
+loop func rejected Name already in use (loop)
+loop func& rejected Name already in use (loop)
+lpos sub proc prints: s
+lpos call proc prints: s
+lpos func rejected Name already in use (lpos)
+lpos func& rejected Name already in use (lpos)
+lprint sub rejected Name already in use (lprint)
+lprint call rejected Name already in use (lprint)
+lprint func rejected Name already in use (lprint)
+lprint func& rejected Name already in use (lprint)
+lset sub rejected Name already in use (lset)
+lset call rejected Name already in use (lset)
+lset func proc prints: 5
+lset func& proc prints: 5
+ltrim sub proc prints: s
+ltrim call proc prints: s
+ltrim func proc prints: 5
+ltrim func& proc prints: 5
+mid sub proc prints: s
+mid call proc prints: s
+mid func proc prints: 5
+mid func& proc prints: 5
+mkd sub proc prints: s
+mkd call proc prints: s
+mkd func proc prints: 5
+mkd func& proc prints: 5
+mkdir sub rejected Name already in use (mkdir)
+mkdir call rejected Name already in use (mkdir)
+mkdir func proc prints: 5
+mkdir func& proc prints: 5
+mkdmbf sub proc prints: s
+mkdmbf call proc prints: s
+mkdmbf func proc prints: 5
+mkdmbf func& proc prints: 5
+mki sub proc prints: s
+mki call proc prints: s
+mki func proc prints: 5
+mki func& proc prints: 5
+mkl sub proc prints: s
+mkl call proc prints: s
+mkl func proc prints: 5
+mkl func& proc prints: 5
+mks sub proc prints: s
+mks call proc prints: s
+mks func proc prints: 5
+mks func& proc prints: 5
+mksmbf sub proc prints: s
+mksmbf call proc prints: s
+mksmbf func proc prints: 5
+mksmbf func& proc prints: 5
+mod sub rejected Name already in use (mod)
+mod call rejected Name already in use (mod)
+mod func rejected Name already in use (mod)
+mod func& rejected Name already in use (mod)
+name sub rejected Name already in use (name)
+name call rejected Name already in use (name)
+name func proc prints: 5
+name func& proc prints: 5
+next sub rejected Name already in use (next)
+next call rejected Name already in use (next)
+next func rejected Name already in use (next)
+next func& rejected Name already in use (next)
+not sub rejected Name already in use (not)
+not call rejected Name already in use (not)
+not func rejected Name already in use (not)
+not func& rejected Name already in use (not)
+oct sub proc prints: s
+oct call proc prints: s
+oct func proc prints: 5
+oct func& proc prints: 5
+off sub rejected Name already in use (off)
+off call rejected Name already in use (off)
+off func rejected Name already in use (off)
+off func& rejected Name already in use (off)
+on sub rejected Name already in use (on)
+on call rejected Name already in use (on)
+on func rejected Name already in use (on)
+on func& rejected Name already in use (on)
+open sub rejected Name already in use (open)
+open call rejected Name already in use (open)
+open func proc prints: 5
+open func& proc prints: 5
+option sub rejected Name already in use (option)
+option call rejected Name already in use (option)
+option func proc prints: 5
+option func& proc prints: 5
+or sub rejected Name already in use (or)
+or call rejected Name already in use (or)
+or func rejected Name already in use (or)
+or func& rejected Name already in use (or)
+out sub rejected Name already in use (out)
+out call rejected Name already in use (out)
+out func proc prints: 5
+out func& proc prints: 5
+output sub rejected Name already in use (output)
+output call rejected Name already in use (output)
+output func rejected Name already in use (output)
+output func& rejected Name already in use (output)
+paint sub rejected Name already in use (paint)
+paint call rejected Name already in use (paint)
+paint func proc prints: 5
+paint func& proc prints: 5
+palette sub rejected Name already in use (palette)
+palette call rejected Name already in use (palette)
+palette func proc prints: 5
+palette func& proc prints: 5
+pcopy sub rejected Name already in use (pcopy)
+pcopy call rejected Name already in use (pcopy)
+pcopy func proc prints: 5
+pcopy func& proc prints: 5
+peek sub proc prints: s
+peek call builtin prints: (not built)
+peek func rejected Name already in use (peek)
+peek func& rejected Name already in use (peek)
+pen sub rejected Name already in use (pen)
+pen call rejected Name already in use (pen)
+pen func rejected Name already in use (pen)
+pen func& rejected Name already in use (pen)
+play sub rejected Name already in use (play)
+play call rejected Name already in use (play)
+play func rejected Name already in use (play)
+play func& rejected Name already in use (play)
+pmap sub proc prints: s
+pmap call proc prints: s
+pmap func rejected Name already in use (pmap)
+pmap func& rejected Name already in use (pmap)
+point sub proc prints: s
+point call proc prints: s
+point func rejected Name already in use (point)
+point func& rejected Name already in use (point)
+poke sub rejected Name already in use (poke)
+poke call rejected Name already in use (poke)
+poke func builtin prints: (not built)
+poke func& proc prints: 5
+pos sub proc prints: s
+pos call proc prints: s
+pos func rejected Name already in use (pos)
+pos func& rejected Name already in use (pos)
+preset sub rejected Name already in use (preset)
+preset call rejected Name already in use (preset)
+preset func rejected Name already in use (preset)
+preset func& rejected Name already in use (preset)
+print sub rejected Name already in use (print)
+print call rejected Name already in use (print)
+print func rejected Name already in use (print)
+print func& rejected Name already in use (print)
+pset sub rejected Name already in use (pset)
+pset call rejected Name already in use (pset)
+pset func rejected Name already in use (pset)
+pset func& rejected Name already in use (pset)
+put sub rejected Name already in use (put)
+put call rejected Name already in use (put)
+put func proc prints: 5
+put func& proc prints: 5
+random sub rejected Name already in use (random)
+random call rejected Name already in use (random)
+random func rejected Name already in use (random)
+random func& rejected Name already in use (random)
+randomize sub rejected Name already in use (randomize)
+randomize call rejected Name already in use (randomize)
+randomize func proc prints: 5
+randomize func& proc prints: 5
+read sub rejected Name already in use (read)
+read call rejected Name already in use (read)
+read func rejected Name already in use (read)
+read func& rejected Name already in use (read)
+redim sub rejected Name already in use (redim)
+redim call rejected Name already in use (redim)
+redim func rejected Name already in use (redim)
+redim func& rejected Name already in use (redim)
+rem sub rejected Expected name after SUB/FUNCTION
+rem call rejected Expected name after SUB/FUNCTION
+rem func rejected Expected name after SUB/FUNCTION
+rem func& rejected Expected name after SUB/FUNCTION
+reset sub rejected Name already in use (reset)
+reset call rejected Name already in use (reset)
+reset func proc prints: 5
+reset func& proc prints: 5
+restore sub rejected Name already in use (restore)
+restore call rejected Name already in use (restore)
+restore func rejected Name already in use (restore)
+restore func& rejected Name already in use (restore)
+resume sub rejected Name already in use (resume)
+resume call rejected Name already in use (resume)
+resume func rejected Name already in use (resume)
+resume func& rejected Name already in use (resume)
+return sub rejected Name already in use (return)
+return call rejected Name already in use (return)
+return func rejected Name already in use (return)
+return func& rejected Name already in use (return)
+right sub proc prints: s
+right call proc prints: s
+right func proc prints: 5
+right func& proc prints: 5
+rmdir sub rejected Name already in use (rmdir)
+rmdir call rejected Name already in use (rmdir)
+rmdir func proc prints: 5
+rmdir func& proc prints: 5
+rnd sub proc prints: s
+rnd call proc prints: s
+rnd func rejected Name already in use (rnd)
+rnd func& rejected Name already in use (rnd)
+rset sub rejected Name already in use (rset)
+rset call rejected Name already in use (rset)
+rset func proc prints: 5
+rset func& proc prints: 5
+rtrim sub proc prints: s
+rtrim call proc prints: s
+rtrim func proc prints: 5
+rtrim func& proc prints: 5
+run sub rejected Name already in use (run)
+run call rejected Name already in use (run)
+run func rejected Name already in use (run)
+run func& rejected Name already in use (run)
+sadd sub proc prints: s
+sadd call proc prints: s
+sadd func rejected Name already in use (sadd)
+sadd func& rejected Name already in use (sadd)
+screen sub rejected Name already in use (screen)
+screen call rejected Name already in use (screen)
+screen func rejected Name already in use (screen)
+screen func& rejected Name already in use (screen)
+seek sub rejected Name already in use (seek)
+seek call rejected Name already in use (seek)
+seek func rejected Name already in use (seek)
+seek func& rejected Name already in use (seek)
+seg sub rejected Name already in use (seg)
+seg call rejected Name already in use (seg)
+seg func rejected Name already in use (seg)
+seg func& rejected Name already in use (seg)
+select sub rejected Name already in use (select)
+select call rejected Name already in use (select)
+select func rejected Name already in use (select)
+select func& rejected Name already in use (select)
+setmem sub proc prints: s
+setmem call proc prints: s
+setmem func rejected Name already in use (setmem)
+setmem func& rejected Name already in use (setmem)
+sgn sub proc prints: s
+sgn call proc prints: s
+sgn func rejected Name already in use (sgn)
+sgn func& rejected Name already in use (sgn)
+shared sub rejected Name already in use (shared)
+shared call rejected Name already in use (shared)
+shared func rejected Name already in use (shared)
+shared func& rejected Name already in use (shared)
+shell sub rejected Name already in use (shell)
+shell call rejected Name already in use (shell)
+shell func rejected Name already in use (shell)
+shell func& rejected Name already in use (shell)
+sin sub proc prints: s
+sin call proc prints: s
+sin func rejected Name already in use (sin)
+sin func& rejected Name already in use (sin)
+single sub rejected Name already in use (single)
+single call rejected Name already in use (single)
+single func rejected Name already in use (single)
+single func& rejected Name already in use (single)
+sleep sub rejected Name already in use (sleep)
+sleep call rejected Name already in use (sleep)
+sleep func proc prints: 5
+sleep func& proc prints: 5
+sound sub rejected Name already in use (sound)
+sound call rejected Name already in use (sound)
+sound func proc prints: 5
+sound func& proc prints: 5
+space sub proc prints: s
+space call proc prints: s
+space func proc prints: 5
+space func& proc prints: 5
+spc sub proc prints: s
+spc call proc prints: s
+spc func rejected Name already in use (spc)
+spc func& rejected Name already in use (spc)
+sqr sub proc prints: s
+sqr call proc prints: s
+sqr func rejected Name already in use (sqr)
+sqr func& rejected Name already in use (sqr)
+static sub rejected Name already in use (static)
+static call rejected Name already in use (static)
+static func rejected Name already in use (static)
+static func& rejected Name already in use (static)
+step sub rejected Name already in use (step)
+step call rejected Name already in use (step)
+step func rejected Name already in use (step)
+step func& rejected Name already in use (step)
+stick sub proc prints: s
+stick call proc prints: s
+stick func rejected Name already in use (stick)
+stick func& rejected Name already in use (stick)
+stop sub rejected Name already in use (stop)
+stop call rejected Name already in use (stop)
+stop func rejected Name already in use (stop)
+stop func& rejected Name already in use (stop)
+str sub proc prints: s
+str call proc prints: s
+str func proc prints: 5
+str func& proc prints: 5
+strig sub rejected Name already in use (strig)
+strig call rejected Name already in use (strig)
+strig func rejected Name already in use (strig)
+strig func& rejected Name already in use (strig)
+string sub rejected Name already in use (string)
+string call rejected Name already in use (string)
+string func rejected Name already in use (string)
+string func& rejected Name already in use (string)
+sub sub rejected Expected name after SUB/FUNCTION
+sub call rejected Name already in use (sub)
+sub func rejected Name already in use (sub)
+sub func& rejected Name already in use (sub)
+swap sub rejected Name already in use (swap)
+swap call rejected Name already in use (swap)
+swap func proc prints: 5
+swap func& proc prints: 5
+system sub rejected Name already in use (system)
+system call rejected Name already in use (system)
+system func rejected Expected variable/value before '='
+system func& proc prints: 5
+tab sub proc prints: s
+tab call proc prints: s
+tab func rejected Name already in use (tab)
+tab func& rejected Name already in use (tab)
+tan sub proc prints: s
+tan call proc prints: s
+tan func rejected Name already in use (tan)
+tan func& rejected Name already in use (tan)
+then sub rejected Expected name after SUB/FUNCTION
+then call rejected Expected name after SUB/FUNCTION
+then func rejected Expected name after SUB/FUNCTION
+then func& rejected Name already in use (then)
+time sub proc prints: s
+time call proc prints: s
+time func proc prints: 5
+time func& proc prints: 5
+timer sub rejected Name already in use (timer)
+timer call rejected Name already in use (timer)
+timer func rejected Name already in use (timer)
+timer func& rejected Name already in use (timer)
+to sub rejected Name already in use (to)
+to call rejected Name already in use (to)
+to func rejected Name already in use (to)
+to func& rejected Name already in use (to)
+troff sub rejected Name already in use (troff)
+troff call rejected Name already in use (troff)
+troff func proc prints: 5
+troff func& proc prints: 5
+tron sub rejected Name already in use (tron)
+tron call rejected Name already in use (tron)
+tron func proc prints: 5
+tron func& proc prints: 5
+type sub rejected Expected TYPE typename
+type call rejected Name already in use (type)
+type func rejected Name already in use (type)
+type func& rejected Name already in use (type)
+ubound sub proc prints: s
+ubound call proc prints: s
+ubound func rejected Name already in use (ubound)
+ubound func& rejected Name already in use (ubound)
+ucase sub proc prints: s
+ucase call proc prints: s
+ucase func proc prints: 5
+ucase func& proc prints: 5
+uevent sub rejected Name already in use (uevent)
+uevent call rejected Name already in use (uevent)
+uevent func rejected Name already in use (uevent)
+uevent func& rejected Name already in use (uevent)
+unlock sub rejected Name already in use (unlock)
+unlock call rejected Name already in use (unlock)
+unlock func proc prints: 5
+unlock func& proc prints: 5
+until sub rejected Name already in use (until)
+until call rejected Name already in use (until)
+until func rejected Name already in use (until)
+until func& rejected Name already in use (until)
+using sub rejected Name already in use (using)
+using call rejected Name already in use (using)
+using func rejected Name already in use (using)
+using func& rejected Name already in use (using)
+val sub proc prints: s
+val call proc prints: s
+val func rejected Name already in use (val)
+val func& rejected Name already in use (val)
+varptr sub proc prints: s
+varptr call proc prints: s
+varptr func rejected Name already in use (varptr)
+varptr func& rejected Name already in use (varptr)
+varseg sub proc prints: s
+varseg call proc prints: s
+varseg func rejected Name already in use (varseg)
+varseg func& rejected Name already in use (varseg)
+view sub rejected Name already in use (view)
+view call rejected Name already in use (view)
+view func proc prints: 5
+view func& proc prints: 5
+wait sub rejected Name already in use (wait)
+wait call rejected Name already in use (wait)
+wait func proc prints: 5
+wait func& proc prints: 5
+wend sub rejected Name already in use (wend)
+wend call rejected Name already in use (wend)
+wend func rejected Name already in use (wend)
+wend func& rejected Name already in use (wend)
+while sub rejected Name already in use (while)
+while call rejected Name already in use (while)
+while func rejected Name already in use (while)
+while func& rejected Name already in use (while)
+width sub rejected Name already in use (width)
+width call rejected Name already in use (width)
+width func proc prints: 5
+width func& proc prints: 5
+window sub rejected Name already in use (window)
+window call rejected Name already in use (window)
+window func proc prints: 5
+window func& proc prints: 5
+write sub rejected Name already in use (write)
+write call rejected Name already in use (write)
+write func rejected Name already in use (write)
+write func& rejected Name already in use (write)
+xor sub rejected Name already in use (xor)
+xor call rejected Name already in use (xor)
+xor func rejected Name already in use (xor)
+xor func& rejected Name already in use (xor)
+_acceptfiledrop sub rejected Invalid name
+_acceptfiledrop call rejected Invalid name
+_acceptfiledrop func rejected Invalid name
+_acceptfiledrop func& rejected Invalid name
+_acos sub rejected Invalid name
+_acos call rejected Invalid name
+_acos func rejected Invalid name
+_acos func& rejected Invalid name
+_acosh sub rejected Invalid name
+_acosh call rejected Invalid name
+_acosh func rejected Invalid name
+_acosh func& rejected Invalid name
+_adler32 sub rejected Invalid name
+_adler32 call rejected Invalid name
+_adler32 func rejected Invalid name
+_adler32 func& rejected Invalid name
+_allowfullscreen sub rejected Invalid name
+_allowfullscreen call rejected Invalid name
+_allowfullscreen func rejected Invalid name
+_allowfullscreen func& rejected Invalid name
+_alpha sub rejected Invalid name
+_alpha call rejected Invalid name
+_alpha func rejected Invalid name
+_alpha func& rejected Invalid name
+_alpha32 sub rejected Invalid name
+_alpha32 call rejected Invalid name
+_alpha32 func rejected Invalid name
+_alpha32 func& rejected Invalid name
+_andalso sub rejected Invalid name
+_andalso call rejected Invalid name
+_andalso func rejected Invalid name
+_andalso func& rejected Invalid name
+_arccot sub rejected Invalid name
+_arccot call rejected Invalid name
+_arccot func rejected Invalid name
+_arccot func& rejected Invalid name
+_arccsc sub rejected Invalid name
+_arccsc call rejected Invalid name
+_arccsc func rejected Invalid name
+_arccsc func& rejected Invalid name
+_arcsec sub rejected Invalid name
+_arcsec call rejected Invalid name
+_arcsec func rejected Invalid name
+_arcsec func& rejected Invalid name
+_asin sub rejected Invalid name
+_asin call rejected Invalid name
+_asin func rejected Invalid name
+_asin func& rejected Invalid name
+_asinh sub rejected Invalid name
+_asinh call rejected Invalid name
+_asinh func rejected Invalid name
+_asinh func& rejected Invalid name
+_assert sub rejected Invalid name
+_assert call rejected Invalid name
+_assert func rejected Invalid name
+_assert func& rejected Invalid name
+_atan2 sub rejected Invalid name
+_atan2 call rejected Invalid name
+_atan2 func rejected Invalid name
+_atan2 func& rejected Invalid name
+_atanh sub rejected Invalid name
+_atanh call rejected Invalid name
+_atanh func rejected Invalid name
+_atanh func& rejected Invalid name
+_autodisplay sub rejected Invalid name
+_autodisplay call rejected Invalid name
+_autodisplay func rejected Invalid name
+_autodisplay func& rejected Invalid name
+_axis sub rejected Invalid name
+_axis call rejected Invalid name
+_axis func rejected Invalid name
+_axis func& rejected Invalid name
+_backgroundcolor sub rejected Invalid name
+_backgroundcolor call rejected Invalid name
+_backgroundcolor func rejected Invalid name
+_backgroundcolor func& rejected Invalid name
+_base64decode sub rejected Invalid name
+_base64decode call rejected Invalid name
+_base64decode func rejected Invalid name
+_base64decode func& rejected Invalid name
+_base64encode sub rejected Invalid name
+_base64encode call rejected Invalid name
+_base64encode func rejected Invalid name
+_base64encode func& rejected Invalid name
+_bin sub rejected Invalid name
+_bin call rejected Invalid name
+_bin func rejected Invalid name
+_bin func& rejected Invalid name
+_bit sub rejected Invalid name
+_bit call rejected Invalid name
+_bit func rejected Invalid name
+_bit func& rejected Invalid name
+_blend sub rejected Invalid name
+_blend call rejected Invalid name
+_blend func rejected Invalid name
+_blend func& rejected Invalid name
+_blink sub rejected Invalid name
+_blink call rejected Invalid name
+_blink func rejected Invalid name
+_blink func& rejected Invalid name
+_blue sub rejected Invalid name
+_blue call rejected Invalid name
+_blue func rejected Invalid name
+_blue func& rejected Invalid name
+_blue32 sub rejected Invalid name
+_blue32 call rejected Invalid name
+_blue32 func rejected Invalid name
+_blue32 func& rejected Invalid name
+_brightness32 sub rejected Invalid name
+_brightness32 call rejected Invalid name
+_brightness32 func rejected Invalid name
+_brightness32 func& rejected Invalid name
+_button sub rejected Invalid name
+_button call rejected Invalid name
+_button func rejected Invalid name
+_button func& rejected Invalid name
+_buttonchange sub rejected Invalid name
+_buttonchange call rejected Invalid name
+_buttonchange func rejected Invalid name
+_buttonchange func& rejected Invalid name
+_byte sub rejected Invalid name
+_byte call rejected Invalid name
+_byte func rejected Invalid name
+_byte func& rejected Invalid name
+_capslock sub rejected Invalid name
+_capslock call rejected Invalid name
+_capslock func rejected Invalid name
+_capslock func& rejected Invalid name
+_cast sub rejected Invalid name
+_cast call rejected Invalid name
+_cast func rejected Invalid name
+_cast func& rejected Invalid name
+_ceil sub rejected Invalid name
+_ceil call rejected Invalid name
+_ceil func rejected Invalid name
+_ceil func& rejected Invalid name
+_cinp sub rejected Invalid name
+_cinp call rejected Invalid name
+_cinp func rejected Invalid name
+_cinp func& rejected Invalid name
+_clamp sub rejected Invalid name
+_clamp call rejected Invalid name
+_clamp func rejected Invalid name
+_clamp func& rejected Invalid name
+_clearcolor sub rejected Invalid name
+_clearcolor call rejected Invalid name
+_clearcolor func rejected Invalid name
+_clearcolor func& rejected Invalid name
+_clipboard sub rejected Invalid name
+_clipboard call rejected Invalid name
+_clipboard func rejected Invalid name
+_clipboard func& rejected Invalid name
+_clipboardimage sub rejected Invalid name
+_clipboardimage call rejected Invalid name
+_clipboardimage func rejected Invalid name
+_clipboardimage func& rejected Invalid name
+_colorchooserdialog sub rejected Invalid name
+_colorchooserdialog call rejected Invalid name
+_colorchooserdialog func rejected Invalid name
+_colorchooserdialog func& rejected Invalid name
+_commandcount sub rejected Invalid name
+_commandcount call rejected Invalid name
+_commandcount func rejected Invalid name
+_commandcount func& rejected Invalid name
+_compiledate sub rejected Invalid name
+_compiledate call rejected Invalid name
+_compiledate func rejected Invalid name
+_compiledate func& rejected Invalid name
+_compilerversion sub rejected Invalid name
+_compilerversion call rejected Invalid name
+_compilerversion func rejected Invalid name
+_compilerversion func& rejected Invalid name
+_compiletime sub rejected Invalid name
+_compiletime call rejected Invalid name
+_compiletime func rejected Invalid name
+_compiletime func& rejected Invalid name
+_connected sub rejected Invalid name
+_connected call rejected Invalid name
+_connected func rejected Invalid name
+_connected func& rejected Invalid name
+_connectionaddress sub rejected Invalid name
+_connectionaddress call rejected Invalid name
+_connectionaddress func rejected Invalid name
+_connectionaddress func& rejected Invalid name
+_console sub rejected Invalid name
+_console call rejected Invalid name
+_console func rejected Invalid name
+_console func& rejected Invalid name
+_consolecursor sub rejected Invalid name
+_consolecursor call rejected Invalid name
+_consolecursor func rejected Invalid name
+_consolecursor func& rejected Invalid name
+_consolefont sub rejected Invalid name
+_consolefont call rejected Invalid name
+_consolefont func rejected Invalid name
+_consolefont func& rejected Invalid name
+_consoleinput sub rejected Invalid name
+_consoleinput call rejected Invalid name
+_consoleinput func rejected Invalid name
+_consoleinput func& rejected Invalid name
+_consoletitle sub rejected Invalid name
+_consoletitle call rejected Invalid name
+_consoletitle func rejected Invalid name
+_consoletitle func& rejected Invalid name
+_continue sub rejected Invalid name
+_continue call rejected Invalid name
+_continue func rejected Invalid name
+_continue func& rejected Invalid name
+_controlchr sub rejected Invalid name
+_controlchr call rejected Invalid name
+_controlchr func rejected Invalid name
+_controlchr func& rejected Invalid name
+_copyimage sub rejected Invalid name
+_copyimage call rejected Invalid name
+_copyimage func rejected Invalid name
+_copyimage func& rejected Invalid name
+_copypalette sub rejected Invalid name
+_copypalette call rejected Invalid name
+_copypalette func rejected Invalid name
+_copypalette func& rejected Invalid name
+_cosh sub rejected Invalid name
+_cosh call rejected Invalid name
+_cosh func rejected Invalid name
+_cosh func& rejected Invalid name
+_cot sub rejected Invalid name
+_cot call rejected Invalid name
+_cot func rejected Invalid name
+_cot func& rejected Invalid name
+_coth sub rejected Invalid name
+_coth call rejected Invalid name
+_coth func rejected Invalid name
+_coth func& rejected Invalid name
+_crc32 sub rejected Invalid name
+_crc32 call rejected Invalid name
+_crc32 func rejected Invalid name
+_crc32 func& rejected Invalid name
+_csc sub rejected Invalid name
+_csc call rejected Invalid name
+_csc func rejected Invalid name
+_csc func& rejected Invalid name
+_csch sub rejected Invalid name
+_csch call rejected Invalid name
+_csch func rejected Invalid name
+_csch func& rejected Invalid name
+_cv sub rejected Invalid name
+_cv call rejected Invalid name
+_cv func rejected Invalid name
+_cv func& rejected Invalid name
+_cwd sub rejected Invalid name
+_cwd call rejected Invalid name
+_cwd func rejected Invalid name
+_cwd func& rejected Invalid name
+_d2g sub rejected Invalid name
+_d2g call rejected Invalid name
+_d2g func rejected Invalid name
+_d2g func& rejected Invalid name
+_d2r sub rejected Invalid name
+_d2r call rejected Invalid name
+_d2r func rejected Invalid name
+_d2r func& rejected Invalid name
+_defaultcolor sub rejected Invalid name
+_defaultcolor call rejected Invalid name
+_defaultcolor func rejected Invalid name
+_defaultcolor func& rejected Invalid name
+_deflate sub rejected Invalid name
+_deflate call rejected Invalid name
+_deflate func rejected Invalid name
+_deflate func& rejected Invalid name
+_delay sub rejected Invalid name
+_delay call rejected Invalid name
+_delay func rejected Invalid name
+_delay func& rejected Invalid name
+_depthbuffer sub rejected Invalid name
+_depthbuffer call rejected Invalid name
+_depthbuffer func rejected Invalid name
+_depthbuffer func& rejected Invalid name
+_desktopheight sub rejected Invalid name
+_desktopheight call rejected Invalid name
+_desktopheight func rejected Invalid name
+_desktopheight func& rejected Invalid name
+_desktoprefreshrate sub rejected Invalid name
+_desktoprefreshrate call rejected Invalid name
+_desktoprefreshrate func rejected Invalid name
+_desktoprefreshrate func& rejected Invalid name
+_desktopwidth sub rejected Invalid name
+_desktopwidth call rejected Invalid name
+_desktopwidth func rejected Invalid name
+_desktopwidth func& rejected Invalid name
+_dest sub rejected Invalid name
+_dest call rejected Invalid name
+_dest func rejected Invalid name
+_dest func& rejected Invalid name
+_device sub rejected Invalid name
+_device call rejected Invalid name
+_device func rejected Invalid name
+_device func& rejected Invalid name
+_deviceinput sub rejected Invalid name
+_deviceinput call rejected Invalid name
+_deviceinput func rejected Invalid name
+_deviceinput func& rejected Invalid name
+_devices sub rejected Invalid name
+_devices call rejected Invalid name
+_devices func rejected Invalid name
+_devices func& rejected Invalid name
+_dir sub rejected Invalid name
+_dir call rejected Invalid name
+_dir func rejected Invalid name
+_dir func& rejected Invalid name
+_direxists sub rejected Invalid name
+_direxists call rejected Invalid name
+_direxists func rejected Invalid name
+_direxists func& rejected Invalid name
+_display sub rejected Invalid name
+_display call rejected Invalid name
+_display func rejected Invalid name
+_display func& rejected Invalid name
+_displayorder sub rejected Invalid name
+_displayorder call rejected Invalid name
+_displayorder func rejected Invalid name
+_displayorder func& rejected Invalid name
+_dontblend sub rejected Invalid name
+_dontblend call rejected Invalid name
+_dontblend func rejected Invalid name
+_dontblend func& rejected Invalid name
+_droppedfile sub rejected Invalid name
+_droppedfile call rejected Invalid name
+_droppedfile func rejected Invalid name
+_droppedfile func& rejected Invalid name
+_dynamic sub rejected Invalid name
+_dynamic call rejected Invalid name
+_dynamic func rejected Invalid name
+_dynamic func& rejected Invalid name
+_echo sub rejected Invalid name
+_echo call rejected Invalid name
+_echo func rejected Invalid name
+_echo func& rejected Invalid name
+_embedded sub rejected Invalid name
+_embedded call rejected Invalid name
+_embedded func rejected Invalid name
+_embedded func& rejected Invalid name
+_environcount sub rejected Invalid name
+_environcount call rejected Invalid name
+_environcount func rejected Invalid name
+_environcount func& rejected Invalid name
+_errorline sub rejected Invalid name
+_errorline call rejected Invalid name
+_errorline func rejected Invalid name
+_errorline func& rejected Invalid name
+_errormessage sub rejected Invalid name
+_errormessage call rejected Invalid name
+_errormessage func rejected Invalid name
+_errormessage func& rejected Invalid name
+_exit sub rejected Invalid name
+_exit call rejected Invalid name
+_exit func rejected Invalid name
+_exit func& rejected Invalid name
+_explicit sub rejected Invalid name
+_explicit call rejected Invalid name
+_explicit func rejected Invalid name
+_explicit func& rejected Invalid name
+_explicitarray sub rejected Invalid name
+_explicitarray call rejected Invalid name
+_explicitarray func rejected Invalid name
+_explicitarray func& rejected Invalid name
+_fileexists sub rejected Invalid name
+_fileexists call rejected Invalid name
+_fileexists func rejected Invalid name
+_fileexists func& rejected Invalid name
+_files sub rejected Invalid name
+_files call rejected Invalid name
+_files func rejected Invalid name
+_files func& rejected Invalid name
+_finishdrop sub rejected Invalid name
+_finishdrop call rejected Invalid name
+_finishdrop func rejected Invalid name
+_finishdrop func& rejected Invalid name
+_float sub rejected Invalid name
+_float call rejected Invalid name
+_float func rejected Invalid name
+_float func& rejected Invalid name
+_font sub rejected Invalid name
+_font call rejected Invalid name
+_font func rejected Invalid name
+_font func& rejected Invalid name
+_fontheight sub rejected Invalid name
+_fontheight call rejected Invalid name
+_fontheight func rejected Invalid name
+_fontheight func& rejected Invalid name
+_fontwidth sub rejected Invalid name
+_fontwidth call rejected Invalid name
+_fontwidth func rejected Invalid name
+_fontwidth func& rejected Invalid name
+_fps sub rejected Invalid name
+_fps call rejected Invalid name
+_fps func rejected Invalid name
+_fps func& rejected Invalid name
+_freefont sub rejected Invalid name
+_freefont call rejected Invalid name
+_freefont func rejected Invalid name
+_freefont func& rejected Invalid name
+_freeimage sub rejected Invalid name
+_freeimage call rejected Invalid name
+_freeimage func rejected Invalid name
+_freeimage func& rejected Invalid name
+_freetimer sub rejected Invalid name
+_freetimer call rejected Invalid name
+_freetimer func rejected Invalid name
+_freetimer func& rejected Invalid name
+_fullpath sub rejected Invalid name
+_fullpath call rejected Invalid name
+_fullpath func rejected Invalid name
+_fullpath func& rejected Invalid name
+_fullscreen sub rejected Invalid name
+_fullscreen call rejected Invalid name
+_fullscreen func rejected Invalid name
+_fullscreen func& rejected Invalid name
+_g2d sub rejected Invalid name
+_g2d call rejected Invalid name
+_g2d func rejected Invalid name
+_g2d func& rejected Invalid name
+_g2r sub rejected Invalid name
+_g2r call rejected Invalid name
+_g2r func rejected Invalid name
+_g2r func& rejected Invalid name
+_glrender sub rejected Invalid name
+_glrender call rejected Invalid name
+_glrender func rejected Invalid name
+_glrender func& rejected Invalid name
+_green sub rejected Invalid name
+_green call rejected Invalid name
+_green func rejected Invalid name
+_green func& rejected Invalid name
+_green32 sub rejected Invalid name
+_green32 call rejected Invalid name
+_green32 func rejected Invalid name
+_green32 func& rejected Invalid name
+_height sub rejected Invalid name
+_height call rejected Invalid name
+_height func rejected Invalid name
+_height func& rejected Invalid name
+_hsb32 sub rejected Invalid name
+_hsb32 call rejected Invalid name
+_hsb32 func rejected Invalid name
+_hsb32 func& rejected Invalid name
+_hsba32 sub rejected Invalid name
+_hsba32 call rejected Invalid name
+_hsba32 func rejected Invalid name
+_hsba32 func& rejected Invalid name
+_hue32 sub rejected Invalid name
+_hue32 call rejected Invalid name
+_hue32 func rejected Invalid name
+_hue32 func& rejected Invalid name
+_hypot sub rejected Invalid name
+_hypot call rejected Invalid name
+_hypot func rejected Invalid name
+_hypot func& rejected Invalid name
+_icon sub rejected Invalid name
+_icon call rejected Invalid name
+_icon func rejected Invalid name
+_icon func& rejected Invalid name
+_iif sub rejected Invalid name
+_iif call rejected Invalid name
+_iif func rejected Invalid name
+_iif func& rejected Invalid name
+_inclerrorfile sub rejected Invalid name
+_inclerrorfile call rejected Invalid name
+_inclerrorfile func rejected Invalid name
+_inclerrorfile func& rejected Invalid name
+_inclerrorline sub rejected Invalid name
+_inclerrorline call rejected Invalid name
+_inclerrorline func rejected Invalid name
+_inclerrorline func& rejected Invalid name
+_inflate sub rejected Invalid name
+_inflate call rejected Invalid name
+_inflate func rejected Invalid name
+_inflate func& rejected Invalid name
+_inputbox sub rejected Invalid name
+_inputbox call rejected Invalid name
+_inputbox func rejected Invalid name
+_inputbox func& rejected Invalid name
+_instrrev sub rejected Invalid name
+_instrrev call rejected Invalid name
+_instrrev func rejected Invalid name
+_instrrev func& rejected Invalid name
+_integer64 sub rejected Invalid name
+_integer64 call rejected Invalid name
+_integer64 func rejected Invalid name
+_integer64 func& rejected Invalid name
+_keyclear sub rejected Invalid name
+_keyclear call rejected Invalid name
+_keyclear func rejected Invalid name
+_keyclear func& rejected Invalid name
+_keydown sub rejected Invalid name
+_keydown call rejected Invalid name
+_keydown func rejected Invalid name
+_keydown func& rejected Invalid name
+_keyhit sub rejected Invalid name
+_keyhit call rejected Invalid name
+_keyhit func rejected Invalid name
+_keyhit func& rejected Invalid name
+_lastaxis sub rejected Invalid name
+_lastaxis call rejected Invalid name
+_lastaxis func rejected Invalid name
+_lastaxis func& rejected Invalid name
+_lastbutton sub rejected Invalid name
+_lastbutton call rejected Invalid name
+_lastbutton func rejected Invalid name
+_lastbutton func& rejected Invalid name
+_lastwheel sub rejected Invalid name
+_lastwheel call rejected Invalid name
+_lastwheel func rejected Invalid name
+_lastwheel func& rejected Invalid name
+_limit sub rejected Invalid name
+_limit call rejected Invalid name
+_limit func rejected Invalid name
+_limit func& rejected Invalid name
+_loadfont sub rejected Invalid name
+_loadfont call rejected Invalid name
+_loadfont func rejected Invalid name
+_loadfont func& rejected Invalid name
+_loadimage sub rejected Invalid name
+_loadimage call rejected Invalid name
+_loadimage func rejected Invalid name
+_loadimage func& rejected Invalid name
+_logerror sub rejected Invalid name
+_logerror call rejected Invalid name
+_logerror func rejected Invalid name
+_logerror func& rejected Invalid name
+_loginfo sub rejected Invalid name
+_loginfo call rejected Invalid name
+_loginfo func rejected Invalid name
+_loginfo func& rejected Invalid name
+_logminlevel sub rejected Invalid name
+_logminlevel call rejected Invalid name
+_logminlevel func rejected Invalid name
+_logminlevel func& rejected Invalid name
+_logtrace sub rejected Invalid name
+_logtrace call rejected Invalid name
+_logtrace func rejected Invalid name
+_logtrace func& rejected Invalid name
+_logwarn sub rejected Invalid name
+_logwarn call rejected Invalid name
+_logwarn func rejected Invalid name
+_logwarn func& rejected Invalid name
+_maptriangle sub rejected Invalid name
+_maptriangle call rejected Invalid name
+_maptriangle func rejected Invalid name
+_maptriangle func& rejected Invalid name
+_mapunicode sub rejected Invalid name
+_mapunicode call rejected Invalid name
+_mapunicode func rejected Invalid name
+_mapunicode func& rejected Invalid name
+_max sub rejected Invalid name
+_max call rejected Invalid name
+_max func rejected Invalid name
+_max func& rejected Invalid name
+_md5 sub rejected Invalid name
+_md5 call rejected Invalid name
+_md5 func rejected Invalid name
+_md5 func& rejected Invalid name
+_mem sub rejected Invalid name
+_mem call rejected Invalid name
+_mem func rejected Invalid name
+_mem func& rejected Invalid name
+_memcopy sub rejected Invalid name
+_memcopy call rejected Invalid name
+_memcopy func rejected Invalid name
+_memcopy func& rejected Invalid name
+_memelement sub rejected Invalid name
+_memelement call rejected Invalid name
+_memelement func rejected Invalid name
+_memelement func& rejected Invalid name
+_memexists sub rejected Invalid name
+_memexists call rejected Invalid name
+_memexists func rejected Invalid name
+_memexists func& rejected Invalid name
+_memfill sub rejected Invalid name
+_memfill call rejected Invalid name
+_memfill func rejected Invalid name
+_memfill func& rejected Invalid name
+_memfree sub rejected Invalid name
+_memfree call rejected Invalid name
+_memfree func rejected Invalid name
+_memfree func& rejected Invalid name
+_memget sub rejected Invalid name
+_memget call rejected Invalid name
+_memget func rejected Invalid name
+_memget func& rejected Invalid name
+_memimage sub rejected Invalid name
+_memimage call rejected Invalid name
+_memimage func rejected Invalid name
+_memimage func& rejected Invalid name
+_memnew sub rejected Invalid name
+_memnew call rejected Invalid name
+_memnew func rejected Invalid name
+_memnew func& rejected Invalid name
+_memput sub rejected Invalid name
+_memput call rejected Invalid name
+_memput func rejected Invalid name
+_memput func& rejected Invalid name
+_memsound sub rejected Invalid name
+_memsound call rejected Invalid name
+_memsound func rejected Invalid name
+_memsound func& rejected Invalid name
+_messagebox sub rejected Invalid name
+_messagebox call rejected Invalid name
+_messagebox func rejected Invalid name
+_messagebox func& rejected Invalid name
+_midisoundbank sub rejected Invalid name
+_midisoundbank call rejected Invalid name
+_midisoundbank func rejected Invalid name
+_midisoundbank func& rejected Invalid name
+_min sub rejected Invalid name
+_min call rejected Invalid name
+_min func rejected Invalid name
+_min func& rejected Invalid name
+_mk sub rejected Invalid name
+_mk call rejected Invalid name
+_mk func rejected Invalid name
+_mk func& rejected Invalid name
+_mousebutton sub rejected Invalid name
+_mousebutton call rejected Invalid name
+_mousebutton func rejected Invalid name
+_mousebutton func& rejected Invalid name
+_mousecursor sub rejected Invalid name
+_mousecursor call rejected Invalid name
+_mousecursor func rejected Invalid name
+_mousecursor func& rejected Invalid name
+_mousedisabled sub rejected Invalid name
+_mousedisabled call rejected Invalid name
+_mousedisabled func rejected Invalid name
+_mousedisabled func& rejected Invalid name
+_mousehidden sub rejected Invalid name
+_mousehidden call rejected Invalid name
+_mousehidden func rejected Invalid name
+_mousehidden func& rejected Invalid name
+_mousehide sub rejected Invalid name
+_mousehide call rejected Invalid name
+_mousehide func rejected Invalid name
+_mousehide func& rejected Invalid name
+_mouseinput sub rejected Invalid name
+_mouseinput call rejected Invalid name
+_mouseinput func rejected Invalid name
+_mouseinput func& rejected Invalid name
+_mousemove sub rejected Invalid name
+_mousemove call rejected Invalid name
+_mousemove func rejected Invalid name
+_mousemove func& rejected Invalid name
+_mousemovementx sub rejected Invalid name
+_mousemovementx call rejected Invalid name
+_mousemovementx func rejected Invalid name
+_mousemovementx func& rejected Invalid name
+_mousemovementy sub rejected Invalid name
+_mousemovementy call rejected Invalid name
+_mousemovementy func rejected Invalid name
+_mousemovementy func& rejected Invalid name
+_mouseshow sub rejected Invalid name
+_mouseshow call rejected Invalid name
+_mouseshow func rejected Invalid name
+_mouseshow func& rejected Invalid name
+_mousewheel sub rejected Invalid name
+_mousewheel call rejected Invalid name
+_mousewheel func rejected Invalid name
+_mousewheel func& rejected Invalid name
+_mousex sub rejected Invalid name
+_mousex call rejected Invalid name
+_mousex func rejected Invalid name
+_mousex func& rejected Invalid name
+_mousey sub rejected Invalid name
+_mousey call rejected Invalid name
+_mousey func rejected Invalid name
+_mousey func& rejected Invalid name
+_negate sub rejected Invalid name
+_negate call rejected Invalid name
+_negate func rejected Invalid name
+_negate func& rejected Invalid name
+_newimage sub rejected Invalid name
+_newimage call rejected Invalid name
+_newimage func rejected Invalid name
+_newimage func& rejected Invalid name
+_notifypopup sub rejected Invalid name
+_notifypopup call rejected Invalid name
+_notifypopup func rejected Invalid name
+_notifypopup func& rejected Invalid name
+_numlock sub rejected Invalid name
+_numlock call rejected Invalid name
+_numlock func rejected Invalid name
+_numlock func& rejected Invalid name
+_offset sub rejected Invalid name
+_offset call rejected Invalid name
+_offset func rejected Invalid name
+_offset func& rejected Invalid name
+_openclient sub rejected Invalid name
+_openclient call rejected Invalid name
+_openclient func rejected Invalid name
+_openclient func& rejected Invalid name
+_openconnection sub rejected Invalid name
+_openconnection call rejected Invalid name
+_openconnection func rejected Invalid name
+_openconnection func& rejected Invalid name
+_openfiledialog sub rejected Invalid name
+_openfiledialog call rejected Invalid name
+_openfiledialog func rejected Invalid name
+_openfiledialog func& rejected Invalid name
+_openhost sub rejected Invalid name
+_openhost call rejected Invalid name
+_openhost func rejected Invalid name
+_openhost func& rejected Invalid name
+_orelse sub rejected Invalid name
+_orelse call rejected Invalid name
+_orelse func rejected Invalid name
+_orelse func& rejected Invalid name
+_os sub rejected Invalid name
+_os call rejected Invalid name
+_os func rejected Invalid name
+_os func& rejected Invalid name
+_palettecolor sub rejected Invalid name
+_palettecolor call rejected Invalid name
+_palettecolor func rejected Invalid name
+_palettecolor func& rejected Invalid name
+_pi sub rejected Invalid name
+_pi call rejected Invalid name
+_pi func rejected Invalid name
+_pi func& rejected Invalid name
+_pixelsize sub rejected Invalid name
+_pixelsize call rejected Invalid name
+_pixelsize func rejected Invalid name
+_pixelsize func& rejected Invalid name
+_printimage sub rejected Invalid name
+_printimage call rejected Invalid name
+_printimage func rejected Invalid name
+_printimage func& rejected Invalid name
+_printmode sub rejected Invalid name
+_printmode call rejected Invalid name
+_printmode func rejected Invalid name
+_printmode func& rejected Invalid name
+_printstring sub rejected Invalid name
+_printstring call rejected Invalid name
+_printstring func rejected Invalid name
+_printstring func& rejected Invalid name
+_printwidth sub rejected Invalid name
+_printwidth call rejected Invalid name
+_printwidth func rejected Invalid name
+_printwidth func& rejected Invalid name
+_putimage sub rejected Invalid name
+_putimage call rejected Invalid name
+_putimage func rejected Invalid name
+_putimage func& rejected Invalid name
+_r2d sub rejected Invalid name
+_r2d call rejected Invalid name
+_r2d func rejected Invalid name
+_r2d func& rejected Invalid name
+_r2g sub rejected Invalid name
+_r2g call rejected Invalid name
+_r2g func rejected Invalid name
+_r2g func& rejected Invalid name
+_readbit sub rejected Invalid name
+_readbit call rejected Invalid name
+_readbit func rejected Invalid name
+_readbit func& rejected Invalid name
+_readfile sub rejected Invalid name
+_readfile call rejected Invalid name
+_readfile func rejected Invalid name
+_readfile func& rejected Invalid name
+_red sub rejected Invalid name
+_red call rejected Invalid name
+_red func rejected Invalid name
+_red func& rejected Invalid name
+_red32 sub rejected Invalid name
+_red32 call rejected Invalid name
+_red32 func rejected Invalid name
+_red32 func& rejected Invalid name
+_resetbit sub rejected Invalid name
+_resetbit call rejected Invalid name
+_resetbit func rejected Invalid name
+_resetbit func& rejected Invalid name
+_resize sub rejected Invalid name
+_resize call rejected Invalid name
+_resize func rejected Invalid name
+_resize func& rejected Invalid name
+_resizeheight sub rejected Invalid name
+_resizeheight call rejected Invalid name
+_resizeheight func rejected Invalid name
+_resizeheight func& rejected Invalid name
+_resizewidth sub rejected Invalid name
+_resizewidth call rejected Invalid name
+_resizewidth func rejected Invalid name
+_resizewidth func& rejected Invalid name
+_rgb sub rejected Invalid name
+_rgb call rejected Invalid name
+_rgb func rejected Invalid name
+_rgb func& rejected Invalid name
+_rgb32 sub rejected Invalid name
+_rgb32 call rejected Invalid name
+_rgb32 func rejected Invalid name
+_rgb32 func& rejected Invalid name
+_rgba sub rejected Invalid name
+_rgba call rejected Invalid name
+_rgba func rejected Invalid name
+_rgba func& rejected Invalid name
+_rgba32 sub rejected Invalid name
+_rgba32 call rejected Invalid name
+_rgba32 func rejected Invalid name
+_rgba32 func& rejected Invalid name
+_rol sub rejected Invalid name
+_rol call rejected Invalid name
+_rol func rejected Invalid name
+_rol func& rejected Invalid name
+_ror sub rejected Invalid name
+_ror call rejected Invalid name
+_ror func rejected Invalid name
+_ror func& rejected Invalid name
+_round sub rejected Invalid name
+_round call rejected Invalid name
+_round func rejected Invalid name
+_round func& rejected Invalid name
+_saturation32 sub rejected Invalid name
+_saturation32 call rejected Invalid name
+_saturation32 func rejected Invalid name
+_saturation32 func& rejected Invalid name
+_savefiledialog sub rejected Invalid name
+_savefiledialog call rejected Invalid name
+_savefiledialog func rejected Invalid name
+_savefiledialog func& rejected Invalid name
+_saveimage sub rejected Invalid name
+_saveimage call rejected Invalid name
+_saveimage func rejected Invalid name
+_saveimage func& rejected Invalid name
+_scaledheight sub rejected Invalid name
+_scaledheight call rejected Invalid name
+_scaledheight func rejected Invalid name
+_scaledheight func& rejected Invalid name
+_scaledwidth sub rejected Invalid name
+_scaledwidth call rejected Invalid name
+_scaledwidth func rejected Invalid name
+_scaledwidth func& rejected Invalid name
+_screenclick sub rejected Invalid name
+_screenclick call rejected Invalid name
+_screenclick func rejected Invalid name
+_screenclick func& rejected Invalid name
+_screenexists sub rejected Invalid name
+_screenexists call rejected Invalid name
+_screenexists func rejected Invalid name
+_screenexists func& rejected Invalid name
+_screenhide sub rejected Invalid name
+_screenhide call rejected Invalid name
+_screenhide func rejected Invalid name
+_screenhide func& rejected Invalid name
+_screenicon sub rejected Invalid name
+_screenicon call rejected Invalid name
+_screenicon func rejected Invalid name
+_screenicon func& rejected Invalid name
+_screenimage sub rejected Invalid name
+_screenimage call rejected Invalid name
+_screenimage func rejected Invalid name
+_screenimage func& rejected Invalid name
+_screenmove sub rejected Invalid name
+_screenmove call rejected Invalid name
+_screenmove func rejected Invalid name
+_screenmove func& rejected Invalid name
+_screenprint sub rejected Invalid name
+_screenprint call rejected Invalid name
+_screenprint func rejected Invalid name
+_screenprint func& rejected Invalid name
+_screenshow sub rejected Invalid name
+_screenshow call rejected Invalid name
+_screenshow func rejected Invalid name
+_screenshow func& rejected Invalid name
+_screenx sub rejected Invalid name
+_screenx call rejected Invalid name
+_screenx func rejected Invalid name
+_screenx func& rejected Invalid name
+_screeny sub rejected Invalid name
+_screeny call rejected Invalid name
+_screeny func rejected Invalid name
+_screeny func& rejected Invalid name
+_scrolllock sub rejected Invalid name
+_scrolllock call rejected Invalid name
+_scrolllock func rejected Invalid name
+_scrolllock func& rejected Invalid name
+_sec sub rejected Invalid name
+_sec call rejected Invalid name
+_sec func rejected Invalid name
+_sec func& rejected Invalid name
+_sech sub rejected Invalid name
+_sech call rejected Invalid name
+_sech func rejected Invalid name
+_sech func& rejected Invalid name
+_selectfolderdialog sub rejected Invalid name
+_selectfolderdialog call rejected Invalid name
+_selectfolderdialog func rejected Invalid name
+_selectfolderdialog func& rejected Invalid name
+_setalpha sub rejected Invalid name
+_setalpha call rejected Invalid name
+_setalpha func rejected Invalid name
+_setalpha func& rejected Invalid name
+_setbit sub rejected Invalid name
+_setbit call rejected Invalid name
+_setbit func rejected Invalid name
+_setbit func& rejected Invalid name
+_shellhide sub rejected Invalid name
+_shellhide call rejected Invalid name
+_shellhide func rejected Invalid name
+_shellhide func& rejected Invalid name
+_shl sub rejected Invalid name
+_shl call rejected Invalid name
+_shl func rejected Invalid name
+_shl func& rejected Invalid name
+_shr sub rejected Invalid name
+_shr call rejected Invalid name
+_shr func rejected Invalid name
+_shr func& rejected Invalid name
+_sinh sub rejected Invalid name
+_sinh call rejected Invalid name
+_sinh func rejected Invalid name
+_sinh func& rejected Invalid name
+_smooth sub rejected Invalid name
+_smooth call rejected Invalid name
+_smooth func rejected Invalid name
+_smooth func& rejected Invalid name
+_sndbal sub rejected Invalid name
+_sndbal call rejected Invalid name
+_sndbal func rejected Invalid name
+_sndbal func& rejected Invalid name
+_sndclose sub rejected Invalid name
+_sndclose call rejected Invalid name
+_sndclose func rejected Invalid name
+_sndclose func& rejected Invalid name
+_sndcopy sub rejected Invalid name
+_sndcopy call rejected Invalid name
+_sndcopy func rejected Invalid name
+_sndcopy func& rejected Invalid name
+_sndgetpos sub rejected Invalid name
+_sndgetpos call rejected Invalid name
+_sndgetpos func rejected Invalid name
+_sndgetpos func& rejected Invalid name
+_sndlen sub rejected Invalid name
+_sndlen call rejected Invalid name
+_sndlen func rejected Invalid name
+_sndlen func& rejected Invalid name
+_sndlimit sub rejected Invalid name
+_sndlimit call rejected Invalid name
+_sndlimit func rejected Invalid name
+_sndlimit func& rejected Invalid name
+_sndloop sub rejected Invalid name
+_sndloop call rejected Invalid name
+_sndloop func rejected Invalid name
+_sndloop func& rejected Invalid name
+_sndnew sub rejected Invalid name
+_sndnew call rejected Invalid name
+_sndnew func rejected Invalid name
+_sndnew func& rejected Invalid name
+_sndopen sub rejected Invalid name
+_sndopen call rejected Invalid name
+_sndopen func rejected Invalid name
+_sndopen func& rejected Invalid name
+_sndopenraw sub rejected Invalid name
+_sndopenraw call rejected Invalid name
+_sndopenraw func rejected Invalid name
+_sndopenraw func& rejected Invalid name
+_sndpause sub rejected Invalid name
+_sndpause call rejected Invalid name
+_sndpause func rejected Invalid name
+_sndpause func& rejected Invalid name
+_sndpaused sub rejected Invalid name
+_sndpaused call rejected Invalid name
+_sndpaused func rejected Invalid name
+_sndpaused func& rejected Invalid name
+_sndplay sub rejected Invalid name
+_sndplay call rejected Invalid name
+_sndplay func rejected Invalid name
+_sndplay func& rejected Invalid name
+_sndplaycopy sub rejected Invalid name
+_sndplaycopy call rejected Invalid name
+_sndplaycopy func rejected Invalid name
+_sndplaycopy func& rejected Invalid name
+_sndplayfile sub rejected Invalid name
+_sndplayfile call rejected Invalid name
+_sndplayfile func rejected Invalid name
+_sndplayfile func& rejected Invalid name
+_sndplaying sub rejected Invalid name
+_sndplaying call rejected Invalid name
+_sndplaying func rejected Invalid name
+_sndplaying func& rejected Invalid name
+_sndrate sub rejected Invalid name
+_sndrate call rejected Invalid name
+_sndrate func rejected Invalid name
+_sndrate func& rejected Invalid name
+_sndraw sub rejected Invalid name
+_sndraw call rejected Invalid name
+_sndraw func rejected Invalid name
+_sndraw func& rejected Invalid name
+_sndrawbatch sub rejected Invalid name
+_sndrawbatch call rejected Invalid name
+_sndrawbatch func rejected Invalid name
+_sndrawbatch func& rejected Invalid name
+_sndrawdone sub rejected Invalid name
+_sndrawdone call rejected Invalid name
+_sndrawdone func rejected Invalid name
+_sndrawdone func& rejected Invalid name
+_sndrawlen sub rejected Invalid name
+_sndrawlen call rejected Invalid name
+_sndrawlen func rejected Invalid name
+_sndrawlen func& rejected Invalid name
+_sndsetpos sub rejected Invalid name
+_sndsetpos call rejected Invalid name
+_sndsetpos func rejected Invalid name
+_sndsetpos func& rejected Invalid name
+_sndstop sub rejected Invalid name
+_sndstop call rejected Invalid name
+_sndstop func rejected Invalid name
+_sndstop func& rejected Invalid name
+_sndvol sub rejected Invalid name
+_sndvol call rejected Invalid name
+_sndvol func rejected Invalid name
+_sndvol func& rejected Invalid name
+_source sub rejected Invalid name
+_source call rejected Invalid name
+_source func rejected Invalid name
+_source func& rejected Invalid name
+_startdir sub rejected Invalid name
+_startdir call rejected Invalid name
+_startdir func rejected Invalid name
+_startdir func& rejected Invalid name
+_static sub rejected Invalid name
+_static call rejected Invalid name
+_static func rejected Invalid name
+_static func& rejected Invalid name
+_statuscode sub rejected Invalid name
+_statuscode call rejected Invalid name
+_statuscode func rejected Invalid name
+_statuscode func& rejected Invalid name
+_strcmp sub rejected Invalid name
+_strcmp call rejected Invalid name
+_strcmp func rejected Invalid name
+_strcmp func& rejected Invalid name
+_stricmp sub rejected Invalid name
+_stricmp call rejected Invalid name
+_stricmp func rejected Invalid name
+_stricmp func& rejected Invalid name
+_tanh sub rejected Invalid name
+_tanh call rejected Invalid name
+_tanh func rejected Invalid name
+_tanh func& rejected Invalid name
+_title sub rejected Invalid name
+_title call rejected Invalid name
+_title func rejected Invalid name
+_title func& rejected Invalid name
+_togglebit sub rejected Invalid name
+_togglebit call rejected Invalid name
+_togglebit func rejected Invalid name
+_togglebit func& rejected Invalid name
+_tostr sub rejected Invalid name
+_tostr call rejected Invalid name
+_tostr func rejected Invalid name
+_tostr func& rejected Invalid name
+_totaldroppedfiles sub rejected Invalid name
+_totaldroppedfiles call rejected Invalid name
+_totaldroppedfiles func rejected Invalid name
+_totaldroppedfiles func& rejected Invalid name
+_trim sub rejected Invalid name
+_trim call rejected Invalid name
+_trim func rejected Invalid name
+_trim func& rejected Invalid name
+_ucharpos sub rejected Invalid name
+_ucharpos call rejected Invalid name
+_ucharpos func rejected Invalid name
+_ucharpos func& rejected Invalid name
+_ufontheight sub rejected Invalid name
+_ufontheight call rejected Invalid name
+_ufontheight func rejected Invalid name
+_ufontheight func& rejected Invalid name
+_ulinespacing sub rejected Invalid name
+_ulinespacing call rejected Invalid name
+_ulinespacing func rejected Invalid name
+_ulinespacing func& rejected Invalid name
+_unsigned sub rejected Invalid name
+_unsigned call rejected Invalid name
+_unsigned func rejected Invalid name
+_unsigned func& rejected Invalid name
+_uprintstring sub rejected Invalid name
+_uprintstring call rejected Invalid name
+_uprintstring func rejected Invalid name
+_uprintstring func& rejected Invalid name
+_uprintwidth sub rejected Invalid name
+_uprintwidth call rejected Invalid name
+_uprintwidth func rejected Invalid name
+_uprintwidth func& rejected Invalid name
+_uptime sub rejected Invalid name
+_uptime call rejected Invalid name
+_uptime func rejected Invalid name
+_uptime func& rejected Invalid name
+_wave sub rejected Invalid name
+_wave call rejected Invalid name
+_wave func rejected Invalid name
+_wave func& rejected Invalid name
+_wheel sub rejected Invalid name
+_wheel call rejected Invalid name
+_wheel func rejected Invalid name
+_wheel func& rejected Invalid name
+_width sub rejected Invalid name
+_width call rejected Invalid name
+_width func rejected Invalid name
+_width func& rejected Invalid name
+_windowhandle sub rejected Invalid name
+_windowhandle call rejected Invalid name
+_windowhandle func rejected Invalid name
+_windowhandle func& rejected Invalid name
+_windowhasfocus sub rejected Invalid name
+_windowhasfocus call rejected Invalid name
+_windowhasfocus func rejected Invalid name
+_windowhasfocus func& rejected Invalid name
+_windowsizelimit sub rejected Invalid name
+_windowsizelimit call rejected Invalid name
+_windowsizelimit func rejected Invalid name
+_windowsizelimit func& rejected Invalid name
+_writefile sub rejected Invalid name
+_writefile call rejected Invalid name
+_writefile func rejected Invalid name
+_writefile func& rejected Invalid name

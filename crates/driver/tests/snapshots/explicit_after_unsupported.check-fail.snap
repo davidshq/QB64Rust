@@ -1,11 +1,7 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 103
 expression: snap
 ---
 explicit_after_unsupported.bas:8:1: error: variable `a` (SINGLE) is not declared (`OPTION _EXPLICIT`)
-explicit_after_unsupported.bas:9:8: error: not supported yet: word `LONG` (expected the end of the statement)
-explicit_after_unsupported.bas:10:1: error: not supported yet: `v` under `OPTION _EXPLICIT` after a construct not supported yet
+explicit_after_unsupported.bas:9:5: error: not supported yet: `DIM AS type` before the names
 explicit_after_unsupported.bas:11:7: error: not supported yet: the type `_UNSIGNED LONG`
-explicit_after_unsupported.bas:12:1: error: not supported yet: `u` under `OPTION _EXPLICIT` after a construct not supported yet
-explicit_after_unsupported.bas:13:1: error: not supported yet: `b` under `OPTION _EXPLICIT` after a construct not supported yet

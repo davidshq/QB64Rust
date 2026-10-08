@@ -29,9 +29,6 @@ END SELECT
 TYPE t
     a AS LONG
 END TYPE
-DECLARE LIBRARY
-    FUNCTION toupper& (BYVAL c AS LONG)
-END DECLARE
 DEF FNa (x) = x * 2
 DEF FNb
     k% = "def"
@@ -40,3 +37,7 @@ ON ERROR GOTO handler
 FOR i = 1 TO 2
 handler:
 NEXT
+' Last: a marked declaration drops the real errors after it (follow-on rule, m2-parser-breadth design D10).
+DECLARE LIBRARY
+    FUNCTION toupper& (BYVAL c AS LONG)
+END DECLARE

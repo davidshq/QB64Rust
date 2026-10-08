@@ -309,6 +309,10 @@ impl Checker<'_> {
                 Verdict::Error(msg) => self.error(span, msg),
             };
             self.flush_names();
+            if matches!(block.verdict, Verdict::Unsupported(_)) && ast::DeclareLibraryBlock::cast(node).is_some() {
+                // A declaration: the follow-on rule starts (design D10).
+                self.follow_on = true;
+            }
         }
         for s in block.inner {
             if skips.past_cap(s) {

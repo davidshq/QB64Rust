@@ -12,7 +12,7 @@
 //! The clone sets are read from the QB64pe reference clone (found as the driver finds it) and skipped, with a
 //! note, when it is missing. Every file gets the no-panic and round-trip check; include-only files nothing else.
 
-use qb64rust_driver::{build, frontend, lower};
+use qb64rust_driver::{FileLoader, build, emit, frontend_with, lower};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::tree::{Node, print};
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -145,11 +145,40 @@ fn inputs() -> Vec<(String, PathBuf, Verdict)> {
     out
 }
 
+/// The compiler root for included files of an input (design D9): `tests\upstream\root` for the repo's sets, as
+/// the tier-2 runner passes with `--include-root` (it holds `tests/compile_tests/extra`, which two upstream tests
+/// include relative to the compiler); the clone for the sets that depend on it.
+fn include_root(name: &str) -> PathBuf {
+    match clone_root() {
+        Some(clone) if CLONE_SETS.iter().any(|s| name.starts_with(s)) => clone,
+        _ => repo().join("tests/upstream/root"),
+    }
+}
+
+/// Where an input's includes are looked up from: its own folder, except for the upstream tests of the old
+/// compiler's own code (`upstream/qb64pe/`), which include its sources relative to their place in the clone
+/// (`../../../source/…`): those use the clone's copy of their folder, when the clone is present.
+fn include_base(name: &str, path: &Path) -> PathBuf {
+    match (name.strip_prefix("upstream/"), clone_root()) {
+        (Some(rel), Some(clone)) if name.starts_with(UPSTREAM_QB64PE) => clone.join("tests/compile_tests").join(rel),
+        _ => path.to_path_buf(),
+    }
+}
+
 fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
     let bytes = std::fs::read(path).unwrap();
+    let root = include_root(&name);
+    let base = include_base(&name, path);
     let result = catch_unwind(AssertUnwindSafe(|| {
-        let fe = frontend(&name, bytes.clone());
-        let round_trip = print(&fe.parsed.main().green, &bytes) == bytes;
+        let fe = frontend_with(&name, bytes.clone(), |file| {
+            Box::new(FileLoader::new(&root, file, &base))
+        });
+        // Every tree prints its own file back (spec compiler/pipeline, "Lossless syntax tree").
+        let round_trip = fe
+            .parsed
+            .trees
+            .iter()
+            .all(|t| print(&t.green, &fe.map.file(t.file).bytes) == *fe.map.file(t.file).bytes);
         let mut list: Vec<_> = fe.diagnostics.list().to_vec();
         if fe.diagnostics.is_capped() {
             list.pop(); // "too many errors; stopping" is not an error of its own
@@ -159,25 +188,32 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
             let (line, col) = fe.map.file(d.span.file).line_col(d.span.start);
             format!("{line}:{col}: {}", d.message)
         });
-        let file = fe.map.file(fe.file);
-        let parse_gap = fe
-            .parsed
-            .main()
-            .diagnostics
-            .list()
-            .iter()
-            .min_by_key(|d| d.span.start)
-            .map(|d| {
-                let (line, col) = file.line_col(d.span.start);
-                let mark = if d.unsupported { "not supported yet: " } else { "" };
-                format!("{line}:{col}: {mark}{}", d.message)
-            })
-            .or_else(|| {
-                first_error_node(fe.parsed.main().root()).map(|n| {
-                    let (line, col) = file.line_col(n.span().start);
-                    format!("{line}:{col}: `Error` node without a parser diagnostic")
+        // The first parse gap of any tree, the main file's first (an included file's names its file).
+        let parse_gap = fe.parsed.trees.iter().find_map(|t| {
+            let file = fe.map.file(t.file);
+            let at = |start: u32| {
+                let (line, col) = file.line_col(start);
+                if t.file == fe.file {
+                    format!("{line}:{col}")
+                } else {
+                    let shown = file.name.replace('\\', "/");
+                    let shown = shown.rsplit('/').next().unwrap_or(&shown).to_string();
+                    format!("{shown}:{line}:{col}")
+                }
+            };
+            t.diagnostics
+                .list()
+                .iter()
+                .min_by_key(|d| d.span.start)
+                .map(|d| {
+                    let mark = if d.unsupported { "not supported yet: " } else { "" };
+                    format!("{}: {mark}{}", at(d.span.start), d.message)
                 })
-            });
+                .or_else(|| {
+                    first_error_node(t.root())
+                        .map(|n| format!("{}: `Error` node without a parser diagnostic", at(n.span().start)))
+                })
+        });
         // Everything the front end accepts is lowered, validated and emitted (design D8 of `m2-arrays-and-types`);
         // a panic in either stage is caught below like one in the front end.
         let (lowered, invalid_ir) = if fe.has_errors() {
@@ -185,7 +221,7 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
         } else {
             let ir = lower(&fe);
             let invalid_ir = qb64rust_ir::validate(&ir).err().map(|p| p.join("; "));
-            qb64rust_codegen_cpp::emit(&ir, &name);
+            emit(&fe);
             (true, invalid_ir)
         };
         (
@@ -303,7 +339,11 @@ fn slice_list_programs_have_no_diagnostics() {
             continue;
         }
         let name = format!("{line}.bas");
-        let fe = frontend(&name, std::fs::read(root.join(&name)).unwrap());
+        let path = root.join(&name);
+        let inc = repo().join("tests/upstream/root");
+        let fe = frontend_with(&name, std::fs::read(&path).unwrap(), |file| {
+            Box::new(FileLoader::new(&inc, file, &path))
+        });
         assert!(fe.diagnostics.list().is_empty(), "{line}:\n{}", fe.render_diagnostics());
         n += 1;
     }
@@ -328,8 +368,12 @@ fn rejected_programs_get_an_error() {
     );
 }
 
-/// Sets read from the clone: their list entries are checked only when the clone is present.
-const CLONE_SETS: &[&str] = &["qbasic/", "qb64pe-source/"];
+/// The upstream tests of the old compiler's own code, which include its sources from the clone.
+const UPSTREAM_QB64PE: &str = "upstream/qb64pe/";
+
+/// Sets read from the clone, or that include files from it: their list entries are checked only when the clone
+/// is present.
+const CLONE_SETS: &[&str] = &["qbasic/", "qb64pe-source/", UPSTREAM_QB64PE];
 
 /// A shrink-only list (design D4): `prefix/relative/path.bas`, sorted, one per line, `#` comments, optionally a
 /// trailing ` # comment`.
@@ -365,7 +409,13 @@ const PARSE_GAPS: List = List {
 /// Entries `want` has and the list `have` lacks (new), and entries of `have` that `want` lacks (stale); a
 /// `have` entry is judged only when `checked` says its set was run.
 fn list_diff<'a>(have: &'a [String], want: &[&'a str], checked: impl Fn(&str) -> bool) -> (Vec<&'a str>, Vec<&'a str>) {
-    let new = want.iter().copied().filter(|e| !have.iter().any(|h| h == e)).collect();
+    // Unchecked entries (a clone-dependent set without the clone: `upstream/qb64pe/` is read from the copy but
+    // needs the clone for its includes) are neither new nor stale.
+    let new = want
+        .iter()
+        .copied()
+        .filter(|e| checked(e) && !have.iter().any(|h| h == e))
+        .collect();
     let stale = have
         .iter()
         .map(String::as_str)

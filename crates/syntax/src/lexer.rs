@@ -176,8 +176,11 @@ impl Lexer<'_> {
 
     /// A `.` at the current position is member access (design D3 of `m2-parser-breadth`, measured M8): it follows
     /// `)` or a member name, and a name follows it, with or without blanks on either side (`a(2) .b`, `a(2). b`).
+    /// After a plain name it can only be here with blanks around it (`a . s`; without them it is part of the name):
+    /// the old compiler drops those blanks, so `a . s` is `a.s` (measured, `verification\v19_dot_blanks_*`); it is a
+    /// `Dot` too, and `sema` decides.
     fn is_member_dot(&self) -> bool {
-        if !(self.prev == Some(RParen) || self.member) {
+        if !(self.prev == Some(RParen) || self.prev == Some(Ident) || self.member) {
             return false;
         }
         let mut i = self.pos + 1;

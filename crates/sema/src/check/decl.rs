@@ -4,7 +4,7 @@ use super::places::numeric_type;
 use super::{Checker, Failed, R, Scope};
 use crate::{ProcKind, Storage, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{show_bytes, to_u32};
-use qb64rust_builtins::find_any;
+use qb64rust_builtins::{Kind, find_any, is_auto_include_name};
 use qb64rust_syntax::ast;
 use qb64rust_syntax::is_keyword;
 use qb64rust_syntax::tree::Tok;
@@ -49,7 +49,16 @@ impl Checker<'_> {
     /// other suffixes are "not supported yet". (The old compiler accepts `name$`, `not$` and `key$`, found in
     /// `qbasic_testcases` in task 6.4 of `m2-parser-breadth`; the rule above is not "whatever suffix".)
     pub(super) fn reserved(&mut self, t: Tok, name: &str, suffix: Option<Ty>) -> R<()> {
-        if name.starts_with('_') {
+        // A name QB64pe's auto-included files declare (`_TRUE`, `_CHR_CR`): those files are not included yet
+        // (design D10 of `m2-parser-breadth`).
+        if is_auto_include_name(name.as_bytes()) {
+            let shown = show_bytes(self.text(t.span));
+            let msg = format!("`{shown}` (a name of QB64pe's auto-included files)");
+            return Err(self.unsupported(t.span, msg));
+        }
+        // `validname` (`qb64pe.bas` 28271–28274) refuses a single leading `_` only: `__name$` is a parameter of
+        // `qb64pe.bas` itself.
+        if name.starts_with('_') && !name.starts_with("__") {
             let msg = format!(
                 "names starting with `_` are reserved: `{}`",
                 show_bytes(self.text(t.span))
@@ -72,8 +81,42 @@ impl Checker<'_> {
         }
     }
 
+    /// Reserved names for a procedure, measured for every keyword and built-in (`verification\v19_proc_names.txt`,
+    /// checked against this function by `crates\driver\tests\names.rs`): as for variables, a name starting with
+    /// `_` and a keyword are taken; otherwise only a built-in **of the same kind** without a required suffix takes
+    /// the name. A SUB may be named like a built-in function (`SUB loc`, `SUB abs`), a FUNCTION like a built-in
+    /// statement (`FUNCTION beep`, `FUNCTION width`), and both like a built-in that needs `$` (`SUB left`).
+    /// Measured for a SUB without a suffix and a FUNCTION without one and with `&`; other FUNCTION suffixes on
+    /// a built-in function's name are "not supported yet".
+    pub(super) fn reserved_proc(&mut self, t: Tok, name: &str, suffix: Option<Ty>, function: bool) -> R<()> {
+        if name == "_GL" && !function {
+            // The SUB QB64 calls to draw with OpenGL (design D10 of `m2-parser-breadth`).
+            return Err(self.unsupported(t.span, "`SUB _GL` (OpenGL)"));
+        }
+        if name.starts_with('_') || is_keyword(name.as_bytes()) {
+            return self.reserved(t, name, suffix);
+        }
+        let kind = if function { Kind::Function } else { Kind::Sub };
+        let mut same_kind = find_any(name.as_bytes()).filter(|b| b.kind == kind);
+        match suffix {
+            None | Some(Ty::I32) if same_kind.any(|b| b.musthave.is_none()) => Err(self.in_use(t)),
+            None | Some(Ty::I32) => Ok(()),
+            Some(_) if same_kind.next().is_some() => {
+                let msg = format!(
+                    "`{}` as a FUNCTION name (a built-in's name with this suffix is not measured)",
+                    show_bytes(self.text(t.span))
+                );
+                Err(self.unsupported(t.span, msg))
+            }
+            Some(_) => Ok(()),
+        }
+    }
+
     /// The type named by an `AS` clause: a slice type, `STRING`, or a user type.
     pub(super) fn type_of(&mut self, a: ast::AsClause) -> R<Ty> {
+        if a.size().is_some() {
+            return Err(self.unsupported(a.node().span(), "fixed-length strings"));
+        }
         let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
         let text = words.join(" ");
         if text == "STRING" {
@@ -293,6 +336,9 @@ impl Checker<'_> {
     }
 
     pub(super) fn dim(&mut self, stmt: ast::DimStmt) -> R<()> {
+        if let Some(a) = stmt.as_clause() {
+            return Err(self.unsupported(a.node().span(), "`DIM AS type` before the names"));
+        }
         let shared = stmt.shared().is_some();
         let storage = match (self.cur, shared) {
             (None, _) => Storage::Main,
@@ -306,6 +352,9 @@ impl Checker<'_> {
     }
 
     pub(super) fn static_stmt(&mut self, stmt: ast::StaticStmt) -> R<()> {
+        if let Some(a) = stmt.as_clause() {
+            return Err(self.unsupported(a.node().span(), "`STATIC AS type` before the names"));
+        }
         let Some(p) = self.cur else {
             let span = stmt.node().span();
             return Err(self.unsupported(span, "`STATIC` in the main module"));
@@ -330,22 +379,11 @@ impl Checker<'_> {
         }
     }
 
-    /// A variable used without a declaration under `OPTION _EXPLICIT`. Once something was marked "not supported
-    /// yet", the use is only "not supported yet" too: that construct may declare the name (an `$INCLUDE`, `DIM AS
-    /// LONG x`, a `TYPE` variable, a suffix not supported yet), so a real error could be false (the follow-on rule
-    /// of `study\23` §2.3, applied here first). Counted: the parser's marks earlier in the same file, and every
-    /// mark `sema` made so far. The latter are earlier in the file, except those of pass 1 (procedure headers)
-    /// and of the label pre-pass, which may stand anywhere; counting them too only hides more real errors.
+    /// A variable used without a declaration under `OPTION _EXPLICIT`: a real error. After a declaration marked
+    /// "not supported yet" (which may have declared the name) the follow-on rule drops it (design D10, which
+    /// replaced the narrower rule first applied here).
     fn undeclared(&mut self, t: Tok, ty: Ty) -> Failed {
         let shown = show_bytes(self.text(t.span));
-        let parse_mark_before = self
-            .parse_marks
-            .iter()
-            .any(|m| m.file == t.span.file && m.start < t.span.start);
-        if self.diags.unsupported_count() > 0 || parse_mark_before {
-            let msg = format!("`{shown}` under `OPTION _EXPLICIT` after a construct not supported yet");
-            return self.unsupported(t.span, msg);
-        }
         let msg = format!(
             "variable `{shown}` ({}) is not declared (`OPTION _EXPLICIT`)",
             ty.qb_name()
@@ -358,6 +396,9 @@ impl Checker<'_> {
     /// means (`v14_shared_plain_typed`); with `AS` it types the main module's plain name too, as a `DIM` there
     /// would (`v14_shared_plain_main`). Under `OPTION _EXPLICIT` a missing one is an error instead.
     pub(super) fn shared(&mut self, stmt: ast::SharedStmt) -> R<()> {
+        if let Some(a) = stmt.as_clause() {
+            return Err(self.unsupported(a.node().span(), "`SHARED AS type` before the names"));
+        }
         if self.cur.is_none() {
             let span = stmt.node().span();
             return Err(self.unsupported(span, "`SHARED` in the main module"));

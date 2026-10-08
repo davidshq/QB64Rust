@@ -55,10 +55,22 @@ Progress (number of entries per set):
 | 2026-10-05 group 6 (blocks) | 47 | 236 | 68 | 137 | 39 | 527 | 59 | 81 |
 | 2026-10-06 `CONST` and `OPTION` parsed (`m2-control-flow-slice` 4.1) | 42 | 224 | 62 | 137 | 35 | 500 | 59 | 77 |
 | 2026-10-07 `m2-control-flow-slice` done (constants, `OPTION _EXPLICIT`, blocks in `sema`) | 42 | 224 | 62 | 137 | 35 | 500 | 43 | 72 |
+| 2026-10-07 `m2-arrays-and-types` done (static arrays, `TYPE`) | – | – | – | – | – | 461 | 43 | 71 |
+| 2026-10-07 `m2-parser-breadth` groups 7 and 8 (statements, templates, `$IF`, `$INCLUDE`, follow-on rule) | 0 | 0 | 0 | 0 | 0 | **0** | **0** | 66 |
 
 The set columns count parse gaps. After group 6 no first gap is a block any more; the most frequent first gaps are
 arrays (93), `REDIM` (144), `SCREEN` (47), `DEFINT` and the other `DEFxxx` (65), `CONST` (41) and statements whose
 arguments the parser cannot read yet (`OPEN … FOR`, `LINE INPUT`, `NAME … AS`; 37 `Error` nodes).
+
+After groups 7 and 8 (2026-10-07) **both `known_parse_gaps.list` and `known_false_errors.list` are empty**: every
+program the old compiler accepts parses without a diagnostic and gets no real error, with `qb64pe.bas` read
+through all its included files and every clone set read. Included files are followed now: tier 1 uses
+`tests/upstream/root` as the compiler root for the repo's sets (it mirrors `compile_tests/extra`, which two tests
+include relative to the compiler's folder), and the `upstream/qb64pe/` programs, which include the old compiler's
+sources by a relative path, count as a clone-dependent set. `known_unsupported_rejections.list` went from 71 to
+66: six programs now get a real error for the old compiler's reason, and one joined
+(`snippets/qb64fresh/constants__builtin_chr_str_constants_registered`: its real error, `_STR_CR`, follows a name of
+the auto-included files on the same line, which is now marked; named in task 8.2).
 
 After a change, regenerate the three lists with `QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs`
 and review the diff: entries may only go away (a new entry is a regression to fix, unless it is a program new to
@@ -131,3 +143,13 @@ diagnostics before the change, the other 10 need array parameters (`array_arg_di
 whole array; they stay "not supported yet" until whole arrays exist) or `_MEM` (`types/dim_array`,
 `types/static_array`). The suite's array programs mostly need what the slice left out (`REDIM`, dynamic arrays,
 array parameters).
+
+**Upstream progress, 2026-10-07: 34 of 279** (`m2-parser-breadth` groups 7 and 8). Full run with the release
+build against the QB64pe 4.7.0 release (404 programs, 48 s): 34 pass; added to `pass.list`: the four
+`include_once`/`include_paths` programs (comment `$INCLUDE` followed, `--include-root tests/upstream/root`), the
+two `declare_library_external` programs (their `DECLARE LIBRARY` is in a `$IF` branch not taken on Windows; also
+found by `study\26` §3) and the four `types/*_no_length` `.err` programs (now the old compiler's reason, no size
+after `*`). None builds and prints the wrong output: an earlier run of the change found
+`precomp-flags/consoleonly` doing so (`$IF _CONSOLE_` false), now marked "not supported yet" (`study\26` §2).
+`auto_include/no-debug` passed by luck before the fix (its `_DEBUG_` is 0) and is marked now. 1 known failure.
+The tier-2 runner passes `--include-root tests/upstream/root` to the new compiler on its own.

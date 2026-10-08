@@ -101,6 +101,7 @@ impl<'a> Lowerer<'a> {
             .map(|l| Label {
                 name: Some(l.name.clone()),
                 line: l.line,
+                file: Some(l.file),
                 at: 0,
             })
             .collect();
@@ -134,6 +135,7 @@ impl<'a> Lowerer<'a> {
         self.labels.push(Label {
             name: None,
             line,
+            file: None,
             at: usize::MAX,
         });
         LabelId(to_u32(self.labels.len() - 1))

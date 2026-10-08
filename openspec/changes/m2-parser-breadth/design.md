@@ -171,6 +171,15 @@ these statements by the template too (`seperateargs`, `study\02` §4.3). So:
 dependency graph, but the tree would be wrong for `(a, b)-(c, d)` and `STEP`, and every consumer (language server,
 formatter) would need the matcher.
 
+As built (task 7.5, 2026-10-07): `build.rs` includes `builtins\src\template.rs` and checks that every template
+parses and prints back, so a malformed one still fails the build; the grammar values themselves are parsed on
+demand (`statement_templates`) instead of being emitted as code. The matcher works on the tokens ahead before
+building anything (an argument's extent from the shape of the expression grammar), then builds the node.
+`sema` does not run the matcher yet: it marks every `BuiltinStmt` by name until the built-in statements are
+compiled. A reserved word followed by `=` with no matching form (`key = 1`) is left to the assignment path, which
+reports the reserved name. Not template statements but parsed with them: `_MEMPUT`/`_MEMFILL … AS type`
+(`MemStmt`) and `_ARRAYCOPY src TO dst` (`ArrayCopyStmt`).
+
 ### D7. Expressions
 Postfix member access after an index or call: `FieldExpr` (`a(1).b`, `a(1).b(2).c`); omitted arguments (D6); the
 remaining forms found by the lists (keyword-named functions such as `TIMER`, `SCREEN(…)`, `INPUT$(…)`, `PLAY(n)`
@@ -234,6 +243,16 @@ pops without checking, reports the later `END IF` instead; our messages are new 
 - A file's tree is parsed as statements at file level; whether its content is legal at the include point (a `SUB`
   in a file included inside a `SUB`) is checked by `sema` against the old compiler's verdict (M7).
 
+As built (task 8.1, 2026-10-07): the loader is the driver's `FileLoader`; the parser holds an `Includer` (map,
+loader, trees, include map, `$INCLUDEONCE` files, depth) through a second lifetime. **The compiler root for the
+upstream tests is `tests\upstream\root`, not `tests\upstream`**: the copy lives at `tests\upstream\compile_tests`,
+so `'tests/compile_tests/extra/…'` could not resolve against `tests\upstream`; `copy_upstream_tests.py` mirrors
+`extra\` into `root\tests\compile_tests\extra\`. In tier 1 the `upstream/qb64pe/*` programs, which include the
+old compiler's sources as `../../../source/…`, resolve from the clone's copy of their folder and count as a
+clone-dependent set. Statements and labels of an included file carry its file, and the generated code reports a
+runtime error there as the old compiler does, `evnt(line, line in file, "file")` (measured,
+`verification\v19_include_runtime_error`).
+
 ### D10. `sema`: keys, marking, no follow-on errors
 - **Keys.** `proc_of_def`, `label_of_def` and every other node-keyed map use (`TreeId`, offset), not the offset
   alone; `FileId` is not enough because one file can be included twice. `check` takes the `SourceMap` and the
@@ -259,6 +278,16 @@ pops without checking, reports the later `END IF` instead; our messages are new 
 - **Risk to "rejected stays rejected":** dropping real errors can hide one in a program the old compiler rejects
   (the test engineer's dissent, `study\23` §2.3). The third list rule (D1) makes every such case visible and
   reviewed.
+
+As built (task 8.2, 2026-10-07): pass 2 walks the program in file order, included files in place; a declaration
+statement marked there, a main-module `TYPE` block marked in pass 1 (once pass 2 reaches it), a `TYPE` block
+inside a body, and a `DECLARE LIBRARY` block turn the rule on. `DEF FN` is a real error, not a mark, so it does
+not. The narrower `OPTION _EXPLICIT` rule of `m2-control-flow-slice` is gone. On review the rule added no entry
+to `known_unsupported_rejections.list`; the auto-include marks added one (task 8.2 names it). Also found:
+QB64pe's **precompiler flags** (`_CONSOLE_`, `_EXPLICIT_`, `_EXPLICITARRAY_`, `_ASSERTS_`, `_DEBUG_`,
+`_SOCKETS_`, set by the old compiler from the whole program) were unknown `$IF` names, so a `$IF _CONSOLE_` was
+false and one upstream program printed the wrong output. A `$IF`/`$ELSEIF` naming one is now marked by `sema`
+(the parser takes the branch without a diagnostic, D8), until the flags are computed.
 
 ### D11. Panic hook and the tier-2 `.err` meaning
 - `main` installs a panic hook: it prints `qb64rust: internal compiler error: <message> at <file>:<line>` and the

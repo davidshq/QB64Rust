@@ -124,6 +124,11 @@ impl SourceMap {
         &self.files[id.0 as usize]
     }
 
+    /// Every file, with its id, in the order they were added.
+    pub fn files(&self) -> impl Iterator<Item = (FileId, &SourceFile)> {
+        self.files.iter().enumerate().map(|(i, f)| (FileId(to_u32(i)), f))
+    }
+
     /// The bytes a span covers.
     pub fn text(&self, span: Span) -> &[u8] {
         &self.file(span.file).bytes[span.start as usize..span.end as usize]

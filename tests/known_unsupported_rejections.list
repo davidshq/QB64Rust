@@ -2,14 +2,13 @@
 # testing/upstream-tests, "Rejected programs stay rejected"). Shrink-only: once a program gets a real error it
 # leaves the list. Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.
 corpus/runtime_comparison/16_ltrim_rtrim.bas
-corpus/runtime_comparison/194_array_param_2d.bas
 corpus/runtime_comparison/202_redim_preserve.bas
 corpus/runtime_comparison/218_fre.bas
 corpus/runtime_comparison/28_redim.bas
 snippets/qb64fresh/arrays__redim_dynamic_array.bas
 snippets/qb64fresh/arrays__redim_preserve.bas
 snippets/qb64fresh/builtin_functions__trim_functions.bas
-snippets/qb64fresh/conditional_compilation__if_not_operator.bas
+snippets/qb64fresh/constants__builtin_chr_str_constants_registered.bas
 snippets/qb64fresh/continue_statement__continue_do.bas
 snippets/qb64fresh/continue_statement__continue_for.bas
 snippets/qb64fresh/continue_statement__continue_while.bas
@@ -64,11 +63,7 @@ upstream/const/not_bad_identifier.bas
 upstream/const/offset.bas
 upstream/const/undefined_argument.bas
 upstream/const/undefined_argument_first.bas
-upstream/types/dim_bad_bit_no_length.bas
-upstream/types/dim_bad_string_no_length.bas
 upstream/types/dim_bad_typename_byte.bas
 upstream/types/dim_bad_typename_string.bas
-upstream/types/static_bad_bit_no_length.bas
-upstream/types/static_bad_string_no_length.bas
 upstream/types/static_bad_typename_byte.bas
 upstream/types/static_bad_typename_string.bas

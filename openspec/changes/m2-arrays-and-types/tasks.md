@@ -206,5 +206,8 @@ code that depends on them.
   `check_repo.py --untracked` clean.
   *Done 2026-10-07:* all listed files updated; `STATUS.md` names step 4 "closing" until 9.2. Both changes
   validate; the repo check is clean apart from untracked `*.exe.qb64rust\` build folders of earlier runs.
-- [ ] 9.2 CI: the `tier2` job's steps run locally against the QB64pe 4.7.0 release, all pass. Archive the change
+- [x] 9.2 CI: the `tier2` job's steps run locally against the QB64pe 4.7.0 release, all pass. Archive the change
   when the user has seen the record.
+  *Done 2026-10-07 (session 23):* the job's two steps run locally with the release build of commit `59390db`
+  against the `v4.7.0-GLFW` release, upstream programs from the `tests\upstream` copy: corpus `slice.list` 129 of
+  129 (275 s), upstream `pass.list` 24 of 24 (36 s).

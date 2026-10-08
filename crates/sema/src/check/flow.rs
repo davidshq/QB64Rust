@@ -20,7 +20,14 @@ impl Checker<'_> {
             if skips.past_cap(stmt) {
                 break;
             }
-            if let Some(inner) = nested_statements(stmt) {
+            if let Some(tree) = self.program.included(stmt) {
+                // The labels of an included file belong to the body it is included in.
+                let inner: Vec<Node> = ast::SourceFile::cast(tree.root())
+                    .into_iter()
+                    .flat_map(|f| f.statements())
+                    .collect();
+                self.declare_labels(&inner, skips, body);
+            } else if let Some(inner) = nested_statements(stmt) {
                 self.declare_labels(&inner, skips, body);
             } else if let Some(l) = ast::LabelDef::cast(stmt)
                 && skips.usable(stmt)
@@ -57,6 +64,7 @@ impl Checker<'_> {
         self.prog.labels.push(Label {
             name: key.1.clone(),
             line,
+            file: t.span.file,
             proc: body,
         });
         self.labels_by_name.insert(key, id);
@@ -89,13 +97,9 @@ impl Checker<'_> {
                 let msg = format!("a label with the name of a SUB, FUNCTION or built-in: `{shown}`");
                 return Err(self.unsupported(t.span, msg));
             }
-            // The label may stand in a file not included yet. Nothing else hides one: a label is entered wherever
-            // its line parses, also inside a block or a construct not supported yet, so the follow-on rule of
-            // `OPTION _EXPLICIT` (`check\decl.rs` `undeclared`) is not needed here.
-            if self.has_include {
-                let msg = format!("label `{shown}` in a program with an `$INCLUDE`");
-                return Err(self.unsupported(t.span, msg));
-            }
+            // Nothing hides a label: one is entered wherever its line parses, also inside a block, an included
+            // file or a construct not supported yet, so the follow-on rule of `OPTION _EXPLICIT` (`check\decl.rs`
+            // `undeclared`) is not needed here.
             let msg = if body.is_some() {
                 // Measured: labels of the main module and of other procedures are not visible
                 // (`verification\v17_d_err_goto_main_from_sub`, `v17_d_err_gosub_main_from_sub`).
@@ -167,7 +171,22 @@ impl Checker<'_> {
     /// when the main module has one of that name (measured, `v14_on_error_in_sub`, `v17_d_on_error_sub_label_both`).
     pub(super) fn on_error(&mut self, s: ast::OnErrorStmt) -> R<()> {
         let node = s.node();
+        if let Some(w) = s.handler_word() {
+            let msg = format!(
+                "`ON ERROR GOTO {}`",
+                show_bytes(&self.text(w.span).to_ascii_uppercase())
+            );
+            return Err(self.unsupported(w.span, msg));
+        }
         let t = self.need(s.target(), node.span())?;
+        if self.text(t.span).starts_with(b"_") {
+            // `_LASTHANDLER`, or a label QB64 would reject; neither is a label of this program.
+            let msg = format!(
+                "`ON ERROR GOTO {}`",
+                show_bytes(&self.text(t.span).to_ascii_uppercase())
+            );
+            return Err(self.unsupported(t.span, msg));
+        }
         let handler = if t.kind == Number {
             self.zero(t)?;
             None

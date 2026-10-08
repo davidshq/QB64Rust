@@ -150,12 +150,13 @@ fn calls() {
     insta::assert_snapshot!(tree("CALL s(n, 2)\nCALL t\ns n, \"x\"\ns (n)\nt\nbump n + 1: t\n"));
 }
 
-/// Without `CALL`, arguments that are not an expression list are kept in an `Error` node with no diagnostic
-/// (built-in statements such as `LOCATE , 5`); with `CALL` they are an error. In parentheses an argument may be
-/// left out (`CALL s(1,)`); `sema` reports that.
+/// Without `CALL`, arguments that are not an expression list are kept in an `Error` node with no diagnostic (`t ,
+/// 5`: a built-in statement without a template, or a SUB); with `CALL` they are an error. In parentheses an
+/// argument may be left out (`CALL s(1,)`); `sema` reports that. Built-in statements with a template (`LOCATE , 5`,
+/// `COLOR 4,`) are read by it (task 7.5).
 #[test]
 fn call_arguments_the_parser_cannot_read() {
-    insta::assert_snapshot!(tree("LOCATE , 5\nCOLOR 4,\ns (1, 2)\nCALL s(1,)\nCALL s(1 2)\n"));
+    insta::assert_snapshot!(tree("LOCATE , 5\nCOLOR 4,\ns (1, 2)\nCALL s(1,)\nCALL s(1 2)\nt , 5\n"));
 }
 
 /// Member access after an index or a member (`.` is a `Dot` token there), with blanks around the dot; a dotted
@@ -178,6 +179,27 @@ fn exit_declare_shared_static() {
 fn data_read_restore() {
     insta::assert_snapshot!(tree(
         "DATA 1, \"a, b\": READ x, a$(2), t(1).f\nRESTORE\nRESTORE lab\nRESTORE 100\nDATA\nDATA \"a\" b, 2\n"
+    ));
+}
+
+/// Declarations (design D5, task 7.2): `DEFxxx` and `_DEFINE` letter ranges, `DIM AS type` lists, fixed-length
+/// strings, `REDIM` with `_PRESERVE`/`SHARED` and a member array, `COMMON` with a block name, `ERASE` of a plain
+/// array and a member array (also with blanks around the dot), `STATIC AS`, array parameters and `STATIC` after a
+/// header, a type name as an argument.
+#[test]
+fn declarations() {
+    insta::assert_snapshot!(tree(
+        "DEFINT A-Z, i\n_DEFINE m AS _UNSIGNED LONG\nDIM AS LONG a, b(3)\nDIM s AS STRING * 8\nREDIM SHARED _PRESERVE r(1 TO 2)\nREDIM w(0).v(3)\nCOMMON SHARED /blk/ c()\nERASE r, w(0).v, a . s\nSTATIC AS LONG st\nSUB p (x(), y( ,) AS LONG) STATIC\nEND SUB\nv = VAL(\"1\", _UNSIGNED _INTEGER64)\n"
+    ));
+}
+
+/// The preprocessor (design D8): every `$…` line is a `MetaStmt`; a branch not taken is one `InactiveCode` node
+/// (here holding a nested `$IF`, an unclosed `FOR` and garbage), up to the `$ELSE` of its level; a `$IF` inside a
+/// `FOR` body; the `$IF` and block entries nest.
+#[test]
+fn preprocessor() {
+    insta::assert_snapshot!(tree(
+        "$IF LINUX THEN\n$IF WIN THEN\nFOR i = 1 TO\n$END IF\n(((\n$ELSE\nPRINT 1\n$END IF\nFOR i = 1 TO 2\n  $IF WIN THEN\n  PRINT i\n  $END IF\nNEXT\n$LET A = 1\n"
     ));
 }
 
@@ -259,10 +281,10 @@ fn error_handling_statement_errors() {
 
 #[test]
 fn unsupported_statement_message() {
-    let p = parse_one(b"PRINT 1\n\nREDIM c(2)\n");
+    let p = parse_one(b"PRINT 1\n\nLIST 1\n");
     let diags = p.diagnostics();
     let d = &diags.list()[0];
-    assert_eq!(d.message, "statement `REDIM`");
+    assert_eq!(d.message, "statement `LIST`");
     assert!(d.unsupported);
     assert_eq!(d.span.start, 9);
 }

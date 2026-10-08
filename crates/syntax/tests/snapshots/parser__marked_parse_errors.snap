@@ -18,22 +18,27 @@ SourceFile 0..54
       NameRef 10..11
         Ident b
   Newline \x0A
-  Error 12..22
+  RedimStmt 12..22
     Ident REDIM
     Whitespace  
-    Ident a
-    LParen (
-    Number 5
-    RParen )
+    DimItem 18..22
+      Ident a
+      ArrayBounds 19..22
+        LParen (
+        Literal 20..21
+          Number 5
+        RParen )
   Newline \x0A
   PrintStmt 23..34
     Ident PRINT
     Whitespace  
-    Error 29..34
+    FileNumber 29..32
       Hash #
-      Number 1
+      Literal 30..31
+        Number 1
       Comma ,
-      Whitespace  
+    Whitespace  
+    NameRef 33..34
       Ident x
   Newline \x0A
   AssignStmt 35..45
@@ -62,7 +67,5 @@ SourceFile 0..54
     Error 52..53
       Number 6
   Newline \x0A
-t.bas:2:1: error: not supported yet: statement `REDIM`
-t.bas:3:7: error: not supported yet: `PRINT #`
 t.bas:4:7: error: not supported yet: word `TO` (expected the end of the statement)
 t.bas:5:7: error: expected the end of the statement

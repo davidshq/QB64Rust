@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-07 (session 22). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-07 (session 23). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice done (closing).**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice done (archive pending your look at its record); parser breadth done to its last documentation task: every program the old compiler accepts parses, and no false error is left.**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -177,9 +177,9 @@ states the pending-error rule (a raising header behaves as in QB64pe, measured b
 
 ## M2: arrays-and-`TYPE` slice (2026-10-07)
 
-OpenSpec change `m2-arrays-and-types` (`openspec\changes\m2-arrays-and-types\`): tasks 1–8 and the documents of 9.1
-done; open: 9.2 (the CI `tier2` steps against the QB64pe 4.7.0 release, then archive after the user has seen the
-record). Supported now (`crates\README.md`): static arrays of the main module (numeric, `STRING`, `TYPE`
+OpenSpec change `m2-arrays-and-types` (`openspec\changes\m2-arrays-and-types\`): all tasks done (9.2 on
+2026-10-07, session 23: the CI `tier2` steps against the QB64pe 4.7.0 release, 129 of 129 and 24 of 24); to be
+archived once the user has seen the record. Supported now (`crates\README.md`): static arrays of the main module (numeric, `STRING`, `TYPE`
 elements), elements by reference, `LBOUND`/`UBOUND`, `TYPE` with numeric and nested members, members by
 reference, dotted plain names. Measured first (`verification\v18_*`, 67 programs, `study\00` §5). Decided by the
 user: a member store into an element with a bad index stores nothing (`DIVERGENCES.md` D-004). The IR now shares
@@ -195,26 +195,37 @@ user: a member store into an element with a bad index stores nothing (`DIVERGENC
    pauses until step 5.
 3. Done 2026-10-07: `m2-control-flow-slice` (archived); the IR review (`study\25`): **IR kept**, the jump and
    error model final, the value-tree copy decided after step 4, the place question stated for step 4 (§3).
-4. **Now (closing):** `m2-arrays-and-types`, task 9.2 (CI `tier2` steps against the 4.7.0 release; archive). The
+4. Done 2026-10-07 (session 23): `m2-arrays-and-types` task 9.2; the change waits only for the archive. The
    place question and the value-tree question of the IR review are answered (design D5, D10).
-5. `m2-parser-breadth` groups 7 to 9 (statements, `specialformat` templates, `$IF`, `$INCLUDE`, the follow-on rule,
-   block crossing marked; `study\23` §2.3, §2.4). May run before 4.
+5. Done 2026-10-07 (session 23): `m2-parser-breadth` groups 7 and 8 (preprocessor, declarations, control
+   transfer, I/O statements, `specialformat` templates, `$INCLUDE` with one tree per file, the follow-on rule,
+   auto-include names) and group 9; `known_parse_gaps.list` and `known_false_errors.list` are empty. **Now:** the
+   archive of both changes (after the user has seen their records), and the decisions of `study\26` §9.
 6. The thin language server (`study\23` §2.6).
 7. Bug-compatibility decisions (`study\00` §6), the differential tester, `Ty` as a type table, unsigned types.
 8. Plain built-ins (249 of 455), table-driven, with generated tests.
 9. The rest of control flow (`SELECT CASE`, `ON … GOTO/GOSUB`, `DEFxxx`), then the rest of arrays and `TYPE`
    (`REDIM`, dynamic arrays, `OPTION BASE`; member arrays stay in `SOMEDAY.md`).
 
-Numbers at the last full runs (2026-10-07, `m2-arrays-and-types` task 7.2): `slice.list` 129 of 129, full corpus
-144 pass and none wrong at run time, upstream **24 of 279**; shrink-only lists: 43 false errors, 71 only-marked
-rejections, 461 parse gaps (`tests\upstream\README.md`).
+Numbers at the last full runs (2026-10-07, session 23, release build against the QB64pe 4.7.0 release):
+`slice.list` 131 of 131, full corpus 147 pass and none wrong at run time, upstream **34 of 279** (none wrong);
+shrink-only lists: **0 false errors, 0 parse gaps**, 66 only-marked rejections (`tests\upstream\README.md`).
+Tier 1: 9.5–9.9 s.
 
-**`m2-parser-breadth`** (started 2026-10-04, paused at group 6; `openspec\changes\m2-parser-breadth\tasks.md`):
-done are the wrong-code fix for comment metacommands, the panic hook, the tier-2 `.err` meaning, the parse-gap
-list, the `v16_*` measurements (which changed eight design decisions, listed in its task 3.1), one tree per file,
-member access, `DATA`, line numbers, plain jumps, and every block as a node with recovery. It resumes at step 5
-with statements, `specialformat` templates (new dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree
-per file, and the follow-on rule; done when the parse-gap and false-error lists are empty.
+**`m2-parser-breadth`** (started 2026-10-04; `openspec\changes\m2-parser-breadth\tasks.md`): groups 1–6 as
+before (wrong-code fix for comment metacommands, panic hook, tier-2 `.err` meaning, parse-gap list, `v16_*`
+measurements, one tree per file, member access, `DATA`, line numbers, blocks). Session 23, groups 7 and 8: the
+preprocessor (`syntax\src\pp.rs`, a port of `EvalPreIF`; `$IF` and blocks nest; slice program `s23`), every
+declaration form, `ON … GOTO/GOSUB` and the event forms, the I/O statements, built-in statements read by their
+`specialformat` template (new dependency `syntax -> builtins`), `$INCLUDE` (the parser loads and parses included
+files with the shared `PpState`; `--include-root`; runtime errors in an included file named as QB64pe names
+them), the follow-on rule, and the names of QB64pe's auto-included files; all marked "not supported yet" in
+`sema` unless already compiled. Measured on the way (`verification\v19_*`, `study\00` §5): procedure names
+(the known bug below), blanks around a dot, `OPTION _EXPLICIT` in an included file, a runtime error in an included
+file. Found and fixed on the way: the precompiler flags (`_CONSOLE_` ...) were unknown names and made upstream
+`precomp-flags/consoleonly` print the wrong output (now marked); the design's include root could not resolve two
+upstream tests (now `tests\upstream\root`, made by the copy script). All tasks done; to be archived once the user
+has seen the record.
 
 ## FreeBASIC reviewed (2026-10-03)
 
@@ -227,10 +238,14 @@ M1 leftovers: done (see above).
 
 ## Known bugs
 
-Open (found 2026-10-07, `m2-arrays-and-types` task 3.1): **a SUB named like a built-in function is a false
-error**: `SUB loc` gives "name already in use" (`LOC` is a built-in), while the old compiler accepts it and calls it.
-The reserved-name rule (`m2-procedures-and-errors` D3) was measured for variables only; procedure names need their
-own measurement. No list entry yet (no input has one).
+None open.
+
+Fixed 2026-10-07 (session 23): **a SUB named like a built-in function was a false error** (`SUB loc`: "name already
+in use"). Measured for every keyword and built-in (`verification\v19_proc_names`, 1,948 programs): a SUB name is
+taken only by a built-in statement without a required suffix, a FUNCTION name only by a built-in function without
+one (plus keywords and `_` names, as for variables); `sema`'s `reserved_proc`, checked against every measured form
+by `names.rs`. In an expression such a SUB's name still means the built-in function. Slice program
+`s24_proc_names`.
 
 Fixed 2026-10-07 (session 20): **deeply nested expressions overflowed the stack** (`x = 1 + 1 + …`
 with 20,000 terms, 3,000 nested parentheses; the debug build already at 250 terms, since a left-associative chain

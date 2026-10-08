@@ -12,13 +12,16 @@ SourceFile 0..56
     Literal 4..5
       Number 1
   Newline \x0A
-  Error 6..16
+  RedimStmt 6..16
     Ident REDIM
     Whitespace  
-    Ident c
-    LParen (
-    Number 3
-    RParen )
+    DimItem 12..16
+      Ident c
+      ArrayBounds 13..16
+        LParen (
+        Literal 14..15
+          Number 3
+        RParen )
   Colon :
   Whitespace  
   PrintStmt 18..25
@@ -51,5 +54,4 @@ SourceFile 0..56
   EndStmt 52..55
     Ident END
   Newline \x0A
-t.bas:2:1: error: not supported yet: statement `REDIM`
 t.bas:5:9: error: expected `)`

@@ -46,7 +46,7 @@ From the expert panel (`07`), whose recommendations R1–R13 the decisions above
 |---|---|---|---|
 | M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
 | M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | **done** (`vscode\`) |
-| M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server; formatter matching `-y` | **in progress**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling; upstream tests; control flow and constants (`crates\`; 113 corpus programs and 23 of 279 upstream ones pass end to end). Order of work: `STATUS.md`, `study\24` §4 |
+| M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server; formatter matching `-y` | **in progress**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling; upstream tests; control flow and constants; arrays and `TYPE`; parser breadth (every accepted program parses, no false error) (`crates\`; 147 corpus programs and 34 of 279 upstream ones pass end to end). Order of work: `STATUS.md`, `study\24` §4 |
 | M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests; programs without `$CONSOLE:ONLY` with a screen-state oracle | started early: the slice already links with libqb |
 | M4 | Parity | The corpus (275) and the upstream tests in reach (279 of 404; 125 need the deferred array features) match; `qb64pe.bas` compiles and the result passes the suite (exit criterion, `study\20`) | |
 | M5 | Debugger | Debug symbol file + DAP adapter | |
@@ -273,7 +273,9 @@ question, include files in `v16_inc\` and `v16_*.bi`):
   `_ARM_` false; `VERSION` compares as a version (`VERSION >= 4.7.0` true). `$LET A = 2` redefines `A`, but
   **`$LET WIN = 0` does not override `WIN`** (it adds a second entry; the bare-name test stops at the first true
   one). `$LET E` without `=` is an error. `$ENDIF` is accepted; garbage and unknown metacommands in an inactive
-  branch are ignored, nested `$IF`s there are counted. `$IF`/`$LET` **only at the start of a line**: after `:` or
+  branch are ignored, nested `$IF`s there are counted, but their preprocessor lines are still checked (measured
+  2026-10-07 with `qb64pe -z`: a `$IF` without `THEN`, a duplicate operator and a second `$ELSE` are errors in an
+  inactive branch; `$LET` and `$ERROR` there are skipped, `qb64pe.bas` 1836–1900). `$IF`/`$LET` **only at the start of a line**: after `:` or
   in a single-line `IF` it is "Unexpected character on line". **`$IF` and blocks must nest properly**: `$IF`
   pushes an entry on the block stack and `$END IF` pops the top one, whatever it is (`qb64pe.bas` 3430–3436), so a
   block header inside an active `$IF` closed outside it (one header, or two split by `$ELSE`), and an `IF` opened
@@ -290,7 +292,9 @@ question, include files in `v16_inc\` and `v16_*.bi`):
   twice is included twice; `$INCLUDEONCE` works on its first line and on a later line. Blocks may cross files (a
   `FOR` closed by a `NEXT` in an include, a `SUB` closed by an `END SUB` in one); a file with a `SUB` included
   inside a `SUB` is "Expected END SUB/FUNCTION before SUB"; at the end of main it is fine. A `$LET` in an include
-  reaches the main file. Missing file: "File x not found". There is no cycle check: a self-include stops at 100
+  reaches the main file, and a `$IF` of the main file may be closed by a `$END IF` in an include (accepted, also
+  with a `FOR` around both; measured 2026-10-07; "not supported yet" in the new compiler, like a `$IF` an include
+  leaves open). Missing file: "File x not found". There is no cycle check: a self-include stops at 100
   levels ("Too many indwelling INCLUDE files", listing every level), and one guarded by `$IF` and `$LET` is
   accepted (included twice, the second time inactive; `v16_m7_self_guarded`). Messages from inside an include
   name the file by its full path and carry a 0x01 byte before " in line n of …".
@@ -449,6 +453,30 @@ program per question; handlers print `ERR` and resume next):
   expression" (not a dotted name); a member of an element of a numeric array likewise; an unknown member of an
   element is "Element not defined". `STRING` members start empty (also locals on each call), follow the same store
   rules, and pass by reference to a `STRING` parameter.
+
+Measured during parser breadth groups 7 and 8 (2026-10-07, `m2-parser-breadth` session 23; `verification\v19_*`):
+
+- **Procedure names (`v19_proc_names`, 1,948 programs: every keyword and built-in as a SUB called bare and with
+  `CALL`, and as a FUNCTION bare and with `&`):** a SUB name is taken only by a built-in **statement** of that
+  name without a required suffix (`CLS`, `BEEP`, `WIDTH`), a FUNCTION name only by a built-in **function** (`ABS`,
+  `LOC`, `EOF`); `_` names and keywords are taken, a built-in that needs `$` leaves the bare name free (`SUB left`).
+  So `SUB loc`, `SUB abs`, `FUNCTION beep`, `FUNCTION close` are accepted, and in an expression the name of such a
+  SUB still means the built-in function. Inside `FUNCTION close`, `close = 3` is the result assignment; `end = 5`
+  and `system = 5` stay the statements ("Expected variable/value before '='"). Two programs compile with `-z` and
+  fail the C++ build (`CALL peek`, `FUNCTION poke`). A name starting with two underscores is valid (`validname`
+  refuses a single leading `_` only; `qb64pe.bas` has a parameter `__name$`).
+- **Blanks around a dot (`v19_dot_blanks_*`):** the old compiler drops them: `a . s` is `a.s`, for a `TYPE` member,
+  a plain dotted name and in `ERASE a . S`.
+- **Preprocessor:** besides the predefined names (M6), the old compiler sets `_EXPLICIT_`, `_EXPLICITARRAY_`,
+  `_ASSERTS_`, `_CONSOLE_`, `_DEBUG_`, `_SOCKETS_` from the whole program (`qb64pe.bas` 1713–1722, recompiling
+  until stable); upstream `precomp-flags/*` test them.
+- **Included files:** an `OPTION _EXPLICIT` that stands only in an included file applies to the whole program,
+  also to lines before the include (`v19_explicit_in_include`, `v19_explicit_before_include`). An untrapped runtime
+  error in an included file reports the line in that file and its name, "Line: 3 (in raise.bi)"
+  (`v19_include_runtime_error`; the generated code passes `evnt(line, line in file, "file")`).
+- **Template statements (7.5):** each of `LINE (0, 0) (9, 9)`, `LINE … , 1, XX`, `PSET 1, 2`, `CIRCLE (1, 1)`,
+  `OPEN "f" FOR INPUT #1`, `LOCATE` with six arguments, `SCREEN 12 13` is rejected ("Syntax error - Reference: …",
+  `SCREEN 12 13` "Expected operator in equation"); `tests\frontend\template_errors.bas`.
 
 ## 6. Bug-compatibility choices still to make
 
@@ -622,6 +650,7 @@ as a reading of the code, not a measurement.
 | `23` | Third review (2026-10-05): path check of the codebase, the panel's outcome; its order of work is replaced by `24` §4 |
 | `24` | Fourth review (2026-10-07): code against plan after the control-flow slice's groups 1–5, why arrays and `TYPE` move before the type table and built-ins, `STATUS.md` as entry point; the current order of work |
 | `25` | IR review (2026-10-07): what the lowering does and the emitter still does, keep or merge, the place question for the arrays-and-`TYPE` slice with the old compiler's store rules to measure |
+| `26` | Fifth review (2026-10-07): a wrong-code bug in `$IF`, clean programs that tier 2 never runs, member arrays no longer behind `$UNSTABLE`, `$CONSOLE` tests as M2 work, blockers by kind and the proposed order (awaiting the user) |
 | `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

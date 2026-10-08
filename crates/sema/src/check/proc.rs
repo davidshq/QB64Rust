@@ -24,9 +24,12 @@ impl Checker<'_> {
         } else {
             ProcKind::Sub
         };
-        self.reserved(name_tok, &name, suffix)?;
+        self.reserved_proc(name_tok, &name, suffix, matches!(kind, ProcKind::Function(_)))?;
         if self.procs_by_name.contains_key(&name) {
             return Err(self.in_use(name_tok));
+        }
+        if let Some(t) = header.static_word() {
+            return Err(self.unsupported(t.span, "`STATIC` after a procedure header"));
         }
         let id = ProcId(to_u32(self.prog.procs.len()));
         self.prog.procs.push(Proc {
@@ -96,6 +99,9 @@ impl Checker<'_> {
         let mut scope = Scope::default();
         for param in header.params() {
             let name_tok = self.need(param.name(), param.node().span())?;
+            if let Some(t) = param.array_parens() {
+                return Err(self.unsupported(t.span, "array parameters"));
+            }
             let (name, suffix) = self.split_name(name_tok)?;
             let ty = match (suffix, param.as_clause()) {
                 (Some(_), Some(a)) => {

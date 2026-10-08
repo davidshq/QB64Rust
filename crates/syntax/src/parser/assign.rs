@@ -20,6 +20,10 @@ pub(crate) fn assign_stmt(p: &mut Parser) {
         if indexed_target(p) && p.expect(Eq, "`=`") {
             expr(p);
         }
+    } else if p.at(Ident) && p.nth(1) == Some(Dot) {
+        if dotted_target(p) && p.expect(Eq, "`=`") {
+            expr(p);
+        }
     } else {
         p.syntax_error("expected `<name> = <expression>`");
     }
@@ -40,6 +44,19 @@ fn indexed_target(p: &mut Parser) -> bool {
     let args = args_height(p);
     p.finish_node();
     let ok = args.is_some_and(|h| fields(p, cp, h + 1).is_some());
+    p.expr_nesting -= 1;
+    ok
+}
+
+/// `name . member ...` (blanks around the dot, `lexer.rs`), as a `FieldExpr`. Returns false after an error.
+fn dotted_target(p: &mut Parser) -> bool {
+    p.eat_trivia();
+    let cp = p.builder.checkpoint();
+    p.expr_nesting += 1;
+    p.start_node(NameRef);
+    p.bump();
+    p.finish_node();
+    let ok = fields(p, cp, 1).is_some();
     p.expr_nesting -= 1;
     ok
 }

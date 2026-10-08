@@ -34,6 +34,10 @@ fn binary_level(p: &Parser) -> Option<u8> {
                 2
             } else if is("_ORELSE") {
                 1
+            } else if p.in_const && is("ROOT") {
+                // The old compiler's constant evaluator: `exponent := numeric '^' unary | numeric 'ROOT' unary`
+                // (`const_eval.bas` 157–158).
+                16
             } else {
                 return None;
             }
@@ -54,6 +58,25 @@ fn prefix_level(p: &Parser) -> Option<u8> {
     }
 }
 
+/// The n-th significant token ahead is a binary operator (as [`binary_level`] sees it at the current token).
+pub(super) fn binary_at(p: &Parser, n: usize) -> bool {
+    match p.nth(n) {
+        Some(Caret | Star | Slash | Backslash | Plus | Minus | Eq | Lt | Gt | Le | Ge | Ne) => true,
+        Some(Ident) => {
+            ["MOD", "AND", "OR", "XOR", "EQV", "IMP", "_ANDALSO", "_ORELSE"]
+                .iter()
+                .any(|w| p.nth_is_word(n, w))
+                || (p.in_const && p.nth_is_word(n, "ROOT"))
+        }
+        _ => false,
+    }
+}
+
+/// The n-th significant token ahead is a word that cannot start an operand.
+pub(super) fn reserved_in_expr(p: &Parser, n: usize) -> bool {
+    RESERVED_IN_EXPR.iter().any(|w| p.nth_is_word(n, w))
+}
+
 /// Word operators and other words that cannot start an operand.
 const RESERVED_IN_EXPR: &[&str] = &[
     "MOD", "AND", "OR", "XOR", "EQV", "IMP", "_ANDALSO", "_ORELSE", "THEN", "TO", "ELSE",
@@ -69,6 +92,12 @@ pub(super) const MAX_EXPR_DEPTH: u32 = 1000;
 
 pub(crate) fn expr(p: &mut Parser) -> bool {
     expr_bp(p, 0).is_some()
+}
+
+/// An expression whose operators bind tighter than the comparisons, so that a following `=` is left alone
+/// (`LSET a$ = b$`, the target of `SWAP`).
+pub(crate) fn expr_above_comparison(p: &mut Parser) -> bool {
+    expr_bp(p, 11).is_some()
 }
 
 /// Parses an expression whose binary operators have level `min` or higher. Returns the height of the node it built
@@ -180,6 +209,38 @@ pub(super) fn fields(p: &mut Parser, cp: Checkpoint, mut height: u32) -> Option<
     Some(height)
 }
 
+/// The type names a built-in may take as an argument (`VAL(s, _UNSIGNED _INTEGER64)`, `_MEMGET(m, o, LONG)`,
+/// `_CAST(_BYTE, x)`).
+const TYPE_ARG_WORDS: [&str; 11] = [
+    "_BIT",
+    "_BYTE",
+    "INTEGER",
+    "LONG",
+    "_INTEGER64",
+    "_OFFSET",
+    "SINGLE",
+    "DOUBLE",
+    "_FLOAT",
+    "STRING",
+    "_MEM",
+];
+
+/// A type name as an argument, `[_UNSIGNED] type`, as a `TypeArg`, when one stands before the next `,` or `)`.
+/// Returns false (taking nothing) otherwise.
+fn type_arg(p: &mut Parser) -> bool {
+    let n = usize::from(p.at_word("_UNSIGNED"));
+    let is_type = TYPE_ARG_WORDS.iter().any(|w| p.nth_is_word(n, w));
+    if !is_type || !matches!(p.nth(n + 1), Some(Comma | RParen)) {
+        return false;
+    }
+    p.start_node(TypeArg);
+    for _ in 0..=n {
+        p.bump();
+    }
+    p.finish_node();
+    true
+}
+
 /// `(` arguments separated by commas `)`, at the `(`. An argument may be left out (`f(a, , b)`, `f(, b)`); `()`
 /// is an empty list, not one omitted argument.
 pub(super) fn arg_list(p: &mut Parser) -> bool {
@@ -197,7 +258,9 @@ pub(super) fn args_height(p: &mut Parser) -> Option<u32> {
     if !p.at(RParen) {
         loop {
             let omitted = p.at(Comma) || p.at(RParen);
-            if !omitted {
+            if !omitted && type_arg(p) {
+                height = height.max(1);
+            } else if !omitted {
                 // The arguments sit one level below the `ArgList`.
                 p.expr_nesting += 1;
                 let arg = expr_bp(p, 0);

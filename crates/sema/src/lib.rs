@@ -21,7 +21,7 @@ pub use check::{check, check_with};
 pub use dump::dump_typed;
 pub use symbols::{Symbol, SymbolId, SymbolKind, Symbols, dump_symbols};
 
-use qb64rust_base::Span;
+use qb64rust_base::{FileId, Span};
 use qb64rust_builtins::BuiltinId;
 
 /// A type. The numeric types are ordered by width within integers and within floats (`I16 < I32 < I64`, `F32 <
@@ -123,8 +123,10 @@ pub struct Const {
 pub struct Label {
     /// The name in upper case.
     pub name: String,
-    /// 1-based source line of the label.
+    /// 1-based source line of the label, in its file.
     pub line: u32,
+    /// The file the label stands in (an included file's labels report errors with its name).
+    pub file: FileId,
     /// The procedure whose body holds the label; `None` for the main module.
     pub proc: Option<ProcId>,
 }

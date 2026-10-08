@@ -1,9 +1,9 @@
 ' TEST: check-fail
 $CONSOLE:ONLY
-' Under OPTION _EXPLICIT, an undeclared variable after a construct marked "not supported yet" is only marked too
-' (m2-control-flow-slice task 4.3): the construct may declare it, so a real error could be false. Marked by the
-' parser (`DIM AS LONG v`, upstream `arrays\t659_variable_boolean_expr`) or by `sema` (`_UNSIGNED LONG`). The real
-' error before them stays.
+' Under OPTION _EXPLICIT, an undeclared variable after a declaration marked "not supported yet" gets no error: the
+' declaration may declare it, so a real error could be false (follow-on rule, m2-parser-breadth design D10, which
+' replaced m2-control-flow-slice 4.3). `DIM AS LONG v` (upstream `arrays\t659_variable_boolean_expr`) starts it;
+' the real error before it stays.
 OPTION _EXPLICIT
 a = 1
 DIM AS LONG v

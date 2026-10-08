@@ -1,16 +1,16 @@
 //! `qb64rust`: the command line (design D9, spec `compiler/cli`).
 //!
 //! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
-//! [--qb64pe-root <dir>] [--keep-build]`
+//! [--qb64pe-root <dir>] [--include-root <dir>] [--keep-build]`
 
-use qb64rust_driver::{build, dump_cpp, dump_ir, emit, frontend};
+use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit, frontend_with};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Mutex;
 
 const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
-[--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--keep-build]";
+[--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--include-root <dir>] [--keep-build]";
 
 #[derive(Default)]
 struct Options {
@@ -20,6 +20,8 @@ struct Options {
     cpp_only: bool,
     dump: Option<String>,
     root: Option<PathBuf>,
+    /// `--include-root`: where included files are looked up after the including file's folder.
+    include_root: Option<PathBuf>,
     keep_build: bool,
     /// `-f:<setting>=<value>` as given, checked by [`optimize_setting`].
     settings: Vec<String>,
@@ -67,6 +69,7 @@ fn parse_args() -> Result<Options, String> {
                 o.dump = Some(d);
             }
             "--qb64pe-root" => o.root = Some(PathBuf::from(value("--qb64pe-root")?)),
+            "--include-root" => o.include_root = Some(PathBuf::from(value("--include-root")?)),
             "--keep-build" => o.keep_build = true,
             _ if s.starts_with("-f:") => o.settings.push(s["-f:".len()..].to_string()),
             _ if s.starts_with('-') => return Err(format!("unknown option `{s}`")),
@@ -159,7 +162,18 @@ fn run() -> Result<ExitCode, String> {
         print!("{}", qb64rust_syntax::dump_tokens(&bytes));
         return Ok(ExitCode::SUCCESS);
     }
-    let fe = frontend(&name, bytes);
+    // The compiler root (spec `compiler/cli`): `--include-root`, resolved against the working directory now, or the
+    // folder of this executable.
+    let include_root = match &o.include_root {
+        Some(r) => std::path::absolute(r).map_err(|e| e.to_string())?,
+        None => std::env::current_exe()
+            .map_err(|e| e.to_string())?
+            .parent()
+            .map_or_else(PathBuf::new, Path::to_path_buf),
+    };
+    let fe = frontend_with(&name, bytes, |file| {
+        Box::new(FileLoader::new(&include_root, file, &input))
+    });
     let errors = fe.diagnostics.error_count();
     let report = |fe: &qb64rust_driver::Frontend| {
         if errors > 0 {

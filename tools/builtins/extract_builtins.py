@@ -194,6 +194,73 @@ def special_cased_names(names):
     return found
 
 
+SUPPORT = os.path.normpath(os.path.join(QB64PE, "..", "internal", "support"))
+# Included into every program by the old compiler (qb64pe.bas autoIncludeManager, 1720-1790); the colour files
+# only with $COLOR:0 or $COLOR:32 (`condition`).
+AUTO_INCLUDES = [
+    ("include/beforefirstline.bi", None),
+    ("include/afterlastline.bm", None),
+    ("color/color0.bi", "$COLOR:0"),
+    ("color/color32.bi", "$COLOR:32"),
+]
+
+
+def name_of(word):
+    """A declared name without its type suffix, upper case."""
+    m = re.match(r"[A-Za-z_][A-Za-z0-9_.]*", word.strip())
+    return m.group(0).upper() if m else None
+
+
+def auto_include_names():
+    """The names the auto-included BASIC files declare (m2-parser-breadth task 8.2): constants, SUBs, FUNCTIONs,
+    TYPEs and shared variables, each with its kind and file. A new compiler that does not include these files yet
+    reports a use of such a name "not supported yet" rather than as an error."""
+    out = []
+    for rel, condition in AUTO_INCLUDES:
+        path = os.path.join(SUPPORT, *rel.split("/"))
+        with open(path, encoding="latin-1") as f:
+            lines = f.read().splitlines()
+        seen = set()
+
+        def add(name, kind):
+            if name and (name, kind) not in seen:
+                seen.add((name, kind))
+                rec = {"name": name, "kind": kind, "file": rel}
+                if condition:
+                    rec["condition"] = condition
+                out.append(rec)
+
+        for raw in lines:
+            code, _ = strip_comment(raw)
+            for stmt in split_statements(code):
+                s = stmt.strip()
+                u = s.upper()
+                if u.startswith("CONST "):
+                    depth, cur, items = 0, "", []
+                    for c in s[6:]:
+                        depth += (c == "(") - (c == ")")
+                        if c == "," and depth == 0:
+                            items.append(cur)
+                            cur = ""
+                        else:
+                            cur += c
+                    items.append(cur)
+                    for item in items:
+                        add(name_of(item.split("=")[0]), "const")
+                elif re.match(r"(DECLARE\s+(LIBRARY\s+)?)?(SUB|FUNCTION)\s", u) and not u.startswith("DECLARE LIBRARY"):
+                    word = re.sub(r"^(DECLARE\s+)?(SUB|FUNCTION)\s+", "", s, flags=re.IGNORECASE)
+                    add(name_of(word), "sub" if re.search(r"\bSUB\b", u.split()[0] + " " + u.split()[1]) else "function")
+                elif u.startswith("TYPE ") and len(u.split()) == 2:
+                    add(name_of(s.split()[1]), "type")
+                elif re.match(r"(DIM|REDIM)\s+SHARED\s", u):
+                    rest = re.sub(r"^(RE)?DIM\s+SHARED\s+", "", s, flags=re.IGNORECASE)
+                    if rest.upper().startswith("AS "):
+                        rest = " ".join(rest.split()[2:])
+                    for item in rest.split(","):
+                        add(name_of(item.split("(")[0].split(" AS ")[0]), "variable")
+    return out
+
+
 def main():
     records, anomalies = parse_table()
     entries = [build(r) for r in records]
@@ -207,6 +274,8 @@ def main():
         "special_argument_codes": {str(k): v for k, v in SPECIAL_CODES.items()},
         "anomalies": anomalies,
         "entries": entries,
+        "auto_include_source": "QB64pe/internal/support/" + ", ".join(r for r, _ in AUTO_INCLUDES),
+        "auto_include": auto_include_names(),
     }
     out_path = os.path.join(HERE, "builtins.json")
     with open(out_path, "w", encoding="utf-8", newline="\n") as f:
@@ -227,6 +296,7 @@ def main():
     print("functions without id.ret:", noret)
     print("anomalies:", anomalies)
     print("special-cased by name in qb64pe.bas:", len(special))
+    print("auto-include names:", dict(Counter((r["file"], r["kind"]) for r in result["auto_include"])))
     print("wrote", out_path)
 
 

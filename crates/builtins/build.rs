@@ -3,6 +3,9 @@
 use std::fmt::Write as _;
 use std::path::PathBuf;
 
+#[path = "src/template.rs"]
+mod template;
+
 fn main() {
     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
     let json_path = manifest.join("../../tools/builtins/builtins.json");
@@ -27,6 +30,16 @@ fn main() {
             .map(|a| a.iter().map(|t| format!("{:?}", t.as_str().unwrap())).collect())
             .unwrap_or_default();
         let format = s("specialformat");
+        if let Some(f) = format {
+            // Design D6: a malformed template fails the build.
+            let items = template::parse(f).unwrap_or_else(|e| panic!("template of {:?}: {e}", s("name")));
+            assert_eq!(
+                template::print(&items),
+                f,
+                "template of {:?} does not print back",
+                s("name")
+            );
+        }
         let slots = match format {
             Some(f) => slot_list(f),
             None => Some(vec![false; arg_types.len()]),
@@ -50,6 +63,22 @@ fn main() {
             s("musthave"),
         )
         .unwrap();
+    }
+    out.push_str("];\n");
+    // The names QB64pe's always-included BASIC files declare (task 8.2 of `m2-parser-breadth`), upper case,
+    // without suffix; the `$COLOR` files' names are left out (only with `$COLOR`, which is not supported yet).
+    let mut names: Vec<String> = doc["auto_include"]
+        .as_array()
+        .expect("auto_include array")
+        .iter()
+        .filter(|r| r.get("condition").is_none())
+        .map(|r| r["name"].as_str().expect("name").to_string())
+        .collect();
+    names.sort();
+    names.dedup();
+    out.push_str("pub static AUTO_INCLUDE_NAMES: &[&str] = &[\n");
+    for n in names {
+        writeln!(out, "    {n:?},").unwrap();
     }
     out.push_str("];\n");
     let dest = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("builtins_table.rs");

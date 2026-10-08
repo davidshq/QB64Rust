@@ -28,12 +28,13 @@
 // A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
 #![warn(clippy::wildcard_enum_match_arm)]
 
-use qb64rust_base::to_u32;
+use qb64rust_base::{FileId, to_u32};
 use qb64rust_builtins::BuiltinId;
 use qb64rust_ir::{
     Arg, BinOp, Body, Conv, Expr, ExprKind, Facts, LabelId, MemberId, OnError, Op, Place, PrintItem, Proc, ProcId,
     ProcKind, Program, Resume, Storage, Ty, UnOp, Var, VarId, When,
 };
+use std::collections::HashMap;
 use std::fmt::Write as _;
 
 /// The version string `func__compvers` returns (measured from `qb64pe.exe` 4.7.0).
@@ -74,12 +75,23 @@ impl Fragments {
     }
 }
 
-/// Emits the program. `source_name` goes into the `#line` directives.
-pub fn emit(p: &Program, source_name: &str) -> Fragments {
+/// Emits the program. `source_name` goes into the `#line` directives; `included` names the files the program
+/// included, as shown in diagnostics (their statements get their own `#line` name, and their event checks report
+/// the file, as the old compiler's do: `evnt(line, line in file, "file")`, measured `verification\
+/// v19_include_runtime_error`: "Line: 3 (in raise.bi)").
+pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) -> Fragments {
+    let included = included
+        .iter()
+        .map(|(&f, name)| {
+            let base = name.rsplit(['/', '\\']).next().unwrap_or(name);
+            (f, (line_name(name), c_string(base.as_bytes())))
+        })
+        .collect();
     let mut e = Emitter {
         p,
         type_sizes: type_sizes(p),
         line_file: line_name(source_name),
+        included,
         skip: 0,
         pass: 0,
         pass_decls: Vec::new(),
@@ -375,6 +387,8 @@ struct Emitter<'a> {
     /// The size of each user type ([`type_sizes`]).
     type_sizes: Vec<u32>,
     line_file: String,
+    /// Per included file: its `#line` name and its base name as a C string (for `evnt`).
+    included: HashMap<FileId, (String, String)>,
     /// Counter for the `skipN` labels of PRINT statements.
     skip: u32,
     /// Counter for the `passN` by-value temporaries.
@@ -597,10 +611,28 @@ impl<'a> Emitter<'a> {
         (main, data, free)
     }
 
-    /// Each line preceded by a `#line` directive for source line `line`.
+    /// Each line preceded by a `#line` directive for source line `line` of the main file.
     fn lines(&self, line: u32, lines: &[String], out: &mut String) {
+        self.lines_in(None, line, lines, out);
+    }
+
+    /// [`Self::lines`] for a line of `file` (`None`, or a file not included: the main file).
+    fn lines_in(&self, file: Option<FileId>, line: u32, lines: &[String], out: &mut String) {
+        let name = file
+            .and_then(|f| self.included.get(&f))
+            .map_or(&self.line_file, |(n, _)| n);
         for l in lines {
-            writeln!(out, "#line {line} {}\n{l}", self.line_file).unwrap();
+            writeln!(out, "#line {line} {name}\n{l}").unwrap();
+        }
+    }
+
+    /// The arguments of `evnt` for source line `line` of `file`: the line, and for an included file the line
+    /// again and the file's name. (The old compiler's first argument is the main file's line there; it only feeds
+    /// `_ERRORLINE`, not supported yet.)
+    fn evnt_args(&self, file: Option<FileId>, line: u32) -> String {
+        match file.and_then(|f| self.included.get(&f)) {
+            Some((_, base)) => format!("{line},{line},{base}"),
+            None => line.to_string(),
         }
     }
 
@@ -619,8 +651,12 @@ impl<'a> Emitter<'a> {
             }
             let mut lines = vec!["do{".to_string()];
             lines.extend(body);
-            lines.push(format!("if(!qbevent)break;evnt({});}}while(r);", s.line));
-            self.lines(s.line, &lines, out);
+            let file = Some(s.span.file);
+            lines.push(format!(
+                "if(!qbevent)break;evnt({});}}while(r);",
+                self.evnt_args(file, s.line)
+            ));
+            self.lines_in(file, s.line, &lines, out);
         }
         self.labels(b.stmts.len(), out);
     }
@@ -630,9 +666,9 @@ impl<'a> Emitter<'a> {
         for (i, l) in self.body.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
             let mut lines = vec![format!("{}:;", self.local_label(LabelId(to_u32(i))))];
             if l.name.is_some() {
-                lines.push(format!("if(qbevent){{evnt({});r=0;}}", l.line));
+                lines.push(format!("if(qbevent){{evnt({});r=0;}}", self.evnt_args(l.file, l.line)));
             }
-            self.lines(l.line, &lines, out);
+            self.lines_in(l.file, l.line, &lines, out);
         }
     }
 

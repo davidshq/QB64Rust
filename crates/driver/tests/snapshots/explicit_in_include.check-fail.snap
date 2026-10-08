@@ -1,0 +1,6 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+explicit_in_include.bas:6:1: error: variable `undeclared` (SINGLE) is not declared (`OPTION _EXPLICIT`)
+explicit_in_include.bas:9:17: error: variable `undeclared` (SINGLE) is not declared (`OPTION _EXPLICIT`)

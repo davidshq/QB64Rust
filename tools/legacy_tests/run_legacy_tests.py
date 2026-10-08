@@ -105,6 +105,16 @@ def is_old_compiler(qb64: Path) -> bool:
     return qb64.stem.lower() == "qb64pe"
 
 
+# The compiler root for included files of the upstream tests (m2-parser-breadth design D9): it holds
+# tests/compile_tests/extra, which two tests include relative to the compiler's own folder.
+INCLUDE_ROOT = Path(__file__).resolve().parents[2] / "tests" / "upstream" / "root"
+
+
+def include_root_args(qb64: Path) -> list[str]:
+    """The new compiler's --include-root; qb64pe finds included files under its own folder."""
+    return [] if is_old_compiler(qb64) else ["--include-root", str(INCLUDE_ROOT)]
+
+
 # The new compiler's last line after errors in the program (spec compiler/cli): "1 error", "3 errors",
 # "3 errors (2 not supported yet)". Only the front end prints it, so a failed C++ build or an internal
 # compiler error (exit code 3) never matches, even when clang's output holds "error:" lines.
@@ -214,7 +224,8 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
     if np_file.is_file():
         noprompt = np_file.read_text(encoding="latin-1").strip()
 
-    base = ["-f:OptimizeCppProgram=true", "-f:StripDebugSymbols=false", *flags, "-q", "-m", "-x"]
+    base = ["-f:OptimizeCppProgram=true", "-f:StripDebugSymbols=false", *flags, "-q", "-m", "-x",
+            *include_root_args(args.qb64)]
     if (tdir / f"{name}.compile-from-base").is_file():
         # relpath, not relative_to: with --compile-tests the program is outside qb_root.
         cmd = [str(args.qb64), *base, os.path.relpath(bas, qb_root), "-o", str(exe)]
@@ -425,8 +436,8 @@ def corpus_test(bas: Path, args, results: Path, qb_root: Path, corpus_root: Path
 
     clear_temp(qb_root)
     flags = ["-f:OptimizeCppProgram=true"] if args.cpp_opt else []
-    rc, timed_out = run_proc([str(args.qb64), *flags, "-q", "-m", "-x", bas.name, "-o", str(exe)],
-                             work, compile_out, COMPILE_TIMEOUT)
+    rc, timed_out = run_proc([str(args.qb64), *flags, "-q", "-m", "-x", *include_root_args(args.qb64), bas.name,
+                              "-o", str(exe)], work, compile_out, COMPILE_TIMEOUT)
     copy_if_exists(qb_root / "internal" / "temp" / "compilelog.txt", results / f"{key}-compilelog.txt")
     if timed_out:
         return fail("compile", "timeout")

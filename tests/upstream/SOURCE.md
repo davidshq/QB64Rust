@@ -6,6 +6,10 @@ Commit: `16f629784e` (2026-09-30) of QB64pe (`github.com/QB64-Phoenix-Edition/QB
 relative paths. Binary assets (images, fonts, sound, libraries) and `.gitignore` files are not copied; the
 upstream tests that need them are run from the clone (`tools/legacy_tests/run_legacy_tests.py --suite compile`).
 
+`root/tests/compile_tests/extra/` mirrors `compile_tests/extra/`: it is the compiler root for these tests
+(`--include-root tests/upstream/root`), where `include_paths/include_fixed_compile_location` and
+`include_multiple` find `'tests/compile_tests/extra/…'`, as the old compiler finds it under its own folder.
+
 Licence: MIT, QB64pe's `licenses/license_qb64.txt`, copied as `LICENSE-QB64pe.txt` (decision of 2026-10-04 in
 `DECISIONS.md`; `study/22` §4).
 

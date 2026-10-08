@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 103
 expression: snap
 ---
 const_unsupported.bas:8:12: error: not supported yet: the function `SQR` in a `CONST`
@@ -11,7 +10,7 @@ const_unsupported.bas:12:14: error: not supported yet: a power beyond `_INTEGER6
 const_unsupported.bas:13:7: error: not supported yet: a `CONST` value beyond the range of its type
 const_unsupported.bas:14:7: error: not supported yet: a `_FLOAT` `CONST` value that needs more than `DOUBLE` precision
 const_unsupported.bas:16:22: error: not supported yet: a `CONST` computed from a rounded value
-const_unsupported.bas:17:13: error: not supported yet: operator `ROOT` (expected the end of the statement)
+const_unsupported.bas:17:13: error: not supported yet: operator `ROOT`
 const_unsupported.bas:19:7: error: not supported yet: a string constant with a number suffix: `st%`
 const_unsupported.bas:25:11: error: not supported yet: a `CONST` `v` beside a variable of that name in a SUB or FUNCTION
 const_unsupported.bas:26:11: error: not supported yet: a `CONST` `p` beside a variable of that name in a SUB or FUNCTION

@@ -1,0 +1,15 @@
+win
+64bit
+neither 32bit nor arm
+mode 2
+mode > 2 and win
+xor
+version >= 4.0
+undefined
+defined
+win still true
+nested, taken
+loop 1 
+loop 2 
+sub
+t

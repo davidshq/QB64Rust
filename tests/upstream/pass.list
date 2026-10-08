@@ -14,8 +14,14 @@ const/not_string
 const/too_few_arguments_to_boolean
 const/type_mismatch_string_integer
 const/type_mismatch_string_subtract
+declare_library_external/test
+declare_library_external/test_stripped
 dollar$sign$test/dollar$sign
 filename/filename.extra.extension
+include_once/test
+include_paths/include_fixed_compile_location
+include_paths/include_multiple
+include_paths/include_relative
 name with spaces/test
 noprompt/noprompt-continue
 noprompt/noprompt-continue-fatal
@@ -25,3 +31,7 @@ single'quote'test/single'quote'test
 source_ordering/goto_gosub
 source_ordering/sub_after_main
 source_ordering/sub_before_main
+types/dim_bad_bit_no_length
+types/dim_bad_string_no_length
+types/static_bad_bit_no_length
+types/static_bad_string_no_length

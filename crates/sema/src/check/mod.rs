@@ -39,6 +39,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     let mut c = Checker {
         fold,
         map,
+        program,
         prog: Program::default(),
         main: Scope::default(),
         local: Scope::default(),
@@ -61,7 +62,6 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         used_local: HashMap::new(),
         label_line: None,
         explicit: false,
-        has_include: false,
         sinks: Vec::new(),
         bad_next: None,
         types_by_name: HashMap::new(),
@@ -69,20 +69,21 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         type_defs: HashSet::new(),
         dim_shared_array_plain: HashMap::new(),
         whole_type_arg: false,
-        parse_marks: program
-            .trees
-            .iter()
-            .flat_map(|t| t.diagnostics.list())
-            .filter(|d| d.unsupported)
-            .map(|d| d.span)
-            .collect(),
+        types_marked: HashSet::new(),
+        follow_on: false,
     };
     let skips = Skips::new(program);
-    c.explicit = has_option_explicit(map, root, &skips);
-    let statements: Vec<Node> = ast::SourceFile::cast(root)
+    // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
+    // (`verification\v19_explicit_*`).
+    c.explicit = program.trees.iter().any(|t| has_option_explicit(map, t.root(), &skips));
+    // The main file's statements, and the same with every include statement followed by what it includes (pass 1
+    // reads the user types and procedures of included files from these; pass 2 and the label pre-pass descend into
+    // includes as they meet them).
+    let top: Vec<Node> = ast::SourceFile::cast(root)
         .into_iter()
         .flat_map(|f| f.statements())
         .collect();
+    let statements = expand(program, top.iter().copied());
 
     // Pass 1: the user types (a parameter may name one), then procedure names, then their parameters (a parameter may not have the name of any procedure).
     // A header with an error (a parse error, a reserved name...) still enters its name as a broken procedure, so
@@ -129,8 +130,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
 
     // The labels of each body, also those inside blocks, so that a jump or `ON ERROR GOTO` may name one further
     // down (design D5).
-    c.has_include = has_include(map, root);
-    c.declare_labels(&statements, &skips, None);
+    c.declare_labels(&top, &skips, None);
     for &def in &defs {
         if let Some(&id) = c.proc_of_def.get(&def.node().key()) {
             let body: Vec<Node> = def.body().collect();
@@ -138,30 +138,12 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         }
     }
 
-    // Pass 2: everything in file order.
-    for stmt in statements {
+    // Pass 2: everything in file order (procedures where they stand, included files at their include).
+    for stmt in top {
         if skips.past_cap(stmt) {
             break;
         }
-        match ast::ProcDef::cast(stmt) {
-            Some(def) => {
-                let Some(&id) = c.proc_of_def.get(&def.node().key()) else {
-                    continue;
-                };
-                c.cur = Some(id);
-                c.local = c.param_scopes[id.0 as usize].clone();
-                c.consts_local.clear();
-                c.used_local.clear();
-                for s in def.body() {
-                    if skips.past_cap(s) {
-                        break;
-                    }
-                    c.check_statement(s, &skips);
-                }
-                c.cur = None;
-            }
-            None => c.check_statement(stmt, &skips),
-        }
+        c.check_statement(stmt, &skips);
     }
     if !c.console_only {
         let at = Span::new(root.file, 0, 0);
@@ -225,6 +207,8 @@ struct Scope {
 
 struct Checker<'a> {
     map: &'a SourceMap,
+    /// Every tree, for the included ones ([`Checker::expand`]).
+    program: &'a ParsedProgram,
     prog: Program,
     main: Scope,
     /// The scope of the procedure being checked (only meaningful while `cur` is set).
@@ -259,12 +243,8 @@ struct Checker<'a> {
     used_local: HashMap<String, Span>,
     /// File and line of the last label, in any body (a `CONST` after it on that line is not supported yet).
     label_line: Option<(FileId, u32)>,
-    /// An `$INCLUDE` stands somewhere in the program: what it would bring in is not seen yet.
-    has_include: bool,
     /// `OPTION _EXPLICIT` stands somewhere in the program (it applies to the whole program, design D7).
     explicit: bool,
-    /// Where the parser marked something "not supported yet".
-    parse_marks: Vec<Span>,
     /// The statement lists of the blocks being checked, innermost last; [`Self::push`] adds to the last one.
     sinks: Vec<Vec<Stmt>>,
     /// The last `NEXT` statement (by key) whose variable did not match its `FOR` (`check\blocks.rs`).
@@ -278,6 +258,11 @@ struct Checker<'a> {
     dim_shared_array_plain: HashMap<String, Ty>,
     /// An argument is being typed: a whole user-type value there is "not supported yet", not an error.
     whole_type_arg: bool,
+    /// Main-module `TYPE` blocks (by key) that pass 1 marked "not supported yet".
+    types_marked: HashSet<(TreeId, u32)>,
+    /// The follow-on rule is on (design D10): a declaration was marked "not supported yet", so real errors are
+    /// dropped from here on.
+    follow_on: bool,
 }
 
 /// An expression could not be typed; the error is already reported.
@@ -286,10 +271,15 @@ struct Failed;
 type R<T> = Result<T, Failed>;
 
 impl Checker<'_> {
+    /// A real error, at most one per statement. After the follow-on rule started (design D10: a declaration was
+    /// marked "not supported yet" earlier in file order) it is dropped: the statement fails without a diagnostic,
+    /// and the program is rejected by that mark already.
     fn error(&mut self, span: Span, msg: impl Into<String>) -> Failed {
         if !self.stmt_error {
             self.stmt_error = true;
-            self.diags.error(span, msg);
+            if !self.follow_on {
+                self.diags.error(span, msg);
+            }
         }
         Failed
     }
@@ -331,15 +321,77 @@ impl Checker<'_> {
     }
 
     fn check_statement(&mut self, stmt: Node, skips: &Skips) {
+        if let Some(def) = ast::ProcDef::cast(stmt) {
+            self.proc_def(def, skips);
+            return;
+        }
         if self.block_statement(stmt, skips) {
             return;
         }
+        if ast::MetaCommentStmt::cast(stmt).is_some() {
+            self.check_one(stmt, skips);
+            // The included file's statements follow the include statement, in its place (design D10).
+            let program = self.program;
+            if let Some(tree) = program.included(stmt) {
+                for s in ast::SourceFile::cast(tree.root())
+                    .into_iter()
+                    .flat_map(|f| f.statements())
+                {
+                    if skips.past_cap(s) {
+                        break;
+                    }
+                    self.check_statement(s, skips);
+                }
+            }
+            return;
+        }
+        self.check_one(stmt, skips);
+    }
+
+    /// A procedure where it stands: in the main module (or a file included there), its body is checked in its own
+    /// scope; anywhere else it came from a file included inside a SUB, FUNCTION or block (the parser keeps every
+    /// other `SUB` at file level), which the old compiler rejects (measured M7: "Expected END SUB/FUNCTION before
+    /// SUB").
+    fn proc_def(&mut self, def: ast::ProcDef, skips: &Skips) {
+        if self.cur.is_some() || !self.sinks.is_empty() {
+            if let Some(h) = def.header().filter(|h| skips.usable(h.node())) {
+                self.stmt_error = false;
+                let _ = self.error(
+                    first_token_span(h.node()),
+                    "a SUB or FUNCTION from an included file cannot stand inside a SUB, FUNCTION or block",
+                );
+            }
+            return;
+        }
+        let Some(&id) = self.proc_of_def.get(&def.node().key()) else {
+            return;
+        };
+        self.cur = Some(id);
+        self.local = self.param_scopes[id.0 as usize].clone();
+        self.consts_local.clear();
+        self.used_local.clear();
+        for s in def.body() {
+            if skips.past_cap(s) {
+                break;
+            }
+            self.check_statement(s, skips);
+        }
+        self.cur = None;
+    }
+
+    /// One statement that is neither a block nor an include. A declaration marked "not supported yet" starts the
+    /// follow-on rule (design D10).
+    fn check_one(&mut self, stmt: Node, skips: &Skips) {
         if !skips.usable(stmt) {
             return;
         }
         self.stmt_error = false;
+        let marks = self.diags.unsupported_count();
         self.statement(stmt);
         self.flush_names();
+        if self.diags.unsupported_count() > marks && is_declaration(stmt) {
+            self.follow_on = true;
+        }
     }
 
     fn push(&mut self, node: Node, kind: StmtKind) {
@@ -367,6 +419,9 @@ impl Checker<'_> {
             self.meta(s)
         } else if let Some(s) = ast::MetaCommentStmt::cast(node) {
             self.meta_comment(s)
+        } else if ast::InactiveCode::cast(node).is_some() {
+            // A `$IF` branch not taken: not compiled.
+            Ok(())
         } else if let Some(s) = ast::PrintStmt::cast(node) {
             self.print(s)
         } else if let Some(s) = ast::DimStmt::cast(node) {
@@ -374,11 +429,44 @@ impl Checker<'_> {
         } else if let Some(s) = ast::AssignStmt::cast(node) {
             self.assign(s)
         } else if ast::EndStmt::cast(node).is_some() {
-            self.push(node, StmtKind::End);
-            Ok(())
+            self.end_or_system(node, StmtKind::End)
         } else if ast::SystemStmt::cast(node).is_some() {
-            self.push(node, StmtKind::System);
-            Ok(())
+            self.end_or_system(node, StmtKind::System)
+        } else if ast::OnJumpStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "`ON … GOTO` and `ON … GOSUB`"))
+        } else if ast::OnEventStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "event handlers (`ON TIMER`, `ON KEY`, …)"))
+        } else if ast::EventSwitchStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "event switches (`TIMER ON`, `KEY(n) OFF`, …)"))
+        } else if ast::LprintStmt::cast(node).is_some()
+            || ast::WriteStmt::cast(node).is_some()
+            || ast::InputStmt::cast(node).is_some()
+            || ast::LineInputStmt::cast(node).is_some()
+            || ast::CloseStmt::cast(node).is_some()
+            || ast::FieldStmt::cast(node).is_some()
+            || ast::LsetStmt::cast(node).is_some()
+            || ast::SwapStmt::cast(node).is_some()
+            || ast::MemStmt::cast(node).is_some()
+            || ast::ArrayCopyStmt::cast(node).is_some()
+        {
+            // Task 7.4: parsed, compiled later (file I/O and the other built-in statements, step 8).
+            let t = first_token_span(node);
+            let word = show_bytes(&self.text(t).to_ascii_uppercase());
+            let word = if ast::LineInputStmt::cast(node).is_some() {
+                "LINE INPUT".to_string()
+            } else {
+                word
+            };
+            Err(self.unsupported(t, format!("`{word}`")))
+        } else if ast::BuiltinStmt::cast(node).is_some() {
+            // Task 7.5: read by its template; the built-in statements are compiled later (step 8).
+            let t = first_token_span(node);
+            let word = show_bytes(&self.text(t).to_ascii_uppercase());
+            Err(self.unsupported(t, format!("`{word}`")))
+        } else if ast::StopStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "`STOP`"))
+        } else if ast::RunStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "`RUN`"))
         } else if let Some(s) = ast::CallStmt::cast(node) {
             self.call_stmt(s)
         } else if ast::ExitStmt::cast(node).is_some() {
@@ -416,6 +504,16 @@ impl Checker<'_> {
             self.const_stmt(s)
         } else if let Some(s) = ast::OptionStmt::cast(node) {
             self.option_stmt(s)
+        } else if ast::RedimStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "`REDIM`"))
+        } else if ast::CommonStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "`COMMON`"))
+        } else if ast::EraseStmt::cast(node).is_some() {
+            Err(self.unsupported(first_token_span(node), "`ERASE`"))
+        } else if ast::DefTypeStmt::cast(node).is_some() {
+            let t = first_token_span(node);
+            let word = show_bytes(&self.text(t).to_ascii_uppercase());
+            Err(self.unsupported(t, format!("`{word}`")))
         } else {
             Err(self.error(
                 node.span(),
@@ -424,12 +522,29 @@ impl Checker<'_> {
         };
     }
 
+    /// `END` or `SYSTEM` (`kind`); with an exit code not supported yet.
+    fn end_or_system(&mut self, node: Node, kind: StmtKind) -> R<()> {
+        if let Some(code) = node.child_nodes().find_map(ast::Expr::cast) {
+            let word = show_bytes(&self.text(first_token_span(node)).to_ascii_uppercase());
+            return Err(self.unsupported(code.node().span(), format!("`{word}` with an exit code")));
+        }
+        self.push(node, kind);
+        Ok(())
+    }
+
     fn meta(&mut self, stmt: ast::MetaStmt) -> R<()> {
         let node = stmt.node();
         let tok = self.need(stmt.token(), node.span())?;
         let raw = self.text(tok.span);
         let trimmed: Vec<u8> = raw.iter().copied().filter(|b| !b.is_ascii_whitespace()).collect();
-        if trimmed.eq_ignore_ascii_case(b"$CONSOLE:ONLY") {
+        if let Some(flag) = stmt.precompiler_flag(raw) {
+            // The old compiler sets these from the whole program; not known here yet (`syntax::pp`).
+            Err(self.unsupported(tok.span, format!("the precompiler flag `{flag}` in `$IF`")))
+        } else if stmt.is_preprocessor(raw) || trimmed.eq_ignore_ascii_case(b"$INCLUDEONCE") {
+            // Evaluated by the parser (`$INCLUDEONCE` too); an error in it is a parse error, and the statement is
+            // skipped then.
+            Ok(())
+        } else if trimmed.eq_ignore_ascii_case(b"$CONSOLE:ONLY") {
             if !self.console_only {
                 self.console_only = true;
                 self.push(node, StmtKind::ConsoleOnly);
@@ -441,13 +556,13 @@ impl Checker<'_> {
         }
     }
 
-    /// A metacommand comment. Its `$INCLUDE`, `$STATIC` and `$DYNAMIC` are never ignored (that gave wrong code):
-    /// they are not supported yet; a malformed `$INCLUDE` is an error, as in the old compiler.
+    /// A metacommand comment. Its `$STATIC` and `$DYNAMIC` are never ignored (that gave wrong code): they are not
+    /// supported yet; a malformed `$INCLUDE` is an error, as in the old compiler. A well-formed `$INCLUDE` was
+    /// followed by the parser (its statements come next, [`Self::expand`]; a missing file is a parse error).
     fn meta_comment(&mut self, stmt: ast::MetaCommentStmt) -> R<()> {
         let tok = self.need(stmt.token(), stmt.node().span())?;
         match comment_directives(self.text(tok.span)) {
             Err(msg) => Err(self.error(tok.span, msg)),
-            Ok(d) if d.include.is_some() => Err(self.unsupported(tok.span, "metacommand `$INCLUDE` in a comment")),
             Ok(d) => match d.memory {
                 Some(MemoryMode::Static) => Err(self.unsupported(tok.span, "metacommand `$STATIC` in a comment")),
                 Some(MemoryMode::Dynamic) => Err(self.unsupported(tok.span, "metacommand `$DYNAMIC` in a comment")),
@@ -521,6 +636,12 @@ impl Checker<'_> {
     }
 
     fn print(&mut self, stmt: ast::PrintStmt) -> R<()> {
+        if let Some(f) = stmt.file() {
+            return Err(self.unsupported(f.node().span(), "`PRINT #`"));
+        }
+        if let Some(u) = stmt.using() {
+            return Err(self.unsupported(u.node().span(), "`PRINT USING`"));
+        }
         let mut items = Vec::new();
         let mut newline = true;
         for part in stmt.parts() {
@@ -558,14 +679,35 @@ fn has_option_explicit(map: &SourceMap, node: Node, skips: &Skips) -> bool {
     node.child_nodes().any(|n| has_option_explicit(map, n, skips))
 }
 
-/// Whether the tree holds an `$INCLUDE` (only the comment form exists, `study\00` §5), wherever it stands.
-fn has_include(map: &SourceMap, node: Node) -> bool {
-    if let Some(s) = ast::MetaCommentStmt::cast(node) {
-        return s
-            .token()
-            .is_some_and(|t| comment_directives(map.text(t.span)).is_ok_and(|d| d.include.is_some()));
+/// The declaration statements of the follow-on rule (design D10; `TYPE` and `DECLARE LIBRARY` blocks are handled
+/// where they are checked).
+fn is_declaration(stmt: Node) -> bool {
+    ast::DimStmt::cast(stmt).is_some()
+        || ast::RedimStmt::cast(stmt).is_some()
+        || ast::CommonStmt::cast(stmt).is_some()
+        || ast::SharedStmt::cast(stmt).is_some()
+        || ast::StaticStmt::cast(stmt).is_some()
+        || ast::ConstStmt::cast(stmt).is_some()
+        || ast::DefTypeStmt::cast(stmt).is_some()
+}
+
+/// A statement list with every include statement followed by the statements of the tree it includes (design D10:
+/// the walk descends into an included tree at its include statement), recursively.
+fn expand<'t>(program: &'t ParsedProgram, nodes: impl IntoIterator<Item = Node<'t>>) -> Vec<Node<'t>> {
+    let mut out = Vec::new();
+    for n in nodes {
+        out.push(n);
+        if ast::MetaCommentStmt::cast(n).is_some()
+            && let Some(tree) = program.included(n)
+        {
+            let inner: Vec<Node<'t>> = ast::SourceFile::cast(tree.root())
+                .into_iter()
+                .flat_map(|f| f.statements())
+                .collect();
+            out.extend(expand(program, inner));
+        }
     }
-    node.child_nodes().any(|n| has_include(map, n))
+    out
 }
 
 /// The span of a statement's first token (where a "not supported yet" mark goes, design D10).

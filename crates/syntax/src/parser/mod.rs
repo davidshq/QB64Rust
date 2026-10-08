@@ -14,19 +14,40 @@ mod decl;
 mod errors;
 mod expr;
 mod flow;
+mod io;
 pub(crate) mod keywords;
 mod meta;
 mod print;
 mod proc;
+mod template;
 
 use crate::SyntaxKind::{self, *};
 use crate::lexer::{Token, tokenize};
-use crate::program::Tree;
+use crate::pp::PpState;
+use crate::program::{Includer, Tree};
 use crate::tree::{TreeBuilder, TreeId};
 use qb64rust_base::{Diagnostic, Diagnostics, FileId, Span};
 
-/// Parses one file into tree `id`.
+/// Parses one file on its own into tree `id`, with no included files (unit tests).
+#[cfg(test)]
 pub(crate) fn parse_tree(id: TreeId, file: FileId, bytes: &[u8]) -> Tree {
+    let mut map = qb64rust_base::SourceMap::new();
+    let mut loader = crate::NoLoader;
+    let mut inc = Includer::new(&mut map, &mut loader);
+    parse_tree_with(id, file, bytes, PpState::default(), &mut inc, false).0
+}
+
+/// Parses one file into tree `id`, starting from preprocessor state `pp`; gives back the state the file leaves
+/// (a `$LET` in an included file reaches the including one). Files it includes are parsed through `inc` as they
+/// come (`meta.rs`); `included` says that this file is itself an included one.
+pub(crate) fn parse_tree_with(
+    id: TreeId,
+    file: FileId,
+    bytes: &[u8],
+    pp: PpState,
+    inc: &mut Includer<'_>,
+    included: bool,
+) -> (Tree, PpState) {
     let tokens = tokenize(bytes);
     let mut offsets = Vec::with_capacity(tokens.len() + 1);
     let mut o = 0u32;
@@ -57,17 +78,24 @@ pub(crate) fn parse_tree(id: TreeId, file: FileId, bytes: &[u8]) -> Tree {
         after_line_number: usize::MAX,
         in_const: false,
         expr_nesting: 0,
+        pp,
+        pp_ifs: Vec::new(),
+        redim_items: false,
+        inc,
+        tree: id,
+        included,
     };
     p.source_file();
-    Tree {
+    let tree = Tree {
         id,
         file,
         green: p.builder.finish(),
         diagnostics: p.diags,
-    }
+    };
+    (tree, p.pp)
 }
 
-pub(crate) struct Parser<'a> {
+pub(crate) struct Parser<'a, 'h> {
     file: FileId,
     bytes: &'a [u8],
     tokens: Vec<Token>,
@@ -103,9 +131,23 @@ pub(crate) struct Parser<'a> {
     /// expression is built, its own place counts too: a node built there at height `h` reaches depth
     /// `expr_nesting + h - 1`. The statement is not counted, so a top-level expression's root has depth 1.
     expr_nesting: u32,
+    /// The preprocessor's names and open `$IF` levels (`meta.rs`).
+    pp: PpState,
+    /// Per `$IF` opened in this file and still open: its span, and whether a block closer already crossed it
+    /// (its entry then left the block stack, and its `$END IF` needs no error of its own).
+    pp_ifs: Vec<(Span, bool)>,
+    /// The items being parsed are a `REDIM`'s: a member array may stand there (`decl.rs`).
+    redim_items: bool,
+    /// Loads and parses included files (`meta.rs`).
+    inc: &'a mut Includer<'h>,
+    /// This file's tree.
+    tree: TreeId,
+    /// This file is an included one: a block closer without its block, and a block left open at the end, may
+    /// belong to the including file (design D4).
+    included: bool,
 }
 
-impl<'a> Parser<'a> {
+impl<'a> Parser<'a, '_> {
     // ---- token access (trivia skipped) ----
 
     /// Token index of the n-th non-trivia token ahead. Constant time, so that the look-ahead scans over a whole
@@ -342,6 +384,16 @@ impl<'a> Parser<'a> {
                 }
             }
         }
+        // `$IF`s of this file still open: the old compiler's "$IF without $END IF". In an included file the
+        // `$END IF` may follow in the including one: marked, and the level stays open for it.
+        for (span, _) in std::mem::take(&mut self.pp_ifs) {
+            if self.included {
+                self.block_unsupported(span, "a `$IF` closed in another file");
+            } else {
+                self.block_error(span, "`$IF` without `$END IF`");
+                let _ = self.pp.end_if();
+            }
+        }
         self.eat_trivia();
         self.finish_node();
     }
@@ -382,7 +434,7 @@ impl<'a> Parser<'a> {
     fn statement(&mut self) -> bool {
         match self.current() {
             None | Some(Newline) | Some(Colon) => {}
-            Some(Metacommand) => meta::metacommand(self),
+            Some(Metacommand) => return meta::metacommand(self),
             Some(MetaComment) => meta::meta_comment(self),
             Some(Question) => print::print_stmt(self),
             Some(Ident) => return self.word_statement(),
@@ -444,10 +496,50 @@ impl<'a> Parser<'a> {
     }
 
     fn simple_word_statement(&mut self) {
-        if self.at_word("PRINT") {
+        if self.nth(1) == Some(Eq)
+            && !keywords::is_keyword(name_part(self.nth_text(0)))
+            && !self.at_word("END")
+            && !self.at_word("SYSTEM")
+            && !self.assignment_template()
+        {
+            // A word that is not reserved and `=`: an assignment, also when the word names a statement this
+            // function dispatches on (`close = 3` inside `FUNCTION close`, measured `v19_proc_names`). `END` and
+            // `SYSTEM` stay statements there ("Expected variable/value before '='", measured likewise).
+            assign::assign_stmt(self)
+        } else if self.at_word("PRINT") {
             print::print_stmt(self)
+        } else if self.at_word("LPRINT") {
+            print::lprint_stmt(self)
+        } else if self.at_word("WRITE") {
+            io::write_stmt(self)
+        } else if self.at_word("INPUT") {
+            io::input_stmt(self)
+        } else if self.at_word("LINE") && self.nth_is_word(1, "INPUT") {
+            io::line_input_stmt(self)
+        } else if self.at_word("CLOSE") {
+            io::close_stmt(self)
+        } else if self.at_word("FIELD") {
+            io::field_stmt(self)
+        } else if self.at_word("LSET") || self.at_word("RSET") {
+            io::set_stmt(self)
+        } else if self.at_word("SWAP") {
+            io::swap_stmt(self)
+        } else if self.at_word("_MEMPUT") || self.at_word("_MEMFILL") {
+            io::mem_stmt(self)
+        } else if self.at_word("_ARRAYCOPY") {
+            io::array_copy_stmt(self)
         } else if self.at_word("DIM") {
             decl::dim_stmt(self)
+        } else if self.at_word("REDIM") {
+            decl::redim_stmt(self)
+        } else if self.at_word("COMMON") {
+            decl::common_stmt(self)
+        } else if self.at_word("ERASE") {
+            decl::erase_stmt(self)
+        } else if decl::DEF_TYPE_WORDS.iter().any(|w| self.at_word(w))
+            || ((self.at_word("_DEFINE") || self.at_word("DEFINE")) && self.nth(1) == Some(Ident))
+        {
+            decl::def_type_stmt(self)
         } else if self.at_word("CONST") {
             decl::const_stmt(self)
         } else if self.at_word("OPTION") && self.nth(1) == Some(Ident) {
@@ -460,9 +552,15 @@ impl<'a> Parser<'a> {
         } else if self.at_word("LET") {
             assign::assign_stmt(self)
         } else if self.at_word("END") {
-            self.end_stmt()
+            self.end_stmt(EndStmt)
         } else if self.at_word("SYSTEM") {
-            self.system_stmt()
+            self.end_stmt(SystemStmt)
+        } else if self.at_word("STOP") {
+            self.word_and_operand(StopStmt)
+        } else if self.at_word("RUN") {
+            self.word_and_operand(RunStmt)
+        } else if errors::EVENT_WORDS.iter().any(|w| self.at_word(w)) && errors::event_switch(self) {
+            // `TIMER ON`, `KEY(1) OFF` (other statements starting with these words fall through).
         } else if self.at_word("CALL") {
             call::call_stmt(self)
         } else if self.at_word("EXIT") {
@@ -485,8 +583,10 @@ impl<'a> Parser<'a> {
             data::read_stmt(self)
         } else if self.at_word("RESTORE") {
             data::restore_stmt(self)
+        } else if self.template_statement() {
+            // A built-in statement read by its template (`template.rs`).
         } else if self.nth(1) == Some(Eq)
-            || (self.nth(1) == Some(LParen) && self.parens_then_eq() && !self.comma_outside_parens())
+            || (matches!(self.nth(1), Some(LParen | Dot)) && self.parens_then_eq() && !self.comma_outside_parens())
         {
             assign::assign_stmt(self)
         } else if keywords::is_keyword(name_part(self.nth_text(0))) {
@@ -495,6 +595,14 @@ impl<'a> Parser<'a> {
             // A SUB call without `CALL`, or a built-in statement (`CLS`); `sema` tells them apart.
             call::call_stmt(self)
         }
+    }
+
+    /// The statement's word names a built-in statement written as an assignment (`TIME$ = t$`, `_CLIPBOARD$ =
+    /// s$`: templates starting with `=`).
+    fn assignment_template(&self) -> bool {
+        qb64rust_builtins::statement_templates(self.nth_text(0))
+            .iter()
+            .any(|(_, items)| matches!(items.first(), Some(qb64rust_builtins::template::Item::Punct(b'='))))
     }
 
     /// The token after the name is `(`, and after its matching `)` and any member accesses (`.b`, `.b(2)`) comes
@@ -558,30 +666,33 @@ impl<'a> Parser<'a> {
         self.nth(n) == Some(Ident) && self.nth_text(n).eq_ignore_ascii_case(word.as_bytes())
     }
 
-    /// `END`, or `END` and a word that is not a block closer (those are taken by the statement loop).
-    fn end_stmt(&mut self) {
-        if self.ends_at(1) {
-            self.start_node(EndStmt);
-            self.bump();
-            self.finish_node();
-        } else {
-            let span = self.current_span().cover(self.next_span(1));
-            let text = format!("END {}", qb64rust_base::show_bytes(self.nth_text(1)));
-            self.unsupported_at(span, format!("`{text}`"));
-            self.recover();
+    /// `END` or `END code` (block closers such as `END IF` are taken by the statement loop), and `SYSTEM` or `SYSTEM
+    /// code` (`kind` is `EndStmt` or `SystemStmt`): the exit code is an expression.
+    fn end_stmt(&mut self, kind: SyntaxKind) {
+        self.start_node(kind);
+        self.bump(); // END or SYSTEM
+        if !self.at_stmt_end() {
+            expr::expr(self);
         }
+        self.recover();
+        self.finish_node();
     }
 
-    /// `SYSTEM` without an exit code.
-    fn system_stmt(&mut self) {
-        if self.ends_at(1) {
-            self.start_node(SystemStmt);
-            self.bump();
-            self.finish_node();
-        } else {
-            self.unsupported("`SYSTEM` with an exit code");
-            self.recover();
+    /// `STOP`, or `RUN [line number|label|file name]`: a statement word with at most one operand (`kind` is
+    /// `StopStmt` or `RunStmt`).
+    fn word_and_operand(&mut self, kind: SyntaxKind) {
+        self.start_node(kind);
+        self.bump();
+        if !self.at_stmt_end() {
+            if self.at(Ident) && self.ends_at(1) && kind == RunStmt {
+                // `RUN label`.
+                self.bump();
+            } else {
+                expr::expr(self);
+            }
         }
+        self.recover();
+        self.finish_node();
     }
 
     fn next_span(&self, n: usize) -> Span {
