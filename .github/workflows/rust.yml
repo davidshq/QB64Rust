@@ -108,3 +108,11 @@ jobs:
           python tools/legacy_tests/run_legacy_tests.py --suite compile --qb-root $env:QB64RUST_QB64PE_ROOT
           --compile-tests tests/upstream/compile_tests --qb64 target/release/qb64rust.exe
           --list tests/upstream/pass.list
+
+      # The differential programs of the pass list against their recordings (spec testing/differential-tests).
+      - name: Differential pass list
+        env:
+          QB64RUST_QB64PE_ROOT: ${{ runner.temp }}\qb64pe
+        run: >
+          python tools/legacy_tests/run_legacy_tests.py --suite corpus --qb-root $env:QB64RUST_QB64PE_ROOT
+          --corpus-root tests/differential --qb64 target/release/qb64rust.exe --list tests/differential/pass.list

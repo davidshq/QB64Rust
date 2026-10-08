@@ -117,6 +117,16 @@ recordings change only when the generator does.
 **Size check**: if a program's C++ build with `qb64rust` takes longer than about 20 s, the generator splits it by
 left type. The number of value pairs (eight) is the knob for output size.
 
+*As built (group 2, 2026-10-08):* 59 programs (`fold` one per operator, `store` one per target); 17 types, `_BIT * n`
+represented by `_BIT`, `_UNSIGNED _BIT * 7`, `_BIT * 24` and `_UNSIGNED _BIT * 40`; seven value slots per type,
+DIMmed once, so the eight value pairs are pairs of slots. `_FLOAT`'s extremes are ±`1.797693134862315F+308`: the old
+compiler writes a `_FLOAT` literal as a C++ double, so `1.18973149535723176F+4932` is infinite; it is kept as
+`_FLOAT`'s step beyond its range in `fold` and `print`. Every program declares all 17 types, so none compiles with
+`qb64rust` before the new types do (task 2.6); `gen --types` writes a subset elsewhere for a look at part of the
+set. Per program: about 2.1 s with `qb64rust` (`study\19` §6), far from the 20 s split. *Changed after review
+(`DECISIONS.md` 2026-10-08, task 2.7):* the six-type subset is also kept, recorded, as the group `old6` (48
+programs), so tier 2 covers today's types until the full programs compile.
+
 ### D3. `Ty` gains variants and loses its derived order
 
 ```text
@@ -289,3 +299,5 @@ programs that were "not supported yet" or crashed. Rollback is reverting the cha
 
 - Whether the eight value pairs per type pair find everything the old compiler does with mixed signedness, or a
   denser set is needed: answered by the first run (task 2.6); changing the number touches only the generator.
+  *Answered 2026-10-08:* eight are enough for now (task 2.6: every mixed-signedness regime shows in at least two
+  pairs; the differences found came from the extremes).

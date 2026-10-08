@@ -82,30 +82,80 @@ programs it makes pass to `slice.list`, `tests\upstream\pass.list` and `tests\di
 
 ## 2. The differential tester (design D2)
 
-- [ ] 2.1 Crate `crates\difftest` (binary `qb64rust-difftest`, `gen [--check]`), seeded xorshift, the type list and
+- [x] 2.1 Crate `crates\difftest` (binary `qb64rust-difftest`, `gen [--check]`), seeded xorshift, the type list and
   boundary values per type from `sema::Ty`; documented in `crates\README.md`. Verify: `cargo run -p
   qb64rust-difftest -- gen` twice writes identical files; `cargo clippy` clean.
-- [ ] 2.2 The program groups of D2 (`ops`, `unary`, `store`, `fold`, `print`): labelled lines, the `ON ERROR`
+  *Done 2026-10-08.* `sema::Ty` has only the six old numeric types until group 3, so the type list is the crate's
+  own (`TYPES`, 17 types: four `_BIT` widths, 1, 7 unsigned, 24, 40 unsigned, stand for `_BIT * n`) and
+  `for_sema` maps every `Ty` variant with an exhaustive match: a new variant fails the crate's build until it is
+  mapped (group 3 adds the mapping). A second `gen` writes nothing; `gen --check` reports a missing, changed or
+  extra program. Added for task 2.6: `gen --out <dir> --types <KEY,...>` writes the programs for some types only,
+  into another folder (never `tests\differential`).
+- [x] 2.2 The program groups of D2 (`ops`, `unary`, `store`, `fold`, `print`): labelled lines, the `ON ERROR`
   handler, the D-006 and division-by-zero exclusions named in each header, no `PRINT` comma;
   `tests\differential\README.md` (what each group covers, how to regenerate, record and run). Verify: a unit test in the crate checks
   that every ordered pair of numeric types appears in each `ops` program and every pair source/target in `store`.
-- [ ] 2.3 Record with the old compiler: `run_legacy_tests.py --suite corpus --corpus-root tests\differential
+  *Done 2026-10-08:* 59 programs (20 `ops`, 20 `fold`, 17 `store`, `unary`, `print`; 5 MB; about 2,300 `PRINT`
+  lines in an `ops` program), more than D2's estimate of 45 because `fold` has a program per operator and `store`
+  one per target. Unit tests: determinism, every pair (`^` has none with an `_OFFSET` operand, named in its header),
+  safety (no `PRINT` comma, a pad per wide `_BIT`, the exclusions named), literals. Each line's value pair is a pair
+  of slot variables DIMmed once (D2's "one `DIM` per numeric type and value slot"); `fold` adds two pairs one step
+  beyond the range. `SYSTEM` ends each program, so no key press is needed.
+- [x] 2.3 Record with the old compiler: `run_legacy_tests.py --suite corpus --corpus-root tests\differential
   --record` against `qb64pe.exe`. Any program that does not compile with the old compiler, crashes or is not
   deterministic is fixed in the generator: the case is left out and named in the program's header (a crash or failed
   build is fixed by `study\00` §6's rule and gets a `DIVERGENCES.md` row). Verify: every program has a
   `.output`; a second `--record` changes no file; `check_repo.py --untracked` clean
   (no local paths in the outputs).
-- [ ] 2.4 Tier 1: the crate's freshness test (regenerate in memory, compare with the files, require a `.output` per
+  *Done 2026-10-08:* all 59 compile, run to their last line (checked for each program) and agree between the two
+  runs: 59 `.output`, no `.err`; 211 s. No exclusion beyond D2's was needed. A second `--record` wrote nothing;
+  `check_repo.py --untracked` clean. Found: a `_FLOAT` literal is a C++ double in the old compiler, so the first
+  `_FLOAT` extremes (`±1.18973149535723176F+4932`) were infinite; they are now `±1.797693134862315F+308` and the
+  infinite literal is `_FLOAT`'s step beyond its range in `fold` and `print` (recorded again, twice). The outputs
+  hold D-010's infinite text with NUL bytes (`tests\differential\README.md`); `.gitattributes` marks them `-text`.
+  Facts in `study\00` §5.
+- [x] 2.4 Tier 1: the crate's freshness test (regenerate in memory, compare with the files, require a `.output` per
   program) and `crates\driver\tests\inputs.rs` walking `tests\differential` (front end, round trip; the "clean
   programs are listed" check accepting `tests\differential\pass.list`). Verify: `cargo test` passes; editing one
   generated line by hand makes it fail and name the file (tried by hand, not committed).
-- [ ] 2.5 CI: a step in `rust.yml`'s `tier2` job running `tests\differential\pass.list` with `qb64rust`; time per
+  *Done 2026-10-08:* `crates\difftest\tests\fresh.rs`; `inputs.rs` gains the set `differential/` (also checked by
+  the false-error and parse-gap lists: no entry, every error is "not supported yet"). `cargo test` passes. Tried by
+  hand: an edited line in `ops\add.bas` fails with "differs from the generator: ops/add.bas"; a moved
+  `unary.output` fails with "no recording … unary/unary.bas"; both restored.
+- [x] 2.5 CI: a step in `rust.yml`'s `tier2` job running `tests\differential\pass.list` with `qb64rust`; time per
   program measured and the total noted in `study\19` §6. Verify: the step runs locally with the CI command line
   against the QB64pe 4.7.0 release; it passes with an empty or partial list.
-- [ ] 2.6 Run every differential program once with today's `qb64rust` (expected: those touching only the six old
+  *Done 2026-10-08:* step "Differential pass list". The runner now passes a `--list` that names no program
+  (it stopped with "no tests selected" before). Run locally with the CI command line against the downloaded
+  `v4.7.0-GLFW` release: the empty list runs nothing and exits 0; the six-type subset of 2.6 against the same
+  release: 27 of 48 pass, as against the clone. About 2.1 s per program (`study\19` §6).
+- [x] 2.6 Run every differential program once with today's `qb64rust` (expected: those touching only the six old
   types pass, the rest are "not supported yet"); start `pass.list` with the passing ones. Answer the design's open
   question (are eight value pairs enough?) from the old compiler's recorded output. Verify: the run's counts and
   the answer are recorded here.
+  *Done 2026-10-08.* **0 of 59 compile**: every program declares all 17 types, so each stops at the first new-type
+  suffix, with "not supported yet" errors only (no false error, no wrong code); `pass.list` starts empty. The
+  expectation above assumed programs split by type; to check today's rules anyway, the six-type subset (`gen --out
+  <scratch> --types INTEGER,LONG,INT64,SINGLE,DOUBLE,FLOAT`, 48 programs) was recorded with `qb64pe.exe` and run
+  (not committed): **27 of 48 pass** (all 20 `ops`, `unary`, the 6 `store`); the 20 `fold` and `print` stop at
+  "overflow" for the 48 literals beyond INTEGER and LONG (`32768%`, `-2147483649&`; design D7 removes that error in
+  group 4). With those lines dropped, `print` and 17 `fold` programs agree; **14 lines differ** in `fold\add`,
+  `sub`, `mul`: `-2147483648&` is held as a 64-bit C++ literal by the old compiler, so `(-2147483648&) *
+  (-32768%)` is 70368744177664 where today's compiler wraps to 0 (D7's held type, group 4). **Answer: eight pairs
+  are enough for now.** Each C++ regime with mixed signedness shows in at least two of the eight pairs of every
+  type pair (`< BYTE UBYTE 5` is true by `int` promotion, `< LONG ULONG 5` false by unsigned conversion, as min/min
+  and the random negatives), and every difference found came from the extreme pairs; the random pairs found nothing
+  the fixed ones did not. Revisit if group 5 finds a rule the pairs miss.
+- [x] 2.7 (added after review, `DECISIONS.md` 2026-10-08) The six-type subset as a recorded group, so tier 2 guards
+  today's types while the full programs cannot compile: `generate` also writes `old6\<group>_<name>.bas` for the
+  six old types, recorded with `qb64pe.exe`; the passing ones on `pass.list`. Verify: tier 1 fresh and recorded;
+  the pass list passes with the CI command line.
+  *Done 2026-10-08:* 48 programs, recorded in 132 s, all run to their last line. **27 of 48 pass** (as in 2.6) and
+  are on `pass.list`: 52 s in tier 2. The 20 `fold` programs and `print` get "overflow" for `32768%` and the like,
+  which the old compiler accepts: in `tests\known_false_errors.list` until group 4 (D7). Also from the review:
+  the runner passes only a list that names nothing (not one whose programs `--glob` or `--category` leave out);
+  `gen --types` refuses to write into `tests\differential`; the D-006 rule leaves out floats from ±2147483647.5
+  (rounded half to even they may be the smallest LONG; no program changed).
 
 ## 3. `Ty` without a derived order (design D3)
 

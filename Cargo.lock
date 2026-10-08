@@ -192,6 +192,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "qb64rust-difftest"
+version = "0.1.0"
+dependencies = [
+ "qb64rust-sema",
+]
+
+[[package]]
 name = "qb64rust-driver"
 version = "0.1.0"
 dependencies = [

@@ -40,7 +40,8 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
   * --cpp-opt adds -f:OptimizeCppProgram=true and compares against the same files
   * --list <file> runs only the programs named in the file: one <group>/<name> per line
     (no .bas), '#' starts a comment; also for --suite compile, with <category>/<name>
-    (e.g. tests/upstream/pass.list)
+    (e.g. tests/upstream/pass.list); a list that names no program runs nothing and passes
+    (a list whose programs --category or --glob leave out is still an error)
 Differences from the bash runners (all deliberate):
   * .err and .license comparisons ignore CR characters (line-ending normalisation)
   * .output comparison treats CRLF as LF (bare CR still significant); the bash
@@ -607,6 +608,7 @@ def main() -> int:
     for suite in suites:
         results = (args.results / (suite + ("-cpp-opt" if args.cpp_opt else ""))).resolve()
         results.mkdir(parents=True, exist_ok=True)
+        wanted = None
         if suite == "corpus":
             root = corpus_root / args.category if args.category else corpus_root
             if not root.is_dir():
@@ -640,6 +642,11 @@ def main() -> int:
                 tests = [p for p in tests if p.resolve() in wanted]
         else:
             tests = qbasic_sources(qb_root)
+        if not tests and wanted is not None and not wanted:
+            # A pass list may start empty (tests/differential/pass.list grows as the compiler catches up). Only a list
+            # that names nothing passes: one whose programs --category or --glob filtered out is an error below.
+            print(f"{args.list.name} names no program in suite {suite}: nothing to run", flush=True)
+            continue
         if not tests:
             print(f"no tests selected in suite {suite}", file=sys.stderr)
             return 2

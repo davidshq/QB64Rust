@@ -1,6 +1,10 @@
 # Recorded program output and compiler output: keep the bytes exactly as recorded (tests/corpus/README.md)
 tests/corpus/**/*.output -text
 tests/corpus/**/*.err -text
+# Differential programs: tier 1 compares them byte for byte with the generator; their recorded output as recorded
+tests/differential/**/*.bas -text
+tests/differential/**/*.output -text
+tests/differential/**/*.err -text
 # CP437 bytes and CRLF line ends are the point of this program (design D2 of m2-workspace-and-slice)
 tests/corpus/slice/s07_cp437_bytes.bas -text
 # Copy of QB64pe's compile tests: keep upstream's bytes and line ends (design D1 of m2-upstream-tests)

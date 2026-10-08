@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-08 (session 27). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-08 (session 28). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
@@ -255,8 +255,14 @@ is its `tasks.md`, and `git log`.
    **Group 1 (measurements) done 2026-10-08 (session 27):** `verification\v21_*` (`study\00` §5), the spec deltas
    and design corrected (listed in its `tasks.md` 1.5), four oddities decided by the user (`DECISIONS.md`); then the
    user's rule "do what QB64pe does" (questionable behaviours listed in `SOMEDAY.md` for review), so task 1.6
-   measured and brought in the forms first left "not supported yet" (`verification\v21_f_*`). **Next:
-   group 2, the differential tester (`crates\difftest`).**
+   measured and brought in the forms first left "not supported yet" (`verification\v21_f_*`). **Group 2 (the
+   differential tester) done 2026-10-08 (session 28):** `crates\difftest` generates 59 programs into
+   `tests\differential` (every operator on every pair of 17 numeric types, stores, unary, `PRINT`/`STR$`, operands
+   as variables and as literals), recorded with `qb64pe.exe`; tier 1 checks they are fresh and recorded; CI runs
+   `tests\differential\pass.list`. The full programs cannot compile before the new types do, so the six-type
+   subset is kept as the recorded group `old6` (48 programs, task 2.7): 27 pass and are on the list; the rest stop
+   where D7's literal rules (group 4) apply.
+   **Next: group 3, `Ty` without a derived order.**
 9. Built-in statements and functions by demand (`study\27` §3): a built-in statement operation in the IR, then
    sequential file I/O, `DATA`/`READ`/`RESTORE`, `SWAP`, `RANDOMIZE`/`RND`/`TIMER`, console `INPUT`/`LINE INPUT`,
    `SHELL`/`COMMAND$`/`ENVIRON$`, each measured first; the remaining plain functions as the corpus, upstream or a

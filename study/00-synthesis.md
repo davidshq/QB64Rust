@@ -666,6 +666,14 @@ Measured for the new numeric types and fixed-length strings (2026-10-08, `m2-num
   string), a store is not cut and reaches a `STRING` caller (a fixed caller cuts it with its own length), and the
   parameter passed on to a `STRING` parameter is the real string. `t$4` the same. A SUB named `s` and a variable
   `s$` cannot both exist ("Name already in use").
+- **From the differential recordings (`tests\differential`, task 2.3):** all 59 programs build and run to their
+  last line with `qb64pe.exe`, and two recordings agree. **A `_FLOAT` literal is written as a C++ double**:
+  `1.18973149535723176F+4932` is infinite, so the largest `_FLOAT` a program can write is about
+  `1.797693134862315F+308`. **The infinite text of D-010 is not only padding**: after `INF` come NUL bytes and the
+  remains of a number formatted earlier (`-INF<NUL>2979E+11`, `INF<NUL>0000E+001<NUL>…D…`), the same on every run
+  of a program. **A negative literal is held in the C++ type of its text** in arithmetic (design D7, shown for the
+  six old types): `(-2147483648&) * (-32768%)` is 70368744177664 and `(-2147483648&) + (-2147483648&)`
+  -4294967296, because `2147483648` is a 64-bit C++ literal; today's `qb64rust` wraps both to 32 bits.
 
 ## 6. Bug-compatibility choices (all decided)
 

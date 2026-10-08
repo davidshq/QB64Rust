@@ -6,6 +6,7 @@
 //! | `corpus/` | `tests\corpus` | rejected with an `.err` file, else accepted |
 //! | `upstream/` | `tests\upstream\compile_tests` | `.bas` as `corpus/`; `.bi`/`.bm` include only |
 //! | `snippets/` | `tests\snippets` | as `corpus/` |
+//! | `differential/` | `tests\differential` | as `corpus/` (generated, spec `testing/differential-tests`) |
 //! | `qbasic/` | clone `tests\qbasic_testcases` | `.bas` accepted; `.bi`/`.bm` include only |
 //! | `qb64pe-source/` | clone `source`, `internal\support` | `source\qb64pe.bas` accepted; the rest include only |
 //!
@@ -117,6 +118,7 @@ fn inputs() -> Vec<(String, PathBuf, Verdict)> {
     labelled_set("corpus", &tests.join("corpus"), &mut out);
     labelled_set("upstream", &tests.join("upstream/compile_tests"), &mut out);
     labelled_set("snippets", &tests.join("snippets"), &mut out);
+    labelled_set("differential", &tests.join("differential"), &mut out);
     match clone_root() {
         Some(clone) => {
             let qbasic = clone.join("tests/qbasic_testcases");
@@ -301,6 +303,11 @@ fn every_input_goes_through_the_front_end() {
         count("upstream") >= 416,
         "found only {} upstream files",
         count("upstream")
+    );
+    assert!(
+        count("differential") >= 107,
+        "found only {} differential programs",
+        count("differential")
     );
     let bad: Vec<String> = outcomes()
         .iter()
@@ -625,10 +632,23 @@ fn upstream_progress() {
 /// Programs that compile cleanly but are known not to pass tier 2, each with its reason (`study\26` §3).
 const CLEAN_NOT_PASSING: &str = "known_clean_not_passing.list";
 
-/// "Clean programs are listed" (spec `testing/compiler-tests`, `study\26` §3): every corpus or upstream program the
-/// old compiler accepts and the new one compiles without an error is in `slice.list`, `pass.list` or
-/// `known_clean_not_passing.list`, so "never wrong code" covers every program that gets an executable. The fourth
-/// list is shrink-only and hand-kept: an entry that no longer compiles cleanly, or that a pass list names, must go.
+/// Entries of `tests\differential\pass.list` (`group/name`, `#` comments) as input names (`differential/<group>/<name>.bas`).
+fn differential_pass_list() -> Vec<String> {
+    #[expect(clippy::disallowed_methods, reason = "a list of file names, not BASIC source")]
+    let text =
+        std::fs::read_to_string(repo().join("tests/differential/pass.list")).expect("tests/differential/pass.list");
+    text.lines()
+        .map(|l| l.split('#').next().unwrap().trim())
+        .filter(|l| !l.is_empty())
+        .map(|e| format!("differential/{e}.bas"))
+        .collect()
+}
+
+/// "Clean programs are listed" (spec `testing/compiler-tests`, `study\26` §3): every corpus, upstream or
+/// differential program the old compiler accepts and the new one compiles without an error is in `slice.list`, a
+/// `pass.list` or `known_clean_not_passing.list`, so "never wrong code" covers every program that gets an
+/// executable. The last list is shrink-only and hand-kept: an entry that no longer compiles cleanly, or that a pass
+/// list names, must go.
 #[test]
 fn clean_programs_are_listed() {
     let have_clone = clone_root().is_some();
@@ -641,6 +661,7 @@ fn clean_programs_are_listed() {
         .filter(|l| !l.is_empty())
         .map(|e| format!("corpus/{e}.bas"))
         .chain(upstream_list("pass.list").iter().map(|e| format!("upstream/{e}.bas")))
+        .chain(differential_pass_list())
         .collect();
     let known = List {
         file: CLEAN_NOT_PASSING,
@@ -652,9 +673,13 @@ fn clean_programs_are_listed() {
         .iter()
         .filter(|o| o.panic.is_none() && o.verdict == Verdict::Accepted && !o.errors)
         .map(|o| o.name.as_str())
-        .filter(|n| n.starts_with("corpus/") || n.starts_with("upstream/"))
+        .filter(|n| {
+            ["corpus/", "upstream/", "differential/"]
+                .iter()
+                .any(|s| n.starts_with(s))
+        })
         .collect();
-    eprintln!("clean corpus and upstream programs: {}", clean.len());
+    eprintln!("clean corpus, upstream and differential programs: {}", clean.len());
     let mut problems = Vec::new();
     for n in clean.iter().filter(|n| !passing.iter().chain(&known).any(|e| e == *n)) {
         problems.push(format!(
