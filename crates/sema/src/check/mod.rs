@@ -19,7 +19,7 @@ mod proc;
 use blocks::nested_statements;
 
 use crate::{ConstId, LabelId, Place, PrintItem, ProcId, Program, Stmt, StmtKind, SymbolKind, Ty, TypeId, VarId};
-use qb64rust_base::{Diagnostics, FileId, SourceMap, Span, show_bytes};
+use qb64rust_base::{Diagnostics, SourceMap, Span, show_bytes};
 use qb64rust_syntax::ParsedProgram;
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast::{self, PrintPart};
@@ -61,7 +61,6 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         consts_local: HashMap::new(),
         used_names: HashMap::new(),
         used_local: HashMap::new(),
-        label_line: None,
         explicit: false,
         sinks: Vec::new(),
         bad_next: None,
@@ -245,8 +244,6 @@ struct Checker<'a> {
     /// a later `CONST` of the name is an error there (design D6).
     used_names: HashMap<String, Span>,
     used_local: HashMap<String, Span>,
-    /// File and line of the last label, in any body (a `CONST` after it on that line is not supported yet).
-    label_line: Option<(FileId, u32)>,
     /// `OPTION _EXPLICIT` stands somewhere in the program (it applies to the whole program, design D7).
     explicit: bool,
     /// The statement lists of the blocks being checked, innermost last; [`Self::push`] adds to the last one.
@@ -304,17 +301,6 @@ impl Checker<'_> {
             self.diags.unsupported(span, msg);
         }
         Failed
-    }
-
-    /// The uses of the new numeric types ([`Ty::is_new_numeric`]) that later task groups of `m2-numeric-types` bring
-    /// (`FOR` variables, `SELECT CASE` selectors, FUNCTION results, constants used with another suffix): "not
-    /// supported yet", `what` naming the use (followed by the type's name).
-    fn later(&mut self, ty: Ty, span: Span, what: &str) -> R<()> {
-        if ty.is_new_numeric() {
-            let name = self.prog.type_name(ty);
-            return Err(self.unsupported(span, format!("{what} `{name}`")));
-        }
-        Ok(())
     }
 
     fn in_use(&mut self, t: Tok) -> Failed {

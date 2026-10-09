@@ -668,6 +668,24 @@ Measured for the new numeric types and fixed-length strings (2026-10-08, `m2-num
   `s$` cannot both exist ("Name already in use"). **On a parameter, `_UNSIGNED STRING`, with or without a length,
   is "Illegal SUB/FUNCTION parameter"** though `DIM` takes it; `t$0` is "Invalid index after STRING * type" and
   `STRING * 4294967296` (0 in 32 bits) "Invalid number after STRING * type" (`v21_x42`–`x45`, 2026-10-09, task 4.3).
+- **The new types everywhere else (`v21_g_*`, `v21_x49`, 2026-10-09, task group 8):** **an array element or a
+  `TYPE` member of the other signedness is passed by reference too**, like a variable (`a(1)` of an `_UNSIGNED
+  INTEGER` array holding 65535 is -1 in an INTEGER parameter and 65533 after `x = -3`; an `_UNSIGNED _INTEGER64`
+  member reaches an `_OFFSET` parameter); in parentheses a copy. **A FUNCTION `f$5` is also called and assigned as
+  `f$` and `f`**; `f$4` is "Name already in use"; never assigned it returns 5 NUL bytes; the C++ allocates the
+  result with `qbs_new_fixed(mem_static_malloc(5),5,0)` on each call and returns it with `qbs_maketmp`, over pool
+  bytes released on return, **so a second call in the same expression overwrites the first result**
+  (`fs$5("ab") + fs$5("cd")` is `cd   cd   `, `v21_g_fixed_function_twice`; fixed by decision, `DIVERGENCES.md`
+  D-014: the new compiler returns a copy). **A constant
+  used with another integer suffix is a literal of that suffix with the constant's digits** (`CONST u~& =
+  4294967295`: `u%` prints -1, `u% + 0` 4294967295; `CONST neg = -1`: `neg~&` 4294967295, `neg~& + 0` -1, `neg~& <
+  0` false, so a negative value is written as its unsigned 64-bit digits as for a suffixed `CONST`; a float is
+  rounded half to even, `fl~%` of 2.5 is 2); a float suffix converts. **A `CONST` with an `_OFFSET` suffix is an
+  `_INTEGER64` literal** (`5ll`, `18446744073709551615ull` in the C++): `k~%& + 0` of `CONST k~%& = -1` is believed
+  `_INTEGER64` and prints -1. Read in `qb64pe.bas` (`evaluatefunc`, 20978–21215, 22071) for the built-ins: a `_BIT *
+  n` counts n bits (`HEX$` (n + 3) \ 4 digits, place or not; `SQR` SINGLE up to 16 bits; `CINT`/`CLNG` range checks by
+  n), `EXP` of any `_BIT` is `_FLOAT`, `_ROUND` of an `_OFFSET` keeps its type, `VAL` with any unsigned integer type
+  is `qbs_val<uint64_t>` typed `_UNSIGNED _INTEGER64`.
 - **From the differential recordings (`tests\differential`, task 2.3):** all 59 programs build and run to their
   last line with `qb64pe.exe`, and two recordings agree. **A `_FLOAT` literal is written as a C++ double**:
   `1.18973149535723176F+4932` is infinite, so the largest `_FLOAT` a program can write is about

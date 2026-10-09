@@ -352,35 +352,86 @@ programs it makes pass to `slice.list`, `tests\upstream\pass.list` and `tests\di
 
 ## 8. The new types everywhere else
 
-- [ ] 8.1 Static arrays of the new numeric types and of fixed-length strings; `TYPE` members of the new numeric
+- [x] 8.1 Static arrays of the new numeric types and of fixed-length strings; `TYPE` members of the new numeric
   types (not `_BIT`). Verify: `typed`/`cpp` snapshots; the arrays-and-types delta's scenarios as lines of
   `s34_types_procs`.
-- [ ] 8.2 Parameters and FUNCTION results of the new types, including `f$n` FUNCTIONs (a `FixedStr(n)` result,
+  *Done 2026-10-09 (session 33).* Only the two "not supported yet" checks went (`places.rs`); a `_BIT` array stays
+  "not supported yet" (spec), and the emitter needed nothing. Tests: `typed` `numeric_uses_typed`, `cpp`
+  `numeric_uses_cpp` (both built and run with both compilers: same output), `check-fail` `numeric_uses_errors`;
+  `numeric_gate` deleted (nothing is gated any more). "Unsigned elements" and "Members of the new types" are lines
+  of `s34`.
+- [x] 8.2 Parameters and FUNCTION results of the new types, including `f$n` FUNCTIONs (a `FixedStr(n)` result,
   design D6); by reference across signedness, as measured in 1.2. Verify: the procedures delta's scenarios as lines
   of `s34_types_procs`; `typed` snapshot of a cross-signedness
   `Arg::Ref`.
-- [ ] 8.3 `FOR` with each new type (the widened hidden type by width), `SELECT CASE` selectors of each new type (the
+  *Done 2026-10-09.* Measured first (`verification\v21_g_passing_places`): elements and members of the other
+  signedness are passed by reference too, so the rule is any place of the same width (`proc::same_storage`), not
+  only variables; the emitter casts the pointer (`(uint32*)(__LONG_SL)`). `f$n` FUNCTIONs as design D6, with the
+  old compiler's C++ (read with `-z`); measured (`v21_g_fixed_function`, `v21_x49`): `f$5` is also called and
+  assigned as `fs$` and `fs`, `fs$4` is "Name already in use". Found on the way: two `f$n` calls in one
+  expression give the second result twice with the old compiler (`v21_g_fixed_function_twice`: it returns bytes it
+  has released); fixed by the user's decision, `DIVERGENCES.md` D-014: the FUNCTION returns a copy of its n bytes
+  (procedures delta scenario "Two fixed-length FUNCTION results in one expression", CLI test
+  `fixed_function_results_are_copies`). Corrections: the procedures delta (elements and members, the `f$`/`f` spellings, scenario
+  "Element of the other signedness"). `typed` snapshot of the `Ref`s: `numeric_uses_typed`. Every procedures-delta
+  scenario the old compiler runs is a line of `s34`, task 4.3's `STRING * n` parameter included.
+- [x] 8.3 `FOR` with each new type (the widened hidden type by width), `SELECT CASE` selectors of each new type (the
   hidden copy's type as measured in 1.4), `CONST` with each new suffix. Verify: the control-flow and constants
   deltas' scenarios as lines of `s34_types_procs`; `typed` snapshots.
-- [ ] 8.4 Arguments of the new types to the 43 supported built-ins (slot conversion; the special cases of 1.4).
+  *Done 2026-10-09.* `for_temp` and the `SELECT` copy as the C++ of `v21_d_for` and `v21_d_select`; a float item
+  against a 64-bit selector rounds to the selector's own type. Constants used with another suffix were not
+  measured: measured now (`v21_g_const_suffix`): a literal of the use's suffix with the constant's digits, the rule
+  of a suffixed `CONST` (`constant_literal`), old types out of range included (`u%` of `CONST u~& = 4294967295`
+  prints -1). Found by running `v21_d_const`: a `CONST` with an `_OFFSET` suffix is an `_INTEGER64` literal in the
+  old compiler (`k~%& + 0` is -1); fixed in `constant_literal` (a group 4 slip). `v21_d_const` still stops at two
+  forms that were "not supported yet" before (a `CONST` float beyond `_INTEGER64` into `~&&`, a suffixed constant
+  inside a `CONST`); without those lines it equals the recording. Corrections: the constants delta (another suffix,
+  `_OFFSET` suffixes, scenario "Constant used with another suffix", checked with both compilers). `typed`
+  snapshot: `numeric_uses_typed`. The scenarios are lines of `s34`.
+- [x] 8.4 Arguments of the new types to the 43 supported built-ins (slot conversion; the special cases of 1.4).
   Verify: the builtin-functions delta's scenario as a line of `s34_types_procs`; unit tests for the special
   cases; the built-in coverage check still passes.
-- [ ] 8.5 Record `s34_types_procs` with `qb64pe.exe`. Verify: it passes in tier 2; `SOURCE.md` lists `s30`–`s34`.
+  *Done 2026-10-09.* The special cases read from `qb64pe.bas` `evaluatefunc` (20978–21215, 22071) and the C++ of
+  `v21_d_builtins`, in `sema\src\builtins.rs`: `qb_bits` (a `_BIT * n` counts n bits), `exp_single`, `int_entry`
+  (`func_cint_ulong`/`_uint64`/`_long`/`_int64`, `func_clng_ulong`/`_uint64`/`_int64`), `radix_width`, `_ROUND` of
+  an `_OFFSET`; `VAL` with an unsigned type is `qbs_val<uint64_t>`, with `_UNSIGNED SINGLE` "not supported yet".
+  `v21_d_builtins` built with both compilers: same output. Unit test `new_types_special_cases`; coverage check
+  passes.
+- [x] 8.5 Record `s34_types_procs` with `qb64pe.exe`. Verify: it passes in tier 2; `SOURCE.md` lists `s30`–`s34`.
+  *Done 2026-10-09.* Recorded, on `slice.list`, passing folding on and off. Also newly clean: upstream
+  `const/hex_literals`, passing, on `pass.list` (44 of 279). Tier 2 against the reference clone with `--jobs 8
+  --build-cache`: slice 198 of 198 (folding on and off), upstream 44 of 44, differential 107 of 107.
 
 ## 9. The decided fixes and the warning (design D8)
 
-- [ ] 9.1 D-005: drop the `IMP` chain mark. Verify: `cpp` snapshot shows `(a IMP b) IMP c`; CLI build-and-run test
+- [x] 9.1 D-005: drop the `IMP` chain mark. Verify: `cpp` snapshot shows `(a IMP b) IMP c`; CLI build-and-run test
   prints ` 4 ` for `5 IMP 3 IMP 0`; `DIVERGENCES.md` D-005 pinned.
-- [ ] 9.2 D-006: `qb_safe_idiv`/`qb_safe_mod` with the signed -1 test. Verify: CLI build-and-run test (LONG and
+  *Done 2026-10-09.* The mark and `is_imp` removed (`check\expr.rs`); `cpp` `decided_fixes_cpp`, `typed`
+  `decided_fixes_typed`, CLI test `imp_chain_is_left_to_right` (literals and variables); the three `IMP` lines left
+  `operators_errors`. D-005 pinned.
+- [x] 9.2 D-006: `qb_safe_idiv`/`qb_safe_mod` with the signed -1 test. Verify: CLI build-and-run test (LONG and
   `_INTEGER64`, `\` raises 6 under a handler, `MOD` gives 0); every other `cpp` snapshot that contains the
   templates updated once; tier 2 unchanged; the numeric-semantics spec's "unspecified" sentence gone at archive;
   `DIVERGENCES.md` D-006 pinned.
-- [ ] 9.3 D-007 and D-008 in `consteval` and `check\constants.rs`. Verify: `check-fail` test for `CONST c = 1 / 0`;
+  *Done 2026-10-09.* `if constexpr` on the result type (`decl.rs`, design D8 as built); CLI test
+  `smallest_integer_divided_by_minus_one`; the 17 `cpp` snapshots with the templates updated once, nothing else in
+  them; tier 2 unchanged. D-006 pinned; the spec sentence goes at archive (task 10).
+- [x] 9.3 D-007 and D-008 in `consteval` and `check\constants.rs`. Verify: `check-fail` test for `CONST c = 1 / 0`;
   `typed` snapshot and CLI build-and-run test for `CONST c = 2 ^ 70` (prints ` 1.180591620717411D+21 `); `check-ok`
   test and CLI build-and-run test for `lbl1: CONST k = 4`; `DIVERGENCES.md` D-007, D-008 pinned.
-- [ ] 9.4 The chained-`^` warning in `consteval` and warnings in the driver (printed only with `-w`, not counted,
+  *Done 2026-10-09.* `1 / 0` an error, an integer power beyond `_INTEGER64` the float power (exact results only:
+  `3 ^ 41` stays "not supported yet"); the label check and `Checker::label_line` removed. Tests: `check-fail`
+  `decided_fixes_errors`, `typed` `decided_fixes_typed` (`2 ^ 70`, `10 ^ 20`), `check-ok` `label_const` (long and
+  short label, main and SUB), CLI tests `const_power_beyond_integer64`, `label_then_const`; the three lines left
+  `const_unsupported`; `consteval` unit tests updated. D-007 and D-008 pinned.
+- [x] 9.4 The chained-`^` warning in `consteval` and warnings in the driver (printed only with `-w`, not counted,
   exit status unchanged). Verify: CLI tests for the cli delta's two warning scenarios and the constants delta's
   "Parenthesised chain"; the corpus runner's compile line (`-q -m -x`) prints nothing new for `s18_const`.
+  *Done 2026-10-09.* The warning comes from the `CONST` walk (`check\constants.rs`, design D8 as built);
+  `Diagnostic::warning`, `Diagnostics::errors`; `Frontend::render_diagnostics` renders errors only,
+  `render_with_warnings` both (`-w`). CLI tests `chained_power_warning` (both delta scenarios, builds) and
+  `parenthesised_power_no_warning` (with `-z`, no clone needed). The slice check in `inputs.rs` now requires no
+  errors (`s18_const` gets the warning). `qb64rust -q -m -x s18_const.bas` prints nothing.
 
 ## 10. Integration
 

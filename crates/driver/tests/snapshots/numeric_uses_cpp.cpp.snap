@@ -1,0 +1,883 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+void *__UDT_V=NULL;
+ptrszint *__ARRAY_UINTEGER_A=NULL;
+int32 *__LONG_SL=NULL;
+int64 *__INTEGER64_Q=NULL;
+uint8 *__UBYTE_B=NULL;
+uint16 *__UINTEGER_U=NULL;
+uint32 *__ULONG_L=NULL;
+uint32 *__ULONG_1SELECT=NULL;
+int64 *__INTEGER64_2SELECT=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+void SUB_SHOWUL(uint32*_SUB_SHOWUL_ULONG_X);
+void SUB_SHOWSI(int16*_SUB_SHOWSI_INTEGER_X);
+void SUB_SHOWUO(uptrszint*_SUB_SHOWUO_UOFFSET_X);
+uint32 FUNC_BIG(uint8*_FUNC_BIG_UBYTE_X);
+qbs* FUNC_FS(qbs*_FUNC_FS_STRING_X);
+==> clear.txt <==
+memset((void*)__UDT_V,0,13);
+memset((void*)(__ARRAY_UINTEGER_A[0]),0,__ARRAY_UINTEGER_A[5]*2);
+*__LONG_SL=0;
+*__INTEGER64_Q=0;
+*__UBYTE_B=0;
+*__UINTEGER_U=0;
+*__ULONG_L=0;
+*__ULONG_1SELECT=0;
+*__INTEGER64_2SELECT=0;
+==> maindata.txt <==
+if(__UDT_V==NULL){
+__UDT_V=(void*)mem_static_malloc(13);
+memset(__UDT_V,0,13);
+}
+if (!__ARRAY_UINTEGER_A){
+__ARRAY_UINTEGER_A=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UINTEGER_A)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UINTEGER_A[4]=0ll;
+__ARRAY_UINTEGER_A[5]=(2ll)-__ARRAY_UINTEGER_A[4]+1;
+if (__ARRAY_UINTEGER_A[5]<=0) error(5);
+__ARRAY_UINTEGER_A[6]=1;
+__ARRAY_UINTEGER_A[0]=(ptrszint)mem_static_malloc(__ARRAY_UINTEGER_A[5]*2);
+memset((void*)(__ARRAY_UINTEGER_A[0]),0,__ARRAY_UINTEGER_A[5]*2);
+__ARRAY_UINTEGER_A[2]=1+2;
+}
+if(__LONG_SL==NULL){
+__LONG_SL=(int32*)mem_static_malloc(4);
+*__LONG_SL=0;
+}
+if(__INTEGER64_Q==NULL){
+__INTEGER64_Q=(int64*)mem_static_malloc(8);
+*__INTEGER64_Q=0;
+}
+if(__UBYTE_B==NULL){
+__UBYTE_B=(uint8*)mem_static_malloc(1);
+*__UBYTE_B=0;
+}
+if(__UINTEGER_U==NULL){
+__UINTEGER_U=(uint16*)mem_static_malloc(2);
+*__UINTEGER_U=0;
+}
+if(__ULONG_L==NULL){
+__ULONG_L=(uint32*)mem_static_malloc(4);
+*__ULONG_L=0;
+}
+if(__ULONG_1SELECT==NULL){
+__ULONG_1SELECT=(uint32*)mem_static_malloc(4);
+*__ULONG_1SELECT=0;
+}
+if(__INTEGER64_2SELECT==NULL){
+__INTEGER64_2SELECT=(int64*)mem_static_malloc(8);
+*__INTEGER64_2SELECT=0;
+}
+static int16 temp_for1_value=0;
+static int16 temp_for1_limit=0;
+static int16 temp_for1_step=0;
+static int32 temp_for1_negative=0;
+static int32 temp_for2_value=0;
+static int32 temp_for2_limit=0;
+static int32 temp_for2_step=0;
+static int32 temp_for2_negative=0;
+static int64 temp_for3_value=0;
+static int64 temp_for3_limit=0;
+static int64 temp_for3_step=0;
+static int32 temp_for3_negative=0;
+int16 pass1;
+uint8 pass2;
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+#include "main2.txt"
+#include "main3.txt"
+#include "main4.txt"
+#include "main5.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "numeric_uses_cpp.bas"
+do{
+#line 2 "numeric_uses_cpp.bas"
+sub__dest(func__console());
+#line 2 "numeric_uses_cpp.bas"
+sub__source(func__console());
+#line 2 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 14 "numeric_uses_cpp.bas"
+do{
+#line 14 "numeric_uses_cpp.bas"
+*(uint8*)((((char*)__UDT_V)+0))=255;
+#line 14 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 14 "numeric_uses_cpp.bas"
+do{
+#line 14 "numeric_uses_cpp.bas"
+tmp_long=array_check((1ll)-__ARRAY_UINTEGER_A[4],__ARRAY_UINTEGER_A[5]);
+#line 14 "numeric_uses_cpp.bas"
+if (!is_error_pending()) ((uint16*)(__ARRAY_UINTEGER_A[0]))[tmp_long]=65535;
+#line 14 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 15 "numeric_uses_cpp.bas"
+do{
+#line 15 "numeric_uses_cpp.bas"
+SUB_SHOWUL((uint32*)(__LONG_SL));
+#line 15 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "numeric_uses_cpp.bas"
+do{
+#line 16 "numeric_uses_cpp.bas"
+SUB_SHOWUL((uint32*)(void*)((((char*)__UDT_V)+1)));
+#line 16 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "numeric_uses_cpp.bas"
+do{
+#line 17 "numeric_uses_cpp.bas"
+SUB_SHOWSI((int16*)((&((uint16*)(__ARRAY_UINTEGER_A[0]))[array_check((1ll)-__ARRAY_UINTEGER_A[4],__ARRAY_UINTEGER_A[5])])));
+#line 17 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "numeric_uses_cpp.bas"
+do{
+#line 18 "numeric_uses_cpp.bas"
+SUB_SHOWSI(&(pass1=((int16)(((uint16*)(__ARRAY_UINTEGER_A[0]))[array_check((1ll)-__ARRAY_UINTEGER_A[4],__ARRAY_UINTEGER_A[5])]))));
+#line 18 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "numeric_uses_cpp.bas"
+do{
+#line 19 "numeric_uses_cpp.bas"
+SUB_SHOWUO((uptrszint*)(__INTEGER64_Q));
+#line 19 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "numeric_uses_cpp.bas"
+do{
+#line 20 "numeric_uses_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 20 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uint32)(FUNC_BIG(&(pass2=255)))),qbs_new_txt(" ")));
+#line 20 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 20 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 20 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 20 "numeric_uses_cpp.bas"
+qbs_set(tqbs,FUNC_FS(qbs_new_txt_len("ab",2)));
+#line 20 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 20 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 20 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 20 "numeric_uses_cpp.bas"
+qbs_print(nothingstring,1);
+#line 20 "numeric_uses_cpp.bas"
+skip1:
+#line 20 "numeric_uses_cpp.bas"
+qbs_free(tqbs);
+#line 20 "numeric_uses_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 20 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "numeric_uses_cpp.bas"
+do{
+#line 21 "numeric_uses_cpp.bas"
+temp_for1_value=250;
+#line 21 "numeric_uses_cpp.bas"
+temp_for1_limit=255;
+#line 21 "numeric_uses_cpp.bas"
+temp_for1_step=3;
+#line 21 "numeric_uses_cpp.bas"
+temp_for1_negative=(-(temp_for1_step<0));
+#line 21 "numeric_uses_cpp.bas"
+goto L_1;
+#line 21 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 21 "numeric_uses_cpp.bas"
+L_0:;
+#line 21 "numeric_uses_cpp.bas"
+do{
+#line 21 "numeric_uses_cpp.bas"
+temp_for1_value=(temp_for1_step+((int16)(*__UBYTE_B)));
+#line 21 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 21 "numeric_uses_cpp.bas"
+L_1:;
+#line 21 "numeric_uses_cpp.bas"
+do{
+#line 21 "numeric_uses_cpp.bas"
+*__UBYTE_B=((uint8)(temp_for1_value));
+#line 21 "numeric_uses_cpp.bas"
+if (((((temp_for1_negative&(-(temp_for1_value<temp_for1_limit)))|((~(temp_for1_negative))&(-(temp_for1_value>temp_for1_limit))))))&&(!is_error_pending())) goto L_2;
+#line 21 "numeric_uses_cpp.bas"
+goto L_0;
+#line 21 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 21 "numeric_uses_cpp.bas"
+L_2:;
+#line 22 "numeric_uses_cpp.bas"
+do{
+#line 22 "numeric_uses_cpp.bas"
+temp_for2_value=2;
+#line 22 "numeric_uses_cpp.bas"
+temp_for2_limit=0;
+#line 22 "numeric_uses_cpp.bas"
+temp_for2_step=(-1);
+#line 22 "numeric_uses_cpp.bas"
+temp_for2_negative=(-(temp_for2_step<0));
+#line 22 "numeric_uses_cpp.bas"
+goto L_4;
+#line 22 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 22 "numeric_uses_cpp.bas"
+L_3:;
+#line 22 "numeric_uses_cpp.bas"
+do{
+#line 22 "numeric_uses_cpp.bas"
+temp_for2_value=(temp_for2_step+((int32)(*__UINTEGER_U)));
+#line 22 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 22 "numeric_uses_cpp.bas"
+L_4:;
+#line 22 "numeric_uses_cpp.bas"
+do{
+#line 22 "numeric_uses_cpp.bas"
+*__UINTEGER_U=((uint16)(temp_for2_value));
+#line 22 "numeric_uses_cpp.bas"
+if (((((temp_for2_negative&(-(temp_for2_value<temp_for2_limit)))|((~(temp_for2_negative))&(-(temp_for2_value>temp_for2_limit))))))&&(!is_error_pending())) goto L_5;
+#line 22 "numeric_uses_cpp.bas"
+goto L_3;
+#line 22 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 22 "numeric_uses_cpp.bas"
+L_5:;
+#line 23 "numeric_uses_cpp.bas"
+do{
+#line 23 "numeric_uses_cpp.bas"
+temp_for3_value=1ll;
+#line 23 "numeric_uses_cpp.bas"
+temp_for3_limit=2ll;
+#line 23 "numeric_uses_cpp.bas"
+temp_for3_step=1ll;
+#line 23 "numeric_uses_cpp.bas"
+temp_for3_negative=(-(temp_for3_step<0ll));
+#line 23 "numeric_uses_cpp.bas"
+goto L_7;
+#line 23 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 23 "numeric_uses_cpp.bas"
+L_6:;
+#line 23 "numeric_uses_cpp.bas"
+do{
+#line 23 "numeric_uses_cpp.bas"
+temp_for3_value=(temp_for3_step+((int64)(*__ULONG_L)));
+#line 23 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 23 "numeric_uses_cpp.bas"
+L_7:;
+#line 23 "numeric_uses_cpp.bas"
+do{
+#line 23 "numeric_uses_cpp.bas"
+*__ULONG_L=((uint32)(temp_for3_value));
+#line 23 "numeric_uses_cpp.bas"
+if (((((temp_for3_negative&(-(temp_for3_value<temp_for3_limit)))|((~(temp_for3_negative))&(-(temp_for3_value>temp_for3_limit))))))&&(!is_error_pending())) goto L_8;
+#line 23 "numeric_uses_cpp.bas"
+goto L_6;
+#line 23 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 23 "numeric_uses_cpp.bas"
+L_8:;
+#line 24 "numeric_uses_cpp.bas"
+do{
+#line 24 "numeric_uses_cpp.bas"
+*__ULONG_1SELECT=((uint32)(*(uint8*)((((char*)__UDT_V)+0))));
+#line 24 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "numeric_uses_cpp.bas"
+do{
+#line 25 "numeric_uses_cpp.bas"
+if ((!((-(*__ULONG_1SELECT==4294967295u))))&&(!is_error_pending())) goto L_10;
+#line 25 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(25);}while(r);
+#line 25 "numeric_uses_cpp.bas"
+do{
+#line 25 "numeric_uses_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 25 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("never",5));
+#line 25 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 25 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 25 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 25 "numeric_uses_cpp.bas"
+qbs_print(nothingstring,1);
+#line 25 "numeric_uses_cpp.bas"
+skip2:
+#line 25 "numeric_uses_cpp.bas"
+qbs_free(tqbs);
+#line 25 "numeric_uses_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 25 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(25);}while(r);
+#line 27 "numeric_uses_cpp.bas"
+do{
+#line 27 "numeric_uses_cpp.bas"
+goto L_9;
+#line 27 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(27);}while(r);
+#line 27 "numeric_uses_cpp.bas"
+L_10:;
+#line 26 "numeric_uses_cpp.bas"
+do{
+#line 26 "numeric_uses_cpp.bas"
+if ((!((-((-(*__ULONG_1SELECT>=((uint32)(((int32)(qbr(254.5E+0)))))))&&(-(*__ULONG_1SELECT<=255u))))))&&(!is_error_pending())) goto L_11;
+#line 26 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(26);}while(r);
+#line 26 "numeric_uses_cpp.bas"
+do{
+#line 26 "numeric_uses_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 26 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("255",3));
+#line 26 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 26 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 26 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 26 "numeric_uses_cpp.bas"
+qbs_print(nothingstring,1);
+#line 26 "numeric_uses_cpp.bas"
+skip3:
+#line 26 "numeric_uses_cpp.bas"
+qbs_free(tqbs);
+#line 26 "numeric_uses_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 26 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(26);}while(r);
+#line 27 "numeric_uses_cpp.bas"
+do{
+#line 27 "numeric_uses_cpp.bas"
+goto L_9;
+#line 27 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(27);}while(r);
+#line 27 "numeric_uses_cpp.bas"
+L_9:;
+#line 27 "numeric_uses_cpp.bas"
+L_11:;
+#line 28 "numeric_uses_cpp.bas"
+do{
+#line 28 "numeric_uses_cpp.bas"
+*__INTEGER64_2SELECT=((int64)((((uint64)(*__INTEGER64_Q))+1ull)));
+#line 28 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(28);}while(r);
+#line 29 "numeric_uses_cpp.bas"
+do{
+#line 29 "numeric_uses_cpp.bas"
+if ((!((-(*__INTEGER64_2SELECT==1ll))))&&(!is_error_pending())) goto L_13;
+#line 29 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(29);}while(r);
+#line 29 "numeric_uses_cpp.bas"
+do{
+#line 29 "numeric_uses_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 29 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("one",3));
+#line 29 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip4;
+#line 29 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 29 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 29 "numeric_uses_cpp.bas"
+qbs_print(nothingstring,1);
+#line 29 "numeric_uses_cpp.bas"
+skip4:
+#line 29 "numeric_uses_cpp.bas"
+qbs_free(tqbs);
+#line 29 "numeric_uses_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 29 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(29);}while(r);
+#line 30 "numeric_uses_cpp.bas"
+do{
+#line 30 "numeric_uses_cpp.bas"
+goto L_12;
+#line 30 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(30);}while(r);
+#line 30 "numeric_uses_cpp.bas"
+L_12:;
+#line 30 "numeric_uses_cpp.bas"
+L_13:;
+#line 32 "numeric_uses_cpp.bas"
+do{
+#line 32 "numeric_uses_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 32 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uint32)(4294967295u)),qbs_new_txt(" ")));
+#line 32 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip5;
+#line 32 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 32 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 32 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)((-1ll))),qbs_new_txt(" ")));
+#line 32 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip5;
+#line 32 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 32 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 32 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int16)((-1))),qbs_new_txt(" ")));
+#line 32 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip5;
+#line 32 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 32 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 32 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(4294967295ll)),qbs_new_txt(" ")));
+#line 32 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip5;
+#line 32 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 32 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 32 "numeric_uses_cpp.bas"
+qbs_print(nothingstring,1);
+#line 32 "numeric_uses_cpp.bas"
+skip5:
+#line 32 "numeric_uses_cpp.bas"
+qbs_free(tqbs);
+#line 32 "numeric_uses_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 32 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(32);}while(r);
+#line 33 "numeric_uses_cpp.bas"
+do{
+#line 33 "numeric_uses_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 33 "numeric_uses_cpp.bas"
+qbs_set(tqbs,func_hex(*(uint8*)((((char*)__UDT_V)+0)),2));
+#line 33 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 33 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 33 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 33 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uint8)(func_abs(((uint8)(*(uint8*)((((char*)__UDT_V)+0))))))),qbs_new_txt(" ")));
+#line 33 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 33 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 33 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 33 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(func_sgn(((uint8)(*(uint8*)((((char*)__UDT_V)+0))))))),qbs_new_txt(" ")));
+#line 33 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 33 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 33 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 33 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uint32)((*(uint32*)((((char*)__UDT_V)+1))))),qbs_new_txt(" ")));
+#line 33 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 33 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 33 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 33 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int16)(func_cint_ulong(((uint16*)(__ARRAY_UINTEGER_A[0]))[array_check((2ll)-__ARRAY_UINTEGER_A[4],__ARRAY_UINTEGER_A[5])]))),qbs_new_txt(" ")));
+#line 33 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 33 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 33 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 33 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(func_clng_ulong(*(uint32*)((((char*)__UDT_V)+1))))),qbs_new_txt(" ")));
+#line 33 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 33 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 33 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 33 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((ptrszint)((*(ptrszint*)((((char*)__UDT_V)+5))))),qbs_new_txt(" ")));
+#line 33 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 33 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 33 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 33 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((float)(((float)(func_sqr(*(uint8*)((((char*)__UDT_V)+0))))))),qbs_new_txt(" ")));
+#line 33 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 33 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 33 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 33 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((long double)(func_exp_float(*(uint32*)((((char*)__UDT_V)+1))))),qbs_new_txt(" ")));
+#line 33 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 33 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 33 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 33 "numeric_uses_cpp.bas"
+qbs_print(nothingstring,1);
+#line 33 "numeric_uses_cpp.bas"
+skip6:
+#line 33 "numeric_uses_cpp.bas"
+qbs_free(tqbs);
+#line 33 "numeric_uses_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 33 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(33);}while(r);
+#line 34 "numeric_uses_cpp.bas"
+do{
+#line 34 "numeric_uses_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 34 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uint64)(qbs_val<uint64_t>(qbs_new_txt_len("-1",2)))),qbs_new_txt(" ")));
+#line 34 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip7;
+#line 34 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 34 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 34 "numeric_uses_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(qbs_val<int64_t>(qbs_new_txt_len("-1",2)))),qbs_new_txt(" ")));
+#line 34 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto skip7;
+#line 34 "numeric_uses_cpp.bas"
+makefit(tqbs);
+#line 34 "numeric_uses_cpp.bas"
+qbs_print(tqbs,0);
+#line 34 "numeric_uses_cpp.bas"
+qbs_print(nothingstring,1);
+#line 34 "numeric_uses_cpp.bas"
+skip7:
+#line 34 "numeric_uses_cpp.bas"
+qbs_free(tqbs);
+#line 34 "numeric_uses_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 34 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(34);}while(r);
+#line 35 "numeric_uses_cpp.bas"
+do{
+#line 35 "numeric_uses_cpp.bas"
+if (sub_gl_called) error(271);
+#line 35 "numeric_uses_cpp.bas"
+close_program=1;
+#line 35 "numeric_uses_cpp.bas"
+end();
+#line 35 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(35);}while(r);
+sub_end();
+return;
+}
+==> main1.txt <==
+#line 37 "numeric_uses_cpp.bas"
+void SUB_SHOWUL(uint32*_SUB_SHOWUL_ULONG_X){
+#line 37 "numeric_uses_cpp.bas"
+qbs *tqbs;
+#line 37 "numeric_uses_cpp.bas"
+ptrszint tmp_long;
+#line 37 "numeric_uses_cpp.bas"
+int32 tmp_fileno;
+#line 37 "numeric_uses_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 37 "numeric_uses_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 37 "numeric_uses_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 37 "numeric_uses_cpp.bas"
+#include "data1.txt"
+#line 37 "numeric_uses_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 37 "numeric_uses_cpp.bas"
+new_mem_lock();
+#line 37 "numeric_uses_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 37 "numeric_uses_cpp.bas"
+sf_mem_lock->type=3;
+#line 37 "numeric_uses_cpp.bas"
+libqb_check_stack();
+#line 37 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 38 "numeric_uses_cpp.bas"
+do{
+#line 38 "numeric_uses_cpp.bas"
+*_SUB_SHOWUL_ULONG_X=5u;
+#line 38 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(38);}while(r);
+#line 39 "numeric_uses_cpp.bas"
+exit_subfunc:;
+#line 39 "numeric_uses_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 39 "numeric_uses_cpp.bas"
+#include "free1.txt"
+#line 39 "numeric_uses_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 39 "numeric_uses_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 39 "numeric_uses_cpp.bas"
+}
+==> main2.txt <==
+#line 41 "numeric_uses_cpp.bas"
+void SUB_SHOWSI(int16*_SUB_SHOWSI_INTEGER_X){
+#line 41 "numeric_uses_cpp.bas"
+qbs *tqbs;
+#line 41 "numeric_uses_cpp.bas"
+ptrszint tmp_long;
+#line 41 "numeric_uses_cpp.bas"
+int32 tmp_fileno;
+#line 41 "numeric_uses_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 41 "numeric_uses_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 41 "numeric_uses_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 41 "numeric_uses_cpp.bas"
+#include "data2.txt"
+#line 41 "numeric_uses_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 41 "numeric_uses_cpp.bas"
+new_mem_lock();
+#line 41 "numeric_uses_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 41 "numeric_uses_cpp.bas"
+sf_mem_lock->type=3;
+#line 41 "numeric_uses_cpp.bas"
+libqb_check_stack();
+#line 41 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 42 "numeric_uses_cpp.bas"
+do{
+#line 42 "numeric_uses_cpp.bas"
+*_SUB_SHOWSI_INTEGER_X=(-3);
+#line 42 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(42);}while(r);
+#line 43 "numeric_uses_cpp.bas"
+exit_subfunc:;
+#line 43 "numeric_uses_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 43 "numeric_uses_cpp.bas"
+#include "free2.txt"
+#line 43 "numeric_uses_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 43 "numeric_uses_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 43 "numeric_uses_cpp.bas"
+}
+==> main3.txt <==
+#line 45 "numeric_uses_cpp.bas"
+void SUB_SHOWUO(uptrszint*_SUB_SHOWUO_UOFFSET_X){
+#line 45 "numeric_uses_cpp.bas"
+qbs *tqbs;
+#line 45 "numeric_uses_cpp.bas"
+ptrszint tmp_long;
+#line 45 "numeric_uses_cpp.bas"
+int32 tmp_fileno;
+#line 45 "numeric_uses_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 45 "numeric_uses_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 45 "numeric_uses_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 45 "numeric_uses_cpp.bas"
+#include "data3.txt"
+#line 45 "numeric_uses_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 45 "numeric_uses_cpp.bas"
+new_mem_lock();
+#line 45 "numeric_uses_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 45 "numeric_uses_cpp.bas"
+sf_mem_lock->type=3;
+#line 45 "numeric_uses_cpp.bas"
+libqb_check_stack();
+#line 45 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 46 "numeric_uses_cpp.bas"
+do{
+#line 46 "numeric_uses_cpp.bas"
+*_SUB_SHOWUO_UOFFSET_X=7ull;
+#line 46 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(46);}while(r);
+#line 47 "numeric_uses_cpp.bas"
+exit_subfunc:;
+#line 47 "numeric_uses_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 47 "numeric_uses_cpp.bas"
+#include "free3.txt"
+#line 47 "numeric_uses_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 47 "numeric_uses_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 47 "numeric_uses_cpp.bas"
+}
+==> main4.txt <==
+#line 49 "numeric_uses_cpp.bas"
+uint32 FUNC_BIG(uint8*_FUNC_BIG_UBYTE_X){
+#line 49 "numeric_uses_cpp.bas"
+qbs *tqbs;
+#line 49 "numeric_uses_cpp.bas"
+ptrszint tmp_long;
+#line 49 "numeric_uses_cpp.bas"
+int32 tmp_fileno;
+#line 49 "numeric_uses_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 49 "numeric_uses_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 49 "numeric_uses_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 49 "numeric_uses_cpp.bas"
+#include "data4.txt"
+#line 49 "numeric_uses_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 49 "numeric_uses_cpp.bas"
+new_mem_lock();
+#line 49 "numeric_uses_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 49 "numeric_uses_cpp.bas"
+sf_mem_lock->type=3;
+#line 49 "numeric_uses_cpp.bas"
+libqb_check_stack();
+#line 49 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 50 "numeric_uses_cpp.bas"
+do{
+#line 50 "numeric_uses_cpp.bas"
+*_FUNC_BIG_ULONG_BIG=((uint32)((((int32)(*_FUNC_BIG_UBYTE_X))*16843009)));
+#line 50 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(50);}while(r);
+#line 51 "numeric_uses_cpp.bas"
+exit_subfunc:;
+#line 51 "numeric_uses_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 51 "numeric_uses_cpp.bas"
+#include "free4.txt"
+#line 51 "numeric_uses_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 51 "numeric_uses_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 51 "numeric_uses_cpp.bas"
+return *_FUNC_BIG_ULONG_BIG;
+#line 51 "numeric_uses_cpp.bas"
+}
+==> data4.txt <==
+uint32 *_FUNC_BIG_ULONG_BIG=NULL;
+if(_FUNC_BIG_ULONG_BIG==NULL){
+_FUNC_BIG_ULONG_BIG=(uint32*)mem_static_malloc(4);
+*_FUNC_BIG_ULONG_BIG=0;
+}
+==> main5.txt <==
+#line 53 "numeric_uses_cpp.bas"
+qbs* FUNC_FS(qbs*_FUNC_FS_STRING_X){
+#line 53 "numeric_uses_cpp.bas"
+qbs *tqbs;
+#line 53 "numeric_uses_cpp.bas"
+ptrszint tmp_long;
+#line 53 "numeric_uses_cpp.bas"
+int32 tmp_fileno;
+#line 53 "numeric_uses_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 53 "numeric_uses_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 53 "numeric_uses_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 53 "numeric_uses_cpp.bas"
+#include "data5.txt"
+#line 53 "numeric_uses_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 53 "numeric_uses_cpp.bas"
+new_mem_lock();
+#line 53 "numeric_uses_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 53 "numeric_uses_cpp.bas"
+sf_mem_lock->type=3;
+#line 53 "numeric_uses_cpp.bas"
+libqb_check_stack();
+#line 53 "numeric_uses_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 54 "numeric_uses_cpp.bas"
+do{
+#line 54 "numeric_uses_cpp.bas"
+qbs_set(_FUNC_FS_STRING5_FS,_FUNC_FS_STRING_X);
+#line 54 "numeric_uses_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 54 "numeric_uses_cpp.bas"
+if(!qbevent)break;evnt(54);}while(r);
+#line 55 "numeric_uses_cpp.bas"
+exit_subfunc:;
+#line 55 "numeric_uses_cpp.bas"
+tqbs=qbs_new(5,1);memcpy(tqbs->chr,_FUNC_FS_STRING5_FS->chr,5);qbs_free(_FUNC_FS_STRING5_FS);
+#line 55 "numeric_uses_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 55 "numeric_uses_cpp.bas"
+#include "free5.txt"
+#line 55 "numeric_uses_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 55 "numeric_uses_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 55 "numeric_uses_cpp.bas"
+return tqbs;
+#line 55 "numeric_uses_cpp.bas"
+}
+==> data5.txt <==
+qbs *_FUNC_FS_STRING5_FS=NULL;
+if(_FUNC_FS_STRING5_FS==NULL){
+_FUNC_FS_STRING5_FS=qbs_new_fixed((uint8*)mem_static_malloc(5),5,0);
+memset(_FUNC_FS_STRING5_FS->chr,0,5);
+}
+qbs*oldstr0=NULL;
+if(_FUNC_FS_STRING_X->tmp||_FUNC_FS_STRING_X->fixed||_FUNC_FS_STRING_X->readonly){
+oldstr0=_FUNC_FS_STRING_X;
+if (oldstr0->cmem_descriptor){
+_FUNC_FS_STRING_X=qbs_new_cmem(oldstr0->len,0);
+}else{
+_FUNC_FS_STRING_X=qbs_new(oldstr0->len,0);
+}
+memcpy(_FUNC_FS_STRING_X->chr,oldstr0->chr,oldstr0->len);
+}
+==> free5.txt <==
+if(oldstr0){
+if(oldstr0->fixed)qbs_set(oldstr0,_FUNC_FS_STRING_X);
+qbs_free(_FUNC_FS_STRING_X);
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt data1.txt free1.txt data2.txt free2.txt data3.txt free3.txt free4.txt

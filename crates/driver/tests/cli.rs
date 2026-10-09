@@ -302,18 +302,129 @@ fn wide_bit_scalars_do_not_overlap() {
     let d = scratch("wide-bit");
     let program = "$CONSOLE:ONLY\nDIM a AS _BIT * 33, b AS _BIT * 33\na = 5: b = -1\nPRINT a; b\n\
                    DIM u AS _UNSIGNED _BIT * 3, w AS _BIT * 40\nu = 2: w = 2\nPRINT u; w\nSYSTEM\n";
+    assert_eq!(build_and_run(&d, program), " 5 -1 \n 2  2 \n");
+}
+
+/// Builds `program` as `p.bas` in `d` with `-q -x`, runs it and gives its output with `\n` line ends.
+fn build_and_run(d: &Path, program: &str) -> String {
     std::fs::write(d.join("p.bas"), program).unwrap();
     let exe = d.join("p.exe");
-    let o = qb64rust(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust(d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
     let run = Command::new(&exe)
-        .current_dir(&d)
+        .current_dir(d)
         .env("QB64PE_NOPROMPT", "y")
         .stdin(std::process::Stdio::null())
         .output()
         .unwrap();
     assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
-    assert_eq!(stdout(&run).replace("\r\n", "\n"), " 5 -1 \n 2  2 \n");
+    stdout(&run).replace("\r\n", "\n")
+}
+
+/// `a IMP b IMP c` is `(a IMP b) IMP c` (`DIVERGENCES.md` D-005: the old compiler computes `5 OR 3 OR 0`, 7, so this
+/// cannot be a recorded corpus program).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn imp_chain_is_left_to_right() {
+    let d = scratch("imp-chain");
+    let program = "$CONSOLE:ONLY\nPRINT 5 IMP 3 IMP 0\na = 5: b = 3: c = 0\nPRINT a IMP b IMP c\nSYSTEM\n";
+    assert_eq!(build_and_run(&d, program), " 4 \n 4 \n");
+}
+
+/// The smallest LONG or `_INTEGER64` divided by -1 raises error 6, and `MOD -1` gives 0 (`DIVERGENCES.md` D-006: the
+/// old program crashes).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn smallest_integer_divided_by_minus_one() {
+    let d = scratch("min-div");
+    let program = "$CONSOLE:ONLY\nON ERROR GOTO h\nl& = -2147483648: m& = -1\nPRINT l& \\ m&\nPRINT l& MOD m&\n\
+                   q&& = -9223372036854775808: r&& = -1\nPRINT q&& \\ r&&\nPRINT q&& MOD r&&\n\
+                   PRINT 7 \\ m&; -7 MOD m&; l& \\ 2\nSYSTEM\nh:\nPRINT \"[handler\"; ERR; \"]\"\nRESUME NEXT\n";
+    assert_eq!(
+        build_and_run(&d, program),
+        "[handler 6 ]\n 0 \n[handler 6 ]\n 0 \n-7  0 -1073741824 \n"
+    );
+}
+
+/// An integer power beyond `_INTEGER64` in a `CONST` is a DOUBLE (`DIVERGENCES.md` D-007: the old evaluator wraps it
+/// to -9223372036854775808).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn const_power_beyond_integer64() {
+    let d = scratch("const-pow");
+    let program = "$CONSOLE:ONLY\nCONST c = 2 ^ 70\nPRINT c\nSYSTEM\n";
+    assert_eq!(build_and_run(&d, program), " 1.180591620717411D+21 \n");
+}
+
+/// A label and a `CONST` on one line (`DIVERGENCES.md` D-008: the old compiler fails to compile it).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn label_then_const() {
+    let d = scratch("label-const");
+    let program = "$CONSOLE:ONLY\nlbl1: CONST k = 4\nPRINT k: GOTO done\nPRINT \"skipped\"\ndone:\nSYSTEM\n";
+    assert_eq!(build_and_run(&d, program), " 4 \n");
+}
+
+/// Each call of a FUNCTION `f$n` gives its own string (`DIVERGENCES.md` D-014: the old compiler returns bytes the
+/// FUNCTION has released, so `fs$5("ab") + fs$5("cd")` is `cd   cd   ` there).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn fixed_function_results_are_copies() {
+    let d = scratch("fixed-function");
+    let program = "$CONSOLE:ONLY\nPRINT \"[\"; fs$5(\"ab\") + fs$5(\"cd\"); \"]\"\n\
+                   x$ = fs$5(\"12\") + fs$5(\"34\"): PRINT \"[\"; x$; \"]\"; LEN(x$)\nSYSTEM\n\
+                   FUNCTION fs$5 (x AS STRING)\nfs$5 = x\nEND FUNCTION\n";
+    assert_eq!(build_and_run(&d, program), "[ab   cd   ]\n[12   34   ] 10 \n");
+}
+
+/// The chained-`^` warning: printed with `-w` at the `CONST`'s line, not counted, the executable built (scenario
+/// "Warning shown with -w"); not printed without `-w` (scenario "Warning hidden without -w").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn chained_power_warning() {
+    let d = scratch("pow-warning");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nCONST c = 2 ^ 3 ^ 2\nPRINT c\nSYSTEM\n").unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust(&d, &["-w", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    let out = stdout(&o);
+    assert!(
+        out.lines().any(|l| l.starts_with("p.bas:2:") && l.contains("warning:")),
+        "{out}"
+    );
+    assert!(!out.contains("error"), "{out}");
+    assert!(exe.is_file());
+    let run = Command::new(&exe)
+        .current_dir(&d)
+        .stdin(std::process::Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(stdout(&run).replace("\r\n", "\n"), " 512 \n");
+
+    std::fs::remove_file(&exe).unwrap();
+    let o = qb64rust(&d, &["-q", "-m", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
+    assert!(exe.is_file());
+}
+
+/// No warning for a parenthesised chain, with `-w` (the constants delta's scenario "Parenthesised chain"); the C++
+/// only, so no clone is needed.
+#[test]
+fn parenthesised_power_no_warning() {
+    let d = scratch("pow-parens");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\nCONST c = (2 ^ 3) ^ 2, e = 2 ^ (3 ^ 2)\nPRINT c; e\nSYSTEM\n",
+    )
+    .unwrap();
+    let o = qb64rust(&d, &["-w", "-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
+    std::fs::write(d.join("q.bas"), "$CONSOLE:ONLY\nCONST c = 2 ^ 3 ^ 2\nSYSTEM\n").unwrap();
+    let o = qb64rust(&d, &["-w", "-z", "q.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(stdout(&o).starts_with("q.bas:2:11: warning:"), "{}", stdout(&o));
 }
 
 /// Deeply nested expressions are one "not supported yet" error, not a stack overflow (the known bug of

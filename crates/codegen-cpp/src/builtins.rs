@@ -5,10 +5,8 @@
 use crate::Emitter;
 use crate::names::c_type;
 use qb64rust_builtins::BuiltinId;
-use qb64rust_ir::builtins::{Rule, Slot, find, radix_width, slots};
-use qb64rust_ir::{
-    BIT_VALUE_UNREACHABLE, Expr, LATER_TYPE_UNREACHABLE, PLACE_ONLY_UNREACHABLE, Ty, later_types, place_only_types,
-};
+use qb64rust_ir::builtins::{Rule, Slot, find, int_entry, radix_width, slots};
+use qb64rust_ir::{Expr, Ty};
 
 impl Emitter<'_> {
     /// A built-in call. A built-in no rule covers (`ERR`, `ERL` are `Fixed`; every call `sema` makes has a rule) is
@@ -28,14 +26,11 @@ impl Emitter<'_> {
                 let x = self.value(a);
                 // `INT`: `std::floor` of a float, the value of an integer; `FIX`: `func_fix_float` above 64 bits.
                 let f = match (s.name, a.qb) {
-                    (_, Ty::I16 | Ty::I32 | Ty::I64) => "",
+                    (_, t) if t.is_int() => "",
                     ("INT", _) => "std::floor",
                     (_, Ty::F80) => "func_fix_float",
                     (_, Ty::F32 | Ty::F64) => "func_fix_double",
-                    (_, Ty::Str | Ty::User(_)) => unreachable!("a numeric argument"),
-                    (_, place_only_types!()) => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
-                    (_, later_types!()) => unreachable!("{LATER_TYPE_UNREACHABLE}"),
-                    (_, Ty::Bit { .. }) => unreachable!("{BIT_VALUE_UNREACHABLE}"),
+                    (_, t) => unreachable!("`{}` of a {t:?}", s.name),
                 };
                 format!("{f}({x})")
             }
@@ -58,10 +53,19 @@ impl Emitter<'_> {
                     Ty::F64 => format!("((double)qbs_val<long double>({x}))"),
                     Ty::F80 => format!("qbs_val<long double>({x})"),
                     Ty::I64 => format!("qbs_val<int64_t>({x})"),
-                    Ty::I16 | Ty::I32 | Ty::Str | Ty::User(_) => unreachable!("VAL typed {ty:?}"),
-                    place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
-                    later_types!() => unreachable!("{LATER_TYPE_UNREACHABLE}"),
-                    Ty::Bit { .. } => unreachable!("{BIT_VALUE_UNREACHABLE}"),
+                    Ty::U64 => format!("qbs_val<uint64_t>({x})"),
+                    Ty::I8
+                    | Ty::U8
+                    | Ty::I16
+                    | Ty::U16
+                    | Ty::I32
+                    | Ty::U32
+                    | Ty::Off
+                    | Ty::UOff
+                    | Ty::Bit { .. }
+                    | Ty::Str
+                    | Ty::FixedStr(_)
+                    | Ty::User(_) => unreachable!("VAL typed {ty:?}"),
                 }
             }
             Rule::Radix(bits) => {
@@ -103,28 +107,22 @@ impl Emitter<'_> {
     /// argument's believed type, or the value itself (`qb64pe.bas` 21116–21215).
     fn convert_fn(&mut self, to: Ty, a: &Expr) -> String {
         let x = self.value(a);
+        let int = a.qb.is_int();
         let f = match (to, a.qb) {
+            (Ty::I16 | Ty::I32, _) if int => int_entry(to, a.qb).unwrap_or(""),
             (Ty::I16, Ty::F80) => "func_cint_float",
             (Ty::I16, Ty::F32 | Ty::F64) => "func_cint_double",
-            (Ty::I16, Ty::I32) => "func_cint_long",
-            (Ty::I16, Ty::I64) => "func_cint_int64",
             (Ty::I32, Ty::F80) => "func_clng_float",
             (Ty::I32, Ty::F32 | Ty::F64) => "func_clng_double",
-            (Ty::I32, Ty::I64) => "func_clng_int64",
             (Ty::F32, Ty::F64) => "func_csng_double",
             (Ty::F32, Ty::F80) => "func_csng_float",
             (Ty::F64, Ty::F80) => "func_cdbl_float",
-            (Ty::F32 | Ty::F64, Ty::I16 | Ty::I32 | Ty::I64) => return format!("((double)({x}))"),
+            (Ty::F32 | Ty::F64, _) if int => return format!("((double)({x}))"),
             (Ty::I64, Ty::F80) => "func_round_float",
             (Ty::I64, Ty::F32 | Ty::F64) => "func_round_double",
-            (Ty::I16, Ty::I16) | (Ty::I32, Ty::I16 | Ty::I32) | (Ty::F32, Ty::F32) | (Ty::F64, Ty::F32 | Ty::F64) => "",
-            (Ty::I64, Ty::I16 | Ty::I32 | Ty::I64) => "",
-            (_, Ty::Str | Ty::User(_)) | (Ty::F80 | Ty::Str | Ty::User(_), _) => {
-                unreachable!("a conversion to {to:?} of {:?}", a.qb)
-            }
-            (place_only_types!(), _) | (_, place_only_types!()) => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
-            (later_types!(), _) | (_, later_types!()) => unreachable!("{LATER_TYPE_UNREACHABLE}"),
-            (Ty::Bit { .. }, _) | (_, Ty::Bit { .. }) => unreachable!("{BIT_VALUE_UNREACHABLE}"),
+            (Ty::I64, _) if int => "",
+            (Ty::F32, Ty::F32) | (Ty::F64, Ty::F32 | Ty::F64) => "",
+            (_, from) => unreachable!("a conversion to {to:?} of {from:?}"),
         };
         format!("{f}({x})")
     }

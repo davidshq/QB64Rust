@@ -1,0 +1,172 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+TYPE NT
+  UB:U8
+  UL:U32
+  O:Off
+ARRAY A:U16(0 TO 2)
+line 2: ConsoleOnly
+line 14: Assign V.UB:U8
+  Int 255 : U8
+line 14: Assign A(…):U16
+  Index
+    Int 1 : I64
+  Value
+    Int 65535 : U16
+line 15: Call SHOWUL
+  ref SL : I32
+line 16: Call SHOWUL
+  ref V.UL : U32
+line 17: Call SHOWSI
+  ref A(…) : U16
+    Int 1 : I64
+line 18: Call SHOWSI
+  temp
+    Convert Truncate : I16
+      Element A(…) : U16
+        Int 1 : I64
+line 19: Call SHOWUO
+  ref Q : I64
+line 20: Print newline
+  Num
+    CallProc BIG : U32
+      temp
+        Int 255 : U8
+  Str
+    CallProc FS : Str
+      temp
+        Str "ab" : Str
+line 21: For B:U8 counting in I16 (NEXT line 21)
+  From
+    Int 250 : I16
+  To
+    Int 255 : I16
+  Step
+    Int 3 : I16
+  Body
+line 22: For U:U16 counting in I32 (NEXT line 22)
+  From
+    Int 2 : I32
+  To
+    Int 0 : I32
+  Step
+    Int -1 : I32
+  Body
+line 23: For L:U32 counting in I64 (NEXT line 23)
+  From
+    Int 1 : I64
+  To
+    Int 2 : I64
+  Body
+line 24: SelectCase, selector copied once (END SELECT line 27)
+    Convert Widen : U32
+      Member V.UB : U8
+  Case line 25
+    Is Eq
+      Int 4294967295 : U32
+    Body
+      line 25: Print newline
+        Str
+          Str "never" : Str
+  Case line 26
+    Range
+      Convert Truncate : U32
+        Convert Truncate : I32
+          Convert RoundEven : I64
+            Float 254.5E+0 : F64 (qb F32)
+      Int 255 : U32
+    Body
+      line 26: Print newline
+        Str
+          Str "255" : Str
+line 28: SelectCase, selector copied once (END SELECT line 30)
+    Convert Truncate : I64
+      Binary Add : U64 (qb I64)
+        Convert Truncate : U64
+          Var Q : I64
+        Int 1 : U64
+  Case line 29
+    Is Eq
+      Int 1 : I64
+    Body
+      line 29: Print newline
+        Str
+          Str "one" : Str
+line 32: Print newline
+  Num
+    Int 4294967295 : U32
+  Num
+    Int -1 : I64
+  Num
+    Int -1 : I16
+  Num
+    Int 4294967295 : I64
+line 33: Print newline
+  Str
+    Call HEX : Str
+      Member V.UB : U8
+  Num
+    Call ABS : U8
+      Member V.UB : U8
+  Num
+    Call SGN : I32
+      Member V.UB : U8
+  Num
+    Call INT : U32
+      Member V.UL : U32
+  Num
+    Call CINT : I16
+      Element A(…) : U16
+        Int 2 : I64
+  Num
+    Call CLNG : I32
+      Member V.UL : U32
+  Num
+    Call _ROUND : Off
+      Member V.O : Off
+  Num
+    Convert Nearest : F32
+      Call SQR : F64 (qb F32)
+        Member V.UB : U8
+  Num
+    Call EXP : F80
+      Member V.UL : U32
+line 34: Print newline
+  Num
+    Call VAL : U64
+      Str "-1" : Str
+      (absent)
+  Num
+    Call VAL : I64
+      Str "-1" : Str
+      (absent)
+line 35: System
+SUB SHOWUL
+  param X:U32
+line 38: Assign X (param):U32
+  Int 5 : U32
+SUB SHOWSI
+  param X:I16
+line 42: Assign X (param):I16
+  Int -3 : I16
+SUB SHOWUO
+  param X:UOff
+line 46: Assign X (param):UOff
+  Int 7 : UOff
+FUNCTION BIG : U32
+  param X:U8
+  result BIG:U32
+line 50: Assign BIG (result):U32
+  Convert Truncate : U32
+    Binary Mul : I32 (qb I64)
+      Convert Widen : I32
+        Var X (param) : U8
+      Int 16843009 : I32
+FUNCTION FS : Str*5
+  param X:Str
+  result FS:Str*5
+line 54: Assign FS (result):Str*5
+  Var X (param) : Str

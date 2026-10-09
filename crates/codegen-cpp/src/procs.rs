@@ -5,7 +5,7 @@ use crate::Emitter;
 use crate::decl::{declare, is_qbs};
 use crate::names::{c_type, proc_name, var_name};
 use qb64rust_base::to_u32;
-use qb64rust_ir::{Body, LabelId, Proc, ProcId, ProcKind, Storage, Var};
+use qb64rust_ir::{Body, LabelId, Proc, ProcId, ProcKind, Storage, Ty, Var};
 use std::fmt::Write as _;
 
 /// The prologue of a procedure, after its signature line (`study\02` §8, verbatim from the old compiler).
@@ -37,7 +37,7 @@ impl<'a> Emitter<'a> {
     fn signature(&self, proc: &Proc) -> String {
         let ret = match proc.kind {
             ProcKind::Sub => "void",
-            ProcKind::Function(t) => c_type(t),
+            ProcKind::Function(t) => c_type(t.held_value()),
         };
         let params: Vec<String> = proc
             .params
@@ -151,18 +151,41 @@ impl<'a> Emitter<'a> {
         header.extend(PROLOGUE_AFTER_DATA.iter().map(|s| s.to_string()));
         self.lines(proc.line, &header, &mut main);
         self.body(&proc.body, k, &mut main);
-        let mut footer = vec![
-            "exit_subfunc:;".to_string(),
-            "free_mem_lock(sf_mem_lock);".to_string(),
-            format!("#include \"free{k}.txt\""),
-        ];
+        let mut footer = vec!["exit_subfunc:;".to_string()];
+        // A FUNCTION `f$n`: a copy of its n bytes, made before the epilogue releases the static pool they lie in (the
+        // old compiler returns the fixed string itself, so a second call in the same expression overwrites the first
+        // result: `DIVERGENCES.md` D-014).
+        if let Some(r) = proc.result
+            && let Ty::FixedStr(len) = self.p.var(r).ty
+        {
+            let n = self.name(r);
+            footer.push(format!(
+                "tqbs=qbs_new({len},1);memcpy(tqbs->chr,{n}->chr,{len});qbs_free({n});"
+            ));
+        }
+        footer.push("free_mem_lock(sf_mem_lock);".to_string());
+        footer.push(format!("#include \"free{k}.txt\""));
         footer.extend(EPILOGUE_AFTER_FREE.iter().map(|s| s.to_string()));
         if let Some(r) = proc.result {
             let n = self.name(r);
-            footer.push(if is_qbs(self.p.var(r).ty) {
-                format!("qbs_maketmp({n});return {n};")
-            } else {
-                format!("return *{n};")
+            footer.push(match self.p.var(r).ty {
+                Ty::FixedStr(_) => "return tqbs;".to_string(),
+                Ty::Str => format!("qbs_maketmp({n});return {n};"),
+                Ty::I8
+                | Ty::U8
+                | Ty::I16
+                | Ty::U16
+                | Ty::I32
+                | Ty::U32
+                | Ty::I64
+                | Ty::U64
+                | Ty::Off
+                | Ty::UOff
+                | Ty::Bit { .. }
+                | Ty::F32
+                | Ty::F64
+                | Ty::F80
+                | Ty::User(_) => format!("return *{n};"),
             });
         }
         footer.push("}".to_string());

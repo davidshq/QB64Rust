@@ -310,8 +310,29 @@ pub fn range(ty: Ty) -> (i128, i128) {
 
 /// The value of a [`suffixed`] literal of believed type `qb` whose digits are an evaluator's 64-bit value `v` (a
 /// suffixed `CONST`, design D7): a negative value under an unsigned suffix is written as its unsigned 64-bit value,
-/// as the old compiler writes it (`CONST b~%% = -1` holds 2^64-1).
+/// as the old compiler writes it (`CONST b~%% = -1` holds 2^64-1). An `_OFFSET` suffix gives an `_INTEGER64` literal
+/// of its signedness: there is no `_OFFSET` literal (measured, the C++ of `verification\v21_d_const`: `CONST k~%& =
+/// -1` is `18446744073709551615ull`, and `k~%& + 0` is believed `_INTEGER64`, -1).
 pub fn constant_literal(v: i64, qb: Ty) -> NumLit {
+    let qb = match qb {
+        Ty::Off => Ty::I64,
+        Ty::UOff => Ty::U64,
+        Ty::I8
+        | Ty::U8
+        | Ty::I16
+        | Ty::U16
+        | Ty::I32
+        | Ty::U32
+        | Ty::I64
+        | Ty::U64
+        | Ty::Bit { .. }
+        | Ty::F32
+        | Ty::F64
+        | Ty::F80
+        | Ty::Str
+        | Ty::FixedStr(_)
+        | Ty::User(_) => qb,
+    };
     let digits = if qb.is_unsigned() && v < 0 {
         i128::from(v.cast_unsigned())
     } else {

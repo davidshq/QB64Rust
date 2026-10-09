@@ -272,16 +272,6 @@ impl Ty {
         }
     }
 
-    /// One of the types `m2-numeric-types` added (not `_BIT`, whose values have other types, [`Ty::held_value`]).
-    pub fn is_new_numeric(self) -> bool {
-        match self {
-            Ty::I8 | Ty::U8 | Ty::U16 | Ty::U32 | Ty::U64 | Ty::Off | Ty::UOff | Ty::Bit { .. } => true,
-            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => {
-                false
-            }
-        }
-    }
-
     /// The QB type name (`INTEGER`, `_FLOAT`...); `TYPE` for a user type, whose name is [`Program::type_name`]'s.
     /// A `_BIT * n` without its width: [`Program::type_name`] has it.
     pub fn qb_name(self) -> &'static str {
@@ -323,26 +313,6 @@ macro_rules! place_only_types {
 /// The reason in an `unreachable!` arm for `_BIT` where a value's type is matched: a `_BIT` value is held in its
 /// storage type ([`Ty::held_value`]); `_BIT` is the type of a place only.
 pub const BIT_VALUE_UNREACHABLE: &str = "a `_BIT` value is held in its storage type (`Ty::held_value`)";
-
-/// The reason in an `unreachable!` arm for a type of [`later_types`].
-pub const LATER_TYPE_UNREACHABLE: &str =
-    "a value of the new integer types does not reach this use yet (\"not supported yet\", `m2-numeric-types` group 8)";
-
-/// A pattern of the integer types `m2-numeric-types` added, for the arm `later_types!() =>
-/// unreachable!("{LATER_TYPE_UNREACHABLE}")` of a `match` on a value's type in a use that task group 8 brings
-/// (`FOR`, `SELECT CASE`, the special-cased built-ins): the checker stops such a value before it gets there.
-#[macro_export]
-macro_rules! later_types {
-    () => {
-        $crate::Ty::I8
-            | $crate::Ty::U8
-            | $crate::Ty::U16
-            | $crate::Ty::U32
-            | $crate::Ty::U64
-            | $crate::Ty::Off
-            | $crate::Ty::UOff
-    };
-}
 
 /// The kind of conversion of a numeric value from `from` to `to` (design D5 of `m2-numeric-types`): `Widen` where
 /// every value of `from` is one of `to` (an integer to a wider one that keeps its sign, a float to a wider float),

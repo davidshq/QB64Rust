@@ -38,10 +38,23 @@ impl Frontend {
         self.diagnostics.has_errors()
     }
 
-    /// Each diagnostic rendered as `<file>:<line>:<col>: error: <message>`, one per line, in source order (the
-    /// main file first, then the included files in the order they were loaded).
+    /// Each error rendered as `<file>:<line>:<col>: error: <message>`, one per line, in source order (the main file
+    /// first, then the included files in the order they were loaded). Warnings are left out.
     pub fn render_diagnostics(&self) -> String {
-        let mut list: Vec<_> = self.diagnostics.list().to_vec();
+        self.render(false)
+    }
+
+    /// The errors and the warnings, in source order (`-w`, spec `compiler/cli`).
+    pub fn render_with_warnings(&self) -> String {
+        self.render(true)
+    }
+
+    fn render(&self, warnings: bool) -> String {
+        let mut list: Vec<_> = if warnings {
+            self.diagnostics.list().to_vec()
+        } else {
+            self.diagnostics.errors().cloned().collect()
+        };
         list.sort_by_key(|d| (d.span.file.0, d.span.start));
         let mut out = String::new();
         for d in list {

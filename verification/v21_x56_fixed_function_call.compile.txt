@@ -1,0 +1,5 @@
+
+Expected CALL sub-name [(...)]
+Caused by (or after):CALL FS$5 ( "a",1 )
+LINE 3:CALL fs$5("a")
+exit=1

@@ -18,7 +18,8 @@ export interface ParseOptions {
     exists?: (file: string) => boolean;
 }
 
-const WARNING = /^(.+?):(\d+): warning: (.*)$/;
+// `file:line: warning:` from the old compiler; `file:line:column: warning:` from qb64rust (column ignored).
+const WARNING = /^(.+?):(\d+)(?::\d+)?: warning: (.*)$/;
 const LINE = /^LINE (\d+):/;
 const CAUSED_BY = /^Caused by \(or after\):/;
 const INCLUDE_SUFFIX = / in line (\d+) of (.+) included$/;

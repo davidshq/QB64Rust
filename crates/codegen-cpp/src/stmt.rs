@@ -113,7 +113,7 @@ impl Emitter<'_> {
             }
             Op::Call { proc, args } => {
                 let q = self.p.proc(*proc);
-                let a = self.args(args);
+                let a = self.args(*proc, args);
                 out.push(format!("{}({a});", proc_name(q)));
                 let strings =
                     args.iter().any(|a| a.uses_strings(self.p)) || q.params.iter().any(|&v| is_qbs(self.p.var(v).ty));

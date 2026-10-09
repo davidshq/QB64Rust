@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-09 (session 30). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-09 (session 33). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Step 8's bug-compatibility decisions are taken (2026-10-08); OpenSpec change `m2-numeric-types` groups 1–7 are done (2026-10-09); next: its group 8 (the new types everywhere else).**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Step 8's bug-compatibility decisions are taken (2026-10-08); OpenSpec change `m2-numeric-types` groups 1–9 are done (2026-10-09); next: its group 10 (integration: full runs, CI, docs).**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -285,8 +285,23 @@ is its `tasks.md`, and `git log`.
    supported yet": the `MID$` statement (step 9) and `f$n` FUNCTIONs (task 8.2). Tier 2 199, 43, 107. Record in
    `tasks.md` 6.1, 7.1, 7.2. The tier-2 runner gained `--jobs N` and `--build-cache DIR` for local runs
    (`crates\README.md` "Tests").
-   **Next: group 8, the new types everywhere else** (arrays, members, parameters and FUNCTION results, `FOR`,
-   `SELECT CASE`, `CONST`, built-in arguments, `s34_types_procs`).
+   **Groups 8 (the new types everywhere else) and 9 (the decided fixes) done 2026-10-09 (session 33):** arrays,
+   members, parameters (by reference across signedness also for elements and members, measured
+   `verification\v21_g_passing_places`), FUNCTION results with `f$n`, `FOR`, `SELECT CASE`, constants used with
+   another suffix (measured `v21_g_const_suffix`) and the special-cased built-ins as `evaluatefunc` writes them;
+   nothing is gated any more (`Checker::later` gone). D-005 to D-008 pinned; the chained-`^` warning, printed only
+   with `-w`. `s34_types_procs` and upstream `const/hex_literals` pass. Tier 2 198, 44, 107. Record in `tasks.md`
+   8.1–9.4. Found on the way and fixed by the user's decision: two calls of a FUNCTION `f$n` in one expression read
+   memory the FUNCTION had released (`fs$5("ab") + fs$5("cd")` was `cd   cd   `); it now returns a copy
+   (`DIVERGENCES.md` D-014).
+   Review fixes (session 34): the D-014 copy is now made before the epilogue releases the static pool (it was made
+   after); `name$n` is read as a procedure's name in one place (`Checker::proc_fixed_name`), only for variable
+   names and calls, so `CONST`, `TYPE` members, labels and SUB headers named `f$n` stay "not supported yet"
+   (measured, `verification\v21_x50`–`x57`: QB64pe rejects all eight; beside a SUB or a FUNCTION of another type
+   `x$n` is "Name already in use", as qb64rust says); the extension reads a warning line with a column
+   (`file:line:col:`) too.
+   **Next: group 10, integration** (full runs with the release build, the CI `tier2` steps against the 4.7.0
+   release, docs).
 9. Built-in statements and functions by demand (`study\27` §3): a built-in statement operation in the IR, then
    sequential file I/O, `DATA`/`READ`/`RESTORE`, `SWAP`, `RANDOMIZE`/`RND`/`TIMER`, console `INPUT`/`LINE INPUT`,
    `SHELL`/`COMMAND$`/`ENVIRON$`, each measured first; the remaining plain functions as the corpus, upstream or a

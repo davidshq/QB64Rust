@@ -1,0 +1,5 @@
+
+Type symbols after a SUB name are invalid
+Caused by (or after):
+LINE 9:SUB FS$5
+exit=1

@@ -308,8 +308,8 @@ pub fn binary(op: BinOp, a: &Value, b: &Value) -> R<Value> {
             let (x, y) = (as_float(a), as_float(b));
             exact_pair(x, y)?;
             if y.v == 0.0 {
-                // Measured: the old compiler gives 0.
-                return unsupported("division by zero in a `CONST`");
+                // The old compiler gives 0 (`DIVERGENCES.md` D-007).
+                return error("division by zero");
             }
             let r = x.v / y.v;
             // x - r*y exactly, divided by y: the error to well within the margin.
@@ -380,14 +380,16 @@ fn holds(op: BinOp, o: std::cmp::Ordering) -> bool {
     }
 }
 
-/// `a ^ b`. Two integers give an integer (the old evaluator stores the power back into `_INTEGER64`); otherwise
-/// a float. Supported: a whole exponent with an exact result, and the exponent 0.5 (a square root).
+/// `a ^ b`. Two integers give an integer (the old evaluator stores the power back into `_INTEGER64`), except a power
+/// beyond `_INTEGER64` range, which is a float like any other value beyond that range (the old evaluator wraps it,
+/// `DIVERGENCES.md` D-007: `2 ^ 70` is the DOUBLE 2^70); otherwise a float. Supported: a whole exponent with an
+/// exact result, and the exponent 0.5 (a square root).
 fn power(a: &Value, b: &Value) -> R<Value> {
     if let (Value::Int(x), Value::Int(y)) = (a, b) {
         return match (x, u32::try_from(*y)) {
             (_, Ok(e)) => match x.checked_pow(e) {
                 Some(p) => Ok(Value::Int(p)),
-                None => unsupported("a power beyond `_INTEGER64` range in a `CONST`"),
+                None => power(&Value::Float(float_of_int(*x)), &Value::Float(float_of_int(*y))),
             },
             (1, Err(_)) => Ok(Value::Int(1)),
             (-1, Err(_)) => Ok(Value::Int(if y % 2 == 0 { 1 } else { -1 })),
@@ -410,7 +412,8 @@ fn power(a: &Value, b: &Value) -> R<Value> {
         };
         return rounded(r, err);
     }
-    if y.v.fract() == 0.0 && (0.0..=64.0).contains(&y.v) {
+    // A whole exponent up to 1100: beyond it no power of a base other than 0, 1 or -1 is exact and finite in `f64`.
+    if y.v.fract() == 0.0 && (0.0..=1100.0).contains(&y.v) {
         let mut p = Value::Float(Float { v: 1.0, exact: true });
         for _ in 0..int_of(y.v).expect("small whole exponent") {
             p = binary(BinOp::Mul, &p, &Value::Float(x))?;
@@ -462,9 +465,8 @@ pub fn convert(from: Ty, v: Value, to: Ty) -> R<(Ty, Value)> {
     let v = match (v, to) {
         (Value::Str(_), _) | (_, Ty::Str | Ty::User(_)) => return error("type mismatch"),
         (_, crate::place_only_types!()) => unreachable!("{}", crate::PLACE_ONLY_UNREACHABLE),
-        (_, crate::later_types!()) => unreachable!("{}", crate::LATER_TYPE_UNREACHABLE),
         (_, crate::Ty::Bit { .. }) => unreachable!("{}", crate::BIT_VALUE_UNREACHABLE),
-        (v, Ty::I16 | Ty::I32 | Ty::I64) => {
+        (v, Ty::I8 | Ty::U8 | Ty::I16 | Ty::U16 | Ty::I32 | Ty::U32 | Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff) => {
             let i = to_int(&v)?;
             let (lo, hi) = crate::literal::range(to);
             if !(lo..=hi).contains(&i128::from(i)) {
@@ -586,7 +588,21 @@ mod tests {
             bin(BinOp::Pow, &flt("2.5E+0"), &int(2)),
             Value::Float(Float { v: 6.25, exact: true })
         );
-        assert!(is_unsupported(binary(BinOp::Pow, &int(2), &int(70))));
+        // Beyond `_INTEGER64`: a float when exact (D-007), else not supported.
+        assert_eq!(
+            bin(BinOp::Pow, &int(2), &int(70)),
+            Value::Float(Float {
+                v: 2f64.powi(70),
+                exact: true
+            })
+        );
+        assert_eq!(
+            settle(reread(bin(BinOp::Pow, &int(2), &int(70))).unwrap(), None)
+                .unwrap()
+                .0,
+            Ty::F64
+        );
+        assert!(is_unsupported(binary(BinOp::Pow, &int(3), &int(41))));
         assert!(is_unsupported(binary(BinOp::Pow, &int(2), &int(-1))));
         assert!(is_error(binary(
             BinOp::Pow,
@@ -621,7 +637,8 @@ mod tests {
     fn errors_and_unsupported() {
         assert!(is_error(binary(BinOp::IDiv, &int(1), &int(0))));
         assert!(is_error(binary(BinOp::Mod, &int(5), &int(0))));
-        assert!(is_unsupported(binary(BinOp::Div, &int(1), &int(0))));
+        // The old evaluator gives 0 (D-007).
+        assert!(is_error(binary(BinOp::Div, &int(1), &int(0))));
         assert!(is_error(binary(BinOp::Add, &Value::Str(b"a".to_vec()), &int(1))));
         assert!(is_error(binary(
             BinOp::Lt,
@@ -629,8 +646,7 @@ mod tests {
             &Value::Str(b"b".to_vec())
         )));
         assert!(is_unsupported(binary(BinOp::IDiv, &int(i64::MIN), &int(-1))));
-        // An integer-valued float beyond `_INTEGER64` range stays a float; an integer power beyond it is not
-        // supported (the old evaluator wraps it).
+        // An integer-valued float beyond `_INTEGER64` range stays a float.
         let big = reread(bin(BinOp::Div, &flt("1.0E+19"), &int(1))).unwrap();
         assert_eq!(settle(big, None).unwrap().0, Ty::F64);
         assert_eq!(settle(reread(flt("1.0E+30")).unwrap(), None).unwrap().0, Ty::F64);

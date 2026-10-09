@@ -1,0 +1,5 @@
+
+Invalid constant type
+Caused by (or after):
+LINE 3:CONST FS$5 = "a",1
+exit=1

@@ -19,8 +19,15 @@ impl Checker<'_> {
         let span = header.node().span();
         let keyword = self.need(header.keyword(), span)?;
         let name_tok = self.need(header.name(), span)?;
-        let (name, suffix) = self.split_name(name_tok)?;
-        let kind = if self.word(keyword) == "FUNCTION" {
+        let function = self.word(keyword) == "FUNCTION";
+        // `FUNCTION f$n`: a `STRING * n` result, returned as its n bytes (design D6; measured,
+        // `verification\v21_c_fixed_args`).
+        let fixed = if function { self.fixed_suffix(name_tok)? } else { None };
+        let (name, suffix) = match fixed {
+            Some((name, n)) => (name, Some(Ty::FixedStr(n))),
+            None => self.split_name(name_tok)?,
+        };
+        let kind = if function {
             ProcKind::Function(suffix.unwrap_or(Ty::F32))
         } else if suffix.is_some() {
             return Err(self.unsupported(name_tok.span, "a SUB name with a type suffix"));
@@ -225,7 +232,10 @@ impl Checker<'_> {
     pub(super) fn call_stmt(&mut self, stmt: ast::CallStmt) -> R<()> {
         let node = stmt.node();
         let name_tok = self.need(stmt.name(), node.span())?;
-        let (name, suffix) = self.split_name(name_tok)?;
+        let (name, suffix) = match self.proc_fixed_name(name_tok) {
+            Some((name, ty)) => (name, Some(ty)),
+            None => self.split_name(name_tok)?,
+        };
         let shown = show_bytes(self.text(name_tok.span));
         match self.procs_by_name.get(&name).map(|&p| (p, self.prog.proc(p).kind)) {
             Some((p, _)) if self.broken.contains(&p) => self.not_broken(p),
@@ -310,25 +320,12 @@ impl Checker<'_> {
             // even in parentheses (measured, `s08_byref`: `addbang (s$)` changes `s$`), a string element or member
             // in parentheses was not measured.
             let parenthesized = matches!(node, ast::Expr::Paren(_));
-            // A `_BIT` variable is always a copy (measured, `v21_b_passing`): its place type is `_BIT`, not the
-            // storage type its value has. In parentheses an argument is a copy, whatever its signedness.
-            if !parenthesized && let ExprKind::Load(place) = &e.kind {
-                let ty = self.prog.place_ty(place);
-                if !matches!(ty, Ty::Bit { .. })
-                    && ty.is_int()
-                    && ty.int_bits() == pty.int_bits()
-                    && ty.is_unsigned() != pty.is_unsigned()
-                {
-                    // Measured: passed by reference across signedness (`v21_b_passing`); task 8.2.
-                    return Err(self.unsupported(e.span, "an argument of the other signedness for this parameter"));
-                }
-            }
             // A fixed-length string variable, element or member to a `STRING` parameter is passed by reference, also
             // in parentheses (measured, `v21_c_fixed_args`): the procedure's stores reach it cut and padded (design D6).
             let fixed = |t: Ty| pty == Ty::Str && matches!(t, Ty::FixedStr(_));
             if let ExprKind::Load(place) = &e.kind
                 && let ty = self.prog.place_ty(place)
-                && (ty == pty || fixed(ty))
+                && (ty == pty || fixed(ty) || same_storage(ty, pty))
             {
                 match (parenthesized, place) {
                     (false, _) => {
@@ -371,21 +368,34 @@ impl Checker<'_> {
         };
         // Measured: a `_BIT` FUNCTION is declared, but any call of it is "Name already in use" (`verification\v21_x16`,
         // `x17`, `x47`; uncalled it compiles, `x48`).
-        if suffix.is_some_and(|s| s != ty) || matches!(ty, Ty::Bit { .. }) {
+        if suffix.is_some_and(|s| !suffix_fits(s, ty)) || matches!(ty, Ty::Bit { .. }) {
             return Err(self.in_use(t));
         }
-        // The new numeric types as FUNCTION results: task 8.2 of `m2-numeric-types`.
-        self.later(ty, span, "a FUNCTION result of type")?;
         let nodes = self.present_args(args)?;
         let args = self.args(p, t, &nodes, span)?;
         self.names.push((SymbolKind::Proc(p), t.span));
         Ok(Expr {
             span,
-            ty,
-            qb: ty,
+            ty: ty.held_value(),
+            qb: ty.believed_value(),
             kind: ExprKind::CallProc { proc: p, args },
         })
     }
+}
+
+/// Whether a suffix on a FUNCTION's name fits its type: its own suffix, or `$` for a FUNCTION `f$n` (measured:
+/// `fs$("a")` calls `fs$5`, `fs$4("a")` is "Name already in use", `verification\v21_g_fixed_function`).
+pub(super) fn suffix_fits(suffix: Ty, function: Ty) -> bool {
+    suffix == function || (suffix == Ty::Str && matches!(function, Ty::FixedStr(_)))
+}
+
+/// Whether a place of integer type `place` is passed by reference to a parameter of integer type `param` of
+/// another type: the same width (the 64-bit integer and `_OFFSET` types are one width), as the old compiler passes
+/// the same bytes with a pointer cast (measured, `verification\v21_b_passing`, `v21_g_passing_places`: variables,
+/// elements and members). A `_BIT` place is always a copy: its value is not of its own width.
+fn same_storage(place: Ty, param: Ty) -> bool {
+    let bit = |t: Ty| matches!(t, Ty::Bit { .. });
+    place.is_int() && param.is_int() && !bit(place) && !bit(param) && place.int_bits() == param.int_bits()
 }
 
 /// The error for a fixed-length string's length that is 0 or negative once read in 32 bits.

@@ -48,6 +48,8 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | A FUNCTION named with a bare `` ` `` or `` ~` `` can be defined but not called ("Name already in use") | Allow the call | Same (`v21_x16`, `x17`) |
 | `_UNSIGNED STRING` and `_UNSIGNED STRING * n` are accepted and mean `STRING` | An error, as for `_UNSIGNED SINGLE` | Same (`v21_a_decls`) |
 | A suffixed literal or suffixed `CONST` outside its type's range is held as written and converted only by `PRINT`, `STR$` and type-keeping built-ins: `PRINT 300~%%` is 44, `300~%% + 0` and `l& = 300~%%` are 300, `CASE 300~%%` misses 44 | Convert it where it is read (44 everywhere), or a compile error | Same (`v21_a_literals`, `v21_d_const`, `v21_f_literal_uses`) |
+| A constant used with another integer suffix is a literal of that suffix with the constant's digits, in range or not: `CONST u~& = 4294967295` makes `u%` print -1 and `u% + 0` 4294967295 | An error when the value does not fit the use's type, or convert it once | Same (`v21_g_const_suffix`) |
+| A `CONST` with an `_OFFSET` suffix is an `_INTEGER64` literal, not an `_OFFSET`: `CONST k~%& = -1` makes `k~%& + 0` print -1 where an `_UNSIGNED _OFFSET` variable holding the same value gives 18446744073709551615 | Believe it `_OFFSET`, as a variable | Same (C++ of `v21_d_const`) |
 | A `_BIT`-suffixed literal or constant is never narrowed: `` PRINT 9`3 `` is 9, `` CONST j~`3 = -1 `` prints -1 | Narrow it to its width and signedness | Same |
 | A parameter declared `STRING * n` (or `t$n`) is a `STRING` parameter: only `LEN(t)` is n; the value, stores and comparisons see the caller's whole string | A real fixed-length parameter (cut and padded), or a compile error | Same (`v21_c_fixed_args`, `v21_f_fixed_param`) |
 

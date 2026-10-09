@@ -202,4 +202,5 @@ slice/s30_new_types
 slice/s31_unsigned_ops
 slice/s32_bit
 slice/s33_fixed_strings
+slice/s34_types_procs
 runtime_comparison/198_type_fixed_string

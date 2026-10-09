@@ -141,10 +141,9 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// The type of a member: one of the six first numeric types, a fixed-length string of n bytes (n a number: the
+    /// The type of a member: a numeric type other than `_BIT`, a fixed-length string of n bytes (n a number: the
     /// block is read before any `CONST`), or a user type defined in an earlier block. A `_BIT` member is an error
-    /// (measured: "Cannot use _BIT inside user defined types", `verification\v21_x25`, `x26`); members of the other
-    /// new numeric types come with task 8.1 of `m2-numeric-types`.
+    /// (measured: "Cannot use _BIT inside user defined types", `verification\v21_x25`, `x26`).
     fn member_type(&mut self, a: ast::AsClause) -> R<Ty> {
         let span = a.node().span();
         let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
@@ -161,9 +160,6 @@ impl Checker<'_> {
             Err(self.unsupported(span, "`STRING` members"))
         } else if let Ty::Bit { .. } = ty {
             Err(self.error(span, "a `TYPE` member cannot be a `_BIT`"))
-        } else if ty.is_new_numeric() {
-            let name = self.prog.type_name(ty);
-            Err(self.unsupported(span, format!("`{name}` members")))
         } else {
             Ok(ty)
         }
@@ -219,8 +215,8 @@ impl Checker<'_> {
             return Err(self.unsupported(name_tok.span, format!("an array with a constant's name: `{shown}`")));
         }
         self.reserved(name_tok, &name, suffix)?;
-        if ty.is_new_numeric() {
-            // Arrays of the new numeric types: task 8.1 of `m2-numeric-types`; a `_BIT` array later still.
+        if let Ty::Bit { .. } = ty {
+            // `_BIT` arrays pack their elements (not measured here; the spec keeps them "not supported yet").
             let name = self.prog.type_name(ty);
             return Err(self.unsupported(bounds.node().span(), format!("arrays of `{name}`")));
         }

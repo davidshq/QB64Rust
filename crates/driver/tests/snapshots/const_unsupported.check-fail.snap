@@ -1,15 +1,13 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 107
 expression: snap
 ---
-const_unsupported.bas:9:12: error: not supported yet: the function `SQR` in a `CONST`
-const_unsupported.bas:10:12: error: not supported yet: the function `_PI` in a `CONST`
-const_unsupported.bas:11:16: error: not supported yet: division by zero in a `CONST`
-const_unsupported.bas:12:6: error: not supported yet: `CONST` after a label on the same line
-const_unsupported.bas:13:14: error: not supported yet: a power beyond `_INTEGER64` range in a `CONST`
-const_unsupported.bas:14:7: error: not supported yet: a `_FLOAT` `CONST` value that needs more than `DOUBLE` precision
-const_unsupported.bas:16:22: error: not supported yet: a `CONST` computed from a rounded value
-const_unsupported.bas:17:13: error: not supported yet: operator `ROOT`
-const_unsupported.bas:19:7: error: not supported yet: a string constant with a number suffix: `st%`
-const_unsupported.bas:25:11: error: not supported yet: a `CONST` `v` beside a variable of that name in a SUB or FUNCTION
-const_unsupported.bas:26:11: error: not supported yet: a `CONST` `p` beside a variable of that name in a SUB or FUNCTION
+const_unsupported.bas:8:12: error: not supported yet: the function `SQR` in a `CONST`
+const_unsupported.bas:9:12: error: not supported yet: the function `_PI` in a `CONST`
+const_unsupported.bas:10:7: error: not supported yet: a `_FLOAT` `CONST` value that needs more than `DOUBLE` precision
+const_unsupported.bas:12:22: error: not supported yet: a `CONST` computed from a rounded value
+const_unsupported.bas:13:13: error: not supported yet: operator `ROOT`
+const_unsupported.bas:15:7: error: not supported yet: a string constant with a number suffix: `st%`
+const_unsupported.bas:21:11: error: not supported yet: a `CONST` `v` beside a variable of that name in a SUB or FUNCTION
+const_unsupported.bas:22:11: error: not supported yet: a `CONST` `p` beside a variable of that name in a SUB or FUNCTION

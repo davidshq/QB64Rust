@@ -4,8 +4,8 @@
 
 use super::{Checker, R, Skips, first_token_span};
 use crate::{
-    BIT_VALUE_UNREACHABLE, BinOp, Branch, Case, CaseItem, Expr, ExprKind, LATER_TYPE_UNREACHABLE, LoopKind, LoopTest,
-    PLACE_ONLY_UNREACHABLE, Place, Stmt, StmtKind, SymbolKind, TestAt, Ty, VarId,
+    BinOp, Branch, Case, CaseItem, Expr, ExprKind, LoopKind, LoopTest, PLACE_ONLY_UNREACHABLE, Place, Stmt, StmtKind,
+    SymbolKind, TestAt, Ty, VarId,
 };
 use qb64rust_base::show_bytes;
 use qb64rust_syntax::SyntaxKind;
@@ -225,8 +225,6 @@ impl Checker<'_> {
                 format!("the `_BIT` variable `{shown}` cannot be a `FOR` variable"),
             ));
         }
-        // The new numeric types as `FOR` variables: task 8.3 of `m2-numeric-types`.
-        self.later(self.prog.var(var).ty, t.span, "a `FOR` variable of type")?;
         Ok(var)
     }
 
@@ -358,26 +356,21 @@ impl Checker<'_> {
         let every = h.kind_word().is_some_and(|w| self.word(w) == "EVERYCASE");
         let node = self.need(h.selector(), span)?;
         let e = self.expr(node)?;
-        // Selectors of the new numeric types: task 8.3 of `m2-numeric-types`.
-        let place_ty = if let ExprKind::Load(p) = &e.kind {
-            self.prog.place_ty(p)
-        } else {
-            e.qb
-        };
-        for t in [place_ty, e.qb, e.ty] {
-            self.later(t, e.span, "a `SELECT CASE` selector of type")?;
-        }
         if matches!(e.kind, ExprKind::Load(Place::Var(_))) {
             return Ok((e, false, every));
         }
-        let copy = match e.qb {
+        // Measured (`v21_d_select`, C++): signed up to 32 bits `int32`, unsigned up to 32 `uint32`, the 64-bit types
+        // and `_OFFSET` themselves (`ptrszint` is `int64`), a `_BIT * n` as its storage.
+        let copy = match e.qb.storage() {
             Ty::Str => return Ok((e, true, every)),
-            Ty::I16 | Ty::I32 => Ty::I32,
-            t @ (Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => t,
+            Ty::I8 | Ty::I16 | Ty::I32 => Ty::I32,
+            Ty::U8 | Ty::U16 | Ty::U32 => Ty::U32,
+            Ty::Off => Ty::I64,
+            Ty::UOff => Ty::U64,
+            t @ (Ty::I64 | Ty::U64 | Ty::F32 | Ty::F64 | Ty::F80) => t,
             Ty::User(_) => unreachable!("a whole `TYPE` value is no value"),
             crate::place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
-            crate::later_types!() => unreachable!("{LATER_TYPE_UNREACHABLE}"),
-            crate::Ty::Bit { .. } => unreachable!("{BIT_VALUE_UNREACHABLE}"),
+            crate::Ty::Bit { .. } => unreachable!("`storage` gives no `_BIT`"),
         };
         Ok((self.convert_exact(e, copy), true, every))
     }
@@ -424,7 +417,8 @@ impl Checker<'_> {
             return Ok(self.convert_exact(e, s));
         }
         let e = if e.ty.is_float() {
-            self.store(e, if s == Ty::I64 { Ty::I64 } else { Ty::I32 })?
+            // Rounded to a 64-bit selector's own type, to LONG for any narrower one (measured, `v21_d_select`).
+            self.store(e, if s.int_bits() == Some(64) { s } else { Ty::I32 })?
         } else {
             e
         };
@@ -477,15 +471,17 @@ impl Checker<'_> {
 /// The type a `FOR` loop counts in, for a variable of type `ty` (`study\02` §6.5, measured in task 1.1).
 fn for_temp(ty: Ty) -> Ty {
     match ty {
-        Ty::I16 => Ty::I32,
-        Ty::I32 | Ty::I64 => Ty::I64,
+        // Measured (`v21_d_for`, C++): signed or not, 8 bits count in INTEGER, 16 in LONG, 32 and 64 and `_OFFSET` in
+        // `_INTEGER64`.
+        Ty::I8 | Ty::U8 => Ty::I16,
+        Ty::I16 | Ty::U16 => Ty::I32,
+        Ty::I32 | Ty::U32 | Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff => Ty::I64,
         Ty::F32 => Ty::F64,
         Ty::F64 | Ty::F80 => Ty::F80,
         Ty::Str => Ty::Str,
         Ty::User(_) => unreachable!("a `TYPE` variable as a `FOR` variable is rejected first"),
         crate::place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
-        crate::later_types!() => unreachable!("{LATER_TYPE_UNREACHABLE}"),
-        crate::Ty::Bit { .. } => unreachable!("{BIT_VALUE_UNREACHABLE}"),
+        crate::Ty::Bit { .. } => unreachable!("a `_BIT` variable as a `FOR` variable is rejected first"),
     }
 }
 

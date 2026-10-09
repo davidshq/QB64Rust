@@ -223,6 +223,20 @@ the string first (`qbs_set(qbs_new(0,1),…)`), so an index cannot change it. Th
 supported yet" with the other built-in statements (`STATUS.md` step 9). Group 6 needed no new code (storage, mask
 and errors were in from groups 4 and 5): only its tests, `s32_bit` and D-009's CLI test.
 
+*As built (group 8, 2026-10-09):* the "not supported yet" uses of D5's as-built note are gone, and with them
+`Checker::later`, `later_types!()` and `Ty::is_new_numeric`. Arrays and members needed no emitter change. A place of
+the parameter's width and the other signedness (also an element or member, measured `v21_g_passing_places`) is an
+`Arg::Ref`; the emitter casts its pointer to the parameter's C type. A FUNCTION `f$n` has `ProcKind::Function(FixedStr(n))`
+and a `FixedStr(n)` result variable, its calls are `Str`, and `split_name` reads `f$n` where it names a procedure
+(`f$` and `f` call it too, `proc::suffix_fits`). It returns a copy of its n bytes (`qbs_new(n,1)`, then `qbs_free` of
+the fixed descriptor), not the fixed string as the old compiler does (`DIVERGENCES.md` D-014, decided 2026-10-09). The `FOR` and `SELECT CASE` temporaries follow the measured C++
+(`for_temp`, the copy by `qb.storage()`). A constant used with another integer suffix is `literal::constant_literal`
+of the use's suffix, which also turns an `_OFFSET` suffix into an `_INTEGER64` literal (measured, `v21_g_const_suffix`
+and the C++ of `v21_d_const`). The built-ins follow `evaluatefunc`: `builtins::qb_bits` (a `_BIT * n` counts n),
+`exp_single`, `int_entry` (`CINT`/`CLNG`'s range-checked entries), `radix_width` by `qb_bits`, `_ROUND` of an
+`_OFFSET` keeping its type, `VAL` with an unsigned type `qbs_val<uint64_t>`. Still "not supported yet": `VAL` with
+`_UNSIGNED` before a float type, and a constant used with another suffix where one of them is `_BIT`.
+
 ### D7. Declarations, suffixes and literals
 
 `sema`'s suffix table (`check\decl.rs`) and `type_of` gain every QB64pe spelling; the lexer already tokenizes the
@@ -283,6 +297,14 @@ parameter (`verification\v21_x42`, `x43`).
 - **Warning**: `consteval` reports, for a `CONST` value whose tree has a `^` whose right operand is an unparenthesised
   `^`, a `Diagnostic` with `Severity::Warning`. The driver prints warnings only with `-w` and leaves them out of the
   summary and the exit status (spec `compiler/cli`). The language server is parser-only and shows nothing new.
+
+*As built (group 9, 2026-10-09):* as above. D-006's test is on the template's result type (`decltype(qb_l/qb_r)`),
+so `\` compares the dividend with that type's minimum and an operand narrower than `int` never trips it. D-007's
+power beyond `_INTEGER64` goes through the float power, which takes whole exponents up to 1100 and only exact
+results (`2 ^ 70`, `10 ^ 20`); one `DOUBLE` cannot hold exactly (`3 ^ 41`) stays "not supported yet", as every
+rounded `CONST` value the old `_FLOAT` path might round differently. The warning is pushed by the `CONST` walk
+(`check\constants.rs`, where the chain is already gathered), not by `consteval`; `Diagnostics` keeps warnings
+uncounted, and the driver prints them only with `-w` (`Frontend::render_with_warnings`).
 
 ### D9. Tests
 

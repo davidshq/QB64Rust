@@ -26,6 +26,8 @@ struct Options {
     /// `--include-root`: where included files are looked up after the including file's folder.
     include_root: Option<PathBuf>,
     keep_build: bool,
+    /// `-w`: print the warnings too (spec `compiler/cli`).
+    warnings: bool,
     /// `-f:<setting>=<value>` as given, checked by [`optimize_setting`].
     settings: Vec<String>,
 }
@@ -59,8 +61,9 @@ fn parse_args() -> Result<Options, String> {
         let mut value = |what: &str| args.next().ok_or_else(|| format!("{what} needs a value"));
         match s.as_str() {
             // Accepted for the corpus runner and the M1 extension: -x (compile only, no IDE) and -m (plain
-            // output) change nothing here; -w (show warnings) has nothing to show yet.
-            "-x" | "-m" | "-w" => {}
+            // output) change nothing here.
+            "-x" | "-m" => {}
+            "-w" => o.warnings = true,
             "-q" => o.quiet = true,
             "-z" => o.cpp_only = true,
             "-o" => o.output = Some(PathBuf::from(value("-o")?)),
@@ -205,9 +208,14 @@ fn run() -> Result<ExitCode, String> {
         Box::new(FileLoader::new(&include_root, file, &input))
     });
     let errors = fe.diagnostics.error_count();
+    // Warnings only with -w, never counted in the summary (spec `compiler/cli`).
     let report = |fe: &qb64rust_driver::Frontend| {
-        if errors > 0 {
+        if o.warnings {
+            print!("{}", fe.render_with_warnings());
+        } else if errors > 0 {
             print!("{}", fe.render_diagnostics());
+        }
+        if errors > 0 {
             println!("{}", fe.diagnostics.summary());
         }
     };
@@ -236,6 +244,7 @@ fn run() -> Result<ExitCode, String> {
         report(&fe);
         return Ok(ExitCode::FAILURE);
     }
+    report(&fe);
 
     let fragments = emit(&fe);
     let build_dir = build::build_dir(&exe);

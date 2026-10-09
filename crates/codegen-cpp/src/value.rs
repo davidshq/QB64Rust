@@ -3,16 +3,27 @@
 use crate::Emitter;
 use crate::decl::is_qbs;
 use crate::names::{c_string, c_type, int_const, proc_name};
-use qb64rust_ir::{Arg, BinOp, Conv, Expr, ExprKind, Ty, UnOp};
+use qb64rust_ir::{Arg, BinOp, Conv, Expr, ExprKind, ProcId, Ty, UnOp};
 
 impl Emitter<'_> {
-    /// Arguments of a procedure call: a place's own pointer, a string temporary as it is, or a numeric copy in a
-    /// new `passN`.
-    pub(crate) fn args(&mut self, args: &[Arg]) -> String {
+    /// Arguments of a call of `proc`: a place's own pointer (cast to the parameter's type when the place has the same
+    /// width and the other signedness, as the old compiler passes it), a string temporary as it is, or a numeric copy
+    /// in a new `passN`.
+    pub(crate) fn args(&mut self, proc: ProcId, args: &[Arg]) -> String {
+        let params = self.p.proc(proc).params.clone();
         let parts: Vec<String> = args
             .iter()
-            .map(|a| match a {
-                Arg::Ref(place) => self.place_ref(place),
+            .zip(params)
+            .map(|(a, param)| match a {
+                Arg::Ref(place) => {
+                    let (from, to) = (self.p.place_ty(place), self.p.var(param).ty);
+                    let r = self.place_ref(place);
+                    if from == to || is_qbs(to) {
+                        r
+                    } else {
+                        format!("({}*)({r})", c_type(to))
+                    }
+                }
                 Arg::Temp(v) if is_qbs(v.ty) => self.value(v),
                 Arg::Temp(v) => {
                     self.pass += 1;
@@ -117,7 +128,7 @@ impl Emitter<'_> {
             }
             ExprKind::Call { builtin: id, args } => self.call(*id, args, v.ty, v.qb),
             ExprKind::CallProc { proc, args } => {
-                let a = self.args(args);
+                let a = self.args(*proc, args);
                 format!("{}({a})", proc_name(self.p.proc(*proc)))
             }
         }

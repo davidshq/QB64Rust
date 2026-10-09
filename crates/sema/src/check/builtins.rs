@@ -132,13 +132,6 @@ impl Checker<'_> {
             (true, true) => return Ok(e),
             (false, false) => {}
         }
-        // Arguments of the new numeric types (task 8.4 of `m2-numeric-types`): only where the slot converts them, and
-        // to `STR$`, whose any-numeric slot keeps the believed type (`qbs_str` has every width).
-        let converted = matches!(slot, Slot::Long | Slot::Double) || (rule == Rule::Plain && which == "`STR$`");
-        if (e.ty.is_new_numeric() || e.qb.is_new_numeric()) && !converted {
-            let name = self.prog.type_name(if e.qb.is_new_numeric() { e.qb } else { e.ty });
-            return Err(self.unsupported(e.span, format!("a `{name}` value as {which}")));
-        }
         if takes_as_is(rule) {
             return Ok(e);
         }
@@ -226,19 +219,30 @@ impl Checker<'_> {
                     .map(|w| self.word(w))
                     .collect();
                 let text = words.join(" ");
+                // `_UNSIGNED` before an integer type: `qbs_val<uint64_t>`, typed `_UNSIGNED _INTEGER64` (`qb64pe.bas`
+                // 20358–20368; measured, `v21_d_builtins`: not narrowed, a minus sign dropped).
+                let (unsigned, text) = match text.strip_prefix("_UNSIGNED ") {
+                    Some(rest) => (true, rest.to_string()),
+                    None => (false, text),
+                };
                 let ty = match numeric_type(&text) {
-                    Some(Ty::I16 | Ty::I32 | Ty::I64) => Ty::I64,
-                    Some(t @ (Ty::F32 | Ty::F64 | Ty::F80)) => t,
-                    Some(Ty::Str | Ty::User(_)) => unreachable!("numeric types only"),
-                    Some(crate::place_only_types!()) => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
                     // Measured: "VAL TYPE unsupported" (`verification\v21_x35_val_bit`, `x36`).
                     Some(Ty::Bit { .. }) => return Err(self.error(t.span(), "`VAL` cannot give a `_BIT`")),
-                    // The other new numeric types: task 8.4 of `m2-numeric-types`.
-                    Some(Ty::I8 | Ty::U8 | Ty::U16 | Ty::U32 | Ty::U64 | Ty::Off | Ty::UOff) => {
-                        return Err(self.unsupported(t.span(), format!("`VAL` with the type `{text}`")));
+                    Some(Ty::I8 | Ty::I16 | Ty::I32 | Ty::I64 | Ty::Off) if unsigned => Ty::U64,
+                    Some(Ty::I8 | Ty::I16 | Ty::I32 | Ty::I64 | Ty::Off) => Ty::I64,
+                    Some(t @ (Ty::F32 | Ty::F64 | Ty::F80)) if !unsigned => t,
+                    // `_UNSIGNED SINGLE` is an error in a declaration (`v21_x07`); not measured in `VAL`.
+                    Some(Ty::F32 | Ty::F64 | Ty::F80) => {
+                        return Err(self.unsupported(t.span(), format!("`VAL` with the type `_UNSIGNED {text}`")));
                     }
+                    Some(Ty::U8 | Ty::U16 | Ty::U32 | Ty::U64 | Ty::UOff | Ty::Str | Ty::User(_)) => {
+                        unreachable!("`numeric_type` gives signed numeric types only")
+                    }
+                    Some(crate::place_only_types!()) => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
                     // Measured: "VAL TYPE unsupported" (`v20_x24_val_string_type`).
-                    None if text == "STRING" => return Err(self.error(t.span(), "`VAL` cannot give a `STRING`")),
+                    None if text == "STRING" && !unsigned => {
+                        return Err(self.error(t.span(), "`VAL` cannot give a `STRING`"));
+                    }
                     None => return Err(self.unsupported(t.span(), format!("`VAL` with the type `{text}`"))),
                 };
                 (node, ty)

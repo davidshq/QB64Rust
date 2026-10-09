@@ -11,7 +11,7 @@
 //! computed as in the old compiler) and a believed type (the old compiler's, which `PRINT`, `HEX$` and later
 //! operators see), as operators have ([`crate::Expr`]).
 
-use crate::{BIT_VALUE_UNREACHABLE, Expr, ExprKind, LATER_TYPE_UNREACHABLE, PLACE_ONLY_UNREACHABLE, Ty};
+use crate::{Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Ty};
 use qb64rust_builtins::{Builtin, BuiltinId, find_function};
 
 /// How the old compiler treats a built-in function: one variant per kind of special-casing, not per function.
@@ -239,14 +239,16 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
         Rule::IntFix => (first().ty, first().qb),
         Rule::FloatByArg => {
             let a = first();
-            let qb = match a.qb {
-                Ty::I16 | Ty::F32 => Ty::F32,
-                Ty::I32 | Ty::F64 => Ty::F64,
-                Ty::I64 | Ty::F80 => Ty::F80,
-                Ty::Str | Ty::User(_) => unreachable!("a numeric argument"),
-                crate::place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
-                crate::later_types!() => unreachable!("{LATER_TYPE_UNREACHABLE}"),
-                crate::Ty::Bit { .. } => unreachable!("{BIT_VALUE_UNREACHABLE}"),
+            // A float keeps its rank; an integer of 16 bits or fewer is SINGLE, of 32 DOUBLE, wider `_FLOAT`; a
+            // `_BIT * n` counts n bits (measured, `v21_d_builtins`: `SQR` of a `_BIT * 3` is SINGLE).
+            let qb = match (a.qb.float_rank(), qb_bits(a.qb)) {
+                (Some(1), _) => Ty::F32,
+                (Some(2), _) => Ty::F64,
+                (Some(_), _) => Ty::F80,
+                (None, Some(b)) if b <= 16 => Ty::F32,
+                (None, Some(b)) if b <= 32 => Ty::F64,
+                (None, Some(_)) => Ty::F80,
+                (None, None) => unreachable!("a numeric argument"),
             };
             // `std::sin` and the others follow C++ overloading; `func_sqr` and `func_log` take a `double`.
             let held = if b.callname.starts_with("std::") {
@@ -256,14 +258,15 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
             };
             (held, qb)
         }
-        Rule::Exp => match first().qb {
-            Ty::I16 | Ty::F32 => (Ty::F64, Ty::F32),
-            Ty::I32 | Ty::I64 | Ty::F64 | Ty::F80 => (Ty::F80, Ty::F80),
-            Ty::Str | Ty::User(_) => unreachable!("a numeric argument"),
-            crate::place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
-            crate::later_types!() => unreachable!("{LATER_TYPE_UNREACHABLE}"),
-            crate::Ty::Bit { .. } => unreachable!("{BIT_VALUE_UNREACHABLE}"),
-        },
+        Rule::Exp => {
+            if exp_single(first().qb) {
+                (Ty::F64, Ty::F32)
+            } else {
+                (Ty::F80, Ty::F80)
+            }
+        }
+        // `_ROUND` of an `_OFFSET` keeps its type (`qb64pe.bas` 21129; measured, `v21_d_builtins`).
+        Rule::Convert(Ty::I64) if matches!(first().qb, Ty::Off | Ty::UOff) => (first().ty, first().qb),
         Rule::Convert(to) => (convert_held(to, first()), to),
         Rule::Fixed(t) => (t, t),
         Rule::Len | Rule::Asc => (Ty::I32, Ty::I32),
@@ -296,7 +299,8 @@ fn overload(args: impl IntoIterator<Item = Ty>) -> Ty {
 fn convert_held(to: Ty, a: &Expr) -> Ty {
     let wide_float = a.qb == Ty::F80;
     match (to, a.qb.is_float()) {
-        // `func_cint_float` returns `int64`, `func_cint_double` `int32`; `func_cint_long`/`_int64` `int16`.
+        // `func_cint_float` returns `int64`, `func_cint_double` `int32`; `func_cint_long`/`_ulong`/`_int64`/`_uint64`
+        // `int16`.
         (Ty::I16, true) => {
             if wide_float {
                 Ty::I64
@@ -304,14 +308,7 @@ fn convert_held(to: Ty, a: &Expr) -> Ty {
                 Ty::I32
             }
         }
-        (Ty::I16, false) => {
-            if a.qb == Ty::I16 {
-                a.ty
-            } else {
-                Ty::I16
-            }
-        }
-        // `func_clng_float` returns `int64`, `func_clng_double` and `func_clng_int64` `int32`.
+        // `func_clng_float` returns `int64`, `func_clng_double`, `_ulong`, `_int64` and `_uint64` `int32`.
         (Ty::I32, true) => {
             if wide_float {
                 Ty::I64
@@ -319,9 +316,9 @@ fn convert_held(to: Ty, a: &Expr) -> Ty {
                 Ty::I32
             }
         }
-        (Ty::I32, false) => {
-            if a.qb == Ty::I64 {
-                Ty::I32
+        (Ty::I16 | Ty::I32, false) => {
+            if int_entry(to, a.qb).is_some() {
+                to
             } else {
                 a.ty
             }
@@ -334,10 +331,79 @@ fn convert_held(to: Ty, a: &Expr) -> Ty {
         // `func_round_*` return `int64`; an integer is emitted as it is.
         (Ty::I64, true) => Ty::I64,
         (Ty::I64, false) => a.ty,
-        (Ty::F80 | Ty::Str | Ty::User(_), _) => unreachable!("no conversion function to {to:?}"),
+        (
+            Ty::I8
+            | Ty::U8
+            | Ty::U16
+            | Ty::U32
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::Bit { .. }
+            | Ty::F80
+            | Ty::Str
+            | Ty::User(_),
+            _,
+        ) => unreachable!("no conversion function to {to:?}"),
         (crate::place_only_types!(), _) => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
-        (crate::later_types!(), _) => unreachable!("{LATER_TYPE_UNREACHABLE}"),
-        (crate::Ty::Bit { .. }, _) => unreachable!("{BIT_VALUE_UNREACHABLE}"),
+    }
+}
+
+/// The width in bits the old compiler sees in a value believed `t`: a `_BIT * n`'s n (its type's bits, not its
+/// storage's), any other integer's [`Ty::int_bits`]; `None` for a float.
+pub fn qb_bits(t: Ty) -> Option<u32> {
+    match t {
+        Ty::Bit { width, .. } => Some(u32::from(width)),
+        Ty::I8
+        | Ty::U8
+        | Ty::I16
+        | Ty::U16
+        | Ty::I32
+        | Ty::U32
+        | Ty::I64
+        | Ty::U64
+        | Ty::Off
+        | Ty::UOff
+        | Ty::F32
+        | Ty::F64
+        | Ty::F80
+        | Ty::Str
+        | Ty::FixedStr(_)
+        | Ty::User(_) => t.int_bits(),
+    }
+}
+
+/// Whether `EXP` of a value believed `t` is SINGLE (`func_exp_single`): a SINGLE, or an integer of 16 bits or
+/// fewer that is not a `_BIT` (`qb64pe.bas` 21066–21084; measured, `v21_d_builtins`: a `_BIT * 3` is `_FLOAT`).
+pub fn exp_single(t: Ty) -> bool {
+    match t {
+        Ty::F32 => true,
+        Ty::Bit { .. } | Ty::F64 | Ty::F80 => false,
+        Ty::I8 | Ty::U8 | Ty::I16 | Ty::U16 | Ty::I32 | Ty::U32 | Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff => {
+            t.int_bits().is_some_and(|b| b <= 16)
+        }
+        Ty::Str | Ty::User(_) => unreachable!("a numeric argument"),
+        crate::place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
+    }
+}
+
+/// The libqb entry `CINT` (`to` INTEGER) or `CLNG` (`to` LONG) calls for an integer believed `qb`, `None` where the
+/// old compiler writes the value itself (`qb64pe.bas` 21172–21215): `CINT` checks the range of an unsigned value of
+/// 16 bits or more and of a signed one wider than 16, `CLNG` of an unsigned one of 32 bits or more and of a signed
+/// one wider than 32 (measured, `v21_d_builtins`: `CINT` of a 65535 `_UNSIGNED INTEGER` raises error 6).
+pub fn int_entry(to: Ty, qb: Ty) -> Option<&'static str> {
+    let bits = qb_bits(qb).unwrap_or_else(|| unreachable!("an integer argument, not {qb:?}"));
+    let unsigned = qb.is_unsigned();
+    match (to, unsigned) {
+        (Ty::I16, true) if bits > 32 => Some("func_cint_uint64"),
+        (Ty::I16, true) if bits > 15 => Some("func_cint_ulong"),
+        (Ty::I16, false) if bits > 32 => Some("func_cint_int64"),
+        (Ty::I16, false) if bits > 16 => Some("func_cint_long"),
+        (Ty::I32, true) if bits > 32 => Some("func_clng_uint64"),
+        (Ty::I32, true) if bits == 32 => Some("func_clng_ulong"),
+        (Ty::I32, false) if bits > 32 => Some("func_clng_int64"),
+        (Ty::I16 | Ty::I32, _) => None,
+        _ => unreachable!("`CINT` or `CLNG` only, not {to:?}"),
     }
 }
 
@@ -359,17 +425,19 @@ fn table_ty(b: &Builtin) -> Ty {
 /// argument's believed type, 16 bits 4 hex digits and 32 bits 8; 64 bits 16 only for a place (variable, element,
 /// member), 0 (the shortest form) for any other expression. For `OCT$` and `_BIN$` the number of bits. `None` for a
 /// float argument (the `_float` entries take no width).
+///
+/// A `_BIT * n` (a place or a literal) has n bits, `HEX$` (n + 3) \ 4 digits, whether a place or not (measured,
+/// `v21_d_builtins`: `HEX$` of a `_BIT * 3` holding -4 is `C`; the numeric-semantics scenario `HEX$(-1`5)` is `FF`).
 pub fn radix_width(bits_per_digit: u32, arg: &Expr) -> Option<u32> {
-    let bits = match arg.qb {
-        Ty::I16 => 16,
-        Ty::I32 => 32,
-        Ty::I64 if matches!(arg.kind, ExprKind::Load(_)) => 64,
-        Ty::I64 => 0,
-        Ty::F32 | Ty::F64 | Ty::F80 => return None,
-        Ty::Str | Ty::User(_) => unreachable!("a numeric argument"),
-        crate::place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
-        crate::later_types!() => unreachable!("{LATER_TYPE_UNREACHABLE}"),
-        crate::Ty::Bit { .. } => unreachable!("{BIT_VALUE_UNREACHABLE}"),
+    if let Ty::Bit { width, .. } = arg.qb {
+        let bits = u32::from(width);
+        return Some(if bits_per_digit == 4 { bits.div_ceil(4) } else { bits });
+    }
+    let bits = match qb_bits(arg.qb) {
+        None => return None,
+        Some(64) if matches!(arg.kind, ExprKind::Load(_)) => 64,
+        Some(64) => 0,
+        Some(b) => b,
     };
     Some(if bits_per_digit == 4 { bits / 4 } else { bits })
 }
@@ -429,6 +497,45 @@ mod tests {
         assert_eq!(radix_width(4, &op(Ty::I64)), Some(0));
         assert_eq!(radix_width(1, &op(Ty::I16)), Some(16));
         assert_eq!(radix_width(4, &op(Ty::F32)), None);
+    }
+
+    #[test]
+    fn new_types_special_cases() {
+        let bit = |width, signed| Ty::Bit { width, signed };
+        // `_BIT * n` counts its n bits, not its storage's.
+        assert_eq!(qb_bits(bit(3, true)), Some(3));
+        assert_eq!(qb_bits(Ty::U8), Some(8));
+        assert_eq!(qb_bits(Ty::UOff), Some(64));
+        assert_eq!(qb_bits(Ty::F32), None);
+        // `HEX$`: (n + 3) \ 4 digits for a `_BIT * n`, place or not; 2 for a byte; 16 for a 64-bit place, else 0.
+        let var = |t| e(Ty::I64, t, ExprKind::Load(crate::Place::Var(crate::VarId(0))));
+        let op = |t| e(Ty::I64, t, ExprKind::Int(0));
+        assert_eq!(radix_width(4, &var(bit(3, true))), Some(1));
+        assert_eq!(radix_width(4, &op(bit(5, true))), Some(2));
+        assert_eq!(radix_width(3, &var(bit(3, false))), Some(3));
+        assert_eq!(radix_width(4, &var(Ty::U8)), Some(2));
+        assert_eq!(radix_width(1, &var(Ty::I8)), Some(8));
+        assert_eq!(radix_width(4, &var(Ty::Off)), Some(16));
+        assert_eq!(radix_width(4, &op(Ty::U64)), Some(0));
+        // `EXP`: SINGLE up to 16 bits, never for a `_BIT`.
+        assert!(exp_single(Ty::U16) && exp_single(Ty::I8) && exp_single(Ty::F32));
+        assert!(!exp_single(Ty::U32) && !exp_single(bit(3, true)) && !exp_single(Ty::F64));
+        // `CINT`: unsigned from 16 bits, signed above 16; `CLNG`: unsigned at 32 or more, signed above 32.
+        assert_eq!(int_entry(Ty::I16, Ty::U8), None);
+        assert_eq!(int_entry(Ty::I16, Ty::U16), Some("func_cint_ulong"));
+        assert_eq!(int_entry(Ty::I16, Ty::I16), None);
+        assert_eq!(int_entry(Ty::I16, Ty::U32), Some("func_cint_ulong"));
+        assert_eq!(int_entry(Ty::I16, Ty::UOff), Some("func_cint_uint64"));
+        assert_eq!(int_entry(Ty::I16, bit(20, true)), Some("func_cint_long"));
+        assert_eq!(int_entry(Ty::I16, bit(10, true)), None);
+        assert_eq!(int_entry(Ty::I32, Ty::U16), None);
+        assert_eq!(int_entry(Ty::I32, Ty::U32), Some("func_clng_ulong"));
+        assert_eq!(int_entry(Ty::I32, bit(20, false)), None);
+        assert_eq!(int_entry(Ty::I32, Ty::U64), Some("func_clng_uint64"));
+        assert_eq!(int_entry(Ty::I32, Ty::Off), Some("func_clng_int64"));
+        // The held type is the entry's (`int16`, `int32`) or the argument's own where none is called.
+        assert_eq!(convert_held(Ty::I16, &var(Ty::U16)), Ty::I16);
+        assert_eq!(convert_held(Ty::I16, &e(Ty::U8, Ty::U8, ExprKind::Int(0))), Ty::U8);
     }
 
     #[test]

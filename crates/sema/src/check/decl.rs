@@ -1,7 +1,7 @@
 //! Names and declarations: suffixes, reserved names, variables by scope, `DIM`, `STATIC`, `SHARED`, `OPTION`.
 
 use super::places::{numeric_type, unsigned_of};
-use super::proc::{FIXED_LEN_ERROR, fixed_len, fixed_name};
+use super::proc::{FIXED_LEN_ERROR, fixed_len, fixed_name, suffix_fits};
 use super::{Checker, Failed, R, Scope};
 use crate::consteval::Value;
 use crate::literal::{self, NumLit};
@@ -16,10 +16,26 @@ use qb64rust_syntax::tree::Tok;
 impl Checker<'_> {
     // ---- names ----
 
+    /// The one place where `name$n` is read as a procedure's name: where `name` names a procedure, `name$n` is that
+    /// name with a `STRING * n` suffix (a FUNCTION `f$n`, design D6), never a variable, so the procedure's checks
+    /// decide as for any other suffix. Measured: beside a SUB or a FUNCTION of another type, `x$n` is "Name already
+    /// in use" as a value, an assignment or in `DIM` (`verification\v21_x50` to `x53`). Used for variable names
+    /// ([`Self::split_var_name`]) and calls only; elsewhere `name$n` stays unsupported.
+    pub(super) fn proc_fixed_name(&self, t: Tok) -> Option<(String, Ty)> {
+        match fixed_name(self.text(t.span)) {
+            Some((name, Some(n))) if self.procs_by_name.contains_key(&name) => Some((name, Ty::FixedStr(n))),
+            Some(_) | None => None,
+        }
+    }
+
     /// [`Self::split_name`] for the name of a scalar variable, which may also be `name$n`: a fixed-length string of n
     /// bytes, a variable other than `name$` (design D6; measured, `verification\v21_c_fixed_basics`; n read as
-    /// [`fixed_len`]). A `t$n` parameter is found by [`Self::fixed_param_ref`] before this.
+    /// [`fixed_len`]), or a procedure's name ([`Self::proc_fixed_name`]). A `t$n` parameter is found by
+    /// [`Self::fixed_param_ref`] before this.
     pub(super) fn split_var_name(&mut self, t: Tok) -> R<(String, Option<Ty>)> {
+        if let Some((name, ty)) = self.proc_fixed_name(t) {
+            return Ok((name, Some(ty)));
+        }
         match fixed_name(self.text(t.span)) {
             Some((name, Some(n))) => {
                 self.fixed_name_alone(t, &name)?;
@@ -30,8 +46,8 @@ impl Checker<'_> {
         }
     }
 
-    /// A name `x$n` where `x` might also name a procedure, a constant, a member or a `STRING * n` parameter of the
-    /// current procedure: none of that was measured.
+    /// A name `x$n` where `x` might also name a constant, a member or a `STRING * n` parameter of the current
+    /// procedure: none of that was measured. (A procedure's name is [`Self::proc_fixed_name`].)
     fn fixed_name_alone(&mut self, t: Tok, name: &str) -> R<()> {
         let param = self.cur.is_some_and(|p| {
             let params = &self.prog.proc(p).params;
@@ -39,19 +55,17 @@ impl Checker<'_> {
                 .iter()
                 .any(|v| self.param_len.contains_key(v) && self.prog.var(*v).name == name)
         });
-        if param || self.procs_by_name.contains_key(name) || self.visible_const(name).is_some() || name.contains('.') {
+        if param || self.visible_const(name).is_some() || name.contains('.') {
             let shown = show_bytes(self.text(t.span));
-            let msg = format!(
-                "`{shown}` beside a SUB, FUNCTION, constant or `STRING * n` parameter of its name, or with a `.`"
-            );
+            let msg = format!("`{shown}` beside a constant or `STRING * n` parameter of its name, or with a `.`");
             return Err(self.unsupported(t.span, msg));
         }
         Ok(())
     }
 
     /// Splits `name<suffix>` and gives the suffix's type (`None` without a suffix): every suffix of
-    /// [`literal::suffix_type`]; `name$n` (a fixed-length string) is not supported yet here (a variable's name is
-    /// read by [`Self::split_var_name`]).
+    /// [`literal::suffix_type`]; `name$n` is not supported yet here (a variable's name is read by
+    /// [`Self::split_var_name`], a FUNCTION `f$n` called by [`Self::proc_fixed_name`]).
     pub(super) fn split_name(&mut self, t: Tok) -> R<(String, Option<Ty>)> {
         let bytes = self.text(t.span);
         let end = name_end(bytes);
@@ -353,7 +367,7 @@ impl Checker<'_> {
             let proc = self.prog.proc(p);
             if let (Some(cur), ProcKind::Function(ty)) = (self.cur, proc.kind)
                 && cur == p
-                && suffix.is_none_or(|s| s == ty)
+                && suffix.is_none_or(|s| suffix_fits(s, ty))
             {
                 let v = proc.result.expect("a FUNCTION has a result variable");
                 self.names.push((SymbolKind::Var(v), t.span));

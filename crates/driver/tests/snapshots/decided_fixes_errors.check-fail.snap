@@ -1,0 +1,7 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+decided_fixes_errors.bas:5:13: error: division by zero
+decided_fixes_errors.bas:6:17: error: division by zero

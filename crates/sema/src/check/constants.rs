@@ -28,12 +28,7 @@ const FUNCTIONS: &[&str] = &[
 impl Checker<'_> {
     /// `CONST name = value, ...`. Defines no statement: uses of the constants become literals.
     pub(super) fn const_stmt(&mut self, stmt: ast::ConstStmt) -> R<()> {
-        let node = stmt.node();
-        let span = node.span();
-        if self.label_line == Some((span.file, self.line(span))) {
-            // Measured: "NULL string; nothing to evaluate" in the old compiler (`study\00` §6, "Fix").
-            return Err(self.unsupported(span, "`CONST` after a label on the same line"));
-        }
+        // A label before it on its line is no problem here (the old compiler fails, `DIVERGENCES.md` D-008).
         for item in stmt.items() {
             let name_tok = self.need(item.name(), item.node().span())?;
             let value_node = self.need(item.value(), item.node().span())?;
@@ -151,8 +146,22 @@ impl Checker<'_> {
             return Err(self.unsupported(t.span, format!("a string constant with a number suffix: `{shown}`")));
         }
         let to = suffix.unwrap_or(c.ty);
-        if let (true, true, &Value::Int(v)) = (to == c.ty, c.ty.is_int() && c.ty != Ty::I64, &c.value) {
-            let NumLit::Int { value, ty, qb } = literal::constant_literal(v, c.ty) else {
+        let bit = |t: Ty| matches!(t, Ty::Bit { .. });
+        if to != c.ty && (bit(to) || bit(c.ty)) {
+            let shown = show_bytes(self.text(t.span));
+            let msg = format!("a constant used with another suffix, one of them `_BIT`: `{shown}`");
+            return Err(self.unsupported(t.span, msg));
+        }
+        // With an integer suffix, its own or another, the constant is a literal of that suffix with its value's digits,
+        // rounded half to even if a float, in range of the suffix's type or not (measured, `verification\v21_d_const`,
+        // `v21_g_const_suffix`: `CONST u~& = 4294967295` used as `u%` prints -1, `u% + 0` is 4294967295). A plain
+        // constant used plainly or as `&&` is an `_INTEGER64` as it is.
+        if to.is_int() && !(to == Ty::I64 && c.ty == Ty::I64) && c.ty != Ty::Str {
+            let (_, value) = self.problem(consteval::settle(c.value, Some(to)), t.span)?;
+            let Value::Int(v) = value else {
+                unreachable!("an integer suffix settles to an integer");
+            };
+            let NumLit::Int { value, ty, qb } = literal::constant_literal(v, to) else {
                 unreachable!("an integer constant is an integer literal");
             };
             self.names.push((SymbolKind::Const(id), t.span));
@@ -162,12 +171,6 @@ impl Checker<'_> {
                 qb,
                 kind: ExprKind::Int(value),
             });
-        }
-        if to != c.ty {
-            // A constant used with a suffix of a new numeric type, or one of such a type with another suffix: not
-            // measured (task 8.3 of `m2-numeric-types`).
-            self.later(c.ty, t.span, "another suffix on a constant of type")?;
-            self.later(to, t.span, "a constant used as type")?;
         }
         let (ty, value) = self.problem(consteval::convert(c.ty, c.value, to), t.span)?;
         self.names.push((SymbolKind::Const(id), t.span));
@@ -298,6 +301,14 @@ impl Checker<'_> {
                 left = self.need(b.lhs(), span)?;
             }
             operands.push(left);
+            if operands.len() > 2 {
+                // The spec's warning (`language/constants`): the same text in a statement means another value.
+                self.diags.warning(
+                    span,
+                    "a chain of `^` in a `CONST` is computed right to left (`2 ^ 3 ^ 2` is 512), in a statement left \
+                     to right (64); add parentheses to say which",
+                );
+            }
             // `operands` runs from the rightmost operand to the leftmost.
             let mut v = self.const_value(operands[0])?;
             for &o in &operands[1..] {

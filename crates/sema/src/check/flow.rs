@@ -75,8 +75,6 @@ impl Checker<'_> {
 
     /// A label in pass 2: it stands before the next statement of its body.
     pub(super) fn label_stmt(&mut self, l: ast::LabelDef) -> R<()> {
-        let span = l.node().span();
-        self.label_line = Some((span.file, self.line(span)));
         // Without an entry the label's declaration had an error, already reported.
         if let Some(&id) = self.label_of_def.get(&l.node().key()) {
             self.push(l.node(), StmtKind::Label(id));

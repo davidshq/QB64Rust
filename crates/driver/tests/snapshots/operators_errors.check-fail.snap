@@ -1,15 +1,13 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 103
+assertion_line: 107
 expression: snap
 ---
+operators_errors.bas:5:7: error: cannot mix strings and numbers
 operators_errors.bas:6:7: error: cannot mix strings and numbers
-operators_errors.bas:7:7: error: cannot mix strings and numbers
+operators_errors.bas:7:11: error: this operator cannot be used on strings
 operators_errors.bas:8:11: error: this operator cannot be used on strings
-operators_errors.bas:9:11: error: this operator cannot be used on strings
-operators_errors.bas:10:7: error: cannot mix strings and numbers
-operators_errors.bas:11:7: error: `NOT` needs a number
-operators_errors.bas:12:7: error: `_NEGATE` needs a number
-operators_errors.bas:13:7: error: cannot mix strings and numbers
-operators_errors.bas:14:15: error: not supported yet: `IMP` with an `IMP` as its left operand
-operators_errors.bas:15:17: error: not supported yet: `IMP` with an `IMP` as its left operand
+operators_errors.bas:9:7: error: cannot mix strings and numbers
+operators_errors.bas:10:7: error: `NOT` needs a number
+operators_errors.bas:11:7: error: `_NEGATE` needs a number
+operators_errors.bas:12:7: error: cannot mix strings and numbers

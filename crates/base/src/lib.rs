@@ -204,6 +204,14 @@ impl Diagnostic {
         }
     }
 
+    /// A warning: shown only on request, never counted, never stops a build (spec `compiler/cli`).
+    pub fn warning(span: Span, message: impl Into<String>) -> Diagnostic {
+        Diagnostic {
+            severity: Severity::Warning,
+            ..Diagnostic::error(span, message)
+        }
+    }
+
     /// An error in the program, not a construct the compiler does not handle yet.
     pub fn is_real_error(&self) -> bool {
         self.severity == Severity::Error && !self.unsupported
@@ -264,6 +272,15 @@ impl Diagnostics {
     /// An error marked "not supported yet"; `message` names the construct.
     pub fn unsupported(&mut self, span: Span, message: impl Into<String>) {
         self.push(Diagnostic::unsupported(span, message));
+    }
+
+    pub fn warning(&mut self, span: Span, message: impl Into<String>) {
+        self.push(Diagnostic::warning(span, message));
+    }
+
+    /// The errors, without the warnings.
+    pub fn errors(&self) -> impl Iterator<Item = &Diagnostic> {
+        self.list.iter().filter(|d| d.severity == Severity::Error)
     }
 
     pub fn has_errors(&self) -> bool {

@@ -4,8 +4,8 @@ $CONSOLE:ONLY
 ' v21_a_suffixes): every AS spelling, the suffixes on DIMmed and implicit names, DIM SHARED, STATIC and SHARED,
 ' FUNCTION names and parameters, and LEN of each (1, 1, 2, 2, 4, 4, 8, 8, 8, 8). `_UNSIGNED STRING` is a STRING;
 ' one name with each suffix is a variable of its own. Most declarations stand in a SUB, whose variables the dump
-' lists with their types. Their values are "not supported yet" until task group 5 (`numeric_gate.bas`), so nothing
-' here loads or stores one; LEN of a variable is its size, never a value.
+' lists with their types. Written when their values were still "not supported yet" (task group 5 brought them), so
+' nothing here loads or stores one; LEN of a variable is its size, never a value.
 DIM SHARED m%%, n~%%, o~%, p~&, q~&&, r%&, t~%&, u`, v~`, w`3, x~`64
 decls
 show

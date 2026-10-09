@@ -40,7 +40,9 @@ impl Checker<'_> {
                     return self.load(Place::Var(v), span);
                 }
                 let (name, suffix) = self.split_var_name(t)?;
-                if let Some(Ty::FixedStr(_)) = suffix {
+                if let Some(Ty::FixedStr(_)) = suffix
+                    && self.proc_fixed_name(t).is_none()
+                {
                     // `x$n`: a fixed-length string variable (design D6).
                     let id = self.variable(t, name, suffix)?;
                     return self.load(Place::Var(id), span);
@@ -194,10 +196,6 @@ impl Checker<'_> {
             let shown = self.word(op_tok);
             return Err(self.unsupported(op_tok.span, format!("operator `{shown}`")));
         };
-        if op == BinOp::Imp && self.is_imp(l) {
-            // Measured: the old compiler computes `a IMP b IMP c` as `a OR b OR c` (`v17_g_imp_eqv`).
-            return Err(self.unsupported(op_tok.span, "`IMP` with an `IMP` as its left operand"));
-        }
         let lhs = self.expr(l)?;
         let rhs = self.expr(r)?;
         let typing = match op_typing(Op::Bin(op), (lhs.ty, lhs.qb), Some((rhs.ty, rhs.qb))) {
@@ -295,17 +293,6 @@ impl Checker<'_> {
         })
     }
 
-    /// Whether `e`, inside any parentheses, is an `IMP`.
-    fn is_imp(&self, mut e: ast::Expr) -> bool {
-        while let ast::Expr::Paren(p) = e {
-            match p.inner() {
-                Some(inner) => e = inner,
-                None => return false,
-            }
-        }
-        matches!(e, ast::Expr::Bin(b) if b.op().is_some_and(|t| self.bin_op(t) == Some(BinOp::Imp)))
-    }
-
     /// Prepares an operand as `typing` says: a float rounded half to even to `_INTEGER64` first where the operator
     /// takes integers, then converted exactly to the computation type.
     fn operand(&self, e: Expr, typing: &Typing, to: Ty) -> Expr {
@@ -328,7 +315,10 @@ impl Checker<'_> {
     pub(super) fn call(&mut self, node: ast::CallExpr) -> R<Expr> {
         let span = node.node().span();
         let name_tok = self.need(node.name(), span)?;
-        let (proc_name, suffix) = self.split_name(name_tok)?;
+        let (proc_name, suffix) = match self.proc_fixed_name(name_tok) {
+            Some((name, ty)) => (name, Some(ty)),
+            None => self.split_name(name_tok)?,
+        };
         if let Some(p) = self.proc_in_expr(&proc_name, suffix) {
             let args = self.need(node.arg_list(), span)?;
             return self.call_function(p, name_tok, suffix, Some(args), span);
