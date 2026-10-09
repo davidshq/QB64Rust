@@ -159,12 +159,25 @@ programs it makes pass to `slice.list`, `tests\upstream\pass.list` and `tests\di
 
 ## 3. `Ty` without a derived order (design D3)
 
-- [ ] 3.1 Add the new variants and the methods `int_bits`, `is_signed`, `is_unsigned`, `float_rank`, `storage`; drop
+- [x] 3.1 Add the new variants and the methods `int_bits`, `is_signed`, `is_unsigned`, `float_rank`, `storage`; drop
   `PartialOrd`/`Ord`; rewrite the uses of the order (`check\ops.rs`, `check\blocks.rs` `FOR` temp, `ir\src\dump.rs`)
   with the methods; every `match` lists the new variants, which nothing produces yet (`unreachable!` with a reason,
   or the declaration's "not supported yet"). Verify: no `typed`, `ir` or `cpp` snapshot changes
   (`cargo insta test` reports nothing); tier 2 slice, upstream and differential pass lists unchanged; unit tests
   for each method.
+  *Done 2026-10-09 (session 29).* The variants as design D3; `is_int`, `is_float`, `is_numeric` now derive from
+  `int_bits`/`float_rank`. One more method, `is_wider_than`, replaces `>` on the order everywhere. The order had
+  more uses than listed: besides `ops.rs` (now `wider`, the old `max`, and `is_wider_than` for the comparison's
+  narrower float) and `ir\src\dump.rs` (`is_int`), the `CASE` item type in `blocks.rs` (not the `FOR` temp, which
+  never used it; now `ops::promote` and `wider`), `convert_exact` in `check\expr.rs` and `convert` in
+  `ir\src\lower.rs` (by `is_wider_than`). `wider` asserts on two integer
+  types of one width (that is design D4's `held`, task 5.1). The arms for the new variants are one pattern macro,
+  `sema::unproduced_types!()` (re-exported by `ir`), with `unreachable!(NEW_TYPE_UNREACHABLE)`; a variant leaves
+  the macro when its declaration is supported, which makes every `match` decide (groups 4–5). `difftest`'s
+  `for_sema` maps every variant (its test now covers all 17 generator types); the typed-tree dump names them; the codegen
+  `INT`/`FIX` arm no longer ends in `(_, _)`. Verified: `cargo test` (`cargo-insta` not installed; no `.snap.new`,
+  no snapshot changed), clippy `-D warnings`, unit tests per method and for `wider`; tier 2 against the reference
+  clone: slice 192 of 192, upstream 42 of 42, differential 27 of 27.
 
 ## 4. Declarations and literals (design D7)
 

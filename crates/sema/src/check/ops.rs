@@ -1,7 +1,7 @@
 //! Operators: the typing rules of every operator (design D4: the one place that types an operator) and the
 //! folding of integer constants.
 
-use crate::{BinOp, Ty, UnOp};
+use crate::{BinOp, NEW_TYPE_UNREACHABLE, Ty, UnOp};
 
 /// An operator, as the typing rules see it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -86,11 +86,13 @@ pub(super) fn op_typing(op: Op, l: (Ty, Ty), r: Option<(Ty, Ty)>) -> Result<Type
         (false, false) => {}
     }
     // C's usual arithmetic conversions on the held types.
-    let c_common = promote(lt).max(promote(rt));
-    let float_qb = [lq, rq].into_iter().filter(|t| t.is_float()).max();
+    let c_common = wider(promote(lt), promote(rt));
+    let float_qb = [lq, rq].into_iter().filter(|t| t.is_float()).reduce(wider);
     // Operators on integers: float operands rounded to `_INTEGER64` first, then C's conversions.
-    let int_common =
-        promote(if lt.is_float() { Ty::I64 } else { lt }).max(promote(if rt.is_float() { Ty::I64 } else { rt }));
+    let int_common = wider(
+        promote(if lt.is_float() { Ty::I64 } else { lt }),
+        promote(if rt.is_float() { Ty::I64 } else { rt }),
+    );
     Ok(Typed::Num(match bin {
         BinOp::Add | BinOp::Sub | BinOp::Mul => Typing {
             operands: c_common,
@@ -116,7 +118,7 @@ pub(super) fn op_typing(op: Op, l: (Ty, Ty), r: Option<(Ty, Ty)>) -> Result<Type
         // Two floats compare at the narrower believed type (`S! = 2.1` is true); otherwise C's conversions.
         BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => Typing {
             operands: if lq.is_float() && rq.is_float() {
-                lq.min(rq)
+                if lq.is_wider_than(rq) { rq } else { lq }
             } else {
                 c_common
             },
@@ -142,7 +144,7 @@ pub(super) fn op_typing(op: Op, l: (Ty, Ty), r: Option<(Ty, Ty)>) -> Result<Type
             operands: Ty::F80,
             round: false,
             ty: Ty::F80,
-            qb: pow_qb(lq).max(pow_qb(rq)),
+            qb: wider(pow_qb(lq), pow_qb(rq)),
         },
     }))
 }
@@ -153,18 +155,32 @@ fn pow_qb(t: Ty) -> Ty {
         Ty::I16 => Ty::F32,
         Ty::I32 => Ty::F64,
         Ty::I64 => Ty::F80,
-        Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => t,
+        Ty::F32 | Ty::F64 | Ty::F80 => t,
+        Ty::Str => unreachable!("strings are refused before `^` is typed"),
         Ty::User(_) => unreachable!("a whole `TYPE` value is never an operand"),
+        crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 
 /// Integer operands are computed in at least 32 bits (C promotion).
-fn promote(t: Ty) -> Ty {
+pub(super) fn promote(t: Ty) -> Ty {
     match t {
         Ty::I16 => Ty::I32,
         Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => t,
         Ty::User(_) => unreachable!("a whole `TYPE` value is never an operand"),
+        crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
+}
+
+/// The wider of two numeric types by [`Ty::is_wider_than`] (what the derived order's `max` was). Two integers of
+/// one width and different types (signedness, `_OFFSET`) are the business of design D4's `held` (task 5.1), not of
+/// this function.
+pub(super) fn wider(a: Ty, b: Ty) -> Ty {
+    assert!(
+        a == b || a.is_wider_than(b) || b.is_wider_than(a),
+        "{a:?} and {b:?} have one width: design D4's `held` decides"
+    );
+    if b.is_wider_than(a) { b } else { a }
 }
 
 /// The folded value of a binary operator on two integer constants already converted to the computation type, the
@@ -205,6 +221,7 @@ fn int_min(ty: Ty) -> i64 {
         Ty::I32 => i32::MIN.into(),
         Ty::I64 => i64::MIN,
         Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::User(_) => unreachable!("integer constant folded to {ty:?}"),
+        crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -234,6 +251,7 @@ pub(super) fn wrap(v: i64, ty: Ty) -> i64 {
         Ty::I32 => i64::from(v as i32),
         Ty::I64 => v,
         Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::User(_) => unreachable!("integer constant folded to {ty:?}"),
+        crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -327,6 +345,23 @@ mod tests {
             Ok(Typed::Num(t)) => t,
             other => panic!("{op:?}: {other:?}"),
         }
+    }
+
+    #[test]
+    fn wider_replaces_the_old_order() {
+        // The derived order was I16 < I32 < I64 < F32 < F64 < F80; `wider` is its `max` on these types.
+        let old = [Ty::I16, Ty::I32, Ty::I64, Ty::F32, Ty::F64, Ty::F80];
+        for (i, &a) in old.iter().enumerate() {
+            for (j, &b) in old.iter().enumerate() {
+                assert_eq!(wider(a, b), old[i.max(j)], "{a:?} {b:?}");
+            }
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "one width")]
+    fn wider_leaves_mixed_signedness_to_held() {
+        wider(Ty::I32, Ty::U32);
     }
 
     #[test]

@@ -100,17 +100,39 @@ pub static TYPES: &[NumTy] = &[
     float("FLOAT", "_FLOAT", "##", FloatKind::Float),
 ];
 
-/// The generator's type for a `sema` type; `None` for the non-numeric ones. The match is exhaustive, so a new
-/// variant of `Ty` fails this crate's build until it is mapped here and covered by [`TYPES`] (design D2).
+/// The generator's type for a `sema` type; `None` for the non-numeric ones and for a `_BIT * n` whose width
+/// [`TYPES`] does not represent. The match is exhaustive, so a new variant of `Ty` fails this crate's build until
+/// it is mapped here and covered by [`TYPES`] (design D2).
 pub fn for_sema(ty: Ty) -> Option<&'static NumTy> {
     let key = match ty {
+        Ty::I8 => "BYTE",
+        Ty::U8 => "UBYTE",
         Ty::I16 => "INTEGER",
+        Ty::U16 => "UINTEGER",
         Ty::I32 => "LONG",
+        Ty::U32 => "ULONG",
         Ty::I64 => "INT64",
+        Ty::U64 => "UINT64",
+        Ty::Off => "OFFSET",
+        Ty::UOff => "UOFFSET",
+        Ty::Bit { width: 1, signed: true } => "BIT",
+        Ty::Bit {
+            width: 7,
+            signed: false,
+        } => "UBIT7",
+        Ty::Bit {
+            width: 24,
+            signed: true,
+        } => "BIT24",
+        Ty::Bit {
+            width: 40,
+            signed: false,
+        } => "UBIT40",
+        Ty::Bit { .. } => return None,
         Ty::F32 => "SINGLE",
         Ty::F64 => "DOUBLE",
         Ty::F80 => "FLOAT",
-        Ty::Str | Ty::User(_) => return None,
+        Ty::Str | Ty::FixedStr(_) | Ty::User(_) => return None,
     };
     TYPES.iter().find(|t| t.key == key)
 }
@@ -771,10 +793,35 @@ mod tests {
 
     #[test]
     fn every_numeric_sema_type_is_covered() {
-        for ty in [Ty::I16, Ty::I32, Ty::I64, Ty::F32, Ty::F64, Ty::F80] {
-            assert!(for_sema(ty).is_some(), "{ty:?}");
-        }
+        let bit = |width, signed| Ty::Bit { width, signed };
+        let all = [
+            Ty::I8,
+            Ty::U8,
+            Ty::I16,
+            Ty::U16,
+            Ty::I32,
+            Ty::U32,
+            Ty::I64,
+            Ty::U64,
+            Ty::Off,
+            Ty::UOff,
+            bit(1, true),
+            bit(7, false),
+            bit(24, true),
+            bit(40, false),
+            Ty::F32,
+            Ty::F64,
+            Ty::F80,
+        ];
+        let mut keys: Vec<&str> = all
+            .iter()
+            .map(|&ty| for_sema(ty).unwrap_or_else(|| panic!("{ty:?}")).key)
+            .collect();
+        keys.sort_unstable();
+        keys.dedup();
+        assert_eq!(keys.len(), TYPES.len(), "every generator type is some `sema` type");
         assert!(for_sema(Ty::Str).is_none());
+        assert!(for_sema(Ty::FixedStr(4)).is_none());
     }
 
     #[test]

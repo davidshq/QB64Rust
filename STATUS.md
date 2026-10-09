@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-08 (session 28). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-09 (session 29). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
@@ -262,7 +262,9 @@ is its `tasks.md`, and `git log`.
    `tests\differential\pass.list`. The full programs cannot compile before the new types do, so the six-type
    subset is kept as the recorded group `old6` (48 programs, task 2.7): 27 pass and are on the list; the rest stop
    where D7's literal rules (group 4) apply.
-   **Next: group 3, `Ty` without a derived order.**
+   **Group 3 (`Ty` without a derived order) done 2026-10-09 (session 29):** the 17 variants of design D3 and their
+   methods, no behaviour change (no snapshot changed; tier 2 192, 42, 27 as before); record in `tasks.md` 3.1.
+   **Next: group 4, declarations and literals.**
 9. Built-in statements and functions by demand (`study\27` §3): a built-in statement operation in the IR, then
    sequential file I/O, `DATA`/`READ`/`RESTORE`, `SWAP`, `RANDOMIZE`/`RND`/`TIMER`, console `INPUT`/`LINE INPUT`,
    `SHELL`/`COMMAND$`/`ENVIRON$`, each measured first; the remaining plain functions as the corpus, upstream or a

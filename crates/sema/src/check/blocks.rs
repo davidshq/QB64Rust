@@ -4,8 +4,8 @@
 
 use super::{Checker, R, Skips, first_token_span};
 use crate::{
-    BinOp, Branch, Case, CaseItem, Expr, ExprKind, LoopKind, LoopTest, Place, Stmt, StmtKind, SymbolKind, TestAt, Ty,
-    VarId,
+    BinOp, Branch, Case, CaseItem, Expr, ExprKind, LoopKind, LoopTest, NEW_TYPE_UNREACHABLE, Place, Stmt, StmtKind,
+    SymbolKind, TestAt, Ty, VarId,
 };
 use qb64rust_base::show_bytes;
 use qb64rust_syntax::SyntaxKind;
@@ -357,6 +357,7 @@ impl Checker<'_> {
             Ty::I16 | Ty::I32 => Ty::I32,
             t @ (Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => t,
             Ty::User(_) => unreachable!("a whole `TYPE` value is no value"),
+            crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
         };
         Ok((self.convert_exact(e, copy), true, every))
     }
@@ -407,8 +408,7 @@ impl Checker<'_> {
         } else {
             e
         };
-        let promote = |t: Ty| if t == Ty::I16 { Ty::I32 } else { t };
-        let common = promote(s).max(promote(e.ty));
+        let common = super::ops::wider(super::ops::promote(s), super::ops::promote(e.ty));
         Ok(self.convert_exact(e, common))
     }
 
@@ -462,6 +462,7 @@ fn for_temp(ty: Ty) -> Ty {
         Ty::F64 | Ty::F80 => Ty::F80,
         Ty::Str => Ty::Str,
         Ty::User(_) => unreachable!("a `TYPE` variable as a `FOR` variable is rejected first"),
+        crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 

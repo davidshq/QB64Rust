@@ -11,7 +11,7 @@
 //! computed as in the old compiler) and a believed type (the old compiler's, which `PRINT`, `HEX$` and later
 //! operators see), as operators have ([`crate::Expr`]).
 
-use crate::{Expr, ExprKind, Ty};
+use crate::{Expr, ExprKind, NEW_TYPE_UNREACHABLE, Ty};
 use qb64rust_builtins::{Builtin, BuiltinId, find_function};
 
 /// How the old compiler treats a built-in function: one variant per kind of special-casing, not per function.
@@ -244,6 +244,7 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
                 Ty::I32 | Ty::F64 => Ty::F64,
                 Ty::I64 | Ty::F80 => Ty::F80,
                 Ty::Str | Ty::User(_) => unreachable!("a numeric argument"),
+                crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
             };
             // `std::sin` and the others follow C++ overloading; `func_sqr` and `func_log` take a `double`.
             let held = if b.callname.starts_with("std::") {
@@ -257,6 +258,7 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
             Ty::I16 | Ty::F32 => (Ty::F64, Ty::F32),
             Ty::I32 | Ty::I64 | Ty::F64 | Ty::F80 => (Ty::F80, Ty::F80),
             Ty::Str | Ty::User(_) => unreachable!("a numeric argument"),
+            crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
         },
         Rule::Convert(to) => (convert_held(to, first()), to),
         Rule::Fixed(t) => (t, t),
@@ -329,6 +331,7 @@ fn convert_held(to: Ty, a: &Expr) -> Ty {
         (Ty::I64, true) => Ty::I64,
         (Ty::I64, false) => a.ty,
         (Ty::F80 | Ty::Str | Ty::User(_), _) => unreachable!("no conversion function to {to:?}"),
+        (crate::unproduced_types!(), _) => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -358,6 +361,7 @@ pub fn radix_width(bits_per_digit: u32, arg: &Expr) -> Option<u32> {
         Ty::I64 => 0,
         Ty::F32 | Ty::F64 | Ty::F80 => return None,
         Ty::Str | Ty::User(_) => unreachable!("a numeric argument"),
+        crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     };
     Some(if bits_per_digit == 4 { bits / 4 } else { bits })
 }

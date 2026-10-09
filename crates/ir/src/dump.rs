@@ -138,6 +138,7 @@ fn ty(p: &Program, t: Ty) -> String {
     match t {
         Ty::User(id) => format!("T:{}", p.user_type(id).name),
         Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => format!("{t:?}"),
+        qb64rust_sema::unproduced_types!() => unreachable!("{}", qb64rust_sema::NEW_TYPE_UNREACHABLE),
     }
 }
 
@@ -195,7 +196,7 @@ fn val(p: &Program, v: &Expr) -> String {
         ExprKind::Convert { how, from } => format!("({} -> Convert {} {how:?})", val(p, from), ty(p, v.ty)),
         ExprKind::Binary { op, lhs, rhs } => {
             // Only `+`, `-` and `*` can overflow an integer type (and `\` of the smallest value by -1, unspecified).
-            let wraps = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul) && v.ty <= Ty::I64;
+            let wraps = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul) && v.ty.is_int();
             let wrap = if wraps { " wrap" } else { "" };
             format!("{op:?}:{}({}, {}){wrap}", ty(p, v.ty), val(p, lhs), val(p, rhs))
         }

@@ -279,13 +279,23 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
 /// A type's short name; a user type by its name (`T:PT`).
 fn ty(p: &Program, t: Ty) -> String {
     match t {
+        Ty::I8 => "I8".into(),
+        Ty::U8 => "U8".into(),
         Ty::I16 => "I16".into(),
+        Ty::U16 => "U16".into(),
         Ty::I32 => "I32".into(),
+        Ty::U32 => "U32".into(),
         Ty::I64 => "I64".into(),
+        Ty::U64 => "U64".into(),
+        Ty::Off => "Off".into(),
+        Ty::UOff => "UOff".into(),
+        Ty::Bit { width, signed: true } => format!("Bit{width}"),
+        Ty::Bit { width, signed: false } => format!("UBit{width}"),
         Ty::F32 => "F32".into(),
         Ty::F64 => "F64".into(),
         Ty::F80 => "F80".into(),
         Ty::Str => "Str".into(),
+        Ty::FixedStr(n) => format!("Str*{n}"),
         Ty::User(id) => format!("T:{}", p.user_type(id).name),
     }
 }

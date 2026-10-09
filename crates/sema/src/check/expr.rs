@@ -372,8 +372,12 @@ impl Checker<'_> {
             };
         }
         let how = if e.ty.is_int() && to.is_int() {
-            if to > e.ty { ConvKind::Widen } else { ConvKind::Truncate }
-        } else if e.ty.is_float() && to > e.ty {
+            if to.is_wider_than(e.ty) {
+                ConvKind::Widen
+            } else {
+                ConvKind::Truncate
+            }
+        } else if e.ty.is_float() && to.is_wider_than(e.ty) {
             ConvKind::Widen
         } else {
             ConvKind::Nearest

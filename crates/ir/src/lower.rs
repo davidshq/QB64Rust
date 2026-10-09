@@ -687,7 +687,7 @@ impl Make {
         if v.ty == to {
             return v;
         }
-        let how = match (v.ty.is_int(), to > v.ty) {
+        let how = match (v.ty.is_int(), to.is_wider_than(v.ty)) {
             (_, true) => Conv::Widen,
             (true, false) => Conv::Truncate,
             (false, false) => Conv::Nearest,

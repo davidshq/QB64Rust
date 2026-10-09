@@ -25,50 +25,215 @@ pub use symbols::{Symbol, SymbolId, SymbolKind, Symbols, dump_symbols};
 use qb64rust_base::{FileId, Span};
 use qb64rust_builtins::BuiltinId;
 
-/// A type. The numeric types are ordered by width within integers and within floats (`I16 < I32 < I64`, `F32 <
-/// F64 < F80`), which the conversions use; `User` comes last.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// A type (design D3 of `m2-numeric-types`). It has no order: what a rule needs to know about a type it asks
+/// through [`Ty::int_bits`], [`Ty::is_signed`], [`Ty::is_unsigned`], [`Ty::float_rank`] and [`Ty::storage`].
+///
+/// The variants `I8`, `U8`, `U16`, `U32`, `U64`, `Off`, `UOff`, `Bit` and `FixedStr` are produced nowhere yet (their
+/// declarations are "not supported yet"); a `match` lists them and says why they cannot reach it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Ty {
+    /// `_BYTE`.
+    I8,
+    /// `_UNSIGNED _BYTE`.
+    U8,
+    /// `INTEGER`.
     I16,
+    /// `_UNSIGNED INTEGER`.
+    U16,
+    /// `LONG`.
     I32,
+    /// `_UNSIGNED LONG`.
+    U32,
+    /// `_INTEGER64`.
     I64,
+    /// `_UNSIGNED _INTEGER64`.
+    U64,
+    /// `_OFFSET`: its own variant, not `I64`, because its operator rules differ (design D4).
+    Off,
+    /// `_UNSIGNED _OFFSET`.
+    UOff,
+    /// `_BIT * width` (1 to 64), `_UNSIGNED` when not `signed`.
+    Bit {
+        width: u8,
+        signed: bool,
+    },
+    /// `SINGLE`.
     F32,
+    /// `DOUBLE`.
     F64,
+    /// `_FLOAT`.
     F80,
     Str,
+    /// `STRING * n`: the type of a place only; loading it gives a `Str` value (design D3).
+    FixedStr(u32),
     /// A `TYPE` of the program ([`Program::types`]), design D3 of `m2-arrays-and-types`.
     User(TypeId),
 }
 
 impl Ty {
     pub fn is_int(self) -> bool {
-        matches!(self, Ty::I16 | Ty::I32 | Ty::I64)
+        self.int_bits().is_some()
     }
 
     pub fn is_float(self) -> bool {
-        matches!(self, Ty::F32 | Ty::F64 | Ty::F80)
+        self.float_rank().is_some()
     }
 
     pub fn is_numeric(self) -> bool {
+        self.is_int() || self.is_float()
+    }
+
+    /// The width in bits of an integer type, 8 to 64: `_OFFSET` 64 (the targets are 64-bit), `_BIT * n` that of its
+    /// [`Ty::storage`] (32 or 64); `None` for a float, a string or a user type.
+    pub fn int_bits(self) -> Option<u32> {
         match self {
-            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => true,
-            Ty::Str | Ty::User(_) => false,
+            Ty::I8 | Ty::U8 => Some(8),
+            Ty::I16 | Ty::U16 => Some(16),
+            Ty::I32 | Ty::U32 => Some(32),
+            Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff => Some(64),
+            Ty::Bit { width, .. } => Some(if width <= 32 { 32 } else { 64 }),
+            Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => None,
+        }
+    }
+
+    /// A signed integer or a float.
+    pub fn is_signed(self) -> bool {
+        self.is_numeric() && !self.is_unsigned()
+    }
+
+    /// An `_UNSIGNED` integer type.
+    pub fn is_unsigned(self) -> bool {
+        match self {
+            Ty::U8 | Ty::U16 | Ty::U32 | Ty::U64 | Ty::UOff => true,
+            Ty::Bit { signed, .. } => !signed,
+            Ty::I8
+            | Ty::I16
+            | Ty::I32
+            | Ty::I64
+            | Ty::Off
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str
+            | Ty::FixedStr(_)
+            | Ty::User(_) => false,
+        }
+    }
+
+    /// The rank of a float type, SINGLE 1 < DOUBLE 2 < `_FLOAT` 3; `None` for any other type.
+    pub fn float_rank(self) -> Option<u32> {
+        match self {
+            Ty::F32 => Some(1),
+            Ty::F64 => Some(2),
+            Ty::F80 => Some(3),
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::Bit { .. }
+            | Ty::Str
+            | Ty::FixedStr(_)
+            | Ty::User(_) => None,
+        }
+    }
+
+    /// Whether this numeric type is wider than `other`: a float is wider than an integer, a float of higher
+    /// [`Ty::float_rank`] or an integer of more [`Ty::int_bits`] wider than another. Of two integer types of one
+    /// width neither is wider (which one an operator computes in is design D4's `held`, task 5.1).
+    pub fn is_wider_than(self, other: Ty) -> bool {
+        match (self.float_rank(), other.float_rank()) {
+            (Some(x), Some(y)) => x > y,
+            (Some(_), None) => true,
+            (None, Some(_)) => false,
+            (None, None) => {
+                let bits = |t: Ty| {
+                    t.int_bits()
+                        .unwrap_or_else(|| unreachable!("{t:?} is not a numeric type"))
+                };
+                bits(self) > bits(other)
+            }
+        }
+    }
+
+    /// The type the old compiler stores a value of this type in (`study\02` §3.2): `_BIT * n` in a 32-bit integer up to
+    /// 32 bits, a 64-bit one above, of its signedness; every other type in itself (`_OFFSET` is `ptrszint`).
+    pub fn storage(self) -> Ty {
+        match self {
+            Ty::Bit { width, signed } => match (width <= 32, signed) {
+                (true, true) => Ty::I32,
+                (true, false) => Ty::U32,
+                (false, true) => Ty::I64,
+                (false, false) => Ty::U64,
+            },
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str
+            | Ty::FixedStr(_)
+            | Ty::User(_) => self,
         }
     }
 
     /// The QB type name (`INTEGER`, `_FLOAT`...); `TYPE` for a user type, whose name is [`Program::type_name`]'s.
     pub fn qb_name(self) -> &'static str {
         match self {
+            Ty::I8 => "_BYTE",
+            Ty::U8 => "_UNSIGNED _BYTE",
             Ty::I16 => "INTEGER",
+            Ty::U16 => "_UNSIGNED INTEGER",
             Ty::I32 => "LONG",
+            Ty::U32 => "_UNSIGNED LONG",
             Ty::I64 => "_INTEGER64",
+            Ty::U64 => "_UNSIGNED _INTEGER64",
+            Ty::Off => "_OFFSET",
+            Ty::UOff => "_UNSIGNED _OFFSET",
+            Ty::Bit { signed: true, .. } => "_BIT",
+            Ty::Bit { signed: false, .. } => "_UNSIGNED _BIT",
             Ty::F32 => "SINGLE",
             Ty::F64 => "DOUBLE",
             Ty::F80 => "_FLOAT",
-            Ty::Str => "STRING",
+            Ty::Str | Ty::FixedStr(_) => "STRING",
             Ty::User(_) => "TYPE",
         }
     }
+}
+
+/// The reason in an `unreachable!` arm for a type of [`unproduced_types`].
+pub const NEW_TYPE_UNREACHABLE: &str =
+    "the numeric types of m2-numeric-types and `STRING * n` are produced nowhere yet";
+
+/// A pattern of the [`Ty`] variants that nothing produces yet (design D3 of `m2-numeric-types`), for the arm
+/// `unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}")`. A variant leaves it when its declaration is
+/// supported, so every `match` must then decide what it does with that type.
+#[macro_export]
+macro_rules! unproduced_types {
+    () => {
+        $crate::Ty::I8
+            | $crate::Ty::U8
+            | $crate::Ty::U16
+            | $crate::Ty::U32
+            | $crate::Ty::U64
+            | $crate::Ty::Off
+            | $crate::Ty::UOff
+            | $crate::Ty::Bit { .. }
+            | $crate::Ty::FixedStr(_)
+    };
 }
 
 /// The size of a value of a numeric or user type in memory: what `LEN` of a place gives and what the layout of a
@@ -82,6 +247,7 @@ pub fn size_of(types: &[UserType], t: Ty) -> u32 {
         Ty::F80 => 32,
         Ty::User(id) => types[id.0 as usize].members.iter().map(|m| size_of(types, m.ty)).sum(),
         Ty::Str => unreachable!("a string has no fixed size"),
+        unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -632,6 +798,7 @@ impl Program {
         match t {
             Ty::User(id) => self.user_type(id).name.clone(),
             Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => t.qb_name().to_string(),
+            unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
         }
     }
 
@@ -645,5 +812,115 @@ impl Program {
 
     pub fn constant(&self, id: ConstId) -> &Const {
         &self.consts[id.0 as usize]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Ty;
+
+    const fn bit(width: u8, signed: bool) -> Ty {
+        Ty::Bit { width, signed }
+    }
+
+    #[test]
+    fn int_bits() {
+        let cases = [
+            (Ty::I8, 8),
+            (Ty::U8, 8),
+            (Ty::I16, 16),
+            (Ty::U16, 16),
+            (Ty::I32, 32),
+            (Ty::U32, 32),
+            (Ty::I64, 64),
+            (Ty::U64, 64),
+            (Ty::Off, 64),
+            (Ty::UOff, 64),
+            (bit(1, true), 32),
+            (bit(32, false), 32),
+            (bit(33, true), 64),
+            (bit(64, false), 64),
+        ];
+        for (t, bits) in cases {
+            assert_eq!(t.int_bits(), Some(bits), "{t:?}");
+            assert!(t.is_int() && t.is_numeric() && !t.is_float(), "{t:?}");
+        }
+        for t in [
+            Ty::F32,
+            Ty::F64,
+            Ty::F80,
+            Ty::Str,
+            Ty::FixedStr(3),
+            Ty::User(super::TypeId(0)),
+        ] {
+            assert_eq!(t.int_bits(), None, "{t:?}");
+        }
+    }
+
+    #[test]
+    fn float_rank() {
+        assert_eq!(Ty::F32.float_rank(), Some(1));
+        assert_eq!(Ty::F64.float_rank(), Some(2));
+        assert_eq!(Ty::F80.float_rank(), Some(3));
+        for t in [Ty::I16, Ty::U64, Ty::Off, bit(7, false), Ty::Str, Ty::FixedStr(3)] {
+            assert_eq!(t.float_rank(), None, "{t:?}");
+        }
+        assert!(Ty::F80.is_float() && Ty::F80.is_numeric() && !Ty::F80.is_int());
+        assert!(!Ty::Str.is_numeric() && !Ty::FixedStr(3).is_numeric());
+    }
+
+    #[test]
+    fn signedness() {
+        for t in [Ty::U8, Ty::U16, Ty::U32, Ty::U64, Ty::UOff, bit(7, false)] {
+            assert!(t.is_unsigned() && !t.is_signed(), "{t:?}");
+        }
+        for t in [
+            Ty::I8,
+            Ty::I16,
+            Ty::I32,
+            Ty::I64,
+            Ty::Off,
+            bit(1, true),
+            Ty::F32,
+            Ty::F64,
+            Ty::F80,
+        ] {
+            assert!(t.is_signed() && !t.is_unsigned(), "{t:?}");
+        }
+        for t in [Ty::Str, Ty::FixedStr(3), Ty::User(super::TypeId(0))] {
+            assert!(!t.is_signed() && !t.is_unsigned(), "{t:?}");
+        }
+    }
+
+    #[test]
+    fn is_wider_than() {
+        // Narrowest first; each is wider than every one before it.
+        let order = [Ty::I8, Ty::I16, Ty::I32, Ty::I64, Ty::F32, Ty::F64, Ty::F80];
+        for (i, &a) in order.iter().enumerate() {
+            for (j, &b) in order.iter().enumerate() {
+                assert_eq!(a.is_wider_than(b), i > j, "{a:?} {b:?}");
+            }
+        }
+        // One width: neither is wider.
+        for (a, b) in [
+            (Ty::I32, Ty::U32),
+            (Ty::I64, Ty::Off),
+            (Ty::U64, Ty::UOff),
+            (Ty::I32, bit(5, true)),
+        ] {
+            assert!(!a.is_wider_than(b) && !b.is_wider_than(a), "{a:?} {b:?}");
+        }
+        assert!(!Ty::U8.is_wider_than(Ty::I8) && Ty::U16.is_wider_than(Ty::I8));
+    }
+
+    #[test]
+    fn storage() {
+        assert_eq!(bit(1, true).storage(), Ty::I32);
+        assert_eq!(bit(32, false).storage(), Ty::U32);
+        assert_eq!(bit(33, true).storage(), Ty::I64);
+        assert_eq!(bit(64, false).storage(), Ty::U64);
+        for t in [Ty::I8, Ty::U16, Ty::Off, Ty::UOff, Ty::F80, Ty::Str, Ty::FixedStr(3)] {
+            assert_eq!(t.storage(), t, "{t:?}");
+        }
     }
 }

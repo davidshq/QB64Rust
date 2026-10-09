@@ -3,7 +3,7 @@
 
 use crate::Emitter;
 use crate::names::{c_type, int_const, var_name};
-use qb64rust_ir::{MemberId, ProcId, Storage, Ty, Var, size_of};
+use qb64rust_ir::{MemberId, NEW_TYPE_UNREACHABLE, ProcId, Storage, Ty, Var, size_of, unproduced_types};
 use std::fmt::Write as _;
 
 /// Whether a variable of this type is a `qbs *` (freed, assigned with `qbs_set`, used without `*`); otherwise it
@@ -12,6 +12,7 @@ pub(crate) fn is_qbs(t: Ty) -> bool {
     match t {
         Ty::Str => true,
         Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::User(_) => false,
+        unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -24,6 +25,7 @@ pub(crate) fn declare(v: &Var, n: &str) -> String {
         Ty::Str => format!("qbs *{n}=NULL;\n"),
         Ty::User(_) => format!("void *{n}=NULL;\n"),
         t @ (Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => format!("{} *{n}=NULL;\n", c_type(t)),
+        unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -99,6 +101,7 @@ impl Emitter<'_> {
         match t {
             Ty::Str => 8,
             Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::User(_) => size_of(&self.p.types, t),
+            unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
         }
     }
 
@@ -130,6 +133,7 @@ impl Emitter<'_> {
                 c = c_type(t),
                 size = self.ty_size(t)
             ),
+            unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
         }
     }
 
@@ -194,6 +198,7 @@ impl Emitter<'_> {
             Ty::Str => format!("{n}->len=0;\n"),
             Ty::User(_) => format!("memset((void*){n},0,{});\n", self.ty_size(v.ty)),
             Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => format!("*{n}=0;\n"),
+            unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
         }
     }
 }

@@ -2,7 +2,9 @@
 
 use crate::Emitter;
 use qb64rust_base::FileId;
-use qb64rust_ir::{Body, LabelId, Proc, ProcKind, Program, Storage, Ty, Var, VarId};
+use qb64rust_ir::{
+    Body, LabelId, NEW_TYPE_UNREACHABLE, Proc, ProcKind, Program, Storage, Ty, Var, VarId, unproduced_types,
+};
 use std::fmt::Write as _;
 
 pub fn c_type(t: Ty) -> &'static str {
@@ -15,6 +17,7 @@ pub fn c_type(t: Ty) -> &'static str {
         Ty::F80 => "long double",
         Ty::Str => "qbs*",
         Ty::User(_) => unreachable!("no value has a user type"),
+        unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -29,6 +32,7 @@ fn type_word(t: Ty) -> &'static str {
         Ty::F80 => "FLOAT",
         Ty::Str => "STRING",
         Ty::User(_) => "UDT",
+        unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 

@@ -43,6 +43,7 @@ fn place_ty_checked(p: &Program, place: &Place) -> Option<Ty> {
         Place::Member { base, member } => match place_ty_checked(p, base)? {
             Ty::User(t) => p.types.get(t.0 as usize)?.members.get(member.0 as usize).map(|m| m.ty),
             Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => None,
+            qb64rust_sema::unproduced_types!() => unreachable!("{}", qb64rust_sema::NEW_TYPE_UNREACHABLE),
         },
     }
 }

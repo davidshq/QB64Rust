@@ -4,7 +4,7 @@
 use super::places::numeric_type;
 use super::{Checker, R};
 use crate::builtins::{Rule, Slot, Supported, lookup, result_types, slots};
-use crate::{Expr, ExprKind, Ty};
+use crate::{Expr, ExprKind, NEW_TYPE_UNREACHABLE, Ty};
 use qb64rust_base::Span;
 use qb64rust_syntax::SyntaxKind::Ident;
 use qb64rust_syntax::ast;
@@ -16,6 +16,7 @@ pub(super) fn supported_builtin(name: &str, suffix: Option<Ty>) -> Option<Suppor
         None => lookup(name, false),
         Some(Ty::Str) => lookup(name, true),
         Some(Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::User(_)) => None,
+        Some(crate::unproduced_types!()) => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -188,6 +189,7 @@ impl Checker<'_> {
                     Some(Ty::I16 | Ty::I32 | Ty::I64) => Ty::I64,
                     Some(t @ (Ty::F32 | Ty::F64 | Ty::F80)) => t,
                     Some(Ty::Str | Ty::User(_)) => unreachable!("numeric types only"),
+                    Some(crate::unproduced_types!()) => unreachable!("{NEW_TYPE_UNREACHABLE}"),
                     // Measured: "VAL TYPE unsupported" (`v20_x24_val_string_type`).
                     None if text == "STRING" => return Err(self.error(t.span(), "`VAL` cannot give a `STRING`")),
                     None => return Err(self.unsupported(t.span(), format!("`VAL` with the type `{text}`"))),
