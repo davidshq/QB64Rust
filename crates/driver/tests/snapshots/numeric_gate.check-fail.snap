@@ -1,0 +1,19 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+numeric_gate.bas:10:5: error: not supported yet: values of type `_UNSIGNED _BYTE`
+numeric_gate.bas:11:7: error: not supported yet: values of type `_UNSIGNED _BYTE`
+numeric_gate.bas:12:7: error: not supported yet: values of type `_UNSIGNED _BYTE`
+numeric_gate.bas:13:8: error: not supported yet: values of type `_UNSIGNED _INTEGER64`
+numeric_gate.bas:14:7: error: not supported yet: values of type `_BIT * 3`
+numeric_gate.bas:15:7: error: not supported yet: values of type `_BYTE`
+numeric_gate.bas:17:7: error: not supported yet: values of type `_UNSIGNED _BYTE`
+numeric_gate.bas:18:7: error: not supported yet: values of type `_UNSIGNED LONG`
+numeric_gate.bas:19:7: error: not supported yet: values of type `_UNSIGNED INTEGER`
+numeric_gate.bas:20:7: error: not supported yet: values of type `_BYTE`
+numeric_gate.bas:21:5: error: not supported yet: values of type `_UNSIGNED LONG`
+numeric_gate.bas:22:7: error: not supported yet: values of type `_UNSIGNED INTEGER`
+numeric_gate.bas:23:5: error: cannot store a string in a number variable
+numeric_gate.bas:24:6: error: not supported yet: arrays of `_BYTE`
+numeric_gate.bas:26:7: error: not supported yet: `_UNSIGNED LONG` members

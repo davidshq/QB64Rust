@@ -58,8 +58,9 @@ use qb64rust_base::{FileId, Span};
 /// Types, operators and conversion kinds are `sema`'s (`study\20` §3.4): integers by width, floats by width (`F80`
 /// is extended precision), strings, user types. They name no C type, so the IR stays ABI-neutral.
 pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, UnOp, UserType};
-/// The [`Ty`] variants nothing produces yet, as a pattern, and the reason their arms give.
-pub use qb64rust_sema::{NEW_TYPE_UNREACHABLE, unproduced_types};
+/// The [`Ty`] variants nothing produces yet, and those no value of reaches the IR yet, as patterns, and the reasons
+/// their arms give.
+pub use qb64rust_sema::{GATED_TYPE_UNREACHABLE, NEW_TYPE_UNREACHABLE, gated_types, unproduced_types};
 
 /// Which built-in functions are compiled and the rule each follows; the emitter writes a call by its rule.
 pub use qb64rust_sema::builtins;

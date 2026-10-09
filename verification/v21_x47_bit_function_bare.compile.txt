@@ -1,0 +1,5 @@
+
+Name already in use (fb)
+Caused by (or after):PRINT FB`
+LINE 4:PRINT fb`
+exit=1

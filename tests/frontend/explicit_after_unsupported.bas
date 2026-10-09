@@ -8,7 +8,7 @@ OPTION _EXPLICIT
 a = 1
 DIM AS LONG v
 v = 2
-DIM u AS _UNSIGNED LONG
+DIM m AS _MEM
 u = 3
 b = 4
 SYSTEM

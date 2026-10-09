@@ -141,22 +141,33 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// The type of a member: one of the slice's numeric types, or a user type defined in an earlier block.
+    /// The type of a member: one of the six first numeric types, or a user type defined in an earlier block. A `_BIT`
+    /// member is an error (measured: "Cannot use _BIT inside user defined types", `verification\v21_x25`, `x26`);
+    /// members of the other new numeric types come with task 8.1 of `m2-numeric-types`.
     fn member_type(&mut self, a: ast::AsClause) -> R<Ty> {
-        if a.size().is_some() {
-            return Err(self.unsupported(a.node().span(), "fixed-length strings"));
-        }
+        let span = a.node().span();
         let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
         let text = words.join(" ");
-        if text == "STRING" {
-            return Err(self.unsupported(a.node().span(), "`STRING` members"));
+        if a.size().is_some() && text.ends_with("STRING") {
+            return Err(self.unsupported(span, "fixed-length strings"));
         }
-        if let Some(t) = numeric_type(&text) {
-            return Ok(t);
+        if let Some(&id) = self.types_by_name.get(&text) {
+            return Ok(Ty::User(id));
         }
-        match self.types_by_name.get(&text) {
-            Some(&id) => Ok(Ty::User(id)),
-            None => Err(self.unsupported(a.node().span(), format!("the member type `{text}`"))),
+        let built_in = words.first().is_some_and(|w| w == "_UNSIGNED") || numeric_type(&text).is_some();
+        if !built_in && text != "STRING" {
+            return Err(self.unsupported(span, format!("the member type `{text}`")));
+        }
+        let ty = self.type_of(a)?;
+        if ty == Ty::Str {
+            Err(self.unsupported(span, "`STRING` members"))
+        } else if let Ty::Bit { .. } = ty {
+            Err(self.error(span, "a `TYPE` member cannot be a `_BIT`"))
+        } else if ty.is_gated() {
+            let name = self.prog.type_name(ty);
+            Err(self.unsupported(span, format!("`{name}` members")))
+        } else {
+            Ok(ty)
         }
     }
 
@@ -210,6 +221,11 @@ impl Checker<'_> {
             return Err(self.unsupported(name_tok.span, format!("an array with a constant's name: `{shown}`")));
         }
         self.reserved(name_tok, &name, suffix)?;
+        if ty.is_gated() {
+            // Arrays of the new numeric types: task 8.1 of `m2-numeric-types`; a `_BIT` array later still.
+            let name = self.prog.type_name(ty);
+            return Err(self.unsupported(bounds.node().span(), format!("arrays of `{name}`")));
+        }
         let ranges = bounds.ranges();
         if ranges.is_empty() {
             return Err(self.unsupported(bounds.node().span(), "`DIM a()` (a dynamic array)"));
@@ -481,19 +497,21 @@ impl Checker<'_> {
     }
 
     /// The value of a place. A whole user-type value is no value (measured, "User defined types in expressions are
-    /// invalid"); as an argument it is not supported yet (a `TYPE` parameter is).
+    /// invalid"); as an argument it is not supported yet (a `TYPE` parameter is). A value of a new numeric type is
+    /// not supported yet ([`Ty::is_gated`]).
     pub(super) fn load(&mut self, place: Place, span: Span) -> R<Expr> {
         let ty = self.prog.place_ty(&place);
+        if self.len_place == Some(span) && (matches!(ty, Ty::User(_)) || ty.is_gated()) {
+            // `LEN` of a whole `TYPE` place or of a new numeric type's (`check\builtins.rs`): its size, never a value.
+            return Ok(Expr {
+                span,
+                ty,
+                qb: ty,
+                kind: ExprKind::Load(place),
+            });
+        }
+        self.gate(ty, span)?;
         if let Ty::User(_) = ty {
-            if self.len_place == Some(span) {
-                // `LEN` of a whole `TYPE` place (`check\builtins.rs`): its size, never a value.
-                return Ok(Expr {
-                    span,
-                    ty,
-                    qb: ty,
-                    kind: ExprKind::Load(place),
-                });
-            }
             let shown = show_bytes(self.text(span));
             if self.whole_type_arg {
                 return Err(self.unsupported(span, format!("a whole `TYPE` value as an argument: `{shown}`")));
@@ -571,17 +589,36 @@ impl Checker<'_> {
     }
 }
 
-/// The numeric type a type name stands for.
+/// The numeric type a type name stands for (without `_UNSIGNED`; `_BIT` is one bit).
 pub(super) fn numeric_type(words: &str) -> Option<Ty> {
     Some(match words {
+        "_BYTE" => Ty::I8,
         "INTEGER" => Ty::I16,
         "LONG" => Ty::I32,
         "_INTEGER64" => Ty::I64,
+        "_OFFSET" => Ty::Off,
+        "_BIT" => Ty::Bit { width: 1, signed: true },
         "SINGLE" => Ty::F32,
         "DOUBLE" => Ty::F64,
         "_FLOAT" => Ty::F80,
         _ => return None,
     })
+}
+
+/// The `_UNSIGNED` form of a signed integer type; `None` for a float (measured: "Type cannot be _UNSIGNED").
+pub(super) fn unsigned_of(t: Ty) -> Option<Ty> {
+    match t {
+        Ty::I8 => Some(Ty::U8),
+        Ty::I16 => Some(Ty::U16),
+        Ty::I32 => Some(Ty::U32),
+        Ty::I64 => Some(Ty::U64),
+        Ty::Off => Some(Ty::UOff),
+        Ty::Bit { width, .. } => Some(Ty::Bit { width, signed: false }),
+        Ty::F32 | Ty::F64 | Ty::F80 => None,
+        Ty::U8 | Ty::U16 | Ty::U32 | Ty::U64 | Ty::UOff | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => {
+            unreachable!("{t:?} is not a type `numeric_type` gives")
+        }
+    }
 }
 
 /// A value of [`constant`].

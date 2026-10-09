@@ -1,7 +1,7 @@
 //! Operators: the typing rules of every operator (design D4: the one place that types an operator) and the
 //! folding of integer constants.
 
-use crate::{BinOp, NEW_TYPE_UNREACHABLE, Ty, UnOp};
+use crate::{BinOp, GATED_TYPE_UNREACHABLE, NEW_TYPE_UNREACHABLE, Ty, UnOp};
 
 /// An operator, as the typing rules see it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -159,6 +159,7 @@ fn pow_qb(t: Ty) -> Ty {
         Ty::Str => unreachable!("strings are refused before `^` is typed"),
         Ty::User(_) => unreachable!("a whole `TYPE` value is never an operand"),
         crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+        crate::gated_types!() => unreachable!("{GATED_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -169,6 +170,7 @@ pub(super) fn promote(t: Ty) -> Ty {
         Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => t,
         Ty::User(_) => unreachable!("a whole `TYPE` value is never an operand"),
         crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+        crate::gated_types!() => unreachable!("{GATED_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -222,6 +224,7 @@ fn int_min(ty: Ty) -> i64 {
         Ty::I64 => i64::MIN,
         Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::User(_) => unreachable!("integer constant folded to {ty:?}"),
         crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+        crate::gated_types!() => unreachable!("{GATED_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -252,6 +255,7 @@ pub(super) fn wrap(v: i64, ty: Ty) -> i64 {
         Ty::I64 => v,
         Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::User(_) => unreachable!("integer constant folded to {ty:?}"),
         crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+        crate::gated_types!() => unreachable!("{GATED_TYPE_UNREACHABLE}"),
     }
 }
 

@@ -1,0 +1,28 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+numeric_decl_errors.bas:7:7: error: `SINGLE` cannot be `_UNSIGNED`
+numeric_decl_errors.bas:8:7: error: `_UNSIGNED` needs a type after it
+numeric_decl_errors.bas:9:18: error: a `_BIT` type takes 1 to 64 bits
+numeric_decl_errors.bas:10:19: error: a `_BIT` type takes 1 to 64 bits
+numeric_decl_errors.bas:12:18: error: a number of bits is expected after `_BIT *`
+numeric_decl_errors.bas:13:9: error: a name with a type suffix cannot have an `AS` clause
+numeric_decl_errors.bas:14:1: error: a `_BIT` suffix takes 1 to 64 bits
+numeric_decl_errors.bas:15:1: error: a `_BIT` suffix takes 1 to 64 bits
+numeric_decl_errors.bas:17:11: error: `LEN` of a `_BIT` variable
+numeric_decl_errors.bas:18:5: error: the `_BIT` variable `i`` cannot be a `FOR` variable
+numeric_decl_errors.bas:19:16: error: `VAL` cannot give a `_BIT`
+numeric_decl_errors.bas:20:7: error: an `_OFFSET` suffix cannot follow a number
+numeric_decl_errors.bas:21:7: error: overflow
+numeric_decl_errors.bas:22:7: error: overflow
+numeric_decl_errors.bas:23:7: error: overflow
+numeric_decl_errors.bas:25:7: error: a `TYPE` member cannot be a `_BIT`
+numeric_decl_errors.bas:30:8: error: `PAIR` cannot be `_UNSIGNED`
+numeric_decl_errors.bas:31:7: error: name already in use: `fb``
+numeric_decl_errors.bas:32:7: error: name already in use: `fz``
+numeric_decl_errors.bas:41:15: error: a parameter cannot be a `_BIT`: `p`
+numeric_decl_errors.bas:44:16: error: a parameter cannot be `_UNSIGNED STRING`
+numeric_decl_errors.bas:47:15: error: a parameter cannot be `_UNSIGNED STRING`
+numeric_decl_errors.bas:50:11: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
+numeric_decl_errors.bas:53:26: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)

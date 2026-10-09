@@ -4,8 +4,8 @@
 
 use super::{Checker, R, Skips, first_token_span};
 use crate::{
-    BinOp, Branch, Case, CaseItem, Expr, ExprKind, LoopKind, LoopTest, NEW_TYPE_UNREACHABLE, Place, Stmt, StmtKind,
-    SymbolKind, TestAt, Ty, VarId,
+    BinOp, Branch, Case, CaseItem, Expr, ExprKind, GATED_TYPE_UNREACHABLE, LoopKind, LoopTest, NEW_TYPE_UNREACHABLE,
+    Place, Stmt, StmtKind, SymbolKind, TestAt, Ty, VarId,
 };
 use qb64rust_base::show_bytes;
 use qb64rust_syntax::SyntaxKind;
@@ -218,6 +218,15 @@ impl Checker<'_> {
                 format!("the `FOR` variable `{shown}` must be a number, not a string"),
             ));
         }
+        if let Ty::Bit { .. } = self.prog.var(var).ty {
+            // Measured: "Unsupported variable used in FOR statement" (`verification\v21_x29`, `x30`).
+            return Err(self.error(
+                t.span,
+                format!("the `_BIT` variable `{shown}` cannot be a `FOR` variable"),
+            ));
+        }
+        // The new numeric types as `FOR` variables: task 8.3 of `m2-numeric-types`.
+        self.gate(self.prog.var(var).ty, t.span)?;
         Ok(var)
     }
 
@@ -358,6 +367,7 @@ impl Checker<'_> {
             t @ (Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => t,
             Ty::User(_) => unreachable!("a whole `TYPE` value is no value"),
             crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+            crate::gated_types!() => unreachable!("{GATED_TYPE_UNREACHABLE}"),
         };
         Ok((self.convert_exact(e, copy), true, every))
     }
@@ -463,6 +473,7 @@ fn for_temp(ty: Ty) -> Ty {
         Ty::Str => Ty::Str,
         Ty::User(_) => unreachable!("a `TYPE` variable as a `FOR` variable is rejected first"),
         crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+        crate::gated_types!() => unreachable!("{GATED_TYPE_UNREACHABLE}"),
     }
 }
 

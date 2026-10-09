@@ -1,0 +1,5 @@
+
+Invalid index after STRING * type
+Caused by (or after):
+LINE 5:SUB Q ( T$0 )
+exit=1

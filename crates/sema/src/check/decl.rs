@@ -1,7 +1,8 @@
 //! Names and declarations: suffixes, reserved names, variables by scope, `DIM`, `STATIC`, `SHARED`, `OPTION`.
 
-use super::places::numeric_type;
+use super::places::{numeric_type, unsigned_of};
 use super::{Checker, Failed, R, Scope};
+use crate::literal;
 use crate::{ProcKind, Storage, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{show_bytes, to_u32};
 use qb64rust_builtins::{Kind, find_any, is_auto_include_name};
@@ -12,29 +13,30 @@ use qb64rust_syntax::tree::Tok;
 impl Checker<'_> {
     // ---- names ----
 
-    /// Splits `name<suffix>` and gives the suffix's type (`None` without a suffix).
+    /// Splits `name<suffix>` and gives the suffix's type (`None` without a suffix): every suffix of
+    /// [`literal::suffix_type`]; `name$n` (a fixed-length string) is not supported yet here.
     pub(super) fn split_name(&mut self, t: Tok) -> R<(String, Option<Ty>)> {
         let bytes = self.text(t.span);
-        let end = bytes
-            .iter()
-            .position(|&b| !(b.is_ascii_alphanumeric() || b == b'_' || b == b'.'));
-        let (name, suffix) = bytes.split_at(end.unwrap_or(bytes.len()));
+        let end = name_end(bytes);
+        let (name, suffix) = bytes.split_at(end);
         let name = show_bytes(&name.to_ascii_uppercase());
-        let ty = match suffix {
-            b"" => None,
-            b"%" => Some(Ty::I16),
-            b"&" => Some(Ty::I32),
-            b"&&" => Some(Ty::I64),
-            b"!" => Some(Ty::F32),
-            b"#" => Some(Ty::F64),
-            b"##" => Some(Ty::F80),
-            b"$" => Some(Ty::Str),
-            other => {
-                let msg = format!("the type suffix `{}`", show_bytes(other));
-                return Err(self.unsupported(t.span, msg));
+        if suffix.is_empty() {
+            return Ok((name, None));
+        }
+        match literal::suffix_type(suffix) {
+            Some(Ok(ty)) => Ok((name, Some(ty))),
+            // Measured: "Invalid symbol" for `` k`65 ``, "Cannot create a _BIT variable of size 0 bits" for `` k`0 ``
+            // (`verification\v21_x14`, `x15`).
+            Some(Err(msg)) => Err(self.error(t.span, msg)),
+            None => {
+                let what = if suffix.starts_with(b"$") {
+                    "fixed-length strings".to_string()
+                } else {
+                    format!("the type suffix `{}`", show_bytes(suffix))
+                };
+                Err(self.unsupported(t.span, what))
             }
-        };
-        Ok((name, ty))
+        }
     }
 
     /// Reserved names (design D3), measured for every keyword and built-in (`verification\v15_builtin_names.txt`,
@@ -112,21 +114,68 @@ impl Checker<'_> {
         }
     }
 
-    /// The type named by an `AS` clause: a slice type, `STRING`, or a user type.
+    /// The type named by an `AS` clause: a numeric type, `STRING`, or a user type. As measured
+    /// (`verification\v21_a_decls`, `v21_x01`–`x08`): `_UNSIGNED` before an integer type, `_OFFSET` or `_BIT`, and
+    /// ignored before `STRING`; `_BIT * n` with n a number from 1 to 64. `STRING * n` is not supported yet here.
     pub(super) fn type_of(&mut self, a: ast::AsClause) -> R<Ty> {
-        if a.size().is_some() {
-            return Err(self.unsupported(a.node().span(), "fixed-length strings"));
-        }
+        let span = a.node().span();
         let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
-        let text = words.join(" ");
+        let (unsigned, rest) = match words.split_first() {
+            Some((first, rest)) if first == "_UNSIGNED" => (true, rest),
+            _ => (false, &words[..]),
+        };
+        let text = rest.join(" ");
+        if unsigned && text.is_empty() {
+            // Measured: "Unknown type" (`v21_x08_unsigned_alone`).
+            return Err(self.error(span, "`_UNSIGNED` needs a type after it"));
+        }
+        if let Some(size) = a.size() {
+            return match text.as_str() {
+                "_BIT" => {
+                    let width = self.bit_width(size)?;
+                    Ok(Ty::Bit {
+                        width,
+                        signed: !unsigned,
+                    })
+                }
+                "STRING" => Err(self.unsupported(span, "fixed-length strings")),
+                _ => Err(self.unsupported(span, format!("`{} * …`", words.join(" ")))),
+            };
+        }
         if text == "STRING" {
+            // Measured: `_UNSIGNED STRING` is a `STRING` (`v21_a_decls`).
             return Ok(Ty::Str);
         }
-        if let Some(t) = numeric_type(&text).or_else(|| self.user_type_of(&text)) {
+        if let Some(t) = numeric_type(&text) {
+            if !unsigned {
+                return Ok(t);
+            }
+            return match unsigned_of(t) {
+                Some(u) => Ok(u),
+                // Measured: "Type cannot be _UNSIGNED" (`v21_x07_unsigned_single`).
+                None => Err(self.error(span, format!("`{text}` cannot be `_UNSIGNED`"))),
+            };
+        }
+        if let Some(t) = self.user_type_of(&text) {
+            if unsigned {
+                // Measured: "Type cannot be _UNSIGNED" (`v21_x46_unsigned_user_type`).
+                return Err(self.error(span, format!("`{text}` cannot be `_UNSIGNED`")));
+            }
             return Ok(t);
         }
-        let msg = format!("the type `{text}`");
-        Err(self.unsupported(a.node().span(), msg))
+        let msg = format!("the type `{}`", words.join(" "));
+        Err(self.unsupported(span, msg))
+    }
+
+    /// The n of `_BIT * n`: a number from 1 to 64 (measured: 0 and 65 are errors, a constant's name "Number expected
+    /// after *", `v21_x01`–`x04`).
+    fn bit_width(&mut self, size: Tok) -> R<u8> {
+        let width = literal::decimal(self.text(size.span)).map(u8::try_from);
+        match width {
+            Some(Ok(w @ 1..=64)) => Ok(w),
+            Some(_) => Err(self.error(size.span, "a `_BIT` type takes 1 to 64 bits")),
+            None => Err(self.error(size.span, "a number of bits is expected after `_BIT *`")),
+        }
     }
 
     pub(super) fn new_var(&mut self, name: String, ty: Ty, storage: Storage) -> VarId {
@@ -461,4 +510,12 @@ impl Checker<'_> {
         }
         Ok(())
     }
+}
+
+/// Where the name part of a name token ends (letters, digits, `_`, `.`); its type suffix follows.
+pub(super) fn name_end(bytes: &[u8]) -> usize {
+    bytes
+        .iter()
+        .position(|&b| !(b.is_ascii_alphanumeric() || b == b'_' || b == b'.'))
+        .unwrap_or(bytes.len())
 }

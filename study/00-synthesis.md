@@ -665,7 +665,9 @@ Measured for the new numeric types and fixed-length strings (2026-10-08, `m2-num
   the caller's string uncut (`RIGHT$`, `MID$`, `INSTR`, comparison, `SELECT CASE`, `LEN(t + "!")` see the real
   string), a store is not cut and reaches a `STRING` caller (a fixed caller cuts it with its own length), and the
   parameter passed on to a `STRING` parameter is the real string. `t$4` the same. A SUB named `s` and a variable
-  `s$` cannot both exist ("Name already in use").
+  `s$` cannot both exist ("Name already in use"). **On a parameter, `_UNSIGNED STRING`, with or without a length,
+  is "Illegal SUB/FUNCTION parameter"** though `DIM` takes it; `t$0` is "Invalid index after STRING * type" and
+  `STRING * 4294967296` (0 in 32 bits) "Invalid number after STRING * type" (`v21_x42`–`x45`, 2026-10-09, task 4.3).
 - **From the differential recordings (`tests\differential`, task 2.3):** all 59 programs build and run to their
   last line with `qb64pe.exe`, and two recordings agree. **A `_FLOAT` literal is written as a C++ double**:
   `1.18973149535723176F+4932` is infinite, so the largest `_FLOAT` a program can write is about
@@ -673,7 +675,8 @@ Measured for the new numeric types and fixed-length strings (2026-10-08, `m2-num
   remains of a number formatted earlier (`-INF<NUL>2979E+11`, `INF<NUL>0000E+001<NUL>…D…`), the same on every run
   of a program. **A negative literal is held in the C++ type of its text** in arithmetic (design D7, shown for the
   six old types): `(-2147483648&) * (-32768%)` is 70368744177664 and `(-2147483648&) + (-2147483648&)`
-  -4294967296, because `2147483648` is a 64-bit C++ literal; today's `qb64rust` wraps both to 32 bits.
+  -4294967296, because `2147483648` is a 64-bit C++ literal; `qb64rust` wrapped both to 32 bits until task group 4
+  of `m2-numeric-types` (2026-10-09), which holds such literals as design D7 says: all 48 `old6` programs pass since.
 
 ## 6. Bug-compatibility choices (all decided)
 

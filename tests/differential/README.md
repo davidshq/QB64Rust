@@ -80,7 +80,9 @@ refuses); the one subset kept here is `old6`.
 - Tier 2 and CI (`rust.yml`, job `tier2`): the programs of `pass.list` built and run with `qb64rust`.
 
 `pass.list` names the programs the new compiler passes, one `<group>/<name>` per line. It only grows; by the end of
-`m2-numeric-types` it names every program. On 2026-10-08 it names 27 of `old6` (all `ops`, the six `store`,
-`unary`); `old6`'s 20 `fold` programs and `print` stop at "overflow" for literals beyond INTEGER and LONG
-(`32768%`), which the old compiler accepts, so they are in `tests\known_false_errors.list` until design D7
-(group 4) removes that error.
+`m2-numeric-types` it names every program. On 2026-10-08 it named 27 of `old6` (all `ops`, the six `store`,
+`unary`); `old6`'s 20 `fold` programs and `print` stopped at "overflow" for literals beyond INTEGER and LONG
+(`32768%`), which the old compiler accepts. Since 2026-10-09 (design D7, task group 4: a suffixed literal held as
+C++ types its digits, believed the suffix's type) it names all 48 of `old6`; this also fixed the 14 lines of
+`fold_add`, `fold_sub` and `fold_mul` where `-2147483648&` must be held in 64 bits. The full programs still stop at
+the first value of a new type ("not supported yet" until group 5).

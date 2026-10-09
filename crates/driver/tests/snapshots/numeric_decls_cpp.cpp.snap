@@ -1,0 +1,198 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+int8 *__BYTE_A=NULL;
+uint8 *__UBYTE_B=NULL;
+uint16 *__UINTEGER_C=NULL;
+uint32 *__ULONG_D=NULL;
+uint64 *__UINTEGER64_E=NULL;
+ptrszint *__OFFSET_F=NULL;
+uptrszint *__UOFFSET_G=NULL;
+int32 *__BIT1_H=NULL;
+int32 *__BIT7_J=NULL;
+uint64 *__UBIT40_K=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+uint8 FUNC_NEVER(uint32*_FUNC_NEVER_ULONG_P1,ptrszint*_FUNC_NEVER_OFFSET_P2);
+==> clear.txt <==
+*__BYTE_A=0;
+*__UBYTE_B=0;
+*__UINTEGER_C=0;
+*__ULONG_D=0;
+*__UINTEGER64_E=0;
+*__OFFSET_F=0;
+*__UOFFSET_G=0;
+*__BIT1_H=0;
+*__BIT7_J=0;
+*__UBIT40_K=0;
+==> maindata.txt <==
+if(__BYTE_A==NULL){
+__BYTE_A=(int8*)mem_static_malloc(1);
+*__BYTE_A=0;
+}
+if(__UBYTE_B==NULL){
+__UBYTE_B=(uint8*)mem_static_malloc(1);
+*__UBYTE_B=0;
+}
+if(__UINTEGER_C==NULL){
+__UINTEGER_C=(uint16*)mem_static_malloc(2);
+*__UINTEGER_C=0;
+}
+if(__ULONG_D==NULL){
+__ULONG_D=(uint32*)mem_static_malloc(4);
+*__ULONG_D=0;
+}
+if(__UINTEGER64_E==NULL){
+__UINTEGER64_E=(uint64*)mem_static_malloc(8);
+*__UINTEGER64_E=0;
+}
+if(__OFFSET_F==NULL){
+__OFFSET_F=(ptrszint*)mem_static_malloc(8);
+*__OFFSET_F=0;
+}
+if(__UOFFSET_G==NULL){
+__UOFFSET_G=(uptrszint*)mem_static_malloc(8);
+*__UOFFSET_G=0;
+}
+if(__BIT1_H==NULL){
+__BIT1_H=(int32*)mem_static_malloc(4);
+*__BIT1_H=0;
+}
+if(__BIT7_J==NULL){
+__BIT7_J=(int32*)mem_static_malloc(4);
+*__BIT7_J=0;
+}
+if(__UBIT40_K==NULL){
+__UBIT40_K=(uint64*)mem_static_malloc(8);
+*__UBIT40_K=0;
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "numeric_decls_cpp.bas"
+do{
+#line 2 "numeric_decls_cpp.bas"
+sub__dest(func__console());
+#line 2 "numeric_decls_cpp.bas"
+sub__source(func__console());
+#line 2 "numeric_decls_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 9 "numeric_decls_cpp.bas"
+do{
+#line 9 "numeric_decls_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 9 "numeric_decls_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(1)),qbs_new_txt(" ")));
+#line 9 "numeric_decls_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 9 "numeric_decls_cpp.bas"
+makefit(tqbs);
+#line 9 "numeric_decls_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "numeric_decls_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(8)),qbs_new_txt(" ")));
+#line 9 "numeric_decls_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 9 "numeric_decls_cpp.bas"
+makefit(tqbs);
+#line 9 "numeric_decls_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "numeric_decls_cpp.bas"
+qbs_print(nothingstring,1);
+#line 9 "numeric_decls_cpp.bas"
+skip1:
+#line 9 "numeric_decls_cpp.bas"
+qbs_free(tqbs);
+#line 9 "numeric_decls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 9 "numeric_decls_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+#line 10 "numeric_decls_cpp.bas"
+do{
+#line 10 "numeric_decls_cpp.bas"
+if (sub_gl_called) error(271);
+#line 10 "numeric_decls_cpp.bas"
+close_program=1;
+#line 10 "numeric_decls_cpp.bas"
+end();
+#line 10 "numeric_decls_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+sub_end();
+return;
+}
+==> main1.txt <==
+#line 12 "numeric_decls_cpp.bas"
+uint8 FUNC_NEVER(uint32*_FUNC_NEVER_ULONG_P1,ptrszint*_FUNC_NEVER_OFFSET_P2){
+#line 12 "numeric_decls_cpp.bas"
+qbs *tqbs;
+#line 12 "numeric_decls_cpp.bas"
+ptrszint tmp_long;
+#line 12 "numeric_decls_cpp.bas"
+int32 tmp_fileno;
+#line 12 "numeric_decls_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 12 "numeric_decls_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 12 "numeric_decls_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 12 "numeric_decls_cpp.bas"
+#include "data1.txt"
+#line 12 "numeric_decls_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 12 "numeric_decls_cpp.bas"
+new_mem_lock();
+#line 12 "numeric_decls_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 12 "numeric_decls_cpp.bas"
+sf_mem_lock->type=3;
+#line 12 "numeric_decls_cpp.bas"
+libqb_check_stack();
+#line 12 "numeric_decls_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 13 "numeric_decls_cpp.bas"
+exit_subfunc:;
+#line 13 "numeric_decls_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 13 "numeric_decls_cpp.bas"
+#include "free1.txt"
+#line 13 "numeric_decls_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 13 "numeric_decls_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 13 "numeric_decls_cpp.bas"
+return *_FUNC_NEVER_UBYTE_NEVER;
+#line 13 "numeric_decls_cpp.bas"
+}
+==> data1.txt <==
+uint8 *_FUNC_NEVER_UBYTE_NEVER=NULL;
+if(_FUNC_NEVER_UBYTE_NEVER==NULL){
+_FUNC_NEVER_UBYTE_NEVER=(uint8*)mem_static_malloc(1);
+*_FUNC_NEVER_UBYTE_NEVER=0;
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt free1.txt

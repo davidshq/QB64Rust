@@ -73,6 +73,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         len_place: None,
         types_marked: HashSet::new(),
         follow_on: false,
+        param_len: HashMap::new(),
+        fixed_params: HashMap::new(),
     };
     let skips = Skips::new(program);
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
@@ -268,6 +270,12 @@ struct Checker<'a> {
     /// The follow-on rule is on (design D10): a declaration was marked "not supported yet", so real errors are
     /// dropped from here on.
     follow_on: bool,
+    /// The parameters declared `STRING * n` or `t$n`, with n: `STRING` parameters whose `LEN` is n (design D6 of
+    /// `m2-numeric-types`).
+    param_len: HashMap<VarId, u32>,
+    /// The `t$n` parameters by procedure, name and n: the name `t$n` in the body means the parameter (`t$` is
+    /// another variable).
+    fixed_params: HashMap<(ProcId, String, u32), VarId>,
 }
 
 /// An expression could not be typed; the error is already reported.
@@ -296,6 +304,17 @@ impl Checker<'_> {
             self.diags.unsupported(span, msg);
         }
         Failed
+    }
+
+    /// The gate of `m2-numeric-types` task group 4 ([`Ty::is_gated`]): a value of a new numeric type, loaded, stored,
+    /// written as a literal or returned, is not supported yet, so no expression of one reaches the typing rules, the
+    /// IR or the emitter before groups 5 and 6 give them their rules.
+    fn gate(&mut self, ty: Ty, span: Span) -> R<()> {
+        if ty.is_gated() {
+            let name = self.prog.type_name(ty);
+            return Err(self.unsupported(span, format!("values of type `{name}`")));
+        }
+        Ok(())
     }
 
     fn in_use(&mut self, t: Tok) -> Failed {
@@ -587,6 +606,13 @@ impl Checker<'_> {
         let place = match target_node {
             ast::Expr::NameRef(n) => {
                 let t = self.need(n.name(), node.span())?;
+                if let Some(var) = self.fixed_param_ref(t) {
+                    let value = self.expr(value_node)?;
+                    let value = self.store(value, Ty::Str)?;
+                    let place = Place::Var(var);
+                    self.push(node, StmtKind::Assign { place, value });
+                    return Ok(());
+                }
                 let (name, suffix) = self.split_name(t)?;
                 match self.dotted(t, &name, suffix)? {
                     Some(place) => place,

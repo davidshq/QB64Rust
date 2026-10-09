@@ -6,12 +6,33 @@ use crate::names::{c_type, int_const, var_name};
 use qb64rust_ir::{MemberId, NEW_TYPE_UNREACHABLE, ProcId, Storage, Ty, Var, size_of, unproduced_types};
 use std::fmt::Write as _;
 
+/// The numeric types as a pattern: each is stored as one C scalar ([`c_type`]); a declaration of any of them is
+/// emitted alike.
+macro_rules! numbers {
+    () => {
+        Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::Bit { .. }
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+    };
+}
+
 /// Whether a variable of this type is a `qbs *` (freed, assigned with `qbs_set`, used without `*`); otherwise it
 /// is a pointer to a C scalar or (a user type) to its bytes.
 pub(crate) fn is_qbs(t: Ty) -> bool {
     match t {
         Ty::Str => true,
-        Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::User(_) => false,
+        numbers!() | Ty::User(_) => false,
         unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
@@ -24,7 +45,7 @@ pub(crate) fn declare(v: &Var, n: &str) -> String {
     match v.ty {
         Ty::Str => format!("qbs *{n}=NULL;\n"),
         Ty::User(_) => format!("void *{n}=NULL;\n"),
-        t @ (Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => format!("{} *{n}=NULL;\n", c_type(t)),
+        t @ numbers!() => format!("{} *{n}=NULL;\n", c_type(t)),
         unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
@@ -100,7 +121,7 @@ impl Emitter<'_> {
     pub(crate) fn ty_size(&self, t: Ty) -> u32 {
         match t {
             Ty::Str => 8,
-            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::User(_) => size_of(&self.p.types, t),
+            numbers!() | Ty::User(_) => size_of(&self.p.types, t),
             unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
         }
     }
@@ -128,7 +149,7 @@ impl Emitter<'_> {
                 let size = self.ty_size(v.ty);
                 format!("if({n}==NULL){{\n{n}=(void*)mem_static_malloc({size});\nmemset({n},0,{size});\n}}\n")
             }
-            t @ (Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => format!(
+            t @ numbers!() => format!(
                 "if({n}==NULL){{\n{n}=({c}*)mem_static_malloc({size});\n*{n}=0;\n}}\n",
                 c = c_type(t),
                 size = self.ty_size(t)
@@ -197,7 +218,7 @@ impl Emitter<'_> {
         match v.ty {
             Ty::Str => format!("{n}->len=0;\n"),
             Ty::User(_) => format!("memset((void*){n},0,{});\n", self.ty_size(v.ty)),
-            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => format!("*{n}=0;\n"),
+            numbers!() => format!("*{n}=0;\n"),
             unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
         }
     }

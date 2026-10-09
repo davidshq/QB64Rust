@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-09 (session 29). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-09 (session 30). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Step 8's bug-compatibility decisions are taken (2026-10-08); next: the rest of step 8.**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Step 8's bug-compatibility decisions are taken (2026-10-08); OpenSpec change `m2-numeric-types` groups 1–4 are done (2026-10-09); next: its group 5.**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -264,7 +264,12 @@ is its `tasks.md`, and `git log`.
    where D7's literal rules (group 4) apply.
    **Group 3 (`Ty` without a derived order) done 2026-10-09 (session 29):** the 17 variants of design D3 and their
    methods, no behaviour change (no snapshot changed; tier 2 192, 42, 27 as before); record in `tasks.md` 3.1.
-   **Next: group 4, declarations and literals.**
+   **Group 4 (declarations and literals) done 2026-10-09 (session 30):** every `AS` spelling and suffix of the new
+   numeric types is declared, sized by `LEN` and emitted; their *values* are "not supported yet" behind one gate in
+   the checker (`Ty::is_gated`) until groups 5 and 6 write their rules. Suffixed literals and `CONST`s are held as
+   C++ types their digits and believed the suffix's type (design D7), which made the 21 remaining `old6` programs
+   and upstream `const/expression` pass; `STRING * n` and `t$n` parameters (design D6). Tier 2 192, 43, 48. Record
+   in `tasks.md` 4.1–4.3. **Next: group 5, typing, conversions and emission.**
 9. Built-in statements and functions by demand (`study\27` §3): a built-in statement operation in the IR, then
    sequential file I/O, `DATA`/`READ`/`RESTORE`, `SWAP`, `RANDOMIZE`/`RND`/`TIMER`, console `INPUT`/`LINE INPUT`,
    `SHELL`/`COMMAND$`/`ENVIRON$`, each measured first; the remaining plain functions as the corpus, upstream or a

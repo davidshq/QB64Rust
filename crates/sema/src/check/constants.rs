@@ -140,13 +140,33 @@ impl Checker<'_> {
 
     /// A use of constant `id` as `name<suffix>` in an expression: a literal of its type, or of the suffix's type
     /// (measured: `c%`, `c&`, `c!`, `c#` of a plain constant are the constant; `c$` of a numeric one is an error).
+    ///
+    /// A constant with an integer suffix other than `&&` is a literal with that suffix and its value's digits,
+    /// believed the suffix's type and held as C++ types the digits (design D7 of `m2-numeric-types`): `CONST c% =
+    /// 40000` prints -25536, `c% + 0` is 40000.
     pub(super) fn const_use(&mut self, id: ConstId, t: Tok, suffix: Option<Ty>, span: Span) -> R<Expr> {
         let c = self.prog.constant(id).clone();
         if c.ty == Ty::Str && suffix.is_some_and(|s| s != Ty::Str) {
             let shown = show_bytes(self.text(t.span));
             return Err(self.unsupported(t.span, format!("a string constant with a number suffix: `{shown}`")));
         }
-        let (ty, value) = self.problem(consteval::convert(c.ty, c.value, suffix.unwrap_or(c.ty)), t.span)?;
+        let to = suffix.unwrap_or(c.ty);
+        self.gate(c.ty, t.span)?;
+        self.gate(to, t.span)?;
+        if let (true, true, &Value::Int(v)) = (to == c.ty, c.ty.is_int() && c.ty != Ty::I64, &c.value) {
+            let NumLit::Int { value, ty, qb } = literal::constant_literal(v, c.ty) else {
+                unreachable!("an integer constant is an integer literal");
+            };
+            self.gate(ty, t.span)?;
+            self.names.push((SymbolKind::Const(id), t.span));
+            return Ok(Expr {
+                span,
+                ty,
+                qb,
+                kind: ExprKind::Int(value),
+            });
+        }
+        let (ty, value) = self.problem(consteval::convert(c.ty, c.value, to), t.span)?;
         self.names.push((SymbolKind::Const(id), t.span));
         Ok(literal_expr(span, ty, value))
     }
@@ -177,6 +197,7 @@ impl Checker<'_> {
                         Ok(Value::Float(f))
                     }
                     Err(LitError::Overflow) => Err(self.error(t.span, "overflow")),
+                    Err(LitError::Error(msg)) => Err(self.error(t.span, msg)),
                     Err(LitError::Unsupported(what)) => Err(self.unsupported(t.span, what)),
                 }
             }

@@ -5,7 +5,8 @@ The numeric types SHALL be INTEGER, LONG, `_INTEGER64`, SINGLE, DOUBLE, `_FLOAT`
 `_BIT * n` (n a number literal from 1 to 64), and the `_UNSIGNED` form of each integer type, with QB64pe's
 `AS` names and type suffixes (`%%`, `~%%`, `~%`, `~&`, `~&&`, `%&`, `~%&`, `` ` ``, `` `n ``, `` ~` ``,
 `` ~`n ``). Each SHALL hold the values of its width and signedness; `_OFFSET` is 64 bits wide. A name with each
-suffix SHALL be a variable of its own. As in the old compiler: `_UNSIGNED` before `STRING` SHALL be ignored;
+suffix SHALL be a variable of its own. As in the old compiler: `_UNSIGNED` before `STRING` SHALL be ignored in a
+declaration (on a parameter it is an error, `language/procedures`);
 `_UNSIGNED` before a floating-point type, `AS _UNSIGNED` alone, a `_BIT` width of 0, above 64 or not a number
 literal, a suffix and an `AS` clause on one name, and `LEN` of a `_BIT` variable SHALL be compile errors. A
 `_BIT` value SHALL be read as an `_INTEGER64` (an `_UNSIGNED _BIT * 64` above 2^63 prints negative, as in the old

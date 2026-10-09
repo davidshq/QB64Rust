@@ -1,0 +1,53 @@
+---
+source: crates/syntax/tests/lexer.rs
+expression: "dump_tokens(b\"u~%% = 300~%% + b`3 + c~` + o%& + q~%& + 9`64 + -1~&& + s$12 + LEFT$(t$, 2) + 5$\\n\")"
+---
+Ident 0..4 u~%%
+Whitespace 4..5  
+Eq 5..6 =
+Whitespace 6..7  
+Number 7..13 300~%%
+Whitespace 13..14  
+Plus 14..15 +
+Whitespace 15..16  
+Ident 16..19 b`3
+Whitespace 19..20  
+Plus 20..21 +
+Whitespace 21..22  
+Ident 22..25 c~`
+Whitespace 25..26  
+Plus 26..27 +
+Whitespace 27..28  
+Ident 28..31 o%&
+Whitespace 31..32  
+Plus 32..33 +
+Whitespace 33..34  
+Ident 34..38 q~%&
+Whitespace 38..39  
+Plus 39..40 +
+Whitespace 40..41  
+Number 41..45 9`64
+Whitespace 45..46  
+Plus 46..47 +
+Whitespace 47..48  
+Minus 48..49 -
+Number 49..53 1~&&
+Whitespace 53..54  
+Plus 54..55 +
+Whitespace 55..56  
+Ident 56..60 s$12
+Whitespace 60..61  
+Plus 61..62 +
+Whitespace 62..63  
+Ident 63..68 LEFT$
+LParen 68..69 (
+Ident 69..71 t$
+Comma 71..72 ,
+Whitespace 72..73  
+Number 73..74 2
+RParen 74..75 )
+Whitespace 75..76  
+Plus 76..77 +
+Whitespace 77..78  
+Number 78..80 5$
+Newline 80..81 \x0A

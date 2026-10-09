@@ -1,0 +1,5 @@
+
+Type cannot be _UNSIGNED
+Caused by (or after):DIM P AS _UNSIGNED PAIR
+LINE 6:DIM p AS _UNSIGNED pair
+exit=1

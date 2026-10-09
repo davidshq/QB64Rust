@@ -4,7 +4,7 @@
 use super::places::numeric_type;
 use super::{Checker, R};
 use crate::builtins::{Rule, Slot, Supported, lookup, result_types, slots};
-use crate::{Expr, ExprKind, NEW_TYPE_UNREACHABLE, Ty};
+use crate::{Expr, ExprKind, NEW_TYPE_UNREACHABLE, Place, Ty};
 use qb64rust_base::Span;
 use qb64rust_syntax::SyntaxKind::Ident;
 use qb64rust_syntax::ast;
@@ -15,7 +15,9 @@ pub(super) fn supported_builtin(name: &str, suffix: Option<Ty>) -> Option<Suppor
     match suffix {
         None => lookup(name, false),
         Some(Ty::Str) => lookup(name, true),
+        // No built-in is written with a number suffix.
         Some(Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::User(_)) => None,
+        Some(crate::gated_types!()) => None,
         Some(crate::unproduced_types!()) => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
@@ -144,6 +146,18 @@ impl Checker<'_> {
         let e = self.expr(node);
         self.len_place = outer;
         let e = e?;
+        // A parameter declared `STRING * n` or `t$n`, named alone: n (design D6; measured, `v21_f_fixed_param`: only
+        // here, `LEN(t + "!")` is the string's real length).
+        if let (ExprKind::Load(Place::Var(v)), ast::Expr::NameRef(_)) = (&e.kind, node)
+            && let Some(&n) = self.param_len.get(v)
+        {
+            return Ok(Expr {
+                span,
+                ty: Ty::I32,
+                qb: Ty::I32,
+                kind: ExprKind::Int(i64::from(n)),
+            });
+        }
         if e.ty == Ty::Str {
             return Ok(Expr {
                 span,
@@ -158,8 +172,13 @@ impl Checker<'_> {
         let ExprKind::Load(place) = &e.kind else {
             return Err(self.error(e.span, "`LEN` needs a string or a variable, element or member"));
         };
+        let ty = self.prog.place_ty(place);
+        if let Ty::Bit { .. } = ty {
+            // Measured: "Variable/element cannot be _BIT aligned" (`verification\v21_x18`, `x19`).
+            return Err(self.error(e.span, "`LEN` of a `_BIT` variable"));
+        }
         // The index of an element is not evaluated (the old compiler takes the element type's size).
-        let size = crate::size_of(&self.prog.types, self.prog.place_ty(place));
+        let size = crate::size_of(&self.prog.types, ty);
         Ok(Expr {
             span,
             ty: Ty::I32,
@@ -190,6 +209,12 @@ impl Checker<'_> {
                     Some(t @ (Ty::F32 | Ty::F64 | Ty::F80)) => t,
                     Some(Ty::Str | Ty::User(_)) => unreachable!("numeric types only"),
                     Some(crate::unproduced_types!()) => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+                    // Measured: "VAL TYPE unsupported" (`verification\v21_x35_val_bit`, `x36`).
+                    Some(Ty::Bit { .. }) => return Err(self.error(t.span(), "`VAL` cannot give a `_BIT`")),
+                    // The other new numeric types: task 8.4 of `m2-numeric-types`.
+                    Some(Ty::I8 | Ty::U8 | Ty::U16 | Ty::U32 | Ty::U64 | Ty::Off | Ty::UOff) => {
+                        return Err(self.unsupported(t.span(), format!("`VAL` with the type `{text}`")));
+                    }
                     // Measured: "VAL TYPE unsupported" (`v20_x24_val_string_type`).
                     None if text == "STRING" => return Err(self.error(t.span(), "`VAL` cannot give a `STRING`")),
                     None => return Err(self.unsupported(t.span(), format!("`VAL` with the type `{text}`"))),

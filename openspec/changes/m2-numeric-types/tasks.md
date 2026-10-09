@@ -181,23 +181,67 @@ programs it makes pass to `slice.list`, `tests\upstream\pass.list` and `tests\di
 
 ## 4. Declarations and literals (design D7)
 
-- [ ] 4.1 `AS` spellings and type suffixes of every new numeric type for variables, implicit variables, `DIM`,
+- [x] 4.1 `AS` spellings and type suffixes of every new numeric type for variables, implicit variables, `DIM`,
   `DIM SHARED`, `STATIC`, `SHARED`, FUNCTION names and parameters, as measured in 1.1; `LEN` of each (`size_of`).
   Verify: `parse-ok`/`check-ok`/`check-fail` front-end tests per form; `typed` snapshot of a declaration of each
   type; the `_MEM` declaration still "not supported yet" (pipeline delta scenarios as front-end tests).
-- [ ] 4.2 Literal suffixes of the new types in `sema\src\literal.rs` (held and believed types as design D7, for
+  *Done 2026-10-09 (session 30).* **The gate:** declaring a variable of a new type does not make its values
+  computable (that is group 5), so the checker lets every declaration through but reports "not supported yet" for a
+  *value* of a new type: a load, a store, a literal or constant held or believed in one, a FUNCTION result, a `FOR`
+  variable (`Checker::gate`, `Ty::is_gated`). `LEN` of such a variable is its size, not a value, and passes. So the
+  IR and the emitter never meet a value of these types. The design's `unproduced_types!()` is split: it keeps
+  `FixedStr` only; the new numeric types form `gated_types!()`, the arm of every `match` on a value's type; the
+  `match`es on a declaration's type (`size_of`, `type_name`, the C types and names, declare, allocate, clear) handle
+  them now. A type leaves `gated_types!()` when its rules exist (groups 5, 6). The suffix table is
+  `literal::suffix_type` (names and numbers), the `AS` words `check\decl.rs` `type_of` (`_UNSIGNED` before an
+  integer type, `_OFFSET`, `_BIT`, ignored before `STRING`; `_BIT * n` with n a number from 1 to 64). Rejected as
+  measured, each an error: `_UNSIGNED SINGLE`, `AS _UNSIGNED`, `_UNSIGNED` before a user type (`v21_x46`), `_BIT *
+  0`/`65`/a constant, `` k`65 ``, `` k`0 ``, `LEN` of a `_BIT`, a `_BIT` member, parameter or `FOR` variable, `VAL(…,
+  _BIT)`, any call of a `_BIT` FUNCTION, with arguments or bare ("Name already in use"; declared and never called it
+  compiles: `v21_x16`, `x17`, `x47`, `x48`) (the last five ahead of groups 6 and 8, being errors). Still "not
+  supported yet": arrays and members of the new types (task 8.1), `VAL` with them (8.4).
+  Emitted names are the old compiler's (`__UBYTE_B`, `__BIT7_J`, `qb64pe.bas` 25797–25819); a `_BIT * n` scalar
+  has storage of its own of its `storage()` size (D-009). Tests: `numeric_decls` (`typed`; the declarations stand in
+  a SUB because the dump lists a procedure's variables with their types, not the main module's), `numeric_decls_cpp`,
+  `numeric_decl_errors`, `numeric_gate` (`check-fail`), `mem_follow_on` (the pipeline delta's four scenarios);
+  `explicit_after_unsupported` now uses `_MEM` as its unsupported declaration. `numeric_decls` and
+  `numeric_decls_cpp` built and run with both compilers give the same output.
+- [x] 4.2 Literal suffixes of the new types in `sema\src\literal.rs` (held and believed types as design D7, for
   every integer suffix, in range or not, `_BIT` suffixes included; radix literals; today's "overflow" for `40000%`
   removed) and suffixed `CONST`s in `check\constants.rs`. Verify: unit tests per suffix, in range and beyond;
   `typed` snapshot showing `ty` and `qb` of `300~%%`, `-1~&&`, `` 9`3 ``; `check-fail` test for `&H1FF%%`; the
   `print` and `fold` differential programs' literal lines pass when the programs compile (group 5).
-- [ ] 4.3 `STRING * n` and `t$n` parameters (design D6): a `Str` parameter whose `LEN` folds to n. Verify: `typed`
+  *Done 2026-10-09 (session 30).* `NumLit::Int` carries `ty` (held) and `qb` (believed); `literal::held_type` is
+  D7's rule, with one simplification: an INTEGER literal in INTEGER's range stays held as INTEGER (C++ widens it in
+  every operation, so nothing changes; no snapshot moved). A suffixed `CONST` with an integer or `_BIT` suffix keeps
+  its value unchecked (`consteval::settle`) and is used as `literal::constant_literal` of it (`&&` and plain
+  constants stay `_INTEGER64` literals as before). Unit tests: `literal.rs` (every suffix, held and believed types in
+  range and beyond, radix literals, constants, ranges), `consteval.rs`. **The `typed` snapshot of `300~%%`, `-1~&&`
+  and `` 9`3 `` moves to task 5.1:** their believed types are new types, so the gate stops them; the unit tests pin
+  their two types, and `const_suffixed` (`typed`) shows the same split for the old types (`32768%` held LONG,
+  believed INTEGER; `-2147483648&` held `_INTEGER64`) with output equal to `qb64pe.exe`'s. `check-fail` for
+  `&H1FF%%`, `5%&`, `18446744073709551616~&&`: `numeric_decl_errors`. **The `old6` group's 20 `fold` programs and
+  `print` now pass** (all 48 of `old6` on `pass.list`), the 14 wrong lines of task 2.6 included; upstream
+  `const/expression` passes (43 of 279) and `const/offset` gets its real error. One literal moved the other way:
+  `-9223372036854775808&&` is held `_UNSIGNED _INTEGER64` (C++ types `9223372036854775808ll` so), which the gate
+  stops until group 5 (`literal_overflow`; brought back by task 5.1). The lexer now reads `name$n` as one token (needed by 4.3; `$` followed
+  by digits after a number stays as it was).
+- [x] 4.3 `STRING * n` and `t$n` parameters (design D6): a `Str` parameter whose `LEN` folds to n. Verify: `typed`
   snapshot of `LEN(t)` in such a SUB; the procedures delta's scenario as a line of `s34_types_procs`.
+  *Done 2026-10-09 (session 30)* except the `s34` line, which comes with the program in task 8.5. `t$n` is a name of
+  its own: in the procedure it names the parameter (`Checker::fixed_params`); anywhere else `name$n` is a
+  fixed-length string, "not supported yet" until group 7. n is read in 32 bits; a constant's name as n is "not
+  supported yet" (parameters are read in pass 1, before any `CONST`). Measured on the way (`verification\v21_x42`–
+  `x45`): `_UNSIGNED STRING`, with a length or not, is "Illegal SUB/FUNCTION parameter" (though `DIM` takes it);
+  `t$0` and `STRING * 4294967296` (0 in 32 bits) are errors on a parameter too. `fixed_param` (`typed`, the
+  measured program's forms) gives the same output with both compilers.
 
 ## 5. Typing, conversions and emission (design D4, D5)
 
 - [ ] 5.1 `held` and `believed` in `check\ops.rs` and the `_OFFSET` arm of `op_typing`; comparisons in the held
   type. Verify: unit tests for each rule in `ops.rs`; `typed` snapshots for a mixed-signedness example of each
-  operator family.
+  operator family; `-9223372036854775808&&` compiles again (held `_UNSIGNED _INTEGER64` since 4.2, gated until
+  here): `literal_overflow` loses its "not supported yet" line and a `typed` test shows the literal's two types.
 - [ ] 5.2 `conversion(from, to)` for every pair, the rounding helpers by target width, and the emitter's C types and
   names for the new types (`names.rs`, `decl.rs`, `value.rs`). Verify: `cpp` snapshots of stores and operations
   per type family; the `store` and `print` differential programs pass in tier 2 and join `pass.list`.

@@ -7,11 +7,20 @@ use qb64rust_ir::{
 };
 use std::fmt::Write as _;
 
+/// The C type of a value of a type; a `_BIT * n` is stored in its 32- or 64-bit [`Ty::storage`] (design D3).
 pub fn c_type(t: Ty) -> &'static str {
     match t {
+        Ty::I8 => "int8",
+        Ty::U8 => "uint8",
         Ty::I16 => "int16",
+        Ty::U16 => "uint16",
         Ty::I32 => "int32",
+        Ty::U32 => "uint32",
         Ty::I64 => "int64",
+        Ty::U64 => "uint64",
+        Ty::Off => "ptrszint",
+        Ty::UOff => "uptrszint",
+        Ty::Bit { .. } => c_type(t.storage()),
         Ty::F32 => "float",
         Ty::F64 => "double",
         Ty::F80 => "long double",
@@ -21,17 +30,26 @@ pub fn c_type(t: Ty) -> &'static str {
     }
 }
 
-/// The type part of a C variable name.
-fn type_word(t: Ty) -> &'static str {
+/// The type part of a C variable name, as the old compiler writes it (`qb64pe.bas` 25797–25819).
+fn type_word(t: Ty) -> String {
     match t {
-        Ty::I16 => "INTEGER",
-        Ty::I32 => "LONG",
-        Ty::I64 => "INTEGER64",
-        Ty::F32 => "SINGLE",
-        Ty::F64 => "DOUBLE",
-        Ty::F80 => "FLOAT",
-        Ty::Str => "STRING",
-        Ty::User(_) => "UDT",
+        Ty::I8 => "BYTE".into(),
+        Ty::U8 => "UBYTE".into(),
+        Ty::I16 => "INTEGER".into(),
+        Ty::U16 => "UINTEGER".into(),
+        Ty::I32 => "LONG".into(),
+        Ty::U32 => "ULONG".into(),
+        Ty::I64 => "INTEGER64".into(),
+        Ty::U64 => "UINTEGER64".into(),
+        Ty::Off => "OFFSET".into(),
+        Ty::UOff => "UOFFSET".into(),
+        Ty::Bit { width, signed: true } => format!("BIT{width}"),
+        Ty::Bit { width, signed: false } => format!("UBIT{width}"),
+        Ty::F32 => "SINGLE".into(),
+        Ty::F64 => "DOUBLE".into(),
+        Ty::F80 => "FLOAT".into(),
+        Ty::Str => "STRING".into(),
+        Ty::User(_) => "UDT".into(),
         unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }

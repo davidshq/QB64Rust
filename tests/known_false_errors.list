@@ -1,24 +1,3 @@
 # Programs the old compiler accepts that still get an error without the "not supported yet" marker (spec
 # testing/upstream-tests, "No false errors"). Shrink-only: parser breadth empties it. The comment is the first
 # such error. Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.
-differential/old6/fold_add.bas  # 15:31: overflow
-differential/old6/fold_and.bas  # 15:33: overflow
-differential/old6/fold_andalso.bas  # 15:38: overflow
-differential/old6/fold_div.bas  # 15:31: overflow
-differential/old6/fold_eq.bas  # 15:31: overflow
-differential/old6/fold_eqv.bas  # 15:33: overflow
-differential/old6/fold_ge.bas  # 15:32: overflow
-differential/old6/fold_gt.bas  # 15:31: overflow
-differential/old6/fold_idiv.bas  # 16:31: overflow
-differential/old6/fold_imp.bas  # 15:33: overflow
-differential/old6/fold_le.bas  # 15:32: overflow
-differential/old6/fold_lt.bas  # 15:31: overflow
-differential/old6/fold_mod.bas  # 16:33: overflow
-differential/old6/fold_mul.bas  # 15:31: overflow
-differential/old6/fold_ne.bas  # 15:32: overflow
-differential/old6/fold_or.bas  # 15:32: overflow
-differential/old6/fold_orelse.bas  # 15:37: overflow
-differential/old6/fold_pow.bas  # 15:31: overflow
-differential/old6/fold_sub.bas  # 15:31: overflow
-differential/old6/fold_xor.bas  # 15:33: overflow
-differential/old6/print_print.bas  # 189:40: overflow

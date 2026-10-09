@@ -36,6 +36,9 @@ impl Checker<'_> {
             }
             ast::Expr::NameRef(name) => {
                 let t = self.need(name.name(), span)?;
+                if let Some(v) = self.fixed_param_ref(t) {
+                    return self.load(Place::Var(v), span);
+                }
                 let (name, suffix) = self.split_name(t)?;
                 if let Some(p) = self.proc_in_expr(&name, suffix) {
                     return self.call_function(p, t, suffix, None, span);
@@ -103,12 +106,16 @@ impl Checker<'_> {
     pub(super) fn number(&mut self, t: Tok, negative: bool) -> R<Expr> {
         let span = t.span;
         match literal::number(self.text(span), negative) {
-            Ok(NumLit::Int { value, ty }) => Ok(Expr {
-                span,
-                ty,
-                qb: ty,
-                kind: ExprKind::Int(value),
-            }),
+            Ok(NumLit::Int { value, ty, qb }) => {
+                self.gate(qb, span)?;
+                self.gate(ty, span)?;
+                Ok(Expr {
+                    span,
+                    ty,
+                    qb,
+                    kind: ExprKind::Int(value),
+                })
+            }
             Ok(NumLit::Float { text, ty }) => {
                 // SINGLE literals are C `double` constants in the old compiler (`study\02` §1.4).
                 let held = if ty == Ty::F32 { Ty::F64 } else { ty };
@@ -120,6 +127,7 @@ impl Checker<'_> {
                 })
             }
             Err(LitError::Overflow) => Err(self.error(span, "overflow")),
+            Err(LitError::Error(msg)) => Err(self.error(span, msg)),
             Err(LitError::Unsupported(what)) => Err(self.unsupported(span, what)),
         }
     }
@@ -342,6 +350,7 @@ impl Checker<'_> {
             (true, false) => return Err(self.error(e.span, "cannot store a string in a number variable")),
             (false, true) => return Err(self.error(e.span, "cannot store a number in a string variable")),
         }
+        self.gate(to, e.span)?;
         if e.ty.is_float() && to.is_int() {
             let e = if to == Ty::I16 {
                 // INTEGER targets round the SINGLE value ("**32 rounding fix", `study\02` §1.5).

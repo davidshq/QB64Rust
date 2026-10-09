@@ -438,14 +438,20 @@ pub fn unary(op: UnOp, a: &Value) -> R<Value> {
 }
 
 /// The type and value of a constant: the value's own (an integer `_INTEGER64`, a float DOUBLE, measured), or the
-/// type of the suffix on its name, converted (a float rounded half to even to an integer).
+/// type of the suffix on its name. A float suffix converts the value as an assignment does; an integer or `_BIT`
+/// suffix keeps the value, rounded half to even if it is a float, in range of the type or not: the constant is then
+/// a literal of that suffix with the value's digits (design D7 of `m2-numeric-types`, [`crate::literal::constant_literal`];
+/// measured `verification\v21_d_const`: `CONST c%% = 200` prints -56, `c%% + 0` is 200).
 pub fn settle(v: Value, suffix: Option<Ty>) -> R<(Ty, Value)> {
     let own = match &v {
         Value::Int(_) => Ty::I64,
         Value::Float(_) => Ty::F64,
         Value::Str(_) => Ty::Str,
     };
-    convert(own, v, suffix.unwrap_or(own))
+    match (suffix, &v) {
+        (Some(t), Value::Int(_) | Value::Float(_)) if t.is_int() => Ok((t, Value::Int(to_int(&v)?))),
+        _ => convert(own, v, suffix.unwrap_or(own)),
+    }
 }
 
 /// A constant of type `from` used as type `to` (by the suffix of its name or of a use).
@@ -456,6 +462,7 @@ pub fn convert(from: Ty, v: Value, to: Ty) -> R<(Ty, Value)> {
     let v = match (v, to) {
         (Value::Str(_), _) | (_, Ty::Str | Ty::User(_)) => return error("type mismatch"),
         (_, crate::unproduced_types!()) => unreachable!("{}", crate::NEW_TYPE_UNREACHABLE),
+        (_, crate::gated_types!()) => unreachable!("{}", crate::GATED_TYPE_UNREACHABLE),
         (v, Ty::I16 | Ty::I32 | Ty::I64) => {
             let i = to_int(&v)?;
             let (lo, hi) = crate::literal::range(to);
@@ -600,8 +607,11 @@ mod tests {
         }
         let neg = unary(UnOp::Neg, &flt("2.5E+0")).unwrap();
         assert_eq!(settle(neg, Some(Ty::I32)).unwrap(), (Ty::I32, int(-2)));
-        // No range check in the old compiler: not supported yet.
-        assert!(is_unsupported(settle(int(40000), Some(Ty::I16))));
+        // No range check: the value is kept, as the digits of a suffixed literal (design D7 of m2-numeric-types).
+        assert_eq!(settle(int(40000), Some(Ty::I16)).unwrap(), (Ty::I16, int(40000)));
+        assert_eq!(settle(int(-1), Some(Ty::U8)).unwrap(), (Ty::U8, int(-1)));
+        let bit3 = Ty::Bit { width: 3, signed: true };
+        assert_eq!(settle(flt("5.5E+0"), Some(bit3)).unwrap(), (bit3, int(6)));
         assert!(is_error(settle(Value::Str(b"x".to_vec()), Some(Ty::I16))));
         assert!(is_error(settle(int(5), Some(Ty::Str))));
     }

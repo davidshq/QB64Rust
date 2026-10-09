@@ -2,8 +2,29 @@
 # m2-numeric-types it names every program. One <group>/<name> per line; run with: run_legacy_tests.py --suite corpus
 # --corpus-root tests/differential --list tests/differential/pass.list --qb64 target/release/qb64rust.exe
 # The full programs declare all 17 numeric types, so none compiles before the new types do. The old6 group (the six
-# old types only, DECISIONS.md 2026-10-08): 27 of 48 on 2026-10-08; its fold and print programs follow with design D7
-# (group 4). Tier 1 requires a program here as soon as it compiles cleanly ("clean programs are listed").
+# old types only, DECISIONS.md 2026-10-08): 27 of 48 on 2026-10-08; all 48 since 2026-10-09 (its fold and print
+# programs with design D7, group 4). Tier 1 requires a program here as soon as it compiles cleanly ("clean programs
+# are listed").
+old6/fold_add
+old6/fold_and
+old6/fold_andalso
+old6/fold_div
+old6/fold_eq
+old6/fold_eqv
+old6/fold_ge
+old6/fold_gt
+old6/fold_idiv
+old6/fold_imp
+old6/fold_le
+old6/fold_lt
+old6/fold_mod
+old6/fold_mul
+old6/fold_ne
+old6/fold_or
+old6/fold_orelse
+old6/fold_pow
+old6/fold_sub
+old6/fold_xor
 old6/ops_add
 old6/ops_and
 old6/ops_andalso
@@ -24,6 +45,7 @@ old6/ops_orelse
 old6/ops_pow
 old6/ops_sub
 old6/ops_xor
+old6/print_print
 old6/store_double
 old6/store_float
 old6/store_int64

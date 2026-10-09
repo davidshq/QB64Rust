@@ -233,6 +233,15 @@ converts as an assignment, as today. `_BIT` parameters and members are compile e
 fails its C++ build, or refuses the member). Reserved-name rules (`reserved`, `reserved_proc`) were measured
 only for no suffix and `&`; other suffixes on a keyword stay "not supported yet", unchanged.
 
+*As built (group 4, 2026-10-09):* declarations come before the typing rules (D10), so the checker has a **gate**:
+every declaration of a new numeric type is accepted, sized and emitted, but a *value* of one (a load, a store, a
+literal or constant held or believed in one, a FUNCTION result, a `FOR` variable) is "not supported yet" until
+groups 5 and 6 (`Ty::is_gated`; `gated_types!()` is the arm of each `match` on a value's type, `unproduced_types!()`
+keeps `FixedStr`). Literals and constants of the old types out of range need no new rule and work end to end
+(`32768%`, `CONST c% = 40000`). One simplification of the held type: an INTEGER literal in INTEGER's range stays
+held as INTEGER, which C++ widens in every operation anyway. `_UNSIGNED STRING` turned out to be an error on a
+parameter (`verification\v21_x42`, `x43`).
+
 ### D8. The decided fixes
 
 - **D-005**: drop the `IMP` chain mark; the emitter already parenthesizes each operand, so `(a IMP b) IMP c` comes out

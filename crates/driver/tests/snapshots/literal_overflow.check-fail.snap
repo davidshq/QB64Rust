@@ -2,6 +2,7 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-literal_overflow.bas:4:7: error: overflow
-literal_overflow.bas:5:8: error: overflow
 literal_overflow.bas:6:7: error: overflow
+literal_overflow.bas:7:8: error: overflow
+literal_overflow.bas:8:7: error: overflow
+literal_overflow.bas:9:31: error: not supported yet: values of type `_UNSIGNED _INTEGER64`

@@ -7,7 +7,9 @@ A program SHALL be able to define procedures with `SUB name [(params)]` … `END
 n` parameter (by `AS` or by suffix) SHALL be a compile error: the old compiler accepts it but its C++ build fails,
 called or not (`DECISIONS.md`, 2026-10-08). A parameter declared `STRING * n` or `name$n` SHALL be a `STRING`
 parameter, its value neither cut nor padded, except that `LEN` of the parameter itself SHALL be the constant n, as
-in the old compiler (`verification\v21_c_fixed_args`, `v21_f_fixed_param`). A FUNCTION's type SHALL be given
+in the old compiler (`verification\v21_c_fixed_args`, `v21_f_fixed_param`); an n that is 0 or negative once read
+in 32 bits, and `_UNSIGNED STRING` with or without a length, SHALL be compile errors on a parameter, as in the old
+compiler ("Illegal SUB/FUNCTION parameter", `verification\v21_x42`–`x45`). A FUNCTION's type SHALL be given
 by its suffix, of any numeric type or `$`, SINGLE without one; a call of a FUNCTION named with `` ` `` or `` ~` ``
 and no width SHALL be a compile error, as in the old compiler ("Name already in use"), and a FUNCTION named with
 `$n` SHALL return a string of exactly n bytes, its result cut or padded with spaces as a store into a `STRING * n`,
@@ -28,6 +30,10 @@ NOT share a name.
 
 #### Scenario: Bit parameter
 - **WHEN** a program defines `SUB s (x AS _BIT * 5)`, called or not
+- **THEN** it is a compile error
+
+#### Scenario: Unsigned string parameter
+- **WHEN** a program defines `SUB q (t AS _UNSIGNED STRING)`
 - **THEN** it is a compile error
 
 #### Scenario: Fixed-length FUNCTION result

@@ -170,3 +170,9 @@ the clone, `basic/val_default_large_integer_decimal` and `val_typed_large_intege
 libqb after 4.7.0: against the release they print other digits, with the release's own `qb64pe.exe` too, so they
 are in `tests\known_clean_not_passing.list` until CI moves to a newer release. The proposal counted 11 upstream
 programs carrying only marks the change removes; 10 compile and pass against the clone.
+
+**Upstream progress, 2026-10-09: 43 of 279** (`m2-numeric-types` task group 4: declarations and literals of the
+new numeric types). `const/expression` now compiles cleanly (its `CONST const__unsignedint = 2~&& * 5~&&` takes the
+held values of `~&&` literals) and passes against the reference clone; added to `pass.list`. `const/offset`, which
+the old compiler rejects, now gets its real error (`234%&`: an `_OFFSET` suffix after a number) and left
+`known_unsupported_rejections.list`. The full run comes with task 10.1 of the change.

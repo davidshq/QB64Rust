@@ -59,7 +59,6 @@ upstream/arrays/t268_negative_put_scalar_varstring.bas
 upstream/arrays/t269_negative_get_dynamic_varstring_field.bas
 upstream/const/bad_single_arg.bas
 upstream/const/not_bad_identifier.bas
-upstream/const/offset.bas
 upstream/const/undefined_argument.bas
 upstream/const/undefined_argument_first.bas
 upstream/types/dim_bad_typename_byte.bas

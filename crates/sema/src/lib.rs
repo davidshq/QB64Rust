@@ -28,8 +28,9 @@ use qb64rust_builtins::BuiltinId;
 /// A type (design D3 of `m2-numeric-types`). It has no order: what a rule needs to know about a type it asks
 /// through [`Ty::int_bits`], [`Ty::is_signed`], [`Ty::is_unsigned`], [`Ty::float_rank`] and [`Ty::storage`].
 ///
-/// The variants `I8`, `U8`, `U16`, `U32`, `U64`, `Off`, `UOff`, `Bit` and `FixedStr` are produced nowhere yet (their
-/// declarations are "not supported yet"); a `match` lists them and says why they cannot reach it.
+/// The new numeric types (`I8`, `U8`, `U16`, `U32`, `U64`, `Off`, `UOff`, `Bit`) are declared, but their values are
+/// "not supported yet" ([`Ty::is_gated`]); `FixedStr` is produced nowhere yet. A `match` on a value's type lists
+/// them and says why they cannot reach it ([`gated_types`], [`unproduced_types`]).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Ty {
     /// `_BYTE`.
@@ -190,7 +191,15 @@ impl Ty {
         }
     }
 
+    /// A numeric type of `m2-numeric-types` whose values the checker does not let through yet (its gate, task group
+    /// 4): a variable of it is declared, sized by `LEN` and emitted, but loading, storing, computing with or
+    /// printing one is "not supported yet" until the typing rules of groups 5 and 6 exist.
+    pub fn is_gated(self) -> bool {
+        matches!(self, crate::gated_types!())
+    }
+
     /// The QB type name (`INTEGER`, `_FLOAT`...); `TYPE` for a user type, whose name is [`Program::type_name`]'s.
+    /// A `_BIT * n` without its width: [`Program::type_name`] has it.
     pub fn qb_name(self) -> &'static str {
         match self {
             Ty::I8 => "_BYTE",
@@ -215,14 +224,29 @@ impl Ty {
 }
 
 /// The reason in an `unreachable!` arm for a type of [`unproduced_types`].
-pub const NEW_TYPE_UNREACHABLE: &str =
-    "the numeric types of m2-numeric-types and `STRING * n` are produced nowhere yet";
+pub const NEW_TYPE_UNREACHABLE: &str = "`STRING * n` places are produced nowhere yet";
 
 /// A pattern of the [`Ty`] variants that nothing produces yet (design D3 of `m2-numeric-types`), for the arm
 /// `unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}")`. A variant leaves it when its declaration is
 /// supported, so every `match` must then decide what it does with that type.
 #[macro_export]
 macro_rules! unproduced_types {
+    () => {
+        $crate::Ty::FixedStr(_)
+    };
+}
+
+/// The reason in an `unreachable!` arm for a type of [`gated_types`].
+pub const GATED_TYPE_UNREACHABLE: &str =
+    "a value of the new numeric types is \"not supported yet\" (the checker's gate, `Ty::is_gated`)";
+
+/// A pattern of the new numeric types (design D3 of `m2-numeric-types`): declared since task group 4, but no value of
+/// them gets past the checker yet ([`Ty::is_gated`]). A `match` on a value's type has the arm `gated_types!() =>
+/// unreachable!("{GATED_TYPE_UNREACHABLE}")`; one on a declaration's type (sizes, C types, names) handles them. A
+/// variant leaves the pattern when the typing rules for its values exist (groups 5 and 6), so every such `match`
+/// must then decide what it does with that type.
+#[macro_export]
+macro_rules! gated_types {
     () => {
         $crate::Ty::I8
             | $crate::Ty::U8
@@ -232,19 +256,21 @@ macro_rules! unproduced_types {
             | $crate::Ty::Off
             | $crate::Ty::UOff
             | $crate::Ty::Bit { .. }
-            | $crate::Ty::FixedStr(_)
     };
 }
 
 /// The size of a value of a numeric or user type in memory: what `LEN` of a place gives and what the layout of a
 /// `TYPE` is made of. A `_FLOAT` takes 32 bytes as in the old compiler (`study\02` §1.7); a user type is its members'
-/// sizes added up, in order, without padding (measured, `verification\v18_h_type_members`, `v20_g_len`).
+/// sizes added up, in order, without padding (measured, `verification\v18_h_type_members`, `v20_g_len`). A `_BIT *
+/// n` takes its [`Ty::storage`] (`LEN` of one is an error, the checker's; it is never a member).
 pub fn size_of(types: &[UserType], t: Ty) -> u32 {
     match t {
-        Ty::I16 => 2,
-        Ty::I32 | Ty::F32 => 4,
-        Ty::I64 | Ty::F64 => 8,
+        Ty::I8 | Ty::U8 => 1,
+        Ty::I16 | Ty::U16 => 2,
+        Ty::I32 | Ty::U32 | Ty::F32 => 4,
+        Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff | Ty::F64 => 8,
         Ty::F80 => 32,
+        Ty::Bit { .. } => size_of(types, t.storage()),
         Ty::User(id) => types[id.0 as usize].members.iter().map(|m| size_of(types, m.ty)).sum(),
         Ty::Str => unreachable!("a string has no fixed size"),
         unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
@@ -793,12 +819,27 @@ impl Program {
         }
     }
 
-    /// The QB name of a type, a user type's own name for one.
+    /// The QB name of a type, a user type's own name for one, a `_BIT * n` with its width (`_BIT` for one bit).
     pub fn type_name(&self, t: Ty) -> String {
         match t {
             Ty::User(id) => self.user_type(id).name.clone(),
-            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => t.qb_name().to_string(),
-            unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+            Ty::Bit { width: 1, .. } => t.qb_name().to_string(),
+            Ty::Bit { width, .. } => format!("{} * {width}", t.qb_name()),
+            Ty::FixedStr(n) => format!("STRING * {n}"),
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str => t.qb_name().to_string(),
         }
     }
 

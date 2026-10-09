@@ -1,0 +1,85 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 10: Call DECLS
+line 11: Call SHOW
+line 12: System
+SUB DECLS
+  local A:I8
+  local B:U8
+  local C:U16
+  local D:U32
+  local E:U64
+  local F:Off
+  local G:UOff
+  local H:Bit1
+  local I:UBit1
+  local J:Bit7
+  local K:UBit40
+  local S:Str
+  local BB:I8
+  local CC:UBit5
+  static ST:U32
+  local NM:I8
+  local NM:U8
+  local NM:I16
+  local NM:U16
+  local NM:I32
+  local NM:U32
+  local NM:I64
+  local NM:U64
+  local NM:Off
+  local NM:UOff
+line 20: Print newline
+  Num
+    Int 1 : I32
+  Num
+    Int 1 : I32
+  Num
+    Int 2 : I32
+  Num
+    Int 4 : I32
+  Num
+    Int 8 : I32
+  Num
+    Int 8 : I32
+  Num
+    Int 8 : I32
+  Num
+    Call LEN : I32
+      Var S (local) : Str
+  Num
+    Int 4 : I32
+line 21: Print newline
+  Num
+    Int 1 : I32
+  Num
+    Int 1 : I32
+  Num
+    Int 2 : I32
+  Num
+    Int 2 : I32
+  Num
+    Int 4 : I32
+  Num
+    Int 4 : I32
+  Num
+    Int 8 : I32
+  Num
+    Int 8 : I32
+  Num
+    Int 8 : I32
+  Num
+    Int 8 : I32
+SUB SHOW
+line 26: Print newline
+  Num
+    Int 4 : I32
+  Num
+    Int 1 : I32
+FUNCTION NEVER : U8
+  param P1:U32
+  param P2:Off
+  result NEVER:U8

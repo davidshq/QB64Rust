@@ -215,7 +215,14 @@ impl Lexer<'_> {
             self.data = true;
             return Ident;
         }
+        let before = self.pos;
         self.suffix();
+        // `name$n`: the suffix of a fixed-length string of n bytes (measured, `verification\v21_c_fixed_basics`).
+        if &self.bytes[before..self.pos] == b"$" {
+            while self.peek(0).is_some_and(|c| c.is_ascii_digit()) {
+                self.pos += 1;
+            }
+        }
         Ident
     }
 
