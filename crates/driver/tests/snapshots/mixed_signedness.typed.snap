@@ -1,0 +1,137 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 10: Assign L:I32
+  Int -1 : I32
+line 10: Assign UL:U32
+  Int 4000000000 : U32
+line 10: Assign UB:U8
+  Int 200 : U8
+line 10: Assign UQ:U64
+  Int -1 : U64
+line 10: Assign Q:I64
+  Int -2 : I64
+line 11: Assign O:Off
+  Int -7 : Off
+line 11: Assign UO:UOff
+  Int 7 : UOff
+line 11: Assign U7:UBit7
+  Int 100 : U32
+line 11: Assign B3:Bit3
+  Int -3 : I32
+line 11: Assign S:F32
+  Convert Nearest : F32
+    Float 2.5E+0 : F64 (qb F32)
+line 12: Print newline
+  Num
+    Binary Lt : I32
+      Convert Truncate : U32
+        Var L : I32
+      Var UL : U32
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Convert Widen : I32
+          Var UB : U8
+        Convert Widen : I32
+          Var UB : U8
+  Num
+    Convert Widen : I64
+      Binary Mul : U32 (qb I64)
+        Var UL : U32
+        Int 2 : U32
+  Num
+    Convert Widen : I64
+      Binary Add : U32 (qb I64)
+        Var UL : U32
+        Convert Truncate : U32
+          Var L : I32
+line 13: Print newline
+  Num
+    Binary Add : U64
+      Var UQ : U64
+      Convert Widen : U64
+        Var U7 : U32 (qb UBit7)
+  Num
+    Convert Truncate : I64
+      Binary And : U64 (qb I64)
+        Var UQ : U64
+        Convert Truncate : U64
+          Convert RoundEven : I64
+            Var S : F32
+  Num
+    Convert Truncate : U64
+      Binary AndAlso : I32 (qb U64)
+        Var UQ : U64
+        Var UQ : U64
+  Num
+    Binary Eqv : I64
+      Var UL : U32
+      Var Q : I64
+  Num
+    Binary Imp : I64
+      Convert Widen : I32
+        Var UB : U8
+      Var Q : I64
+line 14: Print newline
+  Num
+    Neg : U64
+      Var UQ : U64
+  Num
+    Convert Widen : I64
+      Not : I32 (qb I64)
+        Convert Widen : I32
+          Var UB : U8
+  Num
+    Convert Nearest : F32
+      Binary Pow : F80 (qb F32)
+        Convert Nearest : F80
+          Var UB : U8
+        Convert Nearest : F80
+          Int 2 : I16
+  Num
+    Convert Widen : I64
+      Binary Sub : U32 (qb I64)
+        Convert Truncate : U32
+          Var B3 : I32 (qb Bit3)
+        Var U7 : U32 (qb UBit7)
+line 15: Print newline
+  Num
+    Convert Truncate : Off
+      Binary Add : I64 (qb Off)
+        Convert Truncate : I64
+          Var O : Off
+        Convert RoundEven : I64
+          Var S : F32
+  Num
+    Convert Truncate : UOff
+      Convert RoundEven : I64 (qb UOff)
+        Binary Mul : F80 (qb UOff)
+          Convert Nearest : F80
+            Var UO : UOff
+          Convert Widen : F80
+            Var S : F32
+  Num
+    Convert Truncate : Off
+      Convert RoundEven : I64 (qb Off)
+        Binary Div : F80 (qb Off)
+          Convert Nearest : F80
+            Var O : Off
+          Convert Nearest : F80
+            Int 2 : I16
+  Num
+    Convert Truncate : Off
+      Binary Sub : U64 (qb Off)
+        Convert Truncate : U64
+          Var UO : UOff
+        Convert Truncate : U64
+          Var O : Off
+  Num
+    Binary Lt : I32
+      Convert Truncate : I64
+        Var O : Off
+      Convert RoundEven : I64
+        Var S : F32
+line 16: System

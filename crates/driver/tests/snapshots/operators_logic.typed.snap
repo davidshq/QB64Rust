@@ -37,7 +37,7 @@ line 8: Print newline
         Var L : I32
   Num
     Binary Imp : I64
-      Convert Widen : I64
+      Convert Widen : I32
         Var I : I16
       Var Q : I64
 line 9: Print newline

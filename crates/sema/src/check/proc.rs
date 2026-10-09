@@ -320,8 +320,21 @@ impl Checker<'_> {
             // even in parentheses (measured, `s08_byref`: `addbang (s$)` changes `s$`), a string element or member
             // in parentheses was not measured.
             let parenthesized = matches!(node, ast::Expr::Paren(_));
+            // A `_BIT` variable is always a copy (measured, `v21_b_passing`): its place type is `_BIT`, not the
+            // storage type its value has. In parentheses an argument is a copy, whatever its signedness.
+            if !parenthesized && let ExprKind::Load(place) = &e.kind {
+                let ty = self.prog.place_ty(place);
+                if !matches!(ty, Ty::Bit { .. })
+                    && ty.is_int()
+                    && ty.int_bits() == pty.int_bits()
+                    && ty.is_unsigned() != pty.is_unsigned()
+                {
+                    // Measured: passed by reference across signedness (`v21_b_passing`); task 8.2.
+                    return Err(self.unsupported(e.span, "an argument of the other signedness for this parameter"));
+                }
+            }
             if let ExprKind::Load(place) = &e.kind
-                && e.ty == pty
+                && self.prog.place_ty(place) == pty
             {
                 match (parenthesized, place) {
                     (false, _) => {
@@ -363,7 +376,8 @@ impl Checker<'_> {
         if suffix.is_some_and(|s| s != ty) || matches!(ty, Ty::Bit { .. }) {
             return Err(self.in_use(t));
         }
-        self.gate(ty, span)?;
+        // The new numeric types as FUNCTION results: task 8.2 of `m2-numeric-types`.
+        self.later(ty, span, "a FUNCTION result of type")?;
         let nodes = self.present_args(args)?;
         let args = self.args(p, t, &nodes, span)?;
         self.names.push((SymbolKind::Proc(p), t.span));

@@ -122,10 +122,16 @@ pub(crate) fn line_name(name: &str) -> String {
 }
 
 /// An integer constant of a type; negative ones in parentheses, the minimum values spelled without overflow.
+#[expect(
+    clippy::cast_sign_loss,
+    reason = "an `_UNSIGNED _INTEGER64` constant is kept as its 64 bits"
+)]
 pub(crate) fn int_const(i: i64, ty: Ty) -> String {
     let text = match (ty, i) {
-        (Ty::I64, i64::MIN) => "(-9223372036854775807ll-1)".to_string(),
-        (Ty::I64, _) => format!("{i}ll"),
+        (Ty::U64 | Ty::UOff, _) => return format!("{}ull", i as u64),
+        (Ty::U32, _) => return format!("{i}u"),
+        (Ty::I64 | Ty::Off, i64::MIN) => "(-9223372036854775807ll-1)".to_string(),
+        (Ty::I64 | Ty::Off, _) => format!("{i}ll"),
         (_, -2147483648) => "(-2147483647-1)".to_string(),
         _ => i.to_string(),
     };

@@ -1,0 +1,48 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 8: Assign D:F64
+  Convert Nearest : F64
+    Int 300 : I32 (qb U8)
+line 8: Assign D:F64
+  Convert Nearest : F64
+    Int -1 : U64
+line 8: Assign D:F64
+  Convert Nearest : F64
+    Int 9 : I32 (qb Bit3)
+line 8: Assign D:F64
+  Convert Nearest : F64
+    Int -1 : U64 (qb UBit40)
+line 8: Assign D:F64
+  Convert Nearest : F64
+    Int -9223372036854775808 : U64 (qb I64)
+line 9: Print newline
+  Num
+    Int 44 : U8
+  Num
+    Int 300 : I64
+  Num
+    Int -1 : U64
+  Num
+    Int -1 : I64
+line 10: Print newline
+  Num
+    Int 9 : I64
+  Num
+    Int 9 : I64
+  Num
+    Int 0 : I32
+  Num
+    Int -1 : I32
+line 11: Print newline
+  Num
+    Int -9223372036854775808 : I64
+  Num
+    Int -9223372036854775808 : I64
+  Num
+    Int -1 : I32
+  Num
+    Int 4294967296 : I64
+line 12: System

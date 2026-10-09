@@ -151,13 +151,10 @@ impl Checker<'_> {
             return Err(self.unsupported(t.span, format!("a string constant with a number suffix: `{shown}`")));
         }
         let to = suffix.unwrap_or(c.ty);
-        self.gate(c.ty, t.span)?;
-        self.gate(to, t.span)?;
         if let (true, true, &Value::Int(v)) = (to == c.ty, c.ty.is_int() && c.ty != Ty::I64, &c.value) {
             let NumLit::Int { value, ty, qb } = literal::constant_literal(v, c.ty) else {
                 unreachable!("an integer constant is an integer literal");
             };
-            self.gate(ty, t.span)?;
             self.names.push((SymbolKind::Const(id), t.span));
             return Ok(Expr {
                 span,
@@ -165,6 +162,12 @@ impl Checker<'_> {
                 qb,
                 kind: ExprKind::Int(value),
             });
+        }
+        if to != c.ty {
+            // A constant used with a suffix of a new numeric type, or one of such a type with another suffix: not
+            // measured (task 8.3 of `m2-numeric-types`).
+            self.later(c.ty, t.span, "another suffix on a constant of type")?;
+            self.later(to, t.span, "a constant used as type")?;
         }
         let (ty, value) = self.problem(consteval::convert(c.ty, c.value, to), t.span)?;
         self.names.push((SymbolKind::Const(id), t.span));

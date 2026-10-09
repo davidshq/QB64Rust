@@ -78,3 +78,14 @@ compiler (no `STRING$(n, "")`, no DOUBLE `ON n` beyond LONG).
 | `s27_math_builtins.bas` | `ABS`, `INT`, `FIX` typed by the argument; `SGN`; `SQR`, `SIN`, `COS`, `TAN`, `ATN`, `LOG`, `EXP` for each argument type (printed digits), in arithmetic; `CINT`, `CLNG`, `CSNG` (not narrowed), `CDBL`, `_ROUND` with halves; `_PI` bare and with an argument; `_ATAN2`, `_HYPOT`; every measured error (5 and 6) with the placeholder it leaves |
 | `s28_select_case.bas` | `SELECT CASE` with a FUNCTION selector (evaluated once), a plain variable (read at each test), an element and a member (copied); items converted to the selector's type; an `_INTEGER64` and an expression selector; string selectors with `TO`, `IS`, lists; `IS` with each operator; `EVERYCASE` (also in a SUB); errors in the selector and in items of each kind; a bad index in the selector; `GOTO` out of and into a `CASE` body, `EXIT SUB` and `EXIT FOR` from a `CASE`; an empty `SELECT`; a recursive FUNCTION across a `SELECT` (Q-002) |
 | `s29_on_goto.bas` | `ON n GOTO` for n = 0, 1, the count, count + 1, 255, 256, 258 (Q-001), 65537, negative values (error 5), floats (half to even), an `_INTEGER64` beyond LONG, an INTEGER, a DOUBLE; an error in `n` (the jump uses the placeholder); `ON n GOSUB` returning, out of range, negative, in a loop and in a SUB |
+
+`s30` and `s31` were written by the OpenSpec change `m2-numeric-types` (2026-10-09, tasks 5.3 and 5.4) to pin the
+new numeric types' declarations, literals and stores (`openspec/specs/language/numeric-semantics` as changed) and the
+operator rules the differential programs corrected (`study/00` §5); recorded the same way. Each `_BIT * n` wider
+than 32 bits is declared first or after a `_BIT * 32` pad, so the old compiler's overlap (`DIVERGENCES.md` D-009)
+hits nothing printed. No `PRINT` comma.
+
+| Program | Covers |
+|---|---|
+| `s30_new_types.bas` | Every `AS` spelling of the new types and `LEN` of each; stores that wrap; every suffix on one name; the numeric-semantics scenarios the old compiler agrees with: unsigned and narrow arithmetic, `_BIT` stores (mask, sign extension, a `_BIT * 64` printed through `int64`), literals held as written and believed the suffix's type (`300~%%`, `-1~&`, `40000%`, `` 9`3 ``, `&HFF%%`, `&H1FF~%%`), stores from floats by target width, the logical operators, `\` and `MOD`, `_OFFSET` division |
+| `s31_unsigned_ops.bas` | C's conversions across signedness (below 32 bits, at 32, beside 64) in arithmetic and comparisons; the unsigned belief needing a 64-bit operand; unary operators' belief; `EQV`/`IMP` complementing the left operand in its own width; `NOT` of narrow and wide unsigned values; `_ANDALSO`/`_ORELSE` of unsigned 64-bit values; `_BIT` values in arithmetic (storage type, belief by width); `ll`/`ull` `_BIT` literals; `_OFFSET` with floats (`qbr` around `*` and `/`, rounded operands elsewhere, `o < 7.4` false) and the `_OFFSET` belief |

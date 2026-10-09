@@ -4,8 +4,8 @@
 
 use super::{Checker, R, Skips, first_token_span};
 use crate::{
-    BinOp, Branch, Case, CaseItem, Expr, ExprKind, GATED_TYPE_UNREACHABLE, LoopKind, LoopTest, NEW_TYPE_UNREACHABLE,
-    Place, Stmt, StmtKind, SymbolKind, TestAt, Ty, VarId,
+    BIT_VALUE_UNREACHABLE, BinOp, Branch, Case, CaseItem, Expr, ExprKind, LATER_TYPE_UNREACHABLE, LoopKind, LoopTest,
+    NEW_TYPE_UNREACHABLE, Place, Stmt, StmtKind, SymbolKind, TestAt, Ty, VarId,
 };
 use qb64rust_base::show_bytes;
 use qb64rust_syntax::SyntaxKind;
@@ -226,7 +226,7 @@ impl Checker<'_> {
             ));
         }
         // The new numeric types as `FOR` variables: task 8.3 of `m2-numeric-types`.
-        self.gate(self.prog.var(var).ty, t.span)?;
+        self.later(self.prog.var(var).ty, t.span, "a `FOR` variable of type")?;
         Ok(var)
     }
 
@@ -358,6 +358,15 @@ impl Checker<'_> {
         let every = h.kind_word().is_some_and(|w| self.word(w) == "EVERYCASE");
         let node = self.need(h.selector(), span)?;
         let e = self.expr(node)?;
+        // Selectors of the new numeric types: task 8.3 of `m2-numeric-types`.
+        let place_ty = if let ExprKind::Load(p) = &e.kind {
+            self.prog.place_ty(p)
+        } else {
+            e.qb
+        };
+        for t in [place_ty, e.qb, e.ty] {
+            self.later(t, e.span, "a `SELECT CASE` selector of type")?;
+        }
         if matches!(e.kind, ExprKind::Load(Place::Var(_))) {
             return Ok((e, false, every));
         }
@@ -367,7 +376,8 @@ impl Checker<'_> {
             t @ (Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => t,
             Ty::User(_) => unreachable!("a whole `TYPE` value is no value"),
             crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
-            crate::gated_types!() => unreachable!("{GATED_TYPE_UNREACHABLE}"),
+            crate::later_types!() => unreachable!("{LATER_TYPE_UNREACHABLE}"),
+            crate::Ty::Bit { .. } => unreachable!("{BIT_VALUE_UNREACHABLE}"),
         };
         Ok((self.convert_exact(e, copy), true, every))
     }
@@ -418,7 +428,8 @@ impl Checker<'_> {
         } else {
             e
         };
-        let common = super::ops::wider(super::ops::promote(s), super::ops::promote(e.ty));
+        // C++ compares the item as written (measured, `v21_d_select`).
+        let common = super::ops::held(s, e.ty);
         Ok(self.convert_exact(e, common))
     }
 
@@ -473,7 +484,8 @@ fn for_temp(ty: Ty) -> Ty {
         Ty::Str => Ty::Str,
         Ty::User(_) => unreachable!("a `TYPE` variable as a `FOR` variable is rejected first"),
         crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
-        crate::gated_types!() => unreachable!("{GATED_TYPE_UNREACHABLE}"),
+        crate::later_types!() => unreachable!("{LATER_TYPE_UNREACHABLE}"),
+        crate::Ty::Bit { .. } => unreachable!("{BIT_VALUE_UNREACHABLE}"),
     }
 }
 

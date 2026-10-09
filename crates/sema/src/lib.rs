@@ -28,9 +28,8 @@ use qb64rust_builtins::BuiltinId;
 /// A type (design D3 of `m2-numeric-types`). It has no order: what a rule needs to know about a type it asks
 /// through [`Ty::int_bits`], [`Ty::is_signed`], [`Ty::is_unsigned`], [`Ty::float_rank`] and [`Ty::storage`].
 ///
-/// The new numeric types (`I8`, `U8`, `U16`, `U32`, `U64`, `Off`, `UOff`, `Bit`) are declared, but their values are
-/// "not supported yet" ([`Ty::is_gated`]); `FixedStr` is produced nowhere yet. A `match` on a value's type lists
-/// them and says why they cannot reach it ([`gated_types`], [`unproduced_types`]).
+/// `Bit` is the type of a place only: its values are held in its storage type and believed the place's `_BIT`
+/// type ([`Ty::held_value`]); `FixedStr` is produced nowhere yet ([`unproduced_types`]).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Ty {
     /// `_BYTE`.
@@ -191,11 +190,48 @@ impl Ty {
         }
     }
 
-    /// A numeric type of `m2-numeric-types` whose values the checker does not let through yet (its gate, task group
-    /// 4): a variable of it is declared, sized by `LEN` and emitted, but loading, storing, computing with or
-    /// printing one is "not supported yet" until the typing rules of groups 5 and 6 exist.
-    pub fn is_gated(self) -> bool {
-        matches!(self, crate::gated_types!())
+    /// The type an expression of a place of this type has: a `_BIT * n` value is held in its [`Ty::storage`]
+    /// (`study\02` §1.7: the read is a plain dereference), every other type is itself. It is believed the place's
+    /// type: the old compiler's markup sees a `_BIT * n` value's width and signedness (measured, the differential
+    /// `ops` programs: `UBIT7 + UINT64` is believed `_UNSIGNED _INTEGER64`), only `PRINT` reads it as `int64`
+    /// ([`Ty::printed`]).
+    pub fn held_value(self) -> Ty {
+        self.storage()
+    }
+
+    /// The type a `PRINT` or `STR$` converts a value believed this type to: `_INTEGER64` for any `_BIT * n` (measured:
+    /// an `_UNSIGNED _BIT * 64` holding 2^64-1 prints -1; a `_BIT` literal is never narrowed, `` 9`3 `` prints 9),
+    /// every other type itself.
+    pub fn printed(self) -> Ty {
+        match self {
+            Ty::Bit { .. } => Ty::I64,
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str
+            | Ty::FixedStr(_)
+            | Ty::User(_) => self,
+        }
+    }
+
+    /// One of the types `m2-numeric-types` added (not `_BIT`, whose values have other types, [`Ty::held_value`]).
+    pub fn is_new_numeric(self) -> bool {
+        match self {
+            Ty::I8 | Ty::U8 | Ty::U16 | Ty::U32 | Ty::U64 | Ty::Off | Ty::UOff | Ty::Bit { .. } => true,
+            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => {
+                false
+            }
+        }
     }
 
     /// The QB type name (`INTEGER`, `_FLOAT`...); `TYPE` for a user type, whose name is [`Program::type_name`]'s.
@@ -236,17 +272,19 @@ macro_rules! unproduced_types {
     };
 }
 
-/// The reason in an `unreachable!` arm for a type of [`gated_types`].
-pub const GATED_TYPE_UNREACHABLE: &str =
-    "a value of the new numeric types is \"not supported yet\" (the checker's gate, `Ty::is_gated`)";
+/// The reason in an `unreachable!` arm for `_BIT` where a value's type is matched: a `_BIT` value is held in its
+/// storage type ([`Ty::held_value`]); `_BIT` is the type of a place only.
+pub const BIT_VALUE_UNREACHABLE: &str = "a `_BIT` value is held in its storage type (`Ty::held_value`)";
 
-/// A pattern of the new numeric types (design D3 of `m2-numeric-types`): declared since task group 4, but no value of
-/// them gets past the checker yet ([`Ty::is_gated`]). A `match` on a value's type has the arm `gated_types!() =>
-/// unreachable!("{GATED_TYPE_UNREACHABLE}")`; one on a declaration's type (sizes, C types, names) handles them. A
-/// variant leaves the pattern when the typing rules for its values exist (groups 5 and 6), so every such `match`
-/// must then decide what it does with that type.
+/// The reason in an `unreachable!` arm for a type of [`later_types`].
+pub const LATER_TYPE_UNREACHABLE: &str =
+    "a value of the new integer types does not reach this use yet (\"not supported yet\", `m2-numeric-types` group 8)";
+
+/// A pattern of the integer types `m2-numeric-types` added, for the arm `later_types!() =>
+/// unreachable!("{LATER_TYPE_UNREACHABLE}")` of a `match` on a value's type in a use that task group 8 brings
+/// (`FOR`, `SELECT CASE`, the special-cased built-ins): the checker stops such a value before it gets there.
 #[macro_export]
-macro_rules! gated_types {
+macro_rules! later_types {
     () => {
         $crate::Ty::I8
             | $crate::Ty::U8
@@ -255,8 +293,25 @@ macro_rules! gated_types {
             | $crate::Ty::U64
             | $crate::Ty::Off
             | $crate::Ty::UOff
-            | $crate::Ty::Bit { .. }
     };
+}
+
+/// The kind of conversion of a numeric value from `from` to `to` (design D5 of `m2-numeric-types`): `Widen` where
+/// every value of `from` is one of `to` (an integer to a wider one that keeps its sign, a float to a wider float),
+/// `Truncate` from an integer to any other integer (the low bits, read with the target's signedness), `RoundEven` from
+/// a float to an integer, `Nearest` from an integer to a float or a float to a narrower one. `_BIT` types convert as
+/// their storage.
+pub fn conversion(from: Ty, to: Ty) -> ConvKind {
+    let (from, to) = (from.storage(), to.storage());
+    match (from.int_bits(), to.int_bits()) {
+        // Wider and of the same signedness, or unsigned into a wider signed type.
+        (Some(f), Some(t)) if t > f && (from.is_unsigned() || !to.is_unsigned()) => ConvKind::Widen,
+        (Some(_), Some(_)) => ConvKind::Truncate,
+        (None, Some(_)) => ConvKind::RoundEven,
+        (Some(_), None) => ConvKind::Nearest,
+        (None, None) if to.is_wider_than(from) => ConvKind::Widen,
+        (None, None) => ConvKind::Nearest,
+    }
 }
 
 /// The size of a value of a numeric or user type in memory: what `LEN` of a place gives and what the layout of a

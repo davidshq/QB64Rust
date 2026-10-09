@@ -3,7 +3,7 @@
 use crate::Emitter;
 use crate::decl::{dim_slot, is_qbs};
 use crate::names::{c_type, proc_name};
-use qb64rust_ir::{Arg, Expr, Facts, LabelId, OnError, Op, Place, PrintItem, Resume, When};
+use qb64rust_ir::{Arg, Expr, Facts, LabelId, OnError, Op, Place, PrintItem, Resume, Ty, When};
 use std::fmt::Write as _;
 
 impl Emitter<'_> {
@@ -162,6 +162,8 @@ impl Emitter<'_> {
                 let v = self.value(value);
                 if is_qbs(value.ty) {
                     out.push(format!("qbs_set({},{v});", self.name(*id)));
+                } else if let Ty::Bit { width, signed } = self.p.var(*id).ty {
+                    out.push(bit_store(&self.scalar(*id), &v, width, signed));
                 } else {
                     out.push(format!("{}={v};", self.scalar(*id)));
                 }
@@ -224,5 +226,17 @@ impl Emitter<'_> {
             c_type(ty)
         ));
         out.push("}".into());
+    }
+}
+
+/// A store into a `_BIT * width` scalar `r` (design D5; `qb64pe.bas` 27054–27077): an unsigned one keeps the low
+/// `width` bits of the value, a signed one is assigned and then sign-extended from bit `width - 1`.
+fn bit_store(r: &str, v: &str, width: u8, signed: bool) -> String {
+    let mask = if width == 64 { u64::MAX } else { (1u64 << width) - 1 };
+    if signed {
+        let sign = 1u64 << (width - 1);
+        format!("if (({r}={v})&0x{sign:X}ull){{{r}|=~0x{mask:X}ull;}}else{{{r}&=0x{mask:X}ull;}}")
+    } else {
+        format!("{r}=({v})&0x{mask:X}ull;")
     }
 }

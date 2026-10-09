@@ -462,7 +462,8 @@ pub fn convert(from: Ty, v: Value, to: Ty) -> R<(Ty, Value)> {
     let v = match (v, to) {
         (Value::Str(_), _) | (_, Ty::Str | Ty::User(_)) => return error("type mismatch"),
         (_, crate::unproduced_types!()) => unreachable!("{}", crate::NEW_TYPE_UNREACHABLE),
-        (_, crate::gated_types!()) => unreachable!("{}", crate::GATED_TYPE_UNREACHABLE),
+        (_, crate::later_types!()) => unreachable!("{}", crate::LATER_TYPE_UNREACHABLE),
+        (_, crate::Ty::Bit { .. }) => unreachable!("{}", crate::BIT_VALUE_UNREACHABLE),
         (v, Ty::I16 | Ty::I32 | Ty::I64) => {
             let i = to_int(&v)?;
             let (lo, hi) = crate::literal::range(to);

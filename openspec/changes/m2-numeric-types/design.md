@@ -182,6 +182,21 @@ A store into a `_BIT` place gets the mask or the sign extension in the emitter (
 `v = e & mask`; signed: assign, then extend from bit n-1), decided by the place's type; the IR's store is unchanged.
 `_BIT * n` scalars get storage of their `storage()` size, so n > 32 takes 8 bytes (D-009).
 
+*As built (group 5, 2026-10-09):* `held` is `check\ops.rs` `held` (C's conversions on the held types, `_OFFSET` as
+`int64`, `_UNSIGNED _OFFSET` as `uint64`), the markup `int_believed`, the `_OFFSET` arm `offset_typing` (with
+`Typing::round_result` for the `qbr` around `*` with a float and `/`); `conversion(from, to)` is in `sema`'s
+`lib.rs`, used by the checker and the IR's lowering. Corrected by the differential programs (task 5.3): a `_BIT`
+value is held in its storage type and **believed its own `_BIT` type** (not `_INTEGER64`: the markup sees its width
+and signedness; `Ty::printed` gives `_INTEGER64` for `PRINT`/`STR$` only); the markup is unsigned when both
+operands are unsigned and one is 64 bits wide; `EQV`/`IMP` convert their left operand only to its own promoted type
+(`left_operand`), because the old compiler complements it before C's conversions; literals whose suffix's type is
+wider than 32 bits are `ll`/`ull` (D7 extended to `` `n `` and `` ~`n ``). The emitter writes the `_BIT` store mask
+already in group 5 (`bit_store`), because every differential program stores into its `_BIT` slots; `_BIT` members,
+parameters, arrays and `s32_bit` stay with group 6. What group 8 brings stays "not supported yet" behind
+`Checker::later` and `later_types!()`: `FOR` variables, `SELECT CASE` selectors, FUNCTION results, constants used with
+another suffix, arguments of the special-cased built-ins (all but `STR$` and LONG/DOUBLE slots), and a variable passed
+to a parameter of the other signedness.
+
 ### D6. Fixed-length strings through libqb's fixed descriptors
 
 A `FixedStr(n)` variable is `n` bytes plus a `qbs` made by `qbs_new_fixed(bytes, n, 0)`, NUL-filled at allocation, as

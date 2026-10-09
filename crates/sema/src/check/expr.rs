@@ -1,7 +1,7 @@
 //! Expressions, and the conversions for storing a value.
 
 use super::builtins::supported_builtin;
-use super::ops::{Op, TypeError, Typed, Typing, fold_binary, fold_unary, op_typing, wrap};
+use super::ops::{Op, TypeError, Typed, Typing, fold_binary, fold_unary, left_operand, op_typing, wrap};
 use super::{Checker, Failed, R};
 use crate::builtins::slots;
 use crate::literal::{self, LitError, NumLit};
@@ -106,16 +106,13 @@ impl Checker<'_> {
     pub(super) fn number(&mut self, t: Tok, negative: bool) -> R<Expr> {
         let span = t.span;
         match literal::number(self.text(span), negative) {
-            Ok(NumLit::Int { value, ty, qb }) => {
-                self.gate(qb, span)?;
-                self.gate(ty, span)?;
-                Ok(Expr {
-                    span,
-                    ty,
-                    qb,
-                    kind: ExprKind::Int(value),
-                })
-            }
+            // Held as C++ types its text, believed the suffix's type (design D7).
+            Ok(NumLit::Int { value, ty, qb }) => Ok(Expr {
+                span,
+                ty,
+                qb,
+                kind: ExprKind::Int(value),
+            }),
             Ok(NumLit::Float { text, ty }) => {
                 // SINGLE literals are C `double` constants in the old compiler (`study\02` §1.4).
                 let held = if ty == Ty::F32 { Ty::F64 } else { ty };
@@ -163,7 +160,7 @@ impl Checker<'_> {
             };
             return Err(self.error(span, format!("{shown} needs a number")));
         };
-        let e = self.operand(e, &typing);
+        let e = self.operand(e, &typing, typing.operands);
         if let (ExprKind::Int(v), true) = (&e.kind, self.fold) {
             return Ok(Expr {
                 span,
@@ -224,11 +221,14 @@ impl Checker<'_> {
                 return Err(self.error(op_tok.span, "this operator cannot be used on strings"));
             }
             Err(TypeError::Mixed) => return Err(self.error(span, "cannot mix strings and numbers")),
+            // Measured: "Operator '^' cannot be used with an _OFFSET" (`verification\v21_x28_offset_power`).
+            Err(TypeError::OffsetPow) => return Err(self.error(span, "`^` cannot be used with an `_OFFSET`")),
         };
-        let lhs = self.operand(lhs, &typing);
-        let rhs = self.operand(rhs, &typing);
+        let left = left_operand(op, &typing, lhs.ty);
+        let lhs = self.operand(lhs, &typing, left);
+        let rhs = self.operand(rhs, &typing, typing.operands);
         if let (ExprKind::Int(a), ExprKind::Int(b), true) = (&lhs.kind, &rhs.kind, self.fold)
-            && let Some(v) = fold_binary(op, *a, *b, typing.ty)
+            && let Some(v) = fold_binary(op, (*a, left), (*b, typing.operands), typing.ty)
         {
             return Ok(Expr {
                 span,
@@ -237,7 +237,7 @@ impl Checker<'_> {
                 kind: ExprKind::Int(v),
             });
         }
-        Ok(Expr {
+        let e = Expr {
             span,
             ty: typing.ty,
             qb: typing.qb,
@@ -246,7 +246,14 @@ impl Checker<'_> {
                 lhs: Box::new(lhs),
                 rhs: Box::new(rhs),
             },
-        })
+        };
+        if typing.round_result {
+            // `qbr(…)` around the `long double` result of an `_OFFSET` `*` or `/`, still believed `_OFFSET`.
+            let mut e = conv(e, Ty::I64, ConvKind::RoundEven);
+            e.qb = typing.qb;
+            return Ok(e);
+        }
+        Ok(e)
     }
 
     /// The binary operator a token stands for; `None` for a token that is not one.
@@ -296,13 +303,13 @@ impl Checker<'_> {
 
     /// Prepares an operand as `typing` says: a float rounded half to even to `_INTEGER64` first where the operator
     /// takes integers, then converted exactly to the computation type.
-    fn operand(&self, e: Expr, typing: &Typing) -> Expr {
+    fn operand(&self, e: Expr, typing: &Typing, to: Ty) -> Expr {
         let e = if typing.round && e.ty.is_float() {
             conv(e, Ty::I64, ConvKind::RoundEven)
         } else {
             e
         };
-        self.convert_exact(e, typing.operands)
+        self.convert_exact(e, to)
     }
 
     /// The procedure a name in an expression calls. A SUB named like a built-in function (`SUB loc`, allowed,
@@ -342,7 +349,8 @@ impl Checker<'_> {
         }
     }
 
-    /// Converts a value for storing into a variable or argument of type `to` (spec: storing into an integer).
+    /// Converts a value for storing into a variable or argument of type `to` (spec: storing into an integer). A
+    /// `_BIT * n` target takes the value in its storage type; the emitter masks or sign-extends the store (design D5).
     pub(super) fn store(&mut self, e: Expr, to: Ty) -> R<Expr> {
         match (e.ty == Ty::Str, to == Ty::Str) {
             (true, true) => return Ok(e),
@@ -350,10 +358,11 @@ impl Checker<'_> {
             (true, false) => return Err(self.error(e.span, "cannot store a string in a number variable")),
             (false, true) => return Err(self.error(e.span, "cannot store a number in a string variable")),
         }
-        self.gate(to, e.span)?;
+        let to = to.held_value();
         if e.ty.is_float() && to.is_int() {
-            let e = if to == Ty::I16 {
-                // INTEGER targets round the SINGLE value ("**32 rounding fix", `study\02` §1.5).
+            // Targets of 16 bits or fewer round the SINGLE value ("**32 rounding fix", `study\02` §1.5); every wider
+            // one, and every `_BIT * n`, `qbr` from `_FLOAT` (measured, `v21_b_float_stores`, `v21_b_bit_stores`).
+            let e = if to.int_bits().is_some_and(|b| b <= 16) {
                 let single = self.convert_exact(e, Ty::F32);
                 conv(single, Ty::I32, ConvKind::RoundEven)
             } else {
@@ -380,17 +389,7 @@ impl Checker<'_> {
                 kind: ExprKind::Int(v),
             };
         }
-        let how = if e.ty.is_int() && to.is_int() {
-            if to.is_wider_than(e.ty) {
-                ConvKind::Widen
-            } else {
-                ConvKind::Truncate
-            }
-        } else if e.ty.is_float() && to.is_wider_than(e.ty) {
-            ConvKind::Widen
-        } else {
-            ConvKind::Nearest
-        };
+        let how = crate::conversion(e.ty, to);
         conv(e, to, how)
     }
 }

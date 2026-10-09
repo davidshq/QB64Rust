@@ -677,6 +677,21 @@ Measured for the new numeric types and fixed-length strings (2026-10-08, `m2-num
   six old types): `(-2147483648&) * (-32768%)` is 70368744177664 and `(-2147483648&) + (-2147483648&)`
   -4294967296, because `2147483648` is a 64-bit C++ literal; `qb64rust` wrapped both to 32 bits until task group 4
   of `m2-numeric-types` (2026-10-09), which holds such literals as design D7 says: all 48 `old6` programs pass since.
+- **The operator rules, corrected against the differential programs (task 5.3, 2026-10-09):** all 59 programs pass
+  (and the 40 `fold` ones with folding off). What `study\02` §1.4 and the design read differently: **the markup
+  believes `_UNSIGNED _INTEGER64` when both operands are unsigned and the wider one is 64 bits** (`ub~%% * uq~&&`
+  is believed unsigned; `study\02` said "both unsigned 64-bit"), a `_BIT * n` counted as n bits; **a `_BIT` value is
+  believed its own type** (width and signedness) in that markup and only printed through `int64` (design D3 had
+  "believed `_INTEGER64`"): `UBIT7 + UINT64` prints unsigned. **A unary operator's markup sees its operand on both
+  sides** (`qb64pe.bas` 19888: `-uq~&&` and `NOT uq~&&` are believed unsigned, `NOT ub~%%` `_INTEGER64`). **`EQV` and
+  `IMP` are `~a^b` and `~a|b`**: `~` complements the left operand in its own promoted width before C converts it
+  (`u~& EQV q&&` with all ones and 0 is 0); `qb64rust` wrote `~(a^b)`. **A literal whose suffix's type is wider than
+  32 bits gets `ll` or `ull`** (`qb64pe.bas` 19730), so `` 0~`40 `` is a `uint64` (`` 0~`40 > -1 `` is false) and a
+  `_BIT` literal is believed its `_BIT` type (printed through `int64`, never narrowed). `_ANDALSO`/`_ORELSE` are
+  believed like the other integer operators (two unsigned 64-bit operands: true prints 18446744073709551615). With an
+  `_OFFSET` operand (`qb64pe.bas` 19950–19988): `*` with a float and `/` compute in `long double` and round by `qbr`;
+  every other operator, comparisons included, rounds a float operand first (`o < 7.4` with `o = 7` is false). The
+  accidents among these are in `SOMEDAY.md` "QB64pe behaviours to review"; `s31_unsigned_ops` shows each.
 
 ## 6. Bug-compatibility choices (all decided)
 

@@ -3,8 +3,28 @@
 # --corpus-root tests/differential --list tests/differential/pass.list --qb64 target/release/qb64rust.exe
 # The full programs declare all 17 numeric types, so none compiles before the new types do. The old6 group (the six
 # old types only, DECISIONS.md 2026-10-08): 27 of 48 on 2026-10-08; all 48 since 2026-10-09 (its fold and print
-# programs with design D7, group 4). Tier 1 requires a program here as soon as it compiles cleanly ("clean programs
+# programs with design D7, group 4). The 59 full programs: all since 2026-10-09 (task group 5). Tier 1 requires a program here as soon as it compiles cleanly ("clean programs
 # are listed").
+fold/add
+fold/and
+fold/andalso
+fold/div
+fold/eq
+fold/eqv
+fold/ge
+fold/gt
+fold/idiv
+fold/imp
+fold/le
+fold/lt
+fold/mod
+fold/mul
+fold/ne
+fold/or
+fold/orelse
+fold/pow
+fold/sub
+fold/xor
 old6/fold_add
 old6/fold_and
 old6/fold_andalso
@@ -53,3 +73,42 @@ old6/store_integer
 old6/store_long
 old6/store_single
 old6/unary_unary
+ops/add
+ops/and
+ops/andalso
+ops/div
+ops/eq
+ops/eqv
+ops/ge
+ops/gt
+ops/idiv
+ops/imp
+ops/le
+ops/lt
+ops/mod
+ops/mul
+ops/ne
+ops/or
+ops/orelse
+ops/pow
+ops/sub
+ops/xor
+print/print
+store/bit
+store/bit24
+store/byte
+store/double
+store/float
+store/int64
+store/integer
+store/long
+store/offset
+store/single
+store/ubit40
+store/ubit7
+store/ubyte
+store/uint64
+store/uinteger
+store/ulong
+store/uoffset
+unary/unary

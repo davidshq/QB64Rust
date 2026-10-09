@@ -4,7 +4,7 @@ Updated 2026-10-09 (session 30). Session-by-session history is in `git log`; mea
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Step 8's bug-compatibility decisions are taken (2026-10-08); OpenSpec change `m2-numeric-types` groups 1–4 are done (2026-10-09); next: its group 5.**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Step 8's bug-compatibility decisions are taken (2026-10-08); OpenSpec change `m2-numeric-types` groups 1–5 are done (2026-10-09); next: its group 6 (`_BIT`).**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -269,7 +269,16 @@ is its `tasks.md`, and `git log`.
    the checker (`Ty::is_gated`) until groups 5 and 6 write their rules. Suffixed literals and `CONST`s are held as
    C++ types their digits and believed the suffix's type (design D7), which made the 21 remaining `old6` programs
    and upstream `const/expression` pass; `STRING * n` and `t$n` parameters (design D6). Tier 2 192, 43, 48. Record
-   in `tasks.md` 4.1–4.3. **Next: group 5, typing, conversions and emission.**
+   in `tasks.md` 4.1–4.3.
+   **Group 5 (typing, conversions and emission) done 2026-10-09 (session 31):** values of every new numeric type
+   compute as the old compiler's C++ does (`held`, the markup, the `_OFFSET` rules, `conversion`, the `_BIT` store
+   mask), corrected against the differential programs: **all 59 full differential programs pass** (107 with `old6`;
+   the `fold` ones with folding off too). Five corrections to `study\02` and the design (a `_BIT` believed its own
+   type, the unsigned markup, unary markup, `EQV`/`IMP` as `~a^b`, `ll`/`ull` for wide `_BIT` literals; `study\00`
+   §5), four accidents to `SOMEDAY.md`. Slice programs `s30_new_types`, `s31_unsigned_ops`. Uses that group 8
+   brings stay "not supported yet" (`Checker::later`). Tier 2 194, 43, 107. Record in `tasks.md` 5.1–5.4.
+   **Next: group 6, `_BIT`** (members, parameters, arrays as measured, the D-009 CLI test, `s32_bit`; the store
+   mask is in already).
 9. Built-in statements and functions by demand (`study\27` §3): a built-in statement operation in the IR, then
    sequential file I/O, `DATA`/`READ`/`RESTORE`, `SWAP`, `RANDOMIZE`/`RND`/`TIMER`, console `INPUT`/`LINE INPUT`,
    `SHELL`/`COMMAND$`/`ENVIRON$`, each measured first; the remaining plain functions as the corpus, upstream or a

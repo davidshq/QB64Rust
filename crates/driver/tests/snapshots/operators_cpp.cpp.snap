@@ -168,7 +168,7 @@ makefit(tqbs);
 #line 8 "operators_cpp.bas"
 qbs_print(tqbs,0);
 #line 8 "operators_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)((~(*__LONG_L^((int32)(*__INTEGER_I)))))))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(((~(*__LONG_L))^((int32)(*__INTEGER_I))))))),qbs_new_txt(" ")));
 #line 8 "operators_cpp.bas"
 if (is_error_pending()) goto skip2;
 #line 8 "operators_cpp.bas"

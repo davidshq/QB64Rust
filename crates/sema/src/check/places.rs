@@ -163,7 +163,7 @@ impl Checker<'_> {
             Err(self.unsupported(span, "`STRING` members"))
         } else if let Ty::Bit { .. } = ty {
             Err(self.error(span, "a `TYPE` member cannot be a `_BIT`"))
-        } else if ty.is_gated() {
+        } else if ty.is_new_numeric() {
             let name = self.prog.type_name(ty);
             Err(self.unsupported(span, format!("`{name}` members")))
         } else {
@@ -221,7 +221,7 @@ impl Checker<'_> {
             return Err(self.unsupported(name_tok.span, format!("an array with a constant's name: `{shown}`")));
         }
         self.reserved(name_tok, &name, suffix)?;
-        if ty.is_gated() {
+        if ty.is_new_numeric() {
             // Arrays of the new numeric types: task 8.1 of `m2-numeric-types`; a `_BIT` array later still.
             let name = self.prog.type_name(ty);
             return Err(self.unsupported(bounds.node().span(), format!("arrays of `{name}`")));
@@ -497,12 +497,12 @@ impl Checker<'_> {
     }
 
     /// The value of a place. A whole user-type value is no value (measured, "User defined types in expressions are
-    /// invalid"); as an argument it is not supported yet (a `TYPE` parameter is). A value of a new numeric type is
-    /// not supported yet ([`Ty::is_gated`]).
+    /// invalid"); as an argument it is not supported yet (a `TYPE` parameter is). A `_BIT` place's value is held in
+    /// its storage type and believed the place's `_BIT` type ([`Ty::held_value`]).
     pub(super) fn load(&mut self, place: Place, span: Span) -> R<Expr> {
         let ty = self.prog.place_ty(&place);
-        if self.len_place == Some(span) && (matches!(ty, Ty::User(_)) || ty.is_gated()) {
-            // `LEN` of a whole `TYPE` place or of a new numeric type's (`check\builtins.rs`): its size, never a value.
+        if self.len_place == Some(span) && matches!(ty, Ty::User(_)) {
+            // `LEN` of a whole `TYPE` place (`check\builtins.rs`): its size, never a value.
             return Ok(Expr {
                 span,
                 ty,
@@ -510,7 +510,6 @@ impl Checker<'_> {
                 kind: ExprKind::Load(place),
             });
         }
-        self.gate(ty, span)?;
         if let Ty::User(_) = ty {
             let shown = show_bytes(self.text(span));
             if self.whole_type_arg {
@@ -520,7 +519,7 @@ impl Checker<'_> {
         }
         Ok(Expr {
             span,
-            ty,
+            ty: ty.held_value(),
             qb: ty,
             kind: ExprKind::Load(place),
         })
@@ -659,7 +658,12 @@ fn constant(e: &Expr) -> Option<Num> {
                     // Exactly representable bounds only; anything near the 64-bit limits is left to run time.
                     (r.abs() < EXACT).then_some(Num::Int(whole_to_int(r)))
                 }
-                (ConvKind::Nearest, Num::Int(i)) => ((i as f64).abs() < EXACT).then_some(Num::Float(i as f64)),
+                // A negative `i64` of an unsigned type (`_UNSIGNED _INTEGER64`, `_UNSIGNED _OFFSET`, a wide
+                // `_UNSIGNED _BIT`) is a value above 2^63: not exact.
+                (ConvKind::Nearest, Num::Int(i)) => {
+                    let exact = (i as f64).abs() < EXACT && !(from.ty.is_unsigned() && i < 0);
+                    exact.then_some(Num::Float(i as f64))
+                }
                 (ConvKind::Widen, Num::Float(f)) => Some(Num::Float(f)),
                 (ConvKind::Nearest, Num::Float(f)) => whole(f).then_some(Num::Float(f)),
                 (ConvKind::RoundEven, Num::Int(_)) | (ConvKind::Truncate, Num::Float(_)) => None,
@@ -671,7 +675,7 @@ fn constant(e: &Expr) -> Option<Num> {
             (UnOp::Not | UnOp::Negate, Num::Float(_)) => None,
         },
         ExprKind::Binary { op, lhs, rhs } => match (constant(lhs)?, constant(rhs)?) {
-            (Num::Int(a), Num::Int(b)) => super::ops::fold_binary(*op, a, b, e.ty).map(Num::Int),
+            (Num::Int(a), Num::Int(b)) => super::ops::fold_binary(*op, (a, lhs.ty), (b, rhs.ty), e.ty).map(Num::Int),
             (Num::Float(a), Num::Float(b)) if whole(a) && whole(b) => {
                 let r = match op {
                     BinOp::Add => a + b,

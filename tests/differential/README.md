@@ -84,5 +84,6 @@ refuses); the one subset kept here is `old6`.
 `unary`); `old6`'s 20 `fold` programs and `print` stopped at "overflow" for literals beyond INTEGER and LONG
 (`32768%`), which the old compiler accepts. Since 2026-10-09 (design D7, task group 4: a suffixed literal held as
 C++ types its digits, believed the suffix's type) it names all 48 of `old6`; this also fixed the 14 lines of
-`fold_add`, `fold_sub` and `fold_mul` where `-2147483648&` must be held in 64 bits. The full programs still stop at
-the first value of a new type ("not supported yet" until group 5).
+`fold_add`, `fold_sub` and `fold_mul` where `-2147483648&` must be held in 64 bits. Since 2026-10-09 (task group 5:
+the typing rules, conversions and C++ of the new types, corrected against these programs, `study\00` §5) it names
+all 59 full programs too, 107 in all; the 40 `fold` programs also pass with folding off (`QB64RUST_NO_FOLD=1`).

@@ -16,8 +16,8 @@
 //! [`OnError::Skip`] branches.
 
 use crate::{
-    Body, Conv, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId, ProcKind, Program, Resume,
-    Stmt, Storage, Ty, Var, VarId, When,
+    Body, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId, ProcKind, Program, Resume, Stmt,
+    Storage, Ty, Var, VarId, When,
 };
 use qb64rust_base::{Span, to_u32};
 use qb64rust_sema as sema;
@@ -687,11 +687,7 @@ impl Make {
         if v.ty == to {
             return v;
         }
-        let how = match (v.ty.is_int(), to.is_wider_than(v.ty)) {
-            (_, true) => Conv::Widen,
-            (true, false) => Conv::Truncate,
-            (false, false) => Conv::Nearest,
-        };
+        let how = sema::conversion(v.ty, to);
         self.expr(to, ExprKind::Convert { how, from: Box::new(v) })
     }
 }

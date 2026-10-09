@@ -96,17 +96,23 @@ fn int_suffix(s: &[u8]) -> Result<Option<Ty>, LitError> {
 }
 
 /// The type C++ gives a suffixed integer literal as the old compiler emits it: its digits (with the minus of the
-/// value), `ll` added for `&&` and `ull` for `~&&` (design D7). A `~&&` literal is `uint64`; an `&&` one `int64`
-/// unless its digits are beyond `int64` (then `uint64`, as C++ types such a literal); any other `int32` if its
+/// value), `ll` added when the suffix's type is wider than 32 bits and signed, `ull` when unsigned (design D7;
+/// `qb64pe.bas` 19730: `&&`, `~&&`, and `` `n ``, `` ~`n `` with n above 32). An `ull` literal is `uint64`; an `ll` one
+/// `int64` unless its digits are beyond `int64` (then `uint64`, as C++ types such a literal); any other `int32` if its
 /// digits fit, else `int64`, else `uint64`. An INTEGER literal in INTEGER's range is held as INTEGER (C++ widens it
 /// to `int32` in every operation, so the two compute alike).
 fn held_type(value: i128, believed: Ty) -> Ty {
     let magnitude = value.unsigned_abs();
+    let bits = if let Ty::Bit { width, .. } = believed {
+        u32::from(width)
+    } else {
+        believed.int_bits().expect("an integer suffix")
+    };
     if believed == Ty::I16 && i16::try_from(value).is_ok() {
         Ty::I16
-    } else if believed == Ty::U64 {
+    } else if bits > 32 && believed.is_unsigned() {
         Ty::U64
-    } else if magnitude <= i32::MAX as u128 && believed != Ty::I64 {
+    } else if magnitude <= i32::MAX as u128 && bits <= 32 {
         Ty::I32
     } else if magnitude <= i64::MAX as u128 {
         Ty::I64

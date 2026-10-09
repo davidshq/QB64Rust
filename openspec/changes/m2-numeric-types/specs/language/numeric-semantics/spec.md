@@ -9,7 +9,7 @@ suffix SHALL be a variable of its own. As in the old compiler: `_UNSIGNED` befor
 declaration (on a parameter it is an error, `language/procedures`);
 `_UNSIGNED` before a floating-point type, `AS _UNSIGNED` alone, a `_BIT` width of 0, above 64 or not a number
 literal, a suffix and an `AS` clause on one name, and `LEN` of a `_BIT` variable SHALL be compile errors. A
-`_BIT` value SHALL be read as an `_INTEGER64` (an `_UNSIGNED _BIT * 64` above 2^63 prints negative, as in the old
+`_BIT` value SHALL be printed as an `_INTEGER64` (an `_UNSIGNED _BIT * 64` above 2^63 prints negative, as in the old
 compiler). `_MEM` SHALL stay "not supported yet".
 
 #### Scenario: Unsigned byte
@@ -40,7 +40,18 @@ compiler). `_MEM` SHALL stay "not supported yet".
 An operation on integer operands SHALL be computed in the type C++ gives the old compiler's generated expression
 (operands narrower than 32 bits widened to a 32-bit signed integer, then C++'s usual arithmetic conversions on the
 operands' storage types), and its result SHALL be printed as the old compiler believes it: `_INTEGER64` unless both
-operands are `_UNSIGNED _INTEGER64`. Comparisons SHALL compare in that computed type.
+operands are unsigned and one of them is 64 bits wide (a `_BIT * n` counted as n bits), then `_UNSIGNED
+_INTEGER64`; a unary operator sees its operand as both operands (`-u~&&` is believed unsigned). Comparisons SHALL
+compare in that computed type. `EQV` and `IMP` SHALL complement the left operand in its own (widened) type before
+the conversions, as the old compiler's `~a^b` and `~a|b` do (`u~& EQV q&&` zero-extends the complemented 32 bits).
+
+#### Scenario: Unsigned belief needs a 64-bit operand
+- **WHEN** `u~& = 4000000000: v~&& = 1: PRINT u~& * 2; u~& + v~&&; -v~&&` runs
+- **THEN** it prints ` 3705032704  4000000001  18446744073709551615 `
+
+#### Scenario: EQV complements the left operand in its own width
+- **WHEN** `u~& = 4294967295: q&& = 0: PRINT u~& EQV q&&` runs
+- **THEN** it prints ` 0 `
 
 #### Scenario: Narrow operands are widened
 - **WHEN** `b~%% = 255: x~% = 65535: PRINT b~%% + 1; x~% * 2` runs
@@ -100,8 +111,9 @@ value. One exception, as in the old compiler: `-2147483648` SHALL be `_INTEGER64
 A decimal literal with the suffix of an integer type (`%`, `&`, `&&`, `%%`, `~%%`, `~%`, `~&`, `~&&`, and the
 `_BIT` suffixes `` ` ``, `` `n ``, `` ~` ``, `` ~`n ``) SHALL be believed to have the suffix's type, in range or not,
 but SHALL hold its value as written, as the old compiler emits it (its digits, with a unary minus directly before
-it as part of it, `ll` added for `&&` and `ull` for `~&&`), in the type C++ gives that text: a `~&&` literal in an
-unsigned 64-bit integer (`-1~&&` holds 2^64-1); an `&&` literal in a signed 64-bit one (`2147483647&& + 1` is
+it as part of it, `ll` added for a signed type wider than 32 bits, `&&` and `` `n `` with n above 32, and `ull`
+for an unsigned one, `~&&` and `` ~`n `` with n above 32), in the type C++ gives that text: an `ull` literal in an
+unsigned 64-bit integer (`-1~&&` and `` -1~`40 `` hold 2^64-1); an `ll` literal in a signed 64-bit one (`2147483647&& + 1` is
 2147483648, where `2147483647& + 1` wraps to -2147483648); any other in a signed 32-bit one if the value fits,
 else a signed 64-bit one; and beyond the signed 64-bit range in an unsigned 64-bit one. The held value
 SHALL be converted to the believed type only where the old compiler's generated code casts to it: by `PRINT` and
@@ -111,7 +123,7 @@ converted only to that place's own type: `PRINT 300~%%` and `PRINT (300~%%)` pri
 `l& = 300~%%` stores 300, `-1~& < 0` is true and `4294967295~& + 1` is 4294967296. `HEX$`, `OCT$` and `_BIN$`
 SHALL see the held value, with the believed type's width for a negative one (`HEX$(300~%%)` is `12C`,
 `HEX$(-1~%%)` `FF`), except a believed 64-bit type, which keeps `builtin-functions`' rule for a 64-bit argument
-that is not a place, as the old compiler (`HEX$(-1~&&)` is `""`, `HEX$(-2~&&)` `FFFE`). A `_BIT` type is read as `_INTEGER64`, so a `_BIT`-suffixed literal is never converted
+that is not a place, as the old compiler (`HEX$(-1~&&)` is `""`, `HEX$(-2~&&)` `FFFE`). A `_BIT` type is printed as `_INTEGER64`, so a `_BIT`-suffixed literal is never converted
 (`` PRINT 9`3 `` prints 9). (`DECISIONS.md`, 2026-10-08: as QB64pe; `verification\v21_a_literals`,
 `v21_f_literal_uses`.)
 

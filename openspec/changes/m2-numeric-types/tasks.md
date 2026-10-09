@@ -238,21 +238,60 @@ programs it makes pass to `slice.list`, `tests\upstream\pass.list` and `tests\di
 
 ## 5. Typing, conversions and emission (design D4, D5)
 
-- [ ] 5.1 `held` and `believed` in `check\ops.rs` and the `_OFFSET` arm of `op_typing`; comparisons in the held
+- [x] 5.1 `held` and `believed` in `check\ops.rs` and the `_OFFSET` arm of `op_typing`; comparisons in the held
   type. Verify: unit tests for each rule in `ops.rs`; `typed` snapshots for a mixed-signedness example of each
   operator family; `-9223372036854775808&&` compiles again (held `_UNSIGNED _INTEGER64` since 4.2, gated until
   here): `literal_overflow` loses its "not supported yet" line and a `typed` test shows the literal's two types.
-- [ ] 5.2 `conversion(from, to)` for every pair, the rounding helpers by target width, and the emitter's C types and
+  *Done 2026-10-09 (session 31).* `held` (C's conversions on the held types; `_OFFSET` is `int64`), `int_believed`
+  (the markup), `unary_typing`, `offset_typing` (`Typing::round_result` for the `qbr` around `*` with a float and
+  `/`; `^` an error, `v21_x28`), `left_operand` for `EQV`/`IMP` (5.3), `fold_binary` with unsigned operands. **The
+  gate of group 4 is gone:** `Ty::is_gated` and `gated_types!()` are replaced by `Checker::later` and `later_types!()`
+  for the uses group 8 brings (`FOR` variables, `SELECT CASE` selectors, FUNCTION results, a constant used with
+  another suffix, arguments of the special-cased built-ins except `STR$` and LONG/DOUBLE slots, a variable passed to a
+  parameter of the other signedness), each still "not supported yet" (`numeric_gate`, rewritten). A `_BIT` value is
+  held in its storage type (`Ty::held_value`); `_BIT` is the type of places only (`BIT_VALUE_UNREACHABLE`). Unit
+  tests: `held`, `int_believed`, the mixed-signedness typing of every family, the `_OFFSET` arm, unsigned folding.
+  `typed` tests `mixed_signedness` and `unsigned_literals` (the two types of `300~%%`, `-1~&&`, `` 9`3 ``,
+  `` -1~`40 ``, `-9223372036854775808&&`); `literal_overflow` lost its line. All three new tests and
+  `numeric_ops_cpp` give the same output with `qb64pe.exe`.
+- [x] 5.2 `conversion(from, to)` for every pair, the rounding helpers by target width, and the emitter's C types and
   names for the new types (`names.rs`, `decl.rs`, `value.rs`). Verify: `cpp` snapshots of stores and operations
   per type family; the `store` and `print` differential programs pass in tier 2 and join `pass.list`.
-- [ ] 5.3 Iterate until the `ops`, `unary` and `fold` programs pass: each difference is fixed in the rules (5.1,
+  *Done 2026-10-09.* `sema::conversion` (checker and IR lowering); a float store into a target of 16 bits or fewer
+  rounds from SINGLE (`qbr_float_to_long`), every wider one and every `_BIT` by `qbr`; the C types and names were
+  there since group 4; integer constants of `U64` are written `…ull`, of `U32` `…u` (they were written as their
+  signed bits). **The `_BIT` store mask and sign extension** (`stmt.rs` `bit_store`, as `qb64pe.bas` 27054–27077)
+  came here rather than in group 6: every differential program stores into its `_BIT` slots. `cpp` test
+  `numeric_ops_cpp`. All 17 `store` programs and `print` passed at the first run.
+- [x] 5.3 Iterate until the `ops`, `unary` and `fold` programs pass: each difference is fixed in the rules (5.1,
   5.2); an old-compiler accident is reproduced and listed in `SOMEDAY.md` "QB64pe behaviours to review". Record each rule correction against
   `study\02` here and in `study\00` §5. Verify: all `ops`, `unary`, `fold` programs in `pass.list` and passing in
   tier 2; slice program `s31_unsigned_ops` (the corrected cases as readable examples) recorded with `qb64pe.exe`
   and passing; `tests\corpus\slice\SOURCE.md` updated.
-- [ ] 5.4 `s30_new_types` (declarations, suffixes, literals, `LEN`, the numeric-semantics delta's scenarios)
+  *Done 2026-10-09.* First run 30 of 59; then all 59, and all 107 with `old6`; the 40 `fold` programs also with
+  folding off. Corrections (against `study\02` §1.4 and this design; `study\00` §5, spec delta `numeric-semantics`
+  corrected, `openspec validate --strict` passes):
+  - The markup believes `_UNSIGNED _INTEGER64` when **both operands are unsigned and the wider is 64 bits**
+    (`study\02`: "both unsigned 64-bit"), a `_BIT * n` counted as n bits.
+  - **A `_BIT` value and a `_BIT` literal are believed their own `_BIT` type**, not `_INTEGER64` (design D3, D7):
+    `UBIT7 + UINT64` prints unsigned; only `PRINT`/`STR$` read a `_BIT` through `int64` (`Ty::printed`).
+  - **A unary operator's markup sees its operand on both sides** (`-uq~&&`, `NOT uq~&&` believed unsigned).
+  - **`EQV`, `IMP` are `~a^b`, `~a|b`**: the left operand is complemented in its own promoted width before C's
+    conversions (`u~& EQV q&&`); the emitter wrote `~(a^b)`, which changed `operators_cpp` and `operators_logic`.
+  - **A literal believed wider than 32 bits gets `ll`/`ull`** (`qb64pe.bas` 19730), `_BIT` suffixes included:
+    `` 0~`40 `` is `uint64` (design D7 had only `&&` and `~&&`).
+  `SOMEDAY.md` gained four rows (comparisons across signedness, the unsigned belief of `_ANDALSO`/`_ORELSE` and of
+  `-`, `EQV`/`IMP` complementing in the narrow width, an `_OFFSET` rounding a float operand of a comparison) and one
+  corrected (a `_BIT` prints, not reads, as `_INTEGER64`). `s31_unsigned_ops` recorded with `qb64pe.exe` and
+  passing (folding on and off); `SOURCE.md` lists it.
+- [x] 5.4 `s30_new_types` (declarations, suffixes, literals, `LEN`, the numeric-semantics delta's scenarios)
   recorded and passing. Verify: tier 2 slice run; the scenarios of `language/numeric-semantics` that the old
   compiler agrees with are lines of `s30` or `s31`.
+  *Done 2026-10-09.* Every scenario the old compiler agrees with is a line of `s30` (the two added by 5.3 are in
+  `s31`), except `HEX$(-1`5)` of "Bit literal": a new type's argument to `HEX$` is task 8.4. Left out as the old
+  compiler disagrees or refuses: the compile errors, D-005 (`IMP` chain), D-006 (smallest LONG by -1), D-009 (wide
+  `_BIT` overlap; the programs declare a wide `_BIT` first or after a pad). Tier 2 against the reference clone:
+  slice 194 of 194 (192 before, with and without folding), upstream 43 of 43, differential 107 of 107.
 
 ## 6. `_BIT` (design D5)
 

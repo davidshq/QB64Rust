@@ -306,13 +306,13 @@ impl Checker<'_> {
         Failed
     }
 
-    /// The gate of `m2-numeric-types` task group 4 ([`Ty::is_gated`]): a value of a new numeric type, loaded, stored,
-    /// written as a literal or returned, is not supported yet, so no expression of one reaches the typing rules, the
-    /// IR or the emitter before groups 5 and 6 give them their rules.
-    fn gate(&mut self, ty: Ty, span: Span) -> R<()> {
-        if ty.is_gated() {
+    /// The uses of the new numeric types ([`Ty::is_new_numeric`]) that later task groups of `m2-numeric-types` bring
+    /// (`FOR` variables, `SELECT CASE` selectors, FUNCTION results, constants used with another suffix): "not
+    /// supported yet", `what` naming the use (followed by the type's name).
+    fn later(&mut self, ty: Ty, span: Span, what: &str) -> R<()> {
+        if ty.is_new_numeric() {
             let name = self.prog.type_name(ty);
-            return Err(self.unsupported(span, format!("values of type `{name}`")));
+            return Err(self.unsupported(span, format!("{what} `{name}`")));
         }
         Ok(())
     }
@@ -687,7 +687,7 @@ impl Checker<'_> {
                     items.push(if e.ty == Ty::Str {
                         PrintItem::Str(e)
                     } else {
-                        let qb = e.qb;
+                        let qb = e.qb.printed();
                         PrintItem::Num(self.convert_exact(e, qb))
                     });
                     newline = true;

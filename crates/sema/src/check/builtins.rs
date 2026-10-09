@@ -16,8 +16,23 @@ pub(super) fn supported_builtin(name: &str, suffix: Option<Ty>) -> Option<Suppor
         None => lookup(name, false),
         Some(Ty::Str) => lookup(name, true),
         // No built-in is written with a number suffix.
-        Some(Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::User(_)) => None,
-        Some(crate::gated_types!()) => None,
+        Some(
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::Bit { .. }
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::User(_),
+        ) => None,
         Some(crate::unproduced_types!()) => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
@@ -117,6 +132,13 @@ impl Checker<'_> {
             (true, true) => return Ok(e),
             (false, false) => {}
         }
+        // Arguments of the new numeric types (task 8.4 of `m2-numeric-types`): only where the slot converts them, and
+        // to `STR$`, whose any-numeric slot keeps the believed type (`qbs_str` has every width).
+        let converted = matches!(slot, Slot::Long | Slot::Double) || (rule == Rule::Plain && which == "`STR$`");
+        if (e.ty.is_new_numeric() || e.qb.is_new_numeric()) && !converted {
+            let name = self.prog.type_name(if e.qb.is_new_numeric() { e.qb } else { e.ty });
+            return Err(self.unsupported(e.span, format!("a `{name}` value as {which}")));
+        }
         if takes_as_is(rule) {
             return Ok(e);
         }
@@ -125,7 +147,7 @@ impl Checker<'_> {
             Slot::Double => self.convert_exact(e, Ty::F64),
             Slot::Float => e,
             Slot::AnyNumeric => {
-                let qb = e.qb;
+                let qb = e.qb.printed();
                 self.convert_exact(e, qb)
             }
             Slot::Str => unreachable!("handled above"),

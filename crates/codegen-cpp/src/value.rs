@@ -71,7 +71,8 @@ impl Emitter<'_> {
                     BinOp::And => format!("({a}&{b})"),
                     BinOp::Or => format!("({a}|{b})"),
                     BinOp::Xor => format!("({a}^{b})"),
-                    BinOp::Eqv => format!("(~({a}^{b}))"),
+                    // `~a^b`: the left operand is complemented in its own type (`sema`'s `left_operand`).
+                    BinOp::Eqv => format!("((~({a}))^{b})"),
                     BinOp::Imp => format!("((~({a}))|{b})"),
                     BinOp::AndAlso => format!("(-({a}&&{b}))"),
                     BinOp::OrElse => format!("(-({a}||{b}))"),

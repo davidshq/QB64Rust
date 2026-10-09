@@ -1,0 +1,254 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+uint64 *__UBIT40_W=NULL;
+uint8 *__UBYTE_UB=NULL;
+uint16 *__UINTEGER_UI=NULL;
+uint64 *__UINTEGER64_UQ=NULL;
+ptrszint *__OFFSET_O=NULL;
+uint32 *__UBIT7_U7=NULL;
+int32 *__BIT3_B3=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> clear.txt <==
+*__UBIT40_W=0;
+*__UBYTE_UB=0;
+*__UINTEGER_UI=0;
+*__UINTEGER64_UQ=0;
+*__OFFSET_O=0;
+*__UBIT7_U7=0;
+*__BIT3_B3=0;
+==> maindata.txt <==
+if(__UBIT40_W==NULL){
+__UBIT40_W=(uint64*)mem_static_malloc(8);
+*__UBIT40_W=0;
+}
+if(__UBYTE_UB==NULL){
+__UBYTE_UB=(uint8*)mem_static_malloc(1);
+*__UBYTE_UB=0;
+}
+if(__UINTEGER_UI==NULL){
+__UINTEGER_UI=(uint16*)mem_static_malloc(2);
+*__UINTEGER_UI=0;
+}
+if(__UINTEGER64_UQ==NULL){
+__UINTEGER64_UQ=(uint64*)mem_static_malloc(8);
+*__UINTEGER64_UQ=0;
+}
+if(__OFFSET_O==NULL){
+__OFFSET_O=(ptrszint*)mem_static_malloc(8);
+*__OFFSET_O=0;
+}
+if(__UBIT7_U7==NULL){
+__UBIT7_U7=(uint32*)mem_static_malloc(4);
+*__UBIT7_U7=0;
+}
+if(__BIT3_B3==NULL){
+__BIT3_B3=(int32*)mem_static_malloc(4);
+*__BIT3_B3=0;
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "numeric_ops_cpp.bas"
+do{
+#line 2 "numeric_ops_cpp.bas"
+sub__dest(func__console());
+#line 2 "numeric_ops_cpp.bas"
+sub__source(func__console());
+#line 2 "numeric_ops_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 11 "numeric_ops_cpp.bas"
+do{
+#line 11 "numeric_ops_cpp.bas"
+*__UBYTE_UB=((uint8)(qbr_float_to_long(((float)(2.5000001E+0)))));
+#line 11 "numeric_ops_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 11 "numeric_ops_cpp.bas"
+do{
+#line 11 "numeric_ops_cpp.bas"
+*__UINTEGER_UI=((uint16)(qbr_float_to_long(((float)((-1.5E+0))))));
+#line 11 "numeric_ops_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 11 "numeric_ops_cpp.bas"
+do{
+#line 11 "numeric_ops_cpp.bas"
+*__UINTEGER64_UQ=((uint64)(qbr(1.8E+19)));
+#line 11 "numeric_ops_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 12 "numeric_ops_cpp.bas"
+do{
+#line 12 "numeric_ops_cpp.bas"
+*__UBIT7_U7=(300u)&0x7Full;
+#line 12 "numeric_ops_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 12 "numeric_ops_cpp.bas"
+do{
+#line 12 "numeric_ops_cpp.bas"
+if ((*__BIT3_B3=5)&0x4ull){*__BIT3_B3|=~0x7ull;}else{*__BIT3_B3&=0x7ull;}
+#line 12 "numeric_ops_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 12 "numeric_ops_cpp.bas"
+do{
+#line 12 "numeric_ops_cpp.bas"
+*__UBIT40_W=(18446744073709551615ull)&0xFFFFFFFFFFull;
+#line 12 "numeric_ops_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 13 "numeric_ops_cpp.bas"
+do{
+#line 13 "numeric_ops_cpp.bas"
+*__OFFSET_O=3ll;
+#line 13 "numeric_ops_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 13 "numeric_ops_cpp.bas"
+do{
+#line 13 "numeric_ops_cpp.bas"
+*__OFFSET_O=((ptrszint)(qbr((((long double)(*__OFFSET_O))*((long double)(1.5E+0))))));
+#line 13 "numeric_ops_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 14 "numeric_ops_cpp.bas"
+do{
+#line 14 "numeric_ops_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 14 "numeric_ops_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uint8)(*__UBYTE_UB)),qbs_new_txt(" ")));
+#line 14 "numeric_ops_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "numeric_ops_cpp.bas"
+makefit(tqbs);
+#line 14 "numeric_ops_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "numeric_ops_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uint16)(*__UINTEGER_UI)),qbs_new_txt(" ")));
+#line 14 "numeric_ops_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "numeric_ops_cpp.bas"
+makefit(tqbs);
+#line 14 "numeric_ops_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "numeric_ops_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uint64)(*__UINTEGER64_UQ)),qbs_new_txt(" ")));
+#line 14 "numeric_ops_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "numeric_ops_cpp.bas"
+makefit(tqbs);
+#line 14 "numeric_ops_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "numeric_ops_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*__UBIT7_U7)))),qbs_new_txt(" ")));
+#line 14 "numeric_ops_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "numeric_ops_cpp.bas"
+makefit(tqbs);
+#line 14 "numeric_ops_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "numeric_ops_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*__BIT3_B3)))),qbs_new_txt(" ")));
+#line 14 "numeric_ops_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "numeric_ops_cpp.bas"
+makefit(tqbs);
+#line 14 "numeric_ops_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "numeric_ops_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*__UBIT40_W)))),qbs_new_txt(" ")));
+#line 14 "numeric_ops_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "numeric_ops_cpp.bas"
+makefit(tqbs);
+#line 14 "numeric_ops_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "numeric_ops_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((ptrszint)(*__OFFSET_O)),qbs_new_txt(" ")));
+#line 14 "numeric_ops_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "numeric_ops_cpp.bas"
+makefit(tqbs);
+#line 14 "numeric_ops_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "numeric_ops_cpp.bas"
+qbs_print(nothingstring,1);
+#line 14 "numeric_ops_cpp.bas"
+skip1:
+#line 14 "numeric_ops_cpp.bas"
+qbs_free(tqbs);
+#line 14 "numeric_ops_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 14 "numeric_ops_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 15 "numeric_ops_cpp.bas"
+do{
+#line 15 "numeric_ops_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 15 "numeric_ops_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)((*__UINTEGER64_UQ+1ull))))),qbs_new_txt(" ")));
+#line 15 "numeric_ops_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 15 "numeric_ops_cpp.bas"
+makefit(tqbs);
+#line 15 "numeric_ops_cpp.bas"
+qbs_print(tqbs,0);
+#line 15 "numeric_ops_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)((((int32)(*__UBYTE_UB))*((int32)(*__UBYTE_UB))))))),qbs_new_txt(" ")));
+#line 15 "numeric_ops_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 15 "numeric_ops_cpp.bas"
+makefit(tqbs);
+#line 15 "numeric_ops_cpp.bas"
+qbs_print(tqbs,0);
+#line 15 "numeric_ops_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uint64)((*__UBIT40_W+18446744073709551615ull))),qbs_new_txt(" ")));
+#line 15 "numeric_ops_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 15 "numeric_ops_cpp.bas"
+makefit(tqbs);
+#line 15 "numeric_ops_cpp.bas"
+qbs_print(tqbs,0);
+#line 15 "numeric_ops_cpp.bas"
+qbs_print(nothingstring,1);
+#line 15 "numeric_ops_cpp.bas"
+skip2:
+#line 15 "numeric_ops_cpp.bas"
+qbs_free(tqbs);
+#line 15 "numeric_ops_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 15 "numeric_ops_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "numeric_ops_cpp.bas"
+do{
+#line 16 "numeric_ops_cpp.bas"
+if (sub_gl_called) error(271);
+#line 16 "numeric_ops_cpp.bas"
+close_program=1;
+#line 16 "numeric_ops_cpp.bas"
+end();
+#line 16 "numeric_ops_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+sub_end();
+return;
+}
+==> empty: regsf.txt dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt
