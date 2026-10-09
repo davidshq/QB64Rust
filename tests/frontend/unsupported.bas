@@ -8,5 +8,5 @@ IF x THEN PRINT "y": PRINT 1 MOD 2; _MIN(2, 3)
 PRINT "a" - "b"; 1 + "x"
 x% = "s"
 SWAP x, y
-DIM s AS STRING * 4
+DIM s AS _MEM
 END

@@ -3,7 +3,8 @@
 use crate::Emitter;
 use crate::decl::{dim_slot, is_qbs};
 use crate::names::{c_type, proc_name};
-use qb64rust_ir::{Arg, Expr, Facts, LabelId, OnError, Op, Place, PrintItem, Resume, Ty, When};
+use crate::place::fixed_at;
+use qb64rust_ir::{Expr, Facts, LabelId, OnError, Op, Place, PrintItem, Resume, Ty, When};
 use std::fmt::Write as _;
 
 impl Emitter<'_> {
@@ -44,7 +45,7 @@ impl Emitter<'_> {
             }
             Op::Raise(v) => {
                 out.push(format!("error({});", self.value(v)));
-                if v.uses_strings() {
+                if v.uses_strings(self.p) {
                     out.push("qbs_cleanup(qbs_tmp_base,0);".into());
                 }
             }
@@ -70,7 +71,7 @@ impl Emitter<'_> {
                 on_error,
             } => {
                 let mut c = self.value(cond);
-                if cond.uses_strings() {
+                if cond.uses_strings(self.p) {
                     c = format!("qbs_cleanup(qbs_tmp_base,{c})");
                 }
                 let test = match when {
@@ -114,7 +115,8 @@ impl Emitter<'_> {
                 let q = self.p.proc(*proc);
                 let a = self.args(args);
                 out.push(format!("{}({a});", proc_name(q)));
-                let strings = args.iter().any(Arg::uses_strings) || q.params.iter().any(|&v| is_qbs(self.p.var(v).ty));
+                let strings =
+                    args.iter().any(|a| a.uses_strings(self.p)) || q.params.iter().any(|&v| is_qbs(self.p.var(v).ty));
                 if strings {
                     out.push("qbs_cleanup(qbs_tmp_base,0);".into());
                 }
@@ -156,7 +158,7 @@ impl Emitter<'_> {
 
     /// A store, by the rule of its place (the IR's error rule; `study\02` §2.3 for the old compiler's forms).
     fn assign(&mut self, place: &Place, value: &Expr, out: &mut Vec<String>) {
-        let cleanup = value.uses_strings() || place.indexes().iter().any(|i| i.uses_strings());
+        let cleanup = value.uses_strings(self.p) || place.uses_strings(self.p);
         match place {
             Place::Var(id) => {
                 let v = self.value(value);
@@ -183,7 +185,12 @@ impl Emitter<'_> {
             Place::Member { .. } if place.has_element() => self.store_member_of_element(place, value, out),
             Place::Member { .. } => {
                 let v = self.value(value);
-                out.push(format!("{}={v};", self.load_place(place)));
+                let member = self.load_place(place);
+                if is_qbs(value.ty) {
+                    out.push(format!("qbs_set({member},{v});"));
+                } else {
+                    out.push(format!("{member}={v};"));
+                }
             }
         }
         if cleanup {
@@ -203,7 +210,13 @@ impl Emitter<'_> {
         let name = self.name(array);
         let size = self.ty_size(self.p.var(array).ty);
         out.push("{".into());
-        out.push(format!("{} mbr_value={};", c_type(ty), self.value(value)));
+        // A string value is copied first, so the indexes cannot change it (a FUNCTION in an index may assign the
+        // variable the value reads).
+        let fixed = if let Ty::FixedStr(k) = ty { Some(k) } else { None };
+        match fixed {
+            Some(_) => out.push(format!("qbs *mbr_value=qbs_set(qbs_new(0,1),{});", self.value(value))),
+            None => out.push(format!("{} mbr_value={};", c_type(ty), self.value(value))),
+        }
         out.push("int32 mbr_pending=is_error_pending();".into());
         out.push("int32 mbr_bad=0;".into());
         out.push("int64 mbr_k;".into());
@@ -221,10 +234,12 @@ impl Emitter<'_> {
                 out.push(format!("mbr_flat+=mbr_k*{name}[{}];", s + 2));
             }
         }
-        out.push(format!(
-            "if (!mbr_bad&&(mbr_pending||!is_error_pending())) *({}*)(((char*){name}[0])+(mbr_flat*{size}+{offset}))=mbr_value;",
-            c_type(ty)
-        ));
+        let at = format!("((char*){name}[0])+(mbr_flat*{size}+{offset})");
+        let store = match fixed {
+            Some(k) => format!("qbs_set({},mbr_value);", fixed_at(&format!("(uint8*)({at})"), k)),
+            None => format!("*({}*)({at})=mbr_value;", c_type(ty)),
+        };
+        out.push(format!("if (!mbr_bad&&(mbr_pending||!is_error_pending())) {store}"));
         out.push("}".into());
     }
 }

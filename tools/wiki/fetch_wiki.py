@@ -69,7 +69,12 @@ def api_get(params: dict) -> dict:
 def list_pages(namespace: int) -> list[dict]:
     """All pages (pageid, ns, title) in one namespace."""
     pages: list[dict] = []
-    params = {"action": "query", "list": "allpages", "apnamespace": str(namespace), "aplimit": "500"}
+    params = {
+        "action": "query",
+        "list": "allpages",
+        "apnamespace": str(namespace),
+        "aplimit": "500",
+    }
     while True:
         data = api_get(params)
         pages.extend(data["query"]["allpages"])
@@ -82,13 +87,15 @@ def list_pages(namespace: int) -> list[dict]:
 
 def fetch_revisions(pageids: list[int]) -> dict[int, dict]:
     """Latest revision (revid, timestamp, content) for up to PAGES_PER_REQUEST pages, keyed by pageid."""
-    data = api_get({
-        "action": "query",
-        "prop": "revisions",
-        "rvprop": "ids|timestamp|content",
-        "rvslots": "main",
-        "pageids": "|".join(str(p) for p in pageids),
-    })
+    data = api_get(
+        {
+            "action": "query",
+            "prop": "revisions",
+            "rvprop": "ids|timestamp|content",
+            "rvslots": "main",
+            "pageids": "|".join(str(p) for p in pageids),
+        }
+    )
     out: dict[int, dict] = {}
     for page in data["query"]["pages"]:
         if "missing" in page or not page.get("revisions"):
@@ -104,14 +111,19 @@ def fetch_revisions(pageids: list[int]) -> dict[int, dict]:
 
 def latest_revids(pageids: list[int]) -> dict[int, int]:
     """Latest revision id only (cheap), for deciding what changed."""
-    data = api_get({
-        "action": "query",
-        "prop": "revisions",
-        "rvprop": "ids",
-        "pageids": "|".join(str(p) for p in pageids),
-    })
-    return {p["pageid"]: p["revisions"][0]["revid"]
-            for p in data["query"]["pages"] if "missing" not in p and p.get("revisions")}
+    data = api_get(
+        {
+            "action": "query",
+            "prop": "revisions",
+            "rvprop": "ids",
+            "pageids": "|".join(str(p) for p in pageids),
+        }
+    )
+    return {
+        p["pageid"]: p["revisions"][0]["revid"]
+        for p in data["query"]["pages"]
+        if "missing" not in p and p.get("revisions")
+    }
 
 
 def page_filename(pageid: int, title: str) -> str:
@@ -121,14 +133,23 @@ def page_filename(pageid: int, title: str) -> str:
 
 def chunks(seq: list, n: int):
     for i in range(0, len(seq), n):
-        yield seq[i:i + n]
+        yield seq[i : i + n]
 
 
 def main(argv: list[str]) -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--out", type=Path, default=DEFAULT_OUT, help=f"output folder (default {DEFAULT_OUT})")
-    ap.add_argument("--namespaces", type=int, nargs="+", default=DEFAULT_NAMESPACES,
-                    help="namespace ids (default: 0 main, 10 Template)")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "--out", type=Path, default=DEFAULT_OUT, help=f"output folder (default {DEFAULT_OUT})"
+    )
+    ap.add_argument(
+        "--namespaces",
+        type=int,
+        nargs="+",
+        default=DEFAULT_NAMESPACES,
+        help="namespace ids (default: 0 main, 10 Template)",
+    )
     ap.add_argument("--force", action="store_true", help="refetch every page")
     args = ap.parse_args(argv)
 
@@ -157,8 +178,11 @@ def main(argv: list[str]) -> int:
             current = latest_revids(ids)
             for pid in ids:
                 known = index.get(str(pid))
-                if known is None or known.get("revid") != current.get(pid) \
-                        or not (pages_dir / known["file"]).exists():
+                if (
+                    known is None
+                    or known.get("revid") != current.get(pid)
+                    or not (pages_dir / known["file"]).exists()
+                ):
                     to_fetch.append(pid)
             time.sleep(PAUSE_SECONDS)
     print(f"{len(to_fetch)} of {len(listed)} pages to download")
@@ -171,8 +195,14 @@ def main(argv: list[str]) -> int:
             ns, title = titles[pid]
             fname = page_filename(pid, title)
             (pages_dir / fname).write_text(rev["content"], encoding="utf-8", newline="\n")
-            index[str(pid)] = {"pageid": pid, "ns": ns, "title": title, "revid": rev["revid"],
-                               "timestamp": rev["timestamp"], "file": fname}
+            index[str(pid)] = {
+                "pageid": pid,
+                "ns": ns,
+                "title": title,
+                "revid": rev["revid"],
+                "timestamp": rev["timestamp"],
+                "file": fname,
+            }
         done += len(batch)
         print(f"  {done}/{len(to_fetch)}", end="\r", flush=True)
         time.sleep(PAUSE_SECONDS)
@@ -188,12 +218,19 @@ def main(argv: list[str]) -> int:
         print(f"{len(removed)} pages no longer on the wiki (index entries dropped)")
 
     entries = sorted(index.values(), key=lambda e: (e["ns"], e["title"].lower()))
-    index_path.write_text(json.dumps({
-        "source": API,
-        "fetched": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "licence": "none stated by the wiki; local reference only, do not redistribute",
-        "pages": entries,
-    }, indent=1, ensure_ascii=False), encoding="utf-8")
+    index_path.write_text(
+        json.dumps(
+            {
+                "source": API,
+                "fetched": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "licence": "none stated by the wiki; local reference only, do not redistribute",
+                "pages": entries,
+            },
+            indent=1,
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
     print(f"index: {index_path} ({len(entries)} pages)")
     return 0
 

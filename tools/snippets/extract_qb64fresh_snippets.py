@@ -31,10 +31,10 @@ import textwrap
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 DEST = REPO / "tests" / "snippets" / "qb64fresh"
-RAW = re.compile(r'r#"(.*?)"#', re.S)
+RAW = re.compile(r'r#"(.*?)"#', re.DOTALL)
 BASIC_CONTEXT = re.compile(r"(let\s+source\w*\s*=|compile_to_c\w*\()\s*$")
-MOD = re.compile(r"^mod\s+(\w+)", re.M)
-FN = re.compile(r"^\s*fn\s+(\w+)", re.M)
+MOD = re.compile(r"^mod\s+(\w+)", re.MULTILINE)
+FN = re.compile(r"^\s*fn\s+(\w+)", re.MULTILINE)
 
 
 def last(pattern, text):
@@ -78,12 +78,23 @@ def label(qb64pe, text, scratch):
             f.unlink()
     (work / "snippet.bas").write_bytes(text.encode("utf-8"))
     env = dict(os.environ, QB64PE_NOPROMPT="y")
-    p = subprocess.run([qb64pe, "-z", "-q", "-w", "snippet.bas"], cwd=work, env=env, capture_output=True,
-                       timeout=120)
+    p = subprocess.run(
+        [qb64pe, "-z", "-q", "-w", "snippet.bas"],
+        check=False,
+        cwd=work,
+        env=env,
+        capture_output=True,
+        timeout=120,
+    )
     if p.returncode == 0:
         return None
     out = p.stdout
-    for form in {str(work), str(work.resolve()), str(work).replace("\\", "/"), str(work.resolve()).replace("\\", "/")}:
+    for form in {
+        str(work),
+        str(work.resolve()),
+        str(work).replace("\\", "/"),
+        str(work.resolve()).replace("\\", "/"),
+    }:
         out = out.replace(form.encode(), b"<SCRATCH>")
     return out
 
@@ -96,10 +107,18 @@ def main():
 
     fresh = pathlib.Path(a.qb64fresh)
     rs = fresh / "tests" / "integration_tests.rs"
-    commit = subprocess.run(["git", "-C", str(fresh), "rev-parse", "--short=10", "HEAD"], check=True,
-                            capture_output=True, text=True).stdout.strip()
-    date = subprocess.run(["git", "-C", str(fresh), "log", "-1", "--format=%cs", "HEAD"], check=True,
-                          capture_output=True, text=True).stdout.strip()
+    commit = subprocess.run(
+        ["git", "-C", str(fresh), "rev-parse", "--short=10", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    date = subprocess.run(
+        ["git", "-C", str(fresh), "log", "-1", "--format=%cs", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
     qb64pe = str(pathlib.Path(a.qb64pe).resolve())
 
     rs_text = rs.read_text(encoding="utf-8")

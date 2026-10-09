@@ -130,7 +130,12 @@ What the compiler supports so far:
 - `SELECT CASE` and `SELECT EVERYCASE` (lists, `TO`, `IS`, `CASE ELSE`; the selector copied once into a static
   hidden variable unless it is a plain variable, as QB64pe; `DIVERGENCES-QB45.md` Q-002) and `ON n GOTO`/`ON n
   GOSUB` to labels (`n` above 255 falls through, Q-001), lowered to the IR's branches and jumps
-  (`ir\src\lower.rs`).
+  (`ir\src\lower.rs`);
+- fixed-length strings (`m2-numeric-types` group 7, design D6): `STRING * n` (n a number or an integer constant,
+  read in 32 bits) and `name$n` variables of every storage class, static arrays of them and `TYPE` members, as the
+  old compiler builds them: a fixed `qbs` over n NUL bytes per variable, a temporary one over an element's or
+  member's bytes, stores by `qbs_set` (which cuts and pads); their values are plain `STRING`s (`Ty::held_value`),
+  and one passed to a `STRING` parameter goes by reference, also in parentheses.
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
@@ -139,11 +144,11 @@ CASE`, the other built-in functions, `DECLARE LIBRARY`, `OPTION BASE`, event han
 `END`/`SYSTEM` with an exit code, the I/O statements
 (`PRINT #`, `PRINT USING`, `LPRINT`, `WRITE`, `INPUT`, `LINE INPUT`, `CLOSE`, `FIELD`, `LSET`/`RSET`, `SWAP`), every
 built-in statement read by its template (`LINE`, `SCREEN`, `OPEN`, `GET`/`PUT`, `TIME$ =`, ...), the declaration
-forms (`REDIM`, `COMMON`, `ERASE`, `DEFxxx`, `_DEFINE`, the type before the names, fixed-length strings, array
+forms (`REDIM`, `COMMON`, `ERASE`, `DEFxxx`, `_DEFINE`, the type before the names, arrays named `name$n`, array
 parameters, `STATIC` after a header, `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), type names as arguments, the
 names of QB64pe's auto-included files and its precompiler flags (`_CONSOLE_`, ...); of arrays and `TYPE`: dynamic
-and implicit arrays, arrays in procedures, whole arrays (`x()`), `TYPE` parameters, `STRING`, fixed-length and
-array members, member arrays, whole-`TYPE` assignment; `DEF FN` is an error, as in QB64pe. After a declaration
+and implicit arrays, arrays in procedures, whole arrays (`x()`), `TYPE` parameters, `STRING` and array members,
+member arrays, whole-`TYPE` assignment; `DEF FN` is an error, as in QB64pe. After a declaration
 marked "not supported yet", later real errors are dropped (the follow-on rule, design D10 of `m2-parser-breadth`):
 the program is rejected by the mark, and no error is reported that the declaration might have prevented.
 
@@ -161,6 +166,12 @@ panics on purpose, for the CLI test only.
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --qb64 target\release\qb64rust.exe --list tests\corpus\slice.list` | The listed corpus programs end to end against the output recorded from `qb64pe.exe` |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\release\qb64rust.exe --list tests\upstream\pass.list` | The upstream programs of the pass list end to end (`tests\upstream\README.md`); also in CI (`rust.yml`, job `tier2`) |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --corpus-root tests\differential --qb64 target\release\qb64rust.exe --list tests\differential\pass.list` | The differential programs of the pass list end to end against their recordings (`tests\differential\README.md`); also in CI |
+
+Tier 2 locally: add `--jobs 8 --build-cache target\build-cache` to each command. `--jobs` runs programs in
+parallel; `--build-cache` (environment variable `QB64RUST_BUILD_CACHE`, `driver\src\build.rs`) skips `make` for a
+program whose C++ build has the same inputs as an earlier one's (the fragments, the clone's `qbx.cpp`, `Makefile`
+and every file of its `internal\c` by size and time, the options), so after an edit only the programs whose C++
+changed are rebuilt; every program is still compiled by `qb64rust`, run and compared. CI uses neither.
 
 **"Not supported yet."** A diagnostic either reports an error in the program or is marked "not supported yet"
 (`Diagnostic::unsupported`, printed `error: not supported yet: <message>`; the summary says how many). `sema` and

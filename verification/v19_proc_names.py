@@ -34,7 +34,7 @@ def names():
     block = kw_src.split("const KEYWORDS")[1].split("];")[0]
     keywords = re.findall(r'"([^"]+)"', block)
     doc = json.loads((REPO / "tools" / "builtins" / "builtins.json").read_text())
-    seen = set(k.upper() for k in keywords)
+    seen = {k.upper() for k in keywords}
     for e in doc["entries"]:
         seen.add(e["name"].upper())
     return sorted(seen)
@@ -54,21 +54,41 @@ def program(name: str, form: str) -> tuple[str, str]:
 
 
 def compile_only(src: Path) -> str:
-    r = subprocess.run([str(QB), "-z", "-q", src.name], cwd=src.parent, capture_output=True, text=True,
-                       errors="replace")
+    r = subprocess.run(
+        [str(QB), "-z", "-q", src.name],
+        check=False,
+        cwd=src.parent,
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
     lines = [l.strip() for l in (r.stdout + r.stderr).splitlines() if l.strip()]
     return lines[0] if lines else ""
 
 
 def run(src: Path) -> str:
     exe = src.with_suffix(".exe")
-    subprocess.run([str(QB), "-x", "-q", "-m", src.name, "-o", exe.name], cwd=src.parent, capture_output=True)
+    subprocess.run(
+        [str(QB), "-x", "-q", "-m", src.name, "-o", exe.name],
+        check=False,
+        cwd=src.parent,
+        capture_output=True,
+    )
     if not exe.exists():
         return "(not built)"
     env = dict(os.environ, QB64PE_NOPROMPT="y")
     try:
-        r = subprocess.run([str(exe)], cwd=src.parent, capture_output=True, text=True, errors="replace",
-                           stdin=subprocess.DEVNULL, env=env, timeout=30)
+        r = subprocess.run(
+            [str(exe)],
+            check=False,
+            cwd=src.parent,
+            capture_output=True,
+            text=True,
+            errors="replace",
+            stdin=subprocess.DEVNULL,
+            env=env,
+            timeout=30,
+        )
     except subprocess.TimeoutExpired:
         return "(timeout)"
     return " ".join(r.stdout.split())

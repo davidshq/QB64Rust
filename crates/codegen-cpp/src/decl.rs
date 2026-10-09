@@ -3,7 +3,7 @@
 
 use crate::Emitter;
 use crate::names::{c_type, int_const, var_name};
-use qb64rust_ir::{MemberId, NEW_TYPE_UNREACHABLE, ProcId, Storage, Ty, Var, size_of, unproduced_types};
+use qb64rust_ir::{MemberId, ProcId, Storage, Ty, Var, size_of};
 use std::fmt::Write as _;
 
 /// The numeric types as a pattern: each is stored as one C scalar ([`c_type`]); a declaration of any of them is
@@ -28,12 +28,12 @@ macro_rules! numbers {
 }
 
 /// Whether a variable of this type is a `qbs *` (freed, assigned with `qbs_set`, used without `*`); otherwise it
-/// is a pointer to a C scalar or (a user type) to its bytes.
+/// is a pointer to a C scalar or (a user type) to its bytes. A `STRING * n` variable is a fixed `qbs` over its n
+/// bytes (design D6); a `STRING * n` element or member is read through a temporary one ([`crate::place::fixed_at`]).
 pub(crate) fn is_qbs(t: Ty) -> bool {
     match t {
-        Ty::Str => true,
+        Ty::Str | Ty::FixedStr(_) => true,
         numbers!() | Ty::User(_) => false,
-        unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -43,10 +43,9 @@ pub(crate) fn declare(v: &Var, n: &str) -> String {
         return format!("ptrszint *{n}=NULL;\n");
     }
     match v.ty {
-        Ty::Str => format!("qbs *{n}=NULL;\n"),
+        Ty::Str | Ty::FixedStr(_) => format!("qbs *{n}=NULL;\n"),
         Ty::User(_) => format!("void *{n}=NULL;\n"),
         t @ numbers!() => format!("{} *{n}=NULL;\n", c_type(t)),
-        unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 
@@ -116,13 +115,12 @@ impl Emitter<'_> {
             .collect()
     }
 
-    /// The size of a value of a type in memory: a number's or a user type's (`sema`'s `size_of`, the sizes `LEN`
-    /// gives), a string's descriptor pointer.
+    /// The size of a value of a type in memory: a number's, a fixed-length string's or a user type's (`sema`'s
+    /// `size_of`, the sizes `LEN` gives), a string's descriptor pointer.
     pub(crate) fn ty_size(&self, t: Ty) -> u32 {
         match t {
             Ty::Str => 8,
-            numbers!() | Ty::User(_) => size_of(&self.p.types, t),
-            unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+            numbers!() | Ty::FixedStr(_) | Ty::User(_) => size_of(&self.p.types, t),
         }
     }
 
@@ -145,6 +143,10 @@ impl Emitter<'_> {
         }
         match v.ty {
             Ty::Str => format!("if (!{n}){n}=qbs_new(0,0);\n"),
+            // NUL bytes, as the old compiler allocates them (`DIVERGENCES-QB45.md` Q-005).
+            Ty::FixedStr(k) => format!(
+                "if({n}==NULL){{\n{n}=qbs_new_fixed((uint8*)mem_static_malloc({k}),{k},0);\nmemset({n}->chr,0,{k});\n}}\n"
+            ),
             Ty::User(_) => {
                 let size = self.ty_size(v.ty);
                 format!("if({n}==NULL){{\n{n}=(void*)mem_static_malloc({size});\nmemset({n},0,{size});\n}}\n")
@@ -154,7 +156,6 @@ impl Emitter<'_> {
                 c = c_type(t),
                 size = self.ty_size(t)
             ),
-            unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
         }
     }
 
@@ -179,7 +180,7 @@ impl Emitter<'_> {
             }
         }
         let count = self.element_count(v, n);
-        if is_qbs(v.ty) {
+        if v.ty == Ty::Str {
             write!(
                 out,
                 "{n}[0]=(ptrszint)mem_static_malloc({count}*ptrsz);\ntmp_long={count};\nwhile(tmp_long--){{\n\
@@ -209,7 +210,7 @@ impl Emitter<'_> {
     pub(crate) fn clear(&self, v: &Var, n: &str) -> String {
         if v.is_array() {
             let count = self.element_count(v, n);
-            return if is_qbs(v.ty) {
+            return if v.ty == Ty::Str {
                 format!("tmp_long={count};\nwhile(tmp_long--){{\n(((qbs**)({n}[0]))[tmp_long])->len=0;\n}}\n")
             } else {
                 format!("memset((void*)({n}[0]),0,{count}*{});\n", self.ty_size(v.ty))
@@ -219,7 +220,7 @@ impl Emitter<'_> {
             Ty::Str => format!("{n}->len=0;\n"),
             Ty::User(_) => format!("memset((void*){n},0,{});\n", self.ty_size(v.ty)),
             numbers!() => format!("*{n}=0;\n"),
-            unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+            Ty::FixedStr(k) => format!("memset((void*)({n}->chr),0,{k});\n"),
         }
     }
 }

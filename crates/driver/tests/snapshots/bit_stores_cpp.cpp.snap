@@ -1,0 +1,396 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+int32 *__BIT4_SH=NULL;
+int32 *__BIT1_B1=NULL;
+uint32 *__UBIT1_U1=NULL;
+int32 *__BIT32_B32=NULL;
+uint32 *__UBIT32_U32=NULL;
+int32 *__BIT32_PAD1=NULL;
+int64 *__BIT33_B33=NULL;
+int32 *__BIT32_PAD2=NULL;
+uint64 *__UBIT64_U64=NULL;
+int32 *_SUB_ST_BIT4_S=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+void SUB_ST();
+void SUB_SHOWL(int32*_SUB_SHOWL_LONG_X);
+==> clear.txt <==
+*__BIT4_SH=0;
+*__BIT1_B1=0;
+*__UBIT1_U1=0;
+*__BIT32_B32=0;
+*__UBIT32_U32=0;
+*__BIT32_PAD1=0;
+*__BIT33_B33=0;
+*__BIT32_PAD2=0;
+*__UBIT64_U64=0;
+*_SUB_ST_BIT4_S=0;
+==> maindata.txt <==
+if(__BIT4_SH==NULL){
+__BIT4_SH=(int32*)mem_static_malloc(4);
+*__BIT4_SH=0;
+}
+if(__BIT1_B1==NULL){
+__BIT1_B1=(int32*)mem_static_malloc(4);
+*__BIT1_B1=0;
+}
+if(__UBIT1_U1==NULL){
+__UBIT1_U1=(uint32*)mem_static_malloc(4);
+*__UBIT1_U1=0;
+}
+if(__BIT32_B32==NULL){
+__BIT32_B32=(int32*)mem_static_malloc(4);
+*__BIT32_B32=0;
+}
+if(__UBIT32_U32==NULL){
+__UBIT32_U32=(uint32*)mem_static_malloc(4);
+*__UBIT32_U32=0;
+}
+if(__BIT32_PAD1==NULL){
+__BIT32_PAD1=(int32*)mem_static_malloc(4);
+*__BIT32_PAD1=0;
+}
+if(__BIT33_B33==NULL){
+__BIT33_B33=(int64*)mem_static_malloc(8);
+*__BIT33_B33=0;
+}
+if(__BIT32_PAD2==NULL){
+__BIT32_PAD2=(int32*)mem_static_malloc(4);
+*__BIT32_PAD2=0;
+}
+if(__UBIT64_U64==NULL){
+__UBIT64_U64=(uint64*)mem_static_malloc(8);
+*__UBIT64_U64=0;
+}
+if(_SUB_ST_BIT4_S==NULL){
+_SUB_ST_BIT4_S=(int32*)mem_static_malloc(4);
+*_SUB_ST_BIT4_S=0;
+}
+int32 pass1;
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+#include "main2.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "bit_stores_cpp.bas"
+do{
+#line 2 "bit_stores_cpp.bas"
+sub__dest(func__console());
+#line 2 "bit_stores_cpp.bas"
+sub__source(func__console());
+#line 2 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 12 "bit_stores_cpp.bas"
+do{
+#line 12 "bit_stores_cpp.bas"
+if ((*__BIT1_B1=3)&0x1ull){*__BIT1_B1|=~0x1ull;}else{*__BIT1_B1&=0x1ull;}
+#line 12 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 12 "bit_stores_cpp.bas"
+do{
+#line 12 "bit_stores_cpp.bas"
+*__UBIT1_U1=(3u)&0x1ull;
+#line 12 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 12 "bit_stores_cpp.bas"
+do{
+#line 12 "bit_stores_cpp.bas"
+if ((*__BIT32_B32=(-1))&0x80000000ull){*__BIT32_B32|=~0xFFFFFFFFull;}else{*__BIT32_B32&=0xFFFFFFFFull;}
+#line 12 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 12 "bit_stores_cpp.bas"
+do{
+#line 12 "bit_stores_cpp.bas"
+*__UBIT32_U32=(4294967295u)&0xFFFFFFFFull;
+#line 12 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 12 "bit_stores_cpp.bas"
+do{
+#line 12 "bit_stores_cpp.bas"
+if ((*__BIT33_B33=(-1ll))&0x100000000ull){*__BIT33_B33|=~0x1FFFFFFFFull;}else{*__BIT33_B33&=0x1FFFFFFFFull;}
+#line 12 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 12 "bit_stores_cpp.bas"
+do{
+#line 12 "bit_stores_cpp.bas"
+*__UBIT64_U64=(((uint64)(qbr(2.5E+0))))&0xFFFFFFFFFFFFFFFFull;
+#line 12 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 13 "bit_stores_cpp.bas"
+do{
+#line 13 "bit_stores_cpp.bas"
+if ((*__BIT4_SH=9)&0x8ull){*__BIT4_SH|=~0xFull;}else{*__BIT4_SH&=0xFull;}
+#line 13 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 14 "bit_stores_cpp.bas"
+do{
+#line 14 "bit_stores_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 14 "bit_stores_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*__BIT1_B1)))),qbs_new_txt(" ")));
+#line 14 "bit_stores_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "bit_stores_cpp.bas"
+makefit(tqbs);
+#line 14 "bit_stores_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "bit_stores_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*__UBIT1_U1)))),qbs_new_txt(" ")));
+#line 14 "bit_stores_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "bit_stores_cpp.bas"
+makefit(tqbs);
+#line 14 "bit_stores_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "bit_stores_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*__BIT32_B32)))),qbs_new_txt(" ")));
+#line 14 "bit_stores_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "bit_stores_cpp.bas"
+makefit(tqbs);
+#line 14 "bit_stores_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "bit_stores_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*__UBIT32_U32)))),qbs_new_txt(" ")));
+#line 14 "bit_stores_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "bit_stores_cpp.bas"
+makefit(tqbs);
+#line 14 "bit_stores_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "bit_stores_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(*__BIT33_B33)),qbs_new_txt(" ")));
+#line 14 "bit_stores_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "bit_stores_cpp.bas"
+makefit(tqbs);
+#line 14 "bit_stores_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "bit_stores_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*__UBIT64_U64)))),qbs_new_txt(" ")));
+#line 14 "bit_stores_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "bit_stores_cpp.bas"
+makefit(tqbs);
+#line 14 "bit_stores_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "bit_stores_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*__BIT4_SH)))),qbs_new_txt(" ")));
+#line 14 "bit_stores_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 14 "bit_stores_cpp.bas"
+makefit(tqbs);
+#line 14 "bit_stores_cpp.bas"
+qbs_print(tqbs,0);
+#line 14 "bit_stores_cpp.bas"
+qbs_print(nothingstring,1);
+#line 14 "bit_stores_cpp.bas"
+skip1:
+#line 14 "bit_stores_cpp.bas"
+qbs_free(tqbs);
+#line 14 "bit_stores_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 14 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 15 "bit_stores_cpp.bas"
+do{
+#line 15 "bit_stores_cpp.bas"
+SUB_ST();
+#line 15 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "bit_stores_cpp.bas"
+do{
+#line 16 "bit_stores_cpp.bas"
+SUB_SHOWL(&(pass1=*__BIT1_B1));
+#line 16 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "bit_stores_cpp.bas"
+do{
+#line 17 "bit_stores_cpp.bas"
+if (sub_gl_called) error(271);
+#line 17 "bit_stores_cpp.bas"
+close_program=1;
+#line 17 "bit_stores_cpp.bas"
+end();
+#line 17 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+sub_end();
+return;
+}
+==> main1.txt <==
+#line 19 "bit_stores_cpp.bas"
+void SUB_ST(){
+#line 19 "bit_stores_cpp.bas"
+qbs *tqbs;
+#line 19 "bit_stores_cpp.bas"
+ptrszint tmp_long;
+#line 19 "bit_stores_cpp.bas"
+int32 tmp_fileno;
+#line 19 "bit_stores_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 19 "bit_stores_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 19 "bit_stores_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 19 "bit_stores_cpp.bas"
+#include "data1.txt"
+#line 19 "bit_stores_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 19 "bit_stores_cpp.bas"
+new_mem_lock();
+#line 19 "bit_stores_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 19 "bit_stores_cpp.bas"
+sf_mem_lock->type=3;
+#line 19 "bit_stores_cpp.bas"
+libqb_check_stack();
+#line 19 "bit_stores_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 22 "bit_stores_cpp.bas"
+do{
+#line 22 "bit_stores_cpp.bas"
+if ((*_SUB_ST_BIT4_S=(*_SUB_ST_BIT4_S+9))&0x8ull){*_SUB_ST_BIT4_S|=~0xFull;}else{*_SUB_ST_BIT4_S&=0xFull;}
+#line 22 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 22 "bit_stores_cpp.bas"
+do{
+#line 22 "bit_stores_cpp.bas"
+*_SUB_ST_UBIT4_L=(17u)&0xFull;
+#line 22 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 22 "bit_stores_cpp.bas"
+do{
+#line 22 "bit_stores_cpp.bas"
+if ((*__BIT4_SH=(*__BIT4_SH+1))&0x8ull){*__BIT4_SH|=~0xFull;}else{*__BIT4_SH&=0xFull;}
+#line 22 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "bit_stores_cpp.bas"
+do{
+#line 23 "bit_stores_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 23 "bit_stores_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*_SUB_ST_BIT4_S)))),qbs_new_txt(" ")));
+#line 23 "bit_stores_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 23 "bit_stores_cpp.bas"
+makefit(tqbs);
+#line 23 "bit_stores_cpp.bas"
+qbs_print(tqbs,0);
+#line 23 "bit_stores_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*_SUB_ST_UBIT4_L)))),qbs_new_txt(" ")));
+#line 23 "bit_stores_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 23 "bit_stores_cpp.bas"
+makefit(tqbs);
+#line 23 "bit_stores_cpp.bas"
+qbs_print(tqbs,0);
+#line 23 "bit_stores_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*__BIT4_SH)))),qbs_new_txt(" ")));
+#line 23 "bit_stores_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 23 "bit_stores_cpp.bas"
+makefit(tqbs);
+#line 23 "bit_stores_cpp.bas"
+qbs_print(tqbs,0);
+#line 23 "bit_stores_cpp.bas"
+qbs_print(nothingstring,1);
+#line 23 "bit_stores_cpp.bas"
+skip2:
+#line 23 "bit_stores_cpp.bas"
+qbs_free(tqbs);
+#line 23 "bit_stores_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 23 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "bit_stores_cpp.bas"
+exit_subfunc:;
+#line 24 "bit_stores_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 24 "bit_stores_cpp.bas"
+#include "free1.txt"
+#line 24 "bit_stores_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 24 "bit_stores_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 24 "bit_stores_cpp.bas"
+}
+==> data1.txt <==
+uint32 *_SUB_ST_UBIT4_L=NULL;
+if(_SUB_ST_UBIT4_L==NULL){
+_SUB_ST_UBIT4_L=(uint32*)mem_static_malloc(4);
+*_SUB_ST_UBIT4_L=0;
+}
+==> main2.txt <==
+#line 26 "bit_stores_cpp.bas"
+void SUB_SHOWL(int32*_SUB_SHOWL_LONG_X){
+#line 26 "bit_stores_cpp.bas"
+qbs *tqbs;
+#line 26 "bit_stores_cpp.bas"
+ptrszint tmp_long;
+#line 26 "bit_stores_cpp.bas"
+int32 tmp_fileno;
+#line 26 "bit_stores_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 26 "bit_stores_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 26 "bit_stores_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 26 "bit_stores_cpp.bas"
+#include "data2.txt"
+#line 26 "bit_stores_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 26 "bit_stores_cpp.bas"
+new_mem_lock();
+#line 26 "bit_stores_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 26 "bit_stores_cpp.bas"
+sf_mem_lock->type=3;
+#line 26 "bit_stores_cpp.bas"
+libqb_check_stack();
+#line 26 "bit_stores_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 27 "bit_stores_cpp.bas"
+do{
+#line 27 "bit_stores_cpp.bas"
+*_SUB_SHOWL_LONG_X=5;
+#line 27 "bit_stores_cpp.bas"
+if(!qbevent)break;evnt(27);}while(r);
+#line 28 "bit_stores_cpp.bas"
+exit_subfunc:;
+#line 28 "bit_stores_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 28 "bit_stores_cpp.bas"
+#include "free2.txt"
+#line 28 "bit_stores_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 28 "bit_stores_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 28 "bit_stores_cpp.bas"
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt free1.txt data2.txt free2.txt

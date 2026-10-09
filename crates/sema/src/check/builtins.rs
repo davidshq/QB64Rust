@@ -4,7 +4,7 @@
 use super::places::numeric_type;
 use super::{Checker, R};
 use crate::builtins::{Rule, Slot, Supported, lookup, result_types, slots};
-use crate::{Expr, ExprKind, NEW_TYPE_UNREACHABLE, Place, Ty};
+use crate::{Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Place, Ty};
 use qb64rust_base::Span;
 use qb64rust_syntax::SyntaxKind::Ident;
 use qb64rust_syntax::ast;
@@ -33,7 +33,7 @@ pub(super) fn supported_builtin(name: &str, suffix: Option<Ty>) -> Option<Suppor
             | Ty::F80
             | Ty::User(_),
         ) => None,
-        Some(crate::unproduced_types!()) => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+        Some(crate::place_only_types!()) => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
     }
 }
 
@@ -230,7 +230,7 @@ impl Checker<'_> {
                     Some(Ty::I16 | Ty::I32 | Ty::I64) => Ty::I64,
                     Some(t @ (Ty::F32 | Ty::F64 | Ty::F80)) => t,
                     Some(Ty::Str | Ty::User(_)) => unreachable!("numeric types only"),
-                    Some(crate::unproduced_types!()) => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+                    Some(crate::place_only_types!()) => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
                     // Measured: "VAL TYPE unsupported" (`verification\v21_x35_val_bit`, `x36`).
                     Some(Ty::Bit { .. }) => return Err(self.error(t.span(), "`VAL` cannot give a `_BIT`")),
                     // The other new numeric types: task 8.4 of `m2-numeric-types`.

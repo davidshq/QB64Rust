@@ -197,6 +197,9 @@ runtime_comparison/98_select_case_is
 slice/s29_on_goto
 runtime_comparison/226_on_goto
 runtime_comparison/227_on_gosub
-# m2-numeric-types: the new numeric types (tasks 5.3, 5.4)
+# m2-numeric-types: the new numeric types (tasks 5.3, 5.4, 6.1) and fixed-length strings (task 7.2)
 slice/s30_new_types
 slice/s31_unsigned_ops
+slice/s32_bit
+slice/s33_fixed_strings
+runtime_comparison/198_type_fixed_string

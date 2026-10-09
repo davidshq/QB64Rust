@@ -22,5 +22,4 @@ types_errors.bas:41:1: error: not supported yet: a `TYPE` without members
 types_errors.bas:42:5: error: expected a field (`name AS type` or `AS type name, ...`) or `END TYPE`
 types_errors.bas:43:1: error: `END TYPE` without `TYPE`
 types_errors.bas:45:7: error: not supported yet: `STRING` members
-types_errors.bas:48:7: error: not supported yet: fixed-length strings
-types_errors.bas:51:6: error: not supported yet: arrays as `TYPE` members
+types_errors.bas:48:6: error: not supported yet: arrays as `TYPE` members

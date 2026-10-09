@@ -58,7 +58,7 @@ use qb64rust_base::{FileId, Span};
 /// The [`Ty`] variants nothing produces yet, and those no value of reaches the IR yet, as patterns, and the reasons
 /// their arms give.
 pub use qb64rust_sema::{
-    BIT_VALUE_UNREACHABLE, LATER_TYPE_UNREACHABLE, NEW_TYPE_UNREACHABLE, later_types, unproduced_types,
+    BIT_VALUE_UNREACHABLE, LATER_TYPE_UNREACHABLE, PLACE_ONLY_UNREACHABLE, later_types, place_only_types,
 };
 /// Types, operators and conversion kinds are `sema`'s (`study\20` §3.4): integers by width, floats by width (`F80`
 /// is extended precision), strings, user types. They name no C type, so the IR stays ABI-neutral.
@@ -167,8 +167,9 @@ pub trait Facts {
     /// Whether evaluating it may raise a runtime error. Built-in calls and string operations always may, until
     /// built-ins carry a "cannot raise" flag (M3, `study\16` §8); an element's index check may.
     fn may_raise(&self) -> bool;
-    /// Whether it involves strings (string results need temporary cleanup at the statement's end).
-    fn uses_strings(&self) -> bool;
+    /// Whether it involves strings (string results need temporary cleanup at the statement's end). `p` gives the
+    /// types of places passed by reference.
+    fn uses_strings(&self, p: &Program) -> bool;
 }
 
 impl Facts for Expr {
@@ -185,18 +186,18 @@ impl Facts for Expr {
         }
     }
 
-    fn uses_strings(&self) -> bool {
+    fn uses_strings(&self, p: &Program) -> bool {
         self.ty == Ty::Str
             || match &self.kind {
                 ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => false,
-                ExprKind::Load(place) => place.uses_strings(),
-                ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(Expr::uses_strings),
-                ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.uses_strings(),
+                ExprKind::Load(place) => place.uses_strings(p),
+                ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(|d| d.uses_strings(p)),
+                ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.uses_strings(p),
                 ExprKind::Binary { lhs, rhs, .. }
                 | ExprKind::Concat(lhs, rhs)
-                | ExprKind::StrCompare { lhs, rhs, .. } => lhs.uses_strings() || rhs.uses_strings(),
-                ExprKind::Call { args, .. } => args.iter().flatten().any(Expr::uses_strings),
-                ExprKind::CallProc { args, .. } => args.iter().any(Arg::uses_strings),
+                | ExprKind::StrCompare { lhs, rhs, .. } => lhs.uses_strings(p) || rhs.uses_strings(p),
+                ExprKind::Call { args, .. } => args.iter().flatten().any(|a| a.uses_strings(p)),
+                ExprKind::CallProc { args, .. } => args.iter().any(|a| a.uses_strings(p)),
             }
     }
 }
@@ -207,8 +208,8 @@ impl Facts for Place {
         Place::may_raise(self)
     }
 
-    fn uses_strings(&self) -> bool {
-        self.indexes().iter().any(|v| v.uses_strings())
+    fn uses_strings(&self, p: &Program) -> bool {
+        self.indexes().iter().any(|v| v.uses_strings(p))
     }
 }
 
@@ -221,11 +222,15 @@ impl Facts for Arg {
         }
     }
 
-    /// A string copy (a temporary), or a place whose index involves strings.
-    fn uses_strings(&self) -> bool {
+    /// A string copy (a temporary), a place whose index involves strings, or a `STRING * n` element or member,
+    /// which is passed as a temporary fixed `qbs` over its bytes (`qbs_new_fixed(…,n,1)`, design D6).
+    fn uses_strings(&self, p: &Program) -> bool {
         match self {
-            Arg::Ref(place) => place.uses_strings(),
-            Arg::Temp(v) => v.uses_strings(),
+            Arg::Ref(place) => {
+                place.uses_strings(p)
+                    || (!matches!(place, Place::Var(_)) && matches!(p.place_ty(place), Ty::FixedStr(_)))
+            }
+            Arg::Temp(v) => v.uses_strings(p),
         }
     }
 }

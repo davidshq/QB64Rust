@@ -153,7 +153,7 @@ fn ty(p: &Program, t: Ty) -> String {
         | Ty::F64
         | Ty::F80
         | Ty::Str => format!("{t:?}"),
-        qb64rust_sema::unproduced_types!() => unreachable!("{}", qb64rust_sema::NEW_TYPE_UNREACHABLE),
+        Ty::FixedStr(n) => format!("Str*{n}"),
     }
 }
 

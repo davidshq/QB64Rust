@@ -39,7 +39,12 @@ impl Checker<'_> {
                 if let Some(v) = self.fixed_param_ref(t) {
                     return self.load(Place::Var(v), span);
                 }
-                let (name, suffix) = self.split_name(t)?;
+                let (name, suffix) = self.split_var_name(t)?;
+                if let Some(Ty::FixedStr(_)) = suffix {
+                    // `x$n`: a fixed-length string variable (design D6).
+                    let id = self.variable(t, name, suffix)?;
+                    return self.load(Place::Var(id), span);
+                }
                 if let Some(p) = self.proc_in_expr(&name, suffix) {
                     return self.call_function(p, t, suffix, None, span);
                 }
@@ -351,8 +356,9 @@ impl Checker<'_> {
 
     /// Converts a value for storing into a variable or argument of type `to` (spec: storing into an integer). A
     /// `_BIT * n` target takes the value in its storage type; the emitter masks or sign-extends the store (design D5).
+    /// A `STRING * n` target takes any string: libqb's `qbs_set` cuts or pads it (design D6).
     pub(super) fn store(&mut self, e: Expr, to: Ty) -> R<Expr> {
-        match (e.ty == Ty::Str, to == Ty::Str) {
+        match (e.ty == Ty::Str, to.is_string()) {
             (true, true) => return Ok(e),
             (false, false) => {}
             (true, false) => return Err(self.error(e.span, "cannot store a string in a number variable")),

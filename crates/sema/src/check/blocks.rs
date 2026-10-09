@@ -5,7 +5,7 @@
 use super::{Checker, R, Skips, first_token_span};
 use crate::{
     BIT_VALUE_UNREACHABLE, BinOp, Branch, Case, CaseItem, Expr, ExprKind, LATER_TYPE_UNREACHABLE, LoopKind, LoopTest,
-    NEW_TYPE_UNREACHABLE, Place, Stmt, StmtKind, SymbolKind, TestAt, Ty, VarId,
+    PLACE_ONLY_UNREACHABLE, Place, Stmt, StmtKind, SymbolKind, TestAt, Ty, VarId,
 };
 use qb64rust_base::show_bytes;
 use qb64rust_syntax::SyntaxKind;
@@ -212,7 +212,7 @@ impl Checker<'_> {
         if let Ty::User(_) = self.prog.var(var).ty {
             return Err(self.unsupported(t.span, format!("the `TYPE` variable `{shown}` as a `FOR` variable")));
         }
-        if self.prog.var(var).ty == Ty::Str {
+        if self.prog.var(var).ty.is_string() {
             return Err(self.error(
                 t.span,
                 format!("the `FOR` variable `{shown}` must be a number, not a string"),
@@ -375,7 +375,7 @@ impl Checker<'_> {
             Ty::I16 | Ty::I32 => Ty::I32,
             t @ (Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80) => t,
             Ty::User(_) => unreachable!("a whole `TYPE` value is no value"),
-            crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+            crate::place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
             crate::later_types!() => unreachable!("{LATER_TYPE_UNREACHABLE}"),
             crate::Ty::Bit { .. } => unreachable!("{BIT_VALUE_UNREACHABLE}"),
         };
@@ -483,7 +483,7 @@ fn for_temp(ty: Ty) -> Ty {
         Ty::F64 | Ty::F80 => Ty::F80,
         Ty::Str => Ty::Str,
         Ty::User(_) => unreachable!("a `TYPE` variable as a `FOR` variable is rejected first"),
-        crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+        crate::place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
         crate::later_types!() => unreachable!("{LATER_TYPE_UNREACHABLE}"),
         crate::Ty::Bit { .. } => unreachable!("{BIT_VALUE_UNREACHABLE}"),
     }

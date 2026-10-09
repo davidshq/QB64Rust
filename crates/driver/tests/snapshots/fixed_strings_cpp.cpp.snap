@@ -1,0 +1,675 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+qbs *__STRING3_SH=NULL;
+qbs *__STRING4_F=NULL;
+void *__UDT_R=NULL;
+ptrszint *__ARRAY_STRING3_A=NULL;
+ptrszint *__ARRAY_UDT_RA=NULL;
+int32 *__LONG_N=NULL;
+qbs *_SUB_LOC_STRING3_T=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+void SUB_LOC();
+void SUB_SETLONG(qbs*_SUB_SETLONG_STRING_S);
+int32 FUNC_LENOF(qbs*_FUNC_LENOF_STRING_S);
+==> clear.txt <==
+memset((void*)(__STRING3_SH->chr),0,3);
+memset((void*)(__STRING4_F->chr),0,4);
+memset((void*)__UDT_R,0,10);
+memset((void*)(__ARRAY_STRING3_A[0]),0,__ARRAY_STRING3_A[5]*3);
+memset((void*)(__ARRAY_UDT_RA[0]),0,__ARRAY_UDT_RA[5]*10);
+*__LONG_N=0;
+memset((void*)(_SUB_LOC_STRING3_T->chr),0,3);
+==> maindata.txt <==
+if(__STRING3_SH==NULL){
+__STRING3_SH=qbs_new_fixed((uint8*)mem_static_malloc(3),3,0);
+memset(__STRING3_SH->chr,0,3);
+}
+if(__STRING4_F==NULL){
+__STRING4_F=qbs_new_fixed((uint8*)mem_static_malloc(4),4,0);
+memset(__STRING4_F->chr,0,4);
+}
+if(__UDT_R==NULL){
+__UDT_R=(void*)mem_static_malloc(10);
+memset(__UDT_R,0,10);
+}
+if (!__ARRAY_STRING3_A){
+__ARRAY_STRING3_A=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING3_A)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING3_A[4]=0ll;
+__ARRAY_STRING3_A[5]=(2ll)-__ARRAY_STRING3_A[4]+1;
+if (__ARRAY_STRING3_A[5]<=0) error(5);
+__ARRAY_STRING3_A[6]=1;
+__ARRAY_STRING3_A[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING3_A[5]*3);
+memset((void*)(__ARRAY_STRING3_A[0]),0,__ARRAY_STRING3_A[5]*3);
+__ARRAY_STRING3_A[2]=1+2;
+}
+if (!__ARRAY_UDT_RA){
+__ARRAY_UDT_RA=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_RA)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_RA[4]=0ll;
+__ARRAY_UDT_RA[5]=(1ll)-__ARRAY_UDT_RA[4]+1;
+if (__ARRAY_UDT_RA[5]<=0) error(5);
+__ARRAY_UDT_RA[6]=1;
+__ARRAY_UDT_RA[0]=(ptrszint)mem_static_malloc(__ARRAY_UDT_RA[5]*10);
+memset((void*)(__ARRAY_UDT_RA[0]),0,__ARRAY_UDT_RA[5]*10);
+__ARRAY_UDT_RA[2]=1+2;
+}
+if(__LONG_N==NULL){
+__LONG_N=(int32*)mem_static_malloc(4);
+*__LONG_N=0;
+}
+if(_SUB_LOC_STRING3_T==NULL){
+_SUB_LOC_STRING3_T=qbs_new_fixed((uint8*)mem_static_malloc(3),3,0);
+memset(_SUB_LOC_STRING3_T->chr,0,3);
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+#include "main2.txt"
+#include "main3.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "fixed_strings_cpp.bas"
+do{
+#line 2 "fixed_strings_cpp.bas"
+sub__dest(func__console());
+#line 2 "fixed_strings_cpp.bas"
+sub__source(func__console());
+#line 2 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 15 "fixed_strings_cpp.bas"
+do{
+#line 15 "fixed_strings_cpp.bas"
+qbs_set(__STRING4_F,qbs_new_txt_len("ab",2));
+#line 15 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 15 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 15 "fixed_strings_cpp.bas"
+do{
+#line 15 "fixed_strings_cpp.bas"
+qbs_set(qbs_new_fixed((uint8*)(((char*)__UDT_R)+4),6,1),qbs_new_txt_len("bob",3));
+#line 15 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 15 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 15 "fixed_strings_cpp.bas"
+do{
+#line 15 "fixed_strings_cpp.bas"
+tmp_long=array_check((1ll)-__ARRAY_STRING3_A[4],__ARRAY_STRING3_A[5]);
+#line 15 "fixed_strings_cpp.bas"
+if (!is_error_pending()) qbs_set(qbs_new_fixed(&((uint8*)(__ARRAY_STRING3_A[0]))[(tmp_long)*3],3,1),qbs_new_txt_len("x",1));
+#line 15 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 15 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 15 "fixed_strings_cpp.bas"
+do{
+#line 15 "fixed_strings_cpp.bas"
+{
+#line 15 "fixed_strings_cpp.bas"
+qbs *mbr_value=qbs_set(qbs_new(0,1),qbs_new_txt_len("q",1));
+#line 15 "fixed_strings_cpp.bas"
+int32 mbr_pending=is_error_pending();
+#line 15 "fixed_strings_cpp.bas"
+int32 mbr_bad=0;
+#line 15 "fixed_strings_cpp.bas"
+int64 mbr_k;
+#line 15 "fixed_strings_cpp.bas"
+ptrszint mbr_flat=0;
+#line 15 "fixed_strings_cpp.bas"
+mbr_k=(1ll)-__ARRAY_UDT_RA[4];
+#line 15 "fixed_strings_cpp.bas"
+if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_RA[5]){error(9);mbr_bad=1;}
+#line 15 "fixed_strings_cpp.bas"
+mbr_flat=mbr_k;
+#line 15 "fixed_strings_cpp.bas"
+if (!mbr_bad&&(mbr_pending||!is_error_pending())) qbs_set(qbs_new_fixed((uint8*)(((char*)__ARRAY_UDT_RA[0])+(mbr_flat*10+4)),6,1),mbr_value);
+#line 15 "fixed_strings_cpp.bas"
+}
+#line 15 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 15 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 15 "fixed_strings_cpp.bas"
+do{
+#line 15 "fixed_strings_cpp.bas"
+qbs_set(__STRING3_SH,qbs_new_txt_len("shared",6));
+#line 15 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 15 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "fixed_strings_cpp.bas"
+do{
+#line 16 "fixed_strings_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("[",1));
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,__STRING4_F);
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("] [",3));
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_fixed((uint8*)(((char*)__UDT_R)+4),6,1));
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("] [",3));
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_fixed(&((uint8*)(__ARRAY_STRING3_A[0]))[(array_check((1ll)-__ARRAY_STRING3_A[4],__ARRAY_STRING3_A[5]))*3],3,1));
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("] [",3));
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_fixed((uint8*)((((char*)__ARRAY_UDT_RA[0])+((array_check((1ll)-__ARRAY_UDT_RA[4],__ARRAY_UDT_RA[5]))*10))+4),6,1));
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("] [",3));
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,__STRING3_SH);
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("]",1));
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(qbs_asc(qbs_new_fixed(&((uint8*)(__ARRAY_STRING3_A[0]))[(array_check((0ll)-__ARRAY_STRING3_A[4],__ARRAY_STRING3_A[5]))*3],3,1),1))),qbs_new_txt(" ")));
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(qbs_asc(qbs_new_fixed((uint8*)((((char*)__ARRAY_UDT_RA[0])+((array_check((0ll)-__ARRAY_UDT_RA[4],__ARRAY_UDT_RA[5]))*10))+4),6,1),1))),qbs_new_txt(" ")));
+#line 16 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 16 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "fixed_strings_cpp.bas"
+qbs_print(nothingstring,1);
+#line 16 "fixed_strings_cpp.bas"
+skip1:
+#line 16 "fixed_strings_cpp.bas"
+qbs_free(tqbs);
+#line 16 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 16 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "fixed_strings_cpp.bas"
+do{
+#line 17 "fixed_strings_cpp.bas"
+SUB_SETLONG(__STRING4_F);
+#line 17 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 17 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "fixed_strings_cpp.bas"
+do{
+#line 18 "fixed_strings_cpp.bas"
+SUB_SETLONG(qbs_new_fixed((uint8*)(((char*)__UDT_R)+4),6,1));
+#line 18 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 18 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "fixed_strings_cpp.bas"
+do{
+#line 19 "fixed_strings_cpp.bas"
+SUB_SETLONG(qbs_new_fixed(&((uint8*)(__ARRAY_STRING3_A[0]))[(array_check((2ll)-__ARRAY_STRING3_A[4],__ARRAY_STRING3_A[5]))*3],3,1));
+#line 19 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 19 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "fixed_strings_cpp.bas"
+do{
+#line 20 "fixed_strings_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 20 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("[",1));
+#line 20 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 20 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 20 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 20 "fixed_strings_cpp.bas"
+qbs_set(tqbs,__STRING4_F);
+#line 20 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 20 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 20 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 20 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("] [",3));
+#line 20 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 20 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 20 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 20 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_fixed((uint8*)(((char*)__UDT_R)+4),6,1));
+#line 20 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 20 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 20 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 20 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("] [",3));
+#line 20 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 20 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 20 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 20 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_fixed(&((uint8*)(__ARRAY_STRING3_A[0]))[(array_check((2ll)-__ARRAY_STRING3_A[4],__ARRAY_STRING3_A[5]))*3],3,1));
+#line 20 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 20 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 20 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 20 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("]",1));
+#line 20 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 20 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 20 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 20 "fixed_strings_cpp.bas"
+qbs_print(nothingstring,1);
+#line 20 "fixed_strings_cpp.bas"
+skip2:
+#line 20 "fixed_strings_cpp.bas"
+qbs_free(tqbs);
+#line 20 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 20 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "fixed_strings_cpp.bas"
+do{
+#line 21 "fixed_strings_cpp.bas"
+*__LONG_N=(FUNC_LENOF(qbs_new_fixed(&((uint8*)(__ARRAY_STRING3_A[0]))[(array_check((1ll)-__ARRAY_STRING3_A[4],__ARRAY_STRING3_A[5]))*3],3,1))+FUNC_LENOF(qbs_new_fixed((uint8*)(((char*)__UDT_R)+4),6,1)));
+#line 21 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 21 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 22 "fixed_strings_cpp.bas"
+do{
+#line 22 "fixed_strings_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 22 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(*__LONG_N)),qbs_new_txt(" ")));
+#line 22 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 22 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 22 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 22 "fixed_strings_cpp.bas"
+qbs_print(nothingstring,1);
+#line 22 "fixed_strings_cpp.bas"
+skip3:
+#line 22 "fixed_strings_cpp.bas"
+qbs_free(tqbs);
+#line 22 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 22 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "fixed_strings_cpp.bas"
+do{
+#line 23 "fixed_strings_cpp.bas"
+SUB_LOC();
+#line 23 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "fixed_strings_cpp.bas"
+do{
+#line 24 "fixed_strings_cpp.bas"
+SUB_LOC();
+#line 24 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "fixed_strings_cpp.bas"
+do{
+#line 25 "fixed_strings_cpp.bas"
+if (sub_gl_called) error(271);
+#line 25 "fixed_strings_cpp.bas"
+close_program=1;
+#line 25 "fixed_strings_cpp.bas"
+end();
+#line 25 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(25);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(__STRING3_SH);
+qbs_free(__STRING4_F);
+qbs_free(_SUB_LOC_STRING3_T);
+==> main1.txt <==
+#line 27 "fixed_strings_cpp.bas"
+void SUB_LOC(){
+#line 27 "fixed_strings_cpp.bas"
+qbs *tqbs;
+#line 27 "fixed_strings_cpp.bas"
+ptrszint tmp_long;
+#line 27 "fixed_strings_cpp.bas"
+int32 tmp_fileno;
+#line 27 "fixed_strings_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 27 "fixed_strings_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 27 "fixed_strings_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 27 "fixed_strings_cpp.bas"
+#include "data1.txt"
+#line 27 "fixed_strings_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 27 "fixed_strings_cpp.bas"
+new_mem_lock();
+#line 27 "fixed_strings_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 27 "fixed_strings_cpp.bas"
+sf_mem_lock->type=3;
+#line 27 "fixed_strings_cpp.bas"
+libqb_check_stack();
+#line 27 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 30 "fixed_strings_cpp.bas"
+do{
+#line 30 "fixed_strings_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 30 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(qbs_asc(_SUB_LOC_STRING3_L,1))),qbs_new_txt(" ")));
+#line 30 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip4;
+#line 30 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 30 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 30 "fixed_strings_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(qbs_asc(_SUB_LOC_STRING3_T,1))),qbs_new_txt(" ")));
+#line 30 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto skip4;
+#line 30 "fixed_strings_cpp.bas"
+makefit(tqbs);
+#line 30 "fixed_strings_cpp.bas"
+qbs_print(tqbs,0);
+#line 30 "fixed_strings_cpp.bas"
+qbs_print(nothingstring,1);
+#line 30 "fixed_strings_cpp.bas"
+skip4:
+#line 30 "fixed_strings_cpp.bas"
+qbs_free(tqbs);
+#line 30 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 30 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(30);}while(r);
+#line 31 "fixed_strings_cpp.bas"
+do{
+#line 31 "fixed_strings_cpp.bas"
+qbs_set(_SUB_LOC_STRING3_L,qbs_new_txt_len("zz",2));
+#line 31 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 31 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(31);}while(r);
+#line 31 "fixed_strings_cpp.bas"
+do{
+#line 31 "fixed_strings_cpp.bas"
+qbs_set(_SUB_LOC_STRING3_T,qbs_new_txt_len("s",1));
+#line 31 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 31 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(31);}while(r);
+#line 32 "fixed_strings_cpp.bas"
+exit_subfunc:;
+#line 32 "fixed_strings_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 32 "fixed_strings_cpp.bas"
+#include "free1.txt"
+#line 32 "fixed_strings_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 32 "fixed_strings_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 32 "fixed_strings_cpp.bas"
+}
+==> data1.txt <==
+qbs *_SUB_LOC_STRING3_L=NULL;
+if(_SUB_LOC_STRING3_L==NULL){
+_SUB_LOC_STRING3_L=qbs_new_fixed((uint8*)mem_static_malloc(3),3,0);
+memset(_SUB_LOC_STRING3_L->chr,0,3);
+}
+==> free1.txt <==
+qbs_free(_SUB_LOC_STRING3_L);
+==> main2.txt <==
+#line 34 "fixed_strings_cpp.bas"
+void SUB_SETLONG(qbs*_SUB_SETLONG_STRING_S){
+#line 34 "fixed_strings_cpp.bas"
+qbs *tqbs;
+#line 34 "fixed_strings_cpp.bas"
+ptrszint tmp_long;
+#line 34 "fixed_strings_cpp.bas"
+int32 tmp_fileno;
+#line 34 "fixed_strings_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 34 "fixed_strings_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 34 "fixed_strings_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 34 "fixed_strings_cpp.bas"
+#include "data2.txt"
+#line 34 "fixed_strings_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 34 "fixed_strings_cpp.bas"
+new_mem_lock();
+#line 34 "fixed_strings_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 34 "fixed_strings_cpp.bas"
+sf_mem_lock->type=3;
+#line 34 "fixed_strings_cpp.bas"
+libqb_check_stack();
+#line 34 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 35 "fixed_strings_cpp.bas"
+do{
+#line 35 "fixed_strings_cpp.bas"
+qbs_set(_SUB_SETLONG_STRING_S,qbs_new_txt_len("longer text",11));
+#line 35 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 35 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(35);}while(r);
+#line 36 "fixed_strings_cpp.bas"
+exit_subfunc:;
+#line 36 "fixed_strings_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 36 "fixed_strings_cpp.bas"
+#include "free2.txt"
+#line 36 "fixed_strings_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 36 "fixed_strings_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 36 "fixed_strings_cpp.bas"
+}
+==> data2.txt <==
+qbs*oldstr0=NULL;
+if(_SUB_SETLONG_STRING_S->tmp||_SUB_SETLONG_STRING_S->fixed||_SUB_SETLONG_STRING_S->readonly){
+oldstr0=_SUB_SETLONG_STRING_S;
+if (oldstr0->cmem_descriptor){
+_SUB_SETLONG_STRING_S=qbs_new_cmem(oldstr0->len,0);
+}else{
+_SUB_SETLONG_STRING_S=qbs_new(oldstr0->len,0);
+}
+memcpy(_SUB_SETLONG_STRING_S->chr,oldstr0->chr,oldstr0->len);
+}
+==> free2.txt <==
+if(oldstr0){
+if(oldstr0->fixed)qbs_set(oldstr0,_SUB_SETLONG_STRING_S);
+qbs_free(_SUB_SETLONG_STRING_S);
+}
+==> main3.txt <==
+#line 38 "fixed_strings_cpp.bas"
+int32 FUNC_LENOF(qbs*_FUNC_LENOF_STRING_S){
+#line 38 "fixed_strings_cpp.bas"
+qbs *tqbs;
+#line 38 "fixed_strings_cpp.bas"
+ptrszint tmp_long;
+#line 38 "fixed_strings_cpp.bas"
+int32 tmp_fileno;
+#line 38 "fixed_strings_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 38 "fixed_strings_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 38 "fixed_strings_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 38 "fixed_strings_cpp.bas"
+#include "data3.txt"
+#line 38 "fixed_strings_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 38 "fixed_strings_cpp.bas"
+new_mem_lock();
+#line 38 "fixed_strings_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 38 "fixed_strings_cpp.bas"
+sf_mem_lock->type=3;
+#line 38 "fixed_strings_cpp.bas"
+libqb_check_stack();
+#line 38 "fixed_strings_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 39 "fixed_strings_cpp.bas"
+do{
+#line 39 "fixed_strings_cpp.bas"
+*_FUNC_LENOF_LONG_LENOF=((int32)(_FUNC_LENOF_STRING_S)->len);
+#line 39 "fixed_strings_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 39 "fixed_strings_cpp.bas"
+if(!qbevent)break;evnt(39);}while(r);
+#line 40 "fixed_strings_cpp.bas"
+exit_subfunc:;
+#line 40 "fixed_strings_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 40 "fixed_strings_cpp.bas"
+#include "free3.txt"
+#line 40 "fixed_strings_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 40 "fixed_strings_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 40 "fixed_strings_cpp.bas"
+return *_FUNC_LENOF_LONG_LENOF;
+#line 40 "fixed_strings_cpp.bas"
+}
+==> data3.txt <==
+int32 *_FUNC_LENOF_LONG_LENOF=NULL;
+if(_FUNC_LENOF_LONG_LENOF==NULL){
+_FUNC_LENOF_LONG_LENOF=(int32*)mem_static_malloc(4);
+*_FUNC_LENOF_LONG_LENOF=0;
+}
+qbs*oldstr0=NULL;
+if(_FUNC_LENOF_STRING_S->tmp||_FUNC_LENOF_STRING_S->fixed||_FUNC_LENOF_STRING_S->readonly){
+oldstr0=_FUNC_LENOF_STRING_S;
+if (oldstr0->cmem_descriptor){
+_FUNC_LENOF_STRING_S=qbs_new_cmem(oldstr0->len,0);
+}else{
+_FUNC_LENOF_STRING_S=qbs_new(oldstr0->len,0);
+}
+memcpy(_FUNC_LENOF_STRING_S->chr,oldstr0->chr,oldstr0->len);
+}
+==> free3.txt <==
+if(oldstr0){
+if(oldstr0->fixed)qbs_set(oldstr0,_FUNC_LENOF_STRING_S);
+qbs_free(_FUNC_LENOF_STRING_S);
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt

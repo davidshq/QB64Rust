@@ -24,7 +24,17 @@ REPO = pathlib.Path(__file__).resolve().parents[2]
 DEST = REPO / "tests" / "upstream"
 SUITE = pathlib.PurePosixPath("tests/compile_tests")
 EXTENSIONS = [
-    ".bas", ".bi", ".bm", ".h", ".c", ".output", ".err", ".license", ".noprompt", ".compile-from-base", ".md",
+    ".bas",
+    ".bi",
+    ".bm",
+    ".h",
+    ".c",
+    ".output",
+    ".err",
+    ".license",
+    ".noprompt",
+    ".compile-from-base",
+    ".md",
 ]
 COMMIT_LINE = re.compile(r"^Commit: `([0-9a-f]+)`", re.MULTILINE)
 
@@ -42,7 +52,9 @@ def wanted(path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("clone", nargs="?", default=str(REPO.parent / "QB64pe"))
-    ap.add_argument("--commit-ok", action="store_true", help="accept a clone HEAD other than SOURCE.md's commit")
+    ap.add_argument(
+        "--commit-ok", action="store_true", help="accept a clone HEAD other than SOURCE.md's commit"
+    )
     a = ap.parse_args()
 
     clone = pathlib.Path(a.clone).resolve()
@@ -57,7 +69,9 @@ def main():
         m = COMMIT_LINE.search(source_md.read_text(encoding="utf-8"))
         pinned = m.group(1) if m else None
         if pinned != head and not a.commit_ok:
-            sys.exit(f"the clone is at {head}, SOURCE.md names {pinned}; rerun with --commit-ok to take {head}")
+            sys.exit(
+                f"the clone is at {head}, SOURCE.md names {pinned}; rerun with --commit-ok to take {head}"
+            )
 
     out = DEST / "compile_tests"
     if out.exists():

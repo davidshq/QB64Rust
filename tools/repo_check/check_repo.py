@@ -47,16 +47,24 @@ BINARY_SUFFIXES = (".bin", ".exe", ".png", ".ico", ".7z", ".zip", ".vsix")
 
 # Output recorded from the old compiler or its programs: control bytes there are measured behaviour (NULs after
 # `INF` in v02, a 0x01 in a qb64pe include message, the `-x` progress bar's CRs).
-RECORDED = ["verification/*.out.txt", "verification/*.compile.txt", "vscode/test-fixtures/compiler/*.out.txt"]
+RECORDED = [
+    "verification/*.out.txt",
+    "verification/*.compile.txt",
+    "vscode/test-fixtures/compiler/*.out.txt",
+]
 
 
 def git(*args: str, stdin: bytes = b"", cwd: str | None = None) -> bytes:
-    return subprocess.run(["git", *args], input=stdin, cwd=cwd, check=True, capture_output=True).stdout
+    return subprocess.run(
+        ["git", *args], input=stdin, cwd=cwd, check=True, capture_output=True
+    ).stdout
 
 
 def unchecked_text(root: str, paths: list[str]) -> set[str]:
     """Paths whose `text` attribute is unset (-text)."""
-    out = git("check-attr", "--stdin", "-z", "text", stdin="\0".join(paths).encode(), cwd=root).split(b"\0")
+    out = git(
+        "check-attr", "--stdin", "-z", "text", stdin="\0".join(paths).encode(), cwd=root
+    ).split(b"\0")
     triples = zip(out[0::3], out[1::3], out[2::3])
     return {p.decode() for p, _, v in triples if v == b"unset"}
 
@@ -88,7 +96,8 @@ def main() -> int:
     findings = []
     for path in paths:
         try:
-            data = open(f"{root}/{path}", "rb").read()
+            with open(f"{root}/{path}", "rb") as f:
+                data = f.read()
         except FileNotFoundError:
             continue  # deleted in the working tree
         for n, line in enumerate(data.split(b"\n"), 1):

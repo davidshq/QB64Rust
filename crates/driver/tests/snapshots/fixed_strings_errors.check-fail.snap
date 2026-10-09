@@ -1,0 +1,23 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+fixed_strings_errors.bas:10:20: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
+fixed_strings_errors.bas:11:20: error: expected a size after `*`
+fixed_strings_errors.bas:12:20: error: a fixed-length string's length must be a whole number
+fixed_strings_errors.bas:13:20: error: expected a size after `*`
+fixed_strings_errors.bas:14:20: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
+fixed_strings_errors.bas:15:5: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
+fixed_strings_errors.bas:17:5: error: the `FOR` variable `f` must be a number, not a string
+fixed_strings_errors.bas:22:1: error: not supported yet: a type suffix on a `STRING * n` member: `r.nm$`
+fixed_strings_errors.bas:24:1: error: not supported yet: `k$3` beside a SUB, FUNCTION, constant or `STRING * n` parameter of its name, or with a `.`
+fixed_strings_errors.bas:25:5: error: not supported yet: `k$4` beside a SUB, FUNCTION, constant or `STRING * n` parameter of its name, or with a `.`
+fixed_strings_errors.bas:26:1: error: not supported yet: `MID$(...)` (an array used without `DIM`, or no FUNCTION of this name)
+fixed_strings_errors.bas:27:7: error: not supported yet: fixed-length strings
+fixed_strings_errors.bas:29:19: error: not supported yet: this name as the length of a `STRING * n`: `half`
+fixed_strings_errors.bas:30:5: error: not supported yet: an array named with `$n`: `a$3`
+fixed_strings_errors.bas:32:19: error: not supported yet: this name as the length of a `STRING * n`: `k`
+fixed_strings_errors.bas:37:12: error: not supported yet: `k$2` beside a SUB, FUNCTION, constant or `STRING * n` parameter of its name, or with a `.`
+fixed_strings_errors.bas:38:5: error: not supported yet: `x$5` beside a SUB, FUNCTION, constant or `STRING * n` parameter of its name, or with a `.`
+fixed_strings_errors.bas:39:11: error: not supported yet: `x$5` beside a SUB, FUNCTION, constant or `STRING * n` parameter of its name, or with a `.`
+fixed_strings_errors.bas:42:10: error: not supported yet: fixed-length strings

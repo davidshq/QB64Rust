@@ -62,15 +62,36 @@ def main() -> int:
         return 125
     k32 = ctypes.WinDLL("kernel32", use_last_error=True)
     k32.CreateFileW.restype = wintypes.HANDLE
-    k32.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID,
-                                wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
-    k32.WriteConsoleInputW.argtypes = [wintypes.HANDLE, ctypes.POINTER(INPUT_RECORD), wintypes.DWORD,
-                                       ctypes.POINTER(wintypes.DWORD)]
-    conin = k32.CreateFileW("CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                            None, OPEN_EXISTING, 0, None)
+    k32.CreateFileW.argtypes = [
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.HANDLE,
+    ]
+    k32.WriteConsoleInputW.argtypes = [
+        wintypes.HANDLE,
+        ctypes.POINTER(INPUT_RECORD),
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD),
+    ]
+    conin = k32.CreateFileW(
+        "CONIN$",
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        None,
+        OPEN_EXISTING,
+        0,
+        None,
+    )
     if conin == INVALID_HANDLE_VALUE:
-        print(f"press_any_key: cannot open CONIN$ (error {ctypes.get_last_error()}); "
-              "the helper needs a console of its own", file=sys.stderr)
+        print(
+            f"press_any_key: cannot open CONIN$ (error {ctypes.get_last_error()}); "
+            "the helper needs a console of its own",
+            file=sys.stderr,
+        )
         return 125
 
     records = (INPUT_RECORD * 2)()
@@ -87,8 +108,10 @@ def main() -> int:
     written = wintypes.DWORD()
     while p.poll() is None:
         if not k32.WriteConsoleInputW(conin, records, 2, ctypes.byref(written)):
-            print(f"press_any_key: WriteConsoleInputW failed (error {ctypes.get_last_error()})",
-                  file=sys.stderr)
+            print(
+                f"press_any_key: WriteConsoleInputW failed (error {ctypes.get_last_error()})",
+                file=sys.stderr,
+            )
             p.kill()
             return 125
         time.sleep(0.05)

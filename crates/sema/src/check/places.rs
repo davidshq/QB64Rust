@@ -141,16 +141,14 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// The type of a member: one of the six first numeric types, or a user type defined in an earlier block. A `_BIT`
-    /// member is an error (measured: "Cannot use _BIT inside user defined types", `verification\v21_x25`, `x26`);
-    /// members of the other new numeric types come with task 8.1 of `m2-numeric-types`.
+    /// The type of a member: one of the six first numeric types, a fixed-length string of n bytes (n a number: the
+    /// block is read before any `CONST`), or a user type defined in an earlier block. A `_BIT` member is an error
+    /// (measured: "Cannot use _BIT inside user defined types", `verification\v21_x25`, `x26`); members of the other
+    /// new numeric types come with task 8.1 of `m2-numeric-types`.
     fn member_type(&mut self, a: ast::AsClause) -> R<Ty> {
         let span = a.node().span();
         let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
         let text = words.join(" ");
-        if a.size().is_some() && text.ends_with("STRING") {
-            return Err(self.unsupported(span, "fixed-length strings"));
-        }
         if let Some(&id) = self.types_by_name.get(&text) {
             return Ok(Ty::User(id));
         }
@@ -158,7 +156,7 @@ impl Checker<'_> {
         if !built_in && text != "STRING" {
             return Err(self.unsupported(span, format!("the member type `{text}`")));
         }
-        let ty = self.type_of(a)?;
+        let ty = self.type_of_in(a, false)?;
         if ty == Ty::Str {
             Err(self.unsupported(span, "`STRING` members"))
         } else if let Ty::Bit { .. } = ty {
@@ -225,6 +223,10 @@ impl Checker<'_> {
             // Arrays of the new numeric types: task 8.1 of `m2-numeric-types`; a `_BIT` array later still.
             let name = self.prog.type_name(ty);
             return Err(self.unsupported(bounds.node().span(), format!("arrays of `{name}`")));
+        }
+        if let Some(Ty::FixedStr(_)) = suffix {
+            // `DIM a$3(2)` was not measured (`DIM a(2) AS STRING * 3` was).
+            return Err(self.unsupported(name_tok.span, format!("an array named with `$n`: `{shown}`")));
         }
         let ranges = bounds.ranges();
         if ranges.is_empty() {
@@ -462,6 +464,10 @@ impl Checker<'_> {
             if let Ty::User(_) = m {
                 return Err(self.unsupported(t.span, format!("a type suffix on a `TYPE` member: `{shown}`")));
             }
+            if let Ty::FixedStr(_) = m {
+                // A suffix on a fixed-length string member was not measured.
+                return Err(self.unsupported(t.span, format!("a type suffix on a `STRING * n` member: `{shown}`")));
+            }
             if m != s {
                 let msg = format!("`{shown}`: the member is {}, not {}", m.qb_name(), s.qb_name());
                 return Err(self.error(t.span, msg));
@@ -498,7 +504,8 @@ impl Checker<'_> {
 
     /// The value of a place. A whole user-type value is no value (measured, "User defined types in expressions are
     /// invalid"); as an argument it is not supported yet (a `TYPE` parameter is). A `_BIT` place's value is held in
-    /// its storage type and believed the place's `_BIT` type ([`Ty::held_value`]).
+    /// its storage type and believed the place's `_BIT` type ([`Ty::held_value`]); a `STRING * n` place's value is a
+    /// `STRING`.
     pub(super) fn load(&mut self, place: Place, span: Span) -> R<Expr> {
         let ty = self.prog.place_ty(&place);
         if self.len_place == Some(span) && matches!(ty, Ty::User(_)) {
@@ -520,7 +527,7 @@ impl Checker<'_> {
         Ok(Expr {
             span,
             ty: ty.held_value(),
-            qb: ty,
+            qb: ty.believed_value(),
             kind: ExprKind::Load(place),
         })
     }

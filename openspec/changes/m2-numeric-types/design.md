@@ -214,6 +214,15 @@ cut, `LEN(t + "!")` is the real length, a fixed variable passed to it is still c
 negative result a compile error). Variable-length `STRING` members stay out (they need `initialise_udt_varstrings`
 and per-type free lists).
 
+*As built (group 7, 2026-10-09):* as above, with `Ty::held_value` and `Ty::believed_value` giving `Str` for a
+`FixedStr` place's value, and `place_only_types!()` the arm of a `match` on a value's type. `name$n` is read by
+`split_var_name` only where a scalar variable is named (`DIM`, `STATIC`, `SHARED`, assignment, an expression); every
+other name keeps `name$n` "not supported yet" (FUNCTIONs `f$n` until task 8.2, arrays named so, constants, `FOR`).
+A `TYPE` member's n must be a number (blocks are read before constants). A store into a member of an element copies
+the string first (`qbs_set(qbs_new(0,1),…)`), so an index cannot change it. The `MID$` statement stays "not
+supported yet" with the other built-in statements (`STATUS.md` step 9). Group 6 needed no new code (storage, mask
+and errors were in from groups 4 and 5): only its tests, `s32_bit` and D-009's CLI test.
+
 ### D7. Declarations, suffixes and literals
 
 `sema`'s suffix table (`check\decl.rs`) and `type_of` gain every QB64pe spelling; the lexer already tokenizes the

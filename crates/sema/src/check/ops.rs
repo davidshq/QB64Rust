@@ -5,7 +5,7 @@
 //! ([`held`]: C's usual arithmetic conversions on the C types the old compiler emits), the believed type decides
 //! what the old compiler believes the result is (its "markup", `study\02` §1.4, [`int_believed`]).
 
-use crate::{BIT_VALUE_UNREACHABLE, BinOp, NEW_TYPE_UNREACHABLE, Ty, UnOp};
+use crate::{BIT_VALUE_UNREACHABLE, BinOp, PLACE_ONLY_UNREACHABLE, Ty, UnOp};
 
 /// An operator, as the typing rules see it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -266,7 +266,7 @@ pub(super) fn promote(t: Ty) -> Ty {
         Ty::I32 | Ty::U32 | Ty::I64 | Ty::U64 | Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str => t,
         Ty::Bit { .. } => unreachable!("{BIT_VALUE_UNREACHABLE}"),
         Ty::User(_) => unreachable!("a whole `TYPE` value is never an operand"),
-        crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+        crate::place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
     }
 }
 
@@ -393,7 +393,7 @@ pub(super) fn wrap(v: i64, ty: Ty) -> i64 {
         Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff => v,
         Ty::Bit { .. } => wrap(v, ty.storage()),
         Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::User(_) => unreachable!("integer constant folded to {ty:?}"),
-        crate::unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+        crate::place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
     }
 }
 

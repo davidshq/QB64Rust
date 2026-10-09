@@ -295,21 +295,60 @@ programs it makes pass to `slice.list`, `tests\upstream\pass.list` and `tests\di
 
 ## 6. `_BIT` (design D5)
 
-- [ ] 6.1 `_BIT` and `_BIT * n` scalars: storage by `storage()` (D-009), the store mask and sign extension in the
+- [x] 6.1 `_BIT` and `_BIT * n` scalars: storage by `storage()` (D-009), the store mask and sign extension in the
   emitter, `_BIT` members, parameters and arrays as measured in 1.2 (arrays "not supported yet"). Verify: `cpp`
   snapshot of the masked stores; slice program `s32_bit` recorded and passing; CLI build-and-run test for D-009
   (two `_BIT * 33` scalars, `#[ignore]`d without the clone); `DIVERGENCES.md` D-009's "Pinned by" filled in.
+  *Done 2026-10-09 (session 32).* The code was in already: storage by `storage()` since 4.1, the mask and the sign
+  extension since 5.2, members, parameters and `FOR` variables errors since 4.1, a `_BIT` argument a copy since 5.1;
+  so this task is its tests. `cpp` test `bit_stores_cpp` (1, 32, 33 and 64 bits, signed and unsigned, from a float;
+  `DIM SHARED`, `STATIC`, local; a copy passed to a LONG parameter; 8 bytes of storage above 32 bits), same output as
+  `qb64pe.exe`; `check-fail` test `bit_arrays` (`AS _BIT`, `AS _UNSIGNED _BIT * 9`, `` h`5(2) ``). `s32_bit`
+  (the stores of `v21_b_bit_stores` at twelve widths, from integers, `_BIT`s and floats, arithmetic, `STR$`, the
+  storage classes, copies to four parameter types) recorded and passing at the first run, folding on and off. CLI
+  test `wide_bit_scalars_do_not_overlap` (two `_BIT * 33`, and an `_UNSIGNED _BIT * 3` before a `_BIT * 40`: ` 5 -1 `
+  and ` 2  2 `; `qb64pe.exe` prints ` 4294967295 -1 ` and ` 0  2 `, run once to check); D-009 pinned.
 
 ## 7. Fixed-length strings (design D6)
 
-- [ ] 7.1 `Ty::FixedStr(n)` for variables (every storage class), with NUL-filled allocation, assignment through
+- [x] 7.1 `Ty::FixedStr(n)` for variables (every storage class), with NUL-filled allocation, assignment through
   `qbs_set`, loads as `Str`, `LEN`, and the forms of 1.3. Verify: `typed` and `cpp` snapshots; front-end tests for
   `STRING * 0` and the other measured rejections; the fixed-length-strings delta's declaration and assignment
   scenarios as lines of `s33_fixed_strings`.
-- [ ] 7.2 Fixed-length string members and array elements (temporary descriptors over the bytes, offsets with
+  *Done 2026-10-09 (session 32).* `FixedStr(n)` is the type of a place only: `Ty::held_value` and the new
+  `Ty::believed_value` give `Str` for its value, so expression typing never sees it; `place_only_types!()` (was
+  `unproduced_types!()`) is the arm of each `match` on a value's type, and the declaration `match`es (`size_of`, the
+  C declaration, allocation, clearing, names) handle it. `check\decl.rs`: `type_of` reads `STRING * n` (n a number
+  or an integer constant's name, `fixed_len_of`, the 32-bit rule of 4.3; `_UNSIGNED` ignored); `split_var_name`
+  reads `name$n` for a variable (`DIM`, `STATIC`, `SHARED`, an assignment target, a name in an expression) while
+  `split_name` keeps it "not supported yet" for every other name (procedures, constants, `FOR` variables, arrays).
+  `store` takes any string into a `STRING * n` place. The emitter writes the old compiler's forms (read from its C++
+  with `-z`): `qbs_new_fixed((uint8*)mem_static_malloc(n),n,0)` and a `memset` of the bytes (also each call for a
+  local, which is freed with `qbs_free`), `memset` of the bytes in `clear.txt`, stores by `qbs_set`, names
+  `__STRINGn_X`. Rejected as measured, each an error: a length of 0, an expression, a float, a negative number,
+  2147483648 (negative in 32 bits; the old compiler's C++ build fails), `name$0`, a string `FOR` variable.
+  "Not supported yet" (not measured): a length named by a float or string constant, `$n` beside a SUB, FUNCTION or
+  constant of the name or with a `.`, an array named `name$n`, a `$` suffix on a fixed-length member, a member's
+  length named by a constant (the blocks are read before any `CONST`). Two forms of the spec delta stay "not
+  supported yet" with what they need: the `MID$` statement (built-in statements, step 9 of `STATUS.md`) and FUNCTIONs
+  named `name$n` (task 8.2). Tests: `typed` `fixed_strings_typed`, `cpp` `fixed_strings_cpp` (both built and run with
+  both compilers: same output), `check-fail` `fixed_strings_errors`; `unsupported` and `types_errors` used `STRING *
+  n` as their unsupported declaration and member (now `_MEM`, and the member dropped). `verification\v21_c_fixed_basics`
+  (without its two `MID$` statements), `_fixed_args` (without `fs$5`) and `_fixed_len_*` give the recorded output.
+- [x] 7.2 Fixed-length string members and array elements (temporary descriptors over the bytes, offsets with
   `size_of`), and fixed strings as built-in and procedure arguments as measured in 1.3 (unmeasured forms "not
   supported yet"). Verify: `s33_fixed_strings` recorded with `qb64pe.exe` and passing in tier 2;
   `DIVERGENCES-QB45.md` Q-005's "Pinned by" filled in; the follow-on scenarios still hold with `_MEM`.
+  *Done 2026-10-09 (session 32).* An element or member is read and stored through `qbs_new_fixed(addr,n,1)` (a
+  temporary the statement's `qbs_cleanup` frees), as the old compiler's `udtreference` and `__ARRAY_STRINGn_X`; an
+  array of them is n bytes per element, NUL-filled; a member takes n bytes of the layout (`size_of`). A store into a
+  member of an element copies the string value first (`qbs_set(qbs_new(0,1),…)`), then checks the indexes (D-004).
+  A fixed-length variable, element or member passed to a `STRING` parameter is an `Arg::Ref` of the place, also in
+  parentheses (measured); the emitter passes its fixed `qbs`, and the procedure's prologue (copy) and epilogue
+  (`if(old->fixed)qbs_set(old,…)`) were there already. `s33_fixed_strings` (every scenario of the delta except the
+  two above; the measured forms of `v21_c_fixed_basics` and `_fixed_args`) recorded with `qb64pe.exe` and passing,
+  folding on and off; corpus `runtime_comparison/198_type_fixed_string` now compiles and passes (both on
+  `slice.list`). Q-005 pinned. `mem_follow_on` unchanged (the follow-on scenarios hold with `_MEM`).
 
 ## 8. The new types everywhere else
 

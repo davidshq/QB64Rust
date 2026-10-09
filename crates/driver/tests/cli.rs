@@ -293,6 +293,29 @@ fn member_store_with_bad_index() {
     );
 }
 
+/// A `_BIT * n` scalar wider than 32 bits has 8 bytes of its own, so a store into it leaves the `_BIT` scalar
+/// declared before it alone (`DIVERGENCES.md` D-009; the old compiler reserves 4 bytes and overwrites that
+/// neighbour, printing ` 4294967295 ` and ` 0 ` here, so this cannot be a corpus program recorded with `qb64pe.exe`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn wide_bit_scalars_do_not_overlap() {
+    let d = scratch("wide-bit");
+    let program = "$CONSOLE:ONLY\nDIM a AS _BIT * 33, b AS _BIT * 33\na = 5: b = -1\nPRINT a; b\n\
+                   DIM u AS _UNSIGNED _BIT * 3, w AS _BIT * 40\nu = 2: w = 2\nPRINT u; w\nSYSTEM\n";
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let run = Command::new(&exe)
+        .current_dir(&d)
+        .env("QB64PE_NOPROMPT", "y")
+        .stdin(std::process::Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
+    assert_eq!(stdout(&run).replace("\r\n", "\n"), " 5 -1 \n 2  2 \n");
+}
+
 /// Deeply nested expressions are one "not supported yet" error, not a stack overflow (the known bug of
 /// 2026-10-07). Through the binary, which runs on its own large stack; a test thread's 2 MiB would not hold the
 /// later walks of an expression 1,000 levels deep in a debug build.

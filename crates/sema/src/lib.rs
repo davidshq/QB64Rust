@@ -29,7 +29,7 @@ use qb64rust_builtins::BuiltinId;
 /// through [`Ty::int_bits`], [`Ty::is_signed`], [`Ty::is_unsigned`], [`Ty::float_rank`] and [`Ty::storage`].
 ///
 /// `Bit` is the type of a place only: its values are held in its storage type and believed the place's `_BIT`
-/// type ([`Ty::held_value`]); `FixedStr` is produced nowhere yet ([`unproduced_types`]).
+/// type ([`Ty::held_value`]). `FixedStr` too: its values are `Str` ([`place_only_types`]).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Ty {
     /// `_BYTE`.
@@ -191,12 +191,60 @@ impl Ty {
     }
 
     /// The type an expression of a place of this type has: a `_BIT * n` value is held in its [`Ty::storage`]
-    /// (`study\02` §1.7: the read is a plain dereference), every other type is itself. It is believed the place's
-    /// type: the old compiler's markup sees a `_BIT * n` value's width and signedness (measured, the differential
-    /// `ops` programs: `UBIT7 + UINT64` is believed `_UNSIGNED _INTEGER64`), only `PRINT` reads it as `int64`
-    /// ([`Ty::printed`]).
+    /// (`study\02` §1.7: the read is a plain dereference), a `STRING * n` value is a `STRING` of its n bytes (design
+    /// D3: the old compiler reads it through a fixed `qbs` descriptor), every other type is itself. It is believed
+    /// the place's type ([`Ty::believed_value`]): the old compiler's markup sees a `_BIT * n` value's width and
+    /// signedness (measured, the differential `ops` programs: `UBIT7 + UINT64` is believed `_UNSIGNED _INTEGER64`),
+    /// only `PRINT` reads it as `int64` ([`Ty::printed`]).
     pub fn held_value(self) -> Ty {
-        self.storage()
+        match self {
+            Ty::FixedStr(_) => Ty::Str,
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::Bit { .. }
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str
+            | Ty::User(_) => self.storage(),
+        }
+    }
+
+    /// The type a value of a place of this type is believed to have: the place's own type, except that a `STRING *
+    /// n` value is a `STRING` ([`Ty::held_value`]).
+    pub fn believed_value(self) -> Ty {
+        match self {
+            Ty::FixedStr(_) => Ty::Str,
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::Bit { .. }
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str
+            | Ty::User(_) => self,
+        }
+    }
+
+    /// `STRING` or `STRING * n`: a place that holds a string.
+    pub fn is_string(self) -> bool {
+        matches!(self, Ty::Str | Ty::FixedStr(_))
     }
 
     /// The type a `PRINT` or `STR$` converts a value believed this type to: `_INTEGER64` for any `_BIT * n` (measured:
@@ -259,14 +307,14 @@ impl Ty {
     }
 }
 
-/// The reason in an `unreachable!` arm for a type of [`unproduced_types`].
-pub const NEW_TYPE_UNREACHABLE: &str = "`STRING * n` places are produced nowhere yet";
+/// The reason in an `unreachable!` arm for a type of [`place_only_types`].
+pub const PLACE_ONLY_UNREACHABLE: &str = "a `STRING * n` value is a `STRING` (`Ty::held_value`)";
 
-/// A pattern of the [`Ty`] variants that nothing produces yet (design D3 of `m2-numeric-types`), for the arm
-/// `unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}")`. A variant leaves it when its declaration is
-/// supported, so every `match` must then decide what it does with that type.
+/// A pattern of the [`Ty`] variants that are the type of a place only, never of a value (design D3 of
+/// `m2-numeric-types`), for the arm `place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}")` of a `match`
+/// on a value's type. (`_BIT` is a place type too, with its own arm: [`BIT_VALUE_UNREACHABLE`].)
 #[macro_export]
-macro_rules! unproduced_types {
+macro_rules! place_only_types {
     () => {
         $crate::Ty::FixedStr(_)
     };
@@ -327,8 +375,8 @@ pub fn size_of(types: &[UserType], t: Ty) -> u32 {
         Ty::F80 => 32,
         Ty::Bit { .. } => size_of(types, t.storage()),
         Ty::User(id) => types[id.0 as usize].members.iter().map(|m| size_of(types, m.ty)).sum(),
+        Ty::FixedStr(n) => n,
         Ty::Str => unreachable!("a string has no fixed size"),
-        unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
     }
 }
 

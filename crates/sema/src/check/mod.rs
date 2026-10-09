@@ -613,7 +613,7 @@ impl Checker<'_> {
                     self.push(node, StmtKind::Assign { place, value });
                     return Ok(());
                 }
-                let (name, suffix) = self.split_name(t)?;
+                let (name, suffix) = self.split_var_name(t)?;
                 match self.dotted(t, &name, suffix)? {
                     Some(place) => place,
                     None => {

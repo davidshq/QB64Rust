@@ -9,4 +9,4 @@ unsupported.bas:7:37: error: not supported yet: `_MIN`
 unsupported.bas:8:11: error: this operator cannot be used on strings
 unsupported.bas:9:6: error: cannot store a string in a number variable
 unsupported.bas:10:1: error: not supported yet: `SWAP`
-unsupported.bas:11:7: error: not supported yet: fixed-length strings
+unsupported.bas:11:7: error: not supported yet: the type `_MEM`

@@ -1,11 +1,14 @@
 //! Names and declarations: suffixes, reserved names, variables by scope, `DIM`, `STATIC`, `SHARED`, `OPTION`.
 
 use super::places::{numeric_type, unsigned_of};
+use super::proc::{FIXED_LEN_ERROR, fixed_len, fixed_name};
 use super::{Checker, Failed, R, Scope};
-use crate::literal;
+use crate::consteval::Value;
+use crate::literal::{self, NumLit};
 use crate::{ProcKind, Storage, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{show_bytes, to_u32};
 use qb64rust_builtins::{Kind, find_any, is_auto_include_name};
+use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::is_keyword;
 use qb64rust_syntax::tree::Tok;
@@ -13,8 +16,42 @@ use qb64rust_syntax::tree::Tok;
 impl Checker<'_> {
     // ---- names ----
 
+    /// [`Self::split_name`] for the name of a scalar variable, which may also be `name$n`: a fixed-length string of n
+    /// bytes, a variable other than `name$` (design D6; measured, `verification\v21_c_fixed_basics`; n read as
+    /// [`fixed_len`]). A `t$n` parameter is found by [`Self::fixed_param_ref`] before this.
+    pub(super) fn split_var_name(&mut self, t: Tok) -> R<(String, Option<Ty>)> {
+        match fixed_name(self.text(t.span)) {
+            Some((name, Some(n))) => {
+                self.fixed_name_alone(t, &name)?;
+                Ok((name, Some(Ty::FixedStr(n))))
+            }
+            Some((_, None)) => Err(self.error(t.span, FIXED_LEN_ERROR)),
+            None => self.split_name(t),
+        }
+    }
+
+    /// A name `x$n` where `x` might also name a procedure, a constant, a member or a `STRING * n` parameter of the
+    /// current procedure: none of that was measured.
+    fn fixed_name_alone(&mut self, t: Tok, name: &str) -> R<()> {
+        let param = self.cur.is_some_and(|p| {
+            let params = &self.prog.proc(p).params;
+            params
+                .iter()
+                .any(|v| self.param_len.contains_key(v) && self.prog.var(*v).name == name)
+        });
+        if param || self.procs_by_name.contains_key(name) || self.visible_const(name).is_some() || name.contains('.') {
+            let shown = show_bytes(self.text(t.span));
+            let msg = format!(
+                "`{shown}` beside a SUB, FUNCTION, constant or `STRING * n` parameter of its name, or with a `.`"
+            );
+            return Err(self.unsupported(t.span, msg));
+        }
+        Ok(())
+    }
+
     /// Splits `name<suffix>` and gives the suffix's type (`None` without a suffix): every suffix of
-    /// [`literal::suffix_type`]; `name$n` (a fixed-length string) is not supported yet here.
+    /// [`literal::suffix_type`]; `name$n` (a fixed-length string) is not supported yet here (a variable's name is
+    /// read by [`Self::split_var_name`]).
     pub(super) fn split_name(&mut self, t: Tok) -> R<(String, Option<Ty>)> {
         let bytes = self.text(t.span);
         let end = name_end(bytes);
@@ -116,8 +153,14 @@ impl Checker<'_> {
 
     /// The type named by an `AS` clause: a numeric type, `STRING`, or a user type. As measured
     /// (`verification\v21_a_decls`, `v21_x01`–`x08`): `_UNSIGNED` before an integer type, `_OFFSET` or `_BIT`, and
-    /// ignored before `STRING`; `_BIT * n` with n a number from 1 to 64. `STRING * n` is not supported yet here.
+    /// ignored before `STRING`; `_BIT * n` with n a number from 1 to 64; `STRING * n` with n a number or (where
+    /// `consts`) a constant's name, read as [`fixed_len`] says (`v21_c_fixed_basics`, `v21_x31`–`x34`).
     pub(super) fn type_of(&mut self, a: ast::AsClause) -> R<Ty> {
+        self.type_of_in(a, true)
+    }
+
+    /// [`Self::type_of`]; `consts` false where no constant is known yet (a `TYPE` member, read in pass 1).
+    pub(super) fn type_of_in(&mut self, a: ast::AsClause, consts: bool) -> R<Ty> {
         let span = a.node().span();
         let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
         let (unsigned, rest) = match words.split_first() {
@@ -138,7 +181,8 @@ impl Checker<'_> {
                         signed: !unsigned,
                     })
                 }
-                "STRING" => Err(self.unsupported(span, "fixed-length strings")),
+                // Measured: `_UNSIGNED STRING * n` is a `STRING * n` (`v21_c_fixed_basics`).
+                "STRING" => Ok(Ty::FixedStr(self.fixed_len_of(size, consts)?)),
                 _ => Err(self.unsupported(span, format!("`{} * …`", words.join(" ")))),
             };
         }
@@ -175,6 +219,43 @@ impl Checker<'_> {
             Some(Ok(w @ 1..=64)) => Ok(w),
             Some(_) => Err(self.error(size.span, "a `_BIT` type takes 1 to 64 bits")),
             None => Err(self.error(size.span, "a number of bits is expected after `_BIT *`")),
+        }
+    }
+
+    /// The n of `STRING * n` (design D6): a number, or where `consts` the name of an integer constant, read as
+    /// [`fixed_len`] says. Measured (`v21_x31`–`x34`): 0, an expression, a float and a negative number are errors.
+    /// A constant's name where none is known yet, or of a float or string constant, is not supported yet.
+    pub(super) fn fixed_len_of(&mut self, size: Tok, consts: bool) -> R<u32> {
+        let shown = show_bytes(self.text(size.span));
+        if size.kind == SyntaxKind::Ident {
+            let (name, suffix) = self.split_name(size)?;
+            let found = match (consts, suffix, self.visible_const(&name)) {
+                (true, None, Some(c)) => match self.prog.constant(c).value {
+                    Value::Int(v) => Some((c, v)),
+                    Value::Float(_) | Value::Str(_) => None,
+                },
+                _ => None,
+            };
+            let Some((c, v)) = found else {
+                let msg = format!("this name as the length of a `STRING * n`: `{shown}`");
+                return Err(self.unsupported(size.span, msg));
+            };
+            self.names.push((SymbolKind::Const(c), size.span));
+            return match fixed_len(i128::from(v)) {
+                Some(n) => Ok(n),
+                None => Err(self.error(size.span, FIXED_LEN_ERROR)),
+            };
+        }
+        match literal::number(self.text(size.span), false) {
+            Ok(NumLit::Int { value, .. }) => match fixed_len(i128::from(value)) {
+                Some(n) => Ok(n),
+                None => Err(self.error(size.span, FIXED_LEN_ERROR)),
+            },
+            // Measured: "Number/Constant expected after *" (`verification\v21_x33_fixed_len_float`).
+            Ok(NumLit::Float { .. }) => {
+                Err(self.error(size.span, "a fixed-length string's length must be a whole number"))
+            }
+            Err(_) => Err(self.error(size.span, FIXED_LEN_ERROR)),
         }
     }
 
@@ -267,7 +348,7 @@ impl Checker<'_> {
     /// An assignment target: a variable, or inside `FUNCTION f` the name `f` (with or without its suffix), which
     /// is the function's result.
     pub(super) fn target(&mut self, t: Tok) -> R<VarId> {
-        let (name, suffix) = self.split_name(t)?;
+        let (name, suffix) = self.split_var_name(t)?;
         if let Some(&p) = self.procs_by_name.get(&name) {
             let proc = self.prog.proc(p);
             if let (Some(cur), ProcKind::Function(ty)) = (self.cur, proc.kind)
@@ -300,7 +381,7 @@ impl Checker<'_> {
     ) -> R<()> {
         for item in items {
             let name_tok = self.need(item.name(), item.node().span())?;
-            let (name, suffix) = self.split_name(name_tok)?;
+            let (name, suffix) = self.split_var_name(name_tok)?;
             let as_clause = item.as_clause();
             let ty = match (suffix, as_clause) {
                 (Some(_), Some(a)) => {
@@ -457,7 +538,7 @@ impl Checker<'_> {
             if let Some(b) = item.bounds() {
                 return Err(self.unsupported(b.node().span(), "`SHARED` of an array"));
             }
-            let (name, suffix) = self.split_name(name_tok)?;
+            let (name, suffix) = self.split_var_name(name_tok)?;
             let as_clause = item.as_clause();
             let ty = match (suffix, as_clause) {
                 (Some(_), Some(a)) => {

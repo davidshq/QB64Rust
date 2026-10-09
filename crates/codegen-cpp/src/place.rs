@@ -3,7 +3,7 @@
 use crate::Emitter;
 use crate::decl::{dim_slot, is_plain, is_qbs};
 use crate::names::c_type;
-use qb64rust_ir::{Expr, Place, VarId};
+use qb64rust_ir::{Expr, Place, Ty, VarId};
 
 impl Emitter<'_> {
     /// A variable as a C expression: a `qbs*` or a temporary as it is, any other through its pointer.
@@ -53,10 +53,13 @@ impl Emitter<'_> {
         parts.join("+")
     }
 
-    /// The element at flat position `flat` of a numeric or string array, as an lvalue.
+    /// The element at flat position `flat` of a numeric or string array, as an lvalue; of a fixed-length string
+    /// array, a temporary fixed `qbs` over its bytes.
     pub(crate) fn element_at(&self, array: VarId, flat: &str) -> String {
         let (v, name) = (self.p.var(array), self.name(array));
-        if is_qbs(v.ty) {
+        if let Ty::FixedStr(k) = v.ty {
+            fixed_at(&format!("&((uint8*)({name}[0]))[({flat})*{k}]"), k)
+        } else if is_qbs(v.ty) {
             format!("(((qbs**)({name}[0]))[{flat}])")
         } else {
             format!("(({}*)({name}[0]))[{flat}]", c_type(v.ty))
@@ -79,7 +82,9 @@ impl Emitter<'_> {
         }
     }
 
-    /// A place as a C lvalue: a scalar as [`Self::scalar`], an element, a member through a typed pointer.
+    /// A place as a C lvalue: a scalar as [`Self::scalar`], an element, a member through a typed pointer (a
+    /// fixed-length string member through a temporary fixed `qbs` over its bytes, as the old compiler's
+    /// `udtreference`).
     pub(crate) fn load_place(&mut self, place: &Place) -> String {
         match place {
             Place::Var(id) => self.scalar(*id),
@@ -88,8 +93,11 @@ impl Emitter<'_> {
                 self.element_at(*array, &flat)
             }
             Place::Member { .. } => {
-                let c = c_type(self.p.place_ty(place));
-                format!("*({c}*)({})", self.bytes_of(place))
+                let ty = self.p.place_ty(place);
+                if let Ty::FixedStr(k) = ty {
+                    return fixed_at(&format!("(uint8*){}", self.bytes_of(place)), k);
+                }
+                format!("*({}*)({})", c_type(ty), self.bytes_of(place))
             }
         }
     }
@@ -109,9 +117,18 @@ impl Emitter<'_> {
                 }
             }
             Place::Member { .. } => {
-                let c = c_type(self.p.place_ty(place));
-                format!("({c}*)(void*)({})", self.bytes_of(place))
+                let ty = self.p.place_ty(place);
+                if let Ty::FixedStr(_) = ty {
+                    return self.load_place(place);
+                }
+                format!("({}*)(void*)({})", c_type(ty), self.bytes_of(place))
             }
         }
     }
+}
+
+/// A temporary fixed `qbs` over the `k` bytes at `addr` (a `uint8*` expression): the old compiler's
+/// `qbs_new_fixed(addr,k,1)`, freed by the statement's `qbs_cleanup`; `qbs_set` into it cuts and pads.
+pub(crate) fn fixed_at(addr: &str, k: u32) -> String {
+    format!("qbs_new_fixed({addr},{k},1)")
 }

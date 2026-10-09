@@ -1,0 +1,41 @@
+initial: 4  0  0 
+4294967297: 1 
+STRING * CONST: [abc] 3 
+_UNSIGNED STRING * 3: [abc] 3 
+suffix: abc 3 x
+implicit q$2: [xy] 2 
+short: [ab  ] 32  4 
+long: [abcd]
+empty: [    ] 32 
+f = f + x: [ab  ]
+f = MID$(f, 2): [bcd ]
+fixed from longer fixed: [xy  ]
+fixed from shorter fixed: [xy    ]
+compare: 0 -1 -1 -1 -1 
+into STRING: [ab  ] 4 
+concat: [ab  !]
+case: ab and 2 blanks
+built-ins: 2  [AB   ] [ab ] [  ] [b  ]
+more: 3  2  97  32  [ab   ] 0  2 
+100000: 100000  0 
+100000 after store: 97  32  32 
+member initial: 12  0  0  6 
+member: [bob   ] 32  7  1 
+member cut: [abcdef] 7 
+array: 0  [x  ] 3 
+array cut: [abc] [x  ]
+[handler 9 ]
+after a bad index: [abc]
+member of element: [q     ] 0  5 
+var: [longe]
+var, shorter: [x    ]
+STRING param sees: [ab   ] 5 
+(var): [longe]
+member: [longe]
+(member): [longe]
+element: [longe]
+(element): [longe]
+local: 0  shared: [sha]
+local: 0  shared: [sha]
+static: 0 
+static: 115 

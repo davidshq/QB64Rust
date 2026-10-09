@@ -2,7 +2,7 @@
 
 use super::decl::name_end;
 use super::{Checker, Failed, R, Scope};
-use crate::literal::{self, NumLit};
+use crate::literal;
 use crate::{Arg, Expr, ExprKind, Place, Proc, ProcId, ProcKind, StmtKind, Storage, SymbolKind, Ty, VarId};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{Kind, find_any};
@@ -209,17 +209,7 @@ impl Checker<'_> {
             let msg = format!("a constant as the length of a `STRING * n` parameter: `{shown}`");
             return Err(self.unsupported(size.span, msg));
         }
-        match literal::number(self.text(size.span), false) {
-            Ok(NumLit::Int { value, .. }) => match fixed_len(i128::from(value)) {
-                Some(n) => Ok(n),
-                None => Err(self.error(size.span, FIXED_LEN_ERROR)),
-            },
-            // Measured: "Number/Constant expected after *" (`verification\v21_x33_fixed_len_float`).
-            Ok(NumLit::Float { .. }) => {
-                Err(self.error(size.span, "a fixed-length string's length must be a whole number"))
-            }
-            Err(_) => Err(self.error(size.span, FIXED_LEN_ERROR)),
-        }
+        self.fixed_len_of(size, false)
     }
 
     /// In a procedure, the `t$n` parameter a name token names, if any.
@@ -333,8 +323,12 @@ impl Checker<'_> {
                     return Err(self.unsupported(e.span, "an argument of the other signedness for this parameter"));
                 }
             }
+            // A fixed-length string variable, element or member to a `STRING` parameter is passed by reference, also
+            // in parentheses (measured, `v21_c_fixed_args`): the procedure's stores reach it cut and padded (design D6).
+            let fixed = |t: Ty| pty == Ty::Str && matches!(t, Ty::FixedStr(_));
             if let ExprKind::Load(place) = &e.kind
-                && self.prog.place_ty(place) == pty
+                && let ty = self.prog.place_ty(place)
+                && (ty == pty || fixed(ty))
             {
                 match (parenthesized, place) {
                     (false, _) => {
@@ -342,6 +336,10 @@ impl Checker<'_> {
                         continue;
                     }
                     (true, Place::Var(_)) if pty == Ty::Str => {
+                        args.push(Arg::Ref(place.clone()));
+                        continue;
+                    }
+                    (true, Place::Element { .. } | Place::Member { .. }) if fixed(ty) => {
                         args.push(Arg::Ref(place.clone()));
                         continue;
                     }
@@ -391,12 +389,13 @@ impl Checker<'_> {
 }
 
 /// The error for a fixed-length string's length that is 0 or negative once read in 32 bits.
-const FIXED_LEN_ERROR: &str = "a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)";
+pub(super) const FIXED_LEN_ERROR: &str =
+    "a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)";
 
 /// The length n of `STRING * n` or `name$n` as the old compiler reads it: its low 32 bits as a signed integer
 /// (measured, `verification\v21_c_fixed_len_*`: 4294967297 is 1); `None` when that is 0 or negative (0 is "Cannot
 /// create a fixed string of length 0", a negative one fails the old compiler's C++ build).
-fn fixed_len(v: i128) -> Option<u32> {
+pub(super) fn fixed_len(v: i128) -> Option<u32> {
     #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_possible_wrap,
@@ -409,7 +408,7 @@ fn fixed_len(v: i128) -> Option<u32> {
 
 /// A name `t$n`: its name in upper case and n (`None` when n is 0 or negative in 32 bits, or too long to read);
 /// `None` for any other name.
-fn fixed_name(raw: &[u8]) -> Option<(String, Option<u32>)> {
+pub(super) fn fixed_name(raw: &[u8]) -> Option<(String, Option<u32>)> {
     let end = name_end(raw);
     let digits = raw[end..].strip_prefix(b"$").filter(|d| !d.is_empty())?;
     let name = show_bytes(&raw[..end].to_ascii_uppercase());

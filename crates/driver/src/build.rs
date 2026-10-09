@@ -75,6 +75,143 @@ fn slash(p: &Path) -> String {
 /// overflow still wraps). The executable is linked inside the build folder (whose name has no spaces, see
 /// [`build_dir`]) and then moved to `exe`. On failure the build folder is kept and the make output is returned.
 pub fn build(root: &Path, build: &Path, exe: &Path, quiet: bool, optimize: bool) -> Result<(), String> {
+    let cache = std::env::var_os(CACHE_ENV).map(PathBuf::from);
+    if let Some(dir) = &cache {
+        let hit = dir.join(format!("{}.exe", build_key(root, build, optimize)));
+        if hit.is_file() && std::fs::copy(&hit, exe).is_ok() {
+            if !quiet {
+                println!("building {} (the same build is in {CACHE_ENV})", exe.display());
+            }
+            return Ok(());
+        }
+    }
+    build_with_make(root, build, exe, quiet, optimize)?;
+    if let Some(dir) = &cache {
+        // Keyed again after the build: `make` may have built missing libqb objects. Written under a name of its own
+        // and renamed, so a parallel run never copies half a file; a failure only loses the cache entry.
+        let key = build_key(root, build, optimize);
+        let part = dir.join(format!("{key}.{}.part", std::process::id()));
+        if std::fs::create_dir_all(dir).is_ok()
+            && std::fs::copy(exe, &part).is_ok()
+            && std::fs::rename(&part, dir.join(format!("{key}.exe"))).is_err()
+        {
+            let _ = std::fs::remove_file(&part);
+        }
+    }
+    Ok(())
+}
+
+/// The environment variable naming a folder of built executables to reuse (tier 2 runs, `tools\legacy_tests`): a
+/// build whose inputs ([`build_key`]) equal an earlier one's copies that executable instead of running `make`.
+/// Unset (the default, and in CI) every build runs `make`.
+pub const CACHE_ENV: &str = "QB64RUST_BUILD_CACHE";
+
+/// The key of a build: a 128-bit FNV-1a hash of everything `make` reads that can change between builds — the
+/// fragments in `<build>/temp`, the clone's `qbx.cpp` and `Makefile`, the options, and the size and modification
+/// time of every file under the clone's `internal/c` (libqb's sources, headers and objects) and of the toolchain's
+/// executables. A changed file of the clone or a rebuilt libqb object gives a new key.
+fn build_key(root: &Path, build: &Path, optimize: bool) -> String {
+    let mut h = Fnv128::new();
+    // The version stands for `build_with_make`'s fixed arguments: change it when they change.
+    h.write(b"qb64rust build cache 1\0");
+    h.write(&[u8::from(optimize)]);
+    let mut fragments: Vec<PathBuf> = std::fs::read_dir(build.join("temp"))
+        .map(|d| d.flatten().map(|e| e.path()).collect())
+        .unwrap_or_default();
+    fragments.retain(|p| p.extension().is_some_and(|e| e == "txt"));
+    fragments.sort();
+    for p in &fragments {
+        h.file(
+            p,
+            &p.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default(),
+        );
+    }
+    h.file(&root.join("internal/c/qbx.cpp"), "qbx.cpp");
+    h.file(&root.join("Makefile"), "Makefile");
+    let c = root.join("internal/c");
+    let mut stamps = Vec::new();
+    stamp_tree(&c, &c, &mut stamps);
+    if let Ok(d) = std::fs::read_dir(c.join("c_compiler/bin")) {
+        for e in d.flatten() {
+            stamp(&c, &e.path(), &mut stamps);
+        }
+    }
+    stamps.sort();
+    for s in &stamps {
+        h.write(s.as_bytes());
+        h.write(b"\0");
+    }
+    format!("{:032x}", h.0)
+}
+
+/// The stamps of the files under `dir`, without the toolchain (`c_compiler`, stamped by its executables) and
+/// `temp` folders (`qb64pe.exe`'s scratch space).
+fn stamp_tree(base: &Path, dir: &Path, out: &mut Vec<String>) {
+    let Ok(d) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for e in d.flatten() {
+        let p = e.path();
+        let name = e.file_name();
+        if p.is_dir() {
+            if name != "c_compiler" && name != "temp" {
+                stamp_tree(base, &p, out);
+            }
+        } else {
+            stamp(base, &p, out);
+        }
+    }
+}
+
+/// `<path relative to base> <size> <modified, ns since 1970>` of a file.
+fn stamp(base: &Path, p: &Path, out: &mut Vec<String>) {
+    let Ok(m) = std::fs::metadata(p) else {
+        return;
+    };
+    let modified = m
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map_or(0, |d| d.as_nanos());
+    let rel = p.strip_prefix(base).unwrap_or(p).to_string_lossy().replace('\\', "/");
+    out.push(format!("{rel} {} {modified}", m.len()));
+}
+
+/// FNV-1a with 128 bits (deterministic across Rust versions, unlike `DefaultHasher`).
+struct Fnv128(u128);
+
+impl Fnv128 {
+    const OFFSET: u128 = 0x6c62_272e_07bb_0142_62b8_2175_6295_c58d;
+    const PRIME: u128 = 0x0000_0000_0100_0000_0000_0000_0000_013b;
+
+    fn new() -> Self {
+        Fnv128(Self::OFFSET)
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        for &b in bytes {
+            self.0 ^= u128::from(b);
+            self.0 = self.0.wrapping_mul(Self::PRIME);
+        }
+    }
+
+    /// A file's name, length and contents (a missing file as "missing").
+    fn file(&mut self, p: &Path, name: &str) {
+        self.write(name.as_bytes());
+        self.write(b"\0");
+        match std::fs::read(p) {
+            Ok(bytes) => {
+                self.write(&(bytes.len() as u64).to_le_bytes());
+                self.write(&bytes);
+            }
+            Err(_) => self.write(b"missing"),
+        }
+    }
+}
+
+fn build_with_make(root: &Path, build: &Path, exe: &Path, quiet: bool, optimize: bool) -> Result<(), String> {
     let c = build.join("c");
     std::fs::create_dir_all(&c).map_err(|e| e.to_string())?;
     std::fs::copy(root.join("internal/c/qbx.cpp"), c.join("qbx.cpp")).map_err(|e| format!("copying qbx.cpp: {e}"))?;

@@ -4,7 +4,7 @@ Updated 2026-10-09 (session 30). Session-by-session history is in `git log`; mea
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Step 8's bug-compatibility decisions are taken (2026-10-08); OpenSpec change `m2-numeric-types` groups 1–5 are done (2026-10-09); next: its group 6 (`_BIT`).**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Step 8's bug-compatibility decisions are taken (2026-10-08); OpenSpec change `m2-numeric-types` groups 1–7 are done (2026-10-09); next: its group 8 (the new types everywhere else).**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -277,8 +277,16 @@ is its `tasks.md`, and `git log`.
    type, the unsigned markup, unary markup, `EQV`/`IMP` as `~a^b`, `ll`/`ull` for wide `_BIT` literals; `study\00`
    §5), four accidents to `SOMEDAY.md`. Slice programs `s30_new_types`, `s31_unsigned_ops`. Uses that group 8
    brings stay "not supported yet" (`Checker::later`). Tier 2 194, 43, 107. Record in `tasks.md` 5.1–5.4.
-   **Next: group 6, `_BIT`** (members, parameters, arrays as measured, the D-009 CLI test, `s32_bit`; the store
-   mask is in already).
+   **Groups 6 (`_BIT`) and 7 (fixed-length strings) done 2026-10-09 (session 32):** `_BIT` needed only its tests
+   (`bit_stores_cpp`, `bit_arrays`, `s32_bit`, CLI test `wide_bit_scalars_do_not_overlap`; D-009 pinned).
+   `STRING * n` and `name$n` variables of every storage class, static arrays and `TYPE` members of them, built as
+   the old compiler builds them (fixed `qbs` descriptors over NUL-filled bytes, `qbs_set` stores), passed to `STRING`
+   parameters by reference; `s33_fixed_strings` and corpus `198_type_fixed_string` pass (Q-005 pinned). Still "not
+   supported yet": the `MID$` statement (step 9) and `f$n` FUNCTIONs (task 8.2). Tier 2 199, 43, 107. Record in
+   `tasks.md` 6.1, 7.1, 7.2. The tier-2 runner gained `--jobs N` and `--build-cache DIR` for local runs
+   (`crates\README.md` "Tests").
+   **Next: group 8, the new types everywhere else** (arrays, members, parameters and FUNCTION results, `FOR`,
+   `SELECT CASE`, `CONST`, built-in arguments, `s34_types_procs`).
 9. Built-in statements and functions by demand (`study\27` §3): a built-in statement operation in the IR, then
    sequential file I/O, `DATA`/`READ`/`RESTORE`, `SWAP`, `RANDOMIZE`/`RND`/`TIMER`, console `INPUT`/`LINE INPUT`,
    `SHELL`/`COMMAND$`/`ENVIRON$`, each measured first; the remaining plain functions as the corpus, upstream or a

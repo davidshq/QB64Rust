@@ -7,7 +7,7 @@ use crate::names::c_type;
 use qb64rust_builtins::BuiltinId;
 use qb64rust_ir::builtins::{Rule, Slot, find, radix_width, slots};
 use qb64rust_ir::{
-    BIT_VALUE_UNREACHABLE, Expr, LATER_TYPE_UNREACHABLE, NEW_TYPE_UNREACHABLE, Ty, later_types, unproduced_types,
+    BIT_VALUE_UNREACHABLE, Expr, LATER_TYPE_UNREACHABLE, PLACE_ONLY_UNREACHABLE, Ty, later_types, place_only_types,
 };
 
 impl Emitter<'_> {
@@ -33,7 +33,7 @@ impl Emitter<'_> {
                     (_, Ty::F80) => "func_fix_float",
                     (_, Ty::F32 | Ty::F64) => "func_fix_double",
                     (_, Ty::Str | Ty::User(_)) => unreachable!("a numeric argument"),
-                    (_, unproduced_types!()) => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+                    (_, place_only_types!()) => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
                     (_, later_types!()) => unreachable!("{LATER_TYPE_UNREACHABLE}"),
                     (_, Ty::Bit { .. }) => unreachable!("{BIT_VALUE_UNREACHABLE}"),
                 };
@@ -59,7 +59,7 @@ impl Emitter<'_> {
                     Ty::F80 => format!("qbs_val<long double>({x})"),
                     Ty::I64 => format!("qbs_val<int64_t>({x})"),
                     Ty::I16 | Ty::I32 | Ty::Str | Ty::User(_) => unreachable!("VAL typed {ty:?}"),
-                    unproduced_types!() => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+                    place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
                     later_types!() => unreachable!("{LATER_TYPE_UNREACHABLE}"),
                     Ty::Bit { .. } => unreachable!("{BIT_VALUE_UNREACHABLE}"),
                 }
@@ -122,7 +122,7 @@ impl Emitter<'_> {
             (_, Ty::Str | Ty::User(_)) | (Ty::F80 | Ty::Str | Ty::User(_), _) => {
                 unreachable!("a conversion to {to:?} of {:?}", a.qb)
             }
-            (unproduced_types!(), _) | (_, unproduced_types!()) => unreachable!("{NEW_TYPE_UNREACHABLE}"),
+            (place_only_types!(), _) | (_, place_only_types!()) => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
             (later_types!(), _) | (_, later_types!()) => unreachable!("{LATER_TYPE_UNREACHABLE}"),
             (Ty::Bit { .. }, _) | (_, Ty::Bit { .. }) => unreachable!("{BIT_VALUE_UNREACHABLE}"),
         };
