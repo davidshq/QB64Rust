@@ -3,6 +3,7 @@
 //! Only data lives here. Which built-ins the compiler supports, and how each is typed and lowered, is decided by
 //! `sema` and `ir`; in the first slice that is `INSTR` alone.
 
+pub mod passing;
 pub mod template;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -68,6 +69,57 @@ pub fn statement_templates(name: &[u8]) -> Vec<(&'static Builtin, Vec<template::
             Some((b, template::parse(t).expect("templates are checked by build.rs")))
         })
         .collect()
+}
+
+/// The SUB entries with a libqb entry point for a statement name (without suffix, any case), in table order: one
+/// per form (`OPEN` has two, `SHELL` three). `string` says whether the name is written with `$` (`MID$`). The
+/// `sub_stub` entries, whose statements the old compiler writes itself, are left out.
+pub fn find_statements(name: &[u8], string: bool) -> Vec<BuiltinId> {
+    BUILTINS
+        .iter()
+        .enumerate()
+        .filter(|(_, b)| {
+            b.kind == Kind::Sub
+                && b.callname != "sub_stub"
+                && b.name.as_bytes().eq_ignore_ascii_case(name)
+                && (b.musthave == Some("$")) == string
+        })
+        .map(|(i, _)| BuiltinId(u16::try_from(i).expect("fewer than 65536 built-ins")))
+        .collect()
+}
+
+/// The `sub_stub` entry of a statement the old compiler writes itself (`CLOSE`, `SWAP`, `MID$`): its identity in the
+/// IR. `string` says whether the name is written with `$`.
+pub fn find_stub(name: &[u8], string: bool) -> Option<BuiltinId> {
+    BUILTINS
+        .iter()
+        .position(|b| {
+            b.kind == Kind::Sub
+                && b.callname == "sub_stub"
+                && b.name.as_bytes().eq_ignore_ascii_case(name)
+                && (b.musthave == Some("$")) == string
+        })
+        .map(|i| BuiltinId(u16::try_from(i).expect("fewer than 65536 built-ins")))
+}
+
+impl Builtin {
+    /// The entry's template: its `specialformat`, or one argument per slot separated by commas where it has none
+    /// (as the old compiler builds it, `qb64pe.bas` `seperateargs`).
+    pub fn template(&self) -> Vec<template::Item> {
+        match self.specialformat {
+            Some(t) => template::parse(t).expect("templates are checked by build.rs"),
+            None => {
+                let mut items = Vec::new();
+                for i in 0..self.arg_types.len() {
+                    if i > 0 {
+                        items.push(template::Item::Punct(b','));
+                    }
+                    items.push(template::Item::Arg);
+                }
+                items
+            }
+        }
+    }
 }
 
 /// Whether `name` (without suffix, any case) is declared by QB64pe's always-included BASIC files (`_TRUE`,

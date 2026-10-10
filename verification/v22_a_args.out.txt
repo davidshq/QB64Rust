@@ -1,0 +1,23 @@
+  error 53 
+  error 53 
+  error 53 
+  error 53 
+  error 53 
+  error 53 
+  error 53 
+  error 53 
+  error 5 
+ 2 
+ 4 
+ 4 
+ 2 
+ 4 
+  error 63 
+after SEEK 1, 0
+  error 63 
+after SEEK 1, -1
+  error 52 
+after SEEK 2, 1
+  error 52 
+after SEEK 0, 1
+exit=0

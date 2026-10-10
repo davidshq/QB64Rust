@@ -204,3 +204,30 @@ slice/s32_bit
 slice/s33_fixed_strings
 slice/s34_types_procs
 runtime_comparison/198_type_fixed_string
+# m2-builtin-statements group 1: statement calls (KILL, MKDIR, RMDIR, CHDIR, NAME, ENVIRON)
+slice/s35_file_system
+runtime_comparison/214_mkdir_rmdir
+runtime_comparison/216_kill_nonexistent
+# m2-builtin-statements group 3: sequential files (OPEN, CLOSE, PRINT #, WRITE, INPUT #, LINE INPUT #, SEEK, the file functions)
+slice/s36_files
+slice/s37_file_errors
+slice/s38_file_functions
+runtime_comparison/05_file_io
+runtime_comparison/52_open_write
+runtime_comparison/53_open_append
+runtime_comparison/54_freefile
+runtime_comparison/59_seek
+runtime_comparison/60_eof
+runtime_comparison/86_name_rename
+runtime_comparison/95_two_files
+runtime_comparison/96_lof
+runtime_comparison/97_loc
+runtime_comparison/174_input_hash
+runtime_comparison/176_open_random
+runtime_comparison/178_write_hash
+runtime_comparison/180_eof_empty_file
+runtime_comparison/181_loc_after_write
+runtime_comparison/182_lof_binary
+runtime_comparison/183_freefile_multiple
+runtime_comparison/213_chdir
+runtime_comparison/219_fileexists_direxists

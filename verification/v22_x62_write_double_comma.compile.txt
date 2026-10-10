@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):WRITE 1 , , 2
+LINE 3:WRITE 1, , 2
+exit=1

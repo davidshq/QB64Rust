@@ -12,7 +12,8 @@
 //! operators see), as operators have ([`crate::Expr`]).
 
 use crate::{Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Ty};
-use qb64rust_builtins::{Builtin, BuiltinId, find_function};
+use qb64rust_builtins::passing::plan;
+use qb64rust_builtins::{Builtin, BuiltinId, find_function, find_statements, find_stub};
 
 /// How the old compiler treats a built-in function: one variant per kind of special-casing, not per function.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -96,7 +97,149 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // `ERR` is LONG, not `_UNSIGNED LONG` as in the table (design D5 of `m2-procedures-and-errors`).
     ("ERR", Rule::Fixed(Ty::I32)),
     ("ERL", Rule::Fixed(Ty::F64)),
+    // File functions (`verification\v22_b_funcs`); `FREEFILE` and `_CWD$` have no slot and are called bare.
+    ("EOF", Rule::Plain),
+    ("LOF", Rule::Plain),
+    ("LOC", Rule::Plain),
+    ("SEEK", Rule::Plain),
+    ("FREEFILE", Rule::Plain),
+    ("_FILEEXISTS", Rule::Plain),
+    ("_DIREXISTS", Rule::Plain),
+    ("_CWD$", Rule::Plain),
 ];
+
+/// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
+/// `m2-builtin-statements`): one variant per kind of special-casing.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StmtRule {
+    /// Slots and choices from the table entry and its template ([`stmt_slots`]); each argument converted by its
+    /// slot type; passed as the old compiler's template rule says (`qb64rust_builtins::passing`).
+    Plain,
+    /// `CLOSE`: any number of file numbers, each a LONG value; one call per number, in order, or one call that
+    /// closes every file when there is none (measured from the C++: `sub_close(n,1)`, `sub_close(NULL,0)`).
+    Close,
+}
+
+/// Every built-in statement `sema` compiles as a call of the runtime, as written, and its rule. A name stands for
+/// every form the table has for it (`OPEN` two, `SHELL` three). The coverage check of tier 1 requires each to be
+/// used in a `slice.list` program and in an `ir` front-end test.
+pub const STATEMENTS: &[(&str, StmtRule)] = &[
+    // The file-system statements and `ENVIRON` (`verification\v22_a_*`).
+    ("KILL", StmtRule::Plain),
+    ("MKDIR", StmtRule::Plain),
+    ("RMDIR", StmtRule::Plain),
+    ("CHDIR", StmtRule::Plain),
+    ("NAME", StmtRule::Plain),
+    ("ENVIRON", StmtRule::Plain),
+    // Files (`verification\v22_b_*`): `OPEN` in both forms.
+    ("OPEN", StmtRule::Plain),
+    ("CLOSE", StmtRule::Close),
+    ("SEEK", StmtRule::Plain),
+];
+
+/// One form of a supported built-in statement: its table entry and rule.
+#[derive(Clone, Copy, Debug)]
+pub struct StmtSupported {
+    pub id: BuiltinId,
+    pub rule: StmtRule,
+    /// The name as written, with its required suffix.
+    pub name: &'static str,
+}
+
+/// The forms of the supported statement a name as written stands for (`name` in upper case without suffix, `string`
+/// when it carries `$`), in table order; empty for any other name.
+pub fn stmt_lookup(name: &str, string: bool) -> Vec<StmtSupported> {
+    STATEMENTS
+        .iter()
+        .filter(|&&(written, _)| {
+            let bare = written.strip_suffix('$').unwrap_or(written);
+            bare == name && (bare.len() != written.len()) == string
+        })
+        .flat_map(|&(written, rule)| {
+            let forms = match rule {
+                StmtRule::Plain => find_statements(name.as_bytes(), string),
+                // The statements the old compiler writes itself are named by their stub entry.
+                StmtRule::Close => find_stub(name.as_bytes(), string).into_iter().collect(),
+            };
+            forms.into_iter().map(move |id| StmtSupported {
+                id,
+                rule,
+                name: written,
+            })
+        })
+        .collect()
+}
+
+/// Every form of every supported statement.
+pub fn statements() -> Vec<StmtSupported> {
+    STATEMENTS
+        .iter()
+        .flat_map(|&(written, _)| {
+            let bare = written.strip_suffix('$').unwrap_or(written);
+            stmt_lookup(bare, bare.len() != written.len())
+        })
+        .collect()
+}
+
+/// The supported statement form with this table entry.
+pub fn stmt_find(id: BuiltinId) -> Option<StmtSupported> {
+    statements().into_iter().find(|s| s.id == id)
+}
+
+/// One slot of a built-in statement: an argument or a choice of its template, in template order.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StmtSlot {
+    /// An argument of this slot type; `optional` when it may be left out.
+    Arg { slot: Slot, optional: bool },
+    /// A choice among `alts` alternatives; `optional` when it may be left out.
+    Choice { alts: u8, optional: bool },
+}
+
+/// The slots of a [`StmtRule::Plain`] statement form: its template's arguments and choices, each argument typed by
+/// the table (the table lists the types of the C arguments, [`qb64rust_builtins::passing`]). Empty for a stub
+/// entry, whose rule says what its slots are.
+pub fn stmt_slots(id: BuiltinId) -> Vec<StmtSlot> {
+    let b = id.get();
+    if b.callname == "sub_stub" {
+        return Vec::new();
+    }
+    let plan = plan(&b.template());
+    let mut c_arg = 0;
+    plan.parts
+        .iter()
+        .map(|part| {
+            let ty = part.passed.then(|| {
+                c_arg += 1;
+                b.arg_types.get(c_arg - 1).copied()
+            });
+            match part.alts {
+                0 => {
+                    let t = ty
+                        .flatten()
+                        .unwrap_or_else(|| unreachable!("`{}`: an argument without a table type", b.name));
+                    StmtSlot::Arg {
+                        slot: stmt_slot_type(b, c_arg - 1, t),
+                        optional: part.optional,
+                    }
+                }
+                alts => StmtSlot::Choice {
+                    alts,
+                    optional: part.optional,
+                },
+            }
+        })
+        .collect()
+}
+
+/// The type of C argument `k` of a statement entry: the table's, except where the libqb entry takes another type.
+fn stmt_slot_type(b: &Builtin, k: usize, table: &str) -> Slot {
+    match (b.callname, k) {
+        // `sub_seek(int32 i, int64 pos)`: the table says LONG, but the old compiler passes the position as it is
+        // and C++ keeps its 64 bits (measured from the C++, `verification\v22_a_args`).
+        ("sub_seek", 1) => Slot::Int64,
+        _ => Slot::from_table(table),
+    }
+}
 
 /// A supported built-in: its table entry and rule.
 #[derive(Clone, Copy, Debug)]
@@ -195,6 +338,9 @@ pub enum Slot {
     /// Converted as a store into a LONG: a float rounded half to even to `_INTEGER64`, then the low 32 bits
     /// (measured `v20_a_slots`).
     Long,
+    /// Converted as a store into an `_INTEGER64` (a float rounded half to even); only where a rule says so: the
+    /// table has no such slot.
+    Int64,
     /// Converted exactly to DOUBLE (C's implicit conversion of a `double` parameter).
     Double,
     /// Passed in its own type (`func_sqr(*__INTEGER_I)`, measured from the C++).
@@ -231,7 +377,7 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
             let held = if b.callname.starts_with("std::") {
                 overload(args.iter().flatten().map(|a| a.ty))
             } else {
-                qb
+                held_override(b.callname).unwrap_or(qb)
             };
             (held, qb)
         }
@@ -272,6 +418,16 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
         Rule::Len | Rule::Asc => (Ty::I32, Ty::I32),
         Rule::Radix(_) | Rule::StringFill => (Ty::Str, Ty::Str),
         Rule::Val => unreachable!("typed by its type argument (check::builtins)"),
+    }
+}
+
+/// The held type of a plain function whose libqb entry returns another C++ type than the table's return type says
+/// (the type the old compiler believes): `func_lof`, `func_loc` and `func_seek` return `int64` and are believed
+/// LONG, so arithmetic on them is computed in 64 bits (libqb's prototypes; `study\00` §5, "File functions").
+fn held_override(callname: &str) -> Option<Ty> {
+    match callname {
+        "func_lof" | "func_loc" | "func_seek" => Some(Ty::I64),
+        _ => None,
     }
 }
 
@@ -458,6 +614,54 @@ mod tests {
             assert_eq!(b.musthave == Some("$"), s.name.ends_with('$'), "{}", s.name);
             assert_eq!(rule(s.id), Some(s.rule));
         }
+    }
+
+    #[test]
+    fn every_statement_row_is_in_the_table_once() {
+        let mut names: Vec<&str> = STATEMENTS.iter().map(|(n, _)| *n).collect();
+        names.sort_unstable();
+        names.dedup();
+        assert_eq!(names.len(), STATEMENTS.len(), "a row is listed twice");
+        for &(written, rule) in STATEMENTS {
+            let bare = written.strip_suffix('$').unwrap_or(written);
+            let forms = stmt_lookup(bare, bare.len() != written.len());
+            assert!(!forms.is_empty(), "{written} has no statement entry in the table");
+            for s in forms {
+                assert_eq!(stmt_find(s.id).map(|f| f.rule), Some(rule), "{written}");
+                // Every argument has a table type, and the table has no more types than C arguments and the mask.
+                let slots = stmt_slots(s.id);
+                let b = s.id.get();
+                let p = plan(&b.template());
+                let passed = p.parts.iter().filter(|part| part.passed).count();
+                assert!(
+                    b.arg_types.len() == passed || b.arg_types.len() == passed + usize::from(p.mask),
+                    "{written}: {} table types for {passed} C arguments",
+                    b.arg_types.len()
+                );
+                assert_eq!(slots.len(), p.parts.len());
+            }
+        }
+        assert!(stmt_lookup("KILL", true).is_empty());
+        assert!(stmt_lookup("NOPE", false).is_empty());
+        let name = stmt_lookup("NAME", false);
+        assert_eq!(name.len(), 1);
+        assert_eq!(
+            stmt_slots(name[0].id),
+            [
+                StmtSlot::Arg {
+                    slot: Slot::Str,
+                    optional: false
+                },
+                StmtSlot::Choice {
+                    alts: 1,
+                    optional: false
+                },
+                StmtSlot::Arg {
+                    slot: Slot::Str,
+                    optional: false
+                },
+            ]
+        );
     }
 
     #[test]

@@ -31,6 +31,7 @@
 // The emitter by concern (design D6 of `m2-core-builtins`): each module adds the `Emitter` methods of its part.
 mod builtins;
 mod decl;
+mod io;
 mod names;
 mod place;
 mod procs;

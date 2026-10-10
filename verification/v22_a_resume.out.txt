@@ -1,0 +1,11 @@
+KILL with RESUME
+  error 53 try 1 
+after KILL: handler ran 1 
+RMDIR with RESUME, the name from a FUNCTION
+  error 76 try 1 
+after RMDIR: handler ran 1 the FUNCTION 2 
+KILL with a raising argument and RESUME NEXT
+  error 5 try 1 
+  error 53 try 2 
+after: handler ran 2 the FUNCTION 1 
+exit=0

@@ -1,0 +1,17 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+stmt_calls_errors.bas:7:6: error: `KILL` needs a string
+stmt_calls_errors.bas:8:1: error: `KILL` takes 1 argument
+stmt_calls_errors.bas:9:1: error: `KILL` takes 1 argument
+stmt_calls_errors.bas:10:6: error: `KILL` needs a string
+stmt_calls_errors.bas:11:7: error: `MKDIR` needs a string
+stmt_calls_errors.bas:12:1: error: `CHDIR` takes 1 argument
+stmt_calls_errors.bas:13:1: error: `RMDIR` takes 1 argument
+stmt_calls_errors.bas:14:9: error: `ENVIRON` needs a string
+stmt_calls_errors.bas:15:1: error: `ENVIRON` takes 1 argument
+stmt_calls_errors.bas:16:13: error: argument 2 of `NAME` needs a string
+stmt_calls_errors.bas:17:6: error: argument 1 of `NAME` needs a string
+stmt_calls_errors.bas:18:11: error: `KILL` needs a string
+stmt_calls_errors.bas:19:1: error: not supported yet: `LOCATE`

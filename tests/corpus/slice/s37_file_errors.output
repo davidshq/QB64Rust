@@ -1,0 +1,79 @@
+not open
+  error 52 
+  error 52 
+  error 52 
+  error 52 
+  error 52 
+  error 52 
+file numbers 0 and -1
+  error 52 
+  error 52 
+  error 52 
+  error 52 
+CLOSE of numbers that are not open is no error
+a missing file
+  error 53 
+  error 76 
+a number that is open
+  error 55 
+the wrong mode
+  error 54 
+  error 75 
+  error 5 
+  error 5 
+  error 54 
+  error 54 
+the old form with a bad mode letter
+  error 54 
+  error 54 
+raising arguments
+  error 5 
+  error 5 
+  error 5 
+  error 5 
+  error 5 
+  error 5 
+  error 5 
+a bad position
+  error 63 
+  error 63 
+reading
+[one]
+200 into a _BYTE: 0 is stored and the next target is not read
+  error 6 
+ 0  1 
+the next field is [7]
+-1 into an unsigned type
+  error 6 
+ 0  1 
+the rest of the line is [8]
+a target with a bad index reads nothing and ends the statement
+  error 9 
+ 31  0 
+the rest of the line is [32,33]
+  error 9 
+[s1][][]
+the rest of the line is [s2,s3]
+what the raising items left in the file
+[raafter the raising item]
+["wa","after the raising item"]
+past the end-1 
+  error 62 
+[]
+  error 62 
+  error 62 
+ 0 
+RESUME runs the OPEN again, after the handler made the file
+  error 53 
+opened; the handler ran 1 time
+the file system
+  error 75 
+  error 75 
+  error 75 
+  error 53 
+  error 53 
+in a SUB
+  error 52 
+  after PRINT # in the SUB
+  error 52 
+  end of the SUB

@@ -758,8 +758,23 @@ fn every_supported_builtin_is_covered() {
         .filter(|b| b.starts_with(b"' TEST: typed"))
         .map(|b| code_only(&b))
         .collect();
-    assert!(!slice.is_empty() && !typed.is_empty());
+    let ir: Vec<String> = files(&repo().join("tests/frontend"), &["bas"])
+        .iter()
+        .map(|p| std::fs::read(p).unwrap())
+        .filter(|b| b.starts_with(b"' TEST: ir"))
+        .map(|b| code_only(&b))
+        .collect();
+    assert!(!slice.is_empty() && !typed.is_empty() && !ir.is_empty());
     let mut missing = Vec::new();
+    // A built-in statement: in a slice program, and in an `ir` test that pins its slots, places and items.
+    for &(name, _) in qb64rust_sema::builtins::STATEMENTS {
+        if !slice.iter().any(|c| uses_word(c, name)) {
+            missing.push(format!("`{name}` is used in no program of tests/corpus/slice.list"));
+        }
+        if !ir.iter().any(|c| uses_word(c, name)) {
+            missing.push(format!("`{name}` is used in no `ir` test of tests/frontend"));
+        }
+    }
     for s in qb64rust_sema::builtins::supported() {
         if !slice.iter().any(|c| uses_word(c, s.name)) {
             missing.push(format!(

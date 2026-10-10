@@ -1,7 +1,11 @@
 //! Structural checks of a lowered program (design D8 of `m2-arrays-and-types`): what the emitter relies on and the
 //! types cannot say. Tier 1 runs it on every accepted input; the lowering runs it under `debug_assert!`.
 
-use crate::{Arg, Body, Expr, ExprKind, LabelId, Op, Place, PrintItem, ProcId, Program, Resume, Storage, Ty, VarId};
+use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
+use crate::{
+    Arg, Body, BuiltinId, Expr, ExprKind, LabelId, Op, Place, PrintItem, ProcId, Program, Resume, Source, StmtArg,
+    Storage, Ty, VarId,
+};
 
 /// Every problem found, each as `<body>: <where>: <what>`; `Ok` when there is none.
 pub fn validate(p: &Program) -> Result<(), Vec<String>> {
@@ -155,15 +159,121 @@ impl Validator<'_> {
                 }
             }
             Op::Raise(v) => self.value(v, owner, at),
-            Op::Print { items, .. } => {
+            Op::Print { to, items, .. } | Op::Write { to, items, .. } => {
+                if let Some(n) = to {
+                    self.file_number(n, owner, at);
+                }
                 for i in items {
                     match i {
                         PrintItem::Str(v) | PrintItem::Num(v) => self.value(v, owner, at),
-                        PrintItem::Zone => {}
+                        PrintItem::Zone => {
+                            if matches!(op, Op::Write { .. }) {
+                                self.problem(format!("{at}: a zone in a Write"));
+                            }
+                        }
+                    }
+                }
+            }
+            Op::Input { from, line, targets } => {
+                match from {
+                    Source::File(n) => self.file_number(n, owner, at),
+                    Source::Console { .. } => {}
+                }
+                if targets.is_empty() {
+                    self.problem(format!("{at}: an Input without a target"));
+                }
+                if *line && targets.len() != 1 {
+                    self.problem(format!("{at}: a LineInput with {} targets", targets.len()));
+                }
+                for place in targets {
+                    self.place(place, owner, at);
+                    match place_ty_checked(self.p, place) {
+                        Some(Ty::User(_)) => self.problem(format!("{at}: an Input target of a user type")),
+                        Some(t) if *line && !t.is_string() => {
+                            self.problem(format!("{at}: a LineInput target of type {t:?}"));
+                        }
+                        Some(_) | None => {}
+                    }
+                    if matches!(place, Place::Member { .. }) && place.has_element() {
+                        self.problem(format!("{at}: an Input target that is a member of an element"));
                     }
                 }
             }
             Op::Call { proc, args } => self.call(*proc, args, owner, at),
+            Op::Builtin { id, args } => self.builtin(*id, args, owner, at),
+        }
+    }
+
+    /// A file number: a value of type `I32`.
+    fn file_number(&mut self, n: &Expr, owner: Option<ProcId>, at: &At) {
+        if n.ty != Ty::I32 {
+            self.problem(format!("{at}: a file number of type {:?}", n.ty));
+        }
+        self.value(n, owner, at);
+    }
+
+    /// A built-in statement: a form `sema` compiles, with one slot per argument or choice of its template, each
+    /// filled as its rule allows (a value for an argument, a word the choice has, absent only where optional).
+    fn builtin(&mut self, id: BuiltinId, args: &[StmtArg], owner: Option<ProcId>, at: &At) {
+        let name = id.get().name;
+        let Some(form) = stmt_find(id) else {
+            self.problem(format!("{at}: {name} is no built-in statement that is compiled"));
+            return;
+        };
+        match form.rule {
+            StmtRule::Plain => {}
+            // Any number of file numbers.
+            StmtRule::Close => {
+                for (k, arg) in args.iter().enumerate() {
+                    match arg {
+                        StmtArg::Value(v) => self.file_number(v, owner, at),
+                        StmtArg::Place(_) | StmtArg::Word(_) | StmtArg::Absent => {
+                            self.problem(format!("{at}: slot {} of {name} is no value", k + 1));
+                        }
+                    }
+                }
+                return;
+            }
+        }
+        let slots = stmt_slots(id);
+        if slots.len() != args.len() {
+            let msg = format!("{at}: {name} with {} slots for {}", args.len(), slots.len());
+            self.problem(msg);
+            return;
+        }
+        for (k, (slot, arg)) in slots.iter().zip(args).enumerate() {
+            let k = k + 1;
+            match (slot, arg) {
+                (StmtSlot::Arg { slot, .. }, StmtArg::Value(v)) => {
+                    let string = match slot {
+                        Slot::Str => true,
+                        Slot::Long | Slot::Int64 | Slot::Double | Slot::Float | Slot::AnyNumeric => false,
+                    };
+                    if string != (v.ty == Ty::Str) {
+                        self.problem(format!("{at}: slot {k} of {name} holds a value of type {:?}", v.ty));
+                    }
+                    self.value(v, owner, at);
+                }
+                (StmtSlot::Arg { .. }, StmtArg::Place(_)) => {
+                    self.problem(format!("{at}: slot {k} of {name} holds a place"));
+                }
+                (StmtSlot::Choice { alts, .. }, StmtArg::Word(w)) => {
+                    if w >= alts {
+                        self.problem(format!("{at}: slot {k} of {name} names word {w} of {alts}"));
+                    }
+                }
+                (StmtSlot::Arg { optional, .. } | StmtSlot::Choice { optional, .. }, StmtArg::Absent) => {
+                    if !optional {
+                        self.problem(format!("{at}: slot {k} of {name} is required"));
+                    }
+                }
+                (StmtSlot::Arg { .. }, StmtArg::Word(_)) => {
+                    self.problem(format!("{at}: slot {k} of {name} is an argument, not a choice"));
+                }
+                (StmtSlot::Choice { .. }, StmtArg::Value(_) | StmtArg::Place(_)) => {
+                    self.problem(format!("{at}: slot {k} of {name} is a choice, not an argument"));
+                }
+            }
         }
     }
 
@@ -479,6 +589,50 @@ mod tests {
             [
                 "S: parameter 1 is not a parameter of this procedure",
                 "S: the result is not a result of this procedure",
+            ]
+        );
+    }
+
+    #[test]
+    fn builtin_statement_slots() {
+        use crate::StmtArg;
+        let name = qb64rust_sema::builtins::stmt_lookup("NAME", false)[0].id;
+        let text = |s: &[u8]| StmtArg::Value(expr(Ty::Str, ExprKind::Str(s.to_vec())));
+        let mut p = program();
+        p.main.stmts[0].ops.push(Op::Builtin {
+            id: name,
+            args: vec![text(b"a"), StmtArg::Word(0), text(b"b")],
+        });
+        assert_eq!(problems(&p), Vec::<String>::new());
+        // A number in a string slot, a word the choice does not have, a required slot left out, a place.
+        p.main.stmts[0].ops.push(Op::Builtin {
+            id: name,
+            args: vec![StmtArg::Value(load(0)), StmtArg::Word(1), StmtArg::Absent],
+        });
+        p.main.stmts[0].ops.push(Op::Builtin {
+            id: name,
+            args: vec![StmtArg::Place(Place::Var(VarId(0))), StmtArg::Absent, text(b"b")],
+        });
+        p.main.stmts[0].ops.push(Op::Builtin {
+            id: name,
+            args: vec![text(b"a")],
+        });
+        // A function's entry is no statement.
+        p.main.stmts[0].ops.push(Op::Builtin {
+            id: qb64rust_builtins::find_function(b"INSTR").unwrap(),
+            args: vec![],
+        });
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: slot 1 of Name holds a value of type I32"),
+                format!("{at}: slot 2 of Name names word 1 of 1"),
+                format!("{at}: slot 3 of Name is required"),
+                format!("{at}: slot 1 of Name holds a place"),
+                format!("{at}: slot 2 of Name is required"),
+                format!("{at}: Name with 1 slots for 3"),
+                format!("{at}: InStr is no built-in statement that is compiled"),
             ]
         );
     }

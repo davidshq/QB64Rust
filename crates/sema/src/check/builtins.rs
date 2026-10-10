@@ -3,11 +3,15 @@
 
 use super::places::numeric_type;
 use super::{Checker, R};
-use crate::builtins::{Rule, Slot, Supported, lookup, result_types, slots};
-use crate::{Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Place, Ty};
+use crate::builtins::{
+    Rule, Slot, StmtRule, StmtSlot, StmtSupported, Supported, lookup, result_types, slots, stmt_lookup, stmt_slots,
+};
+use crate::{Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Place, StmtArg, StmtKind, Ty};
 use qb64rust_base::Span;
+use qb64rust_builtins::template::{Atom, Item};
 use qb64rust_syntax::SyntaxKind::Ident;
 use qb64rust_syntax::ast;
+use qb64rust_syntax::tree::Node;
 
 /// The supported built-in a name as written stands for: the required `$` where the function has one, no suffix
 /// otherwise.
@@ -124,7 +128,7 @@ impl Checker<'_> {
             // `STRING$(n, s$)` takes the first byte of a string in its second slot.
             (Rule::StringFill, _) if k == 1 && string => return Ok(e),
             (_, Slot::Str) => true,
-            (_, Slot::Long | Slot::Double | Slot::Float | Slot::AnyNumeric) => false,
+            (_, Slot::Long | Slot::Int64 | Slot::Double | Slot::Float | Slot::AnyNumeric) => false,
         };
         match (wants_string, string) {
             (true, false) => return Err(self.error(e.span, format!("{which} needs a string"))),
@@ -137,6 +141,7 @@ impl Checker<'_> {
         }
         Ok(match slot {
             Slot::Long => self.store(e, Ty::I32)?,
+            Slot::Int64 => self.store(e, Ty::I64)?,
             Slot::Double => self.convert_exact(e, Ty::F64),
             Slot::Float => e,
             Slot::AnyNumeric => {
@@ -268,6 +273,189 @@ impl Checker<'_> {
                 args: vec![Some(e), None],
             },
         })
+    }
+}
+
+/// A part of a statement read by its template, for matching it against the template of a form.
+enum Part<'t> {
+    /// A word, in upper case.
+    Word(String),
+    Punct(u8),
+    Arg(ast::Expr<'t>),
+}
+
+/// What an argument or a choice of a template is in a statement: the expression, or the number of the alternative
+/// written (from 0); `None` when it was left out.
+enum Matched<'t> {
+    Arg(Option<ast::Expr<'t>>),
+    Word(Option<u8>),
+}
+
+/// Matches the items of `stack` (the innermost sequence last) against `parts` from `pos` to their end, as the
+/// parser matched the tokens (`syntax\src\parser\template.rs`: `[…]` tries its items first, then nothing; the
+/// alternatives of a choice in order), adding one entry per argument and choice to `out` in template order. On
+/// failure `out` is as it was.
+fn match_items<'t>(stack: &mut Vec<&[Item]>, parts: &[Part<'t>], pos: usize, out: &mut Vec<Matched<'t>>) -> bool {
+    let Some(seq) = stack.pop() else {
+        return pos == parts.len();
+    };
+    let ok = match seq.split_first() {
+        None => match_items(stack, parts, pos, out),
+        Some((first, rest)) => {
+            let mark = out.len();
+            stack.push(rest);
+            let ok = match first {
+                Item::Arg => match parts.get(pos) {
+                    Some(Part::Arg(e)) => {
+                        out.push(Matched::Arg(Some(*e)));
+                        match_items(stack, parts, pos + 1, out)
+                    }
+                    Some(Part::Word(_) | Part::Punct(_)) | None => false,
+                },
+                Item::Punct(c) => {
+                    matches!(parts.get(pos), Some(Part::Punct(p)) if p == c) && match_items(stack, parts, pos + 1, out)
+                }
+                Item::Choice(alts) => (0u8..).zip(alts).any(|(k, alt)| {
+                    out.truncate(mark);
+                    let fits = alt
+                        .iter()
+                        .enumerate()
+                        .all(|(i, atom)| match (atom, parts.get(pos + i)) {
+                            (Atom::Word(w), Some(Part::Word(p))) => w.eq_ignore_ascii_case(p),
+                            (Atom::Punct(c), Some(Part::Punct(p))) => c == p,
+                            (Atom::Word(_) | Atom::Punct(_), _) => false,
+                        });
+                    fits && {
+                        out.push(Matched::Word(Some(k)));
+                        match_items(stack, parts, pos + alt.len(), out)
+                    }
+                }),
+                Item::Optional(inner) => {
+                    stack.push(inner);
+                    let with = match_items(stack, parts, pos, out);
+                    stack.pop();
+                    with || {
+                        out.truncate(mark);
+                        absent(inner, out);
+                        match_items(stack, parts, pos, out)
+                    }
+                }
+            };
+            stack.pop();
+            if !ok {
+                out.truncate(mark);
+            }
+            ok
+        }
+    };
+    stack.push(seq);
+    ok
+}
+
+/// The entries of the arguments and choices of items that were left out.
+fn absent(items: &[Item], out: &mut Vec<Matched>) {
+    for item in items {
+        match item {
+            Item::Arg => out.push(Matched::Arg(None)),
+            Item::Choice(_) => out.push(Matched::Word(None)),
+            Item::Optional(inner) => absent(inner, out),
+            Item::Punct(_) => {}
+        }
+    }
+}
+
+impl Checker<'_> {
+    /// A statement the parser read by its template (`OPEN`, `NAME`, `SEEK`, …): the first form of its name, in
+    /// table order, that its words, punctuation and arguments match, as the parser matched it (design D3 of
+    /// `m2-builtin-statements`). A name `sema` does not compile is "not supported yet" at its first word.
+    pub(super) fn builtin_stmt(&mut self, stmt: ast::BuiltinStmt) -> R<()> {
+        let node = stmt.node();
+        let name_tok = self.need(stmt.name(), node.span())?;
+        let shown = self.word(name_tok);
+        let (bare, string) = match shown.strip_suffix('$') {
+            Some(b) => (b, true),
+            None => (shown.as_str(), false),
+        };
+        let forms = stmt_lookup(bare, string);
+        if forms.is_empty() {
+            return Err(self.unsupported(name_tok.span, format!("`{shown}`")));
+        }
+        let mut parts = Vec::new();
+        for part in stmt.parts() {
+            parts.push(match part {
+                ast::FormPart::Word(w) => {
+                    let t = self.need(w.token(), node.span())?;
+                    Part::Word(self.word(t))
+                }
+                ast::FormPart::Punct(t) => Part::Punct(self.text(t.span)[0]),
+                ast::FormPart::Arg(a) => Part::Arg(self.need(a.expr(), node.span())?),
+            });
+        }
+        for form in forms {
+            let items = form.id.get().template();
+            let mut matched = Vec::new();
+            if match_items(&mut vec![&items[..]], &parts, 0, &mut matched) {
+                return self.stmt_call(node, form, matched);
+            }
+        }
+        Err(self.error(
+            node.span(),
+            "internal error: a built-in statement matches none of its forms",
+        ))
+    }
+
+    /// A built-in statement written like a SUB call (`KILL f$`, `CALL KILL(f$)`: its entry has no template): one
+    /// argument per slot. Measured (`verification\v22_x02`, `x03`): any other number of arguments is "Syntax error -
+    /// Reference: KILL fileSpec$".
+    pub(super) fn plain_stmt(&mut self, stmt: ast::CallStmt, form: StmtSupported) -> R<()> {
+        let node = stmt.node();
+        if let Some(bad) = stmt.unparsed_args() {
+            let msg = format!("cannot read the arguments of `{}`", form.name);
+            return Err(self.error(bad.span(), msg));
+        }
+        let nodes = self.present_args(stmt.arg_list())?;
+        let slots = stmt_slots(form.id).len();
+        if nodes.len() != slots {
+            return Err(self.error(node.span(), arity(form.name, slots, slots)));
+        }
+        let matched = nodes.into_iter().map(|n| Matched::Arg(Some(n))).collect();
+        self.stmt_call(node, form, matched)
+    }
+
+    /// The typed statement of a form and what its template's arguments and choices matched.
+    fn stmt_call(&mut self, node: Node, form: StmtSupported, matched: Vec<Matched>) -> R<()> {
+        let slots = stmt_slots(form.id);
+        let count = slots.iter().filter(|s| matches!(s, StmtSlot::Arg { .. })).count();
+        let mut args = Vec::with_capacity(slots.len());
+        let mut k = 0;
+        for (slot, m) in slots.into_iter().zip(matched) {
+            args.push(match (slot, m) {
+                (StmtSlot::Arg { slot, .. }, Matched::Arg(Some(arg))) => {
+                    k += 1;
+                    let e = self.expr(arg)?;
+                    let which = if count == 1 {
+                        format!("`{}`", form.name)
+                    } else {
+                        format!("argument {k} of `{}`", form.name)
+                    };
+                    match form.rule {
+                        StmtRule::Plain => StmtArg::Value(self.slot_arg(Rule::Plain, slot, k - 1, e, &which)?),
+                        StmtRule::Close => unreachable!("`{}` has a node of its own (`check\\io.rs`)", form.name),
+                    }
+                }
+                (StmtSlot::Arg { .. }, Matched::Arg(None)) => {
+                    k += 1;
+                    StmtArg::Absent
+                }
+                (StmtSlot::Choice { .. }, Matched::Word(Some(w))) => StmtArg::Word(w),
+                (StmtSlot::Choice { .. }, Matched::Word(None)) => StmtArg::Absent,
+                (StmtSlot::Arg { .. }, Matched::Word(_)) | (StmtSlot::Choice { .. }, Matched::Arg(_)) => {
+                    unreachable!("`{}`: the slots and the match follow one template", form.name)
+                }
+            });
+        }
+        self.push(node, StmtKind::Builtin { id: form.id, args });
+        Ok(())
     }
 }
 

@@ -311,7 +311,7 @@ do{
 #line 14 "lowering_pairs_cpp.bas"
 tqbs=qbs_new(0,0);
 #line 14 "lowering_pairs_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((int32)(func_instr(0,__STRING_S,qbs_new_txt_len("l",1),0))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((int32)(func_instr(NULL,__STRING_S,qbs_new_txt_len("l",1),0))),qbs_new_txt(" ")));
 #line 14 "lowering_pairs_cpp.bas"
 if (is_error_pending()) goto skip5;
 #line 14 "lowering_pairs_cpp.bas"

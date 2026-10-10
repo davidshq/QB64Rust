@@ -1,0 +1,5 @@
+
+Expected variable =, look for conflict with a CONST name
+Caused by (or after):FREEFILE = 1
+LINE 3:FREEFILE = 1
+exit=1

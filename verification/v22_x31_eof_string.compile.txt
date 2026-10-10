@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):PRINT EOF ( "a",1 )
+LINE 3:PRINT EOF("a")
+exit=1

@@ -1,0 +1,48 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 9 may_raise
+  Builtin OPEN form 1 [Value(Var F:Str), Word 3, Absent, Absent, Word 0, Value(Const 1:I32), Absent, Absent]
+Stmt line 10 may_raise
+  Builtin OPEN form 1 [Value(Var F:Str), Word 2, Word 1, Word 0, Word 0, Value(Var N:I32), Word 0, Value(Const 8:I32)]
+Stmt line 11 may_raise
+  Builtin OPEN form 2 [Value(Const "A"), Value(Const 2:I32), Value(Var F:Str), Absent]
+Stmt line 12 may_raise
+  Builtin OPEN form 2 [Value(Const "R"), Value(Const 3:I32), Value(Var F:Str), Value(Const 16:I32)]
+Stmt line 13 may_raise
+  Builtin CLOSE []
+Stmt line 14 may_raise
+  Builtin CLOSE [Value(Const 1:I32), Value(Var N:I32)]
+Stmt line 15 may_raise
+  Builtin SEEK [Value(Const 1:I32), Value((Var D:F64 -> Convert I64 RoundEven))]
+Stmt line 16 may_raise
+  Print file Const 1:I32 newline
+    Str Const "x"
+    Num Var N:I32
+    Zone
+    Num Var D:F64
+Stmt line 17 may_raise
+  Print file Const 1:I32
+    Zone
+    Str Const "y"
+Stmt line 18 may_raise
+  Print file Var N:I32 newline
+Stmt line 19 may_raise
+  Write file Const 1:I32 newline
+    Num Var N:I32
+    Str Var A:Str
+Stmt line 20
+  Write console
+    Num Var N:I32
+    Str Var A:Str
+Stmt line 21 may_raise
+  Input file Const 1:I32
+    Target A:Str
+    Target N:I32
+    Target ARR(Const 2:I64):I32
+Stmt line 22 may_raise
+  LineInput file Var N:I32
+    Target A:Str

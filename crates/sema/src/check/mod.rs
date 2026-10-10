@@ -12,17 +12,18 @@ mod constants;
 mod decl;
 mod expr;
 mod flow;
+mod io;
 mod ops;
 mod places;
 mod proc;
 
 use blocks::nested_statements;
 
-use crate::{ConstId, LabelId, Place, PrintItem, ProcId, Program, Stmt, StmtKind, SymbolKind, Ty, TypeId, VarId};
+use crate::{ConstId, LabelId, Place, ProcId, Program, Stmt, StmtKind, SymbolKind, Ty, TypeId, VarId};
 use qb64rust_base::{Diagnostics, SourceMap, Span, show_bytes};
 use qb64rust_syntax::ParsedProgram;
 use qb64rust_syntax::SyntaxKind;
-use qb64rust_syntax::ast::{self, PrintPart};
+use qb64rust_syntax::ast;
 use qb64rust_syntax::meta::{MemoryMode, comment_directives};
 use qb64rust_syntax::tree::{Node, Tok, TreeId};
 use std::collections::{HashMap, HashSet};
@@ -448,11 +449,15 @@ impl Checker<'_> {
             Err(self.unsupported(first_token_span(node), "event handlers (`ON TIMER`, `ON KEY`, …)"))
         } else if ast::EventSwitchStmt::cast(node).is_some() {
             Err(self.unsupported(first_token_span(node), "event switches (`TIMER ON`, `KEY(n) OFF`, …)"))
+        } else if let Some(s) = ast::WriteStmt::cast(node) {
+            self.write(s)
+        } else if let Some(s) = ast::InputStmt::cast(node) {
+            self.input(s)
+        } else if let Some(s) = ast::LineInputStmt::cast(node) {
+            self.line_input(s)
+        } else if let Some(s) = ast::CloseStmt::cast(node) {
+            self.close(s)
         } else if ast::LprintStmt::cast(node).is_some()
-            || ast::WriteStmt::cast(node).is_some()
-            || ast::InputStmt::cast(node).is_some()
-            || ast::LineInputStmt::cast(node).is_some()
-            || ast::CloseStmt::cast(node).is_some()
             || ast::FieldStmt::cast(node).is_some()
             || ast::LsetStmt::cast(node).is_some()
             || ast::SwapStmt::cast(node).is_some()
@@ -462,17 +467,9 @@ impl Checker<'_> {
             // Task 7.4: parsed, compiled later (file I/O and the other built-in statements, step 8).
             let t = first_token_span(node);
             let word = show_bytes(&self.text(t).to_ascii_uppercase());
-            let word = if ast::LineInputStmt::cast(node).is_some() {
-                "LINE INPUT".to_string()
-            } else {
-                word
-            };
             Err(self.unsupported(t, format!("`{word}`")))
-        } else if ast::BuiltinStmt::cast(node).is_some() {
-            // Task 7.5: read by its template; the built-in statements are compiled later (step 8).
-            let t = first_token_span(node);
-            let word = show_bytes(&self.text(t).to_ascii_uppercase());
-            Err(self.unsupported(t, format!("`{word}`")))
+        } else if let Some(s) = ast::BuiltinStmt::cast(node) {
+            self.builtin_stmt(s)
         } else if ast::StopStmt::cast(node).is_some() {
             Err(self.unsupported(first_token_span(node), "`STOP`"))
         } else if ast::RunStmt::cast(node).is_some() {
@@ -650,38 +647,6 @@ impl Checker<'_> {
     /// Whether a variable holds a whole user-type value.
     fn is_whole_type(&self, v: VarId) -> bool {
         matches!(self.prog.var(v).ty, Ty::User(_))
-    }
-
-    fn print(&mut self, stmt: ast::PrintStmt) -> R<()> {
-        if let Some(f) = stmt.file() {
-            return Err(self.unsupported(f.node().span(), "`PRINT #`"));
-        }
-        if let Some(u) = stmt.using() {
-            return Err(self.unsupported(u.node().span(), "`PRINT USING`"));
-        }
-        let mut items = Vec::new();
-        let mut newline = true;
-        for part in stmt.parts() {
-            match part {
-                PrintPart::Semicolon(_) => newline = false,
-                PrintPart::Comma(_) => {
-                    items.push(PrintItem::Zone);
-                    newline = false;
-                }
-                PrintPart::Expr(n) => {
-                    let e = self.expr(n)?;
-                    items.push(if e.ty == Ty::Str {
-                        PrintItem::Str(e)
-                    } else {
-                        let qb = e.qb.printed();
-                        PrintItem::Num(self.convert_exact(e, qb))
-                    });
-                    newline = true;
-                }
-            }
-        }
-        self.push(stmt.node(), StmtKind::Print { items, newline });
-        Ok(())
     }
 }
 

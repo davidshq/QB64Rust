@@ -1,0 +1,41 @@
+  error 5 
+  error 5 
+ 1 [x 7 y]
+ 2 [ 1 -2  3.5 ]
+ 3 [a             b              5 ]
+ 4 [12345678901234              z]
+ 5 [1234567890123 z]
+ 6 [no newline same line]
+ 7 [zone at the end             next]
+ 8 []
+ 9 [after two empties]
+ 10 [-5  250 -300  65000 -70000  4000000000 -5000000000  18446744073709551615 ]
+ 11 [ 1.5 -2.25  1D+20  12 -3 [ab  ]]
+ 12 [ab 1  2 ]
+ 13 [raafter raise]
+ 14 [    t   s]
+ 15 [1,"a",2.5]
+ 16 [-5,250,-300,65000,-70000,4000000000,-5000000000,18446744073709551615]
+ 17 [1.5,-2.25,1D+20,12,-3,"ab  "]
+ 18 [-1,-2.5,1E+30,.5,-.5,100000000]
+ 19 ["with "quote","comma, inside",""]
+ 20 []
+ 21 ["ra","after raise"]
+bytes 521 
+console WRITE
+1,"a",2.5
+"with "quote",-1
+
+"ra",  error 5 
+PRINT # not open
+  error 52 
+WRITE # not open
+  error 52 
+PRINT # to a file open for input
+  error 54 
+PRINT #1.5 (file 2)
+PRINT # with a raising number
+  error 5 
+PRINT #0 and #-1
+  error 52 
+exit=0

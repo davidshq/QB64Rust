@@ -1,0 +1,5 @@
+
+Expected operator in equation
+Caused by (or after):PRINT # 1 , "a",1 1
+LINE 3:PRINT #1, "a" 1
+exit=1

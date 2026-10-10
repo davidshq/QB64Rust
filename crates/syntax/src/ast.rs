@@ -205,6 +205,180 @@ impl<'a> PrintStmt<'a> {
     }
 }
 
+impl<'a> FileNumber<'a> {
+    /// The number's expression (`n` of `#n,`).
+    pub fn number(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
+/// The expressions and commas of a list statement (`WRITE`, `INPUT`, `LINE INPUT`), in source order.
+fn list_parts<'a>(node: Node<'a>) -> impl Iterator<Item = PrintPart<'a>> + 'a {
+    node.children().filter_map(|e| match e {
+        Element::Token(t) if t.kind == Comma => Some(PrintPart::Comma(t)),
+        Element::Node(n) => Expr::cast(n).map(PrintPart::Expr),
+        Element::Token(_) => None,
+    })
+}
+
+impl<'a> WriteStmt<'a> {
+    /// `#n,` of `WRITE #n, …`.
+    pub fn file(self) -> Option<FileNumber<'a>> {
+        child(self.0, FileNumber::cast)
+    }
+
+    /// The items and the commas between them (never a semicolon: the parser rejects one).
+    pub fn parts(self) -> impl Iterator<Item = PrintPart<'a>> + 'a {
+        list_parts(self.0)
+    }
+}
+
+/// The prompt of a console `INPUT` or `LINE INPUT`.
+#[derive(Clone, Copy, Debug)]
+pub struct Prompt {
+    /// The `;` before the prompt (the cursor stays on the line after the input).
+    pub stay: Option<Tok>,
+    /// The string literal.
+    pub text: Option<Tok>,
+    /// The `;` or `,` after the literal.
+    pub separator: Option<Tok>,
+}
+
+/// The tokens of a console input statement before its first target.
+fn prompt_of(node: Node<'_>) -> Prompt {
+    let first_target = node
+        .child_nodes()
+        .find(|n| Expr::cast(*n).is_some())
+        .map_or(u32::MAX, |n| n.offset);
+    let before: Vec<Tok> = node.child_tokens().filter(|t| t.span.start < first_target).collect();
+    let text = before.iter().copied().find(|t| t.kind == SyntaxKind::StringLit);
+    let stay = before
+        .iter()
+        .copied()
+        .find(|t| t.kind == Semicolon && text.is_none_or(|p| t.span.start < p.span.start));
+    let separator = text.and_then(|p| {
+        before
+            .iter()
+            .copied()
+            .find(|t| matches!(t.kind, Semicolon | Comma) && t.span.start > p.span.start)
+    });
+    Prompt { stay, text, separator }
+}
+
+impl<'a> InputStmt<'a> {
+    /// `#n,` of `INPUT #n, …`.
+    pub fn file(self) -> Option<FileNumber<'a>> {
+        child(self.0, FileNumber::cast)
+    }
+
+    /// The prompt part of a console `INPUT` (every field `None` for a file's).
+    pub fn prompt(self) -> Prompt {
+        prompt_of(self.0)
+    }
+
+    /// The targets and the commas between them.
+    pub fn parts(self) -> impl Iterator<Item = PrintPart<'a>> + 'a {
+        let after = self.prompt().separator.map_or(0, |t| t.span.end);
+        list_parts(self.0).filter(move |p| match p {
+            PrintPart::Comma(t) | PrintPart::Semicolon(t) => t.span.start >= after,
+            PrintPart::Expr(_) => true,
+        })
+    }
+}
+
+impl<'a> LineInputStmt<'a> {
+    /// `#n,` of `LINE INPUT #n, …`.
+    pub fn file(self) -> Option<FileNumber<'a>> {
+        child(self.0, FileNumber::cast)
+    }
+
+    /// The prompt part of a console `LINE INPUT`.
+    pub fn prompt(self) -> Prompt {
+        prompt_of(self.0)
+    }
+
+    /// The targets and the commas between them (one target is valid).
+    pub fn parts(self) -> impl Iterator<Item = PrintPart<'a>> + 'a {
+        let after = self.prompt().separator.map_or(0, |t| t.span.end);
+        list_parts(self.0).filter(move |p| match p {
+            PrintPart::Comma(t) | PrintPart::Semicolon(t) => t.span.start >= after,
+            PrintPart::Expr(_) => true,
+        })
+    }
+}
+
+impl<'a> CloseStmt<'a> {
+    /// The file numbers, in order (each may be written with `#`).
+    pub fn numbers(self) -> impl Iterator<Item = Expr<'a>> + 'a {
+        self.0.child_nodes().filter_map(Expr::cast)
+    }
+}
+
+impl<'a> SwapStmt<'a> {
+    /// The two operands, in order.
+    pub fn operands(self) -> impl Iterator<Item = Expr<'a>> + 'a {
+        self.0.child_nodes().filter_map(Expr::cast)
+    }
+}
+
+/// One part of a built-in statement read by its template, after its name, in source order.
+#[derive(Clone, Copy, Debug)]
+pub enum FormPart<'a> {
+    /// A word of the template (`FOR`, `OUTPUT`, `AS`, `_HIDE`).
+    Word(FormWord<'a>),
+    /// A punctuation character of the template: `,`, `(`, `)`, `-`, `=` or `#`.
+    Punct(Tok),
+    /// An argument (`?` in the template).
+    Arg(FormArg<'a>),
+}
+
+impl<'a> BuiltinStmt<'a> {
+    /// The statement's name, as written (`OPEN`, `TIME$`).
+    pub fn name(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Ident)
+    }
+
+    /// The words, punctuation and arguments after the name, in source order.
+    pub fn parts(self) -> impl Iterator<Item = FormPart<'a>> + 'a {
+        let name_end = self.name().map_or(0, |t| t.span.end);
+        self.0.children().filter_map(move |e| match e {
+            Element::Node(n) => FormWord::cast(n)
+                .map(FormPart::Word)
+                .or_else(|| FormArg::cast(n).map(FormPart::Arg)),
+            Element::Token(t)
+                if t.span.start >= name_end && matches!(t.kind, Comma | LParen | RParen | Minus | Eq | Hash) =>
+            {
+                Some(FormPart::Punct(t))
+            }
+            Element::Token(_) => None,
+        })
+    }
+
+    /// The arguments, in source order.
+    pub fn args(self) -> impl Iterator<Item = FormArg<'a>> + 'a {
+        self.0.child_nodes().filter_map(FormArg::cast)
+    }
+
+    /// The template words, in source order.
+    pub fn words(self) -> impl Iterator<Item = FormWord<'a>> + 'a {
+        self.0.child_nodes().filter_map(FormWord::cast)
+    }
+}
+
+impl FormWord<'_> {
+    /// The word's token.
+    pub fn token(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Ident)
+    }
+}
+
+impl<'a> FormArg<'a> {
+    /// The argument's expression.
+    pub fn expr(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
 impl<'a> DimStmt<'a> {
     /// The `SHARED` word of `DIM SHARED`.
     pub fn shared(self) -> Option<Tok> {
@@ -1673,5 +1847,122 @@ mod tests {
             })
             .collect();
         assert_eq!(kinds, vec!["expr", ";", "expr"]);
+    }
+
+    /// How many expressions and commas the parts hold.
+    fn counts<'a>(parts: impl Iterator<Item = PrintPart<'a>>) -> (usize, usize) {
+        parts.fold((0, 0), |(e, c), p| match p {
+            PrintPart::Expr(_) => (e + 1, c),
+            PrintPart::Comma(_) | PrintPart::Semicolon(_) => (e, c + 1),
+        })
+    }
+
+    #[test]
+    fn io_statement_parts() {
+        let parse = |src: &'static [u8]| crate::parser::parse_tree(TreeId(0), FileId(0), src);
+        let p = parse(b"WRITE #1, a, \"b\", 2.5\n");
+        assert!(p.diagnostics.list().is_empty());
+        let w = WriteStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(w.file().and_then(|f| f.number()).is_some());
+        assert_eq!(counts(w.parts()), (3, 2));
+        // A trailing comma (accepted by the old compiler, `verification\v22_x59`) and no items.
+        let p = parse(b"WRITE 1,\n");
+        assert!(p.diagnostics.list().is_empty(), "{:?}", p.diagnostics.list());
+        let w = WriteStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(w.file().is_none());
+        assert_eq!(counts(w.parts()), (1, 1));
+        let p = parse(b"WRITE\n");
+        assert_eq!(counts(WriteStmt::cast(first_stmt(&p.green)).unwrap().parts()), (0, 0));
+
+        let p = parse(b"INPUT #n, a, b$\n");
+        let i = InputStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(i.file().is_some() && i.prompt().text.is_none());
+        assert_eq!(counts(i.parts()), (2, 1));
+        let p = parse(b"INPUT ; \"name\", a$, b\n");
+        let i = InputStmt::cast(first_stmt(&p.green)).unwrap();
+        let prompt = i.prompt();
+        assert!(i.file().is_none() && prompt.stay.is_some());
+        assert_eq!(prompt.text.map(|t| t.span.start), Some(8));
+        assert_eq!(prompt.separator.map(|t| t.kind), Some(Comma));
+        assert_eq!(counts(i.parts()), (2, 1));
+        let p = parse(b"INPUT \"n\"; a\n");
+        let i = InputStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(i.prompt().stay.is_none());
+        assert_eq!(i.prompt().separator.map(|t| t.kind), Some(Semicolon));
+        let p = parse(b"INPUT a\n");
+        let i = InputStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(i.prompt().text.is_none() && i.prompt().stay.is_none() && i.prompt().separator.is_none());
+
+        let p = parse(b"LINE INPUT #1, s$\nLINE INPUT \"p\"; s$\n");
+        let root = SourceFile::cast(Node::root(&p.green, TreeId(0), FileId(0))).unwrap();
+        let lines: Vec<_> = root.statements().filter_map(LineInputStmt::cast).collect();
+        assert!(lines[0].file().is_some() && lines[0].prompt().text.is_none());
+        assert_eq!(counts(lines[0].parts()), (1, 0));
+        assert!(lines[1].file().is_none() && lines[1].prompt().text.is_some());
+        assert_eq!(counts(lines[1].parts()), (1, 0));
+
+        let p = parse(b"CLOSE #1, n, #3\n");
+        assert_eq!(CloseStmt::cast(first_stmt(&p.green)).unwrap().numbers().count(), 3);
+        let p = parse(b"CLOSE\n");
+        assert_eq!(CloseStmt::cast(first_stmt(&p.green)).unwrap().numbers().count(), 0);
+        let p = parse(b"SWAP a(1), b.c\n");
+        assert_eq!(SwapStmt::cast(first_stmt(&p.green)).unwrap().operands().count(), 2);
+    }
+
+    /// The name and parts of the built-in statement `src` is: words in upper case, punctuation as written, `?` for
+    /// an argument.
+    fn form(src: &[u8]) -> (String, Vec<String>, usize, usize) {
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), src);
+        assert!(p.diagnostics.list().is_empty(), "{:?}", p.diagnostics.list());
+        let stmt = BuiltinStmt::cast(first_stmt(&p.green)).expect("a BuiltinStmt");
+        let text = |t: Tok| {
+            let bytes = &src[t.span.start as usize..t.span.end as usize];
+            bytes
+                .iter()
+                .map(|b| char::from(b.to_ascii_uppercase()))
+                .collect::<String>()
+        };
+        let parts = stmt
+            .parts()
+            .map(|part| match part {
+                FormPart::Word(w) => text(w.token().unwrap()),
+                FormPart::Punct(t) => text(t),
+                FormPart::Arg(a) => {
+                    assert!(a.expr().is_some());
+                    "?".to_string()
+                }
+            })
+            .collect();
+        (
+            text(stmt.name().unwrap()),
+            parts,
+            stmt.args().count(),
+            stmt.words().count(),
+        )
+    }
+
+    #[test]
+    fn builtin_statement_parts() {
+        let (name, parts, args, words) = form(b"OPEN f$ FOR OUTPUT AS #1\n");
+        assert_eq!(name, "OPEN");
+        assert_eq!(parts, ["?", "FOR", "OUTPUT", "AS", "#", "?"]);
+        assert_eq!((args, words), (2, 3));
+
+        let (name, parts, ..) = form(b"shell _hide c$\n");
+        assert_eq!(name, "SHELL");
+        assert_eq!(parts, ["_HIDE", "?"]);
+
+        let (name, parts, ..) = form(b"NAME a$ AS b$\n");
+        assert_eq!(name, "NAME");
+        assert_eq!(parts, ["?", "AS", "?"]);
+
+        // An optional argument left out: `SHELL` alone, `RANDOMIZE` without a seed, `LINE` without a colour.
+        let (name, parts, args, _) = form(b"SHELL\n");
+        assert_eq!((name.as_str(), parts.len(), args), ("SHELL", 0, 0));
+        let (_, parts, ..) = form(b"LINE -(1, 2), , B\n");
+        assert_eq!(parts, ["-", "(", "?", ",", "?", ")", ",", ",", "B"]);
+        let (name, parts, ..) = form(b"TIME$ = t$\n");
+        assert_eq!(name, "TIME$");
+        assert_eq!(parts, ["=", "?"]);
     }
 }

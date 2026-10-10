@@ -1,0 +1,5 @@
+
+Expected variable-name
+Caused by (or after):INPUT # 1 , C
+LINE 4:INPUT #1, c
+exit=1

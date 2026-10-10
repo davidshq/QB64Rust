@@ -145,7 +145,16 @@ What the compiler supports so far:
   read in 32 bits) and `name$n` variables of every storage class, static arrays of them and `TYPE` members, as the
   old compiler builds them: a fixed `qbs` over n NUL bytes per variable, a temporary one over an element's or
   member's bytes, stores by `qbs_set` (which cuts and pads); their values are plain `STRING`s (`Ty::held_value`),
-  and one passed to a `STRING` parameter goes by reference, also in parentheses.
+  and one passed to a `STRING` parameter goes by reference, also in parentheses;
+- built-in statements (`m2-builtin-statements`): a statement that is one call of the runtime is a row in
+  `sema\src\builtins.rs` (`STATEMENTS`, the twin of the function list) and `Op::Builtin` in the IR: the table entry
+  of the form written and one slot per argument or choice of its template (a value, a place, the word chosen, or
+  absent). `sema\src\check\builtins.rs` matches the statement against its forms as the parser did and converts each
+  argument to its slot; `codegen-cpp\src\builtins.rs` writes the call by the old compiler's template rule
+  (`builtins\src\passing.rs`, a port of `seperateargs`' pass rules: which parts are C arguments, `NULL` for an
+  absent one, the bits of the `passed` mask). The arguments are evaluated in order and the call is made also
+  after a raising one, as measured. So far: `KILL`, `MKDIR`, `RMDIR`, `CHDIR`, `NAME`, `ENVIRON` (also `CALL
+  KILL(…)`). Tier 1 requires each listed statement in a `slice.list` program and an `ir` test.
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`

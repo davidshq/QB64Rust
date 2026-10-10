@@ -685,8 +685,44 @@ pub enum PrintItem {
     Zone,
 }
 
+/// Where an [`StmtKind::Input`] reads from.
+#[derive(Clone, Debug, PartialEq)]
+pub enum InputSource {
+    /// File `n` (`INPUT #n,`), already converted to LONG.
+    File(Expr),
+    /// The console (standard input under `$CONSOLE:ONLY`): the prompt's bytes if one was written, whether `? ` is
+    /// printed after it (no prompt, or a prompt followed by `;`), and whether the cursor stays on the line after
+    /// the input (a `;` straight after `INPUT`).
+    Console {
+        prompt: Option<Vec<u8>>,
+        question: bool,
+        stay: bool,
+    },
+}
+
+/// One slot of a built-in statement (design D2 of `m2-builtin-statements`): one per argument or choice of the
+/// statement's template, in template order ([`builtins::stmt_slots`]).
+#[derive(Clone, Debug, PartialEq)]
+pub enum StmtArg {
+    /// An argument, already converted to its slot's type.
+    Value(Expr),
+    /// A variable, element or member the statement stores into or exchanges.
+    Place(Place),
+    /// Which alternative of a choice was written, from 0 (`FOR OUTPUT` of `OPEN` is 3).
+    Word(u8),
+    /// An optional argument or choice left out.
+    Absent,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum StmtKind {
+    /// A built-in statement that is one call of the runtime ([`builtins::STATEMENTS`]): the table entry of the form
+    /// written and one slot per argument or choice. The arguments are evaluated in order and the call is made also
+    /// after a raising argument (measured, `verification\v22_a_calls`).
+    Builtin {
+        id: BuiltinId,
+        args: Vec<StmtArg>,
+    },
     /// `$CONSOLE:ONLY`: output and input go to the console.
     ConsoleOnly,
     /// A store; the value has the place's type (never a user type). The store rule depends on the place (design D6
@@ -695,9 +731,26 @@ pub enum StmtKind {
         place: Place,
         value: Expr,
     },
+    /// `PRINT` (`to` is `None`) or `PRINT #n,`: `to` is the file number, already converted to LONG.
     Print {
+        to: Option<Expr>,
         items: Vec<PrintItem>,
         newline: bool,
+    },
+    /// `WRITE` to the console (`to` is `None`) or to file `to`: the items separated by commas, strings in quotes,
+    /// numbers without blanks, then a line end unless the statement ends with a comma (`newline` false; measured,
+    /// `verification\v22_x59`). An item is a [`PrintItem::Str`] or a [`PrintItem::Num`].
+    Write {
+        to: Option<Expr>,
+        items: Vec<PrintItem>,
+        newline: bool,
+    },
+    /// `INPUT` or `LINE INPUT` (`line`): reads one field per target, or one whole line into a single string target.
+    /// A target is a variable, an element or a member (never of a user type, never a member of an element).
+    Input {
+        from: InputSource,
+        line: bool,
+        targets: Vec<Place>,
     },
     End,
     /// `SYSTEM`: ends the program at once, without the "press any key" prompt of `END`.

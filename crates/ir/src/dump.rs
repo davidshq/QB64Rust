@@ -1,9 +1,10 @@
 //! `--dump ir`: the lowering-pair text of design D6.
 
 use crate::{
-    Arg, BinOp, Body, Expr, ExprKind, LabelId, OnError, Op, Place, PrintItem, ProcKind, Program, Resume, Storage, Ty,
-    VarId, When,
+    Arg, BinOp, Body, Expr, ExprKind, LabelId, OnError, Op, Place, PrintItem, ProcKind, Program, Resume, Source,
+    StmtArg, Storage, Ty, VarId, When,
 };
+
 use qb64rust_base::{show_bytes, to_u32};
 use std::fmt::Write as _;
 
@@ -106,8 +107,17 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     let t = ty(p, p.place_ty(place));
                     writeln!(out, "  Assign {}:{t} = {}", place_text(p, place), val(p, value)).unwrap();
                 }
-                Op::Print { items, newline } => {
-                    writeln!(out, "  Print console{}", if *newline { " newline" } else { "" }).unwrap();
+                Op::Print { to, items, newline } | Op::Write { to, items, newline } => {
+                    let word = if matches!(op, Op::Write { .. }) {
+                        "Write"
+                    } else {
+                        "Print"
+                    };
+                    let to = match to {
+                        None => "console".to_string(),
+                        Some(n) => format!("file {}", val(p, n)),
+                    };
+                    writeln!(out, "  {word} {to}{}", if *newline { " newline" } else { "" }).unwrap();
                     for i in items {
                         match i {
                             PrintItem::Str(v) => writeln!(out, "    Str {}", val(p, v)).unwrap(),
@@ -116,8 +126,49 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                         }
                     }
                 }
+                Op::Input { from, line, targets } => {
+                    let word = if *line { "LineInput" } else { "Input" };
+                    let from = match from {
+                        Source::File(n) => format!("file {}", val(p, n)),
+                        Source::Console { prompt, question, stay } => {
+                            let prompt = match prompt {
+                                Some(text) => format!(" prompt \"{}\"", show_bytes(text)),
+                                None => String::new(),
+                            };
+                            let question = if *question { " question" } else { "" };
+                            let stay = if *stay { " stay" } else { "" };
+                            format!("console{prompt}{question}{stay}")
+                        }
+                    };
+                    writeln!(out, "  {word} {from}").unwrap();
+                    for place in targets {
+                        writeln!(out, "    Target {}:{}", place_text(p, place), ty(p, p.place_ty(place))).unwrap();
+                    }
+                }
                 Op::Call { proc, args: a } => {
                     writeln!(out, "  Call {} [{}]", p.proc(*proc).name, args(p, a)).unwrap();
+                }
+                Op::Builtin { id, args: a } => {
+                    let slots: Vec<String> = a
+                        .iter()
+                        .map(|arg| match arg {
+                            StmtArg::Value(v) => format!("Value({})", val(p, v)),
+                            StmtArg::Place(place) => {
+                                format!("Place {}:{}", place_text(p, place), ty(p, p.place_ty(place)))
+                            }
+                            StmtArg::Word(w) => format!("Word {w}"),
+                            StmtArg::Absent => "Absent".to_string(),
+                        })
+                        .collect();
+                    // The entry's place among the forms of its name (`OPEN` has two), when there are several.
+                    let b = id.get();
+                    let forms = qb64rust_builtins::find_statements(b.name.as_bytes(), b.musthave == Some("$"));
+                    let form = match forms.iter().position(|f| f == id) {
+                        Some(k) if forms.len() > 1 => format!(" form {}", k + 1),
+                        Some(_) | None => String::new(),
+                    };
+                    let name = b.name.to_ascii_uppercase();
+                    writeln!(out, "  Builtin {name}{form} [{}]", slots.join(", ")).unwrap();
                 }
             }
         }

@@ -5,8 +5,9 @@
 use crate::Emitter;
 use crate::names::c_type;
 use qb64rust_builtins::BuiltinId;
-use qb64rust_ir::builtins::{Rule, Slot, find, int_entry, radix_width, slots};
-use qb64rust_ir::{Expr, Ty};
+use qb64rust_builtins::passing::plan;
+use qb64rust_ir::builtins::{Rule, Slot, StmtRule, find, int_entry, radix_width, slots, stmt_find};
+use qb64rust_ir::{Expr, Facts, StmtArg, Ty};
 
 impl Emitter<'_> {
     /// A built-in call. A built-in no rule covers (`ERR`, `ERL` are `Fixed`; every call `sema` makes has a rule) is
@@ -127,8 +128,60 @@ impl Emitter<'_> {
         format!("{f}({x})")
     }
 
-    /// A call by the table's `callname`. A built-in with optional slots gets a placeholder for each absent argument
-    /// and, last, the `passed` mask: bit n set when the n-th optional slot is present (`study\02` §4.3). An argument
+    /// A built-in statement, written by its rule (design D5 of `m2-builtin-statements`).
+    pub(crate) fn stmt_call(&mut self, id: BuiltinId, args: &[StmtArg], out: &mut Vec<String>) {
+        let form = stmt_find(id).unwrap_or_else(|| unreachable!("{} is no compiled statement", id.get().name));
+        match form.rule {
+            StmtRule::Plain => out.push(self.plain_stmt(id, args)),
+            // One call per number, in order; every file when there is none.
+            StmtRule::Close => {
+                for arg in args {
+                    let StmtArg::Value(n) = arg else {
+                        unreachable!("`CLOSE` takes values (`validate`)");
+                    };
+                    out.push(format!("sub_close({},1);", self.value(n)));
+                }
+                if args.is_empty() {
+                    out.push("sub_close(NULL,0);".into());
+                }
+            }
+        }
+        if args.iter().any(|a| a.uses_strings(self.p)) {
+            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        }
+    }
+
+    /// A statement call by the table's `callname` and the old compiler's template rule
+    /// (`qb64rust_builtins::passing`): each argument and each several-alternative choice is a C argument (the
+    /// value, the alternative's number from 1, `NULL` when left out), and the `passed` mask comes last where the
+    /// template has optional parts that need a flag.
+    fn plain_stmt(&mut self, id: BuiltinId, args: &[StmtArg]) -> String {
+        let b = id.get();
+        let plan = plan(&b.template());
+        let mut c_args = Vec::new();
+        let mut mask = 0u32;
+        for (part, arg) in plan.parts.iter().zip(args) {
+            let text = match arg {
+                StmtArg::Value(v) => self.value(v),
+                StmtArg::Word(w) => (u32::from(*w) + 1).to_string(),
+                StmtArg::Absent => "NULL".to_string(),
+                StmtArg::Place(_) => unreachable!("`{}` takes no place (`validate`)", b.name),
+            };
+            if !matches!(arg, StmtArg::Absent) {
+                mask |= part.flag;
+            }
+            if part.passed {
+                c_args.push(text);
+            }
+        }
+        if plan.mask {
+            c_args.push(mask.to_string());
+        }
+        format!("{}({});", b.callname, c_args.join(","))
+    }
+
+    /// A call by the table's `callname`. A built-in with optional slots gets `NULL` for each absent argument, as the
+    /// old compiler writes it, and, last, the `passed` mask: bit n set when the n-th optional slot is present (`study\02` §4.3). An argument
     /// of an any-numeric slot is cast to its C type, so libqb's overload for it is chosen (`func_abs((int16)(…))`:
     /// an INTEGER literal is otherwise a C `int`).
     fn table_call(&mut self, id: BuiltinId, args: &[Option<Expr>], slots: &[Slot]) -> String {
@@ -147,10 +200,10 @@ impl Emitter<'_> {
                     let x = self.value(a);
                     parts.push(match slots.get(i) {
                         Some(Slot::AnyNumeric) => format!("(({})({x}))", c_type(a.ty)),
-                        Some(Slot::Long | Slot::Double | Slot::Float | Slot::Str) | None => x,
+                        Some(Slot::Long | Slot::Int64 | Slot::Double | Slot::Float | Slot::Str) | None => x,
                     });
                 }
-                None => parts.push("0".into()),
+                None => parts.push("NULL".into()),
             }
             if is_optional {
                 bit += 1;

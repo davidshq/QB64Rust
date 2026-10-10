@@ -720,6 +720,104 @@ Measured for the new numeric types and fixed-length strings (2026-10-08, `m2-num
   every other operator, comparisons included, rounds a float operand first (`o < 7.4` with `o = 7` is false). The
   accidents among these are in `SOMEDAY.md` "QB64pe behaviours to review"; `s31_unsigned_ops` shows each.
 
+Measured for built-in statements (2026-10-10, `m2-builtin-statements`; `verification\v22_*`, the C++ read with
+`qb64pe -z`):
+
+- **Statement calls (`v22_a_calls`, `v22_a_resume`, `v22_a_args`, `v22_x01`–`x20`):** a plain built-in statement is
+  one call of its libqb entry with the arguments in order and no test between them (`sub_kill(func_chr(-1))`,
+  `sub_name(a,b)`); **the call is made also after a raising argument, and the first error is the one serviced**:
+  `sub_kill`, `sub_mkdir`, `sub_rmdir`, `sub_chdir`, `sub_name` and `sub_seek` return at once while an error is
+  pending, `sub_environ` does not test and raises its own error 5 for the placeholder, which changes nothing (`KILL
+  CHR$(-1)`, `NAME CHR$(-1) AS …`, `ENVIRON CHR$(-1)`: the handler runs once, with 5). `RESUME` runs the whole
+  statement again, arguments included (a FUNCTION in the argument runs twice). Errors: `KILL` of a missing file or
+  of `""` 53; `MKDIR` of an existing folder 75, of `""` 76; `CHDIR` and `RMDIR` of a missing folder 76; `NAME` of a
+  missing file 53; `ENVIRON` of a text with neither `=` nor a blank (also `""`) 5, and **a blank separates name and
+  value as `=` does** (`ENVIRON "A b"` sets `A` to `b`); `SEEK` to position 0 or below 63, on a number that is not
+  open (also 0) 52. The same in a SUB, where the error is serviced at the statement in the SUB. **Arguments:** a
+  string argument is passed as it is (a variable's `qbs`, also in parentheses `KILL (s)`, a fixed-length string, an
+  element); `SEEK`'s numbers are written as they are when integers (`sub_seek(*__LONG_L,*__INTEGER_I)`, C converts)
+  and through `qbr(…)` when floats, for both the LONG file number and the `_INTEGER64` position (`SEEK 1.4, 2.5` is
+  file 1, position 2; `SEEK 1, 3.5` position 4). **`CALL KILL("f")` is accepted** (`x16`). Rejections: a number for
+  a string "String required for sub" (one argument) or "1st/2nd sub argument requires a string", a string for a
+  number "… requires a number"; a missing, extra or wrongly separated argument "Syntax error - Reference: KILL
+  fileSpec$" (the statement's own syntax line); `KILL ("a", "b")` "Invalid expression"; `KILL$ "a"` "Syntax error".
+- **How a template becomes a call (`qb64pe.bas` `seperateargs`, read 2026-10-10; ported as
+  `crates\builtins\src\passing.rs`):** every `?` is a C argument (its value, or `NULL` when left out); a choice with
+  several alternatives is a C argument too (the alternative's number from 1, or `NULL`); a choice with one
+  alternative never is. Each optional block `[…]` that holds a `?`, or only one-alternative choices, gets the next
+  bit of the trailing `passed` mask (blocks of the outermost level first, then the next level, left to right); a
+  block with a several-alternative choice needs none. The table's `arg_types` are the types of the C arguments in
+  order. Checked against the C++: `sub_open(name,mode,access,lock,number,length,passed)` with modes `RANDOM` 1,
+  `BINARY` 2, `INPUT` 3, `OUTPUT` 4, `APPEND` 5, access `READ WRITE` 1, `READ` 2, `WRITE` 3, lock `SHARED` 1, `LOCK
+  READ WRITE` 2, `LOCK READ` 3, `LOCK WRITE` 4, and bit 1 for `LEN =`; `sub_open_gwbasic(mode$,number,name$,length,
+  passed)`; `LINE STEP(1,2)-STEP(3,4), 5, BF, 6` is `sub_line(1,2,3,4,5,2,6,31)`.
+- **Files: `OPEN`, `CLOSE` (`v22_b_open`, `v22_x26`–`x29`, `x41`, `x42`, `x51`):** every mode, access and lock word
+  compiles and opens; no `FOR` is `RANDOM` (mode `NULL`). The file number is a LONG slot: `AS #1.5` and `AS d` with
+  2.5 open file 2 (`qbr`), 4294967297 opens file 1 (C++ keeps the low 32 bits), 0 and -1 raise 52, 256 and 70000
+  are fine. Opening a number that is open: 55; a missing file for `INPUT`: 53 (`BINARY`, `APPEND` create it); `""`:
+  76; `LEN = 0`: 5, `LEN = -1` and `2.5` accepted; `FOR INPUT ACCESS WRITE` 75; `FOR OUTPUT ACCESS READ` 53 (odd,
+  libqb's). The old form takes the first letter of the mode string in either case (`"INPUT"` works), a bad or empty
+  one raises 54. **`CLOSE` is one `sub_close(n,1)` per number, in order, or `sub_close(NULL,0)` alone**; `CLOSE
+  1.5` closes 2; a number that is not open (also 0, -1, 300) is no error; a trailing comma is accepted (`x50`).
+  Rejections: a string for a number "5th sub argument requires a number" (the C argument's place), a number for
+  the name "1st sub argument requires a string", an unknown mode word and a second `FOR` "Name already in use
+  (FOR)", no `AS` "Syntax error - Reference: OPEN …", `CLOSE "a"` "Illegal string-number conversion".
+- **Files: `PRINT #` (`v22_b_print`, C++):** `tab_spc_cr_size=2; tab_fileno=tmp_fileno=<number>;`, a test for a
+  pending error, then **one `sub_file_print(tmp_fileno, text, extraspace, tab, newline)` per item, each followed by
+  the test** (`goto skipN`), and `tab_spc_cr_size=1;` after the skip label. A string is passed as it is with
+  `extraspace` 0, a number as `qbs_str((type)(x))` with `extraspace` 1 (libqb adds the blank); `tab` is 1 when a
+  comma follows the item; `newline` is 1 on the last item unless the statement ends with a separator. A comma with
+  no item before it is `sub_file_print(tmp_fileno,nothingstring,0,1,0)`, `PRINT #1,` is `(…,nothingstring,0,0,1)`,
+  `PRINT #1, ;` writes nothing. **Zones are 14 columns in a file** (`"a", "b"` is `a` and 13 blanks; a 14-character
+  item is followed by 14 blanks). A raising item leaves what was written before it without a line end (`ra`, then
+  the next statement's text on the same line). **No automatic `;`**: `PRINT #1, "a" "b"` and `"a" 1` are "Expected
+  operator in equation" (`x54`, `x55`), unlike console `PRINT`; `PRINT #1 "x"` is "Expected # ... ," (`x25`), a
+  string for the number "Illegal string-number conversion" (`x46`). `TAB` and `SPC` work in it (not compiled yet).
+  A number that is not open (also 0, -1) raises 52, a file open for input 54; `#1.5` is file 2.
+- **`WRITE` (`v22_b_print`, `x39`, `x56`–`x60`, C++):** each item is a string built in C++: a number is
+  `qbs_ltrim(qbs_str((type)(x)))`, a string is `"` + s + `"` (a quote inside is not doubled); every item but the
+  last gets `,` appended (`qbs_add(…,qbs_new_txt_len(",",1))`), and the last ends the line. To a file each is
+  `sub_file_print(tmp_fileno,text,0,0,newline)` inside the frame of `PRINT #`, to the console `qbs_print(text,
+  newline)`, each followed by the pending-error test. **A trailing comma is accepted and gives `1,` without a line
+  end**; no items give an empty line; `;` between items is "Invalid expression" and adjacent items "Expected
+  operator in equation". A raising item leaves `"ra",` without a line end.
+- **`INPUT #`, `LINE INPUT #` (`v22_b_input`, `x21`–`x24`, `x40`, `x45`, `x47`–`x49`, C++):** `tmp_fileno=<number>;`,
+  the pending-error test, then per target, each followed by the test: a string target `sub_file_input_string(
+  tmp_fileno, place)`, `LINE INPUT` `sub_file_line_input_string(tmp_fileno, place)`; a numeric target is a store
+  of `func_file_input_float(tmp_fileno, typecode)` (every integer narrower than 64 bits and every float),
+  `func_file_input_int64(tmp_fileno)` (`_INTEGER64`, `_OFFSET`) or `func_file_input_uint64` (their unsigned
+  forms), by the store rule of its place (an element: index into `tmp_long` first, the store skipped while an error
+  is pending; a `_BIT` with its mask or sign extension around `((int64)func_file_input_float(…))`). **The type
+  code** is the old compiler's type value: the width in bits, plus `0x20000000` for a float, `0x10000000` for
+  unsigned, `0x08400000` for a variable (`0x08C00000` an element, `0x08600000` a member), and `0x03000000` more
+  for a `_BIT`; libqb reads the width, the float bit and the unsigned bit only. Measured: a value outside the
+  target's range (300 into `_BYTE`, -1 into an unsigned type, `&HFFFF` into INTEGER, `1e40` into SINGLE) **raises 6,
+  stores 0 and skips the later targets**, whose fields stay unread; a float is rounded half to even into an
+  integer narrower than 64 bits (2.5 is 2) **but 2.5 into `_INTEGER64` is 3** (another reader); text that is no
+  number is 0 (`12x` is 12); `&H10` is 16; an empty or blank field is 0; a quoted number is 0 for a numeric target.
+  String fields lose the blanks around them, keep everything inside quotes and drop what follows a closing quote
+  up to the comma. Fields are also ended by LF, CR and CR LF; with fewer fields on a line than targets the next
+  lines are read. Past the end: 62, and the target is set to empty or 0. A target with a raising index reads
+  nothing (error 9) and ends the statement. `LINE INPUT #` takes one string place (a variable, an element, a
+  fixed-length string, a member); it reads a last line without a line end and works on a `BINARY` file, where
+  `INPUT #` raises 54. Not open: 52; a file open for output: 54 (`INPUT #`), 75 (`LINE INPUT #`). Rejections: a
+  numeric `LINE INPUT` target "Expected string-variable", a second target "Too many variables"; a literal, an
+  expression or a `CONST` as a target "Expected variable-name"; no target "Expected , ..."; a whole `TYPE` variable
+  "Unexpected internal code reference to UDT". **`INPUT #1, a()` (a whole array) is accepted** (`x49`).
+- **File functions (`v22_b_funcs`, `x31`–`x38`, `x43`, `x44`, `x52`, `x53`):** `EOF`, `LOF`, `LOC`, `SEEK`,
+  `FREEFILE`, `_FILEEXISTS`, `_DIREXISTS` are believed LONG (`qbs_str((int32)(func_lof(1)))`) and `_CWD$` a string;
+  **in libqb `func_lof`, `func_loc` and `func_seek` return `int64`** (so `LOF(1) * 1000000000` is computed in 64
+  bits and printed through `int32`), `func_eof`, `func_freefile` and the two existence functions `int32`. The file
+  number is a LONG slot (`func_loc(qbr(*__DOUBLE_D))`). `FREEFILE` and `_CWD$` are called without parentheses only
+  (`func_freefile()`, `func__cwd()`): `FREEFILE(1)` and `_CWD$(1)` are "Incorrect number of arguments", `FREEFILE()`
+  "Expected (...)", `DIM FREEFILE` "Name already in use", `FREEFILE = 1` and `_CWD$ = "x"` "Expected variable =",
+  `_CWD` "Invalid variable name". `FREEFILE` gives the lowest free number, the same until a file is opened. `EOF`
+  is -1 on an empty input file and after the last line, 0 on an output file; on a number that is not open (also 0
+  and -1) each of the four raises 52. `SEEK` gives the next byte's position from 1 (`RANDOM`: the record), `LOC` 0
+  on a sequential file here. `_FILEEXISTS` is 0 for a folder and `_DIREXISTS` 0 for a file; `""` gives 0. Also
+  measured: `NAME` onto an existing file 5; `NAME` and `KILL` of an open file 75; `RMDIR` of a folder that is not
+  empty 75; `KILL` of a folder 53; `KILL` with `*` removes every match and raises 53 when nothing matches.
+
 ## 6. Bug-compatibility choices (all decided)
 
 From the end of `09` and `10` §2.8, §3.2 and the measurements in §5. **All decided by the user on 2026-10-08**

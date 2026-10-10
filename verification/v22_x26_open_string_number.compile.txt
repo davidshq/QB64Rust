@@ -1,0 +1,5 @@
+
+5th sub argument requires a number
+Caused by (or after):OPEN "f",1 FOR INPUT AS "a",1
+LINE 3:OPEN "f" FOR INPUT AS "a"
+exit=1

@@ -1,0 +1,50 @@
+KILL missing
+  error 53 
+KILL raising argument
+  error 5 
+KILL raising argument + text
+  error 5 
+KILL empty name
+  error 53 
+KILL existing
+KILL again
+  error 53 
+MKDIR
+MKDIR again
+  error 75 
+CHDIR into and back
+CHDIR missing
+  error 76 
+RMDIR
+RMDIR again
+  error 76 
+MKDIR empty name
+  error 76 
+NAME missing
+  error 53 
+NAME existing
+NAME raising first argument
+  error 5 
+NAME raising second argument
+  error 5 
+NAME both raising
+  error 5 
+KILL renamed
+ENVIRON with =
+[seven]
+ENVIRON with a blank
+[eight]
+ENVIRON without = or blank
+  error 5 
+ENVIRON empty
+  error 5 
+ENVIRON raising argument
+  error 5 
+in a SUB
+  error 53 
+  after KILL in SUB
+  error 76 
+  end of SUB
+expression arguments
+handler ran 18 times
+exit=0

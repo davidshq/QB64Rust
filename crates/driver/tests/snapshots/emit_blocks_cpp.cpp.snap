@@ -216,7 +216,7 @@ do{
 #line 22 "emit_blocks_cpp.bas"
 temp_for1_value=1;
 #line 22 "emit_blocks_cpp.bas"
-temp_for1_limit=(func_instr(0,func_chr(((int32)(qbr(*__SINGLE_A)))),qbs_new_txt_len("x",1),0)+2);
+temp_for1_limit=(func_instr(NULL,func_chr(((int32)(qbr(*__SINGLE_A)))),qbs_new_txt_len("x",1),0)+2);
 #line 22 "emit_blocks_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
 #line 22 "emit_blocks_cpp.bas"

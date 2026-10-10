@@ -1,0 +1,26 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 7 may_raise
+  Builtin KILL [Value(Const "f.tmp")]
+Stmt line 8 may_raise
+  Builtin MKDIR [Value(Var S:Str)]
+Stmt line 9 may_raise
+  Builtin RMDIR [Value(Concat(Var S:Str, Const "d"))]
+Stmt line 10 may_raise
+  Builtin CHDIR [Value(Const "..")]
+Stmt line 11 may_raise
+  Builtin NAME [Value(Var S:Str), Word 0, Value(Concat(Var S:Str, Const "2"))]
+Stmt line 12 may_raise
+  Builtin ENVIRON [Value(Concat(Const "A=", Var S:Str))]
+Stmt line 13 may_raise
+  Call REMOVE [Ref S:Str]
+Sub REMOVE lines 14-17
+  param F:Str
+Stmt line 15 may_raise
+  Builtin KILL [Value(Var F(param):Str)]
+Stmt line 16 may_raise
+  Builtin NAME [Value(Var F(param):Str), Word 0, Value(Const "g")]

@@ -1,8 +1,10 @@
 //! `--dump typed`: one node per line, indented, with its type (FreeBASIC lesson L8: assertions on types).
 
 use crate::{
-    Arg, CaseItem, Expr, ExprKind, Place, PrintItem, ProcKind, Program, Resume, Stmt, StmtKind, Storage, Ty, VarId,
+    Arg, CaseItem, Expr, ExprKind, InputSource, Place, PrintItem, ProcKind, Program, Resume, Stmt, StmtArg, StmtKind,
+    Storage, Ty, VarId,
 };
+
 use qb64rust_base::show_bytes;
 use std::fmt::Write as _;
 
@@ -137,6 +139,21 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 line(out, &format!("Call {}", p.proc(*proc).name));
                 args(p, a, d + 1, out);
             }
+            StmtKind::Builtin { id, args: a } => {
+                line(out, &format!("Builtin {}", id.get().name.to_ascii_uppercase()));
+                for arg in a {
+                    match arg {
+                        StmtArg::Value(e) => expr(p, e, d + 1, out),
+                        StmtArg::Place(place) => {
+                            let t = ty(p, p.place_ty(place));
+                            heading(out, &format!("place {} : {t}", place_text(p, place)));
+                            indexes(p, place, d + 2, out);
+                        }
+                        StmtArg::Word(w) => heading(out, &format!("word {w}")),
+                        StmtArg::Absent => heading(out, "(absent)"),
+                    }
+                }
+            }
             StmtKind::Assign { place, value } => {
                 let t = ty(p, p.place_ty(place));
                 line(out, &format!("Assign {}:{t}", place_text(p, place)));
@@ -149,8 +166,18 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                     expr(p, value, d + 1, out);
                 }
             }
-            StmtKind::Print { items, newline } => {
-                line(out, &format!("Print{}", if *newline { " newline" } else { "" }));
+            StmtKind::Print { to, items, newline } | StmtKind::Write { to, items, newline } => {
+                let word = if matches!(&s.kind, StmtKind::Write { .. }) {
+                    "Write"
+                } else {
+                    "Print"
+                };
+                let file = if to.is_some() { " to a file" } else { "" };
+                line(out, &format!("{word}{file}{}", if *newline { " newline" } else { "" }));
+                if let Some(n) = to {
+                    heading(out, "File");
+                    expr(p, n, d + 2, out);
+                }
                 for i in items {
                     match i {
                         PrintItem::Str(e) => {
@@ -163,6 +190,34 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                         }
                         PrintItem::Zone => heading(out, "Zone"),
                     }
+                }
+            }
+            StmtKind::Input {
+                from,
+                line: whole,
+                targets,
+            } => {
+                let word = if *whole { "LineInput" } else { "Input" };
+                match from {
+                    InputSource::File(n) => {
+                        line(out, &format!("{word} from a file"));
+                        heading(out, "File");
+                        expr(p, n, d + 2, out);
+                    }
+                    InputSource::Console { prompt, question, stay } => {
+                        let prompt = match prompt {
+                            Some(text) => format!(" prompt \"{}\"", show_bytes(text)),
+                            None => String::new(),
+                        };
+                        let question = if *question { " question" } else { "" };
+                        let stay = if *stay { " stay" } else { "" };
+                        line(out, &format!("{word} from the console{prompt}{question}{stay}"));
+                    }
+                }
+                for place in targets {
+                    let t = ty(p, p.place_ty(place));
+                    heading(out, &format!("target {} : {t}", place_text(p, place)));
+                    indexes(p, place, d + 2, out);
                 }
             }
             StmtKind::If {

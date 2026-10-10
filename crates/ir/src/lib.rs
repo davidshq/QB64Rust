@@ -10,8 +10,16 @@
 //! - **Errors are pending, and handled per statement.** A raising operation records a pending error and yields a
 //!   placeholder value; the statement goes on. The first error of a statement is the one serviced. A store or a
 //!   call made with that value still happens ([`Op::Assign`], [`Op::AssignAll`], [`Op::Call`]; measured: `x =
-//!   ASC("")` leaves 0 in `x`). Only these points check for a pending error:
-//!   - each item of an [`Op::Print`]: a raising item skips the rest of the statement, line end included;
+//!   ASC("")` leaves 0 in `x`). A built-in statement ([`Op::Builtin`]) evaluates its arguments in order and makes
+//!   its call also after a raising argument (measured, `verification\v22_a_calls`: the handler runs once, with the
+//!   argument's error); the runtime's entry does nothing while an error is pending, or raises another, which
+//!   changes nothing. Only these points check for a pending error:
+//!   - each item of an [`Op::Print`] or an [`Op::Write`]: a raising item skips the rest of the statement, line end
+//!     included; with a file number, also after the number is evaluated (a raising number writes nothing). What was
+//!     written before the raising item stays written (measured, `verification\v22_b_print`);
+//!   - each target of an [`Op::Input`], and after its file number: a raising read or target skips the later
+//!     targets, whose fields stay unread. Each target is stored by the rule of its place; a read that raises stores
+//!     zero or an empty string (measured, `verification\v22_b_input`);
 //!   - a procedure's entry: a procedure entered while an error is pending returns at once;
 //!   - [`Op::Jump`] and [`Op::Gosub`]: not taken while an error is pending;
 //!   - [`Op::Branch`] with [`OnError::Skip`]: not taken while an error is pending;
@@ -70,7 +78,10 @@ pub use qb64rust_sema::size_of;
 /// no work on them, only a variant-for-variant copy). The emitter ignores an [`Expr`]'s `span` and `qb`. Variable and
 /// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended
 /// ([`Program::vars`]).
-pub use qb64rust_sema::{Arg, Expr, ExprKind, Place, ProcId, VarId};
+pub use qb64rust_sema::{Arg, Expr, ExprKind, InputSource as Source, Place, ProcId, StmtArg, VarId};
+
+/// The table entry of a built-in: its identity in the IR (never a libqb name).
+pub use qb64rust_builtins::BuiltinId;
 
 /// A label of one body: its index in that body's [`Body::labels`]. [`Resume::To`] and [`Op::SetHandler`] name
 /// labels of the main module ([`Program::main`]); the jumps name labels of their own body.
@@ -233,6 +244,25 @@ impl Facts for Arg {
     }
 }
 
+impl Facts for StmtArg {
+    fn may_raise(&self) -> bool {
+        match self {
+            StmtArg::Value(v) => v.may_raise(),
+            StmtArg::Place(place) => Facts::may_raise(place),
+            StmtArg::Word(_) | StmtArg::Absent => false,
+        }
+    }
+
+    /// A string value, or a place that is a string or whose index involves strings.
+    fn uses_strings(&self, p: &Program) -> bool {
+        match self {
+            StmtArg::Value(v) => v.uses_strings(p),
+            StmtArg::Place(place) => place.uses_strings(p) || p.place_ty(place).is_string(),
+            StmtArg::Word(_) | StmtArg::Absent => false,
+        }
+    }
+}
+
 /// Whether the operator itself may raise: `\` and `MOD` by 0 (error 11), `^` with a negative base and a non-integer
 /// exponent (error 5).
 fn op_may_raise(op: BinOp) -> bool {
@@ -276,10 +306,30 @@ pub enum Op {
         place: Place,
         value: Expr,
     },
-    /// Items in order; a raising item skips the rest, including the line end.
+    /// Items in order, to the console (`to` is `None`) or to the file with this number (an `I32`); a raising item
+    /// skips the rest, including the line end. In a file a [`PrintItem::Zone`] is 14 columns wide, on the console
+    /// 10 (the runtime's).
     Print {
+        to: Option<Expr>,
         items: Vec<PrintItem>,
         newline: bool,
+    },
+    /// The items ([`PrintItem::Str`] in double quotes, [`PrintItem::Num`] without blanks) separated by commas, to
+    /// the console or to a file, then a line end if `newline`; without it the last item is followed by a comma
+    /// too. A raising item skips the rest.
+    Write {
+        to: Option<Expr>,
+        items: Vec<PrintItem>,
+        newline: bool,
+    },
+    /// Read one field per target, or (`line`) one whole line into the single string target, from a file or the
+    /// console. A numeric target takes the field's value in its own type; a value outside the type's range raises
+    /// error 6. The targets are stored in order, each by the rule of its place; see the crate documentation for the
+    /// pending-error checks. At least one target; none is of a user type or a member of an element.
+    Input {
+        from: Source,
+        line: bool,
+        targets: Vec<Place>,
     },
     End,
     /// End the program at once (`SYSTEM`).
@@ -288,6 +338,14 @@ pub enum Op {
     Call {
         proc: ProcId,
         args: Vec<Arg>,
+    },
+    /// A built-in statement that is one call of the runtime (design D2 of `m2-builtin-statements`): the built-in by
+    /// its table entry, which also says which form was written, and one slot per argument or choice of its template
+    /// in template order ([`builtins::stmt_slots`]). The values are evaluated in order; the call is made also after
+    /// a raising one. Always may raise.
+    Builtin {
+        id: BuiltinId,
+        args: Vec<StmtArg>,
     },
     /// Leave the procedure (`EXIT SUB`, `EXIT FUNCTION`); a FUNCTION returns its result variable's value.
     Exit,
@@ -327,11 +385,13 @@ impl Op {
                 false
             }
             // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
-            Op::Call { .. } | Op::Raise(_) | Op::Resume(_) | Op::Return(_) => true,
+            Op::Call { .. } | Op::Builtin { .. } | Op::Raise(_) | Op::Resume(_) | Op::Return(_) => true,
             Op::Assign { place, value } => place.may_raise() || value.may_raise(),
             Op::AssignAll(stores) => stores.iter().any(|(_, v)| v.may_raise()),
             Op::Branch { cond, .. } => cond.may_raise(),
-            Op::Print { items, .. } => items.iter().any(|i| match i {
+            // A file may not be open, a console input may meet the end of the input.
+            Op::Print { to: Some(_), .. } | Op::Write { to: Some(_), .. } | Op::Input { .. } => true,
+            Op::Print { to: None, items, .. } | Op::Write { to: None, items, .. } => items.iter().any(|i| match i {
                 PrintItem::Str(v) | PrintItem::Num(v) => v.may_raise(),
                 PrintItem::Zone => false,
             }),

@@ -208,7 +208,7 @@ makefit(tqbs);
 #line 8 "builtins_math_cpp.bas"
 qbs_print(tqbs,0);
 #line 8 "builtins_math_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((double)(func_pi(0,0))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((double)(func_pi(NULL,0))),qbs_new_txt(" ")));
 #line 8 "builtins_math_cpp.bas"
 if (is_error_pending()) goto skip2;
 #line 8 "builtins_math_cpp.bas"

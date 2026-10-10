@@ -1,0 +1,5 @@
+
+Expected (...)
+Caused by (or after):PRINT LOF ( )
+LINE 3:PRINT LOF()
+exit=1

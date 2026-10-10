@@ -1,0 +1,5 @@
+
+Syntax error - Reference: SEEK filenumber&, position
+Caused by (or after):SEEK 1
+LINE 3:SEEK 1
+exit=1

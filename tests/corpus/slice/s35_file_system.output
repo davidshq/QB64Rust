@@ -1,0 +1,40 @@
+MKDIR
+MKDIR again
+  error 75 
+CHDIR into it and back
+RMDIR of a folder that is not empty
+  error 75 
+RMDIR inner, by an expression
+NAME
+MKDIR of the old name works again
+NAME onto an existing folder
+  error 5 
+RMDIR both
+RMDIR again
+  error 76 
+CHDIR missing
+  error 76 
+NAME missing
+  error 53 
+KILL missing
+  error 53 
+  error 53 
+KILL empty name
+  error 53 
+raising arguments
+  error 5 
+  error 5 
+  error 5 
+  error 5 
+ENVIRON
+  error 5 
+  error 5 
+in a SUB
+  error 53 
+  after KILL in the SUB
+  error 75 
+  end of the SUB
+RESUME runs the statement again
+  error 76 
+the FUNCTION ran 2 times
+handled 18 

@@ -251,19 +251,27 @@ impl<'a> Lowerer<'a> {
                 place: place.clone(),
                 value: value.clone(),
             },
-            sema::StmtKind::Print { items, newline } => Op::Print {
-                items: items
-                    .iter()
-                    .map(|i| match i {
-                        sema::PrintItem::Str(e) => PrintItem::Str(e.clone()),
-                        sema::PrintItem::Num(e) => PrintItem::Num(e.clone()),
-                        sema::PrintItem::Zone => PrintItem::Zone,
-                    })
-                    .collect(),
+            sema::StmtKind::Print { to, items, newline } => Op::Print {
+                to: to.clone(),
+                items: print_items(items),
                 newline: *newline,
+            },
+            sema::StmtKind::Write { to, items, newline } => Op::Write {
+                to: to.clone(),
+                items: print_items(items),
+                newline: *newline,
+            },
+            sema::StmtKind::Input { from, line, targets } => Op::Input {
+                from: from.clone(),
+                line: *line,
+                targets: targets.clone(),
             },
             sema::StmtKind::Call { proc, args } => Op::Call {
                 proc: ProcId(proc.0),
+                args: args.clone(),
+            },
+            sema::StmtKind::Builtin { id, args } => Op::Builtin {
+                id: *id,
                 args: args.clone(),
             },
         };
@@ -690,6 +698,17 @@ impl Make {
         let how = sema::conversion(v.ty, to);
         self.expr(to, ExprKind::Convert { how, from: Box::new(v) })
     }
+}
+
+fn print_items(items: &[sema::PrintItem]) -> Vec<PrintItem> {
+    items
+        .iter()
+        .map(|i| match i {
+            sema::PrintItem::Str(e) => PrintItem::Str(e.clone()),
+            sema::PrintItem::Num(e) => PrintItem::Num(e.clone()),
+            sema::PrintItem::Zone => PrintItem::Zone,
+        })
+        .collect()
 }
 
 fn storage(s: sema::Storage) -> Storage {

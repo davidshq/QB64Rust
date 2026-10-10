@@ -8,15 +8,24 @@ use super::expr::expr;
 use super::print::file_number;
 use crate::SyntaxKind::*;
 
-/// `WRITE [#n,] [item, ...]`.
+/// `WRITE [#n,] [item, ...] [,]`.
 pub(crate) fn write_stmt(p: &mut Parser) {
     p.start_node(WriteStmt);
     p.bump(); // WRITE
     if p.at(Hash) {
         file_number(p);
     }
-    if !p.stmt_error && !p.at_stmt_end() {
-        expr_list(p);
+    // A trailing comma is accepted (measured, `verification\v22_x59`, `x60`: `WRITE 1,` prints `1,` without a line
+    // end).
+    while !p.stmt_error && !p.at_stmt_end() {
+        if !expr(p) {
+            break;
+        }
+        if p.at(Comma) {
+            p.bump();
+        } else {
+            break;
+        }
     }
     p.recover();
     p.finish_node();

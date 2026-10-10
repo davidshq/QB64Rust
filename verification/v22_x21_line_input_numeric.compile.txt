@@ -1,0 +1,5 @@
+
+Expected string-variable
+Caused by (or after):LINE INPUT # 1 , N
+LINE 4:LINE INPUT #1, n
+exit=1

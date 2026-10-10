@@ -83,7 +83,7 @@ makefit(tqbs);
 #line 6 "builtins_strings_cpp.bas"
 qbs_print(tqbs,0);
 #line 6 "builtins_strings_cpp.bas"
-qbs_set(tqbs,func_mid(__STRING_S,2,0,0));
+qbs_set(tqbs,func_mid(__STRING_S,2,NULL,0));
 #line 6 "builtins_strings_cpp.bas"
 if (is_error_pending()) goto skip1;
 #line 6 "builtins_strings_cpp.bas"
@@ -223,7 +223,7 @@ makefit(tqbs);
 #line 8 "builtins_strings_cpp.bas"
 qbs_print(tqbs,0);
 #line 8 "builtins_strings_cpp.bas"
-qbs_set(tqbs,qbs__tostr(((double)(*__DOUBLE_D)),0,0));
+qbs_set(tqbs,qbs__tostr(((double)(*__DOUBLE_D)),NULL,0));
 #line 8 "builtins_strings_cpp.bas"
 if (is_error_pending()) goto skip3;
 #line 8 "builtins_strings_cpp.bas"

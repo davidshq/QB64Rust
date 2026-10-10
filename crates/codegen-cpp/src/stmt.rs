@@ -121,7 +121,19 @@ impl Emitter<'_> {
                     out.push("qbs_cleanup(qbs_tmp_base,0);".into());
                 }
             }
-            Op::Print { items, newline } => {
+            Op::Builtin { id, args } => self.stmt_call(*id, args, out),
+            Op::Print {
+                to: Some(n),
+                items,
+                newline,
+            } => self.file_print(n, items, *newline, out),
+            Op::Write { to, items, newline } => self.write(to.as_ref(), items, *newline, out),
+            Op::Input { from, line, targets } => self.input(from, *line, targets, out),
+            Op::Print {
+                to: None,
+                items,
+                newline,
+            } => {
                 // The IR's raise rule for PRINT: a raising item skips the rest of the statement.
                 self.skip += 1;
                 let skip = format!("skip{}", self.skip);
@@ -156,13 +168,29 @@ impl Emitter<'_> {
         }
     }
 
-    /// A store, by the rule of its place (the IR's error rule; `study\02` §2.3 for the old compiler's forms).
+    /// A store of a value, by the rule of its place.
     fn assign(&mut self, place: &Place, value: &Expr, out: &mut Vec<String>) {
         let cleanup = value.uses_strings(self.p) || place.uses_strings(self.p);
+        self.store(place, is_qbs(value.ty), &mut |e| e.value(value), out);
+        if cleanup {
+            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        }
+    }
+
+    /// A store, by the rule of its place (the IR's error rule; `study\02` §2.3 for the old compiler's forms).
+    /// `value` writes the C++ of the value to store; it is called once, where the rule evaluates the value (after
+    /// an element's indexes, before the indexes of a member of an element). `string`: the value is a string.
+    pub(crate) fn store(
+        &mut self,
+        place: &Place,
+        string: bool,
+        value: &mut dyn FnMut(&mut Self) -> String,
+        out: &mut Vec<String>,
+    ) {
         match place {
             Place::Var(id) => {
-                let v = self.value(value);
-                if is_qbs(value.ty) {
+                let v = value(self);
+                if string {
                     out.push(format!("qbs_set({},{v});", self.name(*id)));
                 } else if let Ty::Bit { width, signed } = self.p.var(*id).ty {
                     out.push(bit_store(&self.scalar(*id), &v, width, signed));
@@ -175,26 +203,26 @@ impl Emitter<'_> {
                 let flat = self.flat_index(*array, index);
                 out.push(format!("tmp_long={flat};"));
                 let element = self.element_at(*array, "tmp_long");
-                let v = self.value(value);
-                if is_qbs(value.ty) {
+                let v = value(self);
+                if string {
                     out.push(format!("if (!is_error_pending()) qbs_set({element},{v});"));
                 } else {
                     out.push(format!("if (!is_error_pending()) {element}={v};"));
                 }
             }
-            Place::Member { .. } if place.has_element() => self.store_member_of_element(place, value, out),
+            Place::Member { .. } if place.has_element() => {
+                let v = value(self);
+                self.store_member_of_element(place, &v, out);
+            }
             Place::Member { .. } => {
-                let v = self.value(value);
+                let v = value(self);
                 let member = self.load_place(place);
-                if is_qbs(value.ty) {
+                if string {
                     out.push(format!("qbs_set({member},{v});"));
                 } else {
                     out.push(format!("{member}={v};"));
                 }
             }
-        }
-        if cleanup {
-            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
         }
     }
 
@@ -203,7 +231,7 @@ impl Emitter<'_> {
     /// skipped when an index is out of range or the indexes raised an error while none was pending before them;
     /// the old compiler writes the first element then (`DIVERGENCES.md` D-004). The block's own variables are in
     /// braces, so no `goto` crosses their initialisation.
-    fn store_member_of_element(&mut self, place: &Place, value: &Expr, out: &mut Vec<String>) {
+    fn store_member_of_element(&mut self, place: &Place, value: &str, out: &mut Vec<String>) {
         let ty = self.p.place_ty(place);
         let (array, index, offset) = self.element_root(place);
         let n = self.p.var(array).dims.len();
@@ -214,8 +242,8 @@ impl Emitter<'_> {
         // variable the value reads).
         let fixed = if let Ty::FixedStr(k) = ty { Some(k) } else { None };
         match fixed {
-            Some(_) => out.push(format!("qbs *mbr_value=qbs_set(qbs_new(0,1),{});", self.value(value))),
-            None => out.push(format!("{} mbr_value={};", c_type(ty), self.value(value))),
+            Some(_) => out.push(format!("qbs *mbr_value=qbs_set(qbs_new(0,1),{value});")),
+            None => out.push(format!("{} mbr_value={value};", c_type(ty))),
         }
         out.push("int32 mbr_pending=is_error_pending();".into());
         out.push("int32 mbr_bad=0;".into());

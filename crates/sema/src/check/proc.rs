@@ -2,6 +2,7 @@
 
 use super::decl::name_end;
 use super::{Checker, Failed, R, Scope};
+use crate::builtins::stmt_lookup;
 use crate::literal;
 use crate::{Arg, Expr, ExprKind, Place, Proc, ProcId, ProcKind, StmtKind, Storage, SymbolKind, Ty, VarId};
 use qb64rust_base::{Span, show_bytes, to_u32};
@@ -237,7 +238,17 @@ impl Checker<'_> {
             None => self.split_name(name_tok)?,
         };
         let shown = show_bytes(self.text(name_tok.span));
+        // A built-in statement whose entry has no template is written like a SUB call (`KILL f$`).
+        let plain = match suffix {
+            None => stmt_lookup(&name, false),
+            Some(_) => Vec::new(),
+        };
+        let plain = match plain[..] {
+            [form] if form.id.get().specialformat.is_none() => Some(form),
+            _ => None,
+        };
         match self.procs_by_name.get(&name).map(|&p| (p, self.prog.proc(p).kind)) {
+            None if plain.is_some() => self.plain_stmt(stmt, plain.expect("checked")),
             Some((p, _)) if self.broken.contains(&p) => self.not_broken(p),
             Some((p, ProcKind::Sub)) if suffix.is_none() => {
                 if let Some(bad) = stmt.unparsed_args() {

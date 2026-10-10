@@ -1,0 +1,5 @@
+
+Syntax error - Reference: OPEN fileName$ [FOR mode] [ACCESS|LOCK|SHARED [{READ|WRITE}] AS [#]fileNumber& [LEN = recordLength]
+Caused by (or after):OPEN "f",1 FOR INPUT
+LINE 3:OPEN "f" FOR INPUT
+exit=1

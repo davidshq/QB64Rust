@@ -22,7 +22,9 @@ M0 (baseline) and M1 (VS Code extension on the old compiler) are complete. **M2 
 The compiler parses every program the old compiler accepts with no false error, and compiles scalars, procedures,
 error handling, every operator, `CONST`, control flow, `SELECT CASE`, static arrays and `TYPE` of the main module,
 43 built-in functions, all 17 numeric types and fixed-length strings (`crates\README.md`). There is a thin language
-server (`qb64rust lsp`). No OpenSpec change is open.
+server (`qb64rust lsp`). OpenSpec change `m2-builtin-statements` (step 9) is in progress: groups 1 and 2 of its
+eight task groups are done (built-in statements as one IR operation; the call-site check, as a trial), and the
+code of group 3 (sequential files) is written; what is open is in its `tasks.md`.
 
 ## Open items
 
@@ -43,7 +45,11 @@ The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3
 9. **Next: built-in statements and functions by demand** (`study\27` §3): a built-in statement operation in the IR,
    then sequential file I/O, `DATA`/`READ`/`RESTORE`, `SWAP`, `RANDOMIZE`/`RND`/`TIMER`, console `INPUT`/`LINE
    INPUT`, `SHELL`/`COMMAND$`/`ENVIRON$`, each measured first; the remaining plain functions as the corpus, upstream
-   or a user names them. To be proposed as an OpenSpec change. **Includes the trial of the call-site check**
+   or a user names them. OpenSpec change `m2-builtin-statements`: groups 1 and 2 done; group 3 (files) open in
+   three points: the `tests\callsite` programs for `OPEN`, `CLOSE`, `SEEK` and the file functions (tasks 3.3,
+   3.4), the full tier 2 rerun (3.7), and the documents to bring up to date at its end (`tasks.md`, "Where group
+   3 stands"). Groups 4 to 8 not started.
+   **Includes the trial of the call-site check**
    (`DECISIONS.md` 2026-10-09, `study\28` §3.2): for the first file I/O statements, compare the libqb call emitted
    with the old compiler's (`qb64pe -z`); keep it as the standard way a plain built-in comes in if the normalised
    call is stable, else drop it.

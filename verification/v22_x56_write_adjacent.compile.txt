@@ -1,0 +1,5 @@
+
+Expected operator in equation
+Caused by (or after):WRITE "a",1 "b",1
+LINE 3:WRITE "a" "b"
+exit=1

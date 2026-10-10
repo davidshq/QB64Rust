@@ -1,0 +1,54 @@
+FREEFILE twice without opening 1  1 
+FREEFILE with 1 open 2 
+FREEFILE with 1 and 3 open 2 
+output file: EOF 0 LOF 0 LOC 0 SEEK 1 
+after two lines: EOF 0 LOF 12 LOC 0 SEEK 13 
+input file at the start: EOF 0 LOF 12 LOC 0 SEEK 1 
+after one line: EOF 0 LOC 0 SEEK 6 
+after two lines: EOF-1 LOC 0 SEEK 13 
+after SEEK #1, 1: EOF 0 SEEK 1 
+from position 6: [defgh]
+after SEEK 1, 100: EOF-1 SEEK 100 
+result types (an INTEGER would overflow at 32768, a LONG at 2^31)
+ 1200000000  3000000000  3000000000  0  6000000000 
+-3000000000 -3000000000 
+argument forms: variable, float variable, float literal 0  0  0  12  0  1 
+empty file
+EOF-1 LOF 0 LOC 0 SEEK 1 
+binary and random
+EOF 0 LOF 10 LOC 0 SEEK 1 
+at 11: EOF 0 LOC 10 
+random LEN 4: EOF 0 LOF 10 LOC 0 SEEK 1 
+at record 3: LOC 2 SEEK 3 
+on a number that is not open
+EOF  error 52 
+LOF  error 52 
+LOC  error 52 
+SEEK  error 52 
+EOF(0)  error 52 
+EOF(-1)  error 52 
+raising argument  error 5 
+_FILEEXISTS: file-1 missing 0 folder 0 empty 0 
+_DIREXISTS: folder-1 missing 0 file 0 empty 0 
+raising arguments  error 5 
+_CWD$ is not empty:-1 
+_CWD$ ends with the folder: 22_b_cwd\
+NAME onto an existing file
+  error 5 
+NAME of an open file
+  error 75 
+-1  0 
+KILL of an open file
+  error 75 
+-1 
+RMDIR of a folder that is not empty
+  error 75 
+KILL of a folder
+  error 53 
+KILL with a wildcard
+ 0  0 
+KILL with a wildcard matching nothing
+  error 53 
+ 0 
+ 0  0  0 
+exit=0
