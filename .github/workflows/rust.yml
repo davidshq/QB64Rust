@@ -60,6 +60,8 @@ jobs:
   # 2026-10-09, study\28 section 2). The C++ toolchain is taken from the 4.7.0 release download, which is 16 commits
   # older and ships it under internal\c\c_compiler. Written 2026-10-09 and not yet seen running on GitHub. The
   # upstream programs come from the copy in tests\upstream, which holds every file the pass list needs.
+  # The call-site check (tools\callsite, DECISIONS.md 2026-10-10) needs the old compiler itself, so qb64pe.exe is
+  # built once from the checked-out sources, as setup_win.cmd builds it, and cached with them.
   tier2:
     runs-on: windows-latest
     timeout-minutes: 45
@@ -83,7 +85,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}\qb64pe
-          key: qb64pe-${{ env.QB64PE_COMMIT }}-${{ env.QB64PE_ASSET }}-qb64rust-2
+          key: qb64pe-${{ env.QB64PE_COMMIT }}-${{ env.QB64PE_ASSET }}-qb64rust-3
 
       # The release archive unpacks into a folder qb64pe; only its toolchain is kept. The sources (qbx.cpp, libqb,
       # the Makefile) are checked out at the reference commit; qb64rust's builds compile libqb from them.
@@ -102,8 +104,19 @@ jobs:
           git -C qb64pe checkout FETCH_HEAD
           Move-Item qb64pe-release\internal\c\c_compiler qb64pe\internal\c\c_compiler
           Remove-Item -Recurse -Force qb64pe-release
+          Push-Location qb64pe
+          & internal\c\c_compiler\bin\mingw32-make.exe -j4 OS=win BUILD_QB64=y
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
 
       - run: cargo build --release --locked
+
+      # The libqb call of each built-in, compared with the old compiler's (spec testing/call-site-check). First,
+      # while the clone's internal\temp is not in use by a build.
+      - name: Call-site check
+        env:
+          QB64RUST_QB64PE_ROOT: ${{ runner.temp }}\qb64pe
+        run: python tools/callsite/callsite.py --qb-root $env:QB64RUST_QB64PE_ROOT
 
       - name: Corpus slice list
         env:

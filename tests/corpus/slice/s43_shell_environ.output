@@ -1,0 +1,64 @@
+a
+b
+c
+from a variable
+from an expression
+in parentheses
+_HIDE:
+_HIDE to a file:
+[to a file]
+_HIDE _DONTWAIT:
+_DONTWAIT _HIDE:
+_DONTWAIT:
+an empty command:
+  error 5 
+the function, exit 3: 3 
+the function, exit 0: 0 
+the function in arithmetic: 2000000000000 
+from the function
+its result: 0 
+exit 300: 300 exit -1:-1 
+a raising command:
+  error 5 
+after
+a raising command in the function:  error 5 
+in a SUB
+the file is there:-1 
+COMMAND$ [] 0 
+COMMAND$(0) is the program:-1 
+COMMAND$(1) []
+COMMAND$(100) []
+COMMAND$(-1)
+[]
+COMMAND$(1.5) []
+COMMAND$(n) is COMMAND$(0):-1 
+set and read [7]
+another case [7]
+by a variable [7]
+by an expression [7]
+unknown []
+empty name []
+set twice [8]
+set to nothing []
+a value with = [a=b]
+a blank for = [x y]
+without =:
+  error 5 
+[]
+ENVIRON$(1) has text:-1 -1 
+by a LONG variable:-1 
+by a DOUBLE 1.4 is ENVIRON$(1):-1 
+by a DOUBLE 1.6 is ENVIRON$(2):-1 
+ENVIRON$(0)
+  error 5 
+[]
+ENVIRON$(-1)
+  error 5 
+[]
+ENVIRON$(100000) []
+a child sees it:
+child
+_STARTDIR$ is _CWD$ at the start:-1 -1 
+after CHDIR, unchanged:-1 and _CWD$ differs:-1 
+back:-1 
+done

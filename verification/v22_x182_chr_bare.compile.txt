@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: CHR$(code%)
+Caused by (or after):S = CHR$
+LINE 4:s = CHR$
+exit=1

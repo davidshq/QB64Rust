@@ -1,0 +1,110 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 10: Assign F:F80
+  Convert Widen : F80
+    Call _ACOS : F32 (qb F80)
+      Var SG : F32
+line 11: Assign F:F80
+  Convert Widen : F80
+    Call _ACOS : F64 (qb F80)
+      Var D : F64
+line 12: Assign F:F80
+  Call _ACOS : F80
+    Var F : F80
+line 13: Assign F:F80
+  Convert Widen : F80
+    Call _ACOS : F64 (qb F80)
+      Var I : I16
+line 14: Assign F:F80
+  Convert Widen : F80
+    Call _ASIN : F32 (qb F80)
+      Var SG : F32
+line 15: Assign F:F80
+  Convert Widen : F80
+    Call _ASIN : F64 (qb F80)
+      Var L : I32
+line 16: Assign F:F80
+  Convert Widen : F80
+    Call _SINH : F64 (qb F80)
+      Var D : F64
+line 17: Assign F:F80
+  Call _COSH : F80
+    Var F : F80
+line 18: Assign F:F80
+  Convert Widen : F80
+    Call _TANH : F64 (qb F80)
+      Float 0.5E+0 : F64 (qb F32)
+line 19: Assign F:F80
+  Convert Widen : F80
+    Call _CEIL : F32 (qb F80)
+      Var SG : F32
+line 20: Assign F:F80
+  Convert Widen : F80
+    Call _CEIL : F64 (qb F80)
+      Var L : I32
+line 21: Assign D:F64
+  Convert Widen : F64
+    Binary Div : F32 (qb F80)
+      Call _CEIL : F32 (qb F80)
+        Var SG : F32
+      Convert Nearest : F32
+        Int 3 : I16
+line 22: Assign F:F80
+  Convert Widen : F80
+    Call _COT : F64 (qb F80)
+      Var SG : F32
+line 23: Assign F:F80
+  Convert Widen : F80
+    Call _CSC : F64 (qb F80)
+      Var D : F64
+line 24: Assign F:F80
+  Convert Widen : F80
+    Call _SEC : F64 (qb F80)
+      Var F : F80
+line 25: Assign F:F80
+  Convert Widen : F80
+    Call _D2R : F64 (qb F80)
+      Var I : I16
+line 26: Assign F:F80
+  Convert Widen : F80
+    Call _R2D : F64 (qb F80)
+      Float 0.5E+0 : F64 (qb F32)
+line 27: Assign D:F64
+  Binary Div : F64 (qb F80)
+    Call _D2R : F64 (qb F80)
+      Var SG : F32
+    Convert Nearest : F64
+      Int 3 : I16
+line 28: Assign L:I32
+  Call _STRCMP : I32
+    Var S : Str
+    Var T : Str
+line 29: Assign L:I32
+  Call _STRICMP : I32
+    Var S : Str
+    Str "a" : Str
+line 30: Print newline
+  Num
+    Convert Widen : F80
+      Call _ACOS : F32 (qb F80)
+        Var SG : F32
+  Num
+    Convert Widen : F80
+      Call _COT : F64 (qb F80)
+        Var D : F64
+  Num
+    Binary Mul : I64
+      Convert Widen : I64
+        Call _STRCMP : I32
+          Var S : Str
+          Var T : Str
+      Int 3000000000 : I64
+line 31: Assign S:Str
+  Call _STARTDIR : Str
+line 32: Builtin CHDIR
+  Concat : Str
+    Call _STARTDIR : Str
+    Var T : Str

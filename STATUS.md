@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-10 (session 38).
+Updated 2026-10-10 (session 39).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -18,25 +18,22 @@ Where everything else lives:
 ## Where we are
 
 M0 (baseline) and M1 (VS Code extension on the old compiler) are complete. **M2 (front end) is in progress**: steps
-1 to 8 of the order of work are done, the last being OpenSpec change `m2-numeric-types` (archived 2026-10-09).
+1 to 9 of the order of work are done, the last being OpenSpec change `m2-builtin-statements` (all 41 tasks done,
+archived 2026-10-10).
 The compiler parses every program the old compiler accepts with no false error, and compiles scalars, procedures,
 error handling, every operator, `CONST`, control flow, `SELECT CASE`, static arrays and `TYPE` of the main module,
-53 built-in functions, all 17 numeric types, fixed-length strings, sequential files, `DATA`/`READ`/`RESTORE`,
-`SWAP`, the `MID$` statement, `RANDOMIZE` and console `INPUT`/`LINE INPUT` (`crates\README.md`). There is a thin
-language server (`qb64rust lsp`). OpenSpec change `m2-builtin-statements` (step 9) is in progress: groups 1 to 6 of
-its eight task groups are done (built-in statements as one IR operation; the call-site check, as a trial;
-sequential files; data; `SWAP`, `MID$`, `RANDOMIZE`, `RND`, `TIMER`; console input with the runner's `.stdin`
-sidecar); what is open is in its `tasks.md`.
+70 built-in functions, all 17 numeric types, fixed-length strings, sequential files, `DATA`/`READ`/`RESTORE`,
+`SWAP`, the `MID$` statement, `RANDOMIZE`, console `INPUT`/`LINE INPUT` and `SHELL` (`crates\README.md`). There is
+a thin language server (`qb64rust lsp`). A plain built-in now comes in as a row, a call-site program and a slice
+line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10).
 
 ## Open items
 
-- **`questions.md` Q3 of `m2-builtin-statements` waits for the user**: `SWAP` with an element whose index is out
-  of range raises error 9 and exchanges with the array's first element in the old compiler; it is implemented
-  that way meanwhile (the alternative is a divergence like D-004).
 - **The GitHub CI run after the next push has not been seen.** It settles task 10.2 of `m2-numeric-types` and task
   5.1 of `m2-language-server` (both changes were archived with that task open), and it is the first run of the
-  changed `tier2` job (QB64pe's sources at the reference clone's commit, `DECISIONS.md` 2026-10-09). Work is checked
-  locally; the user does not treat CI as a concern for now.
+  changed `tier2` job (QB64pe's sources at the reference clone's commit, `DECISIONS.md` 2026-10-09), which now
+  also builds `qb64pe.exe` there for the call-site check (`mingw32-make OS=win BUILD_QB64=y`, never tried on a
+  GitHub runner). Work is checked locally; the user does not treat CI as a concern for now.
 
 Every question of the seventh review is answered (`study\28` §9, `DECISIONS.md` 2026-10-09): the local reference
 clone (`16f629784e`) is the one reference for the old compiler; Civil War Strategy is in `tests\programs` as the
@@ -47,18 +44,10 @@ step 9; the screen-state check comes straight after step 9 (step 9a below).
 
 The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3).
 
-9. **Next: built-in statements and functions by demand** (`study\27` §3): a built-in statement operation in the IR,
-   then sequential file I/O, `DATA`/`READ`/`RESTORE`, `SWAP`, `RANDOMIZE`/`RND`/`TIMER`, console `INPUT`/`LINE
-   INPUT`, `SHELL`/`COMMAND$`/`ENVIRON$`, each measured first; the remaining plain functions as the corpus, upstream
-   or a user names them. OpenSpec change `m2-builtin-statements`: groups 1 to 6 done. Next in it: group 7
-   (`SHELL`, `COMMAND$`, `ENVIRON$`, functions by demand; its measurement programs `verification\v22_d_shell`,
-   `v22_d_environ`, `v22_f_functions` are written and not yet run), group 8 (the call-site verdict, full runs,
-   documents).
-   **Includes the trial of the call-site check**
-   (`DECISIONS.md` 2026-10-09, `study\28` §3.2): for the first file I/O statements, compare the libqb call emitted
-   with the old compiler's (`qb64pe -z`); keep it as the standard way a plain built-in comes in if the normalised
-   call is stable, else drop it.
-9a. **The screen-state check, with the libqb copy** (`DECISIONS.md` 2026-10-09, `study\28` §3.1): copy
+9. Done: built-in statements and functions by demand (`m2-builtin-statements`). Further plain built-ins come in
+   as programs name them, each with a call-site program (`crates\README.md`); what was left marked and why is in
+   task 7.4 of the change.
+9a. **Next: the screen-state check, with the libqb copy** (`DECISIONS.md` 2026-10-09, `study\28` §3.1): copy
     `..\QB64pe\internal\c` into this repo at `16f629784e`; add the exit hook that writes the screen state to a file
     when a test asks; teach the runner to record it with the old compiler and compare it for the new one. Its own
     OpenSpec change, design first: what is written per screen mode, how a program ends by itself, scripted keys,
@@ -72,25 +61,25 @@ The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3
 
 ## Numbers at the last full runs
 
-The three pass lists: 2026-10-10, session 38, release build against the reference clone, after group 6 of
-`m2-builtin-statements`. The full corpus, the real programs and the shrink-only lists: 2026-10-09, session 35 (they
-are run again in task 8.2 of that change).
+All of them: 2026-10-10, session 39, release build against the reference clone, after `m2-builtin-statements`
+(its task 8.2).
 
 | Yardstick | Result |
 |---|---|
-| `tests\corpus\slice.list` (tier 2) | 243 of 243 |
-| Full corpus | 214 pass, none wrong at run time; 74 rejected with "not supported yet" (`tests\corpus\README.md`); not rerun since `slice.list` grew by 45 |
-| Upstream | **49 of 279** (`tests\upstream\pass.list`); none wrong. It was reported as 45 while CI linked the 4.7.0 release's libqb: two programs need the later `VAL` of the reference clone |
-| Real programs (`tests\programs`) | Civil War Strategy: the front end reads it with no real error; every diagnostic is "not supported yet" |
+| `tests\corpus\slice.list` (tier 2) | 255 of 255, also with `QB64RUST_NO_FOLD=1` |
+| Full corpus (307 programs) | 271 pass, none wrong at run time; 27 rejected with "not supported yet" and 4 `.err` programs with only marked errors (`tests\corpus\README.md`) |
+| Upstream | **50 of 279** (`tests\upstream\pass.list`); none wrong in the full run of the suite (404 programs) |
+| Call-site check | 256 of 256 programs equal (`tools\callsite\README.md`); about 1 min |
+| Real programs (`tests\programs`) | Civil War Strategy: the front end reads it with no real error; every diagnostic is "not supported yet" (what it needs next: `tests\programs\README.md`) |
 | Differential | 59 of 59 |
 | Shrink-only lists | 0 false errors, 0 parse gaps, 64 only-marked rejections (`tests\upstream\README.md`) |
-| Tier 1 (`cargo test`) | about 10 s |
-| Tier 2 as CI runs it, locally | about 12 min |
+| Tier 1 (`cargo test`) | about 20 s |
+| Tier 2 as CI runs it, locally | about 12 min at the last full build; about 2 min with `--jobs 8 --build-cache` when little C++ changed |
 | Full corpus with the old compiler (2026-10-10) | 300 pass, 5 known failures; about 12 min with one job, 3 min 44 s with `--jobs 8` (`tools\legacy_tests\README.md`) |
 
-How to read them: the corpus is the signal for step 9 (its rejected programs wait on built-in statements and
-functions, and on step 11). Upstream will stay near 47 until steps 10 and 11: its blockers are `_DEST` and the rest
-of arrays (`study\27` §4).
+How to read them: the corpus has given most of what it can before step 11 (11 of its 26 rejected programs wait
+on arrays, `TYPE` and `DEFINT`; the rest on `PRINT USING`/`TAB`/`SPC`, random files and a few functions). Upstream
+will stay near 50 until steps 10 and 11: its blockers are `_DEST` and the rest of arrays (`study\27` §4).
 
 ## Known bugs
 

@@ -23,7 +23,7 @@ files_errors.bas:31:1: error: `LINE INPUT` takes one string variable
 files_errors.bas:32:16: error: `LINE INPUT` needs a variable here
 files_errors.bas:33:8: error: the file number of `INPUT #` must be a number
 files_errors.bas:34:11: error: `EOF` needs a number
-files_errors.bas:35:7: error: not supported yet: `EOF`
+files_errors.bas:35:7: error: `EOF` takes 1 argument
 files_errors.bas:36:7: error: `FREEFILE` takes 0 arguments
 files_errors.bas:37:7: error: `FREEFILE` with empty parentheses
 files_errors.bas:38:7: error: `_CWD$` takes 0 arguments

@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: SIN(radian_angle!)
+Caused by (or after):PRINT SIN
+LINE 3:PRINT SIN
+exit=1

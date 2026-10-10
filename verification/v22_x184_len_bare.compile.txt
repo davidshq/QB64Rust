@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: LEN(literalTextOrVariable$)
+Caused by (or after):N = LEN
+LINE 4:n = LEN
+exit=1

@@ -30,6 +30,17 @@ stands. Three stages (`study\28` §4):
   `INSTR`, `SQR`). The most used of the rest: `LINE` 899, `COLOR` 190, `LOCATE` 145, `PAINT` 89, `RND` 73, `DRAW`
   71, `PSET` 50.
 
+## Measured (2026-10-10, after `m2-builtin-statements`)
+
+- Still no real error; still the cap of 100 errors, all "not supported yet".
+- Compiled now, by lines of `CWSTRAT.BAS` that use them: `RND` 71, `INPUT` 28, `CLOSE` 18, `OPEN` 15,
+  `_FILEEXISTS` 10, `WRITE` 8, `DATA` 7, `MID$` 4, `SWAP` 3, `TIMER` 3, `NAME` 2, and `RANDOMIZE`, `READ`,
+  `RESTORE`, `EOF`, `SHELL` once each (console `INPUT` only under `$CONSOLE:ONLY`, which the game does not have).
+- Needed next: `DEFINT` and `COMMON` (12 lines), arrays in procedures, labels named like a SUB or like `CLS`
+  (step 11 of `STATUS.md`); then the screen: `LINE` 658, `COLOR` 182, `LOCATE` 144, `PAINT` 86, `DRAW` 62, `PSET`
+  49, `CLS` 36, `PLAY` 32, `CIRCLE` 28, `SOUND` 28, `INKEY$` 25, `TAB` 22, `PUT` 19, `VIEW` 11, `SCREEN` 9, `GET`
+  8, `DEF SEG` 8, `BLOAD` 4.
+
 ## Adding a program
 
 The licence must allow the copy (state it in a `SOURCE.md` with the repository and commit). Copy the files byte for

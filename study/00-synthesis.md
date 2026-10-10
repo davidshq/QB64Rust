@@ -924,6 +924,47 @@ Measured for built-in statements (2026-10-10, `m2-builtin-statements`; `verifica
   accepted** (`INPUT l,` and `LINE INPUT s,`; not in the `#` forms, not in `READ`).
   `RANDOMIZE` without a seed is `sub_randomize(NULL,0);`: the runtime prints `Random-number seed (-32768 to
   32767)? ` and reads the answer the same way (five digits at most: `70000` gives 7000).
+- **`SHELL`, `COMMAND$`, `ENVIRON$` (`v22_d_shell`, `v22_d_environ`, `v22_x159`–`x172`, `x178`, `x179`, C++ of
+  `tests\callsite\shell_*`, `func_shell_*`, `func_command_*`, `func_environ_*`):** the statement is one of three
+  entries by its first word: `sub_shell(<command>,1)`, `sub_shell2(<command>,<mask>)` after `_HIDE` and
+  `sub_shell3(<command>,<mask>)` after `_DONTWAIT`; in the last two the mask is 1 for the second word (`_DONTWAIT`
+  after `_HIDE`, `_HIDE` after `_DONTWAIT`) plus 2 for the command, and a command left out is `NULL` (`SHELL` alone
+  is `sub_shell(NULL,0)`: an interactive shell). The command's output comes between the program's own lines, in
+  order, also with the output sent to a file; with `_HIDE` it is not shown. An empty command with `_HIDE` raises
+  5; a raising argument raises once and the program goes on. `SHELL 5` is "String required for sub", `SHELL "a",
+  "b"` "Syntax error", `SHELL _HIDE _HIDE "a"` "Invalid variable name"; `CALL SHELL("x")` is accepted. **The
+  function is `int64_t func_shell(qbs*)`, an `_INTEGER64`** (`SHELL("cmd /c exit 2") * 1000000000000` is
+  2000000000000): the command's exit code (300 and -1 come back as they are), with the command's output shown; a
+  raising argument raises 5. Named alone or with two arguments it is "Incorrect number of arguments", with a
+  number "String required for function". `COMMAND$` is `func_command(NULL,0)` bare and `func_command(<n>,0|1)`
+  with an index converted as a LONG slot (1.5 is 2); without arguments on the command line it is empty, as is any
+  index but 0 (the program's name), also a negative one (no error). `COMMAND$("a")` is "Number required for
+  function", `COMMAND$()` "Expected (...)". **`ENVIRON$` is two libqb entries chosen by C++ overloading**:
+  `func_environ(<string>)` (the old compiler passes a string argument as it is, `qb64pe.bas` 20952) and
+  `func_environ(<n>)` with a number converted as a LONG slot (1.4 is 1, 1.6 is 2). A name is found in any letter
+  case; an unknown or empty name is empty; index 0 and a negative index raise 5, an index past the end is empty.
+  `ENVIRON$` alone and with two arguments is "Incorrect number of arguments". The `ENVIRON` statement: `NAME=` sets
+  the name to nothing, a blank works as the `=` (`"V x y"` sets `V` to `x y`), neither raises 5; a child started
+  with `SHELL` sees the value.
+- **Functions added by demand (`v22_f_functions`, `v22_x173`–`x177`, C++ of `tests\callsite\func_acos_*` and the
+  others):** all are believed `_FLOAT` and take their argument in its own type. `_ACOS`, `_ASIN`, `_SINH`,
+  `_COSH`, `_TANH` and `_CEIL` are `std::acos` and the others, so C++ overloading decides the computation: a
+  SINGLE is computed as a `float` (`_ACOS(.5!)` prints 1.047197580337524, `_CEIL(s!) / 3` .3333333432674408), an
+  integer as a `double`. `_COT`, `_CSC`, `_SEC`, `_D2R` and `_R2D` are libqb's `func_cot(double)` and the others,
+  always a `double`. `_ACOS(2)` and `_ASIN(-2)` are NaN without an error; `_SINH(1000)` and `_COSH(1000)` are
+  `inf`; **`_COT(0)` and `_CSC(0)` raise 5** and give 0 (libqb tests the tangent and the sine for 0), `_SEC(0)` is
+  1. `_STRCMP` and `_STRICMP` are `int32_t func__str_compare(qbs*,qbs*)` and `func__str_nc_compare`, LONG: -1, 0
+  or 1. A string where a number is wanted is "Number required for function", a number for a string "1st function
+  argument requires a string". **`_STARTDIR$`** (`v22_f_startdir`, `x186`–`x188`) is `func__startdir()`, no
+  argument, called bare only (`_STARTDIR$()` is "Expected (...)", `_STARTDIR$(1)` "Incorrect number of
+  arguments"): the folder the program was started in, which `CHDIR` does not change.
+- **A function that needs an argument, named alone (`v22_x162`, `x170`, `x175`, `x180`–`x185`):** "Incorrect
+  number of arguments", for every one tried (`INSTR`, `ABS`, `CHR$`, `EOF`, `LEN`, `SIN`, `SHELL`, `ENVIRON$`,
+  `_CEIL`), in an assignment and in `PRINT`. The name is never read as a variable.
+- **`CSRLIN` and `POS` under `$CONSOLE:ONLY` (libqb `func_csrlin`, `func_pos`):** on Windows both ask the real
+  console for its cursor (`GetConsoleScreenBufferInfo` on `CONOUT$`), which does not move while the output goes to
+  a file (corpus `237`: row 1, column 1) and is not set at all without a console. Not compiled in step 9 for that
+  reason: their value can only be checked with the screen (step 9a).
 
 ## 6. Bug-compatibility choices (all decided)
 
@@ -1070,6 +1111,11 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
   Intentional differences from the old compiler are in `DIVERGENCES.md` (D-001, D-002: integer overflow wraps);
   the numeric rules are the spec `openspec\specs\language\numeric-semantics`, procedures and error handling the
   specs `language\procedures` and `language\error-handling`.
+- **The call-site check (kept 2026-10-10, `DECISIONS.md`; `tools\callsite\README.md`):** for one statement per
+  program of `tests\callsite` (256 on 2026-10-10), the libqb call the new compiler writes is compared with the
+  old compiler's (`-z` on both, six normalisation rules, none naming a built-in). Part of tier 2, about a minute.
+  It is how a plain built-in comes in: a row in the list, a program here, a line in a slice program. It does not
+  see behaviour, element addressing, stores or the cleanup of string temporaries; the corpus does.
 
 ## 11. Other repositories and sources: conclusions (reviews archived)
 

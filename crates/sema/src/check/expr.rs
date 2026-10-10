@@ -3,7 +3,6 @@
 use super::builtins::supported_builtin;
 use super::ops::{Op, TypeError, Typed, Typing, fold_binary, fold_unary, left_operand, op_typing, wrap};
 use super::{Checker, Failed, R};
-use crate::builtins::slots;
 use crate::literal::{self, LitError, NumLit};
 use crate::{BinOp, ConvKind, Expr, ExprKind, Place, ProcId, ProcKind, Ty, UnOp};
 use qb64rust_base::show_bytes;
@@ -53,10 +52,10 @@ impl Checker<'_> {
                 if let Some(c) = self.visible_const(&name) {
                     return self.const_use(c, t, suffix, span);
                 }
-                // A built-in that needs no argument is called by its bare name (`ERR`, `ERL`, `_PI`).
-                if let Some(s) = supported_builtin(&name, suffix)
-                    && slots(s).iter().all(|&(_, optional)| optional)
-                {
+                // A built-in that needs no argument is called by its bare name (`ERR`, `ERL`, `_PI`); one that needs
+                // an argument is an error there (measured, `verification\v22_x180`–`x185`: "Incorrect number of
+                // arguments").
+                if let Some(s) = supported_builtin(&name, suffix) {
                     return self.builtin(s, None, span);
                 }
                 if is_builtin_function(&name, suffix) {

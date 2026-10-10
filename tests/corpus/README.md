@@ -11,8 +11,8 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 34 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings; `SOURCE.md`) |
-| `slice.list` | The 198 programs the new compiler must pass: all 34 of `slice\`, 162 of `runtime_comparison` and `verification\` `v11`, `v12` (see below) |
+| `slice\` | 44 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input; `SOURCE.md`) |
+| `slice.list` | The 255 programs the new compiler must pass: all 44 of `slice\`, 209 of `runtime_comparison` and `verification\` `v11`, `v12` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -32,16 +32,17 @@ or `LINE INPUT` (without it the program gets no input). **A program with a `.std
 A program that reaches `END` prints an empty line and `Press any key to continue` (no line end) on Windows; that
 trailer is part of its `.output`.
 
-## Counts (recorded 2026-10-03; `slice` `s08`–`s12` 2026-10-04, `s13`–`s19` 2026-10-06)
+## Counts (recorded 2026-10-03; `slice` as each change added its programs, the last 2026-10-10)
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 19 |
+| `.output` | 235 | 2 | 44 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
 | `.normalize` sidecars | 3 (`212` `PATH` length, `234` `TIMER`, `238` a folder name in `cmd`'s error) | 0 | 0 |
 | `.noprompt` sidecars | 0 | 0 | 2 (`s12_error_in_print`, `s19_header_errors`: `continue`) |
+| `.stdin` sidecars | 0 | 0 | 1 (`s42_console_input`) |
 
 The 20 compile errors are programs written against QB64Fresh's idea of the language. They still test that a
 compiler rejects them, but not what their names say:
@@ -122,12 +123,14 @@ signed overflow being undefined in the generated C++ (no `-fwrapv`); the new com
 (control flow, operators, constants, header errors) by `m2-control-flow-slice`, `s20`–`s22` (arrays, `TYPE`, the
 store rule of each place) by `m2-arrays-and-types`, `s23` by `m2-parser-breadth`, `s24` for a bug fix, `s25`–`s29` (built-ins,
 `SELECT CASE`, `ON … GOTO`) by `m2-core-builtins`, `s30`–`s34` (the numeric types, `_BIT`, fixed-length strings) by
-`m2-numeric-types` (`SOURCE.md`).
+`m2-numeric-types`, `s35`–`s44` (built-in statements, files, data, console input, `SHELL`, functions by demand) by
+`m2-builtin-statements` (`SOURCE.md`).
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
 line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
 
-`slice.list` names the 198 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`. `s13`–`s19` joined it with `m2-control-flow-slice` (`s17` with task 3.2, the rest with task
+`slice.list` names the 255 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`; 57 joined with `m2-builtin-statements` (`s35`–`s44` and 47 of `runtime_comparison`, named
+task by task in its `tasks.md`). `s13`–`s19` joined it with `m2-control-flow-slice` (`s17` with task 3.2, the rest with task
 8.1), `s20`–`s22` and 13 `runtime_comparison` programs with `m2-arrays-and-types` task 7.1, 61 programs with
 `m2-core-builtins` (below), `s30`–`s34` and `198_type_fixed_string` with `m2-numeric-types`.
 
@@ -142,6 +145,27 @@ requires no panic, an exact round trip, no diagnostics for the listed ones, at l
 with an `.err` file, and the two shrink-only lists `tests\known_false_errors.list` and
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
+
+### Full corpus with `qb64rust` (2026-10-10, after the built-in statements; not a pass criterion)
+
+After `m2-builtin-statements` (task 8.2, release build, against the reference clone), 307 programs (`s35`–`s44`
+new):
+
+| Result | Programs |
+|---|---|
+| Pass | 271: the 255 of `slice.list` and the same 16 `.err` programs |
+| Rejected with a diagnostic (exit status 1) | 27 (26 `.output` programs and the compile-only `239_lprint`) |
+| `.err` programs that get only "not supported yet" errors | the same 4 (`16`, `28`, `202`, `218`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+47 `runtime_comparison` programs joined `slice.list` over the change, of the about 60 its proposal counted as
+carrying only marks it removes (an upper bound: a first mark hid `PRINT USING`, `GET`/`PUT`, `TAB` or a dynamic
+array in the others). The 26 still rejected wait on step 11 of `STATUS.md` "Next" (`REDIM`, dynamic arrays,
+`ERASE`, `OPTION BASE`, `DEFINT`, `STRING` and array members, whole-`TYPE` assignment: 11 programs), on random and
+binary files (`GET`, `PUT`, `LOCK`: 3), on `PRINT` forms (`TAB`, `SPC`, `USING`, `WIDTH`: 4), on functions typed
+by their arguments (`_MIN`, `_MAX`, `_CLAMP`, `_IIF`, the shifts: 5), and on `EXIT SELECT`, `CHAIN` and
+`CSRLIN`/`POS` (one each); the list by program is in task 7.4 of the change.
 
 ### Full corpus with `qb64rust` (2026-10-09, after the numeric types; not a pass criterion)
 

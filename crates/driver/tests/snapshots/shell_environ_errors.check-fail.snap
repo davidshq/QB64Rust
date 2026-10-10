@@ -1,0 +1,23 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+shell_environ_errors.bas:10:7: error: `SHELL` needs a string
+shell_environ_errors.bas:11:13: error: `SHELL` needs a string
+shell_environ_errors.bas:12:5: error: `SHELL` takes 1 argument
+shell_environ_errors.bas:13:11: error: `SHELL` needs a string
+shell_environ_errors.bas:14:5: error: `SHELL` takes 1 argument
+shell_environ_errors.bas:15:14: error: `COMMAND$` needs a number
+shell_environ_errors.bas:16:5: error: `COMMAND$` takes 0 or 1 arguments
+shell_environ_errors.bas:17:5: error: `COMMAND$` with empty parentheses
+shell_environ_errors.bas:18:5: error: `ENVIRON$` takes 1 argument
+shell_environ_errors.bas:19:5: error: `ENVIRON$` takes 1 argument
+shell_environ_errors.bas:20:5: error: `ENVIRON$` with empty parentheses
+shell_environ_errors.bas:21:11: error: `_ACOS` needs a number
+shell_environ_errors.bas:22:5: error: `_ACOS` takes 1 argument
+shell_environ_errors.bas:23:5: error: `_CEIL` takes 1 argument
+shell_environ_errors.bas:24:13: error: argument 1 of `_STRCMP` needs a string
+shell_environ_errors.bas:25:5: error: `_STRICMP` takes 2 arguments
+shell_environ_errors.bas:26:5: error: `_STARTDIR$` with empty parentheses
+shell_environ_errors.bas:27:5: error: `_STARTDIR$` takes 0 arguments
+shell_environ_errors.bas:28:6: error: not supported yet: `SHELL`

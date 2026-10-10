@@ -115,7 +115,8 @@ What the compiler supports so far:
   compiled across its files, and a runtime error in an included file names it as QB64pe does;
 - procedures named like built-ins as measured (`verification\v19_proc_names`): a SUB may take a built-in
   function's name, a FUNCTION a built-in statement's;
-- 53 built-in functions (`m2-core-builtins`; the file functions, `RND` and `TIMER` with `m2-builtin-statements`), checked by one table-driven checker: `sema\src\builtins.rs` lists
+- 70 built-in functions (`m2-core-builtins`; the file functions, `RND`, `TIMER`, `SHELL`, `COMMAND$`, `ENVIRON$` and
+  14 added by demand with `m2-builtin-statements`), checked by one table-driven checker: `sema\src\builtins.rs` lists
   them, each with its `Rule` (one per kind of special-casing in the old compiler's `evaluatefunc`, not per
   function), and gives each call a held type (the C++ type of the libqb call) and a believed type (the old
   compiler's); `sema\src\check\builtins.rs` checks arity, argument kinds and the conversion of each argument to
@@ -126,10 +127,17 @@ What the compiler supports so far:
   `FIX`, `SQR`, `SIN`, `COS`, `TAN`, `ATN`, `LOG`, `EXP`, `CINT`, `CLNG`, `CSNG`, `CDBL`, `_ROUND`, `_PI` (also
   bare), `_ATAN2`, `_HYPOT`; files: `EOF`, `LOF`, `LOC`, `SEEK` (the last three held `_INTEGER64`, as libqb
   returns them, and believed LONG), `FREEFILE` and `_CWD$` (bare only), `_FILEEXISTS`, `_DIREXISTS`; `RND` and
-  `TIMER` (bare or with their argument; `TIMER` held DOUBLE and believed SINGLE); and `LBOUND`, `UBOUND`, `ERR`,
-  `ERL`. Adding one of the remaining built-ins is a row
-  plus tests where an existing rule fits; tier 1 requires each listed one in a `slice.list` program and a `typed`
-  test;
+  `TIMER` (bare or with their argument; `TIMER` held DOUBLE and believed SINGLE); the `SHELL` function (an
+  `_INTEGER64`, the command's exit code), `COMMAND$` (bare or with an index), `ENVIRON$` (a name or an index: two
+  libqb entries, the rule `StrOrIndex`), `_STARTDIR$` (bare only); `_ACOS`, `_ASIN`, `_SINH`, `_COSH`, `_TANH`,
+  `_CEIL` (`std::` functions, held as C++ overloading gives for the argument), `_COT`, `_CSC`, `_SEC`, `_D2R`,
+  `_R2D` (held DOUBLE), all believed `_FLOAT`; `_STRCMP`, `_STRICMP`; and `LBOUND`, `UBOUND`, `ERR`,
+  `ERL`. A function that needs an argument, named without one, is an error, as in QB64pe. Adding one of the
+  remaining built-ins is a row plus tests where an existing rule fits, and a program in `tests\callsite` (the
+  call-site check, below); tier 1 requires each listed one in a `slice.list` program and a `typed` test. Left
+  marked on purpose: `CSRLIN` and `POS` (their value is the screen's), `_ERRORLINE`, `MKL$`/`CVL` and the other
+  functions the old compiler writes itself, `_MIN`, `_MAX`, `_CLAMP`, `_IIF` and the shifts (typed by their
+  arguments; no rule yet);
 - `SELECT CASE` and `SELECT EVERYCASE` (lists, `TO`, `IS`, `CASE ELSE`; the selector copied once into a static
   hidden variable unless it is a plain variable, as QB64pe; `DIVERGENCES-QB45.md` Q-002) and `ON n GOTO`/`ON n
   GOSUB` to labels (`n` above 255 falls through, Q-001), lowered to the IR's branches and jumps
@@ -158,7 +166,8 @@ What the compiler supports so far:
   absent one, the bits of the `passed` mask). The arguments are evaluated in order and the call is made also
   after a raising one, as measured. So far: `KILL`, `MKDIR`, `RMDIR`, `CHDIR`, `NAME`, `ENVIRON` (also `CALL
   KILL(…)`), `OPEN` in both forms with every mode, access and lock word, `SEEK`, `RANDOMIZE` (with a seed, with
-  `USING`, and without one: the runtime then asks for it), and three with a rule of their own: `CLOSE` (one call per file number), `SWAP` (two places of one
+  `USING`, and without one: the runtime then asks for it), `SHELL` in its three forms (plain, `_HIDE` first,
+  `_DONTWAIT` first; with or without a command), and three with a rule of their own: `CLOSE` (one call per file number), `SWAP` (two places of one
   type but for signedness, any two strings, one `TYPE`; never a `_BIT`) and the `MID$` statement. Tier 1 requires each listed statement in a `slice.list` program and an `ir` test;
 - sequential file I/O and the program's data, as operations of their own in the IR because they have items or
   targets (`sema\src\check\io.rs`, `codegen-cpp\src\io.rs`): `PRINT #` (not `USING`, `TAB`, `SPC`), `WRITE` to a
@@ -200,6 +209,7 @@ panics on purpose, for the CLI test only.
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --qb64 target\release\qb64rust.exe --list tests\corpus\slice.list` | The listed corpus programs end to end against the output recorded from `qb64pe.exe` |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\release\qb64rust.exe --list tests\upstream\pass.list` | The upstream programs of the pass list end to end (`tests\upstream\README.md`); also in CI (`rust.yml`, job `tier2`) |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --corpus-root tests\differential --qb64 target\release\qb64rust.exe --list tests\differential\pass.list` | The differential programs of the pass list end to end against their recordings (`tests\differential\README.md`); also in CI |
+| 2 | `python tools\callsite\callsite.py` | The call-site check (`tools\callsite\README.md`): for each program of `tests\callsite`, the libqb call the new compiler writes for one built-in statement or function equals the old compiler's (`-z`, nothing built or run; about a minute). Needs `qb64pe.exe` in the clone; also in CI. A new plain built-in comes in with a program here |
 
 Tier 2 locally: add `--jobs 8 --build-cache target\build-cache` to each command. `--jobs` runs programs in
 parallel; `--build-cache` (environment variable `QB64RUST_BUILD_CACHE`, `driver\src\build.rs`) skips `make` for a

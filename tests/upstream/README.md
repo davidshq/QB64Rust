@@ -192,3 +192,11 @@ and `val_typed_large_integer_decimal`, were run again (both pass) and moved from
 `tests\known_clean_not_passing.list` to `pass.list`. Where this file says a program passes "against the 4.7.0
 release, as the CI job runs them", that was CI before this date; its `tier2` job now builds against QB64pe's
 sources at the clone's commit.
+
+**Upstream progress, 2026-10-10: 50 of 279** (`m2-builtin-statements`: built-in statements, files, `DATA`, console
+input, `SHELL`, functions by demand). Added to `pass.list` over the change: `console_only/data` and
+`source_ordering/data_positioning` (task 4.5, `DATA`/`READ`), `keyboard/devices_windows` (task 7.4: with
+`_STARTDIR$` its Windows branch, which prints its own expected file, compiles). No other upstream program waited
+only on the change's statements: the suite's blockers are `_DEST` with `$CONSOLE` (52 programs), member arrays,
+`REDIM`, `_MEM` and images (`tasks.md` task 7.4 of the change has the count), which steps 10 and 11 of
+`STATUS.md` bring.

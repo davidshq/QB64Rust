@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):N = SHELL ( _HIDE "a",1 )
+LINE 4:n = SHELL(_HIDE "a")
+exit=1

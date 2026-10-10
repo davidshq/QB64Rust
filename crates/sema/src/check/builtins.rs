@@ -54,13 +54,14 @@ fn takes_as_is(rule: Rule) -> bool {
         | Rule::Len
         | Rule::Val
         | Rule::Asc
-        | Rule::StringFill => false,
+        | Rule::StringFill
+        | Rule::StrOrIndex => false,
     }
 }
 
 impl Checker<'_> {
-    /// A call of a supported built-in. `list` is `None` for the bare name (`ERR`, `_PI`), which the caller allows
-    /// only where no argument is required.
+    /// A call of a supported built-in. `list` is `None` for the bare name (`ERR`, `_PI`); a function that needs an
+    /// argument gets the arity error here, like any other wrong number of arguments.
     pub(super) fn builtin(&mut self, s: Supported, list: Option<ast::ArgList>, span: Span) -> R<Expr> {
         let name = s.name;
         if list.is_some_and(|l| l.args().is_empty() && l.type_arg().is_none()) {
@@ -83,7 +84,8 @@ impl Checker<'_> {
             | Rule::Fixed(_)
             | Rule::Radix(_)
             | Rule::Asc
-            | Rule::StringFill => {}
+            | Rule::StringFill
+            | Rule::StrOrIndex => {}
         }
         let nodes = self.present_args(list)?;
         let slots = slots(s);
@@ -127,6 +129,8 @@ impl Checker<'_> {
         let wants_string = match (rule, slot) {
             // `STRING$(n, s$)` takes the first byte of a string in its second slot.
             (Rule::StringFill, _) if k == 1 && string => return Ok(e),
+            // `ENVIRON$(name$)`: the entry that takes a string.
+            (Rule::StrOrIndex, _) if string => return Ok(e),
             (_, Slot::Str) => true,
             (_, Slot::Long | Slot::Int64 | Slot::Double | Slot::Float | Slot::AnyNumeric) => false,
         };

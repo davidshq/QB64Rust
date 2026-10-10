@@ -1,0 +1,5 @@
+
+Syntax error - Reference: SHELL [_DONTWAIT] [_HIDE] commandToRun$
+Caused by (or after):SHELL "a",1 , "b",1
+LINE 3:SHELL "a", "b"
+exit=1

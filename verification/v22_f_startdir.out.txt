@@ -1,0 +1,7 @@
+has text:-1 
+is _CWD$ at the start:-1 
+after CHDIR, unchanged:-1 and _CWD$ differs:-1 
+back:-1 
+in an expression:-1 
+done
+exit=0

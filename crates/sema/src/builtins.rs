@@ -45,6 +45,9 @@ pub enum Rule {
     Asc,
     /// `STRING$(n, code)` or `STRING$(n, s$)`: the second argument a number or a string (`qb64pe.bas` 21294).
     StringFill,
+    /// `ENVIRON$(name$)` or `ENVIRON$(n)`: a string as it is, or a number converted as the table's LONG slot
+    /// (`qb64pe.bas` 20952; libqb has an entry for each, `func_environ(qbs*)` and `func_environ(int32_t)`).
+    StrOrIndex,
 }
 
 /// Every built-in function `sema` compiles, as written (with its required suffix), and its rule. The coverage check
@@ -110,6 +113,28 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // is a `float`; `TIMER` is believed SINGLE and held DOUBLE (libqb's `func_timer` returns `double`).
     ("RND", Rule::Plain),
     ("TIMER", Rule::Plain),
+    // `verification\v22_d_shell`, `v22_d_environ`: the `SHELL` function is an `_INTEGER64`; `COMMAND$` has one
+    // optional slot and is also called bare.
+    ("SHELL", Rule::Plain),
+    ("COMMAND$", Rule::Plain),
+    ("ENVIRON$", Rule::StrOrIndex),
+    // Functions by demand (`verification\v22_f_functions`): all believed `_FLOAT`. The `std::` ones are held by C++
+    // overloading; libqb's own take and return a `double`.
+    ("_ACOS", Rule::Plain),
+    ("_ASIN", Rule::Plain),
+    ("_SINH", Rule::Plain),
+    ("_COSH", Rule::Plain),
+    ("_TANH", Rule::Plain),
+    ("_CEIL", Rule::Plain),
+    ("_COT", Rule::Plain),
+    ("_CSC", Rule::Plain),
+    ("_SEC", Rule::Plain),
+    ("_D2R", Rule::Plain),
+    ("_R2D", Rule::Plain),
+    ("_STRCMP", Rule::Plain),
+    ("_STRICMP", Rule::Plain),
+    // No slot, called bare only (`verification\v22_f_startdir`).
+    ("_STARTDIR$", Rule::Plain),
 ];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
@@ -151,6 +176,8 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("SWAP", StmtRule::Swap),
     ("MID$", StmtRule::MidAssign),
     ("RANDOMIZE", StmtRule::Plain),
+    // `SHELL` in its three forms (`verification\v22_d_shell`).
+    ("SHELL", StmtRule::Plain),
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.
@@ -318,7 +345,8 @@ pub fn slot_count(id: BuiltinId) -> usize {
             | Rule::Len
             | Rule::Val
             | Rule::Radix(_)
-            | Rule::StringFill,
+            | Rule::StringFill
+            | Rule::StrOrIndex,
         )
         | None => id.get().arg_types.len(),
     }
@@ -339,7 +367,8 @@ pub fn slots(s: Supported) -> Vec<(Slot, bool)> {
         | Rule::Len
         | Rule::Val
         | Rule::Radix(_)
-        | Rule::StringFill => {
+        | Rule::StringFill
+        | Rule::StrOrIndex => {
             let optional = b.optional.unwrap_or(&[]);
             b.arg_types
                 .iter()
@@ -434,7 +463,7 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
         Rule::Convert(to) => (convert_held(to, first()), to),
         Rule::Fixed(t) => (t, t),
         Rule::Len | Rule::Asc => (Ty::I32, Ty::I32),
-        Rule::Radix(_) | Rule::StringFill => (Ty::Str, Ty::Str),
+        Rule::Radix(_) | Rule::StringFill | Rule::StrOrIndex => (Ty::Str, Ty::Str),
         Rule::Val => unreachable!("typed by its type argument (check::builtins)"),
     }
 }
@@ -446,6 +475,8 @@ fn held_override(callname: &str) -> Option<Ty> {
     match callname {
         "func_lof" | "func_loc" | "func_seek" => Some(Ty::I64),
         "func_timer" => Some(Ty::F64),
+        // Believed `_FLOAT`; libqb's prototypes take and return a `double` (`extended_math.h`).
+        "func_cot" | "func_csc" | "func_sec" | "func_deg2rad" | "func_rad2deg" => Some(Ty::F64),
         _ => None,
     }
 }

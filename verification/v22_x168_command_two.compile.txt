@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: COMMAND$[(index%)]
+Caused by (or after):S = COMMAND$ ( 1 , 2 )
+LINE 4:s = COMMAND$(1, 2)
+exit=1

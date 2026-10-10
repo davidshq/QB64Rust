@@ -1,0 +1,104 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 9: Assign Q:I64
+  Call SHELL : I64
+    Str "echo x" : Str
+line 10: Assign Q:I64
+  Call SHELL : I64
+    Concat : Str
+      Var S : Str
+      Var T : Str
+line 11: Assign N:I32
+  Convert Truncate : I32
+    Binary Mul : I64
+      Call SHELL : I64
+        Var FX : Str
+      Int 2 : I64
+line 12: Assign S:Str
+  Call COMMAND : Str
+    (absent)
+line 13: Assign S:Str
+  Call COMMAND : Str
+    Int 1 : I32
+line 14: Assign S:Str
+  Call COMMAND : Str
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+line 15: Assign S:Str
+  Concat : Str
+    Call COMMAND : Str
+      (absent)
+    Call COMMAND : Str
+      Binary Add : I32 (qb I64)
+        Var N : I32
+        Int 1 : I32
+line 16: Assign S:Str
+  Call ENVIRON : Str
+    Str "PATH" : Str
+line 17: Assign S:Str
+  Call ENVIRON : Str
+    Var T : Str
+line 18: Assign S:Str
+  Call ENVIRON : Str
+    Var FX : Str
+line 19: Assign S:Str
+  Call ENVIRON : Str
+    Int 1 : I32
+line 20: Assign S:Str
+  Call ENVIRON : Str
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+line 21: Assign S:Str
+  Call ENVIRON : Str
+    Binary Add : I32 (qb I64)
+      Var N : I32
+      Int 1 : I32
+line 22: Print newline
+  Num
+    Call SHELL : I64
+      Str "echo x" : Str
+  Str
+    Call COMMAND : Str
+      (absent)
+  Str
+    Call ENVIRON : Str
+      Var S : Str
+line 23: Builtin SHELL
+  Str "echo x" : Str
+line 24: Builtin SHELL
+  Concat : Str
+    Var S : Str
+    Var T : Str
+line 25: Builtin SHELL
+  Var S : Str
+line 26: Builtin SHELL
+  (absent)
+line 27: Builtin SHELL
+  word 0
+  (absent)
+  Var S : Str
+line 28: Builtin SHELL
+  word 0
+  (absent)
+  (absent)
+line 29: Builtin SHELL
+  word 0
+  word 0
+  Var S : Str
+line 30: Builtin SHELL
+  word 0
+  (absent)
+  Var S : Str
+line 31: Builtin SHELL
+  word 0
+  (absent)
+  (absent)
+line 32: Builtin SHELL
+  word 0
+  word 0
+  Var FX : Str

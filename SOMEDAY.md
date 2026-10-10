@@ -56,6 +56,11 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | Console `INPUT` never asks again: a character that does not fit is dropped (`300` into a `_BYTE` is 30, `abc` into a number 0, `-1` into an unsigned type 1), and fewer fields than targets leave the rest 0 | "Redo from start" as in QB 4.5, or an error for a value out of range. A runtime (libqb) change | Same (`v22_e_redo`) |
 | `INPUT l,` and `LINE INPUT s,` (one `,` after the last target) compile; the `#` forms and `READ` reject it | A compile error | Same (`v22_x148`) |
 | A program whose standard input has run out waits for ever at the next console `INPUT`, and `END` waits for a key although the input is a file | End the program (or raise error 62) at the end of the input; `END` without the wait when the input is no console. A runtime change | Same (`v22_e_eof`) |
+| `SWAP` with an element whose index is out of range raises error 9 **and** exchanges with the array's first element (`SWAP l, arr(9)` on `DIM arr(3)` exchanges `l` and `arr(0)`); nothing outside the array is touched | Skip the exchange when an operand's index raised, as `DIVERGENCES.md` D-004 does for a member store. Asked as `questions.md` Q3 of `m2-builtin-statements`; the user kept QB64pe's way (`DECISIONS.md` 2026-10-10) | Same (`v22_d_swap`, `s40_swap_mid`) |
+| A number with a fraction of one half read by `INPUT #` or `READ` rounds differently by the target: 2.5 into an `_INTEGER64` is 3, into a LONG or INTEGER 2 | Round half to even for every integer target, as a store does | Same (`v22_b_input`, `v22_c_types`) |
+| `OPEN f$ FOR OUTPUT ACCESS READ` raises error 53 ("File not found") | Error 75 or 5, or a compile error | Same (`v22_b_open`) |
+| `WRITE` does not escape a quote inside a string: the value is written between quotes as it is, so `INPUT #` reads it back cut at the inner quote | Double the quote, or leave it (to check what QB 4.5 writes) | Same (`study\00` §5, "WRITE"; task 3.2 of the change) |
+| `READ` of a quoted item into a number is no number: `DATA "5"` read into a LONG raises a syntax error, where the unquoted item is 5 | Read the digits inside the quotes | Same (`v22_c_types`) |
 
 ## Other ideas raised during the study
 
