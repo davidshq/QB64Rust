@@ -1,0 +1,134 @@
+every type from 1
+  error 6 
+ 1  1  1  1  1  1  1  1  1  1  1  1  1  0  0  0 
+2.5 and 3.5 into each
+ 2  2  2  2  2  2  3  3  2.5  2.5  2.5  3  3  2  2 
+  error 6 
+ 4  4  4  4  4  4  4  4  3.5  3.5  3.5  4  4  0  0 
+-1 into each
+  error 6 
+-1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0 
+number forms into DOUBLE
+ 16  15  5  1000  1000  150   error 2 
+ 0   error 2 
+ 0  5  .5 -.5  100  65535  4294967295 
+number forms into LONG
+ 16  15  5  1000  1000  150   error 2 
+ 0   error 2 
+ 0  5  0  0  100  65535 -1 
+number forms into _INTEGER64
+ 16  15  5  1000  1000  150   error 2 
+ 0   error 2 
+ 0  5  1 -1  100  65535  4294967295 
+number forms into STRING
+[&H10][&O17][&B101][1e3][1d3][1.5E+2][12][ 12 ][+5][.5][-.5][1f2][&HFFFF][&HFFFFFFFF]
+no number, each alone
+  error 2 
+ 1  0 
+  error 2 
+ 2  0 
+  error 2 
+ 3  0 
+ 4  0 
+  error 2 
+ 5  0 
+  error 2 
+ 6  0 
+ 7  1 
+  error 2 
+ 8  0 
+no number into DOUBLE
+  error 2 
+ 1  0 
+  error 2 
+ 2  0 
+  error 2 
+ 3  0 
+ 4  0 
+  error 2 
+ 5  0 
+  error 2 
+ 6  0 
+ 7  1 
+  error 2 
+ 8  0 
+no number into _INTEGER64
+  error 2 
+ 1  0 
+  error 2 
+ 2  0 
+  error 2 
+ 3  0 
+ 4  0 
+  error 2 
+ 5  0 
+  error 2 
+ 6  0 
+ 7  1 
+  error 2 
+ 8  0 
+no number into _UNSIGNED _INTEGER64
+  error 2 
+ 1  0 
+  error 2 
+ 2  0 
+  error 2 
+ 3  0 
+ 4  0 
+  error 2 
+ 5  0 
+  error 2 
+ 6  0 
+ 7  1 
+  error 2 
+ 8  0 
+too large
+  error 6 
+_BYTE 300: 0 
+  error 6 
+_UNSIGNED _BYTE 300: 0 
+  error 6 
+_UNSIGNED _BYTE -1: 0 
+  error 6 
+INTEGER 70000: 0 
+  error 6 
+_UNSIGNED INTEGER 70000: 0 
+  error 6 
+LONG 5000000000: 0 
+  error 6 
+_UNSIGNED LONG 5000000000: 0 
+  error 6 
+_INTEGER64 1e30: 0 
+  error 6 
+_INTEGER64 9223372036854775808: 0 
+_UNSIGNED _INTEGER64 18446744073709551615: 18446744073709551615 
+  error 6 
+_UNSIGNED _INTEGER64 18446744073709551616: 0 
+  error 6 
+_UNSIGNED _INTEGER64 -1: 0 
+  error 6 
+SINGLE 1e39: 0 
+  error 6 
+DOUBLE 1e309: 0 
+  error 6 
+DOUBLE 1d309: 0 
+  error 6 
+_BIT 2: 0 
+  error 6 
+_BIT * 3 9: 0 
+  error 6 
+_UNSIGNED _BIT * 3 9: 0 
+_INTEGER64 9007199254740993: 9007199254740993 
+_INTEGER64 9223372036854775807: 9223372036854775807 
+_UNSIGNED _INTEGER64 9007199254740993: 9007199254740993 
+strings
+[bare  word]
+[  quoted, with comma  ]
+[]
+[]
+[ab  ]
+[abcd]
+[a b ]
+element, member
+ 5 [elem] 6  7.5 [memb]
+exit=0

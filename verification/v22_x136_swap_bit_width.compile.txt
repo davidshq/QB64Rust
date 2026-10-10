@@ -1,0 +1,5 @@
+
+Cannot SWAP bit-length variables
+Caused by (or after):SWAP T1 , T2
+LINE 4:SWAP t1, t2
+exit=1

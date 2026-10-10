@@ -1,0 +1,5 @@
+
+MID$ expects a string variable/array-element as its first argument
+Caused by (or after):MID$ ( "abc",3 , 1 ) = "x",1
+LINE 3:MID$("abc", 1) = "x"
+exit=1

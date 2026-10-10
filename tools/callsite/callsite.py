@@ -12,9 +12,12 @@ into a scratch folder that is removed at the end.
 
 Usage:
     python tools/callsite/callsite.py [--qb-root DIR] [--qb64rust EXE] [--glob PATTERN] [--verbose]
+                                      [--wait]
     python tools/callsite/callsite.py --self-test
 
-Exit code: 0 when every program compared equal, 1 otherwise.
+Exit code: 0 when every program compared equal, 1 otherwise; 2 when a compiler is missing; 3 when
+another run is building in the clone (tools/legacy_tests/clone_lock.py; --wait waits for it
+instead).
 """
 
 from __future__ import annotations
@@ -28,6 +31,14 @@ import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+
+# One run at a time builds in the clone; the lock is the test runner's.
+sys.path.insert(0, str(REPO / "tools" / "legacy_tests"))
+from clone_lock import (  # pylint: disable=wrong-import-position,import-error
+    BUSY_EXIT,
+    CLONE_BUSY,
+    lock_clone,
+)
 
 # ---- normalisation -------------------------------------------------------------------------------
 
@@ -71,6 +82,8 @@ TYPES = INT_TYPES | {"float", "double", "long", "qbs"}
 NOT_CALLS = {"if", "while", "for", "switch", "return", "else", "goto"}
 # Numbered temporaries and labels: renumbered in order of first use (rule 2).
 NUMBERED = re.compile(r"^(pass|skip|sc_|RETURN_|temp_\w*?|L_)(\d+)$")
+# An integer literal with the `long long` suffix (rule 5).
+LONG_LONG = re.compile(r"^\d+ll$")
 
 
 def tokenize(text: str) -> list[str]:
@@ -161,6 +174,21 @@ def norm_seq(items: list, whole_arg: bool) -> list:
                 items = rest
                 continue
         break
+    # Rule 5: the `ll` suffix of an integer literal that is a whole argument.
+    if whole_arg and is_simple(items) and LONG_LONG.match(items[-1]):
+        items = [*items[:-1], items[-1][:-2]]
+    # Rule 6: a whole argument that is integer literals joined by `|` is their value (`0|1` is `1`).
+    if (
+        whole_arg
+        and len(items) >= 3
+        and len(items) % 2 == 1
+        and all(isinstance(t, str) and t.isdigit() for t in items[0::2])
+        and all(t == "|" for t in items[1::2])
+    ):
+        value = 0
+        for t in items[0::2]:
+            value |= int(t)
+        items = [str(value)]
     out: list = []
     for it in items:
         if not isinstance(it, Group):
@@ -362,6 +390,21 @@ PAIRS = [
         ["sub_seek(((int32)(qbr(1.4E+0))),qbr(2.5E+0));"],
     ),
     (
+        "SEEK 1, 2",
+        ["sub_seek( 1 , 2 );"],
+        ["sub_seek(1,2ll);"],
+    ),
+    (
+        "sg = RND(n)",
+        ["*__SINGLE_SG=func_rnd(*__LONG_N,0|1);"],
+        ["*__SINGLE_SG=func_rnd(*__LONG_N,1);"],
+    ),
+    (
+        "SEEK n, -2",
+        ["sub_seek(*__LONG_N, -2 );"],
+        ["sub_seek(*__LONG_N,(-2ll));"],
+    ),
+    (
         "OPEN f FOR OUTPUT AS #1",
         ['sub_open(qbs_new_txt_len("t.txt",5), 4 ,NULL,NULL, 1 ,NULL,0);'],
         ['sub_open(qbs_new_txt_len("t.txt",5),4,NULL,NULL,1,NULL,0);'],
@@ -428,6 +471,10 @@ def self_test() -> int:
         (["x=(int32)(y);"], ["x=y;"]),
         (["f((a+b)*c);"], ["f(a+b*c);"]),
         (["f(1,NULL,2);"], ["f(1,0,2);"]),
+        (["f(a*2ll);"], ["f(a*2);"]),
+        (["x=2ll;"], ["x=2;"]),
+        (["f(x,0|2);"], ["f(x,1);"]),
+        (["f(a|1);"], ["f(1);"]),
     ]
     for x, y in distinct:
         if normalise(x) == normalise(y):
@@ -460,6 +507,11 @@ def main() -> int:
     ap.add_argument(
         "--verbose", action="store_true", help="print the normalised tokens of equal programs too"
     )
+    ap.add_argument(
+        "--wait",
+        action="store_true",
+        help="wait for another run to leave the clone instead of stopping with exit code 3",
+    )
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
@@ -468,6 +520,15 @@ def main() -> int:
     if not programs:
         print("no programs")
         return 1
+    # Before the lock: --wait must not wait for a run that cannot start.
+    for exe in (args.qb_root / "qb64pe.exe", args.qb64rust):
+        if not exe.is_file():
+            print(f"compiler not found: {exe}", file=sys.stderr)
+            return 2
+    clone_lock = lock_clone(args.wait)  # held until the process ends
+    if clone_lock is None:
+        print(CLONE_BUSY, file=sys.stderr)
+        return BUSY_EXIT
     counts = {"equal": 0, "differ": 0, "not compared": 0}
     work = Path(tempfile.mkdtemp(prefix="qb64rust-callsite-"))
     try:

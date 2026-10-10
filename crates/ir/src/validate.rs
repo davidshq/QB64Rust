@@ -199,6 +199,28 @@ impl Validator<'_> {
                     }
                 }
             }
+            Op::Read(targets) => {
+                if targets.is_empty() {
+                    self.problem(format!("{at}: a Read without a target"));
+                }
+                for place in targets {
+                    self.place(place, owner, at);
+                    if let Some(Ty::User(_)) = place_ty_checked(self.p, place) {
+                        self.problem(format!("{at}: a Read target of a user type"));
+                    }
+                    if matches!(place, Place::Member { .. }) && place.has_element() {
+                        self.problem(format!("{at}: a Read target that is a member of an element"));
+                    }
+                }
+            }
+            Op::Restore { at: item, label } => {
+                if *item > self.p.data.len() {
+                    self.problem(format!("{at}: a Restore to item {item} of {}", self.p.data.len()));
+                }
+                if label.is_none() && *item != 0 {
+                    self.problem(format!("{at}: a Restore to item {item} without a label"));
+                }
+            }
             Op::Call { proc, args } => self.call(*proc, args, owner, at),
             Op::Builtin { id, args } => self.builtin(*id, args, owner, at),
         }
@@ -232,6 +254,53 @@ impl Validator<'_> {
                         }
                     }
                 }
+                return;
+            }
+            // Two places of one kind: strings, one user type, or numbers of one width (the emitter picks the
+            // runtime's entry by the first place's type).
+            StmtRule::Swap => {
+                let [StmtArg::Place(a), StmtArg::Place(b)] = args else {
+                    self.problem(format!("{at}: {name} without its two places"));
+                    return;
+                };
+                self.place(a, owner, at);
+                self.place(b, owner, at);
+                if let (Some(ta), Some(tb)) = (place_ty_checked(self.p, a), place_ty_checked(self.p, b)) {
+                    let fits = match (ta, tb) {
+                        (Ty::Bit { .. }, _) | (_, Ty::Bit { .. }) => false,
+                        (Ty::User(x), Ty::User(y)) => x == y,
+                        (Ty::User(_), _) | (_, Ty::User(_)) => false,
+                        (x, y) if x.is_string() || y.is_string() => x.is_string() && y.is_string(),
+                        (x, y) => crate::size_of(&self.p.types, x) == crate::size_of(&self.p.types, y),
+                    };
+                    if !fits {
+                        self.problem(format!("{at}: {name} of a {ta:?} and a {tb:?}"));
+                    }
+                }
+                return;
+            }
+            // A string place, a start, a length or nothing, a string value.
+            StmtRule::MidAssign => {
+                let [StmtArg::Place(target), StmtArg::Value(start), length, StmtArg::Value(v)] = args else {
+                    self.problem(format!(
+                        "{at}: {name} without a place, a start, a length slot and a value"
+                    ));
+                    return;
+                };
+                self.place(target, owner, at);
+                if place_ty_checked(self.p, target).is_some_and(|t| !t.is_string()) {
+                    self.problem(format!("{at}: the target of {name} is no string"));
+                }
+                self.value(start, owner, at);
+                match length {
+                    StmtArg::Value(l) => self.value(l, owner, at),
+                    StmtArg::Absent => {}
+                    StmtArg::Place(_) | StmtArg::Word(_) => self.problem(format!("{at}: slot 3 of {name} is no value")),
+                }
+                if v.ty != Ty::Str {
+                    self.problem(format!("{at}: {name} stores a value of type {:?}", v.ty));
+                }
+                self.value(v, owner, at);
                 return;
             }
         }
@@ -486,6 +555,7 @@ mod tests {
                 ])],
             },
             types: Vec::new(),
+            data: Vec::new(),
         }
     }
 
@@ -633,6 +703,45 @@ mod tests {
                 format!("{at}: slot 2 of Name is required"),
                 format!("{at}: Name with 1 slots for 3"),
                 format!("{at}: InStr is no built-in statement that is compiled"),
+            ]
+        );
+    }
+
+    #[test]
+    fn read_and_restore() {
+        use crate::DataItem;
+        let mut p = program();
+        p.data.push(DataItem {
+            text: b"1".to_vec(),
+            quoted: false,
+        });
+        // The end of the data is a position; the start needs no label.
+        p.main.stmts[0].ops.extend([
+            Op::Read(vec![Place::Var(VarId(0))]),
+            Op::Restore { at: 0, label: None },
+            Op::Restore {
+                at: 1,
+                label: Some("L".into()),
+            },
+        ]);
+        assert_eq!(problems(&p), Vec::<String>::new());
+        p.main.stmts[0].ops.extend([
+            Op::Read(Vec::new()),
+            Op::Read(vec![Place::Var(VarId(9))]),
+            Op::Restore {
+                at: 2,
+                label: Some("L".into()),
+            },
+            Op::Restore { at: 1, label: None },
+        ]);
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: a Read without a target"),
+                format!("{at}: variable 9 does not exist"),
+                format!("{at}: a Restore to item 2 of 1"),
+                format!("{at}: a Restore to item 1 without a label"),
             ]
         );
     }

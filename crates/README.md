@@ -115,7 +115,7 @@ What the compiler supports so far:
   compiled across its files, and a runtime error in an included file names it as QB64pe does;
 - procedures named like built-ins as measured (`verification\v19_proc_names`): a SUB may take a built-in
   function's name, a FUNCTION a built-in statement's;
-- 43 built-in functions (`m2-core-builtins`), checked by one table-driven checker: `sema\src\builtins.rs` lists
+- 53 built-in functions (`m2-core-builtins`; the file functions, `RND` and `TIMER` with `m2-builtin-statements`), checked by one table-driven checker: `sema\src\builtins.rs` lists
   them, each with its `Rule` (one per kind of special-casing in the old compiler's `evaluatefunc`, not per
   function), and gives each call a held type (the C++ type of the libqb call) and a believed type (the old
   compiler's); `sema\src\check\builtins.rs` checks arity, argument kinds and the conversion of each argument to
@@ -124,7 +124,10 @@ What the compiler supports so far:
   `MID$`, `ASC` (one and two arguments), `CHR$`, `STR$`, `VAL` (also with a type), `STRING$`, `SPACE$`, `LTRIM$`,
   `RTRIM$`, `_TRIM$`, `UCASE$`, `LCASE$`, `HEX$`, `OCT$`, `_BIN$`, `_TOSTR$`, `INSTR`; math: `ABS`, `SGN`, `INT`,
   `FIX`, `SQR`, `SIN`, `COS`, `TAN`, `ATN`, `LOG`, `EXP`, `CINT`, `CLNG`, `CSNG`, `CDBL`, `_ROUND`, `_PI` (also
-  bare), `_ATAN2`, `_HYPOT`; and `LBOUND`, `UBOUND`, `ERR`, `ERL`. Adding one of the remaining built-ins is a row
+  bare), `_ATAN2`, `_HYPOT`; files: `EOF`, `LOF`, `LOC`, `SEEK` (the last three held `_INTEGER64`, as libqb
+  returns them, and believed LONG), `FREEFILE` and `_CWD$` (bare only), `_FILEEXISTS`, `_DIREXISTS`; `RND` and
+  `TIMER` (bare or with their argument; `TIMER` held DOUBLE and believed SINGLE); and `LBOUND`, `UBOUND`, `ERR`,
+  `ERL`. Adding one of the remaining built-ins is a row
   plus tests where an existing rule fits; tier 1 requires each listed one in a `slice.list` program and a `typed`
   test;
 - `SELECT CASE` and `SELECT EVERYCASE` (lists, `TO`, `IS`, `CASE ELSE`; the selector copied once into a static
@@ -154,15 +157,27 @@ What the compiler supports so far:
   (`builtins\src\passing.rs`, a port of `seperateargs`' pass rules: which parts are C arguments, `NULL` for an
   absent one, the bits of the `passed` mask). The arguments are evaluated in order and the call is made also
   after a raising one, as measured. So far: `KILL`, `MKDIR`, `RMDIR`, `CHDIR`, `NAME`, `ENVIRON` (also `CALL
-  KILL(…)`). Tier 1 requires each listed statement in a `slice.list` program and an `ir` test.
+  KILL(…)`), `OPEN` in both forms with every mode, access and lock word, `SEEK`, `RANDOMIZE` (with a seed, with
+  `USING`, and without one: the runtime then asks for it), and three with a rule of their own: `CLOSE` (one call per file number), `SWAP` (two places of one
+  type but for signedness, any two strings, one `TYPE`; never a `_BIT`) and the `MID$` statement. Tier 1 requires each listed statement in a `slice.list` program and an `ir` test;
+- sequential file I/O and the program's data, as operations of their own in the IR because they have items or
+  targets (`sema\src\check\io.rs`, `codegen-cpp\src\io.rs`): `PRINT #` (not `USING`, `TAB`, `SPC`), `WRITE` to a
+  file and to the console, `INPUT #` and `LINE INPUT #` into variables, elements and members (a pending-error
+  check after each item or target, as the old compiler); `DATA` (the items of the whole program in file order,
+  procedures and included files where they stand), `READ` (no check between its targets, as measured) and
+  `RESTORE` to the start or to a label of any body; console `INPUT` and `LINE INPUT` (the prompt forms, the `;`
+  before the prompt, one `,` after the last target): the compiler hands the runtime the type and address of each
+  target, and the runtime reads, converts and stores (it never asks again; `study\00` §5). A corpus program that
+  reads the console has its answers in `<name>.stdin` and ends with `SYSTEM` (`tests\corpus\README.md`).
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
-are `DATA`/`READ`/`RESTORE`, line numbers and jumps to them (also as `ON … GOTO` targets), `EXIT SELECT`/`EXIT
+are line numbers and jumps to them (also as `ON … GOTO` and `RESTORE` targets), `EXIT SELECT`/`EXIT
 CASE`, the other built-in functions, `DECLARE LIBRARY`, `OPTION BASE`, event handlers and switches, `STOP`, `RUN`,
-`END`/`SYSTEM` with an exit code, the I/O statements
-(`PRINT #`, `PRINT USING`, `LPRINT`, `WRITE`, `INPUT`, `LINE INPUT`, `CLOSE`, `FIELD`, `LSET`/`RSET`, `SWAP`), every
-built-in statement read by its template (`LINE`, `SCREEN`, `OPEN`, `GET`/`PUT`, `TIME$ =`, ...), the declaration
+`END`/`SYSTEM` with an exit code, the other I/O statements
+(`PRINT USING`, `LPRINT`, `FIELD`, `LSET`/`RSET`),
+`READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array or a member of an element, every other
+built-in statement read by its template (`LINE`, `SCREEN`, `GET`/`PUT`, `TIME$ =`, ...), the declaration
 forms (`REDIM`, `COMMON`, `ERASE`, `DEFxxx`, `_DEFINE`, the type before the names, arrays named `name$n`, array
 parameters, `STATIC` after a header, `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), type names as arguments, the
 names of QB64pe's auto-included files and its precompiler flags (`_CONSOLE_`, ...); of arrays and `TYPE`: dynamic
@@ -191,6 +206,8 @@ parallel; `--build-cache` (environment variable `QB64RUST_BUILD_CACHE`, `driver\
 program whose C++ build has the same inputs as an earlier one's (the fragments, the clone's `qbx.cpp`, `Makefile`
 and every file of its `internal\c` by size and time, the options), so after an edit only the programs whose C++
 changed are rebuilt; every program is still compiled by `qb64rust`, run and compared. CI uses neither.
+The full corpus with the old compiler also takes `--jobs 8` (private copies of `qb64pe`,
+`tools\legacy_tests\README.md`): about 4 minutes instead of 12.
 
 **"Not supported yet."** A diagnostic either reports an error in the program or is marked "not supported yet"
 (`Diagnostic::unsupported`, printed `error: not supported yet: <message>`; the summary says how many). `sema` and

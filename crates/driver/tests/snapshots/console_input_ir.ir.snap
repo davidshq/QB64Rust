@@ -1,0 +1,64 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 12 may_raise
+  Input console question
+    Target L:I32
+Stmt line 13 may_raise
+  Input console prompt "number" question
+    Target L:I32
+Stmt line 14 may_raise
+  Input console prompt "number: "
+    Target L:I32
+Stmt line 15 may_raise
+  Input console prompt "stay" question stay
+    Target L:I32
+Stmt line 16 may_raise
+  Input console question stay
+    Target L:I32
+Stmt line 17 may_raise
+  Input console prompt "three" question
+    Target L:I32
+    Target S:Str
+    Target D:F64
+Stmt line 18 may_raise
+  Input console question
+    Target FX:Str*4
+    Target A((Var K:I32 -> Convert I64 Widen)):I32
+    Target R.N:I32
+    Target R.F:Str*4
+Stmt line 19 may_raise
+  Input console question
+    Target MADE:F32
+    Target MADE:Str
+Stmt line 20 may_raise
+  LineInput console
+    Target S:Str
+Stmt line 21 may_raise
+  LineInput console prompt "line; "
+    Target S:Str
+Stmt line 22 may_raise
+  LineInput console prompt "line, "
+    Target S:Str
+Stmt line 23 may_raise
+  LineInput console prompt "stay " stay
+    Target S:Str
+Stmt line 24 may_raise
+  LineInput console
+    Target FX:Str*4
+Stmt line 25 may_raise
+  Call P []
+Stmt line 26
+  System
+Sub P lines 28-32
+  local Q:I64
+  local T:Str
+Stmt line 30 may_raise
+  Input console prompt "in a sub" question
+    Target Q(local):I64
+Stmt line 31 may_raise
+  LineInput console
+    Target T(local):Str

@@ -11,6 +11,7 @@ basic/val_typed_large_integer_decimal
 basic/val_typed_nondecimal_precision
 basic/val_typed_tostr_overload
 console/test
+console_only/data
 console_only/print_console_null_char
 const/bad_boolean_arg
 const/bad_not_no_arg
@@ -41,6 +42,7 @@ noprompt/noprompt-y
 parens()/parens()
 print/auto_semicolon_insertion
 single'quote'test/single'quote'test
+source_ordering/data_positioning
 source_ordering/goto_gosub
 source_ordering/sub_after_main
 source_ordering/sub_before_main

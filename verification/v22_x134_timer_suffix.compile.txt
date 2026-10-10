@@ -1,0 +1,5 @@
+
+Name already in use (TIMER)
+Caused by (or after):PRINT TIMER! >= 0
+LINE 3:PRINT TIMER! >= 0
+exit=1

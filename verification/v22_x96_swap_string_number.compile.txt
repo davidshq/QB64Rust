@@ -1,0 +1,5 @@
+
+Type mismatch
+Caused by (or after):SWAP S , A
+LINE 4:SWAP s, a
+exit=1

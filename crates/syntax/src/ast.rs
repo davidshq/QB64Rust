@@ -714,11 +714,15 @@ impl DataStmt<'_> {
     }
 
     /// The items, split from `bytes` (the file's bytes) by the old compiler's rule (`crate::data`); `n` commas
-    /// give `n + 1` items (measured M2). None without a `DataText` token; whether the old compiler gives bare
-    /// `DATA` one empty item is not measured (matters once `READ` is implemented).
+    /// give `n + 1` items (measured M2). `DATA` with nothing after it is one empty item (measured,
+    /// `verification\v22_c_order`), at the end of the statement.
     pub fn items(self, bytes: &[u8]) -> Vec<DataItem> {
         let Some(t) = self.text() else {
-            return Vec::new();
+            let end = self.0.span().end;
+            return vec![DataItem {
+                span: Span::new(self.0.span().file, end, end),
+                quoted: false,
+            }];
         };
         let span = |s: usize, e: usize| Span::new(t.span.file, qb64rust_base::to_u32(s), qb64rust_base::to_u32(e));
         crate::data::scan(bytes, t.span.start as usize)

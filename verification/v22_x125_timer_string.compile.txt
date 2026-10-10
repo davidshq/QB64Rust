@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):PRINT TIMER ( "a",1 ) >= 0
+LINE 3:PRINT TIMER("a") >= 0
+exit=1

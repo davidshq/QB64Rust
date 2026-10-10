@@ -5,7 +5,7 @@ $CONSOLE:ONLY
 ' bits, which fails the old compiler's C++ build; `$0`), a string FOR variable; then what is not supported yet: a
 ' length named by a float constant, an array named with `$n`, `$n` beside a constant of its name (assigned, in
 ' `DIM`, in `SHARED`) or beside a `STRING * n` parameter of its name, a member whose length is a constant's name, a
-' suffix on a fixed-length member, the `MID$` statement.
+' suffix on a fixed-length member.
 ' The marked declarations stand last: they drop the real errors after them (the follow-on rule).
 DIM z0 AS STRING * 0
 DIM z1 AS STRING * (2 + 3)
@@ -23,7 +23,6 @@ r.nm$ = "x"
 CONST k = 2
 k$3 = "x"
 DIM k$4
-MID$(f, 2, 1) = "x"
 CONST half = 1.5
 DIM h AS STRING * half
 DIM a$3(2)

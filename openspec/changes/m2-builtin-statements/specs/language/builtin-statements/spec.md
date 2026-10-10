@@ -51,8 +51,8 @@ error, not a "not supported yet" mark.
 ### Requirement: Runtime errors of built-in statements
 A built-in statement SHALL raise the runtime error the old compiler raises, and the error SHALL be serviced at the
 end of that statement: the handler runs, `RESUME NEXT` continues with the next statement, and `RESUME` runs the
-statement again. A statement with several items (`PRINT #`, `WRITE`, `INPUT #`, `READ`) SHALL stop at the first
-item that raises, as the old compiler does.
+statement again. A statement with several items (`PRINT #`, `WRITE`, `INPUT #`) SHALL stop at the first item that
+raises, as the old compiler does; `READ` SHALL go on as the old compiler's does (capability `language/data-read`).
 
 #### Scenario: Error in a statement call
 - **WHEN** `KILL "no-such-file.tmp"` runs under a handler that prints `ERR` and resumes next, followed by `PRINT "after"`
@@ -68,9 +68,14 @@ item that raises, as the old compiler does.
 
 ### Requirement: SWAP
 `SWAP a, b` SHALL exchange the values of two places (variables, array elements or members) of the same type, for
-every numeric type, `STRING`, fixed-length strings and user types as the old compiler accepts them. Two places of
-different types SHALL be a compile error ("Type mismatch" in the old compiler), as SHALL an operand that is not a
-place.
+every numeric type but `_BIT`, strings and user types as the old compiler accepts them: two numeric types that
+differ only in signedness count as the same (the bits are exchanged), any two strings go together (`STRING` and
+`STRING * n` of any length, each side cut or padded to its own length), and two user types must be the same `TYPE`.
+Two places of different types SHALL be a compile error ("Type mismatch" in the old compiler), as SHALL a `_BIT`
+place, an operand that is not a place and the name of the FUNCTION the statement stands in. An operand in
+parentheses, two whole arrays and a member of an array element, which the old compiler accepts, SHALL be reported
+"not supported yet". An element operand whose index is out of range SHALL raise error 9 and the statement SHALL
+then do what the old compiler's program does.
 
 #### Scenario: Numbers and strings
 - **WHEN** `a& = 1: b& = 2: s$ = "p": t$ = "q": SWAP a&, b&: SWAP s$, t$: PRINT a&; b&; s$; t$` runs
@@ -84,9 +89,27 @@ place.
 - **WHEN** `DIM x(3) AS INTEGER: x(1) = 7: x(2) = 9: SWAP x(1), x(2): PRINT x(1); x(2)` runs
 - **THEN** it prints ` 9  7 `
 
+#### Scenario: Signed and unsigned
+- **WHEN** `l& = -1: u~& = 2: SWAP l&, u~&: PRINT l&; u~&` runs
+- **THEN** it prints ` 2  4294967295 `
+
+#### Scenario: Strings of different kinds
+- **WHEN** `DIM f AS STRING * 3: s$ = "long one": f = "abc": SWAP s$, f: PRINT "["; s$; "]["; f; "]"` runs
+- **THEN** it prints `[abc][lon]`
+
+#### Scenario: Whole TYPE variables
+- **WHEN** two variables of one `TYPE` with members `n` 1 and 2 are swapped and their `n` members printed
+- **THEN** it prints ` 2  1 `
+
+#### Scenario: A _BIT variable
+- **WHEN** `DIM a AS _BIT, b AS _BIT: SWAP a, b` is compiled
+- **THEN** it is a compile error, as in the old compiler
+
 ### Requirement: MID$ statement
 `MID$(s, start[, length]) = value` SHALL overwrite bytes of the string place `s` in place, never changing its
-length, as the old compiler's runtime does for every start and length; the target SHALL be a string place.
+length, as the old compiler's runtime does for every start and length: a start below 1 or past the end and a
+length below 1 SHALL change nothing and raise nothing. The target SHALL be a string place (a variable, a
+fixed-length string, an element or a member); a member of an array element SHALL be reported "not supported yet".
 
 #### Scenario: Replacement longer than the target
 - **WHEN** `s$ = "q": MID$(s$, 1, 1) = "ZZ": PRINT s$` runs
@@ -102,12 +125,19 @@ length, as the old compiler's runtime does for every start and length; the targe
 
 ### Requirement: RANDOMIZE
 `RANDOMIZE`, `RANDOMIZE n` and `RANDOMIZE USING n` SHALL seed the random number generator as the old compiler's
-runtime does, so that a program seeded with a constant prints the same `RND` values as with the old compiler.
-`RANDOMIZE` without a seed in a `$CONSOLE:ONLY` program SHALL behave as the old compiler's does, as measured.
+runtime does, so that a program seeded with a constant prints the same `RND` values as with the old compiler:
+`RANDOMIZE USING n` SHALL give the same sequence wherever it runs, and `RANDOMIZE n` one that also depends on the
+values drawn before it.
+`RANDOMIZE` without a seed SHALL print `Random-number seed (-32768 to 32767)? ` and read the seed from standard
+input, as the old compiler's program does.
 
 #### Scenario: Seeded sequence
 - **WHEN** `RANDOMIZE 5: PRINT RND; RND; RND` runs
 - **THEN** it prints the three values the old compiler's program prints
+
+#### Scenario: USING repeats
+- **WHEN** `RANDOMIZE USING 5: a = RND: b = RND: RANDOMIZE USING 5: PRINT a = RND` runs
+- **THEN** it prints `-1`
 
 #### Scenario: Seed from the clock
 - **WHEN** `RANDOMIZE TIMER: x = RND: PRINT x >= 0 AND x < 1` runs
@@ -129,9 +159,29 @@ does.
 ### Requirement: Console INPUT and LINE INPUT
 In a `$CONSOLE:ONLY` program, `INPUT [;] ["prompt" {;|,}] target, …` and `LINE INPUT [;] ["prompt";] target$` SHALL
 print the prompt, read from standard input and store into the targets as the old compiler's program does: the `? `
-after a prompt ended by `;`, the split of a line at commas, the conversion of a field to each numeric type, and
-what happens on a field that is no number, on too few or too many fields and at the end of the input, each as
-measured. A prompt that is not a string literal SHALL be reported as the old compiler reports it.
+after a prompt ended by `;` (never for `LINE INPUT`), the split of a line at commas, the conversion of a field to
+each numeric type, and what happens on a field that is no number and on too few or too many fields, each as
+measured: the program never asks again; a character that does not fit its field is dropped and the text so far is
+printed again; targets without a field are 0 or empty. A `;` before the prompt SHALL leave the output on the same
+line after the answer. One `,` after the last target SHALL be accepted. A `_BIT` variable SHALL be accepted as a
+target and keep its value, as in the old compiler. A prompt that is not a string literal, a target that is no
+variable, and a `LINE INPUT` target that is no string or not alone SHALL be compile errors.
+
+#### Scenario: A character that does not fit
+- **WHEN** `INPUT "byte"; b` with `b` a `_BYTE` runs with the input line `300`
+- **THEN** it prints `byte? 30` and `b` is 30
+
+#### Scenario: Fewer fields than targets
+- **WHEN** `INPUT l, m` runs with the input line `5`
+- **THEN** `l` is 5 and `m` is 0
+
+#### Scenario: Trailing comma
+- **WHEN** `INPUT l,` is compiled
+- **THEN** it compiles and reads one value into `l`
+
+#### Scenario: Prompt is a variable
+- **WHEN** `INPUT p$; l` is compiled
+- **THEN** it is a compile error
 
 #### Scenario: LINE INPUT with a prompt
 - **WHEN** `LINE INPUT "name? "; s$: PRINT "["; s$; "]"` runs with the input line `Dave M`

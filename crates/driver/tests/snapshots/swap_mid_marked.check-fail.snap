@@ -1,0 +1,9 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+swap_mid_marked.bas:11:6: error: not supported yet: an operand of `SWAP` in parentheses
+swap_mid_marked.bas:12:6: error: not supported yet: the whole array `m()`
+swap_mid_marked.bas:13:6: error: not supported yet: a member of an array element as a target of `SWAP`
+swap_mid_marked.bas:14:6: error: not supported yet: a member of an array element as a target of `MID$`
+swap_mid_marked.bas:15:6: error: not supported yet: `RANDOMIZE`

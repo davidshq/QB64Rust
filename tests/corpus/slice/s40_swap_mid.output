@@ -1,0 +1,76 @@
+_BYTE 2  1 
+_UNSIGNED _BYTE 200  1 
+INTEGER 2  1 
+_UNSIGNED INTEGER 60000  1 
+LONG 2  1 
+_UNSIGNED LONG 4000000000  1 
+_INTEGER64 5000000000  1 
+_UNSIGNED _INTEGER64 9000000000  1 
+SINGLE 2.5  1.5 
+DOUBLE 2.5  1.5 
+_FLOAT 2.5  1.5 
+_OFFSET 2  1 
+_UNSIGNED _OFFSET 2  1 
+LONG and _UNSIGNED LONG 2  4294967295 
+_UNSIGNED _BYTE and _BYTE 255  2 
+STRING [r][left]
+STRING * 3 [xy ][abc]
+STRING * 3 and * 5 [vwx][abc  ]
+STRING and STRING * 3 [abc][lon]
+TYPE 2 two 2.5  1 one 1.5 
+elements 9  7 
+elements by variable 7  9 
+string elements qp
+variable and element 7  5 
+member and variable 7  2 
+members 1  7 
+fixed member and variable [abc][two]
+TYPE elements 11  10 
+TYPE element and variable 1  11 
+the same variable 3 
+the same string same
+variables made by SWAP 0  0 
+an element with a bad index
+  error 9 
+ 0  2  1 
+a bad index first
+  error 9 
+ 2  0  1 
+in a SUB 2  3  1 Local
+no length [abXYef]
+length 1 [abXdef]
+length beyond the value [abXYef]
+value beyond the end [abcdVW]
+length and value beyond the end [abcdVW]
+empty value [abcdef]
+last position [abcdeZ]
+length 0 [abcdef]
+one byte [Z]
+start 7 (one past the end)
+[abcdef]
+start 0
+[abcdef]
+start -1
+[abcdef]
+length -1
+[abcdef]
+empty target, start 1
+[]
+start and length 2.5 [aXYdef]
+start 3.5 [abcXYZ]
+its own value [aabcef]
+its own MID$ [efcdef]
+fixed-length [abcXY]
+element [aXYdef]
+member [aXY]
+raising value
+  error 5 
+[abcdef]
+raising start
+  error 5 
+[abcdef]
+element with a bad index
+  error 9 
+[abcdef]
+an expression [aXYdef]
+a blank before ( [aspdef]

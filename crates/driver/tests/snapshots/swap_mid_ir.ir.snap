@@ -1,0 +1,46 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 13 may_raise
+  Builtin SWAP [Place A:I32, Place B:I32]
+Stmt line 14 may_raise
+  Builtin SWAP [Place A:I32, Place U:U32]
+Stmt line 15 may_raise
+  Builtin SWAP [Place S:Str, Place T:Str]
+Stmt line 16 may_raise
+  Builtin SWAP [Place S:Str, Place FX:Str*3]
+Stmt line 17 may_raise
+  Builtin SWAP [Place X((Var I:I32 -> Convert I64 Widen)):I16, Place X((Add:I32(Var I:I32, Const 1:I32) wrap -> Convert I64 Widen)):I16]
+Stmt line 18 may_raise
+  Builtin SWAP [Place R1:T:REC, Place R2:T:REC]
+Stmt line 19 may_raise
+  Builtin SWAP [Place R1.N:I32, Place A:I32]
+Stmt line 20 may_raise
+  Builtin MID [Place S:Str, Value(Const 3:I32), Absent, Value(Const "XY")]
+Stmt line 21 may_raise
+  Builtin MID [Place S:Str, Value(Var I:I32), Value(Const 2:I32), Value(Var T:Str)]
+Stmt line 22 may_raise
+  Builtin MID [Place R1.S:Str*3, Value(((Const 2.5E+0:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(Const 1:I32), Value(Concat(Var T:Str, Const "x"))]
+Stmt line 23 may_raise
+  Builtin RANDOMIZE [Absent, Value((Const 5:I16 -> Convert F64 Nearest))]
+Stmt line 24 may_raise
+  Builtin RANDOMIZE [Word 0, Value((Var A:I32 -> Convert F64 Nearest))]
+Stmt line 25 may_raise
+  Builtin RANDOMIZE [Absent, Value(CallBuiltin TIMER:F64 [None])]
+Stmt line 26 may_raise
+  Call P []
+Stmt line 27
+  System
+Sub P lines 29-34
+  local C:F64
+  local D:F64
+  local Q:Str
+Stmt line 31 may_raise
+  Builtin SWAP [Place C(local):F64, Place D(local):F64]
+Stmt line 32 may_raise
+  Builtin MID [Place Q(local):Str, Value(Const 1:I32), Absent, Value(Const "z")]
+Stmt line 33 may_raise
+  Builtin RANDOMIZE [Absent, Value(Var C(local):F64)]

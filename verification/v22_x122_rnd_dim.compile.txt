@@ -1,0 +1,5 @@
+
+Name already in use (RND)
+Caused by (or after):DIM RND AS LONG
+LINE 3:DIM RND AS LONG
+exit=1

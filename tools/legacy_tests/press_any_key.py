@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Runs a QB64pe console program on Windows and answers its "Press any key to continue".
 
-Usage: press_any_key.py <exe>   (exit code = the program's exit code; 125 if this helper fails)
+Usage: press_any_key.py <exe> [<stdin file>]
+(exit code = the program's exit code; 125 if this helper fails)
 
 On Windows, END in a $CONSOLE program prints "Press any key to continue" and waits for a key
 event from the console input buffer (sub_end in libqb.cpp, func__getconsoleinput in
@@ -14,7 +15,11 @@ and stderr redirected to the result file. The helper starts the program in that 
 stdin = CONIN$, stdout and stderr inherited, and writes a Shift key press into the console
 input every 50 ms until the program exits. END empties the input buffer first and then waits,
 so the next press ends the wait. Use it only for programs that do not read the keyboard
-themselves (true for the corpus: no INKEY$, INPUT, SLEEP or _KEYHIT).
+themselves (true for the corpus: no INKEY$, SLEEP or _KEYHIT).
+
+With a second argument the program's stdin is that file instead of CONIN$ (a corpus program with a
+<name>.stdin sidecar: INPUT and LINE INPUT of a $CONSOLE:ONLY program read standard input). The
+key presses still go into the console the program shares with this helper.
 """
 
 from __future__ import annotations
@@ -57,8 +62,8 @@ class INPUT_RECORD(ctypes.Structure):
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        print("usage: press_any_key.py <exe>", file=sys.stderr)
+    if len(sys.argv) not in (2, 3):
+        print("usage: press_any_key.py <exe> [<stdin file>]", file=sys.stderr)
         return 125
     k32 = ctypes.WinDLL("kernel32", use_last_error=True)
     k32.CreateFileW.restype = wintypes.HANDLE
@@ -103,8 +108,12 @@ def main() -> int:
 
     # Popen duplicates the handle as the child's (inheritable) stdin; stdout and stderr are this
     # process's own, i.e. the result file.
-    stdin_fd = msvcrt.open_osfhandle(conin, 0)
-    p = subprocess.Popen([sys.argv[1]], stdin=stdin_fd)
+    if len(sys.argv) == 3:
+        with open(sys.argv[2], "rb") as stdin_file:
+            p = subprocess.Popen([sys.argv[1]], stdin=stdin_file)
+    else:
+        stdin_fd = msvcrt.open_osfhandle(conin, 0)
+        p = subprocess.Popen([sys.argv[1]], stdin=stdin_fd)
     written = wintypes.DWORD()
     while p.poll() is None:
         if not k32.WriteConsoleInputW(conin, records, 2, ctypes.byref(written)):

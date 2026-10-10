@@ -1,0 +1,5 @@
+
+Invalid label
+Caused by (or after):RESTORE "lab",3
+LINE 4:RESTORE "lab"
+exit=1

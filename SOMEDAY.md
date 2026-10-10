@@ -52,6 +52,10 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | A `CONST` with an `_OFFSET` suffix is an `_INTEGER64` literal, not an `_OFFSET`: `CONST k~%& = -1` makes `k~%& + 0` print -1 where an `_UNSIGNED _OFFSET` variable holding the same value gives 18446744073709551615 | Believe it `_OFFSET`, as a variable | Same (C++ of `v21_d_const`) |
 | A `_BIT`-suffixed literal or constant is never narrowed: `` PRINT 9`3 `` is 9, `` CONST j~`3 = -1 `` prints -1 | Narrow it to its width and signedness | Same |
 | A parameter declared `STRING * n` (or `t$n`) is a `STRING` parameter: only `LEN(t)` is n; the value, stores and comparisons see the caller's whole string | A real fixed-length parameter (cut and padded), or a compile error | Same (`v21_c_fixed_args`, `v21_f_fixed_param`) |
+| Console `INPUT` into a `_BIT` variable compiles, reads the answer and stores nothing (a `_BIT` element is a compile error) | Store the value, or a compile error as for the element | `m2-builtin-statements` measurements (`verification\v22_e_bit`, `v22_e_redo`; `study\00` §5) |
+| Console `INPUT` never asks again: a character that does not fit is dropped (`300` into a `_BYTE` is 30, `abc` into a number 0, `-1` into an unsigned type 1), and fewer fields than targets leave the rest 0 | "Redo from start" as in QB 4.5, or an error for a value out of range. A runtime (libqb) change | Same (`v22_e_redo`) |
+| `INPUT l,` and `LINE INPUT s,` (one `,` after the last target) compile; the `#` forms and `READ` reject it | A compile error | Same (`v22_x148`) |
+| A program whose standard input has run out waits for ever at the next console `INPUT`, and `END` waits for a key although the input is a file | End the program (or raise error 62) at the end of the input; `END` without the wait when the input is no console. A runtime change | Same (`v22_e_eof`) |
 
 ## Other ideas raised during the study
 

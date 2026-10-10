@@ -35,5 +35,5 @@ files_errors.bas:43:11: error: not supported yet: a member of an array element a
 files_errors.bas:44:11: error: not supported yet: `TAB`
 files_errors.bas:45:11: error: not supported yet: `PRINT USING`
 files_errors.bas:46:7: error: expected an expression
-files_errors.bas:47:1: error: not supported yet: `INPUT`
-files_errors.bas:48:1: error: not supported yet: `LINE INPUT`
+files_errors.bas:49:15: error: the FUNCTION's own name cannot be a target of `INPUT`
+files_errors.bas:53:20: error: the FUNCTION's own name cannot be a target of `LINE INPUT`

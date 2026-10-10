@@ -60,6 +60,7 @@ pub fn lower(p: &sema::Program) -> Program {
         procs,
         main,
         types: p.types.clone(),
+        data: p.data.clone(),
     };
     if cfg!(debug_assertions)
         && let Err(problems) = crate::validate(&program)
@@ -79,6 +80,7 @@ struct Counts {
 
 /// The lowering of one body.
 struct Lowerer<'a> {
+    p: &'a sema::Program,
     ids: &'a LabelIds,
     /// The body: `None` for the main module.
     owner: Option<sema::ProcId>,
@@ -114,6 +116,7 @@ impl<'a> Lowerer<'a> {
             })
             .collect();
         Lowerer {
+            p,
             ids,
             owner,
             vars,
@@ -266,6 +269,15 @@ impl<'a> Lowerer<'a> {
                 line: *line,
                 targets: targets.clone(),
             },
+            sema::StmtKind::Read(targets) => Op::Read(targets.clone()),
+            sema::StmtKind::Restore(None) => Op::Restore { at: 0, label: None },
+            sema::StmtKind::Restore(Some(l)) => {
+                let l = self.p.label(*l);
+                Op::Restore {
+                    at: l.data_at,
+                    label: Some(l.name.clone()),
+                }
+            }
             sema::StmtKind::Call { proc, args } => Op::Call {
                 proc: ProcId(proc.0),
                 args: args.clone(),

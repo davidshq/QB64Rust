@@ -66,6 +66,7 @@ impl Checker<'_> {
             line,
             file: t.span.file,
             proc: body,
+            data_at: 0,
         });
         self.labels_by_name.insert(key, id);
         self.label_of_def.insert(node.key(), id);
@@ -77,6 +78,8 @@ impl Checker<'_> {
     pub(super) fn label_stmt(&mut self, l: ast::LabelDef) -> R<()> {
         // Without an entry the label's declaration had an error, already reported.
         if let Some(&id) = self.label_of_def.get(&l.node().key()) {
+            // Pass 2 is in file order, so the items collected so far are those before the label.
+            self.prog.labels[id.0 as usize].data_at = self.prog.data.len();
             self.push(l.node(), StmtKind::Label(id));
         }
         Ok(())
@@ -111,6 +114,48 @@ impl Checker<'_> {
         };
         self.names.push((SymbolKind::Label(id), t.span));
         Ok(id)
+    }
+
+    /// `RESTORE` or `RESTORE label`. The label has no scope (`qb64pe.bas`: "a RESTORE label has no scope, therefore,
+    /// only one instance of that label may exist"; measured, `verification\v22_c_restore`, `v22_x65`, `x72`, `x83`):
+    /// it may stand in any body, and a name that two bodies have is "Ambiguous DATA label". A line number is not
+    /// supported yet.
+    pub(super) fn restore(&mut self, s: ast::RestoreStmt) -> R<()> {
+        let node = s.node();
+        let Some(t) = s.target() else {
+            self.push(node, StmtKind::Restore(None));
+            return Ok(());
+        };
+        if t.kind == Number {
+            return Err(self.unsupported(t.span, "line numbers"));
+        }
+        let shown = show_bytes(self.text(t.span));
+        let (name, suffix) = self.split_name(t)?;
+        if suffix.is_some() {
+            return Err(self.error(t.span, format!("`{shown}` is not a valid label")));
+        }
+        let mut found = self
+            .labels_by_name
+            .iter()
+            .filter(|((_, n), _)| *n == name)
+            .map(|(_, &id)| id);
+        let (first, second) = (found.next(), found.next());
+        let Some(id) = first else {
+            // A label with such a name is "not supported yet" (`declare_label`), so it may exist.
+            if self.procs_by_name.contains_key(&name) || find_any(name.as_bytes()).next().is_some() {
+                let msg = format!("a label with the name of a SUB, FUNCTION or built-in: `{shown}`");
+                return Err(self.unsupported(t.span, msg));
+            }
+            return Err(self.error(t.span, format!("label `{shown}` is not defined")));
+        };
+        if second.is_some() {
+            let msg =
+                format!("`RESTORE {shown}`: more than one SUB, FUNCTION or the main module has a label `{shown}`");
+            return Err(self.error(t.span, msg));
+        }
+        self.names.push((SymbolKind::Label(id), t.span));
+        self.push(node, StmtKind::Restore(Some(id)));
+        Ok(())
     }
 
     /// The target of `GOTO`, `GOSUB` or `RETURN`: a label of the current body. A number is a line number.

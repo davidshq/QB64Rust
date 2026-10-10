@@ -11,6 +11,11 @@ use std::fmt::Write as _;
 /// The main module's statements, then each procedure: its header, its variables by storage class, its statements.
 pub fn dump(p: &Program) -> String {
     let mut out = String::new();
+    // The program's data, when there is any: one item per line, a quoted one in quotes.
+    for (i, item) in p.data.iter().enumerate() {
+        let q = if item.quoted { "\"" } else { "" };
+        writeln!(out, "Data {i}: {q}{}{q}", show_bytes(&item.text)).unwrap();
+    }
     body(p, &p.main, &mut out);
     for (i, proc) in p.procs.iter().enumerate() {
         match proc.kind {
@@ -145,6 +150,16 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                         writeln!(out, "    Target {}:{}", place_text(p, place), ty(p, p.place_ty(place))).unwrap();
                     }
                 }
+                Op::Read(targets) => {
+                    writeln!(out, "  Read").unwrap();
+                    for place in targets {
+                        writeln!(out, "    Target {}:{}", place_text(p, place), ty(p, p.place_ty(place))).unwrap();
+                    }
+                }
+                Op::Restore { at, label } => match label {
+                    Some(l) => writeln!(out, "  Restore item {at} ({l})").unwrap(),
+                    None => writeln!(out, "  Restore item {at}").unwrap(),
+                },
                 Op::Call { proc, args: a } => {
                     writeln!(out, "  Call {} [{}]", p.proc(*proc).name, args(p, a)).unwrap();
                 }

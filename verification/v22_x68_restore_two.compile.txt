@@ -1,0 +1,5 @@
+
+Syntax error - too many parameters (expected RESTORE label/line number)
+Caused by (or after):RESTORE A , B
+LINE 6:RESTORE a, b
+exit=1

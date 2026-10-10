@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):INPUT P + "x",1 ; L
+LINE 4:INPUT p + "x"; l
+exit=1

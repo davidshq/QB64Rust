@@ -1,0 +1,37 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Data 0: 1
+Data 1: "two"
+Data 2: 3
+Data 3: 4
+Stmt line 2
+  SelectConsole
+Label LAB line 9
+Stmt line 11 may_raise
+  Read
+    Target N:I32
+    Target S:Str
+    Target D:F64
+Stmt line 12 may_raise
+  Read
+    Target A((Var N:I32 -> Convert I64 Widen)):I32
+Stmt line 13
+  Restore item 0
+Stmt line 14
+  Restore item 2 (LAB)
+Stmt line 15
+  Restore item 3 (DONE)
+Stmt line 16 may_raise
+  Call P []
+Stmt line 17
+  System
+Label DONE line 18
+Sub P lines 20-24
+  local X:F32
+Stmt line 22 may_raise
+  Read
+    Target X(local):F32
+Stmt line 23
+  Restore item 2 (LAB)

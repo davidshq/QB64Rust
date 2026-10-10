@@ -1,0 +1,71 @@
+1 no prompt
+? < 42 >
+2 a prompt and ;
+number? < 43 >
+3 a prompt and ,
+number: < 44 >
+4 an empty prompt and ,
+< 45 >
+5 ; before the prompt: the output stays on the line
+stay? < 46 >
+? < 47 >
+stay: < 48 >
+6 three targets
+three? < 1 >< two words >< 3.5 >
+7 a quoted field with a comma, blanks around fields
+? <a, b><c>
+? 77< 7 ><  x y>
+8 an empty line into a number and into a string
+? < 0 >
+? <>
+9 every numeric type
+?  1  2  3  4  5  6 
+?  7  8  1.5  2.5  3.5  9 
+10 large values
+? -2147483648  4294967295 -9223372036854775807  18446744073709551615 
+?  3.402823E+38  1.797693134862315D+308 
+11 number forms: &H10, an exponent, D, no digit before the point, signs
+? &H10,1e3,1d3,.5,-.5, 16  .5 -.5  5 
+12 a fixed-length string, elements, members
+? abcdabcdabcdabcd<abcd>< 5 ><el>< 6.25 >< 6 ><memb>< 7.5 >
+13 LINE INPUT: no prompt, a prompt with ; and with , and ; before it
+<a, b  c>
+line; <  spaced>
+line, <q>
+stay <r>
+14 LINE INPUT of an empty line, into a fixed-length string, an element, a member
+<>
+abcdabcdabcdabcdijklijklijklijkl<abcd><elem><ijkl>
+15 an implicit variable, a comma after the last target
+? < 9 >
+? < 10 >
+<last>
+16 fewer fields than targets, more fields than targets
+two? < 5 >< 0 >
+one? 1< 12 >
+17 no number, a float for an integer, a blank inside a number
+num? < 0 >
+num? 121212< 12 >
+num? 225,225,25,225,25,25,2 25  25  25  25 
+blank? 1< 12 >
+18 too large for the target, a minus for an unsigned target
+byte? 30< 30 >
+int? 7000< 7000 >
+long? 999999999999999999< 999999999 >
+int64? 999999999999999999999999999999999999< 999999999999999999 >
+single? 1e5< 100000 >
+ubyte? < 1 >
+19 a number and a string given a letter, an unclosed quote, text after a closing quote
+mixed? < 0 ><y>
+quote? <open, still open><>
+after? "a""a"<a>
+20 a _BIT variable keeps its value
+bit? < 2 >
+21 an element with a bad index: error 9, nothing is read
+elem?   error 9 
+<-7 >
+next? < 11 >
+22 RANDOMIZE without a seed
+Random-number seed (-32768 to 32767)?  9.203738E-02  .3895794 
+Random-number seed (-32768 to 32767)? 7000 .5155843 
+done

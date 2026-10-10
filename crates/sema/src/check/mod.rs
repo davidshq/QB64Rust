@@ -457,10 +457,11 @@ impl Checker<'_> {
             self.line_input(s)
         } else if let Some(s) = ast::CloseStmt::cast(node) {
             self.close(s)
+        } else if let Some(s) = ast::SwapStmt::cast(node) {
+            self.swap(s)
         } else if ast::LprintStmt::cast(node).is_some()
             || ast::FieldStmt::cast(node).is_some()
             || ast::LsetStmt::cast(node).is_some()
-            || ast::SwapStmt::cast(node).is_some()
             || ast::MemStmt::cast(node).is_some()
             || ast::ArrayCopyStmt::cast(node).is_some()
         {
@@ -501,12 +502,12 @@ impl Checker<'_> {
             self.gosub(s)
         } else if let Some(s) = ast::ReturnStmt::cast(node) {
             self.return_stmt(s)
-        } else if ast::DataStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "`DATA`"))
-        } else if ast::ReadStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "`READ`"))
-        } else if ast::RestoreStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "`RESTORE`"))
+        } else if let Some(s) = ast::DataStmt::cast(node) {
+            self.data(s)
+        } else if let Some(s) = ast::ReadStmt::cast(node) {
+            self.read(s)
+        } else if let Some(s) = ast::RestoreStmt::cast(node) {
+            self.restore(s)
         } else if let Some(s) = ast::ConstStmt::cast(node) {
             self.const_stmt(s)
         } else if let Some(s) = ast::OptionStmt::cast(node) {
@@ -618,6 +619,10 @@ impl Checker<'_> {
                         }
                     }
                 }
+            }
+            // `MID$(s$, start[, length]) = value$` is a statement of its own, not a store into an array `MID$`.
+            ast::Expr::Call(c) if c.name().is_some_and(|t| self.word(t) == "MID$") => {
+                return self.mid_assign(node, c, value_node);
             }
             ast::Expr::Call(c) => self.call_place(c)?,
             ast::Expr::Field(f) => self.field_place(f)?,

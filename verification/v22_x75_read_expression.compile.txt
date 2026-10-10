@@ -1,0 +1,5 @@
+
+Expected variable
+Caused by (or after):READ A + 1
+LINE 4:READ a + 1
+exit=1

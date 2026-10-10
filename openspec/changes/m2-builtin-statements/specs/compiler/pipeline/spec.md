@@ -7,7 +7,8 @@ The IR SHALL represent a built-in statement by the built-in's identity, never by
 argument in table order, each a value, a place or absent, and the words chosen where the statement's form offers a
 choice. File output and input, `READ` and console input SHALL be operations of their own that list their items or
 targets in order. Each SHALL be marked as possibly raising, and the IR SHALL state where each checks for a pending
-error (before each item or target, as measured) so that the emitter decides none of it.
+error (file output and input before each item or target, `READ` nowhere, as measured) so that the emitter decides
+none of it.
 
 #### Scenario: A statement call lowered
 - **WHEN** `OPEN f$ FOR OUTPUT AS #1` is lowered
@@ -26,12 +27,12 @@ error (before each item or target, as measured) so that the emitter decides none
 ### Requirement: Program data in the IR
 The IR SHALL hold the program's `DATA` items as one ordered list of byte strings, each marked quoted or not, with
 the position in that list of each label that a `RESTORE` names. `READ` SHALL name its target places and `RESTORE`
-a position; the encoding of the list in the executable SHALL be the emitter's.
+a position, with the label that gave it; the encoding of the list in the executable SHALL be the emitter's.
 
 #### Scenario: Data lowered
 - **WHEN** a program with `DATA 1,"two"` and, after the label `lab:`, `DATA 3` and `RESTORE lab` is lowered
-- **THEN** the IR's data list has three items, the second quoted, the restore names position 2, and no
-  `data_offset` name or separator byte appears before the C++ output
+- **THEN** the IR's data list has three items, the second quoted, the restore names position 2 and the label
+  `LAB`, and no `data_offset` name or separator byte appears before the C++ output
 
 ## MODIFIED Requirements
 

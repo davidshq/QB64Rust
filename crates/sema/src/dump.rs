@@ -24,6 +24,11 @@ pub fn dump_typed(p: &Program) -> String {
         let name = var_name(p, VarId(qb64rust_base::to_u32(i)));
         writeln!(out, "ARRAY {name}:{}({})", ty(p, v.ty), dims.join(", ")).unwrap();
     }
+    // The program's data, when there is any: one item per line, a quoted one in quotes.
+    for (i, item) in p.data.iter().enumerate() {
+        let q = if item.quoted { "\"" } else { "" };
+        writeln!(out, "DATA {i}: {q}{}{q}", show_bytes(&item.text)).unwrap();
+    }
     stmts(p, &p.stmts, 0, &mut out);
     for (i, proc) in p.procs.iter().enumerate() {
         match proc.kind {
@@ -219,6 +224,19 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                     heading(out, &format!("target {} : {t}", place_text(p, place)));
                     indexes(p, place, d + 2, out);
                 }
+            }
+            StmtKind::Read(targets) => {
+                line(out, "Read");
+                for place in targets {
+                    let t = ty(p, p.place_ty(place));
+                    heading(out, &format!("target {} : {t}", place_text(p, place)));
+                    indexes(p, place, d + 2, out);
+                }
+            }
+            StmtKind::Restore(None) => line(out, "Restore"),
+            StmtKind::Restore(Some(l)) => {
+                let l = p.label(*l);
+                line(out, &format!("Restore {} (item {})", l.name, l.data_at));
             }
             StmtKind::If {
                 branches,

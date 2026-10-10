@@ -20,6 +20,12 @@
 //!   - each target of an [`Op::Input`], and after its file number: a raising read or target skips the later
 //!     targets, whose fields stay unread. Each target is stored by the rule of its place; a read that raises stores
 //!     zero or an empty string (measured, `verification\v22_b_input`);
+//!
+//!     An [`Op::Read`] has no such point (measured, `verification\v22_c_errors`): every target is read and stored
+//!     in order, by the rule of its place. While an error is pending a read takes no item and gives zero, which is
+//!     stored; a string target is left as it is. A read that raises (no number: error 2; outside the target's
+//!     range: error 6) does not take its item either, so the next `READ` meets it again; one that finds the data
+//!     used up raises error 4 and gives zero or an empty string;
 //!   - a procedure's entry: a procedure entered while an error is pending returns at once;
 //!   - [`Op::Jump`] and [`Op::Gosub`]: not taken while an error is pending;
 //!   - [`Op::Branch`] with [`OnError::Skip`]: not taken while an error is pending;
@@ -70,6 +76,9 @@ pub use qb64rust_sema::{BIT_VALUE_UNREACHABLE, PLACE_ONLY_UNREACHABLE, place_onl
 /// is extended precision), strings, user types. They name no C type, so the IR stays ABI-neutral.
 pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, UnOp, UserType};
 
+/// An item of the program's data: its text, and whether it was written in quotes (the runtime reads a quoted
+/// item's text as it is, and takes an unquoted one as a number where a number is read).
+pub use qb64rust_sema::DataItem;
 /// Which built-in functions are compiled and the rule each follows; the emitter writes a call by its rule.
 pub use qb64rust_sema::builtins;
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place).
@@ -331,6 +340,18 @@ pub enum Op {
         line: bool,
         targets: Vec<Place>,
     },
+    /// Read the next item of the program's data ([`Program::data`]) into each target in turn, each stored by the
+    /// rule of its place. A numeric target takes the item's value in its own type. No point of it checks for a
+    /// pending error: see the crate documentation. At least one target; none is of a user type or a member of an
+    /// element.
+    Read(Vec<Place>),
+    /// Make the next [`Op::Read`] start at item `at` of [`Program::data`] (at its end: nothing is left to read).
+    /// `label` is the BASIC label, in upper case, that gave the position; `None` for the start of the data (`at`
+    /// is 0). The emitter may name the position after it.
+    Restore {
+        at: usize,
+        label: Option<String>,
+    },
     End,
     /// End the program at once (`SYSTEM`).
     System,
@@ -381,16 +402,21 @@ impl Op {
     /// Whether this operation may raise a runtime error.
     pub fn may_raise(&self) -> bool {
         match self {
-            Op::SelectConsole | Op::End | Op::System | Op::Exit | Op::SetHandler(_) | Op::Jump(_) | Op::Gosub(_) => {
-                false
-            }
+            Op::SelectConsole
+            | Op::End
+            | Op::System
+            | Op::Exit
+            | Op::SetHandler(_)
+            | Op::Jump(_)
+            | Op::Gosub(_)
+            | Op::Restore { .. } => false,
             // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
             Op::Call { .. } | Op::Builtin { .. } | Op::Raise(_) | Op::Resume(_) | Op::Return(_) => true,
             Op::Assign { place, value } => place.may_raise() || value.may_raise(),
             Op::AssignAll(stores) => stores.iter().any(|(_, v)| v.may_raise()),
             Op::Branch { cond, .. } => cond.may_raise(),
-            // A file may not be open, a console input may meet the end of the input.
-            Op::Print { to: Some(_), .. } | Op::Write { to: Some(_), .. } | Op::Input { .. } => true,
+            // A file may not be open, a console input may meet the end of the input, the data may be used up.
+            Op::Print { to: Some(_), .. } | Op::Write { to: Some(_), .. } | Op::Input { .. } | Op::Read(_) => true,
             Op::Print { to: None, items, .. } | Op::Write { to: None, items, .. } => items.iter().any(|i| match i {
                 PrintItem::Str(v) | PrintItem::Num(v) => v.may_raise(),
                 PrintItem::Zone => false,
@@ -440,6 +466,9 @@ pub struct Program {
     pub main: Body,
     /// The user types; a type's layout is the emitter's.
     pub types: Vec<UserType>,
+    /// The program's data: the items of every `DATA` statement, in the order [`Op::Read`] takes them. How they are
+    /// stored in the executable is the emitter's.
+    pub data: Vec<DataItem>,
 }
 
 impl Program {

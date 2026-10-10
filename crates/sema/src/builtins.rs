@@ -106,6 +106,10 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_FILEEXISTS", Rule::Plain),
     ("_DIREXISTS", Rule::Plain),
     ("_CWD$", Rule::Plain),
+    // `RND` and `TIMER` (`verification\v22_d_random`): one optional slot each, so both are also called bare. `RND`
+    // is a `float`; `TIMER` is believed SINGLE and held DOUBLE (libqb's `func_timer` returns `double`).
+    ("RND", Rule::Plain),
+    ("TIMER", Rule::Plain),
 ];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
@@ -118,6 +122,13 @@ pub enum StmtRule {
     /// `CLOSE`: any number of file numbers, each a LONG value; one call per number, in order, or one call that
     /// closes every file when there is none (measured from the C++: `sub_close(n,1)`, `sub_close(NULL,0)`).
     Close,
+    /// `SWAP a, b`: two places of one type (`qb64pe.bas` 11377; measured, `verification\v22_d_swap`): two strings of
+    /// any kind, two places of the same `TYPE`, or two numbers of the same type but for their signedness; never a
+    /// `_BIT`. The slots are the two places.
+    Swap,
+    /// `MID$(target$, start[, length]) = value$`: a string place, a LONG value, a LONG value or absent, a string
+    /// value (measured, `verification\v22_d_mid`).
+    MidAssign,
 }
 
 /// Every built-in statement `sema` compiles as a call of the runtime, as written, and its rule. A name stands for
@@ -135,6 +146,11 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("OPEN", StmtRule::Plain),
     ("CLOSE", StmtRule::Close),
     ("SEEK", StmtRule::Plain),
+    // `verification\v22_d_*`. `RANDOMIZE` without a seed is the same call without the argument: libqb asks for the
+    // seed on the console (`verification\v22_e_randomize`).
+    ("SWAP", StmtRule::Swap),
+    ("MID$", StmtRule::MidAssign),
+    ("RANDOMIZE", StmtRule::Plain),
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.
@@ -159,7 +175,9 @@ pub fn stmt_lookup(name: &str, string: bool) -> Vec<StmtSupported> {
             let forms = match rule {
                 StmtRule::Plain => find_statements(name.as_bytes(), string),
                 // The statements the old compiler writes itself are named by their stub entry.
-                StmtRule::Close => find_stub(name.as_bytes(), string).into_iter().collect(),
+                StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign => {
+                    find_stub(name.as_bytes(), string).into_iter().collect()
+                }
             };
             forms.into_iter().map(move |id| StmtSupported {
                 id,
@@ -427,6 +445,7 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
 fn held_override(callname: &str) -> Option<Ty> {
     match callname {
         "func_lof" | "func_loc" | "func_seek" => Some(Ty::I64),
+        "func_timer" => Some(Ty::F64),
         _ => None,
     }
 }

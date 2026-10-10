@@ -817,6 +817,113 @@ Measured for built-in statements (2026-10-10, `m2-builtin-statements`; `verifica
   on a sequential file here. `_FILEEXISTS` is 0 for a folder and `_DIREXISTS` 0 for a file; `""` gives 0. Also
   measured: `NAME` onto an existing file 5; `NAME` and `KILL` of an open file 75; `RMDIR` of a folder that is not
   empty 75; `KILL` of a folder 53; `KILL` with `*` removes every match and raises 53 when nothing matches.
+- **`DATA` (`v22_c_order`, `x69`, `x73`, `x85`, C++):** the program's data is every `DATA` item **in file order**:
+  the main module, a block that never runs (`IF 0 THEN`, also on one line), an included file at its include, the
+  lines after `SYSTEM`, each SUB and FUNCTION where it stands, a `DATA` between two procedures, a `DATA` after a
+  colon. **Bare `DATA` is one empty item.** In `global.txt`: `ptrszint data_size=<bytes>;`, `uint8 inline_data[]={`
+  the bytes as decimal numbers `,0};`, `uint8 *data=&inline_data[0];` (without data: `uint8
+  *data=(uint8*)calloc(1,1);`). The bytes are each item's text followed by a comma, an unquoted item without the
+  blanks around it, a quoted one in its quotes, with the closing quote added when the line ended first. Text after
+  a closing quote is "Expected , after quoted string in DATA statement".
+- **`READ` (`v22_c_types`, `v22_c_errors`, `x66`, `x67`, `x70`, `x71`, `x74`–`x79`, `x84`, `x87`, `x90`, C++):** one
+  line per target and **no test for a pending error between them**: `*__LONG_L=func_read_float(data,&data_offset,
+  data_size,<type code>);` for every numeric type but the 64-bit integers (the type code as for `INPUT #`; a `_BIT`
+  through `((int64)func_read_float(…))` and its store mask), `func_read_int64` / `func_read_uint64` without a code
+  for `_INTEGER64` and `_OFFSET`, `sub_read_string(data,&data_offset,data_size,<place>)` for a string; an element is
+  stored by its own rule (`tmp_long=array_check(…); if (!is_error_pending()) …=func_read_float(…)`). In libqb each
+  reader returns at once while an error is pending (0, a string target left as it is) and **puts the position back
+  when it raises**, so: an item that is no number raises 2 and one outside the target's range 6, the target gets
+  0, the later targets of that `READ` get 0, and the next `READ` meets the same item again; with the data used up,
+  error 4, 0 or `""`. A target with a raising index takes no item (error 9). No number: any unquoted text that is
+  no number, **every quoted item, also `"12"`**, `1 2`, `--1`; an empty item is 0, `1e` is 1. Number forms: `&H10`,
+  `&O17`, `&B101`, `1e3`, `1d3`, `1f2`, `+5`, `.5`; `&HFFFFFFFF` is -1 in a LONG and 4294967295 in an `_INTEGER64`.
+  **2.5 read into an `_INTEGER64` or `_OFFSET` is 3 and `.5` is 1** (half away from zero), into the narrower types
+  2 and 0 (half to even), as for `INPUT #`. A string target takes any item's text; a fixed-length one is padded or
+  cut. Rejections: a literal, an expression, a `CONST`, a function call or **the name of the FUNCTION the statement
+  stands in** as a target "Expected variable" (`x87`; `INPUT #` and `LINE INPUT #` the same with "Expected
+  variable-name", `x88`, `x89`); no target "Expected variable"; a whole `TYPE` variable "Unexpected internal code
+  reference to UDT". **Accepted: `READ (a)`, which reads into `a` (`x84`), and `READ a()` (`x70`: only `a(0)` is
+  set).** A parameter is a target like any variable (`x90`).
+- **`RESTORE` (`v22_c_restore`, `x65`, `x68`, `x72`, `x80`–`x83`, `x86`, C++):** `data_offset=0;` or
+  `data_offset=data_at_LABEL_<NAME>;`, with `ptrszint data_at_LABEL_<NAME>=<byte offset>;` in `global.txt`: the
+  offset of the first item after the label in file order (a label on the `DATA` line itself counts as before it),
+  `data_size` when no `DATA` follows (the next `READ` raises 4). **The label has no scope**: one of the main module
+  is named from a procedure and one of a procedure from the main module or another procedure; a name that two
+  bodies have is "Ambiguous DATA label" when a `RESTORE` names it (`x72`, `x83`; without a `RESTORE` it is accepted,
+  `x82`). A line number is a target too (`RESTORE 100`). An unknown label "Label 'nowhere' not defined"; two
+  targets or an expression "Syntax error - too many parameters"; a string "Invalid label". `MID` cannot be a label
+  ("Invalid label").
+- **`SWAP` (`v22_d_swap`, `x91`–`x107`, `x135`, `x136`, C++; `qb64pe.bas` 11377):** one call chosen by the first
+  operand's type: `swap_8`, `swap_16`, `swap_32`, `swap_64` by the width (`swap_32(&*__SINGLE_S1,&*__SINGLE_S2)`,
+  `swap_64` for DOUBLE and `_OFFSET`), `swap_longdouble` for `_FLOAT`, `swap_string(a,b)` for strings, and for a
+  whole `TYPE` `swap_block(<second>,<first>,<size>)` (`swap_8`…`swap_64` when the size is 1, 2, 4 or 8). The two
+  types must be equal **but for their signedness** (`SWAP l&, u~&` is accepted and exchanges the bits: -1 becomes
+  4294967295); any two strings go together, also `STRING` with `STRING * n` and two fixed lengths (each side is
+  cut or padded to its own length). An element is addressed inside the argument (`&((int32*)(…))[array_check(…)]`)
+  with no test after it, so **an operand with a bad index raises 9 and the exchange is made with the array's
+  first element**. Rejections: types that differ "Type mismatch" (LONG and DOUBLE, INTEGER and LONG, SINGLE and
+  DOUBLE, `_OFFSET` and `_INTEGER64`, a string and a number); two `TYPE`s "Expected SWAP with similar user defined
+  type"; **a `_BIT` of any width "Cannot SWAP bit-length variables"**; a literal, an expression, a `CONST` or the
+  name of the FUNCTION it stands in "Expected variable"; one operand or three "Expected SWAP ... , ...". Accepted:
+  `SWAP (a), b` (`x103`) and two whole arrays, `SWAP x(), y()` (`x101`).
+- **The `MID$` statement (`v22_d_mid`, `x108`–`x117`, C++):** `sub_mid(<target>,<start>,<length>,<value>,<passed>)`
+  with `0,…,0` for a length left out and `1` with one; start and length are LONG slots (2.5 is 2). It never changes
+  the target's length: a start below 1 or past the end, a length below 1 or an empty value change nothing and
+  raise nothing; the bytes written are the smaller of the length, the value and what is left of the target. The
+  target is a string variable, a fixed-length one, an element or a member; the value may use the target (`MID$(s,
+  2, 3) = s`). A raising start or value raises once and changes nothing, and so does an element with a bad index
+  (error 9; `sub_mid` returns while an error is pending, unlike the `swap_` entries). Rejections: a target that is no string variable (a literal, a number, an
+  expression, a `CONST`, the FUNCTION's own name) "MID$ expects a string variable/array-element as its first
+  argument"; a string start or a number as the value "Illegal string-number conversion"; one argument "Expected
+  MID$(...)=..."; four "Invalid expression"; `MID(s, 1) = "x"` without `$` is a store into an array `MID`.
+- **`RANDOMIZE`, `RND`, `TIMER` (`v22_d_random`, `v22_d_randomize_noseed`, `x118`–`x134`, `x137`, C++):**
+  `sub_randomize(<seed>,1)` and, with `USING`, `sub_randomize(<seed>,3)`; the seed is a `double` parameter and an
+  integer is passed as it is. `RANDOMIZE n` mixes the seed with the generator's state, so the values after it
+  depend on what was drawn before; `RANDOMIZE USING n` sets the state (the same sequence each time). **Without a
+  seed the program prints `Random-number seed (-32768 to 32767)? ` and waits for input**, on the console too.
+  `RANDOMIZE (5)` and `CALL RANDOMIZE(5)` are accepted. `RND` is `float func_rnd(float n, int32 passed)`:
+  `func_rnd(NULL,0)` bare, `func_rnd(<x>,0|1)` with an argument passed in its own type; believed SINGLE (`RND *
+  1000000000` is computed in `float`). `RND(0)` repeats the last value, a negative argument reseeds from it.
+  `TIMER` is `double func_timer(double accuracy, int32 passed)`, **believed SINGLE** (`qbs_str((float)(
+  func_timer(NULL,0)))`) and held `double` (`d# = TIMER(.001)` stores the `double`); `TIMER(0)` raises 5. Both are
+  called without parentheses; `RND()` and `TIMER()` are "Expected (...)", two arguments "Incorrect number of
+  arguments", a string "Number required for function", `RND = 1` "Expected variable =", `DIM RND` and `RND!` "Name
+  already in use". `RANDOMIZE "a"` is "Number required for sub", `RANDOMIZE 1, 2` "Syntax error".
+- **Console `INPUT` and `LINE INPUT` under `$CONSOLE:ONLY`, standard input from a file (`v22_e_input`, `v22_e_redo`,
+  `v22_e_eof`, `v22_e_bit`, `v22_e_randomize`, `v22_x138`–`x158`, C++; the same output on two runs):** the C++ is
+  `qbs_print(qbs_new_txt_len("prompt",n),0);` when a prompt is written, `qbs_print(qbs_new_txt("? "),0);` for
+  `INPUT` without a prompt or with `;` after it (never for `LINE INPUT`), then per target
+  `qbs_input_variabletypes[k]=<type>;` and `qbs_input_variableoffsets[k]=<address>;`, then `qbs_input(<count>,1);`
+  (`0` with a `;` before the prompt: no line end after the answer), `if (stop_program) end();`. The type is the
+  old compiler's type value without `ISPOINTER`, `ISREFERENCE`, `ISUDT` and `ISINCONVENTIONALMEMORY`: `32` for a
+  `LONG` variable or member, `8388640` for a `LONG` element (`ISARRAY` stays), `1048640` for `_OFFSET`
+  (`ISOFFSET`), `16777217` for `_BIT`, `ISSTRING` for a string of any kind, `ISSTRING+512` for the target of `LINE
+  INPUT`. The address is `&(<place>)`, or the `qbs` of a string (`qbs_new_fixed(…,1)` for a fixed-length one).
+  **The runtime does everything else, and it never asks again ("Redo from start" does not exist):** it reads the
+  line one character at a time as key presses, and a character that does not fit the field is dropped and the
+  text so far printed again (nothing is echoed otherwise, so the recorded output holds only those reprints).
+  Dropped: a letter in a number, `.` in an integer, `+`, a blank inside or before a number, a `,` after the last
+  target, a digit that would take the number past a fixed count of digits (`300` into `_BYTE` gives 30, `70000`
+  into `INTEGER` 7000, `99999999999` into `LONG` 999999999, twenty nines into `_INTEGER64` eighteen, `1e50` into
+  `SINGLE` 1e5), a character past the length of a fixed-length string, text after a closing quote. `-` is taken
+  only where the type is signed (`-1` into `_UNSIGNED _BYTE` gives 1). `&H10` is 16 in an integer target. Fewer
+  fields than targets: the rest are 0 or empty (every target is cleared first); an empty line gives 0 and `""`.
+  A string field keeps its leading and trailing blanks (` two words ` stays); a quoted field may hold commas and an
+  unclosed quote runs to the line end. `LINE INPUT` takes the line as it is. **A `_BIT` variable is accepted and
+  never stored** (the runtime skips targets with `ISOFFSETINBITS`: a variable holding 2 still holds 2); a `_BIT`
+  element is "INPUT cannot handle _BIT array elements". An element with a bad index raises 9 while the address
+  is taken, after the prompt is printed, and nothing is read (the answer goes to the next `INPUT`). **When the
+  input ends the program waits for ever** (the run times out, under `run.sh` and under the corpus runner): a
+  `.stdin` file must hold every answer. **A program whose input is a file must end with `SYSTEM`**: `END` waits
+  at "Press any key to continue" until the timeout. Compile errors: a target that is no variable (`INPUT 5`,
+  `INPUT l + 1`, a `CONST`, the FUNCTION's own name) is "Expected variable"; a whole `TYPE` variable "User defined
+  types in expressions are invalid"; no target, a prompt alone, two literals, no separator after the prompt
+  "Syntax error - Reference: INPUT …"; a prompt that is a variable or an expression (`INPUT p; l`) and a `;`
+  between targets "Invalid expression"; `INPUT l, , s` and `INPUT l,,` "Expected variable"; `LINE INPUT l`
+  "Expected string variable"; `LINE INPUT s, p` "Too many variables". **One `,` after the last target is
+  accepted** (`INPUT l,` and `LINE INPUT s,`; not in the `#` forms, not in `READ`).
+  `RANDOMIZE` without a seed is `sub_randomize(NULL,0);`: the runtime prints `Random-number seed (-32768 to
+  32767)? ` and reads the answer the same way (five digits at most: `70000` gives 7000).
 
 ## 6. Bug-compatibility choices (all decided)
 

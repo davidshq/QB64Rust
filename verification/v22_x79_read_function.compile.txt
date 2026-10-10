@@ -1,0 +1,5 @@
+
+Expected variable
+Caused by (or after):READ ABS ( A )
+LINE 4:READ ABS(a)
+exit=1

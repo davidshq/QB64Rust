@@ -129,6 +129,8 @@ impl Emitter<'_> {
             } => self.file_print(n, items, *newline, out),
             Op::Write { to, items, newline } => self.write(to.as_ref(), items, *newline, out),
             Op::Input { from, line, targets } => self.input(from, *line, targets, out),
+            Op::Read(targets) => self.read(targets, out),
+            Op::Restore { label, .. } => self.restore(label.as_deref(), out),
             Op::Print {
                 to: None,
                 items,

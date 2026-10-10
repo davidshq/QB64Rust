@@ -1,0 +1,5 @@
+
+Expected operator in equation
+Caused by (or after):READ A B
+LINE 4:READ a b
+exit=1

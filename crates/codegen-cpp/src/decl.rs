@@ -105,10 +105,8 @@ impl Emitter<'_> {
         );
         out.push_str(&self.per_program_var(declare));
         // Globals that qbx.cpp and libqb refer to.
-        out.push_str(
-            "int32 console=1;\nint32 screen_hide_startup=0;\nint32 asserts=0;\nint32 vwatch=0;\n\
-             ptrszint data_size=0;\nuint8 *data=(uint8*)calloc(1,1);\n",
-        );
+        out.push_str("int32 console=1;\nint32 screen_hide_startup=0;\nint32 asserts=0;\nint32 vwatch=0;\n");
+        out.push_str(&self.data_fragment());
         out
     }
 

@@ -4,7 +4,7 @@ $CONSOLE:ONLY
 ' items without a separator; INPUT # targets that are no variable (a literal, an expression, a CONST), no target, a
 ' whole TYPE variable; LINE INPUT # into a number or two targets; the file functions with a wrong argument or
 ' count. Left out and "not supported yet": a whole array as a target, a member of an element as a target, TAB in a
-' PRINT #, PRINT # USING, console INPUT
+' PRINT #, PRINT # USING
 CONST c = 5
 DIM a AS STRING, b AS STRING, n AS LONG, arr(3) AS LONG
 TYPE pt
@@ -44,5 +44,11 @@ INPUT #1, va(1).x
 PRINT #1, TAB(5); "t"
 PRINT #1, USING "##"; n
 WRITE , 1
-INPUT n
-LINE INPUT a
+
+FUNCTION fr&
+    INPUT #1, fr&
+END FUNCTION
+
+FUNCTION fs$
+    LINE INPUT #1, fs$
+END FUNCTION

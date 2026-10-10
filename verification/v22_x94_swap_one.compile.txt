@@ -1,0 +1,5 @@
+
+Expected SWAP ... , ...
+Caused by (or after):SWAP A
+LINE 4:SWAP a
+exit=1

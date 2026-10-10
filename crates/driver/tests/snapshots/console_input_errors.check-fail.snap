@@ -1,0 +1,24 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+console_input_errors.bas:13:7: error: `INPUT` needs a variable here
+console_input_errors.bas:14:7: error: `INPUT` needs a variable here
+console_input_errors.bas:15:7: error: cannot assign to the constant `c`
+console_input_errors.bas:16:7: error: a whole `TYPE` variable cannot be a target of `INPUT`
+console_input_errors.bas:17:6: error: expected an expression
+console_input_errors.bas:18:7: error: `INPUT` needs a variable here
+console_input_errors.bas:19:16: error: expected an expression
+console_input_errors.bas:20:8: error: a prompt is a string literal, and targets are separated by `,`
+console_input_errors.bas:21:14: error: a prompt is a string literal, and targets are separated by `,`
+console_input_errors.bas:22:11: error: expected the end of the statement
+console_input_errors.bas:23:10: error: expected an expression
+console_input_errors.bas:24:9: error: expected an expression
+console_input_errors.bas:25:13: error: expected an expression
+console_input_errors.bas:26:18: error: expected an expression
+console_input_errors.bas:27:1: error: `LINE INPUT` needs a string variable
+console_input_errors.bas:28:1: error: `LINE INPUT` takes one string variable
+console_input_errors.bas:29:11: error: expected an expression
+console_input_errors.bas:30:21: error: expected an expression
+console_input_errors.bas:34:11: error: the FUNCTION's own name cannot be a target of `INPUT`
+console_input_errors.bas:38:16: error: the FUNCTION's own name cannot be a target of `LINE INPUT`

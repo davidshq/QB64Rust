@@ -52,6 +52,7 @@ changing direction, design or scope.**
 6. **"The panel"** means a review by these roles: a pragmatic engineer, a QB64 engineer, a compiler/languages
    engineer, a Rust engineer, a test engineer, and any other role Claude thinks fits the topic (name the extra
    roles and say why). The panel is role-played inline; it is not a set of subagents (rule 1) (user, 2026-10-03).
+   Every role, the pragmatic engineer first, counts effort by rule 8.
 7. **Text with backslashes goes through the Edit/Write tools or a script file, never through the shell.** That
    covers Windows paths (`study\19`), C or Python escapes (`\\`, `\n`) and anything else containing `\`. Do not
    pass it in a heredoc, inline `python -c`/`python - <<EOF`, `sed` or `printf` in the Bash tool, which collapses
@@ -60,6 +61,16 @@ changing direction, design or scope.**
    moving on.
    *Why:* on 2026-10-03 this corrupted files four times (`study\02` became `study` + 0x02, `verification\v13`
    became a vertical tab) and each needed a scan and a redo (user, 2026-10-03).
+8. **Count effort in Claude's time, not a person's.** When weighing whether something is worth doing (a
+   recommendation, a plan, a panel review, "now or later"), estimate how long Claude takes to write and check
+   it, not how long an engineer would. Work that is a day for a person is often minutes here, so "not worth the
+   effort", "not used often enough to repay the work" and "wait until it next needs a change" are not reasons
+   by themselves. What still counts: a risk to correctness, a cost that stays (more code to maintain, disk, CI
+   time), machine time of a run, the user's time (reading, deciding, staging), and scope the user has not asked
+   for. Say which of these applies, or recommend doing it.
+   *Why:* on 2026-10-10 the panel advised leaving `verification\run.sh` outside the test runner because full
+   runs are rare; the user: "it isn't going to take time", and about 80% of the pragmatic engineer's timing
+   objections would go away (user, 2026-10-10).
 
 ## Project decisions
 
@@ -93,8 +104,8 @@ Expert-panel recommendations: `study\07-expert-panel.md`. Open questions: `STATU
 | `tests\snippets\` | QB64Fresh's inline test snippets as inputs, labelled by `qb64pe.exe` (`.err` when it rejects one; `SOURCE.md`) |
 | `tests\known_false_errors.list`, `tests\known_unsupported_rejections.list`, `tests\known_parse_gaps.list`, `tests\known_clean_not_passing.list` | Shrink-only lists of tier 1: programs the old compiler accepts that get a real error, programs it rejects that get only "not supported yet" errors, accepted programs (plus the old compiler's sources) that do not parse cleanly (`tests\upstream\README.md`), and programs that compile cleanly but are on no pass list, with the reason (kept by hand) |
 | `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure; format tests 24 of 24) |
-| `verification\` | Small programs behind `study\09`, `study\10` and later measurements (`v13*`: type suffixes on DIMmed names; `v14*`, `v15*`: procedures, scopes, reserved names, errors; `v16*`: comment metacommands, `DATA`, line numbers, blocks, templates, `$IF`, `$INCLUDE`, member access, with include files in `v16_inc\`; `v17*`: control flow, constants, operators; `v18*`: arrays, `TYPE`, store rules per place; `v19*`: procedure names (`v19_proc_names.py` and its list), blanks around a dot, `OPTION _EXPLICIT` and runtime errors in included files, with include files in `v19_inc\`; `v20*`: core built-ins, `SELECT CASE`, `ON … GOTO/GOSUB`, `v20_x*` one rejection each; `v21*`: the new numeric types, `_BIT`, fixed-length strings, the numeric-types spec scenarios, `v21_x*` one rejection each), their outputs, and `run.sh` |
-| `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler) and its `known_failures.txt` |
+| `verification\` | Small programs behind `study\09`, `study\10` and later measurements (`v13*`: type suffixes on DIMmed names; `v14*`, `v15*`: procedures, scopes, reserved names, errors; `v16*`: comment metacommands, `DATA`, line numbers, blocks, templates, `$IF`, `$INCLUDE`, member access, with include files in `v16_inc\`; `v17*`: control flow, constants, operators; `v18*`: arrays, `TYPE`, store rules per place; `v19*`: procedure names (`v19_proc_names.py` and its list), blanks around a dot, `OPTION _EXPLICIT` and runtime errors in included files, with include files in `v19_inc\`; `v20*`: core built-ins, `SELECT CASE`, `ON … GOTO/GOSUB`, `v20_x*` one rejection each; `v21*`: the new numeric types, `_BIT`, fixed-length strings, the numeric-types spec scenarios, `v21_x*` one rejection each), their outputs, and `run.sh` (starts the runner's `--suite verification`, which records them) |
+| `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler), the golden corpus and the verification programs (`--suite verification`, a recorder), and its `known_failures.txt` |
 | `tools\repo_check\` | `check_repo.py`: tracked files must hold no local paths, temp folders or network shares (rule 2) and no stray control bytes (rule 7); `--untracked` also checks new files before they are staged |
 | `tools\builtins\` | Extractor for the built-in table (`extract_builtins.py`) and its output `builtins.json` (with the names of QB64pe's auto-included files) |
 | `tools\wiki\` | `fetch_wiki.py` fetches the QB64pe wiki as raw wikitext into `cache\` (git-ignored, no licence stated; local reference only) |

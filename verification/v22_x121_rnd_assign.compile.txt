@@ -1,0 +1,5 @@
+
+Expected variable =, look for conflict with a CONST name
+Caused by (or after):RND = 1
+LINE 3:RND = 1
+exit=1

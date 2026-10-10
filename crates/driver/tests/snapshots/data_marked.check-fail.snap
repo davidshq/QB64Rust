@@ -1,0 +1,8 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+data_marked.bas:11:9: error: not supported yet: line numbers
+data_marked.bas:12:6: error: not supported yet: a target of `READ` in parentheses
+data_marked.bas:13:6: error: not supported yet: the whole array `a()`
+data_marked.bas:14:6: error: not supported yet: a member of an array element as a target of `READ`

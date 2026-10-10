@@ -440,7 +440,9 @@ impl Checker<'_> {
                     };
                     match form.rule {
                         StmtRule::Plain => StmtArg::Value(self.slot_arg(Rule::Plain, slot, k - 1, e, &which)?),
-                        StmtRule::Close => unreachable!("`{}` has a node of its own (`check\\io.rs`)", form.name),
+                        StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign => {
+                            unreachable!("`{}` has a node of its own (`check\\io.rs`)", form.name)
+                        }
                     }
                 }
                 (StmtSlot::Arg { .. }, Matched::Arg(None)) => {

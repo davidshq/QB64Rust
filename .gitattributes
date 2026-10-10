@@ -1,6 +1,13 @@
 # Recorded program output and compiler output: keep the bytes exactly as recorded (tests/corpus/README.md)
 tests/corpus/**/*.output -text
 tests/corpus/**/*.err -text
+# Standard input of a program that reads the console: given to it byte for byte (tests/corpus/README.md)
+tests/corpus/**/*.stdin -text
+verification/*.stdin -text
+# Recorded verification output: text is stored with LF on every machine, whatever its git settings; a file git
+# takes for binary (a NUL, a CR without LF) keeps its bytes (tools/legacy_tests/README.md, "Verification programs")
+verification/*.compile.txt text=auto
+verification/*.out.txt text=auto
 # Differential programs: tier 1 compares them byte for byte with the generator; their recorded output as recorded
 tests/differential/**/*.bas -text
 tests/differential/**/*.output -text

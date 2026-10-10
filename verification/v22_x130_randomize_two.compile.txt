@@ -1,0 +1,5 @@
+
+Syntax error - Reference: RANDOMIZE [USING] {seednumber|TIMER}
+Caused by (or after):RANDOMIZE 1 , 2
+LINE 3:RANDOMIZE 1, 2
+exit=1

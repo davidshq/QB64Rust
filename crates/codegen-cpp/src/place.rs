@@ -67,7 +67,7 @@ impl Emitter<'_> {
     }
 
     /// The address of a place of a user type, or of a member, as a `char*` expression.
-    fn bytes_of(&mut self, place: &Place) -> String {
+    pub(crate) fn bytes_of(&mut self, place: &Place) -> String {
         match place {
             Place::Var(v) => format!("((char*){})", self.name(*v)),
             Place::Element { array, index } => {

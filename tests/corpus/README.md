@@ -24,7 +24,10 @@ Each `<name>.bas` has exactly one of:
 and may have `<name>.normalize`: rules (a Python regular expression, a tab, a replacement; `#` lines are comments)
 applied to each output line before comparing and before recording, for values that differ between machines or runs,
 and `<name>.noprompt`: the value of `QB64PE_NOPROMPT` for the run instead of `y` (`continue` lets a program go on
-after an untrapped runtime error; `slice\s12_error_in_print`).
+after an untrapped runtime error; `slice\s12_error_in_print`),
+and `<name>.stdin`: the program's standard input, byte for byte, for a program that reads the console with `INPUT`
+or `LINE INPUT` (without it the program gets no input). **A program with a `.stdin` file must end with `SYSTEM`**:
+`END` waits for a key that never arrives while standard input is a file (measured, 2026-10-10).
 
 A program that reaches `END` prints an empty line and `Press any key to continue` (no line end) on Windows; that
 trailer is part of its `.output`.

@@ -33,6 +33,8 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     there with -q -m -x only; the exe runs there with no arguments, stdin from the null
     device, QB64PE_NOPROMPT=y (or the contents of <name>.noprompt, e.g. 'continue') and a 60 s
     timeout; the folder is deleted on a pass
+  * <name>.stdin: the exe's stdin is a copy of that file, byte for byte, instead (for programs
+    that read the console with INPUT or LINE INPUT), when checking and when recording
   * <name>.normalize: one rule per line, <regex><TAB><replacement> ('#' lines are comments),
     applied in order to each line of the actual output before comparing or recording
   * --record compiles once, runs twice, and writes .output (or .err for a failed compile)
@@ -44,12 +46,28 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     (no .bas), '#' starts a comment; also for --suite compile, with <category>/<name>
     (e.g. tests/upstream/pass.list); a list that names no program runs nothing and passes
     (a list whose programs --category or --glob leave out is still an error)
-Speed (corpus and compile suites, a compiler other than qb64pe only; the C++ build is most of each
-program's time):
+The verification suite (verification/ of this repo; verification/run.sh only starts it). It records
+and compares nothing:
+  * the programs named on the command line (no .bas), or every *.bas of the folder, are compiled
+    where they are with qb64pe -x -q -m, so that their included files are found; <name>.exe is
+    written beside the program and runs there with stdin from the null device (or <name>.stdin),
+    QB64PE_NOPROMPT=y (or the contents of <name>.noprompt), a 60 s timeout and no key-press helper
+  * writes <name>.compile.txt (the compiler's stdout and stderr, then "exit=<code>") and
+    <name>.out.txt (the program's stdout and stderr, "(timed out after 60 s)" after a timeout, then
+    "exit=<code>"; or "(not compiled)" when there is no exe), and prints the latter
+  * exit codes are written as Git Bash reports them (bash_exit_code): the files were recorded by a
+    shell script and stay comparable. qb64pe only, one program at a time
+Speed (corpus and compile suites; the C++ build is most of each program's time):
   * --jobs N runs N programs at a time, after the first one alone (it builds any libqb object the
     clone lacks); results are printed as they finish. Compile tests of one folder run (not build)
-    one at a time, since it is their working folder. qb64pe and --record run one at a time: qb64pe
-    builds in the clone's shared internal/temp
+    one at a time, since it is their working folder. --record runs one at a time
+  * --jobs N with qb64pe (corpus suite only): qb64pe builds inside its own folder (internal/temp,
+    and the libqb objects in internal/c), so each worker compiles with a private copy of the
+    compiler under --copies-dir (default target/qb64pe-copies/w1..wN, about 800 MB each: qb64pe.exe,
+    the Makefile, internal/, settings/). Nothing is shared between workers and a copy compiles one
+    program at a time. A copy is made again when the clone's qb64pe.exe, Makefile or internal/c
+    differ from what it was made from. A program that fails runs again alone in the clone and both
+    outcomes are reported. With one job, and for --record, the clone itself compiles, as before
   * --build-cache DIR reuses an executable when a program's C++ build has exactly the inputs of an
     earlier one (QB64RUST_BUILD_CACHE, crates/driver/src/build.rs: the fragments, qbx.cpp, the
     Makefile, the options and every file of the clone's internal/c by size and time); the program
@@ -68,13 +86,17 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import contextlib
 import fnmatch
 import functools
 import glob
+import hashlib
 import json
 import os
+import queue
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -82,9 +104,12 @@ import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from clone_lock import BUSY_EXIT, CLONE_BUSY, lock_clone, lock_folder
+
 COMPILE_TIMEOUT = 900  # seconds; first compiles build libqb for each feature set
 RUN_TIMEOUT = 120
 CORPUS_RUN_TIMEOUT = 60
+VERIFICATION_RUN_TIMEOUT = 60
 
 
 @dataclass
@@ -182,6 +207,140 @@ def clear_temp(qb_root: Path) -> None:
                 pass
 
 
+# qb64pe several at a time (--jobs with qb64pe, corpus suite). qb64pe builds inside its own folder:
+# the generated C++ in internal/temp, the libqb objects in internal/c. Instances started from one
+# folder would share the objects, and the old compiler's answer is what gets recorded as truth, so
+# each worker compiles with a private copy of the compiler instead: nothing is shared, and a copy
+# compiles one program at a time, exactly as the clone does with one job.
+COPY_STAMP = "copy-stamp.txt"
+
+
+def written_by_builds(parts: tuple[str, ...], name: str) -> bool:
+    """True for a file of internal/c (parts: its folder below internal/c) that a build writes, by
+    either compiler: the libqb objects, qbx<N>.cpp and qbx*.o of the program being built, the
+    generated header in parts/core/gl_header_for_parsing/temp. Such a file may change or vanish
+    while another run builds in the clone, so a copy neither depends on it nor takes it: a copy
+    builds its own libqb objects, once, with its first programs."""
+    if "c_compiler" in parts:  # the C++ compiler's own objects and libraries: never written
+        return False
+    if "temp" in parts or name.endswith((".o", ".a", ".tmp")):
+        return True
+    return not parts and name.startswith("qbx") and name != "qbx.cpp"
+
+
+def clone_settings(qb_root: Path) -> dict[str, bytes]:
+    """The files of the clone's settings/, read once. config.ini holds options a compile follows
+    (OptimizeCppProgram, ExtraCppFlags, ...), so a copy must have the clone's; qb64pe may rewrite the
+    file, so the stamp goes by its bytes and the copy is written from the same bytes."""
+    folder = qb_root / "settings"
+    if not folder.is_dir():
+        return {}
+    return {
+        p.relative_to(folder).as_posix(): p.read_bytes()
+        for p in sorted(folder.rglob("*"))
+        if p.is_file()
+    }
+
+
+def clone_stamp(qb_root: Path, settings: dict[str, bytes]) -> str:
+    """A digest of what a copy is made from: qb64pe.exe, the Makefile and every file of internal/c
+    by path, size and time (not what a build writes there), and the settings by content. A copy made
+    from another state of the clone has another stamp and is made again."""
+    internal_c = qb_root / "internal" / "c"
+    files = [qb_root / "qb64pe.exe", qb_root / "Makefile"]
+    for dirpath, dirnames, filenames in os.walk(internal_c):
+        dirnames.sort()
+        folder = Path(dirpath)
+        parts = folder.relative_to(internal_c).parts
+        files += [folder / f for f in sorted(filenames) if not written_by_builds(parts, f)]
+    h = hashlib.sha256()
+    for p in files:
+        st = p.stat()
+        h.update(f"{p.relative_to(qb_root).as_posix()}\t{st.st_size}\t{st.st_mtime_ns}\n".encode())
+    for name, data in settings.items():
+        h.update(f"settings/{name}\t{hashlib.sha256(data).hexdigest()}\n".encode())
+    return h.hexdigest()
+
+
+def make_copy(qb_root: Path, root: Path, stamp: str, settings: dict[str, bytes]) -> None:
+    """Makes root a private copy of the compiler: qb64pe.exe, the Makefile, internal/ (without what
+    builds write, written_by_builds) and settings/. The stamp is written last: a copy that was
+    interrupted has none and is made again."""
+    if root.exists():
+        shutil.rmtree(root)
+    root.mkdir(parents=True)
+    for name in ("qb64pe.exe", "Makefile"):
+        shutil.copy2(qb_root / name, root / name)
+    internal = qb_root / "internal"
+
+    def skip(folder: str, names: list[str]) -> list[str]:
+        if Path(folder) == internal:  # temp, temp2, ...: build folders of earlier compiles
+            return [n for n in names if n.startswith("temp")]
+        try:
+            parts = Path(folder).relative_to(internal / "c").parts
+        except ValueError:  # internal/source, internal/support, ...
+            return []
+        return [n for n in names if written_by_builds(parts, n) and not (Path(folder) / n).is_dir()]
+
+    shutil.copytree(internal, root / "internal", ignore=skip)
+    for name, data in settings.items():
+        target = root / "settings" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+    (root / "internal" / "temp").mkdir()
+    (root / COPY_STAMP).write_text(stamp, encoding="ascii")
+
+
+class CopiesInUse(Exception):
+    """Another run holds the folder of copies."""
+
+
+class CompilerCopies:
+    """The private copies of qb64pe for --jobs: <folder>/w1 ... w<count>, one per worker.
+
+    One run at a time per folder (CopiesInUse otherwise): a second run would compile in the same
+    copies, or remake them under the first."""
+
+    def __init__(self, qb_root: Path, folder: Path, count: int, wait: bool):
+        self._lock = lock_folder(
+            folder, wait, f"waiting for another run to leave the copies in {folder}"
+        )
+        if self._lock is None:
+            raise CopiesInUse(
+                f"another run is using the copies in {folder}; start again when it has ended, "
+                "pass --wait, or give this run its own --copies-dir"
+            )
+        settings = clone_settings(qb_root)
+        stamp = clone_stamp(qb_root, settings)
+        roots = [folder / f"w{k}" for k in range(1, count + 1)]
+        stale = [
+            r
+            for r in roots
+            if not (r / COPY_STAMP).is_file()
+            or (r / COPY_STAMP).read_text(encoding="ascii") != stamp
+        ]
+        if stale:
+            print(f"copying qb64pe for {len(stale)} of {count} workers to {folder}", flush=True)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+                list(pool.map(lambda r: make_copy(qb_root, r, stamp, settings), stale))
+        self._free: queue.SimpleQueue[Path] = queue.SimpleQueue()
+        for r in roots:
+            self._free.put(r)
+
+    @contextlib.contextmanager
+    def lease(self):
+        """A copy no other worker is using, for the time of one compile."""
+        root = self._free.get()
+        try:
+            yield root
+        finally:
+            self._free.put(root)
+
+    def close(self) -> None:
+        """Gives the folder back to other runs."""
+        self._lock.close()
+
+
 def copy_if_exists(src: Path, dst: Path) -> None:
     """Copies src to dst if src is a file; does nothing otherwise."""
     if src.is_file():
@@ -208,24 +367,47 @@ def kill_tree(p: subprocess.Popen) -> None:
         pass
 
 
-def run_proc(args, cwd, stdout_path: Path, timeout, env=None, merge_stderr=False, creationflags=0):
-    """Runs a command with stdin from the null device and stdout (and stderr if merge_stderr) to
-    stdout_path; stderr is discarded otherwise.
+def run_proc(
+    args,
+    cwd,
+    stdout_path: Path,
+    timeout,
+    env=None,
+    merge_stderr=False,
+    creationflags=0,
+    stdin_path: Path | None = None,
+    ask_first=False,
+):
+    """Runs a command with stdin from the null device (or from stdin_path) and stdout (and stderr
+    if merge_stderr) to stdout_path; stderr is discarded otherwise.
 
-    Returns (exit code, False), or (None, True) when the timeout killed the process tree."""
-    with open(stdout_path, "wb") as out:
+    Returns (exit code, False), or (None, True) when the timeout killed the process tree. With
+    ask_first (Windows) the process gets Ctrl+Break first and 5 s to end: it then writes out what
+    it has printed so far (a prompt without a line end, say), which a killed process loses."""
+    ask_first = ask_first and os.name == "nt"
+    if ask_first:
+        creationflags |= subprocess.CREATE_NEW_PROCESS_GROUP  # Ctrl+Break reaches only this group
+    with contextlib.ExitStack() as stack:
+        out = stack.enter_context(open(stdout_path, "wb"))
+        stdin = stack.enter_context(open(stdin_path, "rb")) if stdin_path else subprocess.DEVNULL
         p = subprocess.Popen(
             args,
             cwd=cwd,
             stdout=out,
             stderr=subprocess.STDOUT if merge_stderr else subprocess.DEVNULL,
-            stdin=subprocess.DEVNULL,
+            stdin=stdin,
             env=env,
             creationflags=creationflags,
         )
         try:
             return p.wait(timeout=timeout), False
         except subprocess.TimeoutExpired:
+            if ask_first:
+                try:
+                    p.send_signal(signal.CTRL_BREAK_EVENT)
+                    p.wait(timeout=5)
+                except (OSError, subprocess.TimeoutExpired):
+                    pass
             kill_tree(p)
             return None, True
 
@@ -539,29 +721,37 @@ def corpus_test(
     compile_out = results / f"{key}-compile_result.txt"
 
     old = is_old_compiler(args.qb64)
-    if old:  # only qb64pe builds in the clone's internal/temp
-        clear_temp(qb_root)
     flags = ["-f:OptimizeCppProgram=true"] if args.cpp_opt else []
-    rc, timed_out = run_proc(
-        [
-            str(args.qb64),
-            *flags,
-            "-q",
-            "-m",
-            "-x",
-            *include_root_args(args.qb64),
-            bas.name,
-            "-o",
-            str(exe),
-        ],
-        work,
-        compile_out,
-        COMPILE_TIMEOUT,
-    )
-    if old:
-        copy_if_exists(
-            qb_root / "internal" / "temp" / "compilelog.txt", results / f"{key}-compilelog.txt"
+    with contextlib.ExitStack() as stack:
+        # Only qb64pe builds in its own internal/temp: the clone's, or with --jobs this worker's
+        # private copy's (CompilerCopies).
+        qb64, build_root = args.qb64, qb_root
+        if old and args.copies:
+            build_root = stack.enter_context(args.copies.lease())
+            qb64 = build_root / "qb64pe.exe"
+        if old:
+            clear_temp(build_root)
+        rc, timed_out = run_proc(
+            [
+                str(qb64),
+                *flags,
+                "-q",
+                "-m",
+                "-x",
+                *include_root_args(args.qb64),
+                bas.name,
+                "-o",
+                str(exe),
+            ],
+            work,
+            compile_out,
+            COMPILE_TIMEOUT,
         )
+        if old:
+            copy_if_exists(
+                build_root / "internal" / "temp" / "compilelog.txt",
+                results / f"{key}-compilelog.txt",
+            )
     if timed_out:
         return fail("compile", "timeout")
 
@@ -617,9 +807,18 @@ def corpus_test(
             "QB64PE_LOG_FILE_PATH": str(results / f"{key}-log.txt"),
         }
     )
+    # <name>.stdin: the program's standard input is a copy of that file, kept beside the results so
+    # that the program's own folder holds only what the program finds without the sidecar.
+    stdin_file = tdir / f"{name}.stdin"
+    stdin_copy = None
+    if stdin_file.is_file():
+        stdin_copy = results / f"{key}-stdin.txt"
+        shutil.copyfile(stdin_file, stdin_copy)
     if os.name == "nt":
         # END waits for a console key event, which the null device never sends (press_any_key.py).
         cmd = [sys.executable, str(Path(__file__).with_name("press_any_key.py")), str(exe)]
+        if stdin_copy:
+            cmd.append(str(stdin_copy))
         flags = subprocess.CREATE_NO_WINDOW
     else:
         cmd, flags = [str(exe)], 0
@@ -628,7 +827,14 @@ def corpus_test(
         reset_folder(work, {bas.name, exe.name})
         run_out = results / f"{key}-run{run}-output.txt"
         rc, timed_out = run_proc(
-            cmd, work, run_out, CORPUS_RUN_TIMEOUT, env=env, merge_stderr=True, creationflags=flags
+            cmd,
+            work,
+            run_out,
+            CORPUS_RUN_TIMEOUT,
+            env=env,
+            merge_stderr=True,
+            creationflags=flags,
+            stdin_path=stdin_copy if os.name != "nt" else None,
         )
         if timed_out:
             return fail("run", "timeout")
@@ -643,6 +849,124 @@ def corpus_test(
     if norm_output(out_file.read_bytes()) != norm_output(outputs[0]):
         return fail("result", "program output differs from .output")
     return passed()
+
+
+def bash_exit_code(rc: int) -> int:
+    """A Windows exit code as Git Bash's $? reports it (measured 2026-10-10 with ExitProcess).
+
+    The verification files were recorded by a shell script, so their "exit=" lines hold these
+    values: the low byte of an ordinary code; 139, 132 and 130 for an access violation, an illegal
+    instruction and Ctrl+C; 127 for every other code from 0xC0000000 (e.g. an integer division
+    overflow, a stack overflow)."""
+    rc &= 0xFFFFFFFF
+    if rc < 0xC0000000:
+        return rc & 0xFF
+    return {0xC0000005: 139, 0xC000001D: 132, 0xC000013A: 130}.get(rc, 127)
+
+
+def git_sees_text(data: bytes) -> bool:
+    """Git's test for text=auto (convert.c, gather_stats and convert_is_binary): no NUL, no CR
+    without LF, and at most one control character per 128 other characters."""
+    if b"\0" in data or b"\r" in data.replace(b"\r\n", b""):
+        return False
+    body = data[:-1] if data.endswith(b"\x1a") else data  # a final Ctrl+Z is not counted
+    odd = sum(1 for c in body if c == 127 or (c < 32 and c not in b"\b\t\n\r\f\x1b"))
+    printable = len(body) - odd - body.count(b"\r") - body.count(b"\n")
+    return (printable >> 7) >= odd
+
+
+def write_recorded(path: Path, data: bytes) -> str:
+    """Writes a recorded verification file unless it already holds data.
+
+    A text file that differs only by CRLF against LF is left alone: the compiler and the programs
+    write CRLF, and git stores these files with LF (.gitattributes: text=auto). A file git takes
+    for binary is stored as it is, so it is compared byte for byte. Returns what changed ("" if
+    nothing did)."""
+    old = path.read_bytes() if path.is_file() else None
+    if old == data:
+        return ""
+    if (
+        old is not None
+        and git_sees_text(old)
+        and git_sees_text(data)
+        and old.replace(b"\r\n", b"\n") == data.replace(b"\r\n", b"\n")
+    ):
+        return ""
+    path.write_bytes(data)
+    return f"recorded new {path.name}" if old is None else f"warning: {path.name} changed"
+
+
+def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
+    """Records one program of the verification suite (module docstring)."""
+    name = bas.stem
+    tdir = bas.parent
+    r = Result("verification", name, "recorded")
+    t0 = time.time()
+    exe = tdir / f"{name}.exe"
+    exe.unlink(missing_ok=True)
+    clear_temp(qb_root)
+    env = dict(os.environ)
+    env["QB64PE_NOPROMPT"] = "y"
+    # Both go to the results folder first: a compile that times out leaves the recorded files alone.
+    compile_out = results / f"{name}-compile.txt"
+    rc, timed_out = run_proc(
+        [str(args.qb64), "-x", "-q", "-m", bas.name, "-o", str(exe)],
+        tdir,
+        compile_out,
+        COMPILE_TIMEOUT,
+        env=env,
+        merge_stderr=True,
+    )
+    if timed_out:
+        r.status, r.stage, r.detail = "FAIL", "compile", "timeout; nothing recorded"
+        r.seconds = round(time.time() - t0, 1)
+        return r
+
+    # The compiler names an included file by its full path; no local path goes into the repo
+    # (CLAUDE.md, rule 2). Any spelling of the folder: either slash, any letter case.
+    folder = re.compile(
+        rb"[\\/]+".join(re.escape(p.encode()) for p in re.split(r"[\\/]+", str(tdir))),
+        re.IGNORECASE,
+    )
+
+    def masked(data: bytes) -> bytes:
+        return folder.sub(b"<verification>", data)
+
+    changes = [
+        write_recorded(
+            tdir / f"{name}.compile.txt",
+            masked(compile_out.read_bytes()) + f"exit={bash_exit_code(rc)}\n".encode(),
+        )
+    ]
+    if exe.is_file():
+        np_file = tdir / f"{name}.noprompt"
+        if np_file.is_file():
+            env["QB64PE_NOPROMPT"] = np_file.read_text(encoding="latin-1").strip()
+        stdin_file = tdir / f"{name}.stdin"
+        run_out = results / f"{name}-out.txt"
+        # A hung program (e.g. screen PRINT with a comma under a redirected $CONSOLE) would block
+        # forever.
+        rc, timed_out = run_proc(
+            [str(exe)],
+            tdir,
+            run_out,
+            VERIFICATION_RUN_TIMEOUT,
+            env=env,
+            merge_stderr=True,
+            stdin_path=stdin_file if stdin_file.is_file() else None,
+            ask_first=True,  # as `timeout` did under run.sh: the pending prompt is recorded
+        )
+        out = masked(run_out.read_bytes())
+        if timed_out:
+            out += f"(timed out after {VERIFICATION_RUN_TIMEOUT} s)\nexit=124\n".encode()
+        else:
+            out += f"exit={bash_exit_code(rc)}\n".encode()
+    else:
+        out = b"(not compiled)\n"
+    changes.append(write_recorded(tdir / f"{name}.out.txt", out))
+    r.detail = "; ".join(c for c in changes if c)
+    r.seconds = round(time.time() - t0, 1)
+    return r
 
 
 def load_list(path: Path, root: Path) -> set[Path]:
@@ -708,6 +1032,8 @@ def run_suite_test(
             return format_tests(bas, args, results, qb_root)
         if suite == "corpus":
             return [corpus_test(bas, args, results, qb_root, corpus_root, known)]
+        if suite == "verification":
+            return [verification_test(bas, args, results, qb_root)]
         return [qbasic_test(bas, args, results, qb_root)]
     # One broken test must not lose a long run's results. Named like the suite's own results, so
     # that known_failures.txt entries match.
@@ -719,6 +1045,8 @@ def run_suite_test(
         elif suite == "format":
             # Per program, not per variant: the variants are unknown when the runner fails.
             name = ("format_tests", f"{bas.parent.name}/{bas.stem}")
+        elif suite == "verification":
+            name = ("verification", bas.stem)
         else:
             name = (
                 "qbasic_testcases",
@@ -749,7 +1077,9 @@ def run_all(tests: list[Path], run_one, jobs: int):
 def main() -> int:
     """Runs the selected suites and writes the results file.
 
-    Returns 0 if no test failed (KFAIL does not count), 1 if one did, 2 for a usage error."""
+    Returns 0 if no test failed (KFAIL does not count), 1 if one did, one passed only alone after
+    failing with --jobs, or the copies for --jobs could not be made, 2 for a usage error, 3 when another run holds the results folder, the
+    clone or the copies (BUSY_EXIT)."""
     here = Path(__file__).resolve()
     default_qb_root = here.parents[3] / "QB64pe"
     ap = argparse.ArgumentParser(
@@ -763,7 +1093,21 @@ def main() -> int:
     )
     ap.add_argument("--qb64", type=Path, help="compiler executable (default: <qb-root>/qb64pe.exe)")
     ap.add_argument(
-        "--suite", choices=["compile", "qbasic", "format", "corpus", "all"], default="compile"
+        "--suite",
+        choices=["compile", "qbasic", "format", "corpus", "verification", "all"],
+        default="compile",
+        help="'all' is the four test suites; verification records and is run on its own",
+    )
+    ap.add_argument(
+        "names",
+        nargs="*",
+        help="verification: the programs to record, without .bas (default: all, or --glob)",
+    )
+    ap.add_argument(
+        "--verification-root",
+        type=Path,
+        default=here.parents[2] / "verification",
+        help="folder of the verification programs (default: %(default)s)",
     )
     ap.add_argument(
         "--category", help="only this category (compile and format suites) or group (corpus)"
@@ -815,9 +1159,21 @@ def main() -> int:
         "--jobs",
         type=int,
         default=1,
-        help="corpus and compile, with a compiler other than qb64pe: run this many "
-        "programs at a time (qb64pe builds in the clone's shared internal/temp, "
-        "so it runs one at a time)",
+        help="corpus and compile: run this many programs at a time. With qb64pe: corpus "
+        "only, each worker compiling with a private copy of the compiler (--copies-dir)",
+    )
+    ap.add_argument(
+        "--copies-dir",
+        type=Path,
+        default=here.parents[2] / "target" / "qb64pe-copies",
+        help="where --jobs keeps the private copies of qb64pe, about 800 MB each "
+        "(default: %(default)s)",
+    )
+    ap.add_argument(
+        "--wait",
+        action="store_true",
+        help="when another run is using the results folder, building in the reference clone or "
+        "using the copies, wait for it to end instead of stopping with exit code 3",
     )
     ap.add_argument(
         "--build-cache",
@@ -831,8 +1187,14 @@ def main() -> int:
     if args.jobs < 1:
         print("--jobs must be 1 or more", file=sys.stderr)
         return 2
-    if args.category and args.suite in ("qbasic", "all"):
+    if args.category and args.suite in ("qbasic", "verification", "all"):
         print("--category applies to the compile, format and corpus suites only", file=sys.stderr)
+        return 2
+    if args.names and args.suite != "verification":
+        print("program names apply to --suite verification only", file=sys.stderr)
+        return 2
+    if args.names and args.glob != "*.bas":
+        print("give program names or --glob, not both", file=sys.stderr)
         return 2
     if (args.record or args.cpp_opt) and args.suite != "corpus":
         print("--record and --cpp-opt apply to --suite corpus only", file=sys.stderr)
@@ -852,15 +1214,25 @@ def main() -> int:
     if not args.qb64.is_file():
         print(f"compiler not found: {args.qb64}", file=sys.stderr)
         return 2
-    if args.jobs > 1 and (
-        is_old_compiler(args.qb64) or args.record or args.suite not in ("corpus", "compile")
+    if args.suite == "verification" and not is_old_compiler(args.qb64):
+        print("--suite verification records the old compiler: it needs qb64pe", file=sys.stderr)
+        return 2
+    if args.jobs > 1 and (args.record or args.suite not in ("corpus", "compile")):
+        print("--jobs above 1 needs --suite corpus or compile, and no --record", file=sys.stderr)
+        return 2
+    # The compile suite's programs include files relative to the compiler's folder and some compile
+    # from the clone's root; a copy has neither.
+    if (
+        args.jobs > 1
+        and is_old_compiler(args.qb64)
+        and (args.suite != "corpus" or args.qb64 != qb_root / "qb64pe.exe")
     ):
         print(
-            "--jobs above 1 needs a compiler other than qb64pe, --suite corpus or compile, "
-            "and no --record",
+            "--jobs above 1 with qb64pe needs --suite corpus and the qb64pe.exe of --qb-root",
             file=sys.stderr,
         )
         return 2
+    args.copies = None  # set per suite below
     if args.build_cache:
         if is_old_compiler(args.qb64):
             print("--build-cache applies to qb64rust only", file=sys.stderr)
@@ -871,11 +1243,14 @@ def main() -> int:
     compile_root = (args.compile_tests or qb_root / "tests" / "compile_tests").resolve()
     all_results: list[Result] = []
     known_passed: list[str] = []
+    retried_passed: list[str] = []
     corpus_root = args.corpus_root.resolve()
     suites = ["compile", "qbasic", "format", "corpus"] if args.suite == "all" else [args.suite]
+    # The tests of every suite are selected before any lock is taken: a usage error is reported at
+    # once, not after waiting for another run (--wait).
+    selected: list[tuple[str, Path, list[Path]]] = []  # suite, its results folder, its tests
     for suite in suites:
         results = (args.results / (suite + ("-cpp-opt" if args.cpp_opt else ""))).resolve()
-        results.mkdir(parents=True, exist_ok=True)
         wanted = None
         if suite == "corpus":
             root = corpus_root / args.category if args.category else corpus_root
@@ -908,6 +1283,16 @@ def main() -> int:
                     print(e, file=sys.stderr)
                     return 2
                 tests = [p for p in tests if p.resolve() in wanted]
+        elif suite == "verification":
+            root = args.verification_root.resolve()
+            if args.names:
+                tests = [root / f"{n.removesuffix('.bas')}.bas" for n in args.names]
+                missing = [p.name for p in tests if not p.is_file()]
+                if missing:
+                    print(f"no such verification program: {', '.join(missing)}", file=sys.stderr)
+                    return 2
+            else:
+                tests = sorted(p for p in root.glob("*.bas") if fnmatch.fnmatch(p.name, args.glob))
         else:
             tests = qbasic_sources(qb_root)
         if not tests and wanted is not None and not wanted:
@@ -919,6 +1304,35 @@ def main() -> int:
         if not tests:
             print(f"no tests selected in suite {suite}", file=sys.stderr)
             return 2
+        selected.append((suite, results, tests))
+
+    # One run at a time per results folder: a program is built and run in <results>/<its key>, which
+    # the runner removes first, so two runs there would delete each other's folders and run each
+    # other's executables. Taken before the clone's lock by every run, so no two runs wait for each
+    # other. Held until the process ends.
+    results_locks = []
+    for _, results, _ in selected:
+        lock = lock_folder(results, args.wait, f"waiting for another run to leave {results}")
+        if lock is None:
+            print(
+                f"another run is using the results in {results}; start again when it has ended, "
+                "pass --wait, or give this run its own --results",
+                file=sys.stderr,
+            )
+            return BUSY_EXIT
+        results_locks.append(lock)
+    # One run at a time builds in the clone (clone_lock.py): qb64pe in its internal/temp, and
+    # qb64rust's make runs there too and builds the libqb objects it lacks. Only a qb64pe run with
+    # --jobs starts without the lock: it compiles in its copies and takes the lock when it comes back
+    # to the clone.
+    clone_lock = None
+    if selected and not (is_old_compiler(args.qb64) and args.jobs > 1):
+        clone_lock = lock_clone(args.wait)
+        if clone_lock is None:
+            print(CLONE_BUSY, file=sys.stderr)
+            return BUSY_EXIT
+
+    for suite, results, tests in selected:
         run_one = functools.partial(
             run_suite_test,
             suite,
@@ -931,6 +1345,24 @@ def main() -> int:
         # Printed as they finish, written in the order of tests: with --jobs the files of two runs
         # stay comparable.
         by_test: dict[int, list[Result]] = {}
+        if args.jobs > 1 and len(tests) > 1 and is_old_compiler(args.qb64):
+            try:
+                args.copies = CompilerCopies(
+                    qb_root, args.copies_dir.resolve(), min(args.jobs, len(tests)), args.wait
+                )
+            except CopiesInUse as e:
+                print(e, file=sys.stderr)
+                return BUSY_EXIT
+            except (OSError, shutil.Error) as e:
+                # Without its stamp the copy is made again by the next run. Not a usage error (2):
+                # the command was right and the run failed.
+                print(f"could not copy qb64pe to {args.copies_dir}: {e}", file=sys.stderr)
+                return 1
+        elif is_old_compiler(args.qb64) and clone_lock is None:  # --jobs with a single program
+            clone_lock = lock_clone(args.wait)
+            if clone_lock is None:
+                print(CLONE_BUSY, file=sys.stderr)
+                return BUSY_EXIT
         for i, (idx, rs) in enumerate(run_all(tests, run_one, args.jobs), 1):
             by_test[idx] = rs
             for r in rs:
@@ -946,6 +1378,35 @@ def main() -> int:
                 elif r.detail:  # corpus --record: what was written
                     line += f"  {r.detail}"
                 print(line, flush=True)
+                if suite == "verification" and r.status == "PASS":
+                    # What was recorded, for reading along: the program's bytes as they are.
+                    sys.stdout.buffer.write((tests[idx].with_suffix(".out.txt")).read_bytes())
+                    sys.stdout.buffer.flush()
+        if args.copies:
+            # A failure beside other builds, in a copy, is not yet the old compiler's answer: each
+            # one runs again alone in the clone, as with one job, and both outcomes are reported.
+            args.copies.close()
+            args.copies = None
+            for idx in sorted(by_test):
+                before = by_test[idx][0]
+                if before.status != "FAIL":
+                    continue
+                if clone_lock is None:
+                    # This late in a long run, wait for the clone (also without --wait).
+                    clone_lock = lock_clone(wait=True)
+                after = run_one(tests[idx])[0]
+                first = f"{before.stage}: {before.detail}"
+                if after.status == "PASS":
+                    after.detail = f"passed alone in the clone; failed with --jobs ({first})"
+                    retried_passed.append(f"{after.suite}:{after.test}")
+                else:
+                    after.detail += f" (alone in the clone; with --jobs: {first})"
+                by_test[idx] = [after]
+                print(
+                    f"[again] {after.status} {after.suite}:{after.test} ({after.kind}, "
+                    f"{after.seconds}s)  {after.stage + ': ' if after.stage else ''}{after.detail}",
+                    flush=True,
+                )
         for idx in sorted(by_test):
             all_results.extend(by_test[idx])
 
@@ -954,7 +1415,7 @@ def main() -> int:
         s = summary.setdefault(r.suite, {"PASS": 0, "FAIL": 0, "KFAIL": 0})
         s[r.status] += 1
     # A partial run must not overwrite the results of a fuller one.
-    if args.category or args.glob != "*.bas" or args.list:
+    if args.category or args.glob != "*.bas" or args.list or args.names:
         name = "results-partial.json"
     else:
         mode = "-record" if args.record else ("-cpp-opt" if args.cpp_opt else "")
@@ -982,8 +1443,12 @@ def main() -> int:
     print(json.dumps(summary))
     for key in known_passed:
         print(f"note: {key} passed but is listed in {args.known_failures.name}; remove the entry")
+    for key in retried_passed:
+        print(f"note: {key} failed with --jobs and passed alone in the clone; find out why")
     print(f"results: {out}")
-    return 0 if all(s["FAIL"] == 0 for s in summary.values()) else 1
+    # A program that passed only alone counts as passed in the results, and still fails the run: the
+    # copies gave another answer than the clone, which nobody reading only the exit code may miss.
+    return 0 if all(s["FAIL"] == 0 for s in summary.values()) and not retried_passed else 1
 
 
 if __name__ == "__main__":

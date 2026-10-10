@@ -1,0 +1,5 @@
+
+Expected variable-name
+Caused by (or after):LINE INPUT # 1 , F$
+LINE 9:LINE INPUT #1, f$
+exit=1

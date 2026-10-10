@@ -409,6 +409,17 @@ pub struct Label {
     pub file: FileId,
     /// The procedure whose body holds the label; `None` for the main module.
     pub proc: Option<ProcId>,
+    /// How many of the program's `DATA` items ([`Program::data`]) stand before the label in file order: where a
+    /// `RESTORE` to it makes the next `READ` start.
+    pub data_at: usize,
+}
+
+/// One item of a `DATA` statement: its text as the old compiler keeps it (the blanks around an unquoted item
+/// dropped, a quoted item without its quotes), and whether it was written in quotes.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DataItem {
+    pub text: Vec<u8>,
+    pub quoted: bool,
 }
 
 /// Where `RESUME` continues (spec `language/error-handling`).
@@ -752,6 +763,13 @@ pub enum StmtKind {
         line: bool,
         targets: Vec<Place>,
     },
+    /// `READ target, …`: the next item of the program's data ([`Program::data`]) into each target in turn. A target
+    /// is as an [`StmtKind::Input`]'s.
+    Read(Vec<Place>),
+    /// `RESTORE` (`None`: the next `READ` starts at the program's first item) or `RESTORE label` (at the first item
+    /// after the label in file order, [`Label::data_at`]). The label may be of any body (measured,
+    /// `verification\v22_c_restore`).
+    Restore(Option<LabelId>),
     End,
     /// `SYSTEM`: ends the program at once, without the "press any key" prompt of `END`.
     System,
@@ -912,6 +930,10 @@ pub struct Program {
     pub stmts: Vec<Stmt>,
     /// The labels of every body, in source order.
     pub labels: Vec<Label>,
+    /// The items of every `DATA` statement of the program in file order: main module and procedures as they
+    /// stand, an included file's at its include, also those in a block that never runs (measured,
+    /// `verification\v22_c_order`).
+    pub data: Vec<DataItem>,
     /// Every `CONST`, in source order.
     pub consts: Vec<Const>,
     /// The user types, in source order.

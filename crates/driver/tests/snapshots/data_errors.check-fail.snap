@@ -1,0 +1,14 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+data_errors.bas:15:6: error: `READ` needs a variable here
+data_errors.bas:16:6: error: `READ` needs a variable here
+data_errors.bas:17:6: error: cannot assign to the constant `c`
+data_errors.bas:18:6: error: a whole `TYPE` variable cannot be a target of `READ`
+data_errors.bas:19:9: error: label `nowhere` is not defined
+data_errors.bas:20:9: error: `RESTORE twice`: more than one SUB, FUNCTION or the main module has a label `twice`
+data_errors.bas:21:9: error: `n&` is not a valid label
+data_errors.bas:22:10: error: expected `,` after a quoted `DATA` item
+data_errors.bas:27:13: error: `RESTORE twice`: more than one SUB, FUNCTION or the main module has a label `twice`
+data_errors.bas:31:10: error: the FUNCTION's own name cannot be a target of `READ`

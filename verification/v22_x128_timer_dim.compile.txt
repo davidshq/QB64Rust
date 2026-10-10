@@ -1,0 +1,5 @@
+
+Name already in use (TIMER)
+Caused by (or after):DIM TIMER AS LONG
+LINE 3:DIM TIMER AS LONG
+exit=1

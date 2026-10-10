@@ -63,6 +63,20 @@ fn input_rest(p: &mut Parser) {
             p.bump();
             p.bump();
         }
+        // The console forms take one `,` after the last target (`verification\v22_x148`); the file forms and a
+        // second `,` are errors.
+        while expr(p) && p.at(Comma) {
+            p.bump();
+            if p.at_stmt_end() {
+                break;
+            }
+        }
+        // `INPUT p$; x` and `INPUT a; b`: the old compiler takes neither ("Invalid expression", `v22_x145`,
+        // `x146`, `x155`, `x156`).
+        if p.at(Semicolon) {
+            p.error("a prompt is a string literal, and targets are separated by `,`");
+        }
+        return;
     }
     expr_list(p);
 }

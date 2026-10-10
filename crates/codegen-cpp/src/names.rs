@@ -55,7 +55,7 @@ fn type_word(t: Ty) -> String {
 }
 
 /// A BASIC name as part of a C identifier: a `.` becomes `__046__`.
-fn c_ident(name: &str) -> String {
+pub(crate) fn c_ident(name: &str) -> String {
     name.replace('.', "__046__")
 }
 

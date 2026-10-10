@@ -2,4 +2,4 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-blocks_not_compiled_yet.bas:7:5: error: not supported yet: `SWAP`
+blocks_not_compiled_yet.bas:8:5: error: not supported yet: `LSET`

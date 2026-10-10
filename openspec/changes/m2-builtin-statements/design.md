@@ -136,7 +136,7 @@ Op::Write  { to: Option<Expr>, items, newline }        items as Print's Str and 
 Op::Input  { from: Source, line: bool, targets: Vec<Place> }
              Source = File(Expr) | Console { prompt: Option<bytes>, question: bool, stay: bool }
 Op::Read   (Vec<Place>)
-Op::Restore(usize)                                     a position in Program::data
+Op::Restore { at: usize, label: Option<String> }       a position in Program::data, and the label that gave it
 Program::data: Vec<DataItem { text: bytes, quoted: bool }>
 ```
 
@@ -150,9 +150,16 @@ the handler runs once, with the argument's error; `sub_environ` alone does not t
 nothing since the first error is the one serviced):
 an `Op::Builtin` evaluates its arguments in order and makes the call also after a raising argument, like
 `Op::Call` (the C++ has no test between the arguments and `sub_open`); libqb's entry returns at once while an error
-is pending. `Print` to a file, `Write`, `Input` and `Read` check before each item or target and skip the rest
+is pending. `Print` to a file, `Write` and `Input` check before each item or target and skip the rest
 (the `goto skipN` above), as console `Print` does today. A target place follows its own store rule
 (`m2-arrays-and-types` D6), measured for an element with a bad index.
+
+**Corrected by task 4.1 (2026-10-10).** `Read` has no check: the old compiler writes one read per target with no
+test between them, and libqb's readers return 0 at once while an error is pending and put the read position back
+when they raise. So every target is stored (0 after an error, a string target left as it is) and the item that
+raised is met again by the next `READ`. `Restore` is `Op::Restore { at, label }`: the item position, and the name
+of the label that gave it (`None` for the start), which the emitter uses for the old compiler's
+`data_at_LABEL_<NAME>`, so that the call-site check compares equal without a rule.
 
 *Alternatives:* (a) every statement its own operation (`Op::Open`, `Op::Kill`, …): exhaustive matches for forty
 statements in `lower`, `validate`, `dump` and the emitter, and step 9's "a row and a test" is lost; (b) everything
@@ -253,6 +260,13 @@ case and inner blanks are kept is already measured (`v16_m2_*`) and in `syntax\s
 *Alternative:* typed data (numbers parsed when compiling): the old runtime parses the text at `READ` time by the
 target's type, so `DATA 1` read into a string is `"1"`; the text is the fact.
 
+**Measured in task 4.1.** The order is file order over the whole program, as expected: procedures and included
+files where they stand, also a block that never runs and the lines after `SYSTEM`; bare `DATA` is one empty item.
+`sema`'s second pass already walks the program in that order, so a `DATA` statement appends its items when it is
+checked and a label records the count of items so far (`Label::data_at`). A `RESTORE` label has no scope: it is
+looked up in every body, and a name two bodies have is an error. Left "not supported yet", though the old
+compiler accepts them: a line number as a target, `READ (a)`, `READ a()`.
+
 ### D7. Console input and the `.stdin` sidecar
 `Op::Input` with `Source::Console` is compiled only under `$CONSOLE:ONLY` (every program is, today). The prompt is
 a string literal or absent (the old compiler takes nothing else; expression prompts are in `SOMEDAY.md`).
@@ -262,6 +276,20 @@ no usable standard input. A program with `<name>.stdin` is started with standard
 that file instead (spec delta `testing/golden-corpus`). D1's `v22_e` settles whether such a program may still end
 with `END` or must use `SYSTEM`; the slice programs follow what is measured, and the runner's README says so.
 `verification\run.sh` gets the same sidecar rule (`< "$n.stdin"` when present).
+
+*Measured (task 6.2, `study\00` §5), corrections to the above and to D1's list:*
+- The compiler writes only the prompt, the type and address of each target and one call of `qbs_input`; the
+  runtime reads, converts and stores. So nothing of the answer's handling is compiled, and there is no check for a
+  pending error between targets.
+- There is no "Redo from start": a character that does not fit its field is dropped as it is read, and the text so
+  far is printed again. Fewer fields than targets leave the rest 0 or empty.
+- A program with a `.stdin` file must end with `SYSTEM` (`END` waits at "Press any key" until the timeout).
+- When the input runs out the program does not end: it waits until the timeout. A `.stdin` file must hold every
+  answer; "input runs out" is not a case a corpus program can record.
+- One `,` after the last target is accepted in the console forms (the parser takes it there only).
+- A `_BIT` variable is accepted as a target and never stored. Compiled the same way (`SOMEDAY.md`, "QB64pe
+  behaviours to review").
+- `RANDOMIZE` without a seed is the plain call `sub_randomize(NULL,0)`; the runtime asks for the seed.
 
 *Alternative:* scripted key presses into the console: `INPUT` under `$CONSOLE:ONLY` reads standard input, not
 keys, and a file is reproducible where timing is not.

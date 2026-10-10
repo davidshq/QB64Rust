@@ -1,0 +1,5 @@
+
+Too many variables
+Caused by (or after):LINE INPUT S , P
+LINE 4:LINE INPUT s, p
+exit=1

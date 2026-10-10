@@ -145,6 +145,59 @@ impl Emitter<'_> {
                     out.push("sub_close(NULL,0);".into());
                 }
             }
+            // The runtime's entry by the places' type (`qb64pe.bas` 11412–11502): strings of any kind, a whole
+            // `TYPE` by its size (the second place first, as the old compiler writes it), a number by its width.
+            // An element's index is checked inside the call's arguments, with no test after it, so a bad index
+            // exchanges with the array's first element, as the old compiler's program does (measured).
+            StmtRule::Swap => {
+                let [StmtArg::Place(a), StmtArg::Place(b)] = args else {
+                    unreachable!("`SWAP` takes two places (`validate`)");
+                };
+                let ty = self.p.place_ty(a);
+                out.push(match ty {
+                    Ty::Str | Ty::FixedStr(_) => {
+                        format!("swap_string({},{});", self.place_ref(a), self.place_ref(b))
+                    }
+                    Ty::User(_) => {
+                        let (x, y) = (self.bytes_of(b), self.bytes_of(a));
+                        match self.ty_size(ty) {
+                            n @ (1 | 2 | 4 | 8) => format!("swap_{}({x},{y});", n * 8),
+                            n => format!("swap_block({x},{y},{n});"),
+                        }
+                    }
+                    Ty::F80 => format!("swap_longdouble(&{},&{});", self.load_place(a), self.load_place(b)),
+                    Ty::I8
+                    | Ty::U8
+                    | Ty::I16
+                    | Ty::U16
+                    | Ty::I32
+                    | Ty::U32
+                    | Ty::I64
+                    | Ty::U64
+                    | Ty::Off
+                    | Ty::UOff
+                    | Ty::F32
+                    | Ty::F64 => {
+                        let bits = self.ty_size(ty) * 8;
+                        format!("swap_{bits}(&{},&{});", self.load_place(a), self.load_place(b))
+                    }
+                    Ty::Bit { .. } => unreachable!("`SWAP` of a `_BIT` (`validate`)"),
+                });
+            }
+            // `sub_mid(target, start, length, value, passed)`: 0 for a length left out.
+            StmtRule::MidAssign => {
+                let [StmtArg::Place(target), StmtArg::Value(start), length, StmtArg::Value(v)] = args else {
+                    unreachable!("the slots of the `MID$` statement (`validate`)");
+                };
+                let target = self.place_ref(target);
+                let start = self.value(start);
+                let (length, passed) = match length {
+                    StmtArg::Value(l) => (self.value(l), 1),
+                    StmtArg::Absent | StmtArg::Place(_) | StmtArg::Word(_) => ("0".to_string(), 0),
+                };
+                let v = self.value(v);
+                out.push(format!("sub_mid({target},{start},{length},{v},{passed});"));
+            }
         }
         if args.iter().any(|a| a.uses_strings(self.p)) {
             out.push("qbs_cleanup(qbs_tmp_base,0);".into());

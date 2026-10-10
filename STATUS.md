@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-09 (session 36).
+Updated 2026-10-10 (session 38).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -21,13 +21,18 @@ M0 (baseline) and M1 (VS Code extension on the old compiler) are complete. **M2 
 1 to 8 of the order of work are done, the last being OpenSpec change `m2-numeric-types` (archived 2026-10-09).
 The compiler parses every program the old compiler accepts with no false error, and compiles scalars, procedures,
 error handling, every operator, `CONST`, control flow, `SELECT CASE`, static arrays and `TYPE` of the main module,
-43 built-in functions, all 17 numeric types and fixed-length strings (`crates\README.md`). There is a thin language
-server (`qb64rust lsp`). OpenSpec change `m2-builtin-statements` (step 9) is in progress: groups 1 and 2 of its
-eight task groups are done (built-in statements as one IR operation; the call-site check, as a trial), and the
-code of group 3 (sequential files) is written; what is open is in its `tasks.md`.
+53 built-in functions, all 17 numeric types, fixed-length strings, sequential files, `DATA`/`READ`/`RESTORE`,
+`SWAP`, the `MID$` statement, `RANDOMIZE` and console `INPUT`/`LINE INPUT` (`crates\README.md`). There is a thin
+language server (`qb64rust lsp`). OpenSpec change `m2-builtin-statements` (step 9) is in progress: groups 1 to 6 of
+its eight task groups are done (built-in statements as one IR operation; the call-site check, as a trial;
+sequential files; data; `SWAP`, `MID$`, `RANDOMIZE`, `RND`, `TIMER`; console input with the runner's `.stdin`
+sidecar); what is open is in its `tasks.md`.
 
 ## Open items
 
+- **`questions.md` Q3 of `m2-builtin-statements` waits for the user**: `SWAP` with an element whose index is out
+  of range raises error 9 and exchanges with the array's first element in the old compiler; it is implemented
+  that way meanwhile (the alternative is a divergence like D-004).
 - **The GitHub CI run after the next push has not been seen.** It settles task 10.2 of `m2-numeric-types` and task
   5.1 of `m2-language-server` (both changes were archived with that task open), and it is the first run of the
   changed `tier2` job (QB64pe's sources at the reference clone's commit, `DECISIONS.md` 2026-10-09). Work is checked
@@ -45,10 +50,10 @@ The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3
 9. **Next: built-in statements and functions by demand** (`study\27` §3): a built-in statement operation in the IR,
    then sequential file I/O, `DATA`/`READ`/`RESTORE`, `SWAP`, `RANDOMIZE`/`RND`/`TIMER`, console `INPUT`/`LINE
    INPUT`, `SHELL`/`COMMAND$`/`ENVIRON$`, each measured first; the remaining plain functions as the corpus, upstream
-   or a user names them. OpenSpec change `m2-builtin-statements`: groups 1 and 2 done; group 3 (files) open in
-   three points: the `tests\callsite` programs for `OPEN`, `CLOSE`, `SEEK` and the file functions (tasks 3.3,
-   3.4), the full tier 2 rerun (3.7), and the documents to bring up to date at its end (`tasks.md`, "Where group
-   3 stands"). Groups 4 to 8 not started.
+   or a user names them. OpenSpec change `m2-builtin-statements`: groups 1 to 6 done. Next in it: group 7
+   (`SHELL`, `COMMAND$`, `ENVIRON$`, functions by demand; its measurement programs `verification\v22_d_shell`,
+   `v22_d_environ`, `v22_f_functions` are written and not yet run), group 8 (the call-site verdict, full runs,
+   documents).
    **Includes the trial of the call-site check**
    (`DECISIONS.md` 2026-10-09, `study\28` §3.2): for the first file I/O statements, compare the libqb call emitted
    with the old compiler's (`qb64pe -z`); keep it as the standard way a plain built-in comes in if the normalised
@@ -67,18 +72,21 @@ The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3
 
 ## Numbers at the last full runs
 
-2026-10-09, session 35, release build against the reference clone (upstream and `programs/` updated in session 36):
+The three pass lists: 2026-10-10, session 38, release build against the reference clone, after group 6 of
+`m2-builtin-statements`. The full corpus, the real programs and the shrink-only lists: 2026-10-09, session 35 (they
+are run again in task 8.2 of that change).
 
 | Yardstick | Result |
 |---|---|
-| `tests\corpus\slice.list` (tier 2) | 198 of 198 |
-| Full corpus | 214 pass, none wrong at run time; 74 rejected with "not supported yet" (`tests\corpus\README.md`) |
-| Upstream | **47 of 279** (`tests\upstream\pass.list`); none wrong. It was reported as 45 while CI linked the 4.7.0 release's libqb: two programs need the later `VAL` of the reference clone |
+| `tests\corpus\slice.list` (tier 2) | 243 of 243 |
+| Full corpus | 214 pass, none wrong at run time; 74 rejected with "not supported yet" (`tests\corpus\README.md`); not rerun since `slice.list` grew by 45 |
+| Upstream | **49 of 279** (`tests\upstream\pass.list`); none wrong. It was reported as 45 while CI linked the 4.7.0 release's libqb: two programs need the later `VAL` of the reference clone |
 | Real programs (`tests\programs`) | Civil War Strategy: the front end reads it with no real error; every diagnostic is "not supported yet" |
 | Differential | 59 of 59 |
 | Shrink-only lists | 0 false errors, 0 parse gaps, 64 only-marked rejections (`tests\upstream\README.md`) |
 | Tier 1 (`cargo test`) | about 10 s |
 | Tier 2 as CI runs it, locally | about 12 min |
+| Full corpus with the old compiler (2026-10-10) | 300 pass, 5 known failures; about 12 min with one job, 3 min 44 s with `--jobs 8` (`tools\legacy_tests\README.md`) |
 
 How to read them: the corpus is the signal for step 9 (its rejected programs wait on built-in statements and
 functions, and on step 11). Upstream will stay near 47 until steps 10 and 11: its blockers are `_DEST` and the rest
