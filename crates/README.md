@@ -13,7 +13,7 @@ The new compiler, `qb64rust`. One crate per pipeline stage, so the layering is e
 | `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...): `lib.rs` the entry points and the fragment set, one module per concern adding the emitter's methods (`names.rs`: C types, identifiers, labels, literals, `#line`; `decl.rs`: sizes, declarations, allocation, temporaries; `procs.rs`: procedures, bodies, labels, `retK.txt`; `stmt.rs`: operations and stores; `place.rs`: places; `value.rs`: values and procedure arguments; `builtins.rs`: built-in calls) |
 | `lsp` | `qb64rust-lsp` | The language server (`qb64rust lsp`, OpenSpec change `m2-language-server`): the message loop with debounce, a parse worker and cancellation (`server.rs`), one program's parse with included files from open documents first (`analysis.rs`), the encoding boundary (`encoding.rs`: tables generated from `iconv-lite` by `tools\encodings\gen_tables.js`, UTF-16 columns), `file:` URIs (`uri.rs`), and the features from the trees alone: diagnostics, document symbols (`symbols.rs`), folding ranges (`folding.rs`), go to definition for procedures and labels (`definition.rs`) |
 | `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, the file loader for included files (`FileLoader`), build through the reference clone's `Makefile`; `qb64rust lsp` starts the language server |
-| `difftest` | `qb64rust-difftest` | Not part of the compiler: the generator of the differential programs in `tests\differential` (binary `qb64rust-difftest`, `gen [--check]`; design D2 of `m2-numeric-types`, `tests\differential\README.md`): the numeric type list with each type's `AS` name, literal suffix and value slots (extremes, -1, 0, 1, two seeded random values from a fixed-seed xorshift), the operators and the exclusions; every program again for the six old types alone in the group `old6`; `for_sema` maps every `sema::Ty` exhaustively, so a new numeric type fails its build until the generator covers it |
+| `difftest` | `qb64rust-difftest` | Not part of the compiler: the generator of the differential programs in `tests\differential` (binary `qb64rust-difftest`, `gen [--check]`; design D2 of `m2-numeric-types`, `tests\differential\README.md`): the numeric type list with each type's `AS` name, literal suffix and value slots (extremes, -1, 0, 1, two seeded random values from a fixed-seed xorshift), the operators and the exclusions; `for_sema` maps every `sema::Ty` exhaustively, so a new numeric type fails its build until the generator covers it |
 
 ```
 driver -> codegen-cpp -> ir -> sema -> syntax -> base
@@ -131,6 +131,16 @@ What the compiler supports so far:
   hidden variable unless it is a plain variable, as QB64pe; `DIVERGENCES-QB45.md` Q-002) and `ON n GOTO`/`ON n
   GOSUB` to labels (`n` above 255 falls through, Q-001), lowered to the IR's branches and jumps
   (`ir\src\lower.rs`);
+- the full numeric type set (`m2-numeric-types`): `sema::Ty` has 17 numeric variants (`_BYTE`, `INTEGER`, `LONG`,
+  `_INTEGER64`, each also `_UNSIGNED`; `_OFFSET` and `_UNSIGNED _OFFSET` as their own variants; `_BIT * n` and
+  `_UNSIGNED _BIT * n` for n from 1 to 64; `SINGLE`, `DOUBLE`, `_FLOAT`), an enum with an explicit rank and no
+  derived order (design D3). Every `AS` spelling and suffix, in every place: scalars of every storage class, static
+  arrays, `TYPE` members, parameters (by reference also across signedness, as measured), FUNCTION results,
+  `CONST`, `FOR`, `SELECT CASE` and the special-cased built-ins. Values compute as the old compiler's C++ does,
+  tracking each value's [held and believed type](../GLOSSARY.md#held-type--believed-type) (`sema\src\check\ops.rs`
+  `held`, `sema\src\literal.rs`); `conversion` (`sema\src\lib.rs`) gives each store's rule, including the `_BIT`
+  store mask and sign extension. Checked against `qb64pe.exe` by the differential programs
+  (`tests\differential`, made by `difftest`);
 - fixed-length strings (`m2-numeric-types` group 7, design D6): `STRING * n` (n a number or an integer constant,
   read in 32 bits) and `name$n` variables of every storage class, static arrays of them and `TYPE` members, as the
   old compiler builds them: a fixed `qbs` over n NUL bytes per variable, a temporary one over an element's or

@@ -435,14 +435,43 @@ programs it makes pass to `slice.list`, `tests\upstream\pass.list` and `tests\di
 
 ## 10. Integration
 
-- [ ] 10.1 Full runs with the release build: full corpus, upstream (`--suite compile`), slice, differential. Add
+- [x] 10.1 Full runs with the release build: full corpus, upstream (`--suite compile`), slice, differential. Add
   every newly passing program to its list; regenerate the shrink-only lists. Verify: counts recorded here and in
   `STATUS.md` ("Numbers at the last full runs"); no program prints wrong output; `tests\differential\pass.list`
   names every differential program.
+  *Done 2026-10-09* (session 35, release build on `ddbcc0b`, against the reference clone, `--jobs 8 --build-cache`;
+  tier 1 green first). Full corpus (297): **214 pass** (the 198 of `slice.list`, 16 `.err`), 74 rejected with a
+  diagnostic, the same 4 `.err` programs with only marks, 5 known failures; no crash, no wrong output, no passing
+  program missing from `slice.list` (`tests\corpus\README.md`). Upstream (404): **47 pass**, the 45 of `pass.list`
+  and the two `VAL` programs of `known_clean_not_passing.list`; 312 rejected with a diagnostic, 44 `.err` with only
+  marks, 1 known failure; no crash, no wrong output. Added to `pass.list`: `const/offset` (an `.err` program with its
+  real error since group 4): **45 of 279** (`tests\upstream\README.md`). Differential: **107 of 107** (the 59 full
+  programs and the 48 of `old6`, before its removal below). Folding off (`QB64RUST_NO_FOLD=1`): slice 198 of 198,
+  differential 107 of 107. The shrink-only lists regenerated: no change (0 false errors, 0 parse gaps, 64
+  only-marked rejections). **`old6` removed**, as `DECISIONS.md` 2026-10-08 says ("the group goes when the full
+  programs pass"): `difftest`'s `generate` writes the 59 full programs only
+  (`OLD6` and its unit test gone), the 48 programs and recordings deleted, their lines left `pass.list`, which now
+  names all 59; `inputs.rs` expects at least 59; `tests\differential\README.md`, `crates\README.md`, `study\19`
+  updated.
 - [ ] 10.2 The CI `tier2` steps against the QB64pe 4.7.0 release (slice list, upstream pass list, differential pass
   list), locally with the CI command lines, then on GitHub after the push. Verify: all three pass; the GitHub run's
   result recorded here.
-- [ ] 10.3 Docs: `crates\README.md` (the type set, `difftest`), `study\00` §5 (all measured facts of this change)
+  *Local part done 2026-10-09* (session 35): the job's three command lines, with the release build, against the
+  `v4.7.0-GLFW` release downloaded as the job does (no `--jobs`, no build cache), `pass.list`s as after task 10.1:
+  corpus `slice.list` **198 of 198** (465 s), upstream `pass.list` **45 of 45** (72 s), differential `pass.list`
+  **59 of 59** (166 s). **Left:** the run on GitHub after the next push.
+  *Left open when the change was archived* (2026-10-09, the user's decision): check the run after the next push
+  (`STATUS.md`).
+- [x] 10.3 Docs: `crates\README.md` (the type set, `difftest`), `study\00` §5 (all measured facts of this change)
   and §6 (pinned-by), `DIVERGENCES.md`/`DIVERGENCES-QB45.md` "Pinned by" columns, `GLOSSARY.md` (differential test,
   held/believed type if missing), `STATUS.md` step 8 done. Verify: `check_repo.py --untracked` clean;
   `openspec validate m2-numeric-types --strict` passes.
+  *Done 2026-10-09* (session 35). `crates\README.md`: the numeric type set as a "supports" item (`Ty`'s 17 numeric
+  variants, every place, held and believed types, `conversion`), `difftest` without `old6`. `study\00` §5: a bullet
+  for the rejections measured in groups 4 and 8 and the review (`v21_x46`–`x57`, each checked against `qb64rust`);
+  §6: D-014 among the fixes and a paragraph on which rows are pinned. The registers' "Pinned by" columns were
+  already filled in (every test they name exists); left open: D-010–D-013 and Q-006 (runtime, built-ins), Q-007
+  (no slice program). `GLOSSARY.md`: "Held type / believed type" and a "Testing" section with "Differential
+  testing". `tests\corpus\README.md`: the `slice.list` counts and the full run. `ROADMAP.md`: the numeric types
+  done. `STATUS.md`: step 8 done. `check_repo.py --untracked` clean; `openspec validate m2-numeric-types --strict`
+  valid.

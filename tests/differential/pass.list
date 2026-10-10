@@ -1,10 +1,9 @@
-# Differential programs the new compiler passes (spec testing/differential-tests). Only grows; by the end of
-# m2-numeric-types it names every program. One <group>/<name> per line; run with: run_legacy_tests.py --suite corpus
-# --corpus-root tests/differential --list tests/differential/pass.list --qb64 target/release/qb64rust.exe
-# The full programs declare all 17 numeric types, so none compiles before the new types do. The old6 group (the six
-# old types only, DECISIONS.md 2026-10-08): 27 of 48 on 2026-10-08; all 48 since 2026-10-09 (its fold and print
-# programs with design D7, group 4). The 59 full programs: all since 2026-10-09 (task group 5). Tier 1 requires a program here as soon as it compiles cleanly ("clean programs
-# are listed").
+# Differential programs the new compiler passes (spec testing/differential-tests): every program since
+# m2-numeric-types task group 5 (2026-10-09). Only grows. One <group>/<name> per line; run with: run_legacy_tests.py
+# --suite corpus --corpus-root tests/differential --list tests/differential/pass.list --qb64 target/release/qb64rust.exe
+# The six-type group old6 (DECISIONS.md 2026-10-08), which tier 2 ran while the full programs could not compile,
+# went with task 10.1 once they all passed. Tier 1 requires a program here as soon as it compiles cleanly ("clean
+# programs are listed").
 fold/add
 fold/and
 fold/andalso
@@ -25,54 +24,6 @@ fold/orelse
 fold/pow
 fold/sub
 fold/xor
-old6/fold_add
-old6/fold_and
-old6/fold_andalso
-old6/fold_div
-old6/fold_eq
-old6/fold_eqv
-old6/fold_ge
-old6/fold_gt
-old6/fold_idiv
-old6/fold_imp
-old6/fold_le
-old6/fold_lt
-old6/fold_mod
-old6/fold_mul
-old6/fold_ne
-old6/fold_or
-old6/fold_orelse
-old6/fold_pow
-old6/fold_sub
-old6/fold_xor
-old6/ops_add
-old6/ops_and
-old6/ops_andalso
-old6/ops_div
-old6/ops_eq
-old6/ops_eqv
-old6/ops_ge
-old6/ops_gt
-old6/ops_idiv
-old6/ops_imp
-old6/ops_le
-old6/ops_lt
-old6/ops_mod
-old6/ops_mul
-old6/ops_ne
-old6/ops_or
-old6/ops_orelse
-old6/ops_pow
-old6/ops_sub
-old6/ops_xor
-old6/print_print
-old6/store_double
-old6/store_float
-old6/store_int64
-old6/store_integer
-old6/store_long
-old6/store_single
-old6/unary_unary
 ops/add
 ops/and
 ops/andalso

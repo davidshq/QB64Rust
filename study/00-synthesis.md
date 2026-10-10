@@ -686,6 +686,15 @@ Measured for the new numeric types and fixed-length strings (2026-10-08, `m2-num
   n` counts n bits (`HEX$` (n + 3) \ 4 digits, place or not; `SQR` SINGLE up to 16 bits; `CINT`/`CLNG` range checks by
   n), `EXP` of any `_BIT` is `_FLOAT`, `_ROUND` of an `_OFFSET` keeps its type, `VAL` with any unsigned integer type
   is `qbs_val<uint64_t>` typed `_UNSIGNED _INTEGER64`.
+- **Rejections measured while bringing the types in (`v21_x46`–`x57`, 2026-10-09, task groups 4 and 8 and the review
+  after them):** `_UNSIGNED` before a user type is "Type cannot be _UNSIGNED" (`x46`); a FUNCTION named `` fb` ``
+  compiles while it is not called (`x48`) and a call is "Name already in use" (`x47`). **A name `x$n` beside a
+  procedure of another type is "Name already in use"**: beside a SUB `s`, `s$5` as a store, a value or in `DIM`
+  (`x50`–`x52`), and beside a FUNCTION `fl&`, `fl$5` (`x53`). A FUNCTION `fs$5`'s name is a procedure's only for
+  variable names and calls: `SUB fs$5` is "Type symbols after a SUB name are invalid" (`x54`), `CONST fs$5` "Invalid
+  constant type" (`x55`), `CALL fs$5(…)` "Expected CALL sub-name" (`x56`), a `TYPE` member `fs$5` "Invalid name"
+  (`x57`). `qb64rust` reads `name$n` as a procedure's name in one place (`Checker::proc_fixed_name`) and keeps the
+  forms of `x54`–`x57` "not supported yet".
 - **From the differential recordings (`tests\differential`, task 2.3):** all 59 programs build and run to their
   last line with `qb64pe.exe`, and two recordings agree. **A `_FLOAT` literal is written as a C++ double**:
   `1.18973149535723176F+4932` is infinite, so the largest `_FLOAT` a program can write is about
@@ -757,7 +766,8 @@ crashing the program (D-006); `CONST 1 / 0` giving 0 and `CONST 2 ^ 70` wrapping
 (D-007); `label: CONST …` on one line failing to compile (D-008); `_BIT * n` with n > 32 overwriting 4 bytes
 of the `_BIT` scalar allocated before it (D-009; the victim measured by `verification\v21_b_bit_overlap`); `INF` printed with padding and a stray `D` (D-010); the console `tab()` hang and the
 `CONOUT$` handle leak (D-011); runtime errors exiting 0 (D-012); `_LogMinLevel` and `_ScreenExists` registered
-without a return type (D-013). Rejected by both compilers, so no register row, only a proper message: `ELSE` while an
+without a return type (D-013); two calls of a FUNCTION `f$n` in one expression reading memory the FUNCTION had
+released (2026-10-09, D-014). Rejected by both compilers, so no register row, only a proper message: `ELSE` while an
 inner `FOR` is open (the old one fails in C++), `CONST … \ 0` and `MOD 0` (the old compiler crashes) and
 `CONST (-8) ^ (1 / 3)` (an internal compiler error).
 
@@ -769,6 +779,10 @@ bits are compile errors, as QB64pe fails to build them, and a signed radix liter
 QB64pe ("Overflow"); `STRING * n` wraps n to 32 bits,
 a `_BIT` value reads as `_INTEGER64` and a FUNCTION named with a bare `` ` `` cannot be called, as in QB64pe.
 Improvements in `SOMEDAY.md`.
+
+Which test pins each choice is the "Pinned by" column of its register row. After `m2-numeric-types` (2026-10-09) every
+row is pinned by a slice program, a snapshot or a CLI test except D-010 to D-012 and Q-006 (they wait for the runtime
+copy, M3), D-013 (it waits for its two built-ins) and Q-007 (measured on the old compiler only).
 
 The full catalogue of about 45 accidental behaviours: `01` §11.3, `02` §9.2, `04` G.4; only the ones above have been
 run. A newly measured oddity follows the same rule, without asking the user: a crash, hang, memory corruption or

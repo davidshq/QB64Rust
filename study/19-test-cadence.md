@@ -88,4 +88,5 @@ test.
   `qb64rust` (a step after the upstream pass list; an empty list runs nothing and passes). Measured locally with the
   release build: **about 2.1 s per program** (build and run, 27 programs of the six-type subset, 1.8–4.6 s, 57 s in
   all), so the whole set, once every program is on the list, costs about 2–4 minutes of CI; no program comes near
-  the 20 s at which design D2 splits it. Recording all 59 with `qb64pe.exe` (two runs each) takes 211 s.
+  the 20 s at which design D2 splits it. Recording all 59 with `qb64pe.exe` (two runs each) takes 211 s. Since
+  2026-10-09 (task 10.1) the set is the 59 programs, all on the pass list; `old6` went once they all passed.

@@ -11,8 +11,8 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 19 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants; `SOURCE.md`) |
-| `slice.list` | The 129 programs the new compiler must pass: all 22 of `slice\` and 107 of `runtime_comparison` (see below) |
+| `slice\` | 34 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings; `SOURCE.md`) |
+| `slice.list` | The 198 programs the new compiler must pass: all 34 of `slice\`, 162 of `runtime_comparison` and `verification\` `v11`, `v12` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -117,13 +117,16 @@ signed overflow being undefined in the generated C++ (no `-fwrapv`); the new com
 `slice\` holds programs written for QB64Rust, recorded with `qb64pe.exe` like the rest: `s01`–`s07` by the change
 `m2-workspace-and-slice`, `s08`–`s12` (procedures, error handling) by `m2-procedures-and-errors`, `s13`–`s19`
 (control flow, operators, constants, header errors) by `m2-control-flow-slice`, `s20`–`s22` (arrays, `TYPE`, the
-store rule of each place) by `m2-arrays-and-types` (`SOURCE.md`).
+store rule of each place) by `m2-arrays-and-types`, `s23` by `m2-parser-breadth`, `s24` for a bug fix, `s25`–`s29` (built-ins,
+`SELECT CASE`, `ON … GOTO`) by `m2-core-builtins`, `s30`–`s34` (the numeric types, `_BIT`, fixed-length strings) by
+`m2-numeric-types` (`SOURCE.md`).
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
 line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
 
-`slice.list` names the 129 programs the new compiler must pass (tier 2, `study\19`), also with
+`slice.list` names the 198 programs the new compiler must pass (tier 2, `study\19`), also with
 `QB64RUST_NO_FOLD=1`. `s13`–`s19` joined it with `m2-control-flow-slice` (`s17` with task 3.2, the rest with task
-8.1), `s20`–`s22` and 13 `runtime_comparison` programs with `m2-arrays-and-types` task 7.1.
+8.1), `s20`–`s22` and 13 `runtime_comparison` programs with `m2-arrays-and-types` task 7.1, 61 programs with
+`m2-core-builtins` (below), `s30`–`s34` and `198_type_fixed_string` with `m2-numeric-types`.
 
 ```
 cargo build --release
@@ -136,6 +139,24 @@ requires no panic, an exact round trip, no diagnostics for the listed ones, at l
 with an `.err` file, and the two shrink-only lists `tests\known_false_errors.list` and
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
+
+### Full corpus with `qb64rust` (2026-10-09, after the numeric types; not a pass criterion)
+
+After `m2-numeric-types` (task 10.1, release build, against the reference clone), 297 programs (`s30`–`s34` new):
+
+| Result | Programs |
+|---|---|
+| Pass | 214: the 198 of `slice.list` and the same 16 `.err` programs |
+| Rejected with a diagnostic (exit status 1) | 74 (73 `.output` programs and the compile-only `239_lprint`) |
+| `.err` programs that get only "not supported yet" errors | the same 4 (`16`, `28`, `202`, `218`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+One `runtime_comparison` program joined `slice.list` over the change, `198_type_fixed_string`; no other program
+was waiting only on the new types or fixed-length strings. The rejected ones are blocked by what step 9 of
+`STATUS.md` "Next" brings (built-in statements and functions: file I/O, `DATA`/`READ`, `SWAP`, `RND`, `SHELL`,
+`ENVIRON$`, the `MID$` statement, `_SHL`, `_MIN`, `TAB` and the rest) and step 11 (`REDIM`, dynamic arrays, `OPTION BASE`, `DEFxxx`, string and array
+members, whole-`TYPE` assignment).
 
 ### Full corpus with `qb64rust` (2026-10-08, after the core built-ins; not a pass criterion)
 

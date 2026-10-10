@@ -675,25 +675,10 @@ fn print_program(ts: &[&NumTy]) -> String {
     p.finish("PRINT and STR$ of every numeric type's values, from variables and as literals.")
 }
 
-/// The six numeric types of the old `sema` (`INTEGER`, `LONG`, `_INTEGER64`, `SINGLE`, `DOUBLE`, `_FLOAT`): the
-/// `old6` group repeats every program for these alone, so that what today's compiler handles is checked in tier 2
-/// while the full programs cannot compile yet (`DECISIONS.md` 2026-10-08).
-pub const OLD6: [&str; 6] = ["INTEGER", "LONG", "INT64", "SINGLE", "DOUBLE", "FLOAT"];
-
-/// Every differential program, in a fixed order: the full programs, then the `old6` group (`<group>/<name>.bas` of
-/// the six-type subset as `old6/<group>_<name>.bas`, with a header line naming the subset).
+/// Every differential program, in a fixed order. (The six-type group `old6` that tier 2 ran while these could not
+/// compile went when they all passed, as `DECISIONS.md` 2026-10-08 says.)
 pub fn generate() -> Vec<File> {
-    let mut out = generate_for(|_| true);
-    out.extend(generate_for(|t| OLD6.contains(&t.key)).into_iter().map(|f| File {
-        path: format!("old6/{}", f.path.replace('/', "_")),
-        text: f.text.replacen(
-            "$CONSOLE:ONLY\n",
-            "$CONSOLE:ONLY\n' Group old6: the program for the six numeric types INTEGER, LONG, _INTEGER64, SINGLE, \
-             DOUBLE and _FLOAT only.\n",
-            1,
-        ),
-    }));
-    out
+    generate_for(|_| true)
 }
 
 /// The programs restricted to the types `keep` selects (`gen --types`), for a look at part of the type set: the
@@ -885,28 +870,6 @@ mod tests {
         let idiv = files.iter().find(|f| f.path == "ops/idiv.bas").unwrap();
         assert!(idiv.text.contains("D-006") && !idiv.text.contains("vlong_min \\ vlong_m1"));
         assert!(!idiv.text.contains("\\ vlong_zero"));
-    }
-
-    /// The `old6` group: one program per full program, for the six types only.
-    #[test]
-    fn old6_is_the_six_type_subset() {
-        let files = generate();
-        let full: Vec<&File> = files.iter().filter(|f| !f.path.starts_with("old6/")).collect();
-        let old6: Vec<&File> = files.iter().filter(|f| f.path.starts_with("old6/")).collect();
-        assert_eq!(
-            old6.len(),
-            full.len() - (TYPES.len() - OLD6.len()),
-            "one store program per kept type"
-        );
-        for k in OLD6 {
-            assert!(TYPES.iter().any(|t| t.key == k), "{k}");
-        }
-        for f in &old6 {
-            assert!(f.text.contains("' Group old6:"), "{}", f.path);
-            for t in TYPES.iter().filter(|t| !OLD6.contains(&t.key)) {
-                assert!(!f.text.contains(&format!(" AS {}\n", t.decl)), "{}: {}", f.path, t.key);
-            }
-        }
     }
 
     #[test]

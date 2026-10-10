@@ -305,7 +305,7 @@ fn every_input_goes_through_the_front_end() {
         count("upstream")
     );
     assert!(
-        count("differential") >= 107,
+        count("differential") >= 59,
         "found only {} differential programs",
         count("differential")
     );

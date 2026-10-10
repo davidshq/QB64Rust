@@ -18,6 +18,7 @@ const/const_sub
 const/expression
 const/hex_literals
 const/not_string
+const/offset
 const/too_few_arguments_to_boolean
 const/type_mismatch_string_integer
 const/type_mismatch_string_subtract

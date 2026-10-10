@@ -176,3 +176,11 @@ new numeric types). `const/expression` now compiles cleanly (its `CONST const__u
 held values of `~&&` literals) and passes against the reference clone; added to `pass.list`. `const/offset`, which
 the old compiler rejects, now gets its real error (`234%&`: an `_OFFSET` suffix after a number) and left
 `known_unsupported_rejections.list`. The full run comes with task 10.1 of the change.
+
+**Upstream progress, 2026-10-09: 45 of 279** (`m2-numeric-types` done: task groups 8 and 9 brought
+`const/hex_literals`, task 10.1 `const/offset`). Full run with the release build against the reference clone (404
+programs, task 10.1): 47 pass, the 45 of `pass.list` and the two `VAL` programs of
+`tests\known_clean_not_passing.list`; 312 are rejected with a diagnostic (296 with an `.output`, 16 compile-only),
+44 `.err` programs get only "not supported yet" errors; 1 known failure. None builds and prints the wrong output, no
+compiler crash. Added to `pass.list`: `const/offset`, an `.err` program that gets its real error since task group
+4.

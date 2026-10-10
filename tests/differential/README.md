@@ -8,7 +8,7 @@ generator).
 
 ## Groups
 
-107 programs: 59 for all numeric types, and the same 48 again in `old6` for the six old types only. The numeric types (`crates\difftest\src\lib.rs`, `TYPES`): `_BYTE`, `INTEGER`, `LONG`, `_INTEGER64`,
+59 programs, each for all numeric types. The numeric types (`crates\difftest\src\lib.rs`, `TYPES`): `_BYTE`, `INTEGER`, `LONG`, `_INTEGER64`,
 `_OFFSET`, each also `_UNSIGNED`; `_BIT`, `_UNSIGNED _BIT * 7`, `_BIT * 24`, `_UNSIGNED _BIT * 40` (four widths stand
 for `_BIT * n`: 1 bit, narrow, `int32` storage, `int64` storage); `SINGLE`, `DOUBLE`, `_FLOAT`. Each type has seven
 value slots: its extremes, -1 (an unsigned type's largest value, the bits of -1), 0, 1 (0 for the 1-bit `_BIT`,
@@ -24,11 +24,10 @@ compiler writes a `_FLOAT` literal as a C++ double (`1.18973149535723176F+4932` 
 | `unary` | `unary.bas` | `-`, `NOT`, `_NEGATE` on every type's slots |
 | `store` | one per target type (17) | every type's slots stored into a variable of the target type, then printed |
 | `print` | `print.bas` | `PRINT` and `STR$` of every type's slots from variables, and of every literal of the `fold` group |
-| `old6` | the programs above for `INTEGER`, `LONG`, `_INTEGER64`, `SINGLE`, `DOUBLE`, `_FLOAT` only, named `<group>_<name>.bas` (48: one `store` per kept type) | as above, with the same values; a header line names the subset |
 
-`old6` exists because every full program declares all 17 types and so cannot compile before the new types do; the
-subset is what today's compiler can build, so tier 2 guards it while the new types come in (`DECISIONS.md`
-2026-10-08). It goes when the full programs pass.
+A six-type group `old6` (the same programs for `INTEGER`, `LONG`, `_INTEGER64`, `SINGLE`, `DOUBLE`, `_FLOAT`
+only, 48) let tier 2 check today's types while the full programs could not compile (`DECISIONS.md` 2026-10-08); it
+went with task 10.1 of `m2-numeric-types` (2026-10-09), once all 59 passed.
 
 Each line is labelled with the operator, the types and the value pair (`^ LONG SINGLE 7:`), so a differing line
 names its case. Values are stored into their variables from literals of the variable's own type (the `_OFFSET`
@@ -60,8 +59,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --corpus-root tests
 `--record` uses `qb64pe.exe` (default build), runs each program twice and writes the `.output` only when both runs
 agree. A program whose text changed must be recorded again before it is committed. Recorded 2026-10-08 against the
 reference clone (`qb64pe.exe` 4.7.0): all 59 compile and run to their last line; 211 s for the whole set; a second
-`--record` changed no file. `--category <group>` and `--glob <name>.bas` record or run a part. `old6` recorded the same day (`--category
-old6`): all 48 run to their last line; 132 s.
+`--record` changed no file. `--category <group>` and `--glob <name>.bas` record or run a part.
 
 The recordings hold the old compiler's text for an infinite result (`DIVERGENCES.md` D-010): after `INF` come NUL
 bytes and the remains of a number printed earlier (`+ SINGLE SINGLE 1:-INF<NUL>2979E+11`), the same on every run.
@@ -70,7 +68,7 @@ change, and the programs that print them (`ops` and `fold`: `+ - * / ^`) get a `
 
 `gen --out <dir> --types <KEY,...>` writes the same programs for some of the types only (keys as in the labels,
 e.g. `BYTE,UBYTE,LONG`), to record and run elsewhere. Such a subset is never written into this folder (`gen`
-refuses); the one subset kept here is `old6`.
+refuses).
 
 ## Tiers
 
@@ -80,10 +78,9 @@ refuses); the one subset kept here is `old6`.
 - Tier 2 and CI (`rust.yml`, job `tier2`): the programs of `pass.list` built and run with `qb64rust`.
 
 `pass.list` names the programs the new compiler passes, one `<group>/<name>` per line. It only grows; by the end of
-`m2-numeric-types` it names every program. On 2026-10-08 it named 27 of `old6` (all `ops`, the six `store`,
-`unary`); `old6`'s 20 `fold` programs and `print` stopped at "overflow" for literals beyond INTEGER and LONG
-(`32768%`), which the old compiler accepts. Since 2026-10-09 (design D7, task group 4: a suffixed literal held as
-C++ types its digits, believed the suffix's type) it names all 48 of `old6`; this also fixed the 14 lines of
-`fold_add`, `fold_sub` and `fold_mul` where `-2147483648&` must be held in 64 bits. Since 2026-10-09 (task group 5:
-the typing rules, conversions and C++ of the new types, corrected against these programs, `study\00` §5) it names
-all 59 full programs too, 107 in all; the 40 `fold` programs also pass with folding off (`QB64RUST_NO_FOLD=1`).
+`m2-numeric-types` it names every program. On 2026-10-08 it named 27 of the six-type group `old6`; since
+2026-10-09 (design D7, task group 4: a suffixed literal held as C++ types its digits, believed the suffix's type) all
+48 of it, which also fixed the 14 lines of its `fold` add, subtract and multiply programs where `-2147483648&` must be
+held in 64 bits. Since 2026-10-09 (task group 5: the typing rules, conversions and C++ of the new types, corrected
+against these programs, `study\00` §5) it names all 59 programs; the 40 `fold` programs also pass with folding off
+(`QB64RUST_NO_FOLD=1`). `old6` went with task 10.1 (above).

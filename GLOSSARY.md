@@ -92,6 +92,18 @@ number, a decimal number, a string and so on.
 **Here:** `sema`'s main output. In `a% + 1.5`, every part gets a type: `a%` is INTEGER, `1.5` is SINGLE, and the
 sum is computed as SINGLE. The IR is built from this tree.
 
+### Held type / believed type
+
+**Simply:** what a box really holds, and what its label says. Usually they agree; when they don't, what you get
+out depends on whether you open the box or read the label.
+
+**Here:** the old compiler writes C++, and C++ has its own rules for the type of a sum or a literal. The *held*
+type is the C++ type a value really has when the program runs; the *believed* type is what the old compiler thinks
+it is, which decides how it treats the value next (which conversion, which `PRINT`). They differ, for example, for
+`-2147483648&`: its digits `2147483648` are too big for a 32-bit C++ number, so it is held as a 64-bit one, but
+believed LONG because of the `&`. `sema` tracks both (`crates\sema\src\check\ops.rs` `held`, design D4 and D7 of
+`m2-numeric-types`), so programs compute exactly what the old compiler's programs compute.
+
 ### Symbol table
 
 **Simply:** a phone book of everything that has a name in the program. For each name it says where it was
@@ -198,6 +210,19 @@ the smallest value is called wrapping.
 **Here:** a BASIC `LONG` holds up to 2,147,483,647. Adding 1 to that wraps to -2,147,483,648, matching what the
 old compiler's normal build does. This is a recorded project decision, and it applies to `_INTEGER64` too, both
 in the running program and in constant folding.
+
+## Testing
+
+### Differential testing
+
+**Simply:** checking a new calculator by typing the same sums into it and into an old one you trust, and comparing
+the answers. You don't need to know the right answer to every sum; any difference is a bug in one of them.
+
+**Here:** `crates\difftest` writes BASIC programs that try every operator on every pair of numeric types, with
+extreme and random values, as variables and as literals (`tests\differential`). Each program's output is recorded
+once from `qb64pe.exe`; tier 2 compiles the same program with `qb64rust` and requires the same output. Only cases
+that crash the old compiler's program or fail to compile are left out (each program's header names them); any
+other difference is fixed in the new compiler or becomes a decided row in `DIVERGENCES.md`.
 
 ## Editor tooling
 

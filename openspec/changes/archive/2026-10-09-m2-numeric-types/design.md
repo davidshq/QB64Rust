@@ -125,7 +125,8 @@ compiler writes a `_FLOAT` literal as a C++ double, so `1.18973149535723176F+493
 `qb64rust` before the new types do (task 2.6); `gen --types` writes a subset elsewhere for a look at part of the
 set. Per program: about 2.1 s with `qb64rust` (`study\19` §6), far from the 20 s split. *Changed after review
 (`DECISIONS.md` 2026-10-08, task 2.7):* the six-type subset is also kept, recorded, as the group `old6` (48
-programs), so tier 2 covers today's types until the full programs compile.
+programs), so tier 2 covers today's types until the full programs compile. Removed in task 10.1, once all 59 full
+programs passed.
 
 ### D3. `Ty` gains variants and loses its derived order
 

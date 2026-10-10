@@ -1,10 +1,10 @@
 # Status and next steps
 
-Updated 2026-10-09 (session 33). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-09 (session 35). Session-by-session history is in `git log`; measured facts are in `study\00`.
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Step 8's bug-compatibility decisions are taken (2026-10-08); OpenSpec change `m2-numeric-types` groups 1–9 are done (2026-10-09); next: its group 10 (integration: full runs, CI, docs).**
+Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests, control-flow slice, arrays-and-`TYPE` slice and parser breadth done and archived (2026-10-07): every program the old compiler accepts parses, and no false error is left. The core built-ins tranche with `SELECT CASE` and `ON … GOTO/GOSUB` (step 6 below) is done and archived (2026-10-08). The thin language server (step 7, OpenSpec change `m2-language-server`) is done and archived (2026-10-08), checked locally; its CI run on GitHub (task 5.1) is still to be seen after the next push. Step 8's bug-compatibility decisions are taken (2026-10-08); OpenSpec change `m2-numeric-types` is done and archived (2026-10-09), all ten groups, checked locally against the QB64pe 4.7.0 release; left: its CI run on GitHub after the next push (task 10.2). Next: step 9.**
 
 M0 delivered:
 - Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
@@ -247,9 +247,9 @@ is its `tasks.md`, and `git log`.
 7. Done 2026-10-08 (session 25), checked locally: the thin language server (`study\23` §2.6; design points
    `study\27` §6): OpenSpec change `m2-language-server`, archived, section above. Left: see the CI run on GitHub
    after the next push (task 5.1).
-8. **Next:** bug-compatibility decisions done 2026-10-08 (session 26; all of `study\00` §6, `DECISIONS.md`,
-   `DIVERGENCES.md` D-005–D-013, `DIVERGENCES-QB45.md` Q-003–Q-008). Left: OpenSpec change `m2-numeric-types`
-   (proposed 2026-10-08): the differential tester, the full numeric type set and fixed-length strings
+8. Done 2026-10-09 (session 35), checked locally: bug-compatibility decisions done 2026-10-08 (session 26; all of
+   `study\00` §6, `DECISIONS.md`, `DIVERGENCES.md` D-005–D-013, `DIVERGENCES-QB45.md` Q-003–Q-008); then OpenSpec
+   change `m2-numeric-types` (proposed 2026-10-08, archived 2026-10-09): the differential tester, the full numeric type set and fixed-length strings
    (`Ty` stays an enum with an explicit rank; no type table, `study\27` §5), and the decided fixes D-005–D-009 and the
    `CONST` `^` warning. D-010–D-012 are libqb's and wait for the runtime copy (M3); D-013 for its two built-ins.
    **Group 1 (measurements) done 2026-10-08 (session 27):** `verification\v21_*` (`study\00` §5), the spec deltas
@@ -300,9 +300,19 @@ is its `tasks.md`, and `git log`.
    (measured, `verification\v21_x50`–`x57`: QB64pe rejects all eight; beside a SUB or a FUNCTION of another type
    `x$n` is "Name already in use", as qb64rust says); the extension reads a warning line with a column
    (`file:line:col:`) too.
-   **Next: group 10, integration** (full runs with the release build, the CI `tier2` steps against the 4.7.0
-   release, docs).
-9. Built-in statements and functions by demand (`study\27` §3): a built-in statement operation in the IR, then
+   **Group 10 (integration) done 2026-10-09 (session 35):** full runs (numbers below): nothing wrong at run time,
+   no crash; upstream `const/offset` joined `pass.list`; the six-type differential group `old6` removed, as decided
+   when it was added (the 59 full programs all pass). The CI `tier2` steps run locally against the 4.7.0 release:
+   slice 198 of 198, upstream 45 of 45, differential 59 of 59 (about 12 min in all). Docs: `crates\README.md`, `study\00` §5 and §6, `GLOSSARY.md` (held and believed types,
+   differential testing), `ROADMAP.md`. Record in `tasks.md` 10.1–10.3.
+   **Archived 2026-10-09** to `openspec\changes\archive\2026-10-09-m2-numeric-types\` (record in its `tasks.md`), its
+   specs now the main specs (new: `openspec\specs\language\fixed-length-strings`, `testing\differential-tests`;
+   updated: `compiler\cli`, `compiler\pipeline`, `language\arrays-and-types`, `language\builtin-functions`,
+   `language\constants`, `language\control-flow`, `language\numeric-semantics`, `language\procedures`); the
+   numeric-semantics spec's "unspecified" sentence for `\ -1` went with it (task 9.2). **Left:** the GitHub CI run
+   after the next push (task 10.2, left open when the change was archived; it also settles `m2-language-server`
+   task 5.1).
+9. **Next:** Built-in statements and functions by demand (`study\27` §3): a built-in statement operation in the IR, then
    sequential file I/O, `DATA`/`READ`/`RESTORE`, `SWAP`, `RANDOMIZE`/`RND`/`TIMER`, console `INPUT`/`LINE INPUT`,
    `SHELL`/`COMMAND$`/`ENVIRON$`, each measured first; the remaining plain functions as the corpus, upstream or a
    user names them.
@@ -311,12 +321,13 @@ is its `tasks.md`, and `git log`.
 11. `DEFxxx`, then the rest of arrays and `TYPE`: `REDIM`, dynamic arrays, `OPTION BASE`, plain member arrays
     (`study\26` §4; their `_STATIC`/`_DYNAMIC` markers stay in `SOMEDAY.md`).
 
-Numbers at the last full runs (2026-10-08, session 24, release build against the reference clone):
-`slice.list` 192 of 192, full corpus 208 pass and none wrong at run time, upstream **42 of 279** (44 pass against
-the clone; two need the `VAL` of libqb after the 4.7.0 release, `tests\upstream\README.md`; none wrong);
-shrink-only lists: **0 false errors, 0 parse gaps**, 65 only-marked rejections (`tests\upstream\README.md`).
-Tier 1: about 10 s. Upstream's number is expected to stay near 42 until steps 8, 10 and 11 (its blockers are
-types, `_DEST` and the rest of arrays, `study\27` §4); the corpus is the signal for steps 7–9.
+Numbers at the last full runs (2026-10-09, session 35, release build against the reference clone):
+`slice.list` 198 of 198, full corpus 214 pass and none wrong at run time, upstream **45 of 279** (47 pass against
+the clone; two need the `VAL` of libqb after the 4.7.0 release, `tests\upstream\README.md`; none wrong),
+differential 59 of 59; shrink-only lists: **0 false errors, 0 parse gaps**, 64 only-marked rejections
+(`tests\upstream\README.md`). Tier 1: about 10 s. Step 8 moved upstream only from 42 to 45: its remaining blockers
+are `_DEST` and the rest of arrays (steps 10 and 11, `study\27` §4); the corpus is the signal for step 9 (its 74
+rejected programs wait on built-in statements and functions, and on step 11, `tests\corpus\README.md`).
 
 **`m2-parser-breadth`** (2026-10-04 to 2026-10-07; archived 2026-10-07 to
 `openspec\changes\archive\2026-10-07-m2-parser-breadth\`, record in its `tasks.md`, its specs now the main specs:
