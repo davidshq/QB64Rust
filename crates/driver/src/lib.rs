@@ -1,6 +1,7 @@
 //! The compiler pipeline as a library, so that tests can run each stage; `main.rs` is the command line.
 
 pub mod build;
+pub mod report;
 
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_sema::Program;

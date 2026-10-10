@@ -5,6 +5,7 @@
 
 use std::fmt;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// The largest source file, in bytes: offsets are `u32`. A caller that reads a file checks this before handing
 /// the bytes to any stage; every count derived from one file (lines, tokens, names) then fits a `u32`.
@@ -233,6 +234,16 @@ impl Diagnostic {
 /// Maximum number of errors reported per run (design D4).
 pub const MAX_ERRORS: usize = 100;
 
+/// The cap in force: [`MAX_ERRORS`] unless [`lift_error_cap`] was called.
+static ERROR_CAP: AtomicUsize = AtomicUsize::new(MAX_ERRORS);
+
+/// Removes the error cap for the rest of the process. Only for `qb64rust --report`, which counts every error of
+/// every program (a compile run and the language server keep the cap); never called in a test process, whose
+/// other tests rely on the cap.
+pub fn lift_error_cap() {
+    ERROR_CAP.store(usize::MAX, Ordering::Relaxed);
+}
+
 /// Collects diagnostics, stopping at [`MAX_ERRORS`] errors with a final "too many errors".
 #[derive(Clone, Default, Debug)]
 pub struct Diagnostics {
@@ -252,7 +263,7 @@ impl Diagnostics {
             return;
         }
         if d.severity == Severity::Error {
-            if self.errors == MAX_ERRORS {
+            if self.errors == ERROR_CAP.load(Ordering::Relaxed) {
                 self.capped = true;
                 self.list.push(Diagnostic::error(d.span, "too many errors; stopping"));
                 return;

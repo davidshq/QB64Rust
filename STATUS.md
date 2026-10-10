@@ -19,7 +19,9 @@ Where everything else lives:
 
 M0 (baseline) and M1 (VS Code extension on the old compiler) are complete. **M2 (front end) is in progress**: steps
 1 to 9 of the order of work are done, the last being OpenSpec change `m2-builtin-statements` (all 41 tasks done,
-archived 2026-10-10).
+archived 2026-10-10). After it, the eighth review (`study\29`) and the small change it asked for before step 9a,
+`m2-demand-report-and-runner-tests` (archived 2026-10-10): `qb64rust --report unsupported` says what a set of
+programs still needs, and the test runner has tests of its own.
 The compiler parses every program the old compiler accepts with no false error, and compiles scalars, procedures,
 error handling, every operator, `CONST`, control flow, `SELECT CASE`, static arrays and `TYPE` of the main module,
 70 built-in functions, all 17 numeric types, fixed-length strings, sequential files, `DATA`/`READ`/`RESTORE`,
@@ -35,29 +37,36 @@ line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10)
   also builds `qb64pe.exe` there for the call-site check (`mingw32-make OS=win BUILD_QB64=y`, never tried on a
   GitHub runner). Work is checked locally; the user does not treat CI as a concern for now.
 
-Every question of the seventh review is answered (`study\28` §9, `DECISIONS.md` 2026-10-09): the local reference
-clone (`16f629784e`) is the one reference for the old compiler; Civil War Strategy is in `tests\programs` as the
-real-program graphics target; the formatter is out of M2's exit criterion; the call-site check is tried inside
-step 9; the screen-state check comes straight after step 9 (step 9a below).
+Every question of the seventh and eighth reviews is answered (`study\28` §9, `study\29` §8, `DECISIONS.md`
+2026-10-09 and 2026-10-10): the local reference clone (`16f629784e`) is the one reference for the old compiler;
+Civil War Strategy is in `tests\programs` as the real-program graphics target; the formatter is out of M2's exit
+criterion; the screen-state check comes next and needs no copy of libqb.
 
 ## Next
 
-The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3).
+The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3) and changed by the eighth
+(`study\29` §3: the last two steps swapped).
 
 9. Done: built-in statements and functions by demand (`m2-builtin-statements`). Further plain built-ins come in
    as programs name them, each with a call-site program (`crates\README.md`); what was left marked and why is in
    task 7.4 of the change.
-9a. **Next: the screen-state check, with the libqb copy** (`DECISIONS.md` 2026-10-09, `study\28` §3.1): copy
-    `..\QB64pe\internal\c` into this repo at `16f629784e`; add the exit hook that writes the screen state to a file
-    when a test asks; teach the runner to record it with the old compiler and compare it for the new one. Its own
-    OpenSpec change, design first: what is written per screen mode, how a program ends by itself, scripted keys,
-    a fixed seed. First recordings need only the old compiler: small drawing programs cut from Civil War Strategy
-    (`tests\programs\README.md`, stage 2), then upstream's programs without `$CONSOLE:ONLY` and `qbasic_testcases`.
-10. `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE`, measured first (`study\26` §5); check once that the GitHub
-    Windows runner can start the hidden window.
-11. `DEFxxx`, then the rest of arrays and `TYPE`: `REDIM`, dynamic arrays, `OPTION BASE`, plain member arrays
-    (`study\26` §4; their `_STATIC`/`_DYNAMIC` markers stay in `SOMEDAY.md`). `DEFINT`, `COMMON` and arrays in
-    procedures are also the first things Civil War Strategy needs (`tests\programs\README.md`).
+9a. **Next: the screen-state check** (`DECISIONS.md` 2026-10-10, `study\29` §2): one C++ file of this repo that
+    writes the screen state to a file at exit (`atexit`) when a test asks, linked into the programs of both
+    compilers through the extra flags that exist (`-f:ExtraLinkerFlags=`, `CXXLIBS_EXTRA`), the clone untouched;
+    the runner records it with the old compiler and compares it for the new one; a key helper for windowed
+    programs. One small OpenSpec change, design first, **measured first**: that the hook sees the pages from its
+    own file and runs at every kind of exit (`SYSTEM`, `END`, the window closed, a runtime error), what is written
+    per screen mode, and that keys posted to the window reach `INKEY$` and `END`'s wait. Test programs end with
+    `SYSTEM` (`END` prints its prompt into the window first). First recordings need only the old compiler:
+    upstream's 47 programs without `$CONSOLE:ONLY`, then small drawing programs cut from Civil War Strategy
+    (`tests\programs\README.md`, stage 2), then `qbasic_testcases`. No copy of libqb and no fixed-seed session of
+    the whole game in this change.
+10. (was 11) `DEFxxx` and `COMMON`, then the rest of arrays and `TYPE`: arrays in procedures, `REDIM`, dynamic
+    arrays, `OPTION BASE`, plain member arrays (`study\26` §4; their `_STATIC`/`_DYNAMIC` markers stay in
+    `SOMEDAY.md`). The only step that moves the corpus, upstream and Civil War Strategy at once; scope it with
+    `qb64rust --report unsupported` over the three.
+11. (was 10) `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE`, measured first (`study\26` §5); check once that
+    the GitHub Windows runner can start the hidden window.
 
 ## Numbers at the last full runs
 
@@ -74,12 +83,14 @@ All of them: 2026-10-10, session 39, release build against the reference clone, 
 | Differential | 59 of 59 |
 | Shrink-only lists | 0 false errors, 0 parse gaps, 64 only-marked rejections (`tests\upstream\README.md`) |
 | Tier 1 (`cargo test`) | about 20 s |
+| The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 41 pass, under a second |
+| Demand (`qb64rust --report unsupported`, 2026-10-10) | Corpus: 27 programs held back, 14 of them by one message each. Upstream (348 without an `.err`): 300 held back; arrays as `TYPE` members 152 programs, `REDIM` 148, `$Unstable` 85, `LBOUND` of an expression 63, `_DEST` 54. Civil War Strategy: 1,740 marked errors in 38 messages (`LINE` 899, `COLOR` 190, `LOCATE` 145) |
 | Tier 2 as CI runs it, locally | about 12 min at the last full build; about 2 min with `--jobs 8 --build-cache` when little C++ changed |
 | Full corpus with the old compiler (2026-10-10) | 300 pass, 5 known failures; about 12 min with one job, 3 min 44 s with `--jobs 8` (`tools\legacy_tests\README.md`) |
 
-How to read them: the corpus has given most of what it can before step 11 (11 of its 26 rejected programs wait
+How to read them: the corpus has given most of what it can before step 10 (11 of its 27 rejected programs wait
 on arrays, `TYPE` and `DEFINT`; the rest on `PRINT USING`/`TAB`/`SPC`, random files and a few functions). Upstream
-will stay near 50 until steps 10 and 11: its blockers are `_DEST` and the rest of arrays (`study\27` §4).
+will stay near 50 until steps 10 and 11: its blockers are the rest of arrays and `_DEST` (`study\27` §4).
 
 ## Known bugs
 

@@ -46,6 +46,9 @@ jobs:
       # CI is set, so insta fails on a changed snapshot instead of writing a .snap.new file.
       - run: cargo test --workspace --locked
 
+      # The test runner's own rules (what "pass" means, what gets recorded): standard library only, no compiler.
+      - run: python -m unittest discover -s tools/legacy_tests -p "test_*.py"
+
   # Licences, advisories and sources of the dependencies (deny.toml; study\21 item 7). The action runs on Linux;
   # the dependency graph is the same on every platform.
   deny:
@@ -61,7 +64,9 @@ jobs:
   # older and ships it under internal\c\c_compiler. Written 2026-10-09 and not yet seen running on GitHub. The
   # upstream programs come from the copy in tests\upstream, which holds every file the pass list needs.
   # The call-site check (tools\callsite, DECISIONS.md 2026-10-10) needs the old compiler itself, so qb64pe.exe is
-  # built once from the checked-out sources, as setup_win.cmd builds it, and cached with them.
+  # built once from the checked-out sources, as setup_win.cmd builds it, and cached with them. The release's
+  # qb64pe.exe will not do: the reference commit's compiler writes other C++ for VAL(s$, SINGLE) and VAL(s$,
+  # DOUBLE) (study\29 section 8).
   tier2:
     runs-on: windows-latest
     timeout-minutes: 45

@@ -3,9 +3,12 @@
 //! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
 //! [--qb64pe-root <dir>] [--include-root <dir>] [--keep-build]`
 //!
+//! `qb64rust --report unsupported <file or folder>... [--include-root <dir>]`: what a set of programs still needs
+//! (`report.rs`).
+//!
 //! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
 
-use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit, frontend_with};
+use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit, frontend_with, report};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -13,11 +16,15 @@ use std::sync::Mutex;
 
 const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--include-root <dir>] [--keep-build]\n\
-       qb64rust lsp     (the language server, over stdin and stdout)";
+       qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
+       qb64rust lsp    (the language server, over stdin and stdout)";
 
 #[derive(Default)]
 struct Options {
-    input: Option<PathBuf>,
+    /// One file to compile; with `--report`, any number of files and folders.
+    inputs: Vec<PathBuf>,
+    /// `--report unsupported`.
+    report: bool,
     output: Option<PathBuf>,
     quiet: bool,
     cpp_only: bool,
@@ -77,11 +84,20 @@ fn parse_args() -> Result<Options, String> {
             "--qb64pe-root" => o.root = Some(PathBuf::from(value("--qb64pe-root")?)),
             "--include-root" => o.include_root = Some(PathBuf::from(value("--include-root")?)),
             "--keep-build" => o.keep_build = true,
+            "--report" => {
+                let r = value("--report")?.to_string_lossy().to_string();
+                if r != "unsupported" {
+                    return Err(format!("unknown --report `{r}`"));
+                }
+                o.report = true;
+            }
             _ if s.starts_with("-f:") => o.settings.push(s["-f:".len()..].to_string()),
             _ if s.starts_with('-') => return Err(format!("unknown option `{s}`")),
-            _ if o.input.is_some() => return Err("more than one input file".into()),
-            _ => o.input = Some(PathBuf::from(a)),
+            _ => o.inputs.push(PathBuf::from(a)),
         }
+    }
+    if o.inputs.len() > 1 && !o.report {
+        return Err("more than one input file".into());
     }
     Ok(o)
 }
@@ -164,9 +180,36 @@ fn lsp(arg_count: usize) -> ExitCode {
     }
 }
 
+/// The compiler root (spec `compiler/cli`): `--include-root`, resolved against the working directory now, or the
+/// folder of this executable.
+fn include_root(o: &Options) -> Result<PathBuf, String> {
+    match &o.include_root {
+        Some(r) => std::path::absolute(r).map_err(|e| e.to_string()),
+        None => Ok(std::env::current_exe()
+            .map_err(|e| e.to_string())?
+            .parent()
+            .map_or_else(PathBuf::new, Path::to_path_buf)),
+    }
+}
+
+/// `--report unsupported`: the table of `report.rs` for the files and folders given, with the error cap lifted so
+/// that a large program counts in full. The exit status is 0 whatever the programs hold: the report is no verdict.
+fn report_unsupported(o: &Options) -> Result<ExitCode, String> {
+    qb64rust_base::lift_error_cap();
+    print!("{}", report::unsupported(&o.inputs, &include_root(o)?)?);
+    Ok(ExitCode::SUCCESS)
+}
+
 fn run() -> Result<ExitCode, String> {
     let o = parse_args().map_err(|e| format!("{e}\n{USAGE}"))?;
-    let input = o.input.clone().ok_or_else(|| format!("no input file\n{USAGE}"))?;
+    let input = o
+        .inputs
+        .first()
+        .cloned()
+        .ok_or_else(|| format!("no input file\n{USAGE}"))?;
+    if o.report {
+        return report_unsupported(&o);
+    }
     let bytes = std::fs::read(&input).map_err(|e| format!("cannot read {}: {e}", input.display()))?;
     if bytes.len() > qb64rust_base::MAX_SOURCE_LEN {
         let max = qb64rust_base::MAX_SOURCE_LEN;
@@ -195,15 +238,7 @@ fn run() -> Result<ExitCode, String> {
         print!("{}", qb64rust_syntax::dump_tokens(&bytes));
         return Ok(ExitCode::SUCCESS);
     }
-    // The compiler root (spec `compiler/cli`): `--include-root`, resolved against the working directory now, or the
-    // folder of this executable.
-    let include_root = match &o.include_root {
-        Some(r) => std::path::absolute(r).map_err(|e| e.to_string())?,
-        None => std::env::current_exe()
-            .map_err(|e| e.to_string())?
-            .parent()
-            .map_or_else(PathBuf::new, Path::to_path_buf),
-    };
+    let include_root = include_root(&o)?;
     let fe = frontend_with(&name, bytes, |file| {
         Box::new(FileLoader::new(&include_root, file, &input))
     });

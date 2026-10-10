@@ -25,7 +25,8 @@ stands. Three stages (`study\28` §4):
 
 - `qb64pe.exe -x CWSTRAT.BAS` (the reference clone, `16f629784e`) builds the game in 14 s.
 - `qb64rust --dump typed CWSTRAT.BAS`: 100 errors (the cap), all "not supported yet"; the first are `DEFINT` and
-  `COMMON`.
+  `COMMON`. Without the cap (`qb64rust --report unsupported tests\programs`, 2026-10-10): 1,740 marked errors in
+  38 messages; run it again to see what the game needs now.
 - 48 distinct built-ins of the built-in table are used, 6 of them compiled so far (`LEN`, `INT`, `ASC`, `ABS`,
   `INSTR`, `SQR`). The most used of the rest: `LINE` 899, `COLOR` 190, `LOCATE` 145, `PAINT` 89, `RND` 73, `DRAW`
   71, `PSET` 50.

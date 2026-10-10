@@ -51,7 +51,17 @@ target\release\qb64rust.exe -x prog.bas -o prog.exe        # compile (needs ..\Q
 target\release\qb64rust.exe -z prog.bas                    # write the C++ fragments only, print their folder (kept)
 target\release\qb64rust.exe --dump typed prog.bas          # tokens | tree | typed | ir | cpp
 target\release\qb64rust.exe lsp                            # the language server, over stdin and stdout
+target\release\qb64rust.exe --report unsupported tests\corpus tests\programs   # what these programs still need
 ```
+
+`--report unsupported <file or folder>... [--include-root <dir>]` (`driver\src\report.rs`) runs the front end over
+every program given (of a folder every `.bas` file below it) and prints one line per "not supported yet" message:
+the programs it occurs in, the programs it alone holds back (its only message, and no other error), and its uses,
+the most wanted first. The 100-error cap does not apply; a program with an `.err` file beside it is left out (the
+old compiler rejects it); a program with an error that is not marked is named after the table. For choosing what
+comes in next, by hand; no test depends on its numbers. For the upstream copy add `--include-root
+tests\upstream\root`; the ten programs of its `qb64pe\` folder include the old compiler's sources and show as
+"other errors" unless the clone's `tests\compile_tests` is given instead.
 
 `qb64rust lsp` (only that word, no other argument) speaks the Language Server Protocol to an editor; the VS Code
 extension starts it when `qb64rust.path` names the binary (`vscode\README.md`). It parses each open program after
@@ -206,6 +216,7 @@ panics on purpose, for the CLI test only.
 | 1 | `cargo test` | Unit tests; lexer and parser snapshots; symbol-table snapshots; `tests\frontend\` by mode line (included files under `tests\frontend\inc\`); every input set through the front end with its included files (`inputs.rs`: corpus, `tests\upstream`, snippets, `tests\differential`, the real programs of `tests\programs`, and from the clone `qbasic_testcases` and the old compiler's sources, `qb64pe.bas` through all its includes; no panic, exact round trip of every tree, the copy equals the clone, the three lists of `tests\upstream\README.md`); the programs of `tests\corpus\slice.list` without diagnostics; every program with an `.err` file rejected; reserved names of variables and procedures against the measured lists (`names.rs`); the seeded mutation test (`mutate.rs`); the command line; the differential programs equal to what the generator writes, each with its recording (`difftest\tests\fresh.rs`) |
 | 1 | `cargo test -p qb64rust-lsp` | The language server: encoding tables against `iconv-lite`'s bytes, positions, URIs (unit); symbols and folding snapshots and every go-to-definition form on `lsp\tests\fixtures\outline.bas` (`features.rs`); the protocol scenarios of spec `editor/language-server` through an in-process connection (`server.rs`); the walks over every corpus and upstream program (`walk.rs`) |
 | 1, by hand | `cargo test -p qb64rust-driver --test cli -- --ignored` | The command-line scenarios that build an executable |
+| 1 | `python -m unittest discover -s tools/legacy_tests -p "test_*.py"` | The test runner's own rules (`tools\legacy_tests\README.md`, "Tests of the runner"): what "pass" means and what gets recorded, without a compiler; also in CI (`rust.yml`, job `test`) |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --qb64 target\release\qb64rust.exe --list tests\corpus\slice.list` | The listed corpus programs end to end against the output recorded from `qb64pe.exe` |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\release\qb64rust.exe --list tests\upstream\pass.list` | The upstream programs of the pass list end to end (`tests\upstream\README.md`); also in CI (`rust.yml`, job `tier2`) |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --corpus-root tests\differential --qb64 target\release\qb64rust.exe --list tests\differential\pass.list` | The differential programs of the pass list end to end against their recordings (`tests\differential\README.md`); also in CI |

@@ -56,6 +56,29 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   its files in `corpus-cpp-opt\`); a narrowed run writes `results-partial.json`. Known failures are listed as
   `corpus:<group>/<name>`.
 
+### Tests of the runner
+
+```
+python -m unittest discover -s tools/legacy_tests -p "test_*.py"
+```
+
+`test_run_legacy_tests.py` (standard library only, under a second, no compiler and no clone; also in CI, job
+`test` of `rust.yml`). The runner judges tier 2 and records every expected output, so the rules that decide what
+"pass" means and what gets recorded are pinned there:
+
+- the pure rules: `norm_output` (CRLF as LF, a bare CR counts, trailing line ends dropped), `norm_text`,
+  `new_compiler_rejection` (a real error is a rejection; only marked errors, an internal compiler error or a
+  failed C++ build are not), `.normalize` files, `bash_exit_code`, `write_recorded`, `write_expected`, the
+  `--list` and known-failures files, what a copy of the clone leaves out;
+- every outcome of one corpus program, with `run_proc` (through which every process is started) replaced by a
+  stand-in for the compiler and for the program: equal and different output, each kind of `.err` result with the
+  old and the new compiler, `.norun`, `.stdin`, `.normalize`, a known failure without an expected file, a failed
+  or timed-out run, and `--record` with equal runs, with differing runs and with a rejection.
+
+**A change to one of these rules comes with a change to its test** (spec `testing/golden-corpus`). Not covered: the
+locks and the private copies of `qb64pe` (they need the clone; the full runs cover them), and the functions of
+the compile, qbasic, format and verification suites that are not shared with the corpus suite.
+
 ### Verification programs (`--suite verification`)
 
 Records the programs of `verification\` (`--verification-root` for another folder) with the old compiler; it
