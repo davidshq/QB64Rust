@@ -4,8 +4,10 @@
 arrays/t659_array_assignment_control
 arrays/t659_explicit_call_control
 arrays/t659_sub_call_comparisons
+basic/val_default_large_integer_decimal
 basic/val_default_regression
 basic/val_typed_floating_precision
+basic/val_typed_large_integer_decimal
 basic/val_typed_nondecimal_precision
 basic/val_typed_tostr_overload
 console/test

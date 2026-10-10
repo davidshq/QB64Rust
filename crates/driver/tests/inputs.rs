@@ -7,6 +7,7 @@
 //! | `upstream/` | `tests\upstream\compile_tests` | `.bas` as `corpus/`; `.bi`/`.bm` include only |
 //! | `snippets/` | `tests\snippets` | as `corpus/` |
 //! | `differential/` | `tests\differential` | as `corpus/` (generated, spec `testing/differential-tests`) |
+//! | `programs/` | `tests\programs` | as `corpus/` (real programs taken whole, `tests\programs\README.md`) |
 //! | `qbasic/` | clone `tests\qbasic_testcases` | `.bas` accepted; `.bi`/`.bm` include only |
 //! | `qb64pe-source/` | clone `source`, `internal\support` | `source\qb64pe.bas` accepted; the rest include only |
 //!
@@ -119,6 +120,7 @@ fn inputs() -> Vec<(String, PathBuf, Verdict)> {
     labelled_set("upstream", &tests.join("upstream/compile_tests"), &mut out);
     labelled_set("snippets", &tests.join("snippets"), &mut out);
     labelled_set("differential", &tests.join("differential"), &mut out);
+    labelled_set("programs", &tests.join("programs"), &mut out);
     match clone_root() {
         Some(clone) => {
             let qbasic = clone.join("tests/qbasic_testcases");
@@ -309,6 +311,7 @@ fn every_input_goes_through_the_front_end() {
         "found only {} differential programs",
         count("differential")
     );
+    assert!(count("programs") >= 1, "found no real program (tests\\programs)");
     let bad: Vec<String> = outcomes()
         .iter()
         .filter_map(|o| match &o.panic {

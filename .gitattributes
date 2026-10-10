@@ -19,3 +19,6 @@ tests/snippets/**/*.bas -text
 tests/snippets/**/*.err -text
 # The language server's encoding fixtures: raw bytes, CR and LF among them (tools/encodings/gen_tables.js)
 crates/lsp/tests/fixtures/*.bin -text
+# Real programs taken whole: source, data and image files byte for byte (tests/programs/README.md)
+tests/programs/civil-war-strategy/** -text
+tests/programs/civil-war-strategy/SOURCE.md text

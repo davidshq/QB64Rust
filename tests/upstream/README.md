@@ -184,3 +184,11 @@ programs, task 10.1): 47 pass, the 45 of `pass.list` and the two `VAL` programs 
 44 `.err` programs get only "not supported yet" errors; 1 known failure. None builds and prints the wrong output, no
 compiler crash. Added to `pass.list`: `const/offset`, an `.err` program that gets its real error since task group
 4.
+
+**Upstream progress, 2026-10-09 (later): 47 of 279.** No compiler change: the reference clone (`16f629784e`) was
+decided to be the one reference for the old compiler, in CI too (`DECISIONS.md`, `study\28` §2 and §9). The two
+`VAL` programs that pass against the clone and not against the 4.7.0 release, `basic/val_default_large_integer_decimal`
+and `val_typed_large_integer_decimal`, were run again (both pass) and moved from
+`tests\known_clean_not_passing.list` to `pass.list`. Where this file says a program passes "against the 4.7.0
+release, as the CI job runs them", that was CI before this date; its `tier2` job now builds against QB64pe's
+sources at the clone's commit.

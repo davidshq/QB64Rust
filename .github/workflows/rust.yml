@@ -55,13 +55,16 @@ jobs:
       - uses: actions/checkout@v7
       - uses: EmbarkStudios/cargo-deny-action@v2
 
-  # Tier 2 (study\19): the slice list of the corpus and the upstream pass list end to end, built against the QB64pe
-  # release instead of the reference clone (design D9 of m2-upstream-tests; checked to work in task 6.1). The
+  # Tier 2 (study\19): the slice list of the corpus and the upstream pass list end to end, built against QB64pe's
+  # sources at the commit of the local reference clone, the one reference for expected outputs (DECISIONS.md
+  # 2026-10-09, study\28 section 2). The C++ toolchain is taken from the 4.7.0 release download, which is 16 commits
+  # older and ships it under internal\c\c_compiler. Written 2026-10-09 and not yet seen running on GitHub. The
   # upstream programs come from the copy in tests\upstream, which holds every file the pass list needs.
   tier2:
     runs-on: windows-latest
     timeout-minutes: 45
     env:
+      QB64PE_COMMIT: 16f629784ebddd31ca45bd9b8a1b75a8d98ea338
       QB64PE_TAG: v4.7.0-GLFW
       QB64PE_ASSET: qb64pe_win-x64-4.7.0-GLFW.7z
     steps:
@@ -80,9 +83,11 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}\qb64pe
-          key: qb64pe-${{ env.QB64PE_ASSET }}-qb64rust-1
+          key: qb64pe-${{ env.QB64PE_COMMIT }}-${{ env.QB64PE_ASSET }}-qb64rust-2
 
-      - name: Download QB64pe
+      # The release archive unpacks into a folder qb64pe; only its toolchain is kept. The sources (qbx.cpp, libqb,
+      # the Makefile) are checked out at the reference commit; qb64rust's builds compile libqb from them.
+      - name: Get QB64pe (sources at the reference commit, toolchain of the release)
         if: steps.qb64pe-cache.outputs.cache-hit != 'true'
         working-directory: ${{ runner.temp }}
         env:
@@ -91,6 +96,12 @@ jobs:
           gh release download $env:QB64PE_TAG -R QB64-Phoenix-Edition/QB64pe -p $env:QB64PE_ASSET
           7z x -y $env:QB64PE_ASSET
           Remove-Item $env:QB64PE_ASSET
+          Rename-Item qb64pe qb64pe-release
+          git init qb64pe
+          git -C qb64pe fetch --depth 1 https://github.com/QB64-Phoenix-Edition/QB64pe $env:QB64PE_COMMIT
+          git -C qb64pe checkout FETCH_HEAD
+          Move-Item qb64pe-release\internal\c\c_compiler qb64pe\internal\c\c_compiler
+          Remove-Item -Recurse -Force qb64pe-release
 
       - run: cargo build --release --locked
 

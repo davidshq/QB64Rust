@@ -7,5 +7,3 @@ corpus/runtime_comparison/147_on_error_resume_0.bas  # loops forever by design: 
 corpus/runtime_comparison/187_print_comma_zones.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)
 corpus/runtime_comparison/251_print_chain.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)
 corpus/runtime_comparison/80_print_semicolon.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)
-upstream/basic/val_default_large_integer_decimal.bas  # expects the VAL of libqb after 4.7.0: passes against the reference clone, fails against the 4.7.0 release CI uses, with qb64pe.exe of that release too (m2-core-builtins task 8.3)
-upstream/basic/val_typed_large_integer_decimal.bas  # expects the VAL of libqb after 4.7.0: passes against the reference clone, fails against the 4.7.0 release CI uses, with qb64pe.exe of that release too (m2-core-builtins task 8.3)
