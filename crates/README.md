@@ -236,7 +236,20 @@ What the compiler supports so far:
   with one leading underscore, the name of a SUB or FUNCTION, a built-in function's own spelling as a place,
   below `$DYNAMIC` a first use where the old compiler's allocation is not the first thing the statement does
   (the line of a block, `IF`, `FOR`, `DO`, …; a later item of `PRINT` or `READ`, an item of `WRITE` or `PRINT #`,
-  a target of `INPUT`), and anywhere a first use in a bound of `REDIM` (`NoJoin`, `sema\src\check\mod.rs`).
+  a target of `INPUT`), and anywhere a first use in a bound of `REDIM` (`NoJoin`, `sema\src\check\mod.rs`);
+- group 6 of the same change, arrays in procedures (design D6, "As built"): a `DIM` or `REDIM` in a SUB or
+  FUNCTION makes a local dynamic array, with constant bounds too, new on every call (its descriptor is made per
+  call; its strings, its block and its lock are freed on every way out, in `freeK.txt`). `STATIC a(n)` is a
+  dynamic array that lives for the program and is allocated when the program starts: the shape carries its
+  bounds (`Shape::Dynamic`, `at_start`) and the emitter writes the allocation into `maindata.txt`, which runs
+  again when an error handler is entered, so an array that `ERASE` released comes back there, as in QB64pe.
+  `STATIC a()` lists a dynamic array that lives for the program; a `DIM`, a `REDIM`, an index or `LBOUND` gives
+  it its number of dimensions. `SHARED a()` names the main module's array, which must stand above the procedure.
+  **`STATIC` after a procedure header** makes the procedure's own variables and arrays live for the program,
+  down to its first `STATIC` statement only, as in QB64pe (`DIVERGENCES-QB45.md` Q-010). `DIM SHARED` and
+  `REDIM SHARED` in a procedure, `STATIC` in the main module and `SHARED a(3)` are errors. Still marked: `STATIC
+  a(n)` with a bound that is not one number or constant, `STATIC` beside a shared main array of the name, `REDIM
+  e AS type` without parentheses in a procedure.
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
@@ -247,10 +260,9 @@ CASE`, the other built-in functions, `DECLARE LIBRARY`, event handlers and switc
 `READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array or a member of an element, every other
 built-in statement read by its template (`LINE`, `SCREEN`, `GET`/`PUT`, `TIME$ =`, ...), the declaration
 forms (`COMMON`, `REDIM _RETAIN`, arrays named `name$n`, array
-parameters, `STATIC` after a header, `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), type names as arguments, the
+parameters, `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), type names as arguments, the
 names of QB64pe's auto-included files and its precompiler flags (`_CONSOLE_`, ...); of arrays and `TYPE`:
-arrays in procedures (`DIM`, `STATIC`, `SHARED a()`, a `REDIM` that would make one, `DIM` or `REDIM` of an array
-used without `DIM` there), whole arrays (`x()`), `TYPE` parameters, `STRING` and array members,
+whole arrays (`x()`), `TYPE` parameters, `STRING` and array members,
 member arrays, whole-`TYPE` assignment; `DEF FN` is an error, as in QB64pe. After a declaration
 marked "not supported yet", later real errors are dropped (the follow-on rule, design D10 of `m2-parser-breadth`):
 the program is rejected by the mark, and no error is reported that the declaration might have prevented.

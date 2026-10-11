@@ -1,0 +1,4 @@
+
+Runtime error: Line: 1 (in main module)
+Duplicate definition
+exit=0

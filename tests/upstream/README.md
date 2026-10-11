@@ -237,3 +237,11 @@ must keep its mark (`_CONNECTIONADDRESS$(…)`, `_ENCODEURL$(…)` are built-ins
 spelling; "Invalid array name" would be a false error). `tests\known_unsupported_rejections.list` shrank by two
 (`corpus/runtime_comparison/16_ltrim_rtrim`, `snippets/qb64fresh/builtin_functions__trim_functions`: the old
 compiler's "Illegal string-number conversion" for `TRIM$(…)`, which is no built-in).
+
+**Upstream progress, 2026-10-11 (group 6): 58 of 279, unchanged** (`m2-defxxx-common-arrays` group 6: arrays in
+procedures). Three upstream programs carried the mark "arrays in a SUB or FUNCTION"; none became clean:
+`arrays/t001_whole_array_core` waits on whole arrays and `SYSTEM` with an exit code,
+`arrays/t003_whole_array_member_assign` on member arrays, `types/static_array` on `_MEM`. The pass list runs 58
+of 58; the full suite was not run again, since no upstream program changed from rejected to compiled.
+`tests\known_unsupported_rejections.list` shrank by one (`snippets/qb64fresh/shared_variables__shared_array`:
+`SHARED scores()` without `AS` for a LONG array is the old compiler's "Array 'scores' not defined"): 57.

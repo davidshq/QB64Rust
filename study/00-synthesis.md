@@ -1194,6 +1194,39 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   already listed as STATIC"); `STATIC` in the main module ("STATIC must be used within a SUB/FUNCTION"); `DIM
   SHARED` and `REDIM SHARED` in a procedure ("DIM/REDIM SHARED invalid within a SUB/FUNCTION"). **`STATIC v(n)`
   with a bound that is not constant is accepted and fails the C++ build.**
+  **Measured while group 6 was built (`v24_x269`–`x282`, slice `s56_proc_arrays`, and the old compiler's C++ for
+  `STATIC c(2)`), with four corrections of the lines above:**
+  - **`STATIC c(3)` is no static array.** It is a dynamic array that lives for the program, and its allocation
+    (as a `DIM` would allocate it) is written into `maindata.txt`, the fragment at the start of the main module:
+    it runs when the program starts, and again whenever an error handler is entered, since a handler enters the
+    main module anew. An allocated array is left alone there (no error 10: an error is pending). So `ERASE c`
+    releases it (the next use raises 9), and the next error that reaches a handler allocates it again, empty
+    (`x278`, `s56` line 24); `REDIM c(5)` gives it other bounds without error 10 (`v24_b_metacommand_sub`); below
+    `$DYNAMIC` it is the same array (`x278`). The bounds are written into the main module's code as they stand:
+    `STATIC v(2 + 3)` works (`x280`), `STATIC v(n)` with a parameter fails the C++ build (`x121`).
+  - **A procedure with `STATIC` after its header is static only down to its first `STATIC` statement.** The
+    old compiler's flag (`dimstatic`, 2 from the header) is set to 1 by a `STATIC` statement and to 0 at its end
+    (`qb64pe.bas` 5827, 8805, 9558). Above that statement every variable keeps its value, a scalar used without
+    a declaration and a string too, a `DIM` with constant bounds is a static array and an array used without
+    `DIM` a working 0 to 10 one; below it the procedure is one like any other: new variables are made on each
+    call, a `DIM` is a local dynamic array (`x279`, `s56` line 21). A variable made above the statement stays
+    kept below it. A `FUNCTION … STATIC` keeps its variables the same way.
+  - **`DIM a()` and `REDIM a()` in a procedure declare scalars**, as in the main module (`x273`).
+  - **A listed array gets its number of dimensions from what names it first**, an index or `LBOUND` included:
+    after `STATIC y()`, `LBOUND(y)` then `y(1, 2)` is "Cannot change the number of elements an array has!"
+    (`x282`); used with no `DIM`, `STATIC a() AS DOUBLE` then `a(1)` is the listed array (`LEN` 8) and every use
+    raises 9 (`x276`).
+  Also: a use without `DIM`, then `STATIC a(3)`, is "Name already in use" (`x269`). **A `DIM` in a procedure of
+  the name and type of a shared main array is that array**: with constant bounds too it compiles and raises 10
+  when it runs, the shared array untouched (`x270` static, `x271` dynamic); in a procedure with `STATIC` after
+  its header it is "Cannot redefine a static array!" (`x281`). `STATIC a(5)` beside a shared main array of the
+  name compiles, and the program ends when it starts ("Duplicate definition", `x272`).
+  **Measured by the review of group 6 (`v24_x283`–`x285`):** in a procedure with `STATIC` after its header,
+  `DIM k` of a `CONST` name is "Name already in use" as in any other procedure (`x283`), and `DIM w` of the
+  name of a `DIM SHARED` variable (typed with `AS` there or not) makes the procedure's own variable, which
+  keeps its value between calls and leaves the shared one untouched (`x284`). **A `DIM c(3)` of an array that
+  `STATIC c(3)` declared above it compiles and raises 10 each time it runs**; the array stays as it is and keeps
+  its elements (`x285`).
 - **Main-module arrays seen from a procedure (`v24_g_shared*`, `v24_x130`–`x134`):** `SHARED a() [AS type]` names
   the main array of that name and type, static or dynamic (the procedure may `REDIM` a dynamic one); the main
   array must be declared above the SUB in the file and with that type, otherwise "Array 'a' not defined" (no
@@ -1201,6 +1234,10 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   **Visibility follows the file**: a `DIM SHARED`, `REDIM SHARED` or `COMMON SHARED` array is seen by the
   procedures below its declaration; in one above it the name is an array used without `DIM` (every use raises
   9). A main array that is not shared is not seen; a local `DIM` of its name is another array.
+  **Measured while group 6 was built (`v24_x274`, `x275`, `x277`):** `SHARED a()` twice is accepted; it names a
+  main array that was used without `DIM` as well as a declared one, and a list (`SHARED m(), g()`) names each;
+  **below an array of that name and type that the procedure has already** (a local `DIM`, or a use without
+  `DIM`) it is accepted and changes nothing: the name goes on meaning the procedure's own array.
 - **Array parameters (`v24_g_params`, `v24_x135`–`x160`, `x178`–`x180`):** the argument is a whole array written
   `name()`, static or dynamic, a `DIM SHARED` or local array or the procedure's own parameter passed on, also in
   `CALL f(x())` and as an argument of a FUNCTION (`pick(x(), 2)`); the procedure works on the caller's array:

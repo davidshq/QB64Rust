@@ -1,0 +1,4 @@
+LEN(a(1)): 8  [error 9 ] [error 9 ]LEN(a(1)): 8  [error 9 ] [error 9 ]LBOUND(y): [error 9 ]z(1, 2): [error 9 ] 1 
+z(1, 2): 1 
+ 2 
+exit=0

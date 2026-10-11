@@ -57,7 +57,4 @@ FUNCTION f (n)
     f = n
 END FUNCTION
 SUB s
-    ' A procedure's own array: its REDIM and DIM wait for arrays in procedures.
-    own(1) = 2
-    REDIM own(3)
 END SUB

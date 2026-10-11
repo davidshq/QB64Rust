@@ -8,13 +8,44 @@
 
 use crate::Emitter;
 use crate::decl::{dim_slot, lock_slot};
-use qb64rust_ir::{AllocMode, Expr, Facts, Ty, VarId};
+use crate::names::int_const;
+use qb64rust_ir::{AllocMode, Expr, Facts, Ty, Var, VarId};
 
 impl Emitter<'_> {
     /// `Allocate`: see the IR for what it does and in which order.
     pub(crate) fn allocate(&mut self, array: VarId, bounds: &[(Expr, Expr)], mode: AllocMode, out: &mut Vec<String>) {
         let v = self.p.var(array);
         let n = self.name(array);
+        let texts: Vec<(String, String)> = bounds
+            .iter()
+            .map(|(lower, upper)| (self.value(lower), self.value(upper)))
+            .collect();
+        self.allocate_with(v, &n, &texts, mode, out);
+        if bounds
+            .iter()
+            .any(|(lower, upper)| lower.uses_strings(self.p) || upper.uses_strings(self.p))
+        {
+            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        }
+    }
+
+    /// The allocation of an array that `STATIC a(bounds)` declared (`Shape::Dynamic`, `at_start`), for
+    /// `maindata.txt`: mode `Dim` with its constant bounds, after the array's descriptor. That fragment runs when
+    /// the program starts and again whenever an error handler is entered, where an array that is allocated is
+    /// left alone (an error is pending, so no error 10) and one that an `ERASE` released is allocated again, as
+    /// in the old compiler.
+    pub(crate) fn allocate_at_start(&self, v: &Var, n: &str, bounds: &[(i64, i64)]) -> String {
+        let texts: Vec<(String, String)> = bounds
+            .iter()
+            .map(|&(lower, upper)| (int_const(lower, Ty::I64), int_const(upper, Ty::I64)))
+            .collect();
+        let mut out = Vec::new();
+        self.allocate_with(v, n, &texts, AllocMode::Dim, &mut out);
+        out.iter().map(|line| format!("{line}\n")).collect()
+    }
+
+    /// [`Self::allocate`] with the bounds as C expressions, lower before upper, first dimension first.
+    fn allocate_with(&self, v: &Var, n: &str, bounds: &[(String, String)], mode: AllocMode, out: &mut Vec<String>) {
         let dims = bounds.len();
         let string = v.ty == Ty::Str;
         // The bytes of one element; a `_BIT * n` element gets whole bytes of its own here, more than the packed
@@ -48,7 +79,7 @@ impl Emitter<'_> {
             out.push("ptrszint preserve_new_ptr;".into());
             out.push(format!("if ({n}[2]&1){{"));
             out.push(format!("preserve_old_ptr={n}[0];"));
-            out.push(format!("preserve_old_total={};", self.element_count(v, &n)));
+            out.push(format!("preserve_old_total={};", self.element_count(v, n)));
             out.push("}".into());
         } else {
             // `DIM` of an array that is allocated: error 10, and nothing else.
@@ -65,12 +96,8 @@ impl Emitter<'_> {
         // the statement goes on, as it does after a bound that raises.
         for (k, (lower, upper)) in bounds.iter().enumerate() {
             let s = dim_slot(dims, k);
-            out.push(format!("alloc_new_desc[{s}]={};", self.value(lower)));
-            out.push(format!(
-                "alloc_new_desc[{}]=({})-alloc_new_desc[{s}]+1;",
-                s + 1,
-                self.value(upper)
-            ));
+            out.push(format!("alloc_new_desc[{s}]={lower};"));
+            out.push(format!("alloc_new_desc[{}]=({upper})-alloc_new_desc[{s}]+1;", s + 1));
             out.push(format!("if (alloc_new_desc[{}]<=0) error(5);", s + 1));
             if k == 0 {
                 out.push(format!("alloc_new_desc[{}]=1;", s + 2));
@@ -166,12 +193,6 @@ impl Emitter<'_> {
             out.push("}".into());
         }
         out.push("}".into());
-        if bounds
-            .iter()
-            .any(|(lower, upper)| lower.uses_strings(self.p) || upper.uses_strings(self.p))
-        {
-            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
-        }
     }
 
     /// `Clear`: the elements of a static array zero, empty or NUL bytes.

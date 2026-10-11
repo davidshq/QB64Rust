@@ -379,16 +379,94 @@ tests\corpus\slice.list`, run also with `QB64RUST_NO_FOLD=1`.
 
 ## 6. Arrays in procedures (design D6, D7)
 
-- [ ] 6.1 `sema` and IR: `DIM` and `REDIM` in a SUB or FUNCTION (local, dynamic), `STATIC a(n)`, the pending list
+- [x] 6.1 `sema` and IR: `DIM` and `REDIM` in a SUB or FUNCTION (local, dynamic), `STATIC a(n)`, the pending list
   for `STATIC a()`, arrays of a `STATIC` procedure, `SHARED a()`, visibility of `DIM SHARED` and `REDIM SHARED`
   arrays by file order. Verify: `typed` and `ir` tests per form; `check-fail` tests per measured error ("Array
   already listed as STATIC", `DIM SHARED` in a procedure, and the rest of 1.3).
-- [ ] 6.2 Emitter: per-call descriptors, release on every way out of the procedure (strings first), program-long
+  Done 2026-10-11. `declare_array` and `implicit_array` (`sema\src\check\places.rs`), `shared_array`,
+  `local_storage` and the declaration statements (`check\decl.rs`), `STATIC` after a header (`check\proc.rs`,
+  `static_procs` and `static_scope` in `check\mod.rs`); design D6, "As built in group 6". Tests:
+  `proc_arrays_typed.bas`, `proc_arrays_ir.bas`, `proc_arrays_errors.bas` (18 errors, one per SUB),
+  `proc_arrays_unsupported.bas` (5 marks); `arrays_errors.bas`, `implicit_arrays_errors.bas`,
+  `redim_unsupported.bas` and the snapshot of `proc_errors.bas` lost the lines that pinned the old marks.
+  - **Measured first** (`verification\v24_x269`–`x282`, 14 programs, and the C++ the old compiler writes for
+    `STATIC c(2)`; `study\00` §5), with these answers the design did not have:
+    - **`STATIC a(n)` is no static array** (D3 and D6 said static): a dynamic array that lives for the program,
+      allocated in the main module's start-up code, which runs again when an error handler is entered. Found
+      by the recording of `s56_proc_arrays`: after `ERASE c` the old program raised error 9 where the first
+      build here printed 0. The shape carries the bounds now (`Shape::Dynamic`, `at_start`); `ir::validate`
+      checks it (one unit test with a broken program); both dumps show it.
+    - **A procedure with `STATIC` after its header is static only down to its first `STATIC` statement**
+      (`x279`, the old compiler's `dimstatic` flag). Built as measured; QuickBASIC 4.5 keeps everything:
+      `DIVERGENCES-QB45.md` Q-010 and the review list of `SOMEDAY.md`. **For the user:** this follows the
+      standing rule "as QB64pe" (`DECISIONS.md` 2026-10-08); say so if such a procedure should keep all of its
+      variables instead (a row in `DIVERGENCES.md`).
+    - `DIM a()` and `REDIM a()` in a procedure are scalars (`x273`); a listed array takes its number of
+      dimensions from an index or `LBOUND` too (`x276`, `x282`); `SHARED a()` below an array the procedure has
+      changes nothing, twice is accepted, and it names a main array used without `DIM` (`x274`, `x275`,
+      `x277`); a `DIM` in a procedure of a shared main array is that array and raises 10 (`x270`, `x271`), in
+      a `STATIC` procedure the compile error of the main module (`x281`).
+  - **Changed against the task and the design:** `STATIC v(n)` with a bound that is not one number or one
+    constant is "not supported yet", not a compile error: `STATIC v(2 + 3)` works in the old compiler (`x280`),
+    so an error would reject programs it runs. The requirement and D6 say so.
+  - `DIM SHARED` and `REDIM SHARED` in a procedure and `STATIC` in the main module are real errors now (they
+    were marks); `SHARED a(3)`, `SHARED` of an array the main module has not above, and `STATIC` of an array
+    the procedure has are the old compiler's errors.
+  - Marked and why: `STATIC a(n)` beside a shared main array of the name (the old program ends when it starts,
+    `x272`); `REDIM e AS LONG` without parentheses in a procedure (not measured there); `STATIC a() AS DOUBLE`
+    then `DIM a(3)` (another array in the old compiler, `x126`: the existing mark for an array without a type
+    beside one typed with `AS`).
+  - Run with the new compiler, the 37 measurement programs of this group (`v24_g_local*`, `v24_g_shared`,
+    `v24_f_implicit_sub`, `v24_b_metacommand_sub`, `v24_x120`–`x134`, `x176`, `x177`, `x263`, `x269`–`x282`;
+    a line that calls a SUB as `name:` written as `CALL name:` in a copy, since that form is still marked):
+    19 build and print what the old compiler printed, 14 are rejected by both with a real error, none
+    differs; 3 the old compiler accepts are marked (`x126`, `x272`, `x280`) and 1 it fails to build is marked
+    (`x121`). `v24_g_shared_order` waits on `COMMON` (group 7).
+  - Not in this task: the known bug of group 4 (a `DIM` list of several dynamic arrays is one statement per
+    array) now reaches every `DIM a(3), b(3)` in a procedure, where both arrays are dynamic. It shows only
+    when such a `DIM` runs twice under a handler (two errors 10 for one). `STATUS.md`, "Known bugs".
+  - **Review of the group (2026-10-11), fixed before the commit**, each measured first (`verification\v24_x283`–
+    `x285`, `study\00` §5): in a procedure with `STATIC` after its header a plain `DIM` was taken for a `STATIC`
+    statement by two checks of `declare_items` (they asked for the storage, which is `Static` there): `DIM k` on
+    a `CONST` name was marked where the old compiler says "Name already in use" (`x283`), and `DIM w` on a `DIM
+    SHARED` variable's name was marked where it makes the procedure's own, kept variable (`x284`); both ask for
+    the declaring statement now. The mark on `DIM c(3)` after `STATIC c(3)` is gone: it is an `Allocate` and
+    raises 10, as measured (`x285`). `ir::validate` rejects an array made on each call without its number of
+    dimensions (one unit test), since the emitter no longer stops at one. Tests: `e17` in
+    `proc_arrays_errors.bas`, `dimstatic` and `DIM sv` in `proc_arrays_typed.bas`, `u6` out of
+    `proc_arrays_unsupported.bas`. `x284` and `x285` (with `CALL s` for `s:`) build here and print what the old
+    compiler printed.
+- [x] 6.2 Emitter: per-call descriptors, release on every way out of the procedure (strings first), program-long
   storage for `STATIC` arrays. Verify: `cpp` snapshot tests showing the release on `EXIT SUB`, at `END SUB` and
   after an error; slice program `s56_proc_arrays` (every scenario of "Arrays in procedures", a recursive procedure
   with a local array, an error inside one), recorded, passes in tier 2 with and without `QB64RUST_NO_FOLD=1`.
-- [ ] 6.3 Lists and documents as 2.3. Verify: the message "arrays in a SUB or FUNCTION" and "`SHARED` of an array"
+  Done 2026-10-11. Local arrays needed no new emitter code: group 5's per-call descriptor and its release in
+  `freeK.txt` serve them, and `EXIT SUB`, `END SUB` and an error all pass `exit_subfunc` (`proc_arrays_cpp.bas`
+  shows the three). New: `allocate_at_start` (`codegen-cpp\src\arrays.rs`) writes the allocation of a `STATIC
+  a(n)` array into `maindata.txt` after its descriptor, and a listed array that nothing names gets a
+  descriptor of one dimension (`decl.rs`). Slice `s56_proc_arrays` (26 numbered lines, recorded from two equal
+  runs): the first build here differed in line 24 (`ERASE` of a `STATIC` array, above); after that correction
+  it prints as recorded, also with `QB64RUST_NO_FOLD=1`.
+- [x] 6.3 Lists and documents as 2.3. Verify: the message "arrays in a SUB or FUNCTION" and "`SHARED` of an array"
   are gone from the three reports; expected against passed stated here.
+  Done 2026-10-11. Neither message, nor "`STATIC` after a procedure header", is left in the reports of the
+  corpus, the upstream tests and `tests\programs` (the messages no longer exist in the compiler).
+  `known_unsupported_rejections.list` shrank by one, to the old compiler's own error
+  (`snippets/qb64fresh/shared_variables__shared_array`: "Array 'scores' not defined"); the other two lists are
+  unchanged (0 and 0). **Expected against passed**, counted with the compiler of group 5 before the change:
+  corpus, 1 program carried these marks (`runtime_comparison/206_shared_redim`, named in 4.3): it became clean
+  and passes, on `slice.list` with `s56_proc_arrays` (276). Upstream, 3 programs carried "arrays in a SUB or
+  FUNCTION": none became clean (`arrays/t001_whole_array_core`: whole arrays and `SYSTEM` with an exit code;
+  `arrays/t003_whole_array_member_assign`: member arrays; `types/static_array`: `_MEM`), so `pass.list` stays
+  at 58 of 279. Civil War Strategy: three `DIM` lines in SUBs carried "arrays in a SUB or FUNCTION" (`DIM
+  hit(2)`, `DIM summ(40)` among them); they compile, and the 15 marks on `hit(…)` and `summ(…)` went with them
+  (5.2 took the two for `COMMON SHARED` arrays; they are local): 1,721 marks in 34 messages by the report,
+  where the same count gave 1,739 in 37 before.
+  Group 6 closes with `fmt`, `clippy` and `cargo test` green, tier 2 slice 276 of 276 (also with
+  `QB64RUST_NO_FOLD=1`), the upstream pass list 58 of 58, the differential list 59 of 59, the call-site check
+  256 of 256 (no program added: the allocation is inline C++) and the runner's tests 56 of 56. The full corpus
+  ran with the release build (`tests\corpus\README.md`); the full upstream suite did not: no upstream program
+  changed from rejected to compiled, and tier 1 keeps every `.err` program rejected.
 
 ## 7. Array parameters and `COMMON` (design D6)
 

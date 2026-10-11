@@ -5,7 +5,7 @@ use super::proc::{FIXED_LEN_ERROR, fixed_len, fixed_name, suffix_fits};
 use super::{Checker, Failed, R, Scope};
 use crate::consteval::Value;
 use crate::literal::{self, NumLit};
-use crate::{ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId};
+use crate::{ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{show_bytes, to_u32};
 use qb64rust_builtins::{Kind, find_any, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
@@ -354,6 +354,17 @@ impl Checker<'_> {
         id
     }
 
+    /// The storage of a procedure's own variable or array: per call, or for the program in a procedure with
+    /// `STATIC` after its header, down to its first `STATIC` statement (measured, `verification\v24_g_local`,
+    /// `v24_f_implicit_sub`, `v24_x279`; slice `s56_proc_arrays`).
+    pub(super) fn local_storage(&self, p: ProcId) -> Storage {
+        if self.static_scope {
+            Storage::Static(p)
+        } else {
+            Storage::Local(p)
+        }
+    }
+
     pub(super) fn scope(&mut self) -> &mut Scope {
         if self.cur.is_some() {
             &mut self.local
@@ -413,7 +424,7 @@ impl Checker<'_> {
         let key = self.var_key(name, suffix);
         let ty = key.1;
         let storage = match self.cur {
-            Some(p) => Storage::Local(p),
+            Some(p) => self.local_storage(p),
             None => Storage::Main,
         };
         let found = self.find_var(&key);
@@ -511,14 +522,15 @@ impl Checker<'_> {
             let typed = as_clause.is_some() || list_ty.is_some();
             // With nothing between the parentheses, and in a `REDIM` without parentheses, the name is declared as
             // a scalar and no array is made (measured in the main module, `verification\v24_b_dim_empty*`,
-            // `v24_x43`, `x44`, `x86`). `STATIC a()` is an array (measured), and a procedure's arrays come later.
+            // `v24_x43`, `x44`, `x86`) and in a procedure (`v24_x273`). `STATIC a()` lists an array (measured,
+            // `v24_g_local`).
             if let Some(bounds) = item.bounds()
-                && (!bounds.ranges().is_empty() || storage != Storage::Main)
+                && (!bounds.ranges().is_empty() || by == Declarer::Static)
             {
                 self.declare_array(typed, bounds, (name_tok, name, suffix, ty), storage, shared, by, stmt)?;
                 continue;
             }
-            if matches!(by, Declarer::Redim { .. }) && storage != Storage::Main {
+            if matches!(by, Declarer::Redim { .. }) && storage != Storage::Main && item.bounds().is_none() {
                 let shown = show_bytes(self.text(name_tok.span));
                 let msg = format!("`REDIM {shown}` without bounds in a SUB or FUNCTION");
                 return Err(self.unsupported(name_tok.span, msg));
@@ -535,8 +547,9 @@ impl Checker<'_> {
             }
             if self.visible_const(&name).is_some() {
                 // Measured for `DIM`, in main and in a procedure (`v17_e_err_dim_after_const`,
-                // `v17_e_const_sub_dim_same`); not for `STATIC`.
-                if matches!(storage, Storage::Static(_)) {
+                // `v17_e_const_sub_dim_same`), also one with `STATIC` after its header (`v24_x283`); not for
+                // `STATIC`.
+                if by == Declarer::Static {
                     let shown = show_bytes(self.text(name_tok.span));
                     return Err(self.unsupported(name_tok.span, format!("`STATIC` of the constant name `{shown}`")));
                 }
@@ -556,12 +569,13 @@ impl Checker<'_> {
             if (suffix.is_none() && typed_plain.is_some()) || self.scope().vars.contains_key(&key) {
                 return Err(self.in_use(name_tok));
             }
-            // A local `DIM` shadows a `DIM SHARED` variable of the same name (measured, `v14_dim_local_*`); a
+            // A local `DIM` shadows a `DIM SHARED` variable of the same name (measured, `v14_dim_local_*`), also
+            // in a procedure with `STATIC` after its header, where it lives for the program (`v24_x284`); a
             // `STATIC` beside one is not measured.
             let shadows_shared = self.cur.is_some()
                 && (self.main.vars.get(&key).is_some_and(|v| self.dim_shared.contains(v))
                     || (suffix.is_none() && self.dim_shared_plain.contains_key(&name)));
-            if shadows_shared && matches!(storage, Storage::Static(_)) {
+            if shadows_shared && by == Declarer::Static {
                 let msg = format!(
                     "a `STATIC` `{}` beside the `DIM SHARED` one",
                     show_bytes(self.text(name_tok.span))
@@ -612,10 +626,11 @@ impl Checker<'_> {
         let storage = match (self.cur, shared) {
             (None, _) => Storage::Main,
             (Some(_), true) => {
+                // Measured: "DIM/REDIM SHARED invalid within a SUB/FUNCTION" (`verification\v24_x128`).
                 let span = stmt.node().span();
-                return Err(self.unsupported(span, "`DIM SHARED` inside a SUB or FUNCTION"));
+                return Err(self.error(span, "`DIM SHARED` cannot stand inside a SUB or FUNCTION"));
             }
-            (Some(p), false) => Storage::Local(p),
+            (Some(p), false) => self.local_storage(p),
         };
         let node = stmt.node();
         self.declare_items(stmt.items(), stmt.as_clause(), storage, shared, Declarer::Dim, node)
@@ -623,18 +638,22 @@ impl Checker<'_> {
 
     pub(super) fn static_stmt(&mut self, stmt: ast::StaticStmt) -> R<()> {
         let Some(p) = self.cur else {
+            // Measured: "STATIC must be used within a SUB/FUNCTION" (`verification\v24_x127`).
             let span = stmt.node().span();
-            return Err(self.unsupported(span, "`STATIC` in the main module"));
+            return Err(self.error(span, "`STATIC` must stand inside a SUB or FUNCTION"));
         };
         let node = stmt.node();
-        self.declare_items(
+        let done = self.declare_items(
             stmt.items(),
             stmt.as_clause(),
             Storage::Static(p),
             false,
             Declarer::Static,
             node,
-        )
+        );
+        // Below its first `STATIC` statement a procedure with `STATIC` after its header is one like any other.
+        self.static_scope = false;
+        done
     }
 
     /// `REDIM [_PRESERVE] [SHARED] name(bounds) [AS type], …` (design D3, D4 of `m2-defxxx-common-arrays`): each
@@ -660,9 +679,10 @@ impl Checker<'_> {
         let storage = match (self.cur, shared) {
             (None, _) => Storage::Main,
             (Some(_), true) => {
-                return Err(self.unsupported(node.span(), "`REDIM SHARED` inside a SUB or FUNCTION"));
+                // Measured: "DIM/REDIM SHARED invalid within a SUB/FUNCTION" (`verification\v24_x129`).
+                return Err(self.error(node.span(), "`REDIM SHARED` cannot stand inside a SUB or FUNCTION"));
             }
-            (Some(p), false) => Storage::Local(p),
+            (Some(p), false) => self.local_storage(p),
         };
         let by = Declarer::Redim { preserve };
         self.declare_items(stmt.items(), stmt.as_clause(), storage, shared, by, node)
@@ -770,8 +790,10 @@ impl Checker<'_> {
         };
         for item in stmt.items() {
             let name_tok = self.need(item.name(), item.node().span())?;
-            if let Some(b) = item.bounds() {
-                return Err(self.unsupported(b.node().span(), "`SHARED` of an array"));
+            if let Some(b) = item.bounds().filter(|b| !b.ranges().is_empty()) {
+                // Measured: "Expected ()" (`verification\v24_x133`).
+                let msg = "`SHARED` names an array with nothing between its parentheses: `name()`";
+                return Err(self.error(b.node().span(), msg));
             }
             let (name, suffix) = self.split_var_name(name_tok)?;
             let as_clause = item.as_clause();
@@ -794,6 +816,10 @@ impl Checker<'_> {
             if self.visible_const(&name).is_some() {
                 let shown = show_bytes(self.text(name_tok.span));
                 return Err(self.unsupported(name_tok.span, format!("`SHARED` of the constant name `{shown}`")));
+            }
+            if item.bounds().is_some() {
+                self.shared_array(name_tok, name, ty, suffix.is_none() && typed)?;
+                continue;
             }
             let key = (name.clone(), ty);
             if self.local.vars.contains_key(&key) {
@@ -828,6 +854,39 @@ impl Checker<'_> {
             }
             self.names.push((SymbolKind::Var(id), name_tok.span));
         }
+        Ok(())
+    }
+
+    /// `SHARED name() [AS type]` (design D6 of `m2-defxxx-common-arrays`; measured, `verification\v24_g_shared`,
+    /// `v24_x130`–`x134`, `x274`, `x275`, `x277`): the name means the main-module array of that name and type in
+    /// this procedure, whether it was declared or used without `DIM`. It must stand above the procedure in the
+    /// file, and none is made: "Array 'a' not defined" otherwise, also when the type differs (without `AS` or a
+    /// suffix the type is the default one, as for a scalar). Where the procedure has an array of the name and
+    /// type already, that one stays what the name means. `typed`: the type was written with `AS`, which types
+    /// the plain name.
+    fn shared_array(&mut self, name_tok: Tok, name: String, ty: Ty, typed: bool) -> R<()> {
+        let shown = show_bytes(self.text(name_tok.span));
+        let key = (name.clone(), ty);
+        let Some(&id) = self.main.arrays.get(&key) else {
+            let msg = format!(
+                "array `{shown}` ({}) is not declared in the main module above this procedure (`SHARED`)",
+                ty.qb_name()
+            );
+            return Err(self.error(name_tok.span, msg));
+        };
+        if let Some(&own) = self.local.arrays.get(&key) {
+            self.names.push((SymbolKind::Var(own), name_tok.span));
+            return Ok(());
+        }
+        if typed && self.local.array_plain.get(&name).is_some_and(|&t| t != ty) {
+            let msg = format!("`SHARED {shown}()` beside an array of that name typed otherwise by `DIM … AS`");
+            return Err(self.unsupported(name_tok.span, msg));
+        }
+        self.local.arrays.insert(key, id);
+        if typed {
+            self.local.array_plain.insert(name, ty);
+        }
+        self.names.push((SymbolKind::Var(id), name_tok.span));
         Ok(())
     }
 }

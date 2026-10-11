@@ -50,6 +50,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         proc_of_def: HashMap::new(),
         param_scopes: Vec::new(),
         broken: HashSet::new(),
+        static_procs: HashSet::new(),
+        static_scope: false,
         dim_shared: HashSet::new(),
         dim_shared_plain: HashMap::new(),
         labels_by_name: HashMap::new(),
@@ -244,6 +246,13 @@ struct Checker<'a> {
     param_scopes: Vec<Scope>,
     /// Procedures whose parameter list has an error: calls of them fail without a second error.
     broken: HashSet<ProcId>,
+    /// Procedures with `STATIC` after their header, and whether the body being checked still gives its own
+    /// variables and arrays the life of the program: it does from its header to the end of its first `STATIC`
+    /// statement, and below that statement it is a procedure like any other (measured,
+    /// `verification\v24_x279`; the old compiler's flag for it is reset by that statement, `qb64pe.bas` 5827,
+    /// 8805, 9558).
+    static_procs: HashSet<ProcId>,
+    static_scope: bool,
     /// Main-module variables declared with `DIM SHARED` so far (in file order), and the plain names they typed.
     dim_shared: HashSet<VarId>,
     dim_shared_plain: HashMap<String, Ty>,
@@ -442,6 +451,7 @@ impl Checker<'_> {
         };
         self.cur = Some(id);
         self.local = self.param_scopes[id.0 as usize].clone();
+        self.static_scope = self.static_procs.contains(&id);
         self.consts_local.clear();
         self.used_local.clear();
         for s in def.body() {

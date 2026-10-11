@@ -11,9 +11,9 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 57 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`; `SOURCE.md`) |
+| `slice\` | 58 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures; `SOURCE.md`) |
 | `screen\` | 29 programs with a window, checked by the state of the screen they leave: 23 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error) and 6 drawing programs cut from Civil War Strategy (`SOURCE.md`, `tools\screen\README.md`). None is on `slice.list`: the new compiler builds console programs only so far |
-| `slice.list` | The 274 programs the new compiler must pass: all 57 of `slice\`, 215 of `runtime_comparison` and `verification\` `v11`, `v12` (see below) |
+| `slice.list` | The 276 programs the new compiler must pass: all 58 of `slice\`, 216 of `runtime_comparison` and `verification\` `v11`, `v12` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -41,7 +41,7 @@ trailer is part of its `.output`.
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 57 |
+| `.output` | 235 | 2 | 58 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
@@ -136,11 +136,11 @@ which is part of its `.output`; the runner's `QB64PE_NOPROMPT` keeps that from o
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
 line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
 
-`slice.list` names the 274 programs the new compiler must pass (tier 2, `study\19`), also with
+`slice.list` names the 276 programs the new compiler must pass (tier 2, `study\19`), also with
 `QB64RUST_NO_FOLD=1`; the three `s50` programs and `235_deftype` joined with `m2-defxxx-common-arrays` task 2.2,
 the three `s51` programs and `236_option_base` with its tasks 3.2 and 3.3, the five `s52`–`s55` programs and
 `40_erase`, `120_redim_no_preserve`, `201_erase_udt_array`, `203_redim_multiple` with its group 4,
-`s55_implicit` with its group 5;
+`s55_implicit` with its group 5, `s56_proc_arrays` and `206_shared_redim` with its group 6;
 57 joined with `m2-builtin-statements` (`s35`–`s44` and 47 of `runtime_comparison`, named
 task by task in its `tasks.md`). `s13`–`s19` joined it with `m2-control-flow-slice` (`s17` with task 3.2, the rest with task
 8.1), `s20`–`s22` and 13 `runtime_comparison` programs with `m2-arrays-and-types` task 7.1, 61 programs with
@@ -158,15 +158,15 @@ with an `.err` file, and the two shrink-only lists `tests\known_false_errors.lis
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
 
-### Full corpus with `qb64rust` (2026-10-11, after arrays used without `DIM`; not a pass criterion)
+### Full corpus with `qb64rust` (2026-10-11, after arrays in procedures; not a pass criterion)
 
-After group 5 of `m2-defxxx-common-arrays` (its task 5.2, release build, against the reference clone, `--jobs 8`),
-349 programs (the 13 slice programs of groups 2 to 5 new):
+After group 6 of `m2-defxxx-common-arrays` (its task 6.3, release build, against the reference clone, `--jobs 8`),
+350 programs (the 14 slice programs of groups 2 to 6 new):
 
 | Result | Programs |
 |---|---|
-| Pass | 293: the 274 of `slice.list` and 19 `.err` programs |
-| Rejected with a diagnostic (exit status 1) | 50 (20 `.output` programs, all 29 of `screen\` and the compile-only `239_lprint`) |
+| Pass | 295: the 276 of `slice.list` and 19 `.err` programs |
+| Rejected with a diagnostic (exit status 1) | 49 (19 `.output` programs, all 29 of `screen\` and the compile-only `239_lprint`) |
 | `.err` programs that get only "not supported yet" errors | 1 (`218` `FRE`) |
 | Known failures | 5, as below |
 | Compiler crash, or an executable for a rejected program or with wrong output | 0 |
@@ -175,7 +175,9 @@ Three `.err` programs left the only-marked row since the run before: `28_redim` 
 group 4 (`REDIM PRESERVE` without its underscore is a syntax error), and `16_ltrim_rtrim` with group 5: `TRIM$`
 is no built-in, so `TRIM$("  xy  ")` is an array used without `DIM` with a string as its index, the old
 compiler's own error ("Illegal string-number conversion"). No program became clean with group 5: every corpus
-program that still names an array without `DIM` does so after a declaration that is marked.
+program that still names an array without `DIM` does so after a declaration that is marked. With group 6,
+`206_shared_redim` (`SHARED a() AS LONG` in a SUB) became clean and passes; the run before it, after group 5,
+had 349 programs, 293 passing and 50 rejected.
 
 ### Full corpus with `qb64rust` (2026-10-10, after the screen programs; not a pass criterion)
 

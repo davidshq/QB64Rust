@@ -44,7 +44,7 @@ pub use names::{c_type, proc_name, var_name};
 use decl::is_qbs;
 use names::{c_string, line_name};
 use qb64rust_base::FileId;
-use qb64rust_ir::{Body, LabelId, Program};
+use qb64rust_ir::{Body, LabelId, Program, Shape};
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
@@ -142,7 +142,16 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
     // main0 first: it collects the `passN` declarations that go into maindata.txt.
     let main0 = e.main0();
     set("main0.txt", main0);
-    let mut maindata = e.per_program_var(|v, n| e.alloc(v, n));
+    let mut maindata = e.per_program_var(|v, n| {
+        let mut text = e.alloc(v, n);
+        if let Shape::Dynamic {
+            at_start: Some(bounds), ..
+        } = &v.shape
+        {
+            text.push_str(&e.allocate_at_start(v, n, bounds));
+        }
+        text
+    });
     maindata.push_str(&e.temps(None));
     for d in std::mem::take(&mut e.pass_decls) {
         maindata.push_str(&d);

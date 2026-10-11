@@ -25,4 +25,3 @@ implicit_arrays_errors.bas:45:11: error: not supported yet: `ff(...)`: an array 
 implicit_arrays_errors.bas:46:7: error: not supported yet: `it(...)`: an array below `$DYNAMIC` first used in a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`, without `DIM`
 implicit_arrays_errors.bas:47:17: error: not supported yet: `li$(...)`: an array below `$DYNAMIC` first used in a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`, without `DIM`
 implicit_arrays_errors.bas:54:1: error: not supported yet: arrays as `TYPE` members
-implicit_arrays_errors.bas:62:14: error: not supported yet: arrays in a SUB or FUNCTION

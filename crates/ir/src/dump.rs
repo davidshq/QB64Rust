@@ -25,9 +25,13 @@ pub fn dump(p: &Program) -> String {
                 let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} To {u}")).collect();
                 writeln!(out, "Array {name}:{} static ({})", ty(p, v.ty), dims.join(", ")).unwrap();
             }
-            Shape::Dynamic { dims } => {
+            Shape::Dynamic { dims, at_start } => {
                 let dims = dims.map_or("?".to_string(), |n| n.to_string());
-                writeln!(out, "Array {name}:{} dynamic, dimensions: {dims}", ty(p, v.ty)).unwrap();
+                let start = at_start.as_ref().map_or(String::new(), |bounds| {
+                    let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} To {u}")).collect();
+                    format!(", allocated at the start ({})", dims.join(", "))
+                });
+                writeln!(out, "Array {name}:{} dynamic, dimensions: {dims}{start}", ty(p, v.ty)).unwrap();
             }
         }
     }

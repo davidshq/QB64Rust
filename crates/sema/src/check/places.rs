@@ -244,9 +244,8 @@ impl Checker<'_> {
             Declarer::Redim { preserve: true } => AllocMode::Preserve,
         };
         let redim = matches!(by, Declarer::Redim { .. });
-        if storage != Storage::Main && !redim {
-            return Err(self.unsupported(bounds.node().span(), "arrays in a SUB or FUNCTION"));
-        }
+        // `STATIC a()`: the array is listed, and a `DIM` or `REDIM` below gives it its bounds.
+        let listed = bounds.ranges().is_empty();
         if self.procs_by_name.contains_key(&name) {
             // Measured: "Name already in use" (`v18_g_array_and_function`).
             return Err(self.in_use(name_tok));
@@ -277,10 +276,9 @@ impl Checker<'_> {
         }
         let key = (name.clone(), ty);
         let existing = self.array_of(&key);
-        // A procedure's `REDIM` reaches a shared array of the main module only: one of its own (an array used
-        // without `DIM` there) waits for arrays in procedures.
-        if storage != Storage::Main && existing.is_none_or(|id| self.prog.var(id).storage != Storage::Main) {
-            return Err(self.unsupported(bounds.node().span(), "arrays in a SUB or FUNCTION"));
+        let bounds_span = bounds.node().span();
+        if by == Declarer::Static {
+            self.static_array_free(existing, name_tok, &shown, listed)?;
         }
         let dims = if redim {
             self.unjoined(NoJoin::RedimBound, |c| c.dim_bounds(bounds, &shown))?
@@ -288,8 +286,24 @@ impl Checker<'_> {
             self.dim_bounds(bounds, &shown)?
         };
         let constant: Option<Vec<(i64, i64)>> = dims.iter().map(|d| d.constant).collect();
-        let static_bounds = constant.filter(|_| by == Declarer::Dim && !self.dynamic_mode);
-        let bounds_span = bounds.node().span();
+        // An array that lives for the program may be static: the main module's, a `STATIC` one and every array
+        // of a procedure with `STATIC` after its header. A procedure's other arrays are made on each call.
+        let lives = matches!(storage, Storage::Main | Storage::Static(_));
+        let static_bounds = constant
+            .clone()
+            .filter(|_| by == Declarer::Dim && lives && !self.dynamic_mode);
+        // `STATIC a(bounds)` is no static array: a dynamic one that is allocated when the program starts, below
+        // `$DYNAMIC` or not ([`Shape::Dynamic`], `at_start`; read from the old compiler's C++ and measured,
+        // `verification\v24_x278`, `v24_b_metacommand_sub`, slice `s56_proc_arrays`).
+        let by_static = by == Declarer::Static && !listed;
+        let start_bounds = constant.filter(|_| by_static);
+        if by_static && start_bounds.is_none() {
+            // That allocation stands in the main module's code, where the old compiler writes the bounds as they
+            // are: with a parameter its C++ build fails (`verification\v24_x121`), with `2 + 3` it works (`x280`).
+            // Bounds that are not constants by their spelling are not compiled yet.
+            let msg = format!("`STATIC {shown}(...)` with a bound that is not one number or one constant");
+            return Err(self.unsupported(bounds_span, msg));
+        }
         let allocate = |array| StmtKind::Allocate {
             array,
             bounds: dims.iter().map(|d| (d.lower.clone(), d.upper.clone())).collect(),
@@ -299,6 +313,8 @@ impl Checker<'_> {
         if let Some(id) = existing {
             let var = self.prog.var(id);
             let (count, is_static) = (var.dim_count(), matches!(var.shape, Shape::Static { .. }));
+            // A `DIM` of an array that `STATIC a(n)` declared is an allocation like any other: the array is
+            // allocated already, so it raises error 10 when it runs (measured, `verification\v24_x285`).
             if let Some(n) = count.filter(|&n| n != dims.len()) {
                 // Measured: "Cannot change the number of elements an array has!" (`v24_x40`, `x50`).
                 let plural = if n == 1 { "" } else { "s" };
@@ -309,8 +325,18 @@ impl Checker<'_> {
                 // Measured: "Cannot redefine a static array!" (`v18_e_dim_twice`).
                 return Err(self.error(name_tok.span, format!("the static array `{shown}` is already declared")));
             }
+            if count.is_none() {
+                // An array listed by `STATIC a()`: its first `DIM` or `REDIM` gives the number of dimensions
+                // (measured, `verification\v24_g_local`, `v24_x177`).
+                self.prog.vars[id.0 as usize].shape = Shape::Dynamic {
+                    dims: Some(dims.len()),
+                    at_start: None,
+                };
+            }
             // `SHARED` on a later declaration changes nothing: an array that was not shared stays unseen by the
-            // procedures (measured, `verification\v24_x248`).
+            // procedures (measured, `verification\v24_x248`). In a procedure this may be a shared array of the
+            // main module: a `DIM` of it there, with constant bounds too, raises error 10 when it runs (`x270`,
+            // `x271`).
             self.names.push((SymbolKind::Var(id), name_tok.span));
             self.push(stmt, allocate(id));
             return Ok(());
@@ -323,7 +349,7 @@ impl Checker<'_> {
             let msg = format!("an array `{shown}` beside a variable or array typed by `DIM … AS`");
             return Err(self.unsupported(name_tok.span, msg));
         }
-        let shape = match static_bounds {
+        let shape = match static_bounds.or(start_bounds) {
             Some(bounds) => {
                 let mut count: i64 = 1;
                 for &(l, u) in &bounds {
@@ -332,11 +358,29 @@ impl Checker<'_> {
                         _ => return Err(self.unsupported(bounds_span, "an array of more than 2^31 elements")),
                     };
                 }
-                Shape::Static { bounds }
+                if by_static {
+                    Shape::Dynamic {
+                        dims: Some(bounds.len()),
+                        at_start: Some(bounds),
+                    }
+                } else {
+                    Shape::Static { bounds }
+                }
             }
-            None => Shape::Dynamic { dims: Some(dims.len()) },
+            // `STATIC a()` (measured, `verification\v24_g_local`, `v24_f_implicit_sub`): a dynamic array that
+            // lives for the program and is not allocated; what gives it bounds or indexes first gives it its
+            // number of dimensions.
+            None if listed => Shape::Dynamic {
+                dims: None,
+                at_start: None,
+            },
+            None => Shape::Dynamic {
+                dims: Some(dims.len()),
+                at_start: None,
+            },
         };
-        let dynamic = matches!(shape, Shape::Dynamic { .. });
+        // A listed array and one allocated at the start have no allocation where they are declared.
+        let dynamic = matches!(shape, Shape::Dynamic { at_start: None, .. }) && !listed;
         let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
             name: name.clone(),
@@ -357,6 +401,28 @@ impl Checker<'_> {
         self.names.push((SymbolKind::Var(id), name_tok.span));
         if dynamic {
             self.push(stmt, allocate(id));
+        }
+        Ok(())
+    }
+
+    /// Whether `STATIC name(…)` may declare its array, given the array of that name and type visible here
+    /// (`listed`: nothing stands between the parentheses). Measured: "Name already in use" after a `STATIC`, a
+    /// `DIM` or a use without `DIM` of it in the procedure (`verification\v24_x122`, `x123`, `x125`, `x269`),
+    /// "Array already listed as STATIC" for bounds after `STATIC a()` (`x124`).
+    fn static_array_free(&mut self, existing: Option<VarId>, name_tok: Tok, shown: &str, listed: bool) -> R<()> {
+        if let Some(id) = existing {
+            let var = self.prog.var(id);
+            if var.storage == Storage::Main {
+                // Measured (`v24_x272`): the old compiler accepts it and the program ends when it starts
+                // ("Duplicate definition").
+                let msg = format!("`STATIC {shown}(...)` beside a shared array of the main module");
+                return Err(self.unsupported(name_tok.span, msg));
+            }
+            if var.dim_count().is_none() && !listed {
+                let msg = format!("`{shown}` is already listed by `STATIC {shown}()`: `DIM` gives it its bounds");
+                return Err(self.error(name_tok.span, msg));
+            }
+            return Err(self.in_use(name_tok));
         }
         Ok(())
     }
@@ -533,7 +599,9 @@ impl Checker<'_> {
     /// - in the main module below `$DYNAMIC` a dynamic array, allocated with those bounds by an
     ///   [`StmtKind::Allocate`] that runs as the first part of the statement that names it first (`joined`);
     /// - in a procedure a local dynamic array that nothing allocates, so that every use raises error 9 (as the
-    ///   old compiler does; `DIVERGENCES-QB45.md` Q-009).
+    ///   old compiler does; `DIVERGENCES-QB45.md` Q-009) until a `DIM` or `REDIM` of it in the procedure runs;
+    /// - in a procedure with `STATIC` after its header a static array like the main module's that lives for the
+    ///   program, and below `$DYNAMIC` a dynamic one that lives for the program and that nothing allocates.
     ///
     /// Where the old compiler's allocation would not be the first thing its statement does, or would be another
     /// kind of allocation, nothing is made and the use is marked "not supported yet" ([`NoJoin`]).
@@ -590,17 +658,40 @@ impl Checker<'_> {
             return Err(self.unsupported(t.span, msg));
         }
         let base = self.option_base;
-        let (storage, shape) = match self.cur {
-            Some(p) => (Storage::Local(p), Shape::Dynamic { dims: Some(dims) }),
-            None if self.dynamic_mode => (Storage::Main, Shape::Dynamic { dims: Some(dims) }),
-            None => {
+        // In a procedure with `STATIC` after its header the array lives for the program: a static one that
+        // works, or below `$DYNAMIC` a dynamic one that nothing allocates (measured, `v24_f_implicit_sub`,
+        // `v24_x120`).
+        let static_proc = self.cur.filter(|_| self.static_scope);
+        let (storage, shape) = match (self.cur, static_proc) {
+            (Some(p), None) => (
+                Storage::Local(p),
+                Shape::Dynamic {
+                    dims: Some(dims),
+                    at_start: None,
+                },
+            ),
+            (_, Some(p)) if self.dynamic_mode => (
+                Storage::Static(p),
+                Shape::Dynamic {
+                    dims: Some(dims),
+                    at_start: None,
+                },
+            ),
+            (None, _) if self.dynamic_mode => (
+                Storage::Main,
+                Shape::Dynamic {
+                    dims: Some(dims),
+                    at_start: None,
+                },
+            ),
+            (_, owner) => {
                 let count = u32::try_from(dims).ok().and_then(|n| (11 - base).checked_pow(n));
                 if count.is_none_or(|n| n > MAX_ELEMENTS) {
                     self.implicit_names.insert(name.to_string());
                     return Err(self.unsupported(at.span(), "an array of more than 2^31 elements"));
                 }
                 let bounds = vec![(base, 10); dims];
-                (Storage::Main, Shape::Static { bounds })
+                (owner.map_or(Storage::Main, Storage::Static), Shape::Static { bounds })
             }
         };
         let allocated_here = self.cur.is_none() && self.dynamic_mode;
@@ -661,21 +752,31 @@ impl Checker<'_> {
         self.unsupported(t.span, msg)
     }
 
+    /// The number of dimensions of an array. One listed by `STATIC a()` that no `DIM` or `REDIM` has given bounds
+    /// yet gets `first` here: the number of indexes of the use that names it first, 1 for `LBOUND` and `UBOUND`
+    /// (measured, `verification\v24_x276`: a later use with another number is the compile error).
+    fn settle_dims(&mut self, array: VarId, first: usize) -> usize {
+        if let Some(n) = self.prog.var(array).dim_count() {
+            return n;
+        }
+        self.prog.vars[array.0 as usize].shape = Shape::Dynamic {
+            dims: Some(first),
+            at_start: None,
+        };
+        first
+    }
+
     /// The element `array(index, …)` named by a call node: one index per dimension, each converted to `_INTEGER64`
     /// as for an assignment.
     pub(super) fn element(&mut self, call: ast::CallExpr, array: VarId, t: Tok) -> R<Place> {
         let span = call.node().span();
         let args = self.present_args(call.arg_list())?;
-        let dims = self
-            .prog
-            .var(array)
-            .dim_count()
-            .expect("every array declared so far has its number of dimensions");
         if args.is_empty() {
             // `x()`: a whole array (whole-array assignment, array arguments), deferred (`SOMEDAY.md`).
             let shown = show_bytes(self.text(t.span));
             return Err(self.unsupported(span, format!("the whole array `{shown}()`")));
         }
+        let dims = self.settle_dims(array, args.len());
         if args.len() != dims {
             // Measured: "Cannot change the number of elements an array has!" (`v18_d_index_count_*`).
             let shown = show_bytes(self.text(t.span));
@@ -873,6 +974,7 @@ impl Checker<'_> {
                     // without `DIM` (`v18_f_*`, `v24_f_implicit`).
                     None => self.implicit_array(t, &name, suffix, 1, n.node())?,
                 };
+                self.settle_dims(a, 1);
                 self.names.push((SymbolKind::Var(a), t.span));
                 a
             }

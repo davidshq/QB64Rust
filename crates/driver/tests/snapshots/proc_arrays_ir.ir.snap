@@ -1,0 +1,66 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Array G:I32 static (0 To 3)
+Array T(local):I32 dynamic, dimensions: 1
+Array S(local):Str dynamic, dimensions: 1
+Array C(static):I32 dynamic, dimensions: 1, allocated at the start (0 To 3)
+Array L(static):I32 dynamic, dimensions: 1
+Array A(static):I32 static (0 To 2)
+Array B(static):I32 dynamic, dimensions: 1
+Array U(static):F32 static (0 To 10)
+Stmt line 2
+  SelectConsole
+Stmt line 10 may_raise
+  Assign G(Const 1:I64):I32 = Const 2:I32
+Sub LOCALS lines 11-17
+  param N:I32
+  local T:I32
+  local S:Str
+Stmt line 12 may_raise
+  Allocate Dim T(local):I32
+    Const 0:I64 To Const 5:I64
+Stmt line 12 may_raise
+  Allocate Dim S(local):Str
+    Const 0:I64 To (Var N(param):I32 -> Convert I64 Widen)
+Stmt line 13 may_raise
+  Assign T(local)(Const 1:I64):I32 = Var N(param):I32
+Stmt line 14
+  Branch Zero -> @0 Skip: Eq:I32(Var N(param):I32, Const 1:I32)
+Stmt line 14
+  Exit
+Label @0 line 14
+Stmt line 15 may_raise
+  Allocate Preserve T(local):I32
+    Const 0:I64 To (Var N(param):I32 -> Convert I64 Widen)
+Stmt line 16
+  Release S(local):Str
+Sub STATICS lines 18-24
+  static C:I32
+  static L:I32
+Stmt line 21 may_raise
+  Allocate Dim L(static):I32
+    Const 0:I64 To Const 3:I64
+Stmt line 22 may_raise
+  Assign C(static)(Const 1:I64):I32 = Add:I32(Load C(static)(Const 1:I64):I32, Load L(static)(Const 1:I64):I32) wrap
+Stmt line 23
+  Release C(static):I32
+Stmt line 23
+  Release L(static):I32
+Sub SHARES lines 25-28
+Stmt line 27 may_raise
+  Assign G(Const 2:I64):I32 = Load G(Const 1:I64):I32
+Sub KEEPS lines 29-33
+  param N:I32
+  static A:I32
+  static B:I32
+  static K:F32
+  static U:F32
+Stmt line 30 may_raise
+  Allocate Dim B(static):I32
+    Const 0:I64 To (Var N(param):I32 -> Convert I64 Widen)
+Stmt line 31 may_raise
+  Assign K(static):F32 = Add:F32(Var K(static):F32, (Load A(static)(Const 1:I64):I32 -> Convert F32 Nearest))
+Stmt line 32 may_raise
+  Assign U(static)(Const 1:I64):F32 = Var K(static):F32

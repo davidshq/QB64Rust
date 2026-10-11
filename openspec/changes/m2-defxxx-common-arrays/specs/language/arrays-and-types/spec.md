@@ -445,19 +445,41 @@ and a store to a spelling that is a FUNCTION or a built-in function SHALL be com
 
 ### Requirement: Arrays in procedures
 In a SUB or FUNCTION, `DIM` and `REDIM` of an array SHALL make a dynamic array that is new on every call and
-released at the end of the call; running the same `DIM` twice in one call SHALL raise error 10. `STATIC name(bounds)`
-SHALL make an array that is made once and keeps its elements between calls, as SHALL every array of a `SUB … STATIC`
-or `FUNCTION … STATIC` (static with constant bounds, dynamic with a bound that is not constant). `STATIC name()`
-SHALL declare a dynamic array that lives for the program and is not allocated: a `DIM` of it in the same
-procedure SHALL allocate it (raising error 10 on a later call), a `REDIM` SHALL give it new elements and a `REDIM
-_PRESERVE` keep them. `SHARED name() [AS type]` SHALL name the main-module array of that name and type, which
-SHALL be declared above the procedure in the file (a compile error otherwise; none is made). A main-module array
-declared with `DIM SHARED`, `REDIM SHARED` or `COMMON SHARED` SHALL be visible in the procedures below its
-declaration in the file; in a procedure above it, and for any other main-module array, the name SHALL be an
-implicit array of the procedure. `STATIC name(bounds)` with a bound that is not constant SHALL be a compile error
-(the old compiler accepts it and its C++ build fails). `STATIC` of an array declared or listed already in the
-procedure, `DIM SHARED` and `REDIM SHARED` inside a procedure, and `STATIC` in the main module SHALL be compile
-errors.
+released at the end of the call; running the same `DIM` twice in one call SHALL raise error 10. `DIM name()` and
+`REDIM name()` with nothing between the parentheses SHALL declare a scalar, as in the main module.
+
+`STATIC name(bounds)` with constant bounds SHALL make an array that keeps its elements between calls. It SHALL be
+a dynamic array that is allocated when the program starts, below `$DYNAMIC` or not: `ERASE` SHALL release it (a
+use then raises error 9), a `REDIM` SHALL give it other bounds, and the next error that reaches a handler SHALL
+allocate it again, empty, if it was released (the old compiler writes its allocation where the main module
+starts, which a handler enters again). With a bound that is not one number or one constant it SHALL be reported
+"not supported yet" (the old compiler writes the bound into the main module's code: its C++ build fails for a
+parameter or a local variable and works for `2 + 3`). `STATIC name()` SHALL declare a dynamic array that lives
+for the program and is not allocated: a `DIM` of it in the same procedure SHALL allocate it (raising error 10 on
+a later call), a `REDIM` SHALL give it new elements and a `REDIM _PRESERVE` keep them; its number of dimensions
+SHALL come from what names it first, a `DIM`, a `REDIM`, an index or `LBOUND`/`UBOUND`, and another number later
+SHALL be a compile error.
+
+In a `SUB … STATIC` or `FUNCTION … STATIC`, every variable and array first named **above the procedure's first
+`STATIC` statement** SHALL live for the program: a scalar keeps its value, a `DIM` with constant bounds is a
+static array, one with a bound that is not constant a dynamic array that lives for the program (its `DIM` raises
+error 10 on a later call), and an array used without `DIM` a static one. Below that statement the procedure
+SHALL be one like any other, as the old compiler has it (`DIVERGENCES-QB45.md` Q-010).
+
+`SHARED name() [AS type]` SHALL name the main-module array of that name and type, declared or used without `DIM`,
+which SHALL stand above the procedure in the file (a compile error otherwise; none is made). Below an array of
+that name and type that the procedure has already, it SHALL change nothing. A main-module array declared with
+`DIM SHARED`, `REDIM SHARED` or `COMMON SHARED` SHALL be visible in the procedures below its declaration in the
+file; in a procedure above it, and for any other main-module array, the name SHALL be an implicit array of the
+procedure. A `DIM` in a procedure of the name and type of a shared main-module array SHALL be an allocation of
+that array, which raises error 10 when it runs; in a procedure with `STATIC` after its header, above its first
+`STATIC` statement, a `DIM` with constant bounds of a static one SHALL be the compile error it is in the main
+module.
+
+`STATIC` of an array declared, used or listed already in the procedure, `DIM SHARED` and `REDIM SHARED` inside a
+procedure, `SHARED name(bounds)` with bounds, and `STATIC` in the main module SHALL be compile errors. `STATIC
+name(bounds)` beside a shared main-module array of that name and type SHALL be reported "not supported yet" (the
+old compiler's program ends when it starts).
 
 #### Scenario: New on each call
 - **WHEN** a SUB with `DIM t(5) AS LONG: PRINT t(1): t(1) = 7` is called twice
@@ -503,9 +525,34 @@ errors.
 - **THEN** each level still holds its own `a(n)` (the result for 3 is 6)
 
 #### Scenario: Rejected declarations
-- **WHEN** a procedure holds `STATIC a(3)` twice, `STATIC a()` then `STATIC a(3)`, `DIM SHARED a(3)`, `SHARED a(3)`,
-  `STATIC v(n)` with a parameter `n`, or `SHARED a()` for a main array declared below the procedure
+- **WHEN** a procedure holds `STATIC a(3)` twice, `STATIC a()` then `STATIC a(3)`, `a(1) = 5` then `STATIC a(3)`,
+  `DIM SHARED a(3)`, `SHARED a(3)`, or `SHARED a()` for a main array declared below the procedure
 - **THEN** each is a compile error
+
+#### Scenario: STATIC with a bound that is not constant
+- **WHEN** a SUB with a parameter `n` holds `STATIC v(n) AS LONG`, or one holds `STATIC v(2 + 3) AS LONG`
+- **THEN** each is reported "not supported yet"
+
+#### Scenario: ERASE of a STATIC array
+- **WHEN** a SUB with `STATIC c(2) AS LONG: c(1) = c(1) + 1: PRINT c(1);: ERASE c: PRINT c(1);` is called twice
+  under a handler that prints `ERR` and resumes next
+- **THEN** each call prints ` 1 `, then the handler prints 9 (the array is released, and the error that reached
+  the handler allocated it again, empty)
+
+#### Scenario: Above and below the STATIC statement
+- **WHEN** `SUB s STATIC` with `n = n + 1: PRINT n;`, then `STATIC x(2) AS LONG`, then `m = m + 1: PRINT m` is
+  called three times
+- **THEN** it prints ` 1  1 `, ` 2  1 `, ` 3  1 `
+
+#### Scenario: DIM of a shared array in a SUB
+- **WHEN** the main module has `DIM SHARED sa(3) AS LONG` and a SUB with `DIM sa(5) AS LONG: PRINT UBOUND(sa)` is
+  called under the same handler
+- **THEN** the handler prints 10 and the SUB prints ` 3 `
+
+#### Scenario: SHARED below a local array
+- **WHEN** the main module has `DIM a(3) AS LONG: a(1) = 7` and a SUB holds `DIM a(5) AS LONG: a(1) = 1: SHARED a()
+  AS LONG: PRINT a(1); UBOUND(a)`
+- **THEN** the SUB prints ` 1  5 ` and `a(1)` in the main module is still 7
 
 ### Requirement: COMMON
 `COMMON name [AS type], …` in the main module SHALL declare each variable as `DIM` does, and `COMMON SHARED` as

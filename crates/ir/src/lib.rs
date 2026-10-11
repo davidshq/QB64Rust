@@ -167,7 +167,7 @@ impl Var {
         match &self.shape {
             Shape::Scalar => None,
             Shape::Static { bounds } => Some(bounds.len()),
-            Shape::Dynamic { dims } => *dims,
+            Shape::Dynamic { dims, .. } => *dims,
         }
     }
 

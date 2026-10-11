@@ -27,13 +27,17 @@ pub fn dump_typed(p: &Program) -> String {
                 let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} TO {u}")).collect();
                 writeln!(out, "ARRAY {name}:{}({})", ty(p, v.ty), dims.join(", ")).unwrap();
             }
-            Shape::Dynamic { dims } => {
+            Shape::Dynamic { dims, at_start } => {
                 let dims = match dims {
                     Some(1) => "1 dimension".to_string(),
                     Some(n) => format!("{n} dimensions"),
                     None => "dimensions not known".to_string(),
                 };
-                writeln!(out, "ARRAY {name}:{} dynamic, {dims}", ty(p, v.ty)).unwrap();
+                let start = at_start.as_ref().map_or(String::new(), |bounds| {
+                    let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} TO {u}")).collect();
+                    format!(", allocated at the start ({})", dims.join(", "))
+                });
+                writeln!(out, "ARRAY {name}:{} dynamic, {dims}{start}", ty(p, v.ty)).unwrap();
             }
         }
     }

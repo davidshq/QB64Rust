@@ -33,6 +33,36 @@ pub fn validate(p: &Program) -> Result<(), Vec<String>> {
             v.problem(format!("{}: the result is not a result of this procedure", proc.name));
         }
     }
+    // An array allocated at the start lives for the program, and has one pair of bounds per dimension.
+    for var in &p.vars {
+        if let Shape::Dynamic {
+            dims,
+            at_start: Some(bounds),
+        } = &var.shape
+        {
+            if !matches!(var.storage, Storage::Global | Storage::Static(_)) {
+                v.problem(format!(
+                    "{}: allocated at the start, but it does not live for the program",
+                    var.name
+                ));
+            }
+            if *dims != Some(bounds.len()) {
+                v.problem(format!(
+                    "{}: {} pairs of bounds at the start for {dims:?} dimensions",
+                    var.name,
+                    bounds.len()
+                ));
+            }
+        }
+        // Only a listed array (`STATIC a()`) may be without its number of dimensions; one made on each call
+        // has it from the statement that made it. The emitter makes a descriptor of one dimension for none.
+        if matches!(var.shape, Shape::Dynamic { dims: None, .. }) && matches!(var.storage, Storage::Local(_)) {
+            v.problem(format!(
+                "{}: an array made on each call without its number of dimensions",
+                var.name
+            ));
+        }
+    }
     v.body(&p.main, None);
     for (i, proc) in p.procs.iter().enumerate() {
         v.body(&proc.body, Some(ProcId(qb64rust_base::to_u32(i))));
@@ -808,7 +838,13 @@ mod tests {
         };
         p.vars.extend([
             array("S", Shape::Static { bounds: vec![(0, 5)] }),
-            array("D", Shape::Dynamic { dims: Some(1) }),
+            array(
+                "D",
+                Shape::Dynamic {
+                    dims: Some(1),
+                    at_start: None,
+                },
+            ),
         ]);
         p
     }
@@ -836,6 +872,44 @@ mod tests {
             Op::Release { array: VarId(4) },
         ]);
         assert_eq!(problems(&p), Vec::<String>::new());
+    }
+
+    #[test]
+    fn array_allocated_at_the_start() {
+        let at_start = |dims, bounds: &[(i64, i64)]| Shape::Dynamic {
+            dims,
+            at_start: Some(bounds.to_vec()),
+        };
+        let mut p = arrays();
+        p.vars[4].shape = at_start(Some(1), &[(0, 3)]);
+        assert_eq!(problems(&p), Vec::<String>::new());
+        // One pair of bounds for two dimensions, and an array that is made on each call.
+        p.vars[4].shape = at_start(Some(2), &[(0, 3)]);
+        p.vars[4].storage = Storage::Local(ProcId(0));
+        assert_eq!(
+            problems(&p),
+            [
+                "D: allocated at the start, but it does not live for the program",
+                "D: 1 pairs of bounds at the start for Some(2) dimensions"
+            ]
+        );
+    }
+
+    #[test]
+    fn array_without_its_number_of_dimensions() {
+        let listed = Shape::Dynamic {
+            dims: None,
+            at_start: None,
+        };
+        let mut p = arrays();
+        p.vars[4].shape = listed;
+        p.vars[4].storage = Storage::Static(ProcId(0));
+        assert_eq!(problems(&p), Vec::<String>::new());
+        p.vars[4].storage = Storage::Local(ProcId(0));
+        assert_eq!(
+            problems(&p),
+            ["D: an array made on each call without its number of dimensions"]
+        );
     }
 
     #[test]

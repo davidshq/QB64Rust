@@ -145,6 +145,11 @@ a(n)` or `COMMON` **and** `$DYNAMIC` is not in effect at that line **and** it st
 `STATIC` procedure (or is `STATIC a(n)`); an array used without `DIM` is static unless `$DYNAMIC` is in effect
 where it is first named. Everything else is dynamic.
 
+**Corrected by group 6 (2026-10-11; `study\00` §5):** `STATIC a(n)` is **not** static. It is a dynamic array that
+lives for the program and is allocated when the program starts, below `$DYNAMIC` or not: `Dynamic { dims,
+at_start: Some(bounds) }` (D6, "As built"). And "a `STATIC` procedure" means the part of one above its first
+`STATIC` statement.
+
 **A constant bound is a spelling, not a value** (measured in 3.2, `verification\v24_b_constant_bounds*`): one
 number (any literal form, a minus before it included) or one `CONST` name, in any number of parentheses. A bound
 with an operator (`2 + 3`, `k + 1`, `-k`, `10 \ 3`) makes the array dynamic in the old compiler although `sema`
@@ -245,7 +250,7 @@ What the array is depends on where it stands (measured, `study\00` §5):
 |---|---|
 | main module | static, exists from the start |
 | main module below `$DYNAMIC` | dynamic, allocated by the first statement in the file that names it (D3) |
-| `SUB … STATIC` (not below `$DYNAMIC`) | static, lives for the program |
+| `SUB … STATIC` above its first `STATIC` statement (not below `$DYNAMIC`) | static, lives for the program |
 | any other procedure, and every procedure below `$DYNAMIC` | **a local dynamic array that nothing allocates: every use raises 9**, until a `DIM` or `REDIM` of it in the procedure runs |
 
 The last row is what the old compiler does (its C++ holds the descriptor and no allocation); QuickBASIC 4.5
@@ -331,6 +336,55 @@ too.
 - **Accepted by the old compiler but failing its C++ build**, so compile errors here by the rule of
   `DECISIONS.md` 2026-10-08: `STATIC v(n)` with a bound that is not constant, and an array argument in
   parentheses (`fill (x())`).
+
+**As built in group 6 (2026-10-11; measured first, `verification\v24_x269`–`x282`, `study\00` §5):**
+- **A procedure's own array** is `Local` and `Dynamic`, with constant bounds too; every `DIM` and `REDIM` of it
+  is an `Allocate`, the first one included, and `declare_array` (`sema\src\check\places.rs`) needed only its
+  marks taken away. An array used without `DIM` and a later `DIM` of it are the same array (group 5's
+  descriptor). `DIM a()` and `REDIM a()` in a procedure are scalars, as in the main module.
+- **`STATIC a(n)` is `Dynamic { dims, at_start: Some(bounds) }` with storage `Static`**, not a static array (D3
+  said static). The old compiler writes its allocation into `maindata.txt`, which runs when the program starts
+  and again whenever an error handler is entered; an `ERASE` releases the array and the next error that reaches
+  a handler allocates it again. `sema` writes no `Allocate` for it; the emitter writes the allocation (mode
+  `Dim`, the constant bounds) after the array's descriptor in `maindata.txt` (`codegen-cpp\src\arrays.rs`,
+  `allocate_at_start`), so the same things happen at the same times. `ir::validate` checks that such an array
+  lives for the program and has one pair of bounds per dimension. Below `$DYNAMIC` it is the same array.
+  *Alternative considered:* a list of start-up allocations beside the program's variables. Rejected: the
+  bounds belong to the array, and a field of the dynamic shape keeps every "is it dynamic" question
+  (`ERASE`, `validate`, `CLEAR`) answering as before with no new case.
+- **`STATIC v(n)` with a bound that is not one number or one constant is "not supported yet", not a compile
+  error** (the last point above said error). The old compiler writes the bound into the main module's code: with
+  a parameter its C++ build fails (`x121`), with `2 + 3` it works (`x280`); a shared variable there was not
+  measured and may work too. An error for every such bound would reject programs the old compiler runs.
+- **A listed array** (`STATIC a()`) is `Dynamic { dims: None }` with storage `Static`. Its number of dimensions
+  comes from what names it first: a `DIM`, a `REDIM`, an index or `LBOUND`/`UBOUND` (`settle_dims`). One that
+  nothing names keeps `None`; the emitter makes its descriptor with one dimension, and nothing can reach it.
+  `STATIC a() AS DOUBLE` then `DIM a(3)` (another array, `x126`) stays marked: an array without a type beside
+  one typed with `AS`.
+- **`STATIC` after a procedure header** (`static_procs`, `static_scope` in the checker): the procedure's own
+  variables and arrays get storage `Static` instead of `Local` **down to the end of its first `STATIC`
+  statement** and `Local` below it, which is what the old compiler's flag does (`dimstatic`: 2 from the header,
+  1 in a `STATIC` statement, 0 after it). Above the statement a `DIM` with constant bounds is a static array, one
+  with another bound a dynamic array that lives for the program, an array used without `DIM` a static one.
+  QuickBASIC 4.5 keeps every variable of such a procedure: `DIVERGENCES-QB45.md` Q-010, `SOMEDAY.md`.
+- **`SHARED a()`** (`shared_array`, `sema\src\check\decl.rs`) binds the main array of the name and type into the
+  procedure's scope; "not declared" is a real error; below an array of that key that the procedure has already
+  it changes nothing (`x275`).
+- **A `DIM` in a procedure of a shared main array's name and type** is an `Allocate` of that array (error 10 when
+  it runs, `x270`, `x271`); where the procedure's arrays may be static (above the `STATIC` statement of a
+  `STATIC` procedure) it is the compile error of the main module (`x281`).
+- **Marked "not supported yet":** `STATIC a(n)` beside a shared main array of the name (the old program ends
+  when it starts, `x272`), `REDIM e AS LONG` without parentheses in a procedure (not measured there).
+- **Corrected by the review of the group (measured, `x283`–`x285`):** a `DIM` of an array that `STATIC a(n)`
+  declared is an `Allocate` like any other (error 10 when it runs; it was a mark); in a procedure with `STATIC`
+  after its header a plain `DIM` is no `STATIC` statement for the two checks of a scalar's name: on a `CONST`
+  name it is "name already in use", and on a `DIM SHARED` variable's name it makes the procedure's own variable,
+  with storage `Static`. `ir::validate` also rejects an array made on each call that has no number of
+  dimensions (only a listed array may have none; the emitter gives such a one a descriptor of one dimension).
+- **The emitter** needed no new code for local arrays: group 5's per-call descriptor and its release in
+  `freeK.txt` (strings, the block, the lock) serve every local array, and `EXIT SUB`, `END SUB` and an error all
+  pass `exit_subfunc`. Arrays with storage `Static` are declared in `global.txt` and set up in `maindata.txt`
+  like the main module's.
 
 ### D7. The emitter
 - **Dynamic descriptor**: the same slots as a static one (`study\02` §3.4), made at program start (or per call)

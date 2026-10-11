@@ -61,10 +61,10 @@ pub(crate) fn lock_slot(n: usize) -> usize {
     4 * n + 4
 }
 
-/// The number of dimensions of an array.
+/// The number of dimensions of an array. One that was only listed (`STATIC a()`, with no `DIM`, `REDIM` or use
+/// of it below) has none: no statement names it, and its descriptor is made with one.
 pub(crate) fn dim_count(v: &Var) -> usize {
-    v.dim_count()
-        .unwrap_or_else(|| panic!("the array {} has no known number of dimensions", v.name))
+    v.dim_count().unwrap_or(1)
 }
 
 /// Whether a variable is a plain C variable (a temporary), not a pointer.

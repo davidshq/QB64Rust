@@ -39,10 +39,10 @@ impl Checker<'_> {
         if self.procs_by_name.contains_key(&name) {
             return Err(self.in_use(name_tok));
         }
-        if let Some(t) = header.static_word() {
-            return Err(self.unsupported(t.span, "`STATIC` after a procedure header"));
-        }
         let id = ProcId(to_u32(self.prog.procs.len()));
+        if header.static_word().is_some() {
+            self.static_procs.insert(id);
+        }
         self.prog.procs.push(Proc {
             name: name.clone(),
             kind,

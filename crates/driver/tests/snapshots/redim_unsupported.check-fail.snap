@@ -11,9 +11,4 @@ redim_unsupported.bas:15:7: error: not supported yet: `ERASE` of `z`, an array u
 redim_unsupported.bas:16:14: error: not supported yet: `q(...)` (an array used without `DIM`, or no FUNCTION of this name)
 redim_unsupported.bas:17:7: error: not supported yet: `ERASE` of `q`, an array used without `DIM`
 redim_unsupported.bas:18:7: error: not supported yet: arrays as `TYPE` members
-redim_unsupported.bas:21:15: error: not supported yet: arrays in a SUB or FUNCTION
-redim_unsupported.bas:22:5: error: not supported yet: `REDIM SHARED` inside a SUB or FUNCTION
-redim_unsupported.bas:23:11: error: not supported yet: `REDIM e` without bounds in a SUB or FUNCTION
-redim_unsupported.bas:24:10: error: not supported yet: arrays in a SUB or FUNCTION
-redim_unsupported.bas:25:11: error: not supported yet: arrays in a SUB or FUNCTION
-redim_unsupported.bas:26:13: error: not supported yet: arrays in a SUB or FUNCTION
+redim_unsupported.bas:21:11: error: not supported yet: `REDIM e` without bounds in a SUB or FUNCTION

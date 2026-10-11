@@ -278,7 +278,9 @@ slice/s53_redim
 slice/s54_redim_preserve
 slice/s55_erase
 slice/s55_implicit
+slice/s56_proc_arrays
 runtime_comparison/120_redim_no_preserve
 runtime_comparison/203_redim_multiple
 runtime_comparison/40_erase
 runtime_comparison/201_erase_udt_array
+runtime_comparison/206_shared_redim

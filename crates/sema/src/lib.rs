@@ -460,8 +460,16 @@ pub enum Shape {
     },
     /// An array a statement allocates when it runs. `dims` is its number of dimensions; `None` while nothing has
     /// fixed it (`COMMON a()`, `STATIC a()`, an array parameter that is never indexed).
+    ///
+    /// `at_start` are the bounds of `STATIC a(bounds)`: the array is allocated with them when the program
+    /// starts, and again, if an `ERASE` released it, whenever an error handler is entered (measured,
+    /// `verification\v24_x278`, slice `s56_proc_arrays` line 24; the old compiler writes the allocation into the
+    /// fragment that runs at the start of the main module, which a handler enters again). Its `STATIC`
+    /// statement is no allocation; a `REDIM` gives it other bounds, an `ERASE` releases it and a `DIM` of it
+    /// raises error 10 (`v24_x285`), like any dynamic array that is allocated.
     Dynamic {
         dims: Option<usize>,
+        at_start: Option<Vec<(i64, i64)>>,
     },
 }
 
@@ -500,7 +508,7 @@ impl Var {
         match &self.shape {
             Shape::Scalar => None,
             Shape::Static { bounds } => Some(bounds.len()),
-            Shape::Dynamic { dims } => *dims,
+            Shape::Dynamic { dims, .. } => *dims,
         }
     }
 
