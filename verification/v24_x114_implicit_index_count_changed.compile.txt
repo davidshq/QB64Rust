@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):Z ( 1 , 2 ) = 1
+LINE 4:z(1, 2) = 1
+exit=1

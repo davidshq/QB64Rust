@@ -1,0 +1,5 @@
+
+_DEFINE: Expected ... AS ...
+Caused by (or after):
+LINE 3:_DEFINE AS LONG
+exit=1

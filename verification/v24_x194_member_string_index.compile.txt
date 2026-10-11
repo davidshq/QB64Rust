@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):T . V ( "a",1 ) = 5
+LINE 7:t.v("a") = 5
+exit=1

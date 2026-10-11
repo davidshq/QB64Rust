@@ -378,12 +378,12 @@ impl Validator<'_> {
             Place::Element { array, index } => {
                 if self.var_use(*array, owner, at) {
                     let v = self.p.var(*array);
-                    if v.dims.len() != index.len() {
+                    if v.bounds().len() != index.len() {
                         let msg = format!(
                             "{at}: {} indexes for {} of {} dimensions",
                             index.len(),
                             v.name,
-                            v.dims.len()
+                            v.bounds().len()
                         );
                         self.problem(msg);
                     }
@@ -504,7 +504,7 @@ mod tests {
             name: name.into(),
             ty: Ty::I32,
             storage,
-            dims: Vec::new(),
+            shape: crate::Shape::Scalar,
         }
     }
 

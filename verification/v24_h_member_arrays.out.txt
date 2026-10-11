@@ -1,0 +1,11 @@
+1. t.v(2) = 7: t.v(2), t.v(3), LEN(t) 7  0  22 
+2. LBOUND(t.v), UBOUND(t.v), UBOUND(t.v, 1): 0  3  3 
+3. the members around the array after its ends are set to -1: id, tail 1  9 
+4. a chain: x(0).n(1).q(2), x(0).m.r, x(0).n(0).q(2), LEN(x(0)) 77  88  0  24 
+5. LBOUND(x(0).n), UBOUND(x(0).n), UBOUND(x(0).n(1).q): 0  1  2 
+6. each element has its own: a(0).v(1), a(1).v(1) 5  0 
+7. two dimensions, STRING * 3, DOUBLE:  100 -1  0 [abc] 0  .3333333333333333  33 
+   bounds of g: 1  2  0  3 
+8. t.v(4) = 1: [error 9 ] t.v(-1): [error 9 ] UBOUND(t.v, 2): [error 9 ]9. a local variable, twice: 0  0 
+10. a float index and a float stored:  2 
+exit=0

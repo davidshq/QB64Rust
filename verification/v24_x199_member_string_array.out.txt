@@ -1,0 +1,2 @@
+[] abc changed 2 
+exit=0

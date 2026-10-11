@@ -1,0 +1,4 @@
+SUB: total, v, cs(2), cr(2), b3, fx, ur.n 5  0  6  7  3 abc 9 
+SUB: pa(1) of a COMMON array that is not shared: [error 9 ]main: b1, b2, pa(1), UBOUND(cr), cr(6) 1 x 8  6  2 
+main: REDIM cs(9) of the array given bounds by DIM: 9 
+exit=0

@@ -20,7 +20,7 @@ pub fn dump_typed(p: &Program) -> String {
         }
     }
     for (i, v) in p.vars.iter().enumerate().filter(|(_, v)| v.is_array()) {
-        let dims: Vec<String> = v.dims.iter().map(|(l, u)| format!("{l} TO {u}")).collect();
+        let dims: Vec<String> = v.bounds().iter().map(|(l, u)| format!("{l} TO {u}")).collect();
         let name = var_name(p, VarId(qb64rust_base::to_u32(i)));
         writeln!(out, "ARRAY {name}:{}({})", ty(p, v.ty), dims.join(", ")).unwrap();
     }

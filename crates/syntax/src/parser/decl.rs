@@ -141,12 +141,13 @@ pub(crate) fn def_type_stmt(p: &mut Parser) {
     p.finish_node();
 }
 
-/// `a` or `a-z` (letters only; `_DEFINE` names may start with `_` too, which the lexer keeps in the name).
+/// `a` or `a-z`. A letter is one of A to Z or the underscore, which stands for the names that start with one
+/// (measured: `DEFINT _, a` and `y-_` are accepted, `verification\v24_x20`, `x21`).
 fn letter_range(p: &mut Parser) -> bool {
     let letter = |p: &Parser, n: usize| {
         p.nth(n) == Some(Ident) && {
             let t = p.nth_text(n);
-            t.len() == 1 && t[0].is_ascii_alphabetic()
+            t.len() == 1 && (t[0].is_ascii_alphabetic() || t[0] == b'_')
         }
     };
     if !letter(p, 0) {
@@ -250,7 +251,14 @@ pub(crate) fn option_stmt(p: &mut Parser) {
     p.bump(); // OPTION
     if p.at_word("BASE") {
         p.bump();
-        p.expect(Number, "`0` or `1` after `OPTION BASE`");
+        // Measured (`verification\v24_x69`, `x84`, `x85`): the old compiler reads only the word after `BASE` and
+        // ignores what follows it on the statement (`OPTION BASE 0 + 1` is base 0, `OPTION BASE 1 x` base 1).
+        // The ignored tokens stay in the statement's node: it has no error.
+        if p.expect(Number, "`0` or `1` after `OPTION BASE`") {
+            while !p.at_stmt_end() {
+                p.bump();
+            }
+        }
     } else if ["_EXPLICIT", "_EXPLICITARRAY", "EXPLICIT", "EXPLICITARRAY"]
         .iter()
         .any(|w| p.at_word(w))

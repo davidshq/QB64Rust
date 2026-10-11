@@ -33,7 +33,7 @@ pub fn lower(p: &sema::Program) -> Program {
             name: v.name.clone(),
             ty: v.ty,
             storage: storage(v.storage),
-            dims: v.dims.clone(),
+            shape: v.shape.clone(),
         })
         .collect();
     // The main module first, so the temporaries are numbered in source order as far as possible.
@@ -625,7 +625,7 @@ impl<'a> Lowerer<'a> {
             name,
             ty,
             storage,
-            dims: Vec::new(),
+            shape: crate::Shape::Scalar,
         });
         VarId(to_u32(self.vars.len() - 1))
     }

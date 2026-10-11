@@ -6,7 +6,9 @@
 An array of the IR SHALL be static (its bounds are constants, it exists for the whole program) or dynamic (it has
 a number of dimensions and no bounds). The IR SHALL have operations that allocate a dynamic array with bounds
 given as values (stating whether an allocated array is an error, is replaced, or is replaced keeping its elements
-by flat position), that clear a static array and that release a dynamic one. An array SHALL carry a storage class
+by flat position), that clear a static array, that release a dynamic one, and that erase an array parameter,
+which is either kind when the program runs. The allocation SHALL be allowed to name a static array or a
+parameter (it then raises an error when it runs). An array SHALL carry a storage class
 as a scalar does, and an array parameter SHALL be a reference to the caller's array. The IR SHALL NOT state when a
 per-call array is released, nor name a descriptor, an allocation function or a size in bytes.
 

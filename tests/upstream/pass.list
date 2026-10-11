@@ -4,6 +4,7 @@
 arrays/t659_array_assignment_control
 arrays/t659_explicit_call_control
 arrays/t659_sub_call_comparisons
+arrays/t659_variable_boolean_expr
 basic/val_default_large_integer_decimal
 basic/val_default_regression
 basic/val_typed_floating_precision
@@ -40,10 +41,12 @@ name with spaces/test
 noprompt/noprompt-continue
 noprompt/noprompt-continue-fatal
 noprompt/noprompt-y
+operators_test/op_exp
 parens()/parens()
 print/auto_semicolon_insertion
 single'quote'test/single'quote'test
 source_ordering/data_positioning
+source_ordering/define
 source_ordering/goto_gosub
 source_ordering/sub_after_main
 source_ordering/sub_before_main

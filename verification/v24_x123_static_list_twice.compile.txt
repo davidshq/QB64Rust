@@ -1,0 +1,5 @@
+
+Name already in use (a)
+Caused by (or after):STATIC A ( ) AS LONG
+LINE 7:STATIC a() AS LONG
+exit=1

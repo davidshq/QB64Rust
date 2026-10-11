@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):REDIM _PRESERVE T . V ( 0 TO 5 )
+LINE 17:REDIM _PRESERVE t.v(0 TO 5)
+exit=1

@@ -1,0 +1,5 @@
+
+Array 'q' (SINGLE) not defined
+Caused by (or after):PRINT LBOUND ( Q )
+LINE 4:PRINT LBOUND(q)
+exit=1

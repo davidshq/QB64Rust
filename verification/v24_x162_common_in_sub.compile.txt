@@ -1,0 +1,5 @@
+
+COMMON cannot be used within a SUB/FUNCTION
+Caused by (or after):COMMON X
+LINE 6:COMMON x
+exit=1

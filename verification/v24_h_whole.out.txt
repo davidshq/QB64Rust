@@ -1,0 +1,12 @@
+1. q = p, then p changed: q.x, q.n, q.f 5 a ff
+2. q = a(2): 9 el
+3. a(1) = p: 6 b
+4. a(3) = a(1), then a(1) changed: 6 b
+5. p = p: 6 b
+6. members of a user type: bx.a.n, bx.b.n, bx.b.x first b 6 
+7. q = bx.b: 6 b
+8. a(9) = p (index outside): [error 9 ] a(0).x, a(0).n 6 b
+9. q = a(9): [error 9 ] q.x, q.n 100 zero
+10. SWAP p, q: p.x, p.n, q.x, q.n 100 zero 6 b
+11. SWAP a(1), a(2): el changed
+exit=0

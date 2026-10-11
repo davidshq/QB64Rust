@@ -79,6 +79,9 @@ pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, U
 /// An item of the program's data: its text, and whether it was written in quotes (the runtime reads a quoted
 /// item's text as it is, and takes an unquoted one as a number where a number is read).
 pub use qb64rust_sema::DataItem;
+/// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
+/// `m2-defxxx-common-arrays`).
+pub use qb64rust_sema::Shape;
 /// Which built-in functions are compiled and the rule each follows; the emitter writes a call by its rule.
 pub use qb64rust_sema::builtins;
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place).
@@ -140,20 +143,38 @@ pub enum Storage {
 }
 
 /// A variable. `name` is the BASIC name in upper case without suffix; two variables may share a name when their
-/// types or their storage differ. An array has `dims`, the lower and upper bound of each dimension (first
-/// dimension first), known when compiling; `ty` is its element type. Only the main module has arrays so far.
+/// types or their storage differ. An array has a [`Shape`] other than `Scalar`: static, with the lower and upper
+/// bound of each dimension (first dimension first) known when compiling, or dynamic, with a number of dimensions
+/// and no bounds (design D3 of `m2-defxxx-common-arrays`); `ty` is its element type. The IR says what an array
+/// is, never how it is held: no descriptor, no size in bytes.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Var {
     pub name: String,
     pub ty: Ty,
     pub storage: Storage,
-    /// Empty for a scalar.
-    pub dims: Vec<(i64, i64)>,
+    pub shape: Shape,
 }
 
 impl Var {
     pub fn is_array(&self) -> bool {
-        !self.dims.is_empty()
+        !matches!(self.shape, Shape::Scalar)
+    }
+
+    /// The number of dimensions of an array, where it is known; `None` for a scalar too.
+    pub fn dim_count(&self) -> Option<usize> {
+        match &self.shape {
+            Shape::Scalar => None,
+            Shape::Static { bounds } => Some(bounds.len()),
+            Shape::Dynamic { dims } => *dims,
+        }
+    }
+
+    /// The bounds of a static array; empty for anything else.
+    pub fn bounds(&self) -> &[(i64, i64)] {
+        match &self.shape {
+            Shape::Static { bounds } => bounds,
+            Shape::Scalar | Shape::Dynamic { .. } => &[],
+        }
     }
 }
 

@@ -1,0 +1,5 @@
+
+Cannot convert type (_MEM) to symbol
+Caused by (or after):
+LINE 3:_DEFINE A AS _MEM
+exit=1

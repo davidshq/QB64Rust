@@ -1,0 +1,26 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+deftype_errors.bas:11:11: error: a default type cannot be a `TYPE`
+deftype_errors.bas:12:11: error: a default type cannot be `_UNSIGNED STRING`
+deftype_errors.bas:13:11: error: `SINGLE` cannot be `_UNSIGNED`
+deftype_errors.bas:14:23: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
+deftype_errors.bas:15:11: error: `_UNSIGNED` needs a type after it
+deftype_errors.bas:16:21: error: a `_BIT` type takes 1 to 64 bits
+deftype_errors.bas:17:10: error: expected `AS` and a type after the letters
+deftype_errors.bas:18:9: error: not supported yet: word `AS` (expected a letter or a range of letters (`a-z`))
+deftype_errors.bas:19:21: error: expected the end of the statement
+deftype_errors.bas:20:7: error: expected a letter or a range of letters (`a-z`)
+deftype_errors.bas:21:8: error: expected a letter or a range of letters (`a-z`)
+deftype_errors.bas:22:8: error: expected a letter or a range of letters (`a-z`)
+deftype_errors.bas:23:10: error: expected a letter after `-`
+deftype_errors.bas:24:10: error: expected the end of the statement
+deftype_errors.bas:25:10: error: expected a letter or a range of letters (`a-z`)
+deftype_errors.bas:26:10: error: not supported yet: word `AS` (expected the end of the statement)
+deftype_errors.bas:29:5: error: the `FOR` variable `s` must be a number, not a string
+deftype_errors.bas:30:6: error: cannot store a number in a string variable
+deftype_errors.bas:32:7: error: name already in use: `f!`
+deftype_errors.bas:38:11: error: a parameter cannot be a `_BIT`: `p1`
+deftype_errors.bas:40:11: error: not supported yet: the type `NOSUCH`
+deftype_errors.bas:41:11: error: not supported yet: the type `_MEM`

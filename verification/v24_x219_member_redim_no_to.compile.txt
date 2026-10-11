@@ -1,0 +1,5 @@
+
+REDIM of a TYPE member array must include AS <type> or explicit lower TO upper bounds
+Caused by (or after):REDIM T . V ( 3 )
+LINE 8:REDIM t.v(3)
+exit=1

@@ -1,0 +1,3 @@
+COMMON cv, COMMON SHARED cg: 2  2  2  2 
+cg in a SUB: 2  2 
+exit=0

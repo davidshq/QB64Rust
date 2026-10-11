@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-10 (session 40).
+Updated 2026-10-11 (session 41).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -29,7 +29,8 @@ compares it (`<name>.screen`, `<name>.keys`); 29 programs are recorded in `tests
 The compiler parses every program the old compiler accepts with no false error, and compiles scalars, procedures,
 error handling, every operator, `CONST`, control flow, `SELECT CASE`, static arrays and `TYPE` of the main module,
 70 built-in functions, all 17 numeric types, fixed-length strings, sequential files, `DATA`/`READ`/`RESTORE`,
-`SWAP`, the `MID$` statement, `RANDOMIZE`, console `INPUT`/`LINE INPUT` and `SHELL` (`crates\README.md`). There is
+`SWAP`, the `MID$` statement, `RANDOMIZE`, console `INPUT`/`LINE INPUT`, `SHELL`, the default types (`DEFINT`
+to `DEFSTR`, `_DEFINE`), `OPTION BASE` and the type before the names (`DIM AS LONG a, b(3)`) (`crates\README.md`). There is
 a thin language server (`qb64rust lsp`). A plain built-in now comes in as a row, a call-site program and a slice
 line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10).
 
@@ -57,10 +58,15 @@ The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3
 9a. Done: the screen-state check (`m2-screen-state-check`; `tools\screen\README.md`). The new
     compiler compiles none of the 29 screen programs yet: it builds console programs only, and the first drawing
     statement is M3 work. What a set of them needs: `qb64rust --report unsupported tests\corpus\screen`.
-10. **Next:** (was 11) `DEFxxx` and `COMMON`, then the rest of arrays and `TYPE`: arrays in procedures, `REDIM`, dynamic
-    arrays, `OPTION BASE`, plain member arrays (`study\26` §4; their `_STATIC`/`_DYNAMIC` markers stay in
-    `SOMEDAY.md`). The only step that moves the corpus, upstream and Civil War Strategy at once; scope it with
-    `qb64rust --report unsupported` over the three.
+10. **In progress:** (was 11) OpenSpec change `m2-defxxx-common-arrays`, 10 of 29 tasks done (`tasks.md` of the
+    change says what each found). Done: the measurements (`verification\v24_*`, 282 programs; findings in
+    `study\00` §5, the design and spec deltas corrected by them), group 2, the default types (`DEFINT` to
+    `DEFSTR`, `_DEFINE`), and group 3 (the array shape, `OPTION BASE`, `$DYNAMIC`/`$STATIC` as state, the type
+    before the names). Task 1.4's questions are answered (`DECISIONS.md` 2026-10-11: both behaviours as QB64pe, group 8 stays;
+    member arrays are inline and need no decision). **Next in the
+    change: group 4, dynamic arrays in the main module** (task 4.1 first moves `DIM`s with an operator in a
+    bound to the dynamic side, "Known bugs" below), then implicit arrays, arrays in procedures, array parameters
+    and `COMMON`, the rest of `TYPE`, member arrays.
 11. (was 10) `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE`, measured first (`study\26` §5); check once that
     the GitHub Windows runner can start the hidden window.
 
@@ -72,9 +78,9 @@ the rows that name the screen programs, the runner's tests and the corpus of 336
 
 | Yardstick | Result |
 |---|---|
-| `tests\corpus\slice.list` (tier 2) | 255 of 255, also with `QB64RUST_NO_FOLD=1` |
+| `tests\corpus\slice.list` (tier 2) | 264 of 264, also with `QB64RUST_NO_FOLD=1` (2026-10-11, after group 3 of `m2-defxxx-common-arrays` and its review) |
 | Full corpus (336 programs) | 271 pass, none wrong at run time; 56 rejected with "not supported yet" (27 as before and the 29 screen programs) and 4 `.err` programs with only marked errors (`tests\corpus\README.md`) |
-| Upstream | **50 of 279** (`tests\upstream\pass.list`); none wrong in the full run of the suite (404 programs) |
+| Upstream | **53 of 279** (`tests\upstream\pass.list`, run 2026-10-11); none wrong in the full run of the suite (404 programs, 2026-10-10) |
 | Call-site check | 256 of 256 programs equal (`tools\callsite\README.md`); about 1 min |
 | Real programs (`tests\programs`) | Civil War Strategy: the front end reads it with no real error; every diagnostic is "not supported yet" (what it needs next: `tests\programs\README.md`) |
 | Differential | 59 of 59 |
@@ -92,7 +98,17 @@ will stay near 50 until steps 10 and 11: its blockers are the rest of arrays and
 
 ## Known bugs
 
-None open.
+- **A `DIM` whose bound is a constant expression with an operator is compiled as a static array; the old
+  compiler makes it a dynamic one** (`DIM a(2 + 3)`, `DIM a(k + 1)`, `DIM f(-(2 ^ 2) TO 10 \ 3)`; one number or
+  one `CONST` name is static). Found 2026-10-11 (`verification\v24_b_constant_bounds*`, `study\00` §5). The
+  values and bounds are the same; the difference shows only when the `DIM` is skipped by a jump (the old
+  compiler: error 9 on use), runs twice (error 10), or the array is given `REDIM` or `ERASE`, none of which a
+  passing program does today. Fixed with task 4.1 of `m2-defxxx-common-arrays`, when dynamic arrays compile.
+- **A unary plus is a parse error** ("expected an expression"): `2 ^ -+x * 3`, which the old compiler accepts
+  (it prints .375 for x = 3), also `2 * +x` and `-+x` (those two not yet run with the old compiler, which rejects
+  `2 ^ +x`: "Expected variable/value after '^'"). Found 2026-10-11 by the review of groups 1 to 3 of
+  `m2-defxxx-common-arrays`; older than that change. No program of the corpus, the upstream tests or
+  `tests\programs` has one (the parse-gap list is empty). To do: measure the forms, then the parser.
 
 ## Queued for later milestones
 

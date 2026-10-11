@@ -1,0 +1,11 @@
+1. -k TO 5: 20 
+2. (-1) TO 5: [error 10 ] 5 
+3. -(1) TO 5: 20 
+4. ((5)): [error 10 ] 5 
+5. k&: [error 10 ] 5 
+6. a CONST defined as 2 + 3: [error 10 ] 5 
+7. - 1 TO 5 (a blank after the minus): [error 10 ] 5 
+8. --1 TO 5: 20 
+9. DIM c1(2 + 3) skipped by GOTO, c1(1) = 1: [error 9 ]
+10. DIM c2(5) skipped by GOTO, c2(1) = 1: 1 
+exit=0

@@ -189,17 +189,31 @@ What the compiler supports so far:
   `RESTORE` to the start or to a label of any body; console `INPUT` and `LINE INPUT` (the prompt forms, the `;`
   before the prompt, one `,` after the last target): the compiler hands the runtime the type and address of each
   target, and the runtime reads, converts and stores (it never asks again; `study\00` §5). A corpus program that
-  reads the console has its answers in `<name>.stdin` and ends with `SYSTEM` (`tests\corpus\README.md`).
+  reads the console has its answers in `<name>.stdin` and ends with `SYSTEM` (`tests\corpus\README.md`);
+- default types (`m2-defxxx-common-arrays` group 2): `DEFINT`, `DEFLNG`, `DEFSNG`, `DEFDBL`, `DEFSTR` and
+  `_DEFINE … AS type` (every type a suffix can give, `STRING * n` and `_BIT * n` included). One table of 27
+  entries, A to Z and `_`, follows the file and nothing else (`Checker::defaults`, `sema\src\check\decl.rs`):
+  a statement applies to every line below it, run or not, also below the block or procedure it stands in. Pass 1
+  walks the whole file to know the table at each procedure header (parameters and FUNCTION results); pass 2
+  sets it at each statement. A name without a suffix or `AS` clause is the name plus the default at its line
+  (`default_ty`), so the same plain name above and below a statement is two variables, as in QB64pe; a
+  variable declared with `AS`, a `CONST` and a FUNCTION's name are not typed by it;
+- group 3 of the same change: a variable's `Shape` (`Scalar`, `Static` with bounds, `Dynamic` with a number of
+  dimensions; `sema\src\lib.rs`, shared by the IR) in place of a list of bounds, only static arrays made so
+  far; `OPTION BASE 0`/`1` and `'$DYNAMIC`/`'$STATIC` as checker state that follows the file like the default
+  types (`OPTION BASE` folded into the lower bound, the number 0 in plain digits staying 0 to 0; a `DIM` below
+  `$DYNAMIC` is still marked); the type before the names in `DIM`, `DIM SHARED`, `STATIC` and `SHARED` (`DIM AS
+  LONG a, b(3)`).
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
 are line numbers and jumps to them (also as `ON … GOTO` and `RESTORE` targets), `EXIT SELECT`/`EXIT
-CASE`, the other built-in functions, `DECLARE LIBRARY`, `OPTION BASE`, event handlers and switches, `STOP`, `RUN`,
+CASE`, the other built-in functions, `DECLARE LIBRARY`, event handlers and switches, `STOP`, `RUN`,
 `END`/`SYSTEM` with an exit code, the other I/O statements
 (`PRINT USING`, `LPRINT`, `FIELD`, `LSET`/`RSET`),
 `READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array or a member of an element, every other
 built-in statement read by its template (`LINE`, `SCREEN`, `GET`/`PUT`, `TIME$ =`, ...), the declaration
-forms (`REDIM`, `COMMON`, `ERASE`, `DEFxxx`, `_DEFINE`, the type before the names, arrays named `name$n`, array
+forms (`REDIM`, `COMMON`, `ERASE`, the type before the names in those three, arrays named `name$n`, array
 parameters, `STATIC` after a header, `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), type names as arguments, the
 names of QB64pe's auto-included files and its precompiler flags (`_CONSOLE_`, ...); of arrays and `TYPE`: dynamic
 and implicit arrays, arrays in procedures, whole arrays (`x()`), `TYPE` parameters, `STRING` and array members,

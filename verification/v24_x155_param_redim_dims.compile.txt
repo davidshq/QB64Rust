@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):REDIM A ( 2 , 2 ) AS LONG
+LINE 15:REDIM a(2, 2) AS LONG
+exit=1

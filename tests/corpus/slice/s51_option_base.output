@@ -1,0 +1,12 @@
+1. base 1, DIM a(3), DIM b(2 TO 4): LBOUND(a), UBOUND(a), LBOUND(b) 1  3  2 
+2. DIM a0(3) above the statement: 0  3 
+3. DIM z(0): 0  0 
+4. DIM z2(0, 3): 0  0  1  3 
+   DIM z3(3, 0): 1  3  0  0 
+   DIM z4(00): 0  0 
+5. strings, a user type, two dimensions: one two 5  0  7  8  1  1 
+6. an index below the base, a(0) = 1: [error 9 ] and PRINT s(0): [error 9 ]7. a(1), a(3): 1.5  3.5 
+8. base 0 again, DIM c(3): 0  3 
+9. DIM e(3) below an OPTION BASE 1 that GOTO skipped: 1 
+10. DIM f(3) below OPTION BASE 0 + 1: 0 
+11. DIM g(3) below OPTION BASE 1 x: 1 

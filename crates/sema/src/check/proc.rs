@@ -29,7 +29,7 @@ impl Checker<'_> {
             None => self.split_name(name_tok)?,
         };
         let kind = if function {
-            ProcKind::Function(suffix.unwrap_or(Ty::F32))
+            ProcKind::Function(suffix.unwrap_or_else(|| self.default_ty(&name)))
         } else if suffix.is_some() {
             return Err(self.unsupported(name_tok.span, "a SUB name with a type suffix"));
         } else {
@@ -129,13 +129,26 @@ impl Checker<'_> {
             }
             let (name, suffix) = self.split_name(name_tok)?;
             let mut fixed = None;
-            let ty = match (suffix, param.as_clause()) {
+            // The type the plain name is found by in the body: the parameter's, except for a default `STRING * n`.
+            let mut key_ty = None;
+            let as_clause = param.as_clause();
+            let ty = match (suffix, as_clause) {
                 (Some(_), Some(a)) => {
                     let span = a.node().span();
                     return Err(self.error(span, "a name with a type suffix cannot have an `AS` clause"));
                 }
                 (Some(t), None) => t,
-                (None, None) => Ty::F32,
+                // Measured (`verification\v24_x33`): a parameter typed `STRING * n` by `_DEFINE` is one written
+                // `AS STRING * n`: a `STRING` whose `LEN` is n.
+                (None, None) => {
+                    let default = self.default_ty(&name);
+                    if let Ty::FixedStr(n) = default {
+                        (fixed, key_ty) = (Some(n), Some(default));
+                        Ty::Str
+                    } else {
+                        default
+                    }
+                }
                 (None, Some(a)) if self.unsigned_string(a) => {
                     // Measured: "Illegal SUB/FUNCTION parameter" (`verification\v21_x42`, `x43`), though `DIM`
                     // takes `_UNSIGNED STRING`.
@@ -168,8 +181,11 @@ impl Checker<'_> {
                 return Err(self.in_use(name_tok));
             }
             let v = self.new_var(name.clone(), ty, Storage::Param(id));
-            scope.vars.insert((name.clone(), ty), v);
-            if suffix.is_none() {
+            scope.vars.insert((name.clone(), key_ty.unwrap_or(ty)), v);
+            // Only an `AS` clause types the plain name. A parameter typed by a default is found as the name plus
+            // the default type where it is named: after a `DEFxxx` in the body the plain name is another variable
+            // (measured, `verification\v24_a_procs_subs`).
+            if as_clause.is_some() {
                 scope.plain.insert(name, ty);
             }
             if let Some(n) = fixed {

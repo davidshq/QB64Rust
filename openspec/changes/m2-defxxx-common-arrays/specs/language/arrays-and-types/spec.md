@@ -6,17 +6,22 @@ a scenario whose outcome reads "equals the old compiler's" is pinned by the reco
 ## MODIFIED Requirements
 
 ### Requirement: Static arrays
-`DIM name(bounds) [AS type]` and `DIM SHARED name(bounds) [AS type]` in the main module, with bounds that are
-constant expressions, SHALL declare an array of any numeric type except `_BIT`, of `STRING`, of a fixed-length
-string or of a user type: each
+`DIM name(bounds) [AS type]` and `DIM SHARED name(bounds) [AS type]` in the main module, with bounds that are each
+one number or the name of one constant (in parentheses or not; a minus before a number is part of the number),
+SHALL declare an array of any numeric type, of `_BIT` and `_BIT * n` with or without
+`_UNSIGNED`, of `STRING`, of a fixed-length string or of a user type: each
 dimension is `upper` (lower bound 0, or the `OPTION BASE` in effect) or `lower TO upper`, each bound rounded half
 to even to a whole number; every
 element starts at zero, as an empty string, or as NUL bytes for a fixed-length string. The `DIM` line SHALL do
 nothing when it runs. An array SHALL be a name
 plus a type, in a name space of its own beside scalar variables. An upper bound below its lower bound, and a second
-`DIM` of the same array, SHALL be compile errors. Such a `DIM` SHALL make a dynamic array instead (requirement
-"Dynamic arrays") when `$DYNAMIC` is in effect or a bound is not constant. An array of `_BIT` or `_BIT * n` SHALL
-be reported "not supported yet".
+`DIM` with constant bounds of an array that is static, SHALL be compile errors. Such a `DIM` SHALL make a dynamic
+array instead (requirement "Dynamic arrays") when `$DYNAMIC` is in effect or a bound is not constant: a bound
+with an operator is not, whatever its value (`DIM a(2 + 3)`, `DIM a(k + 1)` and `DIM a(-k)` for a constant `k`
+make dynamic arrays, as in the old compiler). An element
+of a `_BIT` array SHALL hold what a `_BIT` variable of that width holds; `SWAP` of two such elements and `LEN` of
+one SHALL be compile errors, and such an element SHALL be passed to a procedure by value. `DIM name()` with
+nothing between the parentheses SHALL declare the scalar variable `name` and no array, as the old compiler does.
 
 #### Scenario: Bounds
 - **WHEN** `DIM b(-2 TO 3, 5) AS LONG` is declared and `b(-2, 0)` and `b(3, 5)` are assigned and printed
@@ -51,8 +56,16 @@ be reported "not supported yet".
 - **THEN** it prints ` 65535  0 `
 
 #### Scenario: Bit array
-- **WHEN** `DIM f(7) AS _BIT` is compiled
-- **THEN** the compiler reports it "not supported yet"
+- **WHEN** `DIM b4(3) AS _BIT * 4: b4(0) = 7: b4(1) = 8: b4(3) = 15: PRINT b4(0); b4(1); b4(2); b4(3)` runs
+- **THEN** it prints ` 7 -8  0 -1 `
+
+#### Scenario: SWAP of bit elements
+- **WHEN** `SWAP b4(0), b4(1)` is compiled for that array
+- **THEN** it is a compile error
+
+#### Scenario: DIM with empty parentheses
+- **WHEN** `DIM a() AS LONG: a = 100000.5: PRINT a; LEN(a)` runs
+- **THEN** it prints ` 100000  4 ` (`a` is a scalar; `a(1)` after it is an array used without `DIM`)
 
 ### Requirement: LBOUND and UBOUND
 `LBOUND(array[, dimension])` and `UBOUND(array[, dimension])` SHALL give the lower and upper bound of a dimension
@@ -140,11 +153,18 @@ value SHALL be assignable to a place of the same type (requirement "Whole user-t
 ## ADDED Requirements
 
 ### Requirement: Dynamic arrays
-An array SHALL be dynamic when it is declared by `REDIM`, by `DIM` with a bound that is not a constant expression,
-by `DIM` while `$DYNAMIC` is in effect, or by `DIM` in a procedure that is not `STATIC`. Its bounds SHALL be
-evaluated, and its elements made (zero or empty), when the statement runs. `DIM` of a dynamic array that is
-allocated SHALL raise error 10 and leave it unchanged. A dimension with fewer than one element SHALL raise error 5.
-Using an element of a dynamic array that is not allocated SHALL raise error 9.
+An array SHALL be dynamic when the first declaration of it in the file is a `REDIM`, a `DIM` with a bound that is
+not a constant expression, a `DIM` or `STATIC name(bounds)` while `$DYNAMIC` is in effect, a `DIM` in a procedure
+that is not `STATIC`, or, while `$DYNAMIC` is in effect, a use without `DIM`. Its bounds SHALL be evaluated, and
+its elements made (zero or empty), when the statement runs. `DIM` of a dynamic array that is allocated SHALL raise
+error 10 and leave it unchanged, whether it is the statement that allocated it or another; a `DIM` with a bound
+that is not constant of an array that is static SHALL raise error 10 likewise. A dimension with no element (its
+upper bound one below its lower bound) SHALL raise error 5 and leave the array allocated with those bounds and no
+element; a dimension whose upper bound is lower still, and a request the machine cannot hold, SHALL end the
+program with "Out of memory", which no error handler receives. A bound whose evaluation raises an error SHALL NOT
+stop the allocation. Using an element of a dynamic array that is not allocated, and `LBOUND` or `UBOUND` of it,
+SHALL raise error 9. An array used without `DIM` while `$DYNAMIC` is in effect SHALL be allocated by the first
+statement in the file that names it.
 
 #### Scenario: Bound from a variable
 - **WHEN** `n = 4: DIM d(n) AS LONG: d(4) = 9: PRINT UBOUND(d); d(4)` runs
@@ -159,20 +179,41 @@ Using an element of a dynamic array that is not allocated SHALL raise error 9.
 - **WHEN** a line `'$DYNAMIC` stands above `DIM a(5) AS LONG`, followed by `REDIM a(8) AS LONG: PRINT UBOUND(a)`
 - **THEN** it prints ` 8 ` (without the metacommand the `REDIM` raises error 10)
 
-#### Scenario: Fewer than one element
-- **WHEN** `n = -3: DIM d(n) AS LONG` runs under the same handler
-- **THEN** the handler prints 5
+#### Scenario: No element
+- **WHEN** `n = -1: DIM d(n) AS LONG` runs under the same handler, then `PRINT LBOUND(d); UBOUND(d)`, then `d(0) =
+  1`
+- **THEN** the handler prints 5, then ` 0 -1 ` is printed, then the handler prints 9
 
-#### Scenario: DIM a()
-- **WHEN** `DIM a() AS LONG` is followed by `a(1) = 5` under the same handler, then by `REDIM a(3) AS LONG: a(1) = 5:
-  PRINT a(1)`
-- **THEN** the output equals the old compiler's
+#### Scenario: Fewer than no element
+- **WHEN** `n = -3: DIM d(n) AS LONG` runs under the same handler
+- **THEN** the program ends with "Out of memory" and the handler does not run
+
+#### Scenario: A bound with an operator
+- **WHEN** `DIM a3(2 + 3) AS LONG: REDIM a3(20) AS LONG: PRINT UBOUND(a3)` runs, and `DIM a1(5) AS LONG: REDIM
+  a1(20) AS LONG: PRINT UBOUND(a1)` under the same handler
+- **THEN** the first prints ` 20 ` (a dynamic array); for the second the handler prints 10 and ` 5 ` is printed
+
+#### Scenario: Two DIM statements
+- **WHEN** `DIM a(5) AS LONG` is followed by `n = 3: DIM a(n) AS LONG: PRINT UBOUND(a)` under the same handler
+- **THEN** the handler prints 10, then ` 5 ` is printed
+
+#### Scenario: A bound that raises
+- **WHEN** `DIM s(ASC("")) AS LONG: PRINT UBOUND(s)` runs under the same handler
+- **THEN** the handler prints 5, then ` 0 ` is printed
+
+#### Scenario: Used without DIM below $DYNAMIC
+- **WHEN** below a line `'$DYNAMIC`, `im(3) = 4: PRINT UBOUND(im): REDIM im(20): PRINT UBOUND(im)` runs
+- **THEN** it prints ` 10 `, then ` 20 `; with the first statement skipped by `GOTO`, `UBOUND(im)` raises error 9
 
 ### Requirement: REDIM
 `REDIM [SHARED] name(bounds) [AS type]` SHALL declare the dynamic array if it does not exist and SHALL give it new
 bounds and new elements (zero or empty) each time it runs. Without a type, `REDIM` of an array declared with `AS`
 SHALL keep that type. `REDIM` of a static array SHALL raise error 10 and leave it unchanged. Another number of
-dimensions than the array has, and a change between `STRING` and `STRING * n`, SHALL be compile errors.
+dimensions than the array has, another type written with `AS` than the array was declared with, and a change
+between `STRING` and `STRING * n` or of n, SHALL be compile errors. A dimension with no element, a lower upper
+bound still and a bound that raises SHALL behave as for `DIM` (requirement "Dynamic arrays"), the old elements
+being gone. `REDIM name()` and `REDIM name AS type` SHALL declare a scalar, as `DIM name()` does. The words after
+`REDIM` SHALL be `_PRESERVE`, then `SHARED`; `REDIM SHARED _PRESERVE` SHALL be a compile error.
 
 #### Scenario: New bounds, new elements
 - **WHEN** `REDIM r(5) AS LONG: r(2) = 7: REDIM r(1 TO 20) AS LONG: PRINT LBOUND(r); UBOUND(r); r(2)` runs
@@ -191,6 +232,14 @@ dimensions than the array has, and a change between `STRING` and `STRING * n`, S
 - **WHEN** `REDIM m(2, 3): REDIM m(4)` is compiled
 - **THEN** it is a compile error
 
+#### Scenario: Another type
+- **WHEN** `REDIM x(5) AS LONG: REDIM x(5) AS INTEGER` is compiled
+- **THEN** it is a compile error; `REDIM x&(7)` in its place names the same array and `REDIM x!(7)` another one
+
+#### Scenario: REDIM of an array made by DIM
+- **WHEN** `n = 3: DIM x(n) AS LONG: REDIM x(7): x(1) = 100000: PRINT UBOUND(x); x(1)` runs
+- **THEN** it prints ` 7  100000 `
+
 ### Requirement: REDIM _PRESERVE
 `REDIM _PRESERVE` SHALL keep the values of the elements by their flat position (first dimension fastest), as many
 as the smaller of the old and the new number of elements; new elements SHALL be zero or empty. Of an array that
@@ -208,12 +257,24 @@ is not allocated it SHALL behave as `REDIM`.
 #### Scenario: Two dimensions keep positions, not coordinates
 - **WHEN** a `REDIM g(1, 1) AS LONG` array holding 1 to 4 in flat order is given `REDIM _PRESERVE g(2, 1) AS LONG`
   and all six elements are printed
-- **THEN** the output equals the old compiler's (the four values in the first four flat positions)
+- **THEN** `g(0, 0)`, `g(1, 0)`, `g(2, 0)` are 1, 2, 3 and `g(0, 1)`, `g(1, 1)`, `g(2, 1)` are 4, 0, 0 (the four
+  values in the first four flat positions)
+
+#### Scenario: Another lower bound
+- **WHEN** a `REDIM b(3) AS LONG` array holding 1 to 4 is given `REDIM _PRESERVE b(10 TO 15) AS LONG`
+- **THEN** `b(10)` to `b(15)` are 1, 2, 3, 4, 0, 0
+
+#### Scenario: Static array
+- **WHEN** `DIM s(5) AS LONG: s(1) = 3: REDIM _PRESERVE s(9) AS LONG` runs under a handler that prints `ERR` and
+  resumes next, then `PRINT UBOUND(s); s(1)`
+- **THEN** the handler prints 10, then ` 5  3 ` is printed
 
 ### Requirement: ERASE
 `ERASE name[, name…]` of a static array SHALL set every element to zero, an empty string or NUL bytes and keep its
 bounds. Of a dynamic array it SHALL release the elements, after which the array is not allocated and may be
-declared again with `DIM` or `REDIM`. A name that is no array SHALL be a compile error.
+allocated again with `DIM` or `REDIM`; of a dynamic array that is not allocated it SHALL do nothing. Anything that
+is no declared array SHALL be a compile error: a scalar, a name never used (no array is made for it), `name()`,
+an element, a suffix of another type than the array's. A scalar of the array's name SHALL NOT change.
 
 #### Scenario: Static array
 - **WHEN** `DIM a(5) AS LONG: a(2) = 9: ERASE a: PRINT UBOUND(a); a(2)` runs
@@ -229,10 +290,15 @@ declared again with `DIM` or `REDIM`. A name that is no array SHALL be a compile
 - **THEN** every numeric member is 0 and every string member is empty
 
 ### Requirement: OPTION BASE
-`OPTION BASE 1` SHALL make 1 the lower bound of every dimension declared after it without `TO`, in arrays and in
-member arrays; `OPTION BASE 0` SHALL restore 0. A dimension written as the literal `0` SHALL stay `0 TO 0`. Bounds
-written with `TO` SHALL NOT change. Where the statement may stand, and how often, SHALL be as the old compiler
-does (`verification\v24_e_*`).
+`OPTION BASE 1` SHALL make 1 the lower bound of every dimension declared below it in the file without `TO`, in
+arrays (declared, used without `DIM`, static and dynamic) and in member arrays; `OPTION BASE 0` SHALL restore 0.
+The statement MAY stand anywhere, any number of times, and SHALL apply by its place in the file, not by whether it
+runs: one inside a SUB or FUNCTION applies to the lines below the procedure too. The word after `BASE` SHALL be
+`0` or `1` in plain digits (zeros before it allowed: `01`), anything else (`2`, `1.0`, `1&`, `&H1`, a name) being a
+compile error. A dimension written as the number 0 in plain digits SHALL stay
+`0 TO 0`; any other constant bound that is 0 (`0&`, `0.0`, `(0)`, `0 + 0`, a `CONST`) SHALL make, under base 1, a
+static array without elements, for which the program SHALL raise error 5 when it starts. Bounds written with `TO`
+SHALL NOT change.
 
 #### Scenario: Base 1
 - **WHEN** `OPTION BASE 1: DIM a(3): DIM b(2 TO 4): PRINT LBOUND(a); UBOUND(a); LBOUND(b)` runs
@@ -244,14 +310,43 @@ does (`verification\v24_e_*`).
 
 #### Scenario: Only later arrays
 - **WHEN** `DIM a(3): OPTION BASE 1: DIM b(3): PRINT LBOUND(a); LBOUND(b)` runs
-- **THEN** the output equals the old compiler's
+- **THEN** it prints ` 0  1 `
+
+#### Scenario: The literal 0 per dimension
+- **WHEN** `OPTION BASE 1: DIM z2(0, 3): PRINT LBOUND(z2, 1); UBOUND(z2, 1); LBOUND(z2, 2); UBOUND(z2, 2)` runs
+- **THEN** it prints ` 0  0  1  3 `
+
+#### Scenario: A constant that is 0 but not written 0
+- **WHEN** `OPTION BASE 1: CONST zero = 0: DIM a(zero): PRINT LBOUND(a)` is compiled and run
+- **THEN** it compiles, and the program ends with "Illegal function call" before printing (the array is static,
+  1 to 0, and the error is raised when the program starts)
+
+#### Scenario: An expression that is 0
+- **WHEN** `PRINT "first line"`, `OPTION BASE 1`, `DIM a(0 + 0)`, `PRINT LBOUND(a); UBOUND(a)` run under a handler
+  that prints `ERR` and resumes next, set before them
+- **THEN** `first line` is printed, the handler prints 5, then ` 1  0 ` is printed (the array is dynamic and the
+  error is raised at the `DIM`)
+
+#### Scenario: A statement that does not run
+- **WHEN** `GOTO skip`, `OPTION BASE 1`, `skip: DIM e(3): PRINT LBOUND(e)` stand on three lines
+- **THEN** it prints ` 1 `
+
+#### Scenario: Another number
+- **WHEN** `OPTION BASE 2`, `OPTION BASE` or `OPTION BASE n` is compiled
+- **THEN** each is a compile error
 
 ### Requirement: Implicit arrays
-`name(index, …)` where no array of that name and type is visible and no FUNCTION of that name exists SHALL make a
-static array of the scope it stands in, with the bounds `OPTION BASE` to 10 in each of as many dimensions as
-indexes are written; `LBOUND(name)` and `UBOUND(name)` of such a name SHALL make one of one dimension. Under
-`OPTION _EXPLICITARRAY` it SHALL be a compile error instead. A later `DIM` of the same array SHALL be a compile
-error.
+`name(index, …)` where no array of that name and type is visible, the name with its suffix may be a variable, no
+SUB or FUNCTION of that name exists and the spelling calls no built-in function SHALL make an array of the scope
+it stands in, with the bounds `OPTION BASE` to 10 in each of as many dimensions as indexes are written;
+`LBOUND(name)` and `UBOUND(name)` of such a name SHALL make one of one dimension. In the main module, and in a
+`SUB … STATIC` or `FUNCTION … STATIC`, the array SHALL be static (dynamic in the main module while `$DYNAMIC` is
+in effect, requirement "Dynamic arrays"). In any other procedure, and in every procedure while `$DYNAMIC` is in
+effect, it SHALL be a local dynamic array that is not allocated, so that every use raises error 9 until a `DIM`
+or `REDIM` of it in the procedure runs, as in the old compiler. Under `OPTION _EXPLICITARRAY` an implicit array
+SHALL be a compile error instead. A later `DIM` of a static one, and a use with another number of indexes, SHALL
+be compile errors. A name that may not be a variable (one leading underscore, a keyword, a built-in statement)
+and a store to a spelling that is a FUNCTION or a built-in function SHALL be compile errors.
 
 #### Scenario: Zero to ten
 - **WHEN** `z(10) = 4: PRINT z(10); UBOUND(z)` runs, and then `z(11) = 1` under a handler that prints `ERR`
@@ -273,14 +368,43 @@ error.
 - **WHEN** `a(1) = 5: DIM a(5)` is compiled
 - **THEN** it is a compile error
 
+#### Scenario: Another number of indexes
+- **WHEN** `z(1) = 1: z(1, 2) = 1` is compiled
+- **THEN** it is a compile error
+
+#### Scenario: In a SUB
+- **WHEN** a SUB that is not `STATIC` runs `x(2) = 5: PRINT x(2)` under a handler that prints `ERR` and resumes
+  next, with no array `x` declared
+- **THEN** the handler prints 9 twice
+
+#### Scenario: In a SUB … STATIC
+- **WHEN** `SUB st STATIC` with `x(2) = x(2) + 1: PRINT x(2); UBOUND(x)` is called twice
+- **THEN** it prints ` 1  10 `, then ` 2  10 `
+
+#### Scenario: A built-in's name without its suffix
+- **WHEN** `chr(1) = 5: PRINT chr(1)` runs
+- **THEN** it prints ` 5 `
+
+#### Scenario: Names that are no arrays
+- **WHEN** `_foo(1) = 2`, `to(1) = 5`, `cls(1) = 5`, `rnd(1) = 2`, or `f(3) = 5` with a FUNCTION `f` defined below,
+  is compiled
+- **THEN** each is a compile error
+
 ### Requirement: Arrays in procedures
 In a SUB or FUNCTION, `DIM` and `REDIM` of an array SHALL make a dynamic array that is new on every call and
 released at the end of the call; running the same `DIM` twice in one call SHALL raise error 10. `STATIC name(bounds)`
 SHALL make an array that is made once and keeps its elements between calls, as SHALL every array of a `SUB … STATIC`
-or `FUNCTION … STATIC`. After `STATIC name()`, a `DIM` or `REDIM` of that array in the same procedure SHALL make an
-array that keeps its elements between calls. `SHARED name()` SHALL name the main-module array of that name and
-type. A main-module array declared with `DIM SHARED`, `REDIM SHARED` or `COMMON SHARED` earlier in the file SHALL be
-visible; any other main-module array SHALL NOT.
+or `FUNCTION … STATIC` (static with constant bounds, dynamic with a bound that is not constant). `STATIC name()`
+SHALL declare a dynamic array that lives for the program and is not allocated: a `DIM` of it in the same
+procedure SHALL allocate it (raising error 10 on a later call), a `REDIM` SHALL give it new elements and a `REDIM
+_PRESERVE` keep them. `SHARED name() [AS type]` SHALL name the main-module array of that name and type, which
+SHALL be declared above the procedure in the file (a compile error otherwise; none is made). A main-module array
+declared with `DIM SHARED`, `REDIM SHARED` or `COMMON SHARED` SHALL be visible in the procedures below its
+declaration in the file; in a procedure above it, and for any other main-module array, the name SHALL be an
+implicit array of the procedure. `STATIC name(bounds)` with a bound that is not constant SHALL be a compile error
+(the old compiler accepts it and its C++ build fails). `STATIC` of an array declared or listed already in the
+procedure, `DIM SHARED` and `REDIM SHARED` inside a procedure, and `STATIC` in the main module SHALL be compile
+errors.
 
 #### Scenario: New on each call
 - **WHEN** a SUB with `DIM t(5) AS LONG: PRINT t(1): t(1) = 7` is called twice
@@ -305,14 +429,39 @@ visible; any other main-module array SHALL NOT.
 - **THEN** the SUB prints ` 8 ` and the main module then prints ` 9 `
 
 #### Scenario: Main array not visible
-- **WHEN** the main module has `DIM h(3) AS LONG: h(1) = 5` and a SUB without `SHARED` prints `h(1)`
-- **THEN** the output equals the old compiler's (the SUB's `h` is an implicit array of its own)
+- **WHEN** the main module has `DIM h(3) AS LONG: h(1) = 5` and a SUB without `SHARED` prints `h(1)` under a
+  handler that prints `ERR` and resumes next
+- **THEN** the handler prints 9 (the SUB's `h` is an implicit array of its own, which nothing allocates), and
+  `h(1)` in the main module is still 5
+
+#### Scenario: Shared array declared below the SUB
+- **WHEN** a SUB that prints `a(1)` stands above `DIM SHARED a(3) AS LONG` in the file and is called after `a(1) =
+  1`, under the same handler
+- **THEN** the handler prints 9; the same SUB placed below the `DIM SHARED` prints ` 1 `
+
+#### Scenario: STATIC a() then REDIM
+- **WHEN** a SUB with `STATIC r() AS LONG: REDIM r(3) AS LONG: r(1) = r(1) + 1: PRINT r(1)` is called twice, and
+  one with `REDIM _PRESERVE` in place of `REDIM`
+- **THEN** the first prints ` 1 ` twice, the second ` 1 `, then ` 2 `
+
+#### Scenario: Recursion
+- **WHEN** a FUNCTION with `DIM a(n) AS LONG: a(n) = n` calls itself with `n - 1` down to 1 and adds `a(n)` after
+  the call returns
+- **THEN** each level still holds its own `a(n)` (the result for 3 is 6)
+
+#### Scenario: Rejected declarations
+- **WHEN** a procedure holds `STATIC a(3)` twice, `STATIC a()` then `STATIC a(3)`, `DIM SHARED a(3)`, `SHARED a(3)`,
+  `STATIC v(n)` with a parameter `n`, or `SHARED a()` for a main array declared below the procedure
+- **THEN** each is a compile error
 
 ### Requirement: COMMON
-`COMMON name[()] [AS type], …` in the main module SHALL declare each variable as `DIM` does, and
-`COMMON SHARED` as `DIM SHARED` does; an array named with `()` SHALL get its bounds from a later `DIM` or `REDIM`,
-which SHALL then be shared if the `COMMON` was. A block name (`COMMON /name/`) SHALL be accepted and have no
-effect. `COMMON` inside a SUB or FUNCTION SHALL be a compile error. `CHAIN` SHALL be reported "not supported yet".
+`COMMON name [AS type], …` in the main module SHALL declare each variable as `DIM` does, and `COMMON SHARED` as
+`DIM SHARED` does, wherever it stands in the main module. `COMMON name()` SHALL declare a dynamic array that is
+not allocated, shared after `COMMON SHARED`; what is written between its parentheses SHALL be ignored. A `DIM` of
+that name and type below it SHALL allocate the array when it runs (error 10 if it is allocated), a `REDIM` SHALL
+give it new bounds, and a use before either SHALL raise error 9. A block name (`COMMON /name/ …`) SHALL be a
+compile error, as in the old compiler. `COMMON` inside a SUB or FUNCTION, and a second declaration of a `COMMON`
+scalar, SHALL be compile errors. `CHAIN` SHALL be reported "not supported yet".
 
 #### Scenario: COMMON SHARED scalar
 - **WHEN** `COMMON SHARED total AS LONG` stands in the main module, `total = 5` runs, and a SUB prints `total`
@@ -330,6 +479,22 @@ effect. `COMMON` inside a SUB or FUNCTION SHALL be a compile error. `CHAIN` SHAL
 - **WHEN** `COMMON x` stands inside a SUB
 - **THEN** it is a compile error
 
+#### Scenario: COMMON array is dynamic
+- **WHEN** `COMMON SHARED a() AS LONG: DIM a(3) AS LONG: a(1) = 5: REDIM a(9) AS LONG: PRINT UBOUND(a); a(1)` runs
+- **THEN** it prints ` 9  0 `
+
+#### Scenario: COMMON array never given bounds
+- **WHEN** `COMMON a() AS LONG: a(1) = 1` runs under a handler that prints `ERR` and resumes next
+- **THEN** the handler prints 9
+
+#### Scenario: Another type is another array
+- **WHEN** `COMMON SHARED a()`, then `DIM a(3) AS LONG: a(2) = 6`, and a SUB prints `a(2)` under the same handler
+- **THEN** the handler prints 9 (the LONG array is not the shared one)
+
+#### Scenario: Block name
+- **WHEN** `COMMON /blk/ b1 AS LONG` is compiled
+- **THEN** it is a compile error
+
 ### Requirement: DIM AS type lists
 `DIM AS type name, name(bounds), …` (also after `SHARED`, and in `REDIM`, `STATIC` and `COMMON`) SHALL declare
 every name of the list with that type. A type suffix on a name of such a list SHALL be a compile error.
@@ -344,11 +509,19 @@ every name of the list with that type. A type suffix on a name of such a list SH
 
 ### Requirement: Member arrays
 A `TYPE` member SHALL be declarable as an array with constant bounds, as `name(bounds) AS type` or in an
-`AS type name(bounds), …` list, of any type a member may have. `place.name(index, …)` SHALL name an element, through
-any chain of members and elements, with the index, store and by-reference rules of array elements. The elements of
-a member array SHALL be part of the value of their variable: zero or empty when the variable is made, and each
-variable and each array element SHALL have its own. `REDIM`, `REDIM _PRESERVE` and `ERASE` SHALL accept a member
-array and behave as the old compiler does (`verification\v24_h_*`).
+`AS type name(bounds), …` list, of any type a member may have and of one or more dimensions. A dimension without
+`TO` SHALL start at the `OPTION BASE` in effect where the `TYPE` block stands; the literal 0 has no rule of its
+own there (`z(0)` under base 1 is a compile error, as are bounds that are not constant, reversed or missing).
+`place.name(index, …)` SHALL name an element, through any chain of members and elements, with the index and
+by-reference rules of array elements. A store SHALL evaluate the value first, then the indexes from left to
+right, and SHALL store nothing when an index is outside its bounds (error 9; the old compiler writes element 0 of
+that dimension, `DIVERGENCES.md` D-004). The elements of a member array SHALL be part of the value of their
+variable: counted by `LEN`, zero or empty when the variable is made, and each variable and each array element
+SHALL have its own. The bounds of a member array SHALL NOT change: `REDIM` of one SHALL be accepted only with
+constant bounds equal to the declared ones, written `lower TO upper` or with `AS` and the member's type, and
+SHALL then set the elements of that one array to zero or empty; `REDIM _PRESERVE` so written SHALL change
+nothing; `ERASE` of one SHALL set its elements to zero or empty. `LBOUND` and `UBOUND` SHALL take a member array,
+also written with empty parentheses.
 
 #### Scenario: Element of a member array
 - **WHEN** a type has `v(0 TO 3) AS LONG`, and `DIM t AS` that type`: t.v(2) = 7: PRINT t.v(2); t.v(3)` runs
@@ -367,19 +540,55 @@ array and behave as the old compiler does (`verification\v24_h_*`).
 - **WHEN** `t.v(4) = 1` runs for `v(0 TO 3) AS LONG` under a handler that prints `ERR` and resumes next
 - **THEN** the handler prints 9
 
+#### Scenario: Index outside in a store
+- **WHEN** `t.v(0) = 100: t.v(9) = 5` runs under the same handler, then `PRINT t.v(0)`
+- **THEN** the handler prints 9 and ` 100 ` is printed (the old compiler prints ` 5 `, D-004)
+
+#### Scenario: Value before the indexes
+- **WHEN** `a(one(1)).v(one(2)) = one(3)` runs, where FUNCTION `one` prints its argument and returns 1
+- **THEN** ` 3  1  2 ` is printed
+
+#### Scenario: LEN counts the elements
+- **WHEN** a type has `id AS LONG`, `v(0 TO 3) AS LONG` and `tail AS INTEGER`, and `PRINT LEN(t)` runs for a
+  variable of it
+- **THEN** it prints ` 22 `
+
+#### Scenario: OPTION BASE at the TYPE block
+- **WHEN** `OPTION BASE 1` stands above a block with `v(3) AS LONG`, and in another program below it
+- **THEN** `LBOUND(t.v)` is 1 in the first and 0 in the second
+
 #### Scenario: REDIM of a member array
 - **WHEN** `item(0).Values(i)` is set for 0 to 3, then `REDIM item(0).Values(0 TO 3)` runs and the four elements are
   printed
-- **THEN** the output equals the old compiler's
+- **THEN** all four are 0, and the elements of `item(1).Values` are unchanged
+
+#### Scenario: REDIM with other bounds
+- **WHEN** `REDIM t.v(0 TO 9)`, `REDIM t.v(1 TO 4)`, `REDIM t.v(0 TO n)`, `REDIM t.v(3)` or `REDIM t.v(0 TO 3) AS
+  INTEGER` is compiled for `v(0 TO 3) AS LONG`
+- **THEN** each is a compile error
+
+#### Scenario: ERASE of a member array
+- **WHEN** `ERASE t.v` runs after the elements and the members beside the array were set
+- **THEN** the elements are 0, `UBOUND(t.v)` is 3, and the other members keep their values
 
 #### Scenario: Marked member
-- **WHEN** a `TYPE` block has `v(3) AS LONG _DYNAMIC`
-- **THEN** the compiler reports it "not supported yet"
+- **WHEN** a `TYPE` block has `v(0 TO 3) _DYNAMIC AS LONG`
+- **THEN** the compiler reports it "not supported yet" (the old compiler compiles it only under
+  `$UNSTABLE:TYPEFIELDS`)
 
 ### Requirement: Whole user-type values
-`q = p` for two places of the same user type SHALL copy every member, a `STRING` member as its own string and a
-member array element by element. Places of two different user types SHALL be a compile error. `SWAP` of two
-places of the same user type SHALL exchange their values.
+`q = p` for two places of the same user type (variables, array elements, members of a user type) SHALL copy every
+member, a `STRING` member as its own string and a member array element by element; a place assigned to itself
+SHALL keep its value. Places of two different user types, also two with the same members, and a number SHALL be
+compile errors. `SWAP` of two places of the same user type SHALL exchange their values, `STRING` members
+included. An index outside its bounds on either side SHALL raise error 9, and element 0 of that array SHALL then
+stand in for the element named, as in the old compiler (`a(9) = p` overwrites `a(0)`; decided 2026-10-11, listed
+for review in `SOMEDAY.md`).
+
+#### Scenario: Index outside
+- **WHEN** `a(0).x = 100: p.x = 6: a(9) = p` runs for `DIM a(3)` under a handler that prints `ERR` and resumes
+  next, then `PRINT a(0).x`
+- **THEN** the handler prints 9 and ` 6 ` is printed
 
 #### Scenario: Copy
 - **WHEN** `p.x = 5: p.n = "a": q = p: p.x = 6: p.n = "b": PRINT q.x; q.n` runs for two variables of a type with a
@@ -393,3 +602,12 @@ places of the same user type SHALL exchange their values.
 #### Scenario: Different types
 - **WHEN** `q = r` is compiled for variables of two different user types
 - **THEN** it is a compile error
+
+#### Scenario: Member array copied
+- **WHEN** `p.v(0) = 10: p.v(3) = 13: q = p: p.v(3) = 0: PRINT q.v(0); q.v(3)` runs for a type with `v(0 TO 3) AS
+  LONG`
+- **THEN** it prints ` 10  13 `
+
+#### Scenario: SWAP with string members
+- **WHEN** `p.n = "p": q.n = "q": SWAP p, q: PRINT p.n; q.n` runs
+- **THEN** it prints `qp`

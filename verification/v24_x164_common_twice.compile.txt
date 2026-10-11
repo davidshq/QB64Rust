@@ -1,0 +1,5 @@
+
+Name already in use (x)
+Caused by (or after):COMMON X AS LONG
+LINE 4:COMMON x AS LONG
+exit=1

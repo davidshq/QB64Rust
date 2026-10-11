@@ -992,6 +992,249 @@ Programs with a window (2026-10-10, `m2-screen-state-check`; the tables are in i
   `config.ini`); the `Makefile` puts it at the end of the link command, where a C++ source file is compiled with
   the flags of the link, libqb's include path among them.
 
+Measured for step 10 (2026-10-11, `m2-defxxx-common-arrays` group 1; `verification\v24_*`, one program per
+question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and resume next):
+
+- **Default types (`v24_a_*`, `v24_x01`–`x37`):** `DEFINT`, `DEFLNG`, `DEFSNG`, `DEFDBL`, `DEFSTR` and `_DEFINE …
+  AS type` write one table of 27 entries (A to Z and `_`), all SINGLE at the start. **The table follows the file,
+  not the program and not the procedure:** a statement applies to every line below it, whether it runs or not
+  (skipped by `GOTO`, inside an `IF` block that does not run), and **one inside a SUB or FUNCTION goes on applying
+  after `END SUB`**, to the procedures and to the main-module lines below it (`v24_a_procs_subs`,
+  `v24_x30_def_between_subs`). A procedure above the statement is not reached: its parameters, result and
+  variables keep the earlier default; one below gets the new one for all three (`v24_a_procs_function_above`).
+  **A procedure's own variable of the name and the default type comes before a main-module `DIM SHARED … AS` of
+  that name** (`v24_a_param_shared`): with `DIM SHARED x AS LONG` and `SUB s (x)`, `x` in the body is the
+  parameter, in a FUNCTION too, with a parameter typed INTEGER by a `DEFINT` above, with a parameter written
+  `x!` under the SINGLE default, and with a local variable first written with the default's suffix (`x% = 3`
+  under `DEFINT`). A parameter or local of another type does not count (`m%` under SINGLE: `m` is the shared
+  variable), nor does a main-module variable bound by `SHARED x!` (`x` stays the `DIM SHARED` one). Below a
+  `DEFxxx` in the body that changes the default, the plain name is no longer the parameter's and means the shared
+  variable (a store there changes it).
+  **A name without a suffix is the name plus the default type at that line**, so after `a = 1.5: DEFINT A-Z`, `a`
+  is `a%`, a new variable holding 0, and `a!` still holds 1.5; the same for a variable declared by `DIM c` without
+  a type, for a parameter (inside the SUB, after a `DEFINT`, `p` is a new local), and for an array (`DIM t(3)`,
+  then `DEFINT A-Z`, then `t(1)` is an implicit array `t%()` of 0 to 10). **A variable declared with `AS` is found
+  by its bare name whatever the default** (`DIM d AS LONG`). The default types every name that may stand without a
+  suffix: an implicit variable, `DIM`, `DIM SHARED`, `REDIM`, `STATIC`, `SHARED` (which then needs the main
+  variable of that type), `COMMON`, an array, a `FOR` variable, a parameter, a FUNCTION result. **Not a `CONST`:**
+  it takes the type of its value (`CONST s1 = 5` under `DEFSTR S` is the number 5, `CONST k = "abc"` under `DEFINT`
+  a string). **A FUNCTION is found by its bare name whatever the default at the call**, and by the suffix of its
+  type; any other suffix is "Name already in use (f)" (`v24_x26`). Inside it the bare name stays the result, also
+  after a `DEFxxx` in its body (`v24_x29`). Letters: any case; a range may be written backwards (`z-w`); a letter
+  may be named twice; a later statement replaces an earlier one per letter; **`_` is a letter of its own** for
+  names that start with an underscore (`__a` stays SINGLE under `DEFINT A-Z`, is INTEGER after `DEFINT _, a`; the
+  range `y-_` is Y, Z and `_`). An underscore that ends the line is a line continuation first (`DEFINT _` joins
+  the next line). Types of `_DEFINE`: every numeric type with and without `_UNSIGNED`, `_OFFSET`, `_FLOAT`,
+  `STRING`, **also `STRING * n`, `_BIT`, `_BIT * n` and `_UNSIGNED _BIT`**; a parameter typed `STRING * 5` this
+  way behaves as one written so (`LEN` 5, the value not cut) and a FUNCTION result is padded to 5; a parameter
+  typed `_BIT` this way fails the C++ build as one written so does. Rejected with "Cannot convert type (X) to
+  symbol": a user type, `_MEM`, an unknown type, `_UNSIGNED STRING`, `_UNSIGNED SINGLE`, `STRING * 0`, `_UNSIGNED`
+  alone. Syntax errors, all worded `_DEFINE: …` for the five `DEFxxx` too: no `AS` or no letters ("Expected ... AS
+  ..."), a digit, a word of two letters or a comma at the end ("Expected an alphabet letter or the underscore
+  character (_)"), `a-` ("Syntax incomplete"), `a b`, `DEFINT a AS LONG` and `_DEFINE a AS INTEGER, b AS LONG`
+  ("Expected - or ,"); `DEFINT` alone is "Syntax error". Follow-on errors are the ordinary ones of the type: a
+  `FOR` variable typed `STRING` is "Unsupported variable used in FOR statement", `s = 5` "Illegal string-number
+  conversion", and `OPTION _EXPLICIT` names the default type ("Variable 'v' (LONG) not defined").
+- **Static or dynamic (`v24_b_*`, `v24_x38`, `x55`, `x88`, `x98`–`x101`):** an array is dynamic when it is first
+  declared by `REDIM`, by `DIM` with a bound that is not constant, or by `DIM` (also `DIM SHARED`, `STATIC a(n)`, a
+  `DIM` in a `SUB … STATIC`) below `'$DYNAMIC`. **"Constant" is a matter of spelling, not of value
+  (`v24_b_constant_bounds`, `_2`, found 2026-10-11 in task 3.2): a bound is constant only when it is one number
+  or one `CONST` name**, in any number of parentheses: `5`, `(5)`, `((5))`, `5&`, `5%`, `&H5`, `5.0`, `2.5`, `1E1`,
+  a negative number (`-1`, `- 1`, `(-1)`), a `CONST` with or without its suffix, also a `CONST` defined by an
+  expression. **Anything with an operator makes a dynamic array though its value is known:** `2 + 3`, `k + 1`,
+  `k * 2`, `1 - 2`, `10 \ 3`, `2 ^ 2`, `NOT -6`, and a minus that is not part of a number (`-k`, `-(1)`, `--1`).
+  One such bound among several is enough (`DIM a(5, 2 + 3)`). So `DIM f(-(2 ^ 2) TO 10 \ 3)` is allocated when the
+  `DIM` runs: skipped by `GOTO`, its elements raise 9; `REDIM` of it works. This also explains the two answers
+  to a bound that is 0 under `OPTION BASE 1` below: `DIM a(0 + 0)` is dynamic and raises 5 at the `DIM`. **`$DYNAMIC` and `$STATIC` follow the file like `DEFxxx`:** one
+  inside a SUB goes on for the SUBs below it; a `DIM` above the comment in the file is not changed by it, wherever
+  it runs. `REM $STATIC` works; `$DYNAMIC` as a statement is "Syntax error". **An array used without `DIM` below
+  `$DYNAMIC` is dynamic too, and it is allocated by the first statement in the file that names it**: skipped by
+  `GOTO`, every use raises 9 (`x88`); that statement run again raises 10 and is skipped (`x101`); `REDIM` of it
+  works. **What an array is, is settled by its first declaration; a later `DIM` is only a statement that runs:**
+  `DIM a(n)` twice (one statement in a loop, or two statements) raises 10 the second time and changes nothing;
+  `DIM a(5)` then `DIM a(n)` compiles and raises 10 (static stays 0 to 5); `DIM a(n)` then `DIM a(5)` compiles and
+  raises 10 (still dynamic, `REDIM` works); `REDIM d(5): ERASE d: DIM d(3)` allocates the dynamic array 0 to 3.
+  Only a constant `DIM` of an array that is static already is the compile error "Cannot redefine a static array!".
+  Constant bounds that are reversed or a single negative one are "Invalid array bounds" in `REDIM` and under
+  `$DYNAMIC` as in a static `DIM`. A dynamic `DIM SHARED` is seen in a SUB. Float bounds round half to even at run
+  time (`DIM q(x)` with 2.5 is 0 to 2; `1.5 TO 3.5` is 2 to 4).
+- **Allocation (`v24_b_dynamic`, `v24_c_redim`, `v24_x89`–`x96`, the C++ of `DIM d(n)`):** in this order: a static
+  array raises 10; `DIM` of an allocated array raises 10 (not when an error is pending already); the bounds are
+  evaluated and **a dimension with no element (count 0) raises 5 and the statement goes on**: the array is then
+  allocated with the new bounds and no element (`LBOUND` 0, `UBOUND` -1, every index raises 9, a second `DIM`
+  raises 10); **a negative count, a count or a size in bytes beyond the address space, and a failed allocation are
+  error 257, "Out of memory", which libqb treats as critical: the message is printed and the program ends, no
+  handler runs** (`error_handle.cpp` 444). So `n = -3: DIM f(n)` ends the program, also with `REDIM` and `REDIM
+  _PRESERVE`. **A bound that raises does not stop the statement either**: `DIM s(ASC(""))` reports 5 and allocates
+  0 to 0; `REDIM y(ASC("") TO 5)` reports 5 and gives the array 0 to 5 with new elements. Elements start at 0, `""`
+  or NUL bytes. An index outside raises 9 per dimension as for a static array.
+- **`DIM a()` and `REDIM a()` declare a scalar (`v24_b_dim_empty*`, `v24_x43`, `x44`, `x86`, `x87`):** with nothing
+  between the parentheses, and `REDIM x AS LONG` without parentheses, the old compiler makes the scalar variable
+  `a` (`a = 100000.5: PRINT a; LEN(a)` prints 100000 and 4 after `DIM a() AS LONG`) and no array at all. `a(1)`
+  after it is an ordinary array used without `DIM` (`a!()`, 0 to 10; "Array 'a' (SINGLE) not defined" under `OPTION
+  _EXPLICITARRAY`), and `DIM a(3) AS LONG` after it is an ordinary static array.
+- **Not allocated (`v24_b_unallocated`):** after `ERASE` (and before the first allocation) `LBOUND`, `UBOUND` with
+  and without a dimension, a read and a store each raise 9; the functions and the read give 0.
+- **`REDIM` (`v24_c_redim*`, `v24_x39`–`x56`, `x97`):** declares the array when it is the first to name it (also
+  `REDIM _PRESERVE`), gives new bounds and new elements each time, of an array made by `DIM d(n)` too; of a static
+  array raises 10 and changes nothing (also `REDIM _PRESERVE`, also for a `DIM SHARED` array in a SUB). Without a
+  type it keeps the type of an array declared with `AS` (by `REDIM` or `DIM`), in a SUB for a `REDIM SHARED`
+  array too. `REDIM x(5) AS LONG` then `REDIM x&(7)` is the same array; `REDIM x!(7)` after it another one;
+  `REDIM y&(5)` then `REDIM y(7) AS LONG` is the same array, and a bare `y(…)` is then `y!()`, used without `DIM`.
+  Compile errors: another numeric type with `AS` ("Name already in use (x)"), another number of dimensions
+  ("Cannot change the number of elements an array has!", also with `_PRESERVE`), `STRING` against `STRING * n`
+  and another length ("Type mismatch"), `REDIM SHARED _PRESERVE` ("Invalid variable name"; `REDIM _PRESERVE
+  SHARED` is the order). A count of 0 raises 5 and leaves the array allocated with no element (the old elements
+  are gone). Several arrays in one statement are done in order. A scalar of the same name is not touched.
+- **`REDIM _PRESERVE` (`v24_c_preserve`):** keeps the smaller of the old and the new number of elements **by flat
+  position**, the rest of the new block zero or empty: growing and shrinking, strings (each kept element assigned,
+  the old ones released), fixed-length strings, a user type (raw bytes), two dimensions ((1, 1) holding 1 2 3 4 to
+  (2, 1) reads 1 2 3 / 4 0 0), another lower bound (0 to 3 holding 1 2 3 4 to 10 to 15 reads 1 2 3 4 0 0). Of an
+  array that is not allocated it is `REDIM`. The new block is made first, then the copy, then the old block is
+  released, then the descriptor is committed (the C++ of `REDIM _PRESERVE p(n + 1) AS STRING`).
+- **`ERASE` (`v24_d_*`, `v24_x57`–`x63`):** a static array is cleared (0, `""`, NUL bytes, every member of a user
+  type) and keeps its bounds, in every dimension; an array used without `DIM` likewise. A dynamic array is
+  released: `UBOUND` and every element raise 9; a second `ERASE` does nothing; `REDIM`, and the `DIM` that made
+  it, allocate it again. Several names are done in order. A scalar of the same name is not touched. **Anything
+  that is no declared array is "Undefined array passed to ERASE"**: a scalar, a string variable, a name never
+  used (no array is made for it), `a()`, an element `a(1)`, a suffix of another type (`a%` for a LONG array; `a&`
+  names it). `ERASE` alone is "Syntax error".
+- **`OPTION BASE` (`v24_e_option_base`, `v24_x64`–`x79`, `x83`–`x85`, `x102`, `x103`):** follows the file like
+  `DEFxxx` (a statement skipped by `GOTO` applies; one inside a SUB applies to the main-module lines below the
+  SUB); it may stand anywhere and any number of times. It sets the lower bound of every dimension written without
+  `TO` below it: `DIM`, `REDIM`, a variable bound, an array used without `DIM` (1 to 10, also `LBOUND(nn)` of a
+  name that is no array), in a SUB below it. **Only a bound written as the number 0 in plain digits (`0`, `00`)
+  stays 0 to 0**, per dimension (`DIM z2(0, 3)` is 0 to 0 and 1 to 3), in `DIM`, `REDIM`, `STATIC` and a local
+  `DIM`. Any other constant bound that is 0 (`0&`, `0%`, `0.0`, `0.2`, `&H0`, `(0)`, `-0`, a `CONST`) makes a
+  static array 1 to 0: **the program compiles and raises error 5 when it starts**, before its first statement
+  ("Illegal function call" at line 1, no handler set yet). `DIM a(0 + 0)` is a dynamic array (a bound with an
+  operator, above), so its error 5 is raised at the `DIM` line and a handler set before it runs (`v24_x72`,
+  `x103`: the array then exists with no element). A variable that is 0 raises 5 at the `DIM` likewise. **Only the
+  word after `BASE` is read:** it must be `0` or `1` in plain digits, zeros before it allowed (`01` and `001` are
+  base 1, `00` base 0, `v24_x239`, `x240`, `x243`; "Expected OPTION BASE 0 or 1" for `2`, `1.0`, `1&`, `&H1`, a
+  `CONST`, a variable, nothing, `x241`, `x242`), and what follows is ignored (`OPTION BASE 0 + 1` is base 0, `OPTION BASE 1 x` base 1).
+- **`_BIT` arrays (`v24_b_bit_arrays`, `v24_x80`–`x82`, `x104`, the C++ of `DIM b(9) AS _BIT * 3`):** plain packed
+  storage, `count * bits / 8 + 1` bytes, read with `getbits` (`getubits` unsigned) and stored with `setbits` at
+  the checked flat position; values wrap as a `_BIT` variable's do (15 into `_BIT * 4` is -1, 8 is -8; a float
+  rounds half to even first). Static, dynamic, two dimensions, used without `DIM` (`` im`(3) ``), `ERASE`, `REDIM`
+  and `REDIM _PRESERVE` behave as for other element types. An element passed to a LONG parameter is a copy.
+  `SWAP` of two elements is "Cannot SWAP bit-length variables"; `LEN` of an element "Variable/element cannot be
+  _BIT aligned".
+- **Arrays used without `DIM` (`v24_f_*`, `v24_x105`–`x120`, `x146`, `x176`):** in the main module the bounds are
+  `OPTION BASE` to 10 in each of as many dimensions as the first use has indexes (one for `LBOUND(a)`/`UBOUND(a)`
+  of a name that is no array); the type is the suffix or the default type at that line. The array is static: it
+  exists from the start (a first use skipped by `GOTO` changes nothing), `REDIM` of it raises 10, a later `DIM` is
+  "Cannot redefine a static array!" (also after `LBOUND(a)`), another number of indexes "Cannot change the number
+  of elements an array has!". A whole array never declared may be passed (`fill nx()` makes it). **In a SUB or
+  FUNCTION the old compiler makes a local dynamic array and writes nothing that allocates it** (the C++ of the
+  procedure holds the descriptor in its not-allocated state and no allocation), so **every use raises 9**, on
+  every call, also for `LBOUND`; this is the explanation of the `v18_g_implicit_in_sub` note. A later `DIM` or
+  `REDIM` of that name in the procedure allocates it (`x176`, `v24_g_shared`). The same holds after `STATIC y()`
+  and, below `$DYNAMIC`, in a `SUB … STATIC` (`x120`). **Only in a `SUB … STATIC` without `$DYNAMIC` does it work:**
+  the array is static, 0 to 10, and keeps its values between calls. Which names may be one: a name that needs a
+  suffix as a built-in is free without it or with another (`chr(1) = 5`, `left(3)`, `abs$(1)`), two leading
+  underscores are fine (`__foo`); `_foo(1)` is "Invalid array name"; a keyword, a built-in statement and `len%`
+  are "Name already in use" (`to`, `cls`); a built-in function's own spelling and a FUNCTION defined anywhere in
+  the program are calls, so a store to one is "Expected variable =, look for conflict with a CONST name" (`rnd(1)
+  = 2`, `f(3) = 5`); the name of a SUB is "Name already in use". Under `OPTION _EXPLICITARRAY` both the use and
+  `LBOUND(q)` are "Array 'q' (SINGLE) not defined".
+- **Arrays in procedures (`v24_g_local*`, `v24_x121`–`x129`, `x177`):** `DIM` and `REDIM` in a SUB or FUNCTION make
+  an array that is new, zero or empty, on every call, with constant and with variable bounds, for strings too, and
+  in every level of a recursive call; one `DIM` run twice in a call raises 10. `EXIT SUB` and an error inside the
+  procedure leave nothing behind (the next call starts new). `STATIC c(3)` is made once and keeps its values.
+  **`STATIC l()` declares a dynamic array that lives for the program and is not allocated**: `DIM l(3)` after it
+  allocates on the first call and raises 10 on the second (values kept); `REDIM` gives new elements on each call;
+  `REDIM _PRESERVE` keeps them; the number of dimensions comes from the statement that gives bounds. It is keyed
+  by name and type: `STATIC a() AS DOUBLE` then `DIM a(3)` is another, local array. In a `SUB … STATIC` a `DIM`
+  with constant bounds is a static array (values kept, no error on the second call) and one with a variable bound
+  a dynamic one that lives for the program (10 on the second call). Compile errors: `STATIC a(3)` twice, `STATIC
+  a()` twice, `DIM a(3)` then `STATIC a(3)` ("Name already in use (a)"); `STATIC a()` then `STATIC a(3)` ("Array
+  already listed as STATIC"); `STATIC` in the main module ("STATIC must be used within a SUB/FUNCTION"); `DIM
+  SHARED` and `REDIM SHARED` in a procedure ("DIM/REDIM SHARED invalid within a SUB/FUNCTION"). **`STATIC v(n)`
+  with a bound that is not constant is accepted and fails the C++ build.**
+- **Main-module arrays seen from a procedure (`v24_g_shared*`, `v24_x130`–`x134`):** `SHARED a() [AS type]` names
+  the main array of that name and type, static or dynamic (the procedure may `REDIM` a dynamic one); the main
+  array must be declared above the SUB in the file and with that type, otherwise "Array 'a' not defined" (no
+  array is made for it). `SHARED a(3)` is "Expected ()". `SHARED a AS LONG` without parentheses is the scalar.
+  **Visibility follows the file**: a `DIM SHARED`, `REDIM SHARED` or `COMMON SHARED` array is seen by the
+  procedures below its declaration; in one above it the name is an array used without `DIM` (every use raises
+  9). A main array that is not shared is not seen; a local `DIM` of its name is another array.
+- **Array parameters (`v24_g_params`, `v24_x135`–`x160`, `x178`–`x180`):** the argument is a whole array written
+  `name()`, static or dynamic, a `DIM SHARED` or local array or the procedure's own parameter passed on, also in
+  `CALL f(x())` and as an argument of a FUNCTION (`pick(x(), 2)`); the procedure works on the caller's array:
+  stores, `LBOUND`/`UBOUND`, `REDIM` and `REDIM _PRESERVE` (10 for a static argument), `ERASE` (clears a static
+  one, releases a dynamic one), a `DIM` of the parameter's name (an allocation: 10 if it is static or allocated).
+  A dynamic array that is not allocated may be passed and allocated inside. One array may be two arguments.
+  **The element type must have the same kind and width; `_UNSIGNED` and `_OFFSET` are not compared**
+  (`qb64pe.bas` 12029: size in bits or user type, bit-width flag, string, fixed length, float): an `_UNSIGNED
+  LONG` array goes to a LONG parameter and back, `_UNSIGNED INTEGER` to INTEGER, `_INTEGER64` to `_OFFSET`, a
+  `_BIT * 4` array to a `_BIT * 4` parameter (which is allowed, unlike a `_BIT` scalar parameter); INTEGER to
+  LONG, SINGLE to LONG, `STRING * 3` to `STRING` or to `STRING * 4`, and one user type to another are "Incorrect
+  array type passed to sub". An element or a scalar is "Expected arrayname()"; a whole array to a scalar
+  parameter "Whole array cannot be passed to a scalar SUB parameter"; **an array in parentheses (`fill (x())`)
+  is accepted and fails the C++ build**. **The number of dimensions belongs to the parameter and comes from its
+  uses and its arguments together:** what is between the parentheses of the parameter is ignored (`a()`, `a(,)`,
+  `a(1)`); an index count, a `REDIM` or an argument that disagrees with another is "Cannot change the number of
+  elements an array has!" at the use, or "Passing arrays with a differing number of elements to a SUB/FUNCTION
+  is not supported" between two calls of a procedure that never indexes it; the call may stand above or below
+  the procedure, and the count travels through arrays passed on (upstream `array_arg_dimensions_transitive`).
+  `LBOUND(a())` is "Syntax error".
+- **`COMMON` (`v24_g_common`, `v24_a_common`, `v24_x161`–`x175`, `x181`):** a scalar is declared as by `DIM`, with
+  `SHARED` as by `DIM SHARED` (a SUB sees it), with any type, a fixed-length string and a user type, several in
+  one statement, also as `COMMON [SHARED] AS type a, b()`. It may stand below executable statements. **`COMMON
+  a()` declares a dynamic array that is not allocated**: a `DIM a(3)` of that name and type allocates it when it
+  runs (so a second `DIM` raises 10 at run time and `REDIM` works), a use before that raises 9, and what is
+  written between the parentheses is ignored (`COMMON a(3)` allocates nothing). `COMMON SHARED a()` makes that
+  array shared; `DIM a(3) AS LONG` after `COMMON SHARED a()` without a type is another array, not shared.
+  `COMMON x` then `DIM x(3)` is a scalar and an array. Compile errors: `COMMON x` twice, `DIM x` or `DIM SHARED
+  x` of a `COMMON` scalar ("Name already in use (x)"); inside a procedure ("COMMON cannot be used within a
+  SUB/FUNCTION"). **A block name is not accepted: `COMMON /blk/ x` is "Invalid variable name"**, with and
+  without `SHARED` and without a variable.
+- **`TYPE` member arrays without a marker (`v24_h_member_*`, `v24_x182`–`x205`, `x217`–`x226`):** **the elements
+  are part of the variable's bytes** (`LEN` of `id AS LONG`, `v(0 TO 3) AS LONG`, `tail AS INTEGER` is 22; the
+  members around the array keep their values when its ends are stored), in both declaration forms (`v(0 TO 3) AS
+  LONG`, `AS INTEGER q(2), r`), of every member type: numeric, `STRING * n`, `STRING`, another user type, with
+  one or more dimensions. Bounds are constant expressions (`CONST`s too; a variable is "TYPE member array bounds
+  must be numeric constant", empty parentheses "Array bounds missing", reversed "Invalid array bounds"), read
+  where the `TYPE` block stands: **`OPTION BASE 1` above the block makes `v(3)` 1 to 3, one below the block does
+  not, and the literal 0 has no special rule there** (`z(0)` under base 1 is "Invalid array bounds"). Every
+  variable and every array element has its own elements, zero or empty at the start (a local on each call).
+  An element is named through any chain (`x(0).n(1).q(2)`); `LBOUND`/`UBOUND` take a member array, with a
+  dimension and also written `t.v()`; a float index rounds half to even; an index outside raises 9, a wrong
+  number of indexes is "Cannot change the number of elements an array has!", none "Expected array index after
+  v", a string "Illegal string-number conversion". **Stores are not guarded, like member stores:** the value is
+  evaluated first, then the indexes left to right (`a(one(1)).v(one(2)) = one(3)` prints 3 1 2), the first error
+  wins, and **an index outside writes element 0 of that dimension** (`t.v(9) = 5` sets `t.v(0)`; `a(9).v(1) = 5`
+  sets `a(0).v(1)`; `a(1).v(9) = 6` sets `a(1).v(0)`); a read with an index outside gives that element's value.
+  An element passed to a parameter of its exact type is by reference (a copy in parentheses or for another
+  type); with an index outside it raises 9 and the SUB is not entered. `SWAP` of two elements works. A whole
+  member array may be passed to an array parameter (`fill t.v()`). **`REDIM`, `REDIM _PRESERVE` and `ERASE`
+  never change the bounds:** `REDIM t.v(0 TO 3)` (the declared bounds, written with `TO`, or as `REDIM t.v(3) AS
+  LONG` with the member's type) clears the elements of that one variable or element, also strings; `REDIM
+  _PRESERVE` with the declared bounds does nothing; `ERASE t.v`, `ERASE x(0).n(1).q` and `ERASE x(0).n` clear.
+  Compile errors: other bounds, also the same count shifted ("Cannot change the number of elements an array
+  has!"); a bound that is not constant ("TYPE member array bounds must be numeric constant"); the upper bound
+  alone without `AS` ("REDIM of a TYPE member array must include AS <type> or explicit lower TO upper bounds");
+  another type ("REDIM type does not match the declared TYPE member array"). `ERASE t` of a variable is
+  "Undefined array passed to ERASE". A `_BIT` member array is "Cannot use _BIT inside user defined types"; the
+  `_STATIC` and `_DYNAMIC` markers are "_Static/_Dynamic require $Unstable:TypeFields".
+- **`STRING` members, whole values, `TYPE` parameters (`v24_h_string_members`, `v24_h_whole`,
+  `v24_h_type_params`, `v24_x206`–`x216`):** a `STRING` member starts empty in a variable, a local (on each
+  call), a `STATIC` one (kept), each element of a static and of a dynamic array and in a nested type; it holds
+  any length; `ERASE` of a static array empties it, `REDIM _PRESERVE` keeps it, `REDIM` and `ERASE` of a dynamic
+  array release it; it passes by reference to a `STRING` parameter; an array of such a type may be an array
+  argument. `LEN` of the variable is "UDT must have fixed size". **`q = p` copies every member, a `STRING`
+  member as its own string and a member array element by element**, between variables, an element and a variable
+  both ways, two elements, members of a user type (`bx.b = bx.a`), and to itself. **The copy is not guarded
+  either: `a(9) = p` raises 9 and overwrites `a(0)`; `q = a(9)` raises 9 and copies `a(0)`** (`a(8) = b(9)` copies
+  `b(0)` to `a(0)`). Another user type, also one with the same members, and a number are "Expected = similar
+  user defined type". `SWAP` of two variables or two elements of one type exchanges them, `STRING` members
+  included. A user-type parameter takes a variable, an element or a member of that type by reference, in a SUB
+  and a FUNCTION, and may be passed on; an element with an index outside raises 9 and the procedure is not
+  entered. Another type is "User defined types in expressions are invalid", a number "TYPE 't1' required for
+  sub"; **a variable in parentheses (`move (q)`) is "UNEXPECTED INTERNAL COMPILER ERROR!"**. A FUNCTION cannot
+  have a user type as its result (`FUNCTION make AS t1` is "Expected (").
+
 ## 6. Bug-compatibility choices (all decided)
 
 From the end of `09` and `10` §2.8, §3.2 and the measurements in §5. **All decided by the user on 2026-10-08**

@@ -4,7 +4,7 @@
 
 use super::{Checker, Failed, R, Skips};
 use crate::{BinOp, ConvKind, UnOp};
-use crate::{Expr, ExprKind, Member, MemberId, Place, Storage, SymbolKind, Ty, TypeId, UserType, Var, VarId};
+use crate::{Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType, Var, VarId};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::find_any;
 use qb64rust_syntax::ast;
@@ -194,10 +194,11 @@ impl Checker<'_> {
     // ---- arrays ----
 
     /// `DIM name(bounds) [AS type]` (design D4): a static array of the main module, also `DIM SHARED`. `ty` is the
-    /// element type from the suffix, the `AS` clause or SINGLE.
+    /// element type from the suffix, the `AS` clause or the default type of the name; `typed` says it was written
+    /// with `AS` (on the name, or before a list of names), which types the array's plain name.
     pub(super) fn declare_array(
         &mut self,
-        item: ast::DimItem,
+        typed: bool,
         bounds: ast::ArrayBounds,
         (name_tok, name, suffix, ty): (Tok, String, Option<Ty>, Ty),
         storage: Storage,
@@ -228,17 +229,28 @@ impl Checker<'_> {
         if ranges.is_empty() {
             return Err(self.unsupported(bounds.node().span(), "`DIM a()` (a dynamic array)"));
         }
+        if self.dynamic_mode {
+            // Design D3: below `$DYNAMIC` the array is dynamic, whatever its bounds.
+            return Err(self.unsupported(bounds.node().span(), "`DIM` below `$DYNAMIC` (a dynamic array)"));
+        }
         let mut dims = Vec::with_capacity(ranges.len());
         let mut count: i64 = 1;
         for (lower, upper) in ranges {
             let upper = self.need(upper, bounds.node().span())?;
             let u = self.bound(upper)?;
+            // Without `TO` the lower bound is `OPTION BASE` as it stands here; a bound written as the number 0 in
+            // plain digits stays 0 to 0 (measured, `verification\v24_e_option_base`, `v24_x71`–`x83`: the old
+            // compiler compares the text, so `0&`, `(0)`, `0 + 0` and a `CONST` that is 0 do not count).
             let l = match lower {
                 Some(l) => self.bound(l)?,
-                None => 0,
+                None if self.is_plain_zero(upper) => 0,
+                None => self.option_base,
             };
-            if u < l {
-                // Measured: "Invalid array bounds" (`v18_e_bounds_negative`, `_reversed`).
+            // Measured: "Invalid array bounds" for a single negative bound and for `lower TO upper` in the wrong
+            // order (`v18_e_bounds_negative`, `_reversed`). Under `OPTION BASE 1` a single bound that is 0 without
+            // being written `0` is accepted: the array is 1 to 0, and the program raises error 5 when it starts
+            // (`v24_x71`, `x103`), where the emitter sets the array up.
+            if (lower.is_some() && u < l) || (lower.is_none() && u < 0) {
                 let span = upper.node().span();
                 return Err(self.error(span, format!("invalid bounds for `{shown}`: {l} TO {u}")));
             }
@@ -255,7 +267,6 @@ impl Checker<'_> {
         }
         let plain_scalar = self.scope().plain.contains_key(&name);
         let plain_array = self.scope().array_plain.contains_key(&name);
-        let typed = item.as_clause().is_some();
         if suffix.is_none() && (plain_scalar || plain_array) {
             // How a plain array name and a typed plain scalar (or another typed array) of the same name interact
             // was not measured.
@@ -267,7 +278,7 @@ impl Checker<'_> {
             name: name.clone(),
             ty,
             storage,
-            dims,
+            shape: Shape::Static { bounds: dims },
         });
         self.scope().arrays.insert(key, id);
         if suffix.is_none() && typed {
@@ -281,6 +292,16 @@ impl Checker<'_> {
         }
         self.names.push((SymbolKind::Var(id), name_tok.span));
         Ok(())
+    }
+
+    /// Whether a bound is the number 0 written in plain digits (`0`, `00`): the one spelling that keeps a dimension
+    /// 0 to 0 under `OPTION BASE 1`.
+    fn is_plain_zero(&self, bound: ast::Expr) -> bool {
+        let ast::Expr::Literal(lit) = bound else {
+            return false;
+        };
+        lit.token()
+            .is_some_and(|t| self.text(t.span).iter().all(|&b| b == b'0'))
     }
 
     /// An array bound: a constant expression with the run-time meaning of its operators, as a whole number (a float
@@ -311,7 +332,7 @@ impl Checker<'_> {
         } else {
             None
         };
-        own.or(shared).unwrap_or(Ty::F32)
+        own.or(shared).unwrap_or_else(|| self.default_ty(name))
     }
 
     /// The array a name refers to here: one of the current scope, or in a procedure a main-module `DIM SHARED` one
@@ -353,7 +374,7 @@ impl Checker<'_> {
     pub(super) fn element(&mut self, call: ast::CallExpr, array: VarId, t: Tok) -> R<Place> {
         let span = call.node().span();
         let args = self.present_args(call.arg_list())?;
-        let dims = self.prog.var(array).dims.len();
+        let dims = self.prog.var(array).bounds().len();
         if args.is_empty() {
             // `x()`: a whole array (whole-array assignment, array arguments), deferred (`SOMEDAY.md`).
             let shown = show_bytes(self.text(t.span));

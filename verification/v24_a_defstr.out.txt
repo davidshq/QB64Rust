@@ -1,0 +1,9 @@
+array st(1): one 3 
+DIM sd: dim
+parameter s: x!
+after the SUB changed its parameter: changed
+FUNCTION sf: rr rrr
+s% beside the STRING default: 5 
+STATIC sk: k
+STATIC sk: kk
+exit=0

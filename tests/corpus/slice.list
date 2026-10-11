@@ -1,4 +1,4 @@
-# Corpus programs the new compiler must pass (changes m2-workspace-and-slice, m2-procedures-and-errors, m2-control-flow-slice, m2-arrays-and-types, m2-parser-breadth, m2-core-builtins and m2-numeric-types).
+# Corpus programs the new compiler must pass (changes m2-workspace-and-slice, m2-procedures-and-errors, m2-control-flow-slice, m2-arrays-and-types, m2-parser-breadth, m2-core-builtins, m2-numeric-types, m2-builtin-statements and m2-defxxx-common-arrays).
 # One <group>/<name> per line; run with: run_legacy_tests.py --suite corpus --list tests/corpus/slice.list
 slice/s01_literals
 slice/s02_integer_wrap
@@ -263,3 +263,12 @@ runtime_comparison/212_environ_dollar
 runtime_comparison/215_shell
 runtime_comparison/217_command_dollar
 runtime_comparison/246_environ_set
+slice/s50_deftype
+slice/s50_deftype_inner
+slice/s50_deftype_param_shared
+slice/s50_deftype_procs
+runtime_comparison/235_deftype
+slice/s51_option_base
+runtime_comparison/236_option_base
+slice/s51_dim_as_list
+slice/s51_power_unary

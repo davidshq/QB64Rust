@@ -217,7 +217,7 @@ mod tests {
             name: name.into(),
             ty,
             storage,
-            dims: Vec::new(),
+            shape: qb64rust_ir::Shape::Scalar,
         };
         let mut p = Program::default();
         for (name, kind) in [("BUMP", ProcKind::Sub), ("TWICE", ProcKind::Function(Ty::I32))] {

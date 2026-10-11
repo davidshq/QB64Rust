@@ -1,0 +1,11 @@
+1. DIM AS LONG a, b(3): 100000  100000  4  4  3 
+2. DIM AS _UNSIGNED _BYTE u1, u2: 255  44 
+3. DIM AS STRING * 4 f1, f2(2): [abcd] [x   ] 4 
+4. DIM AS STRING s1, s2: one one!
+5. DIM AS rec r1, r2(2): 5  6 
+6. DIM SHARED AS DOUBLE g1, g2(1 TO 2), in a SUB: .3333333333333333  2.5 
+7. STATIC AS LONG k1, k2 and SHARED AS LONG a: 1  100000 
+7. STATIC AS LONG k1, k2 and SHARED AS LONG a: 2  200000 
+8. the names with their suffix: a&, u1~%%, s1$: 100000  255  one
+9. one name: 2 
+exit=0

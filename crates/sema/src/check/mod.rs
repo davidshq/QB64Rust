@@ -75,6 +75,10 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         follow_on: false,
         param_len: HashMap::new(),
         fixed_params: HashMap::new(),
+        defaults: DEFAULTS_AT_START,
+        proc_defaults: HashMap::new(),
+        option_base: 0,
+        dynamic_mode: false,
     };
     let skips = Skips::new(program);
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
@@ -93,6 +97,10 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // A header with an error (a parse error, a reserved name...) still enters its name as a broken procedure, so
     // calls of it fail without a second error.
     c.declare_types(&statements, &skips);
+    // The default types follow the file (design D2): the table as it stands at each procedure's header.
+    for &stmt in &top {
+        c.collect_defaults(stmt, &skips);
+    }
     let defs: Vec<ast::ProcDef> = statements
         .iter()
         .filter_map(|&s| ast::ProcDef::cast(s))
@@ -101,6 +109,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     let mut declared = Vec::new();
     for &def in &defs {
         let header = def.header().unwrap();
+        c.defaults = c.defaults_at(def);
         let id = if skips.usable(header.node()) {
             c.stmt_error = false;
             let id = c.declare_proc(header);
@@ -123,6 +132,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     }
     for (def, id) in declared {
         c.stmt_error = false;
+        c.defaults = c.defaults_at(def);
         let ok = c.declare_params(def.header().unwrap(), id).is_ok();
         c.flush_names();
         if ok {
@@ -142,7 +152,9 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         }
     }
 
-    // Pass 2: everything in file order (procedures where they stand, included files at their include).
+    // Pass 2: everything in file order (procedures where they stand, included files at their include). The
+    // default types start again and are set by each `DEFxxx` as it is met.
+    c.defaults = DEFAULTS_AT_START;
     for stmt in top {
         if skips.past_cap(stmt) {
             break;
@@ -274,7 +286,23 @@ struct Checker<'a> {
     /// The `t$n` parameters by procedure, name and n: the name `t$n` in the body means the parameter (`t$` is
     /// another variable).
     fixed_params: HashMap<(ProcId, String, u32), VarId>,
+    /// The default type of a name without a suffix or `AS` clause, by its first letter: A to Z, then `_` (design
+    /// D2). It is the table at the point of the file being read: pass 1 sets it from [`Self::proc_defaults`] for
+    /// each header, pass 2 changes it at each `DEFxxx` and `_DEFINE` statement, wherever that stands.
+    defaults: [Ty; 27],
+    /// Per `ProcDef` node (by key): the table at its header.
+    proc_defaults: HashMap<(TreeId, u32), [Ty; 27]>,
+    /// `OPTION BASE` as it stands at this point of the file, 0 or 1 (design D3): the lower bound of a dimension
+    /// written without `TO`. Like the default types it follows the file and nothing else.
+    option_base: i64,
+    /// `$DYNAMIC` is in effect at this point of the file (the last of `'$DYNAMIC` and `'$STATIC` above it): a `DIM`
+    /// with constant bounds then makes a dynamic array. It follows the file too (measured,
+    /// `verification\v24_b_metacommand*`).
+    dynamic_mode: bool,
 }
+
+/// Every default type is SINGLE until a `DEFxxx` or `_DEFINE` says otherwise.
+const DEFAULTS_AT_START: [Ty; 27] = [Ty::F32; 27];
 
 /// An expression could not be typed; the error is already reported.
 struct Failed;
@@ -388,6 +416,47 @@ impl Checker<'_> {
             self.check_statement(s, skips);
         }
         self.cur = None;
+    }
+
+    /// Pass 1 of the default types (design D2; measured, `verification\v24_a_procs_subs`, `v24_x30`): walks the
+    /// file in order, through blocks, procedure bodies and included files, applies every `DEFxxx` and `_DEFINE`
+    /// that pass 2 will apply, and keeps the table as it stands at each procedure's header. A statement with an
+    /// error changes nothing here and is reported by pass 2.
+    fn collect_defaults(&mut self, node: Node, skips: &Skips) {
+        if let Some(s) = ast::DefTypeStmt::cast(node) {
+            if skips.usable(node) {
+                let (stmt_error, names) = (self.stmt_error, std::mem::take(&mut self.names));
+                // With the statement's error "already reported", nothing is recorded.
+                self.stmt_error = true;
+                let _ = self.def_type(s);
+                (self.stmt_error, self.names) = (stmt_error, names);
+            }
+            return;
+        }
+        if ast::InactiveCode::cast(node).is_some() {
+            return;
+        }
+        if ast::ProcDef::cast(node).is_some() {
+            self.proc_defaults.insert(node.key(), self.defaults);
+        }
+        if ast::MetaCommentStmt::cast(node).is_some() {
+            let program = self.program;
+            if let Some(tree) = program.included(node) {
+                self.collect_defaults(tree.root(), skips);
+            }
+            return;
+        }
+        for n in node.child_nodes() {
+            self.collect_defaults(n, skips);
+        }
+    }
+
+    /// The default types at a procedure's header.
+    fn defaults_at(&self, def: ast::ProcDef) -> [Ty; 27] {
+        self.proc_defaults
+            .get(&def.node().key())
+            .copied()
+            .unwrap_or(DEFAULTS_AT_START)
     }
 
     /// One statement that is neither a block nor an include. A declaration marked "not supported yet" starts the
@@ -518,10 +587,8 @@ impl Checker<'_> {
             Err(self.unsupported(first_token_span(node), "`COMMON`"))
         } else if ast::EraseStmt::cast(node).is_some() {
             Err(self.unsupported(first_token_span(node), "`ERASE`"))
-        } else if ast::DefTypeStmt::cast(node).is_some() {
-            let t = first_token_span(node);
-            let word = show_bytes(&self.text(t).to_ascii_uppercase());
-            Err(self.unsupported(t, format!("`{word}`")))
+        } else if let Some(s) = ast::DefTypeStmt::cast(node) {
+            self.def_type(s)
         } else {
             Err(self.error(
                 node.span(),
@@ -564,18 +631,23 @@ impl Checker<'_> {
         }
     }
 
-    /// A metacommand comment. Its `$STATIC` and `$DYNAMIC` are never ignored (that gave wrong code): they are not
-    /// supported yet; a malformed `$INCLUDE` is an error, as in the old compiler. A well-formed `$INCLUDE` was
-    /// followed by the parser (its statements come next, [`Self::expand`]; a missing file is a parse error).
+    /// A metacommand comment. Its `$STATIC` and `$DYNAMIC` decide what a `DIM` with constant bounds makes from
+    /// here on in the file (design D3 of `m2-defxxx-common-arrays`; the declarations `$DYNAMIC` turns dynamic are
+    /// marked where they stand until dynamic arrays are compiled). A malformed `$INCLUDE` is an error, as in the
+    /// old compiler. A well-formed `$INCLUDE` was followed by the parser (its statements come next,
+    /// [`Self::expand`]; a missing file is a parse error).
     fn meta_comment(&mut self, stmt: ast::MetaCommentStmt) -> R<()> {
         let tok = self.need(stmt.token(), stmt.node().span())?;
         match comment_directives(self.text(tok.span)) {
             Err(msg) => Err(self.error(tok.span, msg)),
-            Ok(d) => match d.memory {
-                Some(MemoryMode::Static) => Err(self.unsupported(tok.span, "metacommand `$STATIC` in a comment")),
-                Some(MemoryMode::Dynamic) => Err(self.unsupported(tok.span, "metacommand `$DYNAMIC` in a comment")),
-                None => Ok(()),
-            },
+            Ok(d) => {
+                match d.memory {
+                    Some(MemoryMode::Static) => self.dynamic_mode = false,
+                    Some(MemoryMode::Dynamic) => self.dynamic_mode = true,
+                    None => {}
+                }
+                Ok(())
+            }
         }
     }
 

@@ -1,0 +1,5 @@
+
+Cannot convert type (REC) to symbol
+Caused by (or after):
+LINE 6:_DEFINE A AS REC
+exit=1

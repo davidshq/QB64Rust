@@ -1,0 +1,5 @@
+
+Passing arrays with a differing number of elements to a SUB/FUNCTION is not supported
+Caused by (or after):SHOW Y ( )
+LINE 7:show y()
+exit=1

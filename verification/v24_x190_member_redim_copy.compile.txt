@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):REDIM P . V ( 0 TO 9 )
+LINE 12:REDIM p.v(0 TO 9)
+exit=1

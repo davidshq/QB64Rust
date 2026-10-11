@@ -1,0 +1,8 @@
+main after DEFDBL A-Z: m 8 
+sa, above DEFDBL A-Z in the file: p, v 4  4 
+sb, below DEFDBL A-Z: p, v 8  8 
+sc, before its DEFINT A-Z: p, u, and their values 8  8  1  2.5 
+sc, after it: v, and p and u named again 2  2  2  0  0 
+sd, below sc: p, v 2  2 
+main, a new variable below the calls: n 8 
+exit=0

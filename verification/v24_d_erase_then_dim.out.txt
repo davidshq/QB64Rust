@@ -1,0 +1,3 @@
+DIM d(3) after ERASE: 3  0 
+REDIM d(7): 7 
+exit=0

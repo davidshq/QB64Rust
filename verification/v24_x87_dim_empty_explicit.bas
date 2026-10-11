@@ -1,0 +1,9 @@
+$CONSOLE:ONLY
+' Verification (m2-defxxx-common-arrays, D1): DIM a() AS LONG under OPTION _EXPLICIT and OPTION
+' _EXPLICITARRAY, then a(1).
+OPTION _EXPLICIT
+OPTION _EXPLICITARRAY
+DIM a() AS LONG
+a(1) = 5
+PRINT a(1)
+SYSTEM

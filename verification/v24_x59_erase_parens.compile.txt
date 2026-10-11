@@ -1,0 +1,5 @@
+
+Undefined array passed to ERASE
+Caused by (or after):ERASE A ( )
+LINE 4:ERASE a()
+exit=1

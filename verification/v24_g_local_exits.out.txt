@@ -1,0 +1,5 @@
+1. EXIT SUB with a local array, called twice: 1  1 
+2. an error inside, then the SUB goes on: [error 9 ] [error 5 ] 1  [error 9 ] [error 5 ] 1 
+3. a recursive FUNCTION, each level with DIM a(n): 1  1  2  2  3  3  result 6 
+4. a FUNCTION with a local string array:[aa][bb]
+exit=0

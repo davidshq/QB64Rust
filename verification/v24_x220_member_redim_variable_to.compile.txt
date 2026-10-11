@@ -1,0 +1,5 @@
+
+TYPE member array bounds must be numeric constant
+Caused by (or after):REDIM T . V ( 0 TO N )
+LINE 12:REDIM t.v(0 TO n)
+exit=1

@@ -1,0 +1,5 @@
+
+_Static/_Dynamic require $Unstable:TypeFields
+Caused by (or after):
+LINE 4:V ( 0 TO 3 ) _DYNAMIC AS LONG
+exit=1

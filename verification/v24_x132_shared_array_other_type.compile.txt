@@ -1,0 +1,5 @@
+
+Array 'g' not defined
+Caused by (or after):SHARED G ( )
+LINE 14:SHARED g()
+exit=1

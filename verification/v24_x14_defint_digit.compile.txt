@@ -1,0 +1,5 @@
+
+_DEFINE: Expected an alphabet letter or the underscore character (_)
+Caused by (or after):
+LINE 3:DEFINT 1
+exit=1

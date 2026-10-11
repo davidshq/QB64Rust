@@ -1,0 +1,5 @@
+
+Cannot use type symbol with DIM AS type variable-list (%)
+Caused by (or after):DIM AS LONG A%
+LINE 3:DIM AS LONG a%
+exit=1

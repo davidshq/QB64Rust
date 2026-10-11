@@ -11,9 +11,9 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 44 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input; `SOURCE.md`) |
+| `slice\` | 51 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types; `SOURCE.md`) |
 | `screen\` | 29 programs with a window, checked by the state of the screen they leave: 23 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error) and 6 drawing programs cut from Civil War Strategy (`SOURCE.md`, `tools\screen\README.md`). None is on `slice.list`: the new compiler builds console programs only so far |
-| `slice.list` | The 255 programs the new compiler must pass: all 44 of `slice\`, 209 of `runtime_comparison` and `verification\` `v11`, `v12` (see below) |
+| `slice.list` | The 264 programs the new compiler must pass: all 51 of `slice\`, 211 of `runtime_comparison` and `verification\` `v11`, `v12` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -37,11 +37,11 @@ it `<name>.keys`: the keys it is given. All 29 are in `screen\`; their `.output`
 A program that reaches `END` prints an empty line and `Press any key to continue` (no line end) on Windows; that
 trailer is part of its `.output`.
 
-## Counts (recorded 2026-10-03; `slice` as each change added its programs, the last 2026-10-10)
+## Counts (recorded 2026-10-03; `slice` as each change added its programs, the last 2026-10-11)
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 44 |
+| `.output` | 235 | 2 | 51 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
@@ -129,12 +129,15 @@ signed overflow being undefined in the generated C++ (no `-fwrapv`); the new com
 store rule of each place) by `m2-arrays-and-types`, `s23` by `m2-parser-breadth`, `s24` for a bug fix, `s25`–`s29` (built-ins,
 `SELECT CASE`, `ON … GOTO`) by `m2-core-builtins`, `s30`–`s34` (the numeric types, `_BIT`, fixed-length strings) by
 `m2-numeric-types`, `s35`–`s44` (built-in statements, files, data, console input, `SHELL`, functions by demand) by
-`m2-builtin-statements` (`SOURCE.md`).
+`m2-builtin-statements`, `s50` and `s51` (three programs each: default types; `OPTION BASE`, the type before the names, a minus right of
+`^`) by `m2-defxxx-common-arrays` (`SOURCE.md`).
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
 line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
 
-`slice.list` names the 255 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`; 57 joined with `m2-builtin-statements` (`s35`–`s44` and 47 of `runtime_comparison`, named
+`slice.list` names the 264 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`; the three `s50` programs and `235_deftype` joined with `m2-defxxx-common-arrays` task 2.2,
+the three `s51` programs and `236_option_base` with its tasks 3.2 and 3.3;
+57 joined with `m2-builtin-statements` (`s35`–`s44` and 47 of `runtime_comparison`, named
 task by task in its `tasks.md`). `s13`–`s19` joined it with `m2-control-flow-slice` (`s17` with task 3.2, the rest with task
 8.1), `s20`–`s22` and 13 `runtime_comparison` programs with `m2-arrays-and-types` task 7.1, 61 programs with
 `m2-core-builtins` (below), `s30`–`s34` and `198_type_fixed_string` with `m2-numeric-types`.

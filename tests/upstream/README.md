@@ -200,3 +200,15 @@ input, `SHELL`, functions by demand). Added to `pass.list` over the change: `con
 only on the change's statements: the suite's blockers are `_DEST` with `$CONSOLE` (52 programs), member arrays,
 `REDIM`, `_MEM` and images (`tasks.md` task 7.4 of the change has the count), which steps 10 and 11 of
 `STATUS.md` bring.
+
+**Upstream progress, 2026-10-11: 51 of 279** (`m2-defxxx-common-arrays` group 2: default types). Added to
+`pass.list`: `source_ordering/define` (a `DefLng A-Z` between two SUBs types only the SUB below it). The four other
+programs outside `deferred.list` with a `DEFxxx` statement wait on something else: `operators_test/op_exp` on `DIM
+AS type` before the names (group 3 of the change), `image/curico_test`, `view/window_view_mandelbrot` and
+`mem/mem_checking_off` on images and `_MEM`.
+
+**Upstream progress, 2026-10-11 (later): 53 of 279** (`m2-defxxx-common-arrays` group 3: the type before the
+names). Added to `pass.list`: `arrays/t659_variable_boolean_expr` and `operators_test/op_exp`. The second built
+and printed one wrong line at first (`2 ^ -NOT x + 3` gave 16, not 5): the parser did not stop a `NOT` inside a
+minus right of `^` at the next operator, as the old compiler does (`study\02` §1.2 step D). Fixed with the task
+(`crates\syntax\src\parser\expr.rs`, `verification\v24_j_power_unary`, slice `s51_power_unary`).

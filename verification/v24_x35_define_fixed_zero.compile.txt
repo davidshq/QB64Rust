@@ -1,0 +1,5 @@
+
+Cannot convert type (STRING * 0) to symbol
+Caused by (or after):
+LINE 3:_DEFINE A AS STRING * 0
+exit=1

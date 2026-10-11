@@ -1,0 +1,193 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 10: Assign X:I32
+  Int 7 : I32
+line 10: Assign Y:Str
+  Str "main" : Str
+line 10: Assign K:F64
+  Float 1.5E+0 : F64 (qb F32)
+line 10: Assign M:I32
+  Int 70 : I32
+line 11: Call S
+  temp
+    Convert Nearest : F32
+      Float 1.5E+0 : F64 (qb F32)
+  temp
+    Convert Nearest : F32
+      Float 2.5E+0 : F64 (qb F32)
+line 12: Print newline
+  Str
+    Str "1:" : Str
+  Num
+    Var X : I32
+  Str
+    Var Y : Str
+line 13: Print newline
+  Str
+    Str "2:" : Str
+  Num
+    CallProc F : F32
+      temp
+        Convert Nearest : F32
+          Float 1.5E+0 : F64 (qb F32)
+line 14: Print newline
+  Str
+    Str "3:" : Str
+  Num
+    Var X : I32
+line 15: Call T
+  temp
+    Convert Nearest : F32
+      Float 2.5E+0 : F64 (qb F32)
+line 16: Print newline
+  Str
+    Str "4:" : Str
+  Num
+    Var M : I32
+line 17: Call U
+  temp
+    Convert Truncate : I16
+      Convert RoundEven : I32
+        Convert Nearest : F32
+          Float 2.5E+0 : F64 (qb F32)
+line 18: Print newline
+  Str
+    Str "5:" : Str
+  Num
+    Var K : F64
+line 19: Call W
+  temp
+    Int 1 : I16
+line 20: Print newline
+  Str
+    Str "6:" : Str
+  Num
+    Var X : I32
+line 21: Assign X:F32
+  Convert Nearest : F32
+    Float 1.25E+0 : F64 (qb F32)
+line 22: Call H
+  temp
+    Convert Nearest : F32
+      Int 1 : I16
+line 23: Print newline
+  Str
+    Str "7:" : Str
+  Num
+    Var X : I32
+  Num
+    Var X : F32
+line 24: Call P
+  temp
+    Convert Nearest : F32
+      Float 1.5E+0 : F64 (qb F32)
+  temp
+    Convert Truncate : I16
+      Convert RoundEven : I32
+        Convert Nearest : F32
+          Float 2.5E+0 : F64 (qb F32)
+line 25: Print newline
+  Str
+    Str "8:" : Str
+  Num
+    Var X : I32
+line 26: System
+SUB S
+  param X:F32
+  param Y:F32
+line 29: Print newline
+  Str
+    Str "s:" : Str
+  Num
+    Var X (param) : F32
+  Num
+    Var Y (param) : F32
+line 30: Assign X (param):F32
+  Convert Nearest : F32
+    Float 3.25E+0 : F64 (qb F32)
+FUNCTION F : F32
+  param X:F32
+  result F:F32
+line 34: Assign F (result):F32
+  Binary Mul : F32
+    Var X (param) : F32
+    Convert Nearest : F32
+      Int 2 : I16
+line 35: Assign X (param):F32
+  Convert Nearest : F32
+    Int 9 : I16
+SUB T
+  param M:F32
+line 40: Print newline
+  Str
+    Str "t1:" : Str
+  Num
+    Var M (param) : F32
+line 42: Print newline
+  Str
+    Str "t2:" : Str
+  Num
+    Var M : I32
+line 43: Assign M:I32
+  Int 9 : I32
+line 44: Print newline
+  Str
+    Str "t3:" : Str
+  Num
+    Var M : I32
+SUB U
+  param K:I16
+line 49: Print newline
+  Str
+    Str "u:" : Str
+  Num
+    Var K (param) : I16
+line 50: Assign K (param):I16
+  Int 4 : I16
+line 51: Print newline
+  Str
+    Str "u:" : Str
+  Num
+    Var K (param) : I16
+SUB W
+  param Q:I16
+  local X:I16
+line 57: Assign X (local):I16
+  Int 3 : I16
+line 58: Print newline
+  Str
+    Str "w:" : Str
+  Num
+    Var X (local) : I16
+line 59: Assign X (local):I16
+  Int 2 : I16
+line 60: Print newline
+  Str
+    Str "w:" : Str
+  Num
+    Var X (local) : I16
+SUB H
+  param Q:F32
+line 67: Print newline
+  Str
+    Str "h:" : Str
+  Num
+    Var X : I32
+line 68: Assign X:I32
+  Int 5 : I32
+SUB P
+  param X:F32
+  param M:I16
+line 73: Print newline
+  Str
+    Str "p:" : Str
+  Num
+    Var X (param) : F32
+  Num
+    Var M : I32
+line 74: Assign X (param):F32
+  Convert Nearest : F32
+    Int 6 : I16

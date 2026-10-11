@@ -1,0 +1,7 @@
+1. static LONG: UBOUND, a(2) 5  0 
+2. static STRING, STRING * 3, a user type, DOUBLE, two dimensions:[] 0  3  0  0  0  0  0  1  3 
+3. dynamic: UBOUND(y): [error 9 ] y(1): [error 9 ] ERASE y again: REDIM y(2): UBOUND, y(1) 2  0 
+4. DIM z(n), ERASE z, and the same DIM again, in a loop: 4  1  5  2 
+5. dynamic STRING: UBOUND(ds): [error 9 ]6. an array beside a scalar of its name: sc, sc(1) 5  0 
+7. an array used without DIM: UBOUND, im(4) 10  0 
+exit=0

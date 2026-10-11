@@ -1,0 +1,14 @@
+1. DIM a0(3) above, DIM a(3) and DIM b(2 TO 4) below: LBOUND(a0), LBOUND(a), UBOUND(a), LBOUND(b) 0  1  3  2 
+2. DIM z(0): 0  0 
+3. DIM z2(0, 3): 0  0  1  3 
+4. DIM z3(3, 0): 1  3  0  0 
+5. REDIM r(3): 1  3 
+6. REDIM r0(0): 0  0 
+7. DIM dy(n), n = 3: 1  3 
+8. DIM d0(n), n = 0: [error 5 ] LBOUND: 1 
+9. an array used without DIM: LBOUND, UBOUND 1  10  im(0) = 1: [error 9 ]
+10. the same with two indexes: 1  1  10 
+11. LBOUND(nn) of a name that is no array: 1  10 
+SUB above OPTION BASE 1 in the file: LBOUND of DIM l(3), of an array used without DIM [error 9 ] 0  [error 9 ]SUB below the last OPTION BASE 1: LBOUND of DIM l(3), of an array used without DIM [error 9 ] 1  [error 9 ]12. DIM c(3) below OPTION BASE 0: 0 
+13. DIM e(3) below an OPTION BASE 1 skipped by GOTO: 1 
+exit=0

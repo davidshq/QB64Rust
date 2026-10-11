@@ -105,17 +105,29 @@ the checker reaches the statement. Every one of the seven places that write SING
 default type of this name here".
 
 The first pass needs the table at each procedure's header, and the second at each statement, so the table is
-advanced **in file order in both passes**: the first pass walks the top-level statements in order, applies each
-default-type statement, and types each procedure header with the table as it stands there (how a procedure before
-or after the statement is typed is D1's question; the walk is the same either way, only where the table is read
-changes). The second pass starts again from SINGLE.
+advanced **in file order in both passes**. Measured (1.1, `study\00` §5): the table follows the file and nothing
+else. A statement applies to every line below it, run or not; one inside a block or inside a SUB or FUNCTION goes
+on applying after the block or procedure ends, to later procedures and later main-module lines; a procedure above
+the statement keeps the earlier default for its parameters, result and variables. So the first pass applies
+**every** default-type statement of the file in order, those nested in blocks and procedure bodies included, and
+types each procedure header with the table as it stands at the header. The second pass starts again from SINGLE
+and does not save or restore the table at a procedure's start or end.
 
 *Alternative considered:* a table per source position computed up front. Rejected: two cursors over one walk is
-less state, and the statements are met in order anyway.
+less state, and the statements are met in order anyway. (Open again in 2.1 if the first pass has no cheap way to
+reach the nested statements: a list of the statements by position gives the same answers.)
 
-A variable that exists keeps its type (it is found by name before the default is asked). Names starting with `_`
-are reserved today; the `_` entry matters only once such names may be declared, and is measured so the table is
-right when they are.
+A name without a suffix is the name plus the default type at that line (measured): after `a = 1.5: DEFINT A-Z`,
+`a` is `a%`, a new variable, and the same holds for a variable declared by `DIM c` without a type, for a
+parameter and for an array. Only a variable declared with `AS` is found by its bare name whatever the default.
+This is the lookup `sema` has today with SINGLE written out, so the function replaces the constant and no rule
+is added. A FUNCTION is found by its bare name whatever the default at the call, and its bare name inside its
+body stays the result. A `CONST` is not typed by the default. The `_` entry is real: `__a` (two underscores, a
+valid name) is typed by it, and `_` may be named alone and in a range (`y-_`).
+
+`_DEFINE` takes every type a variable may have by suffix, `STRING * n`, `_BIT` and `_BIT * n` included (the
+proposal expected these rejected); a user type, `_MEM`, `_UNSIGNED` with `STRING` or a float, and `STRING * 0`
+are compile errors.
 
 ### D3. What an array is
 `Var::dims` becomes a shape:
@@ -127,76 +139,160 @@ shape = Scalar
                                                  an array parameter never indexed)
 ```
 
-`sema` decides (`study\10` §1.4, corrected by D1): static when every bound is a constant expression **and** the
-statement is `DIM` or `COMMON` **and** `$DYNAMIC` is not in effect **and** it stands in the main module or in a
-`STATIC` procedure; `STATIC a(n)` with constant bounds as measured; an implicit array is static. Everything else
-is dynamic. The key of an array stays name plus type; `REDIM` without a type finds an array of that name declared
-with `AS` first (measured, `v09` test 3).
+`sema` decides (`study\10` §1.4, corrected by 1.2, `study\00` §5): **what an array is, is settled by the first
+declaration of it in the file.** Static when that declaration has only constant bounds **and** is `DIM`, `STATIC
+a(n)` or `COMMON` **and** `$DYNAMIC` is not in effect at that line **and** it stands in the main module or in a
+`STATIC` procedure (or is `STATIC a(n)`); an array used without `DIM` is static unless `$DYNAMIC` is in effect
+where it is first named. Everything else is dynamic.
+
+**A constant bound is a spelling, not a value** (measured in 3.2, `verification\v24_b_constant_bounds*`): one
+number (any literal form, a minus before it included) or one `CONST` name, in any number of parentheses. A bound
+with an operator (`2 + 3`, `k + 1`, `-k`, `10 \ 3`) makes the array dynamic in the old compiler although `sema`
+can fold it. `sema` therefore asks the syntax of each bound for static against dynamic, and the folded value only
+for the bounds of a static array. `m2-arrays-and-types` took every foldable bound for constant, so today `DIM
+f(-(2 ^ 2) TO 10 \ 3)` is compiled as a static array; the programs that could tell (the `DIM` skipped or run
+twice, `REDIM` or `ERASE` of it) are few and none is in the test sets. **4.1 moves these to the dynamic side**, in
+the same task that makes dynamic arrays work, so no program that passes today stops compiling in between; until
+then it is listed under "Known bugs" in `STATUS.md`. The key of an array stays name plus type; `REDIM` without a
+type finds an array of that name declared with `AS` first (measured, `v09` test 3, `v24_x48`).
+
+A declaration after the first is only a statement that runs:
+
+| First declaration | Later statement | Result |
+|---|---|---|
+| static | `DIM` with constant bounds | compile error "Cannot redefine a static array!" (as today) |
+| static | `DIM` with a variable bound, `REDIM`, `REDIM _PRESERVE` | compiles; raises 10 when it runs, bounds not evaluated |
+| dynamic | `DIM` (constant or variable bounds) | `Allocate` in mode `Dim`: raises 10 if allocated |
+| dynamic | `REDIM`, `REDIM _PRESERVE` | `Allocate` in mode `Redim` or `Preserve` |
+
+`DIM a()` and `REDIM a()` (nothing between the parentheses), and `REDIM x AS LONG`, declare the **scalar** `a`
+and no array (measured; the proposal took `DIM a()` for an array without bounds). `Dynamic { dims: None }` is
+left for `COMMON a()`, `STATIC a()` and array parameters (1.3).
+
+An array used without `DIM` below `$DYNAMIC` is dynamic and is allocated (0 or 1 to 10 per index) by the first
+statement in the file that names it: `sema` puts an `Allocate` in mode `Dim` before that statement, which is what
+the old compiler writes (run twice it raises 10; skipped, every use raises 9).
 
 `$DYNAMIC`/`$STATIC` become checker state, switched where the metacommand comment stands by the rule
-`syntax::meta` already implements. `OPTION BASE` is checker state too and is **folded into the lower bound in
-`sema`**: a dimension without `TO` gets a constant lower bound of 0 or 1, the literal `0` keeps 0. The IR never
-sees `OPTION BASE`.
+`syntax::meta` already implements. `OPTION BASE` is checker state too. Both follow the file like the default
+types (D2): a statement or comment inside a procedure goes on applying below it, and none is undone at `END SUB`.
+`OPTION BASE` is **folded into the lower bound in `sema`**: a dimension without `TO` gets a constant lower bound
+of 0 or 1; a bound written as the number 0 in plain digits (`0`, `00`) keeps 0 to 0, any other constant that is 0
+does not (`0&`, `0.0`, `(0)`, `0 + 0`, a `CONST`: the old compiler compares the text). The IR never sees `OPTION
+BASE`. Only the word after `BASE` is read by the old compiler (`OPTION BASE 0 + 1` is base 0); 3.2 checks what
+the parser does with such a line and matches it.
+
+A static array may now have a dimension with no element: under `OPTION BASE 1`, `DIM a(zero)` with a `CONST`
+that is 0 (or `0&`, `(0)`, `0.0`) is 1 to 0, which the old compiler accepts and answers with error 5 when the
+program starts. `sema` keeps such an array (bounds 1 to 0) and the emitter raises 5 where it sets the array up
+at program start, which the set-up code did already (`if (count<=0) error(5)`). `DIM a(0 + 0)` is not this case:
+it is a dynamic array (a bound with an operator) and raises 5 at the `DIM`.
 
 This task changes the type and every `match` on it with no change of behaviour (all snapshots equal), before any
 new array kind comes in.
 
 ### D4. Array statements in the typed tree and the IR
 ```text
-Allocate { array: ArrayRef, bounds: Vec<(Expr, Expr)>, mode: Dim | Redim | Preserve }
-Clear    { array: ArrayRef }        ERASE of a static array
-Release  { array: ArrayRef }        ERASE of a dynamic array
+Allocate   { array: ArrayRef, bounds: Vec<(Expr, Expr)>, mode: Dim | Redim | Preserve }
+Clear      { array: ArrayRef }      ERASE of a static array
+Release    { array: ArrayRef }      ERASE of a dynamic array
+EraseParam { array: ArrayRef }      ERASE of an array parameter: one or the other, known when it runs (D6)
 ```
 
-Bounds are converted to `_INTEGER64` (half to even) in `sema`. `Allocate` may raise (5, 10, 257); the order of
-evaluating bounds and of the "already allocated" check is as measured. A static `DIM` stays no statement at all. A
-whole-statement `REDIM a(3), b(4)` is one `Allocate` per item. `ir::validate` gains: `Allocate`/`Release` name a
-dynamic array, `Clear` a static one, the number of bounds equals a known number of dimensions.
+Bounds are converted to `_INTEGER64` (half to even) in `sema`. `Allocate` may raise 5 and 10, and may end the
+program (257 is critical in libqb: no handler runs). Measured order (1.2): the static check, then (mode `Dim`)
+the allocated check, then the bounds; **an error does not stop the statement**: a bound that raises, and a
+dimension with no element (error 5), still allocate with the bounds computed. So `Allocate` is not skipped by a
+pending error the way a store is, and its bounds are not guarded. A static `DIM` stays no statement at all. A
+whole-statement `REDIM a(3), b(4)` is one `Allocate` per item. `Allocate` may name a static array (`REDIM` of
+one, or `DIM a(n)` after `DIM a(5)`): it raises 10 and its bounds are not evaluated; the emitter writes the test
+of the descriptor's flag in every case, since an array parameter may be either kind (1.3). `ir::validate` gains:
+`Release` names a dynamic array, `Clear` a static one, the number of bounds equals a known number of dimensions.
 
 *Alternative considered:* lowering `REDIM _PRESERVE` to a loop of element copies in the IR. Rejected: the copy is
 by flat position over raw storage (`study\02` §3.4), which is the emitter's knowledge, like index arithmetic was
 in `m2-arrays-and-types` D10.
 
 ### D5. Implicit arrays, and what must not become one
-`name(…)` that is no visible array, no FUNCTION and no built-in makes a static array `OPTION BASE` to 10 per
-written index, in the scope it stands in. This removes the largest class of "not supported yet" messages, and it
-is the one decision here that can turn a rejection into wrong code, so the rule is narrow: the name becomes an
-array **only if** it is not reserved (no leading `_`), is not a keyword or a built-in the table knows under any
-suffix or spelling (`CHR` beside `CHR$` as measured), and no FUNCTION of that name exists anywhere in the program
-(procedures are collected first, so a FUNCTION defined later is known). A name the compiler knows but does not
-compile yet (`_CONNECTIONADDRESS$(…)`, a built-in missing from the table) stays "not supported yet". After a
-declaration that was marked, uses of its name stay follow-on errors as today (`compiler/pipeline`, "No follow-on
-errors after an unsupported declaration"); they do not become implicit arrays.
+`name(…)` that is no visible array, no FUNCTION and no built-in makes an array `OPTION BASE` to 10 per written
+index, in the scope it stands in. This removes the largest class of "not supported yet" messages, and it is the
+one decision here that can turn a rejection into wrong code, so the rule stays narrow. Measured (1.3): the old
+compiler lets a name be an array exactly where it lets it be a variable: `chr(1) = 5`, `left(3)` and `abs$(1)`
+are arrays (a built-in that needs a suffix leaves the other spellings free), `__foo` is, `_foo` is not, a
+keyword, a built-in statement and the name of a SUB are "Name already in use", and a spelling that calls a
+built-in function or a FUNCTION defined anywhere is that call. So the name becomes an array **only if** the
+name with its suffix is one `sema` accepts for a scalar variable today (the reserved-name rule it has), no SUB
+or FUNCTION of that name exists anywhere in the program (procedures are collected first, so one defined later is
+known), and the built-in table has no function this spelling would call, compiled or not: a built-in the
+compiler knows but does not compile yet stays "not supported yet". After a declaration that was marked, uses of
+its name stay follow-on errors as today (`compiler/pipeline`, "No follow-on errors after an unsupported
+declaration"); they do not become implicit arrays.
 
-`LBOUND(x)`/`UBOUND(x)` of a non-array makes the same array with one dimension.
+What the array is depends on where it stands (measured, `study\00` §5):
+
+| Where | The array |
+|---|---|
+| main module | static, exists from the start |
+| main module below `$DYNAMIC` | dynamic, allocated by the first statement in the file that names it (D3) |
+| `SUB … STATIC` (not below `$DYNAMIC`) | static, lives for the program |
+| any other procedure, and every procedure below `$DYNAMIC` | **a local dynamic array that nothing allocates: every use raises 9**, until a `DIM` or `REDIM` of it in the procedure runs |
+
+The last row is what the old compiler does (its C++ holds the descriptor and no allocation); QuickBASIC 4.5
+allocates such an array. **Decided (user, 2026-10-11): do as QB64pe**; the difference from QuickBASIC 4.5 is
+`DIVERGENCES-QB45.md` Q-009 and the behaviour is on the review list of `SOMEDAY.md`.
+
+`LBOUND(x)`/`UBOUND(x)` of a non-array makes the same array with one dimension. The number of indexes of the
+first use is the number of dimensions; another number later is a compile error, a later `DIM` of a static one
+too.
 
 ### D6. Arrays in procedures, parameters, `COMMON`
 - **Storage** as for scalars: `Local`, `Static`, `Param`. A local array is dynamic and is released when the call
   ends, in the emitter (the IR does not say when: spec delta `compiler/pipeline`); a `STATIC` one and every array
   of a `STATIC` procedure lives for the program.
-- **Pending declarations**: `STATIC a()` and `COMMON a()` name an array without bounds; one list per scope, keyed
-  by name, type and whether the type was written with `AS` (`study\10` §1.9), consulted by the next `DIM` or
-  `REDIM` of that key, which then takes the listed storage (`STATIC`) or sharing (`COMMON SHARED`).
+- **No pending list.** Measured (1.3): `STATIC a()` and `COMMON a()` are themselves the first declaration of a
+  **dynamic array that is not allocated**, `Dynamic { dims: None }`, with storage `Static` (in a procedure) or as
+  a main-module array, shared after `COMMON SHARED`. A `DIM` of that name and type below it is then the ordinary
+  `Allocate` in mode `Dim` of D3's table (error 10 when it runs a second time), `REDIM` the ordinary `Redim`, and
+  the first statement that gives bounds or indexes fixes the number of dimensions. This replaces the list keyed
+  by name, type and `AS` that the old compiler keeps (`study\10` §1.5, §1.6): the key of an array in `sema` is
+  name plus type already, so `STATIC a() AS DOUBLE` then `DIM a(3)` is another array without a rule for it.
+  What stands between the parentheses of `COMMON a(3)` is ignored, as measured.
 - **`SHARED a()`** binds the main array of that name and type into the procedure's scope, as `SHARED x` does for
-  a scalar, creating it as measured when the main module has none.
-- **Array parameters**: `Dynamic { dims: None }` with storage `Param`; the first use in the body with indexes fixes
-  the number of dimensions (the old compiler restarts the compile for this; here the body is checked before the
-  calls are judged). Calls are checked against it **after every body is checked**: arguments to array parameters
-  are recorded and compared at the end, so a call above the procedure sees the same rule as one below. The
-  argument is `Arg::Array(ArrayRef)`; the element type must be the parameter's exactly (measured: which
-  signedness or length differences pass).
-- **`COMMON`** is `DIM` with a flag: the same declaration path, placement errors as measured, `SHARED` after it as
-  `DIM SHARED`. The block name is read and dropped. Nothing is written for `CHAIN`.
+  a scalar. The main array must be declared above the procedure in the file; none is made ("Array 'a' not
+  defined").
+- **Visibility follows the file**: a shared main array is seen by a procedure only if its declaration stands
+  above the procedure. `find_array` therefore asks the position of the declaration; in a procedure above it the
+  name is an array used without `DIM` (D5, last row).
+- **Array parameters**: `Dynamic { dims: None }` with storage `Param`. The number of dimensions belongs to the
+  parameter and is one unknown per parameter, settled by everything that names it: an index count or a `REDIM`
+  in the body, each argument passed to it (an argument that is itself a parameter makes the two unknowns equal).
+  The constraints are collected while the bodies are checked and **solved after every body is checked**, so a
+  call above the procedure sees the same rule as one below and a chain of arrays passed on needs no second pass
+  (the old compiler recompiles for this). Two constraints that disagree are the compile error, reported at the
+  later one in the file. A parameter nothing constrains keeps `None`. The argument is `Arg::Array(ArrayRef)`; its
+  element type must have the parameter's kind and width, signedness and `_OFFSET` not compared (measured). An
+  array parameter may be static or dynamic at run time, so `Allocate` and `ERASE` of one test the descriptor's
+  flag when they run: `ERASE` of a parameter is a third form, `EraseParam`, beside `Clear` and `Release` (D4).
+- **`COMMON`** is `DIM` with a flag for scalars: the same declaration path, placement errors as measured,
+  `SHARED` after it as `DIM SHARED`. **A block name is a compile error** (measured: "Invalid variable name"; the
+  proposal expected it accepted). Nothing is written for `CHAIN`.
+- **Accepted by the old compiler but failing its C++ build**, so compile errors here by the rule of
+  `DECISIONS.md` 2026-10-08: `STATIC v(n)` with a bound that is not constant, and an array argument in
+  parentheses (`fill (x())`).
 
 ### D7. The emitter
 - **Dynamic descriptor**: the same slots as a static one (`study\02` §3.4), made at program start (or per call)
   in the "not allocated" state libqb expects (lower bound 2147483647, count 0, the flag for "defined" clear), so
   every access fails `array_check` with error 9 until an `Allocate` runs.
-- **`Allocate`**: the old compiler's sequence: error 10 for a static array or (mode `Dim`) an allocated one; count
-  and overflow checks (5, 257); a zeroed block; strings made per element; the descriptor committed last. `Redim`
-  releases the old block after the new one exists; `Preserve` copies the smaller number of elements by flat
-  position (strings assigned, raw bytes copied) first. `_MEM` locks are not kept (non-goal); the descriptor's lock
-  slot stays as today.
+- **`Allocate`**: the old compiler's sequence, read from its C++ (1.2): error 10 for a static array (nothing
+  else); mode `Dim` of an allocated array error 10 unless an error is pending; per dimension the lower bound and
+  the count, `error(5)` when the count is 0 or less **without leaving**; then `error(257)` (critical, the program
+  ends) for a negative count, a bound or count that does not fit a pointer, a product or a size in bytes that
+  overflows, and a failed allocation; a zeroed block; strings made per element; the descriptor committed last.
+  `Redim` releases the old block after the new one exists; `Preserve` copies the smaller number of elements by
+  flat position (strings assigned, raw bytes copied) into the new block, then releases the old one. `_MEM` locks
+  are not kept (non-goal); the descriptor's lock slot stays as today.
+- **A static array with no element** (D3) raises 5 in its set-up at program start, as the old compiler's does.
 - **`Clear`/`Release`** as `study\10` §1.8.
 - **Per-call release**: a procedure's local arrays are released on every way out of the procedure, strings first,
   where its local strings are released today (`codegen-cpp\src\procs.rs`).
@@ -204,8 +300,10 @@ errors after an unsupported declaration"); they do not become implicit arrays.
 - Where the emitter writes a libqb call it did not write before, a `tests\callsite\` program covers it if the
   call-site check can compare it (`tools\callsite\README.md`); allocation code is inline C++ and is covered by the
   slice programs instead.
-- **`_BIT` arrays** only if D1 shows them to be `getbits`/`setbits` over a packed block with no further rule;
-  otherwise they stay marked and the upstream program that needs them stays out.
+- **`_BIT` arrays: decided in (1.2).** They are `getbits`/`getubits`/`setbits` over a packed block of `count *
+  bits / 8 + 1` bytes at the checked flat position, static and dynamic alike, with no further rule; `Preserve`
+  copies bytes, which keeps flat positions because the width does not change. `SWAP` of two elements and `LEN` of
+  one are compile errors, an element is passed by value. They come in with 4.2.
 
 ### D8. Member arrays (decision point after D1)
 Places first, since they do not depend on the layout:
@@ -221,7 +319,8 @@ for a chain with several indexes is measured (D1) and stated per place as D6 of 
 D-004 decision (a member store with a bad index is skipped) is taken to extend to every index of the chain unless
 the measurement shows a reason to ask again.
 
-**The layout is not decided here.** Two outcomes of the `v24_h` measurement:
+**The layout: case (a), measured in 1.4** (`study\00` §5, `verification\v24_h_member_*`, `v24_x182`–`x226`). The
+two outcomes the measurement could have had:
 
 - *(a) An unmarked member array is inline*: its elements are part of the variable's bytes (`count × size`), `LEN`
   includes them, and `REDIM` with its declared bounds only clears (or is an error with other bounds). Then the
@@ -231,10 +330,32 @@ the measurement shows a reason to ask again.
   member array (the old compiler's "descriptor-layout" flag, `study\02` §3.4), with set-up, release and deep copy
   per variable and per element of an array of the type. That is the layer `study\02` calls tangled.
 
-In case (b), or if the measurement finds wrong code, **the findings and the choice go to the user before any
-member-array code**: build it in this change, split it into a change of its own, or support only what (a) covers
-and mark the rest. The measurement runs in group 1, so the decision does not wait for the other groups; the code
-is the last group either way, and the groups before it do not depend on it.
+**It is (a).** The evidence: `LEN` of `id AS LONG, v(0 TO 3) AS LONG, tail AS INTEGER` is 22; `REDIM t.v(0 TO 3)`
+clears and `REDIM t.v(0 TO 9)`, `REDIM t.v(1 TO 4)` and `REDIM t.v(0 TO n)` are compile errors; `REDIM
+_PRESERVE` with the declared bounds does nothing; `ERASE t.v` clears and the bounds stay; no statement changes
+the bounds of an unmarked member array, so no variable needs a descriptor. Group 9 is built as written, with
+these additions from the measurement:
+
+- **Bounds of a member** are constants read where the `TYPE` block stands: `OPTION BASE` as it is at the block
+  (types are collected before the statements, so the first pass must know `OPTION BASE` at each block: it is
+  advanced in file order beside the default types, D2); the literal-0 rule of D3 does **not** apply (`z(0)`
+  under base 1 is "Invalid array bounds").
+- **`REDIM` of a member array** is accepted only as a clear: constant bounds equal to the declared ones, written
+  `lower TO upper` or with `AS` and the member's type. It lowers to `Clear` of `ArrayRef::Member`; `REDIM
+  _PRESERVE` of one lowers to nothing; `ERASE` to `Clear`. No `Allocate` ever names a member array
+  (`ir::validate`).
+- **A whole member array as an array argument** (`fill t.v()`) is accepted by the old compiler. The emitter
+  would hand the procedure a descriptor made for the call over the variable's bytes (static, the member's
+  bounds). It is in 9.2 if that descriptor proves to be all it takes; otherwise it stays marked and is named in
+  `SOMEDAY.md`. `LBOUND(t.v())` with the empty parentheses is accepted for a member array.
+- **The store rule** is the one of D-004 at every index of the chain, as decided above: the value first, then
+  the indexes left to right, the first error wins, and with an error pending nothing is stored (the old compiler
+  writes element 0 of the dimension whose index was outside: `t.v(9) = 5` sets `t.v(0)`). This is D-004's rule
+  applied to more places, not a new decision, and `DIVERGENCES.md` D-004 gains the member-array forms in 9.1.
+
+**Answered by the user (task 1.4, 2026-10-11, `DECISIONS.md`):** a whole-value store with an index outside stays
+as QB64pe does it (D9); an array used without `DIM` in a procedure stays not-allocated as in QB64pe, noted as
+`DIVERGENCES-QB45.md` Q-009 (D5); the additions of D9 stay in the change.
 
 ### D9. `STRING` members, whole values, `TYPE` parameters
 Added to step 10's list by Claude (see `proposal.md`); group 8, which no earlier group depends on.
@@ -242,12 +363,22 @@ Added to step 10's list by Claude (see `proposal.md`); group 8, which no earlier
   array of it) has its strings made when it is made and released when it goes, like local strings. `LEN` of the
   type and whatever else the old compiler refuses for such types are compile errors as measured.
 - `q = p` is one `CopyWhole { from: Place, to: Place }` in the tree and the IR; the emitter copies the fixed bytes
-  and assigns each string member (`study\02` §2.3, `copy_full_udt`). Its error rule (indexes on either side) is
-  measured.
-- A `TYPE` parameter takes `Arg::Ref(place)` of a user type: the address of the block.
+  and assigns each string member (`study\02` §2.3, `copy_full_udt`). Measured (1.4): the old compiler does not
+  guard the copy: `a(9) = p` raises 9 and overwrites `a(0)`, `q = a(9)` raises 9 and copies `a(0)` into `q`.
+  **Decided (user, 2026-10-11, `DECISIONS.md`): as QB64pe for now.** The copy is not guarded: with an index
+  outside, error 9 is raised and element 0 stands in for the element named, on either side. Claude had proposed
+  storing nothing, as D-004 does for a member; that is on the review list of `SOMEDAY.md`. The emitter gets this
+  for free: `array_check` gives 0 after raising, as for a read.
+- A `TYPE` parameter takes `Arg::Ref(place)` of a user type: the address of the block. The argument is a
+  variable, an element or a member of exactly that type; an element with an index outside raises 9 and the
+  procedure is not entered (the entry check that elements have today). A variable in parentheses (`move (q)`)
+  is an internal error of the old compiler and a compile error here; a FUNCTION cannot have a user type as its
+  result.
 - `ERASE`, `REDIM _PRESERVE` and `SWAP` over types with string members follow from the same per-variable set-up.
 
-If group 9 comes out as case (b), per-variable set-up and release already exist from this group.
+Group 9 came out as case (a), so nothing but `STRING` members needs per-variable set-up and release; a member
+array of `STRING` (`s(2) AS STRING`, measured: accepted, each element its own string) is that many string slots
+in the block.
 
 ### D10. Tests, lists, order
 - Per group: `tests\frontend\` (`typed` for what `sema` resolves, `check-fail` for each error and each form still
@@ -285,6 +416,5 @@ If group 9 comes out as case (b), per-variable set-up and release already exist 
 
 ## Open Questions
 
-- Whether the three `TYPE` additions of D9 stay in this change. They are group 8; striking them changes no other
-  group except that case (b) of D8 would then bring its own per-variable set-up.
-- `_BIT` arrays (D7): decided by the measurement, one upstream program either way.
+None. Closed 2026-10-11: the three `TYPE` additions of D9 stay in this change (user, `DECISIONS.md`); `_BIT`
+arrays are in (D7, by the measurement).

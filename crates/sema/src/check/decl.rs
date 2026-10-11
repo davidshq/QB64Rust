@@ -5,7 +5,7 @@ use super::proc::{FIXED_LEN_ERROR, fixed_len, fixed_name, suffix_fits};
 use super::{Checker, Failed, R, Scope};
 use crate::consteval::Value;
 use crate::literal::{self, NumLit};
-use crate::{ProcKind, Storage, SymbolKind, Ty, Var, VarId};
+use crate::{ProcKind, Shape, Storage, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{show_bytes, to_u32};
 use qb64rust_builtins::{Kind, find_any, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
@@ -273,13 +273,72 @@ impl Checker<'_> {
         }
     }
 
+    // ---- default types ----
+
+    /// The type of a name written without a suffix or an `AS` clause, here in the file: SINGLE, or what a `DEFxxx`
+    /// or `_DEFINE` above this line set for its first letter (design D2). A name that starts with an underscore
+    /// has an entry of its own.
+    pub(super) fn default_ty(&self, name: &str) -> Ty {
+        self.defaults[letter_slot(name.as_bytes().first().copied().unwrap_or(b'_'))]
+    }
+
+    /// `DEFINT a-z, x` (and `DEFLNG`, `DEFSNG`, `DEFDBL`, `DEFSTR`) and `_DEFINE a-z, x AS type`: from this line
+    /// of the file on, whether or not the statement runs, a name beginning with one of the letters and written
+    /// without a suffix or `AS` clause has this type. Measured (`verification\v24_a_*`, `v24_x01`–`x37`): a range
+    /// may be written backwards; `_` is a letter of its own, after Z; the statement inside a block or a procedure
+    /// goes on applying below it.
+    pub(super) fn def_type(&mut self, stmt: ast::DefTypeStmt) -> R<()> {
+        let span = stmt.node().span();
+        let keyword = self.need(stmt.keyword(), span)?;
+        let ty = match self.word(keyword).as_str() {
+            "DEFINT" => Ty::I16,
+            "DEFLNG" => Ty::I32,
+            "DEFSNG" => Ty::F32,
+            "DEFDBL" => Ty::F64,
+            "DEFSTR" => Ty::Str,
+            _ => {
+                let a = self.need(stmt.as_clause(), span)?;
+                self.default_type_of(a)?
+            }
+        };
+        let mut ranges = Vec::new();
+        for range in stmt.ranges() {
+            let (first, last) = self.need(range.letters(), range.node().span())?;
+            let (a, b) = (
+                letter_slot(self.text(first.span)[0]),
+                letter_slot(self.text(last.span)[0]),
+            );
+            ranges.push((a.min(b), a.max(b)));
+        }
+        for (a, b) in ranges {
+            self.defaults[a..=b].fill(ty);
+        }
+        Ok(())
+    }
+
+    /// The type of `_DEFINE … AS type`: any type a variable may have by a suffix. Measured: `STRING * n`, `_BIT`
+    /// and `_BIT * n` are taken (`verification\v24_x01`–`x04`); a user type and `_UNSIGNED STRING` are "Cannot
+    /// convert type (…) to symbol" (`v24_x05`, `x08`), though `DIM` takes `_UNSIGNED STRING`.
+    fn default_type_of(&mut self, a: ast::AsClause) -> R<Ty> {
+        let span = a.node().span();
+        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
+        if words == ["_UNSIGNED", "STRING"] {
+            return Err(self.error(span, "a default type cannot be `_UNSIGNED STRING`"));
+        }
+        let ty = self.type_of_in(a, false)?;
+        if let Ty::User(_) = ty {
+            return Err(self.error(span, "a default type cannot be a `TYPE`"));
+        }
+        Ok(ty)
+    }
+
     pub(super) fn new_var(&mut self, name: String, ty: Ty, storage: Storage) -> VarId {
         let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
             name,
             ty,
             storage,
-            dims: Vec::new(),
+            shape: Shape::Scalar,
         });
         id
     }
@@ -300,15 +359,29 @@ impl Checker<'_> {
     }
 
     /// A name's variable key: the name and the type it means here (its suffix, or the type a `DIM … AS` gave the
-    /// plain name, or SINGLE).
+    /// plain name, or the default type of its first letter at this line). In a procedure a variable of its
+    /// own (a parameter, a local one) of the name and the default type comes before a main-module `DIM SHARED … AS`
+    /// of the name; where a `DEFxxx` in the body has changed the default, the name means the shared variable
+    /// (measured, `verification\v24_a_param_shared`).
     fn var_key(&mut self, name: String, suffix: Option<Ty>) -> (String, Ty) {
         let ty = match suffix {
             Some(t) => t,
             None => {
                 let in_proc = self.cur.is_some();
+                let default = self.default_ty(&name);
                 let plain = self.scope().plain.get(&name).copied();
-                let shared = in_proc.then(|| self.dim_shared_plain.get(&name).copied()).flatten();
-                plain.or(shared).unwrap_or(Ty::F32)
+                let key = (name, default);
+                // A main-module variable bound by `SHARED x!` is in `local.vars` too and does not count.
+                let own = in_proc
+                    && self
+                        .local
+                        .vars
+                        .get(&key)
+                        .is_some_and(|&v| self.prog.var(v).storage != Storage::Main);
+                let shared = (in_proc && !own)
+                    .then(|| self.dim_shared_plain.get(&key.0).copied())
+                    .flatten();
+                return (key.0, plain.or(shared).unwrap_or(default));
             }
         };
         (name, ty)
@@ -386,29 +459,40 @@ impl Checker<'_> {
     // ---- declarations ----
 
     /// `DIM`, `DIM SHARED` (main module only) and `STATIC` (procedures only): `storage` is the class of the
-    /// variables created.
+    /// variables created. `list` is the type written before the names (`DIM AS LONG a, b(3)`): every name of the
+    /// list is then declared as `name AS type` would declare it.
     fn declare_items<'t>(
         &mut self,
         items: impl Iterator<Item = ast::DimItem<'t>>,
+        list: Option<ast::AsClause<'t>>,
         storage: Storage,
         shared: bool,
     ) -> R<()> {
+        let list_ty = match list {
+            Some(a) => Some(self.type_of(a)?),
+            None => None,
+        };
         for item in items {
             let name_tok = self.need(item.name(), item.node().span())?;
             let (name, suffix) = self.split_var_name(name_tok)?;
             let as_clause = item.as_clause();
-            let ty = match (suffix, as_clause) {
-                (Some(_), Some(a)) => {
-                    // Measured also for a `TYPE` (`DIM p& AS pt`: "DIM: Expected ,", `v18_h_dim_type_suffix`).
-                    let span = a.node().span();
-                    return Err(self.error(span, "a name with a type suffix cannot have an `AS` clause"));
-                }
-                (Some(t), None) => t,
-                (None, None) => Ty::F32,
-                (None, Some(a)) => self.type_of(a)?,
+            let ty = match list_ty {
+                Some(t) => self.list_item_type(name_tok, suffix, as_clause, t)?,
+                None => match (suffix, as_clause) {
+                    (Some(_), Some(a)) => {
+                        // Measured also for a `TYPE` (`DIM p& AS pt`: "DIM: Expected ,", `v18_h_dim_type_suffix`).
+                        let span = a.node().span();
+                        return Err(self.error(span, "a name with a type suffix cannot have an `AS` clause"));
+                    }
+                    (Some(t), None) => t,
+                    (None, None) => self.default_ty(&name),
+                    (None, Some(a)) => self.type_of(a)?,
+                },
             };
+            // The type was written with `AS`, on the name or before the list: it types the plain name.
+            let typed = as_clause.is_some() || list_ty.is_some();
             if let Some(bounds) = item.bounds() {
-                self.declare_array(item, bounds, (name_tok, name, suffix, ty), storage, shared)?;
+                self.declare_array(typed, bounds, (name_tok, name, suffix, ty), storage, shared)?;
                 continue;
             }
             if name.contains('.') && matches!(ty, Ty::User(_)) {
@@ -433,7 +517,7 @@ impl Checker<'_> {
             // Measured (verification\v13*): `DIM x AS T` fails once an earlier `DIM … AS` typed the plain
             // name, whatever the type; a plain `DIM x` after that is accepted and changes nothing.
             let typed_plain = self.scope().plain.get(&name).copied();
-            if let (true, Some(plain_ty), None) = (suffix.is_none(), typed_plain, as_clause) {
+            if let (true, Some(plain_ty), false) = (suffix.is_none(), typed_plain, typed) {
                 // The name still refers to the typed variable.
                 let id = self.scope().vars[&(name.clone(), plain_ty)];
                 self.note_var_name(&name, storage, name_tok);
@@ -461,7 +545,7 @@ impl Checker<'_> {
             self.scope().vars.insert(key, id);
             self.note_var_name(&name, storage, name_tok);
             self.names.push((SymbolKind::Var(id), name_tok.span));
-            if suffix.is_none() && as_clause.is_some() {
+            if suffix.is_none() && typed {
                 // `DIM x AS T` changes what the plain name means.
                 self.scope().plain.insert(name.clone(), ty);
                 if shared {
@@ -479,10 +563,23 @@ impl Checker<'_> {
         Ok(())
     }
 
-    pub(super) fn dim(&mut self, stmt: ast::DimStmt) -> R<()> {
-        if let Some(a) = stmt.as_clause() {
-            return Err(self.unsupported(a.node().span(), "`DIM AS type` before the names"));
+    /// The type of a name in a list with the type before the names. Measured (`verification\v24_x227`–`x229`): a
+    /// type suffix on the name, also the list's own, is "Cannot use type symbol with DIM AS type variable-list";
+    /// an `AS` clause on it "DIM: Expected ,".
+    fn list_item_type(&mut self, name: Tok, suffix: Option<Ty>, own: Option<ast::AsClause>, list: Ty) -> R<Ty> {
+        if suffix.is_some() {
+            let shown = show_bytes(self.text(name.span));
+            let msg = format!("a name in a list with the type before the names cannot have a type suffix: `{shown}`");
+            return Err(self.error(name.span, msg));
         }
+        if let Some(a) = own {
+            let msg = "a name in a list with the type before the names cannot have an `AS` clause";
+            return Err(self.error(a.node().span(), msg));
+        }
+        Ok(list)
+    }
+
+    pub(super) fn dim(&mut self, stmt: ast::DimStmt) -> R<()> {
         let shared = stmt.shared().is_some();
         let storage = match (self.cur, shared) {
             (None, _) => Storage::Main,
@@ -492,28 +589,41 @@ impl Checker<'_> {
             }
             (Some(p), false) => Storage::Local(p),
         };
-        self.declare_items(stmt.items(), storage, shared)
+        self.declare_items(stmt.items(), stmt.as_clause(), storage, shared)
     }
 
     pub(super) fn static_stmt(&mut self, stmt: ast::StaticStmt) -> R<()> {
-        if let Some(a) = stmt.as_clause() {
-            return Err(self.unsupported(a.node().span(), "`STATIC AS type` before the names"));
-        }
         let Some(p) = self.cur else {
             let span = stmt.node().span();
             return Err(self.unsupported(span, "`STATIC` in the main module"));
         };
-        self.declare_items(stmt.items(), Storage::Static(p), false)
+        self.declare_items(stmt.items(), stmt.as_clause(), Storage::Static(p), false)
     }
 
     /// `OPTION _EXPLICIT` and `OPTION _EXPLICITARRAY` (design D7). The flag was set by the pre-pass, since it
     /// applies to the whole program; `_EXPLICITARRAY` only concerns arrays, which are "not supported yet" anyway.
+    /// `OPTION BASE 0` and `1` (design D3 of `m2-defxxx-common-arrays`): the lower bound of the dimensions declared
+    /// without `TO` below this line of the file, wherever the statement stands and whether or not it runs
+    /// (measured, `verification\v24_e_option_base`, `v24_x70`).
     pub(super) fn option_stmt(&mut self, stmt: ast::OptionStmt) -> R<()> {
         let node = stmt.node();
         let word = self.need(stmt.word(), node.span())?;
         match self.word(word).as_str() {
             "_EXPLICIT" | "_EXPLICITARRAY" => Ok(()),
-            "BASE" => Err(self.unsupported(word.span, "`OPTION BASE`")),
+            "BASE" => {
+                let base = self.need(stmt.base(), node.span())?;
+                // Measured: plain digits that are 0 or 1, leading zeros allowed (`01`, `00`, `v24_x239`, `x240`,
+                // `x243`); "Expected OPTION BASE 0 or 1" for `2`, `1.0`, `1&` and `&H1` (`v24_x64`, `x68`, `x241`,
+                // `x242`).
+                let digits = self.text(base.span);
+                let (zeros, last) = digits.split_at(digits.len().saturating_sub(1));
+                self.option_base = match last {
+                    b"0" if zeros.iter().all(|&b| b == b'0') => 0,
+                    b"1" if zeros.iter().all(|&b| b == b'0') => 1,
+                    _ => return Err(self.error(base.span, "`OPTION BASE` takes `0` or `1`")),
+                };
+                Ok(())
+            }
             // Measured without `$NOPREFIX` (`v17_f_explicit_no_underscore`): "Expected OPTION BASE or OPTION
             // _EXPLICIT or OPTION _EXPLICITARRAY".
             _ => Err(self.error(
@@ -536,17 +646,18 @@ impl Checker<'_> {
     }
 
     /// `SHARED name [AS type]` in a procedure: binds the main-module variable of that name and type, created if
-    /// missing. Measured: without `AS` or a suffix the type is SINGLE, whatever the main module's plain name
+    /// missing. Measured: without `AS` or a suffix the type is the default one, whatever the main module's plain name
     /// means (`v14_shared_plain_typed`); with `AS` it types the main module's plain name too, as a `DIM` there
     /// would (`v14_shared_plain_main`). Under `OPTION _EXPLICIT` a missing one is an error instead.
     pub(super) fn shared(&mut self, stmt: ast::SharedStmt) -> R<()> {
-        if let Some(a) = stmt.as_clause() {
-            return Err(self.unsupported(a.node().span(), "`SHARED AS type` before the names"));
-        }
         if self.cur.is_none() {
             let span = stmt.node().span();
             return Err(self.unsupported(span, "`SHARED` in the main module"));
         }
+        let list_ty = match stmt.as_clause() {
+            Some(a) => Some(self.type_of(a)?),
+            None => None,
+        };
         for item in stmt.items() {
             let name_tok = self.need(item.name(), item.node().span())?;
             if let Some(b) = item.bounds() {
@@ -554,15 +665,19 @@ impl Checker<'_> {
             }
             let (name, suffix) = self.split_var_name(name_tok)?;
             let as_clause = item.as_clause();
-            let ty = match (suffix, as_clause) {
-                (Some(_), Some(a)) => {
-                    let span = a.node().span();
-                    return Err(self.error(span, "a name with a type suffix cannot have an `AS` clause"));
-                }
-                (Some(t), None) => t,
-                (None, None) => Ty::F32,
-                (None, Some(a)) => self.type_of(a)?,
+            let ty = match list_ty {
+                Some(t) => self.list_item_type(name_tok, suffix, as_clause, t)?,
+                None => match (suffix, as_clause) {
+                    (Some(_), Some(a)) => {
+                        let span = a.node().span();
+                        return Err(self.error(span, "a name with a type suffix cannot have an `AS` clause"));
+                    }
+                    (Some(t), None) => t,
+                    (None, None) => self.default_ty(&name),
+                    (None, Some(a)) => self.type_of(a)?,
+                },
             };
+            let typed = as_clause.is_some() || list_ty.is_some();
             if self.procs_by_name.contains_key(&name) {
                 return Err(self.in_use(name_tok));
             }
@@ -574,7 +689,7 @@ impl Checker<'_> {
             if self.local.vars.contains_key(&key) {
                 return Err(self.in_use(name_tok));
             }
-            if as_clause.is_some() && self.main.plain.get(&name).is_some_and(|&t| t != ty) {
+            if typed && self.main.plain.get(&name).is_some_and(|&t| t != ty) {
                 let msg = format!(
                     "`SHARED {}` with another type than the main module's",
                     show_bytes(self.text(name_tok.span))
@@ -597,13 +712,21 @@ impl Checker<'_> {
             };
             self.local.vars.insert(key, id);
             self.note_var_name(&name, Storage::Main, name_tok);
-            if as_clause.is_some() {
+            if typed {
                 self.main.plain.insert(name.clone(), ty);
                 self.local.plain.insert(name, ty);
             }
             self.names.push((SymbolKind::Var(id), name_tok.span));
         }
         Ok(())
+    }
+}
+
+/// The entry of the default-type table for a name's first character: A to Z, then one for `_` (and anything else).
+fn letter_slot(first: u8) -> usize {
+    match first.to_ascii_uppercase() {
+        c @ b'A'..=b'Z' => usize::from(c - b'A'),
+        _ => 26,
     }
 }
 

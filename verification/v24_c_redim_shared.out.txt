@@ -1,0 +1,6 @@
+SUB: g(2), UBOUND(g) 8  5 
+SUB after REDIM g(8) AS LONG: UBOUND 8 
+SUB after REDIM g(12): UBOUND, LEN of an element 12  4 
+SUB, REDIM st(9) of a DIM SHARED static array: [error 10 ] 5 
+main after the SUB: UBOUND(g), g(2), UBOUND(st), st(2) 12  0  5  9 
+exit=0

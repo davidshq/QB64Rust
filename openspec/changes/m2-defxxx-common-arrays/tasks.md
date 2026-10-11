@@ -13,62 +13,217 @@ tests\corpus\slice.list`, run also with `QB64RUST_NO_FOLD=1`.
 
 ## 1. Measurements before code (design D1)
 
-- [ ] 1.1 Write and run `verification\v24_a_*` (default types) and `v24_x*` for their rejections with `qb64pe.exe`
+- [x] 1.1 Write and run `verification\v24_a_*` (default types) and `v24_x*` for their rejections with `qb64pe.exe`
   (`verification\run.sh`). Record the findings in `study\00` §5; correct design D2 and the delta
   `language/default-types` where they disagree, and list the corrections here. Verify: an output is recorded for
   every program; every scenario of the delta that names a literal output agrees with a recorded one or is
   corrected; no loop runs without a cap.
-- [ ] 1.2 The same for `v24_b_*` (dynamic arrays, `$DYNAMIC`), `v24_c_*` (`REDIM`, `_PRESERVE`), `v24_d_*`
+  Done 2026-10-11: 11 `v24_a_*` programs and `v24_x01`–`x37`, all recorded (22 of the `x` programs are
+  rejected, one fails the C++ build, 14 are accepted). Corrections:
+  - **Scenario "Before and after" was wrong**: `a = 1.5: DEFINT A-Z: … PRINT a` prints 0, not 1.5. A name without
+    a suffix is the name plus the default at its line, so `a` is `a%` after the statement. The requirement now
+    says so; D2's "a variable that exists keeps its type (found by name before the default is asked)" holds only
+    for a variable declared with `AS` and is rewritten.
+  - **The table follows the file only** (D2's open question): a statement inside a block or a procedure goes on
+    applying below it, after `END SUB` too; a procedure above a statement is not reached. The requirement's "as
+    the old compiler does" is replaced by that rule with four scenarios; D2 says the first pass must apply the
+    statements nested in blocks and procedure bodies as well.
+  - **`_DEFINE` accepts `STRING * n`, `_BIT`, `_BIT * n`** (the proposal and the scenario expected them
+    rejected). Rejected are a user type, `_MEM`, an unknown name, `_UNSIGNED` alone or with `STRING` or a float,
+    `STRING * 0`. Requirement and scenario rewritten.
+  - Added to the delta, not in it before: `_` as a letter of its own (`__a` is a valid name and is typed by it),
+    backwards ranges, the malformed statements, a `FOR` variable (typed; a `STRING` one is an error), a `CONST`
+    (not typed by the default), a FUNCTION called bare where the default has changed (found) and with another
+    suffix (error).
+  - Two probes were rewritten before recording counted: `v24_a_procs_subs` first compared SINGLE with LONG by
+    `LEN` (both 4); `DEFINT _` at the end of a line is a line continuation (`v24_x20`, `x21`, kept as `x37`).
+- [x] 1.2 The same for `v24_b_*` (dynamic arrays, `$DYNAMIC`), `v24_c_*` (`REDIM`, `_PRESERVE`), `v24_d_*`
   (`ERASE`) and `v24_e_*` (`OPTION BASE`); correct D3, D4, D7 and the requirements "Dynamic arrays", "REDIM",
   "REDIM _PRESERVE", "ERASE", "OPTION BASE". Decide `_BIT` arrays (D7) from what `v24_b` shows. Verify: as 1.1;
   the facts of `study\10` §1 that `v09_dim.bas` settled are confirmed or their difference is explained in `study\00`
   §5.
-- [ ] 1.3 The same for `v24_f_*` (implicit arrays) and `v24_g_*` (arrays in procedures, array parameters,
+  Done 2026-10-11: 14 programs `v24_b_*` to `v24_e_*` and `v24_x38`–`x104`, all recorded; the C++ the old
+  compiler writes for `DIM d(n)`, `REDIM`, `REDIM _PRESERVE` and a `_BIT` array was read beside them. Every fact
+  `v09_dim.bas` settled is confirmed. Corrections:
+  - **Error 5 is not the whole rule for bounds without elements** (`study\10` §1.7 said "count <= 0 → error 5"):
+    a count of exactly 0 raises 5 **and the array is allocated empty**; a negative count goes on to error 257,
+    which is critical: "Out of memory", the program ends, no handler. Scenario "Fewer than one element" (n = -3,
+    handler prints 5) was wrong and is now two scenarios. D4 and D7 give the measured order.
+  - **An error does not stop an allocation** (a bound that raises still allocates): `Allocate` is not guarded
+    like a store. New in D4.
+  - **`DIM a()` declares a scalar**, not an array without bounds (D3, requirement "Static arrays", scenario
+    replaced). It goes on the "QB64pe behaviours to review" list of `SOMEDAY.md` in 4.3.
+  - **Static or dynamic is settled by the first declaration**; later `DIM`s are run-time statements (table in
+    D3). `DIM a(5)` then `DIM a(n)` compiles and raises 10, so `Allocate` may name a static array (D4's
+    `validate` rule changed).
+  - **`$DYNAMIC`, `$STATIC` and `OPTION BASE` follow the file**, through procedures, like the default types. An
+    array used without `DIM` below `$DYNAMIC` is dynamic and allocated by the first statement that names it.
+  - **`OPTION BASE`: only the plain number `0` keeps 0 to 0**; other constants that are 0 give a static array of
+    no elements and error 5 at program start, which is matched (D3, D7). Only the word after `BASE` is read.
+  - **`_BIT` arrays are in** (D7): plain packed storage. Requirement "Static arrays" no longer marks them.
+  - `ERASE` of anything but a declared array is a compile error, an unused name included (no array is made).
+  - `REDIM` with another type written with `AS` is a compile error; `REDIM SHARED _PRESERVE` is one too.
+- [x] 1.3 The same for `v24_f_*` (implicit arrays) and `v24_g_*` (arrays in procedures, array parameters,
   `COMMON`); correct D5, D6 and the requirements "Implicit arrays", "Arrays in procedures", "COMMON", "Array
   parameters". Verify: as 1.1; the `study\00` §5 note that an implicit array in a SUB "raises 9 on every access" is
   explained or corrected.
-- [ ] 1.4 The same for `v24_h_*` (`TYPE`: member arrays with `REDIM`, `REDIM _PRESERVE` and `ERASE` of an unmarked
+  Done 2026-10-11: 9 programs `v24_f_*`, `v24_g_*` and `v24_x105`–`x181`, all recorded. Corrections:
+  - **The "raises 9 on every access" note is explained and stands**: in a procedure the old compiler makes a
+    local dynamic array and writes no allocation for it (read in its C++). Only a `SUB … STATIC` without
+    `$DYNAMIC` gets a working one. D5 has the table; requirement "Implicit arrays" said "a static array of the
+    scope it stands in" and is rewritten; scenario "Main array not visible" now names its output. **For the user
+    in 1.4**: match this (as built) or allocate as QuickBASIC 4.5 does (a divergence).
+  - **A block name in `COMMON` is a compile error**, not accepted and dropped (proposal, D6, requirement and its
+    text corrected). The parser reads one today; 7.2 makes it an error.
+  - **No pending list**: `STATIC a()` and `COMMON a()` declare a dynamic array that is not allocated; the `DIM`
+    after them is an ordinary allocation that raises 10 the second time. D6 rewritten; the `COMMON` requirement
+    said the array "gets its bounds from a later DIM", which hid that it is dynamic.
+  - **Array arguments: kind and width must match, `_UNSIGNED` and `_OFFSET` are not compared** (D6 and the
+    requirement said "exactly"). A `_BIT` array parameter is allowed.
+  - **The number of dimensions of an array parameter** comes from body uses and arguments together (D6 had the
+    body first, then calls judged against it): one unknown per parameter, solved after all bodies.
+  - **Visibility of shared arrays follows the file** (a procedure above the declaration does not see it);
+    `SHARED a()` needs the main array above it and makes none.
+  - `ERASE` of an array parameter is static or dynamic at run time: `EraseParam` added to D4.
+  - Compile errors here where the old compiler's C++ build fails: `STATIC v(n)`, `fill (x())`.
+  - D5's name rule restated on the measured one: a name may be an array where it may be a variable.
+- [x] 1.4 The same for `v24_h_*` (`TYPE`: member arrays with `REDIM`, `REDIM _PRESERVE` and `ERASE` of an unmarked
   one, `STRING` members, whole values, `TYPE` parameters); correct D8, D9 and the requirements "Member arrays",
   "Whole user-type values", "User-type parameters", "User types". **Write up case (a) or (b) of D8 with the
   evidence and put it, and any wrong code found in 1.1 to 1.4, to the user; record the answer in `DECISIONS.md`
   (and `DIVERGENCES.md` for a decided difference) and in D8.** Verify: D8 names the case and the decision; group 9
   below is rewritten, split off or cut to match it.
+  Measured and written up 2026-10-11; **answered by the user the same day** (`DECISIONS.md` 2026-10-11):
+  question 1, keep it as QB64pe for now and list it in `SOMEDAY.md`; question 2, do as QB64pe and note the
+  QuickBASIC 4.5 difference (`DIVERGENCES-QB45.md` Q-009); the D9 additions stay. D5, D8, D9 and requirement
+  "Whole user-type values" say so; nothing in `DIVERGENCES.md` changes (no new difference from QB64pe). 6 programs
+  `v24_h_*` and `v24_x182`–`x226`, all recorded; findings in `study\00` §5.
+  - **D8 is case (a): an unmarked member array is inline.** Evidence in D8 (`LEN` 22 for LONG, four LONGs,
+    INTEGER; `REDIM` with the declared bounds clears, with any other bounds is a compile error; `REDIM
+    _PRESERVE` does nothing; `ERASE` clears). No variable needs a descriptor, so group 9 stands as written; D8
+    lists what the measurement added (bounds read at the `TYPE` block with `OPTION BASE` and no literal-0 rule;
+    `REDIM`/`ERASE` lower to `Clear` or nothing; a whole member array as an array argument).
+  - Corrections to the deltas: requirement "Member arrays" names the `REDIM`/`ERASE` behaviour instead of "as the
+    old compiler does" and gains the store rule (D-004 at every index), `LEN`, `OPTION BASE` and six scenarios;
+    "Whole user-type values" gains elements, members and self-assignment, `SWAP` with `STRING` members and the
+    member-array copy; "User-type parameters" gains the entry check, FUNCTIONs, the parenthesised argument (an
+    internal error of the old compiler: a compile error here) and "no user-type FUNCTION result"; scenario
+    "Marked member" had the marker after `AS LONG`, where it is not read.
+  - **Question 1, whole-value store with an index outside.** Old compiler: `a(9) = p` raises 9 and overwrites
+    `a(0)`; `q = a(9)` raises 9 and copies `a(0)` into `q`. Proposed: nothing is copied when an error is
+    pending, which is D-004's rule (a member store with a bad index) applied to the whole value; it would be a
+    new row or an extension of D-004 in `DIVERGENCES.md`. 8.2 waits for the answer.
+  - **Question 2, an array used without `DIM` in a SUB or FUNCTION.** Old compiler: a local array that nothing
+    allocates, so every use raises 9 (only a `SUB … STATIC` gets a working one). QuickBASIC 4.5 makes a working
+    0 to 10 array. Built as measured unless decided otherwise; allocating it would be a divergence. 5.1 and 6.1
+    are written for "as measured" and change by a few lines either way.
+  - Old-compiler behaviour matched as it is and listed for review in `SOMEDAY.md` when its group closes, no
+    decision asked: `DIM a()` declares a scalar; under `OPTION BASE 1` a constant bound that is 0 but not
+    written `0` compiles and raises 5 at program start; a negative element count ends the program with "Out of
+    memory" where a count of 0 raises 5.
+  - Still open from `design.md`: whether the D9 additions (`STRING` members, whole values, `TYPE` parameters)
+    stay in this change. The measurement found nothing against it.
 
 ## 2. Default types (design D2; spec `language/default-types`)
 
-- [ ] 2.1 `sema`: the 27-entry table, advanced in file order in both passes; one function for "the default type of
+- [x] 2.1 `sema`: the 27-entry table, advanced in file order in both passes; one function for "the default type of
   this name here" replaces the seven written-out SINGLEs (`check\decl.rs`, `check\places.rs`, `check\proc.rs`);
   `DEFINT`, `DEFLNG`, `DEFSNG`, `DEFDBL`, `DEFSTR` and `_DEFINE` are compiled, with the errors measured in 1.1.
   Verify: `tests\frontend\` `typed` tests for a variable before and after a statement, an array, a parameter, a
   FUNCTION result, a procedure before and after it, `_DEFINE` with an unsigned type; `check-fail` tests for each
   rejection; with no `DEFxxx` in a program every existing snapshot is unchanged.
-- [ ] 2.2 Slice programs `tests\corpus\slice\s50_deftype*.bas` covering every scenario of the delta, recorded with
+  Done 2026-10-11. The table is `Checker::defaults`; pass 1 walks the whole file (blocks, procedure bodies,
+  included files) and keeps the table at each procedure header, pass 2 sets it at each statement
+  (`check\mod.rs`, `check\decl.rs`). Tests: `tests\frontend\deftype_typed.bas`, `deftype_errors.bas`,
+  `deftype_explicit_errors.bas`; no existing snapshot changed. Beside the task's list:
+  - the parser took only A to Z as a letter; `_` is one now (`DEFINT _, a`, measured);
+  - a parameter without `AS` no longer types the plain name for its body (it is found as name plus default,
+    which is what makes `p` after a `DEFINT` inside the SUB a new local, as measured);
+  - an unknown type and `_MEM` after `_DEFINE … AS` are "not supported yet", as they are in `DIM` (the old
+    compiler rejects both).
+  7 of the 11 `v24_a_*` programs build and print what the old compiler printed; the other four wait on
+  `COMMON`, `REDIM`, implicit arrays and a label named like a SUB. Of `v24_x01`–`x37`, 35 get the old
+  compiler's verdict; `x30` and `v24_a_defstr` are held back only by that label form.
+- [x] 2.2 Slice programs `tests\corpus\slice\s50_deftype*.bas` covering every scenario of the delta, recorded with
   `qb64pe.exe`, added to `slice.list` and `tests\corpus\slice\SOURCE.md`. Verify: tier 2 slice passes with the new
   programs; `runtime_comparison/235_deftype` passes and is listed.
-- [ ] 2.3 Regenerate the shrink-only lists; run `qb64rust --report unsupported` over the corpus, upstream and
+  Done 2026-10-11: `s50_deftype` (main module, 22 numbered lines), `s50_deftype_procs` (procedures, 14),
+  `s50_deftype_inner` (a statement inside a SUB, 6), each recorded from two equal runs. The new compiler printed
+  all three as recorded on its first run. Tier 2 slice: 259 of 259, also with `QB64RUST_NO_FOLD=1`.
+- [x] 2.3 Regenerate the shrink-only lists; run `qb64rust --report unsupported` over the corpus, upstream and
   `tests\programs`; put every program that became clean on `slice.list`, `pass.list` or
   `known_clean_not_passing.list` after running it in tier 2; update `crates\README.md` (what is supported). Verify:
   the lists only shrank; no `DEFxxx` or `_DEFINE` line is left in the three reports; the programs expected (corpus
   7, upstream 5 outside `deferred.list` naming one) against the programs that passed are stated here.
+  Done 2026-10-11. The three shrink-only lists are unchanged (nothing to shrink: no entry named a `DEFxxx`).
+  No `DEFxxx` or `_DEFINE` line is left in the three reports (`DEF` in Civil War Strategy is `DEF SEG`).
+  **Expected against passed.** Corpus: 7 programs name `DEFINT`; 1 became clean and passes
+  (`runtime_comparison/235_deftype`, on `slice.list`); the other 6 are the screen programs cut from Civil War
+  Strategy (`g01`–`g06`), which draw (M3). Upstream: 5 outside `deferred.list`; 1 became clean and passes
+  (`source_ordering/define`, on `pass.list`: 51 of 279); `operators_test/op_exp` waits on `DIM AS type` before the
+  names (3.3), `image/curico_test` and `view/window_view_mandelbrot` on images, `mem/mem_checking_off` on `_MEM`.
+  `fmt`, `clippy` and `cargo test` are green; the upstream pass list runs 51 of 51.
 
 ## 3. The array shape, `OPTION BASE`, `$DYNAMIC`, `DIM AS` lists (design D3)
 
-- [ ] 3.1 `Var::dims` becomes the shape of D3 (scalar, static with bounds, dynamic with an optional number of
+- [x] 3.1 `Var::dims` becomes the shape of D3 (scalar, static with bounds, dynamic with an optional number of
   dimensions) in `sema`, the IR, `ir::validate`, both dumps and the emitter, with no new array kind yet. Verify:
   `cargo test` green with **no snapshot changed**; tier 2 slice unchanged (255 plus group 2's programs).
-- [ ] 3.2 `OPTION BASE 0`/`1` as checker state folded into the lower bound, with the literal-0 rule and the
+  Done 2026-10-11: `sema::Shape`, re-exported by the IR; `Var::bounds()` and `dim_count()` replace the field. No
+  snapshot changed; tier 2 slice ran with the whole group (below).
+- [x] 3.2 `OPTION BASE 0`/`1` as checker state folded into the lower bound, with the literal-0 rule and the
   placement rules measured in 1.2; `$DYNAMIC`/`$STATIC` in a comment as checker state (the declarations they turn
   dynamic stay marked until group 4, by their own message). Verify: `typed` tests showing bounds 1 to 3, 0 to 0 and
   2 to 4 under base 1; `check-fail` tests for each measured rejection; slice program `s51_option_base`, recorded,
   passes in tier 2; `runtime_comparison/236_option_base` passes and is listed.
-- [ ] 3.3 `DIM AS type a, b(3)` lists in `DIM`, `DIM SHARED` and `STATIC` (in `REDIM` and `COMMON` when those come
+  Done 2026-10-11: `Checker::option_base` and `dynamic_mode`; tests `option_base_typed.bas`,
+  `option_base_errors.bas`; slice `s51_option_base`; `236_option_base` listed. A `DIM` below `$DYNAMIC` is marked
+  "`DIM` below `$DYNAMIC` (a dynamic array)"; the marks on the two comments themselves are gone (three older
+  snapshots lost those lines). The parser keeps what follows `OPTION BASE n` in the statement without an error,
+  as the old compiler ignores it. **Found here, by comparing with the recordings:**
+  - **a constant bound is a spelling, not a value** (`verification\v24_b_constant_bounds`, `_2`): a bound with an
+    operator makes a dynamic array in the old compiler. Written into `study\00` §5, D3 and requirement "Static
+    arrays"; the code change is in 4.1 and the difference is under "Known bugs" in `STATUS.md` until then.
+  - so `DIM a(0 + 0)` under base 1 is not the "static array with no element" case (a `CONST` that is 0 is): the
+    scenarios of requirement "OPTION BASE" were split accordingly. The new compiler answers the `CONST` case as
+    the old one does (error 5 at program start, line 1); the `0 + 0` case waits for 4.1.
+- [x] 3.3 `DIM AS type a, b(3)` lists in `DIM`, `DIM SHARED` and `STATIC` (in `REDIM` and `COMMON` when those come
   in), with "a suffix in the list" as the measured error. Verify: `typed` and `check-fail` tests; a slice program
   recorded and passing; the message "`DIM AS type` before the names" is gone from the three reports.
+  Done 2026-10-11, measured first (`verification\v24_i_dim_as`, `v24_x227`–`x237`): every name of the list is
+  declared as `name AS type`; a suffix on a name, also the list's own, and an `AS` clause on one are errors.
+  `SHARED AS type` came with it (same code). Tests `dim_as_list_typed.bas`, `dim_as_list_errors.bas`; slice
+  `s51_dim_as_list`. The message is gone from the three reports. **Expected against passed:** upstream
+  `arrays/t659_variable_boolean_expr` and `operators_test/op_exp` became clean and pass (53 of 279); the other
+  upstream programs naming the form wait on `REDIM` or arrays in procedures.
+  **Found on the way, outside the task's list, and fixed:** `op_exp` printed one wrong line (`2 ^ -NOT x + 3`: 16
+  for 5). The parser let a `NOT` inside a minus right of `^` reach past the next operator; the old compiler's
+  rule (`study\02` §1.2 step D) is now in `parser\expr.rs`, measured by `verification\v24_j_power_unary` (27
+  expressions, all equal now), with `power_negation_typed.bas`, `power_negation_errors.bas` (`2 ^ _NEGATE x` is
+  rejected, as measured) and slice `s51_power_unary`.
+  Group 3 closes with `fmt`, `clippy` and `cargo test` green, tier 2 slice 263 of 263 (also with
+  `QB64RUST_NO_FOLD=1`) and the upstream pass list 53 of 53.
+  **Review of groups 1 to 3 (2026-10-11), two fixes:**
+  - **wrong code from 2.1:** a parameter without `AS` whose name a main-module `DIM SHARED … AS` types was read
+    as the shared variable (`DIM SHARED x AS LONG` … `FUNCTION f (x): f = x * 2` printed 14 for 3), because 2.1
+    stopped typing the plain name by such a parameter. Measured (`verification\v24_a_param_shared`): the
+    parameter comes first while the default is the header's; below a `DEFxxx` in the body the name means the
+    shared variable. `var_key` (`check\decl.rs`) does that now; test `deftype_param_shared_typed.bas`, slice
+    `s50_deftype_param_shared`. The same rule holds for any variable of the procedure's own with the default
+    type (a local `x!` first written with its suffix was read as the shared `x` before this change too: wrong
+    code, older, fixed with it), not for a main variable bound by `SHARED x!`;
+  - **a false error from 3.2:** `OPTION BASE 01` (accepted, base 1; `v24_x239`–`x243`: plain digits with zeros
+    before them, `1&` and `&H1` rejected). Tests in `option_base_typed.bas` and `option_base_errors.bas`.
+  Tier 2 slice after them: 264 of 264, also with `QB64RUST_NO_FOLD=1`. Found and not fixed (older than this
+  change, "Known bugs" in `STATUS.md`): a unary plus is a parse error.
 
 ## 4. Dynamic arrays in the main module (design D3, D4, D7)
 
 - [ ] 4.1 `sema` and IR: `Allocate` (modes `Dim`, `Redim`, `Preserve`), `Clear`, `Release`; `DIM` with a bound that
-  is not constant, `DIM` under `$DYNAMIC`, `DIM a()`, `REDIM [SHARED]` with type adoption and its compile errors,
+  is not constant **by its spelling** (found in 3.2: a bound with an operator makes a dynamic array though its
+  value is known; such `DIM`s are compiled as static arrays today and move to the dynamic side here, with a
+  `typed` test for each spelling of `verification\v24_b_constant_bounds*` and the "Known bugs" line of
+  `STATUS.md` removed), `DIM` under `$DYNAMIC`, `DIM a()`, `REDIM [SHARED]` with type adoption and its compile errors,
   `ERASE` of static and dynamic arrays; `ir::validate` checks of D4 with one broken hand-built program each; both
   dumps. Verify: `typed` and `ir` snapshot tests per statement and mode; `check-fail` tests per compile error of the
   requirements "Dynamic arrays", "REDIM" and "ERASE"; `validate` unit tests fail on each broken program.
@@ -138,13 +293,17 @@ tests\corpus\slice.list`, run also with `QB64RUST_NO_FOLD=1`.
 
 ## 9. Member arrays (design D8; as decided in 1.4)
 
-- [ ] 9.1 `sema` and IR: bounds on a member in both declaration forms (with `OPTION BASE`), `ArrayRef::Member`,
-  elements through any chain, `LBOUND`/`UBOUND` of a member array, the store rule per place as measured, the
-  `_STATIC`/`_DYNAMIC` markers still marked. Verify: `typed` and `ir` tests for `t.v(i)`, `a(i).v(j)` and
-  `x(0).n(1).q(2)`; `check-fail` tests for a wrong index count, a string index, a marked member.
-- [ ] 9.2 Emitter: the layout decided in 1.4 (inline elements, or a descriptor per variable with set-up, release
-  and copy), elements passed by reference, `REDIM`, `REDIM _PRESERVE` and `ERASE` of a member array as measured,
-  whole-value copy and `STRING` members inside member arrays. Verify: `cpp` snapshot tests; slice program
+- [ ] 9.1 `sema` and IR: bounds on a member in both declaration forms (with `OPTION BASE` as it is at the `TYPE`
+  block, no literal-0 rule), `ArrayRef::Member`, elements through any chain, `LBOUND`/`UBOUND` of a member array
+  (also `t.v()`), the store rule of D-004 at every index, `REDIM` and `ERASE` of a member array lowered to `Clear`
+  and `REDIM _PRESERVE` to nothing with the compile errors of 1.4, the `_STATIC`/`_DYNAMIC` markers still marked;
+  `DIVERGENCES.md` D-004 gains the member-array forms. Verify: `typed` and `ir` tests for `t.v(i)`, `a(i).v(j)`
+  and `x(0).n(1).q(2)`; `check-fail` tests for a wrong index count, no index, a string index, a marked member, a
+  bound that is not constant, and each rejected `REDIM` form.
+- [ ] 9.2 Emitter: the inline layout (1.4, case (a): the member's offset plus the checked flat position times
+  the element size), elements passed by reference, `Clear` of a member array, whole-value copy and `STRING`
+  members inside member arrays, and a whole member array as an array argument if a descriptor made for the call
+  is all it takes (D8; otherwise marked and named in `SOMEDAY.md`). Verify: `cpp` snapshot tests; slice program
   `s61_member_arrays` (every scenario of "Member arrays" and the member-array scenario of "LBOUND and UBOUND"),
   recorded, passes in tier 2 with and without `QB64RUST_NO_FOLD=1`; `runtime_comparison/197_type_array_field`
   passes.

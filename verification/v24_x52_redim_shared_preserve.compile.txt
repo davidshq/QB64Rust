@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):REDIM SHARED _PRESERVE A ( 3 ) AS LONG
+LINE 3:REDIM SHARED _PRESERVE a(3) AS LONG
+exit=1

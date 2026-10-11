@@ -113,12 +113,30 @@ fn expr_bp(p: &mut Parser, min: u8) -> Option<u32> {
     height
 }
 
+/// The level of `^`, and the level its right operand is parsed at.
+const POWER: u8 = 16;
+const POWER_RHS: u8 = POWER + 1;
+
 fn expr_bp_inner(p: &mut Parser, min: u8) -> Option<u32> {
     let cp = p.builder.checkpoint();
     let mut height = if let Some(level) = prefix_level(p) {
+        // The old compiler's power-negation rule (`study\02` §1.2, step D; measured,
+        // `verification\v24_j_power_unary`): a minus right of `^` takes what follows up to the next operator that
+        // is not `^`, a negation or `NOT`. Inside it a `NOT` reaches no further either, so `2 ^ -NOT x + 3` is
+        // `(2 ^ (-(NOT x))) + 3`, though `-NOT x + 3` alone is `-(NOT (x + 3))` and `2 ^ NOT x + 3` is
+        // `2 ^ (NOT (x + 3))`. `POWER` as `min` is used by nothing else: it means "inside such a minus".
+        let operand_min = match (min, p.current()) {
+            (POWER_RHS, Some(Minus)) | (POWER, _) => POWER,
+            _ => level,
+        };
+        if min == POWER_RHS && p.at_word("_NEGATE") {
+            // Measured: "Expected variable/value after '^'" (`verification\v24_x238_power_negate`).
+            p.syntax_error("expected a value after `^`");
+            return None;
+        }
         p.start_node(PrefixExpr);
         p.bump();
-        let operand = expr_bp(p, level);
+        let operand = expr_bp(p, operand_min);
         p.finish_node();
         operand? + 1
     } else {

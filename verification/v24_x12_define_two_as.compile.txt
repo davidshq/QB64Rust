@@ -1,0 +1,5 @@
+
+_DEFINE: Expected - or ,
+Caused by (or after):
+LINE 3:_DEFINE A AS INTEGER , B AS LONG
+exit=1

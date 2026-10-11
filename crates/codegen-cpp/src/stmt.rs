@@ -236,7 +236,7 @@ impl Emitter<'_> {
     fn store_member_of_element(&mut self, place: &Place, value: &str, out: &mut Vec<String>) {
         let ty = self.p.place_ty(place);
         let (array, index, offset) = self.element_root(place);
-        let n = self.p.var(array).dims.len();
+        let n = self.p.var(array).bounds().len();
         let name = self.name(array);
         let size = self.ty_size(self.p.var(array).ty);
         out.push("{".into());

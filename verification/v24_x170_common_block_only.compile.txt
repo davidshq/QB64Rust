@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):COMMON / BLK /
+LINE 3:COMMON /blk/
+exit=1

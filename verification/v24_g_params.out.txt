@@ -1,0 +1,17 @@
+1. a static array filled in the SUB: 2  4  6 
+2. a dynamic array: 0  2  4 
+3. REDIM _PRESERVE a(10) in the SUB: UBOUND(d), d(2) 10  5 
+4. the same SUB with the static array: [error 10 ] 3  6 
+5. ERASE in the SUB, static: UBOUND(x), x(3) 3  0 
+6. ERASE in the SUB, dynamic: UBOUND(d): [error 9 ]7. the dynamic array, not allocated, passed to a SUB that prints UBOUND and to one that does REDIM: [error 9 ] 10 
+8. passed on to a second SUB: 4 
+9. a FUNCTION: 6 
+10. CALL fill(x()): 2  4  6 
+11. a parameter with a suffix and one with the default type: 2  2.5 
+12. two dimensions: 13 
+13. STRING, STRING * 3 and a user type: ab! xy  5 uv
+14. a DIM SHARED array as argument: 6 
+15. a local array as argument: 2  4 
+16. an index outside, in the SUB: [error 9 ] [error 9 ]
+17. one array as two arguments: 7  8 
+exit=0

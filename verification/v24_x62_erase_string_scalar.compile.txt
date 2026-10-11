@@ -1,0 +1,5 @@
+
+Undefined array passed to ERASE
+Caused by (or after):ERASE S$
+LINE 4:ERASE s$
+exit=1

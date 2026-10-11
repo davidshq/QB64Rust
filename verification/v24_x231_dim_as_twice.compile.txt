@@ -1,0 +1,5 @@
+
+Name already in use (b)
+Caused by (or after):DIM B AS LONG
+LINE 4:DIM b AS LONG
+exit=1

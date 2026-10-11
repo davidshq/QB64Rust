@@ -165,14 +165,14 @@ impl Emitter<'_> {
     }
 
     fn alloc_array(&self, v: &Var, n: &str) -> String {
-        let dims = v.dims.len();
+        let dims = v.bounds().len();
         let lock = 4 * dims + 4;
         let mut out = format!(
             "if (!{n}){{\n{n}=(ptrszint*)mem_static_malloc({}*ptrsz);\nnew_mem_lock();\nmem_lock_tmp->type=4;\n\
              ((ptrszint*){n})[{lock}]=(ptrszint)mem_lock_tmp;\n",
             lock + 1
         );
-        for (k, &(lower, upper)) in v.dims.iter().enumerate() {
+        for (k, &(lower, upper)) in v.bounds().iter().enumerate() {
             let s = dim_slot(dims, k);
             writeln!(out, "{n}[{s}]={};", int_const(lower, Ty::I64)).unwrap();
             writeln!(out, "{n}[{}]=({})-{n}[{s}]+1;", s + 1, int_const(upper, Ty::I64)).unwrap();
@@ -206,7 +206,7 @@ impl Emitter<'_> {
 
     /// The number of elements of an array as a C expression over its descriptor.
     fn element_count(&self, v: &Var, n: &str) -> String {
-        let dims = v.dims.len();
+        let dims = v.bounds().len();
         let counts: Vec<String> = (0..dims).map(|k| format!("{n}[{}]", dim_slot(dims, k) + 1)).collect();
         counts.join("*")
     }

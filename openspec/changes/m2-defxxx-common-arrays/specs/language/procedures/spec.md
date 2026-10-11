@@ -62,12 +62,19 @@ NOT share a name.
 ## ADDED Requirements
 
 ### Requirement: Array parameters
-A parameter written `name()` (also with commas between the parentheses, which are ignored) SHALL be an array
-parameter. Its argument SHALL be a whole array written `name()`, of exactly the parameter's element type (and
-length, for a fixed-length string), static or dynamic; anything else SHALL be a compile error. The array SHALL be
-passed by reference: the procedure reads, stores, `REDIM`s and `ERASE`s the caller's array, and `LBOUND`/`UBOUND`
-give its bounds. An array of one number of dimensions passed where the procedure uses another SHALL be a compile
-error.
+A parameter written `name()` (also with commas or a number between the parentheses, which are ignored) SHALL be
+an array parameter, of any element type an array may have, `_BIT` included. Its argument SHALL be a whole array
+written `name()`, static or dynamic, allocated or not, whose element type has the parameter's kind and width:
+the same number of bits or the same user type, both strings or neither, the same length for a fixed-length
+string, both floating-point or neither; `_UNSIGNED` and `_OFFSET` SHALL NOT be compared (an `_UNSIGNED LONG`
+array goes to a LONG parameter, which then reads its elements as LONG). Anything else SHALL be a compile error,
+also a whole array passed to a parameter that is no array, and an array argument in parentheses (the old compiler
+accepts that one and its C++ build fails). An array never declared MAY be passed and is then an implicit array.
+The array SHALL be passed by reference: the procedure reads, stores, `DIM`s, `REDIM`s and `ERASE`s the caller's
+array with the errors that array's kind gives (error 10 for a static one), and `LBOUND`/`UBOUND` give its bounds.
+The number of dimensions of an array parameter SHALL be one number for the whole program: every index count and
+`REDIM` in the procedure and every argument passed to it, directly or through another procedure's array
+parameter, SHALL agree, wherever the call stands in the file; a disagreement SHALL be a compile error.
 
 #### Scenario: Elements changed in the procedure
 - **WHEN** `SUB fill (a() AS LONG)` sets `a(i) = i * 2` from `LBOUND(a)` to `UBOUND(a)` and is called as `fill x()`
@@ -88,18 +95,52 @@ error.
 - **THEN** it is a compile error
 
 #### Scenario: Not an array
-- **WHEN** `fill x(1)` or `fill y` is compiled for that SUB
+- **WHEN** `fill x(1)`, `fill y` or `fill (x())` is compiled for that SUB
 - **THEN** it is a compile error
+
+#### Scenario: Signedness is not compared
+- **WHEN** an `_UNSIGNED LONG` array is passed to `SUB fill (a() AS LONG)`, which stores -1 in `a(1)`
+- **THEN** it compiles and the caller's element prints as ` 4294967295 `
+
+#### Scenario: Static argument and REDIM
+- **WHEN** `SUB grow (a() AS LONG)` with `REDIM _PRESERVE a(10) AS LONG` is called for `DIM x(1 TO 3) AS LONG` under
+  a handler that prints `ERR` and resumes next
+- **THEN** the handler prints 10 and `UBOUND(x)` is still 3
+
+#### Scenario: ERASE in the procedure
+- **WHEN** a SUB that does `ERASE a` is called for a static array and for a dynamic one
+- **THEN** the static array keeps its bounds with every element 0, and `UBOUND` of the dynamic one raises error 9
+
+#### Scenario: Dimensions from the argument
+- **WHEN** `SUB show (m() AS LONG)` prints `UBOUND(m, 2)` and never indexes `m`, and is called once for `DIM y(2, 4)
+  AS LONG`
+- **THEN** it prints ` 4 `, with the SUB above or below the call
+
+#### Scenario: Dimensions that disagree
+- **WHEN** a SUB that stores to `m(1, 2)` is called for an array of one dimension, or a SUB that never indexes its
+  parameter is called for an array of one and for an array of two dimensions
+- **THEN** each is a compile error
+
+#### Scenario: Passed down a chain
+- **WHEN** upstream's `arrays/array_arg_dimensions_transitive` is compiled (an array handed down three SUBs, the
+  innermost printing `UBOUND` of each dimension)
+- **THEN** its output equals the old compiler's
 
 ### Requirement: User-type parameters
 A parameter declared `name AS type` with a user type SHALL take a place of that type (a variable, an array
-element, a member) by reference: the procedure's stores to its members change the caller's. An argument of another
-type SHALL be a compile error.
+element, a member, the procedure's own parameter) by reference: the procedure's stores to its members change the
+caller's, in a SUB and in a FUNCTION. An element with an index outside its bounds SHALL raise error 9 and the
+procedure SHALL NOT be entered. An argument of another type, a number, and a place in parentheses (an internal
+error of the old compiler) SHALL be compile errors. A FUNCTION SHALL NOT have a user type as its result.
 
 #### Scenario: Member changed in the procedure
 - **WHEN** `SUB move (p AS pt)` does `p.x = p.x + 1` and is called as `move q` and as `move a(2)`
 - **THEN** `q.x` and `a(2).x` are each 1 higher afterwards
 
 #### Scenario: Another type
-- **WHEN** a variable of another user type, or a number, is passed to `SUB move (p AS pt)`
+- **WHEN** a variable of another user type, a number, or `(q)` in parentheses is passed to `SUB move (p AS pt)`
 - **THEN** it is a compile error
+
+#### Scenario: Element outside
+- **WHEN** `move a(9)` runs for `DIM a(2) AS pt` under a handler that prints `ERR` and resumes next
+- **THEN** the handler prints 9 and no element changes
