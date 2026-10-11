@@ -966,6 +966,32 @@ Measured for built-in statements (2026-10-10, `m2-builtin-statements`; `verifica
   a file (corpus `237`: row 1, column 1) and is not set at all without a console. Not compiled in step 9 for that
   reason: their value can only be checked with the screen (step 9a).
 
+Programs with a window (2026-10-10, `m2-screen-state-check`; the tables are in its `design.md`, the programs in
+`tests\corpus\screen\`; `verification\v23_post_keys.py` posts keys to a window):
+
+- **Every exit ends in `exit()` on the thread that owns the window**, with the image memory still there:
+  `SYSTEM`, `END`, running off the end, the window closed, an unhandled error under `QB64PE_NOPROMPT=y` (exit code
+  0), also with `$SCREENHIDE`. So a function registered with `atexit` by another source file sees the final
+  screen. A program with a window writes nothing to stdout or stderr, not even the text of a runtime error.
+- **`END` and running off the end draw on the screen first:** "Press any key to continue" in the bottom text row
+  of the displayed page, which becomes the destination; then they empty the key buffer and wait for a new key.
+  `SYSTEM` draws nothing.
+- **Screen pages:** `SCREEN 0` has eight pages from the start; a graphics mode has one until another is used.
+  Pages of a mode with a palette share page 0's. Modes 1, 2, 7 to 13 hold one byte per pixel (the palette index);
+  `PALETTE 1, 63` stores `00FF0000`, the other entries `FFrrggbb`. A `$CONSOLE:ONLY` program has the eight text
+  pages too, and a console image as destination.
+- **The key buffer is the BIOS one:** 16 slots at `cmem[0x41e]`, head and tail at `0x41a` and `0x41c`, so 15 keys;
+  a 16th key is dropped. `INKEY$`, `INPUT` and `LINE INPUT` in a window read it.
+- **Keys posted to the window as messages** reach it without the window in the foreground, with rules of their
+  own: both keyboard callbacks return at once while the window believes it has no focus; the character after a
+  key that makes no character (arrows, function keys, also Enter and Esc) is ignored once; GLFW drops `WM_CHAR`
+  below 32, so Enter, Esc, Tab and Backspace must be key messages; a letter's `WM_CHAR` from `TranslateMessage`
+  arrives behind messages already posted. `keyboard_keydown` and `keyboard_keyup` can be called from another
+  source file and are below all of that.
+- **Extra link input:** `qb64pe -f:ExtraLinkerFlags=<value>` is a setting for one run (not written to
+  `config.ini`); the `Makefile` puts it at the end of the link command, where a C++ source file is compiled with
+  the flags of the link, libqb's include path among them.
+
 ## 6. Bug-compatibility choices (all decided)
 
 From the end of `09` and `10` §2.8, §3.2 and the measurements in §5. **All decided by the user on 2026-10-08**

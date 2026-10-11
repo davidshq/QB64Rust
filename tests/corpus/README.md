@@ -12,6 +12,7 @@ not say whether that behaviour is right (that is the divergence register's job).
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
 | `slice\` | 44 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input; `SOURCE.md`) |
+| `screen\` | 29 programs with a window, checked by the state of the screen they leave: 23 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error) and 6 drawing programs cut from Civil War Strategy (`SOURCE.md`, `tools\screen\README.md`). None is on `slice.list`: the new compiler builds console programs only so far |
 | `slice.list` | The 255 programs the new compiler must pass: all 44 of `slice\`, 209 of `runtime_comparison` and `verification\` `v11`, `v12` (see below) |
 
 Each `<name>.bas` has exactly one of:
@@ -28,6 +29,10 @@ after an untrapped runtime error; `slice\s12_error_in_print`),
 and `<name>.stdin`: the program's standard input, byte for byte, for a program that reads the console with `INPUT`
 or `LINE INPUT` (without it the program gets no input). **A program with a `.stdin` file must end with `SYSTEM`**:
 `END` waits for a key that never arrives while standard input is a file (measured, 2026-10-10).
+
+A program with an `.output` may also have `<name>.screen`: the state of the screen it must leave at exit, for a
+program with a window (text cells or pixels, palette, cursor, pages; format in `tools\screen\README.md`), and with
+it `<name>.keys`: the keys it is given. All 29 are in `screen\`; their `.output` is empty.
 
 A program that reaches `END` prints an empty line and `Press any key to continue` (no line end) on Windows; that
 trailer is part of its `.output`.
@@ -145,6 +150,13 @@ requires no panic, an exact round trip, no diagnostics for the listed ones, at l
 with an `.err` file, and the two shrink-only lists `tests\known_false_errors.list` and
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
+
+### Full corpus with `qb64rust` (2026-10-10, after the screen programs; not a pass criterion)
+
+After `m2-screen-state-check` (its task 6.1, release build, against the reference clone), 336 programs: the table
+below with 29 more rejected. Pass 271, rejected with a diagnostic 56 (the 27 below and all 29 of `screen\`, each
+for "programs without `$CONSOLE:ONLY`" first), `.err` programs with only marked errors 4, known failures 5;
+`slice.list` 255 of 255. With the old compiler: 331 pass and the 5 known failures.
 
 ### Full corpus with `qb64rust` (2026-10-10, after the built-in statements; not a pass criterion)
 

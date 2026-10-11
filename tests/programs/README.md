@@ -42,6 +42,14 @@ stands. Three stages (`study\28` §4):
   49, `CLS` 36, `PLAY` 32, `CIRCLE` 28, `SOUND` 28, `INKEY$` 25, `TAB` 22, `PUT` 19, `VIEW` 11, `SCREEN` 9, `GET`
   8, `DEF SEG` 8, `BLOAD` 4.
 
+## Measured (2026-10-10, `m2-screen-state-check`)
+
+- Stage 2 has its first cut programs: `tests\corpus\screen\g01`–`g06` (flags, the cannon, the end screen, the two
+  ships, the message box), written by `tools\screen\cut_game.py` from the game's own procedures and recorded with
+  the old compiler. The new compiler compiles none of them yet (`DEFINT`, then the drawing statements).
+- Not cut yet: anything that loads a `*.VGA` picture with `BLOAD`. The corpus runner copies only the `.bas` into
+  a program's folder; data files beside a program come first.
+
 ## Adding a program
 
 The licence must allow the copy (state it in a `SOURCE.md` with the repository and commit). Copy the files byte for

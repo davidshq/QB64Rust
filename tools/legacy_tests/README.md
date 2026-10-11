@@ -40,6 +40,16 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   recording, with either compiler (on Windows `press_any_key.py` passes it on as its second argument). Without
   the file a program runs as before (no input). Such a program must end with `SYSTEM`: with standard input from a
   file, `END`'s "Press any key to continue" never returns.
+- `<name>.screen`, beside an `.output`: a **screen program**, checked by the state of the screen it leaves as well
+  as by its output (`tools\screen\README.md`). It is built with `tools\screen\screen_state.cpp` on the link line
+  (`-f:ExtraLinkerFlags=`, with either compiler) and run with `QB64_SCREEN_STATE` naming
+  `<results>\corpus\<key>-run<N>-screen.txt`. That file must equal `.screen` (CRLF as LF); a run that writes none
+  fails at stage `screen`, and the state written stays in the results folder for a look
+  (`tools\screen\state_to_png.py`). `<name>.keys`, when it exists, is copied to the results folder and given as
+  `QB64_SCREEN_KEYS`: the keys the program reads. `--record` writes `.screen` only if both runs wrote a state and
+  the two are equal. To add a screen program, create an empty `<name>.screen` and record it. A `.screen` beside an
+  `.err` or `.norun` is an error in the test, as is a `.keys` without a `.screen`, and a screen program that does
+  not compile is never recorded as an `.err`. The path of this repo must hold no blank (`make` splits the flag).
 - A program listed in `known_failures.txt` that has no expected file (it hangs or loops forever, so nothing can
   be recorded) is compiled but never run, and reported as KFAIL `not run`. To try it again, remove the entry and
   record it.
@@ -73,7 +83,10 @@ python -m unittest discover -s tools/legacy_tests -p "test_*.py"
 - every outcome of one corpus program, with `run_proc` (through which every process is started) replaced by a
   stand-in for the compiler and for the program: equal and different output, each kind of `.err` result with the
   old and the new compiler, `.norun`, `.stdin`, `.normalize`, a known failure without an expected file, a failed
-  or timed-out run, and `--record` with equal runs, with differing runs and with a rejection.
+  or timed-out run, and `--record` with equal runs, with differing runs and with a rejection;
+- every outcome of one screen program, the stand-in writing the state file the environment names: equal and
+  different state, no state, a state left by an earlier run, the keys file passed on, `.screen` beside `.err` or
+  `.norun`, `.keys` without `.screen`, and `--record` with equal states, differing states and a run without one.
 
 **A change to one of these rules comes with a change to its test** (spec `testing/golden-corpus`). Not covered: the
 locks and the private copies of `qb64pe` (they need the clone; the full runs cover them), and the functions of

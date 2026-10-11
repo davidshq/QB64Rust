@@ -82,7 +82,9 @@ executable is linked there and moved into place; the folder is deleted after a s
 clone changes. `-z` keeps that folder: run over many files (to collect diagnostics), it leaves a
 `<name>.exe.qb64rust\temp\` next to every program without errors, so give `-o` a scratch folder outside the repo and
 the clone, or use `--dump tree`. The QB64pe Windows release works as the root too (CI uses it). `-f:OptimizeCppProgram=true` builds
-with `-O2` as `qb64pe` does; `-f:StripDebugSymbols=...` is ignored; other `-f:` settings are "not supported yet".
+with `-O2` as `qb64pe` does; `-f:ExtraLinkerFlags=<value>` adds the value to the end of the link command as `qb64pe`
+does (the test runner gives `tools\screen\screen_state.cpp` this way; the build cache's key takes the value and the
+contents of a file it names); `-f:StripDebugSymbols=...` is ignored; other `-f:` settings are "not supported yet".
 
 What the compiler supports so far:
 

@@ -35,29 +35,31 @@ struct Options {
     keep_build: bool,
     /// `-w`: print the warnings too (spec `compiler/cli`).
     warnings: bool,
-    /// `-f:<setting>=<value>` as given, checked by [`optimize_setting`].
+    /// `-f:<setting>=<value>` as given, checked by [`build_settings`].
     settings: Vec<String>,
 }
 
-/// Whether to optimise the C++ (`-f:OptimizeCppProgram=true`, as `qb64pe` turns it into `-O2`).
-/// `-f:StripDebugSymbols` is accepted and ignored; any other setting is not supported yet (spec `compiler/cli`).
-fn optimize_setting(settings: &[String]) -> Result<bool, String> {
-    let mut optimize = false;
+/// The `-f:` settings: `OptimizeCppProgram=true` (as `qb64pe` turns it into `-O2`) and `ExtraLinkerFlags=<value>`
+/// (added to the link command). `StripDebugSymbols` is accepted and ignored; any other setting is not supported
+/// yet (spec `compiler/cli`).
+fn build_settings(settings: &[String]) -> Result<build::Settings, String> {
+    let mut out = build::Settings::default();
     for s in settings {
         let (name, value) = s.split_once('=').unwrap_or((s, ""));
         match name {
             "OptimizeCppProgram" => {
-                optimize = match value.to_ascii_lowercase().as_str() {
+                out.optimize = match value.to_ascii_lowercase().as_str() {
                     "true" => true,
                     "false" => false,
                     _ => return Err(format!("setting `{name}` needs `true` or `false`, not `{value}`")),
                 }
             }
+            "ExtraLinkerFlags" => out.extra_link = value.to_string(),
             "StripDebugSymbols" => {}
             _ => return Err(format!("setting `{name}` is not supported yet")),
         }
     }
-    Ok(optimize)
+    Ok(out)
 }
 
 fn parse_args() -> Result<Options, String> {
@@ -271,7 +273,7 @@ fn run() -> Result<ExitCode, String> {
         });
     }
 
-    let optimize = optimize_setting(&o.settings).inspect_err(|_| {
+    let settings = build_settings(&o.settings).inspect_err(|_| {
         let _ = std::fs::remove_file(&exe);
     })?;
     if errors > 0 {
@@ -292,7 +294,7 @@ fn run() -> Result<ExitCode, String> {
     let _ = std::fs::remove_file(&exe);
     let root = build::find_root(o.root.as_deref())?;
     build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
-    build::build(&root, &build_dir, &exe, o.quiet, optimize)?;
+    build::build(&root, &build_dir, &exe, o.quiet, &settings)?;
     if !o.keep_build {
         let _ = std::fs::remove_dir_all(&build_dir);
     }

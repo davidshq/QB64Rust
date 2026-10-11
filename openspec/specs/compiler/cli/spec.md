@@ -10,9 +10,10 @@ M1 extension use, plus options for inspecting each compiler stage.
 `qb64rust [-x] [-q] [-m] [-w] [-f:<setting>=<value>]... <file.bas> [-o <exe>]` SHALL compile the file to the
 executable (default: the source name with `.exe`, next to the source). `-x`, `-q`, `-m` and `-w` SHALL be accepted;
 `-q` SHALL suppress progress output. `-f:OptimizeCppProgram=true|false` SHALL build the C++ with or without
-optimisation as `qb64pe` does; `-f:StripDebugSymbols=<value>` SHALL be accepted and ignored; any other setting
-SHALL be an error "setting not supported yet". Exit status SHALL be 0 when the executable was built and 1
-otherwise; on failure no executable SHALL be left at the output path.
+optimisation as `qb64pe` does; `-f:ExtraLinkerFlags=<value>` SHALL add the value to the end of the link command as
+`qb64pe` does; `-f:StripDebugSymbols=<value>` SHALL be accepted and ignored; any other setting SHALL be an error
+"setting not supported yet". Exit status SHALL be 0 when the executable was built and 1 otherwise; on failure no
+executable SHALL be left at the output path.
 
 #### Scenario: Runner's compile line
 - **WHEN** the corpus runner runs `qb64rust -q -m -x <prog>.bas -o <prog>.exe` on a slice program
@@ -30,6 +31,15 @@ otherwise; on failure no executable SHALL be left at the output path.
 #### Scenario: Unknown setting
 - **WHEN** `-f:GenerateLicenseFile=true` is given
 - **THEN** the exit status is 1 with the message that the setting is not supported yet, and no executable exists
+
+#### Scenario: An extra source file on the link line
+- **WHEN** `-f:ExtraLinkerFlags=<path>/screen_state.cpp` is given and the program runs with `QB64_SCREEN_STATE`
+  naming a file
+- **THEN** the executable is built with that file linked in, and the run writes the state file
+
+#### Scenario: The extra file changes
+- **WHEN** a build cache is in use and the file named by `-f:ExtraLinkerFlags` has changed since the cached build
+- **THEN** the program is built again
 
 ### Requirement: Diagnostics output
 Each diagnostic SHALL be printed to stdout as `<file>:<line>:<column>: error: <message>`, with the file as given

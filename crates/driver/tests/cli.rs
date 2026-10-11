@@ -305,6 +305,35 @@ fn wide_bit_scalars_do_not_overlap() {
     assert_eq!(build_and_run(&d, program), " 5 -1 \n 2  2 \n");
 }
 
+/// `-f:ExtraLinkerFlags=` puts a source file on the link line: the screen-state file of `tools/screen`, which writes
+/// the state of the screen when the program exits (scenario "An extra source file on the link line").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn extra_linker_flags_link_the_screen_state_file() {
+    let d = scratch("extra-link");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT \"hi\"\nSYSTEM\n").unwrap();
+    let exe = d.join("p.exe");
+    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
+    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
+    let o = qb64rust(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let state = d.join("state.txt");
+    let run = Command::new(&exe)
+        .current_dir(&d)
+        .env("QB64_SCREEN_STATE", &state)
+        .stdin(std::process::Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
+    let text = std::fs::read(&state).unwrap();
+    assert!(
+        text.starts_with(b"screen-state 1\npages 8 display 0 write image read image\n"),
+        "{}",
+        text.escape_ascii()
+    );
+    assert!(text.ends_with(b"end\n"), "{}", text.escape_ascii());
+}
+
 /// Builds `program` as `p.bas` in `d` with `-q -x`, runs it and gives its output with `\n` line ends.
 fn build_and_run(d: &Path, program: &str) -> String {
     std::fs::write(d.join("p.bas"), program).unwrap();

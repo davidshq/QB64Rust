@@ -196,12 +196,25 @@ class Lists(unittest.TestCase):
 class Tools:
     """Stands in for run_proc: the compiler (a command with -x) and the program built by it."""
 
-    def __init__(self, rc=0, compile_out=b"", exe=True, runs=(b"",), run_rc=0, run_times_out=False):
+    def __init__(
+        self,
+        rc=0,
+        compile_out=b"",
+        exe=True,
+        runs=(b"",),
+        run_rc=0,
+        run_times_out=False,
+        states=(),
+    ):
         self.rc, self.compile_out, self.exe = rc, compile_out, exe
         self.runs, self.run_rc, self.run_times_out = list(runs), run_rc, run_times_out
+        # The screen state each run writes to the file QB64_SCREEN_STATE names (the last one again
+        # for further runs); none, or None for a run, writes no file.
+        self.states = list(states)
         self.compile_cmd: list[str] = []
         self.run_cmds: list[list[str]] = []
         self.run_stdin: list[Path | None] = []
+        self.run_envs: list[dict] = []
 
     def __call__(self, args, cwd, stdout_path, timeout, env=None, stdin_path=None, **_):
         if "-x" in args:
@@ -212,14 +225,18 @@ class Tools:
             return self.rc, False
         self.run_stdin.append(stdin_path)
         self.run_cmds.append(list(args))
+        self.run_envs.append(dict(env or {}))
         stdout_path.write_bytes(self.runs[min(len(self.run_cmds), len(self.runs)) - 1])
+        state = self.states[min(len(self.run_cmds), len(self.states)) - 1] if self.states else None
+        if state is not None and "QB64_SCREEN_STATE" in (env or {}):
+            Path(env["QB64_SCREEN_STATE"]).write_bytes(state)
         if self.run_times_out:
             return None, True
         return self.run_rc, False
 
 
-class CorpusProgram(unittest.TestCase):
-    """corpus_test: every outcome of one program g/p of a corpus."""
+class CorpusFixture(unittest.TestCase):
+    """One program g/p of a corpus in a scratch folder, and corpus_test run on it."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -248,6 +265,10 @@ class CorpusProgram(unittest.TestCase):
     def assert_fail(self, r, stage: str, detail: str = ""):
         self.assertEqual((r.status, r.stage), ("FAIL", stage), r.detail)
         self.assertIn(detail, r.detail)
+
+
+class CorpusProgram(CorpusFixture):
+    """corpus_test: every outcome of one program g/p of a corpus."""
 
     def test_equal_output_passes_and_the_work_folder_goes(self):
         self.sidecar("output", b"1\n2\n")
@@ -376,6 +397,111 @@ class CorpusProgram(unittest.TestCase):
         real = Tools(rc=1, compile_out=b"p.bas:1:1: error: x\n1 error\n", exe=False)
         self.assertEqual(self.run_test(real, record=True).status, "PASS")
         self.assertTrue((self.group / "p.err").is_file())
+
+
+STATE = b"screen-state 1\npages 1 display 0 write 0 read 0\nend\n"
+
+
+class ScreenProgram(CorpusFixture):
+    """corpus_test for a program with a .screen file (spec testing/screen-state)."""
+
+    def setUp(self):
+        super().setUp()
+        self.sidecar("output", b"")
+        self.screen = self.sidecar("screen", STATE)
+
+    def test_equal_state_passes(self):
+        tools = Tools(states=[STATE.replace(b"\n", b"\r\n")])
+        r = self.run_test(tools)
+        self.assertEqual(r.status, "PASS", r.detail)
+        flag = [a for a in tools.compile_cmd if a.startswith("-f:ExtraLinkerFlags=")]
+        self.assertEqual(len(flag), 1, tools.compile_cmd)
+        self.assertTrue(flag[0].endswith("/tools/screen/screen_state.cpp"), flag)
+        self.assertEqual(
+            tools.run_envs[0]["QB64_SCREEN_STATE"], str(self.results / "g-p-run1-screen.txt")
+        )
+        self.assertNotIn("QB64_SCREEN_KEYS", tools.run_envs[0])
+
+    def test_a_program_without_screen_gets_neither_the_flag_nor_the_variable(self):
+        self.screen.unlink()
+        tools = Tools(states=[STATE])
+        self.assertEqual(self.run_test(tools).status, "PASS")
+        self.assertFalse([a for a in tools.compile_cmd if "ExtraLinkerFlags" in a])
+        self.assertNotIn("QB64_SCREEN_STATE", tools.run_envs[0])
+
+    def test_a_different_state_fails_and_is_kept(self):
+        other = STATE.replace(b"display 0", b"display 1")
+        r = self.run_test(Tools(states=[other]))
+        self.assert_fail(r, "screen", "differs from .screen")
+        self.assertEqual((self.results / "g-p-run1-screen.txt").read_bytes(), other)
+
+    def test_the_output_is_still_compared(self):
+        self.assert_fail(self.run_test(Tools(runs=[b"x\n"], states=[STATE])), "result")
+
+    def test_no_state_written_fails(self):
+        self.assert_fail(self.run_test(Tools()), "screen", "no screen state written")
+
+    def test_a_state_left_by_an_earlier_run_does_not_count(self):
+        (self.results / "g-p-run1-screen.txt").write_bytes(STATE)
+        self.assert_fail(self.run_test(Tools()), "screen", "no screen state written")
+
+    def test_keys_are_a_copy_beside_the_results(self):
+        self.sidecar("keys", b"text a\nkey enter\n")
+        tools = Tools(states=[STATE])
+        self.assertEqual(self.run_test(tools).status, "PASS")
+        copy = self.results / "g-p-keys.txt"
+        self.assertEqual(copy.read_bytes(), b"text a\nkey enter\n")
+        self.assertEqual(tools.run_envs[0]["QB64_SCREEN_KEYS"], str(copy))
+
+    def test_screen_beside_err_or_norun_is_an_error_in_the_test(self):
+        (self.group / "p.output").unlink()
+        self.sidecar("norun", b"why\n")
+        self.assert_fail(self.run_test(Tools()), "expected", ".screen beside .norun")
+        (self.group / "p.norun").unlink()
+        self.sidecar("err", b"Syntax error\n")
+        self.assert_fail(self.run_test(Tools(rc=1, exe=False)), "expected", ".screen beside .err")
+
+    def test_keys_without_screen_is_an_error_in_the_test(self):
+        self.screen.unlink()
+        self.sidecar("keys", b"text a\n")
+        tools = Tools()
+        self.assert_fail(self.run_test(tools), "expected", ".keys without .screen")
+        self.assertEqual(tools.compile_cmd, [])
+
+    def test_a_screen_program_that_does_not_compile_is_never_recorded_as_an_error(self):
+        tools = Tools(rc=1, compile_out=b"Syntax error\r\n", exe=False)
+        r = self.run_test(tools, qb64="qb64pe.exe", record=True)
+        self.assert_fail(r, "compile", "exit code 1")
+        self.assertFalse((self.group / "p.err").exists())
+
+    def test_record_writes_the_state_of_two_equal_runs(self):
+        self.screen.write_bytes(b"")
+        (self.group / "p.output").unlink()
+        r = self.run_test(Tools(states=[STATE, STATE]), qb64="qb64pe.exe", record=True)
+        self.assertEqual(
+            (r.status, r.detail), ("PASS", "recorded new p.output; recorded new p.screen")
+        )
+        self.assertEqual(self.screen.read_bytes(), STATE)
+
+    def test_record_reports_a_changed_state(self):
+        other = STATE.replace(b"pages 1", b"pages 2")
+        r = self.run_test(Tools(states=[other]), qb64="qb64pe.exe", record=True)
+        self.assertEqual((r.status, r.detail), ("PASS", "warning: p.screen changed"))
+        self.assertEqual(self.screen.read_bytes(), other)
+
+    def test_record_refuses_two_different_states(self):
+        other = STATE.replace(b"pages 1", b"pages 2")
+        r = self.run_test(Tools(states=[STATE, other]), qb64="qb64pe.exe", record=True)
+        self.assert_fail(r, "record", "screen states of the two runs differ")
+        self.assertEqual(self.screen.read_bytes(), STATE)
+
+    def test_record_refuses_a_run_without_a_state(self):
+        r = self.run_test(Tools(states=[STATE, None]), qb64="qb64pe.exe", record=True)
+        self.assert_fail(r, "screen", "no screen state written")
+
+    def test_a_blank_in_the_path_of_the_state_file_is_refused(self):
+        with mock.patch.object(rlt, "SCREEN_STATE_SOURCE", Path("my repo/screen_state.cpp")):
+            self.assert_fail(self.run_test(Tools(states=[STATE])), "screen", "a blank in the path")
 
 
 if __name__ == "__main__":

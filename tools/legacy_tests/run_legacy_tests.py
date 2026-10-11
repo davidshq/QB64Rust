@@ -37,6 +37,12 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     that read the console with INPUT or LINE INPUT), when checking and when recording
   * <name>.normalize: one rule per line, <regex><TAB><replacement> ('#' lines are comments),
     applied in order to each line of the actual output before comparing or recording
+  * <name>.screen (beside an .output): a screen program. It is built with tools/screen/screen_state.cpp
+    on the link line (-f:ExtraLinkerFlags=) and run with QB64_SCREEN_STATE naming a file in the
+    results folder; the state of the screen it writes there at exit must equal .screen (CRLF as
+    LF), and a run that writes none fails. <name>.keys, when present, is given to it as
+    QB64_SCREEN_KEYS (the keys it reads); a .keys without a .screen is an error in the test.
+    --record writes .screen when both runs wrote equal states
   * --record compiles once, runs twice, and writes .output (or .err for a failed compile)
     only if both normalised runs are equal; otherwise the program is reported
     non-deterministic and nothing is written. With a compiler other than qb64pe, a failed compile
@@ -109,6 +115,8 @@ from clone_lock import BUSY_EXIT, CLONE_BUSY, lock_clone, lock_folder
 COMPILE_TIMEOUT = 900  # seconds; first compiles build libqb for each feature set
 RUN_TIMEOUT = 120
 CORPUS_RUN_TIMEOUT = 60
+# Linked into every screen program of the corpus (tools/screen/README.md).
+SCREEN_STATE_SOURCE = Path(__file__).resolve().parent.parent / "screen" / "screen_state.cpp"
 VERIFICATION_RUN_TIMEOUT = 60
 
 
@@ -707,6 +715,17 @@ def corpus_test(
     skip_run = not present and f"corpus:{group}/{name}" in known
     if len(present) > 1:
         return fail("expected", f"more than one of .output, .err, .norun: {', '.join(present)}")
+    # A screen program (<name>.screen, empty before its first recording): the state of the screen
+    # it leaves is compared as well as its output.
+    screen_file = tdir / f"{name}.screen"
+    screen = screen_file.is_file()
+    if screen and (norun or err_file.is_file()):
+        return fail("expected", f".screen beside {present[0]}: a screen program runs")
+    keys_file = tdir / f"{name}.keys"
+    if keys_file.is_file() and not screen:
+        return fail("expected", ".keys without .screen: only a screen program is given keys")
+    if screen and any(c.isspace() for c in SCREEN_STATE_SOURCE.as_posix()):
+        return fail("screen", f"a blank in the path of {SCREEN_STATE_SOURCE.name}: make splits it")
     if not present and not args.record and not skip_run:
         return fail("expected", "no .output, .err or .norun (record it with --record)")
     rules = load_normalize(tdir / f"{name}.normalize")
@@ -722,6 +741,8 @@ def corpus_test(
 
     old = is_old_compiler(args.qb64)
     flags = ["-f:OptimizeCppProgram=true"] if args.cpp_opt else []
+    if screen:
+        flags.append(f"-f:ExtraLinkerFlags={SCREEN_STATE_SOURCE.as_posix()}")
     with contextlib.ExitStack() as stack:
         # Only qb64pe builds in its own internal/temp: the clone's, or with --jobs this worker's
         # private copy's (CompilerCopies).
@@ -763,7 +784,7 @@ def corpus_test(
         if exe.exists():
             return fail("exe exists", "exe produced although the compile failed")
         got = apply_normalize(compile_out.read_bytes(), rules)
-        if skip_run:
+        if skip_run or screen:
             return fail("compile", f"exit code {rc}")
         if args.record and not norun:
             r.kind = "error"
@@ -814,6 +835,11 @@ def corpus_test(
     if stdin_file.is_file():
         stdin_copy = results / f"{key}-stdin.txt"
         shutil.copyfile(stdin_file, stdin_copy)
+    # <name>.keys: the keys a screen program is given (tools/screen), copied like .stdin.
+    if keys_file.is_file():
+        keys_copy = results / f"{key}-keys.txt"
+        shutil.copyfile(keys_file, keys_copy)
+        env["QB64_SCREEN_KEYS"] = str(keys_copy)
     if os.name == "nt":
         # END waits for a console key event, which the null device never sends (press_any_key.py).
         cmd = [sys.executable, str(Path(__file__).with_name("press_any_key.py")), str(exe)]
@@ -823,9 +849,14 @@ def corpus_test(
     else:
         cmd, flags = [str(exe)], 0
     outputs: list[bytes] = []
+    states: list[bytes] = []
     for run in range(1, 3 if args.record else 2):
         reset_folder(work, {bas.name, exe.name})
         run_out = results / f"{key}-run{run}-output.txt"
+        state_out = results / f"{key}-run{run}-screen.txt"
+        if screen:
+            state_out.unlink(missing_ok=True)
+            env["QB64_SCREEN_STATE"] = str(state_out)
         rc, timed_out = run_proc(
             cmd,
             work,
@@ -841,13 +872,29 @@ def corpus_test(
         if rc != 0:
             return fail("run", f"exit code {rc}")
         outputs.append(apply_normalize(run_out.read_bytes(), rules))
+        if screen:
+            # A build that lost the state file, or a program killed before exit(), must not pass.
+            if not state_out.is_file():
+                return fail("screen", "no screen state written")
+            states.append(state_out.read_bytes())
 
     if args.record:
         if outputs[0] != outputs[1]:
             return fail("record", "non-deterministic: the two runs differ after normalisation")
-        return passed(write_expected(out_file, outputs[0], err_file))
+        if screen and states[0] != states[1]:
+            return fail("record", "non-deterministic: the screen states of the two runs differ")
+        changes = [write_expected(out_file, outputs[0], err_file)]
+        if screen:
+            first = (
+                screen_file.stat().st_size == 0
+            )  # the empty file that marks a new screen program
+            change = write_recorded(screen_file, states[0])
+            changes.append(f"recorded new {screen_file.name}" if first and change else change)
+        return passed("; ".join(c for c in changes if c))
     if norm_output(out_file.read_bytes()) != norm_output(outputs[0]):
         return fail("result", "program output differs from .output")
+    if screen and norm_output(screen_file.read_bytes()) != norm_output(states[0]):
+        return fail("screen", "screen state differs from .screen")
     return passed()
 
 
