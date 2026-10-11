@@ -2,9 +2,7 @@
 # testing/upstream-tests, "Rejected programs stay rejected"). Shrink-only: once a program gets a real error it
 # leaves the list. Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.
 corpus/runtime_comparison/16_ltrim_rtrim.bas
-corpus/runtime_comparison/202_redim_preserve.bas
 corpus/runtime_comparison/218_fre.bas
-corpus/runtime_comparison/28_redim.bas
 snippets/qb64fresh/arrays__redim_dynamic_array.bas
 snippets/qb64fresh/arrays__redim_preserve.bas
 snippets/qb64fresh/builtin_functions__trim_functions.bas
@@ -29,8 +27,6 @@ upstream/arrays/43_err_solved_bug_Incorrect_nr_of_args.bas
 upstream/arrays/44_err_solved_bug_Incorrect_nr_of_args.bas
 upstream/arrays/45_err_solved_bug_Incorrect_nr_of_args.bas
 upstream/arrays/array_elements_change.bas
-upstream/arrays/negative_array_size.bas
-upstream/arrays/negative_array_size_2.bas
 upstream/arrays/t024_whole_target_bare_source.bas
 upstream/arrays/t025_bare_target_whole_source.bas
 upstream/arrays/t026_whole_target_indexed_source.bas

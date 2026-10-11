@@ -1,0 +1,2 @@
+main: 4  0  6 
+in the SUB: [error 9 ] [error 9 ]exit=0

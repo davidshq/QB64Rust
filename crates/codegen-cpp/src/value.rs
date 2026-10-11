@@ -53,7 +53,7 @@ impl Emitter<'_> {
             ExprKind::Bound { upper, array, dim } => {
                 let f = if *upper { "func_ubound" } else { "func_lbound" };
                 let d = dim.as_deref().map_or("1".to_string(), |d| self.value(d));
-                let n = self.p.var(*array).bounds().len();
+                let n = crate::decl::dim_count(self.p.var(*array));
                 format!("((int64){f}({},{d},{n}))", self.name(*array))
             }
             ExprKind::Convert { how, from } => {

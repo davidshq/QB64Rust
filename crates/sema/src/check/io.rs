@@ -208,7 +208,15 @@ impl Checker<'_> {
         for part in parts {
             match part {
                 PrintPart::Expr(n) => {
-                    targets.push(self.target_place(n, what)?);
+                    let place = self.target_place(n, what)?;
+                    // Measured: "INPUT cannot handle _BIT array elements" for the console form (the runtime
+                    // stores through an address, which a packed element has none of; `verification\v24_x253`).
+                    // `INPUT #` and `READ` store into one (`v24_x251`, `x252`).
+                    if console && place.has_element() && matches!(self.prog.place_ty(&place), Ty::Bit { .. }) {
+                        let msg = format!("`{what}` from the console cannot read into a `_BIT` array element");
+                        return Err(self.error(n.node().span(), msg));
+                    }
+                    targets.push(place);
                     want_target = false;
                 }
                 PrintPart::Comma(t) | PrintPart::Semicolon(t) => {

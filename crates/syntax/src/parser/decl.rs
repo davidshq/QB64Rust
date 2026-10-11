@@ -24,15 +24,14 @@ pub(crate) fn dim_stmt(p: &mut Parser) {
     p.finish_node();
 }
 
-/// `REDIM [_PRESERVE] [SHARED] items` (the old compiler also takes `SHARED` before `_PRESERVE`).
+/// `REDIM [_PRESERVE] [SHARED] items`; `sema` checks the order of the words. `PRESERVE` and `RETAIN` without their
+/// underscore are names like any other (measured, `verification\v24_x254`, `x255`: `REDIM preserve(3)` declares
+/// an array; the old compiler rejects `$NOPREFIX`).
 pub(crate) fn redim_stmt(p: &mut Parser) {
     p.start_node(RedimStmt);
     p.bump(); // REDIM
     for _ in 0..2 {
-        if ["_PRESERVE", "PRESERVE", "_RETAIN", "RETAIN", "SHARED"]
-            .iter()
-            .any(|w| p.at_word(w))
-        {
+        if ["_PRESERVE", "_RETAIN", "SHARED"].iter().any(|w| p.at_word(w)) {
             p.bump();
         }
     }

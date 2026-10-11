@@ -54,10 +54,14 @@ impl Emitter<'_> {
     }
 
     /// The element at flat position `flat` of a numeric or string array, as an lvalue; of a fixed-length string
-    /// array, a temporary fixed `qbs` over its bytes.
+    /// array, a temporary fixed `qbs` over its bytes; of a `_BIT * n` array, the value of its packed element (it
+    /// is stored by [`Self::store`]).
     pub(crate) fn element_at(&self, array: VarId, flat: &str) -> String {
         let (v, name) = (self.p.var(array), self.name(array));
-        if let Ty::FixedStr(k) = v.ty {
+        if let Ty::Bit { width, signed } = v.ty {
+            let get = if signed { "getbits" } else { "getubits" };
+            format!("(({})({get}({width},(uint8*)({name}[0]),{flat})))", c_type(v.ty))
+        } else if let Ty::FixedStr(k) = v.ty {
             fixed_at(&format!("&((uint8*)({name}[0]))[({flat})*{k}]"), k)
         } else if is_qbs(v.ty) {
             format!("(((qbs**)({name}[0]))[{flat}])")

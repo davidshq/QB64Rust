@@ -2,6 +2,7 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
+Array A:I32 static (0 To 3)
 Stmt line 2
   SelectConsole
 Stmt line 12 may_raise

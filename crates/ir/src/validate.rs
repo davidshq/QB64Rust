@@ -3,8 +3,8 @@
 
 use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
 use crate::{
-    Arg, Body, BuiltinId, Expr, ExprKind, LabelId, Op, Place, PrintItem, ProcId, Program, Resume, Source, StmtArg,
-    Storage, Ty, VarId,
+    Arg, Body, BuiltinId, Expr, ExprKind, LabelId, Op, Place, PrintItem, ProcId, Program, Resume, Shape, Source,
+    StmtArg, Storage, Ty, VarId,
 };
 
 /// Every problem found, each as `<body>: <where>: <what>`; `Ok` when there is none.
@@ -159,6 +159,42 @@ impl Validator<'_> {
                 }
             }
             Op::Raise(v) => self.value(v, owner, at),
+            // An allocation names an array of either kind (of a static one it raises an error when it runs), with
+            // one pair of `I64` bounds per dimension.
+            Op::Allocate { array, bounds, .. } => {
+                if self.array_use(*array, owner, at, "Allocate")
+                    && let Some(n) = self.p.var(*array).dim_count()
+                    && n != bounds.len()
+                {
+                    let name = &self.p.var(*array).name;
+                    self.problem(format!(
+                        "{at}: {} pairs of bounds for {name} of {n} dimensions",
+                        bounds.len()
+                    ));
+                }
+                for bound in bounds.iter().flat_map(|(lower, upper)| [lower, upper]) {
+                    if bound.ty != Ty::I64 {
+                        self.problem(format!("{at}: a bound of type {:?}", bound.ty));
+                    }
+                    self.value(bound, owner, at);
+                }
+            }
+            Op::Clear { array } => {
+                if self.array_use(*array, owner, at, "Clear")
+                    && !matches!(self.p.var(*array).shape, Shape::Static { .. })
+                {
+                    let name = &self.p.var(*array).name;
+                    self.problem(format!("{at}: Clear of {name}, which is no static array"));
+                }
+            }
+            Op::Release { array } => {
+                if self.array_use(*array, owner, at, "Release")
+                    && !matches!(self.p.var(*array).shape, Shape::Dynamic { .. })
+                {
+                    let name = &self.p.var(*array).name;
+                    self.problem(format!("{at}: Release of {name}, which is no dynamic array"));
+                }
+            }
             Op::Print { to, items, .. } | Op::Write { to, items, .. } => {
                 if let Some(n) = to {
                     self.file_number(n, owner, at);
@@ -378,14 +414,19 @@ impl Validator<'_> {
             Place::Element { array, index } => {
                 if self.var_use(*array, owner, at) {
                     let v = self.p.var(*array);
-                    if v.bounds().len() != index.len() {
-                        let msg = format!(
-                            "{at}: {} indexes for {} of {} dimensions",
-                            index.len(),
-                            v.name,
-                            v.bounds().len()
-                        );
-                        self.problem(msg);
+                    match v.dim_count() {
+                        Some(n) if n == index.len() => {}
+                        Some(n) => {
+                            let msg = format!("{at}: {} indexes for {} of {n} dimensions", index.len(), v.name);
+                            self.problem(msg);
+                        }
+                        None if v.is_array() => {
+                            self.problem(format!(
+                                "{at}: an element of {}, whose dimensions are not known",
+                                v.name
+                            ));
+                        }
+                        None => self.problem(format!("{at}: an element of {}, which is no array", v.name)),
                     }
                 }
                 for i in index {
@@ -410,6 +451,18 @@ impl Validator<'_> {
                 }
             }
         }
+    }
+
+    /// The array an operation `what` names: a variable of this body that is an array. Returns whether it is one.
+    fn array_use(&mut self, id: VarId, owner: Option<ProcId>, at: &At, what: &str) -> bool {
+        if !self.var_use(id, owner, at) {
+            return false;
+        }
+        let v = self.p.var(id);
+        if !v.is_array() {
+            self.problem(format!("{at}: {what} of {}, which is no array", v.name));
+        }
+        v.is_array()
     }
 
     /// A variable used in a body must exist and belong to it: a procedure's own variables (and the lowering's
@@ -472,8 +525,8 @@ impl Validator<'_> {
 mod tests {
     use super::validate;
     use crate::{
-        Arg, Body, Expr, ExprKind, Label, LabelId, Op, Place, Proc, ProcId, ProcKind, Program, Resume, Stmt, Storage,
-        Ty, Var, VarId,
+        AllocMode, Arg, Body, Expr, ExprKind, Label, LabelId, Op, Place, Proc, ProcId, ProcKind, Program, Resume,
+        Shape, Stmt, Storage, Ty, Var, VarId,
     };
     use qb64rust_base::{FileId, Span};
 
@@ -742,6 +795,129 @@ mod tests {
                 format!("{at}: variable 9 does not exist"),
                 format!("{at}: a Restore to item 2 of 1"),
                 format!("{at}: a Restore to item 1 without a label"),
+            ]
+        );
+    }
+
+    /// [`program`] with a static array `S(0 TO 5)` (variable 3) and a dynamic one `D` of one dimension (4).
+    fn arrays() -> Program {
+        let mut p = program();
+        let array = |name: &str, shape| Var {
+            shape,
+            ..var(name, Storage::Global)
+        };
+        p.vars.extend([
+            array("S", Shape::Static { bounds: vec![(0, 5)] }),
+            array("D", Shape::Dynamic { dims: Some(1) }),
+        ]);
+        p
+    }
+
+    fn bounds(upper: i64) -> Vec<(Expr, Expr)> {
+        vec![(expr(Ty::I64, ExprKind::Int(0)), expr(Ty::I64, ExprKind::Int(upper)))]
+    }
+
+    fn allocate(array: u32, bounds: Vec<(Expr, Expr)>) -> Op {
+        Op::Allocate {
+            array: VarId(array),
+            bounds,
+            mode: AllocMode::Redim,
+        }
+    }
+
+    #[test]
+    fn sound_array_operations() {
+        let mut p = arrays();
+        // An allocation may name a static array: it raises an error when it runs.
+        p.main.stmts[0].ops.extend([
+            allocate(4, bounds(3)),
+            allocate(3, bounds(3)),
+            Op::Clear { array: VarId(3) },
+            Op::Release { array: VarId(4) },
+        ]);
+        assert_eq!(problems(&p), Vec::<String>::new());
+    }
+
+    #[test]
+    fn release_of_a_static_array() {
+        let mut p = arrays();
+        p.main.stmts[0].ops.push(Op::Release { array: VarId(3) });
+        assert_eq!(
+            problems(&p),
+            ["main: statement 0 (line 1): Release of S, which is no dynamic array"]
+        );
+    }
+
+    #[test]
+    fn clear_of_a_dynamic_array() {
+        let mut p = arrays();
+        p.main.stmts[0].ops.push(Op::Clear { array: VarId(4) });
+        assert_eq!(
+            problems(&p),
+            ["main: statement 0 (line 1): Clear of D, which is no static array"]
+        );
+    }
+
+    #[test]
+    fn allocation_with_another_number_of_bounds() {
+        let mut p = arrays();
+        let two = [bounds(3), bounds(4)].concat();
+        p.main.stmts[0].ops.push(allocate(4, two));
+        assert_eq!(
+            problems(&p),
+            ["main: statement 0 (line 1): 2 pairs of bounds for D of 1 dimensions"]
+        );
+    }
+
+    #[test]
+    fn allocation_bound_of_another_type() {
+        let mut p = arrays();
+        let narrow = vec![(expr(Ty::I64, ExprKind::Int(0)), load(0))];
+        p.main.stmts[0].ops.push(allocate(4, narrow));
+        assert_eq!(problems(&p), ["main: statement 0 (line 1): a bound of type I32"]);
+    }
+
+    #[test]
+    fn array_operations_of_a_scalar() {
+        let mut p = arrays();
+        p.main.stmts[0].ops.extend([
+            allocate(0, bounds(3)),
+            Op::Clear { array: VarId(0) },
+            Op::Release { array: VarId(0) },
+        ]);
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: Allocate of G, which is no array"),
+                format!("{at}: Clear of G, which is no array"),
+                format!("{at}: Release of G, which is no array"),
+            ]
+        );
+    }
+
+    #[test]
+    fn element_of_an_array_of_another_shape() {
+        let mut p = arrays();
+        let element = |array: u32, n: usize| {
+            let index = vec![expr(Ty::I64, ExprKind::Int(1)); n];
+            Op::Raise(expr(
+                Ty::I32,
+                ExprKind::Load(Place::Element {
+                    array: VarId(array),
+                    index,
+                }),
+            ))
+        };
+        p.main.stmts[0]
+            .ops
+            .extend([element(4, 1), element(4, 2), element(0, 1)]);
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: 2 indexes for D of 1 dimensions"),
+                format!("{at}: an element of G, which is no array"),
             ]
         );
     }

@@ -3,7 +3,7 @@
 
 use crate::Emitter;
 use crate::names::{c_type, int_const, var_name};
-use qb64rust_ir::{MemberId, ProcId, Storage, Ty, Var, size_of};
+use qb64rust_ir::{MemberId, ProcId, Shape, Storage, Ty, Var, size_of};
 use std::fmt::Write as _;
 
 /// The numeric types as a pattern: each is stored as one C scalar ([`c_type`]); a declaration of any of them is
@@ -54,6 +54,17 @@ pub(crate) fn declare(v: &Var, n: &str) -> String {
 /// `study\02` §3.4).
 pub(crate) fn dim_slot(n: usize, k: usize) -> usize {
     4 * (n - 1 - k) + 4
+}
+
+/// The descriptor slot that holds the `_MEM` lock of an array of `n` dimensions: the one after its dimensions.
+pub(crate) fn lock_slot(n: usize) -> usize {
+    4 * n + 4
+}
+
+/// The number of dimensions of an array.
+pub(crate) fn dim_count(v: &Var) -> usize {
+    v.dim_count()
+        .unwrap_or_else(|| panic!("the array {} has no known number of dimensions", v.name))
 }
 
 /// Whether a variable is a plain C variable (a temporary), not a pointer.
@@ -164,14 +175,22 @@ impl Emitter<'_> {
         }
     }
 
+    /// The descriptor of an array, made once per lifetime of its pointer. A static array gets its bounds and its
+    /// elements here; a dynamic one is left in the state libqb reads as "not allocated" (`study\02` §3.4: the flag
+    /// for "defined" clear, lower bound 2147483647 and no element in every dimension, the data pointer at eight
+    /// zero bytes or at the empty string), so every access raises error 9 until an `Allocate` runs.
     fn alloc_array(&self, v: &Var, n: &str) -> String {
-        let dims = v.bounds().len();
-        let lock = 4 * dims + 4;
+        let dims = dim_count(v);
+        let lock = lock_slot(dims);
         let mut out = format!(
             "if (!{n}){{\n{n}=(ptrszint*)mem_static_malloc({}*ptrsz);\nnew_mem_lock();\nmem_lock_tmp->type=4;\n\
              ((ptrszint*){n})[{lock}]=(ptrszint)mem_lock_tmp;\n",
             lock + 1
         );
+        if let Shape::Dynamic { .. } = v.shape {
+            out.push_str(&format!("{n}[2]=0;\n{}}}\n", self.not_allocated(v, n)));
+            return out;
+        }
         for (k, &(lower, upper)) in v.bounds().iter().enumerate() {
             let s = dim_slot(dims, k);
             writeln!(out, "{n}[{s}]={};", int_const(lower, Ty::I64)).unwrap();
@@ -193,7 +212,7 @@ impl Emitter<'_> {
             )
             .unwrap();
         } else {
-            let bytes = format!("{count}*{}", self.ty_size(v.ty));
+            let bytes = self.array_bytes(v.ty, &count);
             write!(
                 out,
                 "{n}[0]=(ptrszint)mem_static_malloc({bytes});\nmemset((void*)({n}[0]),0,{bytes});\n"
@@ -204,21 +223,88 @@ impl Emitter<'_> {
         out
     }
 
-    /// The number of elements of an array as a C expression over its descriptor.
-    fn element_count(&self, v: &Var, n: &str) -> String {
-        let dims = v.bounds().len();
+    /// The size in bytes of `count` (a C expression) elements of a type that is no `STRING`. `_BIT * n` elements
+    /// are packed, n bits each, in `count * n / 8 + 1` bytes (measured, `study\00` §5: the old compiler's
+    /// expression, which `getbits` and `setbits` rely on).
+    pub(crate) fn array_bytes(&self, t: Ty, count: &str) -> String {
+        match t {
+            Ty::Bit { width, .. } => format!("{count}*{width}/8+1"),
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::FixedStr(_)
+            | Ty::User(_) => format!("{count}*{}", self.ty_size(t)),
+            Ty::Str => unreachable!("a string array holds pointers"),
+        }
+    }
+
+    /// The number of elements of an array as a C expression over its descriptor (0 while it is not allocated).
+    pub(crate) fn element_count(&self, v: &Var, n: &str) -> String {
+        let dims = dim_count(v);
         let counts: Vec<String> = (0..dims).map(|k| format!("{n}[{}]", dim_slot(dims, k) + 1)).collect();
         counts.join("*")
     }
 
-    /// `clear.txt`: what `CLEAR` resets in a variable that lives as long as the program.
+    /// The lines that leave the bounds and the data pointer of a dynamic array's descriptor as "not allocated"
+    /// (the flags are the caller's).
+    fn not_allocated(&self, v: &Var, n: &str) -> String {
+        let mut out = String::new();
+        for i in 1..=dim_count(v) {
+            let s = 4 * i;
+            writeln!(out, "{n}[{s}]=2147483647;\n{n}[{}]=0;\n{n}[{}]=0;", s + 1, s + 2).unwrap();
+        }
+        let nothing = if v.ty == Ty::Str {
+            "&nothingstring"
+        } else {
+            "nothingvalue"
+        };
+        writeln!(out, "{n}[0]=(ptrszint){nothing};").unwrap();
+        out
+    }
+
+    /// The release of a dynamic array, as the old compiler writes it for `ERASE` (`qb64pe.bas` 8637–8704): if it is
+    /// allocated, its strings and its block are freed and its descriptor is "not allocated" again.
+    pub(crate) fn release(&self, v: &Var, n: &str) -> String {
+        let mut out = format!("if ({n}[2]&1){{\n");
+        if v.ty == Ty::Str {
+            let count = self.element_count(v, n);
+            write!(
+                out,
+                "tmp_long={count};\nwhile(tmp_long--){{\nqbs_free(((qbs**)({n}[0]))[tmp_long]);\n}}\n"
+            )
+            .unwrap();
+        }
+        write!(
+            out,
+            "free((void*)({n}[0]));\n{n}[2]^=1;\n{}}}\n",
+            self.not_allocated(v, n)
+        )
+        .unwrap();
+        out
+    }
+
+    /// `clear.txt`: what `CLEAR` resets in a variable that lives as long as the program. A static array is
+    /// cleared, a dynamic one released, as `ERASE` does (`qb64pe.bas` 12749–12756).
     pub(crate) fn clear(&self, v: &Var, n: &str) -> String {
+        if let Shape::Dynamic { .. } = v.shape {
+            return self.release(v, n);
+        }
         if v.is_array() {
             let count = self.element_count(v, n);
             return if v.ty == Ty::Str {
                 format!("tmp_long={count};\nwhile(tmp_long--){{\n(((qbs**)({n}[0]))[tmp_long])->len=0;\n}}\n")
             } else {
-                format!("memset((void*)({n}[0]),0,{count}*{});\n", self.ty_size(v.ty))
+                format!("memset((void*)({n}[0]),0,{});\n", self.array_bytes(v.ty, &count))
             };
         }
         match v.ty {

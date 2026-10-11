@@ -1119,7 +1119,22 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   rounds half to even first). Static, dynamic, two dimensions, used without `DIM` (`` im`(3) ``), `ERASE`, `REDIM`
   and `REDIM _PRESERVE` behave as for other element types. An element passed to a LONG parameter is a copy.
   `SWAP` of two elements is "Cannot SWAP bit-length variables"; `LEN` of an element "Variable/element cannot be
-  _BIT aligned".
+  _BIT aligned". **As a target (`v24_x251`–`x253`, measured 2026-10-11 with task 4.2):** `READ` and `INPUT #` store
+  into a `_BIT` element, static or dynamic, and a value outside its range raises error 6 and stores 0 (9 into a
+  `_BIT * 4`); console `INPUT` into one is the compile error "INPUT cannot handle _BIT array elements".
+- **Measured while dynamic arrays were built (`v24_x244`–`x250`, 2026-10-11, task 4.1):** "Invalid array bounds"
+  is decided **per dimension**: a single negative constant bound, and constant `lower TO upper` in the wrong
+  order, are compile errors also beside a dimension whose bounds are not constant (`DIM half(n TO 2, -1)`, `DIM
+  part(n, 3 TO 1)`); a lower bound that is not constant is not compared (`DIM none(n TO 2)` with n = 3 raises 5
+  when it runs and is 3 to 2). A second `DIM` with constant bounds of a static array **below `$DYNAMIC`** is no
+  compile error: it runs and raises 10. `DIM` with another number of dimensions than a dynamic array has is
+  "Cannot change the number of elements an array has!", as for `REDIM`. **A minus before a hexadecimal number
+  (`-&H5`) is one number**, so the array is static. **`SHARED` on a later `REDIM` of an array is accepted and
+  ignored**: after `REDIM ns(3)`, `REDIM SHARED ns(4)` gives the new bounds, and a SUB below still does not see
+  `ns` (its `ns(2)` is an array of its own, error 9). **`PRESERVE` and `RETAIN` without their underscore are
+  names (`v24_x254`, `x255`):** `REDIM preserve(3)` and `REDIM retain(4)` declare arrays, and `REDIM PRESERVE
+  x(5)` is "DIM: Expected ," (`$NOPREFIX` itself is an error in this compiler: "QB64(PE) specific keywords MUST
+  have the underscore").
 - **Arrays used without `DIM` (`v24_f_*`, `v24_x105`–`x120`, `x146`, `x176`):** in the main module the bounds are
   `OPTION BASE` to 10 in each of as many dimensions as the first use has indexes (one for `LBOUND(a)`/`UBOUND(a)`
   of a name that is no array); the type is the suffix or the default type at that line. The array is static: it

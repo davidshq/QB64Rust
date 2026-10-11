@@ -114,8 +114,8 @@ What the compiler supports so far:
   body (main and procedures, also inside blocks). The IR is flat with explicit jumps (`ir\src\lower.rs`); a
   raising block header behaves as in QB64pe (the pending-error rule, `ir\src\lib.rs`);
 - arrays and `TYPE` (`m2-arrays-and-types`, `sema\src\check\places.rs`): static arrays of the main module (`DIM`
-  and `DIM SHARED`, one or more dimensions, `lower TO upper`, bounds that are constant expressions) of the numeric
-  types, `STRING` and user types; element read and write (indexes rounded half to even, error 9 outside the
+  and `DIM SHARED`, one or more dimensions, `lower TO upper`, constant bounds; which bounds count as constant is
+  under group 4 below) of the numeric types, `STRING` and user types; element read and write (indexes rounded half to even, error 9 outside the
   bounds), elements passed by reference, `LBOUND`/`UBOUND`; `TYPE` blocks of the main module with numeric and
   nested members, used anywhere in the file; `TYPE` variables in every storage class; member read and write
   (`p.x`, `p.a.b`, `a(i).m`), members passed by reference, dotted plain names (`a.b` without a `TYPE` variable
@@ -201,9 +201,26 @@ What the compiler supports so far:
 - group 3 of the same change: a variable's `Shape` (`Scalar`, `Static` with bounds, `Dynamic` with a number of
   dimensions; `sema\src\lib.rs`, shared by the IR) in place of a list of bounds, only static arrays made so
   far; `OPTION BASE 0`/`1` and `'$DYNAMIC`/`'$STATIC` as checker state that follows the file like the default
-  types (`OPTION BASE` folded into the lower bound, the number 0 in plain digits staying 0 to 0; a `DIM` below
-  `$DYNAMIC` is still marked); the type before the names in `DIM`, `DIM SHARED`, `STATIC` and `SHARED` (`DIM AS
-  LONG a, b(3)`).
+  types (`OPTION BASE` folded into the lower bound, the number 0 in plain digits staying 0 to 0); the type
+  before the names in `DIM`, `DIM SHARED`, `STATIC` and `SHARED` (`DIM AS LONG a, b(3)`);
+- group 4 of the same change, dynamic arrays in the main module. **What an array is, is settled by the first
+  declaration of it in the file** (`declare_array`, `sema\src\check\places.rs`): static when that is a `DIM`
+  whose bounds are all constant *by their spelling* (one number, a minus before it included, or one `CONST`
+  name, in parentheses or not) and `$DYNAMIC` is not in effect; dynamic otherwise, so also `DIM a(2 + 3)`. A
+  static array's `DIM` is no statement. Every other `DIM`, `REDIM` and `REDIM _PRESERVE` is an `Allocate` (its
+  mode, and a lower and an upper bound per dimension as `_INTEGER64` values), `ERASE` a `Clear` of a static
+  array or a `Release` of a dynamic one: the same three in the typed tree and the IR, which names no
+  descriptor and no size (`ir\src\lib.rs` states the order of an allocation's checks and errors;
+  `ir\src\validate.rs` checks array kind, number of bounds and their type). `REDIM` without a type keeps the
+  type of an array declared with `AS`; `REDIM [_PRESERVE] SHARED`; `DIM a()`, `REDIM a()` and `REDIM a AS
+  type` declare a scalar, as in QB64pe; a `REDIM` or `ERASE` in a procedure reaches a `DIM SHARED` array. The
+  emitter (`codegen-cpp\src\arrays.rs`, `decl.rs`) makes a dynamic array's descriptor "not allocated" (every
+  use raises error 9) and writes the allocation after the old compiler's sequence: error 10 for a static array
+  and, in a `DIM`, for an allocated one; the new bounds in a descriptor of their own; error 5 for a dimension
+  without an element, without leaving; error 257 ("Out of memory", which ends the program) for what cannot be
+  held; the new block made before the old one is released; `_PRESERVE` copying by flat position. `_BIT`
+  arrays, static and dynamic, are packed storage read with `getbits` and stored with `setbits`. A dynamic
+  array of the main module is not released when the program ends.
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
@@ -213,10 +230,11 @@ CASE`, the other built-in functions, `DECLARE LIBRARY`, event handlers and switc
 (`PRINT USING`, `LPRINT`, `FIELD`, `LSET`/`RSET`),
 `READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array or a member of an element, every other
 built-in statement read by its template (`LINE`, `SCREEN`, `GET`/`PUT`, `TIME$ =`, ...), the declaration
-forms (`REDIM`, `COMMON`, `ERASE`, the type before the names in those three, arrays named `name$n`, array
+forms (`COMMON`, `REDIM _RETAIN`, arrays named `name$n`, array
 parameters, `STATIC` after a header, `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), type names as arguments, the
-names of QB64pe's auto-included files and its precompiler flags (`_CONSOLE_`, ...); of arrays and `TYPE`: dynamic
-and implicit arrays, arrays in procedures, whole arrays (`x()`), `TYPE` parameters, `STRING` and array members,
+names of QB64pe's auto-included files and its precompiler flags (`_CONSOLE_`, ...); of arrays and `TYPE`:
+arrays used without `DIM` (implicit arrays, and `ERASE` of one), arrays in procedures (`DIM`, `STATIC`, `SHARED
+a()`, a `REDIM` that would make one), whole arrays (`x()`), `TYPE` parameters, `STRING` and array members,
 member arrays, whole-`TYPE` assignment; `DEF FN` is an error, as in QB64pe. After a declaration
 marked "not supported yet", later real errors are dropped (the follow-on rule, design D10 of `m2-parser-breadth`):
 the program is rejected by the mark, and no error is reported that the declaration might have prevented.

@@ -399,6 +399,16 @@ impl<'a> RedimStmt<'a> {
     pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
         self.0.child_nodes().filter_map(DimItem::cast)
     }
+
+    /// The words between `REDIM` and the names, in order: `_PRESERVE`, `SHARED` (two at most).
+    pub fn words(self) -> impl Iterator<Item = Tok> + 'a {
+        self.0.child_tokens().skip(1).filter(|t| t.kind == Ident)
+    }
+
+    /// The type of `REDIM AS type name(…), ...`, before the names.
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
 }
 
 impl<'a> CommonStmt<'a> {
@@ -411,6 +421,37 @@ impl<'a> EraseStmt<'a> {
     pub fn names(self) -> impl Iterator<Item = NameRef<'a>> + 'a {
         self.0.child_nodes().filter_map(NameRef::cast)
     }
+
+    /// What is erased, in order: a name (`parens`: written `name()`), or another expression (an element `a(1)`, a
+    /// member array `a(0).b`).
+    pub fn targets(self) -> Vec<EraseTarget<'a>> {
+        let mut out = Vec::new();
+        for e in self.0.children() {
+            match e {
+                Element::Node(n) => {
+                    if let Some(name) = NameRef::cast(n) {
+                        out.push(EraseTarget::Name { name, parens: false });
+                    } else if let Some(x) = Expr::cast(n) {
+                        out.push(EraseTarget::Other(x));
+                    }
+                }
+                Element::Token(t) if t.kind == SyntaxKind::LParen => {
+                    if let Some(EraseTarget::Name { parens, .. }) = out.last_mut() {
+                        *parens = true;
+                    }
+                }
+                Element::Token(_) => {}
+            }
+        }
+        out
+    }
+}
+
+/// One target of an `ERASE` ([`EraseStmt::targets`]).
+#[derive(Clone, Copy)]
+pub enum EraseTarget<'a> {
+    Name { name: NameRef<'a>, parens: bool },
+    Other(Expr<'a>),
 }
 
 impl<'a> DefTypeStmt<'a> {
@@ -1263,6 +1304,11 @@ impl<'a> DimItem<'a> {
     /// The bounds of an array (`(5)`, `(1 TO 3, 2)`, `()`); `None` for a scalar.
     pub fn bounds(self) -> Option<ArrayBounds<'a>> {
         child(self.0, ArrayBounds::cast)
+    }
+
+    /// Whether the item names a member array (`REDIM a(1).m(5)`): its name is followed by `.member` parts.
+    pub fn is_member_path(self) -> bool {
+        self.0.child_tokens().any(|t| t.kind == SyntaxKind::Dot)
     }
 }
 

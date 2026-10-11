@@ -6,6 +6,7 @@ Data 0: 1
 Data 1: "two"
 Data 2: 3
 Data 3: 4
+Array A:I32 static (0 To 3)
 Stmt line 2
   SelectConsole
 Label LAB line 9

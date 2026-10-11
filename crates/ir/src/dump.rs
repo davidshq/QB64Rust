@@ -1,7 +1,7 @@
 //! `--dump ir`: the lowering-pair text of design D6.
 
 use crate::{
-    Arg, BinOp, Body, Expr, ExprKind, LabelId, OnError, Op, Place, PrintItem, ProcKind, Program, Resume, Source,
+    Arg, BinOp, Body, Expr, ExprKind, LabelId, OnError, Op, Place, PrintItem, ProcKind, Program, Resume, Shape, Source,
     StmtArg, Storage, Ty, VarId, When,
 };
 
@@ -15,6 +15,21 @@ pub fn dump(p: &Program) -> String {
     for (i, item) in p.data.iter().enumerate() {
         let q = if item.quoted { "\"" } else { "" };
         writeln!(out, "Data {i}: {q}{}{q}", show_bytes(&item.text)).unwrap();
+    }
+    // The arrays, when there are any: a static one with its bounds, a dynamic one with its number of dimensions.
+    for (i, v) in p.vars.iter().enumerate() {
+        let name = var(p, VarId(to_u32(i)));
+        match &v.shape {
+            Shape::Scalar => {}
+            Shape::Static { bounds } => {
+                let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} To {u}")).collect();
+                writeln!(out, "Array {name}:{} static ({})", ty(p, v.ty), dims.join(", ")).unwrap();
+            }
+            Shape::Dynamic { dims } => {
+                let dims = dims.map_or("?".to_string(), |n| n.to_string());
+                writeln!(out, "Array {name}:{} dynamic, dimensions: {dims}", ty(p, v.ty)).unwrap();
+            }
+        }
     }
     body(p, &p.main, &mut out);
     for (i, proc) in p.procs.iter().enumerate() {
@@ -111,6 +126,24 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 Op::Assign { place, value } => {
                     let t = ty(p, p.place_ty(place));
                     writeln!(out, "  Assign {}:{t} = {}", place_text(p, place), val(p, value)).unwrap();
+                }
+                Op::Allocate { array, bounds, mode } => {
+                    writeln!(
+                        out,
+                        "  Allocate {mode:?} {}:{}",
+                        var(p, *array),
+                        ty(p, p.var(*array).ty)
+                    )
+                    .unwrap();
+                    for (lower, upper) in bounds {
+                        writeln!(out, "    {} To {}", val(p, lower), val(p, upper)).unwrap();
+                    }
+                }
+                Op::Clear { array } => {
+                    writeln!(out, "  Clear {}:{}", var(p, *array), ty(p, p.var(*array).ty)).unwrap();
+                }
+                Op::Release { array } => {
+                    writeln!(out, "  Release {}:{}", var(p, *array), ty(p, p.var(*array).ty)).unwrap();
                 }
                 Op::Print { to, items, newline } | Op::Write { to, items, newline } => {
                     let word = if matches!(op, Op::Write { .. }) {

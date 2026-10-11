@@ -1,7 +1,7 @@
 //! Operations: one IR operation as C++ lines of its statement, stores by the rule of their place.
 
 use crate::Emitter;
-use crate::decl::{dim_slot, is_qbs};
+use crate::decl::{dim_count, dim_slot, is_qbs};
 use crate::names::{c_type, proc_name};
 use crate::place::fixed_at;
 use qb64rust_ir::{Expr, Facts, LabelId, OnError, Op, Place, PrintItem, Resume, Ty, When};
@@ -58,6 +58,9 @@ impl Emitter<'_> {
                 out.push(format!("if (!error_handling){{error(20);}}else{{{then}}}"));
             }
             Op::Assign { place, value } => self.assign(place, value, out),
+            Op::Allocate { array, bounds, mode } => self.allocate(*array, bounds, *mode, out),
+            Op::Clear { array } => self.clear_array(*array, out),
+            Op::Release { array } => self.release_array(*array, out),
             Op::AssignAll(stores) => {
                 for (place, value) in stores {
                     self.assign(&Place::Var(*place), value, out);
@@ -206,7 +209,13 @@ impl Emitter<'_> {
                 out.push(format!("tmp_long={flat};"));
                 let element = self.element_at(*array, "tmp_long");
                 let v = value(self);
-                if string {
+                if let Ty::Bit { width, .. } = self.p.var(*array).ty {
+                    // A packed element: `setbits` keeps the low bits of the value, as a `_BIT` variable does.
+                    let name = self.name(*array);
+                    out.push(format!(
+                        "if (!is_error_pending()) setbits({width},(uint8*)({name}[0]),tmp_long,{v});"
+                    ));
+                } else if string {
                     out.push(format!("if (!is_error_pending()) qbs_set({element},{v});"));
                 } else {
                     out.push(format!("if (!is_error_pending()) {element}={v};"));
@@ -236,7 +245,7 @@ impl Emitter<'_> {
     fn store_member_of_element(&mut self, place: &Place, value: &str, out: &mut Vec<String>) {
         let ty = self.p.place_ty(place);
         let (array, index, offset) = self.element_root(place);
-        let n = self.p.var(array).bounds().len();
+        let n = dim_count(self.p.var(array));
         let name = self.name(array);
         let size = self.ty_size(self.p.var(array).ty);
         out.push("{".into());

@@ -1,0 +1,19 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+redim_unsupported.bas:7:7: error: not supported yet: `REDIM _RETAIN`
+redim_unsupported.bas:8:7: error: not supported yet: `REDIM _PRESERVE _RETAIN`
+redim_unsupported.bas:9:7: error: not supported yet: arrays as `TYPE` members
+redim_unsupported.bas:10:10: error: not supported yet: a string as an array bound
+redim_unsupported.bas:12:1: error: not supported yet: `z(...)` (an array used without `DIM`, or no FUNCTION of this name)
+redim_unsupported.bas:13:7: error: not supported yet: `ERASE` of `z`, an array used without `DIM`
+redim_unsupported.bas:14:14: error: not supported yet: `LBOUND` of `q`, which is no array (an implicit array)
+redim_unsupported.bas:15:7: error: not supported yet: `ERASE` of `q`, an array used without `DIM`
+redim_unsupported.bas:16:7: error: not supported yet: arrays as `TYPE` members
+redim_unsupported.bas:19:15: error: not supported yet: arrays in a SUB or FUNCTION
+redim_unsupported.bas:20:5: error: not supported yet: `REDIM SHARED` inside a SUB or FUNCTION
+redim_unsupported.bas:21:11: error: not supported yet: `REDIM e` without bounds in a SUB or FUNCTION
+redim_unsupported.bas:22:10: error: not supported yet: arrays in a SUB or FUNCTION
+redim_unsupported.bas:23:11: error: not supported yet: arrays in a SUB or FUNCTION
+redim_unsupported.bas:24:13: error: not supported yet: arrays in a SUB or FUNCTION

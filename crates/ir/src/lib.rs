@@ -79,13 +79,13 @@ pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, U
 /// An item of the program's data: its text, and whether it was written in quotes (the runtime reads a quoted
 /// item's text as it is, and takes an unquoted one as a number where a number is read).
 pub use qb64rust_sema::DataItem;
-/// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
-/// `m2-defxxx-common-arrays`).
-pub use qb64rust_sema::Shape;
 /// Which built-in functions are compiled and the rule each follows; the emitter writes a call by its rule.
 pub use qb64rust_sema::builtins;
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place).
 pub use qb64rust_sema::size_of;
+/// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
+/// `m2-defxxx-common-arrays`), as is what an allocation does with an array that is allocated already.
+pub use qb64rust_sema::{AllocMode, Shape};
 /// Values, places and arguments are `sema`'s typed tree too (design D10 of `m2-arrays-and-types`: the lowering did
 /// no work on them, only a variant-for-variant copy). The emitter ignores an [`Expr`]'s `span` and `qb`. Variable and
 /// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended
@@ -145,8 +145,10 @@ pub enum Storage {
 /// A variable. `name` is the BASIC name in upper case without suffix; two variables may share a name when their
 /// types or their storage differ. An array has a [`Shape`] other than `Scalar`: static, with the lower and upper
 /// bound of each dimension (first dimension first) known when compiling, or dynamic, with a number of dimensions
-/// and no bounds (design D3 of `m2-defxxx-common-arrays`); `ty` is its element type. The IR says what an array
-/// is, never how it is held: no descriptor, no size in bytes.
+/// and no bounds (design D3 of `m2-defxxx-common-arrays`); `ty` is its element type. A static array exists for
+/// as long as its storage does; a dynamic one is not allocated until an [`Op::Allocate`] runs, and until then
+/// (and after an [`Op::Release`]) an element of it, and its bounds, raise error 9. The IR says what an array is,
+/// never how it is held: no descriptor, no size in bytes.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Var {
     pub name: String,
@@ -336,6 +338,37 @@ pub enum Op {
         place: Place,
         value: Expr,
     },
+    /// Give an array bounds and elements, zero or empty (design D4 of `m2-defxxx-common-arrays`): one lower and
+    /// one upper bound per dimension, each an `I64`. In this order (measured, `study\00` §5):
+    ///
+    /// 1. a static array raises error 10, and nothing else happens: the bounds are not evaluated;
+    /// 2. with [`AllocMode::Dim`], an array that is allocated raises error 10 unless an error is pending, and
+    ///    nothing else happens;
+    /// 3. the bounds are evaluated in order, lower before upper, first dimension first. **A raising bound does not
+    ///    stop the operation**: it goes on with the placeholder value;
+    /// 4. a dimension with no element (its upper bound one below its lower bound) raises error 5, and the
+    ///    operation goes on: the array is then allocated with these bounds and no element;
+    /// 5. a dimension whose upper bound is lower still, and a size the machine cannot hold, end the program ("Out
+    ///    of memory"; no handler runs);
+    /// 6. the array has the new bounds. Its elements are new; with [`AllocMode::Preserve`] the first elements by
+    ///    flat position (first dimension fastest) keep their values, as many as the smaller of the old and the
+    ///    new number of elements.
+    ///
+    /// The array may be static or dynamic. Always may raise.
+    Allocate {
+        array: VarId,
+        bounds: Vec<(Expr, Expr)>,
+        mode: AllocMode,
+    },
+    /// Set every element of a static array to zero, an empty string or NUL bytes; its bounds stay.
+    Clear {
+        array: VarId,
+    },
+    /// Release the elements of a dynamic array: it is not allocated afterwards (every use raises error 9) until an
+    /// [`Op::Allocate`] runs. Of an array that is not allocated it does nothing.
+    Release {
+        array: VarId,
+    },
     /// Items in order, to the console (`to` is `None`) or to the file with this number (an `I32`); a raising item
     /// skips the rest, including the line end. In a file a [`PrintItem::Zone`] is 14 columns wide, on the console
     /// 10 (the runtime's).
@@ -430,9 +463,16 @@ impl Op {
             | Op::SetHandler(_)
             | Op::Jump(_)
             | Op::Gosub(_)
-            | Op::Restore { .. } => false,
+            | Op::Restore { .. }
+            | Op::Clear { .. }
+            | Op::Release { .. } => false,
             // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
-            Op::Call { .. } | Op::Builtin { .. } | Op::Raise(_) | Op::Resume(_) | Op::Return(_) => true,
+            Op::Call { .. }
+            | Op::Builtin { .. }
+            | Op::Raise(_)
+            | Op::Resume(_)
+            | Op::Return(_)
+            | Op::Allocate { .. } => true,
             Op::Assign { place, value } => place.may_raise() || value.may_raise(),
             Op::AssignAll(stores) => stores.iter().any(|(_, v)| v.may_raise()),
             Op::Branch { cond, .. } => cond.may_raise(),

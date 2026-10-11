@@ -5,13 +5,24 @@ use super::proc::{FIXED_LEN_ERROR, fixed_len, fixed_name, suffix_fits};
 use super::{Checker, Failed, R, Scope};
 use crate::consteval::Value;
 use crate::literal::{self, NumLit};
-use crate::{ProcKind, Shape, Storage, SymbolKind, Ty, Var, VarId};
+use crate::{ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{show_bytes, to_u32};
 use qb64rust_builtins::{Kind, find_any, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::is_keyword;
-use qb64rust_syntax::tree::Tok;
+use qb64rust_syntax::tree::{Node, Tok};
+
+/// The statement a declaration stands in.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum Declarer {
+    Dim,
+    Static,
+    /// `REDIM`, or with `preserve` `REDIM _PRESERVE`.
+    Redim {
+        preserve: bool,
+    },
+}
 
 impl Checker<'_> {
     // ---- names ----
@@ -458,21 +469,28 @@ impl Checker<'_> {
 
     // ---- declarations ----
 
-    /// `DIM`, `DIM SHARED` (main module only) and `STATIC` (procedures only): `storage` is the class of the
-    /// variables created. `list` is the type written before the names (`DIM AS LONG a, b(3)`): every name of the
-    /// list is then declared as `name AS type` would declare it.
+    /// `DIM`, `DIM SHARED` (main module only), `STATIC` (procedures only) and `REDIM` (`by`): `storage` is the
+    /// class of the variables created. `list` is the type written before the names (`DIM AS LONG a, b(3)`): every
+    /// name of the list is then declared as `name AS type` would declare it. `stmt` is the statement, which an
+    /// array that is allocated when it runs becomes ([`Self::declare_array`]).
     fn declare_items<'t>(
         &mut self,
         items: impl Iterator<Item = ast::DimItem<'t>>,
         list: Option<ast::AsClause<'t>>,
         storage: Storage,
         shared: bool,
+        by: Declarer,
+        stmt: Node,
     ) -> R<()> {
         let list_ty = match list {
             Some(a) => Some(self.type_of(a)?),
             None => None,
         };
         for item in items {
+            if item.is_member_path() {
+                // `REDIM a(1).m(5)`.
+                return Err(self.unsupported(item.node().span(), "arrays as `TYPE` members"));
+            }
             let name_tok = self.need(item.name(), item.node().span())?;
             let (name, suffix) = self.split_var_name(name_tok)?;
             let as_clause = item.as_clause();
@@ -491,9 +509,19 @@ impl Checker<'_> {
             };
             // The type was written with `AS`, on the name or before the list: it types the plain name.
             let typed = as_clause.is_some() || list_ty.is_some();
-            if let Some(bounds) = item.bounds() {
-                self.declare_array(typed, bounds, (name_tok, name, suffix, ty), storage, shared)?;
+            // With nothing between the parentheses, and in a `REDIM` without parentheses, the name is declared as
+            // a scalar and no array is made (measured in the main module, `verification\v24_b_dim_empty*`,
+            // `v24_x43`, `x44`, `x86`). `STATIC a()` is an array (measured), and a procedure's arrays come later.
+            if let Some(bounds) = item.bounds()
+                && (!bounds.ranges().is_empty() || storage != Storage::Main)
+            {
+                self.declare_array(typed, bounds, (name_tok, name, suffix, ty), storage, shared, by, stmt)?;
                 continue;
+            }
+            if matches!(by, Declarer::Redim { .. }) && storage != Storage::Main {
+                let shown = show_bytes(self.text(name_tok.span));
+                let msg = format!("`REDIM {shown}` without bounds in a SUB or FUNCTION");
+                return Err(self.unsupported(name_tok.span, msg));
             }
             if name.contains('.') && matches!(ty, Ty::User(_)) {
                 let shown = show_bytes(self.text(name_tok.span));
@@ -589,7 +617,8 @@ impl Checker<'_> {
             }
             (Some(p), false) => Storage::Local(p),
         };
-        self.declare_items(stmt.items(), stmt.as_clause(), storage, shared)
+        let node = stmt.node();
+        self.declare_items(stmt.items(), stmt.as_clause(), storage, shared, Declarer::Dim, node)
     }
 
     pub(super) fn static_stmt(&mut self, stmt: ast::StaticStmt) -> R<()> {
@@ -597,7 +626,87 @@ impl Checker<'_> {
             let span = stmt.node().span();
             return Err(self.unsupported(span, "`STATIC` in the main module"));
         };
-        self.declare_items(stmt.items(), stmt.as_clause(), Storage::Static(p), false)
+        let node = stmt.node();
+        self.declare_items(
+            stmt.items(),
+            stmt.as_clause(),
+            Storage::Static(p),
+            false,
+            Declarer::Static,
+            node,
+        )
+    }
+
+    /// `REDIM [_PRESERVE] [SHARED] name(bounds) [AS type], …` (design D3, D4 of `m2-defxxx-common-arrays`): each
+    /// name is a dynamic array, declared here when no array of the name and type is visible, and given new bounds
+    /// and new elements when the statement runs. Measured (`verification\v24_c_redim*`, `v24_x39`–`x56`): the
+    /// words come in this order; `REDIM SHARED _PRESERVE` is "Invalid variable name".
+    pub(super) fn redim(&mut self, stmt: ast::RedimStmt) -> R<()> {
+        let node = stmt.node();
+        let words: Vec<Tok> = stmt.words().collect();
+        let texts: Vec<String> = words.iter().map(|&t| self.word(t)).collect();
+        let texts: Vec<&str> = texts.iter().map(String::as_str).collect();
+        let (preserve, shared) = match texts[..] {
+            [] => (false, false),
+            ["_PRESERVE"] => (true, false),
+            ["SHARED"] => (false, true),
+            ["_PRESERVE", "SHARED"] => (true, true),
+            ["SHARED", "_PRESERVE"] => {
+                return Err(self.error(words[1].span, "`_PRESERVE` comes before `SHARED` in a `REDIM`"));
+            }
+            // `_RETAIN`, alone or with the other words.
+            _ => return Err(self.unsupported(words[0].span, format!("`REDIM {}`", texts.join(" ")))),
+        };
+        let storage = match (self.cur, shared) {
+            (None, _) => Storage::Main,
+            (Some(_), true) => {
+                return Err(self.unsupported(node.span(), "`REDIM SHARED` inside a SUB or FUNCTION"));
+            }
+            (Some(p), false) => Storage::Local(p),
+        };
+        let by = Declarer::Redim { preserve };
+        self.declare_items(stmt.items(), stmt.as_clause(), storage, shared, by, node)
+    }
+
+    /// `ERASE name, …` (design D4 of `m2-defxxx-common-arrays`; measured, `verification\v24_d_*`, `v24_x57`–`x63`):
+    /// a static array is cleared, a dynamic one released, in order. Anything that is no declared array is
+    /// "Undefined array passed to ERASE": a scalar, a name never used (no array is made for it), `name()`, an
+    /// element, a suffix of another type than the array's.
+    pub(super) fn erase(&mut self, stmt: ast::EraseStmt) -> R<()> {
+        let node = stmt.node();
+        for target in stmt.targets() {
+            let name = match target {
+                ast::EraseTarget::Name { name, parens: false } => name,
+                ast::EraseTarget::Name { name, parens: true } => {
+                    let span = name.node().span();
+                    return Err(self.error(span, "`ERASE` takes the array's name without `()`"));
+                }
+                ast::EraseTarget::Other(ast::Expr::Field(f)) => {
+                    return Err(self.unsupported(f.node().span(), "arrays as `TYPE` members"));
+                }
+                ast::EraseTarget::Other(other) => {
+                    return Err(self.error(other.node().span(), "`ERASE` takes a whole array, by its name"));
+                }
+            };
+            let t = self.need(name.name(), node.span())?;
+            let (array_name, suffix) = self.split_name(t)?;
+            let Some(array) = self.find_array(&array_name, suffix) else {
+                let shown = show_bytes(self.text(t.span));
+                if self.implicit_names.contains(&array_name) {
+                    let msg = format!("`ERASE` of `{shown}`, an array used without `DIM`");
+                    return Err(self.unsupported(t.span, msg));
+                }
+                return Err(self.error(t.span, format!("`{shown}` is no declared array (`ERASE`)")));
+            };
+            self.names.push((SymbolKind::Var(array), t.span));
+            let kind = match self.prog.var(array).shape {
+                Shape::Static { .. } => StmtKind::Clear { array },
+                Shape::Dynamic { .. } => StmtKind::Release { array },
+                Shape::Scalar => unreachable!("an array is no scalar"),
+            };
+            self.push(node, kind);
+        }
+        Ok(())
     }
 
     /// `OPTION _EXPLICIT` and `OPTION _EXPLICITARRAY` (design D7). The flag was set by the pre-pass, since it

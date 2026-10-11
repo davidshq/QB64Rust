@@ -254,6 +254,13 @@ impl<'a> Lowerer<'a> {
                 place: place.clone(),
                 value: value.clone(),
             },
+            sema::StmtKind::Allocate { array, bounds, mode } => Op::Allocate {
+                array: *array,
+                bounds: bounds.clone(),
+                mode: *mode,
+            },
+            sema::StmtKind::Clear { array } => Op::Clear { array: *array },
+            sema::StmtKind::Release { array } => Op::Release { array: *array },
             sema::StmtKind::Print { to, items, newline } => Op::Print {
                 to: to.clone(),
                 items: print_items(items),

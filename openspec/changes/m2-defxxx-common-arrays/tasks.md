@@ -219,7 +219,7 @@ tests\corpus\slice.list`, run also with `QB64RUST_NO_FOLD=1`.
 
 ## 4. Dynamic arrays in the main module (design D3, D4, D7)
 
-- [ ] 4.1 `sema` and IR: `Allocate` (modes `Dim`, `Redim`, `Preserve`), `Clear`, `Release`; `DIM` with a bound that
+- [x] 4.1 `sema` and IR: `Allocate` (modes `Dim`, `Redim`, `Preserve`), `Clear`, `Release`; `DIM` with a bound that
   is not constant **by its spelling** (found in 3.2: a bound with an operator makes a dynamic array though its
   value is known; such `DIM`s are compiled as static arrays today and move to the dynamic side here, with a
   `typed` test for each spelling of `verification\v24_b_constant_bounds*` and the "Known bugs" line of
@@ -227,16 +227,75 @@ tests\corpus\slice.list`, run also with `QB64RUST_NO_FOLD=1`.
   `ERASE` of static and dynamic arrays; `ir::validate` checks of D4 with one broken hand-built program each; both
   dumps. Verify: `typed` and `ir` snapshot tests per statement and mode; `check-fail` tests per compile error of the
   requirements "Dynamic arrays", "REDIM" and "ERASE"; `validate` unit tests fail on each broken program.
-- [ ] 4.2 Emitter: the not-allocated descriptor, `Allocate` with errors 5, 10 and 257 in the measured order,
+  Done 2026-10-11. `declare_array` (`check\places.rs`) settles static or dynamic at the first declaration, from
+  the spelling of each bound (`dim_bounds`, `bound_spelling`), and makes every later `DIM` or `REDIM` an
+  `Allocate`; `redim` and `erase` are in `check\decl.rs`. The three statements are in the typed tree, the IR,
+  `validate` (7 unit tests) and both dumps; the IR dump now lists the arrays (five older `ir` snapshots gained
+  their `Array` lines). Tests: `dynamic_bounds_typed.bas` (the 27 spellings of the two measurements and `-&H5`),
+  `redim_typed.bas`, `dynamic_arrays_ir.bas`, `redim_errors.bas` (22 errors), `redim_unsupported.bas`;
+  `arrays_typed` shows `DIM f(-(2 ^ 2) TO 10 \ 3)` as a dynamic array now. The "Known bugs" line is gone.
+  Beside the task's list:
+  - **measured first, because I had read them off the old compiler's source** (`verification\v24_x244`–`x250`):
+    two came out as read (bounds checked per dimension; a constant `DIM` again below `$DYNAMIC` runs), and **two
+    did not**: `-&H5` is one number (I had taken it for an operator), and `SHARED` on a later `REDIM` is accepted
+    and ignored (I had marked it). Both corrected; `study\00` §5, the delta and `SOMEDAY.md` have them;
+  - a `REDIM` and an `ERASE` in a procedure of a `DIM SHARED` array compile here (measured,
+    `v24_c_redim_shared`; nothing new is needed for them); a procedure's own arrays stay marked for group 6;
+  - `array` is a `VarId`, not yet the `ArrayRef` of D4 (it comes with member arrays, group 9);
+  - a typed array beside a scalar of its name typed alike is no longer marked (measured, `v24_x56`,
+    `v24_b_dim_empty_then_dim`); `ERASE` of an array used without `DIM` is marked until group 5.
+- [x] 4.2 Emitter: the not-allocated descriptor, `Allocate` with errors 5, 10 and 257 in the measured order,
   release of the old block after the new one exists, `Preserve` by flat position for numbers, strings, fixed-length
   strings and user types, `Clear` and `Release`; `LBOUND`/`UBOUND` and element access of an array not allocated.
   `_BIT` arrays here if 1.2 decided for them. Verify: `cpp` snapshot tests per statement; slice programs
   `s52_dynamic`, `s53_redim`, `s54_redim_preserve`, `s55_erase` (one scenario of the delta each at least), recorded
   with `qb64pe.exe`, pass in tier 2 with and without `QB64RUST_NO_FOLD=1`.
-- [ ] 4.3 Lists and documents as 2.3; `tools\callsite` programs for any libqb call newly written that the check
+  Done 2026-10-11. `codegen-cpp\src\arrays.rs` (new) writes `Allocate` after `allocarray`'s sequence, read in
+  `qb64pe.bas` 15193–15531; `decl.rs` the not-allocated descriptor, `release` and the packed size of `_BIT`
+  arrays. `_BIT` arrays are in, static and dynamic: `getbits`/`getubits` to read, `setbits` to store, kept
+  elements copied one by one in `_PRESERVE`. Tests: `dynamic_arrays_cpp.bas`, `bit_arrays_cpp.bas`,
+  `bit_arrays_errors.bas` (in place of `bit_arrays.bas`, which pinned the mark). Slice programs `s52_dynamic`,
+  `s52_dynamic_memory` (the "Out of memory" end), `s53_redim`, `s54_redim_preserve`, `s55_erase`, each recorded
+  from two equal runs: **the new compiler printed all five as recorded on its first run**, also with
+  `QB64RUST_NO_FOLD=1`. The 71 measurement programs of this group (`v24_b_*`, `v24_c_*`, `v24_d_*`, `v24_x38`–
+  `x63`, `x80`–`x82`, `x86`–`x101`, `x104`, `x244`–`x253`), run with the new compiler: 38 build and print what
+  the old compiler printed, 21 are rejected by both with a real error, none differs; 10 the old compiler
+  accepts are still marked (arrays used without `DIM` in 8, a label named like a SUB, a plain scalar beside an
+  array typed with `AS`) and 2 it rejects are marked (`$DYNAMIC` as a statement, `OPTION _EXPLICITARRAY`).
+  - **Found with `_BIT` arrays in:** console `INPUT` into a `_BIT` element went through `sema` and failed the
+    C++ build. Measured (`v24_x251`–`x253`): the old compiler rejects it ("INPUT cannot handle _BIT array
+    elements") and takes `READ` and `INPUT #` into one. `sema` rejects the first now; the other two already
+    printed as recorded (slice `s52_dynamic` line 19 pins `READ`).
+  - Not done, by design D7's note: a dynamic array of the main module is not released when the program ends.
+- [x] 4.3 Lists and documents as 2.3; `tools\callsite` programs for any libqb call newly written that the check
   can compare. Verify: the lists only shrank; `python tools\callsite\callsite.py` all equal; expected against passed
   stated here (corpus: `120_redim_no_preserve`, `203_redim_multiple`, `206_shared_redim`, `40_erase`,
   `201_erase_udt_array`; upstream: the `REDIM` programs not needing member arrays).
+  Done 2026-10-11. `known_unsupported_rejections.list` shrank by two (`arrays/negative_array_size`, `_2`: they
+  get the old compiler's "Invalid array bounds" now); the other two lists are unchanged. No plain `REDIM`,
+  `ERASE`, `$DYNAMIC` or "bound that is not constant" line is left in the three reports (`REDIM _RETAIN`, 27
+  upstream programs, stays in `SOMEDAY.md`). The call-site check is 256 of 256 equal; no program was added:
+  the allocation is inline C++ and `getbits`/`setbits` are no built-in forms. **Expected against passed.**
+  Corpus: 4 of the 5 became clean and pass (`40_erase`, `120_redim_no_preserve`, `201_erase_udt_array`,
+  `203_redim_multiple`); `206_shared_redim` waits on `SHARED a()` (group 6). Upstream: 3 became clean and pass
+  (`arrays/02_option_base1_only_affects_later_normal_arrays`, `36_redim_preserve_packed_bit_shrink_grow`,
+  `erase_dynamic_string_array_reuse`: 56 of 279); the other `REDIM` programs wait on member arrays, arrays
+  used without `DIM`, arrays in procedures or `REDIM _RETAIN`. Group 4 closes with `fmt`, `clippy` and `cargo
+  test` green, tier 2 slice 273 of 273 (also with `QB64RUST_NO_FOLD=1`), the upstream pass list 56 of 56, the
+  differential list 59 of 59 and the runner's tests 56 of 56.
+  **Review of group 4 (2026-10-11), one fix:**
+  - **a false syntax error, older than this change and made visible by it:** the parser took `PRESERVE` and
+    `RETAIN` without their underscore as words of a `REDIM`, so `REDIM preserve(3)` was "expected a variable
+    name". Measured (`verification\v24_x254`, `x255`): the old compiler rejects `$NOPREFIX`, the two words are
+    names like any other (`REDIM preserve(3)` declares an array), and `REDIM PRESERVE x(5)` is "DIM: Expected
+    ,". The parser reads only `_PRESERVE`, `_RETAIN` and `SHARED` now (`parser\decl.rs`); tests in
+    `redim_typed.bas` and `redim_errors.bas`. `known_unsupported_rejections.list` shrank by two more
+    (`runtime_comparison/28_redim`, `202_redim_preserve`, both `REDIM PRESERVE`: a syntax error now, as in the
+    old compiler). No program of a pass list is touched (none could name the words before), so tier 2 was not
+    run again; `fmt`, `clippy` and `cargo test` are green.
+  - Read again and left as they are: the order of an allocation's checks against `allocarray`; the working
+    variables as locals; that no path takes the address of a `_BIT` element (arguments are copies, `SWAP`, `LEN`
+    and console `INPUT` are errors, `READ` and `INPUT #` go through the store).
 
 ## 5. Implicit arrays (design D5)
 

@@ -209,6 +209,16 @@ one, or `DIM a(n)` after `DIM a(5)`): it raises 10 and its bounds are not evalua
 of the descriptor's flag in every case, since an array parameter may be either kind (1.3). `ir::validate` gains:
 `Release` names a dynamic array, `Clear` a static one, the number of bounds equals a known number of dimensions.
 
+**As built in group 4 (2026-10-11):** `array` is a `VarId` in the three statements; `ArrayRef` comes with member
+arrays (D8, group 9), which change `Place::Element` in the same way, and `EraseParam` with array parameters
+(group 7). A `REDIM` and an `ERASE` in a procedure already reach a `DIM SHARED` array of the main module (slice
+`s53`–`s55`, `verification\v24_c_redim_shared`); a procedure's own arrays stay marked until group 6. Until arrays used without `DIM`
+compile (group 5), `sema` remembers the names it marked as such, so that an `ERASE` of one is marked too and
+only an `ERASE` of a name never used is the compile error. Measured on the way (`verification\v24_x244`–`x253`,
+`study\00` §5): constant bounds are checked per dimension; a second constant `DIM` of a static array below
+`$DYNAMIC` runs and raises 10; `-&H5` is one number; `SHARED` on a later `REDIM` is ignored; `READ` and `INPUT #`
+store into a `_BIT` element and console `INPUT` into one is a compile error.
+
 *Alternative considered:* lowering `REDIM _PRESERVE` to a loop of element copies in the IR. Rejected: the copy is
 by flat position over raw storage (`study\02` §3.4), which is the emitter's knowledge, like index arithmetic was
 in `m2-arrays-and-types` D10.
@@ -293,7 +303,10 @@ too.
   flat position (strings assigned, raw bytes copied) into the new block, then releases the old one. `_MEM` locks
   are not kept (non-goal); the descriptor's lock slot stays as today.
 - **A static array with no element** (D3) raises 5 in its set-up at program start, as the old compiler's does.
-- **`Clear`/`Release`** as `study\10` §1.8.
+- **`Clear`/`Release`** as `study\10` §1.8. A dynamic array of the main module is not released when the program
+  ends (the old compiler writes that into `mainfree.txt`; the process ends there, so nothing shows). The working
+  variables of an allocation are locals of the statement's block where the old compiler has `static` ones, so a
+  FUNCTION called in a bound may run the same statement again.
 - **Per-call release**: a procedure's local arrays are released on every way out of the procedure, strings first,
   where its local strings are released today (`codegen-cpp\src\procs.rs`).
 - **Array arguments**: the descriptor pointer.

@@ -7,7 +7,8 @@ a scenario whose outcome reads "equals the old compiler's" is pinned by the reco
 
 ### Requirement: Static arrays
 `DIM name(bounds) [AS type]` and `DIM SHARED name(bounds) [AS type]` in the main module, with bounds that are each
-one number or the name of one constant (in parentheses or not; a minus before a number is part of the number),
+one number or the name of one constant (in parentheses or not; a minus before a number is part of the number, also
+before `&H5`),
 SHALL declare an array of any numeric type, of `_BIT` and `_BIT * n` with or without
 `_UNSIGNED`, of `STRING`, of a fixed-length string or of a user type: each
 dimension is `upper` (lower bound 0, or the `OPTION BASE` in effect) or `lower TO upper`, each bound rounded half
@@ -19,8 +20,9 @@ plus a type, in a name space of its own beside scalar variables. An upper bound 
 array instead (requirement "Dynamic arrays") when `$DYNAMIC` is in effect or a bound is not constant: a bound
 with an operator is not, whatever its value (`DIM a(2 + 3)`, `DIM a(k + 1)` and `DIM a(-k)` for a constant `k`
 make dynamic arrays, as in the old compiler). An element
-of a `_BIT` array SHALL hold what a `_BIT` variable of that width holds; `SWAP` of two such elements and `LEN` of
-one SHALL be compile errors, and such an element SHALL be passed to a procedure by value. `DIM name()` with
+of a `_BIT` array SHALL hold what a `_BIT` variable of that width holds; `SWAP` of two such elements, `LEN` of
+one and console `INPUT` into one SHALL be compile errors, such an element SHALL be passed to a procedure by
+value, and `READ` and `INPUT #` SHALL store into one. `DIM name()` with
 nothing between the parentheses SHALL declare the scalar variable `name` and no array, as the old compiler does.
 
 #### Scenario: Bounds
@@ -164,7 +166,19 @@ element; a dimension whose upper bound is lower still, and a request the machine
 program with "Out of memory", which no error handler receives. A bound whose evaluation raises an error SHALL NOT
 stop the allocation. Using an element of a dynamic array that is not allocated, and `LBOUND` or `UBOUND` of it,
 SHALL raise error 9. An array used without `DIM` while `$DYNAMIC` is in effect SHALL be allocated by the first
-statement in the file that names it.
+statement in the file that names it. A dimension whose bounds are constants SHALL be checked when compiling as
+in a static array, whatever the other dimensions are: a single negative bound, and `lower TO upper` in the wrong
+order, SHALL be compile errors. A `DIM` or `REDIM` with another number of dimensions than the array has SHALL be
+a compile error.
+
+#### Scenario: A constant dimension beside a variable one
+- **WHEN** `DIM half(n TO 2, -1)` or `DIM part(n, 3 TO 1)` is compiled for a variable `n`
+- **THEN** each is a compile error; `DIM none(n TO 2)` compiles, and with `n = 3` raises error 5 when it runs
+
+#### Scenario: A second constant DIM below $DYNAMIC
+- **WHEN** `DIM st(5) AS LONG` is followed, below a line `'$DYNAMIC`, by `DIM st(5) AS LONG: PRINT UBOUND(st)` under
+  a handler that prints `ERR` and resumes next
+- **THEN** it compiles, the handler prints 10, and ` 5 ` is printed
 
 #### Scenario: Bound from a variable
 - **WHEN** `n = 4: DIM d(n) AS LONG: d(4) = 9: PRINT UBOUND(d); d(4)` runs
@@ -213,7 +227,14 @@ dimensions than the array has, another type written with `AS` than the array was
 between `STRING` and `STRING * n` or of n, SHALL be compile errors. A dimension with no element, a lower upper
 bound still and a bound that raises SHALL behave as for `DIM` (requirement "Dynamic arrays"), the old elements
 being gone. `REDIM name()` and `REDIM name AS type` SHALL declare a scalar, as `DIM name()` does. The words after
-`REDIM` SHALL be `_PRESERVE`, then `SHARED`; `REDIM SHARED _PRESERVE` SHALL be a compile error.
+`REDIM` SHALL be `_PRESERVE`, then `SHARED`; `REDIM SHARED _PRESERVE` SHALL be a compile error. `SHARED` SHALL
+share the array only in the statement that declares it: on a later `REDIM` of the array it SHALL change nothing,
+as in the old compiler. `PRESERVE` and `RETAIN` without their underscore SHALL be names like any other (`REDIM
+preserve(3)` declares an array of that name).
+
+#### Scenario: SHARED on a later REDIM
+- **WHEN** `REDIM ns(3) AS LONG`, then `REDIM SHARED ns(4) AS LONG: PRINT UBOUND(ns)` run
+- **THEN** it prints ` 4 `, and `ns` is not visible in a SUB below
 
 #### Scenario: New bounds, new elements
 - **WHEN** `REDIM r(5) AS LONG: r(2) = 7: REDIM r(1 TO 20) AS LONG: PRINT LBOUND(r); UBOUND(r); r(2)` runs

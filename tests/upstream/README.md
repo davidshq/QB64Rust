@@ -212,3 +212,13 @@ names). Added to `pass.list`: `arrays/t659_variable_boolean_expr` and `operators
 and printed one wrong line at first (`2 ^ -NOT x + 3` gave 16, not 5): the parser did not stop a `NOT` inside a
 minus right of `^` at the next operator, as the old compiler does (`study\02` §1.2 step D). Fixed with the task
 (`crates\syntax\src\parser\expr.rs`, `verification\v24_j_power_unary`, slice `s51_power_unary`).
+
+**Upstream progress, 2026-10-11 (group 4): 56 of 279** (`m2-defxxx-common-arrays` group 4: dynamic arrays in the
+main module, `REDIM`, `ERASE`, `_BIT` arrays). Added to `pass.list`:
+`arrays/02_option_base1_only_affects_later_normal_arrays`, `arrays/36_redim_preserve_packed_bit_shrink_grow` and
+`arrays/erase_dynamic_string_array_reuse`; each passed on its first run. `arrays/negative_array_size` and
+`negative_array_size_2` (rejected by the old compiler: "Invalid array bounds") left
+`tests\known_unsupported_rejections.list`: they get that error now. The other upstream programs with a `REDIM`
+still wait on something else: member arrays (most), arrays used without `DIM`, arrays in procedures and array
+parameters (groups 5 to 9 of the change), `REDIM _RETAIN` (27 programs, `SOMEDAY.md`), or `_DEST`, `_MEM` and
+images.

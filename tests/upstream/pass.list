@@ -1,6 +1,9 @@
 # Upstream programs the new compiler passes end to end (spec testing/upstream-tests, "Upstream progress"). A
 # ratchet: programs are added when they pass, never removed. Run: python tools/legacy_tests/run_legacy_tests.py
 # --suite compile --qb64 target/release/qb64rust.exe --list tests/upstream/pass.list
+arrays/02_option_base1_only_affects_later_normal_arrays
+arrays/36_redim_preserve_packed_bit_shrink_grow
+arrays/erase_dynamic_string_array_reuse
 arrays/t659_array_assignment_control
 arrays/t659_explicit_call_control
 arrays/t659_sub_call_comparisons

@@ -1,8 +1,8 @@
 //! `--dump typed`: one node per line, indented, with its type (FreeBASIC lesson L8: assertions on types).
 
 use crate::{
-    Arg, CaseItem, Expr, ExprKind, InputSource, Place, PrintItem, ProcKind, Program, Resume, Stmt, StmtArg, StmtKind,
-    Storage, Ty, VarId,
+    Arg, CaseItem, Expr, ExprKind, InputSource, Place, PrintItem, ProcKind, Program, Resume, Shape, Stmt, StmtArg,
+    StmtKind, Storage, Ty, VarId,
 };
 
 use qb64rust_base::show_bytes;
@@ -19,10 +19,23 @@ pub fn dump_typed(p: &Program) -> String {
             writeln!(out, "  {}:{}", m.name, ty(p, m.ty)).unwrap();
         }
     }
-    for (i, v) in p.vars.iter().enumerate().filter(|(_, v)| v.is_array()) {
-        let dims: Vec<String> = v.bounds().iter().map(|(l, u)| format!("{l} TO {u}")).collect();
+    for (i, v) in p.vars.iter().enumerate() {
         let name = var_name(p, VarId(qb64rust_base::to_u32(i)));
-        writeln!(out, "ARRAY {name}:{}({})", ty(p, v.ty), dims.join(", ")).unwrap();
+        match &v.shape {
+            Shape::Scalar => {}
+            Shape::Static { bounds } => {
+                let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} TO {u}")).collect();
+                writeln!(out, "ARRAY {name}:{}({})", ty(p, v.ty), dims.join(", ")).unwrap();
+            }
+            Shape::Dynamic { dims } => {
+                let dims = match dims {
+                    Some(1) => "1 dimension".to_string(),
+                    Some(n) => format!("{n} dimensions"),
+                    None => "dimensions not known".to_string(),
+                };
+                writeln!(out, "ARRAY {name}:{} dynamic, {dims}", ty(p, v.ty)).unwrap();
+            }
+        }
     }
     // The program's data, when there is any: one item per line, a quoted one in quotes.
     for (i, item) in p.data.iter().enumerate() {
@@ -170,6 +183,24 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 } else {
                     expr(p, value, d + 1, out);
                 }
+            }
+            StmtKind::Allocate { array, bounds, mode } => {
+                let t = ty(p, p.var(*array).ty);
+                line(out, &format!("Allocate {}:{t} ({mode:?})", var_name(p, *array)));
+                for (lower, upper) in bounds {
+                    heading(out, "Lower");
+                    expr(p, lower, d + 2, out);
+                    heading(out, "Upper");
+                    expr(p, upper, d + 2, out);
+                }
+            }
+            StmtKind::Clear { array } => {
+                let t = ty(p, p.var(*array).ty);
+                line(out, &format!("Clear {}:{t}", var_name(p, *array)));
+            }
+            StmtKind::Release { array } => {
+                let t = ty(p, p.var(*array).ty);
+                line(out, &format!("Release {}:{t}", var_name(p, *array)));
             }
             StmtKind::Print { to, items, newline } | StmtKind::Write { to, items, newline } => {
                 let word = if matches!(&s.kind, StmtKind::Write { .. }) {

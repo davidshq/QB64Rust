@@ -79,6 +79,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         proc_defaults: HashMap::new(),
         option_base: 0,
         dynamic_mode: false,
+        implicit_names: HashSet::new(),
     };
     let skips = Skips::new(program);
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
@@ -299,6 +300,10 @@ struct Checker<'a> {
     /// with constant bounds then makes a dynamic array. It follows the file too (measured,
     /// `verification\v24_b_metacommand*`).
     dynamic_mode: bool,
+    /// The names met as `name(…)` or in `LBOUND`/`UBOUND` that name no array: arrays used without `DIM`, which are
+    /// "not supported yet". An `ERASE` of such a name is marked too, where any other name that is no array is an
+    /// error.
+    implicit_names: HashSet<String>,
 }
 
 /// Every default type is SINGLE until a `DEFxxx` or `_DEFINE` says otherwise.
@@ -581,12 +586,12 @@ impl Checker<'_> {
             self.const_stmt(s)
         } else if let Some(s) = ast::OptionStmt::cast(node) {
             self.option_stmt(s)
-        } else if ast::RedimStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "`REDIM`"))
+        } else if let Some(s) = ast::RedimStmt::cast(node) {
+            self.redim(s)
         } else if ast::CommonStmt::cast(node).is_some() {
             Err(self.unsupported(first_token_span(node), "`COMMON`"))
-        } else if ast::EraseStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "`ERASE`"))
+        } else if let Some(s) = ast::EraseStmt::cast(node) {
+            self.erase(s)
         } else if let Some(s) = ast::DefTypeStmt::cast(node) {
             self.def_type(s)
         } else {

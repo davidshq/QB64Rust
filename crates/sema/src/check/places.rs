@@ -2,14 +2,31 @@
 //! arrays and their bounds, array elements, members and dotted names, `LBOUND`/`UBOUND`. Every rule is measured
 //! (`verification\v18_*`, `study\00` §5); what was not measured is "not supported yet".
 
+use super::decl::Declarer;
 use super::{Checker, Failed, R, Skips};
-use crate::{BinOp, ConvKind, UnOp};
+use crate::{AllocMode, BinOp, ConvKind, StmtKind, UnOp};
 use crate::{Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType, Var, VarId};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::find_any;
+use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::is_keyword;
 use qb64rust_syntax::tree::{Node, Tok};
+
+/// One dimension of a declaration ([`Checker::dim_bounds`]): its bounds as values of type `_INTEGER64`, and as
+/// numbers when both are constant by their spelling.
+struct DimBounds {
+    lower: Expr,
+    upper: Expr,
+    constant: Option<(i64, i64)>,
+}
+
+/// How an array bound is written: one number, one name (constant when it names a `CONST`), or anything else.
+enum Spelling {
+    Number,
+    Name,
+    Operator,
+}
 
 /// The type words that name a built-in type, which a `TYPE` may not take as its name (not measured: "not supported
 /// yet").
@@ -193,9 +210,22 @@ impl Checker<'_> {
 
     // ---- arrays ----
 
-    /// `DIM name(bounds) [AS type]` (design D4): a static array of the main module, also `DIM SHARED`. `ty` is the
-    /// element type from the suffix, the `AS` clause or the default type of the name; `typed` says it was written
-    /// with `AS` (on the name, or before a list of names), which types the array's plain name.
+    /// `DIM name(bounds) [AS type]`, also `DIM SHARED`, and `REDIM [_PRESERVE] [SHARED] name(bounds) [AS type]`
+    /// (`by`; design D3 and D4 of `m2-defxxx-common-arrays`). `ty` is the element type from the suffix, the `AS`
+    /// clause or the default type of the name; `typed` says it was written with `AS` (on the name, or before a
+    /// list of names), which types the plain name of an array declared here.
+    ///
+    /// **What an array is, is settled by the first declaration of it in the file** (measured, `study\00` §5): a
+    /// static array when that is a `DIM` of the main module with bounds that are all constant by their spelling
+    /// ([`Self::dim_bounds`]) and `$DYNAMIC` is not in effect; a dynamic one otherwise. A static array's `DIM` is
+    /// no statement. Every other declaration, the first one of a dynamic array and any later one, is an
+    /// [`StmtKind::Allocate`] at `stmt`, which gives the bounds when it runs; only a `DIM` with constant bounds of
+    /// an array that is static already is a compile error. A procedure's own arrays are not supported yet: there
+    /// a `REDIM` reaches a `DIM SHARED` array of the main module.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "one declaration item and the statement it stands in"
+    )]
     pub(super) fn declare_array(
         &mut self,
         typed: bool,
@@ -203,9 +233,17 @@ impl Checker<'_> {
         (name_tok, name, suffix, ty): (Tok, String, Option<Ty>, Ty),
         storage: Storage,
         shared: bool,
+        by: Declarer,
+        stmt: Node,
     ) -> R<()> {
         let shown = show_bytes(self.text(name_tok.span));
-        if storage != Storage::Main {
+        let mode = match by {
+            Declarer::Dim | Declarer::Static => AllocMode::Dim,
+            Declarer::Redim { preserve: false } => AllocMode::Redim,
+            Declarer::Redim { preserve: true } => AllocMode::Preserve,
+        };
+        let redim = matches!(by, Declarer::Redim { .. });
+        if storage != Storage::Main && !redim {
             return Err(self.unsupported(bounds.node().span(), "arrays in a SUB or FUNCTION"));
         }
         if self.procs_by_name.contains_key(&name) {
@@ -216,69 +254,87 @@ impl Checker<'_> {
             return Err(self.unsupported(name_tok.span, format!("an array with a constant's name: `{shown}`")));
         }
         self.reserved(name_tok, &name, suffix)?;
-        if let Ty::Bit { .. } = ty {
-            // `_BIT` arrays pack their elements (not measured here; the spec keeps them "not supported yet").
-            let name = self.prog.type_name(ty);
-            return Err(self.unsupported(bounds.node().span(), format!("arrays of `{name}`")));
-        }
+        // Measured (`v09` test 3, `v24_x48`): a `REDIM` without a type takes the type of an array of the name
+        // declared with `AS`, by `REDIM` or by `DIM`. With `AS` and another type than that array's it is "Name
+        // already in use", between `STRING` and `STRING * n` or two lengths "Type mismatch" (`v24_x39`, `x41`,
+        // `x42`).
+        let plain_array = self.array_plain_ty(&name);
+        let ty = match (redim && suffix.is_none(), typed, plain_array) {
+            (true, false, Some(adopted)) => adopted,
+            (true, true, Some(other)) if other != ty => {
+                if other.is_string() && ty.is_string() {
+                    let msg = format!("a `REDIM` cannot change the array `{shown}` between `STRING` and `STRING * n`");
+                    return Err(self.error(name_tok.span, msg));
+                }
+                return Err(self.in_use(name_tok));
+            }
+            _ => ty,
+        };
         if let Some(Ty::FixedStr(_)) = suffix {
             // `DIM a$3(2)` was not measured (`DIM a(2) AS STRING * 3` was).
             return Err(self.unsupported(name_tok.span, format!("an array named with `$n`: `{shown}`")));
         }
-        let ranges = bounds.ranges();
-        if ranges.is_empty() {
-            return Err(self.unsupported(bounds.node().span(), "`DIM a()` (a dynamic array)"));
-        }
-        if self.dynamic_mode {
-            // Design D3: below `$DYNAMIC` the array is dynamic, whatever its bounds.
-            return Err(self.unsupported(bounds.node().span(), "`DIM` below `$DYNAMIC` (a dynamic array)"));
-        }
-        let mut dims = Vec::with_capacity(ranges.len());
-        let mut count: i64 = 1;
-        for (lower, upper) in ranges {
-            let upper = self.need(upper, bounds.node().span())?;
-            let u = self.bound(upper)?;
-            // Without `TO` the lower bound is `OPTION BASE` as it stands here; a bound written as the number 0 in
-            // plain digits stays 0 to 0 (measured, `verification\v24_e_option_base`, `v24_x71`–`x83`: the old
-            // compiler compares the text, so `0&`, `(0)`, `0 + 0` and a `CONST` that is 0 do not count).
-            let l = match lower {
-                Some(l) => self.bound(l)?,
-                None if self.is_plain_zero(upper) => 0,
-                None => self.option_base,
-            };
-            // Measured: "Invalid array bounds" for a single negative bound and for `lower TO upper` in the wrong
-            // order (`v18_e_bounds_negative`, `_reversed`). Under `OPTION BASE 1` a single bound that is 0 without
-            // being written `0` is accepted: the array is 1 to 0, and the program raises error 5 when it starts
-            // (`v24_x71`, `x103`), where the emitter sets the array up.
-            if (lower.is_some() && u < l) || (lower.is_none() && u < 0) {
-                let span = upper.node().span();
-                return Err(self.error(span, format!("invalid bounds for `{shown}`: {l} TO {u}")));
-            }
-            count = match (u - l).checked_add(1).and_then(|n| count.checked_mul(n)) {
-                Some(n) if n <= MAX_ELEMENTS => n,
-                _ => return Err(self.unsupported(bounds.node().span(), "an array of more than 2^31 elements")),
-            };
-            dims.push((l, u));
-        }
         let key = (name.clone(), ty);
-        if self.scope().arrays.contains_key(&key) {
-            // Measured: "Cannot redefine a static array!" (`v18_e_dim_twice`).
-            return Err(self.error(name_tok.span, format!("the static array `{shown}` is already declared")));
+        let existing = self.array_of(&key);
+        if storage != Storage::Main && existing.is_none() {
+            return Err(self.unsupported(bounds.node().span(), "arrays in a SUB or FUNCTION"));
         }
-        let plain_scalar = self.scope().plain.contains_key(&name);
-        let plain_array = self.scope().array_plain.contains_key(&name);
-        if suffix.is_none() && (plain_scalar || plain_array) {
-            // How a plain array name and a typed plain scalar (or another typed array) of the same name interact
-            // was not measured.
+        let dims = self.dim_bounds(bounds, &shown)?;
+        let constant: Option<Vec<(i64, i64)>> = dims.iter().map(|d| d.constant).collect();
+        let static_bounds = constant.filter(|_| by == Declarer::Dim && !self.dynamic_mode);
+        let bounds_span = bounds.node().span();
+        let allocate = |array| StmtKind::Allocate {
+            array,
+            bounds: dims.iter().map(|d| (d.lower.clone(), d.upper.clone())).collect(),
+            mode,
+        };
+        if let Some(id) = existing {
+            let var = self.prog.var(id);
+            let (count, is_static) = (var.dim_count(), matches!(var.shape, Shape::Static { .. }));
+            if let Some(n) = count.filter(|&n| n != dims.len()) {
+                // Measured: "Cannot change the number of elements an array has!" (`v24_x40`, `x50`).
+                let plural = if n == 1 { "" } else { "s" };
+                let msg = format!("`{shown}` has {n} dimension{plural}, not {}", dims.len());
+                return Err(self.error(bounds_span, msg));
+            }
+            if is_static && static_bounds.is_some() {
+                // Measured: "Cannot redefine a static array!" (`v18_e_dim_twice`).
+                return Err(self.error(name_tok.span, format!("the static array `{shown}` is already declared")));
+            }
+            // `SHARED` on a later declaration changes nothing: an array that was not shared stays unseen by the
+            // procedures (measured, `verification\v24_x248`).
+            self.names.push((SymbolKind::Var(id), name_tok.span));
+            self.push(stmt, allocate(id));
+            return Ok(());
+        }
+        // A typed array beside a scalar of the name typed alike is measured (`v24_x56`,
+        // `v24_b_dim_empty_then_dim`); how a plain array name and another typed scalar or typed array of the name
+        // interact was not.
+        let plain_scalar = self.scope().plain.get(&name).copied();
+        if suffix.is_none() && (plain_array.is_some() || plain_scalar.is_some_and(|t| !(typed && t == ty))) {
             let msg = format!("an array `{shown}` beside a variable or array typed by `DIM … AS`");
             return Err(self.unsupported(name_tok.span, msg));
         }
+        let shape = match static_bounds {
+            Some(bounds) => {
+                let mut count: i64 = 1;
+                for &(l, u) in &bounds {
+                    count = match (u - l).checked_add(1).and_then(|n| count.checked_mul(n)) {
+                        Some(n) if n <= MAX_ELEMENTS => n,
+                        _ => return Err(self.unsupported(bounds_span, "an array of more than 2^31 elements")),
+                    };
+                }
+                Shape::Static { bounds }
+            }
+            None => Shape::Dynamic { dims: Some(dims.len()) },
+        };
+        let dynamic = matches!(shape, Shape::Dynamic { .. });
         let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
             name: name.clone(),
             ty,
             storage,
-            shape: Shape::Static { bounds: dims },
+            shape,
         });
         self.scope().arrays.insert(key, id);
         if suffix.is_none() && typed {
@@ -291,7 +347,65 @@ impl Checker<'_> {
             self.dim_shared.insert(id);
         }
         self.names.push((SymbolKind::Var(id), name_tok.span));
+        if dynamic {
+            self.push(stmt, allocate(id));
+        }
         Ok(())
+    }
+
+    /// The bounds of a declaration, one entry per dimension, lower bound before upper as they are evaluated.
+    ///
+    /// Without `TO` the lower bound is `OPTION BASE` as it stands here; a bound written as the number 0 in plain
+    /// digits stays 0 to 0 (measured, `verification\v24_e_option_base`, `v24_x71`–`x83`: the old compiler compares
+    /// the text, so `0&`, `(0)`, `0 + 0` and a `CONST` that is 0 do not count).
+    ///
+    /// **A constant bound is a spelling, not a value** (measured, `verification\v24_b_constant_bounds*`): one
+    /// number, a minus before it included, or one `CONST` name, in any number of parentheses. A bound with an
+    /// operator is not constant though its value is known (`2 + 3`, `k + 1`, `-k`, `-(1)`, `--1`).
+    ///
+    /// Measured, each dimension by itself (`qb64pe.bas` 15004–15015): "Invalid array bounds" for a single constant
+    /// bound that is negative and for constant `lower TO upper` in the wrong order, in a static `DIM`, a `REDIM`
+    /// and below `$DYNAMIC` alike, also beside a dimension whose bounds are not constant (`v18_e_bounds_negative`,
+    /// `_reversed`, `v24_x53`–`x55`, `x244`, `x245`); a lower bound that is not constant is not compared (`x246`).
+    /// Under `OPTION BASE 1` a single bound that is 0 without being written `0` is accepted: a static array is
+    /// then 1 to 0 and the program raises error 5 when it starts (`v24_x71`, `x103`), where the emitter sets the
+    /// array up; a dynamic one raises it at the statement.
+    fn dim_bounds(&mut self, bounds: ast::ArrayBounds, shown: &str) -> R<Vec<DimBounds>> {
+        let mut out = Vec::new();
+        for (lower, upper) in bounds.ranges() {
+            let upper = self.need(upper, bounds.node().span())?;
+            let low = match lower {
+                Some(l) => Some(self.bound(l)?),
+                None => None,
+            };
+            let (up, up_value) = self.bound(upper)?;
+            let (low, low_value) = match low {
+                Some((e, value)) => (e, value),
+                None => {
+                    let base = if self.is_plain_zero(upper) { 0 } else { self.option_base };
+                    let e = Expr {
+                        span: up.span,
+                        ty: Ty::I64,
+                        qb: Ty::I64,
+                        kind: ExprKind::Int(base),
+                    };
+                    (e, Some(base))
+                }
+            };
+            let constant = low_value.zip(up_value);
+            if let Some((l, u)) = constant
+                && ((lower.is_some() && u < l) || (lower.is_none() && u < 0))
+            {
+                let span = upper.node().span();
+                return Err(self.error(span, format!("invalid bounds for `{shown}`: {l} TO {u}")));
+            }
+            out.push(DimBounds {
+                lower: low,
+                upper: up,
+                constant,
+            });
+        }
+        Ok(out)
     }
 
     /// Whether a bound is the number 0 written in plain digits (`0`, `00`): the one spelling that keeps a dimension
@@ -304,21 +418,62 @@ impl Checker<'_> {
             .is_some_and(|t| self.text(t.span).iter().all(|&b| b == b'0'))
     }
 
-    /// An array bound: a constant expression with the run-time meaning of its operators, as a whole number (a float
-    /// rounded half to even, measured: `DIM a(2.5)` is 0 to 2).
-    fn bound(&mut self, node: ast::Expr) -> R<i64> {
+    /// An array bound, converted to `_INTEGER64` (a float rounded half to even, measured: `DIM a(2.5)` is 0 to 2),
+    /// and its value when it is constant by its spelling ([`Self::dim_bounds`]): then it is computed here, with
+    /// the run-time meaning of its operators.
+    fn bound(&mut self, node: ast::Expr) -> R<(Expr, Option<i64>)> {
         let e = self.expr(node)?;
         if e.ty == Ty::Str {
             return Err(self.unsupported(e.span, "a string as an array bound"));
         }
         let span = e.span;
+        let spelled_constant = match self.bound_spelling(node) {
+            Spelling::Number => true,
+            // A `CONST` is a literal in the typed tree; a variable or a call is not.
+            Spelling::Name => matches!(e.kind, ExprKind::Int(_) | ExprKind::Float(_)),
+            Spelling::Operator => false,
+        };
         let e = self.store(e, Ty::I64)?;
+        if !spelled_constant {
+            return Ok((e, None));
+        }
         match constant(&e) {
-            Some(Num::Int(v)) => Ok(v),
+            Some(Num::Int(v)) => Ok((e, Some(v))),
             Some(Num::Float(_)) | None => {
-                Err(self.unsupported(span, "an array bound that is not constant (a dynamic array)"))
+                Err(self.unsupported(span, "an array bound this large, or this close to a rounding boundary"))
             }
         }
+    }
+
+    /// How a bound is written ([`Self::dim_bounds`]).
+    fn bound_spelling(&self, node: ast::Expr) -> Spelling {
+        match node {
+            ast::Expr::Literal(_) => Spelling::Number,
+            ast::Expr::NameRef(_) => Spelling::Name,
+            ast::Expr::Paren(p) => p.inner().map_or(Spelling::Operator, |inner| self.bound_spelling(inner)),
+            // A minus directly before a number belongs to the number (`- 1` too; also before `&H5`, measured,
+            // `verification\v24_x249`).
+            ast::Expr::Prefix(p) => match (p.op(), p.operand()) {
+                (Some(op), Some(ast::Expr::Literal(lit)))
+                    if op.kind == SyntaxKind::Minus && lit.token().is_some_and(|t| t.kind == SyntaxKind::Number) =>
+                {
+                    Spelling::Number
+                }
+                _ => Spelling::Operator,
+            },
+            ast::Expr::Bin(_) | ast::Expr::Call(_) | ast::Expr::Field(_) => Spelling::Operator,
+        }
+    }
+
+    /// The type an array's plain (suffix-less) name was given by a declaration with `AS` that is visible here.
+    fn array_plain_ty(&mut self, name: &str) -> Option<Ty> {
+        let own = self.scope().array_plain.get(name).copied();
+        let shared = if self.cur.is_some() {
+            self.dim_shared_array_plain.get(name).copied()
+        } else {
+            None
+        };
+        own.or(shared)
     }
 
     /// The type an array's plain (suffix-less) name means here.
@@ -326,23 +481,22 @@ impl Checker<'_> {
         if let Some(t) = suffix {
             return t;
         }
-        let own = self.scope().array_plain.get(name).copied();
-        let shared = if self.cur.is_some() {
-            self.dim_shared_array_plain.get(name).copied()
-        } else {
-            None
-        };
-        own.or(shared).unwrap_or_else(|| self.default_ty(name))
+        self.array_plain_ty(name).unwrap_or_else(|| self.default_ty(name))
     }
 
-    /// The array a name refers to here: one of the current scope, or in a procedure a main-module `DIM SHARED` one
-    /// declared earlier in the file.
-    pub(super) fn find_array(&mut self, name: &str, suffix: Option<Ty>) -> Option<VarId> {
-        let key = (name.to_string(), self.array_key_ty(name, suffix));
-        self.scope().arrays.get(&key).copied().or_else(|| {
-            let main = self.main.arrays.get(&key).copied();
+    /// The array of a name and element type that is visible here: one of the current scope, or in a procedure a
+    /// main-module `DIM SHARED` one declared earlier in the file.
+    fn array_of(&mut self, key: &(String, Ty)) -> Option<VarId> {
+        self.scope().arrays.get(key).copied().or_else(|| {
+            let main = self.main.arrays.get(key).copied();
             main.filter(|v| self.cur.is_some() && self.dim_shared.contains(v))
         })
+    }
+
+    /// The array a name refers to here ([`Self::array_of`]).
+    pub(super) fn find_array(&mut self, name: &str, suffix: Option<Ty>) -> Option<VarId> {
+        let key = (name.to_string(), self.array_key_ty(name, suffix));
+        self.array_of(&key)
     }
 
     /// Whether some array of this name is visible here, of any type.
@@ -360,6 +514,7 @@ impl Checker<'_> {
     /// The message for `name(...)` that names no visible array (and no FUNCTION or built-in): the old compiler makes
     /// an implicit array, which is not supported yet (design D4).
     pub(super) fn not_an_array(&mut self, t: Tok, name: &str) -> Failed {
+        self.implicit_names.insert(name.to_string());
         let shown = show_bytes(self.text(t.span));
         let msg = if self.any_array_named(name) {
             format!("`{shown}(...)`: an array of another type, used without `DIM` (an implicit array)")
@@ -374,7 +529,11 @@ impl Checker<'_> {
     pub(super) fn element(&mut self, call: ast::CallExpr, array: VarId, t: Tok) -> R<Place> {
         let span = call.node().span();
         let args = self.present_args(call.arg_list())?;
-        let dims = self.prog.var(array).bounds().len();
+        let dims = self
+            .prog
+            .var(array)
+            .dim_count()
+            .expect("every array declared so far has its number of dimensions");
         if args.is_empty() {
             // `x()`: a whole array (whole-array assignment, array arguments), deferred (`SOMEDAY.md`).
             let shown = show_bytes(self.text(t.span));
@@ -574,6 +733,7 @@ impl Checker<'_> {
                     }
                     None => {
                         // Measured: `LBOUND(x)` of a non-array gives 0, making an implicit array (`v18_f_*`).
+                        self.implicit_names.insert(name);
                         let shown = show_bytes(self.text(t.span));
                         let msg = format!("`{word}` of `{shown}`, which is no array (an implicit array)");
                         return Err(self.unsupported(t.span, msg));

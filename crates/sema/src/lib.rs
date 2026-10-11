@@ -465,6 +465,19 @@ pub enum Shape {
     },
 }
 
+/// What an [`StmtKind::Allocate`] does with an array that is allocated already (design D4 of
+/// `m2-defxxx-common-arrays`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AllocMode {
+    /// `DIM`: raises error 10 and leaves the array as it is.
+    Dim,
+    /// `REDIM`: new bounds and new elements.
+    Redim,
+    /// `REDIM _PRESERVE`: new bounds; the elements keep their values by flat position, as many as the smaller of
+    /// the old and the new number of elements.
+    Preserve,
+}
+
 /// A variable: a name plus a type (design D5), and its storage. An array is a variable with a shape other than
 /// [`Shape::Scalar`]; its `ty` is the type of its elements. Arrays and scalars of the same name and type are
 /// different variables.
@@ -774,6 +787,24 @@ pub enum StmtKind {
     Assign {
         place: Place,
         value: Expr,
+    },
+    /// A `DIM`, `REDIM` or `REDIM _PRESERVE` that runs (design D4 of `m2-defxxx-common-arrays`): gives an array
+    /// its bounds and its elements, zero or empty. One lower and one upper bound per dimension, each already
+    /// converted to `_INTEGER64`, evaluated in order. The array may be a static one: the statement then raises
+    /// error 10 and its bounds are not evaluated. A `DIM` that declares a static array is no statement.
+    Allocate {
+        array: VarId,
+        bounds: Vec<(Expr, Expr)>,
+        mode: AllocMode,
+    },
+    /// `ERASE` of a static array: every element becomes zero, an empty string or NUL bytes; the bounds stay.
+    Clear {
+        array: VarId,
+    },
+    /// `ERASE` of a dynamic array: its elements are released and it is not allocated afterwards. Of one that is
+    /// not allocated it does nothing.
+    Release {
+        array: VarId,
     },
     /// `PRINT` (`to` is `None`) or `PRINT #n,`: `to` is the file number, already converted to LONG.
     Print {

@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):DIM M ( N ) AS LONG
+LINE 6:DIM m(n) AS LONG
+exit=1
