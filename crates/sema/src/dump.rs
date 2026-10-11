@@ -184,9 +184,15 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                     expr(p, value, d + 1, out);
                 }
             }
-            StmtKind::Allocate { array, bounds, mode } => {
+            StmtKind::Allocate {
+                array,
+                bounds,
+                mode,
+                joined,
+            } => {
                 let t = ty(p, p.var(*array).ty);
-                line(out, &format!("Allocate {}:{t} ({mode:?})", var_name(p, *array)));
+                let joined = if *joined { ", with the next statement" } else { "" };
+                line(out, &format!("Allocate {}:{t} ({mode:?}{joined})", var_name(p, *array)));
                 for (lower, upper) in bounds {
                     heading(out, "Lower");
                     expr(p, lower, d + 2, out);

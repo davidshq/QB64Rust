@@ -709,8 +709,9 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// `OPTION _EXPLICIT` and `OPTION _EXPLICITARRAY` (design D7). The flag was set by the pre-pass, since it
-    /// applies to the whole program; `_EXPLICITARRAY` only concerns arrays, which are "not supported yet" anyway.
+    /// `OPTION _EXPLICIT` and `OPTION _EXPLICITARRAY` (design D7). Their flags were set by the pre-pass, since
+    /// they apply to the whole program; `_EXPLICITARRAY` concerns only arrays used without `DIM`
+    /// ([`Self::implicit_array`]).
     /// `OPTION BASE 0` and `1` (design D3 of `m2-defxxx-common-arrays`): the lower bound of the dimensions declared
     /// without `TO` below this line of the file, wherever the statement stands and whether or not it runs
     /// (measured, `verification\v24_e_option_base`, `v24_x70`).

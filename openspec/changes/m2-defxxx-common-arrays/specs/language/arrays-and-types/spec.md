@@ -166,7 +166,11 @@ element; a dimension whose upper bound is lower still, and a request the machine
 program with "Out of memory", which no error handler receives. A bound whose evaluation raises an error SHALL NOT
 stop the allocation. Using an element of a dynamic array that is not allocated, and `LBOUND` or `UBOUND` of it,
 SHALL raise error 9. An array used without `DIM` while `$DYNAMIC` is in effect SHALL be allocated by the first
-statement in the file that names it. A dimension whose bounds are constants SHALL be checked when compiling as
+statement in the file that names it, where that statement evaluates the name: when the statement runs again the
+allocation SHALL raise error 10 as an error of that statement, after what the statement did before (the earlier
+items of a `PRINT`, `WRITE` or `READ`, the prompt of an `INPUT`) and in place of what it does after. One first
+named in a bound of `REDIM` SHALL be dynamic wherever it stands and SHALL be allocated as that `REDIM` allocates
+(anew on each run, or kept under `_PRESERVE`), raising no error 10. A dimension whose bounds are constants SHALL be checked when compiling as
 in a static array, whatever the other dimensions are: a single negative bound, and `lower TO upper` in the wrong
 order, SHALL be compile errors. A `DIM` or `REDIM` with another number of dimensions than the array has SHALL be
 a compile error.
@@ -218,6 +222,21 @@ a compile error.
 #### Scenario: Used without DIM below $DYNAMIC
 - **WHEN** below a line `'$DYNAMIC`, `im(3) = 4: PRINT UBOUND(im): REDIM im(20): PRINT UBOUND(im)` runs
 - **THEN** it prints ` 10 `, then ` 20 `; with the first statement skipped by `GOTO`, `UBOUND(im)` raises error 9
+
+#### Scenario: The first use run three times
+- **WHEN** below a line `'$DYNAMIC`, `FOR i = 1 TO 3: im(3) = im(3) + 1: NEXT: PRINT im(3)` runs under a handler
+  that prints `ERR` and resumes next
+- **THEN** the handler prints 10 twice, then ` 1 ` is printed (the store of the second and third round is skipped)
+
+#### Scenario: The first use in a later item
+- **WHEN** below a line `'$DYNAMIC`, `FOR i = 1 TO 2: PRINT " x"; dp(1); " y";: NEXT` runs under such a handler
+- **THEN** it prints ` x 0  y x`, then the handler prints 10 (the second round prints its first item, then the
+  allocation raises)
+
+#### Scenario: The first use in a bound of REDIM
+- **WHEN** `FOR i = 1 TO 2: REDIM rb(rc(1) + i): PRINT UBOUND(rb);: rc(1) = 5: NEXT: REDIM rc(20): PRINT UBOUND(rc)`
+  runs, with no `$DYNAMIC`
+- **THEN** it prints ` 1  2  20 ` and raises no error (`rc` is dynamic and each round makes it anew)
 
 ### Requirement: REDIM
 `REDIM [SHARED] name(bounds) [AS type]` SHALL declare the dynamic array if it does not exist and SHALL give it new
@@ -364,9 +383,12 @@ it stands in, with the bounds `OPTION BASE` to 10 in each of as many dimensions 
 `SUB … STATIC` or `FUNCTION … STATIC`, the array SHALL be static (dynamic in the main module while `$DYNAMIC` is
 in effect, requirement "Dynamic arrays"). In any other procedure, and in every procedure while `$DYNAMIC` is in
 effect, it SHALL be a local dynamic array that is not allocated, so that every use raises error 9 until a `DIM`
-or `REDIM` of it in the procedure runs, as in the old compiler. Under `OPTION _EXPLICITARRAY` an implicit array
-SHALL be a compile error instead. A later `DIM` of a static one, and a use with another number of indexes, SHALL
-be compile errors. A name that may not be a variable (one leading underscore, a keyword, a built-in statement)
+or `REDIM` of it in the procedure runs, as in the old compiler. Under `OPTION _EXPLICITARRAY` or `OPTION
+_EXPLICIT`, wherever in the program the statement stands, an implicit array SHALL be a compile error instead. A
+scalar variable of the name, also one typed with `AS`, and a `CONST` of the name SHALL NOT keep the name from
+being an array and SHALL NOT give it their type. `ERASE` of an implicit array SHALL clear a static one and
+release a dynamic one; above its first use in the file it SHALL be a compile error. A later `DIM` of a static
+one, and a use with another number of indexes, SHALL be compile errors. A name that may not be a variable (one leading underscore, a keyword, a built-in statement)
 and a store to a spelling that is a FUNCTION or a built-in function SHALL be compile errors.
 
 #### Scenario: Zero to ten
@@ -382,8 +404,18 @@ and a store to a spelling that is a FUNCTION or a built-in function SHALL be com
 - **THEN** it prints ` 1.5  3 ` (`c!()` is another, implicit array)
 
 #### Scenario: OPTION _EXPLICITARRAY
-- **WHEN** `OPTION _EXPLICITARRAY: z(3) = 4` is compiled
-- **THEN** it is a compile error
+- **WHEN** `OPTION _EXPLICITARRAY: z(3) = 4` is compiled, or `z(3) = 4` with `OPTION _EXPLICITARRAY` on a later
+  line, or `OPTION _EXPLICIT: z(3) = 4`
+- **THEN** each is a compile error
+
+#### Scenario: A scalar and a constant of the name
+- **WHEN** `DIM x AS LONG: x = 7: x(3) = 2.5: PRINT x; x(3); LEN(x(3))` runs, and `CONST k = 1: k(1) = 2: PRINT k;
+  k(1)`
+- **THEN** they print ` 7  2.5  4 ` and ` 1  2 `
+
+#### Scenario: ERASE of an implicit array
+- **WHEN** `e(1) = 5: ERASE e: PRINT e(1); UBOUND(e)` runs, and `ERASE later: later(1) = 5` is compiled
+- **THEN** the first prints ` 0  10 `; the second is a compile error
 
 #### Scenario: DIM after an implicit use
 - **WHEN** `a(1) = 5: DIM a(5)` is compiled

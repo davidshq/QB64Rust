@@ -3,7 +3,8 @@
 //! (`verification\v18_*`, `study\00` §5); what was not measured is "not supported yet".
 
 use super::decl::Declarer;
-use super::{Checker, Failed, R, Skips};
+use super::expr::is_builtin_function;
+use super::{Checker, Failed, NoJoin, R, Scope, Skips};
 use crate::{AllocMode, BinOp, ConvKind, StmtKind, UnOp};
 use crate::{Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType, Var, VarId};
 use qb64rust_base::{Span, show_bytes, to_u32};
@@ -276,10 +277,16 @@ impl Checker<'_> {
         }
         let key = (name.clone(), ty);
         let existing = self.array_of(&key);
-        if storage != Storage::Main && existing.is_none() {
+        // A procedure's `REDIM` reaches a shared array of the main module only: one of its own (an array used
+        // without `DIM` there) waits for arrays in procedures.
+        if storage != Storage::Main && existing.is_none_or(|id| self.prog.var(id).storage != Storage::Main) {
             return Err(self.unsupported(bounds.node().span(), "arrays in a SUB or FUNCTION"));
         }
-        let dims = self.dim_bounds(bounds, &shown)?;
+        let dims = if redim {
+            self.unjoined(NoJoin::RedimBound, |c| c.dim_bounds(bounds, &shown))?
+        } else {
+            self.dim_bounds(bounds, &shown)?
+        };
         let constant: Option<Vec<(i64, i64)>> = dims.iter().map(|d| d.constant).collect();
         let static_bounds = constant.filter(|_| by == Declarer::Dim && !self.dynamic_mode);
         let bounds_span = bounds.node().span();
@@ -287,6 +294,7 @@ impl Checker<'_> {
             array,
             bounds: dims.iter().map(|d| (d.lower.clone(), d.upper.clone())).collect(),
             mode,
+            joined: false,
         };
         if let Some(id) = existing {
             let var = self.prog.var(id);
@@ -511,8 +519,137 @@ impl Checker<'_> {
                     .any(|((n, _), v)| n == name && self.dim_shared.contains(v)))
     }
 
-    /// The message for `name(...)` that names no visible array (and no FUNCTION or built-in): the old compiler makes
-    /// an implicit array, which is not supported yet (design D4).
+    /// The array of a name that names no visible array: an array used without `DIM` (design D5 of
+    /// `m2-defxxx-common-arrays`; measured, `verification\v24_f_*`, `v24_x105`–`x120`, `x256`–`x263`). `dims` is
+    /// the number of indexes written (1 for `LBOUND(name)`), `at` the node that names it.
+    ///
+    /// The name becomes an array where it may be a variable ([`Self::reserved`]), no SUB or FUNCTION has it and
+    /// the spelling calls no built-in function; a `CONST` or a scalar of the name, typed with `AS` or not, does
+    /// not stand in the way and does not type it (`x258`, `x259`). The element type is the suffix or the default
+    /// type here. Under `OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`, wherever they stand, it is an error.
+    ///
+    /// What the array is depends on where the name stands:
+    /// - in the main module a static array, `OPTION BASE` to 10 in each dimension, that exists from the start;
+    /// - in the main module below `$DYNAMIC` a dynamic array, allocated with those bounds by an
+    ///   [`StmtKind::Allocate`] that runs as the first part of the statement that names it first (`joined`);
+    /// - in a procedure a local dynamic array that nothing allocates, so that every use raises error 9 (as the
+    ///   old compiler does; `DIVERGENCES-QB45.md` Q-009).
+    ///
+    /// Where the old compiler's allocation would not be the first thing its statement does, or would be another
+    /// kind of allocation, nothing is made and the use is marked "not supported yet" ([`NoJoin`]).
+    ///
+    /// After a declaration that was marked "not supported yet" (which may have declared this array) nothing is
+    /// made: the name keeps the mark of [`Self::not_an_array`].
+    pub(super) fn implicit_array(&mut self, t: Tok, name: &str, suffix: Option<Ty>, dims: usize, at: Node) -> R<VarId> {
+        let shown = show_bytes(self.text(t.span));
+        // A name with one leading underscore is "Invalid array name" in the old compiler (`v24_x112`) unless it
+        // calls a built-in, and the table does not know every spelling of those (`_CONNECTIONADDRESS$`, the
+        // functions of the auto-included files): it keeps its mark.
+        let underscore = name.starts_with('_') && !name.starts_with("__");
+        if self.follow_on || underscore || self.procs_by_name.contains_key(name) {
+            return Err(self.not_an_array(t, name));
+        }
+        if is_builtin_function(name, suffix) {
+            // Measured for `rnd(1) = 2`: "Expected variable =" (`v24_x119`); the statements written like a store
+            // to a function (`ASC(s$, 2) = 65`) are not compiled yet.
+            self.implicit_names.insert(name.to_string());
+            let msg = format!("`{shown}(...)` as a place or an array (a built-in function's name)");
+            return Err(self.unsupported(t.span, msg));
+        }
+        if let Some(head) = name.split_once('.').map(|(head, _)| head) {
+            // `p.m(1)` beside a `TYPE` variable or array `p`: a member array, which is not supported yet.
+            let user = |ty: &Ty| matches!(ty, Ty::User(_));
+            let typed = |s: &Scope| {
+                s.vars.keys().any(|(n, ty)| n == head && user(ty))
+                    || s.arrays.keys().any(|(n, ty)| n == head && user(ty))
+            };
+            if typed(&self.main) || (self.cur.is_some() && typed(&self.local)) {
+                self.implicit_names.insert(name.to_string());
+                return Err(self.unsupported(t.span, "arrays as `TYPE` members"));
+            }
+        }
+        if dims == 0 {
+            // `x()`: a whole array (an array argument makes it, measured, `v24_x146`): group 7.
+            self.implicit_names.insert(name.to_string());
+            return Err(self.unsupported(at.span(), format!("the whole array `{shown}()`")));
+        }
+        self.reserved(t, name, suffix)?;
+        let ty = self.array_key_ty(name, suffix);
+        if self.explicit_array {
+            // Measured: "Array 'z' (SINGLE) not defined" (`v24_x105`, `x256`, `x257`).
+            let msg = format!(
+                "array `{shown}` ({}) is not declared (`OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`)",
+                ty.qb_name()
+            );
+            return Err(self.error(t.span, msg));
+        }
+        if self.no_join == Some(NoJoin::RedimBound) {
+            // Measured (`v24_x266`, `x268`): dynamic wherever it stands, and allocated as the `REDIM` allocates.
+            self.implicit_names.insert(name.to_string());
+            let msg = format!("`{shown}(...)`: an array first used in a bound of `REDIM`, without `DIM`");
+            return Err(self.unsupported(t.span, msg));
+        }
+        let base = self.option_base;
+        let (storage, shape) = match self.cur {
+            Some(p) => (Storage::Local(p), Shape::Dynamic { dims: Some(dims) }),
+            None if self.dynamic_mode => (Storage::Main, Shape::Dynamic { dims: Some(dims) }),
+            None => {
+                let count = u32::try_from(dims).ok().and_then(|n| (11 - base).checked_pow(n));
+                if count.is_none_or(|n| n > MAX_ELEMENTS) {
+                    self.implicit_names.insert(name.to_string());
+                    return Err(self.unsupported(at.span(), "an array of more than 2^31 elements"));
+                }
+                let bounds = vec![(base, 10); dims];
+                (Storage::Main, Shape::Static { bounds })
+            }
+        };
+        let allocated_here = self.cur.is_none() && self.dynamic_mode;
+        // The allocation runs where the name is evaluated, which is the start of the statement only when the
+        // statement writes its code after evaluating all its parts ([`NoJoin`]). Measured for the line of a
+        // block (`v24_x262`): before an `IF`, a `FOR`, a `WHILE`, a `DO WHILE` and a `SELECT CASE`, inside the
+        // block for an `ELSEIF` (not reached: not allocated) and a `LOOP UNTIL` (on every round); what an error
+        // in it skips there was not measured.
+        let place = match self.no_join {
+            Some(NoJoin::Header) if allocated_here => Some("the line of a block (`IF`, `FOR`, `DO`, …)"),
+            Some(NoJoin::Item) if allocated_here => {
+                Some("a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`")
+            }
+            _ => None,
+        };
+        if let Some(place) = place {
+            self.implicit_names.insert(name.to_string());
+            let msg = format!("`{shown}(...)`: an array below `$DYNAMIC` first used in {place}, without `DIM`");
+            return Err(self.unsupported(t.span, msg));
+        }
+        let id = VarId(to_u32(self.prog.vars.len()));
+        self.prog.vars.push(Var {
+            name: name.to_string(),
+            ty,
+            storage,
+            shape,
+        });
+        self.scope().arrays.insert((name.to_string(), ty), id);
+        if allocated_here {
+            let bound = |v: i64| Expr {
+                span: t.span,
+                ty: Ty::I64,
+                qb: Ty::I64,
+                kind: ExprKind::Int(v),
+            };
+            let kind = StmtKind::Allocate {
+                array: id,
+                bounds: vec![(bound(base), bound(10)); dims],
+                mode: AllocMode::Dim,
+                joined: true,
+            };
+            self.push(at, kind);
+        }
+        Ok(id)
+    }
+
+    /// The message for `name(...)` that names no visible array where none is made for it
+    /// ([`Self::implicit_array`]): after a declaration that was marked, for a name with one leading underscore
+    /// and for the name of a SUB or FUNCTION.
     pub(super) fn not_an_array(&mut self, t: Tok, name: &str) -> Failed {
         self.implicit_names.insert(name.to_string());
         let shown = show_bytes(self.text(t.span));
@@ -571,10 +708,14 @@ impl Checker<'_> {
             let shown = show_bytes(self.text(t.span));
             return Err(self.unsupported(t.span, format!("`{shown}(...)` here (a FUNCTION of this name exists)")));
         }
-        match self.find_array(&name, suffix) {
-            Some(a) => self.element(call, a, t),
-            None => Err(self.not_an_array(t, &name)),
-        }
+        let array = match self.find_array(&name, suffix) {
+            Some(a) => a,
+            None => {
+                let dims = call.arg_list().map_or(0, |l| l.args().len());
+                self.implicit_array(t, &name, suffix, dims, call.node())?
+            }
+        };
+        self.element(call, array, t)
     }
 
     // ---- members ----
@@ -726,19 +867,14 @@ impl Checker<'_> {
             ast::Expr::NameRef(n) => {
                 let t = self.need(n.name(), span)?;
                 let (name, suffix) = self.split_name(t)?;
-                match self.find_array(&name, suffix) {
-                    Some(a) => {
-                        self.names.push((SymbolKind::Var(a), t.span));
-                        a
-                    }
-                    None => {
-                        // Measured: `LBOUND(x)` of a non-array gives 0, making an implicit array (`v18_f_*`).
-                        self.implicit_names.insert(name);
-                        let shown = show_bytes(self.text(t.span));
-                        let msg = format!("`{word}` of `{shown}`, which is no array (an implicit array)");
-                        return Err(self.unsupported(t.span, msg));
-                    }
-                }
+                let a = match self.find_array(&name, suffix) {
+                    Some(a) => a,
+                    // Measured: `LBOUND(x)` of a name that is no array makes an array of one dimension, used
+                    // without `DIM` (`v18_f_*`, `v24_f_implicit`).
+                    None => self.implicit_array(t, &name, suffix, 1, n.node())?,
+                };
+                self.names.push((SymbolKind::Var(a), t.span));
+                a
             }
             ast::Expr::Call(c) if c.arg_list().is_some_and(|l| l.args().is_empty()) => {
                 // Measured: "Expected ." (`v18_e_bounds_empty_parens`, `v18_e_bounds_type_array`).

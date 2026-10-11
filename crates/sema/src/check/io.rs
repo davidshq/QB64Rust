@@ -2,7 +2,7 @@
 //! a file, `WRITE`, `INPUT` and `LINE INPUT`, `CLOSE`. What each accepts and rejects is measured
 //! (`verification\v22_b_*`, `v22_x21`–`x60`; `study\00` §5).
 
-use super::{Checker, R};
+use super::{Checker, NoJoin, R};
 use crate::builtins::stmt_lookup;
 use crate::{DataItem, Expr, InputSource, Place, PrintItem, StmtArg, StmtKind, Storage, Ty};
 use qb64rust_base::Span;
@@ -62,7 +62,13 @@ impl Checker<'_> {
                         let span = n.node().span();
                         return Err(self.error(span, "the items of `PRINT #` need `;` or `,` between them"));
                     }
-                    items.push(self.print_item(n)?);
+                    // The first item of a console `PRINT` is evaluated before anything is printed.
+                    let item = if items.is_empty() && to.is_none() {
+                        self.print_item(n)?
+                    } else {
+                        self.unjoined(NoJoin::Item, |c| c.print_item(n))?
+                    };
+                    items.push(item);
                     newline = true;
                     after_item = true;
                 }
@@ -85,7 +91,7 @@ impl Checker<'_> {
         for part in stmt.parts() {
             match part {
                 PrintPart::Expr(n) => {
-                    items.push(self.print_item(n)?);
+                    items.push(self.unjoined(NoJoin::Item, |c| c.print_item(n))?);
                     newline = true;
                 }
                 PrintPart::Comma(t) | PrintPart::Semicolon(t) => {
@@ -208,7 +214,7 @@ impl Checker<'_> {
         for part in parts {
             match part {
                 PrintPart::Expr(n) => {
-                    let place = self.target_place(n, what)?;
+                    let place = self.unjoined(NoJoin::Item, |c| c.target_place(n, what))?;
                     // Measured: "INPUT cannot handle _BIT array elements" for the console form (the runtime
                     // stores through an address, which a packed element has none of; `verification\v24_x253`).
                     // `INPUT #` and `READ` store into one (`v24_x251`, `x252`).
@@ -316,7 +322,13 @@ impl Checker<'_> {
             if let ast::Expr::Paren(_) = e {
                 return Err(self.unsupported(e.node().span(), "a target of `READ` in parentheses"));
             }
-            targets.push(self.target_place(e, "READ")?);
+            // The first target is evaluated before anything is read.
+            let target = if targets.is_empty() {
+                self.target_place(e, "READ")?
+            } else {
+                self.unjoined(NoJoin::Item, |c| c.target_place(e, "READ"))?
+            };
+            targets.push(target);
         }
         if targets.is_empty() {
             return Err(self.error(node.span(), "`READ` needs a variable to read into"));

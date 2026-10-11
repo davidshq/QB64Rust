@@ -334,13 +334,15 @@ impl Checker<'_> {
             let shown = show_bytes(self.text(name_tok.span));
             return Err(self.unsupported(name_tok.span, format!("`{shown}`")));
         }
-        match self.find_array(&proc_name, suffix) {
-            Some(a) => {
-                let place = self.element(node, a, name_tok)?;
-                self.load(place, span)
+        let array = match self.find_array(&proc_name, suffix) {
+            Some(a) => a,
+            None => {
+                let dims = node.arg_list().map_or(0, |l| l.args().len());
+                self.implicit_array(name_tok, &proc_name, suffix, dims, node.node())?
             }
-            None => Err(self.not_an_array(name_tok, &proc_name)),
-        }
+        };
+        let place = self.element(node, array, name_tok)?;
+        self.load(place, span)
     }
 
     /// Converts a value for storing into a variable or argument of type `to` (spec: storing into an integer). A
@@ -391,7 +393,7 @@ impl Checker<'_> {
 
 /// Whether `name` with `suffix` names a built-in function as it must be written: `LEN` bare, `LEFT$` with its `$`
 /// (a bare `left` is free, design D3).
-fn is_builtin_function(name: &str, suffix: Option<Ty>) -> bool {
+pub(super) fn is_builtin_function(name: &str, suffix: Option<Ty>) -> bool {
     find_any(name.as_bytes()).any(|b| {
         b.kind == qb64rust_builtins::Kind::Function
             && match b.musthave {

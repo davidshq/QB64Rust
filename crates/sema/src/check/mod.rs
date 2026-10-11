@@ -80,11 +80,16 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         option_base: 0,
         dynamic_mode: false,
         implicit_names: HashSet::new(),
+        explicit_array: false,
+        no_join: None,
     };
     let skips = Skips::new(program);
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
     // (`verification\v19_explicit_*`).
-    c.explicit = program.trees.iter().any(|t| has_option_explicit(map, t.root(), &skips));
+    let has = |word: &[u8]| program.trees.iter().any(|t| has_option(map, t.root(), &skips, word));
+    c.explicit = has(b"_EXPLICIT");
+    // Measured likewise for arrays (`verification\v24_x256`, `x257`): either option, above or below the use.
+    c.explicit_array = c.explicit || has(b"_EXPLICITARRAY");
     // The main file's statements, and the same with every include statement followed by what it includes (pass 1
     // reads the user types and procedures of included files from these; pass 2 and the label pre-pass descend into
     // includes as they meet them).
@@ -300,10 +305,35 @@ struct Checker<'a> {
     /// with constant bounds then makes a dynamic array. It follows the file too (measured,
     /// `verification\v24_b_metacommand*`).
     dynamic_mode: bool,
-    /// The names met as `name(…)` or in `LBOUND`/`UBOUND` that name no array: arrays used without `DIM`, which are
-    /// "not supported yet". An `ERASE` of such a name is marked too, where any other name that is no array is an
-    /// error.
+    /// The names met as `name(…)` or in `LBOUND`/`UBOUND` that name no array and for which none was made, with a
+    /// "not supported yet" mark ([`Self::implicit_array`]). An `ERASE` of such a name is marked too, where any
+    /// other name that is no array is an error.
     implicit_names: HashSet<String>,
+    /// `OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY` stands somewhere in the program: an array used without
+    /// `DIM` is an error.
+    explicit_array: bool,
+    /// What is being checked is a place where an allocation that runs first in the statement would not be what
+    /// the old compiler does ([`Self::implicit_array`], [`Self::unjoined`]).
+    no_join: Option<NoJoin>,
+}
+
+/// Where an array used without `DIM` is not made by its first use ([`Checker::implicit_array`]): the old
+/// compiler allocates it where the name is evaluated, which is the start of the statement only when the
+/// statement writes all its code after evaluating all its parts.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum NoJoin {
+    /// The line of a block (`IF`, `ELSEIF`, `FOR`, `DO`, `LOOP`, `WHILE`, `SELECT CASE`, `CASE`), which is no
+    /// statement of its own (measured, `verification\v24_x262`).
+    Header,
+    /// An item of a statement that works item by item, after the part of it that runs first: a later item of
+    /// `PRINT` or `READ`, an item of `WRITE` or of `PRINT #`, a target of `INPUT` or `LINE INPUT` (measured,
+    /// `verification\v24_x264`, `x265`: the earlier items are printed or read, the prompt is shown, then the
+    /// allocation raises its error).
+    Item,
+    /// A bound of `REDIM`: the array is then dynamic, also where `$DYNAMIC` is not in effect, and is allocated in
+    /// the `REDIM`'s own way, so a second run makes it anew or keeps it and raises nothing (measured,
+    /// `verification\v24_x266`, `x268`).
+    RedimBound,
 }
 
 /// Every default type is SINGLE until a `DEFxxx` or `_DEFINE` says otherwise.
@@ -477,6 +507,14 @@ impl Checker<'_> {
         if self.diags.unsupported_count() > marks && is_declaration(stmt) {
             self.follow_on = true;
         }
+    }
+
+    /// Runs `check` as a part of the statement where a joined allocation has no place (`why`).
+    fn unjoined<T>(&mut self, why: NoJoin, check: impl FnOnce(&mut Self) -> R<T>) -> R<T> {
+        let before = self.no_join.replace(why);
+        let result = check(self);
+        self.no_join = before;
+        result
     }
 
     fn push(&mut self, node: Node, kind: StmtKind) {
@@ -732,15 +770,14 @@ impl Checker<'_> {
     }
 }
 
-/// Whether an `OPTION _EXPLICIT` without a parse error stands anywhere in the tree: in the main module, a
-/// procedure or a block, before or after the variables it concerns (measured, `verification\v17_f_*`).
-fn has_option_explicit(map: &SourceMap, node: Node, skips: &Skips) -> bool {
+/// Whether an `OPTION word` (`_EXPLICIT`, `_EXPLICITARRAY`) without a parse error stands anywhere in the tree: in
+/// the main module, a procedure or a block, before or after the variables it concerns (measured,
+/// `verification\v17_f_*`).
+fn has_option(map: &SourceMap, node: Node, skips: &Skips, word: &[u8]) -> bool {
     if let Some(s) = ast::OptionStmt::cast(node) {
-        return skips.usable(node)
-            && s.word()
-                .is_some_and(|w| map.text(w.span).eq_ignore_ascii_case(b"_EXPLICIT"));
+        return skips.usable(node) && s.word().is_some_and(|w| map.text(w.span).eq_ignore_ascii_case(word));
     }
-    node.child_nodes().any(|n| has_option_explicit(map, n, skips))
+    node.child_nodes().any(|n| has_option(map, n, skips, word))
 }
 
 /// The declaration statements of the follow-on rule (design D10; `TYPE` and `DECLARE LIBRARY` blocks are handled

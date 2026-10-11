@@ -2,7 +2,7 @@
 //! labels, and `retK.txt`.
 
 use crate::Emitter;
-use crate::decl::{declare, is_qbs};
+use crate::decl::{declare, dim_count, is_qbs, lock_slot};
 use crate::names::{c_type, proc_name, var_name};
 use qb64rust_base::to_u32;
 use qb64rust_ir::{Body, LabelId, Proc, ProcId, ProcKind, Storage, Ty, Var};
@@ -110,6 +110,18 @@ impl<'a> Emitter<'a> {
             let n = var_name(self.p, v);
             data.push_str(&declare(v, &n));
             data.push_str(&self.alloc(v, &n));
+            if v.is_array() {
+                // A local array: its block, if a statement allocated one, and the `_MEM` lock of its descriptor
+                // (the descriptor itself lies in the static pool, which the epilogue gives back).
+                free.push_str(&self.release(v, &n));
+                writeln!(
+                    free,
+                    "free_mem_lock((mem_lock*)((ptrszint*){n})[{}]);",
+                    lock_slot(dim_count(v))
+                )
+                .unwrap();
+                continue;
+            }
             // The result is returned with `qbs_maketmp`, so the caller's cleanup frees it.
             if is_qbs(v.ty) && !matches!(v.storage, Storage::Result(_)) {
                 writeln!(free, "qbs_free({n});").unwrap();

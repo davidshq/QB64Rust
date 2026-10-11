@@ -1,0 +1,8 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+implicit_arrays_explicitarray_errors.bas:6:1: error: array `z` (SINGLE) is not declared (`OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`)
+implicit_arrays_explicitarray_errors.bas:11:14: error: array `q` (SINGLE) is not declared (`OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`)
+implicit_arrays_explicitarray_errors.bas:12:1: error: array `i%` (INTEGER) is not declared (`OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`)
+implicit_arrays_explicitarray_errors.bas:15:5: error: array `a` (SINGLE) is not declared (`OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`)

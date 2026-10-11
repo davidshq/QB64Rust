@@ -1,11 +1,9 @@
 # Programs the old compiler rejects that get only errors marked "not supported yet" (spec
 # testing/upstream-tests, "Rejected programs stay rejected"). Shrink-only: once a program gets a real error it
 # leaves the list. Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.
-corpus/runtime_comparison/16_ltrim_rtrim.bas
 corpus/runtime_comparison/218_fre.bas
 snippets/qb64fresh/arrays__redim_dynamic_array.bas
 snippets/qb64fresh/arrays__redim_preserve.bas
-snippets/qb64fresh/builtin_functions__trim_functions.bas
 snippets/qb64fresh/constants__builtin_chr_str_constants_registered.bas
 snippets/qb64fresh/continue_statement__continue_do.bas
 snippets/qb64fresh/continue_statement__continue_for.bas

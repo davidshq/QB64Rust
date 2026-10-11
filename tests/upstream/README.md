@@ -222,3 +222,18 @@ main module, `REDIM`, `ERASE`, `_BIT` arrays). Added to `pass.list`:
 still wait on something else: member arrays (most), arrays used without `DIM`, arrays in procedures and array
 parameters (groups 5 to 9 of the change), `REDIM _RETAIN` (27 programs, `SOMEDAY.md`), or `_DEST`, `_MEM` and
 images.
+
+**Upstream progress, 2026-10-11 (group 5): 58 of 279** (`m2-defxxx-common-arrays` group 5: arrays used
+without `DIM`). The two added to `pass.list` are group 4's: `arrays/negative_array_size` and `_2`, `.err`
+programs that get the old compiler's error since then and were not listed at the time. No upstream program
+became clean with group 5: each one that still carries the mark "an array used without
+`DIM`" names the array after a declaration that is marked (a member array, an array parameter, an array in a
+procedure, `_MEM`), where the follow-on rule keeps the name from becoming an array, or calls a FUNCTION of a
+`DECLARE LIBRARY` block or of an auto-included file. The full run of the suite (404 programs, release build,
+`--jobs 8`): 58 pass (the 58 of `pass.list`: 43 with an `.output`, one compile-only, 14 `.err` programs), 303
+rejected with a diagnostic, 42 `.err` programs with only marked errors, the known failure `http/read_example`;
+none builds and prints the wrong output. Found by the list check on the way: a name with one leading underscore
+must keep its mark (`_CONNECTIONADDRESS$(…)`, `_ENCODEURL$(…)` are built-ins the table does not know by that
+spelling; "Invalid array name" would be a false error). `tests\known_unsupported_rejections.list` shrank by two
+(`corpus/runtime_comparison/16_ltrim_rtrim`, `snippets/qb64fresh/builtin_functions__trim_functions`: the old
+compiler's "Illegal string-number conversion" for `TRIM$(…)`, which is no built-in).

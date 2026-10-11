@@ -1,0 +1,223 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY Z:F32(0 TO 10)
+ARRAY M:F32(0 TO 10, 0 TO 10)
+ARRAY S:Str(0 TO 10)
+ARRAY Q:I64(0 TO 10)
+ARRAY R:F32(0 TO 10)
+ARRAY LB:F32(0 TO 10)
+ARRAY UB:F32(0 TO 10)
+ARRAY X:F32(0 TO 10)
+ARRAY K:F32(0 TO 10)
+ARRAY C:I32(0 TO 3)
+ARRAY C:F32(0 TO 10)
+ARRAY CHR:F32(0 TO 10)
+ARRAY LEFT:F32(0 TO 10)
+ARRAY __FOO:F32(0 TO 10)
+ARRAY D:I16(1 TO 10)
+ARRAY E:I16(1 TO 10, 1 TO 10)
+ARRAY DY:F32 dynamic, 1 dimension
+ARRAY DL:F32 dynamic, 1 dimension
+ARRAY T1:F32 dynamic, 1 dimension
+ARRAY T2:F32 dynamic, 2 dimensions
+ARRAY TI:F32 dynamic, 1 dimension
+ARRAY ST:F32(0 TO 10)
+ARRAY A (local):F32 dynamic, 1 dimension
+ARRAY Z (local):F32 dynamic, 1 dimension
+ARRAY G (local):F32 dynamic, 1 dimension
+ARRAY N (local):F32 dynamic, 1 dimension
+ARRAY B (local):F32 dynamic, 1 dimension
+line 2: ConsoleOnly
+line 9: Assign Z(…):F32
+  Index
+    Int 10 : I64
+  Value
+    Convert Nearest : F32
+      Int 4 : I16
+line 10: Assign M(…):F32
+  Index
+    Int 2 : I64
+    Int 3 : I64
+  Value
+    Element Z(…) : F32
+      Int 1 : I64
+line 11: Assign S(…):Str
+  Index
+    Int 2 : I64
+  Value
+    Str "ab" : Str
+line 12: Assign Q(…):I64
+  Index
+    Int 10 : I64
+  Value
+    Int 5 : I64
+line 13: Print newline
+  Num
+    Element R(…) : F32
+      Int 4 : I64
+  Num
+    LBound LB : I64
+  Num
+    UBound UB : I64
+line 15: Assign X:I32
+  Int 7 : I32
+line 16: Assign X(…):F32
+  Index
+    Int 3 : I64
+  Value
+    Convert Nearest : F32
+      Float 2.5E+0 : F64 (qb F32)
+line 18: Assign K(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Convert Nearest : F32
+      Int 1 : I64
+line 20: Assign C(…):F32
+  Index
+    Int 7 : I64
+  Value
+    Convert Nearest : F32
+      Float 1.5E+0 : F64 (qb F32)
+line 21: Assign C(…):I32
+  Index
+    Int 1 : I64
+  Value
+    Int 2 : I32
+line 22: Assign CHR(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Convert Nearest : F32
+      Int 5 : I16
+line 23: Print newline
+  Num
+    Element LEFT(…) : F32
+      Int 3 : I64
+  Num
+    Element __FOO(…) : F32
+      Int 1 : I64
+line 24: Clear Z:F32
+line 24: Clear S:Str
+line 28: Assign D(…):I16
+  Index
+    Int 1 : I64
+  Value
+    Convert Truncate : I16
+      Convert RoundEven : I32
+        Convert Nearest : F32
+          Float 2.5E+0 : F64 (qb F32)
+line 29: Assign E(…):I16
+  Index
+    Int 1 : I64
+    Int 2 : I64
+  Value
+    Element D(…) : I16
+      Int 1 : I64
+line 35: Allocate DY:F32 (Dim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 35: Assign DY(…):F32
+  Index
+    Int 3 : I64
+  Value
+    Binary Add : F32
+      Element DY(…) : F32
+        Int 3 : I64
+      Convert Nearest : F32
+        Int 1 : I16
+line 36: Assign DY(…):F32
+  Index
+    Int 4 : I64
+  Value
+    Convert Nearest : F32
+      Int 2 : I16
+line 37: Allocate DL:F32 (Dim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 37: Print newline
+  Num
+    LBound DL : I64
+line 38: Allocate T1:F32 (Dim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 38: Allocate T2:F32 (Dim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 38: Assign T1(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Element T2(…) : F32
+      Int 1 : I64
+      Int 1 : I64
+line 39: If (END IF line 39)
+  If line 39
+    Var X : I32
+    line 39: Allocate TI:F32 (Dim, with the next statement)
+      Lower
+        Int 0 : I64
+      Upper
+        Int 10 : I64
+    line 39: Assign TI(…):F32
+      Index
+        Int 1 : I64
+      Value
+        Convert Nearest : F32
+          Int 2 : I16
+line 41: Assign ST(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Convert Nearest : F32
+      Int 1 : I16
+line 42: Call P
+  temp
+    Convert Nearest : F32
+      Int 4 : I16
+line 43: System
+SUB P
+  param N:F32
+  local A:F32
+  local Z:F32
+  local G:F32
+  local N:F32
+  local B:F32
+line 49: Assign A (local)(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Element Z (local)(…) : F32
+      Int 1 : I64
+line 50: Assign G (local)(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Convert Nearest : F32
+      Float 2.5E+0 : F64 (qb F32)
+line 51: Assign N (local)(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Var N (param) : F32
+line 52: Print newline
+  Num
+    UBound A (local) : I64
+  Num
+    LBound B (local) : I64
+      Int 1 : I32
+line 53: Release A (local):F32

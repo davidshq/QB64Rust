@@ -792,10 +792,16 @@ pub enum StmtKind {
     /// its bounds and its elements, zero or empty. One lower and one upper bound per dimension, each already
     /// converted to `_INTEGER64`, evaluated in order. The array may be a static one: the statement then raises
     /// error 10 and its bounds are not evaluated. A `DIM` that declares a static array is no statement.
+    ///
+    /// `joined`: it is no statement of its own but the first part of the statement that follows it (the
+    /// allocation of an array used without `DIM` below `$DYNAMIC`, which the statement that names it first
+    /// does; measured, `verification\v24_x101`): an error it raises is an error of that statement, so the stores
+    /// of the statement are skipped by their rule and `RESUME NEXT` goes on after the statement.
     Allocate {
         array: VarId,
         bounds: Vec<(Expr, Expr)>,
         mode: AllocMode,
+        joined: bool,
     },
     /// `ERASE` of a static array: every element becomes zero, an empty string or NUL bytes; the bounds stay.
     Clear {

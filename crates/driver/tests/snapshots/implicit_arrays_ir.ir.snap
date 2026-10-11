@@ -1,0 +1,67 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Array Z:F32 static (0 To 10)
+Array M:F32 static (1 To 10, 1 To 10)
+Array DY:F32 dynamic, dimensions: 1
+Array T1:F32 dynamic, dimensions: 1
+Array T2:F32 dynamic, dimensions: 2
+Array TI:F32 dynamic, dimensions: 1
+Array A(local):F32 dynamic, dimensions: 1
+Stmt line 2
+  SelectConsole
+Stmt line 7 may_raise
+  Assign Z(Const 10:I64):F32 = (Const 4:I16 -> Convert F32 Nearest)
+Stmt line 9 may_raise
+  Assign M(Const 2:I64, Const 3:I64):F32 = Load Z(Const 1:I64):F32
+Stmt line 11
+  AssignAll
+    for1.value(temp):F64 = (Const 1:I16 -> Convert F64 Nearest)
+    for1.limit(temp):F64 = (Const 3:I16 -> Convert F64 Nearest)
+    for1.step(temp):F64 = Const 1:F64
+    for1.negative(temp):I32 = Lt:I32(Var for1.step(temp):F64, Const 0:F64)
+  Jump @1
+Label @0 line 11
+Stmt line 12 may_raise
+  Allocate Dim DY:F32
+    Const 1:I64 To Const 10:I64
+  Assign DY(Const 3:I64):F32 = Add:F32(Load DY(Const 3:I64):F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 13
+  Assign for1.value(temp):F64 = Add:F64(Var for1.step(temp):F64, (Var I:F32 -> Convert F64 Widen))
+Label @1 line 13
+Stmt line 13
+  Assign I:F32 = (Var for1.value(temp):F64 -> Convert F32 Nearest)
+  Branch NonZero -> @2 Skip: Or:I32(And:I32(Var for1.negative(temp):I32, Lt:I32(Var for1.value(temp):F64, Var for1.limit(temp):F64)), And:I32(Not:I32(Var for1.negative(temp):I32), Gt:I32(Var for1.value(temp):F64, Var for1.limit(temp):F64)))
+  Jump @0
+Label @2 line 13
+Stmt line 14 may_raise
+  Allocate Dim T1:F32
+    Const 1:I64 To Const 10:I64
+  Allocate Dim T2:F32
+    Const 1:I64 To Const 10:I64
+    Const 1:I64 To Const 10:I64
+  Assign T1(Const 1:I64):F32 = Load T2(Const 1:I64, Const 1:I64):F32
+Stmt line 15
+  Branch Zero -> @3 Skip: Var I:F32
+Stmt line 15 may_raise
+  Allocate Dim TI:F32
+    Const 1:I64 To Const 10:I64
+  Assign TI(Const 1:I64):F32 = (Const 2:I16 -> Convert F32 Nearest)
+Label @3 line 15
+Stmt line 16 may_raise
+  Print console newline
+    Num Load DY(Const 3:I64):F32
+Stmt line 17 may_raise
+  Call P []
+Stmt line 18
+  System
+Sub P lines 19-23
+  local A:F32
+Stmt line 20 may_raise
+  Assign A(local)(Const 1:I64):F32 = (Const 5:I16 -> Convert F32 Nearest)
+Stmt line 21 may_raise
+  Print console newline
+    Num UBound A(local)(1):I64
+Stmt line 22
+  Release A(local):F32

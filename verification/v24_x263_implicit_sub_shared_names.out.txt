@@ -1,0 +1,2 @@
+a(1) in the SUB: [error 9 ]g(1) beside DIM SHARED g AS LONG: [error 9 ] [error 9 ]n(1) beside the parameter n: [error 9 ] [error 9 ] 7  3 
+exit=0

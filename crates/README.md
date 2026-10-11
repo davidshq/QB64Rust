@@ -107,7 +107,8 @@ What the compiler supports so far:
   procedure scopes as measured; uses become literal nodes. Floats are computed in `f64` and checked for being the
   value the old compiler's `_FLOAT` path gives; where that cannot be shown, and for the evaluator's functions,
   the constant is "not supported yet";
-- `OPTION _EXPLICIT` and `_EXPLICITARRAY`, program-wide wherever they stand, as measured;
+- `OPTION _EXPLICIT` and `_EXPLICITARRAY`, program-wide wherever they stand, as measured (an array used
+  without `DIM` is an error under either);
 - control flow (`m2-control-flow-slice`): `IF` in both forms with `ELSEIF`/`ELSE`, `IF c GOTO label`, `FOR …
   NEXT` (with `STEP`, `NEXT j, i`, the old compiler's temporaries and their widths), `DO … LOOP` in its four
   forms, `WHILE … WEND`, `EXIT FOR`/`DO`/`WHILE`, `GOTO`, `GOSUB`, `RETURN` and `RETURN label`, labels in every
@@ -220,7 +221,22 @@ What the compiler supports so far:
   without an element, without leaving; error 257 ("Out of memory", which ends the program) for what cannot be
   held; the new block made before the old one is released; `_PRESERVE` copying by flat position. `_BIT`
   arrays, static and dynamic, are packed storage read with `getbits` and stored with `setbits`. A dynamic
-  array of the main module is not released when the program ends.
+  array of the main module is not released when the program ends;
+- group 5 of the same change, arrays used without `DIM` (`implicit_array`, `sema\src\check\places.rs`):
+  `name(…)`, `LBOUND(name)` and `UBOUND(name)` of a name that is no visible array make one, `OPTION BASE` to 10
+  per index written, of the suffix's type or the default type at that line, where the name may be a variable,
+  no SUB or FUNCTION has it and the spelling calls no built-in function (`chr(1)` and `__foo(1)` are arrays; a
+  scalar or a `CONST` of the name does not stand in the way). In the main module it is a static array; below
+  `$DYNAMIC` a dynamic one whose `Allocate` is *joined* to the statement that names it first (the IR puts it
+  first in that statement's operations, so an error it raises skips the statement's stores and `RESUME NEXT`
+  goes on after the statement, as measured); in a SUB or FUNCTION a local dynamic array that nothing allocates,
+  so every use raises error 9, as in QB64pe (`DIVERGENCES-QB45.md` Q-009; its descriptor is made on each call
+  and its `_MEM` lock freed at the end). `OPTION _EXPLICIT` and `OPTION _EXPLICITARRAY` make it an error. Not
+  made an array, and still marked: a name used after a declaration that was marked (the follow-on rule), a name
+  with one leading underscore, the name of a SUB or FUNCTION, a built-in function's own spelling as a place,
+  below `$DYNAMIC` a first use where the old compiler's allocation is not the first thing the statement does
+  (the line of a block, `IF`, `FOR`, `DO`, …; a later item of `PRINT` or `READ`, an item of `WRITE` or `PRINT #`,
+  a target of `INPUT`), and anywhere a first use in a bound of `REDIM` (`NoJoin`, `sema\src\check\mod.rs`).
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
@@ -233,8 +249,8 @@ built-in statement read by its template (`LINE`, `SCREEN`, `GET`/`PUT`, `TIME$ =
 forms (`COMMON`, `REDIM _RETAIN`, arrays named `name$n`, array
 parameters, `STATIC` after a header, `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), type names as arguments, the
 names of QB64pe's auto-included files and its precompiler flags (`_CONSOLE_`, ...); of arrays and `TYPE`:
-arrays used without `DIM` (implicit arrays, and `ERASE` of one), arrays in procedures (`DIM`, `STATIC`, `SHARED
-a()`, a `REDIM` that would make one), whole arrays (`x()`), `TYPE` parameters, `STRING` and array members,
+arrays in procedures (`DIM`, `STATIC`, `SHARED a()`, a `REDIM` that would make one, `DIM` or `REDIM` of an array
+used without `DIM` there), whole arrays (`x()`), `TYPE` parameters, `STRING` and array members,
 member arrays, whole-`TYPE` assignment; `DEF FN` is an error, as in QB64pe. After a declaration
 marked "not supported yet", later real errors are dropped (the follow-on rule, design D10 of `m2-parser-breadth`):
 the program is rejected by the mark, and no error is reported that the declaration might have prevented.

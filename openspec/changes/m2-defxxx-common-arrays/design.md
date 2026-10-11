@@ -171,7 +171,8 @@ left for `COMMON a()`, `STATIC a()` and array parameters (1.3).
 
 An array used without `DIM` below `$DYNAMIC` is dynamic and is allocated (0 or 1 to 10 per index) by the first
 statement in the file that names it: `sema` puts an `Allocate` in mode `Dim` before that statement, which is what
-the old compiler writes (run twice it raises 10; skipped, every use raises 9).
+the old compiler writes (run twice it raises 10; skipped, every use raises 9). Group 5 found that it is part of
+that statement (D5, "As built").
 
 `$DYNAMIC`/`$STATIC` become checker state, switched where the metacommand comment stands by the rule
 `syntax::meta` already implements. `OPTION BASE` is checker state too. Both follow the file like the default
@@ -254,6 +255,47 @@ allocates such an array. **Decided (user, 2026-10-11): do as QB64pe**; the diffe
 `LBOUND(x)`/`UBOUND(x)` of a non-array makes the same array with one dimension. The number of indexes of the
 first use is the number of dimensions; another number later is a compile error, a later `DIM` of a static one
 too.
+
+**As built in group 5 (2026-10-11; measured first, `verification\v24_x256`–`x263`, `study\00` §5):**
+- `implicit_array` (`sema\src\check\places.rs`) is called where `name(…)`, `LBOUND(name)` or `UBOUND(name)` finds
+  no visible array. The element type is the suffix or the default type; a scalar of the name typed with `AS`
+  and a `CONST` of the name change nothing (measured). `OPTION _EXPLICIT` makes it an error as `OPTION
+  _EXPLICITARRAY` does, and both apply to the whole program.
+- **The allocation below `$DYNAMIC` is part of the statement that names the array first**, not a statement
+  before it (D3 said "before that statement"): run again it raises 10, the statement's element store is skipped
+  and `RESUME NEXT` goes on after the statement (`v24_x101`). `Allocate` has a flag `joined` in the typed tree;
+  the lowering puts a joined `Allocate` first among the operations of the statement that follows, so the IR
+  needs nothing new. A first use in the line of a block (`IF`, `ELSEIF`, `FOR`, `DO`, `LOOP`, `WHILE`, `SELECT
+  CASE`, `CASE`) stays marked: where the allocation runs there differs by block (measured, `v24_x262`) and
+  what an error in it skips was not measured.
+- **Corrected by the review of group 5 (2026-10-11; measured, `verification\v24_x264`–`x268`):** "part of
+  the statement" means *where the statement evaluates the name*, which is its start only when the statement
+  writes its code after evaluating all its parts (a store, a call, `SWAP`, `ON … GOSUB`, the `MID$` statement, a
+  bound of `DIM`). `PRINT`, `WRITE`, `READ` and `INPUT` work item by item: run again, the earlier items are
+  printed or read and the prompt is shown before the allocation raises 10 (as first built, the new compiler
+  raised it before them: wrong output, and for `READ` another `DATA` item read next). A first use in a later
+  item of `PRINT` or `READ`, in any item of `WRITE` or `PRINT #` and in any target of `INPUT` or `LINE INPUT`
+  is therefore marked, like the line of a block (`NoJoin` in `sema\src\check\mod.rs`; the first item of a console
+  `PRINT` and the first target of `READ` are measured equal and compile). **A first use in a bound of `REDIM`
+  is another thing altogether**: the array is dynamic also without `$DYNAMIC`, and it is allocated as the
+  `REDIM` allocates (made anew on each run, kept under `_PRESERVE`, no error 10; a later `REDIM` of it works);
+  in a SUB the `REDIM` of the shared array then does not happen at all (`x268`). Marked wherever it stands.
+  Compiling these (an `Allocate` placed before its item; the `REDIM` kinds) is left for a later task.
+- **In a procedure** the array is `Local` and `Dynamic` with no `Allocate`. The emitter makes its descriptor
+  on each call, "not allocated", and at the end releases its block if a statement allocated one and frees the
+  `_MEM` lock of the descriptor, as the old compiler writes it (read from `v24_x263`). This is the per-call
+  descriptor of D7 for the one case that needs no allocation; `DIM` and `REDIM` of such an array in the
+  procedure stay marked for group 6, and so does the row `SUB … STATIC` of the table (no `STATIC` procedure
+  compiles yet).
+- **Not made an array, and still marked "not supported yet":** any such name after a declaration that was
+  marked (the follow-on rule: the declaration may have declared it, as with `COMMON`, an array parameter or a
+  member array); a name with one leading underscore (the old compiler's "Invalid array name" would be a false
+  error for the built-ins the table does not know by that spelling, such as `_CONNECTIONADDRESS$` and the
+  functions of the auto-included files: found by `tests\known_false_errors.list`); the name of a SUB or
+  FUNCTION; a built-in function's own spelling as a place (`rnd(1) = 2` is an error in the old compiler, but
+  `ASC(s$, 2) = 65` is a statement); a built-in's name with a suffix `reserved` has no measured rule for
+  (`abs$(1)`, an array in the old compiler); the whole array `x()` (group 7); a name with a dot beside a `TYPE`
+  variable of its first part (a member array, group 9).
 
 ### D6. Arrays in procedures, parameters, `COMMON`
 - **Storage** as for scalars: `Local`, `Static`, `Param`. A local array is dynamic and is released when the call

@@ -299,16 +299,83 @@ tests\corpus\slice.list`, run also with `QB64RUST_NO_FOLD=1`.
 
 ## 5. Implicit arrays (design D5)
 
-- [ ] 5.1 `name(…)`, `LBOUND(name)` and `UBOUND(name)` for a name that may become an array by the rule of D5 make a
+- [x] 5.1 `name(…)`, `LBOUND(name)` and `UBOUND(name)` for a name that may become an array by the rule of D5 make a
   static array `OPTION BASE` to 10; `OPTION _EXPLICITARRAY` makes it the measured error; a later `DIM` is the
   measured error. Verify: `typed` tests for one, two indexes, a suffix, a `DEFxxx` type, base 1; `check-fail`
   tests that each class of name D5 excludes **still** gets its old message (a `_` name, a built-in of another
   suffix, a name whose declaration was marked, a FUNCTION defined later); the "Implicit arrays" scenarios as a
   recorded slice program passing in tier 2.
-- [ ] 5.2 Lists and documents as 2.3, and a check for wrong code: the full corpus and the full upstream suite run
+  Done 2026-10-11. `implicit_array` (`check\places.rs`), called from `call`, `call_place` and `bound_fn`; the
+  rest of the checker needed nothing (a later `DIM`, another number of indexes, `REDIM` and `ERASE` already
+  went by the array found). Tests: `implicit_arrays_typed.bas`, `implicit_arrays_ir.bas`,
+  `implicit_arrays_cpp.bas`, `implicit_arrays_errors.bas`, `implicit_arrays_explicitarray_errors.bas`,
+  `implicit_arrays_explicit_errors.bas`; `arrays_errors.bas`, `member_access.bas`, `redim_unsupported.bas` and
+  `unsupported.bas` lost the lines that pinned the mark (the third keeps it for a name used after a marked
+  declaration). Slice `s55_implicit` (35 numbered lines, recorded from two equal runs): **the new compiler
+  printed it as recorded on its first run**, also with `QB64RUST_NO_FOLD=1`.
+  - **Measured first** (`verification\v24_x256`–`x263`, `study\00` §5), with five answers the design did not
+    have: `OPTION _EXPLICIT` rejects such an array too, and both options apply to the whole program; a scalar
+    typed with `AS` and a `CONST` of the name neither stand in the way nor type the array; `ERASE` clears it and
+    is an error above the first use; in a SUB the name of an unshared main array, a parameter and a `DIM
+    SHARED` scalar each make the local array; where the allocation below `$DYNAMIC` runs when the first use
+    stands in the line of a block (`x262`).
+  - **Beyond "a static array"**: below `$DYNAMIC` the dynamic array of D3, and in a procedure the local array
+    that nothing allocates (D5's last row, decided 2026-10-11), with its per-call descriptor and the release
+    of its lock in the emitter (`codegen-cpp\src\procs.rs`, after the old compiler's C++ read from `x263`).
+    The 29 measurement programs of this group, run with the new compiler: 20 build and print what the old
+    compiler printed or are rejected by both with a real error; 9 are still marked (`SUB … STATIC` and `STATIC
+    y()` in 2, `DIM` of the array in the SUB, an array parameter, a first use in a block's line, `abs$(1)`,
+    and the three the old compiler rejects that stay marks here: `f(3) = 5`, `rnd(1) = 2`, `len%(3) = 1`).
+  - **Found by running `v24_x101` with the new compiler** (it printed 3 for 1): the allocation below `$DYNAMIC`
+    is part of the statement that names the array first, so its error 10 skips that statement's store and
+    `RESUME NEXT` goes on after the statement. `Allocate` got the flag `joined`; the lowering puts it first
+    among the next statement's operations (`ir\src\lower.rs`). D3, D5, the requirement "Dynamic arrays" (a
+    new scenario) and `SOMEDAY.md` say so. A first use in the line of a block is marked for that reason.
+  - **Found by `tests\known_false_errors.list`**: a name with one leading underscore must keep its mark
+    (`_CONNECTIONADDRESS$(…)` and `_ENCODEURL$(…)` are built-ins the table does not know by that spelling), so
+    `_foo(1) = 2` is a mark, not the old compiler's "Invalid array name".
+  - Not in this task: the scenario "In a SUB … STATIC" (no `STATIC` procedure compiles yet: group 6, with a
+    line for it in its slice program), the whole array `nx()` (group 7).
+  - My own slip, corrected: I ran one edit with backslashes through a shell heredoc (rule 7 of `CLAUDE.md`);
+    the script stopped on its own check before writing, and `tools\repo_check` is clean.
+  - **Review of the staged group (2026-10-11) found wrong output**, by programs built with both
+    compilers: the joined allocation ran first in its statement, where the old compiler runs it where the name
+    is evaluated. Measured (`verification\v24_x264`–`x268`, `study\00` §5) and marked "not supported yet"
+    (`NoJoin`, `sema\src\check\mod.rs`): below `$DYNAMIC` a first use in a later item of `PRINT` or `READ`, in an
+    item of `WRITE` or `PRINT #`, in a target of `INPUT` or `LINE INPUT`; and, wherever it stands, a first use in
+    a bound of `REDIM` (the old compiler makes that array dynamic and allocates it as the `REDIM` does). Tests:
+    `implicit_arrays_errors.bas` (six lines), `implicit_arrays_redim_errors.bas` (new). `s55_implicit.bas`
+    lines 27 and 28 named new arrays in a second item: each is now two `PRINT` statements, the recorded output
+    unchanged (old compiler, new compiler, and `QB64RUST_NO_FOLD=1`: pass). No program of the corpus, the
+    upstream tests, the differential set, the snippets or `tests\programs` meets a new mark (`--report
+    unsupported`), so the numbers of 5.2 stand; the full runs were not repeated. Design D5 "As built" and the
+    requirement "Dynamic arrays" (two new scenarios) are corrected.
+  - Found by the same review, **not fixed** (group 4's): a `DIM` or `REDIM` of several dynamic arrays is one
+    statement in the old compiler (run twice: one error 10, a later array of the list is still allocated,
+    `RESUME NEXT` goes on after the whole statement) and one statement per array here (two errors 10;
+    `verification\v24_x267`). `STATUS.md`, "Known bugs".
+  - The same slip again in the review's fix (a comment with `verification\v24_…` through a heredoc: three
+    vertical tabs in `check\mod.rs`), found by `tools\repo_check --untracked` and repaired by a script file.
+- [x] 5.2 Lists and documents as 2.3, and a check for wrong code: the full corpus and the full upstream suite run
   with the release build. Verify: no program builds and prints the wrong output; no program with an `.err` file
   starts compiling (`known_unsupported_rejections.list` only shrinks by programs that now get a real error);
   expected against passed stated here.
+  Done 2026-10-11. **Full corpus** (349 programs): 293 pass (the 274 of `slice.list`, 19 `.err`), 50 rejected
+  with a diagnostic, 1 `.err` with only marks (`218` `FRE`), 5 known failures; none builds and prints the wrong
+  output (`tests\corpus\README.md`). **Full upstream suite** (404): 58 pass, 303 rejected, 42 `.err` with only
+  marks, 1 known failure; none wrong (`tests\upstream\README.md`). `known_unsupported_rejections.list` shrank
+  by two, both to the old compiler's own error ("Illegal string-number conversion" for `TRIM$(…)`, which is no
+  built-in: an array with a string index): `runtime_comparison/16_ltrim_rtrim` and snippet
+  `builtin_functions__trim_functions`; the other two lists are unchanged (0 and 0).
+  **Expected against passed.** Expected: programs that only waited on an array used without `DIM`. Passed:
+  none became clean, in the corpus (21 held back beside the screen programs, as before) or upstream (294 held
+  back, as before). Every program that still shows the mark names the array after a declaration that is
+  marked (member arrays, array parameters, arrays in procedures, `COMMON`, `_MEM`), where the follow-on rule
+  keeps the name from becoming an array, or calls a FUNCTION of a `DECLARE LIBRARY` block or an auto-included
+  file; those messages go with groups 6 to 9. Civil War Strategy: `hit(…)` and `summ(…)` are `COMMON SHARED`
+  arrays (group 7). `pass.list` gained two programs that are group 4's and were not listed then
+  (`arrays/negative_array_size`, `_2`: `.err` programs with the old compiler's error): 58 of 279. The
+  call-site check gained no program (no libqb call is new: `free_mem_lock` is no built-in form).
 
 ## 6. Arrays in procedures (design D6, D7)
 

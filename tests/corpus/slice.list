@@ -277,6 +277,7 @@ slice/s52_dynamic_memory
 slice/s53_redim
 slice/s54_redim_preserve
 slice/s55_erase
+slice/s55_implicit
 runtime_comparison/120_redim_no_preserve
 runtime_comparison/203_redim_multiple
 runtime_comparison/40_erase

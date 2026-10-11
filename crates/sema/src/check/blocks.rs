@@ -2,7 +2,7 @@
 //! statements that keep the source structure; `EXIT FOR/DO/WHILE` leaves one. The other blocks are still marked as
 //! a whole, with the statements inside checked one by one.
 
-use super::{Checker, R, Skips, first_token_span};
+use super::{Checker, NoJoin, R, Skips, first_token_span};
 use crate::{
     BinOp, Branch, Case, CaseItem, Expr, ExprKind, LoopKind, LoopTest, PLACE_ONLY_UNREACHABLE, Place, Stmt, StmtKind,
     SymbolKind, TestAt, Ty, VarId,
@@ -57,7 +57,7 @@ impl Checker<'_> {
             return None;
         }
         self.stmt_error = false;
-        let result = check(self).ok();
+        let result = self.unjoined(NoJoin::Header, check).ok();
         self.flush_names();
         result
     }

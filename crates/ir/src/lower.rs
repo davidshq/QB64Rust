@@ -92,6 +92,9 @@ struct Lowerer<'a> {
     stmts: Vec<Stmt>,
     /// The exit labels of the loops around the statement being lowered, innermost last.
     exits: Vec<(sema::LoopKind, LabelId)>,
+    /// Operations that belong to the next statement and run first in it (`joined` of
+    /// [`sema::StmtKind::Allocate`]), each with the span and line it was written at.
+    joined: Vec<(Span, u32, Op)>,
 }
 
 impl<'a> Lowerer<'a> {
@@ -124,11 +127,13 @@ impl<'a> Lowerer<'a> {
             labels,
             stmts: Vec::new(),
             exits: Vec::new(),
+            joined: Vec::new(),
         }
     }
 
     fn body(mut self, stmts: &[sema::Stmt]) -> Body {
         self.stmts_of(stmts);
+        self.flush_joined();
         Body {
             labels: self.labels,
             stmts: self.stmts,
@@ -154,10 +159,23 @@ impl<'a> Lowerer<'a> {
 
     /// Puts a label before the next statement.
     fn place(&mut self, l: LabelId) {
+        self.flush_joined();
         self.labels[l.0 as usize].at = self.stmts.len();
     }
 
+    /// The joined operations that no statement followed, as statements of their own (`sema` makes none: the
+    /// statement that names an array first comes right after its allocation).
+    fn flush_joined(&mut self) {
+        for (span, line, op) in std::mem::take(&mut self.joined) {
+            self.emit(span, line, vec![op]);
+        }
+    }
+
+    /// A statement of `ops`, after the operations joined to it ([`Lowerer::joined`]).
     fn emit(&mut self, span: Span, line: u32, ops: Vec<Op>) {
+        let mut joined: Vec<Op> = std::mem::take(&mut self.joined).into_iter().map(|j| j.2).collect();
+        joined.extend(ops);
+        let ops = joined;
         let may_raise = ops.iter().any(Op::may_raise);
         self.stmts.push(Stmt {
             span,
@@ -254,11 +272,23 @@ impl<'a> Lowerer<'a> {
                 place: place.clone(),
                 value: value.clone(),
             },
-            sema::StmtKind::Allocate { array, bounds, mode } => Op::Allocate {
-                array: *array,
-                bounds: bounds.clone(),
-                mode: *mode,
-            },
+            sema::StmtKind::Allocate {
+                array,
+                bounds,
+                mode,
+                joined,
+            } => {
+                let op = Op::Allocate {
+                    array: *array,
+                    bounds: bounds.clone(),
+                    mode: *mode,
+                };
+                if *joined {
+                    self.joined.push((s.span, s.line, op));
+                    return;
+                }
+                op
+            }
             sema::StmtKind::Clear { array } => Op::Clear { array: *array },
             sema::StmtKind::Release { array } => Op::Release { array: *array },
             sema::StmtKind::Print { to, items, newline } => Op::Print {

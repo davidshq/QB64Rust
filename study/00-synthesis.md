@@ -1152,7 +1152,34 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   are "Name already in use" (`to`, `cls`); a built-in function's own spelling and a FUNCTION defined anywhere in
   the program are calls, so a store to one is "Expected variable =, look for conflict with a CONST name" (`rnd(1)
   = 2`, `f(3) = 5`); the name of a SUB is "Name already in use". Under `OPTION _EXPLICITARRAY` both the use and
-  `LBOUND(q)` are "Array 'q' (SINGLE) not defined".
+  `LBOUND(q)` are "Array 'q' (SINGLE) not defined". **Measured before group 5 was built (`v24_x256`–`x263`):**
+  `OPTION _EXPLICIT` gives the same error, and both options apply to the whole program (a use above the `OPTION
+  _EXPLICITARRAY` line is rejected). A scalar of the name declared with `AS` does not type the array (`DIM x AS
+  LONG`, then `x(3) = 2.5` is a SINGLE array: 2.5, `LEN` 4); a `CONST` of the name does not stand in the way
+  (`CONST k = 1: k(1) = 2`). `ERASE` of one clears it (bounds kept); `ERASE` above its first use in the file is
+  "Undefined array passed to ERASE". In a SUB, the name of a main array that is not shared, of a `DIM SHARED`
+  scalar typed with `AS` and of a parameter each make the local array that raises 9, and `ERASE` of it there
+  changes nothing. **Below `$DYNAMIC` the allocation is part of the statement that names the array first**
+  (`x101`: run a second time it raises 10, the statement's element store is skipped and `RESUME NEXT` goes on
+  after the statement). Where it runs when the first use stands in the line of a block (`x262`): before an
+  `IF`, a `FOR` (bound or `STEP`), a `WHILE`, a `DO WHILE` (once, not per round) and a `SELECT CASE`; inside
+  the block for an `ELSEIF` (not reached: every use raises 9), a `CASE` value and a `LOOP UNTIL` (every round:
+  error 10 from the second); for a one-line `IF` inside its `THEN` part. The old compiler's C++ for the local
+  array (read from `x263`): a descriptor per call in the "not allocated" state in `dataN.txt`, and in
+  `freeN.txt` the release of its block if it is allocated, then `free_mem_lock` of the descriptor's lock.
+  **Measured by the review of group 5 (`v24_x264`–`x268`):** the allocation runs where the statement evaluates
+  the name, so in a statement that works item by item what stands before it has happened when it raises 10 on a
+  second run: `PRINT " x"; dp(1); " y"` prints ` x`, `READ a, dq(1), b` reads `a` (and the next `READ` gets the
+  item after it), `WRITE i, dr(1)` writes `2,`, `INPUT` shows its prompt (also when the first target names the
+  array) and reads nothing. Nothing differs from "first in the statement" for a store (also with the name in
+  its index), `SWAP`, a call's arguments, `LINE INPUT` without a prompt, the first item of a console `PRINT`
+  and the first target of `READ`. **In a bound of `REDIM`** the array is dynamic also without `$DYNAMIC` and is
+  allocated as the `REDIM` allocates: each run makes it anew (its elements are zero again) and raises nothing,
+  `_PRESERVE` keeps it, and a later `REDIM` of it works; in a bound of `DIM` it is as anywhere else (static
+  without `$DYNAMIC`; below it, error 10 on the second run). In a SUB, `REDIM sd(lc(1) + 4)` of a shared array
+  with such a name in its bound raises 9 and leaves `sd` as it was (`x268`). **A `DIM` of several dynamic
+  arrays is one statement (`x267`):** run twice it raises 10 once, an array of the list that is not allocated
+  is still allocated after the error, and `RESUME NEXT` goes on after the whole `DIM`.
 - **Arrays in procedures (`v24_g_local*`, `v24_x121`–`x129`, `x177`):** `DIM` and `REDIM` in a SUB or FUNCTION make
   an array that is new, zero or empty, on every call, with constant and with variable bounds, for strings too, and
   in every level of a recursive call; one `DIM` run twice in a call raises 10. `EXIT SUB` and an error inside the

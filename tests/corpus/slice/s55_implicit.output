@@ -1,0 +1,31 @@
+1. z(10) = 4: z(10), LBOUND, UBOUND 4  0  10 
+2. z(11) = 1, z(-1): [error 9 ] [error 9 ]3. two indexes: UBOUND 1, UBOUND 2, LBOUND 2, m(2, 3), m(10, 10) 10  10  0  5  0 
+4. three indexes: UBOUND 3, t(1, 2, 3), t(10, 10, 10) 10  1  0 
+5. suffixes: ab 10  2  .3333333333333333  5000000000  200 -1  2  8 
+6. the first use is a read: 0  10 []
+7. LBOUND(lb) first, then lb(10) = 3: 0  10  3  UBOUND(lb, 2): [error 9 ]8. the first use skipped by GOTO: 10  0 
+9. REDIM z(20): [error 10 ] 10  4 
+10. c!(7) beside DIM c(3) AS LONG: c!(7), c(1), UBOUND(c), UBOUND(c!) 1.5  2  3  10 
+11. a scalar and an array of one name: a, a(2) 5  3 
+12. an index in a float and in a string of digits: 4  8 
+13. beside DIM x AS LONG: x, x(3), LEN(x(3)) 7  2.5  4 
+14. beside CONST k: k, k(1) 1  2 
+15. chr(1), left(3), __foo(1), UBOUND(left): 5  0  2  10 
+16. ERASE: e(1), UBOUND(e), es$(2): 0  10 []
+17. filled in a loop, SWAP, an element by reference: 9  4  116  100 
+18. strings: xy 0 
+19. DEFINT A-Z and OPTION BASE 1: di(1), LEN, LBOUND, UBOUND, UBOUND(di%) 2  2  1  10  10 
+20. di(0): [error 9 ]21. two indexes under base 1: 1  1  10 
+22. below $DYNAMIC: dy(3), LBOUND, UBOUND 4  0  10 
+23. the first use skipped by GOTO: [error 9 ] [error 9 ]
+24. the first use run three times: [error 10 ] [error 10 ] 1  10 
+25. REDIM of it: 20  0 
+26. a one-line IF taken, and one not taken: 2  10  [error 9 ]27. LBOUND first: 0  10 
+28. two in one statement: 0  10  10 
+29. ERASE of it, then a use: [error 9 ]30. strings: dyn 10 
+31. below $STATIC again: 6  10 
+ [error 10 ]
+32. a SUB, called twice: [error 9 ] x(2): [error 9 ] [error 9 ] x(2): [error 9 ]
+33. a FUNCTION: [error 9 ] UBOUND(x), LBOUND(x): [error 9 ] [error 9 ] [ [error 9 ]
+34. beside main arrays, a parameter and a DIM SHARED scalar of the name: z(10): [error 9 ] [error 9 ] g(1): [error 9 ] [error 9 ] n(1), n: [error 9 ] 4  3 
+35. ERASE in a SUB: [error 9 ] UBOUND(w2): [error 9 ]

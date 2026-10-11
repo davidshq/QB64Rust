@@ -1,0 +1,15 @@
+1. IF header: 10 
+2. one-line IF, in THEN: 2  10 
+3. one-line IF not taken: [error 9 ]4. in a FOR body run twice: [error 10 ] 1 
+5. DO WHILE header, body run twice: 2 
+6. LOOP UNTIL, body run twice: [error 10 ] 2  10 
+7. WHILE header, body run twice: 2 
+8. FOR bound: 10 
+9. SELECT CASE selector: 10 
+10. CASE value, second CASE: 10 
+11. ELSEIF header: 10 
+12. ELSEIF header not reached: first [error 9 ]13. LBOUND first: 0  10 
+14. two in one statement: 0  10  10 
+15. after a colon: 3 
+16. FOR STEP and block IF body: 10  1 
+exit=0

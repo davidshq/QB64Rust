@@ -1,0 +1,13 @@
+1. PRINT, a text before the first use: x 0  y x [error 10 ]
+2. READ a, dq(1), b: [error 10 ] 4  2  0 
+   the next item: 5 
+3. WRITE i, dr(1):1,0
+2, [error 10 ]
+4. SWAP sv, ds(1): [error 10 ] 7  0 
+5. a call with two arguments: two 1  0  [error 10 ]
+6. a store whose index names it: [error 10 ] 1  0  10 
+7. the first item names it, more follow: 0  z [error 10 ]
+8. READ whose first target names it: [error 10 ] 6  0 
+9. two new arrays, a text between them: 0  m 0  [error 10 ]
+10. PRINT, the new array in the third item: p q 0  p q [error 10 ]
+exit=0
