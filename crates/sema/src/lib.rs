@@ -461,6 +461,10 @@ pub enum Shape {
     /// An array a statement allocates when it runs. `dims` is its number of dimensions; `None` while nothing has
     /// fixed it (`COMMON a()`, `STATIC a()`, an array parameter that is never indexed).
     ///
+    /// An array parameter (storage [`Storage::Param`]) has this shape whatever is passed to it: the array it
+    /// stands for in a call may be a static one, so an [`StmtKind::Allocate`] of it may raise error 10 and an
+    /// `ERASE` of it is an [`StmtKind::EraseParam`].
+    ///
     /// `at_start` are the bounds of `STATIC a(bounds)`: the array is allocated with them when the program
     /// starts, and again, if an `ERASE` released it, whenever an error handler is entered (measured,
     /// `verification\v24_x278`, slice `s56_proc_arrays` line 24; the old compiler writes the allocation into the
@@ -601,6 +605,10 @@ pub enum Arg {
     Ref(Place),
     /// A fresh copy of a value, already converted to the parameter's type; changes to it are lost.
     Temp(Expr),
+    /// A whole array, to an array parameter: the procedure works on this array (design D6 of
+    /// `m2-defxxx-common-arrays`). Its element type has the parameter's kind and width; signedness is not
+    /// compared.
+    Array(VarId),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -818,6 +826,11 @@ pub enum StmtKind {
     /// `ERASE` of a dynamic array: its elements are released and it is not allocated afterwards. Of one that is
     /// not allocated it does nothing.
     Release {
+        array: VarId,
+    },
+    /// `ERASE` of an array parameter: a [`StmtKind::Clear`] when the array passed is a static one, a
+    /// [`StmtKind::Release`] when it is dynamic, which is known when the statement runs.
+    EraseParam {
         array: VarId,
     },
     /// `PRINT` (`to` is `None`) or `PRINT #n,`: `to` is the file number, already converted to LONG.

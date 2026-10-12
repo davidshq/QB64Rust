@@ -18,6 +18,8 @@ use qb64rust_syntax::tree::{Node, Tok};
 pub(super) enum Declarer {
     Dim,
     Static,
+    /// `COMMON`: a `DIM` whose arrays are only listed (`COMMON a()`).
+    Common,
     /// `REDIM`, or with `preserve` `REDIM _PRESERVE`.
     Redim {
         preserve: bool,
@@ -497,6 +499,31 @@ impl Checker<'_> {
             Some(a) => Some(self.type_of(a)?),
             None => None,
         };
+        let first = self.sink().len();
+        let done = self.declare_each(items, list_ty, storage, shared, by, stmt);
+        // The allocations of one `DIM` or `REDIM` are one statement (measured, `verification\v24_x267`): an
+        // error in one of them does not keep the later arrays of the list from being allocated, a second
+        // allocation raises no second error, and `RESUME NEXT` goes on after the whole list.
+        let mut last = true;
+        for s in self.sink()[first..].iter_mut().rev() {
+            if let StmtKind::Allocate { joined, .. } = &mut s.kind {
+                *joined |= !last;
+                last = false;
+            }
+        }
+        done
+    }
+
+    /// The names of [`Self::declare_items`], one by one; `list_ty` is the type written before them.
+    fn declare_each<'t>(
+        &mut self,
+        items: impl Iterator<Item = ast::DimItem<'t>>,
+        list_ty: Option<Ty>,
+        storage: Storage,
+        shared: bool,
+        by: Declarer,
+        stmt: Node,
+    ) -> R<()> {
         for item in items {
             if item.is_member_path() {
                 // `REDIM a(1).m(5)`.
@@ -525,7 +552,7 @@ impl Checker<'_> {
             // `v24_x43`, `x44`, `x86`) and in a procedure (`v24_x273`). `STATIC a()` lists an array (measured,
             // `v24_g_local`).
             if let Some(bounds) = item.bounds()
-                && (!bounds.ranges().is_empty() || by == Declarer::Static)
+                && (!bounds.ranges().is_empty() || matches!(by, Declarer::Static | Declarer::Common))
             {
                 self.declare_array(typed, bounds, (name_tok, name, suffix, ty), storage, shared, by, stmt)?;
                 continue;
@@ -656,6 +683,34 @@ impl Checker<'_> {
         done
     }
 
+    /// `COMMON [SHARED] name [AS type], name() [AS type], …` (design D6 of `m2-defxxx-common-arrays`; measured,
+    /// `verification\v24_g_common`, `v24_a_common`, `v24_x161`-`x175`, `x181`): each name is declared as `DIM`
+    /// declares it, shared after `SHARED` as by `DIM SHARED`, wherever the statement stands in the main module.
+    /// `name()` lists a dynamic array that is not allocated; a `DIM` or `REDIM` of that name and type below gives
+    /// it its bounds when it runs. Nothing is written for `CHAIN`, which is not supported: without it a `COMMON`
+    /// variable is a variable like any other.
+    pub(super) fn common(&mut self, stmt: ast::CommonStmt) -> R<()> {
+        let node = stmt.node();
+        if self.cur.is_some() {
+            // Measured: "COMMON cannot be used within a SUB/FUNCTION" (`verification\v24_x162`).
+            return Err(self.error(node.span(), "`COMMON` cannot stand inside a SUB or FUNCTION"));
+        }
+        if let Some(slash) = stmt.block() {
+            // Measured: "Invalid variable name", with and without `SHARED` and without a variable
+            // (`verification\v24_x170`, `x174`, `x175`).
+            return Err(self.error(slash.span, "a `COMMON` block name (`/name/`) is not accepted"));
+        }
+        let shared = stmt.shared().is_some();
+        self.declare_items(
+            stmt.items(),
+            stmt.as_clause(),
+            Storage::Main,
+            shared,
+            Declarer::Common,
+            node,
+        )
+    }
+
     /// `REDIM [_PRESERVE] [SHARED] name(bounds) [AS type], …` (design D3, D4 of `m2-defxxx-common-arrays`): each
     /// name is a dynamic array, declared here when no array of the name and type is visible, and given new bounds
     /// and new elements when the statement runs. Measured (`verification\v24_c_redim*`, `v24_x39`–`x56`): the
@@ -719,7 +774,11 @@ impl Checker<'_> {
                 return Err(self.error(t.span, format!("`{shown}` is no declared array (`ERASE`)")));
             };
             self.names.push((SymbolKind::Var(array), t.span));
-            let kind = match self.prog.var(array).shape {
+            let var = self.prog.var(array);
+            let kind = match var.shape {
+                // An array parameter is cleared or released by what is passed (measured,
+                // `verification\v24_g_params`).
+                _ if matches!(var.storage, Storage::Param(_)) => StmtKind::EraseParam { array },
                 Shape::Static { .. } => StmtKind::Clear { array },
                 Shape::Dynamic { .. } => StmtKind::Release { array },
                 Shape::Scalar => unreachable!("an array is no scalar"),

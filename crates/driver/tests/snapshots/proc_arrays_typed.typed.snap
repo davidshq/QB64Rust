@@ -47,12 +47,12 @@ SUB LOCALS
   local V:I32
   local S:Str
   local Q:F32
-line 15: Allocate T (local):I32 (Dim)
+line 15: Allocate T (local):I32 (Dim, with the next statement)
   Lower
     Int 0 : I64
   Upper
     Int 5 : I64
-line 15: Allocate V (local):I32 (Dim)
+line 15: Allocate V (local):I32 (Dim, with the next statement)
   Lower
     Int 0 : I64
   Upper

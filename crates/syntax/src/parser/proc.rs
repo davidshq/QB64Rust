@@ -130,7 +130,9 @@ pub(super) fn param_list(p: &mut Parser, library: bool) {
 }
 
 /// `[BYVAL] name[suffix][()] [AS type]` (`BYVAL` only with `library`). An array parameter's parentheses hold
-/// nothing or only commas (`a(,)`: two dimensions). Returns false after an error.
+/// anything (`a(,)`, `a(1)`, `a(n + 1)`, `a(1 TO 5)`), none of which says anything: the old compiler skips every
+/// word up to the `)` (`qb64pe.bas` 2882–2904; measured, `verification/v24_x156`, `x157`, `x303`). Only a second
+/// `(` and the word `AS` are errors there (`x304`, `x305`). Returns false after an error.
 fn param(p: &mut Parser, library: bool) -> bool {
     if !p.at(Ident) {
         p.syntax_error("expected a parameter name");
@@ -144,10 +146,16 @@ fn param(p: &mut Parser, library: bool) -> bool {
     let mut ok = true;
     if p.at(LParen) {
         p.bump();
-        while p.at(Comma) {
+        while !(p.at(RParen) || p.at(LParen) || p.at_word("AS") || p.at_stmt_end()) {
             p.bump();
         }
-        ok = p.expect(RParen, "`)` (an array parameter takes no bounds)");
+        if p.at(LParen) || p.at_word("AS") {
+            // Measured: "Syntax error - too many opening brackets", "Syntax error - check your brackets".
+            p.error("an array parameter's parentheses cannot hold `(` or `AS`");
+            p.finish_node();
+            return false;
+        }
+        ok = p.expect(RParen, "`)` after an array parameter");
     }
     if ok && p.at_word("AS") {
         ok = as_clause(p);

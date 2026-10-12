@@ -1,0 +1,5 @@
+
+Cannot convert string to number
+Caused by (or after):S$ = - - S$
+LINE 4:s$ = - -s$: PRINT s$
+exit=1

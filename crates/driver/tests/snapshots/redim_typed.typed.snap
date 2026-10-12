@@ -69,7 +69,7 @@ line 17: Allocate D:I16 (Redim)
     Int 0 : I64
   Upper
     Int 2 : I64
-line 19: Allocate P1:F32 (Redim)
+line 19: Allocate P1:F32 (Redim, with the next statement)
   Lower
     Int 0 : I64
   Upper
@@ -84,7 +84,7 @@ line 19: Allocate P2:Str (Redim)
   Upper
     Convert RoundEven : I64
       Var N : F32
-line 20: Allocate Q1:F64 (Redim)
+line 20: Allocate Q1:F64 (Redim, with the next statement)
   Lower
     Int 0 : I64
   Upper

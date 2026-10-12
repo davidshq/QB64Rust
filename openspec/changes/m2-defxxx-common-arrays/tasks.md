@@ -470,17 +470,119 @@ tests\corpus\slice.list`, run also with `QB64RUST_NO_FOLD=1`.
 
 ## 7. Array parameters and `COMMON` (design D6)
 
-- [ ] 7.1 Array parameters: the parameter shape, the number of dimensions from the body, calls judged after every
+Before the group (2026-10-11), the two known bugs of `STATUS.md` were fixed, each measured first:
+- **A `DIM` or `REDIM` of several dynamic arrays is one statement** (group 4's; found by the review of group
+  5, `verification\v24_x267`). `declare_items` (`sema\src\check\decl.rs`) marks the `Allocate` of every array of
+  the list but the last `joined`, so the lowering puts them into the last one's statement: one error 10, a later
+  array of the list is still allocated, `RESUME NEXT` goes on after the whole list. `v24_x267` built with the new
+  compiler prints what the old one printed. Four snapshots changed by it (`proc_arrays_*`, `redim_typed`).
+- **A unary plus was a parse error where the old compiler drops the sign.** Measured (`verification\v25_signs`,
+  `v25_signs_const`, `v25_x01`–`x10`, and 99 one-line forms tried with both compilers; `study\00` §5): the old
+  compiler has no unary plus, it removes signs from the text of an expression: a `+` right after a `+` or a `-`,
+  then two `-` right after any operator. In a `CONST` every run of `+` and `-` is one sign. Built in the parser
+  (`syntax\src\parser\expr.rs`, `signs_after`, `sign_run`) and in `sema`'s `CONST` evaluator; the dropped tokens
+  stay in the tree. Both measurement programs build and print what the old compiler printed (with the unsigned
+  literal and the negative power in a `CONST` they also hold written another way: both are marked). Tests:
+  `signs_typed.bas`, `unary_plus.bas` (8 more rejections), `const_errors.bas` (3 more). Two tests of the
+  expression depth limit used 1,000 and 20,000 minus signs, which are now dropped in pairs: they use `NOT`.
+- Each fix has a slice program, recorded from two equal runs and passing in tier 2, also with
+  `QB64RUST_NO_FOLD=1`: `s52_dim_list` (7 numbered lines) and `s17_signs` (17). The requirement "Dynamic
+  arrays" has the sentence and a scenario for the list; the signs have no requirement of their own (the
+  operators' requirements are in `language/numeric-semantics`, which this change does not touch): their rule
+  is in `study\00` §5 and in the tests.
+
+- [x] 7.1 Array parameters: the parameter shape, the number of dimensions from the body, calls judged after every
   body, `Arg::Array`, the descriptor pointer in the emitter, `REDIM` and `ERASE` of a parameter. Verify: `typed`,
   `ir` and `cpp` tests; `check-fail` tests for each rejection, each with the call above and below the procedure;
   slice program `s57_array_params` (every scenario of "Array parameters"), recorded, passes in tier 2; upstream
   `arrays/array_arg_dimensions_transitive` and `arrays/comma_array_parameter` pass and join `pass.list`.
-- [ ] 7.2 `COMMON` and `COMMON SHARED`: scalars, arrays through the pending list, a block name, the placement
+  Done 2026-10-11. `declare_array_param`, `array_arg` and `array_kind` (`sema\src\check\proc.rs`), `DimFact`
+  and `solve_dims` (`check\mod.rs`), `settle_dims` and `open_dims` (`check\places.rs`); `Arg::Array` and
+  `EraseParam` in the typed tree and the IR, with their checks in `ir::validate` (two unit tests); in the
+  emitter an array parameter is the descriptor of the array passed (`ptrszint*`), and `erase_param`
+  (`codegen-cpp\src\arrays.rs`) tests its flag. Design D6, "As built in group 7". Tests:
+  `array_params_typed.bas`, `array_params_ir.bas`, `array_params_cpp.bas`, `array_params_errors.bas` (28
+  errors; the calls stand above their SUBs in the main module and below them in `SUB below`). Slice
+  `s57_array_params` (23 numbered lines, recorded from two equal runs): **the new compiler printed it as
+  recorded on its first run**, also with `QB64RUST_NO_FOLD=1`. Both upstream programs pass and are on
+  `pass.list`.
+  - **Measured first**, beyond 1.3 (`verification\v24_x286`–`x296`, `study\00` §5), with these answers the
+    design did not have:
+    - An array made by passing a name that names none has **one dimension** (0 to 10), whatever the SUB does
+      with its parameter (`x286`, `x287`, `x293`); below `$DYNAMIC` it is a dynamic array allocated as part of
+      the calling statement (`x295`). **In a procedure it is a compile error** ("Expected (...)", `x292`), where
+      the spec delta said "MAY be passed".
+    - **An array listed by `COMMON a()` or `STATIC a()` may be passed before anything gave it a number of
+      dimensions, and gets the parameter's** (`x288`, `x289`). So the unknown number is not only a
+      parameter's: such an array joins the parameter's facts from the call on.
+    - An array parameter and a scalar parameter of one name are two variables (`x290`); two array parameters of
+      one name and type are "Name already in use" (`x291`). A number between a parameter's parentheses is
+      accepted as measured in 1.3 (`a(1)`, `x157`): the parser rejected it and now takes numbers and commas.
+  - **One number of dimensions per parameter, solved after the bodies.** Every index count, every `DIM` or
+    `REDIM` of the parameter and every array passed is one fact, kept in file order; `solve_dims` reads them
+    after the last body, so the error stands at the later of two that disagree, as measured (`x148`–`x151`,
+    `x155`), and a call above the procedure is judged like one below. `LBOUND` and `UBOUND` of a parameter say
+    nothing (`x153`).
+  - Run with the new compiler, the 41 measurement programs of array parameters (`v24_g_params`, `v24_x135`–
+    `x160`, `x178`–`x180`, `x286`–`x296`): 21 build and print what the old compiler printed, 20 are rejected by
+    both with a real error (`x145`, an array in parentheses, which fails the old compiler's C++ build, among
+    them); none differs and none is marked.
+  - Marked and why (each not measured): an array parameter named `t$n()`, one typed `_UNSIGNED STRING`, two
+    array parameters of one name and two types (`common_unsupported.bas`). A FUNCTION's name passed as `f()`
+    keeps the mark of an array used without `DIM` where the old compiler says "Expected arrayname()".
+- [x] 7.2 `COMMON` and `COMMON SHARED`: scalars, arrays through the pending list, a block name, the placement
   errors; `CHAIN` stays marked. Verify: `typed` and `check-fail` tests; slice program `s58_common` (every scenario
   of "COMMON"), recorded, passes in tier 2.
-- [ ] 7.3 Lists and documents as 2.3; `tests\programs\README.md` updated with what Civil War Strategy still needs.
+  Done 2026-10-11. `common` (`sema\src\check\decl.rs`) is `declare_items` with `Declarer::Common`: a scalar goes
+  the way of `DIM`, `name()` lists a dynamic array without reading what stands between its parentheses, and
+  `SHARED` works as in `DIM SHARED`. No pending list (design D6): the listed array is found by name and type
+  like any other. `ast::CommonStmt` got `shared`, `block` and `as_clause`. Tests: `common_typed.bas`,
+  `common_errors.bas` (8 errors), `common_unsupported.bas`. Slice `s58_common` (14 numbered lines, recorded
+  from two equal runs) passes, also with `QB64RUST_NO_FOLD=1`.
+  - **Found by the first run of `s58_common`** (the new compiler rejected it: "`ign` has 1 dimension, not 2"),
+    then measured (`verification\v24_x297`–`x302`, `study\00` §5): **`LBOUND` and `UBOUND` of an array listed
+    by `COMMON a()` say nothing about its number of dimensions** (`UBOUND(c)` then `DIM c(2, 5)` or `c(1, 2)`
+    compiles), where those of one listed by `STATIC a()` make it one (`x282`, `x297`). An index gives the
+    number in both, and a `DIM` or `REDIM` with another one after it is the compile error (`x299`, `x300`).
+  - Run with the new compiler, the 22 measurement programs of `COMMON` (`v24_g_common`, `v24_a_common`,
+    `v24_x161`–`x175`, `x181`, `x298`, `x299`, `x301`, `x302`) and `v24_g_shared_order`, which waited on it: 15
+    build and print what the old compiler printed (two of them end with the runtime's error box, as recorded),
+    8 are rejected by both with a real error; none differs.
+  - Marked: `COMMON a()` of an array that exists already (not measured); `CHAIN`.
+- [x] 7.3 Lists and documents as 2.3; `tests\programs\README.md` updated with what Civil War Strategy still needs.
   Verify: `COMMON`, `hit(...)`, `summ(...)`, "arrays in a SUB or FUNCTION" and `DEFINT` are gone from
   `qb64rust --report unsupported tests\programs`; expected against passed stated here.
+  Done 2026-10-11. None of the five is left in the report of `tests\programs`: Civil War Strategy has 1,709
+  marks in 33 messages (1,721 in 34 before; the 12 `COMMON` lines went), still no real error, though the
+  follow-on rule no longer hides any: its first marked declaration is gone. The messages "array parameters"
+  and "`COMMON`" no longer exist in the compiler. `known_unsupported_rejections.list` shrank by two, both to
+  the old compiler's own error ("Whole array cannot be passed to a scalar SUB parameter"):
+  `upstream/arrays/t045_function_scalar_array` and `t046_sub_scalar_array`; the other lists are unchanged (0
+  and 0). **Expected against passed**, counted with the compiler as it was before the group: corpus, 1
+  program carried these marks (`runtime_comparison/194_array_param_2d`): still marked (a FUNCTION typed with
+  `AS`); the two new slice programs pass, and with the two of the bug fixes `slice.list` has 280. Upstream, 7 programs carried them: 2 became
+  clean and pass (the two of 7.1), 5 wait on something else (`arrays/type_dynamic_string_member_array_param`
+  and `arrays/type_member_arrays_as_parameters`: `STRING` members and member arrays; `offset/offset_test`:
+  `_MEM`; `qb64pe/element` and `hasFunctionElement`: `CVL`, `STRING` members). With `t045` and `t046`
+  `pass.list` has 62 of 279.
+  Group 7 closes with `fmt`, `clippy` and `cargo test` green, tier 2 slice 280 of 280 (also with
+  `QB64RUST_NO_FOLD=1`), the upstream pass list 62 of 62, the differential list 59 of 59, the call-site check
+  256 of 256 (no program added: an array argument is a pointer, no libqb call) and the runner's tests 56 of
+  56. The full corpus (354 programs) and the full upstream suite (404) ran with the release build: 299 and 62
+  pass, every other program is rejected when compiling; none builds and prints the wrong output
+  (`tests\corpus\README.md`, `tests\upstream\README.md`).
+  **Review of the group (2026-10-11), one fix:**
+  - **a false syntax error from 7.1:** the parser took only commas and numbers between an array parameter's
+    parentheses, so `SUB s (a(n))`, `a(n + 1)`, `a(-1)` and `a(1 TO 5)` were rejected where the old compiler
+    accepts them. Measured (`verification\v24_x303`–`x305`, `qb64pe.bas` 2882–2904, `study\00` §5): every word up
+    to the `)` is skipped; a second `(` and the word `AS` there are syntax errors. The parser does that now
+    (`syntax\src\parser\proc.rs`), and `ast::Param` reads the name and `BYVAL` from the words before the `(`.
+    Tests: `skipped` in `array_params_typed.bas`, `array_params_parens_errors.bas` (new). `x303` built with the
+    new compiler prints what the old one printed; `x304` and `x305` are rejected by both. No program of a pass
+    list names the form, so tier 2 was not run again; `fmt`, `clippy` and `cargo test` are green.
+  - Seven more programs built with both compilers and equal (a listed array passed while nothing gives it a
+    number of dimensions, a parameter of a SUB never called, an array passed on through two SUBs, `REDIM` and
+    `ERASE` of a parameter for a static and a dynamic array, 25 sign forms).
 
 ## 8. The rest of `TYPE` (design D9)
 

@@ -61,6 +61,7 @@ impl Emitter<'_> {
             Op::Allocate { array, bounds, mode } => self.allocate(*array, bounds, *mode, out),
             Op::Clear { array } => self.clear_array(*array, out),
             Op::Release { array } => self.release_array(*array, out),
+            Op::EraseParam { array } => self.erase_param(*array, out),
             Op::AssignAll(stores) => {
                 for (place, value) in stores {
                     self.assign(&Place::Var(*place), value, out);
@@ -118,8 +119,9 @@ impl Emitter<'_> {
                 let q = self.p.proc(*proc);
                 let a = self.args(*proc, args);
                 out.push(format!("{}({a});", proc_name(q)));
-                let strings =
-                    args.iter().any(|a| a.uses_strings(self.p)) || q.params.iter().any(|&v| is_qbs(self.p.var(v).ty));
+                let string_param = |v: &qb64rust_ir::Var| !v.is_array() && is_qbs(v.ty);
+                let strings = args.iter().any(|a| a.uses_strings(self.p))
+                    || q.params.iter().any(|&v| string_param(self.p.var(v)));
                 if strings {
                     out.push("qbs_cleanup(qbs_tmp_base,0);".into());
                 }

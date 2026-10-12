@@ -476,7 +476,8 @@ fn deep_expressions() {
             format!("x = {}1{}", "(".repeat(3_000), ")".repeat(3_000)),
             false,
         ),
-        ("negations", format!("x = {}1", "- ".repeat(20_000)), false),
+        // Not minus signs: pairs of them after an operator are dropped, as the old compiler does.
+        ("negations", format!("x = {}1", "NOT ".repeat(20_000)), false),
         ("members", format!("x = a(1){}", ".b".repeat(20_000)), false),
         ("target", format!("a(1){} = 1", ".b".repeat(20_000)), false),
         // A call without `CALL`, whose arguments are parsed with errors held back.

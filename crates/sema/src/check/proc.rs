@@ -1,10 +1,10 @@
 //! Procedures: headers and parameters (pass 1), calls and their arguments, `EXIT SUB`/`FUNCTION`.
 
 use super::decl::name_end;
-use super::{Checker, Failed, R, Scope};
+use super::{Checker, DimFact, Failed, R, Scope};
 use crate::builtins::stmt_lookup;
 use crate::literal;
-use crate::{Arg, Expr, ExprKind, Place, Proc, ProcId, ProcKind, StmtKind, Storage, SymbolKind, Ty, VarId};
+use crate::{Arg, Expr, ExprKind, Place, Proc, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{Kind, find_any};
 use qb64rust_syntax::SyntaxKind;
@@ -106,8 +106,9 @@ impl Checker<'_> {
         let mut scope = Scope::default();
         for param in header.params() {
             let name_tok = self.need(param.name(), param.node().span())?;
-            if let Some(t) = param.array_parens() {
-                return Err(self.unsupported(t.span, "array parameters"));
+            if param.array_parens().is_some() {
+                self.declare_array_param(param, name_tok, id, &mut scope)?;
+                continue;
             }
             if let Some((name, n)) = self.fixed_suffix(name_tok)? {
                 // `t$n`: a `STRING` parameter of a name of its own (`t$` is another variable), `LEN` n.
@@ -200,6 +201,65 @@ impl Checker<'_> {
             self.prog.procs[id.0 as usize].result = Some(v);
         }
         self.param_scopes[id.0 as usize] = scope;
+        Ok(())
+    }
+
+    /// An array parameter, `name()` (design D6 of `m2-defxxx-common-arrays`; measured,
+    /// `verification\v24_g_params`, `v24_x135`–`x160`, `x290`, `x291`): what stands between its parentheses is not
+    /// read (`a(,)`, `a(1)`). Its element type is any an array may have, a `_BIT` and a user type included, which
+    /// a scalar parameter cannot be. It is an array of the procedure's scope whose number of dimensions is found
+    /// after the bodies ([`Checker::solve_dims`]). A scalar parameter of the same name is another variable; a
+    /// second array parameter of the name and type is "Name already in use".
+    fn declare_array_param(&mut self, param: ast::Param, name_tok: Tok, id: ProcId, scope: &mut Scope) -> R<()> {
+        let shown = show_bytes(self.text(name_tok.span));
+        if self.fixed_suffix(name_tok)?.is_some() {
+            // As `DIM a$3(2)`: not measured.
+            return Err(self.unsupported(name_tok.span, format!("an array named with `$n`: `{shown}`")));
+        }
+        let (name, suffix) = self.split_name(name_tok)?;
+        let as_clause = param.as_clause();
+        let ty = match (suffix, as_clause) {
+            (Some(_), Some(a)) => {
+                let span = a.node().span();
+                return Err(self.error(span, "a name with a type suffix cannot have an `AS` clause"));
+            }
+            (Some(t), None) => t,
+            (None, None) => self.default_ty(&name),
+            (None, Some(a)) if self.unsigned_string(a) => {
+                // A scalar parameter cannot be one (`verification\v21_x42`); an array of them was not measured.
+                let span = a.node().span();
+                return Err(self.unsupported(span, "an `_UNSIGNED STRING` array parameter"));
+            }
+            (None, Some(a)) => match (self.fixed_string_size(a), a.size()) {
+                (true, Some(size)) => Ty::FixedStr(self.fixed_param_len(size)?),
+                _ => self.type_of(a)?,
+            },
+        };
+        self.reserved(name_tok, &name, suffix)?;
+        if self.procs_by_name.contains_key(&name) || scope.arrays.contains_key(&(name.clone(), ty)) {
+            return Err(self.in_use(name_tok));
+        }
+        if scope.arrays.keys().any(|(n, _)| *n == name) {
+            // Two array parameters of one name and two types: not measured.
+            let msg = format!("a second array parameter named `{shown}`, of another type");
+            return Err(self.unsupported(name_tok.span, msg));
+        }
+        let v = VarId(to_u32(self.prog.vars.len()));
+        self.prog.vars.push(Var {
+            name: name.clone(),
+            ty,
+            storage: Storage::Param(id),
+            shape: Shape::Dynamic {
+                dims: None,
+                at_start: None,
+            },
+        });
+        scope.arrays.insert((name.clone(), ty), v);
+        if as_clause.is_some() {
+            scope.array_plain.insert(name, ty);
+        }
+        self.prog.procs[id.0 as usize].params.push(v);
+        self.names.push((SymbolKind::Var(v), name_tok.span));
         Ok(())
     }
 
@@ -333,6 +393,16 @@ impl Checker<'_> {
         let mut args = Vec::with_capacity(nodes.len());
         for (&node, param) in nodes.iter().zip(params) {
             let pty = self.prog.var(param).ty;
+            if self.prog.var(param).is_array() {
+                args.push(self.array_arg(node, param)?);
+                continue;
+            }
+            if let Some((_, t)) = self.whole_array(node) {
+                // Measured: "Whole array cannot be passed to a scalar SUB parameter" (`verification\v24_x147`).
+                let shown = show_bytes(self.text(t.span));
+                let msg = format!("the whole array `{shown}()` cannot be passed to a parameter that is no array");
+                return Err(self.error(node.node().span(), msg));
+            }
             self.whole_type_arg = true;
             let e = self.expr(node);
             self.whole_type_arg = false;
@@ -379,6 +449,94 @@ impl Checker<'_> {
         Ok(args)
     }
 
+    /// `name()` naming an array that is visible here: the array and the name's token.
+    fn whole_array(&mut self, node: ast::Expr) -> Option<(VarId, Tok)> {
+        let ast::Expr::Call(call) = node else {
+            return None;
+        };
+        if !call.arg_list().is_some_and(|l| l.args().is_empty()) {
+            return None;
+        }
+        let t = call.name()?;
+        let (name, suffix) = self.split_name(t).ok()?;
+        self.find_array(&name, suffix).map(|a| (a, t))
+    }
+
+    /// The argument for the array parameter `param` (design D6 of `m2-defxxx-common-arrays`; measured,
+    /// `verification\v24_g_params`, `v24_x135`–`x160`, `x178`–`x180`, `x286`–`x296`): a whole array written
+    /// `name()`, static or dynamic, allocated or not, the procedure's own array parameter included.
+    ///
+    /// - Its element type has the parameter's kind and width ([`array_kind`]); else "Incorrect array type passed
+    ///   to sub".
+    /// - Anything that is no `name()` is "Expected arrayname()". In parentheses, `(x())`, the old compiler
+    ///   accepts it and its C++ build fails (`x145`): an error here (`DECISIONS.md` 2026-10-08).
+    /// - A name that names no array becomes one in the main module, as a use without `DIM` with one index does
+    ///   (`x146`, `x286`, `x287`, `x293`, `x295`), and is "Expected (...)" in a procedure (`x292`).
+    /// - Its number of dimensions is one fact about the parameter's ([`Checker::solve_dims`]); an array that has
+    ///   no number yet (another parameter, an array listed by `COMMON a()` or `STATIC a()`, `x288`, `x289`) gets
+    ///   the parameter's.
+    fn array_arg(&mut self, node: ast::Expr, param: VarId) -> R<Arg> {
+        let span = node.node().span();
+        let call = match node {
+            ast::Expr::Call(call) if call.arg_list().is_some_and(|l| l.args().is_empty()) => call,
+            ast::Expr::Paren(p) if p.inner().is_some_and(|inner| self.whole_array(inner).is_some()) => {
+                return Err(self.error(span, "an array argument cannot stand in parentheses"));
+            }
+            ast::Expr::Literal(_)
+            | ast::Expr::NameRef(_)
+            | ast::Expr::Call(_)
+            | ast::Expr::Field(_)
+            | ast::Expr::Paren(_)
+            | ast::Expr::Prefix(_)
+            | ast::Expr::Bin(_) => {
+                return Err(self.error(span, "this parameter takes a whole array, written `name()`"));
+            }
+        };
+        let t = self.need(call.name(), span)?;
+        let (name, suffix) = self.split_name(t)?;
+        let shown = show_bytes(self.text(t.span));
+        let array = match self.find_array(&name, suffix) {
+            Some(a) => a,
+            None if self.cur.is_some() => {
+                let msg = format!("`{shown}()` names no array here (an array passed in a SUB or FUNCTION must exist)");
+                return Err(self.error(span, msg));
+            }
+            None => self.implicit_array(t, &name, suffix, 1, call.node())?,
+        };
+        let (aty, pty) = (self.prog.var(array).ty, self.prog.var(param).ty);
+        if array_kind(aty) != array_kind(pty) {
+            let msg = format!(
+                "the array `{shown}` ({}) cannot be passed to an array parameter of type {}",
+                self.prog.type_name(aty),
+                self.prog.type_name(pty)
+            );
+            return Err(self.error(span, msg));
+        }
+        let fact = match self.prog.var(array).dim_count() {
+            Some(count) => DimFact::Count {
+                array: param,
+                shown: self.prog.var(param).name.to_ascii_lowercase(),
+                count,
+                span,
+                passed: true,
+            },
+            None => {
+                if !matches!(self.prog.var(array).storage, Storage::Param(_)) {
+                    self.dims_open.insert(array);
+                }
+                DimFact::Same {
+                    arg: array,
+                    param,
+                    shown,
+                    span,
+                }
+            }
+        };
+        self.dim_facts.push(fact);
+        self.names.push((SymbolKind::Var(array), t.span));
+        Ok(Arg::Array(array))
+    }
+
     /// A call of FUNCTION `p` (`args` is `None` for the bare name). A SUB, or the name with another suffix than
     /// the function's, is an error.
     pub(super) fn call_function(
@@ -423,6 +581,36 @@ pub(super) fn suffix_fits(suffix: Ty, function: Ty) -> bool {
 fn same_storage(place: Ty, param: Ty) -> bool {
     let bit = |t: Ty| matches!(t, Ty::Bit { .. });
     place.is_int() && param.is_int() && !bit(place) && !bit(param) && place.int_bits() == param.int_bits()
+}
+
+/// What the old compiler compares between the element type of an array argument and of its parameter
+/// (`qb64pe.bas` 12029; measured, `verification\v24_x135`–`x142`, `x160`, `x178`, `x179`): the size in bits or the
+/// user type, whether it is a `_BIT` type, a string, a fixed-length string (and its length), a float. Not
+/// `_UNSIGNED`, and not `_OFFSET` beside `_INTEGER64`.
+#[derive(PartialEq, Eq)]
+enum ArrayKind {
+    Int(u32),
+    Bit(u8),
+    Float(u32),
+    Str,
+    FixedStr(u32),
+    User(crate::TypeId),
+}
+
+fn array_kind(t: Ty) -> ArrayKind {
+    match t {
+        Ty::Bit { width, .. } => ArrayKind::Bit(width),
+        Ty::F32 => ArrayKind::Float(32),
+        Ty::F64 => ArrayKind::Float(64),
+        Ty::F80 => ArrayKind::Float(256),
+        Ty::Str => ArrayKind::Str,
+        Ty::FixedStr(n) => ArrayKind::FixedStr(n),
+        Ty::User(id) => ArrayKind::User(id),
+        Ty::I8 | Ty::U8 => ArrayKind::Int(8),
+        Ty::I16 | Ty::U16 => ArrayKind::Int(16),
+        Ty::I32 | Ty::U32 => ArrayKind::Int(32),
+        Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff => ArrayKind::Int(64),
+    }
 }
 
 /// The error for a fixed-length string's length that is 0 or negative once read in 32 bits.

@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):PRINT NX ( 1 , 2 ) ; UBOUND ( NX , 1 ) ; UBOUND ( NX , 2 )
+LINE 5:PRINT nx(1, 2); UBOUND(nx, 1); UBOUND(nx, 2)
+exit=1

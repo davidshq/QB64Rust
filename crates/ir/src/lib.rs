@@ -149,6 +149,11 @@ pub enum Storage {
 /// as long as its storage does; a dynamic one is not allocated until an [`Op::Allocate`] runs, and until then
 /// (and after an [`Op::Release`]) an element of it, and its bounds, raise error 9. The IR says what an array is,
 /// never how it is held: no descriptor, no size in bytes.
+///
+/// An array parameter (storage [`Storage::Param`]) is written as a dynamic array and stands, in each call, for
+/// the array passed as [`Arg::Array`], which may be static or dynamic: an [`Op::Allocate`] of it raises error 10
+/// for a static one, and its `ERASE` is [`Op::EraseParam`]. Its number of dimensions is that of every array
+/// passed to it; it has none when nothing in the program says one, and then no array is ever passed.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Var {
     pub name: String,
@@ -260,6 +265,7 @@ impl Facts for Arg {
         match self {
             Arg::Ref(place) => Facts::may_raise(place),
             Arg::Temp(v) => v.may_raise(),
+            Arg::Array(_) => false,
         }
     }
 
@@ -272,6 +278,7 @@ impl Facts for Arg {
                     || (!matches!(place, Place::Var(_)) && matches!(p.place_ty(place), Ty::FixedStr(_)))
             }
             Arg::Temp(v) => v.uses_strings(p),
+            Arg::Array(_) => false,
         }
     }
 }
@@ -367,6 +374,11 @@ pub enum Op {
     /// Release the elements of a dynamic array: it is not allocated afterwards (every use raises error 9) until an
     /// [`Op::Allocate`] runs. Of an array that is not allocated it does nothing.
     Release {
+        array: VarId,
+    },
+    /// `ERASE` of an array parameter: [`Op::Clear`] when the array passed in this call is a static one,
+    /// [`Op::Release`] when it is dynamic.
+    EraseParam {
         array: VarId,
     },
     /// Items in order, to the console (`to` is `None`) or to the file with this number (an `I32`); a raising item
@@ -465,7 +477,8 @@ impl Op {
             | Op::Gosub(_)
             | Op::Restore { .. }
             | Op::Clear { .. }
-            | Op::Release { .. } => false,
+            | Op::Release { .. }
+            | Op::EraseParam { .. } => false,
             // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
             Op::Call { .. }
             | Op::Builtin { .. }

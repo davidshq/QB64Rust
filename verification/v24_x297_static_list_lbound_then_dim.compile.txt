@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):DIM Y ( 2 , 5 )
+LINE 12:DIM y(2, 5)
+exit=1

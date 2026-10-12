@@ -309,8 +309,8 @@ fn expression_depth_limit() {
         ),
         (
             "negations",
-            format!("x = {}1", "- ".repeat(999)),
-            format!("x = {}1", "- ".repeat(1000)),
+            format!("x = {}1", "NOT ".repeat(999)),
+            format!("x = {}1", "NOT ".repeat(1000)),
         ),
         // Each call is two levels (`CallExpr`, `ArgList`); `(1)` adds two more.
         (

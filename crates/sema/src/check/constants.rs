@@ -249,16 +249,19 @@ impl Checker<'_> {
             ast::Expr::Prefix(prefix) => {
                 let op_tok = self.need(prefix.op(), span)?;
                 let operand = self.need(prefix.operand(), span)?;
-                let op = self.const_unary_op(op_tok)?;
-                match (op, prefix_op(self, operand)) {
-                    // Measured: `--5` is an error of the old compiler.
-                    (UnOp::Neg, Some(UnOp::Neg)) => {
-                        return Err(self.error(span, "`-` directly before another `-` in a `CONST`"));
+                let op = match ast::signs_negative(prefix.node()) {
+                    Some(true) => UnOp::Neg,
+                    // Measured: `+5`, `--5` and `2 * - -3` are errors of the old compiler ("Unexpected element
+                    // '+'"), `- - -3`, `-+5` and `+-3` are -3, -5 and -3 (`verification\v25_signs_const`,
+                    // `v25_x*`).
+                    Some(false) => {
+                        let msg = "the signs before a value in a `CONST` amount to `+`, which cannot start a value";
+                        return Err(self.error(span, msg));
                     }
-                    (_, Some(UnOp::Not)) => {
-                        return Err(self.unsupported(span, "`NOT` as an operand in a `CONST`"));
-                    }
-                    _ => {}
+                    None => self.const_unary_op(op_tok)?,
+                };
+                if prefix_op(self, operand) == Some(UnOp::Not) {
+                    return Err(self.unsupported(span, "`NOT` as an operand in a `CONST`"));
                 }
                 let v = self.const_value(operand)?;
                 self.problem(consteval::unary(op, &v), span)
@@ -268,10 +271,8 @@ impl Checker<'_> {
         }
     }
 
+    /// A prefix operator that is no sign.
     fn const_unary_op(&mut self, t: Tok) -> R<UnOp> {
-        if t.kind == SyntaxKind::Minus {
-            return Ok(UnOp::Neg);
-        }
         match self.word(t).as_str() {
             "NOT" => Ok(UnOp::Not),
             other => Err(self.unsupported(t.span, format!("operator `{other}` in a `CONST`"))),
@@ -281,7 +282,13 @@ impl Checker<'_> {
     fn const_binary(&mut self, bin: ast::BinExpr) -> R<Value> {
         let span = bin.node().span();
         let op_tok = self.need(bin.op(), span)?;
-        let Some(op) = self.bin_op(op_tok) else {
+        // A run of signs between the operands is one sign: `2 - -3` is `2 + 3`, `2 + -3` is `2 - 3`.
+        let op = match ast::signs_negative(bin.node()) {
+            Some(true) => Some(BinOp::Sub),
+            Some(false) => Some(BinOp::Add),
+            None => self.bin_op(op_tok),
+        };
+        let Some(op) = op else {
             let shown = self.word(op_tok);
             return Err(self.unsupported(op_tok.span, format!("operator `{shown}`")));
         };

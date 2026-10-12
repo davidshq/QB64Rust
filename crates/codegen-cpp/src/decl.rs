@@ -293,6 +293,16 @@ impl Emitter<'_> {
         out
     }
 
+    /// The elements of an array that has its bounds, zero, empty or NUL bytes.
+    pub(crate) fn clear_elements(&self, v: &Var, n: &str) -> String {
+        let count = self.element_count(v, n);
+        if v.ty == Ty::Str {
+            format!("tmp_long={count};\nwhile(tmp_long--){{\n(((qbs**)({n}[0]))[tmp_long])->len=0;\n}}\n")
+        } else {
+            format!("memset((void*)({n}[0]),0,{});\n", self.array_bytes(v.ty, &count))
+        }
+    }
+
     /// `clear.txt`: what `CLEAR` resets in a variable that lives as long as the program. A static array is
     /// cleared, a dynamic one released, as `ERASE` does (`qb64pe.bas` 12749–12756).
     pub(crate) fn clear(&self, v: &Var, n: &str) -> String {
@@ -300,12 +310,7 @@ impl Emitter<'_> {
             return self.release(v, n);
         }
         if v.is_array() {
-            let count = self.element_count(v, n);
-            return if v.ty == Ty::Str {
-                format!("tmp_long={count};\nwhile(tmp_long--){{\n(((qbs**)({n}[0]))[tmp_long])->len=0;\n}}\n")
-            } else {
-                format!("memset((void*)({n}[0]),0,{});\n", self.array_bytes(v.ty, &count))
-            };
+            return self.clear_elements(v, n);
         }
         match v.ty {
             Ty::Str => format!("{n}->len=0;\n"),

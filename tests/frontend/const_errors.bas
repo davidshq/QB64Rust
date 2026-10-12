@@ -5,7 +5,8 @@ $CONSOLE:ONLY
 ' its name, another value for the same constant, assignment to a constant, DIM of a constant's name (in main and
 ' in a SUB), a numeric constant used with `$`, a variable or a function outside the evaluator's list in the
 ' value, a string mixed with a number, a string comparison, a suffix of the wrong kind, `\` and MOD by 0, a
-' negative number to a fractional power, `--5`
+' negative number to a fractional power, signs before a value that amount to `+` (`--5`, `+5`, `2 * - -3`,
+' `- + -5`; verification\v25_x07 to x09)
 PRINT early
 CONST early = 1
 used% = 3
@@ -29,6 +30,9 @@ CONST idiv0 = 1 \ 0
 CONST mod0 = 5 MOD 0
 CONST negroot = (-8) ^ (1 / 3)
 CONST dneg = --5
+CONST plus = +5
+CONST twoneg = 2 * - -3
+CONST plusrun = - + -5
 CONST insub = 3
 sb
 END

@@ -236,10 +236,6 @@ _SUB_LOCALS_ARRAY_LONG_T[7]=alloc_new_desc[7];
 #line 11 "proc_arrays_cpp.bas"
 }
 #line 11 "proc_arrays_cpp.bas"
-if(!qbevent)break;evnt(11);}while(r);
-#line 11 "proc_arrays_cpp.bas"
-do{
-#line 11 "proc_arrays_cpp.bas"
 if (_SUB_LOCALS_ARRAY_STRING_S[2]&2){
 #line 11 "proc_arrays_cpp.bas"
 error(10);

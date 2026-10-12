@@ -210,7 +210,8 @@ program (257 is critical in libqb: no handler runs). Measured order (1.2): the s
 the allocated check, then the bounds; **an error does not stop the statement**: a bound that raises, and a
 dimension with no element (error 5), still allocate with the bounds computed. So `Allocate` is not skipped by a
 pending error the way a store is, and its bounds are not guarded. A static `DIM` stays no statement at all. A
-whole-statement `REDIM a(3), b(4)` is one `Allocate` per item. `Allocate` may name a static array (`REDIM` of
+whole-statement `REDIM a(3), b(4)` is one `Allocate` per item (in one statement: every `Allocate` of the list
+but the last is `joined`, as measured, `verification\v24_x267`; until 2026-10-11 each was a statement). `Allocate` may name a static array (`REDIM` of
 one, or `DIM a(n)` after `DIM a(5)`): it raises 10 and its bounds are not evaluated; the emitter writes the test
 of the descriptor's flag in every case, since an array parameter may be either kind (1.3). `ir::validate` gains:
 `Release` names a dynamic array, `Clear` a static one, the number of bounds equals a known number of dimensions.
@@ -385,6 +386,43 @@ too.
   `freeK.txt` (strings, the block, the lock) serve every local array, and `EXIT SUB`, `END SUB` and an error all
   pass `exit_subfunc`. Arrays with storage `Static` are declared in `global.txt` and set up in `maindata.txt`
   like the main module's.
+
+**As built in group 7 (2026-10-11; measured first, `verification\v24_x286`–`x302`, `study\00` §5):**
+- **An array parameter** is `Dynamic { dims: None }` with storage `Param`, in the procedure's scope like any
+  array of it (`declare_array_param`, `sema\src\check\proc.rs`); what stands between its parentheses is not
+  read (the parser skips every token up to the `)`; a second `(` and the word `AS` there are errors, as
+  measured by the review of the group, `x303`–`x305`). Its element type may be a `_BIT` and a user type, which a
+  scalar parameter cannot be. A scalar parameter of the same name is another variable.
+- **The argument** is `Arg::Array(VarId)` (`array_arg`): a whole array written `name()`. The element types are
+  compared as the old compiler compares them (`array_kind`: width or user type, `_BIT`, string, fixed length,
+  float; not signedness, not `_OFFSET` beside `_INTEGER64`). In parentheses it is an error (the last point of
+  the list above). A name that names no array becomes one of one dimension in the main module, by the rule
+  of D5 (so below `$DYNAMIC` its allocation is joined to the calling statement, and the places where a joined
+  allocation has no place mark it); in a procedure it is an error, as measured.
+- **The number of dimensions is solved after the bodies** (`DimFact`, `solve_dims`, `check\mod.rs`). The
+  facts, in file order: an index count, a `DIM` or `REDIM` of the parameter, an array of n dimensions passed
+  to it, and "these two have one number" for an argument that has none itself. Classes of arrays with one
+  number are merged as the facts are read; a fact that disagrees with its class is the error, at that fact,
+  so it stands at the later of the two in the file. A parameter that no fact names keeps `None`: no array
+  can reach it, and the emitter gives its accesses one dimension.
+- **Not only parameters have an unknown number** (the design had "one unknown per parameter"): an array listed
+  by `COMMON a()` or `STATIC a()` that is passed while it has none joins the parameter's class (`dims_open`),
+  and from then on its indexes and its `DIM` are facts too. A listed array that is not passed keeps the rule
+  of group 6: its first use gives the number at once.
+- **`LBOUND` and `UBOUND`** say nothing about the number of a parameter, of a listed array that was passed, or
+  of one listed by `COMMON a()`; of one listed by `STATIC a()` they make it one (measured, `x282`, `x297`–
+  `x302`).
+- **`ERASE` of a parameter** is `EraseParam` in the typed tree and the IR. `ir::validate` holds: `EraseParam`
+  names a parameter, `Release` never does, an array parameter takes `Arg::Array` and nothing else does, and
+  the two have one number of dimensions where both have one.
+- **The emitter**: an array parameter is the descriptor of the array passed (`ptrszint*`), so every access,
+  `Allocate` and bound goes through the caller's descriptor with the code any array has, and nothing is made
+  or released for it on a call. `EraseParam` tests the descriptor's flag: a static array is cleared, a
+  dynamic one released, as the old compiler writes every `ERASE`.
+- **`COMMON`** (`common`, `sema\src\check\decl.rs`) is `declare_items` with `Declarer::Common`: a scalar as by
+  `DIM`, `name()` a listed array whose parentheses are not read, `SHARED` as in `DIM SHARED`. In a procedure
+  and with a block name it is the measured error. `COMMON a()` of an array that exists already is marked (not
+  measured). Nothing is written for `CHAIN`, which stays marked.
 
 ### D7. The emitter
 - **Dynamic descriptor**: the same slots as a static one (`study\02` §3.4), made at program start (or per call)

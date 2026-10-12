@@ -291,6 +291,7 @@ impl<'a> Lowerer<'a> {
             }
             sema::StmtKind::Clear { array } => Op::Clear { array: *array },
             sema::StmtKind::Release { array } => Op::Release { array: *array },
+            sema::StmtKind::EraseParam { array } => Op::EraseParam { array: *array },
             sema::StmtKind::Print { to, items, newline } => Op::Print {
                 to: to.clone(),
                 items: print_items(items),

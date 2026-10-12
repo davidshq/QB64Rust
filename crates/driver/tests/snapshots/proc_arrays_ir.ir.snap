@@ -21,7 +21,6 @@ Sub LOCALS lines 11-17
 Stmt line 12 may_raise
   Allocate Dim T(local):I32
     Const 0:I64 To Const 5:I64
-Stmt line 12 may_raise
   Allocate Dim S(local):Str
     Const 0:I64 To (Var N(param):I32 -> Convert I64 Widen)
 Stmt line 13 may_raise

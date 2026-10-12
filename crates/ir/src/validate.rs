@@ -4,7 +4,7 @@
 use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
 use crate::{
     Arg, Body, BuiltinId, Expr, ExprKind, LabelId, Op, Place, PrintItem, ProcId, Program, Resume, Shape, Source,
-    StmtArg, Storage, Ty, VarId,
+    StmtArg, Storage, Ty, Var, VarId,
 };
 
 /// Every problem found, each as `<body>: <where>: <what>`; `Ok` when there is none.
@@ -218,11 +218,22 @@ impl Validator<'_> {
                 }
             }
             Op::Release { array } => {
-                if self.array_use(*array, owner, at, "Release")
-                    && !matches!(self.p.var(*array).shape, Shape::Dynamic { .. })
+                if self.array_use(*array, owner, at, "Release") {
+                    let v = self.p.var(*array);
+                    if !matches!(v.shape, Shape::Dynamic { .. }) {
+                        self.problem(format!("{at}: Release of {}, which is no dynamic array", v.name));
+                    } else if matches!(v.storage, Storage::Param(_)) {
+                        // The array passed may be a static one.
+                        self.problem(format!("{at}: Release of the array parameter {}", v.name));
+                    }
+                }
+            }
+            Op::EraseParam { array } => {
+                if self.array_use(*array, owner, at, "EraseParam")
+                    && !matches!(self.p.var(*array).storage, Storage::Param(_))
                 {
                     let name = &self.p.var(*array).name;
-                    self.problem(format!("{at}: Release of {name}, which is no dynamic array"));
+                    self.problem(format!("{at}: EraseParam of {name}, which is no parameter"));
                 }
             }
             Op::Print { to, items, .. } | Op::Write { to, items, .. } => {
@@ -423,10 +434,36 @@ impl Validator<'_> {
             )),
             Some(_) => {}
         }
-        for a in args {
+        let params = self.p.procs.get(proc.0 as usize).map_or(&[][..], |q| &q.params[..]);
+        for (k, a) in args.iter().enumerate() {
+            // An array parameter takes a whole array and nothing else does; the two have one number of
+            // dimensions where both have one.
+            let param = params.get(k).and_then(|&v| self.p.vars.get(v.0 as usize));
+            let to_array = param.is_some_and(Var::is_array);
             match a {
                 Arg::Ref(place) => self.place(place, owner, at),
                 Arg::Temp(v) => self.value(v, owner, at),
+                Arg::Array(array) => {
+                    if self.array_use(*array, owner, at, "an array argument")
+                        && let Some(param) = param.filter(|_| to_array)
+                        && let (Some(n), Some(m)) = (self.p.var(*array).dim_count(), param.dim_count())
+                        && n != m
+                    {
+                        let name = &self.p.var(*array).name;
+                        self.problem(format!(
+                            "{at}: {name} of {n} dimensions passed to {} of {m}",
+                            param.name
+                        ));
+                    }
+                }
+            }
+            if param.is_some() && to_array != matches!(a, Arg::Array(_)) {
+                self.problem(format!(
+                    "{at}: argument {} is {} for a parameter that is {}",
+                    k + 1,
+                    if to_array { "no whole array" } else { "a whole array" },
+                    if to_array { "an array" } else { "no array" }
+                ));
             }
         }
     }
@@ -872,6 +909,83 @@ mod tests {
             Op::Release { array: VarId(4) },
         ]);
         assert_eq!(problems(&p), Vec::<String>::new());
+    }
+
+    /// [`arrays`] with the SUB's parameter `P` an array parameter of one dimension, which its body erases, and
+    /// the call passing it `array`.
+    fn array_param(array: u32) -> Program {
+        let mut p = arrays();
+        p.vars[1].shape = Shape::Dynamic {
+            dims: Some(1),
+            at_start: None,
+        };
+        p.procs[0].body.stmts = vec![stmt(vec![Op::EraseParam { array: VarId(1) }])];
+        p.main.stmts[0].ops[1] = Op::Call {
+            proc: ProcId(0),
+            args: vec![Arg::Array(VarId(array))],
+        };
+        p
+    }
+
+    #[test]
+    fn array_parameters() {
+        // A static and a dynamic array may be passed.
+        assert_eq!(problems(&array_param(3)), Vec::<String>::new());
+        assert_eq!(problems(&array_param(4)), Vec::<String>::new());
+        let at = "main: statement 0 (line 1)";
+        // A scalar as a whole array, and a place for an array parameter.
+        assert_eq!(
+            problems(&array_param(0)),
+            [format!("{at}: an array argument of G, which is no array")]
+        );
+        let mut p = array_param(4);
+        p.main.stmts[0].ops[1] = Op::Call {
+            proc: ProcId(0),
+            args: vec![Arg::Ref(Place::Var(VarId(0)))],
+        };
+        assert_eq!(
+            problems(&p),
+            [format!(
+                "{at}: argument 1 is no whole array for a parameter that is an array"
+            )]
+        );
+        // A whole array for a scalar parameter.
+        let mut p = arrays();
+        p.main.stmts[0].ops[1] = Op::Call {
+            proc: ProcId(0),
+            args: vec![Arg::Array(VarId(4))],
+        };
+        assert_eq!(
+            problems(&p),
+            [format!(
+                "{at}: argument 1 is a whole array for a parameter that is no array"
+            )]
+        );
+        // Another number of dimensions than the parameter's.
+        let mut p = array_param(4);
+        p.vars[4].shape = Shape::Dynamic {
+            dims: Some(2),
+            at_start: None,
+        };
+        assert_eq!(problems(&p), [format!("{at}: D of 2 dimensions passed to P of 1")]);
+    }
+
+    #[test]
+    fn erase_of_an_array_parameter() {
+        // The array passed may be a static one: a parameter is never released, and only a parameter is erased
+        // by what is passed.
+        let mut p = array_param(4);
+        p.procs[0].body.stmts[0].ops = vec![Op::Release { array: VarId(1) }];
+        assert_eq!(
+            problems(&p),
+            ["S: statement 0 (line 1): Release of the array parameter P"]
+        );
+        let mut p = array_param(4);
+        p.main.stmts[0].ops.push(Op::EraseParam { array: VarId(4) });
+        assert_eq!(
+            problems(&p),
+            ["main: statement 0 (line 1): EraseParam of D, which is no parameter"]
+        );
     }
 
     #[test]

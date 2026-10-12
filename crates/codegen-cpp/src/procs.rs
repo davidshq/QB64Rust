@@ -33,7 +33,8 @@ const EPILOGUE_AFTER_FREE: &[&str] = &[
 ];
 
 impl<'a> Emitter<'a> {
-    /// `int32 FUNC_F(int32*_FUNC_F_LONG_A,qbs*_FUNC_F_STRING_S)`
+    /// `int32 FUNC_F(int32*_FUNC_F_LONG_A,qbs*_FUNC_F_STRING_S)`; an array parameter is the descriptor of the
+    /// array passed, `ptrszint*_FUNC_F_ARRAY_LONG_M`.
     fn signature(&self, proc: &Proc) -> String {
         let ret = match proc.kind {
             ProcKind::Sub => "void",
@@ -44,7 +45,9 @@ impl<'a> Emitter<'a> {
             .iter()
             .map(|&id| {
                 let v = self.p.var(id);
-                let t = if is_qbs(v.ty) {
+                let t = if v.is_array() {
+                    "ptrszint*"
+                } else if is_qbs(v.ty) {
                     "qbs*"
                 } else {
                     &format!("{}*", c_type(v.ty))
@@ -130,7 +133,8 @@ impl<'a> Emitter<'a> {
         // A string argument that is a temporary, fixed-length or read-only is replaced by a copy for the call;
         // a fixed-length one gets the copy's final value back.
         for (j, &id) in proc.params.iter().enumerate() {
-            if !is_qbs(self.p.var(id).ty) {
+            let v = self.p.var(id);
+            if v.is_array() || !is_qbs(v.ty) {
                 continue;
             }
             let (n, old) = (self.name(id), format!("oldstr{j}"));

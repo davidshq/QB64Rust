@@ -1,0 +1,202 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE PT
+  X:I32
+ARRAY A (param):I32 passed, 1 dimension
+ARRAY A (param):I32 passed, 1 dimension
+ARRAY A (param):Str passed, 1 dimension
+ARRAY B (param):Str*3 passed, 1 dimension
+ARRAY C (param):T:PT passed, 1 dimension
+ARRAY E (param):Bit4 passed, 1 dimension
+ARRAY G (param):Off passed, 1 dimension
+ARRAY A (param):I32 passed, 1 dimension
+ARRAY M (param):I32 passed, 2 dimensions
+ARRAY A (param):I32 passed, 2 dimensions
+ARRAY A (param):I32 passed, 2 dimensions
+ARRAY A (param):I32 passed, 1 dimension
+ARRAY A (param):I32 passed, dimensions not known
+ARRAY Z (param):F32 passed, dimensions not known
+ARRAY A (param):I32 passed, 1 dimension
+ARRAY B (param):I32 passed, 1 dimension
+ARRAY C (param):I32 passed, 2 dimensions
+ARRAY X:I32(1 TO 3)
+ARRAY U:U32(0 TO 3)
+ARRAY M:I32(0 TO 2, 0 TO 4)
+ARRAY S:Str(0 TO 2)
+ARRAY F:Str*3(0 TO 2)
+ARRAY P:T:PT(0 TO 2)
+ARRAY B:Bit4(0 TO 3)
+ARRAY O:I64(0 TO 3)
+ARRAY D:I32 dynamic, 1 dimension
+ARRAY C:I32 dynamic, 2 dimensions
+ARRAY NEVER:I32(0 TO 10)
+line 2: ConsoleOnly
+line 17: Allocate D:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+line 19: Call SHOW
+  array M() : I32
+line 20: Call FILL
+  array X() : I32
+line 21: Call FILL
+  array U() : U32
+line 22: Call FILL
+  array D() : I32
+line 23: Call GROW
+  array D() : I32
+line 24: Call TEXTS
+  array S() : Str
+  array F() : Str*3
+  array P() : T:PT
+  array B() : Bit4
+  array O() : I64
+line 25: Print newline
+  Num
+    CallProc PICK : F32
+      array X() : I32
+      temp
+        Int 2 : I32
+line 26: Call FILL
+  array X() : I32
+line 27: Call FILL
+  array NEVER() : I32
+line 28: Call DOWN
+  array M() : I32
+line 29: Call MAKE
+  array C() : I32
+line 30: Assign C(…):I32
+  Index
+    Int 1 : I64
+    Int 2 : I64
+  Value
+    Int 3 : I32
+line 31: Call BOTH
+  array X() : I32
+  temp
+    Int 9 : I32
+line 32: Call SKIPPED
+  array X() : I32
+  array X() : I32
+  array M() : I32
+line 33: System
+SUB FILL
+  param A():I32
+  local I:I32
+line 36: For I (local):I32 counting in I64 (NEXT line 38)
+  From
+    LBound A (param) : I64
+  To
+    UBound A (param) : I64
+  Body
+    line 37: Assign A (param)(…):I32
+      Index
+        Convert Widen : I64
+          Var I (local) : I32
+      Value
+        Binary Mul : I32 (qb I64)
+          Var I (local) : I32
+          Int 2 : I32
+SUB GROW
+  param A():I32
+line 41: Allocate A (param):I32 (Preserve)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 42: EraseParam A (param):I32
+line 43: Allocate A (param):I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 5 : I64
+SUB TEXTS
+  param A():Str
+  param B():Str*3
+  param C():T:PT
+  param E():Bit4
+  param G():Off
+line 46: Assign A (param)(…):Str
+  Index
+    Int 1 : I64
+  Value
+    Element B (param)(…) : Str
+      Int 1 : I64
+line 47: Assign C (param)(…).X:I32
+  Index
+    Int 2 : I64
+  Value
+    Convert Truncate : I32
+      Binary Add : I64 (qb Off)
+        Convert Widen : I64
+          Element E (param)(…) : I32 (qb Bit4)
+            Int 1 : I64
+        Convert Truncate : I64
+          Element G (param)(…) : Off
+            Int 1 : I64
+FUNCTION PICK : F32
+  param A():I32
+  param I:I32
+  result PICK:F32
+line 50: Assign PICK (result):F32
+  Convert Nearest : F32
+    Element A (param)(…) : I32
+      Convert Widen : I64
+        Var I (param) : I32
+SUB SHOW
+  param M():I32
+line 53: Print newline
+  Num
+    UBound M (param) : I64
+      Int 2 : I32
+SUB DOWN
+  param A():I32
+line 56: Call SHOW
+  array A (param)() : I32
+SUB MAKE
+  param A():I32
+line 59: Allocate A (param):I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+  Lower
+    Int 0 : I64
+  Upper
+    Int 4 : I64
+SUB BOTH
+  param A():I32
+  param A:I32
+line 62: Print newline
+  Num
+    Element A (param)(…) : I32
+      Int 1 : I64
+  Num
+    Var A (param) : I32
+SUB UNUSED
+  param A():I32
+  param Z():F32
+line 65: Print newline
+  Num
+    LBound A (param) : I64
+line 66: Call UNUSED
+  array A (param)() : I32
+  array Z (param)() : F32
+SUB SKIPPED
+  param A():I32
+  param B():I32
+  param C():I32
+line 70: Print newline
+  Num
+    Element A (param)(…) : I32
+      Int 1 : I64
+  Num
+    Element B (param)(…) : I32
+      Int 1 : I64
+  Num
+    Element C (param)(…) : I32
+      Int 1 : I64
+      Int 2 : I64

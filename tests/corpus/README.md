@@ -41,7 +41,7 @@ trailer is part of its `.output`.
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 58 |
+| `.output` | 235 | 2 | 62 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
@@ -130,17 +130,19 @@ store rule of each place) by `m2-arrays-and-types`, `s23` by `m2-parser-breadth`
 `SELECT CASE`, `ON … GOTO`) by `m2-core-builtins`, `s30`–`s34` (the numeric types, `_BIT`, fixed-length strings) by
 `m2-numeric-types`, `s35`–`s44` (built-in statements, files, data, console input, `SHELL`, functions by demand) by
 `m2-builtin-statements`, `s50` and `s51` (three programs each: default types; `OPTION BASE`, the type before the names, a minus right of
-`^`) and `s52`–`s55` (six programs: dynamic arrays, `REDIM`, `REDIM _PRESERVE`, `ERASE`, arrays used without `DIM`) by
-`m2-defxxx-common-arrays` (`SOURCE.md`). `s52_dynamic_memory` ends with the runtime's "Out of memory" message,
+`^`), `s52`–`s55` (six programs: dynamic arrays, `REDIM`, `REDIM _PRESERVE`, `ERASE`, arrays used without `DIM`),
+`s56`–`s58` (arrays in procedures, array parameters, `COMMON`) and two for bugs fixed on the way (`s17_signs`,
+`s52_dim_list`) by `m2-defxxx-common-arrays` (`SOURCE.md`). `s52_dynamic_memory` ends with the runtime's "Out of memory" message,
 which is part of its `.output`; the runner's `QB64PE_NOPROMPT` keeps that from opening a dialog.
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
 line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
 
-`slice.list` names the 276 programs the new compiler must pass (tier 2, `study\19`), also with
+`slice.list` names the 280 programs the new compiler must pass (tier 2, `study\19`), also with
 `QB64RUST_NO_FOLD=1`; the three `s50` programs and `235_deftype` joined with `m2-defxxx-common-arrays` task 2.2,
 the three `s51` programs and `236_option_base` with its tasks 3.2 and 3.3, the five `s52`–`s55` programs and
 `40_erase`, `120_redim_no_preserve`, `201_erase_udt_array`, `203_redim_multiple` with its group 4,
-`s55_implicit` with its group 5, `s56_proc_arrays` and `206_shared_redim` with its group 6;
+`s55_implicit` with its group 5, `s56_proc_arrays` and `206_shared_redim` with its group 6,
+`s57_array_params`, `s58_common`, `s17_signs` and `s52_dim_list` with its group 7;
 57 joined with `m2-builtin-statements` (`s35`–`s44` and 47 of `runtime_comparison`, named
 task by task in its `tasks.md`). `s13`–`s19` joined it with `m2-control-flow-slice` (`s17` with task 3.2, the rest with task
 8.1), `s20`–`s22` and 13 `runtime_comparison` programs with `m2-arrays-and-types` task 7.1, 61 programs with
@@ -157,6 +159,23 @@ requires no panic, an exact round trip, no diagnostics for the listed ones, at l
 with an `.err` file, and the two shrink-only lists `tests\known_false_errors.list` and
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
+
+### Full corpus with `qb64rust` (2026-10-11, after array parameters and `COMMON`; not a pass criterion)
+
+After group 7 of `m2-defxxx-common-arrays` (its task 7.3, release build, against the reference clone, `--jobs 8`),
+354 programs (the four slice programs of group 7 new):
+
+| Result | Programs |
+|---|---|
+| Pass | 299: the 280 of `slice.list` and 19 `.err` programs |
+| Rejected with a diagnostic (exit status 1) | 49 (19 `.output` programs, all 29 of `screen\` and the compile-only `239_lprint`) |
+| `.err` programs that get only "not supported yet" errors | 1 (`218` `FRE`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+One corpus program carried the marks group 7 removed ("array parameters", "`COMMON`"):
+`194_array_param_2d`, an `.err` program (a FUNCTION typed with `AS`), which is rejected as before. No program
+of `runtime_comparison` became clean; the four new programs are the group's own.
 
 ### Full corpus with `qb64rust` (2026-10-11, after arrays in procedures; not a pass criterion)
 

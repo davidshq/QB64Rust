@@ -31,7 +31,13 @@ pub fn dump(p: &Program) -> String {
                     let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} To {u}")).collect();
                     format!(", allocated at the start ({})", dims.join(", "))
                 });
-                writeln!(out, "Array {name}:{} dynamic, dimensions: {dims}{start}", ty(p, v.ty)).unwrap();
+                // An array parameter stands for the array passed, static or dynamic.
+                let kind = if matches!(v.storage, Storage::Param(_)) {
+                    "passed"
+                } else {
+                    "dynamic"
+                };
+                writeln!(out, "Array {name}:{} {kind}, dimensions: {dims}{start}", ty(p, v.ty)).unwrap();
             }
         }
     }
@@ -66,7 +72,8 @@ pub fn dump(p: &Program) -> String {
                     continue;
                 }
             };
-            writeln!(out, "  {class} {}:{}", v.name, ty(p, v.ty)).unwrap();
+            let parens = if class == "param" && v.is_array() { "()" } else { "" };
+            writeln!(out, "  {class} {}{parens}:{}", v.name, ty(p, v.ty)).unwrap();
         }
         body(p, &proc.body, &mut out);
     }
@@ -148,6 +155,9 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 }
                 Op::Release { array } => {
                     writeln!(out, "  Release {}:{}", var(p, *array), ty(p, p.var(*array).ty)).unwrap();
+                }
+                Op::EraseParam { array } => {
+                    writeln!(out, "  EraseParam {}:{}", var(p, *array), ty(p, p.var(*array).ty)).unwrap();
                 }
                 Op::Print { to, items, newline } | Op::Write { to, items, newline } => {
                     let word = if matches!(op, Op::Write { .. }) {
@@ -294,6 +304,7 @@ fn args(p: &Program, args: &[Arg]) -> String {
         .map(|a| match a {
             Arg::Ref(place) => format!("Ref {}:{}", place_text(p, place), ty(p, p.place_ty(place))),
             Arg::Temp(v) => format!("Temp({})", val(p, v)),
+            Arg::Array(a) => format!("Array {}:{}", var(p, *a), ty(p, p.var(*a).ty)),
         })
         .collect::<Vec<_>>()
         .join(", ")

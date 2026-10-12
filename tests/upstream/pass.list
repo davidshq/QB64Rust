@@ -3,9 +3,13 @@
 # --suite compile --qb64 target/release/qb64rust.exe --list tests/upstream/pass.list
 arrays/02_option_base1_only_affects_later_normal_arrays
 arrays/36_redim_preserve_packed_bit_shrink_grow
+arrays/array_arg_dimensions_transitive
+arrays/comma_array_parameter
 arrays/erase_dynamic_string_array_reuse
 arrays/negative_array_size
 arrays/negative_array_size_2
+arrays/t045_function_scalar_array
+arrays/t046_sub_scalar_array
 arrays/t659_array_assignment_control
 arrays/t659_explicit_call_control
 arrays/t659_sub_call_comparisons

@@ -200,6 +200,20 @@ Measured for procedures and error handling (2026-10-04, `m2-procedures-and-error
   cannot name a variable, parameter or procedure, with any suffix (`len&`). `left` and `chr` are free (`LEFT$`,
   `CHR$` need their `$`); `WIDTH` is free; no name starting with `_` is (1,030 forms checked, `v15_builtin_names`).
   There is no unary `+` (`PRINT +5` is a compile error).
+- **Signs the old compiler drops (`v25_signs`, `v25_signs_const`, `v25_x01`–`x10`, measured 2026-10-11; 99
+  one-line forms were tried with both compilers):** before it reads an expression it removes signs from its
+  text (`fixoperationorder`, `qb64pe.bas` 23558–23601). First **a `+` right after a `+` or a `-` goes**: `a + +b`
+  is `a + b`, `a - +b` is `a - b`, `-+b` is `-b`, `"a" + +s$` joins two strings. Then **two `-` right after any
+  operator go** (a word operator, a relation and a unary minus count; `(`, `,` and the `=` of an assignment do
+  not): `a * - -b` is `a * b` (so `2 * - -i%` is -65536 for -32768, no negation happens), `"a" + - -s$` joins
+  two strings, `- - -b` is `-b`, and `- -b` at the start of an expression stays two negations (`s$ = - -s$` is
+  "Cannot convert string to number"). Everything else with a `+` and no operand before it is "Expected
+  variable/value before '+'" or "… after '*'": `+x`, `2 * +x`, `2 ^ +x`, `(+x)`, `f(+x)`, `NOT +x`, `2 < +x`,
+  `+-x`, in `PRINT`, an assignment, `IF`, `FOR`, `CASE`, a bound, an index and an argument alike. A bound
+  written `-+3` is one number (the `DIM` is a static array); `2 + +3` is not. **In a `CONST` the evaluator has
+  its own rule (`DWD`, `const_eval.bas` 1059–1085): every run of `+` and `-` is one sign, `-` when its number of
+  `-` is odd.** So `-+5`, `+-3` and `- - -3` are -5, -3 and -3, `2 - -3` is `2 + 3`, and a run that amounts to
+  `+` where a value must start is "Unexpected element '+'": `+5`, `--5`, `- + -5`, `2 * - -3`.
 - **Errors:** `RESUME` re-runs the whole statement that raised, including `PRINT` items already printed; `RESUME
   NEXT` skips the rest of it, including the line end. An `ERROR` inside a FUNCTION called from a `PRINT`, with a
   `RESUME NEXT` handler in main, continues inside the function. `ON ERROR GOTO` inside a SUB may name a main-module
@@ -1179,7 +1193,8 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   without `$DYNAMIC`; below it, error 10 on the second run). In a SUB, `REDIM sd(lc(1) + 4)` of a shared array
   with such a name in its bound raises 9 and leaves `sd` as it was (`x268`). **A `DIM` of several dynamic
   arrays is one statement (`x267`):** run twice it raises 10 once, an array of the list that is not allocated
-  is still allocated after the error, and `RESUME NEXT` goes on after the whole `DIM`.
+  is still allocated after the error, and `RESUME NEXT` goes on after the whole `DIM`. (The new compiler made
+  it one statement per array until 2026-10-11.)
 - **Arrays in procedures (`v24_g_local*`, `v24_x121`–`x129`, `x177`):** `DIM` and `REDIM` in a SUB or FUNCTION make
   an array that is new, zero or empty, on every call, with constant and with variable bounds, for strings too, and
   in every level of a recursive call; one `DIM` run twice in a call raises 10. `EXIT SUB` and an error inside the
@@ -1253,11 +1268,26 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   parameter "Whole array cannot be passed to a scalar SUB parameter"; **an array in parentheses (`fill (x())`)
   is accepted and fails the C++ build**. **The number of dimensions belongs to the parameter and comes from its
   uses and its arguments together:** what is between the parentheses of the parameter is ignored (`a()`, `a(,)`,
-  `a(1)`); an index count, a `REDIM` or an argument that disagrees with another is "Cannot change the number of
+  `a(1)`, and any other words: `a(n)`, `a(n + 1, "x")`, `a(-1)`, `a(1 TO 5)`, `v24_x303`; only a second `(`,
+  "Syntax error - too many opening brackets", and the word `AS`, "Syntax error - check your brackets", are
+  errors there, `x304`, `x305`, `qb64pe.bas` 2882–2904); an index count, a `REDIM` or an argument that disagrees with another is "Cannot change the number of
   elements an array has!" at the use, or "Passing arrays with a differing number of elements to a SUB/FUNCTION
   is not supported" between two calls of a procedure that never indexes it; the call may stand above or below
   the procedure, and the count travels through arrays passed on (upstream `array_arg_dimensions_transitive`).
   `LBOUND(a())` is "Syntax error".
+  **Measured before group 7 (`v24_x286`–`x296`):** an array made by passing a name that names none has **one
+  dimension**, 0 to 10, whatever the procedure does with its parameter: `fill nx()` for a SUB that stores
+  `a(1, 2)`, then `nx(1, 2)` in the main module, is "Cannot change the number of elements an array has!" at that
+  later line (`x286`, `x287`), and a SUB that only reads `LBOUND`/`UBOUND` prints 0 and 10 (`x293`). Below
+  `$DYNAMIC` it is a dynamic array allocated as part of the calling statement: the call in a loop raises 10 on
+  its second round and the SUB does not run (`x295`). **In a SUB such a name is "Expected (...)"** (`x292`): no
+  array is made by passing it there. **An array listed by `COMMON c()` or `STATIC k()` may be passed before
+  anything gave it a number of dimensions and gets the parameter's**: a SUB that does `REDIM a(3, 4)` leaves `c`
+  with two dimensions, used as `c(1, 2)` and `UBOUND(c, 2)` after the call (`x288`, `x289`). An array parameter
+  and a scalar parameter of one name are two variables (`x290`); two array parameters of one name and type are
+  "Name already in use (a)" (`x291`). A parameter passed on to its own procedure, one array as two arguments
+  (a `REDIM` through one is seen through the other, 10 for a static one), and string, `STRING * n`, user-type
+  and two-dimensional `DOUBLE` array parameters work as expected (`x294`, `x296`).
 - **`COMMON` (`v24_g_common`, `v24_a_common`, `v24_x161`–`x175`, `x181`):** a scalar is declared as by `DIM`, with
   `SHARED` as by `DIM SHARED` (a SUB sees it), with any type, a fixed-length string and a user type, several in
   one statement, also as `COMMON [SHARED] AS type a, b()`. It may stand below executable statements. **`COMMON
@@ -1269,6 +1299,12 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   x` of a `COMMON` scalar ("Name already in use (x)"); inside a procedure ("COMMON cannot be used within a
   SUB/FUNCTION"). **A block name is not accepted: `COMMON /blk/ x` is "Invalid variable name"**, with and
   without `SHARED` and without a variable.
+  **A listed array's number of dimensions (`v24_x297`–`x302`, measured 2026-10-11):** an index gives it, and a
+  `DIM` or `REDIM` with another number below is "Cannot change the number of elements an array has!", for
+  `COMMON c()` and `STATIC y()` alike (`x299`, `x300`). **`LBOUND` and `UBOUND` differ:** of an array listed by
+  `STATIC y()` they make it one dimension (`LBOUND(y)` then `DIM y(2, 5)` or `y(1, 2)` is that error, `x282`,
+  `x297`); of one listed by `COMMON c()` they say nothing (`UBOUND(c)` or `UBOUND(c, 2)` then `c(1, 2)`, `c(1)`
+  or `DIM c(2, 5)` all compile, `x298`, `x301`, `x302`).
 - **`TYPE` member arrays without a marker (`v24_h_member_*`, `v24_x182`–`x205`, `x217`–`x226`):** **the elements
   are part of the variable's bytes** (`LEN` of `id AS LONG`, `v(0 TO 3) AS LONG`, `tail AS INTEGER` is 22; the
   members around the array keep their values when its ends are stored), in both declaration forms (`v(0 TO 3) AS

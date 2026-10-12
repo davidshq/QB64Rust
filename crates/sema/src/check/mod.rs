@@ -19,7 +19,7 @@ mod proc;
 
 use blocks::nested_statements;
 
-use crate::{ConstId, LabelId, Place, ProcId, Program, Stmt, StmtKind, SymbolKind, Ty, TypeId, VarId};
+use crate::{ConstId, LabelId, Place, ProcId, Program, Shape, Stmt, StmtKind, SymbolKind, Ty, TypeId, VarId};
 use qb64rust_base::{Diagnostics, SourceMap, Span, show_bytes};
 use qb64rust_syntax::ParsedProgram;
 use qb64rust_syntax::SyntaxKind;
@@ -84,6 +84,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         implicit_names: HashSet::new(),
         explicit_array: false,
         no_join: None,
+        dim_facts: Vec::new(),
+        dims_open: HashSet::new(),
     };
     let skips = Skips::new(program);
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
@@ -169,6 +171,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         }
         c.check_statement(stmt, &skips);
     }
+    c.solve_dims();
     if !c.console_only {
         let at = Span::new(root.file, 0, 0);
         c.diags.unsupported(at, "programs without `$CONSOLE:ONLY`");
@@ -324,6 +327,34 @@ struct Checker<'a> {
     /// What is being checked is a place where an allocation that runs first in the statement would not be what
     /// the old compiler does ([`Self::implicit_array`], [`Self::unjoined`]).
     no_join: Option<NoJoin>,
+    /// What says how many dimensions an array has whose number is not known where it is declared, in file order
+    /// ([`DimFact`]); read after every body is checked ([`Self::solve_dims`]).
+    dim_facts: Vec<DimFact>,
+    /// The arrays listed by `COMMON a()` or `STATIC a()` that were passed to an array parameter before anything
+    /// gave them a number of dimensions: theirs is found with the parameter's.
+    dims_open: HashSet<VarId>,
+}
+
+/// One thing that says how many dimensions an array has, for an array whose number is found from everything that
+/// names it (design D6 of `m2-defxxx-common-arrays`): an array parameter, and a listed array passed to one.
+enum DimFact {
+    /// `array` (`shown`, as written) is named with `count` indexes or bounds at `span`; with `passed`, it is a
+    /// parameter that is passed an array of `count` dimensions there.
+    Count {
+        array: VarId,
+        shown: String,
+        count: usize,
+        span: Span,
+        passed: bool,
+    },
+    /// `arg`, whose number is not known either, is passed to the parameter `param` at `span`: they have one
+    /// number.
+    Same {
+        arg: VarId,
+        param: VarId,
+        shown: String,
+        span: Span,
+    },
 }
 
 /// Where an array used without `DIM` is not made by its first use ([`Checker::implicit_array`]): the old
@@ -519,6 +550,94 @@ impl Checker<'_> {
         }
     }
 
+    /// Gives every array parameter its number of dimensions, after every body is checked (design D6 of
+    /// `m2-defxxx-common-arrays`; measured, `verification\v24_x148`-`x155`, `x286`-`x289`): the number belongs to
+    /// the parameter and is one for the whole program. Every index count and every `DIM` or `REDIM` of it in its
+    /// procedure, and every array passed to it, above or below the procedure, must agree; an array parameter
+    /// passed on has the number of the parameter it goes to. The facts are read in file order, so the error
+    /// stands at the later of two that disagree. A parameter that nothing says anything about keeps no number:
+    /// no array is ever passed to it.
+    fn solve_dims(&mut self) {
+        let facts = std::mem::take(&mut self.dim_facts);
+        // Classes of arrays that have one number: each array's parent, and the number at each root.
+        let mut parent: HashMap<VarId, VarId> = HashMap::new();
+        let mut number: HashMap<VarId, usize> = HashMap::new();
+        fn root(parent: &HashMap<VarId, VarId>, mut v: VarId) -> VarId {
+            while let Some(&p) = parent.get(&v) {
+                v = p;
+            }
+            v
+        }
+        let plural = |n: usize| if n == 1 { "" } else { "s" };
+        for fact in facts {
+            match fact {
+                DimFact::Count {
+                    array,
+                    shown,
+                    count,
+                    span,
+                    passed,
+                } => {
+                    let r = root(&parent, array);
+                    match number.get(&r).copied() {
+                        None => {
+                            number.insert(r, count);
+                        }
+                        Some(n) if n == count => {}
+                        Some(n) => {
+                            let msg = if passed {
+                                format!(
+                                    "an array of {count} dimension{} is passed to `{shown}`, which has {n}",
+                                    plural(count)
+                                )
+                            } else {
+                                format!("`{shown}` has {n} dimension{}, not {count}", plural(n))
+                            };
+                            self.stmt_error = false;
+                            let _ = self.error(span, msg);
+                        }
+                    }
+                }
+                DimFact::Same {
+                    arg,
+                    param,
+                    shown,
+                    span,
+                } => {
+                    let (a, b) = (root(&parent, arg), root(&parent, param));
+                    if a == b {
+                        continue;
+                    }
+                    match (number.get(&a).copied(), number.get(&b).copied()) {
+                        (Some(n), Some(m)) if n != m => {
+                            let msg = format!(
+                                "`{shown}` has {n} dimension{}, and is passed to an array parameter that has {m}",
+                                plural(n)
+                            );
+                            self.stmt_error = false;
+                            let _ = self.error(span, msg);
+                        }
+                        (n, m) => {
+                            parent.insert(a, b);
+                            if let Some(n) = n.or(m) {
+                                number.insert(b, n);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let members: Vec<VarId> = parent.keys().chain(number.keys()).copied().collect();
+        for v in members {
+            let var = &mut self.prog.vars[v.0 as usize];
+            if let (Shape::Dynamic { dims: dims @ None, .. }, Some(&n)) =
+                (&mut var.shape, number.get(&root(&parent, v)))
+            {
+                *dims = Some(n);
+            }
+        }
+    }
+
     /// Runs `check` as a part of the statement where a joined allocation has no place (`why`).
     fn unjoined<T>(&mut self, why: NoJoin, check: impl FnOnce(&mut Self) -> R<T>) -> R<T> {
         let before = self.no_join.replace(why);
@@ -531,13 +650,17 @@ impl Checker<'_> {
         let span = node.span();
         let line = self.line(node.first_token().map_or(span, |t| t.span));
         let stmt = Stmt { span, line, kind };
+        self.sink().push(stmt);
+    }
+
+    /// The statement list being added to: the innermost open block's, else the body's.
+    fn sink(&mut self) -> &mut Vec<Stmt> {
         if let Some(sink) = self.sinks.last_mut() {
-            sink.push(stmt);
-            return;
+            return sink;
         }
         match self.cur {
-            Some(p) => self.prog.procs[p.0 as usize].stmts.push(stmt),
-            None => self.prog.stmts.push(stmt),
+            Some(p) => &mut self.prog.procs[p.0 as usize].stmts,
+            None => &mut self.prog.stmts,
         }
     }
 
@@ -636,8 +759,8 @@ impl Checker<'_> {
             self.option_stmt(s)
         } else if let Some(s) = ast::RedimStmt::cast(node) {
             self.redim(s)
-        } else if ast::CommonStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "`COMMON`"))
+        } else if let Some(s) = ast::CommonStmt::cast(node) {
+            self.common(s)
         } else if let Some(s) = ast::EraseStmt::cast(node) {
             self.erase(s)
         } else if let Some(s) = ast::DefTypeStmt::cast(node) {

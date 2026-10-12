@@ -1,0 +1,5 @@
+
+Unexpected element '+'
+Caused by (or after):
+LINE 4:CONST C = + 5 : PRINT C
+exit=1

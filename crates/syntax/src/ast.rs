@@ -415,6 +415,21 @@ impl<'a> CommonStmt<'a> {
     pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
         self.0.child_nodes().filter_map(DimItem::cast)
     }
+
+    /// The `SHARED` word of `COMMON SHARED`.
+    pub fn shared(self) -> Option<Tok> {
+        self.0.child_tokens().nth(1).filter(|t| t.kind == Ident)
+    }
+
+    /// The first `/` of a block name (`COMMON /name/ …`).
+    pub fn block(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == SyntaxKind::Slash)
+    }
+
+    /// The type of `COMMON AS type name, ...`, before the names.
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
 }
 
 impl<'a> EraseStmt<'a> {
@@ -562,14 +577,21 @@ impl<'a> ParamList<'a> {
 impl<'a> Param<'a> {
     /// The parameter's name, with its suffix.
     pub fn name(self) -> Option<Tok> {
-        self.0.child_tokens().filter(|t| t.kind == Ident).last()
+        self.words().last()
     }
 
     /// The `BYVAL` word (only inside `DECLARE LIBRARY`).
     pub fn byval(self) -> Option<Tok> {
-        let mut words = self.0.child_tokens().filter(|t| t.kind == Ident);
+        let mut words = self.words();
         let first = words.next();
         words.next().and(first)
+    }
+
+    /// The words before an array parameter's `(`: what stands between its parentheses is skipped, words included
+    /// (`a(n)`).
+    fn words(self) -> impl Iterator<Item = Tok> + 'a {
+        let before_parens = self.0.child_tokens().take_while(|t| t.kind != LParen);
+        before_parens.filter(|t| t.kind == Ident)
     }
 
     pub fn as_clause(self) -> Option<AsClause<'a>> {
@@ -1500,6 +1522,18 @@ impl<'a> BinExpr<'a> {
         let op_end = self.op()?.span.end;
         expr_after(self.0, op_end)
     }
+}
+
+/// The one sign that the run of `+` and `-` tokens at the operator of a prefix or binary expression of a `CONST`
+/// amounts to: true for `-` (an odd number of `-`), false for `+`; `None` when the operator is no sign. Only a
+/// `CONST` has such runs (the parser's `sign_run`).
+pub fn signs_negative(node: Node<'_>) -> Option<bool> {
+    let mut signs = node
+        .child_tokens()
+        .take_while(|t| matches!(t.kind, SyntaxKind::Plus | SyntaxKind::Minus))
+        .peekable();
+    signs.peek()?;
+    Some(signs.filter(|t| t.kind == SyntaxKind::Minus).count() % 2 == 1)
 }
 
 /// The first child expression that starts at or after `offset`.

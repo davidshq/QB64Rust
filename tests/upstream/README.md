@@ -245,3 +245,15 @@ procedures). Three upstream programs carried the mark "arrays in a SUB or FUNCTI
 of 58; the full suite was not run again, since no upstream program changed from rejected to compiled.
 `tests\known_unsupported_rejections.list` shrank by one (`snippets/qb64fresh/shared_variables__shared_array`:
 `SHARED scores()` without `AS` for a LONG array is the old compiler's "Array 'scores' not defined"): 57.
+
+**Upstream progress, 2026-10-11 (group 7): 62 of 279** (`m2-defxxx-common-arrays` group 7: array parameters,
+`COMMON`). Added to `pass.list`: `arrays/array_arg_dimensions_transitive` and `arrays/comma_array_parameter`,
+which passed on their first run, and `arrays/t045_function_scalar_array` and `t046_sub_scalar_array`, `.err`
+programs that get the old compiler's error now ("Whole array cannot be passed to a scalar SUB parameter") and
+left `tests\known_unsupported_rejections.list` (55). Seven upstream programs carried the marks "array
+parameters" or "`COMMON`"; the other five wait on something else: `arrays/type_dynamic_string_member_array_param`
+and `arrays/type_member_arrays_as_parameters` on `STRING` members and member arrays, `offset/offset_test` on
+`_MEM`, `qb64pe/element` and `qb64pe/hasFunctionElement` on `CVL` and `STRING` members. The full run of the
+suite (404 programs, release build, `--jobs 8`): 62 pass (the 62 of `pass.list`), 301 rejected with a
+diagnostic, 40 `.err` programs with only marked errors, the known failure `http/read_example`; none builds and
+prints the wrong output.

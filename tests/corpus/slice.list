@@ -284,3 +284,7 @@ runtime_comparison/203_redim_multiple
 runtime_comparison/40_erase
 runtime_comparison/201_erase_udt_array
 runtime_comparison/206_shared_redim
+slice/s57_array_params
+slice/s58_common
+slice/s17_signs
+slice/s52_dim_list

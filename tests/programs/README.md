@@ -55,3 +55,14 @@ stands. Three stages (`study\28` §4):
 
 The licence must allow the copy (state it in a `SOURCE.md` with the repository and commit). Copy the files byte for
 byte, mark the folder `-text` in `.gitattributes`, check that `qb64pe.exe` builds it, and run `cargo test`.
+
+## Measured (2026-10-11, after group 7 of `m2-defxxx-common-arrays`)
+
+- Still no real error, and from here on none is hidden: the game's first marked declaration (`COMMON`) is
+  gone, so the follow-on rule no longer drops real errors after it. `DEFINT`, the arrays in its procedures and
+  its 12 `COMMON SHARED` lines compile (47 arrays listed there and given their bounds by the `DIM SHARED` lines
+  below).
+- `qb64rust --report unsupported tests\programs`: 1,709 marked errors in 33 messages. Needed next: labels named
+  like a SUB or like `CLS` (17 marks), `DEF SEG` (8), `TAB` (22); then the screen (M3): `LINE` 899, `COLOR` 190,
+  `LOCATE` 145, `PAINT` 89, `DRAW` 71, `POINT` 34, `SOUND` 33, `PLAY` 31, `PSET` 31, `CIRCLE` 28, `CLS` 26,
+  `INKEY$` 25, `PUT` 19, `VIEW` 11, `SCREEN` 9, `GET` 8, `BLOAD` 4.

@@ -1,0 +1,5 @@
+
+Syntax error - too many opening brackets
+Caused by (or after):
+LINE 6:SUB ONE ( A ( B ( 2 ) ) AS LONG )
+exit=1

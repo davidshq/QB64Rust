@@ -4,7 +4,7 @@
 
 use super::decl::Declarer;
 use super::expr::is_builtin_function;
-use super::{Checker, Failed, NoJoin, R, Scope, Skips};
+use super::{Checker, DimFact, Failed, NoJoin, R, Scope, Skips};
 use crate::{AllocMode, BinOp, ConvKind, StmtKind, UnOp};
 use crate::{Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType, Var, VarId};
 use qb64rust_base::{Span, show_bytes, to_u32};
@@ -239,13 +239,16 @@ impl Checker<'_> {
     ) -> R<()> {
         let shown = show_bytes(self.text(name_tok.span));
         let mode = match by {
-            Declarer::Dim | Declarer::Static => AllocMode::Dim,
+            Declarer::Dim | Declarer::Static | Declarer::Common => AllocMode::Dim,
             Declarer::Redim { preserve: false } => AllocMode::Redim,
             Declarer::Redim { preserve: true } => AllocMode::Preserve,
         };
         let redim = matches!(by, Declarer::Redim { .. });
-        // `STATIC a()`: the array is listed, and a `DIM` or `REDIM` below gives it its bounds.
-        let listed = bounds.ranges().is_empty();
+        // `STATIC a()` and `COMMON a()`: the array is listed, and a `DIM` or `REDIM` below gives it its bounds.
+        // What stands between the parentheses of a `COMMON` is not read (measured, `verification\v24_x166`:
+        // `COMMON a(3)` allocates nothing).
+        let common = by == Declarer::Common;
+        let listed = common || bounds.ranges().is_empty();
         if self.procs_by_name.contains_key(&name) {
             // Measured: "Name already in use" (`v18_g_array_and_function`).
             return Err(self.in_use(name_tok));
@@ -280,7 +283,14 @@ impl Checker<'_> {
         if by == Declarer::Static {
             self.static_array_free(existing, name_tok, &shown, listed)?;
         }
-        let dims = if redim {
+        if common && existing.is_some() {
+            // Not measured: `COMMON a()` twice, or below a `DIM` or a use of the array.
+            let msg = format!("`COMMON {shown}()` of an array that exists already");
+            return Err(self.unsupported(name_tok.span, msg));
+        }
+        let dims = if common {
+            Vec::new()
+        } else if redim {
             self.unjoined(NoJoin::RedimBound, |c| c.dim_bounds(bounds, &shown))?
         } else {
             self.dim_bounds(bounds, &shown)?
@@ -326,12 +336,10 @@ impl Checker<'_> {
                 return Err(self.error(name_tok.span, format!("the static array `{shown}` is already declared")));
             }
             if count.is_none() {
-                // An array listed by `STATIC a()`: its first `DIM` or `REDIM` gives the number of dimensions
-                // (measured, `verification\v24_g_local`, `v24_x177`).
-                self.prog.vars[id.0 as usize].shape = Shape::Dynamic {
-                    dims: Some(dims.len()),
-                    at_start: None,
-                };
+                // An array listed by `STATIC a()` or `COMMON a()`: its first `DIM` or `REDIM` gives the number
+                // of dimensions (measured, `verification\v24_g_local`, `v24_x177`). For an array parameter it
+                // is one fact about that number (`v24_x155`).
+                self.settle_dims(id, dims.len(), name_tok, bounds_span);
             }
             // `SHARED` on a later declaration changes nothing: an array that was not shared stays unseen by the
             // procedures (measured, `verification\v24_x248`). In a procedure this may be a shared array of the
@@ -367,9 +375,9 @@ impl Checker<'_> {
                     Shape::Static { bounds }
                 }
             }
-            // `STATIC a()` (measured, `verification\v24_g_local`, `v24_f_implicit_sub`): a dynamic array that
-            // lives for the program and is not allocated; what gives it bounds or indexes first gives it its
-            // number of dimensions.
+            // `STATIC a()` (measured, `verification\v24_g_local`, `v24_f_implicit_sub`) and `COMMON a()`
+            // (`v24_g_common`, `v24_x167`): a dynamic array that lives for the program and is not allocated;
+            // what gives it bounds or indexes first gives it its number of dimensions.
             None if listed => Shape::Dynamic {
                 dims: None,
                 at_start: None,
@@ -412,6 +420,9 @@ impl Checker<'_> {
     fn static_array_free(&mut self, existing: Option<VarId>, name_tok: Tok, shown: &str, listed: bool) -> R<()> {
         if let Some(id) = existing {
             let var = self.prog.var(id);
+            if matches!(var.storage, Storage::Param(_)) {
+                return Err(self.in_use(name_tok));
+            }
             if var.storage == Storage::Main {
                 // Measured (`v24_x272`): the old compiler accepts it and the program ends when it starts
                 // ("Duplicate definition").
@@ -637,7 +648,7 @@ impl Checker<'_> {
             }
         }
         if dims == 0 {
-            // `x()`: a whole array (an array argument makes it, measured, `v24_x146`): group 7.
+            // `x()`, a whole array, where it is no argument for an array parameter ([`Self::array_arg`]).
             self.implicit_names.insert(name.to_string());
             return Err(self.unsupported(at.span(), format!("the whole array `{shown}()`")));
         }
@@ -755,15 +766,35 @@ impl Checker<'_> {
     /// The number of dimensions of an array. One listed by `STATIC a()` that no `DIM` or `REDIM` has given bounds
     /// yet gets `first` here: the number of indexes of the use that names it first, 1 for `LBOUND` and `UBOUND`
     /// (measured, `verification\v24_x276`: a later use with another number is the compile error).
-    fn settle_dims(&mut self, array: VarId, first: usize) -> usize {
+    ///
+    /// An array parameter, and a listed array that was passed to one before it had a number, get theirs when
+    /// every body is checked ([`Self::open_dims`], [`Checker::solve_dims`]): `first` is then one fact about it,
+    /// written at `at` with the name `t`, and is what this use goes by.
+    fn settle_dims(&mut self, array: VarId, first: usize, t: Tok, at: Span) -> usize {
         if let Some(n) = self.prog.var(array).dim_count() {
             return n;
+        }
+        if self.open_dims(array) {
+            self.dim_facts.push(DimFact::Count {
+                array,
+                shown: show_bytes(self.text(t.span)),
+                count: first,
+                span: at,
+                passed: false,
+            });
+            return first;
         }
         self.prog.vars[array.0 as usize].shape = Shape::Dynamic {
             dims: Some(first),
             at_start: None,
         };
         first
+    }
+
+    /// Whether an array's number of dimensions is found from everything that names it, after the bodies: an
+    /// array parameter, and a listed array passed to one while it had no number.
+    pub(super) fn open_dims(&self, array: VarId) -> bool {
+        matches!(self.prog.var(array).storage, Storage::Param(_)) || self.dims_open.contains(&array)
     }
 
     /// The element `array(index, …)` named by a call node: one index per dimension, each converted to `_INTEGER64`
@@ -776,7 +807,7 @@ impl Checker<'_> {
             let shown = show_bytes(self.text(t.span));
             return Err(self.unsupported(span, format!("the whole array `{shown}()`")));
         }
-        let dims = self.settle_dims(array, args.len());
+        let dims = self.settle_dims(array, args.len(), t, span);
         if args.len() != dims {
             // Measured: "Cannot change the number of elements an array has!" (`v18_d_index_count_*`).
             let shown = show_bytes(self.text(t.span));
@@ -974,7 +1005,13 @@ impl Checker<'_> {
                     // without `DIM` (`v18_f_*`, `v24_f_implicit`).
                     None => self.implicit_array(t, &name, suffix, 1, n.node())?,
                 };
-                self.settle_dims(a, 1);
+                // The bounds of an array parameter say nothing about its number of dimensions (measured,
+                // `verification\v24_x153`, `x293`), nor do those of an array listed by `COMMON a()` (`x298`,
+                // `x301`, `x302`); those of one listed by `STATIC a()` make it one (`x282`, `x297`).
+                let common = self.prog.var(a).storage == Storage::Main;
+                if !self.open_dims(a) && !common {
+                    self.settle_dims(a, 1, t, span);
+                }
                 self.names.push((SymbolKind::Var(a), t.span));
                 a
             }

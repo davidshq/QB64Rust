@@ -48,10 +48,13 @@ fn binary_level(p: &Parser) -> Option<u8> {
 }
 
 /// Precedence level of a prefix operator at the current token: the operand takes operators of this level and up.
-/// There is no unary `+` (measured: `PRINT +5`, `x = +n` and `2 * +n` are compile errors, `verification\v15_plus_*`).
+/// There is no unary `+` (measured: `PRINT +5`, `x = +n` and `2 * +n` are compile errors, `verification\v15_plus_*`);
+/// a `+` is only dropped after another sign ([`signs_after`]), and in a `CONST` it may start a run of signs
+/// ([`sign_run`]).
 fn prefix_level(p: &Parser) -> Option<u8> {
     match p.current()? {
         Minus => Some(15),
+        Plus if p.in_const => Some(15),
         Ident if p.at_word("NOT") => Some(9),
         Ident if p.at_word("_NEGATE") => Some(8),
         _ => None,
@@ -126,7 +129,7 @@ fn expr_bp_inner(p: &mut Parser, min: u8) -> Option<u32> {
         // `(2 ^ (-(NOT x))) + 3`, though `-NOT x + 3` alone is `-(NOT (x + 3))` and `2 ^ NOT x + 3` is
         // `2 ^ (NOT (x + 3))`. `POWER` as `min` is used by nothing else: it means "inside such a minus".
         let operand_min = match (min, p.current()) {
-            (POWER_RHS, Some(Minus)) | (POWER, _) => POWER,
+            (POWER_RHS, Some(Minus | Plus)) | (POWER, _) => POWER,
             _ => level,
         };
         if min == POWER_RHS && p.at_word("_NEGATE") {
@@ -135,7 +138,7 @@ fn expr_bp_inner(p: &mut Parser, min: u8) -> Option<u32> {
             return None;
         }
         p.start_node(PrefixExpr);
-        p.bump();
+        operator(p);
         let operand = expr_bp(p, operand_min);
         p.finish_node();
         operand? + 1
@@ -152,12 +155,64 @@ fn expr_bp_inner(p: &mut Parser, min: u8) -> Option<u32> {
             return None;
         }
         p.builder.start_node_at(cp, BinExpr);
-        p.bump();
+        operator(p);
         let rhs = expr_bp(p, level + 1);
         p.finish_node();
         height = height.max(rhs?) + 1;
     }
     Some(height)
+}
+
+/// Takes the operator at the current token into the open node, with the signs after it that the old compiler
+/// drops or reads as one with it.
+fn operator(p: &mut Parser) {
+    let sign = matches!(p.current(), Some(Plus | Minus));
+    p.bump();
+    if p.in_const {
+        if sign {
+            sign_run(p);
+        }
+    } else {
+        signs_after(p, sign);
+    }
+}
+
+/// The signs the old compiler removes from an expression before it reads it, here those after an operator that
+/// was just taken (`sign`: it is `+` or `-`). They stay in the operator's node as tokens after the operator, which
+/// nothing reads (`fixoperationorder`, `qb64pe.bas` 23558–23601; measured, `verification\v25_signs`):
+/// - a `+` right after a `+` or a `-` goes, so `a + +b` is `a + b`, `a - +b` is `a - b` and `-+b` is `-b`;
+/// - then two `-` right after any operator go, so `a * - -b` is `a * b` and `s$ + - -t$` joins two strings.
+///   The minus of `- -b` at the start of an expression is such an operator only for what follows it: `- - -b`
+///   is `-b`, and `- -b` stays two negations.
+fn signs_after(p: &mut Parser, sign: bool) {
+    while sign && p.at(Plus) {
+        p.bump();
+    }
+    while p.at(Minus) {
+        // The second minus, past the `+` signs the first rule removes after the first.
+        let mut n = 1;
+        while p.nth(n) == Some(Plus) {
+            n += 1;
+        }
+        if p.nth(n) != Some(Minus) {
+            break;
+        }
+        for _ in 0..=n {
+            p.bump();
+        }
+        while p.at(Plus) {
+            p.bump();
+        }
+    }
+}
+
+/// In a `CONST` the old compiler's evaluator reads every run of `+` and `-` as one sign: `-` when the number of
+/// `-` in it is odd, else `+` (`DWD`, `const_eval.bas` 1059–1085; measured, `verification\v25_signs_const`). The
+/// run is taken into the open node after its first sign; `sema` reads it ([`crate::ast::signs_negative`]).
+fn sign_run(p: &mut Parser) {
+    while matches!(p.current(), Some(Plus | Minus)) {
+        p.bump();
+    }
 }
 
 /// Height of the operand built, or `None` after an error.

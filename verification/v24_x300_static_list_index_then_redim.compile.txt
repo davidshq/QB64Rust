@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):REDIM Y ( 2 , 5 )
+LINE 12:REDIM y(2, 5)
+exit=1

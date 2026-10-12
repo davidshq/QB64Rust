@@ -173,7 +173,9 @@ named in a bound of `REDIM` SHALL be dynamic wherever it stands and SHALL be all
 (anew on each run, or kept under `_PRESERVE`), raising no error 10. A dimension whose bounds are constants SHALL be checked when compiling as
 in a static array, whatever the other dimensions are: a single negative bound, and `lower TO upper` in the wrong
 order, SHALL be compile errors. A `DIM` or `REDIM` with another number of dimensions than the array has SHALL be
-a compile error.
+a compile error. A `DIM` or `REDIM` of several arrays SHALL be one statement: an error in the allocation of one
+SHALL NOT keep the arrays after it in the list from being allocated, a second allocation that would raise error
+10 SHALL raise nothing while that error is pending, and `RESUME NEXT` SHALL go on after the whole list.
 
 #### Scenario: A constant dimension beside a variable one
 - **WHEN** `DIM half(n TO 2, -1)` or `DIM part(n, 3 TO 1)` is compiled for a variable `n`
@@ -214,6 +216,11 @@ a compile error.
 #### Scenario: Two DIM statements
 - **WHEN** `DIM a(5) AS LONG` is followed by `n = 3: DIM a(n) AS LONG: PRINT UBOUND(a)` under the same handler
 - **THEN** the handler prints 10, then ` 5 ` is printed
+
+#### Scenario: Several arrays in one DIM, run twice
+- **WHEN** `DIM du(i + 1), dv(i + 3)` runs for `i` 1 and 2, with `ERASE dv` before the second run, under the same
+  handler, and `PRINT UBOUND(du); UBOUND(dv)` follows
+- **THEN** the handler prints 10 once and ` 2  5 ` is printed
 
 #### Scenario: A bound that raises
 - **WHEN** `DIM s(ASC("")) AS LONG: PRINT UBOUND(s)` runs under the same handler
@@ -559,8 +566,9 @@ old compiler's program ends when it starts).
 `DIM SHARED` does, wherever it stands in the main module. `COMMON name()` SHALL declare a dynamic array that is
 not allocated, shared after `COMMON SHARED`; what is written between its parentheses SHALL be ignored. A `DIM` of
 that name and type below it SHALL allocate the array when it runs (error 10 if it is allocated), a `REDIM` SHALL
-give it new bounds, and a use before either SHALL raise error 9. A block name (`COMMON /name/ …`) SHALL be a
-compile error, as in the old compiler. `COMMON` inside a SUB or FUNCTION, and a second declaration of a `COMMON`
+give it new bounds, and a use before either SHALL raise error 9. Its number of dimensions SHALL be that of the
+first index, `DIM` or `REDIM` that names it; `LBOUND` and `UBOUND` of it SHALL NOT fix that number. A block name
+(`COMMON /name/ …`) SHALL be a compile error, as in the old compiler. `COMMON` inside a SUB or FUNCTION, and a second declaration of a `COMMON`
 scalar, SHALL be compile errors. `CHAIN` SHALL be reported "not supported yet".
 
 #### Scenario: COMMON SHARED scalar
@@ -586,6 +594,11 @@ scalar, SHALL be compile errors. `CHAIN` SHALL be reported "not supported yet".
 #### Scenario: COMMON array never given bounds
 - **WHEN** `COMMON a() AS LONG: a(1) = 1` runs under a handler that prints `ERR` and resumes next
 - **THEN** the handler prints 9
+
+#### Scenario: Bounds read before the DIM
+- **WHEN** `COMMON c(): PRINT UBOUND(c);: DIM c(2, 5): c(1, 2) = 8: PRINT UBOUND(c, 2); c(1, 2)` runs under the
+  same handler
+- **THEN** it compiles, the handler prints 9, and ` 5  8 ` is printed
 
 #### Scenario: Another type is another array
 - **WHEN** `COMMON SHARED a()`, then `DIM a(3) AS LONG: a(2) = 6`, and a SUB prints `a(2)` under the same handler

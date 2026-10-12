@@ -1,0 +1,14 @@
+1. COMMON SHARED scalars, seen in a SUB: 5 w 6 abcd
+2. COMMON alone is not shared: 0 
+3. COMMON cs(), used before its DIM: [error 9 ]
+4. COMMON SHARED cs() then DIM cs(n), in a SUB: 6  3 
+5. REDIM of it: 9  0 
+6. COMMON ign(3) allocates nothing: [error 9 ]
+7. DIM SHARED ign(2, 5) below it: 2  5  8 
+8. COMMON SHARED other() then DIM other(3) AS LONG, in a SUB: [error 9 ]
+9. COMMON never(), never given bounds: [error 9 ] [error 9 ]
+10. the type before the names: 100000  200000  1 
+11. COMMON sc then DIM sc(3): 1.5  2.5 
+12. DIM of a COMMON array, run twice: [error 10 ] 2 
+13. COMMON below statements: 9 
+14. ERASE of a COMMON array: [error 9 ]

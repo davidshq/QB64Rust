@@ -7,8 +7,8 @@ use qb64rust_ir::{Arg, BinOp, Conv, Expr, ExprKind, ProcId, Ty, UnOp};
 
 impl Emitter<'_> {
     /// Arguments of a call of `proc`: a place's own pointer (cast to the parameter's type when the place has the same
-    /// width and the other signedness, as the old compiler passes it), a string temporary as it is, or a numeric copy
-    /// in a new `passN`.
+    /// width and the other signedness, as the old compiler passes it), a string temporary as it is, a numeric copy
+    /// in a new `passN`, or a whole array's descriptor.
     pub(crate) fn args(&mut self, proc: ProcId, args: &[Arg]) -> String {
         let params = self.p.proc(proc).params.clone();
         let parts: Vec<String> = args
@@ -31,6 +31,7 @@ impl Emitter<'_> {
                     self.pass_decls.push(format!("{} {n};\n", c_type(v.ty)));
                     format!("&({n}={})", self.value(v))
                 }
+                Arg::Array(a) => self.name(*a),
             })
             .collect();
         parts.join(",")

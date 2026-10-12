@@ -62,19 +62,25 @@ NOT share a name.
 ## ADDED Requirements
 
 ### Requirement: Array parameters
-A parameter written `name()` (also with commas or a number between the parentheses, which are ignored) SHALL be
+A parameter written `name()` (also with anything between the parentheses, which is ignored: `a(,)`, `a(1)`,
+`a(n + 1)`, `a(1 TO 5)`; only a second `(` and the word `AS` there are compile errors) SHALL be
 an array parameter, of any element type an array may have, `_BIT` included. Its argument SHALL be a whole array
 written `name()`, static or dynamic, allocated or not, whose element type has the parameter's kind and width:
 the same number of bits or the same user type, both strings or neither, the same length for a fixed-length
 string, both floating-point or neither; `_UNSIGNED` and `_OFFSET` SHALL NOT be compared (an `_UNSIGNED LONG`
 array goes to a LONG parameter, which then reads its elements as LONG). Anything else SHALL be a compile error,
 also a whole array passed to a parameter that is no array, and an array argument in parentheses (the old compiler
-accepts that one and its C++ build fails). An array never declared MAY be passed and is then an implicit array.
+accepts that one and its C++ build fails). A name that names no array, passed in the main module, SHALL become
+an implicit array of one dimension, as a use of it with one index would make it; in a SUB or FUNCTION it SHALL be
+a compile error. An array parameter and a scalar parameter of one name SHALL be two variables; two array
+parameters of one name and type SHALL be a compile error.
 The array SHALL be passed by reference: the procedure reads, stores, `DIM`s, `REDIM`s and `ERASE`s the caller's
 array with the errors that array's kind gives (error 10 for a static one), and `LBOUND`/`UBOUND` give its bounds.
 The number of dimensions of an array parameter SHALL be one number for the whole program: every index count and
 `REDIM` in the procedure and every argument passed to it, directly or through another procedure's array
-parameter, SHALL agree, wherever the call stands in the file; a disagreement SHALL be a compile error.
+parameter, SHALL agree, wherever the call stands in the file; a disagreement SHALL be a compile error. `LBOUND`
+and `UBOUND` of the parameter SHALL NOT count among them. An array listed by `COMMON a()` or `STATIC a()` that is
+passed before anything gave it a number of dimensions SHALL have the parameter's from then on.
 
 #### Scenario: Elements changed in the procedure
 - **WHEN** `SUB fill (a() AS LONG)` sets `a(i) = i * 2` from `LBOUND(a)` to `UBOUND(a)` and is called as `fill x()`
@@ -120,6 +126,16 @@ parameter, SHALL agree, wherever the call stands in the file; a disagreement SHA
 - **WHEN** a SUB that stores to `m(1, 2)` is called for an array of one dimension, or a SUB that never indexes its
   parameter is called for an array of one and for an array of two dimensions
 - **THEN** each is a compile error
+
+#### Scenario: A name that names no array
+- **WHEN** `fill nx(): PRINT nx(1); UBOUND(nx)` is compiled in the main module for `SUB fill (a())` that sets
+  `a(1) = 5`, and `fill loc()` stands in a SUB that has no array `loc`
+- **THEN** the first prints ` 5  10 `, and the second is a compile error
+
+#### Scenario: A listed array gets the parameter's dimensions
+- **WHEN** `COMMON c() AS LONG: make c(): PRINT UBOUND(c, 1); UBOUND(c, 2); c(1, 2)` runs for `SUB make (a() AS
+  LONG)` that does `REDIM a(3, 4) AS LONG: a(1, 2) = 7`
+- **THEN** it prints ` 3  4  7 `
 
 #### Scenario: Passed down a chain
 - **WHEN** upstream's `arrays/array_arg_dimensions_transitive` is compiled (an array handed down three SUBs, the

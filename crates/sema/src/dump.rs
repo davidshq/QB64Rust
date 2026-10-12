@@ -37,7 +37,13 @@ pub fn dump_typed(p: &Program) -> String {
                     let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} TO {u}")).collect();
                     format!(", allocated at the start ({})", dims.join(", "))
                 });
-                writeln!(out, "ARRAY {name}:{} dynamic, {dims}{start}", ty(p, v.ty)).unwrap();
+                // An array parameter stands for the array passed, static or dynamic.
+                let kind = if matches!(v.storage, Storage::Param(_)) {
+                    "passed"
+                } else {
+                    "dynamic"
+                };
+                writeln!(out, "ARRAY {name}:{} {kind}, {dims}{start}", ty(p, v.ty)).unwrap();
             }
         }
     }
@@ -63,7 +69,8 @@ pub fn dump_typed(p: &Program) -> String {
                     continue;
                 }
             };
-            writeln!(out, "  {class} {}:{}", v.name, ty(p, v.ty)).unwrap();
+            let parens = if class == "param" && v.is_array() { "()" } else { "" };
+            writeln!(out, "  {class} {}{parens}:{}", v.name, ty(p, v.ty)).unwrap();
         }
         stmts(p, &proc.stmts, 0, &mut out);
     }
@@ -120,6 +127,10 @@ fn args(p: &Program, args: &[Arg], depth: usize, out: &mut String) {
             Arg::Temp(e) => {
                 writeln!(out, "{pad}temp").unwrap();
                 expr(p, e, depth + 1, out);
+            }
+            Arg::Array(a) => {
+                let t = ty(p, p.var(*a).ty);
+                writeln!(out, "{pad}array {}() : {t}", var_name(p, *a)).unwrap();
             }
         }
     }
@@ -211,6 +222,10 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
             StmtKind::Release { array } => {
                 let t = ty(p, p.var(*array).ty);
                 line(out, &format!("Release {}:{t}", var_name(p, *array)));
+            }
+            StmtKind::EraseParam { array } => {
+                let t = ty(p, p.var(*array).ty);
+                line(out, &format!("EraseParam {}:{t}", var_name(p, *array)));
             }
             StmtKind::Print { to, items, newline } | StmtKind::Write { to, items, newline } => {
                 let word = if matches!(&s.kind, StmtKind::Write { .. }) {

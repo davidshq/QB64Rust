@@ -201,6 +201,17 @@ impl Emitter<'_> {
         out.extend(text.lines().map(str::to_string));
     }
 
+    /// `EraseParam`: the array passed is cleared when it is a static one and released when it is dynamic, by the
+    /// flag of its descriptor, as the old compiler writes every `ERASE` (`qb64pe.bas` 8600-8704).
+    pub(crate) fn erase_param(&self, array: VarId, out: &mut Vec<String>) {
+        let (v, n) = (self.p.var(array), self.name(array));
+        out.push(format!("if ({n}[2]&2){{"));
+        out.extend(self.clear_elements(v, &n).lines().map(str::to_string));
+        out.push("}else{".into());
+        out.extend(self.release(v, &n).lines().map(str::to_string));
+        out.push("}".into());
+    }
+
     /// `Release`: a dynamic array not allocated again.
     pub(crate) fn release_array(&self, array: VarId, out: &mut Vec<String>) {
         let text = self.release(self.p.var(array), &self.name(array));

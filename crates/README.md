@@ -250,6 +250,22 @@ What the compiler supports so far:
   `REDIM SHARED` in a procedure, `STATIC` in the main module and `SHARED a(3)` are errors. Still marked: `STATIC
   a(n)` with a bound that is not one number or constant, `STATIC` beside a shared main array of the name, `REDIM
   e AS type` without parentheses in a procedure.
+- group 7 of the same change, array parameters and `COMMON` (design D6, "As built in group 7"): a parameter
+  written `name()` takes a whole array by reference (`Arg::Array`; in C++ the caller's descriptor), static or
+  dynamic, of any element type an array may have; the element types are compared as QB64pe compares them
+  (width or user type, `_BIT`, string, fixed length, float; not signedness). **Its number of dimensions is found
+  after every body is checked** (`solve_dims`, `sema\src\check\mod.rs`): every index count, `DIM` or `REDIM`
+  of it and every array passed, above or below the procedure, must agree, and the error stands at the later of
+  two that disagree. `ERASE` of a parameter is `EraseParam`: it clears a static argument and releases a dynamic
+  one. A name that names no array becomes one of one dimension when it is passed in the main module, and is
+  an error in a procedure. `COMMON` declares as `DIM` does, `COMMON SHARED` as `DIM SHARED`; `COMMON a()` lists
+  a dynamic array that a `DIM` or `REDIM` below it allocates. A block name and `COMMON` in a procedure are
+  errors. Still marked: `CHAIN`, `COMMON a()` of an array that exists already, an array parameter named `t$n`
+  or typed `_UNSIGNED STRING`.
+- **Signs** (`syntax\src\parser\expr.rs`, `signs_after`; measured, `verification\v25_*`): there is no unary
+  plus, but QB64pe removes signs from an expression before it reads it, and so does the parser: a `+` right
+  after a `+` or a `-`, then two `-` right after an operator. The dropped tokens stay in the tree. In a
+  `CONST` a run of `+` and `-` is one sign.
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
@@ -259,8 +275,8 @@ CASE`, the other built-in functions, `DECLARE LIBRARY`, event handlers and switc
 (`PRINT USING`, `LPRINT`, `FIELD`, `LSET`/`RSET`),
 `READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array or a member of an element, every other
 built-in statement read by its template (`LINE`, `SCREEN`, `GET`/`PUT`, `TIME$ =`, ...), the declaration
-forms (`COMMON`, `REDIM _RETAIN`, arrays named `name$n`, array
-parameters, `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), type names as arguments, the
+forms (`REDIM _RETAIN`, arrays named `name$n`,
+`_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
 names of QB64pe's auto-included files and its precompiler flags (`_CONSOLE_`, ...); of arrays and `TYPE`:
 whole arrays (`x()`), `TYPE` parameters, `STRING` and array members,
 member arrays, whole-`TYPE` assignment; `DEF FN` is an error, as in QB64pe. After a declaration
