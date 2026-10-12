@@ -748,14 +748,43 @@ recorded; findings in `study\00` §5 and design D8, "As built in group 9".** Wha
 
 ## 10. Integration
 
-- [ ] 10.1 Full runs with the release build against the reference clone: tier 2 slice (both fold settings), the
+- [x] 10.1 Full runs with the release build against the reference clone: tier 2 slice (both fold settings), the
   full corpus, the upstream pass list and the full upstream suite, the differential pass list, the call-site
   check, the runner's own tests. Verify: none wrong at run time; every clean program is on a list; the numbers go
   into `STATUS.md` ("Numbers at the last full runs") and `tests\upstream\README.md` (a dated "Upstream progress"
   paragraph).
-- [ ] 10.2 Documents: `STATUS.md` (step 10 done, step 11 next, its demand line refreshed from
+  Done 2026-10-12, at commit `3ba82c2` with a clean working tree, `--jobs 8 --build-cache`:
+  - `cargo test --workspace --locked` passes (it holds "every clean program is on a list", the three shrink-only
+    lists and the differential programs equal to the generator's); the 13 `--ignored` command-line tests that
+    build an executable pass; the runner's own tests: 56 pass.
+  - `slice.list`: 287 of 287 with folding and 287 of 287 with `QB64RUST_NO_FOLD=1` (about 3 min 20 s each).
+  - Full corpus (357): 306 pass, 45 rejected at compile time (44 with an `.output`, the 29 screen programs
+    among them, and the compile-only `239_lprint`), 1 `.err` program with only marked errors, 5 known failures;
+    none wrong at run time.
+  - Upstream: `pass.list` by itself 114 of 114; the full suite (404): 114 pass, 251 rejected at compile time, 38
+    `.err` programs with only marked errors, 1 known failure; none wrong at run time.
+  - Differential pass list: 59 of 59. Call-site check: 256 of 256 equal.
+  - Every number equals the one after group 9, so the lists did not change.
+- [x] 10.2 Documents: `STATUS.md` (step 10 done, step 11 next, its demand line refreshed from
   `--report unsupported`), `ROADMAP.md`, `crates\README.md`, `tests\corpus\README.md`, `study\00` (§5 complete;
   the document map if a study was added), `SOMEDAY.md`, `DECISIONS.md` (one row per decision taken in the
   change), `CLAUDE.md`'s layout table (the `verification\` row gains `v24*`). Verify:
   `python tools\repo_check\check_repo.py --untracked` clean; `openspec validate m2-defxxx-common-arrays --strict`
   passes; every task above is ticked or its remainder is named in `STATUS.md`.
+  Done 2026-10-12. `STATUS.md`: step 10 done, step 11 next, the table of numbers from 10.1, the demand line from
+  the report (upstream with `--include-root tests\upstream\root`: 96 without errors, 242 held back, 10 with other
+  errors; the first lines as after group 9). `tests\upstream\README.md` and `tests\corpus\README.md`: the runs of
+  10.1. `study\00`: §5 was complete (the `v24_*` and `v25_*` facts came in group by group); the M2 row of §2
+  named the state of 2026-10-07 and now names the steps done, without numbers. No study was added.
+  - **`ROADMAP.md` was not on disk and was never committed** (`study\26` §7 calls it "new, untracked"; the
+    closing tasks of the changes before this one name it). Written again from `study\00` §2, `STATUS.md`
+    ("Queued for later milestones") and `DECISIONS.md` (2026-10-07: milestones and done or not done only;
+    2026-10-09: the formatter under "Not tied to a milestone yet"); it says so in its head.
+  - Nothing to change, checked: `crates\README.md` (each group wrote its part; no progress numbers there),
+    `SOMEDAY.md` (the four marked forms of the member-array layer and the behaviours kept as QB64pe are listed),
+    `CLAUDE.md`'s layout table (the `verification\` row has `v24*` and `v25*`; 357 corpus programs, 287 on
+    `slice.list`), `DECISIONS.md` (the change took one set of decisions, the three answers to task 1.4, row
+    2026-10-11; everything else was built as measured under the standing rule "as QB64pe", or is D-004 applied
+    to more places).
+  - `check_repo.py --untracked`: 6711 files, 0 findings. `openspec validate m2-defxxx-common-arrays --strict`:
+    valid. Every task is ticked; what stays marked is named in `STATUS.md` step 10 and in `SOMEDAY.md`.

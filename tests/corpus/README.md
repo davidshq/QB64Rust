@@ -166,7 +166,8 @@ uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts fro
 ### Full corpus with `qb64rust` (2026-10-12, after member arrays; not a pass criterion)
 
 After group 9 of `m2-defxxx-common-arrays` (its task 9.3, release build, against the reference clone, `--jobs 8`),
-357 programs (the slice program of group 9 new):
+357 programs (the slice program of group 9 new). Run again the same day for the change's task 10.1, with the
+same result; `slice.list` by itself passes 287 of 287 with and without `QB64RUST_NO_FOLD=1`:
 
 | Result | Programs |
 |---|---|

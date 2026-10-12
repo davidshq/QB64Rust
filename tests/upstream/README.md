@@ -285,3 +285,14 @@ _RETAIN` 27. Of the member-array layer itself, what the old compiler accepts and
 targets); neither message appears in the upstream report. The full run of the suite (404 programs, release build, `--jobs 8`):
 114 pass (the 114 of `pass.list`), 251 rejected with a diagnostic, 38 `.err` programs with only marked errors,
 the known failure `http/read_example`; none builds and prints the wrong output.
+
+**Upstream progress, 2026-10-12: 114 of 279** (`m2-defxxx-common-arrays` task 10.1, the full runs that close the
+change; 50 before it). `pass.list` run by itself (release build, `--jobs 8`): 114 of 114 pass. The full run of
+the suite (404 programs) is as after group 9: 114 pass, 251 rejected with a diagnostic (235 with an `.output`,
+16 compile-only), 38 `.err` programs with only marked errors, the known failure `http/read_example`; none builds
+and prints the wrong output. The three lists are unchanged (0 false errors, 0 parse gaps, 53 only-marked
+rejections). The report (`--report unsupported tests\upstream --include-root tests\upstream\root`; without the
+include root the two `include_paths` programs join the ten that include the old compiler's sources under "with
+other errors"): 96 programs without errors, 242 with only "not supported yet" errors, 10 with other errors; its
+first lines are as after group 9. What comes next for the suite: `_DEST` and `$CONSOLE` (step 11 of
+`STATUS.md`), then `_MEM`.
