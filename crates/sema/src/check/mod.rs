@@ -71,7 +71,6 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         types_seen: HashSet::new(),
         type_defs: HashSet::new(),
         dim_shared_array_plain: HashMap::new(),
-        whole_type_arg: false,
         len_place: None,
         types_marked: HashSet::new(),
         follow_on: false,
@@ -288,8 +287,6 @@ struct Checker<'a> {
     type_defs: HashSet<(TreeId, u32)>,
     /// Element types of the plain names of main-module `DIM SHARED` arrays declared so far.
     dim_shared_array_plain: HashMap<String, Ty>,
-    /// An argument is being typed: a whole user-type value there is "not supported yet", not an error.
-    whole_type_arg: bool,
     /// The span of a `LEN` argument being typed: a whole user-type place loaded with exactly this span is taken as
     /// a place (its size), not rejected as a value.
     len_place: Option<Span>,
@@ -880,16 +877,25 @@ impl Checker<'_> {
         };
         let ty = self.prog.place_ty(&place);
         if let Ty::User(_) = ty {
-            // Measured: `q = p` is accepted (a copy), `p = 5` is "Expected = similar user defined type".
-            return Err(match value_node {
-                ast::Expr::NameRef(_) | ast::Expr::Call(_) | ast::Expr::Field(_) => {
-                    self.unsupported(node.span(), "assigning a whole `TYPE` value")
+            // Measured (`verification\v24_h_whole`, `v24_x208`, `x209`): `q = p` copies the whole value between
+            // two places of one `TYPE`; a place of another `TYPE`, also one with the same members, and a number
+            // are "Expected = similar user defined type".
+            let from = match self.whole_place(value_node)? {
+                Some(from) if self.prog.place_ty(&from) == ty => from,
+                Some(_) => {
+                    let msg = format!("a value of `TYPE {}` is required here", self.prog.type_name(ty));
+                    return Err(self.error(value_node.node().span(), msg));
                 }
-                ast::Expr::Literal(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_) => self.error(
-                    value_node.node().span(),
-                    "a `TYPE` variable takes only a value of its `TYPE`",
-                ),
-            });
+                None => {
+                    self.expr(value_node)?;
+                    return Err(self.error(
+                        value_node.node().span(),
+                        "a `TYPE` variable takes only a value of its `TYPE`",
+                    ));
+                }
+            };
+            self.push(node, StmtKind::CopyWhole { from, to: place });
+            return Ok(());
         }
         let value = self.expr(value_node)?;
         let value = self.store(value, ty)?;

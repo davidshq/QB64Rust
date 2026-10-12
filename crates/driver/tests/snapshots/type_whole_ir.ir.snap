@@ -1,0 +1,30 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Array A:T:PT static (0 To 3)
+Stmt line 2
+  SelectConsole
+Stmt line 13
+  CopyWhole Q:T:PT <- P
+Stmt line 14 may_raise
+  CopyWhole A((Var I:I32 -> Convert I64 Widen)):T:PT <- Q
+Stmt line 15 may_raise
+  CopyWhole Q:T:PT <- A((Add:I32(Var I:I32, Const 1:I32) wrap -> Convert I64 Widen))
+Stmt line 16 may_raise
+  CopyWhole BX.A:T:PT <- A(Const 2:I64)
+Stmt line 17 may_raise
+  Call MOVE [Ref Q:T:PT]
+Stmt line 18 may_raise
+  Call MOVE [Ref A((Var I:I32 -> Convert I64 Widen)):T:PT]
+Stmt line 19 may_raise
+  Call MOVE [Ref BX.A:T:PT]
+Stmt line 20
+  System
+Sub MOVE lines 22-26
+  param P:T:PT
+  local L:T:PT
+Stmt line 24
+  CopyWhole L(local):T:PT <- P(param)
+Stmt line 25
+  Assign P(param).X:I32 = Add:I32(Load L(local).X:I32, Const 1:I32) wrap

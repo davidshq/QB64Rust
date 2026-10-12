@@ -34,7 +34,8 @@ const EPILOGUE_AFTER_FREE: &[&str] = &[
 
 impl<'a> Emitter<'a> {
     /// `int32 FUNC_F(int32*_FUNC_F_LONG_A,qbs*_FUNC_F_STRING_S)`; an array parameter is the descriptor of the
-    /// array passed, `ptrszint*_FUNC_F_ARRAY_LONG_M`.
+    /// array passed, `ptrszint*_FUNC_F_ARRAY_LONG_M`, a parameter of a user type the bytes of the place passed,
+    /// `void*_FUNC_F_UDT_P`.
     fn signature(&self, proc: &Proc) -> String {
         let ret = match proc.kind {
             ProcKind::Sub => "void",
@@ -49,6 +50,8 @@ impl<'a> Emitter<'a> {
                     "ptrszint*"
                 } else if is_qbs(v.ty) {
                     "qbs*"
+                } else if let Ty::User(_) = v.ty {
+                    "void*"
                 } else {
                     &format!("{}*", c_type(v.ty))
                 };
@@ -129,6 +132,8 @@ impl<'a> Emitter<'a> {
             if is_qbs(v.ty) && !matches!(v.storage, Storage::Result(_)) {
                 writeln!(free, "qbs_free({n});").unwrap();
             }
+            // The strings a local variable of a user type holds (its bytes lie in the static pool).
+            free.push_str(&self.free_strings(v.ty, &format!("(char*){n}")));
         }
         // A string argument that is a temporary, fixed-length or read-only is replaced by a copy for the call;
         // a fixed-length one gets the copy's final value back.

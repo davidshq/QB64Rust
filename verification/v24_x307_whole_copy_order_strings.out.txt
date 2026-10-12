@@ -1,0 +1,6 @@
+a(one(1)) = b(one(2)): 1  2  1  2  1  2  7 seven
+q = b(one(3)): 3  3  3  7 seven
+a(one(4)) = q: 4  4  4  7 seven
+c(one(5)) = d(one(6)): 5  6  5  6  5  6  5  6  5  6  5 in out
+c(one(7)).i = d(one(8)).i: 7  8  7  8  7  8  again
+exit=0

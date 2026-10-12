@@ -188,6 +188,16 @@ impl Validator<'_> {
                     self.value(value, owner, at);
                 }
             }
+            // Two places of one user type.
+            Op::CopyWhole { from, to } => {
+                self.place(to, owner, at);
+                self.place(from, owner, at);
+                if let (Some(tt), Some(tf)) = (place_ty_checked(self.p, to), place_ty_checked(self.p, from))
+                    && !(matches!(tt, Ty::User(_)) && tt == tf)
+                {
+                    self.problem(format!("{at}: a CopyWhole from a {tf:?} to a {tt:?}"));
+                }
+            }
             Op::Raise(v) => self.value(v, owner, at),
             // An allocation names an array of either kind (of a static one it raises an error when it runs), with
             // one pair of `I64` bounds per dimension.
@@ -456,6 +466,16 @@ impl Validator<'_> {
                         ));
                     }
                 }
+            }
+            // A parameter of a user type takes a place of exactly that type, by reference.
+            if let Some(param) = param.filter(|v| !to_array && matches!(v.ty, Ty::User(_)))
+                && !matches!(a, Arg::Ref(place) if place_ty_checked(self.p, place) == Some(param.ty))
+            {
+                self.problem(format!(
+                    "{at}: argument {} is no place of the user type of {}",
+                    k + 1,
+                    param.name
+                ));
             }
             if param.is_some() && to_array != matches!(a, Arg::Array(_)) {
                 self.problem(format!(
@@ -1106,6 +1126,70 @@ mod tests {
             [
                 format!("{at}: 2 indexes for D of 1 dimensions"),
                 format!("{at}: an element of G, which is no array"),
+            ]
+        );
+    }
+
+    /// [`program`] with two user types of the same members, `G` of the first, and the SUB's parameter `P` of the
+    /// first too; the main module's call passes `G`.
+    fn user_types() -> Program {
+        let mut p = program();
+        let ut = |name: &str| crate::UserType {
+            name: name.into(),
+            members: vec![crate::Member {
+                name: "X".into(),
+                ty: Ty::I32,
+            }],
+        };
+        p.types = vec![ut("T1"), ut("T2")];
+        p.vars[0].ty = Ty::User(crate::TypeId(0));
+        p.vars[1].ty = Ty::User(crate::TypeId(0));
+        p.vars.push(var("H", Storage::Global));
+        p.vars[3].ty = Ty::User(crate::TypeId(1));
+        p.procs[0].body.stmts.clear();
+        p
+    }
+
+    #[test]
+    fn whole_value_copies() {
+        let mut p = user_types();
+        let copy = |from: u32, to: u32| Op::CopyWhole {
+            from: Place::Var(VarId(from)),
+            to: Place::Var(VarId(to)),
+        };
+        p.main.stmts[0].ops.push(copy(0, 0));
+        assert_eq!(problems(&p), Vec::<String>::new());
+        p.main.stmts[0].ops.push(copy(3, 0));
+        p.vars.push(var("N", Storage::Global));
+        p.main.stmts[0].ops.push(copy(4, 4));
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: a CopyWhole from a User(TypeId(1)) to a User(TypeId(0))"),
+                format!("{at}: a CopyWhole from a I32 to a I32"),
+            ]
+        );
+    }
+
+    #[test]
+    fn user_type_parameters() {
+        let mut p = user_types();
+        assert_eq!(problems(&p), Vec::<String>::new());
+        let call = |arg: Arg| Op::Call {
+            proc: ProcId(0),
+            args: vec![arg],
+        };
+        p.main.stmts[0].ops.extend([
+            call(Arg::Ref(Place::Var(VarId(3)))),
+            call(Arg::Temp(expr(Ty::I32, ExprKind::Int(1)))),
+        ]);
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: argument 1 is no place of the user type of P"),
+                format!("{at}: argument 1 is no place of the user type of P"),
             ]
         );
     }

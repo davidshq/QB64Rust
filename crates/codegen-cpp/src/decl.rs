@@ -3,7 +3,7 @@
 
 use crate::Emitter;
 use crate::names::{c_type, int_const, var_name};
-use qb64rust_ir::{MemberId, ProcId, Shape, Storage, Ty, Var, size_of};
+use qb64rust_ir::{MemberId, ProcId, Shape, Storage, Ty, Var, holds_strings, size_of};
 use std::fmt::Write as _;
 
 /// The numeric types as a pattern: each is stored as one C scalar ([`c_type`]); a declaration of any of them is
@@ -25,6 +25,15 @@ macro_rules! numbers {
             | Ty::F64
             | Ty::F80
     };
+}
+
+/// A part of a value of a user type that holds strings ([`Emitter::parts`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Part {
+    /// A `STRING` member: the pointer to its descriptor.
+    Str,
+    /// A member of any other type, or of a user type that holds no string: this many bytes.
+    Bytes(u32),
 }
 
 /// Whether a variable of this type is a `qbs *` (freed, assigned with `qbs_set`, used without `*`); otherwise it
@@ -131,13 +140,100 @@ impl Emitter<'_> {
             .collect()
     }
 
-    /// The size of a value of a type in memory: a number's, a fixed-length string's or a user type's (`sema`'s
-    /// `size_of`, the sizes `LEN` gives), a string's descriptor pointer.
+    /// The size of a value of a type in memory: a number's or a fixed-length string's (`sema`'s `size_of`, the
+    /// sizes `LEN` gives), a string's descriptor pointer, a user type's members added up (a `STRING` member is
+    /// the pointer to its descriptor, `study\02` §2.3).
     pub(crate) fn ty_size(&self, t: Ty) -> u32 {
         match t {
             Ty::Str => 8,
-            numbers!() | Ty::FixedStr(_) | Ty::User(_) => size_of(&self.p.types, t),
+            Ty::User(id) => self.p.user_type(id).members.iter().map(|m| self.ty_size(m.ty)).sum(),
+            numbers!() | Ty::FixedStr(_) => size_of(&self.p.types, t),
         }
+    }
+
+    /// Whether a value of this type holds strings of its own (a user type with a `STRING` member somewhere in
+    /// it): they are made with the value and released with it.
+    pub(crate) fn holds_strings(&self, t: Ty) -> bool {
+        holds_strings(&self.p.types, t)
+    }
+
+    /// The parts a value of user type `t` is set up, cleared and copied by, each with its byte offset, in
+    /// declaration order: a `STRING` member is a part, a member of a user type that holds strings gives its own
+    /// parts, any other member is its bytes (the old compiler's walk, `CopyFullUDTExpr` and
+    /// `AppendLegacyInlineUDTVarOp` of `utilities\type.bas`).
+    pub(crate) fn parts(&self, t: Ty) -> Vec<(u32, Part)> {
+        let mut out = Vec::new();
+        self.parts_at(t, 0, &mut out);
+        out
+    }
+
+    fn parts_at(&self, t: Ty, base: u32, out: &mut Vec<(u32, Part)>) {
+        let Ty::User(id) = t else {
+            unreachable!("the parts of {t:?}");
+        };
+        let mut offset = base;
+        for m in &self.p.user_type(id).members {
+            if m.ty == Ty::Str {
+                out.push((offset, Part::Str));
+            } else if self.holds_strings(m.ty) {
+                self.parts_at(m.ty, offset, out);
+            } else {
+                out.push((offset, Part::Bytes(self.ty_size(m.ty))));
+            }
+            offset += self.ty_size(m.ty);
+        }
+    }
+
+    /// One line per string that a value of type `t` at `base` (a `char*` expression) holds: `f` of the string's
+    /// `qbs*` lvalue. Nothing for a type that holds none.
+    pub(crate) fn each_string(&self, t: Ty, base: &str, f: impl Fn(&str) -> String) -> String {
+        if !self.holds_strings(t) {
+            return String::new();
+        }
+        let mut out = String::new();
+        for (offset, part) in self.parts(t) {
+            if part == Part::Str {
+                writeln!(out, "{}", f(&format!("*(qbs**)({base}+{offset})"))).unwrap();
+            }
+        }
+        out
+    }
+
+    /// The strings of a new value of type `t` at `base`, whose bytes are zero: each an empty string of its own.
+    pub(crate) fn new_strings(&self, t: Ty, base: &str) -> String {
+        self.each_string(t, base, |s| format!("{s}=qbs_new(0,0);"))
+    }
+
+    /// The strings of a value of type `t` at `base` released, before its bytes go.
+    pub(crate) fn free_strings(&self, t: Ty, base: &str) -> String {
+        self.each_string(t, base, |s| format!("qbs_free({s});"))
+    }
+
+    /// A value of a type other than `STRING` at `base` set to zero: its bytes, or for a type that holds strings
+    /// each string emptied and the bytes of every other part.
+    pub(crate) fn zero_value(&self, t: Ty, base: &str) -> String {
+        let mut out = String::new();
+        if !self.holds_strings(t) {
+            writeln!(out, "memset((void*)({base}),0,{});", self.ty_size(t)).unwrap();
+            return out;
+        }
+        for (offset, part) in self.parts(t) {
+            match part {
+                Part::Str => writeln!(out, "(*(qbs**)({base}+{offset}))->len=0;").unwrap(),
+                Part::Bytes(n) => writeln!(out, "memset((void*)({base}+{offset}),0,{n});").unwrap(),
+            }
+        }
+        out
+    }
+
+    /// `body` of an element's address (a `char*` expression) for each of `count` elements of type `t` in the
+    /// block at `block`, last element first; nothing when `body` writes nothing.
+    pub(crate) fn each_element(&self, t: Ty, block: &str, count: &str, body: impl Fn(&str) -> String) -> String {
+        let text = body(&format!("((char*)({block})+tmp_long*{})", self.ty_size(t)));
+        if text.is_empty() {
+            return text;
+        }
+        format!("tmp_long={count};\nwhile(tmp_long--){{\n{text}}}\n")
     }
 
     /// The byte offset of a member in a value of user type `base`: the sizes of the members before it.
@@ -165,7 +261,8 @@ impl Emitter<'_> {
             ),
             Ty::User(_) => {
                 let size = self.ty_size(v.ty);
-                format!("if({n}==NULL){{\n{n}=(void*)mem_static_malloc({size});\nmemset({n},0,{size});\n}}\n")
+                let strings = self.new_strings(v.ty, &format!("(char*){n}"));
+                format!("if({n}==NULL){{\n{n}=(void*)mem_static_malloc({size});\nmemset({n},0,{size});\n{strings}}}\n")
             }
             t @ numbers!() => format!(
                 "if({n}==NULL){{\n{n}=({c}*)mem_static_malloc({size});\n*{n}=0;\n}}\n",
@@ -218,6 +315,8 @@ impl Emitter<'_> {
                 "{n}[0]=(ptrszint)mem_static_malloc({bytes});\nmemset((void*)({n}[0]),0,{bytes});\n"
             )
             .unwrap();
+            let block = format!("{n}[0]");
+            out.push_str(&self.each_element(v.ty, &block, &count, |at| self.new_strings(v.ty, at)));
         }
         write!(out, "{n}[2]=1+2;\n}}\n").unwrap();
         out
@@ -283,6 +382,10 @@ impl Emitter<'_> {
                 "tmp_long={count};\nwhile(tmp_long--){{\nqbs_free(((qbs**)({n}[0]))[tmp_long]);\n}}\n"
             )
             .unwrap();
+        } else {
+            // The strings its elements hold (a user type with `STRING` members).
+            let (block, count) = (format!("{n}[0]"), self.element_count(v, n));
+            out.push_str(&self.each_element(v.ty, &block, &count, |at| self.free_strings(v.ty, at)));
         }
         write!(
             out,
@@ -298,6 +401,8 @@ impl Emitter<'_> {
         let count = self.element_count(v, n);
         if v.ty == Ty::Str {
             format!("tmp_long={count};\nwhile(tmp_long--){{\n(((qbs**)({n}[0]))[tmp_long])->len=0;\n}}\n")
+        } else if self.holds_strings(v.ty) {
+            self.each_element(v.ty, &format!("{n}[0]"), &count, |at| self.zero_value(v.ty, at))
         } else {
             format!("memset((void*)({n}[0]),0,{});\n", self.array_bytes(v.ty, &count))
         }
@@ -314,6 +419,7 @@ impl Emitter<'_> {
         }
         match v.ty {
             Ty::Str => format!("{n}->len=0;\n"),
+            Ty::User(_) if self.holds_strings(v.ty) => self.zero_value(v.ty, &format!("(char*){n}")),
             Ty::User(_) => format!("memset((void*){n},0,{});\n", self.ty_size(v.ty)),
             numbers!() => format!("*{n}=0;\n"),
             Ty::FixedStr(k) => format!("memset((void*)({n}->chr),0,{k});\n"),

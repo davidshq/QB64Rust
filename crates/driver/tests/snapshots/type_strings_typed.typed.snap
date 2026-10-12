@@ -1,0 +1,101 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE TS
+  N:Str
+  V:I32
+  F:Str*2
+TYPE OUTER
+  I:T:TS
+  T:Str
+ARRAY A:T:TS(0 TO 2)
+ARRAY D:T:TS dynamic, 1 dimension
+DATA 0: text
+DATA 1: 5
+line 2: ConsoleOnly
+line 16: Allocate D:T:TS (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 1 : I64
+line 17: Assign P.N:Str
+  Str "abc" : Str
+line 18: Assign P.N:Str
+  Concat : Str
+    Member P.N : Str
+    Str "!" : Str
+line 19: Assign P.N:Str
+  Concat : Str
+    Member P.N : Str
+    Str "?" : Str
+line 20: Assign O.I.N:Str
+  Str "in" : Str
+line 21: Assign O.T:Str
+  Concat : Str
+    Member O.I.N : Str
+    Member P.N : Str
+line 22: Assign A(…).N:Str
+  Index
+    Int 1 : I64
+  Value
+    Str "one" : Str
+line 23: Assign D(…).N:Str
+  Index
+    Int 1 : I64
+  Value
+    Member A(…).N : Str
+      Int 1 : I64
+line 24: Print newline
+  Str
+    Member P.N : Str
+  Num
+    Call LEN : I32
+      Member P.N : Str
+  Str
+    Member A(…).N : Str
+      Int 1 : I64
+  Str
+    Member D(…).N : Str
+      Int 1 : I64
+  Str
+    Member O.T : Str
+line 25: Call CHANGE
+  ref P.N : Str
+line 26: Call CHANGE
+  ref A(…).N : Str
+    Int 1 : I64
+line 27: Read
+  target P.N : Str
+  target P.V : I32
+line 28: Builtin MID
+  place P.N : Str
+  Int 2 : I32
+  Int 1 : I32
+  Str "#" : Str
+line 29: Builtin SWAP
+  place P.N : Str
+  place O.T : Str
+line 30: Clear A:T:TS
+line 31: Allocate D:T:TS (Preserve)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 32: Release D:T:TS
+line 33: System
+SUB LOCAL
+  local L:T:TS
+  static K:T:TS
+line 39: Assign L (local).N:Str
+  Str "x" : Str
+line 40: Assign K (static).N:Str
+  Concat : Str
+    Member K (static).N : Str
+    Member L (local).N : Str
+SUB CHANGE
+  param S:Str
+line 43: Assign S (param):Str
+  Concat : Str
+    Var S (param) : Str
+    Str "?" : Str

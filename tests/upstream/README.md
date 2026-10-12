@@ -257,3 +257,15 @@ and `arrays/type_member_arrays_as_parameters` on `STRING` members and member arr
 suite (404 programs, release build, `--jobs 8`): 62 pass (the 62 of `pass.list`), 301 rejected with a
 diagnostic, 40 `.err` programs with only marked errors, the known failure `http/read_example`; none builds and
 prints the wrong output.
+
+**Upstream progress, 2026-10-11 (group 8): 64 of 279** (`m2-defxxx-common-arrays` group 8: `STRING` members,
+whole `TYPE` values, parameters of a user type). Added to `pass.list`: `types/nested_udt` and `types/udt`, which
+passed on their first run. 29 upstream programs carried the marks "`STRING` members", "assigning a whole `TYPE`
+value" or "a `TYPE` parameter"; the other 27 wait on something else, by the first thing each still names: member
+arrays 19 (15 by that message, 4 by a type or an array that follows from one), `SYSTEM` with an exit code 3,
+`MKL$` and `CVL` 2 (`qb64pe/element`, `qb64pe/hasFunctionElement`), `REDIM _RETAIN` 1, the whole array `na()`
+1 (`types/udt_array`), an include from the old compiler's sources 1 (`qb64pe/file`). Member arrays are now
+named by 156 programs of the report (152 before: four were behind `STRING` members). The three shrink-only
+lists are unchanged. The full run of the suite (404 programs, release build, `--jobs 8`): 64 pass (the 64 of
+`pass.list`), 299 rejected with a diagnostic, 40 `.err` programs with only marked errors, the known failure
+`http/read_example`; none builds and prints the wrong output.

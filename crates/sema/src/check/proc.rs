@@ -164,10 +164,7 @@ impl Checker<'_> {
                     _ => self.type_of(a)?,
                 },
             };
-            if let Ty::User(_) = ty {
-                // Measured: accepted (by reference, `v18_h_whole_arg`); whole `TYPE` values come later.
-                return Err(self.unsupported(param.node().span(), "a `TYPE` parameter"));
-            }
+            // A parameter of a user type is the place passed ([`Self::type_arg`]).
             if let Ty::Bit { .. } = ty {
                 // Decided (`DECISIONS.md` 2026-10-08, design D7): the old compiler fails its C++ build for any
                 // procedure with a `_BIT` parameter, called or not (`verification\v21_x20`–`x24`).
@@ -403,10 +400,11 @@ impl Checker<'_> {
                 let msg = format!("the whole array `{shown}()` cannot be passed to a parameter that is no array");
                 return Err(self.error(node.node().span(), msg));
             }
-            self.whole_type_arg = true;
-            let e = self.expr(node);
-            self.whole_type_arg = false;
-            let e = e?;
+            if let Ty::User(_) = pty {
+                args.push(self.type_arg(node, pty)?);
+                continue;
+            }
+            let e = self.expr(node)?;
             match (e.ty == Ty::Str, pty == Ty::Str) {
                 (true, false) => return Err(self.error(e.span, "a number is required for this parameter")),
                 (false, true) => return Err(self.error(e.span, "a string is required for this parameter")),
@@ -447,6 +445,40 @@ impl Checker<'_> {
             args.push(Arg::Temp(self.store(e, pty)?));
         }
         Ok(args)
+    }
+
+    /// The argument for a parameter of the user type `pty` (design D9 of `m2-defxxx-common-arrays`; measured,
+    /// `verification\v24_h_type_params`, `v24_x211`–`x213`, `x308`): a variable, an element or a member of exactly
+    /// that type, passed by reference. An element with an index outside its bounds raises error 9 and the
+    /// procedure is not entered.
+    ///
+    /// - A place of another type is "User defined types in expressions are invalid", a number "TYPE 't1' required
+    ///   for sub".
+    /// - A place in parentheses, `move (q)`, is "UNEXPECTED INTERNAL COMPILER ERROR!" in the old compiler: an
+    ///   error here.
+    fn type_arg(&mut self, node: ast::Expr, pty: Ty) -> R<Arg> {
+        let span = node.node().span();
+        let required = format!("this parameter takes a variable of `TYPE {}`", self.prog.type_name(pty));
+        if let ast::Expr::Paren(p) = node
+            && let Some(inner) = p.inner()
+            && let Some(place) = self.whole_place(inner)?
+        {
+            // A place of another type in parentheses is no value of the type, as without them.
+            let msg = if self.prog.place_ty(&place) == pty {
+                format!("{required}, which cannot stand in parentheses")
+            } else {
+                required
+            };
+            return Err(self.error(span, msg));
+        }
+        match self.whole_place(node)? {
+            Some(place) if self.prog.place_ty(&place) == pty => Ok(Arg::Ref(place)),
+            Some(_) => Err(self.error(span, required)),
+            None => {
+                self.expr(node)?;
+                Err(self.error(span, required))
+            }
+        }
     }
 
     /// `name()` naming an array that is visible here: the array and the name's token.

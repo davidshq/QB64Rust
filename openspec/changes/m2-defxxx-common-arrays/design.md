@@ -527,6 +527,32 @@ Group 9 came out as case (a), so nothing but `STRING` members needs per-variable
 array of `STRING` (`s(2) AS STRING`, measured: accepted, each element its own string) is that many string slots
 in the block.
 
+**As built in group 8 (2026-10-11).**
+- **The layout** is the old compiler's: a `STRING` member is 8 bytes of the value, the pointer to its string.
+  It is the emitter's alone (`ty_size`); `sema`'s `size_of` is not asked for a type that holds a string, since
+  `LEN` of one is the error. `holds_strings(types, ty)` (`sema`) is the one question both sides ask.
+- **The parts of a value** (`Emitter::parts`): for a type that holds strings, a `STRING` member is a part, a
+  member of a user type that holds strings gives its own parts in its place, any other member is its bytes.
+  Set-up, release, clearing, the copy of `Preserve` and `CopyWhole` all go by this one list. Member arrays
+  (group 9) will add to it: an element count per part.
+- **`CopyWhole { from, to }`: measured before it was built** (`verification\v24_x306`–`x308`). The target is
+  found before the source. For a type without a string the bytes move at once and each place is found once.
+  **For a type that holds strings both places are found again for every part**: the old compiler writes both
+  addresses into each `memcpy` and `qbs_set`, so a FUNCTION in an index is called once per part (`a(one(1)) =
+  b(one(2))` prints `1 2 1 2 1 2` for a type of three members). Built so, by the rule that a deterministic
+  behaviour is kept, and listed in `SOMEDAY.md`. The emitter writes the two addresses into two local pointers
+  per part, target first, so the order does not hang on how the C++ compiler orders a call's arguments. It
+  moves bytes with `memmove`, since `p = p` names the same bytes twice.
+- **A parameter of a user type** is the address of the place passed, `void*`; an element's index is checked by
+  `array_check` in the argument, and the procedure's entry check does the rest. `type_arg` takes a variable,
+  an element or a member of exactly the type (`whole_place`); the same function reads the right side of `q =
+  p`.
+- **`SWAP`** was already an exchange of the bytes of two places of one user type; with a `STRING` member those
+  bytes hold its pointer, so nothing was added.
+- **Not built, because nothing measured needs it:** `INPUT`, `READ` and `SWAP` with a member of an element as
+  a target stay marked as before (any member type). A FUNCTION with a user type as its result stays the error
+  it was.
+
 ### D10. Tests, lists, order
 - Per group: `tests\frontend\` (`typed` for what `sema` resolves, `check-fail` for each error and each form still
   marked, `ir` and `cpp` for each new statement and place), `tests\corpus\slice\` programs recorded with

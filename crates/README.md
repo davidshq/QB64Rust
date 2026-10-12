@@ -262,6 +262,14 @@ What the compiler supports so far:
   a dynamic array that a `DIM` or `REDIM` below it allocates. A block name and `COMMON` in a procedure are
   errors. Still marked: `CHAIN`, `COMMON a()` of an array that exists already, an array parameter named `t$n`
   or typed `_UNSIGNED STRING`.
+- group 8 of the same change, the rest of `TYPE` (design D9, "As built in group 8"): a member `AS STRING`, a
+  string of its own in every value of the type (in C++ 8 bytes of the value, the pointer to its string; made
+  where the value is made, released where it goes; `Emitter::parts`, `codegen-cpp\src\decl.rs`); `LEN` of a
+  value of such a type is an error. `q = p` between two places of one user type is `CopyWhole`: every member,
+  not guarded (an index outside raises 9 and the first element stands in), the target found before the source,
+  and for a type that holds a `STRING` both found again for every part, as QB64pe (`SOMEDAY.md`). A parameter
+  `AS` a user type takes a variable, an element or a member of exactly that type by reference (`Arg::Ref`; in
+  C++ its address); anything else is an error, a place in parentheses too.
 - **Signs** (`syntax\src\parser\expr.rs`, `signs_after`; measured, `verification\v25_*`): there is no unary
   plus, but QB64pe removes signs from an expression before it reads it, and so does the parser: a `+` right
   after a `+` or a `-`, then two `-` right after an operator. The dropped tokens stay in the tree. In a
@@ -278,8 +286,8 @@ built-in statement read by its template (`LINE`, `SCREEN`, `GET`/`PUT`, `TIME$ =
 forms (`REDIM _RETAIN`, arrays named `name$n`,
 `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
 names of QB64pe's auto-included files and its precompiler flags (`_CONSOLE_`, ...); of arrays and `TYPE`:
-whole arrays (`x()`), `TYPE` parameters, `STRING` and array members,
-member arrays, whole-`TYPE` assignment; `DEF FN` is an error, as in QB64pe. After a declaration
+whole arrays (`x()`) where no array parameter takes them, member arrays;
+`DEF FN` is an error, as in QB64pe. After a declaration
 marked "not supported yet", later real errors are dropped (the follow-on rule, design D10 of `m2-parser-breadth`):
 the program is rejected by the mark, and no error is reported that the declaration might have prevented.
 

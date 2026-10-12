@@ -7,9 +7,14 @@
 //! where the old compiler has `static` ones: a FUNCTION called in a bound may run the same statement again.
 
 use crate::Emitter;
-use crate::decl::{dim_slot, lock_slot};
+use crate::decl::{Part, dim_slot, lock_slot};
 use crate::names::int_const;
 use qb64rust_ir::{AllocMode, Expr, Facts, Ty, Var, VarId};
+
+/// The lines of a text, each a line of a statement.
+fn push_lines(out: &mut Vec<String>, text: &str) {
+    out.extend(text.lines().map(str::to_string));
+}
 
 impl Emitter<'_> {
     /// `Allocate`: see the IR for what it does and in which order.
@@ -48,6 +53,7 @@ impl Emitter<'_> {
     fn allocate_with(&self, v: &Var, n: &str, bounds: &[(String, String)], mode: AllocMode, out: &mut Vec<String>) {
         let dims = bounds.len();
         let string = v.ty == Ty::Str;
+        let holds = self.holds_strings(v.ty);
         // The bytes of one element; a `_BIT * n` element gets whole bytes of its own here, more than the packed
         // elements need, as in the old compiler.
         let bits = if let Ty::Bit { width, .. } = v.ty {
@@ -163,6 +169,32 @@ impl Emitter<'_> {
                 out.push(format!(
                     "while(tmp_long--) setbits({width},(uint8*)(preserve_new_ptr),tmp_long,(int64)getubits({width},(uint8*)(preserve_old_ptr),tmp_long));"
                 ));
+            } else if holds {
+                // Elements of a user type with strings: every new element gets its own, the kept ones are
+                // copied part by part, and the old elements' strings go with the old block.
+                let (new, old) = ("preserve_new_ptr", "preserve_old_ptr");
+                push_lines(
+                    out,
+                    &self.each_element(v.ty, new, "(ptrszint)alloc_req_elems", |at| self.new_strings(v.ty, at)),
+                );
+                if keep {
+                    out.push("tmp_long=(ptrszint)preserve_copy_count;".into());
+                    out.push("while(tmp_long--){".into());
+                    for (offset, part) in self.parts(v.ty) {
+                        let at = |block: &str| format!("((char*)({block})+tmp_long*{size}+{offset})");
+                        out.push(match part {
+                            Part::Str => format!("qbs_set(*(qbs**){},*(qbs**){});", at(new), at(old)),
+                            Part::Bytes(n) => format!("memcpy({},{},{n});", at(new), at(old)),
+                        });
+                    }
+                    out.push("}".into());
+                }
+                push_lines(
+                    out,
+                    &self.each_element(v.ty, old, "(ptrszint)preserve_old_total", |at| {
+                        self.free_strings(v.ty, at)
+                    }),
+                );
             } else if keep {
                 out.push(format!(
                     "if (preserve_copy_count) memcpy((void*)(preserve_new_ptr),(void*)(preserve_old_ptr),preserve_copy_count*{size});"
@@ -181,6 +213,13 @@ impl Emitter<'_> {
         } else {
             out.push(format!("{n}[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);"));
             out.push(format!("if (!{n}[0]) error(257);"));
+            let block = format!("{n}[0]");
+            push_lines(
+                out,
+                &self.each_element(v.ty, &block, "(ptrszint)alloc_req_elems", |at| {
+                    self.new_strings(v.ty, at)
+                }),
+            );
         }
         if redim {
             out.push("}".into());

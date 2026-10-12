@@ -87,8 +87,8 @@ impl Emitter<'_> {
     }
 
     /// A place as a C lvalue: a scalar as [`Self::scalar`], an element, a member through a typed pointer (a
-    /// fixed-length string member through a temporary fixed `qbs` over its bytes, as the old compiler's
-    /// `udtreference`).
+    /// `STRING` member is the `qbs*` in its slot; a fixed-length string member is read through a temporary fixed
+    /// `qbs` over its bytes, as the old compiler's `udtreference`).
     pub(crate) fn load_place(&mut self, place: &Place) -> String {
         match place {
             Place::Var(id) => self.scalar(*id),
@@ -109,6 +109,13 @@ impl Emitter<'_> {
     /// A place passed by reference: a pointer to it, or a string's own `qbs*`; found in argument order, as the old
     /// compiler passes them (`study\02` §4.1).
     pub(crate) fn place_ref(&mut self, place: &Place) -> String {
+        // A place of a user type: its bytes (a variable's pointer is their address).
+        if let Ty::User(_) = self.p.place_ty(place) {
+            return match place {
+                Place::Var(id) => self.name(*id),
+                Place::Element { .. } | Place::Member { .. } => format!("((void*){})", self.bytes_of(place)),
+            };
+        }
         match place {
             Place::Var(id) => self.name(*id),
             Place::Element { array, index } => {
@@ -121,8 +128,9 @@ impl Emitter<'_> {
                 }
             }
             Place::Member { .. } => {
+                // A string member is its own `qbs*`: the one in its slot, or a fixed one over its bytes.
                 let ty = self.p.place_ty(place);
-                if let Ty::FixedStr(_) = ty {
+                if is_qbs(ty) {
                     return self.load_place(place);
                 }
                 format!("({}*)(void*)({})", c_type(ty), self.bytes_of(place))

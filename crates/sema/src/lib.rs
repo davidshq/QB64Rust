@@ -350,6 +350,35 @@ pub fn size_of(types: &[UserType], t: Ty) -> u32 {
     }
 }
 
+/// Whether a value of this type holds a `STRING` of its own: a user type with a `STRING` member, in itself or in
+/// a member of a user type (design D9 of `m2-defxxx-common-arrays`). Such a type has no fixed size: `LEN` of a
+/// place of it is an error (measured, `verification\v24_x206`), and [`size_of`] is not asked for it. A `STRING`
+/// itself is not such a type.
+pub fn holds_strings(types: &[UserType], t: Ty) -> bool {
+    match t {
+        Ty::User(id) => types[id.0 as usize]
+            .members
+            .iter()
+            .any(|m| m.ty == Ty::Str || holds_strings(types, m.ty)),
+        Ty::I8
+        | Ty::U8
+        | Ty::I16
+        | Ty::U16
+        | Ty::I32
+        | Ty::U32
+        | Ty::I64
+        | Ty::U64
+        | Ty::Off
+        | Ty::UOff
+        | Ty::Bit { .. }
+        | Ty::F32
+        | Ty::F64
+        | Ty::F80
+        | Ty::Str
+        | Ty::FixedStr(_) => false,
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TypeId(pub u32);
 
@@ -370,7 +399,7 @@ pub struct UserType {
 pub struct Member {
     /// The name in upper case, without suffix.
     pub name: String,
-    /// A numeric type or a user type defined before this one.
+    /// A numeric type other than `_BIT`, `STRING`, `STRING * n`, or a user type defined before this one.
     pub ty: Ty,
 }
 
@@ -602,6 +631,8 @@ pub struct Proc {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Arg {
     /// The place itself (a variable, an element, a member): the procedure's assignments to the parameter change it.
+    /// A parameter of a user type takes nothing else: a place of exactly its type (design D9 of
+    /// `m2-defxxx-common-arrays`).
     Ref(Place),
     /// A fresh copy of a value, already converted to the parameter's type; changes to it are lost.
     Temp(Expr),
@@ -798,11 +829,21 @@ pub enum StmtKind {
     },
     /// `$CONSOLE:ONLY`: output and input go to the console.
     ConsoleOnly,
-    /// A store; the value has the place's type (never a user type). The store rule depends on the place (design D6
-    /// of `m2-arrays-and-types`).
+    /// A store; the value has the place's type (never a user type: [`StmtKind::CopyWhole`]). The store rule
+    /// depends on the place (design D6 of `m2-arrays-and-types`).
     Assign {
         place: Place,
         value: Expr,
+    },
+    /// `to = from` for two places of one user type (design D9 of `m2-defxxx-common-arrays`): every member is
+    /// copied, a `STRING` member as a string of its own. The copy is not guarded (measured,
+    /// `verification\v24_h_whole`, `v24_x210`): an index outside its bounds raises error 9 and the array's first
+    /// element stands in for the element named, on either side. `to` is found before `from`; for a type that
+    /// holds strings ([`holds_strings`]) both are found again for every part of the value (`v24_x306`, `x307`;
+    /// the parts are the IR's, `Op::CopyWhole`).
+    CopyWhole {
+        from: Place,
+        to: Place,
     },
     /// A `DIM`, `REDIM` or `REDIM _PRESERVE` that runs (design D4 of `m2-defxxx-common-arrays`): gives an array
     /// its bounds and its elements, zero or empty. One lower and one upper bound per dimension, each already

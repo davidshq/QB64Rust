@@ -1,7 +1,7 @@
 //! Operations: one IR operation as C++ lines of its statement, stores by the rule of their place.
 
 use crate::Emitter;
-use crate::decl::{dim_count, dim_slot, is_qbs};
+use crate::decl::{Part, dim_count, dim_slot, is_qbs};
 use crate::names::{c_type, proc_name};
 use crate::place::fixed_at;
 use qb64rust_ir::{Expr, Facts, LabelId, OnError, Op, Place, PrintItem, Resume, Ty, When};
@@ -58,6 +58,7 @@ impl Emitter<'_> {
                 out.push(format!("if (!error_handling){{error(20);}}else{{{then}}}"));
             }
             Op::Assign { place, value } => self.assign(place, value, out),
+            Op::CopyWhole { from, to } => self.copy_whole(from, to, out),
             Op::Allocate { array, bounds, mode } => self.allocate(*array, bounds, *mode, out),
             Op::Clear { array } => self.clear_array(*array, out),
             Op::Release { array } => self.release_array(*array, out),
@@ -184,6 +185,35 @@ impl Emitter<'_> {
         }
     }
 
+    /// `CopyWhole`: the bytes of a type that holds no string in one move; of a type that holds strings each part
+    /// by itself, a string assigned and any other part's bytes copied (the old compiler's `copy_full_udt`). Both
+    /// addresses are written anew for every copy, target first, as the IR says: an index in them is evaluated
+    /// each time. Nothing checks for a pending error: after an index outside its bounds `array_check` gives the
+    /// first position.
+    fn copy_whole(&mut self, from: &Place, to: &Place, out: &mut Vec<String>) {
+        let ty = self.p.place_ty(to);
+        let (to_at, from_at) = (self.bytes_of(to), self.bytes_of(from));
+        let parts = if self.holds_strings(ty) {
+            self.parts(ty)
+        } else {
+            vec![(0, Part::Bytes(self.ty_size(ty)))]
+        };
+        for (offset, part) in parts {
+            out.push("{".into());
+            out.push(format!("char *copy_to={to_at};"));
+            out.push(format!("char *copy_from={from_at};"));
+            out.push(match part {
+                Part::Str => format!("qbs_set(*(qbs**)(copy_to+{offset}),*(qbs**)(copy_from+{offset}));"),
+                // A place copied to itself: the two may be the same bytes.
+                Part::Bytes(n) => format!("memmove(copy_to+{offset},copy_from+{offset},{n});"),
+            });
+            out.push("}".into());
+        }
+        if from.uses_strings(self.p) || to.uses_strings(self.p) {
+            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        }
+    }
+
     /// A store, by the rule of its place (the IR's error rule; `study\02` §2.3 for the old compiler's forms).
     /// `value` writes the C++ of the value to store; it is called once, where the rule evaluates the value (after
     /// an element's indexes, before the indexes of a member of an element). `string`: the value is a string.
@@ -254,9 +284,10 @@ impl Emitter<'_> {
         // A string value is copied first, so the indexes cannot change it (a FUNCTION in an index may assign the
         // variable the value reads).
         let fixed = if let Ty::FixedStr(k) = ty { Some(k) } else { None };
-        match fixed {
-            Some(_) => out.push(format!("qbs *mbr_value=qbs_set(qbs_new(0,1),{value});")),
-            None => out.push(format!("{} mbr_value={value};", c_type(ty))),
+        if is_qbs(ty) {
+            out.push(format!("qbs *mbr_value=qbs_set(qbs_new(0,1),{value});"));
+        } else {
+            out.push(format!("{} mbr_value={value};", c_type(ty)));
         }
         out.push("int32 mbr_pending=is_error_pending();".into());
         out.push("int32 mbr_bad=0;".into());
@@ -278,6 +309,7 @@ impl Emitter<'_> {
         let at = format!("((char*){name}[0])+(mbr_flat*{size}+{offset})");
         let store = match fixed {
             Some(k) => format!("qbs_set({},mbr_value);", fixed_at(&format!("(uint8*)({at})"), k)),
+            None if is_qbs(ty) => format!("qbs_set(*(qbs**)({at}),mbr_value);"),
             None => format!("*({}*)({at})=mbr_value;", c_type(ty)),
         };
         out.push(format!("if (!mbr_bad&&(mbr_pending||!is_error_pending())) {store}"));

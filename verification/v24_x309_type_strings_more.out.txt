@@ -1,0 +1,13 @@
+1. a member of an element by reference: one?
+2. REDIM _PRESERVE in a SUB: d1 d2 [] 4 
+3. ERASE of a static array parameter: [] 2 
+4. ERASE of a dynamic array parameter: [error 9 ]
+5. STATIC k(2) AS ts, twice: k kk 
+6. DIM SHARED: shared!
+7. a recursive SUB:  1 2 3
+8. a member of a parameter passed on: a+ b+
+9. a whole value between two array parameters: two 2 
+10. SWAP of two elements: last two 2 
+11. EXIT SUB with a local
+12. a FUNCTION result in a member: www
+exit=0

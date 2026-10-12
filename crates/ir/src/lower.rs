@@ -272,6 +272,10 @@ impl<'a> Lowerer<'a> {
                 place: place.clone(),
                 value: value.clone(),
             },
+            sema::StmtKind::CopyWhole { from, to } => Op::CopyWhole {
+                from: from.clone(),
+                to: to.clone(),
+            },
             sema::StmtKind::Allocate {
                 array,
                 bounds,

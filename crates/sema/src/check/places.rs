@@ -159,9 +159,10 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// The type of a member: a numeric type other than `_BIT`, a fixed-length string of n bytes (n a number: the
-    /// block is read before any `CONST`), or a user type defined in an earlier block. A `_BIT` member is an error
-    /// (measured: "Cannot use _BIT inside user defined types", `verification\v21_x25`, `x26`).
+    /// The type of a member: a numeric type other than `_BIT`, a `STRING` (measured,
+    /// `verification\v24_h_string_members`), a fixed-length string of n bytes (n a number: the block is read
+    /// before any `CONST`), or a user type defined in an earlier block. A `_BIT` member is an error (measured:
+    /// "Cannot use _BIT inside user defined types", `verification\v21_x25`, `x26`).
     fn member_type(&mut self, a: ast::AsClause) -> R<Ty> {
         let span = a.node().span();
         let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
@@ -174,9 +175,7 @@ impl Checker<'_> {
             return Err(self.unsupported(span, format!("the member type `{text}`")));
         }
         let ty = self.type_of_in(a, false)?;
-        if ty == Ty::Str {
-            Err(self.unsupported(span, "`STRING` members"))
-        } else if let Ty::Bit { .. } = ty {
+        if let Ty::Bit { .. } = ty {
             Err(self.error(span, "a `TYPE` member cannot be a `_BIT`"))
         } else {
             Ok(ty)
@@ -951,10 +950,44 @@ impl Checker<'_> {
         self.members(base, &path, suffix, t)
     }
 
+    /// The place of a user type that an expression names where a whole value is taken (the right side of `q = p`,
+    /// the argument for a parameter of a user type): a variable, an element of an array of a user type, or a
+    /// member. `None` for anything else (a number, a call, an expression in parentheses), which is then typed as
+    /// an expression by the caller. A member of another type comes back as its place.
+    pub(super) fn whole_place(&mut self, node: ast::Expr) -> R<Option<Place>> {
+        let span = node.node().span();
+        match node {
+            ast::Expr::NameRef(n) => {
+                let t = self.need(n.name(), span)?;
+                let (name, suffix) = self.split_var_name(t)?;
+                if let Some(place) = self.dotted(t, &name, suffix)? {
+                    return Ok(Some(place));
+                }
+                let var = self
+                    .lookup_var(name, suffix)
+                    .filter(|&v| matches!(self.prog.var(v).ty, Ty::User(_)));
+                Ok(var.map(|v| {
+                    self.names.push((SymbolKind::Var(v), t.span));
+                    Place::Var(v)
+                }))
+            }
+            ast::Expr::Call(c) => {
+                let t = self.need(c.name(), span)?;
+                let (name, suffix) = self.split_name(t)?;
+                match self.find_array(&name, suffix) {
+                    Some(a) if matches!(self.prog.var(a).ty, Ty::User(_)) => self.element(c, a, t).map(Some),
+                    Some(_) | None => Ok(None),
+                }
+            }
+            ast::Expr::Field(f) => self.field_place(f).map(Some),
+            ast::Expr::Literal(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_) => Ok(None),
+        }
+    }
+
     /// The value of a place. A whole user-type value is no value (measured, "User defined types in expressions are
-    /// invalid"); as an argument it is not supported yet (a `TYPE` parameter is). A `_BIT` place's value is held in
-    /// its storage type and believed the place's `_BIT` type ([`Ty::held_value`]); a `STRING * n` place's value is a
-    /// `STRING`.
+    /// invalid", also as an argument for a parameter that is no user type, `verification\v24_x214`). A `_BIT`
+    /// place's value is held in its storage type and believed the place's `_BIT` type ([`Ty::held_value`]); a
+    /// `STRING * n` place's value is a `STRING`.
     pub(super) fn load(&mut self, place: Place, span: Span) -> R<Expr> {
         let ty = self.prog.place_ty(&place);
         if self.len_place == Some(span) && matches!(ty, Ty::User(_)) {
@@ -968,9 +1001,6 @@ impl Checker<'_> {
         }
         if let Ty::User(_) = ty {
             let shown = show_bytes(self.text(span));
-            if self.whole_type_arg {
-                return Err(self.unsupported(span, format!("a whole `TYPE` value as an argument: `{shown}`")));
-            }
             return Err(self.error(span, format!("a whole `TYPE` value cannot be used here: `{shown}`")));
         }
         Ok(Expr {

@@ -120,10 +120,13 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
     set(
         "mainfree.txt",
         e.per_program_var(|v, n| {
-            if is_qbs(v.ty) && !v.is_array() {
+            if v.is_array() {
+                String::new()
+            } else if is_qbs(v.ty) {
                 format!("qbs_free({n});\n")
             } else {
-                String::new()
+                // The strings a variable of a user type holds.
+                e.free_strings(v.ty, &format!("(char*){n}"))
             }
         }),
     );

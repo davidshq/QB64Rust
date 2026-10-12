@@ -81,8 +81,6 @@ pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, U
 pub use qb64rust_sema::DataItem;
 /// Which built-in functions are compiled and the rule each follows; the emitter writes a call by its rule.
 pub use qb64rust_sema::builtins;
-/// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place).
-pub use qb64rust_sema::size_of;
 /// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
 /// `m2-defxxx-common-arrays`), as is what an allocation does with an array that is allocated already.
 pub use qb64rust_sema::{AllocMode, Shape};
@@ -91,6 +89,9 @@ pub use qb64rust_sema::{AllocMode, Shape};
 /// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended
 /// ([`Program::vars`]).
 pub use qb64rust_sema::{Arg, Expr, ExprKind, InputSource as Source, Place, ProcId, StmtArg, VarId};
+/// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
+/// holds a `STRING` of its own, which has no such size.
+pub use qb64rust_sema::{holds_strings, size_of};
 
 /// The table entry of a built-in: its identity in the IR (never a libqb name).
 pub use qb64rust_builtins::BuiltinId;
@@ -345,6 +346,21 @@ pub enum Op {
         place: Place,
         value: Expr,
     },
+    /// Copy the whole value of one place of a user type into another of the same type (design D9 of
+    /// `m2-defxxx-common-arrays`): every member, a `STRING` member as a string of its own; a place copied to
+    /// itself keeps its value. **The copy is not guarded** (measured, `verification\v24_h_whole`, `v24_x210`):
+    /// an index outside its bounds raises error 9 and the copy is made with the array's first element in the
+    /// place of the element named, on either side; any other error an index raises leaves its placeholder index.
+    ///
+    /// `to` is found first, then `from`. For a type without a `STRING` in it each is found once. **For a type
+    /// that holds strings ([`holds_strings`]) both are found again for every part of the value**, in
+    /// declaration order: a `STRING` member is a part, a member of a user type that holds strings gives its own
+    /// parts in its place, any other member is one part (measured, `v24_x306`, `x307`: a FUNCTION in an index is
+    /// called once per part; the old compiler's behaviour, listed for review in `SOMEDAY.md`).
+    CopyWhole {
+        from: Place,
+        to: Place,
+    },
     /// Give an array bounds and elements, zero or empty (design D4 of `m2-defxxx-common-arrays`): one lower and
     /// one upper bound per dimension, each an `I64`. In this order (measured, `study\00` §5):
     ///
@@ -487,6 +503,7 @@ impl Op {
             | Op::Return(_)
             | Op::Allocate { .. } => true,
             Op::Assign { place, value } => place.may_raise() || value.may_raise(),
+            Op::CopyWhole { from, to } => from.may_raise() || to.may_raise(),
             Op::AssignAll(stores) => stores.iter().any(|(_, v)| v.may_raise()),
             Op::Branch { cond, .. } => cond.may_raise(),
             // A file may not be open, a console input may meet the end of the input, the data may be used up.

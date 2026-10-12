@@ -586,16 +586,83 @@ Before the group (2026-10-11), the two known bugs of `STATUS.md` were fixed, eac
 
 ## 8. The rest of `TYPE` (design D9)
 
-- [ ] 8.1 `STRING` members: the member type, set-up and release per variable and per array element (main, local,
+- [x] 8.1 `STRING` members: the member type, set-up and release per variable and per array element (main, local,
   `STATIC`, in `Allocate`, `Preserve`, `Clear`, `Release`), the compile errors measured in 1.4 (`LEN` of such a
   type). Verify: `typed`, `check-fail` and `cpp` tests; the two "String member" scenarios in a recorded slice
   program `s59_type_strings` passing in tier 2.
-- [ ] 8.2 Whole values: `CopyWhole` for `q = p` between variables, elements and members, with its measured error
+  Done 2026-10-11. `member_type` (`sema\src\check\places.rs`) takes `STRING`; `holds_strings` (`sema\src\lib.rs`)
+  says whether a type has one somewhere in it, and `LEN` of a place of such a type is the measured error
+  (`check\builtins.rs`). In the emitter a `STRING` member is the pointer to its string in the value's bytes
+  (8 bytes, as in the old compiler); `parts`, `new_strings`, `free_strings`, `zero_value` and `each_element`
+  (`codegen-cpp\src\decl.rs`) walk a type as the old compiler's `AppendLegacyInlineUDTVarOp` does. Every value
+  gets its strings where it is made (a variable and a static array in `maindata.txt`, a local in `dataK.txt`, a
+  dynamic array in its allocation, also the one of `STATIC a(n)`) and loses them where it goes (`mainfree.txt`,
+  `freeK.txt`, `Release`, the old block of a `REDIM`); `Clear` and `clear.txt` empty them; `Preserve` copies the
+  kept elements part by part. A store into a `STRING` member of an element copies the value first, as for a
+  fixed-length one, and follows D-004. Design D9, "As built in group 8". Tests: `type_strings_typed.bas`,
+  `type_strings_cpp.bas`, `type_whole_errors.bas` (4 `LEN` errors); `types_errors.bas` lost the forms that are
+  valid now. Slice `s59_type_strings` (19 numbered lines, recorded from two equal runs): **the new compiler
+  printed it as recorded on its first run**, also with `QB64RUST_NO_FOLD=1`.
+  - Run with the new compiler, the measurement programs of `STRING` members (`v24_h_string_members`,
+    `v24_x206`, `x207`, `x216`): `x207` and `x216` build and print what the old compiler printed, `x206` is
+    rejected by both. `v24_h_string_members` is still rejected, for a reason outside the group: its
+    `local: local` is read as a label with the name of a SUB, which is marked; with the two such lines split
+    it prints what the old compiler printed.
+- [x] 8.2 Whole values: `CopyWhole` for `q = p` between variables, elements and members, with its measured error
   rule; `SWAP` of two places of one user type; a `TYPE` parameter by reference. Verify: `typed`, `ir`, `cpp` and
   `check-fail` tests; slice program `s60_type_whole` (every scenario of "Whole user-type values" and "User-type
   parameters"), recorded, passes in tier 2 with and without `QB64RUST_NO_FOLD=1`.
-- [ ] 8.3 Lists and documents as 2.3. Verify: "`STRING` members" and "assigning a whole `TYPE` value" are gone from
+  Done 2026-10-11. `whole_place` (`check\places.rs`) reads the place a whole value is taken from; `assign`
+  (`check\mod.rs`) makes `StmtKind::CopyWhole { from, to }`, and `type_arg` (`check\proc.rs`) the `Arg::Ref` for
+  a parameter of a user type. `Op::CopyWhole` in the IR, with its checks and those of such an argument in
+  `ir::validate` (two unit tests). In the emitter `copy_whole` (`codegen-cpp\src\stmt.rs`), and a parameter of a
+  user type is the address of the place passed (`void*`). `SWAP` needed nothing: it exchanged the bytes of two
+  places of one user type already, and the bytes of a `STRING` member are its pointer. Tests:
+  `type_whole_typed.bas`, `type_whole_ir.bas`, `type_whole_cpp.bas`, `type_whole_errors.bas` (16 more errors).
+  Slice `s60_type_whole` (21 numbered lines, recorded from two equal runs): **printed as recorded on its first
+  run**, also with `QB64RUST_NO_FOLD=1`.
+  - **Measured first** (`verification\v24_x306`–`x308`, `study\00` §5), with an answer the design did not have:
+    **the target is found before the source, and for a type with a `STRING` member somewhere in it both are
+    found again for every part of the value** (a `STRING` member, a member of any other type, a member of a
+    user type that holds no string; the parts of a member that holds strings in its place). A FUNCTION in an
+    index is called once per part: `a(one(1)) = b(one(2))` prints `1 2` for a type of numbers and `1 2 1 2 1 2`
+    for one of a LONG, a `STRING` and a `STRING * 2`. The old compiler writes both addresses into each
+    `memcpy` and `qbs_set` of its copy. **Built as measured**, by the rule of 2026-10-08 (a deterministic
+    behaviour is kept), and listed for review in `SOMEDAY.md`; the IR says so in `Op::CopyWhole`. No decision
+    was asked for: it is the old compiler's behaviour, not a difference from it.
+  - The copy is not guarded, as decided in 1.4: `a(9) = p` raises 9 and overwrites `a(0)` (slice line 8).
+  - The compile errors: another user type and a number on the right of `=`; a place of another type, a number
+    and a place in parentheses for a parameter of a user type; a whole value for a parameter that is none (the
+    mark "a whole `TYPE` value as an argument" became this error). `FUNCTION make AS t1` was an error already.
+  - Run with the new compiler, the measurement programs of whole values and parameters (`v24_h_whole`,
+    `v24_h_type_params`, `v24_x208`–`x215`, `x306`–`x308`): 6 build and print what the old compiler printed, 7
+    are rejected by both with a real error; none differs.
+- [x] 8.3 Lists and documents as 2.3. Verify: "`STRING` members" and "assigning a whole `TYPE` value" are gone from
   the three reports; expected against passed stated here.
+  Done 2026-10-11. Neither is left in `qb64rust --report unsupported` of `tests\corpus`, `tests\upstream` and
+  `tests\programs`, nor is "a `TYPE` parameter"; the three messages no longer exist in the compiler. The
+  shrink-only lists are unchanged (0, 0 and 55). **Expected against passed**, counted with the compiler as it
+  was before the group: corpus, 3 programs carried these marks, all 3 are clean and pass
+  (`runtime_comparison/57_type_string_field`, `200_type_assign_whole`, `242_types_simple`); with the two new
+  slice programs `slice.list` has 285. Upstream, 29 programs carried them: 2 are clean and pass
+  (`types/nested_udt`, `types/udt`), 27 wait on something else, by the first thing each still names: member
+  arrays 19 (15 by that message, 4 by a type or an array that follows from one), `SYSTEM` with an exit code 3,
+  `MKL$` and `CVL` 2 (`qb64pe/element`, `hasFunctionElement`), `REDIM _RETAIN` 1, a whole array `na()` 1
+  (`types/udt_array`), an include from the old compiler's sources 1 (`qb64pe/file`). `pass.list` has 64 of 279.
+  The upstream report now names member arrays in 156 programs (152 before: four were behind `STRING`
+  members).
+  Group 8 closes with `fmt`, `clippy` and `cargo test` green, tier 2 slice 285 of 285 (also with
+  `QB64RUST_NO_FOLD=1`), the upstream pass list 64 of 64, the differential list 59 of 59, the call-site check
+  256 of 256 (no program added: no new libqb call) and the runner's tests 56 of 56. The full corpus (356
+  programs) and the full upstream suite (404) ran with the release build: 304 and 64 pass, every other program
+  is rejected when compiling; none builds and prints the wrong output (`tests\corpus\README.md`,
+  `tests\upstream\README.md`).
+  **Review of the group (2026-10-11), nothing to fix:** one more program built with both compilers and equal
+  (`verification\v24_x309`, 12 numbered lines): a `STRING` member of an element by reference, an array of such
+  a type as an array parameter with `REDIM _PRESERVE` and `ERASE` in the SUB (a static and a dynamic argument),
+  `STATIC k(2)` of it, a `DIM SHARED` variable, a recursive SUB with a local, a member of a parameter passed
+  on, a whole value between two array parameters, `SWAP` of two elements, `EXIT SUB` with a local, a FUNCTION
+  result stored into a member.
 
 ## 9. Member arrays (design D8; as decided in 1.4)
 

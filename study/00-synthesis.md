@@ -1349,6 +1349,25 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   entered. Another type is "User defined types in expressions are invalid", a number "TYPE 't1' required for
   sub"; **a variable in parentheses (`move (q)`) is "UNEXPECTED INTERNAL COMPILER ERROR!"**. A FUNCTION cannot
   have a user type as its result (`FUNCTION make AS t1` is "Expected (").
+  **The order of a whole-value copy (`v24_x306`, `x307`, measured 2026-10-11 before group 8):** the target's
+  indexes are evaluated before the source's (`a(one(1)) = b(one(2))` prints 1 2). **For a type with a `STRING`
+  member somewhere in it, both are evaluated again for every part of the value**: a FUNCTION in an index is
+  called once per part (1 2 1 2 1 2 for a LONG, a `STRING` and a `STRING * 2`; `q = b(one(3))` prints 3 3 3;
+  five times each for a type of a nested type of those three, a LONG and a `STRING`; three times for
+  `c(one(7)).i = d(one(8)).i`). A part is a `STRING` member, a member of any other type, or a whole member of
+  a user type that holds no `STRING` (a type of such a member and two members of three parts: seven,
+  `tests\corpus\slice\s60_type_whole` line 13). The reason is in the old compiler's C++: `copy_full_udt`
+  (`utilities\type.bas`) writes both address expressions into each `memcpy` and `qbs_set`; for a type without
+  a `STRING` it writes one `memcpy`. A `STRING` member is 8 bytes of the value, the pointer to its string
+  (`qbs_new(0,0)` per member when the value is made, `qbs_free` when it goes, `->len=0` for `ERASE` of a
+  static array).
+  **More forms of a parameter of a user type and of `STRING` members (`v24_x308`, `x309`):** the argument may
+  be a nested member of an element (`move bs(1).a`); a whole value is copied into and out of a parameter (`p =
+  s`, `p = l` with a local); a parameter's member is passed on, as a `STRING` and as a user type; a `STRING`
+  member is a target of `READ`, of the `MID$` statement and of `SWAP`, is named with its suffix (`q.n$`) and
+  compared like any string. An array of a type with `STRING` members works as an array parameter with `REDIM
+  _PRESERVE` and `ERASE` in the SUB (static and dynamic argument), as `STATIC k(2)`, as a `DIM SHARED`
+  variable and as a local of a recursive SUB.
 
 ## 6. Bug-compatibility choices (all decided)
 

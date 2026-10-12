@@ -696,7 +696,16 @@ SHALL keep its value. Places of two different user types, also two with the same
 compile errors. `SWAP` of two places of the same user type SHALL exchange their values, `STRING` members
 included. An index outside its bounds on either side SHALL raise error 9, and element 0 of that array SHALL then
 stand in for the element named, as in the old compiler (`a(9) = p` overwrites `a(0)`; decided 2026-10-11, listed
-for review in `SOMEDAY.md`).
+for review in `SOMEDAY.md`). The indexes of the target SHALL be evaluated before those of the source. For a type
+with a `STRING` member, in itself or in a member of a user type, both SHALL be evaluated again for every part of
+the value, as in the old compiler: a `STRING` member is a part, a member of a user type that holds a `STRING`
+gives its own parts, any other member is one part (measured, `verification\v24_x306`, `x307`; listed for review
+in `SOMEDAY.md`).
+
+#### Scenario: Indexes evaluated per part
+- **WHEN** `a(one(1)) = b(one(2))` runs, where FUNCTION `one` prints its argument and returns 1, for a type of a
+  LONG and an INTEGER, and for a type of a LONG, a `STRING` and a `STRING * 2`
+- **THEN** ` 1  2 ` is printed for the first and ` 1  2  1  2  1  2 ` for the second
 
 #### Scenario: Index outside
 - **WHEN** `a(0).x = 100: p.x = 6: a(9) = p` runs for `DIM a(3)` under a handler that prints `ERR` and resumes

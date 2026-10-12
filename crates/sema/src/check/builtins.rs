@@ -201,6 +201,14 @@ impl Checker<'_> {
             // Measured: "Variable/element cannot be _BIT aligned" (`verification\v21_x18`, `x19`).
             return Err(self.error(e.span, "`LEN` of a `_BIT` variable"));
         }
+        if crate::holds_strings(&self.prog.types, ty) {
+            // Measured: "UDT must have fixed size" (`verification\v24_x206`).
+            let msg = format!(
+                "`LEN` of a `TYPE {}` value: a `TYPE` with a `STRING` member has no fixed size",
+                self.prog.type_name(ty)
+            );
+            return Err(self.error(e.span, msg));
+        }
         // The index of an element is not evaluated (the old compiler takes the element type's size).
         let size = crate::size_of(&self.prog.types, ty);
         Ok(Expr {

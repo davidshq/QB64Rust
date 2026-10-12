@@ -187,6 +187,17 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                     }
                 }
             }
+            StmtKind::CopyWhole { from, to } => {
+                let t = ty(p, p.place_ty(to));
+                let text = format!("CopyWhole {}:{t} <- {}", place_text(p, to), place_text(p, from));
+                line(out, &text);
+                for (side, place) in [("To", to), ("From", from)] {
+                    if place.has_element() {
+                        heading(out, &format!("{side} index"));
+                        indexes(p, place, d + 2, out);
+                    }
+                }
+            }
             StmtKind::Assign { place, value } => {
                 let t = ty(p, p.place_ty(place));
                 line(out, &format!("Assign {}:{t}", place_text(p, place)));

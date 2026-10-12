@@ -1,0 +1,24 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+type_whole_errors.bas:20:11: error: `LEN` of a `TYPE TS` value: a `TYPE` with a `STRING` member has no fixed size
+type_whole_errors.bas:21:11: error: `LEN` of a `TYPE TS` value: a `TYPE` with a `STRING` member has no fixed size
+type_whole_errors.bas:22:11: error: `LEN` of a `TYPE OUTER` value: a `TYPE` with a `STRING` member has no fixed size
+type_whole_errors.bas:23:11: error: `LEN` of a `TYPE TS` value: a `TYPE` with a `STRING` member has no fixed size
+type_whole_errors.bas:26:5: error: a value of `TYPE T1` is required here
+type_whole_errors.bas:27:8: error: a value of `TYPE T1` is required here
+type_whole_errors.bas:28:8: error: a `TYPE` variable takes only a value of its `TYPE`
+type_whole_errors.bas:29:5: error: a `TYPE` variable takes only a value of its `TYPE`
+type_whole_errors.bas:30:5: error: a value of `TYPE T1` is required here
+type_whole_errors.bas:31:6: error: a whole `TYPE` value cannot be used here: `q`
+type_whole_errors.bas:34:6: error: this parameter takes a variable of `TYPE T1`
+type_whole_errors.bas:35:6: error: this parameter takes a variable of `TYPE T1`
+type_whole_errors.bas:36:6: error: this parameter takes a variable of `TYPE T1`
+type_whole_errors.bas:37:6: error: this parameter takes a variable of `TYPE T1`
+type_whole_errors.bas:38:9: error: this parameter takes a variable of `TYPE T1`
+type_whole_errors.bas:40:6: error: this parameter takes a variable of `TYPE T1`, which cannot stand in parentheses
+type_whole_errors.bas:41:6: error: this parameter takes a variable of `TYPE T1`, which cannot stand in parentheses
+type_whole_errors.bas:43:5: error: a whole `TYPE` value cannot be used here: `q`
+type_whole_errors.bas:44:5: error: a whole `TYPE` value cannot be used here: `a(1)`
+type_whole_errors.bas:46:15: error: a FUNCTION's type is given by a suffix on its name, not by `AS`

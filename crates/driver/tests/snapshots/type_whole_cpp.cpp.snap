@@ -1,0 +1,428 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+void *__UDT_M=NULL;
+ptrszint *__ARRAY_UDT_MA=NULL;
+void *__UDT_P=NULL;
+void *__UDT_Q=NULL;
+ptrszint *__ARRAY_UDT_A=NULL;
+int32 *__LONG_I=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+void SUB_MOVE(void*_SUB_MOVE_UDT_P);
+void SUB_BUMP(void*_SUB_BUMP_UDT_M);
+float FUNC_ONE(int32*_FUNC_ONE_LONG_N);
+==> clear.txt <==
+memset((void*)__UDT_M,0,6);
+memset((void*)(__ARRAY_UDT_MA[0]),0,__ARRAY_UDT_MA[5]*6);
+memset((void*)((char*)__UDT_P+0),0,4);
+(*(qbs**)((char*)__UDT_P+4))->len=0;
+memset((void*)((char*)__UDT_P+12),0,6);
+memset((void*)((char*)__UDT_Q+0),0,4);
+(*(qbs**)((char*)__UDT_Q+4))->len=0;
+memset((void*)((char*)__UDT_Q+12),0,6);
+tmp_long=__ARRAY_UDT_A[5];
+while(tmp_long--){
+memset((void*)(((char*)(__ARRAY_UDT_A[0])+tmp_long*18)+0),0,4);
+(*(qbs**)(((char*)(__ARRAY_UDT_A[0])+tmp_long*18)+4))->len=0;
+memset((void*)(((char*)(__ARRAY_UDT_A[0])+tmp_long*18)+12),0,6);
+}
+*__LONG_I=0;
+==> maindata.txt <==
+if(__UDT_M==NULL){
+__UDT_M=(void*)mem_static_malloc(6);
+memset(__UDT_M,0,6);
+}
+if (!__ARRAY_UDT_MA){
+__ARRAY_UDT_MA=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_MA)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_MA[4]=0ll;
+__ARRAY_UDT_MA[5]=(3ll)-__ARRAY_UDT_MA[4]+1;
+if (__ARRAY_UDT_MA[5]<=0) error(5);
+__ARRAY_UDT_MA[6]=1;
+__ARRAY_UDT_MA[0]=(ptrszint)mem_static_malloc(__ARRAY_UDT_MA[5]*6);
+memset((void*)(__ARRAY_UDT_MA[0]),0,__ARRAY_UDT_MA[5]*6);
+__ARRAY_UDT_MA[2]=1+2;
+}
+if(__UDT_P==NULL){
+__UDT_P=(void*)mem_static_malloc(18);
+memset(__UDT_P,0,18);
+*(qbs**)((char*)__UDT_P+4)=qbs_new(0,0);
+}
+if(__UDT_Q==NULL){
+__UDT_Q=(void*)mem_static_malloc(18);
+memset(__UDT_Q,0,18);
+*(qbs**)((char*)__UDT_Q+4)=qbs_new(0,0);
+}
+if (!__ARRAY_UDT_A){
+__ARRAY_UDT_A=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_A)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_A[4]=0ll;
+__ARRAY_UDT_A[5]=(3ll)-__ARRAY_UDT_A[4]+1;
+if (__ARRAY_UDT_A[5]<=0) error(5);
+__ARRAY_UDT_A[6]=1;
+__ARRAY_UDT_A[0]=(ptrszint)mem_static_malloc(__ARRAY_UDT_A[5]*18);
+memset((void*)(__ARRAY_UDT_A[0]),0,__ARRAY_UDT_A[5]*18);
+tmp_long=__ARRAY_UDT_A[5];
+while(tmp_long--){
+*(qbs**)(((char*)(__ARRAY_UDT_A[0])+tmp_long*18)+4)=qbs_new(0,0);
+}
+__ARRAY_UDT_A[2]=1+2;
+}
+if(__LONG_I==NULL){
+__LONG_I=(int32*)mem_static_malloc(4);
+*__LONG_I=0;
+}
+int32 pass1;
+int32 pass2;
+int32 pass3;
+int32 pass4;
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+#include "main2.txt"
+#include "main3.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "type_whole_cpp.bas"
+do{
+#line 2 "type_whole_cpp.bas"
+sub__dest(func__console());
+#line 2 "type_whole_cpp.bas"
+sub__source(func__console());
+#line 2 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 17 "type_whole_cpp.bas"
+do{
+#line 17 "type_whole_cpp.bas"
+{
+#line 17 "type_whole_cpp.bas"
+char *copy_to=((char*)__UDT_M);
+#line 17 "type_whole_cpp.bas"
+char *copy_from=(((char*)__ARRAY_UDT_MA[0])+((array_check((((int64)(*__LONG_I)))-__ARRAY_UDT_MA[4],__ARRAY_UDT_MA[5]))*6));
+#line 17 "type_whole_cpp.bas"
+memmove(copy_to+0,copy_from+0,6);
+#line 17 "type_whole_cpp.bas"
+}
+#line 17 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "type_whole_cpp.bas"
+do{
+#line 18 "type_whole_cpp.bas"
+{
+#line 18 "type_whole_cpp.bas"
+char *copy_to=(((char*)__ARRAY_UDT_MA[0])+((array_check((qbr(FUNC_ONE(&(pass1=1))))-__ARRAY_UDT_MA[4],__ARRAY_UDT_MA[5]))*6));
+#line 18 "type_whole_cpp.bas"
+char *copy_from=(((char*)__ARRAY_UDT_MA[0])+((array_check((qbr(FUNC_ONE(&(pass2=2))))-__ARRAY_UDT_MA[4],__ARRAY_UDT_MA[5]))*6));
+#line 18 "type_whole_cpp.bas"
+memmove(copy_to+0,copy_from+0,6);
+#line 18 "type_whole_cpp.bas"
+}
+#line 18 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "type_whole_cpp.bas"
+do{
+#line 19 "type_whole_cpp.bas"
+{
+#line 19 "type_whole_cpp.bas"
+char *copy_to=((char*)__UDT_Q);
+#line 19 "type_whole_cpp.bas"
+char *copy_from=((char*)__UDT_P);
+#line 19 "type_whole_cpp.bas"
+memmove(copy_to+0,copy_from+0,4);
+#line 19 "type_whole_cpp.bas"
+}
+#line 19 "type_whole_cpp.bas"
+{
+#line 19 "type_whole_cpp.bas"
+char *copy_to=((char*)__UDT_Q);
+#line 19 "type_whole_cpp.bas"
+char *copy_from=((char*)__UDT_P);
+#line 19 "type_whole_cpp.bas"
+qbs_set(*(qbs**)(copy_to+4),*(qbs**)(copy_from+4));
+#line 19 "type_whole_cpp.bas"
+}
+#line 19 "type_whole_cpp.bas"
+{
+#line 19 "type_whole_cpp.bas"
+char *copy_to=((char*)__UDT_Q);
+#line 19 "type_whole_cpp.bas"
+char *copy_from=((char*)__UDT_P);
+#line 19 "type_whole_cpp.bas"
+memmove(copy_to+12,copy_from+12,6);
+#line 19 "type_whole_cpp.bas"
+}
+#line 19 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "type_whole_cpp.bas"
+do{
+#line 20 "type_whole_cpp.bas"
+{
+#line 20 "type_whole_cpp.bas"
+char *copy_to=(((char*)__ARRAY_UDT_A[0])+((array_check((qbr(FUNC_ONE(&(pass3=3))))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*18));
+#line 20 "type_whole_cpp.bas"
+char *copy_from=(((char*)__ARRAY_UDT_A[0])+((array_check((qbr(FUNC_ONE(&(pass4=4))))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*18));
+#line 20 "type_whole_cpp.bas"
+memmove(copy_to+0,copy_from+0,4);
+#line 20 "type_whole_cpp.bas"
+}
+#line 20 "type_whole_cpp.bas"
+{
+#line 20 "type_whole_cpp.bas"
+char *copy_to=(((char*)__ARRAY_UDT_A[0])+((array_check((qbr(FUNC_ONE(&(pass3=3))))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*18));
+#line 20 "type_whole_cpp.bas"
+char *copy_from=(((char*)__ARRAY_UDT_A[0])+((array_check((qbr(FUNC_ONE(&(pass4=4))))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*18));
+#line 20 "type_whole_cpp.bas"
+qbs_set(*(qbs**)(copy_to+4),*(qbs**)(copy_from+4));
+#line 20 "type_whole_cpp.bas"
+}
+#line 20 "type_whole_cpp.bas"
+{
+#line 20 "type_whole_cpp.bas"
+char *copy_to=(((char*)__ARRAY_UDT_A[0])+((array_check((qbr(FUNC_ONE(&(pass3=3))))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*18));
+#line 20 "type_whole_cpp.bas"
+char *copy_from=(((char*)__ARRAY_UDT_A[0])+((array_check((qbr(FUNC_ONE(&(pass4=4))))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*18));
+#line 20 "type_whole_cpp.bas"
+memmove(copy_to+12,copy_from+12,6);
+#line 20 "type_whole_cpp.bas"
+}
+#line 20 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "type_whole_cpp.bas"
+do{
+#line 21 "type_whole_cpp.bas"
+{
+#line 21 "type_whole_cpp.bas"
+char *copy_to=(((char*)__UDT_P)+12);
+#line 21 "type_whole_cpp.bas"
+char *copy_from=((char*)__UDT_M);
+#line 21 "type_whole_cpp.bas"
+memmove(copy_to+0,copy_from+0,6);
+#line 21 "type_whole_cpp.bas"
+}
+#line 21 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 22 "type_whole_cpp.bas"
+do{
+#line 22 "type_whole_cpp.bas"
+swap_block(((char*)__UDT_Q),((char*)__UDT_P),18);
+#line 22 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "type_whole_cpp.bas"
+do{
+#line 23 "type_whole_cpp.bas"
+SUB_MOVE(__UDT_Q);
+#line 23 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "type_whole_cpp.bas"
+do{
+#line 24 "type_whole_cpp.bas"
+SUB_MOVE(((void*)(((char*)__ARRAY_UDT_A[0])+((array_check((((int64)(*__LONG_I)))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*18))));
+#line 24 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "type_whole_cpp.bas"
+do{
+#line 25 "type_whole_cpp.bas"
+SUB_BUMP(((void*)((((char*)__ARRAY_UDT_A[0])+((array_check((((int64)(*__LONG_I)))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*18))+12)));
+#line 25 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(25);}while(r);
+#line 26 "type_whole_cpp.bas"
+do{
+#line 26 "type_whole_cpp.bas"
+if (sub_gl_called) error(271);
+#line 26 "type_whole_cpp.bas"
+close_program=1;
+#line 26 "type_whole_cpp.bas"
+end();
+#line 26 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(26);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(*(qbs**)((char*)__UDT_P+4));
+qbs_free(*(qbs**)((char*)__UDT_Q+4));
+==> main1.txt <==
+#line 28 "type_whole_cpp.bas"
+void SUB_MOVE(void*_SUB_MOVE_UDT_P){
+#line 28 "type_whole_cpp.bas"
+qbs *tqbs;
+#line 28 "type_whole_cpp.bas"
+ptrszint tmp_long;
+#line 28 "type_whole_cpp.bas"
+int32 tmp_fileno;
+#line 28 "type_whole_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 28 "type_whole_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 28 "type_whole_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 28 "type_whole_cpp.bas"
+#include "data1.txt"
+#line 28 "type_whole_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 28 "type_whole_cpp.bas"
+new_mem_lock();
+#line 28 "type_whole_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 28 "type_whole_cpp.bas"
+sf_mem_lock->type=3;
+#line 28 "type_whole_cpp.bas"
+libqb_check_stack();
+#line 28 "type_whole_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 29 "type_whole_cpp.bas"
+do{
+#line 29 "type_whole_cpp.bas"
+*(int32*)((((char*)_SUB_MOVE_UDT_P)+0))=(*(int32*)((((char*)_SUB_MOVE_UDT_P)+0))+1);
+#line 29 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(29);}while(r);
+#line 30 "type_whole_cpp.bas"
+do{
+#line 30 "type_whole_cpp.bas"
+SUB_BUMP(((void*)(((char*)_SUB_MOVE_UDT_P)+12)));
+#line 30 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(30);}while(r);
+#line 31 "type_whole_cpp.bas"
+exit_subfunc:;
+#line 31 "type_whole_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 31 "type_whole_cpp.bas"
+#include "free1.txt"
+#line 31 "type_whole_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 31 "type_whole_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 31 "type_whole_cpp.bas"
+}
+==> main2.txt <==
+#line 32 "type_whole_cpp.bas"
+void SUB_BUMP(void*_SUB_BUMP_UDT_M){
+#line 32 "type_whole_cpp.bas"
+qbs *tqbs;
+#line 32 "type_whole_cpp.bas"
+ptrszint tmp_long;
+#line 32 "type_whole_cpp.bas"
+int32 tmp_fileno;
+#line 32 "type_whole_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 32 "type_whole_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 32 "type_whole_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 32 "type_whole_cpp.bas"
+#include "data2.txt"
+#line 32 "type_whole_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 32 "type_whole_cpp.bas"
+new_mem_lock();
+#line 32 "type_whole_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 32 "type_whole_cpp.bas"
+sf_mem_lock->type=3;
+#line 32 "type_whole_cpp.bas"
+libqb_check_stack();
+#line 32 "type_whole_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 33 "type_whole_cpp.bas"
+do{
+#line 33 "type_whole_cpp.bas"
+*(int16*)((((char*)_SUB_BUMP_UDT_M)+4))=((int16)((((int32)(*(int16*)((((char*)_SUB_BUMP_UDT_M)+4))))+1)));
+#line 33 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(33);}while(r);
+#line 34 "type_whole_cpp.bas"
+exit_subfunc:;
+#line 34 "type_whole_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 34 "type_whole_cpp.bas"
+#include "free2.txt"
+#line 34 "type_whole_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 34 "type_whole_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 34 "type_whole_cpp.bas"
+}
+==> main3.txt <==
+#line 35 "type_whole_cpp.bas"
+float FUNC_ONE(int32*_FUNC_ONE_LONG_N){
+#line 35 "type_whole_cpp.bas"
+qbs *tqbs;
+#line 35 "type_whole_cpp.bas"
+ptrszint tmp_long;
+#line 35 "type_whole_cpp.bas"
+int32 tmp_fileno;
+#line 35 "type_whole_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 35 "type_whole_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 35 "type_whole_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 35 "type_whole_cpp.bas"
+#include "data3.txt"
+#line 35 "type_whole_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 35 "type_whole_cpp.bas"
+new_mem_lock();
+#line 35 "type_whole_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 35 "type_whole_cpp.bas"
+sf_mem_lock->type=3;
+#line 35 "type_whole_cpp.bas"
+libqb_check_stack();
+#line 35 "type_whole_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 36 "type_whole_cpp.bas"
+do{
+#line 36 "type_whole_cpp.bas"
+*_FUNC_ONE_SINGLE_ONE=((float)(1));
+#line 36 "type_whole_cpp.bas"
+if(!qbevent)break;evnt(36);}while(r);
+#line 37 "type_whole_cpp.bas"
+exit_subfunc:;
+#line 37 "type_whole_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 37 "type_whole_cpp.bas"
+#include "free3.txt"
+#line 37 "type_whole_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 37 "type_whole_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 37 "type_whole_cpp.bas"
+return *_FUNC_ONE_SINGLE_ONE;
+#line 37 "type_whole_cpp.bas"
+}
+==> data3.txt <==
+float *_FUNC_ONE_SINGLE_ONE=NULL;
+if(_FUNC_ONE_SINGLE_ONE==NULL){
+_FUNC_ONE_SINGLE_ONE=(float*)mem_static_malloc(4);
+*_FUNC_ONE_SINGLE_ONE=0;
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt data1.txt free1.txt data2.txt free2.txt free3.txt

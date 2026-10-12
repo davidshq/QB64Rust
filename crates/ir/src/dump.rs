@@ -138,6 +138,10 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     let t = ty(p, p.place_ty(place));
                     writeln!(out, "  Assign {}:{t} = {}", place_text(p, place), val(p, value)).unwrap();
                 }
+                Op::CopyWhole { from, to } => {
+                    let t = ty(p, p.place_ty(to));
+                    writeln!(out, "  CopyWhole {}:{t} <- {}", place_text(p, to), place_text(p, from)).unwrap();
+                }
                 Op::Allocate { array, bounds, mode } => {
                     writeln!(
                         out,

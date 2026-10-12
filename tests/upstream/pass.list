@@ -61,5 +61,7 @@ source_ordering/sub_after_main
 source_ordering/sub_before_main
 types/dim_bad_bit_no_length
 types/dim_bad_string_no_length
+types/nested_udt
 types/static_bad_bit_no_length
 types/static_bad_string_no_length
+types/udt

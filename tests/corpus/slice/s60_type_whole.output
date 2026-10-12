@@ -1,0 +1,21 @@
+1. q = p, then p changed: 5 a ff
+2. q = a(2): 9 el
+3. a(1) = p: 6 b
+4. a(3) = a(1), then a(1) changed: 6 b
+5. p = p: 6 b
+6. members: first b 6 
+7. an element of a nested type, and a member of one: first b
+8. a(9) = p: [error 9 ] 6 b
+9. q = a(9): [error 9 ] 100 zero
+10. a type without a STRING: 1  2  3 
+11. ma(one(1)) = ma(one(2)): 1  2 
+12. a(one(3)) = a(one(4)), three members: 3  4  3  4  3  4 
+13. bs(one(5)) = bs(one(6)), seven parts: 5  6  5  6  5  6  5  6  5  6  5  6  5  6 
+14. SWAP p, q: 100 zero 6 b
+15. SWAP a(1), a(2): el changed
+16. a variable, an element, a member: 1 m 1 m 1 m 1 
+17. a FUNCTION: 2  11 
+18. move a(9): [error 9 ] 0 
+19. passed on to a second SUB: 12 mm
+20. copied out of and into a parameter: 112 mmc
+21. a parameter of a type without a STRING: 1  1 
