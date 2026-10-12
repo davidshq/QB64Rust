@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-12 (session 48).
+Updated 2026-10-12 (session 49).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -42,11 +42,10 @@ line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10)
 
 ## Open items
 
-- **The GitHub CI run after the next push has not been seen.** It settles task 10.2 of `m2-numeric-types` and task
-  5.1 of `m2-language-server` (both changes were archived with that task open), and it is the first run of the
-  changed `tier2` job (QB64pe's sources at the reference clone's commit, `DECISIONS.md` 2026-10-09), which now
-  also builds `qb64pe.exe` there for the call-site check (`mingw32-make OS=win BUILD_QB64=y`, never tried on a
-  GitHub runner). Work is checked locally; the user does not treat CI as a concern for now.
+- None from CI: `rust.yml` (`test`, `tier2`, `deny`), `vscode-extension.yml` and `repo-check.yml` are green on
+  GitHub (seen 2026-10-12 at `3ba82c2`, and before it at `cda1268` and `cf4fb1f`). That settled task 10.2 of
+  `m2-numeric-types` and task 5.1 of `m2-language-server`, and showed that the changed `tier2` job builds
+  `qb64pe.exe` on the runner for the call-site check.
 
 Every question of the seventh and eighth reviews is answered (`study\28` §9, `study\29` §8, `DECISIONS.md`
 2026-10-09 and 2026-10-10): the local reference clone (`16f629784e`) is the one reference for the old compiler;
@@ -71,8 +70,13 @@ The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3
     member-array layer, each listed in `SOMEDAY.md`: a bound that names a `CONST`, a member array of an array
     element beside other targets of one `ERASE` or `REDIM`, an element of a member array as a target of
     `INPUT`, `READ` or `MID$`, `REDIM t.v(0) AS type` under `OPTION BASE 1`.
-11. **Next:** (was 10) `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE`, measured first (`study\26` §5); check
-    once that the GitHub Windows runner can start the hidden window.
+11. **Next:** (was 10) `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE` (`study\26` §5). Measured 2026-10-12
+    (`verification\v26_*`, 51 programs; the facts in `study\00` §5). Proposed as OpenSpec change
+    `m2-console-screenhide` (2026-10-12, not started; 7 task groups), with the wider scope the user decided
+    (`DECISIONS.md` 2026-10-12): also the window built-ins of the 19 upstream `glut` tests as compiled,
+    never-run code, the constants of the auto-included file (`_TRUE`, `_FALSE`) and the precompiler flags in
+    `$IF`. Still to check once: that the GitHub Windows runner can start a program with `$CONSOLE` and
+    `$SCREENHIDE` (upstream says GLFW cannot create a window there; task 2.6).
 
 ## Numbers at the last full runs
 

@@ -1,0 +1,7 @@
+byte
+integer
+long
+integer64
+single
+double
+exit=0

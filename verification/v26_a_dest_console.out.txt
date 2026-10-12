@@ -1,0 +1,7 @@
+a 1 -2 b
+    t   s
+ 3.14
+"w",1
+no line end
+ 1.5  1.099512E+12 xy
+exit=0

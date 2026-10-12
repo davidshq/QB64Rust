@@ -1,0 +1,5 @@
+before
+error 5 line 7 
+after
+end
+exit=0

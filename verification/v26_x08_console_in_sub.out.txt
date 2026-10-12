@@ -1,0 +1,3 @@
+ok
+in the sub
+exit=0

@@ -1,0 +1,4 @@
+last line
+
+Press any key to continue(timed out after 60 s)
+exit=124

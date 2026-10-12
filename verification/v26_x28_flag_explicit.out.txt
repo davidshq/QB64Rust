@@ -1,0 +1,5 @@
+explicit 1
+explicitarray 1
+asserts, debug, sockets 0
+console 2
+exit=0

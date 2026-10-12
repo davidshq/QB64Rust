@@ -453,13 +453,16 @@ programs it makes pass to `slice.list`, `tests\upstream\pass.list` and `tests\di
   (`OLD6` and its unit test gone), the 48 programs and recordings deleted, their lines left `pass.list`, which now
   names all 59; `inputs.rs` expects at least 59; `tests\differential\README.md`, `crates\README.md`, `study\19`
   updated.
-- [ ] 10.2 The CI `tier2` steps against the QB64pe 4.7.0 release (slice list, upstream pass list, differential pass
+- [x] 10.2 The CI `tier2` steps against the QB64pe 4.7.0 release (slice list, upstream pass list, differential pass
   list), locally with the CI command lines, then on GitHub after the push. Verify: all three pass; the GitHub run's
   result recorded here.
   *Local part done 2026-10-09* (session 35): the job's three command lines, with the release build, against the
   `v4.7.0-GLFW` release downloaded as the job does (no `--jobs`, no build cache), `pass.list`s as after task 10.1:
   corpus `slice.list` **198 of 198** (465 s), upstream `pass.list` **45 of 45** (72 s), differential `pass.list`
   **59 of 59** (166 s). **Left:** the run on GitHub after the next push.
+  *GitHub part seen 2026-10-12*: the `tier2` job of `rust.yml` is green at `3ba82c2` (and at `cda1268` and
+  `cf4fb1f` before it). By then the job ran against QB64pe's sources at the reference clone's commit, not the
+  4.7.0 release (`DECISIONS.md` 2026-10-09), with the lists as they stood at those commits.
   *Left open when the change was archived* (2026-10-09, the user's decision): check the run after the next push
   (`STATUS.md`).
 - [x] 10.3 Docs: `crates\README.md` (the type set, `difftest`), `study\00` §5 (all measured facts of this change)

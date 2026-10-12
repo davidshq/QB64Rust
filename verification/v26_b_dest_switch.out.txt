@@ -1,0 +1,7 @@
+console 1
+dest before:-2 source before:-2 
+dest now:-10 source now:-2 _CONSOLE:-10 
+console 2
+console 3
+source after _SOURCE _CONSOLE:-10 
+exit=0

@@ -1,0 +1,3 @@
+flag 2
+dest:-2
+exit=0

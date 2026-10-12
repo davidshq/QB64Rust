@@ -1,0 +1,5 @@
+
+_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first
+Caused by (or after):_ECHO "x",1
+LINE 3:_ECHO "x"
+exit=1

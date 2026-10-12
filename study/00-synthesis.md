@@ -1408,6 +1408,89 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   compared like any string. An array of a type with `STRING` members works as an array parameter with `REDIM
   _PRESERVE` and `ERASE` in the SUB (static and dynamic argument), as `STATIC k(2)`, as a `DIM SHARED`
   variable and as a local of a recursive SUB.
+- **`$CONSOLE`, `$SCREENHIDE` and `_DEST _CONSOLE` (`v26_*`, measured 2026-10-12 before step 11; 51 programs,
+  standard output redirected):**
+  - **What reaches standard output (`v26_b_dest_switch`, `v26_c_dest_in_sub`).** In a program with `$CONSOLE`
+    and no `:ONLY`, a `PRINT` reaches standard output only while the console is the destination: output before
+    `_DEST _CONSOLE`, after `_DEST 0` and after `_DEST` with the saved first handle goes to the window and is not
+    seen. `_DEST _CONSOLE` in a SUB or FUNCTION stays in force after it returns. `_CONSOLE` is -10; `_DEST` and
+    `_SOURCE` are -2 at the start; `_DEST _CONSOLE` leaves `_SOURCE` at -2 and `_SOURCE _CONSOLE` makes it -10.
+    Under `$CONSOLE:ONLY` all three are -10 after the metacommand, and `_DEST 0` there sends `PRINT` to a window
+    that is never shown (`v26_x24`).
+  - **`PRINT` forms (`v26_a_dest_console`).** `;`, `TAB`, `SPC`, `PRINT USING`, `WRITE` and a `PRINT` without a
+    line end give the text they give under `$CONSOLE:ONLY`. A comma does not: `PRINT "z1", "z2"` printed `z1` and
+    then blanks without end (1.8 MB until the 60 s timeout), where `$CONSOLE:ONLY` gives zones of 10 columns. No
+    test program may use it ("Test hygiene" in §10 said so already); the recorded program has no comma.
+  - **`INPUT` (`v26_d1`, `v26_d2`).** `INPUT` and `LINE INPUT` read standard input after `_DEST _CONSOLE` alone;
+    `_SOURCE _CONSOLE` changes nothing for them. The prompt and the echo are as under `$CONSOLE:ONLY`.
+  - **The end of the program (`v26_e_end`, `v26_e2_fall_off`).** `END`, and running off the last line, print an
+    empty line and `Press any key to continue` and wait, hidden window or not; `SYSTEM` leaves at once.
+  - **Errors (`v26_f1`, `v26_f2`, `v26_x21`).** A trapped error works as before (`ERR`, `_ERRORLINE`, `RESUME
+    NEXT`). An untrapped one, with `QB64PE_NOPROMPT=y`, prints an empty line, `Runtime error: Line: 7 (in main
+    module)` and `Illegal function call`, and the exit code is 0. `_DEST -99` raises error 258 and leaves the
+    destination; `_DEST 1.6` raises nothing and the next `PRINT` is not seen.
+  - **`_ECHO` (`v26_g_echo`, `v26_x17`).** It writes its string and a line end to the console whatever the
+    destination is, and leaves the destination as it was. Without `$CONSOLE` or `$CONSOLE:ONLY` in the program it
+    is the compile error "_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first".
+  - **The metacommands count for the whole program (`v26_x01`, `x04`, `x08`, `x16`, `v26_h_flag_console`).**
+    `$CONSOLE` and `$SCREENHIDE` may stand twice, after `SYSTEM` as the last lines, and inside a SUB; the console
+    is there from the first statement either way. The precompiler flag `_CONSOLE_` is 1 above the line of
+    `$CONSOLE` as well as below it. A `$CONSOLE` in a `$IF` branch that is not taken does not count.
+  - **Without `$CONSOLE` (`v26_x05`, `x06`, `x16`).** `_DEST _CONSOLE` compiles and raises nothing, and the
+    `PRINT` after it is not seen. `$SCREENHIDE` alone compiles and the program ends with exit code 0 and no
+    output. `$SCREENSHOW` after `$SCREENHIDE` is accepted (`x07`; the window shows).
+  - **Both `$CONSOLE:ONLY` and `$CONSOLE` (`v26_x02`, `x03`, `v26_h2_flag_both`).** In either order the program
+    is a console-only one: a `PRINT` with no `_DEST` is seen from the line of `$CONSOLE:ONLY` on (a `PRINT` above
+    it is not, as before). With `$CONSOLE:ONLY` first and `$CONSOLE` after it, `_CONSOLE_` is 1, not 2. This is
+    the shape of the 19 upstream `glut` tests on Windows: `$CONSOLE:ONLY`, a `PRINT` and `SYSTEM` inside `$IF
+    WINDOWS OR MACOSX`, then `$CONSOLE`, `_DEST _CONSOLE` and a window built-in that is compiled and never run.
+  - **Forms the old compiler rejects.** "Syntax error" for `$CONSOLE:OFF` (`x09`), a word after `$CONSOLE` or
+    `$SCREENHIDE` (`x10`, `x11`), a comment after either (`x12`, `x35`), a colon and a statement after either
+    (`x14`, `x37`) and a tab before `$CONSOLE` (`x23`). "Unexpected character on line" for `x = 1: $CONSOLE`
+    (`x13`) and `y = 2: $SCREENHIDE` (`x36`). Lower and mixed case and blanks before and after are accepted
+    (`x15`). `_DEST` with no argument: "Syntax error -
+    Reference: _DEST imageHandle&" (`x18`); with a string: "Number required for sub" (`x19`); `_CONSOLE = 1`:
+    "Expected variable =, look for conflict with a CONST name" (`x20`). The handle may be a variable of any
+    numeric type (`x22`). `$CONSOLE:ONLY` is as strict: a comment or a word after it and blanks around its colon
+    (`$CONSOLE : ONLY`) are "Syntax error" (`x29`–`x31`), as is a word after `$SCREENSHOW` (`x32`).
+  - **`$CONSOLE:ONLY` a second time (`x25`).** It makes the console the destination again: `$CONSOLE:ONLY`,
+    `PRINT`, `_DEST 0`, `PRINT`, `$CONSOLE:ONLY`, `PRINT` prints the first and the third line.
+  - **The precompiler flags (`x26`, `x28`, `x33`).** With `OPTION _EXPLICIT` on the last line, `_EXPLICIT_` and
+    `_EXPLICITARRAY_` are both 1 on the lines above it; with `OPTION _EXPLICITARRAY` there, only
+    `_EXPLICITARRAY_` is. `_ASSERTS_`, `_DEBUG_` and `_SOCKETS_` are 0 when nothing sets them, and `_CONSOLE_` is
+    2 under `$CONSOLE:ONLY` alone. A `$CONSOLE` that stands only inside `$IF _CONSOLE_ = 0 THEN` counts: the
+    program has a console and the flag is 1 below it (the old compiler compiles again with the flag set and keeps
+    what the first round asked for; `utilities\statevars.bas`: a state is locked once it is not 0).
+  - **A flag's own branch, and a round before the flags are settled (`x38`, `x39`).** A `$CONSOLE:ONLY` that
+    stands only inside `$IF _CONSOLE_ = 0 THEN` leaves a program with a console and a window: `_CONSOLE_` is 2,
+    `_DEST` is -2, a `PRINT` with no `_DEST` is not seen and `_ECHO` works (the flag is kept; the line that makes
+    the program console-only is no longer compiled). The output alone does not show the window (a `PRINT` above
+    `$CONSOLE:ONLY` is not seen either, `x03`); the build does: `internal\temp\compilelog.txt` of that compile
+    links `libqb_make_00000000`, the libqb with the window, with `-mconsole`, and `global.txt` has `console=1`.
+    With `$CONSOLE` on line 1 and below it `OPTION _EXPLICIT`
+    inside `$IF _CONSOLE_ = 0 THEN`, `_EXPLICIT_` is 0: the first pass sets `_CONSOLE_` at the metacommand's
+    line, so the branch is not taken even in the first round (`qb64pe.bas` 1980–2006: `$CONSOLE`,
+    `$CONSOLE:ONLY`, `$ASSERTS` and `$DEBUG` do this; `OPTION _EXPLICIT` does not, 2099).
+  - **Where the old compiler's two passes disagree (`x27`, `x34`).** Between `$CONSOLE:ONLY` and a later
+    `$CONSOLE`, a `$IF` on `_CONSOLE_` is 2 for the first pass (each metacommand sets the flag at its line there)
+    and 1 for the second. A `PRINT` in each of its branches prints nothing at all; a `CONST k` in each branch is
+    "Name already in use (k)". Nothing sensible to copy: the new compiler marks such a `$IF` "not supported yet".
+  - **In the old compiler's source.** `$CONSOLE` sets `console=1` and the make flag `DEP_CONSOLE=y` (links with
+    `-mconsole`); `$CONSOLE:ONLY` sets `DEP_CONSOLE_ONLY=y` too and writes `sub__dest(func__console());
+    sub__source(func__console());` where it stands; `$SCREENHIDE` and `$SCREENSHOW` set `screen_hide_startup` to
+    1 and 0, the last one in the file counting (`qb64pe.bas` 3590–3624, 13076–13086, 13708–13717). `_DEST`,
+    `_SOURCE`, `_CONSOLE`, `_ECHO`, `_SCREENHIDE` and `_SCREENSHOW` are plain rows of the built-in table.
+  - **What the 37 upstream programs with plain `$CONSOLE` need (`qb64rust --report unsupported`, 2026-10-12).**
+    Two need nothing but the three features (`data\test`, `keyboard\devices_windows`). The 19 `glut` tests also
+    need one or more window built-ins as compiled, never-run code (`_SCREENHIDE`, `_SCREENSHOW`,
+    `_SCREENEXISTS`, `_TITLE`, `_TITLE$`, `_ICON`, `_SCREENICON`, `_MOUSESHOW`, `_MOUSEHIDE`, `_MOUSECURSOR`,
+    `_DESKTOPWIDTH`, `_DESKTOPHEIGHT`, `_SCREENX`, `_SCREENY`, `_WINDOWHANDLE`, `_WINDOWHASFOCUS`,
+    `_WINDOWSIZELIMIT`, `_NEWIMAGE`, `_FREEIMAGE`), and 12 of them `_TRUE` or `_FALSE`. The seven
+    `precomp-flags` tests need the precompiler flags in `$IF` (three of them nothing else; the others `$ASSERTS`,
+    `$DEBUG` or `_OPENCLIENT`). The other nine need sound, images, `$EMBED` or devices.
+  - **The GitHub Windows runner.** The upstream tests say in a comment that GLFW cannot create a window with an
+    OpenGL context there, which is why the `glut` tests are console-only on Windows. Whether a program with
+    `$CONSOLE` and `$SCREENHIDE` starts on the runner is not measured yet.
 
 ## 6. Bug-compatibility choices (all decided)
 

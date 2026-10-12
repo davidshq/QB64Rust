@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ SCREENHIDE JUNK
+LINE 2:$SCREENHIDE junk
+exit=1
