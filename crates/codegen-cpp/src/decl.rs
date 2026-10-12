@@ -124,8 +124,14 @@ impl Emitter<'_> {
              return qb_l%qb_r;}\n",
         );
         out.push_str(&self.per_program_var(declare));
-        // Globals that qbx.cpp and libqb refer to.
-        out.push_str("int32 console=1;\nint32 screen_hide_startup=0;\nint32 asserts=0;\nint32 vwatch=0;\n");
+        // Globals that qbx.cpp and libqb refer to. The first two follow the program's settings, as the old
+        // compiler writes them (`qb64pe.bas` 13076–13086).
+        let s = &self.p.settings;
+        out.push_str(&format!(
+            "int32 console={};\nint32 screen_hide_startup={};\nint32 asserts=0;\nint32 vwatch=0;\n",
+            u8::from(s.console),
+            u8::from(s.window_hidden)
+        ));
         out.push_str(&self.data_fragment());
         out
     }

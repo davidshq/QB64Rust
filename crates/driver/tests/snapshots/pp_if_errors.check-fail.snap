@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 107
 expression: snap
 ---
 pp_if_errors.bas:8:1: error: `$END IF` while the `IF` on line 7 is still open; expected `END IF` first
@@ -14,7 +15,7 @@ pp_if_errors.bas:32:1: error: this `$IF` already has an `$ELSE`
 pp_if_errors.bas:36:1: error: `$ELSEIF` cannot follow `$ELSE`
 pp_if_errors.bas:38:1: error: `$ELSE` without `$IF`
 pp_if_errors.bas:39:1: error: `$END IF` without `$IF`
-pp_if_errors.bas:41:8: error: a preprocessor metacommand must stand at the start of a line
+pp_if_errors.bas:41:8: error: a metacommand must stand at the start of a line
 pp_if_errors.bas:46:1: error: `$ERROR`: STOP HERE
 pp_if_errors.bas:48:1: error: not supported yet: the precompiler flag `_CONSOLE_` in `$IF`
 pp_if_errors.bas:49:1: error: not supported yet: the precompiler flag `_DEBUG_` in `$IF`

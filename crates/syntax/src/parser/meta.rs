@@ -11,7 +11,7 @@ use super::Parser;
 use super::blocks::Block;
 use crate::SyntaxKind::*;
 use crate::meta::comment_directives;
-use crate::pp::{Directive, directive, precompiler_flag};
+use crate::pp::{Directive, directive, meta_line, precompiler_flag};
 use crate::program::LoadError;
 use qb64rust_base::show_bytes;
 
@@ -21,10 +21,20 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
     let span = p.current_span();
     let text = p.nth_text(0);
     let d = directive(text);
-    let preprocessor = !matches!(d, Directive::Other);
-    if preprocessor && p.after_colon() && !matches!(d, Directive::Error(_)) {
-        // Measured M6: "Unexpected character on line" after `:`.
-        p.error("a preprocessor metacommand must stand at the start of a line");
+    // The two line rules hold for every metacommand (measured, `verification\v26_x13`, `x23`, `x36`, `x40`–`x49`):
+    // the old compiler takes a line for a metacommand only when `$` is its first byte after the blanks, and its
+    // line reader rejects a `$` further on ("Unexpected character on line"). A line that breaks one is no
+    // metacommand: a `$IF` opens no level, and `sema` skips the statement for its error. `$ERROR` after a colon
+    // keeps its own error.
+    let fault = if p.after_colon() && !matches!(d, Directive::Error(_)) {
+        Some("a metacommand must stand at the start of a line")
+    } else if p.tab_before() {
+        Some("a metacommand must not have a tab before it")
+    } else {
+        None
+    };
+    if let Some(msg) = fault {
+        p.error(msg);
         p.start_node(MetaStmt);
         p.bump();
         p.finish_node();
@@ -35,8 +45,9 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
     p.finish_node();
     let result = match d {
         Directive::Other => {
-            if trimmed_upper(text) == b"$INCLUDEONCE" {
-                // Later inclusions of this file are empty (`qb64pe.bas` 3141–3165, measured M7).
+            if meta_line(text) == b"$INCLUDEONCE" {
+                // Later inclusions of this file are empty (`qb64pe.bas` 3141–3165, measured M7). With a tab or
+                // a word after it the line is an error, which `sema` reports (`verification\v26_x59`, `x61`).
                 p.inc.once.insert(p.file);
             }
             Ok(())
@@ -98,10 +109,6 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
     true
 }
 
-fn trimmed_upper(text: &[u8]) -> Vec<u8> {
-    text.trim_ascii().to_ascii_uppercase()
-}
-
 /// A metacommand comment (`'$INCLUDE:'x.bi'`) as a statement of its own; `sema` reads its other directives. An
 /// `$INCLUDE` in it includes the file right after it (a comment ends its line, so that is after the line, as in
 /// the old compiler).
@@ -124,13 +131,14 @@ const MAX_INCLUDE_DEPTH: u32 = 100;
 /// of nested `$IF`s there too (`qb64pe.bas` 1836–1892, before its skip test; measured: `$IF` without `THEN`, a
 /// duplicate operator and a second `$ELSE` are errors in an inactive branch): their conditions are evaluated for
 /// errors only, and every `$IF` line opens a level, also one without `THEN`. `$LET` and `$ERROR` there are skipped,
-/// as in the old compiler.
+/// as in the old compiler. A metacommand after a colon or a tab is no metacommand for the prepass either: it is
+/// skipped text, which ends no branch and is no error (measured, `verification\v26_x50`, `x57`).
 fn inactive_code(p: &mut Parser) {
     p.start_node(InactiveCode);
     // Per nested `$IF`: whether it had its `$ELSE`.
     let mut nested: Vec<bool> = Vec::new();
     while let Some(k) = p.current() {
-        if k == Metacommand {
+        if k == Metacommand && !p.after_colon() && !p.tab_before() {
             let span = p.current_span();
             let d = directive(p.nth_text(0));
             let error = match (&d, nested.last_mut()) {
@@ -246,6 +254,17 @@ impl Parser<'_, '_> {
     /// The current token follows a `:` on its line (the lexer starts a metacommand there too).
     fn after_colon(&self) -> bool {
         self.last_kind == Some(Colon)
+    }
+
+    /// A tab stands among the blanks right before the current token. The old compiler's `LTRIM$` takes spaces
+    /// only, so a metacommand there is not the first thing on its line.
+    fn tab_before(&self) -> bool {
+        let start = self.current_span().start as usize;
+        self.bytes[..start]
+            .iter()
+            .rev()
+            .take_while(|&&b| b == b' ' || b == b'\t')
+            .any(|&b| b == b'\t')
     }
 
     /// `$ELSE` or `$ELSEIF`: the `$IF` must be the innermost open entry.

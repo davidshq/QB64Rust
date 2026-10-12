@@ -293,6 +293,22 @@ What the compiler supports so far:
   plus, but QB64pe removes signs from an expression before it reads it, and so does the parser: a `+` right
   after a `+` or a `-`, then two `-` right after an operator. The dropped tokens stay in the tree. In a
   `CONST` a run of `+` and `-` is one sign.
+- **A console and a window** (`m2-console-screenhide`, in progress; measured, `verification\v26_*`): a program
+  with `$CONSOLE` is compiled and built with a console and a window, one with `$CONSOLE:ONLY` (with or without
+  `$CONSOLE`) with a console and no window; `$SCREENHIDE` and `$SCREENSHOW` say whether the window starts
+  hidden, the last one in the file counting. The four count wherever they stand in compiled code (any line, a
+  procedure, an included file, after the last statement that runs); each `$CONSOLE:ONLY` selects the console
+  where it stands. `sema` matches them exactly (`check\mod.rs`, `console_meta`): anything else on the line is
+  an error, as in QB64pe, and so it is for `$INCLUDEONCE` (a tab or a word after it). The mode is `Program::settings` in `sema` and in the IR (`ir::Settings`: console,
+  window, hidden at the start, the optional parts of the runtime; the IR dump's first line). The emitter
+  writes the two start-up globals from it, the driver the make flags (`driver\src\build.rs`, `make_flags`:
+  `DEP_CONSOLE_ONLY=y` without a window, `DEP_CONSOLE=y` with a console, as QB64pe passes them), which are
+  part of the build cache's key. A program with a window links another variant of libqb, built once into the
+  clone's git-ignored folders. **Every metacommand** must be the first thing on its line: after a statement
+  and a colon, or with a tab before it, it is an error (`syntax\src\parser\meta.rs`); in a `$IF` branch that
+  is not taken such a line is skipped text. A program with neither `$CONSOLE` nor `$CONSOLE:ONLY` is "not
+  supported yet": its only output is the window's (M3). `_DEST`, `_SOURCE`, `_ECHO` and the window built-ins
+  come with the change's next groups, so until then a `$CONSOLE` program can print nothing to its console.
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`

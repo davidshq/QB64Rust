@@ -50,6 +50,17 @@ where the old compiler's own passes disagree about the flag's value on that line
 - **THEN** `_CONSOLE_` is 2, and the program has a console and a window (the line that would make it one without
   a window is not compiled), as with the old compiler
 
+#### Scenario: OPTION _EXPLICIT inside the branch it changes
+- **WHEN** a program's only `OPTION _EXPLICIT` stands inside `$IF _EXPLICIT_ = 0 THEN` … `$END IF`, and a line
+  below uses a variable that is not declared
+- **THEN** `_EXPLICIT_` is 1 and that use is the error of a variable that is not declared, as with the old
+  compiler (the option is in force by its flag, though its line is not compiled in the last round)
+
+#### Scenario: Three rounds
+- **WHEN** a program's only `$CONSOLE` stands inside `$IF _EXPLICIT_ THEN` … `$END IF` and its only `OPTION
+  _EXPLICIT` on the last line
+- **THEN** the program has a console, and `_CONSOLE_` and `_EXPLICIT_` are 1 on every line
+
 #### Scenario: A setting inside a branch a line above has switched off
 - **WHEN** a program has `$CONSOLE` on its first line and below it `OPTION _EXPLICIT` inside `$IF _CONSOLE_ = 0
   THEN` … `$END IF`

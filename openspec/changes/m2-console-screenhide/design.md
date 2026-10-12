@@ -97,9 +97,26 @@ rejections are about the line, not the text:
   `$SCREENHIDE`, `v26_x36`);
 - **a tab before the metacommand** (`v26_x23`; blanks are fine, `v26_x15`).
 
-Both are reported for the four metacommands of this change. Whether they hold for every metacommand (`$IF`,
-`$LET`, `$INCLUDEONCE`, …) is measured in task 1.1; if they do, the rule moves to where every metacommand is
-checked, in the same task group. Until measured, other metacommands keep today's behaviour.
+Both hold for every metacommand (task 1.1, `v26_x40`–`x50`: measured for `$IF`, `$LET`, `$INCLUDEONCE`,
+`$CONSOLE:ONLY` and `$SCREENHIDE` too; in the old compiler's source each is one place that names no metacommand,
+`study\00` §5). So neither is a check of the four metacommands in `sema`; both live in `syntax`, where every
+metacommand line is met (`parser\meta.rs`, `metacommand`), and task 2.1 puts them there:
+
+- **after a colon:** the parser has the error today for the preprocessor lines only (`$IF`, `$ELSE`, `$ELSEIF`,
+  `$END IF`, `$LET`; "a preprocessor metacommand must stand at the start of a line"). It is widened to every
+  metacommand and reworded without "preprocessor". Today `x = 1: $INCLUDEONCE` and `x = 1: $CONSOLE:ONLY` are
+  accepted. `$ERROR` keeps its own error, as now.
+- **a tab before:** new. Today the new compiler accepts a tab before `$IF`, `$LET`, `$INCLUDEONCE` and
+  `$CONSOLE:ONLY`, which the old compiler rejects. A metacommand whose `$` has a tab anywhere between the line
+  start and itself is an error of the program, "a metacommand must not have a tab before it" in our wording,
+  and the line then counts as no metacommand: a `$IF` opens no level and a `$CONSOLE` gives no console, as in
+  the old compiler, whose message there depends on what follows (`x40`, `x41`, `x49`). One error for the line
+  is enough; the errors that follow from it (`$END IF` without `$IF`) are the old compiler's too. Inside a
+  branch that is not taken such a line is skipped text with no error: a tabbed `$ELSE` or `$END IF` there does
+  not end the branch (`x50`, which the old compiler accepts and the new one rejects today with "`$END IF`
+  without `$IF`": a false error, fixed by the same rule).
+
+A metacommand in a comment (`'$INCLUDE`, `'$DYNAMIC`) is found another way and keeps today's rules.
 
 *Alternative considered:* leave the forms as "not supported yet". Rejected: the spec `compiler/pipeline` forbids
 that mark for an error the old compiler also reports, and each is one comparison.
@@ -116,8 +133,25 @@ names are neutral, as `compiler/pipeline` "ABI-neutral IR" asks; the dump prints
   `DEP_ICON=y` for `Icon`. They replace the fixed `DEP_CONSOLE_ONLY=y`.
 - The build key hashes the flags (they are not in the fragments), and its version string changes.
 
-The old compiler's make line for each case is read from its own output in task 1.2 and compared with ours in a
-driver test, so a missing flag is found by a test and not by a link error.
+The old compiler's flags for each case (task 1.2, 2026-10-12). On Windows it keeps no copy of its make line
+(it writes one into a script on Linux and macOS only, `qb64pe.bas` 14099), so they are read from what the line
+does, in `internal\temp\compilelog.txt` and `global.txt` after `qb64pe -x` of four programs, and from the lines
+that build it (`qb64pe.bas` 13706–13721):
+
+| Program | Make flags | libqb variant, link | `-D` that differs | Globals |
+|---|---|---|---|---|
+| `$CONSOLE:ONLY` | `DEP_CONSOLE_ONLY=y DEP_CONSOLE=y` | `libqb_make_00100000`, `-mconsole`, `window-console.o`, `main-thread-console.o` | `DEPENDENCY_CONSOLE_ONLY`, `DEPENDENCY_NO_ICON` | `console=1`, `screen_hide_startup=0` |
+| `$CONSOLE`, `$SCREENHIDE` | `DEP_CONSOLE=y` | `libqb_make_00000000`, `-mconsole`, `window-gui.o`, `main-thread-gui.o` | `DEPENDENCY_NO_ICON` | `console=1`, `screen_hide_startup=1` |
+| `$CONSOLE`, then `$CONSOLE:ONLY` | as the first row | as the first row | as the first row | as the first row |
+| `$CONSOLE`, `$SCREENHIDE`, `_ICON` | `DEP_ICON=y DEP_CONSOLE=y` | `libqb_make_00000100`, `-mconsole`, the two `gui` objects | `DEPENDENCY_ICON` | as the second row |
+
+The mapping above is right as written. Two things the table adds. A program with `$CONSOLE:ONLY` gets
+`DEP_CONSOLE=y` too (the flag is the console state, which `:ONLY` sets to 2); the driver passes only
+`DEP_CONSOLE_ONLY=y` today. The clone's `Makefile` reads `DEP_CONSOLE` in one place, to choose `-mconsole`,
+which `DEP_CONSOLE_ONLY` chooses as well, and the variant's name does not depend on it: adding it changes no
+build, and it is added so the line equals the old compiler's. And the icon part is a third libqb variant
+(`…00000100`), built once like the second (D4). A driver test compares our flags with this table for the four
+cases, so a missing flag is found by a test and not by a link error.
 
 *Why collect dependencies from the table now, for one member:* `_ICON` cannot be linked right without it, and the
 same column names the parts M3's built-ins need (`DEPENDENCY_SCREENIMAGE`, `DEPENDENCY_LOADFONT`, …). A program
@@ -147,14 +181,57 @@ other program was rejected.
 
 ### D6. Window built-ins are rows, compiled and never run
 
-Each of the ten statements and ten functions (`proposal.md`) is a row with its rule (`Plain` unless the call-site
-check shows otherwise) and a call-site program for every form of its template and every argument type class the
-existing programs use. Known oddities to settle with the old compiler's C++ (task 4.1), not by guessing:
+Each of the ten statements and ten functions (`proposal.md`) is a row with its rule and a call-site program for
+every form of its template and every argument type class the existing programs use. What the old compiler
+writes for each (task 1.3, 2026-10-12: `qb64pe -z` over one program with every form below and one with probes
+of the result types, both outside the repo; `l`, `i`, `s`, `d`, `q` are a LONG, an INTEGER, a SINGLE, a DOUBLE
+and an `_INTEGER64`, `t` a STRING). Every numeric slot is a LONG slot, an `int32_t` in libqb's prototype: an
+integer of any width is passed as it is, a float through `qbr(…)`, as `Slot::Long` does today.
 
-- `_SCREENEXISTS` has no return type in the table (`func_windowexists`);
-- `_WINDOWHANDLE` returns `_UNSIGNED _OFFSET` and takes an optional argument (`[?]`);
-- `_WINDOWSIZELIMIT` and `_MOUSECURSOR` have parenthesised pairs in their templates; if the parser's template
-  matching does not cover that shape yet, it is extended there, with a front-end test per form.
+| Built-in | Forms and the call | Result | Rule |
+|---|---|---|---|
+| `_DEST` statement | `_DEST l` → `sub__dest(*__LONG_L)`; `i`, `q` as they are; `s`, `d` in `qbr(…)`; `_DEST _CONSOLE` → `sub__dest(func__console())` | | `StmtRule::Plain` |
+| `_SOURCE` statement | as `_DEST`, `sub__source(…)` | | `StmtRule::Plain` |
+| `_ECHO` | `sub__echo(…)`, one string | | `StmtRule::Plain`, and D5's check |
+| `_DEST`, `_SOURCE`, `_CONSOLE` functions | `func__dest()`, `func__source()`, `func__console()` | LONG, `int32_t` | `Rule::Plain` |
+| `_SCREENHIDE`, `_SCREENSHOW`, `_SCREENICON` statements | `sub__screenhide()`, `sub__screenshow()`, `sub_screenicon()` | | `StmtRule::Plain` |
+| `_TITLE` | `sub__title(…)`, one string | | `StmtRule::Plain` |
+| `_ICON` | none → `sub__icon(NULL,NULL,0)`; `l` → `(l,NULL,1)`; `l, l` → `(l,l,3)` | | `StmtRule::Plain`; the icon part (D3) |
+| `_MOUSESHOW` | none → `sub__mouseshow(NULL,0)`; a string → `(…,1)` | | `StmtRule::Plain` |
+| `_MOUSEHIDE` | none → `sub__mousehide(NULL)`; `_HIDE` → `( 1 )`; `_DISABLE` → `( 2 )`; no mask | | `StmtRule::Plain` (a choice, as `OPEN` has) |
+| `_MOUSECURSOR` | `l` → `sub__mousecursor(l,NULL,NULL,0)`; `l, (l, l)` → `(l,l,l,1)` | | `StmtRule::Plain` |
+| `_WINDOWSIZELIMIT` | none → `sub__windowsizelimit(NULL,NULL,NULL,NULL,0)`; `(l, l)` → `(l,l,NULL,NULL,1)`; `-(l, l)` → `(NULL,NULL,l,l,2)`; both → `(l,l,l,l,3)` | | `StmtRule::Plain` |
+| `_FREEIMAGE` | none → `sub__freeimage(NULL,0)` (accepted, though the syntax line names a handle); `l` → `(l,1)` | | `StmtRule::Plain` |
+| `_SCREENICON`, `_DESKTOPWIDTH`, `_DESKTOPHEIGHT`, `_SCREENX`, `_SCREENY`, `_WINDOWHASFOCUS` | `func_screenicon()`, `func__desktopwidth()`, `func__desktopheight()`, `func__screenx()`, `func__screeny()`, `func__hasfocus()` | LONG, `int32_t` | `Rule::Plain` |
+| `_TITLE$` | `func__title()` | STRING | `Rule::Plain` |
+| `_NEWIMAGE` | `(l, l)` → `func__newimage(l,l,NULL,0)`; `(l, l, l)` → `(l,l,l,0\|1)` | LONG, `int32_t` | `Rule::Plain` (a mask as `RND` has) |
+| `_WINDOWHANDLE` | bare → `func__windowhandle(NULL,0)`; `(l)` → `(l,0\|1)` | `_UNSIGNED _OFFSET`, `uintptr_t` | `Rule::Plain`; `table_ty` learns the type |
+| `_SCREENEXISTS` | `func_windowexists()` | none in the table; `int32_t` | `Rule::Fixed(LONG)`, see below |
+
+No new rule is needed. A function with empty parentheses (`_DEST()`, `_SCREENX()`, `_WINDOWHANDLE()`,
+`_TITLE$()`, each of the others tried) is "Expected (...)" in the old compiler. The three oddities:
+
+- **`_SCREENEXISTS` has no return type in the table.** The old compiler then treats the value as a 32-bit
+  integer wherever one was tried against `_SCREENX`, which is a LONG: a store into each numeric type, `+`, `/`,
+  `\`, `^`, `AND`, `NOT`, a minus, `=`, `IF`, `SELECT CASE` (its temporary is an `int32`), an argument of a
+  LONG and of a DOUBLE parameter (the temporaries are `int32` and `double`). It differs in two spellings.
+  `PRINT` and `STR$` write `qbs_str(func_windowexists())` without the `(int32)` cast a LONG gets: the same
+  overload, since the C++ type is `int32_t`, so the same text. `HEX$`, `OCT$` and `_BIN$` write the width 0 (`func_hex(…,0)`,
+  `func_oct(…,0)`, `func__bin(…,0)`) where `_SCREENX` gets 8, 32 and 32: another text for a negative value, and
+  the value is -1 whenever the window exists (under `$CONSOLE:ONLY`, `HEX$(_SCREENEXISTS)` is the empty
+  string). Inside a larger argument there is no difference (`HEX$(_SCREENEXISTS + 0)` and `HEX$(_SCREENX - 1)`
+  both get 0, as the new compiler writes for any LONG expression). So the row is `Rule::Fixed(Ty::I32)`, and
+  `_SCREENEXISTS` as the direct argument of `HEX$`, `OCT$` or `_BIN$` is "not supported yet" (no corpus or
+  upstream program has it; M3, where the function runs, can give it the width 0).
+- **`_WINDOWHANDLE` returns `_UNSIGNED _OFFSET`.** It behaves as a variable of that type, which the compiler
+  has: `PRINT` and `STR$` write `qbs_str((uint64)(…))`, `<> 0` compares it as it is, a store into a LONG, an
+  `_INTEGER64` or a DOUBLE is plain, and `/` rounds the quotient with `qbr(…)` (the old compiler's rule for an
+  offset operand, which the new compiler already writes for a variable: both were compared for `d = o / 3`,
+  `PRINT o`, `PRINT o <> 0`, `l = o`, `STR$(o)`). The optional argument is `RND`'s shape.
+- **Parenthesised pairs.** The parser accepts every form of the table above today: the new compiler reports
+  each line of that program "not supported yet" and nothing else. The masks are the ones
+  `qb64rust_builtins::passing` computes for `LINE`'s template, which has the same shape; the call-site
+  programs of task 4.1 compare each.
 
 They are listed in a constant of `sema\builtins.rs` (`WINDOW_BUILTINS`) which the coverage test reads: for these,
 "used in a slice program" means a slice program in the shape of the upstream `glut` tests (`$CONSOLE:ONLY`, a
@@ -203,6 +280,31 @@ running value for three of the flags (below). The port:
   other than its `actual`. When the round asks for another, its tree and notes are thrown away. When it is the
   last, every noted condition is the corner above: in a last round `_ASSERTS_` and `_DEBUG_` are locked at the
   value their metacommand sets, so only `_CONSOLE_` can differ.
+
+- **`OPTION _EXPLICIT` is in force by its flag, not by its line** (task 1.4, `v26_x54`, `x55`). With the only
+  `OPTION _EXPLICIT` inside `$IF _EXPLICIT_ = 0 THEN`, the flag is 1 and a variable that is not declared is
+  the old compiler's "not defined" error, though the last round does not compile the line. It is the console's
+  case again (D1). `sema` finds the two options by looking for their statements in the tree
+  (`check\mod.rs`); from group 6 on it also takes them from the settled flags: explicit when `_EXPLICIT_` is
+  not 0, explicit-array when `_EXPLICITARRAY_` is not 0.
+
+Measured in task 1.4, each as the port above gives it, and no second corner found:
+
+- `$IF _EXPLICIT_` between two `OPTION _EXPLICIT` lines is 1 (`x51`): the option has no running value, and the
+  second round starts with 1.
+- `$ASSERTS:CONSOLE` gives the program a console and `_CONSOLE_` is 1 above and below its line, `_ASSERTS_` 1
+  (`x52`, a program with no other console metacommand, its output written with `_ECHO`).
+- Three rounds (`x53`): the only `$CONSOLE` inside `$IF _EXPLICIT_`, the only `OPTION _EXPLICIT` on the last
+  line. The program has a console, `_CONSOLE_` and `_EXPLICIT_` are 1.
+- The running value of `_ASSERTS_` (`x56`, as `x39` for the console): `OPTION _EXPLICIT` inside `$IF _ASSERTS_
+  = 0` below the line of `$ASSERTS` is never met, `_EXPLICIT_` stays 0.
+- Why no second corner: in the source, the flags' `$IF` values are set from `actual` at the first line of each
+  pass and at the end of the source, before the files included at the bottom (`setPrecompFlags`, `qb64pe.bas`
+  1816, 3373), and changed in between only by the five metacommand lines of the first pass (1978–2006). Only
+  `_CONSOLE_` has two values that are not 0, so only it can differ from `actual` in a last round. One detail of
+  `statevars.bas` the port keeps: another round is asked for at the moment a setting differs from `actual`
+  with the flag not locked, not by a comparison at the round's end. With today's settings the two are the
+  same (no setting writes 0).
 
 `$ASSERTS` and `$DEBUG` stay "not supported yet" as metacommands; they set their flags so that the rest of such a
 program is read as the old compiler reads it and no second, misleading mark appears.
@@ -279,5 +381,5 @@ Each group leaves fmt, clippy and `cargo test` green, so the change can stop aft
 
 ## Open Questions
 
-- Do the two line rules of D2 (tab before, statement before) hold for every metacommand? Task 1.1 measures it; it
-  changes where one check lives, not the specs of this change.
+- Answered by task 1.1: the two line rules of D2 (tab before, statement before) hold for every metacommand, so
+  both checks live in `syntax` (D2). The specs of this change are unchanged by it.

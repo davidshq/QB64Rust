@@ -1,0 +1,13 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+Settings: console, no window
+Stmt line 4
+  SelectConsole
+Stmt line 5
+  Print console newline
+    Str Const "x"
+Stmt line 6
+  System

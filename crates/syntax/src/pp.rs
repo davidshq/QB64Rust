@@ -537,6 +537,13 @@ fn trim(s: &[u8]) -> &[u8] {
     ltrim(rtrim(s))
 }
 
+/// The line of a metacommand token as the old compiler compares it with a metacommand's name: in upper case and
+/// without the blanks at its ends. `LTRIM$` and `RTRIM$` take spaces only, so a tab stays, and a name with a tab
+/// after it is not that name (measured, `verification\v26_x58`, `x59`).
+pub fn meta_line(text: &[u8]) -> Vec<u8> {
+    trim(text).to_ascii_uppercase()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

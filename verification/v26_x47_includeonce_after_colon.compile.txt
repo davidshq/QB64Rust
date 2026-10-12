@@ -1,0 +1,5 @@
+
+Unexpected character on line in line 1 of <verification>\v26_inc/colon_once.bi included
+Caused by (or after):
+LINE 3:
+exit=1

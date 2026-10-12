@@ -1,7 +1,9 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 107
 expression: snap
 ---
+Settings: console, no window
 Array Z:F32 static (0 To 10)
 Array M:F32 static (1 To 10, 1 To 10)
 Array DY:F32 dynamic, dimensions: 1

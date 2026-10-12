@@ -1,7 +1,9 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 107
 expression: snap
 ---
+Settings: console, no window
 Member array INNER.Q:I16 (0 To 2)
 Member array OUTER.N:T:INNER (0 To 1)
 Member array T1.V:I32 (0 To 3)

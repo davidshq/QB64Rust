@@ -1,0 +1,7 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+console_meta_tab_after.bas:6:1: error: `$SCREENHIDE` must stand alone on its line
+console_meta_tab_after.bas:8:1: error: `$CONSOLE` must stand alone on its line
+console_meta_tab_after.bas:9:1: error: `$INCLUDEONCE` must stand alone on its line

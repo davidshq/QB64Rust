@@ -1,8 +1,9 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 103
+assertion_line: 107
 expression: snap
 ---
+Settings: console, no window
 Stmt line 2
   SelectConsole
 Stmt line 6

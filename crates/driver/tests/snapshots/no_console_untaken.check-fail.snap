@@ -1,0 +1,6 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+no_console_untaken.bas:1:1: error: not supported yet: programs without `$CONSOLE` or `$CONSOLE:ONLY`

@@ -37,11 +37,11 @@ it `<name>.keys`: the keys it is given. All 29 are in `screen\`; their `.output`
 A program that reaches `END` prints an empty line and `Press any key to continue` (no line end) on Windows; that
 trailer is part of its `.output`.
 
-## Counts (recorded 2026-10-03; `slice` as each change added its programs, the last 2026-10-11)
+## Counts (recorded 2026-10-03; `slice` as each change added its programs, the last 2026-10-12)
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 64 |
+| `.output` | 235 | 2 | 67 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
@@ -133,13 +133,23 @@ store rule of each place) by `m2-arrays-and-types`, `s23` by `m2-parser-breadth`
 `^`), `s52`–`s55` (six programs: dynamic arrays, `REDIM`, `REDIM _PRESERVE`, `ERASE`, arrays used without `DIM`),
 `s56`–`s58` (arrays in procedures, array parameters, `COMMON`), `s59` and `s60` (`STRING` members, whole `TYPE`
 values, parameters of a user type), `s61` (member arrays) and two for bugs fixed on the way (`s17_signs`,
-`s52_dim_list`) by `m2-defxxx-common-arrays` (`SOURCE.md`). `s52_dynamic_memory` ends with the runtime's "Out of memory" message,
+`s52_dim_list`) by `m2-defxxx-common-arrays` (`SOURCE.md`), `s62` and `s63` (the forms that make a program
+without a window; the first program with a console and a window) by `m2-console-screenhide`.
+`s52_dynamic_memory` ends with the runtime's "Out of memory" message,
 which is part of its `.output`; the runner's `QB64PE_NOPROMPT` keeps that from opening a dialog.
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
 line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
 
-`slice.list` names the 287 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`; the three `s50` programs and `235_deftype` joined with `m2-defxxx-common-arrays` task 2.2,
+**A program with `$CONSOLE` and no `:ONLY`** has a window as well as a console. Only what it prints while the
+console is the destination reaches standard output, so the `.output` of `s63_console_window`, whose one `PRINT`
+goes to the hidden window, is empty. Such a program starts with `$SCREENHIDE`, so no window shows during a run,
+and ends with `SYSTEM`. It must not use `PRINT` with a comma at all: with the console as destination under a
+redirected output, the old compiler's program prints blanks without end (measured, `verification\v26_a`,
+`study\00` §5).
+
+`slice.list` names the 289 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`; `s62_console_only_forms` and `s63_console_window` joined with `m2-console-screenhide`
+task 2.4; the three `s50` programs and `235_deftype` joined with `m2-defxxx-common-arrays` task 2.2,
 the three `s51` programs and `236_option_base` with its tasks 3.2 and 3.3, the five `s52`–`s55` programs and
 `40_erase`, `120_redim_no_preserve`, `201_erase_udt_array`, `203_redim_multiple` with its group 4,
 `s55_implicit` with its group 5, `s56_proc_arrays` and `206_shared_redim` with its group 6,

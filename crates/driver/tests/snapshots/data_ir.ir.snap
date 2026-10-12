@@ -1,7 +1,9 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 107
 expression: snap
 ---
+Settings: console, no window
 Data 0: 1
 Data 1: "two"
 Data 2: 3

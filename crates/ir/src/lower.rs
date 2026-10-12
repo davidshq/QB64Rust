@@ -61,6 +61,13 @@ pub fn lower(p: &sema::Program) -> Program {
         main,
         types: p.types.clone(),
         data: p.data.clone(),
+        settings: crate::Settings {
+            console: p.settings.console,
+            window: p.settings.window,
+            window_hidden: p.settings.window_hidden,
+            // No built-in compiled yet needs one.
+            runtime_parts: std::collections::BTreeSet::new(),
+        },
     };
     if cfg!(debug_assertions)
         && let Err(problems) = crate::validate(&program)

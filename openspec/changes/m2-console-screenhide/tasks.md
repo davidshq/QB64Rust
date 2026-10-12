@@ -18,23 +18,40 @@ programs, recorded with `qb64pe.exe`.
 
 ## 1. Measurements before code
 
-- [ ] 1.1 Measure the two line rules of design D2 for other metacommands: `verification\v26_x40…`, one program
+- [x] 1.1 Measure the two line rules of design D2 for other metacommands: `verification\v26_x40…`, one program
   each, for a tab before `$IF`, `$LET`, `$INCLUDEONCE`, `$CONSOLE:ONLY` and `$SCREENHIDE`, and for each of them
   but `$SCREENHIDE` (measured, `v26_x36`) after a statement and a colon. Record with `python
   tools\legacy_tests\run_legacy_tests.py --suite verification --glob "v26_x*.bas"`. Verify: a `.compile.txt` and
   an `.out.txt` exist for each; `study\00` §5 says for which metacommands each rule holds; design D2 and its open
   question are rewritten to match.
-- [ ] 1.2 Read the old compiler's make line for four programs (`$CONSOLE:ONLY`; `$CONSOLE`; both; `$CONSOLE` with
+  Found (2026-10-12; `v26_x40`–`x50`, 11 programs, include files in `v26_inc\`): both rules hold for all of
+  them, and in the source each is one place that names no metacommand, so both go into `syntax` for every
+  metacommand (D2 rewritten). Two programs beyond the list: `x49` (a tab before `$IF` and its `$END IF`) and
+  `x50` (a tabbed `$ELSE` and `$END IF` in a branch that is not taken: skipped text; the new compiler rejects
+  that program today, a false error for 2.1 to fix). Today the new compiler accepts `x40`–`x43`, `x47`–`x49`.
+- [x] 1.2 Read the old compiler's make line for four programs (`$CONSOLE:ONLY`; `$CONSOLE`; both; `$CONSOLE` with
   `_ICON`): find where `qb64pe -x` leaves it (the clone's git-ignored `internal\temp`: its `compilelog.txt` holds the
   link line and the name of the libqb variant, seen for `v26_x38`; or its `-q`-less output)
   and note the `DEP_*` flags of each. Verify: the four flag sets are written into design D3, replacing "read in
   task 1.2", and D3's mapping is corrected if a flag differs from it.
-- [ ] 1.3 Read the old compiler's C++ (`qb64pe -z`) for one call of each of the 20 window built-ins and of
+  Found (2026-10-12): the make line itself is kept nowhere on Windows; the flags are read from what it does
+  (the `-D` defines, the variant's name and the link flag in `compilelog.txt`) and from the source lines that
+  build it. D3 holds the table. The mapping stands; one flag is added to it (`DEP_CONSOLE=y` under
+  `$CONSOLE:ONLY` too, which changes no build), and `_ICON` means a third libqb variant. The four programs were
+  compiled outside the repo (three to six lines each: the metacommands of the table's first column, `_DEST
+  _CONSOLE` where there is a window, `PRINT "ok"`, `SYSTEM`, and `_ICON` after it; each printed `ok`); all
+  three variants exist in the local clone already, and its `git status` was the same before and after.
+- [x] 1.3 Read the old compiler's C++ (`qb64pe -z`) for one call of each of the 20 window built-ins and of
   `_DEST`, `_SOURCE`, `_CONSOLE`, `_ECHO`, in every form of its template. Note per built-in: the call, the
   conversion of each argument, the result type as the generated code holds it, and whether an existing rule of
   `sema\builtins.rs` fits. Verify: design D6 holds a table with one line per built-in, and its three "oddities"
   (`_SCREENEXISTS`, `_WINDOWHANDLE`, the parenthesised pairs) each have an answer.
-- [ ] 1.4 Measure the flags once more where D7 assumes: `v26_x…` programs for `$IF _EXPLICIT_` between two `OPTION
+  Found (2026-10-12): D6 holds the table (67 lines of forms and 54 of result-type probes, `qb64pe -z`, outside
+  the repo; the call-site programs of 3.1 and 4.1 keep each form). No new rule: every statement is
+  `StmtRule::Plain`, every function `Rule::Plain` but `_SCREENEXISTS`, which is `Rule::Fixed(LONG)` with one
+  marked case (as the direct argument of `HEX$`, `OCT$`, `_BIN$`: the old compiler passes width 0, not 8).
+  `table_ty` has to learn `_UNSIGNED _OFFSET` for `_WINDOWHANDLE`. The parser accepts every form today.
+- [x] 1.4 Measure the flags once more where D7 assumes: `v26_x…` programs for `$IF _EXPLICIT_` between two `OPTION
   _EXPLICIT` lines, `$ASSERTS:CONSOLE` with `$IF _CONSOLE_` above and below it (compile only if the program is
   otherwise rejected), and a program that needs three rounds (a `$CONSOLE` inside `$IF _EXPLICIT_`, with `OPTION
   _EXPLICIT` on the last line). Each program that runs prints where it is recorded: under `$CONSOLE:ONLY`, after
@@ -42,36 +59,70 @@ programs, recorded with `qb64pe.exe`.
   own flag's branch are measured: `v26_x39`, `x38`.) Verify: each is recorded; D7 says what each showed; a
   second corner where the old compiler's passes disagree, if found, is added to D7 and to the `compiler/pipeline`
   delta as a marked case.
+  Found (2026-10-12; `v26_x51`–`x56`, six programs): each as D7's port gives it, and no second corner (D7 says
+  why, from the source). One thing D7 did not have: `OPTION _EXPLICIT` is in force by its flag, not by its
+  line (`x54`, `x55`); added to D7, to the `compiler/pipeline` delta as two scenarios (that one, and three
+  rounds) and to task 6.2. `x56` measures the running value of `_ASSERTS_`, which D7 had read from the source.
 
 ## 2. The console mode, the metacommands and the build (design D1–D4)
 
-- [ ] 2.1 `sema`: the four metacommands matched exactly, each rejected form an error of the program (D2); the
+- [x] 2.1 `sema`: the four metacommands matched exactly, each rejected form an error of the program (D2); the
   mode recorded (console, window, hidden; D1); "select the console" pushed at every `$CONSOLE:ONLY`; the mark
   reworded to "programs without `$CONSOLE` or `$CONSOLE:ONLY`". Tests: a `check-fail` front-end test with every
   rejected form of `v26_x09`–`x14`, `x23`, `x29`–`x32`, `x35`–`x37` (and the forms of 1.1 that hold), a
   `check-ok` test with the accepted forms of `x01`, `x04`, `x08`, `x15`. Verify: `cargo test` passes with the
   new snapshots reviewed; each rejected form's diagnostic is not marked "not supported yet".
-- [ ] 2.2 IR: `Program::settings` (console, window, window hidden, runtime parts), `lower`, `validate`, the dump's
+- [x] 2.2 IR: `Program::settings` (console, window, window hidden, runtime parts), `lower`, `validate`, the dump's
   `settings` line (D3). Tests: an `ir` front-end test for `$CONSOLE` with `$SCREENHIDE`, one for `$CONSOLE:ONLY`,
   one for both metacommands, one for `$SCREENHIDE` followed by `$SCREENSHOW`. Verify: the four snapshots show the
   settings the `language/console-and-window` delta names; existing `ir` snapshots change by that one line only.
-- [ ] 2.3 Emitter and driver: the two globals written from the settings; the make flags from the settings in
+- [x] 2.3 Emitter and driver: the two globals written from the settings; the make flags from the settings in
   place of the fixed `DEP_CONSOLE_ONLY=y`; the flags hashed into the build key and its version string changed
   (D3, D4). Tests: a `cpp` front-end test for the globals in each of the four cases of 2.2; a unit test in
   `build.rs` that the key differs between two settings and that the flags of each case equal those noted in
   task 1.2. Verify: `cargo test -p qb64rust-driver` passes, with `-- --ignored` too (the tests that build an
   executable).
-- [ ] 2.4 Record two slice programs with `qb64pe.exe` and add them to `slice.list`. `s62_console_only_forms`, a
+- [x] 2.4 Record two slice programs with `qb64pe.exe` and add them to `slice.list`. `s62_console_only_forms`, a
   program without a window: `PRINT` above `$CONSOLE:ONLY`, `$CONSOLE:ONLY` and `$CONSOLE` in one program, the
   metacommands as last lines and in a SUB (`_DEST` comes in group 3, so `$CONSOLE:ONLY` a second time after
   `_DEST 0` goes into `s64`). `s63_console_window`, the first program linked with the windowed libqb: `$CONSOLE`
   and `$SCREENHIDE`, a `PRINT` that goes to the hidden window, `SYSTEM`; its recorded output is empty and its
   exit code 0. Verify: tier 2 slice passes for both with and without folding; `git status --porcelain` in the
   reference clone is the same before and after the first build of the windowed libqb.
-- [ ] 2.5 Regenerate the lists and snapshots the reworded mark changes (`QB64RUST_UPDATE_LISTS=1 cargo test`, then
+- [x] 2.5 Regenerate the lists and snapshots the reworded mark changes (`QB64RUST_UPDATE_LISTS=1 cargo test`, then
   review the diff: only the wording and the programs that lose a mark may change). Update `crates\README.md`
   (what the compiler supports; the build's flags), `tests\corpus\README.md` (no `PRINT` with a comma in a program
   with plain `$CONSOLE`). Verify: `cargo test` passes; the list diff holds no program that gained an error.
+  Group 2 as built (2026-10-12; tasks 2.1–2.5):
+  - 2.1: the two line rules are in `syntax` (`parser\meta.rs`) for every metacommand, in compiled code and in a
+    branch that is not taken (two more measurements on the way: `v26_x57`, a colon in such a branch, which the
+    new compiler rejected before; `x58`, a tab after a metacommand). `sema` matches the four metacommands
+    exactly (`check\mod.rs`, `console_meta`) and records the mode. Front-end tests `console_meta_errors` (24
+    rejected lines, 26 after the review below, none "not supported yet"), `console_meta_tab_after`, `console_meta_forms` (`check-ok`),
+    `no_console_untaken`; `no_console` and `pp_if_errors` changed by the two rewordings.
+  - 2.2: `Program::settings` in `sema` and in the IR, the `Settings:` line first in the dump; `validate` wants a
+    console or a window, and a console where one is selected. Four `ir` tests (`settings_*_ir`); the 25
+    existing `ir` snapshots differ by that line only. The runtime parts are collected from task 4.1 on: no
+    built-in compiled yet has one.
+  - 2.3: the two globals from the settings; `build::make_flags`; the flags in the build key (version 3). Four
+    `cpp` tests (`settings_*_cpp`), two unit tests in `build.rs`; the 13 `--ignored` tests pass.
+  - 2.4: `s62_console_only_forms` and `s63_console_window` recorded and on `slice.list` (289); both pass with
+    and without folding; the clone's `git status` unchanged. `s63`'s executable imports `glu32.dll` as the old
+    compiler's does and `s62`'s does not, so the windowed libqb is what it links. The whole slice list passes
+    (289 of 289, `--jobs 8 --build-cache`, 228 s), which also covers the flag added to every console-only
+    build.
+  - 2.5: `QB64RUST_UPDATE_LISTS=1 cargo test` changed no list (no listed program carries the reworded mark by
+    its text, and no `$CONSOLE` program lost its last mark: `_DEST` is still to come). `crates\README.md`,
+    `tests\corpus\README.md` and the two counts of `CLAUDE.md`'s layout table updated.
+  - Review of the group (2026-10-12), three things fixed: `$CONSOLE:ONLYX` was "not supported yet: metacommand
+    `$CONSOLE`" and is now the error of a wrong `$CONSOLE` form (`v26_x60`); `$INCLUDEONCE` with a tab or a
+    word after it was accepted and is now an error, in `syntax` (the file is not marked) and in `sema`
+    (`v26_x59`, `x61`); the slice count of `tests\corpus\README.md` was one short (67 `.output` files). Both
+    forms are lines of `console_meta_errors` and `console_meta_tab_after`. Left as it is: an unknown name such
+    as `$CONSOLE_ONLY` or `$SCREENHIDE2` gets the mark every unknown metacommand gets ("Syntax error" in the
+    old compiler). To watch from group 3 on: the runner's `--jobs` builds only the first program's libqb
+    variant alone, so several programs with a window on a clone that lacks that variant would build it at the
+    same time (CI runs one job).
 - [ ] 2.6 After the user pushes group 2: read the `tier2` job of `rust.yml` on GitHub. Verify: it is green, and
   `STATUS.md` records how long the job took before and after; or, if a program with a window does not start
   there, the fallback of design D9 is put to the user before group 3's windowed programs go onto a list.
@@ -146,7 +197,9 @@ programs, recorded with `qb64pe.exe`.
   unchanged; tier 1's time is within 10% of before (noted here).
 - [ ] 6.2 `sema`: the "precompiler flag in `$IF`" mark is gone except for the corner; the program's console
   comes from the settled `_CONSOLE_` flag as well as from the walk (D1; a front-end `ir` test with the program
-  of `v26_x26` shows a console in its `settings` line and no mark); `$ASSERTS` and `$DEBUG` stay
+  of `v26_x26` shows a console in its `settings` line and no mark); `OPTION _EXPLICIT` and `OPTION
+  _EXPLICITARRAY` are in force by their settled flags as well as by their statements (D7; a `check-fail` test
+  with the program of `v26_x55`, a `check-ok` test with `v26_x54`); `$ASSERTS` and `$DEBUG` stay
   marked as metacommands. Record slice program `s68_precompiler_flags` with `qb64pe.exe` (the scenarios above
   that run) and add it to `slice.list`. Run the seven upstream `precomp-flags` tests and add those that pass to
   `tests\upstream\pass.list`; regenerate the shrink-only lists; update the READMEs and the comment at the top of

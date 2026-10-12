@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-12 (session 49).
+Updated 2026-10-12 (session 50).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -71,8 +71,12 @@ The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3
     element beside other targets of one `ERASE` or `REDIM`, an element of a member array as a target of
     `INPUT`, `READ` or `MID$`, `REDIM t.v(0) AS type` under `OPTION BASE 1`.
 11. **Next:** (was 10) `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE` (`study\26` §5). Measured 2026-10-12
-    (`verification\v26_*`, 51 programs; the facts in `study\00` §5). Proposed as OpenSpec change
-    `m2-console-screenhide` (2026-10-12, not started; 7 task groups), with the wider scope the user decided
+    (`verification\v26_*`, 73 programs; the facts in `study\00` §5). OpenSpec change `m2-console-screenhide`
+    (proposed 2026-10-12; 7 task groups; 9 of 24 tasks done: group 1, the measurements before code, and group
+    2 but its task 2.6: a `$CONSOLE` program is compiled and built with a console and a window, the four
+    metacommands are matched exactly, `slice.list` has 289 programs, all passing. Open: task 2.6, reading the
+    `tier2` job after the push of group 2; then group 3, `_DEST`, `_SOURCE`, `_CONSOLE`, `_ECHO`), with the
+    wider scope the user decided
     (`DECISIONS.md` 2026-10-12): also the window built-ins of the 19 upstream `glut` tests as compiled,
     never-run code, the constants of the auto-included file (`_TRUE`, `_FALSE`) and the precompiler flags in
     `$IF`. Still to check once: that the GitHub Windows runner can start a program with `$CONSOLE` and

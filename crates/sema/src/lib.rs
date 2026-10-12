@@ -1175,6 +1175,21 @@ pub struct Program {
     pub types: Vec<UserType>,
     /// Where each variable and procedure is defined and used (design D12).
     pub symbols: Symbols,
+    /// The program's console and window.
+    pub settings: Settings,
+}
+
+/// What the metacommands of a program's compiled code say of its console and window, wherever they stand (design
+/// D1 of `m2-console-screenhide`; measured, `verification\v26_*`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Settings {
+    /// `$CONSOLE` or `$CONSOLE:ONLY` stands in the program. A program without one is not supported yet.
+    pub console: bool,
+    /// No `$CONSOLE:ONLY` stands in the program.
+    pub window: bool,
+    /// The last of `$SCREENHIDE` and `$SCREENSHOW` in the file is `$SCREENHIDE`. The old compiler records it
+    /// whether the program has a window or not.
+    pub window_hidden: bool,
 }
 
 impl Program {

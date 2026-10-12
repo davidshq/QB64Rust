@@ -13,6 +13,10 @@ pub fn validate(p: &Program) -> Result<(), Vec<String>> {
         p,
         problems: Vec::new(),
     };
+    // Its text has to go somewhere.
+    if !p.settings.console && !p.settings.window {
+        v.problem("settings: neither a console nor a window".to_string());
+    }
     for (i, proc) in p.procs.iter().enumerate() {
         let id = ProcId(qb64rust_base::to_u32(i));
         for (k, param) in proc.params.iter().enumerate() {
@@ -181,7 +185,12 @@ impl Validator<'_> {
 
     fn op(&mut self, op: &Op, b: &Body, owner: Option<ProcId>, at: &At) {
         match op {
-            Op::SelectConsole | Op::End | Op::System | Op::Exit | Op::SetHandler(None) | Op::Return(None) => {}
+            Op::SelectConsole => {
+                if !self.p.settings.console {
+                    self.problem(format!("{at}: the console is selected in a program without one"));
+                }
+            }
+            Op::End | Op::System | Op::Exit | Op::SetHandler(None) | Op::Return(None) => {}
             Op::Resume(Resume::Retry | Resume::Next) => {}
             Op::SetHandler(Some(l)) => self.main_label(*l, at, "handler"),
             Op::Resume(Resume::To(l)) => self.main_label(*l, at, "resume"),
@@ -659,7 +668,7 @@ mod tests {
     use super::validate;
     use crate::{
         AllocMode, Arg, ArrayRef, Body, Expr, ExprKind, Label, LabelId, MemberId, Op, Place, Proc, ProcId, ProcKind,
-        Program, Resume, Shape, Stmt, Storage, Ty, Var, VarId,
+        Program, Resume, Settings, Shape, Stmt, Storage, Ty, Var, VarId,
     };
     use qb64rust_base::{FileId, Span};
 
@@ -742,6 +751,10 @@ mod tests {
             },
             types: Vec::new(),
             data: Vec::new(),
+            settings: Settings {
+                console: true,
+                ..Settings::default()
+            },
         }
     }
 
@@ -752,6 +765,24 @@ mod tests {
     #[test]
     fn a_sound_program_passes() {
         assert_eq!(problems(&program()), Vec::<String>::new());
+    }
+
+    #[test]
+    fn settings() {
+        let mut p = program();
+        p.main.stmts[0].ops.push(Op::SelectConsole);
+        assert_eq!(problems(&p), Vec::<String>::new());
+        // A window and no console: sound, until the console is selected.
+        p.settings.console = false;
+        p.settings.window = true;
+        assert_eq!(
+            problems(&p),
+            ["main: statement 0 (line 1): the console is selected in a program without one"]
+        );
+        p.main.stmts[0].ops.pop();
+        assert_eq!(problems(&p), Vec::<String>::new());
+        p.settings.window = false;
+        assert_eq!(problems(&p), ["settings: neither a console nor a window"]);
     }
 
     #[test]

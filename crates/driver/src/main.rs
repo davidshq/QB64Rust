@@ -8,7 +8,7 @@
 //!
 //! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
 
-use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit, frontend_with, report};
+use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit_ir, frontend_with, lower, report};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -273,7 +273,7 @@ fn run() -> Result<ExitCode, String> {
         });
     }
 
-    let settings = build_settings(&o.settings).inspect_err(|_| {
+    let mut settings = build_settings(&o.settings).inspect_err(|_| {
         let _ = std::fs::remove_file(&exe);
     })?;
     if errors > 0 {
@@ -283,7 +283,9 @@ fn run() -> Result<ExitCode, String> {
     }
     report(&fe);
 
-    let fragments = emit(&fe);
+    let ir = lower(&fe);
+    settings.flags = build::make_flags(&ir.settings);
+    let fragments = emit_ir(&fe, &ir);
     let build_dir = build::build_dir(&exe);
     if o.cpp_only {
         let temp = build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;

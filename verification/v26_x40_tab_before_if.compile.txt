@@ -1,0 +1,5 @@
+
+$END IF without $IF
+Caused by (or after):
+LINE 5:$END IF
+exit=1

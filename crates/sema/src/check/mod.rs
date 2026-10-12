@@ -25,6 +25,7 @@ use qb64rust_syntax::ParsedProgram;
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::meta::{MemoryMode, comment_directives};
+use qb64rust_syntax::pp::meta_line;
 use qb64rust_syntax::tree::{Node, Tok, TreeId};
 use std::collections::{HashMap, HashSet};
 
@@ -58,7 +59,9 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         label_of_def: HashMap::new(),
         diags: Diagnostics::new(),
         stmt_error: false,
+        console: false,
         console_only: false,
+        window_hidden: false,
         names: Vec::new(),
         consts_main: HashMap::new(),
         consts_local: HashMap::new(),
@@ -177,11 +180,58 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         c.check_statement(stmt, &skips);
     }
     c.solve_dims();
-    if !c.console_only {
+    if !c.console {
+        // Its only output is the window's, which nothing checks yet (M3).
         let at = Span::new(root.file, 0, 0);
-        c.diags.unsupported(at, "programs without `$CONSOLE:ONLY`");
+        c.diags
+            .unsupported(at, "programs without `$CONSOLE` or `$CONSOLE:ONLY`");
     }
+    c.prog.settings = crate::Settings {
+        console: c.console,
+        window: !c.console_only,
+        window_hidden: c.window_hidden,
+    };
     (c.prog, c.diags)
+}
+
+/// One of the four metacommands that choose a program's console and window.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ConsoleMeta {
+    Console,
+    ConsoleOnly,
+    ScreenHide,
+    ScreenShow,
+}
+
+/// The console or window metacommand a metacommand token is: `None` for any other metacommand, an error for a form
+/// of one of the four that the old compiler rejects. It compares the whole line, in upper case and without the
+/// blanks at its ends, with the four names, so anything else on the line is "Syntax error" (measured,
+/// `verification\v26_x09`–`x12`, `x14`, `x29`–`x32`, `x35`, `x37`: `$CONSOLE:OFF`, a word, a comment or a colon and
+/// a statement after the name, blanks around the colon of `$CONSOLE:ONLY`).
+fn console_meta(raw: &[u8]) -> Option<Result<ConsoleMeta, String>> {
+    const NAMES: [(&str, ConsoleMeta); 4] = [
+        ("$CONSOLE:ONLY", ConsoleMeta::ConsoleOnly),
+        ("$CONSOLE", ConsoleMeta::Console),
+        ("$SCREENHIDE", ConsoleMeta::ScreenHide),
+        ("$SCREENSHOW", ConsoleMeta::ScreenShow),
+    ];
+    let text = meta_line(raw);
+    for (name, meta) in NAMES {
+        let Some(rest) = text.strip_prefix(name.as_bytes()) else {
+            continue;
+        };
+        return match rest.first() {
+            None => Some(Ok(meta)),
+            // Another name that starts alike: `$CONSOLE:ONLYX` is a wrong form of `$CONSOLE` (measured,
+            // `verification\v26_x60`), `$CONSOLEX` another metacommand.
+            Some(b) if b.is_ascii_alphanumeric() || *b == b'_' => continue,
+            Some(b':') if meta == ConsoleMeta::Console => {
+                Some(Err("expected `$CONSOLE` or `$CONSOLE:ONLY`".to_string()))
+            }
+            Some(_) => Some(Err(format!("`{name}` must stand alone on its line"))),
+        };
+    }
+    None
 }
 
 /// Which statements the checker skips: those with a parse error, and those past the parser's error cap. Kept per
@@ -269,7 +319,12 @@ struct Checker<'a> {
     label_of_def: HashMap<(TreeId, u32), LabelId>,
     diags: Diagnostics,
     stmt_error: bool,
+    /// The program's console and window, from the metacommands of its compiled code, wherever they stand (design
+    /// D1 of `m2-console-screenhide`): a `$CONSOLE` or `$CONSOLE:ONLY` was met; a `$CONSOLE:ONLY` was met (the
+    /// program has no window); the last of `$SCREENHIDE` and `$SCREENSHOW` met was `$SCREENHIDE`.
+    console: bool,
     console_only: bool,
+    window_hidden: bool,
     fold: bool,
     /// Names resolved in the current statement, for the symbol table.
     names: Vec<(SymbolKind, Span)>,
@@ -826,18 +881,35 @@ impl Checker<'_> {
         let node = stmt.node();
         let tok = self.need(stmt.token(), node.span())?;
         let raw = self.text(tok.span);
-        let trimmed: Vec<u8> = raw.iter().copied().filter(|b| !b.is_ascii_whitespace()).collect();
+        let line = meta_line(raw);
+        let once = line.strip_prefix(b"$INCLUDEONCE".as_slice());
         if let Some(flag) = stmt.precompiler_flag(raw) {
             // The old compiler sets these from the whole program; not known here yet (`syntax::pp`).
             Err(self.unsupported(tok.span, format!("the precompiler flag `{flag}` in `$IF`")))
-        } else if stmt.is_preprocessor(raw) || trimmed.eq_ignore_ascii_case(b"$INCLUDEONCE") {
+        } else if stmt.is_preprocessor(raw) || once == Some(b"") {
             // Evaluated by the parser (`$INCLUDEONCE` too); an error in it is a parse error, and the statement is
             // skipped then.
             Ok(())
-        } else if trimmed.eq_ignore_ascii_case(b"$CONSOLE:ONLY") {
-            if !self.console_only {
-                self.console_only = true;
-                self.push(node, StmtKind::ConsoleOnly);
+        } else if once
+            .and_then(<[u8]>::first)
+            .is_some_and(|b| !b.is_ascii_alphanumeric() && *b != b'_')
+        {
+            // The old compiler compares the whole line here too: a tab or a word after the name is "Syntax
+            // error" (measured, `verification\v26_x59`, `x61`).
+            Err(self.error(tok.span, "`$INCLUDEONCE` must stand alone on its line"))
+        } else if let Some(m) = console_meta(raw) {
+            match m {
+                Ok(ConsoleMeta::Console) => self.console = true,
+                Ok(ConsoleMeta::ConsoleOnly) => {
+                    // Each one selects the console where it stands (measured, `verification\v26_x25`).
+                    self.console = true;
+                    self.console_only = true;
+                    self.push(node, StmtKind::ConsoleOnly);
+                }
+                // The last of the two in the file counts (`qb64pe.bas` 3615–3624).
+                Ok(ConsoleMeta::ScreenHide) => self.window_hidden = true,
+                Ok(ConsoleMeta::ScreenShow) => self.window_hidden = false,
+                Err(msg) => return Err(self.error(tok.span, msg)),
             }
             Ok(())
         } else {

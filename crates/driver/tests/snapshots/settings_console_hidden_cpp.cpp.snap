@@ -1,0 +1,69 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+int32 console=1;
+int32 screen_hide_startup=1;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 5 "settings_console_hidden_cpp.bas"
+do{
+#line 5 "settings_console_hidden_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 5 "settings_console_hidden_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("x",1));
+#line 5 "settings_console_hidden_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 5 "settings_console_hidden_cpp.bas"
+makefit(tqbs);
+#line 5 "settings_console_hidden_cpp.bas"
+qbs_print(tqbs,0);
+#line 5 "settings_console_hidden_cpp.bas"
+qbs_print(nothingstring,1);
+#line 5 "settings_console_hidden_cpp.bas"
+skip1:
+#line 5 "settings_console_hidden_cpp.bas"
+qbs_free(tqbs);
+#line 5 "settings_console_hidden_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 5 "settings_console_hidden_cpp.bas"
+if(!qbevent)break;evnt(5);}while(r);
+#line 6 "settings_console_hidden_cpp.bas"
+do{
+#line 6 "settings_console_hidden_cpp.bas"
+if (sub_gl_called) error(271);
+#line 6 "settings_console_hidden_cpp.bas"
+close_program=1;
+#line 6 "settings_console_hidden_cpp.bas"
+end();
+#line 6 "settings_console_hidden_cpp.bas"
+if(!qbevent)break;evnt(6);}while(r);
+sub_end();
+return;
+}
+==> empty: regsf.txt dyninfo.txt clear.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt maindata.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt

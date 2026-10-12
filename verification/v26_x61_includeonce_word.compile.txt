@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ INCLUDEONCE JUNK
+LINE 2:$INCLUDEONCE junk
+exit=1
