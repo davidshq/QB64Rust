@@ -85,6 +85,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         no_join: None,
         dim_facts: Vec::new(),
         dims_open: HashSet::new(),
+        type_bases: HashMap::new(),
     };
     let skips = Skips::new(program);
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
@@ -104,7 +105,12 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
 
     // Pass 1: the user types (a parameter may name one), then procedure names, then their parameters (a parameter may not have the name of any procedure).
     // A header with an error (a parse error, a reserved name...) still enters its name as a broken procedure, so
-    // calls of it fail without a second error.
+    // calls of it fail without a second error. A member array's bounds go by `OPTION BASE` as it stands at its
+    // block, which follows the file (design D8 of `m2-defxxx-common-arrays`).
+    let mut base = 0;
+    for &stmt in &top {
+        c.collect_option_bases(stmt, &skips, &mut base);
+    }
     c.declare_types(&statements, &skips);
     // The default types follow the file (design D2): the table as it stands at each procedure's header.
     for &stmt in &top {
@@ -330,6 +336,9 @@ struct Checker<'a> {
     /// The arrays listed by `COMMON a()` or `STATIC a()` that were passed to an array parameter before anything
     /// gave them a number of dimensions: theirs is found with the parameter's.
     dims_open: HashSet<VarId>,
+    /// Per `TYPE` block (by key): `OPTION BASE` as it stands at the block, which the bounds of its member arrays
+    /// go by ([`Self::collect_option_bases`]).
+    type_bases: HashMap<(TreeId, u32), i64>,
 }
 
 /// One thing that says how many dimensions an array has, for an array whose number is found from everything that
@@ -521,6 +530,39 @@ impl Checker<'_> {
         }
         for n in node.child_nodes() {
             self.collect_defaults(n, skips);
+        }
+    }
+
+    /// Pass 1 of `OPTION BASE` (design D8 of `m2-defxxx-common-arrays`; measured, `verification\v24_x182`,
+    /// `x183`, `x217`): the `TYPE` blocks are read before the statements, and a member array declared without
+    /// `TO` starts at the base in effect where its block stands. Walks the file in order as
+    /// [`Self::collect_defaults`] does, applies every `OPTION BASE` that pass 2 will apply (wherever it stands,
+    /// whether or not it runs) and keeps the base at each `TYPE` block. A statement with an error changes
+    /// nothing here and is reported by pass 2.
+    fn collect_option_bases(&mut self, node: Node, skips: &Skips, base: &mut i64) {
+        if let Some(s) = ast::OptionStmt::cast(node) {
+            let digits = s.base().filter(|_| skips.usable(node)).map(|t| self.text(t.span));
+            if let Some(n) = digits.and_then(decl::option_base_of) {
+                *base = n;
+            }
+            return;
+        }
+        if ast::InactiveCode::cast(node).is_some() {
+            return;
+        }
+        if ast::TypeBlock::cast(node).is_some() {
+            self.type_bases.insert(node.key(), *base);
+            return;
+        }
+        if ast::MetaCommentStmt::cast(node).is_some() {
+            let program = self.program;
+            if let Some(tree) = program.included(node) {
+                self.collect_option_bases(tree.root(), skips, base);
+            }
+            return;
+        }
+        for n in node.child_nodes() {
+            self.collect_option_bases(n, skips, base);
         }
     }
 

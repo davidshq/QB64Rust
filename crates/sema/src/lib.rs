@@ -334,8 +334,9 @@ pub fn conversion(from: Ty, to: Ty) -> ConvKind {
 
 /// The size of a value of a numeric or user type in memory: what `LEN` of a place gives and what the layout of a
 /// `TYPE` is made of. A `_FLOAT` takes 32 bytes as in the old compiler (`study\02` §1.7); a user type is its members'
-/// sizes added up, in order, without padding (measured, `verification\v18_h_type_members`, `v20_g_len`). A `_BIT *
-/// n` takes its [`Ty::storage`] (`LEN` of one is an error, the checker's; it is never a member).
+/// sizes added up, in order, without padding (measured, `verification\v18_h_type_members`, `v20_g_len`), a member
+/// array as all its elements (`v24_h_member_arrays`: 22 for a LONG, four LONGs and an INTEGER). A `_BIT * n` takes
+/// its [`Ty::storage`] (`LEN` of one is an error, the checker's; it is never a member).
 pub fn size_of(types: &[UserType], t: Ty) -> u32 {
     match t {
         Ty::I8 | Ty::U8 => 1,
@@ -344,7 +345,11 @@ pub fn size_of(types: &[UserType], t: Ty) -> u32 {
         Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff | Ty::F64 => 8,
         Ty::F80 => 32,
         Ty::Bit { .. } => size_of(types, t.storage()),
-        Ty::User(id) => types[id.0 as usize].members.iter().map(|m| size_of(types, m.ty)).sum(),
+        Ty::User(id) => types[id.0 as usize]
+            .members
+            .iter()
+            .map(|m| size_of(types, m.ty) * m.count())
+            .sum(),
         Ty::FixedStr(n) => n,
         Ty::Str => unreachable!("a string has no fixed size"),
     }
@@ -399,8 +404,26 @@ pub struct UserType {
 pub struct Member {
     /// The name in upper case, without suffix.
     pub name: String,
-    /// A numeric type other than `_BIT`, `STRING`, `STRING * n`, or a user type defined before this one.
+    /// A numeric type other than `_BIT`, `STRING`, `STRING * n`, or a user type defined before this one. Of a
+    /// member array, the type of its elements.
     pub ty: Ty,
+    /// A member array (design D8 of `m2-defxxx-common-arrays`): the lower and upper bound of each dimension, first
+    /// dimension first, read where the `TYPE` block stands. Empty for a member that is a single value. The
+    /// elements are part of each value of the type and the bounds never change (measured,
+    /// `verification\v24_h_member_arrays`, `v24_x184`–`x190`).
+    pub bounds: Vec<(i64, i64)>,
+}
+
+impl Member {
+    pub fn is_array(&self) -> bool {
+        !self.bounds.is_empty()
+    }
+
+    /// The number of elements of a member array; 1 for a member that is a single value.
+    pub fn count(&self) -> u32 {
+        let n: i64 = self.bounds.iter().map(|&(lower, upper)| upper - lower + 1).product();
+        u32::try_from(n).expect("the checker limits the size of a `TYPE`")
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -554,15 +577,63 @@ impl Var {
     }
 }
 
-/// Where a value is read from and stored to (design D5 of `m2-arrays-and-types`).
+/// An array that is named as a whole: by an element of it, by `LBOUND` and `UBOUND`, by `ERASE`, or as an array
+/// argument (design D8 of `m2-defxxx-common-arrays`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum ArrayRef {
+    /// An array variable.
+    Var(VarId),
+    /// A member array of a place of a user type (`t.v`, `a(1).v`, `x(0).n(1).q`): its bounds are its member's
+    /// ([`Member::bounds`]) and its elements lie in the value of `base`.
+    Member { base: Box<Place>, member: MemberId },
+}
+
+impl ArrayRef {
+    /// The array variable, when it is one.
+    pub fn var(&self) -> Option<VarId> {
+        match self {
+            ArrayRef::Var(v) => Some(*v),
+            ArrayRef::Member { .. } => None,
+        }
+    }
+
+    /// The variable the array is, or is part of.
+    pub fn root(&self) -> VarId {
+        match self {
+            ArrayRef::Var(v) => *v,
+            ArrayRef::Member { base, .. } => base.root(),
+        }
+    }
+
+    /// Whether finding the array may raise an error: the place a member array is part of may be an element.
+    pub fn may_raise(&self) -> bool {
+        match self {
+            ArrayRef::Var(_) => false,
+            ArrayRef::Member { base, .. } => base.may_raise(),
+        }
+    }
+
+    /// The indexes on the way to the array, outermost element first.
+    pub fn indexes(&self) -> Vec<&Expr> {
+        match self {
+            ArrayRef::Var(_) => Vec::new(),
+            ArrayRef::Member { base, .. } => base.indexes(),
+        }
+    }
+}
+
+/// Where a value is read from and stored to (design D5 of `m2-arrays-and-types`, D8 of
+/// `m2-defxxx-common-arrays`). `x(0).n(1).q(2)` is one place: element 2 of member `q` of element 1 of member `n`
+/// of element 0 of `x`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Place {
     /// A scalar variable.
     Var(VarId),
     /// An element of an array: one index per dimension, each already converted to `_INTEGER64`. An index outside
     /// its dimension's bounds raises error 9.
-    Element { array: VarId, index: Vec<Expr> },
-    /// A member of a place whose type is a user type.
+    Element { array: ArrayRef, index: Vec<Expr> },
+    /// A member of a place whose type is a user type; never a member array, which is named only as an
+    /// [`ArrayRef::Member`].
     Member { base: Box<Place>, member: MemberId },
 }
 
@@ -580,12 +651,13 @@ impl Place {
     /// The variable the place is part of.
     pub fn root(&self) -> VarId {
         match self {
-            Place::Var(v) | Place::Element { array: v, .. } => *v,
+            Place::Var(v) => *v,
+            Place::Element { array, .. } => array.root(),
             Place::Member { base, .. } => base.root(),
         }
     }
 
-    /// Whether an element lies on the way to the place (`a(i).m`, `a(i)`).
+    /// Whether an element lies on the way to the place (`a(i).m`, `a(i)`, `t.v(i)`).
     pub fn has_element(&self) -> bool {
         match self {
             Place::Var(_) => false,
@@ -598,8 +670,23 @@ impl Place {
     pub fn indexes(&self) -> Vec<&Expr> {
         match self {
             Place::Var(_) => Vec::new(),
-            Place::Element { index, .. } => index.iter().collect(),
+            Place::Element { array, index } => {
+                let mut all = array.indexes();
+                all.extend(index);
+                all
+            }
             Place::Member { base, .. } => base.indexes(),
+        }
+    }
+
+    /// Whether the place is reached through a member with an index on the way: a member of an element
+    /// (`a(i).m`) or an element of a member array (`t.v(i)`, `a(i).v(j)`). A store into such a place has a rule
+    /// of its own ([`StmtKind::Assign`]).
+    pub fn through_member(&self) -> bool {
+        match self {
+            Place::Var(_) => false,
+            Place::Element { array, .. } => matches!(array, ArrayRef::Member { .. }),
+            Place::Member { base, .. } => base.has_element(),
         }
     }
 }
@@ -638,8 +725,10 @@ pub enum Arg {
     Temp(Expr),
     /// A whole array, to an array parameter: the procedure works on this array (design D6 of
     /// `m2-defxxx-common-arrays`). Its element type has the parameter's kind and width; signedness is not
-    /// compared.
-    Array(VarId),
+    /// compared. A member array is passed as a static array with its member's bounds (measured,
+    /// `verification\v24_x315`): its place is found once, where the argument stands, and an index outside its
+    /// bounds on the way raises error 9, so that the procedure is not entered.
+    Array(ArrayRef),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -737,9 +826,13 @@ pub enum ExprKind {
     Load(Place),
     /// `LBOUND` (`upper` false) or `UBOUND` of an array: a dimension's bound, typed `_INTEGER64` (measured). `dim`
     /// is LONG; absent for the first dimension. A dimension outside 1 to the number of dimensions raises error 9.
+    ///
+    /// Of a member array the bound is its member's, known when compiling: **the place the array is part of is
+    /// not found**, so its indexes are not evaluated and one outside its bounds raises nothing (measured,
+    /// `verification\v24_x311`: `UBOUND(a(f(1)).v)` does not call `f`, `LBOUND(a(9).v)` raises no error).
     Bound {
         upper: bool,
-        array: VarId,
+        array: ArrayRef,
         dim: Option<Box<Expr>>,
     },
     Convert {
@@ -830,7 +923,11 @@ pub enum StmtKind {
     /// `$CONSOLE:ONLY`: output and input go to the console.
     ConsoleOnly,
     /// A store; the value has the place's type (never a user type: [`StmtKind::CopyWhole`]). The store rule
-    /// depends on the place (design D6 of `m2-arrays-and-types`).
+    /// depends on the place (design D6 of `m2-arrays-and-types`): for an element of an array variable the
+    /// indexes come first, and with an error pending after them the value is not evaluated and nothing is
+    /// stored. For a place reached through a member with an index on the way ([`Place::through_member`]) a
+    /// number is evaluated before the indexes and a string after them (measured, `verification\v24_x313`,
+    /// `x316`), and nothing is stored when an index is outside its bounds (`DIVERGENCES.md` D-004).
     Assign {
         place: Place,
         value: Expr,
@@ -861,8 +958,14 @@ pub enum StmtKind {
         joined: bool,
     },
     /// `ERASE` of a static array: every element becomes zero, an empty string or NUL bytes; the bounds stay.
+    ///
+    /// Of a member array, by `ERASE` or by a `REDIM` with its own bounds (design D8 of
+    /// `m2-defxxx-common-arrays`; measured, `verification\v24_x184`, `x188`, `x189`, `x312`): the place it is
+    /// part of is found once, and the clear is not guarded: an index outside its bounds on the way raises error
+    /// 9 and the member array of that array's first element is cleared, as it is after any other error the
+    /// index raises.
     Clear {
-        array: VarId,
+        array: ArrayRef,
     },
     /// `ERASE` of a dynamic array: its elements are released and it is not allocated afterwards. Of one that is
     /// not allocated it does nothing.
@@ -1094,8 +1197,25 @@ impl Program {
     /// The type of a place: a variable's, an array's element type, a member's.
     pub fn place_ty(&self, p: &Place) -> Ty {
         match p {
-            Place::Var(v) | Place::Element { array: v, .. } => self.var(*v).ty,
+            Place::Var(v) => self.var(*v).ty,
+            Place::Element { array, .. } => self.array_ty(array),
             Place::Member { base, member } => self.member(self.place_ty(base), *member).ty,
+        }
+    }
+
+    /// The type of an array's elements.
+    pub fn array_ty(&self, a: &ArrayRef) -> Ty {
+        match a {
+            ArrayRef::Var(v) => self.var(*v).ty,
+            ArrayRef::Member { base, member } => self.member(self.place_ty(base), *member).ty,
+        }
+    }
+
+    /// The number of dimensions of an array, where it is known.
+    pub fn array_dims(&self, a: &ArrayRef) -> Option<usize> {
+        match a {
+            ArrayRef::Var(v) => self.var(*v).dim_count(),
+            ArrayRef::Member { base, member } => Some(self.member(self.place_ty(base), *member).bounds.len()),
         }
     }
 

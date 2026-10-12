@@ -302,7 +302,7 @@ impl Emitter<'_> {
 #[cfg(test)]
 mod tests {
     use super::input_type_code;
-    use qb64rust_ir::{MemberId, Place, Ty, VarId};
+    use qb64rust_ir::{ArrayRef, MemberId, Place, Ty, VarId};
 
     /// The codes the old compiler wrote for each target type (`qb64pe -z`, 2026-10-10; `study\00` §5).
     #[test]
@@ -325,7 +325,7 @@ mod tests {
             assert_eq!(input_type_code(ty, &var), code, "{ty:?}");
         }
         let element = Place::Element {
-            array: VarId(0),
+            array: ArrayRef::Var(VarId(0)),
             index: Vec::new(),
         };
         assert_eq!(input_type_code(Ty::I32, &element), 146_800_672);

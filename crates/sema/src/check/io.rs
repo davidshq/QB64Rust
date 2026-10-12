@@ -283,9 +283,12 @@ impl Checker<'_> {
         {
             return Err(self.error(span, format!("the FUNCTION's own name cannot be a target of `{what}`")));
         }
-        if matches!(place, Place::Member { .. }) && place.has_element() {
-            // Not measured: where the old compiler evaluates the index of `a(i).m` as a target.
-            return Err(self.unsupported(span, format!("a member of an array element as a target of `{what}`")));
+        // `SWAP` takes the two places by reference, as an argument does (measured, `verification\v24_x202`,
+        // `x314`: an index outside its bounds raises error 9 and the first element stands in). Not measured for
+        // the others: where the old compiler evaluates the index of `a(i).m` or `t.v(i)` as a target.
+        if place.through_member() && what != "SWAP" {
+            let msg = format!("a member of an array element, or an element of a member array, as a target of `{what}`");
+            return Err(self.unsupported(span, msg));
         }
         Ok(place)
     }

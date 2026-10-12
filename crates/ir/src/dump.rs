@@ -1,8 +1,8 @@
 //! `--dump ir`: the lowering-pair text of design D6.
 
 use crate::{
-    Arg, BinOp, Body, Expr, ExprKind, LabelId, OnError, Op, Place, PrintItem, ProcKind, Program, Resume, Shape, Source,
-    StmtArg, Storage, Ty, VarId, When,
+    Arg, ArrayRef, BinOp, Body, Expr, ExprKind, LabelId, OnError, Op, Place, PrintItem, ProcKind, Program, Resume,
+    Shape, Source, StmtArg, Storage, Ty, VarId, When,
 };
 
 use qb64rust_base::{show_bytes, to_u32};
@@ -15,6 +15,21 @@ pub fn dump(p: &Program) -> String {
     for (i, item) in p.data.iter().enumerate() {
         let q = if item.quoted { "\"" } else { "" };
         writeln!(out, "Data {i}: {q}{}{q}", show_bytes(&item.text)).unwrap();
+    }
+    // The member arrays, when there are any: each with its bounds, which are part of its user type.
+    for t in &p.types {
+        for m in t.members.iter().filter(|m| m.is_array()) {
+            let dims: Vec<String> = m.bounds.iter().map(|(l, u)| format!("{l} To {u}")).collect();
+            writeln!(
+                out,
+                "Member array {}.{}:{} ({})",
+                t.name,
+                m.name,
+                ty(p, m.ty),
+                dims.join(", ")
+            )
+            .unwrap();
+        }
     }
     // The arrays, when there are any: a static one with its bounds, a dynamic one with its number of dimensions.
     for (i, v) in p.vars.iter().enumerate() {
@@ -155,7 +170,7 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     }
                 }
                 Op::Clear { array } => {
-                    writeln!(out, "  Clear {}:{}", var(p, *array), ty(p, p.var(*array).ty)).unwrap();
+                    writeln!(out, "  Clear {}:{}", array_text(p, array), ty(p, p.array_ty(array))).unwrap();
                 }
                 Op::Release { array } => {
                     writeln!(out, "  Release {}:{}", var(p, *array), ty(p, p.var(*array).ty)).unwrap();
@@ -280,10 +295,21 @@ fn place_text(p: &Program, place: &Place) -> String {
         Place::Var(v) => var(p, *v),
         Place::Element { array, index } => {
             let i: Vec<String> = index.iter().map(|v| val(p, v)).collect();
-            format!("{}({})", var(p, *array), i.join(", "))
+            format!("{}({})", array_text(p, array), i.join(", "))
         }
         Place::Member { base, member } => {
             let m = &p.member(p.place_ty(base), *member).name;
+            format!("{}.{m}", place_text(p, base))
+        }
+    }
+}
+
+/// An array: a variable as [`var`] shows it, `P.M` for a member array.
+fn array_text(p: &Program, array: &ArrayRef) -> String {
+    match array {
+        ArrayRef::Var(v) => var(p, *v),
+        ArrayRef::Member { base, member } => {
+            let m = &p.member_of(base, *member).name;
             format!("{}.{m}", place_text(p, base))
         }
     }
@@ -308,7 +334,7 @@ fn args(p: &Program, args: &[Arg]) -> String {
         .map(|a| match a {
             Arg::Ref(place) => format!("Ref {}:{}", place_text(p, place), ty(p, p.place_ty(place))),
             Arg::Temp(v) => format!("Temp({})", val(p, v)),
-            Arg::Array(a) => format!("Array {}:{}", var(p, *a), ty(p, p.var(*a).ty)),
+            Arg::Array(a) => format!("Array {}:{}", array_text(p, a), ty(p, p.array_ty(a))),
         })
         .collect::<Vec<_>>()
         .join(", ")
@@ -324,7 +350,7 @@ fn val(p: &Program, v: &Expr) -> String {
         ExprKind::Bound { upper, array, dim } => {
             let word = if *upper { "UBound" } else { "LBound" };
             let d = dim.as_deref().map_or("1".to_string(), |d| val(p, d));
-            format!("{word} {}({d}):{}", var(p, *array), ty(p, v.ty))
+            format!("{word} {}({d}):{}", array_text(p, array), ty(p, v.ty))
         }
         ExprKind::Convert { how, from } => format!("({} -> Convert {} {how:?})", val(p, from), ty(p, v.ty)),
         ExprKind::Binary { op, lhs, rhs } => {

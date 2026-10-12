@@ -162,21 +162,27 @@ int32 mbr_bad=0;
 #line 18 "places_cpp.bas"
 int64 mbr_k;
 #line 18 "places_cpp.bas"
-ptrszint mbr_flat=0;
+ptrszint mbr_off=0;
 #line 18 "places_cpp.bas"
 mbr_k=(qbr(*__SINGLE_I))-__ARRAY_UDT_A[8];
 #line 18 "places_cpp.bas"
 if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[9]){error(9);mbr_bad=1;}
 #line 18 "places_cpp.bas"
-mbr_flat=mbr_k;
+mbr_off=mbr_k;
 #line 18 "places_cpp.bas"
 mbr_k=(0ll)-__ARRAY_UDT_A[4];
 #line 18 "places_cpp.bas"
 if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[5]){error(9);mbr_bad=1;}
 #line 18 "places_cpp.bas"
-mbr_flat+=mbr_k*__ARRAY_UDT_A[6];
+mbr_off+=mbr_k*__ARRAY_UDT_A[6];
 #line 18 "places_cpp.bas"
-if (!mbr_bad&&(mbr_pending||!is_error_pending())) *(int16*)(((char*)__ARRAY_UDT_A[0])+(mbr_flat*38+36))=mbr_value;
+mbr_off*=38;
+#line 18 "places_cpp.bas"
+mbr_off+=36;
+#line 18 "places_cpp.bas"
+int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 18 "places_cpp.bas"
+if (mbr_ok) *(int16*)(((char*)__ARRAY_UDT_A[0])+mbr_off)=mbr_value;
 #line 18 "places_cpp.bas"
 }
 #line 18 "places_cpp.bas"

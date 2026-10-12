@@ -29,14 +29,23 @@
 //!   - a procedure's entry: a procedure entered while an error is pending returns at once;
 //!   - [`Op::Jump`] and [`Op::Gosub`]: not taken while an error is pending;
 //!   - [`Op::Branch`] with [`OnError::Skip`]: not taken while an error is pending;
-//!   - a store into a [`Place::Element`]: its indexes are evaluated first, left to right; while an error is pending
-//!     after them the value is not evaluated and nothing is stored.
+//!   - a store into an element of an array variable ([`Place::Element`] of an [`ArrayRef::Var`]): its indexes are
+//!     evaluated first, left to right; while an error is pending after them the value is not evaluated and nothing
+//!     is stored.
 //!
-//!   A store into a [`Place::Member`] with an element on the way (`a(i).m`) evaluates the value first, then the
-//!   indexes, and is skipped when an index is out of range or when the indexes raised an error while none was
-//!   pending before them (`DIVERGENCES.md` D-004; the old compiler writes the first element). A store into a
-//!   variable or into a member of one does not check. An index out of range raises error 9, and a read with it
-//!   gives the value at the array's first position (measured, `verification\v18_*`).
+//!   A store into a place reached through a member with an index on the way ([`Place::through_member`]: a member
+//!   of an element, `a(i).m`, or an element of a member array, `t.v(i)`, `a(i).v(j)`) **evaluates a number before
+//!   the indexes and a string after them**, the indexes from left to right, outermost first (measured,
+//!   `verification\v18_h_member_index_order`, `v24_h_member_store`, `v24_x313`, `x316`). It is skipped when an
+//!   index is out of range or when the indexes raised an error while none was pending before them
+//!   (`DIVERGENCES.md` D-004; the old compiler writes element 0 of the dimension whose index was outside); an
+//!   error the string value raises after the indexes does not skip it. A store into a variable or into a member
+//!   of one does not check. An index out of range raises error 9, and a read with it gives the value at position
+//!   0 of its dimension (measured, `verification\v18_*`, `v24_h_member_store`).
+//!
+//!   The bytes of a member array lie in the value they are a member of (design D8 of
+//!   `m2-defxxx-common-arrays`): its bounds are its member's and never change, so nothing allocates or releases
+//!   it. The IR names no offset and no size in bytes for it.
 //!
 //!   [`Op::Branch`] with [`OnError::UseValue`] does not check: it tests the placeholder value (measured for
 //!   `ELSEIF`).
@@ -88,7 +97,7 @@ pub use qb64rust_sema::{AllocMode, Shape};
 /// no work on them, only a variant-for-variant copy). The emitter ignores an [`Expr`]'s `span` and `qb`. Variable and
 /// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended
 /// ([`Program::vars`]).
-pub use qb64rust_sema::{Arg, Expr, ExprKind, InputSource as Source, Place, ProcId, StmtArg, VarId};
+pub use qb64rust_sema::{Arg, ArrayRef, Expr, ExprKind, InputSource as Source, Place, ProcId, StmtArg, VarId};
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
 /// holds a `STRING` of its own, which has no such size.
 pub use qb64rust_sema::{holds_strings, size_of};
@@ -261,12 +270,13 @@ impl Facts for Place {
 }
 
 impl Facts for Arg {
-    /// Finding a place passed by reference may raise (its index); a copy as its value does.
+    /// Finding a place passed by reference may raise (its index); a copy as its value does; finding a member
+    /// array may (an index on the way to it).
     fn may_raise(&self) -> bool {
         match self {
             Arg::Ref(place) => Facts::may_raise(place),
             Arg::Temp(v) => v.may_raise(),
-            Arg::Array(_) => false,
+            Arg::Array(array) => array.may_raise(),
         }
     }
 
@@ -279,7 +289,7 @@ impl Facts for Arg {
                     || (!matches!(place, Place::Var(_)) && matches!(p.place_ty(place), Ty::FixedStr(_)))
             }
             Arg::Temp(v) => v.uses_strings(p),
-            Arg::Array(_) => false,
+            Arg::Array(array) => array.indexes().iter().any(|v| v.uses_strings(p)),
         }
     }
 }
@@ -356,7 +366,10 @@ pub enum Op {
     /// that holds strings ([`holds_strings`]) both are found again for every part of the value**, in
     /// declaration order: a `STRING` member is a part, a member of a user type that holds strings gives its own
     /// parts in its place, any other member is one part (measured, `v24_x306`, `x307`: a FUNCTION in an index is
-    /// called once per part; the old compiler's behaviour, listed for review in `SOMEDAY.md`).
+    /// called once per part; the old compiler's behaviour, listed for review in `SOMEDAY.md`). A member array
+    /// goes element by element where its elements are parts: each element of a `STRING` member array is a
+    /// part, each element of one of a user type that holds strings gives its own parts, and any other member
+    /// array is one part, all its elements together (measured, `v24_x310`).
     CopyWhole {
         from: Place,
         to: Place,
@@ -384,8 +397,13 @@ pub enum Op {
         mode: AllocMode,
     },
     /// Set every element of a static array to zero, an empty string or NUL bytes; its bounds stay.
+    ///
+    /// Of a member array ([`ArrayRef::Member`]): the place it is part of is found once, then its elements are
+    /// cleared. **Not guarded** (measured, `verification\v24_x312`): an index outside its bounds on the way
+    /// raises error 9 and the member array of the element at position 0 of that dimension is cleared, as it is
+    /// after any other error an index raises.
     Clear {
-        array: VarId,
+        array: ArrayRef,
     },
     /// Release the elements of a dynamic array: it is not allocated afterwards (every use raises error 9) until an
     /// [`Op::Allocate`] runs. Of an array that is not allocated it does nothing.
@@ -492,9 +510,10 @@ impl Op {
             | Op::Jump(_)
             | Op::Gosub(_)
             | Op::Restore { .. }
-            | Op::Clear { .. }
             | Op::Release { .. }
             | Op::EraseParam { .. } => false,
+            // The place a member array is part of may be an element.
+            Op::Clear { array } => array.may_raise(),
             // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
             Op::Call { .. }
             | Op::Builtin { .. }
@@ -578,9 +597,23 @@ impl Program {
     /// The type of a place.
     pub fn place_ty(&self, p: &Place) -> Ty {
         match p {
-            Place::Var(v) | Place::Element { array: v, .. } => self.var(*v).ty,
+            Place::Var(v) => self.var(*v).ty,
+            Place::Element { array, .. } => self.array_ty(array),
             Place::Member { base, member } => self.member(self.place_ty(base), *member).ty,
         }
+    }
+
+    /// The type of an array's elements.
+    pub fn array_ty(&self, a: &ArrayRef) -> Ty {
+        match a {
+            ArrayRef::Var(v) => self.var(*v).ty,
+            ArrayRef::Member { base, member } => self.member(self.place_ty(base), *member).ty,
+        }
+    }
+
+    /// The member an [`ArrayRef::Member`] names: `member` of a place `base`.
+    pub fn member_of(&self, base: &Place, member: MemberId) -> &Member {
+        self.member(self.place_ty(base), member)
     }
 
     pub fn var(&self, id: VarId) -> &Var {

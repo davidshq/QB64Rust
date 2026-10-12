@@ -1,0 +1,7 @@
+1. UBOUND(a(one(1)).v): 5 
+2. LBOUND(a(9).v): 2 
+3. UBOUND(x(one(1)).n(one(2)).q, one(2)): 2  2 
+4. UBOUND(x(1).n(9).q): 2 
+5. LBOUND(t.v, 0), LBOUND(t.v, 2), UBOUND(x(0).n(0).q, 3): [error 9 ] [error 9 ] [error 9 ]6. LBOUND(t.v, 1.5), UBOUND(x(0).n(0).q, 2.5), LBOUND(x(0).n(0).q, 1): [error 9 ]7. LEN(a(one(1)).v(one(2))), LEN(a(9).v(9)): 4  4 
+8. UBOUND(t.v()), UBOUND(a(1).v()), UBOUND(t.v) / 2: 5  5  2.5 
+exit=0

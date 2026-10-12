@@ -2,9 +2,9 @@
 
 use crate::Emitter;
 use crate::decl::{Part, dim_count, dim_slot, is_qbs};
-use crate::names::{c_type, proc_name};
+use crate::names::{c_type, int_const, proc_name};
 use crate::place::fixed_at;
-use qb64rust_ir::{Expr, Facts, LabelId, OnError, Op, Place, PrintItem, Resume, Ty, When};
+use qb64rust_ir::{ArrayRef, Expr, Facts, LabelId, MemberId, OnError, Op, Place, PrintItem, Resume, Ty, When};
 use std::fmt::Write as _;
 
 impl Emitter<'_> {
@@ -60,7 +60,12 @@ impl Emitter<'_> {
             Op::Assign { place, value } => self.assign(place, value, out),
             Op::CopyWhole { from, to } => self.copy_whole(from, to, out),
             Op::Allocate { array, bounds, mode } => self.allocate(*array, bounds, *mode, out),
-            Op::Clear { array } => self.clear_array(*array, out),
+            Op::Clear {
+                array: ArrayRef::Var(array),
+            } => self.clear_array(*array, out),
+            Op::Clear {
+                array: ArrayRef::Member { base, member },
+            } => self.clear_member_array(base, *member, out),
             Op::Release { array } => self.release_array(*array, out),
             Op::EraseParam { array } => self.erase_param(*array, out),
             Op::AssignAll(stores) => {
@@ -214,9 +219,34 @@ impl Emitter<'_> {
         }
     }
 
+    /// `Clear` of a member array: the place it is part of is found once, then its elements become zero, empty or
+    /// NUL bytes. Nothing checks for a pending error: after an index outside its bounds `array_check` gives
+    /// position 0 (measured, `verification\v24_x312`).
+    fn clear_member_array(&mut self, base: &Place, member: MemberId, out: &mut Vec<String>) {
+        let m = self.p.member_of(base, member);
+        let (ty, count) = (m.ty, m.count());
+        let first = self.member_array_at(base, member);
+        out.push("{".into());
+        out.push(format!("char *clear_at={first};"));
+        if ty == Ty::Str {
+            out.push(format!("tmp_long={count};"));
+            out.push("while(tmp_long--) (*(qbs**)(clear_at+tmp_long*8))->len=0;".into());
+        } else if self.holds_strings(ty) {
+            let text = self.each_element(ty, "clear_at", &count.to_string(), |at| self.zero_value(ty, at));
+            out.extend(text.lines().map(str::to_string));
+        } else {
+            out.push(format!("memset((void*)clear_at,0,{});", self.ty_size(ty) * count));
+        }
+        out.push("}".into());
+        if base.uses_strings(self.p) {
+            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        }
+    }
+
     /// A store, by the rule of its place (the IR's error rule; `study\02` §2.3 for the old compiler's forms).
     /// `value` writes the C++ of the value to store; it is called once, where the rule evaluates the value (after
-    /// an element's indexes, before the indexes of a member of an element). `string`: the value is a string.
+    /// an element's indexes; through a member with an index on the way, a number before the indexes and a string
+    /// after them). `string`: the value is a string.
     pub(crate) fn store(
         &mut self,
         place: &Place,
@@ -236,7 +266,10 @@ impl Emitter<'_> {
                 }
             }
             // The index first; with an error pending after it, neither the value nor the store.
-            Place::Element { array, index } => {
+            Place::Element {
+                array: ArrayRef::Var(array),
+                index,
+            } => {
                 let flat = self.flat_index(*array, index);
                 out.push(format!("tmp_long={flat};"));
                 let element = self.element_at(*array, "tmp_long");
@@ -253,10 +286,11 @@ impl Emitter<'_> {
                     out.push(format!("if (!is_error_pending()) {element}={v};"));
                 }
             }
-            Place::Member { .. } if place.has_element() => {
-                let v = value(self);
-                self.store_member_of_element(place, &v, out);
-            }
+            Place::Element {
+                array: ArrayRef::Member { .. },
+                ..
+            } => self.store_through_member(place, value, out),
+            Place::Member { .. } if place.has_element() => self.store_through_member(place, value, out),
             Place::Member { .. } => {
                 let v = value(self);
                 let member = self.load_place(place);
@@ -269,51 +303,105 @@ impl Emitter<'_> {
         }
     }
 
-    /// A store into a member of an element (`a(i).m = v`): the value first, then the indexes, as the old compiler
-    /// (measured, `verification\v18_h_member_index_order`); each index checked against its dimension. The store is
-    /// skipped when an index is out of range or the indexes raised an error while none was pending before them;
-    /// the old compiler writes the first element then (`DIVERGENCES.md` D-004). The block's own variables are in
-    /// braces, so no `goto` crosses their initialisation.
-    fn store_member_of_element(&mut self, place: &Place, value: &str, out: &mut Vec<String>) {
+    /// A store into a place reached through a member with an index on the way (`a(i).m = v`, `t.v(i) = v`,
+    /// `a(i).v(j) = v`): a number is evaluated before the indexes and a string after them, as in the old
+    /// compiler's program (measured, `verification\v18_h_member_index_order`, `v24_x313`, `x316`; its string
+    /// store is one call whose first argument, the place, is evaluated first). Each index is checked against
+    /// its dimension, outermost first. The store is skipped when an index is out of range or the indexes
+    /// raised an error while none was pending before them; the old compiler writes position 0 of that dimension
+    /// then (`DIVERGENCES.md` D-004). The block's own variables are in braces, so no `goto` crosses their
+    /// initialisation.
+    fn store_through_member(
+        &mut self,
+        place: &Place,
+        value: &mut dyn FnMut(&mut Self) -> String,
+        out: &mut Vec<String>,
+    ) {
         let ty = self.p.place_ty(place);
-        let (array, index, offset) = self.element_root(place);
-        let n = dim_count(self.p.var(array));
-        let name = self.name(array);
-        let size = self.ty_size(self.p.var(array).ty);
+        let string = is_qbs(ty);
         out.push("{".into());
-        // A string value is copied first, so the indexes cannot change it (a FUNCTION in an index may assign the
-        // variable the value reads).
-        let fixed = if let Ty::FixedStr(k) = ty { Some(k) } else { None };
-        if is_qbs(ty) {
-            out.push(format!("qbs *mbr_value=qbs_set(qbs_new(0,1),{value});"));
-        } else {
-            out.push(format!("{} mbr_value={value};", c_type(ty)));
+        if !string {
+            let v = value(self);
+            out.push(format!("{} mbr_value={v};", c_type(ty)));
         }
         out.push("int32 mbr_pending=is_error_pending();".into());
         out.push("int32 mbr_bad=0;".into());
         out.push("int64 mbr_k;".into());
-        out.push("ptrszint mbr_flat=0;".into());
-        for (k, i) in index.iter().enumerate() {
-            let s = dim_slot(n, k);
-            out.push(format!("mbr_k=({})-{name}[{s}];", self.value(i)));
-            out.push(format!(
-                "if ((uptrszint)mbr_k>=(uptrszint){name}[{}]){{error(9);mbr_bad=1;}}",
-                s + 1
-            ));
-            if k == 0 {
-                out.push("mbr_flat=mbr_k;".into());
-            } else {
-                out.push(format!("mbr_flat+=mbr_k*{name}[{}];", s + 2));
+        out.push("ptrszint mbr_off=0;".into());
+        let root = self.member_path(place, out);
+        out.push("int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());".into());
+        // The address last: an index may have given the array another block.
+        let at = format!("((char*){root})+mbr_off");
+        let store = if let Ty::FixedStr(k) = ty {
+            format!("qbs_set({},mbr_value);", fixed_at(&format!("(uint8*)({at})"), k))
+        } else if string {
+            format!("qbs_set(*(qbs**)({at}),mbr_value);")
+        } else {
+            format!("*({}*)({at})=mbr_value;", c_type(ty))
+        };
+        if string {
+            // The value is the string itself, not a copy: what an index stored into a variable it reads is
+            // what is stored (measured, `v24_x316`).
+            let v = value(self);
+            out.push(format!("qbs *mbr_value={v};"));
+        }
+        out.push(format!("if (mbr_ok) {store}"));
+        out.push("}".into());
+    }
+
+    /// The way to a place for [`Self::store_through_member`]: writes the check of every index on it, outermost
+    /// first, adding the place's distance in bytes from its root to `mbr_off` and setting `mbr_bad` for an index
+    /// outside its bounds. Gives the root: the pointer of a variable of a user type, or the block of an array.
+    fn member_path(&mut self, place: &Place, out: &mut Vec<String>) -> String {
+        let check = |count: &str| format!("if ((uptrszint)mbr_k>=(uptrszint){count}){{error(9);mbr_bad=1;}}");
+        match place {
+            Place::Var(v) => self.name(*v),
+            Place::Element {
+                array: ArrayRef::Var(array),
+                index,
+            } => {
+                let n = dim_count(self.p.var(*array));
+                let name = self.name(*array);
+                let size = self.ty_size(self.p.var(*array).ty);
+                for (k, i) in index.iter().enumerate() {
+                    let s = dim_slot(n, k);
+                    out.push(format!("mbr_k=({})-{name}[{s}];", self.value(i)));
+                    out.push(check(&format!("{name}[{}]", s + 1)));
+                    if k == 0 {
+                        out.push("mbr_off=mbr_k;".into());
+                    } else {
+                        out.push(format!("mbr_off+=mbr_k*{name}[{}];", s + 2));
+                    }
+                }
+                out.push(format!("mbr_off*={size};"));
+                format!("{name}[0]")
+            }
+            Place::Element {
+                array: ArrayRef::Member { base, member },
+                index,
+            } => {
+                let root = self.member_path(base, out);
+                let offset = self.member_offset(self.p.place_ty(base), *member);
+                let size = i64::from(self.ty_size(self.p.member_of(base, *member).ty));
+                if offset != 0 {
+                    out.push(format!("mbr_off+={offset};"));
+                }
+                for (i, (lower, count, multiplier)) in index.iter().zip(self.member_dims(base, *member)) {
+                    out.push(format!("mbr_k=({})-{};", self.value(i), int_const(lower, Ty::I64)));
+                    out.push(check(&count.to_string()));
+                    out.push(format!("mbr_off+=mbr_k*{};", multiplier * size));
+                }
+                root
+            }
+            Place::Member { base, member } => {
+                let root = self.member_path(base, out);
+                let offset = self.member_offset(self.p.place_ty(base), *member);
+                if offset != 0 {
+                    out.push(format!("mbr_off+={offset};"));
+                }
+                root
             }
         }
-        let at = format!("((char*){name}[0])+(mbr_flat*{size}+{offset})");
-        let store = match fixed {
-            Some(k) => format!("qbs_set({},mbr_value);", fixed_at(&format!("(uint8*)({at})"), k)),
-            None if is_qbs(ty) => format!("qbs_set(*(qbs**)({at}),mbr_value);"),
-            None => format!("*({}*)({at})=mbr_value;", c_type(ty)),
-        };
-        out.push(format!("if (!mbr_bad&&(mbr_pending||!is_error_pending())) {store}"));
-        out.push("}".into());
     }
 }
 

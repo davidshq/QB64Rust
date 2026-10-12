@@ -293,3 +293,5 @@ slice/s60_type_whole
 runtime_comparison/57_type_string_field
 runtime_comparison/200_type_assign_whole
 runtime_comparison/242_types_simple
+slice/s61_member_arrays
+runtime_comparison/197_type_array_field

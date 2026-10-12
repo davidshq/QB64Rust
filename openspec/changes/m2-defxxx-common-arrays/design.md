@@ -500,6 +500,49 @@ these additions from the measurement:
   writes element 0 of the dimension whose index was outside: `t.v(9) = 5` sets `t.v(0)`). This is D-004's rule
   applied to more places, not a new decision, and `DIVERGENCES.md` D-004 gains the member-array forms in 9.1.
 
+**As built in group 9 (2026-10-11).** Measured first and on the way: `verification\v24_x310`–`x326`.
+
+- **`ArrayRef` names an array wherever one is named as a whole**: the array of an element, the argument of
+  `LBOUND` and `UBOUND`, `Clear`, an array argument (`Arg::Array`). A `Place::Member` never names a member
+  array; `ir::validate` checks both.
+- **What finds the place a member array is part of, and what does not** (`x311`, `x312`): a read, a store, a
+  reference, `ERASE`, `REDIM` and an array argument do, once. `LBOUND`, `UBOUND`, `LEN` and `REDIM _PRESERVE` do
+  not: their indexes are typed and never evaluated, `LBOUND(a(9).v)` raises nothing. The bound is a constant
+  of the type; a dimension outside 1 to the number of dimensions raises 9 and gives 0.
+- **`Clear` of a member array is not guarded** (`x312`): an index outside on the way raises 9 and the member
+  array of element 0 of that dimension is cleared, as the old compiler does; this is a whole-array operation,
+  not a store, so D-004 does not reach it (the same way a whole-value copy is not guarded, D9).
+- **The store through a member: a number before the indexes, a string after them** (`x313`, `x316`). The
+  design's "the value first" was measured with numbers only. The old compiler's string store is one call,
+  `qbs_set(place, value)`, whose place is evaluated first, so a FUNCTION in an index that assigns the variable
+  the value reads changes what is stored (`a(setz(1)).s = z$`, also `z$ + "!"`). **The emitter of group 8 and
+  before copied the string before the indexes; that is corrected**, for a member of an element and for an
+  element of a member array alike (one routine, `store_through_member`). D-004's skip is unchanged: nothing is
+  stored when an index was outside, or when the indexes raised with no error pending before them; an error the
+  string value raises after the indexes does not skip the store.
+- **The layout** is the emitter's: the elements follow each other from the member's offset, first dimension
+  fastest; `ty_size` and `member_offset` count them, `sema`'s `size_of` too (`LEN` 22). The parts of a value
+  (D9) go element by element where the elements are parts (`x310`): each element of a `STRING` member array,
+  the parts of each element of a member array of a type that holds strings; any other member array is one
+  part, the bytes of all its elements.
+- **A whole member array as an array argument is built** (`x315`): a descriptor of a static, allocated array
+  with the member's bounds over the member's bytes, a `passN` of the body that makes the call (its bounds in
+  its declaration, its block set where the argument stands). `ERASE` in the procedure clears, `REDIM` raises
+  10, `LBOUND`/`UBOUND` give the member's bounds; an index outside in the base raises 9 and the procedure is
+  not entered.
+- **`OPTION BASE` at the block**: a walk before the `TYPE` blocks are read (`collect_option_bases`) applies
+  every `OPTION BASE` in file order, through blocks, procedures and included files, and keeps the base at each
+  block. In a `REDIM … AS type` the upper bound alone goes by the base as it stands at the `REDIM` (`x322`,
+  `x323`).
+- **`SWAP`** takes a member of an element and an element of a member array, each as an argument by reference
+  is taken (`x314`): an index outside raises 9 and position 0 stands in. `INPUT`, `READ` and the `MID$` statement
+  with such a target stay marked (not measured).
+- **Not built, each marked by its own message and listed in `SOMEDAY.md`:** a bound of a member array that
+  names a `CONST` (`x196`: accepted by the old compiler; the blocks are read before the `CONST`s, so a bound is
+  written with numbers alone here); a member array of an array element beside other targets of one `ERASE` or
+  `REDIM` (the old compiler goes on with them before an index's error is handled; each clear here is a
+  statement of its own); `REDIM t.v(0) AS type` under `OPTION BASE 1`; the `_STATIC` and `_DYNAMIC` markers.
+
 **Answered by the user (task 1.4, 2026-10-11, `DECISIONS.md`):** a whole-value store with an index outside stays
 as QB64pe does it (D9); an array used without `DIM` in a procedure stays not-allocated as in QB64pe, noted as
 `DIVERGENCES-QB45.md` Q-009 (D5); the additions of D9 stay in the change.

@@ -1,0 +1,9 @@
+1. fill t.v(): 4  10  1  9 
+2. fill a(1).v(): 10  0  0 
+3. two dimensions, the bounds in the SUB: 1  2  0  2 : 22 
+4. a STRING member array: [zero][x!]
+5. ERASE in the SUB:: 0  0  1  9  5 
+6. REDIM in the SUB: [error 10 ] after REDIM [error 10 ] after the second: 33  5 
+7. fill a(9).v(): [error 9 ]: 0 
+8. fill a(one(1)).v(): 1 
+exit=0

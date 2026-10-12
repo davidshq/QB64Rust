@@ -2,13 +2,14 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-redim_unsupported.bas:9:7: error: not supported yet: `REDIM _RETAIN`
-redim_unsupported.bas:10:7: error: not supported yet: `REDIM _PRESERVE _RETAIN`
-redim_unsupported.bas:11:7: error: not supported yet: arrays as `TYPE` members
-redim_unsupported.bas:12:10: error: not supported yet: a string as an array bound
-redim_unsupported.bas:14:1: error: not supported yet: `z(...)` (an array used without `DIM`, or no FUNCTION of this name)
-redim_unsupported.bas:15:7: error: not supported yet: `ERASE` of `z`, an array used without `DIM`
-redim_unsupported.bas:16:14: error: not supported yet: `q(...)` (an array used without `DIM`, or no FUNCTION of this name)
-redim_unsupported.bas:17:7: error: not supported yet: `ERASE` of `q`, an array used without `DIM`
-redim_unsupported.bas:18:7: error: not supported yet: arrays as `TYPE` members
-redim_unsupported.bas:21:11: error: not supported yet: `REDIM e` without bounds in a SUB or FUNCTION
+redim_unsupported.bas:10:7: error: not supported yet: `REDIM _RETAIN`
+redim_unsupported.bas:11:7: error: not supported yet: `REDIM _PRESERVE _RETAIN`
+redim_unsupported.bas:12:7: error: not supported yet: a member of `it`, which is no array here
+redim_unsupported.bas:13:10: error: not supported yet: a string as an array bound
+redim_unsupported.bas:15:1: error: not supported yet: `z(...)` (an array used without `DIM`, or no FUNCTION of this name)
+redim_unsupported.bas:16:7: error: not supported yet: `ERASE` of `z`, an array used without `DIM`
+redim_unsupported.bas:17:14: error: not supported yet: `q(...)` (an array used without `DIM`, or no FUNCTION of this name)
+redim_unsupported.bas:18:7: error: not supported yet: `ERASE` of `q`, an array used without `DIM`
+redim_unsupported.bas:19:7: error: not supported yet: `it(...)` (an array used without `DIM`, or no FUNCTION of this name)
+redim_unsupported.bas:21:9: error: not supported yet: an array of more than 2^31 elements
+redim_unsupported.bas:24:11: error: not supported yet: `REDIM e` without bounds in a SUB or FUNCTION

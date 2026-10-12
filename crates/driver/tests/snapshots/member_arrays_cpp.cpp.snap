@@ -1,0 +1,457 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+void *__UDT_T=NULL;
+ptrszint *__ARRAY_UDT_A=NULL;
+int32 *__LONG_I=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+void SUB_BUMP(int32*_SUB_BUMP_LONG_N);
+void SUB_FILL(ptrszint*_SUB_FILL_ARRAY_INTEGER_B);
+==> clear.txt <==
+memset((void*)((char*)__UDT_T+0),0,4);
+memset((void*)((char*)__UDT_T+4),0,16);
+memset((void*)((char*)__UDT_T+20),0,12);
+(*(qbs**)((char*)__UDT_T+32))->len=0;
+(*(qbs**)((char*)__UDT_T+40))->len=0;
+tmp_long=__ARRAY_UDT_A[5];
+while(tmp_long--){
+memset((void*)(((char*)(__ARRAY_UDT_A[0])+tmp_long*48)+0),0,4);
+memset((void*)(((char*)(__ARRAY_UDT_A[0])+tmp_long*48)+4),0,16);
+memset((void*)(((char*)(__ARRAY_UDT_A[0])+tmp_long*48)+20),0,12);
+(*(qbs**)(((char*)(__ARRAY_UDT_A[0])+tmp_long*48)+32))->len=0;
+(*(qbs**)(((char*)(__ARRAY_UDT_A[0])+tmp_long*48)+40))->len=0;
+}
+*__LONG_I=0;
+==> maindata.txt <==
+if(__UDT_T==NULL){
+__UDT_T=(void*)mem_static_malloc(48);
+memset(__UDT_T,0,48);
+*(qbs**)((char*)__UDT_T+32)=qbs_new(0,0);
+*(qbs**)((char*)__UDT_T+40)=qbs_new(0,0);
+}
+if (!__ARRAY_UDT_A){
+__ARRAY_UDT_A=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_A)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_A[4]=0ll;
+__ARRAY_UDT_A[5]=(2ll)-__ARRAY_UDT_A[4]+1;
+if (__ARRAY_UDT_A[5]<=0) error(5);
+__ARRAY_UDT_A[6]=1;
+__ARRAY_UDT_A[0]=(ptrszint)mem_static_malloc(__ARRAY_UDT_A[5]*48);
+memset((void*)(__ARRAY_UDT_A[0]),0,__ARRAY_UDT_A[5]*48);
+tmp_long=__ARRAY_UDT_A[5];
+while(tmp_long--){
+*(qbs**)(((char*)(__ARRAY_UDT_A[0])+tmp_long*48)+32)=qbs_new(0,0);
+*(qbs**)(((char*)(__ARRAY_UDT_A[0])+tmp_long*48)+40)=qbs_new(0,0);
+}
+__ARRAY_UDT_A[2]=1+2;
+}
+if(__LONG_I==NULL){
+__LONG_I=(int32*)mem_static_malloc(4);
+*__LONG_I=0;
+}
+int32 pass1;
+ptrszint pass2[13]={0,0,1+2,0,0ll,3,2,0,1ll,2,1,0,0};
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+#include "main2.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "member_arrays_cpp.bas"
+do{
+#line 2 "member_arrays_cpp.bas"
+sub__dest(func__console());
+#line 2 "member_arrays_cpp.bas"
+sub__source(func__console());
+#line 2 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 17 "member_arrays_cpp.bas"
+do{
+#line 17 "member_arrays_cpp.bas"
+{
+#line 17 "member_arrays_cpp.bas"
+int32 mbr_value=7;
+#line 17 "member_arrays_cpp.bas"
+int32 mbr_pending=is_error_pending();
+#line 17 "member_arrays_cpp.bas"
+int32 mbr_bad=0;
+#line 17 "member_arrays_cpp.bas"
+int64 mbr_k;
+#line 17 "member_arrays_cpp.bas"
+ptrszint mbr_off=0;
+#line 17 "member_arrays_cpp.bas"
+mbr_off+=4;
+#line 17 "member_arrays_cpp.bas"
+mbr_k=(((int64)(*__LONG_I)))-0ll;
+#line 17 "member_arrays_cpp.bas"
+if ((uptrszint)mbr_k>=(uptrszint)4){error(9);mbr_bad=1;}
+#line 17 "member_arrays_cpp.bas"
+mbr_off+=mbr_k*4;
+#line 17 "member_arrays_cpp.bas"
+int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 17 "member_arrays_cpp.bas"
+if (mbr_ok) *(int32*)(((char*)__UDT_T)+mbr_off)=mbr_value;
+#line 17 "member_arrays_cpp.bas"
+}
+#line 17 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "member_arrays_cpp.bas"
+do{
+#line 18 "member_arrays_cpp.bas"
+{
+#line 18 "member_arrays_cpp.bas"
+int16 mbr_value=((int16)((*__LONG_I+1)));
+#line 18 "member_arrays_cpp.bas"
+int32 mbr_pending=is_error_pending();
+#line 18 "member_arrays_cpp.bas"
+int32 mbr_bad=0;
+#line 18 "member_arrays_cpp.bas"
+int64 mbr_k;
+#line 18 "member_arrays_cpp.bas"
+ptrszint mbr_off=0;
+#line 18 "member_arrays_cpp.bas"
+mbr_k=(((int64)(*__LONG_I)))-__ARRAY_UDT_A[4];
+#line 18 "member_arrays_cpp.bas"
+if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[5]){error(9);mbr_bad=1;}
+#line 18 "member_arrays_cpp.bas"
+mbr_off=mbr_k;
+#line 18 "member_arrays_cpp.bas"
+mbr_off*=48;
+#line 18 "member_arrays_cpp.bas"
+mbr_off+=20;
+#line 18 "member_arrays_cpp.bas"
+mbr_k=(2ll)-1ll;
+#line 18 "member_arrays_cpp.bas"
+if ((uptrszint)mbr_k>=(uptrszint)2){error(9);mbr_bad=1;}
+#line 18 "member_arrays_cpp.bas"
+mbr_off+=mbr_k*2;
+#line 18 "member_arrays_cpp.bas"
+mbr_k=(((int64)(*__LONG_I)))-0ll;
+#line 18 "member_arrays_cpp.bas"
+if ((uptrszint)mbr_k>=(uptrszint)3){error(9);mbr_bad=1;}
+#line 18 "member_arrays_cpp.bas"
+mbr_off+=mbr_k*4;
+#line 18 "member_arrays_cpp.bas"
+int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 18 "member_arrays_cpp.bas"
+if (mbr_ok) *(int16*)(((char*)__ARRAY_UDT_A[0])+mbr_off)=mbr_value;
+#line 18 "member_arrays_cpp.bas"
+}
+#line 18 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "member_arrays_cpp.bas"
+do{
+#line 19 "member_arrays_cpp.bas"
+{
+#line 19 "member_arrays_cpp.bas"
+int32 mbr_pending=is_error_pending();
+#line 19 "member_arrays_cpp.bas"
+int32 mbr_bad=0;
+#line 19 "member_arrays_cpp.bas"
+int64 mbr_k;
+#line 19 "member_arrays_cpp.bas"
+ptrszint mbr_off=0;
+#line 19 "member_arrays_cpp.bas"
+mbr_k=(((int64)(*__LONG_I)))-__ARRAY_UDT_A[4];
+#line 19 "member_arrays_cpp.bas"
+if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[5]){error(9);mbr_bad=1;}
+#line 19 "member_arrays_cpp.bas"
+mbr_off=mbr_k;
+#line 19 "member_arrays_cpp.bas"
+mbr_off*=48;
+#line 19 "member_arrays_cpp.bas"
+mbr_off+=32;
+#line 19 "member_arrays_cpp.bas"
+mbr_k=(1ll)-0ll;
+#line 19 "member_arrays_cpp.bas"
+if ((uptrszint)mbr_k>=(uptrszint)2){error(9);mbr_bad=1;}
+#line 19 "member_arrays_cpp.bas"
+mbr_off+=mbr_k*8;
+#line 19 "member_arrays_cpp.bas"
+int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 19 "member_arrays_cpp.bas"
+qbs *mbr_value=qbs_add(qbs_new_txt_len("s",1),qbs_str(((int32)(*__LONG_I))));
+#line 19 "member_arrays_cpp.bas"
+if (mbr_ok) qbs_set(*(qbs**)(((char*)__ARRAY_UDT_A[0])+mbr_off),mbr_value);
+#line 19 "member_arrays_cpp.bas"
+}
+#line 19 "member_arrays_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 19 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "member_arrays_cpp.bas"
+do{
+#line 20 "member_arrays_cpp.bas"
+*__LONG_I=(*(int32*)(((((char*)__UDT_T)+4)+((array_check((3ll)-0ll,4))*4)))+((int32)(*(int16*)((((((char*)__ARRAY_UDT_A[0])+((array_check((((int64)(*__LONG_I)))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*48))+20)+((array_check((1ll)-1ll,2)+array_check((2ll)-0ll,3)*2)*2))))));
+#line 20 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "member_arrays_cpp.bas"
+do{
+#line 21 "member_arrays_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 21 "member_arrays_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)3ll))),qbs_new_txt(" ")));
+#line 21 "member_arrays_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 21 "member_arrays_cpp.bas"
+makefit(tqbs);
+#line 21 "member_arrays_cpp.bas"
+qbs_print(tqbs,0);
+#line 21 "member_arrays_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)0ll))),qbs_new_txt(" ")));
+#line 21 "member_arrays_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 21 "member_arrays_cpp.bas"
+makefit(tqbs);
+#line 21 "member_arrays_cpp.bas"
+qbs_print(tqbs,0);
+#line 21 "member_arrays_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((pass1=(*__LONG_I)),pass1==1?(int64)2ll:pass1==2?(int64)2ll:(error(9),(int64)0)))),qbs_new_txt(" ")));
+#line 21 "member_arrays_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 21 "member_arrays_cpp.bas"
+makefit(tqbs);
+#line 21 "member_arrays_cpp.bas"
+qbs_print(tqbs,0);
+#line 21 "member_arrays_cpp.bas"
+qbs_print(nothingstring,1);
+#line 21 "member_arrays_cpp.bas"
+skip1:
+#line 21 "member_arrays_cpp.bas"
+qbs_free(tqbs);
+#line 21 "member_arrays_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 21 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 22 "member_arrays_cpp.bas"
+do{
+#line 22 "member_arrays_cpp.bas"
+{
+#line 22 "member_arrays_cpp.bas"
+char *clear_at=((((char*)__ARRAY_UDT_A[0])+((array_check((((int64)(*__LONG_I)))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*48))+4);
+#line 22 "member_arrays_cpp.bas"
+memset((void*)clear_at,0,16);
+#line 22 "member_arrays_cpp.bas"
+}
+#line 22 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "member_arrays_cpp.bas"
+do{
+#line 23 "member_arrays_cpp.bas"
+{
+#line 23 "member_arrays_cpp.bas"
+char *clear_at=(((char*)__UDT_T)+32);
+#line 23 "member_arrays_cpp.bas"
+tmp_long=2;
+#line 23 "member_arrays_cpp.bas"
+while(tmp_long--) (*(qbs**)(clear_at+tmp_long*8))->len=0;
+#line 23 "member_arrays_cpp.bas"
+}
+#line 23 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "member_arrays_cpp.bas"
+do{
+#line 24 "member_arrays_cpp.bas"
+SUB_BUMP((int32*)(void*)((((((char*)__ARRAY_UDT_A[0])+((array_check((((int64)(*__LONG_I)))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*48))+4)+((array_check((2ll)-0ll,4))*4))));
+#line 24 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "member_arrays_cpp.bas"
+do{
+#line 25 "member_arrays_cpp.bas"
+SUB_FILL((pass2[0]=(ptrszint)(((((char*)__ARRAY_UDT_A[0])+((array_check((((int64)(*__LONG_I)))-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*48))+20)),pass2));
+#line 25 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(25);}while(r);
+#line 26 "member_arrays_cpp.bas"
+do{
+#line 26 "member_arrays_cpp.bas"
+{
+#line 26 "member_arrays_cpp.bas"
+char *copy_to=(((char*)__ARRAY_UDT_A[0])+((array_check((1ll)-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*48));
+#line 26 "member_arrays_cpp.bas"
+char *copy_from=((char*)__UDT_T);
+#line 26 "member_arrays_cpp.bas"
+memmove(copy_to+0,copy_from+0,4);
+#line 26 "member_arrays_cpp.bas"
+}
+#line 26 "member_arrays_cpp.bas"
+{
+#line 26 "member_arrays_cpp.bas"
+char *copy_to=(((char*)__ARRAY_UDT_A[0])+((array_check((1ll)-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*48));
+#line 26 "member_arrays_cpp.bas"
+char *copy_from=((char*)__UDT_T);
+#line 26 "member_arrays_cpp.bas"
+memmove(copy_to+4,copy_from+4,16);
+#line 26 "member_arrays_cpp.bas"
+}
+#line 26 "member_arrays_cpp.bas"
+{
+#line 26 "member_arrays_cpp.bas"
+char *copy_to=(((char*)__ARRAY_UDT_A[0])+((array_check((1ll)-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*48));
+#line 26 "member_arrays_cpp.bas"
+char *copy_from=((char*)__UDT_T);
+#line 26 "member_arrays_cpp.bas"
+memmove(copy_to+20,copy_from+20,12);
+#line 26 "member_arrays_cpp.bas"
+}
+#line 26 "member_arrays_cpp.bas"
+{
+#line 26 "member_arrays_cpp.bas"
+char *copy_to=(((char*)__ARRAY_UDT_A[0])+((array_check((1ll)-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*48));
+#line 26 "member_arrays_cpp.bas"
+char *copy_from=((char*)__UDT_T);
+#line 26 "member_arrays_cpp.bas"
+qbs_set(*(qbs**)(copy_to+32),*(qbs**)(copy_from+32));
+#line 26 "member_arrays_cpp.bas"
+}
+#line 26 "member_arrays_cpp.bas"
+{
+#line 26 "member_arrays_cpp.bas"
+char *copy_to=(((char*)__ARRAY_UDT_A[0])+((array_check((1ll)-__ARRAY_UDT_A[4],__ARRAY_UDT_A[5]))*48));
+#line 26 "member_arrays_cpp.bas"
+char *copy_from=((char*)__UDT_T);
+#line 26 "member_arrays_cpp.bas"
+qbs_set(*(qbs**)(copy_to+40),*(qbs**)(copy_from+40));
+#line 26 "member_arrays_cpp.bas"
+}
+#line 26 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(26);}while(r);
+#line 27 "member_arrays_cpp.bas"
+do{
+#line 27 "member_arrays_cpp.bas"
+if (sub_gl_called) error(271);
+#line 27 "member_arrays_cpp.bas"
+close_program=1;
+#line 27 "member_arrays_cpp.bas"
+end();
+#line 27 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(27);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(*(qbs**)((char*)__UDT_T+32));
+qbs_free(*(qbs**)((char*)__UDT_T+40));
+==> main1.txt <==
+#line 29 "member_arrays_cpp.bas"
+void SUB_BUMP(int32*_SUB_BUMP_LONG_N){
+#line 29 "member_arrays_cpp.bas"
+qbs *tqbs;
+#line 29 "member_arrays_cpp.bas"
+ptrszint tmp_long;
+#line 29 "member_arrays_cpp.bas"
+int32 tmp_fileno;
+#line 29 "member_arrays_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 29 "member_arrays_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 29 "member_arrays_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 29 "member_arrays_cpp.bas"
+#include "data1.txt"
+#line 29 "member_arrays_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 29 "member_arrays_cpp.bas"
+new_mem_lock();
+#line 29 "member_arrays_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 29 "member_arrays_cpp.bas"
+sf_mem_lock->type=3;
+#line 29 "member_arrays_cpp.bas"
+libqb_check_stack();
+#line 29 "member_arrays_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 30 "member_arrays_cpp.bas"
+do{
+#line 30 "member_arrays_cpp.bas"
+*_SUB_BUMP_LONG_N=(*_SUB_BUMP_LONG_N+1);
+#line 30 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(30);}while(r);
+#line 31 "member_arrays_cpp.bas"
+exit_subfunc:;
+#line 31 "member_arrays_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 31 "member_arrays_cpp.bas"
+#include "free1.txt"
+#line 31 "member_arrays_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 31 "member_arrays_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 31 "member_arrays_cpp.bas"
+}
+==> main2.txt <==
+#line 33 "member_arrays_cpp.bas"
+void SUB_FILL(ptrszint*_SUB_FILL_ARRAY_INTEGER_B){
+#line 33 "member_arrays_cpp.bas"
+qbs *tqbs;
+#line 33 "member_arrays_cpp.bas"
+ptrszint tmp_long;
+#line 33 "member_arrays_cpp.bas"
+int32 tmp_fileno;
+#line 33 "member_arrays_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 33 "member_arrays_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 33 "member_arrays_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 33 "member_arrays_cpp.bas"
+#include "data2.txt"
+#line 33 "member_arrays_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 33 "member_arrays_cpp.bas"
+new_mem_lock();
+#line 33 "member_arrays_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 33 "member_arrays_cpp.bas"
+sf_mem_lock->type=3;
+#line 33 "member_arrays_cpp.bas"
+libqb_check_stack();
+#line 33 "member_arrays_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 34 "member_arrays_cpp.bas"
+do{
+#line 34 "member_arrays_cpp.bas"
+tmp_long=array_check((1ll)-_SUB_FILL_ARRAY_INTEGER_B[8],_SUB_FILL_ARRAY_INTEGER_B[9])+array_check((0ll)-_SUB_FILL_ARRAY_INTEGER_B[4],_SUB_FILL_ARRAY_INTEGER_B[5])*_SUB_FILL_ARRAY_INTEGER_B[6];
+#line 34 "member_arrays_cpp.bas"
+if (!is_error_pending()) ((int16*)(_SUB_FILL_ARRAY_INTEGER_B[0]))[tmp_long]=1;
+#line 34 "member_arrays_cpp.bas"
+if(!qbevent)break;evnt(34);}while(r);
+#line 35 "member_arrays_cpp.bas"
+exit_subfunc:;
+#line 35 "member_arrays_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 35 "member_arrays_cpp.bas"
+#include "free2.txt"
+#line 35 "member_arrays_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 35 "member_arrays_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 35 "member_arrays_cpp.bas"
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt data1.txt free1.txt data2.txt free2.txt

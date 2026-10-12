@@ -334,6 +334,10 @@ impl Checker<'_> {
             let shown = show_bytes(self.text(name_tok.span));
             return Err(self.unsupported(name_tok.span, format!("`{shown}`")));
         }
+        // `t.v(2)`: an element of a member array.
+        if let Some(place) = self.dotted_call(node, name_tok, &proc_name, suffix)? {
+            return self.load(place, span);
+        }
         let array = match self.find_array(&proc_name, suffix) {
             Some(a) => a,
             None => {

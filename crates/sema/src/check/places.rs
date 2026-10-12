@@ -6,7 +6,8 @@ use super::decl::Declarer;
 use super::expr::is_builtin_function;
 use super::{Checker, DimFact, Failed, NoJoin, R, Scope, Skips};
 use crate::{AllocMode, BinOp, ConvKind, StmtKind, UnOp};
-use crate::{Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType, Var, VarId};
+use crate::{ArrayRef, Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType};
+use crate::{Var, VarId};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::find_any;
 use qb64rust_syntax::SyntaxKind;
@@ -111,6 +112,8 @@ impl Checker<'_> {
         if self.types_by_name.contains_key(&name) {
             return Err(self.unsupported(name_tok.span, format!("a second `TYPE {shown}`")));
         }
+        // `OPTION BASE` as it stands at the block: the lower bound of a member array's dimension without `TO`.
+        let base = self.type_bases.get(&b.node().key()).copied().unwrap_or(0);
         let mut members: Vec<Member> = Vec::new();
         for field in b.fields() {
             let fspan = field.node().span();
@@ -119,12 +122,14 @@ impl Checker<'_> {
             for f in field.names() {
                 let t = self.need(f.name(), f.node().span())?;
                 let shown = show_bytes(self.text(t.span));
-                if let Some(bounds) = f.bounds() {
-                    return Err(self.unsupported(bounds.node().span(), "arrays as `TYPE` members"));
-                }
                 if let Some(m) = f.modifier() {
+                    // Measured: "_Static/_Dynamic require $Unstable:TypeFields" (`verification\v24_x204`, `x205`).
                     return Err(self.unsupported(m.span, "`_DYNAMIC`/`_STATIC` members"));
                 }
+                let bounds = match f.bounds() {
+                    Some(bounds) => self.member_bounds(bounds, base, &shown)?,
+                    None => Vec::new(),
+                };
                 let (mname, msuffix) = self.split_name(t)?;
                 if msuffix.is_some() {
                     // Measured: "Invalid name" and "Expected element-name AS type" (`v18_h_member_decl_suffix*`).
@@ -144,11 +149,24 @@ impl Checker<'_> {
                 if members.iter().any(|m| m.name == mname) {
                     return Err(self.unsupported(t.span, format!("a second member `{shown}`")));
                 }
-                members.push(Member { name: mname, ty });
+                members.push(Member {
+                    name: mname,
+                    ty,
+                    bounds,
+                });
             }
         }
         if members.is_empty() {
             return Err(self.unsupported(header.node().span(), "a `TYPE` without members"));
+        }
+        // The bytes of a value, a `STRING` member as its pointer: sizes are kept in 32 bits. A member is below
+        // 2^62 bytes (a type and a count of at most 2^31 each); their sum may pass 64 bits.
+        let bytes: u64 = members
+            .iter()
+            .map(|m| layout_bytes(&self.prog.types, m.ty) * u64::from(m.count()))
+            .fold(0, u64::saturating_add);
+        if bytes > MAX_ELEMENTS as u64 {
+            return Err(self.unsupported(header.node().span(), "a `TYPE` of more than 2^31 bytes"));
         }
         let id = TypeId(to_u32(self.prog.types.len()));
         self.prog.types.push(UserType {
@@ -157,6 +175,70 @@ impl Checker<'_> {
         });
         self.types_by_name.insert(name, id);
         Ok(())
+    }
+
+    /// The bounds of a member array (design D8 of `m2-defxxx-common-arrays`; measured,
+    /// `verification\v24_h_member_arrays`, `v24_x182`, `x183`, `x195`–`x198`, `x217`), one pair per dimension.
+    /// `base` is `OPTION BASE` where the block stands: the lower bound of a dimension without `TO`. The number 0
+    /// has no rule of its own here (`z(0)` under base 1 is "Invalid array bounds", as bounds in the wrong order
+    /// are); nothing between the parentheses is "Array bounds missing".
+    ///
+    /// A bound is a constant expression. The blocks are read before the program's `CONST`s, so a bound that
+    /// names one (accepted by the old compiler, `v24_x196`) cannot be told from a variable (its "TYPE member
+    /// array bounds must be numeric constant", `x195`): a bound that is not written with numbers alone is not
+    /// supported yet.
+    fn member_bounds(&mut self, bounds: ast::ArrayBounds, base: i64, shown: &str) -> R<Vec<(i64, i64)>> {
+        let span = bounds.node().span();
+        let ranges = bounds.ranges();
+        if ranges.is_empty() {
+            return Err(self.error(span, format!("the member array `{shown}` needs bounds")));
+        }
+        let mut out = Vec::new();
+        let mut count: i64 = 1;
+        for (lower, upper) in ranges {
+            let upper = self.need(upper, span)?;
+            for bound in lower.into_iter().chain([upper]) {
+                if !only_numbers(bound) {
+                    let msg = "a bound of a member array that is not written with numbers alone (a `CONST`)";
+                    return Err(self.unsupported(bound.node().span(), msg));
+                }
+            }
+            let l = match lower {
+                Some(l) => self.constant_bound(l)?,
+                None => base,
+            };
+            let u = self.constant_bound(upper)?;
+            if u < l {
+                let msg = format!("invalid bounds for `{shown}`: {l} TO {u}");
+                return Err(self.error(upper.node().span(), msg));
+            }
+            count = match u
+                .checked_sub(l)
+                .and_then(|n| n.checked_add(1))
+                .and_then(|n| count.checked_mul(n))
+            {
+                Some(n) if n <= MAX_ELEMENTS => n,
+                _ => return Err(self.unsupported(span, "an array of more than 2^31 elements")),
+            };
+            out.push((l, u));
+        }
+        Ok(out)
+    }
+
+    /// A bound that must be known when compiling (of a member array, in its `TYPE` block or in a `REDIM` of it),
+    /// rounded half to even as any bound is. Measured for one that is not: "TYPE member array bounds must be
+    /// numeric constant" (`verification\v24_x195`, `x220`).
+    fn constant_bound(&mut self, node: ast::Expr) -> R<i64> {
+        let e = self.expr(node)?;
+        let span = e.span;
+        if e.ty == Ty::Str {
+            return Err(self.error(span, "an array bound must be a number"));
+        }
+        let e = self.store(e, Ty::I64)?;
+        match constant(&e) {
+            Some(Num::Int(v)) => Ok(v),
+            Some(Num::Float(_)) | None => Err(self.error(span, "a bound of a member array must be a constant")),
+        }
     }
 
     /// The type of a member: a numeric type other than `_BIT`, a `STRING` (measured,
@@ -360,7 +442,11 @@ impl Checker<'_> {
             Some(bounds) => {
                 let mut count: i64 = 1;
                 for &(l, u) in &bounds {
-                    count = match (u - l).checked_add(1).and_then(|n| count.checked_mul(n)) {
+                    count = match u
+                        .checked_sub(l)
+                        .and_then(|n| n.checked_add(1))
+                        .and_then(|n| count.checked_mul(n))
+                    {
                         Some(n) if n <= MAX_ELEMENTS => n,
                         _ => return Err(self.unsupported(bounds_span, "an array of more than 2^31 elements")),
                     };
@@ -635,7 +721,8 @@ impl Checker<'_> {
             return Err(self.unsupported(t.span, msg));
         }
         if let Some(head) = name.split_once('.').map(|(head, _)| head) {
-            // `p.m(1)` beside a `TYPE` variable or array `p`: a member array, which is not supported yet.
+            // `p.m(1)` beside a `TYPE` variable or array `p` that the name does not reach as a member
+            // ([`Self::dotted_call`] reads the ones it does): not measured.
             let user = |ty: &Ty| matches!(ty, Ty::User(_));
             let typed = |s: &Scope| {
                 s.vars.keys().any(|(n, ty)| n == head && user(ty))
@@ -643,7 +730,8 @@ impl Checker<'_> {
             };
             if typed(&self.main) || (self.cur.is_some() && typed(&self.local)) {
                 self.implicit_names.insert(name.to_string());
-                return Err(self.unsupported(t.span, "arrays as `TYPE` members"));
+                let msg = format!("`{shown}(...)` beside a `TYPE` variable or array `{head}`");
+                return Err(self.unsupported(t.span, msg));
             }
         }
         if dims == 0 {
@@ -806,9 +894,25 @@ impl Checker<'_> {
             let shown = show_bytes(self.text(t.span));
             return Err(self.unsupported(span, format!("the whole array `{shown}()`")));
         }
+        self.element_at(array, args, t, span)
+    }
+
+    /// The element of `array` at the indexes `args` (at least one), written at `span` with the name `t`.
+    fn element_at(&mut self, array: VarId, args: Vec<ast::Expr>, t: Tok, span: Span) -> R<Place> {
         let dims = self.settle_dims(array, args.len(), t, span);
+        let index = self.indexes(args, dims, t, span)?;
+        self.names.push((SymbolKind::Var(array), t.span));
+        Ok(Place::Element {
+            array: ArrayRef::Var(array),
+            index,
+        })
+    }
+
+    /// The indexes of an element of an array of `dims` dimensions, each converted to `_INTEGER64`.
+    fn indexes(&mut self, args: Vec<ast::Expr>, dims: usize, t: Tok, span: Span) -> R<Vec<Expr>> {
         if args.len() != dims {
-            // Measured: "Cannot change the number of elements an array has!" (`v18_d_index_count_*`).
+            // Measured: "Cannot change the number of elements an array has!" (`v18_d_index_count_*`; for a
+            // member array `verification\v24_x192`).
             let shown = show_bytes(self.text(t.span));
             let plural = if dims == 1 { "" } else { "s" };
             return Err(self.error(
@@ -820,13 +924,12 @@ impl Checker<'_> {
         for a in args {
             let e = self.expr(a)?;
             if e.ty == Ty::Str {
-                // Measured: "Illegal string-number conversion" (`v18_d_index_string`).
+                // Measured: "Illegal string-number conversion" (`v18_d_index_string`, `v24_x194`).
                 return Err(self.error(e.span, "an array index must be a number"));
             }
             index.push(self.store(e, Ty::I64)?);
         }
-        self.names.push((SymbolKind::Var(array), t.span));
-        Ok(Place::Element { array, index })
+        Ok(index)
     }
 
     /// The place an element-shaped call names, for a store or the base of a member: an array element, else "not
@@ -838,6 +941,9 @@ impl Checker<'_> {
         if self.procs_by_name.contains_key(&name) {
             let shown = show_bytes(self.text(t.span));
             return Err(self.unsupported(t.span, format!("`{shown}(...)` here (a FUNCTION of this name exists)")));
+        }
+        if let Some(place) = self.dotted_call(call, t, &name, suffix)? {
+            return Ok(place);
         }
         let array = match self.find_array(&name, suffix) {
             Some(a) => a,
@@ -853,8 +959,132 @@ impl Checker<'_> {
 
     /// A dotted name `a.b…` (design D3, measured M8 and `v18_h_dotted_before_dim`): member access when a scalar
     /// variable `a` of a user type is visible here, an error when only an array `a` of a user type is, else
-    /// `None` (a plain variable named `a.b…`).
+    /// `None` (a plain variable named `a.b…`). A member array named without an index is the error (measured:
+    /// "Expected array index after v", `verification\v24_x193`).
     pub(super) fn dotted(&mut self, t: Tok, name: &str, suffix: Option<Ty>) -> R<Option<Place>> {
+        match self.dotted_any(t, name, suffix)? {
+            Some(place) => self.member_element(place, None, t.span, t).map(Some),
+            None => Ok(None),
+        }
+    }
+
+    /// `a.b…(index, …)`, a call node whose name is a dotted name that [`Self::dotted`] reads as member access:
+    /// an element of the member array `a.b…`. `None` for any other name.
+    pub(super) fn dotted_call(
+        &mut self,
+        call: ast::CallExpr,
+        t: Tok,
+        name: &str,
+        suffix: Option<Ty>,
+    ) -> R<Option<Place>> {
+        let Some(place) = self.dotted_any(t, name, suffix)? else {
+            return Ok(None);
+        };
+        let span = call.node().span();
+        self.member_element(place, Some(call.arg_list()), span, t).map(Some)
+    }
+
+    /// The member a place names: of a [`Place::Member`], its member.
+    fn member_of(&self, place: &Place) -> Option<&Member> {
+        match place {
+            Place::Member { base, member } => Some(self.prog.member(self.prog.place_ty(base), *member)),
+            Place::Var(_) | Place::Element { .. } => None,
+        }
+    }
+
+    /// Whether a place that [`Self::members`] gave names a member array as a whole. Such a place is no place of
+    /// the typed tree: it becomes an element ([`Self::member_element`]) or an [`ArrayRef::Member`].
+    fn is_member_array(&self, place: &Place) -> bool {
+        self.member_of(place).is_some_and(Member::is_array)
+    }
+
+    /// What stands after a member that [`Self::members`] gave: for a member array its indexes (`args`: the
+    /// parentheses written after it, `Some(None)` for a call node without any), which make an element; for any
+    /// other member nothing. Measured (`verification\v24_x192`–`x194`, `x318`, `x326`): a member array without
+    /// an index is "Expected array index after v", with empty parentheses "Expected array index", another
+    /// number of indexes than its dimensions "Cannot change the number of elements an array has!", a string
+    /// index "Illegal string-number conversion"; an index after a member that is no array "Element is not an
+    /// array".
+    fn member_element(&mut self, place: Place, args: Option<Option<ast::ArgList>>, span: Span, t: Tok) -> R<Place> {
+        let shown = show_bytes(self.text(t.span));
+        let Some(dims) = self.member_of(&place).filter(|m| m.is_array()).map(|m| m.bounds.len()) else {
+            return match args {
+                None => Ok(place),
+                Some(_) => Err(self.error(span, format!("`{shown}` is a member that is no array: it has no index"))),
+            };
+        };
+        let Some(list) = args else {
+            return Err(self.error(
+                span,
+                format!("`{shown}` is a member array: an index is expected after it"),
+            ));
+        };
+        let args = self.present_args(list)?;
+        if args.is_empty() {
+            // `t.v()`: the whole member array, where it is no array argument, no target of `ERASE` and no
+            // argument of `LBOUND` or `UBOUND` ([`Self::member_array`]).
+            let msg = format!("`{shown}()` is a member array: an index is expected between the parentheses");
+            return Err(self.error(span, msg));
+        }
+        let index = self.indexes(args, dims, t, span)?;
+        let Place::Member { base, member } = place else {
+            unreachable!("a member array is a member");
+        };
+        Ok(Place::Element {
+            array: ArrayRef::Member { base, member },
+            index,
+        })
+    }
+
+    /// The member array an expression names as a whole, where one may stand (the argument of `LBOUND` and
+    /// `UBOUND`, a target of `ERASE`, an argument for an array parameter): `t.v`, `a(1).v`, `x(0).n(1).q`, each
+    /// also with empty parentheses after it (the second value; measured for `LBOUND`, `verification\v24_x201`,
+    /// `x311`, and for `ERASE`, `x320`). `None` for an expression of another shape and for a name that is no
+    /// member access. A member that is no array is the error (measured for `LBOUND`: "Element is not an array",
+    /// `x321`).
+    pub(super) fn member_array(&mut self, node: ast::Expr) -> R<Option<(ArrayRef, bool, Tok)>> {
+        let span = node.node().span();
+        let (place, parens, t) = match node {
+            ast::Expr::NameRef(n) => {
+                let t = self.need(n.name(), span)?;
+                let (name, suffix) = self.split_name(t)?;
+                match self.dotted_any(t, &name, suffix)? {
+                    Some(place) => (place, false, t),
+                    None => return Ok(None),
+                }
+            }
+            ast::Expr::Call(c) if c.arg_list().is_some_and(|l| l.args().is_empty()) => {
+                let t = self.need(c.name(), span)?;
+                let (name, suffix) = self.split_name(t)?;
+                match self.dotted_any(t, &name, suffix)? {
+                    Some(place) => (place, true, t),
+                    None => return Ok(None),
+                }
+            }
+            ast::Expr::Field(f) if f.arg_list().is_none_or(|l| l.args().is_empty()) => {
+                let (place, t) = self.field_member(f)?;
+                (place, f.arg_list().is_some(), t)
+            }
+            ast::Expr::Literal(_)
+            | ast::Expr::Call(_)
+            | ast::Expr::Field(_)
+            | ast::Expr::Paren(_)
+            | ast::Expr::Prefix(_)
+            | ast::Expr::Bin(_) => return Ok(None),
+        };
+        if !self.is_member_array(&place) {
+            let shown = show_bytes(self.text(t.span));
+            return Err(self.error(span, format!("`{shown}` is a member that is no array")));
+        }
+        let Place::Member { base, member } = place else {
+            unreachable!("a member array is a member");
+        };
+        Ok(Some((ArrayRef::Member { base, member }, parens, t)))
+    }
+
+    /// [`Self::dotted`] without its last step: the member the name reaches, which may be a member array named
+    /// as a whole.
+    fn dotted_any(&mut self, t: Tok, name: &str, suffix: Option<Ty>) -> R<Option<Place>> {
         let Some(dot) = name.find('.') else {
             return Ok(None);
         };
@@ -889,10 +1119,16 @@ impl Checker<'_> {
     }
 
     /// The members `path` (`b` or `b.c`, upper case) of `base`; `suffix` is on the last one, which must be its own
-    /// type's (measured: another suffix is "Incorrect symbol after element name").
+    /// type's (measured: another suffix is "Incorrect symbol after element name"). The last one may be a member
+    /// array, which the caller gives its index ([`Self::member_element`]); one before it is the error of a member
+    /// array without an index.
     fn members(&mut self, mut base: Place, path: &str, suffix: Option<Ty>, t: Tok) -> R<Place> {
         let shown = show_bytes(self.text(t.span));
         for seg in path.split('.') {
+            if let Some(m) = self.member_of(&base).filter(|m| m.is_array()) {
+                let msg = format!("`{shown}`: an index is expected after the member array `{}`", m.name);
+                return Err(self.error(t.span, msg));
+            }
             let Ty::User(tid) = self.prog.place_ty(&base) else {
                 return Err(self.unsupported(t.span, format!("`{shown}`: a member of a value that is not a `TYPE`")));
             };
@@ -924,12 +1160,16 @@ impl Checker<'_> {
         Ok(base)
     }
 
-    /// `base(…).member…` (a `FieldExpr`).
+    /// `base(…).member…` (a `FieldExpr`), with the index of a member array after it (`a(1).v(2)`).
     pub(super) fn field_place(&mut self, f: ast::FieldExpr) -> R<Place> {
         let span = f.node().span();
-        if let Some(list) = f.arg_list() {
-            return Err(self.unsupported(list.node().span(), "arrays as `TYPE` members"));
-        }
+        let (place, t) = self.field_member(f)?;
+        self.member_element(place, f.arg_list().map(Some), span, t)
+    }
+
+    /// The member a `FieldExpr` names, without what stands in parentheses after it, and the member's token.
+    fn field_member(&mut self, f: ast::FieldExpr) -> R<(Place, Tok)> {
+        let span = f.node().span();
         let base = match self.need(f.base(), span)? {
             ast::Expr::Call(c) => self.call_place(c)?,
             ast::Expr::Field(inner) => self.field_place(inner)?,
@@ -947,7 +1187,197 @@ impl Checker<'_> {
         }
         let t = self.need(f.member(), span)?;
         let (path, suffix) = self.split_name(t)?;
-        self.members(base, &path, suffix, t)
+        let place = self.members(base, &path, suffix, t)?;
+        Ok((place, t))
+    }
+
+    /// `REDIM [_PRESERVE] path(bounds) [AS type]` where the path names a member array (`t.v`, `a(1).v`,
+    /// `x(0).n(1).q`; design D8 of `m2-defxxx-common-arrays`). Returns false for an item that names none: a
+    /// plain array.
+    ///
+    /// The bounds of a member array never change (measured, `verification\v24_x184`–`x190`, `x218`–`x223`,
+    /// `x312`): the statement is accepted only with constant bounds equal to the declared ones, written `lower
+    /// TO upper`, or the upper bound alone with `AS` and the member's type. It then clears the elements
+    /// ([`StmtKind::Clear`]); with `_PRESERVE` it does nothing at all, and the indexes of its path are not
+    /// evaluated. The compile errors: other bounds, also the same number of elements shifted ("Cannot change
+    /// the number of elements an array has!"), a bound that is not constant ("TYPE member array bounds must be
+    /// numeric constant"), the upper bound alone without `AS` ("REDIM of a TYPE member array must include AS
+    /// <type> or explicit lower TO upper bounds"), another type ("REDIM type does not match the declared TYPE
+    /// member array").
+    ///
+    /// `alone`: the item is the only one of its statement. `listed`: the type stands before the names.
+    pub(super) fn redim_member(
+        &mut self,
+        item: ast::DimItem,
+        preserve: bool,
+        (listed, alone): (bool, bool),
+        stmt: Node,
+    ) -> R<bool> {
+        let span = item.node().span();
+        let parts = item.path();
+        let Some(&(first, first_parens)) = parts.first() else {
+            return Ok(false);
+        };
+        if parts.len() == 1 && !self.text(first.span).contains(&b'.') {
+            return Ok(false);
+        }
+        let (name, suffix) = self.split_name(first)?;
+        let mut index_used = false;
+        let mut place = match self.dotted_any(first, &name, suffix)? {
+            Some(place) => place,
+            None if parts.len() == 1 => return Ok(false),
+            // `a(i).member…`: an element of an array of a user type.
+            None => {
+                let shown = show_bytes(self.text(first.span));
+                let Some(array) = self.find_array(&name, suffix) else {
+                    return Err(self.unsupported(first.span, format!("a member of `{shown}`, which is no array here")));
+                };
+                let Some(index) = first_parens else {
+                    return Err(self.error(first.span, format!("`{shown}` is an array; a member needs an index")));
+                };
+                index_used = true;
+                let args = self.path_index(index)?;
+                self.element_at(array, args, first, index.node().span())?
+            }
+        };
+        let last = parts.len() - 1;
+        let mut bounds = None;
+        for (k, &(t, parens)) in parts.iter().enumerate() {
+            if k > 0 {
+                if !matches!(self.prog.place_ty(&place), Ty::User(_)) && !self.is_member_array(&place) {
+                    return Err(self.error(t.span, "only a value of a `TYPE` has members"));
+                }
+                let (path, suffix) = self.split_name(t)?;
+                place = self.members(place, &path, suffix, t)?;
+            }
+            let parens = parens.filter(|_| !(k == 0 && index_used));
+            if k == last {
+                bounds = parens;
+                break;
+            }
+            // An index on the way: of a member array, which the next member is taken of.
+            if let Some(index) = parens {
+                let index_span = index.node().span();
+                if !self.is_member_array(&place) {
+                    let shown = show_bytes(self.text(t.span));
+                    let msg = format!("`{shown}` is a member that is no array: it has no index");
+                    return Err(self.error(index_span, msg));
+                }
+                let args = self.path_index(index)?;
+                let dims = self.member_of(&place).map_or(0, |m| m.bounds.len());
+                let index = self.indexes(args, dims, t, index_span)?;
+                let Place::Member { base, member } = place else {
+                    unreachable!("a member array is a member");
+                };
+                place = Place::Element {
+                    array: ArrayRef::Member { base, member },
+                    index,
+                };
+            }
+        }
+        let (last_tok, _) = parts[last];
+        let shown = show_bytes(self.text(last_tok.span));
+        let Some((declared, member_ty)) = self
+            .member_of(&place)
+            .filter(|m| m.is_array())
+            .map(|m| (m.bounds.clone(), m.ty))
+        else {
+            // Not measured: a `REDIM` of a member that is a single value.
+            return Err(self.unsupported(span, format!("`REDIM` of `{shown}`, a member that is no array")));
+        };
+        let Some(bounds) = bounds else {
+            return Err(self.unsupported(span, format!("`REDIM` of the member array `{shown}` without bounds")));
+        };
+        if listed {
+            // Measured: "Unknown type" (`verification\v24_x325`). `SHARED` changes nothing (`x324`).
+            let msg = format!("the member array `{shown}` cannot stand in a `REDIM` with the type before the names");
+            return Err(self.error(span, msg));
+        }
+        let as_ty = match item.as_clause() {
+            Some(a) => Some((self.type_of(a)?, a.node().span())),
+            None => None,
+        };
+        if let Some((ty, at)) = as_ty
+            && ty != member_ty
+        {
+            let msg = format!(
+                "the member array `{shown}` is declared {}: a `REDIM` cannot give it another type",
+                self.prog.type_name(member_ty)
+            );
+            return Err(self.error(at, msg));
+        }
+        let bounds_span = bounds.node().span();
+        let mut given = Vec::new();
+        for (lower, upper) in bounds.ranges() {
+            let upper = self.need(upper, bounds_span)?;
+            let l = match lower {
+                Some(l) => self.constant_bound(l)?,
+                None if as_ty.is_none() => {
+                    let msg = format!(
+                        "a `REDIM` of the member array `{shown}` names its bounds as `lower TO upper`, or its type \
+                         with `AS`"
+                    );
+                    return Err(self.error(upper.node().span(), msg));
+                }
+                // Not measured: whether the number 0 keeps its rule of a `DIM` here (0 to 0 under base 1).
+                None if self.option_base != 0 && self.is_plain_zero(upper) => {
+                    let msg = format!("`REDIM {shown}(0)` of a member array under `OPTION BASE 1`");
+                    return Err(self.unsupported(upper.node().span(), msg));
+                }
+                // The upper bound alone goes by `OPTION BASE` as it stands at the `REDIM` (measured,
+                // `verification\v24_x322`, `x323`).
+                None => self.option_base,
+            };
+            let u = self.constant_bound(upper)?;
+            given.push((l, u));
+        }
+        if given != declared {
+            let text: Vec<String> = declared.iter().map(|(l, u)| format!("{l} TO {u}")).collect();
+            let msg = format!(
+                "the bounds of the member array `{shown}` are ({}): a `REDIM` cannot change them",
+                text.join(", ")
+            );
+            return Err(self.error(bounds_span, msg));
+        }
+        if preserve {
+            return Ok(true);
+        }
+        let Place::Member { base, member } = place else {
+            unreachable!("a member array is a member");
+        };
+        let array = ArrayRef::Member { base, member };
+        self.clear_member_array(array, alone, span, stmt)?;
+        Ok(true)
+    }
+
+    /// The indexes written in the parentheses of a part of a `REDIM` path (`(1)` in `a(1).v(0 TO 3)`), which the
+    /// parser reads as bounds.
+    fn path_index<'t>(&mut self, index: ast::ArrayBounds<'t>) -> R<Vec<ast::Expr<'t>>> {
+        let span = index.node().span();
+        let mut out = Vec::new();
+        for (lower, upper) in index.ranges() {
+            if lower.is_some() {
+                return Err(self.error(span, "an index cannot be a range (`TO`)"));
+            }
+            out.push(self.need(upper, span)?);
+        }
+        if out.is_empty() {
+            return Err(self.error(span, "an index is expected between the parentheses"));
+        }
+        Ok(out)
+    }
+
+    /// The clear of a member array, by `ERASE` or `REDIM` (`alone`: it is the only target of its statement).
+    /// Finding the array may raise when an index stands on its way, and where the old compiler's statement goes
+    /// on with its other targets before the error is handled (measured, `verification\v24_x312`), each clear
+    /// here is a statement of its own: such a target beside others is not supported yet.
+    pub(super) fn clear_member_array(&mut self, array: ArrayRef, alone: bool, span: Span, stmt: Node) -> R<()> {
+        if array.may_raise() && !alone {
+            let msg = "a member array of an array element in a list of `ERASE` or `REDIM` targets";
+            return Err(self.unsupported(span, msg));
+        }
+        self.push(stmt, StmtKind::Clear { array });
+        Ok(())
     }
 
     /// The place of a user type that an expression names where a whole value is taken (the right side of `q = p`,
@@ -974,6 +1404,9 @@ impl Checker<'_> {
             ast::Expr::Call(c) => {
                 let t = self.need(c.name(), span)?;
                 let (name, suffix) = self.split_name(t)?;
+                if let Some(place) = self.dotted_call(c, t, &name, suffix)? {
+                    return Ok(Some(place));
+                }
                 match self.find_array(&name, suffix) {
                     Some(a) if matches!(self.prog.var(a).ty, Ty::User(_)) => self.element(c, a, t).map(Some),
                     Some(_) | None => Ok(None),
@@ -1011,7 +1444,9 @@ impl Checker<'_> {
         })
     }
 
-    /// `LBOUND(array[, dimension])` and `UBOUND(…)` (design D4, measured `v18_e_bounds*`, `v18_f_*`).
+    /// `LBOUND(array[, dimension])` and `UBOUND(…)` (design D4, measured `v18_e_bounds*`, `v18_f_*`). The array
+    /// may be a member array, also written with empty parentheses (`verification\v24_h_member_arrays`,
+    /// `v24_x201`, `x311`).
     pub(super) fn bound_fn(&mut self, call: ast::CallExpr, upper: bool, span: Span) -> R<Expr> {
         let word = if upper { "UBOUND" } else { "LBOUND" };
         // Its row in the supported list gives the arity and the result type (`crate::builtins`).
@@ -1025,8 +1460,9 @@ impl Checker<'_> {
         if !(required..=slots.len()).contains(&args.len()) {
             return Err(self.unsupported(span, format!("`{word}` with {} arguments", args.len())));
         }
-        let array = match args[0] {
-            ast::Expr::NameRef(n) => {
+        let array = match (self.member_array(args[0])?, args[0]) {
+            (Some((array, _, _)), _) => array,
+            (None, ast::Expr::NameRef(n)) => {
                 let t = self.need(n.name(), span)?;
                 let (name, suffix) = self.split_name(t)?;
                 let a = match self.find_array(&name, suffix) {
@@ -1043,18 +1479,21 @@ impl Checker<'_> {
                     self.settle_dims(a, 1, t, span);
                 }
                 self.names.push((SymbolKind::Var(a), t.span));
-                a
+                ArrayRef::Var(a)
             }
-            ast::Expr::Call(c) if c.arg_list().is_some_and(|l| l.args().is_empty()) => {
+            (None, ast::Expr::Call(c)) if c.arg_list().is_some_and(|l| l.args().is_empty()) => {
                 // Measured: "Expected ." (`v18_e_bounds_empty_parens`, `v18_e_bounds_type_array`).
                 return Err(self.error(c.node().span(), format!("`{word}` takes the array's name without `()`")));
             }
-            other @ (ast::Expr::Literal(_)
-            | ast::Expr::Call(_)
-            | ast::Expr::Field(_)
-            | ast::Expr::Paren(_)
-            | ast::Expr::Prefix(_)
-            | ast::Expr::Bin(_)) => {
+            (
+                None,
+                other @ (ast::Expr::Literal(_)
+                | ast::Expr::Call(_)
+                | ast::Expr::Field(_)
+                | ast::Expr::Paren(_)
+                | ast::Expr::Prefix(_)
+                | ast::Expr::Bin(_)),
+            ) => {
                 return Err(self.unsupported(other.node().span(), format!("`{word}` of this expression")));
             }
         };
@@ -1074,6 +1513,45 @@ impl Checker<'_> {
             qb: ty,
             kind: ExprKind::Bound { upper, array, dim },
         })
+    }
+}
+
+/// Whether an expression is written with numbers alone: no name, no call ([`Checker::member_bounds`]).
+fn only_numbers(node: ast::Expr) -> bool {
+    match node {
+        ast::Expr::Literal(_) => true,
+        ast::Expr::Paren(p) => p.inner().is_some_and(only_numbers),
+        ast::Expr::Prefix(p) => p.operand().is_some_and(only_numbers),
+        ast::Expr::Bin(b) => b.lhs().is_some_and(only_numbers) && b.rhs().is_some_and(only_numbers),
+        ast::Expr::NameRef(_) | ast::Expr::Call(_) | ast::Expr::Field(_) => false,
+    }
+}
+
+/// The bytes a value of a type takes in the emitter's layout, where a `STRING` is the pointer to its string:
+/// what limits the size of a `TYPE`.
+fn layout_bytes(types: &[UserType], t: Ty) -> u64 {
+    match t {
+        Ty::Str => 8,
+        Ty::User(id) => types[id.0 as usize]
+            .members
+            .iter()
+            .map(|m| layout_bytes(types, m.ty) * u64::from(m.count()))
+            .sum(),
+        Ty::I8
+        | Ty::U8
+        | Ty::I16
+        | Ty::U16
+        | Ty::I32
+        | Ty::U32
+        | Ty::I64
+        | Ty::U64
+        | Ty::Off
+        | Ty::UOff
+        | Ty::Bit { .. }
+        | Ty::F32
+        | Ty::F64
+        | Ty::F80
+        | Ty::FixedStr(_) => u64::from(crate::size_of(types, t)),
     }
 }
 

@@ -666,24 +666,85 @@ Before the group (2026-10-11), the two known bugs of `STATUS.md` were fixed, eac
 
 ## 9. Member arrays (design D8; as decided in 1.4)
 
-- [ ] 9.1 `sema` and IR: bounds on a member in both declaration forms (with `OPTION BASE` as it is at the `TYPE`
+**Measured before and while the group was built (2026-10-11), 17 programs `verification\v24_x310`–`x326`, all
+recorded; findings in `study\00` §5 and design D8, "As built in group 9".** What they changed in the plan:
+
+- **`LBOUND`, `UBOUND` and `LEN` never find the place a member array is part of** (`x311`): `UBOUND(a(f(1)).v)`
+  does not call `f`, `LBOUND(a(9).v)` raises nothing. `REDIM _PRESERVE` neither (`x312`). `ERASE` and `REDIM` do,
+  once, and are not guarded: an index outside raises 9 and the member array of element 0 is cleared.
+- **A string stored through a member is evaluated after the indexes, a number before them** (`x313`, `x316`):
+  `a(setz(1)).s = z$` stores what `setz` put into `z$`, also for `z$ + "!"`, a `STRING * n` member and an element
+  of a member array. The old compiler's string store is one call whose first argument is the place. **The code
+  of groups before this one copied the string first** (`a(i).s = z$` stored the old value): corrected here, the
+  spec deltas and the IR's rule say so, `s61` line 17 pins it.
+- **A whole value goes element by element only where the elements are parts** (`x310`): each element of a
+  `STRING` member array is a part, each element of one of a user type that holds strings gives its own parts,
+  any other member array is one part.
+- **A whole member array as an array argument works with a descriptor made for the call** (`x315`): in the
+  procedure the bounds are the member's, `ERASE` clears, `REDIM` raises 10; `fill a(9).v()` raises 9 and the
+  procedure is not entered. Built (9.2).
+- `SWAP` takes an element of a member array, and a member of an element, like an argument by reference (`x314`):
+  both compile now (the second was marked before).
+- Ten forms settled by one program each (`x317`–`x326`): six compile errors (`t.m(1)` for a member the type does
+  not have, an index after a member that is no array, `LBOUND` of one, `fill t.v` without parentheses, `REDIM AS
+  LONG t.v(…)`, `PRINT t.v()`), `ERASE t.v()` and `REDIM SHARED t.v(…)` accepted, and the upper bound alone in a
+  `REDIM … AS` going by `OPTION BASE` as it stands at the `REDIM`.
+
+- [x] 9.1 `sema` and IR: bounds on a member in both declaration forms (with `OPTION BASE` as it is at the `TYPE`
   block, no literal-0 rule), `ArrayRef::Member`, elements through any chain, `LBOUND`/`UBOUND` of a member array
   (also `t.v()`), the store rule of D-004 at every index, `REDIM` and `ERASE` of a member array lowered to `Clear`
   and `REDIM _PRESERVE` to nothing with the compile errors of 1.4, the `_STATIC`/`_DYNAMIC` markers still marked;
   `DIVERGENCES.md` D-004 gains the member-array forms. Verify: `typed` and `ir` tests for `t.v(i)`, `a(i).v(j)`
   and `x(0).n(1).q(2)`; `check-fail` tests for a wrong index count, no index, a string index, a marked member, a
   bound that is not constant, and each rejected `REDIM` form.
-- [ ] 9.2 Emitter: the inline layout (1.4, case (a): the member's offset plus the checked flat position times
+  Done 2026-10-11. `Member` has `bounds`; `ArrayRef` (a variable, or a member of a place) names the array of
+  an element, of `LBOUND`/`UBOUND`, of `Clear` and of an array argument, in the typed tree and the IR.
+  `OPTION BASE` is collected per `TYPE` block by a walk before the blocks are read (`collect_option_bases`).
+  `ir::validate` knows both kinds of array and that a member array is never a single value; its own test
+  `member_arrays_are_named_as_arrays`. Tests `tests\frontend\member_arrays_typed.bas`, `_ir.bas`,
+  `_errors.bas` (27 real errors, 10 marks: two of them, bounds and a `TYPE` size beyond 64 bits, were compiler
+  crashes found by the review of the group, 2026-10-12).
+  - **Narrower than written, each marked "not supported yet" by its own message and listed in `SOMEDAY.md`:**
+    (1) **a bound of a member array that names a `CONST`** (accepted by the old compiler, `v24_x196`): the
+    `TYPE` blocks are read before the program's `CONST`s, so a bound must be written with numbers alone, also
+    as an expression of numbers; no upstream program has another. (2) A member array of an array element
+    beside other targets of one `ERASE` or `REDIM` (`ERASE a(1).v, t.v`): the old compiler goes on with the
+    other targets before the error of an index is handled, and each clear here is a statement of its own.
+    (3) An element of a member array as a target of `INPUT`, `READ` or the `MID$` statement, as a member of an
+    element already was: not measured. (4) `REDIM t.v(0) AS type` under `OPTION BASE 1`: not measured.
+- [x] 9.2 Emitter: the inline layout (1.4, case (a): the member's offset plus the checked flat position times
   the element size), elements passed by reference, `Clear` of a member array, whole-value copy and `STRING`
   members inside member arrays, and a whole member array as an array argument if a descriptor made for the call
   is all it takes (D8; otherwise marked and named in `SOMEDAY.md`). Verify: `cpp` snapshot tests; slice program
   `s61_member_arrays` (every scenario of "Member arrays" and the member-array scenario of "LBOUND and UBOUND"),
   recorded, passes in tier 2 with and without `QB64RUST_NO_FOLD=1`; `runtime_comparison/197_type_array_field`
   passes.
-- [ ] 9.3 Lists and documents as 2.3, with the full upstream suite run. Verify: "arrays as `TYPE` members" is gone
+  Done 2026-10-11. A read checks each index with `array_check` against the member's constant bounds; the store
+  through a member is one routine for every such place (`store_through_member`, the byte distance added up
+  index by index and the address formed last); `LBOUND`/`UBOUND` are constants, or picked by a dimension
+  evaluated once into a `passN`; the array argument is a `passN` descriptor with the bounds in its declaration.
+  `tests\frontend\member_arrays_cpp.bas`; `s61_member_arrays` (37 numbered lines) passes with and without
+  folding, as does the whole slice list (287 of 287); `197_type_array_field` passes and is on `slice.list`.
+  D-004 for member arrays cannot be a recorded program: command-line test `member_array_store_with_bad_index`
+  (builds and runs, `#[ignore]`d, passes; `member_store_with_bad_index` still passes). The 44 member,
+  whole-value and member-array programs of `verification\` (`v18_b_*`, `v18_h_member*`, `v24_h_*`,
+  `v24_x182`–`x226`, `x306`–`x326`) through both compilers: 36 give the same result (the same output, or both
+  reject), 4 differ only as D-004 says (`v24_h_member_store`, `v24_x313`, `v18_b_index_raises`,
+  `v18_b_member_store`), 4 are rejected here by a mark (`x196` a `CONST` bound, `x312` a list of targets, and
+  two for a label named like a SUB, which is no part of this group).
+- [x] 9.3 Lists and documents as 2.3, with the full upstream suite run. Verify: "arrays as `TYPE` members" is gone
   from the corpus report and, outside `deferred.list`, from the upstream report except for marked members; no
   upstream program builds and prints the wrong output; expected (59 upstream programs naming member arrays)
   against passed stated here; `SOMEDAY.md` says what of the member-array layer is still deferred.
+  Done 2026-10-11. The message is gone from both reports (the marked members have their own, 86 upstream
+  programs). **Full upstream run (404 programs, release build, `--jobs 8`): 114 pass, none builds and prints
+  wrong output**; 251 rejected with only "not supported yet", 38 `.err` programs with only marked errors, 1
+  known failure. **Expected 59** (the proposal's count of programs outside `deferred.list` that name member
+  arrays), **50 newly pass**, all in `arrays/`: 48 programs the old compiler builds, and
+  `arrays/41_err_undefined_array` and `44_err_solved_bug_Incorrect_nr_of_args` (two `.err` programs, now
+  rejected by a real error and off `known_unsupported_rejections.list`, 53 left). What holds the others back
+  is in the demand report (the first lines: marked members, `$Unstable`, `_DEST`, `$CONSOLE`, `_MEM`).
+  `pass.list` 64 to 114; `slice.list` 285 to 287; `tests\upstream\README.md` and `SOMEDAY.md` say the rest.
 
 ## 10. Integration
 

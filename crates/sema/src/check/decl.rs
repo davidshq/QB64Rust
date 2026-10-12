@@ -5,7 +5,7 @@ use super::proc::{FIXED_LEN_ERROR, fixed_len, fixed_name, suffix_fits};
 use super::{Checker, Failed, R, Scope};
 use crate::consteval::Value;
 use crate::literal::{self, NumLit};
-use crate::{ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId};
+use crate::{ArrayRef, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{show_bytes, to_u32};
 use qb64rust_builtins::{Kind, find_any, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
@@ -524,10 +524,14 @@ impl Checker<'_> {
         by: Declarer,
         stmt: Node,
     ) -> R<()> {
+        let items: Vec<ast::DimItem<'t>> = items.collect();
+        let alone = items.len() == 1;
         for item in items {
-            if item.is_member_path() {
-                // `REDIM a(1).m(5)`.
-                return Err(self.unsupported(item.node().span(), "arrays as `TYPE` members"));
+            // `REDIM t.v(0 TO 3)`, `REDIM a(1).m(0 TO 5)`: a member array.
+            if let Declarer::Redim { preserve } = by
+                && self.redim_member(item, preserve, (list_ty.is_some(), alone), stmt)?
+            {
+                continue;
             }
             let name_tok = self.need(item.name(), item.node().span())?;
             let (name, suffix) = self.split_var_name(name_tok)?;
@@ -747,17 +751,29 @@ impl Checker<'_> {
     /// a static array is cleared, a dynamic one released, in order. Anything that is no declared array is
     /// "Undefined array passed to ERASE": a scalar, a name never used (no array is made for it), `name()`, an
     /// element, a suffix of another type than the array's.
+    ///
+    /// A member array (`ERASE t.v`, `ERASE a(1).v`, `ERASE x(0).n(1).q`) is cleared: its bounds never change
+    /// (design D8; measured, `verification\v24_x188`, `x189`, `x224`, `x312`).
     pub(super) fn erase(&mut self, stmt: ast::EraseStmt) -> R<()> {
         let node = stmt.node();
-        for target in stmt.targets() {
+        let targets = stmt.targets();
+        let alone = targets.len() == 1;
+        for target in targets {
+            let expr = match target {
+                ast::EraseTarget::Name { name, .. } => ast::Expr::NameRef(name),
+                ast::EraseTarget::Other(other) => other,
+            };
+            let span = expr.node().span();
+            // Empty parentheses after a member array change nothing (measured, `verification\v24_x320`).
+            if let Some((array, _, _)) = self.member_array(expr)? {
+                self.clear_member_array(array, alone, span, node)?;
+                continue;
+            }
             let name = match target {
                 ast::EraseTarget::Name { name, parens: false } => name,
                 ast::EraseTarget::Name { name, parens: true } => {
                     let span = name.node().span();
                     return Err(self.error(span, "`ERASE` takes the array's name without `()`"));
-                }
-                ast::EraseTarget::Other(ast::Expr::Field(f)) => {
-                    return Err(self.unsupported(f.node().span(), "arrays as `TYPE` members"));
                 }
                 ast::EraseTarget::Other(other) => {
                     return Err(self.error(other.node().span(), "`ERASE` takes a whole array, by its name"));
@@ -779,7 +795,9 @@ impl Checker<'_> {
                 // An array parameter is cleared or released by what is passed (measured,
                 // `verification\v24_g_params`).
                 _ if matches!(var.storage, Storage::Param(_)) => StmtKind::EraseParam { array },
-                Shape::Static { .. } => StmtKind::Clear { array },
+                Shape::Static { .. } => StmtKind::Clear {
+                    array: ArrayRef::Var(array),
+                },
                 Shape::Dynamic { .. } => StmtKind::Release { array },
                 Shape::Scalar => unreachable!("an array is no scalar"),
             };
@@ -801,15 +819,9 @@ impl Checker<'_> {
             "_EXPLICIT" | "_EXPLICITARRAY" => Ok(()),
             "BASE" => {
                 let base = self.need(stmt.base(), node.span())?;
-                // Measured: plain digits that are 0 or 1, leading zeros allowed (`01`, `00`, `v24_x239`, `x240`,
-                // `x243`); "Expected OPTION BASE 0 or 1" for `2`, `1.0`, `1&` and `&H1` (`v24_x64`, `x68`, `x241`,
-                // `x242`).
-                let digits = self.text(base.span);
-                let (zeros, last) = digits.split_at(digits.len().saturating_sub(1));
-                self.option_base = match last {
-                    b"0" if zeros.iter().all(|&b| b == b'0') => 0,
-                    b"1" if zeros.iter().all(|&b| b == b'0') => 1,
-                    _ => return Err(self.error(base.span, "`OPTION BASE` takes `0` or `1`")),
+                self.option_base = match option_base_of(self.text(base.span)) {
+                    Some(n) => n,
+                    None => return Err(self.error(base.span, "`OPTION BASE` takes `0` or `1`")),
                 };
                 Ok(())
             }
@@ -947,6 +959,18 @@ impl Checker<'_> {
         }
         self.names.push((SymbolKind::Var(id), name_tok.span));
         Ok(())
+    }
+}
+
+/// The base an `OPTION BASE` sets, from the text after `BASE`. Measured: plain digits that are 0 or 1, leading
+/// zeros allowed (`01`, `00`, `verification\v24_x239`, `x240`, `x243`); "Expected OPTION BASE 0 or 1" for `2`,
+/// `1.0`, `1&` and `&H1` (`v24_x64`, `x68`, `x241`, `x242`): `None`.
+pub(super) fn option_base_of(digits: &[u8]) -> Option<i64> {
+    let (zeros, last) = digits.split_at(digits.len().saturating_sub(1));
+    match last {
+        b"0" if zeros.iter().all(|&b| b == b'0') => Some(0),
+        b"1" if zeros.iter().all(|&b| b == b'0') => Some(1),
+        _ => None,
     }
 }
 

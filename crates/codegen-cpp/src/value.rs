@@ -1,9 +1,9 @@
 //! Values: expressions and the arguments of procedure calls.
 
 use crate::Emitter;
-use crate::decl::is_qbs;
+use crate::decl::{dim_slot, is_qbs, lock_slot};
 use crate::names::{c_string, c_type, int_const, proc_name};
-use qb64rust_ir::{Arg, BinOp, Conv, Expr, ExprKind, ProcId, Ty, UnOp};
+use qb64rust_ir::{Arg, ArrayRef, BinOp, Conv, Expr, ExprKind, MemberId, Place, ProcId, Ty, UnOp};
 
 impl Emitter<'_> {
     /// Arguments of a call of `proc`: a place's own pointer (cast to the parameter's type when the place has the same
@@ -31,10 +31,77 @@ impl Emitter<'_> {
                     self.pass_decls.push(format!("{} {n};\n", c_type(v.ty)));
                     format!("&({n}={})", self.value(v))
                 }
-                Arg::Array(a) => self.name(*a),
+                Arg::Array(ArrayRef::Var(a)) => self.name(*a),
+                Arg::Array(ArrayRef::Member { base, member }) => self.member_array_arg(base, *member),
             })
             .collect();
         parts.join(",")
+    }
+
+    /// A whole member array as an array argument (design D8 of `m2-defxxx-common-arrays`; measured,
+    /// `verification\v24_x315`): a descriptor made for the call, of a static array that is allocated, with the
+    /// member's bounds, over the bytes of the member array. It is a `passN` of the body that makes the call,
+    /// its bounds written where it is declared; the argument sets its block, which finds the place the array is
+    /// part of once. In the procedure an `ERASE` of it clears and a `REDIM` raises error 10, as for any static
+    /// array passed.
+    fn member_array_arg(&mut self, base: &Place, member: MemberId) -> String {
+        let dims = self.member_dims(base, member);
+        let n = dims.len();
+        // The block, an unused slot, the flags (allocated, static), an unused slot; four slots per dimension;
+        // the slot of the `_MEM` lock, which nothing reads of a static array.
+        let mut slots = vec!["0".to_string(); lock_slot(n) + 1];
+        slots[2] = "1+2".to_string();
+        for (k, (lower, count, multiplier)) in dims.into_iter().enumerate() {
+            let s = dim_slot(n, k);
+            slots[s] = int_const(lower, Ty::I64);
+            slots[s + 1] = count.to_string();
+            slots[s + 2] = multiplier.to_string();
+        }
+        self.pass += 1;
+        let name = format!("pass{}", self.pass);
+        self.pass_decls
+            .push(format!("ptrszint {name}[{}]={{{}}};\n", slots.len(), slots.join(",")));
+        let first = self.member_array_at(base, member);
+        format!("({name}[0]=(ptrszint)({first}),{name})")
+    }
+
+    /// `LBOUND` or `UBOUND` of a member array: its member's bound, a constant; the place it is part of is not
+    /// found (measured, `verification\v24_x311`). A dimension outside 1 to the number of dimensions raises
+    /// error 9 and gives 0, as libqb's `func_lbound` does.
+    fn member_bound(&mut self, upper: bool, base: &Place, member: MemberId, dim: Option<&Expr>) -> String {
+        let bounds: Vec<String> = self
+            .p
+            .member_of(base, member)
+            .bounds
+            .iter()
+            .map(|&(lower, high)| int_const(if upper { high } else { lower }, Ty::I64))
+            .collect();
+        let outside = "(error(9),(int64)0)".to_string();
+        let nth = |d: i64| {
+            let bound = usize::try_from(d)
+                .ok()
+                .and_then(|d| d.checked_sub(1))
+                .and_then(|k| bounds.get(k));
+            bound.map_or(outside.clone(), |b| format!("((int64){b})"))
+        };
+        match dim.map(|d| (&d.kind, d)) {
+            None => nth(1),
+            Some((ExprKind::Int(d), _)) => nth(*d),
+            // The dimension is evaluated once, into a `passN`.
+            Some((_, d)) => {
+                let value = self.value(d);
+                self.pass += 1;
+                let name = format!("pass{}", self.pass);
+                self.pass_decls.push(format!("int32 {name};\n"));
+                let mut text = format!("(({name}=({value})),");
+                for (k, b) in bounds.iter().enumerate() {
+                    text.push_str(&format!("{name}=={}?(int64){b}:", k + 1));
+                }
+                text.push_str(&outside);
+                text.push(')');
+                text
+            }
+        }
     }
 
     pub(crate) fn value(&mut self, v: &Expr) -> String {
@@ -51,12 +118,21 @@ impl Emitter<'_> {
             ExprKind::Str(s) => format!("qbs_new_txt_len({},{})", c_string(s), s.len()),
             ExprKind::Load(place) => self.load_place(place),
             // libqb's functions take the descriptor, the dimension and the number of dimensions.
-            ExprKind::Bound { upper, array, dim } => {
+            ExprKind::Bound {
+                upper,
+                array: ArrayRef::Var(array),
+                dim,
+            } => {
                 let f = if *upper { "func_ubound" } else { "func_lbound" };
                 let d = dim.as_deref().map_or("1".to_string(), |d| self.value(d));
                 let n = crate::decl::dim_count(self.p.var(*array));
                 format!("((int64){f}({},{d},{n}))", self.name(*array))
             }
+            ExprKind::Bound {
+                upper,
+                array: ArrayRef::Member { base, member },
+                dim,
+            } => self.member_bound(*upper, base, *member, dim.as_deref()),
             ExprKind::Convert { how, from } => {
                 let x = self.value(from);
                 match (how, v.ty) {

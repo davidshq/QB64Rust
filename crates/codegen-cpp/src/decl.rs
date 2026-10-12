@@ -3,7 +3,7 @@
 
 use crate::Emitter;
 use crate::names::{c_type, int_const, var_name};
-use qb64rust_ir::{MemberId, ProcId, Shape, Storage, Ty, Var, holds_strings, size_of};
+use qb64rust_ir::{Member, MemberId, ProcId, Shape, Storage, Ty, Var, holds_strings, size_of};
 use std::fmt::Write as _;
 
 /// The numeric types as a pattern: each is stored as one C scalar ([`c_type`]); a declaration of any of them is
@@ -142,13 +142,20 @@ impl Emitter<'_> {
 
     /// The size of a value of a type in memory: a number's or a fixed-length string's (`sema`'s `size_of`, the
     /// sizes `LEN` gives), a string's descriptor pointer, a user type's members added up (a `STRING` member is
-    /// the pointer to its descriptor, `study\02` §2.3).
+    /// the pointer to its descriptor, `study\02` §2.3; a member array is all its elements, one after the other,
+    /// design D8 of `m2-defxxx-common-arrays`).
     pub(crate) fn ty_size(&self, t: Ty) -> u32 {
         match t {
             Ty::Str => 8,
-            Ty::User(id) => self.p.user_type(id).members.iter().map(|m| self.ty_size(m.ty)).sum(),
+            Ty::User(id) => self.p.user_type(id).members.iter().map(|m| self.member_size(m)).sum(),
             numbers!() | Ty::FixedStr(_) => size_of(&self.p.types, t),
         }
+    }
+
+    /// The bytes a member takes in a value of its type: its type's size, of a member array times its number of
+    /// elements.
+    pub(crate) fn member_size(&self, m: &Member) -> u32 {
+        self.ty_size(m.ty) * m.count()
     }
 
     /// Whether a value of this type holds strings of its own (a user type with a `STRING` member somewhere in
@@ -160,7 +167,9 @@ impl Emitter<'_> {
     /// The parts a value of user type `t` is set up, cleared and copied by, each with its byte offset, in
     /// declaration order: a `STRING` member is a part, a member of a user type that holds strings gives its own
     /// parts, any other member is its bytes (the old compiler's walk, `CopyFullUDTExpr` and
-    /// `AppendLegacyInlineUDTVarOp` of `utilities\type.bas`).
+    /// `AppendLegacyInlineUDTVarOp` of `utilities\type.bas`). A member array of `STRING`, or of a user type that
+    /// holds strings, gives the parts of each of its elements in turn; any other member array is one part, the
+    /// bytes of all its elements (measured, `verification\v24_x310`).
     pub(crate) fn parts(&self, t: Ty) -> Vec<(u32, Part)> {
         let mut out = Vec::new();
         self.parts_at(t, 0, &mut out);
@@ -173,14 +182,17 @@ impl Emitter<'_> {
         };
         let mut offset = base;
         for m in &self.p.user_type(id).members {
+            let size = self.ty_size(m.ty);
             if m.ty == Ty::Str {
-                out.push((offset, Part::Str));
+                out.extend((0..m.count()).map(|k| (offset + k * size, Part::Str)));
             } else if self.holds_strings(m.ty) {
-                self.parts_at(m.ty, offset, out);
+                for k in 0..m.count() {
+                    self.parts_at(m.ty, offset + k * size, out);
+                }
             } else {
-                out.push((offset, Part::Bytes(self.ty_size(m.ty))));
+                out.push((offset, Part::Bytes(self.member_size(m))));
             }
-            offset += self.ty_size(m.ty);
+            offset += self.member_size(m);
         }
     }
 
@@ -243,7 +255,7 @@ impl Emitter<'_> {
         };
         self.p.user_type(t).members[..m.0 as usize]
             .iter()
-            .map(|x| self.ty_size(x.ty))
+            .map(|x| self.member_size(x))
             .sum()
     }
 

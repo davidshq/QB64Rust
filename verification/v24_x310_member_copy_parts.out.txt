@@ -1,0 +1,7 @@
+t1, no string: 1  2 : 1  10  13  9 
+t2, a STRING array of 3 and a LONG array: 1  2  1  2  1  2  1  2  1  2 : 2 [s0][][s2] 23 
+t3, an array of 2 of t2: 1  2  1  2  1  2  1  2  1  2  1  2  1  2  1  2  1  2  1  2  1  2 :[n0s1][n1s2] 33  3 
+t4, a STRING and arrays without one: 1  2  1  2  1  2  1  2 :[s] 43 [ff] 44 
+t5, an array of t1 and a STRING: 1  2  1  2 : 53 [t5]
+an element of a member array of t2, a3(one(1)).n(one(2)) = b3(one(3)).n(one(4)): 1  2  3  4  1  2  3  4  1  2  3  4  1  2  3  4  1  2  3  4 :[n1s2]
+exit=0

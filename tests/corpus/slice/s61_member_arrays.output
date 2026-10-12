@@ -1,0 +1,37 @@
+1. t.v(2) = 7: 7  0 
+2. a chain: 77  88  0 
+3. each element has its own: 5  0 
+4. t.v(4) = 1: [error 9 ]
+5. stores with an index outside: [error 9 ] [error 9 ] [error 9 ] 100  200  211  221 
+6. a(one(1)).v(one(2)) = one(3): 3  1  2 : 1 
+7. LEN of the variable, an element, a nested element and a type of two: 22  4  8  24 
+8. OPTION BASE at the TYPE block: 0  3  1  3  0  16  24 
+9. REDIM item(0).Values(0 TO 3): 0  0  0  0  11  14  9 
+10. ERASE t.v: 0  0  3  1  9 
+11. LBOUND and UBOUND: 1  4  0  2  1  2  3  3  1.5 
+12. the indexes of the place are not evaluated: UBOUND(a(one(1)).v), LBOUND(a(9).v), LEN(a(one(2)).v(9)): 3  0  4 
+13. a dimension outside: LBOUND(t.v, 0), UBOUND(t.v, 2), UBOUND(u.g, i) for i = 3: [error 9 ] [error 9 ] [error 9 ] 3 
+14. two dimensions, STRING * 3, DOUBLE, STRING: 100 -1  0 [abc] 0  .3333333333333333 str 0 
+15. u.g(one(1), one(2)) = one(3): 3  1  2 : 1 
+16. x(zero(1)).n(one(2)).q(one(3)) = one(4): 4  1  2  3 : 1 
+17. a string is evaluated after the indexes: after after!
+18. reads with an index outside: [error 9 ] [error 9 ] [error 9 ]
+19. a float index and a float stored: 2 
+20. a local variable, twice: 0  0 
+ in bump in bump in bump21. by reference, in parentheses, to an INTEGER parameter: 2  2 
+22. bump a(9).v(1) and bump t.v(9): [error 9 ] [error 9 ]
+23. a STRING and a STRING * 3 element to a STRING parameter: [s!][f  ]
+24. an element of a user type as an argument and as a whole value: 6  6  6 
+25. SWAP: 2  1  4  3 ba 6  1 
+26. SWAP a(one(1)).v(one(2)), a(one(3)).v(one(4)): 1  2  3  4 
+27. a whole member array as an argument: 1  7  1  9  7  0  0 
+28. two dimensions, the bounds in the SUB: 1  2  0  3 : 22 
+29. a STRING member array: [zero][x!]
+30. ERASE and REDIM in the SUB: [error 10 ] after REDIM: 0  0  1  9  7  3 
+31. fill a(9).v() and fill a(zero(1)).v(): [error 9 ] 0  1  7 
+32. q = p with member arrays: 1 fff 2.5 s0s1 44 
+33. ua(one(1)) = ua(one(2)), six parts: 1  2  1  2  1  2  1  2  1  2  1  2 
+34. REDIM with AS and through a chain: 0  0  1 
+35. REDIM _PRESERVE does nothing: 8  3 
+36. ERASE a(one(1)).v, then a(9).v: 1  [error 9 ]: 0  0  3 
+37. ERASE of STRING, STRING * 3 and DOUBLE member arrays: [][keep] 0  0 

@@ -3,8 +3,8 @@
 
 use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
 use crate::{
-    Arg, Body, BuiltinId, Expr, ExprKind, LabelId, Op, Place, PrintItem, ProcId, Program, Resume, Shape, Source,
-    StmtArg, Storage, Ty, Var, VarId,
+    Arg, ArrayRef, Body, BuiltinId, Expr, ExprKind, LabelId, Member, MemberId, Op, Place, PrintItem, ProcId, Program,
+    Resume, Shape, Source, StmtArg, Storage, Ty, Var, VarId,
 };
 
 /// Every problem found, each as `<body>: <where>: <what>`; `Ok` when there is none.
@@ -73,26 +73,40 @@ pub fn validate(p: &Program) -> Result<(), Vec<String>> {
 /// The type of a place, `None` where the place names something that does not exist.
 fn place_ty_checked(p: &Program, place: &Place) -> Option<Ty> {
     match place {
-        Place::Var(v) | Place::Element { array: v, .. } => p.vars.get(v.0 as usize).map(|v| v.ty),
-        Place::Member { base, member } => match place_ty_checked(p, base)? {
-            Ty::User(t) => p.types.get(t.0 as usize)?.members.get(member.0 as usize).map(|m| m.ty),
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::Bit { .. }
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str
-            | Ty::FixedStr(_) => None,
-        },
+        Place::Var(v)
+        | Place::Element {
+            array: ArrayRef::Var(v),
+            ..
+        } => p.vars.get(v.0 as usize).map(|v| v.ty),
+        Place::Member { base, member }
+        | Place::Element {
+            array: ArrayRef::Member { base, member },
+            ..
+        } => member_checked(p, base, *member).map(|m| m.ty),
+    }
+}
+
+/// The member `member` of the place `base`, `None` where the place is of no user type or the type has no such
+/// member.
+fn member_checked<'p>(p: &'p Program, base: &Place, member: MemberId) -> Option<&'p Member> {
+    match place_ty_checked(p, base)? {
+        Ty::User(t) => p.types.get(t.0 as usize)?.members.get(member.0 as usize),
+        Ty::I8
+        | Ty::U8
+        | Ty::I16
+        | Ty::U16
+        | Ty::I32
+        | Ty::U32
+        | Ty::I64
+        | Ty::U64
+        | Ty::Off
+        | Ty::UOff
+        | Ty::Bit { .. }
+        | Ty::F32
+        | Ty::F64
+        | Ty::F80
+        | Ty::Str
+        | Ty::FixedStr(_) => None,
     }
 }
 
@@ -219,14 +233,21 @@ impl Validator<'_> {
                     self.value(bound, owner, at);
                 }
             }
-            Op::Clear { array } => {
-                if self.array_use(*array, owner, at, "Clear")
-                    && !matches!(self.p.var(*array).shape, Shape::Static { .. })
-                {
-                    let name = &self.p.var(*array).name;
-                    self.problem(format!("{at}: Clear of {name}, which is no static array"));
+            // A static array, or a member array (whose bounds never change: no Allocate, Release or EraseParam
+            // names one, their arrays being variables).
+            Op::Clear { array } => match array {
+                ArrayRef::Var(array) => {
+                    if self.array_use(*array, owner, at, "Clear")
+                        && !matches!(self.p.var(*array).shape, Shape::Static { .. })
+                    {
+                        let name = &self.p.var(*array).name;
+                        self.problem(format!("{at}: Clear of {name}, which is no static array"));
+                    }
                 }
-            }
+                ArrayRef::Member { .. } => {
+                    self.array_ref(array, owner, at, "Clear");
+                }
+            },
             Op::Release { array } => {
                 if self.array_use(*array, owner, at, "Release") {
                     let v = self.p.var(*array);
@@ -281,8 +302,10 @@ impl Validator<'_> {
                         }
                         Some(_) | None => {}
                     }
-                    if matches!(place, Place::Member { .. }) && place.has_element() {
-                        self.problem(format!("{at}: an Input target that is a member of an element"));
+                    if place.through_member() {
+                        self.problem(format!(
+                            "{at}: an Input target reached through a member with an index on the way"
+                        ));
                     }
                 }
             }
@@ -295,8 +318,10 @@ impl Validator<'_> {
                     if let Some(Ty::User(_)) = place_ty_checked(self.p, place) {
                         self.problem(format!("{at}: a Read target of a user type"));
                     }
-                    if matches!(place, Place::Member { .. }) && place.has_element() {
-                        self.problem(format!("{at}: a Read target that is a member of an element"));
+                    if place.through_member() {
+                        self.problem(format!(
+                            "{at}: a Read target reached through a member with an index on the way"
+                        ));
                     }
                 }
             }
@@ -454,12 +479,11 @@ impl Validator<'_> {
                 Arg::Ref(place) => self.place(place, owner, at),
                 Arg::Temp(v) => self.value(v, owner, at),
                 Arg::Array(array) => {
-                    if self.array_use(*array, owner, at, "an array argument")
+                    if let Some((name, n)) = self.array_ref(array, owner, at, "an array argument")
                         && let Some(param) = param.filter(|_| to_array)
-                        && let (Some(n), Some(m)) = (self.p.var(*array).dim_count(), param.dim_count())
+                        && let (Some(n), Some(m)) = (n, param.dim_count())
                         && n != m
                     {
-                        let name = &self.p.var(*array).name;
                         self.problem(format!(
                             "{at}: {name} of {n} dimensions passed to {} of {m}",
                             param.name
@@ -489,7 +513,7 @@ impl Validator<'_> {
     }
 
     /// A place: a scalar variable, an element of an array with one `I64` index per dimension, or a member that the
-    /// base's user type has.
+    /// base's user type has and that is no member array.
     fn place(&mut self, place: &Place, owner: Option<ProcId>, at: &At) {
         match place {
             Place::Var(v) => {
@@ -499,22 +523,17 @@ impl Validator<'_> {
                 }
             }
             Place::Element { array, index } => {
-                if self.var_use(*array, owner, at) {
-                    let v = self.p.var(*array);
-                    match v.dim_count() {
-                        Some(n) if n == index.len() => {}
-                        Some(n) => {
-                            let msg = format!("{at}: {} indexes for {} of {n} dimensions", index.len(), v.name);
-                            self.problem(msg);
-                        }
-                        None if v.is_array() => {
-                            self.problem(format!(
-                                "{at}: an element of {}, whose dimensions are not known",
-                                v.name
-                            ));
-                        }
-                        None => self.problem(format!("{at}: an element of {}, which is no array", v.name)),
+                match self.array_ref(array, owner, at, "an element") {
+                    Some((_, Some(n))) if n == index.len() => {}
+                    Some((name, Some(n))) => {
+                        let msg = format!("{at}: {} indexes for {name} of {n} dimensions", index.len());
+                        self.problem(msg);
                     }
+                    Some((name, None)) => {
+                        self.problem(format!("{at}: an element of {name}, whose dimensions are not known"));
+                    }
+                    // Reported by `array_ref`.
+                    None => {}
                 }
                 for i in index {
                     if i.ty != Ty::I64 {
@@ -525,16 +544,46 @@ impl Validator<'_> {
             }
             Place::Member { base, member } => {
                 self.place(base, owner, at);
-                let ok = match place_ty_checked(self.p, base) {
-                    Some(Ty::User(t)) => self
-                        .p
-                        .types
-                        .get(t.0 as usize)
-                        .is_some_and(|ut| (member.0 as usize) < ut.members.len()),
-                    Some(_) | None => false,
-                };
-                if !ok {
-                    self.problem(format!("{at}: member {} of a place without it", member.0));
+                match member_checked(self.p, base, *member) {
+                    Some(m) if m.is_array() => {
+                        self.problem(format!("{at}: the member array {} used as a single value", m.name));
+                    }
+                    Some(_) => {}
+                    None => self.problem(format!("{at}: member {} of a place without it", member.0)),
+                }
+            }
+        }
+    }
+
+    /// The array an operation `what` names: an array variable of this body, or a member array of a place of a
+    /// user type. Gives its name and, where it is known, its number of dimensions; `None` after a problem.
+    fn array_ref(
+        &mut self,
+        array: &ArrayRef,
+        owner: Option<ProcId>,
+        at: &At,
+        what: &str,
+    ) -> Option<(String, Option<usize>)> {
+        match array {
+            ArrayRef::Var(v) => {
+                if !self.array_use(*v, owner, at, what) {
+                    return None;
+                }
+                let var = self.p.var(*v);
+                Some((var.name.clone(), var.dim_count()))
+            }
+            ArrayRef::Member { base, member } => {
+                self.place(base, owner, at);
+                match member_checked(self.p, base, *member) {
+                    Some(m) if m.is_array() => Some((m.name.clone(), Some(m.bounds.len()))),
+                    Some(m) => {
+                        self.problem(format!("{at}: {what} of the member {}, which is no array", m.name));
+                        None
+                    }
+                    None => {
+                        self.problem(format!("{at}: member {} of a place without it", member.0));
+                        None
+                    }
                 }
             }
         }
@@ -576,10 +625,7 @@ impl Validator<'_> {
             ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => {}
             ExprKind::Load(place) => self.place(place, owner, at),
             ExprKind::Bound { array, dim, .. } => {
-                if self.var_use(*array, owner, at) && !self.p.var(*array).is_array() {
-                    let name = &self.p.var(*array).name;
-                    self.problem(format!("{at}: bound of {name}, which is no array"));
-                }
+                self.array_ref(array, owner, at, "bound");
                 if let Some(d) = dim {
                     self.value(d, owner, at);
                 }
@@ -612,8 +658,8 @@ impl Validator<'_> {
 mod tests {
     use super::validate;
     use crate::{
-        AllocMode, Arg, Body, Expr, ExprKind, Label, LabelId, Op, Place, Proc, ProcId, ProcKind, Program, Resume,
-        Shape, Stmt, Storage, Ty, Var, VarId,
+        AllocMode, Arg, ArrayRef, Body, Expr, ExprKind, Label, LabelId, MemberId, Op, Place, Proc, ProcId, ProcKind,
+        Program, Resume, Shape, Stmt, Storage, Ty, Var, VarId,
     };
     use qb64rust_base::{FileId, Span};
 
@@ -925,7 +971,9 @@ mod tests {
         p.main.stmts[0].ops.extend([
             allocate(4, bounds(3)),
             allocate(3, bounds(3)),
-            Op::Clear { array: VarId(3) },
+            Op::Clear {
+                array: ArrayRef::Var(VarId(3)),
+            },
             Op::Release { array: VarId(4) },
         ]);
         assert_eq!(problems(&p), Vec::<String>::new());
@@ -942,7 +990,7 @@ mod tests {
         p.procs[0].body.stmts = vec![stmt(vec![Op::EraseParam { array: VarId(1) }])];
         p.main.stmts[0].ops[1] = Op::Call {
             proc: ProcId(0),
-            args: vec![Arg::Array(VarId(array))],
+            args: vec![Arg::Array(ArrayRef::Var(VarId(array)))],
         };
         p
     }
@@ -973,7 +1021,7 @@ mod tests {
         let mut p = arrays();
         p.main.stmts[0].ops[1] = Op::Call {
             proc: ProcId(0),
-            args: vec![Arg::Array(VarId(4))],
+            args: vec![Arg::Array(ArrayRef::Var(VarId(4)))],
         };
         assert_eq!(
             problems(&p),
@@ -1059,7 +1107,9 @@ mod tests {
     #[test]
     fn clear_of_a_dynamic_array() {
         let mut p = arrays();
-        p.main.stmts[0].ops.push(Op::Clear { array: VarId(4) });
+        p.main.stmts[0].ops.push(Op::Clear {
+            array: ArrayRef::Var(VarId(4)),
+        });
         assert_eq!(
             problems(&p),
             ["main: statement 0 (line 1): Clear of D, which is no static array"]
@@ -1090,7 +1140,9 @@ mod tests {
         let mut p = arrays();
         p.main.stmts[0].ops.extend([
             allocate(0, bounds(3)),
-            Op::Clear { array: VarId(0) },
+            Op::Clear {
+                array: ArrayRef::Var(VarId(0)),
+            },
             Op::Release { array: VarId(0) },
         ]);
         let at = "main: statement 0 (line 1)";
@@ -1112,7 +1164,7 @@ mod tests {
             Op::Raise(expr(
                 Ty::I32,
                 ExprKind::Load(Place::Element {
-                    array: VarId(array),
+                    array: ArrayRef::Var(VarId(array)),
                     index,
                 }),
             ))
@@ -1139,6 +1191,7 @@ mod tests {
             members: vec![crate::Member {
                 name: "X".into(),
                 ty: Ty::I32,
+                bounds: Vec::new(),
             }],
         };
         p.types = vec![ut("T1"), ut("T2")];
@@ -1148,6 +1201,59 @@ mod tests {
         p.vars[3].ty = Ty::User(crate::TypeId(1));
         p.procs[0].body.stmts.clear();
         p
+    }
+
+    /// [`user_types`] with a second member of the first type, the member array `V(0 TO 3)`.
+    fn member_arrays() -> Program {
+        let mut p = user_types();
+        p.types[0].members.push(crate::Member {
+            name: "V".into(),
+            ty: Ty::I32,
+            bounds: vec![(0, 3)],
+        });
+        p
+    }
+
+    #[test]
+    fn member_arrays_are_named_as_arrays() {
+        let mut p = member_arrays();
+        let member = |m: u32| ArrayRef::Member {
+            base: Box::new(Place::Var(VarId(0))),
+            member: MemberId(m),
+        };
+        let element = |m: u32, n: usize| {
+            Op::Raise(expr(
+                Ty::I32,
+                ExprKind::Load(Place::Element {
+                    array: member(m),
+                    index: vec![expr(Ty::I64, ExprKind::Int(1)); n],
+                }),
+            ))
+        };
+        let whole = Op::Raise(expr(
+            Ty::I32,
+            ExprKind::Load(Place::Member {
+                base: Box::new(Place::Var(VarId(0))),
+                member: MemberId(1),
+            }),
+        ));
+        p.main.stmts[0]
+            .ops
+            .extend([element(1, 1), Op::Clear { array: member(1) }]);
+        assert_eq!(problems(&p), Vec::<String>::new());
+        p.main.stmts[0]
+            .ops
+            .extend([element(1, 2), element(0, 1), whole, Op::Clear { array: member(0) }]);
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: 2 indexes for V of 1 dimensions"),
+                format!("{at}: an element of the member X, which is no array"),
+                format!("{at}: the member array V used as a single value"),
+                format!("{at}: Clear of the member X, which is no array"),
+            ]
+        );
     }
 
     #[test]

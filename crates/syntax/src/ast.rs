@@ -1332,6 +1332,24 @@ impl<'a> DimItem<'a> {
     pub fn is_member_path(self) -> bool {
         self.0.child_tokens().any(|t| t.kind == SyntaxKind::Dot)
     }
+
+    /// The parts of the item's name, each with the parentheses that follow it: one part for a plain item, more
+    /// for a member array (`a(1).m(5)` gives `a` with `(1)` and `m` with `(5)`).
+    pub fn path(self) -> Vec<(Tok, Option<ArrayBounds<'a>>)> {
+        let mut out: Vec<(Tok, Option<ArrayBounds<'a>>)> = Vec::new();
+        for e in self.0.children() {
+            match e {
+                Element::Token(t) if t.kind == Ident => out.push((t, None)),
+                Element::Node(n) => {
+                    if let (Some(bounds), Some(last)) = (ArrayBounds::cast(n), out.last_mut()) {
+                        last.1 = Some(bounds);
+                    }
+                }
+                Element::Token(_) => {}
+            }
+        }
+        out
+    }
 }
 
 impl<'a> AsClause<'a> {

@@ -1333,6 +1333,46 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   another type ("REDIM type does not match the declared TYPE member array"). `ERASE t` of a variable is
   "Undefined array passed to ERASE". A `_BIT` member array is "Cannot use _BIT inside user defined types"; the
   `_STATIC` and `_DYNAMIC` markers are "_Static/_Dynamic require $Unstable:TypeFields".
+  **Measured 2026-10-11 before and while group 9 was built (`v24_x310`–`x326`):**
+  **What finds the place a member array is part of.** `LBOUND`, `UBOUND` and `LEN` do not: `UBOUND(a(one(1)).v)`
+  calls no FUNCTION, `LBOUND(a(9).v)` and `UBOUND(x(1).n(9).q)` raise nothing, only the dimension argument is
+  evaluated (outside 1 to the number of dimensions: error 9; `LBOUND(t.v, 1.5)` is dimension 2) (`x311`).
+  `REDIM _PRESERVE` with the declared bounds does not either, and raises nothing for `a(9).v` (`x312`). `ERASE`
+  and `REDIM` find it once and are not guarded: **`ERASE a(9).v` raises 9 and clears `a(0).v`**, `REDIM
+  a(9).s(0 TO 1)` likewise, `ERASE x(1).n(9).v` clears `x(1).n(0).v`, `REDIM a(ASC("")).v(0 TO 3)` raises 5 and
+  clears `a(0).v`; several targets in one `ERASE` or `REDIM` work (`x312`).
+  **The order of a store through a member (`x313`, `x316`).** A number is evaluated before the indexes, the
+  indexes left to right, outermost first, also with two dimensions and through a chain
+  (`x(one(1)).n(one(2)).q(one(3)) = one(4)` prints 4 1 2 3). **A string is evaluated after them**:
+  `a(setz(1)).s = z$`, where `setz` assigns `z$`, stores the new value, also for `z$ + "!"`, a `STRING * n`
+  member and `a(setz(1)).v(setz(1)) = z$`; `a(setz(1)).k = n` stores the old `n`. (The old compiler writes a
+  string store as one call, `qbs_set(place, value)`, and its C++ compiler evaluates the place first; a numeric
+  store is an assignment, whose right side comes first.) After an index outside, a FUNCTION in a later index
+  is entered with the error pending and returns at once, so that index is 0. With an index outside the store
+  goes to position 0 of that dimension (`t.g(2, 9) = 8` sets `t.g(2, 0)`; strings too: `t.s(9) = "new"` sets
+  `t.s(0)`); a read gives that position's value.
+  **A whole value with member arrays (`x310`).** For a type without a `STRING` both sides are found once. Each
+  element of a `STRING` member array is a part (a LONG, `s(0 TO 2) AS STRING` and a LONG array: five), each
+  element of a member array of a type that holds strings gives its own parts (two elements of that type and a
+  LONG: eleven), and any other member array is one part (a `STRING`, a LONG array, a `STRING * 2` array and a
+  two-dimension INTEGER array: four; an array of a type without strings and a `STRING`: two).
+  **Arguments (`x314`, `x315`).** An element of a member array by reference with an index outside, of the
+  member array or of an array on the way, raises 9 and the SUB is not entered; a `STRING` and a `STRING * n`
+  element go to a `STRING` parameter by reference (the second cut and padded on the way back); an element of
+  a user type goes to a parameter of the type, also as a whole value (`x.n(0) = x.n(1)`, `q = x.n(0)`).
+  `SWAP` takes elements of member arrays and members of array elements; with an index outside it raises 9 and
+  exchanges with position 0; `SWAP a(one(1)).v(one(2)), a(one(3)).v(one(4))` prints 1 2 3 4. **A whole member
+  array as an array argument** (`fill t.v()`, `fill a(1).v()`): in the procedure `LBOUND`/`UBOUND` give the
+  member's bounds, also of two dimensions, a `STRING` member array works, **`ERASE` clears it and `REDIM`
+  raises error 10** (also with its own bounds), `fill a(9).v()` raises 9 and the SUB is not entered, the place
+  is found once.
+  **Forms settled by one program each (`x317`–`x326`).** Compile errors: `t.m(1) = 2` for a member the type
+  does not have ("Element not defined"); an index after a member that is no array and `LBOUND` of one
+  ("Element is not an array"); `fill t.v` without parentheses ("Expected: Array Name()"); `PRINT t.v()`
+  ("Expected array index"); `REDIM AS LONG t.v(0 TO 3)` ("Unknown type"). Accepted: `ERASE t.v()` (clears) and
+  `REDIM SHARED t.v(0 TO 3)` (clears). **In `REDIM t.v(3) AS LONG` the upper bound alone goes by `OPTION BASE`
+  as it stands at the `REDIM`**: below `OPTION BASE 1` it is accepted for a member declared `1 TO 3` and
+  "Cannot change the number of elements an array has!" for one declared `0 TO 3`.
 - **`STRING` members, whole values, `TYPE` parameters (`v24_h_string_members`, `v24_h_whole`,
   `v24_h_type_params`, `v24_x206`–`x216`):** a `STRING` member starts empty in a variable, a local (on each
   call), a `STATIC` one (kept), each element of a static and of a dynamic array and in a nested type; it holds

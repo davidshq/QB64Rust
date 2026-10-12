@@ -1,0 +1,41 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+member_arrays_errors.bas:15:12: error: invalid bounds for `v`: 5 TO 1
+member_arrays_errors.bas:19:7: error: invalid bounds for `z`: 1 TO 0
+member_arrays_errors.bas:24:6: error: the member array `v` needs bounds
+member_arrays_errors.bas:28:10: error: a `TYPE` member cannot be a `_BIT`
+member_arrays_errors.bas:32:1: error: `t.v` has 1 dimension, not 2
+member_arrays_errors.bas:33:7: error: `g` has 2 dimensions, not 1
+member_arrays_errors.bas:36:1: error: `t.v` is a member array: an index is expected after it
+member_arrays_errors.bas:37:7: error: `v` is a member array: an index is expected after it
+member_arrays_errors.bas:38:7: error: `t.v.x`: an index is expected after the member array `V`
+member_arrays_errors.bas:39:7: error: `t.v()` is a member array: an index is expected between the parentheses
+member_arrays_errors.bas:41:5: error: an array index must be a number
+member_arrays_errors.bas:44:7: error: `t.id` is a member that is no array: it has no index
+member_arrays_errors.bas:45:14: error: `t.id` is a member that is no array
+member_arrays_errors.bas:46:1: error: `M` is not a member of `TYPE T1` (`t.m`)
+member_arrays_errors.bas:51:10: error: the bounds of the member array `t.v` are (0 TO 3): a `REDIM` cannot change them
+member_arrays_errors.bas:52:10: error: the bounds of the member array `t.v` are (0 TO 3): a `REDIM` cannot change them
+member_arrays_errors.bas:53:23: error: the bounds of the member array `v` are (0 TO 3): a `REDIM` cannot change them
+member_arrays_errors.bas:54:10: error: the bounds of the member array `t.g` are (1 TO 2, 0 TO 3): a `REDIM` cannot change them
+member_arrays_errors.bas:55:16: error: a bound of a member array must be a constant
+member_arrays_errors.bas:56:11: error: a `REDIM` of the member array `t.v` names its bounds as `lower TO upper`, or its type with `AS`
+member_arrays_errors.bas:57:14: error: a `REDIM` of the member array `v` names its bounds as `lower TO upper`, or its type with `AS`
+member_arrays_errors.bas:58:19: error: the member array `t.v` is declared LONG: a `REDIM` cannot give it another type
+member_arrays_errors.bas:62:10: error: the bounds of the member array `t.v` are (0 TO 3): a `REDIM` cannot change them
+member_arrays_errors.bas:64:15: error: the member array `t.v` cannot stand in a `REDIM` with the type before the names
+member_arrays_errors.bas:66:7: error: `t` is no declared array (`ERASE`)
+member_arrays_errors.bas:69:6: error: the array `t.s` (STRING) cannot be passed to an array parameter of type LONG
+member_arrays_errors.bas:70:6: error: this parameter takes a whole array, written `t.v()`
+member_arrays_errors.bas:74:7: error: not supported yet: a member array of an array element in a list of `ERASE` or `REDIM` targets
+member_arrays_errors.bas:75:7: error: not supported yet: a member array of an array element in a list of `ERASE` or `REDIM` targets
+member_arrays_errors.bas:76:7: error: not supported yet: a member of an array element, or an element of a member array, as a target of `INPUT`
+member_arrays_errors.bas:77:6: error: not supported yet: a member of an array element, or an element of a member array, as a target of `READ`
+member_arrays_errors.bas:78:6: error: not supported yet: a member of an array element, or an element of a member array, as a target of `MID$`
+member_arrays_errors.bas:80:11: error: not supported yet: `REDIM t.v(0)` of a member array under `OPTION BASE 1`
+member_arrays_errors.bas:90:7: error: not supported yet: a bound of a member array that is not written with numbers alone (a `CONST`)
+member_arrays_errors.bas:93:15: error: not supported yet: `_DYNAMIC`/`_STATIC` members
+member_arrays_errors.bas:98:6: error: not supported yet: an array of more than 2^31 elements
+member_arrays_errors.bas:103:1: error: not supported yet: a `TYPE` of more than 2^31 bytes

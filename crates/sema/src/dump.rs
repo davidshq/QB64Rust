@@ -1,8 +1,8 @@
 //! `--dump typed`: one node per line, indented, with its type (FreeBASIC lesson L8: assertions on types).
 
 use crate::{
-    Arg, CaseItem, Expr, ExprKind, InputSource, Place, PrintItem, ProcKind, Program, Resume, Shape, Stmt, StmtArg,
-    StmtKind, Storage, Ty, VarId,
+    Arg, ArrayRef, CaseItem, Expr, ExprKind, InputSource, Place, PrintItem, ProcKind, Program, Resume, Shape, Stmt,
+    StmtArg, StmtKind, Storage, Ty, VarId,
 };
 
 use qb64rust_base::show_bytes;
@@ -16,7 +16,14 @@ pub fn dump_typed(p: &Program) -> String {
     for t in &p.types {
         writeln!(out, "TYPE {}", t.name).unwrap();
         for m in &t.members {
-            writeln!(out, "  {}:{}", m.name, ty(p, m.ty)).unwrap();
+            // A member array with its bounds.
+            let bounds = if m.is_array() {
+                let dims: Vec<String> = m.bounds.iter().map(|(l, u)| format!("{l} TO {u}")).collect();
+                format!("({})", dims.join(", "))
+            } else {
+                String::new()
+            };
+            writeln!(out, "  {}:{}{bounds}", m.name, ty(p, m.ty)).unwrap();
         }
     }
     for (i, v) in p.vars.iter().enumerate() {
@@ -94,8 +101,19 @@ fn var_name(p: &Program, id: VarId) -> String {
 fn place_text(p: &Program, place: &Place) -> String {
     match place {
         Place::Var(v) => var_name(p, *v),
-        Place::Element { array, .. } => format!("{}(…)", var_name(p, *array)),
+        Place::Element { array, .. } => format!("{}(…)", array_text(p, array)),
         Place::Member { base, member } => {
+            let m = &p.member(p.place_ty(base), *member).name;
+            format!("{}.{m}", place_text(p, base))
+        }
+    }
+}
+
+/// An array as text: `X`, or `P.M` for a member array.
+fn array_text(p: &Program, array: &ArrayRef) -> String {
+    match array {
+        ArrayRef::Var(v) => var_name(p, *v),
+        ArrayRef::Member { base, member } => {
             let m = &p.member(p.place_ty(base), *member).name;
             format!("{}.{m}", place_text(p, base))
         }
@@ -104,14 +122,8 @@ fn place_text(p: &Program, place: &Place) -> String {
 
 /// The indexes of the elements on the way to a place, outermost first, each at `depth`.
 fn indexes(p: &Program, place: &Place, depth: usize, out: &mut String) {
-    match place {
-        Place::Var(_) => {}
-        Place::Element { index, .. } => {
-            for e in index {
-                expr(p, e, depth, out);
-            }
-        }
-        Place::Member { base, .. } => indexes(p, base, depth, out),
+    for e in place.indexes() {
+        expr(p, e, depth, out);
     }
 }
 
@@ -129,8 +141,11 @@ fn args(p: &Program, args: &[Arg], depth: usize, out: &mut String) {
                 expr(p, e, depth + 1, out);
             }
             Arg::Array(a) => {
-                let t = ty(p, p.var(*a).ty);
-                writeln!(out, "{pad}array {}() : {t}", var_name(p, *a)).unwrap();
+                let t = ty(p, p.array_ty(a));
+                writeln!(out, "{pad}array {}() : {t}", array_text(p, a)).unwrap();
+                for e in a.indexes() {
+                    expr(p, e, depth + 1, out);
+                }
             }
         }
     }
@@ -227,8 +242,11 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 }
             }
             StmtKind::Clear { array } => {
-                let t = ty(p, p.var(*array).ty);
-                line(out, &format!("Clear {}:{t}", var_name(p, *array)));
+                let t = ty(p, p.array_ty(array));
+                line(out, &format!("Clear {}:{t}", array_text(p, array)));
+                for e in array.indexes() {
+                    expr(p, e, d + 1, out);
+                }
             }
             StmtKind::Release { array } => {
                 let t = ty(p, p.var(*array).ty);
@@ -462,7 +480,8 @@ fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
         }
         ExprKind::Bound { upper, array, dim } => {
             let word = if *upper { "UBound" } else { "LBound" };
-            writeln!(out, "{pad}{word} {} : {types}", var_name(p, *array)).unwrap();
+            // The indexes on the way to a member array are not evaluated, and not shown.
+            writeln!(out, "{pad}{word} {} : {types}", array_text(p, array)).unwrap();
             if let Some(d) = dim {
                 expr(p, d, depth + 1, out);
             }

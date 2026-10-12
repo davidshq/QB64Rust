@@ -269,3 +269,19 @@ named by 156 programs of the report (152 before: four were behind `STRING` membe
 lists are unchanged. The full run of the suite (404 programs, release build, `--jobs 8`): 64 pass (the 64 of
 `pass.list`), 299 rejected with a diagnostic, 40 `.err` programs with only marked errors, the known failure
 `http/read_example`; none builds and prints the wrong output.
+
+**Upstream progress, 2026-10-11 (group 9): 114 of 279** (`m2-defxxx-common-arrays` group 9: member arrays).
+Added to `pass.list`, each on its first run: 50 programs of `arrays/`. 48 are programs the old compiler builds
+(15 from `01_basic_long_arrays` to `07_option_base1_as_list_udt_two_dimensions`, the 15 of the `REDIM` series
+`01_redim_byte` to `15_redim_deep_nested`, the 15 of the `REDIM _PRESERVE` series `21_redim_preserve_byte` to
+`35_redim_preserve_deep_nested`, `47_zero_fill_fixed_strings_erase_redim`,
+`datatype_coverage_strings_and_sizes`, `nested_udt_array_of_udt_with_array`); two are `.err` programs the new
+compiler now rejects by a real error (`41_err_undefined_array`, `44_err_solved_bug_Incorrect_nr_of_args`),
+which leaves 53 entries on `known_unsupported_rejections.list`. The message "arrays as `TYPE` members" no longer
+exists; in the report the first lines are now the `_DYNAMIC`/`_STATIC` markers (86 programs, deferred),
+`$Unstable` 85, an array used after a marked declaration 60, `_DEST` 54, `$CONSOLE` 34, `_MEM` 30, `REDIM
+_RETAIN` 27. Of the member-array layer itself, what the old compiler accepts and is still marked is in
+`SOMEDAY.md` (a bound that names a `CONST`, a member array of an array element in a list of `ERASE` or `REDIM`
+targets); neither message appears in the upstream report. The full run of the suite (404 programs, release build, `--jobs 8`):
+114 pass (the 114 of `pass.list`), 251 rejected with a diagnostic, 38 `.err` programs with only marked errors,
+the known failure `http/read_example`; none builds and prints the wrong output.

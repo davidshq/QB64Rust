@@ -1,0 +1,5 @@
+
+Element is not an array
+Caused by (or after):PRINT LBOUND ( T . ID )
+LINE 8:PRINT LBOUND(t.id)
+exit=1

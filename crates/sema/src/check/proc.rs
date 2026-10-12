@@ -4,7 +4,8 @@ use super::decl::name_end;
 use super::{Checker, DimFact, Failed, R, Scope};
 use crate::builtins::stmt_lookup;
 use crate::literal;
-use crate::{Arg, Expr, ExprKind, Place, Proc, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId};
+use crate::{Arg, ArrayRef, Expr, ExprKind, Place, Proc, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty};
+use crate::{Var, VarId};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{Kind, find_any};
 use qb64rust_syntax::SyntaxKind;
@@ -507,8 +508,37 @@ impl Checker<'_> {
     /// - Its number of dimensions is one fact about the parameter's ([`Checker::solve_dims`]); an array that has
     ///   no number yet (another parameter, an array listed by `COMMON a()` or `STATIC a()`, `x288`, `x289`) gets
     ///   the parameter's.
+    ///
+    /// A whole member array is passed as a static array with its bounds (`t.v()`, `a(1).v()`; measured,
+    /// `verification\v24_x200`, `x315`).
     fn array_arg(&mut self, node: ast::Expr, param: VarId) -> R<Arg> {
         let span = node.node().span();
+        if let Some((array, parens, t)) = self.member_array(node)? {
+            let shown = show_bytes(self.text(t.span));
+            if !parens {
+                // Measured: "Expected: Array Name()" (`verification\v24_x319`).
+                let msg = format!("this parameter takes a whole array, written `{shown}()`");
+                return Err(self.error(span, msg));
+            }
+            let (aty, pty) = (self.prog.array_ty(&array), self.prog.var(param).ty);
+            if array_kind(aty) != array_kind(pty) {
+                let msg = format!(
+                    "the array `{shown}` ({}) cannot be passed to an array parameter of type {}",
+                    self.prog.type_name(aty),
+                    self.prog.type_name(pty)
+                );
+                return Err(self.error(span, msg));
+            }
+            let count = self.prog.array_dims(&array).expect("a member array has its bounds");
+            self.dim_facts.push(DimFact::Count {
+                array: param,
+                shown: self.prog.var(param).name.to_ascii_lowercase(),
+                count,
+                span,
+                passed: true,
+            });
+            return Ok(Arg::Array(array));
+        }
         let call = match node {
             ast::Expr::Call(call) if call.arg_list().is_some_and(|l| l.args().is_empty()) => call,
             ast::Expr::Paren(p) if p.inner().is_some_and(|inner| self.whole_array(inner).is_some()) => {
@@ -566,7 +596,7 @@ impl Checker<'_> {
         };
         self.dim_facts.push(fact);
         self.names.push((SymbolKind::Var(array), t.span));
-        Ok(Arg::Array(array))
+        Ok(Arg::Array(ArrayRef::Var(array)))
     }
 
     /// A call of FUNCTION `p` (`args` is `None` for the bare name). A SUB, or the name with another suffix than

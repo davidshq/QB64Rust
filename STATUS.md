@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-11 (session 46).
+Updated 2026-10-12 (session 47).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -34,7 +34,9 @@ to `DEFSTR`, `_DEFINE`), `OPTION BASE`, the type before the names (`DIM AS LONG 
 main module (`DIM` with a bound that is not constant, `$DYNAMIC`, `REDIM`, `REDIM _PRESERVE`, `ERASE`), `_BIT`
 arrays, arrays used without `DIM`, arrays in procedures (`DIM`, `REDIM`, `STATIC a(n)`, `STATIC a()`, `SHARED
 a()`, `SUB … STATIC`), array parameters and `COMMON`, `STRING` members of a `TYPE`, whole `TYPE` values (`q =
-p`) and parameters of a user type (`crates\README.md`). There is
+p`), parameters of a user type and member arrays (`v(0 TO 3) AS LONG` in a `TYPE`: elements through any chain,
+`LBOUND`/`UBOUND`, `REDIM` and `ERASE` as a clear, a whole member array as an array argument)
+(`crates\README.md`). There is
 a thin language server (`qb64rust lsp`). A plain built-in now comes in as a row, a call-site program and a slice
 line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10).
 
@@ -62,8 +64,8 @@ The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3
 9a. Done: the screen-state check (`m2-screen-state-check`; `tools\screen\README.md`). The new
     compiler compiles none of the 29 screen programs yet: it builds console programs only, and the first drawing
     statement is M3 work. What a set of them needs: `qb64rust --report unsupported tests\corpus\screen`.
-10. **In progress:** (was 11) OpenSpec change `m2-defxxx-common-arrays`, 24 of 29 tasks done (`tasks.md` of the
-    change says what each found). Done: the measurements (`verification\v24_*`, 350 programs; findings in
+10. **In progress:** (was 11) OpenSpec change `m2-defxxx-common-arrays`, 27 of 29 tasks done (`tasks.md` of the
+    change says what each found). Done: the measurements (`verification\v24_*`, 371 programs; findings in
     `study\00` §5, the design and spec deltas corrected by them), group 2, the default types (`DEFINT` to
     `DEFSTR`, `_DEFINE`), group 3 (the array shape, `OPTION BASE`, `$DYNAMIC`/`$STATIC` as state, the type
     before the names) and group 4 (dynamic arrays in the main module: `Allocate`, `Clear` and `Release` in the
@@ -79,10 +81,20 @@ The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3
     design D6, "As built in group 7") and group 8 (the rest of `TYPE`: `STRING` members, made and released with
     each value of the type; `q = p` as `CopyWhole`, not guarded, its two places found again for every part of a
     type that holds a `STRING`, as QB64pe and listed in `SOMEDAY.md`; a parameter of a user type by reference;
-    design D9, "As built in group 8"). Task 1.4's questions are answered (`DECISIONS.md` 2026-10-11: both
-    behaviours as QB64pe; member arrays are inline and need no decision). **Next in the change: group 9, member
-    arrays** (152 upstream programs name them, 156 in the report now), then group 10, integration. Groups 1 to
-    7 are committed; group 8 is in the working tree.
+    design D9, "As built in group 8") and group 9 (member arrays: `ArrayRef` in the typed tree and the IR, the
+    elements inline in the value, `OPTION BASE` as it stands at the `TYPE` block; `LBOUND`, `UBOUND` and `LEN`
+    never evaluate the indexes of the place, `ERASE` and `REDIM` clear and are not guarded, a whole member array
+    is an array argument, all as QB64pe; **a store through a member with an index on the way evaluates a number
+    before the indexes and a string after them**, measured in this group, which corrected the string stores of
+    the groups before; a store with an index outside stores nothing, `DIVERGENCES.md` D-004; design D8, "As
+    built in group 9"). Task 1.4's questions are answered (`DECISIONS.md` 2026-10-11: both behaviours as QB64pe;
+    member arrays are inline and need no decision). **Next in the change: group 10, integration** (its full
+    runs: the slice list, the full corpus and the full upstream suite were run after group 9 and are in the
+    table below; the call-site check and the differential pass list were run on 2026-10-12 and are equal and
+    passing; the upstream pass list by itself and the runner's own tests were not run again). Still marked in
+    the member-array layer: a bound that names a `CONST`, a member array of an array element beside other
+    targets of one `ERASE` or `REDIM`, an element of a member array as a target of `INPUT`, `READ` or `MID$`
+    (`SOMEDAY.md`). Groups 1 to 8 are committed; group 9 is in the working tree.
 11. (was 10) `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE`, measured first (`study\26` §5); check once that
     the GitHub Windows runner can start the hidden window.
 
@@ -94,24 +106,25 @@ the rows that name the screen programs, the runner's tests and the corpus of 336
 
 | Yardstick | Result |
 |---|---|
-| `tests\corpus\slice.list` (tier 2) | 285 of 285, also with `QB64RUST_NO_FOLD=1` (2026-10-11, after group 8 of `m2-defxxx-common-arrays`) |
-| Full corpus (356 programs, run 2026-10-11 after group 8) | 304 pass (the 285 of the slice list, 19 `.err` programs), none wrong at run time; 46 rejected with "not supported yet" (17 and the 29 screen programs) and 1 `.err` program with only marked errors (`tests\corpus\README.md`) |
-| Upstream | **64 of 279** (`tests\upstream\pass.list`: 64 of 64); none wrong in the full run of the suite (404 programs, 2026-10-11 after group 8: 64 pass, 299 rejected, 40 `.err` programs with only marked errors, 1 known failure) |
+| `tests\corpus\slice.list` (tier 2) | 287 of 287, also with `QB64RUST_NO_FOLD=1` (2026-10-11, after group 9 of `m2-defxxx-common-arrays`) |
+| Full corpus (357 programs, run 2026-10-12 after group 9) | 306 pass (the 287 of the slice list, 19 `.err` programs), none wrong at run time; 45 rejected with "not supported yet" (16 and the 29 screen programs) and 1 `.err` program with only marked errors (`tests\corpus\README.md`) |
+| Upstream | **114 of 279** (`tests\upstream\pass.list`: 114, all passing in the full run); none wrong in the full run of the suite (404 programs, 2026-10-11 after group 9: 114 pass, 251 rejected, 38 `.err` programs with only marked errors, 1 known failure) |
 | Call-site check | 256 of 256 programs equal (`tools\callsite\README.md`); about 1 min |
 | Real programs (`tests\programs`) | Civil War Strategy: the front end reads it with no real error; every diagnostic is "not supported yet" (what it needs next: `tests\programs\README.md`) |
 | Differential | 59 of 59 |
-| Shrink-only lists | 0 false errors, 0 parse gaps, 55 only-marked rejections (2026-10-11 after group 8; `tests\upstream\README.md`) |
+| Shrink-only lists | 0 false errors, 0 parse gaps, 53 only-marked rejections (2026-10-11 after group 9; `tests\upstream\README.md`) |
 | Tier 1 (`cargo test`) | about 20 s |
 | The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 56 pass, under a second |
 | Screen programs (`tests\corpus\screen`, 29) | Old compiler: 29 pass, each recorded from two equal runs. New compiler: all 29 rejected with only "not supported yet" errors (by programs: no `$CONSOLE:ONLY` 29, `SCREEN` 23, `LINE` 20, `PSET` 17) |
-| Demand (`qb64rust --report unsupported`, 2026-10-11 after group 8) | Corpus: 17 programs held back beside the 29 screen programs. Upstream (348 without an `.err`): 290 held back; arrays as `TYPE` members 156 programs, `$Unstable` 85, `LBOUND` of an expression 63, `_DEST` 54, `$CONSOLE` 34, `_MEM` 30, `REDIM _RETAIN` 27 ("an array used without `DIM`" is left only after a marked declaration, group 9; no "`STRING` members", whole-value or "`TYPE` parameter" line is left). Civil War Strategy: 1,709 marked errors in 33 messages (`LINE` 899, `COLOR` 190, `LOCATE` 145) |
+| Demand (`qb64rust --report unsupported`, 2026-10-11 after group 9) | Corpus: 16 programs held back beside the 29 screen programs. Upstream (348 without an `.err`): 96 without errors, 242 held back, 10 with other errors (the ten that include the old compiler's sources); `_DYNAMIC`/`_STATIC` members 86 programs (deferred), `$Unstable` 85, an array used after a marked declaration 60, `_DEST` 54, `$CONSOLE` 34, `_MEM` 30, `REDIM _RETAIN` 27 (no "arrays as `TYPE` members" line is left). Civil War Strategy: `LINE` 899, `COLOR` 190, `LOCATE` 145, as before |
 | Tier 2 as CI runs it, locally | about 12 min at the last full build; about 2 min with `--jobs 8 --build-cache` when little C++ changed |
 | Full corpus with the old compiler (2026-10-10, 336 programs) | 331 pass, 5 known failures, `--jobs 8`; the 305 before the screen programs took about 12 min with one job, 3 min 44 s with `--jobs 8` (`tools\legacy_tests\README.md`) |
 
-How to read them: the corpus has given most of what it can before step 10 (11 of its 27 rejected programs wait
-on arrays, `TYPE` and `DEFINT`; the rest on `PRINT USING`/`TAB`/`SPC`, random files and a few functions). Upstream
-will stay near 60 until member arrays (group 9 of step 10: 156 programs name them) and step 11: its blockers are
-member arrays and `_DEST` (`study\27` §4).
+How to read them: the corpus has given what it can before M3 (its 16 rejected console programs wait on `PRINT
+USING`/`TAB`/`SPC`, random and binary files and a few functions; the 29 screen programs on drawing). Upstream
+went from 64 to 114 with member arrays (group 9 of step 10). Its next blockers outside `deferred.list` are
+`_DEST` and `$CONSOLE` (step 11, `study\27` §4) and `_MEM`; the `_DYNAMIC`/`_STATIC` markers and `$Unstable` are
+deferred (`SOMEDAY.md`).
 
 ## Known bugs
 

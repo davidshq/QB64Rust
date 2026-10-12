@@ -75,7 +75,9 @@ of an array (the first without `dimension`), typed `_INTEGER64`. The dimension S
 dimension outside 1 to the array's number of dimensions SHALL raise error 9 when it runs. The array SHALL be an
 array variable, an array parameter or a member array (`x(0).n`). A name that is no array SHALL make an implicit
 array (requirement "Implicit arrays"). Of a dynamic array that is not allocated both SHALL raise error 9.
-`LBOUND(a())` SHALL be a compile error.
+`LBOUND(a())` SHALL be a compile error for an array variable; a member array MAY be written with the empty
+parentheses, and its bounds are given without evaluating the indexes of the place it is part of (requirement
+"Member arrays").
 
 #### Scenario: Both bounds
 - **WHEN** `PRINT LBOUND(b); UBOUND(b); LBOUND(b, 2); UBOUND(b, 2)` runs for `DIM b(-2 TO 3, 5)`
@@ -625,16 +627,33 @@ A `TYPE` member SHALL be declarable as an array with constant bounds, as `name(b
 `AS type name(bounds), …` list, of any type a member may have and of one or more dimensions. A dimension without
 `TO` SHALL start at the `OPTION BASE` in effect where the `TYPE` block stands; the literal 0 has no rule of its
 own there (`z(0)` under base 1 is a compile error, as are bounds that are not constant, reversed or missing).
+A bound written with numbers alone, also as an expression of numbers, SHALL be accepted; one that names a
+`CONST`, which the old compiler accepts, SHALL be reported "not supported yet" (the blocks are read before the
+program's constants).
 `place.name(index, …)` SHALL name an element, through any chain of members and elements, with the index and
-by-reference rules of array elements. A store SHALL evaluate the value first, then the indexes from left to
+by-reference rules of array elements; a member array named without an index, with nothing between its
+parentheses or with another number of indexes than its dimensions SHALL be a compile error, as an index after a
+member that is no array SHALL be. A store SHALL evaluate a numeric value before the indexes and a string value
+after them (as the old compiler's program does), the indexes from left to
 right, and SHALL store nothing when an index is outside its bounds (error 9; the old compiler writes element 0 of
 that dimension, `DIVERGENCES.md` D-004). The elements of a member array SHALL be part of the value of their
 variable: counted by `LEN`, zero or empty when the variable is made, and each variable and each array element
 SHALL have its own. The bounds of a member array SHALL NOT change: `REDIM` of one SHALL be accepted only with
-constant bounds equal to the declared ones, written `lower TO upper` or with `AS` and the member's type, and
+constant bounds equal to the declared ones, written `lower TO upper` or with `AS` and the member's type (the
+upper bound alone then starts at the `OPTION BASE` in effect at the `REDIM`), with or without `SHARED`, and
 SHALL then set the elements of that one array to zero or empty; `REDIM _PRESERVE` so written SHALL change
-nothing; `ERASE` of one SHALL set its elements to zero or empty. `LBOUND` and `UBOUND` SHALL take a member array,
-also written with empty parentheses.
+nothing and SHALL NOT evaluate the indexes of the place; `ERASE` of one, also written with empty parentheses,
+SHALL set its elements to zero or empty. `ERASE` and `REDIM` SHALL find the place the member array is part of
+once and SHALL NOT be guarded: an index outside its bounds on the way SHALL raise error 9, and the member array
+of the element at position 0 of that dimension SHALL then be cleared, as in the old compiler. `LBOUND` and
+`UBOUND` SHALL take a member array, also written with empty parentheses; they and `LEN` SHALL NOT evaluate the
+indexes of the place it is part of, and an index outside its bounds there SHALL raise nothing. A whole member
+array written with empty parentheses SHALL be an argument for an array parameter of its element type: the
+procedure works on its elements, with the member's bounds, as on a static array (`ERASE` clears, `REDIM` raises
+error 10); an index outside its bounds on the way SHALL raise error 9 and the procedure SHALL NOT be entered.
+`SWAP` SHALL take an element of a member array as an argument by reference takes it. A member array of an array
+element beside other targets of one `ERASE` or `REDIM`, and an element of a member array as a target of `INPUT`,
+`READ` or the `MID$` statement, SHALL be reported "not supported yet".
 
 #### Scenario: Element of a member array
 - **WHEN** a type has `v(0 TO 3) AS LONG`, and `DIM t AS` that type`: t.v(2) = 7: PRINT t.v(2); t.v(3)` runs
@@ -661,6 +680,35 @@ also written with empty parentheses.
 - **WHEN** `a(one(1)).v(one(2)) = one(3)` runs, where FUNCTION `one` prints its argument and returns 1
 - **THEN** ` 3  1  2 ` is printed
 
+#### Scenario: A string after the indexes
+- **WHEN** `z$ = "before": u.s(setz(1)) = z$` runs for a member `s(0 TO 1) AS STRING`, where FUNCTION `setz`
+  stores `"after"` into the shared `z$` and returns its argument
+- **THEN** `u.s(1)` is `after`
+
+#### Scenario: Bounds without finding the place
+- **WHEN** `PRINT UBOUND(a(one(1)).v); LBOUND(a(9).v)` runs for `DIM a(2)` of a type with `v(0 TO 3) AS LONG`,
+  under a handler that prints `ERR`
+- **THEN** it prints ` 3  0 `: `one` is not called and no error is raised
+
+#### Scenario: Whole member array as an argument
+- **WHEN** `fill t.v()` runs for `SUB fill (b() AS LONG)`, which stores `i * 2 + 1` into every `b(i)` from
+  `LBOUND(b)` to `UBOUND(b)`, and `t.v(0)` and `t.v(3)` are printed
+- **THEN** it prints ` 1  7 `, and the members beside the array keep their values; `fill a(9).v()` raises error 9
+  and `fill` is not entered
+
+#### Scenario: ERASE with an index outside
+- **WHEN** `ERASE a(9).v` runs for `DIM a(2)` under a handler that prints `ERR` and resumes next
+- **THEN** the handler prints 9 and the elements of `a(0).v` are 0, as with the old compiler
+
+#### Scenario: Bound named by a constant
+- **WHEN** a `TYPE` block has `v(top) AS LONG` below `CONST top = 3`
+- **THEN** the compiler reports it "not supported yet" (the old compiler compiles it)
+
+#### Scenario: Forms that are compile errors
+- **WHEN** `t.v = 5`, `PRINT t.v()`, `t.v(1, 2) = 5`, `t.v("a") = 5`, `PRINT t.id(1)`, `PRINT LBOUND(t.id)` or
+  `fill t.v` is compiled for `id AS LONG` and `v(0 TO 3) AS LONG`
+- **THEN** each is a compile error
+
 #### Scenario: LEN counts the elements
 - **WHEN** a type has `id AS LONG`, `v(0 TO 3) AS LONG` and `tail AS INTEGER`, and `PRINT LEN(t)` runs for a
   variable of it
@@ -676,8 +724,9 @@ also written with empty parentheses.
 - **THEN** all four are 0, and the elements of `item(1).Values` are unchanged
 
 #### Scenario: REDIM with other bounds
-- **WHEN** `REDIM t.v(0 TO 9)`, `REDIM t.v(1 TO 4)`, `REDIM t.v(0 TO n)`, `REDIM t.v(3)` or `REDIM t.v(0 TO 3) AS
-  INTEGER` is compiled for `v(0 TO 3) AS LONG`
+- **WHEN** `REDIM t.v(0 TO 9)`, `REDIM t.v(1 TO 4)`, `REDIM t.v(0 TO n)`, `REDIM t.v(3)`, `REDIM t.v(0 TO 3) AS
+  INTEGER`, `REDIM AS LONG t.v(0 TO 3)` or, below `OPTION BASE 1`, `REDIM t.v(3) AS LONG` is compiled for
+  `v(0 TO 3) AS LONG`
 - **THEN** each is a compile error
 
 #### Scenario: ERASE of a member array
@@ -700,7 +749,9 @@ for review in `SOMEDAY.md`). The indexes of the target SHALL be evaluated before
 with a `STRING` member, in itself or in a member of a user type, both SHALL be evaluated again for every part of
 the value, as in the old compiler: a `STRING` member is a part, a member of a user type that holds a `STRING`
 gives its own parts, any other member is one part (measured, `verification\v24_x306`, `x307`; listed for review
-in `SOMEDAY.md`).
+in `SOMEDAY.md`). Each element of a `STRING` member array SHALL be a part, each element of a member array of a
+user type that holds a `STRING` SHALL give its own parts, and any other member array SHALL be one part, all its
+elements together (measured, `v24_x310`).
 
 #### Scenario: Indexes evaluated per part
 - **WHEN** `a(one(1)) = b(one(2))` runs, where FUNCTION `one` prints its argument and returns 1, for a type of a

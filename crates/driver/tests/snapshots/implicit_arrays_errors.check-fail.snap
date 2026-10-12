@@ -24,4 +24,4 @@ implicit_arrays_errors.bas:44:7: error: not supported yet: `wf(...)`: an array b
 implicit_arrays_errors.bas:45:11: error: not supported yet: `ff(...)`: an array below `$DYNAMIC` first used in a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`, without `DIM`
 implicit_arrays_errors.bas:46:7: error: not supported yet: `it(...)`: an array below `$DYNAMIC` first used in a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`, without `DIM`
 implicit_arrays_errors.bas:47:17: error: not supported yet: `li$(...)`: an array below `$DYNAMIC` first used in a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`, without `DIM`
-implicit_arrays_errors.bas:54:1: error: not supported yet: arrays as `TYPE` members
+implicit_arrays_errors.bas:54:1: error: `M` is not a member of `TYPE PT` (`v.m`)

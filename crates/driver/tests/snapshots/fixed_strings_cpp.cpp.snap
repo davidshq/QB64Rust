@@ -139,23 +139,29 @@ do{
 #line 15 "fixed_strings_cpp.bas"
 {
 #line 15 "fixed_strings_cpp.bas"
-qbs *mbr_value=qbs_set(qbs_new(0,1),qbs_new_txt_len("q",1));
-#line 15 "fixed_strings_cpp.bas"
 int32 mbr_pending=is_error_pending();
 #line 15 "fixed_strings_cpp.bas"
 int32 mbr_bad=0;
 #line 15 "fixed_strings_cpp.bas"
 int64 mbr_k;
 #line 15 "fixed_strings_cpp.bas"
-ptrszint mbr_flat=0;
+ptrszint mbr_off=0;
 #line 15 "fixed_strings_cpp.bas"
 mbr_k=(1ll)-__ARRAY_UDT_RA[4];
 #line 15 "fixed_strings_cpp.bas"
 if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_RA[5]){error(9);mbr_bad=1;}
 #line 15 "fixed_strings_cpp.bas"
-mbr_flat=mbr_k;
+mbr_off=mbr_k;
 #line 15 "fixed_strings_cpp.bas"
-if (!mbr_bad&&(mbr_pending||!is_error_pending())) qbs_set(qbs_new_fixed((uint8*)(((char*)__ARRAY_UDT_RA[0])+(mbr_flat*10+4)),6,1),mbr_value);
+mbr_off*=10;
+#line 15 "fixed_strings_cpp.bas"
+mbr_off+=4;
+#line 15 "fixed_strings_cpp.bas"
+int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 15 "fixed_strings_cpp.bas"
+qbs *mbr_value=qbs_new_txt_len("q",1);
+#line 15 "fixed_strings_cpp.bas"
+if (mbr_ok) qbs_set(qbs_new_fixed((uint8*)(((char*)__ARRAY_UDT_RA[0])+mbr_off),6,1),mbr_value);
 #line 15 "fixed_strings_cpp.bas"
 }
 #line 15 "fixed_strings_cpp.bas"

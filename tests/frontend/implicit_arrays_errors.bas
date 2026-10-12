@@ -46,7 +46,7 @@ PRINT #1, ff(1)
 INPUT it(1)
 LINE INPUT "p"; li$(1)
 '$STATIC
-' A member array beside a TYPE variable.
+' A name written like an element of a member array, of a member the type does not have: "Element not defined".
 TYPE pt
     x AS LONG
 END TYPE

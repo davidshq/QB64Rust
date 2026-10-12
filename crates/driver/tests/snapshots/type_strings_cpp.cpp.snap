@@ -147,23 +147,27 @@ do{
 #line 21 "type_strings_cpp.bas"
 {
 #line 21 "type_strings_cpp.bas"
-qbs *mbr_value=qbs_set(qbs_new(0,1),*(qbs**)(((((char*)__UDT_O)+2)+0)));
-#line 21 "type_strings_cpp.bas"
 int32 mbr_pending=is_error_pending();
 #line 21 "type_strings_cpp.bas"
 int32 mbr_bad=0;
 #line 21 "type_strings_cpp.bas"
 int64 mbr_k;
 #line 21 "type_strings_cpp.bas"
-ptrszint mbr_flat=0;
+ptrszint mbr_off=0;
 #line 21 "type_strings_cpp.bas"
 mbr_k=(((int64)(*__LONG_I)))-__ARRAY_UDT_A[4];
 #line 21 "type_strings_cpp.bas"
 if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[5]){error(9);mbr_bad=1;}
 #line 21 "type_strings_cpp.bas"
-mbr_flat=mbr_k;
+mbr_off=mbr_k;
 #line 21 "type_strings_cpp.bas"
-if (!mbr_bad&&(mbr_pending||!is_error_pending())) qbs_set(*(qbs**)(((char*)__ARRAY_UDT_A[0])+(mbr_flat*12+0)),mbr_value);
+mbr_off*=12;
+#line 21 "type_strings_cpp.bas"
+int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 21 "type_strings_cpp.bas"
+qbs *mbr_value=*(qbs**)(((((char*)__UDT_O)+2)+0));
+#line 21 "type_strings_cpp.bas"
+if (mbr_ok) qbs_set(*(qbs**)(((char*)__ARRAY_UDT_A[0])+mbr_off),mbr_value);
 #line 21 "type_strings_cpp.bas"
 }
 #line 21 "type_strings_cpp.bas"

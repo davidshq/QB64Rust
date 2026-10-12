@@ -1,0 +1,164 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE INNER
+  Q:I16(1 TO 2)
+  R:I16
+TYPE OUTER
+  N:T:INNER(0 TO 1)
+  M:T:INNER
+  S:Str(0 TO 1)
+TYPE T1
+  ID:I32
+  V:I32(0 TO 3)
+  G:I8(1 TO 2, 0 TO 3)
+TYPE T0
+  W:F64(0 TO 3)
+ARRAY B (param):I32 passed, 1 dimension
+ARRAY B (param):Str passed, 1 dimension
+ARRAY A:T:T1(0 TO 2)
+ARRAY X:T:OUTER(0 TO 0)
+line 2: ConsoleOnly
+line 27: Assign T.V(…):I32
+  Index
+    Int 2 : I64
+  Value
+    Int 7 : I32
+line 28: Assign A(…).V(…):I32
+  Index
+    Convert Widen : I64
+      Var I : I32
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Var I : I32
+        Int 1 : I32
+  Value
+    Element T.V(…) : I32
+      Int 2 : I64
+line 29: Assign X(…).N(…).Q(…):I16
+  Index
+    Int 0 : I64
+    Int 1 : I64
+    Int 2 : I64
+  Value
+    Int 77 : I16
+line 30: Assign X(…).M.R:I16
+  Index
+    Int 0 : I64
+  Value
+    Int 88 : I16
+line 31: Assign X(…).S(…):Str
+  Index
+    Int 0 : I64
+    Int 1 : I64
+  Value
+    Str "s" : Str
+line 32: Assign T.G(…):I8
+  Index
+    Int 2 : I64
+    Int 3 : I64
+  Value
+    Convert Truncate : I8
+      Convert RoundEven : I32
+        Convert Nearest : F32
+          Float 1.5E+0 : F64 (qb F32)
+line 33: Assign Z.W(…):F64
+  Index
+    Convert Widen : I64
+      Var I : I32
+  Value
+    Convert Nearest : F64
+      Element T.G(…) : I8
+        Int 1 : I64
+        Int 0 : I64
+line 34: Print newline
+  Num
+    LBound T.V : I64
+  Num
+    UBound A(…).V : I64
+  Num
+    LBound X(…).N(…).Q : I64
+  Num
+    UBound T.G : I64
+      Int 2 : I32
+  Num
+    UBound T.G : I64
+      Var K : I32
+  Num
+    UBound T.V : I64
+line 35: Print newline
+  Num
+    Int 28 : I32
+  Num
+    Int 4 : I32
+  Num
+    Int 6 : I32
+  Num
+    Int 32 : I32
+line 36: Clear T.V:I32
+line 37: Clear A(…).V:I32
+  Convert Widen : I64
+    Var I : I32
+line 39: Clear X(…).N(…).Q:I16
+  Int 0 : I64
+  Int 1 : I64
+line 40: Clear T.V:I32
+line 40: Clear T.G:I8
+line 41: Clear T.G:I8
+line 41: Clear T.V:I32
+line 42: Clear X(…).S:Str
+  Int 0 : I64
+line 43: Call BUMP
+  ref T.V(…) : I32
+    Int 2 : I64
+line 44: Call BUMP
+  temp
+    Element T.V(…) : I32
+      Int 2 : I64
+line 45: Builtin SWAP
+  place T.V(…) : I32
+    Int 0 : I64
+  place A(…).V(…) : I32
+    Int 1 : I64
+    Int 1 : I64
+line 46: Builtin SWAP
+  place A(…).ID : I32
+    Int 0 : I64
+  place A(…).ID : I32
+    Int 1 : I64
+line 47: Call FILL
+  array A(…).V() : I32
+    Convert Widen : I64
+      Var I : I32
+line 48: Call NAMES
+  array X(…).S() : Str
+    Int 0 : I64
+line 49: CopyWhole X(…).N(…):T:INNER <- X(…).N(…)
+  To index
+    Int 0 : I64
+    Int 0 : I64
+  From index
+    Int 0 : I64
+    Int 1 : I64
+line 50: System
+SUB BUMP
+  param N:I32
+line 53: Assign N (param):I32
+  Binary Add : I32 (qb I64)
+    Var N (param) : I32
+    Int 1 : I32
+SUB FILL
+  param B():I32
+line 57: Assign B (param)(…):I32
+  Index
+    LBound B (param) : I64
+  Value
+    Int 1 : I32
+SUB NAMES
+  param B():Str
+line 61: Assign B (param)(…):Str
+  Index
+    Int 0 : I64
+  Value
+    Str "n" : Str

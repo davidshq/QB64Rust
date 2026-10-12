@@ -121,7 +121,8 @@ What the compiler supports so far:
   nested members, used anywhere in the file; `TYPE` variables in every storage class; member read and write
   (`p.x`, `p.a.b`, `a(i).m`), members passed by reference, dotted plain names (`a.b` without a `TYPE` variable
   `a`). Each place has its own store rule (`ir\src\lib.rs`); a member store into an element with a bad index
-  stores nothing (`DIVERGENCES.md` D-004). The IR shares `sema`'s value tree (`Expr`, `Place`, `Arg`);
+  stores nothing (`DIVERGENCES.md` D-004; member arrays: group 9 below). The IR shares `sema`'s value tree
+  (`Expr`, `Place`, `ArrayRef`, `Arg`);
 - the preprocessor and included files (`m2-parser-breadth`): `$IF`/`$ELSEIF`/`$ELSE`/`$END IF`/`$LET`/`$ERROR`
   evaluated as the old compiler does (Windows 64-bit, version 4.7.0; a branch not taken is kept as
   `InactiveCode`), comment `$INCLUDE` with the old compiler's lookup, `$INCLUDEONCE`; the program is checked and
@@ -270,6 +271,24 @@ What the compiler supports so far:
   and for a type that holds a `STRING` both found again for every part, as QB64pe (`SOMEDAY.md`). A parameter
   `AS` a user type takes a variable, an element or a member of exactly that type by reference (`Arg::Ref`; in
   C++ its address); anything else is an error, a place in parentheses too.
+- group 9 of the same change, member arrays (design D8, "As built in group 9"): a `TYPE` member declared as an
+  array (`v(0 TO 3) AS LONG`, `AS INTEGER q(2), r`), of any member type and any number of dimensions; its
+  bounds are part of the type (`Member::bounds`), read where the block stands (`OPTION BASE` as it is there,
+  collected before the blocks are read). **`ArrayRef`** (`sema\src\lib.rs`) names an array wherever one is
+  named as a whole, an array variable or a member array of a place: in an element (`t.v(i)`, `a(i).v(j)`,
+  `x(0).n(1).q(2)` are one place each), in `LBOUND`/`UBOUND`, in `Clear` and as an array argument. The
+  elements lie in the value (in C++ from the member's offset, first dimension fastest), so `LEN`, a new
+  variable, a local on each call and a whole-value copy take them along; nothing allocates or releases them.
+  `REDIM` with the declared bounds and `ERASE` are a `Clear` (not guarded, as QB64pe: an index outside on the
+  way raises 9 and element 0's member array is cleared), `REDIM _PRESERVE` is nothing; other bounds are an
+  error. `LBOUND`, `UBOUND` and `LEN` do not evaluate the indexes of the place. A whole member array (`fill
+  t.v()`) is passed as a static array over its bytes (a descriptor made for the call). **A store through a
+  member with an index on the way** (`a(i).m`, `t.v(i)`) evaluates a number before the indexes and a string
+  after them, as QB64pe's program does, and stores nothing after an index outside (`DIVERGENCES.md` D-004;
+  `store_through_member`, `codegen-cpp\src\stmt.rs`). `SWAP` takes such a place. Still marked: a bound that
+  names a `CONST` (the blocks are read before the constants), a member array of an array element beside other
+  targets of one `ERASE` or `REDIM`, such a place as a target of `INPUT`, `READ` or the `MID$` statement, the
+  `_STATIC` and `_DYNAMIC` markers (`SOMEDAY.md`).
 - **Signs** (`syntax\src\parser\expr.rs`, `signs_after`; measured, `verification\v25_*`): there is no unary
   plus, but QB64pe removes signs from an expression before it reads it, and so does the parser: a `+` right
   after a `+` or a `-`, then two `-` right after an operator. The dropped tokens stay in the tree. In a
@@ -281,12 +300,14 @@ are line numbers and jumps to them (also as `ON … GOTO` and `RESTORE` targets)
 CASE`, the other built-in functions, `DECLARE LIBRARY`, event handlers and switches, `STOP`, `RUN`,
 `END`/`SYSTEM` with an exit code, the other I/O statements
 (`PRINT USING`, `LPRINT`, `FIELD`, `LSET`/`RSET`),
-`READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array or a member of an element, every other
+`READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array, `READ`, `INPUT`, `INPUT #` or the `MID$` statement
+with a member of an element or an element of a member array, every other
 built-in statement read by its template (`LINE`, `SCREEN`, `GET`/`PUT`, `TIME$ =`, ...), the declaration
 forms (`REDIM _RETAIN`, arrays named `name$n`,
 `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
 names of QB64pe's auto-included files and its precompiler flags (`_CONSOLE_`, ...); of arrays and `TYPE`:
-whole arrays (`x()`) where no array parameter takes them, member arrays;
+whole arrays (`x()`) where no array parameter takes them, member arrays marked `_STATIC` or `_DYNAMIC` or with
+a bound that names a `CONST`;
 `DEF FN` is an error, as in QB64pe. After a declaration
 marked "not supported yet", later real errors are dropped (the follow-on rule, design D10 of `m2-parser-breadth`):
 the program is rejected by the mark, and no error is reported that the declaration might have prevented.

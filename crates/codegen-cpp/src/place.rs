@@ -1,9 +1,13 @@
 //! Places: variables, elements and members as C lvalues, addresses and references.
+//!
+//! A member array lies in the value it is a member of (design D8 of `m2-defxxx-common-arrays`): its elements
+//! follow each other from the member's offset, first dimension fastest, and its bounds are constants of its
+//! user type, so an element is the member's address plus its checked flat position times the element size.
 
 use crate::Emitter;
 use crate::decl::{dim_slot, is_plain, is_qbs};
-use crate::names::c_type;
-use qb64rust_ir::{Expr, Place, Ty, VarId};
+use crate::names::{c_type, int_const};
+use qb64rust_ir::{ArrayRef, Expr, MemberId, Place, Ty, VarId};
 
 impl Emitter<'_> {
     /// A variable as a C expression: a `qbs*` or a temporary as it is, any other through its pointer.
@@ -13,22 +17,6 @@ impl Emitter<'_> {
             name
         } else {
             format!("*{name}")
-        }
-    }
-
-    /// The element a member place is found in, its indexes, and the member's byte offset in the element.
-    pub(crate) fn element_root<'v>(&self, place: &'v Place) -> (VarId, &'v [Expr], u32) {
-        match place {
-            Place::Element { array, index } => (*array, index, 0),
-            Place::Member { base, member } => {
-                let (array, index, offset) = self.element_root(base);
-                (
-                    array,
-                    index,
-                    offset + self.member_offset(self.p.place_ty(base), *member),
-                )
-            }
-            Place::Var(_) => unreachable!("a member place without an element"),
         }
     }
 
@@ -53,6 +41,48 @@ impl Emitter<'_> {
         parts.join("+")
     }
 
+    /// The lower bound, the number of elements and the multiplier of each dimension of a member array, first
+    /// dimension first: the multiplier of a dimension is the number of elements of the dimensions before it.
+    pub(crate) fn member_dims(&self, base: &Place, member: MemberId) -> Vec<(i64, i64, i64)> {
+        let mut multiplier = 1;
+        let bounds = &self.p.member_of(base, member).bounds;
+        bounds
+            .iter()
+            .map(|&(lower, upper)| {
+                let count = upper - lower + 1;
+                let dim = (lower, count, multiplier);
+                multiplier *= count;
+                dim
+            })
+            .collect()
+    }
+
+    /// [`Self::flat_index`] for an element of a member array, whose bounds are constants: an index outside
+    /// raises error 9 and counts as 0, position 0 of its dimension (measured, `verification\v24_h_member_store`).
+    fn member_flat_index(&mut self, base: &Place, member: MemberId, index: &[Expr]) -> String {
+        let dims = self.member_dims(base, member);
+        let parts: Vec<String> = index
+            .iter()
+            .zip(dims)
+            .map(|(i, (lower, count, multiplier))| {
+                let lower = int_const(lower, Ty::I64);
+                let check = format!("array_check(({})-{lower},{count})", self.value(i));
+                if multiplier == 1 {
+                    check
+                } else {
+                    format!("{check}*{multiplier}")
+                }
+            })
+            .collect();
+        parts.join("+")
+    }
+
+    /// The address of the first element of a member array, as a `char*` expression.
+    pub(crate) fn member_array_at(&mut self, base: &Place, member: MemberId) -> String {
+        let offset = self.member_offset(self.p.place_ty(base), member);
+        format!("({}+{offset})", self.bytes_of(base))
+    }
+
     /// The element at flat position `flat` of a numeric or string array, as an lvalue; of a fixed-length string
     /// array, a temporary fixed `qbs` over its bytes; of a `_BIT * n` array, the value of its packed element (it
     /// is stored by [`Self::store`]).
@@ -70,14 +100,27 @@ impl Emitter<'_> {
         }
     }
 
-    /// The address of a place of a user type, or of a member, as a `char*` expression.
+    /// The address of a place of a user type, of a member, or of an element of a member array, as a `char*`
+    /// expression.
     pub(crate) fn bytes_of(&mut self, place: &Place) -> String {
         match place {
             Place::Var(v) => format!("((char*){})", self.name(*v)),
-            Place::Element { array, index } => {
+            Place::Element {
+                array: ArrayRef::Var(array),
+                index,
+            } => {
                 let flat = self.flat_index(*array, index);
                 let size = self.ty_size(self.p.var(*array).ty);
                 format!("(((char*){}[0])+(({flat})*{size}))", self.name(*array))
+            }
+            Place::Element {
+                array: ArrayRef::Member { base, member },
+                index,
+            } => {
+                let first = self.member_array_at(base, *member);
+                let flat = self.member_flat_index(base, *member, index);
+                let size = self.ty_size(self.p.member_of(base, *member).ty);
+                format!("({first}+(({flat})*{size}))")
             }
             Place::Member { base, member } => {
                 let offset = self.member_offset(self.p.place_ty(base), *member);
@@ -86,17 +129,24 @@ impl Emitter<'_> {
         }
     }
 
-    /// A place as a C lvalue: a scalar as [`Self::scalar`], an element, a member through a typed pointer (a
-    /// `STRING` member is the `qbs*` in its slot; a fixed-length string member is read through a temporary fixed
-    /// `qbs` over its bytes, as the old compiler's `udtreference`).
+    /// A place as a C lvalue: a scalar as [`Self::scalar`], an element, a member or an element of a member
+    /// array through a typed pointer (a `STRING` one is the `qbs*` in its slot; a fixed-length string one is
+    /// read through a temporary fixed `qbs` over its bytes, as the old compiler's `udtreference`).
     pub(crate) fn load_place(&mut self, place: &Place) -> String {
         match place {
             Place::Var(id) => self.scalar(*id),
-            Place::Element { array, index } => {
+            Place::Element {
+                array: ArrayRef::Var(array),
+                index,
+            } => {
                 let flat = self.flat_index(*array, index);
                 self.element_at(*array, &flat)
             }
-            Place::Member { .. } => {
+            Place::Member { .. }
+            | Place::Element {
+                array: ArrayRef::Member { .. },
+                ..
+            } => {
                 let ty = self.p.place_ty(place);
                 if let Ty::FixedStr(k) = ty {
                     return fixed_at(&format!("(uint8*){}", self.bytes_of(place)), k);
@@ -118,7 +168,10 @@ impl Emitter<'_> {
         }
         match place {
             Place::Var(id) => self.name(*id),
-            Place::Element { array, index } => {
+            Place::Element {
+                array: ArrayRef::Var(array),
+                index,
+            } => {
                 let flat = self.flat_index(*array, index);
                 let element = self.element_at(*array, &flat);
                 if is_qbs(self.p.var(*array).ty) {
@@ -127,8 +180,12 @@ impl Emitter<'_> {
                     format!("(&{element})")
                 }
             }
-            Place::Member { .. } => {
-                // A string member is its own `qbs*`: the one in its slot, or a fixed one over its bytes.
+            Place::Member { .. }
+            | Place::Element {
+                array: ArrayRef::Member { .. },
+                ..
+            } => {
+                // A string is its own `qbs*`: the one in its slot, or a fixed one over its bytes.
                 let ty = self.p.place_ty(place);
                 if is_qbs(ty) {
                     return self.load_place(place);

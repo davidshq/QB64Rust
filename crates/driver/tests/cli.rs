@@ -293,6 +293,32 @@ fn member_store_with_bad_index() {
     );
 }
 
+/// The same for an element of a member array (`DIVERGENCES.md` D-004, design D8 of `m2-defxxx-common-arrays`): a
+/// store with an index outside its bounds, of the member array or of an array on the way to it, stores nothing,
+/// a number and a string alike; the old compiler writes position 0 of that dimension (measured,
+/// `verification\v24_h_member_store`, `v24_x313`). With the value raising too, `ERR` is the value's error; a
+/// raising value with a good index is stored as its placeholder.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn member_array_store_with_bad_index() {
+    let d = scratch("member-array-bad-index");
+    let program = "$CONSOLE:ONLY\nTYPE t\nid AS LONG\nv(0 TO 3) AS LONG\ng(1 TO 2, 0 TO 3) AS INTEGER\n\
+                   s(0 TO 1) AS STRING\nEND TYPE\nDIM x AS t, a(2) AS t, k AS LONG\nk = -1\n\
+                   ON ERROR GOTO handler\nx.v(0) = 100: a(0).v(0) = 200: a(0).v(1) = 201: a(1).v(0) = 210\n\
+                   x.g(2, 0) = 7: x.s(0) = \"old\"\n\
+                   x.v(9) = 5\nPRINT \"x.v(9):\"; x.v(0)\na(9).v(1) = 5\nPRINT \"a(9).v(1):\"; a(0).v(1)\n\
+                   a(1).v(9) = 6\nPRINT \"a(1).v(9):\"; a(1).v(0)\na(9).v(9) = 7\nPRINT \"a(9).v(9):\"; a(0).v(0)\n\
+                   x.g(2, 9) = 8\nPRINT \"x.g(2, 9):\"; x.g(2, 0)\nx.s(9) = \"new\"\nPRINT \"x.s(9): \"; x.s(0)\n\
+                   x.v(9) = INSTR(CHR$(k), \"x\")\nPRINT \"both:\"; x.v(0)\n\
+                   x.v(1) = 3: x.v(1) = INSTR(CHR$(k), \"x\")\nPRINT \"x.v(1):\"; x.v(1)\nSYSTEM\n\
+                   handler:\nPRINT \"error\"; ERR\nRESUME NEXT\n";
+    assert_eq!(
+        build_and_run(&d, program),
+        "error 9 \nx.v(9): 100 \nerror 9 \na(9).v(1): 201 \nerror 9 \na(1).v(9): 210 \nerror 9 \na(9).v(9): 200 \n\
+         error 9 \nx.g(2, 9): 7 \nerror 9 \nx.s(9): old\nerror 5 \nboth: 100 \nerror 5 \nx.v(1): 0 \n"
+    );
+}
+
 /// A `_BIT * n` scalar wider than 32 bits has 8 bytes of its own, so a store into it leaves the `_BIT` scalar
 /// declared before it alone (`DIVERGENCES.md` D-009; the old compiler reserves 4 bytes and overwrites that
 /// neighbour, printing ` 4294967295 ` and ` 0 ` here, so this cannot be a corpus program recorded with `qb64pe.exe`).
