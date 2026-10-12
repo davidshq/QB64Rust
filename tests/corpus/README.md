@@ -11,9 +11,9 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 65 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays; `SOURCE.md`) |
-| `screen\` | 29 programs with a window, checked by the state of the screen they leave: 23 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error) and 6 drawing programs cut from Civil War Strategy (`SOURCE.md`, `tools\screen\README.md`). None is on `slice.list`: the new compiler builds console programs only so far |
-| `slice.list` | The 287 programs the new compiler must pass: all 65 of `slice\`, 220 of `runtime_comparison` and `verification\` `v11`, `v12` (see below) |
+| `slice\` | 75 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags; `SOURCE.md`) |
+| `screen\` | 29 programs with a window, checked by the state of the screen they leave: 23 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error) and 6 drawing programs cut from Civil War Strategy (`SOURCE.md`, `tools\screen\README.md`). None is on `slice.list`: the new compiler builds a program with a window, but compiles no statement that draws yet (M3) |
+| `slice.list` | The 297 programs the new compiler must pass: all 75 of `slice\`, 220 of `runtime_comparison` and `verification\` `v11`, `v12` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -179,15 +179,15 @@ with an `.err` file, and the two shrink-only lists `tests\known_false_errors.lis
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
 
-### Full corpus with `qb64rust` (2026-10-12, after member arrays; not a pass criterion)
+### Full corpus with `qb64rust` (2026-10-12, after step 11; not a pass criterion)
 
-After group 9 of `m2-defxxx-common-arrays` (its task 9.3, release build, against the reference clone, `--jobs 8`),
-357 programs (the slice program of group 9 new). Run again the same day for the change's task 10.1, with the
-same result; `slice.list` by itself passes 287 of 287 with and without `QB64RUST_NO_FOLD=1`:
+After `m2-console-screenhide` (its task 7.1, release build, against the reference clone, `--jobs 8
+--build-cache`), 367 programs (the ten slice programs of step 11 new; 357 with the same other rows after
+`m2-defxxx-common-arrays`); `slice.list` by itself passes 297 of 297 with and without `QB64RUST_NO_FOLD=1`:
 
 | Result | Programs |
 |---|---|
-| Pass | 306: the 287 of `slice.list` and 19 `.err` programs |
+| Pass | 316: the 297 of `slice.list` and 19 `.err` programs |
 | Rejected with a diagnostic (exit status 1) | 45 (15 `.output` programs, all 29 of `screen\` and the compile-only `239_lprint`) |
 | `.err` programs that get only "not supported yet" errors | 1 (`218` `FRE`) |
 | Known failures | 5, as below |

@@ -17,11 +17,16 @@ was never committed and was no longer on disk.
 
 - [x] Highlighting, build and run, diagnostics from `-z`, formatting through `-y`, CP437 by default (`vscode\`)
 
-## M2. Front end: in progress
+## M2. Front end: done
 
 Done when: a lossless parser with recovery reads the whole language with no false syntax error on any program the
 old compiler accepts (corpus, upstream tests, `qbasic_testcases`, its own sources), with resolution, a type
 checker and a thin language server.
+
+The criterion is met (2026-10-12): tier 1 runs the front end over all four input sets with an exact round trip,
+and its shrink-only lists hold no false error and no parse gap (`tests\known_false_errors.list`,
+`tests\known_parse_gaps.list`: both empty). What the checker and the code generator do not cover yet is marked
+"not supported yet", never a false error; those constructs are work of M3 and M4.
 
 - [x] Golden corpus (`tests\corpus\`)
 - [x] Rust workspace and an end-to-end slice (`crates\`)
@@ -43,8 +48,8 @@ checker and a thin language server.
 - [x] The rest of the same step, in the wider scope of `DECISIONS.md` 2026-10-12: the window built-ins of the
       upstream `glut` tests as compiled, never-run code; the constants of the auto-included file (`_TRUE`,
       `_FALSE`); the precompiler flags in `$IF`
-- [ ] The step's closing runs (the two full suites with the new compiler), its documents and CI after the push
-      (group 7 of `m2-console-screenhide`; `STATUS.md`)
+- [x] The step's closing runs (the two full suites with the new compiler), its documents and CI after the push
+      (group 7 of `m2-console-screenhide`)
 
 ## M3. Code generation to the existing ABI: started early
 

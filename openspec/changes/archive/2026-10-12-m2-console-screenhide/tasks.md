@@ -361,14 +361,46 @@ programs, recorded with `qb64pe.exe`.
 
 ## 7. Integration
 
-- [ ] 7.1 Full runs with the release build: `cargo test`; the call-site check; tier 2 slice with and without
+- [x] 7.1 Full runs with the release build: `cargo test`; the call-site check; tier 2 slice with and without
   folding; the upstream pass list; the differential pass list; `--suite compile` and `--suite corpus` in full
   with the new compiler, to see that no program outside the lists changed its result. Verify: every run passes,
   and the numbers are written into `STATUS.md` "Numbers at the last full runs".
-- [ ] 7.2 Documents: `STATUS.md` (step 11 done, what is next), `ROADMAP.md` (M2's last box ticked, and whether
+  - Done 2026-10-12 (session 53, release build of `d9f5e95`, `--jobs 8 --build-cache target\build-cache`):
+    `cargo test` 290 pass, the 13 `--ignored` tests pass; the runner's own tests 56 pass; the call-site check
+    362 of 362 equal (3 min 57 s); the slice list 297 of 297 with and without `QB64RUST_NO_FOLD=1`; the
+    upstream pass list 140 of 140; the differential pass list 59 of 59.
+  - `--suite compile` in full (404 programs): 140 pass, 225 rejected with a diagnostic (209 with an `.output`,
+    16 compile-only), 38 `.err` programs with only marked errors, the known failure `http/read_example`.
+    Against the last full run (114, 251, 38, 1): 26 programs went from rejected to pass, the 26 added to
+    `pass.list` by this change; nothing else moved.
+  - `--suite corpus` in full (367 programs): 316 pass (the 297 of `slice.list` and 19 `.err` programs), 45
+    rejected with a diagnostic (15 `.output` programs, the 29 of `screen\`, the compile-only `239_lprint`), 1
+    `.err` program with only marked errors (`218` `FRE`), 5 known failures. Against the last full run (306,
+    45, 1, 5 of 357): the ten new slice programs pass; nothing else moved.
+  - In neither suite does a program build and print the wrong output, and none crashes the compiler.
+- [x] 7.2 Documents: `STATUS.md` (step 11 done, what is next), `ROADMAP.md` (M2's last box ticked, and whether
   M2's exit criterion is met), `crates\README.md`, `study\00` §5 and its document map, `CLAUDE.md` (the
   `verification\` row, the corpus and slice counts of the layout table), `SOMEDAY.md` (what stayed marked:
   the constants that need `CHR$` or `EXP`, the corner of D7, window built-ins not run), `DECISIONS.md` (anything
   decided on the way). Verify: every count in the layout table equals the files on disk; `repo_check` is clean.
-- [ ] 7.3 After the user pushes: read the three workflows on GitHub. Verify: all green; then the change is ready
+  - Done 2026-10-12 (session 53). Changed here: `STATUS.md` (M2 complete, step 11 done, the numbers of 7.1,
+    CI, what is next), `ROADMAP.md` (M2 done, with how its exit criterion is met), `study\00` (the milestone
+    table; the runner fact of task 2.6 in §5, which still said "not measured yet"), `tests\corpus\README.md`
+    (75 slice programs and 297 on the list, where it said 65 and 287; the full-corpus table),
+    `tests\upstream\README.md` (the closing full run).
+  - Checked and left as they were, written with groups 4 to 6: `crates\README.md`, `SOMEDAY.md` ("Left marked
+    by `m2-console-screenhide`": the 79 constants, the corner of D7, the window built-ins not run),
+    `DECISIONS.md` (nothing was decided after the wider scope), `study\00`'s document map (no new study) and
+    `CLAUDE.md`: its layout table equals the files on disk (367 corpus programs, 29 screen programs, 297 on
+    `slice.list`, 125 on `deferred.list`, 140 `v26` programs up to `x128`).
+- [x] 7.3 After the user pushes: read the three workflows on GitHub. Verify: all green; then the change is ready
   to archive (`/opsx:archive`), which syncs the deltas into `openspec\specs`.
+  - Done 2026-10-12, read at `d9f5e95` (groups 4 to 6, the last commit that changes code): `rust.yml` green
+    (run 38322689004: `test`, `deny`, `tier2`), `vscode-extension.yml` and `repo-check.yml` green. `tier2` took
+    19 min 52 s (18 min 22 s at `ab418be`): its log has the call-site check, `PASS
+    corpus:slice/s66_window_builtins`, the slice list 297 of 297, `PASS compile_tests:glut/icon`, the upstream
+    pass list 140 of 140 and the differential pass list 59 of 59. So the runner builds the libqb variant with
+    the icon part.
+  - The commit of this group changes only `.md` files. `rust.yml` ignores them and `vscode-extension.yml` is
+    not started by them, so its push runs `repo-check.yml` alone; `tools\repo_check\check_repo.py --untracked`
+    is clean locally (7346 files, 0 findings).

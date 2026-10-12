@@ -46,7 +46,7 @@ From the expert panel (`07`), whose recommendations R1–R13 the decisions above
 |---|---|---|---|
 | M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
 | M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | **done** (`vscode\`) |
-| M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server (the formatter matching `-y` left this criterion on 2026-10-09, `DECISIONS.md`) | **in progress**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling; upstream tests; control flow and constants; arrays and `TYPE`; parser breadth (every accepted program parses, no false error); core built-ins; the language server; the numeric types; built-in statements; the screen-state check; default types, dynamic arrays, arrays in procedures, `COMMON`, the rest of `TYPE` and member arrays (`crates\`). One step of the order of work is left (`$CONSOLE` with `_DEST _CONSOLE`). Order of work and the numbers of the last full runs: `STATUS.md` |
+| M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server (the formatter matching `-y` left this criterion on 2026-10-09, `DECISIONS.md`) | **done 2026-10-12**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling; upstream tests; control flow and constants; arrays and `TYPE`; parser breadth (every accepted program parses, no false error); core built-ins; the language server; the numeric types; built-in statements; the screen-state check; default types, dynamic arrays, arrays in procedures, `COMMON`, the rest of `TYPE` and member arrays; a console and a window (`$CONSOLE`, `$SCREENHIDE`, `_DEST _CONSOLE`), the window built-ins as compiled code, the auto-included constants and the precompiler flags (`crates\`). No step of the order of work is left. Order of work and the numbers of the last full runs: `STATUS.md` |
 | M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests; programs without `$CONSOLE:ONLY` with a screen-state oracle | started early: the slice already links with libqb |
 | M4 | Parity | The corpus (275) and the upstream tests in reach (279 of 404; 125 need the deferred array features) match; `qb64pe.bas` compiles and the result passes the suite (exit criterion, `study\20`) | |
 | M5 | Debugger | Debug symbol file + DAP adapter | |
@@ -1581,8 +1581,10 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     `precomp-flags` tests need the precompiler flags in `$IF` (three of them nothing else; the others `$ASSERTS`,
     `$DEBUG` or `_OPENCLIENT`). The other nine need sound, images, `$EMBED` or devices.
   - **The GitHub Windows runner.** The upstream tests say in a comment that GLFW cannot create a window with an
-    OpenGL context there, which is why the `glut` tests are console-only on Windows. Whether a program with
-    `$CONSOLE` and `$SCREENHIDE` starts on the runner is not measured yet.
+    OpenGL context there, which is why the `glut` tests are console-only on Windows. A program with `$CONSOLE` and
+    `$SCREENHIDE` does start there: the `tier2` job is green with `s63_console_window` and the other slice
+    programs that have a hidden window (seen 2026-10-12, task 2.6 of `m2-console-screenhide`). A window that is
+    shown is not measured on the runner.
 
 ## 6. Bug-compatibility choices (all decided)
 

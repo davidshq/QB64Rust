@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-12 (session 52).
+Updated 2026-10-12 (session 53).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -17,8 +17,9 @@ Where everything else lives:
 
 ## Where we are
 
-M0 (baseline) and M1 (VS Code extension on the old compiler) are complete. **M2 (front end) is in progress**: steps
-1 to 10 of the order of work are done; step 11 is the last. Step 9, built-in statements, was OpenSpec change
+M0 (baseline) and M1 (VS Code extension on the old compiler) are complete. **M2 (front end) is complete**: all 11
+steps of the order of work are done and its exit criterion is met (`ROADMAP.md`); the last change,
+`m2-console-screenhide`, was archived 2026-10-12 with all 24 tasks done. **M3 is next.** Step 9, built-in statements, was OpenSpec change
 `m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
 (archived 2026-10-10: `qb64rust --report unsupported`, and tests of the test runner). Step 9a, the screen-state
 check, was OpenSpec change `m2-screen-state-check` (all 22 tasks done, archived 2026-10-10).
@@ -47,9 +48,10 @@ line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10)
 ## Open items
 
 - None from CI: `rust.yml` (`test`, `tier2`, `deny`), `vscode-extension.yml` and `repo-check.yml` are green on
-  GitHub (seen 2026-10-12 at `3ba82c2`, and before it at `cda1268` and `cf4fb1f`). That settled task 10.2 of
-  `m2-numeric-types` and task 5.1 of `m2-language-server`, and showed that the changed `tier2` job builds
-  `qb64pe.exe` on the runner for the call-site check.
+  GitHub at `d9f5e95`, the last commit that changes code (seen 2026-10-12; `tier2` 19 min 52 s, with
+  `s66_window_builtins` and `glut/icon` passing, so the runner builds the libqb variant with the icon part). The
+  commit of step 11's closing documents changes only `.md` files, which starts `repo-check.yml` alone.
+- The branch `m2-console-screenhide` is not merged into `main` yet.
 
 Every question of the seventh and eighth reviews is answered (`study\28` §9, `study\29` §8, `DECISIONS.md`
 2026-10-09 and 2026-10-10): the local reference clone (`16f629784e`) is the one reference for the old compiler;
@@ -58,15 +60,15 @@ criterion; the screen-state check needs no copy of libqb.
 
 ## Next
 
-The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3) and changed by the eighth
-(`study\29` §3: the last two steps swapped).
+M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3) and changed by the eighth
+(`study\29` §3: the last two steps swapped). Its last steps:
 
 9. Done: built-in statements and functions by demand (`m2-builtin-statements`). Further plain built-ins come in
    as programs name them, each with a call-site program (`crates\README.md`); what was left marked and why is in
    task 7.4 of the change.
 9a. Done: the screen-state check (`m2-screen-state-check`; `tools\screen\README.md`). The new
-    compiler compiles none of the 29 screen programs yet: it builds console programs only, and the first drawing
-    statement is M3 work. What a set of them needs: `qb64rust --report unsupported tests\corpus\screen`.
+    compiler compiles none of the 29 screen programs yet: it builds a program with a window since step 11, and
+    the first drawing statement is M3 work. What a set of them needs: `qb64rust --report unsupported tests\corpus\screen`.
 10. Done: (was 11) default types, `COMMON`, dynamic arrays, arrays in procedures, array parameters, the rest
     of `TYPE` and member arrays (`m2-defxxx-common-arrays`, all 29 tasks done, archived 2026-10-12).
     What each task found is in the change's `tasks.md`, how each group was built in its `design.md` ("As
@@ -74,37 +76,35 @@ The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3
     member-array layer, each listed in `SOMEDAY.md`: a bound that names a `CONST`, a member array of an array
     element beside other targets of one `ERASE` or `REDIM`, an element of a member array as a target of
     `INPUT`, `READ` or `MID$`, `REDIM t.v(0) AS type` under `OPTION BASE 1`.
-11. **Next:** (was 10) `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE` (`study\26` §5). Measured 2026-10-12
-    (`verification\v26_*`, 140 programs; the facts in `study\00` §5). OpenSpec change `m2-console-screenhide`
-    (proposed 2026-10-12; 7 task groups; 21 of 24 tasks done: groups 1 to 6), with the wider scope the user
-    decided (`DECISIONS.md` 2026-10-12). Built: a `$CONSOLE` program is compiled and built with a console and
-    a window, the four metacommands are matched exactly, `_DEST`, `_SOURCE`, `_CONSOLE` and `_ECHO` are
-    compiled (groups 2, 3); the window built-ins of the 19 upstream `glut` tests are compiled and never run
-    (group 4); the constants of the auto-included file are known in every program (group 5); the precompiler
-    flags in `$IF` have the old compiler's values (group 6). `slice.list` has 297 programs, all passing, and
-    upstream is at 140 of 279. The GitHub Windows runner starts a program with a window: `tier2` is green at
-    `ab418be` with `s63_console_window` passing, the job 18 min 22 s against 17 min 25 s before (task 2.6).
-    Groups 3 to 6 are not pushed yet. **Open: group 7**: the two full suites with the new compiler (`--suite
-    compile`, `--suite corpus`; the lists and tier 1 were run after group 6), the closing documents, and
-    reading CI after the push (the first run there of `s66`, whose `_ICON` links a libqb variant CI has not
-    built yet, so `tier2` will take a little longer once); then `/opsx:archive`. What stayed marked is in
-    `SOMEDAY.md` ("Left marked by `m2-console-screenhide`").
+11. Done: (was 10) `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE` (`study\26` §5), with the wider scope
+    the user decided (`DECISIONS.md` 2026-10-12): the window built-ins of the 19 upstream `glut` tests as
+    compiled, never-run code, the constants of the auto-included file, the precompiler flags in `$IF`
+    (`m2-console-screenhide`, all 24 tasks done, archived 2026-10-12). What each task found is in the change's
+    `tasks.md`, how each group was built in its `design.md`, the measured facts in `study\00` §5
+    (`verification\v26_*`, 140 programs). The GitHub Windows runner starts a program with a hidden window. What
+    stayed marked is in `SOMEDAY.md` ("Left marked by `m2-console-screenhide`").
+
+**Next:** merge the branch `m2-console-screenhide`; then M3. No order of work is set for M3
+yet: its items are in `ROADMAP.md` and under "Queued for later milestones" below (the plain copy of
+`internal\c`, the drawing statements with the screen programs, Civil War Strategy), and what the screen
+programs and the game need first is in the "Screen programs" and "Demand" rows below.
 
 ## Numbers at the last full runs
 
 2026-10-12, release build against the reference clone, after `m2-defxxx-common-arrays` (its task 10.1, session
 48: every run of tier 1 and tier 2 and both full suites, with `--jobs 8 --build-cache`). The two rows of the old
-compiler (the screen programs, the corpus of 336) are from session 40, 2026-10-10. Newer, from session 52
-(2026-10-12, after group 6 of `m2-console-screenhide`): the slice list, the upstream pass list, the differential
-pass list and the call-site check, each run in full, tier 1, and the demand row; the two full-suite rows (the
-full corpus, the upstream suite of 404) are as they were and are task 7.1 of the change.
+compiler (the screen programs, the corpus of 336) are from session 40, 2026-10-10. Newer, from session 53
+(2026-10-12, task 7.1 of `m2-console-screenhide`, the runs that close step 11, with `--jobs 8 --build-cache`):
+tier 1, the runner's tests, the call-site check, the slice list, the upstream pass list, the differential pass
+list and the two full suites (the full corpus, the upstream suite of 404). The demand row is from session 52,
+after the step's group 6.
 
 | Yardstick | Result |
 |---|---|
 | `tests\corpus\slice.list` (tier 2) | 297 of 297, also with `QB64RUST_NO_FOLD=1`; about 3 min 30 s each from an empty build cache, under a minute when the cache holds the unchanged programs |
-| Full corpus (357 programs) | 306 pass (the 287 of the slice list, 19 `.err` programs), none wrong at run time; 45 rejected with "not supported yet" (16 and the 29 screen programs) and 1 `.err` program with only marked errors; 5 known failures (`tests\corpus\README.md`) |
-| Upstream | **140 of 279** (`tests\upstream\pass.list`: 140, all passing, run by itself); at the last full run of the suite, with 114 on the list, none wrong (404 programs: 114 pass, 251 rejected, 38 `.err` programs with only marked errors, 1 known failure) |
-| Call-site check | 362 of 362 programs equal (`tools\callsite\README.md`); about 1 min 20 s |
+| Full corpus (367 programs) | 316 pass (the 297 of the slice list, 19 `.err` programs), none wrong at run time; 45 rejected with "not supported yet" (16 and the 29 screen programs) and 1 `.err` program with only marked errors; 5 known failures (`tests\corpus\README.md`) |
+| Upstream | **140 of 279** (`tests\upstream\pass.list`: 140, all passing, run by itself); the full suite, none wrong (404 programs: 140 pass, 225 rejected, 38 `.err` programs with only marked errors, 1 known failure) |
+| Call-site check | 362 of 362 programs equal (`tools\callsite\README.md`); 3 min 57 s at the last run (about 1 min 20 s in session 52) |
 | Real programs (`tests\programs`) | Civil War Strategy: the front end reads it with no real error; every diagnostic is "not supported yet" (what it needs next: `tests\programs\README.md`) |
 | Differential (`tests\differential\pass.list`) | 59 of 59 |
 | Shrink-only lists | 0 false errors, 0 parse gaps, 53 only-marked rejections (`tests\upstream\README.md`) |

@@ -14,7 +14,9 @@ listed here are reported "not supported yet".
 `_ROUND`, `_PI`, `_ATAN2`, `_HYPOT`, `LBOUND`, `UBOUND`, `ERR`, `ERL`, `RND`, `TIMER`, `COMMAND$`, `ENVIRON$`,
 `SHELL`, `EOF`, `LOF`, `LOC`, `SEEK`, `FREEFILE`, `_FILEEXISTS`, `_DIREXISTS`, `_CWD$`, and the functions added by
 demand: `_ACOS`, `_ASIN`, `_SINH`, `_COSH`, `_TANH`, `_CEIL`, `_COT`, `_CSC`, `_SEC`, `_D2R`, `_R2D`, `_STRCMP`,
-`_STRICMP`, `_STARTDIR$`. Any other built-in function SHALL be
+`_STRICMP`, `_STARTDIR$`, and the destination and window functions (`language/console-and-window`): `_DEST`,
+`_SOURCE`, `_CONSOLE`, `_SCREENEXISTS`, `_SCREENICON`, `_TITLE$`, `_DESKTOPWIDTH`, `_DESKTOPHEIGHT`, `_SCREENX`,
+`_SCREENY`, `_WINDOWHANDLE`, `_WINDOWHASFOCUS`, `_NEWIMAGE`. Any other built-in function SHALL be
 reported "not supported yet" (among them `CSRLIN` and `POS`, whose value is the screen's), as SHALL an argument of
 type `_MEM`. A supported function that needs an argument, named without one, SHALL be a compile error, as in the
 old compiler. An argument of any other numeric type SHALL be
@@ -68,6 +70,10 @@ fixed-length string argument SHALL be a string.
 #### Scenario: A function named without its argument
 - **WHEN** a program has `n = EOF` or `PRINT SIN`
 - **THEN** the compiler reports an error that is not "not supported yet"
+
+#### Scenario: The console's handle
+- **WHEN** a program with `$CONSOLE:ONLY` runs `PRINT _DEST; _CONSOLE; _SOURCE`
+- **THEN** it prints `-10 -10 -10 `, as with the old compiler
 
 ### Requirement: Names and arity
 A built-in function SHALL be recognised by its name without regard to case, written with its required suffix
@@ -158,7 +164,8 @@ for `CINT(40000)` or `EXP(1000)`), and SHALL then yield the placeholder value un
 - **THEN** the handler prints 6
 
 ### Requirement: Built-ins without parentheses
-A built-in function that takes no required argument (`_PI`, `RND`, `TIMER`, `COMMAND$`, `FREEFILE`, `_CWD$`, `_STARTDIR$`) SHALL
+A built-in function that takes no required argument (`_PI`, `RND`, `TIMER`, `COMMAND$`, `FREEFILE`, `_CWD$`, `_STARTDIR$`, `_DEST`, `_SOURCE`, `_CONSOLE`, `_SCREENEXISTS`, `_SCREENICON`, `_TITLE$`, `_DESKTOPWIDTH`,
+`_DESKTOPHEIGHT`, `_SCREENX`, `_SCREENY`, `_WINDOWHANDLE`, `_WINDOWHASFOCUS`) SHALL
 be callable without parentheses, and with its optional argument in parentheses where it has one, as the old
 compiler allows.
 
@@ -174,3 +181,7 @@ compiler allows.
 - **WHEN** a program uses a name such as `FREEFILE` or `TIMER` as a variable
 - **THEN** the compiler does what the old compiler does with it, as measured (a compile error where the name is
   reserved)
+
+#### Scenario: _WINDOWHANDLE bare and with an argument
+- **WHEN** a program has `PRINT _WINDOWHANDLE <> 0` and `PRINT _WINDOWHANDLE(1) <> 0`
+- **THEN** both compile, as with the old compiler

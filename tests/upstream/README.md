@@ -324,3 +324,12 @@ rejected with only the mark of the feature they test, which is outside the chang
 `assertscon`, `all`), `$DEBUG` (`debug`, `all`) and the network function `_OPENCLIENT` (`socket`, `all`). No line
 of the report names a precompiler flag any more. `QB64RUST_UPDATE_LISTS=1 cargo test` changed none of the
 shrink-only lists in the three groups.
+
+**Upstream progress, 2026-10-12 (step 11 closed): 140 of 279** (`m2-console-screenhide` task 7.1, the full runs
+that close the change; 114 before it). `pass.list` run by itself (release build, `--jobs 8 --build-cache`): 140
+of 140 pass. The full run of the suite (404 programs): 140 pass (the 140 of `pass.list`), 225 rejected with a
+diagnostic (209 with an `.output`, 16 compile-only), 38 `.err` programs with only marked errors, the known
+failure `http/read_example`; none builds and prints the wrong output. The 26 programs that left "rejected" are
+the 26 that joined `pass.list`. The three lists are unchanged (0 false errors, 0 parse gaps, 53 only-marked
+rejections). What comes next for the suite outside `deferred.list`: `_MEM`, `$ASSERTS`/`$DEBUG` and the image
+built-ins that run.
