@@ -36,7 +36,7 @@ arrays, arrays used without `DIM`, arrays in procedures (`DIM`, `REDIM`, `STATIC
 a()`, `SUB … STATIC`), array parameters and `COMMON`, `STRING` members of a `TYPE`, whole `TYPE` values (`q =
 p`), parameters of a user type and member arrays (`v(0 TO 3) AS LONG` in a `TYPE`: elements through any chain,
 `LBOUND`/`UBOUND`, `REDIM` and `ERASE` as a clear, a whole member array as an array argument)
-(step 10, OpenSpec change `m2-defxxx-common-arrays`, done 2026-10-12; `crates\README.md`). There is
+(step 10, OpenSpec change `m2-defxxx-common-arrays`, archived 2026-10-12; `crates\README.md`). There is
 a thin language server (`qb64rust lsp`). A plain built-in now comes in as a row, a call-site program and a slice
 line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10).
 
@@ -65,8 +65,7 @@ The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3
     compiler compiles none of the 29 screen programs yet: it builds console programs only, and the first drawing
     statement is M3 work. What a set of them needs: `qb64rust --report unsupported tests\corpus\screen`.
 10. Done: (was 11) default types, `COMMON`, dynamic arrays, arrays in procedures, array parameters, the rest
-    of `TYPE` and member arrays (`m2-defxxx-common-arrays`, all 29 tasks done, 2026-10-12; not archived yet,
-    its last group not committed).
+    of `TYPE` and member arrays (`m2-defxxx-common-arrays`, all 29 tasks done, archived 2026-10-12).
     What each task found is in the change's `tasks.md`, how each group was built in its `design.md` ("As
     built"), the measured facts in `study\00` §5 (`verification\v24_*`, `v25_*`). Still marked in the
     member-array layer, each listed in `SOMEDAY.md`: a bound that names a `CONST`, a member array of an array
