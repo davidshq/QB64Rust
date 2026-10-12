@@ -786,7 +786,95 @@ fn every_supported_builtin_is_covered() {
             missing.push(format!("`{}` is called in no `typed` test of tests/frontend", s.name));
         }
     }
+    // A window built-in is compiled and never run: its slice program holds it as code that is not reached, so
+    // each also has a call-site program, where its call is compared with the old compiler's.
+    let callsite: Vec<String> = files(&repo().join("tests/callsite"), &["bas"])
+        .iter()
+        .map(|p| code_only(&std::fs::read(p).unwrap()))
+        .collect();
+    assert!(!callsite.is_empty());
+    let window = qb64rust_sema::builtins::WINDOW_BUILTINS;
+    for &name in window {
+        let row = qb64rust_sema::builtins::STATEMENTS.iter().any(|&(n, _)| n == name)
+            || qb64rust_sema::builtins::supported().any(|s| s.name == name);
+        assert!(
+            row,
+            "`{name}` is listed as a window built-in and is no supported built-in"
+        );
+    }
+    missing.extend(without_callsite(window, &callsite));
+    // A name that is a statement and a function (`_SCREENICON`) needs a call-site program for each.
+    for &name in window {
+        let statement = qb64rust_sema::builtins::STATEMENTS.iter().any(|&(n, _)| n == name);
+        let function = qb64rust_sema::builtins::supported().any(|s| s.name == name);
+        if statement && function {
+            missing.extend(without_both_uses(name, &callsite));
+        }
+    }
     assert!(missing.is_empty(), "{}", missing.join("\n"));
+}
+
+/// One line per name of `names` (as written, with its suffix) that no program of `callsite` (from [`code_only`])
+/// uses.
+fn without_callsite(names: &[&str], callsite: &[String]) -> Vec<String> {
+    names
+        .iter()
+        .filter(|name| !callsite.iter().any(|c| uses_word(c, name)))
+        .map(|name| format!("`{name}` (a window built-in) is used in no program of tests/callsite"))
+        .collect()
+}
+
+/// One line per use of `name` (a statement and a function of one name) that no program of `callsite` has: as a
+/// statement (the first word of a line) and as a function (anywhere else).
+fn without_both_uses(name: &str, callsite: &[String]) -> Vec<String> {
+    let lines = || callsite.iter().flat_map(|c| c.lines()).map(str::trim_start);
+    let first_word = |line: &str| {
+        let more =
+            |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '$' | '%' | '&' | '!' | '#' | '~' | '`');
+        line.strip_prefix(name)
+            .is_some_and(|rest| !rest.chars().next().is_some_and(more))
+    };
+    let statement = lines().any(first_word);
+    let function = lines().any(|line| match line.strip_prefix(name) {
+        Some(rest) if first_word(line) => uses_word(rest, name),
+        _ => uses_word(line, name),
+    });
+    [(statement, "statement"), (function, "function")]
+        .iter()
+        .filter(|(found, _)| !found)
+        .map(|(_, what)| format!("`{name}` (a window built-in) is used as a {what} in no program of tests/callsite"))
+        .collect()
+}
+
+/// The rule for window built-ins names the one that has no call-site program, and tells `_TITLE` from `_TITLE$`
+/// and a statement from a function of the same name.
+#[test]
+fn window_builtin_without_callsite_is_named() {
+    let stmt = [code_only(b"$CONSOLE:ONLY\n_SCREENICON\nEND\n")];
+    let func = [code_only(b"$CONSOLE:ONLY\nn = _SCREENICON\n_SCREENICONS\nEND\n")];
+    assert_eq!(
+        without_both_uses("_SCREENICON", &stmt),
+        ["`_SCREENICON` (a window built-in) is used as a function in no program of tests/callsite"]
+    );
+    assert_eq!(
+        without_both_uses("_SCREENICON", &func),
+        ["`_SCREENICON` (a window built-in) is used as a statement in no program of tests/callsite"]
+    );
+    let both = [stmt[0].clone(), func[0].clone()];
+    assert!(without_both_uses("_SCREENICON", &both).is_empty());
+    let programs = [
+        code_only(b"$CONSOLE:ONLY\n' _MOUSEHIDE in a comment\n_TITLE \"_ICON\"\nEND\n"),
+        code_only(b"$CONSOLE:ONLY\nn = _SCREENX\nEND\n"),
+    ];
+    assert!(without_callsite(&["_TITLE", "_SCREENX"], &programs).is_empty());
+    assert_eq!(
+        without_callsite(&["_TITLE", "_TITLE$", "_MOUSEHIDE", "_ICON", "_SCREENX"], &programs),
+        [
+            "`_TITLE$` (a window built-in) is used in no program of tests/callsite",
+            "`_MOUSEHIDE` (a window built-in) is used in no program of tests/callsite",
+            "`_ICON` (a window built-in) is used in no program of tests/callsite",
+        ]
+    );
 }
 
 #[test]

@@ -1532,6 +1532,46 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     cast (the same overload, the C++ type being `int32_t`), and only `HEX$` differs from a LONG:
     `func_hex(…,0)` against `func_hex(…,8)`. `_WINDOWHANDLE` is an `_UNSIGNED _OFFSET` value like a variable of
     that type (`qbs_str((uint64)(…))`; `/` rounds the quotient with `qbr`).
+  - **Forms of the window built-ins, accepted and rejected (`x74`–`x113`, measured while step 11's group 4 was
+    built).** Accepted (`x74`, as code that is not reached): every one of the statements after `CALL`, with the
+    forms of its template between the parentheses (`CALL _ICON`, `CALL _ICON(1, 2)`, `CALL _FREEIMAGE`, `CALL
+    _MOUSEHIDE(_HIDE)`, `CALL _MOUSECURSOR(1, (2, 3))`, `CALL _WINDOWSIZELIMIT((1, 2)-(3, 4))`); the function
+    `_SCREENHIDE`; `_SCREENEXISTS` as the argument of `HEX$`, `OCT$` and `_BIN$`. Rejected, one program each: a
+    function that takes no argument called with one is "Incorrect number of arguments" (`_SCREENEXISTS(1)`,
+    `_SCREENX(1)`, `_TITLE$(1)`, `_DESKTOPWIDTH(1)`, and `ERR(1)`, `ERL(1)`: `x75`–`x77`, `x99`, `x102`, `x113`),
+    with empty parentheses "Expected (...)" (`x98`, `x100`, `x101`, `x108`); `_NEWIMAGE` with one or four
+    arguments or bare, `_WINDOWHANDLE(1, 2)` likewise "Incorrect number of arguments" (`x104`, `x105`, `x107`,
+    `x109`); a string where a number is wanted and a number where a string is ("1st sub argument requires a
+    number", "String required for sub", "Number required for sub", `x79`, `x80`, `x90`, `x93`, `x106`, `x110`); a
+    statement in a form that is none of its template's is "Syntax error - Reference: …" (`_ICON 1, 2, 3`,
+    `_MOUSESHOW "a", "b"`, `_MOUSEHIDE 1`, `_MOUSEHIDE _SHOW`, `_MOUSECURSOR`, `_MOUSECURSOR 1, 2, 3`,
+    `_MOUSECURSOR 1, (2)`, `_WINDOWSIZELIMIT 320, 240`, `_WINDOWSIZELIMIT (320)`, `_WINDOWSIZELIMIT (1, 2)-(3)`,
+    `_FREEIMAGE 1, 2`, `_TITLE`, `_TITLE "a", "b"`: `x78`, `x81`–`x89`, `x91`, `x92`, `x94`); `_SCREENHIDE 1`,
+    `_SCREENSHOW 1` and `_SCREENICON 1` are "SUB does not require any arguments" (`x95`–`x97`); `n = _TITLE`
+    "Invalid variable name" (`x103`); `_SCREENX = 1` "Expected variable =" (`x111`); `_NEWIMAGE 1, 2` as a
+    statement "Syntax error" (`x112`).
+  - **The constants of the auto-included file (`x114`–`x126`, measured while step 11's group 5 was built; their
+    values and types by slice program `s67_auto_constants`).** A constant of `beforefirstline.bi` is used with
+    its own suffix, with another or with none (`_TRUE%`, `_TRUE&&`, `_TRUE#`, `_ONE_KB&&`, `_LONG_MAX%`,
+    `` _BIT_MIN` ``, `_E#`), in a `CONST` and as the length of a `STRING * n` (`x114`). Its name is a reserved
+    name: `CONST _TRUE = 1`, and with the same value `CONST _ONE_MB = 1048576`, are "Invalid name" like `CONST
+    _MYOWN = 1` (`x115`, `x116`, `x125`); `DIM _TRUE AS LONG` is "Invalid variable name" (`x117`); `_TRUE = 5`
+    "Expected variable =" (`x118`); `FOR _TRUE`, `INPUT _TRUE`, `SWAP n, _TRUE` are errors (`x122`–`x124`);
+    `_TRUE$` is "Type mismatch" (`x119`), `_TRUE(1)` "Invalid array name" (`x120`), a string constant stored in
+    a number "Illegal string-number conversion" (`x121`), `LEN(_BYTE_MAX)` "String expression or variable name
+    required in LEN statement" (`x126`). The values of the constants the new compiler does not compute yet
+    (`x114`): `_E` prints 2.718281828459045; `_DOUBLE_MAX` and `_DOUBLE_MIN` ±1.797693134862315D+308;
+    `_FLOAT_MAX` and `_FLOAT_MIN` print `INF 7693134862315D+308` and `-INF 7693134862315D+308` (their literals
+    are beyond what the old evaluator reads) and `_FLOAT_MIN_FRAC` 0; `_INTEGER64_MIN` and `_OFFSET_MIN` are
+    -9223372036854775807 (one more than the type's least value), `_UINTEGER64_MAX` and `_UOFFSET_MAX`
+    9223372036854775807 (half of the type's greatest). Arithmetic on a constant with a suffix is computed
+    beyond its type (`s67`: `_BYTE_MAX + 1` is 128, `_LONG_MAX + 1` is -2147483648, `_INTEGER64_MAX + 1` wraps).
+  - **Precompiler flags across files (`x127`).** A setting and a `$IF` on its flag in an included file work as
+    in one file: with `$CONSOLE:ONLY` in the included file, `$IF _CONSOLE_ = 2` in the main file above the
+    include is taken, and an `OPTION _EXPLICITARRAY` the included file's `$IF _CONSOLE_ = 2` guards sets
+    `_EXPLICITARRAY_` for the main file's lines below.
+  - **`SWAP` after `CALL` (`x128`).** `CALL SWAP(a, b)` is accepted and exchanges the two variables, as `SWAP a,
+    b` does.
   - **What the 37 upstream programs with plain `$CONSOLE` need (`qb64rust --report unsupported`, 2026-10-12).**
     Two need nothing but the three features (`data\test`, `keyboard\devices_windows`). The 19 `glut` tests also
     need one or more window built-ins as compiled, never-run code (`_SCREENHIDE`, `_SCREENSHOW`,

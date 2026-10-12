@@ -1,0 +1,5 @@
+
+Unsupported variable used in FOR statement
+Caused by (or after):FOR _TRUE = 1 TO 2
+LINE 4:FOR _TRUE = 1 TO 2: NEXT
+exit=1

@@ -1,0 +1,24 @@
+$CONSOLE:ONLY
+' Verification (step 11, group 4): forms of the window built-ins the old compiler accepts, as code that is not reached: after CALL,
+' the function _SCREENHIDE, _SCREENEXISTS as the argument of HEX$, OCT$ and _BIN$.
+DIM n AS LONG, s AS STRING
+PRINT "ok"
+SYSTEM
+CALL _SCREENHIDE
+CALL _SCREENSHOW
+CALL _SCREENICON
+CALL _TITLE("a")
+CALL _ICON
+CALL _ICON(1)
+CALL _ICON(1, 2)
+CALL _FREEIMAGE
+CALL _FREEIMAGE(1)
+CALL _MOUSESHOW("a")
+CALL _MOUSEHIDE(_HIDE)
+CALL _MOUSECURSOR(1, (2, 3))
+CALL _WINDOWSIZELIMIT((1, 2)-(3, 4))
+n = _SCREENHIDE
+s = HEX$(_SCREENEXISTS)
+s = OCT$(_SCREENEXISTS)
+s = _BIN$(_SCREENEXISTS)
+s = HEX$(_SCREENEXISTS + 0)

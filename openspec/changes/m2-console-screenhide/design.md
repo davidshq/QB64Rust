@@ -128,6 +128,10 @@ sorted set of an enum with one member today, `Icon`. `lower` copies the first th
 parts from the built-ins the program uses (the table's `dependency` column: `_ICON` has `DEPENDENCY_ICON`). The
 names are neutral, as `compiler/pipeline` "ABI-neutral IR" asks; the dump prints one `settings` line.
 
+As built (group 4): the parts are collected by `sema`, which meets every built-in call as it checks it
+(`sema::RuntimePart`, in `sema`'s `Settings`), and `lower` copies all four fields; collecting them in `lower`
+would have needed a walk of every expression there. The IR and what it says are as above.
+
 - The emitter writes `console` and `screen_hide_startup` from them (`decl.rs`).
 - The driver turns them into make flags: `DEP_CONSOLE=y` when `console`; `DEP_CONSOLE_ONLY=y` when not `window`;
   `DEP_ICON=y` for `Icon`. They replace the fixed `DEP_CONSOLE_ONLY=y`.
@@ -242,6 +246,13 @@ They are listed in a constant of `sema\builtins.rs` (`WINDOW_BUILTINS`) which th
 program per built-in (`testing/compiler-tests`, delta). The `typed` and `ir` front-end tests are required as for
 any built-in.
 
+As built (group 4), from the measurements `v26_x74`–`x113`: a function without argument slots called with an
+argument is the old compiler's "Incorrect number of arguments", for `_SCREENEXISTS` (a `Rule::Fixed` row) as for
+the plain rows, and so for `ERR(1)` and `ERL(1)`, which had been marked. The old compiler also accepts each of
+the statements after `CALL`, with its template's forms between the parentheses (`CALL _MOUSECURSOR(1, (2, 3))`).
+That is a rule of every statement with a template, not of these ten, and stays "not supported yet"; the parser
+leaves the parentheses unread there, so that no such form is a syntax error (`SOMEDAY.md`).
+
 *Alternative considered:* run them under `$CONSOLE:ONLY`, where libqb has console versions of most. Rejected for
 now: their results are the machine's (`_DESKTOPWIDTH`, `_WINDOWHANDLE`, `_TITLE$`) and M3 gives them a real check.
 
@@ -312,6 +323,13 @@ Measured in task 1.4, each as the port above gives it, and no second corner foun
 `$ASSERTS` and `$DEBUG` stay "not supported yet" as metacommands; they set their flags so that the rest of such a
 program is read as the old compiler reads it and no second, misleading mark appears.
 
+As built (group 6): the six flags are names of the preprocessor (`PpState::with_flags`), so the ported condition
+evaluator reads them like `WIN`; the features and their states are `Feature` and `FeatureStates`, the rounds
+`settle`, the entry point `parse_settled` (`syntax\pp.rs`, `program.rs`). A noted condition is not "taken as
+broken": in every round its branch is chosen by the flag's value on its line, as the first pass chooses it, and
+in the last round `sema` marks the line, which rejects the program. Across files it works as in one (`v26_x127`).
+The wording of the mark is "`_CONSOLE_` in a `$IF` between two lines that set it differently".
+
 *Alternative considered:* compute the flags in a pre-scan of the text. Rejected: a metacommand in a `$IF` branch
 that is not taken does not count (`v26_x16`), and one inside a branch it changes itself does (`v26_x26`); only the
 old compiler's own rounds give both.
@@ -331,6 +349,17 @@ old compiler's own rounds give both.
 
 Checked against `qb64pe.exe` by a slice program that prints every constant the evaluator computes (task 5.3);
 one whose printed value differs is a bug to fix or a constant to leave marked, never a silent difference.
+
+As built (group 5): the recorded text is not parsed by the parser. The checker reads source text through the
+source map, by a span's file, and a text from the table has no file; giving it one would put a file that is no
+file of the program into the map, the symbols and the diagnostics. `sema\check\auto.rs` takes the text apart
+itself (the file's expressions are one operand, two operands with `+`, `*` or `/`, or a function call) and
+computes every value with the evaluator's own functions (`consteval`), in the steps `const_stmt` takes for a
+`CONST` line; a text of another shape is marked. 231 of the 310 are computed and equal the old compiler's
+(`s67_auto_constants`). Beside the 69 that need `CHR$` and `_E`, nine stay marked whose numbers the evaluator
+does not read yet (the least and greatest values of DOUBLE, `_FLOAT`, `_INTEGER64` and `_OFFSET`); the old
+compiler's own values for five of them are not the limits their names say (`v26_x114`). A constant's name is
+reserved like any name with a leading underscore (`CONST _TRUE = 1` is "Invalid name", `v26_x115`–`x117`).
 
 *Alternative considered:* include the real file from the QB64pe root as line zero, as the old compiler does.
 Rejected: the front end runs without the clone today (tier 1 in CI, the language server, `--report unsupported`

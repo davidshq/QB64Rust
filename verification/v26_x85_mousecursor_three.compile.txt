@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _MOUSECURSOR imageHandle& [, (hotspotX&, hotspotY&)]
+Caused by (or after):_MOUSECURSOR 1 , 2 , 3
+LINE 6:_MOUSECURSOR 1, 2, 3
+exit=1

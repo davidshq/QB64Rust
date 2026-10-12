@@ -1,0 +1,5 @@
+
+Type mismatch
+Caused by (or after):N = LEN ( _TRUE$ )
+LINE 4:n = LEN(_TRUE$)
+exit=1

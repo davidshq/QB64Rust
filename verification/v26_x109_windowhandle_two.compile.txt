@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _WINDOWHANDLE[(handleType&)]
+Caused by (or after):N = _WINDOWHANDLE ( 1 , 2 )
+LINE 6:n = _WINDOWHANDLE(1, 2)
+exit=1

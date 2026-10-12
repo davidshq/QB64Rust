@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):N = _CHR_CR
+LINE 4:n = _CHR_CR
+exit=1

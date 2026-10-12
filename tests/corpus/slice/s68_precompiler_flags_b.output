@@ -1,0 +1,6 @@
+console 1
+explicit 0
+explicitarray 1
+a variable that is not declared: 5 
+a declared array: 7 
+destination:-10 -10 

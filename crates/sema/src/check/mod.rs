@@ -6,6 +6,7 @@
 //! `DIM SHARED` after a procedure is not seen by it, and a `SHARED x AS T` in an earlier procedure acts like a
 //! main-module `DIM x AS T` for the main-module code after it.
 
+mod auto;
 mod blocks;
 mod builtins;
 mod constants;
@@ -63,9 +64,11 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         console_only: false,
         window_hidden: false,
         echoes: Vec::new(),
+        runtime_parts: std::collections::BTreeSet::new(),
         names: Vec::new(),
         consts_main: HashMap::new(),
         consts_local: HashMap::new(),
+        auto_consts: HashMap::new(),
         used_names: HashMap::new(),
         used_local: HashMap::new(),
         explicit: false,
@@ -95,9 +98,12 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
     // (`verification\v19_explicit_*`).
     let has = |word: &[u8]| program.trees.iter().any(|t| has_option(map, t.root(), &skips, word));
-    c.explicit = has(b"_EXPLICIT");
+    // An option is also in force by its precompiler flag, when its only line stands in the `$IF` branch the flag
+    // switches off and so is not in the trees (measured, `verification\v26_x54`, `x55`; design D7 of
+    // `m2-console-screenhide`).
+    c.explicit = has(b"_EXPLICIT") || program.flags.explicit();
     // Measured likewise for arrays (`verification\v24_x256`, `x257`): either option, above or below the use.
-    c.explicit_array = c.explicit || has(b"_EXPLICITARRAY");
+    c.explicit_array = c.explicit || has(b"_EXPLICITARRAY") || program.flags.explicit_array();
     // The main file's statements, and the same with every include statement followed by what it includes (pass 1
     // reads the user types and procedures of included files from these; pass 2 and the label pre-pass descend into
     // includes as they meet them).
@@ -181,6 +187,11 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         c.check_statement(stmt, &skips);
     }
     c.solve_dims();
+    // The program has a console by its precompiler flag too: the old compiler reads the flag, which stays set
+    // when the metacommand that set it stands in a `$IF` branch the flag itself switches off (design D1 of
+    // `m2-console-screenhide`; measured, `verification\v26_x26`, `x38`). "No window" comes from the lines that are
+    // compiled, so a `$CONSOLE:ONLY` in such a branch leaves the window.
+    c.console |= program.flags.console();
     if !c.console {
         // Its only output is the window's, which nothing checks yet (M3).
         let at = Span::new(root.file, 0, 0);
@@ -196,6 +207,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         console: c.console,
         window: !c.console_only,
         window_hidden: c.window_hidden,
+        runtime_parts: std::mem::take(&mut c.runtime_parts),
     };
     (c.prog, c.diags)
 }
@@ -334,12 +346,17 @@ struct Checker<'a> {
     /// The `_ECHO` statements met: each is an error when the program turns out to have no console, which is known
     /// only after the walk (design D5 of `m2-console-screenhide`; measured, `verification\v26_x17`, `x62`).
     echoes: Vec<Span>,
+    /// The optional parts of the runtime the built-ins met so far need.
+    runtime_parts: std::collections::BTreeSet<crate::RuntimePart>,
     fold: bool,
     /// Names resolved in the current statement, for the symbol table.
     names: Vec<(SymbolKind, Span)>,
     /// Constants by name (without suffix): the main module's so far, and those of the procedure being checked.
     consts_main: HashMap<String, ConstId>,
     consts_local: HashMap<String, ConstId>,
+    /// The auto-included constants named so far, by their place in the file: the constant each became, or why
+    /// its value is not computed yet (`auto.rs`).
+    auto_consts: HashMap<usize, Result<ConstId, String>>,
     /// The first use or declaration of each variable name so far, anywhere, and in the procedure being checked:
     /// a later `CONST` of the name is an error there (design D6).
     used_names: HashMap<String, Span>,
@@ -892,9 +909,14 @@ impl Checker<'_> {
         let raw = self.text(tok.span);
         let line = meta_line(raw);
         let once = line.strip_prefix(b"$INCLUDEONCE".as_slice());
-        if let Some(flag) = stmt.precompiler_flag(raw) {
-            // The old compiler sets these from the whole program; not known here yet (`syntax::pp`).
-            Err(self.unsupported(tok.span, format!("the precompiler flag `{flag}` in `$IF`")))
+        if self.program.passes_disagree.contains(&(node.key().0, tok.span.start)) {
+            // The parser read the condition with the flag's value on this line; the old compiler's main pass
+            // reads it with the value of the first line (design D7 of `m2-console-screenhide`; measured,
+            // `verification\v26_x27`, `x34`: its program prints nothing from the branches, and a `CONST` in them
+            // is "Name already in use").
+            let flag = stmt.precompiler_flag(raw).unwrap_or("a precompiler flag");
+            let msg = format!("`{flag}` in a `$IF` between two lines that set it differently");
+            Err(self.unsupported(tok.span, msg))
         } else if stmt.is_preprocessor(raw) || once == Some(b"") {
             // Evaluated by the parser (`$INCLUDEONCE` too); an error in it is a parse error, and the statement is
             // skipped then.

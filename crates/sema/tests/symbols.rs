@@ -2,13 +2,13 @@
 
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_sema::{Program, SymbolKind, check, dump_symbols};
-use qb64rust_syntax::{NoLoader, parse};
+use qb64rust_syntax::{NoLoader, parse_settled};
 
 /// Parses and checks one file; the parse errors and the check's errors.
 fn check_any(text: &[u8]) -> (SourceMap, Program, Diagnostics, Diagnostics) {
     let mut map = SourceMap::new();
     let file = map.add("t.bas", text.to_vec());
-    let parsed = parse(&mut map, file, &mut NoLoader);
+    let parsed = parse_settled(&mut map, file, &mut NoLoader);
     let (program, diags) = check(&map, &parsed);
     (map, program, parsed.diagnostics(), diags)
 }

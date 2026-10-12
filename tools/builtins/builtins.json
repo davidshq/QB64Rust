@@ -6307,1552 +6307,2172 @@
   {
    "name": "_TRUE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "-1"
   },
   {
    "name": "_FALSE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "0"
   },
   {
    "name": "_LESS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "-1"
   },
   {
    "name": "_EQUAL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "0"
   },
   {
    "name": "_GREATER",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "1"
   },
   {
    "name": "_HOST_FAILED",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "0"
   },
   {
    "name": "_CLIENT_FAILED",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "0"
   },
   {
    "name": "_CONNECTION_FAILED",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "0"
   },
   {
    "name": "_INVALID_IMAGE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "-1"
   },
   {
    "name": "_LOADFONT_FAILED",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "0"
   },
   {
    "name": "_SNDOPEN_FAILED",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "0"
   },
   {
    "name": "_STR_EMPTY",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "\"\""
   },
   {
    "name": "_STR_CRLF",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(13) + CHR$(10)"
   },
   {
    "name": "_STR_LF",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(10)"
   },
   {
    "name": "_STR_NAT_EOL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(13) + CHR$(10)"
   },
   {
    "name": "_E",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "##",
+   "value": "EXP(1.0##)"
   },
   {
    "name": "_LOG_TRACE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "1"
   },
   {
    "name": "_LOG_INFO",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "2"
   },
   {
    "name": "_LOG_WARN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "3"
   },
   {
    "name": "_LOG_ERROR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "4"
   },
   {
    "name": "_LOG_NONE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "5"
   },
   {
    "name": "_SECS_IN_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "60"
   },
   {
    "name": "_MINS_IN_HOUR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "60"
   },
   {
    "name": "_HOURS_IN_DAY",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "24"
   },
   {
    "name": "_DAYS_IN_WEEK",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "7"
   },
   {
    "name": "_DAYS_IN_YEAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "365"
   },
   {
    "name": "_SECS_IN_HOUR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_MINS_IN_HOUR * _SECS_IN_MIN"
   },
   {
    "name": "_SECS_IN_DAY",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_HOURS_IN_DAY * _SECS_IN_HOUR"
   },
   {
    "name": "_SECS_IN_WEEK",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_DAYS_IN_WEEK * _SECS_IN_DAY"
   },
   {
    "name": "_SECS_IN_YEAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_DAYS_IN_YEAR * _SECS_IN_DAY"
   },
   {
    "name": "_SECS_IN_LEAPYEAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_SECS_IN_YEAR + _SECS_IN_DAY"
   },
   {
    "name": "_MINS_IN_DAY",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_HOURS_IN_DAY * _MINS_IN_HOUR"
   },
   {
    "name": "_MINS_IN_WEEK",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_DAYS_IN_WEEK * _MINS_IN_DAY"
   },
   {
    "name": "_MINS_IN_YEAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_DAYS_IN_YEAR * _MINS_IN_DAY"
   },
   {
    "name": "_MINS_IN_LEAPYEAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_MINS_IN_YEAR + _MINS_IN_DAY"
   },
   {
    "name": "_HOURS_IN_WEEK",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_DAYS_IN_WEEK * _HOURS_IN_DAY"
   },
   {
    "name": "_HOURS_IN_YEAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_DAYS_IN_YEAR * _HOURS_IN_DAY"
   },
   {
    "name": "_HOURS_IN_LEAPYEAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_HOURS_IN_YEAR + _HOURS_IN_DAY"
   },
   {
    "name": "_DAYS_IN_LEAPYEAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_DAYS_IN_YEAR + 1"
   },
   {
    "name": "_WEEKS_IN_YEAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_DAYS_IN_YEAR / _DAYS_IN_WEEK"
   },
   {
    "name": "_WEEKS_IN_LEAPYEAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_DAYS_IN_LEAPYEAR / _DAYS_IN_WEEK"
   },
   {
    "name": "_ONE_KB",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "1024"
   },
   {
    "name": "_ONE_MB",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_ONE_KB * _ONE_KB"
   },
   {
    "name": "_ONE_GB",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_ONE_MB * _ONE_KB"
   },
   {
    "name": "_ONE_TB",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_ONE_GB * _ONE_KB"
   },
   {
    "name": "_ONE_PB",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_ONE_TB * _ONE_KB"
   },
   {
    "name": "_ONE_EB",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "_ONE_PB * _ONE_KB"
   },
   {
    "name": "_SIZE_OF_BYTE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "1"
   },
   {
    "name": "_SIZE_OF_INTEGER",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "2"
   },
   {
    "name": "_SIZE_OF_LONG",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "4"
   },
   {
    "name": "_SIZE_OF_INTEGER64",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "8"
   },
   {
    "name": "_SIZE_OF_SINGLE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "4"
   },
   {
    "name": "_SIZE_OF_DOUBLE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "8"
   },
   {
    "name": "_SIZE_OF_FLOAT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "32"
   },
   {
    "name": "_SIZE_OF_OFFSET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "8"
   },
   {
    "name": "_BIT_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "`",
+   "value": "-1"
   },
   {
    "name": "_BIT_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "`",
+   "value": "0"
   },
   {
    "name": "_UBIT_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "~`",
+   "value": "0"
   },
   {
    "name": "_UBIT_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "~`",
+   "value": "1"
   },
   {
    "name": "_BYTE_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "%%",
+   "value": "-128"
   },
   {
    "name": "_BYTE_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "%%",
+   "value": "127"
   },
   {
    "name": "_UBYTE_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "~%%",
+   "value": "0"
   },
   {
    "name": "_UBYTE_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "~%%",
+   "value": "255"
   },
   {
    "name": "_INTEGER_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "%",
+   "value": "-32768"
   },
   {
    "name": "_INTEGER_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "%",
+   "value": "32767"
   },
   {
    "name": "_UINTEGER_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "~%",
+   "value": "0"
   },
   {
    "name": "_UINTEGER_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "~%",
+   "value": "65535"
   },
   {
    "name": "_LONG_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "&",
+   "value": "-2147483648"
   },
   {
    "name": "_LONG_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "&",
+   "value": "2147483647"
   },
   {
    "name": "_ULONG_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "~&",
+   "value": "0"
   },
   {
    "name": "_ULONG_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "~&",
+   "value": "4294967295"
   },
   {
    "name": "_INTEGER64_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "&&",
+   "value": "-9223372036854775808"
   },
   {
    "name": "_INTEGER64_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "&&",
+   "value": "9223372036854775807"
   },
   {
    "name": "_UINTEGER64_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "~&&",
+   "value": "0"
   },
   {
    "name": "_UINTEGER64_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "~&&",
+   "value": "18446744073709551615"
   },
   {
    "name": "_SINGLE_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "!",
+   "value": "-3.402823E+38"
   },
   {
    "name": "_SINGLE_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "!",
+   "value": "3.402823E+38"
   },
   {
    "name": "_SINGLE_MIN_FRAC",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "!",
+   "value": "1.175494E-38"
   },
   {
    "name": "_DOUBLE_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "#",
+   "value": "-1.797693134862315D+308"
   },
   {
    "name": "_DOUBLE_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "#",
+   "value": "1.797693134862315D+308"
   },
   {
    "name": "_DOUBLE_MIN_FRAC",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "#",
+   "value": "2.225073858507201D-308"
   },
   {
    "name": "_FLOAT_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "##",
+   "value": "-1.189731495357231765F+4932"
   },
   {
    "name": "_FLOAT_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "##",
+   "value": "1.189731495357231765F+4932"
   },
   {
    "name": "_FLOAT_MIN_FRAC",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "##",
+   "value": "3.362103143112093506F-4932"
   },
   {
    "name": "_OFFSET_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "&&",
+   "value": "-9223372036854775808"
   },
   {
    "name": "_OFFSET_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "&&",
+   "value": "9223372036854775807"
   },
   {
    "name": "_UOFFSET_MIN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "~&&",
+   "value": "0"
   },
   {
    "name": "_UOFFSET_MAX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "~&&",
+   "value": "18446744073709551615"
   },
   {
    "name": "_ASC_NUL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "0"
   },
   {
    "name": "_CHR_NUL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(0)"
   },
   {
    "name": "_ASC_SOH",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "1"
   },
   {
    "name": "_CHR_SOH",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(1)"
   },
   {
    "name": "_ASC_STX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "2"
   },
   {
    "name": "_CHR_STX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(2)"
   },
   {
    "name": "_ASC_ETX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "3"
   },
   {
    "name": "_CHR_ETX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(3)"
   },
   {
    "name": "_ASC_EOT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "4"
   },
   {
    "name": "_CHR_EOT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(4)"
   },
   {
    "name": "_ASC_ENQ",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "5"
   },
   {
    "name": "_CHR_ENQ",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(5)"
   },
   {
    "name": "_ASC_ACK",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "6"
   },
   {
    "name": "_CHR_ACK",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(6)"
   },
   {
    "name": "_ASC_BEL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "7"
   },
   {
    "name": "_CHR_BEL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(7)"
   },
   {
    "name": "_ASC_BS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "8"
   },
   {
    "name": "_CHR_BS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(8)"
   },
   {
    "name": "_ASC_HT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "9"
   },
   {
    "name": "_CHR_HT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(9)"
   },
   {
    "name": "_ASC_LF",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "10"
   },
   {
    "name": "_CHR_LF",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(10)"
   },
   {
    "name": "_ASC_VT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "11"
   },
   {
    "name": "_CHR_VT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(11)"
   },
   {
    "name": "_ASC_FF",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "12"
   },
   {
    "name": "_CHR_FF",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(12)"
   },
   {
    "name": "_ASC_CR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "13"
   },
   {
    "name": "_CHR_CR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(13)"
   },
   {
    "name": "_ASC_SO",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "14"
   },
   {
    "name": "_CHR_SO",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(14)"
   },
   {
    "name": "_ASC_SI",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "15"
   },
   {
    "name": "_CHR_SI",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(15)"
   },
   {
    "name": "_ASC_DLE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "16"
   },
   {
    "name": "_CHR_DLE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(16)"
   },
   {
    "name": "_ASC_DC1",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "17"
   },
   {
    "name": "_CHR_DC1",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(17)"
   },
   {
    "name": "_ASC_DC2",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "18"
   },
   {
    "name": "_CHR_DC2",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(18)"
   },
   {
    "name": "_ASC_DC3",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "19"
   },
   {
    "name": "_CHR_DC3",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(19)"
   },
   {
    "name": "_ASC_DC4",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "20"
   },
   {
    "name": "_CHR_DC4",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(20)"
   },
   {
    "name": "_ASC_NAK",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "21"
   },
   {
    "name": "_CHR_NAK",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(21)"
   },
   {
    "name": "_ASC_SYN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "22"
   },
   {
    "name": "_CHR_SYN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(22)"
   },
   {
    "name": "_ASC_ETB",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "23"
   },
   {
    "name": "_CHR_ETB",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(23)"
   },
   {
    "name": "_ASC_CAN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "24"
   },
   {
    "name": "_CHR_CAN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(24)"
   },
   {
    "name": "_ASC_EM",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "25"
   },
   {
    "name": "_CHR_EM",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(25)"
   },
   {
    "name": "_ASC_SUB",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "26"
   },
   {
    "name": "_CHR_SUB",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(26)"
   },
   {
    "name": "_ASC_ESC",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "27"
   },
   {
    "name": "_CHR_ESC",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(27)"
   },
   {
    "name": "_ASC_FS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "28"
   },
   {
    "name": "_CHR_FS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(28)"
   },
   {
    "name": "_ASC_GS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "29"
   },
   {
    "name": "_CHR_GS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(29)"
   },
   {
    "name": "_ASC_RS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "30"
   },
   {
    "name": "_CHR_RS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(30)"
   },
   {
    "name": "_ASC_US",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "31"
   },
   {
    "name": "_CHR_US",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(31)"
   },
   {
    "name": "_ASC_DEL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "127"
   },
   {
    "name": "_CHR_DEL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(127)"
   },
   {
    "name": "_ASC_SPACE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "32"
   },
   {
    "name": "_CHR_SPACE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(32)"
   },
   {
    "name": "_ASC_EXCLAMATION",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "33"
   },
   {
    "name": "_CHR_EXCLAMATION",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(33)"
   },
   {
    "name": "_ASC_QUOTE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "34"
   },
   {
    "name": "_CHR_QUOTE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(34)"
   },
   {
    "name": "_ASC_HASH",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "35"
   },
   {
    "name": "_CHR_HASH",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(35)"
   },
   {
    "name": "_ASC_DOLLAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "36"
   },
   {
    "name": "_CHR_DOLLAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(36)"
   },
   {
    "name": "_ASC_PERCENT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "37"
   },
   {
    "name": "_CHR_PERCENT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(37)"
   },
   {
    "name": "_ASC_AMPERSAND",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "38"
   },
   {
    "name": "_CHR_AMPERSAND",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(38)"
   },
   {
    "name": "_ASC_APOSTROPHE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "39"
   },
   {
    "name": "_CHR_APOSTROPHE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(39)"
   },
   {
    "name": "_ASC_LEFTBRACKET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "40"
   },
   {
    "name": "_CHR_LEFTBRACKET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(40)"
   },
   {
    "name": "_ASC_RIGHTBRACKET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "41"
   },
   {
    "name": "_CHR_RIGHTBRACKET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(41)"
   },
   {
    "name": "_ASC_ASTERISK",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "42"
   },
   {
    "name": "_CHR_ASTERISK",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(42)"
   },
   {
    "name": "_ASC_PLUS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "43"
   },
   {
    "name": "_CHR_PLUS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(43)"
   },
   {
    "name": "_ASC_COMMA",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "44"
   },
   {
    "name": "_CHR_COMMA",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(44)"
   },
   {
    "name": "_ASC_MINUS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "45"
   },
   {
    "name": "_CHR_MINUS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(45)"
   },
   {
    "name": "_ASC_FULLSTOP",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "46"
   },
   {
    "name": "_CHR_FULLSTOP",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(46)"
   },
   {
    "name": "_ASC_FORWARDSLASH",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "47"
   },
   {
    "name": "_CHR_FORWARDSLASH",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(47)"
   },
   {
    "name": "_ASC_COLON",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "58"
   },
   {
    "name": "_CHR_COLON",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(58)"
   },
   {
    "name": "_ASC_SEMICOLON",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "59"
   },
   {
    "name": "_CHR_SEMICOLON",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(59)"
   },
   {
    "name": "_ASC_LESSTHAN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "60"
   },
   {
    "name": "_CHR_LESSTHAN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(60)"
   },
   {
    "name": "_ASC_EQUAL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "61"
   },
   {
    "name": "_CHR_EQUAL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(61)"
   },
   {
    "name": "_ASC_GREATERTHAN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "62"
   },
   {
    "name": "_CHR_GREATERTHAN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(62)"
   },
   {
    "name": "_ASC_QUESTION",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "63"
   },
   {
    "name": "_CHR_QUESTION",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(63)"
   },
   {
    "name": "_ASC_ATSIGN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "64"
   },
   {
    "name": "_CHR_ATSIGN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(64)"
   },
   {
    "name": "_ASC_LEFTSQUAREBRACKET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "91"
   },
   {
    "name": "_CHR_LEFTSQUAREBRACKET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(91)"
   },
   {
    "name": "_ASC_BACKSLASH",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "92"
   },
   {
    "name": "_CHR_BACKSLASH",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(92)"
   },
   {
    "name": "_ASC_RIGHTSQUAREBRACKET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "93"
   },
   {
    "name": "_CHR_RIGHTSQUAREBRACKET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(93)"
   },
   {
    "name": "_ASC_CARET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "94"
   },
   {
    "name": "_CHR_CARET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(94)"
   },
   {
    "name": "_ASC_UNDERSCORE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "95"
   },
   {
    "name": "_CHR_UNDERSCORE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(95)"
   },
   {
    "name": "_ASC_GRAVE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "96"
   },
   {
    "name": "_CHR_GRAVE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(96)"
   },
   {
    "name": "_ASC_LEFTCURLYBRACKET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "123"
   },
   {
    "name": "_CHR_LEFTCURLYBRACKET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(123)"
   },
   {
    "name": "_ASC_VERTICALBAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "124"
   },
   {
    "name": "_CHR_VERTICALBAR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(124)"
   },
   {
    "name": "_ASC_RIGHTCURLYBRACKET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "125"
   },
   {
    "name": "_CHR_RIGHTCURLYBRACKET",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(125)"
   },
   {
    "name": "_ASC_TILDE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "126"
   },
   {
    "name": "_CHR_TILDE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "CHR$(126)"
   },
   {
    "name": "_KEY_LSHIFT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "100304"
   },
   {
    "name": "_KEY_RSHIFT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "100303"
   },
   {
    "name": "_KEY_LCTRL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "100306"
   },
   {
    "name": "_KEY_RCTRL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "100305"
   },
   {
    "name": "_KEY_LALT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "100308"
   },
   {
    "name": "_KEY_RALT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "100307"
   },
   {
    "name": "_KEY_LAPPLE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "100310"
   },
   {
    "name": "_KEY_RAPPLE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "100309"
   },
   {
    "name": "_KEY_F1",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "15104"
   },
   {
    "name": "_KEY_F2",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "15360"
   },
   {
    "name": "_KEY_F3",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "15616"
   },
   {
    "name": "_KEY_F4",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "15872"
   },
   {
    "name": "_KEY_F5",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "16128"
   },
   {
    "name": "_KEY_F6",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "16384"
   },
   {
    "name": "_KEY_F7",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "16640"
   },
   {
    "name": "_KEY_F8",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "16896"
   },
   {
    "name": "_KEY_F9",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "17152"
   },
   {
    "name": "_KEY_F10",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "17408"
   },
   {
    "name": "_KEY_F11",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "34048"
   },
   {
    "name": "_KEY_F12",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "34304"
   },
   {
    "name": "_KEY_INSERT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "20992"
   },
   {
    "name": "_KEY_DELETE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "21248"
   },
   {
    "name": "_KEY_HOME",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "18176"
   },
   {
    "name": "_KEY_END",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "20224"
   },
   {
    "name": "_KEY_PAGEUP",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "18688"
   },
   {
    "name": "_KEY_PAGEDOWN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "20736"
   },
   {
    "name": "_KEY_LEFT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "19200"
   },
   {
    "name": "_KEY_RIGHT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "19712"
   },
   {
    "name": "_KEY_UP",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "18432"
   },
   {
    "name": "_KEY_DOWN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "20480"
   },
   {
    "name": "_KEY_BACKSPACE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "8"
   },
   {
    "name": "_KEY_TAB",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "9"
   },
   {
    "name": "_KEY_ENTER",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "13"
   },
   {
    "name": "_KEY_ESC",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "27"
   },
   {
    "name": "_ERR_NONE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "0"
   },
   {
    "name": "_ERR_NEXT_WITHOUT_FOR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "1"
   },
   {
    "name": "_ERR_SYNTAX_ERROR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "2"
   },
   {
    "name": "_ERR_RETURN_WITHOUT_GOSUB",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "3"
   },
   {
    "name": "_ERR_OUT_OF_DATA",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "4"
   },
   {
    "name": "_ERR_ILLEGAL_FUNCTION_CALL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "5"
   },
   {
    "name": "_ERR_OVERFLOW",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "6"
   },
   {
    "name": "_ERR_OUT_OF_MEMORY",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "7"
   },
   {
    "name": "_ERR_LABEL_NOT_DEFINED",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "8"
   },
   {
    "name": "_ERR_SUBSCRIPT_OUT_OF_RANGE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "9"
   },
   {
    "name": "_ERR_DUPLICATE_DEFINITION",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "10"
   },
   {
    "name": "_ERR_DIVISION_BY_ZERO",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "11"
   },
   {
    "name": "_ERR_ILLEGAL_IN_DIRECT_MODE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "12"
   },
   {
    "name": "_ERR_TYPE_MISMATCH",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "13"
   },
   {
    "name": "_ERR_OUT_OF_STRING_SPACE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "14"
   },
   {
    "name": "_ERR_STRING_FORMULA_TOO_COMPLEX",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "16"
   },
   {
    "name": "_ERR_CANNOT_CONTINUE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "17"
   },
   {
    "name": "_ERR_FUNCTION_NOT_DEFINED",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "18"
   },
   {
    "name": "_ERR_NO_RESUME",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "19"
   },
   {
    "name": "_ERR_RESUME_WITHOUT_ERROR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "20"
   },
   {
    "name": "_ERR_DEVICE_TIMEOUT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "24"
   },
   {
    "name": "_ERR_DEVICE_FAULT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "25"
   },
   {
    "name": "_ERR_FOR_WITHOUT_NEXT",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "26"
   },
   {
    "name": "_ERR_OUT_OF_PAPER",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "27"
   },
   {
    "name": "_ERR_WHILE_WITHOUT_WEND",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "29"
   },
   {
    "name": "_ERR_WEND_WITHOUT_WHILE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "30"
   },
   {
    "name": "_ERR_DUPLICATE_LABEL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "33"
   },
   {
    "name": "_ERR_SUBPROGRAM_NOT_DEFINED",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "35"
   },
   {
    "name": "_ERR_ARGUMENT_COUNT_MISMATCH",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "37"
   },
   {
    "name": "_ERR_ARRAY_NOT_DEFINED",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "38"
   },
   {
    "name": "_ERR_VARIABLE_REQUIRED",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "40"
   },
   {
    "name": "_ERR_FIELD_OVERFLOW",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "50"
   },
   {
    "name": "_ERR_INTERNAL_ERROR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "51"
   },
   {
    "name": "_ERR_BAD_FILE_NAME_OR_NUMBER",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "52"
   },
   {
    "name": "_ERR_FILE_NOT_FOUND",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "53"
   },
   {
    "name": "_ERR_BAD_FILE_MODE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "54"
   },
   {
    "name": "_ERR_FILE_ALREADY_OPEN",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "55"
   },
   {
    "name": "_ERR_FIELD_STATEMENT_ACTIVE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "56"
   },
   {
    "name": "_ERR_DEVICE_IO_ERROR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "57"
   },
   {
    "name": "_ERR_FILE_ALREADY_EXISTS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "58"
   },
   {
    "name": "_ERR_BAD_RECORD_LENGTH",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "59"
   },
   {
    "name": "_ERR_DISK_FULL",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "61"
   },
   {
    "name": "_ERR_INPUT_PAST_END_OF_FILE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "62"
   },
   {
    "name": "_ERR_BAD_RECORD_NUMBER",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "63"
   },
   {
    "name": "_ERR_BAD_FILE_NAME",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "64"
   },
   {
    "name": "_ERR_TOO_MANY_FILES",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "67"
   },
   {
    "name": "_ERR_DEVICE_UNAVAILABLE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "68"
   },
   {
    "name": "_ERR_COMMUNICATION_BUFFER_OVERFLOW",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "69"
   },
   {
    "name": "_ERR_PERMISSION_DENIED",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "70"
   },
   {
    "name": "_ERR_DISK_NOT_READY",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "71"
   },
   {
    "name": "_ERR_DISK_MEDIA_ERROR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "72"
   },
   {
    "name": "_ERR_FEATURE_UNAVAILABLE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "73"
   },
   {
    "name": "_ERR_RENAME_ACROSS_DISKS",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "74"
   },
   {
    "name": "_ERR_PATH_FILE_ACCESS_ERROR",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "75"
   },
   {
    "name": "_ERR_PATH_NOT_FOUND",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "76"
   },
   {
    "name": "_ERR_INVALID_HANDLE",
    "kind": "const",
-   "file": "include/beforefirstline.bi"
+   "file": "include/beforefirstline.bi",
+   "suffix": "",
+   "value": "258"
   },
   {
    "name": "_IKW_ENCODEURL",
@@ -7873,1723 +8493,2297 @@
    "name": "BLACK",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "0"
   },
   {
    "name": "BLUE",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "1"
   },
   {
    "name": "GREEN",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "2"
   },
   {
    "name": "CYAN",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "3"
   },
   {
    "name": "RED",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "4"
   },
   {
    "name": "MAGENTA",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "5"
   },
   {
    "name": "BROWN",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "6"
   },
   {
    "name": "WHITE",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "7"
   },
   {
    "name": "GRAY",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "8"
   },
   {
    "name": "LIGHTBLUE",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "9"
   },
   {
    "name": "LIGHTGREEN",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "10"
   },
   {
    "name": "LIGHTCYAN",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "11"
   },
   {
    "name": "LIGHTRED",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "12"
   },
   {
    "name": "LIGHTMAGENTA",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "13"
   },
   {
    "name": "YELLOW",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "14"
   },
   {
    "name": "BRIGHTWHITE",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "15"
   },
   {
    "name": "BLINK",
    "kind": "const",
    "file": "color/color0.bi",
-   "condition": "$COLOR:0"
+   "condition": "$COLOR:0",
+   "suffix": "~%%",
+   "value": "16"
   },
   {
    "name": "ALICEBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293982463"
   },
   {
    "name": "ALMOND",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293910221"
   },
   {
    "name": "ANTIQUEBRASS",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291663221"
   },
   {
    "name": "ANTIQUEWHITE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294634455"
   },
   {
    "name": "APRICOT",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294826421"
   },
   {
    "name": "AQUA",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278255615"
   },
   {
    "name": "AQUAMARINE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286578644"
   },
   {
    "name": "ASPARAGUS",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287080811"
   },
   {
    "name": "ATOMICTANGERINE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294943860"
   },
   {
    "name": "AZURE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293984255"
   },
   {
    "name": "BANANAMANIA",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294633397"
   },
   {
    "name": "BEAVER",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4288643440"
   },
   {
    "name": "BEIGE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294309340"
   },
   {
    "name": "BISQUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294960324"
   },
   {
    "name": "BITTERSWEET",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294802542"
   },
   {
    "name": "BLACK",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278190080"
   },
   {
    "name": "BLANCHEDALMOND",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294962125"
   },
   {
    "name": "BLIZZARDBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289521134"
   },
   {
    "name": "BLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278190335"
   },
   {
    "name": "BLUEBELL",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4288848592"
   },
   {
    "name": "BLUEGRAY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4284914124"
   },
   {
    "name": "BLUEGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4279081146"
   },
   {
    "name": "BLUEVIOLET",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287245282"
   },
   {
    "name": "BLUSH",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292763011"
   },
   {
    "name": "BRICKRED",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291510612"
   },
   {
    "name": "BROWN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289014314"
   },
   {
    "name": "BURLYWOOD",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292786311"
   },
   {
    "name": "BURNTORANGE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294934345"
   },
   {
    "name": "BURNTSIENNA",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293557853"
   },
   {
    "name": "CADETBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4284456608"
   },
   {
    "name": "CANARY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294967193"
   },
   {
    "name": "CARIBBEANGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4280079266"
   },
   {
    "name": "CARNATIONPINK",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294945484"
   },
   {
    "name": "CERISE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292691090"
   },
   {
    "name": "CERULEAN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4280134870"
   },
   {
    "name": "CHARTREUSE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286578432"
   },
   {
    "name": "CHESTNUT",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4290534744"
   },
   {
    "name": "CHOCOLATE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291979550"
   },
   {
    "name": "COPPER",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292711541"
   },
   {
    "name": "CORAL",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294934352"
   },
   {
    "name": "CORNFLOWER",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4288335595"
   },
   {
    "name": "CORNFLOWERBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4284782061"
   },
   {
    "name": "CORNSILK",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294965468"
   },
   {
    "name": "COTTONCANDY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294950105"
   },
   {
    "name": "CRAYOLAAQUAMARINE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286110690"
   },
   {
    "name": "CRAYOLABLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4280251902"
   },
   {
    "name": "CRAYOLABLUEVIOLET",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4285753021"
   },
   {
    "name": "CRAYOLABROWN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4290013005"
   },
   {
    "name": "CRAYOLACADETBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289771462"
   },
   {
    "name": "CRAYOLAFORESTGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4285378177"
   },
   {
    "name": "CRAYOLAGOLD",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293379735"
   },
   {
    "name": "CRAYOLAGOLDENROD",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294760821"
   },
   {
    "name": "CRAYOLAGRAY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287992204"
   },
   {
    "name": "CRAYOLAGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4280069240"
   },
   {
    "name": "CRAYOLAGREENYELLOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293978257"
   },
   {
    "name": "CRAYOLAINDIGO",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4284315339"
   },
   {
    "name": "CRAYOLALAVENDER",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294751445"
   },
   {
    "name": "CRAYOLAMAGENTA",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294337711"
   },
   {
    "name": "CRAYOLAMAROON",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291311706"
   },
   {
    "name": "CRAYOLAMIDNIGHTBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4279912566"
   },
   {
    "name": "CRAYOLAORANGE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294931768"
   },
   {
    "name": "CRAYOLAORANGERED",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294912811"
   },
   {
    "name": "CRAYOLAORCHID",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293306583"
   },
   {
    "name": "CRAYOLAPLUM",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287513989"
   },
   {
    "name": "CRAYOLARED",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293795917"
   },
   {
    "name": "CRAYOLASALMON",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294941610"
   },
   {
    "name": "CRAYOLASEAGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4288668351"
   },
   {
    "name": "CRAYOLASILVER",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291675586"
   },
   {
    "name": "CRAYOLASKYBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286634731"
   },
   {
    "name": "CRAYOLASPRINGGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293716670"
   },
   {
    "name": "CRAYOLATANN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294616940"
   },
   {
    "name": "CRAYOLATHISTLE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293642207"
   },
   {
    "name": "CRAYOLAVIOLET",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287786670"
   },
   {
    "name": "CRAYOLAYELLOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294764675"
   },
   {
    "name": "CRAYOLAYELLOWGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291158916"
   },
   {
    "name": "CRIMSON",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292613180"
   },
   {
    "name": "CYAN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278255615"
   },
   {
    "name": "DANDELION",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294826861"
   },
   {
    "name": "DARKBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278190219"
   },
   {
    "name": "DARKCYAN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278225803"
   },
   {
    "name": "DARKGOLDENROD",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4290283019"
   },
   {
    "name": "DARKGRAY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289309097"
   },
   {
    "name": "DARKGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278215680"
   },
   {
    "name": "DARKKHAKI",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4290623339"
   },
   {
    "name": "DARKMAGENTA",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287299723"
   },
   {
    "name": "DARKOLIVEGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4283788079"
   },
   {
    "name": "DARKORANGE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294937600"
   },
   {
    "name": "DARKORCHID",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4288230092"
   },
   {
    "name": "DARKRED",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287299584"
   },
   {
    "name": "DARKSALMON",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293498490"
   },
   {
    "name": "DARKSEAGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287609999"
   },
   {
    "name": "DARKSLATEBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4282924427"
   },
   {
    "name": "DARKSLATEGRAY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4281290575"
   },
   {
    "name": "DARKTURQUOISE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278243025"
   },
   {
    "name": "DARKVIOLET",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287889619"
   },
   {
    "name": "DEEPPINK",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294907027"
   },
   {
    "name": "DEEPSKYBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278239231"
   },
   {
    "name": "DENIM",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4281035972"
   },
   {
    "name": "DESERTSAND",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293905848"
   },
   {
    "name": "DIMGRAY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4285098345"
   },
   {
    "name": "DODGERBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4280193279"
   },
   {
    "name": "EGGPLANT",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4285419872"
   },
   {
    "name": "ELECTRICLIME",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291755805"
   },
   {
    "name": "FERN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4285643896"
   },
   {
    "name": "FIREBRICK",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289864226"
   },
   {
    "name": "FLORALWHITE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294966000"
   },
   {
    "name": "FORESTGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4280453922"
   },
   {
    "name": "FUCHSIA",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4290995397"
   },
   {
    "name": "FUZZYWUZZY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291585638"
   },
   {
    "name": "GAINSBORO",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292664540"
   },
   {
    "name": "GHOSTWHITE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294506751"
   },
   {
    "name": "GOLD",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294956800"
   },
   {
    "name": "GOLDENROD",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292519200"
   },
   {
    "name": "GRANNYSMITHAPPLE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289258656"
   },
   {
    "name": "GRAY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286611584"
   },
   {
    "name": "GREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278222848"
   },
   {
    "name": "GREENBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4279329972"
   },
   {
    "name": "GREENYELLOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289593135"
   },
   {
    "name": "HONEYDEW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293984240"
   },
   {
    "name": "HOTMAGENTA",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294909390"
   },
   {
    "name": "HOTPINK",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294928820"
   },
   {
    "name": "INCHWORM",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289915997"
   },
   {
    "name": "INDIANRED",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291648604"
   },
   {
    "name": "INDIGO",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4283105410"
   },
   {
    "name": "IVORY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294967280"
   },
   {
    "name": "JAZZBERRYJAM",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291442535"
   },
   {
    "name": "JUNGLEGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4282101903"
   },
   {
    "name": "KHAKI",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293977740"
   },
   {
    "name": "LASERLEMON",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294901282"
   },
   {
    "name": "LAVENDER",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293322490"
   },
   {
    "name": "LAVENDERBLUSH",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294963445"
   },
   {
    "name": "LAWNGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286381056"
   },
   {
    "name": "LEMONCHIFFON",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294965965"
   },
   {
    "name": "LEMONYELLOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294964303"
   },
   {
    "name": "LIGHTBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289583334"
   },
   {
    "name": "LIGHTCORAL",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293951616"
   },
   {
    "name": "LIGHTCYAN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292935679"
   },
   {
    "name": "LIGHTGOLDENRODYELLOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294638290"
   },
   {
    "name": "LIGHTGRAY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292072403"
   },
   {
    "name": "LIGHTGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287688336"
   },
   {
    "name": "LIGHTPINK",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294948545"
   },
   {
    "name": "LIGHTSALMON",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294942842"
   },
   {
    "name": "LIGHTSEAGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4280332970"
   },
   {
    "name": "LIGHTSKYBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287090426"
   },
   {
    "name": "LIGHTSLATEGRAY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286023833"
   },
   {
    "name": "LIGHTSTEELBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289774814"
   },
   {
    "name": "LIGHTYELLOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294967264"
   },
   {
    "name": "LIME",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278255360"
   },
   {
    "name": "LIMEGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4281519410"
   },
   {
    "name": "LINEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294635750"
   },
   {
    "name": "MACARONIANDCHEESE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294950280"
   },
   {
    "name": "MAGENTA",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294902015"
   },
   {
    "name": "MAGICMINT",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289392849"
   },
   {
    "name": "MAHOGANY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291643980"
   },
   {
    "name": "MAIZE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293775772"
   },
   {
    "name": "MANATEE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4288125610"
   },
   {
    "name": "MANGOTANGO",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294935107"
   },
   {
    "name": "MAROON",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286578688"
   },
   {
    "name": "MAUVELOUS",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293892266"
   },
   {
    "name": "MEDIUMAQUAMARINE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4284927402"
   },
   {
    "name": "MEDIUMBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278190285"
   },
   {
    "name": "MEDIUMORCHID",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4290401747"
   },
   {
    "name": "MEDIUMPURPLE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287852763"
   },
   {
    "name": "MEDIUMSEAGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4282168177"
   },
   {
    "name": "MEDIUMSLATEBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286277870"
   },
   {
    "name": "MEDIUMSPRINGGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278254234"
   },
   {
    "name": "MEDIUMTURQUOISE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4282962380"
   },
   {
    "name": "MEDIUMVIOLETRED",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291237253"
   },
   {
    "name": "MELON",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294818996"
   },
   {
    "name": "MIDNIGHTBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4279834992"
   },
   {
    "name": "MINTCREAM",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294311930"
   },
   {
    "name": "MISTYROSE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294960353"
   },
   {
    "name": "MOCCASIN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294960309"
   },
   {
    "name": "MOUNTAINMEADOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4281383567"
   },
   {
    "name": "MULBERRY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291120012"
   },
   {
    "name": "NAVAJOWHITE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294958765"
   },
   {
    "name": "NAVY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278190208"
   },
   {
    "name": "NAVYBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4279858386"
   },
   {
    "name": "NEONCARROT",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294943555"
   },
   {
    "name": "OLDLACE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294833638"
   },
   {
    "name": "OLIVE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286611456"
   },
   {
    "name": "OLIVEDRAB",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4285238819"
   },
   {
    "name": "OLIVEGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4290426988"
   },
   {
    "name": "ORANGE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294944000"
   },
   {
    "name": "ORANGERED",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294919424"
   },
   {
    "name": "ORANGEYELLOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294497640"
   },
   {
    "name": "ORCHID",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292505814"
   },
   {
    "name": "OUTERSPACE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4282468940"
   },
   {
    "name": "OUTRAGEOUSORANGE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294929994"
   },
   {
    "name": "PACIFICBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4280068553"
   },
   {
    "name": "PALEGOLDENROD",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293847210"
   },
   {
    "name": "PALEGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4288215960"
   },
   {
    "name": "PALETURQUOISE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289720046"
   },
   {
    "name": "PALEVIOLETRED",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292571283"
   },
   {
    "name": "PAPAYAWHIP",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294963157"
   },
   {
    "name": "PEACH",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294954923"
   },
   {
    "name": "PEACHPUFF",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294957753"
   },
   {
    "name": "PERIWINKLE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291154150"
   },
   {
    "name": "PERU",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291659071"
   },
   {
    "name": "PIGGYPINK",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294827494"
   },
   {
    "name": "PINEGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4279599224"
   },
   {
    "name": "PINK",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294951115"
   },
   {
    "name": "PINKFLAMINGO",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294735101"
   },
   {
    "name": "PINKSHERBET",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294414247"
   },
   {
    "name": "PLUM",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292714717"
   },
   {
    "name": "POWDERBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289781990"
   },
   {
    "name": "PURPLE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286578816"
   },
   {
    "name": "PURPLEHEART",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4285809352"
   },
   {
    "name": "PURPLEMOUNTAINSMAJESTY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4288512442"
   },
   {
    "name": "PURPLEPIZZAZZ",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294856410"
   },
   {
    "name": "RADICALRED",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294920556"
   },
   {
    "name": "RAWSIENNA",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292250201"
   },
   {
    "name": "RAWUMBER",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4285614883"
   },
   {
    "name": "RAZZLEDAZZLEROSE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294920400"
   },
   {
    "name": "RAZZMATAZZ",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293076331"
   },
   {
    "name": "RED",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294901760"
   },
   {
    "name": "REDORANGE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294923081"
   },
   {
    "name": "REDVIOLET",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4290790543"
   },
   {
    "name": "ROBINSEGGBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4280274635"
   },
   {
    "name": "ROSYBROWN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4290547599"
   },
   {
    "name": "ROYALBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4282477025"
   },
   {
    "name": "ROYALPURPLE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286075305"
   },
   {
    "name": "SADDLEBROWN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287317267"
   },
   {
    "name": "SALMON",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294606962"
   },
   {
    "name": "SANDYBROWN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294222944"
   },
   {
    "name": "SCARLET",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294715463"
   },
   {
    "name": "SCREAMINGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4285988730"
   },
   {
    "name": "SEAGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4281240407"
   },
   {
    "name": "SEASHELL",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294964718"
   },
   {
    "name": "SEPIA",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4289030479"
   },
   {
    "name": "SHADOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287265117"
   },
   {
    "name": "SHAMROCK",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4282764962"
   },
   {
    "name": "SHOCKINGPINK",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294672125"
   },
   {
    "name": "SIENNA",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4288696877"
   },
   {
    "name": "SILVER",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4290822336"
   },
   {
    "name": "SKYBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287090411"
   },
   {
    "name": "SLATEBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4285160141"
   },
   {
    "name": "SLATEGRAY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4285563024"
   },
   {
    "name": "SNOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294966010"
   },
   {
    "name": "SPRINGGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278255487"
   },
   {
    "name": "STEELBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4282811060"
   },
   {
    "name": "SUNGLOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294954824"
   },
   {
    "name": "SUNSETORANGE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294794835"
   },
   {
    "name": "TANN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291998860"
   },
   {
    "name": "TEAL",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4278222976"
   },
   {
    "name": "TEALBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4279805877"
   },
   {
    "name": "THISTLE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292394968"
   },
   {
    "name": "TICKLEMEPINK",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294740396"
   },
   {
    "name": "TIMBERWOLF",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292597714"
   },
   {
    "name": "TOMATO",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294927175"
   },
   {
    "name": "TROPICALRAINFOREST",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4279730285"
   },
   {
    "name": "TUMBLEWEED",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4292782728"
   },
   {
    "name": "TURQUOISE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4282441936"
   },
   {
    "name": "TURQUOISEBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4286045671"
   },
   {
    "name": "UNMELLOWYELLOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294967142"
   },
   {
    "name": "VIOLET",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4293821166"
   },
   {
    "name": "VIOLETBLUE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4281486002"
   },
   {
    "name": "VIOLETRED",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294398868"
   },
   {
    "name": "VIVIDTANGERINE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294942857"
   },
   {
    "name": "VIVIDVIOLET",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4287582365"
   },
   {
    "name": "WHEAT",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294303411"
   },
   {
    "name": "WHITE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294967295"
   },
   {
    "name": "WHITESMOKE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294309365"
   },
   {
    "name": "WILDBLUEYONDER",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4288851408"
   },
   {
    "name": "WILDSTRAWBERRY",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294919076"
   },
   {
    "name": "WILDWATERMELON",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294732933"
   },
   {
    "name": "WISTERIA",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4291667166"
   },
   {
    "name": "YELLOW",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294967040"
   },
   {
    "name": "YELLOWGREEN",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4288335154"
   },
   {
    "name": "YELLOWORANGE",
    "kind": "const",
    "file": "color/color32.bi",
-   "condition": "$COLOR:32"
+   "condition": "$COLOR:32",
+   "suffix": "~&",
+   "value": "4294946370"
   }
  ]
 }

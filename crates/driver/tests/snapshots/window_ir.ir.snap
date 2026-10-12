@@ -1,0 +1,88 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, window, hidden at the start, runtime parts: icon
+Stmt line 10 may_raise
+  Builtin _DEST [Value(CallBuiltin _CONSOLE:I32 [])]
+Stmt line 11 may_raise
+  Builtin _SCREENHIDE []
+Stmt line 12 may_raise
+  Builtin _SCREENSHOW []
+Stmt line 13 may_raise
+  Builtin _SCREENICON []
+Stmt line 14 may_raise
+  Builtin _TITLE [Value(Const "title")]
+Stmt line 15 may_raise
+  Builtin _TITLE [Value(Var S:Str)]
+Stmt line 16 may_raise
+  Builtin _TITLE [Value(Var FX:Str)]
+Stmt line 17 may_raise
+  Builtin _TITLE [Value(Concat(Var S:Str, Const "!"))]
+Stmt line 18 may_raise
+  Builtin _ICON [Absent, Absent]
+Stmt line 19 may_raise
+  Builtin _ICON [Value(Var L:I32), Absent]
+Stmt line 20 may_raise
+  Builtin _ICON [Value(Var L:I32), Value(Var L:I32)]
+Stmt line 21 may_raise
+  Builtin _ICON [Value((Var I:I16 -> Convert I32 Widen)), Value(((Var SG:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 22 may_raise
+  Builtin _ICON [Value(((Const 1.6E+0:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 23 may_raise
+  Builtin _MOUSESHOW [Absent]
+Stmt line 24 may_raise
+  Builtin _MOUSESHOW [Value(Const "LINK")]
+Stmt line 25 may_raise
+  Builtin _MOUSESHOW [Value(Var S:Str)]
+Stmt line 26 may_raise
+  Builtin _MOUSEHIDE [Absent]
+Stmt line 27 may_raise
+  Builtin _MOUSEHIDE [Word 0]
+Stmt line 28 may_raise
+  Builtin _MOUSEHIDE [Word 1]
+Stmt line 29 may_raise
+  Builtin _MOUSECURSOR [Value(Var L:I32), Absent, Absent]
+Stmt line 30 may_raise
+  Builtin _MOUSECURSOR [Value(Var L:I32), Value(Var L:I32), Value(Var L:I32)]
+Stmt line 31 may_raise
+  Builtin _MOUSECURSOR [Value(((Var F:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value((Var I:I16 -> Convert I32 Widen)), Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 32 may_raise
+  Builtin _MOUSECURSOR [Value(Add:I32(Var L:I32, Const 1:I32) wrap), Value(Const 16:I32), Value(Const 16:I32)]
+Stmt line 33 may_raise
+  Builtin _WINDOWSIZELIMIT [Absent, Absent, Absent, Absent]
+Stmt line 34 may_raise
+  Builtin _WINDOWSIZELIMIT [Value(Var L:I32), Value(Var L:I32), Absent, Absent]
+Stmt line 35 may_raise
+  Builtin _WINDOWSIZELIMIT [Absent, Absent, Value(Var L:I32), Value(Var L:I32)]
+Stmt line 36 may_raise
+  Builtin _WINDOWSIZELIMIT [Value(Var L:I32), Value(Var L:I32), Value(Var L:I32), Value(Var L:I32)]
+Stmt line 37 may_raise
+  Builtin _WINDOWSIZELIMIT [Value(Const 320:I32), Value(Const 240:I32), Value(((Var SG:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(((Var F:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 38 may_raise
+  Builtin _FREEIMAGE [Absent]
+Stmt line 39 may_raise
+  Builtin _FREEIMAGE [Value(Var L:I32)]
+Stmt line 40 may_raise
+  Builtin _FREEIMAGE [Value(((Var SG:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 41 may_raise
+  Builtin _FREEIMAGE [Value(CallBuiltin _NEWIMAGE:I32 [Some(Const 8:I32), Some(Const 8:I32), Some(Const 32:I32)])]
+Stmt line 42 may_raise
+  Builtin _SCREENHIDE []
+Stmt line 43 may_raise
+  Builtin _SCREENSHOW []
+Stmt line 44 may_raise
+  Builtin _SCREENICON []
+Stmt line 45 may_raise
+  Builtin _TITLE [Value(Var S:Str)]
+Stmt line 46 may_raise
+  Call INSUB []
+Stmt line 47
+  System
+Sub INSUB lines 49-53
+Stmt line 50 may_raise
+  Builtin _TITLE [Value(Const "in the sub")]
+Stmt line 51 may_raise
+  Builtin _SCREENICON []
+Stmt line 52 may_raise
+  Builtin _MOUSEHIDE [Absent]

@@ -123,9 +123,15 @@ programs, recorded with `qb64pe.exe`.
     old compiler). To watch from group 3 on: the runner's `--jobs` builds only the first program's libqb
     variant alone, so several programs with a window on a clone that lacks that variant would build it at the
     same time (CI runs one job).
-- [ ] 2.6 After the user pushes group 2: read the `tier2` job of `rust.yml` on GitHub. Verify: it is green, and
+- [x] 2.6 After the user pushes group 2: read the `tier2` job of `rust.yml` on GitHub. Verify: it is green, and
   `STATUS.md` records how long the job took before and after; or, if a program with a window does not start
   there, the fallback of design D9 is put to the user before group 3's windowed programs go onto a list.
+  - Done 2026-10-12, read at `ab418be` (run 38298251873): `tier2` is green, and its log has `PASS
+    corpus:slice/s63_console_window (output, 2.5s)` and `PASS corpus:slice/s62_console_only_forms (output,
+    2.0s)`. So the GitHub Windows runner builds and starts a program with `$CONSOLE` and a window; the fallback
+    of design D9 is not needed. The job took 18 min 22 s, against 17 min 25 s at `bcc8635`, the push before
+    it; the slice step 9 min 55 s against 9 min 21 s (the libqb variant with a window is built once more, and
+    two more programs run). Not seen there yet: group 3's programs, which run at the next push.
 
 ## 3. `_DEST`, `_SOURCE`, `_CONSOLE`, `_ECHO` (design D5)
 
@@ -173,53 +179,125 @@ programs, recorded with `qb64pe.exe`.
 
 ## 4. Window built-ins, compiled and never run (design D6)
 
-- [ ] 4.1 Rows for the ten statements and ten functions of `proposal.md`, with the rules of task 1.3; the
+- [x] 4.1 Rows for the ten statements and ten functions of `proposal.md`, with the rules of task 1.3; the
   `WINDOW_BUILTINS` list; the template matching extended for parenthesised pairs if 1.3 showed it is needed; the
   icon runtime part collected for `_ICON` (D3). Call-site programs: one per form of each template and per
   argument type class. Tests: `typed` for each function, `ir` for each statement, a `check-fail` test for one
   wrong form of each special-format statement. Verify: the call-site check reports every new program equal;
   `cargo test` passes.
-- [ ] 4.2 The coverage rule (`testing/compiler-tests` delta): the built-in coverage test reads `WINDOW_BUILTINS`
+- [x] 4.2 The coverage rule (`testing/compiler-tests` delta): the built-in coverage test reads `WINDOW_BUILTINS`
   and requires, for each, a slice program that names it and a call-site program; its own negative test (a name
   added to the list with no call-site program fails and is named). Verify: `cargo test` passes, and fails with
   the built-in's name when one call-site program is moved away (tried once by hand, then restored).
-- [ ] 4.3 Record slice program `s66_window_builtins` with `qb64pe.exe` (the shape of the upstream `glut` tests:
+- [x] 4.3 Record slice program `s66_window_builtins` with `qb64pe.exe` (the shape of the upstream `glut` tests:
   `$CONSOLE:ONLY`, a `PRINT`, `SYSTEM`, then `$CONSOLE`, `_DEST _CONSOLE` and every window built-in in every form)
   and add it to `slice.list`. Run the 19 upstream `glut` tests and add those that pass to
   `tests\upstream\pass.list`; regenerate the shrink-only lists; update the two READMEs. Verify: tier 2 slice
   passes for `s66` with and without folding; the pass list passes run by itself; each `glut` test that does not
   pass is named here with its reason.
+  Group 4 as built (2026-10-12; tasks 4.1–4.3):
+  - 4.1: twenty rows in `sema\builtins.rs` (ten statements, ten functions; `_SCREENICON` is both) and the list
+    `WINDOW_BUILTINS` (19 names as written: `_SCREENICON` once, `_TITLE` and `_TITLE$`). The checker, the IR
+    and the emitter took every form as it is: the template matching needed no change for the parenthesised
+    pairs. `table_ty` learned `_UNSIGNED _OFFSET`; `_SCREENEXISTS` is `Rule::Fixed(LONG)` and is marked as the
+    direct argument of `HEX$`, `OCT$` and `_BIN$`. **The runtime parts are collected by `sema`, not by
+    `lower`** (design D3 said `lower`): `sema` meets every built-in call as it checks it, `lower` would need a
+    walk of its own; `sema::RuntimePart` is set from the table's new `dependency` column
+    (`qb64rust_builtins::Builtin::dependency`, 68 entries have one) and `lower` copies it. A built-in whose
+    part no build provides is "not supported yet" there. 78 call-site programs (`screenhide_stmt`,
+    `screenshow_stmt`, `screenicon_stmt`, `title_*` 5, `icon_*` 10, `mouseshow_*` 5, `mousehide_*` 3,
+    `mousecursor_*` 9, `windowsizelimit_*` 10, `freeimage_*` 9, the seven bare functions, `func_newimage_*` 8,
+    `func_windowhandle_*` 8): the check reports 362 of 362 equal. 40 more measurements (`v26_x74`–`x113`,
+    `study\00` §5): one program of accepted forms, 39 rejected forms. They changed code in two places. A
+    function without argument slots called with an argument is "Incorrect number of arguments" in the old
+    compiler (`_SCREENEXISTS(1)`, and `ERR(1)`, `ERL(1)`, which were "not supported yet": `x75`–`x77`); it is
+    that arity error now. And the old compiler accepts every one of these statements after `CALL` with its
+    template's forms between the parentheses (`x74`: `CALL _MOUSECURSOR(1, (2, 3))`), where the new compiler
+    reported a syntax error for a form that is no expression list: the parser now leaves the parentheses
+    unread after `CALL` of a statement with a template (but one of a single argument), and `sema` marks the
+    statement "not supported yet" (`syntax\parser\call.rs`; the same for `CALL LINE(…)`, `CALL OPEN(…)`).
+    Front-end tests `window_typed`, `window_ir` (its Settings line names the icon part), `window_errors` (50
+    lines: 39 errors that are not marks, 11 marked forms the old compiler accepts).
+  - 4.2: `every_supported_builtin_is_covered` reads `WINDOW_BUILTINS`: each name must be a supported row and
+    be used in a program of `tests\callsite` (`without_callsite`, with its own test
+    `window_builtin_without_callsite_is_named`, which also tells `_TITLE` from `_TITLE$`). Tried by hand: with
+    `func_screeny_bare.bas` moved away `cargo test` fails with "`_SCREENY` (a window built-in) is used in no
+    program of tests/callsite"; restored.
+  - 4.3: `s66_window_builtins` recorded and on `slice.list`; it passes with and without folding, and the
+    clone's `git status` is the same before and after (its `_ICON` links the libqb variant with the icon
+    part and no window, which the clone had already). Seven of the 19 `glut` tests pass and are on
+    `pass.list` (122): `icon`, `mousehide`, `mouseshow`, `screenhide`, `screenshow`, `title`, `title_func`.
+    The other twelve wait on `_TRUE`/`_FALSE`, nothing else (`desktopheight`, `desktopwidth`, `mousecursor`,
+    `screenexists`, `screenhide_commands`, `screenhide_sub`, `screenicon`, `screenx`, `screeny`,
+    `windowhandle`, `windowhasfocus`, `windowsizelimit`); they pass with group 5. The shrink-only lists are
+    unchanged.
 
 ## 5. Constants of the auto-included file (design D8)
 
-- [ ] 5.1 `tools\builtins\extract_builtins.py`: per constant of `beforefirstline.bi`, its name with suffix and the
+- [x] 5.1 `tools\builtins\extract_builtins.py`: per constant of `beforefirstline.bi`, its name with suffix and the
   text of its expression, from the Windows 64-bit branches; `builtins.json` regenerated; the generated table of
   `crates\builtins` carries the field. Tests: the extractor's output is unchanged for everything else (diff of
   `builtins.json` reviewed: only `auto_include` entries gain fields); a unit test in `crates\builtins` pins
   `_TRUE`, `_FALSE`, `_SIZE_OF_OFFSET` and one constant that names another. Verify: `cargo test -p
   qb64rust-builtins` passes.
-- [ ] 5.2 `sema`: a constant of the file resolves on first use through the `CONST` evaluator, in file order, cached,
+- [x] 5.2 `sema`: a constant of the file resolves on first use through the `CONST` evaluator, in file order, cached,
   global; one the evaluator cannot compute keeps its mark with the reason; the `$COLOR` names and the three
   functions keep theirs. Tests: `typed` for `_TRUE`, a constant with a suffix and one computed from others, used
   in the main module and in a SUB; `check-fail` for `_STR_CRLF` (marked) and for `CONST _TRUE = 1` (still the
   reserved-name error). Verify: `cargo test` passes; a program that names no such constant has an unchanged
   `typed` snapshot.
-- [ ] 5.3 Record slice program `s67_auto_constants` with `qb64pe.exe`: it prints every constant 5.2 computes, and
+- [x] 5.3 Record slice program `s67_auto_constants` with `qb64pe.exe`: it prints every constant 5.2 computes, and
   `LEN` of one per type suffix; add it to `slice.list`. Count again which corpus and upstream programs lost their
   last mark (`qb64rust --report unsupported`), run them and add those that pass to their pass lists; regenerate
   the shrink-only lists; update `crates\README.md`. Verify: tier 2 slice passes for `s67` with and without
   folding; a constant whose value differed is fixed or left marked and named here.
+  Group 5 as built (2026-10-12; tasks 5.1–5.3):
+  - 5.1: the extractor follows the `$IF` blocks of the auto-included files (`WIN` true, `32BIT` false; a
+    `CONST` under a condition it does not know stops it) and records `suffix` and `value` for every constant;
+    the diff of `builtins.json` holds nothing else (checked by a script: every other key equal, the 597
+    constants each gain the two fields, no other entry changes). `crates\builtins`: `AUTO_CONSTANTS` (the 310
+    of `beforefirstline.bi`, in file order) and `auto_constant`; its test pins `_TRUE`, `_FALSE`,
+    `_SIZE_OF_OFFSET`, `_OFFSET_MAX`, `_STR_NAT_EOL`, `_E` and `_ONE_MB` (which names `_ONE_KB`, standing
+    before it).
+  - 5.2: `sema\check\auto.rs`. A constant becomes a constant of the main module at its first use (in an
+    expression, in a `CONST`, as the length of a `STRING * n`), the ones its expression names first; from then
+    on it is a constant like any other (a use with another suffix, in a procedure). **The text is read by a
+    small reader in `sema`, not by the parser** (design D8 said "parsing and evaluating the recorded text with
+    the `CONST` evaluator"): the checker reads source text through the source map by a span's file, and a text
+    that comes from the table has none. The file's expressions have three shapes (one operand; two operands
+    with `+`, `*` or `/`; a function call), which the reader takes apart; every value is computed by the
+    evaluator's own functions (`consteval`: the literal, the operator, `reread`, `settle` by the suffix), as
+    `const_stmt` computes a `CONST` line. A text of another shape is marked, so a new version of the file
+    cannot be misread. 231 of the 310 are computed. Left marked, with the reason: the 69 that need `CHR$`,
+    `_E` (`EXP`), and nine numbers the evaluator does not read yet: `_DOUBLE_MIN`, `_DOUBLE_MAX` ("this close
+    to a rounding boundary"), `_FLOAT_MIN`, `_FLOAT_MAX`, `_FLOAT_MIN_FRAC` (beyond `DOUBLE` range),
+    `_INTEGER64_MIN`, `_UINTEGER64_MAX`, `_OFFSET_MIN`, `_UOFFSET_MAX` (beyond `_INTEGER64`). The old
+    compiler's values for those nine are recorded in `v26_x114`; five of them are not the limits their names
+    say (`SOMEDAY.md`, "QB64pe behaviours to review"), which is one more reason not to guess them. 13 more
+    measurements (`v26_x114`–`x126`, `study\00` §5). They decided the reserved-name rule: `CONST _TRUE = 1`
+    and `CONST _ONE_MB = 1048576` are "Invalid name", `DIM _TRUE` "Invalid variable name", so a name of the
+    file is reserved like any name with a leading underscore (`check\decl.rs`, `reserved`: the mark of an
+    auto-included name is kept for the names that are no constant of this file, the three functions of
+    `afterlastline.bm`). Front-end tests `auto_const_typed` and `auto_const_errors` (24 lines); a `typed`
+    snapshot of a program that names no such constant is unchanged (none of the existing snapshots changed);
+    `mem_follow_on` used `_TRUE` as its example of a marked name and has `_CHR_CR` now.
+  - 5.3: `s67_auto_constants` recorded and on `slice.list`: the 231 values by name (generated from
+    `builtins.json`), their types, and the places a constant may stand. `LEN` of a numeric constant is an
+    error of the old compiler (`v26_x126`), so the types are shown by arithmetic that leaves the type's range
+    (`_BYTE_MAX + 1` is 128, `_LONG_MAX + 1` -2147483648, `_SINGLE_MAX * 10` `INF`) and by uses with a suffix.
+    It passed on its first run, with and without folding: no value differed. Lost their last mark: the other
+    twelve `glut` tests and `logging/consts`, all passing and on `pass.list` (135); no corpus program.
 
 ## 6. Precompiler flags (design D7)
 
-- [ ] 6.1 `syntax`: `PpFlags` as an input of `parse`; the settings met reported in file order; the running value of
+- [x] 6.1 `syntax`: `PpFlags` as an input of `parse`; the settings met reported in file order; the running value of
   `_CONSOLE_` and the marked corner; `parse_settled` with its cap; a round repeated only when a condition named a
   flag. The driver, the language server and the tests call `parse_settled`. Tests: unit tests of the state
   machine (set once; set to 2 then 1; a locked flag; the cap); front-end tests in the modes they need for every
   scenario of the "Precompiler flags" requirement (`v26_h_flag_console`, `v26_h2_flag_both`, `x26`, `x27`, `x28`,
   `x33`, `x38`, `x39`, and what 1.4 added). Verify: `cargo test` passes; the mutation test and the parse-gap list are
   unchanged; tier 1's time is within 10% of before (noted here).
-- [ ] 6.2 `sema`: the "precompiler flag in `$IF`" mark is gone except for the corner; the program's console
+- [x] 6.2 `sema`: the "precompiler flag in `$IF`" mark is gone except for the corner; the program's console
   comes from the settled `_CONSOLE_` flag as well as from the walk (D1; a front-end `ir` test with the program
   of `v26_x26` shows a console in its `settings` line and no mark); `OPTION _EXPLICIT` and `OPTION
   _EXPLICITARRAY` are in force by their settled flags as well as by their statements (D7; a `check-fail` test
@@ -229,6 +307,57 @@ programs, recorded with `qb64pe.exe`.
   `tests\upstream\pass.list`; regenerate the shrink-only lists; update the READMEs and the comment at the top of
   `syntax\pp.rs`. Verify: tier 2 slice passes for `s68` with and without folding; the pass list passes run by
   itself.
+  Group 6 as built (2026-10-12; tasks 6.1, 6.2):
+  - 6.1: `syntax\pp.rs`. The six flags are names of the preprocessor like the predefined ones, set from the
+    round's values at the first line (`PpState::with_flags`), so a condition that names one is evaluated by
+    the ported evaluator like any other. The old compiler's state of a feature is `FeatureStates` (wanted,
+    actual, locked; five features: the two options, asserts, console, debug); `settle` runs the rounds over a
+    function that parses one, and is tested without a parser. The parser reports the settings it meets in
+    compiled code (`PpState::met`: the five metacommand lines as the old compiler's first pass compares them,
+    and the two options where their statement ends), and three flags take their value at their metacommand's
+    line within a round. A `$IF` or `$ELSEIF` that names a flag with another value there than at the first
+    line is noted (`ParsedProgram::passes_disagree`); the branch is chosen by the value on the line, as the
+    first pass chooses it, which is what makes the settings of a round that is not the last the old
+    compiler's (`v26_x39`, `x56`). `parse_settled` replaces `parse` as the entry point (the driver, the
+    language server, the tests); the settled flags are `ParsedProgram::flags`. A round is parsed again only
+    when a condition named a flag; otherwise the settings are applied until they settle, without a parse.
+    The cap is `MAX_ROUNDS`, 7: five features, each round but the last locks one, so six parses at most; past
+    it the last parse gets an error, no panic. Unit tests (`pp.rs`): set once, set to 2 then 1 and to 1 then
+    2, a locked feature, three rounds, the cap (the three-round program with two parses allowed is not
+    settled), the longest chain (six parses), the running values. Front-end tests, one per scenario of the
+    requirement: `flags_console_ir` (above the line), `flags_console_only_ir` (2; `OPTION _EXPLICIT`; nothing
+    sets the others), `flags_only_then_console_ir`, `flags_explicitarray_ir`, `flags_explicit_between_ir`,
+    `flags_between_errors` (the corner: each marked line, and no mark below the second line or on another
+    flag), `flags_nothing_set_errors`, `flags_three_rounds_ir`, `flags_running_value_ir`,
+    `flags_asserts_errors` (`$ASSERTS:CONSOLE`, `$DEBUG`: only the two metacommand marks), `flags_include_ir`
+    (the setting and the `$IF` in an included file; measured for it: `v26_x127`). All 16 flag programs of
+    `verification\` give what the old compiler recorded for them. `pp_if_errors` loses its two flag marks.
+    The mutation test and the parse-gap list are unchanged. Tier 1: `cargo test` takes about 28 s, against 23
+    to 26 s at the commit before (measured in a worktree), with 156 more programs and 7 more tests in the
+    tree; the front end over the same inputs (corpus, upstream, the real program, the front-end tests,
+    `verification\` and the old compiler's sources, release build) takes 2.3 s with the binary of before and
+    with this one. On the way a lookup added by group 5 (the auto-included constants, asked for every name)
+    was made to look only at names with a leading underscore.
+  - 6.2: `sema` marks only the noted lines ("`_CONSOLE_` in a `$IF` between two lines that set it
+    differently"); the program's console comes from the settled flag as well as from the walk
+    (`flags_guarded_console_ir`: console, no mark; `flags_guarded_only_ir`: `_CONSOLE_` 2, console and
+    window, no "select the console"); the two options are in force by their flags as well as by their
+    statements (`flags_guarded_explicit`, `flags_guarded_explicit_errors`: the variable and the array that
+    are not declared are errors). `$ASSERTS` and `$DEBUG` stay marked as metacommands. Slice programs
+    `s68_precompiler_flags` (three rounds; the guarded `OPTION _EXPLICIT`; flags above their lines, in an
+    `$ELSEIF`, beside a predefined name, in a SUB), `s68_precompiler_flags_b` (`$CONSOLE:ONLY` then
+    `$CONSOLE`; a setting that is met in no round; `OPTION _EXPLICITARRAY` alone) and
+    `s68_precompiler_flags_c` (the guarded `$CONSOLE:ONLY`: flag 2, a console and a hidden window), recorded
+    and on `slice.list` (297); all three pass with and without folding. Of the nine upstream `precomp-flags`
+    tests (the task said seven) four pass and are on `pass.list`: `console`, `consoleonly`, `explicit`,
+    `explicitarr`; so does `auto_include/no-debug` (140). The other five are rejected with only the mark of
+    a feature outside this change: `asserts` and `assertscon` (`$ASSERTS`), `debug` (`$DEBUG`), `socket`
+    (`_OPENCLIENT`), `all` (all three). The shrink-only lists are unchanged.
+  - After the three groups (2026-10-12, release build, `--jobs 8 --build-cache target\build-cache`):
+    `cargo test` 290 pass, the 13 `--ignored` tests pass, fmt and clippy clean; the call-site check 362 of
+    362; the slice list 297 of 297 with and without folding; the upstream pass list 140 of 140; the
+    differential pass list 59 of 59; the runner's own tests 56 pass. Not run yet: the two full suites
+    (`--suite compile`, `--suite corpus`) with the new compiler, which are task 7.1.
 
 ## 7. Integration
 

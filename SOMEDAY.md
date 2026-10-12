@@ -28,6 +28,23 @@ argument). What of that layer the old compiler accepts and the new one still mar
 | An element of a member array (and a member of an array element) as a target of `INPUT`, `READ` or the `MID$` statement | Not measured: where the old compiler evaluates the indexes, and what an index outside does to the read | `tests\frontend\member_arrays_errors.bas` |
 | `REDIM t.v(0) AS type` under `OPTION BASE 1` | Not measured: whether the number 0 keeps the rule it has in a `DIM` | Same |
 
+**Left marked by `m2-console-screenhide`** (step 11, 2026-10-12: a console and a window, the window built-ins,
+the constants of the auto-included file, the precompiler flags). What the old compiler accepts and the new one
+still marks "not supported yet":
+
+| Form | Why it waits | Details |
+|---|---|---|
+| The window built-ins are compiled and never run (`_TITLE`, `_ICON`, `_MOUSESHOW`, `_SCREENX`, `_NEWIMAGE`, … 20 of them) | What they do shows only in a window; M3 gives programs with a window a check (`tools\screen`) | `crates\README.md`; `sema\src\builtins.rs`, `WINDOW_BUILTINS`; call-site programs in `tests\callsite` |
+| A built-in statement that has a template, after `CALL` (`CALL _ICON(1, 2)`, `CALL _MOUSECURSOR(1, (2, 3))`, `CALL LINE((0, 0)-(9, 9))`) | The old compiler reads the template's forms between the parentheses; here only a template of one argument is read after `CALL` (`CALL _DEST(h)`). The parser leaves the parentheses unread, so no form is a false syntax error | `verification\v26_x74`; `tests\frontend\window_errors.bas` |
+| `SWAP`, `CLOSE` and the `MID$` statement after `CALL` (`CALL SWAP(a, b)`) | Each has a rule of its own, which reads the statement without `CALL` only. Until the review of groups 4 to 6 `CALL SWAP(a, b)` was a false error ("`SWAP` takes 0 arguments") | `verification\v26_x128`; `tests\frontend\swap_mid_marked.bas` |
+| The function `_SCREENHIDE` | Not in the change's scope (no upstream test names it) | `verification\v26_x74` |
+| `_SCREENEXISTS` as the direct argument of `HEX$`, `OCT$` or `_BIN$` | The table gives the function no return type, and the old compiler passes the width 0 there, not a LONG's 8 or 32; the function runs from M3 on, where the width can be given | Design D6 of the change |
+| 79 of the 310 constants of `beforefirstline.bi`: the 69 `_CHR_…`/`_STR_…` strings and `_E` | Their `CONST` lines need `CHR$` and `EXP`, which the `CONST` evaluator does not compute yet (no function in a `CONST` is) | `sema\src\check\auto.rs`; `tests\frontend\auto_const_errors.bas` |
+| The other nine: `_DOUBLE_MIN`, `_DOUBLE_MAX`, `_FLOAT_MIN`, `_FLOAT_MAX`, `_FLOAT_MIN_FRAC`, `_INTEGER64_MIN`, `_UINTEGER64_MAX`, `_OFFSET_MIN`, `_UOFFSET_MAX` | Numbers the `CONST` evaluator does not read yet (a value at a rounding boundary, beyond `DOUBLE` range, or beyond `_INTEGER64`). The old compiler's values for them are recorded and odd: see "QB64pe behaviours to review" | `verification\v26_x114` |
+| The three functions of `afterlastline.bm` (`_WhatIsMyIP`, …) and the `$COLOR` constants | The files are not included; the functions need the network functions | `tools\builtins\builtins.json`, `auto_include` |
+| A `$IF` that names `_CONSOLE_` between `$CONSOLE:ONLY` and a later `$CONSOLE` (or the other way round) | The old compiler's two passes read the line with different values (its program prints nothing from the branches; a `CONST` in them is "Name already in use"); no value here would be right | `verification\v26_x27`, `x34`; `tests\frontend\flags_between_errors.bas` |
+| `$ASSERTS`, `$DEBUG`, the network functions | Features of their own; their flags (`_ASSERTS_`, `_DEBUG_`) are set, `_SOCKETS_` is always 0 | Upstream `precomp-flags` (5 of its 9 tests wait on them) |
+
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
 
@@ -92,6 +109,8 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | An array made by passing a name that names none to an array parameter (`fill nx()`) has one dimension, 0 to 10, whatever the procedure does with the parameter; inside a SUB or FUNCTION the same call is a compile error ("Expected (...)") | An error in the main module too, or an array in both | Task 7.1 of `m2-defxxx-common-arrays` (`verification\v24_x146`, `x286`, `x292`) |
 | `LBOUND` and `UBOUND` of an array listed by `STATIC a()` give it one dimension (a `DIM a(2, 5)` below is an error); of one listed by `COMMON a()` they do not | One rule for both | Task 7.2 (`verification\v24_x282`, `x297`–`x302`) |
 | What stands between the parentheses of `COMMON a(3)` and of an array parameter `a(1)` is accepted and not read | A compile error for anything but `()` | Tasks 1.3 and 7.1 (`verification\v24_x157`, `x166`) |
+| Nine constants of the auto-included file do not hold the value their names say: `_FLOAT_MAX` and `_FLOAT_MIN` print `INF 7693134862315D+308` and `-INF 7693134862315D+308`, `_FLOAT_MIN_FRAC` is 0, `_INTEGER64_MIN` and `_OFFSET_MIN` are -9223372036854775807, `_UINTEGER64_MAX` and `_UOFFSET_MAX` 9223372036854775807 (QB64pe's `CONST` evaluator does not read their literals); `_DOUBLE_MIN`/`_MAX` are right. Not compiled here yet ("not supported yet"), so nothing is decided | Give them the values of their types' limits when the `CONST` evaluator reads such numbers | `m2-console-screenhide` task 5.2 (`verification\v26_x114`) |
+| `$SCREENHIDE` inside a `$IF` branch that its program's own flag switches off (`$IF _CONSOLE_ = 0 THEN` … `$CONSOLE`, `$SCREENHIDE`) is not compiled in the last round, so the window shows; the `$CONSOLE` beside it still counts, by its flag | One rule for the lines of such a branch | `m2-console-screenhide` design D1 (read from the source, `qb64pe.bas` 3617; `verification\v26_x26`) |
 | An array argument in parentheses, `fill (x())`, compiles and fails QB64pe's C++ build; a compile error here | Pass the array, as without the parentheses | Task 1.3 (`verification\v24_x145`) |
 
 ## Other ideas raised during the study

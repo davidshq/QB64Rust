@@ -2,7 +2,7 @@
 
 use qb64rust_base::SourceMap;
 use qb64rust_syntax::tree::print;
-use qb64rust_syntax::{NoLoader, parse};
+use qb64rust_syntax::{NoLoader, parse_settled};
 use std::path::{Path, PathBuf};
 
 fn bas_files(dir: &Path, out: &mut Vec<PathBuf>) {
@@ -26,7 +26,7 @@ fn corpus_round_trip() {
         let bytes = std::fs::read(f).unwrap();
         let mut map = SourceMap::new();
         let file = map.add(f.display().to_string(), bytes.clone());
-        let p = parse(&mut map, file, &mut NoLoader);
+        let p = parse_settled(&mut map, file, &mut NoLoader);
         assert!(
             print(&p.main().green, &bytes) == bytes,
             "round trip failed: {}",

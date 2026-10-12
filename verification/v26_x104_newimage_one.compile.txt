@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _NEWIMAGE(width&, height&, mode)
+Caused by (or after):N = _NEWIMAGE ( 1 )
+LINE 6:n = _NEWIMAGE(1)
+exit=1

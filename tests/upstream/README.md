@@ -304,3 +304,23 @@ and `$SCREENHIDE` that prints after `_DEST _CONSOLE`. The other program that nee
 of 115 pass. The three lists are unchanged. The report: 97 programs without errors, 241 with only "not supported
 yet" errors, 10 with other errors; no line names `_DEST` any more (54 programs before; they wait on what else
 they use), and "programs without `$CONSOLE` or `$CONSOLE:ONLY`" is named by 10.
+
+**Upstream progress, 2026-10-12 (step 11, group 4): 122 of 279** (`m2-console-screenhide` task 4.3: the window
+built-ins, compiled and never run). Seven of the 19 `glut` tests pass on their first run and are on `pass.list`:
+`icon`, `mousehide`, `mouseshow`, `screenhide`, `screenshow`, `title`, `title_func`. Each prints one line under
+`$CONSOLE:ONLY` and leaves; the window built-in below its `SYSTEM` is compiled, linked and not reached (`icon`
+links the libqb variant with the icon part). The other twelve print `_TRUE` or `_FALSE` (group 5).
+
+**Upstream progress, 2026-10-12 (step 11, group 5): 135 of 279** (`m2-console-screenhide` task 5.3: the constants
+of the auto-included file). The other twelve `glut` tests pass (`desktopheight`, `desktopwidth`, `mousecursor`,
+`screenexists`, `screenhide_commands`, `screenhide_sub`, `screenicon`, `screenx`, `screeny`, `windowhandle`,
+`windowhasfocus`, `windowsizelimit`: all 19 of the folder now), and `logging/consts`, which prints the five
+`_LOG_` constants. No corpus program lost its last mark.
+
+**Upstream progress, 2026-10-12 (step 11, group 6): 140 of 279** (`m2-console-screenhide` task 6.2: the
+precompiler flags). Four of the nine `precomp-flags` tests pass (`console`, `consoleonly`, `explicit`,
+`explicitarr`) and `auto_include/no-debug` (`$IF _DEBUG_` in a program without `$DEBUG`). The other five are
+rejected with only the mark of the feature they test, which is outside the change: `$ASSERTS` (`asserts`,
+`assertscon`, `all`), `$DEBUG` (`debug`, `all`) and the network function `_OPENCLIENT` (`socket`, `all`). No line
+of the report names a precompiler flag any more. `QB64RUST_UPDATE_LISTS=1 cargo test` changed none of the
+shrink-only lists in the three groups.

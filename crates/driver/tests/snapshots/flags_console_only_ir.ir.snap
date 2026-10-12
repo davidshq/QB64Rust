@@ -1,0 +1,21 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 2
+  SelectConsole
+Stmt line 7
+  Print console newline
+    Str Const "explicit 1"
+Stmt line 12
+  Print console newline
+    Str Const "explicitarray 1"
+Stmt line 19
+  Print console newline
+    Str Const "asserts, debug, sockets 0"
+Stmt line 22
+  Print console newline
+    Str Const "console 2"
+Stmt line 26
+  System

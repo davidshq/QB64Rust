@@ -631,7 +631,8 @@ impl<'a> CallStmt<'a> {
         child(self.0, ArgList::cast)
     }
 
-    /// Arguments the parser could not read as expressions (only without `CALL`; no diagnostic was reported).
+    /// Arguments the parser did not read as expressions: those without `CALL` that do not parse, and those of a
+    /// built-in statement with a template after `CALL` (no diagnostic was reported).
     pub fn unparsed_args(self) -> Option<Node<'a>> {
         self.arg_list()?
             .node()

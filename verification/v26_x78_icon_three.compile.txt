@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _ICON [mainImageHandle&[, smallImageHandle&]]
+Caused by (or after):_ICON 1 , 2 , 3
+LINE 6:_ICON 1, 2, 3
+exit=1

@@ -71,8 +71,12 @@ impl Checker<'_> {
         match s.rule {
             Rule::Len => return self.len(s, list, span),
             Rule::Val => return self.val(s, list, span),
+            Rule::Fixed(_) if list.is_some() && slots(s).is_empty() => {
+                // Measured: `_SCREENEXISTS(1)`, `ERR(1)`, `ERL(1)` are "Incorrect number of arguments"
+                // (`verification\v26_x75`–`x77`).
+                return Err(self.error(span, arity(name, 0, 0)));
+            }
             Rule::Fixed(_) if list.is_some() => {
-                // `ERR(1)`: not measured.
                 return Err(self.unsupported(span, format!("`{name}` with arguments")));
             }
             Rule::Plain
@@ -87,6 +91,7 @@ impl Checker<'_> {
             | Rule::StringFill
             | Rule::StrOrIndex => {}
         }
+        self.runtime_part(s.id, name, span)?;
         let nodes = self.present_args(list)?;
         let slots = slots(s);
         let required = slots.iter().filter(|(_, optional)| !optional).count();
@@ -112,6 +117,14 @@ impl Checker<'_> {
             } else {
                 format!("argument {} of `{name}`", k + 1)
             };
+            if let (Rule::Radix(_), ExprKind::Call { builtin, .. }) = (s.rule, &e.kind)
+                && builtin.get().ret.is_none()
+            {
+                // `_SCREENEXISTS`, which has no return type in the table: the old compiler passes the width 0
+                // here, not a LONG's (measured from its C++, design D6 of `m2-console-screenhide`).
+                let inner = builtin.get().name.to_ascii_uppercase();
+                return Err(self.unsupported(e.span, format!("`{inner}` as the argument of `{name}`")));
+            }
             args.push(Some(self.slot_arg(s.rule, slot, k, e, &which)?));
         }
         let (ty, qb) = result_types(s, &args);
@@ -121,6 +134,21 @@ impl Checker<'_> {
             qb,
             kind: ExprKind::Call { builtin: s.id, args },
         })
+    }
+
+    /// Records the optional part of the runtime a built-in needs (the table's `dependency`; design D3 of
+    /// `m2-console-screenhide`). A part no build provides yet makes the built-in "not supported yet".
+    fn runtime_part(&mut self, id: qb64rust_builtins::BuiltinId, name: &str, span: Span) -> R<()> {
+        let Some(dependency) = id.get().dependency else {
+            return Ok(());
+        };
+        match crate::RuntimePart::of_dependency(dependency) {
+            Some(part) => {
+                self.runtime_parts.insert(part);
+                Ok(())
+            }
+            None => Err(self.unsupported(span, format!("`{name}`: a part of the runtime that is not built yet"))),
+        }
     }
 
     /// An argument converted to its slot (design D3; measured `v20_a_slots`). `which` names it in errors.
@@ -436,6 +464,7 @@ impl Checker<'_> {
 
     /// The typed statement of a form and what its template's arguments and choices matched.
     fn stmt_call(&mut self, node: Node, form: StmtSupported, matched: Vec<Matched>) -> R<()> {
+        self.runtime_part(form.id, form.name, node.span())?;
         let slots = stmt_slots(form.id);
         let count = slots.iter().filter(|s| matches!(s, StmtSlot::Arg { .. })).count();
         let mut args = Vec::with_capacity(slots.len());

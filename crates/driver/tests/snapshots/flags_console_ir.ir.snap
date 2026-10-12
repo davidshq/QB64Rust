@@ -1,0 +1,15 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, window, hidden at the start
+Stmt line 5 may_raise
+  Builtin _DEST [Value(CallBuiltin _CONSOLE:I32 [])]
+Stmt line 7
+  Print console newline
+    Str Const "above the line: 1"
+Stmt line 16
+  Print console newline
+    Str Const "below the line: 1"
+Stmt line 20
+  System

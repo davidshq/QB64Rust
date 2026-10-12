@@ -1,0 +1,14 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, window, hidden at the start
+Stmt line 11 may_raise
+  Builtin _DEST [Value(CallBuiltin _CONSOLE:I32 [])]
+Stmt line 15
+  Print console newline
+    Str Const "explicit 0"
+Stmt line 17
+  Assign NOTDECLARED:F32 = (Const 1:I16 -> Convert F32 Nearest)
+Stmt line 18
+  System

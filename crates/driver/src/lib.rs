@@ -5,7 +5,7 @@ pub mod report;
 
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_sema::Program;
-use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_name, parse};
+use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_name, parse_settled};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -138,7 +138,7 @@ pub fn frontend_with(name: &str, bytes: Vec<u8>, loader: impl FnOnce(FileId) -> 
     let mut map = SourceMap::new();
     let file = map.add(name, bytes);
     let mut loader = loader(file);
-    let parsed = parse(&mut map, file, loader.as_mut());
+    let parsed = parse_settled(&mut map, file, loader.as_mut());
     // QB64RUST_NO_FOLD=1 turns integer constant folding off (test use only, design D5).
     let fold = std::env::var_os("QB64RUST_NO_FOLD").is_none_or(|v| v != "1");
     let (program, sema_diags) = qb64rust_sema::check_with(&map, &parsed, fold);

@@ -1,0 +1,5 @@
+
+Invalid name
+Caused by (or after):
+LINE 4:CONST _ONE_MB = 1048576
+exit=1

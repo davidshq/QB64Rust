@@ -65,8 +65,14 @@ pub fn lower(p: &sema::Program) -> Program {
             console: p.settings.console,
             window: p.settings.window,
             window_hidden: p.settings.window_hidden,
-            // No built-in compiled yet needs one.
-            runtime_parts: std::collections::BTreeSet::new(),
+            runtime_parts: p
+                .settings
+                .runtime_parts
+                .iter()
+                .map(|part| match part {
+                    sema::RuntimePart::Icon => crate::RuntimePart::Icon,
+                })
+                .collect(),
         },
     };
     if cfg!(debug_assertions)

@@ -1,0 +1,12 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 2
+  SelectConsole
+Stmt line 7
+  Print console newline
+    Str Const "between: explicit 1"
+Stmt line 12
+  System

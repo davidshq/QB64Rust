@@ -1,0 +1,4 @@
+main: 2 above the include
+included: 2
+main: explicitarray 1
+exit=0

@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-12 (session 51).
+Updated 2026-10-12 (session 52).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -28,7 +28,7 @@ compares it (`<name>.screen`, `<name>.keys`); 29 programs are recorded in `tests
 (`tools\screen\README.md`).
 The compiler parses every program the old compiler accepts with no false error, and compiles scalars, procedures,
 error handling, every operator, `CONST`, control flow, `SELECT CASE`, static arrays and `TYPE` of the main module,
-70 built-in functions, all 17 numeric types, fixed-length strings, sequential files, `DATA`/`READ`/`RESTORE`,
+83 built-in functions, all 17 numeric types, fixed-length strings, sequential files, `DATA`/`READ`/`RESTORE`,
 `SWAP`, the `MID$` statement, `RANDOMIZE`, console `INPUT`/`LINE INPUT`, `SHELL`, the default types (`DEFINT`
 to `DEFSTR`, `_DEFINE`), `OPTION BASE`, the type before the names (`DIM AS LONG a, b(3)`), dynamic arrays of the
 main module (`DIM` with a bound that is not constant, `$DYNAMIC`, `REDIM`, `REDIM _PRESERVE`, `ERASE`), `_BIT`
@@ -36,7 +36,11 @@ arrays, arrays used without `DIM`, arrays in procedures (`DIM`, `REDIM`, `STATIC
 a()`, `SUB … STATIC`), array parameters and `COMMON`, `STRING` members of a `TYPE`, whole `TYPE` values (`q =
 p`), parameters of a user type and member arrays (`v(0 TO 3) AS LONG` in a `TYPE`: elements through any chain,
 `LBOUND`/`UBOUND`, `REDIM` and `ERASE` as a clear, a whole member array as an array argument)
-(step 10, OpenSpec change `m2-defxxx-common-arrays`, archived 2026-10-12; `crates\README.md`). There is
+(step 10, OpenSpec change `m2-defxxx-common-arrays`, archived 2026-10-12; `crates\README.md`), and, with step
+11: programs with `$CONSOLE` (a console and a window), `$SCREENHIDE`/`$SCREENSHOW`, `_DEST`, `_SOURCE`,
+`_CONSOLE`, `_ECHO`, the 20 window built-ins of the upstream `glut` tests as code that is compiled and never
+run, 231 of the 310 constants of QB64pe's auto-included file (`_TRUE`, `_FALSE`, ...) and the precompiler flags
+in `$IF`. There is
 a thin language server (`qb64rust lsp`). A plain built-in now comes in as a row, a call-site program and a slice
 line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10).
 
@@ -71,49 +75,52 @@ The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3
     element beside other targets of one `ERASE` or `REDIM`, an element of a member array as a target of
     `INPUT`, `READ` or `MID$`, `REDIM t.v(0) AS type` under `OPTION BASE 1`.
 11. **Next:** (was 10) `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE` (`study\26` §5). Measured 2026-10-12
-    (`verification\v26_*`, 85 programs; the facts in `study\00` §5). OpenSpec change `m2-console-screenhide`
-    (proposed 2026-10-12; 7 task groups; 12 of 24 tasks done: group 1, the measurements before code, group 2
-    but its task 2.6, and group 3: a `$CONSOLE` program is compiled and built with a console and a window, the
-    four metacommands are matched exactly, and `_DEST`, `_SOURCE`, `_CONSOLE` and `_ECHO` are compiled, so
-    such a program prints to its console and reads it; `slice.list` has 292 programs, all passing, and
-    upstream is at 115 of 279. Open: task 2.6, reading the `tier2` job after the push of groups 2 and 3 (the
-    first run of a program with a window on the GitHub runner); then groups 4 to 6 in any order: the window
-    built-ins, the constants of the auto-included file, the precompiler flags), with the
-    wider scope the user decided
-    (`DECISIONS.md` 2026-10-12): also the window built-ins of the 19 upstream `glut` tests as compiled,
-    never-run code, the constants of the auto-included file (`_TRUE`, `_FALSE`) and the precompiler flags in
-    `$IF`. Still to check once: that the GitHub Windows runner can start a program with `$CONSOLE` and
-    `$SCREENHIDE` (upstream says GLFW cannot create a window there; task 2.6).
+    (`verification\v26_*`, 140 programs; the facts in `study\00` §5). OpenSpec change `m2-console-screenhide`
+    (proposed 2026-10-12; 7 task groups; 21 of 24 tasks done: groups 1 to 6), with the wider scope the user
+    decided (`DECISIONS.md` 2026-10-12). Built: a `$CONSOLE` program is compiled and built with a console and
+    a window, the four metacommands are matched exactly, `_DEST`, `_SOURCE`, `_CONSOLE` and `_ECHO` are
+    compiled (groups 2, 3); the window built-ins of the 19 upstream `glut` tests are compiled and never run
+    (group 4); the constants of the auto-included file are known in every program (group 5); the precompiler
+    flags in `$IF` have the old compiler's values (group 6). `slice.list` has 297 programs, all passing, and
+    upstream is at 140 of 279. The GitHub Windows runner starts a program with a window: `tier2` is green at
+    `ab418be` with `s63_console_window` passing, the job 18 min 22 s against 17 min 25 s before (task 2.6).
+    Groups 3 to 6 are not pushed yet. **Open: group 7**: the two full suites with the new compiler (`--suite
+    compile`, `--suite corpus`; the lists and tier 1 were run after group 6), the closing documents, and
+    reading CI after the push (the first run there of `s66`, whose `_ICON` links a libqb variant CI has not
+    built yet, so `tier2` will take a little longer once); then `/opsx:archive`. What stayed marked is in
+    `SOMEDAY.md` ("Left marked by `m2-console-screenhide`").
 
 ## Numbers at the last full runs
 
 2026-10-12, release build against the reference clone, after `m2-defxxx-common-arrays` (its task 10.1, session
 48: every run of tier 1 and tier 2 and both full suites, with `--jobs 8 --build-cache`). The two rows of the old
-compiler (the screen programs, the corpus of 336) are from session 40, 2026-10-10. Newer, from session 51
-(2026-10-12, after group 3 of `m2-console-screenhide`): the slice list, the upstream pass list and the call-site
-check, each run in full, and the upstream part of the demand row; the other rows are as they were.
+compiler (the screen programs, the corpus of 336) are from session 40, 2026-10-10. Newer, from session 52
+(2026-10-12, after group 6 of `m2-console-screenhide`): the slice list, the upstream pass list, the differential
+pass list and the call-site check, each run in full, tier 1, and the demand row; the two full-suite rows (the
+full corpus, the upstream suite of 404) are as they were and are task 7.1 of the change.
 
 | Yardstick | Result |
 |---|---|
-| `tests\corpus\slice.list` (tier 2) | 292 of 292, also with `QB64RUST_NO_FOLD=1`; about 3 min 30 s each |
+| `tests\corpus\slice.list` (tier 2) | 297 of 297, also with `QB64RUST_NO_FOLD=1`; about 3 min 30 s each from an empty build cache, under a minute when the cache holds the unchanged programs |
 | Full corpus (357 programs) | 306 pass (the 287 of the slice list, 19 `.err` programs), none wrong at run time; 45 rejected with "not supported yet" (16 and the 29 screen programs) and 1 `.err` program with only marked errors; 5 known failures (`tests\corpus\README.md`) |
-| Upstream | **115 of 279** (`tests\upstream\pass.list`: 115, all passing, run by itself); at the last full run of the suite, with 114 on the list, none wrong (404 programs: 114 pass, 251 rejected, 38 `.err` programs with only marked errors, 1 known failure) |
-| Call-site check | 284 of 284 programs equal (`tools\callsite\README.md`); about 1 min |
+| Upstream | **140 of 279** (`tests\upstream\pass.list`: 140, all passing, run by itself); at the last full run of the suite, with 114 on the list, none wrong (404 programs: 114 pass, 251 rejected, 38 `.err` programs with only marked errors, 1 known failure) |
+| Call-site check | 362 of 362 programs equal (`tools\callsite\README.md`); about 1 min 20 s |
 | Real programs (`tests\programs`) | Civil War Strategy: the front end reads it with no real error; every diagnostic is "not supported yet" (what it needs next: `tests\programs\README.md`) |
 | Differential (`tests\differential\pass.list`) | 59 of 59 |
 | Shrink-only lists | 0 false errors, 0 parse gaps, 53 only-marked rejections (`tests\upstream\README.md`) |
-| Tier 1 (`cargo test`) | passes, about 20 s; the 13 command-line tests that build an executable (`--ignored`) pass |
+| Tier 1 (`cargo test`) | passes (290 tests), about 28 s (23 to 26 s before step 11's groups 4 to 6, which added 156 programs and 7 tests; the front end over the same inputs takes 2.3 s before and after); the 13 command-line tests that build an executable (`--ignored`) pass |
 | The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 56 pass, under a second |
 | Screen programs (`tests\corpus\screen`, 29) | Old compiler: 29 pass, each recorded from two equal runs. New compiler: all 29 rejected with only "not supported yet" errors (by programs: no `$CONSOLE:ONLY` 29, `SCREEN` 23, `LINE` 20, `PSET` 17) |
-| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: 16 programs held back beside the 29 screen programs. Upstream (348 without an `.err`): 97 without errors, 241 held back, 10 with other errors (the ten that include the old compiler's sources); `_DYNAMIC`/`_STATIC` members 86 programs (deferred), `$Unstable` 85, an array used after a marked declaration 60, `_MEM` 30, `REDIM _RETAIN` 27, `_MEMFREE` 22 (no `_DEST` or `$CONSOLE` line is left; "programs without `$CONSOLE` or `$CONSOLE:ONLY`" is named by 10). Civil War Strategy: `LINE` 899, `COLOR` 190, `LOCATE` 145, as before |
+| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: 16 programs held back beside the 29 screen programs. Upstream (348 without an `.err`): 122 without errors, 216 held back, 10 with other errors (the ten that include the old compiler's sources); `_DYNAMIC`/`_STATIC` members 86 programs (deferred), `$Unstable` 85, an array used after a marked declaration 60, `_MEM` 30, `REDIM _RETAIN` 27, `_MEMFREE` 22 (no line names `_DEST`, `$CONSOLE`, a window built-in, `_TRUE` or a precompiler flag any more). Civil War Strategy: `LINE` 899, `COLOR` 190, `LOCATE` 145, as before |
 | Tier 2 as CI runs it, locally | about 12 min at the last full build; about 2 min with `--jobs 8 --build-cache` when little C++ changed |
 | Full corpus with the old compiler (2026-10-10, 336 programs) | 331 pass, 5 known failures, `--jobs 8`; the 305 before the screen programs took about 12 min with one job, 3 min 44 s with `--jobs 8` (`tools\legacy_tests\README.md`) |
 
 How to read them: the corpus has given what it can before M3 (its 16 rejected console programs wait on `PRINT
 USING`/`TAB`/`SPC`, random and binary files and a few functions; the 29 screen programs on drawing). Upstream
-went from 50 to 114 over step 10 (64 before its member arrays) and is at 115 after group 3 of step 11: `_DEST`
-and `$CONSOLE` hold no program back any more, but most programs that used them wait on something else. Its next
-blockers outside `deferred.list` are `_MEM` and the image built-ins (`_FREEIMAGE`, `_NEWIMAGE`); the
+went from 50 to 114 over step 10 (64 before its member arrays) and is at 140 after group 6 of step 11 (115
+after `_DEST` and `$CONSOLE`; all 19 `glut` tests with the window built-ins and `_TRUE`/`_FALSE`; four of the
+nine `precomp-flags` tests). Its next blockers outside `deferred.list` are `_MEM`, `$ASSERTS`/`$DEBUG` and the
+image built-ins that run; the
 `_DYNAMIC`/`_STATIC` markers and `$Unstable` are deferred (`SOMEDAY.md`).
 
 ## Known bugs

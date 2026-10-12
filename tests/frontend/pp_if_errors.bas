@@ -44,7 +44,7 @@ $IF LINUX THEN
 $ERROR not here
 $END IF
 $ERROR stop here
-' A precompiler flag the old compiler sets from the whole program: not supported yet (never evaluated with a guess):
+' A precompiler flag has the value the old compiler gives it from the whole program (2 here; the flags_* tests):
 $IF _CONSOLE_ = 2 THEN
 $ELSEIF _DEBUG_ THEN
 $END IF

@@ -205,7 +205,8 @@ impl Checker<'_> {
                 format!("the name of a SUB or FUNCTION as a `FOR` variable: `{shown}`"),
             ));
         }
-        if self.visible_const(&name).is_some() {
+        // A constant of the auto-included file is one whether the program named it before or not.
+        if self.visible_const(&name).is_some() || qb64rust_builtins::auto_constant(name.as_bytes()).is_some() {
             return Err(self.error(t.span, format!("the constant `{shown}` cannot be a `FOR` variable")));
         }
         let var = self.variable(t, name, suffix)?;

@@ -1,0 +1,9 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, window, hidden at the start
+Stmt line 11 may_raise
+  Builtin _ECHO [Value(Const "flag 2")]
+Stmt line 17
+  System

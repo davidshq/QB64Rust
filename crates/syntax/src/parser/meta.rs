@@ -11,7 +11,7 @@ use super::Parser;
 use super::blocks::Block;
 use crate::SyntaxKind::*;
 use crate::meta::comment_directives;
-use crate::pp::{Directive, directive, meta_line, precompiler_flag};
+use crate::pp::{Directive, directive, meta_line, meta_settings};
 use crate::program::LoadError;
 use qb64rust_base::show_bytes;
 
@@ -45,10 +45,15 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
     p.finish_node();
     let result = match d {
         Directive::Other => {
-            if meta_line(text) == b"$INCLUDEONCE" {
+            let line = meta_line(text);
+            if line == b"$INCLUDEONCE" {
                 // Later inclusions of this file are empty (`qb64pe.bas` 3141–3165, measured M7). With a tab or
                 // a word after it the line is an error, which `sema` reports (`verification\v26_x59`, `x61`).
                 p.inc.once.insert(p.file);
+            }
+            // The metacommands that set a precompiler flag (design D7 of `m2-console-screenhide`).
+            for &(feature, value) in meta_settings(&line) {
+                p.pp.met(feature, value);
             }
             Ok(())
         }
@@ -57,9 +62,10 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
             // The level is opened even when the line has an error (as in the old compiler, which counts it before
             // evaluating), so its `$END IF` gets no error of its own; its code is then compiled.
             let r = match d {
-                // `sema` marks it "not supported yet" (`MetaStmt::precompiler_flag`); taken, like a broken `$IF`.
-                Directive::If(cond) if precompiler_flag(&cond).is_some() => Err(String::new()),
-                Directive::If(cond) => p.pp.open_if(&cond),
+                Directive::If(cond) => {
+                    p.flag_condition(&cond, span);
+                    p.pp.open_if(&cond)
+                }
                 Directive::Malformed(msg) => Err(msg.to_string()),
                 _ => Ok(()),
             };
@@ -72,11 +78,8 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
         }
         Directive::ElseIf(cond) => {
             p.pp_branch(span);
-            match precompiler_flag(&cond) {
-                // Not taken; `sema` marks it "not supported yet", which rejects the program.
-                Some(_) => p.pp.else_if(b"0"),
-                None => p.pp.else_if(&cond),
-            }
+            p.flag_condition(&cond, span);
+            p.pp.else_if(&cond)
         }
         Directive::Else => {
             p.pp_branch(span);
@@ -92,11 +95,8 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
         Directive::Let(text) => p.pp.let_(&text),
         Directive::Error(text) => Err(format!("`$ERROR`: {}", show_bytes(&text))),
     };
-    match result {
-        // A precompiler flag, marked by `sema`.
-        Err(msg) if msg.is_empty() => {}
-        Err(msg) => p.error_at(span, msg),
-        Ok(()) => {}
+    if let Err(msg) = result {
+        p.error_at(span, msg);
     }
     if p.pp.active() {
         return false;
@@ -183,12 +183,8 @@ fn inactive_code(p: &mut Parser) {
     p.finish_node();
 }
 
-/// The error of a nested `$IF`/`$ELSEIF` condition in an inactive branch, if any (its value does not matter; a
-/// precompiler flag is not evaluated).
+/// The error of a nested `$IF`/`$ELSEIF` condition in an inactive branch, if any (its value does not matter).
 fn nested_condition_error(p: &Parser, cond: &[u8]) -> Option<String> {
-    if precompiler_flag(cond).is_some() {
-        return None;
-    }
     p.pp.eval(cond).err()
 }
 
@@ -248,6 +244,17 @@ impl Parser<'_, '_> {
             if !crossed {
                 self.remove_last_pp_if();
             }
+        }
+    }
+
+    /// Before the condition of the `$IF` or `$ELSEIF` at `span` is evaluated: when it names a precompiler flag
+    /// that has another value here than at the first line of the round, the old compiler's two passes read the
+    /// line differently (design D7 of `m2-console-screenhide`; measured, `verification\v26_x27`, `x34`). The line
+    /// is noted; the branch is chosen by the value here, as the first pass chooses it. In a round that is not the
+    /// last the note is thrown away with the tree; in the last one `sema` marks the line "not supported yet".
+    fn flag_condition(&mut self, cond: &[u8], span: qb64rust_base::Span) {
+        if self.pp.flag_condition(cond) {
+            self.inc.passes_disagree.insert((self.tree, span.start));
         }
     }
 

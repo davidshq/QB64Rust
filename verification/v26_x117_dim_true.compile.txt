@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):DIM _TRUE AS LONG
+LINE 4:DIM _TRUE AS LONG
+exit=1

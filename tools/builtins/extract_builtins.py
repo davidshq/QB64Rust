@@ -244,6 +244,10 @@ AUTO_INCLUDES = [
 ]
 
 
+# The precompiler flags the auto-included files test, as a Windows 64-bit build sets them.
+PRECOMPILER_FLAGS = {"WIN": True, "32BIT": False}
+
+
 def name_of(word):
     """A declared name without its type suffix, upper case."""
     m = re.match(r"[A-Za-z_][A-Za-z0-9_.]*", word.strip())
@@ -259,18 +263,45 @@ def auto_include_names():
         path = os.path.join(SUPPORT, *rel.split("/"))
         with open(path, encoding="latin-1") as f:
             lines = f.read().splitlines()
-        seen = set()
+        seen = {}
 
         def add(name, kind, seen=seen, rel=rel, condition=condition):
-            if name and (name, kind) not in seen:
-                seen.add((name, kind))
+            """The record of a name, new or met before (the other branch of a `$IF`)."""
+            if not name:
+                return None
+            if (name, kind) not in seen:
                 rec = {"name": name, "kind": kind, "file": rel}
                 if condition:
                     rec["condition"] = condition
+                seen[(name, kind)] = rec
                 out.append(rec)
+            return seen[(name, kind)]
 
+        # The `$IF` blocks of these files test `WIN` and `32BIT` only, and are not nested. A constant's value is
+        # recorded from the branch a Windows 64-bit build takes (m2-console-screenhide, design D8); its name is
+        # recorded from every branch.
+        taken = True
+        in_if = False
         for raw in lines:
             code, _ = strip_comment(raw)
+            meta = code.strip().upper()
+            if meta.startswith("$IF "):
+                if in_if:
+                    raise SystemExit("%s: a nested $IF, which this extractor does not read" % rel)
+                in_if = True
+                flag = meta[4:].replace("THEN", "").strip()
+                # `None`: a condition not known here (`_SOCKETS_`); a `CONST` inside it stops the extractor.
+                taken = PRECOMPILER_FLAGS.get(flag)
+                continue
+            if meta == "$ELSE":
+                taken = None if taken is None else not taken
+                continue
+            if meta == "$END IF":
+                taken = True
+                in_if = False
+                continue
+            if meta.startswith("$ELSEIF"):
+                raise SystemExit("%s: a $ELSEIF, which this extractor does not read" % rel)
             for stmt in split_statements(code):
                 s = stmt.strip()
                 u = s.upper()
@@ -285,7 +316,14 @@ def auto_include_names():
                             cur += c
                     items.append(cur)
                     for item in items:
-                        add(name_of(item.split("=")[0]), "const")
+                        written, _, value = item.partition("=")
+                        rec = add(name_of(written), "const")
+                        if taken is None:
+                            raise SystemExit("%s: a CONST under a $IF not known here: %s" % (rel, s))
+                        if rec is not None and taken:
+                            # The type suffix as written (`##` of `_E##`), and the text of the expression.
+                            rec["suffix"] = written.strip()[len(rec["name"]) :]
+                            rec["value"] = value.strip()
                 elif re.match(
                     r"(DECLARE\s+(LIBRARY\s+)?)?(SUB|FUNCTION)\s", u
                 ) and not u.startswith("DECLARE LIBRARY"):

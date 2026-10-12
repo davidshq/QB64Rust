@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _WINDOWSIZELIMIT [(minWidth, minHeight)] [- (maxWidth, maxHeight)]
+Caused by (or after):_WINDOWSIZELIMIT ( 320 )
+LINE 6:_WINDOWSIZELIMIT (320)
+exit=1

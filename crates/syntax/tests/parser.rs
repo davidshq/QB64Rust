@@ -2,18 +2,18 @@
 
 use qb64rust_base::SourceMap;
 use qb64rust_syntax::tree::print;
-use qb64rust_syntax::{NoLoader, ParsedProgram, dump_tree, parse};
+use qb64rust_syntax::{NoLoader, ParsedProgram, dump_tree, parse_settled};
 
 fn parse_one(src: &[u8]) -> ParsedProgram {
     let mut map = SourceMap::new();
     let file = map.add("t.bas", src.to_vec());
-    parse(&mut map, file, &mut NoLoader)
+    parse_settled(&mut map, file, &mut NoLoader)
 }
 
 fn tree(src: &str) -> String {
     let mut map = SourceMap::new();
     let file = map.add("t.bas", src.as_bytes().to_vec());
-    let program = parse(&mut map, file, &mut NoLoader);
+    let program = parse_settled(&mut map, file, &mut NoLoader);
     let p = program.main();
     assert_eq!(print(&p.green, src.as_bytes()), src.as_bytes(), "round trip");
     let mut out = dump_tree(p.root(), src.as_bytes());

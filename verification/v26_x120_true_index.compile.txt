@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):N = _TRUE ( 1 )
+LINE 4:n = _TRUE(1)
+exit=1

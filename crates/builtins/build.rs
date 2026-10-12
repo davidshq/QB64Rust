@@ -54,13 +54,14 @@ fn main() {
         writeln!(
             out,
             "    Builtin {{ name: {:?}, kind: {kind}, callname: {:?}, arg_types: &[{}], optional: {slots}, \
-             specialformat: {:?}, ret: {:?}, musthave: {:?} }},",
+             specialformat: {:?}, ret: {:?}, musthave: {:?}, dependency: {:?} }},",
             s("name").unwrap(),
             s("callname").unwrap_or(""),
             arg_types.join(", "),
             format,
             s("ret"),
             s("musthave"),
+            s("dependency"),
         )
         .unwrap();
     }
@@ -79,6 +80,24 @@ fn main() {
     out.push_str("pub static AUTO_INCLUDE_NAMES: &[&str] = &[\n");
     for n in names {
         writeln!(out, "    {n:?},").unwrap();
+    }
+    out.push_str("];\n");
+    // The constants of the file included before the first line, in file order, each with its type suffix and the
+    // text of its expression as a Windows 64-bit build reads it (design D8 of `m2-console-screenhide`).
+    out.push_str("pub static AUTO_CONSTANTS: &[AutoConstant] = &[\n");
+    for r in doc["auto_include"].as_array().expect("auto_include array") {
+        let s = |k: &str| r.get(k).and_then(|v| v.as_str());
+        if s("kind") != Some("const") || r.get("condition").is_some() {
+            continue;
+        }
+        writeln!(
+            out,
+            "    AutoConstant {{ name: {:?}, suffix: {:?}, value: {:?} }},",
+            s("name").expect("name"),
+            s("suffix").expect("the suffix of an auto-included constant"),
+            s("value").expect("the value of an auto-included constant"),
+        )
+        .unwrap();
     }
     out.push_str("];\n");
     let dest = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("builtins_table.rs");

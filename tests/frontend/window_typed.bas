@@ -1,0 +1,57 @@
+' TEST: typed
+$CONSOLE
+$SCREENHIDE
+' The window functions in the typed tree (m2-console-screenhide task 4.1, design D6; measured from the old
+' compiler's C++ and compared by tests\callsite). _SCREENICON, _DESKTOPWIDTH, _DESKTOPHEIGHT, _SCREENX, _SCREENY and
+' _WINDOWHASFOCUS are called by their bare name and are a LONG; so is _SCREENEXISTS, which has no return type in
+' the table; _TITLE$ is a string; _NEWIMAGE has two LONG slots and an optional third; _WINDOWHANDLE is an
+' _UNSIGNED _OFFSET, bare or with one LONG argument, and behaves as a variable of that type (a division rounds)
+DIM l AS LONG, i AS INTEGER, q AS _INTEGER64, f AS DOUBLE, sg AS SINGLE, s AS STRING, o AS _UNSIGNED _OFFSET
+l = _SCREENICON
+l = _DESKTOPWIDTH
+l = _DESKTOPHEIGHT
+l = _SCREENX
+l = _SCREENY
+l = _WINDOWHASFOCUS
+l = _SCREENEXISTS
+s = _TITLE$
+i = _SCREENX
+q = _DESKTOPWIDTH
+f = _SCREENEXISTS
+l = _DESKTOPWIDTH - _SCREENX
+f = _DESKTOPHEIGHT / 2
+l = -_SCREENEXISTS
+l = NOT _SCREENEXISTS
+l = _SCREENEXISTS AND _WINDOWHASFOCUS
+s = _TITLE$ + STR$(_SCREENY) + HEX$(_SCREENX) + STR$(_SCREENEXISTS) + HEX$(_SCREENEXISTS + 0)
+PRINT _SCREENICON; _DESKTOPWIDTH; _SCREENEXISTS; _TITLE$; LEN(_TITLE$)
+IF _SCREENEXISTS THEN l = 1
+IF _WINDOWHASFOCUS = 0 THEN l = 2
+show _SCREENEXISTS, _SCREENX
+SELECT CASE _SCREENEXISTS
+    CASE -1
+        l = 3
+END SELECT
+l = _NEWIMAGE(l, l)
+l = _NEWIMAGE(l, l, l)
+l = _NEWIMAGE(640, 480, 32)
+l = _NEWIMAGE(i, sg, f)
+l = _NEWIMAGE(q, 1.6)
+l = _NEWIMAGE(_DESKTOPWIDTH, _DESKTOPHEIGHT, 32)
+o = _WINDOWHANDLE
+o = _WINDOWHANDLE(l)
+o = _WINDOWHANDLE(1)
+o = _WINDOWHANDLE(sg)
+l = _WINDOWHANDLE
+q = _WINDOWHANDLE(2)
+f = _WINDOWHANDLE
+f = _WINDOWHANDLE / 3
+s = STR$(_WINDOWHANDLE)
+PRINT _WINDOWHANDLE <> 0
+PRINT _WINDOWHANDLE(1) <> 0
+PRINT _WINDOWHANDLE
+SYSTEM
+
+SUB show (a AS LONG, d AS DOUBLE)
+    PRINT a; d; _SCREENX
+END SUB

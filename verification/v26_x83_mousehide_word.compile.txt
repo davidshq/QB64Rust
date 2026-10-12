@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _MOUSEHIDE [_DISABLE]
+Caused by (or after):_MOUSEHIDE _SHOW
+LINE 6:_MOUSEHIDE _SHOW
+exit=1

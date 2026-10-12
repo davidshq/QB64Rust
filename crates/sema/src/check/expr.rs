@@ -49,6 +49,7 @@ impl Checker<'_> {
                 if let Some(p) = self.proc_in_expr(&name, suffix) {
                     return self.call_function(p, t, suffix, None, span);
                 }
+                self.auto_const(&name, t.span)?;
                 if let Some(c) = self.visible_const(&name) {
                     return self.const_use(c, t, suffix, span);
                 }
