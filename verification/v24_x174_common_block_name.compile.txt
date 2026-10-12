@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):COMMON / BLK / B1 AS LONG
+LINE 3:COMMON /blk/ b1 AS LONG
+exit=1

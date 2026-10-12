@@ -1,0 +1,5 @@
+
+Ambiguous DATA label
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 5:
+exit=1

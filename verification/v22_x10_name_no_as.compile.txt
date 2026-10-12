@@ -1,0 +1,5 @@
+
+Syntax error - Reference: NAME oldFileOrFolderName$ AS newFileOrFolderName$
+Caused by (or after):NAME "a",1
+LINE 3:NAME "a"
+exit=1

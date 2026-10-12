@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):PRINT STR$ ( "a",1 )
+LINE 3:PRINT STR$("a")
+exit=1

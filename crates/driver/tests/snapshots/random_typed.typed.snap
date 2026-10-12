@@ -1,0 +1,68 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 8: Assign D:F64
+  Convert Widen : F64
+    Call RND : F32
+      (absent)
+line 9: Assign D:F64
+  Convert Widen : F64
+    Call RND : F32
+      Int 1 : I16
+line 10: Assign D:F64
+  Convert Widen : F64
+    Call RND : F32
+      Var L : I32
+line 11: Assign D:F64
+  Convert Widen : F64
+    Call RND : F32
+      Var D : F64
+line 12: Assign S:F32
+  Binary Mul : F32
+    Call RND : F32
+      (absent)
+    Convert Nearest : F32
+      Int 2 : I16
+line 13: Assign D:F64
+  Call TIMER : F64 (qb F32)
+    (absent)
+line 14: Assign D:F64
+  Call TIMER : F64 (qb F32)
+    Float 0.001E+0 : F64 (qb F32)
+line 15: Assign D:F64
+  Call TIMER : F64 (qb F32)
+    Convert Nearest : F64
+      Var L : I32
+line 16: Assign S:F32
+  Convert Nearest : F32
+    Binary Add : F64 (qb F32)
+      Call TIMER : F64 (qb F32)
+        (absent)
+      Convert Nearest : F64
+        Int 1 : I16
+line 17: Print newline
+  Num
+    Call RND : F32
+      (absent)
+  Num
+    Convert Nearest : F32
+      Call TIMER : F64 (qb F32)
+        (absent)
+line 18: Builtin RANDOMIZE
+  (absent)
+  Convert Nearest : F64
+    Int 5 : I16
+line 19: Builtin RANDOMIZE
+  word 0
+  Convert Nearest : F64
+    Var L : I32
+line 20: Builtin RANDOMIZE
+  (absent)
+  Call TIMER : F64 (qb F32)
+    (absent)
+line 21: Builtin RANDOMIZE
+  (absent)
+  Convert Nearest : F64
+    Int 5 : I16

@@ -1,0 +1,5 @@
+
+Element not defined
+Caused by (or after):A ( 1 ) . C = 3
+LINE 7:a(1).c = 3
+exit=1

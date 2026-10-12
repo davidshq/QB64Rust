@@ -1,0 +1,54 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY A:Str(0 TO 2)
+line 2: ConsoleOnly
+line 9: Builtin KILL
+  Str "f.tmp" : Str
+line 10: Builtin KILL
+  Var S : Str
+line 11: Builtin KILL
+  Concat : Str
+    Var S : Str
+    Str ".x" : Str
+line 12: Builtin KILL
+  Var FX : Str
+line 13: Builtin KILL
+  Element A(…) : Str
+    Int 1 : I64
+line 14: Builtin KILL
+  Var S : Str
+line 15: Builtin KILL
+  Str "f.tmp" : Str
+line 16: Builtin MKDIR
+  Str "d" : Str
+line 17: Builtin RMDIR
+  Concat : Str
+    Var S : Str
+    Str "d" : Str
+line 18: Builtin CHDIR
+  Str ".." : Str
+line 19: Builtin NAME
+  Var S : Str
+  word 0
+  Concat : Str
+    Var S : Str
+    Str "2" : Str
+line 20: Builtin NAME
+  Str "a" : Str
+  word 0
+  Str "b" : Str
+line 21: Builtin ENVIRON
+  Str "A=1" : Str
+line 22: Call REMOVE
+  temp
+    Str "x" : Str
+SUB REMOVE
+  param F:Str
+line 24: Builtin KILL
+  Var F (param) : Str
+line 25: Builtin MKDIR
+  Concat : Str
+    Var F (param) : Str
+    Str "d" : Str

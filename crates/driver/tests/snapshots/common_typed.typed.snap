@@ -1,0 +1,97 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE PT
+  X:I32
+ARRAY LB:I32 dynamic, 1 dimension
+ARRAY CS:I32 dynamic, 1 dimension
+ARRAY IGN:I32 dynamic, 2 dimensions
+ARRAY OTHER:F32 dynamic, 1 dimension
+ARRAY NEVER:F64 dynamic, 1 dimension
+ARRAY OTHER:I32(0 TO 3)
+ARRAY SC:F32(0 TO 3)
+line 2: ConsoleOnly
+line 12: Assign N:F32
+  Convert Nearest : F32
+    Int 3 : I16
+line 18: Allocate CS:I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Var N : F32
+line 19: Allocate IGN:I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+  Lower
+    Int 0 : I64
+  Upper
+    Int 5 : I64
+line 21: Allocate LB:I32 (Dim)
+  Lower
+    Int 1 : I64
+  Upper
+    Int 2 : I64
+line 23: Allocate CS:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 9 : I64
+line 24: Assign TOTAL:I32
+  Int 5 : I32
+line 24: Assign V:I32
+  Var TOTAL : I32
+line 24: Assign W.X:I32
+  Int 1 : I32
+line 24: Assign FX:Str*4
+  Str "abcdef" : Str
+line 24: Assign SC:F32
+  Convert Nearest : F32
+    Int 1 : I16
+line 24: Assign SC(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Convert Nearest : F32
+      Int 2 : I16
+line 25: Assign OTHER(…):I32
+  Index
+    Int 1 : I64
+  Value
+    Binary Add : I32 (qb I64)
+      Var LA : I32
+      Element LB(…) : I32
+        Int 1 : I64
+line 26: Print newline
+  Num
+    Element NEVER(…) : F64
+      Int 1 : I64
+line 27: Call SHOW
+line 28: System
+SUB SHOW
+  local V:F32
+line 30: Print newline
+  Num
+    Var TOTAL : I32
+  Str
+    Var WORD : Str
+  Num
+    Member W.X : I32
+  Str
+    Var FX : Str
+  Num
+    Element CS(…) : I32
+      Int 2 : I64
+  Num
+    Element IGN(…) : I32
+      Int 1 : I64
+      Int 2 : I64
+line 31: Print newline
+  Num
+    Var V (local) : F32
+  Num
+    Element OTHER(…) : F32
+      Int 2 : I64

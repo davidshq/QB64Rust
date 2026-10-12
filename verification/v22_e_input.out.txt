@@ -1,0 +1,43 @@
+1 no prompt, answer 42
+? < 42 >
+2 prompt with ; answer 43
+number? < 43 >
+3 prompt with , answer 44
+number: < 44 >
+4 leading ; answer 45, then text on the same line
+stay? < 45 >
+5 leading ; without a prompt, answer 46
+? < 46 >
+6 three targets, answer 1, two words ,3.5
+three? < 1 >< two words >< 3.5 >
+7 a quoted field with a comma, answer "a, b",c
+? <a, b><c>
+8 blanks around fields, answer '  7  ,  x y  '
+? 77< 7 ><  x y>
+9 an empty line into a number and a string
+? < 0 >
+? <>
+10 every numeric type, answer 1,2,3,4,5,6,7,8,1.5,2.5,3.5
+?  1  2  3  4  5  6  7  8  1.5  2.5  3.5 
+11 2.5 into each integer type
+? 225,225,25,225,25,25,2 25  25  25  25 
+12 number forms, answer &H10,1e3,1d3,.5,-.5,+5
+? &H10,1e3,1d3,.5,-.5, 16  .5 -.5  5 
+13 a fixed-length string, an element, a string element, members; answer abcdefgh,5,el,6,memb
+? abcdabcdabcdabcd<abcd>< 5 ><el>< 6 ><memb>
+14 LINE INPUT without a prompt, answer 'a, b  c'
+<a, b  c>
+15 LINE INPUT with a prompt and ; answer '  spaced  '
+line; <  spaced>
+16 LINE INPUT with a prompt and , answer q
+line, <q>
+17 LINE INPUT with a leading ; answer r, then text on the same line
+stay <r>
+18 LINE INPUT of an empty line
+<>
+19 LINE INPUT into a fixed-length string and an element, answers abcdefgh and elem
+abcdabcdabcdabcd<abcd><elem>
+20 an implicit variable, answer 9
+? < 9 >
+done
+exit=0

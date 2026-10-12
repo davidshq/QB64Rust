@@ -16,12 +16,18 @@ reports or stores SHALL be a file and a byte offset; columns in diagnostics SHAL
 - **THEN** it compiles, and the executable writes exactly those three bytes followed by the line end
 
 ### Requirement: Lossless syntax tree
-The parser SHALL produce a tree whose tokens, printed in order, reproduce the input file byte for byte, including
-whitespace, comments, line ends and any text it could not parse.
+The parser SHALL produce one tree per file of a program (the main file and each inclusion of a file), and the
+tokens of each tree, printed in order, SHALL reproduce that file byte for byte, including whitespace, comments,
+line ends, inactive `$IF` branches and any text it could not parse.
 
 #### Scenario: Round trip of the corpus
 - **WHEN** every `.bas` file under `tests/corpus` is parsed
 - **THEN** printing each tree gives the file's exact bytes, and no parse panics
+
+#### Scenario: Round trip of an included file
+- **WHEN** a program includes `lib.bi` with `'$INCLUDE:'lib.bi'`
+- **THEN** printing the main tree gives the main file's bytes, and printing the included tree gives `lib.bi`'s
+  bytes
 
 ### Requirement: Error recovery
 The front end SHALL report at most one error per statement, SHALL continue with the next statement after an
@@ -45,14 +51,32 @@ be an explicit conversion node, and every operator node SHALL carry the type it 
 
 ### Requirement: ABI-neutral IR
 The IR SHALL NOT refer to libqb or `qbx.cpp` symbols, C types, `passed` masks, by-value temporaries, storage
-allocation or the event loop. Optional arguments SHALL be represented as present or absent; procedure arguments
-as a reference to a variable or a by-value copy of a value; variables SHALL carry a storage class (main module,
-procedure-static, per-call local, parameter, function result); operations that may raise a runtime error SHALL be
-marked; labels SHALL be positions in a body, not jumps. The IR SHALL state that errors are pending and handled per
+allocation, array descriptors, byte offsets or the event loop. Optional arguments SHALL be represented as present
+or absent; procedure arguments as a reference to a place or a by-value copy of a value; variables SHALL carry a
+storage class (main module, procedure-static, per-call local, parameter, function result, hidden temporary of a
+body); operations that may raise a runtime error SHALL be marked. A place SHALL be a variable, an element of an
+array (one index per dimension, already converted to a 64-bit integer; the array a variable or a member array of
+a place of a user type), or a member of a place of a user type;
+values SHALL be read from places and stored into places. Types SHALL include user types, named by an id of the
+program's list of user types. A body SHALL be a flat list of statements; labels SHALL be positions in a body, the
+program's own and those the lowering adds, and control SHALL move between them only by jump, conditional jump,
+`GOSUB` and `RETURN` operations of that body. The IR SHALL state that errors are pending and handled per
 statement: a raising operation records a pending error and yields a placeholder value, the statement goes on (a
-store or a call made with that value still happens), only the points the IR names check for a pending error (each
-`PRINT` item: a raising item skips the rest of its statement), errors are serviced at the statement boundary, a
-retry re-runs the statement that raised, and resuming next continues after it, in the procedure where it raised.
+store made with that value still happens, by the rule of its place below), only the points the IR names check for
+a pending error (each `PRINT` item: a raising item skips the rest of its statement; a procedure's entry: a
+procedure entered while an error is pending returns at once; a jump or conditional jump is not taken while an
+error is pending, unless the conditional jump is marked as using the placeholder value; a store into an element
+of an array variable: its indexes are evaluated first, and while an error is pending after them the value is not
+evaluated and the store is skipped), errors are serviced at the boundary of the statement where they were raised, or, when
+a conditional jump using the placeholder value leaves that statement, at the boundary of the next statement that
+runs; a retry re-runs the statement where the error is serviced, and resuming next continues after it, in the
+procedure where it raised. The first error raised in a statement SHALL be the one serviced. A store into a variable
+or into a member of a variable SHALL NOT check for a pending error. A store into a place reached through a member
+with an index on the way (a member of an array element, an element of a member array) SHALL evaluate a numeric
+value before the indexes and a string value after them (measured, `verification\v24_x313`, `x316`: the old
+compiler's string store evaluates its place first), and SHALL be skipped when an index is out of range or when
+the indexes raised an error while none was pending before them (`DIVERGENCES.md` D-004). An index out of range
+SHALL raise error 9, and a read with it SHALL give the value at position 0 of that dimension.
 
 #### Scenario: Optional argument absent
 - **WHEN** `INSTR("hello", "ll")` is lowered
@@ -69,6 +93,74 @@ retry re-runs the statement that raised, and resuming next continues after it, i
   in `tests/corpus/slice`, run with `QB64PE_NOPROMPT=continue` from its `.noprompt` file, so the program goes on)
 - **THEN** the remaining items of that statement, and its line end, are not printed, and the next statement's
   output follows on the same line, as with the old compiler
+
+#### Scenario: FOR loop lowered
+- **WHEN** `FOR i% = 1 TO n: PRINT i%: NEXT` is lowered
+- **THEN** the IR holds the limit and the step in hidden temporaries wider than `i%`, and the loop is statements
+  with labels and jumps; no C type, `fornext_` name or `goto` text appears before the C++ output
+
+#### Scenario: Header error follows from the pending-error rule
+- **WHEN** the condition of a `WHILE` raises an error and the program resumes next
+- **THEN** the conditional jump that leaves the loop is not taken, because an error is pending, so the body runs,
+  as with the old compiler
+
+#### Scenario: A store made with a placeholder value
+- **WHEN** `x = 5: x = ASC("")` runs and the handler executes `RESUME NEXT`
+- **THEN** `x` holds 0, the placeholder value, as with the old compiler (`verification/v17_a_pending`)
+
+#### Scenario: A SUB called with a raising argument
+- **WHEN** `show ASC("")` calls `SUB show (v AS SINGLE)` that prints a line, and the handler executes `RESUME NEXT`
+- **THEN** the handler runs and the SUB prints nothing, as with the old compiler
+
+#### Scenario: ELSEIF condition raises
+- **WHEN** a block `IF` whose `IF` condition is false reaches `ELSEIF CHR$(k) = "a" THEN` with `k = -1`, its `ELSE`
+  branch prints `else`, and the handler executes `RESUME NEXT`
+- **THEN** the condition is tested with the placeholder value `""` (false), the error is serviced at the `ELSE`
+  branch's `PRINT`, which prints nothing, and execution continues after it; with `RESUME` instead (and `k` set to
+  65 by the handler), the `PRINT` is re-run and prints `else`
+
+#### Scenario: FOR limits computed with a placeholder value
+- **WHEN** `FOR i = 1 TO LEN(CHR$(-1)) + 2` raises an error in its limit and the program resumes next
+- **THEN** all three hidden temporaries are stored (the limit from the placeholder value), the jump to the loop
+  entry is not taken, and the body runs with `i` unassigned, as with the old compiler
+
+#### Scenario: Places lowered
+- **WHEN** `x(i) = 1: p.m = 2: a(i).m = 3: y = x(i) + p.m` is lowered for an array `x`, a user-type variable `p`
+  and an array `a` of that type
+- **THEN** the IR names an element place, a member place and a member of an element place, each index converted to
+  a 64-bit integer, and no descriptor slot, `array_check` or byte offset appears before the C++ output
+
+#### Scenario: Element store with a raising index
+- **WHEN** `x(99) = 5` runs for `DIM x(10)` and the handler executes `RESUME NEXT`
+- **THEN** error 9 is serviced and no element of `x` changes, as with the old compiler
+
+#### Scenario: Element store with a raising value
+- **WHEN** `x(9) = ASC("")` runs with `x(9)` holding 5 and the handler executes `RESUME NEXT`
+- **THEN** `x(9)` holds 0, the placeholder value, as with the old compiler
+
+#### Scenario: Member store with a raising value
+- **WHEN** `p.m = ASC("")` runs with `p.m` holding 5 and the handler executes `RESUME NEXT`
+- **THEN** `p.m` holds 0, the placeholder value, as with the old compiler
+
+#### Scenario: Member of an element with a bad index
+- **WHEN** `a(9).m = 5` runs for `DIM a(3) AS t` with `a(0).m` holding 70 and the handler executes `RESUME NEXT`
+- **THEN** error 9 is serviced and `a(0).m` still holds 70 (the old compiler writes 5 there: `DIVERGENCES.md` D-004)
+
+#### Scenario: Value before index in a member-of-element store
+- **WHEN** `a(9).m = ASC("")` runs for the same array under a handler that prints `ERR`
+- **THEN** the handler prints 5 once, the value's error, as with the old compiler, and no element changes
+
+#### Scenario: String value after the indexes
+- **WHEN** `z$ = "before": a(setz(1)).s = z$` runs for a `STRING` member `s`, where FUNCTION `setz` stores
+  `"after"` into the shared `z$` and returns its argument
+- **THEN** `a(1).s` holds `after`, as with the old compiler; the same for `z$ + "!"` (`after!`), for a
+  `STRING * n` member and for an element of a member array (`verification\v24_x316`)
+
+#### Scenario: Element of a member array with a bad index
+- **WHEN** `t.v(9) = 5` runs for a member `v(0 TO 3) AS LONG` with `t.v(0)` holding 100, and `a(1).v(9) = 6` for
+  an array `a` of the type, and the handler executes `RESUME NEXT`
+- **THEN** error 9 is serviced each time and no element changes (the old compiler writes `t.v(0)` and
+  `a(1).v(0)`: `DIVERGENCES.md` D-004)
 
 ### Requirement: C++ output and build
 The C++ emitter SHALL write every fragment that `qbx.cpp` includes into a build folder that is not inside the
@@ -119,3 +211,238 @@ an error the old compiler also reports.
 - **WHEN** the parser cannot read a statement because it uses syntax not handled yet (an operator such as `MOD`
   inside an otherwise supported statement)
 - **THEN** the diagnostic is marked "not supported yet", not reported as a syntax error
+
+### Requirement: The whole language parses
+Every statement and expression form the old compiler accepts SHALL parse into a node of its own kind, without a
+parser diagnostic. A construct that the later stages do not compile yet SHALL be reported "not supported yet" by
+`sema` at that node, not by the parser.
+
+#### Scenario: Statement not compiled yet
+- **WHEN** a program contains `DO: LSET a$ = b$: LOOP UNTIL a > 0`
+- **THEN** the tree has a `DoBlock` holding an `LsetStmt`, and the only diagnostic is one "not supported yet" error
+  at `LSET`
+
+#### Scenario: Built-in statement read by its template
+- **WHEN** a program contains `LINE (0, 0)-(9, 9), , BF`
+- **THEN** it parses into one `BuiltinStmt` with `BF` as a word, not as a variable
+
+#### Scenario: Member access after an index
+- **WHEN** a program contains `PRINT a(1).b`
+- **THEN** it parses without a diagnostic, and the item is a member access on `a(1)`
+
+### Requirement: Block structure
+Block statements (`IF`, `FOR`, `DO`, `WHILE`, `SELECT CASE`, `TYPE`, `DECLARE LIBRARY`, `DEF FN`, `SUB`,
+`FUNCTION`) SHALL be nodes holding their body. A missing closer SHALL be one error at the block's header; a closer
+without its block SHALL be one error at the closer; parsing SHALL continue after either.
+
+#### Scenario: Missing END IF
+- **WHEN** a program opens `IF a THEN` on line 2 and never closes it
+- **THEN** one error is reported at line 2, and statements after it are still parsed
+
+#### Scenario: One NEXT closes two loops
+- **WHEN** a program has `FOR i = 1 TO 2`, then `FOR j = 1 TO 2`, then `NEXT j, i`
+- **THEN** both loops are closed and no error is reported
+
+### Requirement: Comment metacommands are never ignored
+A comment whose first non-blank character after `'` or `REM` is `$` SHALL be examined for `$INCLUDE`, `$STATIC`
+and `$DYNAMIC` by the old compiler's rule. Each one found SHALL either take effect or be reported "not supported
+yet"; it SHALL NOT be treated as a plain comment.
+
+#### Scenario: Comment include
+- **WHEN** a program contains `'$INCLUDE: 'lib.bm'`
+- **THEN** `lib.bm` is included after that line
+
+#### Scenario: Not a metacommand
+- **WHEN** a program contains `'$Format:Off`
+- **THEN** it is an ordinary comment
+
+### Requirement: Preprocessor
+`$IF`, `$ELSEIF`, `$ELSE`, `$END IF` and `$LET` SHALL be evaluated in file order across included files, for
+Windows 64-bit. Code in an inactive branch SHALL be kept in the tree but not parsed or checked; an active `$ERROR`
+SHALL be an error.
+
+#### Scenario: Inactive branch
+- **WHEN** a program contains `$IF LINUX THEN`, a line that is not valid BASIC, and `$END IF`
+- **THEN** no error is reported for that line
+
+#### Scenario: Block header in a $IF branch, closer outside
+- **WHEN** a program contains `$IF WIN THEN`, `IF x THEN`, `$END IF`, a statement and `END IF`
+- **THEN** the compile fails with an error at the `$END IF` (the old compiler rejects it too, reporting the
+  `END IF`)
+
+#### Scenario: SUB inside a $IF branch
+- **WHEN** a program contains `$IF WIN THEN`, a whole `SUB` … `END SUB`, and `$END IF`
+- **THEN** no error is reported for the nesting
+
+#### Scenario: Guarded self-include
+- **WHEN** `a.bi` contains `$IF DONE = UNDEFINED THEN`, `$LET DONE = 1`, `'$INCLUDE:'a.bi'` and `$END IF`, and the
+  main file includes `a.bi`
+- **THEN** no error is reported, and `a.bi` is parsed twice, the second time with the branch inactive
+
+#### Scenario: $LET in an included file
+- **WHEN** `lib.bi` contains `$LET FAST = 1` and the main file, after including it, contains `$IF FAST = 1 THEN`
+- **THEN** the branch is active
+
+### Requirement: Included files
+A comment `'$INCLUDE:'file'` (or `REM $INCLUDE:'file'`) SHALL include the file after the line it is on;
+`$INCLUDE:'file'` without a comment SHALL be an error, as in the old compiler. An absolute path SHALL be used as
+written; a relative one SHALL be looked up in the including file's folder, then relative to the compiler root (see
+the CLI spec), never relative to the working directory. `$INCLUDEONCE` in a file SHALL make later inclusions of that file empty. A missing file, an empty name,
+or an inclusion deeper than 100 levels SHALL be an error at the include; a file that includes itself SHALL NOT be
+an error by itself. Diagnostics in an included file SHALL name that file and its line and column.
+
+#### Scenario: Nested include not looked up in the main file's folder
+- **WHEN** the main file includes `sub/a.bi`, `sub/a.bi` includes `b.bi`, and `b.bi` exists only next to the
+  main file (and not under the compiler root)
+- **THEN** the compile fails with "file not found" at the include in `sub/a.bi`
+
+#### Scenario: Include relative to the compiler root
+- **WHEN** a program includes `'$INCLUDE:'extra/x.bi'`, which exists only under the directory given with
+  `--include-root`
+- **THEN** that file is included
+
+#### Scenario: Include without a comment
+- **WHEN** a program contains `$INCLUDE:'lib.bi'` (no `'` or `REM`)
+- **THEN** the compile fails with an error at that line
+
+#### Scenario: Error in an included file
+- **WHEN** `lib.bm` has a syntax error on its line 4 and the main file includes it
+- **THEN** the error is reported at `lib.bm` line 4
+
+#### Scenario: Block closed in an included file
+- **WHEN** the main file opens a `FOR` and the matching `NEXT` is in a file it includes
+- **THEN** the compile fails with a "not supported yet" error, not a syntax error
+
+#### Scenario: Included twice
+- **WHEN** a file that does not contain `$INCLUDEONCE` is included twice
+- **THEN** it is parsed twice, and the names in each inclusion are distinct symbols
+
+### Requirement: No follow-on errors after an unsupported declaration
+After the first declaration reported "not supported yet", in file order, only "not supported yet" errors SHALL be
+reported by the check of the rest of the program; syntax errors SHALL still be reported. Names the old compiler
+knows but the new one does not yet (such as the constants of the auto-included files) SHALL be reported "not
+supported yet", not as reserved names.
+
+#### Scenario: Unsupported declaration
+- **WHEN** a program has `DIM m AS _MEM` and then `PRINT LEN(m)`
+- **THEN** the only error is the "not supported yet" error at the `DIM`
+
+#### Scenario: Real error after an unsupported declaration
+- **WHEN** a program has `DIM m AS _MEM` and, later, a statement that stores a string in a number variable
+- **THEN** the only error is the "not supported yet" error at the `DIM`, and the compile fails
+
+#### Scenario: Real error before an unsupported declaration
+- **WHEN** a program has a statement that stores a string in a number variable and, later, `DIM m AS _MEM`
+- **THEN** both errors are reported
+
+#### Scenario: Auto-included constant
+- **WHEN** a program contains `PRINT _TRUE`
+- **THEN** the error at `_TRUE` is marked "not supported yet"
+
+### Requirement: Built-in statements in the IR
+The IR SHALL represent a built-in statement by the built-in's identity, never by a libqb name: one slot per
+argument in table order, each a value, a place or absent, and the words chosen where the statement's form offers a
+choice. File output and input, `READ` and console input SHALL be operations of their own that list their items or
+targets in order. Each SHALL be marked as possibly raising, and the IR SHALL state where each checks for a pending
+error (file output and input before each item or target, `READ` nowhere, as measured) so that the emitter decides
+none of it.
+
+#### Scenario: A statement call lowered
+- **WHEN** `OPEN f$ FOR OUTPUT AS #1` is lowered
+- **THEN** the IR names the built-in `OPEN` with the name value, the chosen mode word, the file number value and
+  the absent slots, and no `sub_open`, mode number or `passed` mask appears before the C++ output
+
+#### Scenario: A place argument
+- **WHEN** `SWAP x(i), y` is lowered
+- **THEN** the IR names two places, and no temporary or address-of appears before the C++ output
+
+#### Scenario: Items checked one by one
+- **WHEN** `PRINT #1, "a"; CHR$(-1); "b"` is lowered
+- **THEN** the IR lists three items for file 1 under the rule that a raising item skips the rest of the statement,
+  as for `PRINT`
+
+### Requirement: Program data in the IR
+The IR SHALL hold the program's `DATA` items as one ordered list of byte strings, each marked quoted or not, with
+the position in that list of each label that a `RESTORE` names. `READ` SHALL name its target places and `RESTORE`
+a position, with the label that gave it; the encoding of the list in the executable SHALL be the emitter's.
+
+#### Scenario: Data lowered
+- **WHEN** a program with `DATA 1,"two"` and, after the label `lab:`, `DATA 3` and `RESTORE lab` is lowered
+- **THEN** the IR's data list has three items, the second quoted, the restore names position 2 and the label
+  `LAB`, and no `data_offset` name or separator byte appears before the C++ output
+
+### Requirement: Array storage in the IR
+An array of the IR SHALL be static (its bounds are constants, it exists for the whole program) or dynamic (it has
+a number of dimensions and no bounds). A dynamic array that lives for the program MAY carry constant bounds it is
+allocated with when the program starts (`STATIC a(3)` in a procedure); no operation allocates it then, and the IR
+SHALL NOT say where that allocation stands in the output. The IR SHALL have operations that allocate a dynamic
+array with bounds given as values (stating whether an allocated array is an error, is replaced, or is replaced
+keeping its elements by flat position), that clear a static array, that release a dynamic one, and that erase an
+array parameter, which is either kind when the program runs. The allocation SHALL be allowed to name a static array or a
+parameter (it then raises an error when it runs). An array SHALL carry a storage class
+as a scalar does, and an array parameter SHALL be a reference to the caller's array. The IR SHALL NOT state when a
+per-call array is released, nor name a descriptor, an allocation function or a size in bytes.
+
+#### Scenario: DIM with a variable bound
+- **WHEN** `n = 4: DIM d(n) AS LONG` is lowered
+- **THEN** the IR holds a dynamic array `d` of one dimension and an allocation with the bounds 0 and `n` converted
+  to a 64-bit integer, marked as raising, and no descriptor slot or `calloc` appears before the C++ output
+
+#### Scenario: REDIM _PRESERVE
+- **WHEN** `REDIM _PRESERVE d(9) AS LONG` is lowered
+- **THEN** the IR holds the same operation marked as keeping the elements
+
+#### Scenario: Static array
+- **WHEN** `DIM s(5) AS LONG` is lowered in the main module without `$DYNAMIC`
+- **THEN** the IR holds a static array with the bounds 0 and 5 and no operation at the `DIM` line
+
+#### Scenario: STATIC array of a procedure
+- **WHEN** a SUB with `STATIC c(3) AS LONG` is lowered
+- **THEN** the IR holds a dynamic array `c` of one dimension with static storage, allocated at the start with the
+  bounds 0 and 3, and no operation at the `STATIC` line
+
+#### Scenario: Local array
+- **WHEN** a SUB with `DIM t(5) AS LONG` is lowered
+- **THEN** the IR holds a local dynamic array `t` and an allocation at the `DIM` line, and nothing that releases it
+
+#### Scenario: Array argument
+- **WHEN** `fill x()` is lowered for `SUB fill (a() AS LONG)`
+- **THEN** the argument is a reference to the array `x`, and inside the SUB `a(1)` is an element of the parameter
+
+### Requirement: Member arrays in the IR
+An element place SHALL name its array as an array variable or as an array member of a place of a user type, so
+that `x(0).n(1).q(2)` is one place built from elements and members. The bounds of a member array SHALL be part of
+the user type in the program's list of types. A whole user-type store SHALL be one operation from a place to a
+place of the same type. The operation that clears an array SHALL be allowed to name a member array, and then
+finds the place it is part of once and is not guarded (an index outside its bounds on the way raises error 9 and
+the member array of the element at position 0 is cleared, as in the old compiler); no operation SHALL allocate
+or release a member array. A bound of a member array and a whole member array as an array argument SHALL name it
+the same way; the bound SHALL NOT evaluate the indexes on the way to it. Byte offsets, the layout of a member
+array and how a `STRING` member is held SHALL NOT appear in the IR.
+
+#### Scenario: Chain of members and elements
+- **WHEN** `x(0).n(1).q(2) = 77` is lowered
+- **THEN** the IR shows one store whose place is element 2 of member `q` of element 1 of member `n` of element 0
+  of `x`, each index converted to a 64-bit integer, and no offset arithmetic
+
+#### Scenario: Whole value
+- **WHEN** `q = p` is lowered for two variables of one user type
+- **THEN** the IR holds one whole-value store from `p` to `q`
+
+#### Scenario: REDIM and ERASE of a member array
+- **WHEN** `REDIM a(i).v(0 TO 3)` and `ERASE t.v` are lowered for a member `v(0 TO 3) AS LONG`
+- **THEN** the IR holds a clear of member `v` of element `i` of `a`, marked as raising, and a clear of member `v`
+  of `t`, not marked; `REDIM _PRESERVE a(i).v(0 TO 3)` gives no operation
+
+### Requirement: $STATIC and $DYNAMIC take effect
+`$DYNAMIC` and `$STATIC` in a metacommand comment SHALL decide, for the declarations that follow by the old
+compiler's rule for where the metacommand starts to apply, whether a `DIM` with constant bounds makes a static or
+a dynamic array. They SHALL NOT be reported "not supported yet".
+
+#### Scenario: Dynamic, then static again
+- **WHEN** `'$DYNAMIC`, `DIM a(5)`, `'$STATIC`, `DIM b(5)` stand on four lines of the main module
+- **THEN** `a` is a dynamic array and `b` a static one
+
+#### Scenario: Not a metacommand
+- **WHEN** `' note $DYNAMIC` stands above `DIM a(5)`
+- **THEN** `a` is a static array

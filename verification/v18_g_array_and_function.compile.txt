@@ -1,0 +1,5 @@
+
+Name already in use (f)
+Caused by (or after):DIM F ( 3 ) AS LONG
+LINE 3:DIM f(3) AS LONG
+exit=1

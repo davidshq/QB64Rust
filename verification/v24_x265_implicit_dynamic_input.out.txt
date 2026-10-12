@@ -1,0 +1,5 @@
+1. INPUT a, ia(1), b:? ?  [error 10 ] 1  2  3 
+2. INPUT with a prompt, the first target names it:p? p?  [error 10 ] 4  5 
+3. LINE INPUT into an element: [error 10 ][line one]
+4. what is left to read:[line two]
+exit=0

@@ -1,0 +1,5 @@
+
+1st sub argument requires a string
+Caused by (or after):OPEN 1 , # 1 , "f",1
+LINE 3:OPEN 1, #1, "f"
+exit=1

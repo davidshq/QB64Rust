@@ -1,0 +1,5 @@
+
+Array 'a' not defined
+Caused by (or after):SHARED A ( ) AS LONG
+LINE 5:SHARED a() AS LONG
+exit=1

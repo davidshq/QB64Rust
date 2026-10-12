@@ -1,0 +1,38 @@
+ 1 [x 7 y]
+ 2 [ 1 -2  3.5 ]
+ 3 [a             b              5 ]
+ 4 [12345678901234              z]
+ 5 [1234567890123 z]
+ 6 [              after a zone]
+ 7 [no newline same line]
+ 8 [zone at the end             next]
+ 9 []
+ 10 [-5  250 -300  65000 -70000  4000000000 -5000000000  18446744073709551615 ]
+ 11 [ 1.5 -2.25  1D+20  12 -3 [ab  ]]
+ 12 [le! 1 ]
+ 13 [1,"a",2.5]
+ 14 [-5,250,-300,65000,-70000,4000000000,-5000000000,18446744073709551615]
+ 15 [1.5,-2.25,1D+20,12,-3,"ab  "]
+ 16 [-1,-2.5,1E+30,.5,-.5,100000000]
+ 17 ["with "quote","comma, inside",""]
+ 18 []
+ 19 ["open","closed"]
+ 20 [appended through a variable]
+ 21 [and through 1.5, which is file 2]
+ 22 [old form A]
+console WRITE
+1,"a",2.5
+-5,1.5,"ab  "
+
+"open","closed"
+INPUT # into every type
+ 1  2  3  4  5  6  7  8 
+ 1.5  2.5  3.5  12 -3 
+[plain][with, comma] 42 
+[lead][trail] 7 
+ 2  4  16  12  0 []
+ 9  10 
+[s1][s2  ] 21  22  23.5 [xyz]
+[a line, with a comma]
+[fixe] 0 
+[last line without an end]-1 

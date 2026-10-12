@@ -6,13 +6,15 @@
 //! | `corpus/` | `tests\corpus` | rejected with an `.err` file, else accepted |
 //! | `upstream/` | `tests\upstream\compile_tests` | `.bas` as `corpus/`; `.bi`/`.bm` include only |
 //! | `snippets/` | `tests\snippets` | as `corpus/` |
+//! | `differential/` | `tests\differential` | as `corpus/` (generated, spec `testing/differential-tests`) |
+//! | `programs/` | `tests\programs` | as `corpus/` (real programs taken whole, `tests\programs\README.md`) |
 //! | `qbasic/` | clone `tests\qbasic_testcases` | `.bas` accepted; `.bi`/`.bm` include only |
 //! | `qb64pe-source/` | clone `source`, `internal\support` | `source\qb64pe.bas` accepted; the rest include only |
 //!
 //! The clone sets are read from the QB64pe reference clone (found as the driver finds it) and skipped, with a
 //! note, when it is missing. Every file gets the no-panic and round-trip check; include-only files nothing else.
 
-use qb64rust_driver::{build, frontend};
+use qb64rust_driver::{FileLoader, build, emit, frontend_with, lower};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::tree::{Node, print};
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -42,6 +44,10 @@ struct Outcome {
     /// The first parser diagnostic, else the first `Error` node, as `<line>:<column>: <message>`; `None` when the
     /// file parses cleanly.
     parse_gap: Option<String>,
+    /// Whether the front end accepted the file, so it was lowered, validated and emitted.
+    lowered: bool,
+    /// The first problem `ir::validate` found in the lowered program.
+    invalid_ir: Option<String>,
 }
 
 /// The first `Error` node below `n` in source order.
@@ -113,6 +119,8 @@ fn inputs() -> Vec<(String, PathBuf, Verdict)> {
     labelled_set("corpus", &tests.join("corpus"), &mut out);
     labelled_set("upstream", &tests.join("upstream/compile_tests"), &mut out);
     labelled_set("snippets", &tests.join("snippets"), &mut out);
+    labelled_set("differential", &tests.join("differential"), &mut out);
+    labelled_set("programs", &tests.join("programs"), &mut out);
     match clone_root() {
         Some(clone) => {
             let qbasic = clone.join("tests/qbasic_testcases");
@@ -141,11 +149,40 @@ fn inputs() -> Vec<(String, PathBuf, Verdict)> {
     out
 }
 
+/// The compiler root for included files of an input (design D9): `tests\upstream\root` for the repo's sets, as
+/// the tier-2 runner passes with `--include-root` (it holds `tests/compile_tests/extra`, which two upstream tests
+/// include relative to the compiler); the clone for the sets that depend on it.
+fn include_root(name: &str) -> PathBuf {
+    match clone_root() {
+        Some(clone) if CLONE_SETS.iter().any(|s| name.starts_with(s)) => clone,
+        _ => repo().join("tests/upstream/root"),
+    }
+}
+
+/// Where an input's includes are looked up from: its own folder, except for the upstream tests of the old
+/// compiler's own code (`upstream/qb64pe/`), which include its sources relative to their place in the clone
+/// (`../../../source/…`): those use the clone's copy of their folder, when the clone is present.
+fn include_base(name: &str, path: &Path) -> PathBuf {
+    match (name.strip_prefix("upstream/"), clone_root()) {
+        (Some(rel), Some(clone)) if name.starts_with(UPSTREAM_QB64PE) => clone.join("tests/compile_tests").join(rel),
+        _ => path.to_path_buf(),
+    }
+}
+
 fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
     let bytes = std::fs::read(path).unwrap();
+    let root = include_root(&name);
+    let base = include_base(&name, path);
     let result = catch_unwind(AssertUnwindSafe(|| {
-        let fe = frontend(&name, bytes.clone());
-        let round_trip = print(&fe.parsed.main().green, &bytes) == bytes;
+        let fe = frontend_with(&name, bytes.clone(), |file| {
+            Box::new(FileLoader::new(&root, file, &base))
+        });
+        // Every tree prints its own file back (spec compiler/pipeline, "Lossless syntax tree").
+        let round_trip = fe
+            .parsed
+            .trees
+            .iter()
+            .all(|t| print(&t.green, &fe.map.file(t.file).bytes) == *fe.map.file(t.file).bytes);
         let mut list: Vec<_> = fe.diagnostics.list().to_vec();
         if fe.diagnostics.is_capped() {
             list.pop(); // "too many errors; stopping" is not an error of its own
@@ -155,29 +192,53 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
             let (line, col) = fe.map.file(d.span.file).line_col(d.span.start);
             format!("{line}:{col}: {}", d.message)
         });
-        let file = fe.map.file(fe.file);
-        let parse_gap = fe
-            .parsed
-            .main()
-            .diagnostics
-            .list()
-            .iter()
-            .min_by_key(|d| d.span.start)
-            .map(|d| {
-                let (line, col) = file.line_col(d.span.start);
-                let mark = if d.unsupported { "not supported yet: " } else { "" };
-                format!("{line}:{col}: {mark}{}", d.message)
-            })
-            .or_else(|| {
-                first_error_node(fe.parsed.main().root()).map(|n| {
-                    let (line, col) = file.line_col(n.span().start);
-                    format!("{line}:{col}: `Error` node without a parser diagnostic")
+        // The first parse gap of any tree, the main file's first (an included file's names its file).
+        let parse_gap = fe.parsed.trees.iter().find_map(|t| {
+            let file = fe.map.file(t.file);
+            let at = |start: u32| {
+                let (line, col) = file.line_col(start);
+                if t.file == fe.file {
+                    format!("{line}:{col}")
+                } else {
+                    let shown = file.name.replace('\\', "/");
+                    let shown = shown.rsplit('/').next().unwrap_or(&shown).to_string();
+                    format!("{shown}:{line}:{col}")
+                }
+            };
+            t.diagnostics
+                .list()
+                .iter()
+                .min_by_key(|d| d.span.start)
+                .map(|d| {
+                    let mark = if d.unsupported { "not supported yet: " } else { "" };
+                    format!("{}: {mark}{}", at(d.span.start), d.message)
                 })
-            });
-        (round_trip, fe.has_errors(), first_real_error, parse_gap)
+                .or_else(|| {
+                    first_error_node(t.root())
+                        .map(|n| format!("{}: `Error` node without a parser diagnostic", at(n.span().start)))
+                })
+        });
+        // Everything the front end accepts is lowered, validated and emitted (design D8 of `m2-arrays-and-types`);
+        // a panic in either stage is caught below like one in the front end.
+        let (lowered, invalid_ir) = if fe.has_errors() {
+            (false, None)
+        } else {
+            let ir = lower(&fe);
+            let invalid_ir = qb64rust_ir::validate(&ir).err().map(|p| p.join("; "));
+            emit(&fe);
+            (true, invalid_ir)
+        };
+        (
+            round_trip,
+            fe.has_errors(),
+            first_real_error,
+            parse_gap,
+            lowered,
+            invalid_ir,
+        )
     }));
     match result {
-        Ok((round_trip, errors, first_real_error, parse_gap)) => Outcome {
+        Ok((round_trip, errors, first_real_error, parse_gap, lowered, invalid_ir)) => Outcome {
             name,
             verdict,
             panic: None,
@@ -185,6 +246,8 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
             errors,
             first_real_error,
             parse_gap,
+            lowered,
+            invalid_ir,
         },
         Err(e) => Outcome {
             name,
@@ -199,6 +262,8 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
             errors: false,
             first_real_error: None,
             parse_gap: None,
+            lowered: false,
+            invalid_ir: None,
         },
     }
 }
@@ -241,6 +306,12 @@ fn every_input_goes_through_the_front_end() {
         "found only {} upstream files",
         count("upstream")
     );
+    assert!(
+        count("differential") >= 59,
+        "found only {} differential programs",
+        count("differential")
+    );
+    assert!(count("programs") >= 1, "found no real program (tests\\programs)");
     let bad: Vec<String> = outcomes()
         .iter()
         .filter_map(|o| match &o.panic {
@@ -248,6 +319,20 @@ fn every_input_goes_through_the_front_end() {
             None if !o.round_trip => Some(format!("{}: round trip failed", o.name)),
             None => None,
         })
+        .collect();
+    assert!(bad.is_empty(), "{}", bad.join("\n"));
+}
+
+/// "Tier 1 corpus checks" (spec `testing/compiler-tests`): every input the front end accepts is lowered, validated
+/// and emitted without a panic or an IR problem. The floor catches a set that went missing.
+#[test]
+fn accepted_inputs_lower_and_emit() {
+    let lowered = outcomes().iter().filter(|o| o.lowered).count();
+    eprintln!("lowered, validated and emitted: {lowered} inputs");
+    assert!(lowered >= 130, "only {lowered} inputs were accepted and lowered");
+    let bad: Vec<String> = outcomes()
+        .iter()
+        .filter_map(|o| o.invalid_ir.as_ref().map(|p| format!("{}: invalid IR: {p}", o.name)))
         .collect();
     assert!(bad.is_empty(), "{}", bad.join("\n"));
 }
@@ -264,8 +349,13 @@ fn slice_list_programs_have_no_diagnostics() {
             continue;
         }
         let name = format!("{line}.bas");
-        let fe = frontend(&name, std::fs::read(root.join(&name)).unwrap());
-        assert!(fe.diagnostics.list().is_empty(), "{line}:\n{}", fe.render_diagnostics());
+        let path = root.join(&name);
+        let inc = repo().join("tests/upstream/root");
+        let fe = frontend_with(&name, std::fs::read(&path).unwrap(), |file| {
+            Box::new(FileLoader::new(&inc, file, &path))
+        });
+        // Warnings are allowed (`s18_const` has the chained `^` the constants spec warns about).
+        assert!(!fe.has_errors(), "{line}:\n{}", fe.render_diagnostics());
         n += 1;
     }
     assert!(n > 0, "slice.list names no programs");
@@ -289,8 +379,12 @@ fn rejected_programs_get_an_error() {
     );
 }
 
-/// Sets read from the clone: their list entries are checked only when the clone is present.
-const CLONE_SETS: &[&str] = &["qbasic/", "qb64pe-source/"];
+/// The upstream tests of the old compiler's own code, which include its sources from the clone.
+const UPSTREAM_QB64PE: &str = "upstream/qb64pe/";
+
+/// Sets read from the clone, or that include files from it: their list entries are checked only when the clone
+/// is present.
+const CLONE_SETS: &[&str] = &["qbasic/", "qb64pe-source/", UPSTREAM_QB64PE];
 
 /// A shrink-only list (design D4): `prefix/relative/path.bas`, sorted, one per line, `#` comments, optionally a
 /// trailing ` # comment`.
@@ -326,7 +420,13 @@ const PARSE_GAPS: List = List {
 /// Entries `want` has and the list `have` lacks (new), and entries of `have` that `want` lacks (stale); a
 /// `have` entry is judged only when `checked` says its set was run.
 fn list_diff<'a>(have: &'a [String], want: &[&'a str], checked: impl Fn(&str) -> bool) -> (Vec<&'a str>, Vec<&'a str>) {
-    let new = want.iter().copied().filter(|e| !have.iter().any(|h| h == e)).collect();
+    // Unchecked entries (a clone-dependent set without the clone: `upstream/qb64pe/` is read from the copy but
+    // needs the clone for its includes) are neither new nor stale.
+    let new = want
+        .iter()
+        .copied()
+        .filter(|e| checked(e) && !have.iter().any(|h| h == e))
+        .collect();
     let stale = have
         .iter()
         .map(String::as_str)
@@ -441,7 +541,7 @@ fn parse_gap_list_reports_new_and_closed_gaps() {
     let checked = |e: &str| !CLONE_SETS.iter().any(|s| e.starts_with(s));
     assert_eq!(list_diff(&have, &[], checked), (vec![], vec![]));
     // The comment is the first parser diagnostic, else the first `Error` node.
-    let gap = |src: &[u8]| run("t.bas".into(), &write_temp(src), Verdict::Accepted).parse_gap;
+    let gap = |src: &[u8]| run("t.bas".into(), write_temp(src).path(), Verdict::Accepted).parse_gap;
     assert_eq!(gap(b"PRINT 1\n"), None);
     assert!(
         gap(b"PRINT (1\n").is_some_and(|g| g.starts_with("1:")),
@@ -450,15 +550,11 @@ fn parse_gap_list_reports_new_and_closed_gaps() {
     );
 }
 
-/// A file in the test binary's temp folder holding `bytes`.
-fn write_temp(bytes: &[u8]) -> PathBuf {
-    use std::sync::atomic::{AtomicU32, Ordering};
-    static N: AtomicU32 = AtomicU32::new(0);
-    let dir = std::env::temp_dir().join(format!("qb64rust-inputs-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    let p = dir.join(format!("{}.bas", N.fetch_add(1, Ordering::Relaxed)));
-    std::fs::write(&p, bytes).unwrap();
-    p
+/// A temporary `.bas` file holding `bytes`, deleted when dropped.
+fn write_temp(bytes: &[u8]) -> tempfile::NamedTempFile {
+    let mut f = tempfile::Builder::new().suffix(".bas").tempfile().unwrap();
+    std::io::Write::write_all(&mut f, bytes).unwrap();
+    f
 }
 
 /// "No false errors", "Rejected programs stay rejected" and "Parse gaps" (spec `testing/upstream-tests`): the
@@ -535,6 +631,173 @@ fn upstream_progress() {
         deferred.len()
     );
     assert!(pass.len() <= in_reach);
+}
+
+/// Programs that compile cleanly but are known not to pass tier 2, each with its reason (`study\26` §3).
+const CLEAN_NOT_PASSING: &str = "known_clean_not_passing.list";
+
+/// Entries of `tests\differential\pass.list` (`group/name`, `#` comments) as input names (`differential/<group>/<name>.bas`).
+fn differential_pass_list() -> Vec<String> {
+    #[expect(clippy::disallowed_methods, reason = "a list of file names, not BASIC source")]
+    let text =
+        std::fs::read_to_string(repo().join("tests/differential/pass.list")).expect("tests/differential/pass.list");
+    text.lines()
+        .map(|l| l.split('#').next().unwrap().trim())
+        .filter(|l| !l.is_empty())
+        .map(|e| format!("differential/{e}.bas"))
+        .collect()
+}
+
+/// "Clean programs are listed" (spec `testing/compiler-tests`, `study\26` §3): every corpus, upstream or
+/// differential program the old compiler accepts and the new one compiles without an error is in `slice.list`, a
+/// `pass.list` or `known_clean_not_passing.list`, so "never wrong code" covers every program that gets an
+/// executable. The last list is shrink-only and hand-kept: an entry that no longer compiles cleanly, or that a pass
+/// list names, must go.
+#[test]
+fn clean_programs_are_listed() {
+    let have_clone = clone_root().is_some();
+    let checked = |e: &str| have_clone || !CLONE_SETS.iter().any(|s| e.starts_with(s));
+    #[expect(clippy::disallowed_methods, reason = "a list of file names, not BASIC source")]
+    let slice = std::fs::read_to_string(repo().join("tests/corpus/slice.list")).unwrap();
+    let passing: Vec<String> = slice
+        .lines()
+        .map(|l| l.split('#').next().unwrap().trim())
+        .filter(|l| !l.is_empty())
+        .map(|e| format!("corpus/{e}.bas"))
+        .chain(upstream_list("pass.list").iter().map(|e| format!("upstream/{e}.bas")))
+        .chain(differential_pass_list())
+        .collect();
+    let known = List {
+        file: CLEAN_NOT_PASSING,
+        header: "",
+    }
+    .read()
+    .1;
+    let clean: Vec<&str> = outcomes()
+        .iter()
+        .filter(|o| o.panic.is_none() && o.verdict == Verdict::Accepted && !o.errors)
+        .map(|o| o.name.as_str())
+        .filter(|n| {
+            ["corpus/", "upstream/", "differential/"]
+                .iter()
+                .any(|s| n.starts_with(s))
+        })
+        .collect();
+    eprintln!("clean corpus, upstream and differential programs: {}", clean.len());
+    let mut problems = Vec::new();
+    for n in clean.iter().filter(|n| !passing.iter().chain(&known).any(|e| e == *n)) {
+        problems.push(format!(
+            "compiles cleanly but is on no list (run it in tier 2, then add it to a pass list or to tests/{CLEAN_NOT_PASSING} with the reason): {n}"
+        ));
+    }
+    for e in known.iter().filter(|e| checked(e)) {
+        if !clean.contains(&e.as_str()) {
+            problems.push(format!(
+                "tests/{CLEAN_NOT_PASSING}: no longer compiles cleanly, remove it: {e}"
+            ));
+        } else if passing.contains(e) {
+            problems.push(format!("tests/{CLEAN_NOT_PASSING}: on a pass list too, remove it: {e}"));
+        }
+    }
+    assert!(problems.is_empty(), "{}", problems.join("\n"));
+}
+
+/// The BASIC code of a source, without comments and string literals (a `'` outside a string starts a comment; a
+/// line starting with `REM` is one), so names in them do not count as calls.
+fn code_only(source: &[u8]) -> String {
+    let mut out = String::new();
+    for line in source.split(|&b| b == b'\n') {
+        let trimmed = line.trim_ascii_start();
+        if trimmed.len() >= 3 && trimmed[..3].eq_ignore_ascii_case(b"REM") {
+            out.push('\n');
+            continue;
+        }
+        let mut in_string = false;
+        for &b in line {
+            match (b, in_string) {
+                (b'"', _) => in_string = !in_string,
+                (b'\'', false) => break,
+                (_, true) => {}
+                (_, false) => out.push(char::from(b.to_ascii_uppercase())),
+            }
+        }
+        out.push('\n');
+    }
+    out
+}
+
+/// Whether `code` (from [`code_only`]) uses `name` (upper case, with its suffix) as a word: not part of a longer
+/// name, and for a name without suffix not followed by one (`ERR` does not match `ERROR` or `ERR%`).
+fn uses_word(code: &str, name: &str) -> bool {
+    let ident = |c: char| c.is_ascii_alphanumeric() || c == '_' || c == '.';
+    let suffix = |c: char| matches!(c, '$' | '%' | '&' | '!' | '#' | '~' | '`');
+    code.match_indices(name).any(|(at, _)| {
+        let before = code[..at].chars().next_back();
+        let after = code[at + name.len()..].chars().next();
+        !before.is_some_and(ident) && !after.is_some_and(|c| ident(c) || (!name.ends_with('$') && suffix(c)))
+    })
+}
+
+/// "Built-in coverage" (spec `testing/compiler-tests`, design D9 of `m2-core-builtins`): every built-in function
+/// `sema` compiles is called in a program of `slice.list` (its output is compared with the old compiler's in tier 2)
+/// and in a `typed` front-end test (its result type and argument conversions are pinned in tier 1).
+#[test]
+fn every_supported_builtin_is_covered() {
+    let corpus = repo().join("tests/corpus");
+    #[expect(clippy::disallowed_methods, reason = "a list of file names, not BASIC source")]
+    let list = std::fs::read_to_string(corpus.join("slice.list")).unwrap();
+    let slice: Vec<String> = list
+        .lines()
+        .map(|l| l.split('#').next().unwrap().trim())
+        .filter(|l| !l.is_empty())
+        .map(|l| code_only(&std::fs::read(corpus.join(format!("{l}.bas"))).unwrap()))
+        .collect();
+    let typed: Vec<String> = files(&repo().join("tests/frontend"), &["bas"])
+        .iter()
+        .map(|p| std::fs::read(p).unwrap())
+        .filter(|b| b.starts_with(b"' TEST: typed"))
+        .map(|b| code_only(&b))
+        .collect();
+    let ir: Vec<String> = files(&repo().join("tests/frontend"), &["bas"])
+        .iter()
+        .map(|p| std::fs::read(p).unwrap())
+        .filter(|b| b.starts_with(b"' TEST: ir"))
+        .map(|b| code_only(&b))
+        .collect();
+    assert!(!slice.is_empty() && !typed.is_empty() && !ir.is_empty());
+    let mut missing = Vec::new();
+    // A built-in statement: in a slice program, and in an `ir` test that pins its slots, places and items.
+    for &(name, _) in qb64rust_sema::builtins::STATEMENTS {
+        if !slice.iter().any(|c| uses_word(c, name)) {
+            missing.push(format!("`{name}` is used in no program of tests/corpus/slice.list"));
+        }
+        if !ir.iter().any(|c| uses_word(c, name)) {
+            missing.push(format!("`{name}` is used in no `ir` test of tests/frontend"));
+        }
+    }
+    for s in qb64rust_sema::builtins::supported() {
+        if !slice.iter().any(|c| uses_word(c, s.name)) {
+            missing.push(format!(
+                "`{}` is called in no program of tests/corpus/slice.list",
+                s.name
+            ));
+        }
+        if !typed.iter().any(|c| uses_word(c, s.name)) {
+            missing.push(format!("`{}` is called in no `typed` test of tests/frontend", s.name));
+        }
+    }
+    assert!(missing.is_empty(), "{}", missing.join("\n"));
+}
+
+#[test]
+fn coverage_words() {
+    let code = code_only(b"PRINT err; Chr$(1) ' LEN(x)\nx$ = \"INSTR(\"\nREM LEFT$(a, 1)\nERROR 5: e = errx\n");
+    assert!(uses_word(&code, "ERR"));
+    assert!(uses_word(&code, "CHR$"));
+    assert!(!uses_word(&code, "LEN"), "in a comment");
+    assert!(!uses_word(&code, "INSTR"), "in a string");
+    assert!(!uses_word(&code, "LEFT$"), "in a REM line");
+    assert!(!uses_word(&code_only(b"ERROR 1: e = errx: f = err%\n"), "ERR"));
 }
 
 /// Extensions `tools\upstream\copy_upstream_tests.py` copies (design D1).

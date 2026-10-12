@@ -1,0 +1,11 @@
+---
+source: crates/sema/tests/symbols.rs
+assertion_line: 97
+expression: "dump_symbols(&p, &map)"
+---
+Proc S1 SUB def 8:5 refs 7:1
+Const K : _INTEGER64 = 1 def 2:7 refs 3:13 4:7 4:18 5:7 6:5
+Const S : STRING = "ab" def 2:14 refs 4:15
+Const K2 : DOUBLE = 2.0E+0 def 3:7 refs 4:10
+Var X : SINGLE def 6:1
+Const K : DOUBLE = 2.5E+0 (in S1) def 9:11 refs 10:11

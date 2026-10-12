@@ -1,0 +1,5 @@
+
+Type mismatch
+Caused by (or after):REDIM X ( 5 ) AS STRING * 5
+LINE 4:REDIM x(5) AS STRING * 5
+exit=1

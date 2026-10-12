@@ -1,0 +1,32 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 8 may_raise
+  Builtin SHELL form 3 [Value(Var S:Str)]
+Stmt line 9 may_raise
+  Builtin SHELL form 3 [Absent]
+Stmt line 10 may_raise
+  Builtin SHELL form 1 [Word 0, Absent, Value(Concat(Var S:Str, Var T:Str))]
+Stmt line 11 may_raise
+  Builtin SHELL form 1 [Word 0, Word 0, Value(Var S:Str)]
+Stmt line 12 may_raise
+  Builtin SHELL form 2 [Word 0, Absent, Absent]
+Stmt line 13 may_raise
+  Builtin SHELL form 2 [Word 0, Word 0, Value(Const "echo x")]
+Stmt line 14 may_raise
+  Assign Q:I64 = CallBuiltin SHELL:I64 [Some(Var S:Str)]
+Stmt line 15 may_raise
+  Assign S:Str = CallBuiltin COMMAND:Str [None]
+Stmt line 16 may_raise
+  Assign S:Str = CallBuiltin COMMAND:Str [Some(Var N:I32)]
+Stmt line 17 may_raise
+  Assign S:Str = CallBuiltin ENVIRON:Str [Some(Var T:Str)]
+Stmt line 18 may_raise
+  Assign S:Str = CallBuiltin ENVIRON:Str [Some(Var N:I32)]
+Sub P lines 19-21
+  param C:Str
+Stmt line 20 may_raise
+  Builtin SHELL form 1 [Word 0, Absent, Value(Var C(param):Str)]

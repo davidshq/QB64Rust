@@ -1,0 +1,88 @@
+OUTPUT
+APPEND
+INPUT
+[one]
+BINARY
+ 10 
+RANDOM
+ 10 
+no mode (RANDOM)
+ 10 
+RANDOM LEN = 4
+ 10 
+INPUT LEN = 100
+ACCESS READ
+ACCESS WRITE
+ACCESS READ WRITE
+SHARED
+LOCK READ
+LOCK WRITE
+LOCK READ WRITE
+ACCESS READ LOCK WRITE
+INPUT ACCESS WRITE
+  error 75 
+OUTPUT ACCESS READ
+  error 53 
+without #
+number from a variable
+ 0 
+number 1.5 (2)
+ 0 
+number 2.5 (2)
+ 0 
+number 0
+  error 52 
+number -1
+  error 52 
+number 255
+number 256
+number 70000
+number 4294967297 (1 in 32 bits)
+ 0 
+already open
+  error 55 
+same file twice for input
+same file for output while open
+missing for INPUT
+  error 53 
+missing for BINARY (created)
+missing for APPEND (created)
+empty name
+  error 76 
+raising name
+  error 5 
+raising number
+  error 5 
+LEN 0
+  error 5 
+LEN -1
+LEN 2.5
+old form O
+old form o
+old form A
+old form I
+[old]
+old form B
+ 11 
+old form R
+ 11 
+old form R with length
+ 11 
+old form X
+  error 54 
+old form empty
+  error 54 
+old form INPUT (first letter)
+old form variable
+CLOSE several
+all three were closed
+CLOSE 1.5 closes 2
+2 was closed
+  error 55 
+CLOSE not open
+no error
+CLOSE with a raising number
+  error 5 
+CLOSE bare with nothing open
+no error
+exit=0

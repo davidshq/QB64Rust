@@ -1,0 +1,5 @@
+
+Incorrect symbol after element name
+Caused by (or after):P . X% = 5
+LINE 7:p.x% = 5
+exit=1

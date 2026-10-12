@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: SEEK(filenumber&)
+Caused by (or after):PRINT SEEK ( 1 , 2 )
+LINE 3:PRINT SEEK(1, 2)
+exit=1

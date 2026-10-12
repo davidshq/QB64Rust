@@ -1,0 +1,5 @@
+
+Expected # ... ,
+Caused by (or after):WRITE # 1 "x",1
+LINE 3:WRITE #1 "x"
+exit=1

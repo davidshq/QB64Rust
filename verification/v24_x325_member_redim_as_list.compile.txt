@@ -1,0 +1,5 @@
+
+Unknown type
+Caused by (or after):REDIM AS LONG T . V ( 0 TO 3 )
+LINE 9:REDIM AS LONG t.v(0 TO 3)
+exit=1

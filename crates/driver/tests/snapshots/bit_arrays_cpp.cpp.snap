@@ -1,0 +1,433 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+float *__SINGLE_N=NULL;
+ptrszint *__ARRAY_BIT1_B=NULL;
+ptrszint *__ARRAY_UBIT3_U3=NULL;
+ptrszint *__ARRAY_BIT5_DY=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+void SUB_SHOW(int32*_SUB_SHOW_LONG_V);
+==> clear.txt <==
+*__SINGLE_N=0;
+memset((void*)(__ARRAY_BIT1_B[0]),0,__ARRAY_BIT1_B[5]*1/8+1);
+memset((void*)(__ARRAY_UBIT3_U3[0]),0,__ARRAY_UBIT3_U3[5]*3/8+1);
+if (__ARRAY_BIT5_DY[2]&1){
+free((void*)(__ARRAY_BIT5_DY[0]));
+__ARRAY_BIT5_DY[2]^=1;
+__ARRAY_BIT5_DY[4]=2147483647;
+__ARRAY_BIT5_DY[5]=0;
+__ARRAY_BIT5_DY[6]=0;
+__ARRAY_BIT5_DY[0]=(ptrszint)nothingvalue;
+}
+==> maindata.txt <==
+if(__SINGLE_N==NULL){
+__SINGLE_N=(float*)mem_static_malloc(4);
+*__SINGLE_N=0;
+}
+if (!__ARRAY_BIT1_B){
+__ARRAY_BIT1_B=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_BIT1_B)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_BIT1_B[4]=0ll;
+__ARRAY_BIT1_B[5]=(7ll)-__ARRAY_BIT1_B[4]+1;
+if (__ARRAY_BIT1_B[5]<=0) error(5);
+__ARRAY_BIT1_B[6]=1;
+__ARRAY_BIT1_B[0]=(ptrszint)mem_static_malloc(__ARRAY_BIT1_B[5]*1/8+1);
+memset((void*)(__ARRAY_BIT1_B[0]),0,__ARRAY_BIT1_B[5]*1/8+1);
+__ARRAY_BIT1_B[2]=1+2;
+}
+if (!__ARRAY_UBIT3_U3){
+__ARRAY_UBIT3_U3=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UBIT3_U3)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UBIT3_U3[4]=0ll;
+__ARRAY_UBIT3_U3[5]=(9ll)-__ARRAY_UBIT3_U3[4]+1;
+if (__ARRAY_UBIT3_U3[5]<=0) error(5);
+__ARRAY_UBIT3_U3[6]=1;
+__ARRAY_UBIT3_U3[0]=(ptrszint)mem_static_malloc(__ARRAY_UBIT3_U3[5]*3/8+1);
+memset((void*)(__ARRAY_UBIT3_U3[0]),0,__ARRAY_UBIT3_U3[5]*3/8+1);
+__ARRAY_UBIT3_U3[2]=1+2;
+}
+if (!__ARRAY_BIT5_DY){
+__ARRAY_BIT5_DY=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_BIT5_DY)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_BIT5_DY[2]=0;
+__ARRAY_BIT5_DY[4]=2147483647;
+__ARRAY_BIT5_DY[5]=0;
+__ARRAY_BIT5_DY[6]=0;
+__ARRAY_BIT5_DY[0]=(ptrszint)nothingvalue;
+}
+int32 pass1;
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "bit_arrays_cpp.bas"
+do{
+#line 2 "bit_arrays_cpp.bas"
+sub__dest(func__console());
+#line 2 "bit_arrays_cpp.bas"
+sub__source(func__console());
+#line 2 "bit_arrays_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 7 "bit_arrays_cpp.bas"
+do{
+#line 7 "bit_arrays_cpp.bas"
+*__SINGLE_N=((float)(9));
+#line 7 "bit_arrays_cpp.bas"
+if(!qbevent)break;evnt(7);}while(r);
+#line 10 "bit_arrays_cpp.bas"
+do{
+#line 10 "bit_arrays_cpp.bas"
+if (__ARRAY_BIT5_DY[2]&2){
+#line 10 "bit_arrays_cpp.bas"
+error(10);
+#line 10 "bit_arrays_cpp.bas"
+}else{
+#line 10 "bit_arrays_cpp.bas"
+if (__ARRAY_BIT5_DY[2]&1){
+#line 10 "bit_arrays_cpp.bas"
+if (!error_occurred) error(10);
+#line 10 "bit_arrays_cpp.bas"
+}else{
+#line 10 "bit_arrays_cpp.bas"
+int64 alloc_new_desc[8];
+#line 10 "bit_arrays_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 10 "bit_arrays_cpp.bas"
+uint64 alloc_req_bytes;
+#line 10 "bit_arrays_cpp.bas"
+uint64 alloc_dim_value;
+#line 10 "bit_arrays_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(5/8+1);
+#line 10 "bit_arrays_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 10 "bit_arrays_cpp.bas"
+alloc_new_desc[5]=(qbr(*__SINGLE_N))-alloc_new_desc[4]+1;
+#line 10 "bit_arrays_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 10 "bit_arrays_cpp.bas"
+alloc_new_desc[6]=1;
+#line 10 "bit_arrays_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 10 "bit_arrays_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 10 "bit_arrays_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 10 "bit_arrays_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 10 "bit_arrays_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 10 "bit_arrays_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 10 "bit_arrays_cpp.bas"
+if (alloc_dim_value){
+#line 10 "bit_arrays_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 10 "bit_arrays_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 10 "bit_arrays_cpp.bas"
+}
+#line 10 "bit_arrays_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 10 "bit_arrays_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 10 "bit_arrays_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 10 "bit_arrays_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 10 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 10 "bit_arrays_cpp.bas"
+if (!__ARRAY_BIT5_DY[0]) error(257);
+#line 10 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[2]|=1;
+#line 10 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[4]=alloc_new_desc[4];
+#line 10 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[5]=alloc_new_desc[5];
+#line 10 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[6]=alloc_new_desc[6];
+#line 10 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[7]=alloc_new_desc[7];
+#line 10 "bit_arrays_cpp.bas"
+}
+#line 10 "bit_arrays_cpp.bas"
+}
+#line 10 "bit_arrays_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 11 "bit_arrays_cpp.bas"
+do{
+#line 11 "bit_arrays_cpp.bas"
+tmp_long=array_check((1ll)-__ARRAY_BIT1_B[4],__ARRAY_BIT1_B[5]);
+#line 11 "bit_arrays_cpp.bas"
+if (!is_error_pending()) setbits(1,(uint8*)(__ARRAY_BIT1_B[0]),tmp_long,1);
+#line 11 "bit_arrays_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 12 "bit_arrays_cpp.bas"
+do{
+#line 12 "bit_arrays_cpp.bas"
+tmp_long=array_check((qbr(*__SINGLE_N))-__ARRAY_UBIT3_U3[4],__ARRAY_UBIT3_U3[5]);
+#line 12 "bit_arrays_cpp.bas"
+if (!is_error_pending()) setbits(3,(uint8*)(__ARRAY_UBIT3_U3[0]),tmp_long,(((uint32)(getubits(3,(uint8*)(__ARRAY_UBIT3_U3[0]),array_check((2ll)-__ARRAY_UBIT3_U3[4],__ARRAY_UBIT3_U3[5]))))+((uint32)(((int32)(getbits(1,(uint8*)(__ARRAY_BIT1_B[0]),array_check((1ll)-__ARRAY_BIT1_B[4],__ARRAY_BIT1_B[5]))))))));
+#line 12 "bit_arrays_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 13 "bit_arrays_cpp.bas"
+do{
+#line 13 "bit_arrays_cpp.bas"
+if (__ARRAY_BIT5_DY[2]&2){
+#line 13 "bit_arrays_cpp.bas"
+error(10);
+#line 13 "bit_arrays_cpp.bas"
+}else{
+#line 13 "bit_arrays_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_BIT5_DY)[8])->id=(++mem_lock_id);
+#line 13 "bit_arrays_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 13 "bit_arrays_cpp.bas"
+uint64 preserve_old_total=0;
+#line 13 "bit_arrays_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 13 "bit_arrays_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 13 "bit_arrays_cpp.bas"
+if (__ARRAY_BIT5_DY[2]&1){
+#line 13 "bit_arrays_cpp.bas"
+preserve_old_ptr=__ARRAY_BIT5_DY[0];
+#line 13 "bit_arrays_cpp.bas"
+preserve_old_total=__ARRAY_BIT5_DY[5];
+#line 13 "bit_arrays_cpp.bas"
+}
+#line 13 "bit_arrays_cpp.bas"
+int64 alloc_new_desc[8];
+#line 13 "bit_arrays_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 13 "bit_arrays_cpp.bas"
+uint64 alloc_req_bytes;
+#line 13 "bit_arrays_cpp.bas"
+uint64 alloc_dim_value;
+#line 13 "bit_arrays_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(5/8+1);
+#line 13 "bit_arrays_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 13 "bit_arrays_cpp.bas"
+alloc_new_desc[5]=(qbr((*__SINGLE_N+((float)(1)))))-alloc_new_desc[4]+1;
+#line 13 "bit_arrays_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 13 "bit_arrays_cpp.bas"
+alloc_new_desc[6]=1;
+#line 13 "bit_arrays_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 13 "bit_arrays_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 13 "bit_arrays_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 13 "bit_arrays_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 13 "bit_arrays_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 13 "bit_arrays_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 13 "bit_arrays_cpp.bas"
+if (alloc_dim_value){
+#line 13 "bit_arrays_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 13 "bit_arrays_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 13 "bit_arrays_cpp.bas"
+}
+#line 13 "bit_arrays_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 13 "bit_arrays_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 13 "bit_arrays_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 13 "bit_arrays_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 13 "bit_arrays_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 13 "bit_arrays_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 13 "bit_arrays_cpp.bas"
+if (preserve_old_total){
+#line 13 "bit_arrays_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 13 "bit_arrays_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 13 "bit_arrays_cpp.bas"
+tmp_long=(ptrszint)preserve_copy_count;
+#line 13 "bit_arrays_cpp.bas"
+while(tmp_long--) setbits(5,(uint8*)(preserve_new_ptr),tmp_long,(int64)getubits(5,(uint8*)(preserve_old_ptr),tmp_long));
+#line 13 "bit_arrays_cpp.bas"
+free((void*)(preserve_old_ptr));
+#line 13 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[0]=preserve_new_ptr;
+#line 13 "bit_arrays_cpp.bas"
+}else{
+#line 13 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 13 "bit_arrays_cpp.bas"
+if (!__ARRAY_BIT5_DY[0]) error(257);
+#line 13 "bit_arrays_cpp.bas"
+}
+#line 13 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[2]|=1;
+#line 13 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[4]=alloc_new_desc[4];
+#line 13 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[5]=alloc_new_desc[5];
+#line 13 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[6]=alloc_new_desc[6];
+#line 13 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[7]=alloc_new_desc[7];
+#line 13 "bit_arrays_cpp.bas"
+}
+#line 13 "bit_arrays_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 14 "bit_arrays_cpp.bas"
+do{
+#line 14 "bit_arrays_cpp.bas"
+tmp_long=array_check((2ll)-__ARRAY_BIT5_DY[4],__ARRAY_BIT5_DY[5]);
+#line 14 "bit_arrays_cpp.bas"
+if (!is_error_pending()) setbits(5,(uint8*)(__ARRAY_BIT5_DY[0]),tmp_long,((int32)(qbr(2.5E+0))));
+#line 14 "bit_arrays_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 15 "bit_arrays_cpp.bas"
+do{
+#line 15 "bit_arrays_cpp.bas"
+SUB_SHOW(&(pass1=((int32)(getbits(5,(uint8*)(__ARRAY_BIT5_DY[0]),array_check((2ll)-__ARRAY_BIT5_DY[4],__ARRAY_BIT5_DY[5]))))));
+#line 15 "bit_arrays_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "bit_arrays_cpp.bas"
+do{
+#line 16 "bit_arrays_cpp.bas"
+memset((void*)(__ARRAY_BIT1_B[0]),0,__ARRAY_BIT1_B[5]*1/8+1);
+#line 16 "bit_arrays_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 16 "bit_arrays_cpp.bas"
+do{
+#line 16 "bit_arrays_cpp.bas"
+if (__ARRAY_BIT5_DY[2]&1){
+#line 16 "bit_arrays_cpp.bas"
+free((void*)(__ARRAY_BIT5_DY[0]));
+#line 16 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[2]^=1;
+#line 16 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[4]=2147483647;
+#line 16 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[5]=0;
+#line 16 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[6]=0;
+#line 16 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[0]=(ptrszint)nothingvalue;
+#line 16 "bit_arrays_cpp.bas"
+}
+#line 16 "bit_arrays_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "bit_arrays_cpp.bas"
+do{
+#line 17 "bit_arrays_cpp.bas"
+if (sub_gl_called) error(271);
+#line 17 "bit_arrays_cpp.bas"
+close_program=1;
+#line 17 "bit_arrays_cpp.bas"
+end();
+#line 17 "bit_arrays_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+sub_end();
+return;
+}
+==> main1.txt <==
+#line 18 "bit_arrays_cpp.bas"
+void SUB_SHOW(int32*_SUB_SHOW_LONG_V){
+#line 18 "bit_arrays_cpp.bas"
+qbs *tqbs;
+#line 18 "bit_arrays_cpp.bas"
+ptrszint tmp_long;
+#line 18 "bit_arrays_cpp.bas"
+int32 tmp_fileno;
+#line 18 "bit_arrays_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 18 "bit_arrays_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 18 "bit_arrays_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 18 "bit_arrays_cpp.bas"
+#include "data1.txt"
+#line 18 "bit_arrays_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 18 "bit_arrays_cpp.bas"
+new_mem_lock();
+#line 18 "bit_arrays_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 18 "bit_arrays_cpp.bas"
+sf_mem_lock->type=3;
+#line 18 "bit_arrays_cpp.bas"
+libqb_check_stack();
+#line 18 "bit_arrays_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 19 "bit_arrays_cpp.bas"
+do{
+#line 19 "bit_arrays_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 19 "bit_arrays_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(*_SUB_SHOW_LONG_V)),qbs_new_txt(" ")));
+#line 19 "bit_arrays_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 19 "bit_arrays_cpp.bas"
+makefit(tqbs);
+#line 19 "bit_arrays_cpp.bas"
+qbs_print(tqbs,0);
+#line 19 "bit_arrays_cpp.bas"
+qbs_print(nothingstring,1);
+#line 19 "bit_arrays_cpp.bas"
+skip1:
+#line 19 "bit_arrays_cpp.bas"
+qbs_free(tqbs);
+#line 19 "bit_arrays_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 19 "bit_arrays_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "bit_arrays_cpp.bas"
+exit_subfunc:;
+#line 20 "bit_arrays_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 20 "bit_arrays_cpp.bas"
+#include "free1.txt"
+#line 20 "bit_arrays_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 20 "bit_arrays_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 20 "bit_arrays_cpp.bas"
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt data1.txt free1.txt

@@ -1,0 +1,119 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"CONST\\nCONST a\\nCONST a = 1,\\nCONST 5 = 1\\nCONST a = 1 2\\nCONST r = 20 ROOT 3\\nCONST q = (8 ROOT 3) + 1\\nx = 20 ROOT 3\\nPRINT a\\n\")"
+---
+SourceFile 0..120
+  ConstStmt 0..5
+    Ident CONST
+  Newline \x0A
+  ConstStmt 6..13
+    Ident CONST
+    Whitespace  
+    ConstItem 12..13
+      Ident a
+  Newline \x0A
+  ConstStmt 14..26
+    Ident CONST
+    Whitespace  
+    ConstItem 20..25
+      Ident a
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 24..25
+        Number 1
+    Comma ,
+  Newline \x0A
+  ConstStmt 27..38
+    Ident CONST
+    Whitespace  
+    Error 33..38
+      Number 5
+      Whitespace  
+      Eq =
+      Whitespace  
+      Number 1
+  Newline \x0A
+  ConstStmt 39..52
+    Ident CONST
+    Whitespace  
+    ConstItem 45..50
+      Ident a
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 49..50
+        Number 1
+    Whitespace  
+    Error 51..52
+      Number 2
+  Newline \x0A
+  ConstStmt 53..72
+    Ident CONST
+    Whitespace  
+    ConstItem 59..72
+      Ident r
+      Whitespace  
+      Eq =
+      Whitespace  
+      BinExpr 63..72
+        Literal 63..65
+          Number 20
+        Whitespace  
+        Ident ROOT
+        Whitespace  
+        Literal 71..72
+          Number 3
+  Newline \x0A
+  ConstStmt 73..97
+    Ident CONST
+    Whitespace  
+    ConstItem 79..97
+      Ident q
+      Whitespace  
+      Eq =
+      Whitespace  
+      BinExpr 83..97
+        ParenExpr 83..93
+          LParen (
+          BinExpr 84..92
+            Literal 84..85
+              Number 8
+            Whitespace  
+            Ident ROOT
+            Whitespace  
+            Literal 91..92
+              Number 3
+          RParen )
+        Whitespace  
+        Plus +
+        Whitespace  
+        Literal 96..97
+          Number 1
+  Newline \x0A
+  AssignStmt 98..111
+    NameRef 98..99
+      Ident x
+    Whitespace  
+    Eq =
+    Whitespace  
+    Literal 102..104
+      Number 20
+    Whitespace  
+    Error 105..111
+      Ident ROOT
+      Whitespace  
+      Number 3
+  Newline \x0A
+  PrintStmt 112..119
+    Ident PRINT
+    Whitespace  
+    NameRef 118..119
+      Ident a
+  Newline \x0A
+t.bas:1:6: error: expected a constant name
+t.bas:2:8: error: expected `=`
+t.bas:3:13: error: expected a constant name
+t.bas:4:7: error: expected a constant name
+t.bas:5:13: error: expected the end of the statement
+t.bas:8:8: error: expected the end of the statement

@@ -1,0 +1,11 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+template_errors.bas:6:13: error: this `LINE` statement matches none of its forms: `LINE [[{Step}](?,?)]-[{Step}](?,?)[,[?][,[{B|BF}][,?]]]`
+template_errors.bas:7:24: error: this `LINE` statement matches none of its forms: `LINE [[{Step}](?,?)]-[{Step}](?,?)[,[?][,[{B|BF}][,?]]]`
+template_errors.bas:8:6: error: this `PSET` statement matches none of its forms: `PSET [{Step}](?,?)[,?]`
+template_errors.bas:9:14: error: this `CIRCLE` statement matches none of its forms: `CIRCLE [{Step}](?,?),?[,[?][,[?][,[?][,?]]]]`
+template_errors.bas:10:20: error: this `OPEN` statement matches none of its forms: `OPEN ?[{For Random|For Binary|For Input|For Output|For Append}][{Access Read Write|Access Read|Access Write}][{Shared|Lock Read Write|Lock Read|Lock Write}]{As}[#]?[{Len =}?]`, `OPEN ?,[#]?,?[,?]`
+template_errors.bas:11:21: error: this `LOCATE` statement matches none of its forms: `LOCATE [?][,[?][,[?][,[?][,?]]]]`
+template_errors.bas:12:11: error: this `SCREEN` statement matches none of its forms: `SCREEN [?][,[?][,[?][,[?][,[{_ManualDisplay}?]]]]]`

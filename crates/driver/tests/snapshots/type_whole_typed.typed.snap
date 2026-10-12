@@ -1,0 +1,96 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE PT
+  X:I32
+  N:Str
+TYPE BOX
+  A:T:PT
+  B:T:PT
+ARRAY A:T:PT(0 TO 3)
+ARRAY BS:T:BOX(0 TO 2)
+line 2: ConsoleOnly
+line 16: CopyWhole Q:T:PT <- P
+line 17: CopyWhole Q:T:PT <- A(…)
+  From index
+    Int 2 : I64
+line 18: CopyWhole A(…):T:PT <- P
+  To index
+    Int 1 : I64
+line 19: CopyWhole A(…):T:PT <- A(…)
+  To index
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Var I : I32
+        Int 1 : I32
+  From index
+    Convert Widen : I64
+      Var I : I32
+line 20: CopyWhole P:T:PT <- P
+line 21: CopyWhole BX.A:T:PT <- P
+line 22: CopyWhole BX.B:T:PT <- BX.A
+line 23: CopyWhole Q:T:PT <- BS(…).B
+  From index
+    Convert Widen : I64
+      Var I : I32
+line 24: CopyWhole BS(…).A:T:PT <- A(…)
+  To index
+    Int 1 : I64
+  From index
+    Int 2 : I64
+line 25: Builtin SWAP
+  place P : T:PT
+  place Q : T:PT
+line 26: Builtin SWAP
+  place A(…) : T:PT
+    Int 1 : I64
+  place A(…) : T:PT
+    Int 2 : I64
+line 27: Call MOVE
+  ref Q : T:PT
+line 28: Call MOVE
+  ref A(…) : T:PT
+    Int 2 : I64
+line 29: Call MOVE
+  ref BX.A : T:PT
+line 30: Call MOVE
+  ref BS(…).B : T:PT
+    Int 1 : I64
+line 31: Print newline
+  Num
+    CallProc TWICE : F32
+      ref Q : T:PT
+  Num
+    CallProc TWICE : F32
+      ref A(…) : T:PT
+        Convert Widen : I64
+          Var I : I32
+line 32: Call PASSON
+  ref Q : T:PT
+line 33: System
+SUB MOVE
+  param P:T:PT
+line 36: Assign P (param).X:I32
+  Binary Add : I32 (qb I64)
+    Member P (param).X : I32
+    Int 1 : I32
+line 37: Assign P (param).N:Str
+  Concat : Str
+    Member P (param).N : Str
+    Str "m" : Str
+FUNCTION TWICE : F32
+  param P:T:PT
+  result TWICE:F32
+line 40: Assign TWICE (result):F32
+  Convert Nearest : F32
+    Binary Mul : I32 (qb I64)
+      Member P (param).X : I32
+      Int 2 : I32
+SUB PASSON
+  param P:T:PT
+  local L:T:PT
+line 44: Call MOVE
+  ref P (param) : T:PT
+line 45: CopyWhole L (local):T:PT <- P (param)
+line 46: CopyWhole P (param):T:PT <- L (local)

@@ -1,49 +1,65 @@
 //! `qb64rust`: the command line (design D9, spec `compiler/cli`).
 //!
 //! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
-//! [--qb64pe-root <dir>] [--keep-build]`
+//! [--qb64pe-root <dir>] [--include-root <dir>] [--keep-build]`
+//!
+//! `qb64rust --report unsupported <file or folder>... [--include-root <dir>]`: what a set of programs still needs
+//! (`report.rs`).
+//!
+//! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
 
-use qb64rust_driver::{build, dump_cpp, dump_ir, emit, frontend};
+use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit, frontend_with, report};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Mutex;
 
 const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
-[--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--keep-build]";
+[--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--include-root <dir>] [--keep-build]\n\
+       qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
+       qb64rust lsp    (the language server, over stdin and stdout)";
 
 #[derive(Default)]
 struct Options {
-    input: Option<PathBuf>,
+    /// One file to compile; with `--report`, any number of files and folders.
+    inputs: Vec<PathBuf>,
+    /// `--report unsupported`.
+    report: bool,
     output: Option<PathBuf>,
     quiet: bool,
     cpp_only: bool,
     dump: Option<String>,
     root: Option<PathBuf>,
+    /// `--include-root`: where included files are looked up after the including file's folder.
+    include_root: Option<PathBuf>,
     keep_build: bool,
-    /// `-f:<setting>=<value>` as given, checked by [`optimize_setting`].
+    /// `-w`: print the warnings too (spec `compiler/cli`).
+    warnings: bool,
+    /// `-f:<setting>=<value>` as given, checked by [`build_settings`].
     settings: Vec<String>,
 }
 
-/// Whether to optimise the C++ (`-f:OptimizeCppProgram=true`, as `qb64pe` turns it into `-O2`).
-/// `-f:StripDebugSymbols` is accepted and ignored; any other setting is not supported yet (spec `compiler/cli`).
-fn optimize_setting(settings: &[String]) -> Result<bool, String> {
-    let mut optimize = false;
+/// The `-f:` settings: `OptimizeCppProgram=true` (as `qb64pe` turns it into `-O2`) and `ExtraLinkerFlags=<value>`
+/// (added to the link command). `StripDebugSymbols` is accepted and ignored; any other setting is not supported
+/// yet (spec `compiler/cli`).
+fn build_settings(settings: &[String]) -> Result<build::Settings, String> {
+    let mut out = build::Settings::default();
     for s in settings {
         let (name, value) = s.split_once('=').unwrap_or((s, ""));
         match name {
             "OptimizeCppProgram" => {
-                optimize = match value.to_ascii_lowercase().as_str() {
+                out.optimize = match value.to_ascii_lowercase().as_str() {
                     "true" => true,
                     "false" => false,
                     _ => return Err(format!("setting `{name}` needs `true` or `false`, not `{value}`")),
                 }
             }
+            "ExtraLinkerFlags" => out.extra_link = value.to_string(),
             "StripDebugSymbols" => {}
             _ => return Err(format!("setting `{name}` is not supported yet")),
         }
     }
-    Ok(optimize)
+    Ok(out)
 }
 
 fn parse_args() -> Result<Options, String> {
@@ -54,8 +70,9 @@ fn parse_args() -> Result<Options, String> {
         let mut value = |what: &str| args.next().ok_or_else(|| format!("{what} needs a value"));
         match s.as_str() {
             // Accepted for the corpus runner and the M1 extension: -x (compile only, no IDE) and -m (plain
-            // output) change nothing here; -w (show warnings) has nothing to show yet.
-            "-x" | "-m" | "-w" => {}
+            // output) change nothing here.
+            "-x" | "-m" => {}
+            "-w" => o.warnings = true,
             "-q" => o.quiet = true,
             "-z" => o.cpp_only = true,
             "-o" => o.output = Some(PathBuf::from(value("-o")?)),
@@ -67,12 +84,22 @@ fn parse_args() -> Result<Options, String> {
                 o.dump = Some(d);
             }
             "--qb64pe-root" => o.root = Some(PathBuf::from(value("--qb64pe-root")?)),
+            "--include-root" => o.include_root = Some(PathBuf::from(value("--include-root")?)),
             "--keep-build" => o.keep_build = true,
+            "--report" => {
+                let r = value("--report")?.to_string_lossy().to_string();
+                if r != "unsupported" {
+                    return Err(format!("unknown --report `{r}`"));
+                }
+                o.report = true;
+            }
             _ if s.starts_with("-f:") => o.settings.push(s["-f:".len()..].to_string()),
             _ if s.starts_with('-') => return Err(format!("unknown option `{s}`")),
-            _ if o.input.is_some() => return Err("more than one input file".into()),
-            _ => o.input = Some(PathBuf::from(a)),
+            _ => o.inputs.push(PathBuf::from(a)),
         }
+    }
+    if o.inputs.len() > 1 && !o.report {
+        return Err("more than one input file".into());
     }
     Ok(o)
 }
@@ -118,8 +145,13 @@ fn install_panic_hook() {
 }
 
 fn main() -> ExitCode {
+    // `qb64rust lsp`: the exact word as the only argument (spec `compiler/cli`); `lsp.bas` is a file to compile.
+    let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if args.first().is_some_and(|a| a == "lsp") {
+        return lsp(args.len());
+    }
     install_panic_hook();
-    match run() {
+    match qb64rust_driver::with_stack(run) {
         Ok(code) => code,
         Err(msg) => {
             println!("qb64rust: {msg}");
@@ -128,9 +160,58 @@ fn main() -> ExitCode {
     }
 }
 
+/// The language server over stdin and stdout (spec `editor/language-server`). Stdout carries the protocol, so the
+/// compile run's panic hook (which prints there) is not installed: a panic is reported on stderr, which the editor
+/// shows in the server's output.
+fn lsp(arg_count: usize) -> ExitCode {
+    if arg_count > 1 {
+        eprintln!("qb64rust: `lsp` takes no other argument\n{USAGE}");
+        return ExitCode::FAILURE;
+    }
+    // The include root when the client names none: the folder of this executable, as for a compile.
+    let root = std::env::current_exe()
+        .ok()
+        .and_then(|e| e.parent().map(Path::to_path_buf))
+        .unwrap_or_default();
+    match qb64rust_driver::with_stack(move || qb64rust_lsp::run_stdio(root)) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(msg) => {
+            eprintln!("qb64rust lsp: {msg}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// The compiler root (spec `compiler/cli`): `--include-root`, resolved against the working directory now, or the
+/// folder of this executable.
+fn include_root(o: &Options) -> Result<PathBuf, String> {
+    match &o.include_root {
+        Some(r) => std::path::absolute(r).map_err(|e| e.to_string()),
+        None => Ok(std::env::current_exe()
+            .map_err(|e| e.to_string())?
+            .parent()
+            .map_or_else(PathBuf::new, Path::to_path_buf)),
+    }
+}
+
+/// `--report unsupported`: the table of `report.rs` for the files and folders given, with the error cap lifted so
+/// that a large program counts in full. The exit status is 0 whatever the programs hold: the report is no verdict.
+fn report_unsupported(o: &Options) -> Result<ExitCode, String> {
+    qb64rust_base::lift_error_cap();
+    print!("{}", report::unsupported(&o.inputs, &include_root(o)?)?);
+    Ok(ExitCode::SUCCESS)
+}
+
 fn run() -> Result<ExitCode, String> {
     let o = parse_args().map_err(|e| format!("{e}\n{USAGE}"))?;
-    let input = o.input.clone().ok_or_else(|| format!("no input file\n{USAGE}"))?;
+    let input = o
+        .inputs
+        .first()
+        .cloned()
+        .ok_or_else(|| format!("no input file\n{USAGE}"))?;
+    if o.report {
+        return report_unsupported(&o);
+    }
     let bytes = std::fs::read(&input).map_err(|e| format!("cannot read {}: {e}", input.display()))?;
     if bytes.len() > qb64rust_base::MAX_SOURCE_LEN {
         let max = qb64rust_base::MAX_SOURCE_LEN;
@@ -159,11 +240,19 @@ fn run() -> Result<ExitCode, String> {
         print!("{}", qb64rust_syntax::dump_tokens(&bytes));
         return Ok(ExitCode::SUCCESS);
     }
-    let fe = frontend(&name, bytes);
+    let include_root = include_root(&o)?;
+    let fe = frontend_with(&name, bytes, |file| {
+        Box::new(FileLoader::new(&include_root, file, &input))
+    });
     let errors = fe.diagnostics.error_count();
+    // Warnings only with -w, never counted in the summary (spec `compiler/cli`).
     let report = |fe: &qb64rust_driver::Frontend| {
-        if errors > 0 {
+        if o.warnings {
+            print!("{}", fe.render_with_warnings());
+        } else if errors > 0 {
             print!("{}", fe.render_diagnostics());
+        }
+        if errors > 0 {
             println!("{}", fe.diagnostics.summary());
         }
     };
@@ -184,7 +273,7 @@ fn run() -> Result<ExitCode, String> {
         });
     }
 
-    let optimize = optimize_setting(&o.settings).inspect_err(|_| {
+    let settings = build_settings(&o.settings).inspect_err(|_| {
         let _ = std::fs::remove_file(&exe);
     })?;
     if errors > 0 {
@@ -192,6 +281,7 @@ fn run() -> Result<ExitCode, String> {
         report(&fe);
         return Ok(ExitCode::FAILURE);
     }
+    report(&fe);
 
     let fragments = emit(&fe);
     let build_dir = build::build_dir(&exe);
@@ -204,7 +294,7 @@ fn run() -> Result<ExitCode, String> {
     let _ = std::fs::remove_file(&exe);
     let root = build::find_root(o.root.as_deref())?;
     build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
-    build::build(&root, &build_dir, &exe, o.quiet, optimize)?;
+    build::build(&root, &build_dir, &exe, o.quiet, &settings)?;
     if !o.keep_build {
         let _ = std::fs::remove_dir_all(&build_dir);
     }

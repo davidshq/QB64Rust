@@ -6,12 +6,13 @@ mod kind;
 pub mod lexer;
 pub mod meta;
 mod parser;
+pub mod pp;
 pub mod program;
 pub mod tree;
 
 pub use kind::SyntaxKind;
 pub use parser::keywords::is_keyword;
-pub use program::{LoadError, Loader, NoLoader, ParsedProgram, Tree, parse};
+pub use program::{LoadError, Loader, NoLoader, ParsedProgram, Tree, include_name, parse};
 
 use qb64rust_base::{SourceMap, show_bytes};
 use std::fmt::Write as _;

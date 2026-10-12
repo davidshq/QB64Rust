@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):PRINT LEN$ ( "a",1 )
+LINE 3:PRINT LEN$("a")
+exit=1

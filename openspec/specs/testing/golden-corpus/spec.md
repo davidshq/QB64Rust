@@ -11,8 +11,9 @@ compiler.
 The corpus SHALL live in `tests/corpus/<group>/`. Each test SHALL be a `<name>.bas` with exactly one of
 `<name>.output` (the program must compile, run, and print this), `<name>.err` (the program must fail to compile
 with this compiler output) or `<name>.norun` (compile only; holds the reason it must not run), and MAY have a
-`<name>.normalize` sidecar. Each group SHALL have a `SOURCE.md` naming
-where its programs came from, the source commit and the licence.
+`<name>.normalize` sidecar. A test with an `.output` MAY also have a `<name>.screen` (the state of the screen the
+program must leave, spec `testing/screen-state`) and with it a `<name>.keys` (the keys it is given). Each group
+SHALL have a `SOURCE.md` naming where its programs came from, the source commit and the licence.
 
 #### Scenario: Program from QB64Fresh
 - **WHEN** a reader opens `tests/corpus/runtime_comparison/SOURCE.md`
@@ -22,6 +23,10 @@ where its programs came from, the source commit and the licence.
 #### Scenario: Programs are unchanged copies
 - **WHEN** a corpus `.bas` from `runtime_comparison` is compared with the QB64Fresh file at `85e6df8`
 - **THEN** the bytes are identical
+
+#### Scenario: A screen program
+- **WHEN** a reader opens `tests/corpus/screen/`
+- **THEN** each program there has an `.output` and a `.screen`, and those that read the keyboard a `.keys`
 
 ### Requirement: Running a compiler against the corpus
 `run_legacy_tests.py --suite corpus` SHALL, for each program, compile it with `-q -m -x` and no other build flags
@@ -98,3 +103,43 @@ the differing behaviour.
 - **WHEN** the corpus is checked with `--cpp-opt` against the old compiler
 - **THEN** `verification/v11_wrap_o2` fails (its LONG overflow result differs from the default build) and is
   listed in `tests/corpus/README.md`
+
+### Requirement: Standard input sidecar
+A corpus program MAY have `<name>.stdin`. `run_legacy_tests.py --suite corpus` SHALL then run the executable with
+its standard input read from a copy of that file, byte for byte, when checking and when recording, for the old and
+the new compiler alike; every other rule of the run (the scratch folder, the timeout, the comparison) SHALL stay
+as it is. A program without the sidecar SHALL run exactly as before. A program with the sidecar SHALL end with
+`SYSTEM`, and its `.stdin` SHALL hold an answer for every input statement it runs: the old compiler's program
+waits for ever at `END`'s "Press any key to continue" and when its input has run out.
+
+#### Scenario: Program that reads a line
+- **WHEN** a program does `LINE INPUT s$: PRINT "["; s$; "]"` and its `.stdin` holds the line `abc`
+- **THEN** the run prints `[abc]`, with either compiler
+
+#### Scenario: Input runs out
+- **WHEN** a program asks for more input than its `.stdin` holds
+- **THEN** the run fails with a timeout, with either compiler (the program waits for more input), and nothing is
+  recorded for it
+
+#### Scenario: No sidecar
+- **WHEN** the corpus is run after this change with no `.stdin` file present
+- **THEN** every program's result is the same as before the change
+
+### Requirement: The runner's rules are tested
+The rules by which `run_legacy_tests.py` decides that a corpus program passes, and what `--record` writes, SHALL be
+covered by tests of the runner itself (`tools\legacy_tests\test_run_legacy_tests.py`) that need no compiler, no
+reference clone and no C++ build, and that run in CI with tier 1: the normalisation of program output and of
+`.err` text, the rule for a rejection by a compiler other than `qb64pe`, `.normalize` files, the `--list` and
+known-failures files, and for one corpus program every outcome (equal and different output, each kind of `.err`
+result, `.norun`, `.stdin`, a known failure without an expected file, a failed or timed-out run, and `--record`
+with equal runs, with differing runs and with a rejection). A change to one of these rules SHALL come with a
+change to its test.
+
+#### Scenario: A broken comparison is noticed
+- **WHEN** the runner is changed so that a bare CR in a program's output no longer counts, or so that the two runs
+  of `--record` need not be equal
+- **THEN** `python -m unittest discover -s tools/legacy_tests -p "test_*.py"` fails
+
+#### Scenario: Runs without a compiler
+- **WHEN** the tests run on a machine with Python and neither `qb64pe` nor `qb64rust`
+- **THEN** they pass

@@ -1,0 +1,6 @@
+$CONSOLE:ONLY
+' Verification (m2-defxxx-common-arrays, D1): COMMON SHARED x AS LONG, then DIM SHARED x AS LONG.
+COMMON SHARED x AS LONG
+DIM SHARED x AS LONG
+PRINT x
+SYSTEM

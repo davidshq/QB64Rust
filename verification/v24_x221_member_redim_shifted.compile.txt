@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):REDIM T . V ( 1 TO 4 )
+LINE 10:REDIM t.v(1 TO 4)
+exit=1

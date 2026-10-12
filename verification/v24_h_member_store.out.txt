@@ -1,0 +1,10 @@
+1. t.v(9) = 5: [error 9 ] t.v(0) 5 
+2. t.v(9) = ASC(empty): [error 5 ] t.v(0) 0 
+3. t.v(1) = ASC(empty): [error 5 ] t.v(1) 0 
+4. a(9).v(1) = 5 (outer index outside): [error 9 ] a(0).v(1), a(1).v(1) 5  211 
+5. a(1).v(9) = 6 (inner index outside): [error 9 ] a(1).v(0), a(1).v(1), a(0).v(0) 6  211  200 
+6. a(9).v(9) = 7 (both outside): [error 9 ] a(0).v(0), a(0).v(1) 7  5 
+7. a(9).v(9) = ASC(empty): [error 5 ] a(0).v(0) 0 
+8. reads: t.v(9), a(9).v(1), a(1).v(9): [error 9 ] 0  [error 9 ] 5  [error 9 ] 6 
+9. order of the indexes, a(one(1)).v(one(2)) = one(3): 3  1  2 
+exit=0

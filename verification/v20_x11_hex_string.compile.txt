@@ -1,0 +1,5 @@
+
+Expected numeric value
+Caused by (or after):PRINT HEX$ ( "a",1 )
+LINE 3:PRINT HEX$("a")
+exit=1

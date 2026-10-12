@@ -1,0 +1,8 @@
+---
+source: crates/sema/tests/symbols.rs
+expression: "dump_symbols(&p, &map)"
+---
+Proc S SUB def 5:5 refs 3:4
+Label A def 3:1 refs 2:6
+Label A (in S) def 7:5 refs 6:10
+Label B (in S) def 10:5 refs 8:11

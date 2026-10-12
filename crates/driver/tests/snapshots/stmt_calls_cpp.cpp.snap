@@ -1,0 +1,199 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+qbs *__STRING_S=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+void SUB_REMOVE(qbs*_SUB_REMOVE_STRING_F);
+==> clear.txt <==
+__STRING_S->len=0;
+==> maindata.txt <==
+if (!__STRING_S)__STRING_S=qbs_new(0,0);
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "stmt_calls_cpp.bas"
+do{
+#line 2 "stmt_calls_cpp.bas"
+sub__dest(func__console());
+#line 2 "stmt_calls_cpp.bas"
+sub__source(func__console());
+#line 2 "stmt_calls_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 8 "stmt_calls_cpp.bas"
+do{
+#line 8 "stmt_calls_cpp.bas"
+sub_kill(qbs_new_txt_len("f.tmp",5));
+#line 8 "stmt_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 8 "stmt_calls_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 9 "stmt_calls_cpp.bas"
+do{
+#line 9 "stmt_calls_cpp.bas"
+sub_kill(__STRING_S);
+#line 9 "stmt_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 9 "stmt_calls_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+#line 10 "stmt_calls_cpp.bas"
+do{
+#line 10 "stmt_calls_cpp.bas"
+sub_kill(qbs_add(__STRING_S,qbs_new_txt_len(".x",2)));
+#line 10 "stmt_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 10 "stmt_calls_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 11 "stmt_calls_cpp.bas"
+do{
+#line 11 "stmt_calls_cpp.bas"
+sub_kill(func_chr((-1)));
+#line 11 "stmt_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 11 "stmt_calls_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 12 "stmt_calls_cpp.bas"
+do{
+#line 12 "stmt_calls_cpp.bas"
+sub_mkdir(__STRING_S);
+#line 12 "stmt_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 12 "stmt_calls_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 13 "stmt_calls_cpp.bas"
+do{
+#line 13 "stmt_calls_cpp.bas"
+sub_rmdir(__STRING_S);
+#line 13 "stmt_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 13 "stmt_calls_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 14 "stmt_calls_cpp.bas"
+do{
+#line 14 "stmt_calls_cpp.bas"
+sub_chdir(__STRING_S);
+#line 14 "stmt_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 14 "stmt_calls_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 15 "stmt_calls_cpp.bas"
+do{
+#line 15 "stmt_calls_cpp.bas"
+sub_name(__STRING_S,qbs_add(__STRING_S,qbs_new_txt_len("2",1)));
+#line 15 "stmt_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 15 "stmt_calls_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "stmt_calls_cpp.bas"
+do{
+#line 16 "stmt_calls_cpp.bas"
+sub_environ(__STRING_S);
+#line 16 "stmt_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 16 "stmt_calls_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "stmt_calls_cpp.bas"
+do{
+#line 17 "stmt_calls_cpp.bas"
+SUB_REMOVE(__STRING_S);
+#line 17 "stmt_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 17 "stmt_calls_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(__STRING_S);
+==> main1.txt <==
+#line 18 "stmt_calls_cpp.bas"
+void SUB_REMOVE(qbs*_SUB_REMOVE_STRING_F){
+#line 18 "stmt_calls_cpp.bas"
+qbs *tqbs;
+#line 18 "stmt_calls_cpp.bas"
+ptrszint tmp_long;
+#line 18 "stmt_calls_cpp.bas"
+int32 tmp_fileno;
+#line 18 "stmt_calls_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 18 "stmt_calls_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 18 "stmt_calls_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 18 "stmt_calls_cpp.bas"
+#include "data1.txt"
+#line 18 "stmt_calls_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 18 "stmt_calls_cpp.bas"
+new_mem_lock();
+#line 18 "stmt_calls_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 18 "stmt_calls_cpp.bas"
+sf_mem_lock->type=3;
+#line 18 "stmt_calls_cpp.bas"
+libqb_check_stack();
+#line 18 "stmt_calls_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 19 "stmt_calls_cpp.bas"
+do{
+#line 19 "stmt_calls_cpp.bas"
+sub_kill(_SUB_REMOVE_STRING_F);
+#line 19 "stmt_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 19 "stmt_calls_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "stmt_calls_cpp.bas"
+exit_subfunc:;
+#line 20 "stmt_calls_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 20 "stmt_calls_cpp.bas"
+#include "free1.txt"
+#line 20 "stmt_calls_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 20 "stmt_calls_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 20 "stmt_calls_cpp.bas"
+}
+==> data1.txt <==
+qbs*oldstr0=NULL;
+if(_SUB_REMOVE_STRING_F->tmp||_SUB_REMOVE_STRING_F->fixed||_SUB_REMOVE_STRING_F->readonly){
+oldstr0=_SUB_REMOVE_STRING_F;
+if (oldstr0->cmem_descriptor){
+_SUB_REMOVE_STRING_F=qbs_new_cmem(oldstr0->len,0);
+}else{
+_SUB_REMOVE_STRING_F=qbs_new(oldstr0->len,0);
+}
+memcpy(_SUB_REMOVE_STRING_F->chr,oldstr0->chr,oldstr0->len);
+}
+==> free1.txt <==
+if(oldstr0){
+if(oldstr0->fixed)qbs_set(oldstr0,_SUB_REMOVE_STRING_F);
+qbs_free(_SUB_REMOVE_STRING_F);
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt

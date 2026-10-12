@@ -131,4 +131,9 @@ describe("parseQb64peOutput, synthetic cases", () => {
         const result = parseQb64peOutput("nowhere.bi:2: warning: Something\n", 0, { mainFile: main, exists: () => false });
         assert.deepStrictEqual(result, [{ severity: "warning", file: undefined, line: 2, message: "Something" }]);
     });
+
+    it("warning with a column (qb64rust's form): the column is not read as the line", () => {
+        const result = parseQb64peOutput("p.bas:2:11: warning: Something\n", 0, { mainFile: main, exists: () => false });
+        assert.deepStrictEqual(result, [{ severity: "warning", file: undefined, line: 2, message: "Something" }]);
+    });
 });

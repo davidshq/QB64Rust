@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):KILL ( "a",1 , "b",1 )
+LINE 3:KILL ("a", "b")
+exit=1

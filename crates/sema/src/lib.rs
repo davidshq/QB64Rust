@@ -11,7 +11,9 @@
 // A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
 #![warn(clippy::wildcard_enum_match_arm)]
 
+pub mod builtins;
 mod check;
+pub mod consteval;
 mod dump;
 pub mod literal;
 mod symbols;
@@ -20,47 +22,407 @@ pub use check::{check, check_with};
 pub use dump::dump_typed;
 pub use symbols::{Symbol, SymbolId, SymbolKind, Symbols, dump_symbols};
 
-use qb64rust_base::Span;
+use qb64rust_base::{FileId, Span};
 use qb64rust_builtins::BuiltinId;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// A type (design D3 of `m2-numeric-types`). It has no order: what a rule needs to know about a type it asks
+/// through [`Ty::int_bits`], [`Ty::is_signed`], [`Ty::is_unsigned`], [`Ty::float_rank`] and [`Ty::storage`].
+///
+/// `Bit` is the type of a place only: its values are held in its storage type and believed the place's `_BIT`
+/// type ([`Ty::held_value`]). `FixedStr` too: its values are `Str` ([`place_only_types`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Ty {
+    /// `_BYTE`.
+    I8,
+    /// `_UNSIGNED _BYTE`.
+    U8,
+    /// `INTEGER`.
     I16,
+    /// `_UNSIGNED INTEGER`.
+    U16,
+    /// `LONG`.
     I32,
+    /// `_UNSIGNED LONG`.
+    U32,
+    /// `_INTEGER64`.
     I64,
+    /// `_UNSIGNED _INTEGER64`.
+    U64,
+    /// `_OFFSET`: its own variant, not `I64`, because its operator rules differ (design D4).
+    Off,
+    /// `_UNSIGNED _OFFSET`.
+    UOff,
+    /// `_BIT * width` (1 to 64), `_UNSIGNED` when not `signed`.
+    Bit {
+        width: u8,
+        signed: bool,
+    },
+    /// `SINGLE`.
     F32,
+    /// `DOUBLE`.
     F64,
+    /// `_FLOAT`.
     F80,
     Str,
+    /// `STRING * n`: the type of a place only; loading it gives a `Str` value (design D3).
+    FixedStr(u32),
+    /// A `TYPE` of the program ([`Program::types`]), design D3 of `m2-arrays-and-types`.
+    User(TypeId),
 }
 
 impl Ty {
     pub fn is_int(self) -> bool {
-        matches!(self, Ty::I16 | Ty::I32 | Ty::I64)
+        self.int_bits().is_some()
     }
 
     pub fn is_float(self) -> bool {
-        matches!(self, Ty::F32 | Ty::F64 | Ty::F80)
+        self.float_rank().is_some()
     }
 
     pub fn is_numeric(self) -> bool {
+        self.is_int() || self.is_float()
+    }
+
+    /// The width in bits of an integer type, 8 to 64: `_OFFSET` 64 (the targets are 64-bit), `_BIT * n` that of its
+    /// [`Ty::storage`] (32 or 64); `None` for a float, a string or a user type.
+    pub fn int_bits(self) -> Option<u32> {
         match self {
-            Ty::I16 | Ty::I32 | Ty::I64 | Ty::F32 | Ty::F64 | Ty::F80 => true,
-            Ty::Str => false,
+            Ty::I8 | Ty::U8 => Some(8),
+            Ty::I16 | Ty::U16 => Some(16),
+            Ty::I32 | Ty::U32 => Some(32),
+            Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff => Some(64),
+            Ty::Bit { width, .. } => Some(if width <= 32 { 32 } else { 64 }),
+            Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => None,
         }
     }
 
-    /// The QB type name (`INTEGER`, `_FLOAT`...).
+    /// A signed integer or a float.
+    pub fn is_signed(self) -> bool {
+        self.is_numeric() && !self.is_unsigned()
+    }
+
+    /// An `_UNSIGNED` integer type.
+    pub fn is_unsigned(self) -> bool {
+        match self {
+            Ty::U8 | Ty::U16 | Ty::U32 | Ty::U64 | Ty::UOff => true,
+            Ty::Bit { signed, .. } => !signed,
+            Ty::I8
+            | Ty::I16
+            | Ty::I32
+            | Ty::I64
+            | Ty::Off
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str
+            | Ty::FixedStr(_)
+            | Ty::User(_) => false,
+        }
+    }
+
+    /// The rank of a float type, SINGLE 1 < DOUBLE 2 < `_FLOAT` 3; `None` for any other type.
+    pub fn float_rank(self) -> Option<u32> {
+        match self {
+            Ty::F32 => Some(1),
+            Ty::F64 => Some(2),
+            Ty::F80 => Some(3),
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::Bit { .. }
+            | Ty::Str
+            | Ty::FixedStr(_)
+            | Ty::User(_) => None,
+        }
+    }
+
+    /// Whether this numeric type is wider than `other`: a float is wider than an integer, a float of higher
+    /// [`Ty::float_rank`] or an integer of more [`Ty::int_bits`] wider than another. Of two integer types of one
+    /// width neither is wider (which one an operator computes in is design D4's `held`, task 5.1).
+    pub fn is_wider_than(self, other: Ty) -> bool {
+        match (self.float_rank(), other.float_rank()) {
+            (Some(x), Some(y)) => x > y,
+            (Some(_), None) => true,
+            (None, Some(_)) => false,
+            (None, None) => {
+                let bits = |t: Ty| {
+                    t.int_bits()
+                        .unwrap_or_else(|| unreachable!("{t:?} is not a numeric type"))
+                };
+                bits(self) > bits(other)
+            }
+        }
+    }
+
+    /// The type the old compiler stores a value of this type in (`study\02` §3.2): `_BIT * n` in a 32-bit integer up to
+    /// 32 bits, a 64-bit one above, of its signedness; every other type in itself (`_OFFSET` is `ptrszint`).
+    pub fn storage(self) -> Ty {
+        match self {
+            Ty::Bit { width, signed } => match (width <= 32, signed) {
+                (true, true) => Ty::I32,
+                (true, false) => Ty::U32,
+                (false, true) => Ty::I64,
+                (false, false) => Ty::U64,
+            },
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str
+            | Ty::FixedStr(_)
+            | Ty::User(_) => self,
+        }
+    }
+
+    /// The type an expression of a place of this type has: a `_BIT * n` value is held in its [`Ty::storage`]
+    /// (`study\02` §1.7: the read is a plain dereference), a `STRING * n` value is a `STRING` of its n bytes (design
+    /// D3: the old compiler reads it through a fixed `qbs` descriptor), every other type is itself. It is believed
+    /// the place's type ([`Ty::believed_value`]): the old compiler's markup sees a `_BIT * n` value's width and
+    /// signedness (measured, the differential `ops` programs: `UBIT7 + UINT64` is believed `_UNSIGNED _INTEGER64`),
+    /// only `PRINT` reads it as `int64` ([`Ty::printed`]).
+    pub fn held_value(self) -> Ty {
+        match self {
+            Ty::FixedStr(_) => Ty::Str,
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::Bit { .. }
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str
+            | Ty::User(_) => self.storage(),
+        }
+    }
+
+    /// The type a value of a place of this type is believed to have: the place's own type, except that a `STRING *
+    /// n` value is a `STRING` ([`Ty::held_value`]).
+    pub fn believed_value(self) -> Ty {
+        match self {
+            Ty::FixedStr(_) => Ty::Str,
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::Bit { .. }
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str
+            | Ty::User(_) => self,
+        }
+    }
+
+    /// `STRING` or `STRING * n`: a place that holds a string.
+    pub fn is_string(self) -> bool {
+        matches!(self, Ty::Str | Ty::FixedStr(_))
+    }
+
+    /// The type a `PRINT` or `STR$` converts a value believed this type to: `_INTEGER64` for any `_BIT * n` (measured:
+    /// an `_UNSIGNED _BIT * 64` holding 2^64-1 prints -1; a `_BIT` literal is never narrowed, `` 9`3 `` prints 9),
+    /// every other type itself.
+    pub fn printed(self) -> Ty {
+        match self {
+            Ty::Bit { .. } => Ty::I64,
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str
+            | Ty::FixedStr(_)
+            | Ty::User(_) => self,
+        }
+    }
+
+    /// The QB type name (`INTEGER`, `_FLOAT`...); `TYPE` for a user type, whose name is [`Program::type_name`]'s.
+    /// A `_BIT * n` without its width: [`Program::type_name`] has it.
     pub fn qb_name(self) -> &'static str {
         match self {
+            Ty::I8 => "_BYTE",
+            Ty::U8 => "_UNSIGNED _BYTE",
             Ty::I16 => "INTEGER",
+            Ty::U16 => "_UNSIGNED INTEGER",
             Ty::I32 => "LONG",
+            Ty::U32 => "_UNSIGNED LONG",
             Ty::I64 => "_INTEGER64",
+            Ty::U64 => "_UNSIGNED _INTEGER64",
+            Ty::Off => "_OFFSET",
+            Ty::UOff => "_UNSIGNED _OFFSET",
+            Ty::Bit { signed: true, .. } => "_BIT",
+            Ty::Bit { signed: false, .. } => "_UNSIGNED _BIT",
             Ty::F32 => "SINGLE",
             Ty::F64 => "DOUBLE",
             Ty::F80 => "_FLOAT",
-            Ty::Str => "STRING",
+            Ty::Str | Ty::FixedStr(_) => "STRING",
+            Ty::User(_) => "TYPE",
         }
+    }
+}
+
+/// The reason in an `unreachable!` arm for a type of [`place_only_types`].
+pub const PLACE_ONLY_UNREACHABLE: &str = "a `STRING * n` value is a `STRING` (`Ty::held_value`)";
+
+/// A pattern of the [`Ty`] variants that are the type of a place only, never of a value (design D3 of
+/// `m2-numeric-types`), for the arm `place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}")` of a `match`
+/// on a value's type. (`_BIT` is a place type too, with its own arm: [`BIT_VALUE_UNREACHABLE`].)
+#[macro_export]
+macro_rules! place_only_types {
+    () => {
+        $crate::Ty::FixedStr(_)
+    };
+}
+
+/// The reason in an `unreachable!` arm for `_BIT` where a value's type is matched: a `_BIT` value is held in its
+/// storage type ([`Ty::held_value`]); `_BIT` is the type of a place only.
+pub const BIT_VALUE_UNREACHABLE: &str = "a `_BIT` value is held in its storage type (`Ty::held_value`)";
+
+/// The kind of conversion of a numeric value from `from` to `to` (design D5 of `m2-numeric-types`): `Widen` where
+/// every value of `from` is one of `to` (an integer to a wider one that keeps its sign, a float to a wider float),
+/// `Truncate` from an integer to any other integer (the low bits, read with the target's signedness), `RoundEven` from
+/// a float to an integer, `Nearest` from an integer to a float or a float to a narrower one. `_BIT` types convert as
+/// their storage.
+pub fn conversion(from: Ty, to: Ty) -> ConvKind {
+    let (from, to) = (from.storage(), to.storage());
+    match (from.int_bits(), to.int_bits()) {
+        // Wider and of the same signedness, or unsigned into a wider signed type.
+        (Some(f), Some(t)) if t > f && (from.is_unsigned() || !to.is_unsigned()) => ConvKind::Widen,
+        (Some(_), Some(_)) => ConvKind::Truncate,
+        (None, Some(_)) => ConvKind::RoundEven,
+        (Some(_), None) => ConvKind::Nearest,
+        (None, None) if to.is_wider_than(from) => ConvKind::Widen,
+        (None, None) => ConvKind::Nearest,
+    }
+}
+
+/// The size of a value of a numeric or user type in memory: what `LEN` of a place gives and what the layout of a
+/// `TYPE` is made of. A `_FLOAT` takes 32 bytes as in the old compiler (`study\02` §1.7); a user type is its members'
+/// sizes added up, in order, without padding (measured, `verification\v18_h_type_members`, `v20_g_len`), a member
+/// array as all its elements (`v24_h_member_arrays`: 22 for a LONG, four LONGs and an INTEGER). A `_BIT * n` takes
+/// its [`Ty::storage`] (`LEN` of one is an error, the checker's; it is never a member).
+pub fn size_of(types: &[UserType], t: Ty) -> u32 {
+    match t {
+        Ty::I8 | Ty::U8 => 1,
+        Ty::I16 | Ty::U16 => 2,
+        Ty::I32 | Ty::U32 | Ty::F32 => 4,
+        Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff | Ty::F64 => 8,
+        Ty::F80 => 32,
+        Ty::Bit { .. } => size_of(types, t.storage()),
+        Ty::User(id) => types[id.0 as usize]
+            .members
+            .iter()
+            .map(|m| size_of(types, m.ty) * m.count())
+            .sum(),
+        Ty::FixedStr(n) => n,
+        Ty::Str => unreachable!("a string has no fixed size"),
+    }
+}
+
+/// Whether a value of this type holds a `STRING` of its own: a user type with a `STRING` member, in itself or in
+/// a member of a user type (design D9 of `m2-defxxx-common-arrays`). Such a type has no fixed size: `LEN` of a
+/// place of it is an error (measured, `verification\v24_x206`), and [`size_of`] is not asked for it. A `STRING`
+/// itself is not such a type.
+pub fn holds_strings(types: &[UserType], t: Ty) -> bool {
+    match t {
+        Ty::User(id) => types[id.0 as usize]
+            .members
+            .iter()
+            .any(|m| m.ty == Ty::Str || holds_strings(types, m.ty)),
+        Ty::I8
+        | Ty::U8
+        | Ty::I16
+        | Ty::U16
+        | Ty::I32
+        | Ty::U32
+        | Ty::I64
+        | Ty::U64
+        | Ty::Off
+        | Ty::UOff
+        | Ty::Bit { .. }
+        | Ty::F32
+        | Ty::F64
+        | Ty::F80
+        | Ty::Str
+        | Ty::FixedStr(_) => false,
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TypeId(pub u32);
+
+/// A member of a user type: its index in [`UserType::members`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct MemberId(pub u32);
+
+/// A `TYPE … END TYPE` of the main module. Its layout (sizes, offsets) is the emitter's.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UserType {
+    /// The name in upper case.
+    pub name: String,
+    /// In declaration order.
+    pub members: Vec<Member>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Member {
+    /// The name in upper case, without suffix.
+    pub name: String,
+    /// A numeric type other than `_BIT`, `STRING`, `STRING * n`, or a user type defined before this one. Of a
+    /// member array, the type of its elements.
+    pub ty: Ty,
+    /// A member array (design D8 of `m2-defxxx-common-arrays`): the lower and upper bound of each dimension, first
+    /// dimension first, read where the `TYPE` block stands. Empty for a member that is a single value. The
+    /// elements are part of each value of the type and the bounds never change (measured,
+    /// `verification\v24_h_member_arrays`, `v24_x184`–`x190`).
+    pub bounds: Vec<(i64, i64)>,
+}
+
+impl Member {
+    pub fn is_array(&self) -> bool {
+        !self.bounds.is_empty()
+    }
+
+    /// The number of elements of a member array; 1 for a member that is a single value.
+    pub fn count(&self) -> u32 {
+        let n: i64 = self.bounds.iter().map(|&(lower, upper)| upper - lower + 1).product();
+        u32::try_from(n).expect("the checker limits the size of a `TYPE`")
     }
 }
 
@@ -73,16 +435,43 @@ pub struct ProcId(pub u32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct LabelId(pub u32);
 
-/// A label of the main module (labels inside procedures are not supported yet).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ConstId(pub u32);
+
+/// A `CONST` (design D6 of `m2-control-flow-slice`). Its uses are literal nodes in the typed tree.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Const {
+    /// The name without suffix, in upper case.
+    pub name: String,
+    pub ty: Ty,
+    pub value: consteval::Value,
+    /// The procedure the constant belongs to; `None` for the main module's.
+    pub proc: Option<ProcId>,
+}
+
+/// A label (design D5 of `m2-control-flow-slice`). It belongs to one body, the main module or a procedure, also
+/// when it stands inside a block; where it stands is its [`StmtKind::Label`] statement.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Label {
     /// The name in upper case.
     pub name: String,
-    /// 1-based source line of the label.
+    /// 1-based source line of the label, in its file.
     pub line: u32,
-    /// Index in [`Program::stmts`] of the statement the label stands before (the number of statements when it
-    /// stands after the last one).
-    pub at: usize,
+    /// The file the label stands in (an included file's labels report errors with its name).
+    pub file: FileId,
+    /// The procedure whose body holds the label; `None` for the main module.
+    pub proc: Option<ProcId>,
+    /// How many of the program's `DATA` items ([`Program::data`]) stand before the label in file order: where a
+    /// `RESTORE` to it makes the next `READ` start.
+    pub data_at: usize,
+}
+
+/// One item of a `DATA` statement: its text as the old compiler keeps it (the blanks around an unquoted item
+/// dropped, a quoted item without its quotes), and whether it was written in quotes.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DataItem {
+    pub text: Vec<u8>,
+    pub quoted: bool,
 }
 
 /// Where `RESUME` continues (spec `language/error-handling`).
@@ -111,13 +500,195 @@ pub enum Storage {
     Result(ProcId),
 }
 
-/// A variable: a name plus a type (design D5), and its storage.
+/// What a variable is: a scalar or one of the two kinds of array (design D3 of `m2-defxxx-common-arrays`). Which
+/// kind an array is, is settled by the first declaration of it in the file (measured, `study\00` §5).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Shape {
+    Scalar,
+    /// An array that exists for the whole program: the lower and upper bound of each dimension, first dimension
+    /// first, known when compiling (design D4 of `m2-arrays-and-types`).
+    Static {
+        bounds: Vec<(i64, i64)>,
+    },
+    /// An array a statement allocates when it runs. `dims` is its number of dimensions; `None` while nothing has
+    /// fixed it (`COMMON a()`, `STATIC a()`, an array parameter that is never indexed).
+    ///
+    /// An array parameter (storage [`Storage::Param`]) has this shape whatever is passed to it: the array it
+    /// stands for in a call may be a static one, so an [`StmtKind::Allocate`] of it may raise error 10 and an
+    /// `ERASE` of it is an [`StmtKind::EraseParam`].
+    ///
+    /// `at_start` are the bounds of `STATIC a(bounds)`: the array is allocated with them when the program
+    /// starts, and again, if an `ERASE` released it, whenever an error handler is entered (measured,
+    /// `verification\v24_x278`, slice `s56_proc_arrays` line 24; the old compiler writes the allocation into the
+    /// fragment that runs at the start of the main module, which a handler enters again). Its `STATIC`
+    /// statement is no allocation; a `REDIM` gives it other bounds, an `ERASE` releases it and a `DIM` of it
+    /// raises error 10 (`v24_x285`), like any dynamic array that is allocated.
+    Dynamic {
+        dims: Option<usize>,
+        at_start: Option<Vec<(i64, i64)>>,
+    },
+}
+
+/// What an [`StmtKind::Allocate`] does with an array that is allocated already (design D4 of
+/// `m2-defxxx-common-arrays`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AllocMode {
+    /// `DIM`: raises error 10 and leaves the array as it is.
+    Dim,
+    /// `REDIM`: new bounds and new elements.
+    Redim,
+    /// `REDIM _PRESERVE`: new bounds; the elements keep their values by flat position, as many as the smaller of
+    /// the old and the new number of elements.
+    Preserve,
+}
+
+/// A variable: a name plus a type (design D5), and its storage. An array is a variable with a shape other than
+/// [`Shape::Scalar`]; its `ty` is the type of its elements. Arrays and scalars of the same name and type are
+/// different variables.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Var {
     /// The name without suffix, in upper case.
     pub name: String,
     pub ty: Ty,
     pub storage: Storage,
+    pub shape: Shape,
+}
+
+impl Var {
+    pub fn is_array(&self) -> bool {
+        !matches!(self.shape, Shape::Scalar)
+    }
+
+    /// The number of dimensions of an array, where it is known; `None` for a scalar too.
+    pub fn dim_count(&self) -> Option<usize> {
+        match &self.shape {
+            Shape::Scalar => None,
+            Shape::Static { bounds } => Some(bounds.len()),
+            Shape::Dynamic { dims, .. } => *dims,
+        }
+    }
+
+    /// The bounds of a static array; empty for anything else.
+    pub fn bounds(&self) -> &[(i64, i64)] {
+        match &self.shape {
+            Shape::Static { bounds } => bounds,
+            Shape::Scalar | Shape::Dynamic { .. } => &[],
+        }
+    }
+}
+
+/// An array that is named as a whole: by an element of it, by `LBOUND` and `UBOUND`, by `ERASE`, or as an array
+/// argument (design D8 of `m2-defxxx-common-arrays`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum ArrayRef {
+    /// An array variable.
+    Var(VarId),
+    /// A member array of a place of a user type (`t.v`, `a(1).v`, `x(0).n(1).q`): its bounds are its member's
+    /// ([`Member::bounds`]) and its elements lie in the value of `base`.
+    Member { base: Box<Place>, member: MemberId },
+}
+
+impl ArrayRef {
+    /// The array variable, when it is one.
+    pub fn var(&self) -> Option<VarId> {
+        match self {
+            ArrayRef::Var(v) => Some(*v),
+            ArrayRef::Member { .. } => None,
+        }
+    }
+
+    /// The variable the array is, or is part of.
+    pub fn root(&self) -> VarId {
+        match self {
+            ArrayRef::Var(v) => *v,
+            ArrayRef::Member { base, .. } => base.root(),
+        }
+    }
+
+    /// Whether finding the array may raise an error: the place a member array is part of may be an element.
+    pub fn may_raise(&self) -> bool {
+        match self {
+            ArrayRef::Var(_) => false,
+            ArrayRef::Member { base, .. } => base.may_raise(),
+        }
+    }
+
+    /// The indexes on the way to the array, outermost element first.
+    pub fn indexes(&self) -> Vec<&Expr> {
+        match self {
+            ArrayRef::Var(_) => Vec::new(),
+            ArrayRef::Member { base, .. } => base.indexes(),
+        }
+    }
+}
+
+/// Where a value is read from and stored to (design D5 of `m2-arrays-and-types`, D8 of
+/// `m2-defxxx-common-arrays`). `x(0).n(1).q(2)` is one place: element 2 of member `q` of element 1 of member `n`
+/// of element 0 of `x`.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Place {
+    /// A scalar variable.
+    Var(VarId),
+    /// An element of an array: one index per dimension, each already converted to `_INTEGER64`. An index outside
+    /// its dimension's bounds raises error 9.
+    Element { array: ArrayRef, index: Vec<Expr> },
+    /// A member of a place whose type is a user type; never a member array, which is named only as an
+    /// [`ArrayRef::Member`].
+    Member { base: Box<Place>, member: MemberId },
+}
+
+impl Place {
+    /// Whether finding the place may raise an error: an element's indexes are checked, a member's base may be an
+    /// element.
+    pub fn may_raise(&self) -> bool {
+        match self {
+            Place::Var(_) => false,
+            Place::Element { .. } => true,
+            Place::Member { base, .. } => base.may_raise(),
+        }
+    }
+
+    /// The variable the place is part of.
+    pub fn root(&self) -> VarId {
+        match self {
+            Place::Var(v) => *v,
+            Place::Element { array, .. } => array.root(),
+            Place::Member { base, .. } => base.root(),
+        }
+    }
+
+    /// Whether an element lies on the way to the place (`a(i).m`, `a(i)`, `t.v(i)`).
+    pub fn has_element(&self) -> bool {
+        match self {
+            Place::Var(_) => false,
+            Place::Element { .. } => true,
+            Place::Member { base, .. } => base.has_element(),
+        }
+    }
+
+    /// The indexes on the way to the place, outermost element first.
+    pub fn indexes(&self) -> Vec<&Expr> {
+        match self {
+            Place::Var(_) => Vec::new(),
+            Place::Element { array, index } => {
+                let mut all = array.indexes();
+                all.extend(index);
+                all
+            }
+            Place::Member { base, .. } => base.indexes(),
+        }
+    }
+
+    /// Whether the place is reached through a member with an index on the way: a member of an element
+    /// (`a(i).m`) or an element of a member array (`t.v(i)`, `a(i).v(j)`). A store into such a place has a rule
+    /// of its own ([`StmtKind::Assign`]).
+    pub fn through_member(&self) -> bool {
+        match self {
+            Place::Var(_) => false,
+            Place::Element { array, .. } => matches!(array, ArrayRef::Member { .. }),
+            Place::Member { base, .. } => base.has_element(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -146,10 +717,18 @@ pub struct Proc {
 /// How an argument is passed to a procedure (design D4).
 #[derive(Clone, Debug, PartialEq)]
 pub enum Arg {
-    /// The variable itself: the procedure's assignments to the parameter change it.
-    Ref(VarId),
+    /// The place itself (a variable, an element, a member): the procedure's assignments to the parameter change it.
+    /// A parameter of a user type takes nothing else: a place of exactly its type (design D9 of
+    /// `m2-defxxx-common-arrays`).
+    Ref(Place),
     /// A fresh copy of a value, already converted to the parameter's type; changes to it are lost.
     Temp(Expr),
+    /// A whole array, to an array parameter: the procedure works on this array (design D6 of
+    /// `m2-defxxx-common-arrays`). Its element type has the parameter's kind and width; signedness is not
+    /// compared. A member array is passed as a static array with its member's bounds (measured,
+    /// `verification\v24_x315`): its place is found once, where the argument stands, and an index outside its
+    /// bounds on the way raises error 9, so that the procedure is not entered.
+    Array(ArrayRef),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -170,6 +749,61 @@ pub enum BinOp {
     Sub,
     Mul,
     Div,
+    /// `=`, `<>`, `<`, `>`, `<=`, `>=`: -1 or 0, typed LONG.
+    Eq,
+    Ne,
+    Lt,
+    Gt,
+    Le,
+    Ge,
+    /// Bit by bit on integers.
+    And,
+    Or,
+    Xor,
+    Eqv,
+    Imp,
+    /// `_ANDALSO`, `_ORELSE`: -1 or 0; the right operand is evaluated only when the left one does not decide.
+    AndAlso,
+    OrElse,
+    /// `\`: integer division truncating toward zero; a divisor of 0 raises error 11.
+    IDiv,
+    /// `MOD`: remainder with the sign of the dividend; a divisor of 0 raises error 11.
+    Mod,
+    /// `^`: computed in `_FLOAT`; a negative base with a non-integer exponent raises error 5.
+    Pow,
+}
+
+impl BinOp {
+    /// The six comparisons.
+    pub fn is_comparison(self) -> bool {
+        match self {
+            BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => true,
+            BinOp::Add
+            | BinOp::Sub
+            | BinOp::Mul
+            | BinOp::Div
+            | BinOp::And
+            | BinOp::Or
+            | BinOp::Xor
+            | BinOp::Eqv
+            | BinOp::Imp
+            | BinOp::AndAlso
+            | BinOp::OrElse
+            | BinOp::IDiv
+            | BinOp::Mod
+            | BinOp::Pow => false,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UnOp {
+    /// Unary minus.
+    Neg,
+    /// `NOT`: bit by bit.
+    Not,
+    /// `_NEGATE`: -1 for 0, else 0; typed LONG.
+    Negate,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -188,20 +822,42 @@ pub enum ExprKind {
     /// Decimal text in C form, see [`literal::NumLit::Float`].
     Float(String),
     Str(Vec<u8>),
-    Var(VarId),
+    /// The value of a place; never of a user type (a whole `TYPE` value is not a value, measured).
+    Load(Place),
+    /// `LBOUND` (`upper` false) or `UBOUND` of an array: a dimension's bound, typed `_INTEGER64` (measured). `dim`
+    /// is LONG; absent for the first dimension. A dimension outside 1 to the number of dimensions raises error 9.
+    ///
+    /// Of a member array the bound is its member's, known when compiling: **the place the array is part of is
+    /// not found**, so its indexes are not evaluated and one outside its bounds raises nothing (measured,
+    /// `verification\v24_x311`: `UBOUND(a(f(1)).v)` does not call `f`, `LBOUND(a(9).v)` raises no error).
+    Bound {
+        upper: bool,
+        array: ArrayRef,
+        dim: Option<Box<Expr>>,
+    },
     Convert {
         how: ConvKind,
         from: Box<Expr>,
     },
-    /// Both operands have the node's `ty`. Integer overflow wraps.
+    /// Both operands have the same type: the node's `ty`, except for comparisons, `_ANDALSO` and `_ORELSE`, whose
+    /// operands share a type of their own and whose node is LONG. Integer overflow wraps.
     Binary {
         op: BinOp,
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
-    /// The operand has the node's `ty`.
-    Neg(Box<Expr>),
+    /// The operand has the node's `ty`, except for `_NEGATE`, whose node is LONG.
+    Unary {
+        op: UnOp,
+        operand: Box<Expr>,
+    },
     Concat(Box<Expr>, Box<Expr>),
+    /// A comparison (`op` is one of the six) of two strings, byte by byte: -1 or 0, typed LONG.
+    StrCompare {
+        op: BinOp,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    },
     /// A built-in function call; one slot per table argument, `None` for an absent optional argument. Each
     /// present argument is already converted to the slot's type.
     Call {
@@ -226,18 +882,129 @@ pub enum PrintItem {
     Zone,
 }
 
+/// Where an [`StmtKind::Input`] reads from.
+#[derive(Clone, Debug, PartialEq)]
+pub enum InputSource {
+    /// File `n` (`INPUT #n,`), already converted to LONG.
+    File(Expr),
+    /// The console (standard input under `$CONSOLE:ONLY`): the prompt's bytes if one was written, whether `? ` is
+    /// printed after it (no prompt, or a prompt followed by `;`), and whether the cursor stays on the line after
+    /// the input (a `;` straight after `INPUT`).
+    Console {
+        prompt: Option<Vec<u8>>,
+        question: bool,
+        stay: bool,
+    },
+}
+
+/// One slot of a built-in statement (design D2 of `m2-builtin-statements`): one per argument or choice of the
+/// statement's template, in template order ([`builtins::stmt_slots`]).
+#[derive(Clone, Debug, PartialEq)]
+pub enum StmtArg {
+    /// An argument, already converted to its slot's type.
+    Value(Expr),
+    /// A variable, element or member the statement stores into or exchanges.
+    Place(Place),
+    /// Which alternative of a choice was written, from 0 (`FOR OUTPUT` of `OPEN` is 3).
+    Word(u8),
+    /// An optional argument or choice left out.
+    Absent,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum StmtKind {
+    /// A built-in statement that is one call of the runtime ([`builtins::STATEMENTS`]): the table entry of the form
+    /// written and one slot per argument or choice. The arguments are evaluated in order and the call is made also
+    /// after a raising argument (measured, `verification\v22_a_calls`).
+    Builtin {
+        id: BuiltinId,
+        args: Vec<StmtArg>,
+    },
     /// `$CONSOLE:ONLY`: output and input go to the console.
     ConsoleOnly,
+    /// A store; the value has the place's type (never a user type: [`StmtKind::CopyWhole`]). The store rule
+    /// depends on the place (design D6 of `m2-arrays-and-types`): for an element of an array variable the
+    /// indexes come first, and with an error pending after them the value is not evaluated and nothing is
+    /// stored. For a place reached through a member with an index on the way ([`Place::through_member`]) a
+    /// number is evaluated before the indexes and a string after them (measured, `verification\v24_x313`,
+    /// `x316`), and nothing is stored when an index is outside its bounds (`DIVERGENCES.md` D-004).
     Assign {
-        var: VarId,
+        place: Place,
         value: Expr,
     },
+    /// `to = from` for two places of one user type (design D9 of `m2-defxxx-common-arrays`): every member is
+    /// copied, a `STRING` member as a string of its own. The copy is not guarded (measured,
+    /// `verification\v24_h_whole`, `v24_x210`): an index outside its bounds raises error 9 and the array's first
+    /// element stands in for the element named, on either side. `to` is found before `from`; for a type that
+    /// holds strings ([`holds_strings`]) both are found again for every part of the value (`v24_x306`, `x307`;
+    /// the parts are the IR's, `Op::CopyWhole`).
+    CopyWhole {
+        from: Place,
+        to: Place,
+    },
+    /// A `DIM`, `REDIM` or `REDIM _PRESERVE` that runs (design D4 of `m2-defxxx-common-arrays`): gives an array
+    /// its bounds and its elements, zero or empty. One lower and one upper bound per dimension, each already
+    /// converted to `_INTEGER64`, evaluated in order. The array may be a static one: the statement then raises
+    /// error 10 and its bounds are not evaluated. A `DIM` that declares a static array is no statement.
+    ///
+    /// `joined`: it is no statement of its own but the first part of the statement that follows it (the
+    /// allocation of an array used without `DIM` below `$DYNAMIC`, which the statement that names it first
+    /// does; measured, `verification\v24_x101`): an error it raises is an error of that statement, so the stores
+    /// of the statement are skipped by their rule and `RESUME NEXT` goes on after the statement.
+    Allocate {
+        array: VarId,
+        bounds: Vec<(Expr, Expr)>,
+        mode: AllocMode,
+        joined: bool,
+    },
+    /// `ERASE` of a static array: every element becomes zero, an empty string or NUL bytes; the bounds stay.
+    ///
+    /// Of a member array, by `ERASE` or by a `REDIM` with its own bounds (design D8 of
+    /// `m2-defxxx-common-arrays`; measured, `verification\v24_x184`, `x188`, `x189`, `x312`): the place it is
+    /// part of is found once, and the clear is not guarded: an index outside its bounds on the way raises error
+    /// 9 and the member array of that array's first element is cleared, as it is after any other error the
+    /// index raises.
+    Clear {
+        array: ArrayRef,
+    },
+    /// `ERASE` of a dynamic array: its elements are released and it is not allocated afterwards. Of one that is
+    /// not allocated it does nothing.
+    Release {
+        array: VarId,
+    },
+    /// `ERASE` of an array parameter: a [`StmtKind::Clear`] when the array passed is a static one, a
+    /// [`StmtKind::Release`] when it is dynamic, which is known when the statement runs.
+    EraseParam {
+        array: VarId,
+    },
+    /// `PRINT` (`to` is `None`) or `PRINT #n,`: `to` is the file number, already converted to LONG.
     Print {
+        to: Option<Expr>,
         items: Vec<PrintItem>,
         newline: bool,
     },
+    /// `WRITE` to the console (`to` is `None`) or to file `to`: the items separated by commas, strings in quotes,
+    /// numbers without blanks, then a line end unless the statement ends with a comma (`newline` false; measured,
+    /// `verification\v22_x59`). An item is a [`PrintItem::Str`] or a [`PrintItem::Num`].
+    Write {
+        to: Option<Expr>,
+        items: Vec<PrintItem>,
+        newline: bool,
+    },
+    /// `INPUT` or `LINE INPUT` (`line`): reads one field per target, or one whole line into a single string target.
+    /// A target is a variable, an element or a member (never of a user type, never a member of an element).
+    Input {
+        from: InputSource,
+        line: bool,
+        targets: Vec<Place>,
+    },
+    /// `READ target, …`: the next item of the program's data ([`Program::data`]) into each target in turn. A target
+    /// is as an [`StmtKind::Input`]'s.
+    Read(Vec<Place>),
+    /// `RESTORE` (`None`: the next `READ` starts at the program's first item) or `RESTORE label` (at the first item
+    /// after the label in file order, [`Label::data_at`]). The label may be of any body (measured,
+    /// `verification\v22_c_restore`).
+    Restore(Option<LabelId>),
     End,
     /// `SYSTEM`: ends the program at once, without the "press any key" prompt of `END`.
     System,
@@ -254,6 +1021,129 @@ pub enum StmtKind {
     Resume(Resume),
     /// `ERROR n`: raises error `n`, already converted to LONG (rounded half to even).
     Error(Expr),
+    /// Where a label stands: before the next statement of its body.
+    Label(LabelId),
+    /// `GOTO label`: a label of the same body.
+    Goto(LabelId),
+    /// `GOSUB label`: a label of the same body; `RETURN` comes back after this statement.
+    Gosub(LabelId),
+    /// `RETURN` (`None`): back to after the last `GOSUB`, also one made in another body (one stack for the program,
+    /// measured). `RETURN label` (main module only): forget the last `GOSUB` and continue at the label. Either
+    /// raises error 3 when no `GOSUB` is pending.
+    Return(Option<LabelId>),
+    /// `IF` (block or single line, which the old compiler also turns into a block): the first branch is the `IF`,
+    /// the others are `ELSEIF`s, tried in order; `else_` runs when no condition is true. Conditions are numeric;
+    /// true is non-zero.
+    If {
+        branches: Vec<Branch>,
+        else_: Option<Vec<Stmt>>,
+        /// 1-based source line of the `END IF`; the statement's own line for a single-line `IF`.
+        end_line: u32,
+    },
+    /// `FOR var = start TO end [STEP step]` … `NEXT`. `start`, `end` and `step` are converted to `temp`, the type
+    /// the loop counts in (wider than `var`'s, `study\02` §6.5, measured); each pass stores the count into `var`.
+    For {
+        var: VarId,
+        temp: Ty,
+        start: Expr,
+        end: Expr,
+        /// `None` without `STEP` (a step of 1).
+        step: Option<Expr>,
+        body: Vec<Stmt>,
+        /// 1-based source line of the `NEXT` that closes the loop.
+        end_line: u32,
+    },
+    /// `DO` … `LOOP`, with at most one condition, at the top or at the bottom.
+    Do {
+        test: Option<LoopTest>,
+        body: Vec<Stmt>,
+        /// 1-based source line of the `LOOP`.
+        end_line: u32,
+    },
+    /// `WHILE cond` … `WEND`.
+    While {
+        cond: Expr,
+        body: Vec<Stmt>,
+        /// 1-based source line of the `WEND`.
+        end_line: u32,
+    },
+    /// `EXIT FOR`, `EXIT DO`, `EXIT WHILE`: leaves the innermost loop of that kind (the parser checked there is
+    /// one).
+    ExitLoop(LoopKind),
+    /// `ON n GOTO l1, l2, …` (`gosub` false) or `ON n GOSUB …`: to the n-th label of the same body; 0 and values past
+    /// the count (also above 255, `DIVERGENCES-QB45.md` Q-001) continue with the next statement, a negative value
+    /// raises error 5. `value` is LONG (design D8 of `m2-core-builtins`, measured `verification\v20_i_on_goto`).
+    OnJump {
+        value: Expr,
+        gosub: bool,
+        targets: Vec<LabelId>,
+    },
+    /// `SELECT CASE` or `SELECT EVERYCASE` (design D7 of `m2-core-builtins`, measured `verification\v20_h_select`).
+    Select {
+        /// What the cases are compared with. A plain scalar variable is read at each test (`copied` false); anything
+        /// else is evaluated once, at the `SELECT`, into a hidden variable of this expression's type, which is the
+        /// old compiler's: a string, `_INTEGER64`, LONG for every narrower integer, or the float type it believes.
+        selector: Expr,
+        copied: bool,
+        /// `EVERYCASE`: every matching `CASE` runs, and `CASE ELSE` only when none did.
+        every: bool,
+        cases: Vec<Case>,
+        else_: Option<Vec<Stmt>>,
+        /// 1-based source line of the `END SELECT`.
+        end_line: u32,
+    },
+}
+
+/// A `CASE` with its items (any of them matching runs the body) and its statements.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Case {
+    pub items: Vec<CaseItem>,
+    pub body: Vec<Stmt>,
+    /// 1-based source line of the `CASE`.
+    pub line: u32,
+}
+
+/// An item of a `CASE`, compared with the selector. Every value is already converted to the type the comparison is
+/// computed in (the old compiler's: the item converted to the selector's type, a float item for an integer selector
+/// rounded half to even; then C's usual conversions); the selector is converted to it where it is narrower.
+#[derive(Clone, Debug, PartialEq)]
+pub enum CaseItem {
+    /// `value` (as `IS = value`) or `IS op value`; `op` is one of the six comparisons.
+    Is(BinOp, Expr),
+    /// `low TO high`: from `low` to `high` inclusive (`9 TO 1` matches nothing).
+    Range(Expr, Expr),
+}
+
+/// One branch of an [`StmtKind::If`]: its condition and its statements.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Branch {
+    pub cond: Expr,
+    pub body: Vec<Stmt>,
+    /// 1-based source line of the `IF` or `ELSEIF`.
+    pub line: u32,
+}
+
+/// The condition of a `DO` loop.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LoopTest {
+    /// At `DO` (checked before each pass) or at `LOOP` (after each pass).
+    pub at: TestAt,
+    /// `UNTIL` (leave when true) rather than `WHILE` (leave when false).
+    pub until: bool,
+    pub cond: Expr,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TestAt {
+    Top,
+    Bottom,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LoopKind {
+    For,
+    Do,
+    While,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -273,8 +1163,16 @@ pub struct Program {
     pub procs: Vec<Proc>,
     /// The main module's statements.
     pub stmts: Vec<Stmt>,
-    /// The main module's labels, in source order.
+    /// The labels of every body, in source order.
     pub labels: Vec<Label>,
+    /// The items of every `DATA` statement of the program in file order: main module and procedures as they
+    /// stand, an included file's at its include, also those in a block that never runs (measured,
+    /// `verification\v22_c_order`).
+    pub data: Vec<DataItem>,
+    /// Every `CONST`, in source order.
+    pub consts: Vec<Const>,
+    /// The user types, in source order.
+    pub types: Vec<UserType>,
     /// Where each variable and procedure is defined and used (design D12).
     pub symbols: Symbols,
 }
@@ -284,11 +1182,186 @@ impl Program {
         &self.vars[id.0 as usize]
     }
 
+    pub fn user_type(&self, id: TypeId) -> &UserType {
+        &self.types[id.0 as usize]
+    }
+
+    /// The member of a place of user type `base`.
+    pub fn member(&self, base: Ty, m: MemberId) -> &Member {
+        let Ty::User(t) = base else {
+            panic!("a member of a place of type {base:?}");
+        };
+        &self.user_type(t).members[m.0 as usize]
+    }
+
+    /// The type of a place: a variable's, an array's element type, a member's.
+    pub fn place_ty(&self, p: &Place) -> Ty {
+        match p {
+            Place::Var(v) => self.var(*v).ty,
+            Place::Element { array, .. } => self.array_ty(array),
+            Place::Member { base, member } => self.member(self.place_ty(base), *member).ty,
+        }
+    }
+
+    /// The type of an array's elements.
+    pub fn array_ty(&self, a: &ArrayRef) -> Ty {
+        match a {
+            ArrayRef::Var(v) => self.var(*v).ty,
+            ArrayRef::Member { base, member } => self.member(self.place_ty(base), *member).ty,
+        }
+    }
+
+    /// The number of dimensions of an array, where it is known.
+    pub fn array_dims(&self, a: &ArrayRef) -> Option<usize> {
+        match a {
+            ArrayRef::Var(v) => self.var(*v).dim_count(),
+            ArrayRef::Member { base, member } => Some(self.member(self.place_ty(base), *member).bounds.len()),
+        }
+    }
+
+    /// The QB name of a type, a user type's own name for one, a `_BIT * n` with its width (`_BIT` for one bit).
+    pub fn type_name(&self, t: Ty) -> String {
+        match t {
+            Ty::User(id) => self.user_type(id).name.clone(),
+            Ty::Bit { width: 1, .. } => t.qb_name().to_string(),
+            Ty::Bit { width, .. } => format!("{} * {width}", t.qb_name()),
+            Ty::FixedStr(n) => format!("STRING * {n}"),
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str => t.qb_name().to_string(),
+        }
+    }
+
     pub fn proc(&self, id: ProcId) -> &Proc {
         &self.procs[id.0 as usize]
     }
 
     pub fn label(&self, id: LabelId) -> &Label {
         &self.labels[id.0 as usize]
+    }
+
+    pub fn constant(&self, id: ConstId) -> &Const {
+        &self.consts[id.0 as usize]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Ty;
+
+    const fn bit(width: u8, signed: bool) -> Ty {
+        Ty::Bit { width, signed }
+    }
+
+    #[test]
+    fn int_bits() {
+        let cases = [
+            (Ty::I8, 8),
+            (Ty::U8, 8),
+            (Ty::I16, 16),
+            (Ty::U16, 16),
+            (Ty::I32, 32),
+            (Ty::U32, 32),
+            (Ty::I64, 64),
+            (Ty::U64, 64),
+            (Ty::Off, 64),
+            (Ty::UOff, 64),
+            (bit(1, true), 32),
+            (bit(32, false), 32),
+            (bit(33, true), 64),
+            (bit(64, false), 64),
+        ];
+        for (t, bits) in cases {
+            assert_eq!(t.int_bits(), Some(bits), "{t:?}");
+            assert!(t.is_int() && t.is_numeric() && !t.is_float(), "{t:?}");
+        }
+        for t in [
+            Ty::F32,
+            Ty::F64,
+            Ty::F80,
+            Ty::Str,
+            Ty::FixedStr(3),
+            Ty::User(super::TypeId(0)),
+        ] {
+            assert_eq!(t.int_bits(), None, "{t:?}");
+        }
+    }
+
+    #[test]
+    fn float_rank() {
+        assert_eq!(Ty::F32.float_rank(), Some(1));
+        assert_eq!(Ty::F64.float_rank(), Some(2));
+        assert_eq!(Ty::F80.float_rank(), Some(3));
+        for t in [Ty::I16, Ty::U64, Ty::Off, bit(7, false), Ty::Str, Ty::FixedStr(3)] {
+            assert_eq!(t.float_rank(), None, "{t:?}");
+        }
+        assert!(Ty::F80.is_float() && Ty::F80.is_numeric() && !Ty::F80.is_int());
+        assert!(!Ty::Str.is_numeric() && !Ty::FixedStr(3).is_numeric());
+    }
+
+    #[test]
+    fn signedness() {
+        for t in [Ty::U8, Ty::U16, Ty::U32, Ty::U64, Ty::UOff, bit(7, false)] {
+            assert!(t.is_unsigned() && !t.is_signed(), "{t:?}");
+        }
+        for t in [
+            Ty::I8,
+            Ty::I16,
+            Ty::I32,
+            Ty::I64,
+            Ty::Off,
+            bit(1, true),
+            Ty::F32,
+            Ty::F64,
+            Ty::F80,
+        ] {
+            assert!(t.is_signed() && !t.is_unsigned(), "{t:?}");
+        }
+        for t in [Ty::Str, Ty::FixedStr(3), Ty::User(super::TypeId(0))] {
+            assert!(!t.is_signed() && !t.is_unsigned(), "{t:?}");
+        }
+    }
+
+    #[test]
+    fn is_wider_than() {
+        // Narrowest first; each is wider than every one before it.
+        let order = [Ty::I8, Ty::I16, Ty::I32, Ty::I64, Ty::F32, Ty::F64, Ty::F80];
+        for (i, &a) in order.iter().enumerate() {
+            for (j, &b) in order.iter().enumerate() {
+                assert_eq!(a.is_wider_than(b), i > j, "{a:?} {b:?}");
+            }
+        }
+        // One width: neither is wider.
+        for (a, b) in [
+            (Ty::I32, Ty::U32),
+            (Ty::I64, Ty::Off),
+            (Ty::U64, Ty::UOff),
+            (Ty::I32, bit(5, true)),
+        ] {
+            assert!(!a.is_wider_than(b) && !b.is_wider_than(a), "{a:?} {b:?}");
+        }
+        assert!(!Ty::U8.is_wider_than(Ty::I8) && Ty::U16.is_wider_than(Ty::I8));
+    }
+
+    #[test]
+    fn storage() {
+        assert_eq!(bit(1, true).storage(), Ty::I32);
+        assert_eq!(bit(32, false).storage(), Ty::U32);
+        assert_eq!(bit(33, true).storage(), Ty::I64);
+        assert_eq!(bit(64, false).storage(), Ty::U64);
+        for t in [Ty::I8, Ty::U16, Ty::Off, Ty::UOff, Ty::F80, Ty::Str, Ty::FixedStr(3)] {
+            assert_eq!(t.storage(), t, "{t:?}");
+        }
     }
 }

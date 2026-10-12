@@ -1,0 +1,5 @@
+
+Expected OPTION BASE 0 or 1
+Caused by (or after):OPTION BASE 1%,&H1
+LINE 3:OPTION BASE &H1
+exit=1

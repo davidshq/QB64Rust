@@ -1,0 +1,7 @@
+local p.x: 0 
+local p.x: 0 
+static q.x: 0 
+static q.x: 5 
+shared m.x: 9  g.x: 3 
+g.x: 4 
+exit=0

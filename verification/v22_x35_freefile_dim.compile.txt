@@ -1,0 +1,5 @@
+
+Name already in use (FREEFILE)
+Caused by (or after):DIM FREEFILE AS LONG
+LINE 3:DIM FREEFILE AS LONG
+exit=1

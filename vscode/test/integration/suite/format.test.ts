@@ -2,7 +2,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { closeAll, compiler, open, setText, writeFile } from "./helpers";
+import { closeAll, compiler, open, setText, writeFile, qb64peDiagnostics } from "./helpers";
 
 async function formatEdits(uri: vscode.Uri): Promise<vscode.TextEdit[]> {
     const edits = await vscode.commands.executeCommand<vscode.TextEdit[]>("vscode.executeFormatDocumentProvider", uri, { tabSize: 4, insertSpaces: true });
@@ -56,7 +56,7 @@ describe("formatting", () => {
         assert.ok(edits.length > 0);
         // -y takes the name's case from the CONST in inc.bi, which shows the include was read.
         assert.strictEqual(editor.document.getText(), "'$Include:'inc.bi'\r\nPrint K\r\n");
-        assert.deepStrictEqual(vscode.languages.getDiagnostics(uri), []);
+        assert.deepStrictEqual(qb64peDiagnostics(uri), []);
         assert.deepStrictEqual(tempFilesIn(path.dirname(uri.fsPath)), []);
     });
 
@@ -84,7 +84,7 @@ describe("formatting", () => {
         const edits = await format(editor);
         assert.deepStrictEqual(edits, []);
         assert.strictEqual(editor.document.getText(), text);
-        const diags = vscode.languages.getDiagnostics(uri);
+        const diags = qb64peDiagnostics(uri);
         assert.deepStrictEqual(diags.map((d) => [d.range.start.line, d.message]), [[1, "Expected variable/value after '+'"]]);
         assert.deepStrictEqual(tempFilesIn(path.dirname(uri.fsPath)), []);
         await vscode.commands.executeCommand("notifications.clearAll");

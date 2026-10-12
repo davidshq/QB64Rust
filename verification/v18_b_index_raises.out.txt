@@ -1,0 +1,7 @@
+handler 5 
+x(ASC(empty)) = 5: 50 
+handler 5 
+a(ASC(empty)).m = 6: 6 
+handler 5 
+a(ASC(empty)).m = LEN(CHR$(-1)) + 7: 7 
+exit=0

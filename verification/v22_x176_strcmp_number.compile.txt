@@ -1,0 +1,5 @@
+
+1st function argument requires a string
+Caused by (or after):N = _STRCMP ( 1 , "a",1 )
+LINE 4:n = _STRCMP(1, "a")
+exit=1

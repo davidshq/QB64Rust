@@ -1,0 +1,5 @@
+
+Variable 'i' (SINGLE) not defined
+Caused by (or after):FOR I = 1 TO 2
+LINE 4:FOR i = 1 TO 2
+exit=1

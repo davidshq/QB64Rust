@@ -3,15 +3,66 @@
 //! The IR is ABI-neutral: it names no libqb or `qbx.cpp` symbol, no C type, no `passed` mask and no event loop.
 //! Those are the C++ emitter's encoding of the rules stated here:
 //!
+//! - **A body is flat** (design D8 of `m2-control-flow-slice`): a list of statements, with labels as positions
+//!   in it ([`Label`]), the program's own and those the lowering makes. Control moves between them only by
+//!   [`Op::Jump`], [`Op::Branch`], [`Op::Gosub`] and [`Op::Return`], always within one body. Blocks (`IF`,
+//!   `FOR`, `DO`, `WHILE`) exist only in the typed tree; the lowering turns each into statements and jumps.
 //! - **Errors are pending, and handled per statement.** A raising operation records a pending error and yields a
-//!   placeholder value; the statement goes on. A store or a call made with that value still happens
-//!   ([`Op::Assign`], [`Op::Call`]). Only the points named here check for a pending error: each item of an
-//!   [`Op::Print`] (a raising item skips the rest of the statement, line end included). Errors and events are
-//!   serviced at the statement boundary: a pending error goes to the active handler ([`Op::SetHandler`]).
-//!   [`Resume::Retry`] re-runs the statement that raised, [`Resume::Next`] continues after it, [`Resume::To`] at
-//!   a label; a statement in a procedure resumes in that procedure.
-//! - **Optional arguments are present or absent** ([`Value::CallBuiltin`] slots are `Option`s in table order).
-//! - **Every conversion is explicit** ([`ValueKind::Convert`]); every operation states the type it computes in.
+//!   placeholder value; the statement goes on. The first error of a statement is the one serviced. A store or a
+//!   call made with that value still happens ([`Op::Assign`], [`Op::AssignAll`], [`Op::Call`]; measured: `x =
+//!   ASC("")` leaves 0 in `x`). A built-in statement ([`Op::Builtin`]) evaluates its arguments in order and makes
+//!   its call also after a raising argument (measured, `verification\v22_a_calls`: the handler runs once, with the
+//!   argument's error); the runtime's entry does nothing while an error is pending, or raises another, which
+//!   changes nothing. Only these points check for a pending error:
+//!   - each item of an [`Op::Print`] or an [`Op::Write`]: a raising item skips the rest of the statement, line end
+//!     included; with a file number, also after the number is evaluated (a raising number writes nothing). What was
+//!     written before the raising item stays written (measured, `verification\v22_b_print`);
+//!   - each target of an [`Op::Input`], and after its file number: a raising read or target skips the later
+//!     targets, whose fields stay unread. Each target is stored by the rule of its place; a read that raises stores
+//!     zero or an empty string (measured, `verification\v22_b_input`);
+//!
+//!     An [`Op::Read`] has no such point (measured, `verification\v22_c_errors`): every target is read and stored
+//!     in order, by the rule of its place. While an error is pending a read takes no item and gives zero, which is
+//!     stored; a string target is left as it is. A read that raises (no number: error 2; outside the target's
+//!     range: error 6) does not take its item either, so the next `READ` meets it again; one that finds the data
+//!     used up raises error 4 and gives zero or an empty string;
+//!   - a procedure's entry: a procedure entered while an error is pending returns at once;
+//!   - [`Op::Jump`] and [`Op::Gosub`]: not taken while an error is pending;
+//!   - [`Op::Branch`] with [`OnError::Skip`]: not taken while an error is pending;
+//!   - a store into an element of an array variable ([`Place::Element`] of an [`ArrayRef::Var`]): its indexes are
+//!     evaluated first, left to right; while an error is pending after them the value is not evaluated and nothing
+//!     is stored.
+//!
+//!   A store into a place reached through a member with an index on the way ([`Place::through_member`]: a member
+//!   of an element, `a(i).m`, or an element of a member array, `t.v(i)`, `a(i).v(j)`) **evaluates a number before
+//!   the indexes and a string after them**, the indexes from left to right, outermost first (measured,
+//!   `verification\v18_h_member_index_order`, `v24_h_member_store`, `v24_x313`, `x316`). It is skipped when an
+//!   index is out of range or when the indexes raised an error while none was pending before them
+//!   (`DIVERGENCES.md` D-004; the old compiler writes element 0 of the dimension whose index was outside); an
+//!   error the string value raises after the indexes does not skip it. A store into a variable or into a member
+//!   of one does not check. An index out of range raises error 9, and a read with it gives the value at position
+//!   0 of its dimension (measured, `verification\v18_*`, `v24_h_member_store`).
+//!
+//!   The bytes of a member array lie in the value they are a member of (design D8 of
+//!   `m2-defxxx-common-arrays`): its bounds are its member's and never change, so nothing allocates or releases
+//!   it. The IR names no offset and no size in bytes for it.
+//!
+//!   [`Op::Branch`] with [`OnError::UseValue`] does not check: it tests the placeholder value (measured for
+//!   `ELSEIF`).
+//! - **Errors and events are serviced at the statement boundary**: a pending error goes to the active handler
+//!   ([`Op::SetHandler`]). [`Resume::Retry`] re-runs the statement where the error is serviced,
+//!   [`Resume::Next`] continues after it, [`Resume::To`] at a label; a statement in a procedure resumes in that
+//!   procedure. A jump or branch taken leaves its statement before the boundary, so an error still pending then
+//!   (only possible after a `UseValue` branch) is serviced at the boundary of the next statement that runs, and
+//!   retry and resume refer to that statement (measured, `verification\v17_b_elseif`).
+//!
+//! With the lowering's layout ([`lower`]), this rule gives the measured behaviour of a raising block header: the
+//! branch of an `IF`, `WHILE` or `DO WHILE` condition is not taken, so the body runs; the backward branch of a
+//! `LOOP UNTIL` is not taken, so the loop is left; a `FOR` header stores its three limits from the placeholder
+//! values ([`Op::AssignAll`]), does not take its jump to the loop's entry, and runs the body with the variable
+//! unassigned.
+//! - **Optional arguments are present or absent** ([`ExprKind::Call`] slots are `Option`s in table order).
+//! - **Every conversion is explicit** ([`ExprKind::Convert`]); every operation states the type it computes in.
 //! - **Integer overflow wraps** in two's complement (`DIVERGENCES.md` D-001, D-002).
 
 // A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
@@ -19,34 +70,55 @@
 
 mod dump;
 mod lower;
+mod validate;
 
 pub use dump::dump;
 pub use lower::lower;
+pub use validate::validate;
 
-use qb64rust_base::Span;
-use qb64rust_builtins::BuiltinId;
+use qb64rust_base::{FileId, Span};
 
-/// Types, binary operators and conversion kinds are `sema`'s (`study\20` §3.4): integers by width, floats by
-/// width (`F80` is extended precision), strings. They name no C type, so the IR stays ABI-neutral.
-pub use qb64rust_sema::{BinOp, ConvKind as Conv, Ty};
+/// The [`Ty`] variants nothing produces yet, and those no value of reaches the IR yet, as patterns, and the reasons
+/// their arms give.
+pub use qb64rust_sema::{BIT_VALUE_UNREACHABLE, PLACE_ONLY_UNREACHABLE, place_only_types};
+/// Types, operators and conversion kinds are `sema`'s (`study\20` §3.4): integers by width, floats by width (`F80`
+/// is extended precision), strings, user types. They name no C type, so the IR stays ABI-neutral.
+pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, UnOp, UserType};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct VarId(pub u32);
+/// An item of the program's data: its text, and whether it was written in quotes (the runtime reads a quoted
+/// item's text as it is, and takes an unquoted one as a number where a number is read).
+pub use qb64rust_sema::DataItem;
+/// Which built-in functions are compiled and the rule each follows; the emitter writes a call by its rule.
+pub use qb64rust_sema::builtins;
+/// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
+/// `m2-defxxx-common-arrays`), as is what an allocation does with an array that is allocated already.
+pub use qb64rust_sema::{AllocMode, Shape};
+/// Values, places and arguments are `sema`'s typed tree too (design D10 of `m2-arrays-and-types`: the lowering did
+/// no work on them, only a variant-for-variant copy). The emitter ignores an [`Expr`]'s `span` and `qb`. Variable and
+/// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended
+/// ([`Program::vars`]).
+pub use qb64rust_sema::{Arg, ArrayRef, Expr, ExprKind, InputSource as Source, Place, ProcId, StmtArg, VarId};
+/// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
+/// holds a `STRING` of its own, which has no such size.
+pub use qb64rust_sema::{holds_strings, size_of};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct ProcId(pub u32);
+/// The table entry of a built-in: its identity in the IR (never a libqb name).
+pub use qb64rust_builtins::BuiltinId;
 
-/// A label of the main module's body ([`Program::main`]); procedures have none yet.
+/// A label of one body: its index in that body's [`Body::labels`]. [`Resume::To`] and [`Op::SetHandler`] name
+/// labels of the main module ([`Program::main`]); the jumps name labels of their own body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct LabelId(pub u32);
 
 /// A position in a body: before statement `at` (at the end when `at` is the number of statements). Labels are
-/// positions, not operations, so the IR has no jumps.
+/// positions, not operations; the jumps move between them.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Label {
-    /// The BASIC name in upper case.
-    pub name: String,
+    /// The BASIC name in upper case; `None` for a label the lowering made.
+    pub name: Option<String>,
     pub line: u32,
+    /// The file of a BASIC label (`None` for one the lowering made).
+    pub file: Option<FileId>,
     pub at: usize,
 }
 
@@ -75,15 +147,52 @@ pub enum Storage {
     Param(ProcId),
     /// A FUNCTION's result: new on every call, zero or empty at the start; its value at the end is returned.
     Result(ProcId),
+    /// A hidden variable the lowering made (the limits of a `FOR`), of the main module (`None`) or of a procedure.
+    /// Zero at the start: once for the program in the main module, on every call in a procedure.
+    Temp(Option<ProcId>),
 }
 
 /// A variable. `name` is the BASIC name in upper case without suffix; two variables may share a name when their
-/// types or their storage differ.
+/// types or their storage differ. An array has a [`Shape`] other than `Scalar`: static, with the lower and upper
+/// bound of each dimension (first dimension first) known when compiling, or dynamic, with a number of dimensions
+/// and no bounds (design D3 of `m2-defxxx-common-arrays`); `ty` is its element type. A static array exists for
+/// as long as its storage does; a dynamic one is not allocated until an [`Op::Allocate`] runs, and until then
+/// (and after an [`Op::Release`]) an element of it, and its bounds, raise error 9. The IR says what an array is,
+/// never how it is held: no descriptor, no size in bytes.
+///
+/// An array parameter (storage [`Storage::Param`]) is written as a dynamic array and stands, in each call, for
+/// the array passed as [`Arg::Array`], which may be static or dynamic: an [`Op::Allocate`] of it raises error 10
+/// for a static one, and its `ERASE` is [`Op::EraseParam`]. Its number of dimensions is that of every array
+/// passed to it; it has none when nothing in the program says one, and then no array is ever passed.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Var {
     pub name: String,
     pub ty: Ty,
     pub storage: Storage,
+    pub shape: Shape,
+}
+
+impl Var {
+    pub fn is_array(&self) -> bool {
+        !matches!(self.shape, Shape::Scalar)
+    }
+
+    /// The number of dimensions of an array, where it is known; `None` for a scalar too.
+    pub fn dim_count(&self) -> Option<usize> {
+        match &self.shape {
+            Shape::Scalar => None,
+            Shape::Static { bounds } => Some(bounds.len()),
+            Shape::Dynamic { dims, .. } => *dims,
+        }
+    }
+
+    /// The bounds of a static array; empty for anything else.
+    pub fn bounds(&self) -> &[(i64, i64)] {
+        match &self.shape {
+            Shape::Static { bounds } => bounds,
+            Shape::Scalar | Shape::Dynamic { .. } => &[],
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -109,100 +218,131 @@ pub struct Proc {
     pub end_line: u32,
 }
 
-/// How an argument reaches a parameter (design D4 of `m2-procedures-and-errors`).
-#[derive(Clone, Debug, PartialEq)]
-pub enum Arg {
-    /// The variable itself: assignments to the parameter change it.
-    Ref(VarId),
-    /// A fresh copy of the value, which already has the parameter's type; changes to it are lost (no copy-back).
-    Temp(Value),
+/// What the error rule and the emitter ask of a value, a place or an argument of the shared tree.
+pub trait Facts {
+    /// Whether evaluating it may raise a runtime error. Built-in calls and string operations always may, until
+    /// built-ins carry a "cannot raise" flag (M3, `study\16` §8); an element's index check may.
+    fn may_raise(&self) -> bool;
+    /// Whether it involves strings (string results need temporary cleanup at the statement's end). `p` gives the
+    /// types of places passed by reference.
+    fn uses_strings(&self, p: &Program) -> bool;
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum Const {
-    Int(i64),
-    /// Decimal text (`1.5E+2`); the value is the nearest value of the constant's type. (A SINGLE literal is held
-    /// as `F64`, the nearest double, as in the old compiler.)
-    Float(String),
-    Str(Vec<u8>),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Value {
-    pub ty: Ty,
-    pub kind: ValueKind,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum ValueKind {
-    Const(Const),
-    Var(VarId),
-    Convert {
-        how: Conv,
-        from: Box<Value>,
-    },
-    /// Both operands have the value's type; integer overflow wraps.
-    Binary {
-        op: BinOp,
-        lhs: Box<Value>,
-        rhs: Box<Value>,
-    },
-    Neg(Box<Value>),
-    Concat(Box<Value>, Box<Value>),
-    /// `None` = optional argument absent.
-    CallBuiltin {
-        id: BuiltinId,
-        args: Vec<Option<Value>>,
-    },
-    /// A FUNCTION call; one argument per parameter. Always may raise.
-    CallProc {
-        proc: ProcId,
-        args: Vec<Arg>,
-    },
-}
-
-impl Value {
-    /// Whether evaluating this value may raise a runtime error. Built-in calls and string operations always may,
-    /// until built-ins carry a "cannot raise" flag (M3, `study\16` §8).
-    pub fn may_raise(&self) -> bool {
+impl Facts for Expr {
+    fn may_raise(&self) -> bool {
         match &self.kind {
-            ValueKind::Const(_) | ValueKind::Var(_) => false,
-            ValueKind::Convert { from, .. } | ValueKind::Neg(from) => from.may_raise(),
-            ValueKind::Binary { lhs, rhs, .. } => lhs.may_raise() || rhs.may_raise(),
-            ValueKind::Concat(..) | ValueKind::CallBuiltin { .. } | ValueKind::CallProc { .. } => true,
+            ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => false,
+            ExprKind::Load(place) => Facts::may_raise(place),
+            ExprKind::Bound { .. } => true,
+            ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.may_raise(),
+            ExprKind::Binary { op, lhs, rhs } => op_may_raise(*op) || lhs.may_raise() || rhs.may_raise(),
+            ExprKind::Concat(..) | ExprKind::StrCompare { .. } | ExprKind::Call { .. } | ExprKind::CallProc { .. } => {
+                true
+            }
         }
     }
 
-    /// Whether this value involves strings (string results need temporary cleanup at the statement's end).
-    pub fn uses_strings(&self) -> bool {
+    fn uses_strings(&self, p: &Program) -> bool {
         self.ty == Ty::Str
             || match &self.kind {
-                ValueKind::Const(_) | ValueKind::Var(_) => false,
-                ValueKind::Convert { from, .. } | ValueKind::Neg(from) => from.uses_strings(),
-                ValueKind::Binary { lhs, rhs, .. } | ValueKind::Concat(lhs, rhs) => {
-                    lhs.uses_strings() || rhs.uses_strings()
-                }
-                ValueKind::CallBuiltin { args, .. } => args.iter().flatten().any(Value::uses_strings),
-                ValueKind::CallProc { args, .. } => args.iter().any(Arg::uses_strings),
+                ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => false,
+                ExprKind::Load(place) => place.uses_strings(p),
+                ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(|d| d.uses_strings(p)),
+                ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.uses_strings(p),
+                ExprKind::Binary { lhs, rhs, .. }
+                | ExprKind::Concat(lhs, rhs)
+                | ExprKind::StrCompare { lhs, rhs, .. } => lhs.uses_strings(p) || rhs.uses_strings(p),
+                ExprKind::Call { args, .. } => args.iter().flatten().any(|a| a.uses_strings(p)),
+                ExprKind::CallProc { args, .. } => args.iter().any(|a| a.uses_strings(p)),
             }
     }
 }
 
-impl Arg {
-    /// Whether passing this argument involves strings: a string copy (a temporary), or a string variable.
-    pub fn uses_strings(&self) -> bool {
+impl Facts for Place {
+    /// An element's index may raise error 9; a member's base may be an element.
+    fn may_raise(&self) -> bool {
+        Place::may_raise(self)
+    }
+
+    fn uses_strings(&self, p: &Program) -> bool {
+        self.indexes().iter().any(|v| v.uses_strings(p))
+    }
+}
+
+impl Facts for Arg {
+    /// Finding a place passed by reference may raise (its index); a copy as its value does; finding a member
+    /// array may (an index on the way to it).
+    fn may_raise(&self) -> bool {
         match self {
-            Arg::Ref(_) => false,
-            Arg::Temp(v) => v.uses_strings(),
+            Arg::Ref(place) => Facts::may_raise(place),
+            Arg::Temp(v) => v.may_raise(),
+            Arg::Array(array) => array.may_raise(),
         }
+    }
+
+    /// A string copy (a temporary), a place whose index involves strings, or a `STRING * n` element or member,
+    /// which is passed as a temporary fixed `qbs` over its bytes (`qbs_new_fixed(…,n,1)`, design D6).
+    fn uses_strings(&self, p: &Program) -> bool {
+        match self {
+            Arg::Ref(place) => {
+                place.uses_strings(p)
+                    || (!matches!(place, Place::Var(_)) && matches!(p.place_ty(place), Ty::FixedStr(_)))
+            }
+            Arg::Temp(v) => v.uses_strings(p),
+            Arg::Array(array) => array.indexes().iter().any(|v| v.uses_strings(p)),
+        }
+    }
+}
+
+impl Facts for StmtArg {
+    fn may_raise(&self) -> bool {
+        match self {
+            StmtArg::Value(v) => v.may_raise(),
+            StmtArg::Place(place) => Facts::may_raise(place),
+            StmtArg::Word(_) | StmtArg::Absent => false,
+        }
+    }
+
+    /// A string value, or a place that is a string or whose index involves strings.
+    fn uses_strings(&self, p: &Program) -> bool {
+        match self {
+            StmtArg::Value(v) => v.uses_strings(p),
+            StmtArg::Place(place) => place.uses_strings(p) || p.place_ty(place).is_string(),
+            StmtArg::Word(_) | StmtArg::Absent => false,
+        }
+    }
+}
+
+/// Whether the operator itself may raise: `\` and `MOD` by 0 (error 11), `^` with a negative base and a non-integer
+/// exponent (error 5).
+fn op_may_raise(op: BinOp) -> bool {
+    match op {
+        BinOp::IDiv | BinOp::Mod | BinOp::Pow => true,
+        BinOp::Add
+        | BinOp::Sub
+        | BinOp::Mul
+        | BinOp::Div
+        | BinOp::Eq
+        | BinOp::Ne
+        | BinOp::Lt
+        | BinOp::Gt
+        | BinOp::Le
+        | BinOp::Ge
+        | BinOp::And
+        | BinOp::Or
+        | BinOp::Xor
+        | BinOp::Eqv
+        | BinOp::Imp
+        | BinOp::AndAlso
+        | BinOp::OrElse => false,
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PrintItem {
-    Str(Value),
+    Str(Expr),
     /// Printed as `STR$` of the value plus one space.
-    Num(Value),
+    Num(Expr),
     /// Move to the next print zone.
     Zone,
 }
@@ -211,14 +351,106 @@ pub enum PrintItem {
 pub enum Op {
     /// Send output to (and read input from) the console instead of a window.
     SelectConsole,
+    /// A store, by the rule of its place (see the crate documentation).
     Assign {
-        place: VarId,
-        value: Value,
+        place: Place,
+        value: Expr,
     },
-    /// Items in order; a raising item skips the rest, including the line end.
+    /// Copy the whole value of one place of a user type into another of the same type (design D9 of
+    /// `m2-defxxx-common-arrays`): every member, a `STRING` member as a string of its own; a place copied to
+    /// itself keeps its value. **The copy is not guarded** (measured, `verification\v24_h_whole`, `v24_x210`):
+    /// an index outside its bounds raises error 9 and the copy is made with the array's first element in the
+    /// place of the element named, on either side; any other error an index raises leaves its placeholder index.
+    ///
+    /// `to` is found first, then `from`. For a type without a `STRING` in it each is found once. **For a type
+    /// that holds strings ([`holds_strings`]) both are found again for every part of the value**, in
+    /// declaration order: a `STRING` member is a part, a member of a user type that holds strings gives its own
+    /// parts in its place, any other member is one part (measured, `v24_x306`, `x307`: a FUNCTION in an index is
+    /// called once per part; the old compiler's behaviour, listed for review in `SOMEDAY.md`). A member array
+    /// goes element by element where its elements are parts: each element of a `STRING` member array is a
+    /// part, each element of one of a user type that holds strings gives its own parts, and any other member
+    /// array is one part, all its elements together (measured, `v24_x310`).
+    CopyWhole {
+        from: Place,
+        to: Place,
+    },
+    /// Give an array bounds and elements, zero or empty (design D4 of `m2-defxxx-common-arrays`): one lower and
+    /// one upper bound per dimension, each an `I64`. In this order (measured, `study\00` §5):
+    ///
+    /// 1. a static array raises error 10, and nothing else happens: the bounds are not evaluated;
+    /// 2. with [`AllocMode::Dim`], an array that is allocated raises error 10 unless an error is pending, and
+    ///    nothing else happens;
+    /// 3. the bounds are evaluated in order, lower before upper, first dimension first. **A raising bound does not
+    ///    stop the operation**: it goes on with the placeholder value;
+    /// 4. a dimension with no element (its upper bound one below its lower bound) raises error 5, and the
+    ///    operation goes on: the array is then allocated with these bounds and no element;
+    /// 5. a dimension whose upper bound is lower still, and a size the machine cannot hold, end the program ("Out
+    ///    of memory"; no handler runs);
+    /// 6. the array has the new bounds. Its elements are new; with [`AllocMode::Preserve`] the first elements by
+    ///    flat position (first dimension fastest) keep their values, as many as the smaller of the old and the
+    ///    new number of elements.
+    ///
+    /// The array may be static or dynamic. Always may raise.
+    Allocate {
+        array: VarId,
+        bounds: Vec<(Expr, Expr)>,
+        mode: AllocMode,
+    },
+    /// Set every element of a static array to zero, an empty string or NUL bytes; its bounds stay.
+    ///
+    /// Of a member array ([`ArrayRef::Member`]): the place it is part of is found once, then its elements are
+    /// cleared. **Not guarded** (measured, `verification\v24_x312`): an index outside its bounds on the way
+    /// raises error 9 and the member array of the element at position 0 of that dimension is cleared, as it is
+    /// after any other error an index raises.
+    Clear {
+        array: ArrayRef,
+    },
+    /// Release the elements of a dynamic array: it is not allocated afterwards (every use raises error 9) until an
+    /// [`Op::Allocate`] runs. Of an array that is not allocated it does nothing.
+    Release {
+        array: VarId,
+    },
+    /// `ERASE` of an array parameter: [`Op::Clear`] when the array passed in this call is a static one,
+    /// [`Op::Release`] when it is dynamic.
+    EraseParam {
+        array: VarId,
+    },
+    /// Items in order, to the console (`to` is `None`) or to the file with this number (an `I32`); a raising item
+    /// skips the rest, including the line end. In a file a [`PrintItem::Zone`] is 14 columns wide, on the console
+    /// 10 (the runtime's).
     Print {
+        to: Option<Expr>,
         items: Vec<PrintItem>,
         newline: bool,
+    },
+    /// The items ([`PrintItem::Str`] in double quotes, [`PrintItem::Num`] without blanks) separated by commas, to
+    /// the console or to a file, then a line end if `newline`; without it the last item is followed by a comma
+    /// too. A raising item skips the rest.
+    Write {
+        to: Option<Expr>,
+        items: Vec<PrintItem>,
+        newline: bool,
+    },
+    /// Read one field per target, or (`line`) one whole line into the single string target, from a file or the
+    /// console. A numeric target takes the field's value in its own type; a value outside the type's range raises
+    /// error 6. The targets are stored in order, each by the rule of its place; see the crate documentation for the
+    /// pending-error checks. At least one target; none is of a user type or a member of an element.
+    Input {
+        from: Source,
+        line: bool,
+        targets: Vec<Place>,
+    },
+    /// Read the next item of the program's data ([`Program::data`]) into each target in turn, each stored by the
+    /// rule of its place. A numeric target takes the item's value in its own type. No point of it checks for a
+    /// pending error: see the crate documentation. At least one target; none is of a user type or a member of an
+    /// element.
+    Read(Vec<Place>),
+    /// Make the next [`Op::Read`] start at item `at` of [`Program::data`] (at its end: nothing is left to read).
+    /// `label` is the BASIC label, in upper case, that gave the position; `None` for the start of the data (`at`
+    /// is 0). The emitter may name the position after it.
+    Restore {
+        at: usize,
+        label: Option<String>,
     },
     End,
     /// End the program at once (`SYSTEM`).
@@ -228,15 +460,95 @@ pub enum Op {
         proc: ProcId,
         args: Vec<Arg>,
     },
+    /// A built-in statement that is one call of the runtime (design D2 of `m2-builtin-statements`): the built-in by
+    /// its table entry, which also says which form was written, and one slot per argument or choice of its template
+    /// in template order ([`builtins::stmt_slots`]). The values are evaluated in order; the call is made also after
+    /// a raising one. Always may raise.
+    Builtin {
+        id: BuiltinId,
+        args: Vec<StmtArg>,
+    },
     /// Leave the procedure (`EXIT SUB`, `EXIT FUNCTION`); a FUNCTION returns its result variable's value.
     Exit,
     /// Make the statements from a label the program's error handler, or (`None`) remove it. One handler for the
     /// whole program, also when set inside a procedure.
     SetHandler(Option<LabelId>),
     /// Raise the runtime error with this number (an `I32`).
-    Raise(Value),
+    Raise(Expr),
     /// End the running handler and continue as stated; outside a handler it raises error 20.
     Resume(Resume),
+    /// Continue at a label of this body; not taken while an error is pending.
+    Jump(LabelId),
+    /// Continue at a label of this body when `cond` (a number) is zero or non-zero as `when` says; otherwise go on
+    /// with the next operation. `on_error` says what a pending error does.
+    Branch {
+        cond: Expr,
+        when: When,
+        to: LabelId,
+        on_error: OnError,
+    },
+    /// Evaluate and store each value in order, every store made also after a raising value; then the statement
+    /// rule as for [`Op::Assign`]. (A `FOR` header: all its limits are stored before an error is serviced.)
+    AssignAll(Vec<(VarId, Expr)>),
+    /// Continue at a label of this body; a [`Op::Return`] without label comes back after this statement. One
+    /// stack of pending `GOSUB`s for the whole program. Not taken while an error is pending.
+    Gosub(LabelId),
+    /// Back to after the last pending [`Op::Gosub`], also one made in another body (`None`), or forget it and
+    /// continue at a label of the main module (`Some`). Raises error 3 when no `GOSUB` is pending.
+    Return(Option<LabelId>),
+}
+
+impl Op {
+    /// Whether this operation may raise a runtime error.
+    pub fn may_raise(&self) -> bool {
+        match self {
+            Op::SelectConsole
+            | Op::End
+            | Op::System
+            | Op::Exit
+            | Op::SetHandler(_)
+            | Op::Jump(_)
+            | Op::Gosub(_)
+            | Op::Restore { .. }
+            | Op::Release { .. }
+            | Op::EraseParam { .. } => false,
+            // The place a member array is part of may be an element.
+            Op::Clear { array } => array.may_raise(),
+            // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
+            Op::Call { .. }
+            | Op::Builtin { .. }
+            | Op::Raise(_)
+            | Op::Resume(_)
+            | Op::Return(_)
+            | Op::Allocate { .. } => true,
+            Op::Assign { place, value } => place.may_raise() || value.may_raise(),
+            Op::CopyWhole { from, to } => from.may_raise() || to.may_raise(),
+            Op::AssignAll(stores) => stores.iter().any(|(_, v)| v.may_raise()),
+            Op::Branch { cond, .. } => cond.may_raise(),
+            // A file may not be open, a console input may meet the end of the input, the data may be used up.
+            Op::Print { to: Some(_), .. } | Op::Write { to: Some(_), .. } | Op::Input { .. } | Op::Read(_) => true,
+            Op::Print { to: None, items, .. } | Op::Write { to: None, items, .. } => items.iter().any(|i| match i {
+                PrintItem::Str(v) | PrintItem::Num(v) => v.may_raise(),
+                PrintItem::Zone => false,
+            }),
+        }
+    }
+}
+
+/// When an [`Op::Branch`] is taken.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum When {
+    Zero,
+    NonZero,
+}
+
+/// What a pending error does to an [`Op::Branch`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OnError {
+    /// Not taken while an error is pending (`IF`, `WHILE`, `DO`, `LOOP` conditions).
+    Skip,
+    /// Taken or not by the value, which after a raising condition is the placeholder (`ELSEIF`, measured).
+    UseValue,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -250,7 +562,7 @@ pub struct Stmt {
 /// A sequence of statements: the main module's, or a procedure's.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Body {
-    /// In source order; only the main module has labels.
+    /// The body's own labels in source order, then the labels the lowering made.
     pub labels: Vec<Label>,
     pub stmts: Vec<Stmt>,
 }
@@ -262,9 +574,48 @@ pub struct Program {
     /// Procedures in definition order.
     pub procs: Vec<Proc>,
     pub main: Body,
+    /// The user types; a type's layout is the emitter's.
+    pub types: Vec<UserType>,
+    /// The program's data: the items of every `DATA` statement, in the order [`Op::Read`] takes them. How they are
+    /// stored in the executable is the emitter's.
+    pub data: Vec<DataItem>,
 }
 
 impl Program {
+    pub fn user_type(&self, id: TypeId) -> &UserType {
+        &self.types[id.0 as usize]
+    }
+
+    /// The member of a place of user type `base`.
+    pub fn member(&self, base: Ty, m: MemberId) -> &Member {
+        let Ty::User(t) = base else {
+            panic!("a member of a place of type {base:?}");
+        };
+        &self.user_type(t).members[m.0 as usize]
+    }
+
+    /// The type of a place.
+    pub fn place_ty(&self, p: &Place) -> Ty {
+        match p {
+            Place::Var(v) => self.var(*v).ty,
+            Place::Element { array, .. } => self.array_ty(array),
+            Place::Member { base, member } => self.member(self.place_ty(base), *member).ty,
+        }
+    }
+
+    /// The type of an array's elements.
+    pub fn array_ty(&self, a: &ArrayRef) -> Ty {
+        match a {
+            ArrayRef::Var(v) => self.var(*v).ty,
+            ArrayRef::Member { base, member } => self.member(self.place_ty(base), *member).ty,
+        }
+    }
+
+    /// The member an [`ArrayRef::Member`] names: `member` of a place `base`.
+    pub fn member_of(&self, base: &Place, member: MemberId) -> &Member {
+        self.member(self.place_ty(base), member)
+    }
+
     pub fn var(&self, id: VarId) -> &Var {
         &self.vars[id.0 as usize]
     }

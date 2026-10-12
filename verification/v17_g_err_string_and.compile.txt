@@ -1,0 +1,5 @@
+
+Expected variable/value before 'AND'
+Caused by (or after):PRINT "a",1 AND "b",1
+LINE 3:PRINT "a" AND "b"
+exit=1

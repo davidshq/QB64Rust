@@ -1,0 +1,42 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Array A(param):I32 passed, dimensions: 1
+Array A(param):I32 passed, dimensions: 1
+Array T(param):I32 passed, dimensions: 2
+Array X:I32 static (1 To 3)
+Array M:I32 static (0 To 2, 0 To 4)
+Array D:I32 dynamic, dimensions: 1
+Stmt line 2
+  SelectConsole
+Stmt line 9 may_raise
+  Allocate Redim D:I32
+    Const 0:I64 To Const 2:I64
+Stmt line 10 may_raise
+  Call GROW [Array D:I32]
+Stmt line 11 may_raise
+  Call GROW [Array X:I32]
+Stmt line 12 may_raise
+  Print console newline
+    Num CallProc LAST:I32 [Array M:I32]
+Stmt line 13
+  System
+Sub GROW lines 14-18
+  param A():I32
+Stmt line 15 may_raise
+  Allocate Preserve A(param):I32
+    Const 0:I64 To Const 10:I64
+Stmt line 16 may_raise
+  Assign A(param)(Const 1:I64):I32 = (UBound A(param)(1):I64 -> Convert I32 Truncate)
+Stmt line 17 may_raise
+  Call WIPE [Array A(param):I32]
+Sub WIPE lines 19-21
+  param A():I32
+Stmt line 20
+  EraseParam A(param):I32
+Function LAST:I32 lines 22-24
+  param T():I32
+  result LAST:I32
+Stmt line 23 may_raise
+  Assign LAST(result):I32 = Load T(param)(UBound T(param)(Const 1:I32):I64, UBound T(param)(Const 2:I32):I64):I32

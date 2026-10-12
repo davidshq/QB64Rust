@@ -1,0 +1,28 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 12: Print newline
+  Num
+    Int 7 : I64
+  Num
+    Int 3 : I64
+  Num
+    Int 1 : I64
+  Num
+    Int 9 : I64
+line 14: Assign SHARED_N:I32
+  Int 5 : I32
+line 15: Call SHOW
+  ref SHARED_N : I32
+line 16: System
+SUB SHOW
+  param X:I32
+line 3: Print newline
+  Str
+    Str "show" : Str
+  Num
+    Var X (param) : I32
+  Num
+    Int 7 : I64

@@ -1,0 +1,5 @@
+
+DIM: Expected ,
+Caused by (or after):DIM P& AS PT
+LINE 6:DIM p& AS pt
+exit=1

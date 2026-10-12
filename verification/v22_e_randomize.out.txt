@@ -1,0 +1,9 @@
+seed 5
+Random-number seed (-32768 to 32767)?  9.203738E-02  .3895794 
+USING 5: .3257257  .7353894 
+seed 70000 (outside -32768 to 32767)
+Random-number seed (-32768 to 32767)? 7000 .5155843 
+seed abc, then 6
+Random-number seed (-32768 to 32767)?  .8562281 
+done
+exit=0

@@ -1,0 +1,139 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE INNER
+  A:I16
+  B:F64
+TYPE OUTER
+  N:I32
+  S:T:INNER
+  F:F80
+ARRAY AI:I16(0 TO 3)
+ARRAY AO:T:OUTER(0 TO 3)
+ARRAY SA:Str(0 TO 3)
+line 2: ConsoleOnly
+line 18: Print newline
+  Num
+    Call LEN : I32
+      Var S : Str
+  Num
+    Call LEN : I32
+      Concat : Str
+        Var S : Str
+        Str "!" : Str
+  Num
+    Call LEN : I32
+      Element SA(…) : Str
+        Int 1 : I64
+  Num
+    Call LEN : I32
+      Str "" : Str
+line 19: Print newline
+  Num
+    Int 2 : I32
+  Num
+    Int 4 : I32
+  Num
+    Int 8 : I32
+  Num
+    Int 4 : I32
+  Num
+    Int 8 : I32
+  Num
+    Int 32 : I32
+  Num
+    Int 4 : I32
+line 20: Print newline
+  Num
+    Int 46 : I32
+  Num
+    Int 4 : I32
+  Num
+    Int 10 : I32
+  Num
+    Int 8 : I32
+  Num
+    Int 2 : I32
+  Num
+    Int 46 : I32
+  Num
+    Int 2 : I32
+line 22: Print newline
+  Num
+    Int 46 : I32
+  Num
+    Int 10 : I32
+line 23: Print newline
+  Num
+    Call ASC : I32
+      Var S : Str
+      (absent)
+  Num
+    Call ASC : I32
+      Var S : Str
+      Int 2 : I32
+  Num
+    Call ASC : I32
+      Var S : Str
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Float 2.5E+0 : F64 (qb F32)
+  Num
+    Call ASC : I32
+      Var S : Str
+      Convert Truncate : I32
+        Var Q : I64
+line 24: Print newline
+  Num
+    Call VAL : F80
+      Var S : Str
+      (absent)
+  Num
+    Call VAL : F32
+      Var S : Str
+      (absent)
+  Num
+    Call VAL : F64
+      Var S : Str
+      (absent)
+  Num
+    Call VAL : F80
+      Var S : Str
+      (absent)
+  Num
+    Call VAL : I64
+      Var S : Str
+      (absent)
+  Num
+    Call VAL : I64
+      Var S : Str
+      (absent)
+  Num
+    Call VAL : I64
+      Var S : Str
+      (absent)
+line 25: Print newline
+  Str
+    Call HEX : Str
+      Var I : I16
+  Str
+    Call HEX : Str
+      Var Q : I64
+  Str
+    Call HEX : Str
+      Binary Mul : I64
+        Var Q : I64
+        Int 1 : I64
+  Str
+    Call HEX : Str
+      Var F : F32
+  Str
+    Call OCT : Str
+      Var L : I32
+  Str
+    Call _BIN : Str
+      Binary Add : I32 (qb I64)
+        Convert Widen : I32
+          Var I : I16
+        Int 1 : I32

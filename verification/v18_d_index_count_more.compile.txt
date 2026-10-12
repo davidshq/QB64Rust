@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):X ( 1 , 2 ) = 5
+LINE 4:x(1, 2) = 5
+exit=1

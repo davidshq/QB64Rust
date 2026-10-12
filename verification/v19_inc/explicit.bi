@@ -1,0 +1,2 @@
+OPTION _EXPLICIT
+DIM declared AS LONG

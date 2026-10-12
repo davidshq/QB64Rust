@@ -1,0 +1,1 @@
+SUB a(2): [error 9 ]exit=0

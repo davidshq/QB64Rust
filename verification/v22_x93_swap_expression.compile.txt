@@ -1,0 +1,5 @@
+
+Expected variable
+Caused by (or after):SWAP A , B + 1
+LINE 4:SWAP a, b + 1
+exit=1

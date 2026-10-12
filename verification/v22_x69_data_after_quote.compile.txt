@@ -1,0 +1,5 @@
+
+Expected , after quoted string in DATA statement
+Caused by (or after):
+LINE 3:
+exit=1

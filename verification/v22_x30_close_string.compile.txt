@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):CLOSE "a",1
+LINE 3:CLOSE "a"
+exit=1

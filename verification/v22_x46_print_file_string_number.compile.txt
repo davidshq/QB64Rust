@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):PRINT # "a",1 , "x",1
+LINE 3:PRINT #"a", "x"
+exit=1

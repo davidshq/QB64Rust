@@ -1,0 +1,5 @@
+
+DIM: Expected ,
+Caused by (or after):REDIM PRESERVE X ( 5 ) AS LONG
+LINE 5:REDIM PRESERVE x(5) AS LONG
+exit=1

@@ -1,0 +1,6 @@
+f1(3), FUNCTION f1 below DEFLNG F: 100000 
+f1&(3): 100000 
+the delta's scenario, f2(3) and f2&(3): 300000  300000 
+g1(3), no default for G: 100000.3359375 
+g1!(3): 100000.3359375 
+exit=0

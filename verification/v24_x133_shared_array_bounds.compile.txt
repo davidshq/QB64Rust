@@ -1,0 +1,5 @@
+
+Expected ()
+Caused by (or after):SHARED A ( 3 ) AS LONG
+LINE 7:SHARED a(3) AS LONG
+exit=1

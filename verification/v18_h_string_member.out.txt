@@ -1,0 +1,9 @@
+handler 5 
+w.t = CHR$(-1): []
+a(2).t: [one!] 4 
+handler 9 
+after a(9).t = nine: [nine]
+addbang w.t: [!]
+local v.t: []
+local v.t: []
+exit=0

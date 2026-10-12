@@ -1,0 +1,13 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+option_base_errors.bas:7:13: error: `OPTION BASE` takes `0` or `1`
+option_base_errors.bas:8:13: error: `OPTION BASE` takes `0` or `1`
+option_base_errors.bas:9:13: error: `OPTION BASE` takes `0` or `1`
+option_base_errors.bas:10:13: error: `OPTION BASE` takes `0` or `1`
+option_base_errors.bas:11:12: error: expected `0` or `1` after `OPTION BASE`
+option_base_errors.bas:12:13: error: expected `0` or `1` after `OPTION BASE`
+option_base_errors.bas:14:13: error: expected `0` or `1` after `OPTION BASE`
+option_base_errors.bas:16:9: error: invalid bounds for `neg`: 1 TO -1
+option_base_errors.bas:17:14: error: invalid bounds for `rev`: 3 TO 1

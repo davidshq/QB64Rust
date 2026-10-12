@@ -1,0 +1,29 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+builtins_errors.bas:5:7: error: `LEFT$` takes 2 arguments
+builtins_errors.bas:6:7: error: `MID$` takes 2 or 3 arguments
+builtins_errors.bas:7:13: error: argument 1 of `LEFT$` needs a string
+builtins_errors.bas:8:12: error: `STR$` needs a number
+builtins_errors.bas:9:15: error: argument 1 of `_TOSTR$` needs a number
+builtins_errors.bas:10:15: error: argument 1 of `STRING$` needs a number
+builtins_errors.bas:11:7: error: `SPACE$` with empty parentheses
+builtins_errors.bas:12:14: error: `UCASE$` needs a string
+builtins_errors.bas:13:1: error: `LEFT$` is a function, not a statement
+builtins_errors.bas:14:11: error: `LEN` needs a string or a variable, element or member
+builtins_errors.bas:15:11: error: `LEN` needs a string or a variable, element or member
+builtins_errors.bas:16:7: error: `LEN` with empty parentheses
+builtins_errors.bas:17:7: error: `ASC` takes 1 or 2 arguments
+builtins_errors.bas:18:12: error: `HEX$` needs a number
+builtins_errors.bas:19:11: error: `VAL` needs a string
+builtins_errors.bas:20:16: error: `VAL` cannot give a `STRING`
+builtins_errors.bas:21:7: error: the second argument of `VAL` is a type name
+builtins_errors.bas:22:1: error: not supported yet: statement `LEN`
+builtins_errors.bas:23:11: error: `SQR` needs a number
+builtins_errors.bas:24:11: error: `ABS` needs a number
+builtins_errors.bas:25:7: error: `SIN` with empty parentheses
+builtins_errors.bas:26:7: error: `_PI` takes 0 or 1 arguments
+builtins_errors.bas:27:7: error: `_PI` with empty parentheses
+builtins_errors.bas:28:12: error: `CINT` needs a number
+builtins_errors.bas:29:7: error: `_ATAN2` takes 2 arguments

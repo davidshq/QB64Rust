@@ -1,0 +1,5 @@
+
+Name already in use (FOR)
+Caused by (or after):OPEN "f",1 FOR INPUT FOR OUTPUT AS # 1
+LINE 3:OPEN "f" FOR INPUT FOR OUTPUT AS #1
+exit=1

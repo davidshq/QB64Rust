@@ -1,0 +1,47 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 8: Print newline
+  Num
+    Int -25536 : I16
+  Num
+    Int 40000 : I64
+  Num
+    Int -1294967296 : I32
+  Num
+    Int 3000000000 : I64
+  Num
+    Int 40000 : I64
+  Num
+    Int 40000 : I64
+line 9: Print newline
+  Num
+    Int -32768 : I16
+  Num
+    Int 32768 : I64
+  Num
+    Int -2147483648 : I32
+  Num
+    Int 70368744177664 : I64
+  Num
+    Int 2147483648 : I64
+  Num
+    Int -2147483648 : I64
+line 10: Print newline
+  Num
+    Int -1 : I16
+  Num
+    Int 65535 : I64
+  Str
+    Call HEX : Str
+      Int 40000 : I32 (qb I16)
+  Num
+    Call ABS : I16
+      Int -25536 : I16
+line 11: Assign X:I32
+  Int 40000 : I32 (qb I16)
+line 12: Assign Y:I16
+  Int -25536 : I16
+line 13: System

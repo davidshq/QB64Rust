@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):A . B = 3
+LINE 8:a.b = 3
+exit=1

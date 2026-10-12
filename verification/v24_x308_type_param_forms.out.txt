@@ -1,0 +1,10 @@
+1. a nested member of an element: 5 elm
+2. copied in the SUB, p = s: 5 elm
+3. a local copied to the parameter: 3 local
+4. the parameter's STRING member passed on: elm!
+5. READ: data 12 
+6. MID$: d#ta
+7. SWAP of two STRING members: other d#ta
+8. named with its suffix: suffix 6 
+9. compared
+exit=0

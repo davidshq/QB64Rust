@@ -1,0 +1,5 @@
+
+Cannot create a fixed string of length 0
+Caused by (or after):DIM F AS STRING * 0
+LINE 3:DIM f AS STRING * 0
+exit=1

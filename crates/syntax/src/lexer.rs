@@ -113,6 +113,12 @@ impl Lexer<'_> {
                 }
                 Whitespace
             }
+            // A DOS end-of-file byte that ends a line is dropped by the old compiler's line reader (`qb64pe.bas`
+            // 28060, `lineinput3`); elsewhere it stays an unexpected byte.
+            0x1A if matches!(self.bytes.get(self.pos + 1), None | Some(b'\r' | b'\n')) => {
+                self.pos += 1;
+                Whitespace
+            }
             b'\r' | b'\n' => {
                 self.eat_newline();
                 Newline
@@ -170,8 +176,11 @@ impl Lexer<'_> {
 
     /// A `.` at the current position is member access (design D3 of `m2-parser-breadth`, measured M8): it follows
     /// `)` or a member name, and a name follows it, with or without blanks on either side (`a(2) .b`, `a(2). b`).
+    /// After a plain name it can only be here with blanks around it (`a . s`; without them it is part of the name):
+    /// the old compiler drops those blanks, so `a . s` is `a.s` (measured, `verification\v19_dot_blanks_*`); it is a
+    /// `Dot` too, and `sema` decides.
     fn is_member_dot(&self) -> bool {
-        if !(self.prev == Some(RParen) || self.member) {
+        if !(self.prev == Some(RParen) || self.prev == Some(Ident) || self.member) {
             return false;
         }
         let mut i = self.pos + 1;
@@ -206,7 +215,14 @@ impl Lexer<'_> {
             self.data = true;
             return Ident;
         }
+        let before = self.pos;
         self.suffix();
+        // `name$n`: the suffix of a fixed-length string of n bytes (measured, `verification\v21_c_fixed_basics`).
+        if &self.bytes[before..self.pos] == b"$" {
+            while self.peek(0).is_some_and(|c| c.is_ascii_digit()) {
+                self.pos += 1;
+            }
+        }
         Ident
     }
 

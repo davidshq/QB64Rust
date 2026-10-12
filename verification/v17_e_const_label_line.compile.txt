@@ -1,0 +1,5 @@
+
+NULL string; nothing to evaluate
+Caused by (or after):
+LINE 3:CONST K = 4
+exit=1

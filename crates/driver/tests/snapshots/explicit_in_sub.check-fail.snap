@@ -1,0 +1,7 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 103
+expression: snap
+---
+explicit_in_sub.bas:5:1: error: variable `y` (SINGLE) is not declared (`OPTION _EXPLICIT`)
+explicit_in_sub.bas:6:7: error: variable `y` (SINGLE) is not declared (`OPTION _EXPLICIT`)

@@ -1,0 +1,5 @@
+
+Expected STRING argument
+Caused by (or after):PRINT VAL ( 5 )
+LINE 3:PRINT VAL(5)
+exit=1

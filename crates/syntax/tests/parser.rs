@@ -44,6 +44,46 @@ fn dim_forms() {
     insta::assert_snapshot!(tree("DIM a AS LONG, b$, c AS _INTEGER64\n"));
 }
 
+/// Array bounds in `DIM`, `DIM SHARED`, `STATIC` and `SHARED` (design D2 of `m2-arrays-and-types`).
+#[test]
+fn dim_array_forms() {
+    insta::assert_snapshot!(tree(
+        "DIM a(5) AS LONG, b(1 TO 3, -2 TO n), c$(2)\nDIM SHARED d(0)\nSTATIC e(4) AS t\nSHARED f() AS LONG, g\n"
+    ));
+}
+
+/// A DOS end-of-file byte (0x1A) ending a line is whitespace, as the old compiler's line reader drops it
+/// (`qb64pe.bas` 28060); one inside a line is still an error.
+#[test]
+fn eof_byte_at_line_end() {
+    for src in [&b"PRINT 1\n\x1a"[..], b"PRINT 1\x1a\nPRINT 2\n", b"PRINT 1\r\n\x1a\r\n"] {
+        let p = parse_one(src);
+        assert!(p.main().diagnostics.list().is_empty(), "{src:?}");
+        assert_eq!(print(&p.main().green, src), src);
+    }
+    assert!(!parse_one(b"PRINT \x1a 1\n").main().diagnostics.list().is_empty());
+}
+
+#[test]
+fn dim_bounds_accessor() {
+    use qb64rust_syntax::ast::{DimStmt, SourceFile};
+    let src = b"DIM a(5) AS LONG, b(1 TO 3, 2), c\n";
+    let program = parse_one(src);
+    let root = SourceFile::cast(program.main().root()).unwrap();
+    let dim = root.statements().find_map(DimStmt::cast).unwrap();
+    let shapes: Vec<Vec<(bool, bool)>> = dim
+        .items()
+        .map(|i| {
+            i.bounds()
+                .map(|b| b.ranges().iter().map(|(l, u)| (l.is_some(), u.is_some())).collect())
+                .unwrap_or_default()
+        })
+        .collect();
+    assert_eq!(shapes, [vec![(false, true)], vec![(true, true), (false, true)], vec![]]);
+    assert!(dim.items().all(|i| i.name().is_some()));
+    assert!(dim.items().next().unwrap().as_clause().is_some());
+}
+
 #[test]
 fn assignments() {
     insta::assert_snapshot!(tree("x = 1: LET y% = x + 2\n"));
@@ -64,7 +104,38 @@ fn precedence() {
 #[test]
 fn two_errors_reported() {
     // Errors on lines 2 and 5, one each; the statements around them parse.
-    insta::assert_snapshot!(tree("x = 1\nCONST c = 3: PRINT i\nPRINT x\nPRINT x;\nPRINT (2\nEND\n"));
+    insta::assert_snapshot!(tree("x = 1\nREDIM c(3): PRINT i\nPRINT x\nPRINT x;\nPRINT (2\nEND\n"));
+}
+
+#[test]
+fn const_forms() {
+    insta::assert_snapshot!(tree(
+        "CONST a = 1\nCONST b% = 2.5, c$ = \"x\" + \"y\", d# = -a ^ 2\nIF 1 THEN CONST e = 4\nSUB s\n  CONST f& = a * 2\nEND SUB\n"
+    ));
+}
+
+#[test]
+fn const_errors() {
+    // One error per statement; the statements after each parse. `ROOT` is an operator only in a `CONST` value
+    // (marked "not supported yet" there), elsewhere a plain syntax error.
+    insta::assert_snapshot!(tree(
+        "CONST\nCONST a\nCONST a = 1,\nCONST 5 = 1\nCONST a = 1 2\nCONST r = 20 ROOT 3\nCONST q = (8 ROOT 3) + 1\nx = 20 ROOT 3\nPRINT a\n"
+    ));
+}
+
+#[test]
+fn option_forms() {
+    insta::assert_snapshot!(tree(
+        "OPTION BASE 1\nOPTION _EXPLICIT: DIM x\nOPTION _EXPLICITARRAY\nOPTION EXPLICIT\nSUB s\n  OPTION _EXPLICIT\nEND SUB\n"
+    ));
+}
+
+#[test]
+fn option_errors() {
+    // `option` alone or before `=` is a name (not a reserved word).
+    insta::assert_snapshot!(tree(
+        "OPTION BASE\nOPTION FOO\nOPTION _EXPLICIT 1\noption = 3\nOPTION\n"
+    ));
 }
 
 #[test]
@@ -79,12 +150,13 @@ fn calls() {
     insta::assert_snapshot!(tree("CALL s(n, 2)\nCALL t\ns n, \"x\"\ns (n)\nt\nbump n + 1: t\n"));
 }
 
-/// Without `CALL`, arguments that are not an expression list are kept in an `Error` node with no diagnostic
-/// (built-in statements such as `LOCATE , 5`); with `CALL` they are an error. In parentheses an argument may be
-/// left out (`CALL s(1,)`); `sema` reports that.
+/// Without `CALL`, arguments that are not an expression list are kept in an `Error` node with no diagnostic (`t ,
+/// 5`: a built-in statement without a template, or a SUB); with `CALL` they are an error. In parentheses an
+/// argument may be left out (`CALL s(1,)`); `sema` reports that. Built-in statements with a template (`LOCATE , 5`,
+/// `COLOR 4,`) are read by it (task 7.5).
 #[test]
 fn call_arguments_the_parser_cannot_read() {
-    insta::assert_snapshot!(tree("LOCATE , 5\nCOLOR 4,\ns (1, 2)\nCALL s(1,)\nCALL s(1 2)\n"));
+    insta::assert_snapshot!(tree("LOCATE , 5\nCOLOR 4,\ns (1, 2)\nCALL s(1,)\nCALL s(1 2)\nt , 5\n"));
 }
 
 /// Member access after an index or a member (`.` is a `Dot` token there), with blanks around the dot; a dotted
@@ -107,6 +179,27 @@ fn exit_declare_shared_static() {
 fn data_read_restore() {
     insta::assert_snapshot!(tree(
         "DATA 1, \"a, b\": READ x, a$(2), t(1).f\nRESTORE\nRESTORE lab\nRESTORE 100\nDATA\nDATA \"a\" b, 2\n"
+    ));
+}
+
+/// Declarations (design D5, task 7.2): `DEFxxx` and `_DEFINE` letter ranges, `DIM AS type` lists, fixed-length
+/// strings, `REDIM` with `_PRESERVE`/`SHARED` and a member array, `COMMON` with a block name, `ERASE` of a plain
+/// array and a member array (also with blanks around the dot), `STATIC AS`, array parameters and `STATIC` after a
+/// header, a type name as an argument.
+#[test]
+fn declarations() {
+    insta::assert_snapshot!(tree(
+        "DEFINT A-Z, i\n_DEFINE m AS _UNSIGNED LONG\nDIM AS LONG a, b(3)\nDIM s AS STRING * 8\nREDIM SHARED _PRESERVE r(1 TO 2)\nREDIM w(0).v(3)\nCOMMON SHARED /blk/ c()\nERASE r, w(0).v, a . s\nSTATIC AS LONG st\nSUB p (x(), y( ,) AS LONG) STATIC\nEND SUB\nv = VAL(\"1\", _UNSIGNED _INTEGER64)\n"
+    ));
+}
+
+/// The preprocessor (design D8): every `$…` line is a `MetaStmt`; a branch not taken is one `InactiveCode` node
+/// (here holding a nested `$IF`, an unclosed `FOR` and garbage), up to the `$ELSE` of its level; a `$IF` inside a
+/// `FOR` body; the `$IF` and block entries nest.
+#[test]
+fn preprocessor() {
+    insta::assert_snapshot!(tree(
+        "$IF LINUX THEN\n$IF WIN THEN\nFOR i = 1 TO\n$END IF\n(((\n$ELSE\nPRINT 1\n$END IF\nFOR i = 1 TO 2\n  $IF WIN THEN\n  PRINT i\n  $END IF\nNEXT\n$LET A = 1\n"
     ));
 }
 
@@ -188,12 +281,74 @@ fn error_handling_statement_errors() {
 
 #[test]
 fn unsupported_statement_message() {
-    let p = parse_one(b"PRINT 1\n\nCONST c = 2\n");
+    let p = parse_one(b"PRINT 1\n\nLIST 1\n");
     let diags = p.diagnostics();
     let d = &diags.list()[0];
-    assert_eq!(d.message, "statement `CONST`");
+    assert_eq!(d.message, "statement `LIST`");
     assert!(d.unsupported);
     assert_eq!(d.span.start, 9);
+}
+
+/// The expression depth limit counts tree levels the same way for every kind of node: an expression exactly 1,000
+/// levels deep parses, one a level deeper is one "not supported yet" error. Runs on a large stack, as the compiler
+/// does (`driver::with_stack`); a test thread's 2 MiB would not hold the parser at this depth in a debug build.
+#[test]
+fn expression_depth_limit() {
+    // (name, statement at 1,000 levels, the same at 1,001 levels).
+    let cases = [
+        // A left-associative chain: one `BinExpr` per operator over the first literal.
+        (
+            "chain",
+            format!("x = 1{}", " + 1".repeat(999)),
+            format!("x = 1{}", " + 1".repeat(1000)),
+        ),
+        (
+            "parens",
+            format!("x = {}1{}", "(".repeat(999), ")".repeat(999)),
+            format!("x = {}1{}", "(".repeat(1000), ")".repeat(1000)),
+        ),
+        (
+            "negations",
+            format!("x = {}1", "NOT ".repeat(999)),
+            format!("x = {}1", "NOT ".repeat(1000)),
+        ),
+        // Each call is two levels (`CallExpr`, `ArgList`); `(1)` adds two more.
+        (
+            "calls",
+            format!("x = {}(1){}", "f(".repeat(499), ")".repeat(499)),
+            format!("x = {}((1)){}", "f(".repeat(499), ")".repeat(499)),
+        ),
+        // `a(1)` is three levels (`CallExpr`, `ArgList`, `Literal`); each member one more.
+        (
+            "members",
+            format!("x = a(1){}", ".b".repeat(997)),
+            format!("x = a(1){}", ".b".repeat(998)),
+        ),
+        (
+            "target",
+            format!("a(1){} = 1", ".b".repeat(997)),
+            format!("a(1){} = 1", ".b".repeat(998)),
+        ),
+    ];
+    let run = move || {
+        for (name, fits, too_deep) in cases {
+            let p = parse_one(format!("{fits}\n").as_bytes());
+            assert!(p.diagnostics().list().is_empty(), "{name}: 1,000 levels must parse");
+            let p = parse_one(format!("{too_deep}\n").as_bytes());
+            let diags = p.diagnostics();
+            assert_eq!(diags.list().len(), 1, "{name}: 1,001 levels");
+            let d = &diags.list()[0];
+            assert_eq!(d.message, "an expression nested more than 1000 levels deep", "{name}");
+            assert!(d.unsupported, "{name}");
+        }
+    };
+    let thread = std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(run)
+        .unwrap();
+    if let Err(e) = thread.join() {
+        std::panic::resume_unwind(e);
+    }
 }
 
 /// Errors at a BASIC word or operator the parser does not handle there are marked; a genuine syntax error is not.
@@ -228,6 +383,13 @@ fn loops() {
     insta::assert_snapshot!(tree(
         "FOR i = 1 TO 9 STEP 2\n  FOR j% = i TO 1 STEP -1\n    EXIT FOR\nNEXT j%, i\nDO WHILE a: EXIT DO: LOOP\nDO\nLOOP UNTIL b\nWHILE c\n  IF c THEN EXIT WHILE\nWEND\n"
     ));
+}
+
+/// Spec `compiler/pipeline`, "Statement not compiled yet": a `DoBlock` holding a `SwapStmt` (`sema` marks the `SWAP`,
+/// `tests\frontend\blocks_not_compiled_yet.bas`).
+#[test]
+fn swap_in_a_do() {
+    insta::assert_snapshot!(tree("DO: SWAP a, b: LOOP UNTIL a > 0\n"));
 }
 
 /// `SELECT CASE` and `SELECT EVERYCASE`: `IS`, ranges, lists, `CASE ELSE`, a comment before the first `CASE`,

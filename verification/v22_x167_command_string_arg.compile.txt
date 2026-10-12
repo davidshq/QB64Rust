@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):S = COMMAND$ ( "a",1 )
+LINE 4:s = COMMAND$("a")
+exit=1

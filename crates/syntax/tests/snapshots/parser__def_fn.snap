@@ -53,13 +53,15 @@ SourceFile 0..69
       Whitespace  
       Ident DEF
     Newline \x0A
-  Error 57..68
+  BuiltinStmt 57..68
     Ident DEF
     Whitespace  
-    Ident SEG
+    FormWord 61..64
+      Ident SEG
     Whitespace  
     Eq =
     Whitespace  
-    Number 0
+    FormArg 67..68
+      Literal 67..68
+        Number 0
   Newline \x0A
-t.bas:6:1: error: not supported yet: statement `DEF`

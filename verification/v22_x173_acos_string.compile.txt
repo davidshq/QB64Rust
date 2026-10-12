@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):D = _ACOS ( "a",1 )
+LINE 4:d = _ACOS("a")
+exit=1

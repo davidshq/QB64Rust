@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):MID$ ( S , 1 , 1 , 1 ) = "x",1
+LINE 4:MID$(s, 1, 1, 1) = "x"
+exit=1

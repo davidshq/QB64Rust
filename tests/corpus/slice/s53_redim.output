@@ -1,0 +1,19 @@
+1. REDIM r(5), r(2) = 7, REDIM r(1 TO 20): LBOUND, UBOUND, r(2) 1  20  0 
+2. REDIM x(5) AS LONG, REDIM x(10), x(1) = 100000: 100000  10 
+3. REDIM of a static array: [error 10 ] 5  3 
+4. REDIM x&(7) and REDIM x!(2): UBOUND(x), UBOUND(x&), UBOUND(x!), x!(1) 7  7  2  1.5 
+5. DIM dm(n) AS LONG, REDIM dm(7), dm(1) = 100000: 7  100000 
+6. three arrays in one statement: 2  3  2  4  last 0 
+7. the type before the names: 2  1  .5  8 
+8. no element, REDIM r(m) with m = -1: [error 5 ] 0 -1  [error 9 ]
+   and REDIM r(2) after it: 2  0 
+9. a bound that raises, REDIM r(ASC of an empty string TO 5): [error 5 ] 0  5  0 
+10. REDIM e1 AS LONG and REDIM e2() AS LONG are scalars: 100000  2  4 
+11. a scalar of the array's name: 5  0  4 
+12. STRING, STRING * 3, a user type: one[] abc 7 xy
+    after REDIM: [] 3  0  0  0  4 
+13. one REDIM in a loop that runs three times: 6  3  0 
+14. REDIM SHARED g(2), in a SUB: 8  2 
+    after the SUB's REDIM g(5): 5  0  1 
+15. REDIM of a shared static array in a SUB: [error 10 ] 3  9 
+16. OPTION BASE 1, REDIM ob(n), ob0(0): 1  3  0  0 

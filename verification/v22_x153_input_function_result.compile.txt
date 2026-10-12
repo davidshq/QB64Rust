@@ -1,0 +1,5 @@
+
+Expected variable
+Caused by (or after):INPUT F&
+LINE 6:INPUT f&
+exit=1

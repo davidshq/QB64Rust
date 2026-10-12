@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):X ( 1 ) . B = 3
+LINE 4:x(1).b = 3
+exit=1

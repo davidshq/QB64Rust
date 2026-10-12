@@ -1,0 +1,30 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 7: OnGoto A, B
+  Convert Widen : I32
+    Var I : I16
+line 8: OnGosub A
+  Convert Truncate : I32
+    Var Q : I64
+line 9: OnGoto B, A, B
+  Convert RoundEven : I32
+    Convert Nearest : F32
+      Var D : F64
+line 10: OnGosub B
+  Convert RoundEven : I32
+    Convert Nearest : F32
+      Float 1.5E+0 : F64 (qb F32)
+line 11: Label A
+line 12: Label B
+line 13: Return
+SUB S
+  param N:F32
+line 15: OnGosub C
+  Convert RoundEven : I32
+    Var N (param) : F32
+line 16: Exit
+line 17: Label C
+line 17: Return

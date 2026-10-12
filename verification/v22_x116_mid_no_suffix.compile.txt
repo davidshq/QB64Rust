@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):MID ( S , 1 ) = "x",1
+LINE 5:MID(s, 1) = "x"
+exit=1

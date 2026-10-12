@@ -8,7 +8,7 @@
 use super::Parser;
 use crate::SyntaxKind::{self, *};
 
-impl Parser<'_> {
+impl Parser<'_, '_> {
     /// At the start of a line (only a line end, or nothing, before it).
     fn at_line_start(&self) -> bool {
         matches!(self.last_kind, None | Some(Newline))

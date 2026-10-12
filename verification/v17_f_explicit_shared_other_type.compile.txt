@@ -1,0 +1,5 @@
+
+Variable 'x' (SINGLE) not defined
+Caused by (or after):SHARED X
+LINE 9:SHARED x
+exit=1

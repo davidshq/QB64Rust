@@ -1,0 +1,12 @@
+no statement: a1 2.5  4 
+DEFINT A-Z: x1, x1 / 2, LEN 2  1  2 
+suffix and AS win: 1.5  2.5 q 8  4 
+DEFDBL D after DEFINT A-Z: i2, d2 2  1.5  2  8 
+DEFLNG a-c, x: b3, d3, x3, c3 100000  1.5  70000  2  4  4  4  4 
+DEFINT z-w: v4 to z4 2.5  2  2  2  2 
+DEFINT k, K, k-m, l: k5 to n5 2  2  2  2.5 
+DEFSTR S: text! 4 
+DEFDBL e-e: e7, f7 .3333333333333333  .3333333 
+two statements on one line: q8, r8 2  4 
+lower-case defdbl t: t9 .3333333333333333 
+exit=0

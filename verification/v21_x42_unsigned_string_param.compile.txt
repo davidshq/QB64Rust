@@ -1,0 +1,5 @@
+
+Illegal SUB/FUNCTION parameter
+Caused by (or after):
+LINE 5:SUB Q ( T AS _UNSIGNED STRING )
+exit=1

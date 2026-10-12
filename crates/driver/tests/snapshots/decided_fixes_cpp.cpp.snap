@@ -1,0 +1,169 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+float *__SINGLE_A=NULL;
+float *__SINGLE_B=NULL;
+float *__SINGLE_D=NULL;
+int32 *__LONG_L=NULL;
+int32 *__LONG_M=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> clear.txt <==
+*__SINGLE_A=0;
+*__SINGLE_B=0;
+*__SINGLE_D=0;
+*__LONG_L=0;
+*__LONG_M=0;
+==> maindata.txt <==
+if(__SINGLE_A==NULL){
+__SINGLE_A=(float*)mem_static_malloc(4);
+*__SINGLE_A=0;
+}
+if(__SINGLE_B==NULL){
+__SINGLE_B=(float*)mem_static_malloc(4);
+*__SINGLE_B=0;
+}
+if(__SINGLE_D==NULL){
+__SINGLE_D=(float*)mem_static_malloc(4);
+*__SINGLE_D=0;
+}
+if(__LONG_L==NULL){
+__LONG_L=(int32*)mem_static_malloc(4);
+*__LONG_L=0;
+}
+if(__LONG_M==NULL){
+__LONG_M=(int32*)mem_static_malloc(4);
+*__LONG_M=0;
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "decided_fixes_cpp.bas"
+do{
+#line 2 "decided_fixes_cpp.bas"
+sub__dest(func__console());
+#line 2 "decided_fixes_cpp.bas"
+sub__source(func__console());
+#line 2 "decided_fixes_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 5 "decided_fixes_cpp.bas"
+do{
+#line 5 "decided_fixes_cpp.bas"
+*__SINGLE_A=((float)(5));
+#line 5 "decided_fixes_cpp.bas"
+if(!qbevent)break;evnt(5);}while(r);
+#line 5 "decided_fixes_cpp.bas"
+do{
+#line 5 "decided_fixes_cpp.bas"
+*__SINGLE_B=((float)(3));
+#line 5 "decided_fixes_cpp.bas"
+if(!qbevent)break;evnt(5);}while(r);
+#line 5 "decided_fixes_cpp.bas"
+do{
+#line 5 "decided_fixes_cpp.bas"
+*__SINGLE_D=((float)(0));
+#line 5 "decided_fixes_cpp.bas"
+if(!qbevent)break;evnt(5);}while(r);
+#line 6 "decided_fixes_cpp.bas"
+do{
+#line 6 "decided_fixes_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 6 "decided_fixes_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((~(((~(qbr(*__SINGLE_A)))|qbr(*__SINGLE_B))))|qbr(*__SINGLE_D)))),qbs_new_txt(" ")));
+#line 6 "decided_fixes_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 6 "decided_fixes_cpp.bas"
+makefit(tqbs);
+#line 6 "decided_fixes_cpp.bas"
+qbs_print(tqbs,0);
+#line 6 "decided_fixes_cpp.bas"
+qbs_print(nothingstring,1);
+#line 6 "decided_fixes_cpp.bas"
+skip1:
+#line 6 "decided_fixes_cpp.bas"
+qbs_free(tqbs);
+#line 6 "decided_fixes_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 6 "decided_fixes_cpp.bas"
+if(!qbevent)break;evnt(6);}while(r);
+#line 7 "decided_fixes_cpp.bas"
+do{
+#line 7 "decided_fixes_cpp.bas"
+*__LONG_L=(-2147483647-1);
+#line 7 "decided_fixes_cpp.bas"
+if(!qbevent)break;evnt(7);}while(r);
+#line 7 "decided_fixes_cpp.bas"
+do{
+#line 7 "decided_fixes_cpp.bas"
+*__LONG_M=(-1);
+#line 7 "decided_fixes_cpp.bas"
+if(!qbevent)break;evnt(7);}while(r);
+#line 8 "decided_fixes_cpp.bas"
+do{
+#line 8 "decided_fixes_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 8 "decided_fixes_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(qb_safe_idiv(*__LONG_L,*__LONG_M))))),qbs_new_txt(" ")));
+#line 8 "decided_fixes_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 8 "decided_fixes_cpp.bas"
+makefit(tqbs);
+#line 8 "decided_fixes_cpp.bas"
+qbs_print(tqbs,0);
+#line 8 "decided_fixes_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(qb_safe_mod(*__LONG_L,*__LONG_M))))),qbs_new_txt(" ")));
+#line 8 "decided_fixes_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 8 "decided_fixes_cpp.bas"
+makefit(tqbs);
+#line 8 "decided_fixes_cpp.bas"
+qbs_print(tqbs,0);
+#line 8 "decided_fixes_cpp.bas"
+qbs_print(nothingstring,1);
+#line 8 "decided_fixes_cpp.bas"
+skip2:
+#line 8 "decided_fixes_cpp.bas"
+qbs_free(tqbs);
+#line 8 "decided_fixes_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 8 "decided_fixes_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 9 "decided_fixes_cpp.bas"
+do{
+#line 9 "decided_fixes_cpp.bas"
+if (sub_gl_called) error(271);
+#line 9 "decided_fixes_cpp.bas"
+close_program=1;
+#line 9 "decided_fixes_cpp.bas"
+end();
+#line 9 "decided_fixes_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+sub_end();
+return;
+}
+==> empty: regsf.txt dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt

@@ -1,0 +1,16 @@
+1. 0 to 3 holding 1 2 3 4, REDIM _PRESERVE p(5): p(3), p(5), UBOUND 4  0  5 
+   then REDIM _PRESERVE p(1): UBOUND, p(0), p(1) 1  1  2 
+   then REDIM _PRESERVE p(3): p(1), p(2), p(3) 2  0  0 
+2. strings: zero keep 0 
+   shrunk to one and grown again: zero []
+3. two dimensions, (1, 1) holding 1 2 3 4 to (2, 1): 1  2  3  4  0  0 
+4. another lower bound, 0 to 3 to 10 to 15: 1  2  3  4  0  0 
+5. of a static array: [error 10 ] 5  3 
+6. as the first statement that names the array: 3  5 
+   of an array that is not allocated: 2  0 
+7. STRING * 3 and a user type: abc 0  7 xy 0  0 
+8. _BIT * 5 from 4 to 9: 1  2  3  4  5  0  0  0  0  0 
+   shrunk to 1 and grown to 3: 1  2  0  0 
+9. REDIM _PRESERVE SHARED sh(2), grown in a SUB: 4  6  7 
+10. a list grown in a loop: 5  1 9 25 []
+11. the same, cut to three elements from 2: 2  4  [] 1 4

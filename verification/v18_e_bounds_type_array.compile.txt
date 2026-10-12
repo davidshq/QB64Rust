@@ -1,0 +1,5 @@
+
+Expected .
+Caused by (or after):PRINT LBOUND ( A ( ) ) ; UBOUND ( A ( ) )
+LINE 8:PRINT LBOUND(a()); UBOUND(a())
+exit=1

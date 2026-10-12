@@ -1,0 +1,5 @@
+
+6th sub argument requires a number
+Caused by (or after):OPEN "f",1 FOR RANDOM AS # 1 LEN = "a",1
+LINE 3:OPEN "f" FOR RANDOM AS #1 LEN = "a"
+exit=1

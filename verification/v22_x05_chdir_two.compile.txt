@@ -1,0 +1,5 @@
+
+Syntax error - Reference: CHDIR path$
+Caused by (or after):CHDIR "a",1 , "b",1
+LINE 3:CHDIR "a", "b"
+exit=1

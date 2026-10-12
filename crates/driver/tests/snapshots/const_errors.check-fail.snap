@@ -1,0 +1,26 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+const_errors.bas:10:7: error: name already in use: `early` (a `CONST` of this name follows on line 11)
+const_errors.bas:12:1: error: name already in use: `used%` (a `CONST` of this name follows on line 13)
+const_errors.bas:14:1: error: name already in use: `x` (a `CONST` of this name follows on line 15)
+const_errors.bas:17:7: error: name already in use: `twice`
+const_errors.bas:19:1: error: cannot assign to the constant `a`
+const_errors.bas:20:5: error: name already in use: `a`
+const_errors.bas:21:7: error: type mismatch
+const_errors.bas:23:17: error: `q` is a variable, not a constant
+const_errors.bas:24:17: error: `LEN` cannot be used in a `CONST`
+const_errors.bas:25:19: error: cannot mix strings and numbers
+const_errors.bas:26:20: error: strings cannot be compared in a `CONST`
+const_errors.bas:27:7: error: type mismatch
+const_errors.bas:28:7: error: type mismatch
+const_errors.bas:29:17: error: division by zero
+const_errors.bas:30:16: error: division by zero
+const_errors.bas:31:17: error: a negative number to a fractional power
+const_errors.bas:32:14: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value
+const_errors.bas:33:14: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value
+const_errors.bas:34:20: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value
+const_errors.bas:35:17: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value
+const_errors.bas:41:11: error: name already in use: `late` (a `CONST` of this name follows on line 44)
+const_errors.bas:47:9: error: name already in use: `insub`

@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):SHELL _HIDE _HIDE "a",1
+LINE 3:SHELL _HIDE _HIDE "a"
+exit=1

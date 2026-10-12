@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):LEN ( "a",1 )
+LINE 3:LEN("a")
+exit=1

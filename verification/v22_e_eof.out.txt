@@ -1,0 +1,3 @@
+first? < 1 >
+second? (timed out after 60 s)
+exit=124

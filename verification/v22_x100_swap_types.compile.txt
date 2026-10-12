@@ -1,0 +1,5 @@
+
+Expected SWAP with similar user defined type
+Caused by (or after):SWAP X , Y
+LINE 11:SWAP x, y
+exit=1

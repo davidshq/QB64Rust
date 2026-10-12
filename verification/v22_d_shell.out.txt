@@ -1,0 +1,24 @@
+a
+b
+c
+from a variable
+from an expression
+_HIDE:
+_HIDE to a file:
+[to a file]
+_HIDE _DONTWAIT:
+_DONTWAIT _HIDE:
+an empty command:
+  error 5 
+the function, exit 3: 3 
+the function, exit 0: 0 
+the function in arithmetic: 2000000000000 
+from the function
+its result: 0 
+exit 300: 300 exit -1:-1 
+a raising command:
+  error 5 
+after
+a raising command in the function:  error 5 
+done
+exit=0

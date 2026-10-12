@@ -1,7 +1,7 @@
 # 19. How often each test layer runs
 
 Written 2026-10-03, after the first full golden-corpus runs (`tests\corpus\README.md`). Decided with the user the
-same day (`CLAUDE.md` decisions table). Goal: conformance testing must not slow down day-to-day work on the new
+same day (`DECISIONS.md`). Goal: conformance testing must not slow down day-to-day work on the new
 compiler.
 
 ## 1. What a full run costs today
@@ -59,7 +59,7 @@ test.
    executables).
 2. The Rust test harness reads `tests\corpus` directly for tier 1: one test per program, front end only, comparing
    `.err` programs' diagnostics with the expected file once the new error messages and the old texts are mapped
-   (`CLAUDE.md`: new error messages, optional old texts).
+   (`DECISIONS.md`: new error messages, optional old texts).
 3. CI (tier 3) needs a Windows runner with the new compiler's C++ toolchain; nightly (tier 4) also needs the QB64pe
    release for the legacy suites. Planned with the CI work, not now.
 4. The result cache waits until the full corpus run is slow enough to matter.
@@ -81,3 +81,12 @@ test.
 - **CI**: the `tier2` job of `rust.yml` runs the slice list and the upstream pass list against the QB64pe Windows
   release (no clone needed: `--compile-tests tests\upstream\compile_tests`). This is a first part of §5 item 3; the
   full corpus in parallel (tier 3) is still to come.
+- **Differential programs** (`m2-numeric-types` group 2, 2026-10-08; `tests\differential\README.md`): 107 generated
+  programs (59 for all types, 48 in `old6` for the six old types), recorded with `qb64pe.exe`; the pass list
+  starts with 27 of `old6`, 52 s in tier 2. Tier 1 regenerates them in memory and runs the front end over them (part of
+  `cargo test`, well under a second). Tier 2 and the CI job `tier2` run those in `tests\differential\pass.list` with
+  `qb64rust` (a step after the upstream pass list; an empty list runs nothing and passes). Measured locally with the
+  release build: **about 2.1 s per program** (build and run, 27 programs of the six-type subset, 1.8–4.6 s, 57 s in
+  all), so the whole set, once every program is on the list, costs about 2–4 minutes of CI; no program comes near
+  the 20 s at which design D2 splits it. Recording all 59 with `qb64pe.exe` (two runs each) takes 211 s. Since
+  2026-10-09 (task 10.1) the set is the 59 programs, all on the pass list; `old6` went once they all passed.

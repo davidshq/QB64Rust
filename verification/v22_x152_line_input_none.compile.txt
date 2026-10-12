@@ -1,0 +1,5 @@
+
+Syntax error - Reference: INPUT [;] "[Question or statement text]"{,|;} variable[, ...] or INPUT ; variable[, ...]
+Caused by (or after):LINE INPUT
+LINE 3:LINE INPUT
+exit=1

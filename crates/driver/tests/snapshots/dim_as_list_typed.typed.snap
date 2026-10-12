@@ -1,0 +1,53 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE REC
+  N:I32
+ARRAY B:I32(0 TO 3)
+ARRAY F2:Str*4(0 TO 2)
+ARRAY R2:T:REC(0 TO 2)
+ARRAY G2:F64(1 TO 2)
+ARRAY C:I16(1 TO 2)
+ARRAY D:I16(0 TO 2, 0 TO 2)
+line 2: ConsoleOnly
+line 18: Assign A:I32
+  Int 100000 : I32
+line 18: Assign B(…):I32
+  Index
+    Int 3 : I64
+  Value
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Var A : I32
+        Convert Widen : I32
+          Var U1 : U8
+      Convert Widen : I32
+        Var E : I16
+line 19: Assign F1:Str*4
+  Concat : Str
+    Var S1 : Str
+    Element F2(…) : Str
+      Int 1 : I64
+line 20: Assign R1.N:I32
+  Member R2(…).N : I32
+    Int 2 : I64
+line 21: Assign G2(…):F64
+  Index
+    Int 2 : I64
+  Value
+    Var G1 : F64
+line 22: Call KEEP
+line 23: System
+SUB KEEP
+  static K1:I32
+  static K2:I32
+line 27: Assign K1 (static):I32
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Binary Add : F64
+        Convert Nearest : F64
+          Binary Add : I32 (qb I64)
+            Var K2 (static) : I32
+            Var A : I32
+        Var G1 : F64

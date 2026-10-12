@@ -1,0 +1,32 @@
+start
+RESTORE before
+d1
+RESTORE between
+d3
+RESTORE online
+d4
+RESTORE 100
+d6
+RESTORE after (the next DATA is in a procedure)
+s1
+RESTORE insub (a label in SUB p)
+s1
+RESTORE last (no DATA after it)
+  error 4 
+[]
+RESTORE forward, then all
+d1 d2 d3 d4 d5 d6 s1   error 4 
+ 
+in p: RESTORE between (main-module label)
+d3
+in p: RESTORE insub
+s1
+in p: RESTORE
+d1
+back in main
+d2
+RESTORE to a label GOTO also uses
+[s1]
+RESTORE upper case
+d1
+exit=0

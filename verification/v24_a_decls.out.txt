@@ -1,0 +1,11 @@
+DIM dv: 2  2 
+DIM SHARED gv: 2  2 
+DIM da(3): 2  2 
+REDIM ra(3): 2  2 
+FOR fi: 3  2 
+CONST ck = 2.5: 2.5 
+parameter, STATIC, SHARED dv, local, DIM SHARED gv: 2  2  2  2  2 
+the scenario: array and parameter
+ 2 
+ 2.5 
+exit=0

@@ -1,0 +1,5 @@
+' SCREEN 0 with 50 rows.
+WIDTH 80, 50
+LOCATE 50, 70
+PRINT "bottom";
+SYSTEM

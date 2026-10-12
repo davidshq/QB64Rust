@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _STRCMP(string1$, string2$)
+Caused by (or after):N = _STRCMP ( "a",1 )
+LINE 4:n = _STRCMP("a")
+exit=1

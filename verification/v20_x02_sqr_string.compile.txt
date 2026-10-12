@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):PRINT SQR ( "4",1 )
+LINE 3:PRINT SQR("4")
+exit=1

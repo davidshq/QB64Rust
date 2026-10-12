@@ -1,0 +1,5 @@
+
+1st function argument requires a number
+Caused by (or after):PRINT STRING$ ( "a",1 , "b",1 )
+LINE 3:PRINT STRING$("a", "b")
+exit=1

@@ -1,0 +1,15 @@
+handler 5 
+u.m = ASC(empty): 0 
+handler 9 
+after a(9).m = 5: 5  71  72  73 
+handler 9 
+after a(-1).m = 6: 6  71  72  73 
+handler 5 
+after a(9).m = ASC(empty): 0  71  72  73 
+handler 9 
+a(1).n = a(9).n: 60 
+handler 9 
+y = a(9).m: 0 
+handler 5 
+a(2).n = ASC(empty): 0 
+exit=0

@@ -1,0 +1,5 @@
+
+Expected variable
+Caused by (or after):INPUT 5
+LINE 4:INPUT 5
+exit=1

@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):PRINT CHR$ ( "a",1 )
+LINE 3:PRINT CHR$("a")
+exit=1

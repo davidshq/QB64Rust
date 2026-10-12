@@ -1,0 +1,118 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY A:I16(0 TO 3)
+line 2: ConsoleOnly
+line 8: SelectCase, selector read at each test (END SELECT line 13)
+    Var I : I16
+  Case line 9
+    Is Eq
+      Int 1 : I32
+    Is Eq
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Float 2.4E+0 : F64 (qb F32)
+    Body
+      line 9: Print newline
+        Str
+          Str "a" : Str
+  Case line 10
+    Range
+      Int 3 : I32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Float 5.5E+0 : F64 (qb F32)
+    Body
+      line 10: Print newline
+        Str
+          Str "b" : Str
+  Case line 11
+    Is Gt
+      Var Q : I64
+    Body
+      line 11: Print newline
+        Str
+          Str "c" : Str
+  Else
+    line 12: Print newline
+      Str
+        Str "d" : Str
+line 14: SelectCase, selector copied once (END SELECT line 16)
+    Convert Widen : I32
+      Element A(…) : I16
+        Int 1 : I64
+  Case line 15
+    Is Eq
+      Int 1 : I32
+    Body
+      line 15: Print newline
+        Str
+          Str "e" : Str
+line 17: SelectCase, selector copied once (END SELECT line 19)
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Convert Widen : I32
+          Var I : I16
+        Int 1 : I32
+  Case line 18
+    Is Eq
+      Convert RoundEven : I64
+        Float 2.5E+0 : F64 (qb F32)
+    Body
+      line 18: Print newline
+        Str
+          Str "f" : Str
+line 20: SelectEveryCase, selector read at each test (END SELECT line 24)
+    Var F : F32
+  Case line 21
+    Is Eq
+      Convert Nearest : F32
+        Int 1 : I16
+    Is Eq
+      Convert Nearest : F32
+        Float 2.0E+0 : F64
+    Body
+      line 21: Print newline
+        Str
+          Str "g" : Str
+  Case line 22
+    Is Ne
+      Convert Nearest : F32
+        Float 0.1E+0 : F64
+    Body
+      line 22: Print newline
+        Str
+          Str "h" : Str
+  Else
+    line 23: Print newline
+      Str
+        Str "i" : Str
+line 25: SelectCase, selector copied once (END SELECT line 27)
+    Concat : Str
+      Var S : Str
+      Str "x" : Str
+  Case line 26
+    Range
+      Str "a" : Str
+      Str "m" : Str
+    Is Ge
+      Var S : Str
+    Body
+      line 26: Print newline
+        Str
+          Str "j" : Str
+line 28: SelectCase, selector copied once (END SELECT line 30)
+    Convert Nearest : F32
+      Float 2.5E+0 : F64 (qb F32)
+  Case line 29
+    Is Eq
+      Convert Nearest : F32
+        Int 2 : I16
+    Body
+      line 29: Print newline
+        Str
+          Str "k" : Str
+line 31: SelectCase, selector copied once (END SELECT line 32)
+    Call LEN : I32
+      Var S : Str

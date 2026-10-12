@@ -1,0 +1,19 @@
+1. abc! 4 
+2. the members beside it: 0  0  []
+3. nested: in out 7  2 
+4. a static array: [] one two
+5. from element to element: one+ one
+6. a read with an index outside: [ [error 9 ] oneone+
+7. after ERASE: [] 0  2 
+8. REDIM _PRESERVE: keep too 5  []
+9. REDIM _PRESERVE to fewer elements: [] 0 
+10. REDIM: [] 0 
+11. ERASE of the dynamic array: [error 9 ]
+12. a local, twice: [][]
+13. a STATIC one, twice: k kk 
+14. passed by reference: abc!?
+15. a long string and an empty one: 1000  0 
+16. READ, and the member named with its suffix: data more
+17. MID$ and SWAP: more d#ta
+18. compared
+19. a local array, twice: []y 2 []y 3 

@@ -1,0 +1,7 @@
+3. a main-module line below the SUB: w, LEN(w) 2  2 
+1. above DEFINT A-Z in the SUB: LEN(p), LEN(u), p, u 4  4  1  2.5 
+2. below it: v, LEN(v), and p and u named again 2  2  2  2  0  0 
+   the parameter and the first variable by their suffix: 1  2.5 
+4. the SUB below it: LEN(p), LEN(v) 2  2 
+5. a FUNCTION with DEFDBL A-Z inside, its plain name assigned below it:-31072 
+6. a main-module line above that FUNCTION in the file: z 0 

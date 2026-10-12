@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):REDIM M ( 4 )
+LINE 4:REDIM m(4)
+exit=1

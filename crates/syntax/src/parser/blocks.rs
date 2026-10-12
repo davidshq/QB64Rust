@@ -37,12 +37,16 @@ pub(super) enum Block {
     DefFn,
     /// A single-line `IF`: blocks opened inside it must close before the line ends.
     LineIf,
+    /// An open `$IF` (`meta.rs`). It is not parsed as a block node (no recursion level), but blocks must nest
+    /// with it; its entry sits above the entry of the block whose body holds it.
+    PpIf,
 }
 
 impl Block {
     /// How the block's header and closer are written, for messages.
     fn names(self) -> (&'static str, &'static str) {
         match self {
+            Block::PpIf => ("$IF", "$END IF"),
             Block::Proc => ("SUB", "END SUB"),
             Block::If | Block::LineIf => ("IF", "END IF"),
             Block::For => ("FOR", "NEXT"),
@@ -62,6 +66,8 @@ pub(super) struct Open {
     header: Span,
     /// A `SELECT CASE` before its first `CASE`.
     before_case: bool,
+    /// A file was included while the block was open: its closer may be in that file (design D4).
+    crossed: bool,
 }
 
 /// A statement that closes a block or one of its branches.
@@ -140,17 +146,82 @@ enum Target {
     Stray { past_line_if: bool },
 }
 
-impl Parser<'_> {
+impl Parser<'_, '_> {
     pub(super) fn push_block(&mut self, kind: Block, header: Span) {
         self.blocks.push(Open {
             kind,
             header,
             before_case: kind == Block::Select,
+            crossed: false,
         });
     }
 
+    /// A file was included here: every open block may be closed there (design D4).
+    pub(super) fn mark_blocks_crossed(&mut self) {
+        for open in &mut self.blocks {
+            open.crossed = true;
+        }
+    }
+
+    /// The innermost block (not a `$IF`) may close in another file: it is open across an include, or this file
+    /// is an included one. Its missing closer is then "not supported yet", not an error (design D4, changed
+    /// 2026-10-05: a block node cannot span two trees).
+    pub(super) fn innermost_crosses_files(&self) -> bool {
+        self.included
+            || self
+                .blocks
+                .iter()
+                .rev()
+                .find(|o| o.kind != Block::PpIf)
+                .is_some_and(|o| o.crossed)
+    }
+
+    /// A "not supported yet" mark at a statement other than the current one (a block's header).
+    pub(super) fn block_unsupported(&mut self, span: Span, message: impl Into<String>) {
+        if !self.quiet {
+            self.diags.push(Diagnostic::unsupported(span, message));
+        }
+    }
+
+    /// Ends the innermost block that is not a `$IF`: the block whose function calls this. A `$IF` opened in its
+    /// body and still open stays on the stack (its error, if any, is reported elsewhere).
     pub(super) fn pop_block(&mut self) {
-        self.blocks.pop();
+        if let Some(i) = self.blocks.iter().rposition(|o| o.kind != Block::PpIf) {
+            self.blocks.remove(i);
+        }
+    }
+
+    pub(super) fn top_is_pp_if(&self) -> bool {
+        self.top() == Some(Block::PpIf)
+    }
+
+    /// Removes the innermost `$IF` entry.
+    pub(super) fn remove_last_pp_if(&mut self) {
+        if let Some(i) = self.blocks.iter().rposition(|o| o.kind == Block::PpIf) {
+            self.blocks.remove(i);
+        }
+    }
+
+    /// The innermost open entry, for messages: how its header and closer are written, and its line.
+    pub(super) fn innermost_block(&self) -> Option<(&'static str, &'static str, usize)> {
+        let open = self.blocks.last()?;
+        let (opener, closer) = open.kind.names();
+        Some((opener, closer, self.line_of(open.header)))
+    }
+
+    pub(super) fn text_of(&self, span: Span) -> &[u8] {
+        &self.bytes[span.start as usize..span.end as usize]
+    }
+
+    /// A block closer met `$IF` entries above its block (already reported): they leave the stack, and their
+    /// `$END IF`s will need no error of their own.
+    fn drop_crossed_pp_ifs(&mut self) {
+        while self.top_is_pp_if() {
+            self.blocks.pop();
+            if let Some(entry) = self.pp_ifs.iter_mut().rev().find(|(_, crossed)| !crossed) {
+                entry.1 = true;
+            }
+        }
     }
 
     fn top(&self) -> Option<Block> {
@@ -215,6 +286,23 @@ impl Parser<'_> {
             if let Some(c) = self.closer_here() {
                 match self.closer_target(c) {
                     Target::Top => return Stop::Closer(c),
+                    Target::Outer if self.top_is_pp_if() => {
+                        // `$IF … NEXT … $END IF` with the `FOR` before the `$IF`: the closer still closes its block.
+                        self.crossing_error();
+                        self.drop_crossed_pp_ifs();
+                        match self.closer_target(c) {
+                            Target::Top => return Stop::Closer(c),
+                            Target::Outer => {
+                                self.carry_error = true;
+                                return Stop::Outer;
+                            }
+                            Target::Stray { .. } => {
+                                self.rest_into_error_node();
+                                self.separator();
+                                continue;
+                            }
+                        }
+                    }
                     Target::Outer => {
                         self.crossing_error();
                         self.carry_error = true;
@@ -284,7 +372,7 @@ impl Parser<'_> {
             match open.kind {
                 Block::LineIf => crossed = true,
                 Block::Proc => break,
-                Block::If | Block::For | Block::Do | Block::While | Block::Select | Block::DefFn => {}
+                Block::If | Block::For | Block::Do | Block::While | Block::Select | Block::DefFn | Block::PpIf => {}
             }
         }
         Target::Stray { past_line_if: false }
@@ -328,7 +416,16 @@ impl Parser<'_> {
     /// for the caller).
     pub(super) fn stray_closer(&mut self, c: Closer) {
         let words = self.closer_words();
-        let msg = match (self.closer_target(c), c) {
+        let target = self.closer_target(c);
+        if self.included && matches!(target, Target::Stray { past_line_if: false }) {
+            // Its block may be open in the including file (design D4).
+            let span = self.closer_span();
+            let msg = format!("a block closed in another file (`{words}` without its block in this file)");
+            self.unsupported_at(span, msg);
+            self.rest_into_error_node();
+            return;
+        }
+        let msg = match (target, c) {
             (Target::Stray { past_line_if: true }, _) => {
                 format!("`{words}` inside a single-line `IF` cannot close a block outside it")
             }
@@ -342,11 +439,15 @@ impl Parser<'_> {
 
     /// Reports the innermost block as not closed, when the loop stopped for a reason other than a closer.
     fn unclosed(&mut self, stop: Stop) {
-        let Some(open) = self.blocks.last().copied() else {
+        let Some(open) = self.blocks.iter().rev().find(|o| o.kind != Block::PpIf).copied() else {
             return;
         };
         let (opener, closer) = open.kind.names();
         match stop {
+            Stop::Eof | Stop::ProcHeader if self.innermost_crosses_files() => self.block_unsupported(
+                open.header,
+                format!("a block closed in another file (`{opener}` without `{closer}` in this file)"),
+            ),
             Stop::Eof | Stop::ProcHeader => self.block_error(open.header, format!("`{opener}` without `{closer}`")),
             Stop::LineEnd => self.block_error(
                 open.header,
@@ -373,7 +474,9 @@ impl Parser<'_> {
     pub(super) fn skip_blank_or_meta(&mut self) -> bool {
         match self.current() {
             Some(Newline | Colon) => self.bump(),
-            Some(Metacommand) => meta::metacommand(self),
+            Some(Metacommand) => {
+                meta::metacommand(self);
+            }
             Some(MetaComment) => meta::meta_comment(self),
             _ => return false,
         }
@@ -937,7 +1040,10 @@ pub(crate) fn def_stmt(p: &mut Parser) -> bool {
     let name = p.nth_text(1);
     let is_fn = p.nth(1) == Some(Ident) && name.len() > 2 && name[..2].eq_ignore_ascii_case(b"FN");
     if !is_fn {
-        p.not_supported_statement();
+        // `DEF SEG [= address]`, by its template.
+        if !p.template_statement() {
+            p.not_supported_statement();
+        }
         return false;
     }
     p.eat_trivia();

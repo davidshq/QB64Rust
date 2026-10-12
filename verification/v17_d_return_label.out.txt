@@ -1,0 +1,7 @@
+in r1
+at r1back
+handler 3 
+after RETURN
+in g
+end
+exit=0

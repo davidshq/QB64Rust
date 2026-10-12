@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: RND[(behavior)]
+Caused by (or after):PRINT RND ( 1 , 2 )
+LINE 3:PRINT RND(1, 2)
+exit=1

@@ -1,0 +1,32 @@
+# `cargo deny check` (CI: `rust.yml`). The policy is in `crates\README.md` "Dependencies": crates for protocols and
+# test infrastructure only; no GPL code by way of a crate (rule 5 of `CLAUDE.md`).
+
+[graph]
+all-features = false
+
+[advisories]
+version = 2
+yanked = "deny"
+
+[licenses]
+version = 2
+# Permissive licences only. Add one here only for a crate the policy allows, and say which crate needs it.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    # unicode-ident (through serde_derive), a build-time dependency of lsp-types.
+    "Unicode-3.0",
+]
+confidence-threshold = 0.9
+# The workspace's own crates (`publish = false`) state no licence.
+private = { ignore = true }
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# The workspace's own crates are path dependencies without a version.
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

@@ -1,0 +1,5 @@
+
+DIM: Expected ,
+Caused by (or after):DIM AS LONG A , B AS INTEGER
+LINE 3:DIM AS LONG a, b AS INTEGER
+exit=1

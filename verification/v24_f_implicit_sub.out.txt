@@ -1,0 +1,3 @@
+plain SUB, x(2) = x(2) + 1: [error 9 ] x(2): [error 9 ]plain SUB, x(2) = x(2) + 1: [error 9 ] x(2): [error 9 ]FUNCTION, x(2) = 5: [error 9 ] UBOUND(x): [error 9 ]SUB ... STATIC, x(2) = x(2) + 1: x(2), UBOUND(x): 1  10 
+SUB ... STATIC, x(2) = x(2) + 1: x(2), UBOUND(x): 2  10 
+after STATIC y(), y(2) = y(2) + 1: [error 9 ] y(2): [error 9 ]after STATIC y(), y(2) = y(2) + 1: [error 9 ] y(2): [error 9 ]LBOUND(nb), UBOUND(nb) in a plain SUB: [error 9 ]exit=0

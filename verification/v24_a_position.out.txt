@@ -1,0 +1,8 @@
+a = 1.5 before DEFINT A-Z, b = 1.5 after: a, b 0  2 
+a!, a%: 1.5  0 
+after a = 7: a!, a%: 1.5  7 
+DIM c, c = 2.5, then DEFINT: c, c!, c%, LEN(c) 0  2.5  0  2 
+DIM d AS LONG, then DEFINT: d, LEN(d) 100000  4 
+DEFLNG G skipped by GOTO: g, LEN(g) 2  4 
+DEFDBL H in an IF block that does not run: h .3333333333333333 
+exit=0

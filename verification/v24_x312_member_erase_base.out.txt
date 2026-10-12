@@ -1,0 +1,12 @@
+1. ERASE a(one(1)).v: 1 : 10  0  12 
+2. ERASE a(9).v: [error 9 ]: 0  12 
+3. REDIM a(one(2)).v(0 TO 3): 2 : 0  0  13 
+4. REDIM a(9).s(0 TO 1): [error 9 ]:[][s 1]
+5. REDIM _PRESERVE a(one(3)).v(0 TO 3):: 13 
+6. REDIM _PRESERVE a(9).v(0 TO 3):: 13 
+7. ERASE x(one(1)).n(one(2)).v: 1  2  [error 9 ]: 5  0 
+8. ERASE x(1).n(9).v: [error 9 ]: 0  7 
+9. ERASE a(1).s, ERASE a(2).v, a(3).s on one line::[] 0 [s 2][]
+10. REDIM a(2).v(0 TO 3), a(2).s(0 TO 1) in one list:: 0 []
+11. REDIM a(ASC(empty)).v(0 TO 3), then a(0).v(2): [error 5 ]: 0 
+exit=0

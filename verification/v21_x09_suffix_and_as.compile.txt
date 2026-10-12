@@ -1,0 +1,5 @@
+
+DIM: Expected ,
+Caused by (or after):DIM A%% AS _BYTE
+LINE 3:DIM a%% AS _BYTE
+exit=1

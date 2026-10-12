@@ -1,0 +1,5 @@
+
+Expected string expression
+Caused by (or after):CASE 1
+LINE 5:CASE 1: PRINT "1"
+exit=1

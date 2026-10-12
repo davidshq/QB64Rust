@@ -1,0 +1,3 @@
+[abcdefgh] 5 
+[xy   ]
+exit=0

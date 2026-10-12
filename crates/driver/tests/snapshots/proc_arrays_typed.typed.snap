@@ -1,0 +1,288 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY G:I32(0 TO 3)
+ARRAY OWN:I32(0 TO 4)
+ARRAY SH:I32(0 TO 3)
+ARRAY SD:I32 dynamic, 1 dimension
+ARRAY M:F32(0 TO 10)
+ARRAY T (local):I32 dynamic, 1 dimension
+ARRAY V (local):I32 dynamic, 1 dimension
+ARRAY S (local):Str dynamic, 1 dimension
+ARRAY Q (local):F32 dynamic, 1 dimension
+ARRAY C (static):I32 dynamic, 1 dimension, allocated at the start (0 TO 3)
+ARRAY W (static):Str dynamic, 1 dimension, allocated at the start (1 TO 2)
+ARRAY L (static):I32 dynamic, 1 dimension
+ARRAY R (static):F32 dynamic, 2 dimensions
+ARRAY I (static):F64 dynamic, 2 dimensions
+ARRAY B (static):F32 dynamic, 1 dimension
+ARRAY A (local):F32 dynamic, 1 dimension
+ARRAY OWN (local):I32 dynamic, 1 dimension
+ARRAY C (static):I32 dynamic, 1 dimension, allocated at the start (0 TO 3)
+ARRAY A (static):I32(0 TO 2)
+ARRAY B (static):I32 dynamic, 1 dimension
+ARRAY U (static):F32(0 TO 10)
+ARRAY X (static):I32 dynamic, 1 dimension, allocated at the start (0 TO 2)
+ARRAY Z (local):I32 dynamic, 1 dimension
+ARRAY Y (local):F32 dynamic, 1 dimension
+ARRAY A (static):I32 dynamic, 1 dimension
+ARRAY U (static):F32 dynamic, 1 dimension
+ARRAY X (static):I32 dynamic, 2 dimensions, allocated at the start (0 TO 2, 1 TO 3)
+line 2: ConsoleOnly
+line 11: Allocate SD:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 13: Assign M(…):F32
+  Index
+    Int 2 : I64
+  Value
+    Convert Nearest : F32
+      Int 4 : I16
+SUB LOCALS
+  param N:I32
+  local T:I32
+  local V:I32
+  local S:Str
+  local Q:F32
+line 15: Allocate T (local):I32 (Dim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 5 : I64
+line 15: Allocate V (local):I32 (Dim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert Widen : I64
+      Var N (param) : I32
+line 15: Allocate S (local):Str (Dim)
+  Lower
+    Int 1 : I64
+  Upper
+    Int 2 : I64
+line 16: Allocate Q (local):F32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert Widen : I64
+      Var N (param) : I32
+line 17: Allocate Q (local):F32 (Preserve)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Var N (param) : I32
+        Int 1 : I32
+line 18: Assign T (local)(…):I32
+  Index
+    Int 1 : I64
+  Value
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Binary Add : F32
+          Convert Nearest : F32
+            Element V (local)(…) : I32
+              Convert Widen : I64
+                Var N (param) : I32
+          Element Q (local)(…) : F32
+            Int 1 : I64
+line 19: Release T (local):I32
+SUB STATICS
+  static C:I32
+  static W:Str
+  static L:I32
+  static R:F32
+  static I:F64
+  static B:F32
+line 24: Allocate L (static):I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 26: Allocate R (static):F32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 28: Assign I (static)(…):F64
+  Index
+    Int 1 : I64
+    Int 2 : I64
+  Value
+    Convert Widen : F64
+      Binary Add : F32
+        Convert Nearest : F32
+          Binary Add : I32 (qb I64)
+            Element C (static)(…) : I32
+              Int 1 : I64
+            Element L (static)(…) : I32
+              Int 1 : I64
+        Element R (static)(…) : F32
+          Int 1 : I64
+          Int 1 : I64
+line 30: Print newline
+  Num
+    LBound B (static) : I64
+line 31: Release C (static):I32
+line 31: Release L (static):I32
+SUB LATER
+  local A:F32
+  local E:I32
+  local D:I32
+line 35: Assign A (local)(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Convert Nearest : F32
+      Int 5 : I16
+line 36: Allocate A (local):F32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 39: Assign E (local):I32
+  Var D (local) : I32
+SUB SHARES
+  local OWN:I32
+line 47: Assign G(…):I32
+  Index
+    Int 1 : I64
+  Value
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Element M(…) : F32
+          Int 1 : I64
+line 48: Allocate OWN (local):I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+line 50: Assign OWN (local)(…):I32
+  Index
+    Int 1 : I64
+  Value
+    Int 1 : I32
+SUB AGAIN
+line 55: Allocate SH:I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 5 : I64
+line 56: Allocate SD:I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 5 : I64
+line 57: Allocate SD:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 6 : I64
+SUB DIMSTATIC
+  static C:I32
+line 63: Allocate C (static):I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 4 : I64
+line 64: Allocate C (static):I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+SUB KEEPS
+  param N:I32
+  static A:I32
+  static B:I32
+  static SV:F32
+  static K:F32
+  static U:F32
+  static X:I32
+  local Z:I32
+  local J:F32
+  local Y:F32
+line 71: Allocate B (static):I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert Widen : I64
+      Var N (param) : I32
+line 73: Assign SV (static):F32
+  Convert Nearest : F32
+    Binary Add : F64 (qb F32)
+      Convert Widen : F64
+        Var SV (static) : F32
+      Float 1.5E+0 : F64 (qb F32)
+line 74: Assign K (static):F32
+  Binary Add : F32
+    Var K (static) : F32
+    Convert Nearest : F32
+      Int 1 : I16
+line 75: Assign U (static)(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Convert Nearest : F32
+      Element A (static)(…) : I32
+        Int 1 : I64
+line 77: Allocate Z (local):I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+line 78: Assign J (local):F32
+  Binary Add : F32
+    Var J (local) : F32
+    Convert Nearest : F32
+      Int 1 : I16
+line 79: Assign Y (local)(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Convert Nearest : F32
+      Element Z (local)(…) : I32
+        Int 1 : I64
+FUNCTION KEPT : F32
+  param N:I32
+  result KEPT:F32
+  static C:F32
+line 82: Assign C (static):F32
+  Binary Add : F32
+    Var C (static) : F32
+    Convert Nearest : F32
+      Var N (param) : I32
+line 83: Assign KEPT (result):F32
+  Var C (static) : F32
+SUB DYN
+  static A:I32
+  static U:F32
+  static X:I32
+line 89: Allocate A (static):I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+line 90: Assign U (static)(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Convert Nearest : F32
+      Element A (static)(…) : I32
+        Int 1 : I64
+line 92: Allocate X (static):I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 4 : I64
+  Lower
+    Int 0 : I64
+  Upper
+    Int 4 : I64

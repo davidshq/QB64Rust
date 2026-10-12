@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):ERASE
+LINE 3:ERASE
+exit=1

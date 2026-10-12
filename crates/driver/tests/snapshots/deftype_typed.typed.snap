@@ -1,0 +1,134 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY T:I16(0 TO 3)
+line 2: ConsoleOnly
+line 12: Assign A:F32
+  Convert Nearest : F32
+    Float 1.5E+0 : F64 (qb F32)
+line 15: Assign A:I16
+  Int 7 : I16
+line 16: Assign D:I32
+  Int 100000 : I32
+line 17: Assign B:I16
+  Convert Truncate : I16
+    Convert RoundEven : I32
+      Binary Add : F32
+        Var A : F32
+        Convert Nearest : F32
+          Var A : I16
+line 20: Assign T(…):I16
+  Index
+    Int 1 : I64
+  Value
+    Convert Truncate : I16
+      Binary Add : I32 (qb I64)
+        Convert Widen : I32
+          Var PLAIN : I16
+        Convert Widen : I32
+          Var G : I16
+line 21: For I:I16 counting in I32 (NEXT line 21)
+  From
+    Int 1 : I32
+  To
+    Int 2 : I32
+  Body
+line 23: Assign C:I16
+  Convert Truncate : I16
+    Convert RoundEven : I32
+      Convert Nearest : F32
+        Float 2.5E+0 : F64
+line 24: Assign __U:F32
+  Convert Nearest : F32
+    Int 1 : I16
+line 26: Assign X:F64
+  Convert Nearest : F64
+    Int 1 : I16
+line 26: Assign Y:F64
+  Convert Nearest : F64
+    Int 2 : I16
+line 26: Assign Z:F64
+  Convert Nearest : F64
+    Int 3 : I16
+line 26: Assign W:I16
+  Int 4 : I16
+line 26: Assign __V:F64
+  Convert Nearest : F64
+    Int 5 : I16
+line 28: Assign U1:U8
+  Int 255 : U8
+line 30: Assign F1:Str*5
+  Str "abcdefgh" : Str
+line 32: Assign B2:Bit4
+  Int 7 : I32
+line 33: If (END IF line 35)
+  If line 33
+    Int 0 : I16
+line 36: Assign S:Str
+  Str "text" : Str
+line 38: Assign R:F64
+  Convert Nearest : F64
+    Binary Add : I32 (qb I64)
+      CallProc FN : I32
+        temp
+          Int 3 : I16
+      CallProc FN : I32
+        temp
+          Int 4 : I16
+line 40: Assign R:F64
+  Convert Nearest : F64
+    CallProc FN : I32
+      temp
+        Int 5 : I16
+line 41: Call BELOW
+  temp
+    Int 1 : I16
+line 42: Call INNER
+  temp
+    Int 2 : I16
+line 43: Call LAST
+  temp
+    Convert Nearest : F64
+      Int 3 : I16
+line 44: Assign M:I16
+  Int 1 : I16
+line 45: System
+SUB ABOVE
+  param P:F32
+  local V:F32
+line 10: Assign V (local):F32
+  Convert Nearest : F32
+    Float 2.5E+0 : F64 (qb F32)
+FUNCTION FN : I32
+  param N:I16
+  result FN:I32
+line 48: Assign FN (result):I32
+  Binary Mul : I32 (qb I64)
+    Convert Widen : I32
+      Var N (param) : I16
+    Int 100000 : I32
+SUB BELOW
+  param P:I16
+  local V:I16
+  static ST:Str
+line 51: Assign V (local):I16
+  Convert Truncate : I16
+    Convert RoundEven : I32
+      Convert Nearest : F32
+        Float 2.5E+0 : F64 (qb F32)
+SUB INNER
+  param P:I16
+  local U:U8
+  local P:F64
+  local V:F64
+line 56: Assign U (local):U8
+  Convert Truncate : U8
+    Var P (param) : I16
+line 58: Assign V (local):F64
+  Var P (local) : F64
+SUB LAST
+  param P:F64
+  local V:F64
+line 61: Assign V (local):F64
+  Var P (param) : F64

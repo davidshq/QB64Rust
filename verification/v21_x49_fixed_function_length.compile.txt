@@ -1,0 +1,5 @@
+
+Name already in use (fs)
+Caused by (or after):PRINT FS$4 ( "a",1 )
+LINE 3:PRINT fs$4("a")
+exit=1

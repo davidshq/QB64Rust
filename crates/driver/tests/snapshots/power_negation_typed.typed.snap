@@ -1,0 +1,65 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 8: Assign R:F64
+  Convert Nearest : F64
+    Binary Add : F80
+      Binary Pow : F80
+        Convert Nearest : F80
+          Int 2 : I16
+        Convert Nearest : F80
+          Neg : I32 (qb I64)
+            Not : I32 (qb I64)
+              Var X : I32
+      Convert Nearest : F80
+        Int 3 : I16
+line 9: Assign R:F64
+  Convert Nearest : F64
+    Binary Mul : F80
+      Binary Pow : F80
+        Convert Nearest : F80
+          Int 2 : I16
+        Convert Nearest : F80
+          Neg : I64
+            Not : I64
+              Convert RoundEven : I64
+                Binary Pow : F80 (qb F64)
+                  Convert Nearest : F80
+                    Var X : I32
+                  Convert Nearest : F80
+                    Int 3 : I16
+      Convert Nearest : F80
+        Int 5 : I16
+line 10: Assign R:F64
+  Convert Nearest : F64
+    Binary Pow : F80
+      Convert Nearest : F80
+        Int 2 : I16
+      Convert Nearest : F80
+        Not : I32 (qb I64)
+          Binary Add : I32 (qb I64)
+            Var X : I32
+            Int 3 : I32
+line 11: Assign R:F64
+  Convert Nearest : F64
+    Neg : I32 (qb I64)
+      Not : I32 (qb I64)
+        Binary Add : I32 (qb I64)
+          Var X : I32
+          Int 3 : I32
+line 12: Assign R:F64
+  Convert Nearest : F64
+    Binary Eq : I32
+      Binary Pow : F80
+        Convert Nearest : F80
+          Int 2 : I16
+        Convert Nearest : F80
+          Neg : I32 (qb I64)
+            Not : I32 (qb I64)
+              Not : I32 (qb I64)
+                Var X : I32
+      Convert Nearest : F80
+        Int 2 : I16
+line 13: System

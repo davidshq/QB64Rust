@@ -1,0 +1,12 @@
+1. z(10) = 4: z(10), LBOUND, UBOUND 4  0  10 
+2. z(11) = 1: [error 9 ]
+3. two indexes: UBOUND 1, UBOUND 2, LBOUND 2, m(2, 3), m(10, 10) 10  10  0  5  0 
+4. three indexes: UBOUND 3 10 
+5. suffixes: ab 10  2  .3333333333333333  5000000000 
+6. the first use is a read: 0  10 
+7. LBOUND(lb) first, then lb(10) = 3: 0  10  3  UBOUND(lb, 2): [error 9 ]8. the first use skipped by GOTO: 10  0 
+9. REDIM z(20): [error 10 ] 10  4 
+10. c!(7) beside DIM c(3) AS LONG: c!(7), UBOUND(c), UBOUND(c!) 1.5  3  10 
+11. a scalar and an array of one name: a, a(2) 5  3 
+12. an index in a float and in a string of digits: 4  8 
+exit=0

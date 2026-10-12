@@ -1,0 +1,5 @@
+
+Array already listed as STATIC
+Caused by (or after):STATIC A ( 3 ) AS LONG
+LINE 7:STATIC a(3) AS LONG
+exit=1

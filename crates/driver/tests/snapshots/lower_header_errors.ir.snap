@@ -1,0 +1,53 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 10
+  Assign K:I32 = Const -1:I32
+Label @0 line 11
+Stmt line 11 may_raise
+  Branch Zero -> @1 Skip: And:I32(StrCompare Ne(CallBuiltin CHR:Str [Some(Var K:I32)], Const ""), Lt:I32(Var N:F32, (Const 2:I16 -> Convert F32 Nearest)))
+Stmt line 12
+  Assign N:F32 = Add:F32(Var N:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 13
+  Jump @0
+Label @1 line 13
+Stmt line 14
+  Assign X:F32 = (Const 5:I16 -> Convert F32 Nearest)
+Stmt line 14 may_raise
+  Assign X:F32 = (CallBuiltin INSTR:I32 [None, Some(CallBuiltin CHR:Str [Some(Var K:I32)]), Some(Const "a")] -> Convert F32 Nearest)
+Stmt line 15 may_raise
+  AssignAll
+    for1.value(temp):F64 = (Const 1:I16 -> Convert F64 Nearest)
+    for1.limit(temp):F64 = (Add:I32(CallBuiltin INSTR:I32 [None, Some(Const "xyz"), Some(CallBuiltin CHR:Str [Some(Var K:I32)])], Const 2:I32) wrap -> Convert F64 Nearest)
+    for1.step(temp):F64 = Const 1:F64
+    for1.negative(temp):I32 = Lt:I32(Var for1.step(temp):F64, Const 0:F64)
+  Jump @3
+Label @2 line 15
+Stmt line 16
+  Print console newline
+    Num Var I:F32
+Stmt line 17
+  Assign for1.value(temp):F64 = Add:F64(Var for1.step(temp):F64, (Var I:F32 -> Convert F64 Widen))
+Label @3 line 17
+Stmt line 17
+  Assign I:F32 = (Var for1.value(temp):F64 -> Convert F32 Nearest)
+  Branch NonZero -> @4 Skip: Or:I32(And:I32(Var for1.negative(temp):I32, Lt:I32(Var for1.value(temp):F64, Var for1.limit(temp):F64)), And:I32(Not:I32(Var for1.negative(temp):I32), Gt:I32(Var for1.value(temp):F64, Var for1.limit(temp):F64)))
+  Jump @2
+Label @4 line 17
+Stmt line 18
+  Branch Zero -> @6 Skip: Eq:I32(Var X:F32, (Const 2:I16 -> Convert F32 Nearest))
+Stmt line 19
+  Print console newline
+    Str Const "two"
+Stmt line 22
+  Jump @5
+Label @6 line 22
+Stmt line 20 may_raise
+  Branch Zero -> @5 UseValue: StrCompare Eq(CallBuiltin CHR:Str [Some(Var K:I32)], Const "")
+Stmt line 21
+  Print console newline
+    Str Const "placeholder"
+Label @5 line 22

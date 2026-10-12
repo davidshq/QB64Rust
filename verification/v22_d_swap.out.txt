@@ -1,0 +1,35 @@
+_BYTE 2  1 
+_UNSIGNED _BYTE 200  1 
+INTEGER 2  1 
+_UNSIGNED INTEGER 60000  1 
+LONG 2  1 
+_UNSIGNED LONG 4000000000  1 
+_INTEGER64 5000000000  1 
+_UNSIGNED _INTEGER64 18446744073709551615  1 
+SINGLE 2.5  1.5 
+DOUBLE 2.5  1.5 
+_FLOAT 2.5  1.5 
+_OFFSET 2  1 
+_UNSIGNED _OFFSET 2  1 
+STRING [r][left]
+STRING * 3 [xy ][abc]
+TYPE 2 two 2.5  1 one 1.5 
+elements 9  7 
+elements by variable 7  9 
+string elements qp
+variable and element 7  5 
+member and variable 7  2 
+members 1  7 
+fixed member and variable [xy ][two]
+TYPE elements 11  10 
+members of elements 10  11 
+the same variable 3 
+the same string same
+STRING and STRING * 3 [two][sam]
+an element with a bad index
+  error 9 
+ 0  1 
+a bad index first
+  error 9 
+ 2  1 
+exit=0

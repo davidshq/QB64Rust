@@ -1,0 +1,22 @@
+1. a bound from a variable, DIM d(n): LBOUND, UBOUND, d(4), d(0) 0  4  9  0 
+2. another DIM of it, DIM d(n + 1): [error 10 ] 4  5 
+3. $DYNAMIC above DIM a(5), then REDIM a(8): 8 
+   $STATIC above DIM a0(5), then REDIM a0(8): [error 10 ] 5 
+4. no element, DIM e(m) with m = -1: [error 5 ] 0 -1  [error 9 ]
+   and DIM e(n) after it: [error 10 ]-1 
+5. a bound with an operator, DIM a3(2 + 3) then REDIM a3(20): 20 
+   one number, DIM a1(5) then REDIM a1(20): [error 10 ] 5 
+6. two DIM statements, DIM s(5) then DIM s(n): [error 10 ] 5 
+7. a bound that raises, DIM r(ASC of an empty string): [error 5 ] 0 
+8. a DIM that GOTO skips: late(1) = 1 [error 9 ]   LBOUND(late) [error 9 ]   UBOUND(late, 1) [error 9 ]   PRINT late(1) [error 9 ]9. one DIM in a loop that runs twice: [error 10 ] 3 
+10. STRING, STRING * 3, a user type, DOUBLE in two dimensions: one[] abc 3  0  7  0  1.5  0  1  4 
+11. float bounds, DIM q(x) with x = 2.5, DIM q2(1.5 TO x + 1): 2  2  4 
+12. an index outside, d(5) = 1 and PRINT d(-1): [error 9 ] [error 9 ]13. dynamic _BIT * 4 and _UNSIGNED _BIT * 3: 7 -8  0 -1  1  0  7 
+14. static _BIT * 4, stores 7, 8, none, 15: 7 -8  0 -1 
+15. DIM SHARED sh(n) in a SUB: 6  4 
+    elements passed by reference: 7  10 
+16. DIM ep() AS LONG, ep = 100000.5: ep, LEN(ep) 100000  4 
+17. OPTION BASE 1, DIM ob(n), ob0(0, n), ob2(0 TO n): 1  4  0  0  1  0 
+18. OPTION BASE 1, DIM z(m) with m = 0: [error 5 ] 1  0 
+    DIM z2(0 + 0): [error 5 ] 1  0 
+19. READ into _BIT elements, dynamic and static: 5  7 -8 

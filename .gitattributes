@@ -1,6 +1,20 @@
 # Recorded program output and compiler output: keep the bytes exactly as recorded (tests/corpus/README.md)
 tests/corpus/**/*.output -text
 tests/corpus/**/*.err -text
+# Standard input of a program that reads the console: given to it byte for byte (tests/corpus/README.md)
+tests/corpus/**/*.stdin -text
+verification/*.stdin -text
+# The recorded state of a screen program and the keys it is given (tools/screen/README.md)
+tests/corpus/**/*.screen -text
+tests/corpus/**/*.keys -text
+# Recorded verification output: text is stored with LF on every machine, whatever its git settings; a file git
+# takes for binary (a NUL, a CR without LF) keeps its bytes (tools/legacy_tests/README.md, "Verification programs")
+verification/*.compile.txt text=auto
+verification/*.out.txt text=auto
+# Differential programs: tier 1 compares them byte for byte with the generator; their recorded output as recorded
+tests/differential/**/*.bas -text
+tests/differential/**/*.output -text
+tests/differential/**/*.err -text
 # CP437 bytes and CRLF line ends are the point of this program (design D2 of m2-workspace-and-slice)
 tests/corpus/slice/s07_cp437_bytes.bas -text
 # Copy of QB64pe's compile tests: keep upstream's bytes and line ends (design D1 of m2-upstream-tests)
@@ -13,3 +27,8 @@ tests/upstream/compile_tests/**/*.license -text
 # QB64Fresh snippets: CR LF sources and qb64pe's output as recorded (design D5 of m2-upstream-tests)
 tests/snippets/**/*.bas -text
 tests/snippets/**/*.err -text
+# The language server's encoding fixtures: raw bytes, CR and LF among them (tools/encodings/gen_tables.js)
+crates/lsp/tests/fixtures/*.bin -text
+# Real programs taken whole: source, data and image files byte for byte (tests/programs/README.md)
+tests/programs/civil-war-strategy/** -text
+tests/programs/civil-war-strategy/SOURCE.md text

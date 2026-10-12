@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):FOR I = 1 TO "x",1
+LINE 3:FOR i = 1 TO "x"
+exit=1

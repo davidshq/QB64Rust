@@ -1,0 +1,6 @@
+1. a(setz(1)).s = z$: [after]
+2. a(setz(1)).f = z$: [after ]
+3. a(setz(1)).s = z$ + excl: [after!]
+4. a(setz(1)).k = n: 1 
+5. a(setz(1)).v(setz(1)) = z$: [after]
+exit=0

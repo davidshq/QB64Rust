@@ -1,0 +1,38 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+swap_mid_errors.bas:19:1: error: `SWAP` needs two variables of the same type
+swap_mid_errors.bas:20:1: error: `SWAP` needs two variables of the same type
+swap_mid_errors.bas:21:1: error: `SWAP` needs two variables of the same type
+swap_mid_errors.bas:22:1: error: `SWAP` needs two variables of the same type
+swap_mid_errors.bas:23:1: error: `SWAP` needs two variables of the same type
+swap_mid_errors.bas:24:1: error: `SWAP` needs two variables of the same type
+swap_mid_errors.bas:25:1: error: `SWAP` needs two variables of the same type
+swap_mid_errors.bas:26:9: error: `SWAP` needs a variable here
+swap_mid_errors.bas:27:9: error: `SWAP` needs a variable here
+swap_mid_errors.bas:28:9: error: cannot assign to the constant `c`
+swap_mid_errors.bas:29:1: error: `SWAP` cannot exchange `_BIT` variables
+swap_mid_errors.bas:30:1: error: `SWAP` needs two variables of the same type
+swap_mid_errors.bas:31:7: error: expected `,` between the two variables
+swap_mid_errors.bas:32:10: error: expected the end of the statement
+swap_mid_errors.bas:33:6: error: `MID$` needs a variable here
+swap_mid_errors.bas:34:6: error: the `MID$` statement needs a string variable as its first argument
+swap_mid_errors.bas:35:6: error: `MID$` needs a variable here
+swap_mid_errors.bas:36:6: error: cannot assign to the constant `cs`
+swap_mid_errors.bas:37:9: error: the start of the `MID$` statement must be a number
+swap_mid_errors.bas:38:12: error: the length of the `MID$` statement must be a number
+swap_mid_errors.bas:39:14: error: the `MID$` statement stores a string
+swap_mid_errors.bas:40:1: error: the `MID$` statement takes a variable, a start and a length
+swap_mid_errors.bas:41:1: error: the `MID$` statement takes a variable, a start and a length
+swap_mid_errors.bas:42:11: error: `RANDOMIZE` needs a number
+swap_mid_errors.bas:43:7: error: `RND` takes 0 or 1 arguments
+swap_mid_errors.bas:44:11: error: `RND` needs a number
+swap_mid_errors.bas:45:7: error: `RND` with empty parentheses
+swap_mid_errors.bas:46:7: error: `TIMER` takes 0 or 1 arguments
+swap_mid_errors.bas:47:13: error: `TIMER` needs a number
+swap_mid_errors.bas:48:7: error: `TIMER` with empty parentheses
+swap_mid_errors.bas:49:1: error: name already in use: `RND`
+swap_mid_errors.bas:50:1: error: name already in use: `TIMER`
+swap_mid_errors.bas:55:10: error: the FUNCTION's own name cannot be a target of `SWAP`
+swap_mid_errors.bas:59:10: error: the FUNCTION's own name cannot be a target of `MID$`

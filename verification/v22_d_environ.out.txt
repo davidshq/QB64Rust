@@ -1,0 +1,32 @@
+COMMAND$ []
+COMMAND$(0) is the program:-1 
+COMMAND$(1) []
+COMMAND$(100) []
+COMMAND$(-1)
+[]
+COMMAND$(1.5) []
+set and read [7]
+another case [7]
+by a variable [7]
+by an expression [7]
+unknown []
+empty name []
+set twice [8]
+set to nothing []
+a value with = [a=b]
+a blank for = [x y]
+without =:
+  error 5 
+[]
+ENVIRON$(1) has text:-1 -1 
+by a LONG variable:-1 
+by a DOUBLE 1.4 is ENVIRON$(1):-1 
+ENVIRON$(0)
+  error 5 
+[]
+ENVIRON$(-1)
+  error 5 
+[]
+ENVIRON$(100000) []
+done
+exit=0

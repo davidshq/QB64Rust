@@ -1,0 +1,12 @@
+1. bump a(9).v(1): [error 9 ]: 100 
+2. bump a(1).v(9): [error 9 ]: 200 
+3. a STRING and a STRING * 3 element to a STRING parameter: [s!][f  ]
+ in show 5  6 [n1]4. an element of a user type to a parameter of the type: 6 
+5. whole values, x.n(0) = x.n(1) and q = x.n(0): 6  6  6 [n1]
+6. show x.n(9): [error 9 ]
+7. SWAP of two elements, of one variable and of two array elements: 2  1  4  3 
+8. SWAP t.v(9), t.v(1) (t.v(0) is 2, t.v(1) is 1): [error 9 ]: 1  2 
+9. SWAP of two STRING elements and of two elements of a user type: ba 2  1 
+10. SWAP of a member of two array elements: 8  7 
+11. the order in SWAP a(one(1)).v(one(2)), a(one(3)).v(one(4)): 1  2  3  4 
+exit=0

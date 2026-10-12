@@ -1,0 +1,1 @@
+a(1) = 1: [error 9 ] UBOUND(a): [error 9 ]exit=0

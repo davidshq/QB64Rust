@@ -1,0 +1,6 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+implicit_arrays_redim_errors.bas:11:9: error: not supported yet: `rc(...)`: an array first used in a bound of `REDIM`, without `DIM`
+implicit_arrays_redim_errors.bas:12:1: error: not supported yet: `rc(...)` (an array used without `DIM`, or no FUNCTION of this name)

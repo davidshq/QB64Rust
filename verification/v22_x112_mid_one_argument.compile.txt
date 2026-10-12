@@ -1,0 +1,5 @@
+
+Expected MID$(...)=...
+Caused by (or after):MID$ ( S ) = "x",1
+LINE 4:MID$(s) = "x"
+exit=1

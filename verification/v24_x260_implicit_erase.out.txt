@@ -1,0 +1,2 @@
+1. main: 0  10 []
+2. SUB: [error 9 ] after ERASE: [error 9 ]exit=0

@@ -1,0 +1,5 @@
+
+Cannot convert type (NOSUCH) to symbol
+Caused by (or after):
+LINE 3:_DEFINE A AS NOSUCH
+exit=1

@@ -1,0 +1,7 @@
+1. DIM du(i + 1), dv(i + 3), run twice: [error 10 ] 2  4 
+2. the second is new in the second round: [error 10 ] 2  5 
+3. a statement after it on the line: [error 10 ] 2 
+4. REDIM of a static and a dynamic array: [error 10 ] 3  4 
+5. three arrays, the second allocated before: [error 10 ] 3  1  5 
+6. in a SUB, DIM a(3), b(n) run twice in a call: [error 10 ] 3  5  2 
+7. with strings: [error 10 ] aabb

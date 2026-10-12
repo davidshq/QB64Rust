@@ -1,0 +1,35 @@
+four targets, two items
+  error 4 line 10 
+ 51  52  0  0 
+again
+  error 4 line 12 
+ 0 
+a string when out of data
+  error 4 line 13 
+[]
+a string after a number when out of data
+  error 4 line 14 
+ 0 [old]
+after RESTORE
+ 1 
+an item too large in the middle
+  error 6 line 19 
+ 10  0  0 
+next item: 300 
+no number in the middle
+  error 2 line 25 
+ 11  0  0 
+  error 2 line 27 
+next item: 0 
+an element out of range in the middle
+  error 9 line 31 
+ 12  0 
+next item: 22 
+RESUME reads again
+  error 2 line 37 
+  error 2 line 37 
+  error 2 line 37 
+ 0  0 tries 3 
+  error 2 line 40 
+next item: 0 
+exit=0

@@ -1,0 +1,57 @@
+GOTO into an IF body whose condition is false
+  then 2
+  after END IF
+GOTO into a FOR body from outside (first FOR in the program)
+  body 2 0 
+  body 1 0 
+  body 2 0 
+  body 1 0 
+  body 2 0 
+  body 1 0 
+  body 2 0 
+  body 1 0 
+  body 2 0 
+  body 1 0 
+  body 2 0 
+  body 1 0 
+  body 2 0 
+  capped
+  after 0 
+the same FOR entered normally, then GOTO into it again
+  loop A 1 
+  loop A 2 
+  after A 3 
+  after A 4 
+  after second 4 
+GOTO out of a FOR, then the FOR again
+  body 1 
+  out at 2 
+  second run 1 
+  second run 2 
+GOTO into a WHILE body
+  in 1 
+  top 1 
+  in 2 
+  top 2 
+  in 3 
+  after 3 
+GOTO into a DO ... LOOP UNTIL body
+  in 1 
+  top 1 
+  in 2 
+  top 2 
+  in 3 
+  after 3 
+EXIT FOR inside a WHILE inside a FOR
+  i 1 w 5 
+  after 2  2 
+EXIT DO inside a FOR inside a DO, EXIT WHILE inside an IF
+  after DO 1  2 
+  after WHILE 4 
+NEXT j, i and NEXT with suffix
+   1  1 
+   1  2 
+   2  1 
+   2  2 
+  m& 3 
+exit=0

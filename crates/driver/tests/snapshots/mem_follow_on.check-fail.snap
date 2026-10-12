@@ -1,0 +1,7 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+mem_follow_on.bas:7:5: error: cannot store a string in a number variable
+mem_follow_on.bas:8:7: error: not supported yet: the type `_MEM`
+mem_follow_on.bas:11:7: error: not supported yet: `_TRUE` (a name of QB64pe's auto-included files)

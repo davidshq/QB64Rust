@@ -1,0 +1,8 @@
+1. DIM a(5) below $DYNAMIC, then REDIM a(8): UBOUND, a(1) 8  0 
+2. DIM b(5) below $STATIC, then REDIM b(8): UBOUND [error 10 ] 5 
+3. REDIM s0(8), s0 declared above the first $DYNAMIC: UBOUND [error 10 ] 5 
+4. DIM c(5) below $DYNAMIC skipped by GOTO, c(1) = 1: [error 9 ] UBOUND(c): [error 9 ]5. an array used without DIM below $DYNAMIC, im(3) = 4: UBOUND, then REDIM im(20): UBOUND 10  20 
+6. DIM SHARED g(5) below $DYNAMIC, in a SUB, then REDIM g(7): 4  5  7 
+7. one DIM l(3) below $DYNAMIC run twice: [error 10 ]
+8. DIM d(5) below REM $STATIC, then REDIM d(8): UBOUND [error 10 ] 5 
+exit=0

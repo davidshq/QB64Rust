@@ -1,0 +1,5 @@
+
+REDIM type does not match the declared TYPE member array
+Caused by (or after):REDIM T . V ( 0 TO 3 ) AS INTEGER
+LINE 7:REDIM t.v(0 TO 3) AS INTEGER
+exit=1

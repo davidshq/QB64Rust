@@ -1,0 +1,8 @@
+s1, STATIC a(3) below $DYNAMIC: a(1) 1 then REDIM a(5): UBOUND 5 
+s1, STATIC a(3) below $DYNAMIC: a(1) 1 then REDIM a(5): UBOUND 5 
+s2 STATIC, DIM b(3) below s1's $DYNAMIC: b(1) 1 then REDIM b(5): UBOUND 5 
+ [error 10 ]s2 STATIC, DIM b(3) below s1's $DYNAMIC: b(1) 1 then REDIM b(5): UBOUND 5 
+s3 STATIC, DIM c(3) below $STATIC: c(1) 1 then REDIM c(5): UBOUND [error 10 ] 3 
+s3 STATIC, DIM c(3) below $STATIC: c(1) 2 then REDIM c(5): UBOUND [error 10 ] 3 
+main DIM m(5), below the calls and above the SUBs in the file, then REDIM m(8): [error 10 ] 5 
+exit=0

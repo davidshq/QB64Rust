@@ -1,0 +1,19 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+blocks_errors.bas:8:4: error: the condition of `IF` must be a number, not a string
+blocks_errors.bas:10:9: error: cannot store a string in a number variable
+blocks_errors.bas:11:8: error: the condition of `ELSEIF` must be a number, not a string
+blocks_errors.bas:13:7: error: the condition of `WHILE` must be a number, not a string
+blocks_errors.bas:14:10: error: the condition of `DO` must be a number, not a string
+blocks_errors.bas:15:16: error: the condition of `LOOP` must be a number, not a string
+blocks_errors.bas:16:5: error: the `FOR` variable `s$` must be a number, not a string
+blocks_errors.bas:17:5: error: the constant `c` cannot be a `FOR` variable
+blocks_errors.bas:18:14: error: a `FOR` start, limit or step must be a number, not a string
+blocks_errors.bas:19:21: error: a `FOR` start, limit or step must be a number, not a string
+blocks_errors.bas:20:22: error: `NEXT j` does not close `FOR i`
+blocks_errors.bas:21:23: error: `NEXT i` does not close `FOR i%`
+blocks_errors.bas:24:10: error: `NEXT i` does not close `FOR j`
+blocks_errors.bas:25:8: error: expected `=`
+blocks_errors.bas:26:5: error: not supported yet: `TYPE` member `t.x` as a `FOR` variable

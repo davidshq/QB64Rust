@@ -1,0 +1,5 @@
+
+Invalid number after STRING * type
+Caused by (or after):
+LINE 6:SUB Q ( T AS STRING * 4294967296 )
+exit=1

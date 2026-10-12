@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):PRINT _TOSTR$ ( "a",1 )
+LINE 3:PRINT _TOSTR$("a")
+exit=1

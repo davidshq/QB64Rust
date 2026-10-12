@@ -1,0 +1,5 @@
+
+String required for function
+Caused by (or after):PRINT _FILEEXISTS ( 5 )
+LINE 3:PRINT _FILEEXISTS(5)
+exit=1

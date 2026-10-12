@@ -1,0 +1,105 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Stmt line 2
+  SelectConsole
+Stmt line 9
+  AssignAll
+    for1.value(temp):I32 = Const 1:I32
+    for1.limit(temp):I32 = Const 10:I32
+    for1.step(temp):I32 = Const 2:I32
+    for1.negative(temp):I32 = Lt:I32(Var for1.step(temp):I32, Const 0:I32)
+  Jump @2
+Label @1 line 9
+Stmt line 10
+  Print console newline
+    Num Var I:I16
+Stmt line 11
+  Assign for1.value(temp):I32 = Add:I32(Var for1.step(temp):I32, (Var I:I16 -> Convert I32 Widen)) wrap
+Label @2 line 11
+Stmt line 11
+  Assign I:I16 = (Var for1.value(temp):I32 -> Convert I16 Truncate)
+  Branch NonZero -> @3 Skip: Or:I32(And:I32(Var for1.negative(temp):I32, Lt:I32(Var for1.value(temp):I32, Var for1.limit(temp):I32)), And:I32(Not:I32(Var for1.negative(temp):I32), Gt:I32(Var for1.value(temp):I32, Var for1.limit(temp):I32)))
+  Jump @1
+Label @3 line 11
+Stmt line 12
+  AssignAll
+    for2.value(temp):F64 = (Const 0:I16 -> Convert F64 Nearest)
+    for2.limit(temp):F64 = (Const 1:I16 -> Convert F64 Nearest)
+    for2.step(temp):F64 = Const 0.5E+0:F64
+    for2.negative(temp):I32 = Lt:I32(Var for2.step(temp):F64, Const 0:F64)
+  Jump @5
+Label @4 line 12
+Stmt line 12
+  Assign for2.value(temp):F64 = Add:F64(Var for2.step(temp):F64, (Var S:F32 -> Convert F64 Widen))
+Label @5 line 12
+Stmt line 12
+  Assign S:F32 = (Var for2.value(temp):F64 -> Convert F32 Nearest)
+  Branch NonZero -> @6 Skip: Or:I32(And:I32(Var for2.negative(temp):I32, Lt:I32(Var for2.value(temp):F64, Var for2.limit(temp):F64)), And:I32(Not:I32(Var for2.negative(temp):I32), Gt:I32(Var for2.value(temp):F64, Var for2.limit(temp):F64)))
+  Jump @4
+Label @6 line 12
+Stmt line 13
+  AssignAll
+    for3.value(temp):F64 = (Const 1:I16 -> Convert F64 Nearest)
+    for3.limit(temp):F64 = (Const 3:I16 -> Convert F64 Nearest)
+    for3.step(temp):F64 = Const 1:F64
+    for3.negative(temp):I32 = Lt:I32(Var for3.step(temp):F64, Const 0:F64)
+  Jump @8
+Label @7 line 13
+Stmt line 14
+  AssignAll
+    for4.value(temp):F64 = (Const 1:I16 -> Convert F64 Nearest)
+    for4.limit(temp):F64 = (Const 3:I16 -> Convert F64 Nearest)
+    for4.step(temp):F64 = Const 1:F64
+    for4.negative(temp):I32 = Lt:I32(Var for4.step(temp):F64, Const 0:F64)
+  Jump @11
+Label @10 line 14
+Stmt line 15
+  Branch Zero -> @13 Skip: Eq:I32(Var K:F32, (Const 2:I16 -> Convert F32 Nearest))
+Stmt line 15
+  Jump @12
+Label @13 line 15
+Stmt line 16
+  Branch Zero -> @14 Skip: Eq:I32(Var J:F32, (Const 3:I16 -> Convert F32 Nearest))
+Stmt line 16
+  Jump INSIDE
+Label @14 line 16
+Stmt line 17
+  Assign for4.value(temp):F64 = Add:F64(Var for4.step(temp):F64, (Var K:F32 -> Convert F64 Widen))
+Label @11 line 17
+Stmt line 17
+  Assign K:F32 = (Var for4.value(temp):F64 -> Convert F32 Nearest)
+  Branch NonZero -> @12 Skip: Or:I32(And:I32(Var for4.negative(temp):I32, Lt:I32(Var for4.value(temp):F64, Var for4.limit(temp):F64)), And:I32(Not:I32(Var for4.negative(temp):I32), Gt:I32(Var for4.value(temp):F64, Var for4.limit(temp):F64)))
+  Jump @10
+Label @12 line 17
+Stmt line 17
+  Assign for3.value(temp):F64 = Add:F64(Var for3.step(temp):F64, (Var J:F32 -> Convert F64 Widen))
+Label @8 line 17
+Stmt line 17
+  Assign J:F32 = (Var for3.value(temp):F64 -> Convert F32 Nearest)
+  Branch NonZero -> @9 Skip: Or:I32(And:I32(Var for3.negative(temp):I32, Lt:I32(Var for3.value(temp):F64, Var for3.limit(temp):F64)), And:I32(Not:I32(Var for3.negative(temp):I32), Gt:I32(Var for3.value(temp):F64, Var for3.limit(temp):F64)))
+  Jump @7
+Label @9 line 17
+Stmt line 18
+  Jump INSIDE
+Stmt line 19 may_raise
+  AssignAll
+    for5.value(temp):F64 = (Const 1:I16 -> Convert F64 Nearest)
+    for5.limit(temp):F64 = (Add:I32(CallBuiltin INSTR:I32 [None, Some(CallBuiltin CHR:Str [Some(Const -1:I32)]), Some(Const "a")], Const 2:I32) wrap -> Convert F64 Nearest)
+    for5.step(temp):F64 = Const 1:F64
+    for5.negative(temp):I32 = Lt:I32(Var for5.step(temp):F64, Const 0:F64)
+  Jump @16
+Label INSIDE line 20
+Label @15 line 19
+Stmt line 21
+  Print console newline
+    Num Var M:F32
+Stmt line 22
+  Assign for5.value(temp):F64 = Add:F64(Var for5.step(temp):F64, (Var M:F32 -> Convert F64 Widen))
+Label @16 line 22
+Stmt line 22
+  Assign M:F32 = (Var for5.value(temp):F64 -> Convert F32 Nearest)
+  Branch NonZero -> @17 Skip: Or:I32(And:I32(Var for5.negative(temp):I32, Lt:I32(Var for5.value(temp):F64, Var for5.limit(temp):F64)), And:I32(Not:I32(Var for5.negative(temp):I32), Gt:I32(Var for5.value(temp):F64, Var for5.limit(temp):F64)))
+  Jump @15
+Label @17 line 22

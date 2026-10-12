@@ -1,0 +1,151 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE PT
+  X:I32
+  T:Str*3
+ARRAY ARR:I32(0 TO 3)
+line 2: ConsoleOnly
+line 15: Builtin OPEN
+  Var F : Str
+  word 3
+  (absent)
+  (absent)
+  word 0
+  Int 1 : I32
+  (absent)
+  (absent)
+line 16: Builtin OPEN
+  Var F : Str
+  word 0
+  word 0
+  word 3
+  word 0
+  Var N : I32
+  word 0
+  Int 4 : I32
+line 17: Builtin OPEN
+  Var F : Str
+  (absent)
+  (absent)
+  (absent)
+  word 0
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Var D : F64
+  (absent)
+  (absent)
+line 18: Builtin OPEN
+  Str "O" : Str
+  Int 1 : I32
+  Var F : Str
+  (absent)
+line 19: Builtin OPEN
+  Var A : Str
+  Var N : I32
+  Var F : Str
+  Int 10 : I32
+line 20: Builtin CLOSE
+line 21: Builtin CLOSE
+  Int 1 : I32
+  Var N : I32
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Float 2.5E+0 : F64 (qb F32)
+line 22: Builtin SEEK
+  Int 1 : I32
+  Convert RoundEven : I64
+    Var D : F64
+line 23: Builtin SEEK
+  Var N : I32
+  Var Q : I64
+line 24: Assign N:I32
+  Convert Truncate : I32
+    Binary Add : I64
+      Binary Add : I64
+        Binary Add : I64
+          Binary Add : I64
+            Convert Widen : I64
+              Call EOF : I32
+                Int 1 : I32
+            Call LOF : I64 (qb I32)
+              Var N : I32
+          Call LOC : I64 (qb I32)
+            Convert Truncate : I32
+              Convert RoundEven : I64
+                Var D : F64
+        Call SEEK : I64 (qb I32)
+          Convert Truncate : I32
+            Var Q : I64
+      Convert Widen : I64
+        Call FREEFILE : I32
+line 25: Assign N:I32
+  Binary Add : I32 (qb I64)
+    Call _FILEEXISTS : I32
+      Var F : Str
+    Call _DIREXISTS : I32
+      Str "d" : Str
+line 26: Assign A:Str
+  Call _CWD : Str
+line 27: Assign Q:I64
+  Binary Mul : I64
+    Call LOF : I64 (qb I32)
+      Int 1 : I32
+    Int 1000000000 : I64
+line 28: Print to a file newline
+  File
+    Int 1 : I32
+  Str
+    Str "x" : Str
+  Num
+    Var N : I32
+  Zone
+  Num
+    Var D : F64
+line 29: Print to a file newline
+  File
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+line 30: Print to a file
+  File
+    Int 1 : I32
+  Str
+    Var A : Str
+line 31: Write to a file newline
+  File
+    Int 1 : I32
+  Num
+    Var N : I32
+  Str
+    Var A : Str
+  Num
+    Var D : F64
+line 32: Write
+  Num
+    Var N : I32
+  Str
+    Var A : Str
+  Str
+    Var FX : Str
+line 33: Write newline
+line 34: Input from a file
+  File
+    Int 1 : I32
+  target A : Str
+  target N : I32
+  target FRESH : F32
+  target ARR(…) : I32
+    Int 2 : I64
+  target P.X : I32
+  target P.T : Str*3
+  target FX : Str*4
+line 35: LineInput from a file
+  File
+    Var N : I32
+  target A : Str
+line 36: LineInput from a file
+  File
+    Int 1 : I32
+  target FX : Str*4

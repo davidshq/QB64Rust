@@ -1,0 +1,4 @@
+a(1) = 5 before any bounds:
+UBOUND(a): 10 
+after REDIM a(3): a(1), UBOUND 5  3 
+exit=0

@@ -1,0 +1,57 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE REC
+  N:I32
+  F:Str*4
+ARRAY A:I32(0 TO 3)
+DATA 0: 1
+DATA 1: "two"
+DATA 2: three  x
+DATA 3: 
+DATA 4: "  q, q  "
+DATA 5: in_if
+DATA 6: from include
+DATA 7: "inc, quoted"
+DATA 8: 
+DATA 9: "unclosed, to the end"
+DATA 10: after system
+DATA 11: in a sub
+line 2: ConsoleOnly
+line 14: Label FIRST
+line 16: If (END IF line 18)
+  If line 16
+    Int 0 : I16
+line 1: Label INC_LABEL
+line 21: Label SECOND
+line 22: Read
+  target N : I32
+  target S : Str
+  target MADE : F32
+  target D : F64
+line 23: Read
+  target A(…) : I32
+    Convert Widen : I64
+      Var N : I32
+  target R.N : I32
+  target R.F : Str*4
+  target FX : Str*4
+  target Q : I64
+line 24: Restore
+line 25: Restore FIRST (item 0)
+line 26: Restore SECOND (item 9)
+line 27: Restore INC_LABEL (item 6)
+line 28: Restore IN_SUB (item 11)
+line 29: Restore SECOND (item 9)
+line 30: Call P
+line 31: System
+line 33: Label LAST
+SUB P
+  local LOCAL:Str
+line 36: Read
+  target LOCAL (local) : Str
+line 37: Label IN_SUB
+line 39: Restore FIRST (item 0)
+line 40: Restore IN_SUB (item 11)
+line 41: Restore LAST (item 11)

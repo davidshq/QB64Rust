@@ -1,0 +1,102 @@
+every integer type
+ 1  2  3  4  5  6  7  8 
+floats, _OFFSET, _BIT
+ 1.5  2.5  3.5  12 -3 
+a WRITE line
+ 1 a,b 2.5 
+200 into a _BYTE, then the next target
+  error 6 
+ 0  1 
+the next field is [7]
+one value per case: 300 %%, 70000 %, -1 ~%%, 5000000000 &, -1 ~&, 99999999999999999999 &&, 2.5 %, 3.5 %
+  error 6 
+ 0 
+  error 6 
+ 0 
+  error 6 
+ 0 
+  error 6 
+ 0 
+  error 6 
+ 0 
+  error 6 
+ 0 
+  error 6 
+ 0 
+ 18446744073709551615 
+ 2 
+ 4 
+ 3 
+  error 6 
+ 0 
+  error 6 
+ 0 
+  error 6 
+ 0 
+ 1D+40 
+text for a number: abc, 12x, &H10, &HFFFF into %, empty, blanks, 1 2, 1e2, 1d2, .5, -, +5
+ 0 
+ 12 
+ 16 
+  error 6 
+ 0 
+  error 62 
+ 0 
+ 0 
+ 0 
+ 1  2 
+ 100 
+ 100 
+ .5 
+ 0 
+ 5 
+ 0 
+strings: blanks around, quotes, a comma inside quotes, text after the closing quote, an empty field
+[lead][trail][ quoted, with comma ][after]
+[q][next]
+[a][][b]
+[open quote to the end]
+fewer fields than targets: the next lines are taken
+ 7  8  9  10 
+LF, CR and CR LF as line ends
+[lf1][lf2][cr1][cr2][end]
+element, member and fixed-length targets
+[s1][s2  ] 21  22  23.5 [xyz]
+a raising target index: the later targets are not read
+  error 9 
+ 31  0 
+the next field is [32]
+  error 9 
+[s1][][]
+the next field is [s2]
+LINE INPUT: a line, an empty line, a line with commas and quotes, the last line without an end, past the end
+[first]
+[]
+[a, "b" ,c  ] 0 
+[last]-1 
+  error 62 
+[]
+  error 62 
+[]
+  error 62 
+ 0 
+LINE INPUT with LF line ends, into an element and a member
+[one]
+[two]
+not open
+  error 52 
+  error 52 
+a file open for output
+  error 54 
+  error 75 
+an empty file
+  error 62 
+  error 62 
+INPUT #1.5 (file 2) and a raising number
+  error 52 
+  error 5 
+a binary file
+  error 54 
+[]
+[bin,ary]
+exit=0

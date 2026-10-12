@@ -1,0 +1,348 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+int8 *__BYTE_B=NULL;
+uint16 *__UINTEGER_UI=NULL;
+int32 *__LONG_L=NULL;
+int64 *__INTEGER64_Q=NULL;
+uint64 *__UINTEGER64_UQ=NULL;
+float *__SINGLE_SG=NULL;
+double *__DOUBLE_DB=NULL;
+long double *__FLOAT_FL=NULL;
+ptrszint *__OFFSET_O=NULL;
+int32 *__BIT3_B3=NULL;
+uint32 *__UBIT3_UB3=NULL;
+qbs *__STRING_S=NULL;
+qbs *__STRING4_FX=NULL;
+ptrszint *__ARRAY_LONG_A=NULL;
+ptrszint *__ARRAY_STRING_SA=NULL;
+void *__UDT_R=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_at_LABEL_BEFORE=0;
+ptrszint data_at_LABEL_LAB2=23;
+ptrszint data_at_LABEL_AFTER=27;
+ptrszint data_size=29;
+uint8 inline_data[]={
+49,44,34,116,119,111,34,44,116,104,114,101,101,32,32,120,44,44,34,117,110,34,44,34,120,34,44,53,44,
+0};
+uint8 *data=&inline_data[0];
+==> regsf.txt <==
+void SUB_P();
+==> clear.txt <==
+*__BYTE_B=0;
+*__UINTEGER_UI=0;
+*__LONG_L=0;
+*__INTEGER64_Q=0;
+*__UINTEGER64_UQ=0;
+*__SINGLE_SG=0;
+*__DOUBLE_DB=0;
+*__FLOAT_FL=0;
+*__OFFSET_O=0;
+*__BIT3_B3=0;
+*__UBIT3_UB3=0;
+__STRING_S->len=0;
+memset((void*)(__STRING4_FX->chr),0,4);
+memset((void*)(__ARRAY_LONG_A[0]),0,__ARRAY_LONG_A[5]*4);
+tmp_long=__ARRAY_STRING_SA[5];
+while(tmp_long--){
+(((qbs**)(__ARRAY_STRING_SA[0]))[tmp_long])->len=0;
+}
+memset((void*)__UDT_R,0,8);
+==> maindata.txt <==
+if(__BYTE_B==NULL){
+__BYTE_B=(int8*)mem_static_malloc(1);
+*__BYTE_B=0;
+}
+if(__UINTEGER_UI==NULL){
+__UINTEGER_UI=(uint16*)mem_static_malloc(2);
+*__UINTEGER_UI=0;
+}
+if(__LONG_L==NULL){
+__LONG_L=(int32*)mem_static_malloc(4);
+*__LONG_L=0;
+}
+if(__INTEGER64_Q==NULL){
+__INTEGER64_Q=(int64*)mem_static_malloc(8);
+*__INTEGER64_Q=0;
+}
+if(__UINTEGER64_UQ==NULL){
+__UINTEGER64_UQ=(uint64*)mem_static_malloc(8);
+*__UINTEGER64_UQ=0;
+}
+if(__SINGLE_SG==NULL){
+__SINGLE_SG=(float*)mem_static_malloc(4);
+*__SINGLE_SG=0;
+}
+if(__DOUBLE_DB==NULL){
+__DOUBLE_DB=(double*)mem_static_malloc(8);
+*__DOUBLE_DB=0;
+}
+if(__FLOAT_FL==NULL){
+__FLOAT_FL=(long double*)mem_static_malloc(32);
+*__FLOAT_FL=0;
+}
+if(__OFFSET_O==NULL){
+__OFFSET_O=(ptrszint*)mem_static_malloc(8);
+*__OFFSET_O=0;
+}
+if(__BIT3_B3==NULL){
+__BIT3_B3=(int32*)mem_static_malloc(4);
+*__BIT3_B3=0;
+}
+if(__UBIT3_UB3==NULL){
+__UBIT3_UB3=(uint32*)mem_static_malloc(4);
+*__UBIT3_UB3=0;
+}
+if (!__STRING_S)__STRING_S=qbs_new(0,0);
+if(__STRING4_FX==NULL){
+__STRING4_FX=qbs_new_fixed((uint8*)mem_static_malloc(4),4,0);
+memset(__STRING4_FX->chr,0,4);
+}
+if (!__ARRAY_LONG_A){
+__ARRAY_LONG_A=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_A)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_A[4]=0ll;
+__ARRAY_LONG_A[5]=(3ll)-__ARRAY_LONG_A[4]+1;
+if (__ARRAY_LONG_A[5]<=0) error(5);
+__ARRAY_LONG_A[6]=1;
+__ARRAY_LONG_A[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_A[5]*4);
+memset((void*)(__ARRAY_LONG_A[0]),0,__ARRAY_LONG_A[5]*4);
+__ARRAY_LONG_A[2]=1+2;
+}
+if (!__ARRAY_STRING_SA){
+__ARRAY_STRING_SA=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING_SA)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING_SA[4]=0ll;
+__ARRAY_STRING_SA[5]=(3ll)-__ARRAY_STRING_SA[4]+1;
+if (__ARRAY_STRING_SA[5]<=0) error(5);
+__ARRAY_STRING_SA[6]=1;
+__ARRAY_STRING_SA[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING_SA[5]*ptrsz);
+tmp_long=__ARRAY_STRING_SA[5];
+while(tmp_long--){
+((qbs**)(__ARRAY_STRING_SA[0]))[tmp_long]=qbs_new(0,0);
+}
+__ARRAY_STRING_SA[2]=1+2;
+}
+if(__UDT_R==NULL){
+__UDT_R=(void*)mem_static_malloc(8);
+memset(__UDT_R,0,8);
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "data_cpp.bas"
+do{
+#line 2 "data_cpp.bas"
+sub__dest(func__console());
+#line 2 "data_cpp.bas"
+sub__source(func__console());
+#line 2 "data_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 16 "data_cpp.bas"
+LABEL_BEFORE:;
+#line 16 "data_cpp.bas"
+if(qbevent){evnt(16);r=0;}
+#line 18 "data_cpp.bas"
+LABEL_LAB2:;
+#line 18 "data_cpp.bas"
+if(qbevent){evnt(18);r=0;}
+#line 19 "data_cpp.bas"
+do{
+#line 19 "data_cpp.bas"
+*__BYTE_B=func_read_float(data,&data_offset,data_size,138412040);
+#line 19 "data_cpp.bas"
+*__UINTEGER_UI=func_read_float(data,&data_offset,data_size,406847504);
+#line 19 "data_cpp.bas"
+*__LONG_L=func_read_float(data,&data_offset,data_size,138412064);
+#line 19 "data_cpp.bas"
+*__INTEGER64_Q=func_read_int64(data,&data_offset,data_size);
+#line 19 "data_cpp.bas"
+*__UINTEGER64_UQ=func_read_uint64(data,&data_offset,data_size);
+#line 19 "data_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 19 "data_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "data_cpp.bas"
+do{
+#line 20 "data_cpp.bas"
+*__SINGLE_SG=func_read_float(data,&data_offset,data_size,675282976);
+#line 20 "data_cpp.bas"
+*__DOUBLE_DB=func_read_float(data,&data_offset,data_size,675283008);
+#line 20 "data_cpp.bas"
+*__FLOAT_FL=func_read_float(data,&data_offset,data_size,675283200);
+#line 20 "data_cpp.bas"
+*__OFFSET_O=func_read_int64(data,&data_offset,data_size);
+#line 20 "data_cpp.bas"
+if ((*__BIT3_B3=((int64)func_read_float(data,&data_offset,data_size,188743683)))&0x4ull){*__BIT3_B3|=~0x7ull;}else{*__BIT3_B3&=0x7ull;}
+#line 20 "data_cpp.bas"
+*__UBIT3_UB3=(((int64)func_read_float(data,&data_offset,data_size,457179139)))&0x7ull;
+#line 20 "data_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 20 "data_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "data_cpp.bas"
+do{
+#line 21 "data_cpp.bas"
+sub_read_string(data,&data_offset,data_size,__STRING_S);
+#line 21 "data_cpp.bas"
+sub_read_string(data,&data_offset,data_size,__STRING4_FX);
+#line 21 "data_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 21 "data_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 22 "data_cpp.bas"
+do{
+#line 22 "data_cpp.bas"
+tmp_long=array_check((((int64)(*__LONG_L)))-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5]);
+#line 22 "data_cpp.bas"
+if (!is_error_pending()) ((int32*)(__ARRAY_LONG_A[0]))[tmp_long]=func_read_float(data,&data_offset,data_size,146800672);
+#line 22 "data_cpp.bas"
+sub_read_string(data,&data_offset,data_size,(((qbs**)(__ARRAY_STRING_SA[0]))[array_check((((int64)(*__LONG_L)))-__ARRAY_STRING_SA[4],__ARRAY_STRING_SA[5])]));
+#line 22 "data_cpp.bas"
+*(int32*)((((char*)__UDT_R)+0))=func_read_float(data,&data_offset,data_size,140509216);
+#line 22 "data_cpp.bas"
+sub_read_string(data,&data_offset,data_size,qbs_new_fixed((uint8*)(((char*)__UDT_R)+4),4,1));
+#line 22 "data_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 22 "data_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "data_cpp.bas"
+do{
+#line 23 "data_cpp.bas"
+data_offset=0;
+#line 23 "data_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "data_cpp.bas"
+do{
+#line 24 "data_cpp.bas"
+data_offset=data_at_LABEL_BEFORE;
+#line 24 "data_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "data_cpp.bas"
+do{
+#line 25 "data_cpp.bas"
+data_offset=data_at_LABEL_LAB2;
+#line 25 "data_cpp.bas"
+if(!qbevent)break;evnt(25);}while(r);
+#line 26 "data_cpp.bas"
+do{
+#line 26 "data_cpp.bas"
+data_offset=data_at_LABEL_AFTER;
+#line 26 "data_cpp.bas"
+if(!qbevent)break;evnt(26);}while(r);
+#line 27 "data_cpp.bas"
+do{
+#line 27 "data_cpp.bas"
+SUB_P();
+#line 27 "data_cpp.bas"
+if(!qbevent)break;evnt(27);}while(r);
+#line 28 "data_cpp.bas"
+do{
+#line 28 "data_cpp.bas"
+if (sub_gl_called) error(271);
+#line 28 "data_cpp.bas"
+close_program=1;
+#line 28 "data_cpp.bas"
+end();
+#line 28 "data_cpp.bas"
+if(!qbevent)break;evnt(28);}while(r);
+#line 29 "data_cpp.bas"
+LABEL_AFTER:;
+#line 29 "data_cpp.bas"
+if(qbevent){evnt(29);r=0;}
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(__STRING_S);
+qbs_free(__STRING4_FX);
+==> main1.txt <==
+#line 31 "data_cpp.bas"
+void SUB_P(){
+#line 31 "data_cpp.bas"
+qbs *tqbs;
+#line 31 "data_cpp.bas"
+ptrszint tmp_long;
+#line 31 "data_cpp.bas"
+int32 tmp_fileno;
+#line 31 "data_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 31 "data_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 31 "data_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 31 "data_cpp.bas"
+#include "data1.txt"
+#line 31 "data_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 31 "data_cpp.bas"
+new_mem_lock();
+#line 31 "data_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 31 "data_cpp.bas"
+sf_mem_lock->type=3;
+#line 31 "data_cpp.bas"
+libqb_check_stack();
+#line 31 "data_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 33 "data_cpp.bas"
+do{
+#line 33 "data_cpp.bas"
+*_SUB_P_SINGLE_ZZ=func_read_float(data,&data_offset,data_size,675282976);
+#line 33 "data_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 33 "data_cpp.bas"
+if(!qbevent)break;evnt(33);}while(r);
+#line 34 "data_cpp.bas"
+do{
+#line 34 "data_cpp.bas"
+data_offset=data_at_LABEL_LAB2;
+#line 34 "data_cpp.bas"
+if(!qbevent)break;evnt(34);}while(r);
+#line 35 "data_cpp.bas"
+exit_subfunc:;
+#line 35 "data_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 35 "data_cpp.bas"
+#include "free1.txt"
+#line 35 "data_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 35 "data_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 35 "data_cpp.bas"
+}
+==> data1.txt <==
+float *_SUB_P_SINGLE_ZZ=NULL;
+if(_SUB_P_SINGLE_ZZ==NULL){
+_SUB_P_SINGLE_ZZ=(float*)mem_static_malloc(4);
+*_SUB_P_SINGLE_ZZ=0;
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt free1.txt

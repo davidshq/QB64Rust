@@ -1,237 +1,120 @@
 # Status and next steps
 
-Updated 2026-10-05 (session 16). Session-by-session history is in `git log`; measured facts are in `study\00`.
+Updated 2026-10-12 (session 48).
+
+**This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
+full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
+Where everything else lives:
+
+| Kind of information | Home |
+|---|---|
+| What a change did, task by task, and what was found on the way | the change's `tasks.md` and `design.md` under `openspec\changes\` (archived ones in `archive\`), and `git log` |
+| A measured fact about the old compiler | `study\00` §5 (one home per fact) |
+| A decision | `DECISIONS.md`; a decided difference from QB64pe: `DIVERGENCES.md` |
+| What the compiler supports, how to build and test it | `crates\README.md`; per test set: `tests\*\README.md` |
+| Milestones, done and not done | `ROADMAP.md` |
+| History up to 2026-10-09 (what this file held before) | `study\progress-record.md` (closed) |
 
 ## Where we are
 
-Roadmap (`study\07` Session 8, summarised in `study\00` §2): **M0 and M1 complete. M2 (front end) in progress: golden corpus, Rust workspace and end-to-end slice, procedures and error handling, upstream tests done.**
+M0 (baseline) and M1 (VS Code extension on the old compiler) are complete. **M2 (front end) is in progress**: steps
+1 to 10 of the order of work are done; step 11 is the last. Step 9, built-in statements, was OpenSpec change
+`m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
+(archived 2026-10-10: `qb64rust --report unsupported`, and tests of the test runner). Step 9a, the screen-state
+check, was OpenSpec change `m2-screen-state-check` (all 22 tasks done, archived 2026-10-10).
+A program that draws can now be tested: `tools\screen\screen_state.cpp`, linked into a test program of either
+compiler, writes the state of the screen at exit and gives the program its keys; the corpus runner records and
+compares it (`<name>.screen`, `<name>.keys`); 29 programs are recorded in `tests\corpus\screen\`
+(`tools\screen\README.md`).
+The compiler parses every program the old compiler accepts with no false error, and compiles scalars, procedures,
+error handling, every operator, `CONST`, control flow, `SELECT CASE`, static arrays and `TYPE` of the main module,
+70 built-in functions, all 17 numeric types, fixed-length strings, sequential files, `DATA`/`READ`/`RESTORE`,
+`SWAP`, the `MID$` statement, `RANDOMIZE`, console `INPUT`/`LINE INPUT`, `SHELL`, the default types (`DEFINT`
+to `DEFSTR`, `_DEFINE`), `OPTION BASE`, the type before the names (`DIM AS LONG a, b(3)`), dynamic arrays of the
+main module (`DIM` with a bound that is not constant, `$DYNAMIC`, `REDIM`, `REDIM _PRESERVE`, `ERASE`), `_BIT`
+arrays, arrays used without `DIM`, arrays in procedures (`DIM`, `REDIM`, `STATIC a(n)`, `STATIC a()`, `SHARED
+a()`, `SUB … STATIC`), array parameters and `COMMON`, `STRING` members of a `TYPE`, whole `TYPE` values (`q =
+p`), parameters of a user type and member arrays (`v(0 TO 3) AS LONG` in a `TYPE`: elements through any chain,
+`LBOUND`/`UBOUND`, `REDIM` and `ERASE` as a clear, a whole member array as an array argument)
+(step 10, OpenSpec change `m2-defxxx-common-arrays`, archived 2026-10-12; `crates\README.md`). There is
+a thin language server (`qb64rust lsp`). A plain built-in now comes in as a row, a call-site program and a slice
+line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10).
 
-M0 delivered:
-- Studies `study\00`–`10` and `15` (the other-repo reviews `11`–`14` are closed, in `study\archive\`).
-- Old compiler built locally: `..\QB64pe\qb64pe.exe` (llvm-mingw toolchain in `..\QB64pe\internal\c\c_compiler`).
-- Windows test runner `tools\legacy_tests\run_legacy_tests.py` (suites compile, qbasic, format; old or new
-  compiler; `known_failures.txt` marks expected failures).
-- Baseline in `baselines\`: 546 pass, 1 environment failure (`http/read_example`); format tests 24 of 24.
-- `verification\`: 15 small programs with recorded outputs (`run.sh` reruns them with `QB64PE_NOPROMPT=y`).
-- Built-in table `tools\builtins\builtins.json` (455 entries). Known gap: names from the auto-included BASIC files
-  (`_TRUE`, `_FALSE`, color constants) are missing (`study\10` §3.4).
-- QB64pe wiki cached locally by `tools\wiki\fetch_wiki.py` (1,124 pages, git-ignored; no licence stated).
+## Open items
 
-Test hygiene learned in M0 (details `study\00` §5, §10): run programs with `QB64PE_NOPROMPT=y`; detect runtime
-errors from output, not exit code (always 0); never use screen `PRINT` with a comma in a `$CONSOLE` program with
-redirected stdout (hangs).
+- **The GitHub CI run after the next push has not been seen.** It settles task 10.2 of `m2-numeric-types` and task
+  5.1 of `m2-language-server` (both changes were archived with that task open), and it is the first run of the
+  changed `tier2` job (QB64pe's sources at the reference clone's commit, `DECISIONS.md` 2026-10-09), which now
+  also builds `qb64pe.exe` there for the call-site check (`mingw32-make OS=win BUILD_QB64=y`, never tried on a
+  GitHub runner). Work is checked locally; the user does not treat CI as a concern for now.
 
-## M1 done: VS Code extension v0 on the old compiler (2026-10-03, session 7)
+Every question of the seventh and eighth reviews is answered (`study\28` §9, `study\29` §8, `DECISIONS.md`
+2026-10-09 and 2026-10-10): the local reference clone (`16f629784e`) is the one reference for the old compiler;
+Civil War Strategy is in `tests\programs` as the real-program graphics target; the formatter is out of M2's exit
+criterion; the screen-state check needs no copy of libqb.
 
-OpenSpec change `m1-vscode-extension-v0`: all 18 tasks done; archived 2026-10-03 to
-`openspec\changes\archive\2026-10-03-m1-vscode-extension-v0\`, its specs now the main specs in
-`openspec\specs\editor\` (build-run, compiler-diagnostics, formatting, language-support). `vscode\` holds the extension (`README.md`,
-`DEVELOPMENT.md`): grammar, build/run (commands and tasks), diagnostics from `qb64pe -z -q -w`, formatting via `-y`,
-CP437 default. Written fresh, ids `qb64rust`. Measured old-compiler output formats are in the archived change's `design.md`.
+## Next
 
-- Tests: unit 40, grammar 4, integration 37 on VS Code stable and on 1.100 (the minimum, `study\17`); also passes
-  against the QB64pe 4.7.0 release download. CI for Windows in `.github\workflows\vscode-extension.yml`, active
-  on `davidshq/QB64Rust` (last run on `main` 2026-10-03: success). The Rust workspace has its own workflow
-  since 2026-10-04 (`rust.yml`, `study\21`).
-- Walkthrough of the packaged `.vsix` (`verification\m1-extension.md`): 11 of 11 steps done; one expectation
-  corrected (a program without `$CONSOLE` opens its own window, not the terminal).
-- CP437 round trip (`study\09`): every byte survives except a lone 0x0D; a file containing 0x00 cannot be opened as
-  text in VS Code at all, even with "Open Anyway".
-- Practices (`study\18`): A–D done (prepublish, virtual workspaces, language status item, fewer notifications);
-  E (bundling) and F (Marketplace metadata) wait until publishing; G done for Windows.
-- Follow-ups from the walkthrough (2026-10-03): the `-x` progress bar no longer fills the output channel (each
-  line shows its last redraw, progress lines dropped; `src\compiler\buildOutput.ts`, unit test on a recorded build,
-  fixture `build_clean` added to `scripts\record-fixtures.sh`). Progress moved to the language status item
-  instead (panel, 2026-10-03): "qb64pe: generating C++ n%", then "qb64pe: compiling C++…". Measured: generating
-  C++ for `qb64pe.bas` (28,828 lines) takes 33 s, a small program 0.2 s; the terminal build task still shows the
-  original bar. For the new compiler: report progress as structured
-  messages (or LSP `$/progress`), not a `\r` bar. The heading "Qb64rust: Compiler Path" is left as is:
-  it appears in the filtered search view that "Open Setting" opens, where VS Code shows the key's prefix; the
-  extension's `name` already matches the prefix, so the tree view shows "Compiler Path". Removing the prefix
-  from search results would need renamed keys (not wanted).
-- Both checked by eye (2026-10-03, VS Code 1.140, build of `qb64pe.bas`): the settings tree view (Extensions >
-  QB64) shows "Compiler Path" without the prefix. The status item shows "qb64pe: building…", then "qb64pe:
-  generating C++ n%", "qb64pe: compiling C++…", and "qb64pe" again when done; the output channel has no bar lines.
-  Measured with a pipe: qb64pe prints nothing for the first 31 s (the prepass, which draws no bar; the bar is drawn
-  only in the main pass), then 2 %–100 % arrive within 2 s, then compiling C++ takes 17 s (50 s in all). So for
-  most of the C++ generation the item said only "building…", and the percentage flashes by at the end. Fixed: the
-  item switches to "qb64pe: generating C++…" when the line "Beginning C++ output from QB64 code..." arrives (0.2 s
-  in; unit test added, 40 unit tests; seen by eye in the same build).
+The order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §3) and changed by the eighth
+(`study\29` §3: the last two steps swapped).
 
-## M2: golden corpus (2026-10-03, session 8)
+9. Done: built-in statements and functions by demand (`m2-builtin-statements`). Further plain built-ins come in
+   as programs name them, each with a call-site program (`crates\README.md`); what was left marked and why is in
+   task 7.4 of the change.
+9a. Done: the screen-state check (`m2-screen-state-check`; `tools\screen\README.md`). The new
+    compiler compiles none of the 29 screen programs yet: it builds console programs only, and the first drawing
+    statement is M3 work. What a set of them needs: `qb64rust --report unsupported tests\corpus\screen`.
+10. Done: (was 11) default types, `COMMON`, dynamic arrays, arrays in procedures, array parameters, the rest
+    of `TYPE` and member arrays (`m2-defxxx-common-arrays`, all 29 tasks done, archived 2026-10-12).
+    What each task found is in the change's `tasks.md`, how each group was built in its `design.md` ("As
+    built"), the measured facts in `study\00` §5 (`verification\v24_*`, `v25_*`). Still marked in the
+    member-array layer, each listed in `SOMEDAY.md`: a bound that names a `CONST`, a member array of an array
+    element beside other targets of one `ERASE` or `REDIM`, an element of a member array as a target of
+    `INPUT`, `READ` or `MID$`, `REDIM t.v(0) AS type` under `OPTION BASE 1`.
+11. **Next:** (was 10) `$CONSOLE` with `_DEST _CONSOLE` and `$SCREENHIDE`, measured first (`study\26` §5); check
+    once that the GitHub Windows runner can start the hidden window.
 
-OpenSpec change `m2-golden-corpus`: all tasks done; archived 2026-10-03 to
-`openspec\changes\archive\2026-10-03-m2-golden-corpus\`, its spec now the main spec `openspec\specs\testing\golden-corpus`. `tests\corpus\` holds 263 programs
-(QB64Fresh's 261 `runtime_comparison` programs, unchanged, plus `verification\` v11 and v12) with the old
-compiler's recorded output: 237 `.output`, 20 `.err`, 1 compile-only (`239_lprint`), 5 known failures
-(`tests\corpus\README.md`). Checked by `run_legacy_tests.py --suite corpus` (about 11 min with the old compiler);
-baseline `baselines\qb64pe-16f629784e-win64-corpus.json`. A second `--record` changed no file.
+## Numbers at the last full runs
 
-Found while recording:
-- On Windows, `END` waits for a console key event; the runner feeds key presses (`press_any_key.py`).
-- `PRINT` with a comma prints spaces forever when the console's stdout is redirected (80, 126, 187, 251): known
-  failures, compiled but not run. Same cause: `CSRLIN`/`POS` always report 1, 1 (237).
-- `CHAIN` to a missing program tries `<program folder>\qb64pe.exe -c` (238; path masked by `.normalize`).
-- 20 programs use syntax QB64pe rejects (mostly `FUNCTION f (...) AS type`); kept as compile-error tests.
-- `-O2` changes only `v11` (LONG) and the new `v12` (`_INTEGER64`): `_INTEGER64` overflow has the same exposure
-  as LONG (`study\16` §8).
+2026-10-12, release build against the reference clone, after `m2-defxxx-common-arrays` (its task 10.1, session
+48: every run of tier 1 and tier 2 and both full suites, with `--jobs 8 --build-cache`). The two rows of the old
+compiler (the screen programs, the corpus of 336) are from session 40, 2026-10-10.
 
-Test cadence decided (`study\19`): the full corpus is not part of the edit loop; four tiers from `cargo test` to
-nightly.
+| Yardstick | Result |
+|---|---|
+| `tests\corpus\slice.list` (tier 2) | 287 of 287, also with `QB64RUST_NO_FOLD=1`; about 3 min 20 s each |
+| Full corpus (357 programs) | 306 pass (the 287 of the slice list, 19 `.err` programs), none wrong at run time; 45 rejected with "not supported yet" (16 and the 29 screen programs) and 1 `.err` program with only marked errors; 5 known failures (`tests\corpus\README.md`) |
+| Upstream | **114 of 279** (`tests\upstream\pass.list`: 114, all passing, run by itself and in the full run); none wrong in the full run of the suite (404 programs: 114 pass, 251 rejected, 38 `.err` programs with only marked errors, 1 known failure) |
+| Call-site check | 256 of 256 programs equal (`tools\callsite\README.md`); about 1 min |
+| Real programs (`tests\programs`) | Civil War Strategy: the front end reads it with no real error; every diagnostic is "not supported yet" (what it needs next: `tests\programs\README.md`) |
+| Differential (`tests\differential\pass.list`) | 59 of 59 |
+| Shrink-only lists | 0 false errors, 0 parse gaps, 53 only-marked rejections (`tests\upstream\README.md`) |
+| Tier 1 (`cargo test`) | passes, about 20 s; the 13 command-line tests that build an executable (`--ignored`) pass |
+| The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 56 pass, under a second |
+| Screen programs (`tests\corpus\screen`, 29) | Old compiler: 29 pass, each recorded from two equal runs. New compiler: all 29 rejected with only "not supported yet" errors (by programs: no `$CONSOLE:ONLY` 29, `SCREEN` 23, `LINE` 20, `PSET` 17) |
+| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: 16 programs held back beside the 29 screen programs. Upstream (348 without an `.err`): 96 without errors, 242 held back, 10 with other errors (the ten that include the old compiler's sources); `_DYNAMIC`/`_STATIC` members 86 programs (deferred), `$Unstable` 85, an array used after a marked declaration 60, `_DEST` 54, `$CONSOLE` 34, `_MEM` 30, `REDIM _RETAIN` 27 (no "arrays as `TYPE` members" line is left). Civil War Strategy: `LINE` 899, `COLOR` 190, `LOCATE` 145, as before |
+| Tier 2 as CI runs it, locally | about 12 min at the last full build; about 2 min with `--jobs 8 --build-cache` when little C++ changed |
+| Full corpus with the old compiler (2026-10-10, 336 programs) | 331 pass, 5 known failures, `--jobs 8`; the 305 before the screen programs took about 12 min with one job, 3 min 44 s with `--jobs 8` (`tools\legacy_tests\README.md`) |
 
-Decided 2026-10-03: `_INTEGER64` overflow wraps too, like LONG (`CLAUDE.md`, `study\16` §8).
+How to read them: the corpus has given what it can before M3 (its 16 rejected console programs wait on `PRINT
+USING`/`TAB`/`SPC`, random and binary files and a few functions; the 29 screen programs on drawing). Upstream
+went from 50 to 114 over step 10 (64 before its member arrays). Its next blockers outside `deferred.list` are
+`_DEST` and `$CONSOLE` (step 11, `study\27` §4) and `_MEM`; the `_DYNAMIC`/`_STATIC` markers and `$Unstable` are
+deferred (`SOMEDAY.md`).
 
-## M2: Rust workspace and end-to-end slice (2026-10-03, session 9)
+## Known bugs
 
-OpenSpec change `m2-workspace-and-slice`: all tasks done; archived 2026-10-04 to
-`openspec\changes\archive\2026-10-04-m2-workspace-and-slice\`, its specs now the main specs `openspec\specs\compiler\cli`,
-`compiler\pipeline`, `language\numeric-semantics` and `testing\compiler-tests`. The new compiler `qb64rust` exists:
-`Cargo.toml`, `crates\` (seven crates, one per stage; `crates\README.md`), Rust 1.88. Every stage has its final
-shape: bytes in, lossless tree (our own, over bytes), typed tree with explicit conversions, ABI-neutral IR, C++
-fragments for `qbx.cpp`, built through the reference clone's `Makefile` with overrides (libqb reused, clone
-untouched, about 2 s per program). The subset: `$CONSOLE:ONLY`, `DIM` of scalars, assignments, implicit
-variables, `PRINT` (`;`, `,`, auto-semicolon), `END`, literals, `+ - * /`, unary `-`, string `+`, `INSTR`.
-
-- Tier 2: the 14 programs of `tests\corpus\slice.list` (7 new ones in `tests\corpus\slice\`, recorded with
-  `qb64pe.exe`, and 7 of `runtime_comparison`) pass end to end, also with constant folding off. Full corpus once:
-  31 pass, the rest are rejected with a diagnostic; no crash, no wrong executable (`tests\corpus\README.md`).
-- Tier 1 (`cargo test`): unit and `insta` snapshot tests, `tests\frontend\` by mode line, the front end over every
-  corpus program (round trip, no panic).
-- `DIVERGENCES.md` (D-001, D-002: integer overflow wraps) and the numeric-semantics spec
-  (`openspec\specs\language\numeric-semantics`).
-- Measured on the way (`study\00` §5): a variable is a name plus a type (`verification\v13*`); `INSTR(0, …)` does
-  not raise; negating an integer is believed `_INTEGER64`. The corpus runner now keeps the clone's tracked
-  `internal\temp\temp.bin` (it deleted it; `qb64pe.exe` recreates it, `qb64rust` does not).
-
-**Rust review of the workspace setup** (2026-10-04, `study\21`, accepted): no `_ =>` on semantic enums,
-`disallowed-methods` for byte-to-`str` conversions, cast lints with `base::to_u32`, overflow checks in release
-(the folder wraps with `wrapping_*`), `rust-version`, CI workflows `rust.yml` (tier 1) and `repo-check.yml`
-(`tools\repo_check`, rules 2 and 7). Both run green on GitHub since 2026-10-05.
-
-## M2: procedures and error handling (2026-10-04, sessions 10–11)
-
-OpenSpec change `m2-procedures-and-errors`: all tasks done; archived 2026-10-04 to
-`openspec\changes\archive\2026-10-04-m2-procedures-and-errors\`, its specs now the main specs
-`openspec\specs\language\procedures` and `language\error-handling` (and updates of `compiler\pipeline` and
-`testing\compiler-tests`). Supported now (`crates\README.md`): `SUB`/`FUNCTION`, calls by
-reference and by value, `EXIT`, `DECLARE`, `STATIC`, `SHARED`, `DIM SHARED`, reserved names, `SYSTEM`; labels,
-`ON ERROR GOTO`, the three `RESUME` forms, `ERROR`, `ERR`, `ERL`, `CHR$`. `sema` reads the tree through typed
-accessors (`ast.rs`) and keeps a symbol table for the language server.
-
-- Tier 2: `slice.list` has 54 programs (the 12 of `slice\`, 5 of them new: `s08`–`s12`; 42 of
-  `runtime_comparison`); all pass, also with folding off. Tier 1 now also requires an error for every `.err`
-  program and checks reserved names against 1,030 measured forms (`verification\v15_builtin_names`).
-- Full corpus once (`tests\corpus\README.md`): exactly the 54 pass, 216 are rejected with a diagnostic (20 of them
-  `.err` programs), 5 known failures not run; no crash, no wrong executable; 4 min 47 s.
-- Measured on the way (`study\00` §5, `verification\v14_*`, `v15_*`): argument passing, scopes in file order,
-  `DECLARE` ignored, reserved names, `RESUME` granularity, `ERROR` values, no unary `+`.
-- Noted for `TYPE`: an unsupported `TYPE` block gives follow-on errors on its member lines and member assignments
-  (3 corpus programs).
-
-## M2: upstream tests (2026-10-04, session 12)
-
-OpenSpec change `m2-upstream-tests`: archived 2026-10-04 to
-`openspec\changes\archive\2026-10-04-m2-upstream-tests\`, its specs now the main specs
-(new: `openspec\specs\testing\upstream-tests`; updated: `compiler\cli`, `compiler\pipeline`,
-`testing\compiler-tests`). Task 6.5, the last one, done 2026-10-05: the CI job `tier2` in `rust.yml` is green on
-GitHub.
-
-- `tests\upstream\`: QB64pe's compile tests copied (404 `.bas`, 836 text files, 2.5 MB, `SOURCE.md`); tier 1
-  (`inputs.rs`) runs the front end over about 1,000 files: corpus, upstream, 406 QB64Fresh snippets labelled by
-  `qb64pe.exe` (`tests\snippets\`), and from the clone `qbasic_testcases` and the old compiler's sources. No panic,
-  exact round trip everywhere. `cargo test` takes about 3 s in debug.
-- Diagnostics carry a "not supported yet" marker (`error: not supported yet: ...`, summary `N errors (M not
-  supported yet)`). Baseline for parser breadth: **181 programs accepted by `qb64pe` still get a real error**
-  (`tests\known_false_errors.list`), **82 rejected programs get only marked errors**
-  (`tests\known_unsupported_rejections.list`); breakdown in `tests\upstream\README.md`.
-- Seeded mutation test (`mutate.rs`): 5,500 mutants in under a second; 220,000 more with other seeds found nothing.
-- **Upstream progress: 10 of 279** (`tests\upstream\pass.list`, `deferred.list` with the 125). `qb64rust` accepts
-  the suite's `-f:` settings; the runner's `--list` and the new `--compile-tests` work for `--suite compile`.
-- `Ty`, `BinOp`, `ConvKind` are defined once, in `sema`.
-- Bugs found and fixed on the way: `#line` wrote `\` in a path as `\134`, which clang rejects (any absolute
-  Windows path failed to build); build folders with spaces, `$` or `'` in the name broke `make` (every
-  compile-suite program, `<test> - output.exe`); the runner's stale-file cleanup failed on kept build folders.
-- **Found, fixed 2026-10-04 (`m2-parser-breadth` task 1.1: comment `$INCLUDE`/`$STATIC`/`$DYNAMIC` are now "not
-  supported yet", a malformed comment `$INCLUDE` an error, by the old compiler's rule): wrong code.** Comment metacommands (`'$INCLUDE: 'x.bm'`, `REM $INCLUDE`) are ignored as
-  comments, so 4 upstream programs build and print the wrong output (`include_once`, `include_paths`). This breaks
-  "never wrong code"; first item of step 2 below: mark them "not supported yet" until `$INCLUDE` is implemented.
-- **Decided 2026-10-04 (was an open question):** the runner compared an `.err` program's compiler output with the
-  old text, so the 56 upstream `.err` programs (counted in the 279) could not pass tier 2 with the new messages.
-  For compilers other than `qb64pe`, an `.err` program now passes when the compile fails, writes no executable
-  and reports at least one error not marked "not supported yet"; they stay in the 279 (`CLAUDE.md`; implemented
-  in `m2-parser-breadth` task 2.1).
-- Your index: files staged before `.gitattributes` gained the `-text` lines were stored with LF (7 upstream `.bas`
-  show `AM`); staging them again stores the bytes as upstream has them.
-
-**Next** (order accepted 2026-10-05 after the third review and panel, `study\23` §4, reasons there; it replaces
-the order of `study\22` §5):
-
-1. Done 2026-10-05: `rust.yml` (with `tier2`) and `repo-check.yml` green on GitHub for `1289c20`;
-   `vscode-extension.yml` last ran green on `main` (2026-10-03), nothing under `vscode\` changed since. Push the
-   later commits and glance at their runs.
-2. Done 2026-10-05: `m2-parser-breadth` groups 5 and 6 (member access, `DATA`, line numbers, blocks); state of
-   the change below. The change now pauses.
-3. **Next:** a control-flow slice through to C++, its own OpenSpec change (not proposed yet): `IF`, `FOR`, `DO`,
-   `WHILE`, `GOTO`, `GOSUB`/`RETURN`, `CONST`, `OPTION _EXPLICIT`, labels inside blocks and procedures, `RESUME
-   NEXT` after an error in a block header, and the check of `NEXT` variables against their `FOR` (left out of the
-   parser, design D4 "As built"). The block nodes and accessors exist (`ast.rs`); `sema` marks them in
-   `check.rs` `block_parts`. First count the corpus and upstream programs blocked only by these. Then the IR
-   review (keep, or merge into the typed tree; `study\20` §3.4). Fourth review (2026-10-05, order unchanged),
-   written into the change `m2-control-flow-slice`: the IR's error rule is restated (a pending error and
-   placeholder values, checked at named points; "skips the rest of the statement" was true only of `PRINT`) and
-   measured first; operator typing lives in one function so the type table of step 6 rewrites one place;
-   constants and `OPTION` are done after the IR and emitter tasks; the IR review leaves open how the IR names
-   an array element or a `TYPE` member (step 8).
-4. `m2-parser-breadth` groups 7 to 9, with the blunt follow-on rule and block crossing marked (`study\23` §2.3,
-   §2.4; design D10, D4).
-5. A thin language server in the extension: syntax errors, outline, folding, go to definition for procedures and
-   labels (`study\23` §2.6).
-6. Bug-compatibility decisions (`study\00` §6), then the differential tester, `Ty` as a type table, unsigned types.
-7. Plain built-ins (249 of 455), table-driven, with generated tests.
-8. The rest of control flow (`SELECT CASE`, `ON … GOTO/GOSUB`, `DEFxxx`), then arrays and `TYPE` (storage designed
-   so member arrays fit later).
-
-State of **`m2-parser-breadth`** (started 2026-10-04;
-   `openspec\changes\m2-parser-breadth\`). Done: task 1.1 (the wrong-code fix, comment metacommands), 1.2 (panic
-   hook: "internal compiler error", exit code 3), and group 2: the tier-2 `.err` meaning in the runner (judged
-   by the summary line), the third shrink-only list `tests\known_parse_gaps.list` (**673 of 1,139** files do not
-   parse cleanly), and the 56 upstream `.err` programs run: 54 only marked, 2 pass only through a parse gap and
-   are not added, so still **10 of 279** (`tests\upstream\README.md`). Task 3.1 done 2026-10-05: 94
-   measurement programs `verification\v16_*` (M1–M8, four added by the reviews), findings in `study\00` §5;
-   they changed eight design decisions (listed in task 3.1), among them: `$IF` and blocks must nest properly;
-   only comment `$INCLUDE`; includes found next to the including file, then under a compiler root
-   (`--include-root`, default the exe's folder, as the old compiler uses its own folder); depth 100, no cycle
-   check. Group 4 done 2026-10-05 (no behaviour change): one `Tree` per file per inclusion in a
-   `ParsedProgram`, `parse` takes a `Loader` (none loads anything yet), `sema` keyed by (`TreeId`, offset),
-   `--dump tree` headed per tree. Group 5 done 2026-10-05: member access (`FieldExpr`), omitted arguments,
-   `DATA`/`READ`/`RESTORE` (the old compiler's `DATA` scanner), line numbers, plain `GOTO`/`GOSUB`/`RETURN`, all
-   parsed and marked by `sema`; **false errors 184 to 69**, parse gaps 677 to 654, two `.err` programs moved to
-   the rejection list (task 5.1 says why); tier 2 unchanged. Group 6 done 2026-10-05: every block is a node
-   (`IF` both forms, `FOR`, `DO`, `WHILE`, `SELECT CASE`, `TYPE`, `DECLARE LIBRARY`, `DEF FN`), one statement
-   loop and block stack for the main module, procedures and blocks (`parser\blocks.rs`), recovery with one
-   error per mistake, `EXIT` checked against the open blocks, `sema` marks every block and checks what is inside;
-   19 more measurements; labels only at the start of a line (measured; it was wrong before). In entries (header
-   comments not counted): **parse gaps 650 to 527**, no first gap a block any more; **false errors 66 to 59**;
-   only-marked rejections 84 to 81; tier 2 unchanged, still **10 of 279** (task 6.4 has the details). The change
-   pauses here for the control-flow slice (step 3 above) and resumes with statements, `specialformat` templates
-   (new dependency `syntax -> builtins`), `$IF`, `$INCLUDE` with one tree per file, and the follow-on rule. Done
-   when the parse-gap and false-error lists are empty.
-
-## FreeBASIC reviewed (2026-10-03)
-
-`..\FreeBASIC\` cloned (reference only, GPL/LGPL). Findings in `study\16-freebasic.md`. Reviewed by a panel and a second
-pass (`study\16` §7). Measured finding about the old compiler (`verification\v11_wrap_o2`): LONG overflow gives
-different results with and without the "optimize C++" setting (`-O2`), because the generated C++ is compiled
-without `-fwrapv`. The six follow-ups in `study\16` §6 were decided by the panel (`study\16` §8): LONG overflow
-wraps (decided now); test conventions and recovery policy go into M2; the rest are notes for M3, M5, M6.
-M1 leftovers: done (see above).
+None known. (The two of 2026-10-11, a `+` after another sign and a `DIM` of several dynamic arrays, are fixed:
+`tasks.md` of `m2-defxxx-common-arrays`, above its group 7; slice programs `s17_signs` and `s52_dim_list`.)
 
 ## Queued for later milestones
 
 | When | Item |
 |---|---|
-| Step 4 of "Next" | Decide the bug-compatibility choices in `study\00` §6 (32-bit INTEGER arithmetic and half-to-even rounding are already implemented as "keep") |
-| M3 | Plain copy of `..\QB64pe\internal\c` at the pinned commit (`CLAUDE.md`) |
-| M3 | Programs without `$CONSOLE:ONLY`, with an oracle such as a screen-state dump at exit compared between old and new compiler (`study\22` §3.2) |
+| M3 | Plain copy of `..\QB64pe\internal\c` at the reference clone's commit, `16f629784e` (`DECISIONS.md` 2026-10-02 and 2026-10-09) |
+| M3 | Civil War Strategy builds and its screens match (`tests\programs\README.md`, stages 2 and 3) |
+| Any time | A formatter that matches `-y` (out of M2's exit criterion, `DECISIONS.md` 2026-10-09) |
+| M3 | Programs that draw (without `$CONSOLE:ONLY` and not writing to `_DEST _CONSOLE`): the check exists (`tools\screen`), with 29 recorded programs; the new compiler has to build a program with a window and compile the drawing statements, each coming in with screen programs that pass |
+| M3 | Data files beside a corpus program, for the cut programs that load the game's `*.VGA` pictures with `BLOAD` (`SOMEDAY.md`) |
 | M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\22` §4.2) |
 | Help/hover work | Ask the QB64pe maintainers about the wiki licence before shipping any wiki text |

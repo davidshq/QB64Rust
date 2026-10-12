@@ -1,0 +1,5 @@
+
+Expected (...)
+Caused by (or after):S = COMMAND$ ( )
+LINE 4:s = COMMAND$()
+exit=1

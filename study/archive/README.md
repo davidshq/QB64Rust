@@ -1,7 +1,7 @@
 # Archived studies
 
 Closed reviews of other repositories, kept for the record. Nothing in the active plan depends on them; their
-conclusions are summarised in `study\00-synthesis.md` §11 and the decisions they led to are in `CLAUDE.md`.
+conclusions are summarised in `study\00-synthesis.md` §11 and the decisions they led to are in `DECISIONS.md`.
 Paths inside these documents may refer to their old locations (`study\11`, `verification\qb64fresh\`).
 
 | File | Subject | Conclusion |

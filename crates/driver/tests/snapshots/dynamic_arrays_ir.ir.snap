@@ -1,0 +1,44 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Array D:I32 dynamic, dimensions: 1
+Array S:I32 static (0 To 5)
+Array T:Str dynamic, dimensions: 2
+Array G:F64 dynamic, dimensions: 1
+Stmt line 2
+  SelectConsole
+Stmt line 8
+  Assign N:F32 = (Const 4:I16 -> Convert F32 Nearest)
+Stmt line 9 may_raise
+  Allocate Dim D:I32
+    Const 0:I64 To (Var N:F32 -> Convert I64 RoundEven)
+Stmt line 11 may_raise
+  Allocate Preserve D:I32
+    Const 0:I64 To Const 9:I64
+Stmt line 12 may_raise
+  Allocate Redim T:Str
+    Const 1:I64 To (Var N:F32 -> Convert I64 RoundEven)
+    Const 0:I64 To (Const 2.5E+0:F64 -> Convert I64 RoundEven)
+Stmt line 13 may_raise
+  Allocate Dim S:I32
+    Const 0:I64 To (Var N:F32 -> Convert I64 RoundEven)
+Stmt line 14 may_raise
+  Assign D(Const 1:I64):I32 = (UBound T(Const 2:I32):I64 -> Convert I32 Truncate)
+Stmt line 15
+  Clear S:I32
+Stmt line 15
+  Release D:I32
+Stmt line 16 may_raise
+  Call RESIZE []
+Stmt line 17
+  System
+Stmt line 19 may_raise
+  Allocate Dim G:F64
+    Const 0:I64 To Const 3:I64
+Sub RESIZE lines 20-23
+Stmt line 21 may_raise
+  Allocate Redim G:F64
+    Const 0:I64 To (CallBuiltin LEN:I32 [Some(Const "ab")] -> Convert I64 Widen)
+Stmt line 22
+  Release G:F64

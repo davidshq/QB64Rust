@@ -1,0 +1,116 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE REC
+  ID:I32
+  NM:Str*6
+ARRAY A:Str*3(0 TO 2)
+line 2: ConsoleOnly
+line 13: Assign R.NM:Str*6
+  Str "bob" : Str
+line 13: Assign A(…):Str*3
+  Index
+    Int 1 : I64
+  Value
+    Str "x" : Str
+line 14: Print newline
+  Str
+    Str "[" : Str
+  Str
+    Member R.NM : Str
+  Str
+    Str "]" : Str
+  Num
+    Int 10 : I32
+  Str
+    Str "[" : Str
+  Str
+    Element A(…) : Str
+      Int 1 : I64
+  Str
+    Str "]" : Str
+  Num
+    Call ASC : I32
+      Element A(…) : Str
+        Int 0 : I64
+      Int 1 : I32
+line 15: Call SETLONG
+  ref R.NM : Str*6
+line 16: Call SETLONG
+  ref A(…) : Str*3
+    Int 1 : I64
+line 17: Print newline
+  Str
+    Str "[" : Str
+  Str
+    Member R.NM : Str
+  Str
+    Str "] [" : Str
+  Str
+    Element A(…) : Str
+      Int 1 : I64
+  Str
+    Str "]" : Str
+line 18: Call WORK
+line 19: System
+SUB WORK
+  local F:Str*4
+  local C:Str*3
+  local P:Str*3
+  static T:Str*2
+  local P:Str
+  local Q:Str*2
+line 24: Assign F (local):Str*4
+  Str "ab" : Str
+line 24: Assign C (local):Str*3
+  Str "abcdef" : Str
+line 24: Assign P (local):Str*3
+  Str "xyz!" : Str
+line 24: Assign P (local):Str
+  Str "plain" : Str
+line 24: Assign Q (local):Str*2
+  Str "qqq" : Str
+line 24: Assign T (static):Str*2
+  Str "stu" : Str
+line 25: Print newline
+  Str
+    Str "[" : Str
+  Str
+    Var F (local) : Str
+  Str
+    Str "]" : Str
+  Num
+    Call LEN : I32
+      Var F (local) : Str
+  Num
+    StrCompare Eq : I32
+      Var F (local) : Str
+      Str "ab  " : Str
+  Str
+    Str "[" : Str
+  Str
+    Var C (local) : Str
+  Str
+    Var P (local) : Str
+  Str
+    Var P (local) : Str
+  Str
+    Var Q (local) : Str
+  Str
+    Var T (static) : Str
+  Str
+    Str "]" : Str
+line 26: Call SETLONG
+  ref F (local) : Str*4
+line 27: Print newline
+  Str
+    Str "[" : Str
+  Str
+    Var F (local) : Str
+  Str
+    Str "]" : Str
+SUB SETLONG
+  param S:Str
+line 31: Assign S (param):Str
+  Str "longer text" : Str

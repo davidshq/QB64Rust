@@ -1,0 +1,5 @@
+1. a variable, an element, a member: 1 m 1 m 1 m
+2. a FUNCTION: 2  11 
+3. an element with an index outside, move a(9): [error 9 ] a(0).x 0 
+4. passed on to a second SUB: 12 
+exit=0

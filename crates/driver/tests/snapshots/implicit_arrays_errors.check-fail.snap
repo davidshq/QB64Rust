@@ -1,0 +1,27 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+implicit_arrays_errors.bas:9:1: error: `z` has 1 dimension, not 2
+implicit_arrays_errors.bas:11:1: error: `lb` has 1 dimension, not 2
+implicit_arrays_errors.bas:13:5: error: the static array `z` is already declared
+implicit_arrays_errors.bas:15:5: error: the static array `ub` is already declared
+implicit_arrays_errors.bas:17:3: error: an array index must be a number
+implicit_arrays_errors.bas:20:1: error: not supported yet: `CLS`
+implicit_arrays_errors.bas:22:7: error: `later` is no declared array (`ERASE`)
+implicit_arrays_errors.bas:27:1: error: not supported yet: `_foo(...)` (an array used without `DIM`, or no FUNCTION of this name)
+implicit_arrays_errors.bas:28:1: error: not supported yet: `len%` as a name (a reserved word with this suffix is not measured)
+implicit_arrays_errors.bas:29:1: error: not supported yet: `abs$` as a name (a reserved word with this suffix is not measured)
+implicit_arrays_errors.bas:30:1: error: not supported yet: `rnd(...)` as a place or an array (a built-in function's name)
+implicit_arrays_errors.bas:31:1: error: not supported yet: `f(...)` here (a FUNCTION of this name exists)
+implicit_arrays_errors.bas:32:14: error: not supported yet: `s(...)` (an array used without `DIM`, or no FUNCTION of this name)
+implicit_arrays_errors.bas:33:1: error: not supported yet: the whole array `whole()`
+implicit_arrays_errors.bas:36:4: error: not supported yet: `hd(...)`: an array below `$DYNAMIC` first used in the line of a block (`IF`, `FOR`, `DO`, …), without `DIM`
+implicit_arrays_errors.bas:38:12: error: not supported yet: `hl(...)`: an array below `$DYNAMIC` first used in the line of a block (`IF`, `FOR`, `DO`, …), without `DIM`
+implicit_arrays_errors.bas:42:20: error: not supported yet: `pl(...)`: an array below `$DYNAMIC` first used in a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`, without `DIM`
+implicit_arrays_errors.bas:43:13: error: not supported yet: `rl(...)`: an array below `$DYNAMIC` first used in a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`, without `DIM`
+implicit_arrays_errors.bas:44:7: error: not supported yet: `wf(...)`: an array below `$DYNAMIC` first used in a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`, without `DIM`
+implicit_arrays_errors.bas:45:11: error: not supported yet: `ff(...)`: an array below `$DYNAMIC` first used in a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`, without `DIM`
+implicit_arrays_errors.bas:46:7: error: not supported yet: `it(...)`: an array below `$DYNAMIC` first used in a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`, without `DIM`
+implicit_arrays_errors.bas:47:17: error: not supported yet: `li$(...)`: an array below `$DYNAMIC` first used in a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`, without `DIM`
+implicit_arrays_errors.bas:54:1: error: `M` is not a member of `TYPE PT` (`v.m`)

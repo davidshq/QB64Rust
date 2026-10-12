@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):PRINT LBOUND ( A ( ) )
+LINE 7:PRINT LBOUND(a())
+exit=1

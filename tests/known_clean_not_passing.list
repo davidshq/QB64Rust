@@ -1,0 +1,9 @@
+# Programs the old compiler accepts that the new compiler compiles without an error but that are on neither pass
+# list (tests\corpus\slice.list, tests\upstream\pass.list), each with the reason (spec testing/compiler-tests,
+# "Clean programs are listed"; study\26 section 3). Shrink-only and kept by hand: tier 1 fails for a clean program on
+# no list, and for an entry here that no longer compiles cleanly or that a pass list names.
+corpus/runtime_comparison/126_print_comma.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)
+corpus/runtime_comparison/147_on_error_resume_0.bas  # loops forever by design: RESUME 0 re-runs ERROR 5 (KFAIL)
+corpus/runtime_comparison/187_print_comma_zones.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)
+corpus/runtime_comparison/251_print_chain.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)
+corpus/runtime_comparison/80_print_semicolon.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)

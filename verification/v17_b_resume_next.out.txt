@@ -1,0 +1,36 @@
+IF block
+  handler 5 
+  then
+WHILE
+  handler 5 
+  body 1 
+  body 2 
+DO UNTIL
+  handler 5 
+  body 1 
+  body 2 
+LOOP WHILE
+  body 1 
+  handler 5 
+  after 1 
+FOR start
+  handler 5 
+  body 99 
+  after 100 
+FOR step
+  handler 5 
+  body 99 
+  body 36 
+  after-27 
+FOR step, variable already 3
+  handler 5 
+  body 3 
+  after-60 
+FOR in a SUB
+  handler 5 
+  body 0 
+  body 1 
+  body 2 
+  after 3 
+end
+exit=0

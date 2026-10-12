@@ -1,0 +1,5 @@
+
+Cannot create a _BIT array of size > 63 bits
+Caused by (or after):DIM A ( 3 ) AS _BIT * 64
+LINE 3:DIM a(3) AS _BIT * 64
+exit=1

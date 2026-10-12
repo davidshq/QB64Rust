@@ -1,0 +1,5 @@
+
+VAL TYPE unsupported
+Caused by (or after):PRINT VAL ( "5",1 , _BIT )
+LINE 3:PRINT VAL("5", _BIT)
+exit=1

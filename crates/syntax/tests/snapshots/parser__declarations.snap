@@ -1,0 +1,212 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"DEFINT A-Z, i\\n_DEFINE m AS _UNSIGNED LONG\\nDIM AS LONG a, b(3)\\nDIM s AS STRING * 8\\nREDIM SHARED _PRESERVE r(1 TO 2)\\nREDIM w(0).v(3)\\nCOMMON SHARED /blk/ c()\\nERASE r, w(0).v, a . s\\nSTATIC AS LONG st\\nSUB p (x(), y( ,) AS LONG) STATIC\\nEND SUB\\nv = VAL(\\\"1\\\", _UNSIGNED _INTEGER64)\\n\")"
+---
+SourceFile 0..273
+  DefTypeStmt 0..13
+    Ident DEFINT
+    Whitespace  
+    LetterRange 7..10
+      Ident A
+      Minus -
+      Ident Z
+    Comma ,
+    Whitespace  
+    LetterRange 12..13
+      Ident i
+  Newline \x0A
+  DefTypeStmt 14..41
+    Ident _DEFINE
+    Whitespace  
+    LetterRange 22..23
+      Ident m
+    Whitespace  
+    AsClause 24..41
+      Ident AS
+      Whitespace  
+      Ident _UNSIGNED
+      Whitespace  
+      Ident LONG
+  Newline \x0A
+  DimStmt 42..61
+    Ident DIM
+    Whitespace  
+    AsClause 46..53
+      Ident AS
+      Whitespace  
+      Ident LONG
+    Whitespace  
+    DimItem 54..55
+      Ident a
+    Comma ,
+    Whitespace  
+    DimItem 57..61
+      Ident b
+      ArrayBounds 58..61
+        LParen (
+        Literal 59..60
+          Number 3
+        RParen )
+  Newline \x0A
+  DimStmt 62..81
+    Ident DIM
+    Whitespace  
+    DimItem 66..81
+      Ident s
+      Whitespace  
+      AsClause 68..81
+        Ident AS
+        Whitespace  
+        Ident STRING
+        Whitespace  
+        Star *
+        Whitespace  
+        Number 8
+  Newline \x0A
+  RedimStmt 82..114
+    Ident REDIM
+    Whitespace  
+    Ident SHARED
+    Whitespace  
+    Ident _PRESERVE
+    Whitespace  
+    DimItem 105..114
+      Ident r
+      ArrayBounds 106..114
+        LParen (
+        Literal 107..108
+          Number 1
+        Whitespace  
+        Ident TO
+        Whitespace  
+        Literal 112..113
+          Number 2
+        RParen )
+  Newline \x0A
+  RedimStmt 115..130
+    Ident REDIM
+    Whitespace  
+    DimItem 121..130
+      Ident w
+      ArrayBounds 122..125
+        LParen (
+        Literal 123..124
+          Number 0
+        RParen )
+      Dot .
+      Ident v
+      ArrayBounds 127..130
+        LParen (
+        Literal 128..129
+          Number 3
+        RParen )
+  Newline \x0A
+  CommonStmt 131..154
+    Ident COMMON
+    Whitespace  
+    Ident SHARED
+    Whitespace  
+    Slash /
+    Ident blk
+    Slash /
+    Whitespace  
+    DimItem 151..154
+      Ident c
+      ArrayBounds 152..154
+        LParen (
+        RParen )
+  Newline \x0A
+  EraseStmt 155..177
+    Ident ERASE
+    Whitespace  
+    NameRef 161..162
+      Ident r
+    Comma ,
+    Whitespace  
+    FieldExpr 164..170
+      CallExpr 164..168
+        NameRef 164..165
+          Ident w
+        ArgList 165..168
+          LParen (
+          Literal 166..167
+            Number 0
+          RParen )
+      Dot .
+      Ident v
+    Comma ,
+    Whitespace  
+    FieldExpr 172..177
+      NameRef 172..173
+        Ident a
+      Whitespace  
+      Dot .
+      Whitespace  
+      Ident s
+  Newline \x0A
+  StaticStmt 178..195
+    Ident STATIC
+    Whitespace  
+    AsClause 185..192
+      Ident AS
+      Whitespace  
+      Ident LONG
+    Whitespace  
+    DimItem 193..195
+      Ident st
+  Newline \x0A
+  ProcDef 196..238
+    ProcHeader 196..229
+      Ident SUB
+      Whitespace  
+      Ident p
+      Whitespace  
+      ParamList 202..222
+        LParen (
+        Param 203..206
+          Ident x
+          LParen (
+          RParen )
+        Comma ,
+        Whitespace  
+        Param 208..221
+          Ident y
+          LParen (
+          Whitespace  
+          Comma ,
+          RParen )
+          Whitespace  
+          AsClause 214..221
+            Ident AS
+            Whitespace  
+            Ident LONG
+        RParen )
+      Whitespace  
+      Ident STATIC
+    Newline \x0A
+    ProcEnd 230..237
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+  AssignStmt 238..272
+    NameRef 238..239
+      Ident v
+    Whitespace  
+    Eq =
+    Whitespace  
+    CallExpr 242..272
+      NameRef 242..245
+        Ident VAL
+      ArgList 245..272
+        LParen (
+        Literal 246..249
+          StringLit "1"
+        Comma ,
+        Whitespace  
+        TypeArg 251..271
+          Ident _UNSIGNED
+          Whitespace  
+          Ident _INTEGER64
+        RParen )
+  Newline \x0A

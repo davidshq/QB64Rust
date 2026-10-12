@@ -1,0 +1,8 @@
+in g1
+in sret
+handler 3 
+sret after RETURN
+g1 after sret
+handler 3 
+after g1 RETURN
+exit=0

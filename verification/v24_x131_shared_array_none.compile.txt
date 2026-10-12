@@ -1,0 +1,5 @@
+
+Array 'n' not defined
+Caused by (or after):SHARED N ( ) AS LONG
+LINE 14:SHARED n() AS LONG
+exit=1

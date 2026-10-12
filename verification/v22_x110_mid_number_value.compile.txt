@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):MID$ ( S , 1 ) = 5
+LINE 4:MID$(s, 1) = 5
+exit=1

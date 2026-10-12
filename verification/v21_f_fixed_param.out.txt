@@ -1,0 +1,24 @@
+[hello world] 5  12  11 [ld][el] 5 
+compare: 0 -1  0  0 
+case else
+q: [hello world] 11 
+after store: [a] 5  120 
+after long store: [much longer text] 5 
+after p s$: [much longer text]
+[ab] 5  3  2 [ab][b] 0 
+compare: 0  0 -1  0 
+case ab
+q: [ab] 2 
+after store: [a] 5  120 
+after long store: [much longer text] 5 
+[xyz] 5  4  3 [yz][yz] 0 
+compare: 0  0  0  0 
+case else
+q: [xyz] 3 
+after store: [a] 5  120 
+after long store: [much longer text] 5 
+after p f: [muc]
+g$: abcdefgh| 3
+r: [abc] 4 
+after r w$: [abcdefgh]
+exit=0

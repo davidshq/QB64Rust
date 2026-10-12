@@ -1,0 +1,5 @@
+
+Expected (...)
+Caused by (or after):S = _STARTDIR$ ( )
+LINE 4:s = _STARTDIR$()
+exit=1

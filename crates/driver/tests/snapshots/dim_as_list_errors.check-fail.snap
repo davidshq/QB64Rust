@@ -1,0 +1,13 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+dim_as_list_errors.bas:7:13: error: a name in a list with the type before the names cannot have a type suffix: `a%`
+dim_as_list_errors.bas:8:13: error: a name in a list with the type before the names cannot have a type suffix: `b&`
+dim_as_list_errors.bas:9:18: error: a name in a list with the type before the names cannot have an `AS` clause
+dim_as_list_errors.bas:11:5: error: name already in use: `f`
+dim_as_list_errors.bas:12:12: error: expected a variable name
+dim_as_list_errors.bas:13:20: error: expected the end of the statement
+dim_as_list_errors.bas:17:20: error: a name in a list with the type before the names cannot have a type suffix: `k%`
+dim_as_list_errors.bas:18:20: error: a name in a list with the type before the names cannot have a type suffix: `m!`
+dim_as_list_errors.bas:20:5: error: not supported yet: the type `NOSUCH`

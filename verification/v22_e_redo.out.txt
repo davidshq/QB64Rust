@@ -1,0 +1,39 @@
+1 two targets, the answer is 5
+two? < 5 >< 0 >
+2 one target, the answer is 1,2
+one? 1< 12 >
+3 a number target, the answer is abc
+num? < 0 >
+4 a _BYTE target, the answer is 300
+byte? 30< 30 >
+5 an INTEGER target, the answer is 70000
+int? 7000< 7000 >
+6 an _UNSIGNED _BYTE target, the answer is -1
+ubyte? < 1 >
+7 a number target, the answer is 12abc
+num? 121212< 12 >
+8 a number and a string, the answer is x,y
+mixed? < 0 ><y>
+9 an unclosed quote into two strings, the answer is "open, still open
+quote? <open, still open><>
+10 text after a closing quote, the answer is "a" b
+after? "a""a"<a>
+11 a number target, the answer is 1 2
+blank? 1< 12 >
+12 a LONG target, the answer is 99999999999
+long? 999999999999999999< 999999999 >
+13 an _INTEGER64 target, the answer is 99999999999999999999
+int64? 999999999999999999999999999999999999< 999999999999999999 >
+14 a SINGLE target, the answer is 1e50
+single? 1e5< 100000 >
+15 an element with a bad index, the answer is 11
+elem?   error 9 
+<-7 >
+16 the next INPUT, the answer is 12
+next? < 11 >
+17 a _BIT * 3 variable holding 2, the answer is 1
+bit? 1< 2 >
+18 one target and a comma after it, the answer is 13
+comma? < 1 >
+done
+exit=0

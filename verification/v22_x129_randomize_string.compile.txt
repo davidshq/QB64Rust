@@ -1,0 +1,5 @@
+
+Number required for sub
+Caused by (or after):RANDOMIZE "a",1
+LINE 3:RANDOMIZE "a"
+exit=1

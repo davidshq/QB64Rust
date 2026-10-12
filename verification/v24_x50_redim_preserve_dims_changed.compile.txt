@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):REDIM _PRESERVE M ( 4 ) AS LONG
+LINE 4:REDIM _PRESERVE m(4) AS LONG
+exit=1

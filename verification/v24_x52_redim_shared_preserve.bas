@@ -1,0 +1,5 @@
+$CONSOLE:ONLY
+' Verification (m2-defxxx-common-arrays, D1): REDIM SHARED _PRESERVE.
+REDIM SHARED _PRESERVE a(3) AS LONG
+PRINT UBOUND(a)
+SYSTEM

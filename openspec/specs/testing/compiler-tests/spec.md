@@ -32,7 +32,9 @@ is reviewed and accepted.
 `cargo test` SHALL, without compiling C++, parse and check every `.bas` file under `tests/corpus`, require no
 panic and an exact round trip of the syntax tree for each, require no diagnostics for every program named in
 `tests/corpus/slice.list` (however many it names), and apply the "No false errors" and "Rejected programs stay
-rejected" checks of `testing/upstream-tests` to the corpus programs.
+rejected" checks of `testing/upstream-tests` to the corpus programs. Every input of tier 1 that the front end
+accepts (corpus, upstream, snippets, and the clone's sets when the clone is present) SHALL also be lowered to the
+IR, validated, and emitted as C++ fragments, without panicking and without a validation problem.
 
 #### Scenario: Unsupported program
 - **WHEN** a corpus program uses features the compiler does not support yet
@@ -42,6 +44,31 @@ rejected" checks of `testing/upstream-tests` to the corpus programs.
 #### Scenario: Rejected program stays rejected
 - **WHEN** support for a new construct makes the front end accept a corpus program that has an `.err` file
 - **THEN** `cargo test` fails and names that program
+
+#### Scenario: Lowering bug in an accepted program
+- **WHEN** the lowering of an accepted upstream program produces a jump to a label of another body
+- **THEN** `cargo test` fails, naming the program and the jump, before any C++ is compiled
+
+#### Scenario: Emitter panic
+- **WHEN** the emitter panics on an accepted corpus program
+- **THEN** `cargo test` fails and names that program and the panic message
+
+### Requirement: Clean programs are listed
+`cargo test` SHALL fail when a corpus or upstream program that the old compiler accepts compiles without an error
+and is named in none of `tests/corpus/slice.list`, `tests/upstream/pass.list` and
+`tests/known_clean_not_passing.list`, so that every program the new compiler builds an executable for is run in
+tier 2 or has a recorded reason why not (`study\26` §3). `tests/known_clean_not_passing.list` SHALL be shrink-only
+and kept by hand, one entry per program with its reason; `cargo test` SHALL fail for an entry that no longer
+compiles cleanly or that a pass list names.
+
+#### Scenario: Newly clean program
+- **WHEN** a change makes an upstream program compile without an error and it is on no list
+- **THEN** `cargo test` fails and names the program, until it is run in tier 2 and added to `pass.list` or, with
+  the reason, to `tests/known_clean_not_passing.list`
+
+#### Scenario: Known failure fixed
+- **WHEN** a program of `tests/known_clean_not_passing.list` is added to a pass list
+- **THEN** `cargo test` fails until its entry is removed
 
 ### Requirement: Tier 2 slice run
 The corpus runner SHALL accept `--list <file>` to run only the programs named in it (one `<group>/<name>` per
@@ -74,3 +101,22 @@ location so it can be reproduced.
 #### Scenario: Same run twice
 - **WHEN** the test is run twice on the same tree
 - **THEN** it checks the same mutated inputs
+
+### Requirement: Built-in coverage
+Every built-in function and every built-in statement that `sema` compiles SHALL be used in at least one program of
+`tests/corpus/slice.list` (so its output is compared with the old compiler's in tier 2) and in at least one
+front-end test that pins it in tier 1: a `typed` test for a function (its result type and argument conversions),
+an `ir` test for a statement (its slots, places and items). `cargo test` SHALL fail and name the built-in when
+either is missing.
+
+#### Scenario: Built-in added without a slice program
+- **WHEN** `sema` starts compiling a built-in that no slice program calls
+- **THEN** `cargo test` fails and names that built-in
+
+#### Scenario: Built-in added without a typed test
+- **WHEN** `sema` starts compiling a built-in that no `typed` front-end test calls
+- **THEN** `cargo test` fails and names that built-in
+
+#### Scenario: Statement added without an ir test
+- **WHEN** `sema` starts compiling a built-in statement that no `ir` front-end test uses
+- **THEN** `cargo test` fails and names that statement

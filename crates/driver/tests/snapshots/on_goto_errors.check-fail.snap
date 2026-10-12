@@ -1,0 +1,7 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+on_goto_errors.bas:6:4: error: the value of `ON … GOTO` must be a number
+on_goto_errors.bas:7:11: error: label `l1` is not defined in the main module
+on_goto_errors.bas:8:18: error: not supported yet: line numbers

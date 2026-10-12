@@ -1,0 +1,5 @@
+
+LOOP ERROR! Cannot accept a STRING type.
+Caused by (or after):LOOP UNTIL "x",1
+LINE 4:LOOP UNTIL "x"
+exit=1

@@ -57,20 +57,40 @@ def forms(seen):
 
 
 def compile_only(src: Path) -> str:
-    r = subprocess.run([str(QB), "-z", "-q", src.name], cwd=src.parent, capture_output=True, text=True,
-                       errors="replace")
+    r = subprocess.run(
+        [str(QB), "-z", "-q", src.name],
+        check=False,
+        cwd=src.parent,
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
     lines = [l.strip() for l in (r.stdout + r.stderr).splitlines() if l.strip()]
     return lines[0] if lines else ""
 
 
 def run(src: Path) -> str:
     exe = src.with_suffix(".exe")
-    subprocess.run([str(QB), "-x", "-q", "-m", src.name, "-o", exe.name], cwd=src.parent, capture_output=True)
+    subprocess.run(
+        [str(QB), "-x", "-q", "-m", src.name, "-o", exe.name],
+        check=False,
+        cwd=src.parent,
+        capture_output=True,
+    )
     if not exe.exists():
         return "(not built)"
     env = dict(os.environ, QB64PE_NOPROMPT="y")
-    r = subprocess.run([str(exe)], cwd=src.parent, capture_output=True, text=True, errors="replace",
-                       stdin=subprocess.DEVNULL, env=env, timeout=60)
+    r = subprocess.run(
+        [str(exe)],
+        check=False,
+        cwd=src.parent,
+        capture_output=True,
+        text=True,
+        errors="replace",
+        stdin=subprocess.DEVNULL,
+        env=env,
+        timeout=60,
+    )
     return " ".join(r.stdout.split())
 
 

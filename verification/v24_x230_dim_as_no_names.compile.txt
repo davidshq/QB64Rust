@@ -1,0 +1,5 @@
+
+Expected DIM AS type variable-list or DIM variable-name AS type
+Caused by (or after):DIM AS LONG
+LINE 3:DIM AS LONG
+exit=1

@@ -1,0 +1,37 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Member array INNER.Q:I16 (0 To 2)
+Member array OUTER.N:T:INNER (0 To 1)
+Member array T1.V:I32 (0 To 3)
+Array B(param):I32 passed, dimensions: 1
+Array A:T:T1 static (0 To 2)
+Array X:T:OUTER dynamic, dimensions: 1
+Stmt line 2
+  SelectConsole
+Stmt line 19 may_raise
+  Allocate Redim X:T:OUTER
+    Const 0:I64 To Const 0:I64
+Stmt line 20 may_raise
+  Assign X(Const 0:I64).N(Const 1:I64).Q(Const 2:I64):I16 = Const 77:I16
+Stmt line 21 may_raise
+  Assign T.V((Var I:I32 -> Convert I64 Widen)):I32 = (Load X(Const 0:I64).N(Const 1:I64).Q(Const 2:I64):I16 -> Convert I32 Widen)
+Stmt line 22 may_raise
+  Assign A((Var I:I32 -> Convert I64 Widen)).V((Add:I32(Var I:I32, Const 1:I32) wrap -> Convert I64 Widen)):I32 = Const 5:I32
+Stmt line 23 may_raise
+  Assign I:I32 = (Add:I64(UBound A((Var I:I32 -> Convert I64 Widen)).V(1):I64, LBound T.V(Var I:I32):I64) wrap -> Convert I32 Truncate)
+Stmt line 24 may_raise
+  Clear A((Var I:I32 -> Convert I64 Widen)).V:I32
+Stmt line 25
+  Clear T.V:I32
+Stmt line 26 may_raise
+  Call FILL [Array A((Var I:I32 -> Convert I64 Widen)).V:I32]
+Stmt line 27 may_raise
+  CopyWhole X(Const 0:I64).N(Const 0:I64):T:INNER <- X(Const 0:I64).N(Const 1:I64)
+Stmt line 28
+  System
+Sub FILL lines 30-32
+  param B():I32
+Stmt line 31 may_raise
+  Assign B(param)(Const 0:I64):I32 = Const 1:I32

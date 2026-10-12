@@ -1,0 +1,50 @@
+[handler 5 ]
+SQR(-1): 0 
+SQR(0): 0 
+[handler 5 ]
+LOG(0): 0 
+[handler 5 ]
+LOG(-1): 0 
+[handler 6 ]
+EXP(1000): 0 
+[handler 6 ]
+EXP(709): 0 
+[handler 6 ]
+EXP(100!): 0 
+EXP(88!): 1.651636E+38 
+EXP(-1000): 0 
+CINT(32767.4): 32767 
+[handler 6 ]
+CINT(32767.5): 0 
+CINT(-32768.5):-32768 
+[handler 6 ]
+CINT(-32768.6): 0 
+[handler 6 ]
+CINT(40000): 0 
+[handler 6 ]
+CINT(LONG 70000): 0 
+[handler 6 ]
+CINT(_INTEGER64 70000): 0 
+CINT halves: 0  2  0 -2 
+CLNG(2147483647.4): 2147483647 
+[handler 6 ]
+CLNG(2147483647.5): 0 
+CLNG(-2147483648.5):-2147483648 
+[handler 6 ]
+CLNG(-2147483648.6): 0 
+[handler 6 ]
+CLNG(_INTEGER64 3E9): 0 
+CLNG halves: 0  2  2 -2 
+INT halves:-1 -2  0  1  FIX halves: 0 -1  0  1 
+ABS of minima:-32768 -2147483648 -9223372036854775808 
+SGN 0 -0 -5 5: 0  0  0 -1  1 -1 
+_ROUND halves: 0  2  2  0 -2  7 
+_ROUND(1E30):-9223372036854775808 
+[handler 6 ]
+CSNG(1D300): 0 
+[handler 6 ]
+CDBL(1E600 as _FLOAT): 0 
+TAN(_PI / 2): 1.633123935319537D+16  ATN(1E300): 1.570796  SIN(1E30): 9.331468E-03 
+_ATAN2(0, 0): 0  _ATAN2(0, -1): 3.141592653589793  _HYPOT(3, 4): 5 
+_PI(0): 0  _PI(-1):-3.141592653589793 
+exit=0

@@ -1,11 +1,11 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 100
+assertion_line: 107
 expression: snap
 ---
 ==> global.txt <==
-template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}return qb_l/qb_r;}
-template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
 float *__SINGLE_A=NULL;
 qbs *__STRING_S=NULL;
 float *__SINGLE_X=NULL;
@@ -223,7 +223,7 @@ makefit(tqbs);
 #line 8 "lowering_pairs_cpp.bas"
 qbs_print(tqbs,0);
 #line 8 "lowering_pairs_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((long double)((((long double)(1))/((long double)(3))))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((long double)((((long double)(1))/ ((long double)(3))))),qbs_new_txt(" ")));
 #line 8 "lowering_pairs_cpp.bas"
 if (is_error_pending()) goto skip4;
 #line 8 "lowering_pairs_cpp.bas"
@@ -311,7 +311,7 @@ do{
 #line 14 "lowering_pairs_cpp.bas"
 tqbs=qbs_new(0,0);
 #line 14 "lowering_pairs_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((int32)(func_instr(0,__STRING_S,qbs_new_txt_len("l",1),0))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((int32)(func_instr(NULL,__STRING_S,qbs_new_txt_len("l",1),0))),qbs_new_txt(" ")));
 #line 14 "lowering_pairs_cpp.bas"
 if (is_error_pending()) goto skip5;
 #line 14 "lowering_pairs_cpp.bas"

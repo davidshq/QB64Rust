@@ -1,0 +1,4 @@
+' Procedures included at the end of the main file.
+SUB show (x AS LONG)
+    PRINT "show"; x; LIBK
+END SUB

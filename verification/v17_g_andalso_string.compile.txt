@@ -1,0 +1,5 @@
+
+Expected variable/value before '_ANDALSO'
+Caused by (or after):PRINT "a",1 _ANDALSO 1
+LINE 3:PRINT "a" _ANDALSO 1
+exit=1

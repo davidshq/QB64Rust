@@ -1,0 +1,17 @@
+0. main below DEFDBL A-Z: LEN(m) 8 
+1. a SUB above every statement: LEN of its parameter and variable 4  4 
+2. a FUNCTION above it, called plain and as fa!: 100000.3359375  100000.3359375 
+3. a SUB below DEFDBL A-Z: LEN of its parameter and variable 8  8 
+4. a FUNCTION below DEFDBL A-Z, called plain and as fb#: 100000.3333333333  100000.3333333333 
+5. FUNCTION f2 below DEFLNG F, as f2(3) and f2&(3): 300000  300000 
+6. f2(3) where the default for F is SINGLE again: 300000 
+7. a SUB below DEFINT A-Z: v = 2.5 is 2 
+8. its parameter n, called with 5: n / 2 is 2.5 
+9. a parameter typed STRING * 5 by _DEFINE: [abcdefgh] 5 
+10. a FUNCTION typed STRING * 5 by _DEFINE: [xy   ]
+11. a FUNCTION typed STRING by DEFSTR: rr rrr
+12. a parameter typed STRING by DEFSTR: x!
+    and what the SUB stored in its parameter: changed
+13. STATIC st and SHARED gv typed INTEGER: 2  8  2 
+13. STATIC st and SHARED gv typed INTEGER: 4  9  2 
+14. gv after SHARED gv in the SUB: 9 

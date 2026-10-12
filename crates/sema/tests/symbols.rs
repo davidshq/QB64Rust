@@ -35,6 +35,20 @@ fn implicit_variables() {
     insta::assert_snapshot!(dump_symbols(&p, &map));
 }
 
+/// An array and a `TYPE` variable (m2-arrays-and-types task 4.2): an element's or a member's use is a reference
+/// of its variable, at the name; a dotted plain name is a variable of its own.
+#[test]
+fn arrays_and_members() {
+    let src =
+        b"$CONSOLE:ONLY\nTYPE t\nm AS LONG\nEND TYPE\nDIM a(3) AS t, p AS t\na(1).m = p.m\nPRINT LBOUND(a)\nq.r = 1\n";
+    let (map, p) = check_source(src);
+    insta::assert_snapshot!(dump_symbols(&p, &map), @r"
+    Var A() : T def 5:5 refs 6:1 7:14
+    Var P : T def 5:16 refs 6:10
+    Var Q.R : SINGLE def 8:1
+    ");
+}
+
 /// A statement with an error records nothing; the name's first clean use defines it.
 #[test]
 fn statement_with_an_error_records_nothing() {
@@ -85,6 +99,29 @@ fn label_with_handler_and_resume_references() {
     let id = p.symbols.at(FileId(0), 28).unwrap();
     assert_eq!(p.symbols.at(FileId(0), 45), Some(id));
     assert!(matches!(p.symbols.get(id).kind, SymbolKind::Label(_)));
+}
+
+/// Labels belong to a body (`m2-control-flow-slice` task 5.1): `a` in main and `a` in a SUB are two symbols, each
+/// referenced by the `GOTO` of its own body; the SUB's label is listed with its SUB.
+#[test]
+fn label_in_a_sub() {
+    let src = b"$CONSOLE:ONLY\nGOTO a\na: s\nSYSTEM\nSUB s\n    GOTO a\n    a: PRINT 1\n    GOSUB b\n    EXIT SUB\n    b: RETURN\nEND SUB\n";
+    let (map, p) = check_source(src);
+    insta::assert_snapshot!(dump_symbols(&p, &map));
+    // `a` of the SUB's `GOTO a` (offset 48) is the SUB's label at offset 54, not main's at offset 21.
+    let sub_label = p.symbols.at(FileId(0), 54).unwrap();
+    assert_eq!(p.symbols.at(FileId(0), 48), Some(sub_label));
+    assert_ne!(p.symbols.at(FileId(0), 21), Some(sub_label));
+}
+
+/// Constants are their own kind of symbol (`m2-control-flow-slice` task 4.2): a main constant used in main, in a
+/// later SUB and in another `CONST`; a SUB constant with the same name is another symbol; a suffixed use refers to
+/// the constant; the same `CONST` again is a reference.
+#[test]
+fn constants_are_their_own_kind() {
+    let src = b"$CONSOLE:ONLY\nCONST k = 1, s = \"a\" + \"b\"\nCONST k2# = k * 2\nPRINT k; k2#; s; k%\nCONST k = 1\nx = k\ns1\nSUB s1\n    CONST k = 2.5\n    PRINT k\nEND SUB\n";
+    let (map, p) = check_source(src);
+    insta::assert_snapshot!(dump_symbols(&p, &map));
 }
 
 #[test]

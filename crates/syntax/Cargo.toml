@@ -9,6 +9,8 @@ workspace = true
 
 [dependencies]
 qb64rust-base.workspace = true
+# Data only: the `specialformat` templates of the built-in statements (design D6 of `m2-parser-breadth`).
+qb64rust-builtins.workspace = true
 
 [dev-dependencies]
 insta.workspace = true

@@ -5,10 +5,17 @@
 
 use std::fmt;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// The largest source file, in bytes: offsets are `u32`. A caller that reads a file checks this before handing
 /// the bytes to any stage; every count derived from one file (lines, tokens, names) then fits a `u32`.
 pub const MAX_SOURCE_LEN: usize = u32::MAX as usize;
+
+/// Stack size of the threads the compiler and the language server run on. Every stage walks the tree recursively;
+/// the parser's limits (blocks nested 200 deep, expressions 1,000 levels) keep that bounded, and this leaves room
+/// for both at once in a debug build (a debug build needs about 4 KiB per expression level; the main thread has
+/// 1 MiB on Windows).
+pub const STACK_SIZE: usize = 64 * 1024 * 1024;
 
 /// A length, offset or index that fits a `u32` because it is bounded by [`MAX_SOURCE_LEN`] (or by a table of
 /// fewer entries). Panics otherwise: that is a compiler bug, not an error in the program.
@@ -82,6 +89,23 @@ impl SourceFile {
     pub fn line_count(&self) -> u32 {
         to_u32(self.line_starts.len())
     }
+
+    /// The bytes of a 0-based line without its line end, as an offset range; `None` past the last line.
+    pub fn line_content(&self, line: u32) -> Option<(u32, u32)> {
+        let start = *self.line_starts.get(line as usize)?;
+        let mut end = self
+            .line_starts
+            .get(line as usize + 1)
+            .copied()
+            .unwrap_or(to_u32(self.bytes.len()));
+        if end > start && self.bytes[end as usize - 1] == b'\n' {
+            end -= 1;
+        }
+        if end > start && self.bytes[end as usize - 1] == b'\r' {
+            end -= 1;
+        }
+        Some((start, end))
+    }
 }
 
 /// Offsets of line starts. CR LF, LF and a lone CR each end a line (as `lineformat$` in the old compiler).
@@ -122,6 +146,11 @@ impl SourceMap {
 
     pub fn file(&self, id: FileId) -> &SourceFile {
         &self.files[id.0 as usize]
+    }
+
+    /// Every file, with its id, in the order they were added.
+    pub fn files(&self) -> impl Iterator<Item = (FileId, &SourceFile)> {
+        self.files.iter().enumerate().map(|(i, f)| (FileId(to_u32(i)), f))
     }
 
     /// The bytes a span covers.
@@ -176,6 +205,14 @@ impl Diagnostic {
         }
     }
 
+    /// A warning: shown only on request, never counted, never stops a build (spec `compiler/cli`).
+    pub fn warning(span: Span, message: impl Into<String>) -> Diagnostic {
+        Diagnostic {
+            severity: Severity::Warning,
+            ..Diagnostic::error(span, message)
+        }
+    }
+
     /// An error in the program, not a construct the compiler does not handle yet.
     pub fn is_real_error(&self) -> bool {
         self.severity == Severity::Error && !self.unsupported
@@ -197,6 +234,16 @@ impl Diagnostic {
 /// Maximum number of errors reported per run (design D4).
 pub const MAX_ERRORS: usize = 100;
 
+/// The cap in force: [`MAX_ERRORS`] unless [`lift_error_cap`] was called.
+static ERROR_CAP: AtomicUsize = AtomicUsize::new(MAX_ERRORS);
+
+/// Removes the error cap for the rest of the process. Only for `qb64rust --report`, which counts every error of
+/// every program (a compile run and the language server keep the cap); never called in a test process, whose
+/// other tests rely on the cap.
+pub fn lift_error_cap() {
+    ERROR_CAP.store(usize::MAX, Ordering::Relaxed);
+}
+
 /// Collects diagnostics, stopping at [`MAX_ERRORS`] errors with a final "too many errors".
 #[derive(Clone, Default, Debug)]
 pub struct Diagnostics {
@@ -216,7 +263,7 @@ impl Diagnostics {
             return;
         }
         if d.severity == Severity::Error {
-            if self.errors == MAX_ERRORS {
+            if self.errors == ERROR_CAP.load(Ordering::Relaxed) {
                 self.capped = true;
                 self.list.push(Diagnostic::error(d.span, "too many errors; stopping"));
                 return;
@@ -236,6 +283,15 @@ impl Diagnostics {
     /// An error marked "not supported yet"; `message` names the construct.
     pub fn unsupported(&mut self, span: Span, message: impl Into<String>) {
         self.push(Diagnostic::unsupported(span, message));
+    }
+
+    pub fn warning(&mut self, span: Span, message: impl Into<String>) {
+        self.push(Diagnostic::warning(span, message));
+    }
+
+    /// The errors, without the warnings.
+    pub fn errors(&self) -> impl Iterator<Item = &Diagnostic> {
+        self.list.iter().filter(|d| d.severity == Severity::Error)
     }
 
     pub fn has_errors(&self) -> bool {
@@ -337,6 +393,18 @@ mod tests {
         assert_eq!(f.line_col(7), (4, 1));
         assert_eq!(f.line_col(8), (4, 2));
         assert_eq!(lc(b"", 0), (1, 1));
+    }
+
+    #[test]
+    fn line_content_without_line_end() {
+        let f = SourceFile::new("t.bas", b"ab\r\ncd\nx\r\r".to_vec());
+        assert_eq!(f.line_content(0), Some((0, 2)));
+        assert_eq!(f.line_content(1), Some((4, 6)));
+        assert_eq!(f.line_content(2), Some((7, 8)));
+        assert_eq!(f.line_content(3), Some((9, 9)));
+        assert_eq!(f.line_content(4), Some((10, 10)));
+        assert_eq!(f.line_content(5), None);
+        assert_eq!(SourceFile::new("t.bas", Vec::new()).line_content(0), Some((0, 0)));
     }
 
     #[test]

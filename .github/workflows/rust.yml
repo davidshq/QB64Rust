@@ -1,6 +1,7 @@
 # Tier 1 of the test cadence (study\19) for the compiler workspace on Windows: formatting, clippy with warnings as
-# errors, and cargo test (unit, snapshots, tests\frontend, the corpus front end). Needs no QB64pe: the tests that
-# build an executable are #[ignore]d. Lint choices: study\21.
+# errors, and cargo test (unit, snapshots, tests\frontend, the corpus front end, the language server). Needs no
+# QB64pe: the tests that build an executable are #[ignore]d. Lint choices: study\21. `cargo deny check` in its own
+# job.
 name: Rust
 
 on:
@@ -45,13 +46,32 @@ jobs:
       # CI is set, so insta fails on a changed snapshot instead of writing a .snap.new file.
       - run: cargo test --workspace --locked
 
-  # Tier 2 (study\19): the slice list of the corpus and the upstream pass list end to end, built against the QB64pe
-  # release instead of the reference clone (design D9 of m2-upstream-tests; checked to work in task 6.1). The
+      # The test runner's own rules (what "pass" means, what gets recorded): standard library only, no compiler.
+      - run: python -m unittest discover -s tools/legacy_tests -p "test_*.py"
+
+  # Licences, advisories and sources of the dependencies (deny.toml; study\21 item 7). The action runs on Linux;
+  # the dependency graph is the same on every platform.
+  deny:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
+  # Tier 2 (study\19): the slice list of the corpus and the upstream pass list end to end, built against QB64pe's
+  # sources at the commit of the local reference clone, the one reference for expected outputs (DECISIONS.md
+  # 2026-10-09, study\28 section 2). The C++ toolchain is taken from the 4.7.0 release download, which is 16 commits
+  # older and ships it under internal\c\c_compiler. Written 2026-10-09 and not yet seen running on GitHub. The
   # upstream programs come from the copy in tests\upstream, which holds every file the pass list needs.
+  # The call-site check (tools\callsite, DECISIONS.md 2026-10-10) needs the old compiler itself, so qb64pe.exe is
+  # built once from the checked-out sources, as setup_win.cmd builds it, and cached with them. The release's
+  # qb64pe.exe will not do: the reference commit's compiler writes other C++ for VAL(s$, SINGLE) and VAL(s$,
+  # DOUBLE) (study\29 section 8).
   tier2:
     runs-on: windows-latest
     timeout-minutes: 45
     env:
+      QB64PE_COMMIT: 16f629784ebddd31ca45bd9b8a1b75a8d98ea338
       QB64PE_TAG: v4.7.0-GLFW
       QB64PE_ASSET: qb64pe_win-x64-4.7.0-GLFW.7z
     steps:
@@ -70,9 +90,11 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}\qb64pe
-          key: qb64pe-${{ env.QB64PE_ASSET }}-qb64rust-1
+          key: qb64pe-${{ env.QB64PE_COMMIT }}-${{ env.QB64PE_ASSET }}-qb64rust-3
 
-      - name: Download QB64pe
+      # The release archive unpacks into a folder qb64pe; only its toolchain is kept. The sources (qbx.cpp, libqb,
+      # the Makefile) are checked out at the reference commit; qb64rust's builds compile libqb from them.
+      - name: Get QB64pe (sources at the reference commit, toolchain of the release)
         if: steps.qb64pe-cache.outputs.cache-hit != 'true'
         working-directory: ${{ runner.temp }}
         env:
@@ -81,8 +103,25 @@ jobs:
           gh release download $env:QB64PE_TAG -R QB64-Phoenix-Edition/QB64pe -p $env:QB64PE_ASSET
           7z x -y $env:QB64PE_ASSET
           Remove-Item $env:QB64PE_ASSET
+          Rename-Item qb64pe qb64pe-release
+          git init qb64pe
+          git -C qb64pe fetch --depth 1 https://github.com/QB64-Phoenix-Edition/QB64pe $env:QB64PE_COMMIT
+          git -C qb64pe checkout FETCH_HEAD
+          Move-Item qb64pe-release\internal\c\c_compiler qb64pe\internal\c\c_compiler
+          Remove-Item -Recurse -Force qb64pe-release
+          Push-Location qb64pe
+          & internal\c\c_compiler\bin\mingw32-make.exe -j4 OS=win BUILD_QB64=y
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
 
       - run: cargo build --release --locked
+
+      # The libqb call of each built-in, compared with the old compiler's (spec testing/call-site-check). First,
+      # while the clone's internal\temp is not in use by a build.
+      - name: Call-site check
+        env:
+          QB64RUST_QB64PE_ROOT: ${{ runner.temp }}\qb64pe
+        run: python tools/callsite/callsite.py --qb-root $env:QB64RUST_QB64PE_ROOT
 
       - name: Corpus slice list
         env:
@@ -98,3 +137,11 @@ jobs:
           python tools/legacy_tests/run_legacy_tests.py --suite compile --qb-root $env:QB64RUST_QB64PE_ROOT
           --compile-tests tests/upstream/compile_tests --qb64 target/release/qb64rust.exe
           --list tests/upstream/pass.list
+
+      # The differential programs of the pass list against their recordings (spec testing/differential-tests).
+      - name: Differential pass list
+        env:
+          QB64RUST_QB64PE_ROOT: ${{ runner.temp }}\qb64pe
+        run: >
+          python tools/legacy_tests/run_legacy_tests.py --suite corpus --qb-root $env:QB64RUST_QB64PE_ROOT
+          --corpus-root tests/differential --qb64 target/release/qb64rust.exe --list tests/differential/pass.list

@@ -1,0 +1,5 @@
+
+Unsupported variable used in FOR statement
+Caused by (or after):FOR T = 1 TO 3
+LINE 4:FOR t = 1 TO 3: PRINT t;: NEXT
+exit=1

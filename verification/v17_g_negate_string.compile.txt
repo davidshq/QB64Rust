@@ -1,0 +1,5 @@
+
+Expected variable/value after '_NEGATE'
+Caused by (or after):PRINT _NEGATE "a",1
+LINE 3:PRINT _NEGATE "a"
+exit=1

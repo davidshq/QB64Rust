@@ -1,0 +1,5 @@
+
+Cannot convert type (_UNSIGNED) to symbol
+Caused by (or after):
+LINE 3:_DEFINE A AS _UNSIGNED
+exit=1

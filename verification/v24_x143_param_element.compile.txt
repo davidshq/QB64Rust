@@ -1,0 +1,5 @@
+
+Expected arrayname()
+Caused by (or after):FILL X ( 1 )
+LINE 4:fill x(1)
+exit=1

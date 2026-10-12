@@ -1,0 +1,4 @@
+SUB: g(2), h(2), d(2) 8  1.5  4 
+SUB, ns(1) of a main array that is not shared: [error 9 ]SUB, after a local DIM ns(8): UBOUND, ns(1), ns(2) 8  0  3 
+main after the SUB: g(2), h(2), UBOUND(d), d(5), ns(1), ns(2) 9  2.5  5  6  5  0 
+exit=0

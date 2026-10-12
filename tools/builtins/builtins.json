@@ -6301,5 +6301,3295 @@
    ],
    "category": "plain function"
   }
+ ],
+ "auto_include_source": "QB64pe/internal/support/include/beforefirstline.bi, include/afterlastline.bm, color/color0.bi, color/color32.bi",
+ "auto_include": [
+  {
+   "name": "_TRUE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_FALSE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_LESS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_EQUAL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_GREATER",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_HOST_FAILED",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CLIENT_FAILED",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CONNECTION_FAILED",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_INVALID_IMAGE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_LOADFONT_FAILED",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SNDOPEN_FAILED",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_STR_EMPTY",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_STR_CRLF",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_STR_LF",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_STR_NAT_EOL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_E",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_LOG_TRACE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_LOG_INFO",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_LOG_WARN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_LOG_ERROR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_LOG_NONE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SECS_IN_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_MINS_IN_HOUR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_HOURS_IN_DAY",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_DAYS_IN_WEEK",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_DAYS_IN_YEAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SECS_IN_HOUR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SECS_IN_DAY",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SECS_IN_WEEK",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SECS_IN_YEAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SECS_IN_LEAPYEAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_MINS_IN_DAY",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_MINS_IN_WEEK",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_MINS_IN_YEAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_MINS_IN_LEAPYEAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_HOURS_IN_WEEK",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_HOURS_IN_YEAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_HOURS_IN_LEAPYEAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_DAYS_IN_LEAPYEAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_WEEKS_IN_YEAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_WEEKS_IN_LEAPYEAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ONE_KB",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ONE_MB",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ONE_GB",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ONE_TB",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ONE_PB",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ONE_EB",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SIZE_OF_BYTE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SIZE_OF_INTEGER",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SIZE_OF_LONG",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SIZE_OF_INTEGER64",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SIZE_OF_SINGLE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SIZE_OF_DOUBLE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SIZE_OF_FLOAT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SIZE_OF_OFFSET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_BIT_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_BIT_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_UBIT_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_UBIT_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_BYTE_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_BYTE_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_UBYTE_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_UBYTE_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_INTEGER_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_INTEGER_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_UINTEGER_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_UINTEGER_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_LONG_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_LONG_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ULONG_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ULONG_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_INTEGER64_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_INTEGER64_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_UINTEGER64_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_UINTEGER64_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SINGLE_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SINGLE_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_SINGLE_MIN_FRAC",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_DOUBLE_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_DOUBLE_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_DOUBLE_MIN_FRAC",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_FLOAT_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_FLOAT_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_FLOAT_MIN_FRAC",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_OFFSET_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_OFFSET_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_UOFFSET_MIN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_UOFFSET_MAX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_NUL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_NUL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_SOH",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_SOH",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_STX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_STX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_ETX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_ETX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_EOT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_EOT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_ENQ",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_ENQ",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_ACK",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_ACK",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_BEL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_BEL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_BS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_BS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_HT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_HT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_LF",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_LF",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_VT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_VT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_FF",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_FF",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_CR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_CR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_SO",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_SO",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_SI",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_SI",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_DLE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_DLE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_DC1",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_DC1",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_DC2",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_DC2",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_DC3",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_DC3",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_DC4",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_DC4",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_NAK",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_NAK",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_SYN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_SYN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_ETB",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_ETB",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_CAN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_CAN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_EM",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_EM",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_SUB",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_SUB",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_ESC",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_ESC",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_FS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_FS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_GS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_GS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_RS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_RS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_US",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_US",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_DEL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_DEL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_SPACE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_SPACE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_EXCLAMATION",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_EXCLAMATION",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_QUOTE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_QUOTE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_HASH",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_HASH",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_DOLLAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_DOLLAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_PERCENT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_PERCENT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_AMPERSAND",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_AMPERSAND",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_APOSTROPHE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_APOSTROPHE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_LEFTBRACKET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_LEFTBRACKET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_RIGHTBRACKET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_RIGHTBRACKET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_ASTERISK",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_ASTERISK",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_PLUS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_PLUS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_COMMA",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_COMMA",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_MINUS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_MINUS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_FULLSTOP",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_FULLSTOP",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_FORWARDSLASH",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_FORWARDSLASH",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_COLON",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_COLON",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_SEMICOLON",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_SEMICOLON",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_LESSTHAN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_LESSTHAN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_EQUAL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_EQUAL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_GREATERTHAN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_GREATERTHAN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_QUESTION",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_QUESTION",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_ATSIGN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_ATSIGN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_LEFTSQUAREBRACKET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_LEFTSQUAREBRACKET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_BACKSLASH",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_BACKSLASH",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_RIGHTSQUAREBRACKET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_RIGHTSQUAREBRACKET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_CARET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_CARET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_UNDERSCORE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_UNDERSCORE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_GRAVE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_GRAVE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_LEFTCURLYBRACKET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_LEFTCURLYBRACKET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_VERTICALBAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_VERTICALBAR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_RIGHTCURLYBRACKET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_RIGHTCURLYBRACKET",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ASC_TILDE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_CHR_TILDE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_LSHIFT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_RSHIFT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_LCTRL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_RCTRL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_LALT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_RALT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_LAPPLE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_RAPPLE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_F1",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_F2",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_F3",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_F4",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_F5",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_F6",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_F7",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_F8",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_F9",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_F10",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_F11",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_F12",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_INSERT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_DELETE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_HOME",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_END",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_PAGEUP",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_PAGEDOWN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_LEFT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_RIGHT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_UP",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_DOWN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_BACKSPACE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_TAB",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_ENTER",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_KEY_ESC",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_NONE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_NEXT_WITHOUT_FOR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_SYNTAX_ERROR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_RETURN_WITHOUT_GOSUB",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_OUT_OF_DATA",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_ILLEGAL_FUNCTION_CALL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_OVERFLOW",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_OUT_OF_MEMORY",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_LABEL_NOT_DEFINED",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_SUBSCRIPT_OUT_OF_RANGE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_DUPLICATE_DEFINITION",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_DIVISION_BY_ZERO",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_ILLEGAL_IN_DIRECT_MODE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_TYPE_MISMATCH",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_OUT_OF_STRING_SPACE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_STRING_FORMULA_TOO_COMPLEX",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_CANNOT_CONTINUE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_FUNCTION_NOT_DEFINED",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_NO_RESUME",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_RESUME_WITHOUT_ERROR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_DEVICE_TIMEOUT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_DEVICE_FAULT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_FOR_WITHOUT_NEXT",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_OUT_OF_PAPER",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_WHILE_WITHOUT_WEND",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_WEND_WITHOUT_WHILE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_DUPLICATE_LABEL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_SUBPROGRAM_NOT_DEFINED",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_ARGUMENT_COUNT_MISMATCH",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_ARRAY_NOT_DEFINED",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_VARIABLE_REQUIRED",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_FIELD_OVERFLOW",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_INTERNAL_ERROR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_BAD_FILE_NAME_OR_NUMBER",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_FILE_NOT_FOUND",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_BAD_FILE_MODE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_FILE_ALREADY_OPEN",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_FIELD_STATEMENT_ACTIVE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_DEVICE_IO_ERROR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_FILE_ALREADY_EXISTS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_BAD_RECORD_LENGTH",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_DISK_FULL",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_INPUT_PAST_END_OF_FILE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_BAD_RECORD_NUMBER",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_BAD_FILE_NAME",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_TOO_MANY_FILES",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_DEVICE_UNAVAILABLE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_COMMUNICATION_BUFFER_OVERFLOW",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_PERMISSION_DENIED",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_DISK_NOT_READY",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_DISK_MEDIA_ERROR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_FEATURE_UNAVAILABLE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_RENAME_ACROSS_DISKS",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_PATH_FILE_ACCESS_ERROR",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_PATH_NOT_FOUND",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_ERR_INVALID_HANDLE",
+   "kind": "const",
+   "file": "include/beforefirstline.bi"
+  },
+  {
+   "name": "_IKW_ENCODEURL",
+   "kind": "function",
+   "file": "include/afterlastline.bm"
+  },
+  {
+   "name": "_IKW_DECODEURL",
+   "kind": "function",
+   "file": "include/afterlastline.bm"
+  },
+  {
+   "name": "_WHATISMYIP",
+   "kind": "function",
+   "file": "include/afterlastline.bm"
+  },
+  {
+   "name": "BLACK",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "BLUE",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "GREEN",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "CYAN",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "RED",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "MAGENTA",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "BROWN",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "WHITE",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "GRAY",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "LIGHTBLUE",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "LIGHTGREEN",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "LIGHTCYAN",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "LIGHTRED",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "LIGHTMAGENTA",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "YELLOW",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "BRIGHTWHITE",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "BLINK",
+   "kind": "const",
+   "file": "color/color0.bi",
+   "condition": "$COLOR:0"
+  },
+  {
+   "name": "ALICEBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ALMOND",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ANTIQUEBRASS",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ANTIQUEWHITE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "APRICOT",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "AQUA",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "AQUAMARINE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ASPARAGUS",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ATOMICTANGERINE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "AZURE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BANANAMANIA",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BEAVER",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BEIGE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BISQUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BITTERSWEET",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BLACK",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BLANCHEDALMOND",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BLIZZARDBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BLUEBELL",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BLUEGRAY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BLUEGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BLUEVIOLET",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BLUSH",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BRICKRED",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BROWN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BURLYWOOD",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BURNTORANGE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "BURNTSIENNA",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CADETBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CANARY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CARIBBEANGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CARNATIONPINK",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CERISE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CERULEAN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CHARTREUSE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CHESTNUT",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CHOCOLATE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "COPPER",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CORAL",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CORNFLOWER",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CORNFLOWERBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CORNSILK",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "COTTONCANDY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAAQUAMARINE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLABLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLABLUEVIOLET",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLABROWN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLACADETBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAFORESTGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAGOLD",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAGOLDENROD",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAGRAY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAGREENYELLOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAINDIGO",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLALAVENDER",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAMAGENTA",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAMAROON",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAMIDNIGHTBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAORANGE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAORANGERED",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAORCHID",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAPLUM",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLARED",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLASALMON",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLASEAGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLASILVER",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLASKYBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLASPRINGGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLATANN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLATHISTLE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAVIOLET",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAYELLOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRAYOLAYELLOWGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CRIMSON",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "CYAN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DANDELION",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKCYAN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKGOLDENROD",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKGRAY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKKHAKI",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKMAGENTA",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKOLIVEGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKORANGE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKORCHID",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKRED",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKSALMON",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKSEAGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKSLATEBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKSLATEGRAY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKTURQUOISE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DARKVIOLET",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DEEPPINK",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DEEPSKYBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DENIM",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DESERTSAND",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DIMGRAY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "DODGERBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "EGGPLANT",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ELECTRICLIME",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "FERN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "FIREBRICK",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "FLORALWHITE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "FORESTGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "FUCHSIA",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "FUZZYWUZZY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "GAINSBORO",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "GHOSTWHITE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "GOLD",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "GOLDENROD",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "GRANNYSMITHAPPLE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "GRAY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "GREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "GREENBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "GREENYELLOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "HONEYDEW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "HOTMAGENTA",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "HOTPINK",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "INCHWORM",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "INDIANRED",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "INDIGO",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "IVORY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "JAZZBERRYJAM",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "JUNGLEGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "KHAKI",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LASERLEMON",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LAVENDER",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LAVENDERBLUSH",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LAWNGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LEMONCHIFFON",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LEMONYELLOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTCORAL",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTCYAN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTGOLDENRODYELLOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTGRAY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTPINK",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTSALMON",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTSEAGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTSKYBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTSLATEGRAY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTSTEELBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIGHTYELLOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIME",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LIMEGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "LINEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MACARONIANDCHEESE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MAGENTA",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MAGICMINT",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MAHOGANY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MAIZE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MANATEE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MANGOTANGO",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MAROON",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MAUVELOUS",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MEDIUMAQUAMARINE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MEDIUMBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MEDIUMORCHID",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MEDIUMPURPLE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MEDIUMSEAGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MEDIUMSLATEBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MEDIUMSPRINGGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MEDIUMTURQUOISE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MEDIUMVIOLETRED",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MELON",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MIDNIGHTBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MINTCREAM",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MISTYROSE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MOCCASIN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MOUNTAINMEADOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "MULBERRY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "NAVAJOWHITE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "NAVY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "NAVYBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "NEONCARROT",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "OLDLACE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "OLIVE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "OLIVEDRAB",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "OLIVEGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ORANGE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ORANGERED",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ORANGEYELLOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ORCHID",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "OUTERSPACE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "OUTRAGEOUSORANGE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PACIFICBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PALEGOLDENROD",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PALEGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PALETURQUOISE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PALEVIOLETRED",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PAPAYAWHIP",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PEACH",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PEACHPUFF",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PERIWINKLE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PERU",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PIGGYPINK",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PINEGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PINK",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PINKFLAMINGO",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PINKSHERBET",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PLUM",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "POWDERBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PURPLE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PURPLEHEART",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PURPLEMOUNTAINSMAJESTY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "PURPLEPIZZAZZ",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "RADICALRED",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "RAWSIENNA",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "RAWUMBER",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "RAZZLEDAZZLEROSE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "RAZZMATAZZ",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "RED",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "REDORANGE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "REDVIOLET",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ROBINSEGGBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ROSYBROWN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ROYALBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "ROYALPURPLE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SADDLEBROWN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SALMON",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SANDYBROWN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SCARLET",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SCREAMINGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SEAGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SEASHELL",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SEPIA",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SHADOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SHAMROCK",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SHOCKINGPINK",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SIENNA",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SILVER",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SKYBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SLATEBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SLATEGRAY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SNOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SPRINGGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "STEELBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SUNGLOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "SUNSETORANGE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "TANN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "TEAL",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "TEALBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "THISTLE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "TICKLEMEPINK",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "TIMBERWOLF",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "TOMATO",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "TROPICALRAINFOREST",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "TUMBLEWEED",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "TURQUOISE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "TURQUOISEBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "UNMELLOWYELLOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "VIOLET",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "VIOLETBLUE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "VIOLETRED",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "VIVIDTANGERINE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "VIVIDVIOLET",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "WHEAT",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "WHITE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "WHITESMOKE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "WILDBLUEYONDER",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "WILDSTRAWBERRY",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "WILDWATERMELON",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "WISTERIA",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "YELLOW",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "YELLOWGREEN",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  },
+  {
+   "name": "YELLOWORANGE",
+   "kind": "const",
+   "file": "color/color32.bi",
+   "condition": "$COLOR:32"
+  }
  ]
 }

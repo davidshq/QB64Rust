@@ -1,0 +1,77 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"$IF LINUX THEN\\n$IF WIN THEN\\nFOR i = 1 TO\\n$END IF\\n(((\\n$ELSE\\nPRINT 1\\n$END IF\\nFOR i = 1 TO 2\\n  $IF WIN THEN\\n  PRINT i\\n  $END IF\\nNEXT\\n$LET A = 1\\n\")"
+---
+SourceFile 0..141
+  MetaStmt 0..14
+    Metacommand $IF LINUX THEN
+  Newline \x0A
+  InactiveCode 15..53
+    Metacommand $IF WIN THEN
+    Newline \x0A
+    Ident FOR
+    Whitespace  
+    Ident i
+    Whitespace  
+    Eq =
+    Whitespace  
+    Number 1
+    Whitespace  
+    Ident TO
+    Newline \x0A
+    Metacommand $END IF
+    Newline \x0A
+    LParen (
+    LParen (
+    LParen (
+    Newline \x0A
+  MetaStmt 53..58
+    Metacommand $ELSE
+  Newline \x0A
+  PrintStmt 59..66
+    Ident PRINT
+    Whitespace  
+    Literal 65..66
+      Number 1
+  Newline \x0A
+  MetaStmt 67..74
+    Metacommand $END IF
+  Newline \x0A
+  ForBlock 75..130
+    ForHeader 75..89
+      Ident FOR
+      Whitespace  
+      NameRef 79..80
+        Ident i
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 83..84
+        Number 1
+      Whitespace  
+      Ident TO
+      Whitespace  
+      Literal 88..89
+        Number 2
+    Newline \x0A
+    Whitespace   
+    MetaStmt 92..104
+      Metacommand $IF WIN THEN
+    Newline \x0A
+    Whitespace   
+    PrintStmt 107..114
+      Ident PRINT
+      Whitespace  
+      NameRef 113..114
+        Ident i
+    Newline \x0A
+    Whitespace   
+    MetaStmt 117..124
+      Metacommand $END IF
+    Newline \x0A
+    NextStmt 125..129
+      Ident NEXT
+    Newline \x0A
+  MetaStmt 130..140
+    Metacommand $LET A = 1
+  Newline \x0A

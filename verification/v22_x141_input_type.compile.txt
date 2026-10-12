@@ -1,0 +1,5 @@
+
+User defined types in expressions are invalid
+Caused by (or after):INPUT V
+LINE 7:INPUT v
+exit=1

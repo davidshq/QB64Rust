@@ -1,0 +1,5 @@
+
+Cannot convert type (_BIT*3%) to symbol
+Caused by (or after):PRINT VAL ( "5",1 , _BIT * 3 )
+LINE 3:PRINT VAL("5", _BIT * 3)
+exit=1

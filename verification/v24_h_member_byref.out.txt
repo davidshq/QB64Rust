@@ -1,0 +1,4 @@
+by reference: t.v(2), a(1).v(2) 2  2 
+in parentheses and to an INTEGER parameter: t.v(2) 2 
+an index outside, bump t.v(9): [error 9 ] t.v(0) 0 
+exit=0

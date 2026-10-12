@@ -1,0 +1,5 @@
+
+Name already in use (PRINT)
+Caused by (or after):
+LINE 3:TYPE PRINT
+exit=1

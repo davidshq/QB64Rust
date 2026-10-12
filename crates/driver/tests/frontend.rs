@@ -10,7 +10,7 @@
 //! `cargo insta review`. `QB64RUST_FRONTEND_DIR` points the harness at another folder (used once to check that
 //! the harness itself fails bad files).
 
-use qb64rust_driver::{dump_cpp, dump_ir, frontend};
+use qb64rust_driver::{FileLoader, dump_cpp, dump_ir, frontend, frontend_with};
 use qb64rust_syntax::tree::print;
 use std::path::{Path, PathBuf};
 
@@ -31,8 +31,12 @@ fn mode_of(bytes: &[u8]) -> Option<&'static str> {
 }
 
 /// Runs one file. Returns the snapshot text for snapshot modes, or an error message.
-fn run(name: &str, bytes: Vec<u8>, mode: &str) -> Result<Option<String>, String> {
-    let fe = frontend(name, bytes.clone());
+fn run(name: &str, path: &Path, bytes: Vec<u8>, mode: &str) -> Result<Option<String>, String> {
+    // Included files are found next to the including file, then under the compiler root `inc\root` (a folder of
+    // its own, so that a file next to the main file is not found through the root); diagnostics name them
+    // relative to the test file.
+    let root = frontend_dir().join("inc/root");
+    let fe = frontend_with(name, bytes.clone(), |file| Box::new(FileLoader::new(&root, file, path)));
     let syntax_errors = fe.parsed.diagnostics().has_errors();
     match mode {
         "parse-ok" => {
@@ -88,7 +92,7 @@ fn frontend_files() {
             ));
             continue;
         };
-        match run(&file_name, bytes, mode) {
+        match run(&file_name, f, bytes, mode) {
             Ok(Some(snap)) => snapshots.push((f.file_stem().unwrap().to_string_lossy().to_string(), mode, snap)),
             Ok(None) => {}
             Err(e) => failures.push(format!("{file_name} ({mode}): {e}")),

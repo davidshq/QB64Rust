@@ -1,0 +1,151 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY A1:I32(0 TO 5)
+ARRAY A2:I32(0 TO 5)
+ARRAY A3:I32 dynamic, 1 dimension
+ARRAY A4:I32(0 TO 5)
+ARRAY A5:I32 dynamic, 1 dimension
+ARRAY A6:I32 dynamic, 1 dimension
+ARRAY A7:I32(0 TO 5)
+ARRAY A8:I32(0 TO 5)
+ARRAY A9:I32(0 TO 5)
+ARRAY A10:I32(0 TO 2)
+ARRAY A11:I32(-1 TO 5)
+ARRAY A12:I32 dynamic, 1 dimension
+ARRAY A13:I32(1 TO 5)
+ARRAY A14:I32 dynamic, 1 dimension
+ARRAY A15:I32 dynamic, 2 dimensions
+ARRAY A16:I32(-5 TO -1)
+ARRAY A18:I32(0 TO 5)
+ARRAY A19:I32(0 TO 10)
+ARRAY A20:I32 dynamic, 1 dimension
+ARRAY B1:I32 dynamic, 1 dimension
+ARRAY B2:I32(-1 TO 5)
+ARRAY B3:I32 dynamic, 1 dimension
+ARRAY B4:I32(0 TO 5)
+ARRAY B5:I32(0 TO 5)
+ARRAY B6:I32(0 TO 5)
+ARRAY B7:I32(-1 TO 5)
+ARRAY B8:I32 dynamic, 1 dimension
+ARRAY B9:I32(-5 TO 5)
+ARRAY V1:I32 dynamic, 1 dimension
+ARRAY V2:Str dynamic, 2 dimensions
+ARRAY V3:F64 dynamic, 1 dimension
+ARRAY V4:I32 dynamic, 1 dimension
+ARRAY V5:I32 dynamic, 2 dimensions
+line 2: ConsoleOnly
+line 12: Allocate A3:I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 5 : I64
+line 14: Allocate A5:I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 6 : I64
+line 15: Allocate A6:I32 (Dim)
+  Lower
+    Convert RoundEven : I64
+      Neg : F80 (qb F32)
+        Binary Pow : F80 (qb F32)
+          Convert Nearest : F80
+            Int 2 : I16
+          Convert Nearest : F80
+            Int 2 : I16
+  Upper
+    Int 3 : I64
+line 21: Allocate A12:I32 (Dim)
+  Lower
+    Int -1 : I64
+  Upper
+    Int 5 : I64
+line 23: Allocate A14:I32 (Dim)
+  Lower
+    Int 5 : I64
+  Upper
+    Int 10 : I64
+line 24: Allocate A15:I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 5 : I64
+  Lower
+    Int 0 : I64
+  Upper
+    Int 5 : I64
+line 28: Allocate A20:I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 5 : I64
+line 29: Allocate B1:I32 (Dim)
+  Lower
+    Int -5 : I64
+  Upper
+    Int 5 : I64
+line 31: Allocate B3:I32 (Dim)
+  Lower
+    Int -1 : I64
+  Upper
+    Int 5 : I64
+line 36: Allocate B8:I32 (Dim)
+  Lower
+    Int 1 : I64
+  Upper
+    Int 5 : I64
+line 40: Assign N:F32
+  Convert Nearest : F32
+    Int 4 : I16
+line 41: Allocate V1:I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Var N : F32
+line 42: Allocate V2:Str (Dim)
+  Lower
+    Int 1 : I64
+  Upper
+    Convert RoundEven : I64
+      CallProc TWICE : F32
+        ref N : F32
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Var N : F32
+line 43: Allocate V3:F64 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert Widen : I64
+      Call LEN : I32
+        Str "abc" : Str
+line 45: Allocate V4:I32 (Dim)
+  Lower
+    Int 1 : I64
+  Upper
+    Convert RoundEven : I64
+      Var N : F32
+line 46: Allocate V5:I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 0 : I64
+  Lower
+    Int 1 : I64
+  Upper
+    Convert RoundEven : I64
+      Var N : F32
+line 47: System
+FUNCTION TWICE : F32
+  param X:F32
+  result TWICE:F32
+line 49: Assign TWICE (result):F32
+  Binary Mul : F32
+    Var X (param) : F32
+    Convert Nearest : F32
+      Int 2 : I16

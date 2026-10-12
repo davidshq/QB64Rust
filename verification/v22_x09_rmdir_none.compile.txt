@@ -1,0 +1,5 @@
+
+Syntax error - Reference: RMDIR path$
+Caused by (or after):RMDIR
+LINE 3:RMDIR
+exit=1

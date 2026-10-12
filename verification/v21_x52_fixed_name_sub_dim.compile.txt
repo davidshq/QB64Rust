@@ -1,0 +1,5 @@
+
+Name already in use (s)
+Caused by (or after):DIM S$5
+LINE 3:DIM s$5
+exit=1

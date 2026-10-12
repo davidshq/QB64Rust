@@ -10,6 +10,14 @@ fn literals_and_suffixes() {
     ));
 }
 
+/// The suffixes of `m2-numeric-types` on names and numbers; `$n` only on a name.
+#[test]
+fn new_type_suffixes() {
+    insta::assert_snapshot!(dump_tokens(
+        b"u~%% = 300~%% + b`3 + c~` + o%& + q~%& + 9`64 + -1~&& + s$12 + LEFT$(t$, 2) + 5$\n"
+    ));
+}
+
 #[test]
 fn names_keywords_and_operators() {
     insta::assert_snapshot!(dump_tokens(

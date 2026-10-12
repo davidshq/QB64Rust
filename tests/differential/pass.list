@@ -1,0 +1,65 @@
+# Differential programs the new compiler passes (spec testing/differential-tests): every program since
+# m2-numeric-types task group 5 (2026-10-09). Only grows. One <group>/<name> per line; run with: run_legacy_tests.py
+# --suite corpus --corpus-root tests/differential --list tests/differential/pass.list --qb64 target/release/qb64rust.exe
+# The six-type group old6 (DECISIONS.md 2026-10-08), which tier 2 ran while the full programs could not compile,
+# went with task 10.1 once they all passed. Tier 1 requires a program here as soon as it compiles cleanly ("clean
+# programs are listed").
+fold/add
+fold/and
+fold/andalso
+fold/div
+fold/eq
+fold/eqv
+fold/ge
+fold/gt
+fold/idiv
+fold/imp
+fold/le
+fold/lt
+fold/mod
+fold/mul
+fold/ne
+fold/or
+fold/orelse
+fold/pow
+fold/sub
+fold/xor
+ops/add
+ops/and
+ops/andalso
+ops/div
+ops/eq
+ops/eqv
+ops/ge
+ops/gt
+ops/idiv
+ops/imp
+ops/le
+ops/lt
+ops/mod
+ops/mul
+ops/ne
+ops/or
+ops/orelse
+ops/pow
+ops/sub
+ops/xor
+print/print
+store/bit
+store/bit24
+store/byte
+store/double
+store/float
+store/int64
+store/integer
+store/long
+store/offset
+store/single
+store/ubit40
+store/ubit7
+store/ubyte
+store/uint64
+store/uinteger
+store/ulong
+store/uoffset
+unary/unary

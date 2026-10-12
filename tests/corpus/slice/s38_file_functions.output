@@ -1,0 +1,33 @@
+FREEFILE twice without opening 1  1 
+FREEFILE with 1 open 2 
+opened as 2 FREEFILE is now 3 
+output file: EOF 0 LOF 0 LOC 0 SEEK 1 
+after two lines: EOF 0 LOF 12 LOC 0 SEEK 13 
+input file at the start: EOF 0 LOF 12 LOC 0 SEEK 1 
+after one line: EOF 0 LOC 0 SEEK 6 
+after two lines: EOF-1 LOC 0 SEEK 13 
+after SEEK #1, 1: EOF 0 SEEK 1 
+from position 6: [defgh]
+SEEK n, 2.5: 2 
+SEEK 1.4, 3.5: 4 
+SEEK 1, an _INTEGER64: 3 
+after SEEK 1, 100: EOF-1 SEEK 100 
+a position beyond 32 bits is kept: -1  5000 
+and a literal one:  1 
+argument forms: a variable, a float variable, a float literal-1 -1 -1  12  39062500 
+64-bit arithmetic on LOF: 12000000 printed as LONG: 12000000000 
+stored into an _INTEGER64: 12000000000 
+empty file
+EOF-1 LOF 0 LOC 0 SEEK 1 
+binary and random
+EOF 0 LOF 10 LOC 0 SEEK 1 
+at 11: EOF 0 LOC 10 
+random LEN 4: EOF 0 LOF 10 LOC 0 SEEK 1 
+at record 3: LOC 2 SEEK 3 
+old form, length 5: LOF 10 SEEK 1 
+_FILEEXISTS: file-1 missing 0 folder 0 empty 0 
+_DIREXISTS: folder-1 missing 0 file 0 empty 0 
+_CWD$ is not empty:-1 
+_CWD$ names the folder it was changed to:-1 
+NAME moves a file: 0 -1 
+KILL removed it: 0 

@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):PRINT _CWD
+LINE 3:PRINT _CWD
+exit=1

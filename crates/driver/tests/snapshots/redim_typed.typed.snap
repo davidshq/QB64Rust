@@ -1,0 +1,212 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY R:I32 dynamic, 1 dimension
+ARRAY R:F32 dynamic, 1 dimension
+ARRAY D:I16 dynamic, 1 dimension
+ARRAY P1:F32 dynamic, 1 dimension
+ARRAY P2:Str dynamic, 2 dimensions
+ARRAY Q1:F64 dynamic, 1 dimension
+ARRAY Q2:F64 dynamic, 1 dimension
+ARRAY S:I32(0 TO 5)
+ARRAY M1:I32 dynamic, 1 dimension
+ARRAY M2:Str*4 dynamic, 2 dimensions
+ARRAY M3:I32(0 TO 5)
+ARRAY G1:I32 dynamic, 1 dimension
+ARRAY G2:I32 dynamic, 1 dimension
+ARRAY PRESERVE:I32 dynamic, 1 dimension
+ARRAY RETAIN:I32 dynamic, 1 dimension
+ARRAY NS:I32 dynamic, 1 dimension
+ARRAY E1:I32(0 TO 3)
+line 2: ConsoleOnly
+line 6: Assign N:F32
+  Convert Nearest : F32
+    Int 3 : I16
+line 8: Allocate R:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 5 : I64
+line 9: Allocate R:I32 (Redim)
+  Lower
+    Int 1 : I64
+  Upper
+    Convert RoundEven : I64
+      Var N : F32
+line 10: Allocate R:I32 (Preserve)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Binary Add : F32
+        Var N : F32
+        Convert Nearest : F32
+          Int 1 : I16
+line 13: Allocate R:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 7 : I64
+line 14: Allocate R:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 8 : I64
+line 15: Allocate R:F32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 9 : I64
+line 16: Allocate D:I16 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Var N : F32
+line 17: Allocate D:I16 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+line 19: Allocate P1:F32 (Redim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+line 19: Allocate P2:Str (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Var N : F32
+line 20: Allocate Q1:F64 (Redim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+line 20: Allocate Q2:F64 (Redim)
+  Lower
+    Int 1 : I64
+  Upper
+    Int 2 : I64
+line 23: Allocate D:I16 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 5 : I64
+line 25: Allocate S:I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Var N : F32
+line 26: Allocate S:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 9 : I64
+line 27: Allocate S:I32 (Preserve)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 9 : I64
+line 30: Allocate M1:I32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 5 : I64
+line 31: Allocate M2:Str*4 (Dim)
+  Lower
+    Int 1 : I64
+  Upper
+    Int 2 : I64
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 35: Allocate G1:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+line 36: Allocate G2:I32 (Preserve)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+line 38: Allocate PRESERVE:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 39: Allocate RETAIN:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 4 : I64
+line 41: Allocate NS:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 42: Allocate NS:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 4 : I64
+line 47: Assign E1:I32
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Float 1.5E+0 : F64 (qb F32)
+line 47: Assign E2:I32
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Float 2.5E+0 : F64 (qb F32)
+line 47: Assign E3:I32
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Float 3.5E+0 : F64 (qb F32)
+line 51: Clear S:I32
+line 51: Release R:I32
+line 51: Clear M3:I32
+line 52: Release R:I32
+line 53: Assign R(…):I32
+  Index
+    Int 1 : I64
+  Value
+    Convert Truncate : I32
+      Binary Add : I64
+        Convert Widen : I64
+          Element D(…) : I16
+            Int 2 : I64
+        UBound P2 : I64
+          Int 2 : I32
+line 54: Call GROW
+line 55: System
+SUB GROW
+line 57: Allocate G1:I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 4 : I64
+line 58: Allocate G2:I32 (Preserve)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 4 : I64
+line 59: Allocate M2:Str*4 (Redim)
+  Lower
+    Int 1 : I64
+  Upper
+    Int 3 : I64
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 60: Release G1:I32
+line 60: Release M2:Str*4

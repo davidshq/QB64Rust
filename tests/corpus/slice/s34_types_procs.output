@@ -1,0 +1,63 @@
+ 65535  0 
+elements:-128  0  255  4294967294  18446744073709551613 -4  18446744073709551611 
+element arithmetic: 253 -6 -1 
+suffixed arrays:-1  4294967295  1  2 
+bad index:[handler 9 ]
+fixed elements: [abcd][x   ] 4  0 
+members:-1  255  65535  4294967295  18446744073709551615 -1  24 
+member stores:-56  44  4464  2  10000000000000000000  4 
+members of elements: hel 4294967295 -128  18446744073709551615  35  0 
+big~&: 4294967295 
+fs$5: [ab   ] 5 
+fs$ and fs: [abcde][q    ]
+fz$3: 3  0 
+[hello world] 5  12 
+after sp: much longer text
+[fixed   ] 5  9 
+after sp of a STRING * 8: [much lon]
+_UNSIGNED LONG param: 4294967295  after: 5 
+_UNSIGNED _OFFSET param: 18446744073709551615  after: 7 
+_UNSIGNED _BYTE param: 255  after:-2 
+INTEGER param:-1  after: 65533 
+_INTEGER64 param: 5  after: 18446744073709551610 
+INTEGER param:-1  after: 65533 
+INTEGER param:-1  after: 65535 
+LONG param: 9  after: 5 
+_BYTE param:-56  after: 254 
+_OFFSET param: 3  after: 18446744073709551608 
+LONG param:-16  after:-16 
+ 250  253  0 
+ 2  1  0  65535 
+ 125  126  127 -128 
+ 4294967294  4294967295  0 
+-1  0  1  2 
+ 1  2  3 
+~&& to 2^64-1 passes: 0  1 
+ 1  2  3  4 
+~% 65535: else
+~& max: -1
+~&& max, 0 TO -1: 0 TO -1
+%% -1: -1
+element ~% 65535: > 65534
+member ~%% + 0, 2.5: 2.5
+~& + 1~&&: 4294967296
+CONST ~%: 65535  65536 
+out of range: 65535 -1  0  44  300 
+bit: 5 -1  5 
+plain as new: 4294967295  4294967295  255  44  2  18446744073709551615 -1  18446744073709551615 
++ 0:-1 -1  300 -1  0 
+new as other:-1 -1 -1 -1 -1  4294967295  4294967295  255  4294967295 
+FFFFFFFF 4294967295 4294967295 
+ 1  300 -1 -1 
+HEX$: FE FFFD FFFFFFFFFFFFFFFD FFFD C FF
+OCT$ _BIN$: 376 100 2
+ABS SGN: 2  65533  4  1 -1 -1 
+INT FIX: 65533  18446744073709551613 -4  65533 
+CINT:-2 -4 [handler 6 ]
+CLNG: 65533 [handler 6 ]
+CLNG ~&&:[handler 6 ]
+_ROUND: 255  18446744073709551611 -4 
+CSNG CDBL: 4.294967E+09  1.844674407370955D+19 
+SQR: 1.414214  1.414214  1.414213562373095  1.414213562373095 
+EXP: 7.389056  7.38905609893065  1.831563888873418D-02 
+slots: [ab] [C]

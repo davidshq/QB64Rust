@@ -1,0 +1,36 @@
+1. a = 1.5 above DEFINT A-Z, b = 1.5 below: a, b, a! 0  2  1.5 
+2. x = 2.5: x, x / 2, LEN(x) 2  1  2 
+3. AS and suffixes win:  1.5  2.5 q 8  4 
+4. DIM lg AS LONG, then DEFSTR L: lg, LEN(lg) 100000  4 
+5. DEFDBL D below DEFINT A-Z: i, d 2  1.5 
+6. DEFLNG a-c, x: b3, d3, x3, c3 100000  1.5  70000  2 
+7. DEFSTR S: text! 4 
+8. DEFLNG G skipped by GOTO: g, LEN(g) 2  4 
+9. DEFDBL H in an IF block that does not run: h .3333333333333333 
+10. DEFINT z-w: v4 to z4 2.5  2  2  2  2 
+11. defint k, K, k-m, l: k5 to n5 2  2  2  2.5 
+12. __a under DEFINT A-Z: 2.5  4 
+    after DEFINT _, y-z: __b; after DEFDBL y-_, y: __c, y6, z6, x6 0  2.5  2.5  2.5  2 
+13. two statements on one line: LEN(q7), LEN(r7) 2  4 
+14. DIM t(3), dv and DIM SHARED gv under DEFINT A-Z: 2  2  2  2  2  2 
+15. a FOR variable: 3  2 
+16. CONST ck = 2.5, CONST s1 = 5 under DEFSTR S, CONST kk = a string under DEFINT:  2.5  6 abc!
+17. INTEGER 2  2 
+    LONG 2  4 
+    SINGLE 2.5  4 
+    DOUBLE .3333333333333333  8 
+    _FLOAT 2.5  32 
+    _BYTE-1  1 
+    _UNSIGNED _BYTE 255  1 
+    _UNSIGNED INTEGER 65535  2 
+    _UNSIGNED LONG 4294967295  4 
+    _INTEGER64 5000000000  8 
+    _UNSIGNED _INTEGER64 18446744073709551615  8 
+    _OFFSET-1  8 
+    _UNSIGNED _OFFSET 5  8 
+    STRING abc 3 
+18. _DEFINE o-q, s AS LONG: LEN of o1, p1, q1, s2, and r1 4  4  4  4  2.5 
+19. _Define U As _Unsigned _Byte: u 255 
+20. _DEFINE v AS STRING * 5: [abcde] 5 
+21. _BIT * 4, _UNSIGNED _BIT, _BIT: 7 -7  1 -1 
+22. _DEFINE _ AS DOUBLE: __d .3333333333333333 

@@ -1,0 +1,4 @@
+
+Runtime error: Out of memory
+Enable $ErrorLocation:ON for source location details.
+REDIM r(big):exit=0

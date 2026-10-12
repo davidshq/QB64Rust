@@ -1,0 +1,5 @@
+
+Expected array index
+Caused by (or after):PRINT T . V ( )
+LINE 8:PRINT t.v()
+exit=1

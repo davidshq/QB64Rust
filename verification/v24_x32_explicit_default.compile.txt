@@ -1,0 +1,5 @@
+
+Variable 'v' (LONG) not defined
+Caused by (or after):V = 5
+LINE 5:v = 5
+exit=1

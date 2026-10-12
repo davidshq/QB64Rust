@@ -1,0 +1,5 @@
+
+User defined types in expressions are invalid
+Caused by (or after):MOVE R
+LINE 10:move r
+exit=1

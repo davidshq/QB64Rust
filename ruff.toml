@@ -1,0 +1,5 @@
+# Python tools and scripts of this repo (tools/, verification/). Pylint's default limit is also 100.
+# `python -m ruff format` and `python -m ruff check` (DECISIONS.md, 2026-10-09).
+line-length = 100
+# Closed reviews, kept as they were (study/archive).
+extend-exclude = ["study/archive"]

@@ -1,0 +1,11 @@
+1. abc! 4  0  0 
+2. nested: in out 2 
+3. a static array: [] one two
+4. after ERASE: [] 0  2 
+5. REDIM _PRESERVE of a dynamic array: keep 5  []
+6. REDIM: [] 0 
+7. ERASE of the dynamic array, UBOUND: [error 9 ]8. a local, twice:[][]
+9. a STATIC one, twice:k kk 
+10. the member passed by reference: abc!?
+11. a long string and an empty one:  1000  0 
+exit=0

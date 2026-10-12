@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):PRINT Y ( 1 , 2 )
+LINE 9:PRINT y(1, 2)
+exit=1

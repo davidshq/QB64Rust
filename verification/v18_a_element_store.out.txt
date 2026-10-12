@@ -1,0 +1,23 @@
+handler 5 
+x(9) = ASC(empty): 0 
+handler 9 
+after x(11) = 5: 77  88 
+handler 9 
+after x(-1) = 6: 77  88 
+handler 9 
+after x(11) = ASC(empty): 77  88 
+handler 9 
+x(1) = x(11): 77 
+handler 9 
+y = x(11): 77 
+handler 9 
+y = x(-1): 77 
+handler 9 
+x(2) = x(11) + 1: 78 
+handler 9 
+x(x(11) + 3) = 9: 77  4 
+printhandler 9 
+after print
+handler 9 
+x(z& + 10) = 5: 77  88 
+exit=0

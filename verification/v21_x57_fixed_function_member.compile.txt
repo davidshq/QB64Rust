@@ -1,0 +1,5 @@
+
+Invalid name
+Caused by (or after):
+LINE 4:FS$5 AS STRING
+exit=1

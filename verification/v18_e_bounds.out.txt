@@ -1,0 +1,16 @@
+b(-2, 0); b(3, 5); b(0, 0): 1  2  0 
+LBOUND(b); UBOUND(b):-2  3 
+LBOUND(b, 2); UBOUND(b, 2): 0  5 
+LBOUND(b, 1); UBOUND(b, 1):-2  3 
+z: 0  0 
+w:-3  4 
+one: 7  7  0 
+UBOUND(b) / 7: .4285714285714285 
+UBOUND(b) * 1000000000: 3000000000 
+LBOUND(b, 1.5); LBOUND(b, 2.5): 0  0 
+UBOUND(b, d): 5 
+LBOUND(b, 3):handler 9 
+LBOUND(b, 0):handler 9 
+UBOUND(b, -1):handler 9 
+UBOUND(z, 2):handler 9 
+exit=0

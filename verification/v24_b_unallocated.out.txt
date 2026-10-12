@@ -1,0 +1,10 @@
+LBOUND(a): [error 9 ] 0 
+UBOUND(a): [error 9 ] 0 
+UBOUND(a, 1): [error 9 ] 0 
+UBOUND(a, 2): [error 9 ] 0 
+read a(2): [error 9 ] 0 
+read a(0): [error 9 ] 0 
+store a(2) = 5: [error 9 ]
+store a(0) = 5: [error 9 ]
+after REDIM again: a(2), LBOUND, UBOUND 0  2  3 
+exit=0

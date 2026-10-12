@@ -1,0 +1,5 @@
+
+Cannot use _BIT inside user defined types
+Caused by (or after):
+LINE 4:B AS _BIT * 4
+exit=1

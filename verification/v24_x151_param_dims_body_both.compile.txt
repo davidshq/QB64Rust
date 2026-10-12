@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):M ( 1 , 2 ) = 5
+LINE 8:m(1, 2) = 5
+exit=1

@@ -1,0 +1,5 @@
+
+Expected variable/value after '-'
+Caused by (or after):PRINT "a",1 - "b",1
+LINE 3:PRINT "a" - "b"
+exit=1

@@ -1,0 +1,28 @@
+case 1: string, placeholder makes it false
+  handler 5 
+case 2: string, placeholder makes it true
+  handler 5 
+  elseif
+case 3: numeric, placeholder makes it false
+  handler 5 
+case 4: numeric, placeholder makes it true
+  handler 5 
+  elseif
+case 5: two ELSEIFs, the first raises and is false by placeholder
+  handler 5 
+  elseif 2
+case 6: IF condition, placeholder makes it false
+  handler 5 
+  if
+case 7: single-line IF with ELSE, placeholder makes it false
+  handler 5 
+  then
+case 8: single-line IF without ELSE, placeholder makes it false
+  handler 5 
+  then
+  then 2
+case 9: IF c GOTO, placeholder makes it false
+  handler 5 
+  jumped
+end
+exit=0

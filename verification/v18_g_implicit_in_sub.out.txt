@@ -1,0 +1,5 @@
+x(1) inside show:handler 9 
+handler 9 
+x(2) inside show:handler 9 
+x(1): 11 
+exit=0

@@ -29,9 +29,26 @@ node_wrapper!(
     SourceFile,
     /// `$CONSOLE:ONLY` and other metacommands.
     MetaStmt,
+    /// A `$IF` branch that is not taken (tokens only).
+    InactiveCode,
     /// A metacommand comment (`'$INCLUDE:'x.bi'`, `REM $DYNAMIC`).
     MetaCommentStmt,
     PrintStmt,
+    LprintStmt,
+    FileNumber,
+    UsingClause,
+    WriteStmt,
+    InputStmt,
+    LineInputStmt,
+    CloseStmt,
+    FieldStmt,
+    LsetStmt,
+    SwapStmt,
+    MemStmt,
+    ArrayCopyStmt,
+    BuiltinStmt,
+    FormWord,
+    FormArg,
     DimStmt,
     DimItem,
     AsClause,
@@ -59,6 +76,19 @@ node_wrapper!(
     DataStmt,
     ReadStmt,
     RestoreStmt,
+    ConstStmt,
+    ConstItem,
+    OptionStmt,
+    OnJumpStmt,
+    OnEventStmt,
+    EventSwitchStmt,
+    StopStmt,
+    RunStmt,
+    RedimStmt,
+    CommonStmt,
+    EraseStmt,
+    DefTypeStmt,
+    LetterRange,
     /// `END IF`/`ENDIF`, `END SELECT`, `WEND`, `END TYPE`, `END DECLARE`, `END DEF`.
     BlockEnd,
     IfBlock,
@@ -102,6 +132,7 @@ node_wrapper!(
     ParenExpr,
     PrefixExpr,
     BinExpr,
+    TypeArg,
 );
 
 /// The first child node that casts to `T`.
@@ -120,6 +151,20 @@ impl MetaStmt<'_> {
     /// The `Metacommand` token: `$` and the rest of the line.
     pub fn token(self) -> Option<Tok> {
         self.0.child_tokens().find(|t| t.kind == Metacommand)
+    }
+
+    /// The parser evaluated it (`$IF`, `$ELSEIF`, `$ELSE`, `$END IF`, `$LET`, `$ERROR`); nothing is left to do.
+    pub fn is_preprocessor(self, text: &[u8]) -> bool {
+        !matches!(crate::pp::directive(text), crate::pp::Directive::Other)
+    }
+
+    /// The precompiler flag (`_CONSOLE_`, ...) a `$IF`/`$ELSEIF` line names, which the parser could not evaluate
+    /// (`crate::pp::precompiler_flag`).
+    pub fn precompiler_flag(self, text: &[u8]) -> Option<&'static str> {
+        match crate::pp::directive(text) {
+            crate::pp::Directive::If(c) | crate::pp::Directive::ElseIf(c) => crate::pp::precompiler_flag(&c),
+            _ => None,
+        }
     }
 }
 
@@ -148,6 +193,190 @@ impl<'a> PrintStmt<'a> {
             Element::Token(_) => None,
         })
     }
+
+    /// `#n,` of `PRINT #n, …`.
+    pub fn file(self) -> Option<FileNumber<'a>> {
+        child(self.0, FileNumber::cast)
+    }
+
+    /// `USING format;`.
+    pub fn using(self) -> Option<UsingClause<'a>> {
+        child(self.0, UsingClause::cast)
+    }
+}
+
+impl<'a> FileNumber<'a> {
+    /// The number's expression (`n` of `#n,`).
+    pub fn number(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
+/// The expressions and commas of a list statement (`WRITE`, `INPUT`, `LINE INPUT`), in source order.
+fn list_parts<'a>(node: Node<'a>) -> impl Iterator<Item = PrintPart<'a>> + 'a {
+    node.children().filter_map(|e| match e {
+        Element::Token(t) if t.kind == Comma => Some(PrintPart::Comma(t)),
+        Element::Node(n) => Expr::cast(n).map(PrintPart::Expr),
+        Element::Token(_) => None,
+    })
+}
+
+impl<'a> WriteStmt<'a> {
+    /// `#n,` of `WRITE #n, …`.
+    pub fn file(self) -> Option<FileNumber<'a>> {
+        child(self.0, FileNumber::cast)
+    }
+
+    /// The items and the commas between them (never a semicolon: the parser rejects one).
+    pub fn parts(self) -> impl Iterator<Item = PrintPart<'a>> + 'a {
+        list_parts(self.0)
+    }
+}
+
+/// The prompt of a console `INPUT` or `LINE INPUT`.
+#[derive(Clone, Copy, Debug)]
+pub struct Prompt {
+    /// The `;` before the prompt (the cursor stays on the line after the input).
+    pub stay: Option<Tok>,
+    /// The string literal.
+    pub text: Option<Tok>,
+    /// The `;` or `,` after the literal.
+    pub separator: Option<Tok>,
+}
+
+/// The tokens of a console input statement before its first target.
+fn prompt_of(node: Node<'_>) -> Prompt {
+    let first_target = node
+        .child_nodes()
+        .find(|n| Expr::cast(*n).is_some())
+        .map_or(u32::MAX, |n| n.offset);
+    let before: Vec<Tok> = node.child_tokens().filter(|t| t.span.start < first_target).collect();
+    let text = before.iter().copied().find(|t| t.kind == SyntaxKind::StringLit);
+    let stay = before
+        .iter()
+        .copied()
+        .find(|t| t.kind == Semicolon && text.is_none_or(|p| t.span.start < p.span.start));
+    let separator = text.and_then(|p| {
+        before
+            .iter()
+            .copied()
+            .find(|t| matches!(t.kind, Semicolon | Comma) && t.span.start > p.span.start)
+    });
+    Prompt { stay, text, separator }
+}
+
+impl<'a> InputStmt<'a> {
+    /// `#n,` of `INPUT #n, …`.
+    pub fn file(self) -> Option<FileNumber<'a>> {
+        child(self.0, FileNumber::cast)
+    }
+
+    /// The prompt part of a console `INPUT` (every field `None` for a file's).
+    pub fn prompt(self) -> Prompt {
+        prompt_of(self.0)
+    }
+
+    /// The targets and the commas between them.
+    pub fn parts(self) -> impl Iterator<Item = PrintPart<'a>> + 'a {
+        let after = self.prompt().separator.map_or(0, |t| t.span.end);
+        list_parts(self.0).filter(move |p| match p {
+            PrintPart::Comma(t) | PrintPart::Semicolon(t) => t.span.start >= after,
+            PrintPart::Expr(_) => true,
+        })
+    }
+}
+
+impl<'a> LineInputStmt<'a> {
+    /// `#n,` of `LINE INPUT #n, …`.
+    pub fn file(self) -> Option<FileNumber<'a>> {
+        child(self.0, FileNumber::cast)
+    }
+
+    /// The prompt part of a console `LINE INPUT`.
+    pub fn prompt(self) -> Prompt {
+        prompt_of(self.0)
+    }
+
+    /// The targets and the commas between them (one target is valid).
+    pub fn parts(self) -> impl Iterator<Item = PrintPart<'a>> + 'a {
+        let after = self.prompt().separator.map_or(0, |t| t.span.end);
+        list_parts(self.0).filter(move |p| match p {
+            PrintPart::Comma(t) | PrintPart::Semicolon(t) => t.span.start >= after,
+            PrintPart::Expr(_) => true,
+        })
+    }
+}
+
+impl<'a> CloseStmt<'a> {
+    /// The file numbers, in order (each may be written with `#`).
+    pub fn numbers(self) -> impl Iterator<Item = Expr<'a>> + 'a {
+        self.0.child_nodes().filter_map(Expr::cast)
+    }
+}
+
+impl<'a> SwapStmt<'a> {
+    /// The two operands, in order.
+    pub fn operands(self) -> impl Iterator<Item = Expr<'a>> + 'a {
+        self.0.child_nodes().filter_map(Expr::cast)
+    }
+}
+
+/// One part of a built-in statement read by its template, after its name, in source order.
+#[derive(Clone, Copy, Debug)]
+pub enum FormPart<'a> {
+    /// A word of the template (`FOR`, `OUTPUT`, `AS`, `_HIDE`).
+    Word(FormWord<'a>),
+    /// A punctuation character of the template: `,`, `(`, `)`, `-`, `=` or `#`.
+    Punct(Tok),
+    /// An argument (`?` in the template).
+    Arg(FormArg<'a>),
+}
+
+impl<'a> BuiltinStmt<'a> {
+    /// The statement's name, as written (`OPEN`, `TIME$`).
+    pub fn name(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Ident)
+    }
+
+    /// The words, punctuation and arguments after the name, in source order.
+    pub fn parts(self) -> impl Iterator<Item = FormPart<'a>> + 'a {
+        let name_end = self.name().map_or(0, |t| t.span.end);
+        self.0.children().filter_map(move |e| match e {
+            Element::Node(n) => FormWord::cast(n)
+                .map(FormPart::Word)
+                .or_else(|| FormArg::cast(n).map(FormPart::Arg)),
+            Element::Token(t)
+                if t.span.start >= name_end && matches!(t.kind, Comma | LParen | RParen | Minus | Eq | Hash) =>
+            {
+                Some(FormPart::Punct(t))
+            }
+            Element::Token(_) => None,
+        })
+    }
+
+    /// The arguments, in source order.
+    pub fn args(self) -> impl Iterator<Item = FormArg<'a>> + 'a {
+        self.0.child_nodes().filter_map(FormArg::cast)
+    }
+
+    /// The template words, in source order.
+    pub fn words(self) -> impl Iterator<Item = FormWord<'a>> + 'a {
+        self.0.child_nodes().filter_map(FormWord::cast)
+    }
+}
+
+impl FormWord<'_> {
+    /// The word's token.
+    pub fn token(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Ident)
+    }
+}
+
+impl<'a> FormArg<'a> {
+    /// The argument's expression.
+    pub fn expr(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
 }
 
 impl<'a> DimStmt<'a> {
@@ -159,17 +388,131 @@ impl<'a> DimStmt<'a> {
     pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
         self.0.child_nodes().filter_map(DimItem::cast)
     }
+
+    /// The type of `DIM AS type name, ...`, before the names (then no item has its own).
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
+}
+
+impl<'a> RedimStmt<'a> {
+    pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
+        self.0.child_nodes().filter_map(DimItem::cast)
+    }
+
+    /// The words between `REDIM` and the names, in order: `_PRESERVE`, `SHARED` (two at most).
+    pub fn words(self) -> impl Iterator<Item = Tok> + 'a {
+        self.0.child_tokens().skip(1).filter(|t| t.kind == Ident)
+    }
+
+    /// The type of `REDIM AS type name(…), ...`, before the names.
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
+}
+
+impl<'a> CommonStmt<'a> {
+    pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
+        self.0.child_nodes().filter_map(DimItem::cast)
+    }
+
+    /// The `SHARED` word of `COMMON SHARED`.
+    pub fn shared(self) -> Option<Tok> {
+        self.0.child_tokens().nth(1).filter(|t| t.kind == Ident)
+    }
+
+    /// The first `/` of a block name (`COMMON /name/ …`).
+    pub fn block(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == SyntaxKind::Slash)
+    }
+
+    /// The type of `COMMON AS type name, ...`, before the names.
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
+}
+
+impl<'a> EraseStmt<'a> {
+    pub fn names(self) -> impl Iterator<Item = NameRef<'a>> + 'a {
+        self.0.child_nodes().filter_map(NameRef::cast)
+    }
+
+    /// What is erased, in order: a name (`parens`: written `name()`), or another expression (an element `a(1)`, a
+    /// member array `a(0).b`).
+    pub fn targets(self) -> Vec<EraseTarget<'a>> {
+        let mut out = Vec::new();
+        for e in self.0.children() {
+            match e {
+                Element::Node(n) => {
+                    if let Some(name) = NameRef::cast(n) {
+                        out.push(EraseTarget::Name { name, parens: false });
+                    } else if let Some(x) = Expr::cast(n) {
+                        out.push(EraseTarget::Other(x));
+                    }
+                }
+                Element::Token(t) if t.kind == SyntaxKind::LParen => {
+                    if let Some(EraseTarget::Name { parens, .. }) = out.last_mut() {
+                        *parens = true;
+                    }
+                }
+                Element::Token(_) => {}
+            }
+        }
+        out
+    }
+}
+
+/// One target of an `ERASE` ([`EraseStmt::targets`]).
+#[derive(Clone, Copy)]
+pub enum EraseTarget<'a> {
+    Name { name: NameRef<'a>, parens: bool },
+    Other(Expr<'a>),
+}
+
+impl<'a> DefTypeStmt<'a> {
+    /// `DEFINT`, `DEFLNG`, `DEFSNG`, `DEFDBL`, `DEFSTR` or `_DEFINE`.
+    pub fn keyword(self) -> Option<Tok> {
+        self.0.child_tokens().next()
+    }
+
+    pub fn ranges(self) -> impl Iterator<Item = LetterRange<'a>> + 'a {
+        self.0.child_nodes().filter_map(LetterRange::cast)
+    }
+
+    /// The type of `_DEFINE … AS type`.
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
+}
+
+impl LetterRange<'_> {
+    /// The first and the last letter (the same for a single letter).
+    pub fn letters(self) -> Option<(Tok, Tok)> {
+        let mut words = self.0.child_tokens().filter(|t| t.kind == Ident);
+        let first = words.next()?;
+        Some((first, words.next().unwrap_or(first)))
+    }
 }
 
 impl<'a> SharedStmt<'a> {
     pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
         self.0.child_nodes().filter_map(DimItem::cast)
     }
+
+    /// The type of `SHARED AS type name, ...`, before the names.
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
 }
 
 impl<'a> StaticStmt<'a> {
     pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
         self.0.child_nodes().filter_map(DimItem::cast)
+    }
+
+    /// The type of `STATIC AS type name, ...`, before the names.
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
     }
 }
 
@@ -217,6 +560,12 @@ impl<'a> ProcHeader<'a> {
         tokens.next().filter(|t| t.kind == Ident)?;
         tokens.next()
     }
+
+    /// The `STATIC` word after the header (`SUB s (x) STATIC`: every local is static).
+    pub fn static_word(self) -> Option<Tok> {
+        let last = self.0.child_tokens().filter(|t| t.kind != Newline).last()?;
+        (self.0.child_tokens().count() > 2 && last.kind == Ident && self.alias() != Some(last)).then_some(last)
+    }
 }
 
 impl<'a> ParamList<'a> {
@@ -228,18 +577,30 @@ impl<'a> ParamList<'a> {
 impl<'a> Param<'a> {
     /// The parameter's name, with its suffix.
     pub fn name(self) -> Option<Tok> {
-        self.0.child_tokens().filter(|t| t.kind == Ident).last()
+        self.words().last()
     }
 
     /// The `BYVAL` word (only inside `DECLARE LIBRARY`).
     pub fn byval(self) -> Option<Tok> {
-        let mut words = self.0.child_tokens().filter(|t| t.kind == Ident);
+        let mut words = self.words();
         let first = words.next();
         words.next().and(first)
     }
 
+    /// The words before an array parameter's `(`: what stands between its parentheses is skipped, words included
+    /// (`a(n)`).
+    fn words(self) -> impl Iterator<Item = Tok> + 'a {
+        let before_parens = self.0.child_tokens().take_while(|t| t.kind != LParen);
+        before_parens.filter(|t| t.kind == Ident)
+    }
+
     pub fn as_clause(self) -> Option<AsClause<'a>> {
         child(self.0, AsClause::cast)
+    }
+
+    /// The `(` of an array parameter (`a()`, `a(,)`).
+    pub fn array_parens(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == LParen)
     }
 }
 
@@ -300,12 +661,17 @@ impl LabelDef<'_> {
 }
 
 impl OnErrorStmt<'_> {
-    /// The label after `GOTO`, or the `Number` token (`0`).
+    /// The label after `GOTO` (and after `_NEWHANDLER`), or the `Number` token (`0`).
     pub fn target(self) -> Option<Tok> {
-        self.0
-            .child_tokens()
-            .filter(|t| matches!(t.kind, Ident | Number))
-            .nth(3)
+        let mut words = self.0.child_tokens().filter(|t| matches!(t.kind, Ident | Number));
+        words.nth(3).map(|third| words.next().unwrap_or(third))
+    }
+
+    /// `_NEWHANDLER` or `_LASTHANDLER` before the label (QB64's handler chain).
+    pub fn handler_word(self) -> Option<Tok> {
+        let mut words = self.0.child_tokens().filter(|t| matches!(t.kind, Ident | Number));
+        let word = words.nth(3)?;
+        words.next().map(|_| word)
     }
 }
 
@@ -350,6 +716,46 @@ impl GosubStmt<'_> {
     }
 }
 
+impl<'a> OnJumpStmt<'a> {
+    /// The value `n` of `ON n GOTO …`.
+    pub fn value(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+
+    /// `GOTO` or `GOSUB`.
+    pub fn keyword(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+
+    /// The targets after the keyword, in order, each a label name or a line number; `None` where one is left out
+    /// (`ON n GOTO a, , b` gives three, the second `None`).
+    pub fn targets(self) -> Vec<Option<Tok>> {
+        let Some(kw) = self.keyword() else {
+            return Vec::new();
+        };
+        let mut out = Vec::new();
+        let mut cur = None;
+        let mut any = false;
+        for t in self.0.child_tokens().filter(|t| t.span.start > kw.span.start) {
+            match t.kind {
+                Ident | Number => {
+                    cur = Some(t);
+                    any = true;
+                }
+                Comma => {
+                    out.push(cur.take());
+                    any = true;
+                }
+                _ => {}
+            }
+        }
+        if any {
+            out.push(cur);
+        }
+        out
+    }
+}
+
 impl ReturnStmt<'_> {
     pub fn target(self) -> Option<Tok> {
         jump_target(self.0)
@@ -371,11 +777,15 @@ impl DataStmt<'_> {
     }
 
     /// The items, split from `bytes` (the file's bytes) by the old compiler's rule (`crate::data`); `n` commas
-    /// give `n + 1` items (measured M2). None without a `DataText` token; whether the old compiler gives bare
-    /// `DATA` one empty item is not measured (matters once `READ` is implemented).
+    /// give `n + 1` items (measured M2). `DATA` with nothing after it is one empty item (measured,
+    /// `verification\v22_c_order`), at the end of the statement.
     pub fn items(self, bytes: &[u8]) -> Vec<DataItem> {
         let Some(t) = self.text() else {
-            return Vec::new();
+            let end = self.0.span().end;
+            return vec![DataItem {
+                span: Span::new(self.0.span().file, end, end),
+                quoted: false,
+            }];
         };
         let span = |s: usize, e: usize| Span::new(t.span.file, qb64rust_base::to_u32(s), qb64rust_base::to_u32(e));
         crate::data::scan(bytes, t.span.start as usize)
@@ -400,6 +810,36 @@ impl RestoreStmt<'_> {
     /// The label or line number after `RESTORE`; `None` for a bare `RESTORE`.
     pub fn target(self) -> Option<Tok> {
         jump_target(self.0)
+    }
+}
+
+impl<'a> ConstStmt<'a> {
+    pub fn items(self) -> impl Iterator<Item = ConstItem<'a>> + 'a {
+        self.0.child_nodes().filter_map(ConstItem::cast)
+    }
+}
+
+impl<'a> ConstItem<'a> {
+    /// The constant's name, with its suffix.
+    pub fn name(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Ident)
+    }
+
+    /// The expression after `=`.
+    pub fn value(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
+impl OptionStmt<'_> {
+    /// The word after `OPTION` (`BASE`, `_EXPLICIT`, `_EXPLICITARRAY`, or a spelling without `_`).
+    pub fn word(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+
+    /// The `Number` token after `OPTION BASE`.
+    pub fn base(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Number)
     }
 }
 
@@ -532,6 +972,24 @@ impl<'a> ForBlock<'a> {
         while let Some(f) = inner {
             if let Some(n) = child(f.0, NextStmt::cast) {
                 return (n.vars().count() > depth).then_some(n);
+            }
+            depth += 1;
+            inner = f.body().last().and_then(ForBlock::cast);
+        }
+        None
+    }
+
+    /// The variable the closing `NEXT` names for this loop: the first of its own `NEXT`, or the one at this loop's
+    /// depth in an inner `NEXT j, i`. `None` for a plain `NEXT` (or when the `NEXT` is missing).
+    pub fn next_var(self) -> Option<NameRef<'a>> {
+        if let Some(n) = child(self.0, NextStmt::cast) {
+            return n.vars().next();
+        }
+        let mut depth = 1;
+        let mut inner = self.body().last().and_then(ForBlock::cast);
+        while let Some(f) = inner {
+            if let Some(n) = child(f.0, NextStmt::cast) {
+                return n.vars().nth(depth);
             }
             depth += 1;
             inner = f.body().last().and_then(ForBlock::cast);
@@ -864,6 +1322,34 @@ impl<'a> DimItem<'a> {
     pub fn as_clause(self) -> Option<AsClause<'a>> {
         child(self.0, AsClause::cast)
     }
+
+    /// The bounds of an array (`(5)`, `(1 TO 3, 2)`, `()`); `None` for a scalar.
+    pub fn bounds(self) -> Option<ArrayBounds<'a>> {
+        child(self.0, ArrayBounds::cast)
+    }
+
+    /// Whether the item names a member array (`REDIM a(1).m(5)`): its name is followed by `.member` parts.
+    pub fn is_member_path(self) -> bool {
+        self.0.child_tokens().any(|t| t.kind == SyntaxKind::Dot)
+    }
+
+    /// The parts of the item's name, each with the parentheses that follow it: one part for a plain item, more
+    /// for a member array (`a(1).m(5)` gives `a` with `(1)` and `m` with `(5)`).
+    pub fn path(self) -> Vec<(Tok, Option<ArrayBounds<'a>>)> {
+        let mut out: Vec<(Tok, Option<ArrayBounds<'a>>)> = Vec::new();
+        for e in self.0.children() {
+            match e {
+                Element::Token(t) if t.kind == Ident => out.push((t, None)),
+                Element::Node(n) => {
+                    if let (Some(bounds), Some(last)) = (ArrayBounds::cast(n), out.last_mut()) {
+                        last.1 = Some(bounds);
+                    }
+                }
+                Element::Token(_) => {}
+            }
+        }
+        out
+    }
 }
 
 impl<'a> AsClause<'a> {
@@ -997,6 +1483,12 @@ impl<'a> ArgList<'a> {
         }
         out
     }
+
+    /// The first type name given as an argument (`_UNSIGNED _INTEGER64` in `VAL(s, _UNSIGNED _INTEGER64)`); its
+    /// position reads as a left-out argument in [`Self::args`].
+    pub fn type_arg(self) -> Option<Node<'a>> {
+        self.0.child_nodes().find(|n| n.kind() == SyntaxKind::TypeArg)
+    }
 }
 
 impl<'a> FieldExpr<'a> {
@@ -1048,6 +1540,18 @@ impl<'a> BinExpr<'a> {
         let op_end = self.op()?.span.end;
         expr_after(self.0, op_end)
     }
+}
+
+/// The one sign that the run of `+` and `-` tokens at the operator of a prefix or binary expression of a `CONST`
+/// amounts to: true for `-` (an odd number of `-`), false for `+`; `None` when the operator is no sign. Only a
+/// `CONST` has such runs (the parser's `sign_run`).
+pub fn signs_negative(node: Node<'_>) -> Option<bool> {
+    let mut signs = node
+        .child_tokens()
+        .take_while(|t| matches!(t.kind, SyntaxKind::Plus | SyntaxKind::Minus))
+        .peekable();
+    signs.peek()?;
+    Some(signs.filter(|t| t.kind == SyntaxKind::Minus).count() % 2 == 1)
 }
 
 /// The first child expression that starts at or after `offset`.
@@ -1223,10 +1727,15 @@ mod tests {
         assert!(c.arg_list().is_none());
         assert!(c.unparsed_args().is_none());
 
-        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"LOCATE , 5\n");
+        // A name without a template (a SUB, or a built-in statement without one): arguments it cannot read are
+        // kept without a diagnostic (`LOCATE , 5` has a template since task 7.5 and parses as a `BuiltinStmt`).
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"s , 5\n");
         assert!(p.diagnostics.list().is_empty());
         let c = CallStmt::cast(first_stmt(&p.green)).unwrap();
         assert!(c.unparsed_args().is_some());
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), b"LOCATE , 5\n");
+        assert!(p.diagnostics.list().is_empty());
+        assert!(BuiltinStmt::cast(first_stmt(&p.green)).is_some());
     }
 
     #[test]
@@ -1440,5 +1949,122 @@ mod tests {
             })
             .collect();
         assert_eq!(kinds, vec!["expr", ";", "expr"]);
+    }
+
+    /// How many expressions and commas the parts hold.
+    fn counts<'a>(parts: impl Iterator<Item = PrintPart<'a>>) -> (usize, usize) {
+        parts.fold((0, 0), |(e, c), p| match p {
+            PrintPart::Expr(_) => (e + 1, c),
+            PrintPart::Comma(_) | PrintPart::Semicolon(_) => (e, c + 1),
+        })
+    }
+
+    #[test]
+    fn io_statement_parts() {
+        let parse = |src: &'static [u8]| crate::parser::parse_tree(TreeId(0), FileId(0), src);
+        let p = parse(b"WRITE #1, a, \"b\", 2.5\n");
+        assert!(p.diagnostics.list().is_empty());
+        let w = WriteStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(w.file().and_then(|f| f.number()).is_some());
+        assert_eq!(counts(w.parts()), (3, 2));
+        // A trailing comma (accepted by the old compiler, `verification\v22_x59`) and no items.
+        let p = parse(b"WRITE 1,\n");
+        assert!(p.diagnostics.list().is_empty(), "{:?}", p.diagnostics.list());
+        let w = WriteStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(w.file().is_none());
+        assert_eq!(counts(w.parts()), (1, 1));
+        let p = parse(b"WRITE\n");
+        assert_eq!(counts(WriteStmt::cast(first_stmt(&p.green)).unwrap().parts()), (0, 0));
+
+        let p = parse(b"INPUT #n, a, b$\n");
+        let i = InputStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(i.file().is_some() && i.prompt().text.is_none());
+        assert_eq!(counts(i.parts()), (2, 1));
+        let p = parse(b"INPUT ; \"name\", a$, b\n");
+        let i = InputStmt::cast(first_stmt(&p.green)).unwrap();
+        let prompt = i.prompt();
+        assert!(i.file().is_none() && prompt.stay.is_some());
+        assert_eq!(prompt.text.map(|t| t.span.start), Some(8));
+        assert_eq!(prompt.separator.map(|t| t.kind), Some(Comma));
+        assert_eq!(counts(i.parts()), (2, 1));
+        let p = parse(b"INPUT \"n\"; a\n");
+        let i = InputStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(i.prompt().stay.is_none());
+        assert_eq!(i.prompt().separator.map(|t| t.kind), Some(Semicolon));
+        let p = parse(b"INPUT a\n");
+        let i = InputStmt::cast(first_stmt(&p.green)).unwrap();
+        assert!(i.prompt().text.is_none() && i.prompt().stay.is_none() && i.prompt().separator.is_none());
+
+        let p = parse(b"LINE INPUT #1, s$\nLINE INPUT \"p\"; s$\n");
+        let root = SourceFile::cast(Node::root(&p.green, TreeId(0), FileId(0))).unwrap();
+        let lines: Vec<_> = root.statements().filter_map(LineInputStmt::cast).collect();
+        assert!(lines[0].file().is_some() && lines[0].prompt().text.is_none());
+        assert_eq!(counts(lines[0].parts()), (1, 0));
+        assert!(lines[1].file().is_none() && lines[1].prompt().text.is_some());
+        assert_eq!(counts(lines[1].parts()), (1, 0));
+
+        let p = parse(b"CLOSE #1, n, #3\n");
+        assert_eq!(CloseStmt::cast(first_stmt(&p.green)).unwrap().numbers().count(), 3);
+        let p = parse(b"CLOSE\n");
+        assert_eq!(CloseStmt::cast(first_stmt(&p.green)).unwrap().numbers().count(), 0);
+        let p = parse(b"SWAP a(1), b.c\n");
+        assert_eq!(SwapStmt::cast(first_stmt(&p.green)).unwrap().operands().count(), 2);
+    }
+
+    /// The name and parts of the built-in statement `src` is: words in upper case, punctuation as written, `?` for
+    /// an argument.
+    fn form(src: &[u8]) -> (String, Vec<String>, usize, usize) {
+        let p = crate::parser::parse_tree(TreeId(0), FileId(0), src);
+        assert!(p.diagnostics.list().is_empty(), "{:?}", p.diagnostics.list());
+        let stmt = BuiltinStmt::cast(first_stmt(&p.green)).expect("a BuiltinStmt");
+        let text = |t: Tok| {
+            let bytes = &src[t.span.start as usize..t.span.end as usize];
+            bytes
+                .iter()
+                .map(|b| char::from(b.to_ascii_uppercase()))
+                .collect::<String>()
+        };
+        let parts = stmt
+            .parts()
+            .map(|part| match part {
+                FormPart::Word(w) => text(w.token().unwrap()),
+                FormPart::Punct(t) => text(t),
+                FormPart::Arg(a) => {
+                    assert!(a.expr().is_some());
+                    "?".to_string()
+                }
+            })
+            .collect();
+        (
+            text(stmt.name().unwrap()),
+            parts,
+            stmt.args().count(),
+            stmt.words().count(),
+        )
+    }
+
+    #[test]
+    fn builtin_statement_parts() {
+        let (name, parts, args, words) = form(b"OPEN f$ FOR OUTPUT AS #1\n");
+        assert_eq!(name, "OPEN");
+        assert_eq!(parts, ["?", "FOR", "OUTPUT", "AS", "#", "?"]);
+        assert_eq!((args, words), (2, 3));
+
+        let (name, parts, ..) = form(b"shell _hide c$\n");
+        assert_eq!(name, "SHELL");
+        assert_eq!(parts, ["_HIDE", "?"]);
+
+        let (name, parts, ..) = form(b"NAME a$ AS b$\n");
+        assert_eq!(name, "NAME");
+        assert_eq!(parts, ["?", "AS", "?"]);
+
+        // An optional argument left out: `SHELL` alone, `RANDOMIZE` without a seed, `LINE` without a colour.
+        let (name, parts, args, _) = form(b"SHELL\n");
+        assert_eq!((name.as_str(), parts.len(), args), ("SHELL", 0, 0));
+        let (_, parts, ..) = form(b"LINE -(1, 2), , B\n");
+        assert_eq!(parts, ["-", "(", "?", ",", "?", ")", ",", ",", "B"]);
+        let (name, parts, ..) = form(b"TIME$ = t$\n");
+        assert_eq!(name, "TIME$");
+        assert_eq!(parts, ["=", "?"]);
     }
 }

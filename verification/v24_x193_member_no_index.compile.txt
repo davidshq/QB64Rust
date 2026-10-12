@@ -1,0 +1,5 @@
+
+Expected array index after v
+Caused by (or after):T . V = 5
+LINE 7:t.v = 5
+exit=1

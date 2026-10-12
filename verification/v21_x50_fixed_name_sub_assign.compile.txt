@@ -1,0 +1,5 @@
+
+Name already in use (s)
+Caused by (or after):S$5 = "abc",3
+LINE 3:s$5 = "abc"
+exit=1

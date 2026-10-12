@@ -1,0 +1,10 @@
+value 5 
+index 1 
+ 5 
+index 2 
+value 6 
+ 6 
+index 2 
+value 0 
+ 6 
+exit=0

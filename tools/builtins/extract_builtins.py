@@ -23,13 +23,23 @@ TABLE = os.path.join(QB64PE, "subs_functions", "subs_functions.bas")
 COMPILER = os.path.join(QB64PE, "qb64pe.bas")
 
 TYPE_NAMES = {
-    "LONGTYPE": "LONG", "ULONGTYPE": "_UNSIGNED LONG", "INTEGERTYPE": "INTEGER", "UINTEGERTYPE": "_UNSIGNED INTEGER",
-    "INTEGER64TYPE": "_INTEGER64", "UINTEGER64TYPE": "_UNSIGNED _INTEGER64", "BYTETYPE": "_BYTE",
-    "UBYTETYPE": "_UNSIGNED _BYTE", "SINGLETYPE": "SINGLE", "DOUBLETYPE": "DOUBLE", "FLOATTYPE": "_FLOAT",
-    "STRINGTYPE": "STRING", "OFFSETTYPE": "_OFFSET", "UOFFSETTYPE": "_UNSIGNED _OFFSET",
+    "LONGTYPE": "LONG",
+    "ULONGTYPE": "_UNSIGNED LONG",
+    "INTEGERTYPE": "INTEGER",
+    "UINTEGERTYPE": "_UNSIGNED INTEGER",
+    "INTEGER64TYPE": "_INTEGER64",
+    "UINTEGER64TYPE": "_UNSIGNED _INTEGER64",
+    "BYTETYPE": "_BYTE",
+    "UBYTETYPE": "_UNSIGNED _BYTE",
+    "SINGLETYPE": "SINGLE",
+    "DOUBLETYPE": "DOUBLE",
+    "FLOATTYPE": "_FLOAT",
+    "STRINGTYPE": "STRING",
+    "OFFSETTYPE": "_OFFSET",
+    "UOFFSETTYPE": "_UNSIGNED _OFFSET",
 }
 SPECIAL_CODES = {
-    -1: "any-numeric",          # cast to the C overload's type
+    -1: "any-numeric",  # cast to the C overload's type
     -2: "offset+size (largest safe block; CALL INTERRUPT)",
     -3: "offset+size (largest safe block, restricted; graphics GET/PUT)",
     -4: "offset+size (element size; file GET/PUT)",
@@ -47,7 +57,7 @@ def strip_comment(line):
         if c == '"':
             in_str = not in_str
         elif c == "'" and not in_str:
-            return line[:i], line[i + 1:].strip()
+            return line[:i], line[i + 1 :].strip()
     return line, ""
 
 
@@ -94,7 +104,7 @@ def split_concat(expr):
                 elif s[j] == ")":
                     depth -= 1
                 j += 1
-            items.append(s[i + 5:j - 1])
+            items.append(s[i + 5 : j - 1])
             i = j
         elif s[i] in " +":
             i += 1
@@ -117,27 +127,46 @@ def parse_table():
             for st in split_statements(code):
                 if st == "clearid":
                     if cur is not None:
-                        anomalies.append({"line": cur["line"], "statement": "clearid",
-                                          "note": "block not closed by regid; dropped"})
+                        anomalies.append(
+                            {
+                                "line": cur["line"],
+                                "statement": "clearid",
+                                "note": "block not closed by regid; dropped",
+                            }
+                        )
                     cur = {"line": lineno, "fields": {}, "comments": []}
                 elif st == "regid":
                     if cur is None:
-                        anomalies.append({"line": lineno, "statement": st, "note": "regid without clearid"})
+                        anomalies.append(
+                            {"line": lineno, "statement": st, "note": "regid without clearid"}
+                        )
                     else:
                         records.append(cur)
                     cur = None
                 elif cur is None:
                     # Expected framing: the SUB lines and the reginternalsubfunc flag set around the table.
-                    if not re.fullmatch(r"(?i)(SUB reginternal|END SUB|reginternalsubfunc\s*=\s*[01])", st):
-                        anomalies.append({"line": lineno, "statement": st,
-                                          "note": "statement outside a clearid/regid block (ignored)"})
+                    if not re.fullmatch(
+                        r"(?i)(SUB reginternal|END SUB|reginternalsubfunc\s*=\s*[01])", st
+                    ):
+                        anomalies.append(
+                            {
+                                "line": lineno,
+                                "statement": st,
+                                "note": "statement outside a clearid/regid block (ignored)",
+                            }
+                        )
                 elif cur is not None:
                     m = re.fullmatch(r"id\.(\w+)\s*=\s*(.*)", st)
                     if m:
                         cur["fields"][m.group(1).lower()] = m.group(2)
                     else:
-                        anomalies.append({"line": lineno, "statement": st,
-                                          "note": "statement inside a clearid/regid block that is not an id field"})
+                        anomalies.append(
+                            {
+                                "line": lineno,
+                                "statement": st,
+                                "note": "statement inside a clearid/regid block that is not an id field",
+                            }
+                        )
                         cur["comments"].append("ANOMALY: " + st)
             if cur is not None and comment and not comment.startswith("id."):
                 cur["comments"].append(comment)
@@ -159,7 +188,14 @@ def build(rec):
         out["arg_types"] = [] if a == '""' else [decode_type(x) for x in split_concat(a)]
     if "ret" in f:
         out["ret"] = decode_type(f["ret"])
-    for key in ("musthave", "mayhave", "specialformat", "hr_syntax", "secondargmustbe", "secondargcantbe"):
+    for key in (
+        "musthave",
+        "mayhave",
+        "specialformat",
+        "hr_syntax",
+        "secondargmustbe",
+        "secondargcantbe",
+    ):
         if key in f:
             out[key] = parse_string(f[key])
     if "overloaded" in f:
@@ -186,12 +222,89 @@ def special_cased_names(names):
         text = f.read()
     upper = {n.upper(): n for n in names}
     found = Counter()
-    for m in re.finditer(r'(?:id2?\.n\)?|n\$|firstelement\$|secondelement\$|a2\$)\s*=\s*"([A-Z_$][A-Z0-9_$]*)"',
-                         text, re.IGNORECASE):
+    for m in re.finditer(
+        r'(?:id2?\.n\)?|n\$|firstelement\$|secondelement\$|a2\$)\s*=\s*"([A-Z_$][A-Z0-9_$]*)"',
+        text,
+        re.IGNORECASE,
+    ):
         key = m.group(1).upper()
         if key in upper:
             found[upper[key]] += 1
     return found
+
+
+SUPPORT = os.path.normpath(os.path.join(QB64PE, "..", "internal", "support"))
+# Included into every program by the old compiler (qb64pe.bas autoIncludeManager, 1720-1790); the colour files
+# only with $COLOR:0 or $COLOR:32 (`condition`).
+AUTO_INCLUDES = [
+    ("include/beforefirstline.bi", None),
+    ("include/afterlastline.bm", None),
+    ("color/color0.bi", "$COLOR:0"),
+    ("color/color32.bi", "$COLOR:32"),
+]
+
+
+def name_of(word):
+    """A declared name without its type suffix, upper case."""
+    m = re.match(r"[A-Za-z_][A-Za-z0-9_.]*", word.strip())
+    return m.group(0).upper() if m else None
+
+
+def auto_include_names():
+    """The names the auto-included BASIC files declare (m2-parser-breadth task 8.2): constants, SUBs, FUNCTIONs,
+    TYPEs and shared variables, each with its kind and file. A new compiler that does not include these files yet
+    reports a use of such a name "not supported yet" rather than as an error."""
+    out = []
+    for rel, condition in AUTO_INCLUDES:
+        path = os.path.join(SUPPORT, *rel.split("/"))
+        with open(path, encoding="latin-1") as f:
+            lines = f.read().splitlines()
+        seen = set()
+
+        def add(name, kind, seen=seen, rel=rel, condition=condition):
+            if name and (name, kind) not in seen:
+                seen.add((name, kind))
+                rec = {"name": name, "kind": kind, "file": rel}
+                if condition:
+                    rec["condition"] = condition
+                out.append(rec)
+
+        for raw in lines:
+            code, _ = strip_comment(raw)
+            for stmt in split_statements(code):
+                s = stmt.strip()
+                u = s.upper()
+                if u.startswith("CONST "):
+                    depth, cur, items = 0, "", []
+                    for c in s[6:]:
+                        depth += (c == "(") - (c == ")")
+                        if c == "," and depth == 0:
+                            items.append(cur)
+                            cur = ""
+                        else:
+                            cur += c
+                    items.append(cur)
+                    for item in items:
+                        add(name_of(item.split("=")[0]), "const")
+                elif re.match(
+                    r"(DECLARE\s+(LIBRARY\s+)?)?(SUB|FUNCTION)\s", u
+                ) and not u.startswith("DECLARE LIBRARY"):
+                    word = re.sub(r"^(DECLARE\s+)?(SUB|FUNCTION)\s+", "", s, flags=re.IGNORECASE)
+                    add(
+                        name_of(word),
+                        "sub"
+                        if re.search(r"\bSUB\b", u.split()[0] + " " + u.split()[1])
+                        else "function",
+                    )
+                elif u.startswith("TYPE ") and len(u.split()) == 2:
+                    add(name_of(s.split()[1]), "type")
+                elif re.match(r"(DIM|REDIM)\s+SHARED\s", u):
+                    rest = re.sub(r"^(RE)?DIM\s+SHARED\s+", "", s, flags=re.IGNORECASE)
+                    if rest.upper().startswith("AS "):
+                        rest = " ".join(rest.split()[2:])
+                    for item in rest.split(","):
+                        add(name_of(item.split("(")[0].split(" AS ")[0]), "variable")
+    return out
 
 
 def main():
@@ -207,19 +320,37 @@ def main():
         "special_argument_codes": {str(k): v for k, v in SPECIAL_CODES.items()},
         "anomalies": anomalies,
         "entries": entries,
+        "auto_include_source": "QB64pe/internal/support/" + ", ".join(r for r, _ in AUTO_INCLUDES),
+        "auto_include": auto_include_names(),
     }
     out_path = os.path.join(HERE, "builtins.json")
     with open(out_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(result, f, indent=1, ensure_ascii=False)
         f.write("\n")
 
-    print("entries:", len(entries), "distinct names (case-insensitive):", len({n.upper() for n in names}))
+    print(
+        "entries:",
+        len(entries),
+        "distinct names (case-insensitive):",
+        len({n.upper() for n in names}),
+    )
     print("kinds:", dict(Counter(e["kind"] for e in entries)))
     print("categories:", dict(Counter(e["category"] for e in entries)))
-    print("arg types:", dict(Counter(t for e in entries for t in e.get("arg_types", [])).most_common()))
-    print("return types:", dict(Counter(e.get("ret", "-") for e in entries if e["kind"] == "function").most_common()))
+    print(
+        "arg types:",
+        dict(Counter(t for e in entries for t in e.get("arg_types", [])).most_common()),
+    )
+    print(
+        "return types:",
+        dict(Counter(e.get("ret", "-") for e in entries if e["kind"] == "function").most_common()),
+    )
     print("dependencies:", dict(Counter(e.get("dependency", "-") for e in entries).most_common()))
-    unknown = [(e["name"], t) for e in entries for t in e.get("arg_types", []) + [e.get("ret", "")] if t.startswith("?")]
+    unknown = [
+        (e["name"], t)
+        for e in entries
+        for t in e.get("arg_types", []) + [e.get("ret", "")]
+        if t.startswith("?")
+    ]
     print("undecoded types:", unknown)
     dup = [n for n, c in Counter(e["name"].upper() for e in entries).items() if c > 1]
     print("names registered more than once:", sorted(dup))
@@ -227,6 +358,9 @@ def main():
     print("functions without id.ret:", noret)
     print("anomalies:", anomalies)
     print("special-cased by name in qb64pe.bas:", len(special))
+    print(
+        "auto-include names:", dict(Counter((r["file"], r["kind"]) for r in result["auto_include"]))
+    )
     print("wrote", out_path)
 
 

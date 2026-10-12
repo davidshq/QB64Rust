@@ -1,0 +1,30 @@
+WHILE
+ 1  2  3 
+DO WHILE
+ 1  2  3 
+DO UNTIL
+ 1  2  3 
+LOOP WHILE
+ 5 
+ 1  2  3 
+LOOP UNTIL
+ 5 
+ 1  2  3 
+DO ... LOOP with EXIT DO
+ 1  2  3 
+  after 4 
+EXIT WHILE from inside a block IF
+  leaving at 4 
+  after 4 
+EXIT DO leaves the inner DO only
+  outer 1 inner 3 
+  outer 2 inner 3 
+EXIT DO from inside a WHILE inside a DO
+  pass 1  5 
+  after 2  3 
+string condition through a comparison
+  aaa
+  aaaaa
+loops in a SUB
+  3  2  1 done
+ done

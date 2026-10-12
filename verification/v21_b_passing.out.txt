@@ -1,0 +1,21 @@
+_UNSIGNED _BYTE param: 255  after:-2 
+_BYTE param:-1  after: 254 
+_UNSIGNED INTEGER param: 65535  after:-2 
+_UNSIGNED LONG param: 4294967295  after: 5 
+LONG param:-1  after: 5 
+_UNSIGNED _INTEGER64 param: 18446744073709551615  after: 6 
+_UNSIGNED _OFFSET param: 18446744073709551615  after: 7 
+_UNSIGNED _OFFSET param: 18446744073709551615  after: 7 
+_INTEGER64 param:-1  after: 6 
+_UNSIGNED _OFFSET param: 5  after: 7 
+_INTEGER64 param:-1  after:-1 
+_OFFSET param:-1  after: 8 
+_INTEGER64 param:-1  after: 6 
+_UNSIGNED _INTEGER64 param: 18446744073709551615  after: 6 
+_UNSIGNED _INTEGER64 param: 18446744073709551615  after: 6 
+LONG param:-16  after:-16 
+INTEGER param: 7  after: 7 
+_UNSIGNED LONG param: 31  after: 31 
+LONG param: 31  after: 31 
+_INTEGER64 param:-1  after:-1 
+exit=0

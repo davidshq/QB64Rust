@@ -1,0 +1,8 @@
+before
+in the include
+
+Runtime error: Line: 3 (in raise.bi)
+Illegal function call
+after the error
+after the include
+exit=0

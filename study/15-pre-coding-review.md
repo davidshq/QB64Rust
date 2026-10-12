@@ -7,7 +7,7 @@ direction errors, not nits.
 **Verdict:** no major error. The strategy (rewrite the compiler, refactor libqb in place, replace the IDE with
 VS Code), the oracle rule (observed behaviour of `qb64pe.exe` at a pinned commit), the pipeline (lossless tree →
 typed AST → typed IR → C++ against the existing libqb ABI) and the M1-first roadmap all hold up. Five adjustments
-follow; all are recorded as decisions in `CLAUDE.md`.
+follow; all are recorded as decisions in `DECISIONS.md`.
 
 ## 1. Bytes, not strings, in the Rust front end
 
@@ -60,7 +60,7 @@ Nothing is copied before M3.
 
 ## Housekeeping done in the same session
 
-- The seven open questions in `STATUS.md` were all answered (list there; decisions in `CLAUDE.md`). None blocked M1.
+- The seven open questions in `STATUS.md` were all answered (list there; decisions in `DECISIONS.md`). None blocked M1.
 - `tools\wiki\fetch_wiki.py` written and run: 1,124 pages (main and Template namespaces) as raw wikitext in the
   git-ignored `tools\wiki\cache\`, incremental on rerun. No licence is stated by the wiki, so the text stays a
   local reference until the maintainers have been asked.

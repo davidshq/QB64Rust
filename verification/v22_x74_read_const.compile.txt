@@ -1,0 +1,5 @@
+
+Expected variable
+Caused by (or after):READ C
+LINE 5:READ c
+exit=1

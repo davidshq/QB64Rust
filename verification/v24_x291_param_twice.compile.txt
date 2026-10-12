@@ -1,0 +1,5 @@
+
+Name already in use (a)
+Caused by (or after):SUB BOTH ( A ( ) AS LONG , A ( ) AS LONG )
+LINE 6:SUB both (a() AS LONG, a() AS LONG)
+exit=1

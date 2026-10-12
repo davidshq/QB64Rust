@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):LINE INPUT P ; S
+LINE 4:LINE INPUT p; s
+exit=1

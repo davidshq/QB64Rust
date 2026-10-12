@@ -1,0 +1,554 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+int8 *__BYTE_B=NULL;
+uint8 *__UBYTE_UB=NULL;
+int16 *__INTEGER_I=NULL;
+uint16 *__UINTEGER_UI=NULL;
+int32 *__LONG_L=NULL;
+uint32 *__ULONG_UL=NULL;
+int64 *__INTEGER64_Q=NULL;
+uint64 *__UINTEGER64_UQ=NULL;
+float *__SINGLE_SG=NULL;
+double *__DOUBLE_DB=NULL;
+long double *__FLOAT_FL=NULL;
+ptrszint *__OFFSET_O=NULL;
+uptrszint *__UOFFSET_UO=NULL;
+qbs *__STRING_S=NULL;
+qbs *__STRING4_FX=NULL;
+ptrszint *__ARRAY_LONG_A=NULL;
+ptrszint *__ARRAY_STRING_SA=NULL;
+void *__UDT_R=NULL;
+int32 *__LONG_K=NULL;
+int32 *__BIT3_BT=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> clear.txt <==
+*__BYTE_B=0;
+*__UBYTE_UB=0;
+*__INTEGER_I=0;
+*__UINTEGER_UI=0;
+*__LONG_L=0;
+*__ULONG_UL=0;
+*__INTEGER64_Q=0;
+*__UINTEGER64_UQ=0;
+*__SINGLE_SG=0;
+*__DOUBLE_DB=0;
+*__FLOAT_FL=0;
+*__OFFSET_O=0;
+*__UOFFSET_UO=0;
+__STRING_S->len=0;
+memset((void*)(__STRING4_FX->chr),0,4);
+memset((void*)(__ARRAY_LONG_A[0]),0,__ARRAY_LONG_A[5]*4);
+tmp_long=__ARRAY_STRING_SA[5];
+while(tmp_long--){
+(((qbs**)(__ARRAY_STRING_SA[0]))[tmp_long])->len=0;
+}
+memset((void*)__UDT_R,0,8);
+*__LONG_K=0;
+*__BIT3_BT=0;
+==> maindata.txt <==
+if(__BYTE_B==NULL){
+__BYTE_B=(int8*)mem_static_malloc(1);
+*__BYTE_B=0;
+}
+if(__UBYTE_UB==NULL){
+__UBYTE_UB=(uint8*)mem_static_malloc(1);
+*__UBYTE_UB=0;
+}
+if(__INTEGER_I==NULL){
+__INTEGER_I=(int16*)mem_static_malloc(2);
+*__INTEGER_I=0;
+}
+if(__UINTEGER_UI==NULL){
+__UINTEGER_UI=(uint16*)mem_static_malloc(2);
+*__UINTEGER_UI=0;
+}
+if(__LONG_L==NULL){
+__LONG_L=(int32*)mem_static_malloc(4);
+*__LONG_L=0;
+}
+if(__ULONG_UL==NULL){
+__ULONG_UL=(uint32*)mem_static_malloc(4);
+*__ULONG_UL=0;
+}
+if(__INTEGER64_Q==NULL){
+__INTEGER64_Q=(int64*)mem_static_malloc(8);
+*__INTEGER64_Q=0;
+}
+if(__UINTEGER64_UQ==NULL){
+__UINTEGER64_UQ=(uint64*)mem_static_malloc(8);
+*__UINTEGER64_UQ=0;
+}
+if(__SINGLE_SG==NULL){
+__SINGLE_SG=(float*)mem_static_malloc(4);
+*__SINGLE_SG=0;
+}
+if(__DOUBLE_DB==NULL){
+__DOUBLE_DB=(double*)mem_static_malloc(8);
+*__DOUBLE_DB=0;
+}
+if(__FLOAT_FL==NULL){
+__FLOAT_FL=(long double*)mem_static_malloc(32);
+*__FLOAT_FL=0;
+}
+if(__OFFSET_O==NULL){
+__OFFSET_O=(ptrszint*)mem_static_malloc(8);
+*__OFFSET_O=0;
+}
+if(__UOFFSET_UO==NULL){
+__UOFFSET_UO=(uptrszint*)mem_static_malloc(8);
+*__UOFFSET_UO=0;
+}
+if (!__STRING_S)__STRING_S=qbs_new(0,0);
+if(__STRING4_FX==NULL){
+__STRING4_FX=qbs_new_fixed((uint8*)mem_static_malloc(4),4,0);
+memset(__STRING4_FX->chr,0,4);
+}
+if (!__ARRAY_LONG_A){
+__ARRAY_LONG_A=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_A)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_A[4]=0ll;
+__ARRAY_LONG_A[5]=(3ll)-__ARRAY_LONG_A[4]+1;
+if (__ARRAY_LONG_A[5]<=0) error(5);
+__ARRAY_LONG_A[6]=1;
+__ARRAY_LONG_A[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_A[5]*4);
+memset((void*)(__ARRAY_LONG_A[0]),0,__ARRAY_LONG_A[5]*4);
+__ARRAY_LONG_A[2]=1+2;
+}
+if (!__ARRAY_STRING_SA){
+__ARRAY_STRING_SA=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING_SA)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING_SA[4]=0ll;
+__ARRAY_STRING_SA[5]=(3ll)-__ARRAY_STRING_SA[4]+1;
+if (__ARRAY_STRING_SA[5]<=0) error(5);
+__ARRAY_STRING_SA[6]=1;
+__ARRAY_STRING_SA[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING_SA[5]*ptrsz);
+tmp_long=__ARRAY_STRING_SA[5];
+while(tmp_long--){
+((qbs**)(__ARRAY_STRING_SA[0]))[tmp_long]=qbs_new(0,0);
+}
+__ARRAY_STRING_SA[2]=1+2;
+}
+if(__UDT_R==NULL){
+__UDT_R=(void*)mem_static_malloc(8);
+memset(__UDT_R,0,8);
+}
+if(__LONG_K==NULL){
+__LONG_K=(int32*)mem_static_malloc(4);
+*__LONG_K=0;
+}
+if(__BIT3_BT==NULL){
+__BIT3_BT=(int32*)mem_static_malloc(4);
+*__BIT3_BT=0;
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "console_input_cpp.bas"
+do{
+#line 2 "console_input_cpp.bas"
+sub__dest(func__console());
+#line 2 "console_input_cpp.bas"
+sub__source(func__console());
+#line 2 "console_input_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 16 "console_input_cpp.bas"
+do{
+#line 16 "console_input_cpp.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 16 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=32;
+#line 16 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=&(*__LONG_L);
+#line 16 "console_input_cpp.bas"
+qbs_input(1,1);
+#line 16 "console_input_cpp.bas"
+if (stop_program) end();
+#line 16 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 16 "console_input_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "console_input_cpp.bas"
+do{
+#line 17 "console_input_cpp.bas"
+qbs_print(qbs_new_txt_len("number",6),0);
+#line 17 "console_input_cpp.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 17 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=32;
+#line 17 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=&(*__LONG_L);
+#line 17 "console_input_cpp.bas"
+qbs_input(1,1);
+#line 17 "console_input_cpp.bas"
+if (stop_program) end();
+#line 17 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 17 "console_input_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "console_input_cpp.bas"
+do{
+#line 18 "console_input_cpp.bas"
+qbs_print(qbs_new_txt_len("number: ",8),0);
+#line 18 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=32;
+#line 18 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=&(*__LONG_L);
+#line 18 "console_input_cpp.bas"
+qbs_input(1,1);
+#line 18 "console_input_cpp.bas"
+if (stop_program) end();
+#line 18 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 18 "console_input_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "console_input_cpp.bas"
+do{
+#line 19 "console_input_cpp.bas"
+qbs_print(qbs_new_txt_len("stay",4),0);
+#line 19 "console_input_cpp.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 19 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=32;
+#line 19 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=&(*__LONG_L);
+#line 19 "console_input_cpp.bas"
+qbs_input(1,0);
+#line 19 "console_input_cpp.bas"
+if (stop_program) end();
+#line 19 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 19 "console_input_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "console_input_cpp.bas"
+do{
+#line 20 "console_input_cpp.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 20 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=32;
+#line 20 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=&(*__LONG_L);
+#line 20 "console_input_cpp.bas"
+qbs_input(1,0);
+#line 20 "console_input_cpp.bas"
+if (stop_program) end();
+#line 20 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 20 "console_input_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "console_input_cpp.bas"
+do{
+#line 21 "console_input_cpp.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 21 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=8;
+#line 21 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=&(*__BYTE_B);
+#line 21 "console_input_cpp.bas"
+qbs_input_variabletypes[2]=268435464;
+#line 21 "console_input_cpp.bas"
+qbs_input_variableoffsets[2]=&(*__UBYTE_UB);
+#line 21 "console_input_cpp.bas"
+qbs_input_variabletypes[3]=16;
+#line 21 "console_input_cpp.bas"
+qbs_input_variableoffsets[3]=&(*__INTEGER_I);
+#line 21 "console_input_cpp.bas"
+qbs_input_variabletypes[4]=268435472;
+#line 21 "console_input_cpp.bas"
+qbs_input_variableoffsets[4]=&(*__UINTEGER_UI);
+#line 21 "console_input_cpp.bas"
+qbs_input_variabletypes[5]=32;
+#line 21 "console_input_cpp.bas"
+qbs_input_variableoffsets[5]=&(*__LONG_L);
+#line 21 "console_input_cpp.bas"
+qbs_input_variabletypes[6]=268435488;
+#line 21 "console_input_cpp.bas"
+qbs_input_variableoffsets[6]=&(*__ULONG_UL);
+#line 21 "console_input_cpp.bas"
+qbs_input(6,1);
+#line 21 "console_input_cpp.bas"
+if (stop_program) end();
+#line 21 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 21 "console_input_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 22 "console_input_cpp.bas"
+do{
+#line 22 "console_input_cpp.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 22 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=64;
+#line 22 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=&(*__INTEGER64_Q);
+#line 22 "console_input_cpp.bas"
+qbs_input_variabletypes[2]=268435520;
+#line 22 "console_input_cpp.bas"
+qbs_input_variableoffsets[2]=&(*__UINTEGER64_UQ);
+#line 22 "console_input_cpp.bas"
+qbs_input_variabletypes[3]=536870944;
+#line 22 "console_input_cpp.bas"
+qbs_input_variableoffsets[3]=&(*__SINGLE_SG);
+#line 22 "console_input_cpp.bas"
+qbs_input_variabletypes[4]=536870976;
+#line 22 "console_input_cpp.bas"
+qbs_input_variableoffsets[4]=&(*__DOUBLE_DB);
+#line 22 "console_input_cpp.bas"
+qbs_input_variabletypes[5]=536871168;
+#line 22 "console_input_cpp.bas"
+qbs_input_variableoffsets[5]=&(*__FLOAT_FL);
+#line 22 "console_input_cpp.bas"
+qbs_input_variabletypes[6]=1048640;
+#line 22 "console_input_cpp.bas"
+qbs_input_variableoffsets[6]=&(*__OFFSET_O);
+#line 22 "console_input_cpp.bas"
+qbs_input_variabletypes[7]=269484096;
+#line 22 "console_input_cpp.bas"
+qbs_input_variableoffsets[7]=&(*__UOFFSET_UO);
+#line 22 "console_input_cpp.bas"
+qbs_input(7,1);
+#line 22 "console_input_cpp.bas"
+if (stop_program) end();
+#line 22 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 22 "console_input_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "console_input_cpp.bas"
+do{
+#line 23 "console_input_cpp.bas"
+qbs_print(qbs_new_txt_len("three",5),0);
+#line 23 "console_input_cpp.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 23 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=32;
+#line 23 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=&(*__LONG_L);
+#line 23 "console_input_cpp.bas"
+qbs_input_variabletypes[2]=ISSTRING;
+#line 23 "console_input_cpp.bas"
+qbs_input_variableoffsets[2]=__STRING_S;
+#line 23 "console_input_cpp.bas"
+qbs_input_variabletypes[3]=536870976;
+#line 23 "console_input_cpp.bas"
+qbs_input_variableoffsets[3]=&(*__DOUBLE_DB);
+#line 23 "console_input_cpp.bas"
+qbs_input(3,1);
+#line 23 "console_input_cpp.bas"
+if (stop_program) end();
+#line 23 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 23 "console_input_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "console_input_cpp.bas"
+do{
+#line 24 "console_input_cpp.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 24 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=ISSTRING;
+#line 24 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=__STRING4_FX;
+#line 24 "console_input_cpp.bas"
+qbs_input_variabletypes[2]=8388640;
+#line 24 "console_input_cpp.bas"
+qbs_input_variableoffsets[2]=&(((int32*)(__ARRAY_LONG_A[0]))[array_check((((int64)(*__LONG_K)))-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])]);
+#line 24 "console_input_cpp.bas"
+qbs_input_variabletypes[3]=ISSTRING;
+#line 24 "console_input_cpp.bas"
+qbs_input_variableoffsets[3]=(((qbs**)(__ARRAY_STRING_SA[0]))[array_check((((int64)(*__LONG_K)))-__ARRAY_STRING_SA[4],__ARRAY_STRING_SA[5])]);
+#line 24 "console_input_cpp.bas"
+qbs_input_variabletypes[4]=32;
+#line 24 "console_input_cpp.bas"
+qbs_input_variableoffsets[4]=&(*(int32*)((((char*)__UDT_R)+0)));
+#line 24 "console_input_cpp.bas"
+qbs_input_variabletypes[5]=ISSTRING;
+#line 24 "console_input_cpp.bas"
+qbs_input_variableoffsets[5]=qbs_new_fixed((uint8*)(((char*)__UDT_R)+4),4,1);
+#line 24 "console_input_cpp.bas"
+qbs_input(5,1);
+#line 24 "console_input_cpp.bas"
+if (stop_program) end();
+#line 24 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 24 "console_input_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "console_input_cpp.bas"
+do{
+#line 25 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=ISSTRING+512;
+#line 25 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=__STRING_S;
+#line 25 "console_input_cpp.bas"
+qbs_input(1,1);
+#line 25 "console_input_cpp.bas"
+if (stop_program) end();
+#line 25 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 25 "console_input_cpp.bas"
+if(!qbevent)break;evnt(25);}while(r);
+#line 26 "console_input_cpp.bas"
+do{
+#line 26 "console_input_cpp.bas"
+qbs_print(qbs_new_txt_len("line; ",6),0);
+#line 26 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=ISSTRING+512;
+#line 26 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=__STRING_S;
+#line 26 "console_input_cpp.bas"
+qbs_input(1,1);
+#line 26 "console_input_cpp.bas"
+if (stop_program) end();
+#line 26 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 26 "console_input_cpp.bas"
+if(!qbevent)break;evnt(26);}while(r);
+#line 27 "console_input_cpp.bas"
+do{
+#line 27 "console_input_cpp.bas"
+qbs_print(qbs_new_txt_len("line, ",6),0);
+#line 27 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=ISSTRING+512;
+#line 27 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=__STRING_S;
+#line 27 "console_input_cpp.bas"
+qbs_input(1,1);
+#line 27 "console_input_cpp.bas"
+if (stop_program) end();
+#line 27 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 27 "console_input_cpp.bas"
+if(!qbevent)break;evnt(27);}while(r);
+#line 28 "console_input_cpp.bas"
+do{
+#line 28 "console_input_cpp.bas"
+qbs_print(qbs_new_txt_len("stay ",5),0);
+#line 28 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=ISSTRING+512;
+#line 28 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=__STRING_S;
+#line 28 "console_input_cpp.bas"
+qbs_input(1,0);
+#line 28 "console_input_cpp.bas"
+if (stop_program) end();
+#line 28 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 28 "console_input_cpp.bas"
+if(!qbevent)break;evnt(28);}while(r);
+#line 29 "console_input_cpp.bas"
+do{
+#line 29 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=ISSTRING+512;
+#line 29 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=__STRING4_FX;
+#line 29 "console_input_cpp.bas"
+qbs_input(1,1);
+#line 29 "console_input_cpp.bas"
+if (stop_program) end();
+#line 29 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 29 "console_input_cpp.bas"
+if(!qbevent)break;evnt(29);}while(r);
+#line 30 "console_input_cpp.bas"
+do{
+#line 30 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=ISSTRING+512;
+#line 30 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=(((qbs**)(__ARRAY_STRING_SA[0]))[array_check((((int64)(*__LONG_K)))-__ARRAY_STRING_SA[4],__ARRAY_STRING_SA[5])]);
+#line 30 "console_input_cpp.bas"
+qbs_input(1,1);
+#line 30 "console_input_cpp.bas"
+if (stop_program) end();
+#line 30 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 30 "console_input_cpp.bas"
+if(!qbevent)break;evnt(30);}while(r);
+#line 31 "console_input_cpp.bas"
+do{
+#line 31 "console_input_cpp.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 31 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=32;
+#line 31 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=&(*__LONG_L);
+#line 31 "console_input_cpp.bas"
+qbs_input(1,1);
+#line 31 "console_input_cpp.bas"
+if (stop_program) end();
+#line 31 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 31 "console_input_cpp.bas"
+if(!qbevent)break;evnt(31);}while(r);
+#line 32 "console_input_cpp.bas"
+do{
+#line 32 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=ISSTRING+512;
+#line 32 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=__STRING_S;
+#line 32 "console_input_cpp.bas"
+qbs_input(1,1);
+#line 32 "console_input_cpp.bas"
+if (stop_program) end();
+#line 32 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 32 "console_input_cpp.bas"
+if(!qbevent)break;evnt(32);}while(r);
+#line 33 "console_input_cpp.bas"
+do{
+#line 33 "console_input_cpp.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 33 "console_input_cpp.bas"
+qbs_input_variabletypes[1]=16777219;
+#line 33 "console_input_cpp.bas"
+qbs_input_variableoffsets[1]=&(*__BIT3_BT);
+#line 33 "console_input_cpp.bas"
+qbs_input(1,1);
+#line 33 "console_input_cpp.bas"
+if (stop_program) end();
+#line 33 "console_input_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 33 "console_input_cpp.bas"
+if(!qbevent)break;evnt(33);}while(r);
+#line 34 "console_input_cpp.bas"
+do{
+#line 34 "console_input_cpp.bas"
+if (sub_gl_called) error(271);
+#line 34 "console_input_cpp.bas"
+close_program=1;
+#line 34 "console_input_cpp.bas"
+end();
+#line 34 "console_input_cpp.bas"
+if(!qbevent)break;evnt(34);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(__STRING_S);
+qbs_free(__STRING4_FX);
+==> empty: regsf.txt dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt

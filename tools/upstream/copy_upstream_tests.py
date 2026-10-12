@@ -24,7 +24,17 @@ REPO = pathlib.Path(__file__).resolve().parents[2]
 DEST = REPO / "tests" / "upstream"
 SUITE = pathlib.PurePosixPath("tests/compile_tests")
 EXTENSIONS = [
-    ".bas", ".bi", ".bm", ".h", ".c", ".output", ".err", ".license", ".noprompt", ".compile-from-base", ".md",
+    ".bas",
+    ".bi",
+    ".bm",
+    ".h",
+    ".c",
+    ".output",
+    ".err",
+    ".license",
+    ".noprompt",
+    ".compile-from-base",
+    ".md",
 ]
 COMMIT_LINE = re.compile(r"^Commit: `([0-9a-f]+)`", re.MULTILINE)
 
@@ -42,7 +52,9 @@ def wanted(path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("clone", nargs="?", default=str(REPO.parent / "QB64pe"))
-    ap.add_argument("--commit-ok", action="store_true", help="accept a clone HEAD other than SOURCE.md's commit")
+    ap.add_argument(
+        "--commit-ok", action="store_true", help="accept a clone HEAD other than SOURCE.md's commit"
+    )
     a = ap.parse_args()
 
     clone = pathlib.Path(a.clone).resolve()
@@ -57,7 +69,9 @@ def main():
         m = COMMIT_LINE.search(source_md.read_text(encoding="utf-8"))
         pinned = m.group(1) if m else None
         if pinned != head and not a.commit_ok:
-            sys.exit(f"the clone is at {head}, SOURCE.md names {pinned}; rerun with --commit-ok to take {head}")
+            sys.exit(
+                f"the clone is at {head}, SOURCE.md names {pinned}; rerun with --commit-ok to take {head}"
+            )
 
     out = DEST / "compile_tests"
     if out.exists():
@@ -75,6 +89,14 @@ def main():
         counts[ext] = counts.get(ext, 0) + 1
         total_bytes += f.stat().st_size
 
+    # The compiler root for the upstream tests (design D9 of m2-parser-breadth, task 8.1): two tests include
+    # 'tests/compile_tests/extra/…' relative to the compiler's folder, so `root/` holds that path, a mirror of
+    # `compile_tests/extra`. The runners pass `--include-root tests/upstream/root`.
+    root = DEST / "root"
+    if root.exists():
+        shutil.rmtree(root)
+    shutil.copytree(out / "extra", root / SUITE / "extra")
+
     shutil.copyfile(clone / "licenses" / "license_qb64.txt", DEST / "LICENSE-QB64pe.txt")
 
     table = "\n".join(f"| `{ext}` | {counts.get(ext, 0)} |" for ext in EXTENSIONS)
@@ -87,8 +109,12 @@ Commit: `{head}` ({date}) of QB64pe (`github.com/QB64-Phoenix-Edition/QB64pe`), 
 relative paths. Binary assets (images, fonts, sound, libraries) and `.gitignore` files are not copied; the
 upstream tests that need them are run from the clone (`tools/legacy_tests/run_legacy_tests.py --suite compile`).
 
+`root/tests/compile_tests/extra/` mirrors `compile_tests/extra/`: it is the compiler root for these tests
+(`--include-root tests/upstream/root`), where `include_paths/include_fixed_compile_location` and
+`include_multiple` find `'tests/compile_tests/extra/…'`, as the old compiler finds it under its own folder.
+
 Licence: MIT, QB64pe's `licenses/license_qb64.txt`, copied as `LICENSE-QB64pe.txt` (decision of 2026-10-04 in
-`CLAUDE.md`; `study/22` §4).
+`DECISIONS.md`; `study/22` §4).
 
 Made by `tools/upstream/copy_upstream_tests.py`; rerun it after updating the clone (with `--commit-ok`). Do not
 edit the copied files by hand.

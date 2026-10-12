@@ -1,0 +1,13 @@
+1. static LONG: UBOUND, a(2) 5  0 
+2. static STRING, STRING * 3, a user type, DOUBLE in two dimensions, _BIT * 4: [] 0  3  0  0  0  0  0  0  1  3 
+   and stored again: again 3 
+3. dynamic: UBOUND(d) [error 9 ]   LBOUND(d) [error 9 ]   d(1) [error 9 ]   d(1) = 1 [error 9 ]
+   ERASE d again: nothing
+   REDIM d(2): UBOUND, d(1) 2  0 
+4. DIM z(n), ERASE z and the same DIM again, in a loop: 5  1  6  2 
+5. dynamic STRING, STRING * 3, a user type, _BIT * 4: UBOUND of each [error 9 ] [error 9 ] [error 9 ] [error 9 ]
+   after REDIM of each: [] 0  0  0 
+6. a scalar of the array's name: sc&, sc&(1) 5  0 
+7. the array by its suffix, ERASE sf&: 0 
+8. a dynamic and a static array in one statement, the dynamic one twice: 0  2  [error 9 ]
+9. ERASE of shared arrays in a SUB: 0  3  [error 9 ]

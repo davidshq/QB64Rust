@@ -1,0 +1,79 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 7: Assign S:Str
+  Str "hello world" : Str
+line 8: Call P
+  ref S : Str
+line 9: Print newline
+  Str
+    Str "after p: [" : Str
+  Str
+    Var S : Str
+  Str
+    Str "]" : Str
+line 10: Call R
+  ref S : Str
+line 11: Print newline
+  Str
+    Str "after r: [" : Str
+  Str
+    Var S : Str
+  Str
+    Str "]" : Str
+line 12: Print newline
+  Str
+    CallProc G : Str
+      temp
+        Str "abcdefgh" : Str
+line 13: System
+SUB P
+  param T:Str
+line 16: Print newline
+  Str
+    Str "[" : Str
+  Str
+    Var T (param) : Str
+  Str
+    Str "]" : Str
+  Num
+    Int 5 : I32
+  Num
+    Call LEN : I32
+      Concat : Str
+        Var T (param) : Str
+        Str "!" : Str
+  Num
+    Call LEN : I32
+      Call RTRIM : Str
+        Var T (param) : Str
+line 17: Assign T (param):Str
+  Str "much longer text" : Str
+line 18: Print newline
+  Num
+    Int 5 : I32
+SUB R
+  param T:Str
+line 22: Print newline
+  Str
+    Str "[" : Str
+  Str
+    Var T (param) : Str
+  Str
+    Str "]" : Str
+  Num
+    Int 4 : I32
+line 23: Assign T (param):Str
+  Str "abcdefgh" : Str
+FUNCTION G : Str
+  param T:Str
+  result G:Str
+line 27: Assign G (result):Str
+  Concat : Str
+    Concat : Str
+      Var T (param) : Str
+      Str "|" : Str
+    Call STR : Str
+      Int 3 : I32

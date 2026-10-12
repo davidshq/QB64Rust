@@ -1,0 +1,10 @@
+shared 9:-7 
+static: 5 
+static:-6 
+local: 0  7 
+local: 0  7 
+shared in SUB:-7 
+array: 0 -3 -1  0 
+unsigned bit array: 0  1  0  1  0 
+_BIT * 63 array: 0  144115188075855871  0 
+exit=0

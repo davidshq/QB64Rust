@@ -1,0 +1,111 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 7: Print newline
+  Str
+    Call LEFT : Str
+      Var S : Str
+      Int 2 : I32
+  Str
+    Call RIGHT : Str
+      Var S : Str
+      Var L : I32
+  Str
+    Call MID : Str
+      Var S : Str
+      Int 2 : I32
+      (absent)
+  Str
+    Call MID : Str
+      Var S : Str
+      Int 2 : I32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Float 3.5E+0 : F64 (qb F32)
+  Str
+    Call LEFT : Str
+      Var S : Str
+      Convert Truncate : I32
+        Var Q : I64
+line 8: Print newline
+  Str
+    Call SPACE : Str
+      Convert Widen : I32
+        Var I : I16
+  Str
+    Call STRING : Str
+      Int 3 : I32
+      Int 65 : I32
+  Str
+    Call STRING : Str
+      Var L : I32
+      Str "xyz" : Str
+  Str
+    Call STRING : Str
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Float 2.5E+0 : F64 (qb F32)
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Float 65.5E+0 : F64 (qb F32)
+line 9: Print newline
+  Str
+    Call LTRIM : Str
+      Var S : Str
+  Str
+    Call RTRIM : Str
+      Var S : Str
+  Str
+    Call _TRIM : Str
+      Var S : Str
+  Str
+    Call UCASE : Str
+      Var S : Str
+  Str
+    Call LCASE : Str
+      Concat : Str
+        Var S : Str
+        Str "A" : Str
+line 10: Print newline
+  Str
+    Call STR : Str
+      Var I : I16
+  Str
+    Call STR : Str
+      Var L : I32
+  Str
+    Call STR : Str
+      Var Q : I64
+  Str
+    Call STR : Str
+      Var D : F64
+  Str
+    Call STR : Str
+      Convert Nearest : F32
+        Float 2.5E+0 : F64 (qb F32)
+  Str
+    Call STR : Str
+      Convert Widen : I64
+        Binary Add : I32 (qb I64)
+          Convert Widen : I32
+            Var I : I16
+          Int 1 : I32
+line 11: Print newline
+  Str
+    Call _TOSTR : Str
+      Var D : F64
+      (absent)
+  Str
+    Call _TOSTR : Str
+      Var D : F64
+      Int 3 : I32
+  Str
+    Call _TOSTR : Str
+      Binary Div : F80
+        Convert Nearest : F80
+          Int 1 : I16
+        Convert Nearest : F80
+          Int 3 : I16
+      Var L : I32

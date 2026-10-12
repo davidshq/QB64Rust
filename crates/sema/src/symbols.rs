@@ -1,8 +1,10 @@
 //! The symbol table (design D12 of `m2-procedures-and-errors`): every resolved name with its definition and
 //! references, and a lookup from a byte position to the symbol named there. Spans are those of the name token,
-//! suffix included. Variables of every storage class, procedures and labels are recorded.
+//! suffix included. Variables of every storage class, procedures, labels and constants are recorded.
 
-use crate::{LabelId, ProcId, ProcKind, Program, Storage, VarId};
+use crate::consteval::{Value, shortest_text};
+use crate::{ConstId, LabelId, ProcId, ProcKind, Program, Storage, VarId};
+use qb64rust_base::show_bytes;
 use qb64rust_base::{FileId, SourceMap, Span, to_u32};
 use std::collections::HashMap;
 use std::fmt::Write as _;
@@ -15,12 +17,14 @@ pub enum SymbolKind {
     Var(VarId),
     Proc(ProcId),
     Label(LabelId),
+    Const(ConstId),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Symbol {
     pub kind: SymbolKind,
-    /// The name in the `DIM` or procedure header, the label's definition, or the first use of an implicit variable.
+    /// The name in the `DIM`, `CONST` or procedure header, the label's definition, or the first use of an implicit
+    /// variable.
     pub def: Span,
     /// The other uses, in source order.
     pub refs: Vec<Span>,
@@ -100,7 +104,9 @@ pub fn dump_symbols(p: &Program, map: &SourceMap) -> String {
                     Storage::Param(q) => format!(" (param of {})", p.proc(q).name),
                     Storage::Result(q) => format!(" (result of {})", p.proc(q).name),
                 };
-                write!(out, "Var {} : {}{storage} def {}", v.name, v.ty.qb_name(), pos(s.def)).unwrap();
+                let shape = if v.is_array() { "()" } else { "" };
+                let t = p.type_name(v.ty);
+                write!(out, "Var {}{shape} : {t}{storage} def {}", v.name, pos(s.def)).unwrap();
             }
             SymbolKind::Proc(q) => {
                 let q = p.proc(q);
@@ -110,7 +116,22 @@ pub fn dump_symbols(p: &Program, map: &SourceMap) -> String {
                 };
                 write!(out, "Proc {} {kind} def {}", q.name, pos(s.def)).unwrap();
             }
-            SymbolKind::Label(l) => write!(out, "Label {} def {}", p.label(l).name, pos(s.def)).unwrap(),
+            SymbolKind::Label(l) => {
+                let l = p.label(l);
+                let owner = l.proc.map_or(String::new(), |q| format!(" (in {})", p.proc(q).name));
+                write!(out, "Label {}{owner} def {}", l.name, pos(s.def)).unwrap()
+            }
+            SymbolKind::Const(c) => {
+                let c = p.constant(c);
+                let value = match &c.value {
+                    Value::Int(i) => i.to_string(),
+                    Value::Float(f) => shortest_text(f.v),
+                    Value::Str(b) => format!("\"{}\"", show_bytes(b)),
+                };
+                let owner = c.proc.map_or(String::new(), |q| format!(" (in {})", p.proc(q).name));
+                let (name, ty) = (&c.name, c.ty.qb_name());
+                write!(out, "Const {name} : {ty} = {value}{owner} def {}", pos(s.def)).unwrap();
+            }
         }
         let refs: Vec<String> = s.refs.iter().map(|&r| pos(r)).collect();
         if !refs.is_empty() {

@@ -1,0 +1,71 @@
+-- selector read once
+noisy called
+three
+-- a plain variable is read at each test; an element and a member once
+case 2
+else
+else
+-- items converted to the selector's type
+2.4 matches 2
+1.5 matches 2
+2.5 TO 3 matches 2
+IS > 1.9 does not match 2
+2.5 in 2 TO 3
+0.1 matches DOUBLE 0.1
+0.1# matches SINGLE 0.1
+4294967298
+i + 1 is 3
+-- string selectors
+a TO m
+IS >= dog
+cat, dog
+dogs
+d
+-- IS with each operator (EVERYCASE), selector 5
+= 5
+< 6
+> 4
+<= 5
+-- items of each kind
+first
+second
+third
+else
+9 TO 1 did not match 7
+no match, no ELSE
+-- EVERYCASE
+> 1
+> 2
+else
+5
+6 after the body changed x
+everyp 2
+everyp < 5
+everyp else
+-- errors in the selector and in items
+[handler 5 ]
+case 0
+[handler 5 ]
+case 0
+[handler 5 ]
+case ASC(empty) for 5
+[handler 5 ]
+case 1, ASC(empty), 2 for 5
+[handler 5 ]
+case ASC(empty) TO 9 for 5
+[handler 5 ]
+case IS > ASC(empty) for 5
+[handler 9 ]
+bad index: element 0's value
+-- jumps
+in case 1, GOTO out
+out1
+inside case 2
+after jump in
+EXIT SUB from a CASE
+empty SELECT ran
+k = 1 
+EXIT FOR from a CASE at k = 2 
+-- recursion (Q-002)
+rec(1) = 2 
+rec(3) = 3 

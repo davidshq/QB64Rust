@@ -1,0 +1,8 @@
+$CONSOLE:ONLY
+' Verification (m2-control-flow-slice, D1): OPTION _EXPLICIT and OPTION _EXPLICITARRAY together.
+OPTION _EXPLICITARRAY
+OPTION _EXPLICIT
+DIM x
+x = 1
+PRINT x
+SYSTEM

@@ -1,0 +1,6 @@
+in g
+back from g
+in se l, leaving
+in g
+back from g again
+exit=0

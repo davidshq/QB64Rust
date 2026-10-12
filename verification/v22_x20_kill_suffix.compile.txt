@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):KILL$ "a",1
+LINE 3:KILL$ "a"
+exit=1

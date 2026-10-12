@@ -1,0 +1,4 @@
+ [error 10 ]SUB: 7  3 
+ [error 10 ]SUB: 8  3 
+main: 9  3 
+exit=0

@@ -27,9 +27,20 @@ pub(crate) fn proc_def(p: &mut Parser) -> bool {
     p.push_block(Block::Proc, header_span);
     let nested = loop {
         match p.body() {
+            Stop::Eof if p.innermost_crosses_files() => {
+                let msg = format!("a block closed in another file (`{word}` without `END {word}` in this file)");
+                p.block_unsupported(header_span, msg);
+                break false;
+            }
             Stop::Eof => {
                 p.block_error(header_span, format!("`{word}` without `END {word}`"));
                 break false;
+            }
+            Stop::ProcHeader if p.innermost_crosses_files() => {
+                p.unsupported(format!(
+                    "a SUB or FUNCTION after one whose `END {word}` may be in another file"
+                ));
+                break true;
             }
             Stop::ProcHeader => {
                 p.error(format!(
@@ -90,8 +101,8 @@ pub(super) fn proc_header(p: &mut Parser, library: bool) {
     if p.at(LParen) {
         param_list(p, library);
     }
-    if p.at_word("STATIC") {
-        p.unsupported("`STATIC` after a procedure header");
+    if p.at_word("STATIC") && !library {
+        p.bump();
     } else if p.at_word("AS") {
         p.error("a FUNCTION's type is given by a suffix on its name, not by `AS`");
     }
@@ -118,7 +129,10 @@ pub(super) fn param_list(p: &mut Parser, library: bool) {
     p.finish_node();
 }
 
-/// `[BYVAL] name[suffix] [AS type]` (`BYVAL` only with `library`). Returns false after an error.
+/// `[BYVAL] name[suffix][()] [AS type]` (`BYVAL` only with `library`). An array parameter's parentheses hold
+/// anything (`a(,)`, `a(1)`, `a(n + 1)`, `a(1 TO 5)`), none of which says anything: the old compiler skips every
+/// word up to the `)` (`qb64pe.bas` 2882–2904; measured, `verification/v24_x156`, `x157`, `x303`). Only a second
+/// `(` and the word `AS` are errors there (`x304`, `x305`). Returns false after an error.
 fn param(p: &mut Parser, library: bool) -> bool {
     if !p.at(Ident) {
         p.syntax_error("expected a parameter name");
@@ -129,14 +143,23 @@ fn param(p: &mut Parser, library: bool) -> bool {
         p.bump();
     }
     p.bump();
-    let ok = if p.at(LParen) {
-        p.unsupported("array parameters");
-        false
-    } else if p.at_word("AS") {
-        as_clause(p)
-    } else {
-        true
-    };
+    let mut ok = true;
+    if p.at(LParen) {
+        p.bump();
+        while !(p.at(RParen) || p.at(LParen) || p.at_word("AS") || p.at_stmt_end()) {
+            p.bump();
+        }
+        if p.at(LParen) || p.at_word("AS") {
+            // Measured: "Syntax error - too many opening brackets", "Syntax error - check your brackets".
+            p.error("an array parameter's parentheses cannot hold `(` or `AS`");
+            p.finish_node();
+            return false;
+        }
+        ok = p.expect(RParen, "`)` after an array parameter");
+    }
+    if ok && p.at_word("AS") {
+        ok = as_clause(p);
+    }
     p.finish_node();
     ok
 }

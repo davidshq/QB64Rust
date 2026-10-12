@@ -1,0 +1,5 @@
+
+Array 'a' (SINGLE) not defined
+Caused by (or after):A ( 1 ) = 5
+LINE 7:a(1) = 5
+exit=1

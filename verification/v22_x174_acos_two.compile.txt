@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _ACOS(cosine_value!)
+Caused by (or after):D = _ACOS ( 1 , 2 )
+LINE 4:d = _ACOS(1, 2)
+exit=1

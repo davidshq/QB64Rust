@@ -1,0 +1,5 @@
+
+Name already in use (a)
+Caused by (or after):
+LINE 4:CONST A = 2
+exit=1

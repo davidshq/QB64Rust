@@ -75,3 +75,32 @@ export async function setSetting(section: string, key: string, value: unknown, l
     const cfg = vscode.workspace.getConfiguration(section, languageId ? { languageId } : undefined);
     await cfg.update(key, value, vscode.ConfigurationTarget.Workspace, languageId !== undefined);
 }
+
+/** The old compiler's diagnostics of a file (source `qb64pe`); the language server's (`qb64rust`), when it runs, are
+ * left out. */
+export function qb64peDiagnostics(uri: vscode.Uri): vscode.Diagnostic[] {
+    return vscode.languages.getDiagnostics(uri).filter((d) => d.source === "qb64pe");
+}
+
+/** The language server's diagnostics of a file (source `qb64rust`). */
+export function qb64rustDiagnostics(uri: vscode.Uri): vscode.Diagnostic[] {
+    return vscode.languages.getDiagnostics(uri).filter((d) => d.source === "qb64rust");
+}
+
+/** The `qb64rust` binary of the language server tests (`QB64RUST_TEST_QB64RUST`); empty when they are skipped. */
+export const server = process.env.QB64RUST_TEST_SERVER ?? "";
+
+/** `waitFor` with a probe that is asynchronous (a command that asks the language server). */
+export async function waitForAsync<T>(what: string, probe: () => Promise<T | undefined | false>, timeoutMs = 10000): Promise<T> {
+    const started = Date.now();
+    for (;;) {
+        const v = await probe();
+        if (v) {
+            return v;
+        }
+        if (Date.now() - started > timeoutMs) {
+            throw new Error(`timed out waiting for ${what}`);
+        }
+        await sleep(100);
+    }
+}
