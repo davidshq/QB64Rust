@@ -173,6 +173,9 @@ No change to how the driver calls `make`, apart from the flags.
   `Rule::Plain` (LONG, no arguments). A name that is both (`_DEST`) is told apart as `SHELL` is.
 - `_ECHO` in a program with no console is the old compiler's compile error (`v26_x17`). `sema` knows the mode
   only after the whole walk (D1), so the check runs after it, over the recorded positions of `_ECHO` statements.
+- After `CALL` the three statements are accepted too (`v26_x69`, `x70`, measured in group 3). `_ECHO` has no
+  template and is read like a SUB call already; `_DEST` and `_SOURCE` have the template `?`, and a statement
+  whose template is one argument is read like a SUB call after `CALL` (`check\proc.rs`).
 - `_DEST -99` (error 258), `_DEST 1.6` and the handle values are libqb's; nothing to do but pass the argument
   converted as the table's LONG slot says, which the call-site programs check for each numeric type (`v26_x22`).
 

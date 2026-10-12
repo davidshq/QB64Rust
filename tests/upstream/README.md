@@ -296,3 +296,11 @@ include root the two `include_paths` programs join the ten that include the old 
 other errors"): 96 programs without errors, 242 with only "not supported yet" errors, 10 with other errors; its
 first lines are as after group 9. What comes next for the suite: `_DEST` and `$CONSOLE` (step 11 of
 `STATUS.md`), then `_MEM`.
+
+**Upstream progress, 2026-10-12 (step 11, group 3): 115 of 279** (`m2-console-screenhide` task 3.3: `_DEST`,
+`_SOURCE`, `_CONSOLE`, `_ECHO`). Added to `pass.list` on its first run: `data/test`, a program with `$CONSOLE`
+and `$SCREENHIDE` that prints after `_DEST _CONSOLE`. The other program that needed nothing else,
+`keyboard/devices_windows`, was on the list already. `pass.list` run by itself (release build, `--jobs 8`): 115
+of 115 pass. The three lists are unchanged. The report: 97 programs without errors, 241 with only "not supported
+yet" errors, 10 with other errors; no line names `_DEST` any more (54 programs before; they wait on what else
+they use), and "programs without `$CONSOLE` or `$CONSOLE:ONLY`" is named by 10.

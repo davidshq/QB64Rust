@@ -297,3 +297,6 @@ slice/s61_member_arrays
 runtime_comparison/197_type_array_field
 slice/s62_console_only_forms
 slice/s63_console_window
+slice/s64_dest_console
+slice/s64_dest_console_b
+slice/s65_console_input

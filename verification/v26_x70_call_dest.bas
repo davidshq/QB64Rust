@@ -1,0 +1,7 @@
+$CONSOLE
+$SCREENHIDE
+' Verification (step 11, group 3): _DEST and _SOURCE after CALL.
+CALL _DEST(_CONSOLE)
+CALL _SOURCE(_CONSOLE)
+PRINT "called"
+SYSTEM

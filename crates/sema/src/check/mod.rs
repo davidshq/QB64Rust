@@ -62,6 +62,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         console: false,
         console_only: false,
         window_hidden: false,
+        echoes: Vec::new(),
         names: Vec::new(),
         consts_main: HashMap::new(),
         consts_local: HashMap::new(),
@@ -185,6 +186,11 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         let at = Span::new(root.file, 0, 0);
         c.diags
             .unsupported(at, "programs without `$CONSOLE` or `$CONSOLE:ONLY`");
+        // Measured: "_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first" (`verification\v26_x17`).
+        for at in std::mem::take(&mut c.echoes) {
+            c.diags
+                .error(at, "`_ECHO` needs a program with `$CONSOLE` or `$CONSOLE:ONLY`");
+        }
     }
     c.prog.settings = crate::Settings {
         console: c.console,
@@ -325,6 +331,9 @@ struct Checker<'a> {
     console: bool,
     console_only: bool,
     window_hidden: bool,
+    /// The `_ECHO` statements met: each is an error when the program turns out to have no console, which is known
+    /// only after the walk (design D5 of `m2-console-screenhide`; measured, `verification\v26_x17`, `x62`).
+    echoes: Vec<Span>,
     fold: bool,
     /// Names resolved in the current statement, for the symbol table.
     names: Vec<(SymbolKind, Span)>,

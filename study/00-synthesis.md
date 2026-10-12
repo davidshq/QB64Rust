@@ -1432,6 +1432,14 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   - **`_ECHO` (`v26_g_echo`, `v26_x17`).** It writes its string and a line end to the console whatever the
     destination is, and leaves the destination as it was. Without `$CONSOLE` or `$CONSOLE:ONLY` in the program it
     is the compile error "_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first".
+  - **More forms of the four built-ins (`v26_x62`–`x73`, measured while step 11's group 3 was built).** `_ECHO`
+    above the line of `$CONSOLE` compiles and writes (`x62`: the check reads the flag, not the lines above), and
+    it works under `$CONSOLE:ONLY`, also with the window as destination (`x72`). After `_DEST 0` the function
+    `_DEST` gives -2, not 0 (`tests\corpus\slice\s64_dest_console_b`: `echo 2:-2`). `CALL _ECHO("x")`, `CALL _DEST(_CONSOLE)` and `CALL _SOURCE(_CONSOLE)` are
+    accepted and do what the statements do (`x69`, `x70`); so are parentheses around the handle, and the three
+    functions in arithmetic (`x73`). Rejected: `_ECHO 5` "String required for sub" (`x63`); `_ECHO` with no
+    argument or two, `_SOURCE` with none, `_DEST 0, 1`: "Syntax error - Reference: …" (`x64`–`x66`, `x71`);
+    `_SOURCE "a"` "Number required for sub" (`x67`); `d& = _DEST(1)` "Incorrect number of arguments" (`x68`).
   - **The metacommands count for the whole program (`v26_x01`, `x04`, `x08`, `x16`, `v26_h_flag_console`).**
     `$CONSOLE` and `$SCREENHIDE` may stand twice, after `SYSTEM` as the last lines, and inside a SUB; the console
     is there from the first statement either way. The precompiler flag `_CONSOLE_` is 1 above the line of

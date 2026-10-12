@@ -468,6 +468,9 @@ impl Checker<'_> {
                 }
             });
         }
+        if form.id.get().callname == "sub__echo" {
+            self.echoes.push(node.span());
+        }
         self.push(node, StmtKind::Builtin { id: form.id, args });
         Ok(())
     }

@@ -129,23 +129,47 @@ programs, recorded with `qb64pe.exe`.
 
 ## 3. `_DEST`, `_SOURCE`, `_CONSOLE`, `_ECHO` (design D5)
 
-- [ ] 3.1 Rows for the statements `_DEST`, `_SOURCE`, `_ECHO` and the functions `_DEST`, `_SOURCE`, `_CONSOLE`,
+- [x] 3.1 Rows for the statements `_DEST`, `_SOURCE`, `_ECHO` and the functions `_DEST`, `_SOURCE`, `_CONSOLE`,
   with the rules task 1.3 found; `_ECHO`'s compile error in a program with no console, checked after the walk.
   Call-site programs in `tests\callsite\`: one per form and per argument type class (`_DEST` with a literal, a
   LONG, an INTEGER, a SINGLE, a DOUBLE, an `_INTEGER64`, an expression; `_ECHO` with a literal, a variable, an
   expression). Tests: `typed` for the three functions, `ir` for the three statements, `check-fail` for `_DEST`
   with no argument, `_DEST "a"`, `_CONSOLE = 1` and `_ECHO` without a console. Verify: the call-site check
   reports every new program equal; `cargo test` passes, the built-in coverage test included once 3.2 is done.
-- [ ] 3.2 Record slice programs with `qb64pe.exe` and add them to `slice.list`: `s64_dest_console` (the scenarios
+- [x] 3.2 Record slice programs with `qb64pe.exe` and add them to `slice.list`: `s64_dest_console` (the scenarios
   of "_DEST and _SOURCE" and "_ECHO" in the delta: switching, the handles, a SUB and a FUNCTION, error 258, every
   numeric type as a handle, and in a second program of the same name with suffix `b` `$CONSOLE:ONLY` a second
   time after `_DEST 0`; no `PRINT` with a comma) and `s65_console_input` with a `.stdin` file (`INPUT` and
   `LINE INPUT` after `_DEST _CONSOLE`, with and without `_SOURCE _CONSOLE`). Verify: tier 2 slice passes for both
   with and without folding; their outputs equal `v26_b`, `v26_c`, `v26_d1`, `v26_g` where they repeat them.
-- [ ] 3.3 Run the two upstream programs that need nothing else (`data\test`, `keyboard\devices_windows`) with
+- [x] 3.3 Run the two upstream programs that need nothing else (`data\test`, `keyboard\devices_windows`) with
   `--suite compile --qb64 target\release\qb64rust.exe` and add those that pass to `tests\upstream\pass.list`;
   regenerate the shrink-only lists. Update `crates\README.md` and `tests\upstream\README.md` (progress "x of
   279"). Verify: the pass list passes run by itself; the progress number in the README equals the list's length.
+  Group 3 as built (2026-10-12; tasks 3.1–3.3; done before task 2.6, which waits on a push):
+  - 3.1: six rows in `sema\builtins.rs` and nothing else for the calls: the checker, the IR and the emitter
+    took them as they are. `_ECHO`'s check is a list of the `_ECHO` statements met (`check\mod.rs`, `echoes`),
+    turned into errors after the walk when the program has no console, beside the one mark. Twelve more
+    measurements on the way (`v26_x62`–`x73`, `study\00` §5): `_ECHO` above the line of `$CONSOLE` and under
+    `$CONSOLE:ONLY`, the forms after `CALL`, parentheses, the functions in arithmetic, and seven rejections.
+    One of them changed code: `CALL _DEST(h)` and `CALL _SOURCE(h)` are accepted by the old compiler (`x70`)
+    and were "not supported yet"; a statement whose template is one argument is now read like a SUB call
+    after `CALL` (`check\proc.rs`). `CALL _ECHO(t$)` worked already (its entry has no template). 28 call-site
+    programs (`dest_*`, `source_*` nine each and one after `CALL`: a literal, a LONG, an INTEGER, a SINGLE, a
+    DOUBLE, an `_INTEGER64`, a float literal, an expression, `_CONSOLE`; `echo_*` five; `func_dest_bare`,
+    `func_source_bare`, `func_console_bare`): the check reports 284 of 284 equal. Front-end tests `dest_typed`,
+    `dest_ir`, `dest_errors` (19 rejected lines, none "not supported yet", and the statement `_CONSOLE ON`/`OFF`,
+    which stays marked: `proposal.md`, not in this change) and `echo_no_console`.
+  - 3.2: `s64_dest_console`, `s64_dest_console_b` (the program without a window) and `s65_console_input` (with
+    a `.stdin` file) recorded and on `slice.list` (292); the whole list passes with and without folding (292 of
+    292, `--jobs 8 --build-cache target\build-cache`, 209 s). Their lines equal `v26_b`, `v26_c`, `v26_d1` and
+    `v26_g` where they repeat them. `s64` also pins the conversion of the handle by value: a SINGLE -9.6, a
+    DOUBLE -10.4, a `_FLOAT` -10.5 and the literal -9.5 are all the console (-10, rounded half to even), and so
+    is the `_INTEGER64` 4294967286 (its low 32 bits).
+  - 3.3: `data\test` passes on its first run and is on `pass.list` (115 of 279; the list run by itself: 115 of
+    115). `keyboard\devices_windows` was on the list already. `QB64RUST_UPDATE_LISTS=1 cargo test` changed no
+    list. `crates\README.md`, `tests\upstream\README.md`, `tests\corpus\README.md` and the counts of
+    `CLAUDE.md`'s layout table updated.
 
 ## 4. Window built-ins, compiled and never run (design D6)
 

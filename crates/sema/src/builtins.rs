@@ -135,6 +135,11 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_STRICMP", Rule::Plain),
     // No slot, called bare only (`verification\v22_f_startdir`).
     ("_STARTDIR$", Rule::Plain),
+    // The destination and source of text, and the console's handle (`verification\v26_b_dest_switch`): no slot,
+    // called bare only, a LONG.
+    ("_DEST", Rule::Plain),
+    ("_SOURCE", Rule::Plain),
+    ("_CONSOLE", Rule::Plain),
 ];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
@@ -178,6 +183,11 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("RANDOMIZE", StmtRule::Plain),
     // `SHELL` in its three forms (`verification\v22_d_shell`).
     ("SHELL", StmtRule::Plain),
+    // `verification\v26_b_dest_switch`, `v26_g_echo`: the handle a LONG value. `_ECHO` needs a program with a
+    // console, checked after the walk (`check\mod.rs`).
+    ("_DEST", StmtRule::Plain),
+    ("_SOURCE", StmtRule::Plain),
+    ("_ECHO", StmtRule::Plain),
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.

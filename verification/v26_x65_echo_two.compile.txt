@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _ECHO text$
+Caused by (or after):_ECHO "a",1 , "b",1
+LINE 4:_ECHO "a", "b"
+exit=1

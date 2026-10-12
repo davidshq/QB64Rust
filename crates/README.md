@@ -307,8 +307,14 @@ What the compiler supports so far:
   clone's git-ignored folders. **Every metacommand** must be the first thing on its line: after a statement
   and a colon, or with a tab before it, it is an error (`syntax\src\parser\meta.rs`); in a `$IF` branch that
   is not taken such a line is skipped text. A program with neither `$CONSOLE` nor `$CONSOLE:ONLY` is "not
-  supported yet": its only output is the window's (M3). `_DEST`, `_SOURCE`, `_ECHO` and the window built-ins
-  come with the change's next groups, so until then a `$CONSOLE` program can print nothing to its console.
+  supported yet": its only output is the window's (M3). **`_DEST`, `_SOURCE` and `_ECHO`** are statement rows
+  and `_DEST`, `_SOURCE` and `_CONSOLE` function rows of `sema\src\builtins.rs` (the handle a LONG value, the
+  functions LONG and called by their bare names), so a `$CONSOLE` program prints to its console after `_DEST
+  _CONSOLE` and reads it with `INPUT` and `LINE INPUT`. `CALL _DEST(h)`, `CALL _SOURCE(h)` and `CALL
+  _ECHO(t$)` are the same statements (a statement whose template is one argument is read like a SUB call after
+  `CALL`, `check\proc.rs`). `_ECHO` in a program that turns out to have no console is an error, reported after
+  the walk. The statement `_CONSOLE ON`/`OFF` is "not supported yet". The window built-ins come with the
+  change's next groups.
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`

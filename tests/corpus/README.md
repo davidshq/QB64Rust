@@ -41,13 +41,13 @@ trailer is part of its `.output`.
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 67 |
+| `.output` | 235 | 2 | 70 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
 | `.normalize` sidecars | 3 (`212` `PATH` length, `234` `TIMER`, `238` a folder name in `cmd`'s error) | 0 | 0 |
 | `.noprompt` sidecars | 0 | 0 | 2 (`s12_error_in_print`, `s19_header_errors`: `continue`) |
-| `.stdin` sidecars | 0 | 0 | 1 (`s42_console_input`) |
+| `.stdin` sidecars | 0 | 0 | 2 (`s42_console_input`, `s65_console_input`) |
 
 The 20 compile errors are programs written against QB64Fresh's idea of the language. They still test that a
 compiler rejects them, but not what their names say:
@@ -134,7 +134,9 @@ store rule of each place) by `m2-arrays-and-types`, `s23` by `m2-parser-breadth`
 `s56`–`s58` (arrays in procedures, array parameters, `COMMON`), `s59` and `s60` (`STRING` members, whole `TYPE`
 values, parameters of a user type), `s61` (member arrays) and two for bugs fixed on the way (`s17_signs`,
 `s52_dim_list`) by `m2-defxxx-common-arrays` (`SOURCE.md`), `s62` and `s63` (the forms that make a program
-without a window; the first program with a console and a window) by `m2-console-screenhide`.
+without a window; the first program with a console and a window), `s64` (two programs: `_DEST`, `_SOURCE`,
+`_CONSOLE` and `_ECHO` with a hidden window and without a window) and `s65` (console `INPUT` and `LINE INPUT`
+with a hidden window) by `m2-console-screenhide`.
 `s52_dynamic_memory` ends with the runtime's "Out of memory" message,
 which is part of its `.output`; the runner's `QB64PE_NOPROMPT` keeps that from opening a dialog.
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
@@ -147,9 +149,9 @@ and ends with `SYSTEM`. It must not use `PRINT` with a comma at all: with the co
 redirected output, the old compiler's program prints blanks without end (measured, `verification\v26_a`,
 `study\00` §5).
 
-`slice.list` names the 289 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`; `s62_console_only_forms` and `s63_console_window` joined with `m2-console-screenhide`
-task 2.4; the three `s50` programs and `235_deftype` joined with `m2-defxxx-common-arrays` task 2.2,
+`slice.list` names the 292 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`; `s64_dest_console`, `s64_dest_console_b` and `s65_console_input` joined with
+`m2-console-screenhide` task 3.2, `s62_console_only_forms` and `s63_console_window` with its task 2.4; the three `s50` programs and `235_deftype` joined with `m2-defxxx-common-arrays` task 2.2,
 the three `s51` programs and `236_option_base` with its tasks 3.2 and 3.3, the five `s52`–`s55` programs and
 `40_erase`, `120_redim_no_preserve`, `201_erase_udt_array`, `203_redim_multiple` with its group 4,
 `s55_implicit` with its group 5, `s56_proc_arrays` and `206_shared_redim` with its group 6,

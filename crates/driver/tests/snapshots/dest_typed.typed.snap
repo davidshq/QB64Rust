@@ -1,0 +1,72 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+line 8: Assign D:I32
+  Call _DEST : I32
+line 9: Assign D:I32
+  Call _SOURCE : I32
+line 10: Assign D:I32
+  Call _CONSOLE : I32
+line 11: Assign I:I16
+  Convert Truncate : I16
+    Call _DEST : I32
+line 12: Assign Q:I64
+  Convert Widen : I64
+    Call _SOURCE : I32
+line 13: Assign F:F64
+  Convert Nearest : F64
+    Call _CONSOLE : I32
+line 14: Assign D:I32
+  Binary Add : I32 (qb I64)
+    Call _DEST : I32
+    Call _SOURCE : I32
+line 15: Assign F:F64
+  Convert Nearest : F64
+    Binary Div : F80
+      Convert Nearest : F80
+        Call _CONSOLE : I32
+      Convert Nearest : F80
+        Int 2 : I16
+line 16: Assign D:I32
+  Neg : I32 (qb I64)
+    Call _DEST : I32
+line 17: Assign S:Str
+  Concat : Str
+    Call STR : Str
+      Call _DEST : I32
+    Call HEX : Str
+      Call _CONSOLE : I32
+line 18: Print newline
+  Num
+    Call _DEST : I32
+  Num
+    Call _SOURCE : I32
+  Num
+    Call _CONSOLE : I32
+line 19: If (END IF line 19)
+  If line 19
+    Binary Eq : I32
+      Call _DEST : I32
+      Call _CONSOLE : I32
+    line 19: Assign D:I32
+      Int 1 : I32
+line 20: Call SHOW
+  temp
+    Call _SOURCE : I32
+line 21: SelectCase, selector copied once (END SELECT line 24)
+    Call _DEST : I32
+  Case line 22
+    Is Eq
+      Call _CONSOLE : I32
+    Body
+      line 23: Assign D:I32
+        Int 2 : I32
+SUB SHOW
+  param H:I32
+line 27: Print newline
+  Num
+    Var H (param) : I32
+  Num
+    Call _DEST : I32

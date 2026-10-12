@@ -1,0 +1,67 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+Settings: console, window, hidden at the start
+Stmt line 9 may_raise
+  Builtin _DEST [Value(CallBuiltin _CONSOLE:I32 [])]
+Stmt line 10 may_raise
+  Builtin _DEST [Value(Const 0:I32)]
+Stmt line 11 may_raise
+  Builtin _DEST [Value(Var D:I32)]
+Stmt line 12 may_raise
+  Builtin _DEST [Value((Var I:I16 -> Convert I32 Widen))]
+Stmt line 13 may_raise
+  Builtin _DEST [Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 14 may_raise
+  Builtin _DEST [Value(((Var SG:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 15 may_raise
+  Builtin _DEST [Value(((Var F:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 16 may_raise
+  Builtin _DEST [Value(((Const 1.6E+0:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 17 may_raise
+  Builtin _DEST [Value(Add:I32(Var D:I32, Const 1:I32) wrap)]
+Stmt line 18 may_raise
+  Builtin _DEST [Value(CallBuiltin _DEST:I32 [])]
+Stmt line 19 may_raise
+  Builtin _SOURCE [Value(CallBuiltin _CONSOLE:I32 [])]
+Stmt line 20 may_raise
+  Builtin _SOURCE [Value(Var D:I32)]
+Stmt line 21 may_raise
+  Builtin _SOURCE [Value(((Var F:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 22 may_raise
+  Builtin _SOURCE [Value(CallBuiltin _SOURCE:I32 [])]
+Stmt line 23 may_raise
+  Builtin _ECHO [Value(Const "text")]
+Stmt line 24 may_raise
+  Builtin _ECHO [Value(Var S:Str)]
+Stmt line 25 may_raise
+  Builtin _ECHO [Value(Var FX:Str)]
+Stmt line 26 may_raise
+  Builtin _ECHO [Value(Concat(Var S:Str, CallBuiltin STR:Str [Some(CallBuiltin _DEST:I32 [])]))]
+Stmt line 27 may_raise
+  Builtin _DEST [Value(Var D:I32)]
+Stmt line 28 may_raise
+  Builtin _SOURCE [Value(CallBuiltin _CONSOLE:I32 [])]
+Stmt line 29 may_raise
+  Builtin _ECHO [Value(Var S:Str)]
+Stmt line 30 may_raise
+  Assign D:I32 = CallBuiltin _DEST:I32 []
+Stmt line 30 may_raise
+  Builtin _DEST [Value(Var D:I32)]
+Stmt line 31 may_raise
+  Call TOCONSOLE []
+Stmt line 32
+  System
+Sub TOCONSOLE lines 34-37
+Stmt line 35 may_raise
+  Builtin _DEST [Value(CallBuiltin _CONSOLE:I32 [])]
+Stmt line 36 may_raise
+  Builtin _ECHO [Value(Const "in the sub")]
+Function SRC:I32 lines 39-42
+  result SRC:I32
+Stmt line 40 may_raise
+  Builtin _SOURCE [Value(CallBuiltin _CONSOLE:I32 [])]
+Stmt line 41 may_raise
+  Assign SRC(result):I32 = CallBuiltin _SOURCE:I32 []
