@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):PLAY ( T , T )
+LINE 7:PLAY(t, t)
+exit=1

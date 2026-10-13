@@ -1,0 +1,5 @@
+
+Invalid label!
+Caused by (or after):GOTO SOUND
+LINE 8:GOTO SOUND
+exit=1

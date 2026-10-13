@@ -1,0 +1,5 @@
+
+1st sub argument requires a string
+Caused by (or after):PLAY 1
+LINE 7:PLAY 1
+exit=1

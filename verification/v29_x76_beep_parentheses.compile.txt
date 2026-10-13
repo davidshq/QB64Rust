@@ -1,0 +1,5 @@
+
+SUB does not require any arguments
+Caused by (or after):BEEP ( )
+LINE 7:BEEP()
+exit=1

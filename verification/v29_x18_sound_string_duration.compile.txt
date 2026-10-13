@@ -1,0 +1,5 @@
+
+2nd sub argument requires a number
+Caused by (or after):SOUND 440 , T
+LINE 7:SOUND 440, t
+exit=1

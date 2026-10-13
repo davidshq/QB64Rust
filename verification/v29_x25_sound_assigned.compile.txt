@@ -1,0 +1,5 @@
+
+Name already in use (SOUND)
+Caused by (or after):SOUND = 1
+LINE 7:SOUND = 1
+exit=1

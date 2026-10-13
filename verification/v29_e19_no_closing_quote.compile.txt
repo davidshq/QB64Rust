@@ -1,0 +1,5 @@
+
+Expected $EXEICON:'filename'
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 4:$EXEICON:'./v29_inc/icon.ico
+exit=1

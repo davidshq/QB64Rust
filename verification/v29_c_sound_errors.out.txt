@@ -1,0 +1,60 @@
+ 1 SOUND 0, 1
+ 2 error 5 in line 9 
+ 2 SOUND 19, 1
+ 3 SOUND 20, 1
+ 4 SOUND 36, 1
+ 5 SOUND 37, 1
+ 6 SOUND 32767, 1
+ 7 error 5 in line 14 
+ 7 SOUND 32768, 1
+ 8 error 5 in line 15 
+ 8 SOUND -1, 1
+ 9 error 5 in line 16 
+ 9 SOUND 440, -1
+ 10 SOUND 440, 0
+ 11 SOUND 440, 65535
+ 12 error 5 in line 19 
+ 12 SOUND 440, 65536
+ 13 SOUND 440, 1, 1
+ 14 error 5 in line 21 
+ 14 SOUND 440, 1, 1.5
+ 15 error 5 in line 22 
+ 15 SOUND 440, 1, -.5
+ 16 SOUND 440, 1, , 1
+ 17 error 5 in line 24 
+ 17 SOUND 440, 1, , 2
+ 18 error 5 in line 25 
+ 18 SOUND 440, 1, , , 0
+ 19 SOUND 440, 1, , , 1
+ 20 SOUND 440, 1, , , 10
+ 21 error 5 in line 28 
+ 21 SOUND 440, 1, , , 11
+ 22 error 5 in line 29 
+ 22 SOUND 440, 1, , , 9, 2
+ 23 SOUND 440, 1, , , , , 3
+ 24 error 5 in line 31 
+ 24 SOUND 440, 1, , , , , 4
+ 25 error 5 in line 32 
+ 25 SOUND
+ 26 error 5 in line 33 
+ 26 PLAY H
+ 27 PLAY O7 C
+ 28 PLAY O6 C
+ 29 PLAY T31 C
+ 30 PLAY T256 C
+ 31 error 5 in line 38 
+ 31 PLAY L0 C
+ 32 error 5 in line 39 
+ 32 PLAY L65 C
+ 33 error 5 in line 40 
+ 33 PLAY N85
+ 34 error 5 in line 41 
+ 34 PLAY C D E H C
+ 35 PLAY of an empty variable
+ 36 error 5 in line 43 
+ 36 PLAY C, H
+ 37 SOUND WAIT a second time
+ 38 SOUND RESUME
+ 39 SOUND RESUME a second time
+end
+exit=0
