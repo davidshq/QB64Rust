@@ -83,9 +83,11 @@ TYPES = INT_TYPES | {"float", "double", "long", "qbs"}
 # Words before a `(` that do not make it a call.
 NOT_CALLS = {"if", "while", "for", "switch", "return", "else", "goto"}
 # Numbered temporaries and labels: renumbered in order of first use (rule 2).
-NUMBERED = re.compile(r"^(pass|skip|sc_|RETURN_|temp_\w*?|L_|byte_element_)(\d+)$")
-# An integer literal with the `long long` or the `unsigned` suffix (rule 5).
-SUFFIXED = re.compile(r"^(\d+)(ll|u)$")
+NUMBERED = re.compile(
+    r"^(pass|skip_pu|skip|sc_|RETURN_|temp_\w*?|L_|byte_element_|print_using_format)(\d+)$"
+)
+# An integer literal with the `long long`, the `unsigned` or the `unsigned long long` suffix (rule 5).
+SUFFIXED = re.compile(r"^(\d+)(ull|ll|u)$")
 
 
 def tokenize(text: str) -> list[str]:
@@ -176,7 +178,7 @@ def norm_seq(items: list, whole_arg: bool) -> list:
                 items = rest
                 continue
         break
-    # Rule 5: the `ll` or `u` suffix of an integer literal that is a whole argument.
+    # Rule 5: the `ll`, `u` or `ull` suffix of an integer literal that is a whole argument.
     if whole_arg and is_simple(items) and SUFFIXED.match(items[-1]):
         items = [*items[:-1], SUFFIXED.match(items[-1]).group(1)]
     # Rule 6: a whole argument that is integer literals joined by `|` is their value (`0|1` is `1`).
@@ -528,6 +530,11 @@ PAIRS = [
         ["sub_circle(1,2,3,4294967295u,NULL,NULL,NULL,2);"],
     ),
     (
+        "uq = _SHL(1, 40)",
+        ["*__UINTEGER64_UQ=func__shl( 1 , 40 );"],
+        ["*__UINTEGER64_UQ=func__shl(1ull,40);"],
+    ),
+    (
         "PAINT (n, n), d",
         ["sub_paint(*__LONG_N,*__LONG_N,(uint32)qbr(*__DOUBLE_D),NULL,NULL,2);"],
         ["sub_paint(*__LONG_N,*__LONG_N,(uint32)qbr(*__DOUBLE_D),NULL,NULL,2);"],
@@ -536,6 +543,31 @@ PAIRS = [
         "PRINT with numbered labels",
         ["if (is_error_pending()) goto skip7;", "skip7:"],
         ["if (is_error_pending()) goto skip2;", "skip2:"],
+    ),
+    (
+        "PRINT USING f; d",
+        [
+            "tqbs=qbs_new(0,0);",
+            "tmp_long=0;",
+            "print_using_format7=qbs_new(0,0); qbs_set(print_using_format7,__STRING_F);",
+            "if (is_error_pending()) goto skip_pu7;",
+            "tmp_long=print_using_double(print_using_format7,*__DOUBLE_D,tmp_long,tqbs);",
+            "if (is_error_pending()) goto skip_pu7;",
+            "skip_pu7:",
+            "qbs_free(print_using_format7);",
+            "skip7:",
+        ],
+        [
+            "tqbs=qbs_new(0,0);",
+            "tmp_long=0;",
+            "print_using_format2=qbs_new(0,0); qbs_set(print_using_format2,__STRING_F);",
+            "if (is_error_pending()) goto skip_pu2;",
+            "tmp_long=print_using_double(print_using_format2,*__DOUBLE_D,tmp_long,tqbs);",
+            "if (is_error_pending()) goto skip_pu2;",
+            "skip_pu2:",
+            "qbs_free(print_using_format2);",
+            "skip2:",
+        ],
     ),
 ]
 
@@ -589,6 +621,9 @@ def self_test() -> int:
         (["f(a*2u);"], ["f(a*2);"]),
         (["x=2u;"], ["x=2;"]),
         (["f(1u);"], ["f(2u);"]),
+        (["f(a*2ull);"], ["f(a*2);"]),
+        (["x=2ull;"], ["x=2;"]),
+        (["f(1ull);"], ["f(2ull);"]),
         (["f(x,0|2);"], ["f(x,1);"]),
         (["f(a|1);"], ["f(1);"]),
     ]

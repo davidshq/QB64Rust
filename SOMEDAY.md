@@ -95,6 +95,21 @@ accepts and the new one still marks "not supported yet", and what is compiled bu
 | `s75_sound_wait` and the second part of `s76_sound_errors` need a machine with a sound device | Without one libqb queues nothing, holds nothing and checks neither a volume, a pan position, a waveform nor a `PLAY` string (read in `audio.cpp`). Not seen on GitHub's Windows runner yet (CI is looked at when asked) | Design, Risks, of `m3-sound` |
 | `CALL SWAP(a, b)`, `CALL CLOSE(1)` and the `MID$` statement after `CALL` | Each has a rule of its own, which reads the statement without `CALL` only (the row of `m2-console-screenhide` above) | `verification\v26_x128` |
 
+**Left marked by `m3-console-files`** (the fourth step of M3, 2026-10-13: `PRINT USING`, `GET` and `PUT` on a
+file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, the shifts and
+rotations, `CHAIN`, `LPRINT`). What the old compiler accepts and the new one does not take, and what is
+compiled but not checked by a run:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A whole array `e()` as the string of `FIELD`, `LSET` or `RSET` | The old compiler takes it as the array's first element with no bounds check (of an array that is not allocated: whatever lies there). "Not supported yet"; also under "QB64pe behaviours to review" | `verification\v30_x109`, `x153` |
+| A whole array `a()` as a value of `PRINT USING` or as a part of `_IIF` | An error here, as a whole array is in every expression; the old compiler takes it as element 0 | `verification\v30_x18`, `x99` |
+| `GET #1, , und()` and `PUT` with an array that is not declared | The old compiler accepts it, also `und$()`, although a declared array of variable-length strings is rejected; "not supported yet" | `verification\v30_x176`–`x178`; `tests\frontend\file_get_put_ir.bas` has the declared forms |
+| `GET #1, , a` where only an array `a` declared with `DIM … AS` exists | The old compiler makes a new SINGLE scalar `a` (`verification\v30_x67`); a plain scalar beside an array typed by `DIM … AS` is marked everywhere (the row of `m2-defxxx-common-arrays`) | `verification\v30_x67` |
+| An `_UNSIGNED _INTEGER64` literal above the `_INTEGER64` range (`18446744073709551615`) | "Not supported yet: unsigned literals", older than this step; the slice programs make the value by `u = 0: u = u - 1` | `tests\corpus\slice\s78_choice_min_shifts.bas` |
+| `LPRINT` and `CHAIN` are compiled, and no test runs them | `LPRINT` prints a page on the default printer; `CHAIN` starts `qb64pe.exe -c` beside the program through `cmd` (user, `DECISIONS.md` 2026-10-13). Their calls are compared by `tests\callsite\lprint_*.bas` and `chain_*.bas`; `s82_print_using_file` and `s87_chain_not_reached` hold them as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
+| What a format of `PRINT USING` prints, and what a file holds after `GET` and `PUT`, are shown once per topic | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; more lines would test libqb | Design, Non-Goals |
+
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
 
@@ -175,6 +190,10 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | A relative `$EXEICON` name without `./` is looked for in the compiler's own folder, not beside the program (`$EXEICON:'game.ico'` with `game.ico` beside the source is "File 'game.ico' not found") | Look beside the main source file, as for a name with `./`. Marked "not supported yet" until decided | `verification\v29_e02`, `e03`, `e08`, `e18`; `qb64pe.bas` 3852 |
 | `$EXEICON` drops the rest of its line, a statement after a colon included (`$EXEICON:'./a.ico': PRINT 1` prints nothing), and takes any line that starts with the word (`$EXEICONS:'…'`, `$EXEICON '…'` without the colon) | Reject what is not `$EXEICON:'name'` alone on its line, as the console metacommands are | `verification\v29_e08`, `e09`, `e20`, `e24` |
 | A `PLAY` with more than one string never holds the program, even for a voice in the foreground, and ends a `SOUND WAIT`; a `PLAY` string takes a tempo and an octave outside QuickBASIC's range (`T31`, `T256`, `O7`: `DIVERGENCES-QB45.md` Q-011) | Wait for the longest foreground voice; raise error 5 for the values QuickBASIC rejects | `verification\v29_g_voice`, `v29_h_sound_ranges`, `v29_c_sound_errors`; `PlayMML` in libqb's `audio.cpp` |
+| A whole array `e()` where a string variable is expected (`FIELD #1, 4 AS e()`, `LSET e() = "x"`), as a value of `PRINT USING` and as a part of `_IIF` is accepted and is the array's first element, with no bounds check (not compiled here: marked, or an error) | An error, as for any other whole array in an expression | `verification\v30_x18`, `x99`, `x109`, `x153` |
+| `_MIN(nan, 1)` gives the value that is not a number and `_MIN(1, nan)` gives 1 (`std::min` compares once); `RSET` cuts a value that is too long at its end, as `LSET` does, where QuickBASIC's manual says nothing else | Document, or return the number in both orders | `verification\v30_g_iif_min_max`, `v30_l_lset_rset`; line 19 of `s78_choice_min_shifts` |
+| A field string keeps its field after `=` gives it another length, and gets its width and the buffer's bytes back at the next `LSET` to any field of the file or `GET` with no variable; a second `FIELD` on a file keeps the strings of the first as fields | QuickBASIC ends a string's field at an assignment. A decision for a strict mode | `verification\v30_j_field`; lines 6 to 9 of `s86_field_lset` |
+| `EXIT CASE` followed, in the same `CASE`, by a `SELECT` with a `CASE` jumps to the end of that inner `SELECT`'s first `CASE`: the statements up to there are skipped (also the inner `SELECT`'s own header, so a copied selector is 0), the program goes on after the inner `END SELECT`, and the rest of the outer `CASE` runs. The old compiler names the jump's label by a count of the `CASE`s closed so far | Jump to the end of the `CASE` the statement stands in. `EXIT CASE` in a plain `SELECT` (it leaves the block) is as the wiki has it | `m3-console-files` task 3.1 (`verification\v30_x66`; `qb64pe.bas` 7511; lines 11 and 12 of `s79_exit_select`) |
 
 ## Other ideas raised during the study
 

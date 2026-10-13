@@ -1,0 +1,57 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+field_lset_errors.bas:15:16: error: `FIELD` cannot take a fixed-length string
+field_lset_errors.bas:16:16: error: `FIELD` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:17:16: error: `FIELD` needs a string variable, element or member here
+field_lset_errors.bas:18:16: error: `FIELD` needs a string variable, element or member here
+field_lset_errors.bas:19:16: error: `FIELD` needs a string variable, element or member here
+field_lset_errors.bas:20:16: error: `FIELD` needs a string variable, element or member here
+field_lset_errors.bas:21:16: error: `FIELD` cannot take a fixed-length string
+field_lset_errors.bas:22:16: error: `FIELD` cannot take a fixed-length string
+field_lset_errors.bas:23:16: error: `FIELD` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:24:6: error: expected an expression
+field_lset_errors.bas:25:9: error: expected `,` after the file number
+field_lset_errors.bas:26:10: error: expected an expression
+field_lset_errors.bas:27:13: error: expected `AS` and a variable
+field_lset_errors.bas:28:14: error: expected `AS` and a variable
+field_lset_errors.bas:29:15: error: expected an expression
+field_lset_errors.bas:30:18: error: expected an expression
+field_lset_errors.bas:31:18: error: expected the end of the statement
+field_lset_errors.bas:32:7: error: the file number of `FIELD` must be a number
+field_lset_errors.bas:33:11: error: a width of `FIELD` must be a number
+field_lset_errors.bas:34:8: error: expected an expression
+field_lset_errors.bas:35:10: error: expected `,` after the file number
+field_lset_errors.bas:36:6: error: `CALL` cannot be followed by `FIELD`, `LSET` or `RSET`
+field_lset_errors.bas:37:16: error: `FIELD` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:38:17: error: expected `,` between the parts of `FIELD`
+field_lset_errors.bas:39:16: error: `FIELD` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:40:6: error: `LSET` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:41:6: error: `LSET` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:42:6: error: `LSET` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:43:6: error: `LSET` needs a string variable, element or member here
+field_lset_errors.bas:44:6: error: `LSET` needs a string variable, element or member here
+field_lset_errors.bas:45:5: error: expected an expression
+field_lset_errors.bas:46:7: error: expected `=`
+field_lset_errors.bas:47:9: error: expected an expression
+field_lset_errors.bas:48:1: error: name already in use: `LSET`
+field_lset_errors.bas:49:10: error: `LSET` needs a string as its value
+field_lset_errors.bas:50:6: error: `LSET` needs a string variable, element or member here
+field_lset_errors.bas:51:6: error: name already in use: `LSET`
+field_lset_errors.bas:52:6: error: `LSET` needs a string variable, element or member here
+field_lset_errors.bas:53:10: error: `LSET` needs a string as its value
+field_lset_errors.bas:54:6: error: `CALL` cannot be followed by `FIELD`, `LSET` or `RSET`
+field_lset_errors.bas:55:6: error: `LSET` needs a string variable, element or member here
+field_lset_errors.bas:56:6: error: `RSET` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:57:6: error: `RSET` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:58:5: error: expected an expression
+field_lset_errors.bas:59:10: error: `RSET` needs a string as its value
+field_lset_errors.bas:60:6: error: `LSET` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:61:6: error: `LSET` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:62:6: error: `LSET` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:63:6: error: `LSET` needs a string variable, not a number or a `TYPE` value
+field_lset_errors.bas:64:10: error: a whole `TYPE` value cannot be used here: `r`
+field_lset_errors.bas:66:16: error: `FIELD` needs a string variable, element or member here
+field_lset_errors.bas:67:6: error: `LSET` needs a string variable, element or member here
+field_lset_errors.bas:68:6: error: `RSET` needs a string variable, element or member here

@@ -876,6 +876,17 @@ pub enum ExprKind {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+    /// `_IIF(condition, then, else_)`: the condition is evaluated, and then **only the part it chooses** (`then`
+    /// when it is not zero). The condition is an integer of any type (a float is already rounded half to even).
+    /// The parts are both strings, and the node is a string, or both numbers as they are, of any two types: the
+    /// node's `ty` is their own when it is one type, else C's common type of the two (`ops::held`), which the part
+    /// chosen is converted to; its `qb` is `ops::widest` of what they are believed (design D6 of
+    /// `m3-console-files`; measured, `verification\v30_g_iif_min_max`, `v30_result_types.txt`).
+    Choice {
+        condition: Box<Expr>,
+        then: Box<Expr>,
+        else_: Box<Expr>,
+    },
     /// A built-in function call; one slot per table argument, `None` for an absent optional argument. Each
     /// present argument is already converted to the slot's type.
     Call {
@@ -898,6 +909,32 @@ pub enum PrintItem {
     Num(Expr),
     /// `,`: move to the next print zone.
     Zone,
+}
+
+/// Where a `PRINT` sends its text ([`StmtKind::Print`], [`StmtKind::PrintUsing`]).
+#[derive(Clone, Debug, PartialEq)]
+pub enum PrintTo {
+    /// `PRINT`: the program's destination of text, the console or the window.
+    Screen,
+    /// `PRINT #n,`: file `n`, already converted to LONG.
+    File(Expr),
+    /// `LPRINT`: the printer (design D8 of `m3-console-files`). No test runs it.
+    Printer,
+}
+
+/// A value of a `PRINT USING` ([`StmtKind::PrintUsing`]), which goes to the next field of the format.
+#[derive(Clone, Debug, PartialEq)]
+pub enum UsingValue {
+    /// A string, for a string field.
+    Str(Expr),
+    /// A number, for a number field, formatted as a value of type `as_`: SINGLE, DOUBLE or `_FLOAT` for a value
+    /// believed one (the type gives the letter of an exponent), `_UNSIGNED _INTEGER64` for an unsigned integer of
+    /// 64 bits, `_INTEGER64` for every other integer (`qb64pe.bas` 27369–27378). The value is as it is; it is
+    /// converted to `as_` as an argument of that type is.
+    Num { value: Expr, as_: Ty },
+    /// `TAB(n)` or `SPC(n)` written as a value (the call, a string of blanks): what is formatted so far is
+    /// printed, then the blanks; the place in the format is kept.
+    Blanks(Expr),
 }
 
 /// Where an [`StmtKind::Input`] reads from.
@@ -928,6 +965,14 @@ pub enum StmtArg {
     /// first element. The index is used twice, for the address and for the number of bytes left, so it is one
     /// that reads only: no call of a SUB or FUNCTION (measured: the old compiler evaluates it twice).
     Block { array: VarId, index: Vec<Expr> },
+    /// The bytes of one place, which `GET` on a file reads into and `PUT` writes from (design D2 of
+    /// `m3-console-files`; measured, `verification\v30_d_binary`, `v30_e_random`): a number's bytes, the
+    /// characters of a fixed-length string, the bytes of a value of a user type without a `STRING` in it; of a
+    /// variable-length string the string itself, which is read for as many characters as it holds and written
+    /// with those it holds. Never a `_BIT`. An index outside the bounds on the way raises error 9 and the first
+    /// element stands in. **The place of a variable-length string is found twice by `PUT`** (for its characters
+    /// and for their number, as the old compiler writes it), so a FUNCTION in its index is called twice.
+    Bytes(Place),
     /// Which alternative of a choice was written, from 0 (`FOR OUTPUT` of `OPEN` is 3).
     Word(u8),
     /// An optional argument or choice left out.
@@ -1000,11 +1045,48 @@ pub enum StmtKind {
     EraseParam {
         array: VarId,
     },
-    /// `PRINT` (`to` is `None`) or `PRINT #n,`: `to` is the file number, already converted to LONG.
+    /// `PRINT`, `PRINT #n,` or `LPRINT`, by `to`.
     Print {
-        to: Option<Expr>,
+        to: PrintTo,
         items: Vec<PrintItem>,
         newline: bool,
+    },
+    /// `PRINT [#n,] [before] USING format; values` and `LPRINT … USING …` (design D1 of `m3-console-files`;
+    /// measured, `verification\v30_a`–`v30_c`, `v30_x01`–`x19`; `study\00` §5). `before` is printed first, as a
+    /// `PRINT` with no line end prints it. Then the format is evaluated, once, and each value in turn is
+    /// formatted by the format's next field into the statement's text; a format with values left starts again.
+    /// The text is printed at the end, with a line end if `newline` (the statement's last element is no `;` or
+    /// `,`). At least one value.
+    ///
+    /// The statement is one unit with error checks of its own: after the format and after each value an error
+    /// that is pending ends it; what was formatted until then is printed with no line end, and the error stays.
+    PrintUsing {
+        to: PrintTo,
+        before: Vec<PrintItem>,
+        format: Expr,
+        values: Vec<UsingValue>,
+        newline: bool,
+    },
+    /// `FIELD [#]file, width AS string, …` (design D3 of `m3-console-files`; measured, `verification\v30_j_field`,
+    /// `v30_k_field_errors`, `v30_x100`–`x132`): names parts of the record buffer of a file open `FOR RANDOM` by
+    /// variable-length strings, in order from the buffer's first byte. `file` and each width are already
+    /// converted to LONG; each target is a place of type `STRING`. The file number is evaluated first, then for
+    /// each part the indexes of its target before its width. Each `FIELD` starts at the buffer's first byte
+    /// again; the strings of an earlier one stay fields. What a field string then is (its length, what `GET`
+    /// and `PUT` with no variable and `LSET` do to it) is the runtime's.
+    Field {
+        file: Expr,
+        parts: Vec<(Place, Expr)>,
+    },
+    /// `LSET target = value` (`right` false) or `RSET target = value`: the value's characters into the string
+    /// at `target`, at its left or at its right, without changing its length: a shorter value is padded with
+    /// blanks, a longer one cut at its end (measured, `verification\v30_l_lset_rset`, `v30_x140`–`x170`). The
+    /// target is a place of type `STRING` or `STRING * n`, found before the value is evaluated; with an error
+    /// pending after the value nothing is stored. A field string's part of its file's buffer is set too.
+    Lset {
+        right: bool,
+        target: Place,
+        value: Expr,
     },
     /// `WRITE` to the console (`to` is `None`) or to file `to`: the items separated by commas, strings in quotes,
     /// numbers without blanks, then a line end unless the statement ends with a comma (`newline` false; measured,
@@ -1093,6 +1175,15 @@ pub enum StmtKind {
     /// `EXIT FOR`, `EXIT DO`, `EXIT WHILE`: leaves the innermost loop of that kind (the parser checked there is
     /// one).
     ExitLoop(LoopKind),
+    /// `EXIT SELECT` (`case` false) or `EXIT CASE` (design D5 of `m3-console-files`; measured,
+    /// `verification\v30_f_exit_select`, `v30_x60`–`x65`; `qb64pe.bas` 7491–7520). It stands inside a `CASE` or
+    /// `CASE ELSE` of a `SELECT` of its body, also within loops and `IF`s there (the parser checked that).
+    /// `EXIT SELECT` continues after the `END SELECT` of the nearest such `SELECT`. `EXIT CASE` ends the `CASE`
+    /// it stands in as reaching its last statement does: a plain `SELECT` is left, a `SELECT EVERYCASE` goes on
+    /// with its next `CASE`; in a `CASE ELSE` it is `EXIT SELECT`.
+    ExitSelect {
+        case: bool,
+    },
     /// `ON n GOTO l1, l2, …` (`gosub` false) or `ON n GOSUB …`: to the n-th label of the same body; 0 and values past
     /// the count (also above 255, `DIVERGENCES-QB45.md` Q-001) continue with the next statement, a negative value
     /// raises error 5. `value` is LONG (design D8 of `m2-core-builtins`, measured `verification\v20_i_on_goto`).
@@ -1246,6 +1337,8 @@ pub enum RuntimePart {
     Icon,
     /// libqb's audio (`SOUND`, `PLAY`; `BEEP` is the system's bell and needs none).
     Audio,
+    /// The printer (`LPRINT`).
+    Printer,
 }
 
 impl RuntimePart {
@@ -1254,6 +1347,7 @@ impl RuntimePart {
         match name {
             "DEPENDENCY_ICON" => Some(RuntimePart::Icon),
             "DEPENDENCY_MINIAUDIO" => Some(RuntimePart::Audio),
+            "DEPENDENCY_PRINTER" => Some(RuntimePart::Printer),
             _ => None,
         }
     }

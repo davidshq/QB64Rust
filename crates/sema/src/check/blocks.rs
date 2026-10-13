@@ -428,12 +428,18 @@ impl Checker<'_> {
         Ok(self.convert_exact(e, common))
     }
 
-    /// `EXIT FOR`, `EXIT DO`, `EXIT WHILE` (`word`); the parser checked that such a block is open.
+    /// `EXIT FOR`, `EXIT DO`, `EXIT WHILE`, `EXIT SELECT`, `EXIT CASE` (`word`); the parser checked that such a
+    /// block is open in this body (`EXIT SELECT without SELECT CASE`: measured, `verification\v30_x60`, `x63`,
+    /// `x64`), and a statement between `SELECT` and its first `CASE` is its error too (`x61`).
     pub(super) fn exit_loop(&mut self, node: Node, word: &str) -> R<()> {
         let kind = match word {
             "FOR" => LoopKind::For,
             "DO" => LoopKind::Do,
             "WHILE" => LoopKind::While,
+            "SELECT" | "CASE" => {
+                self.push(node, StmtKind::ExitSelect { case: word == "CASE" });
+                return Ok(());
+            }
             _ => {
                 let words = node.child_tokens().map(|t| self.word(t)).collect::<Vec<_>>().join(" ");
                 return Err(self.unsupported(first_token_span(node), format!("`{words}`")));

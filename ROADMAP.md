@@ -75,7 +75,10 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
 - [ ] Civil War Strategy's screens match in a scripted game (`tests\programs\README.md`, stage 3)
 - [ ] The image built-ins that run (`_LOADIMAGE`, `_PUTIMAGE`, …; `_RGB32` and `_RGBA32` are done), fonts, the
       mouse
-- [ ] The console programs of the corpus that still wait (`PRINT USING`, random and binary files)
+- [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
+      file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
+      `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program
+      of the corpus that the old compiler accepts is held back any more
 - [ ] Plain copy of QB64pe's `internal\c` at the reference clone's commit, when libqb must change
 
 ## M4. Parity

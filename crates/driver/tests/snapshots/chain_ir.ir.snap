@@ -1,0 +1,40 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+Settings: console, no window
+Stmt line 2
+  SelectConsole
+Stmt line 7
+  Branch Zero -> @0 Skip: Var N:I32
+Stmt line 7 may_raise
+  Builtin CHAIN [Value(Const "next.bas")]
+Label @0 line 7
+Stmt line 8
+  Branch Zero -> @1 Skip: Var N:I32
+Stmt line 8 may_raise
+  Builtin CHAIN [Value(Var F:Str)]
+Label @1 line 8
+Stmt line 9
+  Branch Zero -> @2 Skip: Var N:I32
+Stmt line 9 may_raise
+  Builtin CHAIN [Value(Var X:Str)]
+Label @2 line 9
+Stmt line 10
+  Branch Zero -> @3 Skip: Var N:I32
+Stmt line 10 may_raise
+  Builtin CHAIN [Value(Concat(Var F:Str, Const ".bas"))]
+Label @3 line 10
+Stmt line 11
+  Branch Zero -> @4 Skip: Var N:I32
+Stmt line 11 may_raise
+  Builtin CHAIN [Value(Const "next")]
+Label @4 line 11
+Stmt line 12
+  Branch Zero -> @5 Skip: Var N:I32
+Stmt line 12 may_raise
+  Builtin CHAIN [Value(Var F:Str)]
+Label @5 line 12
+Stmt line 13
+  System

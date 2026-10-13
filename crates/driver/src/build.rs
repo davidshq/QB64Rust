@@ -99,6 +99,9 @@ pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     if !s.window {
         flags.push("DEP_CONSOLE_ONLY=y");
     }
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Printer) {
+        flags.push("DEP_PRINTER=y");
+    }
     if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Icon) {
         flags.push("DEP_ICON=y");
     }
@@ -526,6 +529,18 @@ mod tests {
     fn with_audio(mut s: qb64rust_ir::Settings) -> qb64rust_ir::Settings {
         s.runtime_parts.insert(qb64rust_ir::RuntimePart::Audio);
         s
+    }
+
+    /// `LPRINT` needs the printer part; its flag stands after `DEP_CONSOLE_ONLY=y` and before `DEP_ICON=y`, as
+    /// the old compiler orders them (`qb64pe.bas` 13707–13711; design D8 of `m3-console-files`).
+    #[test]
+    fn the_printer_flag() {
+        let mut s = program_settings(true, false, true);
+        s.runtime_parts.insert(qb64rust_ir::RuntimePart::Printer);
+        assert_eq!(
+            make_flags(&s),
+            ["DEP_CONSOLE_ONLY=y", "DEP_PRINTER=y", "DEP_ICON=y", "DEP_CONSOLE=y"]
+        );
     }
 
     /// `SOUND` and `PLAY` need libqb's audio part; its flag is the old compiler's last (`qb64pe.bas` 13721; design

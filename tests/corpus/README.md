@@ -11,9 +11,9 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 84 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags, the screen functions in a console program, labels with the name of a SUB, `TAB` and `SPC`, conventional memory; `SOURCE.md`) |
+| `slice\` | 94 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags, the screen functions in a console program, labels with the name of a SUB, `TAB` and `SPC`, conventional memory, sound, `$EXEICON`, the choice and the shifts, `EXIT SELECT`, `PRINT USING`, binary and random files, locks, `FIELD`, `CHAIN`; `SOURCE.md`) |
 | `screen\` | 52 programs with a window, checked by the state of the screen they leave: 23 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error), 18 for the screen statements form by form (`d01`–`d16`, `m3-window-output`; `d17` `TAB` and `SPC`, `d18` graphics `GET` and `PUT`, `m3-get-put-bload`) and 11 programs cut from Civil War Strategy, three of them with the pictures they load in a `.files` folder (`SOURCE.md`, `tools\screen\README.md`). All 52 are on `slice.list` ("Screen programs" below) |
-| `slice.list` | The 362 programs the new compiler must pass: all 84 of `slice\`, 224 of `runtime_comparison`, `verification\` `v11`, `v12` and all 52 of `screen\` (see below) |
+| `slice.list` | The 384 programs the new compiler must pass: all 94 of `slice\`, 236 of `runtime_comparison`, `verification\` `v11`, `v12` and all 52 of `screen\` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -46,7 +46,7 @@ trailer is part of its `.output`.
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 84 |
+| `.output` | 235 | 2 | 94 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
@@ -168,8 +168,17 @@ of the screen statements and functions: tier 1's coverage rule is met by a liste
 All 52 are listed: the last, `g03_capitol`, joined with `m3-sound` (its five `PLAY` lines are compiled and not
 reached, because the program was cut with the game's sound option off).
 
-`slice.list` names the 362 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`; `s74_sound_queue`, `s75_sound_wait`, `s76_sound_errors` (sound at volume 0, checked by what
+`slice.list` names the 384 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`. Joined with `m3-console-files` (every one left the recorded output on its first run):
+the ten slice programs `s78_choice_min_shifts`, `s79_exit_select`, `s80_print_using_numbers`,
+`s81_print_using_strings`, `s82_print_using_file` (with `LPRINT` below its `SYSTEM`), `s83_binary_file`,
+`s84_random_file`, `s85_file_locks`, `s86_field_lset` and `s87_chain_not_reached`, each with files named after
+itself, and the twelve programs of `runtime_comparison` that waited: `78_min_max`, `108_clamp`,
+`151_exit_select`, `159_bitwise_shl_shr`, `160_bitwise_rol_ror`, `175_get_put`, `177_open_binary`,
+`179_file_lock`, `186_print_using`, `243_iif`, `239_lprint` (compiled and linked only: its `.norun`) and
+`238_chain`. **`238_chain` is on the list**: it names a program that is not there, and both compilers' programs
+then print the same three lines (its `.normalize` rule takes the folder out of `cmd`'s message); no test
+chains to a program that exists. Before that: `s74_sound_queue`, `s75_sound_wait`, `s76_sound_errors` (sound at volume 0, checked by what
 a program can observe: the queue in tenths of a second, the waits as yes or no against one-sided limits, the
 errors; `s75` waits about seven seconds, and it and the second part of `s76` need a machine with a sound
 device), `s77_exeicon` (its icon in `s77_exeicon.files\`) and `g03_capitol` joined with `m3-sound` (every one
@@ -206,6 +215,23 @@ requires no panic, an exact round trip, no diagnostics for the listed ones, at l
 with an `.err` file, and the two shrink-only lists `tests\known_false_errors.list` and
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
+
+### Full corpus with `qb64rust` (2026-10-13, after `m3-console-files`; not a pass criterion)
+
+After the fourth step of M3 (its task 8.1, release build, against the reference clone, `--jobs 8
+--build-cache`), 409 programs (`s78` to `s87` new); `slice.list` by itself passes 384 of 384 with and without
+`QB64RUST_NO_FOLD=1`:
+
+| Result | Programs |
+|---|---|
+| Pass | 403: the 384 of `slice.list` and 19 `.err` programs |
+| Rejected with a diagnostic (exit status 1) | 0 |
+| `.err` programs that get only "not supported yet" errors | 1 (`218` `FRE`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+**No program of the corpus that the old compiler accepts is held back any more**: the twelve of the run before
+compile and pass. `qb64rust --report unsupported tests\corpus` names none.
 
 ### Full corpus with `qb64rust` (2026-10-13, after `m3-sound`; not a pass criterion)
 

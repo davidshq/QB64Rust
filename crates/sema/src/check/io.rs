@@ -3,11 +3,38 @@
 //! (`verification\v22_b_*`, `v22_x21`–`x60`; `study\00` §5).
 
 use super::{Checker, NoJoin, R};
-use crate::builtins::stmt_lookup;
-use crate::{DataItem, Expr, InputSource, Place, PrintItem, StmtArg, StmtKind, Storage, Ty};
+use crate::builtins::{qb_bits, stmt_lookup};
+use crate::{
+    DataItem, Expr, ExprKind, InputSource, Place, PrintItem, PrintTo, StmtArg, StmtKind, Storage, Ty, UsingValue,
+};
 use qb64rust_base::Span;
+use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast::{self, PrintPart};
 use qb64rust_syntax::tree::Node;
+
+/// A value of `PRINT USING` by its type (`qb64pe.bas` 27340–27378): a string; `TAB(n)` or `SPC(n)` written as the
+/// whole value (measured: `TAB(3) + "x"` is a string); a number for the runtime's entry of what it is believed.
+fn using_value(e: Expr, node: ast::Expr) -> UsingValue {
+    if e.ty == Ty::Str {
+        let blanks = match (&e.kind, node) {
+            (ExprKind::Call { builtin, .. }, ast::Expr::Call(_)) => {
+                matches!(builtin.get().callname, "func_tab" | "func_spc")
+            }
+            _ => false,
+        };
+        return if blanks {
+            UsingValue::Blanks(e)
+        } else {
+            UsingValue::Str(e)
+        };
+    }
+    let as_ = match e.qb.float_rank() {
+        Some(_) => e.qb,
+        None if e.qb.is_unsigned() && qb_bits(e.qb) == Some(64) => Ty::U64,
+        None => Ty::I64,
+    };
+    UsingValue::Num { value: e, as_ }
+}
 
 impl Checker<'_> {
     /// `#n,`: the file number, converted as a LONG slot (measured: `#1.5` is file 2). A string is an error
@@ -33,18 +60,33 @@ impl Checker<'_> {
     }
 
     pub(super) fn print(&mut self, stmt: ast::PrintStmt) -> R<()> {
-        if let Some(u) = stmt.using() {
-            return Err(self.unsupported(u.node().span(), "`PRINT USING`"));
-        }
         let to = match stmt.file() {
-            Some(f) => Some(self.file_number(f, "PRINT #")?),
-            None => None,
+            Some(f) => PrintTo::File(self.file_number(f, "PRINT #")?),
+            None => PrintTo::Screen,
         };
+        let usings: Vec<_> = stmt.usings().collect();
+        self.print_like(stmt.node(), to, &usings, stmt.parts().collect())
+    }
+
+    /// `LPRINT`: `PRINT` to the printer, in every form console `PRINT` has (design D8 of `m3-console-files`;
+    /// measured, `verification\v30_x13`). A file number is no part of it: the parser reads `#` as an item's error.
+    pub(super) fn lprint(&mut self, stmt: ast::LprintStmt) -> R<()> {
+        // The old compiler links the printer part of the runtime for any `LPRINT` (`qb64pe.bas` 27717).
+        self.runtime_parts.insert(crate::RuntimePart::Printer);
+        let usings: Vec<_> = stmt.usings().collect();
+        self.print_like(stmt.node(), PrintTo::Printer, &usings, stmt.parts().collect())
+    }
+
+    /// A `PRINT` or `LPRINT` statement: its items, and with a `USING` clause the items before it, the format and
+    /// the values after it.
+    fn print_like(&mut self, node: Node, to: PrintTo, usings: &[ast::UsingClause], parts: Vec<PrintPart>) -> R<()> {
+        let split = usings.first().map_or(u32::MAX, |u| u.node().span().start);
+        let file = matches!(to, PrintTo::File(_));
         let mut items = Vec::new();
         let mut newline = true;
         // Whether the part before this one is an item.
         let mut after_item = false;
-        for part in stmt.parts() {
+        for part in parts.iter().filter(|p| p.start() < split) {
             match part {
                 PrintPart::Semicolon(_) => {
                     newline = false;
@@ -56,17 +98,17 @@ impl Checker<'_> {
                     after_item = false;
                 }
                 PrintPart::Expr(n) => {
-                    if after_item && to.is_some() {
+                    if after_item && file {
                         // Measured: "Expected operator in equation" (`v22_x54`, `x55`); only console `PRINT` puts a
                         // `;` between adjacent items.
                         let span = n.node().span();
                         return Err(self.error(span, "the items of `PRINT #` need `;` or `,` between them"));
                     }
                     // The first item of a console `PRINT` is evaluated before anything is printed.
-                    let item = if items.is_empty() && to.is_none() {
-                        self.print_item(n)?
+                    let item = if items.is_empty() && !file {
+                        self.print_item(*n)?
                     } else {
-                        self.unjoined(NoJoin::Item, |c| c.print_item(n))?
+                        self.unjoined(NoJoin::Item, |c| c.print_item(*n))?
                     };
                     items.push(item);
                     newline = true;
@@ -74,7 +116,205 @@ impl Checker<'_> {
                 }
             }
         }
-        self.push(stmt.node(), StmtKind::Print { to, items, newline });
+        let Some(&using) = usings.first() else {
+            self.push(node, StmtKind::Print { to, items, newline });
+            return Ok(());
+        };
+        let first = items.is_empty() && !file;
+        let (format, values, newline) = self.using(using, usings.get(1), &parts, first)?;
+        let kind = StmtKind::PrintUsing {
+            to,
+            before: items,
+            format,
+            values,
+            newline,
+        };
+        self.push(node, kind);
+        Ok(())
+    }
+
+    /// The `USING` clause of a `PRINT` or `LPRINT` and the values after it: the format, the values, and whether
+    /// the line ends (design D1 of `m3-console-files`). Measured (`verification\v30_x01`–`x19`; `study\00` §5):
+    /// the format is a string and is followed by `;` (a `,` is "Expected PRINT USING formatstring ; ..."); at
+    /// least one value follows; the values stand between `;` or `,`, which mean the same, and none may be left
+    /// out; a second `USING` is an error. `first`: nothing of the statement is evaluated before the format.
+    fn using(
+        &mut self,
+        using: ast::UsingClause,
+        second: Option<&ast::UsingClause>,
+        parts: &[PrintPart],
+        first: bool,
+    ) -> R<(Expr, Vec<UsingValue>, bool)> {
+        let span = using.node().span();
+        let node = self.need(using.format(), span)?;
+        let format = if first {
+            self.expr(node)?
+        } else {
+            self.unjoined(NoJoin::Item, |c| c.expr(node))?
+        };
+        if format.ty != Ty::Str {
+            return Err(self.error(format.span, "the format of `USING` must be a string"));
+        }
+        if let Some(t) = using.separator()
+            && t.kind == SyntaxKind::Comma
+        {
+            return Err(self.error(t.span, "`USING` needs a `;` after its format, not a `,`"));
+        }
+        if let Some(u) = second {
+            // Measured: "Name already in use (USING)" (`v30_x11`, `x12`).
+            return Err(self.error(u.node().span(), "a second `USING` in one statement"));
+        }
+        let after = span.end;
+        let mut values = Vec::new();
+        // Whether the part before this one is a value.
+        let mut after_value = false;
+        for part in parts.iter().filter(|p| p.start() >= after) {
+            match part {
+                PrintPart::Semicolon(t) | PrintPart::Comma(t) => {
+                    if !after_value {
+                        // Measured: "Syntax error" (`v30_x09`, `x10`).
+                        return Err(self.error(t.span, "`USING` needs a value before this separator"));
+                    }
+                    after_value = false;
+                }
+                PrintPart::Expr(n) => {
+                    let at = n.node().span();
+                    if after_value {
+                        // Measured: "Expected operator in equation", also next to a string (`v30_x08`).
+                        return Err(self.error(at, "the values of `USING` need `;` or `,` between them"));
+                    }
+                    let e = self.unjoined(NoJoin::Item, |c| c.expr(*n))?;
+                    values.push(using_value(e, *n));
+                    after_value = true;
+                }
+            }
+        }
+        if values.is_empty() {
+            // Measured: "Expected PRINT USING formatstring ; ..." (`v30_x02`, `x03`, `x16`).
+            return Err(self.error(span, "`USING` needs a value after its format"));
+        }
+        Ok((format, values, after_value))
+    }
+
+    /// A string place as the target of `FIELD`, `LSET` or `RSET` (`what`): a variable, an element or a member.
+    /// `fixed`: a `STRING * n` place is one too. Measured (`verification\v30_x100`–`x110`, `x140`–`x168`): a
+    /// number, a `TYPE` value, a literal, an expression, a function's result and a `CONST` are errors. A whole
+    /// array `e()`, which the old compiler takes as the array's first element without a bounds check (`x109`,
+    /// `x153`), is not supported yet.
+    fn string_target(&mut self, node: ast::Expr, what: &str, fixed: bool) -> R<Place> {
+        let span = node.node().span();
+        if let ast::Expr::Call(c) = node
+            && c.arg_list().is_some_and(|l| l.args().is_empty())
+        {
+            if let Some(t) = c.name()
+                && let (word, _) = self.split_name(t)?
+                && self.procs_by_name.contains_key(&word)
+            {
+                // Measured: "Expected (...)" for a FUNCTION's name (`v30_x173`–`x175`).
+                return Err(self.error(
+                    span,
+                    format!("`{what}` needs a string variable, element or member here"),
+                ));
+            }
+            return Err(self.unsupported(span, format!("a whole array as the string of `{what}`")));
+        }
+        // A place of a user type is a place here, so that it gets this statement's error and not an expression's.
+        let outer = self.len_place.replace(span);
+        let e = self.expr(node);
+        self.len_place = outer;
+        let ExprKind::Load(place) = e?.kind else {
+            return Err(self.error(
+                span,
+                format!("`{what}` needs a string variable, element or member here"),
+            ));
+        };
+        match self.prog.place_ty(&place) {
+            Ty::Str => Ok(place),
+            Ty::FixedStr(_) if fixed => Ok(place),
+            // Measured: "Fixed length strings cannot be used in a FIELD statement" (`v30_x100`, `x107`, `x108`).
+            Ty::FixedStr(_) => Err(self.error(span, format!("`{what}` cannot take a fixed-length string"))),
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::Bit { .. }
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::User(_) => Err(self.error(
+                span,
+                format!("`{what}` needs a string variable, not a number or a `TYPE` value"),
+            )),
+        }
+    }
+
+    /// `FIELD [#]n, width AS string, …` (design D3 of `m3-console-files`; `qb64pe.bas` 7340–7432): the file
+    /// number and each width a number, taken as a LONG; each target a variable-length string place. The parser
+    /// read the statement's shape (the commas and each `AS`).
+    pub(super) fn field_stmt(&mut self, stmt: ast::FieldStmt) -> R<()> {
+        let node = stmt.node();
+        let mut exprs = stmt.exprs();
+        let file = match stmt.file() {
+            Some(f) => self.file_number(f, "FIELD")?,
+            None => {
+                let n = self.need(exprs.next(), node.span())?;
+                let e = self.expr(n)?;
+                if e.ty == Ty::Str {
+                    return Err(self.error(e.span, "the file number of `FIELD` must be a number"));
+                }
+                self.store(e, Ty::I32)?
+            }
+        };
+        let mut parts = Vec::new();
+        while let Some(width) = exprs.next() {
+            let target = self.need(exprs.next(), node.span())?;
+            // The target stands second and is evaluated first (measured, `v30_k_field_errors`: `fn ix wd`).
+            let place = self.string_target(target, "FIELD", false)?;
+            let w = self.expr(width)?;
+            if w.ty == Ty::Str {
+                return Err(self.error(w.span, "a width of `FIELD` must be a number"));
+            }
+            parts.push((place, self.store(w, Ty::I32)?));
+        }
+        if parts.is_empty() {
+            return Err(self.error(node.span(), "`FIELD` needs a width and a string after the file number"));
+        }
+        self.push(node, StmtKind::Field { file, parts });
+        Ok(())
+    }
+
+    /// `LSET target = value` and `RSET target = value` (`qb64pe.bas` 11327–11374): the target a string place of
+    /// either kind, the value a string.
+    pub(super) fn lset(&mut self, stmt: ast::LsetStmt) -> R<()> {
+        let node = stmt.node();
+        let word = self.need(stmt.keyword(), node.span())?;
+        let word = self.word(word);
+        let mut operands = stmt.operands();
+        let target = self.need(operands.next(), node.span())?;
+        let value = self.need(operands.next(), node.span())?;
+        if let ast::Expr::Paren(_) = target {
+            // Measured: `LSET (a) = "x"` is an assignment to an array named `LSET` to the old compiler, "Name
+            // already in use (LSET)" (`verification\v30_x151`).
+            return Err(self.error(target.node().span(), format!("name already in use: `{word}`")));
+        }
+        let target = self.string_target(target, &word, true)?;
+        let value = self.expr(value)?;
+        if value.ty != Ty::Str {
+            // Measured: "Illegal string-number conversion" (`v30_x149`, `x154`, `x168`).
+            return Err(self.error(value.span, format!("`{word}` needs a string as its value")));
+        }
+        let kind = StmtKind::Lset {
+            right: word == "RSET",
+            target,
+            value,
+        };
+        self.push(node, kind);
         Ok(())
     }
 

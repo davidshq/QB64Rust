@@ -1,8 +1,8 @@
 //! `--dump ir`: the lowering-pair text of design D6.
 
 use crate::{
-    Arg, ArrayRef, BinOp, Body, Expr, ExprKind, LabelId, OnError, Op, Place, PrintItem, ProcKind, Program, Resume,
-    RuntimePart, Settings, Shape, Source, StmtArg, Storage, Ty, VarId, When,
+    Arg, ArrayRef, BinOp, Body, Expr, ExprKind, LabelId, OnError, Op, Place, PrintItem, PrintTo, ProcKind, Program,
+    Resume, RuntimePart, Settings, Shape, Source, StmtArg, Storage, Ty, UsingValue, VarId, When,
 };
 
 use qb64rust_base::{show_bytes, to_u32};
@@ -25,6 +25,7 @@ fn settings(s: &Settings) -> String {
             .map(|p| match p {
                 RuntimePart::Icon => "icon",
                 RuntimePart::Audio => "audio",
+                RuntimePart::Printer => "printer",
             })
             .collect();
         parts.push(format!("runtime parts: {}", names.join(", ")));
@@ -131,6 +132,25 @@ pub fn dump(p: &Program) -> String {
     out
 }
 
+/// Where a print goes: `console`, `file <number>` or `printer`.
+fn print_to(p: &Program, to: &PrintTo) -> String {
+    match to {
+        PrintTo::Screen => "console".to_string(),
+        PrintTo::File(n) => format!("file {}", val(p, n)),
+        PrintTo::Printer => "printer".to_string(),
+    }
+}
+
+fn print_items(p: &Program, items: &[PrintItem], out: &mut String) {
+    for i in items {
+        match i {
+            PrintItem::Str(v) => writeln!(out, "    Str {}", val(p, v)).unwrap(),
+            PrintItem::Num(v) => writeln!(out, "    Num {}", val(p, v)).unwrap(),
+            PrintItem::Zone => writeln!(out, "    Zone").unwrap(),
+        }
+    }
+}
+
 fn body(p: &Program, b: &Body, out: &mut String) {
     let labels = |at: usize, out: &mut String| {
         for (i, l) in b.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
@@ -214,24 +234,51 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 Op::EraseParam { array } => {
                     writeln!(out, "  EraseParam {}:{}", var(p, *array), ty(p, p.var(*array).ty)).unwrap();
                 }
-                Op::Print { to, items, newline } | Op::Write { to, items, newline } => {
-                    let word = if matches!(op, Op::Write { .. }) {
-                        "Write"
-                    } else {
-                        "Print"
-                    };
+                Op::Print { to, items, newline } => {
+                    let to = print_to(p, to);
+                    writeln!(out, "  Print {to}{}", if *newline { " newline" } else { "" }).unwrap();
+                    print_items(p, items, out);
+                }
+                Op::PrintUsing {
+                    to,
+                    before,
+                    format,
+                    values,
+                    newline,
+                } => {
+                    let to = print_to(p, to);
+                    writeln!(out, "  PrintUsing {to}{}", if *newline { " newline" } else { "" }).unwrap();
+                    print_items(p, before, out);
+                    writeln!(out, "    Format {}", val(p, format)).unwrap();
+                    for v in values {
+                        match v {
+                            UsingValue::Str(e) => writeln!(out, "    Str {}", val(p, e)).unwrap(),
+                            UsingValue::Num { value, as_ } => {
+                                writeln!(out, "    Num as {}: {}", ty(p, *as_), val(p, value)).unwrap();
+                            }
+                            UsingValue::Blanks(e) => writeln!(out, "    Blanks {}", val(p, e)).unwrap(),
+                        }
+                    }
+                }
+                Op::Field { file, parts } => {
+                    writeln!(out, "  Field file {}", val(p, file)).unwrap();
+                    for (place, width) in parts {
+                        let t = ty(p, p.place_ty(place));
+                        writeln!(out, "    {}:{t} width {}", place_text(p, place), val(p, width)).unwrap();
+                    }
+                }
+                Op::Lset { right, target, value } => {
+                    let word = if *right { "Rset" } else { "Lset" };
+                    let t = ty(p, p.place_ty(target));
+                    writeln!(out, "  {word} {}:{t} = {}", place_text(p, target), val(p, value)).unwrap();
+                }
+                Op::Write { to, items, newline } => {
                     let to = match to {
                         None => "console".to_string(),
                         Some(n) => format!("file {}", val(p, n)),
                     };
-                    writeln!(out, "  {word} {to}{}", if *newline { " newline" } else { "" }).unwrap();
-                    for i in items {
-                        match i {
-                            PrintItem::Str(v) => writeln!(out, "    Str {}", val(p, v)).unwrap(),
-                            PrintItem::Num(v) => writeln!(out, "    Num {}", val(p, v)).unwrap(),
-                            PrintItem::Zone => writeln!(out, "    Zone").unwrap(),
-                        }
-                    }
+                    writeln!(out, "  Write {to}{}", if *newline { " newline" } else { "" }).unwrap();
+                    print_items(p, items, out);
                 }
                 Op::Input { from, line, targets } => {
                     let word = if *line { "LineInput" } else { "Input" };
@@ -277,6 +324,9 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                             StmtArg::Block { array, index } => {
                                 let i: Vec<String> = index.iter().map(|i| val(p, i)).collect();
                                 format!("Bytes {}({})", var(p, *array), i.join(", "))
+                            }
+                            StmtArg::Bytes(place) => {
+                                format!("BytesOf {}:{}", place_text(p, place), ty(p, p.place_ty(place)))
                             }
                             StmtArg::Word(w) => format!("Word {w}"),
                             StmtArg::Absent => "Absent".to_string(),
@@ -408,6 +458,13 @@ fn val(p: &Program, v: &Expr) -> String {
         ExprKind::Unary { op, operand } => format!("{op:?}:{}({})", ty(p, v.ty), val(p, operand)),
         ExprKind::Concat(a, b) => format!("Concat({}, {})", val(p, a), val(p, b)),
         ExprKind::StrCompare { op, lhs, rhs } => format!("StrCompare {op:?}({}, {})", val(p, lhs), val(p, rhs)),
+        ExprKind::Choice { condition, then, else_ } => format!(
+            "Choice:{}({} ? {} : {})",
+            ty(p, v.ty),
+            val(p, condition),
+            val(p, then),
+            val(p, else_)
+        ),
         ExprKind::Call { builtin: id, args } => {
             let args: Vec<String> = args
                 .iter()

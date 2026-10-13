@@ -3,8 +3,9 @@ $CONSOLE:ONLY
 ' Forms the old compiler accepts and m3-get-put-bload leaves "not supported yet", one a line (design D4, D5;
 ' SOMEDAY.md, "Left marked by m3-get-put-bload"): VARPTR and VARSEG of anything but an array of numbers of the
 ' main module; SADD and VARPTR$; VARPTR in HEX$; in the array's place of graphics GET and PUT an array of strings
-' or of a TYPE, a plain variable, a member, an index that calls a FUNCTION; the file form of GET and PUT. Every
-' diagnostic below is a mark, none an error. A statement with a template is read after CALL since m3-sound
+' or of a TYPE, a plain variable, a member, an index that calls a FUNCTION. Every
+' diagnostic below is a mark, none an error. The file form of GET and PUT is compiled since m3-console-files
+' (file_get_put_ir.bas). A statement with a template is read after CALL since m3-sound
 ' (call_template_ir.bas)
 TYPE rec
     x AS INTEGER
@@ -37,8 +38,6 @@ GET (1, 2)-(3, 4), one.x
 GET (1, 2)-(3, 4), a(f%(1))
 PUT (1, 2), t
 PUT (1, 2), bt
-GET #1, , i
-PUT #1, 2, i
 CALL sb(a(), i)
 SYSTEM
 

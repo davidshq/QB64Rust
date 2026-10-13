@@ -52,6 +52,15 @@ pub enum Rule {
     /// and nothing for the others (libqb has an entry for each number of arguments; measured,
     /// `verification\v28_x01`, `x45`, `x46`).
     GivenArgs(usize),
+    /// `_MIN`, `_MAX`, `_CLAMP`: every argument a number as it is; the result is typed by what the arguments are
+    /// believed (`check\ops.rs`, `widest`), and the call is written with that type as its C++ template argument,
+    /// which converts each argument ([`cpp_arithmetic`]; design D6 of `m3-console-files`).
+    Widest,
+    /// `_ROL`, `_ROR`: two integers as they are; the bits turn within the width of the first one's believed type,
+    /// and the result is the unsigned type of that width (`check\ops.rs`, `rotated`; design D7).
+    Rotate,
+    /// `_IIF`: no call but a choice that evaluates one of its parts, checked as [`ExprKind::Choice`].
+    Choice,
 }
 
 /// Every built-in function `sema` compiles, as written (with its required suffix), and its rule. The coverage check
@@ -191,6 +200,17 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // `PLAY[(voice)]`: the seconds of sound left to play in a voice, a DOUBLE; one optional slot, so it is also
     // called bare (design D1 of `m3-sound`; `verification\v29_x55`–`x60`).
     ("PLAY", Rule::Plain),
+    // The choice, the least and greatest, and the shifts (design D6, D7 of `m3-console-files`;
+    // `verification\v30_g_iif_min_max`, `v30_h_shifts`, `v30_result_types.txt`). `_SHL` and `_SHR` are plain: an
+    // `_UNSIGNED _INTEGER64` and a LONG slot, the result an `_UNSIGNED _INTEGER64`.
+    ("_IIF", Rule::Choice),
+    ("_MIN", Rule::Widest),
+    ("_MAX", Rule::Widest),
+    ("_CLAMP", Rule::Widest),
+    ("_SHL", Rule::Plain),
+    ("_SHR", Rule::Plain),
+    ("_ROL", Rule::Rotate),
+    ("_ROR", Rule::Rotate),
 ];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
@@ -211,8 +231,13 @@ pub enum StmtRule {
     /// value (measured, `verification\v22_d_mid`).
     MidAssign,
     /// Graphics `GET` and `PUT`: as [`StmtRule::Plain`], for the entries of the name whose call is libqb's
-    /// `sub_graphics_…` only. The name's other entry, the file form (`GET #1, , x`), is not compiled.
+    /// `sub_graphics_…` only. The name's other entry is the file form ([`StmtRule::File`]).
     Graphics,
+    /// `GET` and `PUT` on a file (design D2 of `m3-console-files`): the entry of the name whose call is `sub_get`
+    /// or `sub_put`. Its slots are the template's: the file number, the position or nothing, and the variable or
+    /// nothing ([`Slot::Bytes`]). The variable decides the runtime's entry: none, the file's record buffer; a
+    /// variable-length string, the string itself; anything else, its bytes.
+    File,
 }
 
 /// Every built-in statement `sema` compiles as a call of the runtime, as written, and its rule. A name stands for
@@ -290,6 +315,16 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     // a slot of its own kind ([`Slot::Block`]).
     ("GET", StmtRule::Graphics),
     ("PUT", StmtRule::Graphics),
+    // `GET` and `PUT` on a file open `FOR RANDOM` or `FOR BINARY`, the second row of each name (design D2 of
+    // `m3-console-files`; `verification\v30_d_binary`, `v30_e_random`, `v30_x20`-`x48`), and `LOCK` and `UNLOCK`,
+    // plain: a file number and one record, a range with `TO`, or neither (D4; `v30_i_lock`, `x50`-`x56`).
+    ("GET", StmtRule::File),
+    ("PUT", StmtRule::File),
+    ("LOCK", StmtRule::Plain),
+    ("UNLOCK", StmtRule::Plain),
+    // `CHAIN name$`: one string, written like a SUB call (design D8 of `m3-console-files`;
+    // `verification\v30_x95`-`x98`). Compiled and never run ([`NEVER_RUN`]).
+    ("CHAIN", StmtRule::Plain),
     // Sound (design D1 of `m3-sound`; `verification\v29_x01`–`x86`): each the plain call of its row and template.
     // `SOUND` and `PLAY` need libqb's audio part ([`crate::RuntimePart::Audio`]); `BEEP` is never run
     // ([`NEVER_RUN`]).
@@ -325,6 +360,12 @@ pub const NEVER_RUN: &[&str] = &[
     "_FULLSCREEN",
     // `BEEP` rings the system's bell: it is not libqb's audio, so no volume silences it (design D6 of `m3-sound`).
     "BEEP",
+    // `LPRINT` prints a page on the default printer (design D8 of `m3-console-files`; user, `DECISIONS.md`
+    // 2026-10-13). It is no row of [`STATEMENTS`]: `PRINT` to the printer, with a syntax node of its own.
+    "LPRINT",
+    // `CHAIN` compiles another program: libqb starts `qb64pe.exe -c` beside the running program through `cmd`
+    // (`tests\corpus\README.md`), which no test machine may be asked for (same decision).
+    "CHAIN",
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.
@@ -351,6 +392,10 @@ pub fn stmt_lookup(name: &str, string: bool) -> Vec<StmtSupported> {
                 StmtRule::Graphics => find_statements(name.as_bytes(), string)
                     .into_iter()
                     .filter(|id| id.get().callname.starts_with("sub_graphics_"))
+                    .collect(),
+                StmtRule::File => find_statements(name.as_bytes(), string)
+                    .into_iter()
+                    .filter(|id| matches!(id.get().callname, "sub_get" | "sub_put"))
                     .collect(),
                 // The statements the old compiler writes itself are named by their stub entry.
                 StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign => {
@@ -436,8 +481,13 @@ fn stmt_slot_type(b: &Builtin, k: usize, table: &str) -> Slot {
         // `PAINT (x, y), fill`: a colour or a tile string; libqb has an entry for each (measured from the C++,
         // design D2 of `m3-window-output`).
         ("sub_paint", 2) => Slot::ColorOrTile,
+        // `sub_get(int32 i, int64 offset, …)` and `sub_put`: the position is passed as it is, an `_INTEGER64`
+        // too (measured from the C++: `sub_put( 1 ,*__INTEGER64_Q,…)`), a float rounded.
+        ("sub_get" | "sub_put", 1) => Slot::Int64,
         // The array of graphics `GET` and `PUT`.
         _ if table.starts_with("offset+size (largest safe block") => Slot::Block,
+        // The variable of `GET` and `PUT` on a file.
+        _ if table.starts_with("offset+size (element size") => Slot::Bytes,
         _ => Slot::from_table(table),
     }
 }
@@ -503,7 +553,10 @@ pub fn slot_count(id: BuiltinId) -> usize {
             | Rule::Radix(_)
             | Rule::StringFill
             | Rule::StrOrIndex
-            | Rule::GivenArgs(_),
+            | Rule::GivenArgs(_)
+            | Rule::Widest
+            | Rule::Rotate
+            | Rule::Choice,
         )
         | None => id.get().arg_types.len(),
     }
@@ -520,6 +573,8 @@ pub fn slots(s: Supported) -> Vec<(Slot, bool)> {
             .enumerate()
             .map(|(i, t)| (Slot::from_table(t), i >= required))
             .collect(),
+        // Numbers as they are, as many as the table has arguments (its types for them are placeholders).
+        Rule::Widest | Rule::Rotate | Rule::Choice => vec![(Slot::Float, false); b.arg_types.len()],
         Rule::Plain
         | Rule::ResultOfArg
         | Rule::IntFix
@@ -558,6 +613,10 @@ pub enum Slot {
     /// Cast to its believed type (`func_abs((int16)(…))`, `qbs_str((int16)(…))`).
     AnyNumeric,
     Str,
+    /// Converted as a store into an `_UNSIGNED _INTEGER64` (a float rounded half to even to `_INTEGER64` first): the
+    /// value `_SHL` and `_SHR` shift. The old compiler writes an integer as it is and a float through `qbr`, and
+    /// C++ converts to libqb's `uint64` (measured, `verification\v30_h_shifts`: `_SHR(-1, 1)` is 2^63 - 1).
+    UInt64,
     /// Converted as a store into an `_UNSIGNED LONG`: the colours libqb takes as `uint32` (`CLS`, `CIRCLE`,
     /// `PAINT`). The old compiler writes it as it writes a LONG slot, an integer as it is and a float through
     /// `qbr`, and C++ keeps the low 32 bits (measured, design D2 of `m3-window-output`).
@@ -572,13 +631,20 @@ pub enum Slot {
     /// The array of graphics `GET` and `PUT`: no value but the bytes of an array from one of its elements to
     /// its end, or of the whole array ([`crate::StmtArg::Block`]; design D5 of `m3-get-put-bload`).
     Block,
+    /// The variable of `GET` and `PUT` on a file: no value but the bytes of one place
+    /// ([`crate::StmtArg::Bytes`]) or of a whole array ([`crate::StmtArg::Block`] with no index); design D2 of
+    /// `m3-console-files`.
+    Bytes,
 }
 
 impl Slot {
     fn from_table(t: &str) -> Slot {
         match t {
             "LONG" => Slot::Long,
+            // The records of `LOCK` and `UNLOCK`.
+            "_INTEGER64" => Slot::Int64,
             "_UNSIGNED LONG" => Slot::ULong,
+            "_UNSIGNED _INTEGER64" => Slot::UInt64,
             "DOUBLE" => Slot::Double,
             // SINGLE (`POINT`): passed in its own type as a `_FLOAT` slot is; libqb's parameter is a `float` either
             // way and C++ converts (measured: `func_point(*__INTEGER64_Q,*__DOUBLE_D,0|1)`).
@@ -645,6 +711,33 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
         Rule::Len | Rule::Asc => (Ty::I32, Ty::I32),
         Rule::Radix(_) | Rule::StringFill | Rule::StrOrIndex => (Ty::Str, Ty::Str),
         Rule::Val => unreachable!("typed by its type argument (check::builtins)"),
+        Rule::Widest | Rule::Rotate | Rule::Choice => {
+            unreachable!("typed by what its arguments are believed (check::builtins)")
+        }
+    }
+}
+
+/// The C++ arithmetic type the old compiler names for a type in a template argument (`std::min<int16_t>`,
+/// `func__rol<uint8_t>`; its `Type_GetCppArithmeticType`): a `_BIT * n` by its storage, an `_OFFSET` as a pointer-
+/// sized integer.
+pub fn cpp_arithmetic(t: Ty) -> &'static str {
+    match t {
+        Ty::I8 => "int8_t",
+        Ty::U8 => "uint8_t",
+        Ty::I16 => "int16_t",
+        Ty::U16 => "uint16_t",
+        Ty::I32 => "int32_t",
+        Ty::U32 => "uint32_t",
+        Ty::I64 => "int64_t",
+        Ty::U64 => "uint64_t",
+        Ty::Off => "intptr_t",
+        Ty::UOff => "uintptr_t",
+        Ty::Bit { .. } => cpp_arithmetic(t.storage()),
+        Ty::F32 => "float",
+        Ty::F64 => "double",
+        Ty::F80 => "long double",
+        Ty::Str | Ty::User(_) => unreachable!("an arithmetic type, not {t:?}"),
+        crate::place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
     }
 }
 
@@ -801,6 +894,8 @@ fn table_ty(b: &Builtin) -> Ty {
         // The `SCREEN` function (measured: `qbs_str((uint32)(func_screen(…)))`).
         Some("_UNSIGNED LONG") => Ty::U32,
         Some("_INTEGER64") => Ty::I64,
+        // `_SHL`, `_SHR`.
+        Some("_UNSIGNED _INTEGER64") => Ty::U64,
         Some("SINGLE") => Ty::F32,
         Some("DOUBLE") => Ty::F64,
         Some("_FLOAT") => Ty::F80,
@@ -851,15 +946,20 @@ mod tests {
 
     #[test]
     fn every_statement_row_is_in_the_table_once() {
-        let mut names: Vec<&str> = STATEMENTS.iter().map(|(n, _)| *n).collect();
-        names.sort_unstable();
-        names.dedup();
-        assert_eq!(names.len(), STATEMENTS.len(), "a row is listed twice");
+        // A name may have a row per rule (`GET`: the graphics form and the file form), never two of one rule.
+        let mut rows: Vec<String> = STATEMENTS.iter().map(|(n, r)| format!("{n} {r:?}")).collect();
+        rows.sort_unstable();
+        rows.dedup();
+        assert_eq!(rows.len(), STATEMENTS.len(), "a row is listed twice");
         for &(written, rule) in STATEMENTS {
             let bare = written.strip_suffix('$').unwrap_or(written);
             let forms = stmt_lookup(bare, bare.len() != written.len());
             assert!(!forms.is_empty(), "{written} has no statement entry in the table");
             for s in forms {
+                // A name with two rules gives the forms of both; each form has the rule of its own row.
+                if s.rule != rule {
+                    continue;
+                }
                 assert_eq!(stmt_find(s.id).map(|f| f.rule), Some(rule), "{written}");
                 // Every argument has a table type, and the table has no more types than C arguments and the mask.
                 let slots = stmt_slots(s.id);

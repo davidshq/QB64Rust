@@ -781,6 +781,11 @@ fn uses_word(code: &str, name: &str) -> bool {
     })
 }
 
+/// The statements `sema` compiles from a syntax node of their own, with no row in `STATEMENTS`, that the coverage
+/// rule covers by name (`m3-console-files`): each must be used in a slice program and in an `ir` test, as a row
+/// is. `LPRINT` is also on the list of built-ins no test runs (design D8).
+const OWN_NODE: &[&str] = &["LPRINT", "FIELD", "LSET", "RSET"];
+
 /// "Built-in coverage" (spec `testing/compiler-tests`, design D9 of `m2-core-builtins`): every built-in function
 /// `sema` compiles is called in a program of `slice.list` (its output is compared with the old compiler's in tier 2)
 /// and in a `typed` front-end test (its result type and argument conversions are pinned in tier 1).
@@ -810,7 +815,8 @@ fn every_supported_builtin_is_covered() {
     assert!(!slice.is_empty() && !typed.is_empty() && !ir.is_empty());
     let mut missing = Vec::new();
     // A built-in statement: in a slice program, and in an `ir` test that pins its slots, places and items.
-    for &(name, _) in qb64rust_sema::builtins::STATEMENTS {
+    let statements = qb64rust_sema::builtins::STATEMENTS.iter().map(|&(name, _)| name);
+    for name in statements.chain(OWN_NODE.iter().copied()) {
         if !slice.iter().any(|c| uses_word(c, name)) {
             missing.push(format!("`{name}` is used in no program of tests/corpus/slice.list"));
         }
@@ -829,8 +835,9 @@ fn every_supported_builtin_is_covered() {
             missing.push(format!("`{}` is called in no `typed` test of tests/frontend", s.name));
         }
     }
-    // A window built-in is compiled and never run: its slice program holds it as code that is not reached, so
-    // each also has a call-site program, where its call is compared with the old compiler's.
+    // A built-in no test runs (a window built-in, `BEEP`, `CHAIN`, `LPRINT`) is compiled and never run: its slice
+    // program holds it as code that is not reached, so each also has a call-site program, where its call is
+    // compared with the old compiler's.
     let callsite: Vec<String> = files(&repo().join("tests/callsite"), &["bas"])
         .iter()
         .map(|p| code_only(&std::fs::read(p).unwrap()))
@@ -839,10 +846,11 @@ fn every_supported_builtin_is_covered() {
     let window = qb64rust_sema::builtins::NEVER_RUN;
     for &name in window {
         let row = qb64rust_sema::builtins::STATEMENTS.iter().any(|&(n, _)| n == name)
-            || qb64rust_sema::builtins::supported().any(|s| s.name == name);
+            || qb64rust_sema::builtins::supported().any(|s| s.name == name)
+            || OWN_NODE.contains(&name);
         assert!(
             row,
-            "`{name}` is listed as a window built-in and is no supported built-in"
+            "`{name}` is listed as a built-in no test runs and is no supported built-in"
         );
     }
     missing.extend(without_callsite(window, &callsite));
@@ -852,6 +860,13 @@ fn every_supported_builtin_is_covered() {
         let function = qb64rust_sema::builtins::supported().any(|s| s.name == name);
         if statement && function {
             missing.extend(without_both_uses(name, &callsite));
+        }
+        // A statement with a node of its own must stand as a statement there: `LPRINT` is also a word of another
+        // statement (`WIDTH LPRINT`).
+        if OWN_NODE.contains(&name) && !used_as_statement(name, &callsite) {
+            missing.push(format!(
+                "`{name}` (a built-in no test runs) is used as a statement in no program of tests/callsite"
+            ));
         }
     }
     assert!(missing.is_empty(), "{}", missing.join("\n"));
@@ -863,29 +878,40 @@ fn without_callsite(names: &[&str], callsite: &[String]) -> Vec<String> {
     names
         .iter()
         .filter(|name| !callsite.iter().any(|c| uses_word(c, name)))
-        .map(|name| format!("`{name}` (a window built-in) is used in no program of tests/callsite"))
+        .map(|name| format!("`{name}` (a built-in no test runs) is used in no program of tests/callsite"))
         .collect()
+}
+
+/// Whether `line` (without the blanks before it) starts with the word `name`.
+fn first_word(name: &str, line: &str) -> bool {
+    let more = |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '$' | '%' | '&' | '!' | '#' | '~' | '`');
+    line.strip_prefix(name)
+        .is_some_and(|rest| !rest.chars().next().is_some_and(more))
+}
+
+/// Whether a program of `callsite` (from [`code_only`]) has `name` as the first word of a line: as a statement.
+fn used_as_statement(name: &str, callsite: &[String]) -> bool {
+    callsite
+        .iter()
+        .flat_map(|c| c.lines())
+        .any(|line| first_word(name, line.trim_start()))
 }
 
 /// One line per use of `name` (a statement and a function of one name) that no program of `callsite` has: as a
 /// statement (the first word of a line) and as a function (anywhere else).
 fn without_both_uses(name: &str, callsite: &[String]) -> Vec<String> {
     let lines = || callsite.iter().flat_map(|c| c.lines()).map(str::trim_start);
-    let first_word = |line: &str| {
-        let more =
-            |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '$' | '%' | '&' | '!' | '#' | '~' | '`');
-        line.strip_prefix(name)
-            .is_some_and(|rest| !rest.chars().next().is_some_and(more))
-    };
-    let statement = lines().any(first_word);
+    let statement = used_as_statement(name, callsite);
     let function = lines().any(|line| match line.strip_prefix(name) {
-        Some(rest) if first_word(line) => uses_word(rest, name),
+        Some(rest) if first_word(name, line) => uses_word(rest, name),
         _ => uses_word(line, name),
     });
     [(statement, "statement"), (function, "function")]
         .iter()
         .filter(|(found, _)| !found)
-        .map(|(_, what)| format!("`{name}` (a window built-in) is used as a {what} in no program of tests/callsite"))
+        .map(|(_, what)| {
+            format!("`{name}` (a built-in no test runs) is used as a {what} in no program of tests/callsite")
+        })
         .collect()
 }
 
@@ -897,14 +923,19 @@ fn window_builtin_without_callsite_is_named() {
     let func = [code_only(b"$CONSOLE:ONLY\nn = _SCREENICON\n_SCREENICONS\nEND\n")];
     assert_eq!(
         without_both_uses("_SCREENICON", &stmt),
-        ["`_SCREENICON` (a window built-in) is used as a function in no program of tests/callsite"]
+        ["`_SCREENICON` (a built-in no test runs) is used as a function in no program of tests/callsite"]
     );
     assert_eq!(
         without_both_uses("_SCREENICON", &func),
-        ["`_SCREENICON` (a window built-in) is used as a statement in no program of tests/callsite"]
+        ["`_SCREENICON` (a built-in no test runs) is used as a statement in no program of tests/callsite"]
     );
     let both = [stmt[0].clone(), func[0].clone()];
     assert!(without_both_uses("_SCREENICON", &both).is_empty());
+    // A word of another statement is no statement: `WIDTH LPRINT 80` does not stand for `LPRINT`.
+    let width = [code_only(b"$CONSOLE:ONLY\nWIDTH LPRINT 80\nEND\n")];
+    assert!(!used_as_statement("LPRINT", &width));
+    let indented = [code_only(b"$CONSOLE:ONLY\nIF 0 THEN x = 1\n  LPRINT USING f; 1\n")];
+    assert!(used_as_statement("LPRINT", &indented));
     let programs = [
         code_only(b"$CONSOLE:ONLY\n' _MOUSEHIDE in a comment\n_TITLE \"_ICON\"\nEND\n"),
         code_only(b"$CONSOLE:ONLY\nn = _SCREENX\nEND\n"),
@@ -913,9 +944,9 @@ fn window_builtin_without_callsite_is_named() {
     assert_eq!(
         without_callsite(&["_TITLE", "_TITLE$", "_MOUSEHIDE", "_ICON", "_SCREENX"], &programs),
         [
-            "`_TITLE$` (a window built-in) is used in no program of tests/callsite",
-            "`_MOUSEHIDE` (a window built-in) is used in no program of tests/callsite",
-            "`_ICON` (a window built-in) is used in no program of tests/callsite",
+            "`_TITLE$` (a built-in no test runs) is used in no program of tests/callsite",
+            "`_MOUSEHIDE` (a built-in no test runs) is used in no program of tests/callsite",
+            "`_ICON` (a built-in no test runs) is used in no program of tests/callsite",
         ]
     );
 }

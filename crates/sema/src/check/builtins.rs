@@ -1,12 +1,14 @@
 //! Calls of built-in functions: one checker for every function `sema` compiles (design D2 of `m2-core-builtins`).
 //! Which functions, their rules and result types: `crate::builtins`.
 
+use super::expr::conv;
+use super::ops::{held, rotated, widest};
 use super::places::numeric_type;
 use super::{Checker, R};
 use crate::builtins::{
     Rule, Slot, StmtRule, StmtSlot, StmtSupported, Supported, lookup, result_types, slots, stmt_lookup, stmt_slots,
 };
-use crate::{Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Place, StmtArg, StmtKind, Ty};
+use crate::{ConvKind, Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Place, StmtArg, StmtKind, Ty};
 use qb64rust_base::Span;
 use qb64rust_builtins::template::{Atom, Item};
 use qb64rust_syntax::SyntaxKind::{self, Ident, LParen, RParen};
@@ -56,7 +58,11 @@ fn takes_as_is(rule: Rule) -> bool {
         | Rule::Asc
         | Rule::StringFill
         | Rule::StrOrIndex
-        | Rule::GivenArgs(_) => false,
+        | Rule::GivenArgs(_)
+        // Their slots take a number as it is.
+        | Rule::Widest
+        | Rule::Rotate
+        | Rule::Choice => false,
     }
 }
 
@@ -80,6 +86,7 @@ impl Checker<'_> {
             Rule::Fixed(_) if list.is_some() => {
                 return Err(self.unsupported(span, format!("`{name}` with arguments")));
             }
+            Rule::Choice => return self.choice(s, list, span),
             Rule::Plain
             | Rule::ResultOfArg
             | Rule::IntFix
@@ -91,7 +98,9 @@ impl Checker<'_> {
             | Rule::Asc
             | Rule::StringFill
             | Rule::StrOrIndex
-            | Rule::GivenArgs(_) => {}
+            | Rule::GivenArgs(_)
+            | Rule::Widest
+            | Rule::Rotate => {}
         }
         self.runtime_part(s.id, name, span)?;
         let nodes = self.present_args(list)?;
@@ -135,12 +144,97 @@ impl Checker<'_> {
             }
             args.push(Some(self.slot_arg(s.rule, slot, k, e, &which)?));
         }
-        let (ty, qb) = result_types(s, &args);
+        let (ty, qb) = if s.rule == Rule::Widest {
+            // Measured: `_CLAMP(a, b, c)` is typed as `widest(widest(a, b), c)` (`qb64pe.bas` 20844).
+            let w = args
+                .iter()
+                .flatten()
+                .map(|a| a.qb)
+                .reduce(widest)
+                .expect("`_MIN`, `_MAX` and `_CLAMP` take arguments");
+            (w.held_value(), w)
+        } else if s.rule == Rule::Rotate {
+            let t = self.rotation(name, &args)?;
+            (t, t)
+        } else {
+            result_types(s, &args)
+        };
         Ok(Expr {
             span,
             ty,
             qb,
             kind: ExprKind::Call { builtin: s.id, args },
+        })
+    }
+
+    /// The type `_ROL` or `_ROR` turns its first argument in (design D7 of `m3-console-files`). Measured
+    /// (`verification\v30_x84`–`x87`, `v30_result_types.txt`): a float as either argument is "Expected
+    /// non-floating-point numeric argument", a `_BIT` type "Unsupported integral type size".
+    fn rotation(&mut self, name: &str, args: &[Option<Expr>]) -> R<Ty> {
+        for (a, k) in args.iter().flatten().zip(1..) {
+            if a.qb.is_float() {
+                let msg = format!("argument {k} of `{name}` needs an integer, not a float");
+                return Err(self.error(a.span, msg));
+            }
+        }
+        let first = args[0].as_ref().expect("`_ROL` and `_ROR` take two arguments");
+        match rotated(first.qb) {
+            Some(t) => Ok(t),
+            None => {
+                let msg = format!(
+                    "`{name}` turns a value of 8, 16, 32 or 64 bits, not a `{}`",
+                    self.prog.type_name(first.qb)
+                );
+                Err(self.error(first.span, msg))
+            }
+        }
+    }
+
+    /// `_IIF(condition, truePart, falsePart)` (design D6 of `m3-console-files`; `qb64pe.bas` 20737): C++'s `?:`,
+    /// so only the part chosen is evaluated. Measured (`verification\v30_g_iif_min_max`, `v30_x70`–`x76`): the
+    /// condition is a number, a float rounded (`qbr`); the parts are both strings or both numbers ("falsePart and
+    /// truePart must be of the same type"), each as it is.
+    fn choice(&mut self, s: Supported, list: Option<ast::ArgList>, span: Span) -> R<Expr> {
+        let nodes = self.present_args(list)?;
+        let [c, a, b] = nodes[..] else {
+            return Err(self.error(span, arity(s.name, 3, 3)));
+        };
+        let condition = self.expr(c)?;
+        if condition.ty == Ty::Str {
+            return Err(self.error(condition.span, format!("argument 1 of `{}` needs a number", s.name)));
+        }
+        let condition = if condition.ty.is_float() {
+            conv(condition, Ty::I64, ConvKind::RoundEven)
+        } else {
+            condition
+        };
+        let then = self.expr(a)?;
+        let else_ = self.expr(b)?;
+        let (ty, qb) = match (then.ty == Ty::Str, else_.ty == Ty::Str) {
+            (true, true) => (Ty::Str, Ty::Str),
+            (false, false) => {
+                // C++ gives `c ? a : b` the type of its parts when they have one, else their common type.
+                let ty = if then.ty == else_.ty {
+                    then.ty
+                } else {
+                    held(then.ty, else_.ty)
+                };
+                (ty, widest(then.qb, else_.qb))
+            }
+            (true, false) | (false, true) => {
+                let msg = format!("the two parts of `{}` must be both strings or both numbers", s.name);
+                return Err(self.error(span, msg));
+            }
+        };
+        Ok(Expr {
+            span,
+            ty,
+            qb,
+            kind: ExprKind::Choice {
+                condition: Box::new(condition),
+                then: Box::new(then),
+                else_: Box::new(else_),
+            },
         })
     }
 
@@ -177,10 +271,13 @@ impl Checker<'_> {
                 | Slot::Double
                 | Slot::Float
                 | Slot::AnyNumeric
+                | Slot::UInt64
                 | Slot::ULong
                 | Slot::ColorOrTile,
             ) => false,
-            (_, Slot::Block) => unreachable!("an array's bytes are no value (`block_arg`)"),
+            (_, Slot::Block | Slot::Bytes) => {
+                unreachable!("the bytes of an array or a place are no value (`block_arg`, `bytes_arg`)")
+            }
         };
         match (wants_string, string) {
             (true, false) => return Err(self.error(e.span, format!("{which} needs a string"))),
@@ -194,6 +291,7 @@ impl Checker<'_> {
         Ok(match slot {
             Slot::Long => self.store(e, Ty::I32)?,
             Slot::Int64 => self.store(e, Ty::I64)?,
+            Slot::UInt64 => self.store(e, Ty::U64)?,
             Slot::ULong => self.store(e, Ty::U32)?,
             // A fill colour of `PAINT`: an integer as it is, a float rounded to an integer, as the old compiler
             // writes it; the emitter's `(uint32)` cast keeps the low 32 bits.
@@ -205,7 +303,7 @@ impl Checker<'_> {
                 let qb = e.qb.printed();
                 self.convert_exact(e, qb)
             }
-            Slot::Str | Slot::Block => unreachable!("handled above"),
+            Slot::Str | Slot::Block | Slot::Bytes => unreachable!("handled above"),
         })
     }
 
@@ -457,28 +555,28 @@ impl Checker<'_> {
                 ast::FormPart::Arg(a) => Part::Arg(self.need(a.expr(), node.span())?),
             });
         }
+        // A statement of `GET` or `PUT` that starts with a point is the graphics form to the old compiler,
+        // whatever follows, and a syntax error there when it is none (measured, `verification\v28_x93`, `x94`,
+        // `v30_x36`: `GET (1), , x`); the file form is not tried for it.
+        let graphics = forms.iter().any(|f| f.rule == StmtRule::Graphics);
+        let point_first = match parts.first() {
+            Some(Part::Punct(b'(') | Part::Arg(ast::Expr::Paren(_))) => true,
+            Some(Part::Word(w)) => w == "STEP",
+            Some(Part::Punct(_) | Part::Arg(_)) | None => false,
+        };
         for &form in &forms {
+            if graphics && point_first && form.rule != StmtRule::Graphics {
+                continue;
+            }
             let items = form.id.get().template();
             let mut matched = Vec::new();
             if match_items(&mut vec![&items[..]], &parts, 0, &mut matched) {
                 return self.stmt_call(node, form, matched);
             }
         }
-        if forms.iter().any(|f| f.rule == StmtRule::Graphics) {
-            // The parser read the statement by another entry of the name: the file form. A statement that starts
-            // with a point is the graphics form to the old compiler and a syntax error there (measured,
-            // `verification\v28_x93`, `x94`: `GET (1), , x`).
-            return Err(match parts.first() {
-                Some(Part::Punct(b'(') | Part::Arg(ast::Expr::Paren(_))) => {
-                    self.error(node.span(), format!("this is no form of graphics `{shown}`"))
-                }
-                Some(Part::Word(w)) if w == "STEP" => {
-                    self.error(node.span(), format!("this is no form of graphics `{shown}`"))
-                }
-                Some(Part::Word(_) | Part::Punct(_) | Part::Arg(_)) | None => {
-                    self.unsupported(name_tok.span, format!("`{shown}` on a file"))
-                }
-            });
+        if graphics {
+            let which = if point_first { "graphics " } else { "" };
+            return Err(self.error(node.span(), format!("this is no form of {which}`{shown}`")));
         }
         Err(self.error(
             node.span(),
@@ -494,7 +592,7 @@ impl Checker<'_> {
         let shown = self.word(name);
         for form in stmt_lookup(&shown, false) {
             match form.rule {
-                StmtRule::Plain | StmtRule::Graphics => {
+                StmtRule::Plain | StmtRule::Graphics | StmtRule::File => {
                     let items = form.id.get().template();
                     let mut matched = Vec::new();
                     if match_items(&mut vec![&items[..]], &[], 0, &mut matched) {
@@ -629,6 +727,7 @@ impl Checker<'_> {
                 | ExprKind::Unary { .. }
                 | ExprKind::Concat(..)
                 | ExprKind::StrCompare { .. }
+                | ExprKind::Choice { .. }
                 | ExprKind::Call { .. }
                 | ExprKind::CallProc { .. } => {
                     return Err(self.error(span, format!("`{name}` needs an array here")));
@@ -645,6 +744,70 @@ impl Checker<'_> {
             return Err(self.unsupported(span, msg));
         }
         Ok(StmtArg::Block { array, index })
+    }
+
+    /// The variable of `GET` or `PUT` on a file (design D2 of `m3-console-files`; measured,
+    /// `verification\v30_x20`–`x48`, `x67`): a variable, element or member, of any type but `_BIT` and a `TYPE`
+    /// with a `STRING` in it, or a whole array `a()` of anything but variable-length strings. A name alone is a
+    /// scalar variable, also when an array has the name (`x67`). Anything that is no variable is the old
+    /// compiler's "Expected variable name/array element" (`GET #1, , "lit"` is its internal error, `x24`).
+    fn bytes_arg(&mut self, node: ast::Expr, name: &str) -> R<StmtArg> {
+        let span = node.node().span();
+        if let ast::Expr::Call(c) = node
+            && c.arg_list().is_some_and(|l| l.args().is_empty())
+            && let Some(t) = c.name()
+        {
+            let (word, suffix) = self.split_name(t)?;
+            let Some(array) = self.find_array(&word, suffix) else {
+                if word.contains('.') {
+                    // Measured: "Expected array index" (`v30_x48`: `PUT #1, 1, r.v()`).
+                    return Err(self.error(span, format!("`{name}` of a whole member array")));
+                }
+                if self.procs_by_name.contains_key(&word) {
+                    // Measured: "Expected (...)" for a FUNCTION's name (`v30_x171`, `x172`).
+                    return Err(self.error(span, format!("`{name}` needs a variable here")));
+                }
+                let msg = format!("an array that is not declared as the variable of `{name}`");
+                return Err(self.unsupported(span, msg));
+            };
+            self.names.push((crate::SymbolKind::Var(array), t.span));
+            let ty = self.prog.var(array).ty;
+            if ty == Ty::Str {
+                // Measured: "Cannot pass array of variable-length strings" (`v30_x38`).
+                return Err(self.error(span, format!("`{name}` of a whole array of variable-length strings")));
+            }
+            self.fixed_size(ty, name, span)?;
+            return Ok(StmtArg::Block {
+                array,
+                index: Vec::new(),
+            });
+        }
+        // A place of a user type is a place here, not a value, as for `LEN` ([`Checker::load`]).
+        let outer = self.len_place.replace(span);
+        let e = self.expr(node);
+        self.len_place = outer;
+        let ExprKind::Load(place) = e?.kind else {
+            return Err(self.error(span, format!("`{name}` needs a variable here")));
+        };
+        self.fixed_size(self.prog.place_ty(&place), name, span)?;
+        Ok(StmtArg::Bytes(place))
+    }
+
+    /// Whether `GET` and `PUT` can take the bytes of a place of type `ty`: not a `_BIT` ("Variable/element cannot
+    /// be _BIT aligned", `v30_x25`, `x35`) and not a `TYPE` with a `STRING` in it ("UDT must have fixed size",
+    /// `x40`).
+    fn fixed_size(&mut self, ty: Ty, name: &str, span: Span) -> R<()> {
+        if let Ty::Bit { .. } = ty {
+            return Err(self.error(span, format!("`{name}` of a `_BIT` variable")));
+        }
+        if crate::holds_strings(&self.prog.types, ty) {
+            let msg = format!(
+                "`{name}` of a `TYPE {}` value: a `TYPE` with a `STRING` member has no fixed size",
+                self.prog.type_name(ty)
+            );
+            return Err(self.error(span, msg));
+        }
+        Ok(())
     }
 
     /// The supported statement `name` (one form, [`StmtRule::Plain`]) with every argument and choice left out,
@@ -671,6 +834,10 @@ impl Checker<'_> {
                     k += 1;
                     self.block_arg(arg, form.name)?
                 }
+                (StmtSlot::Arg { slot: Slot::Bytes, .. }, Matched::Arg(Some(arg))) => {
+                    k += 1;
+                    self.bytes_arg(arg, form.name)?
+                }
                 (StmtSlot::Arg { slot, .. }, Matched::Arg(Some(arg))) => {
                     k += 1;
                     let e = self.expr(arg)?;
@@ -680,7 +847,7 @@ impl Checker<'_> {
                         format!("argument {k} of `{}`", form.name)
                     };
                     match form.rule {
-                        StmtRule::Plain | StmtRule::Graphics => {
+                        StmtRule::Plain | StmtRule::Graphics | StmtRule::File => {
                             StmtArg::Value(self.slot_arg(Rule::Plain, slot, k - 1, e, &which)?)
                         }
                         StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign => {
@@ -702,6 +869,14 @@ impl Checker<'_> {
         if form.id.get().callname == "sub__echo" {
             self.echoes.push(node.span());
         }
+        // `LOCK #1, TO 4`: the old compiler takes `TO` for the first record's name ("Name already in use (TO)",
+        // measured, `verification\v30_x50`); the template alone would take the record as left out.
+        if matches!(form.id.get().callname, "sub_lock" | "sub_unlock")
+            && let [_, StmtArg::Absent, StmtArg::Word(_), _] = args[..]
+        {
+            let msg = format!("`{}` needs the first record before `TO`", form.name);
+            return Err(self.error(node.span(), msg));
+        }
         self.push(node, StmtKind::Builtin { id: form.id, args });
         Ok(())
     }
@@ -718,6 +893,9 @@ fn calls_procedure(e: &Expr) -> bool {
         ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => calls_procedure(from),
         ExprKind::Binary { lhs, rhs, .. } | ExprKind::Concat(lhs, rhs) | ExprKind::StrCompare { lhs, rhs, .. } => {
             calls_procedure(lhs) || calls_procedure(rhs)
+        }
+        ExprKind::Choice { condition, then, else_ } => {
+            calls_procedure(condition) || calls_procedure(then) || calls_procedure(else_)
         }
         ExprKind::Call { args, .. } => args.iter().flatten().any(calls_procedure),
     }

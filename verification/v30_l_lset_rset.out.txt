@@ -1,0 +1,44 @@
+[ab   ] 5 
+[   ab] 5 
+[abcde]
+[vwxyz]
+[abc] 3 
+[abc] 3 
+[   ] 3 
+[   ] 3 
+[] 0 
+[] 0 
+a fixed-length string
+[ab   ]
+[   ab]
+[abcde]
+[     ]
+an array element
+[ab   ]
+[   ab]
+[cd   ]
+[   z]
+an element out of range:<error 9 >
+a member
+[ab    ]
+[    ab]
+[ab   ]
+[   ab]
+[    ab]
+[   a]
+the target in the value
+[cdef  ]
+[    ab]
+[abcdef]
+[abcdef]
+the order of target and value
+ix vl [v  ]
+a value of another kind
+[        ]
+[      ab]
+[     ]
+a comparison as the value's tail
+[abc  ]
+an error in the value:<error 5 >[keep.]
+an error in the value:<error 5 >[  bad]
+exit=0

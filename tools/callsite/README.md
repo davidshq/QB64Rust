@@ -20,7 +20,7 @@ does, so the main-module fragment it writes (or the reason it rejects the progra
 answer is written under another name and renamed, so a stopped run leaves no half file. The key does not cover
 the files `qb64pe.exe` reads when it runs (its auto-included `.bi` files): after a change to the clone that does
 not rebuild the compiler, run once with `--no-cache` or empty the folder. A run then starts `qb64pe.exe` only for programs that are new or changed; the new
-compiler writes its C++ for every program on every run. Without the cache the 663 programs of 2026-10-12 took about 5 min 45 s (there are 922 since `m3-sound`; with the cache the run takes 46 s)
+compiler writes its C++ for every program on every run. Without the cache the 663 programs of 2026-10-12 took about 5 min 45 s (there are 1145 since `m3-console-files`, 922 after `m3-sound`; with the cache the run takes 46 s)
 (half a second of `qb64pe -z` each); CI has no cache and runs them all (user, 2026-10-12: fewer repeated runs,
 `DECISIONS.md`).
 
@@ -52,7 +52,9 @@ normalises them:
    compiler's `S_n:;` label, `qbs_cleanup(qbs_tmp_base,0);` and blank lines. The emitter's design calls these
    free.
 2. **Numbered temporaries and labels are renumbered** in order of first use (`pass3`, `skip7`, `L_2`, `temp_…1`,
-   and since `m3-get-put-bload` `byte_element_4`, the temporary of an array's bytes in graphics `GET` and `PUT`):
+   since `m3-get-put-bload` `byte_element_4`, the temporary of an array's bytes in graphics `GET` and `PUT`, and
+   since `m3-console-files` `skip_pu7` and `print_using_format7`, the second label and the format string of a
+   `PRINT USING`, each kind counted by itself):
    the two compilers count them differently. User variables are compared as written: both compilers name them by
    the old scheme (`__STRING_S`), and renaming them would hide two swapped variables.
 3. **Redundant parentheses are dropped**: around a whole call argument (`f((a+b),c)`), and around a single token
@@ -63,12 +65,14 @@ normalises them:
    conversion **when the cast names the parameter's type**. The check cannot see a cast to a narrower type than the
    parameter (it does not read libqb's prototypes); that case is covered by a slice program with a large value.
    Casts anywhere else, and casts to a float type, are compared.
-5. **The `ll` or `u` suffix of an integer literal that is a whole call argument is dropped** (`sub_seek(1,2ll)`
-   against `sub_seek( 1 , 2 )`; `sub_clsDest(NULL,1u,NULL,2)` against `sub_clsDest(NULL, 1 ,NULL,2)`). The new
-   compiler spells a literal of an `_INTEGER64` slot as a `long long` and one of an `_UNSIGNED LONG` slot as an
-   `unsigned`; the old compiler writes the digits and C++ converts them to the parameter's type. A suffix on an
-   operand inside an argument (`a*2ll`) is compared. (`u` since `m3-window-output`, 2026-10-12, with the
-   colours of `CLS`, `CIRCLE` and `PAINT`.)
+5. **The `ll`, `u` or `ull` suffix of an integer literal that is a whole call argument is dropped**
+   (`sub_seek(1,2ll)` against `sub_seek( 1 , 2 )`; `sub_clsDest(NULL,1u,NULL,2)` against `sub_clsDest(NULL, 1
+   ,NULL,2)`; `func__shl(1ull,40)` against `func__shl( 1 , 40 )`). The new compiler spells a literal of an
+   `_INTEGER64` slot as a `long long`, one of an `_UNSIGNED LONG` slot as an `unsigned` and one of an `_UNSIGNED
+   _INTEGER64` slot as an `unsigned long long`; the old compiler writes the digits and C++ converts them to
+   the parameter's type. A suffix on an operand inside an argument (`a*2ll`) is compared. (`u` since
+   `m3-window-output`, 2026-10-12, with the colours of `CLS`, `CIRCLE` and `PAINT`; `ull` since
+   `m3-console-files`, 2026-10-13, with the value of `_SHL` and `_SHR`.)
 
 6. **A whole call argument that is integer literals joined by `|` is replaced by its value** (`func_rnd(x,0|1)`
    against `func_rnd(x,1)`). The old compiler writes the `passed` mask of a function as its bits joined by `|`,

@@ -836,12 +836,13 @@ impl Checker<'_> {
             self.close(s)
         } else if let Some(s) = ast::SwapStmt::cast(node) {
             self.swap(s)
-        } else if ast::LprintStmt::cast(node).is_some()
-            || ast::FieldStmt::cast(node).is_some()
-            || ast::LsetStmt::cast(node).is_some()
-            || ast::MemStmt::cast(node).is_some()
-            || ast::ArrayCopyStmt::cast(node).is_some()
-        {
+        } else if let Some(s) = ast::LprintStmt::cast(node) {
+            self.lprint(s)
+        } else if let Some(s) = ast::FieldStmt::cast(node) {
+            self.field_stmt(s)
+        } else if let Some(s) = ast::LsetStmt::cast(node) {
+            self.lset(s)
+        } else if ast::MemStmt::cast(node).is_some() || ast::ArrayCopyStmt::cast(node).is_some() {
             // Task 7.4: parsed, compiled later (file I/O and the other built-in statements, step 8).
             let t = first_token_span(node);
             let word = show_bytes(&self.text(t).to_ascii_uppercase());

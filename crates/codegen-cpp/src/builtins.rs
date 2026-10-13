@@ -8,9 +8,9 @@ use crate::names::c_type;
 use qb64rust_builtins::BuiltinId;
 use qb64rust_builtins::passing::plan;
 use qb64rust_ir::builtins::{
-    Rule, Slot, StmtRule, StmtSlot, find, int_entry, radix_width, slots, stmt_find, stmt_slots,
+    Rule, Slot, StmtRule, StmtSlot, cpp_arithmetic, find, int_entry, radix_width, slots, stmt_find, stmt_slots,
 };
-use qb64rust_ir::{Expr, Facts, StmtArg, Ty, VarId};
+use qb64rust_ir::{Expr, Facts, Place, StmtArg, Ty, VarId};
 
 impl Emitter<'_> {
     /// A built-in call. A built-in no rule covers (`ERR`, `ERL` are `Fixed`; every call `sema` makes has a rule) is
@@ -111,6 +111,29 @@ impl Emitter<'_> {
                 };
                 format!("func_string({n},{code})")
             }
+            // `std::min<T>(a,b)`, `std::max<T>(a,b)`, `func_clamp<T>(value,low,high)`: the arguments as they are,
+            // T the C++ type of what the result is believed (`qb64pe.bas` 20771–20850).
+            Rule::Widest => {
+                let f = match s.name {
+                    "_MIN" => "std::min",
+                    "_MAX" => "std::max",
+                    "_CLAMP" => "func_clamp",
+                    other => unreachable!("`{other}` is no least or greatest"),
+                };
+                let parts: Vec<String> = args.iter().flatten().map(|a| self.inner(a)).collect();
+                format!("{f}<{}>({})", cpp_arithmetic(qb), parts.join(","))
+            }
+            // `func__rol<uintN_t>(value,count)`: N the width the value is turned in, the result's.
+            Rule::Rotate => {
+                let f = match s.name {
+                    "_ROL" => "func__rol",
+                    "_ROR" => "func__ror",
+                    other => unreachable!("`{other}` is no rotation"),
+                };
+                let (value, count) = (self.inner(arg(0)), self.inner(arg(1)));
+                format!("{f}<{}>({value},{count})", cpp_arithmetic(ty))
+            }
+            Rule::Choice => unreachable!("`_IIF` is an `ExprKind::Choice`"),
         }
     }
 
@@ -143,6 +166,7 @@ impl Emitter<'_> {
         let form = stmt_find(id).unwrap_or_else(|| unreachable!("{} is no compiled statement", id.get().name));
         match form.rule {
             StmtRule::Plain | StmtRule::Graphics => out.push(self.plain_stmt(id, args)),
+            StmtRule::File => out.push(self.file_get_put(id, args)),
             // One call per number, in order; every file when there is none.
             StmtRule::Close => {
                 for arg in args {
@@ -203,9 +227,11 @@ impl Emitter<'_> {
                 let start = self.value(start);
                 let (length, passed) = match length {
                     StmtArg::Value(l) => (self.value(l), 1),
-                    StmtArg::Absent | StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Word(_) => {
-                        ("0".to_string(), 0)
-                    }
+                    StmtArg::Absent
+                    | StmtArg::Place(_)
+                    | StmtArg::Block { .. }
+                    | StmtArg::Bytes(_)
+                    | StmtArg::Word(_) => ("0".to_string(), 0),
                 };
                 let v = self.value(v);
                 out.push(format!("sub_mid({target},{start},{length},{v},{passed});"));
@@ -231,7 +257,7 @@ impl Emitter<'_> {
                 StmtArg::Value(v) => self.value(v),
                 StmtArg::Word(w) => (u32::from(*w) + 1).to_string(),
                 StmtArg::Absent => "NULL".to_string(),
-                StmtArg::Place(_) => unreachable!("`{}` takes no place (`validate`)", b.name),
+                StmtArg::Place(_) | StmtArg::Bytes(_) => unreachable!("`{}` takes no place (`validate`)", b.name),
                 StmtArg::Block { array, index } => self.block(*array, index),
             };
             // The fill of `PAINT`: the old compiler's cast picks libqb's entry for a colour or for a tile string,
@@ -281,6 +307,41 @@ impl Emitter<'_> {
         };
         // The number of elements, the last dimension's count first, as the old compiler writes the product.
         let counts: Vec<String> = (1..=dim_count(v)).map(|i| format!("{n}[{}]", 4 * i + 1)).collect();
+        let counts = counts.join("*");
+        let t = self.byte_element_temp();
+        // The address and the bytes left by the element type, each as the old compiler spells it. Only a file's
+        // `GET` and `PUT` take an array of fixed-length strings or of a user type, and only whole.
+        match v.ty {
+            Ty::FixedStr(_) => format!(
+                "byte_element((uint64)(&((uint8*)({n}[0]))[({flat})*{size}]),\
+                 (({size}*({n}[2]&1)*{counts})-({size}*({flat}))),{t})"
+            ),
+            Ty::User(_) => format!(
+                "byte_element((uint64)(((char*){n}[0])+((({flat})*{size}+0))),\
+                 ({size}*({n}[2]&1)*{counts})-((({flat})*{size}+0)),{t})"
+            ),
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80 => format!(
+                "byte_element((uint64)(&({})),(({size}*({n}[2]&1)*{counts})-({size}*({flat}))),{t})",
+                self.element_at(array, &flat)
+            ),
+            Ty::Str | Ty::Bit { .. } => unreachable!("the bytes of an array of {:?} (`validate`)", v.ty),
+        }
+    }
+
+    /// A new temporary for libqb's `byte_element`, declared with the variables of the body.
+    fn byte_element_temp(&mut self) -> String {
         self.byte_element += 1;
         let t = format!("byte_element_{}", self.byte_element);
         self.pass_decls.push(format!(
@@ -288,11 +349,67 @@ impl Emitter<'_> {
              if ((mem_static_pointer+=12)<mem_static_limit) {t}=(byte_element_struct*)(mem_static_pointer-12); \
              else {t}=(byte_element_struct*)mem_static_malloc(12);\n}}\n"
         ));
-        format!(
-            "byte_element((uint64)(&({})),(({size}*({n}[2]&1)*{})-({size}*({flat}))),{t})",
-            self.element_at(array, &flat),
-            counts.join("*")
-        )
+        t
+    }
+
+    /// `GET` and `PUT` on a file, as the old compiler writes them (`qb64pe.bas` 11580–11955; read with `qb64pe
+    /// -z`, `study\00` §5): the file number, the position or `NULL`, what the variable is, and the mask, 1 when
+    /// the position is given. With no variable the call is `field_get` or `field_put` (the file's record
+    /// buffer); a variable-length string goes to `sub_get2` as the string itself and to `sub_put2` as its
+    /// characters and their number; anything else to `sub_get` or `sub_put` as its address and its size.
+    fn file_get_put(&mut self, id: BuiltinId, args: &[StmtArg]) -> String {
+        let get = id.get().callname == "sub_get";
+        let [StmtArg::Value(file), position, variable] = args else {
+            unreachable!("the slots of `GET` and `PUT` on a file (`validate`)");
+        };
+        let file = self.value(file);
+        let (position, mask) = match position {
+            StmtArg::Value(v) => (self.value(v), 1),
+            StmtArg::Absent | StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Bytes(_) | StmtArg::Word(_) => {
+                ("NULL".to_string(), 0)
+            }
+        };
+        let word = if get { "get" } else { "put" };
+        match variable {
+            StmtArg::Bytes(place) if self.p.place_ty(place) == Ty::Str => {
+                let s = self.place_ref(place);
+                if get {
+                    return format!("sub_get2({file},{position},{s},{mask});");
+                }
+                // Written twice, as the old compiler writes it: an element's index is evaluated twice.
+                let t = self.byte_element_temp();
+                format!("sub_put2({file},{position},byte_element((uint64){s}->chr,{s}->len,{t}),{mask});")
+            }
+            StmtArg::Bytes(place) => {
+                let (address, size) = self.place_bytes(place);
+                let t = self.byte_element_temp();
+                format!("sub_{word}({file},{position},byte_element((uint64){address},{size},{t}),{mask});")
+            }
+            StmtArg::Block { array, index } => {
+                let bytes = self.block(*array, index);
+                format!("sub_{word}({file},{position},{bytes},{mask});")
+            }
+            StmtArg::Absent | StmtArg::Value(_) | StmtArg::Place(_) | StmtArg::Word(_) => {
+                format!("field_{word}({file},{position},{mask});")
+            }
+        }
+    }
+
+    /// The address and the size in bytes of a place with a fixed size: a variable through its own pointer (a
+    /// fixed-length string through its characters), a value of a user type as the old compiler spells its
+    /// address, an element or a member through its address.
+    fn place_bytes(&mut self, place: &Place) -> (String, u32) {
+        let ty = self.p.place_ty(place);
+        let size = self.ty_size(ty);
+        let address = match (ty, place) {
+            (Ty::FixedStr(_), Place::Var(v)) => format!("{}->chr", self.name(*v)),
+            (Ty::FixedStr(_), _) => format!("{}->chr", self.load_place(place)),
+            (Ty::User(_), Place::Var(v)) => format!("(((char*){})+((0+0)))", self.name(*v)),
+            (Ty::User(_), _) => self.bytes_of(place),
+            (_, Place::Var(v)) => self.name(*v),
+            (_, _) => self.place_ref(place),
+        };
+        (address, size)
     }
 
     /// A call by the table's `callname`. A built-in with optional slots gets `NULL` for each absent argument, as the
@@ -321,9 +438,11 @@ impl Emitter<'_> {
                             | Slot::Double
                             | Slot::Float
                             | Slot::Str
+                            | Slot::UInt64
                             | Slot::ULong
                             | Slot::ColorOrTile
-                            | Slot::Block,
+                            | Slot::Block
+                            | Slot::Bytes,
                         )
                         | None => x,
                     });

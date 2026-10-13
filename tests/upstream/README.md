@@ -334,6 +334,14 @@ the 26 that joined `pass.list`. The three lists are unchanged (0 false errors, 0
 rejections). What comes next for the suite outside `deferred.list`: `_MEM`, `$ASSERTS`/`$DEBUG` and the image
 built-ins that run.
 
+**Upstream progress, 2026-10-13: 148 of 279** (`m3-console-files` task 8.1, the full runs that close the
+change; 142 before it). The six new ones compile cleanly with the step's built-ins and pass: `iif/iif_test`,
+`rotations/test`, `func_tostr/double`, `func_tostr/float`, `func_tostr/single` (`PRINT USING`) and
+`arrays/put_get_write_read_fixed_string` (`GET` and `PUT` on a file). `pass.list` run by itself: 148 of 148.
+The full run of the suite (404 programs): 148 pass, 255 rejected or with only marked errors (217 at the
+compile, 38 `.err` programs), the known failure `http/read_example`; none builds and prints the wrong output.
+The three lists are unchanged.
+
 **Upstream progress, 2026-10-13: 142 of 279** (`m3-sound` task 6.1, the full runs that close the change; 140
 before it). The two new ones: `console_only/audio_out` (`PLAY "O3"` and a `PRINT`) and `icon_relative/test`
 (`$EXEICON:'./qb64pe.ico'`, compile-only, run from the clone, where its icon lies; the copy here holds no

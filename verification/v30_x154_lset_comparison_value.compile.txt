@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):LSET A = B = "x",1
+LINE 15:a = "....": LSET a = b = "x": PRINT "["; a; "]"
+exit=1

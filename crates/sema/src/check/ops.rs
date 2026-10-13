@@ -298,6 +298,53 @@ fn wider_float(a: Ty, b: Ty) -> Ty {
     if b.is_wider_than(a) { b } else { a }
 }
 
+/// The type the old compiler gives `_MIN(a, b)`, `_MAX(a, b)` and the two value parts of `_IIF` for arguments
+/// believed `a` and `b` (design D6 of `m3-console-files`); `_CLAMP(a, b, c)` is `widest(widest(a, b), c)`. It is
+/// not the rule of the operators ([`held`], [`int_believed`]). Measured for every pair of types, and for literals,
+/// operator results, elements and members (`verification\v30_result_types.txt`; `study\00` §5):
+///
+/// - a float wins over any integer, and of two floats the wider;
+/// - of two unsigned integers the one of more bits, the second when they have as many;
+/// - of two integers of one width the unsigned one, the first when both are signed;
+/// - else the integer of more bits.
+///
+/// A `_BIT * n` counts its n bits and an `_OFFSET` 64. (The old compiler's `Type_PromoteArithmeticType` has special
+/// cases for `_OFFSET` and for a SINGLE beside a wider integer; neither is ever taken, since each compares with a
+/// type value no argument has.)
+pub(super) fn widest(a: Ty, b: Ty) -> Ty {
+    match (a.float_rank(), b.float_rank()) {
+        (Some(x), Some(y)) => return if x > y { a } else { b },
+        (Some(_), None) => return a,
+        (None, Some(_)) => return b,
+        (None, None) => {}
+    }
+    let (x, y) = (markup_bits(a), markup_bits(b));
+    if a == b {
+        a
+    } else if a.is_unsigned() && b.is_unsigned() {
+        if x > y { a } else { b }
+    } else if x == y {
+        if b.is_unsigned() { b } else { a }
+    } else if x > y {
+        a
+    } else {
+        b
+    }
+}
+
+/// The type `_ROL` and `_ROR` turn a value believed `t` in, which is also their result's: the unsigned integer of
+/// its width (design D7 of `m3-console-files`; `qb64pe.bas` 20865). `None` for a width that is none of 8, 16, 32
+/// and 64: every `_BIT * n` but those four ("Unsupported integral type size"). `t` is an integer type.
+pub(super) fn rotated(t: Ty) -> Option<Ty> {
+    match markup_bits(t) {
+        8 => Some(Ty::U8),
+        16 => Some(Ty::U16),
+        32 => Some(Ty::U32),
+        64 => Some(Ty::U64),
+        _ => None,
+    }
+}
+
 /// The folded value of a binary operator on two integer constants, `a` already converted to its [`left_operand`]
 /// type `lt` and `b` to `operands`, the result wrapped to `ty` (D-001, D-002); `None` where the operator is left to
 /// run time: `/` and `^` (computed in floating point), `\` and `MOD` by 0 (error 11) and the smallest value of a
@@ -695,6 +742,104 @@ mod tests {
         assert_eq!((t.operands, t.ty, t.qb), (Ty::F80, Ty::F80, Ty::F32));
         assert_eq!(num(Op::Bin(BinOp::Pow), i32_, Some(i16_)).qb, Ty::F64);
         assert_eq!(num(Op::Bin(BinOp::Pow), i64_, Some(single)).qb, Ty::F80);
+    }
+
+    /// A type as `verification\v30_result_types.txt` names it.
+    fn table_type(name: &str) -> Ty {
+        let bit = |width, signed| Ty::Bit { width, signed };
+        match name {
+            "_BIT" => bit(1, true),
+            "_UNSIGNED _BIT" => bit(1, false),
+            "_BIT * 4" => bit(4, true),
+            "_BYTE" => Ty::I8,
+            "_UNSIGNED _BYTE" => Ty::U8,
+            "INTEGER" => Ty::I16,
+            "_UNSIGNED INTEGER" => Ty::U16,
+            "LONG" => Ty::I32,
+            "_UNSIGNED LONG" => Ty::U32,
+            "_INTEGER64" => Ty::I64,
+            "_UNSIGNED _INTEGER64" => Ty::U64,
+            "SINGLE" => Ty::F32,
+            "DOUBLE" => Ty::F64,
+            "_FLOAT" => Ty::F80,
+            "_OFFSET" => Ty::Off,
+            "_UNSIGNED _OFFSET" => Ty::UOff,
+            other => panic!("a type the table does not name: {other}"),
+        }
+    }
+
+    /// The type the old compiler prints a value believed `t` in, as the table's last column names it (the cast
+    /// inside `qbs_str`): an `_OFFSET` and a `_BIT` type as 64 bits.
+    fn table_printed(t: Ty) -> &'static str {
+        match t.printed() {
+            Ty::I8 => "int8",
+            Ty::U8 => "uint8",
+            Ty::I16 => "int16",
+            Ty::U16 => "uint16",
+            Ty::I32 => "int32",
+            Ty::U32 => "uint32",
+            Ty::I64 | Ty::Off => "int64",
+            Ty::U64 | Ty::UOff => "uint64",
+            Ty::F32 => "float",
+            Ty::F64 => "double",
+            Ty::F80 => "long double",
+            other @ (Ty::Bit { .. } | Ty::Str | Ty::FixedStr(_) | Ty::User(_)) => {
+                panic!("{other:?} is not printed")
+            }
+        }
+    }
+
+    /// Every form the old compiler was measured with (`verification\v30_result_types.py`, 794 forms): the C++
+    /// type it writes into the call and the type it prints the result in, against [`widest`] and [`rotated`].
+    #[test]
+    #[expect(clippy::disallowed_methods, reason = "a table of type names, not BASIC source")]
+    fn widest_and_rotated_give_the_measured_types() {
+        use crate::builtins::{cpp_arithmetic, lookup, result_types};
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../verification/v30_result_types.txt");
+        let table = std::fs::read(path).expect("the table of measured result types");
+        let table = String::from_utf8(table).expect("the table is ASCII");
+        let (mut forms, mut rejected) = (0, 0);
+        for line in table.lines() {
+            let cells: Vec<&str> = line.trim_start_matches("# ").split(" | ").collect();
+            if line.starts_with('#') {
+                // A form the old compiler rejects: `# _ROL(a, 1) | <type> | <its message>`.
+                if let ["_ROL(a, 1)", a, message] = cells[..] {
+                    let a = table_type(a);
+                    let float = message.starts_with("Expected non-floating-point");
+                    assert_eq!(a.is_float(), float, "{line}");
+                    assert!(float || rotated(a).is_none(), "{line}");
+                    rejected += 1;
+                }
+                continue;
+            }
+            let [form, a, b, cpp, printed] = cells[..] else {
+                panic!("a line of another shape: {line}");
+            };
+            let a = table_type(a);
+            let (got_cpp, got) = match form {
+                "_MIN(a, b)" => {
+                    let w = widest(a, table_type(b));
+                    (Some(cpp_arithmetic(w)), w)
+                }
+                "_CLAMP(a, b, b)" => {
+                    let b = table_type(b);
+                    let w = widest(widest(a, b), b);
+                    (Some(cpp_arithmetic(w)), w)
+                }
+                // A C++ `?:` names no type.
+                "_IIF(1, a, b)" => (None, widest(a, table_type(b))),
+                "_ROL(a, 1)" => {
+                    let t = rotated(a).unwrap_or_else(|| panic!("{line}: no width"));
+                    (Some(cpp_arithmetic(t)), t)
+                }
+                "_SHL(a, 1)" => (None, result_types(lookup("_SHL", false).unwrap(), &[None, None]).1),
+                other => panic!("a form the table does not name: {other}"),
+            };
+            assert_eq!(got_cpp.unwrap_or("-"), cpp, "{line}");
+            assert_eq!(table_printed(got), printed, "{line}");
+            forms += 1;
+        }
+        assert_eq!((forms, rejected), (794, 6));
     }
 
     #[test]

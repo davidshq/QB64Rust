@@ -1,0 +1,276 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+TYPE T
+  S:F32
+  Q:I64
+ARRAY A:F32(0 TO 3)
+line 2: ConsoleOnly
+line 16: Print newline
+  Num
+    Call _MIN : F32
+      Var S : F32
+      Var Q : I64
+  Num
+    Call _MAX : F32
+      Var Q : I64
+      Var S : F32
+  Num
+    Call _MIN : F64
+      Var D : F64
+      Var UQ : U64
+  Num
+    Call _MAX : F64
+      Var S : F32
+      Var D : F64
+  Num
+    Call _MIN : F80
+      Var F : F80
+      Var S : F32
+  Num
+    Call _MIN : F32
+      Element A(…) : F32
+        Int 1 : I64
+      Var Q : I64
+  Num
+    Call _MAX : F32
+      Member R.S : F32
+      Member R.Q : I64
+line 18: Print newline
+  Num
+    Call _MIN : I16
+      Var B : I8
+      Var I : I16
+  Num
+    Call _MAX : I16
+      Var UB : U8
+      Var I : I16
+  Num
+    Call _MIN : U8
+      Var B : I8
+      Var UB : U8
+  Num
+    Call _MIN : U8
+      Var UB : U8
+      Var B : I8
+  Num
+    Call _MAX : U32
+      Var L : I32
+      Var UL : U32
+  Num
+    Call _MIN : I64
+      Var Q : I64
+      Var O : Off
+  Num
+    Call _MIN : Off
+      Var O : Off
+      Var Q : I64
+  Num
+    Call _MIN : UOff
+      Var UQ : U64
+      Var UO : UOff
+line 19: Print newline
+  Num
+    Call _MIN : U64
+      Var UO : UOff
+      Var UQ : U64
+  Num
+    Call _MIN : U64
+      Var O : Off
+      Var UQ : U64
+  Num
+    Call _MAX : UOff
+      Var UO : UOff
+      Var O : Off
+line 21: Print newline
+  Num
+    Convert Widen : I64
+      Call _MIN : I32 (qb Bit1)
+        Var BT : I32 (qb Bit1)
+        Var BT : I32 (qb Bit1)
+  Num
+    Convert Widen : I64
+      Call _MIN : U32 (qb UBit3)
+        Var BT : I32 (qb Bit1)
+        Var UB3 : U32 (qb UBit3)
+  Num
+    Call _MIN : I8
+      Var UB3 : U32 (qb UBit3)
+      Var B : I8
+line 23: Print newline
+  Num
+    Call _MIN : I16
+      Int 2 : I16
+      Int 3 : I16
+  Num
+    Call _MIN : I32
+      Int 70000 : I32
+      Var I : I16
+  Num
+    Call _MIN : I64
+      Int 5000000000 : I64
+      Var I : I16
+  Num
+    Call _MIN : F32
+      Float 1.5E+0 : F64 (qb F32)
+      Var L : I32
+  Num
+    Call _MIN : F64
+      Float 1.5E+0 : F64
+      Var S : F32
+  Num
+    Call _MIN : I64
+      Binary Add : I32 (qb I64)
+        Convert Widen : I32
+          Var I : I16
+        Int 1 : I32
+      Var I : I16
+  Num
+    Call _MIN : I32
+      Binary Eq : I32
+        Convert Widen : I32
+          Var I : I16
+        Int 2 : I32
+      Var B : I8
+line 25: Print newline
+  Num
+    Call _CLAMP : I16
+      Var I : I16
+      Int 1 : I16
+      Int 10 : I16
+  Num
+    Call _CLAMP : F32
+      Var I : I16
+      Float 1.5E+0 : F64 (qb F32)
+      Int 10 : I16
+  Num
+    Call _CLAMP : U64
+      Var B : I8
+      Var L : I32
+      Var UQ : U64
+  Num
+    Call _CLAMP : F64
+      Var Q : I64
+      Var S : F32
+      Var D : F64
+line 27: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Convert Widen : I32
+      Call _MIN : I16
+        Var I : I16
+        Var B : I8
+    Int 1 : I32
+line 28: Assign S:F32
+  Binary Mul : F32
+    Call _MAX : F32
+      Var L : I32
+      Var S : F32
+    Convert Nearest : F32
+      Int 2 : I16
+line 29: Assign V:Str
+  Concat : Str
+    Call HEX : Str
+      Call _MIN : I16
+        Var I : I16
+        Var B : I8
+    Call STR : Str
+      Call _MIN : Off
+        Var O : Off
+        Var Q : I64
+line 31: Print newline
+  Num
+    Choice : I16
+      Var I : I16
+      Int 1 : I16
+      Int 2 : I16
+  Num
+    Convert Nearest : F32
+      Choice : F64 (qb F32)
+        Var I : I16
+        Float 1.5E+0 : F64 (qb F32)
+        Var L : I32
+  Num
+    Convert Widen : I64
+      Choice : I32 (qb I64)
+        Convert RoundEven : I64
+          Var S : F32
+        Binary Add : I32 (qb I64)
+          Convert Widen : I32
+            Var I : I16
+          Int 1 : I32
+        Var B : I8
+  Num
+    Convert Truncate : I16
+      Choice : I32 (qb I16)
+        Var Q : I64
+        Var I : I16
+        Var UB : U8
+  Num
+    Convert Truncate : Off
+      Choice : I64 (qb Off)
+        Binary Gt : I32
+          Convert Widen : I32
+            Var I : I16
+          Int 1 : I32
+        Var O : Off
+        Var Q : I64
+line 32: Print newline
+  Str
+    Choice : Str
+      Convert RoundEven : I64
+        Var D : F64
+      Var V : Str
+      Concat : Str
+        Str "x" : Str
+        Var V : Str
+  Str
+    Choice : Str
+      Var I : I16
+      Var X : Str
+      Str "abc" : Str
+  Num
+    Call LEN : I32
+      Choice : Str
+        Int 0 : I16
+        Var X : Str
+        Var V : Str
+line 33: Assign S:F32
+  Choice : F32
+    Convert RoundEven : I64
+      Var D : F64
+    Var S : F32
+    Var I : I16
+line 34: Assign L:I32
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Binary Add : F32
+        Choice : F32
+          Int 1 : I16
+          Var O : Off
+          Var S : F32
+        Convert Nearest : F32
+          Choice : I32 (qb Bit1)
+            Var I : I16
+            Var BT : I32 (qb Bit1)
+            Var BT : I32 (qb Bit1)
+line 35: Assign V:Str
+  Choice : Str
+    Choice : I16
+      Var I : I16
+      Int 0 : I16
+      Int 1 : I16
+    Str "a" : Str
+    Str "b" : Str
+line 36: Print newline
+  Num
+    Call _MIN : F32
+      Choice : I32
+        Var I : I16
+        Var B : I8
+        Var L : I32
+      Call _MAX : F32
+        Var S : F32
+        Int 1 : I16
+line 37: System

@@ -183,15 +183,31 @@ pub enum PrintPart<'a> {
     Comma(Tok),
 }
 
+impl PrintPart<'_> {
+    /// Where the part starts in its file.
+    pub fn start(self) -> u32 {
+        match self {
+            PrintPart::Expr(e) => e.node().span().start,
+            PrintPart::Semicolon(t) | PrintPart::Comma(t) => t.span.start,
+        }
+    }
+}
+
+/// The items and separators of a `PRINT` or `LPRINT` statement, in source order: those before a `USING` clause
+/// and those after it (the clause's own format and separator are inside its node).
+fn print_parts<'a>(node: Node<'a>) -> impl Iterator<Item = PrintPart<'a>> + 'a {
+    node.children().filter_map(|e| match e {
+        Element::Token(t) if t.kind == Semicolon => Some(PrintPart::Semicolon(t)),
+        Element::Token(t) if t.kind == Comma => Some(PrintPart::Comma(t)),
+        Element::Node(n) => Expr::cast(n).map(PrintPart::Expr),
+        Element::Token(_) => None,
+    })
+}
+
 impl<'a> PrintStmt<'a> {
     /// The items and separators after the `PRINT` or `?` keyword.
     pub fn parts(self) -> impl Iterator<Item = PrintPart<'a>> + 'a {
-        self.0.children().filter_map(|e| match e {
-            Element::Token(t) if t.kind == Semicolon => Some(PrintPart::Semicolon(t)),
-            Element::Token(t) if t.kind == Comma => Some(PrintPart::Comma(t)),
-            Element::Node(n) => Expr::cast(n).map(PrintPart::Expr),
-            Element::Token(_) => None,
-        })
+        print_parts(self.0)
     }
 
     /// `#n,` of `PRINT #n, …`.
@@ -199,9 +215,38 @@ impl<'a> PrintStmt<'a> {
         child(self.0, FileNumber::cast)
     }
 
-    /// `USING format;`.
+    /// `USING format;`: the first one of the statement.
     pub fn using(self) -> Option<UsingClause<'a>> {
         child(self.0, UsingClause::cast)
+    }
+
+    /// Every `USING` clause of the statement (a second one is an error).
+    pub fn usings(self) -> impl Iterator<Item = UsingClause<'a>> + 'a {
+        self.0.child_nodes().filter_map(UsingClause::cast)
+    }
+}
+
+impl<'a> LprintStmt<'a> {
+    /// The items and separators after the `LPRINT` keyword.
+    pub fn parts(self) -> impl Iterator<Item = PrintPart<'a>> + 'a {
+        print_parts(self.0)
+    }
+
+    /// Every `USING` clause of the statement (a second one is an error).
+    pub fn usings(self) -> impl Iterator<Item = UsingClause<'a>> + 'a {
+        self.0.child_nodes().filter_map(UsingClause::cast)
+    }
+}
+
+impl<'a> UsingClause<'a> {
+    /// The format's expression.
+    pub fn format(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+
+    /// The `;` (or the `,`, an error) after the format.
+    pub fn separator(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| matches!(t.kind, Semicolon | Comma))
     }
 }
 
@@ -316,6 +361,31 @@ impl<'a> CloseStmt<'a> {
 
 impl<'a> SwapStmt<'a> {
     /// The two operands, in order.
+    pub fn operands(self) -> impl Iterator<Item = Expr<'a>> + 'a {
+        self.0.child_nodes().filter_map(Expr::cast)
+    }
+}
+
+impl<'a> FieldStmt<'a> {
+    /// `#n,` of `FIELD #n, …`; `None` when the file number is written without `#`.
+    pub fn file(self) -> Option<FileNumber<'a>> {
+        child(self.0, FileNumber::cast)
+    }
+
+    /// The statement's other expressions, in order: the file number when it is written without `#`, then for
+    /// each part its width and its target (`FIELD 1, 3 AS a$, 5 AS b$`).
+    pub fn exprs(self) -> impl Iterator<Item = Expr<'a>> + 'a {
+        self.0.child_nodes().filter_map(Expr::cast)
+    }
+}
+
+impl<'a> LsetStmt<'a> {
+    /// The statement's word: `LSET` or `RSET`.
+    pub fn keyword(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Ident)
+    }
+
+    /// The target and the value, in order.
     pub fn operands(self) -> impl Iterator<Item = Expr<'a>> + 'a {
         self.0.child_nodes().filter_map(Expr::cast)
     }

@@ -129,10 +129,10 @@ What the compiler supports so far:
   compiled across its files, and a runtime error in an included file names it as QB64pe does;
 - procedures named like built-ins as measured (`verification\v19_proc_names`): a SUB may take a built-in
   function's name, a FUNCTION a built-in statement's;
-- 98 built-in functions (`m2-core-builtins`; the file functions, `RND`, `TIMER`, `SHELL`, `COMMAND$`, `ENVIRON$` and
+- 107 built-in functions (`m2-core-builtins`; the file functions, `RND`, `TIMER`, `SHELL`, `COMMAND$`, `ENVIRON$` and
   14 added by demand with `m2-builtin-statements`; `_DEST`, `_SOURCE`, `_CONSOLE` and the ten window functions
   with `m2-console-screenhide`, the five screen functions with `m3-window-output`, ten more with
-  `m3-get-put-bload`, all below), checked by one
+  `m3-get-put-bload`, `PLAY` with `m3-sound`, eight with `m3-console-files`, all below), checked by one
   table-driven checker: `sema\src\builtins.rs` lists
   them, each with its `Rule` (one per kind of special-casing in the old compiler's `evaluatefunc`, not per
   function), and gives each call a held type (the C++ type of the libqb call) and a believed type (the old
@@ -390,6 +390,66 @@ What the compiler supports so far:
     error, as there (`CALL CLS()`, `CALL LOCATE 1, 2`, `CALL PSET(1, 2)`). Still marked after `CALL`: `SWAP`,
     `CLOSE` and the `MID$` statement, which have rules of their own.
   - Still marked or not checked by a run: `SOMEDAY.md`, "Left marked by `m3-sound`".
+- **The console programs of the corpus that waited** (`m3-console-files`; the facts in `study\00` §5,
+  `verification\v30_*`):
+  - **`_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`, `_SHR`, `_ROL`, `_ROR`** are eight rows of `SUPPORTED`
+    (`sema\src\builtins.rs`). `_IIF(condition, a, b)` is no call but an expression kind of its own,
+    `ExprKind::Choice`, written as C++'s `?:`, so only the part chosen is evaluated; its condition is an
+    integer (a float rounded), its parts both strings or both numbers, as they are. `_MIN`, `_MAX` and `_CLAMP`
+    (`Rule::Widest`) take numbers as they are and are written with a C++ template argument
+    (`std::min<int16_t>(…)`, `func_clamp<float>(…)`), which converts them. **The result of the four is typed by
+    a rule that is not the operators'** (`check\ops.rs`, `widest`, on what the arguments are believed): a
+    float wins over any integer (`_MAX(s!, q&&)` is a SINGLE), of two integers the wider, of two of one width
+    the unsigned one; a unit test reads the 794 forms of `verification\v30_result_types.txt`. `_ROL` and `_ROR`
+    (`Rule::Rotate`) turn two integers within the width of the first one's believed type (a literal by its
+    size) and give the unsigned type of that width; `_SHL` and `_SHR` are plain calls of an `_UNSIGNED
+    _INTEGER64` and a LONG. None of the eight may stand in a `CONST`, as in the old compiler. Slice program
+    `s78_choice_min_shifts`, 75 call-site programs (`func_min_*`, `func_iif_*`, …).
+  - **`EXIT SELECT` and `EXIT CASE`** (`StmtKind::ExitSelect`; `ir\src\lower.rs`): a jump. `EXIT SELECT` goes
+    to the end of the `SELECT` whose `CASE` or `CASE ELSE` it stands in, also from an `IF` or a loop inside it
+    (a loop around the `SELECT` goes on). `EXIT CASE` goes to the end of its `CASE` body: a plain `SELECT` is
+    left, a `SELECT EVERYCASE` goes on with its next `CASE` and still counts as matched; in a `CASE ELSE` it is
+    `EXIT SELECT`. With no `CASE` open either is the parser's error. Kept as the old compiler has it and
+    listed for review (`SOMEDAY.md`): an `EXIT CASE` before a `SELECT` in the same `CASE` goes on after that
+    inner `SELECT`. Slice program `s79_exit_select`.
+  - **`PRINT USING`** to the screen and to a file is a statement kind of its own (`StmtKind::PrintUsing`,
+    `Op::PrintUsing`; `sema\src\check\io.rs`, `codegen-cpp\src\io.rs`): the items before `USING` (printed
+    first, as a `PRINT` with no line end prints them), the format (any string expression, evaluated once), the
+    values, and whether the line ends. A value is a string, a number formatted as a SINGLE, DOUBLE, `_FLOAT`,
+    `_UNSIGNED _INTEGER64` or `_INTEGER64` by what it is believed (the number stays as it is: libqb's entry
+    converts it), or `TAB(n)`/`SPC(n)`. The C++ is the old compiler's, call for call: one libqb call per value
+    with a jump out after each when an error is pending, and a block that prints what was built, without a
+    line end after an error. **The statement is one unit:** the IR's rules for a pending error do not apply
+    inside it. The parser reads `USING` first or after items (`PRINT "a"; USING "##"; 5`, `PRINT 1 USING …`);
+    what a format prints is libqb's and is shown once per topic by `s80_print_using_numbers`,
+    `s81_print_using_strings` and `s82_print_using_file`.
+  - **`LPRINT`** is `PRINT` and `PRINT USING` with the printer as the destination (`PrintTo::Printer`): the
+    same code with libqb's two printer entries, and the runtime part `RuntimePart::Printer` (make flag
+    `DEP_PRINTER=y`). It is on `NEVER_RUN`: compiled, linked (below the `SYSTEM` of `s82_print_using_file`),
+    compared by its call-site programs, never reached. It has no table row, so the coverage test of tier 1
+    takes it by name (`OWN_NODE` in `driver\tests\inputs.rs`) and wants it as a statement in a call-site
+    program (`WIDTH LPRINT` does not count).
+  - **`GET` and `PUT` on a file** (`FOR RANDOM`, `FOR BINARY`) are the second row of each name
+    (`StmtRule::File`, beside `StmtRule::Graphics`): the file number, the position or nothing, the variable or
+    nothing, also after `CALL`. A statement that starts with a point stays the graphics form, as in the old
+    compiler. The variable is `StmtArg::Bytes(place)`: a variable, element or member of any type but `_BIT`
+    and a `TYPE` with a `STRING` in it; or a whole array `a()` (`StmtArg::Block` with no index) of anything
+    but variable-length strings. It decides libqb's entry (`codegen-cpp\src\builtins.rs`, `file_get_put`):
+    none, `field_get`/`field_put` (the record buffer); a variable-length string, `sub_get2` with the string
+    and `sub_put2` with its characters and their number; anything else `sub_get`/`sub_put` with its address
+    and size. A name alone is a scalar variable, also when an array has the name. What a file then holds, the
+    positions and the errors are libqb's, shown by `s83_binary_file` and `s84_random_file`.
+  - **`LOCK` and `UNLOCK`** are two plain rows: a file number and one record, a range with `TO`, or neither
+    (`LOCK #1, TO 4` is an error, as there). Slice program `s85_file_locks`, in one process.
+  - **`FIELD`, `LSET` and `RSET`** are a statement kind each (`StmtKind::Field`, `StmtKind::Lset`;
+    `sema\src\check\io.rs`), written as libqb's calls: `field_new(file)` and one `field_add(string, width)` per
+    part; `sub_lset(target, value)` or `sub_rset`. **A field variable is an ordinary variable-length string
+    to the compiler**: the record buffer, the list of a file's field strings and a string's link to its field
+    are libqb's, so nothing changes in assignment, `GET` or `CLOSE`. A target of `FIELD` is a variable-length
+    string variable, element or member; of `LSET` and `RSET` a string place of either kind. The forms the old
+    compiler rejects are errors (a fixed-length string in `FIELD`, a number or a `TYPE` value as a target,
+    `CALL FIELD(…)`, `LSET (a) = …`). Still marked: a whole array `e()` as the string (`SOMEDAY.md`). Slice
+    program `s86_field_lset` (28 lines).
 - **What Civil War Strategy needs to build, apart from sound** (`m3-get-put-bload`; the facts in `study\00` §5,
   `verification\v28_*`; the game's report named only `SOUND`, `PLAY`, `BEEP` and `$EXEICON` after it):
   - **A line that is the name of a SUB and a colon** (`sema\src\check\flow.rs`): a call of the SUB when it
@@ -443,13 +503,11 @@ What the compiler supports so far:
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
-are line numbers and jumps to them (also as `ON … GOTO` and `RESTORE` targets), `EXIT SELECT`/`EXIT
-CASE`, the other built-in functions, `DECLARE LIBRARY`, event handlers and switches, `STOP`, `RUN`,
-`END`/`SYSTEM` with an exit code, the other I/O statements
-(`PRINT USING`, `LPRINT`, `FIELD`, `LSET`/`RSET`),
+are line numbers and jumps to them (also as `ON … GOTO` and `RESTORE` targets), the other built-in functions, `DECLARE LIBRARY`, event handlers and switches, `STOP`, `RUN`,
+`END`/`SYSTEM` with an exit code,
 `READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array, `READ`, `INPUT`, `INPUT #` or the `MID$` statement
 with a member of an element or an element of a member array, every other
-built-in statement read by its template (the file forms of `GET`/`PUT`, `TIME$ =`, ...), the declaration
+built-in statement read by its template (`TIME$ =`, ...), the declaration
 forms (`REDIM _RETAIN`, arrays named `name$n`,
 `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
 constants of QB64pe's auto-included file that are not computed yet and the names of its other auto-included

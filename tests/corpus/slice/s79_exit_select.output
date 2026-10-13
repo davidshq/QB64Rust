@@ -1,0 +1,12 @@
+1: one 1  two 2  three in IF 3  else 4 
+2: 1  2 after 2 
+3: after 3 
+4: inner outer goes on after
+5: 1  3 after 4 
+6: first after
+7: first second after
+8: else plain after
+9: one end of t 1  two end of t 3  after
+10: string after
+11: a after the inner SELECT end
+12: b after the inner SELECT second end

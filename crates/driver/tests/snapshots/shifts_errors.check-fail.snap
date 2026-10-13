@@ -1,0 +1,23 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+shifts_errors.bas:7:12: error: argument 1 of `_SHL` needs a number
+shifts_errors.bas:8:7: error: `_SHL` takes 2 arguments
+shifts_errors.bas:9:12: error: argument 1 of `_ROL` needs an integer, not a float
+shifts_errors.bas:10:12: error: argument 1 of `_ROR` needs an integer, not a float
+shifts_errors.bas:11:12: error: argument 1 of `_ROL` needs an integer, not a float
+shifts_errors.bas:12:12: error: argument 1 of `_ROR` needs an integer, not a float
+shifts_errors.bas:13:12: error: argument 1 of `_ROL` needs a number
+shifts_errors.bas:14:15: error: argument 2 of `_ROL` needs an integer, not a float
+shifts_errors.bas:15:15: error: argument 2 of `_ROR` needs an integer, not a float
+shifts_errors.bas:16:12: error: `_ROL` turns a value of 8, 16, 32 or 64 bits, not a `_BIT`
+shifts_errors.bas:17:12: error: `_ROR` turns a value of 8, 16, 32 or 64 bits, not a `_UNSIGNED _BIT`
+shifts_errors.bas:18:12: error: `_ROL` turns a value of 8, 16, 32 or 64 bits, not a `_BIT * 4`
+shifts_errors.bas:19:7: error: `_ROL` takes 2 arguments
+shifts_errors.bas:20:7: error: `_ROR` takes 2 arguments
+shifts_errors.bas:21:15: error: argument 2 of `_SHR` needs a number
+shifts_errors.bas:22:7: error: `_SHL` takes 2 arguments
+shifts_errors.bas:23:12: error: `_SHL` cannot be used in a `CONST`
+shifts_errors.bas:24:12: error: `_ROL` cannot be used in a `CONST`

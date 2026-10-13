@@ -63,6 +63,13 @@
 //! unassigned.
 //! - **Optional arguments are present or absent** ([`ExprKind::Call`] slots are `Option`s in table order).
 //! - **Every conversion is explicit** ([`ExprKind::Convert`]); every operation states the type it computes in.
+//!   Three operations take numbers of any type and convert them themselves, each to the type the node states:
+//!   the two value parts of an [`ExprKind::Choice`] (to the node's type) and the arguments of the built-ins of
+//!   [`builtins::Rule::Widest`] and [`builtins::Rule::Rotate`] (to the node's type; the count of a rotation to
+//!   an integer of any width).
+//! - **A value is one expression**: nothing of it is evaluated before or apart from it. So an
+//!   [`ExprKind::Choice`] evaluates its condition and then only the part chosen, and the right operand of
+//!   `_ANDALSO` and `_ORELSE` only when the left one does not decide.
 //! - **Integer overflow wraps** in two's complement (`DIVERGENCES.md` D-001, D-002).
 
 // A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
@@ -98,6 +105,8 @@ pub use qb64rust_sema::{AllocMode, Shape};
 /// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended
 /// ([`Program::vars`]).
 pub use qb64rust_sema::{Arg, ArrayRef, Expr, ExprKind, InputSource as Source, Place, ProcId, StmtArg, VarId};
+/// Where a `PRINT` goes and the values of a `PRINT USING` are `sema`'s too.
+pub use qb64rust_sema::{PrintTo, UsingValue};
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
 /// holds a `STRING` of its own, which has no such size.
 pub use qb64rust_sema::{holds_strings, size_of};
@@ -243,6 +252,9 @@ impl Facts for Expr {
             ExprKind::VarSeg { .. } => false,
             ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.may_raise(),
             ExprKind::Binary { op, lhs, rhs } => op_may_raise(*op) || lhs.may_raise() || rhs.may_raise(),
+            ExprKind::Choice { condition, then, else_ } => {
+                condition.may_raise() || then.may_raise() || else_.may_raise()
+            }
             ExprKind::Concat(..) | ExprKind::StrCompare { .. } | ExprKind::Call { .. } | ExprKind::CallProc { .. } => {
                 true
             }
@@ -261,6 +273,9 @@ impl Facts for Expr {
                 ExprKind::Binary { lhs, rhs, .. }
                 | ExprKind::Concat(lhs, rhs)
                 | ExprKind::StrCompare { lhs, rhs, .. } => lhs.uses_strings(p) || rhs.uses_strings(p),
+                ExprKind::Choice { condition, then, else_ } => {
+                    condition.uses_strings(p) || then.uses_strings(p) || else_.uses_strings(p)
+                }
                 ExprKind::Call { args, .. } => args.iter().flatten().any(|a| a.uses_strings(p)),
                 ExprKind::CallProc { args, .. } => args.iter().any(|a| a.uses_strings(p)),
             }
@@ -310,6 +325,7 @@ impl Facts for StmtArg {
             StmtArg::Place(place) => Facts::may_raise(place),
             // The index check of the element the bytes start at.
             StmtArg::Block { index, .. } => !index.is_empty(),
+            StmtArg::Bytes(place) => Facts::may_raise(place),
             StmtArg::Word(_) | StmtArg::Absent => false,
         }
     }
@@ -318,7 +334,7 @@ impl Facts for StmtArg {
     fn uses_strings(&self, p: &Program) -> bool {
         match self {
             StmtArg::Value(v) => v.uses_strings(p),
-            StmtArg::Place(place) => place.uses_strings(p) || p.place_ty(place).is_string(),
+            StmtArg::Place(place) | StmtArg::Bytes(place) => place.uses_strings(p) || p.place_ty(place).is_string(),
             StmtArg::Block { index, .. } => index.iter().any(|i| i.uses_strings(p)),
             StmtArg::Word(_) | StmtArg::Absent => false,
         }
@@ -427,13 +443,59 @@ pub enum Op {
     EraseParam {
         array: VarId,
     },
-    /// Items in order, to the console (`to` is `None`) or to the file with this number (an `I32`); a raising item
-    /// skips the rest, including the line end. In a file a [`PrintItem::Zone`] is 14 columns wide, on the console
-    /// 10 (the runtime's).
+    /// Items in order, to the program's destination of text, to the file with a number (an `I32`) or to the
+    /// printer ([`PrintTo`]); a raising item skips the rest, including the line end. In a file a
+    /// [`PrintItem::Zone`] is 14 columns wide, on the console 10 (the runtime's).
     Print {
-        to: Option<Expr>,
+        to: PrintTo,
         items: Vec<PrintItem>,
         newline: bool,
+    },
+    /// Formatted output (design D1 of `m3-console-files`; measured, `study\00` §5, the `v30` paragraph), in this
+    /// order:
+    ///
+    /// 1. to a file: the number is evaluated; an error pending after it ends the statement;
+    /// 2. `before` is printed item by item as an [`Op::Print`] with no line end prints it; a raising item ends
+    ///    the statement;
+    /// 3. `format` (a string) is evaluated, once. An error pending after it ends the statement, with nothing
+    ///    more printed to a file and with step 5 on the screen and the printer;
+    /// 4. each value in turn: a [`UsingValue::Str`] or [`UsingValue::Num`] is formatted by the next field of the
+    ///    format and added to the statement's text (the format starts again when values are left; a field of
+    ///    the other kind raises error 13, a format with no field error 5); a [`UsingValue::Blanks`] prints the
+    ///    text so far, then its blanks, and empties the text. An error pending after a value goes to step 5;
+    /// 5. the text is printed: with a line end if `newline` and no error is pending, else with none. An error
+    ///    stays pending.
+    ///
+    /// **The statement is one unit**: no other rule of the IR for a pending error applies inside it. At least
+    /// one value. Always may raise.
+    PrintUsing {
+        to: PrintTo,
+        before: Vec<PrintItem>,
+        format: Expr,
+        values: Vec<UsingValue>,
+        newline: bool,
+    },
+    /// Name parts of the record buffer of the random file with this number (an `I32`) by strings, in order from
+    /// the buffer's first byte (design D3 of `m3-console-files`; measured, `study\00` §5): each part a place of
+    /// type `Str` and a width (an `I32`). The file number is evaluated first; then, part by part, the indexes of
+    /// the place before the width, and the part is made a field. **Not guarded:** a raising value does not stop
+    /// the operation; the runtime makes no part a field while an error is pending, and a part that goes beyond
+    /// the record raises error 50 and ends the naming there (the parts before it are fields). A file that is
+    /// not open raises error 52, one that is not random error 54, a negative width error 5; an index outside
+    /// its bounds error 9. Always may raise.
+    Field {
+        file: Expr,
+        parts: Vec<(Place, Expr)>,
+    },
+    /// Put a string's characters into the string at a place, at its left or (`right`) at its right, without
+    /// changing its length: padded with blanks, or cut at its end. The place is of type `Str` or `FixedStr`
+    /// and is found before the value is evaluated; with an error pending after the value nothing is stored.
+    /// When the string is a field of a file's record buffer, its part of the buffer is set too, and every
+    /// field string of that file is read from the buffer again.
+    Lset {
+        right: bool,
+        target: Place,
+        value: Expr,
     },
     /// The items ([`PrintItem::Str`] in double quotes, [`PrintItem::Num`] without blanks) separated by commas, to
     /// the console or to a file, then a line end if `newline`; without it the last item is followed by a comma
@@ -537,9 +599,24 @@ impl Op {
             Op::CopyWhole { from, to } => from.may_raise() || to.may_raise(),
             Op::AssignAll(stores) => stores.iter().any(|(_, v)| v.may_raise()),
             Op::Branch { cond, .. } => cond.may_raise(),
-            // A file may not be open, a console input may meet the end of the input, the data may be used up.
-            Op::Print { to: Some(_), .. } | Op::Write { to: Some(_), .. } | Op::Input { .. } | Op::Read(_) => true,
-            Op::Print { to: None, items, .. } | Op::Write { to: None, items, .. } => items.iter().any(|i| match i {
+            // A file may not be open, a console input may meet the end of the input, the data may be used up; a
+            // format may have no field for a value; a printer may not be there.
+            Op::Print {
+                to: PrintTo::File(_) | PrintTo::Printer,
+                ..
+            }
+            | Op::PrintUsing { .. }
+            | Op::Field { .. }
+            | Op::Lset { .. }
+            | Op::Write { to: Some(_), .. }
+            | Op::Input { .. }
+            | Op::Read(_) => true,
+            Op::Print {
+                to: PrintTo::Screen,
+                items,
+                ..
+            }
+            | Op::Write { to: None, items, .. } => items.iter().any(|i| match i {
                 PrintItem::Str(v) | PrintItem::Num(v) => v.may_raise(),
                 PrintItem::Zone => false,
             }),
@@ -620,6 +697,8 @@ pub enum RuntimePart {
     Icon,
     /// libqb's audio.
     Audio,
+    /// The printer.
+    Printer,
 }
 
 impl Program {

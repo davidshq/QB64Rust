@@ -58,6 +58,7 @@ arrays/erase_dynamic_string_array_reuse
 arrays/negative_array_size
 arrays/negative_array_size_2
 arrays/nested_udt_array_of_udt_with_array
+arrays/put_get_write_read_fixed_string
 arrays/t045_function_scalar_array
 arrays/t046_sub_scalar_array
 arrays/t659_array_assignment_control
@@ -92,8 +93,11 @@ declare_library_external/test
 declare_library_external/test_stripped
 dollar$sign$test/dollar$sign
 filename/filename.extra.extension
+func_tostr/double
+func_tostr/float
 func_tostr/mmLiteral
 func_tostr/mmVariable
+func_tostr/single
 glut/desktopheight
 glut/desktopwidth
 glut/icon
@@ -114,6 +118,7 @@ glut/windowhandle
 glut/windowhasfocus
 glut/windowsizelimit
 icon_relative/test
+iif/iif_test
 include_once/test
 include_paths/include_fixed_compile_location
 include_paths/include_multiple
@@ -131,6 +136,7 @@ precomp-flags/consoleonly
 precomp-flags/explicit
 precomp-flags/explicitarr
 print/auto_semicolon_insertion
+rotations/test
 single'quote'test/single'quote'test
 source_ordering/data_positioning
 source_ordering/define

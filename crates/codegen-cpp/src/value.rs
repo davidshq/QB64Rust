@@ -2,7 +2,7 @@
 
 use crate::Emitter;
 use crate::decl::{dim_slot, is_qbs, lock_slot};
-use crate::names::{c_string, c_type, int_const, proc_name};
+use crate::names::{bare, c_string, c_type, int_const, proc_name};
 use qb64rust_ir::{Arg, ArrayRef, BinOp, Conv, Expr, ExprKind, MemberId, Place, ProcId, Ty, UnOp};
 
 impl Emitter<'_> {
@@ -102,6 +102,18 @@ impl Emitter<'_> {
                 text
             }
         }
+    }
+
+    /// A value's text for a place the old compiler puts between parentheses or commas itself, where the two
+    /// texts are compared token by token (a part of a choice, an argument of a call written with a template
+    /// argument): without the parentheses this emitter writes around an operation or a conversion ([`bare`]). A
+    /// choice keeps its own, which the old compiler writes too.
+    pub(crate) fn inner(&mut self, v: &Expr) -> String {
+        let text = self.value(v);
+        if matches!(v.kind, ExprKind::Choice { .. }) {
+            return text;
+        }
+        bare(&text).to_string()
     }
 
     pub(crate) fn value(&mut self, v: &Expr) -> String {
@@ -215,6 +227,12 @@ impl Emitter<'_> {
                     | BinOp::Pow => unreachable!("a string comparison with {op:?}"),
                 };
                 format!("{f}({},{})", self.value(lhs), self.value(rhs))
+            }
+            // `_IIF`, as the old compiler writes it (`qb64pe.bas` 20737): C++ evaluates the condition and then one
+            // part, and converts it to the common type of the two.
+            ExprKind::Choice { condition, then, else_ } => {
+                let (c, a, b) = (self.inner(condition), self.inner(then), self.inner(else_));
+                format!("(({c})?({a}):({b}))")
             }
             ExprKind::Call { builtin: id, args } => self.call(*id, args, v.ty, v.qb),
             ExprKind::CallProc { proc, args } => {

@@ -26,6 +26,14 @@ pub(crate) fn call_stmt(p: &mut Parser) {
         p.finish_node();
         return;
     }
+    if explicit && (p.at_word("FIELD") || p.at_word("LSET") || p.at_word("RSET")) {
+        // Measured: "Expected CALL sub-name [(...)]" for `CALL FIELD(#1, 4 AS a)`, "Expected LSET/RSET
+        // stringvariable=string" for `CALL LSET(a, "x")` (`verification\v30_x123`, `x155`).
+        p.error("`CALL` cannot be followed by `FIELD`, `LSET` or `RSET`");
+        p.recover();
+        p.finish_node();
+        return;
+    }
     // After `CALL`, a built-in statement with a template keeps the template's forms between the parentheses
     // (measured, `verification\v26_x74`: `CALL _MOUSECURSOR(1, (2, 3))`, `CALL _MOUSEHIDE(_HIDE)`), which are not
     // an expression list: `template_call` above read such a statement, or reported it. What comes here after

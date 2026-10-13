@@ -1,0 +1,5 @@
+
+Expected (...)
+Caused by (or after):FIELD # 1 , 4 AS G$ ( )
+LINE 7:FIELD #1, 4 AS g$()
+exit=1

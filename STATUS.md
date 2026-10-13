@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-13 (session 56).
+Updated 2026-10-13 (session 57).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -27,7 +27,9 @@ archived 2026-10-13): what Civil War Strategy needs to build apart from sound, s
 names only `SOUND`, `PLAY`, `BEEP` and `$EXEICON`. Its third step, OpenSpec change `m3-sound`, is done (all 18
 tasks; committed and archived 2026-10-13): sound, `$EXEICON`, and a built-in statement with a template
 after `CALL`. **Civil War Strategy compiles with no diagnostic and builds**, and all 52 screen programs pass by
-the state of their screen. Step 9 of M2, built-in statements, was OpenSpec change
+the state of their screen. Its fourth step, OpenSpec change `m3-console-files`, is done (all 22 tasks,
+2026-10-13; **not committed or archived yet**): the console programs of the corpus that waited. **No program of
+the corpus that the old compiler accepts is held back any more.** Step 9 of M2, built-in statements, was OpenSpec change
 `m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
 (archived 2026-10-10: `qb64rust --report unsupported`, and tests of the test runner). Step 9a, the screen-state
 check, was OpenSpec change `m2-screen-state-check` (all 22 tasks done, archived 2026-10-10).
@@ -37,7 +39,7 @@ compares it (`<name>.screen`, `<name>.keys`); 52 programs are recorded in `tests
 (`tools\screen\README.md`).
 The compiler parses every program the old compiler accepts with no false error, and compiles scalars, procedures,
 error handling, every operator, `CONST`, control flow, `SELECT CASE`, static arrays and `TYPE` of the main module,
-99 built-in functions, all 17 numeric types, fixed-length strings, sequential files, `DATA`/`READ`/`RESTORE`,
+107 built-in functions, all 17 numeric types, fixed-length strings, sequential files, `DATA`/`READ`/`RESTORE`,
 `SWAP`, the `MID$` statement, `RANDOMIZE`, console `INPUT`/`LINE INPUT`, `SHELL`, the default types (`DEFINT`
 to `DEFSTR`, `_DEFINE`), `OPTION BASE`, the type before the names (`DIM AS LONG a, b(3)`), dynamic arrays of the
 main module (`DIM` with a bound that is not constant, `$DYNAMIC`, `REDIM`, `REDIM _PRESERVE`, `ERASE`), `_BIT`
@@ -57,8 +59,11 @@ a jump names the word), `TAB` and `SPC`, `DEF SEG`, `POKE`, `PEEK`, `BLOAD`, `BS
 array of numbers of the main module (which then lies in conventional memory), graphics `GET` and `PUT`,
 `_RGB32`, `_RGBA32`, `_FULLSCREEN`, `DATE$`, `TIME$`, and, with its third step: `SOUND`, `PLAY` (statement and
 function) and `BEEP` with the audio part of libqb, `$EXEICON` with a name that starts with `./` or is
-absolute, and every built-in statement that has a template after `CALL` (`CALL LINE((1, 2)-(3, 4), 5, BF)`)
-(`crates\README.md`). There is
+absolute, and every built-in statement that has a template after `CALL` (`CALL LINE((1, 2)-(3, 4), 5, BF)`),
+and, with its fourth step: `PRINT USING` to the screen and to a file, `GET` and `PUT` on a file open `FOR
+RANDOM` or `FOR BINARY`, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT` and `EXIT CASE`, the functions
+`_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`, `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` as code that no test
+runs (`crates\README.md`). There is
 a thin language server (`qb64rust lsp`). A plain built-in now comes in as a row, a call-site program and a slice
 line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10).
 
@@ -86,6 +91,26 @@ line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10)
   `qb64pe.bas` and measured with twelve programs). One question from the session: whether the full corpus is
   still worth a closing run, since all but 37 of its programs are on the slice list, which runs twice at the
   close.
+- **`m3-console-files` is built and not committed** (all 22 tasks, 2026-10-13): the user stages and commits;
+  then `/opsx:archive` (its specs `language/print-using` and `language/record-files` become main specs). For
+  the user to look at, each in the change's `tasks.md`:
+  - **One accepted form stays "not supported yet" that task 1.2 did not name**: a whole array `e()` as the
+    string of `FIELD`, `LSET` or `RSET` (the old compiler takes the array's first element with no bounds
+    check; `SOMEDAY.md`).
+  - **Three things differ from the design**: the arguments of `_MIN`, `_MAX`, `_CLAMP`, the parts of `_IIF` and
+    the numbers of `PRINT USING` are not converted in the tree (the old compiler leaves that to C++, and a cast
+    written out fails the call-site check); nothing in this compiler takes a part out of an expression, so the
+    validation of `_IIF` checks its shape, not a hoisted part; `sema` keeps no stack of `SELECT`s (the parser
+    rejects every misplaced `EXIT SELECT`).
+  - **Beyond the proposal**: the runtime part of the printer (`DEP_PRINTER=y`, without which `LPRINT` does not
+    link); two rules of the call-site tool extended (`ull` literals; `skip_pu` and `print_using_format`
+    numbers); six upstream programs on `pass.list` (148); `238_chain` on `slice.list` (its output is equal),
+    so one program does reach `sub_chain`, with a name that is not there.
+  - **Two questionable behaviours of the old compiler kept and listed** (`SOMEDAY.md`, "QB64pe behaviours to
+    review"): `EXIT CASE` before a `SELECT` in the same `CASE` goes on after that inner `SELECT`; a field
+    string stays a field after `=`.
+  - **Not of this change, met on the way**: a literal above the `_INTEGER64` range (`18446744073709551615`) is
+    "not supported yet: unsigned literals".
 - Four things in `m3-get-put-bload` go beyond what was agreed and are for the user to look at
   (`DECISIONS.md` 2026-10-13, second row): dynamic arrays in conventional memory, `DATE$` and `TIME$`, five
   changed `cpp` snapshots, programs cut from the game by line ranges.
@@ -136,57 +161,47 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
    change's `tasks.md`, the measured facts in `study\00` §5
    (`verification\v29_*`, 130 programs), what stayed marked in `SOMEDAY.md`, the game's numbers in
    `tests\programs\README.md`.
-4. **Next:** the console programs of the corpus that still wait: `PRINT USING`, `GET` and `PUT` on a file
-   (random and binary), `LOCK`/`UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`, `_SHR`,
-   `_ROL`, `_ROR`, `CHAIN` and `LPRINT` (twelve programs; `qb64rust --report unsupported tests\corpus`).
-   **Measured 2026-10-13, not yet proposed:** `verification\v30_*` (100 programs and the table of result
-   types), the facts in `study\00` §5. The next task is the OpenSpec proposal. Two things in it are the user's
-   to decide: whether `CHAIN` and `LPRINT` are compiled (their two corpus programs are never run as the old
-   compiler runs them: `238_chain` expects the text of a failed `cmd` call, `239_lprint` is `.norun`), and
-   whether `FIELD`, `LSET` and `RSET` belong to this step (no corpus program names them; `GET` and `PUT` with
-   no variable call libqb's `FIELD` buffer and are useful only with them).
-5. The plain copy of `internal\c`, when libqb must change.
+4. Done: the console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a file (random and
+   binary), `FIELD`, `LSET`, `RSET`, `LOCK`/`UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
+   `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`, all 22 tasks,
+   2026-10-13; to be committed and archived). What each task found is in the change's `tasks.md`, the measured
+   facts in `study\00` §5 (`verification\v30_*`, 177 programs and the table of result types), what stayed
+   marked in `SOMEDAY.md` ("Left marked by `m3-console-files`").
+5. **Next**, for the user to choose (M3's order names only the last; `ROADMAP.md` lists the others): the plain
+   copy of `internal\c`, when libqb must change; Civil War Strategy's screens in a scripted game
+   (`tests\programs\README.md`, stage 3); the image built-ins that run, fonts, the mouse.
 
 ## Numbers at the last full runs
 
-2026-10-12, release build against the reference clone, after `m2-defxxx-common-arrays` (its task 10.1, session
-48: every run of tier 1 and tier 2 and both full suites, with `--jobs 8 --build-cache`). The two rows of the old
-compiler (the screen programs, the corpus of 336) are from session 40, 2026-10-10. Newer, from session 53
-(2026-10-12, task 7.1 of `m2-console-screenhide`, the runs that close step 11, with `--jobs 8 --build-cache`):
-tier 1, the runner's tests, the call-site check, the slice list, the upstream pass list, the differential pass
-list and the two full suites (the full corpus, the upstream suite of 404). The upstream part of the demand row
-is from session 52. Newest, from session 54 (2026-10-12, task 6.1 of `m3-window-output`, each run once with
-`--jobs 8 --build-cache`): every row below but the last two and the upstream demand. Then, from session 55
-(2026-10-13, task 7.1 of `m3-get-put-bload`, each run once with `--jobs 8 --build-cache`): tier 1, the runner's
-tests, the call-site check, the slice list with and without folding, the upstream and differential pass lists and
-the two full suites. Newest of all, from session 56 (2026-10-13, task 6.1 of `m3-sound`, each run once with
-`--jobs 8 --build-cache`): tier 1, the runner's tests, the command-line tests that build, the call-site check,
-the slice list with and without folding, the upstream and differential pass lists and the two full suites; the
-rows of the old compiler and of `--pass-cache` are older.
+From session 57 (2026-10-13, task 8.1 of `m3-console-files`, release build against the reference clone, each
+run once with `--jobs 8 --build-cache`): tier 1, the command-line tests that build, the runner's tests, the
+call-site check, the slice list with and without folding, the upstream and differential pass lists, the two
+full suites and the demand reports. The rows of the real programs, of the old compiler and of `--pass-cache` are
+older (sessions 56, 40 and 54).
 
 | Yardstick | Result |
 |---|---|
-| `tests\corpus\slice.list` (tier 2) | 362 of 362 (52 of them screen programs), also with `QB64RUST_NO_FOLD=1`; 269 s and 218 s with the build cache at the close of `m3-sound`, where most programs got a new build (about 2 min each when little C++ changes) |
-| Full corpus (399 programs) | 381 pass (the 362 of the slice list, 19 `.err` programs), none wrong at run time; 12 rejected with "not supported yet" (11 console programs, `239_lprint`) and 1 `.err` program with only marked errors; 5 known failures (`tests\corpus\README.md`); 54 s after the slice runs had filled the build cache |
-| Upstream | **142 of 279** (`tests\upstream\pass.list`: 142, all passing, run by itself, 83 s); the full suite at the close of `m3-sound`: 404 programs, 142 pass, 261 rejected or with only marked errors, 1 known failure, none wrong |
-| Call-site check | 921 of 921 programs equal at the closing run, 922 with `get_call`, added after it and compared alone (`tools\callsite\README.md`; 112 of them for `m3-sound`: sound, `$EXEICON`, statements with a template after `CALL`); 46 s with the old compiler's answers kept (`target\callsite-cache`) |
+| `tests\corpus\slice.list` (tier 2) | 384 of 384 (52 of them screen programs), also with `QB64RUST_NO_FOLD=1`; 89 s and 144 s with the build cache at the close of `m3-console-files` (the second run builds every program anew) |
+| Full corpus (409 programs) | 403 pass (the 384 of the slice list, 19 `.err` programs), none wrong at run time; **none rejected with "not supported yet"**; 1 `.err` program with only marked errors (`218` `FRE`); 5 known failures (`tests\corpus\README.md`); 66 s after the slice runs had filled the build cache |
+| Upstream | **148 of 279** (`tests\upstream\pass.list`: 148, all passing, run by itself, 41 s); the full suite at the close of `m3-console-files`: 404 programs, 148 pass, 255 rejected or with only marked errors, 1 known failure, none wrong |
+| Call-site check | 1145 of 1145 programs equal (`tools\callsite\README.md`; 223 of them for `m3-console-files`: the eight functions 75, `PRINT USING` and `LPRINT` 55, file `GET`/`PUT` and locks 64, `FIELD`/`LSET`/`RSET` 23, `CHAIN` 6) |
 | Real programs (`tests\programs`) | Civil War Strategy: **no diagnostic, and it builds** (3.6 s; the old compiler 6.9 s the same day). Its C++ compared once with the old compiler's, line by line: no call differs on 4,332 lines. Started once by hand beside the old compiler's build: both ran (`tests\programs\README.md`) |
 | Differential (`tests\differential\pass.list`) | 59 of 59 |
 | Shrink-only lists | 0 false errors, 0 parse gaps, 53 only-marked rejections (`tests\upstream\README.md`) |
-| Tier 1 (`cargo test`) | passes (300 tests, 29 s); the 16 command-line tests that build an executable (`--ignored`) pass too (10 s), among them the build of Civil War Strategy and the icon in the executable |
+| Tier 1 (`cargo test`) | passes (303 tests); the 16 command-line tests that build an executable (`--ignored`) pass too (10 s), among them the build of Civil War Strategy and the icon in the executable |
 | The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 68 pass, under a second |
 | `slice.list` while working, with `--pass-cache` | 24 s when no program's executable changed, 92 s when all are run (`--jobs 8 --build-cache`, 2026-10-12) |
 | Screen programs (`tests\corpus\screen`, 52) | Old compiler: 52 pass, each recorded from two equal runs. New compiler: 52 pass, each on its first run |
-| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: 11 console programs held back. Civil War Strategy: nothing held back. Upstream, as of session 52 (the full suite's result did not change) (348 without an `.err`): 122 without errors, 216 held back, 10 with other errors (the ten that include the old compiler's sources); `_DYNAMIC`/`_STATIC` members 86 programs (deferred), `$Unstable` 85, an array used after a marked declaration 60, `_MEM` 30, `REDIM _RETAIN` 27, `_MEMFREE` 22 (no line names `_DEST`, `$CONSOLE`, a window built-in, `_TRUE` or a precompiler flag any more) |
+| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: **nothing held back** (389 without an `.err`: 388 without errors, and `s77_exeicon`, whose icon only the runner puts beside it). Civil War Strategy: nothing held back. Upstream (348 without an `.err`): 131 without errors, 206 held back, 11 with other errors (the ten that include the old compiler's sources, and `icon_relative/test`, whose icon lies in the clone); `_DYNAMIC`/`_STATIC` members 86 programs (deferred), `$Unstable` 85, an array used after a marked declaration 60, `_MEM` 30, `REDIM _RETAIN` 27, `_MEMFREE` 22 (no line names `_DEST`, `$CONSOLE`, a window built-in, `_TRUE` or a precompiler flag any more) |
 | Tier 2 as CI runs it, locally | about 12 min at the last full build; about 2 min with `--jobs 8 --build-cache` when little C++ changed |
 | Full corpus with the old compiler (2026-10-10, 336 programs) | 331 pass, 5 known failures, `--jobs 8`; the 305 before the screen programs took about 12 min with one job, 3 min 44 s with `--jobs 8` (`tools\legacy_tests\README.md`) |
 
-How to read them: the corpus's 11 rejected console programs wait on `PRINT USING`, random and binary files
-and a few functions (step 4 of M3's order); its screen programs all pass. The game compiles and builds; what
+How to read them: every program of the corpus that the old compiler accepts compiles and, where it can be
+compared, passes; its screen programs all pass. The game compiles and builds; what
 it shows and plays is compared by no test yet (stage 3 of `tests\programs\README.md`). Upstream
 went from 50 to 114 over step 10 (64 before its member arrays) and is at 140 after group 6 of step 11 (115
 after `_DEST` and `$CONSOLE`; all 19 `glut` tests with the window built-ins and `_TRUE`/`_FALSE`; four of the
-nine `precomp-flags` tests) and at 142 after `m3-sound`. Its next blockers outside `deferred.list` are `_MEM`, `$ASSERTS`/`$DEBUG` and the
+nine `precomp-flags` tests), at 142 after `m3-sound` and at 148 after `m3-console-files`. Its next blockers outside `deferred.list` are `_MEM`, `$ASSERTS`/`$DEBUG` and the
 image built-ins that run; the
 `_DYNAMIC`/`_STATIC` markers and `$Unstable` are deferred (`SOMEDAY.md`).
 

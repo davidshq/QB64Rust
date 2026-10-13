@@ -1739,6 +1739,7 @@ fn constant(e: &Expr) -> Option<Num> {
         | ExprKind::Bound { .. }
         | ExprKind::Concat(..)
         | ExprKind::StrCompare { .. }
+        | ExprKind::Choice { .. }
         | ExprKind::Call { .. }
         | ExprKind::CallProc { .. } => None,
     }

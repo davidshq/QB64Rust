@@ -1,0 +1,5 @@
+
+Name already in use (LSET)
+Caused by (or after):LSET ( A ) = "x",1
+LINE 15:a = "....": LSET (a) = "x": PRINT "["; a; "]"
+exit=1

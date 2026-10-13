@@ -1,0 +1,5 @@
+
+Expected (...)
+Caused by (or after):LSET G$ ( ) = "x",1
+LINE 7:LSET g$() = "x"
+exit=1

@@ -1866,9 +1866,10 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     (`e23`): the line rules of every metacommand. In a comment or after `REM` it is a comment (`e14`). A file
     that is not an icon passes the front end and fails in the build (`e16`).
 - **`PRINT USING`, `GET` and `PUT` on a file, `LOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, the
-  shift functions, `CHAIN` and `LPRINT` (`v30_*`, 100 programs and one table, measured 2026-10-13 before the
-  design of step 4 of M3: what the twelve corpus programs that still wait name; the C++ read with `qb64pe -z`
-  from programs outside the repository).** Everything here that happens when the program runs is libqb's, which
+  shift functions, `CHAIN` and `LPRINT`, `FIELD`, `LSET` and `RSET` (`v30_*`, 177 programs and one table: 100
+  measured 2026-10-13 before the design of step 4 of M3, what the twelve corpus programs that still wait name,
+  67 for `FIELD`, `LSET` and `RSET` as the step's first task group, `x66` and `x67` while the step was
+  built, and `x171`–`x178` by the review of the change; the C++ read with `qb64pe -z` from programs outside the repository).** Everything here that happens when the program runs is libqb's, which
   both compilers link: the new compiler has to write the same calls, and the recorded outputs are what a slice
   program may expect.
   - **`PRINT USING` at compile time (`x01`–`x19`; `xprint`, `qb64pe.bas` 27713–27851, and 27285 for a file).**
@@ -1881,7 +1882,13 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     at all and an empty value (`; ;`) are "Syntax error" (`x05`, `x09`, `x10`); two values with no separator
     "Expected operator in equation" (`x08`); a second `USING` "Name already in use (USING)" (`x11`, `x12`); a
     `TYPE` value "User defined types in expressions are invalid" (`x15`). A whole array (`a()`) is accepted as a
-    value (`x18`, which prints 0).
+    value (`x18`, which prints 0). Measured with task 4.1 of `m3-console-files` (24 forms, one program each,
+    read with `qb64pe -z` outside the repository): **two values always need a separator**, also next to a
+    string literal (`PRINT USING "&&"; "a" "b"` and `…; 5 "a"` are "Expected operator in equation"), where a
+    plain `PRINT` takes the two as joined by `;`; an item before `USING` needs none (`PRINT "a" USING "##"; 5`
+    and `PRINT 1 USING …` are accepted); `;;` at the end and `n, , 5` are "Syntax error"; one trailing `,` is
+    accepted and leaves the line open as `;` does; a `TAB(n)` alone counts as the value the statement needs;
+    `TAB(3) + "x"` is a string value, not a `TAB`; `LPRINT #1, "a"` is "Invalid expression".
   - **The calls of `PRINT USING`.** `tqbs=qbs_new(0,0); tmp_long=0;`, the format copied once into a string of
     the statement's own (`print_using_formatN`) before any value is evaluated, then one call per value, each
     followed by `if (is_error_pending()) goto skip_puN;`: a string `tmp_long=print_using(fmt,tmp_long,tqbs,s)`;
@@ -1892,7 +1899,11 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     qbs_print(tqbs,0); tqbs->len=0;`), and the place in the format is kept. At the end `qbs_print(tqbs,1)`, or
     `qbs_print(tqbs,0)` when the statement's last element is `;` or `,`; after an error what was built is
     printed with no line end and the error stays (`g_tmp_long=new_error; new_error=0; qbs_print(tqbs,0);
-    new_error=g_tmp_long;`). To a file `sub_file_print(tmp_fileno,tqbs,0,0,nl)` in each of those places.
+    new_error=g_tmp_long;`). To a file `sub_file_print(tmp_fileno,tqbs,0,0,nl)` in each of those places (and no
+    `makefit` around a `TAB`); there the check after the format jumps to the statement's first label, `skipN`,
+    past the two `qbs_free` calls, where the console form jumps to `skip_puN`. The string of the format is
+    `static qbs *print_using_formatN;` among the body's data, N the number of the statement's `skipN`. After
+    items before `USING` the console form empties its string first (`qbs_set(tqbs,qbs_new_txt_len("",0));`).
     Items before `USING` are printed first as a plain `PRINT` prints them (`PRINT "a"; USING "##"; 5`, `PRINT
     1; 2; USING …`, `PRINT "a"; "b" USING …`, `PRINT TAB(5); USING …`, `PRINT ; USING …`, and after a comma,
     which a redirected console cannot show). A comma between two values does what a semicolon does: no zone.
@@ -1933,7 +1944,18 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     of variable-length strings"), a `TYPE` with a `STRING` member ("UDT must have fixed size"), a whole member
     array `r.v()` ("Expected array index", `x48`), `GET #1, ,`, no argument and four arguments ("Syntax error -
     Reference: …"), `GET #, , c` ("Invalid expression"), a string as the file number or the position ("1st" or
-    "2nd sub argument requires a number").
+    "2nd sub argument requires a number"). Measured with task 5.1 of `m3-console-files` (`x67`, and 43 forms
+    read with `qb64pe -z`): **a name alone is a scalar variable**, also when only an array has the name (`PUT
+    #1, 1, a` with `DIM a(1 TO 3) AS INTEGER` writes the 4 bytes of a new SINGLE `a`; with a LONG scalar `b`
+    beside an array `b` its 4 bytes); only `a()` is the whole array. Measured by the review of the change (`x171`–`x178`): a
+    FUNCTION's name with empty parentheses is "Expected (...)" as the variable of `GET` and `PUT` and as the
+    string of `FIELD`, `LSET` and `RSET`; an array that is not declared is accepted by `GET` and `PUT`
+    (`und()`, and `und$()` too, although a declared array of variable-length strings is rejected). The position is passed as it is, an
+    `_INTEGER64` too (`sub_put( 1 ,*__INTEGER64_Q,…)`: libqb's parameter is an `int64`), a float through `qbr`.
+    A fixed-length string element is `qbs_new_fixed(…)->chr`, a `TYPE` variable `(((char*)__UDT_R)+((0+0)))`
+    with the type's size, a whole array of fixed-length strings `&((uint8*)(A[0]))[(0)*n]` and of a `TYPE`
+    `(((char*)A[0])+(((0)*size+0)))`, each with the bytes of all elements. `sub_put2` names a string element
+    twice, for `->chr` and for `->len`, so an index is evaluated twice there.
   - **A file open `FOR BINARY` (`v30_d_binary`).** `PUT` writes the variable's bytes (INTEGER 2, LONG 4,
     SINGLE 4, DOUBLE 8, `_INTEGER64` 8, `_BYTE` 1, `_FLOAT` 32, `_OFFSET` 8; a string its characters with no
     length), `GET` reads as many: a variable-length string as many as it is long, so an empty one reads
@@ -1968,7 +1990,14 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     loops within the `CASE`; a loop around the `SELECT` goes on. In `SELECT EVERYCASE` it leaves the whole
     block, where `EXIT CASE` goes on with the next `CASE`. `EXIT CASE` in a plain `SELECT` is accepted and
     leaves the block (`x62`). With no `CASE` open, also in a SUB called from one, it is "EXIT SELECT without
-    SELECT"; between `SELECT` and the first `CASE` "Expected CASE expression" (`x61`).
+    SELECT"; between `SELECT` and the first `CASE` "Expected CASE expression" (`x61`). `EXIT CASE` in a `CASE`
+    is `goto sc_ec_<n + 1>_end;`, n the number of `CASE`s closed so far in the file, and that label stands at
+    the end of each `CASE` body, before what ends the `CASE` (`goto sc_N_end;`, or the mark of a match of
+    `SELECT EVERYCASE`, which is therefore still set); in a `CASE ELSE` it is `goto sc_N_end;`. **So an `EXIT
+    CASE` followed in its `CASE` by a `SELECT` with a `CASE` jumps into that inner `SELECT`**, to the end of
+    its first `CASE`: the program goes on after the inner `END SELECT` and runs the rest of the outer `CASE`
+    (`x66`, measured 2026-10-13 with task 3.1 of `m3-console-files`: `a after the inner SELECT end`; with
+    `EVERYCASE` the inner selector's copy was never stored, so its later `CASE`s compare with 0).
   - **`_IIF` (`v30_g_iif_min_max`, `x70`–`x76`, `x88`, `x89`, `x99`; `qb64pe.bas` 20737).** It is C++'s
     `((condition)?(a):(b))`, so only the part chosen is evaluated. The condition is a number (a string is "1st
     function argument requires a number") taken as an integer: a float goes through `qbr`, so `0.5`, `0.4`,
@@ -1987,7 +2016,17 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     and is printed as an `_INTEGER64`. Two pairs depend on the order: `_INTEGER64` with `_OFFSET`, and
     `_UNSIGNED _INTEGER64` with `_UNSIGNED _OFFSET`, each the first one's C++ type. (`Type_PromoteArithmeticType`
     in `utilities\type.bas` reads as if a SINGLE beside a wider integer gave DOUBLE; the C++ says SINGLE.) The
-    result is then converted as any value of that type.
+    result is then converted as any value of that type. **The rule as built** (task 2.1 of
+    `m3-console-files`, `widest` in `sema\src\check\ops.rs`, on what the two arguments are believed; 110 more
+    forms read with `qb64pe -z`: literals, operator results, elements, members, parameters): a float wins
+    over any integer and of two floats the wider; of two unsigned integers the one of more bits, **the second**
+    when they have as many; of two integers of one width the unsigned one, **the first** when both are signed;
+    else the one of more bits; a `_BIT * n` counts n bits (`_MIN(b40, l)` is an `int64_t`). The result is
+    believed that type: `_MIN(o, q)` is an `_OFFSET` to a following operator (`_MIN(o, o) ^ 2` is the `_OFFSET`
+    error), `HEX$(_MIN(bt, bt))` has the width of one bit. The arguments are written as they are and C++
+    converts them (`std::min<float>(*__INTEGER64_Q,*__SINGLE_S)`). The two special cases of
+    `Type_PromoteArithmeticType` (an `_OFFSET`; a SINGLE beside a wider integer made DOUBLE) are never taken:
+    each compares with a type value that carries a flag (`ISPOINTER`) no argument's type has.
   - **`_MIN`, `_MAX`, `_CLAMP` (`v30_g_iif_min_max`, `x77`–`x81`, `x94`).** `std::min<T>(a,b)`,
     `std::max<T>(a,b)`, `func_clamp<T>(value,low,high)`, every argument evaluated once, in order. A value that
     is not a number comes out when it is first and not when it is second (`_MIN(nan, 1)` against `_MIN(1,
@@ -2009,6 +2048,71 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     `lprint_makefit` in place of `qbs_print` and `makefit`, between `tab_LPRINT=1;` and `tab_LPRINT=0;`, with
     `USING` too. Neither is run here: `CHAIN` starts `qb64pe.exe -c` beside the program through `cmd`
     (`tests\corpus\README.md`), and `LPRINT` prints a page; the programs hold them behind `IF 0 THEN`.
+  - **`FIELD`, `LSET` and `RSET` (`v30_j_field`, `v30_k_field_errors`, `v30_l_lset_rset`, `x100`–`x132`,
+    `x140`–`x170`: 67 programs, measured 2026-10-13 as the first task group of `m3-console-files`;
+    `qb64pe.bas` 7340–7432 and 11327–11374, libqb's `file-fields.cpp` and `string_functions.cpp`).** The old
+    compiler writes calls and nothing else; the record buffer, the list of a file's field strings and the link
+    from a string to its field are libqb's (a `field` pointer in every `qbs`), so a field variable is an
+    ordinary variable-length string for the compiler.
+    - **The calls.** `FIELD #n, w1 AS a, w2 AS b` is `field_new(n);` then `field_add(a,w1);` and
+      `field_add(b,w2);`, one call per part, in order, with nothing between them. The file number and each width
+      are converted as a LONG is (`qbr(…)` for a float: a width of 2.5 is 2, of 3.5 is 4; a DOUBLE file number
+      is accepted). The target is the string itself: `__STRING_A`, an element with its bounds check
+      (`((qbs**)(__ARRAY_STRING_E[0]))[array_check(…)]`), a `STRING` member (`*((qbs**)((char*)__UDT_R+(6)))`),
+      also of an array element. `LSET a = v` is `sub_lset(a,v);` and `RSET` `sub_rset(a,v);`: the target as a
+      string value (a fixed-length string, member or element as `qbs_new_fixed(address,length,1)`), then the
+      value as any string expression. The target is evaluated before the value, and in `FIELD` the file number
+      before a target's index before its width (`fn ix wd`).
+    - **Accepted forms of `FIELD`.** The `#` may be left out, the file number is any numeric expression (`#k +
+      1`, `(1)`), a width any numeric expression, also in parentheses. A target is a variable-length string
+      variable, an array element, a `STRING` member of a `TYPE` variable or element; a name not seen before with
+      `$` (`fresh$`, and `und$(2)`, which makes the array of 0 to 10); a variable in parentheses (`(a)`, `x106`);
+      and a whole array `e()`, which is taken as its element 0 with no bounds check (`x109`). One variable may
+      stand in two parts (`x127`: it is the last one). `FIELD` works in a SUB on shared and local strings.
+    - **Rejected forms of `FIELD`.** A fixed-length string, also as a member or element: "Fixed length strings
+      cannot be used in a FIELD statement". "Expected FIELD #filenumber, characters AS variable$, ..." for: a
+      number, a literal, an expression, a function's result, a string `CONST`, a `TYPE` value, a numeric member,
+      a new name with no `$`; `FIELD` alone, with the file only, with a comma after it and nothing more, no
+      `AS`, no width, no target, a comma after the last part, `#` with no number, no comma after the file. Two
+      parts with no comma are "Name already in use (AS)", a semicolon between parts "Invalid expression", a
+      string as the file number or as a width "Illegal string-number conversion", `CALL FIELD(…)` "Expected CALL
+      sub-name [(...)]".
+    - **`FIELD` when it runs.** Each `FIELD` starts again at the buffer's first byte, and the strings of an
+      earlier `FIELD` on the file stay fields: after `FIELD #1, 3 AS a, 5 AS b` and `FIELD #1, 8 AS w`, an `LSET`
+      to `w` changes `a` and `b` and one to `b` changes `w`. `FIELD` gives the string the width as its length
+      and the bytes the buffer holds (0 in a new file). A string named again leaves its earlier field. The
+      widths of one statement may add up to the record length; the part that goes beyond is error 50, and that
+      part and every part after it are left as they were (the parts before it are fields). A negative width is
+      error 5, a width of 0 is accepted (the string is empty). A file not open, and file number 0, is error 52;
+      a negative file number, a file open `FOR BINARY`, `OUTPUT` or `INPUT` error 54; an element out of range
+      error 9. The default record length is 128 (`100 AS a, 28 AS b` is accepted, `29` is error 50).
+    - **`GET` and `PUT` with no variable.** `GET #1[, record]` fills the buffer and every field string of the
+      file; a record past the end reads as bytes of 0 and sets `EOF`. `PUT #1[, record]` writes the whole
+      buffer, so the file ends at the record's end. Record 0 or below is error 63; a file not open 52; a file
+      that is not random 54; `ACCESS READ` gives error 75 for `PUT`, `ACCESS WRITE` for `GET`. `GET` and `PUT`
+      **with** a variable do not go through the buffer: `GET #1, 1, l` leaves the field strings as they are, and
+      after `PUT #1, 1, x` they hold the old bytes until a `GET` with no variable.
+    - **`=` to a field variable** changes the string and not the buffer, and the string stays a field: `a =
+      "QQ"` gives `a` the length 2, and the next `LSET` to any field of the file or `GET` with no variable gives
+      it its width and the buffer's bytes again. `LSET` to a field string whose length was changed by `=` works
+      on that length first and then on the field (`b = "": LSET b = "k"` leaves the buffer's part of `b` as five
+      blanks). After `CLOSE` a field string keeps its value and its length; `LSET` to it works as on any
+      string; when the file number is opened again the string is no field of the new file.
+    - **`LSET` and `RSET` on any string.** The target keeps its length: a shorter value is padded with blanks
+      at the right (`LSET`) or the left (`RSET`); a longer one is cut at its end by **both** (`RSET a =
+      "abcdef"` into three characters is `abc`); an empty value gives blanks; an empty target stays empty. The
+      target may be a fixed-length string, an element, a member of either kind, also of an array element, and
+      a name not seen before with `$` (an empty string, so nothing happens). The value may name the target
+      (`LSET a = MID$(a, 3)`). An error in the value leaves the target as it was (`LSET a = CHR$(-1)`); an
+      element out of range is error 9. A whole array `e()` as the target is accepted and is element 0 (`x153`).
+    - **Rejected forms of `LSET` and `RSET`.** "LSET/RSET expects a string variable/array-element as its first
+      argument": a numeric variable, element or member, **a `TYPE` value** (`LSET r = r2`, which QuickBASIC
+      uses to copy a record, and `LSET r = "abcd"`), a literal, an expression, a `CONST`, a function's result,
+      `MID$(a, 2, 2)`, a new name with no `$`. "Expected LSET/RSET stringvariable=string": no `=`, no value,
+      `CALL LSET(a, "x")`. "Expected LSET ..." (or `RSET`) for the word alone. A number or a `TYPE` value as
+      the value, and `LSET a = b = "x"` (the first `=` outside parentheses ends the target, the rest is the
+      value), are "Illegal string-number conversion". `LSET = "a"` and `LSET (a) = "x"` are read as an
+      assignment to a variable or array named `LSET`: "Name already in use (LSET)".
 
 ## 6. Bug-compatibility choices (all decided)
 

@@ -786,17 +786,17 @@ fn lsp_named_program() {
 
 /// "Demand report", scenario "A folder of programs": every `.bas` file below the folder is counted, a program the
 /// old compiler rejects is left out, and a program with more errors than a compile run reports is counted in full.
-/// `LPRINT` stands for any statement not compiled yet; when it is, take another.
+/// `STOP` stands for any statement not compiled yet; when it is, take another.
 #[test]
 fn report_unsupported_counts_a_folder() {
     let d = scratch("report");
     std::fs::create_dir(d.join("sub")).unwrap();
     std::fs::write(d.join("clean.bas"), SLICE_PROGRAM).unwrap();
     let uses = qb64rust_base::MAX_ERRORS + 5;
-    let many = format!("$CONSOLE:ONLY\n{}SYSTEM\n", "LPRINT 1\n".repeat(uses));
+    let many = format!("$CONSOLE:ONLY\n{}SYSTEM\n", "STOP\n".repeat(uses));
     std::fs::write(d.join("sub").join("MANY.BAS"), many).unwrap();
-    std::fs::write(d.join("one.bas"), "$CONSOLE:ONLY\nLPRINT 1\nSYSTEM\n").unwrap();
-    std::fs::write(d.join("rejected.bas"), "$CONSOLE:ONLY\nLPRINT 1\nx =\n").unwrap();
+    std::fs::write(d.join("one.bas"), "$CONSOLE:ONLY\nSTOP\nSYSTEM\n").unwrap();
+    std::fs::write(d.join("rejected.bas"), "$CONSOLE:ONLY\nSTOP\nx =\n").unwrap();
     std::fs::write(d.join("rejected.err"), "Expected expression\n").unwrap();
     let o = qb64rust(&d, &["--report", "unsupported", "."]);
     assert!(o.status.success(), "{}", stdout(&o));
@@ -804,7 +804,7 @@ fn report_unsupported_counts_a_folder() {
         "3 programs: 1 without errors, 2 with only \"not supported yet\" errors, 0 with other errors\n\
          1 left out: an .err file beside them (the old compiler rejects them)\n\
          programs  alone   uses  not supported yet\n       \
-         2      2 {:>6}  `LPRINT`\n",
+         2      2 {:>6}  `STOP`\n",
         uses + 1
     );
     assert_eq!(stdout(&o), expected);

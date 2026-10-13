@@ -3,8 +3,8 @@
 
 use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
 use crate::{
-    Arg, ArrayRef, Body, BuiltinId, Expr, ExprKind, LabelId, Member, MemberId, Op, Place, PrintItem, ProcId, Program,
-    Resume, Shape, Source, StmtArg, Storage, Ty, Var, VarId,
+    Arg, ArrayRef, Body, BuiltinId, Expr, ExprKind, LabelId, Member, MemberId, Op, Place, PrintItem, PrintTo, ProcId,
+    Program, Resume, Shape, Source, StmtArg, Storage, Ty, UsingValue, Var, VarId,
 };
 
 /// Every problem found, each as `<body>: <where>: <what>`; `Ok` when there is none.
@@ -276,20 +276,86 @@ impl Validator<'_> {
                     self.problem(format!("{at}: EraseParam of {name}, which is no parameter"));
                 }
             }
-            Op::Print { to, items, .. } | Op::Write { to, items, .. } => {
-                if let Some(n) = to {
+            Op::Print { to, items, .. } => {
+                if let PrintTo::File(n) = to {
                     self.file_number(n, owner, at);
                 }
-                for i in items {
-                    match i {
-                        PrintItem::Str(v) | PrintItem::Num(v) => self.value(v, owner, at),
-                        PrintItem::Zone => {
-                            if matches!(op, Op::Write { .. }) {
-                                self.problem(format!("{at}: a zone in a Write"));
+                self.print_items(items, false, owner, at);
+            }
+            // One unit with its own error checks (the crate documentation's rules for a pending error do not
+            // apply inside it): a string format, at least one value, each value of the kind its variant says.
+            Op::PrintUsing {
+                to,
+                before,
+                format,
+                values,
+                ..
+            } => {
+                if let PrintTo::File(n) = to {
+                    self.file_number(n, owner, at);
+                }
+                self.print_items(before, false, owner, at);
+                if format.ty != Ty::Str {
+                    self.problem(format!("{at}: the format of a PrintUsing is a {:?}", format.ty));
+                }
+                self.value(format, owner, at);
+                if values.is_empty() {
+                    self.problem(format!("{at}: a PrintUsing without a value"));
+                }
+                for v in values {
+                    match v {
+                        UsingValue::Str(e) | UsingValue::Blanks(e) => {
+                            if e.ty != Ty::Str {
+                                self.problem(format!("{at}: a string value of a PrintUsing is a {:?}", e.ty));
                             }
+                            self.value(e, owner, at);
+                        }
+                        UsingValue::Num { value, as_ } => {
+                            let entry = matches!(as_, Ty::F32 | Ty::F64 | Ty::F80 | Ty::I64 | Ty::U64);
+                            if !entry || !value.ty.is_numeric() || value.ty.is_float() != as_.is_float() {
+                                self.problem(format!(
+                                    "{at}: a number of a PrintUsing, a {:?}, formatted as {as_:?}",
+                                    value.ty
+                                ));
+                            }
+                            self.value(value, owner, at);
                         }
                     }
                 }
+            }
+            Op::Write { to, items, .. } => {
+                if let Some(n) = to {
+                    self.file_number(n, owner, at);
+                }
+                self.print_items(items, true, owner, at);
+            }
+            // A file number, and at least one part: a place of a variable-length string and a width of type I32.
+            Op::Field { file, parts } => {
+                self.file_number(file, owner, at);
+                if parts.is_empty() {
+                    self.problem(format!("{at}: a Field without a part"));
+                }
+                for (place, width) in parts {
+                    self.place(place, owner, at);
+                    if place_ty_checked(self.p, place).is_some_and(|t| t != Ty::Str) {
+                        self.problem(format!("{at}: a part of a Field is no variable-length string"));
+                    }
+                    if width.ty != Ty::I32 {
+                        self.problem(format!("{at}: a width of a Field is a {:?}", width.ty));
+                    }
+                    self.value(width, owner, at);
+                }
+            }
+            // A string place of either kind and a string value.
+            Op::Lset { target, value, .. } => {
+                self.place(target, owner, at);
+                if place_ty_checked(self.p, target).is_some_and(|t| !t.is_string()) {
+                    self.problem(format!("{at}: the target of an Lset is no string"));
+                }
+                if value.ty != Ty::Str {
+                    self.problem(format!("{at}: an Lset stores a value of type {:?}", value.ty));
+                }
+                self.value(value, owner, at);
             }
             Op::Input { from, line, targets } => {
                 match from {
@@ -347,6 +413,20 @@ impl Validator<'_> {
         }
     }
 
+    /// The items of a print or (`write`) a write, which has no zones.
+    fn print_items(&mut self, items: &[PrintItem], write: bool, owner: Option<ProcId>, at: &At) {
+        for i in items {
+            match i {
+                PrintItem::Str(v) | PrintItem::Num(v) => self.value(v, owner, at),
+                PrintItem::Zone => {
+                    if write {
+                        self.problem(format!("{at}: a zone in a Write"));
+                    }
+                }
+            }
+        }
+    }
+
     /// A file number: a value of type `I32`.
     fn file_number(&mut self, n: &Expr, owner: Option<ProcId>, at: &At) {
         if n.ty != Ty::I32 {
@@ -364,13 +444,18 @@ impl Validator<'_> {
             return;
         };
         match form.rule {
-            StmtRule::Plain | StmtRule::Graphics => {}
+            // `File`: the template's slots, the third the bytes of a place or of a whole array, or nothing.
+            StmtRule::Plain | StmtRule::Graphics | StmtRule::File => {}
             // Any number of file numbers.
             StmtRule::Close => {
                 for (k, arg) in args.iter().enumerate() {
                     match arg {
                         StmtArg::Value(v) => self.file_number(v, owner, at),
-                        StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Word(_) | StmtArg::Absent => {
+                        StmtArg::Place(_)
+                        | StmtArg::Block { .. }
+                        | StmtArg::Bytes(_)
+                        | StmtArg::Word(_)
+                        | StmtArg::Absent => {
                             self.problem(format!("{at}: slot {} of {name} is no value", k + 1));
                         }
                     }
@@ -416,7 +501,7 @@ impl Validator<'_> {
                 match length {
                     StmtArg::Value(l) => self.value(l, owner, at),
                     StmtArg::Absent => {}
-                    StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Word(_) => {
+                    StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Bytes(_) | StmtArg::Word(_) => {
                         self.problem(format!("{at}: slot 3 of {name} is no value"));
                     }
                 }
@@ -439,11 +524,17 @@ impl Validator<'_> {
                 (StmtSlot::Arg { slot, .. }, StmtArg::Value(v)) => {
                     let string = match slot {
                         Slot::Str => true,
-                        Slot::Long | Slot::Int64 | Slot::Double | Slot::Float | Slot::AnyNumeric | Slot::ULong => false,
+                        Slot::Long
+                        | Slot::Int64
+                        | Slot::Double
+                        | Slot::Float
+                        | Slot::AnyNumeric
+                        | Slot::UInt64
+                        | Slot::ULong => false,
                         // A number or a string: whichever the value is.
                         Slot::ColorOrTile => v.ty == Ty::Str,
-                        Slot::Block => {
-                            self.problem(format!("{at}: slot {k} of {name} takes an array's bytes, not a value"));
+                        Slot::Block | Slot::Bytes => {
+                            self.problem(format!("{at}: slot {k} of {name} takes bytes, not a value"));
                             v.ty == Ty::Str
                         }
                     };
@@ -455,14 +546,35 @@ impl Validator<'_> {
                 (StmtSlot::Arg { .. }, StmtArg::Place(_)) => {
                     self.problem(format!("{at}: slot {k} of {name} holds a place"));
                 }
-                // The bytes of an array of numbers, whole or from an element with an index per dimension.
+                // The bytes of one place, for a file: of any type with a fixed size, or a variable-length string.
+                (StmtSlot::Arg { slot, .. }, StmtArg::Bytes(place)) => {
+                    if *slot != Slot::Bytes {
+                        self.problem(format!("{at}: slot {k} of {name} holds a place's bytes"));
+                    }
+                    self.place(place, owner, at);
+                    if let Some(t) = place_ty_checked(self.p, place)
+                        && (matches!(t, Ty::Bit { .. }) || crate::holds_strings(&self.p.types, t))
+                    {
+                        self.problem(format!("{at}: the bytes of a {t:?}, which has no fixed size in bytes"));
+                    }
+                }
+                // The bytes of an array, whole or from an element with an index per dimension: of numbers for
+                // graphics; for a file the whole array, of anything with a fixed size.
                 (StmtSlot::Arg { slot, .. }, StmtArg::Block { array, index }) => {
-                    if *slot != Slot::Block {
+                    if !matches!(slot, Slot::Block | Slot::Bytes) {
                         self.problem(format!("{at}: slot {k} of {name} holds an array's bytes"));
                     }
                     self.array_ref(&ArrayRef::Var(*array), owner, at, "bytes");
                     let a = self.p.var(*array);
-                    if !(a.ty.is_int() || a.ty.is_float()) {
+                    let fits = if *slot == Slot::Bytes {
+                        index.is_empty()
+                            && a.ty != Ty::Str
+                            && !matches!(a.ty, Ty::Bit { .. })
+                            && !crate::holds_strings(&self.p.types, a.ty)
+                    } else {
+                        a.ty.is_int() || a.ty.is_float()
+                    };
+                    if !fits {
                         self.problem(format!("{at}: the bytes of {}, an array of {:?}", a.name, a.ty));
                     }
                     if !index.is_empty() && a.dim_count().is_some_and(|n| n != index.len()) {
@@ -485,7 +597,10 @@ impl Validator<'_> {
                 (StmtSlot::Arg { .. }, StmtArg::Word(_)) => {
                     self.problem(format!("{at}: slot {k} of {name} is an argument, not a choice"));
                 }
-                (StmtSlot::Choice { .. }, StmtArg::Value(_) | StmtArg::Place(_) | StmtArg::Block { .. }) => {
+                (
+                    StmtSlot::Choice { .. },
+                    StmtArg::Value(_) | StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Bytes(_),
+                ) => {
                     self.problem(format!("{at}: slot {k} of {name} is a choice, not an argument"));
                 }
             }
@@ -687,6 +802,21 @@ impl Validator<'_> {
             ExprKind::Binary { lhs, rhs, .. } | ExprKind::Concat(lhs, rhs) | ExprKind::StrCompare { lhs, rhs, .. } => {
                 self.value(lhs, owner, at);
                 self.value(rhs, owner, at);
+            }
+            // The condition an integer; the parts both strings, as the node is, or both numbers, as the node is.
+            ExprKind::Choice { condition, then, else_ } => {
+                if !condition.ty.is_int() {
+                    self.problem(format!("{at}: the condition of a choice is a {:?}", condition.ty));
+                }
+                let string = v.ty == Ty::Str;
+                for part in [then, else_] {
+                    if (part.ty == Ty::Str) != string || !(string || part.ty.is_numeric() && v.ty.is_numeric()) {
+                        self.problem(format!("{at}: a part of a choice typed {:?} is a {:?}", v.ty, part.ty));
+                    }
+                }
+                for part in [condition, then, else_] {
+                    self.value(part, owner, at);
+                }
             }
             ExprKind::Call { builtin: id, args } => {
                 // The table's slots, or as many as the built-in's rule gives it (`ASC` has two).
@@ -921,6 +1051,46 @@ mod tests {
             [
                 "S: parameter 1 is not a parameter of this procedure",
                 "S: the result is not a result of this procedure",
+            ]
+        );
+    }
+
+    /// A choice (`_IIF`): its condition is an integer, and its parts are both strings or both numbers, as the
+    /// node is; each part is checked as a value of the statement's body.
+    #[test]
+    fn choice() {
+        let choice = |ty: Ty, condition: Expr, then: Expr, else_: Expr| {
+            let kind = ExprKind::Choice {
+                condition: Box::new(condition),
+                then: Box::new(then),
+                else_: Box::new(else_),
+            };
+            Op::Raise(expr(ty, kind))
+        };
+        let text = || expr(Ty::Str, ExprKind::Str(b"a".to_vec()));
+        let single = || expr(Ty::F32, ExprKind::Float("1.5E+0".into()));
+        let mut p = program();
+        p.main.stmts[0].ops.extend([
+            choice(Ty::F32, load(0), load(0), single()),
+            choice(Ty::Str, load(0), text(), text()),
+        ]);
+        assert_eq!(problems(&p), Vec::<String>::new());
+        p.main.stmts[0].ops.extend([
+            // A float as the condition, a string beside a number, a number in a string choice, a part that
+            // names a variable of another body.
+            choice(Ty::I32, single(), load(0), load(0)),
+            choice(Ty::I32, load(0), text(), load(0)),
+            choice(Ty::Str, load(0), text(), load(0)),
+            choice(Ty::I32, load(0), load(0), load(2)),
+        ]);
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: the condition of a choice is a F32"),
+                format!("{at}: a part of a choice typed I32 is a Str"),
+                format!("{at}: a part of a choice typed Str is a I32"),
+                format!("{at}: uses L of S"),
             ]
         );
     }

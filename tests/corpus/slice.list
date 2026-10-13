@@ -318,6 +318,34 @@ slice/s76_sound_errors
 slice/s77_exeicon
 runtime_comparison/189_width
 runtime_comparison/237_csrlin_pos
+# m3-console-files group 2: _IIF, _MIN, _MAX, _CLAMP, _SHL, _SHR, _ROL, _ROR
+slice/s78_choice_min_shifts
+runtime_comparison/243_iif
+runtime_comparison/108_clamp
+runtime_comparison/78_min_max
+runtime_comparison/159_bitwise_shl_shr
+runtime_comparison/160_bitwise_rol_ror
+# m3-console-files group 3: EXIT SELECT, EXIT CASE
+slice/s79_exit_select
+runtime_comparison/151_exit_select
+# m3-console-files group 4: PRINT USING, LPRINT (239_lprint is compiled only: its .norun)
+slice/s80_print_using_numbers
+slice/s81_print_using_strings
+slice/s82_print_using_file
+runtime_comparison/186_print_using
+runtime_comparison/239_lprint
+# m3-console-files group 5: GET and PUT on a file, LOCK, UNLOCK
+slice/s83_binary_file
+slice/s84_random_file
+slice/s85_file_locks
+runtime_comparison/175_get_put
+runtime_comparison/177_open_binary
+runtime_comparison/179_file_lock
+# m3-console-files group 6: FIELD, LSET, RSET
+slice/s86_field_lset
+# m3-console-files group 7: CHAIN (s87 holds it as code that is not reached; 238_chain names a program that is not there)
+slice/s87_chain_not_reached
+runtime_comparison/238_chain
 # Screen programs (m3-window-output): checked by the state of the screen they leave, tests/corpus/screen/SOURCE.md
 screen/c01_text_cells
 screen/c02_screen12_shapes

@@ -4,7 +4,7 @@ use crate::Emitter;
 use crate::decl::{Part, dim_count, dim_slot, is_qbs};
 use crate::names::{c_type, int_const, proc_name};
 use crate::place::fixed_at;
-use qb64rust_ir::{ArrayRef, Expr, Facts, LabelId, MemberId, OnError, Op, Place, PrintItem, Resume, Ty, When};
+use qb64rust_ir::{ArrayRef, Expr, Facts, LabelId, MemberId, OnError, Op, Place, PrintTo, Resume, Ty, When};
 use std::fmt::Write as _;
 
 impl Emitter<'_> {
@@ -134,50 +134,33 @@ impl Emitter<'_> {
             }
             Op::Builtin { id, args } => self.stmt_call(*id, args, out),
             Op::Print {
-                to: Some(n),
+                to: PrintTo::File(n),
                 items,
                 newline,
             } => self.file_print(n, items, *newline, out),
+            Op::Print {
+                to: PrintTo::Screen,
+                items,
+                newline,
+            } => self.print(false, items, *newline, out),
+            Op::Print {
+                to: PrintTo::Printer,
+                items,
+                newline,
+            } => self.print(true, items, *newline, out),
+            Op::PrintUsing {
+                to,
+                before,
+                format,
+                values,
+                newline,
+            } => self.print_using(to, before, format, values, *newline, out),
             Op::Write { to, items, newline } => self.write(to.as_ref(), items, *newline, out),
+            Op::Field { file, parts } => self.field(file, parts, out),
+            Op::Lset { right, target, value } => self.lset(*right, target, value, out),
             Op::Input { from, line, targets } => self.input(from, *line, targets, out),
             Op::Read(targets) => self.read(targets, out),
             Op::Restore { label, .. } => self.restore(label.as_deref(), out),
-            Op::Print {
-                to: None,
-                items,
-                newline,
-            } => {
-                // The IR's raise rule for PRINT: a raising item skips the rest of the statement.
-                self.skip += 1;
-                let skip = format!("skip{}", self.skip);
-                out.push("tqbs=qbs_new(0,0);".into());
-                for item in items {
-                    let text = match item {
-                        PrintItem::Zone => {
-                            out.push("tab();".into());
-                            continue;
-                        }
-                        PrintItem::Str(v) => self.value(v),
-                        PrintItem::Num(v) => {
-                            format!(
-                                "qbs_add(qbs_str(({})({})),qbs_new_txt(\" \"))",
-                                c_type(v.ty),
-                                self.value(v)
-                            )
-                        }
-                    };
-                    out.push(format!("qbs_set(tqbs,{text});"));
-                    out.push(format!("if (is_error_pending()) goto {skip};"));
-                    out.push("makefit(tqbs);".into());
-                    out.push("qbs_print(tqbs,0);".into());
-                }
-                if *newline {
-                    out.push("qbs_print(nothingstring,1);".into());
-                }
-                out.push(format!("{skip}:"));
-                out.push("qbs_free(tqbs);".into());
-                out.push("qbs_cleanup(qbs_tmp_base,0);".into());
-            }
         }
     }
 
