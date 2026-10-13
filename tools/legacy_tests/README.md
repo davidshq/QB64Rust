@@ -128,7 +128,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification              
   stdout and stderr, `(timed out after 60 s)` after a timeout, then `exit=<code>`; or `(not compiled)`). The
   `.out.txt` text is printed too. A file is reported as `recorded new` or `warning: ... changed`, and left
   untouched when it differs only by CRLF against LF: `.gitattributes` marks both kinds `text=auto`, so git
-  stores text with LF on every machine. A file git takes for binary (a NUL, a CR without LF; six today) is
+  stores text with LF on every machine. A file git takes for binary (a NUL, a CR without LF; eight today) is
   stored and compared byte for byte.
 - Exit code: 0 when every program was recorded, whatever it did (a rejected or crashing program is a result);
   1 when a compile timed out and nothing was recorded for it. `run.sh` passes the code on and needs `python`

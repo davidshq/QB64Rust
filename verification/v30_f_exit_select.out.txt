@@ -1,0 +1,19 @@
+one after 1 
+two after 2 
+three in IF after 3 
+else after 4 
+inside a loop within the CASE
+ 1  2 after 2 
+after 3 
+nested
+inner outer goes on after
+a loop around the SELECT
+ 1  3 
+EVERYCASE
+first after
+first second after
+in a SUB
+one
+end of t 1 
+two
+exit=0

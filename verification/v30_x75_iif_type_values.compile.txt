@@ -1,0 +1,5 @@
+
+User defined types in expressions are invalid
+Caused by (or after):R2 = _IIF ( 1 , R , R2 )
+LINE 7:r2 = _IIF(1, r, r2)
+exit=1

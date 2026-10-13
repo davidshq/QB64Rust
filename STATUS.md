@@ -25,7 +25,7 @@ a program whose output is a window compiles, with the text-screen, drawing and p
 functions. Its second step, OpenSpec change `m3-get-put-bload`, is done (all 24 tasks; committed and
 archived 2026-10-13): what Civil War Strategy needs to build apart from sound, so that the game's report
 names only `SOUND`, `PLAY`, `BEEP` and `$EXEICON`. Its third step, OpenSpec change `m3-sound`, is done (all 18
-tasks, 2026-10-13; not committed, not archived): sound, `$EXEICON`, and a built-in statement with a template
+tasks; committed and archived 2026-10-13): sound, `$EXEICON`, and a built-in statement with a template
 after `CALL`. **Civil War Strategy compiles with no diagnostic and builds**, and all 52 screen programs pass by
 the state of their screen. Step 9 of M2, built-in statements, was OpenSpec change
 `m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
@@ -69,18 +69,19 @@ line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10)
   `d9f5e95` on the branch it was seen with `s66_window_builtins` and `glut/icon` passing, so the runner builds
   the libqb variant with the icon part).
 - No branch is waiting: `m2-console-screenhide` is merged into `main` (pull request 4, 2026-10-13).
-- `m3-window-output` (`9ae4d40`), `m3-get-put-bload` (`3258d56`, archived in `bf59892`) and the proposal of
-  `m3-sound` (`135a584`) are committed on branch `m3`; what CI made of them has not been looked at: CI is looked
-  at when the user asks, not a gate (`CLAUDE.md` working rule 9), and the `tier2` job runs by hand and weekly,
-  so it must be started to see this. `rust.yml` itself changed (that trigger), which shows on its first run.
+- `m3-window-output` (`9ae4d40`), `m3-get-put-bload` (`3258d56`, archived in `bf59892`) and `m3-sound`
+  (`556724c`, archived in the commit after it) are committed on branch `m3`; what CI made of them has not been
+  looked at: CI is looked at when the user asks, not a gate (`CLAUDE.md` working rule 9), and the `tier2` job
+  runs by hand and weekly, so it must be started to see this. `rust.yml` itself changed (that trigger), which
+  shows on its first run.
   **Two things to see there:** the `tier2` job runs screen programs with a shown window for the first time, and
   GitHub's Windows runner may not give them one (`study\00` §5, "The GitHub Windows runner"); and it now builds
   libqb's audio part and runs two programs that need a sound device (`s75_sound_wait` and the second part of
   `s76_sound_errors`: without a device libqb queues and checks nothing, `SOMEDAY.md`). If either kind fails
   there and passes here, the fallback is the design's: a list run locally and not by the job.
-- `m3-sound` is implemented and **not committed** (the user stages and commits) and not archived. One thing in
-  it goes beyond its proposal and is for the user to look at: a built-in statement with a template after
-  `CALL` is compiled for every statement, not for `SOUND` and `PLAY` alone, with errors for the forms the old
+- `m3-sound` is committed and archived (2026-10-13, its specs merged). One thing in it goes beyond its proposal
+  and is for the user to look at: a built-in statement with a template after `CALL` is compiled for every
+  statement, not for `SOUND` and `PLAY` alone, with errors for the forms the old
   compiler rejects (task 2.1 of the change: design D1 asks for the general fix, and the rule was read in
   `qb64pe.bas` and measured with twelve programs). One question from the session: whether the full corpus is
   still worth a closing run, since all but 37 of its programs are on the slice list, which runs twice at the
@@ -131,11 +132,19 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
    `tasks.md`, how it was built in its `design.md` ("As built"), the measured facts in `study\00` §5
    (`verification\v28_*`, 100 programs), what stayed marked in `SOMEDAY.md`.
 3. Done: sound (`SOUND`, `PLAY`, `BEEP`), `$EXEICON`, a statement with a template after `CALL`, and the whole
-   game compiled and built (`m3-sound`, all 18 tasks, 2026-10-13; to be archived when the user has looked at
-   it). What each task found is in the change's `tasks.md`, the measured facts in `study\00` §5
+   game compiled and built (`m3-sound`, all 18 tasks, archived 2026-10-13). What each task found is in the
+   change's `tasks.md`, the measured facts in `study\00` §5
    (`verification\v29_*`, 130 programs), what stayed marked in `SOMEDAY.md`, the game's numbers in
    `tests\programs\README.md`.
-4. **Next:** the console programs of the corpus that still wait (`PRINT USING`, random and binary files).
+4. **Next:** the console programs of the corpus that still wait: `PRINT USING`, `GET` and `PUT` on a file
+   (random and binary), `LOCK`/`UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`, `_SHR`,
+   `_ROL`, `_ROR`, `CHAIN` and `LPRINT` (twelve programs; `qb64rust --report unsupported tests\corpus`).
+   **Measured 2026-10-13, not yet proposed:** `verification\v30_*` (100 programs and the table of result
+   types), the facts in `study\00` §5. The next task is the OpenSpec proposal. Two things in it are the user's
+   to decide: whether `CHAIN` and `LPRINT` are compiled (their two corpus programs are never run as the old
+   compiler runs them: `238_chain` expects the text of a failed `cmd` call, `239_lprint` is `.norun`), and
+   whether `FIELD`, `LSET` and `RSET` belong to this step (no corpus program names them; `GET` and `PUT` with
+   no variable call libqb's `FIELD` buffer and are useful only with them).
 5. The plain copy of `internal\c`, when libqb must change.
 
 ## Numbers at the last full runs

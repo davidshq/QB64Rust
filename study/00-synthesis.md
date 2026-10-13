@@ -1865,6 +1865,150 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     (`e11`, `e30`). After a colon it is "Unexpected character on line" (`e13`), after a tab "Syntax error"
     (`e23`): the line rules of every metacommand. In a comment or after `REM` it is a comment (`e14`). A file
     that is not an icon passes the front end and fails in the build (`e16`).
+- **`PRINT USING`, `GET` and `PUT` on a file, `LOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, the
+  shift functions, `CHAIN` and `LPRINT` (`v30_*`, 100 programs and one table, measured 2026-10-13 before the
+  design of step 4 of M3: what the twelve corpus programs that still wait name; the C++ read with `qb64pe -z`
+  from programs outside the repository).** Everything here that happens when the program runs is libqb's, which
+  both compilers link: the new compiler has to write the same calls, and the recorded outputs are what a slice
+  program may expect.
+  - **`PRINT USING` at compile time (`x01`–`x19`; `xprint`, `qb64pe.bas` 27713–27851, and 27285 for a file).**
+    The form is `PRINT [#n,] [items] USING format; value {;|,} value … [;|,]`. The format is any string
+    expression (a variable, `f + f`, `LEFT$(…)`, a fixed-length string, one in parentheses) and ends at the first
+    `;` outside parentheses; at least one value follows. `?` works as `PRINT` (`x14`). Rejected with "Expected
+    PRINT USING formatstring ; ..." : a comma after the format, no value, nothing after the `;`, a number as
+    the format, no separator after the format (`x01`–`x04`, `x06`), and `PRINT USING #1, …` (`x17`); with a
+    file number the message is "Expected PRINT USING #filenumber, formatstring ; ..." (`x07`, `x16`). No format
+    at all and an empty value (`; ;`) are "Syntax error" (`x05`, `x09`, `x10`); two values with no separator
+    "Expected operator in equation" (`x08`); a second `USING` "Name already in use (USING)" (`x11`, `x12`); a
+    `TYPE` value "User defined types in expressions are invalid" (`x15`). A whole array (`a()`) is accepted as a
+    value (`x18`, which prints 0).
+  - **The calls of `PRINT USING`.** `tqbs=qbs_new(0,0); tmp_long=0;`, the format copied once into a string of
+    the statement's own (`print_using_formatN`) before any value is evaluated, then one call per value, each
+    followed by `if (is_error_pending()) goto skip_puN;`: a string `tmp_long=print_using(fmt,tmp_long,tqbs,s)`;
+    a SINGLE `print_using_single(fmt,v,tmp_long,tqbs)`, a DOUBLE `print_using_double`, a `_FLOAT`
+    `print_using_float`, an `_UNSIGNED _INTEGER64` `print_using_uinteger64`, every other integer type
+    `print_using_integer64` with no cast. `TAB(n)` or `SPC(n)` among the values prints what is built, prints the
+    blanks and empties the string (`qbs_print(tqbs,0); qbs_set(tqbs,func_tab(…)); makefit(tqbs);
+    qbs_print(tqbs,0); tqbs->len=0;`), and the place in the format is kept. At the end `qbs_print(tqbs,1)`, or
+    `qbs_print(tqbs,0)` when the statement's last element is `;` or `,`; after an error what was built is
+    printed with no line end and the error stays (`g_tmp_long=new_error; new_error=0; qbs_print(tqbs,0);
+    new_error=g_tmp_long;`). To a file `sub_file_print(tmp_fileno,tqbs,0,0,nl)` in each of those places.
+    Items before `USING` are printed first as a plain `PRINT` prints them (`PRINT "a"; USING "##"; 5`, `PRINT
+    1; 2; USING …`, `PRINT "a"; "b" USING …`, `PRINT TAB(5); USING …`, `PRINT ; USING …`, and after a comma,
+    which a redirected console cannot show). A comma between two values does what a semicolon does: no zone.
+  - **What libqb prints (`v30_a_using_numbers`, `v30_b_using_strings`, `v30_c_using_file`).** A number field is
+    its `#` signs, right-aligned, a minus sign taking one place; a number that does not fit is printed whole
+    after `%`. A point sets the decimals, rounded half away from zero (`0.25` in `#.#` is `0.3`, `2.5` in `##`
+    is ` 3`), and a second point starts a new field. `+` before the field puts the sign at the field's first
+    place (`+  5`), after it at the end; `-` after it is a blank or a minus; `-` before it is text (`- -5`).
+    `**` fills with stars, `$$` puts a dollar before the number, `**$` both, each counting as places; one `$`
+    or `*` is text. A comma left of the point groups the thousands and counts as a place; right of the point
+    it is text. `^^^^` is an exponent of two digits, `^^^^^` of three, and its letter is the value's type: `E`
+    for a SINGLE or an integer, `D` for a DOUBLE, `F` for a `_FLOAT`; three carets are text. `_` makes the next
+    character text. `!` is the first character (a blank for an empty string), `&` the whole string, `\`, n
+    blanks and `\` a field of n + 2 characters, padded with blanks; anything else between the backslashes
+    makes them text. Text after a field is printed up to the next field or the format's end; when values are
+    left the format starts again, and text after the last value used is printed only up to the next field
+    (`"## ## ##"` with two values is ` 1  2 `). A format with no field prints its text and raises error 5; an
+    empty format too, after one stray character (`[a` in `v30_b`: libqb reads past the empty string). A
+    string for a number field or a number for a string field is error 13, a value that is not finite error 5,
+    each after the text before it is printed. To a file the same text is written; a file open for input gives
+    error 54, one not open 52, and an error in a value comes before the file's.
+  - **`GET` and `PUT` on a file, the forms (`x20`–`x48`, `v30_d_binary`; `qb64pe.bas` 11880–11955).** The
+    template is `[#]?[,[?][,?]]`. With a variable: `sub_get(n,position|NULL,byte_element((uint64)address,
+    bytes,byte_element_N),mask)` and `sub_put(…)`, mask 1 when the position is given; the place and size are
+    those of graphics `GET` (above): a numeric variable `(uint64)__INTEGER_I,2`, a fixed-length string
+    `X->chr,6`, a `TYPE` variable or member, an element `&(…[array_check(…)])`, a whole array `a()` from
+    element 0 with the bytes of all its elements (also of a `TYPE`, of fixed-length strings, dynamic, of two
+    dimensions: `x43`–`x46`). A variable-length string or an element of a string array goes to other entry
+    points: `sub_get2(n,position|NULL,s,mask)` with the string itself, `sub_put2(n,position|NULL,
+    byte_element((uint64)s->chr,s->len,…),mask)`. With no variable (`GET #1`, `GET #1, 2`, `GET #1,`, `PUT #1,
+    3`) the call is `field_get(n,position|NULL,mask)` or `field_put(…)`. The file number is any numeric
+    expression after `#` (`GET #k + 1, …`), but a first argument that starts with `(` is the graphics form and
+    is rejected as one (`x36`). `CALL GET(1, 1, c)` and `CALL PUT(#1, 1, c)` are accepted. The third argument
+    must be a variable: a literal, an expression, a function's result and a `CONST` are "Expected variable
+    name/array element" (`x20`–`x22`, `x33`, `x34`), a variable in parentheses is accepted (`x23`), and `GET
+    #1, , "lit"` is "UNEXPECTED INTERNAL COMPILER ERROR!" (`x24`). Also rejected: a `_BIT` variable or array
+    ("Variable/element cannot be _BIT aligned"), a whole array of variable-length strings ("Cannot pass array
+    of variable-length strings"), a `TYPE` with a `STRING` member ("UDT must have fixed size"), a whole member
+    array `r.v()` ("Expected array index", `x48`), `GET #1, ,`, no argument and four arguments ("Syntax error -
+    Reference: …"), `GET #, , c` ("Invalid expression"), a string as the file number or the position ("1st" or
+    "2nd sub argument requires a number").
+  - **A file open `FOR BINARY` (`v30_d_binary`).** `PUT` writes the variable's bytes (INTEGER 2, LONG 4,
+    SINGLE 4, DOUBLE 8, `_INTEGER64` 8, `_BYTE` 1, `_FLOAT` 32, `_OFFSET` 8; a string its characters with no
+    length), `GET` reads as many: a variable-length string as many as it is long, so an empty one reads
+    nothing. The position is a byte from 1, rounded as a number is (`2.5` is 2, `3.5` is 4); left out, it is
+    the byte after the last one read or written (`SEEK(n)`; `LOC(n)` is one less). A `GET` at or past the end
+    sets the bytes it cannot read to 0, sets `EOF`, moves on only by what it read and does not grow the file; a
+    `PUT` past the end fills the gap with 0. Position 0 or below is error 63 and moves nothing. `GET` or `PUT`
+    with no variable is error 54 here. A file number that is not open is error 52; a file open for `OUTPUT`,
+    `INPUT` or `APPEND` error 54 for both; `ACCESS READ` gives error 75 for `PUT`, `ACCESS WRITE` for `GET`.
+    `PRINT #` to a binary file is error 54 (`177_open_binary` of the corpus expects that); `LINE INPUT #`
+    reads from one.
+  - **A file open `FOR RANDOM` (`v30_e_random`).** The record length is `LEN =`, 128 when left out (also for
+    `OPEN f AS #1`); 0 is error 5 at the `OPEN`, a fraction is rounded, 40000 is accepted, and a binary file
+    ignores it. The position is a record number from 1; left out, the record after the last one (`SEEK(n)`;
+    `LOC(n)` the last one). **`PUT` writes only the variable's bytes at the record's start**, so the file ends
+    after them and not at the record's end, and a later record leaves a gap of 0. A variable-length string is
+    written as two bytes of length and its characters, and read back by that length. A value longer than the
+    record (a string with its two bytes included) is error 59 for `PUT` and for `GET`, and nothing is written.
+    A record past the end reads as 0 and sets `EOF`; record 0 or below is error 63, as is `SEEK #n, 0`. With no
+    variable `GET` reads a record and `PUT` writes a whole one (the buffer `FIELD` would name: `PUT #1, 9` on
+    records of 14 bytes makes the file 126 long), and each moves on by one record.
+  - **`LOCK` and `UNLOCK` (`v30_i_lock`, `x50`–`x56`).** Template `[#]?[,[?][{To}?]]`:
+    `sub_lock(n,first|NULL,last|NULL,mask)` with mask 0 (`LOCK #1`, also `LOCK #1,`), 1 (`LOCK #1, 2`) or 3
+    (`LOCK #1, 2 TO 4`), `sub_unlock` the same, both also after `CALL`. `TO` with no first record, with no last
+    one or with no comma before the records is "Name already in use (TO)"; none or three arguments a syntax
+    error; a string "1st sub argument requires a number". When it runs: a record of 0 or below is error 5, a
+    range the wrong way round error 75, an `UNLOCK` that matches no `LOCK` error 70, a second `LOCK` of the
+    same bytes error 70; the program itself reads and writes what it locked, a second `OPEN` of the file
+    cannot read it (error 70), and `CLOSE` ends the lock. Every mode takes it; a file not open is error 52.
+  - **`EXIT SELECT` (`v30_f_exit_select`, `x60`–`x65`; `qb64pe.bas` 7491–7503).** It is `goto sc_N_end;` for
+    the innermost `SELECT` that has a `CASE` or `CASE ELSE` open around it, from inside an `IF` and from inside
+    loops within the `CASE`; a loop around the `SELECT` goes on. In `SELECT EVERYCASE` it leaves the whole
+    block, where `EXIT CASE` goes on with the next `CASE`. `EXIT CASE` in a plain `SELECT` is accepted and
+    leaves the block (`x62`). With no `CASE` open, also in a SUB called from one, it is "EXIT SELECT without
+    SELECT"; between `SELECT` and the first `CASE` "Expected CASE expression" (`x61`).
+  - **`_IIF` (`v30_g_iif_min_max`, `x70`–`x76`, `x88`, `x89`, `x99`; `qb64pe.bas` 20737).** It is C++'s
+    `((condition)?(a):(b))`, so only the part chosen is evaluated. The condition is a number (a string is "1st
+    function argument requires a number") taken as an integer: a float goes through `qbr`, so `0.5`, `0.4`,
+    `-0.5` and `1E-30` are false and `4294967296` is true. The two parts are both strings or both numbers
+    ("falsePart and truePart must be of the same type"); two strings may be of different kinds and the value
+    is the one chosen, with its length. Two, four or no parenthesised arguments are "Incorrect number of
+    arguments - Reference: …", `TYPE` values are rejected, `_IIF` as a statement is a syntax error. Whole
+    arrays (`a()`, `b()`) are accepted as the two parts (`x99`, which prints 0).
+  - **The type of the result of `_IIF`, `_MIN`, `_MAX` and `_CLAMP` (`v30_result_types.py` and its table, 794
+    forms).** One rule for all four (`_CLAMP(a, b, b)` and `_IIF(1, a, b)` have `_MIN(a, b)`'s type for all
+    256 pairs), and **not** the usual one: a `_FLOAT` among them gives `_FLOAT`, else a DOUBLE gives DOUBLE,
+    else a SINGLE gives SINGLE, whatever the integer beside it (`_MAX(s, q)` is `std::max<float>`); of two
+    integers the wider wins, and of two of one width the unsigned one, so `_MIN(b, ub)` with -1 and 255 is 255
+    and `_MIN(i, ub)` is an INTEGER. A `_BIT` type counts as narrower than a `_BYTE`; two `_BIT` types give a
+    32-bit C++ type printed as an `_INTEGER64`. An `_OFFSET` beats every integer but an `_UNSIGNED _INTEGER64`
+    and is printed as an `_INTEGER64`. Two pairs depend on the order: `_INTEGER64` with `_OFFSET`, and
+    `_UNSIGNED _INTEGER64` with `_UNSIGNED _OFFSET`, each the first one's C++ type. (`Type_PromoteArithmeticType`
+    in `utilities\type.bas` reads as if a SINGLE beside a wider integer gave DOUBLE; the C++ says SINGLE.) The
+    result is then converted as any value of that type.
+  - **`_MIN`, `_MAX`, `_CLAMP` (`v30_g_iif_min_max`, `x77`–`x81`, `x94`).** `std::min<T>(a,b)`,
+    `std::max<T>(a,b)`, `func_clamp<T>(value,low,high)`, every argument evaluated once, in order. A value that
+    is not a number comes out when it is first and not when it is second (`_MIN(nan, 1)` against `_MIN(1,
+    nan)`). `_CLAMP` with its bounds the wrong way round still gives a value between them. A string or a `TYPE`
+    value is "Expected numeric argument"; a wrong count "Incorrect number of arguments - Reference: …".
+  - **`_SHL`, `_SHR`, `_ROL`, `_ROR` (`v30_h_shifts`, `x82`–`x87`).** `_SHL` and `_SHR` are plain functions,
+    `func__shl(value,count)` and `func__shr`, of an `_UNSIGNED _INTEGER64` and a LONG giving an `_UNSIGNED
+    _INTEGER64`, whatever the argument: `_SHR(-1, 1)` is 9223372036854775807, a float is rounded by `qbr`, and a
+    count of 64 or more or below 0 is taken modulo 64 (`_SHL(1, 65)` is 2). `_ROL` and `_ROR` are
+    `func__rol<uintN_t>(value,count)` and `func__ror<…>`, N the width of the first argument's type (`_BYTE`
+    8, INTEGER 16, LONG 32, `_INTEGER64` and `_OFFSET` 64; a literal by its size: `1` is 16, `70000` 32,
+    `5000000000` 64), the result unsigned of that width, the count modulo the width, a negative count turning
+    the other way. A float as either argument and a string are "Expected non-floating-point numeric argument"
+    (`x84`–`x87`), a `_BIT` type "Unsupported integral type size".
+  - **Not in a `CONST`.** `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`, `_SHR`, `_ROL` and `_ROR` in a `CONST`
+    expression are "Unexpected element '…'" (`x89`–`x93`).
+  - **`CHAIN` and `LPRINT` (`x13`, `x95`–`x98`).** `CHAIN name$` is `sub_chain(name)` for any string
+    expression; none, a number or two arguments are rejected. `LPRINT` is `PRINT`'s code with `qbs_lprint` and
+    `lprint_makefit` in place of `qbs_print` and `makefit`, between `tab_LPRINT=1;` and `tab_LPRINT=0;`, with
+    `USING` too. Neither is run here: `CHAIN` starts `qb64pe.exe -c` beside the program through `cmd`
+    (`tests\corpus\README.md`), and `LPRINT` prints a page; the programs hold them behind `IF 0 THEN`.
 
 ## 6. Bug-compatibility choices (all decided)
 

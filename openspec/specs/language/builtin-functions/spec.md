@@ -19,7 +19,8 @@ demand: `_ACOS`, `_ASIN`, `_SINH`, `_COSH`, `_TANH`, `_CEIL`, `_COT`, `_CSC`, `_
 `_SCREENY`, `_WINDOWHANDLE`, `_WINDOWHASFOCUS`, `_NEWIMAGE`, `_FULLSCREEN`, the screen functions
 (`language/screen-output`): `INKEY$`, `CSRLIN`, `POS`, `POINT`, `SCREEN`, `TAB`, `SPC`, the colour functions
 `_RGB32` and `_RGBA32`, `DATE$` and `TIME$`, and the functions of conventional memory
-(`language/conventional-memory`): `PEEK`, `VARPTR`, `VARSEG`. Any other built-in function SHALL be
+(`language/conventional-memory`): `PEEK`, `VARPTR`, `VARSEG`, and the sound function `PLAY`
+(`language/sound`). Any other built-in function SHALL be
 reported "not supported yet", as SHALL an argument of
 type `_MEM`. A supported function that needs an argument, named without one, SHALL be a compile error, as in the
 old compiler. An argument of any other numeric type SHALL be

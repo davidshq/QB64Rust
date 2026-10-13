@@ -1,0 +1,5 @@
+
+User defined types in expressions are invalid
+Caused by (or after):PRINT USING "##",2 ; R
+LINE 7:PRINT USING "##"; r
+exit=1

@@ -1,0 +1,5 @@
+
+Unexpected element '_ROL'
+Caused by (or after):
+LINE 3:CONST C = _ROL ( 1 , 4 ) , D = _ROR ( 1 , 1 )
+exit=1

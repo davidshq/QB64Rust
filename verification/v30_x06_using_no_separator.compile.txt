@@ -1,0 +1,5 @@
+
+Expected PRINT USING formatstring ; ...
+Caused by (or after):PRINT USING "##",2 5
+LINE 3:PRINT USING "##" 5
+exit=1

@@ -1,0 +1,803 @@
+# Written by v30_result_types.py from the C++ of qb64pe -z; never edited by hand.
+# form | type of a | type of b | C++ type of the call | type the result is printed in
+_MIN(a, b) | _BIT | _BIT | int32_t | int64
+_IIF(1, a, b) | _BIT | _BIT | - | int64
+_CLAMP(a, b, b) | _BIT | _BIT | int32_t | int64
+_MIN(a, b) | _BIT | _UNSIGNED _BIT | uint32_t | int64
+_IIF(1, a, b) | _BIT | _UNSIGNED _BIT | - | int64
+_CLAMP(a, b, b) | _BIT | _UNSIGNED _BIT | uint32_t | int64
+_MIN(a, b) | _BIT | _BIT * 4 | int32_t | int64
+_IIF(1, a, b) | _BIT | _BIT * 4 | - | int64
+_CLAMP(a, b, b) | _BIT | _BIT * 4 | int32_t | int64
+_MIN(a, b) | _BIT | _BYTE | int8_t | int8
+_IIF(1, a, b) | _BIT | _BYTE | - | int8
+_CLAMP(a, b, b) | _BIT | _BYTE | int8_t | int8
+_MIN(a, b) | _BIT | _UNSIGNED _BYTE | uint8_t | uint8
+_IIF(1, a, b) | _BIT | _UNSIGNED _BYTE | - | uint8
+_CLAMP(a, b, b) | _BIT | _UNSIGNED _BYTE | uint8_t | uint8
+_MIN(a, b) | _BIT | INTEGER | int16_t | int16
+_IIF(1, a, b) | _BIT | INTEGER | - | int16
+_CLAMP(a, b, b) | _BIT | INTEGER | int16_t | int16
+_MIN(a, b) | _BIT | _UNSIGNED INTEGER | uint16_t | uint16
+_IIF(1, a, b) | _BIT | _UNSIGNED INTEGER | - | uint16
+_CLAMP(a, b, b) | _BIT | _UNSIGNED INTEGER | uint16_t | uint16
+_MIN(a, b) | _BIT | LONG | int32_t | int32
+_IIF(1, a, b) | _BIT | LONG | - | int32
+_CLAMP(a, b, b) | _BIT | LONG | int32_t | int32
+_MIN(a, b) | _BIT | _UNSIGNED LONG | uint32_t | uint32
+_IIF(1, a, b) | _BIT | _UNSIGNED LONG | - | uint32
+_CLAMP(a, b, b) | _BIT | _UNSIGNED LONG | uint32_t | uint32
+_MIN(a, b) | _BIT | _INTEGER64 | int64_t | int64
+_IIF(1, a, b) | _BIT | _INTEGER64 | - | int64
+_CLAMP(a, b, b) | _BIT | _INTEGER64 | int64_t | int64
+_MIN(a, b) | _BIT | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | _BIT | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _BIT | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | _BIT | SINGLE | float | float
+_IIF(1, a, b) | _BIT | SINGLE | - | float
+_CLAMP(a, b, b) | _BIT | SINGLE | float | float
+_MIN(a, b) | _BIT | DOUBLE | double | double
+_IIF(1, a, b) | _BIT | DOUBLE | - | double
+_CLAMP(a, b, b) | _BIT | DOUBLE | double | double
+_MIN(a, b) | _BIT | _FLOAT | long double | long double
+_IIF(1, a, b) | _BIT | _FLOAT | - | long double
+_CLAMP(a, b, b) | _BIT | _FLOAT | long double | long double
+_MIN(a, b) | _BIT | _OFFSET | intptr_t | int64
+_IIF(1, a, b) | _BIT | _OFFSET | - | int64
+_CLAMP(a, b, b) | _BIT | _OFFSET | intptr_t | int64
+_MIN(a, b) | _BIT | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | _BIT | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | _BIT | _UNSIGNED _OFFSET | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _BIT | _BIT | uint32_t | int64
+_IIF(1, a, b) | _UNSIGNED _BIT | _BIT | - | int64
+_CLAMP(a, b, b) | _UNSIGNED _BIT | _BIT | uint32_t | int64
+_MIN(a, b) | _UNSIGNED _BIT | _UNSIGNED _BIT | uint32_t | int64
+_IIF(1, a, b) | _UNSIGNED _BIT | _UNSIGNED _BIT | - | int64
+_CLAMP(a, b, b) | _UNSIGNED _BIT | _UNSIGNED _BIT | uint32_t | int64
+_MIN(a, b) | _UNSIGNED _BIT | _BIT * 4 | int32_t | int64
+_IIF(1, a, b) | _UNSIGNED _BIT | _BIT * 4 | - | int64
+_CLAMP(a, b, b) | _UNSIGNED _BIT | _BIT * 4 | int32_t | int64
+_MIN(a, b) | _UNSIGNED _BIT | _BYTE | int8_t | int8
+_IIF(1, a, b) | _UNSIGNED _BIT | _BYTE | - | int8
+_CLAMP(a, b, b) | _UNSIGNED _BIT | _BYTE | int8_t | int8
+_MIN(a, b) | _UNSIGNED _BIT | _UNSIGNED _BYTE | uint8_t | uint8
+_IIF(1, a, b) | _UNSIGNED _BIT | _UNSIGNED _BYTE | - | uint8
+_CLAMP(a, b, b) | _UNSIGNED _BIT | _UNSIGNED _BYTE | uint8_t | uint8
+_MIN(a, b) | _UNSIGNED _BIT | INTEGER | int16_t | int16
+_IIF(1, a, b) | _UNSIGNED _BIT | INTEGER | - | int16
+_CLAMP(a, b, b) | _UNSIGNED _BIT | INTEGER | int16_t | int16
+_MIN(a, b) | _UNSIGNED _BIT | _UNSIGNED INTEGER | uint16_t | uint16
+_IIF(1, a, b) | _UNSIGNED _BIT | _UNSIGNED INTEGER | - | uint16
+_CLAMP(a, b, b) | _UNSIGNED _BIT | _UNSIGNED INTEGER | uint16_t | uint16
+_MIN(a, b) | _UNSIGNED _BIT | LONG | int32_t | int32
+_IIF(1, a, b) | _UNSIGNED _BIT | LONG | - | int32
+_CLAMP(a, b, b) | _UNSIGNED _BIT | LONG | int32_t | int32
+_MIN(a, b) | _UNSIGNED _BIT | _UNSIGNED LONG | uint32_t | uint32
+_IIF(1, a, b) | _UNSIGNED _BIT | _UNSIGNED LONG | - | uint32
+_CLAMP(a, b, b) | _UNSIGNED _BIT | _UNSIGNED LONG | uint32_t | uint32
+_MIN(a, b) | _UNSIGNED _BIT | _INTEGER64 | int64_t | int64
+_IIF(1, a, b) | _UNSIGNED _BIT | _INTEGER64 | - | int64
+_CLAMP(a, b, b) | _UNSIGNED _BIT | _INTEGER64 | int64_t | int64
+_MIN(a, b) | _UNSIGNED _BIT | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _BIT | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _BIT | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _BIT | SINGLE | float | float
+_IIF(1, a, b) | _UNSIGNED _BIT | SINGLE | - | float
+_CLAMP(a, b, b) | _UNSIGNED _BIT | SINGLE | float | float
+_MIN(a, b) | _UNSIGNED _BIT | DOUBLE | double | double
+_IIF(1, a, b) | _UNSIGNED _BIT | DOUBLE | - | double
+_CLAMP(a, b, b) | _UNSIGNED _BIT | DOUBLE | double | double
+_MIN(a, b) | _UNSIGNED _BIT | _FLOAT | long double | long double
+_IIF(1, a, b) | _UNSIGNED _BIT | _FLOAT | - | long double
+_CLAMP(a, b, b) | _UNSIGNED _BIT | _FLOAT | long double | long double
+_MIN(a, b) | _UNSIGNED _BIT | _OFFSET | intptr_t | int64
+_IIF(1, a, b) | _UNSIGNED _BIT | _OFFSET | - | int64
+_CLAMP(a, b, b) | _UNSIGNED _BIT | _OFFSET | intptr_t | int64
+_MIN(a, b) | _UNSIGNED _BIT | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _BIT | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _BIT | _UNSIGNED _OFFSET | uintptr_t | uint64
+_MIN(a, b) | _BIT * 4 | _BIT | int32_t | int64
+_IIF(1, a, b) | _BIT * 4 | _BIT | - | int64
+_CLAMP(a, b, b) | _BIT * 4 | _BIT | int32_t | int64
+_MIN(a, b) | _BIT * 4 | _UNSIGNED _BIT | int32_t | int64
+_IIF(1, a, b) | _BIT * 4 | _UNSIGNED _BIT | - | int64
+_CLAMP(a, b, b) | _BIT * 4 | _UNSIGNED _BIT | int32_t | int64
+_MIN(a, b) | _BIT * 4 | _BIT * 4 | int32_t | int64
+_IIF(1, a, b) | _BIT * 4 | _BIT * 4 | - | int64
+_CLAMP(a, b, b) | _BIT * 4 | _BIT * 4 | int32_t | int64
+_MIN(a, b) | _BIT * 4 | _BYTE | int8_t | int8
+_IIF(1, a, b) | _BIT * 4 | _BYTE | - | int8
+_CLAMP(a, b, b) | _BIT * 4 | _BYTE | int8_t | int8
+_MIN(a, b) | _BIT * 4 | _UNSIGNED _BYTE | uint8_t | uint8
+_IIF(1, a, b) | _BIT * 4 | _UNSIGNED _BYTE | - | uint8
+_CLAMP(a, b, b) | _BIT * 4 | _UNSIGNED _BYTE | uint8_t | uint8
+_MIN(a, b) | _BIT * 4 | INTEGER | int16_t | int16
+_IIF(1, a, b) | _BIT * 4 | INTEGER | - | int16
+_CLAMP(a, b, b) | _BIT * 4 | INTEGER | int16_t | int16
+_MIN(a, b) | _BIT * 4 | _UNSIGNED INTEGER | uint16_t | uint16
+_IIF(1, a, b) | _BIT * 4 | _UNSIGNED INTEGER | - | uint16
+_CLAMP(a, b, b) | _BIT * 4 | _UNSIGNED INTEGER | uint16_t | uint16
+_MIN(a, b) | _BIT * 4 | LONG | int32_t | int32
+_IIF(1, a, b) | _BIT * 4 | LONG | - | int32
+_CLAMP(a, b, b) | _BIT * 4 | LONG | int32_t | int32
+_MIN(a, b) | _BIT * 4 | _UNSIGNED LONG | uint32_t | uint32
+_IIF(1, a, b) | _BIT * 4 | _UNSIGNED LONG | - | uint32
+_CLAMP(a, b, b) | _BIT * 4 | _UNSIGNED LONG | uint32_t | uint32
+_MIN(a, b) | _BIT * 4 | _INTEGER64 | int64_t | int64
+_IIF(1, a, b) | _BIT * 4 | _INTEGER64 | - | int64
+_CLAMP(a, b, b) | _BIT * 4 | _INTEGER64 | int64_t | int64
+_MIN(a, b) | _BIT * 4 | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | _BIT * 4 | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _BIT * 4 | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | _BIT * 4 | SINGLE | float | float
+_IIF(1, a, b) | _BIT * 4 | SINGLE | - | float
+_CLAMP(a, b, b) | _BIT * 4 | SINGLE | float | float
+_MIN(a, b) | _BIT * 4 | DOUBLE | double | double
+_IIF(1, a, b) | _BIT * 4 | DOUBLE | - | double
+_CLAMP(a, b, b) | _BIT * 4 | DOUBLE | double | double
+_MIN(a, b) | _BIT * 4 | _FLOAT | long double | long double
+_IIF(1, a, b) | _BIT * 4 | _FLOAT | - | long double
+_CLAMP(a, b, b) | _BIT * 4 | _FLOAT | long double | long double
+_MIN(a, b) | _BIT * 4 | _OFFSET | intptr_t | int64
+_IIF(1, a, b) | _BIT * 4 | _OFFSET | - | int64
+_CLAMP(a, b, b) | _BIT * 4 | _OFFSET | intptr_t | int64
+_MIN(a, b) | _BIT * 4 | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | _BIT * 4 | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | _BIT * 4 | _UNSIGNED _OFFSET | uintptr_t | uint64
+_MIN(a, b) | _BYTE | _BIT | int8_t | int8
+_IIF(1, a, b) | _BYTE | _BIT | - | int8
+_CLAMP(a, b, b) | _BYTE | _BIT | int8_t | int8
+_MIN(a, b) | _BYTE | _UNSIGNED _BIT | int8_t | int8
+_IIF(1, a, b) | _BYTE | _UNSIGNED _BIT | - | int8
+_CLAMP(a, b, b) | _BYTE | _UNSIGNED _BIT | int8_t | int8
+_MIN(a, b) | _BYTE | _BIT * 4 | int8_t | int8
+_IIF(1, a, b) | _BYTE | _BIT * 4 | - | int8
+_CLAMP(a, b, b) | _BYTE | _BIT * 4 | int8_t | int8
+_MIN(a, b) | _BYTE | _BYTE | int8_t | int8
+_IIF(1, a, b) | _BYTE | _BYTE | - | int8
+_CLAMP(a, b, b) | _BYTE | _BYTE | int8_t | int8
+_MIN(a, b) | _BYTE | _UNSIGNED _BYTE | uint8_t | uint8
+_IIF(1, a, b) | _BYTE | _UNSIGNED _BYTE | - | uint8
+_CLAMP(a, b, b) | _BYTE | _UNSIGNED _BYTE | uint8_t | uint8
+_MIN(a, b) | _BYTE | INTEGER | int16_t | int16
+_IIF(1, a, b) | _BYTE | INTEGER | - | int16
+_CLAMP(a, b, b) | _BYTE | INTEGER | int16_t | int16
+_MIN(a, b) | _BYTE | _UNSIGNED INTEGER | uint16_t | uint16
+_IIF(1, a, b) | _BYTE | _UNSIGNED INTEGER | - | uint16
+_CLAMP(a, b, b) | _BYTE | _UNSIGNED INTEGER | uint16_t | uint16
+_MIN(a, b) | _BYTE | LONG | int32_t | int32
+_IIF(1, a, b) | _BYTE | LONG | - | int32
+_CLAMP(a, b, b) | _BYTE | LONG | int32_t | int32
+_MIN(a, b) | _BYTE | _UNSIGNED LONG | uint32_t | uint32
+_IIF(1, a, b) | _BYTE | _UNSIGNED LONG | - | uint32
+_CLAMP(a, b, b) | _BYTE | _UNSIGNED LONG | uint32_t | uint32
+_MIN(a, b) | _BYTE | _INTEGER64 | int64_t | int64
+_IIF(1, a, b) | _BYTE | _INTEGER64 | - | int64
+_CLAMP(a, b, b) | _BYTE | _INTEGER64 | int64_t | int64
+_MIN(a, b) | _BYTE | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | _BYTE | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _BYTE | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | _BYTE | SINGLE | float | float
+_IIF(1, a, b) | _BYTE | SINGLE | - | float
+_CLAMP(a, b, b) | _BYTE | SINGLE | float | float
+_MIN(a, b) | _BYTE | DOUBLE | double | double
+_IIF(1, a, b) | _BYTE | DOUBLE | - | double
+_CLAMP(a, b, b) | _BYTE | DOUBLE | double | double
+_MIN(a, b) | _BYTE | _FLOAT | long double | long double
+_IIF(1, a, b) | _BYTE | _FLOAT | - | long double
+_CLAMP(a, b, b) | _BYTE | _FLOAT | long double | long double
+_MIN(a, b) | _BYTE | _OFFSET | intptr_t | int64
+_IIF(1, a, b) | _BYTE | _OFFSET | - | int64
+_CLAMP(a, b, b) | _BYTE | _OFFSET | intptr_t | int64
+_MIN(a, b) | _BYTE | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | _BYTE | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | _BYTE | _UNSIGNED _OFFSET | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _BYTE | _BIT | uint8_t | uint8
+_IIF(1, a, b) | _UNSIGNED _BYTE | _BIT | - | uint8
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | _BIT | uint8_t | uint8
+_MIN(a, b) | _UNSIGNED _BYTE | _UNSIGNED _BIT | uint8_t | uint8
+_IIF(1, a, b) | _UNSIGNED _BYTE | _UNSIGNED _BIT | - | uint8
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | _UNSIGNED _BIT | uint8_t | uint8
+_MIN(a, b) | _UNSIGNED _BYTE | _BIT * 4 | uint8_t | uint8
+_IIF(1, a, b) | _UNSIGNED _BYTE | _BIT * 4 | - | uint8
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | _BIT * 4 | uint8_t | uint8
+_MIN(a, b) | _UNSIGNED _BYTE | _BYTE | uint8_t | uint8
+_IIF(1, a, b) | _UNSIGNED _BYTE | _BYTE | - | uint8
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | _BYTE | uint8_t | uint8
+_MIN(a, b) | _UNSIGNED _BYTE | _UNSIGNED _BYTE | uint8_t | uint8
+_IIF(1, a, b) | _UNSIGNED _BYTE | _UNSIGNED _BYTE | - | uint8
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | _UNSIGNED _BYTE | uint8_t | uint8
+_MIN(a, b) | _UNSIGNED _BYTE | INTEGER | int16_t | int16
+_IIF(1, a, b) | _UNSIGNED _BYTE | INTEGER | - | int16
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | INTEGER | int16_t | int16
+_MIN(a, b) | _UNSIGNED _BYTE | _UNSIGNED INTEGER | uint16_t | uint16
+_IIF(1, a, b) | _UNSIGNED _BYTE | _UNSIGNED INTEGER | - | uint16
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | _UNSIGNED INTEGER | uint16_t | uint16
+_MIN(a, b) | _UNSIGNED _BYTE | LONG | int32_t | int32
+_IIF(1, a, b) | _UNSIGNED _BYTE | LONG | - | int32
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | LONG | int32_t | int32
+_MIN(a, b) | _UNSIGNED _BYTE | _UNSIGNED LONG | uint32_t | uint32
+_IIF(1, a, b) | _UNSIGNED _BYTE | _UNSIGNED LONG | - | uint32
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | _UNSIGNED LONG | uint32_t | uint32
+_MIN(a, b) | _UNSIGNED _BYTE | _INTEGER64 | int64_t | int64
+_IIF(1, a, b) | _UNSIGNED _BYTE | _INTEGER64 | - | int64
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | _INTEGER64 | int64_t | int64
+_MIN(a, b) | _UNSIGNED _BYTE | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _BYTE | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _BYTE | SINGLE | float | float
+_IIF(1, a, b) | _UNSIGNED _BYTE | SINGLE | - | float
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | SINGLE | float | float
+_MIN(a, b) | _UNSIGNED _BYTE | DOUBLE | double | double
+_IIF(1, a, b) | _UNSIGNED _BYTE | DOUBLE | - | double
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | DOUBLE | double | double
+_MIN(a, b) | _UNSIGNED _BYTE | _FLOAT | long double | long double
+_IIF(1, a, b) | _UNSIGNED _BYTE | _FLOAT | - | long double
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | _FLOAT | long double | long double
+_MIN(a, b) | _UNSIGNED _BYTE | _OFFSET | intptr_t | int64
+_IIF(1, a, b) | _UNSIGNED _BYTE | _OFFSET | - | int64
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | _OFFSET | intptr_t | int64
+_MIN(a, b) | _UNSIGNED _BYTE | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _BYTE | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _BYTE | _UNSIGNED _OFFSET | uintptr_t | uint64
+_MIN(a, b) | INTEGER | _BIT | int16_t | int16
+_IIF(1, a, b) | INTEGER | _BIT | - | int16
+_CLAMP(a, b, b) | INTEGER | _BIT | int16_t | int16
+_MIN(a, b) | INTEGER | _UNSIGNED _BIT | int16_t | int16
+_IIF(1, a, b) | INTEGER | _UNSIGNED _BIT | - | int16
+_CLAMP(a, b, b) | INTEGER | _UNSIGNED _BIT | int16_t | int16
+_MIN(a, b) | INTEGER | _BIT * 4 | int16_t | int16
+_IIF(1, a, b) | INTEGER | _BIT * 4 | - | int16
+_CLAMP(a, b, b) | INTEGER | _BIT * 4 | int16_t | int16
+_MIN(a, b) | INTEGER | _BYTE | int16_t | int16
+_IIF(1, a, b) | INTEGER | _BYTE | - | int16
+_CLAMP(a, b, b) | INTEGER | _BYTE | int16_t | int16
+_MIN(a, b) | INTEGER | _UNSIGNED _BYTE | int16_t | int16
+_IIF(1, a, b) | INTEGER | _UNSIGNED _BYTE | - | int16
+_CLAMP(a, b, b) | INTEGER | _UNSIGNED _BYTE | int16_t | int16
+_MIN(a, b) | INTEGER | INTEGER | int16_t | int16
+_IIF(1, a, b) | INTEGER | INTEGER | - | int16
+_CLAMP(a, b, b) | INTEGER | INTEGER | int16_t | int16
+_MIN(a, b) | INTEGER | _UNSIGNED INTEGER | uint16_t | uint16
+_IIF(1, a, b) | INTEGER | _UNSIGNED INTEGER | - | uint16
+_CLAMP(a, b, b) | INTEGER | _UNSIGNED INTEGER | uint16_t | uint16
+_MIN(a, b) | INTEGER | LONG | int32_t | int32
+_IIF(1, a, b) | INTEGER | LONG | - | int32
+_CLAMP(a, b, b) | INTEGER | LONG | int32_t | int32
+_MIN(a, b) | INTEGER | _UNSIGNED LONG | uint32_t | uint32
+_IIF(1, a, b) | INTEGER | _UNSIGNED LONG | - | uint32
+_CLAMP(a, b, b) | INTEGER | _UNSIGNED LONG | uint32_t | uint32
+_MIN(a, b) | INTEGER | _INTEGER64 | int64_t | int64
+_IIF(1, a, b) | INTEGER | _INTEGER64 | - | int64
+_CLAMP(a, b, b) | INTEGER | _INTEGER64 | int64_t | int64
+_MIN(a, b) | INTEGER | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | INTEGER | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | INTEGER | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | INTEGER | SINGLE | float | float
+_IIF(1, a, b) | INTEGER | SINGLE | - | float
+_CLAMP(a, b, b) | INTEGER | SINGLE | float | float
+_MIN(a, b) | INTEGER | DOUBLE | double | double
+_IIF(1, a, b) | INTEGER | DOUBLE | - | double
+_CLAMP(a, b, b) | INTEGER | DOUBLE | double | double
+_MIN(a, b) | INTEGER | _FLOAT | long double | long double
+_IIF(1, a, b) | INTEGER | _FLOAT | - | long double
+_CLAMP(a, b, b) | INTEGER | _FLOAT | long double | long double
+_MIN(a, b) | INTEGER | _OFFSET | intptr_t | int64
+_IIF(1, a, b) | INTEGER | _OFFSET | - | int64
+_CLAMP(a, b, b) | INTEGER | _OFFSET | intptr_t | int64
+_MIN(a, b) | INTEGER | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | INTEGER | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | INTEGER | _UNSIGNED _OFFSET | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED INTEGER | _BIT | uint16_t | uint16
+_IIF(1, a, b) | _UNSIGNED INTEGER | _BIT | - | uint16
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | _BIT | uint16_t | uint16
+_MIN(a, b) | _UNSIGNED INTEGER | _UNSIGNED _BIT | uint16_t | uint16
+_IIF(1, a, b) | _UNSIGNED INTEGER | _UNSIGNED _BIT | - | uint16
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | _UNSIGNED _BIT | uint16_t | uint16
+_MIN(a, b) | _UNSIGNED INTEGER | _BIT * 4 | uint16_t | uint16
+_IIF(1, a, b) | _UNSIGNED INTEGER | _BIT * 4 | - | uint16
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | _BIT * 4 | uint16_t | uint16
+_MIN(a, b) | _UNSIGNED INTEGER | _BYTE | uint16_t | uint16
+_IIF(1, a, b) | _UNSIGNED INTEGER | _BYTE | - | uint16
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | _BYTE | uint16_t | uint16
+_MIN(a, b) | _UNSIGNED INTEGER | _UNSIGNED _BYTE | uint16_t | uint16
+_IIF(1, a, b) | _UNSIGNED INTEGER | _UNSIGNED _BYTE | - | uint16
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | _UNSIGNED _BYTE | uint16_t | uint16
+_MIN(a, b) | _UNSIGNED INTEGER | INTEGER | uint16_t | uint16
+_IIF(1, a, b) | _UNSIGNED INTEGER | INTEGER | - | uint16
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | INTEGER | uint16_t | uint16
+_MIN(a, b) | _UNSIGNED INTEGER | _UNSIGNED INTEGER | uint16_t | uint16
+_IIF(1, a, b) | _UNSIGNED INTEGER | _UNSIGNED INTEGER | - | uint16
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | _UNSIGNED INTEGER | uint16_t | uint16
+_MIN(a, b) | _UNSIGNED INTEGER | LONG | int32_t | int32
+_IIF(1, a, b) | _UNSIGNED INTEGER | LONG | - | int32
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | LONG | int32_t | int32
+_MIN(a, b) | _UNSIGNED INTEGER | _UNSIGNED LONG | uint32_t | uint32
+_IIF(1, a, b) | _UNSIGNED INTEGER | _UNSIGNED LONG | - | uint32
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | _UNSIGNED LONG | uint32_t | uint32
+_MIN(a, b) | _UNSIGNED INTEGER | _INTEGER64 | int64_t | int64
+_IIF(1, a, b) | _UNSIGNED INTEGER | _INTEGER64 | - | int64
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | _INTEGER64 | int64_t | int64
+_MIN(a, b) | _UNSIGNED INTEGER | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED INTEGER | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED INTEGER | SINGLE | float | float
+_IIF(1, a, b) | _UNSIGNED INTEGER | SINGLE | - | float
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | SINGLE | float | float
+_MIN(a, b) | _UNSIGNED INTEGER | DOUBLE | double | double
+_IIF(1, a, b) | _UNSIGNED INTEGER | DOUBLE | - | double
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | DOUBLE | double | double
+_MIN(a, b) | _UNSIGNED INTEGER | _FLOAT | long double | long double
+_IIF(1, a, b) | _UNSIGNED INTEGER | _FLOAT | - | long double
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | _FLOAT | long double | long double
+_MIN(a, b) | _UNSIGNED INTEGER | _OFFSET | intptr_t | int64
+_IIF(1, a, b) | _UNSIGNED INTEGER | _OFFSET | - | int64
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | _OFFSET | intptr_t | int64
+_MIN(a, b) | _UNSIGNED INTEGER | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED INTEGER | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED INTEGER | _UNSIGNED _OFFSET | uintptr_t | uint64
+_MIN(a, b) | LONG | _BIT | int32_t | int32
+_IIF(1, a, b) | LONG | _BIT | - | int32
+_CLAMP(a, b, b) | LONG | _BIT | int32_t | int32
+_MIN(a, b) | LONG | _UNSIGNED _BIT | int32_t | int32
+_IIF(1, a, b) | LONG | _UNSIGNED _BIT | - | int32
+_CLAMP(a, b, b) | LONG | _UNSIGNED _BIT | int32_t | int32
+_MIN(a, b) | LONG | _BIT * 4 | int32_t | int32
+_IIF(1, a, b) | LONG | _BIT * 4 | - | int32
+_CLAMP(a, b, b) | LONG | _BIT * 4 | int32_t | int32
+_MIN(a, b) | LONG | _BYTE | int32_t | int32
+_IIF(1, a, b) | LONG | _BYTE | - | int32
+_CLAMP(a, b, b) | LONG | _BYTE | int32_t | int32
+_MIN(a, b) | LONG | _UNSIGNED _BYTE | int32_t | int32
+_IIF(1, a, b) | LONG | _UNSIGNED _BYTE | - | int32
+_CLAMP(a, b, b) | LONG | _UNSIGNED _BYTE | int32_t | int32
+_MIN(a, b) | LONG | INTEGER | int32_t | int32
+_IIF(1, a, b) | LONG | INTEGER | - | int32
+_CLAMP(a, b, b) | LONG | INTEGER | int32_t | int32
+_MIN(a, b) | LONG | _UNSIGNED INTEGER | int32_t | int32
+_IIF(1, a, b) | LONG | _UNSIGNED INTEGER | - | int32
+_CLAMP(a, b, b) | LONG | _UNSIGNED INTEGER | int32_t | int32
+_MIN(a, b) | LONG | LONG | int32_t | int32
+_IIF(1, a, b) | LONG | LONG | - | int32
+_CLAMP(a, b, b) | LONG | LONG | int32_t | int32
+_MIN(a, b) | LONG | _UNSIGNED LONG | uint32_t | uint32
+_IIF(1, a, b) | LONG | _UNSIGNED LONG | - | uint32
+_CLAMP(a, b, b) | LONG | _UNSIGNED LONG | uint32_t | uint32
+_MIN(a, b) | LONG | _INTEGER64 | int64_t | int64
+_IIF(1, a, b) | LONG | _INTEGER64 | - | int64
+_CLAMP(a, b, b) | LONG | _INTEGER64 | int64_t | int64
+_MIN(a, b) | LONG | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | LONG | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | LONG | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | LONG | SINGLE | float | float
+_IIF(1, a, b) | LONG | SINGLE | - | float
+_CLAMP(a, b, b) | LONG | SINGLE | float | float
+_MIN(a, b) | LONG | DOUBLE | double | double
+_IIF(1, a, b) | LONG | DOUBLE | - | double
+_CLAMP(a, b, b) | LONG | DOUBLE | double | double
+_MIN(a, b) | LONG | _FLOAT | long double | long double
+_IIF(1, a, b) | LONG | _FLOAT | - | long double
+_CLAMP(a, b, b) | LONG | _FLOAT | long double | long double
+_MIN(a, b) | LONG | _OFFSET | intptr_t | int64
+_IIF(1, a, b) | LONG | _OFFSET | - | int64
+_CLAMP(a, b, b) | LONG | _OFFSET | intptr_t | int64
+_MIN(a, b) | LONG | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | LONG | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | LONG | _UNSIGNED _OFFSET | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED LONG | _BIT | uint32_t | uint32
+_IIF(1, a, b) | _UNSIGNED LONG | _BIT | - | uint32
+_CLAMP(a, b, b) | _UNSIGNED LONG | _BIT | uint32_t | uint32
+_MIN(a, b) | _UNSIGNED LONG | _UNSIGNED _BIT | uint32_t | uint32
+_IIF(1, a, b) | _UNSIGNED LONG | _UNSIGNED _BIT | - | uint32
+_CLAMP(a, b, b) | _UNSIGNED LONG | _UNSIGNED _BIT | uint32_t | uint32
+_MIN(a, b) | _UNSIGNED LONG | _BIT * 4 | uint32_t | uint32
+_IIF(1, a, b) | _UNSIGNED LONG | _BIT * 4 | - | uint32
+_CLAMP(a, b, b) | _UNSIGNED LONG | _BIT * 4 | uint32_t | uint32
+_MIN(a, b) | _UNSIGNED LONG | _BYTE | uint32_t | uint32
+_IIF(1, a, b) | _UNSIGNED LONG | _BYTE | - | uint32
+_CLAMP(a, b, b) | _UNSIGNED LONG | _BYTE | uint32_t | uint32
+_MIN(a, b) | _UNSIGNED LONG | _UNSIGNED _BYTE | uint32_t | uint32
+_IIF(1, a, b) | _UNSIGNED LONG | _UNSIGNED _BYTE | - | uint32
+_CLAMP(a, b, b) | _UNSIGNED LONG | _UNSIGNED _BYTE | uint32_t | uint32
+_MIN(a, b) | _UNSIGNED LONG | INTEGER | uint32_t | uint32
+_IIF(1, a, b) | _UNSIGNED LONG | INTEGER | - | uint32
+_CLAMP(a, b, b) | _UNSIGNED LONG | INTEGER | uint32_t | uint32
+_MIN(a, b) | _UNSIGNED LONG | _UNSIGNED INTEGER | uint32_t | uint32
+_IIF(1, a, b) | _UNSIGNED LONG | _UNSIGNED INTEGER | - | uint32
+_CLAMP(a, b, b) | _UNSIGNED LONG | _UNSIGNED INTEGER | uint32_t | uint32
+_MIN(a, b) | _UNSIGNED LONG | LONG | uint32_t | uint32
+_IIF(1, a, b) | _UNSIGNED LONG | LONG | - | uint32
+_CLAMP(a, b, b) | _UNSIGNED LONG | LONG | uint32_t | uint32
+_MIN(a, b) | _UNSIGNED LONG | _UNSIGNED LONG | uint32_t | uint32
+_IIF(1, a, b) | _UNSIGNED LONG | _UNSIGNED LONG | - | uint32
+_CLAMP(a, b, b) | _UNSIGNED LONG | _UNSIGNED LONG | uint32_t | uint32
+_MIN(a, b) | _UNSIGNED LONG | _INTEGER64 | int64_t | int64
+_IIF(1, a, b) | _UNSIGNED LONG | _INTEGER64 | - | int64
+_CLAMP(a, b, b) | _UNSIGNED LONG | _INTEGER64 | int64_t | int64
+_MIN(a, b) | _UNSIGNED LONG | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED LONG | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED LONG | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED LONG | SINGLE | float | float
+_IIF(1, a, b) | _UNSIGNED LONG | SINGLE | - | float
+_CLAMP(a, b, b) | _UNSIGNED LONG | SINGLE | float | float
+_MIN(a, b) | _UNSIGNED LONG | DOUBLE | double | double
+_IIF(1, a, b) | _UNSIGNED LONG | DOUBLE | - | double
+_CLAMP(a, b, b) | _UNSIGNED LONG | DOUBLE | double | double
+_MIN(a, b) | _UNSIGNED LONG | _FLOAT | long double | long double
+_IIF(1, a, b) | _UNSIGNED LONG | _FLOAT | - | long double
+_CLAMP(a, b, b) | _UNSIGNED LONG | _FLOAT | long double | long double
+_MIN(a, b) | _UNSIGNED LONG | _OFFSET | intptr_t | int64
+_IIF(1, a, b) | _UNSIGNED LONG | _OFFSET | - | int64
+_CLAMP(a, b, b) | _UNSIGNED LONG | _OFFSET | intptr_t | int64
+_MIN(a, b) | _UNSIGNED LONG | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED LONG | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED LONG | _UNSIGNED _OFFSET | uintptr_t | uint64
+_MIN(a, b) | _INTEGER64 | _BIT | int64_t | int64
+_IIF(1, a, b) | _INTEGER64 | _BIT | - | int64
+_CLAMP(a, b, b) | _INTEGER64 | _BIT | int64_t | int64
+_MIN(a, b) | _INTEGER64 | _UNSIGNED _BIT | int64_t | int64
+_IIF(1, a, b) | _INTEGER64 | _UNSIGNED _BIT | - | int64
+_CLAMP(a, b, b) | _INTEGER64 | _UNSIGNED _BIT | int64_t | int64
+_MIN(a, b) | _INTEGER64 | _BIT * 4 | int64_t | int64
+_IIF(1, a, b) | _INTEGER64 | _BIT * 4 | - | int64
+_CLAMP(a, b, b) | _INTEGER64 | _BIT * 4 | int64_t | int64
+_MIN(a, b) | _INTEGER64 | _BYTE | int64_t | int64
+_IIF(1, a, b) | _INTEGER64 | _BYTE | - | int64
+_CLAMP(a, b, b) | _INTEGER64 | _BYTE | int64_t | int64
+_MIN(a, b) | _INTEGER64 | _UNSIGNED _BYTE | int64_t | int64
+_IIF(1, a, b) | _INTEGER64 | _UNSIGNED _BYTE | - | int64
+_CLAMP(a, b, b) | _INTEGER64 | _UNSIGNED _BYTE | int64_t | int64
+_MIN(a, b) | _INTEGER64 | INTEGER | int64_t | int64
+_IIF(1, a, b) | _INTEGER64 | INTEGER | - | int64
+_CLAMP(a, b, b) | _INTEGER64 | INTEGER | int64_t | int64
+_MIN(a, b) | _INTEGER64 | _UNSIGNED INTEGER | int64_t | int64
+_IIF(1, a, b) | _INTEGER64 | _UNSIGNED INTEGER | - | int64
+_CLAMP(a, b, b) | _INTEGER64 | _UNSIGNED INTEGER | int64_t | int64
+_MIN(a, b) | _INTEGER64 | LONG | int64_t | int64
+_IIF(1, a, b) | _INTEGER64 | LONG | - | int64
+_CLAMP(a, b, b) | _INTEGER64 | LONG | int64_t | int64
+_MIN(a, b) | _INTEGER64 | _UNSIGNED LONG | int64_t | int64
+_IIF(1, a, b) | _INTEGER64 | _UNSIGNED LONG | - | int64
+_CLAMP(a, b, b) | _INTEGER64 | _UNSIGNED LONG | int64_t | int64
+_MIN(a, b) | _INTEGER64 | _INTEGER64 | int64_t | int64
+_IIF(1, a, b) | _INTEGER64 | _INTEGER64 | - | int64
+_CLAMP(a, b, b) | _INTEGER64 | _INTEGER64 | int64_t | int64
+_MIN(a, b) | _INTEGER64 | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | _INTEGER64 | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _INTEGER64 | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | _INTEGER64 | SINGLE | float | float
+_IIF(1, a, b) | _INTEGER64 | SINGLE | - | float
+_CLAMP(a, b, b) | _INTEGER64 | SINGLE | float | float
+_MIN(a, b) | _INTEGER64 | DOUBLE | double | double
+_IIF(1, a, b) | _INTEGER64 | DOUBLE | - | double
+_CLAMP(a, b, b) | _INTEGER64 | DOUBLE | double | double
+_MIN(a, b) | _INTEGER64 | _FLOAT | long double | long double
+_IIF(1, a, b) | _INTEGER64 | _FLOAT | - | long double
+_CLAMP(a, b, b) | _INTEGER64 | _FLOAT | long double | long double
+_MIN(a, b) | _INTEGER64 | _OFFSET | int64_t | int64
+_IIF(1, a, b) | _INTEGER64 | _OFFSET | - | int64
+_CLAMP(a, b, b) | _INTEGER64 | _OFFSET | int64_t | int64
+_MIN(a, b) | _INTEGER64 | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | _INTEGER64 | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | _INTEGER64 | _UNSIGNED _OFFSET | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | _BIT | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | _BIT | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | _BIT | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | _UNSIGNED _BIT | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | _UNSIGNED _BIT | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | _UNSIGNED _BIT | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | _BIT * 4 | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | _BIT * 4 | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | _BIT * 4 | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | _BYTE | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | _BYTE | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | _BYTE | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | _UNSIGNED _BYTE | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | _UNSIGNED _BYTE | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | _UNSIGNED _BYTE | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | INTEGER | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | INTEGER | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | INTEGER | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | _UNSIGNED INTEGER | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | _UNSIGNED INTEGER | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | _UNSIGNED INTEGER | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | LONG | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | LONG | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | LONG | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | _UNSIGNED LONG | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | _UNSIGNED LONG | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | _UNSIGNED LONG | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | SINGLE | float | float
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | SINGLE | - | float
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | SINGLE | float | float
+_MIN(a, b) | _UNSIGNED _INTEGER64 | DOUBLE | double | double
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | DOUBLE | - | double
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | DOUBLE | double | double
+_MIN(a, b) | _UNSIGNED _INTEGER64 | _FLOAT | long double | long double
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | _FLOAT | - | long double
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | _FLOAT | long double | long double
+_MIN(a, b) | _UNSIGNED _INTEGER64 | _OFFSET | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | _OFFSET | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | _OFFSET | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _INTEGER64 | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _INTEGER64 | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _INTEGER64 | _UNSIGNED _OFFSET | uintptr_t | uint64
+_MIN(a, b) | SINGLE | _BIT | float | float
+_IIF(1, a, b) | SINGLE | _BIT | - | float
+_CLAMP(a, b, b) | SINGLE | _BIT | float | float
+_MIN(a, b) | SINGLE | _UNSIGNED _BIT | float | float
+_IIF(1, a, b) | SINGLE | _UNSIGNED _BIT | - | float
+_CLAMP(a, b, b) | SINGLE | _UNSIGNED _BIT | float | float
+_MIN(a, b) | SINGLE | _BIT * 4 | float | float
+_IIF(1, a, b) | SINGLE | _BIT * 4 | - | float
+_CLAMP(a, b, b) | SINGLE | _BIT * 4 | float | float
+_MIN(a, b) | SINGLE | _BYTE | float | float
+_IIF(1, a, b) | SINGLE | _BYTE | - | float
+_CLAMP(a, b, b) | SINGLE | _BYTE | float | float
+_MIN(a, b) | SINGLE | _UNSIGNED _BYTE | float | float
+_IIF(1, a, b) | SINGLE | _UNSIGNED _BYTE | - | float
+_CLAMP(a, b, b) | SINGLE | _UNSIGNED _BYTE | float | float
+_MIN(a, b) | SINGLE | INTEGER | float | float
+_IIF(1, a, b) | SINGLE | INTEGER | - | float
+_CLAMP(a, b, b) | SINGLE | INTEGER | float | float
+_MIN(a, b) | SINGLE | _UNSIGNED INTEGER | float | float
+_IIF(1, a, b) | SINGLE | _UNSIGNED INTEGER | - | float
+_CLAMP(a, b, b) | SINGLE | _UNSIGNED INTEGER | float | float
+_MIN(a, b) | SINGLE | LONG | float | float
+_IIF(1, a, b) | SINGLE | LONG | - | float
+_CLAMP(a, b, b) | SINGLE | LONG | float | float
+_MIN(a, b) | SINGLE | _UNSIGNED LONG | float | float
+_IIF(1, a, b) | SINGLE | _UNSIGNED LONG | - | float
+_CLAMP(a, b, b) | SINGLE | _UNSIGNED LONG | float | float
+_MIN(a, b) | SINGLE | _INTEGER64 | float | float
+_IIF(1, a, b) | SINGLE | _INTEGER64 | - | float
+_CLAMP(a, b, b) | SINGLE | _INTEGER64 | float | float
+_MIN(a, b) | SINGLE | _UNSIGNED _INTEGER64 | float | float
+_IIF(1, a, b) | SINGLE | _UNSIGNED _INTEGER64 | - | float
+_CLAMP(a, b, b) | SINGLE | _UNSIGNED _INTEGER64 | float | float
+_MIN(a, b) | SINGLE | SINGLE | float | float
+_IIF(1, a, b) | SINGLE | SINGLE | - | float
+_CLAMP(a, b, b) | SINGLE | SINGLE | float | float
+_MIN(a, b) | SINGLE | DOUBLE | double | double
+_IIF(1, a, b) | SINGLE | DOUBLE | - | double
+_CLAMP(a, b, b) | SINGLE | DOUBLE | double | double
+_MIN(a, b) | SINGLE | _FLOAT | long double | long double
+_IIF(1, a, b) | SINGLE | _FLOAT | - | long double
+_CLAMP(a, b, b) | SINGLE | _FLOAT | long double | long double
+_MIN(a, b) | SINGLE | _OFFSET | float | float
+_IIF(1, a, b) | SINGLE | _OFFSET | - | float
+_CLAMP(a, b, b) | SINGLE | _OFFSET | float | float
+_MIN(a, b) | SINGLE | _UNSIGNED _OFFSET | float | float
+_IIF(1, a, b) | SINGLE | _UNSIGNED _OFFSET | - | float
+_CLAMP(a, b, b) | SINGLE | _UNSIGNED _OFFSET | float | float
+_MIN(a, b) | DOUBLE | _BIT | double | double
+_IIF(1, a, b) | DOUBLE | _BIT | - | double
+_CLAMP(a, b, b) | DOUBLE | _BIT | double | double
+_MIN(a, b) | DOUBLE | _UNSIGNED _BIT | double | double
+_IIF(1, a, b) | DOUBLE | _UNSIGNED _BIT | - | double
+_CLAMP(a, b, b) | DOUBLE | _UNSIGNED _BIT | double | double
+_MIN(a, b) | DOUBLE | _BIT * 4 | double | double
+_IIF(1, a, b) | DOUBLE | _BIT * 4 | - | double
+_CLAMP(a, b, b) | DOUBLE | _BIT * 4 | double | double
+_MIN(a, b) | DOUBLE | _BYTE | double | double
+_IIF(1, a, b) | DOUBLE | _BYTE | - | double
+_CLAMP(a, b, b) | DOUBLE | _BYTE | double | double
+_MIN(a, b) | DOUBLE | _UNSIGNED _BYTE | double | double
+_IIF(1, a, b) | DOUBLE | _UNSIGNED _BYTE | - | double
+_CLAMP(a, b, b) | DOUBLE | _UNSIGNED _BYTE | double | double
+_MIN(a, b) | DOUBLE | INTEGER | double | double
+_IIF(1, a, b) | DOUBLE | INTEGER | - | double
+_CLAMP(a, b, b) | DOUBLE | INTEGER | double | double
+_MIN(a, b) | DOUBLE | _UNSIGNED INTEGER | double | double
+_IIF(1, a, b) | DOUBLE | _UNSIGNED INTEGER | - | double
+_CLAMP(a, b, b) | DOUBLE | _UNSIGNED INTEGER | double | double
+_MIN(a, b) | DOUBLE | LONG | double | double
+_IIF(1, a, b) | DOUBLE | LONG | - | double
+_CLAMP(a, b, b) | DOUBLE | LONG | double | double
+_MIN(a, b) | DOUBLE | _UNSIGNED LONG | double | double
+_IIF(1, a, b) | DOUBLE | _UNSIGNED LONG | - | double
+_CLAMP(a, b, b) | DOUBLE | _UNSIGNED LONG | double | double
+_MIN(a, b) | DOUBLE | _INTEGER64 | double | double
+_IIF(1, a, b) | DOUBLE | _INTEGER64 | - | double
+_CLAMP(a, b, b) | DOUBLE | _INTEGER64 | double | double
+_MIN(a, b) | DOUBLE | _UNSIGNED _INTEGER64 | double | double
+_IIF(1, a, b) | DOUBLE | _UNSIGNED _INTEGER64 | - | double
+_CLAMP(a, b, b) | DOUBLE | _UNSIGNED _INTEGER64 | double | double
+_MIN(a, b) | DOUBLE | SINGLE | double | double
+_IIF(1, a, b) | DOUBLE | SINGLE | - | double
+_CLAMP(a, b, b) | DOUBLE | SINGLE | double | double
+_MIN(a, b) | DOUBLE | DOUBLE | double | double
+_IIF(1, a, b) | DOUBLE | DOUBLE | - | double
+_CLAMP(a, b, b) | DOUBLE | DOUBLE | double | double
+_MIN(a, b) | DOUBLE | _FLOAT | long double | long double
+_IIF(1, a, b) | DOUBLE | _FLOAT | - | long double
+_CLAMP(a, b, b) | DOUBLE | _FLOAT | long double | long double
+_MIN(a, b) | DOUBLE | _OFFSET | double | double
+_IIF(1, a, b) | DOUBLE | _OFFSET | - | double
+_CLAMP(a, b, b) | DOUBLE | _OFFSET | double | double
+_MIN(a, b) | DOUBLE | _UNSIGNED _OFFSET | double | double
+_IIF(1, a, b) | DOUBLE | _UNSIGNED _OFFSET | - | double
+_CLAMP(a, b, b) | DOUBLE | _UNSIGNED _OFFSET | double | double
+_MIN(a, b) | _FLOAT | _BIT | long double | long double
+_IIF(1, a, b) | _FLOAT | _BIT | - | long double
+_CLAMP(a, b, b) | _FLOAT | _BIT | long double | long double
+_MIN(a, b) | _FLOAT | _UNSIGNED _BIT | long double | long double
+_IIF(1, a, b) | _FLOAT | _UNSIGNED _BIT | - | long double
+_CLAMP(a, b, b) | _FLOAT | _UNSIGNED _BIT | long double | long double
+_MIN(a, b) | _FLOAT | _BIT * 4 | long double | long double
+_IIF(1, a, b) | _FLOAT | _BIT * 4 | - | long double
+_CLAMP(a, b, b) | _FLOAT | _BIT * 4 | long double | long double
+_MIN(a, b) | _FLOAT | _BYTE | long double | long double
+_IIF(1, a, b) | _FLOAT | _BYTE | - | long double
+_CLAMP(a, b, b) | _FLOAT | _BYTE | long double | long double
+_MIN(a, b) | _FLOAT | _UNSIGNED _BYTE | long double | long double
+_IIF(1, a, b) | _FLOAT | _UNSIGNED _BYTE | - | long double
+_CLAMP(a, b, b) | _FLOAT | _UNSIGNED _BYTE | long double | long double
+_MIN(a, b) | _FLOAT | INTEGER | long double | long double
+_IIF(1, a, b) | _FLOAT | INTEGER | - | long double
+_CLAMP(a, b, b) | _FLOAT | INTEGER | long double | long double
+_MIN(a, b) | _FLOAT | _UNSIGNED INTEGER | long double | long double
+_IIF(1, a, b) | _FLOAT | _UNSIGNED INTEGER | - | long double
+_CLAMP(a, b, b) | _FLOAT | _UNSIGNED INTEGER | long double | long double
+_MIN(a, b) | _FLOAT | LONG | long double | long double
+_IIF(1, a, b) | _FLOAT | LONG | - | long double
+_CLAMP(a, b, b) | _FLOAT | LONG | long double | long double
+_MIN(a, b) | _FLOAT | _UNSIGNED LONG | long double | long double
+_IIF(1, a, b) | _FLOAT | _UNSIGNED LONG | - | long double
+_CLAMP(a, b, b) | _FLOAT | _UNSIGNED LONG | long double | long double
+_MIN(a, b) | _FLOAT | _INTEGER64 | long double | long double
+_IIF(1, a, b) | _FLOAT | _INTEGER64 | - | long double
+_CLAMP(a, b, b) | _FLOAT | _INTEGER64 | long double | long double
+_MIN(a, b) | _FLOAT | _UNSIGNED _INTEGER64 | long double | long double
+_IIF(1, a, b) | _FLOAT | _UNSIGNED _INTEGER64 | - | long double
+_CLAMP(a, b, b) | _FLOAT | _UNSIGNED _INTEGER64 | long double | long double
+_MIN(a, b) | _FLOAT | SINGLE | long double | long double
+_IIF(1, a, b) | _FLOAT | SINGLE | - | long double
+_CLAMP(a, b, b) | _FLOAT | SINGLE | long double | long double
+_MIN(a, b) | _FLOAT | DOUBLE | long double | long double
+_IIF(1, a, b) | _FLOAT | DOUBLE | - | long double
+_CLAMP(a, b, b) | _FLOAT | DOUBLE | long double | long double
+_MIN(a, b) | _FLOAT | _FLOAT | long double | long double
+_IIF(1, a, b) | _FLOAT | _FLOAT | - | long double
+_CLAMP(a, b, b) | _FLOAT | _FLOAT | long double | long double
+_MIN(a, b) | _FLOAT | _OFFSET | long double | long double
+_IIF(1, a, b) | _FLOAT | _OFFSET | - | long double
+_CLAMP(a, b, b) | _FLOAT | _OFFSET | long double | long double
+_MIN(a, b) | _FLOAT | _UNSIGNED _OFFSET | long double | long double
+_IIF(1, a, b) | _FLOAT | _UNSIGNED _OFFSET | - | long double
+_CLAMP(a, b, b) | _FLOAT | _UNSIGNED _OFFSET | long double | long double
+_MIN(a, b) | _OFFSET | _BIT | intptr_t | int64
+_IIF(1, a, b) | _OFFSET | _BIT | - | int64
+_CLAMP(a, b, b) | _OFFSET | _BIT | intptr_t | int64
+_MIN(a, b) | _OFFSET | _UNSIGNED _BIT | intptr_t | int64
+_IIF(1, a, b) | _OFFSET | _UNSIGNED _BIT | - | int64
+_CLAMP(a, b, b) | _OFFSET | _UNSIGNED _BIT | intptr_t | int64
+_MIN(a, b) | _OFFSET | _BIT * 4 | intptr_t | int64
+_IIF(1, a, b) | _OFFSET | _BIT * 4 | - | int64
+_CLAMP(a, b, b) | _OFFSET | _BIT * 4 | intptr_t | int64
+_MIN(a, b) | _OFFSET | _BYTE | intptr_t | int64
+_IIF(1, a, b) | _OFFSET | _BYTE | - | int64
+_CLAMP(a, b, b) | _OFFSET | _BYTE | intptr_t | int64
+_MIN(a, b) | _OFFSET | _UNSIGNED _BYTE | intptr_t | int64
+_IIF(1, a, b) | _OFFSET | _UNSIGNED _BYTE | - | int64
+_CLAMP(a, b, b) | _OFFSET | _UNSIGNED _BYTE | intptr_t | int64
+_MIN(a, b) | _OFFSET | INTEGER | intptr_t | int64
+_IIF(1, a, b) | _OFFSET | INTEGER | - | int64
+_CLAMP(a, b, b) | _OFFSET | INTEGER | intptr_t | int64
+_MIN(a, b) | _OFFSET | _UNSIGNED INTEGER | intptr_t | int64
+_IIF(1, a, b) | _OFFSET | _UNSIGNED INTEGER | - | int64
+_CLAMP(a, b, b) | _OFFSET | _UNSIGNED INTEGER | intptr_t | int64
+_MIN(a, b) | _OFFSET | LONG | intptr_t | int64
+_IIF(1, a, b) | _OFFSET | LONG | - | int64
+_CLAMP(a, b, b) | _OFFSET | LONG | intptr_t | int64
+_MIN(a, b) | _OFFSET | _UNSIGNED LONG | intptr_t | int64
+_IIF(1, a, b) | _OFFSET | _UNSIGNED LONG | - | int64
+_CLAMP(a, b, b) | _OFFSET | _UNSIGNED LONG | intptr_t | int64
+_MIN(a, b) | _OFFSET | _INTEGER64 | intptr_t | int64
+_IIF(1, a, b) | _OFFSET | _INTEGER64 | - | int64
+_CLAMP(a, b, b) | _OFFSET | _INTEGER64 | intptr_t | int64
+_MIN(a, b) | _OFFSET | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | _OFFSET | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _OFFSET | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | _OFFSET | SINGLE | float | float
+_IIF(1, a, b) | _OFFSET | SINGLE | - | float
+_CLAMP(a, b, b) | _OFFSET | SINGLE | float | float
+_MIN(a, b) | _OFFSET | DOUBLE | double | double
+_IIF(1, a, b) | _OFFSET | DOUBLE | - | double
+_CLAMP(a, b, b) | _OFFSET | DOUBLE | double | double
+_MIN(a, b) | _OFFSET | _FLOAT | long double | long double
+_IIF(1, a, b) | _OFFSET | _FLOAT | - | long double
+_CLAMP(a, b, b) | _OFFSET | _FLOAT | long double | long double
+_MIN(a, b) | _OFFSET | _OFFSET | intptr_t | int64
+_IIF(1, a, b) | _OFFSET | _OFFSET | - | int64
+_CLAMP(a, b, b) | _OFFSET | _OFFSET | intptr_t | int64
+_MIN(a, b) | _OFFSET | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | _OFFSET | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | _OFFSET | _UNSIGNED _OFFSET | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | _BIT | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | _BIT | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | _BIT | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | _UNSIGNED _BIT | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | _UNSIGNED _BIT | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | _UNSIGNED _BIT | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | _BIT * 4 | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | _BIT * 4 | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | _BIT * 4 | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | _BYTE | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | _BYTE | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | _BYTE | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | _UNSIGNED _BYTE | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | _UNSIGNED _BYTE | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | _UNSIGNED _BYTE | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | INTEGER | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | INTEGER | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | INTEGER | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | _UNSIGNED INTEGER | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | _UNSIGNED INTEGER | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | _UNSIGNED INTEGER | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | LONG | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | LONG | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | LONG | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | _UNSIGNED LONG | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | _UNSIGNED LONG | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | _UNSIGNED LONG | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | _INTEGER64 | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | _INTEGER64 | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | _UNSIGNED _INTEGER64 | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | _UNSIGNED _INTEGER64 | uint64_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | SINGLE | float | float
+_IIF(1, a, b) | _UNSIGNED _OFFSET | SINGLE | - | float
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | SINGLE | float | float
+_MIN(a, b) | _UNSIGNED _OFFSET | DOUBLE | double | double
+_IIF(1, a, b) | _UNSIGNED _OFFSET | DOUBLE | - | double
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | DOUBLE | double | double
+_MIN(a, b) | _UNSIGNED _OFFSET | _FLOAT | long double | long double
+_IIF(1, a, b) | _UNSIGNED _OFFSET | _FLOAT | - | long double
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | _FLOAT | long double | long double
+_MIN(a, b) | _UNSIGNED _OFFSET | _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | _OFFSET | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | _OFFSET | uintptr_t | uint64
+_MIN(a, b) | _UNSIGNED _OFFSET | _UNSIGNED _OFFSET | uintptr_t | uint64
+_IIF(1, a, b) | _UNSIGNED _OFFSET | _UNSIGNED _OFFSET | - | uint64
+_CLAMP(a, b, b) | _UNSIGNED _OFFSET | _UNSIGNED _OFFSET | uintptr_t | uint64
+_SHL(a, 1) | _BIT | - | - | uint64
+_SHL(a, 1) | _UNSIGNED _BIT | - | - | uint64
+_SHL(a, 1) | _BIT * 4 | - | - | uint64
+_ROL(a, 1) | _BYTE | - | uint8_t | uint8
+_SHL(a, 1) | _BYTE | - | - | uint64
+_ROL(a, 1) | _UNSIGNED _BYTE | - | uint8_t | uint8
+_SHL(a, 1) | _UNSIGNED _BYTE | - | - | uint64
+_ROL(a, 1) | INTEGER | - | uint16_t | uint16
+_SHL(a, 1) | INTEGER | - | - | uint64
+_ROL(a, 1) | _UNSIGNED INTEGER | - | uint16_t | uint16
+_SHL(a, 1) | _UNSIGNED INTEGER | - | - | uint64
+_ROL(a, 1) | LONG | - | uint32_t | uint32
+_SHL(a, 1) | LONG | - | - | uint64
+_ROL(a, 1) | _UNSIGNED LONG | - | uint32_t | uint32
+_SHL(a, 1) | _UNSIGNED LONG | - | - | uint64
+_ROL(a, 1) | _INTEGER64 | - | uint64_t | uint64
+_SHL(a, 1) | _INTEGER64 | - | - | uint64
+_ROL(a, 1) | _UNSIGNED _INTEGER64 | - | uint64_t | uint64
+_SHL(a, 1) | _UNSIGNED _INTEGER64 | - | - | uint64
+_SHL(a, 1) | SINGLE | - | - | uint64
+_SHL(a, 1) | DOUBLE | - | - | uint64
+_SHL(a, 1) | _FLOAT | - | - | uint64
+_ROL(a, 1) | _OFFSET | - | uint64_t | uint64
+_SHL(a, 1) | _OFFSET | - | - | uint64
+_ROL(a, 1) | _UNSIGNED _OFFSET | - | uint64_t | uint64
+_SHL(a, 1) | _UNSIGNED _OFFSET | - | - | uint64
+# Rejected:
+# _ROL(a, 1) | _BIT | Unsupported integral type size
+# _ROL(a, 1) | _UNSIGNED _BIT | Unsupported integral type size
+# _ROL(a, 1) | _BIT * 4 | Unsupported integral type size
+# _ROL(a, 1) | SINGLE | Expected non-floating-point numeric argument
+# _ROL(a, 1) | DOUBLE | Expected non-floating-point numeric argument
+# _ROL(a, 1) | _FLOAT | Expected non-floating-point numeric argument

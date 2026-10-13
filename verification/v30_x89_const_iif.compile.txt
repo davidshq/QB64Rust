@@ -1,0 +1,5 @@
+
+Unexpected element '_IIF'
+Caused by (or after):
+LINE 3:CONST C = _IIF ( 1 , 2 , 3 )
+exit=1

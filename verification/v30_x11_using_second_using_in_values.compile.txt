@@ -1,0 +1,5 @@
+
+Name already in use (USING)
+Caused by (or after):PRINT USING "##",2 ; 5 USING "#",1 ; 6
+LINE 3:PRINT USING "##"; 5 USING "#"; 6
+exit=1

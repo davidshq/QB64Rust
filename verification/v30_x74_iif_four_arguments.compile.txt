@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _IIF(expression, truePart, falsePart)
+Caused by (or after):PRINT _IIF ( 1 , 2 , 3 , 4 )
+LINE 3:PRINT _IIF(1, 2, 3, 4)
+exit=1

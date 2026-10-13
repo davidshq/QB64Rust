@@ -1,0 +1,85 @@
+string fields
+[h]
+[ ]
+[hello]
+[]
+[he]
+[hel]
+[hell]
+[hello   ]
+[    ]
+[\ab\<error 5 >]
+[\<error 5 >]
+[h\]
+[ahellob]
+[!hello]
+[&hello]
+[\hel]
+[ab   ]
+[ab      ]
+the wrong kind of value
+[<error 13 >]
+[<error 13 >]
+[<error 13 >]
+[<error 13 >]
+[  5 <error 13 >]
+[a <error 13 >]
+[ab   5 cd <error 13 >]
+several values
+[ 1  2  3]
+[ 1  2 ]
+[ 1 ]
+[ 1 2 3]
+[  1  2  3]
+[a 1ba 2ba 3b]
+[a 1b 2ca 3b]
+[ 1x 2x 3x]
+[Ann is 30 yearsBob is 41 years]
+[Ann is 30 yearsBob is ]
+[x a y]
+[ 1 tail]
+[head  1 mid ]
+[head  1 mid # tail]
+no field
+[abc<error 5 >]
+[a<error 5 >]
+[abc<error 5 >]
+[#<error 5 >]
+the end of the statement
+ 1
+ 1|
+ 1|
+ 1 2
+ 1 2
+ 1 text
+the cursor
+  1 1 
+  1 1 
+the format
+< 5>
+< 5>< 6>
+ 3.14
+< 5>
+  5.0
+[ 5   ]
+values
+  8  14
+  5   7
+  4 bcd
+  1  2
+TAB and SPC
+ 1           2
+ 1     2
+     1
+ 1           2  3
+USING after other items
+a 5
+ 1  2  5 6
+ab 5
+     5
+ 5
+an error in a value
+ 1 <error 5 >after
+ 1 abc  3
+after
+exit=0

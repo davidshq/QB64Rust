@@ -1,0 +1,5 @@
+
+Expected variable name/array element
+Caused by (or after):PUT # 1 , , MID$ ( V , 1 , 1 )
+LINE 7:PUT #1, , MID$(v, 1, 1)
+exit=1
