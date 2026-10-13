@@ -1,6 +1,7 @@
 # Developing the extension
 
-Commands run from `vscode\` unless stated otherwise. Node 20.19 or later.
+Commands run from `vscode\` unless stated otherwise. Node 20.19 or later; the repo's `mise.toml` and CI use
+Node 24 (`mise install` at the repo root gives it).
 
 `tsconfig.json` lists `compilerOptions.types` as `node` and `mocha`. Without `node`, TypeScript does not load `@types/node` (already a devDependency), so `import * as assert from "assert"` and other Node names fail in the editor. `mocha` keeps `describe` / `it` typed once `types` is set, because that field replaces automatic `@types` inclusion.
 
