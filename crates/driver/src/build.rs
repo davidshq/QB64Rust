@@ -376,6 +376,20 @@ mod tests {
         );
     }
 
+    /// A program with neither `$CONSOLE` nor `$CONSOLE:ONLY`, with or without `$SCREENHIDE`: no flag, so the
+    /// clone's `Makefile` links the libqb with the window and `-mwindows` (design D1 of `m3-window-output`, its
+    /// two rows; `$SCREENHIDE` is a global of the program, not a flag).
+    #[test]
+    fn a_program_without_a_console_has_no_make_flag() {
+        let shown = program_settings(false, true, false);
+        let hidden = qb64rust_ir::Settings {
+            window_hidden: true,
+            ..program_settings(false, true, false)
+        };
+        assert!(make_flags(&shown).is_empty());
+        assert!(make_flags(&hidden).is_empty());
+    }
+
     /// Two builds that differ only in the program's flags do not share an executable (spec `compiler/pipeline`,
     /// "The build follows the program"): the fragments of a program with and without a window can be equal.
     #[test]

@@ -10,7 +10,19 @@ python tools\callsite\callsite.py                 # every program of tests\calls
 python tools\callsite\callsite.py --glob "kill*"  # some of them
 python tools\callsite\callsite.py --verbose       # also print the normalised tokens of equal programs
 python tools\callsite\callsite.py --self-test     # the normaliser and the seeded mistakes, no compiler needed
+python tools\callsite\callsite.py --no-cache      # run the old compiler for every program
 ```
+
+**The old compiler's answers are kept.** Its C++ for a program changes only when the program or the compiler
+does, so the main-module fragment it writes (or the reason it rejects the program) is kept in
+`target\callsite-cache` (`--cache <folder>`; git-ignored), under a key of the program's bytes, its file name and
+`qb64pe.exe` by size and time. A rejection is never kept (the compiler can fail for a reason that passes), and an
+answer is written under another name and renamed, so a stopped run leaves no half file. The key does not cover
+the files `qb64pe.exe` reads when it runs (its auto-included `.bi` files): after a change to the clone that does
+not rebuild the compiler, run once with `--no-cache` or empty the folder. A run then starts `qb64pe.exe` only for programs that are new or changed; the new
+compiler writes its C++ for every program on every run. Without the cache the 663 programs take about 5 min 45 s
+(half a second of `qb64pe -z` each); CI has no cache and runs them all (user, 2026-10-12: fewer repeated runs,
+`DECISIONS.md`).
 
 It needs the reference clone with `qb64pe.exe` (`--qb-root`, default `..\QB64pe`) and the release build of the
 new compiler (`--qb64rust`, default `target\release\qb64rust.exe`). The exit code is 0 when every program compares
@@ -46,10 +58,12 @@ normalises them:
    conversion **when the cast names the parameter's type**. The check cannot see a cast to a narrower type than the
    parameter (it does not read libqb's prototypes); that case is covered by a slice program with a large value.
    Casts anywhere else, and casts to a float type, are compared.
-5. **The `ll` suffix of an integer literal that is a whole call argument is dropped** (`sub_seek(1,2ll)` against
-   `sub_seek( 1 , 2 )`). The new compiler spells a literal of an `_INTEGER64` slot as a `long long`; the old
-   compiler writes the digits and C++ converts them to the parameter's type. A suffix on an operand inside an
-   argument (`a*2ll`) is compared.
+5. **The `ll` or `u` suffix of an integer literal that is a whole call argument is dropped** (`sub_seek(1,2ll)`
+   against `sub_seek( 1 , 2 )`; `sub_clsDest(NULL,1u,NULL,2)` against `sub_clsDest(NULL, 1 ,NULL,2)`). The new
+   compiler spells a literal of an `_INTEGER64` slot as a `long long` and one of an `_UNSIGNED LONG` slot as an
+   `unsigned`; the old compiler writes the digits and C++ converts them to the parameter's type. A suffix on an
+   operand inside an argument (`a*2ll`) is compared. (`u` since `m3-window-output`, 2026-10-12, with the
+   colours of `CLS`, `CIRCLE` and `PAINT`.)
 
 6. **A whole call argument that is integer literals joined by `|` is replaced by its value** (`func_rnd(x,0|1)`
    against `func_rnd(x,1)`). The old compiler writes the `passed` mask of a function as its bits joined by `|`,
@@ -76,6 +90,15 @@ program; the reason is its first diagnostic), then a summary line. No local path
   (`sub_randomize(((double)(5)),1)`), the old compiler leaves it to C++ (`sub_randomize( 5 ,1)`). A cast to a float
   type is compared on purpose (it is not the same conversion for a `long double` argument), so the programs pass a
   DOUBLE variable or a float literal to such a slot; integer seeds are covered by the slice programs.
+- **A literal that the slot's conversion changes.** The new compiler folds the conversion of a literal to its
+  slot: `COLOR 4294967295` passes `(-1)` to a LONG slot and `CLS , -1` passes `4294967295u` to an `_UNSIGNED
+  LONG` one, where the old compiler writes the digits as they are and C++ narrows them. The same 32 bits reach
+  libqb, but the check cannot know that. The programs pass literals that fit their slot; a colour beyond 32
+  bits is in the screen program `d12_numeric_types`.
+- **An expression as the fill of `PAINT`.** The old compiler writes its cast before the first operand
+  (`(uint32)*__LONG_N+ 1`), the new compiler around the whole (`(uint32)(*__LONG_N+1)`): the same 32 bits
+  (design D2 of `m3-window-output`), spelled apart. The programs pass a variable, a literal or one call there;
+  an expression is in the screen program `d08_paint`.
 - **Stores into a `_BIT` variable or a member.** The store's mask and a member's address are spelled differently
   (`&1` against `&0x1ull`, `((0+4))` against `+4`); a `READ` target in the programs is a plain variable of another
   type.

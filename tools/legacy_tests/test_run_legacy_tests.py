@@ -205,7 +205,9 @@ class Tools:
         run_rc=0,
         run_times_out=False,
         states=(),
+        exe_bytes=b"",
     ):
+        self.exe_bytes = exe_bytes
         self.rc, self.compile_out, self.exe = rc, compile_out, exe
         self.runs, self.run_rc, self.run_times_out = list(runs), run_rc, run_times_out
         # The screen state each run writes to the file QB64_SCREEN_STATE names (the last one again
@@ -221,7 +223,7 @@ class Tools:
             self.compile_cmd = list(args)
             stdout_path.write_bytes(self.compile_out)
             if self.exe:
-                Path(args[args.index("-o") + 1]).write_bytes(b"")
+                Path(args[args.index("-o") + 1]).write_bytes(self.exe_bytes)
             return self.rc, False
         self.run_stdin.append(stdin_path)
         self.run_cmds.append(list(args))
@@ -255,8 +257,18 @@ class CorpusFixture(unittest.TestCase):
         path.write_bytes(data)
         return path
 
-    def run_test(self, tools: Tools, qb64="qb64rust.exe", record=False, cpp_opt=False, known=None):
-        args = SimpleNamespace(qb64=Path(qb64), record=record, cpp_opt=cpp_opt, copies=None)
+    def run_test(
+        self,
+        tools: Tools,
+        qb64="qb64rust.exe",
+        record=False,
+        cpp_opt=False,
+        known=None,
+        pass_cache=None,
+    ):
+        args = SimpleNamespace(
+            qb64=Path(qb64), record=record, cpp_opt=cpp_opt, copies=None, pass_cache=pass_cache
+        )
         with mock.patch.object(rlt, "run_proc", tools):
             return rlt.corpus_test(
                 self.bas, args, self.results, self.clone, self.corpus, known or {}
@@ -400,6 +412,97 @@ class CorpusProgram(CorpusFixture):
 
 
 STATE = b"screen-state 1\npages 1 display 0 write 0 read 0\nend\n"
+
+
+class PassCache(CorpusFixture):
+    """--pass-cache: a program that passed is not run again while its executable, its source and
+    its expected and input files are the same; anything else runs it."""
+
+    def setUp(self):
+        super().setUp()
+        self.cache = Path(self.tmp.name) / "passes"
+        self.sidecar("output", b"1\n")
+
+    def go(self, tools: Tools, **more):
+        return self.run_test(tools, pass_cache=self.cache, **more)
+
+    def passes_once(self) -> None:
+        tools = Tools(runs=[b"1\n"], exe_bytes=b"exe one")
+        r = self.go(tools)
+        self.assertEqual((r.status, r.detail, len(tools.run_cmds)), ("PASS", "", 1))
+
+    def again(self, exe_bytes=b"exe one", runs=(b"1\n",)):
+        tools = Tools(runs=list(runs), exe_bytes=exe_bytes)
+        return self.go(tools), len(tools.run_cmds)
+
+    def test_a_program_that_passed_is_compiled_and_not_run(self):
+        self.passes_once()
+        tools = Tools(runs=[b"wrong\n"], exe_bytes=b"exe one")
+        r = self.go(tools)
+        self.assertEqual((r.status, r.detail), ("PASS", rlt.PASSED_BEFORE))
+        self.assertEqual(len(tools.run_cmds), 0)
+        self.assertTrue(tools.compile_cmd)
+        self.assertFalse((self.results / "g-p").exists())
+
+    def test_another_executable_runs(self):
+        self.passes_once()
+        r, runs = self.again(exe_bytes=b"exe two", runs=[b"2\n"])
+        self.assertEqual(runs, 1)
+        self.assert_fail(r, "result")
+
+    def test_a_changed_expected_or_input_file_runs(self):
+        for ext, data in (
+            ("output", b"2\n"),
+            ("stdin", b"5\n"),
+            ("normalize", b"x\ty\n"),
+            ("noprompt", b"continue\n"),
+        ):
+            with self.subTest(ext):
+                self.cache = Path(self.tmp.name) / f"passes-{ext}"
+                self.sidecar("output", b"1\n")
+                self.passes_once()
+                self.sidecar(ext, data)
+                self.assertEqual(self.again()[1], 1)
+                (self.group / f"p.{ext}").unlink()
+
+    def test_a_changed_source_runs(self):
+        self.passes_once()
+        self.bas.write_bytes(b"PRINT 1 ' the same program, another file\n")
+        self.assertEqual(self.again()[1], 1)
+
+    def test_a_changed_screen_state_or_keys_file_runs(self):
+        self.sidecar("screen", b"state\n")
+        tools = Tools(runs=[b"1\n"], states=[b"state\n"], exe_bytes=b"exe one")
+        self.assertEqual(self.go(tools).status, "PASS")
+        tools = Tools(runs=[b"1\n"], states=[b"state\n"], exe_bytes=b"exe one")
+        self.assertEqual((self.go(tools).detail, len(tools.run_cmds)), (rlt.PASSED_BEFORE, 0))
+        self.sidecar("keys", b"key enter\n")
+        tools = Tools(runs=[b"1\n"], states=[b"state\n"], exe_bytes=b"exe one")
+        self.go(tools)
+        self.assertEqual(len(tools.run_cmds), 1)
+        self.sidecar("screen", b"another\n")
+        tools = Tools(runs=[b"1\n"], states=[b"state\n"], exe_bytes=b"exe one")
+        self.assert_fail(self.go(tools), "screen")
+
+    def test_a_failure_is_not_remembered(self):
+        r, runs = self.again(runs=[b"2\n"])
+        self.assert_fail(r, "result")
+        r, runs = self.again(runs=[b"2\n"])
+        self.assertEqual(runs, 1)
+        self.assert_fail(r, "result")
+
+    def test_record_runs_and_remembers_nothing(self):
+        self.passes_once()
+        tools = Tools(runs=[b"1\n", b"1\n"], exe_bytes=b"exe one")
+        self.go(tools, record=True)
+        self.assertEqual(len(tools.run_cmds), 2)
+        self.assertEqual(len(list(self.cache.iterdir())), 1)
+
+    def test_without_the_option_every_program_runs(self):
+        self.passes_once()
+        tools = Tools(runs=[b"1\n"], exe_bytes=b"exe one")
+        self.run_test(tools)
+        self.assertEqual(len(tools.run_cmds), 1)
 
 
 class ScreenProgram(CorpusFixture):

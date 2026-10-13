@@ -9,8 +9,8 @@ built-ins are compiled. Every behaviour is the old compiler's, measured (`verifi
 ### Requirement: A program with a console
 A program SHALL have a console when `$CONSOLE` or `$CONSOLE:ONLY` stands anywhere in its compiled code: on any
 line, after the last statement that runs, inside a procedure, in an included file, once or several times. A
-metacommand in a `$IF` branch that is not taken SHALL NOT count. A program with neither SHALL be reported "not
-supported yet", once, whatever else it contains.
+metacommand in a `$IF` branch that is not taken SHALL NOT count. A program with neither SHALL be compiled and
+built with a window and no console, as the old compiler builds it (`language/screen-output`).
 
 #### Scenario: $CONSOLE as the last line
 - **WHEN** a program is `_DEST _CONSOLE`, `PRINT "ok"`, `SYSTEM`, `$SCREENHIDE`, `$CONSOLE`
@@ -27,11 +27,11 @@ supported yet", once, whatever else it contains.
 
 #### Scenario: Only in a branch that is not taken
 - **WHEN** a program's only `$CONSOLE` stands between `$IF 0 THEN` and `$END IF`
-- **THEN** the program is reported "not supported yet" as a program with no console
+- **THEN** the program is compiled as one with a window and no console
 
 #### Scenario: Neither metacommand
 - **WHEN** a program is `PRINT 1`
-- **THEN** the only diagnostic is "not supported yet" and names a program without `$CONSOLE` or `$CONSOLE:ONLY`
+- **THEN** it compiles with no diagnostic, and its settings say a window and no console
 
 ### Requirement: $CONSOLE:ONLY
 `$CONSOLE:ONLY` SHALL make the console the destination and the source at its line, each time it stands, and SHALL
@@ -70,7 +70,7 @@ them, the last one in the file SHALL count, wherever they stand. Neither gives t
 
 #### Scenario: $SCREENHIDE alone
 - **WHEN** a program is `$SCREENHIDE`, `PRINT "x"`, `SYSTEM`
-- **THEN** it is reported "not supported yet" as a program with no console, and `$SCREENHIDE` gets no diagnostic
+- **THEN** it compiles with no diagnostic, as a program with a hidden window and no console
 
 ### Requirement: Forms of the console and window metacommands
 `$CONSOLE`, `$CONSOLE:ONLY`, `$SCREENHIDE` and `$SCREENSHOW` SHALL be accepted in any letter case, with blanks

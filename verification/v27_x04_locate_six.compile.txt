@@ -1,0 +1,5 @@
+
+Syntax error - Reference: LOCATE [row%][, column%] [, cursor%][, cursorStart%, cursorStop%]
+Caused by (or after):LOCATE 1 , 2 , 3 , 4 , 5 , 6
+LINE 6:LOCATE 1, 2, 3, 4, 5, 6
+exit=1

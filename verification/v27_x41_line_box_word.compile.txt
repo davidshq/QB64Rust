@@ -1,0 +1,5 @@
+
+Syntax error - Reference: LINE [STEP] [(column1, row1)]-[STEP] (column2, row2), color[, [{B|BF}], style%]
+Caused by (or after):LINE ( 1 , 2 ) - ( 3 , 4 ) , 5 , X
+LINE 6:LINE (1, 2)-(3, 4), 5, X
+exit=1

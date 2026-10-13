@@ -1,0 +1,5 @@
+
+Syntax error - Reference: WINDOW [[SCREEN] (x1!, y1!) - (x2!, y2!)]
+Caused by (or after):WINDOW SCREEN
+LINE 6:WINDOW SCREEN
+exit=1

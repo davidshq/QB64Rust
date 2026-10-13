@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: INKEY$
+Caused by (or after):K = INKEY$ ( 1 )
+LINE 6:k = INKEY$(1)
+exit=1

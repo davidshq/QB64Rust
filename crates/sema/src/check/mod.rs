@@ -193,10 +193,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // compiled, so a `$CONSOLE:ONLY` in such a branch leaves the window.
     c.console |= program.flags.console();
     if !c.console {
-        // Its only output is the window's, which nothing checks yet (M3).
-        let at = Span::new(root.file, 0, 0);
-        c.diags
-            .unsupported(at, "programs without `$CONSOLE` or `$CONSOLE:ONLY`");
+        // A program with neither metacommand is one with a window and no console (design D1 of
+        // `m3-window-output`; measured, `verification\v27_*`: `console=0`, the same statement code).
         // Measured: "_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first" (`verification\v26_x17`).
         for at in std::mem::take(&mut c.echoes) {
             c.diags

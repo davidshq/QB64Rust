@@ -5,7 +5,8 @@ by the state of the screen they leave (`tools\screen\README.md`). Each has an `.
 window prints nothing to the console) and a `.screen`, recorded with `qb64pe.exe` 4.7.0 (`16f629784e`, default
 build) using the corpus runner's `--record`; those that read the keyboard have a `.keys`.
 
-The new compiler builds console programs only so far, so none of these is on `slice.list`.
+The `d…` programs were added by the OpenSpec change `m3-window-output` (2026-10-12), recorded the same way. The
+programs the new compiler passes are on `tests\corpus\slice.list` (`tests\corpus\README.md`).
 
 ## The method's own programs
 
@@ -22,6 +23,35 @@ The new compiler builds console programs only so far, so none of these is on `sl
 | `c10_runtime_error` | An unhandled error: the state as it was when the program stopped |
 | `c11_screenhide` | `$SCREENHIDE`: no window, the pages all the same |
 | `m00_width_80_50`, `m01`–`m13`, `m32_newimage_32`, `m256_newimage_256` | One program per screen mode: what a page of that mode holds |
+
+## Drawing and text statements by form
+
+One program per statement family, with the forms the programs above leave out (design D4 of `m3-window-output`;
+the forms and their calls are in its D2). A program whose last statement would hide the others' work is split, so
+that every statement leaves a mark in the recorded state.
+
+| Program | Covers |
+|---|---|
+| `d01_print_window` | `PRINT` in a window: `;`, `,` (zones of 14 columns), a `PRINT` without a line end, `WRITE`, a line longer than the screen is wide, an item that does not fit the rest of its line, 27 lines that scroll |
+| `d02_color_locate` | `COLOR` and `LOCATE` in `SCREEN 0` with each argument left out, a blinking colour, the cursor on, off and with a shape |
+| `d03_cls_view_print` | `CLS`, `CLS , colour`, `CLS 2`; `VIEW PRINT` that scrolls, is cleared alone and is taken off |
+| `d04_width` | `WIDTH` with the columns alone and with the rows alone (40 by 50) |
+| `d05_color_cls_graphics` | `SCREEN 7`: the colour of `COLOR` in `LINE` and `PSET` without one, a background colour, `CLS , colour`, `CLS 1` and `CLS` in a graphics viewport, `CLS 2` in a text viewport |
+| `d06_pset_line` | `PSET` and `PRESET` with `STEP` and without a colour; `LINE` with `B`, `BF`, a style, each argument left out, without its first point, `STEP` on either point, blanks around the `-`, `b` in lower case, points outside the screen |
+| `d07_circle` | `CIRCLE`: the colour left out, arcs, negative angles (lines to the centre), aspects below and above 1, `STEP`, a radius of 0, a circle half outside |
+| `d08_paint` | `PAINT`: a fill and a border colour, each left out, `STEP`, a tile string (a literal, a variable, an expression), a background string |
+| `d09_view_window` | `VIEW` and `VIEW SCREEN` with a fill and a border, `WINDOW` and `WINDOW SCREEN`, both taken off, a `WINDOW` inside a `VIEW` |
+| `d10_palette_pages` | `SCREEN` with its page arguments (mode left out too), `PCOPY`, `PALETTE` with and without arguments |
+| `d11_draw` | `DRAW` with a literal, a variable and an expression: moves, a scale, an angle, a paint command |
+| `d12_numeric_types` | Arguments of every numeric type in a coordinate, a colour, a radius, a row, a page and a screen mode: floats that round half to even, an `_INTEGER64` colour beyond 32 bits |
+| `d13_functions` | `CSRLIN`, `POS`, `SCREEN(row, column[, 1])` and `POINT` in both forms, printed and in arithmetic; `POINT` outside the screen and under a `WINDOW` |
+| `d14_errors` | The error number of 20 statements that are wrong for their screen, under a handler (a mode that does not exist, drawing in `SCREEN 0`, `LOCATE` outside the screen); two of them raise nothing |
+| `d15_pacing` | `_LIMIT` in a loop, `_DELAY`, `_DISPLAY`, `SLEEP` ended by a key of the keys file |
+| `d16_screen_13` | `SCREEN 13`: `CLS method, colour`, a colour above 15, `PRESET` |
+
+`d15_pacing` empties the key buffer before its `SLEEP`: the keys file gives the next key only when the buffer is
+empty, and a key ends `SLEEP` only when it comes while `SLEEP` waits. Its `SLEEP 2` is the longest it can take
+(when the key comes between the two), not what it takes.
 
 ## Cut from Civil War Strategy
 

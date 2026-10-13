@@ -66,3 +66,14 @@ byte, mark the folder `-text` in `.gitattributes`, check that `qb64pe.exe` build
   like a SUB or like `CLS` (17 marks), `DEF SEG` (8), `TAB` (22); then the screen (M3): `LINE` 899, `COLOR` 190,
   `LOCATE` 145, `PAINT` 89, `DRAW` 71, `POINT` 34, `SOUND` 33, `PLAY` 31, `PSET` 31, `CIRCLE` 28, `CLS` 26,
   `INKEY$` 25, `PUT` 19, `VIEW` 11, `SCREEN` 9, `GET` 8, `BLOAD` 4.
+
+## Measured (2026-10-12, after `m3-window-output`)
+
+- Still no real error. `qb64rust --report unsupported tests\programs`: **135 marked errors in 15 messages**
+  (1,709 in 33 before): the game's window, its text-screen and drawing statements, `INKEY$`, `POINT` and its ten
+  lines that start `CLS :` compile.
+- What it still needs, in order of uses: `SOUND` 33, `PLAY` 31, `TAB` 22, graphics `PUT` 19, `DEF SEG` 8, graphics
+  `GET` 8, labels named like a SUB (`cannon`, `ships`, `topbar`: 7 marks), `BLOAD` 4, and `BEEP`, `_FULLSCREEN`
+  and the metacommand `$EXEICON` once each. That is the second step proposed for M3 (`STATUS.md`, "Next").
+- Of the six programs cut from it, four pass with the new compiler and are on `tests\corpus\slice.list` (`g01`
+  flags, `g02` cannon, `g04` ironclad, `g05` schooner); `g03` waits on `PLAY`, `g06` on graphics `GET` and `PUT`.

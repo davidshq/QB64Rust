@@ -51,17 +51,26 @@ and its shrink-only lists hold no false error and no parse gap (`tests\known_fal
 - [x] The step's closing runs (the two full suites with the new compiler), its documents and CI after the push
       (group 7 of `m2-console-screenhide`)
 
-## M3. Code generation to the existing ABI: started early
+## M3. Code generation to the existing ABI: under way
 
 Done when: the compiler emits the `qbx.cpp` fragments, links with libqb and passes the expected-output and
 differential tests; programs without `$CONSOLE:ONLY` are checked by their screen state.
 
 - [x] The slice links with libqb and runs (since M2's first slice)
-- [x] A program with a window is built (`$CONSOLE` without `:ONLY`, since M2's last step); it draws nothing yet
-- [ ] Plain copy of QB64pe's `internal\c` at the reference clone's commit
-- [ ] Programs with a window: the drawing statements, each coming in with screen programs that pass
-- [ ] Civil War Strategy builds and its screens match (`tests\programs\README.md`)
+- [x] A program with a window is built (`$CONSOLE` without `:ONLY`, since M2's last step)
+- [x] A program with a window as its only output (no `$CONSOLE` at all); the text-screen statements (`SCREEN`,
+      `CLS`, `COLOR`, `LOCATE`, `WIDTH`, `VIEW PRINT`), the drawing statements (`PSET`, `PRESET`, `LINE`,
+      `CIRCLE`, `PAINT`, `DRAW`, `VIEW`, `WINDOW`, `PALETTE`, `PCOPY`), pacing (`_LIMIT`, `_DELAY`, `SLEEP`,
+      `_DISPLAY`) and the functions `INKEY$`, `CSRLIN`, `POS`, `POINT`, `SCREEN`, with screen programs that pass
+      on `tests\corpus\slice.list` (`m3-window-output`)
+- [ ] Graphics `GET` and `PUT`, `DEF SEG` with `BLOAD`, `TAB` and `SPC`, labels named like a SUB: what Civil War
+      Strategy needs to build
 - [ ] Data files beside a corpus program (`BLOAD` of the game's pictures)
+- [ ] Civil War Strategy builds and its screens match (`tests\programs\README.md`)
+- [ ] Sound (`PLAY`, `SOUND`, `BEEP`)
+- [ ] The image built-ins that run (`_RGB32`, `_LOADIMAGE`, `_PUTIMAGE`, …), fonts, the mouse
+- [ ] The console programs of the corpus that still wait (`PRINT USING`, random and binary files)
+- [ ] Plain copy of QB64pe's `internal\c` at the reference clone's commit, when libqb must change
 
 ## M4. Parity
 

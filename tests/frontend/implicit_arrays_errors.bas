@@ -15,8 +15,8 @@ PRINT UBOUND(ub)
 DIM ub(5)
 ' A string as an index: "Illegal string-number conversion".
 z("a") = 1
-' A built-in statement's name ("Name already in use" in the old compiler): read as that statement, which is
-' marked here.
+' A built-in statement's name: "Name already in use" as in the old compiler (m3-window-output task 3.2; the
+' parser reads the line as that statement, `sema` sees the shape of an assignment).
 cls(1) = 5
 ' ERASE above the first use: "Undefined array passed to ERASE".
 ERASE later

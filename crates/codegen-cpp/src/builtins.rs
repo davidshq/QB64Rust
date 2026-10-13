@@ -6,7 +6,9 @@ use crate::Emitter;
 use crate::names::c_type;
 use qb64rust_builtins::BuiltinId;
 use qb64rust_builtins::passing::plan;
-use qb64rust_ir::builtins::{Rule, Slot, StmtRule, find, int_entry, radix_width, slots, stmt_find};
+use qb64rust_ir::builtins::{
+    Rule, Slot, StmtRule, StmtSlot, find, int_entry, radix_width, slots, stmt_find, stmt_slots,
+};
 use qb64rust_ir::{Expr, Facts, StmtArg, Ty};
 
 impl Emitter<'_> {
@@ -212,14 +214,34 @@ impl Emitter<'_> {
     fn plain_stmt(&mut self, id: BuiltinId, args: &[StmtArg]) -> String {
         let b = id.get();
         let plan = plan(&b.template());
+        let slots = stmt_slots(id);
         let mut c_args = Vec::new();
         let mut mask = 0u32;
-        for (part, arg) in plan.parts.iter().zip(args) {
+        for ((part, slot), arg) in plan.parts.iter().zip(slots).zip(args) {
             let text = match arg {
                 StmtArg::Value(v) => self.value(v),
                 StmtArg::Word(w) => (u32::from(*w) + 1).to_string(),
                 StmtArg::Absent => "NULL".to_string(),
                 StmtArg::Place(_) => unreachable!("`{}` takes no place (`validate`)", b.name),
+            };
+            // The fill of `PAINT`: the old compiler's cast picks libqb's entry for a colour or for a tile string,
+            // `(uint32)NULL` for a fill left out (measured, design D2 of `m3-window-output`).
+            let text = match (slot, arg) {
+                (
+                    StmtSlot::Arg {
+                        slot: Slot::ColorOrTile,
+                        ..
+                    },
+                    StmtArg::Value(v),
+                ) if v.ty == Ty::Str => format!("(qbs*){text}"),
+                (
+                    StmtSlot::Arg {
+                        slot: Slot::ColorOrTile,
+                        ..
+                    },
+                    _,
+                ) => format!("(uint32){text}"),
+                (StmtSlot::Arg { .. } | StmtSlot::Choice { .. }, _) => text,
             };
             if !matches!(arg, StmtArg::Absent) {
                 mask |= part.flag;
@@ -254,7 +276,16 @@ impl Emitter<'_> {
                     let x = self.value(a);
                     parts.push(match slots.get(i) {
                         Some(Slot::AnyNumeric) => format!("(({})({x}))", c_type(a.ty)),
-                        Some(Slot::Long | Slot::Int64 | Slot::Double | Slot::Float | Slot::Str) | None => x,
+                        Some(
+                            Slot::Long
+                            | Slot::Int64
+                            | Slot::Double
+                            | Slot::Float
+                            | Slot::Str
+                            | Slot::ULong
+                            | Slot::ColorOrTile,
+                        )
+                        | None => x,
                     });
                 }
                 None => parts.push("NULL".into()),

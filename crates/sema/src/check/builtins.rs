@@ -9,7 +9,7 @@ use crate::builtins::{
 use crate::{Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Place, StmtArg, StmtKind, Ty};
 use qb64rust_base::Span;
 use qb64rust_builtins::template::{Atom, Item};
-use qb64rust_syntax::SyntaxKind::Ident;
+use qb64rust_syntax::SyntaxKind::{self, Ident, LParen, RParen};
 use qb64rust_syntax::ast;
 use qb64rust_syntax::tree::Node;
 
@@ -159,8 +159,19 @@ impl Checker<'_> {
             (Rule::StringFill, _) if k == 1 && string => return Ok(e),
             // `ENVIRON$(name$)`: the entry that takes a string.
             (Rule::StrOrIndex, _) if string => return Ok(e),
+            // `PAINT (x, y), tile$`: the entry that takes a string.
+            (_, Slot::ColorOrTile) if string => return Ok(e),
             (_, Slot::Str) => true,
-            (_, Slot::Long | Slot::Int64 | Slot::Double | Slot::Float | Slot::AnyNumeric) => false,
+            (
+                _,
+                Slot::Long
+                | Slot::Int64
+                | Slot::Double
+                | Slot::Float
+                | Slot::AnyNumeric
+                | Slot::ULong
+                | Slot::ColorOrTile,
+            ) => false,
         };
         match (wants_string, string) {
             (true, false) => return Err(self.error(e.span, format!("{which} needs a string"))),
@@ -174,6 +185,11 @@ impl Checker<'_> {
         Ok(match slot {
             Slot::Long => self.store(e, Ty::I32)?,
             Slot::Int64 => self.store(e, Ty::I64)?,
+            Slot::ULong => self.store(e, Ty::U32)?,
+            // A fill colour of `PAINT`: an integer as it is, a float rounded to an integer, as the old compiler
+            // writes it; the emitter's `(uint32)` cast keeps the low 32 bits.
+            Slot::ColorOrTile if e.ty.is_float() => self.store(e, Ty::I64)?,
+            Slot::ColorOrTile => e,
             Slot::Double => self.convert_exact(e, Ty::F64),
             Slot::Float => e,
             Slot::AnyNumeric => {
@@ -420,6 +436,7 @@ impl Checker<'_> {
         if forms.is_empty() {
             return Err(self.unsupported(name_tok.span, format!("`{shown}`")));
         }
+        self.not_an_assignment(node, name_tok, &shown)?;
         let mut parts = Vec::new();
         for part in stmt.parts() {
             parts.push(match part {
@@ -444,11 +461,79 @@ impl Checker<'_> {
         ))
     }
 
+    /// A built-in statement's name and a colon at the start of a line (`CLS: LOCATE 1, 1`), which the parser reads
+    /// as a label: to the old compiler it is the statement with no argument, never a label (measured for 17
+    /// statements, `verification\v27_x58`; `GOTO CLS` is "Invalid label"). A statement that needs an argument is
+    /// an error there ("Syntax error - Reference: PSET …", `v27_x59`).
+    pub(super) fn bare_stmt(&mut self, node: Node, name: qb64rust_syntax::tree::Tok) -> R<()> {
+        let shown = self.word(name);
+        for form in stmt_lookup(&shown, false) {
+            match form.rule {
+                StmtRule::Plain => {
+                    let items = form.id.get().template();
+                    let mut matched = Vec::new();
+                    if match_items(&mut vec![&items[..]], &[], 0, &mut matched) {
+                        return self.stmt_call(node, form, matched);
+                    }
+                }
+                // `CLOSE:` closes every file.
+                StmtRule::Close => {
+                    self.push(
+                        node,
+                        StmtKind::Builtin {
+                            id: form.id,
+                            args: Vec::new(),
+                        },
+                    );
+                    return Ok(());
+                }
+                StmtRule::Swap | StmtRule::MidAssign => {}
+            }
+        }
+        Err(self.error(name.span, format!("`{shown}` needs its arguments")))
+    }
+
+    /// A built-in statement that starts `name (…) =` is an assignment to the old compiler, whatever follows, and so
+    /// an error: the name is the statement's (measured for every supported statement, 2026-10-12: "Name already in
+    /// use (CLS)" for `CLS (1) = 5`, `LOCATE (1) = 2, 3`, `PCOPY (1) = 1, 2`; another error for a name that is
+    /// also a function, `SCREEN (12) = 12`, or has a leading underscore). The parser reads such a line as the
+    /// statement with a comparison as its first argument, which is right only when something stands between the
+    /// `)` and the `=` (`CLS (1) + 2 = 5` is `CLS` with a comparison, measured). `WIDTH` alone is different: the
+    /// old compiler makes `WIDTH (80) = 80` an element of an array named `WIDTH`.
+    fn not_an_assignment(&mut self, node: Node, name: qb64rust_syntax::tree::Tok, shown: &str) -> R<()> {
+        let tokens: Vec<_> = node.tokens().into_iter().filter(|t| !t.kind.is_trivia()).collect();
+        if tokens.first().map(|t| t.span) != Some(name.span) || tokens.get(1).map(|t| t.kind) != Some(LParen) {
+            return Ok(());
+        }
+        let mut depth = 0usize;
+        let close = tokens.iter().skip(1).position(|t| {
+            if t.kind == LParen {
+                depth += 1;
+            } else if t.kind == RParen {
+                depth = depth.saturating_sub(1);
+            }
+            depth == 0
+        });
+        let Some(close) = close else {
+            return Ok(());
+        };
+        if tokens.get(close + 2).map(|t| t.kind) != Some(SyntaxKind::Eq) {
+            return Ok(());
+        }
+        if shown.eq_ignore_ascii_case("WIDTH") {
+            return Err(self.unsupported(name.span, "an array named `WIDTH`"));
+        }
+        Err(self.error(name.span, format!("name already in use: `{shown}`")))
+    }
+
     /// A built-in statement written like a SUB call (`KILL f$`, `CALL KILL(f$)`: its entry has no template): one
     /// argument per slot. Measured (`verification\v22_x02`, `x03`): any other number of arguments is "Syntax error -
     /// Reference: KILL fileSpec$".
     pub(super) fn plain_stmt(&mut self, stmt: ast::CallStmt, form: StmtSupported) -> R<()> {
         let node = stmt.node();
+        if let Some(name_tok) = stmt.name() {
+            self.not_an_assignment(node, name_tok, form.name)?;
+        }
         if let Some(bad) = stmt.unparsed_args() {
             let msg = format!("cannot read the arguments of `{}`", form.name);
             return Err(self.error(bad.span(), msg));

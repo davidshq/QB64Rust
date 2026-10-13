@@ -56,6 +56,16 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
 - `--list <file>` runs only the programs named in the file: one `<group>/<name>` per line (no `.bas`), `#`
   starts a comment. A name with no program is an error. Combines with `--category` and `--glob` (both must match).
   `tests\corpus\slice.list` names the programs the new compiler's first slice must pass.
+- `--pass-cache <folder>` (corpus suite, not with `--record`): a program that passed is remembered by a hash of
+  its executable, its source and every file its run and comparison read (`.output`, `.screen`, `.keys`, `.stdin`,
+  `.normalize`, `.noprompt`). The next run with the option still compiles and builds it, and when the hash is
+  the same reports `PASS` with "not run: passed before …" without running it; a last line says how many were
+  not run. With `--build-cache`, which gives an unchanged program a byte-identical executable, an edit to the
+  compiler then runs only the programs whose C++ it changed: the 342 of `slice.list` take 24 s when nothing
+  changed, against 92 s (`--jobs 8`, 2026-10-12). A failure is never remembered. **The closing runs of a change
+  go without it** (`CLAUDE.md` working rule 9): it cannot see a result that depends on time or load, which is
+  how `m10_screen_10` was found. With `qb64pe` it does no harm and saves nothing (its builds differ byte for
+  byte). The folder is safe to delete.
 - `--cpp-opt` adds `-f:OptimizeCppProgram=true`; its failures list the programs whose behaviour depends on the
   C++ optimiser (`tests\corpus\README.md`). It cannot be combined with `--record`.
 - On Windows, `END` in a console program waits for a key from the console ("Press any key to continue"), which
@@ -84,6 +94,8 @@ python -m unittest discover -s tools/legacy_tests -p "test_*.py"
   stand-in for the compiler and for the program: equal and different output, each kind of `.err` result with the
   old and the new compiler, `.norun`, `.stdin`, `.normalize`, a known failure without an expected file, a failed
   or timed-out run, and `--record` with equal runs, with differing runs and with a rejection;
+- `--pass-cache`: a program that passed is compiled and not run; another executable, source, expected file,
+  input file or screen state runs it; a failure and a `--record` run are not remembered;
 - every outcome of one screen program, the stand-in writing the state file the environment names: equal and
   different state, no state, a state left by an earlier run, the keys file passed on, `.screen` beside `.err` or
   `.norun`, `.keys` without `.screen`, and `--record` with equal states, differing states and a run without one.

@@ -34,6 +34,13 @@ impl Parser<'_, '_> {
         if forms.is_empty() {
             return false;
         }
+        if self.at_word("PALETTE") && self.nth_is_word(1, "USING") {
+            // `PALETTE USING array(index)`: the old compiler reads it by hand, outside the statement's template
+            // (`PALETTE [?,?]`), so no form of the table matches it. Marked, not a syntax error.
+            self.unsupported("`PALETTE USING`");
+            self.rest_into_error_node();
+            return true;
+        }
         let mut furthest = 1;
         for (_, items) in &forms {
             let mut plan = Vec::new();

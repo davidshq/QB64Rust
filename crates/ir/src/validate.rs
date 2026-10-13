@@ -437,7 +437,9 @@ impl Validator<'_> {
                 (StmtSlot::Arg { slot, .. }, StmtArg::Value(v)) => {
                     let string = match slot {
                         Slot::Str => true,
-                        Slot::Long | Slot::Int64 | Slot::Double | Slot::Float | Slot::AnyNumeric => false,
+                        Slot::Long | Slot::Int64 | Slot::Double | Slot::Float | Slot::AnyNumeric | Slot::ULong => false,
+                        // A number or a string: whichever the value is.
+                        Slot::ColorOrTile => v.ty == Ty::Str,
                     };
                     if string != (v.ty == Ty::Str) {
                         self.problem(format!("{at}: slot {k} of {name} holds a value of type {:?}", v.ty));

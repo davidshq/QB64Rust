@@ -1,0 +1,242 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+line 10: Assign S:Str
+  Call INKEY : Str
+line 11: Assign S:Str
+  Concat : Str
+    Call INKEY : Str
+    Str "x" : Str
+line 12: Assign L:I32
+  Call LEN : I32
+    Call INKEY : Str
+line 13: If (END IF line 13)
+  If line 13
+    StrCompare Eq : I32
+      Call INKEY : Str
+      Str "" : Str
+    line 13: Assign L:I32
+      Int 1 : I32
+line 14: Assign L:I32
+  Call CSRLIN : I32
+line 15: Assign I:I16
+  Convert Truncate : I16
+    Call CSRLIN : I32
+line 16: Assign D:F64
+  Convert Nearest : F64
+    Call CSRLIN : I32
+line 17: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Call CSRLIN : I32
+    Int 1 : I32
+line 18: Assign Q:I64
+  Binary Mul : I64
+    Convert Widen : I64
+      Call CSRLIN : I32
+    Int 4294967296 : I64
+line 19: Assign D:F64
+  Convert Nearest : F64
+    Binary Div : F80
+      Convert Nearest : F80
+        Call CSRLIN : I32
+      Convert Nearest : F80
+        Int 3 : I16
+line 20: Assign L:I32
+  Neg : I32 (qb I64)
+    Call CSRLIN : I32
+line 21: Assign S:Str
+  Call HEX : Str
+    Call CSRLIN : I32
+line 22: Assign L:I32
+  Call POS : I32
+    Int 0 : I32
+line 23: Assign L:I32
+  Call POS : I32
+    Convert Widen : I32
+      Var I : I16
+line 24: Assign L:I32
+  Call POS : I32
+    Convert Truncate : I32
+      Var Q : I64
+line 25: Assign L:I32
+  Call POS : I32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var SG : F32
+line 26: Assign L:I32
+  Call POS : I32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Float 1.5E+0 : F64 (qb F32)
+line 27: Assign D:F64
+  Convert Nearest : F64
+    Binary Div : F80
+      Convert Nearest : F80
+        Call POS : I32
+          Int 0 : I32
+      Convert Nearest : F80
+        Int 3 : I16
+line 28: Assign Q:I64
+  Convert Widen : I64
+    Binary Mul : I32 (qb I64)
+      Call POS : I32
+        Int 0 : I32
+      Int 100000 : I32
+line 29: Assign S:Str
+  Call HEX : Str
+    Call POS : I32
+      Int 0 : I32
+line 30: Assign U:U32
+  Call SCREEN : U32
+    Int 1 : I32
+    Int 2 : I32
+    (absent)
+line 31: Assign L:I32
+  Convert Truncate : I32
+    Call SCREEN : U32
+      Int 1 : I32
+      Int 2 : I32
+      (absent)
+line 32: Assign U:U32
+  Call SCREEN : U32
+    Int 1 : I32
+    Int 2 : I32
+    Int 1 : I32
+line 33: Assign U:U32
+  Call SCREEN : U32
+    Convert Widen : I32
+      Var I : I16
+    Convert Truncate : I32
+      Var Q : I64
+    (absent)
+line 34: Assign U:U32
+  Call SCREEN : U32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var SG : F32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Float 0.5E+0 : F64 (qb F32)
+line 35: Assign Q:I64
+  Convert Widen : I64
+    Binary Add : U32 (qb I64)
+      Call SCREEN : U32
+        Int 1 : I32
+        Int 2 : I32
+        (absent)
+      Int 1 : U32
+line 36: Assign D:F64
+  Convert Nearest : F64
+    Binary Div : F80
+      Convert Nearest : F80
+        Call SCREEN : U32
+          Int 1 : I32
+          Int 2 : I32
+          (absent)
+      Convert Nearest : F80
+        Int 3 : I16
+line 37: Assign Q:I64
+  Convert Widen : I64
+    Neg : U32 (qb I64)
+      Call SCREEN : U32
+        Int 1 : I32
+        Int 2 : I32
+        (absent)
+line 38: Assign D:F64
+  Convert Nearest : F64
+    Binary Sub : I64
+      Convert Widen : I64
+        Call SCREEN : U32
+          Int 1 : I32
+          Int 2 : I32
+          (absent)
+      Int 4294967295 : I64
+line 39: Assign S:Str
+  Call HEX : Str
+    Call SCREEN : U32
+      Int 1 : I32
+      Int 2 : I32
+      (absent)
+line 40: Assign D:F64
+  Call POINT : F64
+    Int 1 : I16
+    Int 2 : I16
+line 41: Assign D:F64
+  Call POINT : F64
+    Int 0 : I16
+    (absent)
+line 42: Assign L:I32
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Call POINT : F64
+        Int 1 : I16
+        Int 2 : I16
+line 43: Assign U:U32
+  Convert Truncate : U32
+    Convert RoundEven : I64
+      Call POINT : F64
+        Int 1 : I16
+        Int 2 : I16
+line 44: Assign D:F64
+  Call POINT : F64
+    Var I : I16
+    Var Q : I64
+line 45: Assign D:F64
+  Call POINT : F64
+    Var SG : F32
+    Var D : F64
+line 46: Assign D:F64
+  Call POINT : F64
+    Var F : F80
+    Float 1.5E+0 : F64 (qb F32)
+line 47: Assign D:F64
+  Call POINT : F64
+    Var U : U32
+    (absent)
+line 48: Assign D:F64
+  Binary Div : F64
+    Call POINT : F64
+      Int 1 : I16
+      Int 2 : I16
+    Convert Nearest : F64
+      Int 3 : I16
+line 49: Assign Q:I64
+  Convert RoundEven : I64
+    Binary Add : F64
+      Call POINT : F64
+        Int 1 : I16
+        Int 2 : I16
+      Convert Nearest : F64
+        Int 1 : I16
+line 50: Assign S:Str
+  Call HEX : Str
+    Call POINT : F64
+      Int 1 : I16
+      Int 2 : I16
+line 51: Assign L:I32
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Var INKEY : F32
+line 52: Print newline
+  Str
+    Call INKEY : Str
+  Num
+    Call CSRLIN : I32
+  Num
+    Call POS : I32
+      Int 0 : I32
+  Num
+    Call SCREEN : U32
+      Int 1 : I32
+      Int 1 : I32
+      (absent)
+  Num
+    Call POINT : F64
+      Int 1 : I16
+      Int 1 : I16
+line 53: System

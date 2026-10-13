@@ -1,0 +1,48 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+Settings: window
+Stmt line 7 may_raise
+  Builtin _LIMIT [Value((Const 60:I16 -> Convert F64 Nearest))]
+Stmt line 8 may_raise
+  Builtin _LIMIT [Value(Var D:F64)]
+Stmt line 9 may_raise
+  Builtin _LIMIT [Value((Var SG:F32 -> Convert F64 Widen))]
+Stmt line 10 may_raise
+  Builtin _LIMIT [Value((Var Q:I64 -> Convert F64 Nearest))]
+Stmt line 11 may_raise
+  Builtin _LIMIT [Value((Var F:F80 -> Convert F64 Nearest))]
+Stmt line 12 may_raise
+  Builtin _LIMIT [Value(Const 59.5E+0:F64)]
+Stmt line 13 may_raise
+  Builtin _LIMIT [Value((Var I:I16 -> Convert F64 Nearest))]
+Stmt line 14 may_raise
+  Builtin _DELAY [Value((Const 1:I16 -> Convert F64 Nearest))]
+Stmt line 15 may_raise
+  Builtin _DELAY [Value(Const 0.01E+0:F64)]
+Stmt line 16 may_raise
+  Builtin _DELAY [Value(Var D:F64)]
+Stmt line 17 may_raise
+  Builtin _DELAY [Value((Var F:F80 -> Convert F64 Nearest))]
+Stmt line 18 may_raise
+  Builtin _DELAY [Value((Var SG:F32 -> Convert F64 Widen))]
+Stmt line 19 may_raise
+  Builtin SLEEP [Absent]
+Stmt line 20 may_raise
+  Builtin SLEEP [Value(Const 1:I32)]
+Stmt line 21 may_raise
+  Builtin SLEEP [Value(Var L:I32)]
+Stmt line 22 may_raise
+  Builtin SLEEP [Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 23 may_raise
+  Builtin SLEEP [Value(((Var SG:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 24 may_raise
+  Builtin SLEEP [Value(((Const 0.5E+0:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 25 may_raise
+  Builtin _DISPLAY []
+Stmt line 26 may_raise
+  Builtin _DISPLAY []
+Stmt line 27
+  System

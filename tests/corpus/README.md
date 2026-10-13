@@ -11,9 +11,9 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 75 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags; `SOURCE.md`) |
-| `screen\` | 29 programs with a window, checked by the state of the screen they leave: 23 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error) and 6 drawing programs cut from Civil War Strategy (`SOURCE.md`, `tools\screen\README.md`). None is on `slice.list`: the new compiler builds a program with a window, but compiles no statement that draws yet (M3) |
-| `slice.list` | The 297 programs the new compiler must pass: all 75 of `slice\`, 220 of `runtime_comparison` and `verification\` `v11`, `v12` (see below) |
+| `slice\` | 76 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags, the screen functions in a console program; `SOURCE.md`) |
+| `screen\` | 45 programs with a window, checked by the state of the screen they leave: 23 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error), 16 for the screen statements form by form (`d01`–`d16`, `m3-window-output`) and 6 drawing programs cut from Civil War Strategy (`SOURCE.md`, `tools\screen\README.md`). The 42 the new compiler passes are on `slice.list` ("Screen programs" below) |
+| `slice.list` | The 342 programs the new compiler must pass: all 76 of `slice\`, 222 of `runtime_comparison`, `verification\` `v11`, `v12` and 42 of `screen\` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -32,7 +32,7 @@ or `LINE INPUT` (without it the program gets no input). **A program with a `.std
 
 A program with an `.output` may also have `<name>.screen`: the state of the screen it must leave at exit, for a
 program with a window (text cells or pixels, palette, cursor, pages; format in `tools\screen\README.md`), and with
-it `<name>.keys`: the keys it is given. All 29 are in `screen\`; their `.output` is empty.
+it `<name>.keys`: the keys it is given. All 45 are in `screen\`; their `.output` is empty.
 
 A program that reaches `END` prints an empty line and `Press any key to continue` (no line end) on Windows; that
 trailer is part of its `.output`.
@@ -139,7 +139,9 @@ without a window; the first program with a console and a window), `s64` (two pro
 with a hidden window), `s66` (the window built-ins in every form, below the program's `SYSTEM`: compiled, linked
 and never run), `s67` (the 231 constants of QB64pe's auto-included file that are computed, their types, and the
 places a constant may stand; its list of names is generated from `tools\builtins\builtins.json`) and `s68`
-(three programs: the precompiler flags in `$IF`, each program one set of settings) by `m2-console-screenhide`.
+(three programs: the precompiler flags in `$IF`, each program one set of settings) by `m2-console-screenhide`,
+`s69` (`INKEY$`, `CSRLIN` and `POS` in a program with a console and no window: only values that are the same
+on every run) by `m3-window-output`.
 `s52_dynamic_memory` ends with the runtime's "Out of memory" message,
 which is part of its `.output`; the runner's `QB64PE_NOPROMPT` keeps that from opening a dialog.
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
@@ -152,8 +154,23 @@ and ends with `SYSTEM`. It must not use `PRINT` with a comma at all: with the co
 redirected output, the old compiler's program prints blanks without end (measured, `verification\v26_a`,
 `study\00` §5).
 
-`slice.list` names the 297 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`; `s66_window_builtins`, `s67_auto_constants` and the three `s68_precompiler_flags` programs
+**Screen programs.** A program of `screen\` is listed as `screen/<name>`; the tier 2 slice run then builds it
+with the state file, runs it (with its keys) and passes it only if the state it leaves equals its `.screen`
+(`m3-window-output`, design D4). Its window shows on the desktop for about 0.3 s unless the program has
+`$SCREENHIDE`, several at a time with `--jobs`; a key typed just then can reach it. They are the slice programs
+of the screen statements and functions: tier 1's coverage rule is met by a listed screen program.
+
+42 of the 45 are listed. The three that are not, and what each waits on (`qb64rust --report unsupported
+tests\corpus\screen`, 2026-10-12): `g03_capitol` on `PLAY` (5 uses, its only mark), `g06_message_box` on graphics
+`GET` and `PUT`, `m32_newimage_32` on `_RGB32` and `_RGBA32`. None of the three built-ins is in the scope of
+`m3-window-output`.
+
+`slice.list` names the 342 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`; `c07_input_window`, `c08_end_prompt` and `d01_print_window` of `screen\` joined with
+`m3-window-output` task 2.2 (the first programs whose only output is a window's), 39 more screen programs with
+its tasks 3.4, 4.2 and 5.1 (every one that compiled left the recorded state on its first run),
+`189_width` and `237_csrlin_pos` (console programs that waited on `WIDTH`, `CSRLIN` and `POS`) and
+`s69_console_screen_functions` with its task 3.3; `s66_window_builtins`, `s67_auto_constants` and the three `s68_precompiler_flags` programs
 joined with `m2-console-screenhide` tasks 4.3, 5.3 and 6.2; `s64_dest_console`, `s64_dest_console_b` and `s65_console_input` joined with
 `m2-console-screenhide` task 3.2, `s62_console_only_forms` and `s63_console_window` with its task 2.4; the three `s50` programs and `235_deftype` joined with `m2-defxxx-common-arrays` task 2.2,
 the three `s51` programs and `236_option_base` with its tasks 3.2 and 3.3, the five `s52`–`s55` programs and
@@ -178,6 +195,27 @@ requires no panic, an exact round trip, no diagnostics for the listed ones, at l
 with an `.err` file, and the two shrink-only lists `tests\known_false_errors.list` and
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
+
+### Full corpus with `qb64rust` (2026-10-12, after `m3-window-output`; not a pass criterion)
+
+After the first step of M3 (its task 6.1, release build, against the reference clone, `--jobs 8 --build-cache`),
+384 programs (the 16 `d…` screen programs and `s69` new); `slice.list` by itself passes 342 of 342 with and
+without `QB64RUST_NO_FOLD=1`:
+
+| Result | Programs |
+|---|---|
+| Pass | 360 in the run: 341 of `slice.list` and 19 `.err` programs (361 with `m10_screen_10`, below) |
+| Rejected with a diagnostic (exit status 1) | 17 (13 `.output` programs, 3 of `screen\` and the compile-only `239_lprint`) |
+| `.err` programs that get only "not supported yet" errors | 1 (`218` `FRE`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+42 of the 45 screen programs pass by their screen state; `189_width` and `237_csrlin_pos` left the rejected
+ones. In the run itself `m10_screen_10` failed once: its recorded palette depended on the clock, which was a
+fault of the state file, fixed the same day (`tools\screen\README.md`); the screen programs were run again with
+both compilers after the fix, and all pass. The 13 `.output` programs still rejected wait on `PRINT USING`,
+`TAB` and `SPC`, random and binary files, `EXIT SELECT`, `CHAIN` and a few functions (`_SHL`, `_ROL`, `_MIN`,
+`_CLAMP`, `_IIF`); the three screen programs on `PLAY`, graphics `GET`/`PUT` and `_RGB32`.
 
 ### Full corpus with `qb64rust` (2026-10-12, after step 11; not a pass criterion)
 

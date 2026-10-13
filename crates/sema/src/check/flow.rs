@@ -5,6 +5,7 @@
 //! of its own body; `ON ERROR GOTO` names one of the main module's, from any body (all measured).
 
 use super::{Checker, R, Skips, nested_statements};
+use crate::builtins::stmt_lookup;
 use crate::{ConvKind, Label, LabelId, ProcId, Resume, StmtKind, SymbolKind, Ty};
 use qb64rust_base::{show_bytes, to_u32};
 use qb64rust_builtins::find_any;
@@ -42,12 +43,17 @@ impl Checker<'_> {
     // ---- labels and error handling ----
 
     /// Enters a label of `body` (before pass 2). The old compiler does not take a built-in name as a label
-    /// (`CLS:` is a call of `CLS`), and may take a SUB name as a call; both are left unsupported here.
+    /// (`CLS:` is a call of `CLS`), and may take a SUB name as a call. A built-in statement `sema` compiles is
+    /// that statement, checked in pass 2 ([`Self::label_stmt`]); any other built-in's name and a SUB's are left
+    /// unsupported here.
     fn declare_label(&mut self, l: ast::LabelDef, body: Option<ProcId>) -> R<()> {
         let node = l.node();
         let t = self.need(l.name(), node.span())?;
         let name = self.word(t);
         let shown = show_bytes(self.text(t.span));
+        if !stmt_lookup(&name, false).is_empty() {
+            return Ok(());
+        }
         if find_any(name.as_bytes()).next().is_some() {
             return Err(self.unsupported(t.span, format!("the label `{shown}:` (`{shown}` is a built-in)")));
         }
@@ -76,13 +82,18 @@ impl Checker<'_> {
 
     /// A label in pass 2: it stands before the next statement of its body.
     pub(super) fn label_stmt(&mut self, l: ast::LabelDef) -> R<()> {
-        // Without an entry the label's declaration had an error, already reported.
         if let Some(&id) = self.label_of_def.get(&l.node().key()) {
             // Pass 2 is in file order, so the items collected so far are those before the label.
             self.prog.labels[id.0 as usize].data_at = self.prog.data.len();
             self.push(l.node(), StmtKind::Label(id));
+            return Ok(());
         }
-        Ok(())
+        // The name of a built-in statement and a colon: the statement with no argument, as in the old compiler.
+        // Any other label without an entry had an error in its declaration, already reported.
+        match l.name() {
+            Some(t) if !stmt_lookup(&self.word(t), false).is_empty() => self.bare_stmt(l.node(), t),
+            Some(_) | None => Ok(()),
+        }
     }
 
     /// A label of `body` named at `t`: `ON ERROR GOTO` and `RESUME` in the main module, and every jump.

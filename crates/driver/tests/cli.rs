@@ -154,7 +154,7 @@ fn include_root() {
 #[test]
 fn unknown_statement() {
     let d = scratch("unknown");
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\nCLS\n").unwrap();
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\nBEEP\n").unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
     assert!(
@@ -169,7 +169,7 @@ fn unknown_statement() {
 #[test]
 fn summary() {
     let d = scratch("summary");
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nSTOP\nPRINT 1 +\nCLS\n").unwrap();
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nSTOP\nPRINT 1 +\nBEEP\n").unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
     let out = stdout(&o);

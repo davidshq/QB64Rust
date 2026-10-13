@@ -47,7 +47,7 @@ From the expert panel (`07`), whose recommendations R1–R13 the decisions above
 | M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
 | M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | **done** (`vscode\`) |
 | M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server (the formatter matching `-y` left this criterion on 2026-10-09, `DECISIONS.md`) | **done 2026-10-12**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling; upstream tests; control flow and constants; arrays and `TYPE`; parser breadth (every accepted program parses, no false error); core built-ins; the language server; the numeric types; built-in statements; the screen-state check; default types, dynamic arrays, arrays in procedures, `COMMON`, the rest of `TYPE` and member arrays; a console and a window (`$CONSOLE`, `$SCREENHIDE`, `_DEST _CONSOLE`), the window built-ins as compiled code, the auto-included constants and the precompiler flags (`crates\`). No step of the order of work is left. Order of work and the numbers of the last full runs: `STATUS.md` |
-| M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests; programs without `$CONSOLE:ONLY` with a screen-state oracle | started early: the slice already links with libqb |
+| M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests; programs without `$CONSOLE:ONLY` with a screen-state oracle | under way: the slice links with libqb since M2; since `m3-window-output` (2026-10-12) a program whose output is a window compiles, with the text-screen, drawing and pacing statements, and 42 screen programs pass by their screen state |
 | M4 | Parity | The corpus (275) and the upstream tests in reach (279 of 404; 125 need the deferred array features) match; `qb64pe.bas` compiles and the result passes the suite (exit criterion, `study\20`) | |
 | M5 | Debugger | Debug symbol file + DAP adapter | |
 | M6 | Runtime modernisation | ABI owned by the new compiler; error model, string heap, threading redesigned behind golden tests | |
@@ -1585,6 +1585,97 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     `$SCREENHIDE` does start there: the `tier2` job is green with `s63_console_window` and the other slice
     programs that have a hidden window (seen 2026-10-12, task 2.6 of `m2-console-screenhide`). A window that is
     shown is not measured on the runner.
+- **A program with a window as its output, and the screen statements (`v27_*`, measured 2026-10-12 before the
+  first step of M3, OpenSpec change `m3-window-output`; 65 programs):**
+  - **The build of a program with no console (read from `internal\temp\compilelog.txt` and `global.txt` after
+    `qb64pe -x`).** With neither `$CONSOLE` nor `$CONSOLE:ONLY`: no make flag, the libqb variant
+    `libqb_make_00000000` (the one a `$CONSOLE` program with a window links), `window-gui.o` and
+    `main-thread-gui.o`, `-mwindows` in place of `-mconsole`, `console=0`; with `$SCREENHIDE` alone the same and
+    `screen_hide_startup=1`. The C++ of `PRINT`, `INPUT`, `LINE INPUT`, `ERROR`, `END` and `SYSTEM` is the same
+    text as under `$CONSOLE:ONLY`: the mode is in the two globals and in libqb, not in a statement's code.
+  - **The calls (read from the C++ of `qb64pe -z`, every form; the table is design D2 of `m3-window-output`).**
+    `SCREEN`, `CLS`, `COLOR`, `LOCATE`, `WIDTH`, `VIEW PRINT`, `VIEW`, `WINDOW`, `PSET`, `PRESET`, `LINE`,
+    `CIRCLE`, `DRAW`, `PALETTE`, `PCOPY`, `_LIMIT`, `_DELAY`, `SLEEP` and `_DISPLAY` are the plain call of their
+    table row and template, `LINE` too. A slot the table types LONG or `_UNSIGNED LONG` takes an integer as it is
+    and a float through `qbr`; a `_FLOAT`, SINGLE or DOUBLE slot takes any number as it is (libqb's parameters
+    are `float` or `double`, C++ converts). `PAINT` is the one exception: its fill is a number or a string and
+    the old compiler writes a cast before it, `(uint32)` or `(qbs*)`, which picks one of libqb's two `sub_paint`
+    (`(uint32)NULL` when it is left out). `WIDTH #1, 80` is `qbsub_width(1,1,80,…)` and `WIDTH LPRINT 80`
+    `qbsub_width(2,80,…)`: the same entry with the choice as its first argument.
+  - **The functions.** `INKEY$` is `qbs_inkey()`, `CSRLIN` `func_csrlin()` (a LONG), `POS(n)` `func_pos(n)` (a
+    LONG), `POINT(x, y)` and `POINT(n)` one entry, `func_point`, with a `passed` flag for the second argument (a
+    `double`, believed DOUBLE), `SCREEN(r, c[, f])` `func_screen` (a `uint32`, believed `_UNSIGNED LONG`).
+  - **Accepted forms (`v27_x01`, as code that is not reached).** Each statement with nothing after its name
+    where its whole template is optional (`SCREEN`, `COLOR`, `LOCATE`, `WIDTH`, `VIEW`, `WINDOW`, `PALETTE`,
+    `SLEEP`, `VIEW PRINT`); a comma with nothing after it where the template has an optional part behind the
+    comma (`SCREEN 12,`, `CLS ,`, `COLOR 1,`, `LOCATE 1,`, `LINE (1, 2)-(3, 4),` and `…, 5,`, `CIRCLE (1, 2), 3,`,
+    `PAINT (1, 2),`, `VIEW (1, 2)-(3, 4),`); `COLOR` with four arguments; `SCREEN 12, , , , _MANUALDISPLAY 1`;
+    `WIDTH #1`, `WIDTH #1, 80, 50`, `WIDTH LPRINT`; a blank between `STEP` and its parenthesis and around the `-`
+    of `LINE`; `B` and `BF` in lower case; `LINE -(5, 5)` and `LINE STEP(1, 1)-STEP(2, 2)`. `l = INKEY` and `k =
+    CSRLIN$` are variables, not the functions.
+  - **After `CALL` (`v27_x02`, `x14`, `x15`).** Every one of the statements is accepted after `CALL`, with the
+    form of its template between the parentheses (`CALL SCREEN(12)`, `CALL CLS`, `CALL PSET((1, 2), 3)`, `CALL
+    LINE((1, 2)-(3, 4), 5, BF)`, `CALL PALETTE`, `CALL SLEEP`); `CALL PSET(1, 2)` is a syntax error (the point's
+    own parentheses are missing) and `CALL VIEW PRINT` is "Expected CALL sub-name (...)".
+  - **Rejected forms, one program each (`v27_x03`–`x50`).** "Syntax error - Reference: …" for a form that is
+    none of the template's: `LINE (1, 2), 3` (`x03`), `LOCATE` with six arguments and with four commas (`x04`,
+    `x18`), `VIEW PRINT 2` (`x05`), `PALETTE 1` and `PALETTE 1, 2, 3` (`x06`, `x43`), a fifth argument of
+    `SCREEN` without `_MANUALDISPLAY`, alone and after four others (`x16`, `x17`), a comma after the box word of `LINE` and
+    a box word that is neither `B` nor `BF` (`x19`, `x41`), `PSET (1, 2),` and `PSET 1, 2` (`x20`, `x36`),
+    `CIRCLE (1, 2),` and eight arguments (`x21`, `x45`), `VIEW (1, 2)-(3, 4), 5,`, `VIEW SCREEN`, `VIEW
+    STEP(…)` (`x22`, `x24`, `x35`), `WINDOW SCREEN` and `WINDOW` with a colour (`x23`, `x47`), `WIDTH` with five
+    values (`x25`), `_LIMIT` with none (`x27`), `SLEEP 1, 2` (`x28`), `PCOPY 1` (`x34`), `CLS` with four (`x37`),
+    `PAINT` with five (`x46`), `DRAW t, k` (`x48`). "SUB does not require any arguments" for `_DISPLAY 1`
+    (`x26`). A string where a number is wanted: "1st sub argument requires a number" (`COLOR t`, `x10`; the
+    argument's place in the C call is counted: "2nd" for `WIDTH t`, `x38`, "5th" for the colour of `LINE`,
+    `x42`, "4th" for the border of `PAINT`, `x12`), "Number required for sub" (`_DELAY t`, `x49`); a number
+    where a string is: "String required for sub" (`DRAW 1`, `x11`), "5th sub argument requires a string" (the
+    tile of `PAINT`, `x13`). Functions: `INKEY$()` and `CSRLIN()` "Expected (...)" (`x07`, `x08`); `INKEY$(1)`,
+    `CSRLIN(1)`, `POS` bare, `POINT` bare, `POINT(1, 2, 3)`, `POINT(, 2)`, `SCREEN(1)` "Incorrect number of
+    arguments" (`x31`, `x32`, `x29`, `x33`, `x09`, `x50`, `x30`); a string argument "Number required for
+    function" (`POS(t)`, `x40`) or "Nth function argument requires a number" (`POINT(1, t)`, `SCREEN(t, 1)`,
+    `x39`, `x44`).
+  - **`INKEY$`, `CSRLIN` and `POS` in a program with a console and no window (`v27_a_console_functions`,
+    standard input and output redirected).** They compile and run: `INKEY$` gives an empty string; `POS(0)` is
+    1 wherever the output stands (after `PRINT "abc";` too); `CSRLIN` does not change as lines are printed (its
+    difference from an earlier `CSRLIN` is 0). So `POS(0)` and a difference of two `CSRLIN` are stable in a
+    console program's recorded output; the value of `CSRLIN` itself is not recorded.
+  - **A statement's name, parentheses and `=` (`v27_x51`–`x57`; measured for 44 statement names while group 3
+    was built).** A statement that starts `name (…) =`, the `=` right after the matching parenthesis, is an
+    assignment to the old compiler whatever follows, and for a built-in statement's name an error: "Name
+    already in use (CLS)" for `CLS (1) = 5`, `LOCATE (1) = 2, 3`, `PCOPY (1) = 1, 2`, `KILL (t) = t`, `OPEN`,
+    `NAME`, `SWAP`, `LINE`, `PSET`, `PAINT` and the others (`x52`–`x54`); another message where the name is
+    also a function or has a leading underscore ("Incorrect number of arguments" for `SCREEN (12) = 12` and
+    `_DEST (1) = 1`, "Expected variable =" for `SEEK (1) = 2, 3`, "Invalid array name" for `_LIMIT (60) = 60`
+    and `_TITLE (1) = 1`: `x55`–`x57`). With something between the parenthesis and the `=` the line is the
+    statement with a comparison as its argument: `CLS (1) + 2 = 5`, `CLS ((1) = 5)`, `CLS (1) <> 5`, `CLS -(1) =
+    5`, `LOCATE (1) * 2 = 2` compile (`x51`). **`WIDTH` is the exception:** `WIDTH (80) = 80` stores into an
+    array named `WIDTH` (made 0 to 10 like any array used without `DIM`), `WIDTH = 80` into a variable, and
+    `PRINT WIDTH(1)` reads the array (`x51`).
+  - **A statement's name and a colon at the start of a line (`v27_x58`–`x63`; measured while group 5 was
+    built).** It is the statement with no argument, never a label: `CLS: l = 1` and `CLS : l = 2` are
+    `sub_clsDest(NULL,NULL,NULL,0)` and then the assignment, and so for `SCREEN`, `COLOR`, `LOCATE`, `WIDTH`,
+    `VIEW`, `WINDOW`, `PALETTE`, `SLEEP`, `_DISPLAY`, `CLOSE`, `RANDOMIZE`, `SHELL`, `_SCREENHIDE`, `_ICON`,
+    `_MOUSEHIDE` and `_FREEIMAGE` (`x58`), also with nothing after the colon. A statement that needs an argument
+    is "Syntax error - Reference: …" (`PSET:`, `DRAW:`, `KILL:`, `_LIMIT:`, `x59`–`x62`; `LINE:`, `PCOPY:` and
+    `CIRCLE:` likewise), and `GOTO CLS` after a line `CLS: l = 1` is "Invalid label!" (`x63`). Civil War
+    Strategy starts ten lines with `CLS :`.
+  - **`PALETTE USING` (`v27_x64`).** `PALETTE USING a(0)` and `PALETTE USING a` are accepted: the old compiler
+    reads the form by hand (`qb64pe.bas` 7238), outside the template of `PALETTE` (`[?,?]`). It is the only
+    built-in of `m3-window-output` with a form of its own; `SLEEP`'s two mentions in the source are for the
+    debugger, and `WIDTH`'s make its name free for a variable or an array.
+  - **The cast before the fill of `PAINT` and an expression (read from the C++ of `qb64pe -z`, 14
+    expressions).** The cast stands before the first operand only: `PAINT (1, 2), l + 1` is `(uint32)*__LONG_L+
+    1`, `l AND 3` `(uint32)*__LONG_L& 3`, `l * q` `(uint32)*__LONG_L**__INTEGER64_Q`. C++ then computes in
+    unsigned (or 64-bit) arithmetic, which gives the same low 32 bits as casting the whole value, and every
+    other operation is one call or parenthesised operand behind the cast (`(uint32)qb_safe_idiv(…)` for `\`,
+    `qb_safe_mod` for `MOD`, `(uint32)qbr(…)` for `/`, `^` and anything with a float, `(uint32)-(…)` for a
+    comparison and a negation, `(uint32)~(…)` for `NOT`). So the fill libqb gets is the value's low 32 bits
+    in every case.
+  - **The first screen programs of the new compiler (2026-10-12).** Of the 45 programs of `tests\corpus\screen`
+    42 compile and all 42 leave the recorded state on their first run, with and without folding: the calls
+    are the old compiler's, and what they draw is libqb's. The three others wait on `PLAY` (`g03`), graphics
+    `GET` and `PUT` (`g06`) and `_RGB32`/`_RGBA32` (`m32`).
 
 ## 6. Bug-compatibility choices (all decided)
 

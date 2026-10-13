@@ -1,0 +1,33 @@
+' PSET, PRESET and LINE in each form: STEP, arguments left out, B and BF, a style, a line without its first point.
+SCREEN 7
+PSET (10, 10)
+PSET (12, 10), 4
+PSET STEP(2, 0)
+PSET STEP(2, 0), 2
+PRESET (12, 10)
+PRESET (30, 10), 5
+PRESET STEP(2, 2), 6
+PRESET STEP(-20, 0)
+LINE (20, 20)-(60, 40)
+LINE (20, 50)-(60, 70), 3
+LINE (70, 20)-(110, 40), 4, B
+LINE (70, 50)-(110, 70), 5, BF
+LINE (120, 20)-(160, 40), , B
+LINE (120, 50)-(160, 70), , BF
+LINE (170, 20)-(210, 40), 6, B, &H5555
+LINE (170, 50)-(210, 70), 7, , &HF0F0
+LINE (220, 20)-(260, 40), , , &HFF00
+LINE (220, 50)-(260, 70), , B, &H3333
+LINE -(300, 100)
+LINE -(280, 120), 9
+LINE -STEP(-20, 10)
+LINE -STEP(-20, 10), , B
+LINE STEP(5, 5)-(100, 150)
+LINE STEP(5, 5)-STEP(30, 10)
+LINE STEP(5, 5)-STEP(30, 10), 10, BF, &HAAAA
+LINE (10, 160)-STEP(40, 20), 11
+LINE STEP (10, 0) - STEP (20, 10), 13, b
+LINE (300, 190)-(310, 199), 12, bf
+LINE (290, 150)-(400, 250), 14
+LINE (-20, 100)-(20, 120), 15, B
+SYSTEM

@@ -1,8 +1,8 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 107
 expression: snap
 ---
-proc_header_errors.bas:7:1: error: not supported yet: `CLS`
 proc_header_errors.bas:11:5: error: name already in use: `cls`
 proc_header_errors.bas:13:8: error: name already in use: `name`
 proc_header_errors.bas:15:5: error: not supported yet: a SUB name with a type suffix

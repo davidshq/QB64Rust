@@ -1,0 +1,92 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+Settings: window
+Stmt line 7 may_raise
+  Builtin CLS [Absent, Absent, Absent]
+Stmt line 7
+  Assign L:I32 = Const 1:I32
+Stmt line 8 may_raise
+  Builtin CLS [Absent, Absent, Absent]
+Stmt line 8 may_raise
+  Builtin LOCATE [Value(Const 1:I32), Value(Const 30:I32), Absent, Absent, Absent]
+Stmt line 8 may_raise
+  Builtin COLOR [Value(Const 11:I32), Absent, Absent, Absent]
+Stmt line 9 may_raise
+  Builtin SCREEN [Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 9
+  Assign L:I32 = Const 3:I32
+Stmt line 10 may_raise
+  Builtin COLOR [Absent, Absent, Absent, Absent]
+Stmt line 10
+  Assign L:I32 = Const 4:I32
+Stmt line 11 may_raise
+  Builtin LOCATE [Absent, Absent, Absent, Absent, Absent]
+Stmt line 11
+  Assign L:I32 = Const 5:I32
+Stmt line 12 may_raise
+  Builtin WIDTH [Absent, Absent, Absent, Absent, Absent]
+Stmt line 12
+  Assign L:I32 = Const 6:I32
+Stmt line 13 may_raise
+  Builtin VIEW form 1 [Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 13
+  Assign L:I32 = Const 7:I32
+Stmt line 14 may_raise
+  Builtin WINDOW [Absent, Absent, Absent, Absent, Absent]
+Stmt line 14
+  Assign L:I32 = Const 8:I32
+Stmt line 15 may_raise
+  Builtin PALETTE [Absent, Absent]
+Stmt line 15
+  Assign L:I32 = Const 9:I32
+Stmt line 16 may_raise
+  Builtin SLEEP [Absent]
+Stmt line 16
+  Assign L:I32 = Const 10:I32
+Stmt line 17 may_raise
+  Builtin _DISPLAY []
+Stmt line 17
+  Assign L:I32 = Const 11:I32
+Stmt line 18 may_raise
+  Builtin CLOSE []
+Stmt line 18
+  Assign L:I32 = Const 12:I32
+Stmt line 19 may_raise
+  Builtin RANDOMIZE [Absent, Absent]
+Stmt line 19
+  Assign L:I32 = Const 13:I32
+Stmt line 20 may_raise
+  Builtin SHELL form 3 [Absent]
+Stmt line 20
+  Assign L:I32 = Const 14:I32
+Stmt line 21 may_raise
+  Builtin _SCREENHIDE []
+Stmt line 21
+  Assign L:I32 = Const 15:I32
+Stmt line 22 may_raise
+  Builtin _MOUSEHIDE [Absent]
+Stmt line 22
+  Assign L:I32 = Const 16:I32
+Stmt line 23 may_raise
+  Builtin _FREEIMAGE [Absent]
+Stmt line 23
+  Assign L:I32 = Const 17:I32
+Stmt line 24
+  Branch Zero -> @1 Skip: Var L:I32
+Stmt line 25 may_raise
+  Builtin CLS [Absent, Absent, Absent]
+Stmt line 25
+  Assign L:I32 = Const 18:I32
+Label @1 line 26
+Stmt line 27 may_raise
+  Builtin CLS [Absent, Absent, Absent]
+Label AGAIN line 28
+Stmt line 28
+  Assign L:I32 = Const 19:I32
+Stmt line 29
+  Jump AGAIN
+Stmt line 30
+  System

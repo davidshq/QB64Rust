@@ -1,0 +1,5 @@
+
+2nd function argument requires a number
+Caused by (or after):D = POINT ( 1 , T )
+LINE 6:d = POINT(1, t)
+exit=1

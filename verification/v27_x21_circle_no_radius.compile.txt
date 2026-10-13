@@ -1,0 +1,5 @@
+
+Syntax error - Reference: CIRCLE [STEP] (x!, y!), radius![, [color&] [, [start!] [, [end!] [, aspect!]]]]
+Caused by (or after):CIRCLE ( 1 , 2 ) ,
+LINE 6:CIRCLE (1, 2),
+exit=1

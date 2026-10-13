@@ -1,0 +1,5 @@
+
+Syntax error - Reference: PALETTE [attribute%, red% + (green% * 256) + (blue% * 65536)] or PALETTE [existingAttribute%, newAttribute%]
+Caused by (or after):PALETTE 1
+LINE 6:PALETTE 1
+exit=1

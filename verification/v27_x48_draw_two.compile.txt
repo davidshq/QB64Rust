@@ -1,0 +1,5 @@
+
+Syntax error - Reference: DRAW drawString$
+Caused by (or after):DRAW T , K
+LINE 6:DRAW t, k
+exit=1

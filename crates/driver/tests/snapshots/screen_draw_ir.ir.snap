@@ -1,0 +1,162 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+Settings: window
+Stmt line 10 may_raise
+  Builtin PSET [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent]
+Stmt line 11 may_raise
+  Builtin PSET [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I32)]
+Stmt line 12 may_raise
+  Builtin PSET [Word 0, Value(Const 1:I16), Value(Const 2:I16), Absent]
+Stmt line 13 may_raise
+  Builtin PSET [Word 0, Value(Var L:I32), Value(Var L:I32), Value(Var L:I32)]
+Stmt line 14 may_raise
+  Builtin PSET [Absent, Value(Var I:I16), Value(Var Q:I64), Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 15 may_raise
+  Builtin PSET [Absent, Value(Var SG:F32), Value(Var D:F64), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 16 may_raise
+  Builtin PSET [Absent, Value(Var F:F80), Value(Const 1.5E+0:F64), Value(Const -1:I32)]
+Stmt line 17 may_raise
+  Builtin PRESET [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent]
+Stmt line 18 may_raise
+  Builtin PRESET [Word 0, Value(Var L:I32), Value(Var L:I32), Value(Var L:I32)]
+Stmt line 19 may_raise
+  Builtin LINE [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Absent, Absent, Absent]
+Stmt line 20 may_raise
+  Builtin LINE [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Value(Const 5:I32), Absent, Absent]
+Stmt line 21 may_raise
+  Builtin LINE [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Value(Const 5:I32), Word 0, Absent]
+Stmt line 22 may_raise
+  Builtin LINE [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Value(Const 5:I32), Word 1, Absent]
+Stmt line 23 may_raise
+  Builtin LINE [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Absent, Word 0, Absent]
+Stmt line 24 may_raise
+  Builtin LINE [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Value(Const 5:I32), Word 0, Value(Const 6:I32)]
+Stmt line 25 may_raise
+  Builtin LINE [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Value(Const 5:I32), Absent, Value(Const 6:I32)]
+Stmt line 26 may_raise
+  Builtin LINE [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Absent, Absent, Value(Const 6:I32)]
+Stmt line 27 may_raise
+  Builtin LINE [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Absent, Absent, Absent]
+Stmt line 28 may_raise
+  Builtin LINE [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Value(Const 5:I32), Absent, Absent]
+Stmt line 29 may_raise
+  Builtin LINE [Absent, Absent, Absent, Absent, Value(Const 3:I16), Value(Const 4:I16), Absent, Absent, Absent]
+Stmt line 30 may_raise
+  Builtin LINE [Absent, Absent, Absent, Absent, Value(Const 3:I16), Value(Const 4:I16), Value(Const 5:I32), Absent, Absent]
+Stmt line 31 may_raise
+  Builtin LINE [Absent, Absent, Absent, Word 0, Value(Const 3:I16), Value(Const 4:I16), Absent, Word 0, Absent]
+Stmt line 32 may_raise
+  Builtin LINE [Word 0, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Absent, Absent, Absent]
+Stmt line 33 may_raise
+  Builtin LINE [Word 0, Value(Const 1:I16), Value(Const 2:I16), Word 0, Value(Const 3:I16), Value(Const 4:I16), Value(Const 5:I32), Word 1, Value(Const 6:I32)]
+Stmt line 34 may_raise
+  Builtin LINE [Absent, Value(Var I:I16), Value(Var Q:I64), Absent, Value(Var SG:F32), Value(Var D:F64), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Word 0, Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 35 may_raise
+  Builtin LINE [Absent, Value(Var F:F80), Value(Const 1.5E+0:F64), Absent, Value(Var U:U32), Value(Var L:I32), Value((Var U:U32 -> Convert I32 Truncate)), Absent, Absent]
+Stmt line 36 may_raise
+  Builtin CIRCLE [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Absent, Absent, Absent, Absent]
+Stmt line 37 may_raise
+  Builtin CIRCLE [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Value(Const 4:U32), Absent, Absent, Absent]
+Stmt line 38 may_raise
+  Builtin CIRCLE [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Absent, Value(Const 5:I16), Absent, Absent]
+Stmt line 39 may_raise
+  Builtin CIRCLE [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Absent, Absent, Value(Const 6:I16), Absent]
+Stmt line 40 may_raise
+  Builtin CIRCLE [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Absent, Absent, Absent, Value(Const 7:I16)]
+Stmt line 41 may_raise
+  Builtin CIRCLE [Word 0, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Value(Const 4:U32), Value(Const 5:I16), Value(Const 6:I16), Value(Const 7:I16)]
+Stmt line 42 may_raise
+  Builtin CIRCLE [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Absent, Absent, Absent, Absent]
+Stmt line 43 may_raise
+  Builtin CIRCLE [Absent, Value(Var I:I16), Value(Var Q:I64), Value(Var SG:F32), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert U32 Truncate)), Value(Var D:F64), Value(Var F:F80), Value(Const 1.5E+0:F64)]
+Stmt line 44 may_raise
+  Builtin CIRCLE [Absent, Value(Var L:I32), Value(Var L:I32), Value(Var L:I32), Value((Var Q:I64 -> Convert U32 Truncate)), Absent, Absent, Absent]
+Stmt line 45 may_raise
+  Builtin CIRCLE [Absent, Value(Var L:I32), Value(Var L:I32), Value(Var L:I32), Value(Const 4294967295:U32), Absent, Absent, Absent]
+Stmt line 46 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Absent, Absent]
+Stmt line 47 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Absent, Absent]
+Stmt line 48 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Value(Const 4:U32), Absent]
+Stmt line 49 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 4:U32), Absent]
+Stmt line 50 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Var S:Str), Absent, Absent]
+Stmt line 51 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Var S:Str), Value(Const 4:U32), Absent]
+Stmt line 52 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const "abc"), Absent, Absent]
+Stmt line 53 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Concat(Var S:Str, Var T:Str)), Value(Const 4:U32), Absent]
+Stmt line 54 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Var FX:Str), Absent, Absent]
+Stmt line 55 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Value(Const 4:U32), Value(Var S:Str)]
+Stmt line 56 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Var S:Str), Value(Const 4:U32), Value(Var T:Str)]
+Stmt line 57 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Absent, Value(Var S:Str)]
+Stmt line 58 may_raise
+  Builtin PAINT [Word 0, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Absent, Absent]
+Stmt line 59 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Absent, Absent]
+Stmt line 60 may_raise
+  Builtin PAINT [Absent, Value(Var SG:F32), Value(Var D:F64), Value((Var D:F64 -> Convert I64 RoundEven)), Value((Var Q:I64 -> Convert U32 Truncate)), Absent]
+Stmt line 61 may_raise
+  Builtin PAINT [Absent, Value(Var I:I16), Value(Var Q:I64), Value(Const 4294967295:I64), Value(Var U:U32), Absent]
+Stmt line 62 may_raise
+  Builtin DRAW [Value(Var S:Str)]
+Stmt line 63 may_raise
+  Builtin DRAW [Value(Const "U10R10")]
+Stmt line 64 may_raise
+  Builtin DRAW [Value(Concat(Var S:Str, Var T:Str))]
+Stmt line 65 may_raise
+  Builtin DRAW [Value(Var FX:Str)]
+Stmt line 66 may_raise
+  Builtin DRAW [Value(Var S:Str)]
+Stmt line 67 may_raise
+  Builtin VIEW form 1 [Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 68 may_raise
+  Builtin VIEW form 1 [Absent, Value(Const 1:I32), Value(Const 2:I32), Value(Const 3:I32), Value(Const 4:I32), Absent, Absent]
+Stmt line 69 may_raise
+  Builtin VIEW form 1 [Word 0, Value(Const 1:I32), Value(Const 2:I32), Value(Const 3:I32), Value(Const 4:I32), Absent, Absent]
+Stmt line 70 may_raise
+  Builtin VIEW form 1 [Absent, Value(Const 1:I32), Value(Const 2:I32), Value(Const 3:I32), Value(Const 4:I32), Value(Const 5:I32), Absent]
+Stmt line 71 may_raise
+  Builtin VIEW form 1 [Absent, Value(Const 1:I32), Value(Const 2:I32), Value(Const 3:I32), Value(Const 4:I32), Absent, Value(Const 6:I32)]
+Stmt line 72 may_raise
+  Builtin VIEW form 1 [Word 0, Value(Const 1:I32), Value(Const 2:I32), Value(Const 3:I32), Value(Const 4:I32), Value(Const 5:I32), Value(Const 6:I32)]
+Stmt line 73 may_raise
+  Builtin VIEW form 1 [Absent, Value(Const 1:I32), Value(Const 2:I32), Value(Const 3:I32), Value(Const 4:I32), Absent, Absent]
+Stmt line 74 may_raise
+  Builtin VIEW form 1 [Absent, Value((Var I:I16 -> Convert I32 Widen)), Value((Var Q:I64 -> Convert I32 Truncate)), Value(((Var SG:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(((Const 1.5E+0:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 75 may_raise
+  Builtin WINDOW [Absent, Absent, Absent, Absent, Absent]
+Stmt line 76 may_raise
+  Builtin WINDOW [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Value(Const 4:I16)]
+Stmt line 77 may_raise
+  Builtin WINDOW [Word 0, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Value(Const 4:I16)]
+Stmt line 78 may_raise
+  Builtin WINDOW [Absent, Value(Var I:I16), Value(Var Q:I64), Value(Var SG:F32), Value(Var D:F64)]
+Stmt line 79 may_raise
+  Builtin WINDOW [Absent, Value(Var F:F80), Value(Const 1.5E+0:F64), Value(Var U:U32), Value(Const -1:I16)]
+Stmt line 80 may_raise
+  Builtin PALETTE [Absent, Absent]
+Stmt line 81 may_raise
+  Builtin PALETTE [Value(Const 1:I32), Value(Const 63:I32)]
+Stmt line 82 may_raise
+  Builtin PALETTE [Value((Var Q:I64 -> Convert I32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 83 may_raise
+  Builtin PALETTE [Value(Var L:I32), Value(Const -1:I32)]
+Stmt line 84 may_raise
+  Builtin PCOPY [Value(Const 1:I32), Value(Const 2:I32)]
+Stmt line 85 may_raise
+  Builtin PCOPY [Value((Var Q:I64 -> Convert I32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 86 may_raise
+  Builtin PCOPY [Value(Var L:I32), Value(Var L:I32)]
+Stmt line 87
+  System

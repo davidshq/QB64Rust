@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-12 (session 53).
+Updated 2026-10-12 (session 54).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -19,7 +19,10 @@ Where everything else lives:
 
 M0 (baseline) and M1 (VS Code extension on the old compiler) are complete. **M2 (front end) is complete**: all 11
 steps of the order of work are done and its exit criterion is met (`ROADMAP.md`); the last change,
-`m2-console-screenhide`, was archived 2026-10-12 with all 24 tasks done. **M3 is next.** Step 9, built-in statements, was OpenSpec change
+`m2-console-screenhide`, was archived 2026-10-12 with all 24 tasks done. **M3 is under way**: its first step,
+OpenSpec change `m3-window-output`, is built (all 25 tasks; not yet committed or archived):
+a program whose output is a window compiles, with the text-screen, drawing and pacing statements and the screen
+functions, and 42 of the 45 screen programs pass by the state of their screen. Step 9 of M2, built-in statements, was OpenSpec change
 `m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
 (archived 2026-10-10: `qb64rust --report unsupported`, and tests of the test runner). Step 9a, the screen-state
 check, was OpenSpec change `m2-screen-state-check` (all 22 tasks done, archived 2026-10-10).
@@ -41,17 +44,29 @@ p`), parameters of a user type and member arrays (`v(0 TO 3) AS LONG` in a `TYPE
 11: programs with `$CONSOLE` (a console and a window), `$SCREENHIDE`/`$SCREENSHOW`, `_DEST`, `_SOURCE`,
 `_CONSOLE`, `_ECHO`, the 20 window built-ins of the upstream `glut` tests as code that is compiled and never
 run, 231 of the 310 constants of QB64pe's auto-included file (`_TRUE`, `_FALSE`, ...) and the precompiler flags
-in `$IF`. There is
+in `$IF`, and, with the first step of M3: programs with no console at all (a window), `SCREEN`, `CLS`, `COLOR`,
+`LOCATE`, `WIDTH`, `VIEW PRINT`, `PSET`, `PRESET`, `LINE`, `CIRCLE`, `PAINT`, `DRAW`, `VIEW`, `WINDOW`,
+`PALETTE`, `PCOPY`, `_LIMIT`, `_DELAY`, `SLEEP`, `_DISPLAY`, and the functions `INKEY$`, `CSRLIN`, `POS`,
+`POINT`, `SCREEN` (`crates\README.md`). There is
 a thin language server (`qb64rust lsp`). A plain built-in now comes in as a row, a call-site program and a slice
 line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10).
 
 ## Open items
 
 - None from CI: `rust.yml` (`test`, `tier2`, `deny`), `vscode-extension.yml` and `repo-check.yml` are green on
-  GitHub at `d9f5e95`, the last commit that changes code (seen 2026-10-12; `tier2` 19 min 52 s, with
-  `s66_window_builtins` and `glut/icon` passing, so the runner builds the libqb variant with the icon part). The
-  commit of step 11's closing documents changes only `.md` files, which starts `repo-check.yml` alone.
-- The branch `m2-console-screenhide` is not merged into `main` yet.
+  GitHub on `main` at `25e4ff6`, the merge of `m2-console-screenhide` (seen 2026-10-13; `tier2` 20 min 58 s; at
+  `d9f5e95` on the branch it was seen with `s66_window_builtins` and `glut/icon` passing, so the runner builds
+  the libqb variant with the icon part).
+- No branch is waiting: `m2-console-screenhide` is merged into `main` (pull request 4, 2026-10-13).
+- `m3-window-output` is in the working tree of branch `m3`, not committed; all 25 tasks are done and it can be
+  archived after the commit. Nothing of it has run on GitHub: CI is looked at when the user asks, not a gate
+  (`CLAUDE.md` working rule 9), and the `tier2` job now runs by hand and weekly, so it must be started to see
+  this. `rust.yml` itself changed (that trigger), which shows on its first run. **One thing to see there:** the `tier2` job runs screen programs with a shown window
+  for the first time, and GitHub's Windows runner may not give them one (`study\00` §5, "The GitHub Windows
+  runner"). If they fail there and pass here, the fallback is the design's: a `screen.list` run locally and not
+  by the job.
+- `tests\corpus\screen\m32_newimage_32` waits on `_RGB32` and `_RGBA32`, two plain functions outside the change's
+  scope; they could come in by themselves or with the image built-ins.
 
 Every question of the seventh and eighth reviews is answered (`study\28` §9, `study\29` §8, `DECISIONS.md`
 2026-10-09 and 2026-10-10): the local reference clone (`16f629784e`) is the one reference for the old compiler;
@@ -66,9 +81,8 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
 9. Done: built-in statements and functions by demand (`m2-builtin-statements`). Further plain built-ins come in
    as programs name them, each with a call-site program (`crates\README.md`); what was left marked and why is in
    task 7.4 of the change.
-9a. Done: the screen-state check (`m2-screen-state-check`; `tools\screen\README.md`). The new
-    compiler compiles none of the 29 screen programs yet: it builds a program with a window since step 11, and
-    the first drawing statement is M3 work. What a set of them needs: `qb64rust --report unsupported tests\corpus\screen`.
+9a. Done: the screen-state check (`m2-screen-state-check`; `tools\screen\README.md`). What a set of screen
+    programs needs: `qb64rust --report unsupported tests\corpus\screen`.
 10. Done: (was 11) default types, `COMMON`, dynamic arrays, arrays in procedures, array parameters, the rest
     of `TYPE` and member arrays (`m2-defxxx-common-arrays`, all 29 tasks done, archived 2026-10-12).
     What each task found is in the change's `tasks.md`, how each group was built in its `design.md` ("As
@@ -84,10 +98,17 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
     (`verification\v26_*`, 140 programs). The GitHub Windows runner starts a program with a hidden window. What
     stayed marked is in `SOMEDAY.md` ("Left marked by `m2-console-screenhide`").
 
-**Next:** merge the branch `m2-console-screenhide`; then M3. No order of work is set for M3
-yet: its items are in `ROADMAP.md` and under "Queued for later milestones" below (the plain copy of
-`internal\c`, the drawing statements with the screen programs, Civil War Strategy), and what the screen
-programs and the game need first is in the "Screen programs" and "Demand" rows below.
+**M3's order of work** (user, `DECISIONS.md` 2026-10-12):
+
+1. Built: a program with a window as its output, the text-screen, drawing and pacing statements, the screen
+   functions (`m3-window-output`, all 25 tasks; to commit, then archive). What each task found is in the
+   change's `tasks.md`, the call of every form in its `design.md` D2, the measured facts in `study\00` §5
+   (`verification\v27_*`, 65 programs), what stayed marked in `SOMEDAY.md`.
+2. **Next:** graphics `GET` and `PUT`, `DEF SEG` with `BLOAD`, data files beside a corpus program, `TAB` and
+   `SPC`, labels named like a SUB: what Civil War Strategy needs to build; more programs cut from it.
+3. Sound (`PLAY`, `SOUND`, `BEEP`: compiled, and what of them can be checked).
+4. The console programs of the corpus that still wait (`PRINT USING`, random and binary files).
+5. The plain copy of `internal\c`, when libqb must change.
 
 ## Numbers at the last full runs
 
@@ -96,27 +117,30 @@ programs and the game need first is in the "Screen programs" and "Demand" rows b
 compiler (the screen programs, the corpus of 336) are from session 40, 2026-10-10. Newer, from session 53
 (2026-10-12, task 7.1 of `m2-console-screenhide`, the runs that close step 11, with `--jobs 8 --build-cache`):
 tier 1, the runner's tests, the call-site check, the slice list, the upstream pass list, the differential pass
-list and the two full suites (the full corpus, the upstream suite of 404). The demand row is from session 52,
-after the step's group 6.
+list and the two full suites (the full corpus, the upstream suite of 404). The upstream part of the demand row
+is from session 52. Newest, from session 54 (2026-10-12, task 6.1 of `m3-window-output`, each run once with
+`--jobs 8 --build-cache`): every row below but the last two and the upstream demand.
 
 | Yardstick | Result |
 |---|---|
-| `tests\corpus\slice.list` (tier 2) | 297 of 297, also with `QB64RUST_NO_FOLD=1`; about 3 min 30 s each from an empty build cache, under a minute when the cache holds the unchanged programs |
-| Full corpus (367 programs) | 316 pass (the 297 of the slice list, 19 `.err` programs), none wrong at run time; 45 rejected with "not supported yet" (16 and the 29 screen programs) and 1 `.err` program with only marked errors; 5 known failures (`tests\corpus\README.md`) |
+| `tests\corpus\slice.list` (tier 2) | 342 of 342 (42 of them screen programs), also with `QB64RUST_NO_FOLD=1`; about 2 min each with the build cache (131 s and 113 s; under a minute before the screen programs, which each open a window and build with the state file). In the first of the two runs `m10_screen_10` failed: its recorded palette followed the clock, a fault of the state file, fixed (`DECISIONS.md` 2026-10-12); after the fix all screen programs pass with both compilers, run in parallel |
+| Full corpus (384 programs) | 361 pass (the 342 of the slice list, 19 `.err` programs; 360 in the run, before the fix of the state file), none wrong at run time; 17 rejected with "not supported yet" (13 console programs, 3 screen programs, `239_lprint`) and 1 `.err` program with only marked errors; 5 known failures (`tests\corpus\README.md`) |
 | Upstream | **140 of 279** (`tests\upstream\pass.list`: 140, all passing, run by itself); the full suite, none wrong (404 programs: 140 pass, 225 rejected, 38 `.err` programs with only marked errors, 1 known failure) |
-| Call-site check | 362 of 362 programs equal (`tools\callsite\README.md`); 3 min 57 s at the last run (about 1 min 20 s in session 52) |
-| Real programs (`tests\programs`) | Civil War Strategy: the front end reads it with no real error; every diagnostic is "not supported yet" (what it needs next: `tests\programs\README.md`) |
+| Call-site check | 663 of 663 programs equal (`tools\callsite\README.md`; 301 of them for the screen built-ins); 5 min 44 s without its cache (3 min 57 s for the 362 before), 38 s with the old compiler's answers kept (`target\callsite-cache`, since 2026-10-12) |
+| Real programs (`tests\programs`) | Civil War Strategy: the front end reads it with no real error; 135 marked errors in 15 messages are left, 1,709 in 33 before (what it needs next: `tests\programs\README.md`) |
 | Differential (`tests\differential\pass.list`) | 59 of 59 |
 | Shrink-only lists | 0 false errors, 0 parse gaps, 53 only-marked rejections (`tests\upstream\README.md`) |
-| Tier 1 (`cargo test`) | passes (290 tests), about 28 s (23 to 26 s before step 11's groups 4 to 6, which added 156 programs and 7 tests; the front end over the same inputs takes 2.3 s before and after); the 13 command-line tests that build an executable (`--ignored`) pass |
-| The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 56 pass, under a second |
-| Screen programs (`tests\corpus\screen`, 29) | Old compiler: 29 pass, each recorded from two equal runs. New compiler: all 29 rejected with only "not supported yet" errors (by programs: no `$CONSOLE:ONLY` 29, `SCREEN` 23, `LINE` 20, `PSET` 17) |
-| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: 16 programs held back beside the 29 screen programs. Upstream (348 without an `.err`): 122 without errors, 216 held back, 10 with other errors (the ten that include the old compiler's sources); `_DYNAMIC`/`_STATIC` members 86 programs (deferred), `$Unstable` 85, an array used after a marked declaration 60, `_MEM` 30, `REDIM _RETAIN` 27, `_MEMFREE` 22 (no line names `_DEST`, `$CONSOLE`, a window built-in, `_TRUE` or a precompiler flag any more). Civil War Strategy: `LINE` 899, `COLOR` 190, `LOCATE` 145, as before |
+| Tier 1 (`cargo test`) | passes (292 tests), about 28 s with `m3-window-output`'s 301 call-site programs, 11 front-end tests and 17 corpus programs (23 to 26 s before step 11's groups 4 to 6, which added 156 programs and 7 tests; the front end over the same inputs takes 2.3 s before and after); the 13 command-line tests that build an executable (`--ignored`) pass |
+| The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 64 pass, under a second |
+| `slice.list` while working, with `--pass-cache` | 24 s when no program's executable changed, 92 s when all are run (`--jobs 8 --build-cache`, 2026-10-12) |
+| Screen programs (`tests\corpus\screen`, 45) | Old compiler: 45 pass, each recorded from two equal runs. New compiler: 42 pass, each on its first run; 3 rejected with only "not supported yet" errors (`g03` `PLAY`, `g06` graphics `GET` and `PUT`, `m32` `_RGB32` and `_RGBA32`) |
+| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: 13 console programs and 3 screen programs held back. Civil War Strategy: `SOUND` 33, `PLAY` 31, `TAB` 22, `PUT` 19, `DEF SEG` 8, `GET` 8, labels named like a SUB 7, `BLOAD` 4. Upstream, as of session 52 (the full suite's result did not change) (348 without an `.err`): 122 without errors, 216 held back, 10 with other errors (the ten that include the old compiler's sources); `_DYNAMIC`/`_STATIC` members 86 programs (deferred), `$Unstable` 85, an array used after a marked declaration 60, `_MEM` 30, `REDIM _RETAIN` 27, `_MEMFREE` 22 (no line names `_DEST`, `$CONSOLE`, a window built-in, `_TRUE` or a precompiler flag any more) |
 | Tier 2 as CI runs it, locally | about 12 min at the last full build; about 2 min with `--jobs 8 --build-cache` when little C++ changed |
 | Full corpus with the old compiler (2026-10-10, 336 programs) | 331 pass, 5 known failures, `--jobs 8`; the 305 before the screen programs took about 12 min with one job, 3 min 44 s with `--jobs 8` (`tools\legacy_tests\README.md`) |
 
-How to read them: the corpus has given what it can before M3 (its 16 rejected console programs wait on `PRINT
-USING`/`TAB`/`SPC`, random and binary files and a few functions; the 29 screen programs on drawing). Upstream
+How to read them: the corpus's 13 rejected console programs wait on `PRINT USING`/`TAB`/`SPC`, random and
+binary files and a few functions (step 4 of M3's order); its screen programs pass but for three. The game is
+the yardstick of step 2. Upstream
 went from 50 to 114 over step 10 (64 before its member arrays) and is at 140 after group 6 of step 11 (115
 after `_DEST` and `$CONSOLE`; all 19 `glut` tests with the window built-ins and `_TRUE`/`_FALSE`; four of the
 nine `precomp-flags` tests). Its next blockers outside `deferred.list` are `_MEM`, `$ASSERTS`/`$DEBUG` and the
@@ -135,7 +159,7 @@ None known. (The two of 2026-10-11, a `+` after another sign and a `DIM` of seve
 | M3 | Plain copy of `..\QB64pe\internal\c` at the reference clone's commit, `16f629784e` (`DECISIONS.md` 2026-10-02 and 2026-10-09) |
 | M3 | Civil War Strategy builds and its screens match (`tests\programs\README.md`, stages 2 and 3) |
 | Any time | A formatter that matches `-y` (out of M2's exit criterion, `DECISIONS.md` 2026-10-09) |
-| M3 | Programs that draw (without `$CONSOLE:ONLY` and not writing to `_DEST _CONSOLE`): the check exists (`tools\screen`), with 29 recorded programs; the new compiler has to build a program with a window and compile the drawing statements, each coming in with screen programs that pass |
+| M3 | The image built-ins that run (`_RGB32`, `_LOADIMAGE`, `_PUTIMAGE`, …), fonts, the mouse: in none of the five steps of M3's order yet |
 | M3 | Data files beside a corpus program, for the cut programs that load the game's `*.VGA` pictures with `BLOAD` (`SOMEDAY.md`) |
 | M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\22` §4.2) |
 | Help/hover work | Ask the QB64pe maintainers about the wiki licence before shipping any wiki text |

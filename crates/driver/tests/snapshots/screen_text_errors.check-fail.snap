@@ -1,0 +1,34 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+screen_text_errors.bas:8:21: error: this `LOCATE` statement matches none of its forms: `LOCATE [?][,[?][,[?][,[?][,?]]]]`
+screen_text_errors.bas:9:15: error: this `LOCATE` statement matches none of its forms: `LOCATE [?][,[?][,[?][,[?][,?]]]]`
+screen_text_errors.bas:10:8: error: argument 1 of `LOCATE` needs a number
+screen_text_errors.bas:11:18: error: this `SCREEN` statement matches none of its forms: `SCREEN [?][,[?][,[?][,[?][,[{_ManualDisplay}?]]]]]`
+screen_text_errors.bas:12:21: error: this `SCREEN` statement matches none of its forms: `SCREEN [?][,[?][,[?][,[?][,[{_ManualDisplay}?]]]]]`
+screen_text_errors.bas:13:8: error: argument 1 of `SCREEN` needs a number
+screen_text_errors.bas:14:12: error: this `CLS` statement matches none of its forms: `CLS [?][,[?][,?]]`
+screen_text_errors.bas:15:5: error: argument 1 of `CLS` needs a number
+screen_text_errors.bas:16:7: error: argument 1 of `COLOR` needs a number
+screen_text_errors.bas:17:19: error: this `WIDTH` statement matches none of its forms: `WIDTH [{#|LPrint}][?][,[?][,[?][,[?]]]]`
+screen_text_errors.bas:18:7: error: argument 1 of `WIDTH` needs a number
+screen_text_errors.bas:19:13: error: this `VIEW` statement matches none of its forms: `VIEW [[{Screen}](?,?)-(?,?)[,[?][,?]]]`, `VIEW {Print}[?{To}?]`
+screen_text_errors.bas:20:16: error: this `VIEW` statement matches none of its forms: `VIEW [[{Screen}](?,?)-(?,?)[,[?][,?]]]`, `VIEW {Print}[?{To}?]`
+screen_text_errors.bas:21:12: error: this `VIEW` statement matches none of its forms: `VIEW [[{Screen}](?,?)-(?,?)[,[?][,?]]]`, `VIEW {Print}[?{To}?]`
+screen_text_errors.bas:22:13: error: this `VIEW` statement matches none of its forms: `VIEW [[{Screen}](?,?)-(?,?)[,[?][,?]]]`, `VIEW {Print}[?{To}?]`
+screen_text_errors.bas:23:12: error: argument 1 of `VIEW` needs a number
+screen_text_errors.bas:24:5: error: `INKEY$` with empty parentheses
+screen_text_errors.bas:25:5: error: `INKEY$` takes 0 arguments
+screen_text_errors.bas:26:5: error: `CSRLIN` with empty parentheses
+screen_text_errors.bas:27:5: error: `CSRLIN` takes 0 arguments
+screen_text_errors.bas:28:5: error: `POS` takes 1 argument
+screen_text_errors.bas:29:5: error: `POS` with empty parentheses
+screen_text_errors.bas:30:5: error: `POS` takes 1 argument
+screen_text_errors.bas:31:9: error: `POS` needs a number
+screen_text_errors.bas:32:5: error: `SCREEN` takes 2 or 3 arguments
+screen_text_errors.bas:33:5: error: `SCREEN` with empty parentheses
+screen_text_errors.bas:34:5: error: `SCREEN` takes 2 or 3 arguments
+screen_text_errors.bas:35:5: error: `SCREEN` takes 2 or 3 arguments
+screen_text_errors.bas:36:12: error: argument 1 of `SCREEN` needs a number

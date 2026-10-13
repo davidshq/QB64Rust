@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 107
 expression: snap
 ---
 implicit_arrays_errors.bas:9:1: error: `z` has 1 dimension, not 2
@@ -7,7 +8,7 @@ implicit_arrays_errors.bas:11:1: error: `lb` has 1 dimension, not 2
 implicit_arrays_errors.bas:13:5: error: the static array `z` is already declared
 implicit_arrays_errors.bas:15:5: error: the static array `ub` is already declared
 implicit_arrays_errors.bas:17:3: error: an array index must be a number
-implicit_arrays_errors.bas:20:1: error: not supported yet: `CLS`
+implicit_arrays_errors.bas:20:1: error: name already in use: `CLS`
 implicit_arrays_errors.bas:22:7: error: `later` is no declared array (`ERASE`)
 implicit_arrays_errors.bas:27:1: error: not supported yet: `_foo(...)` (an array used without `DIM`, or no FUNCTION of this name)
 implicit_arrays_errors.bas:28:1: error: not supported yet: `len%` as a name (a reserved word with this suffix is not measured)

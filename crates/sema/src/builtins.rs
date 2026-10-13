@@ -155,6 +155,15 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // `_NEWIMAGE(w, h[, mode])`; `_WINDOWHANDLE[(kind)]` is an `_UNSIGNED _OFFSET`, bare or with its argument.
     ("_NEWIMAGE", Rule::Plain),
     ("_WINDOWHANDLE", Rule::Plain),
+    // The screen and keyboard functions (design D2 of `m3-window-output`, measured from the old compiler's C++;
+    // `verification\v27_*`). `INKEY$` and `CSRLIN` have no slot and are called bare only; `POS(n)` is a LONG.
+    ("INKEY$", Rule::Plain),
+    ("CSRLIN", Rule::Plain),
+    ("POS", Rule::Plain),
+    // `POINT(x, y)` and `POINT(n)`: one entry with an optional second slot, a DOUBLE.
+    ("POINT", Rule::Plain),
+    // `SCREEN(row, column[, colorflag])`: an `_UNSIGNED LONG`.
+    ("SCREEN", Rule::Plain),
 ];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
@@ -215,6 +224,30 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_MOUSECURSOR", StmtRule::Plain),
     ("_WINDOWSIZELIMIT", StmtRule::Plain),
     ("_FREEIMAGE", StmtRule::Plain),
+    // The screen statements (design D2 of `m3-window-output`: 455 forms read from the old compiler's C++; accepted
+    // and rejected forms, `verification\v27_*`). Each is the plain call of its row and template, in every form.
+    // Text screen: `VIEW` stands for both of its entries, `VIEW PRINT` and the graphics viewport.
+    ("SCREEN", StmtRule::Plain),
+    ("CLS", StmtRule::Plain),
+    ("COLOR", StmtRule::Plain),
+    ("LOCATE", StmtRule::Plain),
+    ("WIDTH", StmtRule::Plain),
+    ("VIEW", StmtRule::Plain),
+    // Drawing. `PAINT`'s fill is a number or a tile string ([`Slot::ColorOrTile`]).
+    ("PSET", StmtRule::Plain),
+    ("PRESET", StmtRule::Plain),
+    ("LINE", StmtRule::Plain),
+    ("CIRCLE", StmtRule::Plain),
+    ("PAINT", StmtRule::Plain),
+    ("DRAW", StmtRule::Plain),
+    ("WINDOW", StmtRule::Plain),
+    ("PALETTE", StmtRule::Plain),
+    ("PCOPY", StmtRule::Plain),
+    // Pacing.
+    ("_LIMIT", StmtRule::Plain),
+    ("_DELAY", StmtRule::Plain),
+    ("SLEEP", StmtRule::Plain),
+    ("_DISPLAY", StmtRule::Plain),
 ];
 
 /// The window built-ins, as written: statements and functions that no test runs yet, because what they do shows
@@ -344,6 +377,9 @@ fn stmt_slot_type(b: &Builtin, k: usize, table: &str) -> Slot {
         // `sub_seek(int32 i, int64 pos)`: the table says LONG, but the old compiler passes the position as it is
         // and C++ keeps its 64 bits (measured from the C++, `verification\v22_a_args`).
         ("sub_seek", 1) => Slot::Int64,
+        // `PAINT (x, y), fill`: a colour or a tile string; libqb has an entry for each (measured from the C++,
+        // design D2 of `m3-window-output`).
+        ("sub_paint", 2) => Slot::ColorOrTile,
         _ => Slot::from_table(table),
     }
 }
@@ -457,14 +493,28 @@ pub enum Slot {
     /// Cast to its believed type (`func_abs((int16)(…))`, `qbs_str((int16)(…))`).
     AnyNumeric,
     Str,
+    /// Converted as a store into an `_UNSIGNED LONG`: the colours libqb takes as `uint32` (`CLS`, `CIRCLE`,
+    /// `PAINT`). The old compiler writes it as it writes a LONG slot, an integer as it is and a float through
+    /// `qbr`, and C++ keeps the low 32 bits (measured, design D2 of `m3-window-output`).
+    ULong,
+    /// The fill of `PAINT`: a number (an integer as it is, a float rounded half to even to an `_INTEGER64`) or a
+    /// string as it is. The emitter writes the old compiler's cast before it, `(uint32)` or `(qbs*)`, which picks
+    /// one of libqb's two `sub_paint` and, for a number, keeps its low 32 bits. The old compiler's cast stands
+    /// before the first operand of an expression only (`(uint32)*__LONG_L+ 1`); that gives the same 32 bits as a
+    /// cast of the whole, which is what is written here: its infix operators at that level are `+`, `-`, `*` and
+    /// the bitwise ones, and every other operation is a call (measured, design D2 of `m3-window-output`).
+    ColorOrTile,
 }
 
 impl Slot {
     fn from_table(t: &str) -> Slot {
         match t {
             "LONG" => Slot::Long,
+            "_UNSIGNED LONG" => Slot::ULong,
             "DOUBLE" => Slot::Double,
-            "_FLOAT" => Slot::Float,
+            // SINGLE (`POINT`): passed in its own type as a `_FLOAT` slot is; libqb's parameter is a `float` either
+            // way and C++ converts (measured: `func_point(*__INTEGER64_Q,*__DOUBLE_D,0|1)`).
+            "_FLOAT" | "SINGLE" => Slot::Float,
             "any-numeric" => Slot::AnyNumeric,
             "STRING" => Slot::Str,
             other => unreachable!("slot type {other} of a supported built-in"),
@@ -680,6 +730,8 @@ fn table_ty(b: &Builtin) -> Ty {
     match b.ret {
         Some("INTEGER") => Ty::I16,
         Some("LONG") => Ty::I32,
+        // The `SCREEN` function (measured: `qbs_str((uint32)(func_screen(…)))`).
+        Some("_UNSIGNED LONG") => Ty::U32,
         Some("_INTEGER64") => Ty::I64,
         Some("SINGLE") => Ty::F32,
         Some("DOUBLE") => Ty::F64,
@@ -775,6 +827,55 @@ mod tests {
                 },
             ]
         );
+    }
+
+    /// The slot kinds of the screen statements (design D2 of `m3-window-output`): `_UNSIGNED LONG` in the table is
+    /// [`Slot::ULong`], SINGLE and `_FLOAT` are [`Slot::Float`], and the fill of `PAINT` takes a number or a string.
+    #[test]
+    fn screen_slot_kinds() {
+        let args = |name: &str, form: usize| -> Vec<Slot> {
+            stmt_slots(stmt_lookup(name, false)[form].id)
+                .into_iter()
+                .filter_map(|s| match s {
+                    StmtSlot::Arg { slot, .. } => Some(slot),
+                    StmtSlot::Choice { .. } => None,
+                })
+                .collect()
+        };
+        assert_eq!(args("CLS", 0), [Slot::Long, Slot::ULong, Slot::Long]);
+        assert_eq!(
+            args("CIRCLE", 0),
+            [
+                Slot::Float,
+                Slot::Float,
+                Slot::Float,
+                Slot::ULong,
+                Slot::Float,
+                Slot::Float,
+                Slot::Float
+            ]
+        );
+        assert_eq!(
+            args("PAINT", 0),
+            [Slot::Float, Slot::Float, Slot::ColorOrTile, Slot::ULong, Slot::Str]
+        );
+        assert_eq!(args("_LIMIT", 0), [Slot::Double]);
+        // `VIEW` is two statements: the graphics viewport (six LONG slots) and `VIEW PRINT` (two).
+        assert_eq!(stmt_lookup("VIEW", false).len(), 2);
+        assert_eq!(args("VIEW", 0), [Slot::Long; 6]);
+        assert_eq!(args("VIEW", 1), [Slot::Long; 2]);
+        // The functions: `POINT` takes its two arguments as they are, the second optional; `SCREEN` is unsigned.
+        let point = lookup("POINT", false).unwrap();
+        assert_eq!(slots(point), [(Slot::Float, false), (Slot::Float, true)]);
+        assert_eq!(result_types(point, &[None, None]), (Ty::F64, Ty::F64));
+        let screen = lookup("SCREEN", false).unwrap();
+        assert_eq!(
+            slots(screen),
+            [(Slot::Long, false), (Slot::Long, false), (Slot::Long, true)]
+        );
+        assert_eq!(result_types(screen, &[None, None, None]), (Ty::U32, Ty::U32));
+        assert_eq!(result_types(lookup("CSRLIN", false).unwrap(), &[]), (Ty::I32, Ty::I32));
+        assert_eq!(result_types(lookup("INKEY", true).unwrap(), &[]), (Ty::Str, Ty::Str));
     }
 
     #[test]

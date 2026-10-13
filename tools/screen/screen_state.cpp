@@ -73,7 +73,17 @@ void put_image(FILE *f, const char *what, const img_struct *im) {
         fprintf(f, " color %u background %u\n", im->color, im->background_color);
     if (!wide && im->pal) {
         fprintf(f, "palette");
-        put_runs(f, im->pal, 256, 8);
+        if (im->compatible_mode == 10) {
+            // SCREEN 10: libqb sets entries 0 to 3 of the displayed page at every refresh, from entries 4 to 7 (the
+            // mode's own palette) and the clock (the two phases of its blink, `GetTicks() & 512`). What they hold
+            // depends on when the program ends, and on whether a refresh came at all, so they are written as 0.
+            uint32_t pal[256];
+            memcpy(pal, im->pal, sizeof pal);
+            pal[0] = pal[1] = pal[2] = pal[3] = 0;
+            put_runs(f, pal, 256, 8);
+        } else {
+            put_runs(f, im->pal, 256, 8);
+        }
     }
     const size_t row_bytes = (size_t)w * (im->text ? 2 : im->bytes_per_pixel);
     std::vector<uint32_t> row(w);

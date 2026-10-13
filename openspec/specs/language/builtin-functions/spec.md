@@ -14,10 +14,11 @@ listed here are reported "not supported yet".
 `_ROUND`, `_PI`, `_ATAN2`, `_HYPOT`, `LBOUND`, `UBOUND`, `ERR`, `ERL`, `RND`, `TIMER`, `COMMAND$`, `ENVIRON$`,
 `SHELL`, `EOF`, `LOF`, `LOC`, `SEEK`, `FREEFILE`, `_FILEEXISTS`, `_DIREXISTS`, `_CWD$`, and the functions added by
 demand: `_ACOS`, `_ASIN`, `_SINH`, `_COSH`, `_TANH`, `_CEIL`, `_COT`, `_CSC`, `_SEC`, `_D2R`, `_R2D`, `_STRCMP`,
-`_STRICMP`, `_STARTDIR$`, and the destination and window functions (`language/console-and-window`): `_DEST`,
+`_STRICMP`, `_STARTDIR$`, the destination and window functions (`language/console-and-window`): `_DEST`,
 `_SOURCE`, `_CONSOLE`, `_SCREENEXISTS`, `_SCREENICON`, `_TITLE$`, `_DESKTOPWIDTH`, `_DESKTOPHEIGHT`, `_SCREENX`,
-`_SCREENY`, `_WINDOWHANDLE`, `_WINDOWHASFOCUS`, `_NEWIMAGE`. Any other built-in function SHALL be
-reported "not supported yet" (among them `CSRLIN` and `POS`, whose value is the screen's), as SHALL an argument of
+`_SCREENY`, `_WINDOWHANDLE`, `_WINDOWHASFOCUS`, `_NEWIMAGE`, and the screen functions
+(`language/screen-output`): `INKEY$`, `CSRLIN`, `POS`, `POINT`, `SCREEN`. Any other built-in function SHALL be
+reported "not supported yet", as SHALL an argument of
 type `_MEM`. A supported function that needs an argument, named without one, SHALL be a compile error, as in the
 old compiler. An argument of any other numeric type SHALL be
 converted to its slot as an assignment would, except where the old compiler special-cases the argument's type
@@ -74,6 +75,10 @@ fixed-length string argument SHALL be a string.
 #### Scenario: The console's handle
 - **WHEN** a program with `$CONSOLE:ONLY` runs `PRINT _DEST; _CONSOLE; _SOURCE`
 - **THEN** it prints `-10 -10 -10 `, as with the old compiler
+
+#### Scenario: A screen function in a console program
+- **WHEN** a program with `$CONSOLE:ONLY` runs `k$ = INKEY$: PRINT LEN(k$)`
+- **THEN** it compiles and prints what the old compiler's program prints
 
 ### Requirement: Names and arity
 A built-in function SHALL be recognised by its name without regard to case, written with its required suffix

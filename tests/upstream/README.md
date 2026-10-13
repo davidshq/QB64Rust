@@ -91,7 +91,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\rele
 
 runs the programs of `pass.list` end to end from the clone's `tests\compile_tests` (with its binary assets),
 with the suite's settings (`-f:OptimizeCppProgram=true -f:StripDebugSymbols=false -q -m -x`); CI runs the same
-list from this copy against the QB64pe release (`rust.yml`, job `tier2`).
+list from this copy against the QB64pe release (`rust.yml`, job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 2026-10-12).
 
 - `pass.list`: the upstream programs the new compiler passes. A ratchet: add a program when it passes, never
   remove one.

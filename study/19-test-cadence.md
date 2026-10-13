@@ -40,6 +40,13 @@ Each tier is cheaper and runs more often than the next.
 Nobody has to run tier 3 or 4 by hand during normal work. A tier-3 failure in CI is fixed like any other failing
 test.
 
+**Changed 2026-10-12** (`DECISIONS.md`; `CLAUDE.md` working rule 9, which is the cadence in force): the slice
+list and the pass lists run once per change, at its close, and before that only for the programs the work
+touches; the `tier2` job of CI runs when started by hand and once a week, not on each push; CI is looked at
+when the user asks. Two caches keep an unchanged program from being worked on again: the call-site check keeps
+the old compiler's C++ per program, and the runner's `--pass-cache` does not run a program again that passed
+with the same executable and expected files (`tools\callsite\README.md`, `tools\legacy_tests\README.md`).
+
 ## 4. What makes the new compiler's runs fast
 
 - **Front-end checks without C++.** For the 20 `.err` programs, and for any check that the front end accepts a

@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):_LIMIT ( 60 ) = 60
+LINE 6:_LIMIT (60) = 60
+exit=1

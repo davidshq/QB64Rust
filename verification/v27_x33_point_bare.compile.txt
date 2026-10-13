@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: POINT(x, y) or POINT({0|1|2|3})
+Caused by (or after):D = POINT
+LINE 6:d = POINT
+exit=1

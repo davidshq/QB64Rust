@@ -129,9 +129,10 @@ What the compiler supports so far:
   compiled across its files, and a runtime error in an included file names it as QB64pe does;
 - procedures named like built-ins as measured (`verification\v19_proc_names`): a SUB may take a built-in
   function's name, a FUNCTION a built-in statement's;
-- 83 built-in functions (`m2-core-builtins`; the file functions, `RND`, `TIMER`, `SHELL`, `COMMAND$`, `ENVIRON$` and
+- 88 built-in functions (`m2-core-builtins`; the file functions, `RND`, `TIMER`, `SHELL`, `COMMAND$`, `ENVIRON$` and
   14 added by demand with `m2-builtin-statements`; `_DEST`, `_SOURCE`, `_CONSOLE` and the ten window functions
-  with `m2-console-screenhide`, below), checked by one table-driven checker: `sema\src\builtins.rs` lists
+  with `m2-console-screenhide`, the five screen functions with `m3-window-output`, both below), checked by one
+  table-driven checker: `sema\src\builtins.rs` lists
   them, each with its `Rule` (one per kind of special-casing in the old compiler's `evaluatefunc`, not per
   function), and gives each call a held type (the C++ type of the libqb call) and a believed type (the old
   compiler's); `sema\src\check\builtins.rs` checks arity, argument kinds and the conversion of each argument to
@@ -150,7 +151,7 @@ What the compiler supports so far:
   `ERL`. A function that needs an argument, named without one, is an error, as in QB64pe. Adding one of the
   remaining built-ins is a row plus tests where an existing rule fits, and a program in `tests\callsite` (the
   call-site check, below); tier 1 requires each listed one in a `slice.list` program and a `typed` test. Left
-  marked on purpose: `CSRLIN` and `POS` (their value is the screen's), `_ERRORLINE`, `MKL$`/`CVL` and the other
+  marked on purpose: `_ERRORLINE`, `MKL$`/`CVL` and the other
   functions the old compiler writes itself, `_MIN`, `_MAX`, `_CLAMP`, `_IIF` and the shifts (typed by their
   arguments; no rule yet);
 - `SELECT CASE` and `SELECT EVERYCASE` (lists, `TO`, `IS`, `CASE ELSE`; the selector copied once into a static
@@ -307,8 +308,12 @@ What the compiler supports so far:
   part of the build cache's key. A program with a window links another variant of libqb, built once into the
   clone's git-ignored folders. **Every metacommand** must be the first thing on its line: after a statement
   and a colon, or with a tab before it, it is an error (`syntax\src\parser\meta.rs`); in a `$IF` branch that
-  is not taken such a line is skipped text. A program with neither `$CONSOLE` nor `$CONSOLE:ONLY` is "not
-  supported yet": its only output is the window's (M3). **`_DEST`, `_SOURCE` and `_ECHO`** are statement rows
+  is not taken such a line is skipped text. **A program with neither `$CONSOLE` nor `$CONSOLE:ONLY`** is one
+  with a window and no console (`m3-window-output`; measured, `verification\v27_*`): `console=0`, no make flag,
+  so the clone's `Makefile` links the libqb with the window and `-mwindows`; `$SCREENHIDE` alone hides the window.
+  `PRINT`, `WRITE`, `INPUT`, `LINE INPUT`, `END` and a runtime error are the same calls as in a console program
+  (what differs is libqb's); what they do in the window is checked by screen programs
+  (`tests\corpus\screen`, on `slice.list`). **`_DEST`, `_SOURCE` and `_ECHO`** are statement rows
   and `_DEST`, `_SOURCE` and `_CONSOLE` function rows of `sema\src\builtins.rs` (the handle a LONG value, the
   functions LONG and called by their bare names), so a `$CONSOLE` program prints to its console after `_DEST
   _CONSOLE` and reads it with `INPUT` and `LINE INPUT`. `CALL _DEST(h)`, `CALL _SOURCE(h)` and `CALL
@@ -328,6 +333,30 @@ What the compiler supports so far:
   statements after `CALL` where they have a template (`CALL _ICON(1, 2)`; the parser leaves the parentheses
   unread there, so no form is a false syntax error), the function `_SCREENHIDE`, and `_SCREENEXISTS` as the
   direct argument of `HEX$`, `OCT$` or `_BIN$` (QB64pe passes another width than for a LONG).
+- **The screen statements and functions** (`m3-window-output`; design D2 of the change holds the call of every
+  form, read from the old compiler's C++; accepted and rejected forms `verification\v27_*`). Each is a row of
+  `sema\src\builtins.rs` and the plain call of its table entry and template, in every form the old compiler
+  accepts: the text screen (`SCREEN` with its page arguments and `_MANUALDISPLAY`, `CLS`, `COLOR`, `LOCATE`,
+  `WIDTH` also with `#` and `LPRINT`, `VIEW PRINT`), drawing (`PSET`, `PRESET`, `LINE` with `STEP`, `B`, `BF`
+  and a style, `CIRCLE`, `PAINT`, `DRAW`, `VIEW`, `WINDOW`, `PALETTE`, `PCOPY`), pacing (`_LIMIT`, `_DELAY`,
+  `SLEEP`, `_DISPLAY`) and the functions `INKEY$` and `CSRLIN` (bare only), `POS(n)`, `POINT(x, y)` and
+  `POINT(n)` (a DOUBLE), `SCREEN(row, column[, flag])` (an `_UNSIGNED LONG`). `VIEW` is two table entries, the
+  graphics viewport and `VIEW PRINT`; `SCREEN` is a statement and a function, told apart by position. Slot
+  kinds (`Slot`): a coordinate, a radius and an angle are passed in the argument's own type (the table's
+  `_FLOAT` and SINGLE; libqb takes a `float` or `double`); a colour the table types `_UNSIGNED LONG` is
+  `Slot::ULong`, a store into an `_UNSIGNED LONG`; the fill of `PAINT` is `Slot::ColorOrTile`, a number (an
+  integer as it is, a float rounded) or a tile string, written with the old compiler's cast (`(uint32)`,
+  `(qbs*)`), which picks one of libqb's two `sub_paint`. A form the template does not give is an error of the program (the parser's "matches none of its
+  forms"). **A built-in statement's name written `name (…) = …`** is an assignment to the old compiler and so
+  "name already in use" here too, for every supported statement (`not_an_assignment`,
+  `sema\src\check\builtins.rs`; before this change `SEEK (1) = 2, 3` compiled as `SEEK` with a comparison).
+  **A built-in statement's name and a colon at the start of a line** (`CLS : LOCATE 1, 1`), which the parser
+  reads as a label, is the statement with no argument, as in the old compiler (`bare_stmt`; a statement that
+  needs an argument is an error there; `tests\frontend\stmt_name_colon_ir.bas`).
+  Unlike the window built-ins these run: their slice programs are the screen programs of
+  `tests\corpus\screen`, checked by the state of the screen they leave, and each form has a call-site program
+  (301 of them). Still marked: these statements after `CALL` where they have a template (`CALL CLS`, `CALL
+  LINE(…)`), an argument left out of a function call (`POINT(, 2)`), an array named `WIDTH` (`SOMEDAY.md`).
 - **The constants of QB64pe's auto-included file** (`m2-console-screenhide` group 5; `sema\src\check\auto.rs`):
   `_TRUE`, `_FALSE`, `_ONE_MB`, the limits of the numeric types and the others of `beforefirstline.bi` are
   known in every program. The file is not included: `tools\builtins\builtins.json` carries each constant's
@@ -357,7 +386,7 @@ CASE`, the other built-in functions, `DECLARE LIBRARY`, event handlers and switc
 (`PRINT USING`, `LPRINT`, `FIELD`, `LSET`/`RSET`),
 `READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array, `READ`, `INPUT`, `INPUT #` or the `MID$` statement
 with a member of an element or an element of a member array, every other
-built-in statement read by its template (`LINE`, `SCREEN`, `GET`/`PUT`, `TIME$ =`, ...), the declaration
+built-in statement read by its template (`GET`/`PUT`, `PLAY`, `SOUND`, `TIME$ =`, ...), the declaration
 forms (`REDIM _RETAIN`, arrays named `name$n`,
 `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
 constants of QB64pe's auto-included file that are not computed yet and the names of its other auto-included
@@ -383,13 +412,22 @@ panics on purpose, for the CLI test only.
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --qb64 target\release\qb64rust.exe --list tests\corpus\slice.list` | The listed corpus programs end to end against the output recorded from `qb64pe.exe` |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\release\qb64rust.exe --list tests\upstream\pass.list` | The upstream programs of the pass list end to end (`tests\upstream\README.md`); also in CI (`rust.yml`, job `tier2`) |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --corpus-root tests\differential --qb64 target\release\qb64rust.exe --list tests\differential\pass.list` | The differential programs of the pass list end to end against their recordings (`tests\differential\README.md`); also in CI |
-| 2 | `python tools\callsite\callsite.py` | The call-site check (`tools\callsite\README.md`): for each program of `tests\callsite`, the libqb call the new compiler writes for one built-in statement or function equals the old compiler's (`-z`, nothing built or run; about a minute). Needs `qb64pe.exe` in the clone; also in CI. A new plain built-in comes in with a program here |
+| 2 | `python tools\callsite\callsite.py` | The call-site check (`tools\callsite\README.md`): for each program of `tests\callsite`, the libqb call the new compiler writes for one built-in statement or function equals the old compiler's (`-z`, nothing built or run). The old compiler's C++ is kept per program in `target\callsite-cache`: about 40 s for the 663 programs when it is filled, about 6 min without it. Needs `qb64pe.exe` in the clone; also in CI. A new plain built-in comes in with a program here |
+
+**When to run what** (`CLAUDE.md` working rule 9, `DECISIONS.md` 2026-10-12): tier 1 while working; tier 2 once
+per change, at its close, and before that only the programs the work touches (`--glob`, `--category`, a short
+`--list`). In CI the `tier2` job runs when started by hand and once a week, not on a push. While working, add
+`--pass-cache target\pass-cache` to a corpus run: a program that passed with the same executable and expected
+files is not run again (`tools\legacy_tests\README.md`). The closing runs of a change go without it.
 
 Tier 2 locally: add `--jobs 8 --build-cache target\build-cache` to each command. `--jobs` runs programs in
 parallel; `--build-cache` (environment variable `QB64RUST_BUILD_CACHE`, `driver\src\build.rs`) skips `make` for a
 program whose C++ build has the same inputs as an earlier one's (the fragments, the clone's `qbx.cpp`, `Makefile`
 and every file of its `internal\c` by size and time, the options), so after an edit only the programs whose C++
 changed are rebuilt; every program is still compiled by `qb64rust`, run and compared. CI uses neither.
+The slice list holds screen programs (`screen/<name>`, checked by the state of the screen they leave,
+`tools\screen\README.md`): each shows its window on the desktop for about 0.3 s, several at a time with `--jobs`,
+and a key typed just then can reach one (`SOMEDAY.md`: a desktop of their own).
 The full corpus with the old compiler also takes `--jobs 8` (private copies of `qb64pe`,
 `tools\legacy_tests\README.md`): about 4 minutes instead of 12.
 

@@ -1,0 +1,5 @@
+
+Invalid label!
+Caused by (or after):GOTO CLS
+LINE 7:GOTO CLS
+exit=1

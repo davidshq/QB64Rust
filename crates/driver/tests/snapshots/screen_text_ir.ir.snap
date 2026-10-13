@@ -1,0 +1,112 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+Settings: window
+Stmt line 8 may_raise
+  Builtin SCREEN [Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 9 may_raise
+  Builtin SCREEN [Value(Const 12:I32), Absent, Absent, Absent, Absent, Absent]
+Stmt line 10 may_raise
+  Builtin SCREEN [Value(Var L:I32), Value(Var L:I32), Absent, Absent, Absent, Absent]
+Stmt line 11 may_raise
+  Builtin SCREEN [Value(Var L:I32), Absent, Value(Var L:I32), Value(Var L:I32), Absent, Absent]
+Stmt line 12 may_raise
+  Builtin SCREEN [Absent, Absent, Value(Var L:I32), Value(Var L:I32), Absent, Absent]
+Stmt line 13 may_raise
+  Builtin SCREEN [Value(Const 12:I32), Absent, Absent, Absent, Absent, Absent]
+Stmt line 14 may_raise
+  Builtin SCREEN [Value(Const 12:I32), Absent, Absent, Absent, Word 0, Value(Const 1:I32)]
+Stmt line 15 may_raise
+  Builtin SCREEN [Value(((Var SG:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Absent, Absent, Absent, Absent, Absent]
+Stmt line 16 may_raise
+  Builtin SCREEN [Value((Var Q:I64 -> Convert I32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Absent, Absent, Absent, Absent]
+Stmt line 17 may_raise
+  Builtin CLS [Absent, Absent, Absent]
+Stmt line 18 may_raise
+  Builtin CLS [Absent, Absent, Absent]
+Stmt line 19 may_raise
+  Builtin CLS [Value(Const 2:I32), Absent, Absent]
+Stmt line 20 may_raise
+  Builtin CLS [Absent, Value((Var L:I32 -> Convert U32 Truncate)), Absent]
+Stmt line 21 may_raise
+  Builtin CLS [Absent, Absent, Value(Var L:I32)]
+Stmt line 22 may_raise
+  Builtin CLS [Value(Var L:I32), Value((Var L:I32 -> Convert U32 Truncate)), Value(Var L:I32)]
+Stmt line 23 may_raise
+  Builtin CLS [Absent, Value(Const 4294967295:U32), Absent]
+Stmt line 24 may_raise
+  Builtin CLS [Absent, Value(Var U:U32), Absent]
+Stmt line 25 may_raise
+  Builtin CLS [Absent, Value((Var Q:I64 -> Convert U32 Truncate)), Absent]
+Stmt line 26 may_raise
+  Builtin CLS [Absent, Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert U32 Truncate)), Absent]
+Stmt line 27 may_raise
+  Builtin CLS [Absent, Value(((Const 1.5E+0:F64 -> Convert I64 RoundEven) -> Convert U32 Truncate)), Absent]
+Stmt line 28 may_raise
+  Builtin COLOR [Absent, Absent, Absent, Absent]
+Stmt line 29 may_raise
+  Builtin COLOR [Value(Const 14:I32), Absent, Absent, Absent]
+Stmt line 30 may_raise
+  Builtin COLOR [Absent, Value(Const 1:I32), Absent, Absent]
+Stmt line 31 may_raise
+  Builtin COLOR [Value(Const 14:I32), Value(Const 1:I32), Absent, Absent]
+Stmt line 32 may_raise
+  Builtin COLOR [Value(Const 14:I32), Value(Const 1:I32), Value(Const 4:I32), Absent]
+Stmt line 33 may_raise
+  Builtin COLOR [Absent, Absent, Absent, Value(Var L:I32)]
+Stmt line 34 may_raise
+  Builtin COLOR [Value(Var L:I32), Value(Var L:I32), Value(Var L:I32), Value(Var L:I32)]
+Stmt line 35 may_raise
+  Builtin COLOR [Value((Var Q:I64 -> Convert I32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Absent, Absent]
+Stmt line 36 may_raise
+  Builtin COLOR [Value(Const -1:I32), Absent, Absent, Absent]
+Stmt line 37 may_raise
+  Builtin LOCATE [Absent, Absent, Absent, Absent, Absent]
+Stmt line 38 may_raise
+  Builtin LOCATE [Value(Const 5:I32), Absent, Absent, Absent, Absent]
+Stmt line 39 may_raise
+  Builtin LOCATE [Absent, Value(Const 10:I32), Absent, Absent, Absent]
+Stmt line 40 may_raise
+  Builtin LOCATE [Value(Const 5:I32), Value(Const 10:I32), Absent, Absent, Absent]
+Stmt line 41 may_raise
+  Builtin LOCATE [Absent, Absent, Value(Const 1:I32), Absent, Absent]
+Stmt line 42 may_raise
+  Builtin LOCATE [Value(Const 5:I32), Value(Const 10:I32), Value(Const 1:I32), Value(Const 3:I32), Value(Const 5:I32)]
+Stmt line 43 may_raise
+  Builtin LOCATE [Absent, Absent, Absent, Value(Const 3:I32), Value(Const 5:I32)]
+Stmt line 44 may_raise
+  Builtin LOCATE [Value((Var I:I16 -> Convert I32 Widen)), Value((Var Q:I64 -> Convert I32 Truncate)), Absent, Absent, Absent]
+Stmt line 45 may_raise
+  Builtin LOCATE [Value(((Var SG:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(((Const 2.5E+0:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Absent, Absent, Absent]
+Stmt line 46 may_raise
+  Builtin WIDTH [Absent, Absent, Absent, Absent, Absent]
+Stmt line 47 may_raise
+  Builtin WIDTH [Absent, Value(Const 80:I32), Absent, Absent, Absent]
+Stmt line 48 may_raise
+  Builtin WIDTH [Absent, Absent, Value(Const 50:I32), Absent, Absent]
+Stmt line 49 may_raise
+  Builtin WIDTH [Absent, Value(Const 80:I32), Value(Const 50:I32), Absent, Absent]
+Stmt line 50 may_raise
+  Builtin WIDTH [Absent, Value(Const 80:I32), Value(Const 50:I32), Value(Const 8:I32), Value(Const 16:I32)]
+Stmt line 51 may_raise
+  Builtin WIDTH [Word 0, Value(Const 1:I32), Value(Const 80:I32), Absent, Absent]
+Stmt line 52 may_raise
+  Builtin WIDTH [Word 0, Value(Var L:I32), Absent, Absent, Absent]
+Stmt line 53 may_raise
+  Builtin WIDTH [Word 1, Value(Const 80:I32), Absent, Absent, Absent]
+Stmt line 54 may_raise
+  Builtin WIDTH [Word 1, Absent, Absent, Absent, Absent]
+Stmt line 55 may_raise
+  Builtin WIDTH [Absent, Value((Var Q:I64 -> Convert I32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Absent, Absent]
+Stmt line 56 may_raise
+  Builtin VIEW form 2 [Word 0, Absent, Absent, Absent]
+Stmt line 57 may_raise
+  Builtin VIEW form 2 [Word 0, Value(Const 2:I32), Word 0, Value(Const 10:I32)]
+Stmt line 58 may_raise
+  Builtin VIEW form 2 [Word 0, Value((Var I:I16 -> Convert I32 Widen)), Word 0, Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 59 may_raise
+  Builtin VIEW form 2 [Word 0, Value(((Var SG:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Word 0, Value(((Const 10.5E+0:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 60
+  System

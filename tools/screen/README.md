@@ -55,7 +55,10 @@ end
 - The header of a record: the mode as libqb numbers it (0 to 13, 32, 256), `text` or `graphics`, width and height
   in cells or pixels, bits per pixel, font, the text cursor (column, row, `on` or `off`), colour and background
   (hex for 32 bits).
-- `palette`: the 256 entries as stored (alpha, red, green, blue); not for 32 bits.
+- `palette`: the 256 entries as stored (alpha, red, green, blue); not for 32 bits. In mode 10 the first four are
+  written as 0: libqb sets them at every refresh of the screen from entries 4 to 7, the mode's own palette, and
+  the clock (the two phases of the mode's blink), so what they hold depends on when the program ends. Found when
+  `m10_screen_10` failed under load in tier 2 (`m3-window-output`, 2026-10-12; `DECISIONS.md`).
 - A text row is two lines: `t "…"` holds the characters (printable ASCII as it is; every other byte, `\` and `"`
   as `\xNN`), `a` the attribute bytes. A pixel row is one line `p`: palette indexes, or 32-bit colours.
 - `a`, `p` and `palette` are hex runs: `v` or `v*n`. `= k` means the row before, k more times.
@@ -87,6 +90,10 @@ a program that never reads `INKEY$`, `INPUT` or `LINE INPUT` gets the first key 
 - No `RANDOMIZE TIMER`, no loop paced by `TIMER`, nothing else that differs between two runs: `--record` runs the
   program twice and refuses to record states that differ.
 - The window shows while the program runs (about 0.3 s).
+- `SLEEP` and the keys file: a key ends `SLEEP` only when it comes while `SLEEP` waits, and the next key of the
+  file is given only when the key buffer is empty. Empty the buffer right before (`DO: LOOP UNTIL INKEY$ = ""`),
+  end the keys file with `repeat <name>`, and give `SLEEP` a time, which is then the longest it can take
+  (`tests\corpus\screen\d15_pacing`). A `SLEEP` with no time and a key already in the buffer never ends.
 
 ## Looking at a state
 

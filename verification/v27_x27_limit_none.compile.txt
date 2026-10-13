@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _LIMIT framesPerSecond!
+Caused by (or after):_LIMIT
+LINE 6:_LIMIT
+exit=1
