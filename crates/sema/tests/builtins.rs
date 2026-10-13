@@ -3,12 +3,12 @@
 
 use qb64rust_base::{Diagnostics, SourceMap};
 use qb64rust_sema::{ConvKind, Expr, ExprKind, PrintItem, Program, StmtKind, Ty, check};
-use qb64rust_syntax::{NoLoader, parse};
+use qb64rust_syntax::{NoLoader, parse_settled};
 
 fn check_any(text: &str) -> (Program, Diagnostics) {
     let mut map = SourceMap::new();
     let file = map.add("t.bas", format!("$CONSOLE:ONLY\n{text}\n").into_bytes());
-    let parsed = parse(&mut map, file, &mut NoLoader);
+    let parsed = parse_settled(&mut map, file, &mut NoLoader);
     assert!(!parsed.diagnostics().has_errors(), "parse errors in {text}");
     check(&map, &parsed)
 }

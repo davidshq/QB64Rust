@@ -1,8 +1,9 @@
 //! A whole program as parsed: one tree per file at each place it is included (design D9). The parser does no I/O;
 //! included files come through a [`Loader`].
 
+use crate::pp::{MAX_ROUNDS, PpFlags, PpState, Round, settle};
 use crate::tree::{GreenNode, Node, TreeId};
-use qb64rust_base::{Diagnostics, FileId, SourceMap};
+use qb64rust_base::{Diagnostic, Diagnostics, FileId, SourceMap, Span};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -25,6 +26,13 @@ pub struct ParsedProgram {
     pub trees: Vec<Tree>,
     /// (tree, offset of an include statement) -> the tree of the file it includes.
     pub includes: HashMap<(TreeId, u32), TreeId>,
+    /// The precompiler flags as settled over the whole program ([`parse_settled`]): the values every `$IF` of
+    /// these trees was read with at the first line. A feature may be set though the line that sets it is not in
+    /// the trees (it stands in a `$IF` branch its own flag switches off).
+    pub flags: PpFlags,
+    /// (tree, offset of the metacommand token) of each `$IF` and `$ELSEIF` that names a flag where the old
+    /// compiler's two passes see different values of it; `sema` marks them "not supported yet".
+    pub passes_disagree: HashSet<(TreeId, u32)>,
 }
 
 impl ParsedProgram {
@@ -97,6 +105,8 @@ pub(crate) struct Includer<'h> {
     pub(crate) includes: HashMap<(TreeId, u32), TreeId>,
     pub(crate) once: HashSet<FileId>,
     pub(crate) depth: u32,
+    /// [`ParsedProgram::passes_disagree`], as the parser fills it.
+    pub(crate) passes_disagree: HashSet<(TreeId, u32)>,
 }
 
 impl<'h> Includer<'h> {
@@ -108,6 +118,7 @@ impl<'h> Includer<'h> {
             includes: HashMap::new(),
             once: HashSet::new(),
             depth: 0,
+            passes_disagree: HashSet::new(),
         }
     }
 
@@ -119,19 +130,47 @@ impl<'h> Includer<'h> {
 }
 
 /// Parses the main file and the files it includes through `loader`, in file order, with one preprocessor state
-/// for all of them.
-pub fn parse(map: &mut SourceMap, main: FileId, loader: &mut dyn Loader) -> ParsedProgram {
+/// for all of them, in a round where the precompiler flags are `flags`. Also gives the settings the round met
+/// and whether a condition named a flag.
+fn parse_round(map: &mut SourceMap, main: FileId, loader: &mut dyn Loader, flags: PpFlags) -> Round<ParsedProgram> {
     let bytes = map.file(main).bytes.clone();
     let mut inc = Includer::new(map, loader);
     let id = inc.next_tree();
-    let (tree, _) = crate::parser::parse_tree_with(id, main, &bytes, crate::pp::PpState::default(), &mut inc, false);
+    let (tree, pp) = crate::parser::parse_tree_with(id, main, &bytes, PpState::with_flags(flags), &mut inc, false);
     inc.trees[0] = Some(tree);
-    ParsedProgram {
-        trees: inc
-            .trees
-            .into_iter()
-            .map(|t| t.expect("every tree is filled when its file is done"))
-            .collect(),
-        includes: inc.includes,
+    let (settings, flag_named) = pp.round_facts();
+    Round {
+        result: ParsedProgram {
+            trees: inc
+                .trees
+                .into_iter()
+                .map(|t| t.expect("every tree is filled when its file is done"))
+                .collect(),
+            includes: inc.includes,
+            flags,
+            passes_disagree: inc.passes_disagree,
+        },
+        settings,
+        flag_named,
+    }
+}
+
+/// Parses a program as the old compiler compiles it: again and again until the precompiler flags no longer
+/// change ([`settle`]; design D7 of `m2-console-screenhide`). Almost every program is parsed once: only one with
+/// a `$IF` that names a flag can read differently in another round. The trees and diagnostics are the last
+/// round's. A loader must give the same file for the same name in every round.
+pub fn parse_settled(map: &mut SourceMap, main: FileId, loader: &mut dyn Loader) -> ParsedProgram {
+    match settle(MAX_ROUNDS, |flags| parse_round(map, main, loader, flags)) {
+        Ok((mut program, flags)) => {
+            program.flags = flags;
+            program
+        }
+        Err(mut program) => {
+            // Every round but the last locks a feature, so this is not reached; an error, not a panic, if it is.
+            let at = Span::new(main, 0, 0);
+            let msg = "internal error: the precompiler flags did not settle";
+            program.trees[0].diagnostics.push(Diagnostic::error(at, msg));
+            program
+        }
     }
 }

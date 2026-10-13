@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ SCREENHIDE
+LINE 2:$SCREENHIDE: y = 2
+exit=1

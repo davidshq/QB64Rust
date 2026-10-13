@@ -7,7 +7,7 @@ use crate::consteval::Value;
 use crate::literal::{self, NumLit};
 use crate::{ArrayRef, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{show_bytes, to_u32};
-use qb64rust_builtins::{Kind, find_any, is_auto_include_name};
+use qb64rust_builtins::{Kind, auto_constant, find_any, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::is_keyword;
@@ -115,9 +115,12 @@ impl Checker<'_> {
     /// other suffixes are "not supported yet". (The old compiler accepts `name$`, `not$` and `key$`, found in
     /// `qbasic_testcases` in task 6.4 of `m2-parser-breadth`; the rule above is not "whatever suffix".)
     pub(super) fn reserved(&mut self, t: Tok, name: &str, suffix: Option<Ty>) -> R<()> {
-        // A name QB64pe's auto-included files declare (`_TRUE`, `_CHR_CR`): those files are not included yet
-        // (design D10 of `m2-parser-breadth`).
-        if is_auto_include_name(name.as_bytes()) {
+        // A name QB64pe's auto-included files declare that is no constant of the file included before the first
+        // line (the three functions of the file included after the last line): those files are not included
+        // (design D10 of `m2-parser-breadth`). A constant of the first file is a reserved name like any other
+        // with a leading underscore (measured, `verification\v26_x115`–`x117`: `CONST _TRUE = 1` is "Invalid
+        // name", `DIM _TRUE` "Invalid variable name"); its uses are resolved before this (`auto.rs`).
+        if is_auto_include_name(name.as_bytes()) && auto_constant(name.as_bytes()).is_none() {
             let shown = show_bytes(self.text(t.span));
             let msg = format!("`{shown}` (a name of QB64pe's auto-included files)");
             return Err(self.unsupported(t.span, msg));
@@ -256,6 +259,9 @@ impl Checker<'_> {
         let shown = show_bytes(self.text(size.span));
         if size.kind == SyntaxKind::Ident {
             let (name, suffix) = self.split_name(size)?;
+            if consts {
+                self.auto_const(&name, size.span)?;
+            }
             let found = match (consts, suffix, self.visible_const(&name)) {
                 (true, None, Some(c)) => match self.prog.constant(c).value {
                     Value::Int(v) => Some((c, v)),
@@ -472,8 +478,9 @@ impl Checker<'_> {
             }
             return Err(self.in_use(t));
         }
-        if self.visible_const(&name).is_some() {
-            // Measured: "Expected variable =, look for conflict with a CONST name".
+        if self.visible_const(&name).is_some() || auto_constant(name.as_bytes()).is_some() {
+            // Measured: "Expected variable =, look for conflict with a CONST name"; the same for a constant of the
+            // auto-included file, named before or not (`verification\v26_x118`).
             let shown = show_bytes(self.text(t.span));
             return Err(self.error(t.span, format!("cannot assign to the constant `{shown}`")));
         }

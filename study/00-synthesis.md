@@ -46,7 +46,7 @@ From the expert panel (`07`), whose recommendations R1–R13 the decisions above
 |---|---|---|---|
 | M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
 | M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | **done** (`vscode\`) |
-| M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server (the formatter matching `-y` left this criterion on 2026-10-09, `DECISIONS.md`) | **in progress**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling; upstream tests; control flow and constants; arrays and `TYPE`; parser breadth (every accepted program parses, no false error); core built-ins; the language server; the numeric types; built-in statements; the screen-state check; default types, dynamic arrays, arrays in procedures, `COMMON`, the rest of `TYPE` and member arrays (`crates\`). One step of the order of work is left (`$CONSOLE` with `_DEST _CONSOLE`). Order of work and the numbers of the last full runs: `STATUS.md` |
+| M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server (the formatter matching `-y` left this criterion on 2026-10-09, `DECISIONS.md`) | **done 2026-10-12**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling; upstream tests; control flow and constants; arrays and `TYPE`; parser breadth (every accepted program parses, no false error); core built-ins; the language server; the numeric types; built-in statements; the screen-state check; default types, dynamic arrays, arrays in procedures, `COMMON`, the rest of `TYPE` and member arrays; a console and a window (`$CONSOLE`, `$SCREENHIDE`, `_DEST _CONSOLE`), the window built-ins as compiled code, the auto-included constants and the precompiler flags (`crates\`). No step of the order of work is left. Order of work and the numbers of the last full runs: `STATUS.md` |
 | M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests; programs without `$CONSOLE:ONLY` with a screen-state oracle | started early: the slice already links with libqb |
 | M4 | Parity | The corpus (275) and the upstream tests in reach (279 of 404; 125 need the deferred array features) match; `qb64pe.bas` compiles and the result passes the suite (exit criterion, `study\20`) | |
 | M5 | Debugger | Debug symbol file + DAP adapter | |
@@ -1408,6 +1408,183 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   compared like any string. An array of a type with `STRING` members works as an array parameter with `REDIM
   _PRESERVE` and `ERASE` in the SUB (static and dynamic argument), as `STATIC k(2)`, as a `DIM SHARED`
   variable and as a local of a recursive SUB.
+- **`$CONSOLE`, `$SCREENHIDE` and `_DEST _CONSOLE` (`v26_*`, measured 2026-10-12 before step 11; 51 programs,
+  standard output redirected; `x40` and later while the step was built):**
+  - **What reaches standard output (`v26_b_dest_switch`, `v26_c_dest_in_sub`).** In a program with `$CONSOLE`
+    and no `:ONLY`, a `PRINT` reaches standard output only while the console is the destination: output before
+    `_DEST _CONSOLE`, after `_DEST 0` and after `_DEST` with the saved first handle goes to the window and is not
+    seen. `_DEST _CONSOLE` in a SUB or FUNCTION stays in force after it returns. `_CONSOLE` is -10; `_DEST` and
+    `_SOURCE` are -2 at the start; `_DEST _CONSOLE` leaves `_SOURCE` at -2 and `_SOURCE _CONSOLE` makes it -10.
+    Under `$CONSOLE:ONLY` all three are -10 after the metacommand, and `_DEST 0` there sends `PRINT` to a window
+    that is never shown (`v26_x24`).
+  - **`PRINT` forms (`v26_a_dest_console`).** `;`, `TAB`, `SPC`, `PRINT USING`, `WRITE` and a `PRINT` without a
+    line end give the text they give under `$CONSOLE:ONLY`. A comma does not: `PRINT "z1", "z2"` printed `z1` and
+    then blanks without end (1.8 MB until the 60 s timeout), where `$CONSOLE:ONLY` gives zones of 10 columns. No
+    test program may use it ("Test hygiene" in §10 said so already); the recorded program has no comma.
+  - **`INPUT` (`v26_d1`, `v26_d2`).** `INPUT` and `LINE INPUT` read standard input after `_DEST _CONSOLE` alone;
+    `_SOURCE _CONSOLE` changes nothing for them. The prompt and the echo are as under `$CONSOLE:ONLY`.
+  - **The end of the program (`v26_e_end`, `v26_e2_fall_off`).** `END`, and running off the last line, print an
+    empty line and `Press any key to continue` and wait, hidden window or not; `SYSTEM` leaves at once.
+  - **Errors (`v26_f1`, `v26_f2`, `v26_x21`).** A trapped error works as before (`ERR`, `_ERRORLINE`, `RESUME
+    NEXT`). An untrapped one, with `QB64PE_NOPROMPT=y`, prints an empty line, `Runtime error: Line: 7 (in main
+    module)` and `Illegal function call`, and the exit code is 0. `_DEST -99` raises error 258 and leaves the
+    destination; `_DEST 1.6` raises nothing and the next `PRINT` is not seen.
+  - **`_ECHO` (`v26_g_echo`, `v26_x17`).** It writes its string and a line end to the console whatever the
+    destination is, and leaves the destination as it was. Without `$CONSOLE` or `$CONSOLE:ONLY` in the program it
+    is the compile error "_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first".
+  - **More forms of the four built-ins (`v26_x62`–`x73`, measured while step 11's group 3 was built).** `_ECHO`
+    above the line of `$CONSOLE` compiles and writes (`x62`: the check reads the flag, not the lines above), and
+    it works under `$CONSOLE:ONLY`, also with the window as destination (`x72`). After `_DEST 0` the function
+    `_DEST` gives -2, not 0 (`tests\corpus\slice\s64_dest_console_b`: `echo 2:-2`). `CALL _ECHO("x")`, `CALL _DEST(_CONSOLE)` and `CALL _SOURCE(_CONSOLE)` are
+    accepted and do what the statements do (`x69`, `x70`); so are parentheses around the handle, and the three
+    functions in arithmetic (`x73`). Rejected: `_ECHO 5` "String required for sub" (`x63`); `_ECHO` with no
+    argument or two, `_SOURCE` with none, `_DEST 0, 1`: "Syntax error - Reference: …" (`x64`–`x66`, `x71`);
+    `_SOURCE "a"` "Number required for sub" (`x67`); `d& = _DEST(1)` "Incorrect number of arguments" (`x68`).
+  - **The metacommands count for the whole program (`v26_x01`, `x04`, `x08`, `x16`, `v26_h_flag_console`).**
+    `$CONSOLE` and `$SCREENHIDE` may stand twice, after `SYSTEM` as the last lines, and inside a SUB; the console
+    is there from the first statement either way. The precompiler flag `_CONSOLE_` is 1 above the line of
+    `$CONSOLE` as well as below it. A `$CONSOLE` in a `$IF` branch that is not taken does not count.
+  - **Without `$CONSOLE` (`v26_x05`, `x06`, `x16`).** `_DEST _CONSOLE` compiles and raises nothing, and the
+    `PRINT` after it is not seen. `$SCREENHIDE` alone compiles and the program ends with exit code 0 and no
+    output. `$SCREENSHOW` after `$SCREENHIDE` is accepted (`x07`; the window shows).
+  - **Both `$CONSOLE:ONLY` and `$CONSOLE` (`v26_x02`, `x03`, `v26_h2_flag_both`).** In either order the program
+    is a console-only one: a `PRINT` with no `_DEST` is seen from the line of `$CONSOLE:ONLY` on (a `PRINT` above
+    it is not, as before). With `$CONSOLE:ONLY` first and `$CONSOLE` after it, `_CONSOLE_` is 1, not 2. This is
+    the shape of the 19 upstream `glut` tests on Windows: `$CONSOLE:ONLY`, a `PRINT` and `SYSTEM` inside `$IF
+    WINDOWS OR MACOSX`, then `$CONSOLE`, `_DEST _CONSOLE` and a window built-in that is compiled and never run.
+  - **Forms the old compiler rejects.** "Syntax error" for `$CONSOLE:OFF` (`x09`), a word after `$CONSOLE` or
+    `$SCREENHIDE` (`x10`, `x11`), a comment after either (`x12`, `x35`), a colon and a statement after either
+    (`x14`, `x37`) and a tab before `$CONSOLE` (`x23`). "Unexpected character on line" for `x = 1: $CONSOLE`
+    (`x13`) and `y = 2: $SCREENHIDE` (`x36`). Lower and mixed case and blanks before and after are accepted
+    (`x15`). `_DEST` with no argument: "Syntax error -
+    Reference: _DEST imageHandle&" (`x18`); with a string: "Number required for sub" (`x19`); `_CONSOLE = 1`:
+    "Expected variable =, look for conflict with a CONST name" (`x20`). The handle may be a variable of any
+    numeric type (`x22`). `$CONSOLE:ONLY` is as strict: a comment or a word after it and blanks around its colon
+    (`$CONSOLE : ONLY`) are "Syntax error" (`x29`–`x31`), as is a word after `$SCREENSHOW` (`x32`).
+  - **The two line rules hold for every metacommand (`x40`–`x50`, 2026-10-12).** A tab before the `$` is
+    rejected for `$IF`, `$LET`, `$INCLUDEONCE` (in an included file), `$CONSOLE:ONLY` and `$SCREENHIDE` as for
+    `$CONSOLE`: the line is not taken as a metacommand and is read as a statement that starts with `$`. The
+    message depends on what follows: "Syntax error" (`x42`–`x44`), "Invalid expression" for `$LET` (`x41`),
+    "THEN without IF" for `$IF` with a tab before its `$END IF` too (`x49`), and "$END IF without $IF" at the
+    `$END IF` when that one has no tab (`x40`). A statement and a colon before `$IF`, `$LET`, `$INCLUDEONCE` or
+    `$CONSOLE:ONLY` is "Unexpected character on line" (`x45`–`x48`), as for `$CONSOLE` and `$SCREENHIDE`. Inside
+    a `$IF` branch that is not taken, a tabbed `$ELSE` or `$END IF` is skipped text: it does not end the branch
+    and is no error (`x50` compiles and prints only what follows the untabbed `$END IF`); the same holds for
+    `x = 1: $ELSE` and `x = 1: $END IF` there (`x57`). A tab after a metacommand is "Syntax error" too
+    (`$CONSOLE:ONLY` and a tab, `x58`; `$INCLUDEONCE` and a tab, `x59`; `RTRIM$` takes blanks only), where blanks
+    after it are fine (`x15`). A word after `$INCLUDEONCE` and a letter right after `$CONSOLE:ONLY`
+    (`$CONSOLE:ONLYX`) are "Syntax error" as well (`x61`, `x60`): the whole line is compared. In the
+    source each rule is one place that names no metacommand: a line is a metacommand only when its first byte
+    after `LTRIM$` is `$` (`qb64pe.bas` 1834, 3408, 3427; `LTRIM$` takes blanks, not tabs), and the line reader
+    rejects a `$` that is not the first thing on its line (25415). Metacommands in a comment (`'$INCLUDE`,
+    `'$DYNAMIC`) are found another way (25461) and are not part of this.
+  - **`$CONSOLE:ONLY` a second time (`x25`).** It makes the console the destination again: `$CONSOLE:ONLY`,
+    `PRINT`, `_DEST 0`, `PRINT`, `$CONSOLE:ONLY`, `PRINT` prints the first and the third line.
+  - **The precompiler flags (`x26`, `x28`, `x33`).** With `OPTION _EXPLICIT` on the last line, `_EXPLICIT_` and
+    `_EXPLICITARRAY_` are both 1 on the lines above it; with `OPTION _EXPLICITARRAY` there, only
+    `_EXPLICITARRAY_` is. `_ASSERTS_`, `_DEBUG_` and `_SOCKETS_` are 0 when nothing sets them, and `_CONSOLE_` is
+    2 under `$CONSOLE:ONLY` alone. A `$CONSOLE` that stands only inside `$IF _CONSOLE_ = 0 THEN` counts: the
+    program has a console and the flag is 1 below it (the old compiler compiles again with the flag set and keeps
+    what the first round asked for; `utilities\statevars.bas`: a state is locked once it is not 0).
+  - **A flag's own branch, and a round before the flags are settled (`x38`, `x39`).** A `$CONSOLE:ONLY` that
+    stands only inside `$IF _CONSOLE_ = 0 THEN` leaves a program with a console and a window: `_CONSOLE_` is 2,
+    `_DEST` is -2, a `PRINT` with no `_DEST` is not seen and `_ECHO` works (the flag is kept; the line that makes
+    the program console-only is no longer compiled). The output alone does not show the window (a `PRINT` above
+    `$CONSOLE:ONLY` is not seen either, `x03`); the build does: `internal\temp\compilelog.txt` of that compile
+    links `libqb_make_00000000`, the libqb with the window, with `-mconsole`, and `global.txt` has `console=1`.
+    With `$CONSOLE` on line 1 and below it `OPTION _EXPLICIT`
+    inside `$IF _CONSOLE_ = 0 THEN`, `_EXPLICIT_` is 0: the first pass sets `_CONSOLE_` at the metacommand's
+    line, so the branch is not taken even in the first round (`qb64pe.bas` 1980–2006: `$CONSOLE`,
+    `$CONSOLE:ONLY`, `$ASSERTS` and `$DEBUG` do this; `OPTION _EXPLICIT` does not, 2099).
+  - **More on the flags (`x51`–`x56`, 2026-10-12).** `$IF _EXPLICIT_` between two `OPTION _EXPLICIT` lines is
+    1 (`x51`). `$ASSERTS:CONSOLE` gives the program a console: `_CONSOLE_` is 1 above and below its line and
+    `_ASSERTS_` is 1 (`x52`, written with `_ECHO`). Three rounds work: with the only `$CONSOLE` inside `$IF
+    _EXPLICIT_` and the only `OPTION _EXPLICIT` on the last line, the program has a console and both flags are
+    1 (`x53`). **`OPTION _EXPLICIT` is in force by its flag:** when it stands only inside `$IF _EXPLICIT_ = 0
+    THEN`, the flag is 1 (`x54`) and a variable that is not declared is "Variable 'x' (SINGLE) not defined"
+    (`x55`), though the last round does not compile the line. `_ASSERTS_` has a running value in the first
+    pass as `_CONSOLE_` has: `OPTION _EXPLICIT` inside `$IF _ASSERTS_ = 0` below the line of `$ASSERTS` is
+    never met (`x56`). In the source the `$IF` values are set from the settled state at the first line of each
+    pass and at the end of the source (`setPrecompFlags`, `qb64pe.bas` 1816, 3373).
+  - **Where the old compiler's two passes disagree (`x27`, `x34`).** Between `$CONSOLE:ONLY` and a later
+    `$CONSOLE`, a `$IF` on `_CONSOLE_` is 2 for the first pass (each metacommand sets the flag at its line there)
+    and 1 for the second. A `PRINT` in each of its branches prints nothing at all; a `CONST k` in each branch is
+    "Name already in use (k)". Nothing sensible to copy: the new compiler marks such a `$IF` "not supported yet".
+  - **In the old compiler's source.** `$CONSOLE` sets `console=1` and the make flag `DEP_CONSOLE=y` (links with
+    `-mconsole`); `$CONSOLE:ONLY` sets `DEP_CONSOLE_ONLY=y` too and writes `sub__dest(func__console());
+    sub__source(func__console());` where it stands; `$SCREENHIDE` and `$SCREENSHOW` set `screen_hide_startup` to
+    1 and 0, the last one in the file counting (`qb64pe.bas` 3590–3624, 13076–13086, 13708–13717). `_DEST`,
+    `_SOURCE`, `_CONSOLE`, `_ECHO`, `_SCREENHIDE` and `_SCREENSHOW` are plain rows of the built-in table.
+  - **The build of each mode (read 2026-10-12 from `internal\temp\compilelog.txt` and `global.txt` after
+    `qb64pe -x`; the make line itself is kept nowhere on Windows).** `$CONSOLE:ONLY`, with or without
+    `$CONSOLE`: `DEP_CONSOLE_ONLY=y DEP_CONSOLE=y`, libqb variant `libqb_make_00100000`, `-mconsole`, the
+    objects `window-console.o` and `main-thread-console.o`, `console=1`. `$CONSOLE` alone: `DEP_CONSOLE=y`,
+    variant `…00000000`, `-mconsole`, `window-gui.o` and `main-thread-gui.o`, `console=1`, and
+    `screen_hide_startup=1` with `$SCREENHIDE`. A program that names `_ICON`: `DEP_ICON=y` as well, a third
+    variant `…00000100`, `-DDEPENDENCY_ICON` in place of `-DDEPENDENCY_NO_ICON`. The clone's `Makefile` reads
+    `DEP_CONSOLE` only to choose `-mconsole`, which `DEP_CONSOLE_ONLY` chooses too.
+  - **The calls of the window built-ins (read 2026-10-12 from the C++ of `qb64pe -z`; the table of every form
+    is design D6 of `m2-console-screenhide`).** Each is the plain call its table row and template give, every
+    numeric slot a LONG (`int32_t` in libqb; a float argument goes through `qbr`). `_FREEIMAGE` with no argument
+    is accepted (`sub__freeimage(NULL,0)`). `_MOUSEHIDE` passes `NULL`, 1 (`_HIDE`) or 2 (`_DISABLE`) and no
+    mask. `_SCREENEXISTS` has no return type in the table: it is treated as a 32-bit integer (stores,
+    operators, `IF`, `SELECT CASE`, arguments), `PRINT` and `STR$` write `qbs_str(func_windowexists())` with no
+    cast (the same overload, the C++ type being `int32_t`), and only `HEX$` differs from a LONG:
+    `func_hex(…,0)` against `func_hex(…,8)`. `_WINDOWHANDLE` is an `_UNSIGNED _OFFSET` value like a variable of
+    that type (`qbs_str((uint64)(…))`; `/` rounds the quotient with `qbr`).
+  - **Forms of the window built-ins, accepted and rejected (`x74`–`x113`, measured while step 11's group 4 was
+    built).** Accepted (`x74`, as code that is not reached): every one of the statements after `CALL`, with the
+    forms of its template between the parentheses (`CALL _ICON`, `CALL _ICON(1, 2)`, `CALL _FREEIMAGE`, `CALL
+    _MOUSEHIDE(_HIDE)`, `CALL _MOUSECURSOR(1, (2, 3))`, `CALL _WINDOWSIZELIMIT((1, 2)-(3, 4))`); the function
+    `_SCREENHIDE`; `_SCREENEXISTS` as the argument of `HEX$`, `OCT$` and `_BIN$`. Rejected, one program each: a
+    function that takes no argument called with one is "Incorrect number of arguments" (`_SCREENEXISTS(1)`,
+    `_SCREENX(1)`, `_TITLE$(1)`, `_DESKTOPWIDTH(1)`, and `ERR(1)`, `ERL(1)`: `x75`–`x77`, `x99`, `x102`, `x113`),
+    with empty parentheses "Expected (...)" (`x98`, `x100`, `x101`, `x108`); `_NEWIMAGE` with one or four
+    arguments or bare, `_WINDOWHANDLE(1, 2)` likewise "Incorrect number of arguments" (`x104`, `x105`, `x107`,
+    `x109`); a string where a number is wanted and a number where a string is ("1st sub argument requires a
+    number", "String required for sub", "Number required for sub", `x79`, `x80`, `x90`, `x93`, `x106`, `x110`); a
+    statement in a form that is none of its template's is "Syntax error - Reference: …" (`_ICON 1, 2, 3`,
+    `_MOUSESHOW "a", "b"`, `_MOUSEHIDE 1`, `_MOUSEHIDE _SHOW`, `_MOUSECURSOR`, `_MOUSECURSOR 1, 2, 3`,
+    `_MOUSECURSOR 1, (2)`, `_WINDOWSIZELIMIT 320, 240`, `_WINDOWSIZELIMIT (320)`, `_WINDOWSIZELIMIT (1, 2)-(3)`,
+    `_FREEIMAGE 1, 2`, `_TITLE`, `_TITLE "a", "b"`: `x78`, `x81`–`x89`, `x91`, `x92`, `x94`); `_SCREENHIDE 1`,
+    `_SCREENSHOW 1` and `_SCREENICON 1` are "SUB does not require any arguments" (`x95`–`x97`); `n = _TITLE`
+    "Invalid variable name" (`x103`); `_SCREENX = 1` "Expected variable =" (`x111`); `_NEWIMAGE 1, 2` as a
+    statement "Syntax error" (`x112`).
+  - **The constants of the auto-included file (`x114`–`x126`, measured while step 11's group 5 was built; their
+    values and types by slice program `s67_auto_constants`).** A constant of `beforefirstline.bi` is used with
+    its own suffix, with another or with none (`_TRUE%`, `_TRUE&&`, `_TRUE#`, `_ONE_KB&&`, `_LONG_MAX%`,
+    `` _BIT_MIN` ``, `_E#`), in a `CONST` and as the length of a `STRING * n` (`x114`). Its name is a reserved
+    name: `CONST _TRUE = 1`, and with the same value `CONST _ONE_MB = 1048576`, are "Invalid name" like `CONST
+    _MYOWN = 1` (`x115`, `x116`, `x125`); `DIM _TRUE AS LONG` is "Invalid variable name" (`x117`); `_TRUE = 5`
+    "Expected variable =" (`x118`); `FOR _TRUE`, `INPUT _TRUE`, `SWAP n, _TRUE` are errors (`x122`–`x124`);
+    `_TRUE$` is "Type mismatch" (`x119`), `_TRUE(1)` "Invalid array name" (`x120`), a string constant stored in
+    a number "Illegal string-number conversion" (`x121`), `LEN(_BYTE_MAX)` "String expression or variable name
+    required in LEN statement" (`x126`). The values of the constants the new compiler does not compute yet
+    (`x114`): `_E` prints 2.718281828459045; `_DOUBLE_MAX` and `_DOUBLE_MIN` ±1.797693134862315D+308;
+    `_FLOAT_MAX` and `_FLOAT_MIN` print `INF 7693134862315D+308` and `-INF 7693134862315D+308` (their literals
+    are beyond what the old evaluator reads) and `_FLOAT_MIN_FRAC` 0; `_INTEGER64_MIN` and `_OFFSET_MIN` are
+    -9223372036854775807 (one more than the type's least value), `_UINTEGER64_MAX` and `_UOFFSET_MAX`
+    9223372036854775807 (half of the type's greatest). Arithmetic on a constant with a suffix is computed
+    beyond its type (`s67`: `_BYTE_MAX + 1` is 128, `_LONG_MAX + 1` is -2147483648, `_INTEGER64_MAX + 1` wraps).
+  - **Precompiler flags across files (`x127`).** A setting and a `$IF` on its flag in an included file work as
+    in one file: with `$CONSOLE:ONLY` in the included file, `$IF _CONSOLE_ = 2` in the main file above the
+    include is taken, and an `OPTION _EXPLICITARRAY` the included file's `$IF _CONSOLE_ = 2` guards sets
+    `_EXPLICITARRAY_` for the main file's lines below.
+  - **`SWAP` after `CALL` (`x128`).** `CALL SWAP(a, b)` is accepted and exchanges the two variables, as `SWAP a,
+    b` does.
+  - **What the 37 upstream programs with plain `$CONSOLE` need (`qb64rust --report unsupported`, 2026-10-12).**
+    Two need nothing but the three features (`data\test`, `keyboard\devices_windows`). The 19 `glut` tests also
+    need one or more window built-ins as compiled, never-run code (`_SCREENHIDE`, `_SCREENSHOW`,
+    `_SCREENEXISTS`, `_TITLE`, `_TITLE$`, `_ICON`, `_SCREENICON`, `_MOUSESHOW`, `_MOUSEHIDE`, `_MOUSECURSOR`,
+    `_DESKTOPWIDTH`, `_DESKTOPHEIGHT`, `_SCREENX`, `_SCREENY`, `_WINDOWHANDLE`, `_WINDOWHASFOCUS`,
+    `_WINDOWSIZELIMIT`, `_NEWIMAGE`, `_FREEIMAGE`), and 12 of them `_TRUE` or `_FALSE`. The seven
+    `precomp-flags` tests need the precompiler flags in `$IF` (three of them nothing else; the others `$ASSERTS`,
+    `$DEBUG` or `_OPENCLIENT`). The other nine need sound, images, `$EMBED` or devices.
+  - **The GitHub Windows runner.** The upstream tests say in a comment that GLFW cannot create a window with an
+    OpenGL context there, which is why the `glut` tests are console-only on Windows. A program with `$CONSOLE` and
+    `$SCREENHIDE` does start there: the `tier2` job is green with `s63_console_window` and the other slice
+    programs that have a hidden window (seen 2026-10-12, task 2.6 of `m2-console-screenhide`). A window that is
+    shown is not measured on the runner.
 
 ## 6. Bug-compatibility choices (all decided)
 

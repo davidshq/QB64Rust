@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SOURCE handle&
+Caused by (or after):_SOURCE
+LINE 4:_SOURCE
+exit=1

@@ -1,0 +1,5 @@
+
+Expected (...)
+Caused by (or after):S = _TITLE$ ( )
+LINE 6:s = _TITLE$()
+exit=1

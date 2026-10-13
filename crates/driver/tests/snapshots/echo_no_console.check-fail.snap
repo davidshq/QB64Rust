@@ -1,0 +1,9 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+echo_no_console.bas:1:1: error: not supported yet: programs without `$CONSOLE` or `$CONSOLE:ONLY`
+echo_no_console.bas:6:1: error: `_ECHO` needs a program with `$CONSOLE` or `$CONSOLE:ONLY`
+echo_no_console.bas:8:1: error: `_ECHO` needs a program with `$CONSOLE` or `$CONSOLE:ONLY`
+echo_no_console.bas:13:5: error: `_ECHO` needs a program with `$CONSOLE` or `$CONSOLE:ONLY`

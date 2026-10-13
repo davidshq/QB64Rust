@@ -1,0 +1,4 @@
+console in the sub
+console after the sub
+console after the function 7 
+exit=0

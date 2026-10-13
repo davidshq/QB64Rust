@@ -129,8 +129,9 @@ What the compiler supports so far:
   compiled across its files, and a runtime error in an included file names it as QB64pe does;
 - procedures named like built-ins as measured (`verification\v19_proc_names`): a SUB may take a built-in
   function's name, a FUNCTION a built-in statement's;
-- 70 built-in functions (`m2-core-builtins`; the file functions, `RND`, `TIMER`, `SHELL`, `COMMAND$`, `ENVIRON$` and
-  14 added by demand with `m2-builtin-statements`), checked by one table-driven checker: `sema\src\builtins.rs` lists
+- 83 built-in functions (`m2-core-builtins`; the file functions, `RND`, `TIMER`, `SHELL`, `COMMAND$`, `ENVIRON$` and
+  14 added by demand with `m2-builtin-statements`; `_DEST`, `_SOURCE`, `_CONSOLE` and the ten window functions
+  with `m2-console-screenhide`, below), checked by one table-driven checker: `sema\src\builtins.rs` lists
   them, each with its `Rule` (one per kind of special-casing in the old compiler's `evaluatefunc`, not per
   function), and gives each call a held type (the C++ type of the libqb call) and a believed type (the old
   compiler's); `sema\src\check\builtins.rs` checks arity, argument kinds and the conversion of each argument to
@@ -293,6 +294,60 @@ What the compiler supports so far:
   plus, but QB64pe removes signs from an expression before it reads it, and so does the parser: a `+` right
   after a `+` or a `-`, then two `-` right after an operator. The dropped tokens stay in the tree. In a
   `CONST` a run of `+` and `-` is one sign.
+- **A console and a window** (`m2-console-screenhide`; measured, `verification\v26_*`): a program
+  with `$CONSOLE` is compiled and built with a console and a window, one with `$CONSOLE:ONLY` (with or without
+  `$CONSOLE`) with a console and no window; `$SCREENHIDE` and `$SCREENSHOW` say whether the window starts
+  hidden, the last one in the file counting. The four count wherever they stand in compiled code (any line, a
+  procedure, an included file, after the last statement that runs); each `$CONSOLE:ONLY` selects the console
+  where it stands. `sema` matches them exactly (`check\mod.rs`, `console_meta`): anything else on the line is
+  an error, as in QB64pe, and so it is for `$INCLUDEONCE` (a tab or a word after it). The mode is `Program::settings` in `sema` and in the IR (`ir::Settings`: console,
+  window, hidden at the start, the optional parts of the runtime; the IR dump's first line). The emitter
+  writes the two start-up globals from it, the driver the make flags (`driver\src\build.rs`, `make_flags`:
+  `DEP_CONSOLE_ONLY=y` without a window, `DEP_CONSOLE=y` with a console, as QB64pe passes them), which are
+  part of the build cache's key. A program with a window links another variant of libqb, built once into the
+  clone's git-ignored folders. **Every metacommand** must be the first thing on its line: after a statement
+  and a colon, or with a tab before it, it is an error (`syntax\src\parser\meta.rs`); in a `$IF` branch that
+  is not taken such a line is skipped text. A program with neither `$CONSOLE` nor `$CONSOLE:ONLY` is "not
+  supported yet": its only output is the window's (M3). **`_DEST`, `_SOURCE` and `_ECHO`** are statement rows
+  and `_DEST`, `_SOURCE` and `_CONSOLE` function rows of `sema\src\builtins.rs` (the handle a LONG value, the
+  functions LONG and called by their bare names), so a `$CONSOLE` program prints to its console after `_DEST
+  _CONSOLE` and reads it with `INPUT` and `LINE INPUT`. `CALL _DEST(h)`, `CALL _SOURCE(h)` and `CALL
+  _ECHO(t$)` are the same statements (a statement whose template is one argument is read like a SUB call after
+  `CALL`, `check\proc.rs`). `_ECHO` in a program that turns out to have no console is an error, reported after
+  the walk. The statement `_CONSOLE ON`/`OFF` is "not supported yet".
+- **Window built-ins, compiled and never run** (`m2-console-screenhide` group 4; `sema\src\builtins.rs`,
+  `WINDOW_BUILTINS`): the statements `_SCREENHIDE`, `_SCREENSHOW`, `_SCREENICON`, `_TITLE`, `_ICON`,
+  `_MOUSESHOW`, `_MOUSEHIDE`, `_MOUSECURSOR`, `_WINDOWSIZELIMIT`, `_FREEIMAGE` and the functions
+  `_SCREENEXISTS`, `_SCREENICON`, `_TITLE$`, `_DESKTOPWIDTH`, `_DESKTOPHEIGHT`, `_SCREENX`, `_SCREENY`,
+  `_WINDOWHASFOCUS`, `_NEWIMAGE`, `_WINDOWHANDLE` (an `_UNSIGNED _OFFSET`, bare or with one argument), each a
+  row, in every form of its template. What they do shows only in a window, so no test runs them: their slice
+  program holds them below its `SYSTEM`, and each has call-site programs (`tests\callsite`), which the coverage
+  test requires for the names of `WINDOW_BUILTINS`. A built-in's `dependency` in the table is the optional part
+  of the runtime it needs (`sema::RuntimePart`, in `Program::settings`): `_ICON` gives the make flag
+  `DEP_ICON=y`; a built-in whose part no build provides yet is "not supported yet". Still marked: these
+  statements after `CALL` where they have a template (`CALL _ICON(1, 2)`; the parser leaves the parentheses
+  unread there, so no form is a false syntax error), the function `_SCREENHIDE`, and `_SCREENEXISTS` as the
+  direct argument of `HEX$`, `OCT$` or `_BIN$` (QB64pe passes another width than for a LONG).
+- **The constants of QB64pe's auto-included file** (`m2-console-screenhide` group 5; `sema\src\check\auto.rs`):
+  `_TRUE`, `_FALSE`, `_ONE_MB`, the limits of the numeric types and the others of `beforefirstline.bi` are
+  known in every program. The file is not included: `tools\builtins\builtins.json` carries each constant's
+  suffix and the text of its expression (the branches of a Windows 64-bit build), and a constant becomes a
+  constant of the main module the first time a program names it, computed by the `CONST` evaluator's
+  arithmetic. 231 of the 310 are computed; the others are "not supported yet" where they are used, with the
+  reason: 69 need `CHR$` and `_E` needs `EXP` in a `CONST`, and nine are numbers the evaluator does not read
+  yet (`_DOUBLE_MIN`/`_MAX`, the three `_FLOAT_` ones, `_INTEGER64_MIN`, `_UINTEGER64_MAX`, `_OFFSET_MIN`,
+  `_UOFFSET_MAX`). Their names are reserved like any name with a leading underscore. The three functions of
+  the file included after the last line and the `$COLOR` constants keep the mark of an auto-included name.
+- **Precompiler flags** (`m2-console-screenhide` group 6; `syntax\src\pp.rs`, `program.rs`): `_CONSOLE_`,
+  `_EXPLICIT_`, `_EXPLICITARRAY_`, `_ASSERTS_`, `_DEBUG_` and `_SOCKETS_` in `$IF` have the values QB64pe gives
+  them from the whole program. `qb64rust_syntax::parse_settled` is the parser's entry point: it parses in
+  rounds as QB64pe compiles in rounds, a feature met in one round (`$CONSOLE`, `OPTION _EXPLICIT`, ...) being a
+  flag's value in the next, until nothing changes; a program with no `$IF` on a flag is parsed once. The
+  settled flags are `ParsedProgram::flags`: `sema` takes the console and the two options from them as well as
+  from the lines it walks, because a line may set its flag from inside the `$IF` branch the flag switches off.
+  Still marked: a `$IF` that names `_CONSOLE_` between `$CONSOLE:ONLY` and a later `$CONSOLE` or the other way
+  round (QB64pe's two passes read it with different values); `$ASSERTS` and `$DEBUG` as metacommands (their
+  flags are set, so the rest of such a program gets no second mark).
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
@@ -305,7 +360,8 @@ with a member of an element or an element of a member array, every other
 built-in statement read by its template (`LINE`, `SCREEN`, `GET`/`PUT`, `TIME$ =`, ...), the declaration
 forms (`REDIM _RETAIN`, arrays named `name$n`,
 `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
-names of QB64pe's auto-included files and its precompiler flags (`_CONSOLE_`, ...); of arrays and `TYPE`:
+constants of QB64pe's auto-included file that are not computed yet and the names of its other auto-included
+files; of arrays and `TYPE`:
 whole arrays (`x()`) where no array parameter takes them, member arrays marked `_STATIC` or `_DYNAMIC` or with
 a bound that names a `CONST`;
 `DEF FN` is an error, as in QB64pe. After a declaration

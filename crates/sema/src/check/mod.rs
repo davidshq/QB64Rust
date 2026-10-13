@@ -6,6 +6,7 @@
 //! `DIM SHARED` after a procedure is not seen by it, and a `SHARED x AS T` in an earlier procedure acts like a
 //! main-module `DIM x AS T` for the main-module code after it.
 
+mod auto;
 mod blocks;
 mod builtins;
 mod constants;
@@ -25,6 +26,7 @@ use qb64rust_syntax::ParsedProgram;
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::meta::{MemoryMode, comment_directives};
+use qb64rust_syntax::pp::meta_line;
 use qb64rust_syntax::tree::{Node, Tok, TreeId};
 use std::collections::{HashMap, HashSet};
 
@@ -58,10 +60,15 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         label_of_def: HashMap::new(),
         diags: Diagnostics::new(),
         stmt_error: false,
+        console: false,
         console_only: false,
+        window_hidden: false,
+        echoes: Vec::new(),
+        runtime_parts: std::collections::BTreeSet::new(),
         names: Vec::new(),
         consts_main: HashMap::new(),
         consts_local: HashMap::new(),
+        auto_consts: HashMap::new(),
         used_names: HashMap::new(),
         used_local: HashMap::new(),
         explicit: false,
@@ -91,9 +98,12 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
     // (`verification\v19_explicit_*`).
     let has = |word: &[u8]| program.trees.iter().any(|t| has_option(map, t.root(), &skips, word));
-    c.explicit = has(b"_EXPLICIT");
+    // An option is also in force by its precompiler flag, when its only line stands in the `$IF` branch the flag
+    // switches off and so is not in the trees (measured, `verification\v26_x54`, `x55`; design D7 of
+    // `m2-console-screenhide`).
+    c.explicit = has(b"_EXPLICIT") || program.flags.explicit();
     // Measured likewise for arrays (`verification\v24_x256`, `x257`): either option, above or below the use.
-    c.explicit_array = c.explicit || has(b"_EXPLICITARRAY");
+    c.explicit_array = c.explicit || has(b"_EXPLICITARRAY") || program.flags.explicit_array();
     // The main file's statements, and the same with every include statement followed by what it includes (pass 1
     // reads the user types and procedures of included files from these; pass 2 and the label pre-pass descend into
     // includes as they meet them).
@@ -177,11 +187,69 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         c.check_statement(stmt, &skips);
     }
     c.solve_dims();
-    if !c.console_only {
+    // The program has a console by its precompiler flag too: the old compiler reads the flag, which stays set
+    // when the metacommand that set it stands in a `$IF` branch the flag itself switches off (design D1 of
+    // `m2-console-screenhide`; measured, `verification\v26_x26`, `x38`). "No window" comes from the lines that are
+    // compiled, so a `$CONSOLE:ONLY` in such a branch leaves the window.
+    c.console |= program.flags.console();
+    if !c.console {
+        // Its only output is the window's, which nothing checks yet (M3).
         let at = Span::new(root.file, 0, 0);
-        c.diags.unsupported(at, "programs without `$CONSOLE:ONLY`");
+        c.diags
+            .unsupported(at, "programs without `$CONSOLE` or `$CONSOLE:ONLY`");
+        // Measured: "_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first" (`verification\v26_x17`).
+        for at in std::mem::take(&mut c.echoes) {
+            c.diags
+                .error(at, "`_ECHO` needs a program with `$CONSOLE` or `$CONSOLE:ONLY`");
+        }
     }
+    c.prog.settings = crate::Settings {
+        console: c.console,
+        window: !c.console_only,
+        window_hidden: c.window_hidden,
+        runtime_parts: std::mem::take(&mut c.runtime_parts),
+    };
     (c.prog, c.diags)
+}
+
+/// One of the four metacommands that choose a program's console and window.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ConsoleMeta {
+    Console,
+    ConsoleOnly,
+    ScreenHide,
+    ScreenShow,
+}
+
+/// The console or window metacommand a metacommand token is: `None` for any other metacommand, an error for a form
+/// of one of the four that the old compiler rejects. It compares the whole line, in upper case and without the
+/// blanks at its ends, with the four names, so anything else on the line is "Syntax error" (measured,
+/// `verification\v26_x09`–`x12`, `x14`, `x29`–`x32`, `x35`, `x37`: `$CONSOLE:OFF`, a word, a comment or a colon and
+/// a statement after the name, blanks around the colon of `$CONSOLE:ONLY`).
+fn console_meta(raw: &[u8]) -> Option<Result<ConsoleMeta, String>> {
+    const NAMES: [(&str, ConsoleMeta); 4] = [
+        ("$CONSOLE:ONLY", ConsoleMeta::ConsoleOnly),
+        ("$CONSOLE", ConsoleMeta::Console),
+        ("$SCREENHIDE", ConsoleMeta::ScreenHide),
+        ("$SCREENSHOW", ConsoleMeta::ScreenShow),
+    ];
+    let text = meta_line(raw);
+    for (name, meta) in NAMES {
+        let Some(rest) = text.strip_prefix(name.as_bytes()) else {
+            continue;
+        };
+        return match rest.first() {
+            None => Some(Ok(meta)),
+            // Another name that starts alike: `$CONSOLE:ONLYX` is a wrong form of `$CONSOLE` (measured,
+            // `verification\v26_x60`), `$CONSOLEX` another metacommand.
+            Some(b) if b.is_ascii_alphanumeric() || *b == b'_' => continue,
+            Some(b':') if meta == ConsoleMeta::Console => {
+                Some(Err("expected `$CONSOLE` or `$CONSOLE:ONLY`".to_string()))
+            }
+            Some(_) => Some(Err(format!("`{name}` must stand alone on its line"))),
+        };
+    }
+    None
 }
 
 /// Which statements the checker skips: those with a parse error, and those past the parser's error cap. Kept per
@@ -269,13 +337,26 @@ struct Checker<'a> {
     label_of_def: HashMap<(TreeId, u32), LabelId>,
     diags: Diagnostics,
     stmt_error: bool,
+    /// The program's console and window, from the metacommands of its compiled code, wherever they stand (design
+    /// D1 of `m2-console-screenhide`): a `$CONSOLE` or `$CONSOLE:ONLY` was met; a `$CONSOLE:ONLY` was met (the
+    /// program has no window); the last of `$SCREENHIDE` and `$SCREENSHOW` met was `$SCREENHIDE`.
+    console: bool,
     console_only: bool,
+    window_hidden: bool,
+    /// The `_ECHO` statements met: each is an error when the program turns out to have no console, which is known
+    /// only after the walk (design D5 of `m2-console-screenhide`; measured, `verification\v26_x17`, `x62`).
+    echoes: Vec<Span>,
+    /// The optional parts of the runtime the built-ins met so far need.
+    runtime_parts: std::collections::BTreeSet<crate::RuntimePart>,
     fold: bool,
     /// Names resolved in the current statement, for the symbol table.
     names: Vec<(SymbolKind, Span)>,
     /// Constants by name (without suffix): the main module's so far, and those of the procedure being checked.
     consts_main: HashMap<String, ConstId>,
     consts_local: HashMap<String, ConstId>,
+    /// The auto-included constants named so far, by their place in the file: the constant each became, or why
+    /// its value is not computed yet (`auto.rs`).
+    auto_consts: HashMap<usize, Result<ConstId, String>>,
     /// The first use or declaration of each variable name so far, anywhere, and in the procedure being checked:
     /// a later `CONST` of the name is an error there (design D6).
     used_names: HashMap<String, Span>,
@@ -826,18 +907,40 @@ impl Checker<'_> {
         let node = stmt.node();
         let tok = self.need(stmt.token(), node.span())?;
         let raw = self.text(tok.span);
-        let trimmed: Vec<u8> = raw.iter().copied().filter(|b| !b.is_ascii_whitespace()).collect();
-        if let Some(flag) = stmt.precompiler_flag(raw) {
-            // The old compiler sets these from the whole program; not known here yet (`syntax::pp`).
-            Err(self.unsupported(tok.span, format!("the precompiler flag `{flag}` in `$IF`")))
-        } else if stmt.is_preprocessor(raw) || trimmed.eq_ignore_ascii_case(b"$INCLUDEONCE") {
+        let line = meta_line(raw);
+        let once = line.strip_prefix(b"$INCLUDEONCE".as_slice());
+        if self.program.passes_disagree.contains(&(node.key().0, tok.span.start)) {
+            // The parser read the condition with the flag's value on this line; the old compiler's main pass
+            // reads it with the value of the first line (design D7 of `m2-console-screenhide`; measured,
+            // `verification\v26_x27`, `x34`: its program prints nothing from the branches, and a `CONST` in them
+            // is "Name already in use").
+            let flag = stmt.precompiler_flag(raw).unwrap_or("a precompiler flag");
+            let msg = format!("`{flag}` in a `$IF` between two lines that set it differently");
+            Err(self.unsupported(tok.span, msg))
+        } else if stmt.is_preprocessor(raw) || once == Some(b"") {
             // Evaluated by the parser (`$INCLUDEONCE` too); an error in it is a parse error, and the statement is
             // skipped then.
             Ok(())
-        } else if trimmed.eq_ignore_ascii_case(b"$CONSOLE:ONLY") {
-            if !self.console_only {
-                self.console_only = true;
-                self.push(node, StmtKind::ConsoleOnly);
+        } else if once
+            .and_then(<[u8]>::first)
+            .is_some_and(|b| !b.is_ascii_alphanumeric() && *b != b'_')
+        {
+            // The old compiler compares the whole line here too: a tab or a word after the name is "Syntax
+            // error" (measured, `verification\v26_x59`, `x61`).
+            Err(self.error(tok.span, "`$INCLUDEONCE` must stand alone on its line"))
+        } else if let Some(m) = console_meta(raw) {
+            match m {
+                Ok(ConsoleMeta::Console) => self.console = true,
+                Ok(ConsoleMeta::ConsoleOnly) => {
+                    // Each one selects the console where it stands (measured, `verification\v26_x25`).
+                    self.console = true;
+                    self.console_only = true;
+                    self.push(node, StmtKind::ConsoleOnly);
+                }
+                // The last of the two in the file counts (`qb64pe.bas` 3615–3624).
+                Ok(ConsoleMeta::ScreenHide) => self.window_hidden = true,
+                Ok(ConsoleMeta::ScreenShow) => self.window_hidden = false,
+                Err(msg) => return Err(self.error(tok.span, msg)),
             }
             Ok(())
         } else {

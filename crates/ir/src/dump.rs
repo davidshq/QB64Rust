@@ -2,15 +2,40 @@
 
 use crate::{
     Arg, ArrayRef, BinOp, Body, Expr, ExprKind, LabelId, OnError, Op, Place, PrintItem, ProcKind, Program, Resume,
-    Shape, Source, StmtArg, Storage, Ty, VarId, When,
+    RuntimePart, Settings, Shape, Source, StmtArg, Storage, Ty, VarId, When,
 };
 
 use qb64rust_base::{show_bytes, to_u32};
 use std::fmt::Write as _;
 
-/// The main module's statements, then each procedure: its header, its variables by storage class, its statements.
+/// The program's settings on one line: `console, window hidden at the start, runtime parts: icon`.
+fn settings(s: &Settings) -> String {
+    let mut parts = Vec::new();
+    if s.console {
+        parts.push("console".to_string());
+    }
+    parts.push(if s.window { "window" } else { "no window" }.to_string());
+    if s.window_hidden {
+        parts.push("hidden at the start".to_string());
+    }
+    if !s.runtime_parts.is_empty() {
+        let names: Vec<&str> = s
+            .runtime_parts
+            .iter()
+            .map(|p| match p {
+                RuntimePart::Icon => "icon",
+            })
+            .collect();
+        parts.push(format!("runtime parts: {}", names.join(", ")));
+    }
+    parts.join(", ")
+}
+
+/// The program's settings, the main module's statements, then each procedure: its header, its variables by storage
+/// class, its statements.
 pub fn dump(p: &Program) -> String {
     let mut out = String::new();
+    writeln!(out, "Settings: {}", settings(&p.settings)).unwrap();
     // The program's data, when there is any: one item per line, a quoted one in quotes.
     for (i, item) in p.data.iter().enumerate() {
         let q = if item.quoted { "\"" } else { "" };

@@ -111,10 +111,11 @@ step (`CLAUDE.md` rule 1: the user stages and commits).
 
 ## 5. CI and records
 
-- [ ] 5.1 `vscode-extension.yml`: build the Rust binary (release, with `Swatinem/rust-cache`) and pass it to both
+- [x] 5.1 `vscode-extension.yml`: build the Rust binary (release, with `Swatinem/rust-cache`) and pass it to both
   integration runs; the workflow's `paths` gain `crates/**` and `Cargo.*`. Verify: green on GitHub.
   Workflow changed 2026-10-08 (also `rust-toolchain.toml` in `paths`); not yet run on GitHub. Still open when the
   change was archived (2026-10-08, at the user's request); the first push checks it (`STATUS.md`).
+  Green on GitHub, seen 2026-10-12 at `3ba82c2` (and at `cda1268` and `cf4fb1f` before it).
 - [x] 5.2 `crates\README.md` (the `lsp` crate, the subcommand, the dependency section), `STATUS.md` (step 7 done;
   what the server does and does not do), `ROADMAP.md` (the language server ticked), `study\00` §5 (the
   measurements of 1.3). Archive the change.

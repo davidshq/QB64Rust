@@ -17,11 +17,16 @@ was never committed and was no longer on disk.
 
 - [x] Highlighting, build and run, diagnostics from `-z`, formatting through `-y`, CP437 by default (`vscode\`)
 
-## M2. Front end: in progress
+## M2. Front end: done
 
 Done when: a lossless parser with recovery reads the whole language with no false syntax error on any program the
 old compiler accepts (corpus, upstream tests, `qbasic_testcases`, its own sources), with resolution, a type
 checker and a thin language server.
+
+The criterion is met (2026-10-12): tier 1 runs the front end over all four input sets with an exact round trip,
+and its shrink-only lists hold no false error and no parse gap (`tests\known_false_errors.list`,
+`tests\known_parse_gaps.list`: both empty). What the checker and the code generator do not cover yet is marked
+"not supported yet", never a false error; those constructs are work of M3 and M4.
 
 - [x] Golden corpus (`tests\corpus\`)
 - [x] Rust workspace and an end-to-end slice (`crates\`)
@@ -38,7 +43,13 @@ checker and a thin language server.
 - [x] The screen-state check (`tools\screen\`)
 - [x] Default types, `COMMON`, dynamic arrays, arrays in procedures, array parameters, the rest of `TYPE`, member
       arrays
-- [ ] `$CONSOLE` with `_DEST _CONSOLE`, and `$SCREENHIDE`
+- [x] `$CONSOLE` (a program built with a console and a window), `$SCREENHIDE`, `$SCREENSHOW`; `_DEST`, `_SOURCE`,
+      `_CONSOLE`, `_ECHO`
+- [x] The rest of the same step, in the wider scope of `DECISIONS.md` 2026-10-12: the window built-ins of the
+      upstream `glut` tests as compiled, never-run code; the constants of the auto-included file (`_TRUE`,
+      `_FALSE`); the precompiler flags in `$IF`
+- [x] The step's closing runs (the two full suites with the new compiler), its documents and CI after the push
+      (group 7 of `m2-console-screenhide`)
 
 ## M3. Code generation to the existing ABI: started early
 
@@ -46,6 +57,7 @@ Done when: the compiler emits the `qbx.cpp` fragments, links with libqb and pass
 differential tests; programs without `$CONSOLE:ONLY` are checked by their screen state.
 
 - [x] The slice links with libqb and runs (since M2's first slice)
+- [x] A program with a window is built (`$CONSOLE` without `:ONLY`, since M2's last step); it draws nothing yet
 - [ ] Plain copy of QB64pe's `internal\c` at the reference clone's commit
 - [ ] Programs with a window: the drawing statements, each coming in with screen programs that pass
 - [ ] Civil War Strategy builds and its screens match (`tests\programs\README.md`)

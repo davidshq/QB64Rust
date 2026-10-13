@@ -1,0 +1,15 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 6
+  SelectConsole
+Stmt line 7
+  Print console newline
+    Str Const "windows part"
+Stmt line 11
+  Print console newline
+    Str Const "flag 1"
+Stmt line 17
+  System

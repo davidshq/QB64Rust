@@ -1,0 +1,17 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 6 may_raise
+  Builtin _ECHO [Value(Const "main: 2 above the include")]
+Stmt line 1
+  SelectConsole
+Stmt line 3
+  Print console newline
+    Str Const "included: 2"
+Stmt line 10
+  Print console newline
+    Str Const "main: explicitarray 1"
+Stmt line 12
+  System

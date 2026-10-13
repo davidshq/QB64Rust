@@ -1,0 +1,210 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 10: Assign L:I32
+  Call _SCREENICON : I32
+line 11: Assign L:I32
+  Call _DESKTOPWIDTH : I32
+line 12: Assign L:I32
+  Call _DESKTOPHEIGHT : I32
+line 13: Assign L:I32
+  Call _SCREENX : I32
+line 14: Assign L:I32
+  Call _SCREENY : I32
+line 15: Assign L:I32
+  Call _WINDOWHASFOCUS : I32
+line 16: Assign L:I32
+  Call _SCREENEXISTS : I32
+line 17: Assign S:Str
+  Call _TITLE : Str
+line 18: Assign I:I16
+  Convert Truncate : I16
+    Call _SCREENX : I32
+line 19: Assign Q:I64
+  Convert Widen : I64
+    Call _DESKTOPWIDTH : I32
+line 20: Assign F:F64
+  Convert Nearest : F64
+    Call _SCREENEXISTS : I32
+line 21: Assign L:I32
+  Binary Sub : I32 (qb I64)
+    Call _DESKTOPWIDTH : I32
+    Call _SCREENX : I32
+line 22: Assign F:F64
+  Convert Nearest : F64
+    Binary Div : F80
+      Convert Nearest : F80
+        Call _DESKTOPHEIGHT : I32
+      Convert Nearest : F80
+        Int 2 : I16
+line 23: Assign L:I32
+  Neg : I32 (qb I64)
+    Call _SCREENEXISTS : I32
+line 24: Assign L:I32
+  Not : I32 (qb I64)
+    Call _SCREENEXISTS : I32
+line 25: Assign L:I32
+  Binary And : I32 (qb I64)
+    Call _SCREENEXISTS : I32
+    Call _WINDOWHASFOCUS : I32
+line 26: Assign S:Str
+  Concat : Str
+    Concat : Str
+      Concat : Str
+        Concat : Str
+          Call _TITLE : Str
+          Call STR : Str
+            Call _SCREENY : I32
+        Call HEX : Str
+          Call _SCREENX : I32
+      Call STR : Str
+        Call _SCREENEXISTS : I32
+    Call HEX : Str
+      Binary Add : I32 (qb I64)
+        Call _SCREENEXISTS : I32
+        Int 0 : I32
+line 27: Print newline
+  Num
+    Call _SCREENICON : I32
+  Num
+    Call _DESKTOPWIDTH : I32
+  Num
+    Call _SCREENEXISTS : I32
+  Str
+    Call _TITLE : Str
+  Num
+    Call LEN : I32
+      Call _TITLE : Str
+line 28: If (END IF line 28)
+  If line 28
+    Call _SCREENEXISTS : I32
+    line 28: Assign L:I32
+      Int 1 : I32
+line 29: If (END IF line 29)
+  If line 29
+    Binary Eq : I32
+      Call _WINDOWHASFOCUS : I32
+      Int 0 : I32
+    line 29: Assign L:I32
+      Int 2 : I32
+line 30: Call SHOW
+  temp
+    Call _SCREENEXISTS : I32
+  temp
+    Convert Nearest : F64
+      Call _SCREENX : I32
+line 31: SelectCase, selector copied once (END SELECT line 34)
+    Call _SCREENEXISTS : I32
+  Case line 32
+    Is Eq
+      Int -1 : I32
+    Body
+      line 33: Assign L:I32
+        Int 3 : I32
+line 35: Assign L:I32
+  Call _NEWIMAGE : I32
+    Var L : I32
+    Var L : I32
+    (absent)
+line 36: Assign L:I32
+  Call _NEWIMAGE : I32
+    Var L : I32
+    Var L : I32
+    Var L : I32
+line 37: Assign L:I32
+  Call _NEWIMAGE : I32
+    Int 640 : I32
+    Int 480 : I32
+    Int 32 : I32
+line 38: Assign L:I32
+  Call _NEWIMAGE : I32
+    Convert Widen : I32
+      Var I : I16
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var SG : F32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var F : F64
+line 39: Assign L:I32
+  Call _NEWIMAGE : I32
+    Convert Truncate : I32
+      Var Q : I64
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Float 1.6E+0 : F64 (qb F32)
+    (absent)
+line 40: Assign L:I32
+  Call _NEWIMAGE : I32
+    Call _DESKTOPWIDTH : I32
+    Call _DESKTOPHEIGHT : I32
+    Int 32 : I32
+line 41: Assign O:UOff
+  Call _WINDOWHANDLE : UOff
+    (absent)
+line 42: Assign O:UOff
+  Call _WINDOWHANDLE : UOff
+    Var L : I32
+line 43: Assign O:UOff
+  Call _WINDOWHANDLE : UOff
+    Int 1 : I32
+line 44: Assign O:UOff
+  Call _WINDOWHANDLE : UOff
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var SG : F32
+line 45: Assign L:I32
+  Convert Truncate : I32
+    Call _WINDOWHANDLE : UOff
+      (absent)
+line 46: Assign Q:I64
+  Convert Truncate : I64
+    Call _WINDOWHANDLE : UOff
+      Int 2 : I32
+line 47: Assign F:F64
+  Convert Nearest : F64
+    Call _WINDOWHANDLE : UOff
+      (absent)
+line 48: Assign F:F64
+  Convert Nearest : F64
+    Convert RoundEven : I64 (qb UOff)
+      Binary Div : F80 (qb UOff)
+        Convert Nearest : F80
+          Call _WINDOWHANDLE : UOff
+            (absent)
+        Convert Nearest : F80
+          Int 3 : I16
+line 49: Assign S:Str
+  Call STR : Str
+    Call _WINDOWHANDLE : UOff
+      (absent)
+line 50: Print newline
+  Num
+    Binary Ne : I32
+      Convert Truncate : U64
+        Call _WINDOWHANDLE : UOff
+          (absent)
+      Int 0 : U64
+line 51: Print newline
+  Num
+    Binary Ne : I32
+      Convert Truncate : U64
+        Call _WINDOWHANDLE : UOff
+          Int 1 : I32
+      Int 0 : U64
+line 52: Print newline
+  Num
+    Call _WINDOWHANDLE : UOff
+      (absent)
+line 53: System
+SUB SHOW
+  param A:I32
+  param D:F64
+line 56: Print newline
+  Num
+    Var A (param) : I32
+  Num
+    Var D (param) : F64
+  Num
+    Call _SCREENX : I32

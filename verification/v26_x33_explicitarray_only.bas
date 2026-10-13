@@ -1,0 +1,14 @@
+$CONSOLE:ONLY
+' Verification (step 11): OPTION _EXPLICITARRAY alone: _EXPLICIT_ and _EXPLICITARRAY_.
+$IF _EXPLICIT_ THEN
+    PRINT "explicit 1"
+$ELSE
+    PRINT "explicit 0"
+$END IF
+$IF _EXPLICITARRAY_ THEN
+    PRINT "explicitarray 1"
+$ELSE
+    PRINT "explicitarray 0"
+$END IF
+SYSTEM
+OPTION _EXPLICITARRAY

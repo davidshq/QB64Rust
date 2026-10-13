@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _FREEIMAGE handle&
+Caused by (or after):_FREEIMAGE 1 , 2
+LINE 6:_FREEIMAGE 1, 2
+exit=1

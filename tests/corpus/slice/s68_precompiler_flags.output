@@ -1,0 +1,9 @@
+above the line of $CONSOLE: 1
+above the option: explicit 1
+explicitarray 1
+asserts, debug, sockets 0
+console 1 and explicit 1
+a flag beside a predefined name
+console >= 1
+the console's handle:-10 
+in a SUB: console

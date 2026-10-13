@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):$ LET FOO = 1
+LINE 3:	$LET FOO = 1
+exit=1

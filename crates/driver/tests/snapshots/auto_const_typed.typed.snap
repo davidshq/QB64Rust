@@ -1,0 +1,80 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 14: Assign L:I32
+  Int -1 : I32
+line 15: Assign L:I32
+  Int 0 : I32
+line 16: Assign I:I16
+  Int 127 : I16
+line 17: Assign L:I32
+  Int 2147483647 : I32
+line 18: Assign L:I32
+  Int 2147483647 : I32 (qb I16)
+line 19: Assign D:F64
+  Float 3.402823E+38 : F64 (qb F32)
+line 20: Assign D:F64
+  Float 2.225073858507201E-308 : F64
+line 21: Assign L:I32
+  Int 1048576 : I32
+line 22: Assign L:I32
+  Int 1048576 : I32
+line 23: Assign I:I16
+  Int -1 : I16
+line 24: Assign D:F64
+  Float -1.0E+0 : F64
+line 25: Assign S:Str
+  Str "" : Str
+line 26: If (END IF line 26)
+  If line 26
+    Int -1 : I64
+    line 26: Assign L:I32
+      Int 3600 : I32
+line 27: Print newline
+  Num
+    Int 0 : I64
+  Num
+    Int 2097152 : I64
+  Num
+    Int -1 : I64
+  Num
+    Int 1 : I64
+  Num
+    Int 65536 : I64
+line 28: Call SHOW
+  temp
+    Int -1 : I32
+line 29: Print newline
+  Num
+    CallProc TWICE : I32
+      temp
+        Int 1024 : I32
+line 30: System
+SUB SHOW
+  param A:I32
+line 33: If (END IF line 33)
+  If line 33
+    Int -1 : I64
+    line 33: Print newline
+      Num
+        Var A (param) : I32
+      Num
+        Int 3600 : I64
+      Num
+        Int 3 : I64
+line 35: Print newline
+  Num
+    Int 1023 : I64
+FUNCTION TWICE : I32
+  param N:I32
+  result TWICE:I32
+line 39: Assign TWICE (result):I32
+  Convert Truncate : I32
+    Binary Add : I64
+      Convert Widen : I64
+        Binary Mul : I32 (qb I64)
+          Var N (param) : I32
+          Int 2 : I32
+      Int 0 : I64

@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _TITLE text$
+Caused by (or after):_TITLE "a",1 , "b",1
+LINE 6:_TITLE "a", "b"
+exit=1

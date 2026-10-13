@@ -1,0 +1,2 @@
+printed with no _DEST
+exit=0

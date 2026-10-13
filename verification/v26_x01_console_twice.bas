@@ -1,0 +1,8 @@
+$CONSOLE
+$CONSOLE
+$SCREENHIDE
+$SCREENHIDE
+' Verification (step 11): $CONSOLE and $SCREENHIDE twice each.
+_DEST _CONSOLE
+PRINT "ok"
+SYSTEM

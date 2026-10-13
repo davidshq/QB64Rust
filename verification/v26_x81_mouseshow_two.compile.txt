@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _MOUSESHOW [cursorShape$]
+Caused by (or after):_MOUSESHOW "a",1 , "b",1
+LINE 6:_MOUSESHOW "a", "b"
+exit=1

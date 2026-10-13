@@ -1,0 +1,3 @@
+console 1
+console 1 and explicit 1
+exit=0

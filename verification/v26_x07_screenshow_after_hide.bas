@@ -1,0 +1,7 @@
+$CONSOLE
+$SCREENHIDE
+$SCREENSHOW
+' Verification (step 11): $SCREENHIDE, then $SCREENSHOW (the window shows).
+_DEST _CONSOLE
+PRINT "ok"
+SYSTEM

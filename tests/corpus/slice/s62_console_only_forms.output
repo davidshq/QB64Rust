@@ -1,0 +1,5 @@
+after $CONSOLE:ONLY
+after $CONSOLE
+in the SUB
+after $CONSOLE:ONLY in the SUB
+after the SUB

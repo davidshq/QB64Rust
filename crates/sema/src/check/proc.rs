@@ -2,11 +2,12 @@
 
 use super::decl::name_end;
 use super::{Checker, DimFact, Failed, R, Scope};
-use crate::builtins::stmt_lookup;
+use crate::builtins::{StmtRule, stmt_lookup};
 use crate::literal;
 use crate::{Arg, ArrayRef, Expr, ExprKind, Place, Proc, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty};
 use crate::{Var, VarId};
 use qb64rust_base::{Span, show_bytes, to_u32};
+use qb64rust_builtins::template::Item;
 use qb64rust_builtins::{Kind, find_any};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
@@ -312,13 +313,20 @@ impl Checker<'_> {
             None => self.split_name(name_tok)?,
         };
         let shown = show_bytes(self.text(name_tok.span));
-        // A built-in statement whose entry has no template is written like a SUB call (`KILL f$`).
+        // A built-in statement whose entry has no template is written like a SUB call (`KILL f$`). So is one whose
+        // template is a single argument, after `CALL` (measured, `verification\v26_x70`: `CALL _DEST(_CONSOLE)`;
+        // without `CALL` the parser reads it by its template). A statement with a rule of its own (`SWAP`, `CLOSE`,
+        // `MID$`) is none of these: after `CALL` it is "not supported yet" (the old compiler accepts `CALL SWAP(a,
+        // b)`, measured, `verification\v26_x128`).
         let plain = match suffix {
             None => stmt_lookup(&name, false),
             Some(_) => Vec::new(),
         };
         let plain = match plain[..] {
-            [form] if form.id.get().specialformat.is_none() => Some(form),
+            [form] if form.rule == StmtRule::Plain => {
+                let b = form.id.get();
+                (b.specialformat.is_none() || matches!(b.template()[..], [Item::Arg])).then_some(form)
+            }
             _ => None,
         };
         match self.procs_by_name.get(&name).map(|&p| (p, self.prog.proc(p).kind)) {

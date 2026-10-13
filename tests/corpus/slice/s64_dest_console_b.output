@@ -1,0 +1,6 @@
+echo above
+console 1-10 -10 -10 
+echo 1
+echo 2:-2
+console 2-10 
+console 3-10 -2 

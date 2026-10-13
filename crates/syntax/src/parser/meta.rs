@@ -11,7 +11,7 @@ use super::Parser;
 use super::blocks::Block;
 use crate::SyntaxKind::*;
 use crate::meta::comment_directives;
-use crate::pp::{Directive, directive, precompiler_flag};
+use crate::pp::{Directive, directive, meta_line, meta_settings};
 use crate::program::LoadError;
 use qb64rust_base::show_bytes;
 
@@ -21,10 +21,20 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
     let span = p.current_span();
     let text = p.nth_text(0);
     let d = directive(text);
-    let preprocessor = !matches!(d, Directive::Other);
-    if preprocessor && p.after_colon() && !matches!(d, Directive::Error(_)) {
-        // Measured M6: "Unexpected character on line" after `:`.
-        p.error("a preprocessor metacommand must stand at the start of a line");
+    // The two line rules hold for every metacommand (measured, `verification\v26_x13`, `x23`, `x36`, `x40`–`x49`):
+    // the old compiler takes a line for a metacommand only when `$` is its first byte after the blanks, and its
+    // line reader rejects a `$` further on ("Unexpected character on line"). A line that breaks one is no
+    // metacommand: a `$IF` opens no level, and `sema` skips the statement for its error. `$ERROR` after a colon
+    // keeps its own error.
+    let fault = if p.after_colon() && !matches!(d, Directive::Error(_)) {
+        Some("a metacommand must stand at the start of a line")
+    } else if p.tab_before() {
+        Some("a metacommand must not have a tab before it")
+    } else {
+        None
+    };
+    if let Some(msg) = fault {
+        p.error(msg);
         p.start_node(MetaStmt);
         p.bump();
         p.finish_node();
@@ -35,9 +45,15 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
     p.finish_node();
     let result = match d {
         Directive::Other => {
-            if trimmed_upper(text) == b"$INCLUDEONCE" {
-                // Later inclusions of this file are empty (`qb64pe.bas` 3141–3165, measured M7).
+            let line = meta_line(text);
+            if line == b"$INCLUDEONCE" {
+                // Later inclusions of this file are empty (`qb64pe.bas` 3141–3165, measured M7). With a tab or
+                // a word after it the line is an error, which `sema` reports (`verification\v26_x59`, `x61`).
                 p.inc.once.insert(p.file);
+            }
+            // The metacommands that set a precompiler flag (design D7 of `m2-console-screenhide`).
+            for &(feature, value) in meta_settings(&line) {
+                p.pp.met(feature, value);
             }
             Ok(())
         }
@@ -46,9 +62,10 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
             // The level is opened even when the line has an error (as in the old compiler, which counts it before
             // evaluating), so its `$END IF` gets no error of its own; its code is then compiled.
             let r = match d {
-                // `sema` marks it "not supported yet" (`MetaStmt::precompiler_flag`); taken, like a broken `$IF`.
-                Directive::If(cond) if precompiler_flag(&cond).is_some() => Err(String::new()),
-                Directive::If(cond) => p.pp.open_if(&cond),
+                Directive::If(cond) => {
+                    p.flag_condition(&cond, span);
+                    p.pp.open_if(&cond)
+                }
                 Directive::Malformed(msg) => Err(msg.to_string()),
                 _ => Ok(()),
             };
@@ -61,11 +78,8 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
         }
         Directive::ElseIf(cond) => {
             p.pp_branch(span);
-            match precompiler_flag(&cond) {
-                // Not taken; `sema` marks it "not supported yet", which rejects the program.
-                Some(_) => p.pp.else_if(b"0"),
-                None => p.pp.else_if(&cond),
-            }
+            p.flag_condition(&cond, span);
+            p.pp.else_if(&cond)
         }
         Directive::Else => {
             p.pp_branch(span);
@@ -81,11 +95,8 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
         Directive::Let(text) => p.pp.let_(&text),
         Directive::Error(text) => Err(format!("`$ERROR`: {}", show_bytes(&text))),
     };
-    match result {
-        // A precompiler flag, marked by `sema`.
-        Err(msg) if msg.is_empty() => {}
-        Err(msg) => p.error_at(span, msg),
-        Ok(()) => {}
+    if let Err(msg) = result {
+        p.error_at(span, msg);
     }
     if p.pp.active() {
         return false;
@@ -96,10 +107,6 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
     }
     inactive_code(p);
     true
-}
-
-fn trimmed_upper(text: &[u8]) -> Vec<u8> {
-    text.trim_ascii().to_ascii_uppercase()
 }
 
 /// A metacommand comment (`'$INCLUDE:'x.bi'`) as a statement of its own; `sema` reads its other directives. An
@@ -124,13 +131,14 @@ const MAX_INCLUDE_DEPTH: u32 = 100;
 /// of nested `$IF`s there too (`qb64pe.bas` 1836–1892, before its skip test; measured: `$IF` without `THEN`, a
 /// duplicate operator and a second `$ELSE` are errors in an inactive branch): their conditions are evaluated for
 /// errors only, and every `$IF` line opens a level, also one without `THEN`. `$LET` and `$ERROR` there are skipped,
-/// as in the old compiler.
+/// as in the old compiler. A metacommand after a colon or a tab is no metacommand for the prepass either: it is
+/// skipped text, which ends no branch and is no error (measured, `verification\v26_x50`, `x57`).
 fn inactive_code(p: &mut Parser) {
     p.start_node(InactiveCode);
     // Per nested `$IF`: whether it had its `$ELSE`.
     let mut nested: Vec<bool> = Vec::new();
     while let Some(k) = p.current() {
-        if k == Metacommand {
+        if k == Metacommand && !p.after_colon() && !p.tab_before() {
             let span = p.current_span();
             let d = directive(p.nth_text(0));
             let error = match (&d, nested.last_mut()) {
@@ -175,12 +183,8 @@ fn inactive_code(p: &mut Parser) {
     p.finish_node();
 }
 
-/// The error of a nested `$IF`/`$ELSEIF` condition in an inactive branch, if any (its value does not matter; a
-/// precompiler flag is not evaluated).
+/// The error of a nested `$IF`/`$ELSEIF` condition in an inactive branch, if any (its value does not matter).
 fn nested_condition_error(p: &Parser, cond: &[u8]) -> Option<String> {
-    if precompiler_flag(cond).is_some() {
-        return None;
-    }
     p.pp.eval(cond).err()
 }
 
@@ -243,9 +247,31 @@ impl Parser<'_, '_> {
         }
     }
 
+    /// Before the condition of the `$IF` or `$ELSEIF` at `span` is evaluated: when it names a precompiler flag
+    /// that has another value here than at the first line of the round, the old compiler's two passes read the
+    /// line differently (design D7 of `m2-console-screenhide`; measured, `verification\v26_x27`, `x34`). The line
+    /// is noted; the branch is chosen by the value here, as the first pass chooses it. In a round that is not the
+    /// last the note is thrown away with the tree; in the last one `sema` marks the line "not supported yet".
+    fn flag_condition(&mut self, cond: &[u8], span: qb64rust_base::Span) {
+        if self.pp.flag_condition(cond) {
+            self.inc.passes_disagree.insert((self.tree, span.start));
+        }
+    }
+
     /// The current token follows a `:` on its line (the lexer starts a metacommand there too).
     fn after_colon(&self) -> bool {
         self.last_kind == Some(Colon)
+    }
+
+    /// A tab stands among the blanks right before the current token. The old compiler's `LTRIM$` takes spaces
+    /// only, so a metacommand there is not the first thing on its line.
+    fn tab_before(&self) -> bool {
+        let start = self.current_span().start as usize;
+        self.bytes[..start]
+            .iter()
+            .rev()
+            .take_while(|&&b| b == b' ' || b == b'\t')
+            .any(|&b| b == b'\t')
     }
 
     /// `$ELSE` or `$ELSEIF`: the `$IF` must be the innermost open entry.

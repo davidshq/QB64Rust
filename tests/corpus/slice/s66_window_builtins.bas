@@ -1,0 +1,93 @@
+' Slice (m2-console-screenhide, group 4): the window built-ins, compiled and never run. The shape of the upstream
+' glut tests: a program without a window prints a line and leaves, and below its SYSTEM stands every window
+' statement and function in every form, as code that is compiled, linked and not reached. What each does in a
+' window is checked from M3 on; the call each compiles to is compared by tests\callsite.
+$CONSOLE:ONLY
+DIM l AS LONG, i AS INTEGER, q AS _INTEGER64, sg AS SINGLE, f AS DOUBLE, o AS _UNSIGNED _OFFSET
+DIM s AS STRING, fx AS STRING * 4
+PRINT "window built-ins: compiled"
+SYSTEM
+
+$CONSOLE
+_DEST _CONSOLE
+
+_SCREENHIDE
+_SCREENSHOW
+_SCREENICON
+CALL _SCREENHIDE
+CALL _SCREENSHOW
+CALL _SCREENICON
+
+_TITLE "title"
+_TITLE s
+_TITLE fx
+_TITLE s + "!"
+CALL _TITLE(s)
+
+_ICON
+_ICON l
+_ICON l, l
+_ICON i, sg
+_ICON 1.6, q
+
+_MOUSESHOW
+_MOUSESHOW "LINK"
+_MOUSESHOW s
+_MOUSEHIDE
+_MOUSEHIDE _HIDE
+_MOUSEHIDE _DISABLE
+_MOUSECURSOR l
+_MOUSECURSOR l, (l, l)
+_MOUSECURSOR f, (i, q)
+_MOUSECURSOR l + 1, (16, 16)
+
+_WINDOWSIZELIMIT
+_WINDOWSIZELIMIT (320, 240)
+_WINDOWSIZELIMIT -(800, 600)
+_WINDOWSIZELIMIT (320, 240)-(800, 600)
+_WINDOWSIZELIMIT (l, i)-(sg, f)
+
+l = _NEWIMAGE(l, l)
+l = _NEWIMAGE(640, 480, 32)
+l = _NEWIMAGE(i, sg, f)
+l = _NEWIMAGE(_DESKTOPWIDTH, _DESKTOPHEIGHT, 32)
+_FREEIMAGE
+_FREEIMAGE l
+_FREEIMAGE sg
+_FREEIMAGE _NEWIMAGE(8, 8, 32)
+
+l = _SCREENEXISTS
+l = _SCREENICON
+l = _DESKTOPWIDTH
+l = _DESKTOPHEIGHT
+l = _SCREENX
+l = _SCREENY
+l = _WINDOWHASFOCUS
+s = _TITLE$
+f = _DESKTOPWIDTH / 2
+l = _DESKTOPWIDTH - _SCREENX
+l = NOT _SCREENEXISTS
+s = _TITLE$ + STR$(_SCREENY) + HEX$(_SCREENX) + STR$(_SCREENEXISTS)
+IF _SCREENEXISTS THEN PRINT _SCREENICON; _DESKTOPHEIGHT; _SCREENEXISTS; _TITLE$
+IF _WINDOWHASFOCUS = 0 THEN PRINT _SCREENX; _SCREENY
+SELECT CASE _SCREENEXISTS
+    CASE -1
+        PRINT "exists"
+END SELECT
+
+o = _WINDOWHANDLE
+o = _WINDOWHANDLE(l)
+q = _WINDOWHANDLE(1)
+f = _WINDOWHANDLE / 3
+s = STR$(_WINDOWHANDLE)
+PRINT _WINDOWHANDLE <> 0
+PRINT _WINDOWHANDLE(1) <> 0
+PRINT _WINDOWHANDLE
+inSub
+SYSTEM
+
+SUB inSub
+    _TITLE "in the sub"
+    _MOUSEHIDE
+    PRINT _SCREENEXISTS; _SCREENX
+END SUB

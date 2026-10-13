@@ -1,0 +1,6 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+flags_asserts_errors.bas:15:1: error: not supported yet: metacommand `$ASSERTS`
+flags_asserts_errors.bas:16:1: error: not supported yet: metacommand `$DEBUG`

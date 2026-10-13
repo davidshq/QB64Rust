@@ -10,6 +10,8 @@
 use super::Parser;
 use super::expr::{arg_list, expr};
 use crate::SyntaxKind::*;
+use qb64rust_builtins::statement_templates;
+use qb64rust_builtins::template::Item;
 
 pub(crate) fn call_stmt(p: &mut Parser) {
     p.start_node(CallStmt);
@@ -23,10 +25,24 @@ pub(crate) fn call_stmt(p: &mut Parser) {
         p.finish_node();
         return;
     }
+    // After `CALL`, a built-in statement with a template keeps the template's forms between the parentheses
+    // (measured, `verification\v26_x74`: `CALL _MOUSECURSOR(1, (2, 3))`, `CALL _MOUSEHIDE(_HIDE)`), which are not
+    // an expression list. They are left unread, as arguments without `CALL` that do not parse are; `sema` reports
+    // the statement. A template of one argument is an expression list (`CALL _DEST(h)`).
+    let by_template = explicit && {
+        let forms = statement_templates(p.nth_text(0));
+        !forms.is_empty() && !forms.iter().any(|(_, items)| matches!(items[..], [Item::Arg]))
+    };
     p.start_node(NameRef);
     p.bump();
     p.finish_node();
-    if explicit {
+    if by_template {
+        if p.at(LParen) {
+            p.start_node(ArgList);
+            p.rest_into_error_node();
+            p.finish_node();
+        }
+    } else if explicit {
         if p.at(LParen) {
             arg_list(p);
         }

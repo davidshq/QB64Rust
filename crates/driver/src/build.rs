@@ -71,9 +71,31 @@ fn slash(p: &Path) -> String {
     p.to_string_lossy().replace('\\', "/")
 }
 
-/// What the `-f:` settings ask of a build.
+/// The make flags a program's settings ask for: the old compiler's, in its order (`qb64pe.bas` 13706–13721;
+/// compared with its builds of four programs, design D3 of `m2-console-screenhide`). A program without a window
+/// links the libqb without one; a console links with `-mconsole`; the icon part is a libqb variant of its own.
+/// The clone's `Makefile` names each variant's object by the flags, so the variants stand side by side.
+pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
+    let mut flags = Vec::new();
+    if !s.window {
+        flags.push("DEP_CONSOLE_ONLY=y");
+    }
+    for part in &s.runtime_parts {
+        match part {
+            qb64rust_ir::RuntimePart::Icon => flags.push("DEP_ICON=y"),
+        }
+    }
+    if s.console {
+        flags.push("DEP_CONSOLE=y");
+    }
+    flags
+}
+
+/// What the `-f:` settings and the program ask of a build.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Settings {
+    /// The make flags of the program's settings ([`make_flags`]).
+    pub flags: Vec<&'static str>,
     /// `OptimizeCppProgram`: adds `-O2` as `qb64pe` does (`-fwrapv` stays, so overflow still wraps).
     pub optimize: bool,
     /// `ExtraLinkerFlags`: added to the end of the link command (`CXXLIBS_EXTRA`), as `qb64pe` does. The test
@@ -123,7 +145,13 @@ pub const CACHE_ENV: &str = "QB64RUST_BUILD_CACHE";
 fn build_key(root: &Path, build: &Path, settings: &Settings) -> String {
     let mut h = Fnv128::new();
     // The version stands for `build_with_make`'s fixed arguments: change it when they change.
-    h.write(b"qb64rust build cache 2\0");
+    h.write(b"qb64rust build cache 3\0");
+    // The program's make flags are in no fragment: `console=1` is the same text with and without a window.
+    for flag in &settings.flags {
+        h.write(flag.as_bytes());
+        h.write(b"\0");
+    }
+    h.write(b"\0");
     h.write(&[u8::from(settings.optimize)]);
     h.write(settings.extra_link.as_bytes());
     h.write(b"\0");
@@ -243,7 +271,9 @@ fn build_with_make(root: &Path, build: &Path, exe: &Path, quiet: bool, settings:
     cmd.arg("-C")
         .arg(root)
         .arg("-j3")
-        .args(["OS=win", "BITS=64", "DEP_CONSOLE_ONLY=y", "exe"])
+        .args(["OS=win", "BITS=64"])
+        .args(&settings.flags)
+        .arg("exe")
         .arg(format!("EXE={}", slash(&linked)))
         .arg(format!("QB_QBX_SRC={}/qbx.cpp", slash(&c)))
         .arg(format!("PATH_INTERNAL_TEMP={}", slash(&build.join("temp"))))
@@ -302,6 +332,7 @@ mod tests {
         std::fs::write(&file, "int a;").unwrap();
         let key = |extra: &str| {
             let settings = Settings {
+                flags: Vec::new(),
                 optimize: false,
                 extra_link: extra.to_string(),
             };
@@ -318,5 +349,50 @@ mod tests {
         std::fs::write(&file, "int c;").unwrap();
         assert_ne!(relative, key("extra.cpp"));
         assert_ne!(key("-lm"), key("-lz"));
+    }
+
+    fn program_settings(console: bool, window: bool, icon: bool) -> qb64rust_ir::Settings {
+        qb64rust_ir::Settings {
+            console,
+            window,
+            window_hidden: false,
+            runtime_parts: icon.then_some(qb64rust_ir::RuntimePart::Icon).into_iter().collect(),
+        }
+    }
+
+    /// The flags of the four programs whose old-compiler builds were read (design D3 of `m2-console-screenhide`,
+    /// its table): `$CONSOLE:ONLY`, alone or with `$CONSOLE` (one set of settings); `$CONSOLE`; `$CONSOLE` with
+    /// `_ICON`.
+    #[test]
+    fn make_flags_are_the_old_compilers() {
+        assert_eq!(
+            make_flags(&program_settings(true, false, false)),
+            ["DEP_CONSOLE_ONLY=y", "DEP_CONSOLE=y"]
+        );
+        assert_eq!(make_flags(&program_settings(true, true, false)), ["DEP_CONSOLE=y"]);
+        assert_eq!(
+            make_flags(&program_settings(true, true, true)),
+            ["DEP_ICON=y", "DEP_CONSOLE=y"]
+        );
+    }
+
+    /// Two builds that differ only in the program's flags do not share an executable (spec `compiler/pipeline`,
+    /// "The build follows the program"): the fragments of a program with and without a window can be equal.
+    #[test]
+    fn build_key_follows_the_program_flags() {
+        let d = tempfile::tempdir().unwrap();
+        let key = |s: &qb64rust_ir::Settings| {
+            let settings = Settings {
+                flags: make_flags(s),
+                ..Settings::default()
+            };
+            build_key(d.path(), d.path(), &settings)
+        };
+        let only = key(&program_settings(true, false, false));
+        let window = key(&program_settings(true, true, false));
+        let icon = key(&program_settings(true, true, true));
+        assert_ne!(only, window);
+        assert_ne!(window, icon);
+        assert_eq!(window, key(&program_settings(true, true, false)));
     }
 }

@@ -211,6 +211,7 @@ impl Checker<'_> {
                 let t = self.need(n.name(), span)?;
                 let (name, suffix) = self.split_name(t)?;
                 let shown = show_bytes(self.text(t.span));
+                self.auto_const(&name, t.span)?;
                 match (self.visible_const(&name), suffix) {
                     (Some(id), None) => {
                         self.names.push((SymbolKind::Const(id), t.span));

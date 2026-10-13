@@ -8,6 +8,7 @@ use super::Parser;
 use super::blocks::array_bounds;
 use super::expr::expr;
 use crate::SyntaxKind::{self, *};
+use crate::pp::Feature;
 
 pub(crate) fn dim_stmt(p: &mut Parser) {
     p.start_node(DimStmt);
@@ -262,7 +263,20 @@ pub(crate) fn option_stmt(p: &mut Parser) {
         .iter()
         .any(|w| p.at_word(w))
     {
+        // The two options set a precompiler flag (design D7 of `m2-console-screenhide`).
+        let feature = if p.at_word("_EXPLICIT") {
+            Some(Feature::Explicit)
+        } else if p.at_word("_EXPLICITARRAY") {
+            Some(Feature::ExplicitArray)
+        } else {
+            None
+        };
         p.bump();
+        if let Some(feature) = feature
+            && p.at_stmt_end()
+        {
+            p.pp.met(feature, 1);
+        }
     } else {
         p.error("expected `BASE`, `_EXPLICIT` or `_EXPLICITARRAY` after `OPTION`");
     }

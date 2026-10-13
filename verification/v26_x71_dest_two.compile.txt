@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _DEST imageHandle&
+Caused by (or after):_DEST 0 , 1
+LINE 4:_DEST 0, 1
+exit=1

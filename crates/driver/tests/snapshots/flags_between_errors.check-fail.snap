@@ -1,0 +1,6 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+flags_between_errors.bas:8:1: error: not supported yet: `_CONSOLE_` in a `$IF` between two lines that set it differently
+flags_between_errors.bas:10:1: error: not supported yet: `_CONSOLE_` in a `$IF` between two lines that set it differently

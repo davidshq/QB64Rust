@@ -1,0 +1,12 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, window
+Stmt line 11 may_raise
+  Builtin _DEST [Value(CallBuiltin _CONSOLE:I32 [])]
+Stmt line 13
+  Print console newline
+    Str Const "flag 1"
+Stmt line 17
+  System

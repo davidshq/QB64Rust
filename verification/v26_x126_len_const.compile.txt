@@ -1,0 +1,5 @@
+
+String expression or variable name required in LEN statement
+Caused by (or after):N = LEN ( _BYTE_MAX )
+LINE 4:n = LEN(_BYTE_MAX)
+exit=1

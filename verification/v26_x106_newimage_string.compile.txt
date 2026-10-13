@@ -1,0 +1,5 @@
+
+1st function argument requires a number
+Caused by (or after):N = _NEWIMAGE ( "a",1 , 2 )
+LINE 6:n = _NEWIMAGE("a", 2)
+exit=1

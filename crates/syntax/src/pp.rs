@@ -7,6 +7,18 @@
 //!
 //! The evaluator is a port, quirks included: it splits the condition at blanks, compares text (upper case), and
 //! treats a value as a number only when it prints back the same (`VerifyNumber`).
+//!
+//! The six precompiler flags (`_CONSOLE_`, `_EXPLICIT_`, `_EXPLICITARRAY_`, `_ASSERTS_`, `_DEBUG_`, `_SOCKETS_`)
+//! are a port too (design D7 of `m2-console-screenhide`; measured, `verification\v26_h*`, `v26_x26`–`x28`, `x33`,
+//! `x34`, `x38`, `x39`, `x51`–`x56`, `x127`). The old compiler gives them their values from the whole program by
+//! compiling again until they no longer change: a feature met in one round (`$CONSOLE`, `OPTION _EXPLICIT`, ...)
+//! is a flag's value in the next, and a value that is not 0 stays ([`FeatureStates`], [`settle`];
+//! `utilities\statevars.bas`). Here a round is one parse ([`crate::parse_settled`]): the flags are names of the
+//! preprocessor with the round's values ([`PpState::with_flags`]), the parser reports the settings it meets in
+//! compiled code ([`PpState::met`]), and three of the flags change at their metacommand's line within a round,
+//! as in the old compiler's first pass. Where a `$IF` names a flag that so differs from its value at the first
+//! line, the old compiler's two passes disagree about the line; in the last round `sema` marks it "not supported
+//! yet" ([`PpState::flag_condition`]).
 
 use qb64rust_base::show_bytes;
 
@@ -15,8 +27,8 @@ const VERSION: &[u8] = b"4.7.0-GLFW";
 
 /// Names the old compiler sets from the whole program before its passes (`qb64pe.bas` 1713–1722,
 /// `setPrecompFlags`: `OPTION _EXPLICIT`, `$ASSERTS`, `$CONSOLE`, `$DEBUG`, network functions), recompiling until
-/// they are stable. Not known here yet: a condition naming one is "not supported yet", never evaluated with a
-/// guessed value (found by upstream `precomp-flags/consoleonly`, whose output it changed).
+/// they are stable. Here they are names of the preprocessor like the predefined ones, with the values of the
+/// round ([`PpFlags`], [`settle`]; design D7 of `m2-console-screenhide`).
 const PRECOMPILER_FLAGS: [&str; 6] = [
     "_EXPLICIT_",
     "_EXPLICITARRAY_",
@@ -30,6 +42,174 @@ const PRECOMPILER_FLAGS: [&str; 6] = [
 pub fn precompiler_flag(cond: &[u8]) -> Option<&'static str> {
     cond.split(|&b| !(b.is_ascii_alphanumeric() || b == b'_'))
         .find_map(|w| PRECOMPILER_FLAGS.iter().find(|f| f.as_bytes() == w).copied())
+}
+
+/// A feature of a program that the old compiler keeps a state for, one per precompiler flag it can set
+/// (`utilities\statevars.bas`; `_EXPLICITARRAY_` shows two of them, `_SOCKETS_` none that is compiled yet).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Feature {
+    /// `OPTION _EXPLICIT`.
+    Explicit,
+    /// `OPTION _EXPLICITARRAY`.
+    ExplicitArray,
+    /// `$ASSERTS`, `$ASSERTS:CONSOLE`.
+    Asserts,
+    /// `$CONSOLE` (1), `$CONSOLE:ONLY` (2), `$ASSERTS:CONSOLE` (1).
+    Console,
+    /// `$DEBUG`.
+    Debug,
+}
+
+const FEATURES: [Feature; 5] = [
+    Feature::Explicit,
+    Feature::ExplicitArray,
+    Feature::Asserts,
+    Feature::Console,
+    Feature::Debug,
+];
+
+/// The values of the features in one round of compiling: what every `$IF` of the old compiler's main pass sees.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct PpFlags {
+    values: [u8; FEATURES.len()],
+}
+
+impl PpFlags {
+    pub fn get(self, f: Feature) -> u8 {
+        self.values[f as usize]
+    }
+
+    /// The program has a console: `_CONSOLE_` is not 0.
+    pub fn console(self) -> bool {
+        self.get(Feature::Console) != 0
+    }
+
+    /// `OPTION _EXPLICIT` is in force: `_EXPLICIT_` is not 0.
+    pub fn explicit(self) -> bool {
+        self.get(Feature::Explicit) != 0
+    }
+
+    /// Arrays must be declared: `_EXPLICITARRAY_` is not 0 (`OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`).
+    pub fn explicit_array(self) -> bool {
+        self.explicit() || self.get(Feature::ExplicitArray) != 0
+    }
+
+    /// The six flags and their values as the preprocessor's names (`setPrecompFlags`).
+    fn defines(self) -> [(&'static str, u8); 6] {
+        [
+            ("_EXPLICIT_", self.get(Feature::Explicit)),
+            ("_EXPLICITARRAY_", u8::from(self.explicit_array())),
+            ("_ASSERTS_", self.get(Feature::Asserts)),
+            ("_CONSOLE_", self.get(Feature::Console)),
+            ("_DEBUG_", self.get(Feature::Debug)),
+            // The network functions are not compiled yet, so nothing sets it.
+            ("_SOCKETS_", 0),
+        ]
+    }
+}
+
+/// The flag whose `$IF` value a feature's metacommand changes at its line in the old compiler's first pass
+/// (`qb64pe.bas` 1978–2006); `None` for the two options, which change no value there (2099).
+fn running_flag(f: Feature) -> Option<&'static str> {
+    match f {
+        Feature::Asserts => Some("_ASSERTS_"),
+        Feature::Console => Some("_CONSOLE_"),
+        Feature::Debug => Some("_DEBUG_"),
+        Feature::Explicit | Feature::ExplicitArray => None,
+    }
+}
+
+/// The settings a metacommand line makes, as the old compiler's first pass compares the line (upper case, without
+/// the blanks at its ends): empty for any other line.
+pub fn meta_settings(line: &[u8]) -> &'static [(Feature, u8)] {
+    match line {
+        b"$CONSOLE" => &[(Feature::Console, 1)],
+        b"$CONSOLE:ONLY" => &[(Feature::Console, 2)],
+        b"$ASSERTS" => &[(Feature::Asserts, 1)],
+        b"$ASSERTS:CONSOLE" => &[(Feature::Asserts, 1), (Feature::Console, 1)],
+        b"$DEBUG" => &[(Feature::Debug, 1)],
+        _ => &[],
+    }
+}
+
+/// The old compiler's state of one feature (`RCStateVar`).
+#[derive(Clone, Copy, Debug, Default)]
+struct FeatureState {
+    wanted: u8,
+    actual: u8,
+    locked: bool,
+}
+
+/// The states of all features across the rounds of one compile.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FeatureStates {
+    states: [FeatureState; FEATURES.len()],
+}
+
+impl FeatureStates {
+    /// The start of a round (`ExecuteRCStateVar`): a feature that is not locked takes the value last asked for,
+    /// and one that is not 0 is locked from then on.
+    pub fn start_round(&mut self) -> PpFlags {
+        let mut flags = PpFlags::default();
+        for f in FEATURES {
+            let s = &mut self.states[f as usize];
+            if !s.locked {
+                s.actual = s.wanted;
+                s.locked = s.actual != 0;
+            }
+            flags.values[f as usize] = s.actual;
+        }
+        flags
+    }
+
+    /// The settings a round met, in file order (`SetRCStateVar`); whether one of them asks for another round: it
+    /// differs from the feature's value in this round and the feature is not locked.
+    pub fn apply(&mut self, settings: &[(Feature, u8)]) -> bool {
+        let mut again = false;
+        for &(f, value) in settings {
+            let s = &mut self.states[f as usize];
+            s.wanted = value;
+            again |= s.actual != s.wanted && !s.locked;
+        }
+        again
+    }
+}
+
+/// What one round of parsing tells [`settle`].
+pub struct Round<T> {
+    /// The parse.
+    pub result: T,
+    /// The settings met in compiled code, in file order.
+    pub settings: Vec<(Feature, u8)>,
+    /// A `$IF` or `$ELSEIF` of compiled code named a flag: another round may read the program differently.
+    pub flag_named: bool,
+}
+
+/// At most this many rounds are parsed: every round but the last locks a feature, and there are five.
+pub const MAX_ROUNDS: usize = 7;
+
+/// Runs the old compiler's rounds: `round` parses the program with the flags of a round, and is called again
+/// until no setting it met asks for another. A round is parsed again only when a condition named a flag;
+/// otherwise the same settings are applied until the features are settled. Gives the last parse and the settled
+/// flags, or the last parse alone when `max_rounds` parses did not settle them.
+pub fn settle<T>(max_rounds: usize, mut round: impl FnMut(PpFlags) -> Round<T>) -> Result<(T, PpFlags), T> {
+    let mut states = FeatureStates::default();
+    let mut flags = states.start_round();
+    let mut parses = 1;
+    let mut r = round(flags);
+    loop {
+        if !states.apply(&r.settings) {
+            return Ok((r.result, flags));
+        }
+        flags = states.start_round();
+        if r.flag_named {
+            if parses == max_rounds {
+                return Err(r.result);
+            }
+            parses += 1;
+            r = round(flags);
+        }
+    }
 }
 
 /// What a metacommand line is for the preprocessor.
@@ -119,6 +299,13 @@ pub struct PpState {
     /// The fewest open levels since [`Self::start_tracking`] (an included file may close a `$IF` of the
     /// including one).
     lowest: usize,
+    /// The flags of this round, as they were at the first line. The names in `defines` hold the running values:
+    /// the old compiler's first pass changes three of them at their metacommands' lines.
+    flags: PpFlags,
+    /// The settings met in compiled code so far, in file order.
+    settings: Vec<(Feature, u8)>,
+    /// A `$IF` or `$ELSEIF` of compiled code named a flag.
+    flag_named: bool,
 }
 
 /// How many entries of `defines` are predefined (`UserDefineCountPresets` + 1).
@@ -126,8 +313,16 @@ const PRESETS: usize = 10;
 
 impl Default for PpState {
     fn default() -> Self {
+        PpState::with_flags(PpFlags::default())
+    }
+}
+
+impl PpState {
+    /// The state at the first line of a round with these flags: the predefined names, then the six flags (the
+    /// old compiler adds them at the first line of each pass, before any `$LET`).
+    pub fn with_flags(flags: PpFlags) -> Self {
         let d = |n: &[u8], v: &[u8]| (n.to_vec(), v.to_vec());
-        PpState {
+        let mut state = PpState {
             defines: vec![
                 d(b"WINDOWS", b"-1"),
                 d(b"WIN", b"-1"),
@@ -142,11 +337,51 @@ impl Default for PpState {
             ],
             levels: Vec::new(),
             lowest: 0,
+            flags,
+            settings: Vec::new(),
+            flag_named: false,
+        };
+        for (name, value) in flags.defines() {
+            state.defines.push(d(name.as_bytes(), value.to_string().as_bytes()));
+        }
+        state
+    }
+
+    /// A setting met in compiled code: noted for the rounds, and the flag a metacommand changes at its line takes
+    /// its value from here on in this round.
+    pub fn met(&mut self, feature: Feature, value: u8) {
+        self.settings.push((feature, value));
+        if let Some(flag) = running_flag(feature) {
+            let entry = self.defines[PRESETS..]
+                .iter_mut()
+                .find(|(n, _)| n == flag.as_bytes())
+                .expect("the flags are defined at the first line");
+            entry.1 = value.to_string().into_bytes();
         }
     }
-}
 
-impl PpState {
+    /// A `$IF` or `$ELSEIF` condition of compiled code is about to be evaluated. Notes that it names a flag, and
+    /// says whether a flag it names has another value here than at the first line of the round: the old
+    /// compiler's first pass then reads the condition with the one value and its main pass with the other.
+    pub fn flag_condition(&mut self, cond: &[u8]) -> bool {
+        let named: Vec<&str> = cond
+            .split(|&b| !(b.is_ascii_alphanumeric() || b == b'_'))
+            .filter_map(|w| PRECOMPILER_FLAGS.iter().find(|f| f.as_bytes() == w).copied())
+            .collect();
+        self.flag_named |= !named.is_empty();
+        self.flags.defines().iter().any(|&(name, at_start)| {
+            named.contains(&name)
+                && self.defines[PRESETS..]
+                    .iter()
+                    .any(|(n, v)| n == name.as_bytes() && *v != at_start.to_string().into_bytes())
+        })
+    }
+
+    /// The settings met so far and whether a condition named a flag, for [`settle`].
+    pub fn round_facts(&self) -> (Vec<(Feature, u8)>, bool) {
+        (self.settings.clone(), self.flag_named)
+    }
+
     /// Code at the current place is compiled (no enclosing `$IF` branch is skipped).
     pub fn active(&self) -> bool {
         self.levels.last().is_none_or(|l| !l.skip)
@@ -537,6 +772,13 @@ fn trim(s: &[u8]) -> &[u8] {
     ltrim(rtrim(s))
 }
 
+/// The line of a metacommand token as the old compiler compares it with a metacommand's name: in upper case and
+/// without the blanks at its ends. `LTRIM$` and `RTRIM$` take spaces only, so a tab stays, and a name with a tab
+/// after it is not that name (measured, `verification\v26_x58`, `x59`).
+pub fn meta_line(text: &[u8]) -> Vec<u8> {
+    trim(text).to_ascii_uppercase()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -610,6 +852,157 @@ mod tests {
         assert!(s.let_(b"E").is_err());
         assert!(s.let_(b"1A = 1").is_err());
         assert!(s.let_(b"B = X!").is_err());
+    }
+
+    /// A round of a fake program: its settings and whether a condition names a flag, from the flags of the round.
+    fn fake(settings: Vec<(Feature, u8)>, flag_named: bool, flags: PpFlags) -> Round<PpFlags> {
+        Round {
+            result: flags,
+            settings,
+            flag_named,
+        }
+    }
+
+    #[test]
+    fn feature_set_once() {
+        // `$CONSOLE` in a program with no `$IF` on a flag: one parse, and the flag is 1.
+        let mut parses = 0;
+        let r = settle(MAX_ROUNDS, |flags| {
+            parses += 1;
+            fake(vec![(Feature::Console, 1)], false, flags)
+        });
+        let (seen, flags) = r.unwrap();
+        assert_eq!(parses, 1);
+        assert_eq!(seen, PpFlags::default(), "the one parse was read with every flag 0");
+        assert_eq!(flags.get(Feature::Console), 1);
+        assert!(flags.console() && !flags.explicit() && !flags.explicit_array());
+        // With a `$IF` on a flag the program is parsed again, with the flag set.
+        let mut parses = 0;
+        let (seen, flags) = settle(MAX_ROUNDS, |flags| {
+            parses += 1;
+            fake(vec![(Feature::Console, 1)], true, flags)
+        })
+        .unwrap();
+        assert_eq!(
+            (parses, seen.get(Feature::Console), flags.get(Feature::Console)),
+            (2, 1, 1)
+        );
+        // Nothing set: one parse, every flag 0.
+        let (_, flags) = settle(MAX_ROUNDS, |flags| fake(Vec::new(), true, flags)).unwrap();
+        assert_eq!(flags, PpFlags::default());
+    }
+
+    #[test]
+    fn feature_set_twice_and_locked() {
+        // `$CONSOLE:ONLY`, then `$CONSOLE`: the last one asked for counts when the round starts, and the flag is
+        // then locked (measured, `verification\v26_h2_flag_both`).
+        let both = vec![(Feature::Console, 2), (Feature::Console, 1)];
+        let (_, flags) = settle(MAX_ROUNDS, |flags| fake(both.clone(), true, flags)).unwrap();
+        assert_eq!(flags.get(Feature::Console), 1);
+        let other = vec![(Feature::Console, 1), (Feature::Console, 2)];
+        let (_, flags) = settle(MAX_ROUNDS, |flags| fake(other.clone(), true, flags)).unwrap();
+        assert_eq!(flags.get(Feature::Console), 2);
+        // A locked feature keeps its value whatever a later round asks for, and asks for no further round: the
+        // setting stands in the branch its own flag switches off (`v26_x26`).
+        let mut parses = 0;
+        let (_, flags) = settle(MAX_ROUNDS, |flags| {
+            parses += 1;
+            let settings = if flags.console() {
+                Vec::new()
+            } else {
+                vec![(Feature::Console, 1)]
+            };
+            fake(settings, true, flags)
+        })
+        .unwrap();
+        assert_eq!((parses, flags.get(Feature::Console)), (2, 1));
+        let mut states = FeatureStates::default();
+        states.start_round();
+        assert!(states.apply(&[(Feature::Console, 2)]));
+        assert_eq!(states.start_round().get(Feature::Console), 2);
+        assert!(!states.apply(&[(Feature::Console, 1)]), "locked: no other round");
+        assert_eq!(states.start_round().get(Feature::Console), 2);
+        // `OPTION _EXPLICITARRAY` alone leaves `_EXPLICIT_` 0; `OPTION _EXPLICIT` sets both flags.
+        let (_, flags) = settle(MAX_ROUNDS, |f| fake(vec![(Feature::ExplicitArray, 1)], false, f)).unwrap();
+        assert!(flags.explicit_array() && !flags.explicit());
+        let (_, flags) = settle(MAX_ROUNDS, |f| fake(vec![(Feature::Explicit, 1)], false, f)).unwrap();
+        assert!(flags.explicit_array() && flags.explicit());
+    }
+
+    #[test]
+    fn rounds_and_their_cap() {
+        // Three rounds (`v26_x53`): the only `$CONSOLE` inside `$IF _EXPLICIT_`, `OPTION _EXPLICIT` on the last line.
+        let three = |flags: PpFlags| {
+            let mut settings = Vec::new();
+            if flags.explicit() {
+                settings.push((Feature::Console, 1));
+            }
+            settings.push((Feature::Explicit, 1));
+            fake(settings, true, flags)
+        };
+        let mut parses = 0;
+        let (_, flags) = settle(MAX_ROUNDS, |f| {
+            parses += 1;
+            three(f)
+        })
+        .unwrap();
+        assert_eq!(parses, 3);
+        assert!(flags.console() && flags.explicit());
+        // The cap: the same program with fewer parses allowed than it needs is not settled.
+        assert!(settle(2, three).is_err());
+        assert!(settle(3, three).is_ok());
+        // The longest chain there is, each feature set only once the one before it is: one more parse than
+        // features, within the cap.
+        let chain = |flags: PpFlags| {
+            let next = FEATURES.iter().find(|&&f| flags.get(f) == 0);
+            fake(next.map(|&f| (f, 1)).into_iter().collect(), true, flags)
+        };
+        let mut parses = 0;
+        let (_, flags) = settle(MAX_ROUNDS, |f| {
+            parses += 1;
+            chain(f)
+        })
+        .unwrap();
+        assert_eq!(parses, FEATURES.len() + 1);
+        assert!(parses <= MAX_ROUNDS);
+        assert!(FEATURES.iter().all(|&f| flags.get(f) == 1));
+    }
+
+    #[test]
+    fn flags_are_names_with_running_values() {
+        let mut flags = PpFlags::default();
+        flags.values[Feature::Console as usize] = 1;
+        let mut s = PpState::with_flags(flags);
+        assert_eq!(s.eval(b"_CONSOLE_ = 1"), Ok(true));
+        assert_eq!(
+            s.eval(b"_EXPLICIT_ OR _ASSERTS_ OR _DEBUG_ OR _SOCKETS_ OR _EXPLICITARRAY_"),
+            Ok(false)
+        );
+        assert!(!s.flag_condition(b"_CONSOLE_ = 1"));
+        // `$CONSOLE:ONLY` on a line: the flag is 2 from there on in this round, which is not its value at the
+        // first line; an option changes no value in the round.
+        s.met(Feature::Console, 2);
+        s.met(Feature::Explicit, 1);
+        assert_eq!(s.eval(b"_CONSOLE_ = 2"), Ok(true));
+        assert_eq!(s.eval(b"_EXPLICIT_"), Ok(false));
+        assert!(s.flag_condition(b"WIN AND _CONSOLE_ = 2"));
+        assert!(!s.flag_condition(b"_EXPLICIT_"));
+        assert!(!s.flag_condition(b"WIN"));
+        s.met(Feature::Console, 1);
+        assert!(!s.flag_condition(b"_CONSOLE_"), "back at the value of the first line");
+        let (settings, named) = s.round_facts();
+        assert_eq!(
+            settings,
+            [(Feature::Console, 2), (Feature::Explicit, 1), (Feature::Console, 1)]
+        );
+        assert!(named);
+        // A user cannot define a flag's name.
+        assert!(s.let_(b"_CONSOLE_ = 5").is_err());
+        assert_eq!(
+            meta_settings(b"$ASSERTS:CONSOLE"),
+            [(Feature::Asserts, 1), (Feature::Console, 1)]
+        );
+        assert!(meta_settings(b"$CONSOLE:OFF").is_empty());
     }
 
     #[test]

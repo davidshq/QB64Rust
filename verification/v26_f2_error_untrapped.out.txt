@@ -1,0 +1,5 @@
+before
+
+Runtime error: Line: 7 (in main module)
+Illegal function call
+exit=0

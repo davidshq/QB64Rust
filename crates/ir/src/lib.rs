@@ -579,6 +579,31 @@ pub struct Program {
     /// The program's data: the items of every `DATA` statement, in the order [`Op::Read`] takes them. How they are
     /// stored in the executable is the emitter's.
     pub data: Vec<DataItem>,
+    pub settings: Settings,
+}
+
+/// What a program needs around its statements (design D3 of `m2-console-screenhide`): where its text goes at the
+/// start, and the optional parts of the runtime its built-ins use. How a backend provides them (start-up variables,
+/// build flags) is the backend's.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Settings {
+    /// The program has a console: [`Op::SelectConsole`] may be used, and text sent to the console reaches
+    /// standard output.
+    pub console: bool,
+    /// The program has a window. Without one, the console is the only place for its text.
+    pub window: bool,
+    /// The window is hidden when the program starts. Recorded for a program without a window too, as the old
+    /// compiler does.
+    pub window_hidden: bool,
+    /// The optional parts of the runtime the program's built-ins need, in order.
+    pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
+}
+
+/// An optional part of the runtime.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum RuntimePart {
+    /// Setting the window's icon from an image.
+    Icon,
 }
 
 impl Program {

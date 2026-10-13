@@ -135,6 +135,26 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_STRICMP", Rule::Plain),
     // No slot, called bare only (`verification\v22_f_startdir`).
     ("_STARTDIR$", Rule::Plain),
+    // The destination and source of text, and the console's handle (`verification\v26_b_dest_switch`): no slot,
+    // called bare only, a LONG.
+    ("_DEST", Rule::Plain),
+    ("_SOURCE", Rule::Plain),
+    ("_CONSOLE", Rule::Plain),
+    // The window functions (design D6 of `m2-console-screenhide`, measured from the old compiler's C++): compiled
+    // and never run yet ([`WINDOW_BUILTINS`]). No slot and called bare only, a LONG, but for the three below.
+    ("_SCREENICON", Rule::Plain),
+    ("_DESKTOPWIDTH", Rule::Plain),
+    ("_DESKTOPHEIGHT", Rule::Plain),
+    ("_SCREENX", Rule::Plain),
+    ("_SCREENY", Rule::Plain),
+    ("_WINDOWHASFOCUS", Rule::Plain),
+    ("_TITLE$", Rule::Plain),
+    // The table has no return type for it; the old compiler treats the value as a LONG everywhere but as the direct
+    // argument of `HEX$`, `OCT$` and `_BIN$`, which is marked (`check\builtins.rs`).
+    ("_SCREENEXISTS", Rule::Fixed(Ty::I32)),
+    // `_NEWIMAGE(w, h[, mode])`; `_WINDOWHANDLE[(kind)]` is an `_UNSIGNED _OFFSET`, bare or with its argument.
+    ("_NEWIMAGE", Rule::Plain),
+    ("_WINDOWHANDLE", Rule::Plain),
 ];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
@@ -178,6 +198,48 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("RANDOMIZE", StmtRule::Plain),
     // `SHELL` in its three forms (`verification\v22_d_shell`).
     ("SHELL", StmtRule::Plain),
+    // `verification\v26_b_dest_switch`, `v26_g_echo`: the handle a LONG value. `_ECHO` needs a program with a
+    // console, checked after the walk (`check\mod.rs`).
+    ("_DEST", StmtRule::Plain),
+    ("_SOURCE", StmtRule::Plain),
+    ("_ECHO", StmtRule::Plain),
+    // The window statements (design D6 of `m2-console-screenhide`): compiled and never run yet
+    // ([`WINDOW_BUILTINS`]).
+    ("_SCREENHIDE", StmtRule::Plain),
+    ("_SCREENSHOW", StmtRule::Plain),
+    ("_SCREENICON", StmtRule::Plain),
+    ("_TITLE", StmtRule::Plain),
+    ("_ICON", StmtRule::Plain),
+    ("_MOUSESHOW", StmtRule::Plain),
+    ("_MOUSEHIDE", StmtRule::Plain),
+    ("_MOUSECURSOR", StmtRule::Plain),
+    ("_WINDOWSIZELIMIT", StmtRule::Plain),
+    ("_FREEIMAGE", StmtRule::Plain),
+];
+
+/// The window built-ins, as written: statements and functions that no test runs yet, because what they do shows
+/// only in a window (M3). The coverage check of tier 1 wants each in a slice program as code that is compiled and
+/// not reached, and in a call-site program (`tests\callsite`), which compares its call with the old compiler's.
+pub const WINDOW_BUILTINS: &[&str] = &[
+    "_SCREENHIDE",
+    "_SCREENSHOW",
+    "_SCREENICON",
+    "_TITLE",
+    "_ICON",
+    "_MOUSESHOW",
+    "_MOUSEHIDE",
+    "_MOUSECURSOR",
+    "_WINDOWSIZELIMIT",
+    "_FREEIMAGE",
+    "_SCREENEXISTS",
+    "_TITLE$",
+    "_DESKTOPWIDTH",
+    "_DESKTOPHEIGHT",
+    "_SCREENX",
+    "_SCREENY",
+    "_WINDOWHANDLE",
+    "_WINDOWHASFOCUS",
+    "_NEWIMAGE",
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.
@@ -623,6 +685,7 @@ fn table_ty(b: &Builtin) -> Ty {
         Some("DOUBLE") => Ty::F64,
         Some("_FLOAT") => Ty::F80,
         Some("STRING") => Ty::Str,
+        Some("_UNSIGNED _OFFSET") => Ty::UOff,
         other => unreachable!("return type {other:?} of a plain supported built-in"),
     }
 }

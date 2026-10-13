@@ -1,0 +1,3 @@
+n? a = 5 
+l? l$ = [hello there]
+exit=0

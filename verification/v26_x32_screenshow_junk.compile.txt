@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ SCREENSHOW JUNK
+LINE 2:$SCREENSHOW junk
+exit=1

@@ -1,0 +1,5 @@
+
+Syntax error in line 1 of <verification>\v26_inc/tab_once.bi included
+Caused by (or after):$ INCLUDEONCE
+LINE 4:	$INCLUDEONCE
+exit=1

@@ -1,0 +1,4 @@
+windows part
+flag 1
+after _DEST _CONSOLE
+exit=0

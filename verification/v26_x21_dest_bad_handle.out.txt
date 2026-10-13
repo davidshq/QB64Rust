@@ -1,0 +1,4 @@
+console
+error 258 
+after the bad handle
+exit=0

@@ -1,7 +1,9 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 107
 expression: snap
 ---
+Settings: console, no window
 Array X:I32 static (0 To 10)
 Array S:Str static (0 To 2)
 Array A:T:T static (1 To 3, 0 To 2)

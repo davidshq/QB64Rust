@@ -1,0 +1,5 @@
+
+THEN without IF
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 3:	$IF 1 THEN
+exit=1

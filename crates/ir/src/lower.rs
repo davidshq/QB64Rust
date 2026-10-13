@@ -61,6 +61,19 @@ pub fn lower(p: &sema::Program) -> Program {
         main,
         types: p.types.clone(),
         data: p.data.clone(),
+        settings: crate::Settings {
+            console: p.settings.console,
+            window: p.settings.window,
+            window_hidden: p.settings.window_hidden,
+            runtime_parts: p
+                .settings
+                .runtime_parts
+                .iter()
+                .map(|part| match part {
+                    sema::RuntimePart::Icon => crate::RuntimePart::Icon,
+                })
+                .collect(),
+        },
     };
     if cfg!(debug_assertions)
         && let Err(problems) = crate::validate(&program)

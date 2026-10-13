@@ -29,9 +29,38 @@ pub struct Builtin {
     pub ret: Option<&'static str>,
     /// The suffix the name must be written with (`$` for `LEFT$`, `CHR$`); `None` when it is written bare.
     pub musthave: Option<&'static str>,
+    /// The optional part of libqb the old compiler links when a program uses the built-in (`DEPENDENCY_ICON`);
+    /// `None` for most.
+    pub dependency: Option<&'static str>,
+}
+
+/// A constant of the file QB64pe includes before a program's first line (`beforefirstline.bi`): known in every
+/// program without a declaration.
+#[derive(Debug)]
+pub struct AutoConstant {
+    /// The name in upper case, without its suffix.
+    pub name: &'static str,
+    /// The type suffix its `CONST` line gives it (`##` of `_E##`); empty for most.
+    pub suffix: &'static str,
+    /// The text of its expression, as written (`_ONE_KB * _ONE_KB`, `CHR$(13) + CHR$(10)`). Where the file has a
+    /// `$IF`, the branch of a Windows 64-bit build.
+    pub value: &'static str,
 }
 
 include!(concat!(env!("OUT_DIR"), "/builtins_table.rs"));
+
+/// The auto-included constant of this name (without suffix, any case) and its place in the file's order; a
+/// constant's expression names only constants before it.
+pub fn auto_constant(name: &[u8]) -> Option<(usize, &'static AutoConstant)> {
+    // Asked for every name of a program: each of these constants starts with an underscore, almost no name does.
+    if name.first() != Some(&b'_') {
+        return None;
+    }
+    AUTO_CONSTANTS
+        .iter()
+        .enumerate()
+        .find(|(_, c)| c.name.as_bytes().eq_ignore_ascii_case(name))
+}
 
 /// Index of a built-in in [`BUILTINS`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -197,6 +226,45 @@ mod tests {
         assert!(is_auto_include_name(b"_WhatIsMyIP"));
         assert!(!is_auto_include_name(b"AQUA"), "only with $COLOR");
         assert!(!is_auto_include_name(b"_NOPE"));
+    }
+
+    #[test]
+    fn auto_constants() {
+        assert_eq!(AUTO_CONSTANTS.len(), 310);
+        let value = |name: &[u8]| {
+            let (_, c) = auto_constant(name).unwrap();
+            (c.suffix, c.value)
+        };
+        assert_eq!(value(b"_true"), ("", "-1"));
+        assert_eq!(value(b"_FALSE"), ("", "0"));
+        // The branches of a Windows 64-bit build.
+        assert_eq!(value(b"_SIZE_OF_OFFSET"), ("", "8"));
+        assert_eq!(value(b"_OFFSET_MAX"), ("&&", "9223372036854775807"));
+        assert_eq!(value(b"_STR_NAT_EOL"), ("", "CHR$(13) + CHR$(10)"));
+        assert_eq!(value(b"_E"), ("##", "EXP(1.0##)"));
+        // One that names others, which stand before it.
+        assert_eq!(value(b"_ONE_MB"), ("", "_ONE_KB * _ONE_KB"));
+        assert!(auto_constant(b"_ONE_KB").unwrap().0 < auto_constant(b"_ONE_MB").unwrap().0);
+        // Names only: the `$COLOR` constants and the functions of the file included after the last line.
+        assert!(auto_constant(b"AQUA").is_none());
+        assert!(auto_constant(b"_WhatIsMyIP").is_none());
+        for c in AUTO_CONSTANTS {
+            assert!(
+                c.name.starts_with('_'),
+                "{}: `auto_constant` looks at names with `_` only",
+                c.name
+            );
+            assert!(is_auto_include_name(c.name.as_bytes()), "{}", c.name);
+        }
+    }
+
+    #[test]
+    fn dependencies() {
+        let icon = find_statements(b"_ICON", false);
+        assert_eq!(icon.len(), 1);
+        assert_eq!(icon[0].get().dependency, Some("DEPENDENCY_ICON"));
+        assert_eq!(find_function(b"instr").unwrap().get().dependency, None);
+        assert_eq!(BUILTINS.iter().filter(|b| b.dependency.is_some()).count(), 68);
     }
 
     #[test]
