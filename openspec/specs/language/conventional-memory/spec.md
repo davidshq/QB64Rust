@@ -1,7 +1,9 @@
 # language/conventional-memory Specification
 
 ## Purpose
-TBD - created by archiving change m3-get-put-bload. Update Purpose after archive.
+The 64 KB segments of QuickBASIC's memory as libqb keeps them: `VARPTR` and `VARSEG` of an array of the main
+module, which then lies in conventional memory, `DEF SEG`, `PEEK`, `POKE`, `BLOAD` and `BSAVE`, as the old
+compiler's program behaves. What a program needs to load a picture saved by QuickBASIC into an array.
 
 ## Requirements
 

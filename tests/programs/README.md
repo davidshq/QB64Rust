@@ -13,12 +13,14 @@ programs) and the old compiler's own source (`qb64pe.bas`, the M4 exit criterion
 A real program waits for keys, seeds from the clock and plays sound, so it is not a recorded-output test as it
 stands. Three stages (`study\28` §4):
 
-1. **Now, tier 1** (`cargo test`, `crates\driver\tests\inputs.rs`, set `programs/`): the front end reads every
-   `.bas` here without a panic, prints its tree back byte for byte, and reports no error other than "not supported
-   yet". A program the old compiler accepts must never get a real error.
-2. **When features land:** "compiles, and the C++ builds", then small non-interactive programs cut from the game,
-   one per kind of drawing, each ending by itself and checked by the screen-state dump (`study\28` §3.1). The cut
-   programs are new files with their own recordings; the copies here stay untouched.
+1. **Tier 1** (`cargo test`, `crates\driver\tests\inputs.rs`): the front end reads every `.bas` here without a
+   panic and prints its tree back byte for byte (set `programs/`), and since `m3-sound` with **no diagnostic at
+   all**, the icon its `$EXEICON` names found, its IR valid and its C++ emitted
+   (`real_programs_have_no_diagnostics`).
+2. **Done for the build:** "compiles, and the C++ builds" (`civil_war_strategy_builds` in
+   `crates\driver\tests\cli.rs`, `#[ignore]`d: it needs the clone), and small non-interactive programs cut from
+   the game, one per kind of drawing, each ending by itself and checked by the screen-state dump (`study\28`
+   §3.1). The cut programs are new files with their own recordings; the copies here stay untouched.
 3. **Later:** a scripted game with a fixed seed.
 
 ## Measured (2026-10-09)
@@ -50,6 +52,19 @@ stands. Three stages (`study\28` §4):
   the old compiler. The new compiler compiles none of them yet (`DEFINT`, then the drawing statements).
 - Not cut yet: anything that loads a `*.VGA` picture with `BLOAD`. The corpus runner copies only the `.bas` into
   a program's folder; data files beside a program come first.
+
+## Building and starting the game
+
+Build it outside the repository, from a copy of its folder (the game writes its save files beside itself):
+
+```
+xcopy /e /i tests\programs\civil-war-strategy %TEMP%\cws
+target\release\qb64rust.exe -x %TEMP%\cws\CWSTRAT.BAS -o %TEMP%\cws\CWSTRAT.exe
+%TEMP%\cws\CWSTRAT.exe
+```
+
+`..\QB64pe\qb64pe.exe -x <copy>\CWSTRAT.BAS -o <copy>\CWSTRAT.exe` builds the old compiler's from a second copy,
+to look and listen side by side. No test starts the game (`DECISIONS.md` 2026-10-13).
 
 ## Adding a program
 
@@ -94,3 +109,30 @@ byte, mark the folder `-text` in `.gitattributes`, check that `qb64pe.exe` build
   (the mountains, the icon, the faces and the forts) and its city report. `g03_capitol` waits on `PLAY`.
 - What it needs next is sound, step 3 of M3's order; then stage 2's "compiles, and the C++ builds" can be tried
   on the whole game.
+
+## Measured (2026-10-13, after `m3-sound`)
+
+- `qb64rust --report unsupported tests\programs`: 1 program, 1 without errors. The last four messages are gone
+  (`SOUND` 33, `PLAY` 31, `BEEP` 1, `$EXEICON` 1); `-w` shows no warning either.
+- **The game builds.** `qb64rust -x CWSTRAT.BAS` on its first try: 3.6 s with libqb's objects built (the front
+  end and the C++ of the program; about 7 s as the test, which copies the sources first), against 6.9 s for
+  `qb64pe.exe -x` on the same machine the same day (14 s on 2026-10-09). The executable holds the first image
+  of `cws.ico`.
+- **Its C++ compared with the old compiler's, line by line, once** (a script outside the repository on the
+  normaliser of `tools\callsite`; `qb64pe -z` 5.3 s, `qb64rust -z` 0.4 s): of the 4,332 source lines either
+  compiler writes C++ for, 1,619 are equal token for token, 1,475 have equal libqb and procedure calls and
+  differ in the statement's frame or an explicit cast, 1,159 differ only in parentheses, and 79 differ
+  otherwise. None of the 79 is a call with another routine or argument: 48 are the numbering of a temporary
+  on a line that has two (`pass1` against `pass2` in a one-line `IF`), 17 are declarations the two compilers
+  write in different places (`DIM` of a static array, the copy of a string argument), 11 are the old
+  compiler's `CHAIN` data for `COMMON` lines, which the new compiler does not write (`CHAIN` is not compiled),
+  and the rest are one each: the end of the main module after the last `RETURN`, `"Raze \077"` for `"Raze ?"`
+  (the same bytes), a clean-up after `ON ERROR GOTO 0`. What this comparison does not see: arithmetic between
+  the calls on the 2,634 lines that are not equal token for token (the slice and differential programs cover
+  it).
+- **Started once by hand**, each build from a copy of the folder outside the repository, left ten seconds and
+  closed: neither ended by itself, each had one window titled "Civil War Strategy Game" and no error box. Not
+  compared: what the screens show and what is heard (stage 3).
+- All eleven programs cut from it pass now (`g03_capitol` joined `tests\corpus\slice.list`: its `PLAY` lines
+  are compiled and not reached).
+- What comes next is stage 3, a scripted game with a fixed seed whose screens are compared.

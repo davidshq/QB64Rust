@@ -72,6 +72,7 @@ basic/val_typed_large_integer_decimal
 basic/val_typed_nondecimal_precision
 basic/val_typed_tostr_overload
 console/test
+console_only/audio_out
 console_only/data
 console_only/print_console_null_char
 const/bad_boolean_arg
@@ -112,6 +113,7 @@ glut/title_func
 glut/windowhandle
 glut/windowhasfocus
 glut/windowsizelimit
+icon_relative/test
 include_once/test
 include_paths/include_fixed_compile_location
 include_paths/include_multiple

@@ -1,0 +1,1 @@
+$EXEICON:'.\inc\exeicon.ico'

@@ -20,7 +20,7 @@ does, so the main-module fragment it writes (or the reason it rejects the progra
 answer is written under another name and renamed, so a stopped run leaves no half file. The key does not cover
 the files `qb64pe.exe` reads when it runs (its auto-included `.bi` files): after a change to the clone that does
 not rebuild the compiler, run once with `--no-cache` or empty the folder. A run then starts `qb64pe.exe` only for programs that are new or changed; the new
-compiler writes its C++ for every program on every run. Without the cache the 663 programs take about 5 min 45 s
+compiler writes its C++ for every program on every run. Without the cache the 663 programs of 2026-10-12 took about 5 min 45 s (there are 922 since `m3-sound`; with the cache the run takes 46 s)
 (half a second of `qb64pe -z` each); CI has no cache and runs them all (user, 2026-10-12: fewer repeated runs,
 `DECISIONS.md`).
 
@@ -35,6 +35,10 @@ tier 2; with `--wait` it waits for the other run to end. It empties the clone's 
 `tests\callsite\<name>.bas`: `$CONSOLE:ONLY`, a few `DIM` lines, then **the statement under test on the last line
 with code before the closing `END`** (or `SYSTEM`). One program per statement form and argument type. The programs
 are never run.
+
+A program that names a file the compilers look for has it in a folder `<name>.files\` beside it, as a corpus
+program has: its files are copied beside the program's copy before either compiler reads it. One program has one
+today, `exeicon_line` (the icon of its `$EXEICON` line, whose call is `_ICON`'s with no argument).
 
 ## What is compared
 

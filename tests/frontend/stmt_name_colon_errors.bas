@@ -14,5 +14,5 @@ CIRCLE: l = 7
 SWAP: l = 8
 CLS: l = 9
 GOTO CLS
-BEEP: l = 10
+FILES: l = 10
 SYSTEM

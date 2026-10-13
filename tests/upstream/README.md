@@ -333,3 +333,12 @@ failure `http/read_example`; none builds and prints the wrong output. The 26 pro
 the 26 that joined `pass.list`. The three lists are unchanged (0 false errors, 0 parse gaps, 53 only-marked
 rejections). What comes next for the suite outside `deferred.list`: `_MEM`, `$ASSERTS`/`$DEBUG` and the image
 built-ins that run.
+
+**Upstream progress, 2026-10-13: 142 of 279** (`m3-sound` task 6.1, the full runs that close the change; 140
+before it). The two new ones: `console_only/audio_out` (`PLAY "O3"` and a `PRINT`) and `icon_relative/test`
+(`$EXEICON:'./qb64pe.ico'`, compile-only, run from the clone, where its icon lies; the copy here holds no
+binary files). `audio_out/test`, the same `PLAY` with the generated licence file, compiles cleanly and is on
+`tests\known_clean_not_passing.list`. `pass.list` run by itself: 142 of 142. The full run of the suite (404
+programs): 142 pass, 261 rejected or with only marked errors, the known failure `http/read_example`; none
+builds and prints the wrong output. Still marked among the icon tests: `icon/test` and `winresource/test` name
+their icon relative to the compiler's folder (`SOMEDAY.md`), the second with `$VERSIONINFO`.

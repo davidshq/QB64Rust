@@ -1,0 +1,81 @@
+checked on any machine
+ 1 error 5 
+ 1 SOUND with no argument
+ 2 SOUND 0, 1
+ 3 error 5 
+ 3 SOUND 19, 1
+ 4 SOUND 20, 0
+ 5 SOUND 32767, 0
+ 6 error 5 
+ 6 SOUND 32768, 1
+ 7 error 5 
+ 7 SOUND -1, 1
+ 8 error 5 
+ 8 SOUND 440, -1
+ 9 error 5 
+ 9 SOUND 440, 65536
+ 10 voice 3
+ 11 error 5 
+ 11 voice 4
+ 12 error 5 
+ 12 voice -1
+ 13 error 5 
+ 13 a frequency of 10 and a volume of 2: one error
+checked with a sound device
+ 20 volume 1
+ 21 volume 0
+ 22 error 5 
+ 22 volume 1.5
+ 23 error 5 
+ 23 volume -.5
+ 24 pan 1
+ 25 pan -1
+ 26 error 5 
+ 26 pan 1.1
+ 27 error 5 
+ 27 pan -1.1
+ 28 waveform 1
+ 29 waveform 10
+ 30 error 5 
+ 30 waveform 0
+ 31 error 5 
+ 31 waveform 11
+ 32 error 5 
+ 32 waveform -1
+ 33 waveform 9 with the parameter 0
+ 34 waveform 9 with the parameter 1
+ 35 error 5 
+ 35 waveform 9 with the parameter 1.1
+ 36 error 5 
+ 36 waveform 9 with the parameter -.1
+ 37 the parameter 2 alone (the waveform is 9 from before)
+ 38 waveform 4 with the parameter 2
+ 39 error 5 
+ 39 a volume of 2 in voice 3
+ 40 error 5 
+ 40 PLAY H
+ 41 PLAY O6 C
+ 42 PLAY O7 C
+ 43 PLAY T31 C
+ 44 PLAY T256 C
+ 45 error 5 
+ 45 PLAY L0 C
+ 46 error 5 
+ 46 PLAY L65 C
+ 47 PLAY L64 C
+ 48 error 5 
+ 48 PLAY N85
+ 49 PLAY N84
+ 50 error 5 
+ 50 PLAY V101
+ 51 PLAY V100 V0
+ 52 error 5 
+ 52 PLAY C D E H C
+ 53 PLAY of an empty variable
+ 54 SOUND WAIT a second time
+ 55 nothing to play while held back: 0  0  0  0 
+ 56 error 5 
+ 56 PLAY with two strings, the second H
+ 57 SOUND RESUME
+ 58 SOUND RESUME a second time
+end

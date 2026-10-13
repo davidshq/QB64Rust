@@ -1,38 +1,36 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 107
 expression: snap
 ---
-m3_step2_marked.bas:14:12: error: not supported yet: `VARPTR` of a variable that is no array element
-m3_step2_marked.bas:15:12: error: not supported yet: `VARSEG` of a variable that is no array element
-m3_step2_marked.bas:16:12: error: not supported yet: `VARPTR` of a variable that is no array element
+m3_step2_marked.bas:15:12: error: not supported yet: `VARPTR` of a variable that is no array element
+m3_step2_marked.bas:16:12: error: not supported yet: `VARSEG` of a variable that is no array element
 m3_step2_marked.bas:17:12: error: not supported yet: `VARPTR` of a variable that is no array element
-m3_step2_marked.bas:18:12: error: not supported yet: `VARPTR` of an array of a `TYPE` or of `_BIT`
-m3_step2_marked.bas:19:12: error: not supported yet: `VARSEG` of an array of a `TYPE` or of `_BIT`
-m3_step2_marked.bas:20:12: error: not supported yet: `VARPTR` of a member of a `TYPE`
+m3_step2_marked.bas:18:12: error: not supported yet: `VARPTR` of a variable that is no array element
+m3_step2_marked.bas:19:12: error: not supported yet: `VARPTR` of an array of a `TYPE` or of `_BIT`
+m3_step2_marked.bas:20:12: error: not supported yet: `VARSEG` of an array of a `TYPE` or of `_BIT`
 m3_step2_marked.bas:21:12: error: not supported yet: `VARPTR` of a member of a `TYPE`
-m3_step2_marked.bas:22:12: error: not supported yet: `VARPTR` of a string array
-m3_step2_marked.bas:23:12: error: not supported yet: `VARSEG` of a string array
-m3_step2_marked.bas:24:12: error: not supported yet: `VARPTR` of an array of a `TYPE` or of `_BIT`
-m3_step2_marked.bas:25:5: error: not supported yet: `SADD`
-m3_step2_marked.bas:26:5: error: not supported yet: `VARPTR$`
-m3_step2_marked.bas:27:10: error: not supported yet: `VARPTR` or `VARSEG` as the argument of `HEX$`
-m3_step2_marked.bas:28:10: error: not supported yet: `VARPTR` or `VARSEG` as the argument of `OCT$`
-m3_step2_marked.bas:29:20: error: not supported yet: an array of strings, of a `TYPE` or of `_BIT` as the array of `GET`
+m3_step2_marked.bas:22:12: error: not supported yet: `VARPTR` of a member of a `TYPE`
+m3_step2_marked.bas:23:12: error: not supported yet: `VARPTR` of a string array
+m3_step2_marked.bas:24:12: error: not supported yet: `VARSEG` of a string array
+m3_step2_marked.bas:25:12: error: not supported yet: `VARPTR` of an array of a `TYPE` or of `_BIT`
+m3_step2_marked.bas:26:5: error: not supported yet: `SADD`
+m3_step2_marked.bas:27:5: error: not supported yet: `VARPTR$`
+m3_step2_marked.bas:28:10: error: not supported yet: `VARPTR` or `VARSEG` as the argument of `HEX$`
+m3_step2_marked.bas:29:10: error: not supported yet: `VARPTR` or `VARSEG` as the argument of `OCT$`
 m3_step2_marked.bas:30:20: error: not supported yet: an array of strings, of a `TYPE` or of `_BIT` as the array of `GET`
 m3_step2_marked.bas:31:20: error: not supported yet: an array of strings, of a `TYPE` or of `_BIT` as the array of `GET`
 m3_step2_marked.bas:32:20: error: not supported yet: an array of strings, of a `TYPE` or of `_BIT` as the array of `GET`
-m3_step2_marked.bas:33:20: error: not supported yet: a variable that is no array as the array of `GET`
+m3_step2_marked.bas:33:20: error: not supported yet: an array of strings, of a `TYPE` or of `_BIT` as the array of `GET`
 m3_step2_marked.bas:34:20: error: not supported yet: a variable that is no array as the array of `GET`
 m3_step2_marked.bas:35:20: error: not supported yet: a variable that is no array as the array of `GET`
-m3_step2_marked.bas:36:20: error: not supported yet: a call of a FUNCTION in the index of the array of `GET`
-m3_step2_marked.bas:37:13: error: not supported yet: a variable that is no array as the array of `PUT`
-m3_step2_marked.bas:38:13: error: not supported yet: an array of strings, of a `TYPE` or of `_BIT` as the array of `PUT`
-m3_step2_marked.bas:39:1: error: not supported yet: `GET` on a file
-m3_step2_marked.bas:40:1: error: not supported yet: `PUT` on a file
-m3_step2_marked.bas:41:6: error: not supported yet: `PUT`
-m3_step2_marked.bas:42:6: error: not supported yet: `BLOAD`
-m3_step2_marked.bas:43:6: error: not supported yet: `_FULLSCREEN`
-m3_step2_marked.bas:50:16: error: not supported yet: `VARPTR` of an array parameter
-m3_step2_marked.bas:51:16: error: not supported yet: `VARPTR` of an array of a SUB or FUNCTION
-m3_step2_marked.bas:52:16: error: not supported yet: `VARSEG` of an array of a SUB or FUNCTION
-m3_step2_marked.bas:53:16: error: not supported yet: `VARPTR` of a variable that is no array element
+m3_step2_marked.bas:36:20: error: not supported yet: a variable that is no array as the array of `GET`
+m3_step2_marked.bas:37:20: error: not supported yet: a call of a FUNCTION in the index of the array of `GET`
+m3_step2_marked.bas:38:13: error: not supported yet: a variable that is no array as the array of `PUT`
+m3_step2_marked.bas:39:13: error: not supported yet: an array of strings, of a `TYPE` or of `_BIT` as the array of `PUT`
+m3_step2_marked.bas:40:1: error: not supported yet: `GET` on a file
+m3_step2_marked.bas:41:1: error: not supported yet: `PUT` on a file
+m3_step2_marked.bas:48:16: error: not supported yet: `VARPTR` of an array parameter
+m3_step2_marked.bas:49:16: error: not supported yet: `VARPTR` of an array of a SUB or FUNCTION
+m3_step2_marked.bas:50:16: error: not supported yet: `VARSEG` of an array of a SUB or FUNCTION
+m3_step2_marked.bas:51:16: error: not supported yet: `VARPTR` of a variable that is no array element

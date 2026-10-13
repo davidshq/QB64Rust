@@ -1,0 +1,23 @@
+SOUND 440, 18.2, 0: 10 
+SOUND 880, 9.1, 0: 5 
+SOUND 440, 27.3, 0: 15 
+SOUND 0, 18.2, 0: 10 
+SOUND 440, 0, 0: 0 
+T120 L4 C: 5 
+C: 5 
+T120 L4 C D E: 15 
+T60 L1 C: 40 
+T60 L4 C.: 15 
+T60 L8 C.. C16: 11 
+T120 L4 C2: 10 
+T120 P4: 5 
+T120 L4 N0: 5 
+T120 L4 N37: 5 
+MS T120 L4 C: 5 
+ML T120 L4 C: 5 
+MN T120 L4 C: 5 
+t120 l4 o3 c# d- e+ >c <c: 25 
+the empty string: 0 
+MST150o1e8o0b8o1e8e8: 8 
+PLAY(0) is over 5 at the end: -1 
+exit=0

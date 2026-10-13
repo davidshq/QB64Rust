@@ -175,9 +175,14 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
     let root = include_root(&name);
     let base = include_base(&name, path);
     let result = catch_unwind(AssertUnwindSafe(|| {
-        let fe = frontend_with(&name, bytes.clone(), |file| {
+        let mut fe = frontend_with(&name, bytes.clone(), |file| {
             Box::new(FileLoader::new(&root, file, &base))
         });
+        // The icon `$EXEICON` names is looked for only for the real programs, which are here whole. The upstream
+        // copy holds no binary files, and a corpus program's data files lie in a folder of their own until it runs.
+        if name.starts_with("programs/") {
+            qb64rust_driver::check_exe_icon(&mut fe, &base);
+        }
         // Every tree prints its own file back (spec compiler/pipeline, "Lossless syntax tree").
         let round_trip = fe
             .parsed
@@ -345,6 +350,34 @@ fn accepted_inputs_lower_and_emit() {
         .filter_map(|o| o.invalid_ir.as_ref().map(|p| format!("{}: invalid IR: {p}", o.name)))
         .collect();
     assert!(bad.is_empty(), "{}", bad.join("\n"));
+}
+
+/// "A real program taken whole compiles" (spec `testing/compiler-tests`; design D7 of `m3-sound`): every program of
+/// `tests\programs` goes through the front end with no diagnostic at all, a warning included, the icon its
+/// `$EXEICON` names is there, and its IR is valid and emitted.
+#[test]
+fn real_programs_have_no_diagnostics() {
+    let root = repo().join("tests/programs");
+    let inc = repo().join("tests/upstream/root");
+    let programs = files(&root, &["bas"]);
+    assert!(!programs.is_empty(), "no program under tests/programs");
+    for path in programs {
+        let name = path.file_name().unwrap().to_string_lossy().to_string();
+        let mut fe = frontend_with(&name, std::fs::read(&path).unwrap(), |file| {
+            Box::new(FileLoader::new(&inc, file, &path))
+        });
+        qb64rust_driver::check_exe_icon(&mut fe, &path);
+        assert!(
+            fe.diagnostics.list().is_empty(),
+            "{name}:\n{}",
+            fe.render_with_warnings()
+        );
+        let ir = lower(&fe);
+        if let Err(problems) = qb64rust_ir::validate(&ir) {
+            panic!("{name}: invalid IR: {}", problems.join("; "));
+        }
+        assert!(!emit(&fe).files.is_empty());
+    }
 }
 
 #[test]
@@ -803,7 +836,7 @@ fn every_supported_builtin_is_covered() {
         .map(|p| code_only(&std::fs::read(p).unwrap()))
         .collect();
     assert!(!callsite.is_empty());
-    let window = qb64rust_sema::builtins::WINDOW_BUILTINS;
+    let window = qb64rust_sema::builtins::NEVER_RUN;
     for &name in window {
         let row = qb64rust_sema::builtins::STATEMENTS.iter().any(|&(n, _)| n == name)
             || qb64rust_sema::builtins::supported().any(|s| s.name == name);

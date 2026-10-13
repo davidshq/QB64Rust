@@ -1,0 +1,10 @@
+at start: PLAY(0) 0 PLAY(1) 0 
+voice 0 in the background, SOUND 440, 18.2, 0, , , , 1 took over 0.4 s: yes, under 1.5 s: yes
+it added to voice 0, in tenths: 0 
+SOUND 440, 1, 0, , , , 1 took under 0.3 s: yes
+after PLAY with MB as its second string, the same took under 0.3 s: yes
+it added to voice 1, in tenths: 10 
+PLAY with T120 L4 C as its second string added to voice 1, in tenths: 5 
+voice 2 in the foreground, PLAY with V0 T120 L1 C as its third string took over 1.2 s: no
+four strings, the third left out: voice 0 over 0.3: yes, voice 3 over 0.8: yes
+exit=0

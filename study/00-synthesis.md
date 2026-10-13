@@ -1773,6 +1773,98 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     `(uint64)(((char*)R[0])+((index)*6+0))`, a fixed-length string array `&((uint8*)(FS[0]))[(index)*4]`, a
     string variable `T->chr,T->len`, a `TYPE` variable `((char*)ONE)+((0+0)),6-((0+0))`, a name with no
     array the plain variable (`(uint64)__SINGLE_TS,4`).
+- **Sound and `$EXEICON` (`v29_*`, 130 programs: 110 measured 2026-10-13 before the design of `m3-sound`, as its
+  task 1.1; `v29_d`, `v29_f`, `v29_g`, `v29_h` and `e29`–`e31` the same day as its task 1.2, `x87`–`x98` as its
+  task 2.1, `e32` by the review of the change; the C++ read with
+  `qb64pe -z` from programs outside the repository; numbers `x33`–`x39` are not used).**
+  - **Every sound form is a plain call (`x01`–`x86`: 43 accepted, 36 rejected).** `SOUND f, d` is
+    `sub_sound( 440 , 1 ,NULL,NULL,NULL,NULL,NULL,0,1)`: seven slots (frequency, duration, volume, pan position:
+    SINGLE; waveform: LONG; waveform parameter: SINGLE; voice: `_UNSIGNED LONG`), then 1 for `WAIT`, 2 for
+    `RESUME` or 0, then the mask of what was given. A SINGLE in the waveform slot goes through `qbr`. Accepted:
+    `SOUND` with no argument at all (`x03`; error 5 when it runs), `SOUND WAIT`, `SOUND RESUME`, `WAIT` or
+    `RESUME` after the arguments without a comma (`x13`, `x15`, `x29`), a trailing comma (`SOUND 440, 1,`,
+    `x21`), `CALL SOUND(440, 1)`, lower case. Rejected: one argument, no frequency, no duration, eight
+    arguments, a comma before `WAIT` ("Name already in use (WAIT)"), `WAIT RESUME`, a string, `SOUND(440, 1)`,
+    all commas (`x31`), `SOUND = 1`, `l = SOUND`, a variable named `wait`. `PLAY a$[, b$][, c$][, d$]` is
+    `sub_play(a,b,c,d,mask)`, a fixed-length string taken as a string, a trailing comma accepted (`x50`);
+    rejected: none or five strings, no first string, a number, `PLAY(t, t)`, `PLAY(0)` and `CALL PLAY(0)` ("1st
+    sub argument requires a string"), `PLAY = 1`. The function is `func_play( 0 ,0|1)`, a DOUBLE, also bare
+    (`d = PLAY`); rejected: `PLAY()`, a string, two arguments. `BEEP` is `sub_beep()`, also after `CALL`;
+    `BEEP 1` and `BEEP()` are "SUB does not require any arguments".
+  - **A built-in statement with a template after `CALL` (`x27`, `x54`, `x85`, `x87`–`x98`; `v26_x74`,
+    `v27_x02`, `x14`, `x15`, `v28_x65`–`x70`; `qb64pe.bas` 10617–10627).** After `CALL name` comes nothing, or
+    an opening parenthesis as the third element and a closing one as the last, with something between them;
+    the compiler drops the two and reads the rest as the statement without `CALL`, by its template. So `CALL
+    SOUND(440, 1 WAIT)`, `CALL SOUND(WAIT)`, `CALL SOUND`, `CALL LINE(-(3, 4))`, `CALL PLAY(t, t)` and `CALL
+    CLS` are accepted; `CALL CLS()`, `CALL SOUND(440, 1) WAIT`, `CALL LINE((1, 2)-(3, 4)), 5`, `CALL LOCATE 1,
+    2`, `CALL VIEW PRINT` and `CALL DEF SEG` are "Expected CALL sub-name (...)"; `CALL SOUND(440)`, `CALL PLAY`
+    and `CALL PSET(1, 2)` are the statement's own "Syntax error - Reference: …"; `CALL PLAY(0)` is "1st sub
+    argument requires a string".
+  - **`PLAY` is no event word to the old compiler (`x61`–`x64`).** `ON PLAY(5) GOSUB 10` is `ON <number> GOSUB`
+    with the function (`ongo = qbr_float_to_long(func_play( 5 ,0|1))`); `PLAY ON`, `PLAY OFF` and `PLAY STOP`
+    are "Name already in use (ON)" and so on.
+  - **The name and a colon (`x24`, `x65`, `x72`, `x78`–`x83`).** `BEEP:` and `SOUND:` are the statement with no
+    argument, alone on a line or before another statement; `PLAY:` is the statement without its string, a
+    syntax error. `GOTO BEEP` and `GOTO SOUND` after such a line are "Invalid label!".
+  - **What a program can observe of sound (`v29_a_sound_queue`, `v29_b_sound_wait`, `v29_f_queue_slice`).**
+    `PLAY(n)` is the seconds left to play in voice n (voice 0 for `PLAY`, `PLAY(4)` and `PLAY(-1)`). In the
+    foreground, the default, a statement holds the program for 0.95 times what is queued minus a quarter of a
+    second (`AwaitPlaybackCompletion` in `audio.cpp`), so a sound under about 0.26 s returns at once. After
+    `PLAY "MB"` every statement returns at once and adds its length to `PLAY(0)`: a `SOUND` its duration
+    divided by 18.2, a `PLAY` string its notes and pauses by tempo, length and dots (`T120 L4 C` 0.5 s, `T60 L1
+    C` 4 s, `T60 L4 C.` 1.5 s; a frequency of 0 and a duration of 0 are a pause and nothing). Tempo, length
+    and octave hold from one `PLAY` to the next; `MS`, `ML` and `MN` do not change a note's length in the
+    queue. `PLAY "MF"` makes the next statement wait for all that is queued. Read directly before and after a
+    statement and rounded to tenths, with lengths of whole tenths, the numbers were equal in three recordings
+    and in 24 runs made eight at a time (`v29_f`); `v29_a` prints between its readings and has three lengths
+    at a rounding edge, so its numbers are equal only run alone.
+  - **`SOUND WAIT` and `SOUND RESUME`.** After `SOUND WAIT` no statement holds the program and what is queued
+    is not in `PLAY(0)` (0 until `SOUND RESUME`, then the whole of it). A second `SOUND WAIT` or `SOUND RESUME`
+    is no error.
+  - **Voices (`v29_g_voice`).** Background and foreground are set per voice: with voice 0 in the background,
+    `SOUND 440, 18.2, , , , , 1` holds the program and adds nothing to `PLAY(0)`. `MB` in a voice's own string
+    (`PLAY "", "MB"`) puts that voice in the background. **A `PLAY` with more than one string never holds the
+    program**, whatever its voices' modes, **and it ends a `SOUND WAIT`** (`v29_h`, line 25): `PlayMML` pauses
+    all voices, reads the strings and resumes all.
+  - **Volume 0 (`v29_d_volume_zero`).** `SOUND f, d, 0` and `PLAY "V0 …"` queue and wait exactly as at the
+    default volume. The volume is the voice's, kept for the next statement and shared by `SOUND` and `PLAY`
+    (read in `audio.cpp`; not observable).
+  - **Run-time errors, all error 5 (`v29_c_sound_errors`, `v29_h_sound_ranges`).** `SOUND` with no argument; a
+    frequency below 20 other than 0, or above 32767; a duration below 0 or above 65535; a volume outside 0 to
+    1; a pan position outside -1 to 1; a waveform outside 1 to 10; a waveform parameter outside 0 to 1, only
+    in a statement that itself gives waveform 9 (`SOUND 440, 1, , , 4, 2` and `SOUND 440, 1, , , , 2` after a
+    waveform 9 raise nothing); a voice outside 0 to 3. A `PLAY` string: an unknown command (`H`), `L0`, `L65`,
+    `N85`, `V101`, in any voice; no error for `O7`, `T31`, `T256` (QuickBASIC's limits), `V0`, `V100`, an
+    empty string. **Without a sound device** (read in `PlayWaveform` and `PlayMML`, not measured): the first
+    three checks of `SOUND` and its voice are made before the device is asked for and raise the error on any
+    machine; volume, pan, waveform and its parameter come after and raise nothing; no `PLAY` string is read,
+    and `PLAY(n)` is 0.
+  - **`BEEP` is not libqb's audio.** `sub_beep` is in the window part (`gui.cpp`, the system's bell); it has no
+    dependency in the table, while `SOUND` and `PLAY` have `DEPENDENCY_MINIAUDIO`: the make flag
+    `DEP_AUDIO_MINIAUDIO=y`, written last (`qb64pe.bas` 13721), `-DDEPENDENCY_AUDIO_MINIAUDIO` and `audio.a` in
+    the compile log.
+  - **`$EXEICON:'file'` (`e01`–`e31`; `qb64pe.bas` 3829–3880 and 13551–13604).** The line's text in upper case
+    starts with `$EXEICON` (`$EXEICONS:'…'`, `$EXEICON '…'` and lower case are the same, `e20`, `e08`, `e10`);
+    the name is what stands between the first two `'`, blanks at its ends dropped; the rest of the line is
+    dropped, a statement after a colon included (`e09`, `e22`, `e24`: `PRINT "same line"` does not run). Where
+    it stands the compiler writes `sub__icon(NULL,NULL,0)`, the call of `_ICON` with no argument (`e28`: between
+    two `PRINT`s; also in a SUB, after `SYSTEM`, in an included file, beside an `_ICON` statement), and the
+    program is compiled with `-DDEPENDENCY_ICON`. The build gets `internal\temp\icon.rc` with the line `0 ICON
+    "icon.ico"`, a copy of the file beside it, `DEP_ICON_RC=y` (after `DEP_CONSOLE=y`), `windres` and
+    `icon.o`. **Where the file is looked for:** a name that starts with `./` or `.\` in the folder of the main
+    source file (`e01`, `e21`; from an included file too, `e12`), the rest of the name added to the folder as
+    text, so `.//v29_inc/icon.ico` is found there too (`e32`, measured 2026-10-13 by the review of the change;
+    `qb64pe.bas` 3853); a name with a drive letter as written; one
+    leading slash on the compiler's drive (both tried outside the repository); **any other relative name in
+    the old compiler's own folder**, so a file beside the program is "File 'icon.ico' not found" (`e02`,
+    `e08`, `e18`; the message holds only the last part of the name, and the resolved folder for a `./` name,
+    `e04`). Errors: none or an empty name, double quotes, no closing quote: "Expected $EXEICON:'filename'"; a
+    second one: "$EXEICON already defined in line n", before its own name is read (`e05`, `e27`), also when
+    the second is in an included file (`e29`), with n a line of the main file (the `$INCLUDE` line for a first
+    one in an included file, `e31`); one in a `$IF` branch that is not taken does not count and is not read
+    (`e11`, `e30`). After a colon it is "Unexpected character on line" (`e13`), after a tab "Syntax error"
+    (`e23`): the line rules of every metacommand. In a comment or after `REM` it is a comment (`e14`). A file
+    that is not an icon passes the front end and fails in the build (`e16`).
 
 ## 6. Bug-compatibility choices (all decided)
 

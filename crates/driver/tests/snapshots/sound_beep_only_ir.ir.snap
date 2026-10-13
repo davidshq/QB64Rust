@@ -1,0 +1,10 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+Settings: window
+Stmt line 4 may_raise
+  Builtin BEEP []
+Stmt line 5
+  System

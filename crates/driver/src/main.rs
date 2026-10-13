@@ -241,9 +241,10 @@ fn run() -> Result<ExitCode, String> {
         return Ok(ExitCode::SUCCESS);
     }
     let include_root = include_root(&o)?;
-    let fe = frontend_with(&name, bytes, |file| {
+    let mut fe = frontend_with(&name, bytes, |file| {
         Box::new(FileLoader::new(&include_root, file, &input))
     });
+    qb64rust_driver::check_exe_icon(&mut fe, &input);
     let errors = fe.diagnostics.error_count();
     // Warnings only with -w, never counted in the summary (spec `compiler/cli`).
     let report = |fe: &qb64rust_driver::Frontend| {
@@ -296,6 +297,9 @@ fn run() -> Result<ExitCode, String> {
     let _ = std::fs::remove_file(&exe);
     let root = build::find_root(o.root.as_deref())?;
     build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
+    if let Some(icon) = qb64rust_driver::exe_icon_path(&fe, &input) {
+        build::write_icon(&build_dir, &icon).map_err(|e| format!("copying {}: {e}", icon.display()))?;
+    }
     build::build(&root, &build_dir, &exe, o.quiet, &settings)?;
     if !o.keep_build {
         let _ = std::fs::remove_dir_all(&build_dir);

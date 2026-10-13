@@ -16,7 +16,7 @@ PRINT s
 PRINT f%(1)
 f 1
 nothere 1
-BEEP
+FILES
 y = 1
 SUB t (a AS STRING)
 END SUB

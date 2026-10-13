@@ -1,0 +1,16 @@
+SOUND 440, 18.2, 0 took over 0.4 s: yes, under 1.5 s: yes
+SOUND 440, 1, 0 took under 0.3 s: yes
+PLAY V0 T120 L1 C (2 s) took over 1.2 s: yes, under 2.5 s: yes
+PLAY T120 L1 C after it took over 1.2 s: yes, under 2.5 s: yes
+SOUND 440, 18.2, 0: 10 
+SOUND 880, 9.1, 0: 5 
+SOUND 440, 18.2 (no volume given): 10 
+SOUND 0, 18.2, 0: 10 
+V0 T120 L4 C: 5 
+C: 5 
+V0 T120 L4 C D E: 15 
+V0 T60 L1 C: 40 
+V0 T120 P4: 5 
+V0 alone: 0 
+in the background, PLAY T120 L1 C took under 0.3 s: yes
+exit=0

@@ -1,5 +1,31 @@
 # Spec Delta
 
+## ADDED Requirements
+
+### Requirement: A statement with a template after CALL
+A supported built-in statement whose forms are read by a template SHALL compile after `CALL` as the old compiler
+compiles it: the name alone is the statement with nothing after it, and the name with one pair of parentheses
+around all that follows is the statement with what stands between them. Any other form SHALL be a compile error
+that is not "not supported yet".
+
+#### Scenario: Statements with a rule of their own
+- **WHEN** a program has `CALL SWAP(a, b)`
+- **THEN** it MAY be reported "not supported yet" (as `CLOSE` and the `MID$` statement after `CALL`)
+
+#### Scenario: The template between the parentheses
+- **WHEN** `CALL CLS`, `CALL LOCATE(, 2)`, `CALL LINE((1, 2)-(3, 4), 5, BF)`, `CALL SOUND(440, 1 WAIT)` and
+  `CALL PLAY(a$, b$)` are compiled
+- **THEN** each compiles to the runtime call of `CLS`, `LOCATE , 2`, `LINE (1, 2)-(3, 4), 5, BF`,
+  `SOUND 440, 1 WAIT` and `PLAY a$, b$`
+
+#### Scenario: Not one pair of parentheses around all that follows
+- **WHEN** a program has `CALL CLS()`, `CALL LOCATE 1, 2`, `CALL SOUND(440, 1) WAIT` or `CALL VIEW PRINT`
+- **THEN** the compiler reports an error that is not "not supported yet", as the old compiler rejects each
+
+#### Scenario: No form matches
+- **WHEN** a program has `CALL PSET(1, 2)`, `CALL SOUND(440)` or `CALL PLAY`
+- **THEN** the compiler reports that the statement matches none of its forms
+
 ## MODIFIED Requirements
 
 ### Requirement: Supported built-in statements

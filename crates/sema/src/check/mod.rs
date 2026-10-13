@@ -66,6 +66,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         console: false,
         console_only: false,
         window_hidden: false,
+        exe_icon: None,
         echoes: Vec::new(),
         runtime_parts: std::collections::BTreeSet::new(),
         names: Vec::new(),
@@ -210,6 +211,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         window: !c.console_only,
         window_hidden: c.window_hidden,
         runtime_parts: std::mem::take(&mut c.runtime_parts),
+        exe_icon: c.exe_icon.take().map(|(icon, _)| icon),
     };
     (c.prog, c.diags)
 }
@@ -351,6 +353,8 @@ struct Checker<'a> {
     console: bool,
     console_only: bool,
     window_hidden: bool,
+    /// The first `$EXEICON` met, with the node it is (its tree and offset).
+    exe_icon: Option<(crate::ExeIcon, (TreeId, u32))>,
     /// The `_ECHO` statements met: each is an error when the program turns out to have no console, which is known
     /// only after the walk (design D5 of `m2-console-screenhide`; measured, `verification\v26_x17`, `x62`).
     echoes: Vec<Span>,
@@ -951,10 +955,67 @@ impl Checker<'_> {
                 Err(msg) => return Err(self.error(tok.span, msg)),
             }
             Ok(())
+        } else if line.starts_with(b"$EXEICON") {
+            self.exe_icon_meta(node, tok)
         } else {
             let shown = show_bytes(raw.split(|&b| b == b':' || b == b' ').next().unwrap_or(raw));
             Err(self.unsupported(tok.span, format!("metacommand `{shown}`")))
         }
+    }
+
+    /// `$EXEICON:'name'` (design D4 of `m3-sound`; `qb64pe.bas` 3829–3880; measured, `verification\v29_e01`–`e31`):
+    /// the icon of the executable, and where it stands the statement `_ICON` with no argument. The old compiler
+    /// takes any line that starts with `$EXEICON` in upper case; the name stands between the line's first two
+    /// `'`, and the rest of the line is dropped (the lexer makes one token of a metacommand's whole line).
+    fn exe_icon_meta(&mut self, node: Node, tok: Tok) -> R<()> {
+        if let Some((_, first)) = &self.exe_icon {
+            // Before the line's own name is read (`e27`). The old compiler names a line of the main file: for a
+            // first one inside an included file the line of its `$INCLUDE` (`e31`).
+            let line = self.main_line(*first);
+            return Err(self.error(tok.span, format!("`$EXEICON` is already defined in line {line}")));
+        }
+        let raw = self.text(tok.span);
+        let mut quoted = raw.split(|&b| b == b'\'');
+        let written = match (quoted.next(), quoted.next(), quoted.next()) {
+            (Some(_), Some(name), Some(_)) => name.trim_ascii(),
+            _ => b"",
+        };
+        if written.is_empty() {
+            return Err(self.error(tok.span, "expected `$EXEICON:'filename'`"));
+        }
+        // The name is a file's, taken as UTF-8 as an included file's is (`qb64rust_syntax::include_name`).
+        #[expect(clippy::disallowed_methods, reason = "a file name, not BASIC source")]
+        let name = String::from_utf8_lossy(written).into_owned();
+        let shown = show_bytes(written);
+        let absolute = matches!(written, [drive, b':', b'/' | b'\\', ..] if drive.is_ascii_alphabetic())
+            || matches!(written, [b'/' | b'\\', b'/' | b'\\', ..]);
+        if crate::ExeIcon::beside_source(&name).is_none() && !absolute {
+            // The old compiler looks for such a name in its own folder, for one with a single leading slash on
+            // its own drive (`e02`, `e03`, `e08`, `e18`) and for one with a drive and no slash after it
+            // (`C:game.ico`) in the folder it stands in on that drive, none of which has a counterpart here.
+            let msg = "a `$EXEICON` name that neither starts with `./` nor is absolute";
+            return Err(self.unsupported(tok.span, msg));
+        }
+        self.absent_stmt(node, "_ICON")?;
+        let icon = crate::ExeIcon {
+            name,
+            shown,
+            span: tok.span,
+        };
+        self.exe_icon = Some((icon, node.key()));
+        Ok(())
+    }
+
+    /// The line of the main file a node of any tree belongs to: its own line, or the line of the `$INCLUDE` that
+    /// brought its file in.
+    fn main_line(&self, (mut tree, mut offset): (TreeId, u32)) -> u32 {
+        while tree != self.program.main().id {
+            let Some((&at, _)) = self.program.includes.iter().find(|&(_, &included)| included == tree) else {
+                break;
+            };
+            (tree, offset) = at;
+        }
+        self.map.file(self.program.tree(tree).file).line_col(offset).0
     }
 
     /// A metacommand comment. Its `$STATIC` and `$DYNAMIC` decide what a `DIM` with constant bounds makes from

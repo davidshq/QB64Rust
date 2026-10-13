@@ -312,6 +312,10 @@ slice/s70_sub_name_labels
 slice/s71_tab_spc
 slice/s72_bload_peek_poke
 slice/s73_conventional_arrays
+slice/s74_sound_queue
+slice/s75_sound_wait
+slice/s76_sound_errors
+slice/s77_exeicon
 runtime_comparison/189_width
 runtime_comparison/237_csrlin_pos
 # Screen programs (m3-window-output): checked by the state of the screen they leave, tests/corpus/screen/SOURCE.md
@@ -346,6 +350,7 @@ screen/d17_tab_window
 screen/d18_get_put
 screen/g01_flags
 screen/g02_cannon
+screen/g03_capitol
 screen/g04_ironclad
 screen/g05_schooner
 screen/g06_message_box

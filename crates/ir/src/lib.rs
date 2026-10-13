@@ -609,6 +609,8 @@ pub struct Settings {
     pub window_hidden: bool,
     /// The optional parts of the runtime the program's built-ins need, in order.
     pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
+    /// The executable carries an icon (`$EXEICON`). Its file is the driver's to find, from the checked program.
+    pub exe_icon: bool,
 }
 
 /// An optional part of the runtime.
@@ -616,6 +618,8 @@ pub struct Settings {
 pub enum RuntimePart {
     /// Setting the window's icon from an image.
     Icon,
+    /// libqb's audio.
+    Audio,
 }
 
 impl Program {

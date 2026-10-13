@@ -1215,6 +1215,28 @@ pub struct Settings {
     pub window_hidden: bool,
     /// The optional parts of the runtime the program's built-ins need (the table's `dependency` column).
     pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
+    /// The icon `$EXEICON` gives the executable.
+    pub exe_icon: Option<ExeIcon>,
+}
+
+/// The icon of a program's executable (`$EXEICON:'name'`; design D4 of `m3-sound`). `sema` reads no file: whether
+/// the file is there is the driver's check.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExeIcon {
+    /// The file's name as written (taken as UTF-8), without the blanks at its ends: one that starts with `./` or
+    /// `.\` (looked for in the folder of the main source file) or an absolute one.
+    pub name: String,
+    /// The name's bytes as written, for a message (`show_bytes`): a byte that is no UTF-8 is not in `name`.
+    pub shown: String,
+    /// The metacommand's line.
+    pub span: Span,
+}
+
+impl ExeIcon {
+    /// The rest of a name that starts with `./` or `.\`; `None` for an absolute name.
+    pub fn beside_source(name: &str) -> Option<&str> {
+        name.strip_prefix("./").or_else(|| name.strip_prefix(".\\"))
+    }
 }
 
 /// An optional part of the runtime that a built-in needs linked in.
@@ -1222,6 +1244,8 @@ pub struct Settings {
 pub enum RuntimePart {
     /// Setting the window's icon from an image (`_ICON`).
     Icon,
+    /// libqb's audio (`SOUND`, `PLAY`; `BEEP` is the system's bell and needs none).
+    Audio,
 }
 
 impl RuntimePart {
@@ -1229,6 +1253,7 @@ impl RuntimePart {
     pub fn of_dependency(name: &str) -> Option<RuntimePart> {
         match name {
             "DEPENDENCY_ICON" => Some(RuntimePart::Icon),
+            "DEPENDENCY_MINIAUDIO" => Some(RuntimePart::Audio),
             _ => None,
         }
     }

@@ -647,6 +647,17 @@ impl Checker<'_> {
         Ok(StmtArg::Block { array, index })
     }
 
+    /// The supported statement `name` (one form, [`StmtRule::Plain`]) with every argument and choice left out,
+    /// as the statement of `node`: what `$EXEICON` is where it stands, `_ICON` with no argument.
+    pub(super) fn absent_stmt(&mut self, node: Node, name: &str) -> R<()> {
+        let form = *stmt_lookup(name, false)
+            .first()
+            .unwrap_or_else(|| unreachable!("`{name}` is a supported statement"));
+        let mut matched = Vec::new();
+        absent(&form.id.get().template(), &mut matched);
+        self.stmt_call(node, form, matched)
+    }
+
     /// The typed statement of a form and what its template's arguments and choices matched.
     fn stmt_call(&mut self, node: Node, form: StmtSupported, matched: Vec<Matched>) -> R<()> {
         self.runtime_part(form.id, form.name, node.span())?;

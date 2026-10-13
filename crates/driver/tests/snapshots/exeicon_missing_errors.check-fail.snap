@@ -1,0 +1,7 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+exeicon_missing_errors.bas:8:1: error: the file `./inc/missing.ico` of `$EXEICON` is not found
+exeicon_missing_errors.bas:9:5: error: cannot store a string in a number variable

@@ -83,6 +83,14 @@ is the old compiler's order (`qb64pe.bas` 13706–13721). `BEEP` has no dependen
 The libqb variant with audio and libqb's audio library are built by the clone's `Makefile` into its git-ignored
 folders the first time, as the window variant was.
 
+Looked at in task 1.2 (four programs built outside the repository: `SOUND`; `$EXEICON`; both; both with a
+window): the old compiler records its `make` line nowhere (`internal\temp\debug_win.bat` holds the debugger's
+call only), so the order of the flags is the source's. Its compile log shows what they do: a program with
+`SOUND` is compiled with `-DDEPENDENCY_AUDIO_MINIAUDIO` and linked with `audio.a`; one with `$EXEICON` is compiled
+with `-DDEPENDENCY_ICON` (the `_ICON` statement the line becomes, D4) where the others have
+`-DDEPENDENCY_NO_ICON`, and `windres` makes `icon.o` from `internal\temp\icon.rc`, which holds the one line
+`0 ICON "icon.ico"`.
+
 The other built-ins with that dependency (27 names in `tools\builtins\builtins.json`) (`_SNDOPEN`, `_SNDPLAY`, …) have no row in `SUPPORTED` or
 `STATEMENTS` and stay "not supported yet" by name, as before.
 
@@ -93,7 +101,10 @@ The other built-ins with that dependency (27 names in `tools\builtins\builtins.j
 1. The line's text in upper case starts with `$EXEICON` (so `$EXEICONS:'…'` and `$EXEICON '…'` are the same
    metacommand, `e20`, `e08`).
 2. A second one in the program is an error that names the first one's line, before anything else of the line is
-   read (`e05`, `e27`). "Second" counts the lines that are compiled, in source order, across included files.
+   read (`e05`, `e27`). "Second" counts the lines that are compiled, in source order, across included files
+   (`e29`: the second inside an included file; `e30`: one in a `$IF` branch that is not taken does not count).
+   The line the error names is a line of the main source file: for a first one inside an included file, the
+   line of its `$INCLUDE` (`e31`).
 3. The name is the text between the first two `'`, without blanks at its ends; no two quotes or an empty name is
    "expected `$EXEICON:'filename'`" (`e06`, `e07`, `e17`, `e19`).
 4. The rest of the line is dropped (`e09`, `e22`, `e24`). How the lexer cuts such a line today (the token may end
@@ -104,13 +115,15 @@ The other built-ins with that dependency (27 names in `tools\builtins\builtins.j
 6. The program's settings get the icon: the name as written, the span of the line, and the class of the name:
    - starts with `./` or `.\`: relative to the folder of the main source file (`e01`, `e12`, `e21`);
    - absolute (a drive letter and a colon, or two leading slashes or backslashes of a share): as written. Not
-     recorded in `verification\` (it would hold a local path); read from the source and tried once outside the
-     repository in task 1.2;
+     recorded in `verification\` (it would hold a local path); read from the source and tried outside the
+     repository in task 1.2: a name with a drive letter is found, and a missing one is "File '…' not found"
+     with the name's folder;
    - anything else: "not supported yet" at the line. The old compiler looks for such a name in its own folder
      (`e02`, `e03`, `e08`, `e18`: "File 'icon.ico' not found" for a file that lies beside the program), which
      has no counterpart here. A name with one leading slash is in this class: on Windows it is relative to a
-     drive, and the old compiler takes the drive of its own folder. Listed in `SOMEDAY.md` under "QB64pe
-     behaviours to review".
+     drive, and the old compiler takes the drive of its own folder (tried in task 1.2: such a name was found
+     on the compiler's drive, and a missing one reported with that drive's letter). Listed in `SOMEDAY.md`
+     under "QB64pe behaviours to review".
 
 A `$EXEICON` line inside a comment (`'$EXEICON:'…'`, `REM $EXEICON:'…'`) is a comment and nothing else (`e14`),
 which is how the compiler reads it today; a test pins it.
@@ -160,11 +173,20 @@ A file that is not an icon fails in `windres`, and the build fails as the old co
 | The game's own `PLAY` lines | `g03_capitol` compiles and its screen matches (the lines are not reached) | slice list, screen program |
 | What is heard | not checked | |
 
+Found in task 1.2 and not known when the table was written (`v29_g_voice`, `v29_h_sound_ranges`; `PlayMML` in
+`audio.cpp` pauses all voices, reads the strings and resumes them): a `PLAY` with more than one string never
+holds the program, whatever its voices' modes, and it ends a `SOUND WAIT`. A voice other than 0 is put in the
+background by `MB` in its own string (`PLAY "", "MB"`). The wait program has a line for each; the error
+program uses no `PLAY` with two strings before its last line, so that nothing it queued is released.
+
 Three rules for the programs that run:
 
-- **No noise.** Each slice program sets volume 0 for its voices before its first sound, if task 1.2 measures
-  that the queue lengths and waits are the same at volume 0 as at the default. If they are not, the programs
-  play at a low volume and the design says so here. `g03_capitol` plays nothing: it was cut from the game with
+- **No noise.** Each slice program plays at volume 0: `SOUND`'s third argument in every `SOUND`, and `V0` at
+  the start of the first `PLAY` string of each voice it uses. Measured in task 1.2 (`v29_d_volume_zero`,
+  `v29_f_queue_slice`): the queue lengths and the waits at volume 0 are those at the default volume. The
+  volume is a setting of the voice, kept from one statement to the next and shared by `SOUND` and `PLAY`
+  (read in `audio.cpp`, `SetAmplitude` on the voice's generator; a program cannot observe it). `g03_capitol`
+  plays nothing: it was cut from the game with
   the sound option off, so its `PLAY` lines are compiled and not reached.
 - **`BEEP` is never run.** It is the operating system's bell, not libqb's audio. It joins the explicit list of
   built-ins that are compiled and not reached in a slice program and that must have call-site programs. That
@@ -178,7 +200,9 @@ Three rules for the programs that run:
   neither: it prints between its readings, and three of its lines sit at a rounding edge (`T120 L4 C.`, 7.5
   tenths; `T120 C8`, 2.5; `SOUND 440, 1`, 0.55). Its numbers were equal in two runs alone, which says nothing
   about a run with eight jobs; those three forms are not taken into the slice program as they are (a dotted
-  note is measured at a whole number of tenths in task 1.2). A time is never printed, only compared with a
+  note at a whole number of tenths is `T60 L4 C.`, 15). Measured in task 1.2: `v29_f_queue_slice`, written
+  this way with 21 statements, gave the same output in three recordings alone and in 24 runs made eight at a
+  time. A time is never printed, only compared with a
   limit far from the expected value and on the side load cannot reach: a 2-second note in the foreground must
   take over 1.2 s (expected 1.65) and has no upper limit; the same note in the background must take under
   0.3 s, many times what the call takes.
@@ -223,8 +247,13 @@ the call-site check proves form by form; the samples would test libqb.
   programs fail there, and GitHub's Windows runner may be such a machine] → not known until the `tier2` job is
   run by hand (CI is not a gate, `CLAUDE.md` working rule 9). If it is, the two programs move from `slice.list`
   to a list run locally, as planned for the screen programs. The error program is written so that it passes
-  either way where the old compiler's order of checks allows (frequency and duration are checked before the
-  device is touched; task 1.2 measures which of the others are).
+  either way where the old compiler's order of checks allows. Read in `audio.cpp` (`PlayWaveform`, `PlayMML`;
+  no such machine is at hand): `SOUND` with no argument and a frequency, a duration or a voice out of range
+  are checked before the device is asked for and raise error 5 on any machine; a volume, a pan position, a
+  waveform and a waveform parameter are checked after it and raise nothing without a device; without one no
+  `PLAY` string is read at all, so none of its errors is raised. The error program therefore has the four
+  checks of any machine in a part of their own, which is what stays on `slice.list` if the runner has no
+  device.
 - [A wait measured under eight jobs is longer than alone] → the limits are one-sided where load can only add
   time ("took over 1.2 s", with no "under" beside it as `v29_b_sound_wait` has), and the "returned at once"
   limits are many times the expected value. The closing
@@ -239,8 +268,9 @@ the call-site check proves form by form; the samples would test libqb.
 
 ## Open Questions
 
-For the user, put in task 1.3; none changes the approach, and each has the default the design is written for:
+None open. The three put to the user in task 1.3 were each answered with the default the design is written for
+(`DECISIONS.md` 2026-10-13):
 
-1. Tests of sound play at volume 0, and `BEEP` is never run (D6). Default: yes.
-2. A relative `$EXEICON` name without `./` stays "not supported yet" (D4). Default: yes.
-3. The game is built by a test and started once by hand, not run by a test (D7). Default: yes.
+1. Tests of sound play at volume 0, and `BEEP` is never run (D6): yes.
+2. A relative `$EXEICON` name without `./` stays "not supported yet" (D4): yes.
+3. The game is built by a test and started once by hand, not run by a test (D7): yes.

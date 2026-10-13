@@ -24,9 +24,14 @@ fn settings(s: &Settings) -> String {
             .iter()
             .map(|p| match p {
                 RuntimePart::Icon => "icon",
+                RuntimePart::Audio => "audio",
             })
             .collect();
         parts.push(format!("runtime parts: {}", names.join(", ")));
+    }
+    if s.exe_icon {
+        // Not the name: an absolute one would put a folder of the machine into a dump.
+        parts.push("an icon for the executable".to_string());
     }
     parts.join(", ")
 }

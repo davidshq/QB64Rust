@@ -67,26 +67,49 @@ pub fn write_fragments(build: &Path, fragments: &Fragments) -> std::io::Result<P
     Ok(temp)
 }
 
+/// The icon of the executable (design D5 of `m3-sound`; `qb64pe.bas` 13551–13604): a copy of the file as
+/// `<build>/temp/icon.ico` and the resource file `icon.rc` that names it, in the old compiler's one line. With the
+/// make flag `DEP_ICON_RC=y` the clone's `Makefile` runs `windres` on that file and links the result. A file that
+/// is no icon fails there, as in the old compiler's build. The copy is of the bytes alone: `std::fs::copy` would
+/// make the copy of a read-only icon read-only, and the next build into a kept folder could not replace it.
+pub fn write_icon(build: &Path, icon: &Path) -> std::io::Result<()> {
+    let temp = build.join("temp");
+    std::fs::create_dir_all(&temp)?;
+    std::fs::write(temp.join(ICON_FILES[0]), std::fs::read(icon)?)?;
+    std::fs::write(temp.join(ICON_FILES[1]), "0 ICON \"icon.ico\"\n")
+}
+
+/// The files [`write_icon`] writes into `<build>/temp`.
+const ICON_FILES: [&str; 2] = ["icon.ico", "icon.rc"];
+
+/// The make flag that links the icon `$EXEICON` names.
+const ICON_RC_FLAG: &str = "DEP_ICON_RC=y";
+
 fn slash(p: &Path) -> String {
     p.to_string_lossy().replace('\\', "/")
 }
 
 /// The make flags a program's settings ask for: the old compiler's, in its order (`qb64pe.bas` 13706–13721;
 /// compared with its builds of four programs, design D3 of `m2-console-screenhide`). A program without a window
-/// links the libqb without one; a console links with `-mconsole`; the icon part is a libqb variant of its own.
+/// links the libqb without one; a console links with `-mconsole`; the icon part is a libqb variant of its own, as
+/// is the audio part; `DEP_ICON_RC=y` links the icon `$EXEICON` names ([`write_icon`]).
 /// The clone's `Makefile` names each variant's object by the flags, so the variants stand side by side.
 pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     let mut flags = Vec::new();
     if !s.window {
         flags.push("DEP_CONSOLE_ONLY=y");
     }
-    for part in &s.runtime_parts {
-        match part {
-            qb64rust_ir::RuntimePart::Icon => flags.push("DEP_ICON=y"),
-        }
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Icon) {
+        flags.push("DEP_ICON=y");
     }
     if s.console {
         flags.push("DEP_CONSOLE=y");
+    }
+    if s.exe_icon {
+        flags.push(ICON_RC_FLAG);
+    }
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Audio) {
+        flags.push("DEP_AUDIO_MINIAUDIO=y");
     }
     flags
 }
@@ -174,6 +197,16 @@ fn build_key(root: &Path, build: &Path, settings: &Settings) -> String {
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default(),
         );
+    }
+    // The icon of the executable and its resource file, for a program that has one ([`write_icon`]). Only then
+    // does `make` read them: a kept build folder may hold those of an earlier build.
+    if settings.flags.contains(&ICON_RC_FLAG) {
+        for name in ICON_FILES {
+            let p = build.join("temp").join(name);
+            if p.is_file() {
+                h.file(&p, name);
+            }
+        }
     }
     h.file(&root.join("internal/c/qbx.cpp"), "qbx.cpp");
     h.file(&root.join("Makefile"), "Makefile");
@@ -357,6 +390,7 @@ mod tests {
             window,
             window_hidden: false,
             runtime_parts: icon.then_some(qb64rust_ir::RuntimePart::Icon).into_iter().collect(),
+            exe_icon: false,
         }
     }
 
@@ -408,5 +442,108 @@ mod tests {
         assert_ne!(only, window);
         assert_ne!(window, icon);
         assert_eq!(window, key(&program_settings(true, true, false)));
+        // A program with sound is built against another libqb than the same program without.
+        assert_ne!(only, key(&with_audio(program_settings(true, false, false))));
+    }
+
+    /// The icon files of a kept build folder: those of an earlier build are in no key of a program without
+    /// `$EXEICON`; a read-only icon is copied without that attribute, so the next build replaces the copy.
+    #[test]
+    fn icon_files_of_a_kept_build_folder() {
+        let d = tempfile::tempdir().unwrap();
+        let build = d.path().join("build");
+        let key = |flags: Vec<&'static str>| {
+            let settings = Settings {
+                flags,
+                ..Settings::default()
+            };
+            build_key(d.path(), &build, &settings)
+        };
+        let (plain, with_icon) = (key(vec![]), key(vec![ICON_RC_FLAG]));
+        let icon = d.path().join("game.ico");
+        std::fs::write(&icon, "first").unwrap();
+        let mut read_only = std::fs::metadata(&icon).unwrap().permissions();
+        read_only.set_readonly(true);
+        std::fs::set_permissions(&icon, read_only).unwrap();
+        write_icon(&build, &icon).unwrap();
+        write_icon(&build, &icon).unwrap();
+        assert_eq!(std::fs::read(build.join("temp/icon.ico")).unwrap(), b"first");
+        assert_eq!(plain, key(vec![]));
+        assert_ne!(with_icon, key(vec![ICON_RC_FLAG]));
+        // So that the folder can be removed.
+        let mut writable = std::fs::metadata(&icon).unwrap().permissions();
+        #[expect(clippy::permissions_set_readonly_false, reason = "a scratch file of the test")]
+        writable.set_readonly(false);
+        std::fs::set_permissions(&icon, writable).unwrap();
+    }
+
+    /// `$EXEICON`: the flag of the icon resource follows the console's and comes before the audio part's
+    /// (`qb64pe.bas` 13717–13721; design D5 of `m3-sound`). The statement the line becomes is `_ICON`, so the icon
+    /// part of the runtime is there too.
+    #[test]
+    fn make_flags_of_a_program_with_an_exe_icon() {
+        let icon = |mut s: qb64rust_ir::Settings| {
+            s.exe_icon = true;
+            s
+        };
+        assert_eq!(
+            make_flags(&icon(program_settings(true, false, true))),
+            ["DEP_CONSOLE_ONLY=y", "DEP_ICON=y", "DEP_CONSOLE=y", "DEP_ICON_RC=y"]
+        );
+        assert_eq!(
+            make_flags(&icon(with_audio(program_settings(false, true, true)))),
+            ["DEP_ICON=y", "DEP_ICON_RC=y", "DEP_AUDIO_MINIAUDIO=y"]
+        );
+    }
+
+    /// The icon's bytes are part of the key: a changed icon is another executable (spec `compiler/pipeline`, "A
+    /// changed icon"). That a build without an icon has the key it had before there were icons is
+    /// `icon_files_of_a_kept_build_folder`'s to check.
+    #[test]
+    fn build_key_follows_the_icon() {
+        let d = tempfile::tempdir().unwrap();
+        let icon = d.path().join("game.ico");
+        let with_icon = Settings {
+            flags: vec![ICON_RC_FLAG],
+            ..Settings::default()
+        };
+        let key = || build_key(d.path(), d.path(), &with_icon);
+        let none = key();
+        std::fs::write(&icon, [0, 0, 1, 0, 1]).unwrap();
+        write_icon(d.path(), &icon).unwrap();
+        let first = key();
+        assert_ne!(none, first);
+        assert_eq!(first, key());
+        std::fs::write(&icon, [0, 0, 1, 0, 2]).unwrap();
+        write_icon(d.path(), &icon).unwrap();
+        assert_ne!(first, key());
+        assert_eq!(
+            std::fs::read(d.path().join("temp/icon.rc")).unwrap(),
+            b"0 ICON \"icon.ico\"\n"
+        );
+    }
+
+    fn with_audio(mut s: qb64rust_ir::Settings) -> qb64rust_ir::Settings {
+        s.runtime_parts.insert(qb64rust_ir::RuntimePart::Audio);
+        s
+    }
+
+    /// `SOUND` and `PLAY` need libqb's audio part; its flag is the old compiler's last (`qb64pe.bas` 13721; design
+    /// D3 of `m3-sound`). A program with only `BEEP` has no runtime part and so the flags of any program.
+    #[test]
+    fn make_flags_of_a_program_with_sound() {
+        assert_eq!(
+            make_flags(&with_audio(program_settings(false, true, false))),
+            ["DEP_AUDIO_MINIAUDIO=y"]
+        );
+        assert_eq!(
+            make_flags(&with_audio(program_settings(true, false, false))),
+            ["DEP_CONSOLE_ONLY=y", "DEP_CONSOLE=y", "DEP_AUDIO_MINIAUDIO=y"]
+        );
+        assert_eq!(
+            make_flags(&with_audio(program_settings(true, true, true))),
+            ["DEP_ICON=y", "DEP_CONSOLE=y", "DEP_AUDIO_MINIAUDIO=y"]
+        );
+        assert!(make_flags(&program_settings(false, true, false)).is_empty());
     }
 }

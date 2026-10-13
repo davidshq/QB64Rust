@@ -36,7 +36,8 @@ fn run(name: &str, path: &Path, bytes: Vec<u8>, mode: &str) -> Result<Option<Str
     // its own, so that a file next to the main file is not found through the root); diagnostics name them
     // relative to the test file.
     let root = frontend_dir().join("inc/root");
-    let fe = frontend_with(name, bytes.clone(), |file| Box::new(FileLoader::new(&root, file, path)));
+    let mut fe = frontend_with(name, bytes.clone(), |file| Box::new(FileLoader::new(&root, file, path)));
+    qb64rust_driver::check_exe_icon(&mut fe, path);
     let syntax_errors = fe.parsed.diagnostics().has_errors();
     match mode {
         "parse-ok" => {

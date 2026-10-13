@@ -4,8 +4,8 @@ $CONSOLE:ONLY
 ' with a number; the SHELL function by its bare name, with a number, with two arguments; COMMAND$ with a string, two
 ' arguments, empty parentheses; ENVIRON$ by its bare name, with two arguments, empty parentheses; _ACOS with a
 ' string, with two arguments; _CEIL by its bare name; _STRCMP with a number, with one argument; _STARTDIR$ with
-' empty parentheses, with an argument (v22_x186, x187). Left "not supported yet", though the old compiler accepts
-' it (v22_x166): CALL SHELL(c$)
+' empty parentheses, with an argument (v22_x186, x187). CALL SHELL(c$) (v22_x166) compiles since m3-sound
+' (call_template_ir.bas)
 DIM s AS STRING, n AS LONG, d AS DOUBLE
 SHELL 5
 SHELL _HIDE n
@@ -25,4 +25,3 @@ n = _STRCMP(1, "a")
 n = _STRICMP("a")
 s = _STARTDIR$()
 s = _STARTDIR$(1)
-CALL SHELL("echo x")

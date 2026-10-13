@@ -145,7 +145,7 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_SOURCE", Rule::Plain),
     ("_CONSOLE", Rule::Plain),
     // The window functions (design D6 of `m2-console-screenhide`, measured from the old compiler's C++): compiled
-    // and never run yet ([`WINDOW_BUILTINS`]). No slot and called bare only, a LONG, but for the three below.
+    // and never run yet ([`NEVER_RUN`]). No slot and called bare only, a LONG, but for the three below.
     ("_SCREENICON", Rule::Plain),
     ("_DESKTOPWIDTH", Rule::Plain),
     ("_DESKTOPHEIGHT", Rule::Plain),
@@ -180,7 +180,7 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("VARPTR", Rule::Fixed(Ty::I64)),
     ("VARSEG", Rule::Fixed(Ty::I64)),
     // `_RGB32` with one to four LONG slots (libqb has an entry for each number of arguments) and `_RGBA32` with
-    // four: an `_UNSIGNED LONG`. `_FULLSCREEN` has no slot and is called bare only, a LONG ([`WINDOW_BUILTINS`]).
+    // four: an `_UNSIGNED LONG`. `_FULLSCREEN` has no slot and is called bare only, a LONG ([`NEVER_RUN`]).
     ("_RGB32", Rule::GivenArgs(1)),
     ("_RGBA32", Rule::Plain),
     ("_FULLSCREEN", Rule::Plain),
@@ -188,6 +188,9 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // history file, on a line `TAB` kept marked until now.
     ("DATE$", Rule::Plain),
     ("TIME$", Rule::Plain),
+    // `PLAY[(voice)]`: the seconds of sound left to play in a voice, a DOUBLE; one optional slot, so it is also
+    // called bare (design D1 of `m3-sound`; `verification\v29_x55`–`x60`).
+    ("PLAY", Rule::Plain),
 ];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
@@ -240,7 +243,7 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_SOURCE", StmtRule::Plain),
     ("_ECHO", StmtRule::Plain),
     // The window statements (design D6 of `m2-console-screenhide`): compiled and never run yet
-    // ([`WINDOW_BUILTINS`]).
+    // ([`NEVER_RUN`]).
     ("_SCREENHIDE", StmtRule::Plain),
     ("_SCREENSHOW", StmtRule::Plain),
     ("_SCREENICON", StmtRule::Plain),
@@ -281,18 +284,25 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("POKE", StmtRule::Plain),
     ("BLOAD", StmtRule::Plain),
     ("BSAVE", StmtRule::Plain),
-    // `_FULLSCREEN [mode][, _SMOOTH]`: compiled and never run ([`WINDOW_BUILTINS`]).
+    // `_FULLSCREEN [mode][, _SMOOTH]`: compiled and never run ([`NEVER_RUN`]).
     ("_FULLSCREEN", StmtRule::Plain),
     // Graphics `GET` and `PUT` (design D5 of `m3-get-put-bload`; `verification\v28_x10`–`x25`): the array is
     // a slot of its own kind ([`Slot::Block`]).
     ("GET", StmtRule::Graphics),
     ("PUT", StmtRule::Graphics),
+    // Sound (design D1 of `m3-sound`; `verification\v29_x01`–`x86`): each the plain call of its row and template.
+    // `SOUND` and `PLAY` need libqb's audio part ([`crate::RuntimePart::Audio`]); `BEEP` is never run
+    // ([`NEVER_RUN`]).
+    ("SOUND", StmtRule::Plain),
+    ("PLAY", StmtRule::Plain),
+    ("BEEP", StmtRule::Plain),
 ];
 
-/// The window built-ins, as written: statements and functions that no test runs yet, because what they do shows
-/// only in a window (M3). The coverage check of tier 1 wants each in a slice program as code that is compiled and
-/// not reached, and in a call-site program (`tests\callsite`), which compares its call with the old compiler's.
-pub const WINDOW_BUILTINS: &[&str] = &[
+/// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
+/// is compiled and not reached, and in a call-site program (`tests\callsite`), which compares its call with the old
+/// compiler's.
+pub const NEVER_RUN: &[&str] = &[
+    // The window built-ins: what they do shows only in a window, outside the state the screen check reads.
     "_SCREENHIDE",
     "_SCREENSHOW",
     "_SCREENICON",
@@ -313,6 +323,8 @@ pub const WINDOW_BUILTINS: &[&str] = &[
     "_WINDOWHASFOCUS",
     "_NEWIMAGE",
     "_FULLSCREEN",
+    // `BEEP` rings the system's bell: it is not libqb's audio, so no volume silences it (design D6 of `m3-sound`).
+    "BEEP",
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.

@@ -154,7 +154,7 @@ fn include_root() {
 #[test]
 fn unknown_statement() {
     let d = scratch("unknown");
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\nBEEP\n").unwrap();
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\nFILES\n").unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
     assert!(
@@ -169,7 +169,7 @@ fn unknown_statement() {
 #[test]
 fn summary() {
     let d = scratch("summary");
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nSTOP\nPRINT 1 +\nBEEP\n").unwrap();
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nSTOP\nPRINT 1 +\nFILES\n").unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
     let out = stdout(&o);
@@ -358,6 +358,169 @@ fn extra_linker_flags_link_the_screen_state_file() {
         text.escape_ascii()
     );
     assert!(text.ends_with(b"end\n"), "{}", text.escape_ascii());
+}
+
+/// The smallest icon file: one image of 16 by 16 pixels with 32 bits each, every pixel of colour `fill` (four
+/// bytes: blue, green, red, alpha). The resource compiler puts the image, the bytes from offset 22 on, into the
+/// executable as they are.
+fn icon_16(fill: [u8; 4]) -> Vec<u8> {
+    let image_len: u32 = 40 + 16 * 16 * 4 + 16 * 4;
+    let mut ico = Vec::new();
+    // The file's header: reserved, type 1 (an icon), one image.
+    ico.extend([0, 0, 1, 0, 1, 0]);
+    // The entry of the image: width, height, no palette, reserved, 1 plane, 32 bits, its length and its offset.
+    ico.extend([16, 16, 0, 0, 1, 0, 32, 0]);
+    ico.extend(image_len.to_le_bytes());
+    ico.extend(22u32.to_le_bytes());
+    // The image: a bitmap header (its height counts the mask too), the pixels, the mask.
+    ico.extend(40u32.to_le_bytes());
+    ico.extend(16i32.to_le_bytes());
+    ico.extend(32i32.to_le_bytes());
+    ico.extend([1, 0, 32, 0]);
+    ico.extend([0; 24]);
+    for _ in 0..16 * 16 {
+        ico.extend(fill);
+    }
+    ico.extend([0; 16 * 4]);
+    ico
+}
+
+fn holds(haystack: &[u8], needle: &[u8]) -> bool {
+    haystack.windows(needle.len()).any(|w| w == needle)
+}
+
+/// Spec `language/console-and-window`, "Errors of $EXEICON", scenario "A missing file": an error at the line for
+/// every command that reports diagnostics, naming the file as written; no executable and nothing built.
+#[test]
+fn exe_icon_file_is_missing() {
+    let d = scratch("icon-missing");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\n$EXEICON:'./none.ico'\nPRINT 1\nSYSTEM\n",
+    )
+    .unwrap();
+    let line = "p.bas:2:1: error: the file `./none.ico` of `$EXEICON` is not found\n1 error\n";
+    for args in [
+        &["-x", "p.bas"][..],
+        &["-z", "p.bas"],
+        &["p.bas", "--dump", "ir"],
+        &["p.bas", "--dump", "typed"],
+    ] {
+        let o = qb64rust(&d, args);
+        assert_eq!(o.status.code(), Some(1), "{args:?}: {}", stdout(&o));
+        assert_eq!(stdout(&o), line, "{args:?}");
+    }
+    assert!(!d.join("p.exe").exists());
+    let o = qb64rust(&d, &["--report", "unsupported", "p.bas"]);
+    assert!(
+        stdout(&o).contains("0 without errors, 0 with only \"not supported yet\" errors, 1 with other errors"),
+        "{}",
+        stdout(&o)
+    );
+    // With the file there, the same program has no diagnostic.
+    std::fs::write(d.join("none.ico"), icon_16([1, 2, 3, 255])).unwrap();
+    let o = qb64rust(&d, &["p.bas", "--dump", "ir"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(
+        stdout(&o).starts_with("Settings: console, no window, runtime parts: icon, an icon for the executable\n"),
+        "{}",
+        stdout(&o)
+    );
+}
+
+/// Where the icon of a `./` name is looked for: the rest of the name is added to the source file's folder as text
+/// (`qb64pe.bas` 3853), so a rest that starts with a slash stays in that folder; a name is taken as UTF-8, as an
+/// included file's is. A drive with no slash after it is no absolute name.
+#[test]
+fn exe_icon_name_forms() {
+    let d = scratch("icon-names");
+    std::fs::create_dir_all(d.join("sub")).unwrap();
+    std::fs::write(d.join("sub").join("a.ico"), icon_16([1, 2, 3, 255])).unwrap();
+    std::fs::write(d.join("ícone.ico"), icon_16([1, 2, 3, 255])).unwrap();
+    for name in [".//sub/a.ico", "./ícone.ico"] {
+        std::fs::write(d.join("p.bas"), format!("$CONSOLE:ONLY\n$EXEICON:'{name}'\nSYSTEM\n")).unwrap();
+        let o = qb64rust(&d, &["p.bas", "--dump", "ir"]);
+        assert!(o.status.success(), "{name}: {}", stdout(&o));
+    }
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\n$EXEICON:'./não.ico'\nSYSTEM\n").unwrap();
+    let o = qb64rust(&d, &["p.bas", "--dump", "ir"]);
+    assert_eq!(
+        stdout(&o),
+        "p.bas:2:1: error: the file `./n\\xC3\\xA3o.ico` of `$EXEICON` is not found\n1 error\n"
+    );
+    // A byte that is no UTF-8 is shown as written.
+    std::fs::write(d.join("p.bas"), b"$CONSOLE:ONLY\n$EXEICON:'./n\xE3o.ico'\nSYSTEM\n").unwrap();
+    let o = qb64rust(&d, &["p.bas", "--dump", "ir"]);
+    assert_eq!(
+        stdout(&o),
+        "p.bas:2:1: error: the file `./n\\xE3o.ico` of `$EXEICON` is not found\n1 error\n"
+    );
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\n$EXEICON:'C:game.ico'\nSYSTEM\n").unwrap();
+    let o = qb64rust(&d, &["p.bas", "--dump", "ir"]);
+    assert!(
+        stdout(&o).contains("neither starts with `./` nor is absolute"),
+        "{}",
+        stdout(&o)
+    );
+}
+
+/// Spec `compiler/pipeline`, "The build follows the program", scenarios "An icon in the executable" and "A changed
+/// icon": the executable holds the image of the icon `$EXEICON` names, and after the file changes, the new one.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn exe_icon_is_in_the_executable() {
+    let d = scratch("icon");
+    let (first, second) = (icon_16([0x11, 0x22, 0x33, 0xff]), icon_16([0x44, 0x55, 0x66, 0xff]));
+    std::fs::write(d.join("game.ico"), &first).unwrap();
+    let program = "$CONSOLE:ONLY\nPRINT \"before\"\n$EXEICON:'./game.ico'\nPRINT \"after\"\nSYSTEM\n";
+    assert_eq!(build_and_run(&d, program), "before\nafter\n");
+    let exe = std::fs::read(d.join("p.exe")).unwrap();
+    assert!(holds(&exe, &first[22..]));
+    assert!(!holds(&exe, &second[22..]));
+    std::fs::write(d.join("game.ico"), &second).unwrap();
+    assert_eq!(build_and_run(&d, program), "before\nafter\n");
+    let exe = std::fs::read(d.join("p.exe")).unwrap();
+    assert!(holds(&exe, &second[22..]));
+    // A program without the line carries neither.
+    assert_eq!(build_and_run(&d, "$CONSOLE:ONLY\nPRINT \"none\"\nSYSTEM\n"), "none\n");
+    assert!(!holds(&std::fs::read(d.join("p.exe")).unwrap(), &second[22..]));
+}
+
+/// Spec `compiler/pipeline`, scenario "A file that is not an icon": the front end accepts it and the build fails,
+/// as the old compiler's does (`verification\v29_e16`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn exe_icon_that_is_no_icon_fails_the_build() {
+    let d = scratch("icon-text");
+    std::fs::write(d.join("game.ico"), "this is not an icon\n").unwrap();
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\n$EXEICON:'./game.ico'\nSYSTEM\n").unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+    assert!(!exe.exists());
+}
+
+/// Spec `testing/compiler-tests`, "A real program taken whole compiles", scenario "The executable": Civil War
+/// Strategy builds, from a copy of its source and icon (its executable and build folder never touch the
+/// repository), and the executable holds the first image of `cws.ico`. The game is not started: it needs its data
+/// files and a player (`tests\programs\README.md`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn civil_war_strategy_builds() {
+    let d = scratch("cws");
+    let game = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/programs/civil-war-strategy");
+    for file in ["CWSTRAT.BAS", "cws.ico"] {
+        std::fs::copy(game.join(file), d.join(file)).unwrap();
+    }
+    let exe = d.join("CWSTRAT.exe");
+    let o = qb64rust(&d, &["-q", "-x", "CWSTRAT.BAS", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(stdout(&o), "", "a diagnostic or a warning");
+    let ico = std::fs::read(d.join("cws.ico")).unwrap();
+    // The first entry of the icon's directory (at offset 6): the length of its image at 8, the offset at 12.
+    let field = |at: usize| u32::from_le_bytes(ico[at..at + 4].try_into().unwrap()) as usize;
+    let (len, offset) = (field(6 + 8), field(6 + 12));
+    assert!(holds(&std::fs::read(&exe).unwrap(), &ico[offset..offset + len]));
 }
 
 /// Builds `program` as `p.bas` in `d` with `-q -x`, runs it and gives its output with `\n` line ends.

@@ -44,8 +44,8 @@ impl Parser<'_, '_> {
         let mut furthest = 1;
         for (_, items) in &forms {
             let mut plan = Vec::new();
-            if self.match_items(&mut vec![items.as_slice()], 1, &mut plan, &mut furthest) {
-                self.build(&plan);
+            if self.match_items(&mut vec![items.as_slice()], 1, None, &mut plan, &mut furthest) {
+                self.build(&plan, 1, 0);
                 return true;
             }
         }
@@ -57,43 +57,110 @@ impl Parser<'_, '_> {
         true
     }
 
-    /// Matches the items of `stack` (the innermost sequence last) from significant index `pos` to the end of the
-    /// statement, adding steps to `plan`. Backtracks: on failure `plan` is as it was.
-    fn match_items(&self, stack: &mut Vec<&[Item]>, pos: usize, plan: &mut Vec<Step>, furthest: &mut usize) -> bool {
+    /// At `CALL name(…)` or `CALL name` where the name is a built-in statement with a template: the old compiler
+    /// reads the template's forms between the parentheses (measured, `verification\v26_x74`, `v27_x02`, `v28_x65`,
+    /// `v29_x27`, `x87`–`x98`; `qb64pe.bas` 10617–10627: `CALL LINE((1, 2)-(3, 4), 5, BF)`, `CALL CLS`, `CALL
+    /// SOUND(440, 1 WAIT)`). Parses a match as a `BuiltinStmt` that starts with `CALL` and holds the parentheses.
+    /// What the old compiler rejects is an error here: anything but one pair of parentheses with something
+    /// between them after the name ("Expected CALL sub-name (...)": `CALL CLS()`, `CALL SOUND(440, 1) WAIT`,
+    /// `CALL VIEW PRINT`), and a part no form matches (`CALL PSET(1, 2)`, `CALL PLAY`). Returns false, taking
+    /// nothing, when the name is no such statement or has a template of one argument, which is an expression
+    /// list (`CALL _DEST(h)`).
+    pub(super) fn template_call(&mut self) -> bool {
+        let forms = statement_templates(self.nth_text(1));
+        if forms.is_empty() || forms.iter().any(|(_, items)| matches!(items[..], [Item::Arg])) {
+            return false;
+        }
+        // The significant indexes of the first token inside the parentheses and of the closing parenthesis.
+        let (from, end) = if self.ends_at(2) {
+            (2, 2)
+        } else {
+            match self.skip_parens(2) {
+                Some(after) if self.nth(2) == Some(LParen) && self.ends_at(after) && after > 4 => (3, after - 1),
+                found => {
+                    let name = qb64rust_base::show_bytes(self.nth_text(1)).to_ascii_uppercase();
+                    // The old compiler has one message for both; `CALL CLS()` has its parentheses.
+                    let empty = found == Some(4) && self.nth(2) == Some(LParen) && self.ends_at(4);
+                    self.start_node(CallStmt);
+                    self.bump(); // CALL
+                    self.bump(); // the statement's name
+                    let span = self.current_span();
+                    self.error_at(
+                        span,
+                        if empty {
+                            format!("expected something between the parentheses of `CALL {name}(…)`")
+                        } else {
+                            format!("expected `CALL {name}(…)`, the parentheses around all that follows")
+                        },
+                    );
+                    self.rest_into_error_node();
+                    self.finish_node();
+                    return true;
+                }
+            }
+        };
+        let mut furthest = from;
+        for (_, items) in &forms {
+            let mut plan = Vec::new();
+            if self.match_items(&mut vec![items.as_slice()], from, Some(end), &mut plan, &mut furthest) {
+                self.build(&plan, 2, if from == end { end } else { end + 1 });
+                return true;
+            }
+        }
+        self.start_node(CallStmt);
+        self.bump(); // CALL
+        self.no_form(&forms, furthest - 1);
+        self.finish_node();
+        true
+    }
+
+    /// Matches the items of `stack` (the innermost sequence last) from significant index `pos` to `end` (the end of
+    /// the statement when `None`), adding steps to `plan`. Backtracks: on failure `plan` is as it was.
+    fn match_items(
+        &self,
+        stack: &mut Vec<&[Item]>,
+        pos: usize,
+        end: Option<usize>,
+        plan: &mut Vec<Step>,
+        furthest: &mut usize,
+    ) -> bool {
         *furthest = (*furthest).max(pos);
         let Some(seq) = stack.pop() else {
-            return self.ends_at(pos);
+            return match end {
+                Some(end) => pos == end,
+                None => self.ends_at(pos),
+            };
         };
         let ok = match seq.split_first() {
-            None => self.match_items(stack, pos, plan, furthest),
+            None => self.match_items(stack, pos, end, plan, furthest),
             Some((first, rest)) => {
                 let mark = plan.len();
                 stack.push(rest);
                 let ok = match first {
                     Item::Arg => match self.expr_extent(pos) {
-                        Some(end) => {
-                            plan.push(Step::Arg(pos, end));
-                            self.match_items(stack, end, plan, furthest)
+                        Some(after) => {
+                            plan.push(Step::Arg(pos, after));
+                            self.match_items(stack, after, end, plan, furthest)
                         }
                         None => false,
                     },
                     Item::Punct(c) => {
                         self.punct_at(pos, *c) && {
                             plan.push(Step::Punct(pos));
-                            self.match_items(stack, pos + 1, plan, furthest)
+                            self.match_items(stack, pos + 1, end, plan, furthest)
                         }
                     }
                     Item::Choice(alts) => alts.iter().any(|alt| {
                         plan.truncate(mark);
-                        self.atoms_at(pos, alt, plan) && self.match_items(stack, pos + alt.len(), plan, furthest)
+                        self.atoms_at(pos, alt, plan) && self.match_items(stack, pos + alt.len(), end, plan, furthest)
                     }),
                     Item::Optional(inner) => {
                         stack.push(inner);
-                        let with = self.match_items(stack, pos, plan, furthest);
+                        let with = self.match_items(stack, pos, end, plan, furthest);
                         stack.pop();
                         with || {
                             plan.truncate(mark);
-                            self.match_items(stack, pos, plan, furthest)
+                            self.match_items(stack, pos, end, plan, furthest)
                         }
                     }
                 };
@@ -173,11 +240,15 @@ impl Parser<'_, '_> {
         }
     }
 
-    /// Builds the `BuiltinStmt` of a match.
-    fn build(&mut self, plan: &[Step]) {
+    /// Builds the `BuiltinStmt` of a match: `lead` tokens before the template's part (the statement's name, after
+    /// `CALL` when it is there), the plan's steps, then the tokens up to significant index `until` (the closing
+    /// parenthesis after `CALL`).
+    fn build(&mut self, plan: &[Step], lead: usize, until: usize) {
         self.start_node(BuiltinStmt);
-        self.bump(); // the statement's name
-        let mut at = 1;
+        for _ in 0..lead {
+            self.bump();
+        }
+        let mut at = lead;
         for &step in plan {
             match step {
                 Step::Arg(start, end) => {
@@ -202,6 +273,7 @@ impl Parser<'_, '_> {
                 }
             }
         }
+        self.skip_to(&mut at, until);
         self.recover();
         self.finish_node();
     }

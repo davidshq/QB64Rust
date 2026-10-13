@@ -7,8 +7,9 @@ $SCREENHIDE
 ' its argument; a function with empty parentheses, with an argument it does not take, with too few or too many,
 ' with a string for a number, without its `$`, as the target of an assignment, as a statement. ERR and ERL with
 ' an argument are the same error (x76, x77). Left "not supported yet" (the old compiler accepts them, x74): the
-' statements that have a template after CALL, the function _SCREENHIDE, and _SCREENEXISTS as the argument of
-' HEX$, OCT$ or _BIN$, where the old compiler passes another width than for a LONG
+' function _SCREENHIDE, and _SCREENEXISTS as the argument of HEX$, OCT$ or _BIN$, where the old compiler passes
+' another width than for a LONG. The statements that have a template are read after CALL since m3-sound
+' (call_template_ir.bas)
 DIM n AS LONG, s AS STRING
 n = _SCREENEXISTS(1)
 n = ERR(1)
@@ -49,13 +50,6 @@ n = _WINDOWHANDLE("a")
 _SCREENX = 1
 _NEWIMAGE 1, 2
 n = _DESKTOPWIDTH(1)
-CALL _ICON
-CALL _ICON(1, 2)
-CALL _FREEIMAGE(1)
-CALL _MOUSESHOW("a")
-CALL _MOUSEHIDE(_HIDE)
-CALL _MOUSECURSOR(1, (2, 3))
-CALL _WINDOWSIZELIMIT((1, 2)-(3, 4))
 n = _SCREENHIDE
 s = HEX$(_SCREENEXISTS)
 s = OCT$(_SCREENEXISTS)

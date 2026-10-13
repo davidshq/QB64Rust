@@ -333,25 +333,46 @@ pub enum FormPart<'a> {
 }
 
 impl<'a> BuiltinStmt<'a> {
-    /// The statement's name, as written (`OPEN`, `TIME$`).
+    /// The statement's name, as written (`OPEN`, `TIME$`): the node's one word, or its second after `CALL` (the
+    /// template's words and arguments are nodes of their own).
     pub fn name(self) -> Option<Tok> {
-        self.0.child_tokens().find(|t| t.kind == Ident)
+        let mut words = self.0.child_tokens().filter(|t| t.kind == Ident);
+        let first = words.next();
+        words.next().or(first)
     }
 
-    /// The words, punctuation and arguments after the name, in source order.
+    /// The statement stands after `CALL`, its template's part between parentheses (`CALL LINE((1, 2)-(3, 4))`).
+    pub fn after_call(self) -> bool {
+        self.0.child_tokens().filter(|t| t.kind == Ident).count() == 2
+    }
+
+    /// The words, punctuation and arguments after the name, in source order; after `CALL`, those between the
+    /// parentheses that enclose them.
     pub fn parts(self) -> impl Iterator<Item = FormPart<'a>> + 'a {
         let name_end = self.name().map_or(0, |t| t.span.end);
-        self.0.children().filter_map(move |e| match e {
-            Element::Node(n) => FormWord::cast(n)
-                .map(FormPart::Word)
-                .or_else(|| FormArg::cast(n).map(FormPart::Arg)),
-            Element::Token(t)
-                if t.span.start >= name_end && matches!(t.kind, Comma | LParen | RParen | Minus | Eq | Hash) =>
-            {
-                Some(FormPart::Punct(t))
-            }
-            Element::Token(_) => None,
-        })
+        let mut parts: Vec<FormPart<'a>> = self
+            .0
+            .children()
+            .filter_map(move |e| match e {
+                Element::Node(n) => FormWord::cast(n)
+                    .map(FormPart::Word)
+                    .or_else(|| FormArg::cast(n).map(FormPart::Arg)),
+                Element::Token(t)
+                    if t.span.start >= name_end && matches!(t.kind, Comma | LParen | RParen | Minus | Eq | Hash) =>
+                {
+                    Some(FormPart::Punct(t))
+                }
+                Element::Token(_) => None,
+            })
+            .collect();
+        if self.after_call()
+            && let [FormPart::Punct(open), .., FormPart::Punct(close)] = parts[..]
+            && (open.kind, close.kind) == (LParen, RParen)
+        {
+            parts.pop();
+            parts.remove(0);
+        }
+        parts.into_iter()
     }
 
     /// The arguments, in source order.

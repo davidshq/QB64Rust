@@ -1,0 +1,38 @@
+ 1 SOUND 440, 1, , , 9, 0
+ 2 SOUND 440, 1, , , 9, 1
+ 3 error 5 in line 10 
+ 3 SOUND 440, 1, , , 9, 1.1
+ 4 error 5 in line 11 
+ 4 SOUND 440, 1, , , 9, -.1
+ 5 SOUND 440, 1, , , , 2 (the waveform is 9 from before)
+ 6 SOUND 440, 1, , , 4, 2
+ 7 SOUND 440, 1, , , 4, -2
+ 8 SOUND 440, 1, , -1
+ 9 error 5 in line 16 
+ 9 SOUND 440, 1, , -1.1
+ 10 error 5 in line 17 
+ 10 SOUND 440, 1, , 1.1
+ 11 SOUND 440, 1, 0
+ 12 error 5 in line 19 
+ 12 SOUND 440, 1, 1.1
+ 13 error 5 in line 20 
+ 13 SOUND 440, 1, , , -1
+ 14 SOUND 440, 1, , , , , 0
+ 15 error 5 in line 22 
+ 15 SOUND 440, 1, , , , , -1
+ 16 error 5 in line 23 
+ 16 SOUND 440, 1, 2, , , , 4 (a volume and a voice out of range)
+ 17 error 5 in line 24 
+ 17 SOUND 10, 1, 2 (a frequency and a volume out of range)
+ 18 SOUND 440.5, 1.5
+ 19 PLAY V0
+ 20 PLAY V100
+ 21 error 5 in line 28 
+ 21 PLAY V101
+ 22 error 5 in line 29 
+ 22 PLAY H
+ 23 SOUND 440, 18.2, 0, , , , 3
+ 24 PLAY(0) is 0 before a PLAY with two strings: -1 
+ 25 and over 0 after it (it ends the SOUND WAIT): -1  PLAY(3): -1 
+end
+exit=0

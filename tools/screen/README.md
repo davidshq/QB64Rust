@@ -63,7 +63,9 @@ end
   as `\xNN`), `a` the attribute bytes. A pixel row is one line `p`: palette indexes, or 32-bit colours.
 - `a`, `p` and `palette` are hex runs: `v` or `v*n`. `= k` means the row before, k more times.
 
-Not in the state: sound; the window (title, size, full screen); hardware images; the graphics cursor and the
+Not in the state: sound (checked by what a program can observe of it, `tests\corpus\slice\s74_sound_queue`,
+`s75_sound_wait` and `s76_sound_errors`; what is heard is checked by no test); the window (title, size, full
+screen); hardware images; the graphics cursor and the
 `VIEW`, `WINDOW` and `DRAW` settings; the glyphs of a font.
 
 ## The keys file

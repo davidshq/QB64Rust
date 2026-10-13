@@ -1,0 +1,5 @@
+
+Syntax error - Reference: PLAY voiceCommands1$[, voiceCommands2$][, voiceCommands3$][, voiceCommands4$]
+Caused by (or after):CALL PLAY
+LINE 7:CALL PLAY
+exit=1

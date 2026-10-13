@@ -72,8 +72,10 @@ pub fn lower(p: &sema::Program) -> Program {
                 .iter()
                 .map(|part| match part {
                     sema::RuntimePart::Icon => crate::RuntimePart::Icon,
+                    sema::RuntimePart::Audio => crate::RuntimePart::Audio,
                 })
                 .collect(),
+            exe_icon: p.settings.exe_icon.is_some(),
         },
     };
     if cfg!(debug_assertions)

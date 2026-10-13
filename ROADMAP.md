@@ -68,8 +68,11 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
       `DATE$`, `TIME$`: what Civil War Strategy needs to build apart from sound (`m3-get-put-bload`)
 - [x] Data files beside a corpus program (`<name>.files\`); five more programs cut from the game, three of them
       loading its pictures with `BLOAD`
-- [ ] Civil War Strategy builds and its screens match (`tests\programs\README.md`)
-- [ ] Sound (`PLAY`, `SOUND`, `BEEP`)
+- [x] Sound (`SOUND`, `PLAY` as statement and function, `BEEP`) with the audio part of libqb, checked without
+      noise by what a program can observe (the queue, the waits, the errors); `$EXEICON`; a built-in statement
+      with a template after `CALL` (`m3-sound`)
+- [x] Civil War Strategy compiles with no diagnostic and builds (`m3-sound`; `tests\programs\README.md`, stage 2)
+- [ ] Civil War Strategy's screens match in a scripted game (`tests\programs\README.md`, stage 3)
 - [ ] The image built-ins that run (`_LOADIMAGE`, `_PUTIMAGE`, …; `_RGB32` and `_RGBA32` are done), fonts, the
       mouse
 - [ ] The console programs of the corpus that still wait (`PRINT USING`, random and binary files)

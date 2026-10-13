@@ -153,6 +153,50 @@ pub fn frontend_with(name: &str, bytes: Vec<u8>, loader: impl FnOnce(FileId) -> 
     }
 }
 
+/// Where the icon `$EXEICON` names lies: a name that starts with `./` or `.\` in the folder of the main source
+/// file `main_path`, an absolute name as written (design D4 of `m3-sound`). `None` for a program without one.
+/// The rest of a `./` name is added to the folder as text, as the old compiler does (`qb64pe.bas` 3853), not
+/// joined as a path: a rest that starts with a slash (`.//icons/game.ico`) stays inside the folder.
+pub fn exe_icon_path(fe: &Frontend, main_path: &Path) -> Option<PathBuf> {
+    let icon = fe.program.settings.exe_icon.as_ref()?;
+    Some(match qb64rust_sema::ExeIcon::beside_source(&icon.name) {
+        Some(rest) => beside(main_path, rest),
+        None => PathBuf::from(&icon.name),
+    })
+}
+
+/// `rest` added as text to the folder of the file `main_path`.
+fn beside(main_path: &Path, rest: &str) -> PathBuf {
+    let mut path = main_path
+        .parent()
+        .map_or_else(std::ffi::OsString::new, |p| p.as_os_str().to_os_string());
+    // A source file named without a folder lies in the working directory.
+    if path.is_empty() {
+        path.push(".");
+    }
+    // Not after a drive alone (`C:game.bas`): a separator there would name the drive's root.
+    if !path.to_string_lossy().ends_with(['/', '\\', ':']) {
+        path.push(std::path::MAIN_SEPARATOR_STR);
+    }
+    path.push(rest);
+    PathBuf::from(path)
+}
+
+/// The check `sema` cannot make, since it reads no file: the icon `$EXEICON` names is there. A missing file is an
+/// error at the metacommand's line, counted with the others. It names the file as the program writes it, where
+/// the old compiler names the folder it looked in (`DIVERGENCES.md`): no diagnostic holds a folder of the machine.
+pub fn check_exe_icon(fe: &mut Frontend, main_path: &Path) {
+    let Some(path) = exe_icon_path(fe, main_path) else {
+        return;
+    };
+    if !path.is_file()
+        && let Some(icon) = &fe.program.settings.exe_icon
+    {
+        let msg = format!("the file `{}` of `$EXEICON` is not found", icon.shown);
+        fe.diagnostics.error(icon.span, msg);
+    }
+}
+
 /// The IR of a checked program (one without errors). Everything the front end accepts lowers and is emitted.
 pub fn lower(fe: &Frontend) -> qb64rust_ir::Program {
     qb64rust_ir::lower(&fe.program)
@@ -183,4 +227,24 @@ pub fn emit_ir(fe: &Frontend, ir: &qb64rust_ir::Program) -> qb64rust_codegen_cpp
 /// `--dump cpp`.
 pub fn dump_cpp(fe: &Frontend) -> String {
     qb64rust_codegen_cpp::dump(&emit(fe))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Where a `./` name of `$EXEICON` lies, by the form of the source file's name.
+    #[test]
+    fn beside_adds_the_rest_as_text() {
+        let sep = std::path::MAIN_SEPARATOR_STR;
+        for (main, rest, expected) in [
+            ("p.bas", "a.ico", format!(".{sep}a.ico")),
+            ("dir/p.bas", "a.ico", format!("dir{sep}a.ico")),
+            ("dir/p.bas", "/sub/a.ico", format!("dir{sep}/sub/a.ico")),
+            ("C:p.bas", "a.ico", "C:a.ico".to_string()),
+            ("C:/p.bas", "a.ico", "C:/a.ico".to_string()),
+        ] {
+            assert_eq!(beside(Path::new(main), rest), PathBuf::from(expected), "{main} {rest}");
+        }
+    }
 }

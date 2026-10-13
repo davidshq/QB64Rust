@@ -328,11 +328,11 @@ What the compiler supports so far:
   `_WINDOWHASFOCUS`, `_NEWIMAGE`, `_WINDOWHANDLE` (an `_UNSIGNED _OFFSET`, bare or with one argument), each a
   row, in every form of its template. What they do shows only in a window, so no test runs them: their slice
   program holds them below its `SYSTEM`, and each has call-site programs (`tests\callsite`), which the coverage
-  test requires for the names of `WINDOW_BUILTINS`. A built-in's `dependency` in the table is the optional part
+  test requires for the names of `NEVER_RUN` (the list's name since `m3-sound`, when `BEEP` joined it). A
+  built-in's `dependency` in the table is the optional part
   of the runtime it needs (`sema::RuntimePart`, in `Program::settings`): `_ICON` gives the make flag
-  `DEP_ICON=y`; a built-in whose part no build provides yet is "not supported yet". Still marked: these
-  statements after `CALL` where they have a template (`CALL _ICON(1, 2)`; the parser leaves the parentheses
-  unread there, so no form is a false syntax error), the function `_SCREENHIDE`, and `_SCREENEXISTS` as the
+  `DEP_ICON=y`, `SOUND` and `PLAY` `DEP_AUDIO_MINIAUDIO=y`; a built-in whose part no build provides yet is "not
+  supported yet". Still marked: the function `_SCREENHIDE`, and `_SCREENEXISTS` as the
   direct argument of `HEX$`, `OCT$` or `_BIN$` (QB64pe passes another width than for a LONG).
 - **The screen statements and functions** (`m3-window-output`; design D2 of the change holds the call of every
   form, read from the old compiler's C++; accepted and rejected forms `verification\v27_*`). Each is a row of
@@ -356,10 +356,42 @@ What the compiler supports so far:
   needs an argument is an error there; `tests\frontend\stmt_name_colon_ir.bas`).
   Unlike the window built-ins these run: their slice programs are the screen programs of
   `tests\corpus\screen`, checked by the state of the screen they leave, and each form has a call-site program
-  (301 of them). Still marked: these statements after `CALL` where they have a template (`CALL CLS`, `CALL
-  LINE(…)`), an argument left out of a function call (`POINT(, 2)`), an array named `WIDTH` (`SOMEDAY.md`).
+  (301 of them). Still marked: an argument left out of a function call (`POINT(, 2)`), an array named `WIDTH`
+  (`SOMEDAY.md`).
+- **Sound, `$EXEICON`, and a statement with a template after `CALL`** (`m3-sound`; the facts in `study\00` §5,
+  `verification\v29_*`; with it Civil War Strategy compiles with no diagnostic and builds):
+  - **`SOUND`, `PLAY` and `BEEP`** are three rows of `STATEMENTS` and `PLAY` one of `SUPPORTED`
+    (`sema\src\builtins.rs`), each the plain call of its table entry and template in every form the old
+    compiler accepts: `SOUND` with no argument, with two to seven and with `WAIT` or `RESUME` as its last word,
+    `PLAY` with one to four strings, the function `PLAY[(voice)]` (a DOUBLE, also bare). `PLAY` is no event
+    word to the parser any more (`syntax\src\parser\errors.rs`): `ON PLAY(n) GOSUB label` is `ON … GOSUB`
+    with the function, and `PLAY ON` is an error, both as in the old compiler. `SOUND` and `PLAY` need
+    `RuntimePart::Audio`, the make flag `DEP_AUDIO_MINIAUDIO=y`, written last (`driver\src\build.rs`,
+    `make_flags`); `BEEP` needs nothing. **Tests make no noise:** the slice programs `s74_sound_queue`,
+    `s75_sound_wait` and `s76_sound_errors` play at volume 0 and print what a program can observe (what a
+    statement adds to `PLAY(n)` in tenths of a second, which statements hold the program as yes or no against
+    one-sided limits, error 5); `BEEP`, the system's bell, is on `NEVER_RUN`: compiled, compared by its
+    call-site programs, never reached.
+  - **`$EXEICON:'name'`** (`sema\src\check\mod.rs`, `exe_icon_meta`): the statement `_ICON` with no argument
+    where the line stands, and the icon among the program's settings (`Settings::exe_icon`: the name as
+    written, taken as UTF-8; the IR carries only that there is one, as its dump says). A name that starts with
+    `./` or `.\` is looked for in the folder of the main source file (the rest added to the folder as text, as
+    the old compiler does), an absolute one (`C:\…`, `\\…`) as written; any other relative name is
+    "not supported yet" (the old compiler looks in its own folder, `SOMEDAY.md`). `sema` reads no file: that
+    the file is there is checked by the driver after the front end (`check_exe_icon`, `driver\src\lib.rs`),
+    for every command that reports diagnostics; the language server does not check it. For the build the
+    driver copies the file to `<build>\temp\icon.ico`, writes `icon.rc` beside it and passes `DEP_ICON_RC=y`
+    (`build::write_icon`); both files are part of the build key.
+  - **A built-in statement with a template after `CALL`** (`syntax\src\parser\template.rs`, `template_call`):
+    the old compiler's rule, for every such statement: after the name nothing, or one pair of parentheses
+    around all that follows, whose content is matched by the statement's template (`CALL LINE((1, 2)-(3, 4),
+    5, BF)`, `CALL SOUND(440, 1 WAIT)`, `CALL CLS`). The match is a `BuiltinStmt` node that starts with `CALL`
+    (`ast::BuiltinStmt::after_call`), so `sema` reads it as the statement without `CALL`. Anything else is an
+    error, as there (`CALL CLS()`, `CALL LOCATE 1, 2`, `CALL PSET(1, 2)`). Still marked after `CALL`: `SWAP`,
+    `CLOSE` and the `MID$` statement, which have rules of their own.
+  - Still marked or not checked by a run: `SOMEDAY.md`, "Left marked by `m3-sound`".
 - **What Civil War Strategy needs to build, apart from sound** (`m3-get-put-bload`; the facts in `study\00` §5,
-  `verification\v28_*`; the game's report names only `SOUND`, `PLAY`, `BEEP` and `` now):
+  `verification\v28_*`; the game's report named only `SOUND`, `PLAY`, `BEEP` and `$EXEICON` after it):
   - **A line that is the name of a SUB and a colon** (`sema\src\check\flow.rs`): a call of the SUB when it
     takes no argument and no jump of the whole program names the word, a label in every body when one does;
     the name of a SUB with a parameter and of a FUNCTION is always a label. The words the jumps name are
@@ -417,7 +449,7 @@ CASE`, the other built-in functions, `DECLARE LIBRARY`, event handlers and switc
 (`PRINT USING`, `LPRINT`, `FIELD`, `LSET`/`RSET`),
 `READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array, `READ`, `INPUT`, `INPUT #` or the `MID$` statement
 with a member of an element or an element of a member array, every other
-built-in statement read by its template (`GET`/`PUT`, `PLAY`, `SOUND`, `TIME$ =`, ...), the declaration
+built-in statement read by its template (the file forms of `GET`/`PUT`, `TIME$ =`, ...), the declaration
 forms (`REDIM _RETAIN`, arrays named `name$n`,
 `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
 constants of QB64pe's auto-included file that are not computed yet and the names of its other auto-included

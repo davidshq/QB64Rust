@@ -398,6 +398,51 @@ def compare(
     except ValueError as e:
         return "not compared", str(e)
     shutil.copyfile(path, work / name)
+    # The files a program names (the icon of `$EXEICON`) lie in `<name>.files` and are copied beside
+    # it, as the corpus runner does. Their bytes are in no C++, so the cache key leaves them out.
+    # They are taken away again: `work` is one folder for all programs, and the next program must
+    # not find them.
+    copied = place_files(path, work)
+    try:
+        return compare_in(path, qb_root, qb64rust, work, cache, source, line)
+    finally:
+        remove_files(copied)
+
+
+def place_files(path: Path, work: Path) -> list[Path]:
+    """Copies what lies in the program's `<name>.files` folder into `work`; returns the copies."""
+    files = path.with_suffix(".files")
+    copied = [work / p.name for p in files.iterdir()] if files.is_dir() else []
+    if copied:
+        shutil.copytree(files, work, dirs_exist_ok=True)
+    return copied
+
+
+def remove_files(copied: list[Path]) -> None:
+    for p in copied:
+        if p.is_dir():
+            shutil.rmtree(p, ignore_errors=True)
+        else:
+            p.unlink(missing_ok=True)
+
+
+def programs_of(folder: Path, glob: str) -> list[Path]:
+    """The programs of `folder` that `glob` names. Files only: a glob without `.bas` also matches a
+    program's `<name>.files` folder."""
+    return sorted(p for p in folder.glob(glob) if p.is_file())
+
+
+def compare_in(
+    path: Path,
+    qb_root: Path,
+    qb64rust: Path,
+    work: Path,
+    cache: Path | None,
+    source: bytes,
+    line: int,
+) -> tuple[str, str]:
+    """`compare`, once the program and its files lie in `work`."""
+    name = path.name
     new, why = new_cpp(qb64rust, work, name)
     if new is None:
         return "not compared", why
@@ -596,6 +641,25 @@ def self_test() -> int:
             failures.append("old_cpp_cached: an answer is not kept after a rejection")
         if any(not p.name.endswith(".txt") for p in cache.iterdir()):
             failures.append("old_cpp_cached: a file that is no whole answer is left")
+    # A program's files lie beside it for its comparison only, and its `.files` folder is no program.
+    with tempfile.TemporaryDirectory() as tmp:
+        programs, work = Path(tmp) / "programs", Path(tmp) / "work"
+        (programs / "icon.files" / "sub").mkdir(parents=True)
+        work.mkdir()
+        (programs / "icon.bas").write_text("BEEP\n")
+        (programs / "icon.files" / "a.ico").write_bytes(b"icon")
+        (programs / "icon.files" / "sub" / "b.ico").write_bytes(b"icon")
+        if programs_of(programs, "icon*") != [programs / "icon.bas"]:
+            failures.append("programs_of: a `.files` folder is taken for a program")
+        (work / "icon.bas").write_text("BEEP\n")
+        copied = place_files(programs / "icon.bas", work)
+        if not ((work / "a.ico").is_file() and (work / "sub" / "b.ico").is_file()):
+            failures.append("place_files: a program's files are not beside it")
+        remove_files(copied)
+        if sorted(p.name for p in work.iterdir()) != ["icon.bas"]:
+            failures.append("remove_files: a program's files are left for the next program")
+        if place_files(work / "icon.bas", work):
+            failures.append("place_files: files for a program that has none")
     for f in failures:
         print("self-test FAILED:", f)
     print(
@@ -636,7 +700,7 @@ def main() -> int:
     args = ap.parse_args()
     if args.self_test:
         return self_test()
-    programs = sorted(args.programs.glob(args.glob))
+    programs = programs_of(args.programs, args.glob)
     if not programs:
         print("no programs")
         return 1
