@@ -11,10 +11,12 @@ runtime error in one does, and the behaviour of the statements that belong to no
 `sema` SHALL compile these built-in statements: `OPEN`, `CLOSE`, `SEEK`, `KILL`, `NAME`, `MKDIR`, `RMDIR`, `CHDIR`,
 `PRINT #`, `WRITE`, `INPUT`, `LINE INPUT`, `READ`, `RESTORE`, `DATA`, `SWAP`, `MID$ … =`, `RANDOMIZE`, `SHELL`,
 `ENVIRON`, `_DEST`, `_SOURCE`, `_ECHO`, the window statements `_SCREENHIDE`, `_SCREENSHOW`, `_SCREENICON`,
-`_TITLE`, `_ICON`, `_MOUSESHOW`, `_MOUSEHIDE`, `_MOUSECURSOR`, `_WINDOWSIZELIMIT`, `_FREEIMAGE`
-(`language/console-and-window`), and the screen statements `SCREEN`, `CLS`, `COLOR`, `LOCATE`, `WIDTH`, `VIEW
+`_TITLE`, `_ICON`, `_MOUSESHOW`, `_MOUSEHIDE`, `_MOUSECURSOR`, `_WINDOWSIZELIMIT`, `_FREEIMAGE`, `_FULLSCREEN`
+(`language/console-and-window`), the screen statements `SCREEN`, `CLS`, `COLOR`, `LOCATE`, `WIDTH`, `VIEW
 PRINT`, `PSET`, `PRESET`, `LINE`, `CIRCLE`, `PAINT`, `DRAW`, `VIEW`, `WINDOW`, `PALETTE`, `PCOPY`, `_LIMIT`,
-`_DELAY`, `SLEEP`, `_DISPLAY` (`language/screen-output`). Any other built-in statement SHALL be reported "not supported yet" at its first word, and a supported
+`_DELAY`, `SLEEP`, `_DISPLAY`, graphics `GET` and graphics `PUT` (`language/screen-output`), and the statements of
+conventional memory `DEF SEG`, `POKE`, `BLOAD`, `BSAVE` (`language/conventional-memory`). Any other built-in
+statement SHALL be reported "not supported yet" at its first word, and a supported
 statement used in a form this change leaves out SHALL be reported "not supported yet" at that form.
 
 #### Scenario: Supported statement compiles
@@ -40,6 +42,16 @@ statement used in a form this change leaves out SHALL be reported "not supported
 #### Scenario: Two statements of one name
 - **WHEN** a program has `VIEW PRINT 2 TO 10` and `VIEW (10, 10)-(50, 50)`
 - **THEN** each compiles to the runtime call the old compiler writes for it
+
+#### Scenario: The graphics form and the file form of one name
+- **WHEN** a program has `PUT (10, 10), a, PSET` and `PUT #1, , x`
+- **THEN** the first compiles to the runtime call the old compiler writes for it, and the second is reported "not
+  supported yet"
+
+#### Scenario: A statement of two words
+- **WHEN** a program has `DEF SEG = 0` and `DEF SEG`
+- **THEN** each compiles to the runtime call the old compiler writes for it, and what the compiler reports for a
+  `DEF FN` line does not change
 
 ### Requirement: Arguments of a built-in statement
 Each argument of a built-in statement SHALL be checked for its kind (a string where the old compiler needs a

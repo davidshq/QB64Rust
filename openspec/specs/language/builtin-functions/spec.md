@@ -16,8 +16,10 @@ listed here are reported "not supported yet".
 demand: `_ACOS`, `_ASIN`, `_SINH`, `_COSH`, `_TANH`, `_CEIL`, `_COT`, `_CSC`, `_SEC`, `_D2R`, `_R2D`, `_STRCMP`,
 `_STRICMP`, `_STARTDIR$`, the destination and window functions (`language/console-and-window`): `_DEST`,
 `_SOURCE`, `_CONSOLE`, `_SCREENEXISTS`, `_SCREENICON`, `_TITLE$`, `_DESKTOPWIDTH`, `_DESKTOPHEIGHT`, `_SCREENX`,
-`_SCREENY`, `_WINDOWHANDLE`, `_WINDOWHASFOCUS`, `_NEWIMAGE`, and the screen functions
-(`language/screen-output`): `INKEY$`, `CSRLIN`, `POS`, `POINT`, `SCREEN`. Any other built-in function SHALL be
+`_SCREENY`, `_WINDOWHANDLE`, `_WINDOWHASFOCUS`, `_NEWIMAGE`, `_FULLSCREEN`, the screen functions
+(`language/screen-output`): `INKEY$`, `CSRLIN`, `POS`, `POINT`, `SCREEN`, `TAB`, `SPC`, the colour functions
+`_RGB32` and `_RGBA32`, `DATE$` and `TIME$`, and the functions of conventional memory
+(`language/conventional-memory`): `PEEK`, `VARPTR`, `VARSEG`. Any other built-in function SHALL be
 reported "not supported yet", as SHALL an argument of
 type `_MEM`. A supported function that needs an argument, named without one, SHALL be a compile error, as in the
 old compiler. An argument of any other numeric type SHALL be
@@ -79,6 +81,22 @@ fixed-length string argument SHALL be a string.
 #### Scenario: A screen function in a console program
 - **WHEN** a program with `$CONSOLE:ONLY` runs `k$ = INKEY$: PRINT LEN(k$)`
 - **THEN** it compiles and prints what the old compiler's program prints
+
+#### Scenario: TAB and SPC as values
+- **WHEN** `t$ = SPC(4): PRINT "["; t$; "]"; LEN(t$); LEN(SPC(3) + SPC(2))` runs
+- **THEN** it prints `[    ] 4  5 `, as with the old compiler
+
+#### Scenario: TAB with a string
+- **WHEN** a program has `PRINT TAB("a"); 1` or `PRINT TAB(1, 2); 1`
+- **THEN** the compiler reports an error that is not "not supported yet"
+
+#### Scenario: The date and the time
+- **WHEN** `PRINT LEN(DATE$); MID$(DATE$, 3, 1); LEN(TIME$); MID$(TIME$, 3, 1)` runs
+- **THEN** it prints ` 10 - 8 :`, as with the old compiler
+
+#### Scenario: A colour of 32 bits
+- **WHEN** `PRINT HEX$(_RGB32(1, 2, 3)); HEX$(_RGBA32(1, 2, 3, 4)); HEX$(_RGB32(5))` runs
+- **THEN** it prints what the old compiler's program prints, each value an `_UNSIGNED LONG`
 
 ### Requirement: Names and arity
 A built-in function SHALL be recognised by its name without regard to case, written with its required suffix

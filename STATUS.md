@@ -22,8 +22,8 @@ steps of the order of work are done and its exit criterion is met (`ROADMAP.md`)
 `m2-console-screenhide`, was archived 2026-10-12 with all 24 tasks done. **M3 is under way**: its first step,
 OpenSpec change `m3-window-output`, is done (all 25 tasks; committed and archived 2026-10-12):
 a program whose output is a window compiles, with the text-screen, drawing and pacing statements and the screen
-functions. Its second step, OpenSpec change `m3-get-put-bload`, is built (all tasks; in the working tree, not
-committed or archived): what Civil War Strategy needs to build apart from sound, so that the game's report
+functions. Its second step, OpenSpec change `m3-get-put-bload`, is done (all 24 tasks; committed and
+archived 2026-10-13): what Civil War Strategy needs to build apart from sound, so that the game's report
 names only `SOUND`, `PLAY`, `BEEP` and `$EXEICON`; 51 of the 52 screen programs pass by the state of their
 screen. Step 9 of M2, built-in statements, was OpenSpec change
 `m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
@@ -64,15 +64,17 @@ line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10)
   `d9f5e95` on the branch it was seen with `s66_window_builtins` and `glut/icon` passing, so the runner builds
   the libqb variant with the icon part).
 - No branch is waiting: `m2-console-screenhide` is merged into `main` (pull request 4, 2026-10-13).
-- `m3-window-output` is committed on branch `m3` (`9ae4d40`) and archived; the branch has no upstream yet, so
-  nothing of it has run on GitHub: CI is looked at when the user asks, not a gate
+- `m3-window-output` (`9ae4d40`) and `m3-get-put-bload` (`3258d56`) are committed on branch `m3`, which is
+  pushed (`origin/m3`); what CI made of them has not been looked at: CI is looked at when the user asks, not a gate
   (`CLAUDE.md` working rule 9), and the `tier2` job now runs by hand and weekly, so it must be started to see
   this. `rust.yml` itself changed (that trigger), which shows on its first run. **One thing to see there:** the `tier2` job runs screen programs with a shown window
   for the first time, and GitHub's Windows runner may not give them one (`study\00` §5, "The GitHub Windows
   runner"). If they fail there and pass here, the fallback is the design's: a `screen.list` run locally and not
   by the job.
-- `m3-get-put-bload` is in the working tree of branch `m3`, not committed; all its tasks are done and it can be
-  archived after the commit. Four things in it go beyond what was agreed and are for the user to look at
+- `m3-get-put-bload` is archived (2026-10-13, its delta specs merged into `openspec\specs`); the archive move
+  and the merged specs are in the working tree, not committed. The new main spec
+  `language\conventional-memory` has a placeholder for its purpose. Four things in the change go beyond what
+  was agreed and are for the user to look at
   (`DECISIONS.md` 2026-10-13, second row): dynamic arrays in conventional memory, `DATE$` and `TIME$`, five
   changed `cpp` snapshots, programs cut from the game by line ranges.
 
@@ -112,9 +114,9 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
    functions (`m3-window-output`, all 25 tasks, archived 2026-10-12). What each task found is in the
    change's `tasks.md`, the call of every form in its `design.md` D2, the measured facts in `study\00` §5
    (`verification\v27_*`, 65 programs), what stayed marked in `SOMEDAY.md`.
-2. Built: graphics `GET` and `PUT`, `DEF SEG` with `BLOAD`, data files beside a corpus program, `TAB` and `SPC`,
+2. Done: graphics `GET` and `PUT`, `DEF SEG` with `BLOAD`, data files beside a corpus program, `TAB` and `SPC`,
    labels named like a SUB: what Civil War Strategy needs to build; more programs cut from it
-   (`m3-get-put-bload`, all 24 tasks; to commit, then archive). What each task found is in the change's
+   (`m3-get-put-bload`, all 24 tasks, archived 2026-10-13). What each task found is in the change's
    `tasks.md`, how it was built in its `design.md` ("As built"), the measured facts in `study\00` §5
    (`verification\v28_*`, 100 programs), what stayed marked in `SOMEDAY.md`.
 3. **Next:** sound (`PLAY`, `SOUND`, `BEEP`: compiled, and what of them can be checked); with it `$EXEICON` and
