@@ -229,6 +229,8 @@ runtime_comparison/180_eof_empty_file
 runtime_comparison/181_loc_after_write
 runtime_comparison/182_lof_binary
 runtime_comparison/183_freefile_multiple
+runtime_comparison/184_print_tab
+runtime_comparison/185_print_spc
 runtime_comparison/213_chdir
 runtime_comparison/219_fileexists_direxists
 slice/s39_data
@@ -306,6 +308,10 @@ slice/s68_precompiler_flags
 slice/s68_precompiler_flags_b
 slice/s68_precompiler_flags_c
 slice/s69_console_screen_functions
+slice/s70_sub_name_labels
+slice/s71_tab_spc
+slice/s72_bload_peek_poke
+slice/s73_conventional_arrays
 runtime_comparison/189_width
 runtime_comparison/237_csrlin_pos
 # Screen programs (m3-window-output): checked by the state of the screen they leave, tests/corpus/screen/SOURCE.md
@@ -336,10 +342,18 @@ screen/d13_functions
 screen/d14_errors
 screen/d15_pacing
 screen/d16_screen_13
+screen/d17_tab_window
+screen/d18_get_put
 screen/g01_flags
 screen/g02_cannon
 screen/g04_ironclad
 screen/g05_schooner
+screen/g06_message_box
+screen/g07_mountains
+screen/g08_icon
+screen/g09_faces_forts
+screen/g10_snapshot
+screen/g11_city_report
 screen/m00_width_80_50
 screen/m01_screen_1
 screen/m02_screen_2
@@ -351,3 +365,4 @@ screen/m11_screen_11
 screen/m12_screen_12
 screen/m13_screen_13
 screen/m256_newimage_256
+screen/m32_newimage_32

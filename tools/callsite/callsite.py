@@ -83,7 +83,7 @@ TYPES = INT_TYPES | {"float", "double", "long", "qbs"}
 # Words before a `(` that do not make it a call.
 NOT_CALLS = {"if", "while", "for", "switch", "return", "else", "goto"}
 # Numbered temporaries and labels: renumbered in order of first use (rule 2).
-NUMBERED = re.compile(r"^(pass|skip|sc_|RETURN_|temp_\w*?|L_)(\d+)$")
+NUMBERED = re.compile(r"^(pass|skip|sc_|RETURN_|temp_\w*?|L_|byte_element_)(\d+)$")
 # An integer literal with the `long long` or the `unsigned` suffix (rule 5).
 SUFFIXED = re.compile(r"^(\d+)(ll|u)$")
 
@@ -460,6 +460,17 @@ PAIRS = [
         "KILL CHR$(-1)",
         ["sub_kill(func_chr( -1 ));"],
         ["sub_kill(func_chr((-1)));"],
+    ),
+    (
+        "PUT (1, 2), a",
+        [
+            "sub_graphics_put( 1 , 2 ,byte_element((uint64)(&(((int16*)(__ARRAY_INTEGER_A[0]))[0])),"
+            "((2*(__ARRAY_INTEGER_A[2]&1)*__ARRAY_INTEGER_A[5])-(2*(0))),byte_element_9),NULL,NULL,0);"
+        ],
+        [
+            "sub_graphics_put(1,2,byte_element((uint64)(&(((int16*)(__ARRAY_INTEGER_A[0]))[0])),"
+            "((2*(__ARRAY_INTEGER_A[2]&1)*__ARRAY_INTEGER_A[5])-(2*(0))),byte_element_1),NULL,NULL,0);"
+        ],
     ),
     (
         "CLS , 1",

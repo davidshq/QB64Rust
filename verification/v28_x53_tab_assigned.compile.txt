@@ -1,0 +1,5 @@
+
+Expected variable =, look for conflict with a CONST name
+Caused by (or after):TAB ( 5 ) = 1
+LINE 7:TAB(5) = 1
+exit=1

@@ -1,0 +1,5 @@
+
+Expected variable name/array element
+Caused by (or after):PUT ( 1 , 2 ) , K
+LINE 8:PUT (1, 2), k
+exit=1

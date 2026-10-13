@@ -19,7 +19,7 @@ int32 FUNC_LEVEL(int32*_FUNC_LEVEL_LONG_N);
 void SUB_STATICS();
 ==> clear.txt <==
 if (_SUB_STATICS_ARRAY_LONG_C[2]&1){
-free((void*)(_SUB_STATICS_ARRAY_LONG_C[0]));
+if (_SUB_STATICS_ARRAY_LONG_C[2]&4) cmem_dynamic_free((uint8*)(_SUB_STATICS_ARRAY_LONG_C[0])); else free((void*)(_SUB_STATICS_ARRAY_LONG_C[0]));
 _SUB_STATICS_ARRAY_LONG_C[2]^=1;
 _SUB_STATICS_ARRAY_LONG_C[4]=2147483647;
 _SUB_STATICS_ARRAY_LONG_C[5]=0;
@@ -27,7 +27,7 @@ _SUB_STATICS_ARRAY_LONG_C[6]=0;
 _SUB_STATICS_ARRAY_LONG_C[0]=(ptrszint)nothingvalue;
 }
 if (_SUB_STATICS_ARRAY_LONG_L[2]&1){
-free((void*)(_SUB_STATICS_ARRAY_LONG_L[0]));
+if (_SUB_STATICS_ARRAY_LONG_L[2]&4) cmem_dynamic_free((uint8*)(_SUB_STATICS_ARRAY_LONG_L[0])); else free((void*)(_SUB_STATICS_ARRAY_LONG_L[0]));
 _SUB_STATICS_ARRAY_LONG_L[2]^=1;
 _SUB_STATICS_ARRAY_LONG_L[4]=2147483647;
 _SUB_STATICS_ARRAY_LONG_L[5]=0;
@@ -75,8 +75,14 @@ if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257
 alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
 if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
 if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+if (_SUB_STATICS_ARRAY_LONG_C[2]&4){
+_SUB_STATICS_ARRAY_LONG_C[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+if (!_SUB_STATICS_ARRAY_LONG_C[0]) error(257);
+memset((void*)(_SUB_STATICS_ARRAY_LONG_C[0]),0,(size_t)alloc_req_bytes);
+}else{
 _SUB_STATICS_ARRAY_LONG_C[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 if (!_SUB_STATICS_ARRAY_LONG_C[0]) error(257);
+}
 _SUB_STATICS_ARRAY_LONG_C[2]|=1;
 _SUB_STATICS_ARRAY_LONG_C[4]=alloc_new_desc[4];
 _SUB_STATICS_ARRAY_LONG_C[5]=alloc_new_desc[5];
@@ -218,9 +224,21 @@ if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
 #line 11 "proc_arrays_cpp.bas"
 if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
 #line 11 "proc_arrays_cpp.bas"
+if (_SUB_LOCALS_ARRAY_LONG_T[2]&4){
+#line 11 "proc_arrays_cpp.bas"
+_SUB_LOCALS_ARRAY_LONG_T[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 11 "proc_arrays_cpp.bas"
+if (!_SUB_LOCALS_ARRAY_LONG_T[0]) error(257);
+#line 11 "proc_arrays_cpp.bas"
+memset((void*)(_SUB_LOCALS_ARRAY_LONG_T[0]),0,(size_t)alloc_req_bytes);
+#line 11 "proc_arrays_cpp.bas"
+}else{
+#line 11 "proc_arrays_cpp.bas"
 _SUB_LOCALS_ARRAY_LONG_T[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 #line 11 "proc_arrays_cpp.bas"
 if (!_SUB_LOCALS_ARRAY_LONG_T[0]) error(257);
+#line 11 "proc_arrays_cpp.bas"
+}
 #line 11 "proc_arrays_cpp.bas"
 _SUB_LOCALS_ARRAY_LONG_T[2]|=1;
 #line 11 "proc_arrays_cpp.bas"
@@ -388,7 +406,7 @@ _SUB_LOCALS_ARRAY_STRING_S[0]=(ptrszint)&nothingstring;
 }
 ==> free1.txt <==
 if (_SUB_LOCALS_ARRAY_LONG_T[2]&1){
-free((void*)(_SUB_LOCALS_ARRAY_LONG_T[0]));
+if (_SUB_LOCALS_ARRAY_LONG_T[2]&4) cmem_dynamic_free((uint8*)(_SUB_LOCALS_ARRAY_LONG_T[0])); else free((void*)(_SUB_LOCALS_ARRAY_LONG_T[0]));
 _SUB_LOCALS_ARRAY_LONG_T[2]^=1;
 _SUB_LOCALS_ARRAY_LONG_T[4]=2147483647;
 _SUB_LOCALS_ARRAY_LONG_T[5]=0;
@@ -499,9 +517,21 @@ if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
 #line 17 "proc_arrays_cpp.bas"
 if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
 #line 17 "proc_arrays_cpp.bas"
+if (_FUNC_LEVEL_ARRAY_LONG_A[2]&4){
+#line 17 "proc_arrays_cpp.bas"
+_FUNC_LEVEL_ARRAY_LONG_A[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 17 "proc_arrays_cpp.bas"
+if (!_FUNC_LEVEL_ARRAY_LONG_A[0]) error(257);
+#line 17 "proc_arrays_cpp.bas"
+memset((void*)(_FUNC_LEVEL_ARRAY_LONG_A[0]),0,(size_t)alloc_req_bytes);
+#line 17 "proc_arrays_cpp.bas"
+}else{
+#line 17 "proc_arrays_cpp.bas"
 _FUNC_LEVEL_ARRAY_LONG_A[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 #line 17 "proc_arrays_cpp.bas"
 if (!_FUNC_LEVEL_ARRAY_LONG_A[0]) error(257);
+#line 17 "proc_arrays_cpp.bas"
+}
 #line 17 "proc_arrays_cpp.bas"
 _FUNC_LEVEL_ARRAY_LONG_A[2]|=1;
 #line 17 "proc_arrays_cpp.bas"
@@ -589,7 +619,7 @@ _FUNC_LEVEL_ARRAY_LONG_A[0]=(ptrszint)nothingvalue;
 int32 pass1;
 ==> free2.txt <==
 if (_FUNC_LEVEL_ARRAY_LONG_A[2]&1){
-free((void*)(_FUNC_LEVEL_ARRAY_LONG_A[0]));
+if (_FUNC_LEVEL_ARRAY_LONG_A[2]&4) cmem_dynamic_free((uint8*)(_FUNC_LEVEL_ARRAY_LONG_A[0])); else free((void*)(_FUNC_LEVEL_ARRAY_LONG_A[0]));
 _FUNC_LEVEL_ARRAY_LONG_A[2]^=1;
 _FUNC_LEVEL_ARRAY_LONG_A[4]=2147483647;
 _FUNC_LEVEL_ARRAY_LONG_A[5]=0;
@@ -687,9 +717,21 @@ if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
 #line 24 "proc_arrays_cpp.bas"
 if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
 #line 24 "proc_arrays_cpp.bas"
+if (_SUB_STATICS_ARRAY_LONG_L[2]&4){
+#line 24 "proc_arrays_cpp.bas"
+_SUB_STATICS_ARRAY_LONG_L[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 24 "proc_arrays_cpp.bas"
+if (!_SUB_STATICS_ARRAY_LONG_L[0]) error(257);
+#line 24 "proc_arrays_cpp.bas"
+memset((void*)(_SUB_STATICS_ARRAY_LONG_L[0]),0,(size_t)alloc_req_bytes);
+#line 24 "proc_arrays_cpp.bas"
+}else{
+#line 24 "proc_arrays_cpp.bas"
 _SUB_STATICS_ARRAY_LONG_L[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 #line 24 "proc_arrays_cpp.bas"
 if (!_SUB_STATICS_ARRAY_LONG_L[0]) error(257);
+#line 24 "proc_arrays_cpp.bas"
+}
 #line 24 "proc_arrays_cpp.bas"
 _SUB_STATICS_ARRAY_LONG_L[2]|=1;
 #line 24 "proc_arrays_cpp.bas"

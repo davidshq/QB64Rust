@@ -1676,6 +1676,103 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     42 compile and all 42 leave the recorded state on their first run, with and without folding: the calls
     are the old compiler's, and what they draw is libqb's. The three others wait on `PLAY` (`g03`), graphics
     `GET` and `PUT` (`g06`) and `_RGB32`/`_RGBA32` (`m32`).
+- **What Civil War Strategy needs to build, apart from sound (`v28_*`, 100 programs: 83 measured 2026-10-12
+  before the design of `m3-get-put-bload`, `v28_d`, `v28_e`, `v28_f` and `x82`–`x95` on 2026-10-13 as its tasks 1.2 and 4.4; the
+  C++ read with `qb64pe -z` from programs outside the repository).**
+  - **`TAB` and `SPC` are functions (`v28_a_tab_spc`, `x01`, `x03`–`x09`, `x53`).** `PRINT TAB(5); "a"` is
+    `qbs_set(tqbs,func_tab( 5 ))`, `makefit`, `qbs_print(tqbs,0)`: the lines of any string item. To a file it is
+    `sub_file_print(tmp_fileno,func_tab( 5 ), 0, 0, newline)`; `WRITE TAB(5)` writes the string in quotes.
+    `t$ = TAB(5)`, `SPC(i) + "x"` and `LEN(TAB(l))` compile. The slot is a LONG: an INTEGER, a LONG and an
+    `_INTEGER64` are passed as they are, a SINGLE and a DOUBLE through `qbr`. A string item may follow without a
+    separator (`PRINT TAB(5) "a"`, `PRINT "x" TAB(8) "y"`), a number or another `TAB` may not ("Expected
+    operator in equation", `x03`, `x04`). Rejected: a string argument ("Number required for function"), no
+    argument, two, no parentheses, `TAB(5) = 1`. In a file the column is the file's (`"abcdefgh"; TAB(5)`
+    starts a new line there); on the console `POS(0)` is always 1, so `TAB(n)` is n - 1 blanks wherever the
+    line stands (`"a"; TAB(5); "b"` is `a`, four blanks, `b`).
+  - **`DEF SEG`, `BLOAD`, `BSAVE`, `POKE`, `PEEK` are plain calls (`v28_b_bload`, `x01`, `x26`–`x35`,
+    `x42`–`x44`, `x61`, `x62`).** `DEF SEG` is `sub_defseg(NULL,0)`, `DEF SEG = x` `sub_defseg(x,1)` (LONG slot);
+    `BLOAD f$` `sub_bload(f,NULL,0)`, `BLOAD f$, x` `sub_bload(f,x,1)`; `BSAVE f$, x, n` `sub_bsave(f,x,n)`;
+    `POKE x, v` `sub_poke(x,v)`; `PEEK(x)` `func_peek(x)`, a LONG. Rejected: `DEF SEG 5`, `DEF SEG =`, a string
+    for the segment, `DEF` alone ("Command not implemented"), `BLOAD` with none or three arguments or a number
+    for the name, `BSAVE` with two. After `CALL` `BLOAD`, `BSAVE`, `POKE`, `PUT` and `_FULLSCREEN` are accepted
+    (`x65`, `x66`, `x68`–`x70`), `CALL DEF SEG` is not (`x67`).
+  - **`VARPTR` and `VARSEG` are written by the compiler, and put their variable into conventional memory.**
+    `VARPTR(a(i))` is `((array_check((i)-A[4],A[5]))*2)`: the element's index from the lower bound times the
+    element's size, with the bounds check (two dimensions: the combined index); `VARSEG(a(i))` is
+    `( ( ((ptrszint)(A[0])) - ((ptrszint)(&cmem[0])) ) /16)`, the same for every element. A scalar is
+    `((unsigned short)(((uint8*)V)-&cmem[1280]))` and segment 80; a string's `VARPTR` is its
+    `cmem_descriptor_offset`. `PRINT` and `+` take both as `_INTEGER64` (`qbs_str((int64)(…))`; `qb64pe.bas` sets
+    `typ& = 64&`, against the table's LONG). The index inside `VARSEG(a(i))` is not written at all. A variable named in `VARPTR`, `VARSEG`, `SADD` or `VARPTR$`
+    anywhere in the program is allocated differently (`cmemlist` in `qb64pe.bas`, with a second pass of the
+    compiler): a static array's data comes from `cmem_static_pointer`, rounded up to 16 bytes, with error 257
+    past 65,536 bytes and flags `1+2+4` in place of `1+2`; a dynamic one from `cmem_dynamic_malloc`; a scalar
+    from `dblock+cmem_sp`; a string from `qbs_new_cmem`. A parameter named so makes the callers' arguments
+    conventional too (read in `qb64pe.bas`, 12081 and 12810; not measured). Arrays lie in the order they are declared (`v28_b_bload`: three arrays of 20 bytes are 2
+    segments apart). `BSAVE` writes 7 bytes of header and the block; `BLOAD` reads it back at the given offset
+    or, with none, at the saved one; a missing file is error 53. Rejected: a literal, an expression, a function
+    call or a string literal as the argument ("Expected reference to a variable/array"), `SADD` of a
+    fixed-length string or a literal, `VARPTR$` of a numeric array, `VARPTR(i)` as a statement.
+  - **Graphics `GET` and `PUT` are plain calls with an argument made of an array's bytes (`x01`,
+    `x10`–`x25`, `x58`–`x60`, `x63`, `x64`).** `GET (x1, y1)-(x2, y2), a` is `sub_graphics_get(x1,y1,x2,y2,
+    byte_element((uint64)(&(((int16*)(A[0]))[0])),((2*(A[2]&1)*A[5])-(2*(0))),byte_element_N),NULL,step)`: the
+    address of the element, the bytes from it to the array's end (0 for an array not allocated), and a
+    temporary of 12 bytes declared with the body's variables. `a`, `a()` and `a(lower bound)` differ only in
+    the index (`a(5)`: `array_check(( 5 )-A[4],A[5])` in both places); two dimensions multiply the sizes.
+    `step` is 1 for `STEP` before the first point and 2 before the second. `PUT (x, y), a[, [_CLIP] [action][,
+    colour]]` is `sub_graphics_put(x,y,bytes,action,colour,flags)`: the action `NULL` or 1 to 5 for `PSET`,
+    `PRESET`, `AND`, `OR`, `XOR`; flags 1 for `STEP`, 2 for `_CLIP`, 4 for a colour. The coordinates are passed
+    as they are, whatever their type. The array may be static or dynamic, of the main module or a procedure, a
+    parameter, of a user type, of fixed-length strings (accepted, `x12`, `x13`, `x20`); a name with no array is
+    that plain variable's bytes (`GET …, i`; an undeclared name too, `x59`). Rejected: no array, one point for
+    `GET` or two for `PUT`, an expression or a `CONST`, an unknown action word, two actions, `_CLIP` after the
+    action. `GET (1, 2)-(3, 4), 5` is "UNEXPECTED INTERNAL COMPILER ERROR!" (`x15`).
+  - **`_RGB32`, `_RGBA32`, `_FULLSCREEN` (`x01`, `x45`–`x52`).** `_RGB32` with one to four LONG slots is
+    `func__rgb32(…)` with the arguments it is given (C++ overloads), `_RGBA32` `func__rgba32(r,g,b,a)`; both
+    `_UNSIGNED LONG` (`PRINT` `(uint32)`, `HEX$` width 8, `+ 1` an `_INTEGER64`). `_FULLSCREEN [mode][,
+    _SMOOTH]` is `sub__fullscreen(mode,smooth)`: `NULL` or 1 to 4 for `_OFF`, `_STRETCH`, `_SQUAREPIXELS`,
+    `OFF`, and 0 or 1; the function is `func__fullscreen()`, a LONG. Rejected: none or five arguments for
+    `_RGB32`, three for `_RGBA32`, a string, an argument left out, `_FULLSCREEN 5`, `_SMOOTH` first, two modes.
+  - **A line `name:` with the name of a SUB (`v28_c_labels`, `x71`–`x81`; `validlabel` and the label check of
+    `qb64pe.bas`, 27121 and 13027).** With no jump to the name anywhere in the program the line is a call of the
+    SUB: in the main module, in the SUB itself (`x77`), twice (`x73`), before any `DECLARE`
+    (`x78`), and with a statement after the colon (`x79`). When any `GOTO`, `GOSUB`, `RESTORE` or `ON ERROR
+    GOTO` names the word, the compiler starts again with the word as a label in every body (`x80`, `x81`: a jump
+    in one SUB makes the main module's line a label too), `CALL name` still calls the SUB, and the label rules
+    hold: twice in a body is "Duplicate label" (`x74`), a jump from a body without it "Label 'one' not defined"
+    (`x72`, also with no such line at all, `x71`). A SUB that needs an argument is always a label (`x76`), as is
+    a FUNCTION (`x75`). Civil War Strategy has all three cases: `topbar:` in its main module is a call (no jump
+    names it), `ships:` and `cannon:` in `SUB navy` are labels (`GOTO ships`, `GOTO cannon`) beside `CALL ships`
+    and `CALL cannon`. **Which statements make the word a label (`x82`–`x92`, each with the statement as code
+    that is not reached):** `RESUME one`, `RETURN one`, `ON n GOTO two, one`, `ON n GOSUB one`, `ON KEY(1) GOSUB
+    one`, `ON TIMER(1) GOSUB one`, `ON STRIG(0) GOSUB one` and `IF n = 5 GOTO one` do; `IF n = 5 THEN one` and
+    `CALL one` do not (the line stays a call, and `THEN one` is one too); `RUN one` is "Name already in use
+    (one)". These are all the places of `qb64pe.bas` that make a reference to a label (3963 and 4025 make the
+    label itself; 7627, 7807 and 7968 the three `ON <event> GOSUB`; 9717 `GOTO`; 9808 `RUN`; 9968 `RETURN`; 10027
+    and 10092 `RESUME` and `ON ERROR GOTO`; 10137 `RESTORE`; 27593 and 27675 `GOSUB` and `ON n GOTO/GOSUB`).
+  - **Conventional arrays used as any array is, and the index of `VARPTR` and `VARSEG` (`v28_d_varptr_index`,
+    `v28_e_cmem_arrays`, `x95`).** A FUNCTION in the index of `VARPTR` is called once; in the index of
+    `VARSEG` it is not called, and an index outside the bounds raises nothing there (`VARSEG(a(99))` is the
+    array's segment). `VARPTR(a(11))` of `a(1 TO 10)` raises error 9 and gives 0. Stored into an INTEGER, a
+    SINGLE or an `_INTEGER64` the value goes as it is; `STR$` and operators take it as an `_INTEGER64`;
+    `HEX$(VARPTR(…))` is `func_hex(…,0)`, a width of 0 (accepted, `x95`). **An array listed in `COMMON` is
+    dynamic to the old compiler** (`COMMON SHARED cm()` with `DIM SHARED cm(1 TO 20)`): in conventional memory
+    its descriptor starts with flag 4 in place of 0 and nothing else of its declaration changes, because every
+    allocation of a dynamic array of numbers tests that flag when it runs (`if (A[2]&4){ A[0]=(ptrszint)
+    cmem_dynamic_malloc(…); … memset … }else{ … calloc … }`, also for the new block of a `REDIM`, and
+    `cmem_dynamic_free` or `free` for the old one and in `ERASE`). So `DIM dy(1 TO n)`, `REDIM`, `REDIM
+    _PRESERVE`, `ERASE` and passing to a SUB that erases or redims work on a conventional array as on any
+    other, and `PEEK` reads the new block after each (`v28_e`). Static arrays lie from the start of the block
+    in the order of their `DIM`; dynamic ones come from the other end (a later one has a lower segment). A
+    static one larger than a segment (`DIM big(1 TO 40000) AS INTEGER`, 80,000 bytes) ends the program at its
+    start with "Out of memory" (error 257), before its first statement (`v28_f_cmem_too_large`).
+  - **`GET` and `PUT` with a parenthesised first argument are the graphics form (`x93`, `x94`).** `GET (1), ,
+    x` and `PUT (i), 2, x` are "Syntax error - Reference: GET [STEP] (column1, row1)-…": a statement that
+    starts with `(` is never the file form. In the array's place an element's index is written twice
+    (`byte_element((uint64)(&(…[array_check((FUNC_F(…))-…)])),(…-(2*(array_check((FUNC_F(…))-…)))),…)`), so a
+    FUNCTION in it runs twice. Other kinds in that place, each accepted: an array of a `TYPE`
+    `(uint64)(((char*)R[0])+((index)*6+0))`, a fixed-length string array `&((uint8*)(FS[0]))[(index)*4]`, a
+    string variable `T->chr,T->len`, a `TYPE` variable `((char*)ONE)+((0+0)),6-((0+0))`, a name with no
+    array the plain variable (`(uint64)__SINGLE_TS,4`).
 
 ## 6. Bug-compatibility choices (all decided)
 

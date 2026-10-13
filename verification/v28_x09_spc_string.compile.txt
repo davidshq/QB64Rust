@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):PRINT SPC ( T ) ; 1
+LINE 7:PRINT SPC(t); 1
+exit=1

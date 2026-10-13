@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: PEEK(segment_offset)
+Caused by (or after):L = PEEK ( 1 , 2 )
+LINE 7:l = PEEK(1, 2)
+exit=1

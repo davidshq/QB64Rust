@@ -303,7 +303,9 @@ impl Emitter<'_> {
             lock + 1
         );
         if let Shape::Dynamic { .. } = v.shape {
-            out.push_str(&format!("{n}[2]=0;\n{}}}\n", self.not_allocated(v, n)));
+            // Flag 4: every block of the array comes from conventional memory ([`Self::new_block`]).
+            let flags = if v.conventional { 4 } else { 0 };
+            out.push_str(&format!("{n}[2]={flags};\n{}}}\n", self.not_allocated(v, n)));
             return out;
         }
         for (k, &(lower, upper)) in v.bounds().iter().enumerate() {
@@ -326,6 +328,20 @@ impl Emitter<'_> {
                  ((qbs**)({n}[0]))[tmp_long]=qbs_new(0,0);\n}}\n"
             )
             .unwrap();
+        } else if v.conventional {
+            // In conventional memory, as the old compiler allocates it (`qb64pe.bas` 15135; measured, `study\00`
+            // §5): from the static end of the block, rounded up to 16 bytes so that a segment names its start;
+            // error 257 when the block is used up or the array is larger than a segment.
+            let bytes = self.array_bytes(v.ty, &count);
+            write!(
+                out,
+                "{n}[0]=(ptrszint)cmem_static_pointer;\n\
+                 if ((cmem_static_pointer+=(({bytes})+15)&-16)>cmem_dynamic_base) error(257);\n\
+                 if (({bytes})>65536) error(257);\n\
+                 memset((void*)({n}[0]),0,{bytes});\n{n}[2]=1+2+4;\n}}\n"
+            )
+            .unwrap();
+            return out;
         } else {
             let bytes = self.array_bytes(v.ty, &count);
             write!(
@@ -362,6 +378,60 @@ impl Emitter<'_> {
             | Ty::FixedStr(_)
             | Ty::User(_) => format!("{count}*{}", self.ty_size(t)),
             Ty::Str => unreachable!("a string array holds pointers"),
+        }
+    }
+
+    /// Whether an array of this element type can be one in conventional memory (`sema` allows numbers only).
+    fn may_be_conventional(t: Ty) -> bool {
+        match t {
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Off
+            | Ty::UOff
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80 => true,
+            Ty::Bit { .. } | Ty::FixedStr(_) | Ty::User(_) | Ty::Str => false,
+        }
+    }
+
+    /// The lines that make a zeroed block of `alloc_req_bytes` bytes for the array `n` and store it in `target`
+    /// (error 257 when there is no memory): from conventional memory when the array's descriptor has flag 4, as
+    /// the old compiler writes every allocation of a dynamic array (`qb64pe.bas` 15415). The test is made when
+    /// the program runs because the array may be a parameter: the one passed says where its blocks come from.
+    pub(crate) fn new_block(&self, t: Ty, n: &str, target: &str) -> Vec<String> {
+        let plain = vec![
+            format!("{target}=(ptrszint)calloc((size_t)alloc_req_bytes,1);"),
+            format!("if (!{target}) error(257);"),
+        ];
+        if !Self::may_be_conventional(t) {
+            return plain;
+        }
+        let mut out = vec![
+            format!("if ({n}[2]&4){{"),
+            format!("{target}=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);"),
+            format!("if (!{target}) error(257);"),
+            format!("memset((void*)({target}),0,(size_t)alloc_req_bytes);"),
+            "}else{".to_string(),
+        ];
+        out.extend(plain);
+        out.push("}".to_string());
+        out
+    }
+
+    /// The statement that frees the block `block` of the array `n`: to conventional memory when the array's
+    /// descriptor has flag 4 ([`Self::new_block`]).
+    pub(crate) fn free_block(&self, t: Ty, n: &str, block: &str) -> String {
+        if Self::may_be_conventional(t) {
+            format!("if ({n}[2]&4) cmem_dynamic_free((uint8*)({block})); else free((void*)({block}));")
+        } else {
+            format!("free((void*)({block}));")
         }
     }
 
@@ -407,7 +477,8 @@ impl Emitter<'_> {
         }
         write!(
             out,
-            "free((void*)({n}[0]));\n{n}[2]^=1;\n{}}}\n",
+            "{}\n{n}[2]^=1;\n{}}}\n",
+            self.free_block(v.ty, n, &format!("{n}[0]")),
             self.not_allocated(v, n)
         )
         .unwrap();

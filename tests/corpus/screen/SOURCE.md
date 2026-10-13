@@ -48,6 +48,8 @@ that every statement leaves a mark in the recorded state.
 | `d14_errors` | The error number of 20 statements that are wrong for their screen, under a handler (a mode that does not exist, drawing in `SCREEN 0`, `LOCATE` outside the screen); two of them raise nothing |
 | `d15_pacing` | `_LIMIT` in a loop, `_DELAY`, `_DISPLAY`, `SLEEP` ended by a key of the keys file |
 | `d16_screen_13` | `SCREEN 13`: `CLS method, colour`, a colour above 15, `PRESET` |
+| `d17_tab_window` | (`m3-get-put-bload`) `TAB`, `SPC` and `POS` in a text window: a column, the next line when the cursor is past it, a zone after `TAB`, a column past the width, `TAB` and `SPC` as functions |
+| `d18_get_put` | (`m3-get-put-bload`) Graphics `GET` and `PUT` in `SCREEN 12`: no action and each action word over a background, a colour, `_CLIP` at two edges, `STEP`; the array whole and from an element, of two dimensions, of LONG, dynamic, and in a SUB a parameter, a local and a `STATIC` array; error 5 for a `PUT` that leaves the screen and a `GET` into an array that is too small |
 
 `d15_pacing` empties the key buffer before its `SLEEP`: the keys file gives the next key only when the buffer is
 empty, and a key ends `SLEEP` only when it comes while `SLEEP` waits. Its `SLEEP 2` is the longest it can take
@@ -55,9 +57,15 @@ empty, and a key ends `SLEEP` only when it comes while `SLEEP` waits. Its `SLEEP
 
 ## Cut from Civil War Strategy
 
-`g01`–`g06` are written by `tools\screen\cut_game.py`: a few lines of setup and calls, then procedures of
+`g01`–`g11` are written by `tools\screen\cut_game.py`: a few lines of setup and calls, then procedures of
 `tests\programs\civil-war-strategy\CWSTRAT.BAS` (MIT, the user's own; `SOURCE.md` there) copied byte for byte. Do
 not edit them by hand: change the script and run it again.
+
+The game's map and its reports read the whole state of a game and cannot be cut as procedures. Of those, a range
+of the game's lines stands among the written ones, byte for byte too (the script names each range by its first
+and last line and stops when the first line has changed). The pictures a program loads are copies of the game's
+`*.VGA` files in its `<name>.files\` folder, made by the script; the corpus runner puts them beside the program
+when it runs (`tests\corpus\README.md`).
 
 | Program | Procedures | Covers |
 |---|---|---|
@@ -67,6 +75,11 @@ not edit them by hand: change the script and run it again.
 | `g04_ironclad` | `ironclad` | `LINE -(x, y)` chains, `PAINT` with and without a border colour |
 | `g05_schooner` | `schooner` | `LINE` with the colour left out, `PAINT` without a colour |
 | `g06_message_box` | `image2`, `mxw`, `TICK` | Graphics `GET` and `PUT`, `VIEW`, `CLS 1`; `TICK` waits for a key from the keys file |
+| `g07_mountains` | lines 139–141 (the main module's `DEF SEG`, `BLOAD`, `DEF SEG`) and 4145–4160 (the start of `SUB usa`); `MTN.VGA` | `BLOAD` into an array in conventional memory, `VARSEG` and `VARPTR`, `PUT` with `PSET` eight times, `_FILEEXISTS` |
+| `g08_icon` | lines 169–175 (the main module); `CWSICON.VGA` | `BLOAD`, `PUT`, and a `GET` out of the picture just drawn (the capital marker), which a written line then puts in a row |
+| `g09_faces_forts` | lines 1008–1010 (`SUB battle`) and 4817–4819 (`SUB menu`), in a written loop; `FACE1`–`FACE5.VGA`, `FORT0`–`FORT2.VGA` | `BLOAD` with the file's name in a string, eight pictures one after the other into the same two arrays |
+| `g10_snapshot` | `snapshot` | `GET` and `PUT` through a SUB on a shared array: the screen under a place taken and put back |
+| `g11_city_report` | lines 3553–3571 (`SUB report` from its label `cityrep` on), over values written in the program | `TAB` in `PRINT` in `SCREEN 12`, after `LOCATE` and with numbers |
 
-Not cut yet: the pictures the game loads with `BLOAD` (`*.VGA`). The runner copies only the `.bas` into a
-program's folder, so a program that reads a data file needs that first.
+Each state was looked at as a picture before it was trusted (`tools\screen\state_to_png.py`). Not cut: anything
+with sound (`g03_capitol` runs without its music and still names `PLAY`).

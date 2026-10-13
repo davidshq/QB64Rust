@@ -47,7 +47,8 @@ normalises them:
 1. **The statement frame is dropped**: `do{`, the event check `if(!qbevent)break;evnt(…);}while(r);`, the old
    compiler's `S_n:;` label, `qbs_cleanup(qbs_tmp_base,0);` and blank lines. The emitter's design calls these
    free.
-2. **Numbered temporaries and labels are renumbered** in order of first use (`pass3`, `skip7`, `L_2`, `temp_…1`):
+2. **Numbered temporaries and labels are renumbered** in order of first use (`pass3`, `skip7`, `L_2`, `temp_…1`,
+   and since `m3-get-put-bload` `byte_element_4`, the temporary of an array's bytes in graphics `GET` and `PUT`):
    the two compilers count them differently. User variables are compared as written: both compilers name them by
    the old scheme (`__STRING_S`), and renaming them would hide two swapped variables.
 3. **Redundant parentheses are dropped**: around a whole call argument (`f((a+b),c)`), and around a single token
@@ -79,6 +80,9 @@ program; the reason is its first diagnostic), then a summary line. No local path
 - **Array elements as arguments.** An element's index is written with other conversions by the two compilers
   (`array_check((*__LONG_N)-…` against `array_check((((int64)(*__LONG_N)))-…`, `1` against `1ll`), which is
   element addressing, not the built-in's call; the programs use variables, literals and expressions instead.
+  So `VARPTR(a(i))`, which is nothing but an element's index, has no program here, and graphics `GET` and
+  `PUT` have programs with a whole array only; both are checked by what their slice and screen programs print
+  and draw (`s72_bload_peek_poke`, `d18_get_put`) and by a `cpp` front-end test (`conventional_memory_cpp`).
 - **Arithmetic on operands of different widths inside an argument, and the store of a function's result into a
   narrower variable.** The new compiler writes each widening and narrowing (`((int32)(*__INTEGER_I))*2`,
   `func_lof(n)+1ll`, `*__LONG_N=((int32)(func_lof(1)))`) where the old compiler leaves it to C++. That is how an

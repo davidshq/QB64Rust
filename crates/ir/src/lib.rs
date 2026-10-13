@@ -170,6 +170,10 @@ pub struct Var {
     pub ty: Ty,
     pub storage: Storage,
     pub shape: Shape,
+    /// An array in conventional memory: one a `VARPTR` or `VARSEG` of the program names. A backend gives its
+    /// elements a place there, where `DEF SEG` with `PEEK`, `POKE`, `BLOAD` and `BSAVE` reach them; everything
+    /// else about the array is as for any array of its shape.
+    pub conventional: bool,
 }
 
 impl Var {
@@ -234,6 +238,9 @@ impl Facts for Expr {
             ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => false,
             ExprKind::Load(place) => Facts::may_raise(place),
             ExprKind::Bound { .. } => true,
+            // The index check of the element; a segment is the array's and reads no element.
+            ExprKind::VarPtr { .. } => true,
+            ExprKind::VarSeg { .. } => false,
             ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.may_raise(),
             ExprKind::Binary { op, lhs, rhs } => op_may_raise(*op) || lhs.may_raise() || rhs.may_raise(),
             ExprKind::Concat(..) | ExprKind::StrCompare { .. } | ExprKind::Call { .. } | ExprKind::CallProc { .. } => {
@@ -248,6 +255,8 @@ impl Facts for Expr {
                 ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => false,
                 ExprKind::Load(place) => place.uses_strings(p),
                 ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(|d| d.uses_strings(p)),
+                ExprKind::VarPtr { index, .. } => index.iter().any(|i| i.uses_strings(p)),
+                ExprKind::VarSeg { .. } => false,
                 ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.uses_strings(p),
                 ExprKind::Binary { lhs, rhs, .. }
                 | ExprKind::Concat(lhs, rhs)
@@ -299,6 +308,8 @@ impl Facts for StmtArg {
         match self {
             StmtArg::Value(v) => v.may_raise(),
             StmtArg::Place(place) => Facts::may_raise(place),
+            // The index check of the element the bytes start at.
+            StmtArg::Block { index, .. } => !index.is_empty(),
             StmtArg::Word(_) | StmtArg::Absent => false,
         }
     }
@@ -308,6 +319,7 @@ impl Facts for StmtArg {
         match self {
             StmtArg::Value(v) => v.uses_strings(p),
             StmtArg::Place(place) => place.uses_strings(p) || p.place_ty(place).is_string(),
+            StmtArg::Block { index, .. } => index.iter().any(|i| i.uses_strings(p)),
             StmtArg::Word(_) | StmtArg::Absent => false,
         }
     }

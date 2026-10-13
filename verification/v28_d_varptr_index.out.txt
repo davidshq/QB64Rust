@@ -1,0 +1,11 @@
+VARPTR: 2 calls 1 
+VARSEG: 0 calls 0 
+ 2 3  1  1800000 
+ 4  6  8 
+-1 -1 -2 
+error 9 
+after 11: 0 
+error 9 
+after 0: 0 
+segment of 99: 0 
+exit=0

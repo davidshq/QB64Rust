@@ -1,0 +1,5 @@
+
+Syntax error - Reference: GET [STEP] (column1, row1)-[STEP](column2, row2), array([index])[, offscreenColor]
+Caused by (or after):GET ( 1 , 2 ) - ( 3 , 4 )
+LINE 7:GET (1, 2)-(3, 4)
+exit=1

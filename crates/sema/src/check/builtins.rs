@@ -55,7 +55,8 @@ fn takes_as_is(rule: Rule) -> bool {
         | Rule::Val
         | Rule::Asc
         | Rule::StringFill
-        | Rule::StrOrIndex => false,
+        | Rule::StrOrIndex
+        | Rule::GivenArgs(_) => false,
     }
 }
 
@@ -89,7 +90,8 @@ impl Checker<'_> {
             | Rule::Radix(_)
             | Rule::Asc
             | Rule::StringFill
-            | Rule::StrOrIndex => {}
+            | Rule::StrOrIndex
+            | Rule::GivenArgs(_) => {}
         }
         self.runtime_part(s.id, name, span)?;
         let nodes = self.present_args(list)?;
@@ -124,6 +126,12 @@ impl Checker<'_> {
                 // here, not a LONG's (measured from its C++, design D6 of `m2-console-screenhide`).
                 let inner = builtin.get().name.to_ascii_uppercase();
                 return Err(self.unsupported(e.span, format!("`{inner}` as the argument of `{name}`")));
+            }
+            if let (Rule::Radix(_), ExprKind::VarPtr { .. } | ExprKind::VarSeg { .. }) = (s.rule, &e.kind) {
+                // The old compiler passes the width 0 here too, not an `_INTEGER64`'s (measured from its C++:
+                // `func_hex(…,0)`; accepted, `verification\v28_x95`).
+                let msg = format!("`VARPTR` or `VARSEG` as the argument of `{name}`");
+                return Err(self.unsupported(e.span, msg));
             }
             args.push(Some(self.slot_arg(s.rule, slot, k, e, &which)?));
         }
@@ -172,6 +180,7 @@ impl Checker<'_> {
                 | Slot::ULong
                 | Slot::ColorOrTile,
             ) => false,
+            (_, Slot::Block) => unreachable!("an array's bytes are no value (`block_arg`)"),
         };
         match (wants_string, string) {
             (true, false) => return Err(self.error(e.span, format!("{which} needs a string"))),
@@ -196,7 +205,7 @@ impl Checker<'_> {
                 let qb = e.qb.printed();
                 self.convert_exact(e, qb)
             }
-            Slot::Str => unreachable!("handled above"),
+            Slot::Str | Slot::Block => unreachable!("handled above"),
         })
     }
 
@@ -448,12 +457,28 @@ impl Checker<'_> {
                 ast::FormPart::Arg(a) => Part::Arg(self.need(a.expr(), node.span())?),
             });
         }
-        for form in forms {
+        for &form in &forms {
             let items = form.id.get().template();
             let mut matched = Vec::new();
             if match_items(&mut vec![&items[..]], &parts, 0, &mut matched) {
                 return self.stmt_call(node, form, matched);
             }
+        }
+        if forms.iter().any(|f| f.rule == StmtRule::Graphics) {
+            // The parser read the statement by another entry of the name: the file form. A statement that starts
+            // with a point is the graphics form to the old compiler and a syntax error there (measured,
+            // `verification\v28_x93`, `x94`: `GET (1), , x`).
+            return Err(match parts.first() {
+                Some(Part::Punct(b'(') | Part::Arg(ast::Expr::Paren(_))) => {
+                    self.error(node.span(), format!("this is no form of graphics `{shown}`"))
+                }
+                Some(Part::Word(w)) if w == "STEP" => {
+                    self.error(node.span(), format!("this is no form of graphics `{shown}`"))
+                }
+                Some(Part::Word(_) | Part::Punct(_) | Part::Arg(_)) | None => {
+                    self.unsupported(name_tok.span, format!("`{shown}` on a file"))
+                }
+            });
         }
         Err(self.error(
             node.span(),
@@ -469,7 +494,7 @@ impl Checker<'_> {
         let shown = self.word(name);
         for form in stmt_lookup(&shown, false) {
             match form.rule {
-                StmtRule::Plain => {
+                StmtRule::Plain | StmtRule::Graphics => {
                     let items = form.id.get().template();
                     let mut matched = Vec::new();
                     if match_items(&mut vec![&items[..]], &[], 0, &mut matched) {
@@ -547,6 +572,81 @@ impl Checker<'_> {
         self.stmt_call(node, form, matched)
     }
 
+    /// The array of a graphics `GET` or `PUT` (design D5 of `m3-get-put-bload`; measured,
+    /// `verification\v28_x01`, `x10`–`x25`, `x58`–`x64`): an array as a whole (`a`, `a()`) or from an element
+    /// (`a(5)`, `b(2, 3)`), of numbers; static or dynamic, of this body or shared, or an array parameter.
+    ///
+    /// The old compiler also takes an array of a user type or of strings and, for a name that is no array, the
+    /// bytes of that plain variable; each is another text of its own and not supported yet. It writes the index
+    /// twice, so a FUNCTION in it is called twice (measured from its C++): an index with a call is not supported
+    /// yet either. Anything that is no variable is its error ("Expected variable name/array element").
+    fn block_arg(&mut self, node: ast::Expr, name: &str) -> R<StmtArg> {
+        let span = node.node().span();
+        let whole = match node {
+            ast::Expr::NameRef(n) => n.name(),
+            ast::Expr::Call(c) if c.arg_list().is_some_and(|l| l.args().is_empty()) => c.name(),
+            ast::Expr::Call(_)
+            | ast::Expr::Literal(_)
+            | ast::Expr::Field(_)
+            | ast::Expr::Paren(_)
+            | ast::Expr::Prefix(_)
+            | ast::Expr::Bin(_) => None,
+        };
+        let (array, index) = if let Some(t) = whole {
+            let (word, suffix) = self.split_name(t)?;
+            let Some(array) = self.find_array(&word, suffix) else {
+                if self.visible_const(&word).is_some() {
+                    // Measured: "Expected variable name/array element" (`verification\v28_x64`).
+                    return Err(self.error(span, format!("`{name}` needs an array here")));
+                }
+                let msg = format!("a variable that is no array as the array of `{name}`");
+                return Err(self.unsupported(span, msg));
+            };
+            self.names.push((crate::SymbolKind::Var(array), t.span));
+            (array, Vec::new())
+        } else {
+            // An element of a user type is a place here, not a value, as for `LEN` ([`Checker::load`]).
+            let outer = self.len_place.replace(span);
+            let e = self.expr(node);
+            self.len_place = outer;
+            match e?.kind {
+                ExprKind::Load(Place::Element {
+                    array: crate::ArrayRef::Var(array),
+                    index,
+                }) => (array, index),
+                ExprKind::Load(_) => {
+                    let msg = format!("a member of a `TYPE` as the array of `{name}`");
+                    return Err(self.unsupported(span, msg));
+                }
+                ExprKind::Int(_)
+                | ExprKind::Float(_)
+                | ExprKind::Str(_)
+                | ExprKind::Bound { .. }
+                | ExprKind::VarPtr { .. }
+                | ExprKind::VarSeg { .. }
+                | ExprKind::Convert { .. }
+                | ExprKind::Binary { .. }
+                | ExprKind::Unary { .. }
+                | ExprKind::Concat(..)
+                | ExprKind::StrCompare { .. }
+                | ExprKind::Call { .. }
+                | ExprKind::CallProc { .. } => {
+                    return Err(self.error(span, format!("`{name}` needs an array here")));
+                }
+            }
+        };
+        let ty = self.prog.var(array).ty;
+        if !(ty.is_int() || ty.is_float()) || matches!(ty, Ty::Bit { .. }) {
+            let msg = format!("an array of strings, of a `TYPE` or of `_BIT` as the array of `{name}`");
+            return Err(self.unsupported(span, msg));
+        }
+        if index.iter().any(calls_procedure) {
+            let msg = format!("a call of a FUNCTION in the index of the array of `{name}`");
+            return Err(self.unsupported(span, msg));
+        }
+        Ok(StmtArg::Block { array, index })
+    }
+
     /// The typed statement of a form and what its template's arguments and choices matched.
     fn stmt_call(&mut self, node: Node, form: StmtSupported, matched: Vec<Matched>) -> R<()> {
         self.runtime_part(form.id, form.name, node.span())?;
@@ -556,6 +656,10 @@ impl Checker<'_> {
         let mut k = 0;
         for (slot, m) in slots.into_iter().zip(matched) {
             args.push(match (slot, m) {
+                (StmtSlot::Arg { slot: Slot::Block, .. }, Matched::Arg(Some(arg))) => {
+                    k += 1;
+                    self.block_arg(arg, form.name)?
+                }
                 (StmtSlot::Arg { slot, .. }, Matched::Arg(Some(arg))) => {
                     k += 1;
                     let e = self.expr(arg)?;
@@ -565,7 +669,9 @@ impl Checker<'_> {
                         format!("argument {k} of `{}`", form.name)
                     };
                     match form.rule {
-                        StmtRule::Plain => StmtArg::Value(self.slot_arg(Rule::Plain, slot, k - 1, e, &which)?),
+                        StmtRule::Plain | StmtRule::Graphics => {
+                            StmtArg::Value(self.slot_arg(Rule::Plain, slot, k - 1, e, &which)?)
+                        }
                         StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign => {
                             unreachable!("`{}` has a node of its own (`check\\io.rs`)", form.name)
                         }
@@ -587,6 +693,22 @@ impl Checker<'_> {
         }
         self.push(node, StmtKind::Builtin { id: form.id, args });
         Ok(())
+    }
+}
+
+/// Whether evaluating the expression calls a SUB or FUNCTION of the program.
+fn calls_procedure(e: &Expr) -> bool {
+    match &e.kind {
+        ExprKind::CallProc { .. } => true,
+        ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) | ExprKind::VarSeg { .. } => false,
+        ExprKind::Load(place) => place.indexes().iter().any(|i| calls_procedure(i)),
+        ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(calls_procedure),
+        ExprKind::VarPtr { index, .. } => index.iter().any(calls_procedure),
+        ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => calls_procedure(from),
+        ExprKind::Binary { lhs, rhs, .. } | ExprKind::Concat(lhs, rhs) | ExprKind::StrCompare { lhs, rhs, .. } => {
+            calls_procedure(lhs) || calls_procedure(rhs)
+        }
+        ExprKind::Call { args, .. } => args.iter().flatten().any(calls_procedure),
     }
 }
 

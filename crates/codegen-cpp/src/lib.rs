@@ -105,6 +105,7 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
         skip: 0,
         pass: 0,
         pass_decls: Vec::new(),
+        byte_element: 0,
         handlers: Vec::new(),
         body: &p.main,
         k: 0,
@@ -218,6 +219,8 @@ struct Emitter<'a> {
     pass: u32,
     /// Declarations of the `passN` of the body being emitted.
     pass_decls: Vec<String>,
+    /// Counter for the `byte_element_N` temporaries of graphics `GET` and `PUT`.
+    byte_element: u32,
     /// Handler labels; handler number N is entry N - 1.
     handlers: Vec<LabelId>,
     /// The body being emitted, whose labels the jumps name, and its number K (0 for the main module).

@@ -197,6 +197,13 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                             heading(out, &format!("place {} : {t}", place_text(p, place)));
                             indexes(p, place, d + 2, out);
                         }
+                        StmtArg::Block { array, index } => {
+                            let from = if index.is_empty() { "whole" } else { "from an element" };
+                            heading(out, &format!("bytes of {} ({from})", var_name(p, *array)));
+                            for i in index {
+                                expr(p, i, d + 2, out);
+                            }
+                        }
                         StmtArg::Word(w) => heading(out, &format!("word {w}")),
                         StmtArg::Absent => heading(out, "(absent)"),
                     }
@@ -486,6 +493,13 @@ fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
                 expr(p, d, depth + 1, out);
             }
         }
+        ExprKind::VarPtr { array, index } => {
+            writeln!(out, "{pad}VarPtr {} : {types}", var_name(p, *array)).unwrap();
+            for i in index {
+                expr(p, i, depth + 1, out);
+            }
+        }
+        ExprKind::VarSeg { array } => writeln!(out, "{pad}VarSeg {} : {types}", var_name(p, *array)).unwrap(),
         ExprKind::Convert { how, from } => {
             writeln!(out, "{pad}Convert {how:?} : {types}").unwrap();
             expr(p, from, depth + 1, out);

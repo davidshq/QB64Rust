@@ -133,6 +133,19 @@ impl Emitter<'_> {
                 array: ArrayRef::Member { base, member },
                 dim,
             } => self.member_bound(*upper, base, *member, dim.as_deref()),
+            // As the old compiler writes them (`qb64pe.bas` 21328; measured, `study\00` §5): the element's checked
+            // flat position times the size of an element, and the array's distance from the start of libqb's
+            // conventional memory in 16-byte segments.
+            ExprKind::VarPtr { array, index } => {
+                let flat = self.flat_index(*array, index);
+                format!("(({flat})*{})", self.ty_size(self.p.var(*array).ty))
+            }
+            ExprKind::VarSeg { array } => {
+                format!(
+                    "( ( ((ptrszint)({}[0])) - ((ptrszint)(&cmem[0])) ) /16)",
+                    self.name(*array)
+                )
+            }
             ExprKind::Convert { how, from } => {
                 let x = self.value(from);
                 match (how, v.ty) {

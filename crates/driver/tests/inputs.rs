@@ -20,6 +20,7 @@ use qb64rust_syntax::tree::{Node, print};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// What the old compiler says about a file.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -274,20 +275,29 @@ fn outcomes() -> &'static [Outcome] {
     OUTCOMES.get_or_init(|| {
         let inputs = inputs();
         let threads = std::thread::available_parallelism().map_or(4, |n| n.get());
-        let chunk = inputs.len().div_ceil(threads).max(1);
-        std::thread::scope(|s| {
-            let handles: Vec<_> = inputs
-                .chunks(chunk)
-                .map(|part| {
-                    s.spawn(move || {
-                        part.iter()
-                            .map(|(name, path, verdict)| run(name.clone(), path, *verdict))
-                            .collect::<Vec<_>>()
+        // Each thread takes the next input not yet taken, the largest files first. The run is as long as its
+        // busiest thread: the large files stand side by side in the list (the old compiler's sources, at its
+        // end), and equal shares of the list gave them all to one thread.
+        let mut order: Vec<usize> = (0..inputs.len()).collect();
+        order.sort_by_key(|&i| std::cmp::Reverse(std::fs::metadata(&inputs[i].1).map_or(0, |m| m.len())));
+        let next = AtomicUsize::new(0);
+        let mut done: Vec<(usize, Outcome)> = std::thread::scope(|s| {
+            let handles: Vec<_> = (0..threads)
+                .map(|_| {
+                    s.spawn(|| {
+                        let mut part = Vec::new();
+                        while let Some(&i) = order.get(next.fetch_add(1, Ordering::Relaxed)) {
+                            let (name, path, verdict) = &inputs[i];
+                            part.push((i, run(name.clone(), path, *verdict)));
+                        }
+                        part
                     })
                 })
                 .collect();
             handles.into_iter().flat_map(|h| h.join().unwrap()).collect()
-        })
+        });
+        done.sort_by_key(|d| d.0);
+        done.into_iter().map(|d| d.1).collect()
     })
 }
 

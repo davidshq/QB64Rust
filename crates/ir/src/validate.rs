@@ -364,13 +364,13 @@ impl Validator<'_> {
             return;
         };
         match form.rule {
-            StmtRule::Plain => {}
+            StmtRule::Plain | StmtRule::Graphics => {}
             // Any number of file numbers.
             StmtRule::Close => {
                 for (k, arg) in args.iter().enumerate() {
                     match arg {
                         StmtArg::Value(v) => self.file_number(v, owner, at),
-                        StmtArg::Place(_) | StmtArg::Word(_) | StmtArg::Absent => {
+                        StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Word(_) | StmtArg::Absent => {
                             self.problem(format!("{at}: slot {} of {name} is no value", k + 1));
                         }
                     }
@@ -416,7 +416,9 @@ impl Validator<'_> {
                 match length {
                     StmtArg::Value(l) => self.value(l, owner, at),
                     StmtArg::Absent => {}
-                    StmtArg::Place(_) | StmtArg::Word(_) => self.problem(format!("{at}: slot 3 of {name} is no value")),
+                    StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Word(_) => {
+                        self.problem(format!("{at}: slot 3 of {name} is no value"));
+                    }
                 }
                 if v.ty != Ty::Str {
                     self.problem(format!("{at}: {name} stores a value of type {:?}", v.ty));
@@ -440,6 +442,10 @@ impl Validator<'_> {
                         Slot::Long | Slot::Int64 | Slot::Double | Slot::Float | Slot::AnyNumeric | Slot::ULong => false,
                         // A number or a string: whichever the value is.
                         Slot::ColorOrTile => v.ty == Ty::Str,
+                        Slot::Block => {
+                            self.problem(format!("{at}: slot {k} of {name} takes an array's bytes, not a value"));
+                            v.ty == Ty::Str
+                        }
                     };
                     if string != (v.ty == Ty::Str) {
                         self.problem(format!("{at}: slot {k} of {name} holds a value of type {:?}", v.ty));
@@ -448,6 +454,23 @@ impl Validator<'_> {
                 }
                 (StmtSlot::Arg { .. }, StmtArg::Place(_)) => {
                     self.problem(format!("{at}: slot {k} of {name} holds a place"));
+                }
+                // The bytes of an array of numbers, whole or from an element with an index per dimension.
+                (StmtSlot::Arg { slot, .. }, StmtArg::Block { array, index }) => {
+                    if *slot != Slot::Block {
+                        self.problem(format!("{at}: slot {k} of {name} holds an array's bytes"));
+                    }
+                    self.array_ref(&ArrayRef::Var(*array), owner, at, "bytes");
+                    let a = self.p.var(*array);
+                    if !(a.ty.is_int() || a.ty.is_float()) {
+                        self.problem(format!("{at}: the bytes of {}, an array of {:?}", a.name, a.ty));
+                    }
+                    if !index.is_empty() && a.dim_count().is_some_and(|n| n != index.len()) {
+                        self.problem(format!("{at}: {} indexes for {}", index.len(), a.name));
+                    }
+                    for i in index {
+                        self.value(i, owner, at);
+                    }
                 }
                 (StmtSlot::Choice { alts, .. }, StmtArg::Word(w)) => {
                     if w >= alts {
@@ -462,7 +485,7 @@ impl Validator<'_> {
                 (StmtSlot::Arg { .. }, StmtArg::Word(_)) => {
                     self.problem(format!("{at}: slot {k} of {name} is an argument, not a choice"));
                 }
-                (StmtSlot::Choice { .. }, StmtArg::Value(_) | StmtArg::Place(_)) => {
+                (StmtSlot::Choice { .. }, StmtArg::Value(_) | StmtArg::Place(_) | StmtArg::Block { .. }) => {
                     self.problem(format!("{at}: slot {k} of {name} is a choice, not an argument"));
                 }
             }
@@ -641,6 +664,25 @@ impl Validator<'_> {
                     self.value(d, owner, at);
                 }
             }
+            // An offset or a segment is of an array in conventional memory; an offset has an index per dimension.
+            ExprKind::VarPtr { array, .. } | ExprKind::VarSeg { array } => {
+                self.array_ref(&ArrayRef::Var(*array), owner, at, "address");
+                let a = self.p.var(*array);
+                if !a.conventional {
+                    self.problem(format!(
+                        "{at}: an address of {}, which is not in conventional memory",
+                        a.name
+                    ));
+                }
+                if let ExprKind::VarPtr { index, .. } = &v.kind {
+                    if a.dim_count().is_some_and(|n| n != index.len()) {
+                        self.problem(format!("{at}: {} indexes for {}", index.len(), a.name));
+                    }
+                    for i in index {
+                        self.value(i, owner, at);
+                    }
+                }
+            }
             ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => self.value(from, owner, at),
             ExprKind::Binary { lhs, rhs, .. } | ExprKind::Concat(lhs, rhs) | ExprKind::StrCompare { lhs, rhs, .. } => {
                 self.value(lhs, owner, at);
@@ -702,6 +744,7 @@ mod tests {
             ty: Ty::I32,
             storage,
             shape: crate::Shape::Scalar,
+            conventional: false,
         }
     }
 

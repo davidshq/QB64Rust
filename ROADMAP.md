@@ -63,12 +63,15 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
       `CIRCLE`, `PAINT`, `DRAW`, `VIEW`, `WINDOW`, `PALETTE`, `PCOPY`), pacing (`_LIMIT`, `_DELAY`, `SLEEP`,
       `_DISPLAY`) and the functions `INKEY$`, `CSRLIN`, `POS`, `POINT`, `SCREEN`, with screen programs that pass
       on `tests\corpus\slice.list` (`m3-window-output`)
-- [ ] Graphics `GET` and `PUT`, `DEF SEG` with `BLOAD`, `TAB` and `SPC`, labels named like a SUB: what Civil War
-      Strategy needs to build
-- [ ] Data files beside a corpus program (`BLOAD` of the game's pictures)
+- [x] Graphics `GET` and `PUT`, `DEF SEG` with `BLOAD`, `BSAVE`, `PEEK`, `POKE`, `VARPTR` and `VARSEG` on arrays
+      in conventional memory, `TAB` and `SPC`, labels named like a SUB, `_RGB32`, `_RGBA32`, `_FULLSCREEN`,
+      `DATE$`, `TIME$`: what Civil War Strategy needs to build apart from sound (`m3-get-put-bload`)
+- [x] Data files beside a corpus program (`<name>.files\`); five more programs cut from the game, three of them
+      loading its pictures with `BLOAD`
 - [ ] Civil War Strategy builds and its screens match (`tests\programs\README.md`)
 - [ ] Sound (`PLAY`, `SOUND`, `BEEP`)
-- [ ] The image built-ins that run (`_RGB32`, `_LOADIMAGE`, `_PUTIMAGE`, …), fonts, the mouse
+- [ ] The image built-ins that run (`_LOADIMAGE`, `_PUTIMAGE`, …; `_RGB32` and `_RGBA32` are done), fonts, the
+      mouse
 - [ ] The console programs of the corpus that still wait (`PRINT USING`, random and binary files)
 - [ ] Plain copy of QB64pe's `internal\c` at the reference clone's commit, when libqb must change
 

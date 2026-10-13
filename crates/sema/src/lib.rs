@@ -552,6 +552,10 @@ pub struct Var {
     pub ty: Ty,
     pub storage: Storage,
     pub shape: Shape,
+    /// An array a `VARPTR` or `VARSEG` of the program names: it lives in libqb's conventional memory, where
+    /// `DEF SEG` with `PEEK`, `POKE`, `BLOAD` and `BSAVE` reach it (design D4 of `m3-get-put-bload`). Only an
+    /// array of the main module with numeric elements is one.
+    pub conventional: bool,
 }
 
 impl Var {
@@ -835,6 +839,20 @@ pub enum ExprKind {
         array: ArrayRef,
         dim: Option<Box<Expr>>,
     },
+    /// `VARPTR(a(i))`: the offset of an element in its array, in bytes: its flat position, bounds check included,
+    /// times the size of an element. Typed `_INTEGER64` (measured, `verification\v28_d_varptr_index`: an index
+    /// outside the bounds raises error 9 and gives 0). The array is one in conventional memory
+    /// ([`Var::conventional`]).
+    VarPtr {
+        array: VarId,
+        index: Vec<Expr>,
+    },
+    /// `VARSEG(a(i))`: the segment of the array's data in conventional memory, typed `_INTEGER64`. The index
+    /// is not part of it: the old compiler does not evaluate it (measured, `v28_d_varptr_index`: a FUNCTION in it
+    /// is not called, an index outside the bounds raises nothing).
+    VarSeg {
+        array: VarId,
+    },
     Convert {
         how: ConvKind,
         from: Box<Expr>,
@@ -905,6 +923,11 @@ pub enum StmtArg {
     Value(Expr),
     /// A variable, element or member the statement stores into or exchanges.
     Place(Place),
+    /// The bytes of an array from the element at `index` to its end; of the whole array when `index` is empty
+    /// (`GET (0, 0)-(9, 9), a`, `PUT (0, 0), a(5)`). An index outside the bounds raises error 9 and counts as the
+    /// first element. The index is used twice, for the address and for the number of bytes left, so it is one
+    /// that reads only: no call of a SUB or FUNCTION (measured: the old compiler evaluates it twice).
+    Block { array: VarId, index: Vec<Expr> },
     /// Which alternative of a choice was written, from 0 (`FOR OUTPUT` of `OPEN` is 3).
     Word(u8),
     /// An optional argument or choice left out.

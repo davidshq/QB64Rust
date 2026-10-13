@@ -223,10 +223,14 @@ impl Parser<'_, '_> {
     /// No form matched: an error at the furthest token any form reached, naming the forms.
     fn no_form(&mut self, forms: &[(&Builtin, Vec<Item>)], furthest: usize) {
         let name = qb64rust_base::show_bytes(self.nth_text(0)).to_ascii_uppercase();
-        let shown: Vec<String> = forms
-            .iter()
-            .map(|(b, _)| format!("`{name} {}`", b.specialformat.unwrap_or_default()))
-            .collect();
+        // Two entries of a name may have one template (graphics `GET` and `PUT`): each form is named once.
+        let mut shown: Vec<String> = Vec::new();
+        for (b, _) in forms {
+            let form = format!("`{name} {}`", b.specialformat.unwrap_or_default());
+            if !shown.contains(&form) {
+                shown.push(form);
+            }
+        }
         let span = self.next_span(furthest.min(self.statement_len()));
         self.error_at(
             span,

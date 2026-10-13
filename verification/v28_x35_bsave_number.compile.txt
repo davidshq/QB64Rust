@@ -1,0 +1,5 @@
+
+1st sub argument requires a string
+Caused by (or after):BSAVE 5 , 1 , 2
+LINE 7:BSAVE 5, 1, 2
+exit=1

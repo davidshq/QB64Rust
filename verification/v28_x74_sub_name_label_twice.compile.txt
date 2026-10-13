@@ -1,0 +1,5 @@
+
+Duplicate label (one)
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 5:one:
+exit=1

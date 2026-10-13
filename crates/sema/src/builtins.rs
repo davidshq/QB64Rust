@@ -13,7 +13,7 @@
 
 use crate::{Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Ty};
 use qb64rust_builtins::passing::plan;
-use qb64rust_builtins::{Builtin, BuiltinId, find_function, find_statements, find_stub};
+use qb64rust_builtins::{Builtin, BuiltinId, find_function_form, find_statements, find_stub};
 
 /// How the old compiler treats a built-in function: one variant per kind of special-casing, not per function.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -48,6 +48,10 @@ pub enum Rule {
     /// `ENVIRON$(name$)` or `ENVIRON$(n)`: a string as it is, or a number converted as the table's LONG slot
     /// (`qb64pe.bas` 20952; libqb has an entry for each, `func_environ(qbs*)` and `func_environ(int32_t)`).
     StrOrIndex,
+    /// `_RGB32`: the table's slots, of which the first n are needed; the call is written with the arguments given
+    /// and nothing for the others (libqb has an entry for each number of arguments; measured,
+    /// `verification\v28_x01`, `x45`, `x46`).
+    GivenArgs(usize),
 }
 
 /// Every built-in function `sema` compiles, as written (with its required suffix), and its rule. The coverage check
@@ -164,6 +168,26 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("POINT", Rule::Plain),
     // `SCREEN(row, column[, colorflag])`: an `_UNSIGNED LONG`.
     ("SCREEN", Rule::Plain),
+    // `TAB(n)` and `SPC(n)` are functions that give a string, one LONG slot each: `PRINT`, `PRINT #` and `WRITE`
+    // take them as the string items they are (design D2 of `m3-get-put-bload`; `verification\v28_a_tab_spc`).
+    ("TAB", Rule::Plain),
+    ("SPC", Rule::Plain),
+    // `PEEK(offset)`: a LONG, in the segment `DEF SEG` set (`verification\v28_b_bload`).
+    ("PEEK", Rule::Plain),
+    // `VARPTR(a(i))` and `VARSEG(a(i))`: written by the compiler, an `_INTEGER64` to `PRINT` and to operators
+    // against the table's LONG (`qb64pe.bas` 21328; measured, `verification\v28_d_varptr_index`); checked as
+    // [`ExprKind::VarPtr`] and [`ExprKind::VarSeg`].
+    ("VARPTR", Rule::Fixed(Ty::I64)),
+    ("VARSEG", Rule::Fixed(Ty::I64)),
+    // `_RGB32` with one to four LONG slots (libqb has an entry for each number of arguments) and `_RGBA32` with
+    // four: an `_UNSIGNED LONG`. `_FULLSCREEN` has no slot and is called bare only, a LONG ([`WINDOW_BUILTINS`]).
+    ("_RGB32", Rule::GivenArgs(1)),
+    ("_RGBA32", Rule::Plain),
+    ("_FULLSCREEN", Rule::Plain),
+    // The date and the time as strings: no slot, called bare only. Civil War Strategy writes `DATE$` into its
+    // history file, on a line `TAB` kept marked until now.
+    ("DATE$", Rule::Plain),
+    ("TIME$", Rule::Plain),
 ];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
@@ -183,6 +207,9 @@ pub enum StmtRule {
     /// `MID$(target$, start[, length]) = value$`: a string place, a LONG value, a LONG value or absent, a string
     /// value (measured, `verification\v22_d_mid`).
     MidAssign,
+    /// Graphics `GET` and `PUT`: as [`StmtRule::Plain`], for the entries of the name whose call is libqb's
+    /// `sub_graphics_…` only. The name's other entry, the file form (`GET #1, , x`), is not compiled.
+    Graphics,
 }
 
 /// Every built-in statement `sema` compiles as a call of the runtime, as written, and its rule. A name stands for
@@ -248,6 +275,18 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_DELAY", StmtRule::Plain),
     ("SLEEP", StmtRule::Plain),
     ("_DISPLAY", StmtRule::Plain),
+    // Conventional memory (design D2 of `m3-get-put-bload`; `verification\v28_b_bload`, `v28_x26`–`x35`): `DEF`
+    // stands for `DEF SEG [= segment]`, the one entry of that name with a call.
+    ("DEF", StmtRule::Plain),
+    ("POKE", StmtRule::Plain),
+    ("BLOAD", StmtRule::Plain),
+    ("BSAVE", StmtRule::Plain),
+    // `_FULLSCREEN [mode][, _SMOOTH]`: compiled and never run ([`WINDOW_BUILTINS`]).
+    ("_FULLSCREEN", StmtRule::Plain),
+    // Graphics `GET` and `PUT` (design D5 of `m3-get-put-bload`; `verification\v28_x10`–`x25`): the array is
+    // a slot of its own kind ([`Slot::Block`]).
+    ("GET", StmtRule::Graphics),
+    ("PUT", StmtRule::Graphics),
 ];
 
 /// The window built-ins, as written: statements and functions that no test runs yet, because what they do shows
@@ -273,6 +312,7 @@ pub const WINDOW_BUILTINS: &[&str] = &[
     "_WINDOWHANDLE",
     "_WINDOWHASFOCUS",
     "_NEWIMAGE",
+    "_FULLSCREEN",
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.
@@ -296,6 +336,10 @@ pub fn stmt_lookup(name: &str, string: bool) -> Vec<StmtSupported> {
         .flat_map(|&(written, rule)| {
             let forms = match rule {
                 StmtRule::Plain => find_statements(name.as_bytes(), string),
+                StmtRule::Graphics => find_statements(name.as_bytes(), string)
+                    .into_iter()
+                    .filter(|id| id.get().callname.starts_with("sub_graphics_"))
+                    .collect(),
                 // The statements the old compiler writes itself are named by their stub entry.
                 StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign => {
                     find_stub(name.as_bytes(), string).into_iter().collect()
@@ -380,6 +424,8 @@ fn stmt_slot_type(b: &Builtin, k: usize, table: &str) -> Slot {
         // `PAINT (x, y), fill`: a colour or a tile string; libqb has an entry for each (measured from the C++,
         // design D2 of `m3-window-output`).
         ("sub_paint", 2) => Slot::ColorOrTile,
+        // The array of graphics `GET` and `PUT`.
+        _ if table.starts_with("offset+size (largest safe block") => Slot::Block,
         _ => Slot::from_table(table),
     }
 }
@@ -402,7 +448,7 @@ pub fn lookup(name: &str, string: bool) -> Option<Supported> {
             None => (written, false),
         };
         (bare == name && dollar == string).then(|| Supported {
-            id: find_function(bare.as_bytes()).expect("every supported built-in is in the table"),
+            id: find_function_form(bare.as_bytes(), dollar).expect("every supported built-in is in the table"),
             rule,
             name: written,
         })
@@ -444,7 +490,8 @@ pub fn slot_count(id: BuiltinId) -> usize {
             | Rule::Val
             | Rule::Radix(_)
             | Rule::StringFill
-            | Rule::StrOrIndex,
+            | Rule::StrOrIndex
+            | Rule::GivenArgs(_),
         )
         | None => id.get().arg_types.len(),
     }
@@ -455,6 +502,12 @@ pub fn slots(s: Supported) -> Vec<(Slot, bool)> {
     let b = s.id.get();
     match s.rule {
         Rule::Asc => vec![(Slot::Str, false), (Slot::Long, true)],
+        Rule::GivenArgs(required) => b
+            .arg_types
+            .iter()
+            .enumerate()
+            .map(|(i, t)| (Slot::from_table(t), i >= required))
+            .collect(),
         Rule::Plain
         | Rule::ResultOfArg
         | Rule::IntFix
@@ -504,6 +557,9 @@ pub enum Slot {
     /// cast of the whole, which is what is written here: its infix operators at that level are `+`, `-`, `*` and
     /// the bitwise ones, and every other operation is a call (measured, design D2 of `m3-window-output`).
     ColorOrTile,
+    /// The array of graphics `GET` and `PUT`: no value but the bytes of an array from one of its elements to
+    /// its end, or of the whole array ([`crate::StmtArg::Block`]; design D5 of `m3-get-put-bload`).
+    Block,
 }
 
 impl Slot {
@@ -531,7 +587,7 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
             .expect("the first argument of a typed-by-argument built-in")
     };
     match s.rule {
-        Rule::Plain => {
+        Rule::Plain | Rule::GivenArgs(_) => {
             let qb = table_ty(b);
             let held = if b.callname.starts_with("std::") {
                 overload(args.iter().flatten().map(|a| a.ty))

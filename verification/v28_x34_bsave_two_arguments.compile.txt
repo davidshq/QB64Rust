@@ -1,0 +1,5 @@
+
+Syntax error - Reference: BSAVE saveFile$, VARPTR(array(index)), fileSize&
+Caused by (or after):BSAVE "f",1 , 1
+LINE 7:BSAVE "f", 1
+exit=1

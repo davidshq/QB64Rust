@@ -1,0 +1,5 @@
+
+Expected (...)
+Caused by (or after):U = _RGB32 ( )
+LINE 7:u = _RGB32()
+exit=1

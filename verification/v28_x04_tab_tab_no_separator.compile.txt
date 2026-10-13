@@ -1,0 +1,5 @@
+
+Expected operator in equation
+Caused by (or after):PRINT TAB ( 3 ) TAB ( 9 ) ; "t",1
+LINE 7:PRINT TAB(3) TAB(9); "t"
+exit=1

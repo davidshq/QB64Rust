@@ -354,6 +354,7 @@ impl Checker<'_> {
     pub(super) fn new_var(&mut self, name: String, ty: Ty, storage: Storage) -> VarId {
         let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
+            conventional: false,
             name,
             ty,
             storage,

@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _RGBA32(red&, green&, blue&, alpha&)
+Caused by (or after):U = _RGBA32 ( 1 , 2 , 3 )
+LINE 7:u = _RGBA32(1, 2, 3)
+exit=1

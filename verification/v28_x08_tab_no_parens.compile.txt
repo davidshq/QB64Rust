@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: TAB(column%)
+Caused by (or after):PRINT TAB ; 1
+LINE 7:PRINT TAB; 1
+exit=1

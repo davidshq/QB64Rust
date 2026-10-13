@@ -77,3 +77,20 @@ byte, mark the folder `-text` in `.gitattributes`, check that `qb64pe.exe` build
   and the metacommand `$EXEICON` once each. That is the second step proposed for M3 (`STATUS.md`, "Next").
 - Of the six programs cut from it, four pass with the new compiler and are on `tests\corpus\slice.list` (`g01`
   flags, `g02` cannon, `g04` ironclad, `g05` schooner); `g03` waits on `PLAY`, `g06` on graphics `GET` and `PUT`.
+
+## Measured (2026-10-13, after `m3-get-put-bload`)
+
+- Still no real error. `qb64rust --report unsupported tests\programs`: **66 marked errors in 4 messages** (135 in
+  15 before): `SOUND` 33, `PLAY` 31, `BEEP` 1 and the metacommand `$EXEICON` 1. Everything else the game has
+  compiles: its 22 `TAB` lines, graphics `PUT` (19) and `GET` (8), `DEF SEG` (8) and `BLOAD` (4) with `VARSEG`
+  and `VARPTR`, `_FULLSCREEN`, `DATE$`, and its lines that are a SUB's name and a colon.
+- `topbar:` in its main module is a **call** of `SUB topbar` (no jump names the word); `ships:` and `cannon:` in
+  `SUB navy` are **labels** (`GOTO ships`, `GOTO cannon`) beside `CALL ships` and `CALL cannon`. That is the old
+  compiler's rule (`study\00` §5).
+- `mtn`, `graphic` and `graft`, the arrays its pictures are loaded into, lie in conventional memory; `mtn` is
+  listed in `COMMON` and so a dynamic array to the old compiler.
+- Eleven programs are cut from it now (`tests\corpus\screen\g01`–`g11`, `tools\screen\cut_game.py`); ten pass
+  with the new compiler and are on `tests\corpus\slice.list`, among them the ones that load its `*.VGA` pictures
+  (the mountains, the icon, the faces and the forts) and its city report. `g03_capitol` waits on `PLAY`.
+- What it needs next is sound, step 3 of M3's order; then stage 2's "compiles, and the C++ builds" can be tried
+  on the whole game.

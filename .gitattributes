@@ -7,6 +7,8 @@ verification/*.stdin -text
 # The recorded state of a screen program and the keys it is given (tools/screen/README.md)
 tests/corpus/**/*.screen -text
 tests/corpus/**/*.keys -text
+# The data files a corpus program reads, copied beside it when it runs: byte for byte (tools/legacy_tests/README.md)
+tests/corpus/**/*.files/** -text
 # Recorded verification output: text is stored with LF on every machine, whatever its git settings; a file git
 # takes for binary (a NUL, a CR without LF) keeps its bytes (tools/legacy_tests/README.md, "Verification programs")
 verification/*.compile.txt text=auto

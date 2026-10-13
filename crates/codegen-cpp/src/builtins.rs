@@ -3,13 +3,14 @@
 //! `qb64pe.bas` `evaluatefunc` and the C++ it writes, `study\00` §5).
 
 use crate::Emitter;
+use crate::decl::dim_count;
 use crate::names::c_type;
 use qb64rust_builtins::BuiltinId;
 use qb64rust_builtins::passing::plan;
 use qb64rust_ir::builtins::{
     Rule, Slot, StmtRule, StmtSlot, find, int_entry, radix_width, slots, stmt_find, stmt_slots,
 };
-use qb64rust_ir::{Expr, Facts, StmtArg, Ty};
+use qb64rust_ir::{Expr, Facts, StmtArg, Ty, VarId};
 
 impl Emitter<'_> {
     /// A built-in call. A built-in no rule covers (`ERR`, `ERL` are `Fixed`; every call `sema` makes has a rule) is
@@ -24,6 +25,12 @@ impl Emitter<'_> {
             Rule::Plain | Rule::ResultOfArg | Rule::FloatByArg | Rule::Fixed(_) | Rule::StrOrIndex => {
                 let slots: Vec<Slot> = slots(s).into_iter().map(|(slot, _)| slot).collect();
                 self.table_call(id, args, &slots)
+            }
+            // The arguments given, each converted by its slot; libqb has an entry for each number of them.
+            Rule::GivenArgs(_) => {
+                let slots: Vec<Slot> = slots(s).into_iter().map(|(slot, _)| slot).collect();
+                let given: Vec<Option<Expr>> = args.iter().filter(|a| a.is_some()).cloned().collect();
+                self.table_call(id, &given, &slots[..given.len()])
             }
             Rule::IntFix => {
                 let a = arg(0);
@@ -135,7 +142,7 @@ impl Emitter<'_> {
     pub(crate) fn stmt_call(&mut self, id: BuiltinId, args: &[StmtArg], out: &mut Vec<String>) {
         let form = stmt_find(id).unwrap_or_else(|| unreachable!("{} is no compiled statement", id.get().name));
         match form.rule {
-            StmtRule::Plain => out.push(self.plain_stmt(id, args)),
+            StmtRule::Plain | StmtRule::Graphics => out.push(self.plain_stmt(id, args)),
             // One call per number, in order; every file when there is none.
             StmtRule::Close => {
                 for arg in args {
@@ -196,7 +203,9 @@ impl Emitter<'_> {
                 let start = self.value(start);
                 let (length, passed) = match length {
                     StmtArg::Value(l) => (self.value(l), 1),
-                    StmtArg::Absent | StmtArg::Place(_) | StmtArg::Word(_) => ("0".to_string(), 0),
+                    StmtArg::Absent | StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Word(_) => {
+                        ("0".to_string(), 0)
+                    }
                 };
                 let v = self.value(v);
                 out.push(format!("sub_mid({target},{start},{length},{v},{passed});"));
@@ -223,6 +232,7 @@ impl Emitter<'_> {
                 StmtArg::Word(w) => (u32::from(*w) + 1).to_string(),
                 StmtArg::Absent => "NULL".to_string(),
                 StmtArg::Place(_) => unreachable!("`{}` takes no place (`validate`)", b.name),
+                StmtArg::Block { array, index } => self.block(*array, index),
             };
             // The fill of `PAINT`: the old compiler's cast picks libqb's entry for a colour or for a tile string,
             // `(uint32)NULL` for a fill left out (measured, design D2 of `m3-window-output`).
@@ -256,6 +266,35 @@ impl Emitter<'_> {
         format!("{}({});", b.callname, c_args.join(","))
     }
 
+    /// The bytes of an array from an element to its end (the whole array: from its first element), for graphics
+    /// `GET` and `PUT`, as the old compiler writes them (measured, `study\00` §5): libqb's `byte_element` of the
+    /// element's address, the bytes left (none while the array is not allocated) and a temporary of its own,
+    /// declared with the variables of the body. The index is written twice; `sema` allows none that calls a
+    /// procedure.
+    fn block(&mut self, array: VarId, index: &[Expr]) -> String {
+        let (v, n) = (self.p.var(array), self.name(array));
+        let size = self.ty_size(v.ty);
+        let flat = if index.is_empty() {
+            "0".to_string()
+        } else {
+            self.flat_index(array, index)
+        };
+        // The number of elements, the last dimension's count first, as the old compiler writes the product.
+        let counts: Vec<String> = (1..=dim_count(v)).map(|i| format!("{n}[{}]", 4 * i + 1)).collect();
+        self.byte_element += 1;
+        let t = format!("byte_element_{}", self.byte_element);
+        self.pass_decls.push(format!(
+            "byte_element_struct *{t}=NULL;\nif (!{t}){{\n\
+             if ((mem_static_pointer+=12)<mem_static_limit) {t}=(byte_element_struct*)(mem_static_pointer-12); \
+             else {t}=(byte_element_struct*)mem_static_malloc(12);\n}}\n"
+        ));
+        format!(
+            "byte_element((uint64)(&({})),(({size}*({n}[2]&1)*{})-({size}*({flat}))),{t})",
+            self.element_at(array, &flat),
+            counts.join("*")
+        )
+    }
+
     /// A call by the table's `callname`. A built-in with optional slots gets `NULL` for each absent argument, as the
     /// old compiler writes it, and, last, the `passed` mask: bit n set when the n-th optional slot is present (`study\02` §4.3). An argument
     /// of an any-numeric slot is cast to its C type, so libqb's overload for it is chosen (`func_abs((int16)(…))`:
@@ -283,7 +322,8 @@ impl Emitter<'_> {
                             | Slot::Float
                             | Slot::Str
                             | Slot::ULong
-                            | Slot::ColorOrTile,
+                            | Slot::ColorOrTile
+                            | Slot::Block,
                         )
                         | None => x,
                     });

@@ -17,6 +17,7 @@ cover them), and the compile, qbasic, format and verification suites' own functi
 from __future__ import annotations
 
 import os
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -359,6 +360,39 @@ class CorpusProgram(CorpusFixture):
         self.assert_fail(r, "run", "not run: known failure")
         self.assertEqual(tools.run_cmds, [])
 
+    def data_file(self, name: str, data: bytes) -> Path:
+        path = self.group / "p.files" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        return path
+
+    def test_data_files_are_copied_beside_the_program(self):
+        self.sidecar("output", b"1\n")
+        self.data_file("MTN.VGA", b"\xfd\x00\r\n\x01")
+        self.data_file("sub/notes.txt", b"a\n")
+        # A failing run keeps the folder the program ran in.
+        self.assert_fail(self.run_test(Tools(runs=[b"2\n"])), "result")
+        work = self.results / "g-p"
+        self.assertEqual((work / "MTN.VGA").read_bytes(), b"\xfd\x00\r\n\x01")
+        self.assertEqual((work / "sub" / "notes.txt").read_bytes(), b"a\n")
+        self.assertTrue((work / "p.bas").is_file())
+
+    def test_data_files_are_copied_for_a_recording_too(self):
+        self.data_file("d.bin", b"x")
+        r = self.run_test(Tools(runs=[b"1\n", b"2\n"]), qb64="qb64pe.exe", record=True)
+        self.assertEqual(r.status, "FAIL", r.detail)
+        self.assertEqual((self.results / "g-p" / "d.bin").read_bytes(), b"x")
+
+    def test_data_files_beside_err_or_norun_are_an_error_in_the_test(self):
+        self.data_file("d.bin", b"x")
+        self.sidecar("norun", b"why\n")
+        tools = Tools()
+        self.assert_fail(self.run_test(tools), "expected", ".files beside .norun")
+        self.assertEqual(tools.compile_cmd, [])
+        (self.group / "p.norun").unlink()
+        self.sidecar("err", b"Syntax error\n")
+        self.assert_fail(self.run_test(Tools(rc=1, exe=False)), "expected", ".files beside .err")
+
     def test_stdin_is_a_copy_beside_the_results(self):
         self.sidecar("output", b"1\n")
         self.sidecar("stdin", b"42\r\n")
@@ -464,6 +498,23 @@ class PassCache(CorpusFixture):
                 self.sidecar(ext, data)
                 self.assertEqual(self.again()[1], 1)
                 (self.group / f"p.{ext}").unlink()
+
+    def test_a_changed_added_or_renamed_data_file_runs(self):
+        folder = self.group / "p.files"
+        folder.mkdir()
+        (folder / "a.bin").write_bytes(b"one")
+        self.passes_once()
+        self.assertEqual(self.again()[1], 0)
+        (folder / "a.bin").write_bytes(b"two")
+        self.assertEqual(self.again()[1], 1)
+        self.assertEqual(self.again()[1], 0)
+        (folder / "b.bin").write_bytes(b"")
+        self.assertEqual(self.again()[1], 1)
+        (folder / "b.bin").rename(folder / "c.bin")
+        self.assertEqual(self.again()[1], 1)
+        # The same files under no folder at all are another run.
+        shutil.rmtree(folder)
+        self.assertEqual(self.again()[1], 1)
 
     def test_a_changed_source_runs(self):
         self.passes_once()

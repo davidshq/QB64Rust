@@ -218,6 +218,7 @@ mod tests {
             ty,
             storage,
             shape: qb64rust_ir::Shape::Scalar,
+            conventional: false,
         };
         let mut p = Program::default();
         for (name, kind) in [("BUMP", ProcKind::Sub), ("TWICE", ProcKind::Function(Ty::I32))] {

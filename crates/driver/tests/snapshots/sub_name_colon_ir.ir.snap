@@ -1,0 +1,74 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 2
+  SelectConsole
+Stmt line 9 may_raise
+  Call TOPBAR []
+Stmt line 10 may_raise
+  Call TOPBAR []
+Stmt line 10
+  Assign N:I16 = Const 1:I16
+Label SHIPS line 11
+Label CANNON line 12
+Label RANGE line 13
+Stmt line 14 may_raise
+  Call FLAG []
+Stmt line 15
+  Branch Zero -> @3 Skip: Var N:I16
+Stmt line 15 may_raise
+  Call FLAG []
+Label @3 line 15
+Stmt line 16 may_raise
+  Call NAVY []
+Stmt line 17
+  System
+Sub TOPBAR lines 19-21
+Stmt line 20
+  Assign N:I16 = (Add:I32((Var N:I16 -> Convert I32 Widen), Const 1:I32) wrap -> Convert I16 Truncate)
+Sub NAVY lines 23-33
+  temp on1.value:I32
+Label SHIPS line 24
+Stmt line 25
+  Assign N:I16 = (Add:I32((Var N:I16 -> Convert I32 Widen), Const 1:I32) wrap -> Convert I16 Truncate)
+Stmt line 26
+  Branch Zero -> @2 Skip: Lt:I32((Var N:I16 -> Convert I32 Widen), Const 2:I32)
+Stmt line 26
+  Jump SHIPS
+Label @2 line 26
+Stmt line 27 may_raise
+  Call SHIPS []
+Stmt line 28 may_raise
+  Call TOPBAR []
+Stmt line 29
+  Assign on1.value(temp):I32 = (Var N:I16 -> Convert I32 Widen)
+Stmt line 29
+  Branch NonZero -> @4 UseValue: Ne:I32(Var on1.value(temp):I32, Const 1:I32)
+  Gosub AWAY
+  Jump @3
+Label @4 line 29
+Stmt line 29
+  Branch NonZero -> @5 UseValue: Ne:I32(Var on1.value(temp):I32, Const 2:I32)
+  Gosub AWAY
+  Jump @3
+Label @5 line 29
+Stmt line 29
+  Branch NonZero -> @3 UseValue: Ge:I32(Var on1.value(temp):I32, Const 0:I32)
+Stmt line 29 may_raise
+  Raise Const 5:I32
+Label @3 line 29
+Stmt line 30
+  Exit
+Label AWAY line 31
+Stmt line 32 may_raise
+  Return
+Sub SHIPS lines 35-36
+Sub CANNON lines 38-39
+  param K:I16
+Sub FLAG lines 41-42
+Function RANGE:F32 lines 44-46
+  result RANGE:F32
+Stmt line 45
+  Assign RANGE(result):F32 = (Const 1:I16 -> Convert F32 Nearest)

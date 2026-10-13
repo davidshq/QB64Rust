@@ -129,9 +129,10 @@ What the compiler supports so far:
   compiled across its files, and a runtime error in an included file names it as QB64pe does;
 - procedures named like built-ins as measured (`verification\v19_proc_names`): a SUB may take a built-in
   function's name, a FUNCTION a built-in statement's;
-- 88 built-in functions (`m2-core-builtins`; the file functions, `RND`, `TIMER`, `SHELL`, `COMMAND$`, `ENVIRON$` and
+- 98 built-in functions (`m2-core-builtins`; the file functions, `RND`, `TIMER`, `SHELL`, `COMMAND$`, `ENVIRON$` and
   14 added by demand with `m2-builtin-statements`; `_DEST`, `_SOURCE`, `_CONSOLE` and the ten window functions
-  with `m2-console-screenhide`, the five screen functions with `m3-window-output`, both below), checked by one
+  with `m2-console-screenhide`, the five screen functions with `m3-window-output`, ten more with
+  `m3-get-put-bload`, all below), checked by one
   table-driven checker: `sema\src\builtins.rs` lists
   them, each with its `Rule` (one per kind of special-casing in the old compiler's `evaluatefunc`, not per
   function), and gives each call a held type (the C++ type of the libqb call) and a believed type (the old
@@ -186,7 +187,7 @@ What the compiler supports so far:
   `_DONTWAIT` first; with or without a command), and three with a rule of their own: `CLOSE` (one call per file number), `SWAP` (two places of one
   type but for signedness, any two strings, one `TYPE`; never a `_BIT`) and the `MID$` statement. Tier 1 requires each listed statement in a `slice.list` program and an `ir` test;
 - sequential file I/O and the program's data, as operations of their own in the IR because they have items or
-  targets (`sema\src\check\io.rs`, `codegen-cpp\src\io.rs`): `PRINT #` (not `USING`, `TAB`, `SPC`), `WRITE` to a
+  targets (`sema\src\check\io.rs`, `codegen-cpp\src\io.rs`): `PRINT #` (not `USING`; `TAB` and `SPC` are functions that give a string, so plain items), `WRITE` to a
   file and to the console, `INPUT #` and `LINE INPUT #` into variables, elements and members (a pending-error
   check after each item or target, as the old compiler); `DATA` (the items of the whole program in file order,
   procedures and included files where they stand), `READ` (no check between its targets, as measured) and
@@ -357,6 +358,36 @@ What the compiler supports so far:
   `tests\corpus\screen`, checked by the state of the screen they leave, and each form has a call-site program
   (301 of them). Still marked: these statements after `CALL` where they have a template (`CALL CLS`, `CALL
   LINE(…)`), an argument left out of a function call (`POINT(, 2)`), an array named `WIDTH` (`SOMEDAY.md`).
+- **What Civil War Strategy needs to build, apart from sound** (`m3-get-put-bload`; the facts in `study\00` §5,
+  `verification\v28_*`; the game's report names only `SOUND`, `PLAY`, `BEEP` and `` now):
+  - **A line that is the name of a SUB and a colon** (`sema\src\check\flow.rs`): a call of the SUB when it
+    takes no argument and no jump of the whole program names the word, a label in every body when one does;
+    the name of a SUB with a parameter and of a FUNCTION is always a label. The words the jumps name are
+    collected from every tree before the labels are entered (`collect_jump_words`: `GOTO`, `GOSUB`,
+    `RETURN`, `RESTORE`, `RESUME`, `ON ERROR GOTO`, `ON n GOTO/GOSUB`, `ON <event> GOSUB`, compiled or not);
+    where a line the parser could not read has the word, the line keeps a mark.
+  - **Rows**: the functions `TAB` and `SPC` (strings: `PRINT`, `PRINT #` and `WRITE` take them as any
+    string item), `PEEK`, `_RGBA32`, `_FULLSCREEN`, `DATE$`, `TIME$`, and `_RGB32` with a rule of its own
+    (`Rule::GivenArgs`: one to four arguments, the call written with those given); the statements `DEF SEG`,
+    `POKE`, `BLOAD`, `BSAVE`, `_FULLSCREEN`. `_FULLSCREEN` is a window built-in: compiled, compared by the
+    call-site check, never run.
+  - **`VARPTR` and `VARSEG`** are two expressions of the IR (`ExprKind::VarPtr`, `VarSeg`), typed
+    `_INTEGER64`: the checked position of the element times its size, and the array's distance from the
+    start of libqb's conventional memory in segments (the index of `VARSEG` is not evaluated, as in the old
+    compiler). **An array named in one of them is in conventional memory** (`Var::conventional`, set
+    wherever the use stands): a static one takes its elements from `cmem_static_pointer`, a dynamic one
+    starts with flag 4, and every allocation and release of a dynamic array of numbers tests that flag
+    (`new_block`, `free_block` in `codegen-cpp\src\decl.rs`), since the array may be a parameter. Only an
+    array of numbers of the main module (`DIM`, `DIM SHARED`, `COMMON`, `REDIM`) may be named; every other
+    kind of variable, `SADD` and `VARPTR$` are marked (`SOMEDAY.md`).
+  - **Graphics `GET` and `PUT`** (`StmtRule::Graphics`: the entries of the name whose call is
+    `sub_graphics_…`; the file form keeps a mark): every form of the two templates. The array is a slot of
+    its own kind (`Slot::Block`, `StmtArg::Block`): the bytes of an array of numbers, whole or from an
+    element, static or dynamic, of any body or a parameter, written as libqb's `byte_element` with a
+    temporary declared with the variables of its body.
+  Checked by the console slice programs `s70` to `s73`, the screen programs `d17`, `d18`, `g06` to `g11` and
+  `m32` (five of them cut from the game with its pictures beside them, `tests\corpus\README.md`) and 147
+  call-site programs.
 - **The constants of QB64pe's auto-included file** (`m2-console-screenhide` group 5; `sema\src\check\auto.rs`):
   `_TRUE`, `_FALSE`, `_ONE_MB`, the limits of the numeric types and the others of `beforefirstline.bi` are
   known in every program. The file is not included: `tools\builtins\builtins.json` carries each constant's

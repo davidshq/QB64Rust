@@ -1,0 +1,492 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+ptrszint *__ARRAY_INTEGER_A=NULL;
+ptrszint *__ARRAY_INTEGER_B=NULL;
+ptrszint *__ARRAY_LONG_M=NULL;
+int16 *__INTEGER_N=NULL;
+int32 *__LONG_L=NULL;
+ptrszint *__ARRAY_LONG_DY=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+void SUB_SB(ptrszint*_SUB_SB_ARRAY_INTEGER_P);
+==> clear.txt <==
+memset((void*)(__ARRAY_INTEGER_A[0]),0,__ARRAY_INTEGER_A[5]*2);
+memset((void*)(__ARRAY_INTEGER_B[0]),0,__ARRAY_INTEGER_B[5]*2);
+memset((void*)(__ARRAY_LONG_M[0]),0,__ARRAY_LONG_M[9]*__ARRAY_LONG_M[5]*4);
+*__INTEGER_N=0;
+*__LONG_L=0;
+if (__ARRAY_LONG_DY[2]&1){
+if (__ARRAY_LONG_DY[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_LONG_DY[0])); else free((void*)(__ARRAY_LONG_DY[0]));
+__ARRAY_LONG_DY[2]^=1;
+__ARRAY_LONG_DY[4]=2147483647;
+__ARRAY_LONG_DY[5]=0;
+__ARRAY_LONG_DY[6]=0;
+__ARRAY_LONG_DY[0]=(ptrszint)nothingvalue;
+}
+==> maindata.txt <==
+if (!__ARRAY_INTEGER_A){
+__ARRAY_INTEGER_A=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_INTEGER_A)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_INTEGER_A[4]=1ll;
+__ARRAY_INTEGER_A[5]=(10ll)-__ARRAY_INTEGER_A[4]+1;
+if (__ARRAY_INTEGER_A[5]<=0) error(5);
+__ARRAY_INTEGER_A[6]=1;
+__ARRAY_INTEGER_A[0]=(ptrszint)cmem_static_pointer;
+if ((cmem_static_pointer+=((__ARRAY_INTEGER_A[5]*2)+15)&-16)>cmem_dynamic_base) error(257);
+if ((__ARRAY_INTEGER_A[5]*2)>65536) error(257);
+memset((void*)(__ARRAY_INTEGER_A[0]),0,__ARRAY_INTEGER_A[5]*2);
+__ARRAY_INTEGER_A[2]=1+2+4;
+}
+if (!__ARRAY_INTEGER_B){
+__ARRAY_INTEGER_B=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_INTEGER_B)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_INTEGER_B[4]=1ll;
+__ARRAY_INTEGER_B[5]=(10ll)-__ARRAY_INTEGER_B[4]+1;
+if (__ARRAY_INTEGER_B[5]<=0) error(5);
+__ARRAY_INTEGER_B[6]=1;
+__ARRAY_INTEGER_B[0]=(ptrszint)mem_static_malloc(__ARRAY_INTEGER_B[5]*2);
+memset((void*)(__ARRAY_INTEGER_B[0]),0,__ARRAY_INTEGER_B[5]*2);
+__ARRAY_INTEGER_B[2]=1+2;
+}
+if (!__ARRAY_LONG_M){
+__ARRAY_LONG_M=(ptrszint*)mem_static_malloc(13*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_M)[12]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_M[8]=1ll;
+__ARRAY_LONG_M[9]=(3ll)-__ARRAY_LONG_M[8]+1;
+if (__ARRAY_LONG_M[9]<=0) error(5);
+__ARRAY_LONG_M[10]=1;
+__ARRAY_LONG_M[4]=1ll;
+__ARRAY_LONG_M[5]=(4ll)-__ARRAY_LONG_M[4]+1;
+if (__ARRAY_LONG_M[5]<=0) error(5);
+__ARRAY_LONG_M[6]=__ARRAY_LONG_M[10]*__ARRAY_LONG_M[9];
+__ARRAY_LONG_M[0]=(ptrszint)cmem_static_pointer;
+if ((cmem_static_pointer+=((__ARRAY_LONG_M[9]*__ARRAY_LONG_M[5]*4)+15)&-16)>cmem_dynamic_base) error(257);
+if ((__ARRAY_LONG_M[9]*__ARRAY_LONG_M[5]*4)>65536) error(257);
+memset((void*)(__ARRAY_LONG_M[0]),0,__ARRAY_LONG_M[9]*__ARRAY_LONG_M[5]*4);
+__ARRAY_LONG_M[2]=1+2+4;
+}
+if(__INTEGER_N==NULL){
+__INTEGER_N=(int16*)mem_static_malloc(2);
+*__INTEGER_N=0;
+}
+if(__LONG_L==NULL){
+__LONG_L=(int32*)mem_static_malloc(4);
+*__LONG_L=0;
+}
+if (!__ARRAY_LONG_DY){
+__ARRAY_LONG_DY=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_DY)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_DY[2]=4;
+__ARRAY_LONG_DY[4]=2147483647;
+__ARRAY_LONG_DY[5]=0;
+__ARRAY_LONG_DY[6]=0;
+__ARRAY_LONG_DY[0]=(ptrszint)nothingvalue;
+}
+byte_element_struct *byte_element_1=NULL;
+if (!byte_element_1){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_1=(byte_element_struct*)(mem_static_pointer-12); else byte_element_1=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_2=NULL;
+if (!byte_element_2){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_2=(byte_element_struct*)(mem_static_pointer-12); else byte_element_2=(byte_element_struct*)mem_static_malloc(12);
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "conventional_memory_cpp.bas"
+do{
+#line 2 "conventional_memory_cpp.bas"
+sub__dest(func__console());
+#line 2 "conventional_memory_cpp.bas"
+sub__source(func__console());
+#line 2 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 11 "conventional_memory_cpp.bas"
+do{
+#line 11 "conventional_memory_cpp.bas"
+*__INTEGER_N=8;
+#line 11 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 12 "conventional_memory_cpp.bas"
+do{
+#line 12 "conventional_memory_cpp.bas"
+if (__ARRAY_LONG_DY[2]&2){
+#line 12 "conventional_memory_cpp.bas"
+error(10);
+#line 12 "conventional_memory_cpp.bas"
+}else{
+#line 12 "conventional_memory_cpp.bas"
+if (__ARRAY_LONG_DY[2]&1){
+#line 12 "conventional_memory_cpp.bas"
+if (!error_occurred) error(10);
+#line 12 "conventional_memory_cpp.bas"
+}else{
+#line 12 "conventional_memory_cpp.bas"
+int64 alloc_new_desc[8];
+#line 12 "conventional_memory_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 12 "conventional_memory_cpp.bas"
+uint64 alloc_req_bytes;
+#line 12 "conventional_memory_cpp.bas"
+uint64 alloc_dim_value;
+#line 12 "conventional_memory_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 12 "conventional_memory_cpp.bas"
+alloc_new_desc[4]=1ll;
+#line 12 "conventional_memory_cpp.bas"
+alloc_new_desc[5]=(((int64)(*__INTEGER_N)))-alloc_new_desc[4]+1;
+#line 12 "conventional_memory_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 12 "conventional_memory_cpp.bas"
+alloc_new_desc[6]=1;
+#line 12 "conventional_memory_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 12 "conventional_memory_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 12 "conventional_memory_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 12 "conventional_memory_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 12 "conventional_memory_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 12 "conventional_memory_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 12 "conventional_memory_cpp.bas"
+if (alloc_dim_value){
+#line 12 "conventional_memory_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 12 "conventional_memory_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 12 "conventional_memory_cpp.bas"
+}
+#line 12 "conventional_memory_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 12 "conventional_memory_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 12 "conventional_memory_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 12 "conventional_memory_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 12 "conventional_memory_cpp.bas"
+if (__ARRAY_LONG_DY[2]&4){
+#line 12 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 12 "conventional_memory_cpp.bas"
+if (!__ARRAY_LONG_DY[0]) error(257);
+#line 12 "conventional_memory_cpp.bas"
+memset((void*)(__ARRAY_LONG_DY[0]),0,(size_t)alloc_req_bytes);
+#line 12 "conventional_memory_cpp.bas"
+}else{
+#line 12 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 12 "conventional_memory_cpp.bas"
+if (!__ARRAY_LONG_DY[0]) error(257);
+#line 12 "conventional_memory_cpp.bas"
+}
+#line 12 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[2]|=1;
+#line 12 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[4]=alloc_new_desc[4];
+#line 12 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[5]=alloc_new_desc[5];
+#line 12 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[6]=alloc_new_desc[6];
+#line 12 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[7]=alloc_new_desc[7];
+#line 12 "conventional_memory_cpp.bas"
+}
+#line 12 "conventional_memory_cpp.bas"
+}
+#line 12 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 13 "conventional_memory_cpp.bas"
+do{
+#line 13 "conventional_memory_cpp.bas"
+sub_defseg(((int32)(( ( ((ptrszint)(__ARRAY_INTEGER_A[0])) - ((ptrszint)(&cmem[0])) ) /16))),1);
+#line 13 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 14 "conventional_memory_cpp.bas"
+do{
+#line 14 "conventional_memory_cpp.bas"
+sub_poke(((int32)(((array_check((((int64)(*__INTEGER_N)))-__ARRAY_INTEGER_A[4],__ARRAY_INTEGER_A[5]))*2))),65);
+#line 14 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 15 "conventional_memory_cpp.bas"
+do{
+#line 15 "conventional_memory_cpp.bas"
+*__LONG_L=((int32)((((array_check((2ll)-__ARRAY_LONG_M[8],__ARRAY_LONG_M[9])+array_check((3ll)-__ARRAY_LONG_M[4],__ARRAY_LONG_M[5])*__ARRAY_LONG_M[6])*4)+( ( ((ptrszint)(__ARRAY_LONG_DY[0])) - ((ptrszint)(&cmem[0])) ) /16))));
+#line 15 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "conventional_memory_cpp.bas"
+do{
+#line 16 "conventional_memory_cpp.bas"
+if (__ARRAY_LONG_DY[2]&1){
+#line 16 "conventional_memory_cpp.bas"
+if (__ARRAY_LONG_DY[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_LONG_DY[0])); else free((void*)(__ARRAY_LONG_DY[0]));
+#line 16 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[2]^=1;
+#line 16 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[4]=2147483647;
+#line 16 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[5]=0;
+#line 16 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[6]=0;
+#line 16 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[0]=(ptrszint)nothingvalue;
+#line 16 "conventional_memory_cpp.bas"
+}
+#line 16 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "conventional_memory_cpp.bas"
+do{
+#line 17 "conventional_memory_cpp.bas"
+if (__ARRAY_LONG_DY[2]&2){
+#line 17 "conventional_memory_cpp.bas"
+error(10);
+#line 17 "conventional_memory_cpp.bas"
+}else{
+#line 17 "conventional_memory_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_LONG_DY)[8])->id=(++mem_lock_id);
+#line 17 "conventional_memory_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 17 "conventional_memory_cpp.bas"
+uint64 preserve_old_total=0;
+#line 17 "conventional_memory_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 17 "conventional_memory_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 17 "conventional_memory_cpp.bas"
+if (__ARRAY_LONG_DY[2]&1){
+#line 17 "conventional_memory_cpp.bas"
+preserve_old_ptr=__ARRAY_LONG_DY[0];
+#line 17 "conventional_memory_cpp.bas"
+preserve_old_total=__ARRAY_LONG_DY[5];
+#line 17 "conventional_memory_cpp.bas"
+}
+#line 17 "conventional_memory_cpp.bas"
+int64 alloc_new_desc[8];
+#line 17 "conventional_memory_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 17 "conventional_memory_cpp.bas"
+uint64 alloc_req_bytes;
+#line 17 "conventional_memory_cpp.bas"
+uint64 alloc_dim_value;
+#line 17 "conventional_memory_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 17 "conventional_memory_cpp.bas"
+alloc_new_desc[4]=1ll;
+#line 17 "conventional_memory_cpp.bas"
+alloc_new_desc[5]=(4ll)-alloc_new_desc[4]+1;
+#line 17 "conventional_memory_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 17 "conventional_memory_cpp.bas"
+alloc_new_desc[6]=1;
+#line 17 "conventional_memory_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 17 "conventional_memory_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 17 "conventional_memory_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 17 "conventional_memory_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 17 "conventional_memory_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 17 "conventional_memory_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 17 "conventional_memory_cpp.bas"
+if (alloc_dim_value){
+#line 17 "conventional_memory_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 17 "conventional_memory_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 17 "conventional_memory_cpp.bas"
+}
+#line 17 "conventional_memory_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 17 "conventional_memory_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 17 "conventional_memory_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 17 "conventional_memory_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 17 "conventional_memory_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 17 "conventional_memory_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 17 "conventional_memory_cpp.bas"
+if (preserve_old_total){
+#line 17 "conventional_memory_cpp.bas"
+if (__ARRAY_LONG_DY[2]&4){
+#line 17 "conventional_memory_cpp.bas"
+preserve_new_ptr=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 17 "conventional_memory_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 17 "conventional_memory_cpp.bas"
+memset((void*)(preserve_new_ptr),0,(size_t)alloc_req_bytes);
+#line 17 "conventional_memory_cpp.bas"
+}else{
+#line 17 "conventional_memory_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 17 "conventional_memory_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 17 "conventional_memory_cpp.bas"
+}
+#line 17 "conventional_memory_cpp.bas"
+if (preserve_copy_count) memcpy((void*)(preserve_new_ptr),(void*)(preserve_old_ptr),preserve_copy_count*4);
+#line 17 "conventional_memory_cpp.bas"
+if (__ARRAY_LONG_DY[2]&4) cmem_dynamic_free((uint8*)(preserve_old_ptr)); else free((void*)(preserve_old_ptr));
+#line 17 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[0]=preserve_new_ptr;
+#line 17 "conventional_memory_cpp.bas"
+}else{
+#line 17 "conventional_memory_cpp.bas"
+if (__ARRAY_LONG_DY[2]&4){
+#line 17 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 17 "conventional_memory_cpp.bas"
+if (!__ARRAY_LONG_DY[0]) error(257);
+#line 17 "conventional_memory_cpp.bas"
+memset((void*)(__ARRAY_LONG_DY[0]),0,(size_t)alloc_req_bytes);
+#line 17 "conventional_memory_cpp.bas"
+}else{
+#line 17 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 17 "conventional_memory_cpp.bas"
+if (!__ARRAY_LONG_DY[0]) error(257);
+#line 17 "conventional_memory_cpp.bas"
+}
+#line 17 "conventional_memory_cpp.bas"
+}
+#line 17 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[2]|=1;
+#line 17 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[4]=alloc_new_desc[4];
+#line 17 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[5]=alloc_new_desc[5];
+#line 17 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[6]=alloc_new_desc[6];
+#line 17 "conventional_memory_cpp.bas"
+__ARRAY_LONG_DY[7]=alloc_new_desc[7];
+#line 17 "conventional_memory_cpp.bas"
+}
+#line 17 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "conventional_memory_cpp.bas"
+do{
+#line 18 "conventional_memory_cpp.bas"
+sub_graphics_get(1,2,3,4,byte_element((uint64)(&(((int16*)(__ARRAY_INTEGER_B[0]))[0])),((2*(__ARRAY_INTEGER_B[2]&1)*__ARRAY_INTEGER_B[5])-(2*(0))),byte_element_1),NULL,0);
+#line 18 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "conventional_memory_cpp.bas"
+do{
+#line 19 "conventional_memory_cpp.bas"
+sub_graphics_put(1,2,byte_element((uint64)(&(((int32*)(__ARRAY_LONG_M[0]))[array_check((2ll)-__ARRAY_LONG_M[8],__ARRAY_LONG_M[9])+array_check((((int64)(*__INTEGER_N)))-__ARRAY_LONG_M[4],__ARRAY_LONG_M[5])*__ARRAY_LONG_M[6]])),((4*(__ARRAY_LONG_M[2]&1)*__ARRAY_LONG_M[5]*__ARRAY_LONG_M[9])-(4*(array_check((2ll)-__ARRAY_LONG_M[8],__ARRAY_LONG_M[9])+array_check((((int64)(*__INTEGER_N)))-__ARRAY_LONG_M[4],__ARRAY_LONG_M[5])*__ARRAY_LONG_M[6]))),byte_element_2),5,NULL,0);
+#line 19 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "conventional_memory_cpp.bas"
+do{
+#line 20 "conventional_memory_cpp.bas"
+SUB_SB(__ARRAY_INTEGER_B);
+#line 20 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "conventional_memory_cpp.bas"
+do{
+#line 21 "conventional_memory_cpp.bas"
+if (sub_gl_called) error(271);
+#line 21 "conventional_memory_cpp.bas"
+close_program=1;
+#line 21 "conventional_memory_cpp.bas"
+end();
+#line 21 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+sub_end();
+return;
+}
+==> main1.txt <==
+#line 23 "conventional_memory_cpp.bas"
+void SUB_SB(ptrszint*_SUB_SB_ARRAY_INTEGER_P){
+#line 23 "conventional_memory_cpp.bas"
+qbs *tqbs;
+#line 23 "conventional_memory_cpp.bas"
+ptrszint tmp_long;
+#line 23 "conventional_memory_cpp.bas"
+int32 tmp_fileno;
+#line 23 "conventional_memory_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 23 "conventional_memory_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 23 "conventional_memory_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 23 "conventional_memory_cpp.bas"
+#include "data1.txt"
+#line 23 "conventional_memory_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 23 "conventional_memory_cpp.bas"
+new_mem_lock();
+#line 23 "conventional_memory_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 23 "conventional_memory_cpp.bas"
+sf_mem_lock->type=3;
+#line 23 "conventional_memory_cpp.bas"
+libqb_check_stack();
+#line 23 "conventional_memory_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 24 "conventional_memory_cpp.bas"
+do{
+#line 24 "conventional_memory_cpp.bas"
+sub_graphics_put(1,2,byte_element((uint64)(&(((int16*)(_SUB_SB_ARRAY_INTEGER_P[0]))[0])),((2*(_SUB_SB_ARRAY_INTEGER_P[2]&1)*_SUB_SB_ARRAY_INTEGER_P[5])-(2*(0))),byte_element_3),NULL,NULL,0);
+#line 24 "conventional_memory_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "conventional_memory_cpp.bas"
+exit_subfunc:;
+#line 25 "conventional_memory_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 25 "conventional_memory_cpp.bas"
+#include "free1.txt"
+#line 25 "conventional_memory_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 25 "conventional_memory_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 25 "conventional_memory_cpp.bas"
+}
+==> data1.txt <==
+byte_element_struct *byte_element_3=NULL;
+if (!byte_element_3){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_3=(byte_element_struct*)(mem_static_pointer-12); else byte_element_3=(byte_element_struct*)mem_static_malloc(12);
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt free1.txt

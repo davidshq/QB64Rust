@@ -18,7 +18,7 @@ void SUB_P();
 ==> clear.txt <==
 memset((void*)(__ARRAY_SINGLE_Z[0]),0,__ARRAY_SINGLE_Z[5]*4);
 if (__ARRAY_SINGLE_DY[2]&1){
-free((void*)(__ARRAY_SINGLE_DY[0]));
+if (__ARRAY_SINGLE_DY[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_DY[0])); else free((void*)(__ARRAY_SINGLE_DY[0]));
 __ARRAY_SINGLE_DY[2]^=1;
 __ARRAY_SINGLE_DY[4]=2147483647;
 __ARRAY_SINGLE_DY[5]=0;
@@ -147,9 +147,21 @@ if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
 #line 10 "implicit_arrays_cpp.bas"
 if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
 #line 10 "implicit_arrays_cpp.bas"
+if (__ARRAY_SINGLE_DY[2]&4){
+#line 10 "implicit_arrays_cpp.bas"
+__ARRAY_SINGLE_DY[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 10 "implicit_arrays_cpp.bas"
+if (!__ARRAY_SINGLE_DY[0]) error(257);
+#line 10 "implicit_arrays_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_DY[0]),0,(size_t)alloc_req_bytes);
+#line 10 "implicit_arrays_cpp.bas"
+}else{
+#line 10 "implicit_arrays_cpp.bas"
 __ARRAY_SINGLE_DY[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 #line 10 "implicit_arrays_cpp.bas"
 if (!__ARRAY_SINGLE_DY[0]) error(257);
+#line 10 "implicit_arrays_cpp.bas"
+}
 #line 10 "implicit_arrays_cpp.bas"
 __ARRAY_SINGLE_DY[2]|=1;
 #line 10 "implicit_arrays_cpp.bas"
@@ -297,7 +309,7 @@ _SUB_P_ARRAY_STRING_S[0]=(ptrszint)&nothingstring;
 }
 ==> free1.txt <==
 if (_SUB_P_ARRAY_SINGLE_A[2]&1){
-free((void*)(_SUB_P_ARRAY_SINGLE_A[0]));
+if (_SUB_P_ARRAY_SINGLE_A[2]&4) cmem_dynamic_free((uint8*)(_SUB_P_ARRAY_SINGLE_A[0])); else free((void*)(_SUB_P_ARRAY_SINGLE_A[0]));
 _SUB_P_ARRAY_SINGLE_A[2]^=1;
 _SUB_P_ARRAY_SINGLE_A[4]=2147483647;
 _SUB_P_ARRAY_SINGLE_A[5]=0;

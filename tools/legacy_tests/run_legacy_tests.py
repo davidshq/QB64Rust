@@ -43,6 +43,10 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     LF), and a run that writes none fails. <name>.keys, when present, is given to it as
     QB64_SCREEN_KEYS (the keys it reads); a .keys without a .screen is an error in the test.
     --record writes .screen when both runs wrote equal states
+  * <name>.files: a folder of data files the program reads (the pictures a game loads with
+    BLOAD). Everything in it is copied into the program's folder before it is compiled, with
+    either compiler, when checking and when recording; beside an .err or a .norun it is an
+    error in the test
   * --record compiles once, runs twice, and writes .output (or .err for a failed compile)
     only if both normalised runs are equal; otherwise the program is reported
     non-deterministic and nothing is written. With a compiler other than qb64pe, a failed compile
@@ -699,6 +703,19 @@ def pass_key(exe: Path, parts: list[bytes | None]) -> str:
     return h.hexdigest()
 
 
+def data_files(folder: Path) -> bytes | None:
+    """What a program's <name>.files folder holds, for pass_key: every file by its path in the
+    folder and its bytes, in the order of the paths. None when there is no such folder."""
+    if not folder.is_dir():
+        return None
+    h = hashlib.sha256()
+    for p in sorted(q for q in folder.rglob("*") if q.is_file()):
+        for part in (p.relative_to(folder).as_posix().encode(), p.read_bytes()):
+            h.update(len(part).to_bytes(8, "little"))
+            h.update(part)
+    return h.digest()
+
+
 def corpus_test(
     bas: Path, args, results: Path, qb_root: Path, corpus_root: Path, known: dict[str, str]
 ) -> Result:
@@ -739,6 +756,10 @@ def corpus_test(
     keys_file = tdir / f"{name}.keys"
     if keys_file.is_file() and not screen:
         return fail("expected", ".keys without .screen: only a screen program is given keys")
+    # <name>.files: the data files the program reads, copied beside it before it is compiled.
+    files_dir = tdir / f"{name}.files"
+    if files_dir.is_dir() and (norun or err_file.is_file()):
+        return fail("expected", f".files beside {present[0]}: a program with data files runs")
     if screen and any(c.isspace() for c in SCREEN_STATE_SOURCE.as_posix()):
         return fail("screen", f"a blank in the path of {SCREEN_STATE_SOURCE.name}: make splits it")
     if not present and not args.record and not skip_run:
@@ -751,6 +772,8 @@ def corpus_test(
         shutil.rmtree(work)
     work.mkdir(parents=True)
     shutil.copyfile(bas, work / bas.name)
+    if files_dir.is_dir():
+        shutil.copytree(files_dir, work, dirs_exist_ok=True)
     exe = work / f"{name}.exe"
     compile_out = results / f"{key}-compile_result.txt"
 
@@ -851,6 +874,7 @@ def corpus_test(
             read(keys_file),
             read(stdin_file),
             read(tdir / f"{name}.normalize"),
+            data_files(files_dir),
             noprompt.encode(),
             Path(__file__).with_name("press_any_key.py").read_bytes() if os.name == "nt" else None,
         ]
@@ -889,6 +913,9 @@ def corpus_test(
     states: list[bytes] = []
     for run in range(1, 3 if args.record else 2):
         reset_folder(work, {bas.name, exe.name})
+        if files_dir.is_dir():
+            # Fresh for every run: the first one may have changed or removed a data file.
+            shutil.copytree(files_dir, work, dirs_exist_ok=True)
         run_out = results / f"{key}-run{run}-output.txt"
         state_out = results / f"{key}-run{run}-screen.txt"
         if screen:

@@ -1,0 +1,79 @@
+screen-state 1
+pages 8 display 0 write 0 read 0
+page 0 mode 0 text 80x25 bits 16 font 16 cursor 1,19 off color 14 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "a   b    c                                                                      "
+a 07*80
+t "abcdefgh                                                                        "
+a 07*80
+t "    below                                                                       "
+a 07*80
+t "a   bc                                                                          "
+a 07*80
+t "   7       -7                                                                   "
+a 07*80
+t "              zone                                                              "
+a 07*80
+t "x      y  z                                                                     "
+a 07*80
+t " 1                  20       29                                                 "
+a 07*80
+t "widepast the width                                                              "
+a 07*80
+t "zero                                                                            "
+a 07*80
+t "negative                                                                        "
+a 07*80
+t "pq          after ninety                                                        "
+a 07*80
+t "                                                                                "
+a 07*80
+t "wrap                                                                            "
+a 07*80
+t "[     ] 5                                                                       "
+a 07*80
+t "abcdef 3  13                                                                    "
+a 07*80
+t "abcdef 3  32                                                                    "
+a 07*80
+t "                             in yellow                      18                  "
+a 0E*63 07*17
+t "                                                                                "
+a 07*80
+= 6
+page 1 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 2 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 3 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 4 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 5 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 6 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 7 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+end

@@ -58,6 +58,9 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         dim_shared_plain: HashMap::new(),
         labels_by_name: HashMap::new(),
         label_of_def: HashMap::new(),
+        jump_words: HashSet::new(),
+        doubt_words: HashSet::new(),
+        sub_call_lines: HashMap::new(),
         diags: Diagnostics::new(),
         stmt_error: false,
         console: false,
@@ -169,6 +172,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
 
     // The labels of each body, also those inside blocks, so that a jump or `ON ERROR GOTO` may name one further
     // down (design D5).
+    c.collect_jump_words(&skips);
     c.declare_labels(&top, &skips, None);
     for &def in &defs {
         if let Some(&id) = c.proc_of_def.get(&def.node().key()) {
@@ -333,6 +337,12 @@ struct Checker<'a> {
     /// The labels by body (`None`: the main module) and name, and the label of each `LabelDef` node (by its key).
     labels_by_name: HashMap<(Option<ProcId>, String), LabelId>,
     label_of_def: HashMap<(TreeId, u32), LabelId>,
+    /// The words the jumps of the whole program name as their targets, in upper case ([`Self::collect_jump_words`]).
+    jump_words: HashSet<String>,
+    /// The words on lines the parser could not read: one of them may be a jump's target.
+    doubt_words: HashSet<String>,
+    /// The lines that are a SUB's name and a colon and call the SUB.
+    sub_call_lines: HashMap<(TreeId, u32), ProcId>,
     diags: Diagnostics,
     stmt_error: bool,
     /// The program's console and window, from the metacommands of its compiled code, wherever they stand (design

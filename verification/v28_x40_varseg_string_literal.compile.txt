@@ -1,0 +1,5 @@
+
+Expected reference to a variable/array
+Caused by (or after):L = VARSEG ( "a",1 )
+LINE 7:l = VARSEG("a")
+exit=1

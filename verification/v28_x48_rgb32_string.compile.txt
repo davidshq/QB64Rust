@@ -1,0 +1,5 @@
+
+1st function argument requires a number
+Caused by (or after):U = _RGB32 ( "a",1 )
+LINE 7:u = _RGB32("a")
+exit=1

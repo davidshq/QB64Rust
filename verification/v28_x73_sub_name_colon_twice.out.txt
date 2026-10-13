@@ -1,0 +1,4 @@
+sub one
+sub one
+main
+exit=0

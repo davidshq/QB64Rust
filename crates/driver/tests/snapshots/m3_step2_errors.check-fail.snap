@@ -1,0 +1,54 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+m3_step2_errors.bas:10:14: error: expected `;` or `,` between PRINT items
+m3_step2_errors.bas:11:14: error: expected `;` or `,` between PRINT items
+m3_step2_errors.bas:12:11: error: `TAB` needs a number
+m3_step2_errors.bas:13:7: error: `TAB` with empty parentheses
+m3_step2_errors.bas:14:7: error: `TAB` takes 1 argument
+m3_step2_errors.bas:15:7: error: `TAB` takes 1 argument
+m3_step2_errors.bas:16:11: error: `SPC` needs a number
+m3_step2_errors.bas:17:7: error: expected `)`
+m3_step2_errors.bas:18:7: error: expected `)`
+m3_step2_errors.bas:19:20: error: `GET` needs an array here
+m3_step2_errors.bas:20:20: error: `GET` needs an array here
+m3_step2_errors.bas:21:23: error: name already in use: `PSET`
+m3_step2_errors.bas:22:7: error: expected `)`
+m3_step2_errors.bas:23:7: error: expected `)`
+m3_step2_errors.bas:24:7: error: expected `)`
+m3_step2_errors.bas:25:21: error: this `PUT` statement matches none of its forms: `PUT [{Step}](?,?),?[,[{_Clip}][{PSet|PReset|And|Or|Xor}][,?]]`, `PUT [#]?[,[?][,?]]`
+m3_step2_errors.bas:26:21: error: this `PUT` statement matches none of its forms: `PUT [{Step}](?,?),?[,[{_Clip}][{PSet|PReset|And|Or|Xor}][,?]]`, `PUT [#]?[,[?][,?]]`
+m3_step2_errors.bas:27:18: error: this `PUT` statement matches none of its forms: `PUT [{Step}](?,?),?[,[{_Clip}][{PSet|PReset|And|Or|Xor}][,?]]`, `PUT [#]?[,[?][,?]]`
+m3_step2_errors.bas:28:6: error: argument 1 of `GET` needs a number
+m3_step2_errors.bas:29:9: error: this `DEF` statement matches none of its forms: `DEF {Seg}[=?]`
+m3_step2_errors.bas:30:11: error: `DEF` needs a number
+m3_step2_errors.bas:31:10: error: this `DEF` statement matches none of its forms: `DEF {Seg}[=?]`
+m3_step2_errors.bas:32:12: error: this `DEF` statement matches none of its forms: `DEF {Seg}[=?]`
+m3_step2_errors.bas:33:6: error: this `BLOAD` statement matches none of its forms: `BLOAD ?[,?]`
+m3_step2_errors.bas:34:7: error: argument 1 of `BLOAD` needs a string
+m3_step2_errors.bas:35:12: error: argument 2 of `BLOAD` needs a number
+m3_step2_errors.bas:36:13: error: this `BLOAD` statement matches none of its forms: `BLOAD ?[,?]`
+m3_step2_errors.bas:37:1: error: `BSAVE` takes 3 arguments
+m3_step2_errors.bas:38:7: error: argument 1 of `BSAVE` needs a string
+m3_step2_errors.bas:39:12: error: `VARPTR` needs a variable or an array element
+m3_step2_errors.bas:40:12: error: `VARPTR` needs a variable or an array element
+m3_step2_errors.bas:41:5: error: `VARSEG` takes 1 argument
+m3_step2_errors.bas:42:5: error: `VARPTR` takes 1 argument
+m3_step2_errors.bas:43:12: error: `VARSEG` needs a variable or an array element
+m3_step2_errors.bas:44:12: error: `VARPTR` needs a variable or an array element
+m3_step2_errors.bas:45:10: error: `PEEK` needs a number
+m3_step2_errors.bas:46:1: error: `POKE` takes 2 arguments
+m3_step2_errors.bas:47:5: error: `PEEK` takes 1 argument
+m3_step2_errors.bas:48:5: error: `_RGB32` with empty parentheses
+m3_step2_errors.bas:49:5: error: `_RGB32` takes 1 to 4 arguments
+m3_step2_errors.bas:50:5: error: `_RGBA32` takes 4 arguments
+m3_step2_errors.bas:51:12: error: argument 1 of `_RGB32` needs a number
+m3_step2_errors.bas:52:13: error: this `_FULLSCREEN` statement matches none of its forms: `_FULLSCREEN [{_Off|_Stretch|_SquarePixels|Off}][,{_Smooth}]`
+m3_step2_errors.bas:53:13: error: this `_FULLSCREEN` statement matches none of its forms: `_FULLSCREEN [{_Off|_Stretch|_SquarePixels|Off}][,{_Smooth}]`
+m3_step2_errors.bas:54:18: error: this `_FULLSCREEN` statement matches none of its forms: `_FULLSCREEN [{_Off|_Stretch|_SquarePixels|Off}][,{_Smooth}]`
+m3_step2_errors.bas:55:1: error: `VARPTR` is a function, not a statement
+m3_step2_errors.bas:56:4: error: this `DEF` statement matches none of its forms: `DEF {Seg}[=?]`
+m3_step2_errors.bas:57:13: error: `PUT` needs an array here
+m3_step2_errors.bas:58:1: error: this is no form of graphics `GET`
+m3_step2_errors.bas:59:1: error: this is no form of graphics `PUT`

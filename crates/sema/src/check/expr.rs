@@ -326,6 +326,8 @@ impl Checker<'_> {
         match (proc_name.as_str(), suffix) {
             ("LBOUND", None) => return self.bound_fn(node, false, span),
             ("UBOUND", None) => return self.bound_fn(node, true, span),
+            ("VARPTR", None) => return self.var_address(node, false, span),
+            ("VARSEG", None) => return self.var_address(node, true, span),
             _ => {}
         }
         if let Some(s) = supported_builtin(&proc_name, suffix) {

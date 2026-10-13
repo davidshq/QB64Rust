@@ -18,7 +18,7 @@ uint8 *data=(uint8*)calloc(1,1);
 ==> clear.txt <==
 *__SINGLE_N=0;
 if (__ARRAY_LONG_D[2]&1){
-free((void*)(__ARRAY_LONG_D[0]));
+if (__ARRAY_LONG_D[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_LONG_D[0])); else free((void*)(__ARRAY_LONG_D[0]));
 __ARRAY_LONG_D[2]^=1;
 __ARRAY_LONG_D[4]=2147483647;
 __ARRAY_LONG_D[5]=0;
@@ -206,9 +206,21 @@ if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
 #line 10 "dynamic_arrays_cpp.bas"
 if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
 #line 10 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_D[2]&4){
+#line 10 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_D[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 10 "dynamic_arrays_cpp.bas"
+if (!__ARRAY_LONG_D[0]) error(257);
+#line 10 "dynamic_arrays_cpp.bas"
+memset((void*)(__ARRAY_LONG_D[0]),0,(size_t)alloc_req_bytes);
+#line 10 "dynamic_arrays_cpp.bas"
+}else{
+#line 10 "dynamic_arrays_cpp.bas"
 __ARRAY_LONG_D[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 #line 10 "dynamic_arrays_cpp.bas"
 if (!__ARRAY_LONG_D[0]) error(257);
+#line 10 "dynamic_arrays_cpp.bas"
+}
 #line 10 "dynamic_arrays_cpp.bas"
 __ARRAY_LONG_D[2]|=1;
 #line 10 "dynamic_arrays_cpp.bas"
@@ -340,19 +352,43 @@ if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
 #line 11 "dynamic_arrays_cpp.bas"
 if (preserve_old_total){
 #line 11 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_D[2]&4){
+#line 11 "dynamic_arrays_cpp.bas"
+preserve_new_ptr=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 11 "dynamic_arrays_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 11 "dynamic_arrays_cpp.bas"
+memset((void*)(preserve_new_ptr),0,(size_t)alloc_req_bytes);
+#line 11 "dynamic_arrays_cpp.bas"
+}else{
+#line 11 "dynamic_arrays_cpp.bas"
 preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 #line 11 "dynamic_arrays_cpp.bas"
 if (!preserve_new_ptr) error(257);
 #line 11 "dynamic_arrays_cpp.bas"
-free((void*)(preserve_old_ptr));
+}
+#line 11 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_D[2]&4) cmem_dynamic_free((uint8*)(preserve_old_ptr)); else free((void*)(preserve_old_ptr));
 #line 11 "dynamic_arrays_cpp.bas"
 __ARRAY_LONG_D[0]=preserve_new_ptr;
+#line 11 "dynamic_arrays_cpp.bas"
+}else{
+#line 11 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_D[2]&4){
+#line 11 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_D[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 11 "dynamic_arrays_cpp.bas"
+if (!__ARRAY_LONG_D[0]) error(257);
+#line 11 "dynamic_arrays_cpp.bas"
+memset((void*)(__ARRAY_LONG_D[0]),0,(size_t)alloc_req_bytes);
 #line 11 "dynamic_arrays_cpp.bas"
 }else{
 #line 11 "dynamic_arrays_cpp.bas"
 __ARRAY_LONG_D[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 #line 11 "dynamic_arrays_cpp.bas"
 if (!__ARRAY_LONG_D[0]) error(257);
+#line 11 "dynamic_arrays_cpp.bas"
+}
 #line 11 "dynamic_arrays_cpp.bas"
 }
 #line 11 "dynamic_arrays_cpp.bas"
@@ -484,21 +520,45 @@ if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
 #line 12 "dynamic_arrays_cpp.bas"
 if (preserve_old_total){
 #line 12 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_D[2]&4){
+#line 12 "dynamic_arrays_cpp.bas"
+preserve_new_ptr=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 12 "dynamic_arrays_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 12 "dynamic_arrays_cpp.bas"
+memset((void*)(preserve_new_ptr),0,(size_t)alloc_req_bytes);
+#line 12 "dynamic_arrays_cpp.bas"
+}else{
+#line 12 "dynamic_arrays_cpp.bas"
 preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 #line 12 "dynamic_arrays_cpp.bas"
 if (!preserve_new_ptr) error(257);
 #line 12 "dynamic_arrays_cpp.bas"
+}
+#line 12 "dynamic_arrays_cpp.bas"
 if (preserve_copy_count) memcpy((void*)(preserve_new_ptr),(void*)(preserve_old_ptr),preserve_copy_count*4);
 #line 12 "dynamic_arrays_cpp.bas"
-free((void*)(preserve_old_ptr));
+if (__ARRAY_LONG_D[2]&4) cmem_dynamic_free((uint8*)(preserve_old_ptr)); else free((void*)(preserve_old_ptr));
 #line 12 "dynamic_arrays_cpp.bas"
 __ARRAY_LONG_D[0]=preserve_new_ptr;
+#line 12 "dynamic_arrays_cpp.bas"
+}else{
+#line 12 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_D[2]&4){
+#line 12 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_D[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 12 "dynamic_arrays_cpp.bas"
+if (!__ARRAY_LONG_D[0]) error(257);
+#line 12 "dynamic_arrays_cpp.bas"
+memset((void*)(__ARRAY_LONG_D[0]),0,(size_t)alloc_req_bytes);
 #line 12 "dynamic_arrays_cpp.bas"
 }else{
 #line 12 "dynamic_arrays_cpp.bas"
 __ARRAY_LONG_D[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 #line 12 "dynamic_arrays_cpp.bas"
 if (!__ARRAY_LONG_D[0]) error(257);
+#line 12 "dynamic_arrays_cpp.bas"
+}
 #line 12 "dynamic_arrays_cpp.bas"
 }
 #line 12 "dynamic_arrays_cpp.bas"
@@ -848,19 +908,43 @@ if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
 #line 16 "dynamic_arrays_cpp.bas"
 if (preserve_old_total){
 #line 16 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_S[2]&4){
+#line 16 "dynamic_arrays_cpp.bas"
+preserve_new_ptr=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 16 "dynamic_arrays_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 16 "dynamic_arrays_cpp.bas"
+memset((void*)(preserve_new_ptr),0,(size_t)alloc_req_bytes);
+#line 16 "dynamic_arrays_cpp.bas"
+}else{
+#line 16 "dynamic_arrays_cpp.bas"
 preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 #line 16 "dynamic_arrays_cpp.bas"
 if (!preserve_new_ptr) error(257);
 #line 16 "dynamic_arrays_cpp.bas"
-free((void*)(preserve_old_ptr));
+}
+#line 16 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_S[2]&4) cmem_dynamic_free((uint8*)(preserve_old_ptr)); else free((void*)(preserve_old_ptr));
 #line 16 "dynamic_arrays_cpp.bas"
 __ARRAY_LONG_S[0]=preserve_new_ptr;
+#line 16 "dynamic_arrays_cpp.bas"
+}else{
+#line 16 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_S[2]&4){
+#line 16 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_S[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 16 "dynamic_arrays_cpp.bas"
+if (!__ARRAY_LONG_S[0]) error(257);
+#line 16 "dynamic_arrays_cpp.bas"
+memset((void*)(__ARRAY_LONG_S[0]),0,(size_t)alloc_req_bytes);
 #line 16 "dynamic_arrays_cpp.bas"
 }else{
 #line 16 "dynamic_arrays_cpp.bas"
 __ARRAY_LONG_S[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 #line 16 "dynamic_arrays_cpp.bas"
 if (!__ARRAY_LONG_S[0]) error(257);
+#line 16 "dynamic_arrays_cpp.bas"
+}
 #line 16 "dynamic_arrays_cpp.bas"
 }
 #line 16 "dynamic_arrays_cpp.bas"
@@ -898,7 +982,7 @@ do{
 #line 18 "dynamic_arrays_cpp.bas"
 if (__ARRAY_LONG_D[2]&1){
 #line 18 "dynamic_arrays_cpp.bas"
-free((void*)(__ARRAY_LONG_D[0]));
+if (__ARRAY_LONG_D[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_LONG_D[0])); else free((void*)(__ARRAY_LONG_D[0]));
 #line 18 "dynamic_arrays_cpp.bas"
 __ARRAY_LONG_D[2]^=1;
 #line 18 "dynamic_arrays_cpp.bas"

@@ -1,0 +1,22 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+sub_name_colon_errors.bas:9:6: error: label `one` is not defined in the main module
+sub_name_colon_errors.bas:12:1: error: duplicate label: `three`
+sub_name_colon_errors.bas:14:1: error: not supported yet: a label with the name of a SUB or FUNCTION: `five`
+sub_name_colon_errors.bas:15:12: error: expected the end of the statement
+sub_name_colon_errors.bas:19:1: error: duplicate label: `t1`
+sub_name_colon_errors.bas:22:1: error: duplicate label: `t2`
+sub_name_colon_errors.bas:25:1: error: duplicate label: `t3`
+sub_name_colon_errors.bas:26:11: error: not supported yet: a label with the name of a SUB, FUNCTION or built-in: `five`
+sub_name_colon_errors.bas:28:1: error: duplicate label: `t4`
+sub_name_colon_errors.bas:31:1: error: duplicate label: `t5`
+sub_name_colon_errors.bas:32:1: error: not supported yet: event handlers (`ON TIMER`, `ON KEY`, …)
+sub_name_colon_errors.bas:34:1: error: duplicate label: `t6`
+sub_name_colon_errors.bas:35:1: error: not supported yet: event handlers (`ON TIMER`, `ON KEY`, …)
+sub_name_colon_errors.bas:37:1: error: duplicate label: `t7`
+sub_name_colon_errors.bas:38:1: error: not supported yet: event handlers (`ON TIMER`, `ON KEY`, …)
+sub_name_colon_errors.bas:40:1: error: duplicate label: `t9`
+sub_name_colon_errors.bas:43:1: error: duplicate label: `t10`
+sub_name_colon_errors.bas:60:10: error: label `two` is not defined in this SUB or FUNCTION

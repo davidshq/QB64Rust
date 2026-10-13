@@ -1,0 +1,72 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: window
+Array P(param):I16 passed, dimensions: 1
+Array A:I16 static (0 To 100)
+Array M:I32 static (1 To 10, 1 To 20)
+Array C:F32 static (0 To 100)
+Array RD:I32 dynamic, dimensions: 1
+Array LC(local):I16 dynamic, dimensions: 1
+Array ST(static):I16 dynamic, dimensions: 1, allocated at the start (0 To 40)
+Stmt line 8 may_raise
+  Allocate Redim RD:I32
+    Const 1:I64 To Const 30:I64
+Stmt line 9 may_raise
+  Builtin SCREEN [Value(Const 12:I32), Absent, Absent, Absent, Absent, Absent]
+Stmt line 10 may_raise
+  Builtin GET form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Bytes A, Absent]
+Stmt line 11 may_raise
+  Builtin GET form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Bytes A, Absent]
+Stmt line 12 may_raise
+  Builtin GET form 1 [Absent, Value(Var I:I16), Value(Var L:I32), Absent, Value(Var S:F32), Value(Var D:F64), Bytes A(Const 5:I64), Absent]
+Stmt line 13 may_raise
+  Builtin GET form 1 [Word 0, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Bytes M(Const 2:I64, (Add:I32((Var I:I16 -> Convert I32 Widen), Const 1:I32) wrap -> Convert I64 Widen)), Absent]
+Stmt line 14 may_raise
+  Builtin GET form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Word 0, Value(Const 3:I16), Value(Const 4:I16), Bytes C, Absent]
+Stmt line 15 may_raise
+  Builtin GET form 1 [Word 0, Value(Const 1:I16), Value(Const 2:I16), Word 0, Value(Const 3:I16), Value(Const 4:I16), Bytes RD(Const 5:I64), Absent]
+Stmt line 16 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Bytes A, Absent, Absent, Absent]
+Stmt line 17 may_raise
+  Builtin PUT form 1 [Absent, Value(Var I:I16), Value(Var L:I32), Bytes A, Absent, Word 0, Absent]
+Stmt line 18 may_raise
+  Builtin PUT form 1 [Absent, Value(Var S:F32), Value(Var D:F64), Bytes M, Absent, Word 1, Absent]
+Stmt line 19 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Bytes C, Absent, Word 2, Absent]
+Stmt line 20 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Bytes RD, Absent, Word 3, Absent]
+Stmt line 21 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 1.5E+0:F64), Value(Const 2.5E+0:F64), Bytes A((Var I:I16 -> Convert I64 Widen)), Absent, Word 4, Absent]
+Stmt line 22 may_raise
+  Builtin PUT form 1 [Word 0, Value(Const 1:I16), Value(Const 2:I16), Bytes A, Absent, Absent, Absent]
+Stmt line 23 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Bytes A, Word 0, Absent, Absent]
+Stmt line 24 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Bytes A, Word 0, Word 0, Value(Const 5:U32)]
+Stmt line 25 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Bytes A, Word 0, Absent, Value((Var L:I32 -> Convert U32 Truncate))]
+Stmt line 26 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Bytes A, Absent, Absent, Value(Const 5:U32)]
+Stmt line 27 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Bytes A, Absent, Absent, Absent]
+Stmt line 28 may_raise
+  Call SB [Array A:I16]
+Stmt line 29
+  System
+Sub SB lines 31-38
+  param P():I16
+  local LC:I16
+  static ST:I16
+Stmt line 32 may_raise
+  Allocate Dim LC(local):I16
+    Const 0:I64 To Const 40:I64
+Stmt line 34 may_raise
+  Builtin GET form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Bytes P(param), Absent]
+Stmt line 35 may_raise
+  Builtin GET form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Bytes LC(local), Absent]
+Stmt line 36 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Bytes ST(static)(Const 3:I64), Absent, Absent, Absent]
+Stmt line 37 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Bytes P(param)(Const 1:I64), Absent, Word 0, Absent]

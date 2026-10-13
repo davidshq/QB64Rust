@@ -476,6 +476,7 @@ impl Checker<'_> {
         let dynamic = matches!(shape, Shape::Dynamic { at_start: None, .. }) && !listed;
         let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
+            conventional: false,
             name: name.clone(),
             ty,
             storage,
@@ -812,6 +813,7 @@ impl Checker<'_> {
         }
         let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
+            conventional: false,
             name: name.to_string(),
             ty,
             storage,
@@ -1514,6 +1516,64 @@ impl Checker<'_> {
             kind: ExprKind::Bound { upper, array, dim },
         })
     }
+
+    /// `VARPTR(a(i))` and `VARSEG(a(i))` (`segment`) (design D3 and D4 of `m3-get-put-bload`; measured,
+    /// `verification\v28_b_bload`, `v28_d_varptr_index`, `v28_e_cmem_arrays`, `v28_x36`–`x41`). The argument is
+    /// a variable or an element, never a value. An array of the main module with numeric elements, static or
+    /// dynamic, named from any body, is put into conventional memory by being named here; every other kind of
+    /// variable needs another allocation and is not supported yet.
+    pub(super) fn var_address(&mut self, call: ast::CallExpr, segment: bool, span: Span) -> R<Expr> {
+        let word = if segment { "VARSEG" } else { "VARPTR" };
+        let args = self.present_args(call.arg_list())?;
+        let &[arg] = &args[..] else {
+            // Measured: "Incorrect number of arguments" (`v28_x39`).
+            return Err(self.error(span, format!("`{word}` takes 1 argument")));
+        };
+        // An element or variable of a user type is a place here, not a value, as for `LEN` ([`Self::load`]).
+        let outer = self.len_place.replace(arg.node().span());
+        let e = self.expr(arg);
+        self.len_place = outer;
+        let e = e?;
+        let ExprKind::Load(place) = e.kind else {
+            // Measured: "Expected reference to a variable/array" for a literal, an expression, a function call
+            // (`v28_x36`, `x37`, `x40`, `x41`).
+            return Err(self.error(e.span, format!("`{word}` needs a variable or an array element")));
+        };
+        let Place::Element {
+            array: ArrayRef::Var(array),
+            index,
+        } = place
+        else {
+            let what = match place {
+                Place::Var(_) => "a variable that is no array element",
+                Place::Element { .. } | Place::Member { .. } => "a member of a `TYPE`",
+            };
+            return Err(self.unsupported(e.span, format!("`{word}` of {what}")));
+        };
+        let v = self.prog.var(array);
+        let what = match (v.storage, v.ty) {
+            (Storage::Main, t) if (t.is_int() || t.is_float()) && !matches!(t, Ty::Bit { .. }) => None,
+            (Storage::Main, Ty::Str | Ty::FixedStr(_)) => Some("a string array"),
+            (Storage::Main, _) => Some("an array of a `TYPE` or of `_BIT`"),
+            (Storage::Param(_), _) => Some("an array parameter"),
+            (Storage::Static(_) | Storage::Local(_) | Storage::Result(_), _) => Some("an array of a SUB or FUNCTION"),
+        };
+        if let Some(what) = what {
+            return Err(self.unsupported(e.span, format!("`{word}` of {what}")));
+        }
+        self.prog.vars[array.0 as usize].conventional = true;
+        let kind = if segment {
+            ExprKind::VarSeg { array }
+        } else {
+            ExprKind::VarPtr { array, index }
+        };
+        Ok(Expr {
+            span,
+            ty: Ty::I64,
+            qb: Ty::I64,
+            kind,
+        })
+    }
 }
 
 /// Whether an expression is written with numbers alone: no name, no call ([`Checker::member_bounds`]).
@@ -1636,6 +1696,7 @@ fn constant(e: &Expr) -> Option<Num> {
                 (ConvKind::RoundEven, Num::Int(_)) | (ConvKind::Truncate, Num::Float(_)) => None,
             }
         }
+        ExprKind::VarPtr { .. } | ExprKind::VarSeg { .. } => None,
         ExprKind::Unary { op, operand } => match (op, constant(operand)?) {
             (UnOp::Neg, Num::Float(f)) => Some(Num::Float(-f)),
             (op, Num::Int(i)) => Some(Num::Int(super::ops::fold_unary(*op, i, e.ty))),

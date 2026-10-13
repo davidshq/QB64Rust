@@ -245,6 +245,7 @@ impl Checker<'_> {
         }
         let v = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
+            conventional: false,
             name: name.clone(),
             ty,
             storage: Storage::Param(id),

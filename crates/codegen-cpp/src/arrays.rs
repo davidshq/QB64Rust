@@ -143,13 +143,12 @@ impl Emitter<'_> {
             out.push("if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;".into());
             // An allocated array: the new block, the kept elements by flat position, then the old block goes.
             out.push("if (preserve_old_total){".into());
-            let make = if string {
-                "preserve_new_ptr=(ptrszint)malloc((size_t)alloc_req_bytes);"
+            if string {
+                out.push("preserve_new_ptr=(ptrszint)malloc((size_t)alloc_req_bytes);".into());
+                out.push("if (!preserve_new_ptr) error(257);".into());
             } else {
-                "preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);"
-            };
-            out.push(make.into());
-            out.push("if (!preserve_new_ptr) error(257);".into());
+                out.extend(self.new_block(v.ty, n, "preserve_new_ptr"));
+            }
             let keep = mode == AllocMode::Preserve;
             if string {
                 out.push("tmp_long=(ptrszint)alloc_req_elems;".into());
@@ -200,7 +199,7 @@ impl Emitter<'_> {
                     "if (preserve_copy_count) memcpy((void*)(preserve_new_ptr),(void*)(preserve_old_ptr),preserve_copy_count*{size});"
                 ));
             }
-            out.push("free((void*)(preserve_old_ptr));".into());
+            out.push(self.free_block(v.ty, n, "preserve_old_ptr"));
             out.push(format!("{n}[0]=preserve_new_ptr;"));
             out.push("}else{".into());
         }
@@ -211,8 +210,7 @@ impl Emitter<'_> {
             out.push("tmp_long=(ptrszint)alloc_req_elems;".into());
             out.push(format!("while(tmp_long--) ((qbs**)({n}[0]))[tmp_long]=qbs_new(0,0);"));
         } else {
-            out.push(format!("{n}[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);"));
-            out.push(format!("if (!{n}[0]) error(257);"));
+            out.extend(self.new_block(v.ty, n, &format!("{n}[0]")));
             let block = format!("{n}[0]");
             push_lines(
                 out,

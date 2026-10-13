@@ -9,7 +9,7 @@ the recorded output is to `PRINT` (OpenSpec change `m2-screen-state-check`: the 
 |---|---|
 | `screen_state.cpp` | Linked into a test program; writes the state and gives the keys |
 | `state_to_png.py` | Shows a state: a graphics page as a PNG, a text page as its rows. For people; no test uses it |
-| `cut_game.py` | Writes the drawing programs cut from Civil War Strategy into `tests\corpus\screen\` |
+| `cut_game.py` | Writes the programs cut from Civil War Strategy into `tests\corpus\screen\`: procedures of the game, or ranges of its lines, behind a few written lines, and the pictures a program loads into its `<name>.files\` folder |
 
 ## How it gets into a program
 

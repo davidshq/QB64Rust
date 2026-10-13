@@ -59,11 +59,12 @@ pub fn dump(p: &Program) -> String {
     // The arrays, when there are any: a static one with its bounds, a dynamic one with its number of dimensions.
     for (i, v) in p.vars.iter().enumerate() {
         let name = var(p, VarId(to_u32(i)));
+        let memory = if v.conventional { ", in conventional memory" } else { "" };
         match &v.shape {
             Shape::Scalar => {}
             Shape::Static { bounds } => {
                 let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} To {u}")).collect();
-                writeln!(out, "Array {name}:{} static ({})", ty(p, v.ty), dims.join(", ")).unwrap();
+                writeln!(out, "Array {name}:{} static ({}){memory}", ty(p, v.ty), dims.join(", ")).unwrap();
             }
             Shape::Dynamic { dims, at_start } => {
                 let dims = dims.map_or("?".to_string(), |n| n.to_string());
@@ -77,7 +78,12 @@ pub fn dump(p: &Program) -> String {
                 } else {
                     "dynamic"
                 };
-                writeln!(out, "Array {name}:{} {kind}, dimensions: {dims}{start}", ty(p, v.ty)).unwrap();
+                writeln!(
+                    out,
+                    "Array {name}:{} {kind}, dimensions: {dims}{start}{memory}",
+                    ty(p, v.ty)
+                )
+                .unwrap();
             }
         }
     }
@@ -262,6 +268,11 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                             StmtArg::Place(place) => {
                                 format!("Place {}:{}", place_text(p, place), ty(p, p.place_ty(place)))
                             }
+                            StmtArg::Block { array, index } if index.is_empty() => format!("Bytes {}", var(p, *array)),
+                            StmtArg::Block { array, index } => {
+                                let i: Vec<String> = index.iter().map(|i| val(p, i)).collect();
+                                format!("Bytes {}({})", var(p, *array), i.join(", "))
+                            }
                             StmtArg::Word(w) => format!("Word {w}"),
                             StmtArg::Absent => "Absent".to_string(),
                         })
@@ -377,6 +388,11 @@ fn val(p: &Program, v: &Expr) -> String {
             let d = dim.as_deref().map_or("1".to_string(), |d| val(p, d));
             format!("{word} {}({d}):{}", array_text(p, array), ty(p, v.ty))
         }
+        ExprKind::VarPtr { array, index } => {
+            let i: Vec<String> = index.iter().map(|i| val(p, i)).collect();
+            format!("VarPtr {}({}):{}", var(p, *array), i.join(", "), ty(p, v.ty))
+        }
+        ExprKind::VarSeg { array } => format!("VarSeg {}:{}", var(p, *array), ty(p, v.ty)),
         ExprKind::Convert { how, from } => format!("({} -> Convert {} {how:?})", val(p, from), ty(p, v.ty)),
         ExprKind::Binary { op, lhs, rhs } => {
             // Only `+`, `-` and `*` can overflow an integer type (and `\` of the smallest value by -1, unspecified).

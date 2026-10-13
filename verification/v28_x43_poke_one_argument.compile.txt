@@ -1,0 +1,5 @@
+
+Syntax error - Reference: POKE segment_offset, offset_value
+Caused by (or after):POKE 1
+LINE 7:POKE 1
+exit=1
