@@ -180,6 +180,12 @@ impl Checker<'_> {
                 if nodes.len() < required || nodes.len() > slots.len() {
                     return Err(self.error(span, arity(s.name, required, slots.len())));
                 }
+                if let Some(counts) = template_counts(s.id.get())
+                    && counts & (1 << nodes.len()) == 0
+                {
+                    // `_SCREENIMAGE`'s `[?,?,?,?]`: none or all four (measured, `verification\v31_x81`).
+                    return Err(self.error(span, format!("`{}` takes {} arguments", s.name, list_counts(counts))));
+                }
                 let mut extra = nodes.len() - required;
                 let mut nodes = nodes.into_iter();
                 return Ok(slots
@@ -1002,6 +1008,38 @@ fn may_be_left_out(b: &qb64rust_builtins::Builtin, k: usize) -> bool {
         .filter(|&(_, &c)| c == b'?')
         .nth(k)
         .is_some_and(|(i, _)| i > 1 && bytes[i - 2..i] == *b",[" && bytes.get(i + 1) == Some(&b']'))
+}
+
+/// The numbers of arguments a function's template allows, bit `n` for `n` arguments; `None` without a template.
+/// An optional group of several slots is given whole or not at all: `_SCREENIMAGE`'s `[?,?,?,?]` takes none or four
+/// (the only such function template in the table; `verification\v31_x81`).
+fn template_counts(b: &qb64rust_builtins::Builtin) -> Option<u64> {
+    fn counts(items: &[Item]) -> u64 {
+        items.iter().fold(1, |acc, item| {
+            let step = match item {
+                Item::Arg => 0b10,
+                Item::Punct(_) | Item::Choice(_) => 1,
+                Item::Optional(inner) => counts(inner) | 1,
+            };
+            (0..64)
+                .filter(|&k| step & (1 << k) != 0)
+                .fold(0, |sum, k| sum | (acc << k))
+        })
+    }
+    let items = qb64rust_builtins::template::parse(b.specialformat?).ok()?;
+    Some(counts(&items))
+}
+
+/// "0 or 4", "1, 2 or 3": the counts of [`template_counts`].
+fn list_counts(counts: u64) -> String {
+    let all: Vec<String> = (0..64)
+        .filter(|&k| counts & (1 << k) != 0)
+        .map(|k| k.to_string())
+        .collect();
+    match all.split_last() {
+        Some((last, rest)) if !rest.is_empty() => format!("{} or {last}", rest.join(", ")),
+        _ => all.concat(),
+    }
 }
 
 /// "`LEFT$` takes 2 arguments", "`INSTR` takes 2 or 3 arguments".

@@ -78,6 +78,7 @@ console_only/audio_out
 console_only/data
 console_only/image
 console_only/print_console_null_char
+console_only/screenimage
 const/bad_boolean_arg
 const/bad_not_no_arg
 const/bad_not_to_many_args
@@ -140,6 +141,7 @@ precomp-flags/explicit
 precomp-flags/explicitarr
 print/auto_semicolon_insertion
 rotations/test
+screenimage/test
 single'quote'test/single'quote'test
 source_ordering/data_positioning
 source_ordering/define

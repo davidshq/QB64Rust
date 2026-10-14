@@ -2170,7 +2170,9 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     `byte_element((uint64)(&(((int32*)(__ARRAY_LONG_P[0]))[0])),((4*(__ARRAY_LONG_P[2]&1)*__ARRAY_LONG_P[5])-(4*(0))),byte_element_1)`.
   - **Rejected** (`x02`–`x109`): a function with too few or too many arguments, also when bare, is "Incorrect
     number of arguments - Reference: …" (`_COPYIMAGE`, `_LOADIMAGE`, `_RGB(1, 2)`, `_MOUSEBUTTON`,
-    `_MOUSEX(1)`, `PMAP(1)`); empty parentheses "Expected (...)"; a string for a number "1st function argument
+    `_MOUSEX(1)`, `PMAP(1)`; also `_SCREENIMAGE(1, 2)`, `x81`: its template `[?,?,?,?]` is one group, so it
+    takes no argument or four, the only function template of the table whose counts are not a plain range,
+    found by task 5.1); empty parentheses "Expected (...)"; a string for a number "1st function argument
     requires a number" or "Number required for function" (a function with one slot), a number for a string
     "… requires a string"; a statement in a form its template does not have "Syntax error - Reference: …"
     (`_PUTIMAGE (1, 2)-`, `_PRINTMODE` alone or with a number, `_DEPTHBUFFER 1`, `_MAPUNICODE 1, 2`, `_FONT`

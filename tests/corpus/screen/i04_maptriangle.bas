@@ -38,3 +38,15 @@ _MAPTRIANGLE (0, 0)-(15, 0)-(0, 15), p& TO (0, 0)-(23, 0)-(0, 23)
 _DEST 0
 _PUTIMAGE (130, 100), q&
 SYSTEM
+' Compiled and run by no test (design D3; task 5.1), their calls compared by tests\callsite: the 3-D form of
+' _MAPTRIANGLE (a z on each destination point, drawn into a hardware image), an image of the desktop and of the
+' clipboard, a printed page, the depth buffer of hardware images.
+_MAPTRIANGLE (0, 0)-(15, 0)-(0, 15), t& TO (10, 10, -1)-(50, 10, -1)-(10, 50, -1)
+_MAPTRIANGLE _CLOCKWISE (0, 0)-(15, 0)-(0, 15), t& TO (10, 10, -1)-(50, 10, -2)-(10, 50, -3), , _SMOOTH
+h& = _SCREENIMAGE
+h& = _SCREENIMAGE(0, 0, 9, 9)
+h& = _CLIPBOARDIMAGE
+_CLIPBOARDIMAGE = h&
+_PRINTIMAGE h&
+_DEPTHBUFFER ON, h&
+_DEPTHBUFFER _CLEAR

@@ -200,6 +200,12 @@ for the 3-D forms; the 3-D form is named in `crates\README.md` as not run.
 
 `_MOUSEHIDDEN` and `_MOUSEDISABLED` run: they read libqb's flags and need no cursor.
 
+**As built (group 5, 2026-10-14).** As above: each a plain row on `NEVER_RUN`, held with two 3-D `_MAPTRIANGLE`s
+below the `SYSTEM` of `i04`. One form needed more than a row: a function's optional slots were taken one by one,
+so `_SCREENIMAGE(1, 2)` was accepted, while its template `[?,?,?,?]` gives all four or none (`v31_x81`).
+`check\builtins.rs` `template_counts` reads the counts a function's template allows from its groups; no other
+function template of the table has counts that are not a plain range.
+
 ### D4. Mouse steps in the keys file
 
 `screen_state.cpp` reads four more steps and takes them in order with the keys, from the same thread:

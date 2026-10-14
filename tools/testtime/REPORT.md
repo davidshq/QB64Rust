@@ -3,18 +3,18 @@
 Made by `python tools\testtime\test_time.py` from the transcripts of the Claude Code sessions; do not edit.
 What the columns mean, and what the numbers cannot say: `README.md` beside this file.
 
-200 sessions from 2026-10-02 to 2026-10-14; 3871 runs on record.
+213 sessions from 2026-10-02 to 2026-10-14; 4006 runs on record.
 
 ## In all
 
 | | Time | Share of active time |
 |---|---|---|
-| Active time (Claude working, the user not waited for) | 72 h 34 min | |
-| Inside commands of any kind | 31 h 50 min | 44% |
-| **Waiting for test runs** | 12 h 20 min | 17% |
-| Waiting for measurements with the old compiler | 3 h 13 min | 4% |
-| Waiting for builds | 2 h 07 min | 3% |
-| Everything else (reading, thinking, writing code and documents, other commands) | 54 h 52 min | 76% |
+| Active time (Claude working, the user not waited for) | 75 h 23 min | |
+| Inside commands of any kind | 33 h 08 min | 44% |
+| **Waiting for test runs** | 13 h 00 min | 17% |
+| Waiting for measurements with the old compiler | 3 h 19 min | 4% |
+| Waiting for builds | 2 h 15 min | 3% |
+| Everything else (reading, thinking, writing code and documents, other commands) | 56 h 48 min | 75% |
 | Test runs and measurements in the background (not waited for) | 7 h 37 min | |
 
 ## By day
@@ -33,7 +33,7 @@ What the columns mean, and what the numbers cannot say: `README.md` beside this 
 | 2026-10-11 | 16 | 7 h 55 min | 2 h 00 min | 19 min 07 s | 21 min 33 s | 25% | 347 | 31 min 36 s |
 | 2026-10-12 | 25 | 8 h 27 min | 1 h 45 min | 15 min 43 s | 9 min 45 s | 21% | 300 | 34 min 11 s |
 | 2026-10-13 | 17 | 5 h 09 min | 1 h 17 min | 12 min 24 s | 11 min 47 s | 25% | 327 | 9 min 39 s |
-| 2026-10-14 | 5 | 1 h 48 min | 22 min 46 s | 1 min 30 s | 1 min 40 s | 21% | 59 | 0 s |
+| 2026-10-14 | 18 | 4 h 37 min | 1 h 03 min | 7 min 06 s | 9 min 08 s | 23% | 160 | 22 s |
 
 A day's runs are those started on it; a session that runs past midnight has its active time on the day it
 started, so a share above 100% can show on the day after.
@@ -42,35 +42,35 @@ started, so a share above 100% can show on the day after.
 
 | Bucket | Kind | Runs | Total | Median | Longest | Passed | Failed | Result not known |
 |---|---|---|---|---|---|---|---|---|
-| test | slice list | 107 | 3 h 29 min | 1 min 49 s | 6 min 40 s | 74 | 2 | 31 |
-| test | tier 1 (cargo test) | 525 | 2 h 24 min | 12 s | 2 min 29 s | 140 | 147 | 238 |
-| test | upstream pass list | 60 | 1 h 27 min | 1 min 11 s | 6 min 40 s | 39 | 2 | 19 |
-| test | tier 1, part (cargo test -p) | 543 | 1 h 17 min | 5 s | 10 min 04 s | 324 | 145 | 74 |
-| test | repo check | 394 | 57 min 13 s | 4 s | 3 min 45 s | 338 | 34 | 22 |
-| test | fmt | 326 | 51 min 37 s | 5 s | 2 min 30 s | 0 | 35 | 291 |
+| test | slice list | 111 | 3 h 42 min | 1 min 49 s | 6 min 40 s | 77 | 2 | 32 |
+| test | tier 1 (cargo test) | 538 | 2 h 29 min | 12 s | 2 min 29 s | 141 | 151 | 246 |
+| test | upstream pass list | 61 | 1 h 29 min | 1 min 13 s | 6 min 40 s | 40 | 2 | 19 |
+| test | tier 1, part (cargo test -p) | 560 | 1 h 20 min | 5 s | 10 min 04 s | 333 | 148 | 79 |
+| test | repo check | 409 | 58 min 57 s | 4 s | 3 min 45 s | 352 | 35 | 22 |
+| test | fmt | 341 | 53 min 20 s | 5 s | 2 min 30 s | 0 | 38 | 303 |
+| test | differential pass list | 40 | 46 min 02 s | 47 s | 4 min 36 s | 16 | 2 | 22 |
 | test | extension tests (npm) | 110 | 45 min 04 s | 14 s | 8 min 52 s | 68 | 8 | 34 |
-| test | differential pass list | 39 | 45 min 00 s | 46 s | 4 min 36 s | 15 | 2 | 22 |
-| test | clippy | 298 | 41 min 22 s | 6 s | 1 min 23 s | 70 | 46 | 182 |
-| test | full corpus | 20 | 39 min 37 s | 1 min 25 s | 6 min 20 s | 0 | 10 | 10 |
-| test | call-site check | 79 | 32 min 14 s | 15 s | 2 min 13 s | 54 | 14 | 11 |
-| test | corpus, selected programs | 129 | 27 min 37 s | 7 s | 1 min 53 s | 105 | 14 | 10 |
-| test | openspec validate | 193 | 15 min 44 s | 3 s | 33 s | 132 | 44 | 17 |
-| test | full upstream suite | 20 | 15 min 44 s | 40 s | 2 min 33 s | 0 | 10 | 10 |
-| test | tests of the Python tools | 46 | 8 min 50 s | 4 s | 1 min 00 s | 35 | 9 | 2 |
-| test | upstream, selected programs | 36 | 6 min 11 s | 6 s | 33 s | 21 | 12 | 3 |
+| test | clippy | 307 | 42 min 30 s | 6 s | 1 min 23 s | 73 | 46 | 188 |
+| test | full corpus | 21 | 40 min 51 s | 1 min 24 s | 6 min 20 s | 0 | 11 | 10 |
+| test | call-site check | 88 | 37 min 25 s | 15 s | 2 min 18 s | 58 | 18 | 12 |
+| test | corpus, selected programs | 135 | 30 min 25 s | 7 s | 1 min 58 s | 109 | 14 | 12 |
+| test | full upstream suite | 21 | 16 min 12 s | 37 s | 2 min 33 s | 0 | 11 | 10 |
+| test | openspec validate | 198 | 16 min 07 s | 3 s | 33 s | 136 | 45 | 17 |
+| test | tests of the Python tools | 48 | 9 min 52 s | 5 s | 1 min 00 s | 37 | 9 | 2 |
+| test | upstream, selected programs | 38 | 6 min 31 s | 7 s | 33 s | 22 | 13 | 3 |
 | test | call-site self-test | 21 | 5 min 29 s | 7 s | 1 min 58 s | 20 | 0 | 1 |
 | test | other suite | 1 | 20 s | 20 s | 20 s | 1 | 0 | 0 |
 | measure | full corpus (old compiler) | 14 | 1 h 48 min | 6 min 14 s | 15 min 56 s | | | |
-| measure | recording expected results (old compiler) | 120 | 1 h 30 min | 7 s | 21 min 41 s | | | |
-| measure | verification programs (old compiler) | 122 | 1 h 14 min | 10 s | 24 min 51 s | | | |
-| measure | old compiler run directly | 179 | 1 h 09 min | 3 s | 10 min 03 s | | | |
+| measure | recording expected results (old compiler) | 128 | 1 h 33 min | 8 s | 21 min 41 s | | | |
+| measure | verification programs (old compiler) | 127 | 1 h 16 min | 10 s | 24 min 51 s | | | |
+| measure | old compiler run directly | 184 | 1 h 10 min | 3 s | 10 min 03 s | | | |
 | measure | other suite (old compiler) | 4 | 37 min 14 s | 8 s | 36 min 57 s | | | |
 | measure | corpus, selected programs (old compiler) | 59 | 33 min 45 s | 15 s | 6 min 26 s | | | |
 | measure | slice list (old compiler) | 6 | 21 min 36 s | 3 min 00 s | 6 min 51 s | | | |
 | measure | upstream pass list (old compiler) | 4 | 14 min 43 s | 2 min 38 s | 6 min 51 s | | | |
 | measure | full upstream suite (old compiler) | 4 | 9 min 33 s | 3 min 00 s | 3 min 31 s | | | |
 | measure | upstream, selected programs (old compiler) | 5 | 18 s | 4 s | 6 s | | | |
-| build | cargo build | 389 | 2 h 22 min | 8 s | 10 min 02 s | 121 | 71 | 197 |
+| build | cargo build | 405 | 2 h 29 min | 9 s | 10 min 02 s | 128 | 72 | 205 |
 | build | extension build (npm) | 18 | 5 min 20 s | 20 s | 41 s | 0 | 0 | 18 |
 
 ## Runs repeated with nothing edited
@@ -87,8 +87,8 @@ unless something else had changed.
 | test | tier 1, part (cargo test -p) | 49 | 3 min 02 s | 22 | 1 min 50 s | 22 | 5 |
 | test | repo check | 27 | 5 min 53 s | 8 | 40 s | 15 | 4 |
 | test | fmt | 16 | 3 min 33 s | 0 | 0 s | 12 | 4 |
-| test | extension tests (npm) | 10 | 2 min 38 s | 3 | 22 s | 0 | 7 |
 | test | differential pass list | 1 | 11 s | 1 | 11 s | 0 | 0 |
+| test | extension tests (npm) | 10 | 2 min 38 s | 3 | 22 s | 0 | 7 |
 | test | clippy | 29 | 3 min 05 s | 1 | 3 s | 11 | 17 |
 | test | call-site check | 4 | 34 s | 1 | 10 s | 3 | 0 |
 | test | corpus, selected programs | 2 | 1 min 05 s | 1 | 36 s | 0 | 1 |

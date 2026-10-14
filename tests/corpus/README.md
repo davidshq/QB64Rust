@@ -219,6 +219,23 @@ with an `.err` file, and the two shrink-only lists `tests\known_false_errors.lis
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
 
+### Full corpus with `qb64rust` (2026-10-14, after `m3-images-fonts-mouse`; not a pass criterion)
+
+After the sixth step of M3 (its task 6.2, release build, against the reference clone, `--jobs 8 --build-cache`),
+423 programs (`g12_game` and `c12_prompts` of `m3-scripted-game`, and the screen programs `i01` to `i08`, `f01`,
+`f02`, `u01` and `u02` new); `slice.list` by itself passes 398 of 398 with and without `QB64RUST_NO_FOLD=1`:
+
+| Result | Programs |
+|---|---|
+| Pass | 417: the 398 of `slice.list` and 19 `.err` programs |
+| Rejected with a diagnostic (exit status 1) | 0 |
+| `.err` programs that get only "not supported yet" errors | 1 (`218` `FRE`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+`qb64rust --report unsupported tests\corpus` holds nothing back; `s77_exeicon` and `g12_game` have an icon only
+the runner puts beside them.
+
 ### Full corpus with `qb64rust` (2026-10-13, after `m3-console-files`; not a pass criterion)
 
 After the fourth step of M3 (its task 8.1, release build, against the reference clone, `--jobs 8

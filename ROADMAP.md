@@ -75,8 +75,10 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
 - [x] Civil War Strategy's screens match in a scripted game (`tests\programs\README.md`, stage 3): a copy with
       listed edits plays two turns from a keys file, 23 states compared; the screen-state check's keys file
       gained `prompt` and `state` (`m3-scripted-game`)
-- [ ] The image built-ins that run (`_LOADIMAGE`, `_PUTIMAGE`, …; `_RGB32` and `_RGBA32` are done), fonts, the
-      mouse
+- [x] The image built-ins that run (`_LOADIMAGE`, `_PUTIMAGE`, `_MAPTRIANGLE`, the colour functions, …), fonts,
+      the mouse fed by mouse steps of a keys file, 12 screen programs; `_SCREENIMAGE`, `_CLIPBOARDIMAGE`,
+      `_PRINTIMAGE`, `_DEPTHBUFFER` and `_MOUSEMOVE` compiled and never run (`m3-images-fonts-mouse`)
+- [ ] `_MEM`, `$ASSERTS` and `$DEBUG`: what most holds back the upstream tests outside `deferred.list`
 - [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
       file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
       `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program

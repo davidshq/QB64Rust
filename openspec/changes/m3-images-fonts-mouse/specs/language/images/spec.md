@@ -131,3 +131,7 @@ test runs them, since what they read or draw is the desktop's, the clipboard's, 
 - **WHEN** `i = _SCREENIMAGE` is compiled
 - **THEN** it compiles to the call the old compiler writes, and the program is linked with the screen-capture
   part of libqb
+
+#### Scenario: A desktop image takes no corners or all four
+- **WHEN** `i = _SCREENIMAGE(1, 2)` is compiled
+- **THEN** it is an error that `_SCREENIMAGE` takes 0 or 4 arguments, as the old compiler rejects it

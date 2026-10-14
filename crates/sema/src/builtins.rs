@@ -268,6 +268,10 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_MOUSEMOVEMENTY", Rule::Plain),
     ("_MOUSEHIDDEN", Rule::Plain),
     ("_MOUSEDISABLED", Rule::Plain),
+    // An image of the desktop or of the clipboard (same design, `v31_x01_accepted`): LONG each, with libqb's
+    // screen-image part ([`crate::RuntimePart::ScreenImage`]). Compiled and never run ([`NEVER_RUN`]).
+    ("_SCREENIMAGE", Rule::Plain),
+    ("_CLIPBOARDIMAGE", Rule::Plain),
 ];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
@@ -412,6 +416,11 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_MAPUNICODE", StmtRule::Plain),
     // It moves the machine's cursor: compiled, and run by no test (design D3).
     ("_MOUSEMOVE", StmtRule::Plain),
+    // Compiled and run by no test (design D3): `_CLIPBOARDIMAGE = h` sets the clipboard (the screen-image part),
+    // `_PRINTIMAGE` prints a page (the printer part), `_DEPTHBUFFER` acts on hardware images only.
+    ("_CLIPBOARDIMAGE", StmtRule::Plain),
+    ("_PRINTIMAGE", StmtRule::Plain),
+    ("_DEPTHBUFFER", StmtRule::Plain),
 ];
 
 /// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
@@ -445,8 +454,14 @@ pub const NEVER_RUN: &[&str] = &[
     // `CHAIN` compiles another program: libqb starts `qb64pe.exe -c` beside the running program through `cmd`
     // (`tests\corpus\README.md`), which no test machine may be asked for (same decision).
     "CHAIN",
-    // `_MOUSEMOVE` moves the machine's cursor (design D3 of `m3-images-fonts-mouse`).
+    // `_MOUSEMOVE` moves the machine's cursor; `_SCREENIMAGE` and `_CLIPBOARDIMAGE` read the desktop and the
+    // clipboard, `_PRINTIMAGE` prints a page, `_DEPTHBUFFER` needs a hardware image (design D3 of
+    // `m3-images-fonts-mouse`).
     "_MOUSEMOVE",
+    "_SCREENIMAGE",
+    "_CLIPBOARDIMAGE",
+    "_PRINTIMAGE",
+    "_DEPTHBUFFER",
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.

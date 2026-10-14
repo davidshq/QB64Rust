@@ -493,13 +493,14 @@ What the compiler supports so far:
     `_SAVEIMAGE`, `_PUTIMAGE`, `_MAPTRIANGLE`, `_CLEARCOLOR`, `_SETALPHA`, `_BLEND`, `_DONTBLEND`,
     `_PALETTECOLOR`, `_COPYPALETTE` and `_AUTODISPLAY`, also after `CALL`. `_NEWIMAGE` and `_FREEIMAGE` are run
     since then (off `NEVER_RUN`). `_MAPTRIANGLE`'s 3-D form (a z on each destination point, drawn into a
-    hardware image) is compiled and compared by its call-site programs, but run by no test.
+    hardware image) is compiled and compared by its call-site programs, and held below the `SYSTEM` of `i04`,
+    but run by no test.
   - **A function's slot may be left empty** where its template has it alone in brackets after a comma
     (`_LOADIMAGE(f$, , r$)`, template `?[,[?][,?]]`; `check\builtins.rs`, `filled_slots`) and an argument
     follows; any other gap stays "not supported yet" (`INSTR(, a$, b$)` is not measured).
   - **Runtime parts**: `_LOADIMAGE` and `_SAVEIMAGE` need `RuntimePart::ImageCodec` (`DEP_IMAGE_CODEC=y`,
-    the first flag); `RuntimePart::Font` (`DEP_FONT=y`) and `RuntimePart::ScreenImage`
-    (`DEP_SCREENIMAGE=y`) are in place for the font functions and `_SCREENIMAGE`, in the old compiler's order
+    the first flag); `RuntimePart::Font` (`DEP_FONT=y`, group 3) and `RuntimePart::ScreenImage`
+    (`DEP_SCREENIMAGE=y`, group 5) serve the font functions and `_SCREENIMAGE`, in the old compiler's order
     (`driver\src\build.rs`, `make_flags`).
   Checked by the screen programs `i01` to `i08` (the images `i02` loads are written by
   `tools\screen\make_images.py`; `i03` saves and loads six formats), the front-end tests `images_typed`,
@@ -522,6 +523,14 @@ What the compiler supports so far:
   buttons, wheel and movement in `SCREEN 12`) and `u02` (columns and rows in `SCREEN 0`), fed by the mouse steps
   of their keys files (`tools\screen\README.md`), the front-end tests `mouse_typed`, `mouse_ir` and
   `mouse_errors`, and 24 call-site programs.
+- **Images no test runs** (`m3-images-fonts-mouse` group 5; same design and facts): the functions
+  `_SCREENIMAGE` (bare or with four LONG slots, all or none: the only function template whose optional group
+  holds several slots, so a count between is "takes 0 or 4 arguments", `check\builtins.rs`, `template_counts`)
+  and `_CLIPBOARDIMAGE` (each a LONG, `RuntimePart::ScreenImage`), and the statements `_CLIPBOARDIMAGE = h`
+  (the same part), `_PRINTIMAGE` (`RuntimePart::Printer`) and `_DEPTHBUFFER` with its four words, each a plain
+  row on `NEVER_RUN`: they read the desktop or the clipboard, print a page, or act on hardware images. They and
+  the 3-D form of `_MAPTRIANGLE` stand below the `SYSTEM` of `i04`. Checked by the front-end tests
+  `screenimage_typed`, `screenimage_ir` and `screenimage_errors`, and 19 call-site programs.
 - **The constants of QB64pe's auto-included file** (`m2-console-screenhide` group 5; `sema\src\check\auto.rs`):
   `_TRUE`, `_FALSE`, `_ONE_MB`, the limits of the numeric types and the others of `beforefirstline.bi` are
   known in every program. The file is not included: `tools\builtins\builtins.json` carries each constant's

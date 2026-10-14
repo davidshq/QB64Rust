@@ -1,0 +1,35 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: window, runtime parts: printer, screen image
+Stmt line 8 may_raise
+  Assign L:I32 = CallBuiltin _SCREENIMAGE:I32 [None, None, None, None]
+Stmt line 9 may_raise
+  Assign L:I32 = CallBuiltin _SCREENIMAGE:I32 [Some((Var I:I16 -> Convert I32 Widen)), Some(Var L:I32), Some(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Some(Const 4:I32)]
+Stmt line 10 may_raise
+  Assign L:I32 = CallBuiltin _CLIPBOARDIMAGE:I32 []
+Stmt line 11 may_raise
+  Builtin _CLIPBOARDIMAGE [Value(Var L:I32)]
+Stmt line 12 may_raise
+  Builtin _CLIPBOARDIMAGE [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 13 may_raise
+  Builtin _PRINTIMAGE [Value(Var L:I32)]
+Stmt line 14 may_raise
+  Builtin _PRINTIMAGE [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 15 may_raise
+  Builtin _DEPTHBUFFER [Word 0, Absent]
+Stmt line 16 may_raise
+  Builtin _DEPTHBUFFER [Word 1, Absent]
+Stmt line 17 may_raise
+  Builtin _DEPTHBUFFER [Word 2, Absent]
+Stmt line 18 may_raise
+  Builtin _DEPTHBUFFER [Word 3, Absent]
+Stmt line 19 may_raise
+  Builtin _DEPTHBUFFER [Word 0, Value(Var L:I32)]
+Stmt line 20 may_raise
+  Builtin _DEPTHBUFFER [Word 3, Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 21 may_raise
+  Builtin _PRINTIMAGE [Value(Var L:I32)]
+Stmt line 22 may_raise
+  Builtin _DEPTHBUFFER [Word 0, Absent]

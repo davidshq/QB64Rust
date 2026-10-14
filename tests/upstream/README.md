@@ -350,3 +350,16 @@ binary files). `audio_out/test`, the same `PLAY` with the generated licence file
 programs): 142 pass, 261 rejected or with only marked errors, the known failure `http/read_example`; none
 builds and prints the wrong output. Still marked among the icon tests: `icon/test` and `winresource/test` name
 their icon relative to the compiler's folder (`SOMEDAY.md`), the second with `$VERSIONINFO`.
+
+**Upstream progress, 2026-10-14: 153 of 279** (`m3-images-fonts-mouse` tasks 6.1 and 6.2, the full runs that close
+the change; 148 before it). The five new ones: `colors/test`, `console_only/image` and `image/svg_test` (group 2,
+the colours and images; `svg_test` runs from the clone with its `.svg` files), `console_only/screenimage` and
+`screenimage/test` (group 5: `_SCREENIMAGE`, whose Windows branch prints the handle). `image/test` compiles cleanly
+and is on `tests\known_clean_not_passing.list` (built with the generated licence file, as `audio_out/test`). Of
+the 24 upstream programs that name a built-in of the change, the other 17 wait on something else: `MKL$` (the six
+`paint/tile_*` programs), `_MEM` (`image/pcx_test`, `image/webp_test`, `putimage/putimage_test` and the two
+`view/window_view_*`), and one each on `_CONTINUE`, `_ERRORMESSAGE$`, a `TYPE` in a SUB, `SUB _GL`, `_PI` and
+`CHR$` in a `CONST`. The demand report names no built-in of the change but in a `CONST` (`_RGB32` and the colour
+functions, outside the change). `pass.list` run by itself: 153 of 153. The full run of the suite (404 programs):
+153 pass, 250 rejected or with only marked errors (212 at the compile, 38 `.err` programs), the known failure
+`http/read_example`; none builds and prints the wrong output. The three lists are unchanged.

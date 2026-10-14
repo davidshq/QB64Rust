@@ -167,30 +167,66 @@ finds it, with a parser test.
 
 ## 5. What no test runs
 
-- [ ] 5.1 `_SCREENIMAGE`, `_CLIPBOARDIMAGE` (both forms), `_PRINTIMAGE`, `_DEPTHBUFFER` and `_MOUSEMOVE` on
+- [x] 5.1 `_SCREENIMAGE`, `_CLIPBOARDIMAGE` (both forms), `_PRINTIMAGE`, `_DEPTHBUFFER` and `_MOUSEMOVE` on
   `NEVER_RUN`, each held in a slice program as code that is not reached, and the 3-D forms of `_MAPTRIANGLE` in
   one (design D3). Verify: call-site programs for each form pass; taking the `_SCREENIMAGE` programs out of
   `tests\callsite` makes `cargo test` fail and name it; an `ir` test shows the `ScreenImage` and `Printer` parts.
+  Found: each a plain row (`_MOUSEMOVE` was already, task 4.2); they and two 3-D `_MAPTRIANGLE`s stand below
+  `i04`'s `SYSTEM`, which still passes. **One form needed more than a row**: `_SCREENIMAGE(1, 2)` was accepted,
+  since a function's optional slots were taken one by one, and its template `[?,?,?,?]` is a group of four, none
+  or all (`v31_x81`: "Incorrect number of arguments"). `check\builtins.rs` `template_counts` now reads the counts
+  a function's template allows; a script over the table found no other function template whose counts are not a
+  plain range. `screenimage_typed`, `screenimage_ir` (its settings line: "printer, screen image"),
+  `screenimage_errors` (8 rejected forms, none "not supported yet"); 19 call-site programs, all equal on the first
+  run. With the programs out, the coverage test failed with "`_SCREENIMAGE` (a built-in no test runs) is used in
+  no program of tests/callsite". **Beyond the task as written**: tier 1 then asked for two upstream programs that
+  compile cleanly now, `console_only/screenimage` and `screenimage/test`; both pass and joined `pass.list` (153).
 
 ## 6. Upstream, lists, closing runs and documents
 
-- [ ] 6.1 Upstream (design D7) and the lists: run the upstream programs that name the family; those that pass
+- [x] 6.1 Upstream (design D7) and the lists: run the upstream programs that name the family; those that pass
   join `tests\upstream\pass.list`, one that fails for a missing data file only goes on
   `tests\known_clean_not_passing.list` with the reason; regenerate the shrink-only lists; run the demand report.
   Verify: tier 1 passes; `qb64rust --report unsupported` on the corpus holds nothing back and on upstream names
   no built-in of this change.
-- [ ] 6.2 The closing runs, each once, with `--jobs 8 --build-cache` and without `--pass-cache`: tier 1 and the
+  Found: 24 upstream programs name a built-in of the change. Seven are on a list, all put there by groups 2 and
+  5 when tier 1 asked: six on `pass.list` (`colors/test`, `console_only/image`, `image/svg_test`,
+  `console_only/screenimage`, `screenimage/test`, and `glut/mousecursor` from before) and `image/test` on
+  `tests\known_clean_not_passing.list`. The other 17 wait on something outside the change: `MKL$` (six
+  `paint/tile_*`), `_MEM` (five), and one each on `_CONTINUE`, `_ERRORMESSAGE$`, a `TYPE` in a SUB, `SUB _GL`,
+  `_PI` and `CHR$` in a `CONST` (`tests\upstream\README.md`). `QB64RUST_UPDATE_LISTS=1` changed none of the
+  lists. The demand report holds nothing back in the corpus (`s77_exeicon` and `g12_game` have an icon only the
+  runner puts beside them); on upstream it names the colour functions only "in a `CONST`", which the proposal
+  leaves out, and no other built-in of the change.
+- [x] 6.2 The closing runs, each once, with `--jobs 8 --build-cache` and without `--pass-cache`: tier 1 and the
   tests that build (`--ignored`), the runner's own tests, the call-site check, the slice list with and without
   folding (`QB64RUST_NO_FOLD=1`), the upstream and differential pass lists, the two full suites. Verify: every
   run passes, or a failure is fixed and only what the fix can affect is rerun, with a note of which runs were not
   repeated and why that is safe; `STATUS.md` has the numbers.
-- [ ] 6.3 The documents: `STATUS.md` (step 6 done, `_MEM` next), `ROADMAP.md`, `crates\README.md`,
+  Found, 2026-10-14: tier 1 (305 tests), the tests that build (19), the runner's 68 tests and `tools\testtime`'s
+  38, the call-site check (1438 of 1438), the slice list (398 of 398, 5 min 55 s; without folding 398 of 398,
+  4 min 40 s), the upstream pass list (153 of 153), the differential pass list (59 of 59), the full corpus (423:
+  417 pass, the 5 known failures, `218_fre` with only marked errors as before) and the full upstream suite (404:
+  153 pass, 250 rejected or marked, 1 known failure; none wrong at run time). **One failure, not of the change**:
+  `screen_state_prompt_that_never_comes` failed in the run of the tests that build, which had been started beside
+  tier 1 and the runner's tests; its state was still `SCREEN 0` when its 500 ms limit ran out. Run alone, it
+  passed; nothing was edited. Every later run went alone. Nothing was edited after the runs but documents and
+  this file, which no run reads.
+- [x] 6.3 The documents: `STATUS.md` (step 6 done, `_MEM` next), `ROADMAP.md`, `crates\README.md`,
   `tests\corpus\README.md`, `tools\screen\README.md`, `study\00` §5, `SOMEDAY.md`, `DIVERGENCES-QB45.md` where
   needed, `CLAUDE.md`'s layout table, `design.md` "As built", and a `DECISIONS.md` row for any choice made while
   building. Verify: `check_repo.py --untracked` is clean; `openspec validate m3-images-fonts-mouse --strict`
   passes.
-- [ ] 6.4 The record of test runs: `python tools\testtime\test_time.py`. Verify: its three files are named among
+  Found: `STATUS.md`, `ROADMAP.md`, `crates\README.md`, `tests\corpus\README.md` (a section for this full run),
+  `tests\corpus\screen\SOURCE.md` (`i04`), `tests\upstream\README.md` (153 of 279), `study\00` §5 (`x81`),
+  `design.md` ("As built" of group 5) and a `DECISIONS.md` row: the three forms that needed more than a row were
+  built, not marked as D1's default said, for the user to confirm. `tools\screen\README.md`, `SOMEDAY.md`,
+  `DIVERGENCES-QB45.md` and `CLAUDE.md`'s layout table needed nothing for groups 5 and 6 (the `v31` row is there
+  since group 1).
+- [x] 6.4 The record of test runs: `python tools\testtime\test_time.py`. Verify: its three files are named among
   those to stage, with a commit message for the change.
+  Found: 213 sessions and 4006 runs on record; `REPORT.md`, `runs.csv` and `sessions.csv` changed and are named
+  with the files to stage; `check_repo.py --untracked` is clean.
 
 ## Workflow follow-up
 
