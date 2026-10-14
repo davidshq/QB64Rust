@@ -20,19 +20,21 @@ demand: `_ACOS`, `_ASIN`, `_SINH`, `_COSH`, `_TANH`, `_CEIL`, `_COT`, `_CSC`, `_
 (`language/screen-output`): `INKEY$`, `CSRLIN`, `POS`, `POINT`, `SCREEN`, `TAB`, `SPC`, the colour functions
 `_RGB32` and `_RGBA32`, `DATE$` and `TIME$`, and the functions of conventional memory
 (`language/conventional-memory`): `PEEK`, `VARPTR`, `VARSEG`, and the sound function `PLAY`
-(`language/sound`). Any other built-in function SHALL be
+(`language/sound`), and the choice, the least and greatest, and the shifts: `_IIF`, `_MIN`, `_MAX`, `_CLAMP`,
+`_SHL`, `_SHR`, `_ROL`, `_ROR`. Any other built-in function SHALL be
 reported "not supported yet", as SHALL an argument of
 type `_MEM`. A supported function that needs an argument, named without one, SHALL be a compile error, as in the
 old compiler. An argument of any other numeric type SHALL be
 converted to its slot as an assignment would, except where the old compiler special-cases the argument's type
-(`LEN`, `STR$`, `HEX$`, `OCT$`, `_BIN$`, `ABS`, `SGN`, `VAL` with a type, as measured). `VAL(s$, t)` with an
+(`LEN`, `STR$`, `HEX$`, `OCT$`, `_BIN$`, `ABS`, `SGN`, `VAL` with a type, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_ROL`,
+`_ROR`, as measured). `VAL(s$, t)` with an
 unsigned integer type `t` SHALL parse as libqb's unsigned `VAL` does (not narrowed to `t`, a minus sign dropped:
 `VAL("-1", _UNSIGNED LONG)` is 1), and with a `_BIT` type SHALL be a compile error, as in the old compiler. A
 fixed-length string argument SHALL be a string.
 
 #### Scenario: Unsupported built-in
-- **WHEN** a program uses `_IIF(x > 0, 1, 2)`
-- **THEN** the compiler reports `_IIF` "not supported yet" and no other error for that expression
+- **WHEN** a program uses `k = _KEYHIT`
+- **THEN** the compiler reports `_KEYHIT` "not supported yet" and no other error for that expression
 
 #### Scenario: Supported built-in compiles
 - **WHEN** `PRINT LEFT$("hello", 2); LEN("abc")` is compiled and run
@@ -209,3 +211,89 @@ compiler allows.
 #### Scenario: _WINDOWHANDLE bare and with an argument
 - **WHEN** a program has `PRINT _WINDOWHANDLE <> 0` and `PRINT _WINDOWHANDLE(1) <> 0`
 - **THEN** both compile, as with the old compiler
+
+### Requirement: _IIF evaluates one part
+`_IIF(condition, truePart, falsePart)` SHALL evaluate the condition and then only the part it chooses. The
+condition SHALL be a number, taken as an integer the way a number is rounded (so 0.5 and 0.4 are false). The two
+parts SHALL be both strings or both numbers; two strings MAY be of different kinds, and the value is the one
+chosen, with its length.
+
+#### Scenario: Only the part chosen runs
+- **WHEN** `PRINT _IIF(1, a, b)` runs, `a` and `b` FUNCTIONs that each print their name and return a number
+- **THEN** only `a` prints its name
+
+#### Scenario: A fraction as the condition
+- **WHEN** `PRINT _IIF(0.5, "t", "f"); _IIF(0.6, "t", "f"); _IIF(4294967296, "t", "f")` runs
+- **THEN** it prints `ftt`
+
+#### Scenario: Strings of different kinds
+- **WHEN** `DIM x AS STRING * 5: x = "ab": PRINT LEN(_IIF(0, x, "abc")); LEN(_IIF(1, x, "abc"))` runs
+- **THEN** it prints ` 3  5 `
+
+#### Scenario: Rejected forms
+- **WHEN** a program has `_IIF("a", 1, 2)`, `_IIF(1, "a", 2)`, `_IIF(1, 2)`, `_IIF(1, 2, 3, 4)` or the line `_IIF
+  1, 2, 3`
+- **THEN** each is a compile error that is not "not supported yet"
+
+### Requirement: The result type of _IIF, _MIN, _MAX and _CLAMP
+The numeric result of `_IIF`, `_MIN`, `_MAX` and `_CLAMP` SHALL have the type the old compiler gives it for the
+types of its value arguments: a `_FLOAT` among them gives `_FLOAT`, else a DOUBLE gives DOUBLE, else a SINGLE
+gives SINGLE, whatever integer stands beside it; of two integers the wider, and of two of one width the unsigned
+one. The table `verification\v30_result_types.txt` SHALL hold for every pair of numeric types.
+
+#### Scenario: A SINGLE beside a wide integer
+- **WHEN** `s! = 16777217: q&& = 16777216: PRINT _MAX(s!, q&&)` runs
+- **THEN** it prints what the old compiler's program prints: the result is computed as a SINGLE
+
+#### Scenario: Signed and unsigned of one width
+- **WHEN** `b%% = -1: ub~%% = 255: PRINT _MIN(b%%, ub~%%)` runs
+- **THEN** it prints ` 255 `
+
+#### Scenario: Every pair of types
+- **WHEN** the compiler's result type of `_MIN(a, b)`, `_IIF(1, a, b)` and `_CLAMP(a, b, b)` is compared with the
+  table for all 256 pairs of numeric types
+- **THEN** every one is equal, the two pairs that depend on the order included
+
+### Requirement: _MIN, _MAX and _CLAMP
+`_MIN(a, b)` and `_MAX(a, b)` SHALL give the lesser and the greater, `_CLAMP(value, low, high)` the value held
+between the two bounds, each argument evaluated once, in order, and computed in the result's type as the old
+compiler's program computes it. A string or a `TYPE` value SHALL be a compile error, as SHALL a wrong number of
+arguments.
+
+#### Scenario: Least, greatest and clamped
+- **WHEN** `PRINT _MIN(3, 7); _MAX(3, 7); _CLAMP(15, 0, 10); _CLAMP(-5, 0, 10); _CLAMP(5, 0, 10)` runs
+- **THEN** it prints ` 3  7  10  0  5 `
+
+#### Scenario: Arguments in order
+- **WHEN** `PRINT _CLAMP(a, b, c)` runs, each a FUNCTION that prints its name
+- **THEN** the names are printed once each, in the order `a`, `b`, `c`
+
+#### Scenario: A string
+- **WHEN** a program has `_MIN("a", "b")` or `_CLAMP(1, 2)`
+- **THEN** each is a compile error that is not "not supported yet"
+
+### Requirement: Shifts and rotations
+`_SHL(value, count)` and `_SHR(value, count)` SHALL shift an `_UNSIGNED _INTEGER64`, whatever the argument's
+type, the count taken modulo 64. `_ROL(value, count)` and `_ROR(value, count)` SHALL turn the bits within the
+width of the first argument's type (a literal by its size), the result unsigned of that width; a float or a
+string as either argument SHALL be a compile error, as SHALL a `_BIT` type.
+
+#### Scenario: A shift of a negative value
+- **WHEN** `PRINT _SHR(-1, 1); _SHL(1, 65)` runs
+- **THEN** it prints ` 9223372036854775807  2 `
+
+#### Scenario: A rotation by the type's width
+- **WHEN** `b~%% = 129: i% = 1: PRINT _ROL(b~%%, 1); _ROR(i%, 1); _ROR(70000, 32)` runs
+- **THEN** it prints ` 3  32768  70000 `
+
+#### Scenario: A float argument
+- **WHEN** a program has `_ROL(1.5, 1)`, `_ROL(1, 1.5)` or `_ROR("a", 1)`
+- **THEN** each is a compile error that is not "not supported yet"
+
+### Requirement: Not in a CONST
+`_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`, `_SHR`, `_ROL` and `_ROR` in a `CONST` expression SHALL be a compile
+error, as in the old compiler.
+
+#### Scenario: A CONST with _MIN
+- **WHEN** a program has `CONST c = _MIN(1, 2)`
+- **THEN** it is a compile error that is not "not supported yet"

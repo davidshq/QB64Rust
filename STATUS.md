@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-13 (session 57).
+Updated 2026-10-14 (session 58).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -28,7 +28,7 @@ names only `SOUND`, `PLAY`, `BEEP` and `$EXEICON`. Its third step, OpenSpec chan
 tasks; committed and archived 2026-10-13): sound, `$EXEICON`, and a built-in statement with a template
 after `CALL`. **Civil War Strategy compiles with no diagnostic and builds**, and all 52 screen programs pass by
 the state of their screen. Its fourth step, OpenSpec change `m3-console-files`, is done (all 22 tasks,
-2026-10-13; **not committed or archived yet**): the console programs of the corpus that waited. **No program of
+2026-10-13; committed, archived 2026-10-14): the console programs of the corpus that waited. **No program of
 the corpus that the old compiler accepts is held back any more.** Step 9 of M2, built-in statements, was OpenSpec change
 `m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
 (archived 2026-10-10: `qb64rust --report unsupported`, and tests of the test runner). Step 9a, the screen-state
@@ -91,9 +91,8 @@ line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10)
   `qb64pe.bas` and measured with twelve programs). One question from the session: whether the full corpus is
   still worth a closing run, since all but 37 of its programs are on the slice list, which runs twice at the
   close.
-- **`m3-console-files` is built and not committed** (all 22 tasks, 2026-10-13): the user stages and commits;
-  then `/opsx:archive` (its specs `language/print-using` and `language/record-files` become main specs). For
-  the user to look at, each in the change's `tasks.md`:
+- `m3-console-files` is committed (`4fe8c76`) and archived (2026-10-14, its specs merged; `language/print-using`
+  and `language/record-files` are new main specs). For the user to look at, each in the change's `tasks.md`:
   - **One accepted form stays "not supported yet" that task 1.2 did not name**: a whole array `e()` as the
     string of `FIELD`, `LSET` or `RSET` (the old compiler takes the array's first element with no bounds
     check; `SOMEDAY.md`).
@@ -164,7 +163,7 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
 4. Done: the console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a file (random and
    binary), `FIELD`, `LSET`, `RSET`, `LOCK`/`UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
    `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`, all 22 tasks,
-   2026-10-13; to be committed and archived). What each task found is in the change's `tasks.md`, the measured
+   archived 2026-10-14). What each task found is in the change's `tasks.md`, the measured
    facts in `study\00` §5 (`verification\v30_*`, 177 programs and the table of result types), what stayed
    marked in `SOMEDAY.md` ("Left marked by `m3-console-files`").
 5. **Next**, for the user to choose (M3's order names only the last; `ROADMAP.md` lists the others): the plain

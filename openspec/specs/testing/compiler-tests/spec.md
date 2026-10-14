@@ -108,7 +108,8 @@ Every built-in function and every built-in statement that `sema` compiles SHALL 
 front-end test that pins it in tier 1: a `typed` test for a function (its result type and argument conversions),
 an `ir` test for a statement (its slots, places and items). `cargo test` SHALL fail and name the built-in when
 either is missing. For a built-in that no test runs (a window built-in, `language/console-and-window`; `BEEP`,
-which rings the machine's bell, `language/sound`), the slice program
+which rings the machine's bell, `language/sound`; `CHAIN`, which starts another compiler, and `LPRINT`, which
+prints a page, `language/builtin-statements`), the slice program
 SHALL hold it as code that is compiled and not reached, and the built-in SHALL also have a call-site program for
 each of its forms; the list of such built-ins SHALL be explicit, and `cargo test` SHALL fail when one of them has
 no call-site program.
@@ -128,6 +129,10 @@ no call-site program.
 #### Scenario: Window built-in without a call-site program
 - **WHEN** `sema` starts compiling a window built-in that no program of `tests/callsite/` uses
 - **THEN** `cargo test` fails and names that built-in
+
+#### Scenario: LPRINT without a call-site program
+- **WHEN** the call-site programs of `LPRINT` are taken out of `tests/callsite/`
+- **THEN** `cargo test` fails and names `LPRINT`
 
 ### Requirement: Real programs compile
 `cargo test` SHALL require of every program under `tests/programs` that the front end reports no diagnostic
