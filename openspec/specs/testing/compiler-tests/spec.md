@@ -109,7 +109,9 @@ front-end test that pins it in tier 1: a `typed` test for a function (its result
 an `ir` test for a statement (its slots, places and items). `cargo test` SHALL fail and name the built-in when
 either is missing. For a built-in that no test runs (a window built-in, `language/console-and-window`; `BEEP`,
 which rings the machine's bell, `language/sound`; `CHAIN`, which starts another compiler, and `LPRINT`, which
-prints a page, `language/builtin-statements`), the slice program
+prints a page, `language/builtin-statements`; `_SCREENIMAGE`, `_CLIPBOARDIMAGE`, `_PRINTIMAGE`, `_DEPTHBUFFER`
+and the 3-D form of `_MAPTRIANGLE`, which read the desktop or the clipboard, print a page or draw through
+OpenGL, `language/images`; `_MOUSEMOVE`, which moves the machine's cursor, `language/mouse`), the slice program
 SHALL hold it as code that is compiled and not reached, and the built-in SHALL also have a call-site program for
 each of its forms; the list of such built-ins SHALL be explicit, and `cargo test` SHALL fail when one of them has
 no call-site program.
@@ -133,6 +135,10 @@ no call-site program.
 #### Scenario: LPRINT without a call-site program
 - **WHEN** the call-site programs of `LPRINT` are taken out of `tests/callsite/`
 - **THEN** `cargo test` fails and names `LPRINT`
+
+#### Scenario: A desktop image without a call-site program
+- **WHEN** the call-site programs of `_SCREENIMAGE` are taken out of `tests/callsite/`
+- **THEN** `cargo test` fails and names `_SCREENIMAGE`
 
 ### Requirement: Real programs compile
 `cargo test` SHALL require of every program under `tests/programs` that the front end reports no diagnostic

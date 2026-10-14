@@ -18,7 +18,11 @@ PRINT`, `PSET`, `PRESET`, `LINE`, `CIRCLE`, `PAINT`, `DRAW`, `VIEW`, `WINDOW`, `
 conventional memory `DEF SEG`, `POKE`, `BLOAD`, `BSAVE` (`language/conventional-memory`), and the sound
 statements `SOUND`, `PLAY`, `BEEP` (`language/sound`), `PRINT USING` (`language/print-using`), the statements of
 files read and written by position `GET`, `PUT`, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`
-(`language/record-files`), and `LPRINT` and `CHAIN`. Any other built-in
+(`language/record-files`), `LPRINT` and `CHAIN`, and the image, font and mouse statements
+(`language/images`, `language/fonts`, `language/mouse`): `_SAVEIMAGE`, `_PUTIMAGE`, `_MAPTRIANGLE`,
+`_DEPTHBUFFER`, `_CLEARCOLOR`, `_SETALPHA`, `_BLEND`, `_DONTBLEND`, `_PALETTECOLOR`, `_COPYPALETTE`,
+`_AUTODISPLAY`, `_CLIPBOARDIMAGE`, `_PRINTIMAGE`, `_FONT`, `_FREEFONT`, `_PRINTSTRING`, `_PRINTMODE`,
+`_UPRINTSTRING`, `_MAPUNICODE`, `_MOUSEMOVE`. Any other built-in
 statement SHALL be reported "not supported yet" at its first word, and a supported
 statement used in a form this change leaves out SHALL be reported "not supported yet" at that form.
 
@@ -55,6 +59,10 @@ statement used in a form this change leaves out SHALL be reported "not supported
 - **WHEN** a program has `DEF SEG = 0` and `DEF SEG`
 - **THEN** each compiles to the runtime call the old compiler writes for it, and what the compiler reports for a
   `DEF FN` line does not change
+
+#### Scenario: An image statement
+- **WHEN** `_PUTIMAGE (0, 0), img` is compiled in a program where `img` is a LONG
+- **THEN** there is no diagnostic
 
 ### Requirement: Arguments of a built-in statement
 Each argument of a built-in statement SHALL be checked for its kind (a string where the old compiler needs a

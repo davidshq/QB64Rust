@@ -21,7 +21,14 @@ demand: `_ACOS`, `_ASIN`, `_SINH`, `_COSH`, `_TANH`, `_CEIL`, `_COT`, `_CSC`, `_
 `_RGB32` and `_RGBA32`, `DATE$` and `TIME$`, and the functions of conventional memory
 (`language/conventional-memory`): `PEEK`, `VARPTR`, `VARSEG`, and the sound function `PLAY`
 (`language/sound`), and the choice, the least and greatest, and the shifts: `_IIF`, `_MIN`, `_MAX`, `_CLAMP`,
-`_SHL`, `_SHR`, `_ROL`, `_ROR`. Any other built-in function SHALL be
+`_SHL`, `_SHR`, `_ROL`, `_ROR`, and the image, colour, font and mouse functions (`language/images`,
+`language/fonts`, `language/mouse`): `_LOADIMAGE`, `_COPYIMAGE`, `_WIDTH`, `_HEIGHT`, `_PIXELSIZE`,
+`_CLEARCOLOR`, `_BLEND`, `_PALETTECOLOR`, `_AUTODISPLAY`, `PMAP`, `_SCREENIMAGE`, `_CLIPBOARDIMAGE`, `_RGB`,
+`_RGBA`, `_RED`, `_GREEN`, `_BLUE`, `_ALPHA`, `_RED32`, `_GREEN32`, `_BLUE32`, `_ALPHA32`, `_HSB32`,
+`_HSBA32`, `_HUE32`, `_SATURATION32`, `_BRIGHTNESS32`, `_LOADFONT`, `_FONT`, `_FONTWIDTH`, `_FONTHEIGHT`,
+`_PRINTWIDTH`, `_PRINTMODE`, `_UFONTHEIGHT`, `_UPRINTWIDTH`, `_ULINESPACING`, `_UCHARPOS`, `_MAPUNICODE`,
+`_MOUSEINPUT`, `_MOUSEX`, `_MOUSEY`, `_MOUSEBUTTON`, `_MOUSEWHEEL`, `_MOUSEMOVEMENTX`, `_MOUSEMOVEMENTY`,
+`_MOUSEHIDDEN`, `_MOUSEDISABLED`. Any other built-in function SHALL be
 reported "not supported yet", as SHALL an argument of
 type `_MEM`. A supported function that needs an argument, named without one, SHALL be a compile error, as in the
 old compiler. An argument of any other numeric type SHALL be
@@ -100,6 +107,10 @@ fixed-length string argument SHALL be a string.
 #### Scenario: A colour of 32 bits
 - **WHEN** `PRINT HEX$(_RGB32(1, 2, 3)); HEX$(_RGBA32(1, 2, 3, 4)); HEX$(_RGB32(5))` runs
 - **THEN** it prints what the old compiler's program prints, each value an `_UNSIGNED LONG`
+
+#### Scenario: An image function
+- **WHEN** `PRINT _WIDTH(_NEWIMAGE(64, 48, 32)); _RED32(&HFF102030)` runs
+- **THEN** it prints ` 64  16 `, as with the old compiler
 
 ### Requirement: Names and arity
 A built-in function SHALL be recognised by its name without regard to case, written with its required suffix

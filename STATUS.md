@@ -33,8 +33,8 @@ the corpus that the old compiler accepts is held back any more.** Its fifth step
 `m3-scripted-game`, is done (all 14 tasks, 2026-10-14; committed, archived 2026-10-14): **Civil War Strategy's
 screens are compared in a scripted game**, a copy of the game with listed edits played for two turns from a keys
 file, 23 states of its screen equal to the old compiler's; the new compiler's build passed on its first run. Its
-sixth step, OpenSpec change `m3-images-fonts-mouse`, is done (all 17 tasks, 2026-10-14; not yet committed in
-full nor archived): **the image, colour, font and mouse built-ins**, 12 screen programs compared by their state,
+sixth step, OpenSpec change `m3-images-fonts-mouse`, is done (all 17 tasks, 2026-10-14; committed, archived
+2026-10-14): **the image, colour, font and mouse built-ins**, 12 screen programs compared by their state,
 the mouse fed by mouse steps of a keys file.
 Step 9 of M2, built-in statements, was OpenSpec change `m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
 (archived 2026-10-10: `qb64rust --report unsupported`, and tests of the test runner). Step 9a, the screen-state
@@ -134,9 +134,9 @@ line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10)
   - **The script reaches** recruiting, moves, a ship, a railroad move, three reports, Fortify, the Utility menu,
     a save, two computer turns with a battle each, and Quit; **not** a naval action, a retreat, the end of a
     game, loading, the alternative map, two players (task 4.1; `SOMEDAY.md`).
-- `m3-images-fonts-mouse` is done (all 17 tasks, 2026-10-14); groups 1 to 4 are committed, groups 5 and 6 are in
-  the working tree, and the change is archived once they are committed. For the user to look at, each in the
-  change's `tasks.md`:
+- `m3-images-fonts-mouse` is committed (`a536374`) and archived (2026-10-14, its specs merged;
+  `language/images`, `language/fonts` and `language/mouse` are new main specs). For the user to look at, each in
+  the change's `tasks.md`:
   - **Three forms needed more than a row**, against "every name a plain row" of task 1.3: a function's slot left
     empty (`_LOADIMAGE(f$, , r$)`, task 2.3, `filled_slots`), `_UCHARPOS`'s array as a function argument (a new
     node `ExprKind::Block`, task 3.1), and `_SCREENIMAGE`'s four slots given all or none (task 5.1,
@@ -215,7 +215,7 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
    measured facts in `study\00` §5 ("Civil War Strategy played from a keys file"), the game's numbers in
    `tests\programs\README.md`.
 6. Done: the image built-ins that run, fonts, the mouse, and the image built-ins no test runs
-   (`m3-images-fonts-mouse`, all 17 tasks, 2026-10-14; to be archived once committed). What each task found is
+   (`m3-images-fonts-mouse`, all 17 tasks, archived 2026-10-14). What each task found is
    in the change's `tasks.md`, the call of every form in its `design.md` D1, the measured facts in `study\00` §5
    (`verification\v31_*`, 113 programs), what stayed marked in `SOMEDAY.md` ("Left marked by
    `m3-images-fonts-mouse`").
