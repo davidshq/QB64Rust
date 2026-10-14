@@ -211,6 +211,37 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_SHR", Rule::Plain),
     ("_ROL", Rule::Rotate),
     ("_ROR", Rule::Rotate),
+    // The colour functions (design D1 of `m3-images-fonts-mouse`; `verification\v31_a_colours`, `v31_x01`,
+    // `x27`–`x36`): each the plain call of its row. `_RGB` and `_RGBA` are `_UNSIGNED LONG` with an optional
+    // handle; `_RED` to `_ALPHA` LONG with an optional handle; the `…32` parts LONG; `_HSB32` and `_HSBA32`
+    // `_UNSIGNED LONG` of DOUBLE slots; `_HUE32`, `_SATURATION32`, `_BRIGHTNESS32` DOUBLE.
+    ("_RGB", Rule::Plain),
+    ("_RGBA", Rule::Plain),
+    ("_RED", Rule::Plain),
+    ("_GREEN", Rule::Plain),
+    ("_BLUE", Rule::Plain),
+    ("_ALPHA", Rule::Plain),
+    ("_RED32", Rule::Plain),
+    ("_GREEN32", Rule::Plain),
+    ("_BLUE32", Rule::Plain),
+    ("_ALPHA32", Rule::Plain),
+    ("_HSB32", Rule::Plain),
+    ("_HSBA32", Rule::Plain),
+    ("_HUE32", Rule::Plain),
+    ("_SATURATION32", Rule::Plain),
+    ("_BRIGHTNESS32", Rule::Plain),
+    // The image functions (same design, `v31_b_images`, `v31_c_save_load`): LONG each, but `PMAP`, a SINGLE.
+    // `_LOADIMAGE` needs the image codec ([`crate::RuntimePart::ImageCodec`]).
+    ("_LOADIMAGE", Rule::Plain),
+    ("_COPYIMAGE", Rule::Plain),
+    ("_WIDTH", Rule::Plain),
+    ("_HEIGHT", Rule::Plain),
+    ("_PIXELSIZE", Rule::Plain),
+    ("_CLEARCOLOR", Rule::Plain),
+    ("_BLEND", Rule::Plain),
+    ("_PALETTECOLOR", Rule::Plain),
+    ("_AUTODISPLAY", Rule::Plain),
+    ("PMAP", Rule::Plain),
 ];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
@@ -278,6 +309,7 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_MOUSEHIDE", StmtRule::Plain),
     ("_MOUSECURSOR", StmtRule::Plain),
     ("_WINDOWSIZELIMIT", StmtRule::Plain),
+    // Run by the screen programs of `m3-images-fonts-mouse` since then.
     ("_FREEIMAGE", StmtRule::Plain),
     // The screen statements (design D2 of `m3-window-output`: 455 forms read from the old compiler's C++; accepted
     // and rejected forms, `verification\v27_*`). Each is the plain call of its row and template, in every form.
@@ -331,6 +363,19 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("SOUND", StmtRule::Plain),
     ("PLAY", StmtRule::Plain),
     ("BEEP", StmtRule::Plain),
+    // The image statements (design D1 of `m3-images-fonts-mouse`; `verification\v31_x01`, `x02`–`x109`): each the
+    // plain call of its row and template. `_SAVEIMAGE` needs the image codec; `_MAPTRIANGLE`'s 3-D form (a z on
+    // each destination point) is compiled and run by no test (design D3).
+    ("_SAVEIMAGE", StmtRule::Plain),
+    ("_PUTIMAGE", StmtRule::Plain),
+    ("_MAPTRIANGLE", StmtRule::Plain),
+    ("_CLEARCOLOR", StmtRule::Plain),
+    ("_SETALPHA", StmtRule::Plain),
+    ("_BLEND", StmtRule::Plain),
+    ("_DONTBLEND", StmtRule::Plain),
+    ("_PALETTECOLOR", StmtRule::Plain),
+    ("_COPYPALETTE", StmtRule::Plain),
+    ("_AUTODISPLAY", StmtRule::Plain),
 ];
 
 /// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
@@ -347,7 +392,6 @@ pub const NEVER_RUN: &[&str] = &[
     "_MOUSEHIDE",
     "_MOUSECURSOR",
     "_WINDOWSIZELIMIT",
-    "_FREEIMAGE",
     "_SCREENEXISTS",
     "_TITLE$",
     "_DESKTOPWIDTH",
@@ -356,7 +400,6 @@ pub const NEVER_RUN: &[&str] = &[
     "_SCREENY",
     "_WINDOWHANDLE",
     "_WINDOWHASFOCUS",
-    "_NEWIMAGE",
     "_FULLSCREEN",
     // `BEEP` rings the system's bell: it is not libqb's audio, so no volume silences it (design D6 of `m3-sound`).
     "BEEP",

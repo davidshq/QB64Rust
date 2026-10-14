@@ -92,10 +92,14 @@ fn slash(p: &Path) -> String {
 /// The make flags a program's settings ask for: the old compiler's, in its order (`qb64pe.bas` 13706–13721;
 /// compared with its builds of four programs, design D3 of `m2-console-screenhide`). A program without a window
 /// links the libqb without one; a console links with `-mconsole`; the icon part is a libqb variant of its own, as
-/// is the audio part; `DEP_ICON_RC=y` links the icon `$EXEICON` names ([`write_icon`]).
+/// is the audio part, and so are the image codec, FreeType and the screen image (compared with six builds, design
+/// D2 of `m3-images-fonts-mouse`); `DEP_ICON_RC=y` links the icon `$EXEICON` names ([`write_icon`]).
 /// The clone's `Makefile` names each variant's object by the flags, so the variants stand side by side.
 pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     let mut flags = Vec::new();
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::ImageCodec) {
+        flags.push("DEP_IMAGE_CODEC=y");
+    }
     if !s.window {
         flags.push("DEP_CONSOLE_ONLY=y");
     }
@@ -104,6 +108,12 @@ pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     }
     if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Icon) {
         flags.push("DEP_ICON=y");
+    }
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::ScreenImage) {
+        flags.push("DEP_SCREENIMAGE=y");
+    }
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Font) {
+        flags.push("DEP_FONT=y");
     }
     if s.console {
         flags.push("DEP_CONSOLE=y");
@@ -560,5 +570,46 @@ mod tests {
             ["DEP_ICON=y", "DEP_CONSOLE=y", "DEP_AUDIO_MINIAUDIO=y"]
         );
         assert!(make_flags(&program_settings(false, true, false)).is_empty());
+    }
+
+    /// The image codec, FreeType and the screen image, in the old compiler's order (`qb64pe.bas` 13707–13713),
+    /// as the six builds of task 1.2 of `m3-images-fonts-mouse` gave them: `_LOADIMAGE`, `_LOADFONT`,
+    /// `_SCREENIMAGE` (which names only its own part: the clone's `Makefile` adds the codec), and all three with
+    /// `$CONSOLE:ONLY`.
+    #[test]
+    fn make_flags_of_images_and_fonts() {
+        use qb64rust_ir::RuntimePart::{Font, ImageCodec, ScreenImage};
+        let with = |console: bool, window: bool, parts: &[qb64rust_ir::RuntimePart]| {
+            let mut s = program_settings(console, window, false);
+            s.runtime_parts.extend(parts.iter().copied());
+            make_flags(&s)
+        };
+        assert_eq!(with(false, true, &[ImageCodec]), ["DEP_IMAGE_CODEC=y"]);
+        assert_eq!(with(false, true, &[Font]), ["DEP_FONT=y"]);
+        assert_eq!(with(false, true, &[ScreenImage]), ["DEP_SCREENIMAGE=y"]);
+        assert_eq!(
+            with(true, false, &[Font, ScreenImage, ImageCodec]),
+            [
+                "DEP_IMAGE_CODEC=y",
+                "DEP_CONSOLE_ONLY=y",
+                "DEP_SCREENIMAGE=y",
+                "DEP_FONT=y",
+                "DEP_CONSOLE=y"
+            ]
+        );
+        // Beside the printer and the icon.
+        let mut s = program_settings(true, true, true);
+        s.runtime_parts
+            .extend([ImageCodec, Font, qb64rust_ir::RuntimePart::Printer]);
+        assert_eq!(
+            make_flags(&s),
+            [
+                "DEP_IMAGE_CODEC=y",
+                "DEP_PRINTER=y",
+                "DEP_ICON=y",
+                "DEP_FONT=y",
+                "DEP_CONSOLE=y"
+            ]
+        );
     }
 }

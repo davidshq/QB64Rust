@@ -1,0 +1,25 @@
+' The colour functions in 32 bits (m3-images-fonts-mouse, task 2.4; verification\v31_a_colours): _RGB and _RGBA
+' of the screen and of an image, _RED to _ALPHA with and without a handle, the 32-bit parts, _HSB32 and _HSBA32,
+' _HUE32, _SATURATION32 and _BRIGHTNESS32; a box in each colour made and each value printed.
+SCREEN _NEWIMAGE(240, 220, 32)
+t& = _NEWIMAGE(4, 4, 32)
+p& = _NEWIMAGE(4, 4, 256)
+c~& = _RGB(255, 128, 0)
+LINE (0, 0)-(15, 15), c~&, BF
+LINE (20, 0)-(35, 15), _RGBA(0, 128, 255, 128), BF
+LINE (40, 0)-(55, 15), _RGB(10, 200, 30, t&), BF
+LINE (60, 0)-(75, 15), _HSB32(120, 100, 100), BF
+LINE (80, 0)-(95, 15), _HSBA32(300, 50, 75, 50), BF
+LINE (100, 0)-(115, 15), _RGB32(1, 2, 3), BF
+LOCATE 3, 1
+PRINT HEX$(c~&); " "; HEX$(_RGBA(1, 2, 3, 4, t&)); " "; HEX$(_RGB(300, -5, 128))
+PRINT _RGB(255, 0, 0, p&); _RGBA(0, 0, 170, 9, p&)
+PRINT _RED(&HFF102030); _GREEN(&HFF102030); _BLUE(&HFF102030); _ALPHA(&H80102030)
+PRINT _RED(&HFF102030, t&); _GREEN(4, p&); _ALPHA(&H7F000000, t&)
+PRINT _RED32(&HFF102030); _GREEN32(&HFF102030); _BLUE32(&HFF102030); _ALPHA32(&H80102030)
+PRINT HEX$(_HSB32(0, 100, 100)); " "; HEX$(_HSB32(240, 50, 50))
+PRINT HEX$(_HSBA32(60, 100, 100, 25)); " "; HEX$(_HSB32(400, 120, -10))
+PRINT _HUE32(&HFF00FF00); _HUE32(&HFF0000FF)
+PRINT _SATURATION32(&HFF804040); _BRIGHTNESS32(&HFF804040)
+PRINT _HUE32(&HFF808080); _SATURATION32(&HFF808080); _BRIGHTNESS32(0)
+SYSTEM

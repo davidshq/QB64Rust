@@ -325,7 +325,8 @@ What the compiler supports so far:
   `WINDOW_BUILTINS`): the statements `_SCREENHIDE`, `_SCREENSHOW`, `_SCREENICON`, `_TITLE`, `_ICON`,
   `_MOUSESHOW`, `_MOUSEHIDE`, `_MOUSECURSOR`, `_WINDOWSIZELIMIT`, `_FREEIMAGE` and the functions
   `_SCREENEXISTS`, `_SCREENICON`, `_TITLE$`, `_DESKTOPWIDTH`, `_DESKTOPHEIGHT`, `_SCREENX`, `_SCREENY`,
-  `_WINDOWHASFOCUS`, `_NEWIMAGE`, `_WINDOWHANDLE` (an `_UNSIGNED _OFFSET`, bare or with one argument), each a
+  `_WINDOWHASFOCUS`, `_NEWIMAGE`, `_WINDOWHANDLE` (an `_UNSIGNED _OFFSET`, bare or with one argument; `_NEWIMAGE`
+  and `_FREEIMAGE` are run since `m3-images-fonts-mouse`), each a
   row, in every form of its template. What they do shows only in a window, so no test runs them: their slice
   program holds them below its `SYSTEM`, and each has call-site programs (`tests\callsite`), which the coverage
   test requires for the names of `NEVER_RUN` (the list's name since `m3-sound`, when `BEEP` joined it). A
@@ -480,6 +481,29 @@ What the compiler supports so far:
   Checked by the console slice programs `s70` to `s73`, the screen programs `d17`, `d18`, `g06` to `g11` and
   `m32` (five of them cut from the game with its pictures beside them, `tests\corpus\README.md`) and 147
   call-site programs.
+- **Colours and images** (`m3-images-fonts-mouse` group 2; design D1 of the change holds the call of every form,
+  the facts in `study\00` §5, `verification\v31_*`): each a plain row of `SUPPORTED` or `STATEMENTS`, in every
+  form of its template the old compiler accepts.
+  - **The colour functions** `_RGB`, `_RGBA` (an `_UNSIGNED LONG`, with an optional handle), `_RED`, `_GREEN`,
+    `_BLUE`, `_ALPHA` (a LONG of a colour or an index, with an optional handle), `_RED32`, `_GREEN32`,
+    `_BLUE32`, `_ALPHA32`, `_HSB32`, `_HSBA32` (DOUBLE slots), `_HUE32`, `_SATURATION32`, `_BRIGHTNESS32` (a
+    DOUBLE).
+  - **The image functions** `_LOADIMAGE`, `_COPYIMAGE`, `_WIDTH`, `_HEIGHT`, `_PIXELSIZE`, `_CLEARCOLOR`,
+    `_BLEND`, `_PALETTECOLOR`, `_AUTODISPLAY` (each a LONG) and `PMAP` (a SINGLE), and **the statements**
+    `_SAVEIMAGE`, `_PUTIMAGE`, `_MAPTRIANGLE`, `_CLEARCOLOR`, `_SETALPHA`, `_BLEND`, `_DONTBLEND`,
+    `_PALETTECOLOR`, `_COPYPALETTE` and `_AUTODISPLAY`, also after `CALL`. `_NEWIMAGE` and `_FREEIMAGE` are run
+    since then (off `NEVER_RUN`). `_MAPTRIANGLE`'s 3-D form (a z on each destination point, drawn into a
+    hardware image) is compiled and compared by its call-site programs, but run by no test.
+  - **A function's slot may be left empty** where its template has it alone in brackets after a comma
+    (`_LOADIMAGE(f$, , r$)`, template `?[,[?][,?]]`; `check\builtins.rs`, `filled_slots`) and an argument
+    follows; any other gap stays "not supported yet" (`INSTR(, a$, b$)` is not measured).
+  - **Runtime parts**: `_LOADIMAGE` and `_SAVEIMAGE` need `RuntimePart::ImageCodec` (`DEP_IMAGE_CODEC=y`,
+    the first flag); `RuntimePart::Font` (`DEP_FONT=y`) and `RuntimePart::ScreenImage`
+    (`DEP_SCREENIMAGE=y`) are in place for the font functions and `_SCREENIMAGE`, in the old compiler's order
+    (`driver\src\build.rs`, `make_flags`).
+  Checked by the screen programs `i01` to `i08` (the images `i02` loads are written by
+  `tools\screen\make_images.py`; `i03` saves and loads six formats), the front-end tests `images_typed`,
+  `images_ir` and `images_errors`, and 169 call-site programs.
 - **The constants of QB64pe's auto-included file** (`m2-console-screenhide` group 5; `sema\src\check\auto.rs`):
   `_TRUE`, `_FALSE`, `_ONE_MB`, the limits of the numeric types and the others of `beforefirstline.bi` are
   known in every program. The file is not included: `tools\builtins\builtins.json` carries each constant's

@@ -95,3 +95,21 @@ comments, and before each of the game's 14 waits for a key a line that announces
 `CWS.CFG` with no sound. `g12_game.keys` is written by hand: two turns as the Union, with 22 `state` steps;
 `g12_game.screen` holds those 22 states and the one at exit (2.5 MB). What it reaches and what it does not:
 `tasks.md` of the change, task 4.1.
+
+## Colours and images
+
+Written by the OpenSpec change `m3-images-fonts-mouse` (group 2, 2026-10-14) and recorded the same way: one
+program per family of the colour and image built-ins. The pictures `i02_load_images` loads are in its
+`.files\` folder, written by `tools\screen\make_images.py` (no image from elsewhere); `i03_save_load` writes its
+own files and deletes them. Each state was looked at as a picture before it was trusted.
+
+| Program | Covers |
+|---|---|
+| `i01_new_copy_put` | `_NEWIMAGE`, `_COPYIMAGE`, `_FREEIMAGE`, `_WIDTH`, `_HEIGHT`, `_PIXELSIZE`; `_PUTIMAGE` plainly, scaled, mirrored each way, a part, after `STEP`, a palette image onto 32 bits, `_SMOOTH`, into another image |
+| `i02_load_images` | `_LOADIMAGE` of an 8-bit and a 24-bit BMP and a PNG with alpha, in 32 bits, in 256 colours, in the screen's mode, with a gap before its third argument, and of a file that is not there |
+| `i03_save_load` | `_SAVEIMAGE` in BMP, PNG, JPEG, TGA, QOI and HDR, of the destination, with a format given and with none, and `_LOADIMAGE` of each again; a palette image saved and loaded in 256 colours |
+| `i04_maptriangle` | `_MAPTRIANGLE` in its 2-D form: a square as two triangles, `_SEAMLESS`, `_CLOCKWISE` and `_ANTICLOCKWISE` on triangles of each turn, the three smoothings, the source left out, into an image, in 256 colours |
+| `i05_alpha_blend` | `_CLEARCOLOR` (statement and function, `_NONE`, of the destination, in 256 colours), `_SETALPHA` of every pixel, of a colour and of a range, `_BLEND` and `_DONTBLEND` (statements and function), `_ALPHA32` |
+| `i06_palette_colours` | `SCREEN 13`: `_PALETTECOLOR` set and read, `_COPYPALETTE` each way with arguments left out, `_RGB` and `_RGBA` as the nearest index, `_RED` to `_ALPHA` of an index |
+| `i07_colours_32` | 32 bits: `_RGB`, `_RGBA`, `_RED` to `_ALPHA` with and without a handle, the `…32` parts, `_HSB32`, `_HSBA32`, `_HUE32`, `_SATURATION32`, `_BRIGHTNESS32` |
+| `i08_pmap_autodisplay` | `PMAP` with `WINDOW` and `VIEW`, its four functions; `_AUTODISPLAY` before and after `_DISPLAY` and after the statement |

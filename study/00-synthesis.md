@@ -2196,6 +2196,14 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     name with no extension gets `.png`; `_SAVEIMAGE "x.dat", h, "bmp"` writes `x.dat.bmp`. A palette image
     saved and loaded with mode 256 keeps its indices. **`_SAVEIMAGE` with a handle that was never made writes
     a file and raises no error.**
+  - **Found by the screen programs of group 2** (`tests\corpus\screen\i01`–`i08`, 2026-10-14). In 32 bits
+    `_CLEARCOLOR c, h` makes the pixels of colour `c` transparent (alpha 0) and keeps no colour:
+    `_CLEARCOLOR(h)` is 0 after it and after `_CLEARCOLOR _NONE, h`, and `_ALPHA32` of such a pixel of a copy is
+    0 (`i05_alpha_blend`); in 256 colours it is the index (2). `_DONTBLEND` makes `_BLEND` 0, `_BLEND` -1 again.
+    `_LOADIMAGE(f$, , "")` loads in the screen's mode (`i02`). **`PRINT` into a 32-bit image of 5 by 5 pixels,
+    whose 16-pixel font does not fit, and then `_FREEIMAGE` of it ends the program with exit code 0xC0000374,
+    a heap corruption** (found while `i01_new_copy_put` was written; libqb's, so the program uses an image of 40
+    by 20).
   - **Fonts (`v31_d`).** In `SCREEN 12` the font is 16, 8 by 16 pixels; `_FONT 8` is 8 by 8, `_FONT 14` 8 by
     14; `_PRINTWIDTH("abc")` is 24. `_LOADFONT("cour.ttf", 16)` and `_LOADFONT("arial.ttf", 20)` load
     Windows' fonts by their bare names (handles above 31); a font that is not there gives 0, no error. A

@@ -103,25 +103,14 @@ impl Checker<'_> {
             | Rule::Rotate => {}
         }
         self.runtime_part(s.id, name, span)?;
-        let nodes = self.present_args(list)?;
         let slots = slots(s);
-        let required = slots.iter().filter(|(_, optional)| !optional).count();
-        if nodes.len() < required || nodes.len() > slots.len() {
-            return Err(self.error(span, arity(name, required, slots.len())));
-        }
-        // Optional slots are filled left to right by the arguments beyond the required ones.
-        let mut extra = nodes.len() - required;
-        let mut nodes = nodes.into_iter();
+        let filled = self.filled_slots(s, &slots, list, span)?;
         let mut args = Vec::with_capacity(slots.len());
-        for (k, &(slot, optional)) in slots.iter().enumerate() {
-            if optional {
-                if extra == 0 {
-                    args.push(None);
-                    continue;
-                }
-                extra -= 1;
-            }
-            let node = nodes.next().expect("one argument per filled slot");
+        for (k, (&(slot, _), node)) in slots.iter().zip(filled).enumerate() {
+            let Some(node) = node else {
+                args.push(None);
+                continue;
+            };
             let e = self.expr(node)?;
             let which = if slots.len() == 1 {
                 format!("`{name}`")
@@ -165,6 +154,60 @@ impl Checker<'_> {
             qb,
             kind: ExprKind::Call { builtin: s.id, args },
         })
+    }
+
+    /// The argument of each slot of a call, `None` for a slot left out. Without a gap in the list, the optional
+    /// slots are filled left to right by the arguments beyond the required ones. A gap (`_LOADIMAGE(f$, , r$)`)
+    /// leaves out the slot in its place, where the template has that slot alone in brackets (`?[,[?][,?]]`) and an
+    /// argument follows (measured, design D1 of `m3-images-fonts-mouse`: `func__loadimage(f,N,r,0|2)`); any other
+    /// gap is not supported yet.
+    fn filled_slots<'t>(
+        &mut self,
+        s: Supported,
+        slots: &[(Slot, bool)],
+        list: Option<ast::ArgList<'t>>,
+        span: Span,
+    ) -> R<Vec<Option<ast::Expr<'t>>>> {
+        let required = slots.iter().filter(|(_, optional)| !optional).count();
+        let (positions, list_span) = match list {
+            Some(l) if l.type_arg().is_none() && l.args().iter().any(Option::is_none) => (l.args(), l.node().span()),
+            _ => {
+                let nodes = self.present_args(list)?;
+                if nodes.len() < required || nodes.len() > slots.len() {
+                    return Err(self.error(span, arity(s.name, required, slots.len())));
+                }
+                let mut extra = nodes.len() - required;
+                let mut nodes = nodes.into_iter();
+                return Ok(slots
+                    .iter()
+                    .map(|&(_, optional)| {
+                        if optional {
+                            if extra == 0 {
+                                return None;
+                            }
+                            extra -= 1;
+                        }
+                        Some(nodes.next().expect("one argument per filled slot"))
+                    })
+                    .collect());
+            }
+        };
+        if positions.len() > slots.len() {
+            return Err(self.error(span, arity(s.name, required, slots.len())));
+        }
+        let last = positions.iter().rposition(Option::is_some);
+        for (k, p) in positions.iter().enumerate() {
+            let inner = last.is_some_and(|l| k < l);
+            if p.is_none() && !(inner && slots[k].1 && may_be_left_out(s.id.get(), k)) {
+                return Err(self.unsupported(list_span, "omitted arguments"));
+            }
+        }
+        if slots[positions.len()..].iter().any(|&(_, optional)| !optional) {
+            return Err(self.error(span, arity(s.name, required, slots.len())));
+        }
+        let mut out = positions;
+        out.resize(slots.len(), None);
+        Ok(out)
     }
 
     /// The type `_ROL` or `_ROR` turns its first argument in (design D7 of `m3-console-files`). Measured
@@ -899,6 +942,24 @@ fn calls_procedure(e: &Expr) -> bool {
         }
         ExprKind::Call { args, .. } => args.iter().flatten().any(calls_procedure),
     }
+}
+
+/// Whether slot `k` of a function stands alone in brackets after a comma in its template (`,[?]`), so that an
+/// argument list may leave it empty: the second slot of `?[,[?][,?]]`, not the second of `?[,?]`, nor the first of
+/// `INSTR`'s `[?],?,?` (`INSTR(, a$, b$)` is not measured and stays "not supported yet"). The rule goes by the
+/// template, not by name: a function added later whose template has such a slot (`_MESSAGEBOX`, `_SNDNEW`, …)
+/// accepts the gap at once, so its measurement includes one call with that slot left empty.
+fn may_be_left_out(b: &qb64rust_builtins::Builtin, k: usize) -> bool {
+    let Some(format) = b.specialformat else {
+        return false;
+    };
+    let bytes = format.as_bytes();
+    bytes
+        .iter()
+        .enumerate()
+        .filter(|&(_, &c)| c == b'?')
+        .nth(k)
+        .is_some_and(|(i, _)| i > 1 && bytes[i - 2..i] == *b",[" && bytes.get(i + 1) == Some(&b']'))
 }
 
 /// "`LEFT$` takes 2 arguments", "`INSTR` takes 2 or 3 arguments".

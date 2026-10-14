@@ -53,24 +53,52 @@ finds it, with a parser test.
 
 ## 2. Images and colours
 
-- [ ] 2.1 The three runtime parts (design D2): `RuntimePart::ImageCodec`, `Font`, `ScreenImage`, through `sema`,
+- [x] 2.1 The three runtime parts (design D2): `RuntimePart::ImageCodec`, `Font`, `ScreenImage`, through `sema`,
   the IR and its dump, and `make_flags` in the old compiler's order. Verify: a unit test of `make_flags` holds
   the four builds of task 1.2; an `ir` test shows the parts of a program with `_LOADIMAGE`.
-- [ ] 2.2 The colour functions as rows (`_RGB`, `_RGBA`, `_RED`, `_GREEN`, `_BLUE`, `_ALPHA`, `_RED32`,
+  Found: as designed. The parts follow the three older ones in the enum, so the dumps that name parts did not
+  change; `make_flags_of_images_and_fonts` holds the four builds and the parts beside the printer and the icon;
+  `images_ir` shows "runtime parts: image codec".
+- [x] 2.2 The colour functions as rows (`_RGB`, `_RGBA`, `_RED`, `_GREEN`, `_BLUE`, `_ALPHA`, `_RED32`,
   `_GREEN32`, `_BLUE32`, `_ALPHA32`, `_HSB32`, `_HSBA32`, `_HUE32`, `_SATURATION32`, `_BRIGHTNESS32`), as task 1.1
   found them. Verify: a `typed` test pins each result type and conversion; a `check-fail` test holds their
   rejected forms of `v31_x*`; call-site programs for each form and argument type pass (`--glob`).
-- [ ] 2.3 The image functions and statements as rows (`_LOADIMAGE`, `_COPYIMAGE`, `_SAVEIMAGE`, `_PUTIMAGE`,
+  Found: each a `Rule::Plain` row, nothing more (`images_typed`, `images_errors`). Of the call-site programs, the
+  first run differed for forms the check documents it does not compare (`tools\callsite\README.md`, "What it does
+  not compare"): an integer in a DOUBLE slot (`_HSB32(120, 50, 50)`: the IR writes `(double)`, the old compiler
+  leaves it to C++), a literal the slot's conversion changes (`_RED32(&HFF102030)`), arithmetic on operands of
+  another width or type (`_RGB(…) + 1`, `_HUE32(i) + d`). The programs were written as that README says (DOUBLE
+  variables and float literals, literals that fit, no mixed arithmetic); the mixed forms run in `i07`.
+- [x] 2.3 The image functions and statements as rows (`_LOADIMAGE`, `_COPYIMAGE`, `_SAVEIMAGE`, `_PUTIMAGE`,
   `_MAPTRIANGLE`, `_WIDTH`, `_HEIGHT`, `_PIXELSIZE`, `_CLEARCOLOR`, `_SETALPHA`, `_BLEND`, `_DONTBLEND`,
   `_PALETTECOLOR`, `_COPYPALETTE`, `_AUTODISPLAY`, `PMAP`), `_NEWIMAGE` and `_FREEIMAGE` off `NEVER_RUN`. Verify:
   `typed` and `ir` tests pin the functions and the statements' slots and masks (every form of `_PUTIMAGE`'s
   template); a `check-fail` test holds the rejected forms; call-site programs for each form pass.
-- [ ] 2.4 `tools\screen\make_images.py` and the image files it writes (design D5), and screen programs recorded
+  Found: each a plain row, but **one form needed more than a row**: `_LOADIMAGE(f$, , r$)`, a function's slot
+  left empty, was "not supported yet: omitted arguments" for every function. `check\builtins.rs` now fills a
+  function's slots by position when the list has a gap (`filled_slots`), where the template has the slot alone
+  in brackets after a comma (`,[?]`) and an argument follows; any other gap keeps its mark (`INSTR(, a$, b$)`,
+  template `[?],?,?`, was not measured: `member_access` still holds it, and since the review of group 2 a gap at the
+  end, at the start and in a required slot, and a gap with too many arguments, the arity error). The same rule serves `_LOADFONT`,
+  `_UPRINTWIDTH` and `_UCHARPOS` of group 3. The IR shows slots, not masks; the masks are the emitter's from the
+  slots and are compared by the call-site check: 169 programs for groups 2.2 and 2.3, all equal.
+  `images_errors` holds the 49 rejected forms of these names, none "not supported yet".
+- [x] 2.4 `tools\screen\make_images.py` and the image files it writes (design D5), and screen programs recorded
   with `qb64pe.exe`: images made, copied, loaded from the data files, saved and loaded again, put scaled and
   mirrored, a triangle mapped, a clear colour, alpha and blending in 32 bits, a palette copied and set, the
   colour functions in a palette mode and in 32 bits, `PMAP`, `_AUTODISPLAY` after `_DISPLAY`. Verify: each
   passes with the new compiler and is on `slice.list`; the coverage test of tier 1 passes; `crates\README.md`
   names the built-ins.
+  Found: eight programs `i01`–`i08` (`tests\corpus\screen\SOURCE.md`), each state looked at as a picture
+  before it was trusted; all eight pass with the new compiler on their first run and are on `slice.list`; the
+  slice list with `--pass-cache` passes 394 of 394. Two of libqb's behaviours were found while they were
+  written (`study\00` §5): `_COPYIMAGE` of a 256-colour image to 32 bits is error 5 (as `v31_b` had), and
+  `PRINT` into a 5 by 5 image then `_FREEIMAGE` of it is a heap corruption (exit code 0xC0000374). **Beyond the
+  task as written**: three upstream programs now compile cleanly and pass, so tier 1 asked for them to be
+  listed in this group, not in group 6: `colors/test`, `console_only/image` and `image/svg_test` (it runs from
+  the clone with its `.svg` files, so D7's fallback was not needed) joined `tests\upstream\pass.list` (151);
+  `image/test` went on `tests\known_clean_not_passing.list` (it is built with `-f:GenerateLicenseFile`, as
+  `audio_out/test` is).
 
 ## 3. Fonts
 

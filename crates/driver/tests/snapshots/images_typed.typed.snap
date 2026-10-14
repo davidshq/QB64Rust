@@ -1,0 +1,299 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 11: Assign U:U32
+  Binary Add : U32 (qb I64)
+    Binary Add : U32 (qb I64)
+      Call _RGB : U32
+        Int 1 : I32
+        Int 2 : I32
+        Int 3 : I32
+        (absent)
+      Call _RGB : U32
+        Convert Widen : I32
+          Var I : I16
+        Var L : I32
+        Convert Truncate : I32
+          Var Q : I64
+        Convert Truncate : I32
+          Convert RoundEven : I64
+            Var S : F32
+    Call _RGB : U32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var D : F64
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var F : F80
+      Convert Truncate : I32
+        Var U : U32
+      (absent)
+line 12: Assign U:U32
+  Binary Add : U32 (qb I64)
+    Call _RGBA : U32
+      Int 1 : I32
+      Int 2 : I32
+      Int 3 : I32
+      Int 4 : I32
+      (absent)
+    Call _RGBA : U32
+      Convert Widen : I32
+        Var I : I16
+      Var L : I32
+      Convert Truncate : I32
+        Var Q : I64
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var D : F64
+line 13: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Call _RED : I32
+          Var U : U32
+          (absent)
+        Call _GREEN : I32
+          Convert Truncate : U32
+            Var I : I16
+          Convert Truncate : U32
+            Var L : I32
+      Call _BLUE : I32
+        Convert Truncate : U32
+          Convert RoundEven : I64
+            Var D : F64
+        Convert Truncate : U32
+          Convert RoundEven : I64
+            Var F : F80
+    Call _ALPHA : I32
+      Var U : U32
+      Var U : U32
+line 14: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Call _RED32 : I32
+          Var U : U32
+        Call _GREEN32 : I32
+          Convert Truncate : U32
+            Var I : I16
+      Call _BLUE32 : I32
+        Convert Truncate : U32
+          Convert RoundEven : I64
+            Var S : F32
+    Call _ALPHA32 : I32
+      Convert Truncate : U32
+        Var Q : I64
+line 15: Assign U:U32
+  Binary Add : U32 (qb I64)
+    Binary Add : U32 (qb I64)
+      Call _HSB32 : U32
+        Convert Nearest : F64
+          Int 120 : I16
+        Convert Nearest : F64
+          Int 50 : I16
+        Convert Nearest : F64
+          Int 50 : I16
+      Call _HSB32 : U32
+        Convert Nearest : F64
+          Var I : I16
+        Convert Nearest : F64
+          Var L : I32
+        Convert Nearest : F64
+          Var Q : I64
+    Call _HSBA32 : U32
+      Convert Widen : F64
+        Var S : F32
+      Var D : F64
+      Convert Nearest : F64
+        Var F : F80
+      Convert Nearest : F64
+        Var U : U32
+line 16: Assign D:F64
+  Binary Add : F64
+    Binary Add : F64
+      Call _HUE32 : F64
+        Var U : U32
+      Call _SATURATION32 : F64
+        Convert Truncate : U32
+          Var L : I32
+    Call _BRIGHTNESS32 : F64
+      Convert Truncate : U32
+        Convert RoundEven : I64
+          Var S : F32
+line 17: Print newline
+  Num
+    Call _RGB : U32
+      Int 1 : I32
+      Int 2 : I32
+      Int 3 : I32
+      (absent)
+  Str
+    Call HEX : Str
+      Call _RGBA : U32
+        Int 1 : I32
+        Int 2 : I32
+        Int 3 : I32
+        Int 4 : I32
+        (absent)
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Call _RED : I32
+          Int 4 : U32
+          (absent)
+        Int 1 : I32
+  Str
+    Call HEX : Str
+      Call _RED32 : I32
+        Var U : U32
+  Num
+    Convert Widen : I64
+      Binary Add : U32 (qb I64)
+        Call _HSB32 : U32
+          Convert Nearest : F64
+            Int 1 : I16
+          Convert Nearest : F64
+            Int 2 : I16
+          Convert Nearest : F64
+            Int 3 : I16
+        Int 1 : U32
+  Num
+    Binary Div : F64
+      Call _HUE32 : F64
+        Convert Truncate : U32
+          Var I : I16
+      Convert Nearest : F64
+        Int 2 : I16
+line 18: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Call _LOADIMAGE : I32
+          Var T : Str
+          (absent)
+          (absent)
+        Call _LOADIMAGE : I32
+          Str "a.bmp" : Str
+          Int 32 : I32
+          (absent)
+      Call _LOADIMAGE : I32
+        Var T : Str
+        (absent)
+        Str "hardware" : Str
+    Call _LOADIMAGE : I32
+      Var T : Str
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+      Var T : Str
+line 19: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Call _COPYIMAGE : I32
+      Var L : I32
+      (absent)
+    Call _COPYIMAGE : I32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var D : F64
+      Convert Truncate : I32
+        Var Q : I64
+line 20: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Binary Add : I32 (qb I64)
+          Call _WIDTH : I32
+            (absent)
+          Call _WIDTH : I32
+            Var L : I32
+        Call _HEIGHT : I32
+          Convert Truncate : I32
+            Convert RoundEven : I64
+              Var S : F32
+      Call _PIXELSIZE : I32
+        Convert Truncate : I32
+          Convert RoundEven : I64
+            Var F : F80
+    Call _PIXELSIZE : I32
+      (absent)
+line 21: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Call _CLEARCOLOR : I32
+          (absent)
+        Call _CLEARCOLOR : I32
+          Convert Truncate : I32
+            Var U : U32
+      Call _BLEND : I32
+        (absent)
+    Call _BLEND : I32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var D : F64
+line 22: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Call _PALETTECOLOR : I32
+      Int 3 : I32
+      (absent)
+    Call _PALETTECOLOR : I32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+      Convert Truncate : I32
+        Var Q : I64
+line 23: Assign L:I32
+  Call _AUTODISPLAY : I32
+line 24: Assign S:F32
+  Binary Add : F32
+    Binary Add : F32
+      Call PMAP : F32
+        Int 50 : I16
+        Int 0 : I32
+      Call PMAP : F32
+        Var I : I16
+        Convert Truncate : I32
+          Convert RoundEven : I64
+            Var D : F64
+    Call PMAP : F32
+      Var Q : I64
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+line 25: Print newline
+  Str
+    Call HEX : Str
+      Call _LOADIMAGE : I32
+        Var T : Str
+        (absent)
+        (absent)
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Call _WIDTH : I32
+          (absent)
+        Int 1 : I32
+  Str
+    Call HEX : Str
+      Call _PALETTECOLOR : I32
+        Int 1 : I32
+        (absent)
+  Num
+    Binary Add : F32
+      Call PMAP : F32
+        Int 1 : I16
+        Int 0 : I32
+      Convert Nearest : F32
+        Int 1 : I16
+  Str
+    Call HEX : Str
+      Call PMAP : F32
+        Var D : F64
+        Var L : I32
+  Num
+    Call _AUTODISPLAY : I32

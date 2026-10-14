@@ -26,6 +26,9 @@ fn settings(s: &Settings) -> String {
                 RuntimePart::Icon => "icon",
                 RuntimePart::Audio => "audio",
                 RuntimePart::Printer => "printer",
+                RuntimePart::ImageCodec => "image codec",
+                RuntimePart::Font => "font",
+                RuntimePart::ScreenImage => "screen image",
             })
             .collect();
         parts.push(format!("runtime parts: {}", names.join(", ")));

@@ -401,3 +401,12 @@ screen/m12_screen_12
 screen/m13_screen_13
 screen/m256_newimage_256
 screen/m32_newimage_32
+# m3-images-fonts-mouse group 2: the colour and image built-ins, screen programs (tests/corpus/screen/SOURCE.md)
+screen/i01_new_copy_put
+screen/i02_load_images
+screen/i03_save_load
+screen/i04_maptriangle
+screen/i05_alpha_blend
+screen/i06_palette_colours
+screen/i07_colours_32
+screen/i08_pmap_autodisplay

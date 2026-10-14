@@ -20,7 +20,7 @@ does, so the main-module fragment it writes (or the reason it rejects the progra
 answer is written under another name and renamed, so a stopped run leaves no half file. The key does not cover
 the files `qb64pe.exe` reads when it runs (its auto-included `.bi` files): after a change to the clone that does
 not rebuild the compiler, run once with `--no-cache` or empty the folder. A run then starts `qb64pe.exe` only for programs that are new or changed; the new
-compiler writes its C++ for every program on every run. Without the cache the 663 programs of 2026-10-12 took about 5 min 45 s (there are 1145 since `m3-console-files`, 922 after `m3-sound`; with the cache the run takes 46 s)
+compiler writes its C++ for every program on every run. Without the cache the 663 programs of 2026-10-12 took about 5 min 45 s (there are 1314 since group 2 of `m3-images-fonts-mouse`, 1145 after `m3-console-files`, 922 after `m3-sound`; with the cache the run takes 46 s)
 (half a second of `qb64pe -z` each); CI has no cache and runs them all (user, 2026-10-12: fewer repeated runs,
 `DECISIONS.md`).
 

@@ -1337,8 +1337,14 @@ pub enum RuntimePart {
     Icon,
     /// libqb's audio (`SOUND`, `PLAY`; `BEEP` is the system's bell and needs none).
     Audio,
-    /// The printer (`LPRINT`).
+    /// The printer (`LPRINT`, `_PRINTIMAGE`).
     Printer,
+    /// The image decoders and encoders (`_LOADIMAGE`, `_SAVEIMAGE`).
+    ImageCodec,
+    /// FreeType, for fonts loaded from a file (`_LOADFONT`, the `_U…` font functions).
+    Font,
+    /// Images of the desktop and the clipboard (`_SCREENIMAGE`, `_CLIPBOARDIMAGE`).
+    ScreenImage,
 }
 
 impl RuntimePart {
@@ -1348,6 +1354,9 @@ impl RuntimePart {
             "DEPENDENCY_ICON" => Some(RuntimePart::Icon),
             "DEPENDENCY_MINIAUDIO" => Some(RuntimePart::Audio),
             "DEPENDENCY_PRINTER" => Some(RuntimePart::Printer),
+            "DEPENDENCY_IMAGE_CODEC" => Some(RuntimePart::ImageCodec),
+            "DEPENDENCY_LOADFONT" => Some(RuntimePart::Font),
+            "DEPENDENCY_SCREENIMAGE" => Some(RuntimePart::ScreenImage),
             _ => None,
         }
     }

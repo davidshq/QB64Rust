@@ -699,6 +699,12 @@ pub enum RuntimePart {
     Audio,
     /// The printer.
     Printer,
+    /// The image decoders and encoders.
+    ImageCodec,
+    /// FreeType, for fonts loaded from a file.
+    Font,
+    /// Images of the desktop and the clipboard.
+    ScreenImage,
 }
 
 impl Program {

@@ -139,6 +139,12 @@ a statement's in a number; `N` stands for `NULL`.
 | `_MOUSEWHEEL` | `func__mousewheel(N,0)`, `(a,0\|1)`; two rejected | `Plain` function, DOUBLE |
 | `_MOUSEMOVE` | `sub__mousemove(x,y)`, DOUBLE slots; one argument, a string rejected | `Plain` statement; never run |
 
+**As built (group 2, 2026-10-14).** Every row of groups 2.2 and 2.3 is plain. One form was not: a function's
+slot left empty (`_LOADIMAGE(f$, , r$)`) was "not supported yet" for every function, and is now filled by
+position where the template has the slot alone in brackets after a comma and an argument follows
+(`check\builtins.rs`, `filled_slots`); the IR writes the slot as absent and the emitter's mask follows, as
+measured. Other gaps keep their mark.
+
 *Alternative considered:* write rows straight from the table and let the call-site check find the differences.
 Rejected: `m2-core-builtins` found a third of the functions special-cased, and a measured list of forms is what
 the call-site programs and the `check-fail` tests are written from.

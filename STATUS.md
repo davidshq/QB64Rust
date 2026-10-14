@@ -187,9 +187,10 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
    states and `c12_prompts`, both on `slice.list`. What each task found is in the change's `tasks.md`, the
    measured facts in `study\00` §5 ("Civil War Strategy played from a keys file"), the game's numbers in
    `tests\programs\README.md`.
-6. **Next**, for the user to choose (`ROADMAP.md`): the image built-ins that run, fonts, the mouse (after
-   `_MEM`, `$ASSERTS` and `$DEBUG` among what holds back the upstream tests); the plain copy of `internal\c`,
-   when libqb must change.
+6. **Under way**: the image built-ins that run, fonts, the mouse (OpenSpec change `m3-images-fonts-mouse`;
+   groups 1, the measurements, and 2, colours and images, done; groups 3 to 6 next). After it: `_MEM`,
+   `$ASSERTS` and `$DEBUG` among what holds back the upstream tests; the plain copy of `internal\c`, when libqb
+   must change.
 
 ## Numbers at the last full runs
 

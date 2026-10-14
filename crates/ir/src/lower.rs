@@ -76,6 +76,9 @@ pub fn lower(p: &sema::Program) -> Program {
                     sema::RuntimePart::Icon => crate::RuntimePart::Icon,
                     sema::RuntimePart::Audio => crate::RuntimePart::Audio,
                     sema::RuntimePart::Printer => crate::RuntimePart::Printer,
+                    sema::RuntimePart::ImageCodec => crate::RuntimePart::ImageCodec,
+                    sema::RuntimePart::Font => crate::RuntimePart::Font,
+                    sema::RuntimePart::ScreenImage => crate::RuntimePart::ScreenImage,
                 })
                 .collect(),
             exe_icon: p.settings.exe_icon.is_some(),
