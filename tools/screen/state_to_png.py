@@ -2,11 +2,14 @@
 """Shows a recorded screen state: a graphics page as a PNG file, a text page as its rows.
 
     python tools/screen/state_to_png.py <file.screen> [--page N | --image | --source-image]
-                                        [-o <out.png>]
+                                        [--state N | --all] [-o <out.png>]
 
-Without --page the displayed page is taken; --image takes the destination when it is an image
-that is no page, --source-image the source. A text page is printed: its characters as CP437 shows
-them (the bytes below 32 as its symbols), without colours; one the console cannot show as "?".
+A file may hold several states, one after the other (the `state` steps of a keys file, then the
+state at exit): --state N takes the N-th (from 1), the default the last; --all writes each, the
+N-th to <out>-N.png. Without --page the displayed page is taken; --image takes the destination
+when it is an image that is no page, --source-image the source. A text page is printed: its
+characters as CP437 shows them (the bytes below 32 as its symbols), without colours; one the
+console cannot show as "?".
 For a look at what a recording holds or at how two differ; no test uses it. Standard library only.
 """
 
@@ -106,9 +109,36 @@ def main() -> int:
     which.add_argument("--page", type=int)
     which.add_argument("--image", action="store_true")
     which.add_argument("--source-image", action="store_true")
+    pick = ap.add_mutually_exclusive_group()
+    pick.add_argument("--state", type=int, dest="number")
+    pick.add_argument("--all", action="store_true")
     ap.add_argument("-o", "--out", type=Path)
     args = ap.parse_args()
-    places, records = read_state(args.state.read_text(encoding="latin-1"))
+    states = split_states(args.state.read_text(encoding="latin-1"))
+    print(f"{args.state.name}: {len(states)} state(s)", file=sys.stderr)
+    out = args.out or args.state.with_suffix(".png")
+    if args.all:
+        failed = 0
+        for n, text in enumerate(states, 1):
+            failed |= show(args, text, out.with_name(f"{out.stem}-{n}{out.suffix}"), f"state {n}")
+        return failed
+    n = args.number if args.number is not None else len(states)
+    if not 1 <= n <= len(states):
+        print(f"no state {n} in {args.state.name}", file=sys.stderr)
+        return 1
+    return show(args, states[n - 1], out, args.state.name)
+
+
+def split_states(text: str) -> list[str]:
+    """The states of a file, each from its line "screen-state 1" to its line "end"."""
+    lines = text.replace("\r\n", "\n").split("\n")
+    starts = [i for i, line in enumerate(lines) if line.startswith("screen-state ")] or [0]
+    return ["\n".join(lines[a:b]) for a, b in zip(starts, starts[1:] + [len(lines)])]
+
+
+def show(args: argparse.Namespace, text: str, out: Path, what: str) -> int:
+    """Prints a text page or writes a graphics page of one state."""
+    places, records = read_state(text)
     if args.source_image:
         name = "image read"
     elif args.image:
@@ -116,7 +146,7 @@ def main() -> int:
     else:
         name = f"page {args.page if args.page is not None else places['display']}"
     if name not in records:
-        print(f"no {name} in {args.state.name}; it has: {', '.join(records)}", file=sys.stderr)
+        print(f"no {name} in {what}; it has: {', '.join(records)}", file=sys.stderr)
         return 1
     rec = records[name]
     print(f"{name}: mode {rec['mode']}, {rec['width']}x{rec['height']}, {rec['bits']} bits")
@@ -130,7 +160,6 @@ def main() -> int:
         b"".join((v if rec["bits"] == 32 else palette[v]).to_bytes(4, "big")[1:] for v in row)
         for row in rec["rows"]
     ]
-    out = args.out or args.state.with_suffix(".png")
     out.write_bytes(png(rec["width"], rec["height"], rows))
     print(f"written: {out}")
     return 0

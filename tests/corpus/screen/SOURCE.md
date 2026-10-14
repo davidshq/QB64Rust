@@ -22,6 +22,7 @@ programs the new compiler passes are on `tests\corpus\slice.list` (`tests\corpus
 | `c08_end_prompt`, `c09_off_the_end` | `END` and running off the end: the prompt in the bottom row, ended by `repeat space` |
 | `c10_runtime_error` | An unhandled error: the state as it was when the program stopped |
 | `c11_screenhide` | `$SCREENHIDE`: no window, the pages all the same |
+| `c12_prompts` | (`m3-scripted-game`) The keys file's `prompt` and `state`: a program that announces each wait for a key; a state at the first wait; a loop that only looks for a key gets none; a menu that announces after every arrow key; three states in one file |
 | `m00_width_80_50`, `m01`–`m13`, `m32_newimage_32`, `m256_newimage_256` | One program per screen mode: what a page of that mode holds |
 
 ## Drawing and text statements by form
@@ -83,3 +84,14 @@ when it runs (`tests\corpus\README.md`).
 
 Each state was looked at as a picture before it was trusted (`tools\screen\state_to_png.py`). Not cut: anything
 with sound (`g03_capitol` runs without its music and still names `PLAY`).
+
+## The whole game, played from its keys file
+
+`g12_game` (`m3-scripted-game`, 2026-10-14) is not cut but copied: `cut_game.py` writes the whole of
+`CWSTRAT.BAS`, line n of the copy being line n of the game, with a list of edits it checks against the game's
+text: `RANDOMIZE 1861` for `RANDOMIZE TIMER`, `_FULLSCREEN` made a comment, the two lines of `SUB TICK` made
+comments, and before each of the game's 14 waits for a key a line that announces the wait
+(`tools\screen\README.md`, "Prompts"). Its `.files\` folder holds every file the game reads, its icon, and a
+`CWS.CFG` with no sound. `g12_game.keys` is written by hand: two turns as the Union, with 22 `state` steps;
+`g12_game.screen` holds those 22 states and the one at exit (2.5 MB). What it reaches and what it does not:
+`tasks.md` of the change, task 4.1.

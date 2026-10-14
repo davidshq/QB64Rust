@@ -21,7 +21,11 @@ stands. Three stages (`study\28` §4):
    `crates\driver\tests\cli.rs`, `#[ignore]`d: it needs the clone), and small non-interactive programs cut from
    the game, one per kind of drawing, each ending by itself and checked by the screen-state dump (`study\28`
    §3.1). The cut programs are new files with their own recordings; the copies here stay untouched.
-3. **Later:** a scripted game with a fixed seed.
+3. **Done:** a scripted game with a fixed seed (`m3-scripted-game`): `tests\corpus\screen\g12_game` is a copy
+   of the game with a few listed edits, written by `tools\screen\cut_game.py` (a fixed seed, no `_FULLSCREEN`,
+   an empty `SUB TICK`, and a line before each of its 14 waits for a key that announces the wait). Its keys file
+   plays two turns from a new game, and 23 states of its screen are compared with the old compiler's
+   (`tools\screen\README.md`, "Prompts"). The game here is still never run by a test.
 
 ## Measured (2026-10-09)
 
@@ -136,3 +140,14 @@ byte, mark the folder `-text` in `.gitattributes`, check that `qb64pe.exe` build
 - All eleven programs cut from it pass now (`g03_capitol` joined `tests\corpus\slice.list`: its `PLAY` lines
   are compiled and not reached).
 - What comes next is stage 3, a scripted game with a fixed seed whose screens are compared.
+
+## Measured (2026-10-14, `m3-scripted-game`)
+
+- **Stage 3 is done, and the new compiler's build passes on its first run.** `g12_game` (the copy, with its data
+  files and a `CWS.CFG` with no sound in `g12_game.files\`) plays as the Union from March to July 1861: recruit,
+  two moves, a ship, a railroad move, three reports, Fortify, the Utility menu, a save, END TURN twice (the
+  computer's moves, a battle each turn, the month's events), Files, Quit, Yes. 23 states, 2.5 MB, recorded from
+  two equal runs of `qb64pe.exe`'s build; a run takes 1.1–1.9 s.
+- What the script does not reach, and why the game as it stands cannot be scripted: the change's `tasks.md`
+  (task 4.1) and `study\00` §5 ("Civil War Strategy played from a keys file"); a longer script is in
+  `SOMEDAY.md`.

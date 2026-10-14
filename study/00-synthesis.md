@@ -2113,6 +2113,28 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
       the value, and `LSET a = b = "x"` (the first `=` outside parentheses ends the target, the rest is the
       value), are "Illegal string-number conversion". `LSET = "a"` and `LSET (a) = "x"` are read as an
       assignment to a variable or array named `LSET`: "Name already in use (LSET)".
+- **Civil War Strategy played from a keys file (measured 2026-10-14 for `m3-scripted-game`, task 1.1: a copy
+  of `CWSTRAT.BAS` with the edits of the change's design D1, built by `qb64pe.exe` with `screen_state.cpp`,
+  outside the repository).**
+  - **What makes the game as it stands unscriptable.** `RANDOMIZE TIMER` (line 218); `_FULLSCREEN` (line 168);
+    `SUB TICK` (68 calls) waits up to a time or until a key and eats that key; 14 places wait for a key (the
+    menu's `crsr:` loop, twelve `DO WHILE INKEY$ = "": LOOP`, one `INPUT`); the title music and `SUB shen` only
+    look for a key (`IF INKEY$ <> ""`) and run only with `noise` 2. `CWS.CFG` holds `side, graf, noise,
+    difficult, player, turbo!, randbal, …, history, bold`; `history` 1 makes a new game `SHELL "copy cws.his
+    oldhist.ory"` and write `DATE$` into `cws.his`.
+  - **Byte 0x4F0 of conventional memory is free.** libqb's `DEF SEG` alone points at 0x500 (`&cmem[1280]`) and
+    no line of libqb names `cmem[0x4F0]`; `DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG` before each
+    wait counted every one of about 25 waits of a short game exactly, with no write from elsewhere.
+  - **A menu announces once per key**: `SUB menu` returns to `crsr` after every arrow key, so each arrow is a
+    wait of its own; the keys file has a `prompt` before every key.
+  - **A short game** (new game as the Union, END TURN, the computer's turn with one battle, the May menu, Files,
+    Quit, Yes, END's prompt): 1.1 to 1.4 s with `TICK` empty and no sound, four runs byte for byte equal. The
+    computer's turn waits three times (the month's events, the battle, "hit any key to continue"). A new
+    executable's first start once took more than 1.5 s to its first wait.
+  - **Size of a state**: one `SCREEN 12` state is 95 kB (the title) to 121 kB (the map with the main menu), as
+    written by `screen_state.cpp`.
+  - **`$EXEICON`** of the copy needs `cws.ico` beside it when it is built; the corpus runner copies
+    `<name>.files\` into the program's folder before it compiles.
 
 ## 6. Bug-compatibility choices (all decided)
 

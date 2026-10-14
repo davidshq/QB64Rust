@@ -360,6 +360,49 @@ fn extra_linker_flags_link_the_screen_state_file() {
     assert!(text.ends_with(b"end\n"), "{}", text.escape_ascii());
 }
 
+/// Spec `testing/screen-state`, scenario "A prompt that never comes": the program waits for a key without
+/// announcing it, so the keys file's `prompt` is ended after its time (`QB64_SCREEN_PROMPT_MS`, shortened here)
+/// with exit code 124, the state as it was then, and a last line that names the line of the keys file (libqb
+/// points stderr at the console the program was started from, so the message on stderr is not read here).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn screen_state_prompt_that_never_comes() {
+    let d = scratch("prompt");
+    std::fs::write(
+        d.join("p.bas"),
+        "SCREEN 13\nLINE (0, 0)-(9, 9), 4, BF\nDO: k$ = INKEY$: LOOP WHILE k$ = \"\"\nSYSTEM\n",
+    )
+    .unwrap();
+    std::fs::write(d.join("p.keys"), "# nothing is announced\nprompt\ntext x\n").unwrap();
+    let exe = d.join("p.exe");
+    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
+    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
+    let o = qb64rust(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let state = d.join("state.txt");
+    let run = Command::new(&exe)
+        .current_dir(&d)
+        .env("QB64_SCREEN_STATE", &state)
+        .env("QB64_SCREEN_KEYS", d.join("p.keys"))
+        .env("QB64_SCREEN_PROMPT_MS", "500")
+        .stdin(std::process::Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(run.status.code(), Some(124));
+    let text = std::fs::read(&state).unwrap();
+    assert!(text.starts_with(b"screen-state 1\n"), "{}", text.escape_ascii());
+    assert!(
+        text.windows(10).any(|w| w == b"p 04*10 00"),
+        "the box: {}",
+        text.escape_ascii()
+    );
+    assert!(
+        text.ends_with(b"p.keys line 2: no prompt in time\n"),
+        "{}",
+        text.escape_ascii()
+    );
+}
+
 /// The smallest icon file: one image of 16 by 16 pixels with 32 bits each, every pixel of colour `fill` (four
 /// bytes: blue, green, red, alpha). The resource compiler puts the image, the bytes from offset 22 on, into the
 /// executable as they are.

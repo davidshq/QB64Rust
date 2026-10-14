@@ -28,8 +28,9 @@ A program built this way behaves as before unless one of two environment variabl
 
 | Variable | Effect |
 |---|---|
-| `QB64_SCREEN_STATE=<file>` | At exit (`SYSTEM`, `END`, off the end, the window closed, a runtime error) the state is written to the file |
+| `QB64_SCREEN_STATE=<file>` | At exit (`SYSTEM`, `END`, off the end, the window closed, a runtime error) the state is written to the file, after the states the keys file's `state` steps wrote |
 | `QB64_SCREEN_KEYS=<file>` | The keys of the file are given to the program as if typed |
+| `QB64_SCREEN_PROMPT_MS=<n>` | How long a `prompt` step waits (default 30000); for a test of the time limit |
 
 The corpus runner does all of this for a program with a `<name>.screen` file (`tools\legacy_tests\README.md`).
 
@@ -61,7 +62,10 @@ end
   `m10_screen_10` failed under load in tier 2 (`m3-window-output`, 2026-10-12; `DECISIONS.md`).
 - A text row is two lines: `t "…"` holds the characters (printable ASCII as it is; every other byte, `\` and `"`
   as `\xNN`), `a` the attribute bytes. A pixel row is one line `p`: palette indexes, or 32-bit colours.
-- `a`, `p` and `palette` are hex runs: `v` or `v*n`. `= k` means the row before, k more times.
+- `a`, `p` and `palette` are hex runs: `v` or `v*n` (`n` in decimal). `= k` means the row before, k more times.
+- A file may hold several states, one after the other, each from `screen-state 1` to `end`: those of the keys
+  file's `state` steps, then the one at exit. A run that a `prompt` ended has a last line `stopped <keys> line
+  <n>: <why>`.
 
 Not in the state: sound (checked by what a program can observe of it, `tests\corpus\slice\s74_sound_queue`,
 `s75_sound_wait` and `s76_sound_errors`; what is heard is checked by no test); the window (title, size, full
@@ -77,11 +81,30 @@ One step per line; `#` starts a comment.
 | `text <characters>` | Each printable ASCII character |
 | `key <name>` | `enter esc tab backspace space up down left right home end pageup pagedown insert delete f1` … `f12` |
 | `wait <ms>` | A pause |
+| `prompt` | Wait until the program announces its next wait for a key (below) |
+| `state` | Write the state of the screen now, before the state at exit |
 | `repeat <name>` | Last line only: the key every 100 ms until the program exits, for `END`'s "Press any key to continue" |
 
 A key is given only when the program's `INKEY$` buffer is empty, so none is lost however many there are (the
 buffer holds 15) and nothing depends on timing. A line that is none of these, or a file that cannot be read, ends
 the program with exit code 125 and a message on stderr.
+
+**Prompts.** A program that also reads `INKEY$` only to look for a key (a pause that a key ends, a tune that a key
+stops) would eat a key the file gives too early. Such a program announces each real wait by counting in byte
+`&H4F0` of conventional memory, which libqb does not use, right before it reads:
+
+```
+DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG
+```
+
+The k-th `prompt` of the keys file waits for the k-th announcement; the program then has drawn everything it draws
+before that read, so a `state` right after a `prompt` is the screen the player sees. Put a `prompt` before **every**
+key of such a program: a menu that announces before each read announces again after every arrow key. A `prompt`
+that waits more than 30 s ends the program with exit code 124; one that finds the program has announced more
+waits than that (a key was given without a `prompt`) ends it with exit code 125. Either way the state then is
+written, with the reason as the file's last line (libqb points stderr at the console the program was started
+from, so a pipe does not see it). `tests\corpus\screen\c12_prompts` shows the steps; `g12_game` plays Civil War
+Strategy with them.
 
 Limits: a key is pressed and released at once (`_KEYDOWN` never sees it held); no Shift, Ctrl or Alt combinations;
 a program that never reads `INKEY$`, `INPUT` or `LINE INPUT` gets the first key only.
@@ -102,4 +125,6 @@ a program that never reads `INKEY$`, `INPUT` or `LINE INPUT` gets the first key 
 ```
 python tools\screen\state_to_png.py tests\corpus\screen\g03_capitol.screen -o capitol.png
 python tools\screen\state_to_png.py tests\corpus\screen\c07_input_window.screen        # a text page: prints its rows
+python tools\screen\state_to_png.py tests\corpus\screen\c12_prompts.screen --state 1   # the first of several states
+python tools\screen\state_to_png.py tests\corpus\screen\c12_prompts.screen --all -o c12.png   # c12-1.png, c12-2.png, …
 ```

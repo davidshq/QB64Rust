@@ -358,6 +358,7 @@ screen/c08_end_prompt
 screen/c09_off_the_end
 screen/c10_runtime_error
 screen/c11_screenhide
+screen/c12_prompts
 screen/d01_print_window
 screen/d02_color_locate
 screen/d03_cls_view_print
@@ -387,6 +388,7 @@ screen/g08_icon
 screen/g09_faces_forts
 screen/g10_snapshot
 screen/g11_city_report
+screen/g12_game
 screen/m00_width_80_50
 screen/m01_screen_1
 screen/m02_screen_2

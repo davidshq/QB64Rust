@@ -12,8 +12,8 @@ not say whether that behaviour is right (that is the divergence register's job).
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
 | `slice\` | 94 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags, the screen functions in a console program, labels with the name of a SUB, `TAB` and `SPC`, conventional memory, sound, `$EXEICON`, the choice and the shifts, `EXIT SELECT`, `PRINT USING`, binary and random files, locks, `FIELD`, `CHAIN`; `SOURCE.md`) |
-| `screen\` | 52 programs with a window, checked by the state of the screen they leave: 23 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error), 18 for the screen statements form by form (`d01`–`d16`, `m3-window-output`; `d17` `TAB` and `SPC`, `d18` graphics `GET` and `PUT`, `m3-get-put-bload`) and 11 programs cut from Civil War Strategy, three of them with the pictures they load in a `.files` folder (`SOURCE.md`, `tools\screen\README.md`). All 52 are on `slice.list` ("Screen programs" below) |
-| `slice.list` | The 384 programs the new compiler must pass: all 94 of `slice\`, 236 of `runtime_comparison`, `verification\` `v11`, `v12` and all 52 of `screen\` (see below) |
+| `screen\` | 54 programs with a window, checked by the state of the screen they leave: 24 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error, and `c12_prompts`: states taken while a program runs, `m3-scripted-game`), 18 for the screen statements form by form (`d01`–`d16`, `m3-window-output`; `d17` `TAB` and `SPC`, `d18` graphics `GET` and `PUT`, `m3-get-put-bload`), 11 programs cut from Civil War Strategy, three of them with the pictures they load in a `.files` folder, and `g12_game`, the whole game played from its keys file with 23 states compared (`SOURCE.md`, `tools\screen\README.md`, `tests\programs\README.md`). All 54 are on `slice.list` ("Screen programs" below) |
+| `slice.list` | The 386 programs the new compiler must pass: all 94 of `slice\`, 236 of `runtime_comparison`, `verification\` `v11`, `v12` and all 54 of `screen\` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -32,7 +32,9 @@ or `LINE INPUT` (without it the program gets no input). **A program with a `.std
 
 A program with an `.output` may also have `<name>.screen`: the state of the screen it must leave at exit, for a
 program with a window (text cells or pixels, palette, cursor, pages; format in `tools\screen\README.md`), and with
-it `<name>.keys`: the keys it is given. All 52 are in `screen\`; their `.output` is empty.
+it `<name>.keys`: the keys it is given. A keys file with `state` steps makes the program write states while it
+runs, and `.screen` then holds them all, the one at exit last (`c12_prompts`, `g12_game`). All 54 are in
+`screen\`; their `.output` is empty.
 
 A program that runs may have a folder `<name>.files`: the data files it reads (the pictures a game loads with
 `BLOAD`). Everything in it is copied beside the program before it is compiled and again before each run, with either
@@ -165,10 +167,11 @@ with the state file, runs it (with its keys) and passes it only if the state it 
 `$SCREENHIDE`, several at a time with `--jobs`; a key typed just then can reach it. They are the slice programs
 of the screen statements and functions: tier 1's coverage rule is met by a listed screen program.
 
-All 52 are listed: the last, `g03_capitol`, joined with `m3-sound` (its five `PLAY` lines are compiled and not
-reached, because the program was cut with the game's sound option off).
+All 54 are listed: `g03_capitol` joined with `m3-sound` (its five `PLAY` lines are compiled and not reached,
+because the program was cut with the game's sound option off), `c12_prompts` and `g12_game` with
+`m3-scripted-game`.
 
-`slice.list` names the 384 programs the new compiler must pass (tier 2, `study\19`), also with
+`slice.list` names the 386 programs the new compiler must pass (tier 2, `study\19`), also with
 `QB64RUST_NO_FOLD=1`. Joined with `m3-console-files` (every one left the recorded output on its first run):
 the ten slice programs `s78_choice_min_shifts`, `s79_exit_select`, `s80_print_using_numbers`,
 `s81_print_using_strings`, `s82_print_using_file` (with `LPRINT` below its `SYSTEM`), `s83_binary_file`,

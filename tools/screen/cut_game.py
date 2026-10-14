@@ -12,6 +12,9 @@ of a game), lines of it stand among the written ones: a (first line, last line, 
 line) entry copies that range of the game byte for byte, and the script stops when the first line
 no longer starts as said. A program that loads pictures gets copies of them in <name>.files/,
 which the corpus runner puts beside the program when it runs (tools/legacy_tests).
+A copy (COPIES) is the whole game with a few listed edits, for a game played from a keys file
+(g12_game: tools/screen/README.md, "Prompts"); its data files and a CWS.CFG of its own go into its
+.files/ folder.
 The recordings (.output, .screen) are made by the corpus runner's --record, not by this script.
 """
 
@@ -168,11 +171,63 @@ CUTS = {
     ),
 }
 KEYS = {"g06_message_box": "text x\n"}
+
+# The whole game for a scripted game (OpenSpec change m3-scripted-game, design D1): every line of the
+# game byte for byte except the edits, each (line of the game, text the line must hold exactly once,
+# what that text becomes). The script stops when a line no longer holds its text. Line n of the copy
+# is line n of the game; what the copy is, is said in comments after its last line. Its keys file
+# (<name>.keys) is written by hand, not here.
+ANNOUNCE = "DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG"
+WAIT = 'DO WHILE INKEY$ = "": LOOP'
+COPIES = {
+    "g12_game": (
+        [
+            "Civil War Strategy played from a keys file (tools/screen/README.md, \"Prompts\"). Edits:",
+            "a fixed seed; no _FULLSCREEN (a test does not take the screen); SUB TICK returns at once",
+            "(its pauses only wait, and a key that came while one waits would be eaten); and before",
+            "each of the 14 places the game waits for a key, a line that announces the wait in byte",
+            "&H4F0 of conventional memory, which the keys file's prompt steps wait for.",
+        ],
+        [
+            (168, "_FULLSCREEN _SQUAREPIXELS, _SMOOTH", "' _FULLSCREEN _SQUAREPIXELS, _SMOOTH"),
+            (218, "RANDOMIZE TIMER", "RANDOMIZE 1861"),
+            *[
+                (n, WAIT, f"{ANNOUNCE}: {WAIT}")
+                for n in (662, 829, 1002, 1091, 2462, 2719, 3127, 3263, 3266, 3366, 3408, 3675)
+            ],
+            (3394, "INPUT a$", f"{ANNOUNCE}: INPUT a$"),
+            (4037, "start! = TIMER", "' start! = TIMER"),
+            (4038, "DO WHILE TIMER", "' DO WHILE TIMER"),
+            (
+                4855,
+                'crsr:   a$ = INKEY$: IF a$ = "" GOTO crsr',
+                f'crsr: {ANNOUNCE}: DO: a$ = INKEY$: LOOP WHILE a$ = ""',
+            ),
+        ],
+    ),
+}
+# The game's configuration (CWS.CFG: side, graf, noise, difficult, player, turbo!, randbal, train(1),
+# train(2), jancam, realism, batwon(1), batwon(2), casualty&(1), casualty&(2), history, bold) with these
+# fields changed: noise 0 (no sound, and no title music, which waits for its notes), history 0 (no
+# SHELL "copy ...", no DATE$ written).
+CONFIG_CHANGES = {2: "0", 15: "0"}
 # The pictures a program loads, by their names in the game's folder; copied into <name>.files/.
 FILES = {
     "g07_mountains": ["MTN.VGA"],
     "g08_icon": ["CWSICON.VGA"],
     "g09_faces_forts": [f"FACE{k}.VGA" for k in range(1, 6)] + [f"FORT{k}.VGA" for k in range(3)],
+    # Every file the game reads, and its icon ($EXEICON needs it when the program is built).
+    "g12_game": [
+        "CITIES.GRD",
+        "CWS.INI",
+        "CWSLEAD.DAT",
+        "HISCORE.CWS",
+        "MTN.VGA",
+        "CWSICON.VGA",
+        "cws.ico",
+    ]
+    + [f"FACE{k}.VGA" for k in range(1, 6)]
+    + [f"FORT{k}.VGA" for k in range(3)],
 }
 
 
@@ -202,6 +257,39 @@ def head_lines(lines: list[bytes], head: list) -> list[bytes]:
     return out
 
 
+def edited(lines: list[bytes], edits: list[tuple[int, str, str]]) -> list[bytes]:
+    """The game's lines with the edits made, each line checked to hold its text exactly once."""
+    out = list(lines)
+    for n, old, new in edits:
+        if out[n - 1].count(old.encode()) != 1:
+            raise SystemExit(f"{GAME.name} line {n} no longer holds {old!r} exactly once")
+        out[n - 1] = out[n - 1].replace(old.encode(), new.encode())
+    return out
+
+
+def config() -> bytes:
+    """The game's CWS.CFG with CONFIG_CHANGES made."""
+    fields = (GAME.parent / "CWS.CFG").read_bytes().strip().split(b",")
+    for i, value in CONFIG_CHANGES.items():
+        fields[i] = value.encode()
+    return b",".join(fields) + b"\n"
+
+
+def finish(name: str) -> None:
+    """The empty .screen of a program not recorded yet, its keys, and its data files."""
+    screen = OUT / f"{name}.screen"
+    if not screen.exists():
+        screen.write_bytes(b"")  # marks a screen program before its first recording
+    if name in KEYS:
+        (OUT / f"{name}.keys").write_bytes(KEYS[name].encode())
+    if name in FILES:
+        folder = OUT / f"{name}.files"
+        folder.mkdir(exist_ok=True)
+        for picture in FILES[name]:
+            shutil.copyfile(GAME.parent / picture, folder / picture)
+    print(f"{name}.bas")
+
+
 def main() -> int:
     lines = GAME.read_bytes().replace(b"\r\n", b"\n").split(b"\n")
     for name, (covers, head, procedures) in CUTS.items():
@@ -214,17 +302,16 @@ def main() -> int:
         for p in procedures:
             out += [b"", *procedure(lines, p)]
         (OUT / f"{name}.bas").write_bytes(b"\n".join(out) + b"\n")
-        screen = OUT / f"{name}.screen"
-        if not screen.exists():
-            screen.write_bytes(b"")  # marks a screen program before its first recording
-        if name in KEYS:
-            (OUT / f"{name}.keys").write_bytes(KEYS[name].encode())
-        if name in FILES:
-            folder = OUT / f"{name}.files"
-            folder.mkdir(exist_ok=True)
-            for picture in FILES[name]:
-                shutil.copyfile(GAME.parent / picture, folder / picture)
-        print(f"{name}.bas")
+        finish(name)
+    for name, (about, edits) in COPIES.items():
+        body = edited(lines, edits)
+        while body and not body[-1]:
+            body.pop()
+        notes = [b"", b"' Copied from Civil War Strategy by tools/screen/cut_game.py."]
+        notes += [f"' {line}".encode() for line in about]
+        (OUT / f"{name}.bas").write_bytes(b"\n".join(body + notes) + b"\n")
+        finish(name)
+        (OUT / f"{name}.files" / "CWS.CFG").write_bytes(config())
     return 0
 
 

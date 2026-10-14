@@ -3,7 +3,9 @@
 // program runs with one of two environment variables:
 //
 //   QB64_SCREEN_STATE=<file>  when the program exits, the state of the screen pages is written to the file
-//   QB64_SCREEN_KEYS=<file>   the keys of the file are given to the program as if typed
+//   QB64_SCREEN_KEYS=<file>   the keys of the file are given to the program as if typed; its `state` steps
+//                             write states while the program runs, before the one at exit
+//   QB64_SCREEN_PROMPT_MS=<n> how long a `prompt` step waits for the program (default 30000)
 //
 // It reads libqb's own variables and calls keyboard_keydown, so it is compiled against the headers of the libqb
 // it is linked with; libqb itself is not changed.
@@ -16,6 +18,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -117,13 +120,20 @@ void put_image(FILE *f, const char *what, const img_struct *im) {
     }
 }
 
+// The states of one run go into one file: the first write starts it, every later one (a `state` step of the keys
+// file, then the state at exit) is appended. The key thread and the exit may both write.
+std::mutex state_lock;
+bool state_started = false;
+
 void write_state() {
     const char *name = getenv("QB64_SCREEN_STATE");
     if (!name || !*name || !display_page)
         return;
-    FILE *f = fopen(name, "wb");
+    std::lock_guard<std::mutex> hold(state_lock);
+    FILE *f = fopen(name, state_started ? "ab" : "wb");
     if (!f)
         return;
+    state_started = true;
     fprintf(f, "screen-state 1\npages %d", pages);
     put_place(f, "display", display_page);
     put_place(f, "write", write_page);
@@ -161,13 +171,13 @@ const struct {
 };
 
 struct Step {
-    enum { Press, Wait, Repeat } kind;
-    uint32_t value; // a key code, or milliseconds
+    enum { Press, Wait, Repeat, Prompt, State } kind;
+    uint32_t value; // a key code, milliseconds, or the line of a `prompt`
 };
 
-// The steps of a keys file, one per line: "text <characters>", "key <name>", "wait <ms>", and as the last line
-// "repeat <name>" (the key every 100 ms until the program exits: for END's "Press any key to continue").
-// Returns the number of the first line that is none of these, or 0.
+// The steps of a keys file, one per line: "text <characters>", "key <name>", "wait <ms>", "prompt", "state", and
+// as the last line "repeat <name>" (the key every 100 ms until the program exits: for END's "Press any key to
+// continue"). Returns the number of the first line that is none of these, or 0.
 int read_steps(const std::string &script, std::vector<Step> &steps) {
     std::istringstream in(script);
     std::string line;
@@ -198,6 +208,10 @@ int read_steps(const std::string &script, std::vector<Step> &steps) {
             steps.push_back({repeats ? Step::Repeat : Step::Press, code});
         } else if (verb == "wait" && !arg.empty() && arg.find_first_not_of("0123456789") == std::string::npos) {
             steps.push_back({Step::Wait, (uint32_t)atoi(arg.c_str())});
+        } else if (line == "prompt") {
+            steps.push_back({Step::Prompt, (uint32_t)n});
+        } else if (line == "state") {
+            steps.push_back({Step::State, 0});
         } else {
             return n;
         }
@@ -217,12 +231,60 @@ void press(uint32_t code) {
     keyboard_keyup(code);
 }
 
-void feed(std::vector<Step> steps) {
+// A program announces that it waits for a key by counting in byte 0x4F0 of conventional memory, which libqb does
+// not use: `DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG`, right before its read. The k-th `prompt`
+// of the keys file waits for the k-th announcement: then everything the program draws before that read is drawn.
+const int announced_at = 0x4F0;
+
+// Ends the program from the key thread: the state as it is, a message, and an exit code of the check's own. The
+// message is also the last line of the state file: libqb points stderr at the console the program was started
+// from (`AttachConsole`), so a test that reads the program's stderr through a pipe does not see it.
+[[noreturn]] void stop(int code, const char *keys, uint32_t line, const char *why) {
+    write_state();
+    if (const char *name = getenv("QB64_SCREEN_STATE"))
+        if (*name) {
+            std::lock_guard<std::mutex> hold(state_lock);
+            if (FILE *f = fopen(name, state_started ? "ab" : "wb")) {
+                fprintf(f, "stopped %s line %u: %s\n", keys, line, why);
+                fclose(f);
+            }
+        }
+    fprintf(stderr, "screen_state: %s line %u: %s\n", keys, line, why);
+    fflush(stderr);
+    _Exit(code);
+}
+
+void prompt(const char *keys, uint32_t line, uint8_t expected, uint32_t limit_ms) {
+    const auto until = std::chrono::steady_clock::now() + std::chrono::milliseconds(limit_ms);
+    for (;;) {
+        const uint8_t ahead = (uint8_t)(cmem[announced_at] - expected);
+        if (ahead == 0)
+            return;
+        if (ahead < 128)
+            stop(125, keys, line, "the program announced more waits than the keys file has prompts");
+        if (std::chrono::steady_clock::now() > until)
+            stop(124, keys, line, "no prompt in time");
+        sleep_ms(1);
+    }
+}
+
+void feed(std::vector<Step> steps, std::string keys) {
+    uint32_t limit_ms = 30000;
+    if (const char *ms = getenv("QB64_SCREEN_PROMPT_MS"))
+        if (*ms)
+            limit_ms = (uint32_t)atoi(ms);
     while (!cmem[0x41a]) // the runtime sets the buffer's head when it starts
         sleep_ms(1);
+    // Counted from 0, not from the byte as it is now: the program may announce its first wait before this thread
+    // wakes, and cmem starts as zeros.
+    uint8_t prompts = 0;
     for (const Step &s : steps) {
         if (s.kind == Step::Wait) {
             sleep_ms(s.value);
+        } else if (s.kind == Step::Prompt) {
+            prompt(keys.c_str(), s.value, ++prompts, limit_ms);
+        } else if (s.kind == Step::State) {
+            write_state();
         } else {
             do {
                 press(s.value);
@@ -251,7 +313,7 @@ struct Start {
                 fprintf(stderr, "screen_state: %s line %d: not a step\n", name, bad);
             _Exit(125);
         }
-        std::thread(feed, std::move(steps)).detach();
+        std::thread(feed, std::move(steps), std::string(name)).detach();
     }
 } start;
 

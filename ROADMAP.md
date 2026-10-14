@@ -72,7 +72,9 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
       noise by what a program can observe (the queue, the waits, the errors); `$EXEICON`; a built-in statement
       with a template after `CALL` (`m3-sound`)
 - [x] Civil War Strategy compiles with no diagnostic and builds (`m3-sound`; `tests\programs\README.md`, stage 2)
-- [ ] Civil War Strategy's screens match in a scripted game (`tests\programs\README.md`, stage 3)
+- [x] Civil War Strategy's screens match in a scripted game (`tests\programs\README.md`, stage 3): a copy with
+      listed edits plays two turns from a keys file, 23 states compared; the screen-state check's keys file
+      gained `prompt` and `state` (`m3-scripted-game`)
 - [ ] The image built-ins that run (`_LOADIMAGE`, `_PUTIMAGE`, …; `_RGB32` and `_RGBA32` are done), fonts, the
       mouse
 - [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary

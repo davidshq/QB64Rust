@@ -34,3 +34,6 @@ crates/lsp/tests/fixtures/*.bin -text
 # Real programs taken whole: source, data and image files byte for byte (tests/programs/README.md)
 tests/programs/civil-war-strategy/** -text
 tests/programs/civil-war-strategy/SOURCE.md text
+# The copy of the game for its scripted game (tools/screen/cut_game.py): the game's lines byte for byte, CP437
+# symbols among them, with LF line ends
+tests/corpus/screen/g12_game.bas -text

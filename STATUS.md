@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-14 (session 58).
+Updated 2026-10-14 (session 59).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -29,8 +29,11 @@ tasks; committed and archived 2026-10-13): sound, `$EXEICON`, and a built-in sta
 after `CALL`. **Civil War Strategy compiles with no diagnostic and builds**, and all 52 screen programs pass by
 the state of their screen. Its fourth step, OpenSpec change `m3-console-files`, is done (all 22 tasks,
 2026-10-13; committed, archived 2026-10-14): the console programs of the corpus that waited. **No program of
-the corpus that the old compiler accepts is held back any more.** Step 9 of M2, built-in statements, was OpenSpec change
-`m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
+the corpus that the old compiler accepts is held back any more.** Its fifth step, OpenSpec change
+`m3-scripted-game`, is done (all 14 tasks, 2026-10-14; not committed or archived yet): **Civil War Strategy's
+screens are compared in a scripted game**, a copy of the game with listed edits played for two turns from a keys
+file, 23 states of its screen equal to the old compiler's; the new compiler's build passed on its first run.
+Step 9 of M2, built-in statements, was OpenSpec change `m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
 (archived 2026-10-10: `qb64rust --report unsupported`, and tests of the test runner). Step 9a, the screen-state
 check, was OpenSpec change `m2-screen-state-check` (all 22 tasks done, archived 2026-10-10).
 A program that draws can now be tested: `tools\screen\screen_state.cpp`, linked into a test program of either
@@ -110,6 +113,18 @@ line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10)
     string stays a field after `=`.
   - **Not of this change, met on the way**: a literal above the `_INTEGER64` range (`18446744073709551615`) is
     "not supported yet: unsigned literals".
+- `m3-scripted-game` is done and waits to be committed and archived. For the user to look at, each in
+  the change's `tasks.md`:
+  - **Two things changed from the design while built**: a `prompt` *counts* the program's announcements (a menu
+    announces again after every arrow key, so "wait for a change" returned too early; task 1.1); a `prompt` that
+    fails writes its reason as the last line of the state file, since libqb points stderr at the console the
+    program was started from (task 2.3).
+  - **Beyond the tasks as written**: `c12_prompts` is in `screen\`, not `slice\s78_prompts` (task 2.2); the test
+    of a `prompt` that never comes is a command-line test in `cli.rs`, not a runner test (task 2.3);
+    `state_to_png.py --all`; `g12_game.bas` marked `-text` in `.gitattributes` (the game's CP437 bytes).
+  - **The script reaches** recruiting, moves, a ship, a railroad move, three reports, Fortify, the Utility menu,
+    a save, two computer turns with a battle each, and Quit; **not** a naval action, a retreat, the end of a
+    game, loading, the alternative map, two players (task 4.1; `SOMEDAY.md`).
 - Four things in `m3-get-put-bload` go beyond what was agreed and are for the user to look at
   (`DECISIONS.md` 2026-10-13, second row): dynamic arrays in conventional memory, `DATE$` and `TIME$`, five
   changed `cpp` snapshots, programs cut from the game by line ranges.
@@ -166,9 +181,14 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
    archived 2026-10-14). What each task found is in the change's `tasks.md`, the measured
    facts in `study\00` §5 (`verification\v30_*`, 177 programs and the table of result types), what stayed
    marked in `SOMEDAY.md` ("Left marked by `m3-console-files`").
-5. **Next**, for the user to choose (M3's order names only the last; `ROADMAP.md` lists the others): the plain
-   copy of `internal\c`, when libqb must change; Civil War Strategy's screens in a scripted game
-   (`tests\programs\README.md`, stage 3); the image built-ins that run, fonts, the mouse.
+5. Done: Civil War Strategy's screens in a scripted game (`m3-scripted-game`, all 14 tasks, 2026-10-14): the
+   keys file's `prompt` and `state` steps, a copy of the game written by `cut_game.py`, `g12_game` with 23
+   states and `c12_prompts`, both on `slice.list`. What each task found is in the change's `tasks.md`, the
+   measured facts in `study\00` §5 ("Civil War Strategy played from a keys file"), the game's numbers in
+   `tests\programs\README.md`.
+6. **Next**, for the user to choose (`ROADMAP.md`): the image built-ins that run, fonts, the mouse (after
+   `_MEM`, `$ASSERTS` and `$DEBUG` among what holds back the upstream tests); the plain copy of `internal\c`,
+   when libqb must change.
 
 ## Numbers at the last full runs
 
@@ -180,24 +200,24 @@ older (sessions 56, 40 and 54).
 
 | Yardstick | Result |
 |---|---|
-| `tests\corpus\slice.list` (tier 2) | 384 of 384 (52 of them screen programs), also with `QB64RUST_NO_FOLD=1`; 89 s and 144 s with the build cache at the close of `m3-console-files` (the second run builds every program anew) |
+| `tests\corpus\slice.list` (tier 2) | **386 of 386** (54 of them screen programs, `g12_game` the scripted game) at the close of `m3-scripted-game` (5 min 53 s: every screen program linked again with the changed `screen_state.cpp`); 384 of 384 also with `QB64RUST_NO_FOLD=1` at the close of `m3-console-files` (89 s and 144 s with the build cache; not repeated, since no compiler crate changed since) |
 | Full corpus (409 programs) | 403 pass (the 384 of the slice list, 19 `.err` programs), none wrong at run time; **none rejected with "not supported yet"**; 1 `.err` program with only marked errors (`218` `FRE`); 5 known failures (`tests\corpus\README.md`); 66 s after the slice runs had filled the build cache |
 | Upstream | **148 of 279** (`tests\upstream\pass.list`: 148, all passing, run by itself, 41 s); the full suite at the close of `m3-console-files`: 404 programs, 148 pass, 255 rejected or with only marked errors, 1 known failure, none wrong |
 | Call-site check | 1145 of 1145 programs equal (`tools\callsite\README.md`; 223 of them for `m3-console-files`: the eight functions 75, `PRINT USING` and `LPRINT` 55, file `GET`/`PUT` and locks 64, `FIELD`/`LSET`/`RSET` 23, `CHAIN` 6) |
-| Real programs (`tests\programs`) | Civil War Strategy: **no diagnostic, and it builds** (3.6 s; the old compiler 6.9 s the same day). Its C++ compared once with the old compiler's, line by line: no call differs on 4,332 lines. Started once by hand beside the old compiler's build: both ran (`tests\programs\README.md`) |
+| Real programs (`tests\programs`) | Civil War Strategy: **no diagnostic, and it builds** (3.6 s; the old compiler 6.9 s the same day). Its C++ compared once with the old compiler's, line by line: no call differs on 4,332 lines. **Played for two turns from a keys file (`g12_game`, a copy with listed edits): 23 states equal to the old compiler's**, 1.1–1.9 s a run (`tests\programs\README.md`) |
 | Differential (`tests\differential\pass.list`) | 59 of 59 |
 | Shrink-only lists | 0 false errors, 0 parse gaps, 53 only-marked rejections (`tests\upstream\README.md`) |
-| Tier 1 (`cargo test`) | passes (303 tests); the 16 command-line tests that build an executable (`--ignored`) pass too (10 s), among them the build of Civil War Strategy and the icon in the executable |
+| Tier 1 (`cargo test`) | passes; the 17 command-line tests that build an executable (`--ignored`) pass too (10 s), among them the build of Civil War Strategy, the icon in the executable and a `prompt` that never comes (2026-10-14) |
 | The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 68 pass, under a second |
 | `slice.list` while working, with `--pass-cache` | 24 s when no program's executable changed, 92 s when all are run (`--jobs 8 --build-cache`, 2026-10-12) |
-| Screen programs (`tests\corpus\screen`, 52) | Old compiler: 52 pass, each recorded from two equal runs. New compiler: 52 pass, each on its first run |
+| Screen programs (`tests\corpus\screen`, 54) | Old compiler: 54 recorded, each from two equal runs. New compiler: 54 pass, each on its first run (the 52 before also with the changed `screen_state.cpp`, so a keys file without the new steps gives the same states) |
 | Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: **nothing held back** (389 without an `.err`: 388 without errors, and `s77_exeicon`, whose icon only the runner puts beside it). Civil War Strategy: nothing held back. Upstream (348 without an `.err`): 131 without errors, 206 held back, 11 with other errors (the ten that include the old compiler's sources, and `icon_relative/test`, whose icon lies in the clone); `_DYNAMIC`/`_STATIC` members 86 programs (deferred), `$Unstable` 85, an array used after a marked declaration 60, `_MEM` 30, `REDIM _RETAIN` 27, `_MEMFREE` 22 (no line names `_DEST`, `$CONSOLE`, a window built-in, `_TRUE` or a precompiler flag any more) |
 | Tier 2 as CI runs it, locally | about 12 min at the last full build; about 2 min with `--jobs 8 --build-cache` when little C++ changed |
 | Full corpus with the old compiler (2026-10-10, 336 programs) | 331 pass, 5 known failures, `--jobs 8`; the 305 before the screen programs took about 12 min with one job, 3 min 44 s with `--jobs 8` (`tools\legacy_tests\README.md`) |
 
 How to read them: every program of the corpus that the old compiler accepts compiles and, where it can be
-compared, passes; its screen programs all pass. The game compiles and builds; what
-it shows and plays is compared by no test yet (stage 3 of `tests\programs\README.md`). Upstream
+compared, passes; its screen programs all pass. The game compiles and builds, and a copy of it played for two
+turns shows the same 23 screens as the old compiler's build (stage 3 of `tests\programs\README.md`). Upstream
 went from 50 to 114 over step 10 (64 before its member arrays) and is at 140 after group 6 of step 11 (115
 after `_DEST` and `$CONSOLE`; all 19 `glut` tests with the window built-ins and `_TRUE`/`_FALSE`; four of the
 nine `precomp-flags` tests), at 142 after `m3-sound` and at 148 after `m3-console-files`. Its next blockers outside `deferred.list` are `_MEM`, `$ASSERTS`/`$DEBUG` and the
@@ -214,7 +234,6 @@ None known. (The two of 2026-10-11, a `+` after another sign and a `DIM` of seve
 | When | Item |
 |---|---|
 | M3 | Plain copy of `..\QB64pe\internal\c` at the reference clone's commit, `16f629784e` (`DECISIONS.md` 2026-10-02 and 2026-10-09) |
-| M3 | Civil War Strategy's screens match in a scripted game (`tests\programs\README.md`, stage 3; it builds since `m3-sound`) |
 | Any time | A formatter that matches `-y` (out of M2's exit criterion, `DECISIONS.md` 2026-10-09) |
 | M3 | The image built-ins that run (`_LOADIMAGE`, `_PUTIMAGE`, …), fonts, the mouse: in none of the five steps of M3's order yet |
 | M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\22` §4.2) |
