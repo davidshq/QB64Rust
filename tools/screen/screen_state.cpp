@@ -3,16 +3,18 @@
 // program runs with one of two environment variables:
 //
 //   QB64_SCREEN_STATE=<file>  when the program exits, the state of the screen pages is written to the file
-//   QB64_SCREEN_KEYS=<file>   the keys of the file are given to the program as if typed; its `state` steps
-//                             write states while the program runs, before the one at exit
+//   QB64_SCREEN_KEYS=<file>   the keys of the file are given to the program as if typed, its mouse steps as if
+//                             the mouse moved over the window; its `state` steps write states while the program
+//                             runs, before the one at exit
 //   QB64_SCREEN_PROMPT_MS=<n> how long a `prompt` step waits for the program (default 30000)
 //
-// It reads libqb's own variables and calls keyboard_keydown, so it is compiled against the headers of the libqb
-// it is linked with; libqb itself is not changed.
+// It reads libqb's own variables and calls keyboard_keydown and the Mouse_Queue... functions, so it is compiled
+// against the headers of the libqb it is linked with; libqb itself is not changed.
 
 #include "cmem.h"
 #include "graphics.h"
 #include "keyboard.h"
+#include "mouse.h"
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -171,13 +173,25 @@ const struct {
 };
 
 struct Step {
-    enum { Press, Wait, Repeat, Prompt, State } kind;
-    uint32_t value; // a key code, milliseconds, or the line of a `prompt`
+    enum { Press, Wait, Repeat, Prompt, State, MouseMove, MouseDown, MouseUp, Wheel } kind;
+    uint32_t value; // a key code, milliseconds, the line of a `prompt`, or a mouse button
+    int32_t x = 0, y = 0; // the pixel of a `mouse` step; the steps of a `wheel` in y
 };
 
-// The steps of a keys file, one per line: "text <characters>", "key <name>", "wait <ms>", "prompt", "state", and
-// as the last line "repeat <name>" (the key every 100 ms until the program exits: for END's "Press any key to
-// continue"). Returns the number of the first line that is none of these, or 0.
+// An integer, with a minus sign if `sign`: the whole of `s`, or false.
+bool read_int(const std::string &s, bool sign, int32_t &v) {
+    const size_t from = sign && !s.empty() && s[0] == '-' ? 1 : 0;
+    if (s.size() == from || s.size() > from + 6 || s.find_first_not_of("0123456789", from) != std::string::npos)
+        return false;
+    v = atoi(s.c_str());
+    return true;
+}
+
+// The steps of a keys file, one per line: "text <characters>", "key <name>", "wait <ms>", "prompt", "state", the
+// mouse steps "mouse <x> <y>" (a move to pixel x, y of the window's content), "press <button>" and "release
+// <button>" (1 left, 2 right, 3 middle, at the last position), "wheel <n>" (n steps, negative up), and as the last
+// line "repeat <name>" (the key every 100 ms until the program exits: for END's "Press any key to continue").
+// Returns the number of the first line that is none of these, or 0.
 int read_steps(const std::string &script, std::vector<Step> &steps) {
     std::istringstream in(script);
     std::string line;
@@ -208,6 +222,23 @@ int read_steps(const std::string &script, std::vector<Step> &steps) {
             steps.push_back({repeats ? Step::Repeat : Step::Press, code});
         } else if (verb == "wait" && !arg.empty() && arg.find_first_not_of("0123456789") == std::string::npos) {
             steps.push_back({Step::Wait, (uint32_t)atoi(arg.c_str())});
+        } else if (verb == "mouse") {
+            const size_t sp2 = arg.find(' ');
+            Step s{Step::MouseMove, 0};
+            if (sp2 == std::string::npos || !read_int(arg.substr(0, sp2), false, s.x) ||
+                !read_int(arg.substr(sp2 + 1), false, s.y))
+                return n;
+            steps.push_back(s);
+        } else if (verb == "press" || verb == "release") {
+            int32_t b = 0;
+            if (!read_int(arg, false, b) || b < 1 || b > 3)
+                return n;
+            steps.push_back({verb == "press" ? Step::MouseDown : Step::MouseUp, (uint32_t)b});
+        } else if (verb == "wheel") {
+            Step s{Step::Wheel, 0};
+            if (!read_int(arg, true, s.y) || s.y == 0)
+                return n;
+            steps.push_back(s);
         } else if (line == "prompt") {
             steps.push_back({Step::Prompt, (uint32_t)n});
         } else if (line == "state") {
@@ -278,8 +309,25 @@ void feed(std::vector<Step> steps, std::string keys) {
     // Counted from 0, not from the byte as it is now: the program may announce its first wait before this thread
     // wakes, and cmem starts as zeros.
     uint8_t prompts = 0;
+    double mx = 0, my = 0; // the last position of a `mouse` step
     for (const Step &s : steps) {
-        if (s.kind == Step::Wait) {
+        // A mouse step goes into libqb's queue of mouse events at once, as the window's callbacks put one there:
+        // the queue holds 65536 events, so nothing waits as a key does. The queue is a single-producer ring buffer
+        // and this thread a second writer beside the window's callbacks: a real cursor event at the same moment can
+        // lose or overwrite one. Those callbacks drop moves and scrolls while the window has no focus or the cursor
+        // is outside it, so a test is safe with the real cursor off the window (design D4 of m3-images-fonts-mouse).
+        if (s.kind == Step::MouseMove) {
+            mx = s.x;
+            my = s.y;
+            Mouse_QueuePositionEvent(mx, my, GLUTEnum_MouseCursorMode::Normal);
+        } else if (s.kind == Step::MouseDown) {
+            Mouse_QueueButtonDownEvent((int)s.value, mx, my);
+        } else if (s.kind == Step::MouseUp) {
+            Mouse_QueueButtonUpEvent((int)s.value, mx, my);
+        } else if (s.kind == Step::Wheel) {
+            // libqb's yOffset is GLFW's (positive up); _MOUSEWHEEL is positive down.
+            Mouse_QueueScrollEvent(mx, my, 0, -(double)s.y);
+        } else if (s.kind == Step::Wait) {
             sleep_ms(s.value);
         } else if (s.kind == Step::Prompt) {
             prompt(keys.c_str(), s.value, ++prompts, limit_ms);

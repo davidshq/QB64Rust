@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _PRINTMODE {_FillBackground|_KeepBackground|_OnlyBackground}[, imageHandle&]
+Caused by (or after):_PRINTMODE
+LINE 5:_PRINTMODE
+exit=1

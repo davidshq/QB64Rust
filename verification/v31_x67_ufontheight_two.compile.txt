@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _UFONTHEIGHT&[(fontHandle&)]
+Caused by (or after):PRINT _UFONTHEIGHT ( 1 , 2 )
+LINE 5:PRINT _UFONTHEIGHT(1, 2)
+exit=1

@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _MOUSEX
+Caused by (or after):PRINT _MOUSEX ( 1 )
+LINE 5:PRINT _MOUSEX(1)
+exit=1

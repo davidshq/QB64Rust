@@ -1,0 +1,5 @@
+
+SUB does not require any arguments
+Caused by (or after):_AUTODISPLAY 1
+LINE 5:_AUTODISPLAY 1
+exit=1

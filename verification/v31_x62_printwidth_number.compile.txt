@@ -1,0 +1,5 @@
+
+1st function argument requires a string
+Caused by (or after):PRINT _PRINTWIDTH ( 5 )
+LINE 5:PRINT _PRINTWIDTH(5)
+exit=1

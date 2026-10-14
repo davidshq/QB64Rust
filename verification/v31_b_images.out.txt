@@ -1,0 +1,19 @@
+handles:-1 -1 -1 -1 
+screen: 640  480  1 image: 64  48  1 
+copy: 64  48  1 in 32 bits: 4 
+a new image: 64  16 
+text image: 10  10  0 
+not there:-1 
+HEX$:FFFFFFFF FFFF0000 10
+freed: 258  0 
+freed twice: 258 
+never made: 0  640 
+free the screen: 5 
+copied to 32 bits: 5 -1 
+copied to 256: 0 -1 
+clear colour:-1  4 -1 0
+palette:FF0A141E FF0A141E 4278850591 
+blend:-1  0  0 -1 
+PMAP: 320  240  50.07825  49.89561 
+autodisplay:-1 -1 -1 
+exit=0

@@ -1,0 +1,5 @@
+
+1st function argument requires a number
+Caused by (or after):PRINT _RGB ( "a",1 , 2 , 3 )
+LINE 5:PRINT _RGB("a", 2, 3)
+exit=1

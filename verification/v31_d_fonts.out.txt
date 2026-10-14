@@ -1,0 +1,10 @@
+built-in: 16  8  16  24 8: 8  8  8  24 14: 14  8  14 by handle: 8  14 
+handles:-1 -1 -1 not there: 0 
+cour 16:-1  0  16  30  18  18  30 
+arial 20: 0  20  22  27 monospace: 19  57 
+positions: 3  0  10  20  30  0 arial: 3  0  19  23  27 no array: 3 
+HEX$:0 8
+freed font: 258 free a built-in: 258 
+print mode: 3  1  2  3 
+mapunicode: 9786  9786  65 
+exit=0

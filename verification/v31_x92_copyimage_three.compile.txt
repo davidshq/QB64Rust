@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _COPYIMAGE(imageHandle&[, mode])
+Caused by (or after):L = _COPYIMAGE ( 1 , 2 , 3 )
+LINE 5:l = _COPYIMAGE(1, 2, 3)
+exit=1

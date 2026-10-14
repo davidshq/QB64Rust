@@ -2135,6 +2135,96 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     written by `screen_state.cpp`.
   - **`$EXEICON`** of the copy needs `cws.ico` beside it when it is built; the corpus runner copies
     `<name>.files\` into the program's folder before it compiles.
+- **The image, colour, font and mouse built-ins (`v31_*`, 113 programs, measured 2026-10-14 as task 1.1 of
+  `m3-images-fonts-mouse`: 225 accepted forms read with `qb64pe -z` from programs outside the repository,
+  kept as code that is not reached in `v31_x01_accepted`; 108 rejected forms, one program each, `x02`–`x109`;
+  the values in `v31_a`–`v31_d`, each printed to the console of a program with a hidden window).**
+  - **Every accepted form is the plain call of its table row and template.** The slots are the table's, a float
+    into an integer slot is `qbr(…)`, an integer or a float into a SINGLE or DOUBLE slot is passed as it is, an
+    `_UNSIGNED LONG` into a LONG slot as it is, a literal as written (`&HFF102030` into an `_UNSIGNED LONG` slot
+    is `-15720400`). A left-out slot is `NULL`; a function's optional slots are counted in a last argument
+    `0|1|2…` (`func__rgb(1,2,3,NULL,0)`, `func__loadimage(f,NULL,s,0|2)`), a statement's in a plain number
+    (`sub__putimage(…,616)`). The words of a template are numbers in their slot: `_PRINTMODE` `_FILLBACKGROUND`
+    1, `_KEEPBACKGROUND` 2, `_ONLYBACKGROUND` 3; `_DEPTHBUFFER` `ON` 1, `OFF` 2, `LOCK` 3, `_CLEAR` 4;
+    `_MAPTRIANGLE` `_CLOCKWISE` 1, `_ANTICLOCKWISE` 2 in its first slot, `_SEAMLESS` a bit of the mask,
+    `_SMOOTH` 1, `_SMOOTHSHRUNK` 2, `_SMOOTHSTRETCHED` 3 in its last; `_PUTIMAGE`'s `_SMOOTH` and `STEP` and
+    `_CLEARCOLOR`'s `_NONE` are bits of the mask only. Every statement takes `CALL` with its template in
+    parentheses (`CALL _PUTIMAGE((10, 10), img)`, `CALL _MAPUNICODE(9786 TO 1)`) and writes the same call.
+  - **Result types, as the table says**: a LONG for the handles, sizes, `_RED` to `_ALPHA`, `_RED32` to
+    `_ALPHA32`, `_CLEARCOLOR`, `_BLEND`, `_PALETTECOLOR`, `_AUTODISPLAY`, `_FONT`, `_FONTWIDTH`, `_FONTHEIGHT`,
+    `_PRINTWIDTH`, `_PRINTMODE`, the `_U…` functions, `_MAPUNICODE`, `_MOUSEINPUT`, `_MOUSEBUTTON`,
+    `_MOUSEHIDDEN`, `_MOUSEDISABLED`, `_SCREENIMAGE`, `_CLIPBOARDIMAGE`; an `_UNSIGNED LONG` for `_RGB`,
+    `_RGBA`, `_HSB32`, `_HSBA32` (and `_RGB32`, `_RGBA32`); a DOUBLE for `_HUE32`, `_SATURATION32`,
+    `_BRIGHTNESS32`, `_MOUSEX`, `_MOUSEY`, `_MOUSEWHEEL`, `_MOUSEMOVEMENTX`, `_MOUSEMOVEMENTY`; a SINGLE for
+    `PMAP` (`HEX$` of it is `func_hex_float`).
+  - **Forms the template allows that look odd**: `_CLEARCOLOR` alone (`sub__clearcolor(NULL,NULL,0)`) and
+    `_CLEARCOLOR _NONE 4` (the word and a colour, mask 3) are accepted; `_PUTIMAGE` alone, `_PUTIMAGE , , , ,
+    _SMOOTH` and every other choice of its four parts; `_MAPTRIANGLE` with no source handle (`(…) TO (…)`) and
+    with a z on some of the destination's points only (`(10, 10, -1)-(50, 10)-(10, 50)`, mask 6); `_MOUSEWHEEL`
+    bare and with an axis.
+  - **`_UCHARPOS`'s second argument** (`qb64pe.bas` 20901–20918) must be a whole array or an element of an
+    array whose type is a 32-bit integer that is not an offset: LONG and `_UNSIGNED LONG` are accepted, also
+    with two dimensions or used without `DIM` (`nd&()`); any other type, a scalar, a literal and an array name
+    with no parentheses are "Expected LONG array-name". It is passed as the bytes from the element (or from
+    the first element of a whole array, its `LBOUND`, with no bounds check) to the array's end, as graphics `GET` passes its array:
+    `byte_element((uint64)(&(((int32*)(__ARRAY_LONG_P[0]))[0])),((4*(__ARRAY_LONG_P[2]&1)*__ARRAY_LONG_P[5])-(4*(0))),byte_element_1)`.
+  - **Rejected** (`x02`–`x109`): a function with too few or too many arguments, also when bare, is "Incorrect
+    number of arguments - Reference: …" (`_COPYIMAGE`, `_LOADIMAGE`, `_RGB(1, 2)`, `_MOUSEBUTTON`,
+    `_MOUSEX(1)`, `PMAP(1)`); empty parentheses "Expected (...)"; a string for a number "1st function argument
+    requires a number" or "Number required for function" (a function with one slot), a number for a string
+    "… requires a string"; a statement in a form its template does not have "Syntax error - Reference: …"
+    (`_PUTIMAGE (1, 2)-`, `_PRINTMODE` alone or with a number, `_DEPTHBUFFER 1`, `_MAPUNICODE 1, 2`, `_FONT`
+    alone, `_PRINTSTRING` with a `-` or no text, `_UPRINTSTRING STEP`, `_MAPTRIANGLE` with two points, with
+    `STEP`, with a z in the source, with `_SEAMLESS` before `_CLOCKWISE`, `_CLIPBOARDIMAGE l` without `=`);
+    `_SETALPHA 128 TO 9` "Name already in use (TO)"; `_AUTODISPLAY 1` "SUB does not require any arguments";
+    a function as a statement (`_MOUSEINPUT`, `_WIDTH 5`) "Syntax error".
+  - **Values (`v31_a`–`v31_d`).** In `SCREEN 13` `_RGB(255, 0, 0)` is 40 and `_RED(4)`, `_GREEN(4)`,
+    `_BLUE(4)`, `_ALPHA(4)` are 170, 0, 0, 255. `_RGB32(5)` is `FF050505`, `_RGB32(5, 6)` `6050505`;
+    `_HSB32(120, 50, 50)` is `FF408040`; `_RGB32(10, 200, 30)` has hue 126.3157894736842, saturation 95,
+    brightness 78.43137254901961; a colour part out of range is clamped. `_WIDTH(_NEWIMAGE(64, 48, 32))` is
+    64; a text image `_NEWIMAGE(10, 10, 0)` has `_PIXELSIZE` 0. `_LOADIMAGE` of a file that is not there is
+    -1. `_COPYIMAGE(a&, 32)` of a 256-colour image is error 5 (only 33, a hardware copy, changes the mode).
+    `_WIDTH` of a freed handle is error 258 ("Invalid handle"), as is freeing it again; **`_WIDTH(12345)`,
+    a number that was never a handle, is no error and gives the screen's width** (640); `_FREEIMAGE 0` is
+    error 5. `_CLEARCOLOR` of `SCREEN 12` is -1 (none); of a 32-bit image after `_CLEARCOLOR _RGB32(1, 2, 3)`
+    it is 0. `_PALETTECOLOR 3, _RGB32(10, 20, 30)` then `_PALETTECOLOR(3)` is `FF0A141E` in `SCREEN 12` and in
+    a 256-colour image. `_BLEND` is -1 for a 32-bit image, 0 for a palette one. After `WINDOW (0, 0)-(100,
+    100)` in `SCREEN 12`, `PMAP(50, 0)` is 320, `PMAP(50, 1)` 240, `PMAP(320, 2)` 50.07825. `_AUTODISPLAY` is
+    -1 before and after `_DISPLAY` (in a hidden window).
+  - **Saved and loaded again (`v31_c`).** `_SAVEIMAGE` writes BMP, PNG, JPG, TGA, QOI and HDR by the name's
+    extension; each loads again at its size with the pixels as drawn (JPG changes `FFFF0000` to `FFFE0000`). A
+    name with no extension gets `.png`; `_SAVEIMAGE "x.dat", h, "bmp"` writes `x.dat.bmp`. A palette image
+    saved and loaded with mode 256 keeps its indices. **`_SAVEIMAGE` with a handle that was never made writes
+    a file and raises no error.**
+  - **Fonts (`v31_d`).** In `SCREEN 12` the font is 16, 8 by 16 pixels; `_FONT 8` is 8 by 8, `_FONT 14` 8 by
+    14; `_PRINTWIDTH("abc")` is 24. `_LOADFONT("cour.ttf", 16)` and `_LOADFONT("arial.ttf", 20)` load
+    Windows' fonts by their bare names (handles above 31); a font that is not there gives 0, no error. A
+    loaded font that is not loaded `MONOSPACE` has `_FONTWIDTH` 0; Courier New 16 is 16 high, `_PRINTWIDTH`
+    of "abc" 30, `_UFONTHEIGHT` and `_ULINESPACING` 18; Arial 20 is 20 high, `_UFONTHEIGHT` 22. `_UCHARPOS("abc",
+    p())` is 3 and gives the left edge of each character and the end (0, 10, 20, 30), also into an
+    `_UNSIGNED LONG` array; with no array it gives the count only. `_FONT` and `_FREEFONT` of a freed handle
+    are error 258, also `_FREEFONT 16` (a built-in font). `_PRINTMODE` is 3 at first; after
+    `_KEEPBACKGROUND` 1, `_ONLYBACKGROUND` 2, `_FILLBACKGROUND` 3 (other numbers than the statement's).
+    `_MAPUNICODE(1)` is 9786 before and after `_MAPUNICODE 9786 TO 1`, `_MAPUNICODE(65)` 65.
+  - **The build (task 1.2, six programs built with `qb64pe -x` outside the repository, read from the clone's
+    `compilelog.txt`).** `_LOADIMAGE` and `_SAVEIMAGE` set `DEP_IMAGE_CODEC=y` (define `DEPENDENCY_IMAGE_CODEC`,
+    variant `libqb_make_01000000`); `_SCREENIMAGE` and `_CLIPBOARDIMAGE` set `DEP_SCREENIMAGE=y` alone, and the
+    clone's `Makefile` builds the image codec in too (`01000010`, both defines); `_LOADFONT` and the `_U…`
+    functions set `DEP_FONT=y`, which has no define and links FreeType's objects in place of the font stub
+    `font.o`; the variant stays `00000000`. All three with `$CONSOLE:ONLY` is `01100010`, `-mconsole`. The order
+    of the flags is `qb64pe.bas` 13706–13721.
+  - **The mouse of a window, fed through libqb's queue** (`Mouse_QueuePositionEvent` and the others, from a
+    thread of `tools\screen\screen_state.cpp`, read by a program of the old compiler that prints every event):
+    in `SCREEN 12` the window's pixel is the screen's (40, 30 gives `_MOUSEX` 40, `_MOUSEY` 30); in `SCREEN 0`
+    a column and a row (40, 30 is 6, 2; 100, 50 is 13, 4). A move is two events in the queue (the move, then a
+    copy with the movement 0), a button one, a wheel turn two (the steps, then 0). `_MOUSEBUTTON(1)` is -1 while
+    the left button is down, `_MOUSEBUTTON(2)` for the right. A scroll of yOffset -1 (down, GLFW's sign) gives
+    `_MOUSEWHEEL` 1; up is negative. **The user's real cursor over a shown window adds events** (30 before the
+    first scripted one in that run), and the movement of the first scripted move is counted from the real
+    cursor's last position; between two scripted moves it is their own difference. The queue is a
+    single-producer ring buffer (`ring-buffer.h`), so the scripted thread is a second writer beside the window's
+    callbacks: a real event at the moment of a step can lose or overwrite one. The position and scroll callbacks
+    drop events while the window has no focus or the cursor is outside it (`mouse.cpp` 646–661).
 
 ## 6. Bug-compatibility choices (all decided)
 

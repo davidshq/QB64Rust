@@ -1,0 +1,5 @@
+
+1st sub argument requires a number
+Caused by (or after):_SETALPHA "a",1
+LINE 5:_SETALPHA "a"
+exit=1

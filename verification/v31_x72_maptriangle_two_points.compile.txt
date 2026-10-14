@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _MAPTRIANGLE [{_SEAMLESS}] (sx1, sy1)-(sx2, sy2)-(sx3, sy3), source& TO (dx1, dy1)-(dx2, dy2)-(dx3, dy3)[, destination&][{_SMOOTH|_SMOOTHSHRUNK|_SMOOTHSTRETCHED}]]
+Caused by (or after):_MAPTRIANGLE ( 0 , 0 ) - ( 9 , 0 ) , IMG TO ( 10 , 10 ) - ( 50 , 10 ) - ( 10 , 50 )
+LINE 5:_MAPTRIANGLE (0, 0)-(9, 0), img TO (10, 10)-(50, 10)-(10, 50)
+exit=1

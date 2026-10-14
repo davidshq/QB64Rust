@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _FONT fontHandle&[, imageHandle&]
+Caused by (or after):_FONT 1 , 2 , 3
+LINE 5:_FONT 1, 2, 3
+exit=1

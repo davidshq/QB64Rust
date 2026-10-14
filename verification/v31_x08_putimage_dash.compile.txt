@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _PUTIMAGE [STEP] [(dx1, dy1)-[STEP][(dx2, dy2)]][, sourceHandle&][, destHandle&][, ][STEP][(sx1, sy1)[-STEP][(sx2, sy2)]][_SMOOTH]
+Caused by (or after):_PUTIMAGE ( 1 , 2 ) -
+LINE 5:_PUTIMAGE (1, 2)-
+exit=1

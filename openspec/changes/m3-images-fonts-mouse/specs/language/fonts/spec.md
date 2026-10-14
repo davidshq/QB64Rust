@@ -24,9 +24,10 @@ each form the old compiler accepts, with the call it writes; a form it rejects S
 - **THEN** each function has the result type the old compiler gives it
 
 ### Requirement: _UCHARPOS takes a LONG array
-The second argument of `_UCHARPOS` SHALL be an array of LONG, as in the old compiler, whose elements receive the
-position of each character; any other argument there SHALL be the old compiler's compile error, "Expected LONG
-array-name".
+The second argument of `_UCHARPOS` SHALL be a whole array or an element of an array of LONG or `_UNSIGNED LONG`,
+as in the old compiler (`verification\v31_x01_accepted`), whose elements, from that element or from the array's
+first, receive the position of each character; any other argument there SHALL be the old compiler's compile
+error, "Expected LONG array-name".
 
 #### Scenario: Positions of the characters
 - **WHEN** a program loads a font, `DIM p(10) AS LONG`, calls `n = _UCHARPOS("abc", p())` and prints `n` and the

@@ -18,7 +18,7 @@ finds it, with a parser test.
 
 ## 1. Measurements before code
 
-- [ ] 1.1 Measure every form of every name of the proposal (design D1) with `qb64pe -z`, outside the repository:
+- [x] 1.1 Measure every form of every name of the proposal (design D1) with `qb64pe -z`, outside the repository:
   each argument left out in turn, each word of each template, one variable of each numeric type and a literal in
   one slot of each slot type, the result of each function in `PRINT`, `HEX$` and an operation, and `_UCHARPOS`
   with a LONG array, another array and a scalar. Keep the rejected forms and the forms the specs' scenarios name
@@ -26,14 +26,30 @@ finds it, with a parser test.
   D1 has one line per form in place of "the shape expected"; the `v31` paragraph of `study\00` §5 has the facts;
   each scenario of the three new specs names forms and values the old compiler does give, corrected if not; the
   reference clone's `git status --porcelain` is empty before and after.
-- [ ] 1.2 Measure the make line (design D2): the old compiler's `internal\temp\compilelog.txt` for a program with
+  Found: 225 accepted forms (`v31_x01_accepted`), 108 rejected ones (`x02`–`x109`), four programs of values
+  (`v31_a` colours, `v31_b` handles, sizes, clear colour, palette, blending, `PMAP`, `_AUTODISPLAY`, `v31_c`
+  six formats saved and loaded again, `v31_d` fonts). Every name is the plain call of its row and template; none
+  needs more than a row and a slot kind. `_UCHARPOS` also takes an `_UNSIGNED LONG` array and an element (the
+  check is "a 32-bit integer array"), so the `language/fonts` requirement was corrected. Two behaviours of
+  libqb that look questionable: `_WIDTH` of a number that was never a handle is the screen's width, no error;
+  `_SAVEIMAGE` with such a number writes a file. The clone's status was empty before and after.
+- [x] 1.2 Measure the make line (design D2): the old compiler's `internal\temp\compilelog.txt` for a program with
   `_LOADIMAGE`, one with `_LOADFONT`, one with `_SCREENIMAGE` and one with all three and `$CONSOLE:ONLY`, and what
   `_LOADFONT("cour.ttf", 16)`, `_MOUSEX` after a mouse step, and `_MOUSEWHEEL` after a scroll event of each sign
   give (a first version of the mouse steps, task 4.1, may be written for this). Verify: D2 and D4 say what was
   found; `study\00` §5 has it.
-- [ ] 1.3 Record `v31*` in `CLAUDE.md`'s layout table, and tell the user of any form that needs more than a row
+  Found: six builds (the four, a plain program and `$CONSOLE:ONLY`): the flags and their order are as D2 has
+  them; `DEP_SCREENIMAGE=y` alone makes the `Makefile` build the image codec in too, and `DEP_FONT=y` only swaps
+  the font stub for FreeType, so `make_flags` needs nothing beyond the three flags. `_LOADFONT("cour.ttf", 16)`
+  gives a handle above 31 (`v31_d`). The mouse steps were written in `screen_state.cpp` for this (task 4.1 still
+  documents and tests them): a move is two events in libqb's queue, a wheel turn two, a button one, so the
+  screen-state spec's click is four events, corrected there; `wheel 1` gives `_MOUSEWHEEL` 1. The user's real
+  cursor over the window reaches the queue, so no test prints the movement of a first move (D4).
+- [x] 1.3 Record `v31*` in `CLAUDE.md`'s layout table, and tell the user of any form that needs more than a row
   and a slot kind (D1) or that stays "not supported yet", with the reason. Verify: the row names the programs;
   `check_repo.py --untracked` is clean.
+  Found: no form needs more than a row and a slot kind, and none is planned to stay "not supported yet"; told
+  the user so with the close of group 1 (2026-10-14).
 
 ## 2. Images and colours
 

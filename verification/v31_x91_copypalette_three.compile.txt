@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _COPYPALETTE [sourceImageHandle&[, destinationImageHandle&]]
+Caused by (or after):_COPYPALETTE 1 , 2 , 3
+LINE 5:_COPYPALETTE 1, 2, 3
+exit=1

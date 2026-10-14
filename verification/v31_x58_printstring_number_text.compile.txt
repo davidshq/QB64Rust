@@ -1,0 +1,5 @@
+
+3rd sub argument requires a string
+Caused by (or after):_PRINTSTRING ( 1 , 2 ) , 5
+LINE 5:_PRINTSTRING (1, 2), 5
+exit=1

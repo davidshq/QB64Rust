@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _RED(rgbaColorIndex&[, imageHandle&])
+Caused by (or after):PRINT _RED
+LINE 5:PRINT _RED
+exit=1

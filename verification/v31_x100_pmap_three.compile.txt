@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: PMAP(coordinate, function_number%)
+Caused by (or after):PRINT PMAP ( 1 , 2 , 3 )
+LINE 5:PRINT PMAP(1, 2, 3)
+exit=1

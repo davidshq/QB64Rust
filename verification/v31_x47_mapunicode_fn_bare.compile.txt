@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _MAPUNICODE(asciiCode%)
+Caused by (or after):PRINT _MAPUNICODE
+LINE 5:PRINT _MAPUNICODE
+exit=1

@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):PRINT _HUE32 ( "a",1 )
+LINE 5:PRINT _HUE32("a")
+exit=1

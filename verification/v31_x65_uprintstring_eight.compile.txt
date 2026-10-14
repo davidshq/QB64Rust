@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _UPRINTSTRING (x&, y&), text$[, maxWidth&][, utfEncoding&][, fontHandle&][, imageHandle&]
+Caused by (or after):_UPRINTSTRING ( 1 , 2 ) , "a",1 , 1 , 2 , 3 , 4 , 5
+LINE 5:_UPRINTSTRING (1, 2), "a", 1, 2, 3, 4, 5
+exit=1

@@ -1,0 +1,5 @@
+
+2nd function argument requires a number
+Caused by (or after):L = _LOADIMAGE ( "a",1 , "x",1 )
+LINE 5:l = _LOADIMAGE("a", "x")
+exit=1

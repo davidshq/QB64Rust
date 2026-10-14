@@ -11,8 +11,8 @@ would.
 #### Scenario: A click
 - **WHEN** the keys file is `prompt`, `mouse 40 30`, `press 1`, `release 1`, and the program reads every event
   with `_MOUSEINPUT` and prints `_MOUSEX`, `_MOUSEY` and `_MOUSEBUTTON(1)` for each
-- **THEN** it prints three events at 40, 30: the move with the button up, the press with it down, the release
-  with it up
+- **THEN** it prints four events at 40, 30: the move and libqb's copy of it with the movement cleared, both with
+  the button up, the press with it down, the release with it up
 
 #### Scenario: A mistake in a mouse step
 - **WHEN** a line reads `press 9` or `mouse 10`
