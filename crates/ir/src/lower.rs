@@ -373,6 +373,27 @@ impl<'a> Lowerer<'a> {
                 values: values.clone(),
                 newline: *newline,
             },
+            sema::StmtKind::MemGet { block, offset, target } => Op::MemGet {
+                block: block.clone(),
+                offset: offset.clone(),
+                target: target.clone(),
+            },
+            sema::StmtKind::MemPut { block, offset, value } => Op::MemPut {
+                block: block.clone(),
+                offset: offset.clone(),
+                value: value.clone(),
+            },
+            sema::StmtKind::MemFill {
+                block,
+                offset,
+                bytes,
+                value,
+            } => Op::MemFill {
+                block: block.clone(),
+                offset: offset.clone(),
+                bytes: bytes.clone(),
+                value: value.clone(),
+            },
             sema::StmtKind::Field { file, parts } => Op::Field {
                 file: file.clone(),
                 parts: parts.clone(),

@@ -1,0 +1,5 @@
+
+Expected _MEM type
+Caused by (or after):_MEMFILL K , 0 , 8 , 1 AS LONG
+LINE 9:_MEMFILL k, 0, 8, 1 AS LONG
+exit=1

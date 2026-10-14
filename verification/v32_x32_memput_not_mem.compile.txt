@@ -1,0 +1,5 @@
+
+Expected _MEM type
+Caused by (or after):_MEMPUT K , 0 , 1 AS LONG
+LINE 9:_MEMPUT k, 0, 1 AS LONG
+exit=1

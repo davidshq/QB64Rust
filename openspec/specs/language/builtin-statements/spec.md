@@ -22,7 +22,8 @@ files read and written by position `GET`, `PUT`, `FIELD`, `LSET`, `RSET`, `LOCK`
 (`language/images`, `language/fonts`, `language/mouse`): `_SAVEIMAGE`, `_PUTIMAGE`, `_MAPTRIANGLE`,
 `_DEPTHBUFFER`, `_CLEARCOLOR`, `_SETALPHA`, `_BLEND`, `_DONTBLEND`, `_PALETTECOLOR`, `_COPYPALETTE`,
 `_AUTODISPLAY`, `_CLIPBOARDIMAGE`, `_PRINTIMAGE`, `_FONT`, `_FREEFONT`, `_PRINTSTRING`, `_PRINTMODE`,
-`_UPRINTSTRING`, `_MAPUNICODE`, `_MOUSEMOVE`. Any other built-in
+`_UPRINTSTRING`, `_MAPUNICODE`, `_MOUSEMOVE`, and the statements of memory blocks (`language/mem-blocks`):
+`_MEMGET`, `_MEMPUT`, `_MEMFILL`, `_MEMCOPY`, `_MEMFREE`. Any other built-in
 statement SHALL be reported "not supported yet" at its first word, and a supported
 statement used in a form this change leaves out SHALL be reported "not supported yet" at that form.
 
@@ -62,6 +63,10 @@ statement used in a form this change leaves out SHALL be reported "not supported
 
 #### Scenario: An image statement
 - **WHEN** `_PUTIMAGE (0, 0), img` is compiled in a program where `img` is a LONG
+- **THEN** there is no diagnostic
+
+#### Scenario: A statement of memory blocks
+- **WHEN** `DIM m AS _MEM: m = _MEMNEW(8): _MEMPUT m, m.OFFSET, 1 AS LONG: _MEMFREE m` is compiled
 - **THEN** there is no diagnostic
 
 ### Requirement: Arguments of a built-in statement

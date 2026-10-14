@@ -1,0 +1,5 @@
+
+_CV requires a STRING argument
+Caused by (or after):K = _CV ( LONG , 5 )
+LINE 9:k = _CV(LONG, 5)
+exit=1

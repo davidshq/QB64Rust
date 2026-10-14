@@ -1,0 +1,5 @@
+
+_MEMELEMENT cannot reference variable-length strings
+Caused by (or after):M = _MEMELEMENT ( S )
+LINE 9:m = _MEMELEMENT(s)
+exit=1

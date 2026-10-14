@@ -4,7 +4,7 @@ use crate::Emitter;
 use crate::decl::{Part, dim_count, dim_slot, is_qbs};
 use crate::names::{c_type, int_const, proc_name};
 use crate::place::fixed_at;
-use qb64rust_ir::{ArrayRef, Expr, Facts, LabelId, MemberId, OnError, Op, Place, PrintTo, Resume, Ty, When};
+use qb64rust_ir::{ArrayRef, Expr, ExprKind, Facts, LabelId, MemberId, OnError, Op, Place, PrintTo, Resume, Ty, When};
 use std::fmt::Write as _;
 
 impl Emitter<'_> {
@@ -133,6 +133,32 @@ impl Emitter<'_> {
                 }
             }
             Op::Builtin { id, args } => self.stmt_call(*id, args, out),
+            Op::MemGet { block, offset, target } => {
+                self.mem_get_stmt(block, offset, target, out);
+                let p = self.p;
+                if block.uses_strings(p) || offset.uses_strings(p) || reference_strings(p, target) {
+                    out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+                }
+            }
+            Op::MemPut { block, offset, value } => {
+                self.mem_put_stmt(block, offset, value, out);
+                let p = self.p;
+                if block.uses_strings(p) || offset.uses_strings(p) || value_strings(p, value) {
+                    out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+                }
+            }
+            Op::MemFill {
+                block,
+                offset,
+                bytes,
+                value,
+            } => {
+                self.mem_fill_stmt((block, offset, bytes), value, out);
+                let p = self.p;
+                if block.uses_strings(p) || offset.uses_strings(p) || bytes.uses_strings(p) || value_strings(p, value) {
+                    out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+                }
+            }
             Op::Print {
                 to: PrintTo::File(n),
                 items,
@@ -166,9 +192,41 @@ impl Emitter<'_> {
 
     /// A store of a value, by the rule of its place.
     fn assign(&mut self, place: &Place, value: &Expr, out: &mut Vec<String>) {
+        if let Ty::User(_) = value.ty {
+            return self.store_block(place, value, out);
+        }
         let cleanup = value.uses_strings(self.p) || place.uses_strings(self.p);
         self.store(place, is_qbs(value.ty), &mut |e| e.value(value), out);
         if cleanup {
+            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        }
+    }
+
+    /// A block a built-in gives, stored into a place of type `_MEM` (design D2 of `m3-mem`), as the old compiler
+    /// writes it: the call's result into a `mem_block` temporary of its own, declared in `global.txt`, and its 56
+    /// bytes copied (`memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func1=func__memnew( 64 )))+(0)),56);`,
+    /// measured, `verification\v32_x01_accepted`). The place is found as a whole value's is, not guarded.
+    fn store_block(&mut self, place: &Place, value: &Expr, out: &mut Vec<String>) {
+        let to = match place {
+            Place::Var(v) => format!("(((char*){})+((0+0))+(0))", self.name(*v)),
+            Place::Element { .. } | Place::Member { .. } => format!("({}+(0))", self.bytes_of(place)),
+        };
+        let v = self.value(value);
+        // A value of a user type read by `_MEMGET` is the address of its bytes in the block (`((void*)+…)`),
+        // copied from there (measured, `verification\v32_x01_accepted`); a block a built-in gives is held first.
+        let from = if let ExprKind::MemRead { .. } = value.kind {
+            v
+        } else {
+            self.funcs += 1;
+            let t = format!("func{}", self.funcs);
+            self.func_decls.push(format!("mem_block {t};\n"));
+            format!("&({t}={v})")
+        };
+        out.push(format!(
+            "memcpy({to},(((char*){from})+(0)),{});",
+            self.ty_size(value.ty)
+        ));
+        if value.uses_strings(self.p) || place.uses_strings(self.p) {
             out.push("qbs_cleanup(qbs_tmp_base,0);".into());
         }
     }
@@ -385,6 +443,23 @@ impl Emitter<'_> {
                 root
             }
         }
+    }
+}
+
+/// Whether the variable of a statement of memory blocks makes string temporaries: an index that involves strings,
+/// or a fixed-length string element (a temporary fixed `qbs` over its bytes).
+fn reference_strings(p: &qb64rust_ir::Program, of: &qb64rust_ir::Reference) -> bool {
+    of.indexes().iter().any(|i| i.uses_strings(p))
+        || matches!(of, qb64rust_ir::Reference::Place(Place::Element { array, .. })
+            if matches!(p.array_ty(array), Ty::FixedStr(_)))
+}
+
+/// Whether the value of `_MEMPUT` or `_MEMFILL` makes string temporaries.
+fn value_strings(p: &qb64rust_ir::Program, v: &qb64rust_ir::MemValue) -> bool {
+    match v {
+        qb64rust_ir::MemValue::Typed { value, .. } => value.uses_strings(p),
+        qb64rust_ir::MemValue::Bytes(of) => reference_strings(p, of),
+        qb64rust_ir::MemValue::Str(_) => true,
     }
 }
 

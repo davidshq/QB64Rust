@@ -1,0 +1,6 @@
+before
+ 0 
+
+Runtime error: Line: 10 (in main module)
+Memory has been freed
+exit=0

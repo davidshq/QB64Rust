@@ -1,0 +1,5 @@
+
+Cannot convert type (STRING*4%) to symbol
+Caused by (or after):S = _MK$ ( STRING * 4 , K )
+LINE 9:s = _MK$(STRING * 4, k)
+exit=1

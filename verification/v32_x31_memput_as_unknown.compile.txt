@@ -1,0 +1,5 @@
+
+Invalid type
+Caused by (or after):_MEMPUT M , M . OFFSET , 1 AS FOO
+LINE 9:_MEMPUT m, m.OFFSET, 1 AS FOO
+exit=1

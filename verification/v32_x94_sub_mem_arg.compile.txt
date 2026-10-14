@@ -1,0 +1,5 @@
+
+TYPE '_MEM' required for sub
+Caused by (or after):X _MEM ( K )
+LINE 9:x _MEM(k)
+exit=1

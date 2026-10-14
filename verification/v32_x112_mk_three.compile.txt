@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _MK$(numericalType, numericalValue)
+Caused by (or after):S = _MK$ ( LONG , 1 , 2 )
+LINE 9:s = _MK$(LONG, 1, 2)
+exit=1

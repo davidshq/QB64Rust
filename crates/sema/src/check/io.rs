@@ -462,6 +462,11 @@ impl Checker<'_> {
                         let msg = format!("`{what}` from the console cannot read into a `_BIT` array element");
                         return Err(self.error(n.node().span(), msg));
                     }
+                    // `INPUT #` stores a number as an assignment does, `READ` too (`Self::read`): not into a member
+                    // of a `_MEM` block (measured, `verification\v32_x118`).
+                    if !console && what == "INPUT" {
+                        self.read_only_member(&place, n.node().span())?;
+                    }
                     targets.push(place);
                     want_target = false;
                 }
@@ -571,6 +576,7 @@ impl Checker<'_> {
             } else {
                 self.unjoined(NoJoin::Item, |c| c.target_place(e, "READ"))?
             };
+            self.read_only_member(&target, e.node().span())?;
             targets.push(target);
         }
         if targets.is_empty() {

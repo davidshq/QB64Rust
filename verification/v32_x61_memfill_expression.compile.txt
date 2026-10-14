@@ -1,0 +1,5 @@
+
+Expected variable name/array element
+Caused by (or after):_MEMFILL M , M . OFFSET , 8 , K + 1
+LINE 9:_MEMFILL m, m.OFFSET, 8, k + 1
+exit=1

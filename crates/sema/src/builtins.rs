@@ -61,6 +61,18 @@ pub enum Rule {
     Rotate,
     /// `_IIF`: no call but a choice that evaluates one of its parts, checked as [`ExprKind::Choice`].
     Choice,
+    /// No call but an expression of its own, which the checker builds before it looks at the table (`_MEM`,
+    /// `_MEMELEMENT`: [`ExprKind::MemOf`], [`ExprKind::MemAt`]; `_OFFSET`: [`ExprKind::AddressOf`]). Named bare,
+    /// such a built-in is an arity error.
+    Own,
+    /// `MKI$`, `MKL$`, `MKS$`, `MKD$` (the type given) and `_MK$` (`None`: the type is its first argument): the
+    /// bytes of a number as a string, libqb's `<t>2string` (design D5 of `m3-mem`; `qb64pe.bas` 21217–21255).
+    /// The number is converted to an integer type as a store would, and passed to a float type as it is. `_MK$`'s
+    /// first slot holds a 0 of the type named (`_BIT` and `_UNSIGNED _BIT` are one bit wide).
+    Mk(Option<Ty>),
+    /// `CVI`, `CVL`, `CVS`, `CVD` (the type given) and `_CV` (`None`, as for [`Rule::Mk`]): the number a string's
+    /// bytes hold, libqb's `string2<t>`, typed as the type (a `_BIT` as an `_INTEGER64`).
+    Cv(Option<Ty>),
 }
 
 /// Every built-in function `sema` compiles, as written (with its required suffix), and its rule. The coverage check
@@ -272,7 +284,36 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // screen-image part ([`crate::RuntimePart::ScreenImage`]). Compiled and never run ([`NEVER_RUN`]).
     ("_SCREENIMAGE", Rule::Plain),
     ("_CLIPBOARDIMAGE", Rule::Plain),
+    // Memory blocks (design D2 and D4 of `m3-mem`; `verification\v32_x01_accepted`): `_MEMNEW`, `_MEMIMAGE` and
+    // `_MEMSOUND` give a block, which is only stored into a `_MEM` place (`check\mod.rs`, `assign`); `_MEMEXISTS`
+    // takes one ([`Slot::Mem`]). `_MEMSOUND` needs libqb's audio part and no test runs it ([`NEVER_RUN`]).
+    ("_MEMNEW", Rule::Plain),
+    ("_MEMIMAGE", Rule::Plain),
+    ("_MEMSOUND", Rule::Plain),
+    ("_MEMEXISTS", Rule::Plain),
+    // The block of a reference or of an address, and the address of a reference (design D3 and D6 of `m3-mem`).
+    ("_MEM", Rule::Own),
+    ("_MEMELEMENT", Rule::Own),
+    ("_OFFSET", Rule::Own),
+    // A value read from a block (design D4 of `m3-mem`), [`ExprKind::MemRead`].
+    ("_MEMGET", Rule::Own),
+    // A number and its bytes (design D5 of `m3-mem`; `verification\v32_c_mk_cv`, `v32_x97`–`x113`).
+    ("MKI$", Rule::Mk(Some(Ty::I16))),
+    ("MKL$", Rule::Mk(Some(Ty::I32))),
+    ("MKS$", Rule::Mk(Some(Ty::F32))),
+    ("MKD$", Rule::Mk(Some(Ty::F64))),
+    ("_MK$", Rule::Mk(None)),
+    ("CVI", Rule::Cv(Some(Ty::I16))),
+    ("CVL", Rule::Cv(Some(Ty::I32))),
+    ("CVS", Rule::Cv(Some(Ty::F32))),
+    ("CVD", Rule::Cv(Some(Ty::F64))),
+    ("_CV", Rule::Cv(None)),
 ];
+
+/// The built-in functions whose result is a block of the predefined type `_MEM` (design D2 of `m3-mem`), as
+/// written. The old compiler takes such a call only as the value stored into a place of type `_MEM` (measured,
+/// `verification\v32_x02`, `x03`, `x80`, `x93`–`x96`).
+pub const MEM_RESULTS: &[&str] = &["_MEM", "_MEMELEMENT", "_MEMNEW", "_MEMIMAGE", "_MEMSOUND"];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
 /// `m2-builtin-statements`): one variant per kind of special-casing.
@@ -421,6 +462,10 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_CLIPBOARDIMAGE", StmtRule::Plain),
     ("_PRINTIMAGE", StmtRule::Plain),
     ("_DEPTHBUFFER", StmtRule::Plain),
+    // Memory blocks (design D2 and D4 of `m3-mem`): each a plain call whose blocks are `_MEM` places
+    // ([`Slot::Mem`]); `_MEMCOPY a, o, n TO b, p` by its template.
+    ("_MEMFREE", StmtRule::Plain),
+    ("_MEMCOPY", StmtRule::Plain),
 ];
 
 /// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
@@ -462,6 +507,9 @@ pub const NEVER_RUN: &[&str] = &[
     "_CLIPBOARDIMAGE",
     "_PRINTIMAGE",
     "_DEPTHBUFFER",
+    // `_MEMSOUND` needs a sound handle, which no supported statement gives (`_SNDOPEN` is not supported; design D7
+    // of `m3-mem`).
+    "_MEMSOUND",
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.
@@ -652,7 +700,10 @@ pub fn slot_count(id: BuiltinId) -> usize {
             | Rule::GivenArgs(_)
             | Rule::Widest
             | Rule::Rotate
-            | Rule::Choice,
+            | Rule::Choice
+            | Rule::Own
+            | Rule::Mk(_)
+            | Rule::Cv(_),
         )
         | None => id.get().arg_types.len(),
     }
@@ -671,6 +722,11 @@ pub fn slots(s: Supported) -> Vec<(Slot, bool)> {
             .collect(),
         // Numbers as they are, as many as the table has arguments (its types for them are placeholders).
         Rule::Widest | Rule::Rotate | Rule::Choice => vec![(Slot::Float, false); b.arg_types.len()],
+        // Checked as an expression of its own, by no slot.
+        Rule::Own => Vec::new(),
+        // Checked by their rule (`check\mem.rs`, `number_bytes`): a number or a string, and for `_MK$` and
+        // `_CV` first a type.
+        Rule::Mk(_) | Rule::Cv(_) => Vec::new(),
         Rule::Plain
         | Rule::ResultOfArg
         | Rule::IntFix
@@ -731,6 +787,14 @@ pub enum Slot {
     /// ([`crate::StmtArg::Bytes`]) or of a whole array ([`crate::StmtArg::Block`] with no index); design D2 of
     /// `m3-console-files`.
     Bytes,
+    /// Converted as a store into an `_OFFSET` (a float rounded half to even): the sizes and offsets of memory blocks
+    /// (`func__memnew(qbr( 1.5E+0 ))`, measured, `verification\v32_x01_accepted`).
+    Offset,
+    /// A block: no value but a place of the predefined type `_MEM` (a variable, an element, a member), passed as its
+    /// address (design D4 of `m3-mem`): an [`ExprKind::Load`] of the place in a function's slot, a
+    /// [`crate::StmtArg::Place`] in a statement's. Anything else is the old compiler's "TYPE '_MEM' required for
+    /// function" (measured, `verification\v32_x02`, `x67`–`x73`).
+    Mem,
 }
 
 impl Slot {
@@ -747,6 +811,8 @@ impl Slot {
             "_FLOAT" | "SINGLE" => Slot::Float,
             "any-numeric" => Slot::AnyNumeric,
             "STRING" => Slot::Str,
+            "_OFFSET" => Slot::Offset,
+            "_MEM" => Slot::Mem,
             // The array of `_UCHARPOS`, the one function with such a slot.
             _ if t.starts_with("offset+size (largest safe block") => Slot::Block,
             other => unreachable!("slot type {other} of a supported built-in"),
@@ -812,6 +878,8 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
         Rule::Widest | Rule::Rotate | Rule::Choice => {
             unreachable!("typed by what its arguments are believed (check::builtins)")
         }
+        Rule::Own => unreachable!("an expression of its own (check::mem)"),
+        Rule::Mk(_) | Rule::Cv(_) => unreachable!("typed by their type (check::mem)"),
     }
 }
 

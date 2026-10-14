@@ -387,6 +387,34 @@ pub fn holds_strings(types: &[UserType], t: Ty) -> bool {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TypeId(pub u32);
 
+/// The name of the predefined user type `_MEM` (design D1 of `m3-mem`), which no `TYPE` block may take.
+pub const MEM_TYPE: &str = "_MEM";
+
+/// The predefined user type `_MEM`, libqb's `mem_block` (design D1 of `m3-mem`; measured, `qb64pe.bas` 1588,
+/// `verification\v32_a_blocks`): 56 bytes, the members in the old compiler's order and sizes. The two lock
+/// members have names a program cannot write, as the old compiler names them, so no member access finds them.
+/// The checker adds it to [`Program::types`] when a program first names the type or a built-in that gives one.
+pub fn mem_type() -> UserType {
+    let member = |name: &str, ty| Member {
+        name: name.to_string(),
+        ty,
+        bounds: Vec::new(),
+    };
+    UserType {
+        name: MEM_TYPE.to_string(),
+        members: vec![
+            member("OFFSET", Ty::Off),
+            member("SIZE", Ty::Off),
+            member("$_LOCK_ID", Ty::I64),
+            member("$_LOCK_OFFSET", Ty::Off),
+            member("TYPE", Ty::Off),
+            member("ELEMENTSIZE", Ty::Off),
+            member("IMAGE", Ty::I32),
+            member("SOUND", Ty::I32),
+        ],
+    }
+}
+
 /// A member of a user type: its index in [`UserType::members`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct MemberId(pub u32);
@@ -906,6 +934,74 @@ pub enum ExprKind {
         proc: ProcId,
         args: Vec<Arg>,
     },
+    /// `_MEM(reference)` (`element` false) or `_MEMELEMENT(reference)`: the block of a place or of an array, typed
+    /// `_MEM` (design D3 of `m3-mem`). Its address, size, type value, element size and lock follow the old
+    /// compiler's rule for the kind of reference (`qb64pe.bas` 22406–23038; measured, `verification\v32_a_blocks`,
+    /// the change's design D3 has one line per kind). The reference is found as a place is: an index outside its
+    /// bounds raises error 9 and counts as the first element. **An index is evaluated twice** (for the address
+    /// and for the size), as the old compiler writes it. Stands only as the value stored into a `_MEM` place.
+    MemOf {
+        of: Reference,
+        element: bool,
+    },
+    /// `_MEM(offset, size)`: a block of `size` bytes at `offset`, both `_OFFSET` values, typed `_MEM`. A negative
+    /// size raises error 301 (not trapped) and gives a block of 0 bytes. Stands only as the value stored into a
+    /// `_MEM` place.
+    MemAt {
+        offset: Box<Expr>,
+        size: Box<Expr>,
+    },
+    /// `_OFFSET(reference)`: the address of a place, of the characters of a string, or of an array's first
+    /// element, typed `_UNSIGNED _OFFSET` (design D6 of `m3-mem`). The reference is found as for [`ExprKind::MemOf`].
+    AddressOf(Reference),
+    /// `_MEMGET(block, offset, type)` (design D4 of `m3-mem`): the value of type `of` at `offset` (an `_OFFSET`)
+    /// of the block, a place of type `_MEM`. The runtime checks the block: one never set raises error 309, one
+    /// freed 308, a region beyond the block 300 (none trapped), and the value is then read from zero bytes. The
+    /// node is typed `of`, a fixed-length string's as a `STRING`; a value of a user type stands only as the value
+    /// stored into a place of that type.
+    MemRead {
+        block: Place,
+        offset: Box<Expr>,
+        of: Ty,
+    },
+}
+
+/// What `_MEMPUT` writes or `_MEMFILL` fills with (design D4 of `m3-mem`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum MemValue {
+    /// `value AS type`: a number converted to the numeric type `ty` as a store into a variable of it converts it.
+    Typed { value: Expr, ty: Ty },
+    /// A variable, element, member, whole array or whole member array: its bytes, as many as it has (of a
+    /// variable-length string its characters, as many as it holds then).
+    Bytes(Reference),
+    /// A string that is no variable: its characters.
+    Str(Expr),
+}
+
+/// What `_MEM`, `_MEMELEMENT` and `_OFFSET` name (design D3 of `m3-mem`): a variable, element or member, or an
+/// array as a whole, an array variable (`a()`) or a member array (`t.v()`, also written `t.v`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum Reference {
+    Place(Place),
+    Array(ArrayRef),
+}
+
+impl Reference {
+    /// The variable the reference is, or is part of.
+    pub fn root(&self) -> VarId {
+        match self {
+            Reference::Place(p) => p.root(),
+            Reference::Array(a) => a.root(),
+        }
+    }
+
+    /// The indexes on the way to the reference, outermost element first.
+    pub fn indexes(&self) -> Vec<&Expr> {
+        match self {
+            Reference::Place(p) => p.indexes(),
+            Reference::Array(a) => a.indexes(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -997,7 +1093,35 @@ pub enum StmtKind {
     },
     /// `$CONSOLE:ONLY`: output and input go to the console.
     ConsoleOnly,
-    /// A store; the value has the place's type (never a user type: [`StmtKind::CopyWhole`]). The store rule
+    /// `_MEMGET block, offset, variable` (design D4 of `m3-mem`): the variable's bytes read from the block, at
+    /// `offset` (an `_OFFSET`). In order: the offset is evaluated; a block never set raises error 309, a freed one
+    /// 308, a region beyond the block 300 (none trapped), and nothing is copied; otherwise the bytes are copied.
+    MemGet {
+        block: Place,
+        offset: Expr,
+        target: Reference,
+    },
+    /// `_MEMPUT block, offset, value` (design D4 of `m3-mem`): the value's bytes written into the block, checked
+    /// as for [`StmtKind::MemGet`]; a [`MemValue::Str`] is evaluated before the offset, a typed value after the
+    /// checks.
+    MemPut {
+        block: Place,
+        offset: Expr,
+        value: MemValue,
+    },
+    /// `_MEMFILL block, offset, bytes, value` (design D4 of `m3-mem`): `bytes` bytes of the block from `offset`
+    /// (both `_OFFSET`s) filled with the value's bytes, repeated, by the runtime's `sub__memfill`: a block never set
+    /// raises error 309, a freed one 308, a negative count or a value of no bytes 301, a region beyond the block
+    /// 300.
+    MemFill {
+        block: Place,
+        offset: Expr,
+        bytes: Expr,
+        value: MemValue,
+    },
+    /// A store; the value has the place's type. A user type only as the value of a built-in: a block stored
+    /// into a `_MEM` place, or a value `_MEMGET` reads (design D2 and D4 of `m3-mem`); a copy between two places of
+    /// a user type is a [`StmtKind::CopyWhole`]. The store rule
     /// depends on the place (design D6 of `m2-arrays-and-types`): for an element of an array variable the
     /// indexes come first, and with an error pending after them the value is not evaluated and nothing is
     /// stored. For a place reached through a member with an index on the way ([`Place::through_member`]) a
@@ -1376,6 +1500,11 @@ impl Program {
 
     pub fn user_type(&self, id: TypeId) -> &UserType {
         &self.types[id.0 as usize]
+    }
+
+    /// Whether `t` is the predefined type `_MEM` ([`mem_type`]; no `TYPE` block may take its name).
+    pub fn is_mem(&self, t: Ty) -> bool {
+        matches!(t, Ty::User(id) if self.user_type(id).name == MEM_TYPE)
     }
 
     /// The member of a place of user type `base`.

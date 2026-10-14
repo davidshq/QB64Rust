@@ -33,6 +33,7 @@ mod arrays;
 mod builtins;
 mod decl;
 mod io;
+mod mem;
 mod names;
 mod place;
 mod procs;
@@ -112,6 +113,8 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
         gosubs: 0,
         ret_cases: String::new(),
         returns: false,
+        funcs: 0,
+        func_decls: Vec::new(),
     };
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
     let mut set = |name: &str, text: String| files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
@@ -189,6 +192,9 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
     }
     mainerr.push_str("exit(99);\n}\n");
     files.iter_mut().find(|(n, _)| n == "mainerr.txt").unwrap().1 = mainerr;
+    // Also last: the temporaries of blocks are counted while the bodies are emitted.
+    let global = &mut files.iter_mut().find(|(n, _)| n == "global.txt").unwrap().1;
+    global.extend(e.func_decls.drain(..));
     Fragments { files }
 }
 
@@ -232,4 +238,8 @@ struct Emitter<'a> {
     ret_cases: String,
     /// Whether the body being emitted has a `RETURN` without label (which includes its `retK.txt`).
     returns: bool,
+    /// Counter for the `funcN` temporaries a block of a built-in is held in, and their declarations, which go into
+    /// `global.txt` (design D2 of `m3-mem`).
+    funcs: u32,
+    func_decls: Vec<String>,
 }

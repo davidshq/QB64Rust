@@ -1,0 +1,5 @@
+
+TYPE '_MEM' required for function
+Caused by (or after):PRINT _MEMEXISTS ( K )
+LINE 9:PRINT _MEMEXISTS(k)
+exit=1

@@ -1,0 +1,90 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+TYPE T
+  A:I16
+  V:I32(0 TO 3)
+TYPE _MEM
+  OFFSET:Off
+  SIZE:Off
+  $_LOCK_ID:I64
+  $_LOCK_OFFSET:Off
+  TYPE:Off
+  ELEMENTSIZE:Off
+  IMAGE:I32
+  SOUND:I32
+ARRAY UA:T:T(0 TO 3)
+ARRAY B:I16(0 TO 10)
+line 2: ConsoleOnly
+line 13: Assign M:T:_MEM
+  Mem K : T:_MEM
+line 14: Assign M:T:_MEM
+  Mem F : T:_MEM
+line 15: Assign M:T:_MEM
+  Mem U : T:_MEM
+line 16: Assign M:T:_MEM
+  Mem U.A : T:_MEM
+line 17: Assign M:T:_MEM
+  Mem U.V(…) : T:_MEM
+    Int 2 : I64
+line 18: Assign M:T:_MEM
+  Mem U.V() : T:_MEM
+line 19: Assign M:T:_MEM
+  Mem U.V() : T:_MEM
+line 20: Assign M:T:_MEM
+  Mem B() : T:_MEM
+line 21: Assign M:T:_MEM
+  Mem B(…) : T:_MEM
+    Convert Widen : I64
+      Var K : I32
+line 22: Assign M:T:_MEM
+  Mem UA(…).V(…) : T:_MEM
+    Int 1 : I64
+    Int 2 : I64
+line 23: Assign M:T:_MEM
+  MemElement B(…) : T:_MEM
+    Int 4 : I64
+line 24: Assign M:T:_MEM
+  MemElement U.A : T:_MEM
+line 25: Assign M:T:_MEM
+  MemAt : T:_MEM
+    Var O : Off
+    Int 10 : Off
+line 26: Assign M:T:_MEM
+  MemAt : T:_MEM
+    Var UO : UOff
+    Convert Truncate : Off
+      Convert RoundEven : I64
+        Var D : F64
+line 27: Assign M:T:_MEM
+  MemAt : T:_MEM
+    AddressOf K : UOff
+    Int 4 : Off
+line 28: Assign UO:UOff
+  AddressOf K : UOff
+line 29: Assign UO:UOff
+  AddressOf S : UOff
+line 30: Assign UO:UOff
+  AddressOf B() : UOff
+line 31: Assign UO:UOff
+  AddressOf UA(…).V(…) : UOff
+    Int 1 : I64
+    Int 2 : I64
+line 32: Print newline
+  Num
+    Convert Truncate : UOff
+      Binary Add : U64 (qb UOff)
+        Convert Truncate : U64
+          AddressOf U.V() : UOff
+        Int 1 : U64
+  Num
+    Convert Truncate : UOff
+      Binary Sub : U64 (qb UOff)
+        Convert Truncate : U64
+          AddressOf B(…) : UOff
+            Int 2 : I64
+        Convert Truncate : U64
+          AddressOf B() : UOff
+line 33: System

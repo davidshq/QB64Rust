@@ -243,7 +243,7 @@ declaration (on a parameter it is an error, `language/procedures`);
 `_UNSIGNED` before a floating-point type, `AS _UNSIGNED` alone, a `_BIT` width of 0, above 64 or not a number
 literal, a suffix and an `AS` clause on one name, and `LEN` of a `_BIT` variable SHALL be compile errors. A
 `_BIT` value SHALL be printed as an `_INTEGER64` (an `_UNSIGNED _BIT * 64` above 2^63 prints negative, as in the old
-compiler). `_MEM` SHALL stay "not supported yet".
+compiler). `_MEM` is a type of its own (`language/mem-blocks`).
 
 #### Scenario: Unsigned byte
 - **WHEN** `DIM b AS _UNSIGNED _BYTE: b = 255: PRINT b; LEN(b)` runs
@@ -267,7 +267,7 @@ compiler). `_MEM` SHALL stay "not supported yet".
 
 #### Scenario: _MEM
 - **WHEN** a program has `DIM m AS _MEM`
-- **THEN** the compiler reports it "not supported yet"
+- **THEN** it compiles, and `LEN(m)` is 56, as with the old compiler
 
 ### Requirement: Arithmetic with unsigned, narrow and bit operands
 An operation on integer operands SHALL be computed in the type C++ gives the old compiler's generated expression

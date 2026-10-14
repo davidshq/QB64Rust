@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):_MEMPUT M , M . OFFSET , "ab",2 AS LONG
+LINE 9:_MEMPUT m, m.OFFSET, "ab" AS LONG
+exit=1

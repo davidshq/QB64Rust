@@ -328,6 +328,10 @@ impl Checker<'_> {
             ("UBOUND", None) => return self.bound_fn(node, true, span),
             ("VARPTR", None) => return self.var_address(node, false, span),
             ("VARSEG", None) => return self.var_address(node, true, span),
+            ("_MEM", None) => return self.mem_fn(node, false, span),
+            ("_MEMELEMENT", None) => return self.mem_fn(node, true, span),
+            ("_OFFSET", None) => return self.offset_fn(node, span),
+            ("_MEMGET", None) => return self.mem_get_fn(node, span),
             _ => {}
         }
         if let Some(s) = supported_builtin(&proc_name, suffix) {

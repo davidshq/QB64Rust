@@ -1,0 +1,5 @@
+
+_MEM cannot reference variable-length strings
+Caused by (or after):M = _MEM ( SA ( 1 ) )
+LINE 9:m = _MEM(sa(1))
+exit=1

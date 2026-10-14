@@ -1,0 +1,5 @@
+
+_BIT TYPE unsupported
+Caused by (or after):PRINT _MEMGET ( M , M . OFFSET , _BIT * 4 )
+LINE 9:PRINT _MEMGET(m, m.OFFSET, _BIT * 4)
+exit=1

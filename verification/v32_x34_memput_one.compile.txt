@@ -1,0 +1,5 @@
+
+Expected _MEMPUT mem-reference, offset, variable|value[AS type]
+Caused by (or after):_MEMPUT M
+LINE 9:_MEMPUT m
+exit=1

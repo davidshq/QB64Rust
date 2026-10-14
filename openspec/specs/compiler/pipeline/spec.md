@@ -324,15 +324,15 @@ knows but the new one does not yet (such as the constants of the auto-included f
 supported yet", not as reserved names.
 
 #### Scenario: Unsupported declaration
-- **WHEN** a program has `DIM m AS _MEM` and then `PRINT LEN(m)`
-- **THEN** the only error is the "not supported yet" error at the `DIM`
+- **WHEN** a program has `CONST c$ = CHR$(65)` and then `PRINT LEN(c$)`
+- **THEN** the only error is the "not supported yet" error at the `CONST`
 
 #### Scenario: Real error after an unsupported declaration
-- **WHEN** a program has `DIM m AS _MEM` and, later, a statement that stores a string in a number variable
-- **THEN** the only error is the "not supported yet" error at the `DIM`, and the compile fails
+- **WHEN** a program has `CONST c$ = CHR$(65)` and, later, a statement that stores a string in a number variable
+- **THEN** the only error is the "not supported yet" error at the `CONST`, and the compile fails
 
 #### Scenario: Real error before an unsupported declaration
-- **WHEN** a program has a statement that stores a string in a number variable and, later, `DIM m AS _MEM`
+- **WHEN** a program has a statement that stores a string in a number variable and, later, `CONST c$ = CHR$(65)`
 - **THEN** both errors are reported
 
 #### Scenario: Auto-included constant

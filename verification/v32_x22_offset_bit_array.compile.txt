@@ -1,0 +1,5 @@
+
+_OFFSET cannot reference _BIT type arrays
+Caused by (or after):PRINT _OFFSET ( BA ( ) )
+LINE 9:PRINT _OFFSET(ba())
+exit=1

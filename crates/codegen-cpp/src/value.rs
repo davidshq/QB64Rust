@@ -160,6 +160,13 @@ impl Emitter<'_> {
             }
             // The array of `_UCHARPOS`, as a graphics `GET` passes its array.
             ExprKind::Block { array, index } => self.block(*array, index),
+            // Blocks and addresses of references (design D3 and D6 of `m3-mem`, `mem.rs`).
+            ExprKind::MemOf { of, element } => self.mem_of(of, *element),
+            ExprKind::MemRead { block, offset, of } => self.mem_read(block, offset, *of),
+            ExprKind::AddressOf(of) => self.address_of(of),
+            ExprKind::MemAt { offset, size } => {
+                format!("func__mem_at_offset({},{})", self.value(offset), self.value(size))
+            }
             ExprKind::Convert { how, from } => {
                 let x = self.value(from);
                 match (how, v.ty) {

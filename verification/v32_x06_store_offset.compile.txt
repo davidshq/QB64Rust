@@ -1,0 +1,5 @@
+
+Cannot set read-only element of _MEM TYPE
+Caused by (or after):M . OFFSET = 4
+LINE 9:m.OFFSET = 4
+exit=1

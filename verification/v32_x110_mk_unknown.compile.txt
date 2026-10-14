@@ -1,0 +1,5 @@
+
+Cannot convert type (FOO) to symbol
+Caused by (or after):S = _MK$ ( FOO , 1 )
+LINE 9:s = _MK$(FOO, 1)
+exit=1

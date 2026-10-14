@@ -1,0 +1,350 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+void *__UDT_M=NULL;
+int32 *__LONG_K=NULL;
+void *__UDT_U=NULL;
+ptrszint *__ARRAY_UDT_UT=NULL;
+ptrszint *__ARRAY_INTEGER_B=NULL;
+ptrszint *__ARRAY_STRING3_FS=NULL;
+ptrszint *__ARRAY_LONG_B2=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+mem_block func1;
+mem_block func2;
+mem_block func3;
+mem_block func4;
+mem_block func5;
+mem_block func6;
+mem_block func7;
+mem_block func8;
+mem_block func9;
+mem_block func10;
+mem_block func11;
+mem_block func12;
+mem_block func13;
+mem_block func14;
+mem_block func15;
+==> regsf.txt <==
+void SUB_Y(ptrszint*_SUB_Y_ARRAY_INTEGER_Q);
+==> clear.txt <==
+memset((void*)__UDT_M,0,56);
+*__LONG_K=0;
+memset((void*)__UDT_U,0,31);
+memset((void*)(__ARRAY_UDT_UT[0]),0,__ARRAY_UDT_UT[5]*31);
+memset((void*)(__ARRAY_INTEGER_B[0]),0,__ARRAY_INTEGER_B[5]*2);
+memset((void*)(__ARRAY_STRING3_FS[0]),0,__ARRAY_STRING3_FS[5]*3);
+memset((void*)(__ARRAY_LONG_B2[0]),0,__ARRAY_LONG_B2[9]*__ARRAY_LONG_B2[5]*4);
+==> maindata.txt <==
+if(__UDT_M==NULL){
+__UDT_M=(void*)mem_static_malloc(56);
+memset(__UDT_M,0,56);
+}
+if(__LONG_K==NULL){
+__LONG_K=(int32*)mem_static_malloc(4);
+*__LONG_K=0;
+}
+if(__UDT_U==NULL){
+__UDT_U=(void*)mem_static_malloc(31);
+memset(__UDT_U,0,31);
+}
+if (!__ARRAY_UDT_UT){
+__ARRAY_UDT_UT=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_UT)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_UT[4]=0ll;
+__ARRAY_UDT_UT[5]=(3ll)-__ARRAY_UDT_UT[4]+1;
+if (__ARRAY_UDT_UT[5]<=0) error(5);
+__ARRAY_UDT_UT[6]=1;
+__ARRAY_UDT_UT[0]=(ptrszint)mem_static_malloc(__ARRAY_UDT_UT[5]*31);
+memset((void*)(__ARRAY_UDT_UT[0]),0,__ARRAY_UDT_UT[5]*31);
+__ARRAY_UDT_UT[2]=1+2;
+}
+if (!__ARRAY_INTEGER_B){
+__ARRAY_INTEGER_B=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_INTEGER_B)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_INTEGER_B[4]=0ll;
+__ARRAY_INTEGER_B[5]=(10ll)-__ARRAY_INTEGER_B[4]+1;
+if (__ARRAY_INTEGER_B[5]<=0) error(5);
+__ARRAY_INTEGER_B[6]=1;
+__ARRAY_INTEGER_B[0]=(ptrszint)mem_static_malloc(__ARRAY_INTEGER_B[5]*2);
+memset((void*)(__ARRAY_INTEGER_B[0]),0,__ARRAY_INTEGER_B[5]*2);
+__ARRAY_INTEGER_B[2]=1+2;
+}
+if (!__ARRAY_STRING3_FS){
+__ARRAY_STRING3_FS=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING3_FS)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING3_FS[4]=0ll;
+__ARRAY_STRING3_FS[5]=(4ll)-__ARRAY_STRING3_FS[4]+1;
+if (__ARRAY_STRING3_FS[5]<=0) error(5);
+__ARRAY_STRING3_FS[6]=1;
+__ARRAY_STRING3_FS[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING3_FS[5]*3);
+memset((void*)(__ARRAY_STRING3_FS[0]),0,__ARRAY_STRING3_FS[5]*3);
+__ARRAY_STRING3_FS[2]=1+2;
+}
+if (!__ARRAY_LONG_B2){
+__ARRAY_LONG_B2=(ptrszint*)mem_static_malloc(13*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_B2)[12]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_B2[8]=0ll;
+__ARRAY_LONG_B2[9]=(3ll)-__ARRAY_LONG_B2[8]+1;
+if (__ARRAY_LONG_B2[9]<=0) error(5);
+__ARRAY_LONG_B2[10]=1;
+__ARRAY_LONG_B2[4]=0ll;
+__ARRAY_LONG_B2[5]=(4ll)-__ARRAY_LONG_B2[4]+1;
+if (__ARRAY_LONG_B2[5]<=0) error(5);
+__ARRAY_LONG_B2[6]=__ARRAY_LONG_B2[10]*__ARRAY_LONG_B2[9];
+__ARRAY_LONG_B2[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_B2[9]*__ARRAY_LONG_B2[5]*4);
+memset((void*)(__ARRAY_LONG_B2[0]),0,__ARRAY_LONG_B2[9]*__ARRAY_LONG_B2[5]*4);
+__ARRAY_LONG_B2[2]=1+2;
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "mem_refs_cpp.bas"
+do{
+#line 2 "mem_refs_cpp.bas"
+sub__dest(func__console());
+#line 2 "mem_refs_cpp.bas"
+sub__source(func__console());
+#line 2 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 15 "mem_refs_cpp.bas"
+do{
+#line 15 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func1=func__mem((ptrszint)(&(((int16*)(__ARRAY_INTEGER_B[0]))[array_check((((int64)(*__LONG_K)))-__ARRAY_INTEGER_B[4],__ARRAY_INTEGER_B[5])])),(2*(__ARRAY_INTEGER_B[2]&1)*__ARRAY_INTEGER_B[5])-(2*(array_check((((int64)(*__LONG_K)))-__ARRAY_INTEGER_B[4],__ARRAY_INTEGER_B[5]))),65666,2,(mem_lock*)((ptrszint*)__ARRAY_INTEGER_B)[8])))+(0)),56);
+#line 15 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "mem_refs_cpp.bas"
+do{
+#line 16 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func2=func__mem((ptrszint)(&(((int16*)(__ARRAY_INTEGER_B[0]))[array_check((4ll)-__ARRAY_INTEGER_B[4],__ARRAY_INTEGER_B[5])])),2,65666,2,(mem_lock*)((ptrszint*)__ARRAY_INTEGER_B)[8])))+(0)),56);
+#line 16 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "mem_refs_cpp.bas"
+do{
+#line 17 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func3=func__mem((ptrszint)((qbs_new_fixed(&((uint8*)(__ARRAY_STRING3_FS[0]))[(array_check((2ll)-__ARRAY_STRING3_FS[4],__ARRAY_STRING3_FS[5]))*3],3,1))->chr),(3*(__ARRAY_STRING3_FS[2]&1)*__ARRAY_STRING3_FS[5])-(3*(array_check((2ll)-__ARRAY_STRING3_FS[4],__ARRAY_STRING3_FS[5]))),66048,3,(mem_lock*)((ptrszint*)__ARRAY_STRING3_FS)[8])))+(0)),56);
+#line 17 "mem_refs_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 17 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "mem_refs_cpp.bas"
+do{
+#line 18 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func4=func__mem((ptrszint)((qbs_new_fixed(&((uint8*)(__ARRAY_STRING3_FS[0]))[(array_check((2ll)-__ARRAY_STRING3_FS[4],__ARRAY_STRING3_FS[5]))*3],3,1))->chr),3,66048,3,(mem_lock*)((ptrszint*)__ARRAY_STRING3_FS)[8])))+(0)),56);
+#line 18 "mem_refs_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 18 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "mem_refs_cpp.bas"
+do{
+#line 19 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func5=func__mem((ptrszint)(&(((int32*)(__ARRAY_LONG_B2[0]))[array_check((1ll)-__ARRAY_LONG_B2[8],__ARRAY_LONG_B2[9])+array_check((2ll)-__ARRAY_LONG_B2[4],__ARRAY_LONG_B2[5])*__ARRAY_LONG_B2[6]])),(4*(__ARRAY_LONG_B2[2]&1)*__ARRAY_LONG_B2[5]*__ARRAY_LONG_B2[9])-(4*(array_check((1ll)-__ARRAY_LONG_B2[8],__ARRAY_LONG_B2[9])+array_check((2ll)-__ARRAY_LONG_B2[4],__ARRAY_LONG_B2[5])*__ARRAY_LONG_B2[6])),65668,4,(mem_lock*)((ptrszint*)__ARRAY_LONG_B2)[12])))+(0)),56);
+#line 19 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "mem_refs_cpp.bas"
+do{
+#line 20 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func6=func__mem((ptrszint)(((char*)__ARRAY_UDT_UT[0])+(((array_check((1ll)-__ARRAY_UDT_UT[4],__ARRAY_UDT_UT[5]))*31+0))),(31*(__ARRAY_UDT_UT[2]&1)*__ARRAY_UDT_UT[5])-(((array_check((1ll)-__ARRAY_UDT_UT[4],__ARRAY_UDT_UT[5]))*31+0)),98304,31,sf_mem_lock)))+(0)),56);
+#line 20 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "mem_refs_cpp.bas"
+do{
+#line 21 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func7=func__mem((ptrszint)(((char*)__ARRAY_UDT_UT[0])+(((array_check((1ll)-__ARRAY_UDT_UT[4],__ARRAY_UDT_UT[5]))*31+0))),31,32768,31,sf_mem_lock)))+(0)),56);
+#line 21 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 22 "mem_refs_cpp.bas"
+do{
+#line 22 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func8=func__mem((ptrszint)(((char*)__UDT_U)+((0+23))),31-((0+23)),32768,1,sf_mem_lock)))+(0)),56);
+#line 22 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "mem_refs_cpp.bas"
+do{
+#line 23 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func9=func__mem((ptrszint)(((char*)__UDT_U)+((0+23))),8,264,8,sf_mem_lock)))+(0)),56);
+#line 23 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "mem_refs_cpp.bas"
+do{
+#line 24 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func10=func__mem((ptrszint)(((char*)__ARRAY_UDT_UT[0])+((((array_check((1ll)-__ARRAY_UDT_UT[4],__ARRAY_UDT_UT[5]))*31)+23))),(31*(__ARRAY_UDT_UT[2]&1)*__ARRAY_UDT_UT[5])-((((array_check((1ll)-__ARRAY_UDT_UT[4],__ARRAY_UDT_UT[5]))*31)+23)),98304,1,sf_mem_lock)))+(0)),56);
+#line 24 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "mem_refs_cpp.bas"
+do{
+#line 25 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func11=func__mem((ptrszint)(((char*)__UDT_U)+((0+7+((array_check((2ll)-0ll,4))*4)))),31-((0+7+((array_check((2ll)-0ll,4))*4))),32768,1,sf_mem_lock)))+(0)),56);
+#line 25 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(25);}while(r);
+#line 26 "mem_refs_cpp.bas"
+do{
+#line 26 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func12=func__mem((ptrszint)(((char*)__UDT_U)+((0+7+((array_check((1ll)-0ll,4))*4)))),16,132,16,sf_mem_lock)))+(0)),56);
+#line 26 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(26);}while(r);
+#line 27 "mem_refs_cpp.bas"
+do{
+#line 27 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func13=func__mem((ptrszint)(((char*)__ARRAY_UDT_UT[0])+((((array_check((1ll)-__ARRAY_UDT_UT[4],__ARRAY_UDT_UT[5]))*31)+7+((array_check((2ll)-0ll,4))*4)))),16,98304,4,sf_mem_lock)))+(0)),56);
+#line 27 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(27);}while(r);
+#line 28 "mem_refs_cpp.bas"
+do{
+#line 28 "mem_refs_cpp.bas"
+memcpy((((char*)__UDT_M)+((0+0))+(0)),(((char*)&(func14=func__mem((ptrszint)(((char*)__ARRAY_UDT_UT[0])+((((array_check((1ll)-__ARRAY_UDT_UT[4],__ARRAY_UDT_UT[5]))*31)+7))),16,65668,4,sf_mem_lock)))+(0)),56);
+#line 28 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(28);}while(r);
+#line 29 "mem_refs_cpp.bas"
+do{
+#line 29 "mem_refs_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 29 "mem_refs_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uptrszint)(((uptrszint)((((char*)__ARRAY_UDT_UT[0])+((((array_check((1ll)-__ARRAY_UDT_UT[4],__ARRAY_UDT_UT[5]))*31)+7+((array_check((2ll)-0ll,4))*4)))))))),qbs_new_txt(" ")));
+#line 29 "mem_refs_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 29 "mem_refs_cpp.bas"
+makefit(tqbs);
+#line 29 "mem_refs_cpp.bas"
+qbs_print(tqbs,0);
+#line 29 "mem_refs_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uptrszint)(((uptrszint)(qbs_new_fixed(&((uint8*)(__ARRAY_STRING3_FS[0]))[(array_check((1ll)-__ARRAY_STRING3_FS[4],__ARRAY_STRING3_FS[5]))*3],3,1)->chr)))),qbs_new_txt(" ")));
+#line 29 "mem_refs_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 29 "mem_refs_cpp.bas"
+makefit(tqbs);
+#line 29 "mem_refs_cpp.bas"
+qbs_print(tqbs,0);
+#line 29 "mem_refs_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uptrszint)(((uptrszint)((((char*)__UDT_U)+((0+2))))))),qbs_new_txt(" ")));
+#line 29 "mem_refs_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 29 "mem_refs_cpp.bas"
+makefit(tqbs);
+#line 29 "mem_refs_cpp.bas"
+qbs_print(tqbs,0);
+#line 29 "mem_refs_cpp.bas"
+qbs_print(nothingstring,1);
+#line 29 "mem_refs_cpp.bas"
+skip1:
+#line 29 "mem_refs_cpp.bas"
+qbs_free(tqbs);
+#line 29 "mem_refs_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 29 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(29);}while(r);
+#line 30 "mem_refs_cpp.bas"
+do{
+#line 30 "mem_refs_cpp.bas"
+SUB_Y(__ARRAY_INTEGER_B);
+#line 30 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(30);}while(r);
+#line 31 "mem_refs_cpp.bas"
+do{
+#line 31 "mem_refs_cpp.bas"
+if (sub_gl_called) error(271);
+#line 31 "mem_refs_cpp.bas"
+close_program=1;
+#line 31 "mem_refs_cpp.bas"
+end();
+#line 31 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(31);}while(r);
+sub_end();
+return;
+}
+==> main1.txt <==
+#line 33 "mem_refs_cpp.bas"
+void SUB_Y(ptrszint*_SUB_Y_ARRAY_INTEGER_Q){
+#line 33 "mem_refs_cpp.bas"
+qbs *tqbs;
+#line 33 "mem_refs_cpp.bas"
+ptrszint tmp_long;
+#line 33 "mem_refs_cpp.bas"
+int32 tmp_fileno;
+#line 33 "mem_refs_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 33 "mem_refs_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 33 "mem_refs_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 33 "mem_refs_cpp.bas"
+#include "data1.txt"
+#line 33 "mem_refs_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 33 "mem_refs_cpp.bas"
+new_mem_lock();
+#line 33 "mem_refs_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 33 "mem_refs_cpp.bas"
+sf_mem_lock->type=3;
+#line 33 "mem_refs_cpp.bas"
+libqb_check_stack();
+#line 33 "mem_refs_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 35 "mem_refs_cpp.bas"
+do{
+#line 35 "mem_refs_cpp.bas"
+memcpy((((char*)_SUB_Y_UDT_M)+((0+0))+(0)),(((char*)&(func15=func__mem((ptrszint)(&(((int16*)(_SUB_Y_ARRAY_INTEGER_Q[0]))[0])),(2*(_SUB_Y_ARRAY_INTEGER_Q[2]&1)*_SUB_Y_ARRAY_INTEGER_Q[5])-(2*(0)),65666,2,(mem_lock*)((ptrszint*)_SUB_Y_ARRAY_INTEGER_Q)[8])))+(0)),56);
+#line 35 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(35);}while(r);
+#line 36 "mem_refs_cpp.bas"
+do{
+#line 36 "mem_refs_cpp.bas"
+tmp_long=array_check((0ll)-_SUB_Y_ARRAY_INTEGER_Q[4],_SUB_Y_ARRAY_INTEGER_Q[5]);
+#line 36 "mem_refs_cpp.bas"
+if (!is_error_pending()) ((int16*)(_SUB_Y_ARRAY_INTEGER_Q[0]))[tmp_long]=6;
+#line 36 "mem_refs_cpp.bas"
+if(!qbevent)break;evnt(36);}while(r);
+#line 37 "mem_refs_cpp.bas"
+exit_subfunc:;
+#line 37 "mem_refs_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 37 "mem_refs_cpp.bas"
+#include "free1.txt"
+#line 37 "mem_refs_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 37 "mem_refs_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 37 "mem_refs_cpp.bas"
+}
+==> data1.txt <==
+void *_SUB_Y_UDT_M=NULL;
+if(_SUB_Y_UDT_M==NULL){
+_SUB_Y_UDT_M=(void*)mem_static_malloc(56);
+memset(_SUB_Y_UDT_M,0,56);
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt free1.txt

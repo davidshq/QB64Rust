@@ -1,8 +1,8 @@
 //! `--dump ir`: the lowering-pair text of design D6.
 
 use crate::{
-    Arg, ArrayRef, BinOp, Body, Expr, ExprKind, LabelId, OnError, Op, Place, PrintItem, PrintTo, ProcKind, Program,
-    Resume, RuntimePart, Settings, Shape, Source, StmtArg, Storage, Ty, UsingValue, VarId, When,
+    Arg, ArrayRef, BinOp, Body, Expr, ExprKind, LabelId, MemValue, OnError, Op, Place, PrintItem, PrintTo, ProcKind,
+    Program, Reference, Resume, RuntimePart, Settings, Shape, Source, StmtArg, Storage, Ty, UsingValue, VarId, When,
 };
 
 use qb64rust_base::{show_bytes, to_u32};
@@ -172,6 +172,36 @@ fn body(p: &Program, b: &Body, out: &mut String) {
         for op in &s.ops {
             match op {
                 Op::SelectConsole => writeln!(out, "  SelectConsole").unwrap(),
+                Op::MemGet { block, offset, target } => writeln!(
+                    out,
+                    "  MemGet {} at {} into {}",
+                    place_text(p, block),
+                    val(p, offset),
+                    reference_text(p, target)
+                )
+                .unwrap(),
+                Op::MemPut { block, offset, value } => writeln!(
+                    out,
+                    "  MemPut {} at {} = {}",
+                    place_text(p, block),
+                    val(p, offset),
+                    mem_value(p, value)
+                )
+                .unwrap(),
+                Op::MemFill {
+                    block,
+                    offset,
+                    bytes,
+                    value,
+                } => writeln!(
+                    out,
+                    "  MemFill {} at {} for {} with {}",
+                    place_text(p, block),
+                    val(p, offset),
+                    val(p, bytes),
+                    mem_value(p, value)
+                )
+                .unwrap(),
                 Op::End => writeln!(out, "  End").unwrap(),
                 Op::System => writeln!(out, "  System").unwrap(),
                 Op::Exit => writeln!(out, "  Exit").unwrap(),
@@ -409,6 +439,23 @@ fn array_text(p: &Program, array: &ArrayRef) -> String {
     }
 }
 
+/// What `_MEMPUT` writes or `_MEMFILL` fills with.
+fn mem_value(p: &Program, value: &MemValue) -> String {
+    match value {
+        MemValue::Typed { value, ty: t } => format!("{} as {}", val(p, value), ty(p, *t)),
+        MemValue::Bytes(of) => format!("bytes of {}", reference_text(p, of)),
+        MemValue::Str(s) => format!("string {}", val(p, s)),
+    }
+}
+
+/// What `_MEM`, `_MEMELEMENT` and `_OFFSET` name: a place, or an array as a whole with `()`.
+fn reference_text(p: &Program, of: &Reference) -> String {
+    match of {
+        Reference::Place(place) => place_text(p, place),
+        Reference::Array(array) => format!("{}()", array_text(p, array)),
+    }
+}
+
 /// A variable's name, with its storage class unless it is global (`X(param)`).
 fn var(p: &Program, id: VarId) -> String {
     let v = p.var(id);
@@ -451,6 +498,19 @@ fn val(p: &Program, v: &Expr) -> String {
             format!("VarPtr {}({}):{}", var(p, *array), i.join(", "), ty(p, v.ty))
         }
         ExprKind::VarSeg { array } => format!("VarSeg {}:{}", var(p, *array), ty(p, v.ty)),
+        ExprKind::MemOf { of, element } => {
+            let word = if *element { "MemElement" } else { "Mem" };
+            format!("{word} {}:{}", reference_text(p, of), ty(p, v.ty))
+        }
+        ExprKind::AddressOf(of) => format!("AddressOf {}:{}", reference_text(p, of), ty(p, v.ty)),
+        ExprKind::MemRead { block, offset, of } => format!(
+            "MemRead {} at {} as {}:{}",
+            place_text(p, block),
+            val(p, offset),
+            ty(p, *of),
+            ty(p, v.ty)
+        ),
+        ExprKind::MemAt { offset, size } => format!("MemAt({}, {}):{}", val(p, offset), val(p, size), ty(p, v.ty)),
         ExprKind::Block { array, index } if index.is_empty() => format!("Bytes {}", var(p, *array)),
         ExprKind::Block { array, index } => {
             let i: Vec<String> = index.iter().map(|i| val(p, i)).collect();

@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):M = _MEMIMAGE ( "a",1 )
+LINE 9:m = _MEMIMAGE("a")
+exit=1

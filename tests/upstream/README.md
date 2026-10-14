@@ -363,3 +363,19 @@ the 24 upstream programs that name a built-in of the change, the other 17 wait o
 functions, outside the change). `pass.list` run by itself: 153 of 153. The full run of the suite (404 programs):
 153 pass, 250 rejected or with only marked errors (212 at the compile, 38 `.err` programs), the known failure
 `http/read_example`; none builds and prints the wrong output. The three lists are unchanged.
+
+**Upstream progress, 2026-10-14: 174 of 279** (`m3-mem` tasks 6.1 and 6.2, the full runs that close the change;
+153 before it). The 21 new ones, each joining when tier 1 found it compiling cleanly: `types/all_types`, `dim`,
+`dim_array`, `static`, `static_array` (group 2: they declare `_MEM` variables), `arrays/09_layout_and_mixed_members`,
+`46_Mem_Parent`, `multiple_arrays_same_type`, `nonzero_bounds_negative` (group 3: `_MEM` of references),
+`arrays/nonzero_bounds_positive`, `whole_member_array_ops_nonzero_bounds`, `offset/offset_test`,
+`putimage/putimage_test` (group 4: `_MEMGET`, `_MEMPUT`, `_MEMFILL`), the six `paint/tile_*` and
+`view/window_view_mandelbrot`, `window_view_screen_line` (group 5: `MKL$` and `MKI$`). Of the upstream programs
+that name a built-in of the change, the others wait on something else: the deferred `_DYNAMIC`/`_STATIC` members and
+`$Unstable` (18), `_BASE64DECODE$` and `_INFLATE$` (`font/test`, `image/curico_test`, `pcx_test`, `webp_test`, the
+tests of `imageassert.bm`), `$CHECKING` (`source_ordering/checking_off`), a `TYPE` in a SUB (`mem/mem_checking_off`),
+`_SNDNEW`, blanks around a dot, a whole array where no parameter takes it, and `LEN` of a whole member array
+(`arrays/test_mem_vs_len`, the one form this change marks). `pass.list` run by itself: 174 of 174. The full run of
+the suite (404 programs): 174 pass, 229 rejected or with only marked errors (191 at the compile, 38 `.err`
+programs), the known failure `http/read_example`; none builds and prints the wrong output. The three lists are
+unchanged.

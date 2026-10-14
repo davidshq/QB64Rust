@@ -298,16 +298,21 @@ const TYPE_ARG_WORDS: [&str; 11] = [
     "_MEM",
 ];
 
-/// A type name as an argument, `[_UNSIGNED] type`, as a `TypeArg`, when one stands before the next `,` or `)`.
-/// Returns false (taking nothing) otherwise.
+/// A type name as an argument, `[_UNSIGNED] type`, as a `TypeArg`, when one stands before the next `,` or `)`;
+/// `STRING` and `_BIT` with `* n` (`_MEMGET(m, o, STRING * 4)`, `_MK$(_BIT * 4, x)`; `m3-mem`). Returns false
+/// (taking nothing) otherwise.
 fn type_arg(p: &mut Parser) -> bool {
     let n = usize::from(p.at_word("_UNSIGNED"));
     let is_type = TYPE_ARG_WORDS.iter().any(|w| p.nth_is_word(n, w));
-    if !is_type || !matches!(p.nth(n + 1), Some(Comma | RParen)) {
+    let sized = (p.nth_is_word(n, "STRING") || p.nth_is_word(n, "_BIT"))
+        && p.nth(n + 1) == Some(Star)
+        && p.nth(n + 2) == Some(Number);
+    let last = if sized { n + 2 } else { n };
+    if !is_type || !matches!(p.nth(last + 1), Some(Comma | RParen)) {
         return false;
     }
     p.start_node(TypeArg);
-    for _ in 0..=n {
+    for _ in 0..=last {
         p.bump();
     }
     p.finish_node();

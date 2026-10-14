@@ -1,0 +1,84 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+TYPE _MEM
+  OFFSET:Off
+  SIZE:Off
+  $_LOCK_ID:I64
+  $_LOCK_OFFSET:Off
+  TYPE:Off
+  ELEMENTSIZE:Off
+  IMAGE:I32
+  SOUND:I32
+TYPE W
+  A:I16
+  MM:T:_MEM
+ARRAY Z:T:_MEM(0 TO 3)
+line 2: ConsoleOnly
+line 12: Assign M:T:_MEM
+  Call _MEMNEW : T:_MEM
+    Int 64 : Off
+line 13: Assign M:T:_MEM
+  Call _MEMNEW : T:_MEM
+    Convert Widen : Off
+      Binary Add : I32 (qb I64)
+        Var K : I32
+        Int 1 : I32
+line 14: Assign M:T:_MEM
+  Call _MEMNEW : T:_MEM
+    Convert Truncate : Off
+      Convert RoundEven : I64
+        Var D : F64
+line 15: Assign M:T:_MEM
+  Call _MEMNEW : T:_MEM
+    Convert Truncate : Off
+      Convert RoundEven : I64
+        Float 1.5E+0 : F64 (qb F32)
+line 16: Assign M:T:_MEM
+  Call _MEMNEW : T:_MEM
+    Convert Truncate : Off
+      Var Q : I64
+line 17: Assign U.MM:T:_MEM
+  Call _MEMNEW : T:_MEM
+    Var O : Off
+line 18: Assign Z(…):T:_MEM
+  Index
+    Int 2 : I64
+  Value
+    Call _MEMIMAGE : T:_MEM
+      (absent)
+line 19: Assign M:T:_MEM
+  Call _MEMIMAGE : T:_MEM
+    Var K : I32
+line 20: Assign M:T:_MEM
+  Call _MEMIMAGE : T:_MEM
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+line 21: Print newline
+  Num
+    Call _MEMEXISTS : I32
+      Var M : T:_MEM
+  Num
+    Call _MEMEXISTS : I32
+      Member U.MM : T:_MEM
+  Num
+    Call _MEMEXISTS : I32
+      Element Z(…) : T:_MEM
+        Int 2 : I64
+line 22: Assign K:I32
+  Binary Add : I32 (qb I64)
+    Call _MEMEXISTS : I32
+      Var M : T:_MEM
+    Int 1 : I32
+line 23: System
+line 24: Assign M:T:_MEM
+  Call _MEMSOUND : T:_MEM
+    Var K : I32
+    (absent)
+line 25: Assign M:T:_MEM
+  Call _MEMSOUND : T:_MEM
+    Var K : I32
+    Int 2 : I32

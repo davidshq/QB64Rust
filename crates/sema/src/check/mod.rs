@@ -14,6 +14,7 @@ mod decl;
 mod expr;
 mod flow;
 mod io;
+mod mem;
 mod ops;
 mod places;
 mod proc;
@@ -83,6 +84,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         type_defs: HashSet::new(),
         dim_shared_array_plain: HashMap::new(),
         len_place: None,
+        mem_store: false,
         types_marked: HashSet::new(),
         follow_on: false,
         param_len: HashMap::new(),
@@ -389,6 +391,9 @@ struct Checker<'a> {
     /// The span of a `LEN` argument being typed: a whole user-type place loaded with exactly this span is taken as
     /// a place (its size), not rejected as a value.
     len_place: Option<Span>,
+    /// The value being typed is stored into a place of type `_MEM`, so a built-in that gives a block may stand
+    /// there (design D2 of `m3-mem`); the call takes it, so it holds for that call alone.
+    mem_store: bool,
     /// Main-module `TYPE` blocks (by key) that pass 1 marked "not supported yet".
     types_marked: HashSet<(TreeId, u32)>,
     /// The follow-on rule is on (design D10): a declaration was marked "not supported yet", so real errors are
@@ -842,7 +847,9 @@ impl Checker<'_> {
             self.field_stmt(s)
         } else if let Some(s) = ast::LsetStmt::cast(node) {
             self.lset(s)
-        } else if ast::MemStmt::cast(node).is_some() || ast::ArrayCopyStmt::cast(node).is_some() {
+        } else if let Some(s) = ast::MemStmt::cast(node) {
+            self.mem_stmt(s)
+        } else if ast::ArrayCopyStmt::cast(node).is_some() {
             // Task 7.4: parsed, compiled later (file I/O and the other built-in statements, step 8).
             let t = first_token_span(node);
             let word = show_bytes(&self.text(t).to_ascii_uppercase());
@@ -1091,6 +1098,24 @@ impl Checker<'_> {
             }
         };
         let ty = self.prog.place_ty(&place);
+        self.read_only_member(&place, target_node.node().span())?;
+        let read = self.names_word(value_node, "_MEMGET");
+        if (self.prog.is_mem(ty) && self.gives_block(value_node)) || (matches!(ty, Ty::User(_)) && read) {
+            // A built-in that gives a block, stored into a `_MEM` place: a copy of its 56 bytes (design D2 of
+            // `m3-mem`); a value of a user type `_MEMGET` reads, stored into a place of that type (design D4;
+            // measured, `verification\v32_x01_accepted`).
+            self.mem_store = true;
+            let value = self.expr(value_node);
+            self.mem_store = false;
+            let value = value?;
+            if value.ty != ty {
+                // Measured for two user types: "Expected = similar user defined type" (`v24_x208`).
+                let msg = format!("a value of `TYPE {}` is required here", self.prog.type_name(ty));
+                return Err(self.error(value.span, msg));
+            }
+            self.push(node, StmtKind::Assign { place, value });
+            return Ok(());
+        }
         if let Ty::User(_) = ty {
             // Measured (`verification\v24_h_whole`, `v24_x208`, `x209`): `q = p` copies the whole value between
             // two places of one `TYPE`; a place of another `TYPE`, also one with the same members, and a number
@@ -1121,6 +1146,38 @@ impl Checker<'_> {
     /// Whether a variable holds a whole user-type value.
     fn is_whole_type(&self, v: VarId) -> bool {
         matches!(self.prog.var(v).ty, Ty::User(_))
+    }
+
+    /// A member of a `_MEM` block as the place of an assignment, `READ` or `INPUT #` (the old compiler's `setrefer`,
+    /// `qb64pe.bas` 26850). Measured: "Cannot set read-only element of _MEM TYPE" (`verification\v32_x05`, `x06`,
+    /// `x117`, `x118`).
+    pub(super) fn read_only_member(&mut self, place: &Place, span: Span) -> R<()> {
+        if let Place::Member { base, .. } = place
+            && self.prog.is_mem(self.prog.place_ty(base))
+        {
+            return Err(self.error(span, "a member of a `_MEM` block cannot be stored to"));
+        }
+        Ok(())
+    }
+
+    /// Whether an expression is a call of a built-in that gives a block ([`crate::builtins::MEM_RESULTS`]),
+    /// with or without its argument list.
+    pub(super) fn gives_block(&self, node: ast::Expr) -> bool {
+        crate::builtins::MEM_RESULTS.iter().any(|w| self.names_word(node, w))
+    }
+
+    /// Whether an expression is a call of the built-in `word`, with or without its argument list.
+    fn names_word(&self, node: ast::Expr, word: &str) -> bool {
+        let name = match node {
+            ast::Expr::Call(c) => c.name(),
+            ast::Expr::NameRef(n) => n.name(),
+            ast::Expr::Literal(_)
+            | ast::Expr::Paren(_)
+            | ast::Expr::Prefix(_)
+            | ast::Expr::Bin(_)
+            | ast::Expr::Field(_) => None,
+        };
+        name.is_some_and(|t| self.word(t) == word)
     }
 }
 

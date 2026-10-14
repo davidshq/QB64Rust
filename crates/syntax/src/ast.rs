@@ -366,6 +366,23 @@ impl<'a> SwapStmt<'a> {
     }
 }
 
+impl<'a> MemStmt<'a> {
+    /// The statement's word, `_MEMPUT` or `_MEMFILL`.
+    pub fn word(self) -> Option<Tok> {
+        self.0.first_token()
+    }
+
+    /// The arguments, in order (the type after `AS` is not one).
+    pub fn args(self) -> impl Iterator<Item = Expr<'a>> + 'a {
+        self.0.child_nodes().filter_map(Expr::cast)
+    }
+
+    /// `AS type` after the last argument.
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
+}
+
 impl<'a> FieldStmt<'a> {
     /// `#n,` of `FIELD #n, …`; `None` when the file number is written without `#`.
     pub fn file(self) -> Option<FileNumber<'a>> {

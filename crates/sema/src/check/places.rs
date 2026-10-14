@@ -7,7 +7,7 @@ use super::expr::is_builtin_function;
 use super::{Checker, DimFact, Failed, NoJoin, R, Scope, Skips};
 use crate::{AllocMode, BinOp, ConvKind, StmtKind, UnOp};
 use crate::{ArrayRef, Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType};
-use crate::{Var, VarId};
+use crate::{MEM_TYPE, Var, VarId, mem_type};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::find_any;
 use qb64rust_syntax::SyntaxKind;
@@ -249,8 +249,8 @@ impl Checker<'_> {
         let span = a.node().span();
         let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
         let text = words.join(" ");
-        if let Some(&id) = self.types_by_name.get(&text) {
-            return Ok(Ty::User(id));
+        if let Some(t) = self.user_type_of(&text) {
+            return Ok(t);
         }
         let built_in = words.first().is_some_and(|w| w == "_UNSIGNED") || numeric_type(&text).is_some();
         if !built_in && text != "STRING" {
@@ -285,9 +285,25 @@ impl Checker<'_> {
         }
     }
 
-    /// The user type an `AS` clause names, if it names one.
-    pub(super) fn user_type_of(&self, words: &str) -> Option<Ty> {
+    /// The user type an `AS` clause names, if it names one: a `TYPE` block's, or the predefined `_MEM`.
+    pub(super) fn user_type_of(&mut self, words: &str) -> Option<Ty> {
+        if words == MEM_TYPE {
+            return Some(self.mem_ty());
+        }
         self.types_by_name.get(words).map(|&id| Ty::User(id))
+    }
+
+    /// The predefined type `_MEM` (design D1 of `m3-mem`), added to the program's types the first time a program
+    /// names it or a built-in that gives one, so a program without it has the types of its `TYPE` blocks alone.
+    /// No `TYPE` block takes its name (`TYPE_WORDS`).
+    pub(super) fn mem_ty(&mut self) -> Ty {
+        if let Some(&id) = self.types_by_name.get(MEM_TYPE) {
+            return Ty::User(id);
+        }
+        let id = TypeId(to_u32(self.prog.types.len()));
+        self.prog.types.push(mem_type());
+        self.types_by_name.insert(MEM_TYPE.to_string(), id);
+        Ty::User(id)
     }
 
     // ---- arrays ----
@@ -996,7 +1012,7 @@ impl Checker<'_> {
 
     /// Whether a place that [`Self::members`] gave names a member array as a whole. Such a place is no place of
     /// the typed tree: it becomes an element ([`Self::member_element`]) or an [`ArrayRef::Member`].
-    fn is_member_array(&self, place: &Place) -> bool {
+    pub(super) fn is_member_array(&self, place: &Place) -> bool {
         self.member_of(place).is_some_and(Member::is_array)
     }
 
@@ -1086,7 +1102,7 @@ impl Checker<'_> {
 
     /// [`Self::dotted`] without its last step: the member the name reaches, which may be a member array named
     /// as a whole.
-    fn dotted_any(&mut self, t: Tok, name: &str, suffix: Option<Ty>) -> R<Option<Place>> {
+    pub(super) fn dotted_any(&mut self, t: Tok, name: &str, suffix: Option<Ty>) -> R<Option<Place>> {
         let Some(dot) = name.find('.') else {
             return Ok(None);
         };
@@ -1170,9 +1186,20 @@ impl Checker<'_> {
     }
 
     /// The member a `FieldExpr` names, without what stands in parentheses after it, and the member's token.
-    fn field_member(&mut self, f: ast::FieldExpr) -> R<(Place, Tok)> {
+    pub(super) fn field_member(&mut self, f: ast::FieldExpr) -> R<(Place, Tok)> {
         let span = f.node().span();
         let base = match self.need(f.base(), span)? {
+            // A member of a block a built-in gives (`_MEMNEW(4).SIZE`): measured, "Invalid expression"
+            // (`verification\v32_x02`, `x114`).
+            ast::Expr::Call(c)
+                if c.name()
+                    .is_some_and(|t| crate::builtins::MEM_RESULTS.contains(&self.word(t).as_str())) =>
+            {
+                return Err(self.error(
+                    span,
+                    "a member of a block a built-in gives cannot be read: store it first",
+                ));
+            }
             ast::Expr::Call(c) => self.call_place(c)?,
             ast::Expr::Field(inner) => self.field_place(inner)?,
             ast::Expr::NameRef(n) => {
@@ -1696,7 +1723,13 @@ fn constant(e: &Expr) -> Option<Num> {
                 (ConvKind::RoundEven, Num::Int(_)) | (ConvKind::Truncate, Num::Float(_)) => None,
             }
         }
-        ExprKind::VarPtr { .. } | ExprKind::VarSeg { .. } | ExprKind::Block { .. } => None,
+        ExprKind::VarPtr { .. }
+        | ExprKind::VarSeg { .. }
+        | ExprKind::Block { .. }
+        | ExprKind::MemOf { .. }
+        | ExprKind::MemAt { .. }
+        | ExprKind::AddressOf(_)
+        | ExprKind::MemRead { .. } => None,
         ExprKind::Unary { op, operand } => match (op, constant(operand)?) {
             (UnOp::Neg, Num::Float(f)) => Some(Num::Float(-f)),
             (op, Num::Int(i)) => Some(Num::Int(super::ops::fold_unary(*op, i, e.ty))),

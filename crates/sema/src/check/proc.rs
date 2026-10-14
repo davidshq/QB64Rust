@@ -314,6 +314,16 @@ impl Checker<'_> {
             None => self.split_name(name_tok)?,
         };
         let shown = show_bytes(self.text(name_tok.span));
+        // The statements of memory blocks written inline (design D4 of `m3-mem`): `_MEMGET` is read as a call.
+        // Measured: after `CALL` each is "Command not implemented" (`verification\v32_x90`–`x92`).
+        if suffix.is_none() && matches!(name.as_str(), "_MEMGET" | "_MEMPUT" | "_MEMFILL") {
+            if stmt.call_keyword().is_some() {
+                return Err(self.error(name_tok.span, format!("`{shown}` cannot be written after `CALL`")));
+            }
+            if name == "_MEMGET" {
+                return self.mem_get_stmt(stmt);
+            }
+        }
         // A built-in statement whose entry has no template is written like a SUB call (`KILL f$`). So is one whose
         // template is a single argument, after `CALL` (measured, `verification\v26_x70`: `CALL _DEST(_CONSOLE)`;
         // without `CALL` the parser reads it by its template). A statement with a rule of its own (`SWAP`, `CLOSE`,

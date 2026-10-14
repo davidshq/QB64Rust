@@ -78,7 +78,10 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
 - [x] The image built-ins that run (`_LOADIMAGE`, `_PUTIMAGE`, `_MAPTRIANGLE`, the colour functions, …), fonts,
       the mouse fed by mouse steps of a keys file, 12 screen programs; `_SCREENIMAGE`, `_CLIPBOARDIMAGE`,
       `_PRINTIMAGE`, `_DEPTHBUFFER` and `_MOUSEMOVE` compiled and never run (`m3-images-fonts-mouse`)
-- [ ] `_MEM`, `$ASSERTS` and `$DEBUG`: what most holds back the upstream tests outside `deferred.list`
+- [x] `_MEM`: the type, the blocks of references, addresses, new memory and images, `_MEMGET`, `_MEMPUT`,
+      `_MEMFILL`, `_MEMCOPY`, `_MEMFREE`, `_MEMEXISTS`, `_OFFSET`, every runtime error 300 to 313; `MKI$` …
+      `_CV`; `_MEMSOUND` compiled and never run (`m3-mem`). Upstream 153 to 174 of 279
+- [ ] `$ASSERTS` and `$DEBUG`: what holds back the upstream tests outside `deferred.list` after `_MEM`
 - [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
       file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
       `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program

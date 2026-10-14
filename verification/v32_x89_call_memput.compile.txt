@@ -1,0 +1,5 @@
+
+Command not implemented
+Caused by (or after):CALL _MEMPUT ( M , M . OFFSET , 1 AS LONG )
+LINE 9:CALL _MEMPUT(m, m.OFFSET, 1 AS LONG)
+exit=1

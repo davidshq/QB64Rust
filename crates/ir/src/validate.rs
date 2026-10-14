@@ -3,8 +3,8 @@
 
 use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
 use crate::{
-    Arg, ArrayRef, Body, BuiltinId, Expr, ExprKind, LabelId, Member, MemberId, Op, Place, PrintItem, PrintTo, ProcId,
-    Program, Resume, Shape, Source, StmtArg, Storage, Ty, UsingValue, Var, VarId,
+    Arg, ArrayRef, Body, BuiltinId, Expr, ExprKind, LabelId, MemValue, Member, MemberId, Op, Place, PrintItem, PrintTo,
+    ProcId, Program, Reference, Resume, Shape, Source, StmtArg, Storage, Ty, UsingValue, Var, VarId,
 };
 
 /// Every problem found, each as `<body>: <where>: <what>`; `Ok` when there is none.
@@ -190,6 +190,28 @@ impl Validator<'_> {
                     self.problem(format!("{at}: the console is selected in a program without one"));
                 }
             }
+            // A block, an `_OFFSET` offset (and count), and a variable or a value.
+            Op::MemGet { block, offset, target } => {
+                self.mem_at(block, offset, owner, at);
+                self.mem_bytes(target, owner, at);
+            }
+            Op::MemPut { block, offset, value } => {
+                self.mem_at(block, offset, owner, at);
+                self.mem_value(value, owner, at);
+            }
+            Op::MemFill {
+                block,
+                offset,
+                bytes,
+                value,
+            } => {
+                self.mem_at(block, offset, owner, at);
+                if bytes.ty != Ty::Off {
+                    self.problem(format!("{at}: a count of bytes of type {:?}", bytes.ty));
+                }
+                self.value(bytes, owner, at);
+                self.mem_value(value, owner, at);
+            }
             Op::End | Op::System | Op::Exit | Op::SetHandler(None) | Op::Return(None) => {}
             Op::Resume(Resume::Retry | Resume::Next) => {}
             Op::SetHandler(Some(l)) => self.main_label(*l, at, "handler"),
@@ -204,6 +226,34 @@ impl Validator<'_> {
             Op::Assign { place, value } => {
                 self.place(place, owner, at);
                 self.value(value, owner, at);
+                // A value of a user type only from a built-in: a block, or what `_MEMGET` reads; into a place of
+                // its type (two places of one are a `CopyWhole`).
+                if let Ty::User(_) = value.ty {
+                    let built_in = match &value.kind {
+                        ExprKind::MemOf { .. } | ExprKind::MemAt { .. } | ExprKind::MemRead { .. } => true,
+                        ExprKind::Call { builtin, .. } => builtin.get().ret == Some("_MEM"),
+                        ExprKind::Int(_)
+                        | ExprKind::Float(_)
+                        | ExprKind::Str(_)
+                        | ExprKind::Load(_)
+                        | ExprKind::Bound { .. }
+                        | ExprKind::VarPtr { .. }
+                        | ExprKind::VarSeg { .. }
+                        | ExprKind::Block { .. }
+                        | ExprKind::Convert { .. }
+                        | ExprKind::Binary { .. }
+                        | ExprKind::Unary { .. }
+                        | ExprKind::Concat(..)
+                        | ExprKind::StrCompare { .. }
+                        | ExprKind::Choice { .. }
+                        | ExprKind::CallProc { .. }
+                        | ExprKind::AddressOf(_) => false,
+                    };
+                    let to = place_ty_checked(self.p, place);
+                    if !built_in || to.is_some_and(|t| t != value.ty) {
+                        self.problem(format!("{at}: a store of a {:?} value into a {to:?}", value.ty));
+                    }
+                }
             }
             Op::AssignAll(stores) => {
                 for (place, value) in stores {
@@ -530,11 +580,16 @@ impl Validator<'_> {
                         | Slot::Float
                         | Slot::AnyNumeric
                         | Slot::UInt64
-                        | Slot::ULong => false,
+                        | Slot::ULong
+                        | Slot::Offset => false,
                         // A number or a string: whichever the value is.
                         Slot::ColorOrTile => v.ty == Ty::Str,
                         Slot::Block | Slot::Bytes => {
                             self.problem(format!("{at}: slot {k} of {name} takes bytes, not a value"));
+                            v.ty == Ty::Str
+                        }
+                        Slot::Mem => {
+                            self.problem(format!("{at}: slot {k} of {name} takes a block, not a value"));
                             v.ty == Ty::Str
                         }
                     };
@@ -543,6 +598,8 @@ impl Validator<'_> {
                     }
                     self.value(v, owner, at);
                 }
+                // A block: a place of type `_MEM`.
+                (StmtSlot::Arg { slot: Slot::Mem, .. }, StmtArg::Place(place)) => self.block_place(place, owner, at),
                 (StmtSlot::Arg { .. }, StmtArg::Place(_)) => {
                     self.problem(format!("{at}: slot {k} of {name} holds a place"));
                 }
@@ -773,6 +830,40 @@ impl Validator<'_> {
         match &v.kind {
             ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => {}
             ExprKind::Load(place) => self.place(place, owner, at),
+            // A block of a reference, typed `_MEM`: never of a variable-length string or a `_BIT`.
+            ExprKind::MemOf { of, .. } => {
+                if !self.p.is_mem(v.ty) {
+                    self.problem(format!("{at}: a block typed {:?}", v.ty));
+                }
+                self.reference(of, owner, at, false);
+            }
+            // An address, typed `_UNSIGNED _OFFSET`: never of a `_BIT`.
+            ExprKind::AddressOf(of) => {
+                if v.ty != Ty::UOff {
+                    self.problem(format!("{at}: an address typed {:?}", v.ty));
+                }
+                self.reference(of, owner, at, true);
+            }
+            // A value read from a block: of a number (not `_BIT`), a fixed-length string (a `STRING` value) or a
+            // user type, at an `_OFFSET`.
+            ExprKind::MemRead { block, offset, of } => {
+                let held = if let Ty::FixedStr(_) = of { Ty::Str } else { *of };
+                if matches!(of, Ty::Bit { .. } | Ty::Str) || v.ty != held {
+                    self.problem(format!("{at}: a value read as {of:?} typed {:?}", v.ty));
+                }
+                self.mem_at(block, offset, owner, at);
+            }
+            // A block at an address: an offset and a size, both `_OFFSET` values.
+            ExprKind::MemAt { offset, size } => {
+                if !self.p.is_mem(v.ty) || !matches!(offset.ty, Ty::Off | Ty::UOff) || size.ty != Ty::Off {
+                    self.problem(format!(
+                        "{at}: a block at an address typed {:?}, from a {:?} and a {:?}",
+                        v.ty, offset.ty, size.ty
+                    ));
+                }
+                self.value(offset, owner, at);
+                self.value(size, owner, at);
+            }
             ExprKind::Bound { array, dim, .. } => {
                 self.array_ref(array, owner, at, "bound");
                 if let Some(d) = dim {
@@ -844,18 +935,100 @@ impl Validator<'_> {
                     .unwrap_or_default();
                 for (k, a) in args.iter().enumerate() {
                     let Some(a) = a else { continue };
-                    match (&a.kind, kinds.get(k) == Some(&Slot::Block)) {
-                        (ExprKind::Block { array, index }, true) => self.bytes(a, *array, index, owner, at),
-                        (_, true) => self.problem(format!(
+                    match (&a.kind, kinds.get(k)) {
+                        (ExprKind::Block { array, index }, Some(Slot::Block)) => {
+                            self.bytes(a, *array, index, owner, at);
+                        }
+                        (_, Some(Slot::Block)) => self.problem(format!(
                             "{at}: argument {} of {} takes an array's bytes, not a value",
                             k + 1,
                             id.get().name
                         )),
-                        (_, false) => self.value(a, owner, at),
+                        // A block: a place of type `_MEM`, loaded as itself.
+                        (ExprKind::Load(place), Some(Slot::Mem)) => self.block_place(place, owner, at),
+                        (_, Some(Slot::Mem)) => self.problem(format!(
+                            "{at}: argument {} of {} takes a block, not a value",
+                            k + 1,
+                            id.get().name
+                        )),
+                        (_, _) => self.value(a, owner, at),
                     }
                 }
             }
             ExprKind::CallProc { proc, args } => self.call(*proc, args, owner, at),
+        }
+    }
+
+    /// What `_MEM`, `_MEMELEMENT` (`address` false) or `_OFFSET` names: a place or a whole array of this body,
+    /// never of `_BIT`; for a block, never of variable-length strings either.
+    fn reference(&mut self, of: &Reference, owner: Option<ProcId>, at: &At, address: bool) {
+        let ty = match of {
+            Reference::Place(place) => {
+                self.place(place, owner, at);
+                place_ty_checked(self.p, place)
+            }
+            Reference::Array(array) => {
+                self.array_ref(array, owner, at, "reference");
+                Some(self.p.array_ty(array))
+            }
+        };
+        if let Some(t) = ty
+            && (matches!(t, Ty::Bit { .. }) || (!address && t == Ty::Str))
+        {
+            self.problem(format!("{at}: a reference to a {t:?}"));
+        }
+    }
+
+    /// The block and the offset of `_MEMGET`, `_MEMPUT` and `_MEMFILL`: a place of type `_MEM` and an `_OFFSET`.
+    fn mem_at(&mut self, block: &Place, offset: &Expr, owner: Option<ProcId>, at: &At) {
+        self.block_place(block, owner, at);
+        if offset.ty != Ty::Off {
+            self.problem(format!("{at}: an offset of type {:?}", offset.ty));
+        }
+        self.value(offset, owner, at);
+    }
+
+    /// The variable `_MEMGET` reads into, or `_MEMPUT` and `_MEMFILL` take the bytes of: never a `_BIT`, and a
+    /// variable-length string only as a variable.
+    fn mem_bytes(&mut self, of: &Reference, owner: Option<ProcId>, at: &At) {
+        self.reference(of, owner, at, true);
+        let string = match of {
+            Reference::Place(place) => {
+                place_ty_checked(self.p, place) == Some(Ty::Str) && !matches!(place, Place::Var(_))
+            }
+            Reference::Array(array) => self.p.array_ty(array) == Ty::Str,
+        };
+        if string {
+            self.problem(format!("{at}: the bytes of an element, member or array of strings"));
+        }
+    }
+
+    /// What `_MEMPUT` writes or `_MEMFILL` fills with.
+    fn mem_value(&mut self, value: &MemValue, owner: Option<ProcId>, at: &At) {
+        match value {
+            MemValue::Typed { value, ty } => {
+                if !(ty.is_numeric() && !matches!(ty, Ty::Bit { .. }) && value.ty == ty.held_value()) {
+                    self.problem(format!("{at}: a value of type {:?} as a {ty:?}", value.ty));
+                }
+                self.value(value, owner, at);
+            }
+            MemValue::Bytes(of) => self.mem_bytes(of, owner, at),
+            MemValue::Str(s) => {
+                if s.ty != Ty::Str {
+                    self.problem(format!("{at}: a string value of type {:?}", s.ty));
+                }
+                self.value(s, owner, at);
+            }
+        }
+    }
+
+    /// A block passed to a built-in ([`Slot::Mem`]): a place of the predefined type `_MEM`.
+    fn block_place(&mut self, place: &Place, owner: Option<ProcId>, at: &At) {
+        self.place(place, owner, at);
+        if let Some(t) = place_ty_checked(self.p, place)
+            && !self.p.is_mem(t)
+        {
+            self.problem(format!("{at}: a block that is a place of type {t:?}"));
         }
     }
 

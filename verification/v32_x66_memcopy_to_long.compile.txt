@@ -1,0 +1,5 @@
+
+4th sub argument requires TYPE '_MEM'
+Caused by (or after):_MEMCOPY M , 0 , 8 TO K , 0
+LINE 9:_MEMCOPY m, 0, 8 TO k, 0
+exit=1

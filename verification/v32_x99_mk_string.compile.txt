@@ -1,0 +1,5 @@
+
+_MK only accepts numeric types
+Caused by (or after):S = _MK$ ( STRING , K )
+LINE 9:s = _MK$(STRING, k)
+exit=1

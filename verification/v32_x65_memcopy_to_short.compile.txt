@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _MEMCOPY sourceBlock, sourceBlock.OFFSET, sourceBlock.SIZE TO destBlock, destBlock.OFFSET
+Caused by (or after):_MEMCOPY M , 0 , 8 TO N
+LINE 9:_MEMCOPY m, 0, 8 TO n
+exit=1

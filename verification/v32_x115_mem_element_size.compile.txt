@@ -1,0 +1,5 @@
+
+Expected _MEM(_OFFSET-value,...)
+Caused by (or after):M = _MEM ( A ( 1 ) , 4 )
+LINE 9:m = _MEM(a(1), 4)
+exit=1

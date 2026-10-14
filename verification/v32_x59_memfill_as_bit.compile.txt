@@ -1,0 +1,5 @@
+
+_MEMFILL requires numeric type
+Caused by (or after):_MEMFILL M , M . OFFSET , 8 , 1 AS _BIT
+LINE 9:_MEMFILL m, m.OFFSET, 8, 1 AS _BIT
+exit=1

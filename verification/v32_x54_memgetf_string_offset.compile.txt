@@ -1,0 +1,5 @@
+
+2nd function argument requires a number
+Caused by (or after):PRINT _MEMGET ( M , "a",1 , LONG )
+LINE 9:PRINT _MEMGET(m, "a", LONG)
+exit=1

@@ -1,0 +1,5 @@
+
+CVI requires a STRING argument
+Caused by (or after):K = CVI ( K )
+LINE 9:k = CVI(k)
+exit=1

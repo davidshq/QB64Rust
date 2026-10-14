@@ -59,7 +59,7 @@ impl Emitter<'_> {
 
     /// [`Self::flat_index`] for an element of a member array, whose bounds are constants: an index outside
     /// raises error 9 and counts as 0, position 0 of its dimension (measured, `verification\v24_h_member_store`).
-    fn member_flat_index(&mut self, base: &Place, member: MemberId, index: &[Expr]) -> String {
+    pub(crate) fn member_flat_index(&mut self, base: &Place, member: MemberId, index: &[Expr]) -> String {
         let dims = self.member_dims(base, member);
         let parts: Vec<String> = index
             .iter()
@@ -126,6 +126,16 @@ impl Emitter<'_> {
                 let offset = self.member_offset(self.p.place_ty(base), *member);
                 format!("({}+{offset})", self.bytes_of(base))
             }
+        }
+    }
+
+    /// A block passed to the runtime (a `_MEM` argument of `_MEMEXISTS`, `_MEMFREE`, `_MEMCOPY`, `_MEMGET`;
+    /// design D4 of `m3-mem`): the address of its place, a variable spelled as the old compiler spells it
+    /// (`(void*)( ((char*)(__UDT_M)) + ((0+0)) )`, measured, `verification\v32_x01_accepted`).
+    pub(crate) fn mem_ref(&mut self, place: &Place) -> String {
+        match place {
+            Place::Var(v) => format!("(void*)( ((char*)({})) + ((0+0)) )", self.name(*v)),
+            Place::Element { .. } | Place::Member { .. } => format!("(void*)({})", self.bytes_of(place)),
         }
     }
 

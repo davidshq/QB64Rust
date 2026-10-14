@@ -416,3 +416,25 @@ screen/f02_loaded_fonts
 # m3-images-fonts-mouse group 4: the mouse, read from the mouse steps of a keys file (tests/corpus/screen/SOURCE.md)
 screen/u01_mouse_queue
 screen/u02_mouse_text
+# m3-mem group 2: the type _MEM and the blocks of built-ins (tests/corpus/slice/SOURCE.md)
+slice/s88_mem_new_image
+# m3-mem group 3: the block and the address of every kind of place
+slice/s89_mem_references
+# m3-mem group 4: reading and writing through a block, and one program per runtime error 300 to 313
+slice/s90_mem_get_put
+slice/s91_mem_error_300
+slice/s92_mem_error_301
+slice/s93_mem_error_302
+slice/s94_mem_error_303
+slice/s95_mem_error_304
+slice/s96_mem_error_305
+slice/s97_mem_error_306
+slice/s98_mem_error_307
+slice/s99_mem_error_308
+slice/s100_mem_error_309
+slice/s101_mem_error_310
+slice/s102_mem_error_311
+slice/s103_mem_error_312
+slice/s104_mem_error_313
+# m3-mem group 5: a number and its bytes
+slice/s105_mk_cv

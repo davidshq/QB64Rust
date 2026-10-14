@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):PRINT _MEM ( K ) . SIZE
+LINE 9:PRINT _MEM(k).SIZE
+exit=1

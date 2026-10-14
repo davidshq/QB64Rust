@@ -10,7 +10,7 @@ use qb64rust_builtins::passing::plan;
 use qb64rust_ir::builtins::{
     Rule, Slot, StmtRule, StmtSlot, cpp_arithmetic, find, int_entry, radix_width, slots, stmt_find, stmt_slots,
 };
-use qb64rust_ir::{Expr, Facts, Place, StmtArg, Ty, VarId};
+use qb64rust_ir::{Expr, ExprKind, Facts, Place, StmtArg, Ty, VarId};
 
 impl Emitter<'_> {
     /// A built-in call. A built-in no rule covers (`ERR`, `ERL` are `Fixed`; every call `sema` makes has a rule) is
@@ -134,6 +134,27 @@ impl Emitter<'_> {
                 format!("{f}<{}>({value},{count})", cpp_arithmetic(ty))
             }
             Rule::Choice => unreachable!("`_IIF` is an `ExprKind::Choice`"),
+            Rule::Own => unreachable!("`{}` is an expression of its own", s.name),
+            // `l2string(x)`, `string2l(s)`; a `_BIT` with its width (`bit2string(1,x)`, `string2bit(s,1)`). The type
+            // is the rule's, or for `_MK$` and `_CV` the one their first slot holds (`qb64pe.bas` 21217–21296).
+            Rule::Mk(fixed) | Rule::Cv(fixed) => {
+                let (t, x) = match fixed {
+                    Some(t) => (t, arg(0)),
+                    None => (arg(0).ty, arg(1)),
+                };
+                let v = self.value(x);
+                let make = matches!(s.rule, Rule::Mk(_));
+                match (t, make) {
+                    (Ty::Bit { width, signed }, true) => {
+                        format!("{}bit2string({width},{v})", if signed { "" } else { "u" })
+                    }
+                    (Ty::Bit { width, signed }, false) => {
+                        format!("string2{}bit({v},{width})", if signed { "" } else { "u" })
+                    }
+                    (t, true) => format!("{}2string({v})", bytes_letters(t)),
+                    (t, false) => format!("string2{}({v})", bytes_letters(t)),
+                }
+            }
         }
     }
 
@@ -257,7 +278,9 @@ impl Emitter<'_> {
                 StmtArg::Value(v) => self.value(v),
                 StmtArg::Word(w) => (u32::from(*w) + 1).to_string(),
                 StmtArg::Absent => "NULL".to_string(),
-                StmtArg::Place(_) | StmtArg::Bytes(_) => unreachable!("`{}` takes no place (`validate`)", b.name),
+                // A block (`_MEMFREE`, `_MEMCOPY`): the address of its place.
+                StmtArg::Place(place) => self.mem_ref(place),
+                StmtArg::Bytes(_) => unreachable!("`{}` takes no place's bytes (`validate`)", b.name),
                 StmtArg::Block { array, index } => self.block(*array, index),
             };
             // The fill of `PAINT`: the old compiler's cast picks libqb's entry for a colour or for a tile string,
@@ -429,22 +452,28 @@ impl Emitter<'_> {
                     if is_optional {
                         mask |= 1 << bit;
                     }
-                    let x = self.value(a);
-                    parts.push(match slots.get(i) {
-                        Some(Slot::AnyNumeric) => format!("(({})({x}))", c_type(a.ty)),
-                        Some(
-                            Slot::Long
-                            | Slot::Int64
-                            | Slot::Double
-                            | Slot::Float
-                            | Slot::Str
-                            | Slot::UInt64
-                            | Slot::ULong
-                            | Slot::ColorOrTile
-                            | Slot::Block
-                            | Slot::Bytes,
-                        )
-                        | None => x,
+                    parts.push(match (slots.get(i), &a.kind) {
+                        (Some(Slot::AnyNumeric), _) => format!("(({})({}))", c_type(a.ty), self.value(a)),
+                        // A block: the address of its place.
+                        (Some(Slot::Mem), ExprKind::Load(place)) => self.mem_ref(place),
+                        (Some(Slot::Mem), _) => unreachable!("a block is a place (`validate`)"),
+                        (
+                            Some(
+                                Slot::Long
+                                | Slot::Int64
+                                | Slot::Double
+                                | Slot::Float
+                                | Slot::Str
+                                | Slot::UInt64
+                                | Slot::ULong
+                                | Slot::ColorOrTile
+                                | Slot::Block
+                                | Slot::Bytes
+                                | Slot::Offset,
+                            )
+                            | None,
+                            _,
+                        ) => self.value(a),
                     });
                 }
                 None => parts.push("NULL".into()),
@@ -457,5 +486,27 @@ impl Emitter<'_> {
             parts.push(mask.to_string());
         }
         format!("{}({})", b.callname, parts.join(","))
+    }
+}
+
+/// The letters of libqb's `<t>2string` and `string2<t>` for a numeric type (`qb64pe.bas` 21230–21244).
+fn bytes_letters(t: Ty) -> &'static str {
+    match t {
+        Ty::I8 => "b",
+        Ty::U8 => "ub",
+        Ty::I16 => "i",
+        Ty::U16 => "ui",
+        Ty::I32 => "l",
+        Ty::U32 => "ul",
+        Ty::I64 => "i64",
+        Ty::U64 => "ui64",
+        Ty::Off => "o",
+        Ty::UOff => "uo",
+        Ty::F32 => "s",
+        Ty::F64 => "d",
+        Ty::F80 => "f",
+        Ty::Bit { .. } | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => {
+            unreachable!("the bytes of a {t:?} (`check::mem`)")
+        }
     }
 }

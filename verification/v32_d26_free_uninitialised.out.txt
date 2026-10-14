@@ -1,0 +1,5 @@
+before
+
+Runtime error: Line: 7 (in main module)
+Memory not initialized
+exit=0

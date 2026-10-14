@@ -1,0 +1,104 @@
+$CONSOLE:ONLY
+' Verification (m3-mem, task 1.1): reading and writing through a block by each type (_MEMGET as a function and
+' as a statement, _MEMPUT, _MEMFILL, _MEMCOPY), the pixels of an image through _MEMIMAGE, and when _MEMEXISTS
+' says a block is no longer valid.
+TYPE t
+    a AS INTEGER
+    d AS DOUBLE
+END TYPE
+DIM SHARED gm AS _MEM
+DIM m AS _MEM, n AS _MEM, u AS t, w AS t, f AS STRING * 4, s AS STRING
+DIM a AS LONG, i AS INTEGER, d AS DOUBLE, o AS _OFFSET, fl AS _FLOAT, by AS _BYTE, b(10) AS INTEGER
+DIM i64 AS _INTEGER64, sg AS SINGLE, ub AS _UNSIGNED _BYTE, ul AS _UNSIGNED LONG
+PRINT "put and get a LONG"
+m = _MEM(a)
+_MEMPUT m, m.OFFSET, 7 AS LONG
+PRINT a; _MEMGET(m, m.OFFSET, LONG)
+DIM e AS _MEM: e = m: PRINT e.OFFSET = m.OFFSET; e.SIZE
+PRINT "each type AS, read back by the function"
+m = _MEMNEW(64)
+_MEMPUT m, m.OFFSET, -5 AS _BYTE: PRINT _MEMGET(m, m.OFFSET, _BYTE); _MEMGET(m, m.OFFSET, _UNSIGNED _BYTE)
+_MEMPUT m, m.OFFSET, -300 AS INTEGER: PRINT _MEMGET(m, m.OFFSET, INTEGER); _MEMGET(m, m.OFFSET, _UNSIGNED INTEGER)
+_MEMPUT m, m.OFFSET, -70000 AS LONG: PRINT _MEMGET(m, m.OFFSET, LONG); _MEMGET(m, m.OFFSET, _UNSIGNED LONG)
+_MEMPUT m, m.OFFSET, -5000000000 AS _INTEGER64: PRINT _MEMGET(m, m.OFFSET, _INTEGER64); _MEMGET(m, m.OFFSET, _UNSIGNED _INTEGER64)
+_MEMPUT m, m.OFFSET, 1.5 AS SINGLE: PRINT _MEMGET(m, m.OFFSET, SINGLE); _MEMGET(m, m.OFFSET, LONG)
+_MEMPUT m, m.OFFSET, 2.25 AS DOUBLE: PRINT _MEMGET(m, m.OFFSET, DOUBLE); _MEMGET(m, m.OFFSET, _INTEGER64)
+_MEMPUT m, m.OFFSET, 3.5 AS _FLOAT: PRINT _MEMGET(m, m.OFFSET, _FLOAT)
+_MEMPUT m, m.OFFSET, 99 AS _OFFSET: PRINT _MEMGET(m, m.OFFSET, _OFFSET); _MEMGET(m, m.OFFSET, _UNSIGNED _OFFSET)
+_MEMPUT m, m.OFFSET, 2.7 AS LONG: PRINT _MEMGET(m, m.OFFSET, LONG)
+_MEMPUT m, m.OFFSET, 300 AS _UNSIGNED _BYTE: PRINT _MEMGET(m, m.OFFSET, _UNSIGNED _BYTE)
+a = 1000: _MEMPUT m, m.OFFSET, a AS _BYTE: PRINT _MEMGET(m, m.OFFSET, _BYTE)
+PRINT "variables and strings"
+_MEMPUT m, m.OFFSET, "abcdefgh": PRINT _MEMGET(m, m.OFFSET, STRING * 8); _MEMGET(m, m.OFFSET + 2, STRING * 3)
+f = "wxyz": _MEMPUT m, m.OFFSET, f: PRINT _MEMGET(m, m.OFFSET, STRING * 6)
+s = "12": _MEMPUT m, m.OFFSET, s: PRINT _MEMGET(m, m.OFFSET, STRING * 6)
+s = "--": _MEMPUT m, m.OFFSET, s + "x": PRINT _MEMGET(m, m.OFFSET, STRING * 6)
+u.a = 12: u.d = 3.25: _MEMPUT m, m.OFFSET, u: w = _MEMGET(m, m.OFFSET, t): PRINT w.a; w.d
+i = 4660: _MEMPUT m, m.OFFSET, i: PRINT HEX$(_MEMGET(m, m.OFFSET, INTEGER)); _MEMGET(m, m.OFFSET, _UNSIGNED _BYTE)
+b(1) = -2: _MEMPUT m, m.OFFSET, b(1): PRINT _MEMGET(m, m.OFFSET, INTEGER)
+PRINT "the statement into each kind of variable"
+_MEMPUT m, m.OFFSET, -12345 AS LONG
+_MEMGET m, m.OFFSET, a: PRINT a
+_MEMGET m, m.OFFSET, i: PRINT i
+_MEMGET m, m.OFFSET, by: PRINT by
+_MEMGET m, m.OFFSET, b(3): PRINT b(3)
+_MEMPUT m, m.OFFSET, 6.5 AS DOUBLE
+_MEMGET m, m.OFFSET, d: PRINT d
+_MEMGET m, m.OFFSET, sg: PRINT sg
+_MEMPUT m, m.OFFSET, 1.25 AS _FLOAT
+_MEMGET m, m.OFFSET, fl: PRINT fl
+_MEMPUT m, m.OFFSET, "pqrstuvw"
+_MEMGET m, m.OFFSET, f: PRINT f
+s = "abc": _MEMGET m, m.OFFSET, s: PRINT s
+_MEMPUT m, m.OFFSET, u
+_MEMGET m, m.OFFSET, w: PRINT w.a; w.d
+_MEMGET m, m.OFFSET, w.a: PRINT w.a
+PRINT "fill and copy"
+DIM bb(10) AS INTEGER, la AS LONG
+la = 7
+n = _MEM(bb())
+_MEMFILL n, n.OFFSET, n.SIZE, 3 AS INTEGER
+e = _MEM(la)
+_MEMCOPY e, e.OFFSET, 2 TO n, n.OFFSET + 4
+PRINT bb(0); bb(10); bb(2); bb(3)
+_MEMFILL n, n.OFFSET, 5, 258 AS INTEGER: PRINT bb(0); bb(1); bb(2); bb(3)
+_MEMFILL n, n.OFFSET, n.SIZE, "ab": PRINT HEX$(bb(0)); HEX$(bb(10))
+i = -1: _MEMFILL n, n.OFFSET, 4, i: PRINT bb(0); bb(1); bb(2)
+_MEMFILL n, n.OFFSET, n.SIZE, 1.5 AS SINGLE: PRINT HEX$(bb(0)); HEX$(bb(1)); bb(10)
+_MEMFILL n, n.OFFSET, 0, 9 AS _BYTE: PRINT bb(0)
+_MEMCOPY n, n.OFFSET, 4 TO n, n.OFFSET + 2: PRINT HEX$(bb(1)); HEX$(bb(2))
+PRINT "new memory"
+DIM nm AS _MEM
+nm = _MEMNEW(16): PRINT _MEMEXISTS(nm); nm.SIZE; nm.TYPE; nm.ELEMENTSIZE; nm.IMAGE: _MEMFREE nm: PRINT _MEMEXISTS(nm)
+nm = _MEMNEW(0): PRINT _MEMEXISTS(nm); nm.SIZE; nm.OFFSET
+DIM un AS _MEM: PRINT _MEMEXISTS(un); un.SIZE; un.OFFSET
+PRINT "an image"
+DIM img AS LONG, px AS _MEM
+img = _NEWIMAGE(4, 2, 32)
+_DEST img: PSET (1, 1), _RGB32(10, 20, 30): _DEST _CONSOLE
+px = _MEMIMAGE(img)
+PRINT HEX$(_MEMGET(px, px.OFFSET + (1 * 4 + 1) * 4, _UNSIGNED LONG)); px.SIZE; px.TYPE; px.ELEMENTSIZE; px.IMAGE = img
+PRINT _MEMEXISTS(px)
+_MEMFREE px: PRINT _MEMEXISTS(px)
+px = _MEMIMAGE(img): _FREEIMAGE img: PRINT _MEMEXISTS(px)
+img = _NEWIMAGE(3, 3, 256): px = _MEMIMAGE(img): PRINT px.SIZE; px.TYPE; px.ELEMENTSIZE
+PRINT "when a block stops being valid"
+REDIM dd(5) AS LONG
+m = _MEM(dd()): PRINT _MEMEXISTS(m)
+ERASE dd: PRINT _MEMEXISTS(m)
+REDIM dd(5) AS LONG: m = _MEM(dd()): REDIM dd(6) AS LONG: PRINT _MEMEXISTS(m)
+REDIM dd(5) AS LONG: m = _MEM(dd(2)): REDIM _PRESERVE dd(7) AS LONG: PRINT _MEMEXISTS(m)
+DIM sd(5) AS LONG: m = _MEM(sd()): ERASE sd: PRINT _MEMEXISTS(m)
+keep: PRINT _MEMEXISTS(gm)
+PRINT "the address"
+PRINT m.OFFSET = _OFFSET(a); _OFFSET(a) = _OFFSET(a)
+m = _MEM(a): PRINT m.OFFSET = _OFFSET(a)
+a = 9: m = _MEM(_OFFSET(a), 4): PRINT _MEMGET(m, m.OFFSET, LONG); m.SIZE; m.TYPE; m.ELEMENTSIZE; m.IMAGE
+m = _MEM(b()): PRINT m.OFFSET = _OFFSET(b()); m.OFFSET = _OFFSET(b(0)); _OFFSET(b(1)) - _OFFSET(b(0))
+SYSTEM
+
+SUB keep
+    DIM l AS LONG
+    gm = _MEM(l)
+    PRINT _MEMEXISTS(gm);
+END SUB

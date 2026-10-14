@@ -152,9 +152,9 @@ What the compiler supports so far:
   `ERL`. A function that needs an argument, named without one, is an error, as in QB64pe. Adding one of the
   remaining built-ins is a row plus tests where an existing rule fits, and a program in `tests\callsite` (the
   call-site check, below); tier 1 requires each listed one in a `slice.list` program and a `typed` test. Left
-  marked on purpose: `_ERRORLINE`, `MKL$`/`CVL` and the other
-  functions the old compiler writes itself, `_MIN`, `_MAX`, `_CLAMP`, `_IIF` and the shifts (typed by their
-  arguments; no rule yet);
+  marked on purpose at the time: `_ERRORLINE` and the other functions the old compiler writes itself (`MKL$`,
+  `CVL` and their kin came in with `m3-mem`; `_MIN`, `_MAX`, `_CLAMP`, `_IIF` and the shifts with
+  `m3-console-files`, below);
 - `SELECT CASE` and `SELECT EVERYCASE` (lists, `TO`, `IS`, `CASE ELSE`; the selector copied once into a static
   hidden variable unless it is a plain variable, as QB64pe; `DIVERGENCES-QB45.md` Q-002) and `ON n GOTO`/`ON n
   GOSUB` to labels (`n` above 255 falls through, Q-001), lowered to the IR's branches and jumps
@@ -531,6 +531,67 @@ What the compiler supports so far:
   row on `NEVER_RUN`: they read the desktop or the clipboard, print a page, or act on hardware images. They and
   the 3-D form of `_MAPTRIANGLE` stand below the `SYSTEM` of `i04`. Checked by the front-end tests
   `screenimage_typed`, `screenimage_ir` and `screenimage_errors`, and 19 call-site programs.
+- **Memory blocks** (`m3-mem`; the facts in `study\00` §5, `verification\v32_*`; the old compiler's C++ of every
+  form in the change's `design.md`):
+  - **The type `_MEM`** (group 2, design D1) is a user type defined by `sema` (`sema::mem_type`, 56 bytes: the
+    members `OFFSET`, `SIZE`, `TYPE`, `ELEMENTSIZE`, `IMAGE`, `SOUND` and two lock members a program cannot
+    name), added to the program's types when the program first names it (so the dumps of a program without it
+    do not change). It is everything a user type is: a variable of any storage class, an array, a member, a
+    parameter, a whole copy, `SWAP`, `LEN` (56). A store to a member is an error, as in the old compiler.
+  - **Built-ins that give a block** (`MEM_RESULTS`: `_MEMNEW`, `_MEMIMAGE`, `_MEMSOUND`, and in group 3 `_MEM`
+    and `_MEMELEMENT`) are rows whose call is typed `_MEM`; such a call stands only as the value of an `Assign`
+    into a `_MEM` place (`check\mod.rs`, `assign`, the checker's `mem_store`), written as the old compiler
+    writes it: a `mem_block funcN` temporary in `global.txt` and a `memcpy` of its 56 bytes (`store_block`,
+    `codegen-cpp\src\stmt.rs`). Anywhere else it is an error, also stored into a number (whose C++ the old
+    compiler fails to build).
+  - **A block as an argument** is `Slot::Mem` (`_MEMEXISTS`; `_MEMFREE` and both blocks of `_MEMCOPY a, o, n TO
+    b, p`): a variable, element or member of type `_MEM`, passed as its address (`mem_ref`,
+    `codegen-cpp\src\place.rs`); an offset or a size is `Slot::Offset`, a store into an `_OFFSET`.
+    `_MEMSOUND` (libqb's audio part) is on `NEVER_RUN`. Checked by the slice program `s88_mem_new_image`, the
+    front-end tests `mem_type_typed`, `mem_blocks_typed`, `mem_blocks_ir` and `mem_errors`, and 26 call-site
+    programs (`mem*`).
+  - **The block of a reference** (group 3, design D3): `_MEM(reference)` and `_MEMELEMENT(reference)` are
+    `ExprKind::MemOf`, `_MEM(offset, size)` `ExprKind::MemAt` (`func__mem_at_offset`; the offset an `_OFFSET` or
+    `_UNSIGNED _OFFSET`, the size stored as an `_OFFSET`), `_OFFSET(reference)` `ExprKind::AddressOf`, an
+    `_UNSIGNED _OFFSET` (all three `Rule::Own`: checked in `sema\src\check\mem.rs` before the table). A
+    reference (`sema::Reference`) is a variable, element or member, or a whole array: `a()`, a member array `t.v()`
+    or `t.v`. The emitter (`codegen-cpp\src\mem.rs`) writes the five arguments of `func__mem` by the kind of
+    place, as the old compiler's helpers do: a type value (`Type2MemTypeValue`), the bytes from an element to
+    the array's end, the user-type rule for anything reached through a member, the array's own lock for an
+    array of numbers or fixed-length strings and `sf_mem_lock` for the rest; an index is written twice, as
+    there. An array parameter takes its own lock slot also where nothing above gave it its dimensions
+    (`DIVERGENCES.md` D-016). Errors as the old compiler's: a variable-length string or a `_BIT` (also
+    `_OFFSET` of a `_BIT` array), a value, `_MEMELEMENT` of a whole member array, an offset that is no `_OFFSET`.
+    Not supported yet: a `TYPE` that holds a `STRING`, a member array that is not the last step of the place or
+    whose elements are of a user type, `_OFFSET` of an element, member or array of variable-length strings, a
+    name with `()` that names no array. Checked by `s89_mem_references` (the kinds of `verification\v32_a_blocks`
+    and `_OFFSET` against `OFFSET`), the front-end tests `mem_refs_typed`, `mem_refs_ir`, `mem_refs_cpp` (the
+    element and member forms, which the call-site check does not compare) and `mem_errors`, and 43 call-site
+    programs (`mem_*`, `memelement_*`, `offset_*`).
+  - **Reading and writing through a block** (group 4, design D4): the `_MEMGET` function is
+    `ExprKind::MemRead` (`func__memget` read as the type: a number, `STRING * n` as a `STRING` value, a user type
+    only stored into a place of it, `store_block`); the statements `_MEMGET`, `_MEMPUT` and `_MEMFILL` are
+    `StmtKind::MemGet`, `MemPut`, `MemFill` (`Op::…` in the IR), checked in `sema\src\check\mem.rs` (the parser's
+    `MemStmt` for `_MEMPUT` and `_MEMFILL`, a call statement for `_MEMGET`) and written inline as the old compiler
+    writes them (`codegen-cpp\src\mem.rs`): the offset into `tmp_long`, the checks of the block (errors 309,
+    308, 300) and the copy, through an `int8` … `int64` for a size of 1, 2, 4 or 8 and `memmove` otherwise; a
+    value `AS type` stored through a pointer of the type, with the conversions C++ makes on a store left to it
+    (`stored`); a string that is no variable through `g_tmp_str`; `_MEMFILL` the runtime's `sub__memfill_N` or
+    `sub__memfill`. What is read or written is a `sema::MemValue`: a typed value, the bytes of a reference, a
+    string. A type argument may be `STRING * n` or `_BIT * n` (`syntax\src\parser\expr.rs`, `type_arg`); a user
+    type's name there is read from the expression. Every runtime error 300 to 313 is a slice program of its
+    own (`s91_mem_error_300` … `s104_mem_error_313`): none is trapped. Checked by `s90_mem_get_put`, those 14,
+    the front-end tests `mem_rw_typed`, `mem_rw_ir` and `mem_errors`, the parser test `mem_forms`, and 69
+    call-site programs (`memget_*`, `memput_*`, `memfill_*`).
+  - **A number and its bytes** (group 5, design D5): `MKI$`, `MKL$`, `MKS$`, `MKD$` and `_MK$` are
+    `Rule::Mk`, `CVI`, `CVL`, `CVS`, `CVD` and `_CV` `Rule::Cv` (`sema\src\check\mem.rs`, `number_bytes`), calls of
+    libqb's `<t>2string` and `string2<t>` (`bit2string(1,x)` for `_BIT`). The number of an `MK` is converted to an
+    integer type as a store converts it (to 16 bits or fewer through `qbr_float_to_long` of the value as it is)
+    and passed to a float type as it is. `_MK$` and `_CV` take a type first (any numeric type, `_BIT` and
+    `_UNSIGNED _BIT` one bit wide, a width being the old compiler's error), kept in their first slot as a 0 of
+    that type; `_CV` of a `_BIT` is an `_INTEGER64`. Checked by `s105_mk_cv` (the program of
+    `verification\v32_c_mk_cv`), the front-end tests `mk_cv_typed` and `mk_cv_errors`, and 55 call-site programs
+    (`mki_*` … `cv_*`).
 - **The constants of QB64pe's auto-included file** (`m2-console-screenhide` group 5; `sema\src\check\auto.rs`):
   `_TRUE`, `_FALSE`, `_ONE_MB`, the limits of the numeric types and the others of `beforefirstline.bi` are
   known in every program. The file is not included: `tools\builtins\builtins.json` carries each constant's

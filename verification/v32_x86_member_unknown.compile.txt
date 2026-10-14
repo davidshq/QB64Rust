@@ -1,0 +1,5 @@
+
+Element not defined
+Caused by (or after):K = M . FOO
+LINE 9:k = m.FOO
+exit=1

@@ -1,0 +1,33 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+Settings: console, no window
+Member array T.V:I32 (0 To 3)
+Array Z:T:_MEM static (0 To 2)
+Array B:I16 static (0 To 5)
+Stmt line 2
+  SelectConsole
+Stmt line 11 may_raise
+  MemGet M at Load M.OFFSET:Off into K
+Stmt line 12 may_raise
+  MemGet Z(Const 1:I64) at Const 4:Off into B(Const 2:I64)
+Stmt line 13 may_raise
+  MemGet M at (Var K:I32 -> Convert Off Widen) into S
+Stmt line 14 may_raise
+  MemPut M at Load M.OFFSET:Off = bytes of U.V()
+Stmt line 15 may_raise
+  MemPut M at Load M.OFFSET:Off = string Concat(Var S:Str, Const "x")
+Stmt line 16 may_raise
+  MemPut M at Load M.OFFSET:Off = (Var D:F64 -> Convert I64 RoundEven) as I64
+Stmt line 17 may_raise
+  MemPut M at Load M.OFFSET:Off = (Add:I32(Var K:I32, Const 1:I32) wrap -> Convert I16 Truncate) as I16
+Stmt line 18 may_raise
+  MemFill M at Load M.OFFSET:Off for Const 8:Off with (Const 3:I16 -> Convert F80 Nearest) as F80
+Stmt line 19 may_raise
+  MemFill M at Load M.OFFSET:Off for (Var K:I32 -> Convert Off Widen) with bytes of B()
+Stmt line 20 may_raise
+  MemFill M at Load M.OFFSET:Off for ((Var D:F64 -> Convert I64 RoundEven) -> Convert Off Truncate) with string Const "ab"
+Stmt line 21
+  System

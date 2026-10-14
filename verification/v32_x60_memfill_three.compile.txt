@@ -1,0 +1,5 @@
+
+Expected _MEMFILL mem-reference, offset, bytes, variable|value[AS type]
+Caused by (or after):_MEMFILL M , M . OFFSET , 8
+LINE 9:_MEMFILL m, m.OFFSET, 8
+exit=1

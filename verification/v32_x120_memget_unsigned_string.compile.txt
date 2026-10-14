@@ -1,0 +1,5 @@
+
+Invalid TYPE name
+Caused by (or after):S = _MEMGET ( M , M . OFFSET , _UNSIGNED STRING * 4 )
+LINE 5:s = _MEMGET(m, m.OFFSET, _UNSIGNED STRING * 4)
+exit=1

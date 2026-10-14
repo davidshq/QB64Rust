@@ -1,0 +1,5 @@
+
+_CV cannot return STRING type!
+Caused by (or after):K = _CV ( STRING , S )
+LINE 9:k = _CV(STRING, s)
+exit=1

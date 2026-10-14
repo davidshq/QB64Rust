@@ -1,0 +1,5 @@
+
+Cannot convert type (_BIT*4%) to symbol
+Caused by (or after):S = _MK$ ( _BIT * 4 , K )
+LINE 9:s = _MK$(_BIT * 4, k)
+exit=1

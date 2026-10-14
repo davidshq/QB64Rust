@@ -1,0 +1,5 @@
+
+Variable/element cannot be _BIT aligned
+Caused by (or after):_MEMGET M , M . OFFSET , BT
+LINE 9:_MEMGET m, m.OFFSET, bt
+exit=1

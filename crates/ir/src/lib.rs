@@ -104,7 +104,9 @@ pub use qb64rust_sema::{AllocMode, Shape};
 /// no work on them, only a variant-for-variant copy). The emitter ignores an [`Expr`]'s `span` and `qb`. Variable and
 /// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended
 /// ([`Program::vars`]).
-pub use qb64rust_sema::{Arg, ArrayRef, Expr, ExprKind, InputSource as Source, Place, ProcId, StmtArg, VarId};
+pub use qb64rust_sema::{
+    Arg, ArrayRef, Expr, ExprKind, InputSource as Source, MemValue, Place, ProcId, Reference, StmtArg, VarId,
+};
 /// Where a `PRINT` goes and the values of a `PRINT USING` are `sema`'s too.
 pub use qb64rust_sema::{PrintTo, UsingValue};
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
@@ -260,6 +262,11 @@ impl Facts for Expr {
             ExprKind::Concat(..) | ExprKind::StrCompare { .. } | ExprKind::Call { .. } | ExprKind::CallProc { .. } => {
                 true
             }
+            // The index checks on the way to the reference; a negative size raises error 301.
+            ExprKind::MemOf { of, .. } | ExprKind::AddressOf(of) => !of.indexes().is_empty(),
+            ExprKind::MemAt { .. } => true,
+            // A block never set, freed, or a region beyond it.
+            ExprKind::MemRead { .. } => true,
         }
     }
 
@@ -282,6 +289,14 @@ impl Facts for Expr {
                 }
                 ExprKind::Call { args, .. } => args.iter().flatten().any(|a| a.uses_strings(p)),
                 ExprKind::CallProc { args, .. } => args.iter().any(|a| a.uses_strings(p)),
+                // An element or a whole array of `STRING * n` is reached through a temporary fixed `qbs`.
+                ExprKind::MemOf { of, .. } | ExprKind::AddressOf(of) => {
+                    of.indexes().iter().any(|i| i.uses_strings(p))
+                        || matches!(of, Reference::Place(Place::Element { array, .. }) | Reference::Array(array)
+                            if matches!(p.array_ty(array), Ty::FixedStr(_)))
+                }
+                ExprKind::MemAt { offset, size } => offset.uses_strings(p) || size.uses_strings(p),
+                ExprKind::MemRead { block, offset, .. } => block.uses_strings(p) || offset.uses_strings(p),
             }
     }
 }
@@ -491,6 +506,36 @@ pub enum Op {
         file: Expr,
         parts: Vec<(Place, Expr)>,
     },
+    /// Copy bytes from a memory block into a variable (`_MEMGET block, offset, variable`; design D4 of `m3-mem`).
+    /// The block is a place of type `_MEM`, the offset an `_OFFSET`, the target a variable, element, member, whole
+    /// array or whole member array of any type but `_BIT` (a variable-length string: its characters, as many as it
+    /// holds). In order: the offset is evaluated; a block never set raises error 309; a freed one (its lock's id
+    /// changed) 308, a region not within the block 300, and nothing is copied; else the target's bytes are copied.
+    /// These errors end the program: no handler runs (measured, `verification\v32_d*`). Always may raise.
+    MemGet {
+        block: Place,
+        offset: Expr,
+        target: Reference,
+    },
+    /// Copy bytes into a memory block (`_MEMPUT`): a [`MemValue::Str`] is evaluated first, then the offset, the
+    /// checks of [`Op::MemGet`], and the value's bytes are written (a typed value is evaluated there). Always may
+    /// raise.
+    MemPut {
+        block: Place,
+        offset: Expr,
+        value: MemValue,
+    },
+    /// Fill bytes of a memory block with a value's bytes, repeated (`_MEMFILL`): a [`MemValue::Str`] is evaluated
+    /// first, then the offset and the count (both `_OFFSET`s); a typed value is an argument of the runtime's call
+    /// beside them, in the order C++ gives arguments (none fixed), as the old compiler writes it. The runtime
+    /// raises error 309 for a block never set, 308 for a freed one, 301 for a negative count or a value of no
+    /// bytes, 300 for a region not within the block. Always may raise.
+    MemFill {
+        block: Place,
+        offset: Expr,
+        bytes: Expr,
+        value: MemValue,
+    },
     /// Put a string's characters into the string at a place, at its left or (`right`) at its right, without
     /// changing its length: padded with blanks, or cut at its end. The place is of type `Str` or `FixedStr`
     /// and is found before the value is evaluated; with an error pending after the value nothing is stored.
@@ -598,7 +643,10 @@ impl Op {
             | Op::Raise(_)
             | Op::Resume(_)
             | Op::Return(_)
-            | Op::Allocate { .. } => true,
+            | Op::Allocate { .. }
+            | Op::MemGet { .. }
+            | Op::MemPut { .. }
+            | Op::MemFill { .. } => true,
             Op::Assign { place, value } => place.may_raise() || value.may_raise(),
             Op::CopyWhole { from, to } => from.may_raise() || to.may_raise(),
             Op::AssignAll(stores) => stores.iter().any(|(_, v)| v.may_raise()),
@@ -714,6 +762,12 @@ pub enum RuntimePart {
 impl Program {
     pub fn user_type(&self, id: TypeId) -> &UserType {
         &self.types[id.0 as usize]
+    }
+
+    /// Whether `t` is the predefined type `_MEM`, a memory block (design D1 of `m3-mem`): the runtime's block,
+    /// 56 bytes, whose members are its address, size, lock, type value, element size, image and sound.
+    pub fn is_mem(&self, t: Ty) -> bool {
+        matches!(t, Ty::User(id) if self.types.get(id.0 as usize).is_some_and(|u| u.name == qb64rust_sema::MEM_TYPE))
     }
 
     /// The member of a place of user type `base`.

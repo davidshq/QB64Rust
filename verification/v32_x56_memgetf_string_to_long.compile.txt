@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):K = _MEMGET ( M , M . OFFSET , STRING * 4 )
+LINE 9:k = _MEMGET(m, m.OFFSET, STRING * 4)
+exit=1

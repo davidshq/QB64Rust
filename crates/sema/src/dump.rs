@@ -1,8 +1,8 @@
 //! `--dump typed`: one node per line, indented, with its type (FreeBASIC lesson L8: assertions on types).
 
 use crate::{
-    Arg, ArrayRef, CaseItem, Expr, ExprKind, InputSource, Place, PrintItem, PrintTo, ProcKind, Program, Resume, Shape,
-    Stmt, StmtArg, StmtKind, Storage, Ty, UsingValue, VarId,
+    Arg, ArrayRef, CaseItem, Expr, ExprKind, InputSource, MemValue, Place, PrintItem, PrintTo, ProcKind, Program,
+    Reference, Resume, Shape, Stmt, StmtArg, StmtKind, Storage, Ty, UsingValue, VarId,
 };
 
 use qb64rust_base::show_bytes;
@@ -120,6 +120,57 @@ fn array_text(p: &Program, array: &ArrayRef) -> String {
     }
 }
 
+/// The block, the offset and (`_MEMFILL`) the number of bytes of a statement of memory blocks, under its line.
+fn mem_parts(p: &Program, block: &Place, offset: &Expr, bytes: Option<&Expr>, d: usize, out: &mut String) {
+    let pad = "  ".repeat(d + 1);
+    writeln!(out, "{pad}block {}", place_text(p, block)).unwrap();
+    indexes(p, block, d + 2, out);
+    writeln!(out, "{pad}offset").unwrap();
+    expr(p, offset, d + 2, out);
+    if let Some(b) = bytes {
+        writeln!(out, "{pad}bytes").unwrap();
+        expr(p, b, d + 2, out);
+    }
+}
+
+/// What `_MEMPUT` writes or `_MEMFILL` fills with, under its line.
+fn mem_value(p: &Program, value: &MemValue, d: usize, out: &mut String) {
+    let pad = "  ".repeat(d + 1);
+    match value {
+        MemValue::Typed { value, ty: t } => {
+            writeln!(out, "{pad}as {}", ty(p, *t)).unwrap();
+            expr(p, value, d + 2, out);
+        }
+        MemValue::Bytes(of) => {
+            let t = ty(p, reference_ty(p, of));
+            writeln!(out, "{pad}bytes of {} : {t}", reference_text(p, of)).unwrap();
+            for i in of.indexes() {
+                expr(p, i, d + 2, out);
+            }
+        }
+        MemValue::Str(s) => {
+            writeln!(out, "{pad}string").unwrap();
+            expr(p, s, d + 2, out);
+        }
+    }
+}
+
+/// The type of what a reference names: a place's, an array's elements'.
+fn reference_ty(p: &Program, of: &Reference) -> Ty {
+    match of {
+        Reference::Place(place) => p.place_ty(place),
+        Reference::Array(array) => p.array_ty(array),
+    }
+}
+
+/// What `_MEM`, `_MEMELEMENT` and `_OFFSET` name as text: a place, or an array as a whole with `()`.
+fn reference_text(p: &Program, of: &Reference) -> String {
+    match of {
+        Reference::Place(place) => place_text(p, place),
+        Reference::Array(array) => format!("{}()", array_text(p, array)),
+    }
+}
+
 /// The indexes of the elements on the way to a place, outermost first, each at `depth`.
 fn indexes(p: &Program, place: &Place, depth: usize, out: &mut String) {
     for e in place.indexes() {
@@ -196,6 +247,30 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
             StmtKind::Return(None) => line(out, "Return"),
             StmtKind::Return(Some(l)) => line(out, &format!("Return {}", p.label(*l).name)),
             StmtKind::ConsoleOnly => line(out, "ConsoleOnly"),
+            StmtKind::MemGet { block, offset, target } => {
+                line(out, "MemGet");
+                mem_parts(p, block, offset, None, d, out);
+                let t = ty(p, reference_ty(p, target));
+                heading(out, &format!("into {} : {t}", reference_text(p, target)));
+                for i in target.indexes() {
+                    expr(p, i, d + 2, out);
+                }
+            }
+            StmtKind::MemPut { block, offset, value } => {
+                line(out, "MemPut");
+                mem_parts(p, block, offset, None, d, out);
+                mem_value(p, value, d, out);
+            }
+            StmtKind::MemFill {
+                block,
+                offset,
+                bytes,
+                value,
+            } => {
+                line(out, "MemFill");
+                mem_parts(p, block, offset, Some(bytes), d, out);
+                mem_value(p, value, d, out);
+            }
             StmtKind::End => line(out, "End"),
             StmtKind::System => line(out, "System"),
             StmtKind::Exit => line(out, "Exit"),
@@ -584,6 +659,29 @@ fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
             for i in index {
                 expr(p, i, depth + 1, out);
             }
+        }
+        ExprKind::MemOf { of, element } => {
+            let word = if *element { "MemElement" } else { "Mem" };
+            writeln!(out, "{pad}{word} {} : {types}", reference_text(p, of)).unwrap();
+            for i in of.indexes() {
+                expr(p, i, depth + 1, out);
+            }
+        }
+        ExprKind::AddressOf(of) => {
+            writeln!(out, "{pad}AddressOf {} : {types}", reference_text(p, of)).unwrap();
+            for i in of.indexes() {
+                expr(p, i, depth + 1, out);
+            }
+        }
+        ExprKind::MemRead { block, offset, of } => {
+            writeln!(out, "{pad}MemRead {} as {} : {types}", place_text(p, block), ty(p, *of)).unwrap();
+            indexes(p, block, depth + 1, out);
+            expr(p, offset, depth + 1, out);
+        }
+        ExprKind::MemAt { offset, size } => {
+            writeln!(out, "{pad}MemAt : {types}").unwrap();
+            expr(p, offset, depth + 1, out);
+            expr(p, size, depth + 1, out);
         }
         ExprKind::Convert { how, from } => {
             writeln!(out, "{pad}Convert {how:?} : {types}").unwrap();

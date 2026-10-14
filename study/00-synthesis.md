@@ -2247,6 +2247,141 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     (`tools\screen\README.md`). In `SCREEN 0` a pixel at or beyond the right or bottom edge (639, 399; 700, 450)
     is column 80, row 25, and 0, 0 is 1, 1 (`u02_mouse_text`). After the queue is empty the values of the last
     event stay (`u01`: 60, 40).
+- **`_MEM`, its functions and statements, `_OFFSET`, `MKI$` … `_CV` (`v32_*`, 158 programs, measured 2026-10-14 as
+  tasks 1.1 and 1.2 of `m3-mem`: about 230 accepted forms read with `qb64pe -z` from programs outside the
+  repository, kept as code that is not reached in `v32_x01_accepted`; 115 other forms, one program each,
+  `x02`–`x116`, all rejected but `x80`; the values in `v32_a`–`v32_c`; the runtime errors and the life of a block
+  in `v32_d01`–`d34`; by the review of the change, `x117`–`x120`).** The C++ of every kind of place is in design
+  D3 of the change.
+  - **The type.** `_MEM` is user type 1, defined before the program's first line (`qb64pe.bas` 1588): 56 bytes,
+    `OFFSET`, `SIZE`, two lock members a program cannot name, `TYPE`, `ELEMENTSIZE` (8 bytes each), `IMAGE` and
+    `SOUND` (LONG). It is accepted wherever a user type is: `DIM`, `DIM SHARED`, `REDIM` arrays, `STATIC`, a
+    member of a `TYPE` (`LEN` of `a AS INTEGER, mm AS _MEM, v(1 TO 2) AS LONG` is 66), a parameter `p AS _MEM`;
+    `LEN(m)` is 56; `n = m` is a `memcpy` of 56 bytes and `SWAP m, n` `swap_block(…,56)`. A member is read as any
+    member (`*(ptrszint*)(((char*)__UDT_M)+((0+8)))`, printed as an `_INTEGER64`; `IMAGE` and `SOUND` as `int32`).
+    A store to a member is "Cannot set read-only element of _MEM TYPE", by `=` and also by `READ m.SIZE` and
+    `INPUT #1, m.SIZE` (`x117`, `x118`; the old compiler's `setrefer`, `qb64pe.bas` 26850, which `FOR` calls
+    too); `m.LOCK_ID` "Element not defined"; `m =
+    5` and `m = k` "Expected = similar user defined type"; `PRINT m` "User defined types in expressions are
+    invalid".
+  - **A function that gives a block** (`_MEM`, `_MEMELEMENT`, `_MEMNEW`, `_MEMIMAGE`, `_MEMSOUND`) is accepted
+    only as the value stored into a place of type `_MEM` (a variable, an element, a member): `mem_block funcN;` in
+    `global.txt` and `memcpy(dest,(((char*)&(funcN=call))+(0)),56)`. As an argument (of `_MEMEXISTS`,
+    `_MEMFREE`, a SUB or FUNCTION) it is "TYPE '_MEM' required for function" (or "… for sub"); with a member
+    read (`_MEM(k).SIZE`, `_MEMNEW(4).SIZE`) "Invalid expression". **Stored into a number (`k = _MEMNEW(4)`,
+    `x80`) it is accepted and the C++ build fails** ("assigning to 'int32_t' from incompatible type
+    'mem_block'").
+  - **A block as an argument** (of `_MEMEXISTS`, `_MEMFREE`, both blocks of `_MEMCOPY`, the first argument of
+    the `_MEMGET` function) is a place of type `_MEM`, passed as its address:
+    `(void*)( ((char*)(__UDT_M)) + ((0+0)) )`, of an element `(void*)( ((char*)(__ARRAY_UDT_RM[0])) +
+    (((array_check(( 1 )-__ARRAY_UDT_RM[4],__ARRAY_UDT_RM[5]))*56+0)) )`, of a member `(void*)( ((char*)(__UDT_U))
+    + ((0+2)) )`; the statements `_MEMGET`, `_MEMPUT` and `_MEMFILL` write it as `(((char*)__UDT_M)+((0+0)))`.
+    Anything else is "TYPE '_MEM' required for function", "1st function argument requires TYPE '_MEM'", "4th sub
+    argument requires TYPE '_MEM'" or "Expected _MEM type". `CALL _MEMFREE(m)` and `CALL _MEMCOPY(m, 0, 8 TO n, 0)`
+    are the statements; `CALL _MEMPUT(…)`, `CALL _MEMGET(…)` and `CALL _MEMFILL(…)` are "Command not implemented".
+  - **`_MEM(reference)`** is `func__mem(address, size, type value, element size, lock)` (the "-7 helper",
+    `qb64pe.bas` 22730–23038). The type value (`Type2MemTypeValue`, 14731): the bytes of a number (1, 2, 4, 8,
+    32 for `_FLOAT`) + 128 an integer, + 256 a float, + 1024 unsigned, + 8192 an offset; 512 a fixed-length string
+    (its length not added); 4096 a `_MEM`, 32768 any other user type and any member (`u.a` of an INTEGER is
+    32768); + 65536 when the place's variable is an array. The lock: **the `sf_mem_lock` of the SUB, FUNCTION or
+    main module where `_MEM` stands**, not of the one the variable lives in, for anything but an array variable
+    or its element, which take the lock in slot `4 * dimensions + 4` of the descriptor (`d34`: a block of a
+    main-module or `STATIC` variable taken in a SUB stops being valid when the SUB returns). The size and element
+    size by kind (`v32_a`): a variable its bytes; a whole array the bytes of all elements (0 while not
+    allocated), an element the bytes from it to the end; a whole `TYPE` value, a member, a member of an element
+    and the element of a member array of a variable: the bytes from the place to the end of the variable (or of
+    the whole array) with element size 1 for a member that is no user type and the type's size for a whole value
+    or a member of a user type (a member of type `_MEM` is typed 4096, measured while group 3 was built); a whole member
+    array (`u.v()`, `ut(1).v()`) its own bytes, typed as an array of its elements, with the `sf_mem_lock`; an
+    element of a member array of an array element (`ut(1).v(2)`): the whole member array's bytes from that
+    element's address, typed 98304, element size the elements'. Errors: a variable-length string "_MEM cannot
+    reference variable-length strings" (also an array of them), a value "Expected variable name/array element",
+    a `_BIT` "Variable/element cannot be _BIT aligned", `_MEM()` "Expected (...)", three arguments "Incorrect
+    number of arguments".
+  - **An array parameter whose number of dimensions nothing above has given** (`_MEM(p())` before any index of
+    `p` and with no call passing an array above the procedure; `v32_a`, SUB `y`) takes slot 0 of the descriptor
+    as its lock (`4 * -1 + 4`): the pointer to the elements, so **the first 8 bytes of the elements are read as
+    the lock's id** and the block stops being valid when element 0 changes ("after q(0) = 6: 0"). Once an index
+    or such a call stands above, the slot is 8.
+  - **`_MEMELEMENT(reference)`** (the "-8 helper", 22406) is the one element or value: of an element its own
+    bytes; of a whole array the same as `_MEM` (of a whole array of a user type with the offset of an element,
+    `((0)*18+0)`, where `_MEM` writes 0); of a member the member's own type (`u.a`: 2, 130, 2; `u.d`: 8, 264, 8);
+    of any whole value of a user type, a `_MEM` too, the type's size typed 32768; but of an element of a member
+    array the whole member array's bytes and type value of the element (`u.v(1)`: 16, 132, 16).
+    `_MEMELEMENT(u.v())` is "Expected array index", `_MEMELEMENT(s$)` "_MEMELEMENT cannot reference
+    variable-length strings". Of a member of an element of a user-type array, the member alone in its own type
+    (`ut(1).d`: 8, 264, 8; `ut(1).s`: 5, 512, 5); of an element of a member array of such an element the same
+    block as `_MEM` (`ut(1).v(2)`: 16, 98304, 4; `x119`). `_MEMGET(m, o, _UNSIGNED STRING * 4)` is "Invalid TYPE
+    name" (`x120`).
+  - **`_MEM(offset, size)`** is `func__mem_at_offset(offset, size)`: the offset must be an `_OFFSET` or
+    `_UNSIGNED _OFFSET` ("Expected _MEM(_OFFSET-value,...)" for any other type), the size any number (a float
+    through `qbr`; a string "2nd function argument requires a number"). Type 16384, element size 1, `IMAGE` -1;
+    a negative size raises error 301 and gives a block of 0 bytes.
+  - **`_MEMNEW(n)`** (`func__memnew( 64 )`; a float through `qbr`): type 16384, element size 1, `IMAGE` -1.
+    `_MEMNEW(0)` has `OFFSET` 1 and `SIZE` 0; `_MEMNEW(-1)` raises error 5, which is trapped, and gives a block
+    that exists, of `SIZE` 0 and `OFFSET` 0. **`_MEMFREE` of a block of `_MEMNEW(0)` taken after another block
+    was freed ends the program with exit code 127** (`d33`): libqb sets no lock type for a block of 0 bytes, so
+    a lock taken again from the freed list keeps type 1 and its old pointer, which is freed a second time.
+  - **`_MEMIMAGE[(handle)]`** is `func__memimage(NULL,0)` (the destination) or `func__memimage(h,0|1)`: of a
+    32-bit image of 4 by 2, `SIZE` 32, `TYPE` 3204 (4 + 128 + 1024 + 2048), `ELEMENTSIZE` 4, `IMAGE` the handle;
+    of a 256-colour image of 3 by 3, 9, 3201, 1. After `_MEMFREE` of it, or `_FREEIMAGE` of the image, it is not
+    valid (`_MEMEXISTS` 0, a read error 308). **`_MEMSOUND(h[, channel])`** is `func__memsound(h,NULL,0)` or
+    `(h, c,0|1)`, with libqb's audio part.
+  - **The `_MEMGET` function** is `*(int32*)(func__memget((mem_block*)(((char*)__UDT_M)+((0+0))),offset,4))` by
+    the type word: any numeric type (`_OFFSET` through `ptrszint`, `_FLOAT` `long double` of 32 bytes), `STRING *
+    n` (`qbs_new_txt_len((char*)func__memget(…,n),n)`), a user type (`((void*)+func__memget(…))`, copied by a
+    `memcpy` of the type's size: `u = _MEMGET(m, o, t)`). The offset is converted to `_OFFSET`. Errors:
+    `STRING` "Expected STRING * ...", `_BIT` and `_BIT * 4` "_BIT TYPE unsupported", a number or an unknown word
+    "Invalid TYPE name", a user type printed "Number required for function", `STRING * 4` into a number "Illegal
+    string-number conversion".
+  - **`_MEMGET`, `_MEMPUT` and `_MEMFILL` as statements are written inline** (10168–10500): `tmp_long=offset;`,
+    then `if ( ((mem_block*)(blk))->lock_offset ){ if ( tmp_long < …->offset || (tmp_long+(size)) > ( …->offset
+    + …->size) || ((mem_lock*)…->lock_offset)->id != …->lock_id ){ if (…id != …lock_id) error(308); else
+    error(300); }else{ copy } }else error(309);`. The copy of a variable is by its size as the "-5" helper
+    spells it: 1, 2, 4 or 8 as an `int8` … `int64` (a DOUBLE as `int64`, a `STRING * 4` as `int32`), anything
+    else `memmove`. A variable is a number, a fixed-length or variable-length string (its characters and its
+    present length, `__STRING_S->len`), a value of a user type, an element, a member, a whole array `a()` or a
+    whole member array; `_MEMPUT` also takes a string expression, held in `g_tmp_str`. `_MEMPUT … AS type` stores
+    the value converted to the type (`*(uint8*)tmp_long=*__LONG_K;`: a LONG of 1000 `AS _BYTE` is -24, 2.7 `AS
+    LONG` is 3). `_MEMFILL` is a call after all: `sub__memfill_2(blk,offset,bytes,value)` (`_1`, `_2`, `_4`, `_8`,
+    `_SINGLE`, `_DOUBLE`, `_FLOAT`, `_OFFSET`) or `sub__memfill(blk,offset,bytes,(ptrszint)address,size)`, a
+    string expression through `tmp_long`. Errors: an expression that is not a string "Expected variable
+    name/array element"; `AS` a string, `STRING * n`, a user type or `_BIT` "_MEMPUT requires numeric type" (and
+    `_MEMFILL`'s); an unknown word "Invalid type"; a string `AS LONG` "Illegal string-number conversion"; a
+    wrong count "Expected _MEMPUT mem-reference, offset, variable|value[AS type]"; `_MEMGET … AS` "Name already in
+    use (AS)"; a `_BIT` variable "Variable/element cannot be _BIT aligned"; an array of variable-length strings
+    "Cannot pass array of variable-length strings".
+  - **`_MEMCOPY a, aoffset, bytes TO b, boffset`** is `sub__memcopy(a,aoffset,bytes,b,boffset)`; without `TO`
+    or with four parts "Syntax error - Reference: …".
+  - **`_OFFSET(reference)`** is `((uptrszint)(address))`, an `_UNSIGNED _OFFSET`; the address as `_MEM` takes it
+    (a whole array its first element, a fixed-length string or variable-length string its characters). A value
+    is "_OFFSET expects the name of a variable/array", a `_BIT` array "_OFFSET cannot reference _BIT type arrays",
+    a `_BIT` variable "Variable/element cannot be _BIT aligned".
+  - **The runtime errors** (`v32_d01`–`d32`): each of 300 to 313 is reached, each from `ON ERROR GOTO`, and none
+    runs the handler: the program stops with `Runtime error: Line: N (in main module)` and libqb's message, exit
+    code 0 (`fix_error`, `libqb\src\error_handle.cpp` 368). 300 a region out of range (also before the block's
+    offset), 301 a negative size of `_MEM(o, n)`, `_MEMFILL` or `_MEMCOPY`, 302–304 `_MEMCOPY` beyond the source,
+    the destination or both, 305, 306 and 313 a freed source, destination or both, 307 `_MEMFREE` twice, 308 a
+    freed block (also after its SUB returned, its array was redimensioned, its image freed), 309 a block never
+    set, 310–312 `_MEMCOPY` with one or both never set.
+  - **When a block stops being valid** (`v32_b`, `d27`–`d29`, `d34`): freed; the procedure where `_MEM` stood
+    returns; its array is redimensioned (`REDIM`, `REDIM _PRESERVE`); its image freed. **Not after `ERASE`**: of a
+    static array (the elements are cleared, the block still holds them) and **of a dynamic array, whose block
+    stays valid and whose released memory `_MEMPUT` then writes with no error** (`d29`; libqb renews the lock
+    only in `REDIM`).
+  - **`MKI$` … `_CV`** (`qb64pe.bas` 21217–21296; `v32_c`): `MKI$(x)` is `i2string(x)` with `x` converted as a
+    store into an INTEGER (`qbr_float_to_long( 1.7E+0 )`: 1.5 and 2.5 give 2), `MKL$` into a LONG (`qbr`;
+    3000000000 gives `005ED0B2`), `MKS$` and `MKD$` as they are (`s2string(*__LONG_K)`); `CVI(s)` is
+    `string2i(s)`, and so `CVL`, `CVS`, `CVD`. `_MK$(type, x)` and `_CV(type, s)` take every numeric type word
+    (`f2string` of 32 bytes for `_FLOAT`, `o2string`, `uo2string`), `_BIT` and `_UNSIGNED _BIT`
+    (`bit2string(1,x)`, `string2bit(s,1)`, an `_INTEGER64`); **a `_BIT` width cannot be written**: `_BIT * 4` is
+    "Cannot convert type (_BIT * 4%) to symbol" (the parser hands the type over with a suffix on its number). A
+    string shorter than the type raises error 5 (also `_CV(_BIT, "")`); a longer one gives its first bytes
+    (`CVI("ABC")` 16961). Errors: `CVL(5)` "CVL requires a STRING argument", `_CV(LONG, 5)` "_CV requires a STRING
+    argument", `MKL$("a")` "Number required for function", `_MK$(LONG, "a")` "2nd function argument requires a
+    number", `_MK$(STRING, k)` "_MK only accepts numeric types", `_CV(STRING, s)` "_CV cannot return STRING
+    type!", `_MK$(STRING * 4, k)`, `_MK$(FOO, 1)` and `_MK$(k, 1)` "Cannot convert type (…) to symbol", a wrong
+    count "Incorrect number of arguments - Reference: …".
 
 ## 6. Bug-compatibility choices (all decided)
 

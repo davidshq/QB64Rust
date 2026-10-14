@@ -6,7 +6,8 @@ use super::ops::{held, rotated, widest};
 use super::places::numeric_type;
 use super::{Checker, R};
 use crate::builtins::{
-    Rule, Slot, StmtRule, StmtSlot, StmtSupported, Supported, lookup, result_types, slots, stmt_lookup, stmt_slots,
+    MEM_RESULTS, Rule, Slot, StmtRule, StmtSlot, StmtSupported, Supported, lookup, result_types, slots, stmt_lookup,
+    stmt_slots,
 };
 use crate::{ConvKind, Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Place, StmtArg, StmtKind, Ty};
 use qb64rust_base::Span;
@@ -62,7 +63,10 @@ fn takes_as_is(rule: Rule) -> bool {
         // Their slots take a number as it is.
         | Rule::Widest
         | Rule::Rotate
-        | Rule::Choice => false,
+        | Rule::Choice
+        | Rule::Own
+        | Rule::Mk(_)
+        | Rule::Cv(_) => false,
     }
 }
 
@@ -71,6 +75,14 @@ impl Checker<'_> {
     /// argument gets the arity error here, like any other wrong number of arguments.
     pub(super) fn builtin(&mut self, s: Supported, list: Option<ast::ArgList>, span: Span) -> R<Expr> {
         let name = s.name;
+        // A block is only stored into a `_MEM` place (design D2 of `m3-mem`): measured, "TYPE '_MEM' required for
+        // function" as an argument (`verification\v32_x03`, `x93`–`x96`), "Invalid expression" with a member read
+        // (`x02`, `x114`), and a C++ build that fails when it is stored into a number (`x80`).
+        let mem_store = std::mem::take(&mut self.mem_store);
+        if MEM_RESULTS.contains(&name) && !mem_store {
+            let msg = format!("`{name}` gives a `_MEM` block, which can only be stored into a `_MEM` variable");
+            return Err(self.error(span, msg));
+        }
         if list.is_some_and(|l| l.args().is_empty() && l.type_arg().is_none()) {
             // Measured: `_PI()`, `SIN()`, `LEN()` are "Expected (...)" (`v20_x22`, `x23`, `x27`).
             return Err(self.error(span, format!("`{name}` with empty parentheses")));
@@ -87,6 +99,11 @@ impl Checker<'_> {
                 return Err(self.unsupported(span, format!("`{name}` with arguments")));
             }
             Rule::Choice => return self.choice(s, list, span),
+            // `_MEM`, `_MEMELEMENT`, `_OFFSET` named bare: with an argument list they are checked before the
+            // table is looked at (`check\expr.rs`, `call`). Measured: "Incorrect number of arguments" (`_MEM`
+            // with three, `verification\v32_x19`).
+            Rule::Own => return Err(self.error(span, format!("`{name}` needs its argument"))),
+            Rule::Mk(_) | Rule::Cv(_) => return self.number_bytes(s, list, span),
             Rule::Plain
             | Rule::ResultOfArg
             | Rule::IntFix
@@ -113,6 +130,17 @@ impl Checker<'_> {
             };
             if slot == Slot::Block {
                 args.push(Some(self.long_array_arg(node, name)?));
+                continue;
+            }
+            if slot == Slot::Mem {
+                let place = self.mem_arg(node, name)?;
+                let ty = self.prog.place_ty(&place);
+                args.push(Some(Expr {
+                    span: node.node().span(),
+                    ty,
+                    qb: ty,
+                    kind: ExprKind::Load(place),
+                }));
                 continue;
             }
             let e = self.expr(node)?;
@@ -148,6 +176,9 @@ impl Checker<'_> {
             (w.held_value(), w)
         } else if s.rule == Rule::Rotate {
             let t = self.rotation(name, &args)?;
+            (t, t)
+        } else if s.id.get().ret == Some("_MEM") {
+            let t = self.mem_ty();
             (t, t)
         } else {
             result_types(s, &args)
@@ -326,10 +357,11 @@ impl Checker<'_> {
                 | Slot::AnyNumeric
                 | Slot::UInt64
                 | Slot::ULong
-                | Slot::ColorOrTile,
+                | Slot::ColorOrTile
+                | Slot::Offset,
             ) => false,
-            (_, Slot::Block | Slot::Bytes) => {
-                unreachable!("the bytes of an array or a place are no value (`block_arg`, `bytes_arg`)")
+            (_, Slot::Block | Slot::Bytes | Slot::Mem) => {
+                unreachable!("the bytes of an array or a place, or a block, are no value (`block_arg`, `mem_arg`)")
             }
         };
         match (wants_string, string) {
@@ -344,6 +376,7 @@ impl Checker<'_> {
         Ok(match slot {
             Slot::Long => self.store(e, Ty::I32)?,
             Slot::Int64 => self.store(e, Ty::I64)?,
+            Slot::Offset => self.store(e, Ty::Off)?,
             Slot::UInt64 => self.store(e, Ty::U64)?,
             Slot::ULong => self.store(e, Ty::U32)?,
             // A fill colour of `PAINT`: an integer as it is, a float rounded to an integer, as the old compiler
@@ -356,8 +389,30 @@ impl Checker<'_> {
                 let qb = e.qb.printed();
                 self.convert_exact(e, qb)
             }
-            Slot::Str | Slot::Block | Slot::Bytes => unreachable!("handled above"),
+            Slot::Str | Slot::Block | Slot::Bytes | Slot::Mem => unreachable!("handled above"),
         })
+    }
+
+    /// A block as an argument ([`Slot::Mem`]; design D4 of `m3-mem`): a variable, element or member of type
+    /// `_MEM`. Anything else is the old compiler's "TYPE '_MEM' required for function" (or "… for sub", "1st
+    /// function argument requires TYPE '_MEM'"; measured, `verification\v32_x03`, `x67`–`x73`).
+    pub(super) fn mem_arg(&mut self, node: ast::Expr, name: &str) -> R<Place> {
+        let span = node.node().span();
+        if !self.gives_block(node) {
+            // A place of a user type is a place here, not a value, as for `LEN` ([`Checker::load`]).
+            let outer = self.len_place.replace(span);
+            let e = self.expr(node);
+            self.len_place = outer;
+            if let ExprKind::Load(place) = e?.kind
+                && self.prog.is_mem(self.prog.place_ty(&place))
+            {
+                return Ok(place);
+            }
+        }
+        Err(self.error(
+            span,
+            format!("`{name}` needs a `_MEM` variable, element or member here"),
+        ))
     }
 
     /// `LEN(x)`: a string expression's length, or the size of a variable, element or member of any other type,
@@ -368,6 +423,21 @@ impl Checker<'_> {
         let [node] = nodes[..] else {
             return Err(self.error(span, arity(s.name, 1, 1)));
         };
+        // A whole member array (`LEN(p(0).a())`), which the old compiler takes (`qb64pe.bas` 20652; upstream
+        // `arrays/test_mem_vs_len`), is not measured here.
+        let empty = |l: Option<ast::ArgList>| l.is_some_and(|l| l.args().is_empty());
+        let whole = match node {
+            ast::Expr::Call(c) => empty(c.arg_list()),
+            ast::Expr::Field(f) => empty(f.arg_list()),
+            ast::Expr::Literal(_)
+            | ast::Expr::NameRef(_)
+            | ast::Expr::Paren(_)
+            | ast::Expr::Prefix(_)
+            | ast::Expr::Bin(_) => false,
+        };
+        if whole && self.member_array(node)?.is_some() {
+            return Err(self.unsupported(node.node().span(), "`LEN` of a whole member array"));
+        }
         // A whole `TYPE` variable, element or member is a place here, not a value (`Checker::load`). A `LEN` in an
         // index of this argument sets its own and gives this one back, as the place is loaded after its index.
         let outer = self.len_place.replace(node.node().span());
@@ -776,6 +846,10 @@ impl Checker<'_> {
                 | ExprKind::VarPtr { .. }
                 | ExprKind::VarSeg { .. }
                 | ExprKind::Block { .. }
+                | ExprKind::MemOf { .. }
+                | ExprKind::MemAt { .. }
+                | ExprKind::AddressOf(_)
+                | ExprKind::MemRead { .. }
                 | ExprKind::Convert { .. }
                 | ExprKind::Binary { .. }
                 | ExprKind::Unary { .. }
@@ -929,6 +1003,10 @@ impl Checker<'_> {
                     k += 1;
                     self.bytes_arg(arg, form.name)?
                 }
+                (StmtSlot::Arg { slot: Slot::Mem, .. }, Matched::Arg(Some(arg))) => {
+                    k += 1;
+                    StmtArg::Place(self.mem_arg(arg, form.name)?)
+                }
                 (StmtSlot::Arg { slot, .. }, Matched::Arg(Some(arg))) => {
                     k += 1;
                     let e = self.expr(arg)?;
@@ -989,6 +1067,11 @@ fn calls_procedure(e: &Expr) -> bool {
             calls_procedure(condition) || calls_procedure(then) || calls_procedure(else_)
         }
         ExprKind::Call { args, .. } => args.iter().flatten().any(calls_procedure),
+        ExprKind::MemOf { of, .. } | ExprKind::AddressOf(of) => of.indexes().iter().any(|i| calls_procedure(i)),
+        ExprKind::MemAt { offset, size } => calls_procedure(offset) || calls_procedure(size),
+        ExprKind::MemRead { block, offset, .. } => {
+            block.indexes().iter().any(|i| calls_procedure(i)) || calls_procedure(offset)
+        }
     }
 }
 

@@ -1,0 +1,5 @@
+
+Cannot convert type (_BIT*4%) to symbol
+Caused by (or after):K = _CV ( _BIT * 4 , S )
+LINE 9:k = _CV(_BIT * 4, s)
+exit=1

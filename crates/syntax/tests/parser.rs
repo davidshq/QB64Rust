@@ -193,6 +193,16 @@ fn declarations() {
     ));
 }
 
+/// The forms of `m3-mem` (task 4.1): a type argument with `* n` after `STRING` or `_BIT` (`_MEMGET(m, o, STRING *
+/// 4)`, `_MK$(_BIT * 4, x)`), a user type's name there being an expression; `_MEMPUT` and `_MEMFILL` with and
+/// without `AS type`; the `_MEMGET` statement as a call.
+#[test]
+fn mem_forms() {
+    insta::assert_snapshot!(tree(
+        "s = _MEMGET(m, o, STRING * 4)\nx = _MEMGET(m, o, _UNSIGNED _BYTE)\nu = _MEMGET(m, o, t)\ns = _MK$(_BIT * 4, x)\n_MEMPUT m, o, 7 AS LONG\n_MEMPUT m, o, k\n_MEMFILL m, o, 8, \"ab\"\n_MEMGET m, o, k\n"
+    ));
+}
+
 /// The preprocessor (design D8): every `$…` line is a `MetaStmt`; a branch not taken is one `InactiveCode` node
 /// (here holding a nested `$IF`, an unclosed `FOR` and garbage), up to the `$ELSE` of its level; a `$IF` inside a
 /// `FOR` body; the `$IF` and block entries nest.

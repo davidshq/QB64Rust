@@ -1,0 +1,5 @@
+
+Expected _MEMGET mem-reference, offset, variable
+Caused by (or after):_MEMGET M , M . OFFSET
+LINE 9:_MEMGET m, m.OFFSET
+exit=1

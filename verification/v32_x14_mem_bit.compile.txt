@@ -1,0 +1,5 @@
+
+Variable/element cannot be _BIT aligned
+Caused by (or after):M = _MEM ( BT )
+LINE 9:m = _MEM(bt)
+exit=1

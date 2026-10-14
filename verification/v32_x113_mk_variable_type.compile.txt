@@ -1,0 +1,5 @@
+
+Cannot convert type (K) to symbol
+Caused by (or after):S = _MK$ ( K , 1 )
+LINE 9:s = _MK$(k, 1)
+exit=1

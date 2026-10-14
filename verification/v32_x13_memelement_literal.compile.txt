@@ -1,0 +1,5 @@
+
+Expected variable name/array element
+Caused by (or after):M = _MEMELEMENT ( 5 )
+LINE 9:m = _MEMELEMENT(5)
+exit=1

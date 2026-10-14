@@ -1,0 +1,171 @@
+---
+source: crates/syntax/tests/parser.rs
+assertion_line: 201
+expression: "tree(\"s = _MEMGET(m, o, STRING * 4)\\nx = _MEMGET(m, o, _UNSIGNED _BYTE)\\nu = _MEMGET(m, o, t)\\ns = _MK$(_BIT * 4, x)\\n_MEMPUT m, o, 7 AS LONG\\n_MEMPUT m, o, k\\n_MEMFILL m, o, 8, \\\"ab\\\"\\n_MEMGET m, o, k\\n\")"
+---
+SourceFile 0..187
+  AssignStmt 0..29
+    NameRef 0..1
+      Ident s
+    Whitespace  
+    Eq =
+    Whitespace  
+    CallExpr 4..29
+      NameRef 4..11
+        Ident _MEMGET
+      ArgList 11..29
+        LParen (
+        NameRef 12..13
+          Ident m
+        Comma ,
+        Whitespace  
+        NameRef 15..16
+          Ident o
+        Comma ,
+        Whitespace  
+        TypeArg 18..28
+          Ident STRING
+          Whitespace  
+          Star *
+          Whitespace  
+          Number 4
+        RParen )
+  Newline \x0A
+  AssignStmt 30..64
+    NameRef 30..31
+      Ident x
+    Whitespace  
+    Eq =
+    Whitespace  
+    CallExpr 34..64
+      NameRef 34..41
+        Ident _MEMGET
+      ArgList 41..64
+        LParen (
+        NameRef 42..43
+          Ident m
+        Comma ,
+        Whitespace  
+        NameRef 45..46
+          Ident o
+        Comma ,
+        Whitespace  
+        TypeArg 48..63
+          Ident _UNSIGNED
+          Whitespace  
+          Ident _BYTE
+        RParen )
+  Newline \x0A
+  AssignStmt 65..85
+    NameRef 65..66
+      Ident u
+    Whitespace  
+    Eq =
+    Whitespace  
+    CallExpr 69..85
+      NameRef 69..76
+        Ident _MEMGET
+      ArgList 76..85
+        LParen (
+        NameRef 77..78
+          Ident m
+        Comma ,
+        Whitespace  
+        NameRef 80..81
+          Ident o
+        Comma ,
+        Whitespace  
+        NameRef 83..84
+          Ident t
+        RParen )
+  Newline \x0A
+  AssignStmt 86..107
+    NameRef 86..87
+      Ident s
+    Whitespace  
+    Eq =
+    Whitespace  
+    CallExpr 90..107
+      NameRef 90..94
+        Ident _MK$
+      ArgList 94..107
+        LParen (
+        TypeArg 95..103
+          Ident _BIT
+          Whitespace  
+          Star *
+          Whitespace  
+          Number 4
+        Comma ,
+        Whitespace  
+        NameRef 105..106
+          Ident x
+        RParen )
+  Newline \x0A
+  MemStmt 108..131
+    Ident _MEMPUT
+    Whitespace  
+    NameRef 116..117
+      Ident m
+    Comma ,
+    Whitespace  
+    NameRef 119..120
+      Ident o
+    Comma ,
+    Whitespace  
+    Literal 122..123
+      Number 7
+    Whitespace  
+    AsClause 124..131
+      Ident AS
+      Whitespace  
+      Ident LONG
+  Newline \x0A
+  MemStmt 132..147
+    Ident _MEMPUT
+    Whitespace  
+    NameRef 140..141
+      Ident m
+    Comma ,
+    Whitespace  
+    NameRef 143..144
+      Ident o
+    Comma ,
+    Whitespace  
+    NameRef 146..147
+      Ident k
+  Newline \x0A
+  MemStmt 148..170
+    Ident _MEMFILL
+    Whitespace  
+    NameRef 157..158
+      Ident m
+    Comma ,
+    Whitespace  
+    NameRef 160..161
+      Ident o
+    Comma ,
+    Whitespace  
+    Literal 163..164
+      Number 8
+    Comma ,
+    Whitespace  
+    Literal 166..170
+      StringLit "ab"
+  Newline \x0A
+  CallStmt 171..186
+    NameRef 171..178
+      Ident _MEMGET
+    Whitespace  
+    ArgList 179..186
+      NameRef 179..180
+        Ident m
+      Comma ,
+      Whitespace  
+      NameRef 182..183
+        Ident o
+      Comma ,
+      Whitespace  
+      NameRef 185..186
+        Ident k
+  Newline \x0A
