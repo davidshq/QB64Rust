@@ -37,3 +37,10 @@ cast_sign_loss = "warn"
 # behave the same (study\21). Wrapping that BASIC semantics needs is written as `wrapping_*`.
 [profile.release]
 overflow-checks = true
+
+# Tier 1 runs the front end over every input set and every mutant in a debug build. Measured once on 2026-10-14
+# (DECISIONS.md): a whole run took 54 s unoptimised and 16 s at opt-level 1; a rebuild after touching one crate
+# took 10-20 s against 7-16 s, and a build from nothing 61 s. Overflow checks and debug assertions stay on: they do
+# not depend on the opt-level. The cost: a debugger shows fewer variables (some are optimised away).
+[profile.dev]
+opt-level = 1

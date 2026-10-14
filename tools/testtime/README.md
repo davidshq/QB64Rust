@@ -48,7 +48,12 @@ A command line is read statement by statement (split at `;`, `&&`, `||` and line
 runner on one line are two rows, each of its own kind. Not a run: a tool asked for its options (`--help`), a
 script's name given to another program (`git diff -- tools\callsite\callsite.py`), `cargo` in quotes (`grep 'cargo
 test'`, a commit message), and the text of a heredoc. An option is read up to the first pipe only: `| grep -h`
-does not make a run a call for help. A corpus run with a `--corpus-root` of its own (a few programs made for a
+does not make a run a call for help. A shell variable set by a statement of its own (`R="python
+tools/legacy_tests/run_legacy_tests.py …"`) stands for its value in the statements after it: `$R --suite corpus
+--list …` is a run of its kind, and the assignment is none (before 2026-10-14 the assignment was counted as a
+full corpus run and the runs through `$R` were missed: 23 commands of 9 sessions). A value with quotes or a `;`
+inside it is not read as one: such an assignment is still counted as the run it names, and the runs through it
+are missed. A corpus run with a `--corpus-root` of its own (a few programs made for a
 trial) is "corpus, selected programs".
 
 A command that starts several runs (`cargo fmt; cargo clippy; cargo test` on one line) is one row per run. The
@@ -82,8 +87,11 @@ follows it left out), and no file was edited between the two by the Edit or Writ
 of the earlier run. A repeat after a pass had nothing new to check, as far as the transcript shows; a repeat
 after a failure is a second look at the same failure (often with another filter on the output).
 
+An environment variable set by a statement of its own before the run (`$env:QB64RUST_NO_FOLD='1'`, `export X=1`)
+is part of the statement until it is removed, so the slice list without folding is no repeat of the one with it.
+
 What it does not see: a file changed by a shell command or by the user, a `git` operation, a build cache that
-was filled or cleared, an environment variable set on the line before. So the table "Runs repeated with nothing
+was filled or cleared. So the table "Runs repeated with nothing
 edited" is an upper bound of the runs that could have been left out, and it does not count a rerun of the same
 tests by a different command line.
 

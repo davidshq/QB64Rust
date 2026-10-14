@@ -106,6 +106,51 @@ def statements(command: str) -> list[str]:
     return [s.strip() for s in re.split(r"\n|;|&&|\|\|", c) if s.strip()]
 
 
+# A statement that only sets a shell variable (`R="python …"`, `export X=1`), or a PowerShell environment
+# variable, or removes one.
+ASSIGN = re.compile(r"(export\s+)?([A-Za-z_]\w*)=(\"[^\"]*\"|'[^']*'|\S*)")
+ENV_SET = re.compile(r"\$env:(\w+)\s*=\s*(\"[^\"]*\"|'[^']*'|\S+)", re.IGNORECASE)
+# Matched at the start of a statement: options may follow (`-ErrorAction SilentlyContinue`).
+ENV_UNSET = re.compile(r"Remove-Item\s+(?:-Path\s+)?Env:\\?(\w+)|unset\s+(\w+)", re.IGNORECASE)
+# What sets a PowerShell variable to nothing, which removes it.
+NOTHING = {"", "$null"}
+VARIABLE = re.compile(r"\$\{(\w+)\}|\$(\w+)")
+
+
+def unquote(value: str) -> str:
+    return value[1:-1] if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'" else value
+
+
+def as_run(command: str) -> list[tuple[str, str]]:
+    """(statement, what makes it the same run) for each statement of a command line that is not an
+    assignment. A shell variable set by a statement of its own (`R="python …run_legacy_tests.py …"`)
+    stands for its value in the statements after it (`$R --suite corpus`); the assignment runs nothing.
+    An environment variable set by a statement of its own (`$env:QB64RUST_NO_FOLD='1'`, `export X=1`)
+    is part of what makes the statements after it the same run, until it is removed: a run without
+    folding is not a repeat of one with it."""
+    values: dict[str, str] = {}
+    env: dict[str, str] = {}
+    out = []
+    for s in statements(command):
+        if m := ENV_SET.fullmatch(s):
+            if unquote(m[2]).lower() in NOTHING:
+                env.pop(m[1], None)
+            else:
+                env[m[1]] = unquote(m[2])
+            continue
+        if m := ENV_UNSET.match(s):
+            env.pop(m[1] or m[2], None)
+            continue
+        if m := ASSIGN.fullmatch(s):
+            values[m[2]] = unquote(m[3])
+            if m[1]:
+                env[m[2]] = values[m[2]]
+            continue
+        s = VARIABLE.sub(lambda v: values.get(v[1] or v[2], v[0]), s)
+        out.append((s, "".join(f"{k}={v} " for k, v in sorted(env.items())) + s))
+    return out
+
+
 def classify_statement(c: str) -> list[tuple[str, str]]:
     """The (bucket, kind) of what one statement runs, in the order of the rules below."""
     found: list[tuple[str, str]] = []
@@ -181,8 +226,9 @@ def classify_statement(c: str) -> list[tuple[str, str]]:
 
 
 def classify_parts(command: str) -> list[tuple[str, str, str]]:
-    """(bucket, kind, statement) of each thing a command runs that is on record."""
-    found = [(b, k, s) for s in statements(command) for b, k in classify_statement(s)]
+    """(bucket, kind, statement) of each thing a command runs that is on record; the statement as it ran,
+    with the environment variables set before it (`as_run`)."""
+    found = [(b, k, same) for s, same in as_run(command) for b, k in classify_statement(s)]
     # A build before a `cargo test` of the same line is part of that test run.
     if any(k.startswith("tier 1") for _, k, _ in found):
         found = [f for f in found if f[1] != "cargo build"]

@@ -135,6 +135,36 @@ class Classify(unittest.TestCase):
         script = "p='tools/legacy_tests/run_legacy_tests.py'\nprint('cargo test')"
         self.assertEqual(kinds(f"python - <<'EOF'\n{script}\nEOF\ncargo fmt"), ["fmt"])
 
+    def test_a_run_through_a_shell_variable(self):
+        # The assignment runs nothing; each use of the variable is a run of its own kind.
+        command = (
+            f'R="{RUNNER} {NEW} --jobs 8"; $R --suite corpus --list tests/corpus/slice.list | tail -2; '
+            "QB64RUST_NO_FOLD=1 ${R} --suite compile --list tests/upstream/pass.list"
+        )
+        self.assertEqual(kinds(command), ["slice list", "upstream pass list"])
+        self.assertEqual(kinds('export R="cargo test -q"\n$R'), ["tier 1 (cargo test)"])
+        self.assertEqual(kinds("X=1; echo $Y"), [])
+
+    def test_an_environment_variable_set_before_a_run_makes_it_another_run(self):
+        set_, unset = "$env:QB64RUST_NO_FOLD='1'", "Remove-Item Env:QB64RUST_NO_FOLD"
+        got = [
+            same
+            for _, _, same in test_time.classify_parts(
+                f"{SLICE}; {set_}; {SLICE}; {unset}; {SLICE}"
+            )
+        ]
+        self.assertEqual(got, [SLICE, f"QB64RUST_NO_FOLD=1 {SLICE}", SLICE])
+        self.assertEqual(kinds(f"{set_}; {SLICE}"), ["slice list"])
+        # Other ways to remove it: with options after it, set to nothing, unset in bash.
+        for unset in (
+            "Remove-Item Env:QB64RUST_NO_FOLD -ErrorAction SilentlyContinue",
+            "$env:QB64RUST_NO_FOLD = $null",
+            "$env:QB64RUST_NO_FOLD=''",
+            "unset QB64RUST_NO_FOLD",
+        ):
+            got = test_time.classify_parts(f"{set_}; {unset}; {SLICE}")
+            self.assertEqual([same for _, _, same in got], [SLICE], unset)
+
     def test_a_trial_corpus_is_not_the_full_corpus(self):
         got = kinds(f'{RUNNER} --suite corpus --corpus-root "$S/corpus21"')
         self.assertEqual(got, ["corpus, selected programs (old compiler)"])

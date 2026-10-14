@@ -81,6 +81,11 @@ changing direction, design or scope.**
    - The run without folding (`QB64RUST_NO_FOLD=1`) and the two full suites run once, at the close.
    - After the closing runs, a further edit is rerun only for what it can affect; say which runs were not
      repeated and why that is safe.
+   - **Read a run's output from a log, not by running it again.** Send a run that may need a second look to a
+     file (`cargo test > target\t1.log 2>&1`, then `tail`/`grep` the file); a run piped through `tail` or `grep`
+     whose lines turn out to say too little is not started again with another filter. *Why:* by 2026-10-14, 84
+     `cargo test` runs had been repeated with nothing edited, after a failure or an output cut down to nothing
+     (`tools\testtime\REPORT.md`, about 22 minutes).
    - Do not write "tier 2 after every group" or "check CI after the push" into a change's `tasks.md`.
    - **CI is not a gate.** Look at it when the user asks. The `tier2` job runs by hand and weekly, not on a push.
    - **Every test run is on record** (`tools\testtime\`, user, 2026-10-13): at the close of a change run
