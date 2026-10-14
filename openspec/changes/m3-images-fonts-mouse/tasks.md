@@ -102,28 +102,68 @@ finds it, with a parser test.
 
 ## 3. Fonts
 
-- [ ] 3.1 The font built-ins as rows (`_LOADFONT`, `_FONT`, `_FREEFONT`, `_FONTWIDTH`, `_FONTHEIGHT`,
+- [x] 3.1 The font built-ins as rows (`_LOADFONT`, `_FONT`, `_FREEFONT`, `_FONTWIDTH`, `_FONTHEIGHT`,
   `_PRINTSTRING`, `_PRINTWIDTH`, `_PRINTMODE`, `_UFONTHEIGHT`, `_UPRINTWIDTH`, `_ULINESPACING`, `_UPRINTSTRING`,
   `_MAPUNICODE`), and `_UCHARPOS` with its LONG array (D1). Verify: `typed` and `ir` tests; a `check-fail` test
   holds the rejected forms and "Expected LONG array-name"; call-site programs for each form pass.
-- [ ] 3.2 Screen programs recorded with `qb64pe.exe` (design D6): one with the built-in fonts 8, 14 and 16, the
+  Found: every name a plain row. **`_UCHARPOS`'s array needed one node more**: a function's argument was a value
+  only, so the array's bytes, which statements pass as `StmtArg::Block`, are a new `ExprKind::Block { array,
+  index }` (sema, the IR's facts, dump and validator with a unit test, the emitter through the existing
+  `byte_element` code of graphics `GET`); `check\builtins.rs` `long_array_arg` gives "needs an array of LONG"
+  for the name alone, a scalar, a literal and an array of another type. **One accepted form stays "not supported
+  yet"**, against what task 1.3 told the user: `_UCHARPOS(t$, nd&())`, an array not declared, marked as the same
+  form of graphics `GET` is (`SOMEDAY.md`, "Left marked by `m3-images-fonts-mouse`"). `fonts_typed`, `fonts_ir`,
+  `fonts_errors` (35 rejected forms, none "not supported yet"), and `fonts_cpp` for the element forms. 84
+  call-site programs were written; three with an element (`p(2)`, `p(i)`, `z(1, 2)`) differed only in the
+  index's spelling (`1ll`, `(int64)`), which `tools\callsite\README.md` lists as not compared, and were dropped
+  for `fonts_cpp`; one passed a SINGLE to a DOUBLE slot (also listed) and was rewritten; the 81 left are equal.
+- [x] 3.2 Screen programs recorded with `qb64pe.exe` (design D6): one with the built-in fonts 8, 14 and 16, the
   print modes and `_MAPUNICODE`; one with `cour.ttf` and `arial.ttf` loaded, freed, measured with the `_U…`
   functions and `_UCHARPOS`, and a font that is not there. Verify: both pass with the new compiler and are on
   `slice.list`; the coverage test passes; `crates\README.md` names the built-ins.
+  Found: `f01_builtin_fonts` and `f02_loaded_fonts` in `tests\corpus\screen\` (`SOURCE.md`), in 256 colours so
+  text is not anti-aliased; each state looked at as a picture; both pass with the new compiler on their first
+  run and are on `slice.list` (396); tier 1 with the coverage test passes. One behaviour of libqb found and
+  measured by a program built outside the repository: `_PRINTSTRING STEP` without an image counts from another
+  image's last point (`f01`'s "step" stands over "font 14"; `study\00` §5, `SOMEDAY.md`).
 
 ## 4. The mouse
 
-- [ ] 4.1 Mouse steps in `tools\screen\screen_state.cpp` (design D4), documented in `tools\screen\README.md`.
+- [x] 4.1 Mouse steps in `tools\screen\screen_state.cpp` (design D4), documented in `tools\screen\README.md`.
   Verify: a program of the old compiler and one of the new read a click and a wheel step as the spec's scenario
   says; a keys file with `press 9` ends the program with exit code 125 and names the line (a command-line test in
   `cli.rs`, `#[ignore]` with the other tests that build); a keys file without mouse steps gives the same states as
   before (the 54 screen programs pass).
-- [ ] 4.2 The mouse functions and `_MOUSEMOVE` as rows. Verify: `typed` and `ir` tests; a `check-fail` test for
+  Found: the steps of task 1.2 stood; **one thing was added while task 4.3 recorded**: `_MOUSEX` and `_MOUSEY`
+  map an event when they are read, by the frame libqb last drew, and a program reading right after `SCREEN 12`
+  got -1 for every event (`study\00` §5, `SOMEDAY.md`). Each mouse step now waits until libqb has drawn a frame of
+  the displayed page at its own size (`window_shows_screen`), with the time limit of `prompt` and exit code 124
+  ("the window never showed the screen"). `u01_mouse_queue` prints the spec's click (four events at 40, 30) and
+  the wheel with both compilers. `cli.rs`: `screen_state_mistake_in_a_mouse_step` (`press 9`, `mouse 10`,
+  `release 0`, `wheel 0`: exit code 125, stderr names the file and the line; the keys file is read before libqb
+  points stderr elsewhere, so the test reads it) and `screen_state_mouse_step_of_a_hidden_window` (`$SCREENHIDE`:
+  124 and the line). The whole `screen` category, 66 programs, passes with the new compiler and the changed file
+  (the 54 of before, `i01`–`i08`, `f01`, `f02`, `u01`, `u02`). The README documents the steps, the wait, the
+  real cursor and the limits.
+- [x] 4.2 The mouse functions and `_MOUSEMOVE` as rows. Verify: `typed` and `ir` tests; a `check-fail` test for
   the rejected forms; call-site programs pass.
-- [ ] 4.3 Screen programs with keys files of mouse steps, recorded with `qb64pe.exe`: the queue read event by
+  Found: each a plain row. `_MOUSEMOVE` went on `NEVER_RUN` here, not in task 5.1: the coverage test wants a
+  statement row on a slice program and a never-run name with call-site programs, so it stands below `u01`'s
+  `SYSTEM`. `mouse_typed`, `mouse_ir`, `mouse_errors` (10 rejected forms, none "not supported yet"). 25
+  call-site programs were written; `mouseinput_while` differed in the shape of the `WHILE` loop (labels against
+  `while`), which is this compiler's way and not the call, and was dropped; the 24 left are equal.
+- [x] 4.3 Screen programs with keys files of mouse steps, recorded with `qb64pe.exe`: the queue read event by
   event, the buttons, the wheel, the movement, a position in `SCREEN 0` and in `SCREEN 12`, `_MOUSEHIDDEN` and
   `_MOUSEDISABLED`. Verify: each passes with the new compiler and is on `slice.list`; the coverage test passes;
   `crates\README.md` names the built-ins.
+  Found: `u01_mouse_queue` (`SCREEN 12`: 20 events, the three buttons, the wheel each way, a move with a button
+  held) and `u02_mouse_text` (`SCREEN 0`: columns and rows, the corners, beyond the edges) in
+  `tests\corpus\screen\` (`SOURCE.md`), each with a keys file; the program empties the queue, announces, and
+  reads a key that the keys file gives after its mouse steps. **The first recording was wrong** (-1 for every
+  position, and `u02` stopped at a `LOCATE` of -1) and was redone after the fix of task 4.1; each state was then
+  looked at. Both pass with the new compiler on their first run and are on `slice.list` (398); tier 1 with the
+  coverage test passes. `_MOUSEHIDDEN` and `_MOUSEDISABLED` are 0 in both (nothing hides or disables the cursor:
+  `_MOUSEHIDE` stays on `NEVER_RUN`).
 
 ## 5. What no test runs
 

@@ -798,6 +798,11 @@ impl Validator<'_> {
                     }
                 }
             }
+            // An array's bytes have no value: they stand only in a function's `Slot::Block` ([`Validator::bytes`]).
+            ExprKind::Block { array, .. } => {
+                let name = &self.p.var(*array).name;
+                self.problem(format!("{at}: the bytes of {name} as a value"));
+            }
             ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => self.value(from, owner, at),
             ExprKind::Binary { lhs, rhs, .. } | ExprKind::Concat(lhs, rhs) | ExprKind::StrCompare { lhs, rhs, .. } => {
                 self.value(lhs, owner, at);
@@ -828,11 +833,48 @@ impl Validator<'_> {
                         args.len()
                     ));
                 }
-                for a in args.iter().flatten() {
-                    self.value(a, owner, at);
+                // A `Slot::Block` holds an array's bytes and nothing else; every other slot a value.
+                let kinds: Vec<Slot> = qb64rust_sema::builtins::find(*id)
+                    .map(|s| {
+                        qb64rust_sema::builtins::slots(s)
+                            .into_iter()
+                            .map(|(slot, _)| slot)
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                for (k, a) in args.iter().enumerate() {
+                    let Some(a) = a else { continue };
+                    match (&a.kind, kinds.get(k) == Some(&Slot::Block)) {
+                        (ExprKind::Block { array, index }, true) => self.bytes(a, *array, index, owner, at),
+                        (_, true) => self.problem(format!(
+                            "{at}: argument {} of {} takes an array's bytes, not a value",
+                            k + 1,
+                            id.get().name
+                        )),
+                        (_, false) => self.value(a, owner, at),
+                    }
                 }
             }
             ExprKind::CallProc { proc, args } => self.call(*proc, args, owner, at),
+        }
+    }
+
+    /// The array of `_UCHARPOS`, whole or from an element with an index per dimension: of 32-bit integers, typed as
+    /// its elements.
+    fn bytes(&mut self, v: &Expr, array: VarId, index: &[Expr], owner: Option<ProcId>, at: &At) {
+        self.array_ref(&ArrayRef::Var(array), owner, at, "bytes");
+        let a = self.p.var(array);
+        if !matches!(a.ty, Ty::I32 | Ty::U32) || v.ty != a.ty {
+            self.problem(format!(
+                "{at}: the bytes of {}, an array of {:?}, as {:?}",
+                a.name, a.ty, v.ty
+            ));
+        }
+        if !index.is_empty() && a.dim_count().is_some_and(|n| n != index.len()) {
+            self.problem(format!("{at}: {} indexes for {}", index.len(), a.name));
+        }
+        for i in index {
+            self.value(i, owner, at);
         }
     }
 }
@@ -1558,5 +1600,67 @@ mod tests {
         let got = problems(&p);
         assert_eq!(got.len(), 1, "{got:?}");
         assert!(got[0].ends_with("with 1 argument slots for 3"), "{got:?}");
+    }
+
+    /// The array of `_UCHARPOS`: of 32-bit integers, typed as its elements, one index per dimension.
+    #[test]
+    fn bytes_of_an_array_as_a_function_argument() {
+        let mut p = arrays();
+        p.vars[3].ty = Ty::I64;
+        let block = |array: u32, ty: Ty, index: Vec<Expr>| {
+            let array = VarId(array);
+            Some(expr(ty, ExprKind::Block { array, index }))
+        };
+        let index = || vec![expr(Ty::I64, ExprKind::Int(2))];
+        let uchar = qb64rust_builtins::find_function(b"_UCHARPOS").unwrap();
+        for arg in [
+            block(4, Ty::I32, Vec::new()),
+            block(4, Ty::I32, index()),
+            block(3, Ty::I64, Vec::new()),
+            block(4, Ty::U32, Vec::new()),
+            block(4, Ty::I32, vec![index().remove(0), index().remove(0)]),
+        ] {
+            let call = ExprKind::Call {
+                builtin: uchar,
+                args: vec![Some(expr(Ty::Str, ExprKind::Str(b"a".to_vec()))), arg, None, None],
+            };
+            p.main.stmts[0].ops.push(Op::Raise(expr(Ty::I32, call)));
+        }
+        // A value in the array's slot, and the bytes where a value goes: as an operand and in a value slot.
+        let call = ExprKind::Call {
+            builtin: uchar,
+            args: vec![
+                Some(expr(Ty::Str, ExprKind::Str(b"a".to_vec()))),
+                Some(expr(Ty::I32, ExprKind::Int(5))),
+                None,
+                None,
+            ],
+        };
+        p.main.stmts[0].ops.push(Op::Raise(expr(Ty::I32, call)));
+        p.main.stmts[0]
+            .ops
+            .push(Op::Raise(block(4, Ty::I32, Vec::new()).unwrap()));
+        let call = ExprKind::Call {
+            builtin: uchar,
+            args: vec![
+                Some(expr(Ty::Str, ExprKind::Str(b"a".to_vec()))),
+                None,
+                block(4, Ty::I32, Vec::new()),
+                None,
+            ],
+        };
+        p.main.stmts[0].ops.push(Op::Raise(expr(Ty::I32, call)));
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: the bytes of S, an array of I64, as I64"),
+                format!("{at}: the bytes of D, an array of I32, as U32"),
+                format!("{at}: 2 indexes for D"),
+                format!("{at}: argument 2 of _UCharPos takes an array's bytes, not a value"),
+                format!("{at}: the bytes of D as a value"),
+                format!("{at}: the bytes of D as a value"),
+            ]
+        );
     }
 }

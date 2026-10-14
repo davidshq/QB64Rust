@@ -403,6 +403,79 @@ fn screen_state_prompt_that_never_comes() {
     );
 }
 
+/// Spec `testing/screen-state`, scenario "A mistake in a mouse step" (design D4 of `m3-images-fonts-mouse`): a
+/// button that is not 1 to 3, or a `mouse` step without its second number, ends the program with exit code 125
+/// before it runs, and stderr names the keys file and the line. The keys file is read when the program starts,
+/// before libqb points stderr elsewhere, so the message is read here.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn screen_state_mistake_in_a_mouse_step() {
+    let d = scratch("mouse-step");
+    std::fs::write(d.join("p.bas"), "SCREEN 13\nPSET (1, 1), 4\nSYSTEM\n").unwrap();
+    let exe = d.join("p.exe");
+    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
+    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
+    let o = qb64rust(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    for (keys, line) in [
+        ("mouse 40 30\npress 9\n", 2),
+        ("# a move needs x and y\nmouse 10\npress 1\n", 2),
+        ("mouse 4 3\nrelease 0\n", 2),
+        ("wheel 0\n", 1),
+    ] {
+        std::fs::write(d.join("p.keys"), keys).unwrap();
+        let run = Command::new(&exe)
+            .current_dir(&d)
+            .env("QB64_SCREEN_STATE", d.join("state.txt"))
+            .env("QB64_SCREEN_KEYS", d.join("p.keys"))
+            .stdin(std::process::Stdio::null())
+            .output()
+            .unwrap();
+        assert_eq!(run.status.code(), Some(125), "{keys:?}");
+        let err = run.stderr.escape_ascii().to_string();
+        assert!(
+            err.contains("p.keys line ") && err.contains(&format!("line {line}: not a step")),
+            "{keys:?}: {err}"
+        );
+    }
+}
+
+/// A mouse step waits until the window shows the displayed page, since `_MOUSEX` maps an event by the frame libqb
+/// last drew (`tools/screen/README.md`). A window that never shows (`$SCREENHIDE`) ends the wait after its time
+/// with exit code 124 and a last line of the state that names the step.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn screen_state_mouse_step_of_a_hidden_window() {
+    let d = scratch("mouse-hidden");
+    std::fs::write(
+        d.join("p.bas"),
+        "$SCREENHIDE\nSCREEN 13\nDO: k$ = INKEY$: LOOP WHILE k$ = \"\"\nSYSTEM\n",
+    )
+    .unwrap();
+    std::fs::write(d.join("p.keys"), "mouse 1 1\ntext x\n").unwrap();
+    let exe = d.join("p.exe");
+    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
+    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
+    let o = qb64rust(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let state = d.join("state.txt");
+    let run = Command::new(&exe)
+        .current_dir(&d)
+        .env("QB64_SCREEN_STATE", &state)
+        .env("QB64_SCREEN_KEYS", d.join("p.keys"))
+        .env("QB64_SCREEN_PROMPT_MS", "500")
+        .stdin(std::process::Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(run.status.code(), Some(124));
+    let text = std::fs::read(&state).unwrap();
+    assert!(
+        text.ends_with(b"p.keys line 1: the window never showed the screen\n"),
+        "{}",
+        text.escape_ascii()
+    );
+}
+
 /// The smallest icon file: one image of 16 by 16 pixels with 32 bits each, every pixel of colour `fill` (four
 /// bytes: blue, green, red, alpha). The resource compiler puts the image, the bytes from offset 22 on, into the
 /// executable as they are.

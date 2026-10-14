@@ -30,8 +30,8 @@ A program built this way behaves as before unless one of two environment variabl
 | Variable | Effect |
 |---|---|
 | `QB64_SCREEN_STATE=<file>` | At exit (`SYSTEM`, `END`, off the end, the window closed, a runtime error) the state is written to the file, after the states the keys file's `state` steps wrote |
-| `QB64_SCREEN_KEYS=<file>` | The keys of the file are given to the program as if typed |
-| `QB64_SCREEN_PROMPT_MS=<n>` | How long a `prompt` step waits (default 30000); for a test of the time limit |
+| `QB64_SCREEN_KEYS=<file>` | The keys of the file are given to the program as if typed, its mouse steps as if the mouse moved over the window |
+| `QB64_SCREEN_PROMPT_MS=<n>` | How long a `prompt` step, or a mouse step waiting for the window, waits (default 30000); for a test of the time limit |
 
 The corpus runner does all of this for a program with a `<name>.screen` file (`tools\legacy_tests\README.md`).
 
@@ -85,10 +85,41 @@ One step per line; `#` starts a comment.
 | `prompt` | Wait until the program announces its next wait for a key (below) |
 | `state` | Write the state of the screen now, before the state at exit |
 | `repeat <name>` | Last line only: the key every 100 ms until the program exits, for `END`'s "Press any key to continue" |
+| `mouse <x> <y>` | The mouse moves to pixel x, y of the window's content (0 to 999999 each) |
+| `press <button>`, `release <button>` | A button goes down or up at the last `mouse` position: 1 left, 2 right, 3 middle |
+| `wheel <n>` | The wheel turns n steps, down for a positive n, up for a negative one (`_MOUSEWHEEL` gives n) |
 
 A key is given only when the program's `INKEY$` buffer is empty, so none is lost however many there are (the
-buffer holds 15) and nothing depends on timing. A line that is none of these, or a file that cannot be read, ends
-the program with exit code 125 and a message on stderr.
+buffer holds 15) and nothing depends on timing. A line that is none of these (a button that is not 1 to 3, a
+`mouse` step without its second number, `wheel 0`), or a file that cannot be read, ends the program with exit
+code 125 before it runs and a message on stderr that names the file and the line.
+
+**Mouse steps** go into libqb's queue of mouse events at once (`Mouse_QueuePositionEvent`,
+`Mouse_QueueButtonDownEvent`, `Mouse_QueueButtonUpEvent`, `Mouse_QueueScrollEvent`), where the window's own events
+go, and `_MOUSEINPUT` reads them in order. The queue holds 65536 events, so nothing waits as a key does, but each
+step waits until libqb has drawn a frame of the displayed page at its own size: `_MOUSEX` maps an event by the
+frame last drawn, and before the first one after `SCREEN` it gives -1 (libqb's screen size is still 0) or maps by
+the mode before. A window that never shows (`$SCREENHIDE`) ends the wait after 30 s (`QB64_SCREEN_PROMPT_MS`)
+with exit code 124 and the last line `stopped <keys> line <n>: the window never showed the screen`. What a
+program sees (measured, `study\00` §5):
+
+- A `mouse` step is two events, the move and libqb's copy of it with the movement 0; a `press` or `release` is
+  one; a `wheel` step two, the turn and then 0. So `mouse 40 30`, `press 1`, `release 1` is four events at 40, 30.
+- In a graphics mode a step's pixel is the screen's (`mouse 40 30` gives `_MOUSEX` 40, `_MOUSEY` 30); in a text
+  mode `_MOUSEX` and `_MOUSEY` are the column and row of that pixel (40, 30 in `SCREEN 0` is 6, 2). This holds for
+  the window a test program opens (no `_FULLSCREEN`, no resize: a scale of 1).
+- **The real cursor counts too**: while the window is shown, the user's mouse over it adds events, and the
+  movement of the first `mouse` step (`_MOUSEMOVEMENTX`) is counted from the real cursor's last position. So a
+  program empties the queue (`WHILE _MOUSEINPUT: WEND`) right before it announces its wait, the keys file puts
+  its mouse steps after that `prompt`, and the program prints no movement of a first step. The queue has one
+  writer by design and the steps' thread is a second, so a real event at the moment of a step can lose or
+  overwrite one: keep the cursor off the window (or another window in focus) while mouse programs run. When one
+  fails, read its state first: an event at a position no step named, or a step's event missing, is such an event
+  (design D4 and Risks of `m3-images-fonts-mouse`).
+
+`tests\corpus\screen\u01_mouse_queue` and `u02_mouse_text` show the steps. The program waits for them by
+emptying the queue, announcing its wait and reading a key; the keys file gives the mouse steps after the `prompt`
+and then that key, so every mouse event is in the queue when the key arrives.
 
 **Prompts.** A program that also reads `INKEY$` only to look for a key (a pause that a key ends, a tune that a key
 stops) would eat a key the file gives too early. Such a program announces each real wait by counting in byte
@@ -108,7 +139,8 @@ from, so a pipe does not see it). `tests\corpus\screen\c12_prompts` shows the st
 Strategy with them.
 
 Limits: a key is pressed and released at once (`_KEYDOWN` never sees it held); no Shift, Ctrl or Alt combinations;
-a program that never reads `INKEY$`, `INPUT` or `LINE INPUT` gets the first key only.
+a program that never reads `INKEY$`, `INPUT` or `LINE INPUT` gets the first key only. No mouse step for the
+horizontal wheel, a double click (two clicks, timed by the program) or the console's mouse.
 
 ## Writing a screen program
 

@@ -6,7 +6,8 @@
 //   QB64_SCREEN_KEYS=<file>   the keys of the file are given to the program as if typed, its mouse steps as if
 //                             the mouse moved over the window; its `state` steps write states while the program
 //                             runs, before the one at exit
-//   QB64_SCREEN_PROMPT_MS=<n> how long a `prompt` step waits for the program (default 30000)
+//   QB64_SCREEN_PROMPT_MS=<n> how long a `prompt` step waits for the program, and a mouse step for the window
+//                             (default 30000)
 //
 // It reads libqb's own variables and calls keyboard_keydown and the Mouse_Queue... functions, so it is compiled
 // against the headers of the libqb it is linked with; libqb itself is not changed.
@@ -27,6 +28,9 @@
 #include <vector>
 
 extern int32_t pages; // libqb.cpp: the number of entries of `page`
+// libqb.cpp: the last pixel of the screen in the window, set with each frame drawn; and the size of each font.
+extern int32_t environment_2d__screen_x2, environment_2d__screen_y2;
+extern int32_t *fontwidth, *fontheight;
 
 namespace {
 
@@ -176,6 +180,7 @@ struct Step {
     enum { Press, Wait, Repeat, Prompt, State, MouseMove, MouseDown, MouseUp, Wheel } kind;
     uint32_t value; // a key code, milliseconds, the line of a `prompt`, or a mouse button
     int32_t x = 0, y = 0; // the pixel of a `mouse` step; the steps of a `wheel` in y
+    uint32_t line = 0;    // the line of a mouse step
 };
 
 // An integer, with a minus sign if `sign`: the whole of `s`, or false.
@@ -228,16 +233,19 @@ int read_steps(const std::string &script, std::vector<Step> &steps) {
             if (sp2 == std::string::npos || !read_int(arg.substr(0, sp2), false, s.x) ||
                 !read_int(arg.substr(sp2 + 1), false, s.y))
                 return n;
+            s.line = (uint32_t)n;
             steps.push_back(s);
         } else if (verb == "press" || verb == "release") {
             int32_t b = 0;
             if (!read_int(arg, false, b) || b < 1 || b > 3)
                 return n;
             steps.push_back({verb == "press" ? Step::MouseDown : Step::MouseUp, (uint32_t)b});
+            steps.back().line = (uint32_t)n;
         } else if (verb == "wheel") {
             Step s{Step::Wheel, 0};
             if (!read_int(arg, true, s.y) || s.y == 0)
                 return n;
+            s.line = (uint32_t)n;
             steps.push_back(s);
         } else if (line == "prompt") {
             steps.push_back({Step::Prompt, (uint32_t)n});
@@ -299,6 +307,25 @@ void prompt(const char *keys, uint32_t line, uint8_t expected, uint32_t limit_ms
     }
 }
 
+// Whether libqb has drawn a frame of the displayed page at the page's own size, which is when it sets how a pixel
+// of the window maps to the screen. Before that `_MOUSEX` and `_MOUSEY` give -1 (libqb's screen size is still 0) or
+// map by the size of the screen before the last `SCREEN`: a program that reads its events right after `SCREEN`
+// would see that (found while task 4.3 of m3-images-fonts-mouse recorded its programs).
+// It reads the page from this thread without a lock: a `SCREEN` run by the program while a mouse step waits can free
+// the page under it and crash the test program. No mouse program changes the screen after its `prompt`; one that
+// does must announce a wait after the change and put its mouse steps after that `prompt`.
+bool window_shows_screen() {
+    const img_struct *p = display_page;
+    if (!p)
+        return false;
+    int32_t w = p->width, h = p->height;
+    if (p->text) {
+        w *= fontwidth[p->font];
+        h *= fontheight[p->font];
+    }
+    return environment_2d__screen_x2 == w - 1 && environment_2d__screen_y2 == h - 1;
+}
+
 void feed(std::vector<Step> steps, std::string keys) {
     uint32_t limit_ms = 30000;
     if (const char *ms = getenv("QB64_SCREEN_PROMPT_MS"))
@@ -316,6 +343,15 @@ void feed(std::vector<Step> steps, std::string keys) {
         // and this thread a second writer beside the window's callbacks: a real cursor event at the same moment can
         // lose or overwrite one. Those callbacks drop moves and scrolls while the window has no focus or the cursor
         // is outside it, so a test is safe with the real cursor off the window (design D4 of m3-images-fonts-mouse).
+        // Each waits until the window shows the displayed page, so the program maps the event by that page.
+        if (s.line) {
+            const auto until = std::chrono::steady_clock::now() + std::chrono::milliseconds(limit_ms);
+            while (!window_shows_screen()) {
+                if (std::chrono::steady_clock::now() > until)
+                    stop(124, keys.c_str(), s.line, "the window never showed the screen");
+                sleep_ms(1);
+            }
+        }
         if (s.kind == Step::MouseMove) {
             mx = s.x;
             my = s.y;

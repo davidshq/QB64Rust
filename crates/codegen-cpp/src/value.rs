@@ -158,6 +158,8 @@ impl Emitter<'_> {
                     self.name(*array)
                 )
             }
+            // The array of `_UCHARPOS`, as a graphics `GET` passes its array.
+            ExprKind::Block { array, index } => self.block(*array, index),
             ExprKind::Convert { how, from } => {
                 let x = self.value(from);
                 match (how, v.ty) {

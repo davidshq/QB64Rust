@@ -853,6 +853,13 @@ pub enum ExprKind {
     VarSeg {
         array: VarId,
     },
+    /// The bytes of a numeric array from an element (the first, for a whole array `a()`) to its end, as a
+    /// function's [`builtins::Slot::Block`]: the array of `_UCHARPOS` (`qb64pe.bas` 20903; design D1 of
+    /// `m3-images-fonts-mouse`). No value: it stands only as that argument, typed as the array's elements.
+    Block {
+        array: VarId,
+        index: Vec<Expr>,
+    },
     Convert {
         how: ConvKind,
         from: Box<Expr>,

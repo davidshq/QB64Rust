@@ -2213,7 +2213,10 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     `_UNSIGNED LONG` array; with no array it gives the count only. `_FONT` and `_FREEFONT` of a freed handle
     are error 258, also `_FREEFONT 16` (a built-in font). `_PRINTMODE` is 3 at first; after
     `_KEEPBACKGROUND` 1, `_ONLYBACKGROUND` 2, `_FILLBACKGROUND` 3 (other numbers than the statement's).
-    `_MAPUNICODE(1)` is 9786 before and after `_MAPUNICODE 9786 TO 1`, `_MAPUNICODE(65)` 65.
+    `_MAPUNICODE(1)` is 9786 before and after `_MAPUNICODE 9786 TO 1`, `_MAPUNICODE(65)` 65. In the screen
+    programs of task 3.2 (`f01_builtin_fonts`, `f02_loaded_fonts`): `_PRINTSTRING STEP(x, y)` without an image
+    counts from another image's last point, not the destination's (after `SCREEN 13: PSET (100, 0)` the text
+    starts at (4, 4); `SOMEDAY.md`, "QB64pe behaviours to review"); `_FONTWIDTH` of a freed font is error 258 too.
   - **The build (task 1.2, six programs built with `qb64pe -x` outside the repository, read from the clone's
     `compilelog.txt`).** `_LOADIMAGE` and `_SAVEIMAGE` set `DEP_IMAGE_CODEC=y` (define `DEPENDENCY_IMAGE_CODEC`,
     variant `libqb_make_01000000`); `_SCREENIMAGE` and `_CLIPBOARDIMAGE` set `DEP_SCREENIMAGE=y` alone, and the
@@ -2233,6 +2236,15 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     single-producer ring buffer (`ring-buffer.h`), so the scripted thread is a second writer beside the window's
     callbacks: a real event at the moment of a step can lose or overwrite one. The position and scroll callbacks
     drop events while the window has no focus or the cursor is outside it (`mouse.cpp` 646–661).
+    **`_MOUSEX` and `_MOUSEY` map an event when they are read, by the frame libqb last drew** (`mouse.cpp` 268–
+    340: through `environment_2d__screen_x1`, the scale and the screen's size, set in `libqb.cpp` 25390 for each
+    frame). A program that reads its events right after `SCREEN 12`, before the first frame, gets -1 for both
+    (the screen's size is still 0, so the clamp gives width - 1); the movement and the buttons are right (found
+    while task 4.3 recorded `u01_mouse_queue`; the program of task 1.2 printed to its console first and so read
+    later). So a mouse step of the keys file waits until the window shows the displayed page
+    (`tools\screen\README.md`). In `SCREEN 0` a pixel at or beyond the right or bottom edge (639, 399; 700, 450)
+    is column 80, row 25, and 0, 0 is 1, 1 (`u02_mouse_text`). After the queue is empty the values of the last
+    event stay (`u01`: 60, 40).
 
 ## 6. Bug-compatibility choices (all decided)
 

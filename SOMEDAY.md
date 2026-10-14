@@ -110,6 +110,13 @@ compiled but not checked by a run:
 | `LPRINT` and `CHAIN` are compiled, and no test runs them | `LPRINT` prints a page on the default printer; `CHAIN` starts `qb64pe.exe -c` beside the program through `cmd` (user, `DECISIONS.md` 2026-10-13). Their calls are compared by `tests\callsite\lprint_*.bas` and `chain_*.bas`; `s82_print_using_file` and `s87_chain_not_reached` hold them as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
 | What a format of `PRINT USING` prints, and what a file holds after `GET` and `PUT`, are shown once per topic | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; more lines would test libqb | Design, Non-Goals |
 
+**Left marked by `m3-images-fonts-mouse`** (the sixth step of M3, 2026-10-14: images, colours, fonts, the mouse).
+What the old compiler accepts and the new one still marks "not supported yet":
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `_UCHARPOS(t$, nd&())` with an array that is not declared | The array of `_UCHARPOS` is read as the array of a graphics `GET` is, which marks a name that is no declared array (the row of `m3-get-put-bload` above) | `verification\v31_x01_accepted` (last lines) |
+
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
 
@@ -195,6 +202,8 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | A field string keeps its field after `=` gives it another length, and gets its width and the buffer's bytes back at the next `LSET` to any field of the file or `GET` with no variable; a second `FIELD` on a file keeps the strings of the first as fields | QuickBASIC ends a string's field at an assignment. A decision for a strict mode | `verification\v30_j_field`; lines 6 to 9 of `s86_field_lset` |
 | A number that was never an image handle passed to `_WIDTH` (`_WIDTH(12345)`) raises nothing and gives the screen's width; `_SAVEIMAGE "x.png", 12345` writes a file and raises nothing; a freed handle raises 258 in both | Error 258 for any number that is no handle. libqb's, so a change is a change to the runtime | `m3-images-fonts-mouse` task 1.1 (`verification\v31_b_images`, `v31_c_save_load`) |
 | `_CLEARCOLOR` alone and `_CLEARCOLOR _NONE 4` (the word and a colour) are accepted by the template `[{_None}][?][,?]` | A compile error for both | `m3-images-fonts-mouse` task 1.1 (`verification\v31_x01_accepted`) |
+| `_MOUSEX` and `_MOUSEY` map an event when they are read, by the frame libqb drew last: read before the window's first frame after `SCREEN`, they give -1, and after a `SCREEN` that changed the size, by the old size until a frame is drawn (read in `mouse.cpp`, not measured) | Keep the position the event had on the screen when it came, as `_MOUSEMOVEMENTX` is kept. libqb's, so a change is a change to the runtime | `m3-images-fonts-mouse` task 4.3 (`study\00` §5; `tools\screen\screen_state.cpp` waits for that frame) |
+| `_PRINTSTRING STEP(x, y), t$` without an image counts from neither the last point of `PSET` nor that of the last `_PRINTSTRING`: after `SCREEN 13: PSET (100, 0)` the text starts at (4, 4). libqb takes `write_page_index` (a page) as an image's index there, where the form with an image maps the page through `page[]` (`libqb.cpp` 18291–18309), so it reads another image's point | Count from the destination's last point, as `PSET` and `LINE` do. libqb's, so a change is a change to the runtime | `m3-images-fonts-mouse` task 3.2 (`tests\corpus\screen\f01_builtin_fonts`, where "step" stands over "font 14"; a program built outside the repository) |
 | `EXIT CASE` followed, in the same `CASE`, by a `SELECT` with a `CASE` jumps to the end of that inner `SELECT`'s first `CASE`: the statements up to there are skipped (also the inner `SELECT`'s own header, so a copied selector is 0), the program goes on after the inner `END SELECT`, and the rest of the outer `CASE` runs. The old compiler names the jump's label by a count of the `CASE`s closed so far | Jump to the end of the `CASE` the statement stands in. `EXIT CASE` in a plain `SELECT` (it leaves the block) is as the wiki has it | `m3-console-files` task 3.1 (`verification\v30_x66`; `qb64pe.bas` 7511; lines 11 and 12 of `s79_exit_select`) |
 
 ## Other ideas raised during the study

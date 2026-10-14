@@ -242,6 +242,32 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_PALETTECOLOR", Rule::Plain),
     ("_AUTODISPLAY", Rule::Plain),
     ("PMAP", Rule::Plain),
+    // The font functions (same design, `v31_d_fonts`): LONG each. `_LOADFONT` and the `_U…` functions need the
+    // font part ([`crate::RuntimePart::Font`]); `_UCHARPOS` takes a LONG array as its bytes ([`Slot::Block`]).
+    ("_LOADFONT", Rule::Plain),
+    ("_FONT", Rule::Plain),
+    ("_FONTWIDTH", Rule::Plain),
+    ("_FONTHEIGHT", Rule::Plain),
+    ("_PRINTWIDTH", Rule::Plain),
+    ("_PRINTMODE", Rule::Plain),
+    ("_UFONTHEIGHT", Rule::Plain),
+    ("_ULINESPACING", Rule::Plain),
+    ("_UPRINTWIDTH", Rule::Plain),
+    ("_UCHARPOS", Rule::Plain),
+    ("_MAPUNICODE", Rule::Plain),
+    // The mouse functions (same design, `v31_x01_accepted`, `x13`–`x16`, `x101`–`x103`): the event last taken
+    // from libqb's queue. `_MOUSEINPUT`, `_MOUSEBUTTON`, `_MOUSEHIDDEN`, `_MOUSEDISABLED` LONG; `_MOUSEX`,
+    // `_MOUSEY`, `_MOUSEWHEEL` and the movements DOUBLE. Read in tests from the mouse steps of a keys file
+    // (`tools\screen\screen_state.cpp`, design D4).
+    ("_MOUSEINPUT", Rule::Plain),
+    ("_MOUSEX", Rule::Plain),
+    ("_MOUSEY", Rule::Plain),
+    ("_MOUSEBUTTON", Rule::Plain),
+    ("_MOUSEWHEEL", Rule::Plain),
+    ("_MOUSEMOVEMENTX", Rule::Plain),
+    ("_MOUSEMOVEMENTY", Rule::Plain),
+    ("_MOUSEHIDDEN", Rule::Plain),
+    ("_MOUSEDISABLED", Rule::Plain),
 ];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
@@ -376,6 +402,16 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_PALETTECOLOR", StmtRule::Plain),
     ("_COPYPALETTE", StmtRule::Plain),
     ("_AUTODISPLAY", StmtRule::Plain),
+    // The font statements (same design): each the plain call of its row and template. `_UPRINTSTRING` needs the
+    // font part.
+    ("_FONT", StmtRule::Plain),
+    ("_FREEFONT", StmtRule::Plain),
+    ("_PRINTSTRING", StmtRule::Plain),
+    ("_PRINTMODE", StmtRule::Plain),
+    ("_UPRINTSTRING", StmtRule::Plain),
+    ("_MAPUNICODE", StmtRule::Plain),
+    // It moves the machine's cursor: compiled, and run by no test (design D3).
+    ("_MOUSEMOVE", StmtRule::Plain),
 ];
 
 /// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
@@ -409,6 +445,8 @@ pub const NEVER_RUN: &[&str] = &[
     // `CHAIN` compiles another program: libqb starts `qb64pe.exe -c` beside the running program through `cmd`
     // (`tests\corpus\README.md`), which no test machine may be asked for (same decision).
     "CHAIN",
+    // `_MOUSEMOVE` moves the machine's cursor (design D3 of `m3-images-fonts-mouse`).
+    "_MOUSEMOVE",
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.
@@ -694,6 +732,8 @@ impl Slot {
             "_FLOAT" | "SINGLE" => Slot::Float,
             "any-numeric" => Slot::AnyNumeric,
             "STRING" => Slot::Str,
+            // The array of `_UCHARPOS`, the one function with such a slot.
+            _ if t.starts_with("offset+size (largest safe block") => Slot::Block,
             other => unreachable!("slot type {other} of a supported built-in"),
         }
     }

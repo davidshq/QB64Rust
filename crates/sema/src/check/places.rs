@@ -1696,7 +1696,7 @@ fn constant(e: &Expr) -> Option<Num> {
                 (ConvKind::RoundEven, Num::Int(_)) | (ConvKind::Truncate, Num::Float(_)) => None,
             }
         }
-        ExprKind::VarPtr { .. } | ExprKind::VarSeg { .. } => None,
+        ExprKind::VarPtr { .. } | ExprKind::VarSeg { .. } | ExprKind::Block { .. } => None,
         ExprKind::Unary { op, operand } => match (op, constant(operand)?) {
             (UnOp::Neg, Num::Float(f)) => Some(Num::Float(-f)),
             (op, Num::Int(i)) => Some(Num::Int(super::ops::fold_unary(*op, i, e.ty))),

@@ -504,6 +504,24 @@ What the compiler supports so far:
   Checked by the screen programs `i01` to `i08` (the images `i02` loads are written by
   `tools\screen\make_images.py`; `i03` saves and loads six formats), the front-end tests `images_typed`,
   `images_ir` and `images_errors`, and 169 call-site programs.
+- **Fonts** (`m3-images-fonts-mouse` group 3; same design and facts): the functions `_LOADFONT`, `_FONT`,
+  `_FONTWIDTH`, `_FONTHEIGHT`, `_PRINTWIDTH`, `_PRINTMODE`, `_UFONTHEIGHT`, `_ULINESPACING`, `_UPRINTWIDTH`,
+  `_UCHARPOS`, `_MAPUNICODE` (each a LONG) and the statements `_FONT`, `_FREEFONT`, `_PRINTSTRING`, `_PRINTMODE`,
+  `_UPRINTSTRING`, `_MAPUNICODE`, also after `CALL`, each a plain row. `_LOADFONT`, the `_U…` functions and
+  `_UCHARPOS` need `RuntimePart::Font`. **`_UCHARPOS`'s array** is a function's `Slot::Block`: an array of LONG
+  or `_UNSIGNED LONG`, whole (`p()`) or from an element (`p(2)`), passed as its bytes as a graphics `GET` passes
+  its array (`ExprKind::Block`, `check\builtins.rs`, `long_array_arg`); anything else is the old compiler's
+  "Expected LONG array-name"; an array used without `DIM` there (`nd&()`) stays "not supported yet", as for
+  `GET`. Checked by the screen programs `f01` (the built-in fonts) and `f02` (Windows' `cour.ttf` and
+  `arial.ttf`), the front-end tests `fonts_typed`, `fonts_ir`, `fonts_cpp` (the element forms, which the
+  call-site check does not compare) and `fonts_errors`, and 81 call-site programs.
+- **The mouse** (`m3-images-fonts-mouse` group 4; same design and facts): the functions `_MOUSEINPUT`,
+  `_MOUSEBUTTON`, `_MOUSEHIDDEN`, `_MOUSEDISABLED` (each a LONG), `_MOUSEX`, `_MOUSEY`, `_MOUSEWHEEL`,
+  `_MOUSEMOVEMENTX`, `_MOUSEMOVEMENTY` (each a DOUBLE) and the statement `_MOUSEMOVE`, each a plain row.
+  `_MOUSEMOVE` moves the machine's cursor and is on `NEVER_RUN`. Checked by the screen programs `u01` (the queue,
+  buttons, wheel and movement in `SCREEN 12`) and `u02` (columns and rows in `SCREEN 0`), fed by the mouse steps
+  of their keys files (`tools\screen\README.md`), the front-end tests `mouse_typed`, `mouse_ir` and
+  `mouse_errors`, and 24 call-site programs.
 - **The constants of QB64pe's auto-included file** (`m2-console-screenhide` group 5; `sema\src\check\auto.rs`):
   `_TRUE`, `_FALSE`, `_ONE_MB`, the limits of the numeric types and the others of `beforefirstline.bi` are
   known in every program. The file is not included: `tools\builtins\builtins.json` carries each constant's

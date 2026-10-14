@@ -145,6 +145,11 @@ position where the template has the slot alone in brackets after a comma and an 
 (`check\builtins.rs`, `filled_slots`); the IR writes the slot as absent and the emitter's mask follows, as
 measured. Other gaps keep their mark.
 
+**As built (group 3, 2026-10-14).** Every font row is plain. `_UCHARPOS`'s array is `Slot::Block` as planned,
+but a function's argument was a value only, so it is a node of its own, `ExprKind::Block { array, index }`,
+written by the emitter's `byte_element` code of graphics `GET`. Its form with an array not declared
+(`nd&()`) is marked, as for `GET` (`SOMEDAY.md`).
+
 *Alternative considered:* write rows straight from the table and let the call-site check find the differences.
 Rejected: `m2-core-builtins` found a third of the functions special-cased, and a measured list of forms is what
 the call-site programs and the `check-fail` tests are written from.
@@ -236,6 +241,13 @@ callbacks, so a real event at the moment of a step can lose or overwrite one of 
 and scroll callbacks drop events while the window has no focus or the cursor is outside it (`mouse.cpp` 658–661,
 646–649), and a real click needs the cursor over the window, so the race needs the real cursor inside a focused
 test window: the risk below, not a second one.
+
+**As built (group 4, 2026-10-14).** As above, and one more rule: `_MOUSEX` and `_MOUSEY` map an event when they
+are read, by the frame libqb last drew, so a program that reads right after `SCREEN` got -1. Each mouse step waits
+until libqb has drawn a frame of the displayed page at its own size (`environment_2d__screen_x2` and `…_y2` at
+the page's last pixel), with `prompt`'s time limit and exit code 124. On a machine that never draws the window
+(a hidden one) the mouse programs stop so: if the GitHub runner is such a machine, they go on a list run locally,
+the fallback of the fonts' risk.
 
 *Alternative considered:* call `GLUT_MOUSE_POSITION_FUNC` and `GLUT_MOUSE_BUTTON_FUNC`, the window's own
 callbacks. Rejected: they also read the window's state (focus, the cursor mode) and convert by GLFW's scale, more

@@ -297,7 +297,7 @@ impl Emitter<'_> {
     /// element's address, the bytes left (none while the array is not allocated) and a temporary of its own,
     /// declared with the variables of the body. The index is written twice; `sema` allows none that calls a
     /// procedure.
-    fn block(&mut self, array: VarId, index: &[Expr]) -> String {
+    pub(crate) fn block(&mut self, array: VarId, index: &[Expr]) -> String {
         let (v, n) = (self.p.var(array), self.name(array));
         let size = self.ty_size(v.ty);
         let flat = if index.is_empty() {

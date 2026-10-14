@@ -1,0 +1,12 @@
+# Mouse steps for u02_mouse_text (SCREEN 0, 80 by 25 cells of 8 by 16 pixels).
+prompt
+mouse 40 30
+mouse 100 50
+# A click at the last cell's pixel.
+mouse 639 399
+press 1
+release 1
+# The top left corner, and beyond the right and the bottom edge of the window.
+mouse 0 0
+mouse 700 450
+text x

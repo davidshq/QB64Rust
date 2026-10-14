@@ -451,6 +451,11 @@ fn val(p: &Program, v: &Expr) -> String {
             format!("VarPtr {}({}):{}", var(p, *array), i.join(", "), ty(p, v.ty))
         }
         ExprKind::VarSeg { array } => format!("VarSeg {}:{}", var(p, *array), ty(p, v.ty)),
+        ExprKind::Block { array, index } if index.is_empty() => format!("Bytes {}", var(p, *array)),
+        ExprKind::Block { array, index } => {
+            let i: Vec<String> = index.iter().map(|i| val(p, i)).collect();
+            format!("Bytes {}({})", var(p, *array), i.join(", "))
+        }
         ExprKind::Convert { how, from } => format!("({} -> Convert {} {how:?})", val(p, from), ty(p, v.ty)),
         ExprKind::Binary { op, lhs, rhs } => {
             // Only `+`, `-` and `*` can overflow an integer type (and `\` of the smallest value by -1, unspecified).

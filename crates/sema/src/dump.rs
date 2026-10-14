@@ -579,6 +579,12 @@ fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
             }
         }
         ExprKind::VarSeg { array } => writeln!(out, "{pad}VarSeg {} : {types}", var_name(p, *array)).unwrap(),
+        ExprKind::Block { array, index } => {
+            writeln!(out, "{pad}Bytes {} : {types}", var_name(p, *array)).unwrap();
+            for i in index {
+                expr(p, i, depth + 1, out);
+            }
+        }
         ExprKind::Convert { how, from } => {
             writeln!(out, "{pad}Convert {how:?} : {types}").unwrap();
             expr(p, from, depth + 1, out);

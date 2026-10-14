@@ -111,6 +111,10 @@ impl Checker<'_> {
                 args.push(None);
                 continue;
             };
+            if slot == Slot::Block {
+                args.push(Some(self.long_array_arg(node, name)?));
+                continue;
+            }
             let e = self.expr(node)?;
             let which = if slots.len() == 1 {
                 format!("`{name}`")
@@ -765,6 +769,7 @@ impl Checker<'_> {
                 | ExprKind::Bound { .. }
                 | ExprKind::VarPtr { .. }
                 | ExprKind::VarSeg { .. }
+                | ExprKind::Block { .. }
                 | ExprKind::Convert { .. }
                 | ExprKind::Binary { .. }
                 | ExprKind::Unary { .. }
@@ -787,6 +792,43 @@ impl Checker<'_> {
             return Err(self.unsupported(span, msg));
         }
         Ok(StmtArg::Block { array, index })
+    }
+
+    /// The array of `_UCHARPOS` (design D1 of `m3-images-fonts-mouse`; measured, `verification\v31_x01_accepted`,
+    /// `x19`–`x22`, `x25`, `x26`): an array of LONG or `_UNSIGNED LONG`, whole (`p()`) or from an element (`p(2)`),
+    /// of any number of dimensions, passed as a graphics `GET` passes its array. Anything else is the old
+    /// compiler's "Expected LONG array-name" (`qb64pe.bas` 20901): the name alone, a scalar, a literal, an array
+    /// of another type. An array used without `DIM` here (`nd&()`), which the old compiler takes, is not
+    /// supported yet, as for `GET`.
+    fn long_array_arg(&mut self, node: ast::Expr, name: &str) -> R<Expr> {
+        let span = node.node().span();
+        let expected = |c: &mut Self| c.error(span, format!("`{name}` needs an array of LONG here"));
+        let ast::Expr::Call(c) = node else {
+            return Err(expected(self));
+        };
+        let Some(t) = c.name() else {
+            return Err(expected(self));
+        };
+        // An array of strings or of a `TYPE` is this error, before `block_arg` would mark it.
+        let (word, suffix) = self.split_name(t)?;
+        if let Some(array) = self.find_array(&word, suffix)
+            && !matches!(self.prog.var(array).ty, Ty::I32 | Ty::U32)
+        {
+            return Err(expected(self));
+        }
+        let StmtArg::Block { array, index } = self.block_arg(node, name)? else {
+            unreachable!("`block_arg` gives an array's bytes")
+        };
+        let ty = self.prog.var(array).ty;
+        if !matches!(ty, Ty::I32 | Ty::U32) {
+            return Err(expected(self));
+        }
+        Ok(Expr {
+            span,
+            ty,
+            qb: ty,
+            kind: ExprKind::Block { array, index },
+        })
     }
 
     /// The variable of `GET` or `PUT` on a file (design D2 of `m3-console-files`; measured,
@@ -932,7 +974,7 @@ fn calls_procedure(e: &Expr) -> bool {
         ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) | ExprKind::VarSeg { .. } => false,
         ExprKind::Load(place) => place.indexes().iter().any(|i| calls_procedure(i)),
         ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(calls_procedure),
-        ExprKind::VarPtr { index, .. } => index.iter().any(calls_procedure),
+        ExprKind::VarPtr { index, .. } | ExprKind::Block { index, .. } => index.iter().any(calls_procedure),
         ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => calls_procedure(from),
         ExprKind::Binary { lhs, rhs, .. } | ExprKind::Concat(lhs, rhs) | ExprKind::StrCompare { lhs, rhs, .. } => {
             calls_procedure(lhs) || calls_procedure(rhs)

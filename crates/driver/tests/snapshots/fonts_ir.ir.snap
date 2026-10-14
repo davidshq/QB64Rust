@@ -1,0 +1,61 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: window, runtime parts: font
+Array P:I32 static (0 To 10)
+Array Z:I32 static (0 To 3, 0 To 3)
+Stmt line 10 may_raise
+  Builtin _FONT [Value(Const 16:I32), Absent]
+Stmt line 11 may_raise
+  Builtin _FONT [Value(Var L:I32), Value(Var IMG:I32)]
+Stmt line 12 may_raise
+  Builtin _FONT [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 13 may_raise
+  Builtin _FREEFONT [Value(Var L:I32)]
+Stmt line 14 may_raise
+  Builtin _FREEFONT [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 15 may_raise
+  Builtin _PRINTSTRING [Absent, Value((Const 1:I16 -> Convert F64 Nearest)), Value((Const 2:I16 -> Convert F64 Nearest)), Value(Const "a"), Absent]
+Stmt line 16 may_raise
+  Builtin _PRINTSTRING [Word 0, Value(Var D:F64), Value((Var S:F32 -> Convert F64 Widen)), Value(Var T:Str), Value(Var IMG:I32)]
+Stmt line 17 may_raise
+  Builtin _PRINTSTRING [Absent, Value((Var I:I16 -> Convert F64 Nearest)), Value((Var Q:I64 -> Convert F64 Nearest)), Value(Var T:Str), Value(((Var F:F80 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 18 may_raise
+  Builtin _PRINTMODE [Word 1, Absent]
+Stmt line 19 may_raise
+  Builtin _PRINTMODE [Word 0, Value(Var IMG:I32)]
+Stmt line 20 may_raise
+  Builtin _PRINTMODE [Word 2, Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 21 may_raise
+  Builtin _UPRINTSTRING [Value(Const 1:I32), Value(Const 2:I32), Value(Const "abc"), Absent, Absent, Absent, Absent]
+Stmt line 22 may_raise
+  Builtin _UPRINTSTRING [Value(Var L:I32), Value(Var L:I32), Value(Var T:Str), Value(Const 100:I32), Absent, Absent, Absent]
+Stmt line 23 may_raise
+  Builtin _UPRINTSTRING [Value(Var L:I32), Value(Var L:I32), Value(Var T:Str), Absent, Value(Const 8:I32), Absent, Absent]
+Stmt line 24 may_raise
+  Builtin _UPRINTSTRING [Value(Var L:I32), Value(Var L:I32), Value(Var T:Str), Absent, Absent, Value(Var L:I32), Absent]
+Stmt line 25 may_raise
+  Builtin _UPRINTSTRING [Value(Var L:I32), Value(Var L:I32), Value(Var T:Str), Absent, Absent, Absent, Value(Var IMG:I32)]
+Stmt line 26 may_raise
+  Builtin _UPRINTSTRING [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(Var T:Str), Value((Var Q:I64 -> Convert I32 Truncate)), Value(((Var F:F80 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value((Var U:U32 -> Convert I32 Truncate)), Value((Var I:I16 -> Convert I32 Widen))]
+Stmt line 27 may_raise
+  Builtin _MAPUNICODE [Value(Const 9786:I32), Word 0, Value(Const 1:I32)]
+Stmt line 28 may_raise
+  Builtin _MAPUNICODE [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Word 0, Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 29 may_raise
+  Builtin _FONT [Value(Const 16:I32), Absent]
+Stmt line 30 may_raise
+  Builtin _PRINTMODE [Word 2, Absent]
+Stmt line 31 may_raise
+  Builtin _PRINTSTRING [Absent, Value((Const 1:I16 -> Convert F64 Nearest)), Value((Const 2:I16 -> Convert F64 Nearest)), Value(Const "a"), Absent]
+Stmt line 32 may_raise
+  Builtin _UPRINTSTRING [Value(Const 1:I32), Value(Const 2:I32), Value(Const "abc"), Absent, Absent, Absent, Absent]
+Stmt line 33 may_raise
+  Builtin _MAPUNICODE [Value(Const 9786:I32), Word 0, Value(Const 1:I32)]
+Stmt line 34 may_raise
+  Builtin _FREEFONT [Value(Var L:I32)]
+Stmt line 35 may_raise
+  Assign L:I32 = CallBuiltin _UCHARPOS:I32 [Some(Var T:Str), Some(Bytes P((Var I:I16 -> Convert I64 Widen))), None, None]
+Stmt line 36 may_raise
+  Assign L:I32 = CallBuiltin _UCHARPOS:I32 [Some(Var T:Str), Some(Bytes Z(Const 1:I64, Const 2:I64)), Some(Const 8:I32), None]

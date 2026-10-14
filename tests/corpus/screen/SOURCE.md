@@ -113,3 +113,28 @@ own files and deletes them. Each state was looked at as a picture before it was 
 | `i06_palette_colours` | `SCREEN 13`: `_PALETTECOLOR` set and read, `_COPYPALETTE` each way with arguments left out, `_RGB` and `_RGBA` as the nearest index, `_RED` to `_ALPHA` of an index |
 | `i07_colours_32` | 32 bits: `_RGB`, `_RGBA`, `_RED` to `_ALPHA` with and without a handle, the `…32` parts, `_HSB32`, `_HSBA32`, `_HUE32`, `_SATURATION32`, `_BRIGHTNESS32` |
 | `i08_pmap_autodisplay` | `PMAP` with `WINDOW` and `VIEW`, its four functions; `_AUTODISPLAY` before and after `_DISPLAY` and after the statement |
+
+## Fonts
+
+Written by `m3-images-fonts-mouse` (group 3, 2026-10-14) and recorded the same way, in 256 colours, so text has
+no anti-aliasing. The built-in fonts are in a program of their own; the loaded ones are Windows' `cour.ttf` and
+`arial.ttf`, found by their bare names in the system's font folder (design D6: no font goes into the repository),
+so a machine with other font files fails `f02` only. Each state was looked at as a picture before it was trusted.
+
+| Program | Covers |
+|---|---|
+| `f01_builtin_fonts` | `_FONT` 8, 14 and 16 on the screen and on an image (statement and function), `_FONTWIDTH`, `_FONTHEIGHT`, `_PRINTWIDTH`; `_PRINTSTRING` at a point, after `STEP`, into an image, after `CALL`; `_PRINTMODE` (statement and function) with each of its words over stripes, on the screen and on an image; `_MAPUNICODE` (statement and function) |
+| `f02_loaded_fonts` | `_LOADFONT` of `cour.ttf` and `arial.ttf`, with `MONOSPACE`, with a font index after a gap, of a font that is not there; text by `PRINT`, `_PRINTSTRING` and `_UPRINTSTRING` (a width, UTF-8, a font, an image); `_UFONTHEIGHT`, `_ULINESPACING`, `_UPRINTWIDTH`; `_UCHARPOS` into a whole array, from an element, into `_UNSIGNED LONG` and two-dimensional arrays, with none; `_FREEFONT` and the errors of a freed font and of freeing a built-in one |
+
+## The mouse
+
+Written by `m3-images-fonts-mouse` (group 4, 2026-10-14) and recorded the same way, each with a keys file of mouse
+steps (`tools\screen\README.md`): the program empties libqb's queue of mouse events, announces its wait and reads
+a key; the keys file gives the mouse steps after its `prompt`, then that key. The user's real cursor over the
+window adds events, so a program prints no movement of the first move; when one fails, its state is read first
+(design D4).
+
+| Program | Covers |
+|---|---|
+| `u01_mouse_queue` | `SCREEN 12`: the queue read event by event with `_MOUSEINPUT`; `_MOUSEX`, `_MOUSEY`, `_MOUSEBUTTON` of the three buttons, `_MOUSEWHEEL` (down and up, and with an argument), `_MOUSEMOVEMENTX`, `_MOUSEMOVEMENTY`, a move with a button held; `_MOUSEHIDDEN`, `_MOUSEDISABLED`; `_MOUSEMOVE` as code that is not reached |
+| `u02_mouse_text` | `SCREEN 0`: `_MOUSEX` and `_MOUSEY` as a column and row of a window pixel, at the corners and beyond the window's edges, and a click |

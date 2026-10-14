@@ -250,6 +250,8 @@ impl Facts for Expr {
             // The index check of the element; a segment is the array's and reads no element.
             ExprKind::VarPtr { .. } => true,
             ExprKind::VarSeg { .. } => false,
+            // An element given is checked against the bounds.
+            ExprKind::Block { index, .. } => !index.is_empty(),
             ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.may_raise(),
             ExprKind::Binary { op, lhs, rhs } => op_may_raise(*op) || lhs.may_raise() || rhs.may_raise(),
             ExprKind::Choice { condition, then, else_ } => {
@@ -267,7 +269,9 @@ impl Facts for Expr {
                 ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => false,
                 ExprKind::Load(place) => place.uses_strings(p),
                 ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(|d| d.uses_strings(p)),
-                ExprKind::VarPtr { index, .. } => index.iter().any(|i| i.uses_strings(p)),
+                ExprKind::VarPtr { index, .. } | ExprKind::Block { index, .. } => {
+                    index.iter().any(|i| i.uses_strings(p))
+                }
                 ExprKind::VarSeg { .. } => false,
                 ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.uses_strings(p),
                 ExprKind::Binary { lhs, rhs, .. }

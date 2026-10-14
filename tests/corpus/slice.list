@@ -410,3 +410,9 @@ screen/i05_alpha_blend
 screen/i06_palette_colours
 screen/i07_colours_32
 screen/i08_pmap_autodisplay
+# m3-images-fonts-mouse group 3: the font built-ins, screen programs (tests/corpus/screen/SOURCE.md)
+screen/f01_builtin_fonts
+screen/f02_loaded_fonts
+# m3-images-fonts-mouse group 4: the mouse, read from the mouse steps of a keys file (tests/corpus/screen/SOURCE.md)
+screen/u01_mouse_queue
+screen/u02_mouse_text
