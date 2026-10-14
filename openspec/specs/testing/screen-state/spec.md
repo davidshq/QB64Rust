@@ -43,10 +43,20 @@ changed for it.
 ### Requirement: Keys for a program with a window
 With `QB64_SCREEN_KEYS=<file>` the same file SHALL give the program the keys the file lists, in order, as if
 typed: `text <printable ASCII>`, `key <name>` (Enter, Esc, Tab, Backspace, Space, the arrow and editing keys,
-F1 to F12), `wait <milliseconds>`, and as the last line `repeat <name>`, which presses the key until the program
-exits. No key SHALL be lost, whatever the number of keys and the speed of the program: a key is given only when
-the program has read the ones before. A keys file that cannot be read, or a line that is no step, SHALL end the
-program with exit code 125 and a message on stderr.
+F1 to F12), `wait <milliseconds>`, `prompt`, `state`, and as the last line `repeat <name>`, which presses the key
+until the program exits. No key SHALL be lost, whatever the number of keys and the speed of the program: a key is
+given only when the program has read the ones before. A program announces that it waits for a key by adding 1
+(modulo 256) to byte 0x4F0 of conventional memory (`DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255`); the
+k-th `prompt` SHALL wait for the k-th announcement before the steps after it are taken. If it does not come
+within 30 seconds (or the milliseconds of `QB64_SCREEN_PROMPT_MS`), the program SHALL be ended with exit code 124,
+after the state as it is then, and a message that names the line of the `prompt` SHALL be the last line of the
+state file and be written to stderr; if a `prompt` finds that the program has already announced more waits than
+that, it SHALL end the program the same way with exit code 125 and a message that says so (a check that catches a
+key given without a `prompt` when it is seen, not a guarantee). `state` SHALL write the state of the
+screen at that moment to the file named by `QB64_SCREEN_STATE`, after the states written before it; the state at
+exit SHALL follow the last of them. A keys file without `prompt` and `state` SHALL give its keys as before. A keys
+file that cannot be read, or a line that is no step, SHALL end the program with exit code 125 and a message on
+stderr.
 
 #### Scenario: More keys than the key buffer holds
 - **WHEN** the keys file holds 600 characters and then Enter, and the program reads `INKEY$` until Enter
@@ -63,6 +73,26 @@ program with exit code 125 and a message on stderr.
 #### Scenario: A mistake in the keys file
 - **WHEN** a line reads `key bogus`
 - **THEN** the program exits with code 125 and stderr names the file and the line
+
+#### Scenario: A key a pause would eat
+- **WHEN** a program announces a wait, reads one key, then runs a loop that ends early when `INKEY$` returns a key,
+  then announces a second wait, and the keys file is `prompt`, `text a`, `prompt`, `text b`
+- **THEN** the loop runs to its end and the second wait reads `b`
+
+#### Scenario: A state while the program runs
+- **WHEN** a program draws a box, announces a wait, clears the screen after the key, and ends with `SYSTEM`, and
+  the keys file is `prompt`, `state`, `text x`
+- **THEN** the state file holds two states: the first with the box, the second without it
+
+#### Scenario: A menu that announces after every key
+- **WHEN** a menu announces a wait before each key it reads, and the keys file is `prompt`, `key down`,
+  `prompt`, `key down`, `prompt`, `state`, `key enter`
+- **THEN** the state shows the third entry chosen, whatever the speed of the program
+
+#### Scenario: A prompt that never comes
+- **WHEN** the keys file starts with `prompt` and the program never writes byte 0x4F0
+- **THEN** the program is ended after 30 seconds with exit code 124, the state at that moment is written, and the
+  last line of the state file names the line of the `prompt`
 
 ### Requirement: Screen programs in the corpus
 A corpus program with a `<name>.screen` file SHALL be built with the state file and run with `QB64_SCREEN_STATE`
@@ -131,3 +161,32 @@ program of `tests/corpus/slice.list`, recorded with the old compiler.
 #### Scenario: A statement the first 29 programs do not use
 - **WHEN** `WINDOW` is compiled by the new compiler
 - **THEN** a screen program recorded with `qb64pe.exe` draws through a `WINDOW` and is on `slice.list`
+
+### Requirement: Civil War Strategy in a scripted game
+`tools\screen\cut_game.py` SHALL write `tests\corpus\screen\g12_game.bas` from `tests\programs\civil-war-strategy\
+CWSTRAT.BAS` with the game's lines byte for byte, line n of the copy being line n of the game, except for a list
+of edits kept in the script, each naming a line of the game, a text the line must hold exactly once, and what
+that text becomes: a fixed seed in place of `RANDOMIZE TIMER`, no `_FULLSCREEN`, a
+`TICK` that returns at once, and an announcement before each place the game waits for a key. The script SHALL stop
+with a message when a line no longer holds its text. The program's data files SHALL be copies in
+`g12_game.files\`, its configuration one that turns sound off. Its keys file SHALL play a game through its menus,
+with `state` steps at the screens it compares, and SHALL end the game through the game's own menu. The program
+SHALL be recorded with the old compiler, SHALL be on `tests\corpus\slice.list`, and SHALL pass with the new
+compiler by its output and every state of its state file.
+
+#### Scenario: The game changes
+- **WHEN** the line `RANDOMIZE TIMER` of `CWSTRAT.BAS` is moved by an edit of the game
+- **THEN** `cut_game.py` stops and names the line, and writes no `g12_game.bas`
+
+#### Scenario: The scripted game passes
+- **WHEN** the tier 2 slice run reaches `screen/g12_game`
+- **THEN** the program built by the new compiler plays the game to its end, and every state it writes equals the
+  recorded one
+
+#### Scenario: A drawing that differs mid-game
+- **WHEN** the new compiler draws one pixel of the map wrong
+- **THEN** `screen/g12_game` fails at stage "screen", and the states written are kept in the results folder
+
+#### Scenario: Two runs of the old compiler's build
+- **WHEN** `--record` runs `g12_game` twice
+- **THEN** both runs write the same states, so the seed, the pauses and the keys leave nothing to timing

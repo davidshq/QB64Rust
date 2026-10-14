@@ -30,7 +30,7 @@ after `CALL`. **Civil War Strategy compiles with no diagnostic and builds**, and
 the state of their screen. Its fourth step, OpenSpec change `m3-console-files`, is done (all 22 tasks,
 2026-10-13; committed, archived 2026-10-14): the console programs of the corpus that waited. **No program of
 the corpus that the old compiler accepts is held back any more.** Its fifth step, OpenSpec change
-`m3-scripted-game`, is done (all 14 tasks, 2026-10-14; not committed or archived yet): **Civil War Strategy's
+`m3-scripted-game`, is done (all 14 tasks, 2026-10-14; committed, archived 2026-10-14): **Civil War Strategy's
 screens are compared in a scripted game**, a copy of the game with listed edits played for two turns from a keys
 file, 23 states of its screen equal to the old compiler's; the new compiler's build passed on its first run.
 Step 9 of M2, built-in statements, was OpenSpec change `m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
@@ -113,7 +113,8 @@ line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10)
     string stays a field after `=`.
   - **Not of this change, met on the way**: a literal above the `_INTEGER64` range (`18446744073709551615`) is
     "not supported yet: unsigned literals".
-- `m3-scripted-game` is done and waits to be committed and archived. For the user to look at, each in
+- `m3-scripted-game` is committed (`34026db`) and archived (2026-10-14, its spec merged into
+  `testing/screen-state`). For the user to look at, each in
   the change's `tasks.md`:
   - **Two things changed from the design while built**: a `prompt` *counts* the program's announcements (a menu
     announces again after every arrow key, so "wait for a change" returned too early; task 1.1); a `prompt` that
@@ -181,7 +182,7 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
    archived 2026-10-14). What each task found is in the change's `tasks.md`, the measured
    facts in `study\00` §5 (`verification\v30_*`, 177 programs and the table of result types), what stayed
    marked in `SOMEDAY.md` ("Left marked by `m3-console-files`").
-5. Done: Civil War Strategy's screens in a scripted game (`m3-scripted-game`, all 14 tasks, 2026-10-14): the
+5. Done: Civil War Strategy's screens in a scripted game (`m3-scripted-game`, all 14 tasks, archived 2026-10-14): the
    keys file's `prompt` and `state` steps, a copy of the game written by `cut_game.py`, `g12_game` with 23
    states and `c12_prompts`, both on `slice.list`. What each task found is in the change's `tasks.md`, the
    measured facts in `study\00` §5 ("Civil War Strategy played from a keys file"), the game's numbers in
