@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):REDIM _PRESERVE _RETAIN A ( 5 ) AS LONG
+LINE 5:REDIM _PRESERVE _RETAIN a(5) AS LONG
+exit=1

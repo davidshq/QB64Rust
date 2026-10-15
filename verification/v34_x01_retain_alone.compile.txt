@@ -1,0 +1,5 @@
+
+Expected REDIM _RETAIN ...
+Caused by (or after):REDIM _RETAIN
+LINE 3:REDIM _RETAIN
+exit=1

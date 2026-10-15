@@ -1,0 +1,5 @@
+
+Name already in use (a)
+Caused by (or after):REDIM _RETAIN A ( 5 ) AS INTEGER
+LINE 4:REDIM _RETAIN a(5) AS INTEGER
+exit=1

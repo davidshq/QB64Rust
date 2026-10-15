@@ -1,0 +1,5 @@
+
+DIM/REDIM SHARED invalid within a SUB/FUNCTION
+Caused by (or after):REDIM _RETAIN SHARED A ( 3 ) AS LONG
+LINE 7:REDIM _RETAIN SHARED a(3) AS LONG
+exit=1

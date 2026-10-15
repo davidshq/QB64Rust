@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):X = _RETAIN
+LINE 4:x = _RETAIN
+exit=1
