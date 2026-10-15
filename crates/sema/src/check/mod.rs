@@ -14,6 +14,7 @@ mod decl;
 mod expr;
 mod flow;
 mod io;
+mod library;
 mod mem;
 mod ops;
 mod places;
@@ -166,6 +167,12 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
             Err(Failed) => c.declare_broken(header),
         }
     }
+    // The declarations of `DECLARE LIBRARY` blocks, wherever they stand (design D1 of `m3-declare-library`): their
+    // names are global and usable above the block (measured, `verification\v37_i`, `x49`).
+    let mut externals = Vec::new();
+    for block in c.library_blocks(&top) {
+        c.declare_library(block, &skips, &mut externals);
+    }
     for (def, id) in declared {
         c.stmt_error = false;
         c.defaults = c.defaults_at(def);
@@ -174,6 +181,15 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         if ok {
             c.proc_of_def.insert(def.node().key(), id);
         } else {
+            c.broken.insert(id);
+        }
+    }
+    for d in externals {
+        c.stmt_error = false;
+        let id = d.id();
+        let ok = c.external_params(d).is_ok();
+        c.flush_names();
+        if !ok {
             c.broken.insert(id);
         }
     }
@@ -460,7 +476,7 @@ struct Checker<'a> {
     /// D2). It is the table at the point of the file being read: pass 1 sets it from [`Self::proc_defaults`] for
     /// each header, pass 2 changes it at each `DEFxxx` and `_DEFINE` statement, wherever that stands.
     defaults: [Ty; 27],
-    /// Per `ProcDef` node (by key): the table at its header.
+    /// Per `ProcDef` and `DeclareLibraryBlock` node (by key): the table at its header.
     proc_defaults: HashMap<(TreeId, u32), [Ty; 27]>,
     /// `OPTION BASE` as it stands at this point of the file, 0 or 1 (design D3): the lower bound of a dimension
     /// written without `TO`. Like the default types it follows the file and nothing else.
@@ -683,7 +699,7 @@ impl Checker<'_> {
         if ast::InactiveCode::cast(node).is_some() {
             return;
         }
-        if ast::ProcDef::cast(node).is_some() {
+        if ast::ProcDef::cast(node).is_some() || ast::DeclareLibraryBlock::cast(node).is_some() {
             self.proc_defaults.insert(node.key(), self.defaults);
         }
         if ast::MetaCommentStmt::cast(node).is_some() {
@@ -748,8 +764,13 @@ impl Checker<'_> {
 
     /// The default types at a procedure's header.
     fn defaults_at(&self, def: ast::ProcDef) -> [Ty; 27] {
+        self.defaults_at_node(def.node())
+    }
+
+    /// The default types at a procedure's header or a `DECLARE LIBRARY` block.
+    fn defaults_at_node(&self, node: Node) -> [Ty; 27] {
         self.proc_defaults
-            .get(&def.node().key())
+            .get(&node.key())
             .copied()
             .unwrap_or(DEFAULTS_AT_START)
     }

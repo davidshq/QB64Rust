@@ -1136,6 +1136,38 @@ fn report_unsupported_counts_a_folder() {
     assert_eq!(stdout(&o), expected);
 }
 
+/// `m3-declare-library` until its groups 3 and 4: a program with a library block is "not supported yet" in the
+/// demand report and in the `ir` and `cpp` dumps, as in a build, so no dump shows a stub for a library procedure;
+/// the `typed` dump shows its declarations.
+#[test]
+fn a_library_block_is_marked_until_it_builds() {
+    let d = scratch("report-library");
+    let program = "$CONSOLE:ONLY\nDECLARE LIBRARY\n    FUNCTION isdigit& (BYVAL c AS LONG)\nEND DECLARE\n\
+                   PRINT isdigit&(48)\n";
+    std::fs::write(d.join("lib.bas"), program).unwrap();
+    let mark = "not supported yet: building a program with `DECLARE LIBRARY` (its C++ and the library files)";
+    let o = qb64rust(&d, &["--report", "unsupported", "lib.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(
+        stdout(&o).starts_with("1 program: 0 without errors, 1 with only"),
+        "{}",
+        stdout(&o)
+    );
+    for stage in ["ir", "cpp"] {
+        let o = qb64rust(&d, &["--dump", stage, "lib.bas"]);
+        assert_eq!(o.status.code(), Some(1), "{stage}: {}", stdout(&o));
+        assert!(stdout(&o).contains(mark), "{stage}: {}", stdout(&o));
+        assert!(!stdout(&o).contains("ISDIGIT"), "{stage}: {}", stdout(&o));
+    }
+    let o = qb64rust(&d, &["--dump", "typed", "lib.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(
+        stdout(&o).contains("external isdigit of LIBRARY 0 (byval)"),
+        "{}",
+        stdout(&o)
+    );
+}
+
 /// "Demand report", scenarios "A program with another error" and "Unknown report".
 #[test]
 fn report_unsupported_names_programs_with_other_errors() {

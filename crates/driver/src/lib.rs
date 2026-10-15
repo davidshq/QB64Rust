@@ -197,6 +197,21 @@ pub fn check_exe_icon(fe: &mut Frontend, main_path: &Path) {
     }
 }
 
+/// What the driver cannot do yet for a `DECLARE LIBRARY` block (`m3-declare-library`: `sema` enters the
+/// declarations and checks their calls; the C++ of the block and the lookup of its files are still to come): each
+/// block is "not supported yet" at its line, so such a program is never built without its library. Called before
+/// `-z`, a build, the `ir` and `cpp` dumps (of the CLI and of the front-end tests) and the demand report; not for
+/// the `typed` dump, the LSP or tier 1's list of clean programs (which keeps the 8 upstream programs on
+/// `tests\known_clean_not_passing.list`). Task 3.1 lifts it for the dumps, task 4.3 for the rest.
+pub fn mark_libraries(fe: &mut Frontend) {
+    for lib in &fe.program.libraries {
+        fe.diagnostics.unsupported(
+            lib.span,
+            "building a program with `DECLARE LIBRARY` (its C++ and the library files)",
+        );
+    }
+}
+
 /// The IR of a checked program (one without errors). Everything the front end accepts lowers and is emitted.
 pub fn lower(fe: &Frontend) -> qb64rust_ir::Program {
     qb64rust_ir::lower(&fe.program)

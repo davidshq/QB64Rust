@@ -489,6 +489,8 @@ fn args(p: &Program, args: &[Arg]) -> String {
             Arg::Ref(place) => format!("Ref {}:{}", place_text(p, place), ty(p, p.place_ty(place))),
             Arg::Temp(v) => format!("Temp({})", val(p, v)),
             Arg::Array(a) => format!("Array {}:{}", array_text(p, a), ty(p, p.array_ty(a))),
+            Arg::Value(v) => format!("Value({})", val(p, v)),
+            Arg::Null => "Null".to_string(),
         })
         .collect::<Vec<_>>()
         .join(", ")

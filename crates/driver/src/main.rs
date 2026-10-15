@@ -252,9 +252,14 @@ fn run() -> Result<ExitCode, String> {
         Box::new(FileLoader::new(&include_root, file, &input))
     });
     qb64rust_driver::check_exe_icon(&mut fe, &input);
+    if matches!(o.dump.as_deref(), Some("ir" | "cpp")) {
+        // The IR and the C++ of a library procedure are not written yet; a dump of them would show a stub.
+        qb64rust_driver::mark_libraries(&mut fe);
+    }
     let errors = fe.diagnostics.error_count();
     // Warnings only with -w, never counted in the summary (spec `compiler/cli`).
     let report = |fe: &qb64rust_driver::Frontend| {
+        let errors = fe.diagnostics.error_count();
         if o.warnings {
             print!("{}", fe.render_with_warnings());
         } else if errors > 0 {
@@ -284,7 +289,8 @@ fn run() -> Result<ExitCode, String> {
     let mut settings = build_settings(&o.settings).inspect_err(|_| {
         let _ = std::fs::remove_file(&exe);
     })?;
-    if errors > 0 {
+    qb64rust_driver::mark_libraries(&mut fe);
+    if fe.diagnostics.error_count() > 0 {
         let _ = std::fs::remove_file(&exe);
         report(&fe);
         return Ok(ExitCode::FAILURE);

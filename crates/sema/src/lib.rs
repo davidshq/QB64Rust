@@ -775,6 +775,52 @@ pub struct Proc {
     /// 1-based source lines of the header and of the closing `END SUB`/`END FUNCTION`.
     pub line: u32,
     pub end_line: u32,
+    /// A procedure declared in a `DECLARE LIBRARY` block (design D1 of `m3-declare-library`): its C function. It has
+    /// no statements.
+    pub external: Option<External>,
+}
+
+/// The C function behind a procedure of a `DECLARE LIBRARY` block.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct External {
+    pub library: LibraryId,
+    /// The `ALIAS` text (a C or C++ name, `hns::twice`), else the procedure's name as written without its suffix,
+    /// in its own letter case (measured, `verification\v37_x31`).
+    pub c_name: String,
+    /// Per parameter: written `BYVAL`.
+    pub byval: Vec<bool>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct LibraryId(pub u32);
+
+/// A `DECLARE [STATIC|DYNAMIC|CUSTOMTYPE] LIBRARY` block (design D1 of `m3-declare-library`). `sema` reads no file:
+/// finding the libraries is the driver's work.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Library {
+    pub kind: LibraryKind,
+    /// The names as written, without the empty ones: a block with no name or `""` has none (measured,
+    /// `verification\v37_a`, `x27`).
+    pub names: Vec<LibraryName>,
+    /// The block's header line; its file is the one the block stands in, whose folder a header is also looked for
+    /// from.
+    pub span: Span,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LibraryKind {
+    Plain,
+    Static,
+    Dynamic,
+    Customtype,
+}
+
+/// A library name of a block: the text between the quotes.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LibraryName {
+    /// Taken as UTF-8; a byte that is no UTF-8 is shown as `show_bytes` shows it.
+    pub text: String,
+    pub span: Span,
 }
 
 /// How an argument is passed to a procedure (design D4).
@@ -792,6 +838,14 @@ pub enum Arg {
     /// `verification\v24_x315`): its place is found once, where the argument stands, and an index outside its
     /// bounds on the way raises error 9, so that the procedure is not entered.
     Array(ArrayRef),
+    /// To a `BYVAL` parameter of a library procedure: the value converted to the parameter's type as for an
+    /// assignment (measured, `verification\v37_b`, `v37_c`).
+    Value(Expr),
+    /// To a `BYVAL` parameter of a library procedure: an argument written `0`, `(0)`, `0&` or as a `CONST` whose
+    /// value is 0, which the old compiler writes C++ `NULL` (`qb64pe.bas` 12307, 21954; measured,
+    /// `verification\v37_c`, `x56`–`x61`). `1 - 1` is not one (`x57`). Decided here, where the argument's text is
+    /// known, not from a folded value.
+    Null,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1435,6 +1489,8 @@ pub struct Program {
     pub consts: Vec<Const>,
     /// The user types, in source order.
     pub types: Vec<UserType>,
+    /// The `DECLARE LIBRARY` blocks, in the order pass 1 meets them (file order).
+    pub libraries: Vec<Library>,
     /// Where each variable and procedure is defined and used (design D12).
     pub symbols: Symbols,
     /// The program's console and window.

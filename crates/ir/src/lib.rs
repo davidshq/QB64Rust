@@ -324,8 +324,9 @@ impl Facts for Arg {
     fn may_raise(&self) -> bool {
         match self {
             Arg::Ref(place) => Facts::may_raise(place),
-            Arg::Temp(v) => v.may_raise(),
+            Arg::Temp(v) | Arg::Value(v) => v.may_raise(),
             Arg::Array(array) => array.may_raise(),
+            Arg::Null => false,
         }
     }
 
@@ -337,8 +338,9 @@ impl Facts for Arg {
                 place.uses_strings(p)
                     || (!matches!(place, Place::Var(_)) && matches!(p.place_ty(place), Ty::FixedStr(_)))
             }
-            Arg::Temp(v) => v.uses_strings(p),
+            Arg::Temp(v) | Arg::Value(v) => v.uses_strings(p),
             Arg::Array(array) => array.indexes().iter().any(|v| v.uses_strings(p)),
+            Arg::Null => false,
         }
     }
 }

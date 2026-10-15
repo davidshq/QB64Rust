@@ -59,11 +59,27 @@ pub fn dump_typed(p: &Program) -> String {
         let q = if item.quoted { "\"" } else { "" };
         writeln!(out, "DATA {i}: {q}{}{q}", show_bytes(&item.text)).unwrap();
     }
+    // The `DECLARE LIBRARY` blocks: the form and the names as written.
+    for (i, lib) in p.libraries.iter().enumerate() {
+        let names: Vec<String> = lib.names.iter().map(|n| format!(" \"{}\"", n.text)).collect();
+        writeln!(out, "LIBRARY {i} {:?}{}", lib.kind, names.concat()).unwrap();
+    }
     stmts(p, &p.stmts, 0, &mut out);
     for (i, proc) in p.procs.iter().enumerate() {
         match proc.kind {
             ProcKind::Sub => writeln!(out, "SUB {}", proc.name).unwrap(),
             ProcKind::Function(t) => writeln!(out, "FUNCTION {} : {}", proc.name, ty(p, t)).unwrap(),
+        }
+        if let Some(e) = &proc.external {
+            let byval: Vec<&str> = e.byval.iter().map(|&b| if b { "byval" } else { "ref" }).collect();
+            writeln!(
+                out,
+                "  external {} of LIBRARY {} ({})",
+                e.c_name,
+                e.library.0,
+                byval.join(", ")
+            )
+            .unwrap();
         }
         for v in &p.vars {
             let class = match v.storage {
@@ -191,6 +207,11 @@ fn args(p: &Program, args: &[Arg], depth: usize, out: &mut String) {
                 writeln!(out, "{pad}temp").unwrap();
                 expr(p, e, depth + 1, out);
             }
+            Arg::Value(e) => {
+                writeln!(out, "{pad}value").unwrap();
+                expr(p, e, depth + 1, out);
+            }
+            Arg::Null => writeln!(out, "{pad}null").unwrap(),
             Arg::Array(a) => {
                 let t = ty(p, p.array_ty(a));
                 writeln!(out, "{pad}array {}() : {t}", array_text(p, a)).unwrap();

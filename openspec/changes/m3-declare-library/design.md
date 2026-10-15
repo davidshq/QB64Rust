@@ -102,7 +102,9 @@ A new `codegen-cpp\src\library.rs`, writing what `qb64pe.bas` writes (`study\00`
   compiler does not write it `0`, and its C++ fails for a `void*`, `x56`–`x59`), so the test is on the text the
   old compiler would write, not on a folded value: this compiler's folding must not make `1 - 1` a `NULL`, which
   the normal run (folding on) checks; the run with `QB64RUST_NO_FOLD=1` checks that `0`, `(0)`, `0&` and the
-  `CONST` still are. The converted expression must have the C++ type the old compiler's has
+  `CONST` still are. *As built (task 2.3):* `sema` decides it from the argument as written and passes
+  `Arg::Null`, since its folding makes `1 - 1` a literal 0 the emitter could not tell from `0`; the emitter writes
+  `NULL` for it. The converted expression must have the C++ type the old compiler's has
   (an integer literal stays an integer literal for a `DOUBLE` parameter, a `DOUBLE` to an integer is `qbr(x)`),
   which decides overloads (`v37_e`, `x60`); the front-end `cpp` tests pin each form.
 - **The result's type**: `(  <ret>  )` casts the C result to the declared type, so a FUNCTION without a suffix

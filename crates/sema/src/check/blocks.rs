@@ -29,6 +29,8 @@ impl Checker<'_> {
             self.select_block(b, skips);
         } else if let Some(b) = ast::TypeBlock::cast(node) {
             self.type_block(b, skips);
+        } else if ast::DeclareLibraryBlock::cast(node).is_some() {
+            // Its declarations were entered in pass 1 (`library.rs`), where they stand in the file.
         } else if let Some(block) = block_parts(node) {
             self.marked_block(node, block, skips);
         } else {
@@ -449,22 +451,13 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// A block not compiled yet (design D10 of `m2-parser-breadth`): one "not supported yet" error at its first
-    /// token, unless its header has a parse error; then the statements inside are checked one by one, as
-    /// everywhere else.
+    /// A block the old compiler rejects (design D10 of `m2-parser-breadth`): one error at its first token, unless
+    /// its header has a parse error; then the statements inside are checked one by one, as everywhere else.
     fn marked_block(&mut self, node: Node, block: BlockParts, skips: &Skips) {
         if block.header.is_none_or(|h| skips.usable(h)) && !skips.past_cap(node) {
             self.stmt_error = false;
-            let span = first_token_span(node);
-            let _ = match block.verdict {
-                Verdict::Unsupported(what) => self.unsupported(span, what),
-                Verdict::Error(msg) => self.error(span, msg),
-            };
+            let _ = self.error(first_token_span(node), block.error);
             self.flush_names();
-            if matches!(block.verdict, Verdict::Unsupported(_)) && ast::DeclareLibraryBlock::cast(node).is_some() {
-                // A declaration: the follow-on rule starts (design D10).
-                self.follow_on = true;
-            }
         }
         for s in block.inner {
             if skips.past_cap(s) {
@@ -523,45 +516,27 @@ pub(super) fn nested_statements(node: Node) -> Option<Vec<Node>> {
     }
 }
 
-/// What `sema` says about a block it does not compile.
-pub(super) enum Verdict {
-    /// Not supported yet; names the construct.
-    Unsupported(&'static str),
-    /// A real error: the old compiler rejects the construct too.
-    Error(&'static str),
-}
-
-/// A block statement `sema` does not compile yet: its header (whose parse errors suppress the verdict), the
-/// verdict, and the statements inside it, in order.
+/// A block statement the old compiler rejects as a whole: its header (whose parse errors suppress the error), the
+/// error, and the statements inside it, in order.
 pub(super) struct BlockParts<'a> {
     header: Option<Node<'a>>,
-    verdict: Verdict,
+    error: &'static str,
     pub(super) inner: Vec<Node<'a>>,
 }
 
-fn unsupported<'a>(header: Option<Node<'a>>, what: &'static str, inner: Vec<Node<'a>>) -> Option<BlockParts<'a>> {
-    Some(BlockParts {
-        header,
-        verdict: Verdict::Unsupported(what),
-        inner,
-    })
-}
-
-/// The parts of a block statement still marked as a whole; `None` for any other statement.
+/// The parts of a block statement rejected as a whole; `None` for any other statement.
 fn block_parts(node: Node) -> Option<BlockParts> {
     const DEF_FN: &str = "`DEF FN` is not available in QB64; use a FUNCTION";
-    if let Some(b) = ast::DeclareLibraryBlock::cast(node) {
-        unsupported(b.header().map(|h| h.node()), "`DECLARE LIBRARY`", Vec::new())
-    } else if let Some(b) = ast::DefFnBlock::cast(node) {
+    if let Some(b) = ast::DefFnBlock::cast(node) {
         Some(BlockParts {
             header: b.header().map(|h| h.node()),
-            verdict: Verdict::Error(DEF_FN),
+            error: DEF_FN,
             inner: b.body().collect(),
         })
     } else if ast::DefFnStmt::cast(node).is_some() {
         Some(BlockParts {
             header: Some(node),
-            verdict: Verdict::Error(DEF_FN),
+            error: DEF_FN,
             inner: Vec::new(),
         })
     } else {

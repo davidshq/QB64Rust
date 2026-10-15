@@ -708,10 +708,26 @@ What the compiler supports so far:
   IR unit test `copy_between_arrays_of_another_type_or_shape`, `s119_whole_array`, `s120_whole_array_members`,
   the CLI tests `whole_array_to_a_member_through_an_index_outside` (D-004) and
   `whole_array_of_an_owner_type_with_other_bounds` (D-022), and 20 upstream programs.
+- **`DECLARE LIBRARY` in `sema`** (`m3-declare-library` group 2; the facts in `study\00` §5, `verification\v37_*`):
+  pass 1 (`check\library.rs`) enters each block, wherever it stands (a SUB, an included file), as a `Library`
+  (its form and names as written, `Program::libraries`) and each declaration as a `Proc` with no statements and an
+  `External` part (its library, its C name: the `ALIAS` text or the name as written, and which parameters are
+  `BYVAL`), after the program's own procedures and with the default types at the block. Its parameters are
+  read as a program procedure's, apart from a library's rejections (an array, `STRING * n`, a `STRING` with
+  `BYVAL`, a `TYPE` defined below the block) and two allowances (a built-in's name, a `_BIT`, whose use is the
+  error). A call goes through the shared checks; a `BYVAL` argument is `Arg::Value` (converted as for an
+  assignment) or `Arg::Null` (written `0`, `(0)`, `0&` or as a `CONST` 0: the old compiler's C++ `NULL`, decided
+  from the argument as written, since folding makes `1 - 1` a 0 too). The parser rejects a name without quotes,
+  two names without a comma and `STATIC` after a declaration; `sema` the other forms, each with the old
+  compiler's reason (`library_errors`); `library_typed` holds the accepted forms. A library FUNCTION beside a
+  program SUB of the name (`v37_x22`) is marked. Not yet: the C++ of a block and of a call, and finding the
+  library files; until then the driver marks each block "not supported yet" before `-z`, a build, the `ir` and
+  `cpp` dumps and the demand report (`mark_libraries`), so such a program never builds without its library and
+  no dump shows a stub for a library procedure.
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
-are line numbers and jumps to them (also as `ON … GOTO` and `RESTORE` targets), the other built-in functions, `DECLARE LIBRARY`, event handlers and switches, `STOP`, `RUN`,
+are line numbers and jumps to them (also as `ON … GOTO` and `RESTORE` targets), the other built-in functions, event handlers and switches, `STOP`, `RUN`,
 `READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array, every other
 built-in statement read by its template (`TIME$ =`, ...), the declaration
 forms (arrays named `name$n`,

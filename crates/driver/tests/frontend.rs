@@ -38,6 +38,10 @@ fn run(name: &str, path: &Path, bytes: Vec<u8>, mode: &str) -> Result<Option<Str
     let root = frontend_dir().join("inc/root");
     let mut fe = frontend_with(name, bytes.clone(), |file| Box::new(FileLoader::new(&root, file, path)));
     qb64rust_driver::check_exe_icon(&mut fe, path);
+    if matches!(mode, "ir" | "cpp") {
+        // As the CLI's dumps: the IR and the C++ of a library procedure are not written yet.
+        qb64rust_driver::mark_libraries(&mut fe);
+    }
     let syntax_errors = fe.parsed.diagnostics().has_errors();
     match mode {
         "parse-ok" => {

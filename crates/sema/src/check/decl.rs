@@ -477,6 +477,14 @@ impl Checker<'_> {
                 self.names.push((SymbolKind::Var(v), t.span));
                 return Ok(v);
             }
+            if proc.external.is_some() {
+                // Measured: "Incorrect number of arguments passed to function" (`verification\v37_x41`).
+                let msg = format!(
+                    "cannot assign to the library procedure `{}`",
+                    show_bytes(self.text(t.span))
+                );
+                return Err(self.error(t.span, msg));
+            }
             return Err(self.in_use(t));
         }
         if self.visible_const(&name).is_some() || auto_constant(name.as_bytes()).is_some() {

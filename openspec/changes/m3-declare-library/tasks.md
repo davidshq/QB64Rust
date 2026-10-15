@@ -33,27 +33,60 @@ with `python verification\v37_lib\build_libs.py`.
 
 ## 2. The block and its declarations in `sema`
 
-- [ ] 2.1 `Library`, `LibraryName`, `External` and `Arg::Value` in `sema\src\lib.rs` (design D1); the block no
+- [x] 2.1 `Library`, `LibraryName`, `External` and `Arg::Value` in `sema\src\lib.rs` (design D1); the block no
   longer marked (`check\blocks.rs`); pass 1 enters each declaration as a `Proc` with its `External`, in a SUB too,
   with the default types (`x35`–`x38`), `ALIAS` as written (`x45`). Verify: a `typed` front-end test of a block
   with each form; the follow-on marks of the 8 upstream programs are gone (`qb64rust -z` on each prints no
   "not supported yet" for them).
-- [ ] 2.2 The rejected declarations and names (`x03`–`x07`, `x10`–`x12`, `x15`, `x25`, `x26`, `x28`, `x29`,
+  As built: a module of its own, `sema\check\library.rs`; declarations are entered after the program's own
+  procedures (so a clash is reported at the library's line wherever it stands) and before any parameters.
+  `Library` has no `file` field: its `span` names the file. The typed test is `library_typed.bas` (with
+  `inc\library.bi`). A parameter named like a built-in (`BYVAL val AS LONG`) is accepted: QB64pe's
+  `declare_library_header` tests use one, and a library parameter is no BASIC variable. Until groups 3 and 4 the
+  driver marks each block "not supported yet" before `-z`, a build, the `ir` and `cpp` dumps and the demand
+  report (`mark_libraries` in `driver\src\lib.rs`; by the review of group 2, which found the dumps writing a stub
+  for a library procedure and the report counting the 8 programs as clean; CLI test
+  `a_library_block_is_marked_until_it_builds`), so `-z` on the 8 upstream programs prints that one mark at the
+  block and nothing at the uses; the 8 are on
+  `tests\known_clean_not_passing.list` until task 5.2. `blocks_marked.bas` lost its library part and
+  `blocks_recovery`'s snapshot its mark. `Arg::Value` and `Arg::Null` reach the IR's facts, dump and validation
+  and the emitter's `args` (the value as it is, `NULL`): the IR shares `sema`'s `Arg`, so the build needed them
+  now; their check stays with tasks 3.1 and 3.2.
+- [x] 2.2 The rejected declarations and names (`x03`–`x07`, `x10`–`x12`, `x15`, `x25`, `x26`, `x28`, `x29`,
   `x32`, `x40`, `x44`, `x46`–`x48`, `x19`–`x21` as the parser gives them now), each with the old compiler's
   reason. Verify: `library_errors.bas` (`check-fail`) holds each form; its snapshot reviewed against the
   `.compile.txt` files.
-- [ ] 2.3 Calls: a library SUB and FUNCTION called through the shared checks, a `BYVAL` argument as
+  As built: `x05`, `x07` and `x12` are the parser's errors (a name without quotes, two names without a comma,
+  `STATIC` after a declaration; before, `x05` was "expected the end of the statement", `x07` was accepted, `x12`
+  was "not supported yet"); `x46`, `x47`, `x19`–`x21` keep the parser's. `x04` (`CUSTOMTYPE` without a name) is
+  no `sema` error: the old compiler's C++ fails, and so will this compiler's (task 4.4). `x08` (`ALIAS` in
+  `DECLARE SUB`, which the old compiler accepts) and `x09` stay as they were, as design D1 says. Not in the list
+  and marked: `x22`, a library FUNCTION beside a program SUB of the name ("not supported yet"; which a use names
+  was not measured).
+- [x] 2.3 Calls: a library SUB and FUNCTION called through the shared checks, a `BYVAL` argument as
   `Arg::Value`, the rejected uses (`x14`, `x33`, `x34`, `x41`, `x50`, `x54`). Verify: `library_errors.bas` holds
   the uses; a `typed` test shows `Ref`, `Temp` and `Value` arguments; the demand report over `tests\upstream`
   no longer names `DECLARE LIBRARY`.
+  Since the review of group 2 the report names the driver's mark instead ("building a program with `DECLARE
+  LIBRARY` …", task 2.1), at the block and nowhere else; what this check asked for is that `sema`'s mark and
+  the follow-on marks at the uses are gone.
+  As built, beside the design: **`Arg::Null`**, a second new kind of argument. Which `BYVAL` argument is C++
+  `NULL` is decided in `sema` from the argument as written (`null_arg`: `0`, `0%`, `0&`, in parentheses, a
+  `CONST` whose value is integer 0), not by `codegen-cpp` from its C++ text as D3 first said: `sema` folds
+  `1 - 1` into a 0, so the emitter could not tell it from `0`. `0%` is taken with `0&` (not measured); `0#`, `0.0` and
+  `_FALSE` are not (not measured). `x34` (a SUB as a value) was already "name already in use"; `x50` was already
+  an error. Met on the way, not of this group: `v37_b` has `18446744073709551615` (above the `_INTEGER64` range),
+  "not supported yet: unsigned literals", which task 4.4 needs.
 
 ## 3. The IR and the C++
 
 - [ ] 3.1 The IR carries the libraries and the external part of a procedure; `Arg::Value` in the IR, its dump
-  and validation. Verify: `library_ir.bas` (`ir`).
+  and validation; the `ir` and `cpp` dumps no longer call `mark_libraries` (`driver\src\main.rs` and the
+  front-end tests' `frontend.rs`), and the CLI test `a_library_block_is_marked_until_it_builds` loses its dump
+  part. Verify: `library_ir.bas` (`ir`).
 - [ ] 3.2 `codegen-cpp\src\library.rs`: the header included once (D-023), the prototypes with their linkage, the
-  call, its arguments (place, copy, string, TYPE, value with no cast, `NULL` for an argument whose C++ text is
-  `0`: `0`, `(0)`, `0&`, a `CONST` 0, not `1 - 1`) and the result's cast and string result (design D3), with
+  call, its arguments (place, copy, string, TYPE, value with no cast, `NULL` for `Arg::Null`, which `sema`
+  decides: task 2.3) and the result's cast and string result (design D3), with
   `Resolved` as an input of `emit`. Verify: `library_cpp.bas` (`cpp`) compared line by line with the
   old compiler's C++ of `v37_b`, `v37_c`, `v37_d`, `v37_e`, `v37_f` (kept by hand under `target\`, not in the
   repo).
@@ -71,7 +104,8 @@ with `python verification\v37_lib\build_libs.py`.
   "Unable to resolve multiple instances …". Verify: unit tests on a C and a C++ library built from
   `verification\v37_lib\` (skipped with a message when the clone's toolchain is not there).
 - [ ] 4.3 The library files on the link command, the bytes of libraries and headers in the build cache's key;
-  the LSP reports the lookup's errors if its crate can reach the function (else noted in `crates\README.md`).
+  the LSP reports the lookup's errors if its crate can reach the function (else noted in `crates\README.md`);
+  `mark_libraries` and the rest of its CLI test go (`-z`, a build and the demand report no longer mark a block).
   Verify: a unit test of the key (a changed header changes it); CLI tests (`--ignored`): a C `.a`, a C++ `.a`, a
   `.o`, a DLL beside the program and error 260, D-023 and D-024, each library built into a temporary folder.
 - [ ] 4.4 `verification\v37_*` compiled and run with this compiler. Verify: every accepted program prints what

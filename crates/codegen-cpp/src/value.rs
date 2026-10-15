@@ -40,6 +40,10 @@ impl Emitter<'_> {
                     format!("{}({slot})", crate::owner::dyn_fn(id, m, "desc"))
                 }
                 Arg::Array(ArrayRef::Member { base, member }) => self.member_array_arg(base, *member),
+                // To a `BYVAL` parameter of a library procedure: the converted value with no cast, or `NULL`
+                // (design D3 of `m3-declare-library`).
+                Arg::Value(v) => self.value(v),
+                Arg::Null => "NULL".to_string(),
             })
             .collect();
         parts.join(",")

@@ -723,7 +723,8 @@ impl Validator<'_> {
             let to_array = param.is_some_and(Var::is_array);
             match a {
                 Arg::Ref(place) => self.place(place, owner, at),
-                Arg::Temp(v) => self.value(v, owner, at),
+                Arg::Temp(v) | Arg::Value(v) => self.value(v, owner, at),
+                Arg::Null => {}
                 Arg::Array(array) => {
                     if let Some((name, n)) = self.array_ref(array, owner, at, "an array argument")
                         && let Some(param) = param.filter(|_| to_array)
