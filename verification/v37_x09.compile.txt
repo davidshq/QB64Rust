@@ -1,0 +1,5 @@
+
+BYVAL can currently only be used with DECLARE LIBRARY
+Caused by (or after):
+LINE 3:SUB S ( BYVAL V AS LONG )
+exit=1

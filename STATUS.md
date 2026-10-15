@@ -341,10 +341,14 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
 11. Done: whole-array assignment (`m3-whole-array-assign`, all 13 tasks, 2026-10-15). What each task found is in
     the change's `tasks.md`, the C++ in its `design.md` D4, the measured facts in `study\00` §5
     (`verification\v36_*`, 58 programs), what stayed marked in `SOMEDAY.md` ("Left marked by
-    `m3-whole-array-assign`"). **Next**: for the user to choose. The upstream report's first lines are `DECLARE
-    LIBRARY` (9 programs), `_SNDOPEN` (6), `_ARRAYCOPY` (4, deferred), `$VERSIONINFO` (4), the event handlers and
-    switches (4 each), `_MIDISOUNDBANK` (4) and `LEN` of a whole array (4); the plain copy of `internal\c` waits
-    until libqb must change.
+    `m3-whole-array-assign`").
+12. Under way: `DECLARE LIBRARY` (user, 2026-10-15; OpenSpec change `m3-declare-library`, proposed: its group 1,
+    the measurements `verification\v37_*`, 76 programs with the 11 the review of the proposal asked for, is
+    done; facts in `study\00` §5). **Next**: the user reviews the proposal (two divergences, D-023 and D-024,
+    described in its `proposal.md` and `design.md` until task 6.1 adds them to `DIVERGENCES.md`, and Claude's
+    defaults in `DECISIONS.md` to confirm), then group 2. After it, the upstream report's first lines are `_SNDOPEN` (6), `_ARRAYCOPY` (4, deferred),
+    `$VERSIONINFO` (4), the event handlers and switches (4 each), `_MIDISOUNDBANK` (4) and `LEN` of a whole array
+    (4); the plain copy of `internal\c` waits until libqb must change.
 
 ## Numbers at the last full runs
 

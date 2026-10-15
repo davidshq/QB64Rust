@@ -1,0 +1,6 @@
+c: 5  3  4  2.5 c-hello
+static: 1.5  12000000000 
+o: 2 
+c++: 42  4.5 
+c++ ticks: 2 
+exit=0

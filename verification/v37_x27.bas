@@ -1,0 +1,7 @@
+$CONSOLE:ONLY
+' DECLARE LIBRARY, one form: an empty name.
+DECLARE LIBRARY ""
+    FUNCTION isdigit& (BYVAL c AS LONG)
+END DECLARE
+PRINT isdigit&(48) <> 0
+SYSTEM

@@ -1560,6 +1560,94 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     type check (`x24`, `x38`, `x40`, `x43`, `x44`, `v36_a` 7.–9.). A suffix on one side only is "Expected array
     index after" the other name (`x41`, `x42`). `PRINT a()` prints element 0 (`x37`). A scalar and an array of one
     name (`DIM a AS LONG, a(2) AS LONG`) copy as arrays (`x25`).
+- **`DECLARE LIBRARY` (`v37_*`, 76 programs measured 2026-10-15 before the design of `m3-declare-library`;
+  `qb64pe.bas` at the reference clone's commit: the block 4447–5318, its declarations 5324–5920, pass 1
+  2750–3074, the `nm` step 13776–13933, the call 12296 and 21943, the result 22091).** The libraries are built
+  from `verification\v37_lib\` by `build_libs.py` into `verification\` (git-ignored): `v37h.h` (a header, with
+  `#pragma once`), `v37g.h` (a header without a guard), `v37p.hpp`, `v37c.a` and `v37s.a` (C), `v37o.o` (C),
+  `v37cpp.a` (C++), `v37dll.dll`.
+  - **The forms**: `DECLARE [STATIC|DYNAMIC|CUSTOMTYPE] LIBRARY ["name"[, "name"…]]`, then `SUB`/`FUNCTION`
+    headers to `END DECLARE`; only headers, comments and metacommands inside ("Expected SUB/FUNCTION definition
+    or END DECLARE (#2)" for a statement or a missing `END DECLARE`, `x20`, `x21`); `END DECLARE` alone is "Name
+    already in use (DECLARE)" (`x19`). A block may stand in an included file, in a SUB, in a `$IF` branch, after
+    the first SUB; its names are global and usable before the block (`v37_i`, `x49`). A header is `SUB name
+    [ALIAS c] [(params)]` or `FUNCTION name[suffix] [ALIAS c] [(params)]`: no suffix gives the default type, as
+    `DEFLNG` sets it, and the C result is cast to it, so truncated (`h_d(1.5)` of a C `double` is 2.5, under
+    `DEFLNG H` `h_d(1.7)` is 2, not 3, `x62`, `x63`; `x35`, `x36` give 3 either way); a SUB with a suffix "Type symbols after a SUB name are invalid" (`x44`);
+    `AS type` after a FUNCTION "Expected (" (`x46`); `STATIC` after it "STATIC cannot be used in a library
+    declaration" (`x12`). A name with a dot is allowed (`x45`).
+  - **Parameters**: `[BYVAL] name[suffix] [AS type]`, no type the default (`BYVAL v` given 1.5 is 1.5, under
+    `DEFLNG V` 2, `x64`, `x65`; `x37`, `x38` cannot tell). `BYVAL` outside a
+    library: "BYVAL can currently only be used with DECLARE LIBRARY" (`x09`). "STRINGs cannot be passed using
+    BYVAL" (`x10`); "Arrays cannot be passed to a library" (`x11`); `STRING * n` "Cannot convert type ($4) to
+    symbol" (`x26`); a TYPE defined after the block "Illegal SUB/FUNCTION parameter" (`x15`); `BYVAL p AS pt`
+    is accepted but its call is "User defined types in expressions are invalid" (`x28`); `_BIT` makes the name
+    "Name already in use" at its use (`x25`).
+  - **`ALIAS`**: a string or a name; the string may hold letters, digits and ` !%&()*+,-./:;<=>?[]^{|}~`, so C++
+    names: `"h_max<int32_t>"`, `"hns::twice"` (`v37_e`); `ALIAS ""`, `ALIAS "h@l"` "Expected ALIAS
+    name-in-library" (`x48`, `x29`); `ALIAS` with no name "Expected (" (`x47`). The C name is otherwise the
+    declared name **in its own letter case** (`FUNCTION H_L&` calls `H_L`, a C++ error, `x31`). `ALIAS` in a
+    `DECLARE SUB` line is accepted and ignored (`x08`).
+  - **Names**: a library name used again in a second block, or the name of a built-in (`sqr#`), is "Name already
+    in use" (`x40`, `x32`); a library FUNCTION and a program SUB of one name are both accepted (`x22`). A
+    FUNCTION declared with or without `()` and no parameters is called without parentheses only: `f&()` is
+    "Expected (...)" (`x14`, `x54`); a FUNCTION as a statement is "Syntax error" (`x33`), a SUB as a value
+    "Name already in use" (`x34`), assigning to a FUNCTION's name "Incorrect number of arguments passed to
+    function" (`x41`), one in a `CONST` "Unexpected element" (`x50`). `OPTION _EXPLICIT` does not touch them
+    (`x42`). A SUB may be called with `CALL` and with parentheses (`v37_c`, `x43`).
+  - **Finding the library** (Windows): the version after a `.` or `:` is dropped (`"v37_lib/v37h.2"`, `v37_i`). The
+    path is taken from **the old compiler's folder** (`qb64pe` works there), except a path that is exactly `./`,
+    which becomes the source's folder: `"v37c"` beside the program is "LIBRARY not found" (`x18`), `"./v37c"`
+    is found, `"./v37_lib/v37c"` is not (only `./` itself is replaced), `"internal/c/parts/core/core"` finds the
+    old compiler's own `core.a` (`x51`). Not `DYNAMIC`: `<path>name.lib`, `.a`, `.o`, then `name.lib`, `.a`, `.o`
+    (the same without the path); then a header `<path>name.h`, `.hpp`, `name.h`, `.hpp`, and only for a header
+    **the folder of the source (or of the included file) joined with the written path** (`"v37_lib/v37h"`,
+    `"../v37_lib/v37h"` from `v37_inc\`, `v37_i`). `DYNAMIC`: `<path>name.dll`, then System32, then `name.dll`
+    beside the old compiler, the source or the IDE, then System32 (`"kernel32"`, `v37_g`). Nothing found: "LIBRARY
+    not found", "DYNAMIC LIBRARY not found" (`x01`, `x02`, `x52`: `STATIC` of a DLL, `x53`: `DYNAMIC` of a header).
+    An empty name `""` and no name are the same: nothing is linked or included (`x27`, `v37_a`). `DYNAMIC` and
+    `CUSTOMTYPE` need a name ("Expected DECLARE DYNAMIC LIBRARY "..."", `x03`; `CUSTOMTYPE` without one fails in
+    C++, `x04`); a name needs quotes ("Expected LIBRARY "..."", `x05`) and a comma before the next ("Expected ,",
+    `x07`); `DYNAMIC` takes one name ("Cannot specify multiple DYNAMIC LIBRARY names …", `x06`).
+  - **What is written**: a library file is added to the link command by its full path (`CXXLIBS_EXTRA`; a `.o` is
+    linked whole, so two files holding one name are a link error). **A header is `#include`d once for each block
+    that names it**, at the block's place in `regsf.txt` (a header without a guard named twice fails in C++,
+    `x16`). **A header in a block writes no prototypes for the whole block**: the header must declare every name
+    (`x23`: `c_half` of `./v37c` beside `v37h` is undeclared; `x30`). Without a header each declaration writes a
+    prototype from its types (`int32 c_add(int32,int32);`, `void c_inc(int32*);`, `char* c_hello();`; `_UNSIGNED
+    _OFFSET` as `ptrszint`) after `#include "externtypeN.txt"`, which the **`nm` step** fills after the C++ is
+    written: `nm --demangle -g` on the library, a line with ` name(` is C++ (empty file), a line ending in ` name`
+    is C (`extern "C" `); none: "Could not find sub/function 'c_none' in '…v37c.a'" (`x13`, even if never called);
+    two: "Unable to resolve multiple instances …" (read, not measured); both at "LINE 0", not the block's line. **With several names in one block each
+    declaration is looked up in the last library only** (`x24`). `STATIC` only skips `.so`/`.dylib` (Linux,
+    macOS; read, not measured); on Windows it acts as the plain form (`v37_f`).
+  - **`DYNAMIC`** (`v37_g`): `HINSTANCE DLL_<name>` and a `typedef <ret> (CALLBACK* DLLCALL_FUNC_X)(<args>)`
+    pointer per declaration in `regsf.txt`; at the start of the program (`maindata.txt`, also for a block in a
+    SUB) `LoadLibrary("<full path>.dll")` once per library, error 259 if it fails, and `GetProcAddress(…,
+    "<ALIAS or name>")` once per declaration, error 260 if it fails. **Error 260 comes before the first statement,
+    `ON ERROR` cannot catch it**: "Sub/Function does not exist in dynamic library" (`v37_j`).
+  - **`CUSTOMTYPE`** (`v37_h`): `typedef <ret> CUSTOMCALL_FUNC_X(<args>); CUSTOMCALL_FUNC_X *FUNC_X=NULL;` and at
+    the start `FUNC_X=(CUSTOMCALL_FUNC_X*)&<ALIAS or name>;`, so the declared types may differ from the C
+    function's (`addll&&` of `h_add`); without a header the `nm` step writes `extern "C"{ extern void c_add(void);
+    }` into `global.txt` for a C name.
+  - **The call** (`v37_b`, `v37_c`): `(  int32  )h_add( 2 , 3 )`; the arguments are those of a call to a program's
+    SUB: a variable, element or member of the parameter's type by its address (`h_pl(__LONG_X)`, the C function
+    changes it), anything else through a fresh copy (`&(pass2=*__LONG_X)`: in parentheses, an expression, a
+    literal, another type; not written back). A `BYVAL` argument is converted as for any assignment (2.6 to
+    `LONG` is 3, 300 to `_BYTE` 44) but **written as BASIC's own expression with no cast**: with a header,
+    overloads follow the argument's BASIC type (`overd&(1)` calls `h_over(int)`, `overd&(y& + 0.5)` the
+    `double` one, `v37_e`), a `DOUBLE` to `BYVAL LONG` is `qbr(x)` (an `int64`, ambiguous between `int32` and
+    `double`), and a `BYVAL _OFFSET` literal `5` to a `void*` fails in C++ (`x17`). **An argument whose C++ text
+    is exactly `0` is written `NULL`** (`qb64pe.bas` 12307, 21954; a `BYVAL` parameter of any type): `0`, `(0)`, `0&` and a `CONST` 0 reach a `void*` (`v37_c`, `x56`, `x58`, `x59`), `1 - 1` is
+    not written `0` and fails in C++ (`x57`; the C++ text itself was not seen); `NULL` to an overloaded `h_over` takes the `int32_t` one (`x60`), to an
+    `int32_t` it is 0 (`x61`). A 0 by reference is a copy (`h_isnull&(0)` is 0, `v37_c`). A `STRING` is
+    `(char*)(s)->chr`: C sees the string's bytes and changes them in place (a `STRING * n` too; a copy `c$ = b$`
+    is not touched); a variable, literal, concatenation or `LEFT$` result ends in a NUL, a `STRING * n` member
+    does not: `strlen` reads on into the next member (`"abcd"` before a `LONG` 65 is 5, `x66`). A `MID$` result
+    was not measured. A TYPE is `void*` to the value (`v37_e`). Every
+    numeric type passes and returns its own C type (`v37_b`; `_FLOAT` is `long double`).
+  - **The result**: a `STRING` FUNCTION is `char*` copied into a new string (`qbs_new_txt`); `NULL` gives ""
+    (`x39`). A FUNCTION with no parameters is called `h_ticks()`.
 - **`STRING` members, whole values, `TYPE` parameters (`v24_h_string_members`, `v24_h_whole`,
   `v24_h_type_params`, `v24_x206`–`x216`):** a `STRING` member starts empty in a variable, a local (on each
   call), a `STATIC` one (kept), each element of a static and of a dynamic array and in a nested type; it holds

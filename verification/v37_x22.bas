@@ -1,0 +1,8 @@
+$CONSOLE:ONLY
+' DECLARE LIBRARY, one form: a library FUNCTION named as a SUB of the program.
+DECLARE LIBRARY "v37_lib/v37h"
+    FUNCTION h_l& (BYVAL v AS LONG)
+END DECLARE
+SUB h_l
+END SUB
+SYSTEM

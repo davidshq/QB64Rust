@@ -1,0 +1,5 @@
+
+Cannot specify multiple DYNAMIC LIBRARY names in a single DECLARE statement
+Caused by (or after):DECLARE DYNAMIC LIBRARY "./v37dll",8 , "kernel32",8
+LINE 3:DECLARE DYNAMIC LIBRARY "./v37dll", "kernel32"
+exit=1

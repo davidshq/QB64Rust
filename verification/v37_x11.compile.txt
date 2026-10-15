@@ -1,0 +1,5 @@
+
+Arrays cannot be passed to a library
+Caused by (or after):SUB H_PL ( V ( ) AS LONG )
+LINE 4:SUB h_pl (v() AS LONG)
+exit=1

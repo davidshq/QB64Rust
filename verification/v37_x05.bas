@@ -1,0 +1,6 @@
+$CONSOLE:ONLY
+' DECLARE LIBRARY, one form: a name without quotes.
+DECLARE LIBRARY v37h
+    FUNCTION h_l& (BYVAL v AS LONG)
+END DECLARE
+SYSTEM

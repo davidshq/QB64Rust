@@ -1,0 +1,5 @@
+
+Name already in use (DECLARE)
+Caused by (or after):END DECLARE
+LINE 3:END DECLARE
+exit=1

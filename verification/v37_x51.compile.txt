@@ -1,0 +1,5 @@
+
+Could not find sub/function 'nothing_here' in 'internal\c\parts\core\core.a'
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 0:
+exit=1

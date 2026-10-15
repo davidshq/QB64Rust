@@ -1,0 +1,5 @@
+
+LIBRARY not found
+Caused by (or after):DECLARE STATIC LIBRARY "./v37dll",8
+LINE 3:DECLARE STATIC LIBRARY "./v37dll"
+exit=1

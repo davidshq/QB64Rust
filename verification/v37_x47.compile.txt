@@ -1,0 +1,5 @@
+
+Expected (
+Caused by (or after):
+LINE 4:FUNCTION F& ALIAS ( BYVAL V AS LONG )
+exit=1

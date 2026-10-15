@@ -1,0 +1,5 @@
+
+Name already in use (sqr)
+Caused by (or after):
+LINE 4:FUNCTION SQR# ( BYVAL V AS DOUBLE )
+exit=1
