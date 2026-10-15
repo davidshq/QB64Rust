@@ -1,0 +1,24 @@
+strings:[C][D][][]
+strings, two dimensions:
+[11][12]
+[21][22]
+[][]
+STRING * 3: 98  98  99  99  0  0  0  0 
+_UNSIGNED _BIT * 5: 15  18  21  24  27  0  0  0  0  0 
+_BIT:
+-1  0  0  0 
+ 0 -1  0  0 
+-1  0  0  0 
+ 0  0  0  0 
+a user type with strings: 2 [s2] 102  32  3 [s3] 102  32  0 [] 0  0 
+a user type with a member array:
+ 1  101  116  0  0  0 
+ 11  111  116  0  0  0 
+a member array: 5 
+a local array:[x] 3 
+SHARED: 8  22  7  33 
+a parameter: 0  1  2  3  0  0 
+a static array: [error 10 ] 5  3 
+conventional memory:-1  22  33  44  0  0 
+a _MEM block:-1  0 
+done

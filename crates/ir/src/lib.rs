@@ -429,7 +429,10 @@ pub enum Op {
     ///    of memory"; no handler runs);
     /// 6. the array has the new bounds. Its elements are new; with [`AllocMode::Preserve`] the first elements by
     ///    flat position (first dimension fastest) keep their values, as many as the smaller of the old and the
-    ///    new number of elements.
+    ///    new number of elements; with [`AllocMode::Retain`] each element whose indexes lie within both the old
+    ///    and the new bounds of every dimension keeps its value at the same indexes. "Old" is the array as it is
+    ///    after step 3: a FUNCTION in a bound may have given it other bounds or erased it (`DIVERGENCES.md`
+    ///    D-018; the old compiler takes it before step 3 and frees a block twice).
     ///
     /// The array may be static or dynamic. Always may raise.
     Allocate {

@@ -735,6 +735,27 @@ fn smallest_integer_divided_by_minus_one() {
     );
 }
 
+/// A FUNCTION in a bound of a `REDIM` that gives the same array new bounds or erases it (`DIVERGENCES.md` D-018:
+/// the old compiler takes the old block before the bounds and frees it twice, ending the program with no output,
+/// `verification\v34_d`). Here the old block is taken after the bounds: plain `REDIM` gives new elements,
+/// `_PRESERVE` keeps the FUNCTION's elements by flat position and `_RETAIN` by their indexes.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn redim_with_a_bound_that_redims() {
+    let d = scratch("redim-bound");
+    let program = "$CONSOLE:ONLY\nREDIM SHARED z(1 TO 3) AS LONG\n\
+                   z(3) = 3: REDIM z(2 TO shrinkz) AS LONG: PRINT LBOUND(z); UBOUND(z); z(2); z(3)\n\
+                   z(3) = 3: REDIM _PRESERVE z(2 TO shrinkz) AS LONG: PRINT z(2); z(3)\n\
+                   z(3) = 3: REDIM _RETAIN z(2 TO shrinkz) AS LONG: PRINT z(2); z(3)\n\
+                   z(3) = 3: REDIM _RETAIN z(2 TO erasez) AS LONG: PRINT LBOUND(z); UBOUND(z); z(2); z(3)\n\
+                   SYSTEM\nFUNCTION shrinkz\nREDIM z(1 TO 2) AS LONG\nz(2) = 20\nshrinkz = 3\nEND FUNCTION\n\
+                   FUNCTION erasez\nERASE z\nerasez = 3\nEND FUNCTION\n";
+    assert_eq!(
+        build_and_run(&d, program),
+        " 2  3  0  0 \n 0  20 \n 20  0 \n 2  3  0  0 \n"
+    );
+}
+
 /// An integer power beyond `_INTEGER64` in a `CONST` is a DOUBLE (`DIVERGENCES.md` D-007: the old evaluator wraps it
 /// to -9223372036854775808).
 #[test]

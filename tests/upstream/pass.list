@@ -49,11 +49,14 @@ arrays/33_redim_preserve_2d_long
 arrays/34_redim_preserve_instance_isolation
 arrays/35_redim_preserve_deep_nested
 arrays/36_redim_preserve_packed_bit_shrink_grow
+arrays/37_redim_retain_packed_bit_2d
 arrays/41_err_undefined_array
 arrays/44_err_solved_bug_Incorrect_nr_of_args
 arrays/46_Mem_Parent
 arrays/47_zero_fill_fixed_strings_erase_redim
+arrays/Retain_Preserve
 arrays/array_arg_dimensions_transitive
+arrays/array_elements_change
 arrays/comma_array_parameter
 arrays/datatype_coverage_strings_and_sizes
 arrays/erase_dynamic_string_array_reuse
@@ -64,6 +67,7 @@ arrays/nested_udt_array_of_udt_with_array
 arrays/nonzero_bounds_negative
 arrays/nonzero_bounds_positive
 arrays/put_get_write_read_fixed_string
+arrays/retain_test
 arrays/t045_function_scalar_array
 arrays/t046_sub_scalar_array
 arrays/t659_array_assignment_control
@@ -71,6 +75,9 @@ arrays/t659_explicit_call_control
 arrays/t659_sub_call_comparisons
 arrays/t659_variable_boolean_expr
 arrays/t_qb64pe_refactor_preserve_inline_varstrings
+arrays/t_qb64pe_refactor_raw_redim_preserve
+arrays/t_qb64pe_refactor_retain_coordinate_payloads
+arrays/t_qb64pe_refactor_retain_nested_owner_array
 arrays/whole_member_array_ops_nonzero_bounds
 audio_out/test
 auto_include/debug

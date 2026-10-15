@@ -211,8 +211,6 @@ error(10);
 #line 13 "bit_arrays_cpp.bas"
 }else{
 #line 13 "bit_arrays_cpp.bas"
-((mem_lock*)((ptrszint*)__ARRAY_BIT5_DY)[8])->id=(++mem_lock_id);
-#line 13 "bit_arrays_cpp.bas"
 ptrszint preserve_old_ptr=0;
 #line 13 "bit_arrays_cpp.bas"
 uint64 preserve_old_total=0;
@@ -220,14 +218,6 @@ uint64 preserve_old_total=0;
 uint64 preserve_copy_count=0;
 #line 13 "bit_arrays_cpp.bas"
 ptrszint preserve_new_ptr;
-#line 13 "bit_arrays_cpp.bas"
-if (__ARRAY_BIT5_DY[2]&1){
-#line 13 "bit_arrays_cpp.bas"
-preserve_old_ptr=__ARRAY_BIT5_DY[0];
-#line 13 "bit_arrays_cpp.bas"
-preserve_old_total=__ARRAY_BIT5_DY[5];
-#line 13 "bit_arrays_cpp.bas"
-}
 #line 13 "bit_arrays_cpp.bas"
 int64 alloc_new_desc[8];
 #line 13 "bit_arrays_cpp.bas"
@@ -246,6 +236,16 @@ alloc_new_desc[5]=(qbr((*__SINGLE_N+((float)(1)))))-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 13 "bit_arrays_cpp.bas"
 alloc_new_desc[6]=1;
+#line 13 "bit_arrays_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_BIT5_DY)[8])->id=(++mem_lock_id);
+#line 13 "bit_arrays_cpp.bas"
+if (__ARRAY_BIT5_DY[2]&1){
+#line 13 "bit_arrays_cpp.bas"
+preserve_old_ptr=__ARRAY_BIT5_DY[0];
+#line 13 "bit_arrays_cpp.bas"
+preserve_old_total=__ARRAY_BIT5_DY[5];
+#line 13 "bit_arrays_cpp.bas"
+}
 #line 13 "bit_arrays_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 #line 13 "bit_arrays_cpp.bas"

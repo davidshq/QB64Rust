@@ -281,8 +281,6 @@ error(10);
 #line 17 "conventional_memory_cpp.bas"
 }else{
 #line 17 "conventional_memory_cpp.bas"
-((mem_lock*)((ptrszint*)__ARRAY_LONG_DY)[8])->id=(++mem_lock_id);
-#line 17 "conventional_memory_cpp.bas"
 ptrszint preserve_old_ptr=0;
 #line 17 "conventional_memory_cpp.bas"
 uint64 preserve_old_total=0;
@@ -290,14 +288,6 @@ uint64 preserve_old_total=0;
 uint64 preserve_copy_count=0;
 #line 17 "conventional_memory_cpp.bas"
 ptrszint preserve_new_ptr;
-#line 17 "conventional_memory_cpp.bas"
-if (__ARRAY_LONG_DY[2]&1){
-#line 17 "conventional_memory_cpp.bas"
-preserve_old_ptr=__ARRAY_LONG_DY[0];
-#line 17 "conventional_memory_cpp.bas"
-preserve_old_total=__ARRAY_LONG_DY[5];
-#line 17 "conventional_memory_cpp.bas"
-}
 #line 17 "conventional_memory_cpp.bas"
 int64 alloc_new_desc[8];
 #line 17 "conventional_memory_cpp.bas"
@@ -316,6 +306,16 @@ alloc_new_desc[5]=(4ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 17 "conventional_memory_cpp.bas"
 alloc_new_desc[6]=1;
+#line 17 "conventional_memory_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_LONG_DY)[8])->id=(++mem_lock_id);
+#line 17 "conventional_memory_cpp.bas"
+if (__ARRAY_LONG_DY[2]&1){
+#line 17 "conventional_memory_cpp.bas"
+preserve_old_ptr=__ARRAY_LONG_DY[0];
+#line 17 "conventional_memory_cpp.bas"
+preserve_old_total=__ARRAY_LONG_DY[5];
+#line 17 "conventional_memory_cpp.bas"
+}
 #line 17 "conventional_memory_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 #line 17 "conventional_memory_cpp.bas"

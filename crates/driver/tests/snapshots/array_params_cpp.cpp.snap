@@ -110,8 +110,6 @@ error(10);
 #line 9 "array_params_cpp.bas"
 }else{
 #line 9 "array_params_cpp.bas"
-((mem_lock*)((ptrszint*)__ARRAY_LONG_D)[8])->id=(++mem_lock_id);
-#line 9 "array_params_cpp.bas"
 ptrszint preserve_old_ptr=0;
 #line 9 "array_params_cpp.bas"
 uint64 preserve_old_total=0;
@@ -119,14 +117,6 @@ uint64 preserve_old_total=0;
 uint64 preserve_copy_count=0;
 #line 9 "array_params_cpp.bas"
 ptrszint preserve_new_ptr;
-#line 9 "array_params_cpp.bas"
-if (__ARRAY_LONG_D[2]&1){
-#line 9 "array_params_cpp.bas"
-preserve_old_ptr=__ARRAY_LONG_D[0];
-#line 9 "array_params_cpp.bas"
-preserve_old_total=__ARRAY_LONG_D[5];
-#line 9 "array_params_cpp.bas"
-}
 #line 9 "array_params_cpp.bas"
 int64 alloc_new_desc[8];
 #line 9 "array_params_cpp.bas"
@@ -145,6 +135,16 @@ alloc_new_desc[5]=(2ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 9 "array_params_cpp.bas"
 alloc_new_desc[6]=1;
+#line 9 "array_params_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_LONG_D)[8])->id=(++mem_lock_id);
+#line 9 "array_params_cpp.bas"
+if (__ARRAY_LONG_D[2]&1){
+#line 9 "array_params_cpp.bas"
+preserve_old_ptr=__ARRAY_LONG_D[0];
+#line 9 "array_params_cpp.bas"
+preserve_old_total=__ARRAY_LONG_D[5];
+#line 9 "array_params_cpp.bas"
+}
 #line 9 "array_params_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 #line 9 "array_params_cpp.bas"
@@ -296,8 +296,6 @@ error(10);
 #line 14 "array_params_cpp.bas"
 }else{
 #line 14 "array_params_cpp.bas"
-((mem_lock*)((ptrszint*)_SUB_GROW_ARRAY_LONG_A)[8])->id=(++mem_lock_id);
-#line 14 "array_params_cpp.bas"
 ptrszint preserve_old_ptr=0;
 #line 14 "array_params_cpp.bas"
 uint64 preserve_old_total=0;
@@ -305,14 +303,6 @@ uint64 preserve_old_total=0;
 uint64 preserve_copy_count=0;
 #line 14 "array_params_cpp.bas"
 ptrszint preserve_new_ptr;
-#line 14 "array_params_cpp.bas"
-if (_SUB_GROW_ARRAY_LONG_A[2]&1){
-#line 14 "array_params_cpp.bas"
-preserve_old_ptr=_SUB_GROW_ARRAY_LONG_A[0];
-#line 14 "array_params_cpp.bas"
-preserve_old_total=_SUB_GROW_ARRAY_LONG_A[5];
-#line 14 "array_params_cpp.bas"
-}
 #line 14 "array_params_cpp.bas"
 int64 alloc_new_desc[8];
 #line 14 "array_params_cpp.bas"
@@ -331,6 +321,16 @@ alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 14 "array_params_cpp.bas"
 alloc_new_desc[6]=1;
+#line 14 "array_params_cpp.bas"
+((mem_lock*)((ptrszint*)_SUB_GROW_ARRAY_LONG_A)[8])->id=(++mem_lock_id);
+#line 14 "array_params_cpp.bas"
+if (_SUB_GROW_ARRAY_LONG_A[2]&1){
+#line 14 "array_params_cpp.bas"
+preserve_old_ptr=_SUB_GROW_ARRAY_LONG_A[0];
+#line 14 "array_params_cpp.bas"
+preserve_old_total=_SUB_GROW_ARRAY_LONG_A[5];
+#line 14 "array_params_cpp.bas"
+}
 #line 14 "array_params_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 #line 14 "array_params_cpp.bas"

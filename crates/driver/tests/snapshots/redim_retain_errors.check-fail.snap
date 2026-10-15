@@ -1,0 +1,12 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+redim_retain_errors.bas:9:14: error: `_RETAIN` comes before `SHARED` in a `REDIM`
+redim_retain_errors.bas:10:14: error: `_PRESERVE` comes before `SHARED` in a `REDIM`
+redim_retain_errors.bas:11:17: error: a `REDIM` takes one of `_PRESERVE` and `_RETAIN`
+redim_retain_errors.bas:12:15: error: a `REDIM` takes one of `_PRESERVE` and `_RETAIN`
+redim_retain_errors.bas:13:15: error: `_RETAIN` stands twice in a `REDIM`
+redim_retain_errors.bas:14:17: error: `_PRESERVE` stands twice in a `REDIM`
+redim_retain_errors.bas:15:14: error: `SHARED` stands twice in a `REDIM`
+redim_retain_errors.bas:19:5: error: `REDIM SHARED` cannot stand inside a SUB or FUNCTION

@@ -3,7 +3,8 @@
 //! The descriptor is libqb's (`study\02` §3.4; made in [`crate::decl`]). The allocation follows the old compiler's
 //! sequence (`allocarray`, `qb64pe.bas` 15193–15531), whose order of checks and errors is measured (`study\00` §5):
 //! the new bounds are built in a descriptor of their own, the new block is made, the old one is released after
-//! it, and the array's descriptor is written last. The working variables are locals of the statement's block,
+//! it, and the array's descriptor is written last. One difference: a `REDIM` takes the old block after the bounds,
+//! not before them (`DIVERGENCES.md` D-018). The working variables are locals of the statement's block,
 //! where the old compiler has `static` ones: a FUNCTION called in a bound may run the same statement again.
 
 use crate::Emitter;
@@ -14,6 +15,43 @@ use qb64rust_ir::{AllocMode, Expr, Facts, Ty, Var, VarId};
 /// The lines of a text, each a line of a statement.
 fn push_lines(out: &mut Vec<String>, text: &str) {
     out.extend(text.lines().map(str::to_string));
+}
+
+/// The copy of `REDIM _RETAIN` (design D3 of `m3-redim-retain`), the old compiler's `AppendRetainCoordinateWalk`
+/// (`qb64pe.bas` 14782–14812): an odometer over the indexes of the overlap, the first dimension fastest, with the
+/// offsets of the element in the old block (`preserve_old_off`) and the new one (`preserve_new_off`); `payload`
+/// copies one element.
+fn retain_walk(out: &mut Vec<String>, dims: usize, payload: &[String]) {
+    out.push("if (preserve_any){".into());
+    for w in 0..dims {
+        out.push(format!("preserve_idx[{w}]=preserve_lo[{w}];"));
+    }
+    out.push("for(;;){".into());
+    let s = dim_slot(dims, 0);
+    out.push(format!("preserve_old_off=preserve_idx[0]-preserve_old_desc[{s}];"));
+    out.push(format!("preserve_new_off=preserve_idx[0]-alloc_new_desc[{s}];"));
+    for w in 1..dims {
+        let s = dim_slot(dims, w);
+        out.push(format!(
+            "preserve_old_off+=(preserve_idx[{w}]-preserve_old_desc[{s}])*preserve_old_desc[{}];",
+            s + 2
+        ));
+        out.push(format!(
+            "preserve_new_off+=(preserve_idx[{w}]-alloc_new_desc[{s}])*alloc_new_desc[{}];",
+            s + 2
+        ));
+    }
+    out.extend(payload.iter().cloned());
+    out.push("preserve_dim=0;".into());
+    out.push(format!("while (preserve_dim<{dims}){{"));
+    out.push("preserve_idx[preserve_dim]++;".into());
+    out.push("if (preserve_idx[preserve_dim]<=preserve_hi[preserve_dim]) break;".into());
+    out.push("preserve_idx[preserve_dim]=preserve_lo[preserve_dim];".into());
+    out.push("preserve_dim++;".into());
+    out.push("}".into());
+    out.push(format!("if (preserve_dim=={dims}) break;"));
+    out.push("}".into());
+    out.push("}".into());
 }
 
 impl Emitter<'_> {
@@ -65,28 +103,27 @@ impl Emitter<'_> {
             Some(width) => format!("{width}/8+1"),
             None => self.ty_size(v.ty).to_string(),
         };
-        let redim = match mode {
-            AllocMode::Dim => false,
-            AllocMode::Redim | AllocMode::Preserve => true,
-        };
+        let redim = mode != AllocMode::Dim;
+        let retain = mode == AllocMode::Retain;
         // A static array: error 10, and nothing else.
         out.push(format!("if ({n}[2]&2){{"));
         out.push("error(10);".into());
         out.push("}else{".into());
         if redim {
-            // The old block is kept until the new one exists; `_MEM` blocks over it become invalid.
-            out.push(format!(
-                "((mem_lock*)((ptrszint*){n})[{}])->id=(++mem_lock_id);",
-                lock_slot(dims)
-            ));
             out.push("ptrszint preserve_old_ptr=0;".into());
             out.push("uint64 preserve_old_total=0;".into());
             out.push("uint64 preserve_copy_count=0;".into());
             out.push("ptrszint preserve_new_ptr;".into());
-            out.push(format!("if ({n}[2]&1){{"));
-            out.push(format!("preserve_old_ptr={n}[0];"));
-            out.push(format!("preserve_old_total={};", self.element_count(v, n)));
-            out.push("}".into());
+            if retain {
+                out.push("int32 preserve_any=0;".into());
+                out.push(format!("int64 preserve_old_desc[{}];", lock_slot(dims)));
+                out.push(format!("int64 preserve_lo[{dims}];"));
+                out.push(format!("int64 preserve_hi[{dims}];"));
+                out.push(format!("int64 preserve_idx[{dims}];"));
+                out.push("int64 preserve_old_off;".into());
+                out.push("int64 preserve_new_off;".into());
+                out.push("ptrszint preserve_dim;".into());
+            }
         } else {
             // `DIM` of an array that is allocated: error 10, and nothing else.
             out.push(format!("if ({n}[2]&1){{"));
@@ -117,6 +154,25 @@ impl Emitter<'_> {
                 ));
             }
         }
+        if redim {
+            // The old block (and with `_RETAIN` its bounds) is taken after the bounds, where the old compiler takes
+            // it before them: a FUNCTION in a bound may give the array new bounds or erase it, and the old
+            // compiler then frees a block twice (`DIVERGENCES.md` D-018). It is kept until the new one exists;
+            // `_MEM` blocks over it become invalid.
+            out.push(format!(
+                "((mem_lock*)((ptrszint*){n})[{}])->id=(++mem_lock_id);",
+                lock_slot(dims)
+            ));
+            out.push(format!("if ({n}[2]&1){{"));
+            out.push(format!("preserve_old_ptr={n}[0];"));
+            out.push(format!("preserve_old_total={};", self.element_count(v, n)));
+            if retain {
+                for i in 4..lock_slot(dims) {
+                    out.push(format!("preserve_old_desc[{i}]={n}[{i}];"));
+                }
+            }
+            out.push("}".into());
+        }
         // What the machine cannot hold is error 257, which ends the program: a negative number of elements, a
         // bound or a number that does not fit a pointer, a product or a size in bytes that overflows.
         for a in (1..=dims).map(|i| 4 * i) {
@@ -141,7 +197,29 @@ impl Emitter<'_> {
         if redim {
             out.push("preserve_copy_count=preserve_old_total;".into());
             out.push("if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;".into());
-            // An allocated array: the new block, the kept elements by flat position, then the old block goes.
+            if retain {
+                // Per dimension, the overlap of the old and the new range (walk index 0: the first dimension).
+                out.push("preserve_any=(preserve_old_total!=0);".into());
+                for w in 0..dims {
+                    let s = dim_slot(dims, w);
+                    out.push(format!("preserve_lo[{w}]=alloc_new_desc[{s}];"));
+                    out.push(format!(
+                        "if (preserve_old_desc[{s}]>preserve_lo[{w}]) preserve_lo[{w}]=preserve_old_desc[{s}];"
+                    ));
+                    out.push(format!(
+                        "preserve_hi[{w}]=alloc_new_desc[{s}]+(alloc_new_desc[{}]-1);",
+                        s + 1
+                    ));
+                    out.push(format!(
+                        "if ((preserve_old_desc[{s}]+(preserve_old_desc[{}]-1))<preserve_hi[{w}]) preserve_hi[{w}]=preserve_old_desc[{s}]+(preserve_old_desc[{}]-1);",
+                        s + 1,
+                        s + 1
+                    ));
+                    out.push(format!("if (preserve_hi[{w}]<preserve_lo[{w}]) preserve_any=0;"));
+                }
+            }
+            // An allocated array: the new block, the kept elements (by flat position, or by their indexes with
+            // `_RETAIN`), then the old block goes.
             out.push("if (preserve_old_total){".into());
             if string {
                 out.push("preserve_new_ptr=(ptrszint)malloc((size_t)alloc_req_bytes);".into());
@@ -153,7 +231,13 @@ impl Emitter<'_> {
             if string {
                 out.push("tmp_long=(ptrszint)alloc_req_elems;".into());
                 out.push("while(tmp_long--) ((qbs**)(preserve_new_ptr))[tmp_long]=qbs_new(0,0);".into());
-                if keep {
+                if retain {
+                    retain_walk(
+                        out,
+                        dims,
+                        &["qbs_set(((qbs**)(preserve_new_ptr))[preserve_new_off],((qbs**)(preserve_old_ptr))[preserve_old_off]);".into()],
+                    );
+                } else if keep {
                     out.push("tmp_long=preserve_copy_count;".into());
                     out.push(
                         "while(tmp_long--) qbs_set(((qbs**)(preserve_new_ptr))[tmp_long],((qbs**)(preserve_old_ptr))[tmp_long]);"
@@ -162,6 +246,15 @@ impl Emitter<'_> {
                 }
                 out.push("tmp_long=preserve_old_total;".into());
                 out.push("while(tmp_long--) qbs_free(((qbs**)(preserve_old_ptr))[tmp_long]);".into());
+            } else if let (true, Some(width)) = (retain, bits) {
+                // The offsets of a `_BIT` element count elements, as in the old compiler.
+                retain_walk(
+                    out,
+                    dims,
+                    &[format!(
+                        "setbits({width},(uint8*)(preserve_new_ptr),preserve_new_off,(int64)getubits({width},(uint8*)(preserve_old_ptr),preserve_old_off));"
+                    )],
+                );
             } else if let (true, Some(width)) = (keep, bits) {
                 // Packed elements share bytes: the kept ones are copied one by one.
                 out.push("tmp_long=(ptrszint)preserve_copy_count;".into());
@@ -176,16 +269,25 @@ impl Emitter<'_> {
                     out,
                     &self.each_element(v.ty, new, "(ptrszint)alloc_req_elems", |at| self.new_strings(v.ty, at)),
                 );
-                if keep {
+                let copy = |new_at: &str, old_at: &str| -> Vec<String> {
+                    let at = |block: &str, i: &str, offset| format!("((char*)({block})+{i}*{size}+{offset})");
+                    self.parts(v.ty)
+                        .into_iter()
+                        .map(|(offset, part)| {
+                            let (to, from) = (at(new, new_at, offset), at(old, old_at, offset));
+                            match part {
+                                Part::Str => format!("qbs_set(*(qbs**){to},*(qbs**){from});"),
+                                Part::Bytes(n) => format!("memcpy({to},{from},{n});"),
+                            }
+                        })
+                        .collect()
+                };
+                if retain {
+                    retain_walk(out, dims, &copy("preserve_new_off", "preserve_old_off"));
+                } else if keep {
                     out.push("tmp_long=(ptrszint)preserve_copy_count;".into());
                     out.push("while(tmp_long--){".into());
-                    for (offset, part) in self.parts(v.ty) {
-                        let at = |block: &str| format!("((char*)({block})+tmp_long*{size}+{offset})");
-                        out.push(match part {
-                            Part::Str => format!("qbs_set(*(qbs**){},*(qbs**){});", at(new), at(old)),
-                            Part::Bytes(n) => format!("memcpy({},{},{n});", at(new), at(old)),
-                        });
-                    }
+                    out.extend(copy("tmp_long", "tmp_long"));
                     out.push("}".into());
                 }
                 push_lines(
@@ -193,6 +295,14 @@ impl Emitter<'_> {
                     &self.each_element(v.ty, old, "(ptrszint)preserve_old_total", |at| {
                         self.free_strings(v.ty, at)
                     }),
+                );
+            } else if retain {
+                retain_walk(
+                    out,
+                    dims,
+                    &[format!(
+                        "memcpy(((uint8*)(preserve_new_ptr))+preserve_new_off*{size},((uint8*)(preserve_old_ptr))+preserve_old_off*{size},{size});"
+                    )],
                 );
             } else if keep {
                 out.push(format!(

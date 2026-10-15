@@ -447,3 +447,5 @@ slice/s109_data_processing
 # m3-asserts-debug-zlib group 4: END and SYSTEM with an exit code
 slice/s110_system_code
 slice/s111_end_code
+slice/s112_redim_retain
+slice/s113_redim_retain_kinds

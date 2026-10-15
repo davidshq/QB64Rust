@@ -1302,6 +1302,11 @@ impl<'a> TypeField<'a> {
     pub fn as_clause(self) -> Option<AsClause<'a>> {
         child(self.0, AsClause::cast)
     }
+
+    /// `_DYNAMIC` or `_STATIC` before the name (`_DYNAMIC v(1 TO 3) AS LONG`), outside every [`FieldName`].
+    pub fn modifier(self) -> Option<Tok> {
+        words(self.0).next()
+    }
 }
 
 impl<'a> FieldName<'a> {

@@ -215,18 +215,20 @@ What the compiler supports so far:
   declaration of it in the file** (`declare_array`, `sema\src\check\places.rs`): static when that is a `DIM`
   whose bounds are all constant *by their spelling* (one number, a minus before it included, or one `CONST`
   name, in parentheses or not) and `$DYNAMIC` is not in effect; dynamic otherwise, so also `DIM a(2 + 3)`. A
-  static array's `DIM` is no statement. Every other `DIM`, `REDIM` and `REDIM _PRESERVE` is an `Allocate` (its
+  static array's `DIM` is no statement. Every other `DIM`, `REDIM`, `REDIM _PRESERVE` and `REDIM _RETAIN` is an `Allocate` (its
   mode, and a lower and an upper bound per dimension as `_INTEGER64` values), `ERASE` a `Clear` of a static
   array or a `Release` of a dynamic one: the same three in the typed tree and the IR, which names no
   descriptor and no size (`ir\src\lib.rs` states the order of an allocation's checks and errors;
   `ir\src\validate.rs` checks array kind, number of bounds and their type). `REDIM` without a type keeps the
-  type of an array declared with `AS`; `REDIM [_PRESERVE] SHARED`; `DIM a()`, `REDIM a()` and `REDIM a AS
+  type of an array declared with `AS`; `REDIM [_PRESERVE | _RETAIN] SHARED` (any other order of the words an error); `DIM a()`, `REDIM a()` and `REDIM a AS
   type` declare a scalar, as in QB64pe; a `REDIM` or `ERASE` in a procedure reaches a `DIM SHARED` array. The
   emitter (`codegen-cpp\src\arrays.rs`, `decl.rs`) makes a dynamic array's descriptor "not allocated" (every
   use raises error 9) and writes the allocation after the old compiler's sequence: error 10 for a static array
   and, in a `DIM`, for an allocated one; the new bounds in a descriptor of their own; error 5 for a dimension
   without an element, without leaving; error 257 ("Out of memory", which ends the program) for what cannot be
-  held; the new block made before the old one is released; `_PRESERVE` copying by flat position. `_BIT`
+  held; the new block made before the old one is released; `_PRESERVE` copying by flat position, `_RETAIN`
+  (`m3-redim-retain`) by the indexes: the old compiler's walk over the overlap of each dimension, with the old
+  descriptor kept where the old block is captured. `_BIT`
   arrays, static and dynamic, are packed storage read with `getbits` and stored with `setbits`. A dynamic
   array of the main module is not released when the program ends;
 - group 5 of the same change, arrays used without `DIM` (`implicit_array`, `sema\src\check\places.rs`):
@@ -286,7 +288,7 @@ What the compiler supports so far:
   elements lie in the value (in C++ from the member's offset, first dimension fastest), so `LEN`, a new
   variable, a local on each call and a whole-value copy take them along; nothing allocates or releases them.
   `REDIM` with the declared bounds and `ERASE` are a `Clear` (not guarded, as QB64pe: an index outside on the
-  way raises 9 and element 0's member array is cleared), `REDIM _PRESERVE` is nothing; other bounds are an
+  way raises 9 and element 0's member array is cleared), `REDIM _PRESERVE` and `REDIM _RETAIN` are nothing; other bounds are an
   error. `LBOUND`, `UBOUND` and `LEN` do not evaluate the indexes of the place. A whole member array (`fill
   t.v()`) is passed as a static array over its bytes (a descriptor made for the call). **A store through a
   member with an index on the way** (`a(i).m`, `t.v(i)`) evaluates a number before the indexes and a string
@@ -650,7 +652,7 @@ are line numbers and jumps to them (also as `ON … GOTO` and `RESTORE` targets)
 `READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array, `READ`, `INPUT`, `INPUT #` or the `MID$` statement
 with a member of an element or an element of a member array, every other
 built-in statement read by its template (`TIME$ =`, ...), the declaration
-forms (`REDIM _RETAIN`, arrays named `name$n`,
+forms (arrays named `name$n`,
 `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
 constants of QB64pe's auto-included file that are not computed yet and the names of its other auto-included
 files; of arrays and `TYPE`:

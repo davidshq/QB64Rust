@@ -568,6 +568,16 @@ pub enum AllocMode {
     /// `REDIM _PRESERVE`: new bounds; the elements keep their values by flat position, as many as the smaller of
     /// the old and the new number of elements.
     Preserve,
+    /// `REDIM _RETAIN`: new bounds; the elements whose indexes lie within both the old and the new bounds of every
+    /// dimension keep their values at the same indexes (design D1 of `m3-redim-retain`).
+    Retain,
+}
+
+impl AllocMode {
+    /// The mode keeps some of the elements of an allocated array: `_PRESERVE` or `_RETAIN`.
+    pub fn keeps_elements(self) -> bool {
+        matches!(self, AllocMode::Preserve | AllocMode::Retain)
+    }
 }
 
 /// A variable: a name plus a type (design D5), and its storage. An array is a variable with a shape other than

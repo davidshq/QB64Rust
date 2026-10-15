@@ -5,7 +5,7 @@ use super::proc::{FIXED_LEN_ERROR, fixed_len, fixed_name, suffix_fits};
 use super::{Checker, Failed, R, Scope};
 use crate::consteval::Value;
 use crate::literal::{self, NumLit};
-use crate::{ArrayRef, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId};
+use crate::{AllocMode, ArrayRef, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId};
 use qb64rust_base::{show_bytes, to_u32};
 use qb64rust_builtins::{Kind, auto_constant, find_any, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
@@ -20,9 +20,9 @@ pub(super) enum Declarer {
     Static,
     /// `COMMON`: a `DIM` whose arrays are only listed (`COMMON a()`).
     Common,
-    /// `REDIM`, or with `preserve` `REDIM _PRESERVE`.
+    /// `REDIM`: `mode` is [`AllocMode::Redim`], [`AllocMode::Preserve`] or [`AllocMode::Retain`].
     Redim {
-        preserve: bool,
+        mode: AllocMode,
     },
 }
 
@@ -536,8 +536,8 @@ impl Checker<'_> {
         let alone = items.len() == 1;
         for item in items {
             // `REDIM t.v(0 TO 3)`, `REDIM a(1).m(0 TO 5)`: a member array.
-            if let Declarer::Redim { preserve } = by
-                && self.redim_member(item, preserve, (list_ty.is_some(), alone), stmt)?
+            if let Declarer::Redim { mode } = by
+                && self.redim_member(item, mode.keeps_elements(), (list_ty.is_some(), alone), stmt)?
             {
                 continue;
             }
@@ -723,25 +723,36 @@ impl Checker<'_> {
         )
     }
 
-    /// `REDIM [_PRESERVE] [SHARED] name(bounds) [AS type], …` (design D3, D4 of `m2-defxxx-common-arrays`): each
-    /// name is a dynamic array, declared here when no array of the name and type is visible, and given new bounds
-    /// and new elements when the statement runs. Measured (`verification\v24_c_redim*`, `v24_x39`–`x56`): the
-    /// words come in this order; `REDIM SHARED _PRESERVE` is "Invalid variable name".
+    /// `REDIM [_PRESERVE | _RETAIN] [SHARED] name(bounds) [AS type], …` (design D3, D4 of `m2-defxxx-common-arrays`,
+    /// D2 of `m3-redim-retain`): each name is a dynamic array, declared here when no array of the name and type is
+    /// visible, and given new bounds and new elements when the statement runs. Measured
+    /// (`verification\v24_c_redim*`, `v24_x39`–`x56`, `v34_x01`–`x23`): the words come in this order, one of
+    /// `_PRESERVE` and `_RETAIN`; every other order is "Invalid variable name" in the old compiler, an error at
+    /// the second word here.
     pub(super) fn redim(&mut self, stmt: ast::RedimStmt) -> R<()> {
         let node = stmt.node();
         let words: Vec<Tok> = stmt.words().collect();
         let texts: Vec<String> = words.iter().map(|&t| self.word(t)).collect();
         let texts: Vec<&str> = texts.iter().map(String::as_str).collect();
-        let (preserve, shared) = match texts[..] {
-            [] => (false, false),
-            ["_PRESERVE"] => (true, false),
-            ["SHARED"] => (false, true),
-            ["_PRESERVE", "SHARED"] => (true, true),
-            ["SHARED", "_PRESERVE"] => {
-                return Err(self.error(words[1].span, "`_PRESERVE` comes before `SHARED` in a `REDIM`"));
+        let mode_of = |w: &str| match w {
+            "_PRESERVE" => Some(AllocMode::Preserve),
+            "_RETAIN" => Some(AllocMode::Retain),
+            _ => None,
+        };
+        let (mode, shared) = match texts[..] {
+            [] => (AllocMode::Redim, false),
+            ["SHARED"] => (AllocMode::Redim, true),
+            [w] => (mode_of(w).expect("the parser takes only these words"), false),
+            [w, "SHARED"] if mode_of(w).is_some() => (mode_of(w).expect("checked"), true),
+            ["SHARED", w] if mode_of(w).is_some() => {
+                return Err(self.error(words[1].span, format!("`{w}` comes before `SHARED` in a `REDIM`")));
             }
-            // `_RETAIN`, alone or with the other words.
-            _ => return Err(self.unsupported(words[0].span, format!("`REDIM {}`", texts.join(" ")))),
+            [a, b] if a == b => {
+                return Err(self.error(words[1].span, format!("`{b}` stands twice in a `REDIM`")));
+            }
+            _ => {
+                return Err(self.error(words[1].span, "a `REDIM` takes one of `_PRESERVE` and `_RETAIN`"));
+            }
         };
         let storage = match (self.cur, shared) {
             (None, _) => Storage::Main,
@@ -751,7 +762,7 @@ impl Checker<'_> {
             }
             (Some(p), false) => self.local_storage(p),
         };
-        let by = Declarer::Redim { preserve };
+        let by = Declarer::Redim { mode };
         self.declare_items(stmt.items(), stmt.as_clause(), storage, shared, by, node)
     }
 

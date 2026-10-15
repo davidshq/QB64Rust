@@ -38,6 +38,8 @@ Motivation, scope and what was measured: `proposal.md`. Where `REDIM` stands in 
 
 - `$UNSTABLE:TYPEFIELDS` arrays (descriptor-layout user types, the `preserve_old_flags&8` paths): the next change.
 - Matching the old compiler's crash when a FUNCTION in a bound gives the same array new bounds (`v34_d`).
+  **Revised while closing (user, 2026-10-14)**: the crash is fixed for all three modes, `DIVERGENCES.md` D-018
+  (see "As built" below).
 
 ## Decisions
 
@@ -109,10 +111,22 @@ bounds before the copy (`v34_d`), and the old compiler's order is the one measur
 - [`v34_d`: a FUNCTION in a bound that gives the same array new bounds] → the old compiler's program ends with
   exit 127; this compiler's reads the block captured before the bounds, as its `_PRESERVE` does, and may end
   the same way or not. Not on any test list; listed in `SOMEDAY.md` ("QB64pe behaviours to review") with the
-  `_PRESERVE` case, which has the same order.
+  `_PRESERVE` case, which has the same order. **Superseded**: fixed as `DIVERGENCES.md` D-018 ("As built").
 - [The 21 `TYPEFIELDS` programs with `_RETAIN` stay deferred] → they need descriptor-layout user types, the next
   change; this one writes nothing for them that it would have to undo.
 
 ## Open Questions
 
 None.
+
+## As built
+
+- **D-018** (user, 2026-10-14, option 1 of two): measured while closing, a plain `REDIM` with a FUNCTION in a
+  bound that gives the same array new bounds crashes the old compiler's program as `_PRESERVE` and `_RETAIN` do
+  (`v34_d2`, `v34_d3`), and this compiler's too. `allocate_with` now takes the `_MEM` lock refresh, the old block,
+  its count and with `_RETAIN` its bounds after the bounds are evaluated, for every `REDIM`; the declarations stay
+  at the top. Plain `REDIM` then gives new elements (what QuickBASIC 4.5 is believed to do), `_PRESERVE` and
+  `_RETAIN` keep the FUNCTION's elements, and a FUNCTION that erases the array leaves nothing to keep. Six `cpp`
+  snapshots changed by the order of their lines alone. This departs from D3's "the old compiler's order".
+- A leading `_DYNAMIC`/`_STATIC` of a `TYPE` member (`_Dynamic values(…) AS LONG`) was not seen by `sema`
+  (`tasks.md` 3.3): `TypeField::modifier`.

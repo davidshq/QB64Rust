@@ -124,7 +124,7 @@ Full lists: `01` §11.1, `02` §9.1, `03` §9.1. Items marked ✓ were confirmed
 **Runtime model**
 - By-reference arguments, with a silent by-value temporary (no copy-back) on type mismatch, expression, or `(x)`.
 - Arrays: column-major, descriptor layout, static-vs-dynamic rule; `REDIM _PRESERVE` keeps the flat position, not
-  coordinates, unless only the last dimension changes (✓).
+  coordinates, unless only the last dimension changes (✓); `REDIM _RETAIN` keeps coordinates (✓, `v34`).
 - Errors and events are serviced only at statement boundaries; `RESUME`/`RESUME NEXT` are statement-granular; a
   runtime error in one PRINT item skips the rest of the statement (`10` §2.1).
 - Integer division or `MOD` by zero is **fatal** (critical error 11 from `qb_safe_idiv`/`qb_safe_mod`; not trappable,
@@ -1106,6 +1106,38 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   (2, 1) reads 1 2 3 / 4 0 0), another lower bound (0 to 3 holding 1 2 3 4 to 10 to 15 reads 1 2 3 4 0 0). Of an
   array that is not allocated it is `REDIM`. The new block is made first, then the copy, then the old block is
   released, then the descriptor is committed (the C++ of `REDIM _PRESERVE p(n + 1) AS STRING`).
+- **`REDIM _RETAIN` (`v34_*`, 28 programs, measured 2026-10-14 before `m3-redim-retain`; `qb64pe.bas` 8779,
+  8988–8993, 14782–14812, 15228–15296):** a third mode of `REDIM` (`redimoption = 3`).
+  - **The words**: `_RETAIN` only right after `REDIM`, then an optional `SHARED` (`REDIM _RETAIN SHARED`, `x02`).
+    `REDIM SHARED _RETAIN`, `REDIM _PRESERVE _RETAIN`, `REDIM _RETAIN _PRESERVE`, `REDIM _RETAIN _RETAIN`, `REDIM
+    _RETAIN _preserve(3)` and `DIM _RETAIN` are "Invalid variable name"; `REDIM _RETAIN` alone "Expected REDIM
+    _RETAIN ..."; `x = _RETAIN` "Invalid variable name" (`x01`, `x03`–`x05`, `x07`, `x14`, `x22`, `x23`). Lower
+    case is the same (`x08`).
+  - **Everything else is `_PRESERVE`'s statement**: a list of names, the type before the names, `REDIM _RETAIN
+    SHARED` in a SUB ("DIM/REDIM SHARED invalid within a SUB/FUNCTION"), another number of dimensions ("Cannot
+    change the number of elements an array has!"), another type ("Name already in use"), `REDIM _RETAIN a()` and
+    `a AS LONG` (a scalar), `$DYNAMIC`, `COMMON SHARED a()`, `SUB … STATIC`, a local, `SHARED` or parameter array,
+    the first `REDIM _RETAIN` of an array and after `ERASE` (new elements), a static array (error 10, unchanged;
+    "Duplicate definition" with no handler), a dimension with no element (5, the old elements gone), a bound that
+    raises (5; `e(1 TO ASC(""))` leaves 1 to 0), conventional memory, a `_MEM` block of the array no longer
+    valid after it (`x02`, `x06`, `x11`–`x13`, `x15`–`x21`, `x24`, `v34_c`).
+  - **It keeps elements by coordinates**: per dimension the overlap `max(old lower, new lower)` to `min(old upper,
+    new upper)`; every element whose indexes lie in all of them is copied to the same indexes, the rest are zero
+    or empty; ranges that do not meet keep nothing (`v34_a`: `a(1 TO 5)` = 10…50 to `a(3 TO 7)` reads 30 40 50 0
+    0; `m(1 TO 3, 1 TO 4)` to `m(2 TO 5, 0 TO 3)` keeps rows 2 and 3, columns 1 to 3; three dimensions alike). The
+    C++: the old descriptor's slots 4 to `4 * dims + 3` copied into `preserve_old_desc` where the old block is
+    captured, the overlap after the size checks (`preserve_any=0` when the old array had no element or a range
+    is empty), then an odometer over the indexes, the first dimension fastest, with the offsets of the element in
+    both blocks. The copy of one element is `_PRESERVE`'s (`qbs_set`, `setbits`/`getubits` counting elements,
+    the parts of a user type with strings, `memcpy` for the rest), so strings, `STRING * n` (NUL bytes where
+    nothing is kept), `_BIT`, `_UNSIGNED _BIT * 5`, user types with strings and with member arrays keep every
+    member (`v34_b`).
+  - **On a member array (`REDIM _RETAIN x.v(1 TO 3)`, `x(1).v(…)`) it does nothing**, as `_PRESERVE` (`x09`,
+    `x10`).
+  - **A FUNCTION in a bound that gives the same array new bounds** (`REDIM _RETAIN z(2 TO shrinkz)` where
+    `shrinkz` does `REDIM z(1 TO 2)`) ends the program with exit 127 and no output (`v34_d`): the old block and
+    descriptor are captured before the bounds are evaluated and freed again after the FUNCTION freed them. The
+    same with **plain `REDIM`** (`v34_d2`) and with `_PRESERVE` (`v34_d3`). Not followed: `DIVERGENCES.md` D-018.
 - **`ERASE` (`v24_d_*`, `v24_x57`–`x63`):** a static array is cleared (0, `""`, NUL bytes, every member of a user
   type) and keeps its bounds, in every dimension; an array used without `DIM` likewise. A dynamic array is
   released: `UBOUND` and every element raise 9; a second `ERASE` does nothing; `REDIM`, and the `DIM` that made

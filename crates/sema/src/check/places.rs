@@ -122,7 +122,7 @@ impl Checker<'_> {
             for f in field.names() {
                 let t = self.need(f.name(), f.node().span())?;
                 let shown = show_bytes(self.text(t.span));
-                if let Some(m) = f.modifier() {
+                if let Some(m) = field.modifier().or(f.modifier()) {
                     // Measured: "_Static/_Dynamic require $Unstable:TypeFields" (`verification\v24_x204`, `x205`).
                     return Err(self.unsupported(m.span, "`_DYNAMIC`/`_STATIC` members"));
                 }
@@ -337,8 +337,7 @@ impl Checker<'_> {
         let shown = show_bytes(self.text(name_tok.span));
         let mode = match by {
             Declarer::Dim | Declarer::Static | Declarer::Common => AllocMode::Dim,
-            Declarer::Redim { preserve: false } => AllocMode::Redim,
-            Declarer::Redim { preserve: true } => AllocMode::Preserve,
+            Declarer::Redim { mode } => mode,
         };
         let redim = matches!(by, Declarer::Redim { .. });
         // `STATIC a()` and `COMMON a()`: the array is listed, and a `DIM` or `REDIM` below gives it its bounds.
@@ -1220,25 +1219,25 @@ impl Checker<'_> {
         Ok((place, t))
     }
 
-    /// `REDIM [_PRESERVE] path(bounds) [AS type]` where the path names a member array (`t.v`, `a(1).v`,
+    /// `REDIM [_PRESERVE | _RETAIN] path(bounds) [AS type]` where the path names a member array (`t.v`, `a(1).v`,
     /// `x(0).n(1).q`; design D8 of `m2-defxxx-common-arrays`). Returns false for an item that names none: a
     /// plain array.
     ///
     /// The bounds of a member array never change (measured, `verification\v24_x184`–`x190`, `x218`–`x223`,
     /// `x312`): the statement is accepted only with constant bounds equal to the declared ones, written `lower
     /// TO upper`, or the upper bound alone with `AS` and the member's type. It then clears the elements
-    /// ([`StmtKind::Clear`]); with `_PRESERVE` it does nothing at all, and the indexes of its path are not
-    /// evaluated. The compile errors: other bounds, also the same number of elements shifted ("Cannot change
-    /// the number of elements an array has!"), a bound that is not constant ("TYPE member array bounds must be
-    /// numeric constant"), the upper bound alone without `AS` ("REDIM of a TYPE member array must include AS
-    /// <type> or explicit lower TO upper bounds"), another type ("REDIM type does not match the declared TYPE
-    /// member array").
+    /// ([`StmtKind::Clear`]); with `_PRESERVE` or `_RETAIN` (`keeps`) it does nothing at all, and the indexes of
+    /// its path are not evaluated (measured, `verification\v34_x09`, `x10`). The compile errors: other bounds, also
+    /// the same number of elements shifted ("Cannot change the number of elements an array has!"), a bound that is
+    /// not constant ("TYPE member array bounds must be numeric constant"), the upper bound alone without `AS`
+    /// ("REDIM of a TYPE member array must include AS <type> or explicit lower TO upper bounds"), another type
+    /// ("REDIM type does not match the declared TYPE member array").
     ///
     /// `alone`: the item is the only one of its statement. `listed`: the type stands before the names.
     pub(super) fn redim_member(
         &mut self,
         item: ast::DimItem,
-        preserve: bool,
+        keeps: bool,
         (listed, alone): (bool, bool),
         stmt: Node,
     ) -> R<bool> {
@@ -1368,7 +1367,7 @@ impl Checker<'_> {
             );
             return Err(self.error(bounds_span, msg));
         }
-        if preserve {
+        if keeps {
             return Ok(true);
         }
         let Place::Member { base, member } = place else {

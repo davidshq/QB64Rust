@@ -21,7 +21,6 @@ upstream/arrays/40_err_undefined_type.bas
 upstream/arrays/42_err_solved_bug_Incorrect_nr_of_args.bas
 upstream/arrays/43_err_solved_bug_Incorrect_nr_of_args.bas
 upstream/arrays/45_err_solved_bug_Incorrect_nr_of_args.bas
-upstream/arrays/array_elements_change.bas
 upstream/arrays/t024_whole_target_bare_source.bas
 upstream/arrays/t025_bare_target_whole_source.bas
 upstream/arrays/t026_whole_target_indexed_source.bas
