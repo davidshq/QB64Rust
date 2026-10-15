@@ -1,0 +1,5 @@
+
+Cannot use _BIT inside user defined types
+Caused by (or after):
+LINE 5:V ( 1 ) _DYNAMIC AS _BIT
+exit=1

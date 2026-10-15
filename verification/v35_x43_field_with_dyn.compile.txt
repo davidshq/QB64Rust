@@ -1,0 +1,5 @@
+
+_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
+Caused by (or after):PUT # 1 , 1 , X
+LINE 9:PUT #1, 1, x
+exit=1

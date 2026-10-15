@@ -937,21 +937,26 @@ pub(crate) fn type_block(p: &mut Parser) {
     p.finish_node();
 }
 
-/// `[_DYNAMIC|_STATIC] name [bounds] [_DYNAMIC|_STATIC] AS type` or `AS type name [bounds] [_DYNAMIC], ...`. A
-/// leading `_DYNAMIC`/`_STATIC` stays a token of the `TypeField`, outside the `FieldName`.
+/// `[marker] name [markers] [bounds] [markers] AS type [markers]` or `AS type [markers] name [markers] [bounds]
+/// [markers], ...`, where a marker is `_DYNAMIC` or `_STATIC` (`qb64pe.bas` 2213–2290, 2356–2440: the old compiler
+/// reads one before a single name and any number in the other places; `sema` counts them). The markers before a
+/// single name and after the type are `FieldMarker`s of the `TypeField`, the others of their `FieldName`.
 fn type_field(p: &mut Parser) {
     p.start_node(TypeField);
-    if (p.at_word("_DYNAMIC") || p.at_word("_STATIC")) && p.nth(1) == Some(Ident) {
-        p.bump();
+    if at_field_marker(p) && p.nth(1) == Some(Ident) {
+        field_marker(p);
     }
     if p.at_word("AS") {
         type_as_clause(p, true);
-        while field_name(p) && p.at(Comma) {
+        while field_name(p, true) && p.at(Comma) {
             p.bump();
         }
-    } else if field_name(p) {
+    } else if field_name(p, false) {
         if p.at_word("AS") {
             type_as_clause(p, false);
+            while at_field_marker(p) {
+                field_marker(p);
+            }
         } else {
             p.syntax_error("expected `AS`");
         }
@@ -959,28 +964,54 @@ fn type_field(p: &mut Parser) {
     p.finish_node();
 }
 
-/// A field's name with its bounds and `_DYNAMIC`/`_STATIC`. Returns false after an error.
-fn field_name(p: &mut Parser) -> bool {
+fn at_field_marker(p: &Parser) -> bool {
+    p.at_word("_DYNAMIC") || p.at_word("_STATIC")
+}
+
+/// One `_DYNAMIC` or `_STATIC`, at it.
+fn field_marker(p: &mut Parser) {
+    p.start_node(FieldMarker);
+    p.bump();
+    p.finish_node();
+}
+
+/// A field's name with its bounds and markers; in an `AS type` list (`in_list`) also markers before the name.
+/// Returns false after an error.
+fn field_name(p: &mut Parser, in_list: bool) -> bool {
     if !p.at(Ident) {
         p.syntax_error("expected a field name");
         return false;
     }
     p.start_node(FieldName);
+    while in_list && at_field_marker(p) {
+        field_marker(p);
+    }
+    if !p.at(Ident) {
+        p.syntax_error("expected a field name");
+        p.finish_node();
+        return false;
+    }
     p.bump();
+    while at_field_marker(p) {
+        field_marker(p);
+    }
     let ok = !p.at(LParen) || array_bounds(p);
-    if ok && (p.at_word("_DYNAMIC") || p.at_word("_STATIC")) {
-        p.bump();
+    while ok && at_field_marker(p) {
+        field_marker(p);
     }
     p.finish_node();
     ok
 }
 
 /// `AS type [* size]` in a field. Before the names (`leading`), the type is one word, or two after `_UNSIGNED`;
-/// after a name it is every word up to the end.
+/// after a name it is every word up to the end or to a marker. A marker right after `AS` is an error, as in the
+/// old compiler (measured, `verification\v35_x05`).
 fn type_as_clause(p: &mut Parser, leading: bool) {
     p.start_node(AsClause);
     p.bump(); // AS
-    if !p.at(Ident) {
+    if at_field_marker(p) {
+        p.error("a member's `_DYNAMIC` or `_STATIC` cannot stand between `AS` and its type");
+    } else if !p.at(Ident) {
         p.syntax_error("expected a type name after `AS`");
     } else if leading {
         if p.at_word("_UNSIGNED") && p.nth(1) == Some(Ident) {
@@ -988,7 +1019,7 @@ fn type_as_clause(p: &mut Parser, leading: bool) {
         }
         p.bump();
     } else {
-        while p.at(Ident) {
+        while p.at(Ident) && !at_field_marker(p) {
             p.bump();
         }
     }

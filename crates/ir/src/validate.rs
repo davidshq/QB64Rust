@@ -1660,6 +1660,7 @@ mod tests {
                 name: "X".into(),
                 ty: Ty::I32,
                 bounds: Vec::new(),
+                dynamic: false,
             }],
         };
         p.types = vec![ut("T1"), ut("T2")];
@@ -1678,6 +1679,7 @@ mod tests {
             name: "V".into(),
             ty: Ty::I32,
             bounds: vec![(0, 3)],
+            dynamic: false,
         });
         p
     }

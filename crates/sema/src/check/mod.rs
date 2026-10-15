@@ -100,6 +100,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         dim_facts: Vec::new(),
         dims_open: HashSet::new(),
         type_bases: HashMap::new(),
+        type_flags: HashSet::new(),
     };
     let skips = Skips::new(program);
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
@@ -124,9 +125,9 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // A header with an error (a parse error, a reserved name...) still enters its name as a broken procedure, so
     // calls of it fail without a second error. A member array's bounds go by `OPTION BASE` as it stands at its
     // block, which follows the file (design D8 of `m2-defxxx-common-arrays`).
-    let mut base = 0;
+    let mut at_block = BlockSettings::default();
     for &stmt in &top {
-        c.collect_option_bases(stmt, &skips, &mut base);
+        c.collect_block_settings(stmt, &skips, &mut at_block);
     }
     c.declare_types(&statements, &skips);
     // The default types follow the file (design D2): the table as it stands at each procedure's header.
@@ -272,6 +273,35 @@ fn console_meta(raw: &[u8]) -> Option<Result<ConsoleMeta, String>> {
         };
     }
     None
+}
+
+/// The flag of a `$UNSTABLE` line (design D1 of `m3-typefields`; `qb64pe.bas` 2073–2089).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Unstable {
+    /// `TYPEFIELDS`: the member markers.
+    TypeFields,
+    /// `MIDI` or `HTTP`: accepted, with a warning; nothing changes.
+    Stable,
+}
+
+/// The flag a metacommand token sets when it is `$UNSTABLE`: `None` for any other metacommand, an error for a form
+/// the old compiler rejects. It takes the line in upper case and without the blanks at its ends, and the flag
+/// after the colon without its blanks, so any letter case and a blank after the colon are the same flag
+/// (measured, `verification\v35_h`, `x13`); another flag or none is "Unrecognized unstable flag", and the name
+/// without a colon "Syntax error" (`x10`–`x12`).
+fn unstable_meta(raw: &[u8]) -> Option<Result<Unstable, String>> {
+    let text = meta_line(raw);
+    let rest = text.strip_prefix(b"$UNSTABLE".as_slice())?;
+    match rest {
+        [b':', flag @ ..] => Some(match meta_line(flag).as_slice() {
+            b"TYPEFIELDS" => Ok(Unstable::TypeFields),
+            b"MIDI" | b"HTTP" => Ok(Unstable::Stable),
+            other => Err(format!("unrecognized `$UNSTABLE` flag \"{}\"", show_bytes(other))),
+        }),
+        // Another name that starts alike.
+        [b, ..] if b.is_ascii_alphanumeric() || *b == b'_' => None,
+        _ => Some(Err("expected `$UNSTABLE:` and a flag".to_string())),
+    }
 }
 
 /// Which statements the checker skips: those with a parse error, and those past the parser's error cap. Kept per
@@ -453,8 +483,19 @@ struct Checker<'a> {
     /// gave them a number of dimensions: theirs is found with the parameter's.
     dims_open: HashSet<VarId>,
     /// Per `TYPE` block (by key): `OPTION BASE` as it stands at the block, which the bounds of its member arrays
-    /// go by ([`Self::collect_option_bases`]).
+    /// go by ([`Self::collect_block_settings`]).
     type_bases: HashMap<(TreeId, u32), i64>,
+    /// The `TYPE` blocks (by key) that stand below a `$UNSTABLE:TYPEFIELDS`, where the member markers are allowed
+    /// ([`Self::collect_block_settings`]).
+    type_flags: HashSet<(TreeId, u32)>,
+}
+
+/// What pass 1 keeps as it walks the file in order to the `TYPE` blocks: `OPTION BASE` and whether
+/// `$UNSTABLE:TYPEFIELDS` stood above.
+#[derive(Clone, Copy, Debug, Default)]
+struct BlockSettings {
+    base: i64,
+    typefields: bool,
 }
 
 /// One thing that says how many dimensions an array has, for an array whose number is found from everything that
@@ -655,11 +696,23 @@ impl Checker<'_> {
     /// [`Self::collect_defaults`] does, applies every `OPTION BASE` that pass 2 will apply (wherever it stands,
     /// whether or not it runs) and keeps the base at each `TYPE` block. A statement with an error changes
     /// nothing here and is reported by pass 2.
-    fn collect_option_bases(&mut self, node: Node, skips: &Skips, base: &mut i64) {
+    ///
+    /// `$UNSTABLE:TYPEFIELDS` is read in the same walk (design D1 of `m3-typefields`; `qb64pe.bas` 2071–2090):
+    /// the old compiler sets the flag as it reads the lines in order, before its first pass, so it allows the
+    /// markers in the blocks below it, also after the first statement, and not in a `$IF` branch that is not taken
+    /// (measured, `verification\v35_x14`, `x15`, `x45`, `x47`).
+    fn collect_block_settings(&mut self, node: Node, skips: &Skips, at: &mut BlockSettings) {
         if let Some(s) = ast::OptionStmt::cast(node) {
             let digits = s.base().filter(|_| skips.usable(node)).map(|t| self.text(t.span));
             if let Some(n) = digits.and_then(decl::option_base_of) {
-                *base = n;
+                at.base = n;
+            }
+            return;
+        }
+        if let Some(s) = ast::MetaStmt::cast(node) {
+            let raw = s.token().filter(|_| skips.usable(node)).map(|t| self.text(t.span));
+            if raw.and_then(unstable_meta) == Some(Ok(Unstable::TypeFields)) {
+                at.typefields = true;
             }
             return;
         }
@@ -667,18 +720,21 @@ impl Checker<'_> {
             return;
         }
         if ast::TypeBlock::cast(node).is_some() {
-            self.type_bases.insert(node.key(), *base);
+            self.type_bases.insert(node.key(), at.base);
+            if at.typefields {
+                self.type_flags.insert(node.key());
+            }
             return;
         }
         if ast::MetaCommentStmt::cast(node).is_some() {
             let program = self.program;
             if let Some(tree) = program.included(node) {
-                self.collect_option_bases(tree.root(), skips, base);
+                self.collect_block_settings(tree.root(), skips, at);
             }
             return;
         }
         for n in node.child_nodes() {
-            self.collect_option_bases(n, skips, base);
+            self.collect_block_settings(n, skips, at);
         }
     }
 
@@ -1009,6 +1065,17 @@ impl Checker<'_> {
             Ok(())
         } else if line.starts_with(b"$EXEICON") {
             self.exe_icon_meta(node, tok)
+        } else if let Some(u) = unstable_meta(raw) {
+            match u {
+                // Read by pass 1, where the blocks are (`Self::collect_block_settings`).
+                Ok(Unstable::TypeFields) => {}
+                // The old compiler's warning (`qb64pe.bas` 3891, 3895), given with `-w` as every warning is.
+                Ok(Unstable::Stable) => self
+                    .diags
+                    .warning(tok.span, "No longer required, feature is stable now"),
+                Err(msg) => return Err(self.error(tok.span, msg)),
+            }
+            Ok(())
         } else {
             let shown = show_bytes(raw.split(|&b| b == b':' || b == b' ').next().unwrap_or(raw));
             Err(self.unsupported(tok.span, format!("metacommand `{shown}`")))

@@ -17,22 +17,8 @@ arrays/t002_whole_array_udt_ownership  # $UNSTABLE:TYPEFIELDS, whole-array assig
 arrays/t003_whole_array_member_assign  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN, whole-array assignment
 arrays/t024_whole_target_bare_source  # whole-array assignment
 arrays/t026_whole_target_indexed_source  # whole-array assignment
-arrays/t028_member_target_no_index  # $UNSTABLE:TYPEFIELDS
-arrays/t029_member_source_no_index  # $UNSTABLE:TYPEFIELDS
-arrays/t030_member_indexed_target_bare_source  # $UNSTABLE:TYPEFIELDS
-arrays/t031_member_bare_target_indexed_source  # $UNSTABLE:TYPEFIELDS
-arrays/t032_both_members_bare  # $UNSTABLE:TYPEFIELDS
-arrays/t033_member_whole_target_bare_source  # $UNSTABLE:TYPEFIELDS, whole-array assignment
-arrays/t034_member_bare_target_whole_source  # $UNSTABLE:TYPEFIELDS
-arrays/t035_member_whole_target_indexed_source  # $UNSTABLE:TYPEFIELDS, whole-array assignment
-arrays/t036_member_indexed_target_whole_source  # $UNSTABLE:TYPEFIELDS
 arrays/t038_whole_target_scalar_source  # whole-array assignment
-arrays/t039_scalar_member_target_whole_member_source  # $UNSTABLE:TYPEFIELDS
-arrays/t040_whole_member_target_scalar_member_source  # $UNSTABLE:TYPEFIELDS, whole-array assignment
 arrays/t041_whole_array_equals_scalar  # whole-array assignment
-arrays/t042_scalar_member_equals_whole_member  # $UNSTABLE:TYPEFIELDS
-arrays/t043_whole_member_equals_scalar_member  # $UNSTABLE:TYPEFIELDS, whole-array assignment
-arrays/t044_both_members_bare  # $UNSTABLE:TYPEFIELDS
 arrays/t200_dynfield_numeric_per_parent  # $UNSTABLE:TYPEFIELDS
 arrays/t201_dynfield_2d_retain  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
 arrays/t202_dynfield_parent_retain  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
@@ -69,8 +55,6 @@ arrays/t230_double_dynamic_tolerance  # $UNSTABLE:TYPEFIELDS
 arrays/t231_fixed_len_string_dynamic_field  # $UNSTABLE:TYPEFIELDS
 arrays/t232_static_fixed_len_string_array  # $UNSTABLE:TYPEFIELDS
 arrays/t232_staticfield_fixed_len_string_array  # $UNSTABLE:TYPEFIELDS
-arrays/t233_unmarked_inline_numeric_array_redim_parent  # $UNSTABLE:TYPEFIELDS
-arrays/t234_unmarked_inline_varstring_array_redim_parent  # $UNSTABLE:TYPEFIELDS
 arrays/t235_member_redim_expand_no_retain  # $UNSTABLE:TYPEFIELDS
 arrays/t236_member_redim_retain_expand  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
 arrays/t237_member_redim_retain_shrink  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
@@ -108,8 +92,6 @@ arrays/t278_nested_static_dynamic_copy_erase_rebuild  # $UNSTABLE:TYPEFIELDS, wh
 arrays/t279_static_dynamic_2d_retain_parent_resize  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
 arrays/t280_static_dynamic_swap_erase_parent_reuse  # $UNSTABLE:TYPEFIELDS
 arrays/t281_static_dynamic_option_base1_heavy  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
-arrays/t_qb64pe_refactor_inline_reset_owner_udt  # $UNSTABLE:TYPEFIELDS
-arrays/t_qb64pe_refactor_inline_reset_strings  # $UNSTABLE:TYPEFIELDS
 arrays/t_qb64pe_refactor_raw_redim_descriptor  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
 arrays/t_qb64pe_refactor_retain_descriptor_udt  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN
 arrays/type_dynamic_string_member_array_param  # $UNSTABLE:TYPEFIELDS

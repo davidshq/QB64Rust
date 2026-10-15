@@ -295,8 +295,8 @@ What the compiler supports so far:
   after them, as QB64pe's program does, and stores nothing after an index outside (`DIVERGENCES.md` D-004;
   `store_through_member`, `codegen-cpp\src\stmt.rs`). `SWAP` takes such a place. Still marked: a bound that
   names a `CONST` (the blocks are read before the constants), a member array of an array element beside other
-  targets of one `ERASE` or `REDIM`, such a place as a target of `INPUT`, `READ` or the `MID$` statement, the
-  `_STATIC` and `_DYNAMIC` markers (`SOMEDAY.md`).
+  targets of one `ERASE` or `REDIM`, such a place as a target of `INPUT`, `READ` or the `MID$` statement (the
+  markers: `m3-typefields` below).
 - **Signs** (`syntax\src\parser\expr.rs`, `signs_after`; measured, `verification\v25_*`): there is no unary
   plus, but QB64pe removes signs from an expression before it reads it, and so does the parser: a `+` right
   after a `+` or a `-`, then two `-` right after an operator. The dropped tokens stay in the tree. In a
@@ -645,6 +645,16 @@ What the compiler supports so far:
   (`tools\legacy_tests\README.md`). Checked by `s110_system_code`, `s111_end_code`, the front-end tests
   `exit_code_ir`, `exit_code_cpp` and `exit_code_errors`, and the upstream
   `arrays/t_qb64pe_refactor_preserve_inline_varstrings`.
+- **`$UNSTABLE` and the member markers** (`m3-typefields` group 2; the facts in `study\00` §5, `verification\v35_*`):
+  `$UNSTABLE:TYPEFIELDS` is read by pass 1 in the walk that keeps `OPTION BASE` at each `TYPE` block
+  (`check\mod.rs`, `collect_block_settings`, `type_flags`), so it reaches the blocks below it in the branches
+  taken; `MIDI` and `HTTP` give the old compiler's warning with `-w`; other forms are errors (`unstable_meta`).
+  The parser reads each `_DYNAMIC`/`_STATIC` as a `FieldMarker` node in every place the old compiler takes one
+  (`syntax\src\parser\blocks.rs`, `type_field`); `sema` counts them (`places.rs`, `member_markers`: the flag, not
+  before an `AS type` list, one marker, arrays only) and sets `Member::dynamic`. `_STATIC` compiles as an unmarked member; a `_DYNAMIC` member is
+  still "not supported yet" (groups 3–5). Checked by `unstable_forms`, `unstable_forms_ok`,
+  `typefields_markers`, the CLI test `unstable_stable_flag_warning` and 18 upstream programs (`t028`–`t044`,
+  `t233`, `t234`, `t_qb64pe_refactor_inline_reset_*`).
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
@@ -656,8 +666,8 @@ forms (arrays named `name$n`,
 `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
 constants of QB64pe's auto-included file that are not computed yet and the names of its other auto-included
 files; of arrays and `TYPE`:
-whole arrays (`x()`) where no array parameter takes them, member arrays marked `_STATIC` or `_DYNAMIC` or with
-a bound that names a `CONST`;
+whole arrays (`x()`) where no array parameter takes them, member arrays marked `_DYNAMIC` or with a bound that
+names a `CONST`;
 `DEF FN` is an error, as in QB64pe. After a declaration
 marked "not supported yet", later real errors are dropped (the follow-on rule, design D10 of `m2-parser-breadth`):
 the program is rejected by the mark, and no error is reported that the declaration might have prevented.

@@ -1,0 +1,5 @@
+
+Array bounds missing
+Caused by (or after):
+LINE 5:V ( ) _DYNAMIC AS LONG
+exit=1

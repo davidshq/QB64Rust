@@ -1,0 +1,10 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+unstable_forms.bas:6:1: error: unrecognized `$UNSTABLE` flag "FOO"
+unstable_forms.bas:7:1: error: unrecognized `$UNSTABLE` flag ""
+unstable_forms.bas:8:1: error: expected `$UNSTABLE:` and a flag
+unstable_forms.bas:13:10: error: `_DYNAMIC` and `_STATIC` members need `$UNSTABLE:TYPEFIELDS` above the `TYPE` block
+unstable_forms.bas:16:18: error: `_DYNAMIC` and `_STATIC` members need `$UNSTABLE:TYPEFIELDS` above the `TYPE` block

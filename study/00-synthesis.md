@@ -1364,7 +1364,8 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   alone without `AS` ("REDIM of a TYPE member array must include AS <type> or explicit lower TO upper bounds");
   another type ("REDIM type does not match the declared TYPE member array"). `ERASE t` of a variable is
   "Undefined array passed to ERASE". A `_BIT` member array is "Cannot use _BIT inside user defined types"; the
-  `_STATIC` and `_DYNAMIC` markers are "_Static/_Dynamic require $Unstable:TypeFields".
+  `_STATIC` and `_DYNAMIC` markers are "_Static/_Dynamic require $Unstable:TypeFields" without that flag (with
+  it: the next paragraph, `v35`).
   **Measured 2026-10-11 before and while group 9 was built (`v24_x310`–`x326`):**
   **What finds the place a member array is part of.** `LBOUND`, `UBOUND` and `LEN` do not: `UBOUND(a(one(1)).v)`
   calls no FUNCTION, `LBOUND(a(9).v)` and `UBOUND(x(1).n(9).q)` raise nothing, only the dimension argument is
@@ -1405,6 +1406,67 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   `REDIM SHARED t.v(0 TO 3)` (clears). **In `REDIM t.v(3) AS LONG` the upper bound alone goes by `OPTION BASE`
   as it stands at the `REDIM`**: below `OPTION BASE 1` it is accepted for a member declared `1 TO 3` and
   "Cannot change the number of elements an array has!" for one declared `0 TO 3`.
+- **`$UNSTABLE:TYPEFIELDS` and the member markers (`v35_*`, 69 programs, measured 2026-10-14 before
+  `m3-typefields`; `qb64pe.bas` 2071–2090, 2180–2460, 8890–8990, 15654–16520, 17075–17300, `utilities\type.bas`
+  10–2140):**
+  - **The flag is read in source order, before the first pass**, as the lines are read: it allows the markers in
+    the `TYPE` blocks below it, also when it stands after the first statement (`x47`), and not in a `$IF` branch
+    that is not taken (`x14`; taken, `x15`); below the `TYPE` the marker is "_Static/_Dynamic require
+    $Unstable:TypeFields" (`x45`). Any letter case, twice, a blank after the colon (`v35_h`, `x13`). `MIDI` and
+    `HTTP` give the warning "No longer required, feature is stable now"; another flag or an empty one is
+    "Unrecognized unstable flag \"FOO\"" (`""`), `$UNSTABLE` alone "Syntax error" (`x10`–`x12`).
+  - **The markers**: before the name (`_DYNAMIC v(1) AS LONG`), after the name or bounds, after the type (`v(1) AS
+    LONG _DYNAMIC`), in an `AS type` list before a name or after its bounds, where it marks that name only (`AS
+    LONG v(1) _DYNAMIC, w(1)`: `REDIM x.w(0 TO 5)` is "Cannot change the number of elements an array has!")
+    (`x01`–`x04`, `x44`). `AS _DYNAMIC LONG v(1)` is "Expected element-name AS type, AS type element-list, or END
+    TYPE" (`x05`), and so is a marker before an `AS type` list, `_STATIC AS LONG v(1), w(2)` (`x60`, measured by
+    the review of group 2: a marker first is read as `marker name AS type`, with `AS` the name); both markers or one twice "A TYPE member array cannot use both _Dynamic and _Static" (`x06`,
+    `x07`); a marker on a member that is no array "_Dynamic and _Static can only be used on array members inside
+    TYPE" (`x08`, `x09`); `v() _DYNAMIC` "Array bounds missing" (`x16`); a `CONST` bound is accepted (`x17`);
+    `_BIT` is refused as before (`x25`). **`_STATIC` changes nothing**: the member is the unmarked one, with its
+    rules, layout and `LEN` (`v35_f`, `x34`, `x40`, `x53`: 12 and 10 bytes).
+  - **A `_DYNAMIC` member is an array owned by the value**: each variable, element and copy has its own; it
+    starts at its declared bounds (the `OPTION BASE` of the block) with zero or empty elements. `REDIM` gives it
+    any bounds (plain, `_PRESERVE`, `_RETAIN` as for a dynamic array; another number of dimensions; `SHARED`; a
+    list; a suffix on the name; `lower TO upper` or `AS` the type needed: "REDIM of a TYPE member array must
+    include AS <type> or explicit lower TO upper bounds", another type "REDIM type does not match the declared
+    TYPE member array") (`v35_a`, `x18`, `x19`, `x29`–`x33`); `DIM x.v(3)` is "DIM: Expected ," (`x37`). `ERASE`
+    releases it: every use (`LBOUND`, `UBOUND`, an element read or stored) raises 9 until a `REDIM`. An index
+    outside, another number of indexes than it has now, and a dimension of `LBOUND`/`UBOUND` it does not have
+    raise 9 (`v35_g`). Every kind of element works: each numeric type, `_OFFSET`, `STRING * n`, `STRING`, a user
+    type with strings, one with `_DYNAMIC` members of its own (`v35_c`). Reversed bounds at run time end the
+    program with "Out of memory" (`v35_g2`); a `REDIM` to 2³¹ × 2³¹ `_INTEGER64`s succeeds and `UBOUND` reads
+    back (`v35_g3`: the size overflows, no check).
+  - **The value's life**: `y = x` copies deep (`x.v` unchanged after `y.v(5) = 999`, `v35_a` 8.); `SWAP`
+    exchanges whole values, members included (`x28`, `v35_b` 4.); a parent's `REDIM _PRESERVE`/`_RETAIN` keeps the
+    members of kept elements and gives new ones their declared bounds, plain `REDIM` resets every element's,
+    `ERASE` of a dynamic parent frees them, **`ERASE` of a static parent leaves each member not allocated** (error
+    9) until a `REDIM` of it (`v35_b`, `x51`). A local is new on each call, a `STATIC` local keeps its members, a
+    `SHARED` variable is shared; a parameter of the type, an element as one, an array of the type and the member
+    as `x.v()` to `a() AS LONG` are by reference: a `REDIM` in the callee is seen by the caller (`v35_d`, `x36`).
+    `READ`, `INPUT`, `INPUT #`, `LINE INPUT #`, `SWAP` and the `MID$` statement take an element (`v35_e` 1.–4.,
+    `x42`).
+  - **The parent's place is found for every use** of the member, `LBOUND`/`UBOUND` included (`UBOUND(p(one(1)).v)`
+    calls `one`, `x59`; unlike an unmarked member); an index outside raises 9 and element 0 stands in: `REDIM
+    p(9).v(4 TO 6)` gives `p(0).v` bounds 4 to 6, **`p(9).v(5) = 55` stores into `p(0).v(5)`**, `ERASE p(9).v`
+    erases `p(0).v` (`x58`). A whole-value copy with an index outside copies into or from element 0 deep (`x57`).
+  - **The evaluations of a copy** (`x56`): `a(one(1)) = b(one(2))` prints `1 2` four times for a type of a LONG, a
+    `_DYNAMIC` LONG member and a LONG, and ` 1  2  1  2  1  2  1  2  1  1  2  1 ` for a LONG, a `STRING`, a
+    `_DYNAMIC` LONG member and a `_DYNAMIC` `STRING` member.
+  - **The layout of an owner type** (`x52`): `a AS INTEGER`, `v(1) _DYNAMIC AS LONG`, `b AS INTEGER` is 24 bytes
+    (`v` a pointer at 8, `b` at 16); `c AS _BYTE`, `i AS` that type, `d AS _BYTE` is 40 (`i` at 8, `d` at 32);
+    elements of an array 24 apart. `_MEM` of the value, of a member and of an element works with that layout
+    (`x22`–`x24`); `_OFFSET` of an element works (`x26`); a type without `_DYNAMIC` keeps the packed layout (`x53`).
+  - **Files**: `PUT #1, 1, p()` of a whole array writes the declared layout (24 bytes for two elements of the type
+    above: `a`, the two LONGs, `b`); a member with other bounds raises 9 and nothing is written (`LOF` 0); `GET`
+    into an array whose member has other bounds raises 9 and **still copies the declared bytes into that member's
+    smaller block** (`q(0).v(5 TO 5)` reads the first LONG, the next is written past its end) (`v35_e` 5.–6.). On
+    a random file the whole array is one record: `LEN = 10` gives error 59, `LEN = 20` a 20-byte file (`x55`).
+  - **Compile errors for an owner value** ("_MEM cannot reference a TYPE value that contains explicit _Dynamic
+    member arrays"): `LEN(x)` (`x20`; `LEN(x.v(0))` is 4, `x21`), `COMMON SHARED x` (`x39`), `PUT`/`GET` of one
+    variable or element (`x43`, `x46`, `x50`, `x54`); a whole array with a `STRING` in the type is "UDT must have
+    fixed size" (`x48`); `PRINT x.v` "Expected array index" (`x41`). Measured, not followed (`DIVERGENCES.md`):
+    the `GET` into a smaller block (D-019), the size that overflows (D-020), the store through `p(9)` (D-004).
 - **`STRING` members, whole values, `TYPE` parameters (`v24_h_string_members`, `v24_h_whole`,
   `v24_h_type_params`, `v24_x206`–`x216`):** a `STRING` member starts empty in a variable, a local (on each
   call), a `STATIC` one (kept), each element of a static and of a dynamic array and in a nested type; it holds

@@ -1,0 +1,5 @@
+
+A TYPE member array cannot use both _Dynamic and _Static
+Caused by (or after):
+LINE 5:V ( 1 ) _DYNAMIC _DYNAMIC AS LONG
+exit=1

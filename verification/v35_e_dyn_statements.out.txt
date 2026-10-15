@@ -1,0 +1,13 @@
+1. READ: 7  8 
+2. SWAP: 8  7 
+3. MID$: hEYYo Zbcd
+4. INPUT #, LINE INPUT #: 42  [line two]
+[error 9 at 35 ]5. PUT p() with p(0).v 0 TO 2, declared 0 TO 1 (PUT of x is rejected: v35_x46): LOF = 0 
+5b. PUT p() with the declared bounds: LOF = 24 
+   bytes:010011111111222222220200030000000000444444440400
+[error 9 at 53 ]6. GET q(): q( 0 ): a, b = 1  2  v: 5  5  286331153 
+6. GET q(): q( 1 ): a, b = 3  4  v: 0  1  0  1145324612 
+6b. GET q() after q(0).v has its declared bounds again:
+6. GET q(): q( 0 ): a, b = 1  2  v: 0  1  286331153  572662306 
+6. GET q(): q( 1 ): a, b = 3  4  v: 0  1  0  1145324612 
+exit=0

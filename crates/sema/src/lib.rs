@@ -399,6 +399,7 @@ pub fn mem_type() -> UserType {
         name: name.to_string(),
         ty,
         bounds: Vec::new(),
+        dynamic: false,
     };
     UserType {
         name: MEM_TYPE.to_string(),
@@ -440,6 +441,9 @@ pub struct Member {
     /// elements are part of each value of the type and the bounds never change (measured,
     /// `verification\v24_h_member_arrays`, `v24_x184`–`x190`).
     pub bounds: Vec<(i64, i64)>,
+    /// A member array marked `_DYNAMIC` (design D2 of `m3-typefields`): an array of its own in each value, which
+    /// `bounds` only starts at. False for every other member, `_STATIC` ones included.
+    pub dynamic: bool,
 }
 
 impl Member {

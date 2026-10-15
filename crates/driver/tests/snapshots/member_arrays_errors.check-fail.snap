@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 108
 expression: snap
 ---
 member_arrays_errors.bas:15:12: error: invalid bounds for `v`: 5 TO 1
@@ -35,7 +36,6 @@ member_arrays_errors.bas:76:7: error: not supported yet: a member of an array el
 member_arrays_errors.bas:77:6: error: not supported yet: a member of an array element, or an element of a member array, as a target of `READ`
 member_arrays_errors.bas:78:6: error: not supported yet: a member of an array element, or an element of a member array, as a target of `MID$`
 member_arrays_errors.bas:80:11: error: not supported yet: `REDIM t.v(0)` of a member array under `OPTION BASE 1`
-member_arrays_errors.bas:90:7: error: not supported yet: a bound of a member array that is not written with numbers alone (a `CONST`)
-member_arrays_errors.bas:93:15: error: not supported yet: `_DYNAMIC`/`_STATIC` members
-member_arrays_errors.bas:98:6: error: not supported yet: an array of more than 2^31 elements
-member_arrays_errors.bas:103:1: error: not supported yet: a `TYPE` of more than 2^31 bytes
+member_arrays_errors.bas:89:7: error: not supported yet: a bound of a member array that is not written with numbers alone (a `CONST`)
+member_arrays_errors.bas:94:6: error: not supported yet: an array of more than 2^31 elements
+member_arrays_errors.bas:99:1: error: not supported yet: a `TYPE` of more than 2^31 bytes

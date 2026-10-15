@@ -1,0 +1,5 @@
+
+REDIM of a TYPE member array must include AS <type> or explicit lower TO upper bounds
+Caused by (or after):REDIM X . V ( 1 )
+LINE 9:REDIM x.v(1)
+exit=1

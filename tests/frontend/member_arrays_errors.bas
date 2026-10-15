@@ -83,14 +83,10 @@ SYSTEM
 SUB fill (b() AS LONG)
 END SUB
 ' Marked: a bound that is not written with numbers alone (the old compiler takes a CONST and an expression of
-' one, v24_x196; the blocks are read before the CONSTs here), and the _STATIC and _DYNAMIC markers
-' ("_Static/_Dynamic require $Unstable:TypeFields", v24_x204, x205).
+' one, v24_x196; the blocks are read before the CONSTs here). The markers are in typefields_markers.bas.
 CONST top = 3
 TYPE named
     v(top) AS LONG
-END TYPE
-TYPE marked
-    v(0 TO 3) _DYNAMIC AS LONG
 END TYPE
 ' Marked, not measured: bounds whose distance does not fit 64 bits, and a TYPE whose members together pass
 ' 64 bits of bytes (five members of 2^31 - 1 elements of a type of 2^31 - 1 bytes).

@@ -1,0 +1,5 @@
+
+Unrecognized unstable flag "FOO"
+Caused by (or after):
+LINE 2:$UNSTABLE:FOO
+exit=1

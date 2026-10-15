@@ -1,0 +1,5 @@
+
+_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
+Caused by (or after):GET # 1 , 1 , P ( 0 )
+LINE 9:GET #1, 1, p(0)
+exit=1

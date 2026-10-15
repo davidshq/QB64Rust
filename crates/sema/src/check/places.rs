@@ -122,9 +122,10 @@ impl Checker<'_> {
             for f in field.names() {
                 let t = self.need(f.name(), f.node().span())?;
                 let shown = show_bytes(self.text(t.span));
-                if let Some(m) = field.modifier().or(f.modifier()) {
-                    // Measured: "_Static/_Dynamic require $Unstable:TypeFields" (`verification\v24_x204`, `x205`).
-                    return Err(self.unsupported(m.span, "`_DYNAMIC`/`_STATIC` members"));
+                let dynamic = self.member_markers(b, field, f)?;
+                if dynamic {
+                    let at = f.markers().chain(field.markers()).next().map_or(t.span, |m| m.span);
+                    return Err(self.unsupported(at, "`_DYNAMIC` member arrays"));
                 }
                 let bounds = match f.bounds() {
                     Some(bounds) => self.member_bounds(bounds, base, &shown)?,
@@ -153,6 +154,7 @@ impl Checker<'_> {
                     name: mname,
                     ty,
                     bounds,
+                    dynamic,
                 });
             }
         }
@@ -175,6 +177,42 @@ impl Checker<'_> {
         });
         self.types_by_name.insert(name, id);
         Ok(())
+    }
+
+    /// The markers of one member name (design D2 of `m3-typefields`; `qb64pe.bas` 2213–2304; measured,
+    /// `verification\v35_x01`–`x09`, `x44`, `x60`, `v24_x204`, `x205`): those of the field (before a single name,
+    /// after the type) and the name's own. A marker needs `$UNSTABLE:TYPEFIELDS` above the block ("_Static/_Dynamic
+    /// require $Unstable:TypeFields") and does not stand before an `AS type` list; a member takes one ("A TYPE
+    /// member array cannot use both _Dynamic and _Static", also for one written twice), on an array only
+    /// ("_Dynamic and _Static can only be used on array members inside TYPE"). True for `_DYNAMIC`; `_STATIC`
+    /// changes nothing.
+    fn member_markers(&mut self, block: ast::TypeBlock, field: ast::TypeField, name: ast::FieldName) -> R<bool> {
+        let mut marks = field.markers().chain(name.markers()).collect::<Vec<_>>();
+        marks.sort_by_key(|t| t.span.start);
+        let Some(&first) = marks.first() else {
+            return Ok(false);
+        };
+        if !self.type_flags.contains(&block.node().key()) {
+            let msg = "`_DYNAMIC` and `_STATIC` members need `$UNSTABLE:TYPEFIELDS` above the `TYPE` block";
+            return Err(self.error(first.span, msg));
+        }
+        // Before an `AS type` list the old compiler reads the marker as the start of `marker name AS type` and
+        // `AS` as the name: "Expected element-name AS type, AS type element-list, or END TYPE" (measured,
+        // `verification\v35_x60`).
+        if let Some(a) = field.as_clause().map(|a| a.node().span())
+            && a.start < name.node().span().start
+            && let Some(m) = field.markers().find(|m| m.span.start < a.start)
+        {
+            let msg = "a member's `_DYNAMIC` or `_STATIC` cannot stand before `AS` in an `AS type` list";
+            return Err(self.error(m.span, msg));
+        }
+        if let Some(second) = marks.get(1) {
+            return Err(self.error(second.span, "a member takes one of `_DYNAMIC` and `_STATIC`"));
+        }
+        if name.bounds().is_none() {
+            return Err(self.error(first.span, "`_DYNAMIC` and `_STATIC` mark member arrays only"));
+        }
+        Ok(self.text(first.span).eq_ignore_ascii_case(b"_DYNAMIC"))
     }
 
     /// The bounds of a member array (design D8 of `m2-defxxx-common-arrays`; measured,

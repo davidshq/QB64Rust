@@ -137,7 +137,12 @@ included file in `v33_inc\`), `v33_b*` the checksum, compression and base64 func
 reached, `v33_x02`–`x55` one other form each); `v34*`: `REDIM _RETAIN`, measured before its change: `v34_a`
 numbers, `v34_b` the other kinds of element, `v34_c` the places of an array, `v34_d` a FUNCTION in a bound that
 gives the same array new bounds (`v34_d2` with plain `REDIM`, `v34_d3` with `_PRESERVE`, recorded as the change
-closed), `v34_x01`–`x24` one accepted or rejected form each), their outputs, and `run.sh` (starts the runner's `--suite verification`, which records them) |
+closed), `v34_x01`–`x24` one accepted or rejected form each); `v35*`: `$UNSTABLE:TYPEFIELDS` and the member
+markers, measured before its change: `v35_a` a `_DYNAMIC` member of a variable, `v35_b` of array elements and the
+parent's `REDIM`, `ERASE`, `SWAP` and copy, `v35_c` every kind of element, `v35_d` procedures, `v35_e` statements
+and whole-array files, `v35_f` `_STATIC` and unmarked members beside the flag, `v35_g`–`g3` runtime errors,
+`v35_h` the metacommand, `v35_x01`–`x59` one accepted or rejected form each, `x60`: by the review of group 2, a
+marker before an `AS type` list), their outputs, and `run.sh` (starts the runner's `--suite verification`, which records them) |
 | `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler), the golden corpus and the verification programs (`--suite verification`, a recorder), its own tests (`test_run_legacy_tests.py`: a change to a comparison or recording rule comes with a change to its test), and its `known_failures.txt` |
 | `tools\callsite\` | `callsite.py`: compares the libqb call the new compiler writes for each program of `tests\callsite\` with the old compiler's (`-z` on both, nothing built or run); part of tier 2 (`README.md`: the normalisation rules and what it does not compare) |
 | `tools\repo_check\` | `check_repo.py`: tracked files must hold no local paths, temp folders or network shares (rule 2) and no stray control bytes (rule 7); `--untracked` also checks new files before they are staged |

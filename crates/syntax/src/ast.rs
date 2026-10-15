@@ -118,6 +118,7 @@ node_wrapper!(
     TypeHeader,
     TypeField,
     FieldName,
+    FieldMarker,
     ArrayBounds,
     DeclareLibraryBlock,
     DeclareLibraryHeader,
@@ -1303,9 +1304,10 @@ impl<'a> TypeField<'a> {
         child(self.0, AsClause::cast)
     }
 
-    /// `_DYNAMIC` or `_STATIC` before the name (`_DYNAMIC v(1 TO 3) AS LONG`), outside every [`FieldName`].
-    pub fn modifier(self) -> Option<Tok> {
-        words(self.0).next()
+    /// The markers outside every [`FieldName`]: before the name (`_DYNAMIC v(1 TO 3) AS LONG`) and after the type
+    /// (`v(1) AS LONG _DYNAMIC`), in source order. They belong to every name of the field.
+    pub fn markers(self) -> impl Iterator<Item = Tok> + 'a {
+        markers(self.0)
     }
 }
 
@@ -1319,10 +1321,17 @@ impl<'a> FieldName<'a> {
         child(self.0, ArrayBounds::cast)
     }
 
-    /// `_DYNAMIC` or `_STATIC`.
-    pub fn modifier(self) -> Option<Tok> {
-        words(self.0).nth(1)
+    /// This name's own markers (`_DYNAMIC` or `_STATIC`), in source order.
+    pub fn markers(self) -> impl Iterator<Item = Tok> + 'a {
+        markers(self.0)
     }
+}
+
+/// The token of each [`FieldMarker`] child of a node.
+fn markers<'a>(node: Node<'a>) -> impl Iterator<Item = Tok> + 'a {
+    node.child_nodes()
+        .filter_map(FieldMarker::cast)
+        .filter_map(|m| m.0.child_tokens().find(|t| t.kind == Ident))
 }
 
 impl<'a> ArrayBounds<'a> {

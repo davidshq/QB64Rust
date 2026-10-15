@@ -858,6 +858,28 @@ fn debug_warning() {
     assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
 }
 
+/// `$UNSTABLE:MIDI` and `$UNSTABLE:HTTP` compile and, with `-w`, give the old compiler's warning at their line
+/// (spec `language/unstable-features`, "Stable flags"; `qb64pe.bas` 3891, 3895); `TYPEFIELDS` gives none. The C++
+/// only, so no clone is needed.
+#[test]
+fn unstable_stable_flag_warning() {
+    let d = scratch("unstable-meta");
+    let src = "$CONSOLE:ONLY\n$UNSTABLE:MIDI\n$unstable: http\n$UNSTABLE:TYPEFIELDS\nPRINT 1\nSYSTEM\n";
+    std::fs::write(d.join("p.bas"), src).unwrap();
+    let o = qb64rust(&d, &["-w", "-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    let out = stdout(&o);
+    let warnings: Vec<&str> = out.lines().filter(|l| l.contains("warning")).collect();
+    let expected = [
+        "p.bas:2:1: warning: No longer required, feature is stable now",
+        "p.bas:3:1: warning: No longer required, feature is stable now",
+    ];
+    assert_eq!(warnings, expected, "{out}");
+    let o = qb64rust(&d, &["-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
+}
+
 /// Deeply nested expressions are one "not supported yet" error, not a stack overflow (the known bug of
 /// 2026-10-07). Through the binary, which runs on its own large stack; a test thread's 2 MiB would not hold the
 /// later walks of an expression 1,000 levels deep in a debug build.
