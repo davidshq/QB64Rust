@@ -67,9 +67,10 @@ flag (`v35_x60`: the old compiler reads `AS` as the member's name).
 `Member`
 gains `dynamic: bool`. In the `TYPE` block, in this order: a marker without the block's flag is the error that
 names the flag; two markers (equal or not) "a member takes one of `_DYNAMIC` and `_STATIC`"; a marker on a member
-with no bounds "`_DYNAMIC` and `_STATIC` mark member arrays only". `_STATIC` sets nothing. A `CONST` in a bound is
-"not supported yet" for a `_DYNAMIC` member as for any other (the rule of "Member arrays"; `v35_x17` shows the old
-compiler takes it, and the constants are read after the blocks).
+with no bounds "`_DYNAMIC` and `_STATIC` mark member arrays only". `_STATIC` sets nothing. A `CONST` in a bound
+stays "not supported yet" for a member that is not `_DYNAMIC` (the rule of "Member arrays"); the first bounds of a
+`_DYNAMIC` member may name one (`v35_x17`; the spec "Dynamic member arrays"): they are read when pass 2 reaches the
+block, below the constants above it (changed while task 3.3 was built; its `tasks.md` note).
 
 ### D3. Owner types and their layout
 

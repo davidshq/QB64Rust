@@ -115,6 +115,7 @@ impl Checker<'_> {
         // `OPTION BASE` as it stands at the block: the lower bound of a member array's dimension without `TO`.
         let base = self.type_bases.get(&b.node().key()).copied().unwrap_or(0);
         let mut members: Vec<Member> = Vec::new();
+        let mut const_bounds = false;
         for field in b.fields() {
             let fspan = field.node().span();
             let a = self.need(field.as_clause(), fspan)?;
@@ -123,12 +124,15 @@ impl Checker<'_> {
                 let t = self.need(f.name(), f.node().span())?;
                 let shown = show_bytes(self.text(t.span));
                 let dynamic = self.member_markers(b, field, f)?;
-                if dynamic {
-                    let at = f.markers().chain(field.markers()).next().map_or(t.span, |m| m.span);
-                    return Err(self.unsupported(at, "`_DYNAMIC` member arrays"));
-                }
                 let bounds = match f.bounds() {
-                    Some(bounds) => self.member_bounds(bounds, base, &shown)?,
+                    // The first bounds of a dynamic member array may name a `CONST` (measured,
+                    // `verification\v35_x17`): they are read in pass 2, where the constants above the block are
+                    // known; until then each dimension is 0 TO 0.
+                    Some(bounds) if dynamic && names_constants(bounds) => {
+                        const_bounds = true;
+                        vec![(0, 0); bounds.ranges().len()]
+                    }
+                    Some(bounds) => self.member_bounds(bounds, base, &shown, false)?,
                     None => Vec::new(),
                 };
                 let (mname, msuffix) = self.split_name(t)?;
@@ -176,7 +180,31 @@ impl Checker<'_> {
             members,
         });
         self.types_by_name.insert(name, id);
+        if const_bounds {
+            self.type_const_bounds.insert(b.node().key(), id);
+        }
         Ok(())
+    }
+
+    /// Pass 2 at a `TYPE` block of [`Checker::type_const_bounds`]: the first bounds of its dynamic member arrays
+    /// that name a `CONST`, now that the constants above the block are known.
+    fn type_const_bounds(&mut self, b: ast::TypeBlock, id: TypeId) {
+        self.stmt_error = false;
+        let base = self.type_bases.get(&b.node().key()).copied().unwrap_or(0);
+        let names = b.fields().flat_map(|field| field.names().collect::<Vec<_>>());
+        for (i, f) in names.enumerate() {
+            let Some(bounds) = f.bounds().filter(|&bounds| names_constants(bounds)) else {
+                continue;
+            };
+            if !self.prog.types[id.0 as usize].members[i].dynamic {
+                continue;
+            }
+            let shown = show_bytes(self.text(f.name().map_or(f.node().span(), |t| t.span)));
+            if let Ok(read) = self.member_bounds(bounds, base, &shown, true) {
+                self.prog.types[id.0 as usize].members[i].bounds = read;
+            }
+        }
+        self.flush_names();
     }
 
     /// The markers of one member name (design D2 of `m3-typefields`; `qb64pe.bas` 2213–2304; measured,
@@ -225,7 +253,15 @@ impl Checker<'_> {
     /// names one (accepted by the old compiler, `v24_x196`) cannot be told from a variable (its "TYPE member
     /// array bounds must be numeric constant", `x195`): a bound that is not written with numbers alone is not
     /// supported yet.
-    fn member_bounds(&mut self, bounds: ast::ArrayBounds, base: i64, shown: &str) -> R<Vec<(i64, i64)>> {
+    ///
+    /// `constants`: the constants above the block are known (pass 2, the first bounds of a dynamic member array).
+    fn member_bounds(
+        &mut self,
+        bounds: ast::ArrayBounds,
+        base: i64,
+        shown: &str,
+        constants: bool,
+    ) -> R<Vec<(i64, i64)>> {
         let span = bounds.node().span();
         let ranges = bounds.ranges();
         if ranges.is_empty() {
@@ -236,7 +272,7 @@ impl Checker<'_> {
         for (lower, upper) in ranges {
             let upper = self.need(upper, span)?;
             for bound in lower.into_iter().chain([upper]) {
-                if !only_numbers(bound) {
+                if !constants && !only_numbers(bound) {
                     let msg = "a bound of a member array that is not written with numbers alone (a `CONST`)";
                     return Err(self.unsupported(bound.node().span(), msg));
                 }
@@ -309,6 +345,9 @@ impl Checker<'_> {
         if self.types_seen.contains(&node.key()) {
             if self.types_marked.contains(&node.key()) {
                 self.follow_on = true;
+            }
+            if let Some(&id) = self.type_const_bounds.get(&node.key()) {
+                self.type_const_bounds(b, id);
             }
             return;
         }
@@ -449,7 +488,7 @@ impl Checker<'_> {
             return Err(self.unsupported(bounds_span, msg));
         }
         let allocate = |array| StmtKind::Allocate {
-            array,
+            array: ArrayRef::Var(array),
             bounds: dims.iter().map(|d| (d.lower.clone(), d.upper.clone())).collect(),
             mode,
             joined: false,
@@ -881,7 +920,7 @@ impl Checker<'_> {
                 kind: ExprKind::Int(v),
             };
             let kind = StmtKind::Allocate {
-                array: id,
+                array: ArrayRef::Var(id),
                 bounds: vec![(bound(base), bound(10)); dims],
                 mode: AllocMode::Dim,
                 joined: true,
@@ -1047,6 +1086,14 @@ impl Checker<'_> {
         }
     }
 
+    /// Whether an array is a dynamic member array (design D4 of `m3-typefields`).
+    pub(super) fn is_dynamic_member(&self, array: &ArrayRef) -> bool {
+        match array {
+            ArrayRef::Var(_) => false,
+            ArrayRef::Member { base, member } => self.prog.member(self.prog.place_ty(base), *member).dynamic,
+        }
+    }
+
     /// Whether a place that [`Self::members`] gave names a member array as a whole. Such a place is no place of
     /// the typed tree: it becomes an element ([`Self::member_element`]) or an [`ArrayRef::Member`].
     pub(super) fn is_member_array(&self, place: &Place) -> bool {
@@ -1081,6 +1128,10 @@ impl Checker<'_> {
             let msg = format!("`{shown}()` is a member array: an index is expected between the parentheses");
             return Err(self.error(span, msg));
         }
+        // A dynamic member array has the number of dimensions of its last `REDIM`, checked when the element is
+        // used (design D4 of `m3-typefields`; measured, `verification\v35_g_dyn_errors` 9.).
+        let dynamic = self.member_of(&place).is_some_and(|m| m.dynamic);
+        let dims = if dynamic { args.len() } else { dims };
         let index = self.indexes(args, dims, t, span)?;
         let Place::Member { base, member } = place else {
             unreachable!("a member array is a member");
@@ -1272,13 +1323,17 @@ impl Checker<'_> {
     /// ("REDIM type does not match the declared TYPE member array").
     ///
     /// `alone`: the item is the only one of its statement. `listed`: the type stands before the names.
+    ///
+    /// A dynamic member array (design D4 of `m3-typefields`) takes new bounds as a dynamic array does
+    /// ([`Self::redim_dynamic_member`]).
     pub(super) fn redim_member(
         &mut self,
         item: ast::DimItem,
-        keeps: bool,
+        mode: AllocMode,
         (listed, alone): (bool, bool),
         stmt: Node,
     ) -> R<bool> {
+        let keeps = mode.keeps_elements();
         let span = item.node().span();
         let parts = item.path();
         let Some(&(first, first_parens)) = parts.first() else {
@@ -1330,7 +1385,11 @@ impl Checker<'_> {
                     return Err(self.error(index_span, msg));
                 }
                 let args = self.path_index(index)?;
-                let dims = self.member_of(&place).map_or(0, |m| m.bounds.len());
+                let dims = match self.member_of(&place) {
+                    Some(m) if m.dynamic => args.len(),
+                    Some(m) => m.bounds.len(),
+                    None => 0,
+                };
                 let index = self.indexes(args, dims, t, index_span)?;
                 let Place::Member { base, member } = place else {
                     unreachable!("a member array is a member");
@@ -1343,10 +1402,10 @@ impl Checker<'_> {
         }
         let (last_tok, _) = parts[last];
         let shown = show_bytes(self.text(last_tok.span));
-        let Some((declared, member_ty)) = self
+        let Some((declared, member_ty, dynamic)) = self
             .member_of(&place)
             .filter(|m| m.is_array())
-            .map(|m| (m.bounds.clone(), m.ty))
+            .map(|m| (m.bounds.clone(), m.ty, m.dynamic))
         else {
             // Not measured: a `REDIM` of a member that is a single value.
             return Err(self.unsupported(span, format!("`REDIM` of `{shown}`, a member that is no array")));
@@ -1371,6 +1430,16 @@ impl Checker<'_> {
                 self.prog.type_name(member_ty)
             );
             return Err(self.error(at, msg));
+        }
+        if dynamic {
+            // A type suffix on the member's name stands for `AS` its type (measured, `verification\v35_x32`).
+            let typed = as_ty.is_some() || self.split_name(last_tok)?.1.is_some();
+            let Place::Member { base, member } = place else {
+                unreachable!("a member array is a member");
+            };
+            let array = ArrayRef::Member { base, member };
+            self.redim_dynamic_member(array, bounds, typed, mode, (&shown, alone, span), stmt)?;
+            return Ok(true);
         }
         let bounds_span = bounds.node().span();
         let mut given = Vec::new();
@@ -1416,6 +1485,46 @@ impl Checker<'_> {
         Ok(true)
     }
 
+    /// `REDIM` of a dynamic member array (design D4 and D5 of `m3-typefields`; measured, `verification\v35_a`,
+    /// `x29`–`x33`): bounds as a dynamic array's, any number of dimensions, the first one with `lower TO upper`
+    /// unless the type is written (`AS` or a suffix; else "REDIM of a TYPE member array must include AS <type> or
+    /// explicit lower TO upper bounds"). An [`StmtKind::Allocate`] of the member, which finds the place it is part
+    /// of once; beside other targets of its statement as for a clear ([`Self::clear_member_array`]).
+    fn redim_dynamic_member(
+        &mut self,
+        array: ArrayRef,
+        bounds: ast::ArrayBounds,
+        typed: bool,
+        mode: AllocMode,
+        (shown, alone, span): (&str, bool, Span),
+        stmt: Node,
+    ) -> R<()> {
+        let ranges = bounds.ranges();
+        let Some((first_lower, first_upper)) = ranges.first() else {
+            return Err(self.unsupported(span, format!("`REDIM` of the member array `{shown}` without bounds")));
+        };
+        if first_lower.is_none() && !typed {
+            let msg = format!(
+                "a `REDIM` of the member array `{shown}` names its bounds as `lower TO upper`, or its type with `AS`"
+            );
+            let at = first_upper.map_or(bounds.node().span(), |u| u.node().span());
+            return Err(self.error(at, msg));
+        }
+        if array.may_raise() && !alone {
+            let msg = "a member array of an array element in a list of `REDIM` targets";
+            return Err(self.unsupported(span, msg));
+        }
+        let dims = self.dim_bounds(bounds, shown)?;
+        let kind = StmtKind::Allocate {
+            array,
+            bounds: dims.into_iter().map(|d| (d.lower, d.upper)).collect(),
+            mode,
+            joined: false,
+        };
+        self.push(stmt, kind);
+        Ok(())
+    }
+
     /// The indexes written in the parentheses of a part of a `REDIM` path (`(1)` in `a(1).v(0 TO 3)`), which the
     /// parser reads as bounds.
     fn path_index<'t>(&mut self, index: ast::ArrayBounds<'t>) -> R<Vec<ast::Expr<'t>>> {
@@ -1442,7 +1551,13 @@ impl Checker<'_> {
             let msg = "a member array of an array element in a list of `ERASE` or `REDIM` targets";
             return Err(self.unsupported(span, msg));
         }
-        self.push(stmt, StmtKind::Clear { array });
+        // `ERASE` of a dynamic member array releases it (design D4 of `m3-typefields`).
+        let kind = if self.is_dynamic_member(&array) {
+            StmtKind::Release { array }
+        } else {
+            StmtKind::Clear { array }
+        };
+        self.push(stmt, kind);
         Ok(())
     }
 
@@ -1651,15 +1766,31 @@ fn only_numbers(node: ast::Expr) -> bool {
     }
 }
 
+/// Whether the bounds of a member array name more than numbers: a `CONST`, or a variable, which is an error.
+fn names_constants(bounds: ast::ArrayBounds) -> bool {
+    bounds
+        .ranges()
+        .into_iter()
+        .flat_map(|(lower, upper)| lower.into_iter().chain(upper))
+        .any(|b| !only_numbers(b))
+}
+
 /// The bytes a value of a type takes in the emitter's layout, where a `STRING` is the pointer to its string:
 /// what limits the size of a `TYPE`.
 fn layout_bytes(types: &[UserType], t: Ty) -> u64 {
     match t {
         Ty::Str => 8,
+        // A dynamic member array is the pointer to its descriptor, before alignment.
         Ty::User(id) => types[id.0 as usize]
             .members
             .iter()
-            .map(|m| layout_bytes(types, m.ty) * u64::from(m.count()))
+            .map(|m| {
+                if m.dynamic {
+                    8
+                } else {
+                    layout_bytes(types, m.ty) * u64::from(m.count())
+                }
+            })
             .sum(),
         Ty::I8
         | Ty::U8

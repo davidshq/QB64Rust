@@ -8,9 +8,10 @@
 //! where the old compiler has `static` ones: a FUNCTION called in a bound may run the same statement again.
 
 use crate::Emitter;
-use crate::decl::{Part, dim_slot, lock_slot};
+use crate::decl::{Part, count_of, dim_slot, lock_slot};
 use crate::names::int_const;
-use qb64rust_ir::{AllocMode, Expr, Facts, Ty, Var, VarId};
+use crate::owner::dyn_fn;
+use qb64rust_ir::{AllocMode, ArrayRef, Expr, Facts, Ty, Var, VarId};
 
 /// The lines of a text, each a line of a statement.
 fn push_lines(out: &mut Vec<String>, text: &str) {
@@ -56,20 +57,60 @@ fn retain_walk(out: &mut Vec<String>, dims: usize, payload: &[String]) {
 
 impl Emitter<'_> {
     /// `Allocate`: see the IR for what it does and in which order.
-    pub(crate) fn allocate(&mut self, array: VarId, bounds: &[(Expr, Expr)], mode: AllocMode, out: &mut Vec<String>) {
-        let v = self.p.var(array);
-        let n = self.name(array);
-        let texts: Vec<(String, String)> = bounds
+    pub(crate) fn allocate(
+        &mut self,
+        array: &ArrayRef,
+        bounds: &[(Expr, Expr)],
+        mode: AllocMode,
+        out: &mut Vec<String>,
+    ) {
+        let mut cleanup = bounds
             .iter()
-            .map(|(lower, upper)| (self.value(lower), self.value(upper)))
-            .collect();
-        self.allocate_with(v, &n, &texts, mode, out);
-        if bounds
-            .iter()
-            .any(|(lower, upper)| lower.uses_strings(self.p) || upper.uses_strings(self.p))
-        {
+            .any(|(lower, upper)| lower.uses_strings(self.p) || upper.uses_strings(self.p));
+        match array {
+            ArrayRef::Var(array) => {
+                let v = self.p.var(*array);
+                let n = self.name(*array);
+                let texts = self.bound_texts(bounds);
+                self.allocate_with(v.ty, &n, &texts, mode, out);
+            }
+            ArrayRef::Member { base, member } => {
+                // The place first, once; a descriptor with another number of dimensions goes, and a new one is
+                // made when there is none (design D4 of `m3-typefields`).
+                let (id, m) = self
+                    .dynamic_member(base, *member)
+                    .expect("an Allocate of a dynamic member array");
+                let ty = self.p.member_of(base, *member).ty;
+                let dims = bounds.len();
+                out.push("{".into());
+                let slot = self.dyn_slot(base, *member);
+                out.push(format!("char *dyn_slot={slot};"));
+                out.push("ptrszint *dyn_d=*(ptrszint**)dyn_slot;".into());
+                out.push(format!(
+                    "if (dyn_d&&dyn_d[3]!={dims}){{{}(dyn_d);dyn_d=NULL;}}",
+                    dyn_fn(id, m, "free")
+                ));
+                out.push(format!(
+                    "if (!dyn_d){{dyn_d={}({dims});*(ptrszint**)dyn_slot=dyn_d;}}",
+                    dyn_fn(id, m, "blank")
+                ));
+                let texts = self.bound_texts(bounds);
+                self.allocate_with(ty, "dyn_d", &texts, mode, out);
+                out.push("}".into());
+                cleanup |= base.uses_strings(self.p);
+            }
+        }
+        if cleanup {
             out.push("qbs_cleanup(qbs_tmp_base,0);".into());
         }
+    }
+
+    /// The bounds of an `Allocate` as C expressions, lower before upper, first dimension first.
+    fn bound_texts(&mut self, bounds: &[(Expr, Expr)]) -> Vec<(String, String)> {
+        bounds
+            .iter()
+            .map(|(lower, upper)| (self.value(lower), self.value(upper)))
+            .collect()
     }
 
     /// The allocation of an array that `STATIC a(bounds)` declared (`Shape::Dynamic`, `at_start`), for
@@ -83,25 +124,33 @@ impl Emitter<'_> {
             .map(|&(lower, upper)| (int_const(lower, Ty::I64), int_const(upper, Ty::I64)))
             .collect();
         let mut out = Vec::new();
-        self.allocate_with(v, n, &texts, AllocMode::Dim, &mut out);
+        self.allocate_with(v.ty, n, &texts, AllocMode::Dim, &mut out);
         out.iter().map(|line| format!("{line}\n")).collect()
     }
 
-    /// [`Self::allocate`] with the bounds as C expressions, lower before upper, first dimension first.
-    fn allocate_with(&self, v: &Var, n: &str, bounds: &[(String, String)], mode: AllocMode, out: &mut Vec<String>) {
+    /// [`Self::allocate`] of the array whose descriptor is `n`, of elements of type `t`, with the bounds as C
+    /// expressions, lower before upper, first dimension first.
+    pub(crate) fn allocate_with(
+        &self,
+        t: Ty,
+        n: &str,
+        bounds: &[(String, String)],
+        mode: AllocMode,
+        out: &mut Vec<String>,
+    ) {
         let dims = bounds.len();
-        let string = v.ty == Ty::Str;
-        let holds = self.holds_strings(v.ty);
+        let string = t == Ty::Str;
+        let holds = self.has_life(t);
         // The bytes of one element; a `_BIT * n` element gets whole bytes of its own here, more than the packed
         // elements need, as in the old compiler.
-        let bits = if let Ty::Bit { width, .. } = v.ty {
+        let bits = if let Ty::Bit { width, .. } = t {
             Some(width)
         } else {
             None
         };
         let size = match bits {
             Some(width) => format!("{width}/8+1"),
-            None => self.ty_size(v.ty).to_string(),
+            None => self.ty_size(t).to_string(),
         };
         let redim = mode != AllocMode::Dim;
         let retain = mode == AllocMode::Retain;
@@ -165,7 +214,7 @@ impl Emitter<'_> {
             ));
             out.push(format!("if ({n}[2]&1){{"));
             out.push(format!("preserve_old_ptr={n}[0];"));
-            out.push(format!("preserve_old_total={};", self.element_count(v, n)));
+            out.push(format!("preserve_old_total={};", count_of(dims, n)));
             if retain {
                 for i in 4..lock_slot(dims) {
                     out.push(format!("preserve_old_desc[{i}]={n}[{i}];"));
@@ -225,7 +274,7 @@ impl Emitter<'_> {
                 out.push("preserve_new_ptr=(ptrszint)malloc((size_t)alloc_req_bytes);".into());
                 out.push("if (!preserve_new_ptr) error(257);".into());
             } else {
-                out.extend(self.new_block(v.ty, n, "preserve_new_ptr"));
+                out.extend(self.new_block(t, n, "preserve_new_ptr"));
             }
             let keep = mode == AllocMode::Preserve;
             if string {
@@ -262,22 +311,28 @@ impl Emitter<'_> {
                     "while(tmp_long--) setbits({width},(uint8*)(preserve_new_ptr),tmp_long,(int64)getubits({width},(uint8*)(preserve_old_ptr),tmp_long));"
                 ));
             } else if holds {
-                // Elements of a user type with strings: every new element gets its own, the kept ones are
-                // copied part by part, and the old elements' strings go with the old block.
+                // Elements of a user type with strings or dynamic member arrays: every new element gets its own,
+                // the kept ones are copied part by part (an owner value deep, as the old compiler's
+                // `AppendDynUDTDescCopy` copies it), and what the old elements hold goes with the old block.
                 let (new, old) = ("preserve_new_ptr", "preserve_old_ptr");
                 push_lines(
                     out,
-                    &self.each_element(v.ty, new, "(ptrszint)alloc_req_elems", |at| self.new_strings(v.ty, at)),
+                    &self.each_element(t, new, "(ptrszint)alloc_req_elems", |at| self.new_value(t, at)),
                 );
                 let copy = |new_at: &str, old_at: &str| -> Vec<String> {
                     let at = |block: &str, i: &str, offset| format!("((char*)({block})+{i}*{size}+{offset})");
-                    self.parts(v.ty)
+                    if self.owns_desc(t) {
+                        let text = self.clone_value(t, &at(new, new_at, 0), &at(old, old_at, 0));
+                        return text.lines().map(str::to_string).collect();
+                    }
+                    self.parts(t)
                         .into_iter()
                         .map(|(offset, part)| {
                             let (to, from) = (at(new, new_at, offset), at(old, old_at, offset));
                             match part {
                                 Part::Str => format!("qbs_set(*(qbs**){to},*(qbs**){from});"),
                                 Part::Bytes(n) => format!("memcpy({to},{from},{n});"),
+                                Part::Dyn { .. } => unreachable!("a type that owns no dynamic member array"),
                             }
                         })
                         .collect()
@@ -292,9 +347,7 @@ impl Emitter<'_> {
                 }
                 push_lines(
                     out,
-                    &self.each_element(v.ty, old, "(ptrszint)preserve_old_total", |at| {
-                        self.free_strings(v.ty, at)
-                    }),
+                    &self.each_element(t, old, "(ptrszint)preserve_old_total", |at| self.free_value(t, at)),
                 );
             } else if retain {
                 retain_walk(
@@ -309,7 +362,7 @@ impl Emitter<'_> {
                     "if (preserve_copy_count) memcpy((void*)(preserve_new_ptr),(void*)(preserve_old_ptr),preserve_copy_count*{size});"
                 ));
             }
-            out.push(self.free_block(v.ty, n, "preserve_old_ptr"));
+            out.push(self.free_block(t, n, "preserve_old_ptr"));
             out.push(format!("{n}[0]=preserve_new_ptr;"));
             out.push("}else{".into());
         }
@@ -320,13 +373,11 @@ impl Emitter<'_> {
             out.push("tmp_long=(ptrszint)alloc_req_elems;".into());
             out.push(format!("while(tmp_long--) ((qbs**)({n}[0]))[tmp_long]=qbs_new(0,0);"));
         } else {
-            out.extend(self.new_block(v.ty, n, &format!("{n}[0]")));
+            out.extend(self.new_block(t, n, &format!("{n}[0]")));
             let block = format!("{n}[0]");
             push_lines(
                 out,
-                &self.each_element(v.ty, &block, "(ptrszint)alloc_req_elems", |at| {
-                    self.new_strings(v.ty, at)
-                }),
+                &self.each_element(t, &block, "(ptrszint)alloc_req_elems", |at| self.new_value(t, at)),
             );
         }
         if redim {
@@ -359,9 +410,23 @@ impl Emitter<'_> {
         out.push("}".into());
     }
 
-    /// `Release`: a dynamic array not allocated again.
-    pub(crate) fn release_array(&self, array: VarId, out: &mut Vec<String>) {
-        let text = self.release(self.p.var(array), &self.name(array));
-        out.extend(text.lines().map(str::to_string));
+    /// `Release`: a dynamic array not allocated again; of a dynamic member array the place is found once.
+    pub(crate) fn release_array(&mut self, array: &ArrayRef, out: &mut Vec<String>) {
+        match array {
+            ArrayRef::Var(array) => {
+                let text = self.release(self.p.var(*array), &self.name(*array));
+                out.extend(text.lines().map(str::to_string));
+            }
+            ArrayRef::Member { base, member } => {
+                let (id, m) = self
+                    .dynamic_member(base, *member)
+                    .expect("a Release of a dynamic member array");
+                let slot = self.dyn_slot(base, *member);
+                out.push(format!("{}(*(ptrszint**){slot});", dyn_fn(id, m, "release")));
+                if base.uses_strings(self.p) {
+                    out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+                }
+            }
+        }
     }
 }

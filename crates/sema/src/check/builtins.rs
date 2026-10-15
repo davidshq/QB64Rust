@@ -488,6 +488,10 @@ impl Checker<'_> {
             );
             return Err(self.error(e.span, msg));
         }
+        if crate::owns_desc(&self.prog.types, ty) {
+            // Measured (`verification\v35_x20`), compiled with task 5.2 of `m3-typefields`.
+            return Err(self.unsupported(e.span, "`LEN` of a value of a `TYPE` with a dynamic member array"));
+        }
         // The index of an element is not evaluated (the old compiler takes the element type's size).
         let size = crate::size_of(&self.prog.types, ty);
         Ok(Expr {
@@ -976,6 +980,12 @@ impl Checker<'_> {
                 self.prog.type_name(ty)
             );
             return Err(self.error(span, msg));
+        }
+        if crate::owns_desc(&self.prog.types, ty) {
+            // Measured (`verification\v35_e_dyn_statements`, `v35_x50`, `x54`, `x55`), compiled with tasks 5.1 and
+            // 5.2 of `m3-typefields`.
+            let msg = format!("`{name}` of a `TYPE` with a dynamic member array");
+            return Err(self.unsupported(span, msg));
         }
         Ok(())
     }

@@ -384,6 +384,34 @@ pub fn holds_strings(types: &[UserType], t: Ty) -> bool {
     }
 }
 
+/// Whether a value of this type owns dynamic member arrays (design D3 of `m3-typefields`): a user type with a
+/// `_DYNAMIC` member, or with a member (also a member array) of a user type that owns one. Such a value is laid out
+/// with its descriptor pointers aligned and is made, released and copied with its members.
+pub fn owns_desc(types: &[UserType], t: Ty) -> bool {
+    match t {
+        Ty::User(id) => types[id.0 as usize]
+            .members
+            .iter()
+            .any(|m| m.dynamic || owns_desc(types, m.ty)),
+        Ty::I8
+        | Ty::U8
+        | Ty::I16
+        | Ty::U16
+        | Ty::I32
+        | Ty::U32
+        | Ty::I64
+        | Ty::U64
+        | Ty::Off
+        | Ty::UOff
+        | Ty::Bit { .. }
+        | Ty::F32
+        | Ty::F64
+        | Ty::F80
+        | Ty::Str
+        | Ty::FixedStr(_) => false,
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TypeId(pub u32);
 
@@ -1155,8 +1183,12 @@ pub enum StmtKind {
     /// allocation of an array used without `DIM` below `$DYNAMIC`, which the statement that names it first
     /// does; measured, `verification\v24_x101`): an error it raises is an error of that statement, so the stores
     /// of the statement are skipped by their rule and `RESUME NEXT` goes on after the statement.
+    ///
+    /// The array may be a dynamic member array (design D5 of `m3-typefields`): the place it is part of is found
+    /// once, before the bounds, and not guarded (an index outside its bounds on the way raises error 9 and the
+    /// member of the element at position 0 stands in); it is never static.
     Allocate {
-        array: VarId,
+        array: ArrayRef,
         bounds: Vec<(Expr, Expr)>,
         mode: AllocMode,
         joined: bool,
@@ -1170,8 +1202,9 @@ pub enum StmtKind {
     /// index raises.
     Clear { array: ArrayRef },
     /// `ERASE` of a dynamic array: its elements are released and it is not allocated afterwards. Of one that is
-    /// not allocated it does nothing.
-    Release { array: VarId },
+    /// not allocated it does nothing. The array may be a dynamic member array, whose place is found as for
+    /// [`StmtKind::Allocate`].
+    Release { array: ArrayRef },
     /// `ERASE` of an array parameter: a [`StmtKind::Clear`] when the array passed is a static one, a
     /// [`StmtKind::Release`] when it is dynamic, which is known when the statement runs.
     EraseParam { array: VarId },

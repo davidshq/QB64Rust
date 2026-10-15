@@ -35,6 +35,7 @@ mod decl;
 mod io;
 mod mem;
 mod names;
+mod owner;
 mod place;
 mod procs;
 mod stmt;
@@ -130,8 +131,12 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
             } else if is_qbs(v.ty) {
                 format!("qbs_free({n});\n")
             } else {
-                // The strings a variable of a user type holds.
-                e.free_strings(v.ty, &format!("(char*){n}"))
+                // The strings and dynamic member arrays a variable of a user type holds.
+                if let qb64rust_ir::Ty::User(_) = v.ty {
+                    e.free_value(v.ty, &format!("(char*){n}"))
+                } else {
+                    String::new()
+                }
             }
         }),
     );

@@ -132,8 +132,11 @@ impl<'a> Emitter<'a> {
             if is_qbs(v.ty) && !matches!(v.storage, Storage::Result(_)) {
                 writeln!(free, "qbs_free({n});").unwrap();
             }
-            // The strings a local variable of a user type holds (its bytes lie in the static pool).
-            free.push_str(&self.free_strings(v.ty, &format!("(char*){n}")));
+            // The strings and dynamic member arrays a local variable of a user type holds (its bytes lie in the
+            // static pool).
+            if let Ty::User(_) = v.ty {
+                free.push_str(&self.free_value(v.ty, &format!("(char*){n}")));
+            }
         }
         // A string argument that is a temporary, fixed-length or read-only is replaced by a copy for the call;
         // a fixed-length one gets the copy's final value back.

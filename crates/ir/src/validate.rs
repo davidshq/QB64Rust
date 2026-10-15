@@ -114,6 +114,14 @@ fn member_checked<'p>(p: &'p Program, base: &Place, member: MemberId) -> Option<
     }
 }
 
+/// Whether an array is a dynamic member array (design D5 of `m3-typefields`).
+fn is_dynamic_member(p: &Program, array: &ArrayRef) -> bool {
+    match array {
+        ArrayRef::Var(_) => false,
+        ArrayRef::Member { base, member } => member_checked(p, base, *member).is_some_and(|m| m.dynamic),
+    }
+}
+
 struct Validator<'p> {
     p: &'p Program,
     problems: Vec<String>,
@@ -279,17 +287,27 @@ impl Validator<'_> {
             }
             Op::Raise(v) => self.value(v, owner, at),
             // An allocation names an array of either kind (of a static one it raises an error when it runs), with
-            // one pair of `I64` bounds per dimension.
+            // one pair of `I64` bounds per dimension, or a dynamic member array, with any number of them.
             Op::Allocate { array, bounds, .. } => {
-                if self.array_use(*array, owner, at, "Allocate")
-                    && let Some(n) = self.p.var(*array).dim_count()
-                    && n != bounds.len()
-                {
-                    let name = &self.p.var(*array).name;
-                    self.problem(format!(
-                        "{at}: {} pairs of bounds for {name} of {n} dimensions",
-                        bounds.len()
-                    ));
+                match array {
+                    ArrayRef::Var(array) => {
+                        if self.array_use(*array, owner, at, "Allocate")
+                            && let Some(n) = self.p.var(*array).dim_count()
+                            && n != bounds.len()
+                        {
+                            let name = &self.p.var(*array).name;
+                            self.problem(format!(
+                                "{at}: {} pairs of bounds for {name} of {n} dimensions",
+                                bounds.len()
+                            ));
+                        }
+                    }
+                    ArrayRef::Member { .. } => {
+                        self.dynamic_member(array, owner, at, "Allocate");
+                        if bounds.is_empty() {
+                            self.problem(format!("{at}: an Allocate of a member array without bounds"));
+                        }
+                    }
                 }
                 for bound in bounds.iter().flat_map(|(lower, upper)| [lower, upper]) {
                     if bound.ty != Ty::I64 {
@@ -298,8 +316,8 @@ impl Validator<'_> {
                     self.value(bound, owner, at);
                 }
             }
-            // A static array, or a member array (whose bounds never change: no Allocate, Release or EraseParam
-            // names one, their arrays being variables).
+            // A static array, or a member array that is not dynamic (whose bounds never change: only a dynamic
+            // one is named by an Allocate or a Release; EraseParam names a variable).
             Op::Clear { array } => match array {
                 ArrayRef::Var(array) => {
                     if self.array_use(*array, owner, at, "Clear")
@@ -310,10 +328,17 @@ impl Validator<'_> {
                     }
                 }
                 ArrayRef::Member { .. } => {
-                    self.array_ref(array, owner, at, "Clear");
+                    if self.array_ref(array, owner, at, "Clear").is_some() && is_dynamic_member(self.p, array) {
+                        self.problem(format!("{at}: Clear of a dynamic member array"));
+                    }
                 }
             },
-            Op::Release { array } => {
+            Op::Release {
+                array: array @ ArrayRef::Member { .. },
+            } => self.dynamic_member(array, owner, at, "Release"),
+            Op::Release {
+                array: ArrayRef::Var(array),
+            } => {
                 if self.array_use(*array, owner, at, "Release") {
                     let v = self.p.var(*array);
                     if !matches!(v.shape, Shape::Dynamic { .. }) {
@@ -738,6 +763,9 @@ impl Validator<'_> {
             Place::Element { array, index } => {
                 match self.array_ref(array, owner, at, "an element") {
                     Some((_, Some(n))) if n == index.len() => {}
+                    // A dynamic member array has the number of dimensions of its last `REDIM`, checked when the
+                    // element is used.
+                    Some(_) if is_dynamic_member(self.p, array) => {}
                     Some((name, Some(n))) => {
                         let msg = format!("{at}: {} indexes for {name} of {n} dimensions", index.len());
                         self.problem(msg);
@@ -765,6 +793,15 @@ impl Validator<'_> {
                     None => self.problem(format!("{at}: member {} of a place without it", member.0)),
                 }
             }
+        }
+    }
+
+    /// The member array an `Allocate` or a `Release` names: a dynamic one.
+    fn dynamic_member(&mut self, array: &ArrayRef, owner: Option<ProcId>, at: &At, what: &str) {
+        if let Some((name, _)) = self.array_ref(array, owner, at, what)
+            && !is_dynamic_member(self.p, array)
+        {
+            self.problem(format!("{at}: {what} of the member array {name}, which is not dynamic"));
         }
     }
 
@@ -1426,7 +1463,7 @@ mod tests {
 
     fn allocate(array: u32, bounds: Vec<(Expr, Expr)>) -> Op {
         Op::Allocate {
-            array: VarId(array),
+            array: ArrayRef::Var(VarId(array)),
             bounds,
             mode: AllocMode::Redim,
         }
@@ -1442,7 +1479,9 @@ mod tests {
             Op::Clear {
                 array: ArrayRef::Var(VarId(3)),
             },
-            Op::Release { array: VarId(4) },
+            Op::Release {
+                array: ArrayRef::Var(VarId(4)),
+            },
         ]);
         assert_eq!(problems(&p), Vec::<String>::new());
     }
@@ -1511,7 +1550,9 @@ mod tests {
         // The array passed may be a static one: a parameter is never released, and only a parameter is erased
         // by what is passed.
         let mut p = array_param(4);
-        p.procs[0].body.stmts[0].ops = vec![Op::Release { array: VarId(1) }];
+        p.procs[0].body.stmts[0].ops = vec![Op::Release {
+            array: ArrayRef::Var(VarId(1)),
+        }];
         assert_eq!(
             problems(&p),
             ["S: statement 0 (line 1): Release of the array parameter P"]
@@ -1565,7 +1606,9 @@ mod tests {
     #[test]
     fn release_of_a_static_array() {
         let mut p = arrays();
-        p.main.stmts[0].ops.push(Op::Release { array: VarId(3) });
+        p.main.stmts[0].ops.push(Op::Release {
+            array: ArrayRef::Var(VarId(3)),
+        });
         assert_eq!(
             problems(&p),
             ["main: statement 0 (line 1): Release of S, which is no dynamic array"]
@@ -1611,7 +1654,9 @@ mod tests {
             Op::Clear {
                 array: ArrayRef::Var(VarId(0)),
             },
-            Op::Release { array: VarId(0) },
+            Op::Release {
+                array: ArrayRef::Var(VarId(0)),
+            },
         ]);
         let at = "main: statement 0 (line 1)";
         assert_eq!(
@@ -1722,6 +1767,56 @@ mod tests {
                 format!("{at}: an element of the member X, which is no array"),
                 format!("{at}: the member array V used as a single value"),
                 format!("{at}: Clear of the member X, which is no array"),
+            ]
+        );
+    }
+
+    /// A dynamic member array (design D5 of `m3-typefields`) is allocated and released, with any number of pairs
+    /// of bounds and of indexes; one that is not dynamic is cleared only.
+    #[test]
+    fn dynamic_member_arrays() {
+        let mut p = member_arrays();
+        p.types[0].members.push(crate::Member {
+            name: "D".into(),
+            ty: Ty::I32,
+            bounds: vec![(0, 1)],
+            dynamic: true,
+        });
+        let member = |m: u32| ArrayRef::Member {
+            base: Box::new(Place::Var(VarId(0))),
+            member: MemberId(m),
+        };
+        let bound = || expr(Ty::I64, ExprKind::Int(1));
+        let allocate = |m: u32, n: usize| Op::Allocate {
+            array: member(m),
+            bounds: vec![(bound(), bound()); n],
+            mode: AllocMode::Retain,
+        };
+        let element = Op::Raise(expr(
+            Ty::I32,
+            ExprKind::Load(Place::Element {
+                array: member(2),
+                index: vec![bound(); 3],
+            }),
+        ));
+        p.main.stmts[0]
+            .ops
+            .extend([allocate(2, 2), element, Op::Release { array: member(2) }]);
+        assert_eq!(problems(&p), Vec::<String>::new());
+        p.main.stmts[0].ops.extend([
+            allocate(1, 1),
+            allocate(2, 0),
+            Op::Release { array: member(1) },
+            Op::Clear { array: member(2) },
+        ]);
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: Allocate of the member array V, which is not dynamic"),
+                format!("{at}: an Allocate of a member array without bounds"),
+                format!("{at}: Release of the member array V, which is not dynamic"),
+                format!("{at}: Clear of a dynamic member array"),
             ]
         );
     }

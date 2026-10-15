@@ -74,14 +74,14 @@ impl Emitter<'_> {
             }
             Op::Assign { place, value } => self.assign(place, value, out),
             Op::CopyWhole { from, to } => self.copy_whole(from, to, out),
-            Op::Allocate { array, bounds, mode } => self.allocate(*array, bounds, *mode, out),
+            Op::Allocate { array, bounds, mode } => self.allocate(array, bounds, *mode, out),
             Op::Clear {
                 array: ArrayRef::Var(array),
             } => self.clear_array(*array, out),
             Op::Clear {
                 array: ArrayRef::Member { base, member },
             } => self.clear_member_array(base, *member, out),
-            Op::Release { array } => self.release_array(*array, out),
+            Op::Release { array } => self.release_array(array, out),
             Op::EraseParam { array } => self.erase_param(*array, out),
             Op::AssignAll(stores) => {
                 for (place, value) in stores {
@@ -254,7 +254,7 @@ impl Emitter<'_> {
     fn copy_whole(&mut self, from: &Place, to: &Place, out: &mut Vec<String>) {
         let ty = self.p.place_ty(to);
         let (to_at, from_at) = (self.bytes_of(to), self.bytes_of(from));
-        let parts = if self.holds_strings(ty) {
+        let parts = if self.has_life(ty) {
             self.parts(ty)
         } else {
             vec![(0, Part::Bytes(self.ty_size(ty)))]
@@ -267,6 +267,11 @@ impl Emitter<'_> {
                 Part::Str => format!("qbs_set(*(qbs**)(copy_to+{offset}),*(qbs**)(copy_from+{offset}));"),
                 // A place copied to itself: the two may be the same bytes.
                 Part::Bytes(n) => format!("memmove(copy_to+{offset},copy_from+{offset},{n});"),
+                // A dynamic member array, deep (design D6 of `m3-typefields`).
+                Part::Dyn { ty, member } => format!(
+                    "{}((ptrszint**)(copy_to+{offset}),(ptrszint**)(copy_from+{offset}));",
+                    crate::owner::dyn_fn(ty, member, "copy")
+                ),
             });
             out.push("}".into());
         }
@@ -287,7 +292,7 @@ impl Emitter<'_> {
         if ty == Ty::Str {
             out.push(format!("tmp_long={count};"));
             out.push("while(tmp_long--) (*(qbs**)(clear_at+tmp_long*8))->len=0;".into());
-        } else if self.holds_strings(ty) {
+        } else if self.has_life(ty) {
             let text = self.each_element(ty, "clear_at", &count.to_string(), |at| self.zero_value(ty, at));
             out.extend(text.lines().map(str::to_string));
         } else {
@@ -431,6 +436,34 @@ impl Emitter<'_> {
                 }
                 out.push(format!("mbr_off*={size};"));
                 format!("{name}[0]")
+            }
+            // An element of a dynamic member array (design D9 of `m3-typefields`): the descriptor is read from the
+            // slot where the way so far leads, unless an index on it was outside, and goes through the guard; the
+            // element's place starts again from the descriptor's block.
+            Place::Element {
+                array: ArrayRef::Member { base, member },
+                index,
+            } if self.dynamic_member(base, *member).is_some() => {
+                let (id, m) = self.dynamic_member(base, *member).expect("a dynamic member array");
+                let root = self.member_path(base, out);
+                let offset = self.member_offset(self.p.place_ty(base), *member);
+                let size = self.ty_size(self.p.member_of(base, *member).ty);
+                let n = index.len();
+                self.pass += 1;
+                let d = format!("mbr_d{}", self.pass);
+                out.push(format!(
+                    "ptrszint *{d}=mbr_bad?NULL:*(ptrszint**)(((char*){root})+mbr_off+{offset});"
+                ));
+                out.push(format!("if (!({d}&&({d}[2]&1)&&{d}[3]=={n})) mbr_bad=1;"));
+                out.push(format!("{d}={}({d},{n});", crate::owner::dyn_fn(id, m, "guard")));
+                out.push("mbr_off=0;".into());
+                for (k, i) in index.iter().enumerate() {
+                    let s = dim_slot(n, k);
+                    out.push(format!("mbr_k=({})-{d}[{s}];", self.value(i)));
+                    out.push(check(&format!("{d}[{}]", s + 1)));
+                    out.push(format!("mbr_off+=mbr_k*{d}[{}]*{size};", s + 2));
+                }
+                format!("{d}[0]")
             }
             Place::Element {
                 array: ArrayRef::Member { base, member },

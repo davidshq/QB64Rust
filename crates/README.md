@@ -10,7 +10,7 @@ The new compiler, `qb64rust`. One crate per pipeline stage, so the layering is e
 | `builtins` | `qb64rust-builtins` | The built-in table, generated at build time from `tools\builtins\builtins.json`; the grammar of the `specialformat` templates (`template.rs`, checked for every template by `build.rs`); the names of QB64pe's auto-included files |
 | `sema` | `qb64rust-sema` | Procedure table, scopes (main, procedure, `STATIC`, `SHARED`), variables (a name plus a type), arrays, user types, places (variable, element, member), labels, constants (`CONST`, `consteval.rs`), literal typing, computation types, explicit conversions, by-reference or by-value arguments, integer constant folding; the typed tree; the symbol table (`symbols.rs`: definition and references of every variable, procedure, label and constant, `Symbols::at` for a position, `dump_symbols`) |
 | `ir` | `qb64rust-ir` | The ABI-neutral IR (no libqb names, no C types: procedures, storage classes, places and their store rules, handlers and `RESUME` as statement-level rules; values, places and arguments are `sema`'s typed tree) and its lowering from the typed tree; `validate` checks its structure |
-| `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...): `lib.rs` the entry points and the fragment set, one module per concern adding the emitter's methods (`names.rs`: C types, identifiers, labels, literals, `#line`; `decl.rs`: sizes, declarations, allocation, temporaries; `procs.rs`: procedures, bodies, labels, `retK.txt`; `stmt.rs`: operations and stores; `place.rs`: places; `value.rs`: values and procedure arguments; `builtins.rs`: built-in calls) |
+| `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...): `lib.rs` the entry points and the fragment set, one module per concern adding the emitter's methods (`names.rs`: C types, identifiers, labels, literals, `#line`; `decl.rs`: sizes, declarations, allocation, temporaries; `procs.rs`: procedures, bodies, labels, `retK.txt`; `stmt.rs`: operations and stores; `place.rs`: places; `value.rs`: values and procedure arguments; `builtins.rs`: built-in calls; `owner.rs`: values that own dynamic member arrays) |
 | `lsp` | `qb64rust-lsp` | The language server (`qb64rust lsp`, OpenSpec change `m2-language-server`): the message loop with debounce, a parse worker and cancellation (`server.rs`), one program's parse with included files from open documents first (`analysis.rs`), the encoding boundary (`encoding.rs`: tables generated from `iconv-lite` by `tools\encodings\gen_tables.js`, UTF-16 columns), `file:` URIs (`uri.rs`), and the features from the trees alone: diagnostics, document symbols (`symbols.rs`), folding ranges (`folding.rs`), go to definition for procedures and labels (`definition.rs`) |
 | `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, the file loader for included files (`FileLoader`), build through the reference clone's `Makefile`; `qb64rust lsp` starts the language server |
 | `difftest` | `qb64rust-difftest` | Not part of the compiler: the generator of the differential programs in `tests\differential` (binary `qb64rust-difftest`, `gen [--check]`; design D2 of `m2-numeric-types`, `tests\differential\README.md`): the numeric type list with each type's `AS` name, literal suffix and value slots (extremes, -1, 0, 1, two seeded random values from a fixed-seed xorshift), the operators and the exclusions; `for_sema` maps every `sema::Ty` exhaustively, so a new numeric type fails its build until the generator covers it |
@@ -651,10 +651,31 @@ What the compiler supports so far:
   taken; `MIDI` and `HTTP` give the old compiler's warning with `-w`; other forms are errors (`unstable_meta`).
   The parser reads each `_DYNAMIC`/`_STATIC` as a `FieldMarker` node in every place the old compiler takes one
   (`syntax\src\parser\blocks.rs`, `type_field`); `sema` counts them (`places.rs`, `member_markers`: the flag, not
-  before an `AS type` list, one marker, arrays only) and sets `Member::dynamic`. `_STATIC` compiles as an unmarked member; a `_DYNAMIC` member is
-  still "not supported yet" (groups 3–5). Checked by `unstable_forms`, `unstable_forms_ok`,
-  `typefields_markers`, the CLI test `unstable_stable_flag_warning` and 18 upstream programs (`t028`–`t044`,
-  `t233`, `t234`, `t_qb64pe_refactor_inline_reset_*`).
+  before an `AS type` list, one marker, arrays only) and sets `Member::dynamic`. `_STATIC` compiles as an
+  unmarked member. Checked by `unstable_forms`, `unstable_forms_ok`, `typefields_markers`, the CLI test
+  `unstable_stable_flag_warning` and 18 upstream programs (`t028`–`t044`, `t233`, `t234`,
+  `t_qb64pe_refactor_inline_reset_*`).
+- **`_DYNAMIC` member arrays** (`m3-typefields` group 3; design D3–D6, D9, D10): a type that owns one (`owns_desc`,
+  in itself or in a member of a user type) has the old compiler's aligned layout (`decl.rs`, `layout`: such a
+  member and a member of an owner type at a multiple of 8, the size rounded up to 8); other types keep the packed
+  one. The member is a pointer to a descriptor of a dynamic array's shape, its number of dimensions in slot 3,
+  with its own `_MEM` lock. Its first bounds may name a `CONST` above the block, read in pass 2 (`places.rs`,
+  `type_const_bounds`). `REDIM` of it is an `Allocate` of an `ArrayRef::Member` (any number of dimensions, the
+  modes of an array; the first dimension `lower TO upper` unless the type is written with `AS` or a suffix),
+  `ERASE` a `Release`; an element has as many indexes as written, checked when it runs. The emitter
+  (`codegen-cpp\src\owner.rs`) writes into `global.txt` one function per owner type for making, releasing,
+  zeroing and copying a value (`qbr_udtN_new`, `_free`, `_zero`, `_clone`) and per dynamic member its descriptor
+  functions (`_blank`, `_make`, `_release`, `_free`, `_copy`, `_guard`, `_bound`, `_desc`); a variable, a `STATIC`
+  local, a local at each return, the elements of an array (`alloc_array`, `allocate_with`, `release`) are made
+  and released through them, `ERASE` of a static array of them zeroes them (dynamic members released, null). An
+  element goes through the guard (error 9 when not allocated or of another number of dimensions; a dummy element
+  then), a store through it stores nothing after an index outside on the way (D-004 widened, `stmt.rs`,
+  `member_path`); `LBOUND`/`UBOUND` find the place; the member as an array argument is its descriptor. A
+  whole-value copy copies the member deep (one `Part::Dyn` per member; the exact order of `v35_x56` is task 4.3).
+  Still marked: `LEN`, `PUT` and `GET` of an owner value or array, `_MEM` of a dynamic member array or its
+  element (groups 4–5), whole-array assignment with a member array. Checked by `typefields_cpp`,
+  `typefields_ir`, the IR unit test `dynamic_member_arrays`, `s114_dyn_members`, `s115_dyn_member_procs` and 76
+  upstream programs.
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
@@ -666,7 +687,7 @@ forms (arrays named `name$n`,
 `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
 constants of QB64pe's auto-included file that are not computed yet and the names of its other auto-included
 files; of arrays and `TYPE`:
-whole arrays (`x()`) where no array parameter takes them, member arrays marked `_DYNAMIC` or with a bound that
+whole arrays (`x()`) where no array parameter takes them, member arrays not marked `_DYNAMIC` with a bound that
 names a `CONST`;
 `DEF FN` is an error, as in QB64pe. After a declaration
 marked "not supported yet", later real errors are dropped (the follow-on rule, design D10 of `m2-parser-breadth`):

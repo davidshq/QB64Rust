@@ -45,21 +45,62 @@ review"), unless the user decided otherwise (D-019, D-020, D-004 widened).
 
 ## 3. `_DYNAMIC` members of variables and elements
 
-- [ ] 3.1 Owner types and the layout (design D3): `owns_desc`; `ty_size`, `member_offset` with the aligned layout
+- [x] 3.1 Owner types and the layout (design D3): `owns_desc`; `ty_size`, `member_offset` with the aligned layout
   for owner types; `file_layout`. Verify: `tests\frontend\typefields_cpp.bas` (`cpp`) shows `x52`'s sizes and
   offsets; every existing `cpp` snapshot is unchanged.
-- [ ] 3.2 The IR (design D5): `Allocate` and `Release` take an `ArrayRef`, validation of a `Member` there, the
+  Done 2026-10-15: `owns_desc` in `sema` beside `holds_strings`; the layout is one function, `decl.rs` `layout`
+  (offsets and size), which `ty_size`, `member_offset` and `parts` read; `file_layout` is `file_size` (the
+  declared, packed size; used by task 5.1). The snapshot shows `b` at 16, `z.i` at 8, `z.d` at 32, sizes 24 and
+  40; no other snapshot changed.
+- [x] 3.2 The IR (design D5): `Allocate` and `Release` take an `ArrayRef`, validation of a `Member` there, the
   dumps. Verify: `tests\frontend\typefields_ir.bas` (`ir`) shows `Allocate Retain` and `Release` of a member;
   existing `ir` snapshots unchanged.
-- [ ] 3.3 The descriptor and the life functions for numbers and `STRING * n` (design D4, D6 first three rows,
+  Done 2026-10-15; the typed tree's `StmtKind::Allocate` and `Release` changed with them. Validation: a member
+  there must be dynamic, an `Allocate` of one has bounds, a `Clear` of one is a problem, an element of one takes
+  any number of indexes (IR unit test `dynamic_member_arrays`). The IR dump marks a member array `dynamic` in the
+  list of types; `Release` of a member may raise (its place may be an element).
+- [x] 3.3 The descriptor and the life functions for numbers and `STRING * n` (design D4, D6 first three rows,
   D9, D10): `udt_new_N`, `udt_free_N`, `udt_clone_N`; variables, `STATIC` locals, locals at each return; `REDIM`,
   `_PRESERVE`, `_RETAIN`, `ERASE` of a member through `allocate_with` and `release`; elements, `LBOUND`, `UBOUND`
   through the guard; the member as an array argument; the parent's place evaluated once. Verify: `v35_a`, `v35_d`,
   `v35_g`, `x01`–`x04`, `x17`, `x21`, `x26`, `x29`–`x33`, `x36`, `x38`, `x58`, `x59` print their recorded output
   (`x58` 3. by D-004); the `cpp` test of 3.1 gains the functions of one owner type.
-- [ ] 3.4 Slice programs `s114_dyn_members` (`v35_a`, `v35_g`, `x58`) and `s115_dyn_member_procs` (`v35_d`),
+  Done 2026-10-15 (`codegen-cpp\src\owner.rs`), for every kind of element, not only numbers and `STRING * n`:
+  the element functions are written once for any type, so much of group 4 came with it (below). Every program
+  listed prints its recorded output (`x03` its compile error at the `REDIM` of the unmarked `w`), `x58` 3. ` 0 `
+  by D-004; `v35_a`, `v35_d`, `v35_g` were run as copies without `_ERRORLINE`, which this compiler does not
+  compile yet, compared without the line numbers it prints. Found and settled on the way:
+  - `x17` needs a `CONST` in the first bounds of a dynamic member (the spec's requirement; design D2 said "not
+    supported yet"): the block keeps 0 TO 0 per dimension in pass 1 and reads the bounds in pass 2 when it
+    reaches the block, below the constants above it (`places.rs`, `type_const_bounds`). A member that is not
+    dynamic keeps the rule of design D2.
+  - Names: the functions are `qbr_udtN_new`, `_free`, `_zero`, `_clone`, and per dynamic member
+    `qbr_udtN_mM_blank`, `_make`, `_release`, `_free`, `_copy`, `_guard`, `_bound`, `_desc`, in `global.txt` with
+    their prototypes first. `_copy` is the old compiler's `AppendDynUDTDescCopy`: a source that is not allocated
+    leaves the target as it is.
+  - `_PRESERVE` and `_RETAIN` of an array of an owner type copy each kept element deep (`qbr_udtN_clone`), then
+    release the old ones, as the old compiler's `AppendDynUDTDescCopy` does at `qb64pe.bas` 14863; design D6
+    said the bytes are moved. Same output, no moved slot to zero.
+  - Not measured, chosen: a `REDIM` of a member to another number of dimensions gives a new descriptor whatever
+    the mode (no element kept with `_PRESERVE`); `CLEAR` treats an owner variable as `ERASE` of a static array
+    does (dynamic members released, then error 9 until a `REDIM`).
+  - Group 5 forms that would have compiled to wrong code are "not supported yet" until then: `LEN` of an owner
+    value, `PUT` and `GET` of one or of a whole array of one (`put_get_write_read_UDT_fixed_string` stays on
+    `deferred.list`), `_MEM`, `_MEMELEMENT` and `_OFFSET` of a whole dynamic member array, `_MEM` of an element of
+    one. `x.v() = y.v()` and `x.v() = a()` (whole-array assignment, upstream `t003`) are "not supported yet", as
+    `a() = b()` is.
+  - Already printing their recorded output (tasks of group 4, not ticked): `v35_b` and `v35_c`. `v35_e` waits on
+    `READ` and `MID$` into an element of a member array (task 4.2).
+  - Tier 1 needed the upstream programs that now compile on a list: 77 compiled cleanly, 76 passed by themselves
+    and joined `pass.list` (part of task 5.4; 287 there); `t268` and `t269` left
+    `known_unsupported_rejections.list` (their whole-array `PUT`/`GET` of a type with a `STRING` is now the old
+    compiler's error).
+- [x] 3.4 Slice programs `s114_dyn_members` (`v35_a`, `v35_g`, `x58`) and `s115_dyn_member_procs` (`v35_d`),
   recorded with `qb64pe.exe` (the line of D-004 recorded from a program without it), on `slice.list`. Verify: both
   pass (`--glob`).
+  Done 2026-10-15: line 20 of `s114` recorded from the program with `ERROR 9` in place of `p(9).v(5) = 55`;
+  `s115` also has a bound named by a `CONST` (`x17`). Both pass on their first run; `slice\` 122,
+  `slice.list` 426 (`tests\corpus\README.md`, `CLAUDE.md`).
 
 ## 4. Owner values in arrays, copies and every kind of element
 

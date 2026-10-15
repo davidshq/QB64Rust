@@ -32,6 +32,13 @@ impl Emitter<'_> {
                     format!("&({n}={})", self.value(v))
                 }
                 Arg::Array(ArrayRef::Var(a)) => self.name(*a),
+                // A dynamic member array is passed as its descriptor: a `REDIM` or `ERASE` in the procedure
+                // changes the member (design D4 of `m3-typefields`).
+                Arg::Array(ArrayRef::Member { base, member }) if self.dynamic_member(base, *member).is_some() => {
+                    let (id, m) = self.dynamic_member(base, *member).expect("a dynamic member array");
+                    let slot = self.dyn_slot(base, *member);
+                    format!("{}({slot})", crate::owner::dyn_fn(id, m, "desc"))
+                }
                 Arg::Array(ArrayRef::Member { base, member }) => self.member_array_arg(base, *member),
             })
             .collect();
@@ -139,6 +146,22 @@ impl Emitter<'_> {
                 let d = dim.as_deref().map_or("1".to_string(), |d| self.value(d));
                 let n = crate::decl::dim_count(self.p.var(*array));
                 format!("((int64){f}({},{d},{n}))", self.name(*array))
+            }
+            // Of a dynamic member array: the place it is part of is found, and its descriptor gives the bounds
+            // (design D4 of `m3-typefields`; measured, `verification\v35_x59`).
+            ExprKind::Bound {
+                upper,
+                array: ArrayRef::Member { base, member },
+                dim,
+            } if self.dynamic_member(base, *member).is_some() => {
+                let (id, m) = self.dynamic_member(base, *member).expect("a dynamic member array");
+                let slot = self.dyn_slot(base, *member);
+                let d = dim.as_deref().map_or("1".to_string(), |d| self.value(d));
+                format!(
+                    "({}(*(ptrszint**){slot},{},{d}))",
+                    crate::owner::dyn_fn(id, m, "bound"),
+                    u8::from(*upper)
+                )
             }
             ExprKind::Bound {
                 upper,

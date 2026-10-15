@@ -235,6 +235,12 @@ impl Checker<'_> {
         if let Some(what) = self.unmeasured_path(of) {
             return Err(self.unsupported(at, format!("`{word}` of {what}")));
         }
+        if let Reference::Place(Place::Element { array, .. }) | Reference::Array(array) = of
+            && self.is_dynamic_member(array)
+        {
+            // Measured (`verification\v35_x23`, `x24`), compiled with task 5.2 of `m3-typefields`.
+            return Err(self.unsupported(at, format!("`{word}` of a dynamic member array or its element")));
+        }
         Ok(())
     }
 
@@ -254,6 +260,11 @@ impl Checker<'_> {
         };
         if through_member_array(base) {
             return Some("a place reached through an element of a member array");
+        }
+        if let Reference::Array(array) = of
+            && self.is_dynamic_member(array)
+        {
+            return Some("a whole dynamic member array");
         }
         if let Some((base, member)) = last
             && let Ty::User(_) = self.prog.member(self.prog.place_ty(base), *member).ty
@@ -496,6 +507,12 @@ impl Checker<'_> {
         }
         if let Some(what) = self.unmeasured_path(of) {
             return Err(self.unsupported(at, format!("`{word}` of {what}")));
+        }
+        if let Reference::Place(Place::Element { array, .. }) | Reference::Array(array) = of
+            && self.is_dynamic_member(array)
+        {
+            // Measured (`verification\v35_x23`, `x24`), compiled with task 5.2 of `m3-typefields`.
+            return Err(self.unsupported(at, format!("`{word}` of a dynamic member array or its element")));
         }
         Ok(())
     }

@@ -116,6 +116,10 @@ impl Emitter<'_> {
             Place::Element {
                 array: ArrayRef::Member { base, member },
                 index,
+            } if self.dynamic_member(base, *member).is_some() => self.dyn_element(base, *member, index),
+            Place::Element {
+                array: ArrayRef::Member { base, member },
+                index,
             } => {
                 let first = self.member_array_at(base, *member);
                 let flat = self.member_flat_index(base, *member, index);
@@ -127,6 +131,39 @@ impl Emitter<'_> {
                 format!("({}+{offset})", self.bytes_of(base))
             }
         }
+    }
+
+    /// The address of an element of a dynamic member array (design D9 of `m3-typefields`), as a `char*`
+    /// expression: the place it is part of found once (an index outside its bounds raises error 9 and position 0
+    /// stands in), its descriptor through the guard (error 9 when it is not allocated or has another number of
+    /// dimensions, and then a dummy element), then the element's flat position from the descriptor, each index
+    /// checked as a dynamic array's. The descriptor is held in a `passN` of the body.
+    pub(crate) fn dyn_element(&mut self, base: &Place, member: MemberId, index: &[Expr]) -> String {
+        let (id, m) = self.dynamic_member(base, member).expect("a dynamic member array");
+        let size = self.ty_size(self.p.member_of(base, member).ty);
+        let slot = self.dyn_slot(base, member);
+        self.pass += 1;
+        let d = format!("pass{}", self.pass);
+        self.pass_decls.push(format!("ptrszint *{d};\n"));
+        let n = index.len();
+        let parts: Vec<String> = index
+            .iter()
+            .enumerate()
+            .map(|(k, i)| {
+                let s = dim_slot(n, k);
+                let check = format!("array_check(({})-{d}[{s}],{d}[{}])", self.value(i), s + 1);
+                if k == 0 {
+                    check
+                } else {
+                    format!("{check}*{d}[{}]", s + 2)
+                }
+            })
+            .collect();
+        format!(
+            "(({d}={}(*(ptrszint**){slot},{n})),(((char*){d}[0])+(({})*{size})))",
+            crate::owner::dyn_fn(id, m, "guard"),
+            parts.join("+")
+        )
     }
 
     /// A block passed to the runtime (a `_MEM` argument of `_MEMEXISTS`, `_MEMFREE`, `_MEMCOPY`, `_MEMGET`;

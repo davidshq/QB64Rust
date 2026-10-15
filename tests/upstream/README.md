@@ -95,9 +95,12 @@ list from this copy against the QB64pe release (`rust.yml`, job `tier2`, which r
 
 - `pass.list`: the upstream programs the new compiler passes. A ratchet: add a program when it passes, never
   remove one.
-- `deferred.list`: the 118 programs that need a feature deferred to `SOMEDAY.md` (`$UNSTABLE:TYPEFIELDS` 109,
-  whole-array assignment 21, `_ARRAYCOPY` 4; a program may use several), found by pattern and checked by eye.
-  `REDIM _RETAIN` compiles since `m3-redim-retain`; it is still named beside 21 of them, which wait on the others.
+- `deferred.list`: the 24 programs that need a feature deferred to `SOMEDAY.md` or not compiled yet by
+  `m3-typefields` (`$UNSTABLE:TYPEFIELDS` 15, whole-array assignment 17, `_ARRAYCOPY` 4; a program may use
+  several), found by pattern and checked by eye. `REDIM _RETAIN` compiles since `m3-redim-retain` and the member
+  markers since `m3-typefields`; they are still named beside programs that wait on the others. 94 programs left
+  it with `m3-typefields`: 18 with its group 2, 76 with its group 3 (each passing on its first run; the change's
+  `tasks.md`).
 
 Progress is the pass list out of the programs not deferred; `cargo test` checks that no program is in both lists
 and prints the line (`cargo test -p qb64rust-driver --test inputs upstream_progress -- --nocapture`).

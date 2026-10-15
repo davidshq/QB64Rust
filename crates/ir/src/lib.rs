@@ -110,8 +110,8 @@ pub use qb64rust_sema::{
 /// Where a `PRINT` goes and the values of a `PRINT USING` are `sema`'s too.
 pub use qb64rust_sema::{PrintTo, UsingValue};
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
-/// holds a `STRING` of its own, which has no such size.
-pub use qb64rust_sema::{holds_strings, size_of};
+/// holds a `STRING` of its own, which has no such size, or owns dynamic member arrays.
+pub use qb64rust_sema::{holds_strings, owns_desc, size_of};
 
 /// The table entry of a built-in: its identity in the IR (never a libqb name).
 pub use qb64rust_builtins::BuiltinId;
@@ -435,8 +435,14 @@ pub enum Op {
     ///    D-018; the old compiler takes it before step 3 and frees a block twice).
     ///
     /// The array may be static or dynamic. Always may raise.
+    ///
+    /// The array may be a dynamic member array ([`ArrayRef::Member`] of a [`Member`] that is `dynamic`; design D5
+    /// of `m3-typefields`): the place it is part of is found once, its indexes evaluated before the bounds, and
+    /// not guarded: an index outside its bounds on the way raises error 9 and the member of the element at
+    /// position 0 of that dimension stands in. Step 1 does not apply (it is never static); its number of
+    /// dimensions may differ from the one it had, which gives it new elements whatever the mode.
     Allocate {
-        array: VarId,
+        array: ArrayRef,
         bounds: Vec<(Expr, Expr)>,
         mode: AllocMode,
     },
@@ -448,8 +454,9 @@ pub enum Op {
     /// after any other error an index raises.
     Clear { array: ArrayRef },
     /// Release the elements of a dynamic array: it is not allocated afterwards (every use raises error 9) until an
-    /// [`Op::Allocate`] runs. Of an array that is not allocated it does nothing.
-    Release { array: VarId },
+    /// [`Op::Allocate`] runs. Of an array that is not allocated it does nothing. Of a dynamic member array the
+    /// place is found as for [`Op::Allocate`].
+    Release { array: ArrayRef },
     /// `ERASE` of an array parameter: [`Op::Clear`] when the array passed in this call is a static one,
     /// [`Op::Release`] when it is dynamic.
     EraseParam { array: VarId },
@@ -610,10 +617,9 @@ impl Op {
             | Op::Jump(_)
             | Op::Gosub(_)
             | Op::Restore { .. }
-            | Op::Release { .. }
             | Op::EraseParam { .. } => false,
             // The place a member array is part of may be an element.
-            Op::Clear { array } => array.may_raise(),
+            Op::Clear { array } | Op::Release { array } => array.may_raise(),
             // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
             Op::Call { .. }
             | Op::Builtin { .. }

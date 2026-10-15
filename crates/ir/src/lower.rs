@@ -344,7 +344,7 @@ impl<'a> Lowerer<'a> {
                 joined,
             } => {
                 let op = Op::Allocate {
-                    array: *array,
+                    array: array.clone(),
                     bounds: bounds.clone(),
                     mode: *mode,
                 };
@@ -355,7 +355,7 @@ impl<'a> Lowerer<'a> {
                 op
             }
             sema::StmtKind::Clear { array } => Op::Clear { array: array.clone() },
-            sema::StmtKind::Release { array } => Op::Release { array: *array },
+            sema::StmtKind::Release { array } => Op::Release { array: array.clone() },
             sema::StmtKind::EraseParam { array } => Op::EraseParam { array: *array },
             sema::StmtKind::Print { to, items, newline } => Op::Print {
                 to: to.clone(),

@@ -361,9 +361,19 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 mode,
                 joined,
             } => {
-                let t = ty(p, p.var(*array).ty);
+                let t = ty(p, p.array_ty(array));
                 let joined = if *joined { ", with the next statement" } else { "" };
-                line(out, &format!("Allocate {}:{t} ({mode:?}{joined})", var_name(p, *array)));
+                line(
+                    out,
+                    &format!("Allocate {}:{t} ({mode:?}{joined})", array_text(p, array)),
+                );
+                let index = array.indexes();
+                if !index.is_empty() {
+                    heading(out, "Index");
+                    for e in index {
+                        expr(p, e, d + 2, out);
+                    }
+                }
                 for (lower, upper) in bounds {
                     heading(out, "Lower");
                     expr(p, lower, d + 2, out);
@@ -379,8 +389,11 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 }
             }
             StmtKind::Release { array } => {
-                let t = ty(p, p.var(*array).ty);
-                line(out, &format!("Release {}:{t}", var_name(p, *array)));
+                let t = ty(p, p.array_ty(array));
+                line(out, &format!("Release {}:{t}", array_text(p, array)));
+                for e in array.indexes() {
+                    expr(p, e, d + 1, out);
+                }
             }
             StmtKind::EraseParam { array } => {
                 let t = ty(p, p.var(*array).ty);

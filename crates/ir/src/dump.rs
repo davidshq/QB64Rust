@@ -58,9 +58,11 @@ pub fn dump(p: &Program) -> String {
     for t in &p.types {
         for m in t.members.iter().filter(|m| m.is_array()) {
             let dims: Vec<String> = m.bounds.iter().map(|(l, u)| format!("{l} To {u}")).collect();
+            // A dynamic member array's bounds are those it starts with (design D5 of `m3-typefields`).
+            let dynamic = if m.dynamic { " dynamic" } else { "" };
             writeln!(
                 out,
-                "Member array {}.{}:{} ({})",
+                "Member array {}.{}:{} ({}){dynamic}",
                 t.name,
                 m.name,
                 ty(p, m.ty),
@@ -256,8 +258,8 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     writeln!(
                         out,
                         "  Allocate {mode:?} {}:{}",
-                        var(p, *array),
-                        ty(p, p.var(*array).ty)
+                        array_text(p, array),
+                        ty(p, p.array_ty(array))
                     )
                     .unwrap();
                     for (lower, upper) in bounds {
@@ -268,7 +270,7 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     writeln!(out, "  Clear {}:{}", array_text(p, array), ty(p, p.array_ty(array))).unwrap();
                 }
                 Op::Release { array } => {
-                    writeln!(out, "  Release {}:{}", var(p, *array), ty(p, p.var(*array).ty)).unwrap();
+                    writeln!(out, "  Release {}:{}", array_text(p, array), ty(p, p.array_ty(array))).unwrap();
                 }
                 Op::EraseParam { array } => {
                     writeln!(out, "  EraseParam {}:{}", var(p, *array), ty(p, p.var(*array).ty)).unwrap();

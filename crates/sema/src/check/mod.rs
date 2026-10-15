@@ -101,6 +101,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         dims_open: HashSet::new(),
         type_bases: HashMap::new(),
         type_flags: HashSet::new(),
+        type_const_bounds: HashMap::new(),
     };
     let skips = Skips::new(program);
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
@@ -488,6 +489,9 @@ struct Checker<'a> {
     /// The `TYPE` blocks (by key) that stand below a `$UNSTABLE:TYPEFIELDS`, where the member markers are allowed
     /// ([`Self::collect_block_settings`]).
     type_flags: HashSet<(TreeId, u32)>,
+    /// The `TYPE` blocks (by key, with their type) with a dynamic member array whose bounds name a `CONST`: they
+    /// are read when pass 2 reaches the block, below the constants above it ([`Self::type_block`]).
+    type_const_bounds: HashMap<(TreeId, u32), TypeId>,
 }
 
 /// What pass 1 keeps as it walks the file in order to the `TYPE` blocks: `OPTION BASE` and whether
@@ -1165,6 +1169,27 @@ impl Checker<'_> {
         let node = stmt.node();
         let target_node = self.need(stmt.target(), node.span())?;
         let value_node = self.need(stmt.value(), node.span())?;
+        // `x.v() = y.v()`, `x.v() = a()`: whole-array assignment with a member array, which the old compiler takes
+        // below `$UNSTABLE:TYPEFIELDS` (`tests\upstream` `t003`); deferred, as `a() = b()` is (`SOMEDAY.md`).
+        // `member`: only a name with a dot counts.
+        let whole = |e: ast::Expr, member: bool| match e {
+            ast::Expr::Field(f) => f.arg_list().is_some_and(|l| l.args().is_empty()),
+            ast::Expr::Call(c) => {
+                c.arg_list().is_some_and(|l| l.args().is_empty())
+                    && (!member || c.name().is_some_and(|t| self.text(t.span).contains(&b'.')))
+            }
+            ast::Expr::NameRef(_)
+            | ast::Expr::Literal(_)
+            | ast::Expr::Paren(_)
+            | ast::Expr::Prefix(_)
+            | ast::Expr::Bin(_) => false,
+        };
+        if whole(target_node, false)
+            && whole(value_node, false)
+            && (whole(target_node, true) || whole(value_node, true))
+        {
+            return Err(self.unsupported(node.span(), "whole-array assignment of member arrays"));
+        }
         let place = match target_node {
             ast::Expr::NameRef(n) => {
                 let t = self.need(n.name(), node.span())?;

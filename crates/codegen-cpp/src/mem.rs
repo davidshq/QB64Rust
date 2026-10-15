@@ -569,6 +569,14 @@ impl Emitter<'_> {
                 let mo = self.member_offset(self.p.place_ty(base), *member);
                 (start, format!("({offset}+{mo})"))
             }
+            // An element of a dynamic member array lies in the block of its descriptor (design D9 of
+            // `m3-typefields`): its address is the start.
+            Place::Element {
+                array: ArrayRef::Member { base, member },
+                index,
+            } if self.dynamic_member(base, *member).is_some() => {
+                (self.dyn_element(base, *member, index), "0".to_string())
+            }
             Place::Element {
                 array: ArrayRef::Member { base, member },
                 index,

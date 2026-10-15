@@ -1,0 +1,27 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Member array T.V:I32 (0 To 1) dynamic
+Array A:T:T dynamic, dimensions: 1
+Stmt line 2
+  SelectConsole
+Stmt line 11 may_raise
+  Allocate Redim A:T:T
+    Const 0:I64 To Const 3:I64
+Stmt line 13 may_raise
+  Allocate Retain A((Var I:I32 -> Convert I64 Widen)).V:I32
+    Const 2:I64 To Const 5:I64
+Stmt line 14 may_raise
+  Allocate Redim P.V:I32
+    Const 1:I64 To Const 2:I64
+    Const 3:I64 To Const 4:I64
+Stmt line 15
+  Release P.V:I32
+Stmt line 16
+  CopyWhole Q:T:T <- P
+Stmt line 17 may_raise
+  Print console newline
+    Num Load A((Var I:I32 -> Convert I64 Widen)).V(Const 3:I64):I32
+    Num UBound P.V(Const 2:I32):I64

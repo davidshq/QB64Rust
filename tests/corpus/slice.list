@@ -449,3 +449,6 @@ slice/s110_system_code
 slice/s111_end_code
 slice/s112_redim_retain
 slice/s113_redim_retain_kinds
+# m3-typefields group 3: _DYNAMIC member arrays of variables and elements
+slice/s114_dyn_members
+slice/s115_dyn_member_procs

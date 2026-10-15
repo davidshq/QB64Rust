@@ -537,7 +537,7 @@ impl Checker<'_> {
         for item in items {
             // `REDIM t.v(0 TO 3)`, `REDIM a(1).m(0 TO 5)`: a member array.
             if let Declarer::Redim { mode } = by
-                && self.redim_member(item, mode.keeps_elements(), (list_ty.is_some(), alone), stmt)?
+                && self.redim_member(item, mode, (list_ty.is_some(), alone), stmt)?
             {
                 continue;
             }
@@ -817,7 +817,9 @@ impl Checker<'_> {
                 Shape::Static { .. } => StmtKind::Clear {
                     array: ArrayRef::Var(array),
                 },
-                Shape::Dynamic { .. } => StmtKind::Release { array },
+                Shape::Dynamic { .. } => StmtKind::Release {
+                    array: ArrayRef::Var(array),
+                },
                 Shape::Scalar => unreachable!("an array is no scalar"),
             };
             self.push(node, kind);
