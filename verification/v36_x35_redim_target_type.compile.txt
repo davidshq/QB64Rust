@@ -1,0 +1,5 @@
+
+Cannot assign arrays of different types
+Caused by (or after):A ( ) = B ( )
+LINE 5:a() = b()
+exit=1

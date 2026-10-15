@@ -410,6 +410,131 @@ impl Emitter<'_> {
         out.push("}".into());
     }
 
+    /// `CopyArray` (design D4 of `m3-whole-array-assign`): the old compiler's `AppendWholeArrayAssign`
+    /// (`qb64pe.bas` 17272) with its names. The descriptors are taken target first, each finding its place once
+    /// (a member array's as for an array argument, [`Self::member_array_arg`], or a dynamic member's own); when a
+    /// place may raise, nothing is copied after an error (`DIVERGENCES.md` D-004). Both must be allocated and have
+    /// the same bounds, else error 9; then the elements by kind: one move of the bytes where they hold nothing
+    /// else, a string or a user type that holds strings element by element, an owner value deep in place
+    /// ([`Self::copy_owner`]; the old compiler gives a `REDIM` target a new block, with the same values). A
+    /// dynamic member's descriptor must also have the number of dimensions of the copy, which it can lose to a
+    /// `REDIM` (the old compiler reads the slots of another number).
+    pub(crate) fn copy_array(&mut self, from: &ArrayRef, to: &ArrayRef, out: &mut Vec<String>) {
+        let t = self.p.array_ty(to);
+        let dims = self.copy_dims(to).or_else(|| self.copy_dims(from)).unwrap_or(1);
+        let (dst, src) = (self.whole_desc(to), self.whole_desc(from));
+        let guarded = to.may_raise() || from.may_raise();
+        out.push("{".into());
+        out.push(format!("ptrszint *whole_arr_dst={dst};"));
+        out.push(format!("ptrszint *whole_arr_src={src};"));
+        out.push(if guarded {
+            "int32 whole_arr_ok=!is_error_pending();".into()
+        } else {
+            "int32 whole_arr_ok=1;".into()
+        });
+        out.push("uint64 whole_arr_total=1;".into());
+        let mut missing = "!(whole_arr_dst[2]&1)||!(whole_arr_src[2]&1)||(!whole_arr_dst[0])||(!whole_arr_src[0])||(whole_arr_dst[0]==(ptrszint)nothingvalue)||(whole_arr_src[0]==(ptrszint)nothingvalue)".to_string();
+        for (side, array) in [("dst", to), ("src", from)] {
+            if self.is_dynamic_member(array) {
+                missing.push_str(&format!("||(whole_arr_{side}[3]!={dims})"));
+            }
+        }
+        let test = if guarded {
+            format!("whole_arr_ok&&({missing})")
+        } else {
+            missing
+        };
+        out.push(format!("if ({test}){{error(9); whole_arr_ok=0;}}"));
+        out.push("if (whole_arr_ok){".into());
+        out.push(format!(
+            "for(ptrszint whole_arr_dim=1; whole_arr_dim<={dims}; whole_arr_dim++){{"
+        ));
+        out.push(format!("ptrszint whole_arr_arg=({dims}-whole_arr_dim)*4+4;"));
+        out.push("if ((whole_arr_dst[whole_arr_arg]!=whole_arr_src[whole_arr_arg])||(whole_arr_dst[whole_arr_arg+1]!=whole_arr_src[whole_arr_arg+1])){error(9); whole_arr_ok=0; break;}".into());
+        out.push("if (whole_arr_dst[whole_arr_arg+1]<0){error(9); whole_arr_ok=0; break;}".into());
+        out.push("if (whole_arr_dst[whole_arr_arg+1]&&whole_arr_total>(18446744073709551615ull/(uint64)whole_arr_dst[whole_arr_arg+1])){error(257); whole_arr_ok=0; break;}".into());
+        out.push("whole_arr_total*=(uint64)whole_arr_dst[whole_arr_arg+1];".into());
+        out.push("}".into());
+        out.push("}".into());
+        out.push("if (whole_arr_ok&&(whole_arr_dst[0]!=whole_arr_src[0])){".into());
+        let size = self.ty_size(t);
+        let at = |side: &str| format!("((char*)whole_arr_{side}[0]+whole_arr_i*{size})");
+        let each = "for(ptrszint whole_arr_i=0; whole_arr_i<(ptrszint)whole_arr_total; whole_arr_i++){";
+        if t == Ty::Str {
+            out.push(each.into());
+            out.push("qbs_set(((qbs**)whole_arr_dst[0])[whole_arr_i],((qbs**)whole_arr_src[0])[whole_arr_i]);".into());
+            out.push("}".into());
+        } else if self.owns_desc(t) {
+            out.push(each.into());
+            self.copy_owner(t, &at("dst"), &at("src"), out);
+            out.push("}".into());
+        } else if self.holds_strings(t) {
+            out.push(each.into());
+            push_lines(out, &self.clone_value(t, &at("dst"), &at("src")));
+            out.push("}".into());
+        } else {
+            // Bytes: numbers, `_OFFSET`, `STRING * n`, `_BIT` (an element has `width/8+1` bytes of its own, as the
+            // allocation gives it), `_MEM` and the user types that hold no string.
+            let element = match t {
+                Ty::Bit { width, .. } => format!("({width}/8+1)"),
+                Ty::FixedStr(_) => size.to_string(),
+                Ty::I8
+                | Ty::U8
+                | Ty::I16
+                | Ty::U16
+                | Ty::I32
+                | Ty::U32
+                | Ty::I64
+                | Ty::U64
+                | Ty::Off
+                | Ty::UOff
+                | Ty::F32
+                | Ty::F64
+                | Ty::F80
+                | Ty::Str
+                | Ty::User(_) => format!("({size})"),
+            };
+            out.push(format!(
+                "if (whole_arr_total>(18446744073709551615ull/(uint64){element})) error(257);"
+            ));
+            out.push(format!("if (!is_error_pending()) memmove((void*)whole_arr_dst[0],(void*)whole_arr_src[0],(size_t)(whole_arr_total*(uint64){element}));"));
+        }
+        out.push("}".into());
+        out.push("}".into());
+        let strings = |a: &ArrayRef| matches!(a, ArrayRef::Member { base, .. } if base.uses_strings(self.p));
+        if strings(to) || strings(from) {
+            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        }
+    }
+
+    /// The number of dimensions of a side of a `CopyArray`, where it is known.
+    fn copy_dims(&self, array: &ArrayRef) -> Option<usize> {
+        match array {
+            ArrayRef::Var(v) => self.p.var(*v).dim_count(),
+            ArrayRef::Member { base, member } => Some(self.p.member_of(base, *member).bounds.len()),
+        }
+    }
+
+    /// Whether an array is a dynamic member array.
+    fn is_dynamic_member(&self, array: &ArrayRef) -> bool {
+        matches!(array, ArrayRef::Member { base, member } if self.dynamic_member(base, *member).is_some())
+    }
+
+    /// The descriptor of a side of a `CopyArray`, as an array argument gets it: an array variable's, a dynamic
+    /// member array's own (made, not allocated, where there is none), or one made for a member array.
+    fn whole_desc(&mut self, array: &ArrayRef) -> String {
+        match array {
+            ArrayRef::Var(v) => self.name(*v),
+            ArrayRef::Member { base, member } => match self.dynamic_member(base, *member) {
+                Some((id, m)) => {
+                    let slot = self.dyn_slot(base, *member);
+                    format!("{}({slot})", dyn_fn(id, m, "desc"))
+                }
+                None => self.member_array_arg(base, *member),
+            },
+        }
+    }
+
     /// `Release`: a dynamic array not allocated again; of a dynamic member array the place is found once.
     pub(crate) fn release_array(&mut self, array: &ArrayRef, out: &mut Vec<String>) {
         match array {

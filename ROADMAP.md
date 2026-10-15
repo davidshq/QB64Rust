@@ -91,6 +91,11 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
       elements and nested values, their copies, `_MEM`, and whole arrays of their types in files; `DIVERGENCES.md`
       D-019 to D-021 (`m3-typefields`). Upstream 193 of 286 to 290 of 383 (the programs that needed it left
       `deferred.list`; the 21 left there need whole-array assignment or `_ARRAYCOPY`)
+- [x] Whole-array assignment `a() = b()`: arrays and member arrays (plain and `_DYNAMIC`) of every element type and
+      place, arrays of owner types, with the old compiler's compile-time and run-time checks; a type suffix on both
+      names stays marked; `DIVERGENCES.md` D-004 widened and D-022 (`m3-whole-array-assign`). Upstream 290 of 383 to
+      310 of 399 (16 programs left `deferred.list`; the 5 left need `_ARRAYCOPY` or, `t001`, a plain scalar beside
+      an array typed by `DIM … AS`)
 - [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
       file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
       `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program

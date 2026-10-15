@@ -1,0 +1,5 @@
+
+Cannot assign fixed-length STRING arrays with different element sizes
+Caused by (or after):A ( ) = B ( )
+LINE 4:a() = b()
+exit=1

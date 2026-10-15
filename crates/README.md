@@ -684,14 +684,30 @@ What the compiler supports so far:
   its descriptor's block and lock (`mem.rs` `dyn_block`, `qbr_dyn_mem_all`, `qbr_dyn_mem_one`; one that is not
   allocated raises 9, D-021); `ERASE` of the member makes such a block invalid. `LEN`, `_OFFSET`, `COMMON` and
   `PUT`/`GET` of one owner value are the old compiler's errors. Still marked (`SOMEDAY.md`, "Left marked by
-  `m3-typefields`"): `_OFFSET` of a whole dynamic member, `_MEMGET`/`_MEMPUT`/`_MEMFILL` with one, whole-array
-  assignment. Checked by `typefields_cpp`, `typefields_ir`, `typefields_rejected`, the IR unit test
+  `m3-typefields`"): `_OFFSET` of a whole dynamic member, `_MEMGET`/`_MEMPUT`/`_MEMFILL` with one (whole-array
+  assignment came with `m3-whole-array-assign`, below). Checked by `typefields_cpp`, `typefields_ir`, `typefields_rejected`, the IR unit test
   `dynamic_member_arrays`, `s114_dyn_members`, `s115_dyn_member_procs`, `s116_dyn_member_parents`,
   `s117_dyn_member_kinds`, `s118_dyn_member_files`, the CLI tests of D-019 to D-021 and 81 upstream programs.
 - **Targets through a member** (`m3-typefields` task 4.2; `verification\v35_x62`): a member of an element and an
   element of a member array (fixed or dynamic) are targets of `READ`, `INPUT`, `LINE INPUT` (console and file) and
   the `MID$` statement, stored by the rule of their place (`stmt.rs` `store`, a number before the indexes and not
   stored after one outside, D-004; a string by reference after them).
+- **Whole-array assignment** (`m3-whole-array-assign`; the facts in `study\00` §5, `verification\v36_*`):
+  `target() = source()`, each side an array variable or a member array (`x.v()`, `e(i).v()`, a `_DYNAMIC` one),
+  the source also in parentheses, is `StmtKind::CopyArray` and `Op::CopyArray`. `sema` (`check\whole.rs`, design
+  D1, D2) takes the path when both sides are written whole, resolves the target first, and gives the old
+  compiler's errors for other element types, `STRING * n` lengths and numbers of dimensions (an array
+  parameter's number from its uses, `DimFact`), and, by its guard `CheckAsgRHS`, for a whole array `name()` on
+  one side only; a type suffix on both names is marked (the old compiler copies element 0). The emitter
+  (`arrays.rs` `copy_array`, design D4) writes the old compiler's `AppendWholeArrayAssign` block: the
+  descriptors target first (a member array's made as for an array argument, a dynamic member's own), error 9 when
+  either is not allocated or the bounds differ, nothing copied then or after an index outside on the way
+  (D-004 widened); one `memmove` for numbers, `_BIT`, `STRING * n`, `_MEM` and user types of bytes, `qbs_set`
+  per `STRING`, part by part for a user type with strings, `copy_owner` per element of an owner type, in place
+  (D-022: other bounds copy nothing). Checked by `whole_array_ir`, `whole_array_errors`, `whole_array_cpp`, the
+  IR unit test `copy_between_arrays_of_another_type_or_shape`, `s119_whole_array`, `s120_whole_array_members`,
+  the CLI tests `whole_array_to_a_member_through_an_index_outside` (D-004) and
+  `whole_array_of_an_owner_type_with_other_bounds` (D-022), and 20 upstream programs.
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
@@ -702,7 +718,8 @@ forms (arrays named `name$n`,
 `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
 constants of QB64pe's auto-included file that are not computed yet and the names of its other auto-included
 files; of arrays and `TYPE`:
-whole arrays (`x()`) where no array parameter takes them, member arrays not marked `_DYNAMIC` with a bound that
+whole arrays (`x()`) where neither an array parameter nor a whole-array assignment takes them (`PRINT a()`),
+whole-array assignment of names with a type suffix (`a%() = b%()`), member arrays not marked `_DYNAMIC` with a bound that
 names a `CONST`;
 `DEF FN` is an error, as in QB64pe. After a declaration
 marked "not supported yet", later real errors are dropped (the follow-on rule, design D10 of `m2-parser-breadth`):

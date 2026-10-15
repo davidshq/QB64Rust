@@ -1,0 +1,5 @@
+
+Cannot assign arrays with different dimensions
+Caused by (or after):P ( ) = Q ( )
+LINE 10:p() = q()
+exit=1

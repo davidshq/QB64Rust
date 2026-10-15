@@ -275,6 +275,11 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 Op::EraseParam { array } => {
                     writeln!(out, "  EraseParam {}:{}", var(p, *array), ty(p, p.var(*array).ty)).unwrap();
                 }
+                Op::CopyArray { from, to } => {
+                    let t = ty(p, p.array_ty(to));
+                    let (from, to) = (array_text(p, from), array_text(p, to));
+                    writeln!(out, "  CopyArray {from} -> {to}:{t}").unwrap();
+                }
                 Op::Print { to, items, newline } => {
                     let to = print_to(p, to);
                     writeln!(out, "  Print {to}{}", if *newline { " newline" } else { "" }).unwrap();

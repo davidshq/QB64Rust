@@ -801,6 +801,35 @@ fn dynamic_member_not_allocated_in_mem_and_get() {
     assert_eq!(build_and_run(&d, program), "[ 9 ]mem 0 \n[ 9 ]get\n");
 }
 
+/// A whole-array assignment to a member array of an element whose index is outside its bounds raises error 9 and
+/// copies nothing, a `STRING` member array included (`DIVERGENCES.md` D-004: the old compiler copies the strings
+/// into the member of element 0, `verification\v36_x48`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn whole_array_to_a_member_through_an_index_outside() {
+    let d = scratch("whole-member-outside");
+    let program = "$CONSOLE:ONLY\nTYPE t\nv(1) AS LONG\nw(1) AS STRING\nEND TYPE\nON ERROR GOTO trap\n\
+                   DIM e(2) AS t, a(1) AS LONG, s(1) AS STRING\na(1) = 7: s(1) = \"z\"\ni = 5\n\
+                   e(i).v() = a(): e(i).w() = s()\nPRINT e(0).v(1); \"[\"; e(0).w(1); \"]\"\nSYSTEM\n\
+                   trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
+    assert_eq!(build_and_run(&d, program), "[ 9 ][ 9 ] 0 []\n");
+}
+
+/// A whole-array assignment of arrays of an owner type with other bounds raises error 9 and copies nothing, as for
+/// any other array (`DIVERGENCES.md` D-022: the old compiler copies as many elements as the target has, reading past
+/// the source's block, `verification\v36_x52`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn whole_array_of_an_owner_type_with_other_bounds() {
+    let d = scratch("whole-owner-bounds");
+    let program = "$CONSOLE:ONLY\n$UNSTABLE:TYPEFIELDS\nTYPE own\nv(1) _DYNAMIC AS LONG\nk AS LONG\nEND TYPE\n\
+                   ON ERROR GOTO trap\nDIM s(1 TO 2) AS own, d(0 TO 1) AS own, e(1 TO 3) AS own\n\
+                   s(1).k = 4: s(2).k = 5: d(0).k = 9: e(1).k = 8\nd() = s(): PRINT d(0).k; d(1).k\n\
+                   e() = s(): PRINT e(1).k; e(2).k; e(3).k\nSYSTEM\n\
+                   trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
+    assert_eq!(build_and_run(&d, program), "[ 9 ] 9  0 \n[ 9 ] 8  0  0 \n");
+}
+
 /// `_MEM` of an element of a dynamic member array, where an index of the value the member is part of reads another
 /// dynamic member, takes the element's own lock: `ERASE` of the other member leaves the block, `ERASE` of its own
 /// ends it (`verification\v35_x66` 13. for the lock).

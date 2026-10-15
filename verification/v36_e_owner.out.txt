@@ -1,0 +1,8 @@
+1. DIM target: 5  3  5  44  one 21 []
+2. REDIM target: 2  22  r2
+3. DIM target from REDIM source: 2  22  r2
+4. nested owner type: 12  w os
+5. a _DYNAMIC member to another, other bounds: error 9  0  1 
+6. the same bounds: 8 
+7. a plain array to a _DYNAMIC member and back: 31  8 
+exit=0

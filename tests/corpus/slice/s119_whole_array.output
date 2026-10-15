@@ -1,0 +1,42 @@
+1. every numeric type:
+-1  251 -1000  65531 -100000  4294967291 -10000000000  1844674407370955162  1.25  1.125  1.0625  1001  2001 
+-2  252 -2000  65532 -200000  4294967292 -20000000000  1844674407370955163  2.25  2.125  2.0625  1002  2002 
+-3  253 -3000  65533 -300000  4294967293 -30000000000  1844674407370955164  3.25  3.125  3.0625  1003  2003 
+2. independent of its source:-200000  5 
+3. two dimensions:
+-8 -7 -6 
+ 2  3  4 
+ 12  13  14 
+4. three dimensions:
+ .5  1.5  10.5  11.5  100.5  101.5  110.5  111.5 
+5. REDIM arrays, either side: 14  14  21  21  28  28 
+6. itself: 14  21  28 
+7. LET, parentheses, blanks, a one-line IF: 2.5  1.5  3 
+8. STRING: zero one two changed
+9. STRING * 4: [A   ][BBBB][CCCC]
+10. _BIT:-1  0  0 -1  0  0 -1  0  0 -1  0  0 -1  0  0 -1  0  0 -1  0 
+11. _UNSIGNED _BIT * 3: 0  1  2  3  4  5  6  7  0  1 
+12. TYPE of numbers: 1024  3.5 
+13. TYPE with STRING and STRING * 3: 10 first abc second changed
+14. nested TYPE: 7 inner xyz
+15. TYPE with member arrays: 42 deep
+16. _MEM: 4 -1 
+17. SHARED into COMMON (conventional memory), from a SUB: 1  2  3 
+18. local and STATIC arrays of a SUB: 0  101  101  102 
+19. array parameters, both sides: 10  20  30 
+20. a parameter and a SHARED array: 1 -2  3 
+21. a parameter of strings: g1 g2
+22. a parameter whose dimensions only the copy gives: 6 
+23. a SUB declared STATIC: 1  2 
+24. $DYNAMIC: 0  6  0 
+25. used without DIM: 44  10 
+26. in a FUNCTION: 6 
+27. same count, moved: error 9  99 
+28. fewer: error 9  98 
+29. more: error 9  97 
+30. second dimension: error 9  done
+31. target erased: error 9  done
+32. source erased: error 9  1 
+33. target never allocated again: error 9  done
+34. static after ERASE: 6 
+35. strings: error 9  keep

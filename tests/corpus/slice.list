@@ -457,3 +457,7 @@ slice/s116_dyn_member_parents
 slice/s117_dyn_member_kinds
 # m3-typefields group 5: whole arrays of owner types in files
 slice/s118_dyn_member_files
+# m3-whole-array-assign group 3: whole-array assignment of array variables
+slice/s119_whole_array
+# m3-whole-array-assign group 4: member arrays and owner types
+slice/s120_whole_array_members

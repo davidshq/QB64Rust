@@ -1,24 +1,8 @@
 # Upstream programs that need a feature deferred to SOMEDAY.md (spec testing/upstream-tests, "Upstream progress"),
 # with the features each one uses. Found by pattern ($UNSTABLE:TYPEFIELDS, REDIM _RETAIN, _ARRAYCOPY, NAME() = ...)
 # and checked by eye, 2026-10-04 (task 6.3 of m2-upstream-tests). Progress is reported over the other programs.
-arrays/07_nested_udt  # whole-array assignment
-arrays/90_type_codegen_inline_varstrings  # whole-array assignment
-arrays/91_type_codegen_nested_inline_owner  # whole-array assignment
-arrays/92_type_codegen_dynamic_varstrings  # whole-array assignment
-arrays/93_type_codegen_dynamic_owner_udt  # whole-array assignment
-arrays/94_type_codegen_inline_descriptor_udt  # whole-array assignment
 arrays/ArrayCopyTest  # _ARRAYCOPY
 arrays/ArrayCopyTest_1  # _ARRAYCOPY
 arrays/ArrayCopyTest_2  # _ARRAYCOPY
 arrays/ArrayCopyTest_3  # _ARRAYCOPY
-arrays/t001_whole_array_core  # whole-array assignment
-arrays/t002_whole_array_udt_ownership  # whole-array assignment
-arrays/t003_whole_array_member_assign  # whole-array assignment
-arrays/t024_whole_target_bare_source  # whole-array assignment
-arrays/t026_whole_target_indexed_source  # whole-array assignment
-arrays/t038_whole_target_scalar_source  # whole-array assignment
-arrays/t041_whole_array_equals_scalar  # whole-array assignment
-arrays/t203_dynfield_array_assign_deepcopy  # whole-array assignment
-arrays/t207_dynfield_nested_udt_deepcopy  # whole-array assignment
-arrays/t272_dynamic_static_array_assign_deepcopy  # whole-array assignment
-arrays/t278_nested_static_dynamic_copy_erase_rebuild  # whole-array assignment
+arrays/t001_whole_array_core  # a plain scalar beside an array typed by DIM ... AS

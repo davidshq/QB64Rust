@@ -18,8 +18,10 @@ mod mem;
 mod ops;
 mod places;
 mod proc;
+mod whole;
 
 use blocks::nested_statements;
+use whole::{without_parens, written_whole};
 
 use crate::{ConstId, LabelId, Place, ProcId, Program, Shape, Stmt, StmtKind, SymbolKind, Ty, TypeId, VarId};
 use qb64rust_base::{Diagnostics, SourceMap, Span, show_bytes};
@@ -521,6 +523,8 @@ enum DimFact {
         param: VarId,
         shown: String,
         span: Span,
+        /// `arg` is the source of a whole-array assignment and `param` its target.
+        copied: bool,
     },
 }
 
@@ -818,6 +822,7 @@ impl Checker<'_> {
                     param,
                     shown,
                     span,
+                    copied,
                 } => {
                     let (a, b) = (root(&parent, arg), root(&parent, param));
                     if a == b {
@@ -825,10 +830,12 @@ impl Checker<'_> {
                     }
                     match (number.get(&a).copied(), number.get(&b).copied()) {
                         (Some(n), Some(m)) if n != m => {
-                            let msg = format!(
-                                "`{shown}` has {n} dimension{}, and is passed to an array parameter that has {m}",
-                                plural(n)
-                            );
+                            let to = if copied {
+                                "is copied to an array"
+                            } else {
+                                "is passed to an array parameter"
+                            };
+                            let msg = format!("`{shown}` has {n} dimension{}, and {to} that has {m}", plural(n));
                             self.stmt_error = false;
                             let _ = self.error(span, msg);
                         }
@@ -1169,26 +1176,19 @@ impl Checker<'_> {
         let node = stmt.node();
         let target_node = self.need(stmt.target(), node.span())?;
         let value_node = self.need(stmt.value(), node.span())?;
-        // `x.v() = y.v()`, `x.v() = a()`: whole-array assignment with a member array, which the old compiler takes
-        // below `$UNSTABLE:TYPEFIELDS` (`tests\upstream` `t003`); deferred, as `a() = b()` is (`SOMEDAY.md`).
-        // `member`: only a name with a dot counts.
-        let whole = |e: ast::Expr, member: bool| match e {
-            ast::Expr::Field(f) => f.arg_list().is_some_and(|l| l.args().is_empty()),
-            ast::Expr::Call(c) => {
-                c.arg_list().is_some_and(|l| l.args().is_empty())
-                    && (!member || c.name().is_some_and(|t| self.text(t.span).contains(&b'.')))
-            }
-            ast::Expr::NameRef(_)
-            | ast::Expr::Literal(_)
-            | ast::Expr::Paren(_)
-            | ast::Expr::Prefix(_)
-            | ast::Expr::Bin(_) => false,
-        };
-        if whole(target_node, false)
-            && whole(value_node, false)
-            && (whole(target_node, true) || whole(value_node, true))
-        {
-            return Err(self.unsupported(node.span(), "whole-array assignment of member arrays"));
+        // Whole-array assignment (design D1 of `m3-whole-array-assign`): both sides written `name()` or as a member
+        // chain ending in `()`, the source also in parentheses. One side a whole array `name()` and the other not
+        // written so is the old compiler's guard (design D2), also with the value in parentheses (`n = (a())`,
+        // `a() = (b(1))`); a whole member array beside a side of another form keeps the errors it gets below.
+        let source = without_parens(value_node);
+        if written_whole(target_node) && written_whole(source) {
+            return self.copy_array(node, target_node, source);
+        }
+        if let Some((_, t)) = self.whole_array(target_node) {
+            return Err(self.half_whole(node, (target_node, t), source, false));
+        }
+        if let Some((_, t)) = self.whole_array(source) {
+            return Err(self.half_whole(node, (source, t), target_node, true));
         }
         let place = match target_node {
             ast::Expr::NameRef(n) => {

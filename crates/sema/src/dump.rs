@@ -395,6 +395,21 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                     expr(p, e, d + 1, out);
                 }
             }
+            StmtKind::CopyArray { from, to } => {
+                let t = ty(p, p.array_ty(to));
+                line(
+                    out,
+                    &format!("CopyArray {} -> {}:{t}", array_text(p, from), array_text(p, to)),
+                );
+                for (side, array) in [("To", to), ("From", from)] {
+                    if !array.indexes().is_empty() {
+                        heading(out, &format!("{side} index"));
+                        for e in array.indexes() {
+                            expr(p, e, d + 2, out);
+                        }
+                    }
+                }
+            }
             StmtKind::EraseParam { array } => {
                 let t = ty(p, p.var(*array).ty);
                 line(out, &format!("EraseParam {}:{t}", var_name(p, *array)));

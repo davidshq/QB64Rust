@@ -95,11 +95,14 @@ list from this copy against the QB64pe release (`rust.yml`, job `tier2`, which r
 
 - `pass.list`: the upstream programs the new compiler passes. A ratchet: add a program when it passes, never
   remove one.
-- `deferred.list`: the 21 programs that need a feature deferred to `SOMEDAY.md` (whole-array assignment 17,
-  `_ARRAYCOPY` 4), found by pattern and checked by eye. `REDIM _RETAIN` compiles since `m3-redim-retain` and
-  `$UNSTABLE:TYPEFIELDS` since `m3-typefields`. 97 programs left it with `m3-typefields`: 18 with its group 2, 74
-  with its group 3, 5 with its group 5 (`t266` and `t267` left with group 3, came back with group 4 and left with
-  group 5; each passing on its first run; the change's `tasks.md`).
+- `deferred.list`: the 5 programs that need a feature deferred to `SOMEDAY.md` (`_ARRAYCOPY` 4) or left out of
+  a change (`arrays/t001_whole_array_core`: a plain scalar beside an array typed by `DIM … AS`, user,
+  2026-10-15), found by pattern and checked by eye. `REDIM _RETAIN` compiles since `m3-redim-retain`,
+  `$UNSTABLE:TYPEFIELDS` since `m3-typefields` and whole-array assignment since `m3-whole-array-assign`. 97
+  programs left it with `m3-typefields`: 18 with its group 2, 74 with its group 3, 5 with its group 5 (`t266` and
+  `t267` left with group 3, came back with group 4 and left with group 5; each passing on its first run; the
+  change's `tasks.md`). 16 left it with `m3-whole-array-assign` (12 accepted programs and 4 `.err` ones, with its
+  group 2, each passing on its first run).
 
 Progress is the pass list out of the programs not deferred; `cargo test` checks that no program is in both lists
 and prints the line (`cargo test -p qb64rust-driver --test inputs upstream_progress -- --nocapture`).
@@ -420,3 +423,16 @@ programs): 290 pass, 113 rejected or with only marked errors (92 at the compile,
 failure `http/read_example`; none builds and prints the wrong output. The demand report (348 programs without an
 `.err`): 254 without errors, 83 held back, 11 with other errors; it names no `$UNSTABLE`, member marker or
 dynamic member array. `tests\known_unsupported_rejections.list` holds 36; the other lists are unchanged.
+
+**Upstream progress, 2026-10-15: 310 of 399** (`m3-whole-array-assign` task 5.3; 290 of 383 before it). The change
+took whole-array assignment: 16 programs left `deferred.list` (21 to 5, so the programs counted are 404 − 5 = 399),
+and 20 joined `pass.list` with its group 2, each passing on its first run: the 12 accepted programs
+`arrays/07_nested_udt`, `90`–`94_type_codegen_*`, `t002`, `t003`, `t203`, `t207`, `t272`, `t278` and the eight
+`.err` programs `t024`–`t027`, `t037`, `t038`, `t040_scalar_equals_whole_array`, `t041` (four of them deferred,
+four counted before), which now get the old compiler's errors and left `tests\known_unsupported_rejections.list`. The 5 left need `_ARRAYCOPY` or,
+`t001`, a plain scalar beside an array typed by `DIM … AS`. `pass.list` run by itself: 310 of 310. The full run of
+the suite (404 programs): 310 pass, 93 rejected or with only marked errors (80 at the compile, 13 `.err`
+programs), the known failure `http/read_example`; none builds and prints the wrong output. The demand report (348
+programs without an `.err`): 266 without errors, 71 held back, 11 with other errors; it names no whole-array
+assignment (the whole arrays it names are `LEN(a())`, 4 programs). `tests\known_unsupported_rejections.list`
+holds 28; the other lists are unchanged.

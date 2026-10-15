@@ -357,6 +357,24 @@ impl Validator<'_> {
                     self.problem(format!("{at}: EraseParam of {name}, which is no parameter"));
                 }
             }
+            // Two arrays of one element type and, where both numbers are known, one number of dimensions.
+            Op::CopyArray { from, to } => {
+                let to_ref = self.array_ref(to, owner, at, "CopyArray");
+                let from_ref = self.array_ref(from, owner, at, "CopyArray");
+                if let (Some((tn, td)), Some((fn_, fd))) = (to_ref, from_ref) {
+                    let (tt, ft) = (self.p.array_ty(to), self.p.array_ty(from));
+                    if tt != ft {
+                        self.problem(format!("{at}: a CopyArray from {fn_} of {ft:?} to {tn} of {tt:?}"));
+                    }
+                    if let (Some(td), Some(fd)) = (td, fd)
+                        && td != fd
+                    {
+                        self.problem(format!(
+                            "{at}: a CopyArray from {fn_} of {fd} dimensions to {tn} of {td}"
+                        ));
+                    }
+                }
+            }
             Op::Print { to, items, .. } => {
                 if let PrintTo::File(n) = to {
                     self.file_number(n, owner, at);
@@ -1615,6 +1633,33 @@ mod tests {
             problems(&p),
             ["main: statement 0 (line 1): Clear of D, which is no static array"]
         );
+    }
+
+    #[test]
+    fn copy_between_arrays_of_another_type_or_shape() {
+        let mut p = arrays();
+        p.main.stmts[0].ops.push(Op::CopyArray {
+            from: ArrayRef::Var(VarId(3)),
+            to: ArrayRef::Var(VarId(4)),
+        });
+        assert_eq!(problems(&p), Vec::<String>::new());
+        let at = "main: statement 0 (line 1)";
+        p.vars[4].ty = Ty::F64;
+        assert_eq!(problems(&p), [format!("{at}: a CopyArray from S of I32 to D of F64")]);
+        p.vars[4].ty = Ty::I32;
+        p.vars[4].shape = Shape::Dynamic {
+            dims: Some(2),
+            at_start: None,
+        };
+        assert_eq!(
+            problems(&p),
+            [format!("{at}: a CopyArray from S of 1 dimensions to D of 2")]
+        );
+        *p.main.stmts[0].ops.last_mut().expect("the copy") = Op::CopyArray {
+            from: ArrayRef::Var(VarId(0)),
+            to: ArrayRef::Var(VarId(3)),
+        };
+        assert_eq!(problems(&p), [format!("{at}: CopyArray of G, which is no array")]);
     }
 
     #[test]

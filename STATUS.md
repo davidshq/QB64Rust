@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-15 (the session of `m3-typefields` groups 5 and 6).
+Updated 2026-10-15 (the session of `m3-whole-array-assign`).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -45,11 +45,16 @@ OpenSpec change `m3-asserts-debug-zlib`, is done (all 12 tasks, 2026-10-14; comm
 done (all 9 tasks, 2026-10-14; committed and archived, `cbdfafb`): **`REDIM _RETAIN`**, the elements kept by their
 indexes for every kind of element and array, and a `REDIM` whose bound calls a FUNCTION that redims the same
 array no longer crashes (`DIVERGENCES.md` D-018); upstream went from 186 of 279 to 193 of 286. Its tenth step,
-OpenSpec change `m3-typefields`, is done (all 19 tasks, 2026-10-15; groups 1–4 committed, `fb8f520`, groups 5
-and 6 not yet; archived 2026-10-15, its specs merged): **`$UNSTABLE:TYPEFIELDS`, the `_STATIC`/`_DYNAMIC` member markers and `_DYNAMIC`
+OpenSpec change `m3-typefields`, is done (all 19 tasks, 2026-10-15; committed, `c84f556`; archived 2026-10-15, its
+specs merged): **`$UNSTABLE:TYPEFIELDS`, the `_STATIC`/`_DYNAMIC` member markers and `_DYNAMIC`
 member arrays**, of variables, elements and nested values, with their copies, `_MEM`, and whole arrays of their
 types in files; three memory misuses of the old compiler fixed as the user decided (D-004 widened, D-019, D-020)
-and two more found while built (D-021, for the user to confirm); upstream went from 193 of 286 to 290 of 383.
+and two more found while built (D-021, for the user to confirm); upstream went from 193 of 286 to 290 of 383. Its
+eleventh step, OpenSpec change `m3-whole-array-assign`, is done (all 13 tasks, 2026-10-15; not committed, not
+archived): **whole-array assignment `a() = b()`**, of arrays and member arrays (plain and `_DYNAMIC`) of every
+element type and place and of arrays of owner types, with the old compiler's compile-time and run-time checks; two
+misuses of the old compiler not followed (D-004 widened, D-022, for the user to confirm); upstream went from 290 of
+383 to 310 of 399.
 Step 9 of M2, built-in statements, was OpenSpec change `m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
 (archived 2026-10-10: `qb64rust --report unsupported`, and tests of the test runner). Step 9a, the screen-state
 check, was OpenSpec change `m2-screen-state-check` (all 22 tasks done, archived 2026-10-10).
@@ -96,7 +101,8 @@ size)`, `_MEMNEW`, `_MEMIMAGE`, `_MEMEXISTS`, `_MEMFREE`, `_MEMCOPY`, `_MEMGET` 
 `_INFLATE$`, `_BASE64ENCODE$`, `_BASE64DECODE$`, `END n`, `SYSTEM n` and the licence file, and, with its ninth
 and tenth steps: `REDIM _RETAIN`, `$UNSTABLE` (`TYPEFIELDS`, `MIDI`, `HTTP`), the `_STATIC`/`_DYNAMIC` member
 markers, `_DYNAMIC` member arrays (`REDIM`, `_PRESERVE`, `_RETAIN`, `ERASE`, elements, bounds, array arguments,
-whole-value copies, `_MEM`), and `PUT`/`GET` of whole arrays of a type that owns one (`crates\README.md`). There is
+whole-value copies, `_MEM`), and `PUT`/`GET` of whole arrays of a type that owns one, and, with its eleventh step:
+whole-array assignment `a() = b()`, `x.v() = e(i).v()` (`crates\README.md`). There is
 a thin language server (`qb64rust lsp`). A plain built-in now comes in as a row, a call-site program and a slice
 line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10).
 
@@ -175,7 +181,24 @@ line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10)
     `_FREEIMAGE` corrupts the heap (exit code 0xC0000374).
   - **A test sensitive to load**: `screen_state_prompt_that_never_comes` (500 ms) failed once in the closing
     runs while other tests ran beside it, and passed alone.
-- `m3-typefields` is done (all 19 tasks, 2026-10-15); groups 5 and 6 are not committed; the change is
+- `m3-whole-array-assign` is done (all 13 tasks, 2026-10-15), not committed, not archived. For the user to look
+  at, each in the change's `tasks.md`, `DIVERGENCES.md` or `DECISIONS.md` 2026-10-15:
+  - **Two misuses of the old compiler not followed** (Claude's choice, for the user to confirm, as chosen for
+    memory misuses on 2026-10-14): after an index outside on the way to a member array nothing is copied (D-004
+    widened; the old compiler copies a `STRING` member array through element 0's, `verification\v36_x48`); an
+    array of an owner type with other bounds copies nothing after error 9 (D-022; the old compiler copies the
+    target's number of elements and reads past the source, `x52`). Each has a CLI test.
+  - **The user's two answers kept**: a type suffix on both names stays "not supported yet" (the old compiler
+    copies element 0, `SOMEDAY.md`, also under "QB64pe behaviours to review"); `t001_whole_array_core` stays in
+    `deferred.list` for its plain scalar beside an array typed by `DIM … AS`.
+  - **Beyond the design**: a dynamic member array's descriptor must also have the copy's number of dimensions,
+    which a `REDIM` can change (task 3.1; not measured). The messages differ in wording from the old compiler's
+    (each rejected form is a real error).
+  - **Done earlier than planned**: the 20 upstream programs were run and put on `pass.list` with group 2, as tier 1
+    asks for a list for every clean program (task 2.3); `x() = 1` in `arrays_errors.bas` now gets the real error.
+  - **Met on the way, not of this change**: `LEN(a())` of a whole array (4 upstream programs) is the next whole-array
+    use the report names; `PRINT a()` (element 0) stays marked.
+- `m3-typefields` is done (all 19 tasks, 2026-10-15), committed (`c84f556`); the change is
   archived (`openspec\changes\archive\2026-10-15-m3-typefields\`), its specs merged into `openspec\specs\` (a
   new spec, `language\unstable-features`). For the user to look at, each in the change's `tasks.md`, `DIVERGENCES.md` or `DECISIONS.md`
   2026-10-15:
@@ -314,34 +337,39 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
     files (`m3-typefields`, all 19 tasks, 2026-10-15). What each task found is in the change's `tasks.md`, how it
     was built in its `design.md` ("As built"), the measured facts in `study\00` §5 (`verification\v35_*`, 78
     programs), what stayed marked in `SOMEDAY.md` ("Left marked by `m3-typefields`"). The arrays used after a
-    marked declaration, the third item of the 2026-10-14 decision, are no longer named by the demand report. **Next**:
-    for the user to choose. The upstream report's first lines are whole-array assignment (`dst()`, 9 programs,
-    deferred), `DECLARE LIBRARY` (9), `_SNDOPEN` (6), `_ARRAYCOPY` (4, deferred), `$VERSIONINFO` (4) and the
-    event handlers and switches (4 each); the plain copy of `internal\c` waits until libqb must change.
+    marked declaration, the third item of the 2026-10-14 decision, are no longer named by the demand report.
+11. Done: whole-array assignment (`m3-whole-array-assign`, all 13 tasks, 2026-10-15). What each task found is in
+    the change's `tasks.md`, the C++ in its `design.md` D4, the measured facts in `study\00` §5
+    (`verification\v36_*`, 58 programs), what stayed marked in `SOMEDAY.md` ("Left marked by
+    `m3-whole-array-assign`"). **Next**: for the user to choose. The upstream report's first lines are `DECLARE
+    LIBRARY` (9 programs), `_SNDOPEN` (6), `_ARRAYCOPY` (4, deferred), `$VERSIONINFO` (4), the event handlers and
+    switches (4 each), `_MIDISOUNDBANK` (4) and `LEN` of a whole array (4); the plain copy of `internal\c` waits
+    until libqb must change.
 
 ## Numbers at the last full runs
 
-From 2026-10-15 (task 6.1 of `m3-typefields`, release build against the reference clone, each runner run with
-`--jobs 8 --build-cache target\build-cache`): tier 1, the command-line tests that build, the runner's tests, the
-slice list with and without folding, the upstream and differential pass lists, the two full suites and the
-demand reports, each run once after the last change to the compiler. The call-site check is from
-`m3-asserts-debug-zlib` (no row of the built-in table changed since). The rows of the real programs, of the old
+From 2026-10-15 (task 5.3 of `m3-whole-array-assign`, release build against the reference clone, each runner run
+with `--jobs 8 --build-cache target\build-cache`): tier 1 (at the close of group 4, after the last change to the
+compiler; only documents changed after it), the command-line tests that build, the runner's tests, the slice
+list with and without folding, the upstream and differential pass lists, the two full suites and the demand
+reports, each run once after the last change to the compiler. The call-site check is from
+`m3-asserts-debug-zlib` (no row of the built-in table changed since; this change adds none). The rows of the real programs, of the old
 compiler and of `--pass-cache` are older (sessions 56, 40 and 54).
 
 | Yardstick | Result |
 |---|---|
-| `tests\corpus\slice.list` (tier 2) | **429 of 429** (66 of them screen programs, `g12_game` the scripted game; `s114`–`s118`, the `_DYNAMIC` member programs, new with `m3-typefields`, each passing on its first run); 429 of 429 also with `QB64RUST_NO_FOLD=1` |
-| Full corpus (454 programs) | 448 pass (the 429 of the slice list, 19 `.err` programs), none wrong at run time; **none rejected with "not supported yet"**; 1 `.err` program with only marked errors (`218` `FRE`); 5 known failures (`tests\corpus\README.md`) |
-| Upstream | **290 of 383** (`tests\upstream\pass.list`: 290, all passing, run by itself; 97 programs left `deferred.list` with `m3-typefields`, so 383 are counted); the full suite: 404 programs, 290 pass, 113 rejected or with only marked errors (92 at the compile, 21 `.err` programs), 1 known failure, none wrong |
+| `tests\corpus\slice.list` (tier 2) | **431 of 431** (66 of them screen programs, `g12_game` the scripted game; `s119_whole_array` and `s120_whole_array_members`, new with `m3-whole-array-assign`, each passing on its first run); 431 of 431 also with `QB64RUST_NO_FOLD=1` |
+| Full corpus (456 programs) | 450 pass (the 431 of the slice list, 19 `.err` programs), none wrong at run time; **none rejected with "not supported yet"**; 1 `.err` program with only marked errors (`218` `FRE`); 5 known failures (`tests\corpus\README.md`) |
+| Upstream | **310 of 399** (`tests\upstream\pass.list`: 310, all passing, run by itself; 16 programs left `deferred.list` with `m3-whole-array-assign`, so 399 are counted); the full suite: 404 programs, 310 pass, 93 rejected or with only marked errors (80 at the compile, 13 `.err` programs), 1 known failure, none wrong |
 | Call-site check | 1677 of 1677 programs equal (`tools\callsite\README.md`; 46 of them for `m3-asserts-debug-zlib`: `_ASSERT` 18, the data-processing functions 28) |
 | Real programs (`tests\programs`) | Civil War Strategy: **no diagnostic, and it builds** (3.6 s; the old compiler 6.9 s the same day). Its C++ compared once with the old compiler's, line by line: no call differs on 4,332 lines. **Played for two turns from a keys file (`g12_game`, a copy with listed edits): 23 states equal to the old compiler's**, 1.1–1.9 s a run (`tests\programs\README.md`) |
 | Differential (`tests\differential\pass.list`) | 59 of 59 |
-| Shrink-only lists | 0 false errors, 0 parse gaps, 36 only-marked rejections, 5 clean programs on no pass list (`tests\upstream\README.md`); regenerated at the close, unchanged |
-| Tier 1 (`cargo test`) | 310 tests pass; the 24 command-line tests that build an executable (`--ignored`, run alone) pass too (3 new with `m3-typefields`: D-019 to D-021) |
+| Shrink-only lists | 0 false errors, 0 parse gaps, 28 only-marked rejections (the eight `.err` programs of whole-array assignment left), 5 clean programs on no pass list (`tests\upstream\README.md`); regenerated at the close |
+| Tier 1 (`cargo test`) | 311 tests pass; the 27 command-line tests that build an executable (`--ignored`, run alone) pass too (2 new with `m3-whole-array-assign`: D-004 widened, D-022) |
 | The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 73 pass, 1 s; those of `tools\testtime` 38 (not run with this change, which does not touch it) |
 | `slice.list` while working, with `--pass-cache` | 24 s when no program's executable changed, 92 s when all are run (`--jobs 8 --build-cache`, 2026-10-12) |
 | Screen programs (`tests\corpus\screen`, 66) | Old compiler: 66 recorded, each from two equal runs. New compiler: 66 pass; the 12 of `m3-images-fonts-mouse` (`i01`–`i08`, `f01`, `f02`, `u01`, `u02`) each on its first run (`u01` and `u02` were recorded again after the fix of the mouse steps' wait, task 4.1) |
-| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: **nothing held back** (434 without an `.err`: 432 without errors, and `s77_exeicon` and `g12_game`, whose icons only the runner puts beside them). Upstream (348 without an `.err`): 254 without errors, 83 held back, 11 with other errors (the ten that include the old compiler's sources, and `icon_relative/test`, whose icon lies in the clone); no `$UNSTABLE`, member marker, dynamic member array or array used after a marked declaration is named; first lines: the whole array `dst()` 9, `DECLARE LIBRARY` 9, `_SNDOPEN` 6 |
+| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: **nothing held back** (436 without an `.err`: 434 without errors, and `s77_exeicon` and `g12_game`, whose icons only the runner puts beside them). Upstream (348 without an `.err`): 266 without errors, 71 held back, 11 with other errors (the ten that include the old compiler's sources, and `icon_relative/test`, whose icon lies in the clone); no whole-array assignment is named (the whole arrays it names are `LEN(a())`, 4 programs); first lines: `DECLARE LIBRARY` 9, `_SNDOPEN` 6, `_ARRAYCOPY` 4 |
 | Tier 2 as CI runs it, locally | about 12 min at the last full build; about 2 min with `--jobs 8 --build-cache` when little C++ changed |
 | Full corpus with the old compiler (2026-10-10, 336 programs) | 331 pass, 5 known failures, `--jobs 8`; the 305 before the screen programs took about 12 min with one job, 3 min 44 s with `--jobs 8` (`tools\legacy_tests\README.md`) |
 
@@ -352,9 +380,10 @@ went from 50 to 114 over step 10 (64 before its member arrays) and is at 140 aft
 after `_DEST` and `$CONSOLE`; all 19 `glut` tests with the window built-ins and `_TRUE`/`_FALSE`; four of the
 nine `precomp-flags` tests), at 142 after `m3-sound`, at 148 after `m3-console-files` and at 153 after
 `m3-images-fonts-mouse`, at 174 after `m3-mem`, at 186 after `m3-asserts-debug-zlib` (all of 279), at 193 of
-286 after `m3-redim-retain` and at 290 of 383 after `m3-typefields`. What `deferred.list` still holds needs only
-whole-array assignment or `_ARRAYCOPY`; outside it the report's first lines are `DECLARE LIBRARY`, `_SNDOPEN`,
-`$VERSIONINFO` and the event handlers and switches.
+286 after `m3-redim-retain`, at 290 of 383 after `m3-typefields` and at 310 of 399 after `m3-whole-array-assign`.
+What `deferred.list` still holds needs `_ARRAYCOPY` or, `t001`, a plain scalar beside an array typed by `DIM …
+AS`; outside it the report's first lines are `DECLARE LIBRARY`, `_SNDOPEN`, `$VERSIONINFO` and the event
+handlers and switches.
 
 ## Known bugs
 

@@ -51,7 +51,7 @@ impl Emitter<'_> {
     /// its bounds written where it is declared; the argument sets its block, which finds the place the array is
     /// part of once. In the procedure an `ERASE` of it clears and a `REDIM` raises error 10, as for any static
     /// array passed.
-    fn member_array_arg(&mut self, base: &Place, member: MemberId) -> String {
+    pub(crate) fn member_array_arg(&mut self, base: &Place, member: MemberId) -> String {
         let dims = self.member_dims(base, member);
         let n = dims.len();
         // The block, an unused slot, the flags (allocated, static), an unused slot; four slots per dimension;

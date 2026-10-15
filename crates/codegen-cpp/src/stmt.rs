@@ -83,6 +83,7 @@ impl Emitter<'_> {
             } => self.clear_member_array(base, *member, out),
             Op::Release { array } => self.release_array(array, out),
             Op::EraseParam { array } => self.erase_param(*array, out),
+            Op::CopyArray { from, to } => self.copy_array(from, to, out),
             Op::AssignAll(stores) => {
                 for (place, value) in stores {
                     self.assign(&Place::Var(*place), value, out);

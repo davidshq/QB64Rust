@@ -378,8 +378,10 @@ allocated with when the program starts (`STATIC a(3)` in a procedure); no operat
 SHALL NOT say where that allocation stands in the output. The IR SHALL have operations that allocate a dynamic
 array with bounds given as values (stating whether an allocated array is an error, is replaced, is replaced
 keeping its elements by flat position, or is replaced keeping its elements by their indexes), that clear a static
-array, that release a dynamic one, and that erase an
-array parameter, which is either kind when the program runs. The allocation SHALL be allowed to name a static array or a
+array, that release a dynamic one, that erase an
+array parameter, which is either kind when the program runs, and that copy the elements of one array into
+another of the same element type and number of dimensions (each an array variable or a member array; the
+checks of bounds and the copy by kind follow from the types and SHALL NOT appear as other operations). The allocation SHALL be allowed to name a static array or a
 parameter (it then raises an error when it runs). An array SHALL carry a storage class
 as a scalar does, and an array parameter SHALL be a reference to the caller's array. The IR SHALL NOT state when a
 per-call array is released, nor name a descriptor, an allocation function or a size in bytes.
@@ -414,6 +416,11 @@ per-call array is released, nor name a descriptor, an allocation function or a s
 #### Scenario: Array argument
 - **WHEN** `fill x()` is lowered for `SUB fill (a() AS LONG)`
 - **THEN** the argument is a reference to the array `x`, and inside the SUB `a(1)` is an element of the parameter
+
+#### Scenario: Whole-array assignment
+- **WHEN** `d() = s()` and `t.v() = a()` are lowered
+- **THEN** the IR holds one copy from `s` to `d`, marked as raising, and one from `a` to member `v` of `t`, and no
+  loop over the elements, descriptor or bounds check appears before the C++ output
 
 ### Requirement: Member arrays in the IR
 An element place SHALL name its array as an array variable or as an array member of a place of a user type, so

@@ -1,0 +1,5 @@
+moved: error 9  4  5 
+more: error 9  4  5  0 
+erased: error 9  done
+ok
+exit=0

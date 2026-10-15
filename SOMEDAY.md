@@ -11,7 +11,8 @@ wait until the core compiler works (roadmap M4 or later, `study\07-expert-panel.
 | Feature | Upstream origin | Why deferred | Details |
 |---|---|---|---|
 | `_ARRAYCOPY` | Petr, 2026-09-12 | Weeks old; depends on the member-array layer; 954-line runtime (`array-copy.cpp`) | `study\01` §8.2, `study\03` §2.3 |
-| Whole-array assignment `a() = b()` | Same work | Same layer | `study\02` §2.3 |
+
+Whole-array assignment `a() = b()`, from the same work, came with `m3-whole-array-assign` (2026-10-15).
 
 Features from the same period that are **kept** in scope: `$USELIBRARY`, `$ERRORLOCATION`, the GLFW runtime.
 
@@ -146,7 +147,14 @@ measured:
 |---|---|---|
 | `_OFFSET(x.v())` of a whole `_DYNAMIC` member array | Not measured (its `_MEM` is, `verification\v35_x66`) | `sema\src\check\mem.rs`, `unmeasured_path` |
 | `_MEMGET`, `_MEMPUT` and `_MEMFILL` with a `_DYNAMIC` member array or an element of one as the variable | Outside the change (its design, Non-Goals) | `check\mem.rs`, `bytes_reference` |
-| `x.v() = y.v()`, `x.v() = a()` | Whole-array assignment, deferred (the table at the top) | `check\places.rs` |
+
+**Left marked by `m3-whole-array-assign`** (2026-10-15: `a() = b()` with arrays and member arrays of every kind).
+What the old compiler accepts and the new one still marks "not supported yet":
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A whole-array assignment with a type suffix on both names (`b%() = a%()`, `a&() = b%()`, `a$() = b$()`, also for arrays declared `AS INTEGER`) | The old compiler does not take the whole-array path for a suffixed name: it copies element 0 into element 0, converting, with no type check (`b%(1)` and `b%(2)` keep their values). Marked rather than copied so (user, 2026-10-15, as for a whole array in `FIELD`); also under "QB64pe behaviours to review" | `verification\v36_x24`, `x38`, `x40`, `x43`, `x44`, `v36_a` 7.–9.; `sema\src\check\whole.rs` |
+| A whole array as a value of `PRINT` (`PRINT a()`) | The old compiler prints element 0; a whole array in an expression is marked, as before the change | `verification\v36_x37`; `check\places.rs`, `element` |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -242,6 +250,7 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `ERASE` of a static array of a type with `_DYNAMIC` members releases each element's members and leaves them not allocated: every use raises error 9 until a `REDIM` of the member, while a variable's or a dynamic array's members always have their declared bounds when made | Give each member its declared bounds again, as `ERASE` of a static array gives its other members zero | `m3-typefields` (`verification\v35_b` 9., `x51`; `s116_dyn_member_parents` items 9 and 10) |
 | A whole-value copy of a type with `_DYNAMIC` members finds both places again for each of its statements (a test that they differ, each member, each element of an inline member array): `a(one(1)) = b(one(2))` calls `one` 8 times for a type of a LONG and a `_DYNAMIC` member, 12 times with a `STRING` beside them, 29 times for a nested owner type with strings | Evaluate each side once, then copy (as for the string case of plain types above) | `m3-typefields` task 4.3 (`verification\v35_x56`, `x61`; `s117_dyn_member_kinds` items 11, 12, 14, 15) |
 | A whole-value copy from a value whose `_DYNAMIC` member is not allocated (after `ERASE x.v`) keeps the target's member when the type holds no `STRING`, and leaves it not allocated when it holds one: the old compiler has two copy routines, `AppendDynUDTDescCopy` and `AppendDynUDTOwnCopyEx` | One rule: the target's member as the source's (not allocated) | `m3-typefields` task 4.3 (`verification\v35_x61` 3. and 4.; `s117_dyn_member_kinds` item 16) |
+| `b%() = a%()`, a whole-array assignment with a type suffix on both names, copies element 0 of `a%` into element 0 of `b%` (converting, `a&() = b%()`) and nothing else, with no check of types or bounds; with a suffix on one name only it is an error (not implemented here: marked, see "Left marked by `m3-whole-array-assign`") | Copy the whole array, as without the suffix | `m3-whole-array-assign` (`verification\v36_x24`, `x38`, `x40`, `x43`, `x44`) |
 | `_MEMELEMENT` of an element of a member array (`_MEMELEMENT(u.v(1))`) is the whole member array's bytes typed as one element (16, 132, 16 for four LONGs), and `_MEM` of a member is typed 32768 with element size 1 whatever the member's type, where `_MEMELEMENT` of it has the member's own type | One element, as for an array variable; the member's type for `_MEM` too | `m3-mem` task 1.1 (`verification\v32_a_blocks`) |
 
 ## Other ideas raised during the study

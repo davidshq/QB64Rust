@@ -1,0 +1,5 @@
+
+Expected array index after b
+Caused by (or after):A% ( ) = B ( )
+LINE 5:a%() = b()
+exit=1

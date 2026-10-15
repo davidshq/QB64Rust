@@ -1,0 +1,5 @@
+
+Cannot assign arrays of different types
+Caused by (or after):F ( ) = E ( 1 ) . V ( )
+LINE 7:f() = e(1).v()
+exit=1

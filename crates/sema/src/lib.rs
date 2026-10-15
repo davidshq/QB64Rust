@@ -1197,6 +1197,11 @@ pub enum StmtKind {
     /// `ERASE` of an array parameter: a [`StmtKind::Clear`] when the array passed is a static one, a
     /// [`StmtKind::Release`] when it is dynamic, which is known when the statement runs.
     EraseParam { array: VarId },
+    /// `to() = from()`, a whole-array assignment (design D1 and D3 of `m3-whole-array-assign`; measured,
+    /// `verification\v36_*`): two arrays of one element type and number of dimensions, each an array variable or a
+    /// member array. `to`'s place is found before `from`'s. What runs (the checks of allocation and bounds, error
+    /// 9, the copy by kind) is the IR's `Op::CopyArray`.
+    CopyArray { from: ArrayRef, to: ArrayRef },
     /// `PRINT`, `PRINT #n,` or `LPRINT`, by `to`.
     Print {
         to: PrintTo,

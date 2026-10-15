@@ -1502,6 +1502,64 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     fixed size" (`x48`); `PRINT x.v` "Expected array index" (`x41`). Measured, not followed (`DIVERGENCES.md`):
     the `GET` into a smaller block (D-019), the size that overflows (D-020), the store through `p(9)` (D-004), the
     crash of `_MEM` of a released member and the "Out of memory" of `GET` into a released array (D-021).
+- **Whole-array assignment, `target() = source()` (`v36_*`, 58 programs measured 2026-10-15 before
+  `m3-whole-array-assign`; `qb64pe.bas` `assign` 17343, `EmitAssignWhole` 16675, `CheckAsgRHS` 16809,
+  `AppendDynUDTArrayAssign` 16855, `AppendWholeArrayAssign` 17272):**
+  - **The form**: each side a name with empty parentheses or a chain of members ending in one (`x.v()`,
+    `e(1).v()`); the source may stand in parentheses (`a() = (b())`, `x14`); `LET`, blanks inside the
+    parentheses (`a ( ) = b ( )`, `x20`), after a colon and in a one-line `IF` are accepted (`v36_a` 8., 9.). Each
+    name must pass `validname`, so **a name with a type suffix never takes this path** (below).
+  - **Checked at compile time** (`EmitAssignWhole`): the element types must be equal, else "Cannot assign arrays
+    of different types": `LONG`/`INTEGER`, signed/unsigned, `SINGLE`/`DOUBLE`, `_BIT * 2`/`* 3`, signed and
+    unsigned `_BIT`, `_OFFSET`/`_INTEGER64`, `STRING`/`STRING * 4`, two user types of one layout, a user type and
+    `LONG`, two member arrays of a type, a `REDIM` target (`x05`–`x07`, `x10`–`x12`, `x19`, `x21`–`x23`, `x34`,
+    `x35`); two lengths of `STRING * n`: "Cannot assign fixed-length STRING arrays with different element sizes"
+    (`x09`); the numbers of dimensions: "Cannot assign arrays with different dimensions" (`x08`). An array
+    parameter's number of dimensions is taken from its other uses: alone it is accepted with either (`x17`,
+    `x39`), after `p(1)` a source of two dimensions is that error (`x45`). `_MEM` arrays copy (`x31`); owner types
+    of every pair measured copy (`x46`, `x47`).
+  - **Not whole on both sides** (`CheckAsgRHS`, the guard of an ordinary assignment): "Expected array index after
+    <name>" at the side that is an array named bare or with `()` against something that is no array: `a() = b`
+    (`x01`), `a = b()` (`x03`), `a() = 5` (`x04`), `a() = b() + 1` (`x13`), `x.v() = x.k` (`x32`); "Whole-array
+    assignment requires empty parentheses on both sides" for `a() = b(1)`, `a(1) = b()` (`x02`, `x26`) and when the
+    other name is undeclared or a `CONST` (`x15`, `x16`, `x29`); a FUNCTION as the source is "Expected (...)"
+    (`x18`), a SUB "Name already in use" (`x55`). The value in parentheses gets the same errors as without them
+    (`n = (a())`, `a() = (b(1))`; `x53`, `x54`, measured by the review of the change). The upstream `.err`
+    programs `t024`–`t027`, `t037`, `t038`, `t040`, `t041` are these forms.
+  - **At run time** (`v36_f`): both arrays must be allocated and have, in every dimension, the same lower bound and
+    number of elements, else error 9 and nothing is copied (the same count moved, fewer, more, a second dimension,
+    a target or source after `ERASE`, a `$DYNAMIC` array after `ERASE`, strings). A static array after `ERASE` is
+    allocated and takes the copy. The target is never given new bounds. `a() = a()` copies nothing (`v36_a` 6.);
+    `b() = a(): a() = b()` is two copies (`x30`).
+  - **The copy is deep, by kind** (`v36_a`, `v36_b`): every numeric type, `_OFFSET`, `STRING * n`, `_BIT` and
+    `_UNSIGNED _BIT * 3` (an element has `n/8+1` bytes, as the allocation gives it), user types of numbers and
+    `_MEM` as one move of the bytes; `STRING` element by element (the target's own strings afterwards); a user type
+    with a `STRING`, a nested type, member arrays of numbers and strings, as a whole-value copy of each element.
+    Two and three dimensions, bounds that are not 0, a `REDIM` array on either side.
+  - **Every place** (`v36_c`, `x27`, `x28`, `x36`): `SHARED` into `COMMON SHARED` (conventional memory) from a SUB,
+    local and `STATIC` arrays, a SUB declared `STATIC`, array parameters on both sides and on one (the caller's
+    array is changed), untyped parameters, `$DYNAMIC`, an array used without `DIM` (`w() = u()`), a FUNCTION.
+  - **Member arrays, without the flag** (`v36_d`, `x33`): member to member, member to array, array to member,
+    members of array elements, `STRING` and user-type member arrays; a member whose bounds differ from the array's
+    raises 9 and copies nothing. **The target's place is found before the source's** (`e(f(2)).v() =
+    e(f(1)).v()` prints `f 2` then `f 1`, `x49`). **An index outside its bounds on the way** (`x48`) raises 9 and
+    element 0 stands in: a `LONG` member is then not copied (the descriptor's check sees the pending error) but a
+    `STRING` member is copied through element 0's (`e(0).w(1)` becomes `z`). An error raised and handled before
+    the statement changes nothing (`x50`).
+  - **Owner types under `$UNSTABLE:TYPEFIELDS`** (`v36_e`, `x46`, `x47`, `x51`): each element copied deep, its
+    `_DYNAMIC` members with their own bounds, strings and a nested owner type, into a `DIM` target in place and
+    into a `REDIM` target through a new block (`AppendDynUDTArrayAssign`); a whole array of the type as an inline
+    member array or a `_DYNAMIC` member array, either side. A `_DYNAMIC` member array to another or to a plain array
+    and back is checked as two arrays (error 9 for other bounds, the target keeps its own). `_MEMEXISTS` of a block
+    on a member of an element of the target stays true for both targets (`x51`). **An array of an owner type with
+    other bounds raises 9 and is copied anyway**, as many elements as the target has (`d(0 TO 1) = s(1 TO 2)`
+    copies both; `e(1 TO 3) = s(1 TO 2)` reads a third element past `s`'s block), and an erased target raises 9
+    alone (`x52`).
+  - **A type suffix on both names** (`a%() = b%()`, `a&() = b%()`, `a$() = b$()`, `a%() = b%()` for arrays
+    declared `AS INTEGER`) is not this path: an ordinary assignment of element 0 to element 0, converting, with no
+    type check (`x24`, `x38`, `x40`, `x43`, `x44`, `v36_a` 7.–9.). A suffix on one side only is "Expected array
+    index after" the other name (`x41`, `x42`). `PRINT a()` prints element 0 (`x37`). A scalar and an array of one
+    name (`DIM a AS LONG, a(2) AS LONG`) copy as arrays (`x25`).
 - **`STRING` members, whole values, `TYPE` parameters (`v24_h_string_members`, `v24_h_whole`,
   `v24_h_type_params`, `v24_x206`–`x216`):** a `STRING` member starts empty in a variable, a local (on each
   call), a `STATIC` one (kept), each element of a static and of a dynamic array and in a nested type; it holds

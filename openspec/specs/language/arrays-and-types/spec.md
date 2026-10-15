@@ -771,8 +771,9 @@ one marker twice, a marker on a member that is no array, a marker between `AS` a
 an `AS type` list SHALL be compile errors.
 `place.name(index, …)` SHALL name an element, through any chain of members and elements, with the index and
 by-reference rules of array elements; a member array named without an index, with nothing between its
-parentheses or with another number of indexes than its dimensions SHALL be a compile error, as an index after a
-member that is no array SHALL be. A store SHALL evaluate a numeric value before the indexes and a string value
+parentheses (except as an array argument and as a side of a whole-array assignment, requirement "Whole-array
+assignment of member arrays") or with another number of indexes than its dimensions SHALL be a compile error,
+as an index after a member that is no array SHALL be. A store SHALL evaluate a numeric value before the indexes and a string value
 after them (as the old compiler's program does), the indexes from left to
 right, and SHALL store nothing when an index is outside its bounds (error 9; the old compiler writes element 0 of
 that dimension, `DIVERGENCES.md` D-004). The elements of a member array SHALL be part of the value of their
@@ -1071,3 +1072,123 @@ error where a value is expected, as for any array.
 - **WHEN** for an owner type `LEN(x)`, `_OFFSET(x)`, `COMMON SHARED x AS t`, `PUT #1, 1, x`, `GET #1, 1, p(0)`,
   `REDIM x.v(5)`, `REDIM x.v(0 TO 5) AS INTEGER` or `PRINT x.v` is compiled
 - **THEN** each is a compile error; `LEN(x.v(0))` compiles and is 4
+
+### Requirement: Whole-array assignment
+`target() = source()` (also after `LET`, the source in parentheses) SHALL copy every element of the source array
+into the target array, where each side is an array variable or a member array written with empty parentheses. The
+copy SHALL be deep: a `STRING` element, a `STRING` member and a dynamic member array of a user-type element are the
+target's own afterwards. The target SHALL keep its bounds, and the same array on both sides SHALL change nothing.
+
+#### Scenario: Numbers
+- **WHEN** `DIM s(1 TO 3) AS LONG, d(1 TO 3) AS LONG`, `s(i) = i * 10` for each `i`, then `d() = s(): s(2) = 5`
+  runs and `d(2)` is printed
+- **THEN** it prints ` 20 `
+
+#### Scenario: Strings are copied
+- **WHEN** `d() = s()` runs for two `STRING` arrays of the same bounds, then `s(1) = "changed"`
+- **THEN** `d(1)` keeps the string `s(1)` had at the copy
+
+#### Scenario: User type with strings and member arrays
+- **WHEN** `dh() = sh()` runs for arrays of a type with `v(2) AS INTEGER` and `w(1) AS STRING`, then
+  `sh(1).w(1) = "shallow"`
+- **THEN** `dh(1).w(1)` keeps its copied value and `dh(0).v(2)` is the source's
+
+#### Scenario: Itself
+- **WHEN** `r() = r()` runs
+- **THEN** the elements of `r` keep their values
+
+#### Scenario: Every place of an array
+- **WHEN** one side is `SHARED`, local, `STATIC`, an array parameter, `COMMON SHARED`, `$DYNAMIC` or used without
+  `DIM`, in the main module, a SUB or a FUNCTION
+- **THEN** the copy is made as for two arrays of the main module (`verification` `v36_c`)
+
+### Requirement: Whole-array assignment at run time
+Before copying, a whole-array assignment SHALL check that both arrays are allocated and that in every dimension they
+have the same lower bound and the same number of elements; if not, it SHALL raise error 9 and copy nothing. A static
+array after `ERASE` SHALL count as allocated. A target with other bounds SHALL NOT be given the source's.
+
+#### Scenario: Other bounds
+- **WHEN** `b() = a()` runs for `a(0 TO 5)` and `b(1 TO 6)`, also `c(0 TO 4)`, `d(0 TO 6)`, and two arrays of two
+  dimensions whose second differs, under a handler that prints `ERR` and resumes next
+- **THEN** the handler prints 9 for each and the target's elements keep their values
+
+#### Scenario: Not allocated
+- **WHEN** the target or the source is a dynamic array after `ERASE`, or a `$DYNAMIC` array after `ERASE`
+- **THEN** error 9 is raised and nothing is copied
+
+#### Scenario: A static array after ERASE
+- **WHEN** `ERASE st: st() = a()` runs for two static arrays of the same bounds
+- **THEN** no error is raised and `st` holds the elements of `a`
+
+### Requirement: Whole-array assignment checks
+A whole-array assignment SHALL be a compile error, as in the old compiler, when the element types differ
+(kind, width, sign, `STRING * n` length, user type), when the numbers of dimensions differ, and when one side is
+`name()` and the other is not a whole array (a scalar, an element, an expression, a literal, a FUNCTION, a constant,
+an undeclared name). A scalar or element target with a whole array as its value SHALL be a compile error too.
+
+#### Scenario: Types that differ
+- **WHEN** `a() = b()` is compiled for `LONG` and `INTEGER`, `LONG` and `_UNSIGNED LONG`, `SINGLE` and `DOUBLE`,
+  `_BIT * 2` and `_BIT * 3`, `_OFFSET` and `_INTEGER64`, `STRING` and `STRING * 4`, two user types of one layout
+- **THEN** each is a compile error that names the two element types (the old compiler: "Cannot assign arrays of
+  different types")
+
+#### Scenario: Sizes and dimensions
+- **WHEN** `a() = b()` is compiled for `STRING * 4` and `STRING * 8`, and for one and two dimensions
+- **THEN** each is a compile error (the old compiler: "Cannot assign fixed-length STRING arrays with different
+  element sizes", "Cannot assign arrays with different dimensions")
+
+#### Scenario: Not a whole array on one side
+- **WHEN** `arrA() = arrB`, `arrA() = arrB(1)`, `arrA = arrB()`, `arrA(1) = arrB()`, `values() = scalarVal`,
+  `scalarVal = values()`, `a() = b() + 1` or `a() = 5` is compiled for arrays `arrA`, `arrB`, `values`, `a`, `b` and
+  a scalar `scalarVal`
+- **THEN** each is a compile error at the side that is not a whole array, or at the statement when neither side
+  can be taken alone (the old compiler: "Expected array index after" the name, or "Whole-array assignment requires
+  empty parentheses on both sides")
+
+#### Scenario: Suffixes on both names
+- **WHEN** `b%() = a%()` is compiled
+- **THEN** it is reported "not supported yet" (the old compiler copies element 0 into element 0)
+
+### Requirement: Whole-array assignment of member arrays
+A member array written with empty parentheses (`x.v()`, `e(1).v()`, a `_DYNAMIC` member) SHALL be a side of a
+whole-array assignment with an array variable or another member array, with the same checks. The target's place
+SHALL be found before the source's, each once. If an index on the way raises an error, nothing SHALL be copied (the
+old compiler copies strings through the member of element 0, `DIVERGENCES.md` D-004).
+
+#### Scenario: Member to member, member to array and back
+- **WHEN** `y.v() = x.v(): a() = x.v(): x.v() = a()` runs for a type with `v(1 TO 3) AS LONG` and `a(1 TO 3) AS
+  LONG`, also with `STRING` and user-type member arrays
+- **THEN** each copy is made as for two arrays
+
+#### Scenario: Bounds of a member that differ
+- **WHEN** `b() = x.v()` runs for `b(0 TO 2)` and `v(1 TO 3)` under a handler that prints `ERR`
+- **THEN** the handler prints 9 and `b` keeps its elements
+
+#### Scenario: Index outside on the way
+- **WHEN** `e(i).v() = a(): e(i).w() = s()` runs with `i` outside the bounds of `e`, for a `LONG` and a `STRING`
+  member array, under a handler that prints `ERR` and resumes next
+- **THEN** the handler prints 9 twice and no member of any element of `e` changes
+
+#### Scenario: Order of the places
+- **WHEN** `e(f(2)).v() = e(f(1)).v()` runs, where FUNCTION `f` prints its argument
+- **THEN** ` 2 ` is printed before ` 1 `
+
+#### Scenario: Dynamic member arrays
+- **WHEN** below `$UNSTABLE:TYPEFIELDS` `q.v() = p.v()` runs for a `_DYNAMIC` member, first with other bounds, then
+  after `REDIM q.v` to the bounds of `p.v`
+- **THEN** the first raises error 9 and leaves `q.v` with its bounds, the second copies the elements
+
+### Requirement: Whole-array assignment of owner types
+Below `$UNSTABLE:TYPEFIELDS` a whole-array assignment of arrays of a type with dynamic member arrays SHALL copy each
+element as a whole-value copy does: each dynamic member of the target then has the bounds and elements of the
+source's, strings and nested owner types included, for a `DIM` and a `REDIM` target alike.
+
+#### Scenario: Members with their own bounds
+- **WHEN** `dst() = src()` runs where `src(1).v` was given the bounds 3 to 5 and `src(1).v(4) = 44`, then
+  `src(1).v(4) = -1`
+- **THEN** `LBOUND(dst(1).v)`, `UBOUND(dst(1).v)` and `dst(1).v(4)` are 3, 5 and 44
+
+#### Scenario: Other bounds copy nothing
+- **WHEN** `e() = s()` runs for `s(1 TO 2)` and `e(1 TO 3)` of an owner type, under a handler that prints `ERR`
+- **THEN** the handler prints 9 and every element of `e` keeps its values (the old compiler copies three elements,
+  reading past `s`, `DIVERGENCES.md` D-022)

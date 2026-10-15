@@ -466,6 +466,24 @@ pub enum Op {
     /// `ERASE` of an array parameter: [`Op::Clear`] when the array passed in this call is a static one,
     /// [`Op::Release`] when it is dynamic.
     EraseParam { array: VarId },
+    /// Copy every element of the array `from` into the array `to` (`to() = from()`; design D3 of
+    /// `m3-whole-array-assign`; measured, `study\00` §5, the `v36` paragraph). Both have one element type and
+    /// number of dimensions; each is an array variable or a member array. In this order:
+    ///
+    /// 1. `to`'s place is found, then `from`'s, each once (an [`ArrayRef::Member`] with indexes on the way: an
+    ///    index outside its bounds raises error 9, and the member of the element at position 0 stands in);
+    /// 2. **if an error was raised so far, nothing is copied** (`DIVERGENCES.md` D-004: the old compiler copies a
+    ///    `STRING` member array through the one of element 0);
+    /// 3. both arrays must be allocated (a static array always is, also after `ERASE`) and have, in every
+    ///    dimension, the same lower bound and number of elements; else error 9, and nothing is copied
+    ///    (`DIVERGENCES.md` D-022 for an owner type: the old compiler copies the target's number of elements);
+    /// 4. the same block on both sides (`a() = a()`) copies nothing;
+    /// 5. every element is copied deep, by kind: a `STRING` as a string of its own, a user type as
+    ///    [`Op::CopyWhole`] copies a value, an owner value with the bounds and elements of each of its dynamic
+    ///    member arrays.
+    ///
+    /// The target keeps its bounds. Always may raise.
+    CopyArray { from: ArrayRef, to: ArrayRef },
     /// Items in order, to the program's destination of text, to the file with a number (an `I32`) or to the
     /// printer ([`PrintTo`]); a raising item skips the rest, including the line end. In a file a
     /// [`PrintItem::Zone`] is 14 columns wide, on the console 10 (the runtime's).
@@ -632,6 +650,7 @@ impl Op {
             | Op::Resume(_)
             | Op::Return(_)
             | Op::Allocate { .. }
+            | Op::CopyArray { .. }
             | Op::MemGet { .. }
             | Op::MemPut { .. }
             | Op::MemFill { .. } => true,

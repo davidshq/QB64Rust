@@ -951,7 +951,7 @@ impl Checker<'_> {
     /// An array parameter, and a listed array that was passed to one before it had a number, get theirs when
     /// every body is checked ([`Self::open_dims`], [`Checker::solve_dims`]): `first` is then one fact about it,
     /// written at `at` with the name `t`, and is what this use goes by.
-    fn settle_dims(&mut self, array: VarId, first: usize, t: Tok, at: Span) -> usize {
+    pub(super) fn settle_dims(&mut self, array: VarId, first: usize, t: Tok, at: Span) -> usize {
         if let Some(n) = self.prog.var(array).dim_count() {
             return n;
         }

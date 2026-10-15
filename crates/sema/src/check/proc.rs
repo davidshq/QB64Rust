@@ -502,7 +502,7 @@ impl Checker<'_> {
     }
 
     /// `name()` naming an array that is visible here: the array and the name's token.
-    fn whole_array(&mut self, node: ast::Expr) -> Option<(VarId, Tok)> {
+    pub(super) fn whole_array(&mut self, node: ast::Expr) -> Option<(VarId, Tok)> {
         let ast::Expr::Call(call) = node else {
             return None;
         };
@@ -610,6 +610,7 @@ impl Checker<'_> {
                     param,
                     shown,
                     span,
+                    copied: false,
                 }
             }
         };
