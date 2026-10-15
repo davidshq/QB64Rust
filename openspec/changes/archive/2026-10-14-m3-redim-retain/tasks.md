@@ -64,11 +64,23 @@ review").
 
 ## 4. Close
 
-- [ ] 4.1 Closing runs, once (working rule 9): tier 1 with the command-line tests that build, the runner's tests,
+- [x] 4.1 Closing runs, once (working rule 9): tier 1 with the command-line tests that build, the runner's tests,
   the slice list with and without folding, the upstream and differential pass lists, the two full suites, the
   demand reports, the shrink-only lists regenerated (the call-site check is not affected: no row changes; say so).
   Verify: numbers in `STATUS.md`; nothing on a pass list fails.
-- [ ] 4.2 Documents: `STATUS.md`, `ROADMAP.md`, `crates\README.md`, `tests\upstream\README.md`, `SOMEDAY.md`
+  Done 2026-10-14. **Found while closing**: `REDIM` with a FUNCTION in a bound that gives the same array new
+  bounds crashes the old compiler's program in all three modes (`v34_d2`, `v34_d3` beside `v34_d`), and did this
+  compiler's; fixed for all three on the user's choice (`DIVERGENCES.md` D-018, design "As built"; CLI test
+  `redim_with_a_bound_that_redims`). The runs that a build can affect were redone after the fix: tier 1 (308),
+  the 21 command-line tests that build, the slice list 424 of 424 with and without folding, upstream `pass.list`
+  193 of 193, differential 59 of 59, the full corpus (443 pass, `218_fre` only marked, 5 known failures) and the
+  full upstream suite (193 pass, 173 rejected at the compile, 37 `.err` with only marked errors, 1 known
+  failure, none wrong). Not redone after the fix, as it cannot touch them: the runner's tests (73) and the demand
+  reports (`sema` did not change). The first run without folding, before the fix, failed `u02_mouse_text` once
+  (a screen program with mouse steps and no `REDIM`; passed alone, and in the run after the fix). Shrink-only
+  lists: 0 false errors, 0 parse gaps, 52 only-marked rejections, 5 clean not passing. The call-site check was
+  not run: no row of the built-in table changed.
+- [x] 4.2 Documents: `STATUS.md`, `ROADMAP.md`, `crates\README.md`, `tests\upstream\README.md`, `SOMEDAY.md`
   (the `_RETAIN` row goes; `v34_d` among the behaviours to review), `CLAUDE.md`'s layout table;
   `python tools\testtime\test_time.py`. Verify: `check_repo.py --untracked` is clean; the files to stage and a
   commit message are given to the user.

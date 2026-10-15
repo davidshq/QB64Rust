@@ -392,3 +392,16 @@ change; 174 before it). The 12 new ones: `precomp-flags/asserts`, `assertscon`, 
 of 186 (197 s, `--jobs 8 --build-cache`). The full run of the suite (404 programs): 186 pass, 217 rejected or with
 only marked errors (179 at the compile, 38 `.err` programs), the known failure `http/read_example`; none builds and
 prints the wrong output. The three lists are unchanged.
+
+**Upstream progress, 2026-10-14: 193 of 286** (`m3-redim-retain` task 4.1; 186 of 279 before it). The seven
+programs that were deferred for `REDIM _RETAIN` alone left `deferred.list` (now 118, so the programs counted are
+404 − 118 = 286) and joined `pass.list`, each passing on its first run: `arrays/37_redim_retain_packed_bit_2d`,
+`Retain_Preserve`, `retain_test`, `t_qb64pe_refactor_raw_redim_preserve`,
+`t_qb64pe_refactor_retain_coordinate_payloads`, `t_qb64pe_refactor_retain_nested_owner_array`, and the `.err`
+program `array_elements_change`, now rejected by a real error ("Cannot change the number of elements"), which
+left `tests\known_unsupported_rejections.list` (52). `ArrayCopyTest_3` showed that a `_DYNAMIC` written before a
+member's name was not seen; it is "not supported yet" now, as one after the name, so the demand report names
+`_DYNAMIC`/`_STATIC` members in 90 programs (86 before). `pass.list` run by itself: 193 of 193. The full run of the
+suite (404 programs): 193 pass, 210 rejected or with only marked errors (173 at the compile, 37 `.err` programs),
+the known failure `http/read_example`; none builds and prints the wrong output. The demand report (348 programs
+without an `.err`): 173 without errors, 164 held back, 11 with other errors; it names no `REDIM _RETAIN`.

@@ -84,6 +84,10 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
 - [x] `$ASSERTS`, `$ASSERTS:CONSOLE`, `_ASSERT`; `$DEBUG` without the IDE's debugger (`DIVERGENCES.md` D-017);
       `_ADLER32`, `_CRC32`, `_DEFLATE$`, `_INFLATE$`, `_BASE64ENCODE$`, `_BASE64DECODE$`; `END n` and `SYSTEM n`;
       `-f:GenerateLicenseFile` (`m3-asserts-debug-zlib`). Upstream 174 to 186 of 279
+- [x] `REDIM _RETAIN`, the elements kept by their indexes, for every kind of element and array; a `REDIM` with a
+      FUNCTION in a bound that redims the same array no longer crashes (`DIVERGENCES.md` D-018)
+      (`m3-redim-retain`). Upstream 186 to 193, now of 286 (the seven left `deferred.list`)
+- [ ] `$UNSTABLE:TYPEFIELDS`: the `_DYNAMIC`/`_STATIC` member markers (`DECISIONS.md` 2026-10-14), the next change
 - [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
       file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
       `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program
