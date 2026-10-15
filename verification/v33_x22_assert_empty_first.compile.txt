@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _ASSERT condition[, errorMessage$]
+Caused by (or after):_ASSERT , "a",1
+LINE 3:_ASSERT , "a"
+exit=1

@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):PRINT _CRC32$ ( "x",1 )
+LINE 3:PRINT _CRC32$("x")
+exit=1

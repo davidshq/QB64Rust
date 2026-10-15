@@ -1,0 +1,10 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+exit_code_errors.bas:10:8: error: the exit code of `SYSTEM` must be a number
+exit_code_errors.bas:11:5: error: the exit code of `END` must be a number
+exit_code_errors.bas:12:9: error: expected the end of the statement
+exit_code_errors.bas:13:9: error: expected an expression
+exit_code_errors.bas:14:8: error: a whole `TYPE` value cannot be used here: `v`

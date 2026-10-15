@@ -1,0 +1,5 @@
+before
+bad value
+
+Runtime error: Line: 7 (in main module)
+_ASSERT failed (check console for description)

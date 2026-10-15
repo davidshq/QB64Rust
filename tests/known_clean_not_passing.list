@@ -7,6 +7,3 @@ corpus/runtime_comparison/147_on_error_resume_0.bas  # loops forever by design: 
 corpus/runtime_comparison/187_print_comma_zones.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)
 corpus/runtime_comparison/251_print_chain.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)
 corpus/runtime_comparison/80_print_semicolon.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)
-upstream/audio_out/test.bas  # a test of the generated licence file with the audio part (-f:GenerateLicenseFile, which the driver does not write); the same program without the flag passes as console_only/audio_out
-upstream/basic/test.bas  # a test of the generated licence file (-f:GenerateLicenseFile, which the driver does not write); its PRINT goes to the window and no screen state is recorded
-upstream/image/test.bas  # a test of the generated licence file with the image codec (-f:GenerateLicenseFile, which the driver does not write); _LOADIMAGE and _SAVEIMAGE are run by the screen programs i02_load_images and i03_save_load

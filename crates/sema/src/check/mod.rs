@@ -67,6 +67,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         console: false,
         console_only: false,
         window_hidden: false,
+        asserts: false,
         exe_icon: None,
         echoes: Vec::new(),
         runtime_parts: std::collections::BTreeSet::new(),
@@ -199,6 +200,9 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // `m2-console-screenhide`; measured, `verification\v26_x26`, `x38`). "No window" comes from the lines that are
     // compiled, so a `$CONSOLE:ONLY` in such a branch leaves the window.
     c.console |= program.flags.console();
+    // So are assertions: the old compiler writes the global from the feature's state, which a `$ASSERTS` met in any
+    // round sets (`qb64pe.bas` 13088).
+    c.asserts |= program.flags.get(qb64rust_syntax::pp::Feature::Asserts) != 0;
     if !c.console {
         // A program with neither metacommand is one with a window and no console (design D1 of
         // `m3-window-output`; measured, `verification\v27_*`: `console=0`, the same statement code).
@@ -212,32 +216,41 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         console: c.console,
         window: !c.console_only,
         window_hidden: c.window_hidden,
+        asserts: c.asserts,
         runtime_parts: std::mem::take(&mut c.runtime_parts),
         exe_icon: c.exe_icon.take().map(|(icon, _)| icon),
     };
     (c.prog, c.diags)
 }
 
-/// One of the four metacommands that choose a program's console and window.
+/// One of the metacommands that are settings of the whole program: the four that choose its console and window,
+/// and those of assertions and the debugger.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ConsoleMeta {
     Console,
     ConsoleOnly,
     ScreenHide,
     ScreenShow,
+    Asserts,
+    AssertsConsole,
+    Debug,
 }
 
-/// The console or window metacommand a metacommand token is: `None` for any other metacommand, an error for a form
-/// of one of the four that the old compiler rejects. It compares the whole line, in upper case and without the
-/// blanks at its ends, with the four names, so anything else on the line is "Syntax error" (measured,
-/// `verification\v26_x09`–`x12`, `x14`, `x29`–`x32`, `x35`, `x37`: `$CONSOLE:OFF`, a word, a comment or a colon and
-/// a statement after the name, blanks around the colon of `$CONSOLE:ONLY`).
+/// The setting metacommand a metacommand token is: `None` for any other metacommand, an error for a form of one of
+/// them that the old compiler rejects. It compares the whole line, in upper case and without the blanks at its
+/// ends, with the names, so anything else on the line is "Syntax error" (measured, `verification\v26_x09`–`x12`,
+/// `x14`, `x29`–`x32`, `x35`, `x37`: `$CONSOLE:OFF`, a word, a comment or a colon and a statement after the name,
+/// blanks around the colon of `$CONSOLE:ONLY`; `v33_x02`–`x13`: the same for `$ASSERTS`, `$ASSERTS:CONSOLE` and
+/// `$DEBUG`).
 fn console_meta(raw: &[u8]) -> Option<Result<ConsoleMeta, String>> {
-    const NAMES: [(&str, ConsoleMeta); 4] = [
+    const NAMES: [(&str, ConsoleMeta); 7] = [
         ("$CONSOLE:ONLY", ConsoleMeta::ConsoleOnly),
         ("$CONSOLE", ConsoleMeta::Console),
         ("$SCREENHIDE", ConsoleMeta::ScreenHide),
         ("$SCREENSHOW", ConsoleMeta::ScreenShow),
+        ("$ASSERTS:CONSOLE", ConsoleMeta::AssertsConsole),
+        ("$ASSERTS", ConsoleMeta::Asserts),
+        ("$DEBUG", ConsoleMeta::Debug),
     ];
     let text = meta_line(raw);
     for (name, meta) in NAMES {
@@ -251,6 +264,9 @@ fn console_meta(raw: &[u8]) -> Option<Result<ConsoleMeta, String>> {
             Some(b) if b.is_ascii_alphanumeric() || *b == b'_' => continue,
             Some(b':') if meta == ConsoleMeta::Console => {
                 Some(Err("expected `$CONSOLE` or `$CONSOLE:ONLY`".to_string()))
+            }
+            Some(b':') if meta == ConsoleMeta::Asserts => {
+                Some(Err("expected `$ASSERTS` or `$ASSERTS:CONSOLE`".to_string()))
             }
             Some(_) => Some(Err(format!("`{name}` must stand alone on its line"))),
         };
@@ -355,6 +371,8 @@ struct Checker<'a> {
     console: bool,
     console_only: bool,
     window_hidden: bool,
+    /// A `$ASSERTS` or `$ASSERTS:CONSOLE` was met in the compiled code.
+    asserts: bool,
     /// The first `$EXEICON` met, with the node it is (its tree and offset).
     exe_icon: Option<(crate::ExeIcon, (TreeId, u32))>,
     /// The `_ECHO` statements met: each is an error when the program turns out to have no console, which is known
@@ -914,12 +932,28 @@ impl Checker<'_> {
     }
 
     /// `END` or `SYSTEM` (`kind`); with an exit code not supported yet.
-    fn end_or_system(&mut self, node: Node, kind: StmtKind) -> R<()> {
-        if let Some(code) = node.child_nodes().find_map(ast::Expr::cast) {
-            let word = show_bytes(&self.text(first_token_span(node)).to_ascii_uppercase());
-            return Err(self.unsupported(code.node().span(), format!("`{word}` with an exit code")));
-        }
-        self.push(node, kind);
+    /// `END [code]` or `SYSTEM [code]` (design D5 of `m3-asserts-debug-zlib`; `qb64pe.bas` 9850–9895). The old
+    /// compiler converts the code with `evaluatetotyp(…, ISINTEGER64)`, which reads the target's width as 0: a float
+    /// goes through `qbr_float_to_long` and an integer is stored as it is into libqb's `int64 exit_code`, whose low 32
+    /// bits are the process's exit code (measured, `verification\v33_c*`: `SYSTEM 2.5` gives 2, `SYSTEM 2 ^ 40` 0).
+    /// A string is "Illegal string-number conversion" there (`v33_x37`, `x38`).
+    fn end_or_system(&mut self, node: Node, kind: fn(Option<crate::Expr>) -> StmtKind) -> R<()> {
+        let code = match node.child_nodes().find_map(ast::Expr::cast) {
+            None => None,
+            Some(x) => {
+                let e = self.expr(x)?;
+                if e.ty == Ty::Str {
+                    let word = show_bytes(&self.text(first_token_span(node)).to_ascii_uppercase());
+                    return Err(self.error(e.span, format!("the exit code of `{word}` must be a number")));
+                }
+                Some(if e.ty.is_float() {
+                    expr::conv(e, Ty::I32, crate::ConvKind::RoundEven)
+                } else {
+                    e
+                })
+            }
+        };
+        self.push(node, kind(code));
         Ok(())
     }
 
@@ -960,6 +994,16 @@ impl Checker<'_> {
                 // The last of the two in the file counts (`qb64pe.bas` 3615–3624).
                 Ok(ConsoleMeta::ScreenHide) => self.window_hidden = true,
                 Ok(ConsoleMeta::ScreenShow) => self.window_hidden = false,
+                // The global `asserts` (design D1 of `m3-asserts-debug-zlib`); `$ASSERTS:CONSOLE` gives a console as
+                // `$CONSOLE` does (`qb64pe.bas` 1984; measured, `verification\v33_a06`).
+                Ok(ConsoleMeta::Asserts) => self.asserts = true,
+                Ok(ConsoleMeta::AssertsConsole) => {
+                    self.asserts = true;
+                    self.console = true;
+                }
+                // No debugger code is written (user, design D2): only the flags, which the parser settles, and the
+                // old compiler's warning from the command line (`qb64pe.bas` 3556).
+                Ok(ConsoleMeta::Debug) => self.diags.warning(tok.span, "$DEBUG features only work from the IDE"),
                 Err(msg) => return Err(self.error(tok.span, msg)),
             }
             Ok(())

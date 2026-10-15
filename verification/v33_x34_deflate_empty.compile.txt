@@ -1,0 +1,5 @@
+
+Expected (...)
+Caused by (or after):PRINT _DEFLATE$ ( )
+LINE 3:PRINT _DEFLATE$()
+exit=1

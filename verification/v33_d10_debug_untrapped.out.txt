@@ -1,0 +1,5 @@
+before
+
+Runtime error: Line: 6 (in main module)
+Out of memory
+exit=0

@@ -1,0 +1,5 @@
+
+Name already in use (vwatch_stoptimers) in line 22 of internal\support\vwatch\vwatch.bm auto-included
+Caused by (or after):
+LINE 7:SUB VWATCH_STOPTIMERS ALIAS STOP_TIMERS
+exit=1

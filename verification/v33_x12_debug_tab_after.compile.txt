@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ DEBUG
+LINE 3:$DEBUG	
+exit=1

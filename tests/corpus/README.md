@@ -11,9 +11,9 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 112 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags, the screen functions in a console program, labels with the name of a SUB, `TAB` and `SPC`, conventional memory, sound, `$EXEICON`, the choice and the shifts, `EXIT SELECT`, `PRINT USING`, binary and random files, locks, `FIELD`, `CHAIN`, memory blocks (`_MEM`), one program per runtime error 300 to 313, `MKI$` … `_CV`; `SOURCE.md`) |
+| `slice\` | 118 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags, the screen functions in a console program, labels with the name of a SUB, `TAB` and `SPC`, conventional memory, sound, `$EXEICON`, the choice and the shifts, `EXIT SELECT`, `PRINT USING`, binary and random files, locks, `FIELD`, `CHAIN`, memory blocks (`_MEM`), one program per runtime error 300 to 313, `MKI$` … `_CV`, `$ASSERTS` and `_ASSERT`, `$DEBUG`, the checksum, compression and base64 functions, the exit code of `SYSTEM n` and `END n`; `SOURCE.md`) |
 | `screen\` | 66 programs with a window, checked by the state of the screen they leave: 24 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error, and `c12_prompts`: states taken while a program runs, `m3-scripted-game`), 18 for the screen statements form by form (`d01`–`d16`, `m3-window-output`; `d17` `TAB` and `SPC`, `d18` graphics `GET` and `PUT`, `m3-get-put-bload`), 12 for images, fonts and the mouse (`i01`–`i08`, `f01`, `f02`, `u01`, `u02`, `m3-images-fonts-mouse`), 11 programs cut from Civil War Strategy, three of them with the pictures they load in a `.files` folder, and `g12_game`, the whole game played from its keys file with 23 states compared (`SOURCE.md`, `tools\screen\README.md`, `tests\programs\README.md`). All 66 are on `slice.list` ("Screen programs" below) |
-| `slice.list` | The 416 programs the new compiler must pass: all 112 of `slice\`, 236 of `runtime_comparison`, `verification\` `v11`, `v12` and all 66 of `screen\` (see below) |
+| `slice.list` | The 422 programs the new compiler must pass: all 118 of `slice\`, 236 of `runtime_comparison`, `verification\` `v11`, `v12` and all 66 of `screen\` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -26,6 +26,8 @@ and may have `<name>.normalize`: rules (a Python regular expression, a tab, a re
 applied to each output line before comparing and before recording, for values that differ between machines or runs,
 and `<name>.noprompt`: the value of `QB64PE_NOPROMPT` for the run instead of `y` (`continue` lets a program go on
 after an untrapped runtime error; `slice\s12_error_in_print`),
+and `<name>.exitcode`: the exit code the program must end with (`END n`, `SYSTEM n`; without it, 0; written by
+`--record`),
 and `<name>.stdin`: the program's standard input, byte for byte, for a program that reads the console with `INPUT`
 or `LINE INPUT` (without it the program gets no input). **A program with a `.stdin` file must end with `SYSTEM`**:
 `END` waits for a key that never arrives while standard input is a file (measured, 2026-10-10).
@@ -44,17 +46,18 @@ run; `.gitattributes` keeps the bytes. Beside an `.err` or a `.norun` the folder
 A program that reaches `END` prints an empty line and `Press any key to continue` (no line end) on Windows; that
 trailer is part of its `.output`.
 
-## Counts (recorded 2026-10-03; `slice` as each change added its programs, the last 2026-10-13)
+## Counts (recorded 2026-10-03; `slice` as each change added its programs, the last 2026-10-14)
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 112 |
+| `.output` | 235 | 2 | 118 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
 | `.normalize` sidecars | 3 (`212` `PATH` length, `234` `TIMER`, `238` a folder name in `cmd`'s error) | 0 | 0 |
 | `.noprompt` sidecars | 0 | 0 | 2 (`s12_error_in_print`, `s19_header_errors`: `continue`) |
 | `.stdin` sidecars | 0 | 0 | 2 (`s42_console_input`, `s65_console_input`) |
+| `.exitcode` sidecars | 0 | 0 | 2 (`s110_system_code` 3, `s111_end_code` 4294967295) |
 
 The 20 compile errors are programs written against QB64Fresh's idea of the language. They still test that a
 compiler rejects them, but not what their names say:
@@ -171,8 +174,10 @@ All 66 are listed: `g03_capitol` joined with `m3-sound` (its five `PLAY` lines a
 because the program was cut with the game's sound option off), `c12_prompts` and `g12_game` with
 `m3-scripted-game`.
 
-`slice.list` names the 416 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`. Joined with `m3-mem` (every one left the recorded output on its first run): the 18
+`slice.list` names the 422 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`. Joined with `m3-asserts-debug-zlib` (every one left the recorded output on its first run):
+the six slice programs `s106_asserts`, `s107_assert_message`, `s108_asserts_off_debug`, `s109_data_processing`,
+`s110_system_code` and `s111_end_code`, the last two with an `.exitcode`. Joined with `m3-mem` (every one left the recorded output on its first run): the 18
 slice programs `s88_mem_new_image`, `s89_mem_references`, `s90_mem_get_put` (the programs of
 `verification\v32_a_blocks` and `v32_b_get_put`), `s91_mem_error_300` to `s104_mem_error_313` (each runtime
 error of memory blocks, which ends the program also under `ON ERROR`; made from the `v32_d` programs) and

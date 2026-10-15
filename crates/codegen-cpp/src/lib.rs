@@ -115,6 +115,7 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
         returns: false,
         funcs: 0,
         func_decls: Vec::new(),
+        stmt_at: (None, 0),
     };
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
     let mut set = |name: &str, text: String| files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
@@ -242,4 +243,6 @@ struct Emitter<'a> {
     /// `global.txt` (design D2 of `m3-mem`).
     funcs: u32,
     func_decls: Vec<String>,
+    /// The file and line of the statement being emitted, for an event check inside it (`END n`).
+    stmt_at: (Option<FileId>, u32),
 }

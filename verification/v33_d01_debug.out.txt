@@ -1,0 +1,12 @@
+start
+debug on
+sockets on
+handler 5  20  19 
+after error 20 
+handler 6  30  31 
+in s 0 
+fast-1 
+done
+handler 9  30  24 
+not reached
+exit=0

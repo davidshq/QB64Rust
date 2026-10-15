@@ -1,0 +1,5 @@
+asserts on
+f called
+g called
+after
+exit=0

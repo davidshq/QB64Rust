@@ -36,6 +36,10 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
 - `<name>.normalize`: one rule per line, a Python regular expression, a tab, a replacement (`#` lines are
   comments), applied in order to each output line before comparing and before recording. Keep rules anchored and
   narrow, e.g. `^timer: *[0-9.]+ *$` → `timer: <TIMER>` (`PRINT` puts a space after a number).
+- `<name>.exitcode` (beside an `.output`): the exit code the run must end with, in decimal as the process
+  reports it (`END n`, `SYSTEM n`; `4294967295` for -1 on Windows); without it the code must be 0. `--record`
+  writes it when the two runs end with the same code that is not 0, and removes it when the code is 0
+  (`m3-asserts-debug-zlib`, design D7).
 - `<name>.stdin`: the program's standard input is a copy of this file, byte for byte, when checking and when
   recording, with either compiler (on Windows `press_any_key.py` passes it on as its second argument). Without
   the file a program runs as before (no input). Such a program must end with `SYSTEM`: with standard input from a
@@ -63,7 +67,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   `tests\corpus\slice.list` names the programs the new compiler's first slice must pass.
 - `--pass-cache <folder>` (corpus suite, not with `--record`): a program that passed is remembered by a hash of
   its executable, its source and every file its run and comparison read (`.output`, `.screen`, `.keys`, `.stdin`,
-  `.normalize`, `.noprompt`, and each file of `.files` by its path and bytes). The next run with the option still compiles and builds it, and when the hash is
+  `.normalize`, `.exitcode`, `.noprompt`, and each file of `.files` by its path and bytes). The next run with the option still compiles and builds it, and when the hash is
   the same reports `PASS` with "not run: passed before …" without running it; a last line says how many were
   not run. With `--build-cache`, which gives an unchanged program a byte-identical executable, an edit to the
   compiler then runs only the programs whose C++ it changed: the 342 of `slice.list` take 24 s when nothing

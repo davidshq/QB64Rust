@@ -70,8 +70,12 @@ arrays/t659_array_assignment_control
 arrays/t659_explicit_call_control
 arrays/t659_sub_call_comparisons
 arrays/t659_variable_boolean_expr
+arrays/t_qb64pe_refactor_preserve_inline_varstrings
 arrays/whole_member_array_ops_nonzero_bounds
+audio_out/test
+auto_include/debug
 auto_include/no-debug
+basic/test
 basic/val_default_large_integer_decimal
 basic/val_default_regression
 basic/val_typed_floating_precision
@@ -83,6 +87,7 @@ console/test
 console_only/audio_out
 console_only/data
 console_only/image
+console_only/libz
 console_only/print_console_null_char
 console_only/screenimage
 const/bad_boolean_arg
@@ -128,12 +133,16 @@ glut/windowhasfocus
 glut/windowsizelimit
 icon_relative/test
 iif/iif_test
+image/pcx_test
 image/svg_test
+image/test
+image/webp_test
 include_once/test
 include_paths/include_fixed_compile_location
 include_paths/include_multiple
 include_paths/include_relative
 keyboard/devices_windows
+libz/test
 logging/consts
 name with spaces/test
 noprompt/noprompt-continue
@@ -148,8 +157,11 @@ paint/tile_border_white_nocolor
 paint/tile_noborder_black_bg
 paint/tile_noborder_white_bg
 parens()/parens()
+precomp-flags/asserts
+precomp-flags/assertscon
 precomp-flags/console
 precomp-flags/consoleonly
+precomp-flags/debug
 precomp-flags/explicit
 precomp-flags/explicitarr
 print/auto_semicolon_insertion

@@ -1,0 +1,8 @@
+console 1
+asserts 1
+dest-10 console-10 
+message here
+
+Runtime error: Line: 11 (in main module)
+_ASSERT failed (check console for description)
+exit=0

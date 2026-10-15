@@ -438,3 +438,12 @@ slice/s103_mem_error_312
 slice/s104_mem_error_313
 # m3-mem group 5: a number and its bytes
 slice/s105_mk_cv
+# m3-asserts-debug-zlib group 2: $ASSERTS, _ASSERT and $DEBUG
+slice/s106_asserts
+slice/s107_assert_message
+slice/s108_asserts_off_debug
+# m3-asserts-debug-zlib group 3: checksums, compression and base64
+slice/s109_data_processing
+# m3-asserts-debug-zlib group 4: END and SYSTEM with an exit code
+slice/s110_system_code
+slice/s111_end_code

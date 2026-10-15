@@ -127,7 +127,16 @@ What the old compiler accepts and the new one still marks "not supported yet":
 | `_MEM(nx())` of a name that is no array; `_OFFSET` of an element, member or array of variable-length strings; `_MEMGET`, `_MEMPUT` and `_MEMFILL` with an element or member of them | Not measured (what `_MEM` and `_MEMPUT` do with such strings and arrays of them is: errors, `verification\v32_x15`, `x16`, `x39`) | `check\mem.rs` |
 | `LEN(p(0).a())`, `LEN` of a whole member array | The old compiler takes it (`qb64pe.bas` 20652); its size was not measured. Holds `arrays/test_mem_vs_len` | `check\builtins.rs`, `len` |
 | `$CHECKING:OFF` and the forms the old compiler writes without checks (`sub__memfill_nochecks`, the inline checks left out) | Decided with the proposal: a step of its own (`DECISIONS.md` 2026-10-14) | design of `m3-mem`, Non-Goals |
-| `_INFLATE$`, `_DEFLATE$`, `_BASE64ENCODE$`, `_BASE64DECODE$` | Decided with the proposal: a new part of libqb (`DEP_ZLIB`). They hold the image tests of `imageassert.bm` | same |
+
+(`_INFLATE$`, `_DEFLATE$`, `_BASE64ENCODE$` and `_BASE64DECODE$`, the last row here, came in with
+`m3-asserts-debug-zlib`.)
+
+**Left marked by `m3-asserts-debug-zlib`** (the eighth step of M3, 2026-10-14: `$ASSERTS`, `_ASSERT`, `$DEBUG`,
+the data-processing functions, `END n` and `SYSTEM n`, the licence file):
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A built-in that needs `$` named without it (`_DEFLATE("x")`, `_TRIM(" a")`): "not supported yet", where the old compiler says "Invalid array name" (`verification\v33_x25`–`x29`) | The same words name an array used without `DIM` or a FUNCTION not yet seen; settled with them (user, task 3.1 of the change) | `sema\src\check\expr.rs`, the call of an unknown name |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.

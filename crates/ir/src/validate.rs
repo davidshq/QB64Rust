@@ -212,7 +212,13 @@ impl Validator<'_> {
                 self.value(bytes, owner, at);
                 self.mem_value(value, owner, at);
             }
-            Op::End | Op::System | Op::Exit | Op::SetHandler(None) | Op::Return(None) => {}
+            Op::End(None) | Op::System(None) | Op::Exit | Op::SetHandler(None) | Op::Return(None) => {}
+            Op::End(Some(code)) | Op::System(Some(code)) => {
+                if code.ty == Ty::Str {
+                    self.problem(format!("{at}: an exit code of type {:?}", code.ty));
+                }
+                self.value(code, owner, at);
+            }
             Op::Resume(Resume::Retry | Resume::Next) => {}
             Op::SetHandler(Some(l)) => self.main_label(*l, at, "handler"),
             Op::Resume(Resume::To(l)) => self.main_label(*l, at, "resume"),
@@ -575,6 +581,7 @@ impl Validator<'_> {
                     let string = match slot {
                         Slot::Str => true,
                         Slot::Long
+                        | Slot::Integer
                         | Slot::Int64
                         | Slot::Double
                         | Slot::Float

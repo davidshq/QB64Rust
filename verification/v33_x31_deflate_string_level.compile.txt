@@ -1,0 +1,5 @@
+
+2nd function argument requires a number
+Caused by (or after):PRINT _DEFLATE$ ( "a",1 , "b",1 )
+LINE 3:PRINT _DEFLATE$("a", "b")
+exit=1

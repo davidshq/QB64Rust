@@ -351,6 +351,7 @@ impl Checker<'_> {
             (
                 _,
                 Slot::Long
+                | Slot::Integer
                 | Slot::Int64
                 | Slot::Double
                 | Slot::Float
@@ -375,6 +376,10 @@ impl Checker<'_> {
         }
         Ok(match slot {
             Slot::Long => self.store(e, Ty::I32)?,
+            // `qbr_float_to_long` of the value as it is, as the old compiler writes it: the function takes a `float`,
+            // so C++ narrows the value to SINGLE (as for `MKI$`, `check\mem.rs`).
+            Slot::Integer if e.ty.is_float() => super::expr::conv(e, Ty::I32, crate::ConvKind::RoundEven),
+            Slot::Integer => self.convert_exact(e, Ty::I32),
             Slot::Int64 => self.store(e, Ty::I64)?,
             Slot::Offset => self.store(e, Ty::Off)?,
             Slot::UInt64 => self.store(e, Ty::U64)?,

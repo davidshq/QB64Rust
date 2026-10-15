@@ -6,8 +6,8 @@ Run:  python -m unittest discover -s tools/legacy_tests -p "test_*.py"
 The runner judges tier 2 and records every expected output (study/29 section 5), so its comparison
 and recording rules are pinned here. Two kinds of test:
   * the pure functions (normalisation, the new compiler's rejection rule, .normalize files, exit
-    codes as Git Bash reports them, the --list and known-failures files, what a copy of the clone
-    leaves out);
+    codes as Git Bash reports them and as press_any_key.py passes them on, the --list and
+    known-failures files, what a copy of the clone leaves out);
   * corpus_test with the compiler and the program replaced by a stand-in for run_proc, so every
     outcome of one corpus program is reached without a compiler, a clone or a C++ build.
 Not covered here: the locks and the private copies of qb64pe (they need the clone; the full runs
@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import os
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -119,6 +121,19 @@ class ExitCodes(unittest.TestCase):
         self.assertEqual(rlt.bash_exit_code(0xC0000094), 127)
         # Python may hand a Windows status over as a negative number.
         self.assertEqual(rlt.bash_exit_code(0xC0000005 - (1 << 32)), 139)
+
+    @unittest.skipUnless(os.name == "nt", "press_any_key.py runs on Windows only")
+    def test_press_any_key_passes_on_every_32_bit_code(self):
+        # A child process ends as the helper does, with sys.exit(exit_status(code)); a code from 2**31
+        # up came out as 4294967295 before (sys.exit takes a 32-bit C long on Windows).
+        here = str(Path(__file__).resolve().parent)
+        for code in (0, 3, 2**31 - 1, 2**31, 4294967294, 4294967295):
+            script = (
+                f"import sys; sys.path.insert(0, {here!r}); "
+                f"from press_any_key import exit_status; sys.exit(exit_status({code}))"
+            )
+            p = subprocess.run([sys.executable, "-c", script], capture_output=True)
+            self.assertEqual(p.returncode, code, p.stderr)
 
 
 class Recording(unittest.TestCase):
@@ -308,6 +323,47 @@ class CorpusProgram(CorpusFixture):
         self.sidecar("output", b"1\n")
         self.assert_fail(self.run_test(Tools(runs=[b"1\n"], run_rc=5)), "run", "exit code 5")
         self.assert_fail(self.run_test(Tools(runs=[b"1\n"], run_times_out=True)), "run", "timeout")
+
+    def test_an_exit_code_is_compared_with_the_exitcode_file(self):
+        self.sidecar("output", b"1\n")
+        self.sidecar("exitcode", b"3\n")
+        self.assertEqual(self.run_test(Tools(runs=[b"1\n"], run_rc=3)).status, "PASS")
+        self.assert_fail(self.run_test(Tools(runs=[b"1\n"], run_rc=0)), "run", "exit code 0, expected 3")
+        self.assert_fail(self.run_test(Tools(runs=[b"1\n"], run_rc=4)), "run", "expected 3")
+
+    def test_an_exitcode_file_beside_err_or_norun_is_an_error_in_the_test(self):
+        self.sidecar("exitcode", b"3\n")
+        err = self.sidecar("err", b"bad\n")
+        self.assert_fail(self.run_test(Tools(rc=1, exe=False)), "expected", ".exitcode beside .err")
+        err.unlink()
+        self.sidecar("norun", b"why\n")
+        self.assert_fail(self.run_test(Tools()), "expected", ".exitcode beside .norun")
+
+    def test_record_writes_an_exit_code_that_is_not_0_and_removes_one_that_is(self):
+        r = self.run_test(Tools(runs=[b"1\r\n"], run_rc=4294967295), record=True)
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assertEqual((self.group / "p.exitcode").read_bytes(), b"4294967295\n")
+        r = self.run_test(Tools(runs=[b"1\r\n"], run_rc=0), record=True)
+        self.assertIn("removed p.exitcode", r.detail)
+        self.assertFalse((self.group / "p.exitcode").exists())
+        self.run_test(Tools(runs=[b"1\r\n"]), record=True)
+        self.assertFalse((self.group / "p.exitcode").exists())
+
+    def test_record_refuses_two_different_exit_codes(self):
+        tools = Tools(runs=[b"1\r\n"], run_rc=3)
+        calls = iter([3, 4])
+        original = tools.__call__
+
+        def two_codes(args, cwd, stdout_path, timeout, **kw):
+            rc, out = original(args, cwd, stdout_path, timeout, **kw)
+            return (rc, out) if "-x" in args else (next(calls), out)
+
+        with mock.patch.object(rlt, "run_proc", two_codes):
+            args = SimpleNamespace(
+                qb64=Path("qb64rust.exe"), record=True, cpp_opt=False, copies=None, pass_cache=None
+            )
+            r = rlt.corpus_test(self.bas, args, self.results, self.clone, self.corpus, {})
+        self.assert_fail(r, "record", "exit codes 3 and 4")
 
     def test_compile_failures(self):
         self.sidecar("output", b"1\n")

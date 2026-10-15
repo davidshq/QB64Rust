@@ -37,6 +37,9 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     that read the console with INPUT or LINE INPUT), when checking and when recording
   * <name>.normalize: one rule per line, <regex><TAB><replacement> ('#' lines are comments),
     applied in order to each line of the actual output before comparing or recording
+  * <name>.exitcode (beside an .output): the exit code the run must end with, in decimal as the
+    process reports it (END n, SYSTEM n); without it, 0. --record writes it when the code is not
+    0 (the two runs must agree) and removes it when the code is 0
   * <name>.screen (beside an .output): a screen program. It is built with tools/screen/screen_state.cpp
     on the link line (-f:ExtraLinkerFlags=) and run with QB64_SCREEN_STATE naming a file in the
     results folder; the state of the screen it writes there at exit must equal .screen (CRLF as
@@ -760,6 +763,9 @@ def corpus_test(
     files_dir = tdir / f"{name}.files"
     if files_dir.is_dir() and (norun or err_file.is_file()):
         return fail("expected", f".files beside {present[0]}: a program with data files runs")
+    exitcode_file = tdir / f"{name}.exitcode"
+    if exitcode_file.is_file() and (norun or err_file.is_file()):
+        return fail("expected", f".exitcode beside {present[0]}: only a program that runs has one")
     if screen and any(c.isspace() for c in SCREEN_STATE_SOURCE.as_posix()):
         return fail("screen", f"a blank in the path of {SCREEN_STATE_SOURCE.name}: make splits it")
     if not present and not args.record and not skip_run:
@@ -858,6 +864,9 @@ def corpus_test(
     if np_file.is_file():
         noprompt = np_file.read_text(encoding="latin-1").strip()
     stdin_file = tdir / f"{name}.stdin"
+    # <name>.exitcode: the exit code the program must end with (END n, SYSTEM n), as the process
+    # reports it (Python's returncode: on Windows the unsigned 32-bit value); without it, 0.
+    want_rc = int(exitcode_file.read_text(encoding="latin-1").strip()) if exitcode_file.is_file() else 0
     # --pass-cache: a program that passed with this executable, this source and these expected and
     # input files is not run again. Never with --record, which is what makes the expected files.
     remembered = None
@@ -874,6 +883,7 @@ def corpus_test(
             read(keys_file),
             read(stdin_file),
             read(tdir / f"{name}.normalize"),
+            read(exitcode_file),
             data_files(files_dir),
             noprompt.encode(),
             Path(__file__).with_name("press_any_key.py").read_bytes() if os.name == "nt" else None,
@@ -911,6 +921,7 @@ def corpus_test(
         cmd, flags = [str(exe)], 0
     outputs: list[bytes] = []
     states: list[bytes] = []
+    codes: list[int] = []
     for run in range(1, 3 if args.record else 2):
         reset_folder(work, {bas.name, exe.name})
         if files_dir.is_dir():
@@ -933,8 +944,10 @@ def corpus_test(
         )
         if timed_out:
             return fail("run", "timeout")
-        if rc != 0:
-            return fail("run", f"exit code {rc}")
+        # A recording takes any code (two runs must agree); a check wants the .exitcode's, or 0.
+        if rc != want_rc and not args.record:
+            return fail("run", f"exit code {rc}" + (f", expected {want_rc}" if want_rc else ""))
+        codes.append(rc)
         outputs.append(apply_normalize(run_out.read_bytes(), rules))
         if screen:
             # A build that lost the state file, or a program killed before exit(), must not pass.
@@ -947,7 +960,15 @@ def corpus_test(
             return fail("record", "non-deterministic: the two runs differ after normalisation")
         if screen and states[0] != states[1]:
             return fail("record", "non-deterministic: the screen states of the two runs differ")
+        if codes[0] != codes[1]:
+            return fail("record", f"non-deterministic: exit codes {codes[0]} and {codes[1]}")
         changes = [write_expected(out_file, outputs[0], err_file)]
+        # The exit code: a file only for one that is not 0.
+        if codes[0] != 0:
+            changes.append(write_recorded(exitcode_file, f"{codes[0]}\n".encode()))
+        elif exitcode_file.is_file():
+            exitcode_file.unlink()
+            changes.append(f"removed {exitcode_file.name}")
         if screen:
             first = (
                 screen_file.stat().st_size == 0

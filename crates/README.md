@@ -84,7 +84,10 @@ clone changes. `-z` keeps that folder: run over many files (to collect diagnosti
 the clone, or use `--dump tree`. The QB64pe Windows release works as the root too (CI uses it). `-f:OptimizeCppProgram=true` builds
 with `-O2` as `qb64pe` does; `-f:ExtraLinkerFlags=<value>` adds the value to the end of the link command as `qb64pe`
 does (the test runner gives `tools\screen\screen_state.cpp` this way; the build cache's key takes the value and the
-contents of a file it names); `-f:StripDebugSymbols=...` is ignored; other `-f:` settings are "not supported yet".
+contents of a file it names); `-f:GenerateLicenseFile=true` has the clone's `Makefile` write the licences of the
+parts the program links, moved beside the executable as `<exe>.license.txt` (`build.rs`, `license_path`; the build
+cache keeps the file with its executable, and an entry without it is no hit for a build that asks for it);
+`-f:StripDebugSymbols=...` is ignored; other `-f:` settings are "not supported yet".
 
 What the compiler supports so far:
 
@@ -610,13 +613,40 @@ What the compiler supports so far:
   settled flags are `ParsedProgram::flags`: `sema` takes the console and the two options from them as well as
   from the lines it walks, because a line may set its flag from inside the `$IF` branch the flag switches off.
   Still marked: a `$IF` that names `_CONSOLE_` between `$CONSOLE:ONLY` and a later `$CONSOLE` or the other way
-  round (QB64pe's two passes read it with different values); `$ASSERTS` and `$DEBUG` as metacommands (their
-  flags are set, so the rest of such a program gets no second mark).
+  round (QB64pe's two passes read it with different values). `_SOCKETS_` follows `$DEBUG` (below).
+- **`$ASSERTS`, `_ASSERT` and `$DEBUG`** (`m3-asserts-debug-zlib` group 2; the facts in `study\00` §5,
+  `verification\v33_*`): `$ASSERTS`, `$ASSERTS:CONSOLE` and `$DEBUG` are settings of the whole program checked in
+  `sema`'s `meta` with the line rules of `$CONSOLE` (`console_meta`). `$ASSERTS` sets `Settings::asserts` (also
+  from the settled flag), written as the global `int32 asserts=1;`; `$ASSERTS:CONSOLE` also gives a console.
+  `_ASSERT condition[, message$]` is a plain statement row (`sub__assert`), its condition `Slot::Integer` (a float
+  through `qbr_float_to_long`, an integer as it is); libqb checks nothing while `asserts` is 0, and raises 314 or,
+  with a console and a message, writes the message and raises 315, neither trapped by `ON ERROR`. **`$DEBUG`
+  writes no debugger code** (user, design D2; `DIVERGENCES.md`): it sets `_DEBUG_` and `_SOCKETS_` (the old
+  compiler's vWatch uses sockets) and, with `-w`, warns "$DEBUG features only work from the IDE"; `vwatch` stays
+  0. Checked by `s106_asserts`, `s107_assert_message`, `s108_asserts_off_debug`, the front-end tests
+  `asserts_errors`, `asserts_forms`, `asserts_cpp`, `flags_asserts_debug` and `console_meta_tab_after`, the
+  command-line test `debug_warning`, and 18 call-site programs (`assert_*`).
+- **Checksums, compression and base64** (`m3-asserts-debug-zlib` group 3; the facts in `study\00` §5,
+  `verification\v33_b*`): `_ADLER32`, `_CRC32` (each an `_UNSIGNED LONG`), `_DEFLATE$(s[, level])`,
+  `_INFLATE$(s[, size])`, `_BASE64ENCODE$` and `_BASE64DECODE$`, each a plain row of `RuntimePart::DataProcessing`
+  (the table's `DEPENDENCY_ZLIB`), which the driver builds with `DEP_ZLIB=y` after `DEP_FONT=y` and before
+  `DEP_CONSOLE=y`, as the old compiler orders it (`build.rs`, `make_flags`; a call in code never run links it
+  too). Checked by `s109_data_processing` (also run by the upstream `console_only/libz`, `image/pcx_test` and
+  `image/webp_test`), the front-end tests `data_processing_typed` and `data_processing_errors`, a unit test of
+  `make_flags`, and 28 call-site programs (`adler32_*`, `crc32_*`, `deflate_*`, `inflate_*`, `base64*`). A name
+  written without its `$` (`_DEFLATE("x")`) is "not supported yet", as for every such name (`_TRIM(...)`).
+- **`END n` and `SYSTEM n`** (`m3-asserts-debug-zlib` group 4; `verification\v33_c*`): `StmtKind::End` and
+  `System` (and `Op::End`, `Op::System`) carry the exit code: a float converted through `qbr_float_to_long`, an
+  integer as it is (`check\mod.rs`, `end_or_system`). The emitter writes the old compiler's two lines before the
+  end, the statement's event check and `exit_code=<n>;` (`codegen-cpp\src\stmt.rs`, `exit_code`); the process's
+  exit code is the low 32 bits. The corpus runner compares a program's exit code with its `<name>.exitcode`
+  (`tools\legacy_tests\README.md`). Checked by `s110_system_code`, `s111_end_code`, the front-end tests
+  `exit_code_ir`, `exit_code_cpp` and `exit_code_errors`, and the upstream
+  `arrays/t_qb64pe_refactor_preserve_inline_varstrings`.
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
 are line numbers and jumps to them (also as `ON … GOTO` and `RESTORE` targets), the other built-in functions, `DECLARE LIBRARY`, event handlers and switches, `STOP`, `RUN`,
-`END`/`SYSTEM` with an exit code,
 `READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array, `READ`, `INPUT`, `INPUT #` or the `MID$` statement
 with a member of an element or an element of a member array, every other
 built-in statement read by its template (`TIME$ =`, ...), the declaration

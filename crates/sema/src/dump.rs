@@ -271,8 +271,19 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 mem_parts(p, block, offset, Some(bytes), d, out);
                 mem_value(p, value, d, out);
             }
-            StmtKind::End => line(out, "End"),
-            StmtKind::System => line(out, "System"),
+            StmtKind::End(code) | StmtKind::System(code) => {
+                line(
+                    out,
+                    if matches!(s.kind, StmtKind::End(_)) {
+                        "End"
+                    } else {
+                        "System"
+                    },
+                );
+                if let Some(code) = code {
+                    expr(p, code, d + 1, out);
+                }
+            }
             StmtKind::Exit => line(out, "Exit"),
             StmtKind::ExitLoop(k) => line(out, &format!("Exit {k:?}")),
             StmtKind::ExitSelect { case } => line(out, if *case { "Exit Case" } else { "Exit Select" }),

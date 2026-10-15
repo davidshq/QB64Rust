@@ -19,6 +19,17 @@ impl Emitter<'_> {
         }
     }
 
+    /// The exit code of `END n` and `SYSTEM n`, as the old compiler writes it (`qb64pe.bas` 9850–9895; design D5 of
+    /// `m3-asserts-debug-zlib`): a pending error is serviced first (the event check of the statement's line, with the
+    /// included file's name when it stands in one), then the code is stored into libqb's `exit_code`.
+    fn exit_code(&mut self, code: Option<&Expr>, out: &mut Vec<String>) {
+        if let Some(code) = code {
+            let (file, line) = self.stmt_at;
+            out.push(format!("if(qbevent){{evnt({});}}", self.evnt_args(file, line)));
+            out.push(format!("exit_code={};", self.value(code)));
+        }
+    }
+
     /// One operation. `raised`: an earlier operation of the statement may have raised, so a jump checks for a
     /// pending error (design D9).
     pub(crate) fn op(&mut self, op: &Op, raised: bool, out: &mut Vec<String>) {
@@ -28,8 +39,12 @@ impl Emitter<'_> {
                 out.push("sub__dest(func__console());".into());
                 out.push("sub__source(func__console());".into());
             }
-            Op::End => out.push("sub_end();".into()),
-            Op::System => {
+            Op::End(code) => {
+                self.exit_code(code.as_ref(), out);
+                out.push("sub_end();".into());
+            }
+            Op::System(code) => {
+                self.exit_code(code.as_ref(), out);
                 out.push("if (sub_gl_called) error(271);".into());
                 out.push("close_program=1;".into());
                 out.push("end();".into());

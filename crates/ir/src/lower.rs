@@ -68,6 +68,7 @@ pub fn lower(p: &sema::Program) -> Program {
             console: p.settings.console,
             window: p.settings.window,
             window_hidden: p.settings.window_hidden,
+            asserts: p.settings.asserts,
             runtime_parts: p
                 .settings
                 .runtime_parts
@@ -79,6 +80,7 @@ pub fn lower(p: &sema::Program) -> Program {
                     sema::RuntimePart::ImageCodec => crate::RuntimePart::ImageCodec,
                     sema::RuntimePart::Font => crate::RuntimePart::Font,
                     sema::RuntimePart::ScreenImage => crate::RuntimePart::ScreenImage,
+                    sema::RuntimePart::DataProcessing => crate::RuntimePart::DataProcessing,
                 })
                 .collect(),
             exe_icon: p.settings.exe_icon.is_some(),
@@ -317,8 +319,8 @@ impl<'a> Lowerer<'a> {
             sema::StmtKind::Gosub(l) => Op::Gosub(self.ids.get(*l)),
             sema::StmtKind::Return(l) => Op::Return(l.map(|l| self.ids.get(l))),
             sema::StmtKind::ConsoleOnly => Op::SelectConsole,
-            sema::StmtKind::End => Op::End,
-            sema::StmtKind::System => Op::System,
+            sema::StmtKind::End(code) => Op::End(code.clone()),
+            sema::StmtKind::System(code) => Op::System(code.clone()),
             sema::StmtKind::Exit => Op::Exit,
             sema::StmtKind::OnError(l) => Op::SetHandler(l.map(|l| self.ids.get(l))),
             sema::StmtKind::Resume(r) => Op::Resume(match r {

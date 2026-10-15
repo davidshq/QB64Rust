@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):K = _ASSERT ( 1 )
+LINE 3:k = _ASSERT(1)
+exit=1

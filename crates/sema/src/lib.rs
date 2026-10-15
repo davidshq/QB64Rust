@@ -1087,10 +1087,7 @@ pub enum StmtKind {
     /// A built-in statement that is one call of the runtime ([`builtins::STATEMENTS`]): the table entry of the form
     /// written and one slot per argument or choice. The arguments are evaluated in order and the call is made also
     /// after a raising argument (measured, `verification\v22_a_calls`).
-    Builtin {
-        id: BuiltinId,
-        args: Vec<StmtArg>,
-    },
+    Builtin { id: BuiltinId, args: Vec<StmtArg> },
     /// `$CONSOLE:ONLY`: output and input go to the console.
     ConsoleOnly,
     /// `_MEMGET block, offset, variable` (design D4 of `m3-mem`): the variable's bytes read from the block, at
@@ -1127,20 +1124,14 @@ pub enum StmtKind {
     /// stored. For a place reached through a member with an index on the way ([`Place::through_member`]) a
     /// number is evaluated before the indexes and a string after them (measured, `verification\v24_x313`,
     /// `x316`), and nothing is stored when an index is outside its bounds (`DIVERGENCES.md` D-004).
-    Assign {
-        place: Place,
-        value: Expr,
-    },
+    Assign { place: Place, value: Expr },
     /// `to = from` for two places of one user type (design D9 of `m2-defxxx-common-arrays`): every member is
     /// copied, a `STRING` member as a string of its own. The copy is not guarded (measured,
     /// `verification\v24_h_whole`, `v24_x210`): an index outside its bounds raises error 9 and the array's first
     /// element stands in for the element named, on either side. `to` is found before `from`; for a type that
     /// holds strings ([`holds_strings`]) both are found again for every part of the value (`v24_x306`, `x307`;
     /// the parts are the IR's, `Op::CopyWhole`).
-    CopyWhole {
-        from: Place,
-        to: Place,
-    },
+    CopyWhole { from: Place, to: Place },
     /// A `DIM`, `REDIM` or `REDIM _PRESERVE` that runs (design D4 of `m2-defxxx-common-arrays`): gives an array
     /// its bounds and its elements, zero or empty. One lower and one upper bound per dimension, each already
     /// converted to `_INTEGER64`, evaluated in order. The array may be a static one: the statement then raises
@@ -1163,19 +1154,13 @@ pub enum StmtKind {
     /// part of is found once, and the clear is not guarded: an index outside its bounds on the way raises error
     /// 9 and the member array of that array's first element is cleared, as it is after any other error the
     /// index raises.
-    Clear {
-        array: ArrayRef,
-    },
+    Clear { array: ArrayRef },
     /// `ERASE` of a dynamic array: its elements are released and it is not allocated afterwards. Of one that is
     /// not allocated it does nothing.
-    Release {
-        array: VarId,
-    },
+    Release { array: VarId },
     /// `ERASE` of an array parameter: a [`StmtKind::Clear`] when the array passed is a static one, a
     /// [`StmtKind::Release`] when it is dynamic, which is known when the statement runs.
-    EraseParam {
-        array: VarId,
-    },
+    EraseParam { array: VarId },
     /// `PRINT`, `PRINT #n,` or `LPRINT`, by `to`.
     Print {
         to: PrintTo,
@@ -1205,20 +1190,13 @@ pub enum StmtKind {
     /// each part the indexes of its target before its width. Each `FIELD` starts at the buffer's first byte
     /// again; the strings of an earlier one stay fields. What a field string then is (its length, what `GET`
     /// and `PUT` with no variable and `LSET` do to it) is the runtime's.
-    Field {
-        file: Expr,
-        parts: Vec<(Place, Expr)>,
-    },
+    Field { file: Expr, parts: Vec<(Place, Expr)> },
     /// `LSET target = value` (`right` false) or `RSET target = value`: the value's characters into the string
     /// at `target`, at its left or at its right, without changing its length: a shorter value is padded with
     /// blanks, a longer one cut at its end (measured, `verification\v30_l_lset_rset`, `v30_x140`–`x170`). The
     /// target is a place of type `STRING` or `STRING * n`, found before the value is evaluated; with an error
     /// pending after the value nothing is stored. A field string's part of its file's buffer is set too.
-    Lset {
-        right: bool,
-        target: Place,
-        value: Expr,
-    },
+    Lset { right: bool, target: Place, value: Expr },
     /// `WRITE` to the console (`to` is `None`) or to file `to`: the items separated by commas, strings in quotes,
     /// numbers without blanks, then a line end unless the statement ends with a comma (`newline` false; measured,
     /// `verification\v22_x59`). An item is a [`PrintItem::Str`] or a [`PrintItem::Num`].
@@ -1241,14 +1219,14 @@ pub enum StmtKind {
     /// after the label in file order, [`Label::data_at`]). The label may be of any body (measured,
     /// `verification\v22_c_restore`).
     Restore(Option<LabelId>),
-    End,
-    /// `SYSTEM`: ends the program at once, without the "press any key" prompt of `END`.
-    System,
+    /// `END [code]`. The code (design D5 of `m3-asserts-debug-zlib`) is the process's exit code: a float already
+    /// converted to LONG through `qbr_float_to_long`, an integer as it is.
+    End(Option<Expr>),
+    /// `SYSTEM [code]`: ends the program at once, without the "press any key" prompt of `END`; the code as for
+    /// [`StmtKind::End`].
+    System(Option<Expr>),
     /// A SUB call; one argument per parameter.
-    Call {
-        proc: ProcId,
-        args: Vec<Arg>,
-    },
+    Call { proc: ProcId, args: Vec<Arg> },
     /// `EXIT SUB` / `EXIT FUNCTION`: leaves the procedure (either word leaves either kind, measured).
     Exit,
     /// `ON ERROR GOTO label` (`Some`) or `ON ERROR GOTO 0` (`None`): sets or removes the program's error handler.
@@ -1312,9 +1290,7 @@ pub enum StmtKind {
     /// `EXIT SELECT` continues after the `END SELECT` of the nearest such `SELECT`. `EXIT CASE` ends the `CASE`
     /// it stands in as reaching its last statement does: a plain `SELECT` is left, a `SELECT EVERYCASE` goes on
     /// with its next `CASE`; in a `CASE ELSE` it is `EXIT SELECT`.
-    ExitSelect {
-        case: bool,
-    },
+    ExitSelect { case: bool },
     /// `ON n GOTO l1, l2, …` (`gosub` false) or `ON n GOSUB …`: to the n-th label of the same body; 0 and values past
     /// the count (also above 255, `DIVERGENCES-QB45.md` Q-001) continue with the next statement, a negative value
     /// raises error 5. `value` is LONG (design D8 of `m2-core-builtins`, measured `verification\v20_i_on_goto`).
@@ -1435,6 +1411,8 @@ pub struct Settings {
     /// The last of `$SCREENHIDE` and `$SCREENSHOW` in the file is `$SCREENHIDE`. The old compiler records it
     /// whether the program has a window or not.
     pub window_hidden: bool,
+    /// `$ASSERTS` or `$ASSERTS:CONSOLE` stands in the program's compiled code: `_ASSERT` checks its condition.
+    pub asserts: bool,
     /// The optional parts of the runtime the program's built-ins need (the table's `dependency` column).
     pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
     /// The icon `$EXEICON` gives the executable.
@@ -1476,6 +1454,8 @@ pub enum RuntimePart {
     Font,
     /// Images of the desktop and the clipboard (`_SCREENIMAGE`, `_CLIPBOARDIMAGE`).
     ScreenImage,
+    /// Checksums, compression and base64 (`_CRC32`, `_DEFLATE$`, ...; the old compiler's `DEPENDENCY_ZLIB`).
+    DataProcessing,
 }
 
 impl RuntimePart {
@@ -1488,6 +1468,7 @@ impl RuntimePart {
             "DEPENDENCY_IMAGE_CODEC" => Some(RuntimePart::ImageCodec),
             "DEPENDENCY_LOADFONT" => Some(RuntimePart::Font),
             "DEPENDENCY_SCREENIMAGE" => Some(RuntimePart::ScreenImage),
+            "DEPENDENCY_ZLIB" => Some(RuntimePart::DataProcessing),
             _ => None,
         }
     }

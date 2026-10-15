@@ -224,6 +224,7 @@ impl<'a> Emitter<'a> {
         for (i, s) in b.stmts.iter().enumerate() {
             self.labels(i, out);
             let mut body = Vec::new();
+            self.stmt_at = (Some(s.span.file), s.line);
             // Whether an earlier operation of the statement may have left an error pending.
             let mut raised = false;
             for op in &s.ops {

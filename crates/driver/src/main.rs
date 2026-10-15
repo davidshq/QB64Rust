@@ -54,6 +54,13 @@ fn build_settings(settings: &[String]) -> Result<build::Settings, String> {
                     _ => return Err(format!("setting `{name}` needs `true` or `false`, not `{value}`")),
                 }
             }
+            "GenerateLicenseFile" => {
+                out.license = match value.to_ascii_lowercase().as_str() {
+                    "true" => true,
+                    "false" => false,
+                    _ => return Err(format!("setting `{name}` needs `true` or `false`, not `{value}`")),
+                }
+            }
             "ExtraLinkerFlags" => out.extra_link = value.to_string(),
             "StripDebugSymbols" => {}
             _ => return Err(format!("setting `{name}` is not supported yet")),

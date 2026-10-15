@@ -460,6 +460,7 @@ impl Emitter<'_> {
                         (
                             Some(
                                 Slot::Long
+                                | Slot::Integer
                                 | Slot::Int64
                                 | Slot::Double
                                 | Slot::Float

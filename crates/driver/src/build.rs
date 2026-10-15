@@ -115,6 +115,9 @@ pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Font) {
         flags.push("DEP_FONT=y");
     }
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::DataProcessing) {
+        flags.push("DEP_ZLIB=y");
+    }
     if s.console {
         flags.push("DEP_CONSOLE=y");
     }
@@ -137,15 +140,35 @@ pub struct Settings {
     /// `ExtraLinkerFlags`: added to the end of the link command (`CXXLIBS_EXTRA`), as `qb64pe` does. The test
     /// runner gives the screen-state file this way (`tools/screen`).
     pub extra_link: String,
+    /// `GenerateLicenseFile`: the clone's `Makefile` writes the licences of the parts it links, which go beside the
+    /// executable as `<exe>.license.txt`, as `qb64pe` does (design D6 of `m3-asserts-debug-zlib`).
+    pub license: bool,
+}
+
+/// The licence file of an executable: `<exe>.license.txt`, the name the clone's `Makefile` gives it.
+pub fn license_path(exe: &Path) -> PathBuf {
+    let mut name = exe.as_os_str().to_owned();
+    name.push(".license.txt");
+    PathBuf::from(name)
 }
 
 /// Builds the executable. The executable is linked inside the build folder (whose name has no spaces, see
 /// [`build_dir`]) and then moved to `exe`. On failure the build folder is kept and the make output is returned.
 pub fn build(root: &Path, build: &Path, exe: &Path, quiet: bool, settings: &Settings) -> Result<(), String> {
     let cache = std::env::var_os(CACHE_ENV).map(PathBuf::from);
+    // A licence file at the output path is the build's own or none: never one of an earlier build, also when this
+    // build writes none.
+    let license = license_path(exe);
+    let _ = std::fs::remove_file(&license);
     if let Some(dir) = &cache {
         let hit = dir.join(format!("{}.exe", build_key(root, build, settings)));
-        if hit.is_file() && std::fs::copy(&hit, exe).is_ok() {
+        // With a licence file, an entry without its file is a miss.
+        let hit_license = license_path(&hit);
+        if hit.is_file()
+            && (!settings.license || hit_license.is_file())
+            && std::fs::copy(&hit, exe).is_ok()
+            && (!settings.license || std::fs::copy(&hit_license, &license).is_ok())
+        {
             if !quiet {
                 println!("building {} (the same build is in {CACHE_ENV})", exe.display());
             }
@@ -157,11 +180,16 @@ pub fn build(root: &Path, build: &Path, exe: &Path, quiet: bool, settings: &Sett
         // Keyed again after the build: `make` may have built missing libqb objects. Written under a name of its own
         // and renamed, so a parallel run never copies half a file; a failure only loses the cache entry.
         let key = build_key(root, build, settings);
+        let entry = dir.join(format!("{key}.exe"));
+        // The licence file first, so an entry with the setting is whole once its executable is there.
+        let mut kept = std::fs::create_dir_all(dir).is_ok();
+        if kept && settings.license {
+            let part = dir.join(format!("{key}.{}.license.part", std::process::id()));
+            kept = std::fs::copy(&license, &part).is_ok() && std::fs::rename(&part, license_path(&entry)).is_ok();
+            let _ = std::fs::remove_file(&part);
+        }
         let part = dir.join(format!("{key}.{}.part", std::process::id()));
-        if std::fs::create_dir_all(dir).is_ok()
-            && std::fs::copy(exe, &part).is_ok()
-            && std::fs::rename(&part, dir.join(format!("{key}.exe"))).is_err()
-        {
+        if kept && std::fs::copy(exe, &part).is_ok() && std::fs::rename(&part, &entry).is_err() {
             let _ = std::fs::remove_file(&part);
         }
     }
@@ -189,6 +217,7 @@ fn build_key(root: &Path, build: &Path, settings: &Settings) -> String {
     }
     h.write(b"\0");
     h.write(&[u8::from(settings.optimize)]);
+    h.write(&[u8::from(settings.license)]);
     h.write(settings.extra_link.as_bytes());
     h.write(b"\0");
     for word in settings.extra_link.split_whitespace() {
@@ -332,12 +361,26 @@ fn build_with_make(root: &Path, build: &Path, exe: &Path, quiet: bool, settings:
     if !settings.extra_link.is_empty() {
         cmd.arg(format!("CXXLIBS_EXTRA={}", settings.extra_link));
     }
+    // After the dependencies, as `qb64pe` adds it (`qb64pe.bas` 13772); the `Makefile` names the file after `EXE`.
+    let linked_license = license_path(&linked);
+    if settings.license {
+        let _ = std::fs::remove_file(&linked_license);
+        cmd.arg("GENERATE_LICENSE=y");
+    }
     if !quiet {
         println!("building {}", exe.display());
     }
     let out = cmd.output().map_err(|e| format!("running {}: {e}", make.display()))?;
-    if out.status.success() && linked.is_file() {
-        std::fs::rename(&linked, exe).map_err(|e| format!("moving the executable to {}: {e}", exe.display()))
+    if out.status.success() && linked.is_file() && (!settings.license || linked_license.is_file()) {
+        if settings.license {
+            let to = license_path(exe);
+            std::fs::rename(&linked_license, &to)
+                .map_err(|e| format!("moving the licence file to {}: {e}", to.display()))?;
+        }
+        std::fs::rename(&linked, exe).map_err(|e| {
+            let _ = std::fs::remove_file(license_path(exe));
+            format!("moving the executable to {}: {e}", exe.display())
+        })
     } else {
         let _ = std::fs::remove_file(exe);
         #[expect(
@@ -381,6 +424,7 @@ mod tests {
                 flags: Vec::new(),
                 optimize: false,
                 extra_link: extra.to_string(),
+                license: false,
             };
             build_key(d.path(), d.path(), &settings)
         };
@@ -402,6 +446,7 @@ mod tests {
             console,
             window,
             window_hidden: false,
+            asserts: false,
             runtime_parts: icon.then_some(qb64rust_ir::RuntimePart::Icon).into_iter().collect(),
             exe_icon: false,
         }
@@ -611,5 +656,32 @@ mod tests {
                 "DEP_CONSOLE=y"
             ]
         );
+    }
+
+    /// The data-processing part stands after `DEP_FONT=y` and before `DEP_CONSOLE=y`, `DEP_ICON_RC=y` and the
+    /// audio, as the old compiler orders them (`qb64pe.bas` 13706–13721; design D4 of `m3-asserts-debug-zlib`).
+    #[test]
+    fn make_flags_of_the_data_processing_part() {
+        use qb64rust_ir::RuntimePart::{Audio, DataProcessing, Font};
+        let mut s = program_settings(true, false, false);
+        s.runtime_parts.insert(DataProcessing);
+        assert_eq!(make_flags(&s), ["DEP_CONSOLE_ONLY=y", "DEP_ZLIB=y", "DEP_CONSOLE=y"]);
+        let mut s = program_settings(true, true, true);
+        s.exe_icon = true;
+        s.runtime_parts.extend([DataProcessing, Font, Audio]);
+        assert_eq!(
+            make_flags(&s),
+            [
+                "DEP_ICON=y",
+                "DEP_FONT=y",
+                "DEP_ZLIB=y",
+                "DEP_CONSOLE=y",
+                "DEP_ICON_RC=y",
+                "DEP_AUDIO_MINIAUDIO=y"
+            ]
+        );
+        let mut s = program_settings(false, true, false);
+        s.runtime_parts.insert(DataProcessing);
+        assert_eq!(make_flags(&s), ["DEP_ZLIB=y"]);
     }
 }

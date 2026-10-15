@@ -81,7 +81,9 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
 - [x] `_MEM`: the type, the blocks of references, addresses, new memory and images, `_MEMGET`, `_MEMPUT`,
       `_MEMFILL`, `_MEMCOPY`, `_MEMFREE`, `_MEMEXISTS`, `_OFFSET`, every runtime error 300 to 313; `MKI$` …
       `_CV`; `_MEMSOUND` compiled and never run (`m3-mem`). Upstream 153 to 174 of 279
-- [ ] `$ASSERTS` and `$DEBUG`: what holds back the upstream tests outside `deferred.list` after `_MEM`
+- [x] `$ASSERTS`, `$ASSERTS:CONSOLE`, `_ASSERT`; `$DEBUG` without the IDE's debugger (`DIVERGENCES.md` D-017);
+      `_ADLER32`, `_CRC32`, `_DEFLATE$`, `_INFLATE$`, `_BASE64ENCODE$`, `_BASE64DECODE$`; `END n` and `SYSTEM n`;
+      `-f:GenerateLicenseFile` (`m3-asserts-debug-zlib`). Upstream 174 to 186 of 279
 - [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
       file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
       `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program

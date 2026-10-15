@@ -1,0 +1,5 @@
+before
+
+Runtime error: Line: 4 (in main module)
+_ASSERT failed
+exit=0

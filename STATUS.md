@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-14 (the session of `m3-mem`).
+Updated 2026-10-14 (the session of `m3-asserts-debug-zlib`).
 
 **This file holds the current state only**: where we are, what is open, what comes next, the numbers of the last
 full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph about it.
@@ -36,9 +36,12 @@ file, 23 states of its screen equal to the old compiler's; the new compiler's bu
 sixth step, OpenSpec change `m3-images-fonts-mouse`, is done (all 17 tasks, 2026-10-14; committed, archived
 2026-10-14): **the image, colour, font and mouse built-ins**, 12 screen programs compared by their state,
 the mouse fed by mouse steps of a keys file. The `_MEM` part of its seventh step, OpenSpec change `m3-mem`, is
-done (all 14 tasks, 2026-10-14; not yet committed): **`_MEM`**, the blocks of references, addresses, new memory
-and images, `_MEMGET`, `_MEMPUT`, `_MEMFILL` and `_MEMCOPY` written as the old compiler writes them, every
-runtime error 300 to 313, and `MKI$` … `_CV`; upstream went from 153 to 174.
+done (all 14 tasks, 2026-10-14; committed and archived, `96cfcee`): **`_MEM`**, the blocks of references,
+addresses, new memory and images, `_MEMGET`, `_MEMPUT`, `_MEMFILL` and `_MEMCOPY` written as the old compiler
+writes them, every runtime error 300 to 313, and `MKI$` … `_CV`; upstream went from 153 to 174. Its eighth step,
+OpenSpec change `m3-asserts-debug-zlib`, is done (all 12 tasks, 2026-10-14; not yet committed): **`$ASSERTS`,
+`_ASSERT`, `$DEBUG` (no debugger code), the checksum, compression and base64 functions, `END n` and `SYSTEM n`, and
+`-f:GenerateLicenseFile`**; upstream went from 174 to 186.
 Step 9 of M2, built-in statements, was OpenSpec change `m2-builtin-statements` (archived 2026-10-10); after it came the eighth review (`study\29`) and `m2-demand-report-and-runner-tests`
 (archived 2026-10-10: `qb64rust --report unsupported`, and tests of the test runner). Step 9a, the screen-state
 check, was OpenSpec change `m2-screen-state-check` (all 22 tasks done, archived 2026-10-10).
@@ -80,7 +83,9 @@ mouse (`_MOUSEINPUT`, `_MOUSEX`, `_MOUSEBUTTON`, `_MOUSEWHEEL`, …), and as cod
 with its seventh step: the type `_MEM`, `_MEM` and `_MEMELEMENT` of every kind of place and `_MEM(offset,
 size)`, `_MEMNEW`, `_MEMIMAGE`, `_MEMEXISTS`, `_MEMFREE`, `_MEMCOPY`, `_MEMGET` (function and statement),
 `_MEMPUT`, `_MEMFILL`, `_OFFSET`, `MKI$`, `MKL$`, `MKS$`, `MKD$`, `_MK$`, `CVI`, `CVL`, `CVS`, `CVD`, `_CV`, and
-`_MEMSOUND` as code that no test runs (`crates\README.md`). There is
+`_MEMSOUND` as code that no test runs, and, with its eighth step: `$ASSERTS`, `$ASSERTS:CONSOLE`, `_ASSERT`,
+`$DEBUG` (the flags `_DEBUG_` and `_SOCKETS_` and the warning, no debugger), `_ADLER32`, `_CRC32`, `_DEFLATE$`,
+`_INFLATE$`, `_BASE64ENCODE$`, `_BASE64DECODE$`, `END n`, `SYSTEM n` and the licence file (`crates\README.md`). There is
 a thin language server (`qb64rust lsp`). A plain built-in now comes in as a row, a call-site program and a slice
 line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10).
 
@@ -159,7 +164,25 @@ line: the call-site check is kept and part of tier 2 (`DECISIONS.md` 2026-10-10)
     `_FREEIMAGE` corrupts the heap (exit code 0xC0000374).
   - **A test sensitive to load**: `screen_state_prompt_that_never_comes` (500 ms) failed once in the closing
     runs while other tests ran beside it, and passed alone.
-- `m3-mem` is done (all 14 tasks, 2026-10-14) and not yet committed or archived. For the user to look at, each
+- `m3-asserts-debug-zlib` is done (all 12 tasks, 2026-10-14) and not yet committed or archived. For the user to
+  look at, each in the change's `tasks.md`, `design.md` ("Found by task …") or `DECISIONS.md`:
+  - **Two answers of the user while it was built**: `$DEBUG` sets `_SOCKETS_` as the old compiler's does, and
+    vWatch's names are not taken (`DIVERGENCES.md` D-017); a built-in that needs `$` named without it stays "not
+    supported yet" (the spec's scenario narrowed, `SOMEDAY.md`).
+  - **Corrected by the measurements**: errors 314 and 315 are not trapped by `ON ERROR` (the spec said they were);
+    `_ASSERT`'s condition is an INTEGER slot (`Slot::Integer`, new); the exit code is the low 32 bits.
+  - **Beyond the tasks as written**: the corpus runner compares an exit code (`<name>.exitcode`, four runner
+    tests); `basic/test` passes with the licence file and joined `pass.list` (12 new upstream programs, not
+    about 11).
+  - **Behaviours of libqb measured** (`study\00` §5): `_INFLATE$` of bytes that are no zlib stream gives 10 MB of
+    zero bytes and no error, and with a size larger than the data leaves the bytes past it unset.
+  - **Fixed by the review of the change**: `press_any_key.py` passed on every exit code from 2^31 up as
+    4294967295 (`sys.exit` takes a 32-bit C long on Windows), so `s111_end_code` (`END -1`) passed by chance;
+    a new runner test checks every 32-bit code. A build without `-f:GenerateLicenseFile=true` now removes a
+    licence file an earlier build left at the output path.
+  - **Twice a heredoc with backslashes went through the shell** (working rule 7), on a scratch file and on
+    `tests\corpus\README.md`: both checked, no control bytes (`check_repo.py`).
+- `m3-mem` is done (all 14 tasks, 2026-10-14), committed and archived (`96cfcee`). For the user to look at, each
   in the change's `tasks.md`:
   - **One choice was the user's** (task 1.3): `_MEM(p())` of an array parameter whose dimensions nothing above
     has given takes the array's own lock (QB64pe reads the array's data as the lock's id; `DIVERGENCES.md`
@@ -250,12 +273,17 @@ M2's order was set by the fifth and sixth reviews (`study\26` §6, `study\27` §
    and images, the statements written inline, every runtime error, `MKI$` … `_CV`. What each task found is in
    the change's `tasks.md`, the C++ of every kind of place in its `design.md` D3, the measured facts in
    `study\00` §5 (`verification\v32_*`, 154 programs), what stayed marked in `SOMEDAY.md` ("Left marked by
-   `m3-mem`"). **Next**: `$ASSERTS` and `$DEBUG`, among what holds back the upstream tests; then `_INFLATE$` and
-   the base64 functions would free four image tests. The plain copy of `internal\c`, when libqb must change.
+   `m3-mem`").
+8. Done: `$ASSERTS`, `_ASSERT`, `$DEBUG`, the data-processing functions, `END n`, `SYSTEM n`, the licence file
+   (`m3-asserts-debug-zlib`, all 12 tasks, 2026-10-14). What each task found is in the change's `tasks.md` and
+   `design.md`, the measured facts in `study\00` §5 (`verification\v33_*`, 99 programs), what stayed marked in
+   `SOMEDAY.md` ("Left marked by `m3-asserts-debug-zlib`"). **Next**: what the demand report over `tests\upstream`
+   names next outside `deferred.list` (`REDIM _RETAIN` 27 programs, arrays used after a marked declaration, `$Unstable`
+   85 deferred); the plain copy of `internal\c`, when libqb must change.
 
 ## Numbers at the last full runs
 
-From 2026-10-14 (task 6.2 of `m3-mem`, release build against the reference clone,
+From 2026-10-14 (task 6.1 of `m3-asserts-debug-zlib`, release build against the reference clone,
 each run once with `--jobs 8 --build-cache target\build-cache`): tier 1, the command-line tests that build, the
 runner's tests, the call-site check, the slice list with and without folding, the upstream and differential pass
 lists, the two full suites and the demand reports. The rows of the real programs, of the old compiler and of
@@ -263,18 +291,18 @@ lists, the two full suites and the demand reports. The rows of the real programs
 
 | Yardstick | Result |
 |---|---|
-| `tests\corpus\slice.list` (tier 2) | **416 of 416** (66 of them screen programs, `g12_game` the scripted game; 18 new with `m3-mem`, each passing on its first run); 416 of 416 also with `QB64RUST_NO_FOLD=1`, 4 min 32 s |
-| Full corpus (441 programs) | 435 pass (the 416 of the slice list, 19 `.err` programs), none wrong at run time; **none rejected with "not supported yet"**; 1 `.err` program with only marked errors (`218` `FRE`); 5 known failures (`tests\corpus\README.md`); 66 s after the slice runs had filled the build cache |
-| Upstream | **174 of 279** (`tests\upstream\pass.list`: 174, all passing, run by itself, 118 s); the full suite: 404 programs, 174 pass, 229 rejected or with only marked errors (191 at the compile, 38 `.err` programs), 1 known failure, none wrong (24 s) |
-| Call-site check | 1631 of 1631 programs equal (`tools\callsite\README.md`; 193 of them for `m3-mem`: blocks of built-ins 26, blocks of references and addresses 43, reading and writing 69, `MKI$` … `_CV` 55) |
+| `tests\corpus\slice.list` (tier 2) | **422 of 422** (66 of them screen programs, `g12_game` the scripted game; 6 new with `m3-asserts-debug-zlib`, each passing on its first run, two with an exit code); 422 of 422 also with `QB64RUST_NO_FOLD=1`, 7 min 37 s |
+| Full corpus (447 programs) | 441 pass (the 422 of the slice list, 19 `.err` programs), none wrong at run time; **none rejected with "not supported yet"**; 1 `.err` program with only marked errors (`218` `FRE`); 5 known failures (`tests\corpus\README.md`); 81 s after the slice runs had filled the build cache |
+| Upstream | **186 of 279** (`tests\upstream\pass.list`: 186, all passing, run by itself, 197 s); the full suite: 404 programs, 186 pass, 217 rejected or with only marked errors (179 at the compile, 38 `.err` programs), 1 known failure, none wrong (24 s) |
+| Call-site check | 1677 of 1677 programs equal (`tools\callsite\README.md`; 46 of them for `m3-asserts-debug-zlib`: `_ASSERT` 18, the data-processing functions 28) |
 | Real programs (`tests\programs`) | Civil War Strategy: **no diagnostic, and it builds** (3.6 s; the old compiler 6.9 s the same day). Its C++ compared once with the old compiler's, line by line: no call differs on 4,332 lines. **Played for two turns from a keys file (`g12_game`, a copy with listed edits): 23 states equal to the old compiler's**, 1.1–1.9 s a run (`tests\programs\README.md`) |
 | Differential (`tests\differential\pass.list`) | 59 of 59 |
 | Shrink-only lists | 0 false errors, 0 parse gaps, 53 only-marked rejections (`tests\upstream\README.md`) |
-| Tier 1 (`cargo test`) | 306 tests pass; the 19 command-line tests that build an executable (`--ignored`, run alone) pass too |
-| The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 68 pass, under a second; those of `tools\testtime` 38 |
+| Tier 1 (`cargo test`) | 308 tests pass; the 20 command-line tests that build an executable (`--ignored`, run alone) pass too |
+| The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 72 pass, under a second; those of `tools\testtime` 38 (not run with this change, which does not touch it) |
 | `slice.list` while working, with `--pass-cache` | 24 s when no program's executable changed, 92 s when all are run (`--jobs 8 --build-cache`, 2026-10-12) |
 | Screen programs (`tests\corpus\screen`, 66) | Old compiler: 66 recorded, each from two equal runs. New compiler: 66 pass; the 12 of `m3-images-fonts-mouse` (`i01`–`i08`, `f01`, `f02`, `u01`, `u02`) each on its first run (`u01` and `u02` were recorded again after the fix of the mouse steps' wait, task 4.1) |
-| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: **nothing held back** (421 without an `.err`: 419 without errors, and `s77_exeicon` and `g12_game`, whose icons only the runner puts beside them). Upstream (348 without an `.err`): 158 without errors, 179 held back, 11 with other errors (the ten that include the old compiler's sources, and `icon_relative/test`, whose icon lies in the clone); `_DYNAMIC`/`_STATIC` members 86 programs (deferred), `$Unstable` 85, an array used after a marked declaration 60, `REDIM _RETAIN` 27, `SYSTEM` with an exit code 15; no built-in of `m3-mem` is named (its one line is `LEN` of a whole member array, which it leaves out) |
+| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: **nothing held back** (427 without an `.err`: 425 without errors, and `s77_exeicon` and `g12_game`, whose icons only the runner puts beside them). Upstream (348 without an `.err`): 167 without errors, 170 held back, 11 with other errors (the ten that include the old compiler's sources, and `icon_relative/test`, whose icon lies in the clone); `_DYNAMIC`/`_STATIC` members 86 programs (deferred), `$Unstable` 85, an array used after a marked declaration 60, `REDIM _RETAIN` 27; nothing of `m3-asserts-debug-zlib` is named |
 | Tier 2 as CI runs it, locally | about 12 min at the last full build; about 2 min with `--jobs 8 --build-cache` when little C++ changed |
 | Full corpus with the old compiler (2026-10-10, 336 programs) | 331 pass, 5 known failures, `--jobs 8`; the 305 before the screen programs took about 12 min with one job, 3 min 44 s with `--jobs 8` (`tools\legacy_tests\README.md`) |
 
@@ -284,9 +312,9 @@ turns shows the same 23 screens as the old compiler's build (stage 3 of `tests\p
 went from 50 to 114 over step 10 (64 before its member arrays) and is at 140 after group 6 of step 11 (115
 after `_DEST` and `$CONSOLE`; all 19 `glut` tests with the window built-ins and `_TRUE`/`_FALSE`; four of the
 nine `precomp-flags` tests), at 142 after `m3-sound`, at 148 after `m3-console-files` and at 153 after
-`m3-images-fonts-mouse` and at 174 after `m3-mem`. Its next blockers outside `deferred.list` are `SYSTEM` with
-an exit code, `$ASSERTS`/`$DEBUG`, and `_INFLATE$` with the base64 functions (the image tests of
-`imageassert.bm`); the `_DYNAMIC`/`_STATIC` markers and `$Unstable` are deferred (`SOMEDAY.md`).
+`m3-images-fonts-mouse`, at 174 after `m3-mem` and at 186 after `m3-asserts-debug-zlib`. Its next blockers
+outside `deferred.list` are `REDIM _RETAIN` and the arrays used after a declaration that is still marked; the
+`_DYNAMIC`/`_STATIC` markers and `$Unstable` are deferred (`SOMEDAY.md`).
 
 ## Known bugs
 

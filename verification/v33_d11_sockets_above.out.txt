@@ -1,0 +1,3 @@
+sockets on
+debug on
+exit=0

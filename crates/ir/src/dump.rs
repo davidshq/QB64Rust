@@ -18,6 +18,9 @@ fn settings(s: &Settings) -> String {
     if s.window_hidden {
         parts.push("hidden at the start".to_string());
     }
+    if s.asserts {
+        parts.push("asserts".to_string());
+    }
     if !s.runtime_parts.is_empty() {
         let names: Vec<&str> = s
             .runtime_parts
@@ -29,6 +32,7 @@ fn settings(s: &Settings) -> String {
                 RuntimePart::ImageCodec => "image codec",
                 RuntimePart::Font => "font",
                 RuntimePart::ScreenImage => "screen image",
+                RuntimePart::DataProcessing => "data processing",
             })
             .collect();
         parts.push(format!("runtime parts: {}", names.join(", ")));
@@ -202,8 +206,10 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     mem_value(p, value)
                 )
                 .unwrap(),
-                Op::End => writeln!(out, "  End").unwrap(),
-                Op::System => writeln!(out, "  System").unwrap(),
+                Op::End(None) => writeln!(out, "  End").unwrap(),
+                Op::System(None) => writeln!(out, "  System").unwrap(),
+                Op::End(Some(code)) => writeln!(out, "  End {}", val(p, code)).unwrap(),
+                Op::System(Some(code)) => writeln!(out, "  System {}", val(p, code)).unwrap(),
                 Op::Exit => writeln!(out, "  Exit").unwrap(),
                 Op::SetHandler(Some(l)) => writeln!(out, "  SetHandler {}", label(&p.main, *l)).unwrap(),
                 Op::SetHandler(None) => writeln!(out, "  SetHandler none").unwrap(),

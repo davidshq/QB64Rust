@@ -308,6 +308,16 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("CVS", Rule::Cv(Some(Ty::F32))),
     ("CVD", Rule::Cv(Some(Ty::F64))),
     ("_CV", Rule::Cv(None)),
+    // Checksums, compression and base64 (design D4 of `m3-asserts-debug-zlib`; `verification\v33_b*`, `x25`–`x36`):
+    // each the plain call of its row, with libqb's data-processing part ([`crate::RuntimePart::DataProcessing`]).
+    // `_ADLER32` and `_CRC32` are `_UNSIGNED LONG`; `_DEFLATE$`'s level is a LONG slot, `_INFLATE$`'s size an
+    // `_INTEGER64` one, both optional.
+    ("_ADLER32", Rule::Plain),
+    ("_CRC32", Rule::Plain),
+    ("_DEFLATE$", Rule::Plain),
+    ("_INFLATE$", Rule::Plain),
+    ("_BASE64ENCODE$", Rule::Plain),
+    ("_BASE64DECODE$", Rule::Plain),
 ];
 
 /// The built-in functions whose result is a block of the predefined type `_MEM` (design D2 of `m3-mem`), as
@@ -466,6 +476,9 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     // ([`Slot::Mem`]); `_MEMCOPY a, o, n TO b, p` by its template.
     ("_MEMFREE", StmtRule::Plain),
     ("_MEMCOPY", StmtRule::Plain),
+    // `_ASSERT condition[, message$]` (design D3 of `m3-asserts-debug-zlib`; `verification\v33_a*`, `x17`–`x24`):
+    // the plain call of its row, which checks nothing without `$ASSERTS` (the program's global `asserts`).
+    ("_ASSERT", StmtRule::Plain),
 ];
 
 /// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
@@ -758,6 +771,11 @@ pub enum Slot {
     /// Converted as a store into an `_INTEGER64` (a float rounded half to even); only where a rule says so: the
     /// table has no such slot.
     Int64,
+    /// The table's INTEGER, the condition of `_ASSERT`: the old compiler writes a float through
+    /// `qbr_float_to_long` (narrowed to SINGLE, rounded half to even) and an integer as it is, and libqb takes an
+    /// `int32`, so an integer keeps its low 32 bits (measured, `verification\v33_a08`: `1E+10` passes and
+    /// `4294967296` fails). The conversion of `ON n GOTO`.
+    Integer,
     /// Converted exactly to DOUBLE (C's implicit conversion of a `double` parameter).
     Double,
     /// Passed in its own type (`func_sqr(*__INTEGER_I)`, measured from the C++).
@@ -801,6 +819,8 @@ impl Slot {
     fn from_table(t: &str) -> Slot {
         match t {
             "LONG" => Slot::Long,
+            // The condition of `_ASSERT`, the one supported built-in with such a slot.
+            "INTEGER" => Slot::Integer,
             // The records of `LOCK` and `UNLOCK`.
             "_INTEGER64" => Slot::Int64,
             "_UNSIGNED LONG" => Slot::ULong,

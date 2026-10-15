@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ ASSERTS X
+LINE 3:$ASSERTS x
+exit=1

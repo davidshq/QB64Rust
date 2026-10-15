@@ -2382,6 +2382,74 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     number", `_MK$(STRING, k)` "_MK only accepts numeric types", `_CV(STRING, s)` "_CV cannot return STRING
     type!", `_MK$(STRING * 4, k)`, `_MK$(FOO, 1)` and `_MK$(k, 1)` "Cannot convert type (…) to symbol", a wrong
     count "Incorrect number of arguments - Reference: …".
+- **`$ASSERTS`, `_ASSERT`, `$DEBUG`, the checksum, compression and base64 functions, `END n` and `SYSTEM n`
+  (`v33_*`, 99 programs, measured 2026-10-14 as task 1.1 and 1.2 of `m3-asserts-debug-zlib`; every accepted form
+  kept as code that is not reached in `v33_x01_accepted`, 54 other forms one program each, `x02`–`x55`).**
+  - **The metacommands' lines** (`x02`–`x16`, `a11`–`a13`, `d08`, `d09`; `qb64pe.bas` 1978–2008, 3553): the
+    rules of `$CONSOLE` (above): the whole line in upper case without the blanks at its ends is compared, so
+    `$asserts`, `$asserts:console`, `$debug` and blanks after them are fine, and a tab or a word after them,
+    `$ASSERTS:CONSOLEX`, `$ASSERTS:`, `$ASSERTS:ONLY` and `$ASSERTS : CONSOLE` are "Syntax error";
+    `x = 1: $ASSERTS` is "Unexpected character on line". Each counts for the whole program wherever it stands:
+    on the last line (`a05`: an `_ASSERT` on line 4 fails), in an included file (`a11`), in a SUB never called
+    (`a13`, `d08`), twice or mixed with `$ASSERTS:CONSOLE` and `$CONSOLE:ONLY` (`x14`, `x15`); in a `$IF`
+    branch not taken it does not count (`a12`, `d09`).
+  - **`_ASSERT condition[, message$]`** is the row `sub__assert` (`?[,?]`; the condition an INTEGER slot, a
+    float through `qbr_float_to_long`): `sub__assert(*__LONG_K,NULL,0)`,
+    `sub__assert(-(*__LONG_K== 1 ),qbs_new_txt_len("m",1),1)`, and `CALL _ASSERT(k)` the same (`a14`). Without
+    `$ASSERTS` the global `asserts` is 0 and the call returns at once, **after the condition and the message are
+    evaluated** (`a03`: both functions print); with it `int32 asserts=1;` (global.txt). The condition is passed
+    as a 16-bit value: `1E+10` passes and `4294967296` fails (`a08`). Errors: no argument, `_ASSERT 1,`,
+    `_ASSERT , "a"`, three arguments, `CALL _ASSERT` "Syntax error - Reference: _ASSERT condition[,
+    errorMessage$]"; a string condition "1st sub argument requires a number"; a number as the message "2nd sub
+    argument requires a string"; a `TYPE` value "User defined types in expressions are invalid"; `k =
+    _ASSERT(1)` "Invalid array name"; `_ASSERT$ 1` "Syntax error" (`x17`–`x24`, `x47`, `x50`).
+  - **A failing assertion** raises error 314 ("_ASSERT failed"), or, in a program with a console (`console=1`:
+    `$CONSOLE`, `$CONSOLE:ONLY` or `$ASSERTS:CONSOLE`) and with a message, writes the message to the console as
+    `_ECHO` does and raises 315 ("_ASSERT failed (check console for description)") (`a02`, `a06`, `a14`); with a
+    console and no message 314 (`a07`); in a program with a window only 314 (`a09`, nothing written). **Neither
+    is trapped by `ON ERROR`**, like 300–313 (`a01`): the handler does not run, the program stops with
+    `Runtime error: Line: N (in main module)` and the message, exit code 0. In a SUB the line named is the
+    `_ASSERT`'s (`a10`).
+  - **`$DEBUG` outside the IDE** (`d01`–`d11`; `vwatch.bm` 684): a program prints what it prints without
+    `$DEBUG` (`ERR`, `ERL`, `_ERRORLINE`, an error in a SUB, an untrapped error's message, start-up time,
+    `OPTION BASE 1` and `OPTION _EXPLICIT` after it, a variable named `vwatch_linenumber`, a window program). **Two
+    things differ**: `_SOCKETS_` is 1 (`d01`: the included `vwatch.bm` uses `_OPENCLIENT`, which sets the sockets
+    dependency, and the program is compiled again with the flag; its build links `DEP_SOCKETS=y DEP_HTTP=y`;
+    also above a `$DEBUG` on the last line, `d11`),
+    and the names of `vwatch.bi` and `vwatch.bm` are taken: a SUB named `vwatch_stoptimers` is "Name already in
+    use (vwatch_stoptimers) in line 22 of internal\support\vwatch\vwatch.bm auto-included" (`x49`; the globals
+    `vwatch_linenumber` and the like are `DIM SHARED` there, so a variable of that name is that global). With
+    `-w` the old compiler prints `<file>:<line>: warning: $DEBUG features only work from the IDE` once per round
+    of compiling, so twice for a program whose first round changed a flag (read 2026-10-14 by hand).
+  - **The six functions** (`subs_functions.bas` 4019–4100; `b01`–`b03`, `x25`–`x36`, `x45`, `x46`, `x53`): each
+    a plain row with the dependency `DEPENDENCY_ZLIB`, which the build turns into `DEP_ZLIB=y` (also for a call in
+    a SUB never called, `b03`). `_ADLER32` and `_CRC32` are `_UNSIGNED LONG` (`_CRC32("abc")` 891568578,
+    `_ADLER32("abc")` 38600999, of `""` 0 and 1); `_DEFLATE$(s[, level])` (a LONG slot, a float through `qbr`:
+    `func__deflate(__STRING_S,qbr(*__DOUBLE_D),0|1)`) writes a zlib stream (`78 9C …`, 8 bytes for `""`);
+    every level is accepted, -2 to 12 alike but 0, which stores (1011 bytes for 1000 `a`s, 24 otherwise);
+    `_INFLATE$(s[, size])` (an `_INTEGER64` slot): with a size the result has that length (fewer bytes cut; with
+    more, the bytes past the data are not set: libqb's `qbs_new`, `parts\data\compression.cpp` 59), 0 or less
+    gives `""`; **bytes that are not a zlib stream give no error but a string of zero bytes, 10485760 of them
+    without a size** (`b02`; with a size, that many bytes not set). `_BASE64ENCODE$` pads with `=`;
+    `_BASE64DECODE$` of anything that is not whole groups of four valid characters (`YQ`, `YWJ`, `!!!!`, `Y Q = =`)
+    is `""`. Errors: without `$` (and `_CRC32$`) "Invalid array name"; a number for a string "String required for
+    function" (`_ADLER32`) or "1st function argument requires a string" (`_INFLATE$`); a string for the level or
+    the size "2nd function argument requires a number"; a wrong count "Incorrect number of arguments - Reference:
+    …"; `_DEFLATE$()` "Expected (...)".
+  - **`END n` and `SYSTEM n`** (`qb64pe.bas` 9850–9895; `c01`–`c25`, `x37`–`x44`, `x48`, `x51`, `x52`): `if(qbevent){evnt(N);}`,
+    then `exit_code=<n>;` (libqb's `int64 exit_code`), then the usual end (`sub_end();`, or for `SYSTEM` `if
+    (sub_gl_called) error(271);`, `close_program=1;`, `end();`). `n` is converted by `evaluatetotyp(…,
+    ISINTEGER64)`, whose width is read as 0: an integer as it is, **a float through `qbr_float_to_long`** (2.7 gives
+    3, 2.5 and a `_FLOAT` 1.5 give 2, `2 ^ 40` 0); a string "Illegal string-number conversion", a `TYPE` value "User
+    defined types in expressions are invalid", `SYSTEM 1, 2` "Invalid expression", `SYSTEM ()` "Unexpected (";
+    an `_OFFSET` is accepted; both in a SUB, a FUNCTION and a one-line `IF` too. The process's exit code is the
+    value's low 32 bits: `END 7` 7, `END -1` 0xFFFFFFFF, `END 300` 300 (measured by hand through
+    `press_any_key.py`, since `END` waits for a key); as Git Bash reports them (`exit=`), `SYSTEM 3` 3, `-1` 127,
+    256 and `2 ^ 40` 0, 258 2, an `_UNSIGNED _INTEGER64` of 18446744073709551615 127. With a window `SYSTEM 5`
+    gives 5 (`c21`). `SYSTEM f` where `f` raises an error under a handler (`c23`): the handler runs and the exit
+    code is `f`'s value; not trapped (`c25`), the runtime error at the line of `ERROR`, exit code 0.
+  - **The test runners and exit codes**: the corpus runner records no exit code and compares none; the upstream
+    suite fails a program whose exit code is not 0; the verification suite writes `exit=` as Git Bash reports it.
 
 ## 6. Bug-compatibility choices (all decided)
 

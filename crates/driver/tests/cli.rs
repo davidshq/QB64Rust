@@ -93,7 +93,7 @@ fn unknown_setting() {
     let o = qb64rust(
         &d,
         &[
-            "-f:GenerateLicenseFile=true",
+            "-f:MaxCompilerProcesses=2",
             "-q",
             "-m",
             "-x",
@@ -105,10 +105,65 @@ fn unknown_setting() {
     assert_eq!(o.status.code(), Some(1));
     let out = stdout(&o);
     assert!(
-        out.contains("setting `GenerateLicenseFile` is not supported yet"),
+        out.contains("setting `MaxCompilerProcesses` is not supported yet"),
         "{out}"
     );
     assert!(!d.join("prog.exe").exists(), "no executable is left at the output path");
+    let o = qb64rust(
+        &d,
+        &["-f:GenerateLicenseFile=maybe", "-q", "-x", "prog.bas", "-o", "prog.exe"],
+    );
+    assert_eq!(o.status.code(), Some(1));
+    assert!(stdout(&o).contains("needs `true` or `false`"), "{}", stdout(&o));
+}
+
+/// `-f:GenerateLicenseFile=true` writes `<exe>.license.txt` beside the executable, naming the parts of libqb the
+/// program links (spec `compiler/cli`, "The licence file"; design D6 of `m3-asserts-debug-zlib`); without the
+/// setting, or with `false`, there is none, also when an earlier build left one. Through the build cache the file is kept and copied with the
+/// executable, and an entry without it is no hit for a build that asks for it.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn license_file() {
+    let d = scratch("license");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\nPRINT LEN(_INFLATE$(_DEFLATE$(\"abc\")))\nSYSTEM\n",
+    )
+    .unwrap();
+    let cache = d.join("cache");
+    let build = |settings: &[&str], cached: bool| {
+        let mut args = settings.to_vec();
+        args.extend(["-q", "-m", "-x", "p.bas", "-o", "p.exe"]);
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_qb64rust"));
+        cmd.current_dir(&d).args(&args);
+        if cached {
+            cmd.env("QB64RUST_BUILD_CACHE", &cache);
+        }
+        let o = cmd.output().unwrap();
+        assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+        assert!(d.join("p.exe").is_file());
+    };
+    let license = d.join("p.exe.license.txt");
+    build(&["-f:GenerateLicenseFile=true"], false);
+    let text = std::fs::read(&license).unwrap();
+    let has = |what: &str| text.windows(what.len()).any(|w| w == what.as_bytes());
+    // The runtime's own licence, and that of the data-processing part (miniz), which this program links.
+    assert!(has("License of QB64-PE runtime"));
+    assert!(has("miniz"));
+    // A build without the setting removes the file an earlier build left.
+    build(&[], false);
+    assert!(!license.exists());
+    build(&["-f:GenerateLicenseFile=false"], false);
+    assert!(!license.exists());
+    // Through the cache: an entry made without the file is no hit for a build with it, and the one made with it
+    // brings its file along.
+    build(&[], true);
+    build(&["-f:GenerateLicenseFile=true"], true);
+    assert_eq!(std::fs::read(&license).unwrap(), text);
+    std::fs::remove_file(&license).unwrap();
+    std::fs::remove_file(d.join("p.exe")).unwrap();
+    build(&["-f:GenerateLicenseFile=true"], true);
+    assert_eq!(std::fs::read(&license).unwrap(), text);
 }
 
 #[test]
@@ -759,6 +814,27 @@ fn parenthesised_power_no_warning() {
     let o = qb64rust(&d, &["-w", "-z", "q.bas"]);
     assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
     assert!(stdout(&o).starts_with("q.bas:2:11: warning:"), "{}", stdout(&o));
+}
+
+/// `$DEBUG` writes no debugger code and, with `-w`, gives the old compiler's warning at its line (spec
+/// `language/asserts-and-debug`, "The warning"; `qb64pe.bas` 3556, read by hand in task 1.1 of
+/// `m3-asserts-debug-zlib`); without `-w` there is none. The C++ only, so no clone is needed.
+#[test]
+fn debug_warning() {
+    let d = scratch("debug-meta");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\n$DEBUG\nSYSTEM\n").unwrap();
+    let o = qb64rust(&d, &["-w", "-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(
+        stdout(&o)
+            .lines()
+            .any(|l| l == "p.bas:3:1: warning: $DEBUG features only work from the IDE"),
+        "{}",
+        stdout(&o)
+    );
+    let o = qb64rust(&d, &["-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
 }
 
 /// Deeply nested expressions are one "not supported yet" error, not a stack overflow (the known bug of

@@ -379,3 +379,16 @@ tests of `imageassert.bm`), `$CHECKING` (`source_ordering/checking_off`), a `TYP
 the suite (404 programs): 174 pass, 229 rejected or with only marked errors (191 at the compile, 38 `.err`
 programs), the known failure `http/read_example`; none builds and prints the wrong output. The three lists are
 unchanged.
+
+**Upstream progress, 2026-10-14: 186 of 279** (`m3-asserts-debug-zlib` task 6.1, the full runs that close the
+change; 174 before it). The 12 new ones: `precomp-flags/asserts`, `assertscon`, `debug` and `auto_include/debug`
+(group 2: `$ASSERTS`, `$ASSERTS:CONSOLE`, `$DEBUG`), `console_only/libz`, `image/pcx_test` and `image/webp_test`
+(group 3: the data-processing functions, which `imageassert.bm` needs), `arrays/t_qb64pe_refactor_preserve_inline_varstrings`
+(group 4: `SYSTEM n`), and `libz/test`, `audio_out/test`, `image/test` and `basic/test` (group 5: the licence file
+`-f:GenerateLicenseFile` writes, compared with their `.win.license`; the last three left
+`tests\known_clean_not_passing.list`). The other programs with `SYSTEM n` (14) wait on `REDIM _RETAIN`,
+`_ARRAYCOPY` or `$Unstable`; `font/test` on `CHR$` in a `CONST`, `image/curico_test` on `_ERRORMESSAGE$`,
+`_INCLERRORFILE$` and `_INCLERRORLINE`. `pass.list` run by itself: 186
+of 186 (197 s, `--jobs 8 --build-cache`). The full run of the suite (404 programs): 186 pass, 217 rejected or with
+only marked errors (179 at the compile, 38 `.err` programs), the known failure `http/read_example`; none builds and
+prints the wrong output. The three lists are unchanged.
