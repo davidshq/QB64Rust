@@ -116,6 +116,7 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
         returns: false,
         funcs: 0,
         func_decls: Vec::new(),
+        file_types: Vec::new(),
         stmt_at: (None, 0),
     };
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
@@ -248,6 +249,8 @@ struct Emitter<'a> {
     /// `global.txt` (design D2 of `m3-mem`).
     funcs: u32,
     func_decls: Vec<String>,
+    /// The owner types whose file functions are in `func_decls` (`Emitter::owner_file`).
+    file_types: Vec<qb64rust_ir::TypeId>,
     /// The file and line of the statement being emitted, for an event check inside it (`END n`).
     stmt_at: (Option<FileId>, u32),
 }

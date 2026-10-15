@@ -1406,8 +1406,8 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   `REDIM SHARED t.v(0 TO 3)` (clears). **In `REDIM t.v(3) AS LONG` the upper bound alone goes by `OPTION BASE`
   as it stands at the `REDIM`**: below `OPTION BASE 1` it is accepted for a member declared `1 TO 3` and
   "Cannot change the number of elements an array has!" for one declared `0 TO 3`.
-- **`$UNSTABLE:TYPEFIELDS` and the member markers (`v35_*`, 69 programs, measured 2026-10-14 before
-  `m3-typefields`; `qb64pe.bas` 2071–2090, 2180–2460, 8890–8990, 15654–16520, 17075–17300, `utilities\type.bas`
+- **`$UNSTABLE:TYPEFIELDS` and the member markers (`v35_*`, 69 programs measured 2026-10-14 before
+  `m3-typefields` and 9 while it was built, `x60`–`x68`; `qb64pe.bas` 2071–2090, 2180–2460, 8890–8990, 15654–16520, 17075–17300, `utilities\type.bas`
   10–2140):**
   - **The flag is read in source order, before the first pass**, as the lines are read: it allows the markers in
     the `TYPE` blocks below it, also when it stands after the first statement (`x47`), and not in a `$IF` branch
@@ -1479,11 +1479,29 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     into an array whose member has other bounds raises 9 and **still copies the declared bytes into that member's
     smaller block** (`q(0).v(5 TO 5)` reads the first LONG, the next is written past its end) (`v35_e` 5.–6.). On
     a random file the whole array is one record: `LEN = 10` gives error 59, `LEN = 20` a 20-byte file (`x55`).
+    Nested owner types (`x65`, measured with task 5.1): a member of an owner type, an inline member array of one,
+    a `_DYNAMIC` member of an owner type and one of a plain `TYPE` are each written in their declared layout,
+    recursively (72 bytes for two elements of a two-dimensional array `(1 TO 2, 0 TO 0)`), and read back; a
+    mismatch inside a nested value raises 9 (`PUT`: nothing written; `GET`: the smaller block written past again).
+    The code is `UDTFileArrayBE$` and `AppendUDTFileConvCode` (`qb64pe.bas` 17075–17265): a buffer per type grown
+    with `realloc`, packed before `PUT`, unpacked after `GET` by a line written after the call with no test of an
+    error. `GET` into an array that `ERASE` released raises 9 and then ends the program with "Out of memory" (`x67`,
+    found while `s118` was recorded).
+  - **`_MEM` of a `_DYNAMIC` member** (`x66`, measured with task 5.2): of the whole member, the block of its
+    descriptor's elements (`x.v()` of `v(1) AS LONG`: size 8, type 65668, an array of LONG, element size 4, offset
+    that of `x.v(0)`); of an element, and with `_MEMELEMENT`, the element alone in its type (size 4, type 132); the
+    same for a member of an array element; of `STRING * 3` elements 9 bytes, type 66048; of a plain `TYPE`'s
+    elements (6 bytes each, packed) type 98304 and per element 32768. Each takes the descriptor's lock: a `REDIM` or
+    an `ERASE` of the member makes the block invalid (`_MEMEXISTS` 0). **`_MEM` of a member that `ERASE` released
+    crashes the program** (exit code 139; the line was taken out of `x66` after it was recorded so).
   - **Compile errors for an owner value** ("_MEM cannot reference a TYPE value that contains explicit _Dynamic
-    member arrays"): `LEN(x)` (`x20`; `LEN(x.v(0))` is 4, `x21`), `COMMON SHARED x` (`x39`), `PUT`/`GET` of one
+    member arrays"): `LEN(x)` and `LEN(p(0))` (`x20`, `x64`; `LEN(x.v(0))` is 4, `x21`), `_OFFSET(x)` (`x68`;
+    `_OFFSET(x.a)` is taken, `x52`), `COMMON SHARED x` (`x39`)
+    and `COMMON SHARED p() AS t` (`x63`, reported at no line: "[INFORMATION UNAVAILABLE]"), `PUT`/`GET` of one
     variable or element (`x43`, `x46`, `x50`, `x54`); a whole array with a `STRING` in the type is "UDT must have
     fixed size" (`x48`); `PRINT x.v` "Expected array index" (`x41`). Measured, not followed (`DIVERGENCES.md`):
-    the `GET` into a smaller block (D-019), the size that overflows (D-020), the store through `p(9)` (D-004).
+    the `GET` into a smaller block (D-019), the size that overflows (D-020), the store through `p(9)` (D-004), the
+    crash of `_MEM` of a released member and the "Out of memory" of `GET` into a released array (D-021).
 - **`STRING` members, whole values, `TYPE` parameters (`v24_h_string_members`, `v24_h_whole`,
   `v24_h_type_params`, `v24_x206`–`x216`):** a `STRING` member starts empty in a variable, a local (on each
   call), a `STATIC` one (kept), each element of a static and of a dynamic array and in a nested type; it holds

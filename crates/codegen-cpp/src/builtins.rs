@@ -364,7 +364,7 @@ impl Emitter<'_> {
     }
 
     /// A new temporary for libqb's `byte_element`, declared with the variables of the body.
-    fn byte_element_temp(&mut self) -> String {
+    pub(crate) fn byte_element_temp(&mut self) -> String {
         self.byte_element += 1;
         let t = format!("byte_element_{}", self.byte_element);
         self.pass_decls.push(format!(
@@ -407,6 +407,9 @@ impl Emitter<'_> {
                 let (address, size) = self.place_bytes(place);
                 let t = self.byte_element_temp();
                 format!("sub_{word}({file},{position},byte_element((uint64){address},{size},{t}),{mask});")
+            }
+            StmtArg::Block { array, index } if index.is_empty() && self.owns_desc(self.p.var(*array).ty) => {
+                self.owner_file(*array, get, (&file, &position, mask))
             }
             StmtArg::Block { array, index } => {
                 let bytes = self.block(*array, index);

@@ -4,26 +4,21 @@
 arrays/07_nested_udt  # whole-array assignment
 arrays/90_type_codegen_inline_varstrings  # whole-array assignment
 arrays/91_type_codegen_nested_inline_owner  # whole-array assignment
-arrays/92_type_codegen_dynamic_varstrings  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN, whole-array assignment
-arrays/93_type_codegen_dynamic_owner_udt  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN, whole-array assignment
-arrays/94_type_codegen_inline_descriptor_udt  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/92_type_codegen_dynamic_varstrings  # whole-array assignment
+arrays/93_type_codegen_dynamic_owner_udt  # whole-array assignment
+arrays/94_type_codegen_inline_descriptor_udt  # whole-array assignment
 arrays/ArrayCopyTest  # _ARRAYCOPY
-arrays/ArrayCopyTest_1  # $UNSTABLE:TYPEFIELDS, _ARRAYCOPY
-arrays/ArrayCopyTest_2  # $UNSTABLE:TYPEFIELDS, _ARRAYCOPY
-arrays/ArrayCopyTest_3  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN, _ARRAYCOPY
-arrays/put_get_write_read_UDT_fixed_string  # $UNSTABLE:TYPEFIELDS
+arrays/ArrayCopyTest_1  # _ARRAYCOPY
+arrays/ArrayCopyTest_2  # _ARRAYCOPY
+arrays/ArrayCopyTest_3  # _ARRAYCOPY
 arrays/t001_whole_array_core  # whole-array assignment
-arrays/t002_whole_array_udt_ownership  # $UNSTABLE:TYPEFIELDS, whole-array assignment
-arrays/t003_whole_array_member_assign  # $UNSTABLE:TYPEFIELDS, REDIM _RETAIN, whole-array assignment
+arrays/t002_whole_array_udt_ownership  # whole-array assignment
+arrays/t003_whole_array_member_assign  # whole-array assignment
 arrays/t024_whole_target_bare_source  # whole-array assignment
 arrays/t026_whole_target_indexed_source  # whole-array assignment
 arrays/t038_whole_target_scalar_source  # whole-array assignment
 arrays/t041_whole_array_equals_scalar  # whole-array assignment
-arrays/t203_dynfield_array_assign_deepcopy  # $UNSTABLE:TYPEFIELDS, whole-array assignment
-arrays/t207_dynfield_nested_udt_deepcopy  # $UNSTABLE:TYPEFIELDS, whole-array assignment
-arrays/t266_putget_fixed_dynamic_fields  # $UNSTABLE:TYPEFIELDS (PUT and GET of a whole array of a TYPE with a dynamic member array)
-arrays/t267_putget_fixed_scalar_string_nonzero_bounds  # $UNSTABLE:TYPEFIELDS (PUT and GET of a whole array of a TYPE with a dynamic member array)
-arrays/t268_negative_put_scalar_varstring  # $UNSTABLE:TYPEFIELDS
-arrays/t269_negative_get_dynamic_varstring_field  # $UNSTABLE:TYPEFIELDS
-arrays/t272_dynamic_static_array_assign_deepcopy  # $UNSTABLE:TYPEFIELDS, whole-array assignment
-arrays/t278_nested_static_dynamic_copy_erase_rebuild  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/t203_dynfield_array_assign_deepcopy  # whole-array assignment
+arrays/t207_dynfield_nested_udt_deepcopy  # whole-array assignment
+arrays/t272_dynamic_static_array_assign_deepcopy  # whole-array assignment
+arrays/t278_nested_static_dynamic_copy_erase_rebuild  # whole-array assignment

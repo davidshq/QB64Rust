@@ -215,7 +215,6 @@ impl Emitter<'_> {
     /// The size of a value of a type in a file (design D8 of `m3-typefields`): the declared layout, packed, a
     /// dynamic member array as its elements at their declared bounds. Equal to [`Self::ty_size`] for a type that
     /// owns no dynamic member array.
-    #[allow(dead_code, reason = "used by the files of owner types, task 5.1 of `m3-typefields`")]
     pub(crate) fn file_size(&self, t: Ty) -> u32 {
         match t {
             Ty::User(id) => self

@@ -19,9 +19,9 @@
 //! finish), `_bound` and `_desc` (for an array argument). A whole-value copy is [`Emitter::copy_owner`].
 
 use crate::Emitter;
-use crate::decl::{Part, dim_slot};
+use crate::decl::{Part, dim_count, dim_slot};
 use crate::names::int_const;
-use qb64rust_ir::{Member, MemberId, Place, Ty, TypeId};
+use qb64rust_ir::{Member, MemberId, Place, Ty, TypeId, VarId};
 use std::fmt::Write as _;
 
 /// The number of dimensions the dummy descriptor of a guard has room for.
@@ -287,9 +287,18 @@ impl Emitter<'_> {
             return String::new();
         }
         let mut protos = String::from("static ptrszint qbr_dyn_count(ptrszint *d);\n");
+        // `_MEM` of a whole dynamic member array and of an element of one ([`Emitter::mem_of`]): a descriptor from a
+        // guard that raised error 9 (its dummy, of no dimensions) gives a block that does not exist.
         let mut defs = String::from(
             "static ptrszint qbr_dyn_count(ptrszint *d){\nptrszint n=1;\n\
-             for(ptrszint i=1;i<=d[3];i++) n*=d[i*4+1];\nreturn n;\n}\n",
+             for(ptrszint i=1;i<=d[3];i++) n*=d[i*4+1];\nreturn n;\n}\n\
+             static mem_block qbr_dyn_mem_none(){\nmem_block b;\nmemset(&b,0,sizeof(b));\nb.image=-1;\nreturn b;\n}\n\
+             static mem_block qbr_dyn_mem_all(ptrszint *d,ptrszint es,int32 type){\n\
+             if (!d[3]) return qbr_dyn_mem_none();\n\
+             return func__mem((ptrszint)d[0],qbr_dyn_count(d)*es,type,es,(mem_lock*)d[d[3]*4+4]);\n}\n\
+             static mem_block qbr_dyn_mem_one(char *at,ptrszint **dp,ptrszint es,int32 type){\n\
+             ptrszint *d=*dp;\nif (!d[3]) return qbr_dyn_mem_none();\n\
+             return func__mem((ptrszint)at,es,type,es,(mem_lock*)d[d[3]*4+4]);\n}\n",
         );
         for &id in &owners {
             for what in ["new", "free", "zero"] {
@@ -402,7 +411,8 @@ impl Emitter<'_> {
             }
             format!("for(ptrszint qbr_i=0;qbr_i<qbr_n;qbr_i++){{\n{text}}}\n")
         };
-        // `ERASE`: the elements and the block released, the descriptor not allocated.
+        // `ERASE`: the elements and the block released, the descriptor not allocated, `_MEM` blocks over it no
+        // longer valid (measured, `verification\v35_x66`).
         let release = each(&|at, _| self.free_value(et, at));
         let count = if release.is_empty() {
             String::new()
@@ -411,7 +421,8 @@ impl Emitter<'_> {
         };
         write!(
             out,
-            "static void {}(ptrszint *d){{\nif (!d||!(d[2]&1)) return;\n{count}{release}free((void*)d[0]);\n\
+            "static void {}(ptrszint *d){{\nif (!d||!(d[2]&1)) return;\n\
+             ((mem_lock*)d[d[3]*4+4])->id=(++mem_lock_id);\n{count}{release}free((void*)d[0]);\n\
              d[2]&=~1;\nfor(ptrszint i=1;i<=d[3];i++){{d[i*4]=2147483647;d[i*4+1]=0;d[i*4+2]=0;}}\n\
              d[0]={nothing};\n}}\n",
             f("release")
@@ -517,6 +528,147 @@ impl Emitter<'_> {
         )
         .unwrap();
         out
+    }
+}
+
+impl Emitter<'_> {
+    /// `PUT` or `GET` of a whole array of owner type (design D8 of `m3-typefields`; the old compiler's
+    /// `UDTFileArrayBE$`, `qb64pe.bas` 17181): the file holds its elements in the declared layout, written from and
+    /// read into a buffer of the type. `PUT` packs every element into it and writes it; a dynamic member array
+    /// with other bounds than its declared ones raises error 9, so libqb writes nothing. `GET` reads into it and,
+    /// when the read raised nothing, unpacks it element by element; a dynamic member array with other bounds
+    /// raises error 9 and keeps its elements (`DIVERGENCES.md` D-019: the old compiler writes the declared bytes
+    /// into its block). After a read that raised an error nothing is unpacked (the old compiler unpacks what the
+    /// buffer holds).
+    pub(crate) fn owner_file(&mut self, array: VarId, get: bool, (file, position, mask): (&str, &str, u32)) -> String {
+        let v = self.p.var(array);
+        let Ty::User(id) = v.ty else {
+            unreachable!("an array of an owner type");
+        };
+        if !self.file_types.contains(&id) {
+            self.file_types.push(id);
+            self.func_decls.push(self.file_functions(id));
+        }
+        let (a, dims) = (format!("(ptrszint*){}", self.name(array)), dim_count(v));
+        let t = self.byte_element_temp();
+        let buffer = format!("{}({a},{dims},{t},{})", udt_fn(id, "file"), i32::from(!get));
+        if get {
+            format!(
+                "sub_get({file},{position},{buffer},{mask});\nif (!is_error_pending()) {}({a},{dims});",
+                udt_fn(id, "commit")
+            )
+        } else {
+            format!("sub_put({file},{position},{buffer},{mask});")
+        }
+    }
+
+    /// The file functions of owner type `id`, for `global.txt`: `qbr_udtN_pack` (a value to its declared layout;
+    /// 0 when a dynamic member array has other bounds), `_unpack`, `_file` (the buffer of a whole array, packed for
+    /// `PUT`) and `_commit` (the buffer unpacked into the array after `GET`).
+    fn file_functions(&self, id: TypeId) -> String {
+        let t = Ty::User(id);
+        let (ms, fs) = (self.ty_size(t), self.file_size(t));
+        let (buf, cap) = (udt_fn(id, "fbuf"), udt_fn(id, "fcap"));
+        let (mut pack, mut unpack) = (String::new(), String::new());
+        let mut depth = 0;
+        self.file_conv(id, ("p", "f"), false, &mut depth, &mut pack);
+        let mut depth = 0;
+        self.file_conv(id, ("p", "f"), true, &mut depth, &mut unpack);
+        format!(
+            "static uint8 *{buf}=NULL;\nstatic uint64 {cap}=0;\n\
+             static int32 {}(uint8 *f,char *p){{\nint32 qbr_ok=1;\n{pack}return qbr_ok;\n}}\n\
+             static int32 {}(char *p,uint8 *f){{\nint32 qbr_ok=1;\n{unpack}return qbr_ok;\n}}\n\
+             static uint64 {}(ptrszint *a,ptrszint dims){{\nif (!(a[2]&1)){{error(9);return 0;}}\nuint64 n=1;\n\
+             for(ptrszint i=1;i<=dims;i++) n*=(uint64)a[i*4+1];\nreturn n;\n}}\n\
+             static void *{}(ptrszint *a,ptrszint dims,byte_element_struct *be,int32 put){{\n\
+             uint64 n={}(a,dims);\nuint64 need=n*{fs};\n\
+             if (need>2147483647){{error(257);n=0;need=0;}}\n\
+             if ({cap}<need){{\nuint8 *b=(uint8*)realloc({buf},need);\n\
+             if (!b){{error(257);n=0;need=0;}}else{{{buf}=b;{cap}=need;}}\n}}\n\
+             if (put) for(uint64 i=0;i<n;i++) {}({buf}+i*{fs},(char*)a[0]+i*{ms});\n\
+             return byte_element((uint64){buf},(int32)need,be);\n}}\n\
+             static void {}(ptrszint *a,ptrszint dims){{\nuint64 n={}(a,dims);\n\
+             if (n*{fs}>{cap}) return;\n\
+             for(uint64 i=0;i<n;i++) {}((char*)a[0]+i*{ms},{buf}+i*{fs});\n}}\n",
+            udt_fn(id, "pack"),
+            udt_fn(id, "unpack"),
+            udt_fn(id, "fcount"),
+            udt_fn(id, "file"),
+            udt_fn(id, "fcount"),
+            udt_fn(id, "pack"),
+            udt_fn(id, "commit"),
+            udt_fn(id, "fcount"),
+            udt_fn(id, "unpack"),
+        )
+    }
+
+    /// The statements that move one value of owner type `id` between its memory layout at `mem` (a `char*`
+    /// expression) and its declared layout at `file` (a `uint8*` one), from memory to the file, or back
+    /// (`unpack`), as the old compiler's `AppendUDTFileConvCode` (`qb64pe.bas` 17075) walks them: each member in
+    /// order, a member of an owner type and the elements of a dynamic member array of one recursively, any other
+    /// member as its bytes, a dynamic member array as its elements at its declared bounds. One with other
+    /// bounds, or not allocated, raises error 9, sets `qbr_ok` to 0 and moves nothing.
+    fn file_conv(&self, id: TypeId, (mem, file): (&str, &str), unpack: bool, depth: &mut u32, out: &mut String) {
+        let (offsets, _) = self.layout(id);
+        let members = &self.p.user_type(id).members;
+        let mut foff = 0u32;
+        for (m, off) in members.iter().zip(offsets) {
+            let (here, there) = (format!("({mem}+{off})"), format!("({file}+{foff})"));
+            let (fes, es) = (self.file_size(m.ty), self.ty_size(m.ty));
+            let count = m.count();
+            foff += fes * count;
+            let k = *depth;
+            *depth += 1;
+            if m.dynamic {
+                let d = format!("qbr_d{k}");
+                let dims = m.bounds.len();
+                let mut fits = format!("{d}&&({d}[2]&1)&&{d}[3]=={dims}");
+                for (j, &(lower, upper)) in m.bounds.iter().enumerate() {
+                    let s = dim_slot(dims, j);
+                    write!(
+                        fits,
+                        "&&{d}[{s}]=={}&&{d}[{}]=={}",
+                        int_const(lower, Ty::I64),
+                        s + 1,
+                        upper - lower + 1
+                    )
+                    .unwrap();
+                }
+                writeln!(
+                    out,
+                    "{{\nptrszint *{d}=*(ptrszint**){here};\nif (!({fits})){{error(9);qbr_ok=0;}}else{{"
+                )
+                .unwrap();
+                let elements = format!("((char*){d}[0])");
+                if let Some(eid) = self.owner(m.ty) {
+                    let i = format!("qbr_e{k}");
+                    writeln!(out, "for(ptrszint {i}=0;{i}<{count};{i}++){{").unwrap();
+                    let (em, ef) = (format!("({elements}+{i}*{es})"), format!("({there}+{i}*{fes})"));
+                    self.file_conv(eid, (&em, &ef), unpack, depth, out);
+                    out.push_str("}\n");
+                } else {
+                    out.push_str(&file_bytes(&elements, &there, es * count, unpack));
+                }
+                out.push_str("}\n}\n");
+            } else if let Some(eid) = self.owner(m.ty) {
+                let i = format!("qbr_e{k}");
+                writeln!(out, "for(ptrszint {i}=0;{i}<{count};{i}++){{").unwrap();
+                let (em, ef) = (format!("({here}+{i}*{es})"), format!("({there}+{i}*{fes})"));
+                self.file_conv(eid, (&em, &ef), unpack, depth, out);
+                out.push_str("}\n");
+            } else {
+                out.push_str(&file_bytes(&here, &there, self.member_size(m), unpack));
+            }
+        }
+    }
+}
+
+/// The copy of `n` bytes between memory at `mem` and a file buffer at `file`, to the file or back (`unpack`).
+fn file_bytes(mem: &str, file: &str, n: u32, unpack: bool) -> String {
+    if unpack {
+        format!("memcpy((void*){mem},(void*){file},{n});\n")
+    } else {
+        format!("memcpy((void*){file},(void*){mem},{n});\n")
     }
 }
 

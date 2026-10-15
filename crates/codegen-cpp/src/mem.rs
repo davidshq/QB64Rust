@@ -107,6 +107,9 @@ struct Block {
 impl Emitter<'_> {
     /// `_MEM(reference)` (`element` false) or `_MEMELEMENT(reference)`: libqb's `func__mem` of the block.
     pub(crate) fn mem_of(&mut self, of: &Reference, element: bool) -> String {
+        if let Some(block) = self.dyn_block(of) {
+            return block;
+        }
         let b = self.block_of(of, element);
         format!(
             "func__mem((ptrszint){},{},{},{},{})",
@@ -331,6 +334,45 @@ impl Emitter<'_> {
             | ExprKind::AddressOf(_)
             | ExprKind::MemRead { .. } => self.value(v),
         }
+    }
+
+    /// `_MEM` or `_MEMELEMENT` of a whole dynamic member array or of an element of one (measured,
+    /// `verification\v35_x23`, `x24`, `x66`): the elements of its descriptor, typed as an array of them, or the
+    /// element alone in its type, with the descriptor's lock; the same for both functions. The descriptor is found
+    /// through its guard, the declared number of dimensions for the whole array, so one that is not allocated
+    /// raises error 9 and gives a block that does not exist (the old program crashes there, `DIVERGENCES.md`
+    /// D-021).
+    fn dyn_block(&mut self, of: &Reference) -> Option<String> {
+        let (base, member) = match of {
+            Reference::Array(ArrayRef::Member { base, member })
+            | Reference::Place(Place::Element {
+                array: ArrayRef::Member { base, member },
+                ..
+            }) => (base, *member),
+            Reference::Array(ArrayRef::Var(_)) | Reference::Place(_) => return None,
+        };
+        let (id, m) = self.dynamic_member(base, member)?;
+        let decl = self.p.member_of(base, member);
+        let (ety, dims) = (decl.ty, decl.bounds.len());
+        let size = self.ty_size(ety);
+        let tv = type_value(self.p, ety);
+        Some(match of {
+            Reference::Array(_) => {
+                let slot = self.dyn_slot(base, member);
+                format!(
+                    "qbr_dyn_mem_all({}(*(ptrszint**){slot},{dims}),{size},{})",
+                    crate::owner::dyn_fn(id, m, "guard"),
+                    tv + ARRAY
+                )
+            }
+            Reference::Place(Place::Element { index, .. }) => {
+                // The element's address leaves its descriptor in a `passN` (`Emitter::dyn_element_desc`); the
+                // function reads it after the address is found.
+                let (at, d) = self.dyn_element_desc(base, member, index);
+                format!("qbr_dyn_mem_one({at},&{d},{size},{tv})")
+            }
+            Reference::Place(_) => unreachable!("matched above"),
+        })
     }
 
     /// The block of a reference, by kind (design D3).

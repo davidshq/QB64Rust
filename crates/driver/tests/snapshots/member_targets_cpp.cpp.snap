@@ -25,6 +25,21 @@ ptrszint n=1;
 for(ptrszint i=1;i<=d[3];i++) n*=d[i*4+1];
 return n;
 }
+static mem_block qbr_dyn_mem_none(){
+mem_block b;
+memset(&b,0,sizeof(b));
+b.image=-1;
+return b;
+}
+static mem_block qbr_dyn_mem_all(ptrszint *d,ptrszint es,int32 type){
+if (!d[3]) return qbr_dyn_mem_none();
+return func__mem((ptrszint)d[0],qbr_dyn_count(d)*es,type,es,(mem_lock*)d[d[3]*4+4]);
+}
+static mem_block qbr_dyn_mem_one(char *at,ptrszint **dp,ptrszint es,int32 type){
+ptrszint *d=*dp;
+if (!d[3]) return qbr_dyn_mem_none();
+return func__mem((ptrszint)at,es,type,es,(mem_lock*)d[d[3]*4+4]);
+}
 static void qbr_udt0_new(char *p){
 *(qbs**)(p+4)=qbs_new(0,0);
 for(ptrszint qbr_i=0;qbr_i<3;qbr_i++){
@@ -72,6 +87,7 @@ return d;
 }
 static void qbr_udt0_m4_release(ptrszint *d){
 if (!d||!(d[2]&1)) return;
+((mem_lock*)d[d[3]*4+4])->id=(++mem_lock_id);
 free((void*)d[0]);
 d[2]&=~1;
 for(ptrszint i=1;i<=d[3];i++){d[i*4]=2147483647;d[i*4+1]=0;d[i*4+2]=0;}

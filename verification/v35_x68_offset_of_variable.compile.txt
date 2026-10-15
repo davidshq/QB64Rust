@@ -1,0 +1,5 @@
+
+_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
+Caused by (or after):PRINT _OFFSET ( X ) <> 0
+LINE 10:PRINT _OFFSET(x) <> 0
+exit=1

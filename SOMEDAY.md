@@ -10,7 +10,6 @@ wait until the core compiler works (roadmap M4 or later, `study\07-expert-panel.
 
 | Feature | Upstream origin | Why deferred | Details |
 |---|---|---|---|
-| The `_STATIC` / `_DYNAMIC` storage markers of TYPE member arrays (`$UNSTABLE:TYPEFIELDS`) | Petr, from 2026-06-12 | Still behind `$UNSTABLE`; woven through `evaluate`, `refer`, `setrefer`, `dim2`, `allocarray`. Plain member arrays (`AS LONG a(12, 15)` in a `TYPE`) no longer need `$UNSTABLE` and are on the roadmap (2026-10-07, `study\26` §4) | `study\02` "[member-array layer]" notes; `study\01` §6.4 |
 | `_ARRAYCOPY` | Petr, 2026-09-12 | Weeks old; depends on the member-array layer; 954-line runtime (`array-copy.cpp`) | `study\01` §8.2, `study\03` §2.3 |
 | Whole-array assignment `a() = b()` | Same work | Same layer | `study\02` §2.3 |
 
@@ -138,6 +137,16 @@ the data-processing functions, `END n` and `SYSTEM n`, the licence file):
 | Form | Why it waits | Details |
 |---|---|---|
 | A built-in that needs `$` named without it (`_DEFLATE("x")`, `_TRIM(" a")`): "not supported yet", where the old compiler says "Invalid array name" (`verification\v33_x25`–`x29`) | The same words name an array used without `DIM` or a FUNCTION not yet seen; settled with them (user, task 3.1 of the change) | `sema\src\check\expr.rs`, the call of an unknown name |
+
+**Left marked by `m3-typefields`** (the tenth step of M3, 2026-10-15: `$UNSTABLE:TYPEFIELDS`, the member markers,
+`_DYNAMIC` member arrays). What the old compiler accepts and the new one still marks "not supported yet", each not
+measured:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `_OFFSET(x.v())` of a whole `_DYNAMIC` member array | Not measured (its `_MEM` is, `verification\v35_x66`) | `sema\src\check\mem.rs`, `unmeasured_path` |
+| `_MEMGET`, `_MEMPUT` and `_MEMFILL` with a `_DYNAMIC` member array or an element of one as the variable | Outside the change (its design, Non-Goals) | `check\mem.rs`, `bytes_reference` |
+| `x.v() = y.v()`, `x.v() = a()` | Whole-array assignment, deferred (the table at the top) | `check\places.rs` |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.

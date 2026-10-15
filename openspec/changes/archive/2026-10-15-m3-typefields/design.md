@@ -168,6 +168,12 @@ a member with other bounds raises error 9 and is skipped, its elements left as t
 copies the declared bytes into the smaller block). The buffer is a `static` one per type, grown with `realloc`,
 as the old compiler's is.
 
+*As built (task 5.1):* `owner.rs` `owner_file` writes the functions (`qbr_udtN_pack`, `_unpack`, `_fcount`, `_file`,
+`_commit`) once per type that a file statement names. The check before `PUT` is the pack itself, as in the old
+compiler: a mismatch raises 9 while packing and libqb's `sub_put` writes nothing while an error is pending. The
+unpack after `GET` runs only when the read raised nothing, and an array that is not allocated raises 9 and reads
+nothing (`DIVERGENCES.md` D-021).
+
 ### D9. Element places and the parent's place
 
 An element of a `_DYNAMIC` member is reached by: the parent's place (its `bytes_of`, indexes evaluated once,

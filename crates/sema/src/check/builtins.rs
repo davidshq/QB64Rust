@@ -489,8 +489,13 @@ impl Checker<'_> {
             return Err(self.error(e.span, msg));
         }
         if crate::owns_desc(&self.prog.types, ty) {
-            // Measured (`verification\v35_x20`), compiled with task 5.2 of `m3-typefields`.
-            return Err(self.unsupported(e.span, "`LEN` of a value of a `TYPE` with a dynamic member array"));
+            // Measured: "_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays"
+            // (`verification\v35_x20`, `x64`).
+            let msg = format!(
+                "`LEN` of a `TYPE {}` value: a `TYPE` with a dynamic member array has no fixed size",
+                self.prog.type_name(ty)
+            );
+            return Err(self.error(e.span, msg));
         }
         // The index of an element is not evaluated (the old compiler takes the element type's size).
         let size = crate::size_of(&self.prog.types, ty);
@@ -950,7 +955,7 @@ impl Checker<'_> {
                 // Measured: "Cannot pass array of variable-length strings" (`v30_x38`).
                 return Err(self.error(span, format!("`{name}` of a whole array of variable-length strings")));
             }
-            self.fixed_size(ty, name, span)?;
+            self.fixed_size(ty, name, span, true)?;
             return Ok(StmtArg::Block {
                 array,
                 index: Vec::new(),
@@ -963,14 +968,16 @@ impl Checker<'_> {
         let ExprKind::Load(place) = e?.kind else {
             return Err(self.error(span, format!("`{name}` needs a variable here")));
         };
-        self.fixed_size(self.prog.place_ty(&place), name, span)?;
+        self.fixed_size(self.prog.place_ty(&place), name, span, false)?;
         Ok(StmtArg::Bytes(place))
     }
 
-    /// Whether `GET` and `PUT` can take the bytes of a place of type `ty`: not a `_BIT` ("Variable/element cannot
-    /// be _BIT aligned", `v30_x25`, `x35`) and not a `TYPE` with a `STRING` in it ("UDT must have fixed size",
-    /// `x40`).
-    fn fixed_size(&mut self, ty: Ty, name: &str, span: Span) -> R<()> {
+    /// Whether `GET` and `PUT` can take the bytes of a place of type `ty`, or of a whole array of it (`whole`):
+    /// not a `_BIT` ("Variable/element cannot be _BIT aligned", `v30_x25`, `x35`), not a `TYPE` with a `STRING`
+    /// in it ("UDT must have fixed size", `x40`, `v35_x48`), and of a `TYPE` with a dynamic member array only a
+    /// whole array ("_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays",
+    /// `v35_x43`, `x46`, `x50`, `x54`; the whole array in the declared layout, design D8 of `m3-typefields`).
+    fn fixed_size(&mut self, ty: Ty, name: &str, span: Span, whole: bool) -> R<()> {
         if let Ty::Bit { .. } = ty {
             return Err(self.error(span, format!("`{name}` of a `_BIT` variable")));
         }
@@ -981,11 +988,12 @@ impl Checker<'_> {
             );
             return Err(self.error(span, msg));
         }
-        if crate::owns_desc(&self.prog.types, ty) {
-            // Measured (`verification\v35_e_dyn_statements`, `v35_x50`, `x54`, `x55`), compiled with tasks 5.1 and
-            // 5.2 of `m3-typefields`.
-            let msg = format!("`{name}` of a `TYPE` with a dynamic member array");
-            return Err(self.unsupported(span, msg));
+        if !whole && crate::owns_desc(&self.prog.types, ty) {
+            let msg = format!(
+                "`{name}` of one `TYPE {}` value: a `TYPE` with a dynamic member array goes to a file only as a whole array",
+                self.prog.type_name(ty)
+            );
+            return Err(self.error(span, msg));
         }
         Ok(())
     }

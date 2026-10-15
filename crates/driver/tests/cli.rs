@@ -756,6 +756,64 @@ fn redim_with_a_bound_that_redims() {
     );
 }
 
+/// `GET` of a whole array whose type has a dynamic member array, into an element whose member has other bounds,
+/// raises error 9, reads the rest and keeps that member as it was (`DIVERGENCES.md` D-019: the old compiler writes
+/// the declared bytes into the member's smaller block, `verification\v35_e_dyn_statements` 6.).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn get_into_a_dynamic_member_with_other_bounds() {
+    let d = scratch("get-dyn-bounds");
+    let program = "$CONSOLE:ONLY\n$UNSTABLE:TYPEFIELDS\nTYPE t\na AS INTEGER\nv(1) _DYNAMIC AS LONG\nEND TYPE\n\
+                   ON ERROR GOTO trap\nREDIM p(1) AS t\np(0).a = 1: p(0).v(0) = 10: p(0).v(1) = 11: p(1).a = 2\n\
+                   OPEN \"g.bin\" FOR BINARY AS #1\nPUT #1, 1, p()\nREDIM q(1) AS t\n\
+                   REDIM q(0).v(5 TO 5) AS LONG: q(0).v(5) = 5\nGET #1, 1, q()\nCLOSE #1\n\
+                   PRINT q(0).a; LBOUND(q(0).v); UBOUND(q(0).v); q(0).v(5); q(1).a\nSYSTEM\n\
+                   trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
+    assert_eq!(build_and_run(&d, program), "[ 9 ] 1  5  5  5  2 \n");
+}
+
+/// A `REDIM` of a dynamic member array to more than memory holds ends the program with "Out of memory"
+/// (`DIVERGENCES.md` D-020: the old compiler's size overflows unchecked, `verification\v35_g3_dyn_bound_too_large`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn redim_of_a_dynamic_member_too_large() {
+    let d = scratch("dyn-too-large");
+    let program = "$CONSOLE:ONLY\n$UNSTABLE:TYPEFIELDS\nTYPE t\nv(1) _DYNAMIC AS _INTEGER64\nEND TYPE\n\
+                   ON ERROR GOTO trap\nDIM x AS t\nDIM hi AS _INTEGER64: hi = 2147483647\n\
+                   REDIM x.v(0 TO hi, 0 TO hi) AS _INTEGER64\nPRINT \"not reached\"\nSYSTEM\n\
+                   trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
+    // "Out of memory" goes to stderr; the handler is not called and the program stops there.
+    assert_eq!(build_and_run(&d, program), "");
+}
+
+/// `_MEM` of a dynamic member array that is not allocated, and `GET` of a whole array of its type into an erased
+/// array, raise error 9 and go on (`DIVERGENCES.md` D-021: the old program crashes, or ends with "Out of memory",
+/// `verification\v35_x66`, `x67`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dynamic_member_not_allocated_in_mem_and_get() {
+    let d = scratch("dyn-not-allocated");
+    let program = "$CONSOLE:ONLY\n$UNSTABLE:TYPEFIELDS\nTYPE t\na AS INTEGER\nv(1) _DYNAMIC AS LONG\nEND TYPE\n\
+                   ON ERROR GOTO trap\nDIM x AS t\nDIM m AS _MEM\nERASE x.v\nm = _MEM(x.v())\n\
+                   PRINT \"mem\"; _MEMEXISTS(m)\nREDIM p(1) AS t\nOPEN \"g.bin\" FOR BINARY AS #1\nPUT #1, 1, p()\n\
+                   ERASE p\nGET #1, 1, p()\nCLOSE #1\nPRINT \"get\"\nSYSTEM\n\
+                   trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
+    assert_eq!(build_and_run(&d, program), "[ 9 ]mem 0 \n[ 9 ]get\n");
+}
+
+/// `_MEM` of an element of a dynamic member array, where an index of the value the member is part of reads another
+/// dynamic member, takes the element's own lock: `ERASE` of the other member leaves the block, `ERASE` of its own
+/// ends it (`verification\v35_x66` 13. for the lock).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn mem_of_a_dynamic_element_through_a_dynamic_index() {
+    let d = scratch("dyn-mem-index");
+    let program = "$CONSOLE:ONLY\n$UNSTABLE:TYPEFIELDS\nTYPE t\na AS INTEGER\nv(1) _DYNAMIC AS LONG\nEND TYPE\n\
+                   DIM x AS t\nDIM m AS _MEM\nREDIM p(1) AS t\nx.v(0) = 1\nm = _MEM(p(x.v(0)).v(1))\n\
+                   ERASE x.v\ne = _MEMEXISTS(m)\nERASE p(1).v\nPRINT e; _MEMEXISTS(m)\nSYSTEM\n";
+    assert_eq!(build_and_run(&d, program), "-1  0 \n");
+}
+
 /// An integer power beyond `_INTEGER64` in a `CONST` is a DOUBLE (`DIVERGENCES.md` D-007: the old evaluator wraps it
 /// to -9223372036854775808).
 #[test]

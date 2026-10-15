@@ -153,29 +153,83 @@ review"), unless the user decided otherwise (D-019, D-020, D-004 widened).
 
 ## 5. Files and the rejected forms
 
-- [ ] 5.1 `PUT` and `GET` of a whole array of an owner type (design D8): pack, unpack, the bounds check, D-019.
+- [x] 5.1 `PUT` and `GET` of a whole array of an owner type (design D8): pack, unpack, the bounds check, D-019.
   Verify: `v35_e` 5.–6. print their recorded output apart from D-019's line (`q(0).v` keeps its element);
   `x55` its own; a CLI or slice test of D-019.
-- [ ] 5.2 The forms the old compiler rejects (design D4 last sentence): `LEN`, `_OFFSET`, `COMMON`, `PUT`/`GET` of
+  Done 2026-10-15 (`owner.rs` `owner_file`, `file_functions`, `file_conv`), read with the old compiler's
+  `UDTFileArrayBE$` and `AppendUDTFileConvCode` (`qb64pe.bas` 17075–17265): per owner type that a file statement
+  names, `qbr_udtN_pack`, `_unpack`, `_fcount`, `_file` (the buffer, a `static` grown with `realloc`, packed for
+  `PUT`) and `_commit`, in `global.txt` after the bodies. `PUT` packs, a member with other bounds raises 9 and
+  libqb writes nothing (its pending error); `GET` reads into the buffer and unpacks only when the read raised
+  nothing, a member with other bounds raising 9 and keeping its elements (D-019). The bounds check also tests the
+  number of dimensions, which the old compiler does not read. Measured first, `verification\v35_x65`: nested owner
+  types, a two-dimensional array with a lower bound that is not 0, a mismatch inside a nested value. `v35_e` (as
+  a copy with `0` for `_ERRORLINE`) and `x65` print their recorded output apart from D-019's lines; `x55` its own;
+  CLI test `get_into_a_dynamic_member_with_other_bounds`. Found on the way, `DIVERGENCES.md` D-021 (for the user to
+  confirm): `GET` into an array that `ERASE` released raises 9 and then ends the old program with "Out of memory"
+  (`x67`), here error 9 alone; and the old compiler unpacks the buffer after a read that raised an error, here not.
+  D-020 got its CLI test too (`redim_of_a_dynamic_member_too_large`; the register said "not yet").
+- [x] 5.2 The forms the old compiler rejects (design D4 last sentence): `LEN`, `_OFFSET`, `COMMON`, `PUT`/`GET` of
   one value, a whole array of a type with a `STRING`, `REDIM` without `TO` or with another type. Verify:
   `tests\frontend\typefields_rejected.bas` (`check-fail`) with `x18`–`x20`, `x39`, `x41`, `x43`, `x46`, `x48`,
   `x50`, `x54`; `_MEM` of an owner value and of a member (`x22`–`x24`, `x52`) compile and print their output.
-- [ ] 5.3 A slice program `s118_dyn_member_files` (`v35_e`, `x55`; D-019's line recorded from a program without
+  Done 2026-10-15. `REDIM` without `TO` or with another type, `PRINT x.v` and the whole array with a `STRING`
+  already gave their errors (groups 3 and earlier); `LEN`, `COMMON` and `PUT`/`GET` of one value were "not
+  supported yet" and are errors now. Measured first: `COMMON SHARED p() AS t` (`x63`, rejected at no line) and
+  `LEN(p(0))` (`x64`), both in the test. `_OFFSET` of an owner value was accepted, against the spec; measured
+  with task 6.2 (`x68`: rejected) and now the same error, in the test (its members' addresses are taken, `x52`).
+  `_OFFSET` of a whole array of an owner type and of a whole dynamic member array are not measured: the first
+  stays accepted as before, the second "not supported yet". `_MEM` and
+  `_MEMELEMENT` of a whole dynamic member and of an element of one (`x23`, `x24`, and measured more fully with
+  `x66`: type values, element sizes, the lock, members of `STRING * n` and of a plain `TYPE`): the descriptor's
+  block, through `qbr_dyn_mem_all` and `qbr_dyn_mem_one`, which take the descriptor's lock; `_OFFSET` of an element
+  of a dynamic member of a plain `TYPE` is accepted with it. `ERASE` of a dynamic member now renews the lock's id,
+  so a block over it stops existing (`x66` 13., which this code got wrong). `_MEM` of a member that is not
+  allocated raises 9 and gives a block that does not exist (the old program crashes, D-021). `x22`–`x24`, `x52`
+  and `x66` print their recorded output; `typefields_cpp` gains the file functions and both `_MEM` forms.
+  `_MEMGET`, `_MEMPUT` and `_MEMFILL` with a dynamic member stay "not supported yet" (design, Non-Goals).
+  Found by the review of the change: `_MEM` of an element whose parent's index reads another dynamic member
+  (`_MEM(p(x.v(0)).v(1))`) took that member's descriptor and lock; the element's own is now named by
+  `place.rs` `dyn_element_desc` (in `typefields_cpp`; CLI test
+  `mem_of_a_dynamic_element_through_a_dynamic_index`).
+- [x] 5.3 A slice program `s118_dyn_member_files` (`v35_e`, `x55`; D-019's line recorded from a program without
   it), on `slice.list`. Verify: it passes (`--glob`).
-- [ ] 5.4 Upstream: the rest of the 93 programs leave `deferred.list`; those that pass join `pass.list`; one that
+  Done 2026-10-15: also `x65`. Its lines 3 and 10 (D-019) recorded from a program that, in place of the `GET`,
+  gives the member its declared bounds, reads, raises `ERROR 9` and puts the member's bounds and element back. A
+  `GET` into a released array was taken out (the old program ends with "Out of memory": `x67`, D-021). It passes on
+  its first run; `slice\` 125, `slice.list` 429.
+- [x] 5.4 Upstream: the rest of the 93 programs leave `deferred.list`; those that pass join `pass.list`; one that
   fails is fixed or, if it needs more than this design, put to the user; the demand report over `tests\upstream`
   names no `$UNSTABLE` or marker. Verify: the 93 run by themselves; tier 1's list tests pass.
+  Done 2026-10-15: the five left (`put_get_write_read_UDT_fixed_string`, `t266`–`t269`) pass by themselves and
+  joined `pass.list` (290). The 21 still on `deferred.list` need only whole-array assignment or `_ARRAYCOPY`
+  (deferred, `DECISIONS.md` 2026-10-14); their reasons no longer name `$UNSTABLE:TYPEFIELDS` or `REDIM _RETAIN`.
+  The demand report over `tests\upstream` names no `$UNSTABLE`, marker or dynamic member array.
 
 ## 6. Close
 
-- [ ] 6.1 Closing runs, once (working rule 9): tier 1 with the command-line tests that build, the runner's tests,
+- [x] 6.1 Closing runs, once (working rule 9): tier 1 with the command-line tests that build, the runner's tests,
   the slice list with and without folding, the upstream and differential pass lists, the two full suites, the
   demand reports, the shrink-only lists regenerated (the call-site check is not affected: no row of the built-in
   table changes; say so). Verify: numbers in `STATUS.md`; nothing on a pass list fails.
-- [ ] 6.2 Documents: `STATUS.md` (also the stale line on `m3-asserts-debug-zlib`), `ROADMAP.md`,
+  Done 2026-10-15: tier 1 310 tests, the 24 command-line tests that build, the runner's 73; the slice list 429 of
+  429, also without folding; upstream `pass.list` 290 of 290, differential 59 of 59; the full corpus 448 pass
+  (5 known failures, `218_fre` the one `.err` program with only marked errors), the full upstream suite 290 pass,
+  none wrong; the demand reports; the shrink-only lists regenerated, unchanged. The call-site check was not run:
+  no row of the built-in table changed. After these runs one edit was made (`_OFFSET` of an owner value an error,
+  task 6.2, `x68`): tier 1, fmt and clippy were rerun; the runner lists were not, since the edit only rejects a
+  form that no listed program uses and tier 1 shows every program of `slice.list` and the pass lists still
+  compiles cleanly.
+- [x] 6.2 Documents: `STATUS.md` (also the stale line on `m3-asserts-debug-zlib`), `ROADMAP.md`,
   `crates\README.md`, `tests\upstream\README.md`, `SOMEDAY.md` (the `TYPEFIELDS` row goes), `CLAUDE.md`'s layout
   table; `python tools\testtime\test_time.py`. Verify: `check_repo.py --untracked` is clean; the files to stage
   and a commit message are given to the user.
+  Done 2026-10-15; also `tests\corpus\README.md` (counts, `s118`), `study\00` §5 (`x63`–`x68`), `DIVERGENCES.md`
+  (D-019, D-020 tests, D-021), `DECISIONS.md` (the choices of group 5), `SOMEDAY.md` ("Left marked by
+  `m3-typefields`"), and the stale line of `STATUS.md` on `m3-redim-retain` (archived). While the documents were
+  checked against the spec, `_OFFSET` of an owner value turned out accepted where the spec names it an error:
+  measured (`verification\v35_x68`: rejected) and made the error (`check\mem.rs`, `offset_fn`;
+  `typefields_rejected`). `check_repo.py --untracked` is clean.
 
 ## Workflow follow-up
 

@@ -139,6 +139,12 @@ impl Emitter<'_> {
     /// dimensions, and then a dummy element), then the element's flat position from the descriptor, each index
     /// checked as a dynamic array's. The descriptor is held in a `passN` of the body.
     pub(crate) fn dyn_element(&mut self, base: &Place, member: MemberId, index: &[Expr]) -> String {
+        self.dyn_element_desc(base, member, index).0
+    }
+
+    /// [`Self::dyn_element`], with the `passN` that holds the element's descriptor once the address is found. The
+    /// indexes of `base` are found before it and may take `passN`s of their own.
+    pub(crate) fn dyn_element_desc(&mut self, base: &Place, member: MemberId, index: &[Expr]) -> (String, String) {
         let (id, m) = self.dynamic_member(base, member).expect("a dynamic member array");
         let size = self.ty_size(self.p.member_of(base, member).ty);
         let slot = self.dyn_slot(base, member);
@@ -159,11 +165,12 @@ impl Emitter<'_> {
                 }
             })
             .collect();
-        format!(
+        let at = format!(
             "(({d}={}(*(ptrszint**){slot},{n})),(((char*){d}[0])+(({})*{size})))",
             crate::owner::dyn_fn(id, m, "guard"),
             parts.join("+")
-        )
+        );
+        (at, d)
     }
 
     /// A block passed to the runtime (a `_MEM` argument of `_MEMEXISTS`, `_MEMFREE`, `_MEMCOPY`, `_MEMGET`;

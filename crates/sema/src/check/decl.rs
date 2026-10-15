@@ -557,6 +557,15 @@ impl Checker<'_> {
                     (None, Some(a)) => self.type_of(a)?,
                 },
             };
+            if by == Declarer::Common && crate::owns_desc(&self.prog.types, ty) {
+                // Measured: "_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays", for
+                // a variable at the statement and for an array at no line (`verification\v35_x39`, `x63`).
+                let msg = format!(
+                    "a `TYPE {}` value in `COMMON`: a `TYPE` with a dynamic member array cannot be passed on",
+                    self.prog.type_name(ty)
+                );
+                return Err(self.error(name_tok.span, msg));
+            }
             // The type was written with `AS`, on the name or before the list: it types the plain name.
             let typed = as_clause.is_some() || list_ty.is_some();
             // With nothing between the parentheses, and in a `REDIM` without parentheses, the name is declared as

@@ -95,12 +95,11 @@ list from this copy against the QB64pe release (`rust.yml`, job `tier2`, which r
 
 - `pass.list`: the upstream programs the new compiler passes. A ratchet: add a program when it passes, never
   remove one.
-- `deferred.list`: the 24 programs that need a feature deferred to `SOMEDAY.md` or not compiled yet by
-  `m3-typefields` (`$UNSTABLE:TYPEFIELDS` 15, whole-array assignment 17, `_ARRAYCOPY` 4; a program may use
-  several), found by pattern and checked by eye. `REDIM _RETAIN` compiles since `m3-redim-retain` and the member
-  markers since `m3-typefields`; they are still named beside programs that wait on the others. 94 programs left
-  it with `m3-typefields`: 18 with its group 2, 76 with its group 3 (each passing on its first run; the change's
-  `tasks.md`).
+- `deferred.list`: the 21 programs that need a feature deferred to `SOMEDAY.md` (whole-array assignment 17,
+  `_ARRAYCOPY` 4), found by pattern and checked by eye. `REDIM _RETAIN` compiles since `m3-redim-retain` and
+  `$UNSTABLE:TYPEFIELDS` since `m3-typefields`. 97 programs left it with `m3-typefields`: 18 with its group 2, 74
+  with its group 3, 5 with its group 5 (`t266` and `t267` left with group 3, came back with group 4 and left with
+  group 5; each passing on its first run; the change's `tasks.md`).
 
 Progress is the pass list out of the programs not deferred; `cargo test` checks that no program is in both lists
 and prints the line (`cargo test -p qb64rust-driver --test inputs upstream_progress -- --nocapture`).
@@ -408,3 +407,16 @@ member's name was not seen; it is "not supported yet" now, as one after the name
 suite (404 programs): 193 pass, 210 rejected or with only marked errors (173 at the compile, 37 `.err` programs),
 the known failure `http/read_example`; none builds and prints the wrong output. The demand report (348 programs
 without an `.err`): 173 without errors, 164 held back, 11 with other errors; it names no `REDIM _RETAIN`.
+
+**Upstream progress, 2026-10-15: 290 of 383** (`m3-typefields` task 6.1; 193 of 286 before it). The change took
+`$UNSTABLE:TYPEFIELDS`, the member markers and `_DYNAMIC` member arrays: 97 programs left `deferred.list` (118 to
+21, so the programs counted are 404 − 21 = 383) and joined `pass.list` group by group, each passing on its first
+run. The last five came with group 5:
+`arrays/put_get_write_read_UDT_fixed_string`, `t266_putget_fixed_dynamic_fields`,
+`t267_putget_fixed_scalar_string_nonzero_bounds` (whole arrays of an owner type in files), and the `.err` programs
+`t268_negative_put_scalar_varstring` and `t269_negative_get_dynamic_varstring_field`. The 21 left need only
+whole-array assignment or `_ARRAYCOPY`. `pass.list` run by itself: 290 of 290. The full run of the suite (404
+programs): 290 pass, 113 rejected or with only marked errors (92 at the compile, 21 `.err` programs), the known
+failure `http/read_example`; none builds and prints the wrong output. The demand report (348 programs without an
+`.err`): 254 without errors, 83 held back, 11 with other errors; it names no `$UNSTABLE`, member marker or
+dynamic member array. `tests\known_unsupported_rejections.list` holds 36; the other lists are unchanged.

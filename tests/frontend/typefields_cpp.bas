@@ -8,7 +8,11 @@ $UNSTABLE:TYPEFIELDS
 ' the member as an array argument, and a whole-value copy that clones the descriptor. Task 4.3 (design D7,
 ' verification\v35_x56, x61): the copies find their places once per statement, as the old compiler's do: a type
 ' with no string (its parts, then the descriptors, also those of a nested owner), and one with a string (each part
-' in order, a dynamic member array erased and then set from the source).
+' in order, a dynamic member array erased and then set from the source). Task 5.1 (design D8): PUT and GET of a
+' whole array of an owner type through its file functions (its declared layout, the bounds checked, the buffer
+' unpacked after a GET that raised nothing), only for the type a file statement names. Task 5.2: _MEM of a whole
+' dynamic member array and of an element of one, with the descriptor's lock (verification\v35_x66), also when an
+' index of the value the member is part of reads another dynamic member (the lock is still the element's own).
 TYPE t
     a AS INTEGER
     v(2) _DYNAMIC AS LONG
@@ -35,6 +39,15 @@ y = x
 z2 = z
 p(1) = p(0)
 ERASE x.v
+REDIM r(1 TO 2) AS o
+OPEN "typefields_cpp.tmp" FOR BINARY AS #1
+PUT #1, 1, r()
+GET #1, , r()
+CLOSE #1
+DIM m AS _MEM
+m = _MEM(x.v())
+m = _MEMELEMENT(r(1).i.v(x.v(1)))
+m = _MEM(r(x.v(1)).i.v(1))
 loc
 SYSTEM
 

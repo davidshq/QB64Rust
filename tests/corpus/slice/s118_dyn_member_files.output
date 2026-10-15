@@ -1,0 +1,20 @@
+[error 9 ]1. PUT p() with p(0).v 0 TO 2, declared 0 TO 1: LOF = 0 
+2. PUT p() with the declared bounds: LOF = 24 
+   bytes:010011111111222222220200030000000000444444440400
+[error 9 ]3. GET q() with q(0).v 5 TO 5:
+   q( 0 ): a, b = 1  2  v: 5  5  5 
+   q( 1 ): a, b = 3  4  v: 0  1  0  1145324612 
+4. GET q() after q(0).v has its declared bounds again:
+   q( 0 ): a, b = 1  2  v: 0  1  286331153  572662306 
+   q( 1 ): a, b = 3  4  v: 0  1  0  1145324612 
+[error 59 ]5. RANDOM, LEN = 10: 0 
+6. RANDOM, LEN = 20: 20 
+7. GET from it: 5  0  7 
+8. PUT o() of nested owner types: LOF = 72 
+   bytes:64000BE903EA03142C013601152D013701290000F5012A0000F601070000000000090001C8000CD107D20728580262022959026302510000E903520000EA030E0000000000120002
+9. GET g():
+ 100  1  11  1001  1002  20  300  310  21  301  311  41  0  501  42  0  502  7  0  0  9 
+ 200  2  12  2001  2002  40  600  610  41  601  611  81  0  1001  82  0  1002  14  0  0  18 
+[error 9 ]10. GET with g(2,0).d(1).w 0 TO 0: 0  0  77 
+    g(2,0).a, d(1).c, d(2).w(1), q(1).y, b: 200  81  1002  18  2 
+[error 9 ]11. PUT with o(1,0).j(1).w 0 TO 2: LOF = 0 

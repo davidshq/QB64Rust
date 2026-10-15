@@ -96,6 +96,17 @@ impl Checker<'_> {
             }
             _ => {}
         }
+        if let Reference::Place(_) = of
+            && crate::owns_desc(&self.prog.types, ty)
+        {
+            // Measured: "_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays"
+            // (`verification\v35_x68`); its members' addresses are taken (`x52`).
+            let msg = format!(
+                "`_OFFSET` of a `TYPE {}` value: a `TYPE` with a dynamic member array has no fixed address",
+                self.prog.type_name(ty)
+            );
+            return Err(self.error(at, msg));
+        }
         if let Some(what) = self.unmeasured_path(&of) {
             return Err(self.unsupported(at, format!("`_OFFSET` of {what}")));
         }
@@ -232,14 +243,20 @@ impl Checker<'_> {
             let msg = format!("`{word}` of a value of a `TYPE` with a `STRING` member");
             return Err(self.unsupported(at, msg));
         }
+        // A whole dynamic member array and an element of one, also of a user type's values: the block of its
+        // descriptor (measured, `verification\v35_x23`, `x24`, `x66`).
+        if let Reference::Place(Place::Element {
+            array: array @ ArrayRef::Member { base, .. },
+            ..
+        })
+        | Reference::Array(array @ ArrayRef::Member { base, .. }) = of
+            && self.is_dynamic_member(array)
+            && !through_member_array(base)
+        {
+            return Ok(());
+        }
         if let Some(what) = self.unmeasured_path(of) {
             return Err(self.unsupported(at, format!("`{word}` of {what}")));
-        }
-        if let Reference::Place(Place::Element { array, .. }) | Reference::Array(array) = of
-            && self.is_dynamic_member(array)
-        {
-            // Measured (`verification\v35_x23`, `x24`), compiled with task 5.2 of `m3-typefields`.
-            return Err(self.unsupported(at, format!("`{word}` of a dynamic member array or its element")));
         }
         Ok(())
     }
@@ -266,8 +283,11 @@ impl Checker<'_> {
         {
             return Some("a whole dynamic member array");
         }
+        // Of a dynamic member array, measured (`verification\v35_x66`).
         if let Some((base, member)) = last
-            && let Ty::User(_) = self.prog.member(self.prog.place_ty(base), *member).ty
+            && let m = self.prog.member(self.prog.place_ty(base), *member)
+            && let Ty::User(_) = m.ty
+            && !m.dynamic
         {
             return Some("a member array of a `TYPE`'s values");
         }
@@ -511,7 +531,7 @@ impl Checker<'_> {
         if let Reference::Place(Place::Element { array, .. }) | Reference::Array(array) = of
             && self.is_dynamic_member(array)
         {
-            // Measured (`verification\v35_x23`, `x24`), compiled with task 5.2 of `m3-typefields`.
+            // Not measured; outside `m3-typefields` (its design, Non-Goals).
             return Err(self.unsupported(at, format!("`{word}` of a dynamic member array or its element")));
         }
         Ok(())

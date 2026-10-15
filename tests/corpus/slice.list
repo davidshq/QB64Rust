@@ -455,3 +455,5 @@ slice/s115_dyn_member_procs
 # m3-typefields group 4: owner values in arrays, copies, every kind of element, reads into members
 slice/s116_dyn_member_parents
 slice/s117_dyn_member_kinds
+# m3-typefields group 5: whole arrays of owner types in files
+slice/s118_dyn_member_files

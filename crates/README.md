@@ -295,7 +295,7 @@ What the compiler supports so far:
   after them, as QB64pe's program does, and stores nothing after an index outside (`DIVERGENCES.md` D-004;
   `store_through_member`, `codegen-cpp\src\stmt.rs`). `SWAP` takes such a place. Still marked: a bound that
   names a `CONST` (the blocks are read before the constants), a member array of an array element beside other
-  targets of one `ERASE` or `REDIM`, such a place as a target of `INPUT`, `READ` or the `MID$` statement (the
+  targets of one `ERASE` or `REDIM` (such a place as a target of `INPUT`, `READ` or the `MID$` statement and the
   markers: `m3-typefields` below).
 - **Signs** (`syntax\src\parser\expr.rs`, `signs_after`; measured, `verification\v25_*`): there is no unary
   plus, but QB64pe removes signs from an expression before it reads it, and so does the parser: a `+` right
@@ -676,10 +676,18 @@ What the compiler supports so far:
   and then each member through `_copy` (a source not allocated keeps the target's), for one that holds a `STRING`
   each part in order, a dynamic member erased and then set through `_set` (a source not allocated leaves the
   target not allocated). Arrays of an owner type keep, move and release their elements' members with `REDIM`,
-  `_PRESERVE`, `_RETAIN`, `ERASE` and `SWAP`. Still marked: `LEN`, `PUT` and `GET` of an owner value or array,
-  `_MEM` of a dynamic member array or its element (group 5), whole-array assignment with a member array. Checked
-  by `typefields_cpp`, `typefields_ir`, the IR unit test `dynamic_member_arrays`, `s114_dyn_members`,
-  `s115_dyn_member_procs`, `s116_dyn_member_parents`, `s117_dyn_member_kinds` and 76 upstream programs.
+  `_PRESERVE`, `_RETAIN`, `ERASE` and `SWAP`. **Files** (group 5, design D8): `PUT` and `GET` of a whole array of
+  an owner type go through a buffer in the type's declared layout (`owner.rs` `owner_file`: `qbr_udtN_pack`,
+  `_unpack`, `_file`, `_commit`, written for the types a file statement names); a dynamic member with other
+  bounds raises 9 (`PUT` writes nothing; `GET` keeps that member, D-019); after a read that raised an error
+  nothing is unpacked (D-021). `_MEM` and `_MEMELEMENT` of a whole dynamic member and of an element of one take
+  its descriptor's block and lock (`mem.rs` `dyn_block`, `qbr_dyn_mem_all`, `qbr_dyn_mem_one`; one that is not
+  allocated raises 9, D-021); `ERASE` of the member makes such a block invalid. `LEN`, `_OFFSET`, `COMMON` and
+  `PUT`/`GET` of one owner value are the old compiler's errors. Still marked (`SOMEDAY.md`, "Left marked by
+  `m3-typefields`"): `_OFFSET` of a whole dynamic member, `_MEMGET`/`_MEMPUT`/`_MEMFILL` with one, whole-array
+  assignment. Checked by `typefields_cpp`, `typefields_ir`, `typefields_rejected`, the IR unit test
+  `dynamic_member_arrays`, `s114_dyn_members`, `s115_dyn_member_procs`, `s116_dyn_member_parents`,
+  `s117_dyn_member_kinds`, `s118_dyn_member_files`, the CLI tests of D-019 to D-021 and 81 upstream programs.
 - **Targets through a member** (`m3-typefields` task 4.2; `verification\v35_x62`): a member of an element and an
   element of a member array (fixed or dynamic) are targets of `READ`, `INPUT`, `LINE INPUT` (console and file) and
   the `MID$` statement, stored by the rule of their place (`stmt.rs` `store`, a number before the indexes and not
@@ -688,8 +696,7 @@ What the compiler supports so far:
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
 are line numbers and jumps to them (also as `ON … GOTO` and `RESTORE` targets), the other built-in functions, `DECLARE LIBRARY`, event handlers and switches, `STOP`, `RUN`,
-`READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array, `READ`, `INPUT`, `INPUT #` or the `MID$` statement
-with a member of an element or an element of a member array, every other
+`READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array, every other
 built-in statement read by its template (`TIME$ =`, ...), the declaration
 forms (arrays named `name$n`,
 `_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
