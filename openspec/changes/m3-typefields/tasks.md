@@ -92,7 +92,9 @@ review"), unless the user decided otherwise (D-019, D-020, D-004 widened).
   - Already printing their recorded output (tasks of group 4, not ticked): `v35_b` and `v35_c`. `v35_e` waits on
     `READ` and `MID$` into an element of a member array (task 4.2).
   - Tier 1 needed the upstream programs that now compile on a list: 77 compiled cleanly, 76 passed by themselves
-    and joined `pass.list` (part of task 5.4; 287 there); `t268` and `t269` left
+    and joined `pass.list` (part of task 5.4; 287 there; corrected with group 4: `t266` and `t267` were among them
+    but stop at the `PUT`/`GET` mark of group 5, so they went back to `deferred.list` and 285 are on `pass.list`,
+    all passing); `t268` and `t269` left
     `known_unsupported_rejections.list` (their whole-array `PUT`/`GET` of a type with a `STRING` is now the old
     compiler's error).
 - [x] 3.4 Slice programs `s114_dyn_members` (`v35_a`, `v35_g`, `x58`) and `s115_dyn_member_procs` (`v35_d`),
@@ -104,18 +106,50 @@ review"), unless the user decided otherwise (D-019, D-020, D-004 widened).
 
 ## 4. Owner values in arrays, copies and every kind of element
 
-- [ ] 4.1 Arrays of an owner type (design D6, the array rows): new elements, plain `REDIM`, `_PRESERVE` and
+- [x] 4.1 Arrays of an owner type (design D6, the array rows): new elements, plain `REDIM`, `_PRESERVE` and
   `_RETAIN` moving kept elements, `ERASE` of a dynamic and of a static parent, `SWAP`. Verify: `v35_b`, `x27`,
   `x28`, `x49`, `x51` print their recorded output.
-- [ ] 4.2 Strings and nested owners in the life functions: `_DYNAMIC` members of `STRING`, of user types with
+  Done 2026-10-15: written with task 3.3 (its note); all five print their recorded output (`v35_b` and `x51` as
+  copies with `0` for `_ERRORLINE`, compared without the line it prints).
+- [x] 4.2 Strings and nested owners in the life functions: `_DYNAMIC` members of `STRING`, of user types with
   strings and of owner types; `STRING` members of owner types. Verify: `v35_c`, `v35_e` 1.–4., `x42` print their
   recorded output.
-- [ ] 4.3 `CopyWhole` of an owner type (design D7): read `AppendDynUDTDescCopy` (`type.bas` 10), measure an owner
+  Done 2026-10-15. The life functions came with task 3.3 (`v35_c` prints its recorded output). `v35_e` 1.–4. and
+  `x42` waited on a rule older than this change: `sema` marked every member of an element and element of a member
+  array as a target of `READ`, `INPUT`, `LINE INPUT` and `MID$` "not supported yet" (not measured since
+  `m2-defxxx-common-arrays`, `SOMEDAY.md`). Measured first, `verification\v35_x62` (with a `.stdin`): a number is
+  read before the indexes and a string after them, as an assignment stores (an index FUNCTION that reads an item
+  gets the second item for a number, the first for a string); an index outside raises 9 and a number's item is
+  stored into position 0 (D-004's case, now widened to these reads: stored nowhere here), a string's read takes
+  nothing; console `INPUT` takes every index after its `? ` and before the line; `MID$` the index before the
+  value. The code already did all of this (`store`, `place_ref`, libqb's readers returning while an error is
+  pending), so the change is the mark taken away, for fixed and dynamic member arrays and members of elements
+  alike (beyond the task as written: the rule was general), and the IR's validation of `Read` and `Input` with it.
+  `x42` prints its recorded output; `v35_e` 1.–4. too, as a copy cut before its `PUT` (group 5); `x62` all but
+  its D-004 lines 7, 22, 23 and 27 (27 prints what 22 left). The marked lines left `data_marked`, `files_errors`,
+  `member_arrays_errors` and `swap_mid_marked` (snapshots: only those errors gone, the rest moved by a line);
+  `member_targets_cpp` (new, by the review of group 4) fixes the order of each form in tier 1.
+- [x] 4.3 `CopyWhole` of an owner type (design D7): read `AppendDynUDTDescCopy` (`type.bas` 10), measure an owner
   type nested in another (one more `v35_x` program), write the same evaluations. Verify: `x56` and the new
   program print their recorded output; `x57` too; the evaluation order fixed by a `cpp` or `typed` test.
-- [ ] 4.4 Slice programs `s116_dyn_member_parents` (`v35_b`, `x51`) and `s117_dyn_member_kinds` (`v35_c`, `x56`,
+  Done 2026-10-15 (`owner.rs` `copy_owner`). Read with `copy_full_udt_dyn` (`type.bas` 2049): a test that the
+  places differ, then two routines: for a type that holds no `STRING` (`udtxvariable`), `CopyDynUDTExpr` (every
+  member but the dynamic ones; an inline member array of an owner type element by element) and then
+  `AppendDynUDTDescCopy` (each dynamic member, target then source); for one that holds a `STRING`,
+  `AppendDynUDTOwnCopyEx` (each member in order, a dynamic one erased, target, and then cloned, source then
+  target). Each statement finds both places anew. Measured with `verification\v35_x61` (nested owner types as a
+  member and as an inline member array, without and with a `STRING`: 8 pairs and 29 evaluations, as read), which
+  also found what the two routines do differently: from a member that is not allocated, the first keeps the
+  target's, the second leaves it not allocated (`_set`, new beside `_copy`; `_dup` the deep copy both use;
+  listed for review). `x56`, `x57`, `x61` print their recorded output; `typefields_cpp` gains a nested copy and one
+  of a type with a `STRING`.
+- [x] 4.4 Slice programs `s116_dyn_member_parents` (`v35_b`, `x51`) and `s117_dyn_member_kinds` (`v35_c`, `x56`,
   `x57`), recorded with `qb64pe.exe`, on `slice.list`; `SOMEDAY.md` gains the behaviours to review (`ERASE` of a
   static parent, the evaluations of D7). Verify: both pass (`--glob`).
+  Done 2026-10-15: `s117` also holds `x61` and `x62` (with a `.stdin`); its items 23, 38 and 39 (D-004) recorded
+  from a copy that reads the item into `q$` and raises `ERROR 9` there. Both pass on their first run; `slice\`
+  124, `slice.list` 428. `SOMEDAY.md`: three rows (`ERASE` of a static parent, the evaluations of a copy, the two
+  copy routines), the row on the order of a store extended to the reads; `DIVERGENCES.md` D-004 widened to them.
 
 ## 5. Files and the rejected forms
 

@@ -43,6 +43,12 @@
 //!   of one does not check. An index out of range raises error 9, and a read with it gives the value at position
 //!   0 of its dimension (measured, `verification\v18_*`, `v24_h_member_store`).
 //!
+//!   A target of [`Op::Read`] or of an [`Op::Input`] from a file reached this way is stored by the same rule: a
+//!   number is read before the indexes (an index outside skips the store, the item is taken), a string after them
+//!   (an index outside raises error 9 first, so the read takes nothing). A target of an [`Op::Input`] from the
+//!   console has its indexes evaluated, left to right and target by target, after the prompt and before the line
+//!   is read; with an error pending then nothing is read or stored (measured, `verification\v35_x62`).
+//!
 //!   The bytes of a member array lie in the value they are a member of (design D8 of
 //!   `m2-defxxx-common-arrays`): its bounds are its member's and never change, so nothing allocates or releases
 //!   it. The IR names no offset and no size in bytes for it.
@@ -548,7 +554,7 @@ pub enum Op {
     /// Read one field per target, or (`line`) one whole line into the single string target, from a file or the
     /// console. A numeric target takes the field's value in its own type; a value outside the type's range raises
     /// error 6. The targets are stored in order, each by the rule of its place; see the crate documentation for the
-    /// pending-error checks. At least one target; none is of a user type or a member of an element.
+    /// pending-error checks. At least one target; none is of a user type.
     Input {
         from: Source,
         line: bool,
@@ -556,8 +562,7 @@ pub enum Op {
     },
     /// Read the next item of the program's data ([`Program::data`]) into each target in turn, each stored by the
     /// rule of its place. A numeric target takes the item's value in its own type. No point of it checks for a
-    /// pending error: see the crate documentation. At least one target; none is of a user type or a member of an
-    /// element.
+    /// pending error: see the crate documentation. At least one target; none is of a user type.
     Read(Vec<Place>),
     /// Make the next [`Op::Read`] start at item `at` of [`Program::data`] (at its end: nothing is left to read).
     /// `label` is the BASIC label, in upper case, that gave the position; `None` for the start of the data (`at`

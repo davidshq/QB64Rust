@@ -250,10 +250,22 @@ impl Emitter<'_> {
     /// by itself, a string assigned and any other part's bytes copied (the old compiler's `copy_full_udt`). Both
     /// addresses are written anew for every copy, target first, as the IR says: an index in them is evaluated
     /// each time. Nothing checks for a pending error: after an index outside its bounds `array_check` gives the
-    /// first position.
+    /// first position. A type that owns dynamic member arrays: [`Self::copy_owner`].
     fn copy_whole(&mut self, from: &Place, to: &Place, out: &mut Vec<String>) {
         let ty = self.p.place_ty(to);
         let (to_at, from_at) = (self.bytes_of(to), self.bytes_of(from));
+        if self.owns_desc(ty) {
+            self.copy_owner(ty, &to_at, &from_at, out);
+        } else {
+            self.copy_parts(ty, &to_at, &from_at, out);
+        }
+        if from.uses_strings(self.p) || to.uses_strings(self.p) {
+            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        }
+    }
+
+    /// [`Self::copy_whole`] of a type that owns no dynamic member array.
+    fn copy_parts(&mut self, ty: Ty, to_at: &str, from_at: &str, out: &mut Vec<String>) {
         let parts = if self.has_life(ty) {
             self.parts(ty)
         } else {
@@ -267,16 +279,9 @@ impl Emitter<'_> {
                 Part::Str => format!("qbs_set(*(qbs**)(copy_to+{offset}),*(qbs**)(copy_from+{offset}));"),
                 // A place copied to itself: the two may be the same bytes.
                 Part::Bytes(n) => format!("memmove(copy_to+{offset},copy_from+{offset},{n});"),
-                // A dynamic member array, deep (design D6 of `m3-typefields`).
-                Part::Dyn { ty, member } => format!(
-                    "{}((ptrszint**)(copy_to+{offset}),(ptrszint**)(copy_from+{offset}));",
-                    crate::owner::dyn_fn(ty, member, "copy")
-                ),
+                Part::Dyn { .. } => unreachable!("a type that owns no dynamic member array"),
             });
             out.push("}".into());
-        }
-        if from.uses_strings(self.p) || to.uses_strings(self.p) {
-            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
         }
     }
 

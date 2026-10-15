@@ -452,3 +452,6 @@ slice/s113_redim_retain_kinds
 # m3-typefields group 3: _DYNAMIC member arrays of variables and elements
 slice/s114_dyn_members
 slice/s115_dyn_member_procs
+# m3-typefields group 4: owner values in arrays, copies, every kind of element, reads into members
+slice/s116_dyn_member_parents
+slice/s117_dyn_member_kinds

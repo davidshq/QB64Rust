@@ -1452,7 +1452,24 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     erases `p(0).v` (`x58`). A whole-value copy with an index outside copies into or from element 0 deep (`x57`).
   - **The evaluations of a copy** (`x56`): `a(one(1)) = b(one(2))` prints `1 2` four times for a type of a LONG, a
     `_DYNAMIC` LONG member and a LONG, and ` 1  2  1  2  1  2  1  2  1  1  2  1 ` for a LONG, a `STRING`, a
-    `_DYNAMIC` LONG member and a `_DYNAMIC` `STRING` member.
+    `_DYNAMIC` LONG member and a `_DYNAMIC` `STRING` member. Read from `copy_full_udt_dyn` (`type.bas` 2049) and
+    checked by `x61` (measured with task 4.3), each statement of the copy finds both places anew: first a test that
+    they differ (a copy to itself does nothing); then, for a type that holds no `STRING` (also in a member or a
+    `_DYNAMIC` member), every member but the `_DYNAMIC` ones (one move for an inline array of numbers, one per
+    element of an inline array of an owner type, into its members), then each `_DYNAMIC` member (target, source); for
+    a type that holds one (`udtxvariable`), each member in order, a `_DYNAMIC` one erased (target) and then made as
+    the source's (source, target), an inline array of `STRING` or of a user type element by element. A nested owner
+    type as a member and as an inline member array of two: 8 pairs without a `STRING`, 29 evaluations with one.
+    **The two paths differ for a source member that is not allocated**: without a `STRING` the target's member is
+    kept (`x61` 3.: bounds 0 to 1, element 7); with one it becomes not allocated (4.: error 9 on `LBOUND`).
+  - **Reading into a place through a member** (`x62`, with task 4.2, for `_DYNAMIC` and fixed member arrays and
+    members of elements alike): `READ`, `INPUT #` and `LINE INPUT #` read a number before the indexes and a string
+    after them (an index FUNCTION that reads an item itself gets the second item for a number, the first for a
+    string), as an assignment evaluates its value. An index outside raises 9: a number's item is taken and stored
+    into position 0 of that dimension (`READ a(9).m` sets `a(0).m`; `DIVERGENCES.md` D-004 here); a string's read
+    takes nothing (libqb's readers return while an error is pending). Console `INPUT` prints `? `, then evaluates
+    every target's indexes, then reads; after error 9 there it reads and stores nothing. `MID$(a(f(1)).s, 1) = z$`
+    evaluates the index before the value; an index outside raises 9 and changes nothing.
   - **The layout of an owner type** (`x52`): `a AS INTEGER`, `v(1) _DYNAMIC AS LONG`, `b AS INTEGER` is 24 bytes
     (`v` a pointer at 8, `b` at 16); `c AS _BYTE`, `i AS` that type, `d AS _BYTE` is 40 (`i` at 8, `d` at 32);
     elements of an array 24 apart. `_MEM` of the value, of a member and of an element works with that layout

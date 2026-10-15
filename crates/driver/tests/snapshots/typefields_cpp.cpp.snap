@@ -14,7 +14,9 @@ static ptrszint *qbr_udt0_m1_blank(ptrszint dims);
 static void qbr_udt0_m1_release(ptrszint *d);
 static void qbr_udt0_m1_free(ptrszint *d);
 static ptrszint *qbr_udt0_m1_make();
+static ptrszint *qbr_udt0_m1_dup(ptrszint *s);
 static void qbr_udt0_m1_copy(ptrszint **to,ptrszint **from);
+static void qbr_udt0_m1_set(ptrszint **to,ptrszint **from);
 static ptrszint *qbr_udt0_m1_guard(ptrszint *d,ptrszint n);
 static int64 qbr_udt0_m1_bound(ptrszint *d,int32 upper,int32 dim);
 static ptrszint *qbr_udt0_m1_desc(char *slot);
@@ -22,6 +24,20 @@ static void qbr_udt1_new(char *p);
 static void qbr_udt1_free(char *p);
 static void qbr_udt1_zero(char *p);
 static void qbr_udt1_clone(char *to,char *from);
+static void qbr_udt2_new(char *p);
+static void qbr_udt2_free(char *p);
+static void qbr_udt2_zero(char *p);
+static void qbr_udt2_clone(char *to,char *from);
+static ptrszint *qbr_udt2_m2_blank(ptrszint dims);
+static void qbr_udt2_m2_release(ptrszint *d);
+static void qbr_udt2_m2_free(ptrszint *d);
+static ptrszint *qbr_udt2_m2_make();
+static ptrszint *qbr_udt2_m2_dup(ptrszint *s);
+static void qbr_udt2_m2_copy(ptrszint **to,ptrszint **from);
+static void qbr_udt2_m2_set(ptrszint **to,ptrszint **from);
+static ptrszint *qbr_udt2_m2_guard(ptrszint *d,ptrszint n);
+static int64 qbr_udt2_m2_bound(ptrszint *d,int32 upper,int32 dim);
+static ptrszint *qbr_udt2_m2_desc(char *slot);
 static ptrszint qbr_dyn_count(ptrszint *d){
 ptrszint n=1;
 for(ptrszint i=1;i<=d[3];i++) n*=d[i*4+1];
@@ -80,9 +96,7 @@ if (!d[0]) error(257);
 d[2]|=1;
 return d;
 }
-static void qbr_udt0_m1_copy(ptrszint **to,ptrszint **from){
-ptrszint *s=*from;
-if (!s||!(s[2]&1)) return;
+static ptrszint *qbr_udt0_m1_dup(ptrszint *s){
 ptrszint dims=s[3];
 ptrszint *d=(ptrszint*)calloc(dims*4+5,ptrsz);
 if (!d) error(257);
@@ -94,8 +108,18 @@ ptrszint qbr_n=qbr_dyn_count(s);
 d[0]=(ptrszint)calloc(qbr_n?qbr_n*4:1,1);
 if (!d[0]) error(257);
 memcpy((void*)d[0],(void*)s[0],qbr_n*4);
+return d;
+}
+static void qbr_udt0_m1_copy(ptrszint **to,ptrszint **from){
+ptrszint *s=*from;
+if (!s||!(s[2]&1)) return;
+ptrszint *d=qbr_udt0_m1_dup(s);
 qbr_udt0_m1_free(*to);
 *to=d;
+}
+static void qbr_udt0_m1_set(ptrszint **to,ptrszint **from){
+ptrszint *s=*from;
+*to=!s?NULL:(s[2]&1)?qbr_udt0_m1_dup(s):qbr_udt0_m1_blank(s[3]);
 }
 static ptrszint *qbr_udt0_m1_guard(ptrszint *d,ptrszint n){
 if (d&&(d[2]&1)&&d[3]==n) return d;
@@ -135,9 +159,113 @@ memmove((void*)(to+0),(void*)(from+0),1);
 qbr_udt0_clone((char*)(to+8),(char*)(from+8));
 memmove((void*)(to+32),(void*)(from+32),1);
 }
+static void qbr_udt2_new(char *p){
+*(qbs**)(p+4)=qbs_new(0,0);
+*(ptrszint**)(p+16)=qbr_udt2_m2_make();
+}
+static void qbr_udt2_free(char *p){
+qbs_free(*(qbs**)(p+4));
+qbr_udt2_m2_free(*(ptrszint**)(p+16));
+*(ptrszint**)(p+16)=NULL;
+}
+static void qbr_udt2_zero(char *p){
+memset((void*)(p+0),0,4);
+(*(qbs**)(p+4))->len=0;
+qbr_udt2_m2_free(*(ptrszint**)(p+16));
+*(ptrszint**)(p+16)=NULL;
+}
+static void qbr_udt2_clone(char *to,char *from){
+memmove((void*)(to+0),(void*)(from+0),4);
+qbs_set(*(qbs**)(to+4),*(qbs**)(from+4));
+qbr_udt2_m2_copy((ptrszint**)(to+16),(ptrszint**)(from+16));
+}
+static ptrszint *qbr_udt2_m2_blank(ptrszint dims){
+ptrszint *d=(ptrszint*)calloc(dims*4+5,ptrsz);
+if (!d) error(257);
+new_mem_lock();
+mem_lock_tmp->type=4;
+d[dims*4+4]=(ptrszint)mem_lock_tmp;
+d[3]=dims;
+for(ptrszint i=1;i<=dims;i++) d[i*4]=2147483647;
+d[0]=(ptrszint)nothingvalue;
+return d;
+}
+static void qbr_udt2_m2_release(ptrszint *d){
+if (!d||!(d[2]&1)) return;
+free((void*)d[0]);
+d[2]&=~1;
+for(ptrszint i=1;i<=d[3];i++){d[i*4]=2147483647;d[i*4+1]=0;d[i*4+2]=0;}
+d[0]=(ptrszint)nothingvalue;
+}
+static void qbr_udt2_m2_free(ptrszint *d){
+if (!d) return;
+qbr_udt2_m2_release(d);
+free_mem_lock((mem_lock*)d[d[3]*4+4]);
+free(d);
+}
+static ptrszint *qbr_udt2_m2_make(){
+ptrszint *d=qbr_udt2_m2_blank(1);
+d[4]=0ll;
+d[5]=2;
+d[6]=1;
+ptrszint qbr_n=2;
+d[0]=(ptrszint)calloc(qbr_n*4,1);
+if (!d[0]) error(257);
+d[2]|=1;
+return d;
+}
+static ptrszint *qbr_udt2_m2_dup(ptrszint *s){
+ptrszint dims=s[3];
+ptrszint *d=(ptrszint*)calloc(dims*4+5,ptrsz);
+if (!d) error(257);
+memcpy((void*)d,(void*)s,(dims*4+4)*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+d[dims*4+4]=(ptrszint)mem_lock_tmp;
+ptrszint qbr_n=qbr_dyn_count(s);
+d[0]=(ptrszint)calloc(qbr_n?qbr_n*4:1,1);
+if (!d[0]) error(257);
+memcpy((void*)d[0],(void*)s[0],qbr_n*4);
+return d;
+}
+static void qbr_udt2_m2_copy(ptrszint **to,ptrszint **from){
+ptrszint *s=*from;
+if (!s||!(s[2]&1)) return;
+ptrszint *d=qbr_udt2_m2_dup(s);
+qbr_udt2_m2_free(*to);
+*to=d;
+}
+static void qbr_udt2_m2_set(ptrszint **to,ptrszint **from){
+ptrszint *s=*from;
+*to=!s?NULL:(s[2]&1)?qbr_udt2_m2_dup(s):qbr_udt2_m2_blank(s[3]);
+}
+static ptrszint *qbr_udt2_m2_guard(ptrszint *d,ptrszint n){
+if (d&&(d[2]&1)&&d[3]==n) return d;
+error(9);
+static ptrszint *z=NULL;
+if (!z){
+z=(ptrszint*)calloc(64*4+5,ptrsz);
+z[2]=1;
+for(ptrszint i=1;i<=64;i++){z[i*4+1]=1;z[i*4+2]=1;}
+z[0]=(ptrszint)calloc(4,1);
+}
+return z;
+}
+static int64 qbr_udt2_m2_bound(ptrszint *d,int32 upper,int32 dim){
+if (!d){error(9);return 0;}
+if (upper) return func_ubound(d,dim,d[3]);
+return func_lbound(d,dim,d[3]);
+}
+static ptrszint *qbr_udt2_m2_desc(char *slot){
+ptrszint *d=*(ptrszint**)slot;
+if (!d){d=qbr_udt2_m2_blank(1);*(ptrszint**)slot=d;}
+return d;
+}
 void *__UDT_X=NULL;
 void *__UDT_Y=NULL;
 void *__UDT_Z=NULL;
+void *__UDT_Z2=NULL;
+ptrszint *__ARRAY_UDT_P=NULL;
 int32 console=1;
 int32 screen_hide_startup=0;
 int32 asserts=0;
@@ -151,6 +279,19 @@ void SUB_LOC();
 qbr_udt0_zero((char*)((char*)__UDT_X));
 qbr_udt0_zero((char*)((char*)__UDT_Y));
 qbr_udt1_zero((char*)((char*)__UDT_Z));
+qbr_udt1_zero((char*)((char*)__UDT_Z2));
+if (__ARRAY_UDT_P[2]&1){
+tmp_long=__ARRAY_UDT_P[5];
+while(tmp_long--){
+qbr_udt2_free((char*)(((char*)(__ARRAY_UDT_P[0])+tmp_long*24)));
+}
+free((void*)(__ARRAY_UDT_P[0]));
+__ARRAY_UDT_P[2]^=1;
+__ARRAY_UDT_P[4]=2147483647;
+__ARRAY_UDT_P[5]=0;
+__ARRAY_UDT_P[6]=0;
+__ARRAY_UDT_P[0]=(ptrszint)nothingvalue;
+}
 ==> maindata.txt <==
 if(__UDT_X==NULL){
 __UDT_X=(void*)mem_static_malloc(24);
@@ -166,6 +307,22 @@ if(__UDT_Z==NULL){
 __UDT_Z=(void*)mem_static_malloc(40);
 memset(__UDT_Z,0,40);
 qbr_udt1_new((char*)((char*)__UDT_Z));
+}
+if(__UDT_Z2==NULL){
+__UDT_Z2=(void*)mem_static_malloc(40);
+memset(__UDT_Z2,0,40);
+qbr_udt1_new((char*)((char*)__UDT_Z2));
+}
+if (!__ARRAY_UDT_P){
+__ARRAY_UDT_P=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_P)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_P[2]=0;
+__ARRAY_UDT_P[4]=2147483647;
+__ARRAY_UDT_P[5]=0;
+__ARRAY_UDT_P[6]=0;
+__ARRAY_UDT_P[0]=(ptrszint)nothingvalue;
 }
 ptrszint *pass2;
 ==> mainerr.txt <==
@@ -197,298 +354,444 @@ sub__dest(func__console());
 sub__source(func__console());
 #line 2 "typefields_cpp.bas"
 if(!qbevent)break;evnt(2);}while(r);
-#line 20 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 do{
-#line 20 "typefields_cpp.bas"
-*(int16*)((((char*)__UDT_X)+16))=1;
-#line 20 "typefields_cpp.bas"
-if(!qbevent)break;evnt(20);}while(r);
-#line 20 "typefields_cpp.bas"
-do{
-#line 20 "typefields_cpp.bas"
-*(int8*)((((char*)__UDT_Z)+32))=2;
-#line 20 "typefields_cpp.bas"
-if(!qbevent)break;evnt(20);}while(r);
-#line 20 "typefields_cpp.bas"
-do{
-#line 20 "typefields_cpp.bas"
-*(int16*)(((((char*)__UDT_Z)+8)+16))=3;
-#line 20 "typefields_cpp.bas"
-if(!qbevent)break;evnt(20);}while(r);
-#line 21 "typefields_cpp.bas"
-do{
-#line 21 "typefields_cpp.bas"
-{
-#line 21 "typefields_cpp.bas"
-char *dyn_slot=(((char*)__UDT_X)+8);
-#line 21 "typefields_cpp.bas"
-ptrszint *dyn_d=*(ptrszint**)dyn_slot;
-#line 21 "typefields_cpp.bas"
-if (dyn_d&&dyn_d[3]!=1){qbr_udt0_m1_free(dyn_d);dyn_d=NULL;}
-#line 21 "typefields_cpp.bas"
-if (!dyn_d){dyn_d=qbr_udt0_m1_blank(1);*(ptrszint**)dyn_slot=dyn_d;}
-#line 21 "typefields_cpp.bas"
-if (dyn_d[2]&2){
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
+if (__ARRAY_UDT_P[2]&2){
+#line 28 "typefields_cpp.bas"
 error(10);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 }else{
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 ptrszint preserve_old_ptr=0;
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 uint64 preserve_old_total=0;
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 uint64 preserve_copy_count=0;
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 ptrszint preserve_new_ptr;
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 int64 alloc_new_desc[8];
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 uint64 alloc_req_elems=1;
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 uint64 alloc_req_bytes;
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 uint64 alloc_dim_value;
-#line 21 "typefields_cpp.bas"
-uint64 alloc_bytes_per_element=(uint64)(4);
-#line 21 "typefields_cpp.bas"
-alloc_new_desc[4]=1ll;
-#line 21 "typefields_cpp.bas"
-alloc_new_desc[5]=(5ll)-alloc_new_desc[4]+1;
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(24);
+#line 28 "typefields_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 28 "typefields_cpp.bas"
+alloc_new_desc[5]=(1ll)-alloc_new_desc[4]+1;
+#line 28 "typefields_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 alloc_new_desc[6]=1;
-#line 21 "typefields_cpp.bas"
-((mem_lock*)((ptrszint*)dyn_d)[8])->id=(++mem_lock_id);
-#line 21 "typefields_cpp.bas"
-if (dyn_d[2]&1){
-#line 21 "typefields_cpp.bas"
-preserve_old_ptr=dyn_d[0];
-#line 21 "typefields_cpp.bas"
-preserve_old_total=dyn_d[5];
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_UDT_P)[8])->id=(++mem_lock_id);
+#line 28 "typefields_cpp.bas"
+if (__ARRAY_UDT_P[2]&1){
+#line 28 "typefields_cpp.bas"
+preserve_old_ptr=__ARRAY_UDT_P[0];
+#line 28 "typefields_cpp.bas"
+preserve_old_total=__ARRAY_UDT_P[5];
+#line 28 "typefields_cpp.bas"
 }
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (alloc_new_desc[5]<0) error(257);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (alloc_new_desc[6]<0) error(257);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 alloc_dim_value=(uint64)alloc_new_desc[5];
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (alloc_dim_value){
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 alloc_req_elems*=alloc_dim_value;
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 }
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 preserve_copy_count=preserve_old_total;
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (preserve_old_total){
-#line 21 "typefields_cpp.bas"
-if (dyn_d[2]&4){
-#line 21 "typefields_cpp.bas"
-preserve_new_ptr=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
-#line 21 "typefields_cpp.bas"
-if (!preserve_new_ptr) error(257);
-#line 21 "typefields_cpp.bas"
-memset((void*)(preserve_new_ptr),0,(size_t)alloc_req_bytes);
-#line 21 "typefields_cpp.bas"
-}else{
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
 if (!preserve_new_ptr) error(257);
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
+tmp_long=(ptrszint)alloc_req_elems;
+#line 28 "typefields_cpp.bas"
+while(tmp_long--){
+#line 28 "typefields_cpp.bas"
+qbr_udt2_new((char*)(((char*)(preserve_new_ptr)+tmp_long*24)));
+#line 28 "typefields_cpp.bas"
 }
-#line 21 "typefields_cpp.bas"
-if (preserve_copy_count) memcpy((void*)(preserve_new_ptr),(void*)(preserve_old_ptr),preserve_copy_count*4);
-#line 21 "typefields_cpp.bas"
-if (dyn_d[2]&4) cmem_dynamic_free((uint8*)(preserve_old_ptr)); else free((void*)(preserve_old_ptr));
-#line 21 "typefields_cpp.bas"
-dyn_d[0]=preserve_new_ptr;
-#line 21 "typefields_cpp.bas"
+#line 28 "typefields_cpp.bas"
+tmp_long=(ptrszint)preserve_old_total;
+#line 28 "typefields_cpp.bas"
+while(tmp_long--){
+#line 28 "typefields_cpp.bas"
+qbr_udt2_free((char*)(((char*)(preserve_old_ptr)+tmp_long*24)));
+#line 28 "typefields_cpp.bas"
+}
+#line 28 "typefields_cpp.bas"
+free((void*)(preserve_old_ptr));
+#line 28 "typefields_cpp.bas"
+__ARRAY_UDT_P[0]=preserve_new_ptr;
+#line 28 "typefields_cpp.bas"
 }else{
-#line 21 "typefields_cpp.bas"
-if (dyn_d[2]&4){
-#line 21 "typefields_cpp.bas"
-dyn_d[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
-#line 21 "typefields_cpp.bas"
-if (!dyn_d[0]) error(257);
-#line 21 "typefields_cpp.bas"
-memset((void*)(dyn_d[0]),0,(size_t)alloc_req_bytes);
-#line 21 "typefields_cpp.bas"
-}else{
-#line 21 "typefields_cpp.bas"
-dyn_d[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
-#line 21 "typefields_cpp.bas"
-if (!dyn_d[0]) error(257);
-#line 21 "typefields_cpp.bas"
-}
-#line 21 "typefields_cpp.bas"
-}
-#line 21 "typefields_cpp.bas"
-dyn_d[2]|=1;
-#line 21 "typefields_cpp.bas"
-dyn_d[4]=alloc_new_desc[4];
-#line 21 "typefields_cpp.bas"
-dyn_d[5]=alloc_new_desc[5];
-#line 21 "typefields_cpp.bas"
-dyn_d[6]=alloc_new_desc[6];
-#line 21 "typefields_cpp.bas"
-dyn_d[7]=alloc_new_desc[7];
-#line 21 "typefields_cpp.bas"
-}
-#line 21 "typefields_cpp.bas"
-}
-#line 21 "typefields_cpp.bas"
-if(!qbevent)break;evnt(21);}while(r);
-#line 22 "typefields_cpp.bas"
-do{
-#line 22 "typefields_cpp.bas"
-{
-#line 22 "typefields_cpp.bas"
-int32 mbr_value=5;
-#line 22 "typefields_cpp.bas"
-int32 mbr_pending=is_error_pending();
-#line 22 "typefields_cpp.bas"
-int32 mbr_bad=0;
-#line 22 "typefields_cpp.bas"
-int64 mbr_k;
-#line 22 "typefields_cpp.bas"
-ptrszint mbr_off=0;
-#line 22 "typefields_cpp.bas"
-ptrszint *mbr_d1=mbr_bad?NULL:*(ptrszint**)(((char*)__UDT_X)+mbr_off+8);
-#line 22 "typefields_cpp.bas"
-if (!(mbr_d1&&(mbr_d1[2]&1)&&mbr_d1[3]==1)) mbr_bad=1;
-#line 22 "typefields_cpp.bas"
-mbr_d1=qbr_udt0_m1_guard(mbr_d1,1);
-#line 22 "typefields_cpp.bas"
-mbr_off=0;
-#line 22 "typefields_cpp.bas"
-mbr_k=(2ll)-mbr_d1[4];
-#line 22 "typefields_cpp.bas"
-if ((uptrszint)mbr_k>=(uptrszint)mbr_d1[5]){error(9);mbr_bad=1;}
-#line 22 "typefields_cpp.bas"
-mbr_off+=mbr_k*mbr_d1[6]*4;
-#line 22 "typefields_cpp.bas"
-int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
-#line 22 "typefields_cpp.bas"
-if (mbr_ok) *(int32*)(((char*)mbr_d1[0])+mbr_off)=mbr_value;
-#line 22 "typefields_cpp.bas"
-}
-#line 22 "typefields_cpp.bas"
-if(!qbevent)break;evnt(22);}while(r);
-#line 23 "typefields_cpp.bas"
-do{
-#line 23 "typefields_cpp.bas"
-tqbs=qbs_new(0,0);
-#line 23 "typefields_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((int64)((qbr_udt0_m1_bound(*(ptrszint**)(((char*)__UDT_X)+8),0,1)))),qbs_new_txt(" ")));
-#line 23 "typefields_cpp.bas"
-if (is_error_pending()) goto skip1;
-#line 23 "typefields_cpp.bas"
-makefit(tqbs);
-#line 23 "typefields_cpp.bas"
-qbs_print(tqbs,0);
-#line 23 "typefields_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((int32)(*(int32*)(((pass2=qbr_udt0_m1_guard(*(ptrszint**)(((char*)__UDT_X)+8),1)),(((char*)pass2[0])+((array_check((2ll)-pass2[4],pass2[5]))*4)))))),qbs_new_txt(" ")));
-#line 23 "typefields_cpp.bas"
-if (is_error_pending()) goto skip1;
-#line 23 "typefields_cpp.bas"
-makefit(tqbs);
-#line 23 "typefields_cpp.bas"
-qbs_print(tqbs,0);
-#line 23 "typefields_cpp.bas"
-qbs_print(nothingstring,1);
-#line 23 "typefields_cpp.bas"
-skip1:
-#line 23 "typefields_cpp.bas"
-qbs_free(tqbs);
-#line 23 "typefields_cpp.bas"
-qbs_cleanup(qbs_tmp_base,0);
-#line 23 "typefields_cpp.bas"
-if(!qbevent)break;evnt(23);}while(r);
-#line 24 "typefields_cpp.bas"
-do{
-#line 24 "typefields_cpp.bas"
-SUB_FILL(qbr_udt0_m1_desc((((char*)__UDT_X)+8)));
-#line 24 "typefields_cpp.bas"
-if(!qbevent)break;evnt(24);}while(r);
-#line 25 "typefields_cpp.bas"
-do{
-#line 25 "typefields_cpp.bas"
-{
-#line 25 "typefields_cpp.bas"
-char *copy_to=((char*)__UDT_Y);
-#line 25 "typefields_cpp.bas"
-char *copy_from=((char*)__UDT_X);
-#line 25 "typefields_cpp.bas"
-memmove(copy_to+0,copy_from+0,2);
-#line 25 "typefields_cpp.bas"
-}
-#line 25 "typefields_cpp.bas"
-{
-#line 25 "typefields_cpp.bas"
-char *copy_to=((char*)__UDT_Y);
-#line 25 "typefields_cpp.bas"
-char *copy_from=((char*)__UDT_X);
-#line 25 "typefields_cpp.bas"
-qbr_udt0_m1_copy((ptrszint**)(copy_to+8),(ptrszint**)(copy_from+8));
-#line 25 "typefields_cpp.bas"
-}
-#line 25 "typefields_cpp.bas"
-{
-#line 25 "typefields_cpp.bas"
-char *copy_to=((char*)__UDT_Y);
-#line 25 "typefields_cpp.bas"
-char *copy_from=((char*)__UDT_X);
-#line 25 "typefields_cpp.bas"
-memmove(copy_to+16,copy_from+16,2);
-#line 25 "typefields_cpp.bas"
-}
-#line 25 "typefields_cpp.bas"
-if(!qbevent)break;evnt(25);}while(r);
-#line 26 "typefields_cpp.bas"
-do{
-#line 26 "typefields_cpp.bas"
-qbr_udt0_m1_release(*(ptrszint**)(((char*)__UDT_X)+8));
-#line 26 "typefields_cpp.bas"
-if(!qbevent)break;evnt(26);}while(r);
-#line 27 "typefields_cpp.bas"
-do{
-#line 27 "typefields_cpp.bas"
-SUB_LOC();
-#line 27 "typefields_cpp.bas"
-if(!qbevent)break;evnt(27);}while(r);
 #line 28 "typefields_cpp.bas"
-do{
+__ARRAY_UDT_P[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
 #line 28 "typefields_cpp.bas"
-if (sub_gl_called) error(271);
+if (!__ARRAY_UDT_P[0]) error(257);
 #line 28 "typefields_cpp.bas"
-close_program=1;
+tmp_long=(ptrszint)alloc_req_elems;
 #line 28 "typefields_cpp.bas"
-end();
+while(tmp_long--){
+#line 28 "typefields_cpp.bas"
+qbr_udt2_new((char*)(((char*)(__ARRAY_UDT_P[0])+tmp_long*24)));
+#line 28 "typefields_cpp.bas"
+}
+#line 28 "typefields_cpp.bas"
+}
+#line 28 "typefields_cpp.bas"
+__ARRAY_UDT_P[2]|=1;
+#line 28 "typefields_cpp.bas"
+__ARRAY_UDT_P[4]=alloc_new_desc[4];
+#line 28 "typefields_cpp.bas"
+__ARRAY_UDT_P[5]=alloc_new_desc[5];
+#line 28 "typefields_cpp.bas"
+__ARRAY_UDT_P[6]=alloc_new_desc[6];
+#line 28 "typefields_cpp.bas"
+__ARRAY_UDT_P[7]=alloc_new_desc[7];
+#line 28 "typefields_cpp.bas"
+}
 #line 28 "typefields_cpp.bas"
 if(!qbevent)break;evnt(28);}while(r);
+#line 29 "typefields_cpp.bas"
+do{
+#line 29 "typefields_cpp.bas"
+*(int16*)((((char*)__UDT_X)+16))=1;
+#line 29 "typefields_cpp.bas"
+if(!qbevent)break;evnt(29);}while(r);
+#line 29 "typefields_cpp.bas"
+do{
+#line 29 "typefields_cpp.bas"
+*(int8*)((((char*)__UDT_Z)+32))=2;
+#line 29 "typefields_cpp.bas"
+if(!qbevent)break;evnt(29);}while(r);
+#line 29 "typefields_cpp.bas"
+do{
+#line 29 "typefields_cpp.bas"
+*(int16*)(((((char*)__UDT_Z)+8)+16))=3;
+#line 29 "typefields_cpp.bas"
+if(!qbevent)break;evnt(29);}while(r);
+#line 30 "typefields_cpp.bas"
+do{
+#line 30 "typefields_cpp.bas"
+{
+#line 30 "typefields_cpp.bas"
+char *dyn_slot=(((char*)__UDT_X)+8);
+#line 30 "typefields_cpp.bas"
+ptrszint *dyn_d=*(ptrszint**)dyn_slot;
+#line 30 "typefields_cpp.bas"
+if (dyn_d&&dyn_d[3]!=1){qbr_udt0_m1_free(dyn_d);dyn_d=NULL;}
+#line 30 "typefields_cpp.bas"
+if (!dyn_d){dyn_d=qbr_udt0_m1_blank(1);*(ptrszint**)dyn_slot=dyn_d;}
+#line 30 "typefields_cpp.bas"
+if (dyn_d[2]&2){
+#line 30 "typefields_cpp.bas"
+error(10);
+#line 30 "typefields_cpp.bas"
+}else{
+#line 30 "typefields_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 30 "typefields_cpp.bas"
+uint64 preserve_old_total=0;
+#line 30 "typefields_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 30 "typefields_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 30 "typefields_cpp.bas"
+int64 alloc_new_desc[8];
+#line 30 "typefields_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 30 "typefields_cpp.bas"
+uint64 alloc_req_bytes;
+#line 30 "typefields_cpp.bas"
+uint64 alloc_dim_value;
+#line 30 "typefields_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 30 "typefields_cpp.bas"
+alloc_new_desc[4]=1ll;
+#line 30 "typefields_cpp.bas"
+alloc_new_desc[5]=(5ll)-alloc_new_desc[4]+1;
+#line 30 "typefields_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 30 "typefields_cpp.bas"
+alloc_new_desc[6]=1;
+#line 30 "typefields_cpp.bas"
+((mem_lock*)((ptrszint*)dyn_d)[8])->id=(++mem_lock_id);
+#line 30 "typefields_cpp.bas"
+if (dyn_d[2]&1){
+#line 30 "typefields_cpp.bas"
+preserve_old_ptr=dyn_d[0];
+#line 30 "typefields_cpp.bas"
+preserve_old_total=dyn_d[5];
+#line 30 "typefields_cpp.bas"
+}
+#line 30 "typefields_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 30 "typefields_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 30 "typefields_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 30 "typefields_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 30 "typefields_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 30 "typefields_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 30 "typefields_cpp.bas"
+if (alloc_dim_value){
+#line 30 "typefields_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 30 "typefields_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 30 "typefields_cpp.bas"
+}
+#line 30 "typefields_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 30 "typefields_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 30 "typefields_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 30 "typefields_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 30 "typefields_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 30 "typefields_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 30 "typefields_cpp.bas"
+if (preserve_old_total){
+#line 30 "typefields_cpp.bas"
+if (dyn_d[2]&4){
+#line 30 "typefields_cpp.bas"
+preserve_new_ptr=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 30 "typefields_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 30 "typefields_cpp.bas"
+memset((void*)(preserve_new_ptr),0,(size_t)alloc_req_bytes);
+#line 30 "typefields_cpp.bas"
+}else{
+#line 30 "typefields_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 30 "typefields_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 30 "typefields_cpp.bas"
+}
+#line 30 "typefields_cpp.bas"
+if (preserve_copy_count) memcpy((void*)(preserve_new_ptr),(void*)(preserve_old_ptr),preserve_copy_count*4);
+#line 30 "typefields_cpp.bas"
+if (dyn_d[2]&4) cmem_dynamic_free((uint8*)(preserve_old_ptr)); else free((void*)(preserve_old_ptr));
+#line 30 "typefields_cpp.bas"
+dyn_d[0]=preserve_new_ptr;
+#line 30 "typefields_cpp.bas"
+}else{
+#line 30 "typefields_cpp.bas"
+if (dyn_d[2]&4){
+#line 30 "typefields_cpp.bas"
+dyn_d[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 30 "typefields_cpp.bas"
+if (!dyn_d[0]) error(257);
+#line 30 "typefields_cpp.bas"
+memset((void*)(dyn_d[0]),0,(size_t)alloc_req_bytes);
+#line 30 "typefields_cpp.bas"
+}else{
+#line 30 "typefields_cpp.bas"
+dyn_d[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 30 "typefields_cpp.bas"
+if (!dyn_d[0]) error(257);
+#line 30 "typefields_cpp.bas"
+}
+#line 30 "typefields_cpp.bas"
+}
+#line 30 "typefields_cpp.bas"
+dyn_d[2]|=1;
+#line 30 "typefields_cpp.bas"
+dyn_d[4]=alloc_new_desc[4];
+#line 30 "typefields_cpp.bas"
+dyn_d[5]=alloc_new_desc[5];
+#line 30 "typefields_cpp.bas"
+dyn_d[6]=alloc_new_desc[6];
+#line 30 "typefields_cpp.bas"
+dyn_d[7]=alloc_new_desc[7];
+#line 30 "typefields_cpp.bas"
+}
+#line 30 "typefields_cpp.bas"
+}
+#line 30 "typefields_cpp.bas"
+if(!qbevent)break;evnt(30);}while(r);
+#line 31 "typefields_cpp.bas"
+do{
+#line 31 "typefields_cpp.bas"
+{
+#line 31 "typefields_cpp.bas"
+int32 mbr_value=5;
+#line 31 "typefields_cpp.bas"
+int32 mbr_pending=is_error_pending();
+#line 31 "typefields_cpp.bas"
+int32 mbr_bad=0;
+#line 31 "typefields_cpp.bas"
+int64 mbr_k;
+#line 31 "typefields_cpp.bas"
+ptrszint mbr_off=0;
+#line 31 "typefields_cpp.bas"
+ptrszint *mbr_d1=mbr_bad?NULL:*(ptrszint**)(((char*)__UDT_X)+mbr_off+8);
+#line 31 "typefields_cpp.bas"
+if (!(mbr_d1&&(mbr_d1[2]&1)&&mbr_d1[3]==1)) mbr_bad=1;
+#line 31 "typefields_cpp.bas"
+mbr_d1=qbr_udt0_m1_guard(mbr_d1,1);
+#line 31 "typefields_cpp.bas"
+mbr_off=0;
+#line 31 "typefields_cpp.bas"
+mbr_k=(2ll)-mbr_d1[4];
+#line 31 "typefields_cpp.bas"
+if ((uptrszint)mbr_k>=(uptrszint)mbr_d1[5]){error(9);mbr_bad=1;}
+#line 31 "typefields_cpp.bas"
+mbr_off+=mbr_k*mbr_d1[6]*4;
+#line 31 "typefields_cpp.bas"
+int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 31 "typefields_cpp.bas"
+if (mbr_ok) *(int32*)(((char*)mbr_d1[0])+mbr_off)=mbr_value;
+#line 31 "typefields_cpp.bas"
+}
+#line 31 "typefields_cpp.bas"
+if(!qbevent)break;evnt(31);}while(r);
+#line 32 "typefields_cpp.bas"
+do{
+#line 32 "typefields_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 32 "typefields_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)((qbr_udt0_m1_bound(*(ptrszint**)(((char*)__UDT_X)+8),0,1)))),qbs_new_txt(" ")));
+#line 32 "typefields_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 32 "typefields_cpp.bas"
+makefit(tqbs);
+#line 32 "typefields_cpp.bas"
+qbs_print(tqbs,0);
+#line 32 "typefields_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(*(int32*)(((pass2=qbr_udt0_m1_guard(*(ptrszint**)(((char*)__UDT_X)+8),1)),(((char*)pass2[0])+((array_check((2ll)-pass2[4],pass2[5]))*4)))))),qbs_new_txt(" ")));
+#line 32 "typefields_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 32 "typefields_cpp.bas"
+makefit(tqbs);
+#line 32 "typefields_cpp.bas"
+qbs_print(tqbs,0);
+#line 32 "typefields_cpp.bas"
+qbs_print(nothingstring,1);
+#line 32 "typefields_cpp.bas"
+skip1:
+#line 32 "typefields_cpp.bas"
+qbs_free(tqbs);
+#line 32 "typefields_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 32 "typefields_cpp.bas"
+if(!qbevent)break;evnt(32);}while(r);
+#line 33 "typefields_cpp.bas"
+do{
+#line 33 "typefields_cpp.bas"
+SUB_FILL(qbr_udt0_m1_desc((((char*)__UDT_X)+8)));
+#line 33 "typefields_cpp.bas"
+if(!qbevent)break;evnt(33);}while(r);
+#line 34 "typefields_cpp.bas"
+do{
+#line 34 "typefields_cpp.bas"
+if ((void*)(((char*)__UDT_Y))!=(void*)(((char*)__UDT_X))){
+#line 34 "typefields_cpp.bas"
+{char *copy_to=((char*)__UDT_Y);char *copy_from=((char*)__UDT_X);memmove(copy_to+0,copy_from+0,2);}
+#line 34 "typefields_cpp.bas"
+{char *copy_to=((char*)__UDT_Y);char *copy_from=((char*)__UDT_X);memmove(copy_to+16,copy_from+16,2);}
+#line 34 "typefields_cpp.bas"
+{char *copy_to=((char*)__UDT_Y);char *copy_from=((char*)__UDT_X);qbr_udt0_m1_copy((ptrszint**)(copy_to+8),(ptrszint**)(copy_from+8));}
+#line 34 "typefields_cpp.bas"
+}
+#line 34 "typefields_cpp.bas"
+if(!qbevent)break;evnt(34);}while(r);
+#line 35 "typefields_cpp.bas"
+do{
+#line 35 "typefields_cpp.bas"
+if ((void*)(((char*)__UDT_Z2))!=(void*)(((char*)__UDT_Z))){
+#line 35 "typefields_cpp.bas"
+{char *copy_to=((char*)__UDT_Z2);char *copy_from=((char*)__UDT_Z);memmove(copy_to+0,copy_from+0,1);}
+#line 35 "typefields_cpp.bas"
+{char *copy_to=((char*)__UDT_Z2);char *copy_from=((char*)__UDT_Z);memmove(copy_to+8+0,copy_from+8+0,2);}
+#line 35 "typefields_cpp.bas"
+{char *copy_to=((char*)__UDT_Z2);char *copy_from=((char*)__UDT_Z);memmove(copy_to+8+16,copy_from+8+16,2);}
+#line 35 "typefields_cpp.bas"
+{char *copy_to=((char*)__UDT_Z2);char *copy_from=((char*)__UDT_Z);memmove(copy_to+32,copy_from+32,1);}
+#line 35 "typefields_cpp.bas"
+{char *copy_to=((char*)__UDT_Z2);char *copy_from=((char*)__UDT_Z);qbr_udt0_m1_copy((ptrszint**)(copy_to+8+8),(ptrszint**)(copy_from+8+8));}
+#line 35 "typefields_cpp.bas"
+}
+#line 35 "typefields_cpp.bas"
+if(!qbevent)break;evnt(35);}while(r);
+#line 36 "typefields_cpp.bas"
+do{
+#line 36 "typefields_cpp.bas"
+if ((void*)((((char*)__ARRAY_UDT_P[0])+((array_check((1ll)-__ARRAY_UDT_P[4],__ARRAY_UDT_P[5]))*24)))!=(void*)((((char*)__ARRAY_UDT_P[0])+((array_check((0ll)-__ARRAY_UDT_P[4],__ARRAY_UDT_P[5]))*24)))){
+#line 36 "typefields_cpp.bas"
+{char *copy_to=(((char*)__ARRAY_UDT_P[0])+((array_check((1ll)-__ARRAY_UDT_P[4],__ARRAY_UDT_P[5]))*24));char *copy_from=(((char*)__ARRAY_UDT_P[0])+((array_check((0ll)-__ARRAY_UDT_P[4],__ARRAY_UDT_P[5]))*24));memmove(copy_to+0,copy_from+0,4);}
+#line 36 "typefields_cpp.bas"
+{char *copy_to=(((char*)__ARRAY_UDT_P[0])+((array_check((1ll)-__ARRAY_UDT_P[4],__ARRAY_UDT_P[5]))*24));char *copy_from=(((char*)__ARRAY_UDT_P[0])+((array_check((0ll)-__ARRAY_UDT_P[4],__ARRAY_UDT_P[5]))*24));{qbs **qbr_to=(qbs**)(copy_to+4);qbs *qbr_from=*(qbs**)(copy_from+4);if (!*qbr_to) *qbr_to=qbs_new(0,0);if (qbr_from) qbs_set(*qbr_to,qbr_from);}}
+#line 36 "typefields_cpp.bas"
+{char *copy_to=(((char*)__ARRAY_UDT_P[0])+((array_check((1ll)-__ARRAY_UDT_P[4],__ARRAY_UDT_P[5]))*24));qbr_udt2_m2_free(*(ptrszint**)(copy_to+16));*(ptrszint**)(copy_to+16)=NULL;}
+#line 36 "typefields_cpp.bas"
+{char *copy_from=(((char*)__ARRAY_UDT_P[0])+((array_check((0ll)-__ARRAY_UDT_P[4],__ARRAY_UDT_P[5]))*24));char *copy_to=(((char*)__ARRAY_UDT_P[0])+((array_check((1ll)-__ARRAY_UDT_P[4],__ARRAY_UDT_P[5]))*24));qbr_udt2_m2_set((ptrszint**)(copy_to+16),(ptrszint**)(copy_from+16));}
+#line 36 "typefields_cpp.bas"
+}
+#line 36 "typefields_cpp.bas"
+if(!qbevent)break;evnt(36);}while(r);
+#line 37 "typefields_cpp.bas"
+do{
+#line 37 "typefields_cpp.bas"
+qbr_udt0_m1_release(*(ptrszint**)(((char*)__UDT_X)+8));
+#line 37 "typefields_cpp.bas"
+if(!qbevent)break;evnt(37);}while(r);
+#line 38 "typefields_cpp.bas"
+do{
+#line 38 "typefields_cpp.bas"
+SUB_LOC();
+#line 38 "typefields_cpp.bas"
+if(!qbevent)break;evnt(38);}while(r);
+#line 39 "typefields_cpp.bas"
+do{
+#line 39 "typefields_cpp.bas"
+if (sub_gl_called) error(271);
+#line 39 "typefields_cpp.bas"
+close_program=1;
+#line 39 "typefields_cpp.bas"
+end();
+#line 39 "typefields_cpp.bas"
+if(!qbevent)break;evnt(39);}while(r);
 sub_end();
 return;
 }
@@ -496,117 +799,118 @@ return;
 qbr_udt0_free((char*)((char*)__UDT_X));
 qbr_udt0_free((char*)((char*)__UDT_Y));
 qbr_udt1_free((char*)((char*)__UDT_Z));
+qbr_udt1_free((char*)((char*)__UDT_Z2));
 ==> main1.txt <==
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 void SUB_FILL(ptrszint*_SUB_FILL_ARRAY_LONG_A){
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 qbs *tqbs;
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 ptrszint tmp_long;
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 int32 tmp_fileno;
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 uint32 qbs_tmp_base=qbs_tmp_list_nexti;
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 uint8 *tmp_mem_static_pointer=mem_static_pointer;
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 uint32 tmp_cmem_sp=cmem_sp;
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 #include "data1.txt"
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 mem_lock *sf_mem_lock;
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 new_mem_lock();
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 sf_mem_lock=mem_lock_tmp;
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 sf_mem_lock->type=3;
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 libqb_check_stack();
-#line 30 "typefields_cpp.bas"
+#line 41 "typefields_cpp.bas"
 if (is_error_pending()) goto exit_subfunc;
-#line 31 "typefields_cpp.bas"
+#line 42 "typefields_cpp.bas"
 do{
-#line 31 "typefields_cpp.bas"
+#line 42 "typefields_cpp.bas"
 tmp_long=array_check((((int64)func_lbound(_SUB_FILL_ARRAY_LONG_A,1,1)))-_SUB_FILL_ARRAY_LONG_A[4],_SUB_FILL_ARRAY_LONG_A[5]);
-#line 31 "typefields_cpp.bas"
+#line 42 "typefields_cpp.bas"
 if (!is_error_pending()) ((int32*)(_SUB_FILL_ARRAY_LONG_A[0]))[tmp_long]=1;
-#line 31 "typefields_cpp.bas"
-if(!qbevent)break;evnt(31);}while(r);
-#line 32 "typefields_cpp.bas"
+#line 42 "typefields_cpp.bas"
+if(!qbevent)break;evnt(42);}while(r);
+#line 43 "typefields_cpp.bas"
 exit_subfunc:;
-#line 32 "typefields_cpp.bas"
+#line 43 "typefields_cpp.bas"
 free_mem_lock(sf_mem_lock);
-#line 32 "typefields_cpp.bas"
+#line 43 "typefields_cpp.bas"
 #include "free1.txt"
-#line 32 "typefields_cpp.bas"
+#line 43 "typefields_cpp.bas"
 if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
-#line 32 "typefields_cpp.bas"
+#line 43 "typefields_cpp.bas"
 cmem_sp=tmp_cmem_sp;
-#line 32 "typefields_cpp.bas"
+#line 43 "typefields_cpp.bas"
 }
 ==> main2.txt <==
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 void SUB_LOC(){
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 qbs *tqbs;
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 ptrszint tmp_long;
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 int32 tmp_fileno;
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 uint32 qbs_tmp_base=qbs_tmp_list_nexti;
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 uint8 *tmp_mem_static_pointer=mem_static_pointer;
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 uint32 tmp_cmem_sp=cmem_sp;
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 #include "data2.txt"
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 mem_lock *sf_mem_lock;
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 new_mem_lock();
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 sf_mem_lock=mem_lock_tmp;
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 sf_mem_lock->type=3;
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 libqb_check_stack();
-#line 34 "typefields_cpp.bas"
+#line 45 "typefields_cpp.bas"
 if (is_error_pending()) goto exit_subfunc;
-#line 36 "typefields_cpp.bas"
+#line 47 "typefields_cpp.bas"
 do{
-#line 36 "typefields_cpp.bas"
+#line 47 "typefields_cpp.bas"
 tqbs=qbs_new(0,0);
-#line 36 "typefields_cpp.bas"
+#line 47 "typefields_cpp.bas"
 qbs_set(tqbs,qbs_add(qbs_str((int64)((qbr_udt0_m1_bound(*(ptrszint**)(((char*)_SUB_LOC_UDT_W)+8),1,1)))),qbs_new_txt(" ")));
-#line 36 "typefields_cpp.bas"
+#line 47 "typefields_cpp.bas"
 if (is_error_pending()) goto skip2;
-#line 36 "typefields_cpp.bas"
+#line 47 "typefields_cpp.bas"
 makefit(tqbs);
-#line 36 "typefields_cpp.bas"
+#line 47 "typefields_cpp.bas"
 qbs_print(tqbs,0);
-#line 36 "typefields_cpp.bas"
+#line 47 "typefields_cpp.bas"
 qbs_print(nothingstring,1);
-#line 36 "typefields_cpp.bas"
+#line 47 "typefields_cpp.bas"
 skip2:
-#line 36 "typefields_cpp.bas"
+#line 47 "typefields_cpp.bas"
 qbs_free(tqbs);
-#line 36 "typefields_cpp.bas"
+#line 47 "typefields_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
-#line 36 "typefields_cpp.bas"
-if(!qbevent)break;evnt(36);}while(r);
-#line 37 "typefields_cpp.bas"
+#line 47 "typefields_cpp.bas"
+if(!qbevent)break;evnt(47);}while(r);
+#line 48 "typefields_cpp.bas"
 exit_subfunc:;
-#line 37 "typefields_cpp.bas"
+#line 48 "typefields_cpp.bas"
 free_mem_lock(sf_mem_lock);
-#line 37 "typefields_cpp.bas"
+#line 48 "typefields_cpp.bas"
 #include "free2.txt"
-#line 37 "typefields_cpp.bas"
+#line 48 "typefields_cpp.bas"
 if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
-#line 37 "typefields_cpp.bas"
+#line 48 "typefields_cpp.bas"
 cmem_sp=tmp_cmem_sp;
-#line 37 "typefields_cpp.bas"
+#line 48 "typefields_cpp.bas"
 }
 ==> data2.txt <==
 void *_SUB_LOC_UDT_W=NULL;

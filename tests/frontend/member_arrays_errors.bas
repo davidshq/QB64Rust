@@ -69,13 +69,11 @@ ERASE t
 fill t.s()
 fill t.v
 ' Not supported yet: a member array of an array element beside other targets of ERASE or REDIM (the old compiler
-' goes on with them before an error is handled, v24_x312); an element of a member array as a target of INPUT,
-' READ or the MID$ statement, and REDIM t.v(0) under OPTION BASE 1 (not measured).
+' goes on with them before an error is handled, v24_x312), and REDIM t.v(0) under OPTION BASE 1 (not measured).
+' An element of a member array as a target of INPUT, READ or the MID$ statement compiles since m3-typefields
+' task 4.2.
 ERASE a(1).v, t.v
 REDIM a(1).v(0 TO 3), t.v(0 TO 3)
-INPUT t.v(1)
-READ a(1).v(1)
-MID$(a(1).s(1), 1) = "x"
 OPTION BASE 1
 REDIM t.v(0) AS LONG
 SYSTEM

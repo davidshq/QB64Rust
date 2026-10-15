@@ -12,9 +12,11 @@
 //! `qbr_udtN_zero` (`ERASE` of a static array: strings emptied, bytes zero, dynamic member arrays released and
 //! left null) and `qbr_udtN_clone` (a deep copy into a value that exists). Each dynamic member array M of type N
 //! has its own: `qbr_udtN_mM_blank` (a descriptor that is not allocated), `_make` (one at the declared bounds),
-//! `_release` (`ERASE`), `_free`, `_copy` (the old compiler's `AppendDynUDTDescCopy`: a source that is not
-//! allocated leaves the target as it is), `_guard` (the descriptor of an element, or after error 9 a dummy one of
-//! one element so the expression can finish), `_bound` and `_desc` (for an array argument).
+//! `_release` (`ERASE`), `_free`, `_dup` (a deep copy of an allocated descriptor), `_copy` (the old compiler's
+//! `AppendDynUDTDescCopy`: a source that is not allocated leaves the target as it is), `_set` (its
+//! `AppendDynUDTOwnCopyEx`, into a target already erased: null, not allocated or a deep copy, as the source is),
+//! `_guard` (the descriptor of an element, or after error 9 a dummy one of one element so the expression can
+//! finish), `_bound` and `_desc` (for an array argument). A whole-value copy is [`Emitter::copy_owner`].
 
 use crate::Emitter;
 use crate::decl::{Part, dim_slot};
@@ -131,6 +133,147 @@ impl Emitter<'_> {
             return text;
         }
         format!("for(ptrszint qbr_i=0;qbr_i<{count};qbr_i++){{\n{text}}}\n")
+    }
+
+    /// `CopyWhole` of an owner value (design D7 of `m3-typefields`): the statements of the old compiler's
+    /// `copy_full_udt_dyn` (`utilities\type.bas` 2049), each of which finds the places anew, so an index in `to`
+    /// or `from` (C expressions of their addresses) is evaluated as often as there (measured,
+    /// `verification\v35_x56`, `x61`). Inside `if (to!=from)`: for a type that holds a string, each part in
+    /// declaration order, a dynamic member array erased (`to`) and then made as the source's (`from`, `to`);
+    /// for one that holds none, every part but the dynamic member arrays, then each of those copied (`to`,
+    /// `from`), a source that is not allocated leaving the target as it is. Every other part finds `to`, then
+    /// `from`.
+    pub(crate) fn copy_owner(&self, t: Ty, to: &str, from: &str, out: &mut Vec<String>) {
+        let mut steps = Vec::new();
+        if self.holds_strings(t) {
+            self.copy_owned(t, "0", 0, &mut steps);
+        } else {
+            self.copy_plain(t, "0", 0, &mut steps);
+            self.copy_descs(t, "0", 0, &mut steps);
+        }
+        out.push(format!("if ((void*)({to})!=(void*)({from})){{"));
+        for step in steps {
+            out.push(match step {
+                Step::Open(line) | Step::Close(line) => line,
+                Step::ToFrom(s) => format!("{{char *copy_to={to};char *copy_from={from};{s}}}"),
+                Step::FromTo(s) => format!("{{char *copy_from={from};char *copy_to={to};{s}}}"),
+                Step::To(s) => format!("{{char *copy_to={to};{s}}}"),
+            });
+        }
+        out.push("}".into());
+    }
+
+    /// The members of user type `t` at offset `at` (a C expression), each with its index and its offset as a C
+    /// expression, in declaration order.
+    fn members_at(&self, t: Ty, at: &str) -> Vec<(&Member, u32, String)> {
+        let Ty::User(id) = t else {
+            unreachable!("the members of {t:?}");
+        };
+        let (offsets, _) = self.layout(id);
+        let members = &self.p.user_type(id).members;
+        members
+            .iter()
+            .zip(offsets)
+            .enumerate()
+            .map(|(i, (m, off))| {
+                let here = if at == "0" {
+                    off.to_string()
+                } else {
+                    format!("{at}+{off}")
+                };
+                (m, qb64rust_base::to_u32(i), here)
+            })
+            .collect()
+    }
+
+    /// The offset of each of the `count` elements of a member array at `at`, `size` bytes each, in a loop whose
+    /// lines open and close `steps` around what `body` adds.
+    fn loop_over(
+        count: u32,
+        size: u32,
+        at: &str,
+        depth: u32,
+        steps: &mut Vec<Step>,
+        body: impl FnOnce(&str, &mut Vec<Step>),
+    ) {
+        let i = format!("qbr_c{depth}");
+        steps.push(Step::Open(format!("for(ptrszint {i}=0;{i}<{count};{i}++){{")));
+        body(&format!("{at}+{i}*{size}"), steps);
+        steps.push(Step::Close("}".into()));
+    }
+
+    /// `AppendDynUDTOwnCopyEx` (`utilities\type.bas` 1258), the copy of a type that holds a string.
+    fn copy_owned(&self, t: Ty, at: &str, depth: u32, steps: &mut Vec<Step>) {
+        let Ty::User(id) = t else { unreachable!() };
+        let deep = |t: Ty| self.holds_strings(t) || self.owns_desc(t);
+        for (m, i, here) in self.members_at(t, at) {
+            let size = self.ty_size(m.ty);
+            if m.dynamic {
+                let slot = format!("(ptrszint**)(copy_to+{here})");
+                steps.push(Step::To(format!("{}(*{slot});*{slot}=NULL;", dyn_fn(id, i, "free"))));
+                steps.push(Step::FromTo(format!(
+                    "{}({slot},(ptrszint**)(copy_from+{here}));",
+                    dyn_fn(id, i, "set")
+                )));
+            } else if !m.bounds.is_empty() && (m.ty == Ty::Str || matches!(m.ty, Ty::User(_))) {
+                Self::loop_over(m.count(), size, &here, depth, steps, |item, steps| {
+                    if m.ty == Ty::Str {
+                        steps.push(Step::ToFrom(str_set(item)));
+                    } else if deep(m.ty) {
+                        self.copy_owned(m.ty, item, depth + 1, steps);
+                    } else {
+                        steps.push(Step::ToFrom(bytes_copy(item, size)));
+                    }
+                });
+            } else if m.ty == Ty::Str {
+                steps.push(Step::ToFrom(str_set(&here)));
+            } else if deep(m.ty) {
+                self.copy_owned(m.ty, &here, depth, steps);
+            } else {
+                steps.push(Step::ToFrom(bytes_copy(&here, self.member_size(m))));
+            }
+        }
+    }
+
+    /// `CopyDynUDTExpr` (`utilities\type.bas` 2093): the parts of a type that holds no string, but its dynamic
+    /// member arrays.
+    fn copy_plain(&self, t: Ty, at: &str, depth: u32, steps: &mut Vec<Step>) {
+        for (m, _, here) in self.members_at(t, at) {
+            if m.dynamic {
+                continue;
+            }
+            if !self.owns_desc(m.ty) {
+                steps.push(Step::ToFrom(bytes_copy(&here, self.member_size(m))));
+            } else if m.bounds.is_empty() {
+                self.copy_plain(m.ty, &here, depth, steps);
+            } else {
+                Self::loop_over(m.count(), self.ty_size(m.ty), &here, depth, steps, |item, steps| {
+                    self.copy_plain(m.ty, item, depth + 1, steps);
+                });
+            }
+        }
+    }
+
+    /// `AppendDynUDTDescCopy` (`utilities\type.bas` 10): the dynamic member arrays of a type that holds no
+    /// string.
+    fn copy_descs(&self, t: Ty, at: &str, depth: u32, steps: &mut Vec<Step>) {
+        let Ty::User(id) = t else { unreachable!() };
+        for (m, i, here) in self.members_at(t, at) {
+            if m.dynamic {
+                steps.push(Step::ToFrom(format!(
+                    "{}((ptrszint**)(copy_to+{here}),(ptrszint**)(copy_from+{here}));",
+                    dyn_fn(id, i, "copy")
+                )));
+            } else if self.owns_desc(m.ty) {
+                if m.bounds.is_empty() {
+                    self.copy_descs(m.ty, &here, depth, steps);
+                } else {
+                    Self::loop_over(m.count(), self.ty_size(m.ty), &here, depth, steps, |item, steps| {
+                        self.copy_descs(m.ty, item, depth + 1, steps);
+                    });
+                }
+            }
+        }
     }
 
     /// The C++ functions of every owner type and of each of their dynamic member arrays, for `global.txt`:
@@ -306,7 +449,7 @@ impl Emitter<'_> {
             each(&|at, _| self.new_value(et, at))
         )
         .unwrap();
-        // A whole-value copy: a source that is not allocated leaves the target as it is.
+        // A deep copy of an allocated descriptor `s`.
         let copy_elements = if self.has_life(et) || et == Ty::Str {
             each(&|to, from| self.new_value(et, to) + &self.clone_value(et, to, from))
         } else {
@@ -314,15 +457,35 @@ impl Emitter<'_> {
         };
         write!(
             out,
-            "static void {}(ptrszint **to,ptrszint **from){{\nptrszint *s=*from;\n\
-             if (!s||!(s[2]&1)) return;\nptrszint dims=s[3];\n\
+            "static ptrszint *{}(ptrszint *s){{\nptrszint dims=s[3];\n\
              ptrszint *d=(ptrszint*)calloc(dims*4+5,ptrsz);\nif (!d) error(257);\n\
              memcpy((void*)d,(void*)s,(dims*4+4)*ptrsz);\n\
              new_mem_lock();\nmem_lock_tmp->type=4;\nd[dims*4+4]=(ptrszint)mem_lock_tmp;\n\
              ptrszint qbr_n=qbr_dyn_count(s);\nd[0]=(ptrszint)calloc(qbr_n?qbr_n*{es}:1,1);\n\
-             if (!d[0]) error(257);\n{copy_elements}{}(*to);\n*to=d;\n}}\n",
+             if (!d[0]) error(257);\n{copy_elements}return d;\n}}\n",
+            f("dup")
+        )
+        .unwrap();
+        // A whole-value copy of a type that holds no string (`AppendDynUDTDescCopy`): a source that is not
+        // allocated leaves the target as it is.
+        write!(
+            out,
+            "static void {}(ptrszint **to,ptrszint **from){{\nptrszint *s=*from;\n\
+             if (!s||!(s[2]&1)) return;\nptrszint *d={}(s);\n{}(*to);\n*to=d;\n}}\n",
             f("copy"),
+            f("dup"),
             f("free")
+        )
+        .unwrap();
+        // A whole-value copy of a type that holds a string (`AppendDynUDTOwnCopyEx`): the target, already erased,
+        // becomes null, not allocated or a deep copy, as the source is.
+        write!(
+            out,
+            "static void {}(ptrszint **to,ptrszint **from){{\nptrszint *s=*from;\n\
+             *to=!s?NULL:(s[2]&1)?{}(s):{}(s[3]);\n}}\n",
+            f("set"),
+            f("dup"),
+            f("blank")
         )
         .unwrap();
         // The descriptor of an element: error 9 when it is not allocated or has another number of dimensions,
@@ -357,19 +520,46 @@ impl Emitter<'_> {
     }
 }
 
+/// A statement of [`Emitter::copy_owner`], by the places it finds and in which order (`copy_to`, `copy_from`),
+/// or a line of a loop around such statements.
+enum Step {
+    Open(String),
+    Close(String),
+    ToFrom(String),
+    FromTo(String),
+    To(String),
+}
+
+/// The copy of the `STRING` at offset `at` of both places, safe against a descriptor that is not made, as the old
+/// compiler's `AppendDynUDTOwnCopyEx` writes it.
+fn str_set(at: &str) -> String {
+    format!(
+        "{{qbs **qbr_to=(qbs**)(copy_to+{at});qbs *qbr_from=*(qbs**)(copy_from+{at});\
+         if (!*qbr_to) *qbr_to=qbs_new(0,0);if (qbr_from) qbs_set(*qbr_to,qbr_from);}}"
+    )
+}
+
+/// The copy of `n` bytes at offset `at` of both places.
+fn bytes_copy(at: &str, n: u32) -> String {
+    format!("memmove(copy_to+{at},copy_from+{at},{n});")
+}
+
 /// The prototypes of the functions of a dynamic member array.
 fn dyn_prototypes(id: TypeId, member: u32) -> String {
     let f = |what: &str| dyn_fn(id, member, what);
     format!(
         "static ptrszint *{}(ptrszint dims);\nstatic void {}(ptrszint *d);\nstatic void {}(ptrszint *d);\n\
-         static ptrszint *{}();\nstatic void {}(ptrszint **to,ptrszint **from);\n\
+         static ptrszint *{}();\nstatic ptrszint *{}(ptrszint *s);\nstatic void {}(ptrszint **to,ptrszint **from);\n\
+         static void {}(ptrszint **to,ptrszint **from);\n\
          static ptrszint *{}(ptrszint *d,ptrszint n);\nstatic int64 {}(ptrszint *d,int32 upper,int32 dim);\n\
          static ptrszint *{}(char *slot);\n",
         f("blank"),
         f("release"),
         f("free"),
         f("make"),
+        f("dup"),
         f("copy"),
+        f("set"),
         f("guard"),
         f("bound"),
         f("desc")

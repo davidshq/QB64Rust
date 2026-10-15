@@ -458,11 +458,6 @@ impl Validator<'_> {
                         }
                         Some(_) | None => {}
                     }
-                    if place.through_member() {
-                        self.problem(format!(
-                            "{at}: an Input target reached through a member with an index on the way"
-                        ));
-                    }
                 }
             }
             Op::Read(targets) => {
@@ -473,11 +468,6 @@ impl Validator<'_> {
                     self.place(place, owner, at);
                     if let Some(Ty::User(_)) = place_ty_checked(self.p, place) {
                         self.problem(format!("{at}: a Read target of a user type"));
-                    }
-                    if place.through_member() {
-                        self.problem(format!(
-                            "{at}: a Read target reached through a member with an index on the way"
-                        ));
                     }
                 }
             }

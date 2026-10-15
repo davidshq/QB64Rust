@@ -150,6 +150,13 @@ name the places in their own way). Task 3.3 reads `AppendDynUDTDescCopy` and wri
 as `copy_whole` does for strings, then the descriptor clones as that function names the places; `v35_x56` is the
 check, a `typed` or `cpp` test fixes it. Listed for review in `SOMEDAY.md` with the string case.
 
+*As built (task 4.3):* the entry is `copy_full_udt_dyn` (`type.bas` 2049): a test that the places differ, then for
+a type that holds no `STRING` `CopyDynUDTExpr` and `AppendDynUDTDescCopy` as above, and for one that holds a
+`STRING` (also in a nested type or as a dynamic member) `AppendDynUDTOwnCopyEx` (`type.bas` 1258): each member in
+order, a dynamic one erased and then cloned from the source. The two differ for a source member that is not
+allocated: the first keeps the target's, the second leaves it not allocated (`v35_x61`). `owner.rs` `copy_owner`
+writes the same statements, each finding both places anew.
+
 ### D8. Files: a pack and unpack function per owner type
 
 `PUT`/`GET` of a whole array of an owner type (not of a type with a `STRING`, which stays "UDT must have fixed

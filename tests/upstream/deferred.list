@@ -21,6 +21,8 @@ arrays/t038_whole_target_scalar_source  # whole-array assignment
 arrays/t041_whole_array_equals_scalar  # whole-array assignment
 arrays/t203_dynfield_array_assign_deepcopy  # $UNSTABLE:TYPEFIELDS, whole-array assignment
 arrays/t207_dynfield_nested_udt_deepcopy  # $UNSTABLE:TYPEFIELDS, whole-array assignment
+arrays/t266_putget_fixed_dynamic_fields  # $UNSTABLE:TYPEFIELDS (PUT and GET of a whole array of a TYPE with a dynamic member array)
+arrays/t267_putget_fixed_scalar_string_nonzero_bounds  # $UNSTABLE:TYPEFIELDS (PUT and GET of a whole array of a TYPE with a dynamic member array)
 arrays/t268_negative_put_scalar_varstring  # $UNSTABLE:TYPEFIELDS
 arrays/t269_negative_get_dynamic_varstring_field  # $UNSTABLE:TYPEFIELDS
 arrays/t272_dynamic_static_array_assign_deepcopy  # $UNSTABLE:TYPEFIELDS, whole-array assignment

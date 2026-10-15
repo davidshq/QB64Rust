@@ -486,8 +486,7 @@ impl Checker<'_> {
 
     /// A place a statement stores into (a target of `INPUT`, `LINE INPUT` or `READ`): a variable (created when it
     /// does not exist, as by an assignment), an element or a member. A whole `TYPE` variable is an error (measured,
-    /// `v22_x48`), as is the name of the FUNCTION the statement stands in; a whole array and a member of an element
-    /// are not supported yet.
+    /// `v22_x48`), as is the name of the FUNCTION the statement stands in; a whole array is not supported yet.
     pub(super) fn target_place(&mut self, e: ast::Expr, what: &str) -> R<Place> {
         let span = e.node().span();
         let place = self.place_operand(e, what)?;
@@ -499,7 +498,7 @@ impl Checker<'_> {
 
     /// A place a statement names (a target, or an operand of `SWAP` or of the `MID$` statement), of any type: a
     /// variable (created when it does not exist), an element or a member. The name of the FUNCTION the statement
-    /// stands in is an error; a member of an element is not supported yet.
+    /// stands in is an error.
     pub(super) fn place_operand(&mut self, e: ast::Expr, what: &str) -> R<Place> {
         let span = e.node().span();
         let place = match e {
@@ -528,13 +527,10 @@ impl Checker<'_> {
         {
             return Err(self.error(span, format!("the FUNCTION's own name cannot be a target of `{what}`")));
         }
-        // `SWAP` takes the two places by reference, as an argument does (measured, `verification\v24_x202`,
-        // `x314`: an index outside its bounds raises error 9 and the first element stands in). Not measured for
-        // the others: where the old compiler evaluates the index of `a(i).m` or `t.v(i)` as a target.
-        if place.through_member() && what != "SWAP" {
-            let msg = format!("a member of an array element, or an element of a member array, as a target of `{what}`");
-            return Err(self.unsupported(span, msg));
-        }
+        // A place reached through a member with an index on the way (`a(i).m`, `t.v(i)`): `SWAP` takes the two
+        // places by reference, as an argument does (measured, `verification\v24_x202`, `x314`: an index outside
+        // its bounds raises error 9 and the first element stands in); the others store by the rule of the place,
+        // and `MID$` evaluates the place before its value (measured, `v35_x62`; the IR's crate documentation).
         Ok(place)
     }
 

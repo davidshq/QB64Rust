@@ -752,17 +752,6 @@ impl Place {
             Place::Member { base, .. } => base.indexes(),
         }
     }
-
-    /// Whether the place is reached through a member with an index on the way: a member of an element
-    /// (`a(i).m`) or an element of a member array (`t.v(i)`, `a(i).v(j)`). A store into such a place has a rule
-    /// of its own ([`StmtKind::Assign`]).
-    pub fn through_member(&self) -> bool {
-        match self {
-            Place::Var(_) => false,
-            Place::Element { array, .. } => matches!(array, ArrayRef::Member { .. }),
-            Place::Member { base, .. } => base.has_element(),
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

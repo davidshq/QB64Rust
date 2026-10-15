@@ -671,11 +671,19 @@ What the compiler supports so far:
   element goes through the guard (error 9 when not allocated or of another number of dimensions; a dummy element
   then), a store through it stores nothing after an index outside on the way (D-004 widened, `stmt.rs`,
   `member_path`); `LBOUND`/`UBOUND` find the place; the member as an array argument is its descriptor. A
-  whole-value copy copies the member deep (one `Part::Dyn` per member; the exact order of `v35_x56` is task 4.3).
-  Still marked: `LEN`, `PUT` and `GET` of an owner value or array, `_MEM` of a dynamic member array or its
-  element (groups 4–5), whole-array assignment with a member array. Checked by `typefields_cpp`,
-  `typefields_ir`, the IR unit test `dynamic_member_arrays`, `s114_dyn_members`, `s115_dyn_member_procs` and 76
-  upstream programs.
+  whole-value copy (group 4, design D7, `owner.rs` `copy_owner`) is the old compiler's sequence of statements,
+  each finding both places anew: a test that they differ, then for a type that holds no `STRING` the other parts
+  and then each member through `_copy` (a source not allocated keeps the target's), for one that holds a `STRING`
+  each part in order, a dynamic member erased and then set through `_set` (a source not allocated leaves the
+  target not allocated). Arrays of an owner type keep, move and release their elements' members with `REDIM`,
+  `_PRESERVE`, `_RETAIN`, `ERASE` and `SWAP`. Still marked: `LEN`, `PUT` and `GET` of an owner value or array,
+  `_MEM` of a dynamic member array or its element (group 5), whole-array assignment with a member array. Checked
+  by `typefields_cpp`, `typefields_ir`, the IR unit test `dynamic_member_arrays`, `s114_dyn_members`,
+  `s115_dyn_member_procs`, `s116_dyn_member_parents`, `s117_dyn_member_kinds` and 76 upstream programs.
+- **Targets through a member** (`m3-typefields` task 4.2; `verification\v35_x62`): a member of an element and an
+  element of a member array (fixed or dynamic) are targets of `READ`, `INPUT`, `LINE INPUT` (console and file) and
+  the `MID$` statement, stored by the rule of their place (`stmt.rs` `store`, a number before the indexes and not
+  stored after one outside, D-004; a string by reference after them).
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`
