@@ -102,6 +102,11 @@ pub fn dump(p: &Program) -> String {
             }
         }
     }
+    // The `DECLARE LIBRARY` blocks: the form and the names as written.
+    for (i, lib) in p.libraries.iter().enumerate() {
+        let names: Vec<String> = lib.names.iter().map(|n| format!(" \"{}\"", n.text)).collect();
+        writeln!(out, "Library {i} {:?}{}", lib.kind, names.concat()).unwrap();
+    }
     body(p, &p.main, &mut out);
     for (i, proc) in p.procs.iter().enumerate() {
         match proc.kind {
@@ -115,6 +120,17 @@ pub fn dump(p: &Program) -> String {
                 proc.end_line
             )
             .unwrap(),
+        }
+        if let Some(e) = &proc.external {
+            let byval: Vec<&str> = e.byval.iter().map(|&b| if b { "byval" } else { "ref" }).collect();
+            writeln!(
+                out,
+                "  external {} of library {} ({})",
+                e.c_name,
+                e.library.0,
+                byval.join(", ")
+            )
+            .unwrap();
         }
         for v in &p.vars {
             let class = match v.storage {

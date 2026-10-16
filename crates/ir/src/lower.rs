@@ -56,6 +56,7 @@ pub fn lower(p: &sema::Program) -> Program {
             body,
             line: q.line,
             end_line: q.end_line,
+            external: q.external.clone(),
         });
     }
     let program = Program {
@@ -64,6 +65,7 @@ pub fn lower(p: &sema::Program) -> Program {
         main,
         types: p.types.clone(),
         data: p.data.clone(),
+        libraries: p.libraries.clone(),
         settings: crate::Settings {
             console: p.settings.console,
             window: p.settings.window,

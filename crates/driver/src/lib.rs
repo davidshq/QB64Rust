@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 pub use qb64rust_base::STACK_SIZE;
+pub use qb64rust_codegen_cpp::{Linkage, Resolved, ResolvedLibrary};
 
 /// Runs `f` on a new thread with [`STACK_SIZE`] of stack and returns its result. A panic in `f` is passed on.
 pub fn with_stack<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
@@ -198,11 +199,10 @@ pub fn check_exe_icon(fe: &mut Frontend, main_path: &Path) {
 }
 
 /// What the driver cannot do yet for a `DECLARE LIBRARY` block (`m3-declare-library`: `sema` enters the
-/// declarations and checks their calls; the C++ of the block and the lookup of its files are still to come): each
-/// block is "not supported yet" at its line, so such a program is never built without its library. Called before
-/// `-z`, a build, the `ir` and `cpp` dumps (of the CLI and of the front-end tests) and the demand report; not for
-/// the `typed` dump, the LSP or tier 1's list of clean programs (which keeps the 8 upstream programs on
-/// `tests\known_clean_not_passing.list`). Task 3.1 lifts it for the dumps, task 4.3 for the rest.
+/// declarations and checks their calls, `codegen-cpp` writes their C++; the lookup of the files is still to come):
+/// each block is "not supported yet" at its line, so such a program is never built without its library. Called
+/// before `-z`, a build and the demand report; not for the dumps, the LSP or tier 1's list of clean programs
+/// (which keeps the 8 upstream programs on `tests\known_clean_not_passing.list`). Task 4.3 lifts it.
 pub fn mark_libraries(fe: &mut Frontend) {
     for lib in &fe.program.libraries {
         fe.diagnostics.unsupported(
@@ -223,25 +223,25 @@ pub fn dump_ir(fe: &Frontend) -> String {
 }
 
 /// The C++ fragments of a checked program; `#line` directives name each file as the front end was given it or
-/// found it.
-pub fn emit(fe: &Frontend) -> qb64rust_codegen_cpp::Fragments {
-    emit_ir(fe, &lower(fe))
+/// found it. `resolved`: the files of its `DECLARE LIBRARY` blocks.
+pub fn emit(fe: &Frontend, resolved: &Resolved) -> qb64rust_codegen_cpp::Fragments {
+    emit_ir(fe, &lower(fe), resolved)
 }
 
 /// The C++ fragments of `ir`, the IR of `fe`'s program.
-pub fn emit_ir(fe: &Frontend, ir: &qb64rust_ir::Program) -> qb64rust_codegen_cpp::Fragments {
+pub fn emit_ir(fe: &Frontend, ir: &qb64rust_ir::Program, resolved: &Resolved) -> qb64rust_codegen_cpp::Fragments {
     let included = fe
         .map
         .files()
         .filter(|&(id, _)| id != fe.file)
         .map(|(id, f)| (id, f.name.clone()))
         .collect();
-    qb64rust_codegen_cpp::emit(ir, &fe.map.file(fe.file).name, &included)
+    qb64rust_codegen_cpp::emit(ir, &fe.map.file(fe.file).name, &included, resolved)
 }
 
 /// `--dump cpp`.
-pub fn dump_cpp(fe: &Frontend) -> String {
-    qb64rust_codegen_cpp::dump(&emit(fe))
+pub fn dump_cpp(fe: &Frontend, resolved: &Resolved) -> String {
+    qb64rust_codegen_cpp::dump(&emit(fe, resolved))
 }
 
 #[cfg(test)]

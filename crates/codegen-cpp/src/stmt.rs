@@ -139,8 +139,13 @@ impl Emitter<'_> {
             }
             Op::Call { proc, args } => {
                 let q = self.p.proc(*proc);
-                let a = self.args(*proc, args);
-                out.push(format!("{}({a});", proc_name(q)));
+                if q.external.is_some() {
+                    let call = self.library_call(*proc, args);
+                    out.push(format!("{call};"));
+                } else {
+                    let a = self.args(*proc, args);
+                    out.push(format!("{}({a});", proc_name(q)));
+                }
                 let string_param = |v: &qb64rust_ir::Var| !v.is_array() && is_qbs(v.ty);
                 let strings = args.iter().any(|a| a.uses_strings(self.p))
                     || q.params.iter().any(|&v| string_param(self.p.var(v)));

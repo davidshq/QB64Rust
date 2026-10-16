@@ -65,6 +65,7 @@ impl<'a> Emitter<'a> {
         self.p
             .procs
             .iter()
+            .filter(|q| q.external.is_none())
             .map(|q| format!("{};\n", self.signature(q)))
             .collect()
     }
@@ -97,7 +98,8 @@ impl<'a> Emitter<'a> {
         ))
     }
 
-    /// `mainK.txt`, `dataK.txt` and `freeK.txt` of procedure `i` (K = i + 1).
+    /// `mainK.txt`, `dataK.txt` and `freeK.txt` of procedure `i`, the K-th program procedure (a library procedure
+    /// has none).
     pub(crate) fn procedure(&mut self, i: usize, proc: &'a Proc, k: usize) -> (String, String, String) {
         let (mut data, mut free) = (String::new(), String::new());
         let mine = |s: Storage| match s {

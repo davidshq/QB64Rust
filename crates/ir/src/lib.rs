@@ -113,6 +113,9 @@ pub use qb64rust_sema::{AllocMode, Shape};
 pub use qb64rust_sema::{
     Arg, ArrayRef, Expr, ExprKind, InputSource as Source, MemValue, Place, ProcId, Reference, StmtArg, VarId,
 };
+/// The `DECLARE LIBRARY` blocks and the C function behind a library procedure are `sema`'s (design D1 of
+/// `m3-declare-library`): the names as written. Finding the files they name is the driver's.
+pub use qb64rust_sema::{External, Library, LibraryId, LibraryKind, LibraryName};
 /// Where a `PRINT` goes and the values of a `PRINT USING` are `sema`'s too.
 pub use qb64rust_sema::{PrintTo, UsingValue};
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
@@ -237,6 +240,11 @@ pub struct Proc {
     /// Source lines of the header and of the closing `END SUB`/`END FUNCTION`.
     pub line: u32,
     pub end_line: u32,
+    /// A procedure of a `DECLARE LIBRARY` block (design D1 of `m3-declare-library`): a function of the library,
+    /// called with its parameters, its body empty. Its parameters and result are variables only for the calls'
+    /// sake: nothing stores into them. A `BYVAL` parameter takes an [`Arg::Value`] or an [`Arg::Null`], another
+    /// one an [`Arg::Ref`] or an [`Arg::Temp`]; only a library procedure takes those two.
+    pub external: Option<External>,
 }
 
 /// What the error rule and the emitter ask of a value, a place or an argument of the shared tree.
@@ -730,6 +738,10 @@ pub struct Program {
     /// The program's data: the items of every `DATA` statement, in the order [`Op::Read`] takes them. How they are
     /// stored in the executable is the emitter's.
     pub data: Vec<DataItem>,
+    /// The `DECLARE LIBRARY` blocks in file order; [`External::library`] indexes it. A `DYNAMIC` library is loaded,
+    /// and each of its functions found, when the program starts: a library that cannot be loaded raises error
+    /// 259, a function it does not hold error 260, before the first statement (measured, `verification\v37_j`).
+    pub libraries: Vec<Library>,
     pub settings: Settings,
 }
 
@@ -820,5 +832,9 @@ impl Program {
 
     pub fn proc(&self, id: ProcId) -> &Proc {
         &self.procs[id.0 as usize]
+    }
+
+    pub fn library(&self, id: LibraryId) -> &Library {
+        &self.libraries[id.0 as usize]
     }
 }

@@ -231,7 +231,7 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
         } else {
             let ir = lower(&fe);
             let invalid_ir = qb64rust_ir::validate(&ir).err().map(|p| p.join("; "));
-            emit(&fe);
+            emit(&fe, &qb64rust_driver::Resolved::default());
             (true, invalid_ir)
         };
         (
@@ -376,7 +376,7 @@ fn real_programs_have_no_diagnostics() {
         if let Err(problems) = qb64rust_ir::validate(&ir) {
             panic!("{name}: invalid IR: {}", problems.join("; "));
         }
-        assert!(!emit(&fe).files.is_empty());
+        assert!(!emit(&fe, &qb64rust_driver::Resolved::default()).files.is_empty());
     }
 }
 

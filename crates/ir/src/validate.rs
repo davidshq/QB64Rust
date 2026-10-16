@@ -36,6 +36,31 @@ pub fn validate(p: &Program) -> Result<(), Vec<String>> {
         {
             v.problem(format!("{}: the result is not a result of this procedure", proc.name));
         }
+        // A library procedure: a function of one of the program's libraries, with no body, no array parameter,
+        // and a `BYVAL` flag per parameter.
+        if let Some(e) = &proc.external {
+            if p.libraries.get(e.library.0 as usize).is_none() {
+                v.problem(format!("{}: library {} does not exist", proc.name, e.library.0));
+            }
+            if !proc.body.stmts.is_empty() || !proc.body.labels.is_empty() {
+                v.problem(format!("{}: a library procedure with statements", proc.name));
+            }
+            if e.byval.len() != proc.params.len() {
+                v.problem(format!(
+                    "{}: {} BYVAL flags for {} parameters",
+                    proc.name,
+                    e.byval.len(),
+                    proc.params.len()
+                ));
+            }
+            if proc
+                .params
+                .iter()
+                .any(|&v| p.vars.get(v.0 as usize).is_some_and(Var::is_array))
+            {
+                v.problem(format!("{}: an array parameter of a library procedure", proc.name));
+            }
+        }
     }
     // An array allocated at the start lives for the program, and has one pair of bounds per dimension.
     for var in &p.vars {
@@ -716,11 +741,28 @@ impl Validator<'_> {
             Some(_) => {}
         }
         let params = self.p.procs.get(proc.0 as usize).map_or(&[][..], |q| &q.params[..]);
+        let external = self.p.procs.get(proc.0 as usize).and_then(|q| q.external.as_ref());
         for (k, a) in args.iter().enumerate() {
             // An array parameter takes a whole array and nothing else does; the two have one number of
             // dimensions where both have one.
             let param = params.get(k).and_then(|&v| self.p.vars.get(v.0 as usize));
             let to_array = param.is_some_and(Var::is_array);
+            // A `BYVAL` parameter of a library procedure takes a number or `NULL`, and nothing else does.
+            let byval = external.is_some_and(|e| e.byval.get(k).copied().unwrap_or(false));
+            let value = matches!(a, Arg::Value(_) | Arg::Null);
+            if param.is_some() && byval != value {
+                self.problem(format!(
+                    "{at}: argument {} is {} for a parameter that is {}",
+                    k + 1,
+                    if value { "a BYVAL value" } else { "no BYVAL value" },
+                    if byval { "BYVAL" } else { "not BYVAL" }
+                ));
+            }
+            if let Arg::Value(v) = a
+                && !v.ty.is_numeric()
+            {
+                self.problem(format!("{at}: BYVAL argument {} is no number", k + 1));
+            }
             match a {
                 Arg::Ref(place) => self.place(place, owner, at),
                 Arg::Temp(v) | Arg::Value(v) => self.value(v, owner, at),
@@ -1181,6 +1223,7 @@ mod tests {
                 },
                 line: 3,
                 end_line: 5,
+                external: None,
             }],
             main: Body {
                 labels: vec![label(0)],
@@ -1194,6 +1237,7 @@ mod tests {
             },
             types: Vec::new(),
             data: Vec::new(),
+            libraries: Vec::new(),
             settings: Settings {
                 console: true,
                 ..Settings::default()
@@ -1319,6 +1363,68 @@ mod tests {
             [
                 "S: parameter 1 is not a parameter of this procedure",
                 "S: the result is not a result of this procedure",
+            ]
+        );
+    }
+
+    /// A library procedure (design D1 of `m3-declare-library`): of a library that exists, with no statements, a
+    /// `BYVAL` flag per parameter; a `BYVAL` parameter takes a number or `NULL`, another one neither.
+    #[test]
+    fn library_procedures() {
+        let mut p = program();
+        p.libraries.push(crate::Library {
+            kind: crate::LibraryKind::Plain,
+            names: Vec::new(),
+            span: Span::new(FileId(0), 0, 0),
+        });
+        p.vars.push(var("V", Storage::Param(ProcId(1))));
+        p.procs.push(Proc {
+            name: "F".into(),
+            kind: ProcKind::Sub,
+            params: vec![VarId(3)],
+            result: None,
+            body: Body::default(),
+            line: 2,
+            end_line: 2,
+            external: Some(crate::External {
+                library: crate::LibraryId(0),
+                c_name: "f".into(),
+                byval: vec![true],
+            }),
+        });
+        let call = |a: Arg| Op::Call {
+            proc: ProcId(1),
+            args: vec![a],
+        };
+        p.main.stmts[0].ops.extend([
+            call(Arg::Value(load(0))),
+            call(Arg::Null),
+            call(Arg::Ref(Place::Var(VarId(0)))),
+            call(Arg::Value(expr(Ty::Str, ExprKind::Str(b"a".to_vec())))),
+        ]);
+        p.main.stmts[0].ops.push(Op::Call {
+            proc: ProcId(0),
+            args: vec![Arg::Null],
+        });
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: argument 1 is no BYVAL value for a parameter that is BYVAL"),
+                format!("{at}: BYVAL argument 1 is no number"),
+                format!("{at}: argument 1 is a BYVAL value for a parameter that is not BYVAL"),
+            ]
+        );
+        p.procs[1].external.as_mut().unwrap().library = crate::LibraryId(1);
+        p.procs[1].external.as_mut().unwrap().byval.clear();
+        p.procs[1].body.stmts.push(stmt(Vec::new()));
+        p.main.stmts[0].ops.clear();
+        assert_eq!(
+            problems(&p),
+            [
+                "F: library 1 does not exist",
+                "F: a library procedure with statements",
+                "F: 0 BYVAL flags for 1 parameters",
             ]
         );
     }

@@ -720,10 +720,26 @@ What the compiler supports so far:
   from the argument as written, since folding makes `1 - 1` a 0 too). The parser rejects a name without quotes,
   two names without a comma and `STATIC` after a declaration; `sema` the other forms, each with the old
   compiler's reason (`library_errors`); `library_typed` holds the accepted forms. A library FUNCTION beside a
-  program SUB of the name (`v37_x22`) is marked. Not yet: the C++ of a block and of a call, and finding the
-  library files; until then the driver marks each block "not supported yet" before `-z`, a build, the `ir` and
-  `cpp` dumps and the demand report (`mark_libraries`), so such a program never builds without its library and
-  no dump shows a stub for a library procedure.
+  program SUB of the name (`v37_x22`) is marked.
+- **`DECLARE LIBRARY` in the IR and the C++** (`m3-declare-library` group 3, design D3): the IR carries
+  `Program::libraries` and each library procedure's `External` (dump: `Library` lines and `external … of
+  library N`); validation checks that a `BYVAL` parameter takes `Arg::Value` or `Arg::Null` and nothing else does.
+  `codegen-cpp\src\library.rs` takes a `Resolved` (what the driver found: per block its headers, files and DLL name,
+  per declaration without a header its C or C++ linkage) as an input of `emit`, and writes into `regsf.txt`, before
+  the program's prototypes: each header once in the program (D-023), a prototype per declaration of a named block
+  without a header (`extern "C"` for C linkage; none for a block with no name, the C runtime), a `DYNAMIC` block's
+  `HINSTANCE` (one per DLL, named as the old compiler names it, `_2` after a name another DLL took) and `DLLCALL_`
+  pointers, a `CUSTOMTYPE` block's `CUSTOMCALL_` pointers; into `maindata.txt`, first, the `LoadLibrary` and
+  `GetProcAddress` lines with errors 259 and 260 and the `CUSTOMTYPE` pointers; into `global.txt` the declaration
+  of a function a `CUSTOMTYPE` block without a header points to (`extern "C"` for a C name, `nm`'s demangled text,
+  carried by `Linkage::Cpp`, for a C++ one). A call:
+  the C name (or the pointer `FUNC_X`/`SUB_X`), a result cast to its type or a `STRING` one through
+  `qbs_new_txt`, a string argument as `(char*)(s)->chr`, a `BYVAL` value with its widening and truncating
+  conversions left to C (a float to an integer keeps `qbr`). A library procedure has no fragments of its own:
+  procedure K is the K-th program procedure. Tests: `library_ir` (`ir`), `library_cpp` (`cpp`, with a fixed
+  `Resolved` in `frontend.rs`: `./name` a library file, `cpp` in it C++ linkage, any other name a header).
+  Not yet: finding the library files (group 4); the CLI's `cpp` dump uses an empty `Resolved` until then, and the
+  driver marks each block "not supported yet" before `-z`, a build and the demand report (`mark_libraries`).
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`

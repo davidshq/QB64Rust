@@ -1136,9 +1136,8 @@ fn report_unsupported_counts_a_folder() {
     assert_eq!(stdout(&o), expected);
 }
 
-/// `m3-declare-library` until its groups 3 and 4: a program with a library block is "not supported yet" in the
-/// demand report and in the `ir` and `cpp` dumps, as in a build, so no dump shows a stub for a library procedure;
-/// the `typed` dump shows its declarations.
+/// `m3-declare-library` until its group 4: a program with a library block is "not supported yet" in the demand
+/// report, as in a build; the dumps show its declarations and calls (the `cpp` dump with no file found, task 4.1).
 #[test]
 fn a_library_block_is_marked_until_it_builds() {
     let d = scratch("report-library");
@@ -1153,11 +1152,14 @@ fn a_library_block_is_marked_until_it_builds() {
         "{}",
         stdout(&o)
     );
-    for stage in ["ir", "cpp"] {
+    for (stage, call) in [
+        ("ir", "CallProc ISDIGIT:I32 [Value(Const 48:I32)]"),
+        ("cpp", "((int32)isdigit(48))"),
+    ] {
         let o = qb64rust(&d, &["--dump", stage, "lib.bas"]);
-        assert_eq!(o.status.code(), Some(1), "{stage}: {}", stdout(&o));
-        assert!(stdout(&o).contains(mark), "{stage}: {}", stdout(&o));
-        assert!(!stdout(&o).contains("ISDIGIT"), "{stage}: {}", stdout(&o));
+        assert!(o.status.success(), "{stage}: {}", stdout(&o));
+        assert!(!stdout(&o).contains(mark), "{stage}: {}", stdout(&o));
+        assert!(stdout(&o).contains(call), "{stage}: {}", stdout(&o));
     }
     let o = qb64rust(&d, &["--dump", "typed", "lib.bas"]);
     assert!(o.status.success(), "{}", stdout(&o));

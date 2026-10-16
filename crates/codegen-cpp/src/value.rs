@@ -3,50 +3,52 @@
 use crate::Emitter;
 use crate::decl::{dim_slot, is_qbs, lock_slot};
 use crate::names::{bare, c_string, c_type, int_const, proc_name};
-use qb64rust_ir::{Arg, ArrayRef, BinOp, Conv, Expr, ExprKind, MemberId, Place, ProcId, Ty, UnOp};
+use qb64rust_ir::{Arg, ArrayRef, BinOp, Conv, Expr, ExprKind, MemberId, Place, ProcId, Ty, UnOp, VarId};
 
 impl Emitter<'_> {
     /// Arguments of a call of `proc`: a place's own pointer (cast to the parameter's type when the place has the same
     /// width and the other signedness, as the old compiler passes it), a string temporary as it is, a numeric copy
     /// in a new `passN`, or a whole array's descriptor.
+    /// Not for a library procedure: its calls are `library_call`'s.
     pub(crate) fn args(&mut self, proc: ProcId, args: &[Arg]) -> String {
         let params = self.p.proc(proc).params.clone();
-        let parts: Vec<String> = args
-            .iter()
-            .zip(params)
-            .map(|(a, param)| match a {
-                Arg::Ref(place) => {
-                    let (from, to) = (self.p.place_ty(place), self.p.var(param).ty);
-                    let r = self.place_ref(place);
-                    if from == to || is_qbs(to) {
-                        r
-                    } else {
-                        format!("({}*)({r})", c_type(to))
-                    }
-                }
-                Arg::Temp(v) if is_qbs(v.ty) => self.value(v),
-                Arg::Temp(v) => {
-                    self.pass += 1;
-                    let n = format!("pass{}", self.pass);
-                    self.pass_decls.push(format!("{} {n};\n", c_type(v.ty)));
-                    format!("&({n}={})", self.value(v))
-                }
-                Arg::Array(ArrayRef::Var(a)) => self.name(*a),
-                // A dynamic member array is passed as its descriptor: a `REDIM` or `ERASE` in the procedure
-                // changes the member (design D4 of `m3-typefields`).
-                Arg::Array(ArrayRef::Member { base, member }) if self.dynamic_member(base, *member).is_some() => {
-                    let (id, m) = self.dynamic_member(base, *member).expect("a dynamic member array");
-                    let slot = self.dyn_slot(base, *member);
-                    format!("{}({slot})", crate::owner::dyn_fn(id, m, "desc"))
-                }
-                Arg::Array(ArrayRef::Member { base, member }) => self.member_array_arg(base, *member),
-                // To a `BYVAL` parameter of a library procedure: the converted value with no cast, or `NULL`
-                // (design D3 of `m3-declare-library`).
-                Arg::Value(v) => self.value(v),
-                Arg::Null => "NULL".to_string(),
-            })
-            .collect();
+        let parts: Vec<String> = args.iter().zip(params).map(|(a, param)| self.arg(a, param)).collect();
         parts.join(",")
+    }
+
+    /// One argument of a call, to parameter `param`.
+    pub(crate) fn arg(&mut self, a: &Arg, param: VarId) -> String {
+        match a {
+            Arg::Ref(place) => {
+                let (from, to) = (self.p.place_ty(place), self.p.var(param).ty);
+                let r = self.place_ref(place);
+                if from == to || is_qbs(to) {
+                    r
+                } else {
+                    format!("({}*)({r})", c_type(to))
+                }
+            }
+            Arg::Temp(v) if is_qbs(v.ty) => self.value(v),
+            Arg::Temp(v) => {
+                self.pass += 1;
+                let n = format!("pass{}", self.pass);
+                self.pass_decls.push(format!("{} {n};\n", c_type(v.ty)));
+                format!("&({n}={})", self.value(v))
+            }
+            Arg::Array(ArrayRef::Var(a)) => self.name(*a),
+            // A dynamic member array is passed as its descriptor: a `REDIM` or `ERASE` in the procedure
+            // changes the member (design D4 of `m3-typefields`).
+            Arg::Array(ArrayRef::Member { base, member }) if self.dynamic_member(base, *member).is_some() => {
+                let (id, m) = self.dynamic_member(base, *member).expect("a dynamic member array");
+                let slot = self.dyn_slot(base, *member);
+                format!("{}({slot})", crate::owner::dyn_fn(id, m, "desc"))
+            }
+            Arg::Array(ArrayRef::Member { base, member }) => self.member_array_arg(base, *member),
+            // To a `BYVAL` parameter of a library procedure: the converted value with no cast, or `NULL`
+            // (design D3 of `m3-declare-library`).
+            Arg::Value(v) => self.value(crate::library::byval_value(v)),
+            Arg::Null => "NULL".to_string(),
+        }
     }
 
     /// A whole member array as an array argument (design D8 of `m2-defxxx-common-arrays`; measured,
@@ -271,6 +273,9 @@ impl Emitter<'_> {
                 format!("(({c})?({a}):({b}))")
             }
             ExprKind::Call { builtin: id, args } => self.call(*id, args, v.ty, v.qb),
+            ExprKind::CallProc { proc, args } if self.p.proc(*proc).external.is_some() => {
+                self.library_call(*proc, args)
+            }
             ExprKind::CallProc { proc, args } => {
                 let a = self.args(*proc, args);
                 format!("{}({a})", proc_name(self.p.proc(*proc)))

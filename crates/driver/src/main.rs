@@ -252,10 +252,9 @@ fn run() -> Result<ExitCode, String> {
         Box::new(FileLoader::new(&include_root, file, &input))
     });
     qb64rust_driver::check_exe_icon(&mut fe, &input);
-    if matches!(o.dump.as_deref(), Some("ir" | "cpp")) {
-        // The IR and the C++ of a library procedure are not written yet; a dump of them would show a stub.
-        qb64rust_driver::mark_libraries(&mut fe);
-    }
+    // The files of the program's libraries: none found until the driver looks for them (`m3-declare-library` task
+    // 4.1), so the `cpp` dump writes each block as one without a header and without files.
+    let resolved = qb64rust_driver::Resolved::default();
     let errors = fe.diagnostics.error_count();
     // Warnings only with -w, never counted in the summary (spec `compiler/cli`).
     let report = |fe: &qb64rust_driver::Frontend| {
@@ -275,7 +274,7 @@ fn run() -> Result<ExitCode, String> {
             _ if errors > 0 => {}
             "typed" => print!("{}", qb64rust_sema::dump_typed(&fe.program)),
             "ir" => print!("{}", dump_ir(&fe)),
-            "cpp" => print!("{}", dump_cpp(&fe)),
+            "cpp" => print!("{}", dump_cpp(&fe, &resolved)),
             _ => unreachable!(),
         }
         report(&fe);
@@ -299,7 +298,7 @@ fn run() -> Result<ExitCode, String> {
 
     let ir = lower(&fe);
     settings.flags = build::make_flags(&ir.settings);
-    let fragments = emit_ir(&fe, &ir);
+    let fragments = emit_ir(&fe, &ir, &resolved);
     let build_dir = build::build_dir(&exe);
     if o.cpp_only {
         let temp = build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
