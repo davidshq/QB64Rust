@@ -17,14 +17,12 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 
 ## Where we are
 
-M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: eleven of its steps are done, committed and
+M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: twelve of its steps are done, committed and
 archived on branch `m3` (table below). Every program of the corpus that the old compiler accepts compiles, and
 every one that can be compared passes; Civil War Strategy compiles with no diagnostic, builds, and played for two
-turns from a keys file shows the same 23 screens as the old compiler's build. Upstream is at 318 of 399. The
-twelfth step, `DECLARE LIBRARY` (OpenSpec change `m3-declare-library`), is built: all six groups are done and its
-closing runs are green (below); it waits for the user to commit it, then to be archived. `main` is at the merge of
-`m2-console-screenhide` (pull request 4, 2026-10-13; every workflow green there, seen 2026-10-13); `m3` has not
-been merged.
+turns from a keys file shows the same 23 screens as the old compiler's build. Upstream is at 318 of 399. `main`
+is at the merge of `m2-console-screenhide` (pull request 4, 2026-10-13); `m3` is in a pull request to `main`,
+opened 2026-10-16, for the user to merge.
 
 ## Waiting on the user
 
@@ -33,15 +31,7 @@ Oldest first. Each line names where the details are. The list of 2026-10-16 was 
 change's close. Separate from this list and standing: `SOMEDAY.md`'s "QB64pe behaviours to review", the
 questionable behaviours each change kept QB64pe's way.
 
-1. **`m3-declare-library`, the answer of 2026-10-16 applied to two more cases** (`tasks.md` 3.3, 4.1): two
-   `DYNAMIC` blocks of one DLL (`verification\v37_x67`, measured) and a block without a header whose last name
-   is a folder only (`x69`, measured), whose C++ fails with the old compiler, are rejected before the C++ with an
-   error that says why, as the unguarded header that defines something (`x16`) is. Before, this compiler built
-   both programs (the first with one shared handle, the second with C linkage).
-2. **`m3-declare-library`, `v37_x57`** (`tasks.md` 4.4): `h_isnull&(1 - 1)` to a header's `const void*`
-   compiles and runs with folding on (`1 - 1` becomes `0ll`, which C++ takes as a null pointer) and fails in C++
-   without it, as the old compiler's does. Leave it (a failed compile fixed by folding), or write a folded
-   integer to a `BYVAL _OFFSET` so that C++ fails as without folding?
+1. **Merge the pull request of `m3` into `main`** (opened 2026-10-16).
 
 **The `tier2` job on `m3`** (`study\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -63,8 +53,7 @@ push shows them (the user is not concerned with CI, working rule 9).
 3. **A run-time trace of divergences**: an environment variable makes the runtime print one line when a D-row's
    path is taken; the test runner sets it for every run and fails on a line it does not expect. Every D-row with
    a run-time path.
-4. **Merge `m3` into `main`** once `m3-declare-library` is committed (a pull request for the user to merge), then
-   every two or three changes.
+4. **Merge `m3` into `main`** every two or three changes (the first pull request opened 2026-10-16).
 5. **Its own change after `m3-declare-library`**: every diagnostic whose wording differs from the old compiler's
    carries the old wording as a note, from recorded output.
 
@@ -89,7 +78,7 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 9 | `2026-10-14-m3-redim-retain` | `REDIM _RETAIN`; D-018 |
 | 10 | `2026-10-15-m3-typefields` | `$UNSTABLE:TYPEFIELDS`, member markers, `_DYNAMIC` member arrays; the arrays used after a marked declaration (`DECISIONS.md` 2026-10-14, item 1) are no longer named by the demand report |
 | 11 | `2026-10-15-m3-whole-array-assign` | whole-array assignment `a() = b()` |
-| 12 | `m3-declare-library` (built, not archived) | `DECLARE LIBRARY` in its four forms on Windows; D-023 and D-024 not built |
+| 12 | `2026-10-16-m3-declare-library` | `DECLARE LIBRARY` in its four forms on Windows; D-023 and D-024 not built |
 
 ## Numbers at the last full runs
 

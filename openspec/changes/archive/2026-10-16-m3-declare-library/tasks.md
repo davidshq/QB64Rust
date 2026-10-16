@@ -257,6 +257,8 @@ with `python verification\v37_lib\build_libs.py`.
   under "QB64pe behaviours to review" (`x23`/`x30`, `x63`, `x66`); accepting D-023 and D-024 was already under
   "Other ideas". `verification\README.md` already named `x67`–`x70`. "Waiting on the user" keeps its two items
   (the answer applied to `x67` and `x69`; `x57`), which this change does not settle.
+  Answered by the user, 2026-10-16 (`DECISIONS.md`): the rejection of `x67` and `x69` before the C++ is
+  confirmed; `x57` is left as built, and gets no row in `DIVERGENCES.md`.
 - [x] 6.2 Closing runs, once (working rule 9): tier 1 with the command-line tests that build, the runner's tests,
   the slice list with and without folding, the upstream and differential pass lists, the two full suites, the
   demand reports, the shrink-only lists regenerated (the call-site check is not affected: no built-in changes;
