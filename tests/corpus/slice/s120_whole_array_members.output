@@ -1,0 +1,18 @@
+1. member to member: 5  15  w0 w1 9  leaf
+2. member to array: 5  10  15 
+3. array to member: 5 -1  15 
+4. members of array elements: 77  e1
+5. other bounds (error): error 9  after: 0 
+6. a member of an element from an array: 4 
+7. the target's place first: f 2  f 1  9 
+8. an error handled before: error 7  3 
+9. DIM target of an owner type: 5  3  5  44  one 21 []
+10. REDIM target: 2  22  r2
+11. DIM target from REDIM source: 2  22  r2
+12. nested owner type: 12  w os
+13. a _DYNAMIC member to another, other bounds: error 9  0  1 
+14. the same bounds: 8 
+15. a plain array to a _DYNAMIC member and back: 31  8 
+16. an inline member array of an owner type: 5  5 
+17. a _DYNAMIC member array of an owner type: 6  6 
+18. _MEM of a member of an element:-1 -1  4  4 

@@ -1,0 +1,67 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 7: Assign L:I32
+  Call _SCREENIMAGE : I32
+    (absent)
+    (absent)
+    (absent)
+    (absent)
+line 8: Assign L:I32
+  Call _SCREENIMAGE : I32
+    Int 1 : I32
+    Int 2 : I32
+    Int 3 : I32
+    Int 4 : I32
+line 9: Assign L:I32
+  Call _SCREENIMAGE : I32
+    Convert Widen : I32
+      Var I : I16
+    Var L : I32
+    Convert Truncate : I32
+      Var Q : I64
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var S : F32
+line 10: Assign L:I32
+  Call _SCREENIMAGE : I32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Float 2.5E+0 : F64 (qb F32)
+    Convert Widen : I32
+      Var I : I16
+    Convert Widen : I32
+      Var I : I16
+line 11: Print newline
+  Str
+    Call HEX : Str
+      Call _SCREENIMAGE : I32
+        (absent)
+        (absent)
+        (absent)
+        (absent)
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Call _SCREENIMAGE : I32
+          (absent)
+          (absent)
+          (absent)
+          (absent)
+        Int 1 : I32
+line 12: Assign L:I32
+  Call _CLIPBOARDIMAGE : I32
+line 13: Print newline
+  Str
+    Call HEX : Str
+      Call _CLIPBOARDIMAGE : I32
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Call _CLIPBOARDIMAGE : I32
+        Int 1 : I32

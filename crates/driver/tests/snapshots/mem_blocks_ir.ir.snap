@@ -1,0 +1,25 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+Settings: console, no window
+Array Z:T:_MEM static (0 To 3)
+Stmt line 2
+  SelectConsole
+Stmt line 11 may_raise
+  Builtin _MEMFREE [Place M:T:_MEM]
+Stmt line 12 may_raise
+  Builtin _MEMFREE [Place Z(Const 1:I64):T:_MEM]
+Stmt line 13 may_raise
+  Builtin _MEMFREE [Place U.MM:T:_MEM]
+Stmt line 14 may_raise
+  Builtin _MEMFREE [Place N:T:_MEM]
+Stmt line 15 may_raise
+  Builtin _MEMCOPY [Place M:T:_MEM, Value(Load M.OFFSET:Off), Value(Const 8:Off), Word 0, Place N:T:_MEM, Value(Load N.OFFSET:Off)]
+Stmt line 16 may_raise
+  Builtin _MEMCOPY [Place U.MM:T:_MEM, Value((Var K:I32 -> Convert Off Widen)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert Off Truncate)), Word 0, Place Z((Var K:I32 -> Convert I64 Widen)):T:_MEM, Value(((Const 1.5E+0:F64 -> Convert I64 RoundEven) -> Convert Off Truncate))]
+Stmt line 17 may_raise
+  Builtin _MEMCOPY [Place M:T:_MEM, Value(Const 0:Off), Value(Const 4:Off), Word 0, Place M:T:_MEM, Value(Const 4:Off)]
+Stmt line 18
+  System

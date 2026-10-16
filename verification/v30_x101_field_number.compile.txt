@@ -1,0 +1,5 @@
+
+Expected FIELD #filenumber, characters AS variable$, ...
+Caused by (or after):FIELD # 1 , 4 AS N
+LINE 15:FIELD #1, 4 AS n
+exit=1

@@ -1,0 +1,147 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+Settings: console, no window, runtime parts: audio
+Stmt line 2
+  SelectConsole
+Stmt line 10 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 11 may_raise
+  Builtin SOUND [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 12 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Value(Const 0.5E+0:F64), Absent, Absent, Absent, Absent, Absent]
+Stmt line 13 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Value(Const 0:I16), Absent, Absent, Absent, Absent]
+Stmt line 14 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Value(Const 4:I32), Absent, Absent, Absent]
+Stmt line 15 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Absent, Value(Const 0.5E+0:F64), Absent, Absent]
+Stmt line 16 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Absent, Absent, Value(Const 1:U32), Absent]
+Stmt line 17 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Value(Const 0.5E+0:F64), Value(Const 0:I16), Value(Const 4:I32), Value(Const 0.5E+0:F64), Value(Const 1:U32), Absent]
+Stmt line 18 may_raise
+  Builtin SOUND [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Word 0]
+Stmt line 19 may_raise
+  Builtin SOUND [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Word 1]
+Stmt line 20 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Absent, Absent, Absent, Word 0]
+Stmt line 21 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Value(Const 0.5E+0:F64), Absent, Absent, Absent, Absent, Word 1]
+Stmt line 22 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Value(Const 0.5E+0:F64), Value(Const 0:I16), Value(Const 4:I32), Value(Const 0.5E+0:F64), Value(Const 1:U32), Word 0]
+Stmt line 23 may_raise
+  Builtin SOUND [Value(Var I:I16), Value(Var L:I32), Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 24 may_raise
+  Builtin SOUND [Value(Var Q:I64), Value(Var D:F64), Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 25 may_raise
+  Builtin SOUND [Value(Var U:U32), Value(Var S:F32), Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 26 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Value(Var D:F64), Value(Var Q:I64), Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(Var I:I16), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert U32 Truncate)), Absent]
+Stmt line 27 may_raise
+  Builtin SOUND [Value(Var F:F80), Value(Var F:F80), Value(Var F:F80), Value(Var F:F80), Value(((Var F:F80 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(Var F:F80), Value(((Var F:F80 -> Convert I64 RoundEven) -> Convert U32 Truncate)), Absent]
+Stmt line 28 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 29 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 30 may_raise
+  Builtin SOUND [Value(Add:F32((Const 37:I16 -> Convert F32 Nearest), Mul:F32((Const 50:I16 -> Convert F32 Nearest), CallBuiltin RND:F32 [None]))), Value(Const 0.03E+0:F64), Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 31 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 32 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Absent, Absent, Absent, Word 0]
+Stmt line 33 may_raise
+  Builtin SOUND [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Word 1]
+Stmt line 34 may_raise
+  Builtin SOUND [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 34
+  Assign L:I32 = Const 1:I32
+Stmt line 35 may_raise
+  Builtin SOUND [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Word 0]
+Stmt line 35 may_raise
+  Builtin SOUND [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Word 1]
+Stmt line 35
+  Assign L:I32 = Const 2:I32
+Stmt line 36 may_raise
+  Builtin SOUND [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 37 may_raise
+  Builtin PLAY [Value(Const "c"), Absent, Absent, Absent]
+Stmt line 38 may_raise
+  Builtin PLAY [Value(Var T:Str), Absent, Absent, Absent]
+Stmt line 39 may_raise
+  Builtin PLAY [Value(Var T:Str), Value(Var T:Str), Absent, Absent]
+Stmt line 40 may_raise
+  Builtin PLAY [Value(Var T:Str), Absent, Value(Var T:Str), Absent]
+Stmt line 41 may_raise
+  Builtin PLAY [Value(Var T:Str), Absent, Absent, Value(Var T:Str)]
+Stmt line 42 may_raise
+  Builtin PLAY [Value(Var T:Str), Value(Var T:Str), Value(Var T:Str), Value(Var T:Str)]
+Stmt line 43 may_raise
+  Builtin PLAY [Value(Var T:Str), Absent, Absent, Absent]
+Stmt line 44 may_raise
+  Builtin PLAY [Value(Concat(Concat(Const "c", Var T:Str), CallBuiltin LEFT:Str [Some(Var T:Str), Some(Const 2:I32)])), Absent, Absent, Absent]
+Stmt line 45 may_raise
+  Builtin PLAY [Value(Var T:Str), Absent, Absent, Absent]
+Stmt line 46 may_raise
+  Builtin PLAY [Value(Var T:Str), Absent, Absent, Absent]
+Stmt line 47 may_raise
+  Builtin PLAY [Value(Var FS:Str), Absent, Absent, Absent]
+Stmt line 48 may_raise
+  Builtin PLAY [Value(Var T:Str), Value(Var FS:Str), Absent, Absent]
+Stmt line 49 may_raise
+  Builtin PLAY [Value(Var T:Str), Absent, Absent, Absent]
+Stmt line 50 may_raise
+  Builtin BEEP []
+Stmt line 51 may_raise
+  Builtin BEEP []
+Stmt line 52 may_raise
+  Builtin BEEP []
+Stmt line 52
+  Assign L:I32 = Const 3:I32
+Stmt line 53 may_raise
+  Builtin BEEP []
+Stmt line 54 may_raise
+  Builtin BEEP []
+Stmt line 55
+  Branch Zero -> @1 Skip: Var L:I32
+Stmt line 55 may_raise
+  Builtin BEEP []
+Stmt line 55
+  Jump @0
+Label @1 line 55
+Stmt line 55 may_raise
+  Builtin BEEP []
+Label @0 line 55
+Stmt line 56
+  Branch Zero -> @2 Skip: Var L:I32
+Stmt line 56 may_raise
+  Builtin BEEP []
+Stmt line 56 may_raise
+  Builtin BEEP []
+Label @2 line 56
+Stmt line 57
+  Branch Zero -> @4 Skip: Var L:I32
+Stmt line 57 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 57
+  Jump @3
+Label @4 line 57
+Stmt line 57 may_raise
+  Builtin PLAY [Value(Var T:Str), Absent, Absent, Absent]
+Label @3 line 57
+Stmt line 58 may_raise
+  Call ONE []
+Stmt line 59
+  System
+Sub ONE lines 61-64
+Stmt line 62 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 62 may_raise
+  Builtin PLAY [Value(Const "c"), Absent, Absent, Absent]
+Stmt line 62 may_raise
+  Builtin BEEP []
+Stmt line 63 may_raise
+  Print console newline
+    Num CallBuiltin PLAY:F64 [Some(Const 0:U32)]

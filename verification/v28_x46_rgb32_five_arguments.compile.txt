@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _RGB32(red&, green&, blue&[, alpha&]) or _RGB32(intensity&[, alpha&])
+Caused by (or after):U = _RGB32 ( 1 , 2 , 3 , 4 , 5 )
+LINE 7:u = _RGB32(1, 2, 3, 4, 5)
+exit=1

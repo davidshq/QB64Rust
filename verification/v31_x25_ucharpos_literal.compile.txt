@@ -1,0 +1,5 @@
+
+Expected LONG array-name
+Caused by (or after):N = _UCHARPOS ( "abc",3 , 5 )
+LINE 5:n = _UCHARPOS("abc", 5)
+exit=1

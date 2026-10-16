@@ -1,0 +1,5 @@
+
+Unexpected element '_SHL'
+Caused by (or after):
+LINE 3:CONST C = _SHL ( 1 , 4 ) , D = _SHR ( 16 , 2 )
+exit=1

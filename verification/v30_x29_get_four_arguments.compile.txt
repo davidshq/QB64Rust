@@ -1,0 +1,5 @@
+
+Syntax error - Reference: GET #fileNumber&, [position][, targetVariable|targetArray()}]
+Caused by (or after):GET # 1 , 1 , C , 2
+LINE 6:GET #1, 1, c, 2
+exit=1

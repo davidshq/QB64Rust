@@ -1,0 +1,36 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+file_get_put_errors.bas:15:11: error: `PUT` needs a variable here
+file_get_put_errors.bas:16:11: error: `PUT` needs a variable here
+file_get_put_errors.bas:17:11: error: `PUT` needs a variable here
+file_get_put_errors.bas:18:11: error: `GET` needs a variable here
+file_get_put_errors.bas:19:11: error: `GET` of a `_BIT` variable
+file_get_put_errors.bas:20:10: error: this `GET` statement matches none of its forms: `GET [{Step}](?,?)-[{Step}](?,?),?[,?]`, `GET [#]?[,[?][,?]]`
+file_get_put_errors.bas:21:4: error: this `GET` statement matches none of its forms: `GET [{Step}](?,?)-[{Step}](?,?),?[,?]`, `GET [#]?[,[?][,?]]`
+file_get_put_errors.bas:22:13: error: this `GET` statement matches none of its forms: `GET [{Step}](?,?)-[{Step}](?,?),?[,?]`, `GET [#]?[,[?][,?]]`
+file_get_put_errors.bas:23:6: error: this `GET` statement matches none of its forms: `GET [{Step}](?,?)-[{Step}](?,?),?[,?]`, `GET [#]?[,[?][,?]]`
+file_get_put_errors.bas:24:5: error: argument 1 of `GET` needs a number
+file_get_put_errors.bas:25:9: error: argument 2 of `GET` needs a number
+file_get_put_errors.bas:26:11: error: `PUT` needs a variable here
+file_get_put_errors.bas:27:11: error: `PUT` needs a variable here
+file_get_put_errors.bas:28:11: error: `PUT` of a `_BIT` variable
+file_get_put_errors.bas:29:1: error: this is no form of graphics `GET`
+file_get_put_errors.bas:30:12: error: `PUT` of a whole array of variable-length strings
+file_get_put_errors.bas:31:12: error: `PUT` of a `TYPE T` value: a `TYPE` with a `STRING` member has no fixed size
+file_get_put_errors.bas:32:12: error: `PUT` of a whole member array
+file_get_put_errors.bas:33:11: error: `GET` needs a variable here
+file_get_put_errors.bas:34:4: error: this `PUT` statement matches none of its forms: `PUT [{Step}](?,?),?[,[{_Clip}][{PSet|PReset|And|Or|Xor}][,?]]`, `PUT [#]?[,[?][,?]]`
+file_get_put_errors.bas:35:13: error: this `PUT` statement matches none of its forms: `PUT [{Step}](?,?),?[,[{_Clip}][{PSet|PReset|And|Or|Xor}][,?]]`, `PUT [#]?[,[?][,?]]`
+file_get_put_errors.bas:36:1: error: `LOCK` needs the first record before `TO`
+file_get_put_errors.bas:37:5: error: this `LOCK` statement matches none of its forms: `LOCK [#]?[,[?][{To}?]]`
+file_get_put_errors.bas:38:14: error: this `LOCK` statement matches none of its forms: `LOCK [#]?[,[?][{To}?]]`
+file_get_put_errors.bas:39:9: error: this `LOCK` statement matches none of its forms: `LOCK [#]?[,[?][{To}?]]`
+file_get_put_errors.bas:40:11: error: this `LOCK` statement matches none of its forms: `LOCK [#]?[,[?][{To}?]]`
+file_get_put_errors.bas:41:6: error: argument 1 of `LOCK` needs a number
+file_get_put_errors.bas:42:7: error: this `UNLOCK` statement matches none of its forms: `UNLOCK [#]?[,[?][{To}?]]`
+file_get_put_errors.bas:43:12: error: argument 2 of `UNLOCK` needs a number
+file_get_put_errors.bas:44:17: error: argument 3 of `UNLOCK` needs a number
+file_get_put_errors.bas:46:11: error: `GET` needs a variable here
+file_get_put_errors.bas:47:11: error: `PUT` needs a variable here

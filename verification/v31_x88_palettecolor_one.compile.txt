@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _PALETTECOLOR attribute%, newColor&[, imgHandle&]
+Caused by (or after):_PALETTECOLOR 3
+LINE 5:_PALETTECOLOR 3
+exit=1

@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SETALPHA alpha& or _SETALPHA color1& TO color2&[, imageHandle&]
+Caused by (or after):_SETALPHA
+LINE 5:_SETALPHA
+exit=1

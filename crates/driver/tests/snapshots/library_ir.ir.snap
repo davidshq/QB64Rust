@@ -1,0 +1,61 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Library 0 Plain "v37_lib/v37h"
+Library 1 Dynamic "kernel32"
+Stmt line 2
+  SelectConsole
+Stmt line 24 may_raise
+  Print console newline
+    Num CallProc H_ADD:I32 [Value(Var X:I32), Value(((Const 2.6E+0:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+    Num CallProc H_D:F64 [Value(Var Y:F64)]
+    Num CallProc H_ISNULL:I32 [Null]
+    Num CallProc H_PTSUM:I32 [Ref P:T:PT]
+    Str CallProc H_HELLO:Str []
+    Num CallProc LSTRLENA:I32 [Ref S:Str]
+Stmt line 25 may_raise
+  Call H_PL [Ref X:I32]
+Stmt line 25 may_raise
+  Call H_PL [Temp(Var X:I32)]
+Stmt line 25 may_raise
+  Call H_UPPER [Ref S:Str]
+Stmt line 25 may_raise
+  Call H_UPPER [Temp(Const "lit")]
+Stmt line 26 may_raise
+  Call BUMP []
+Sub BUMP lines 28-30
+  local X:F32
+Stmt line 29 may_raise
+  Assign X(local):F32 = (CallProc H_ADD:I32 [Value(Const 1:I32), Value(Const 2:I32)] -> Convert F32 Nearest)
+Function H_ADD:I32 lines 11-11
+  external h_add of library 0 (byval, byval)
+  param A:I32
+  param B:I32
+  result H_ADD:I32
+Function H_D:F64 lines 12-12
+  external h_d of library 0 (byval)
+  param V:F64
+  result H_D:F64
+Function H_ISNULL:I32 lines 13-13
+  external h_isnull of library 0 (byval)
+  param P:Off
+  result H_ISNULL:I32
+Function H_PTSUM:I32 lines 14-14
+  external h_ptsum of library 0 (ref)
+  param P:T:PT
+  result H_PTSUM:I32
+Function H_HELLO:Str lines 15-15
+  external h_hello of library 0 ()
+  result H_HELLO:Str
+Sub H_PL lines 16-16
+  external h_pl of library 0 (ref)
+  param V:I32
+Sub H_UPPER lines 17-17
+  external h_upper of library 0 (ref)
+  param S:Str
+Function LSTRLENA:I32 lines 20-20
+  external lstrlenA of library 1 (ref)
+  param S:Str
+  result LSTRLENA:I32

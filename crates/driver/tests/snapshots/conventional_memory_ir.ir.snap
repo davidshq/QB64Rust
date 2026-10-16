@@ -1,0 +1,64 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Array CM:I16 dynamic, dimensions: 1, in conventional memory
+Array G:I16 static (1 To 6), in conventional memory
+Array A:I16 static (1 To 10), in conventional memory
+Array B:I16 static (1 To 10)
+Array M:I32 static (1 To 3, 1 To 4), in conventional memory
+Array DY:I32 dynamic, dimensions: 1, in conventional memory
+Stmt line 2
+  SelectConsole
+Stmt line 9 may_raise
+  Allocate Dim CM:I16
+    Const 1:I64 To Const 20:I64
+Stmt line 13
+  Assign N:I16 = Const 8:I16
+Stmt line 14 may_raise
+  Allocate Dim DY:I32
+    Const 1:I64 To (Var N:I16 -> Convert I64 Widen)
+Stmt line 15 may_raise
+  Assign A(Const 3:I64):I16 = Const 7:I16
+Stmt line 16 may_raise
+  Builtin DEF [Word 0, Value((VarSeg A:I64 -> Convert I32 Truncate))]
+Stmt line 17 may_raise
+  Builtin DEF [Word 0, Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 18 may_raise
+  Builtin DEF [Word 0, Absent]
+Stmt line 19 may_raise
+  Builtin POKE [Value((VarPtr A((Var N:I16 -> Convert I64 Widen)):I64 -> Convert I32 Truncate)), Value(Const 65:I32)]
+Stmt line 20 may_raise
+  Builtin POKE [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 21 may_raise
+  Assign L:I32 = CallBuiltin PEEK:I32 [Some((Add:I64(VarPtr M(Const 2:I64, Const 3:I64):I64, Const 1:I64) wrap -> Convert I32 Truncate))]
+Stmt line 22 may_raise
+  Builtin BLOAD [Value(Const "f.bin"), Value((VarPtr A(Const 1:I64):I64 -> Convert I32 Truncate))]
+Stmt line 23 may_raise
+  Builtin BLOAD [Value(Var T:Str), Absent]
+Stmt line 24 may_raise
+  Builtin BSAVE [Value(Concat(Var T:Str, Const ".bin")), Value((VarPtr A(Const 1:I64):I64 -> Convert I32 Truncate)), Value(Const 20:I32)]
+Stmt line 25
+  Assign Q:I64 = Add:I64(VarSeg DY:I64, VarSeg CM:I64) wrap
+Stmt line 26 may_raise
+  Assign L:I32 = (VarPtr DY(Const 3:I64):I64 -> Convert I32 Truncate)
+Stmt line 27 may_raise
+  Assign B(Const 1:I64):I16 = Var N:I16
+Stmt line 28 may_raise
+  Call FILL []
+Stmt line 29 may_raise
+  Builtin _FULLSCREEN [Absent, Absent]
+Stmt line 30 may_raise
+  Builtin _FULLSCREEN [Word 2, Word 0]
+Stmt line 31 may_raise
+  Builtin _FULLSCREEN [Word 3, Absent]
+Stmt line 32
+  System
+Sub FILL lines 34-38
+Stmt line 35 may_raise
+  Builtin DEF [Word 0, Value((VarSeg G:I64 -> Convert I32 Truncate))]
+Stmt line 36 may_raise
+  Builtin POKE [Value((VarPtr G(Const 6:I64):I64 -> Convert I32 Truncate)), Value(Const 9:I32)]
+Stmt line 37 may_raise
+  Builtin DEF [Word 0, Absent]

@@ -45,7 +45,7 @@ pub fn precompiler_flag(cond: &[u8]) -> Option<&'static str> {
 }
 
 /// A feature of a program that the old compiler keeps a state for, one per precompiler flag it can set
-/// (`utilities\statevars.bas`; `_EXPLICITARRAY_` shows two of them, `_SOCKETS_` none that is compiled yet).
+/// (`utilities\statevars.bas`; `_EXPLICITARRAY_` shows two of them, `_SOCKETS_` follows `$DEBUG`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Feature {
     /// `OPTION _EXPLICIT`.
@@ -102,8 +102,10 @@ impl PpFlags {
             ("_ASSERTS_", self.get(Feature::Asserts)),
             ("_CONSOLE_", self.get(Feature::Console)),
             ("_DEBUG_", self.get(Feature::Debug)),
-            // The network functions are not compiled yet, so nothing sets it.
-            ("_SOCKETS_", 0),
+            // The network functions are not compiled yet; `$DEBUG` sets it, since the old compiler's debugger code
+            // uses `_OPENCLIENT` (user, `DECISIONS.md` 2026-10-14; measured, `verification\v33_d01`, `d11`). It
+            // comes from the round's value, not at the line: the old compiler sets it by the dependency.
+            ("_SOCKETS_", self.get(Feature::Debug)),
         ]
     }
 }

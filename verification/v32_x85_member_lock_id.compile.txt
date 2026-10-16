@@ -1,0 +1,5 @@
+
+Element not defined
+Caused by (or after):K = M . LOCK_ID
+LINE 9:k = m.LOCK_ID
+exit=1

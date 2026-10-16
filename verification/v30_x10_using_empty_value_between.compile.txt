@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):PRINT USING "## ##",5 ; 5 ; ; 6
+LINE 3:PRINT USING "## ##"; 5; ; 6
+exit=1

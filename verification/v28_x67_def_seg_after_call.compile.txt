@@ -1,0 +1,5 @@
+
+Expected CALL sub-name (...)
+Caused by (or after):CALL DEF SEG
+LINE 7:CALL DEF SEG
+exit=1

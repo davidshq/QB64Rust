@@ -1,0 +1,5 @@
+
+Syntax error - Reference: VIEW [SCREEN] (column1, row1)-(column2, row2)[, color][, border]
+Caused by (or after):VIEW STEP ( 1 , 2 ) - ( 3 , 4 )
+LINE 6:VIEW STEP(1, 2)-(3, 4)
+exit=1

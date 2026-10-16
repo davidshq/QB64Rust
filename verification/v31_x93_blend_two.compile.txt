@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _BLEND [imageHandle&]
+Caused by (or after):_BLEND 1 , 2
+LINE 5:_BLEND 1, 2
+exit=1

@@ -1,0 +1,5 @@
+
+Expected LIBRARY "..."
+Caused by (or after):DECLARE LIBRARY V37H
+LINE 3:DECLARE LIBRARY v37h
+exit=1

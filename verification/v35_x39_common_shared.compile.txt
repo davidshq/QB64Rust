@@ -1,0 +1,5 @@
+
+_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
+Caused by (or after):COMMON SHARED X AS T
+LINE 7:COMMON SHARED x AS t
+exit=1

@@ -1,0 +1,5 @@
+
+1st sub argument requires a number
+Caused by (or after):LOCK "a",1
+LINE 3:LOCK "a"
+exit=1

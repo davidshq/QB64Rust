@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):FIELD # 1 , 2 AS A ; 2 AS B
+LINE 15:FIELD #1, 2 AS a; 2 AS b
+exit=1

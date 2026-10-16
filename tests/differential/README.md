@@ -75,7 +75,7 @@ refuses).
 - Tier 1 (`cargo test`): `crates\difftest\tests\fresh.rs` regenerates in memory and compares with these files, and
   requires a recording for each; `crates\driver\tests\inputs.rs` runs the front end over them (no panic, exact
   round trip, no false error) and requires every program that compiles cleanly to be in `pass.list`.
-- Tier 2 and CI (`rust.yml`, job `tier2`): the programs of `pass.list` built and run with `qb64rust`.
+- Tier 2 and CI (`rust.yml`, job `tier2`, by hand and weekly): the programs of `pass.list` built and run with `qb64rust`.
 
 `pass.list` names the programs the new compiler passes, one `<group>/<name>` per line. It only grows; by the end of
 `m2-numeric-types` it names every program. On 2026-10-08 it named 27 of the six-type group `old6`; since

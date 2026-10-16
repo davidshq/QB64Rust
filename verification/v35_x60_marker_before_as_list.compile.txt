@@ -1,0 +1,5 @@
+
+Expected element-name AS type, AS type element-list, or END TYPE
+Caused by (or after):
+LINE 5:_STATIC AS LONG V ( 1 ) , W ( 2 )
+exit=1

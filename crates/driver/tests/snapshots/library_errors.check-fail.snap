@@ -1,0 +1,38 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+library_errors.bas:8:1: error: `DECLARE DYNAMIC LIBRARY` needs the name of a DLL in quotes
+library_errors.bas:12:17: error: a library name stands in quotes: `DECLARE LIBRARY "name"`
+library_errors.bas:15:1: error: `DECLARE DYNAMIC LIBRARY` takes one name
+library_errors.bas:18:32: error: expected `,` between two library names
+library_errors.bas:22:22: error: a `STRING` cannot be passed `BYVAL`
+library_errors.bas:24:23: error: a `STRING` cannot be passed `BYVAL`
+library_errors.bas:25:15: error: an array cannot be passed to a library: `v()`
+library_errors.bas:27:37: error: `STATIC` cannot stand after a declaration in `DECLARE LIBRARY`
+library_errors.bas:29:24: error: the `TYPE LATER` of a library parameter must be defined above the block
+library_errors.bas:31:23: error: a library parameter cannot be a `STRING * n`: `s`
+library_errors.bas:33:24: error: a library parameter cannot be a `STRING * n`: `s$4`
+library_errors.bas:34:30: error: `ALIAS "h@l"` is no name a library can hold
+library_errors.bas:36:14: error: name already in use: `sqr#`
+library_errors.bas:38:9: error: a SUB name cannot have a type suffix: `h_tick&`
+library_errors.bas:40:19: error: a FUNCTION's type is given by a suffix on its name, not by `AS`
+library_errors.bas:42:32: error: expected a name after `ALIAS`
+library_errors.bas:44:33: error: `ALIAS ""` is no name a library can hold
+library_errors.bas:55:14: error: name already in use: `h_one&`
+library_errors.bas:63:7: error: name already in use: `h_bit``
+library_errors.bas:65:7: error: name already in use: `h_bitp&`
+library_errors.bas:67:14: error: a `BYVAL` parameter of `TYPE PT` takes no value (a user type is passed by reference)
+library_errors.bas:69:1: error: the library FUNCTION `h_one&` cannot be called as a statement
+library_errors.bas:71:7: error: name already in use: `h_tock`
+library_errors.bas:73:1: error: cannot assign to the library procedure `h_one&`
+library_errors.bas:75:11: error: `h_one&` cannot be used in a `CONST`
+library_errors.bas:77:7: error: `h_ticks&` is called without parentheses: a library FUNCTION without parameters
+library_errors.bas:79:7: error: `h_ticks2&` is called without parentheses: a library FUNCTION without parameters
+library_errors.bas:81:14: error: a number is required for this parameter
+library_errors.bas:83:22: error: expected `,` or `)`
+library_errors.bas:86:1: error: `END DECLARE` without `DECLARE LIBRARY`
+library_errors.bas:90:5: error: expected a SUB or FUNCTION declaration or `END DECLARE`
+library_errors.bas:91:1: error: `END DECLARE` without `DECLARE LIBRARY`
+library_errors.bas:96:1: error: expected a SUB or FUNCTION declaration or `END DECLARE`

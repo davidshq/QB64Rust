@@ -1,0 +1,5 @@
+
+Syntax error - Reference: CHAIN moduleName$
+Caused by (or after):CHAIN "v30_none",8 , 5
+LINE 3:IF 0 THEN CHAIN "v30_none", 5
+exit=1

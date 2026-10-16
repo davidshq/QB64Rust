@@ -1,0 +1,5 @@
+
+LSET/RSET expects a string variable/array-element as its first argument
+Caused by (or after):LSET N = "a",1
+LINE 15:LSET n = "a"
+exit=1

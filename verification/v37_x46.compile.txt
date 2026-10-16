@@ -1,0 +1,5 @@
+
+Expected (
+Caused by (or after):
+LINE 7:FUNCTION H_L AS PT ( BYVAL V AS LONG )
+exit=1

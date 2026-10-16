@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _MEMEXISTS(memBlock)
+Caused by (or after):PRINT _MEMEXISTS
+LINE 9:PRINT _MEMEXISTS
+exit=1

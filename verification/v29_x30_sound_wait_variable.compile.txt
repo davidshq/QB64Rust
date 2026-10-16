@@ -1,0 +1,5 @@
+
+Name already in use (wait)
+Caused by (or after):DIM WAIT AS LONG
+LINE 7:DIM wait AS LONG
+exit=1

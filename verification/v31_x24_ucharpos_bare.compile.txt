@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _UCHARPOS&(text$[, posArray&([index&])][, utfEncoding&][, fontHandle&])
+Caused by (or after):N = _UCHARPOS
+LINE 5:n = _UCHARPOS
+exit=1

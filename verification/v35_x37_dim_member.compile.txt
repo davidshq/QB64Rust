@@ -1,0 +1,5 @@
+
+DIM: Expected ,
+Caused by (or after):DIM X . V ( 3 ) AS LONG
+LINE 8:DIM x.v(3) AS LONG
+exit=1

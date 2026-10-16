@@ -1,0 +1,5 @@
+
+Cannot convert type ($4) to symbol
+Caused by (or after):FUNCTION H_LEN& ( S AS STRING * 4 )
+LINE 4:FUNCTION h_len& (s AS STRING * 4)
+exit=1

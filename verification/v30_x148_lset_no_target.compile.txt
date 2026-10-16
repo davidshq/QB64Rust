@@ -1,0 +1,5 @@
+
+Name already in use (LSET)
+Caused by (or after):LSET = "a",1
+LINE 15:LSET = "a"
+exit=1

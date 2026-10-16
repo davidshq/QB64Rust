@@ -1,0 +1,5 @@
+before
+handler 5 
+-1  0  0 
+after
+exit=0

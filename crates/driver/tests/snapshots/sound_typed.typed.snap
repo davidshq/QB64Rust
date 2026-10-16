@@ -1,0 +1,94 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+line 2: ConsoleOnly
+line 7: Assign D:F64
+  Call PLAY : F64
+    Int 0 : U32
+line 8: Assign D:F64
+  Call PLAY : F64
+    (absent)
+line 9: Print newline
+  Num
+    Call PLAY : F64
+      Convert Truncate : U32
+        Var I : I16
+  Num
+    Call PLAY : F64
+      Convert Truncate : U32
+        Var L : I32
+  Num
+    Call PLAY : F64
+      Convert Truncate : U32
+        Var Q : I64
+  Num
+    Call PLAY : F64
+      Convert Truncate : U32
+        Convert RoundEven : I64
+          Var S : F32
+  Num
+    Call PLAY : F64
+      Convert Truncate : U32
+        Convert RoundEven : I64
+          Var D : F64
+  Num
+    Call PLAY : F64
+      Convert Truncate : U32
+        Convert RoundEven : I64
+          Var F : F80
+  Num
+    Call PLAY : F64
+      Var U : U32
+line 10: Assign L:I32
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Binary Add : F64
+        Call PLAY : F64
+          Int 1 : U32
+        Convert Nearest : F64
+          Int 1 : I16
+line 11: If (END IF line 11)
+  If line 11
+    Binary Gt : I32
+      Call PLAY : F64
+        Int 0 : U32
+      Convert Nearest : F64
+        Int 1 : I16
+    line 11: Assign L:I32
+      Int 2 : I32
+line 12: Assign S:F32
+  Convert Nearest : F32
+    Call PLAY : F64
+      (absent)
+line 13: Assign T:Str
+  Call STR : Str
+    Call PLAY : F64
+      Int 0 : U32
+line 14: Print newline
+  Num
+    Binary Eq : I32
+      Call PLAY : F64
+        Int 4 : U32
+      Call PLAY : F64
+        Int 0 : U32
+  Num
+    Binary Eq : I32
+      Call PLAY : F64
+        (absent)
+      Call PLAY : F64
+        Int 0 : U32
+line 15: OnGosub DONE
+  Convert RoundEven : I32
+    Convert Nearest : F32
+      Call PLAY : F64
+        Int 5 : U32
+line 16: OnGosub DONE, DONE
+  Convert RoundEven : I32
+    Convert Nearest : F32
+      Call PLAY : F64
+        (absent)
+line 17: System
+line 18: Label DONE
+line 19: Return

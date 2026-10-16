@@ -1,0 +1,5 @@
+
+Name already in use (LOCATE)
+Caused by (or after):LOCATE ( 1 ) = 2 , 3
+LINE 6:LOCATE (1) = 2, 3
+exit=1

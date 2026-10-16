@@ -103,6 +103,9 @@ pub(super) fn proc_header(p: &mut Parser, library: bool) {
     }
     if p.at_word("STATIC") && !library {
         p.bump();
+    } else if p.at_word("STATIC") {
+        // Measured: "STATIC cannot be used in a library declaration" (`verification\v37_x12`).
+        p.error("`STATIC` cannot stand after a declaration in `DECLARE LIBRARY`");
     } else if p.at_word("AS") {
         p.error("a FUNCTION's type is given by a suffix on its name, not by `AS`");
     }
@@ -244,11 +247,22 @@ fn declare_library_block(p: &mut Parser) {
         p.bump(); // CUSTOMTYPE, DYNAMIC or STATIC
     }
     p.bump(); // LIBRARY
-    while p.at(StringLit) {
-        p.bump();
-        if p.at(Comma) && p.nth(1) == Some(StringLit) {
+    if p.at(StringLit) {
+        loop {
+            p.bump();
+            if p.at(StringLit) {
+                // Measured: "Expected ," (`verification\v37_x07`).
+                p.error("expected `,` between two library names");
+                break;
+            }
+            if !(p.at(Comma) && p.nth(1) == Some(StringLit)) {
+                break;
+            }
             p.bump();
         }
+    } else if !p.at_stmt_end() {
+        // Measured: "Expected LIBRARY "..."" (`verification\v37_x05`).
+        p.error("a library name stands in quotes: `DECLARE LIBRARY \"name\"`");
     }
     p.finish_node();
     p.header_end();

@@ -1,0 +1,5 @@
+
+Syntax error - Reference: PAINT [STEP] (x!, y!)[,[fillColor&] [,[bordercolor&] [,pattern$]]]
+Caused by (or after):PAINT ( 1 , 2 ) , 3 , 4 , T , 5
+LINE 6:PAINT (1, 2), 3, 4, t, 5
+exit=1

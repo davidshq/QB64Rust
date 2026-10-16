@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SAVEIMAGE fileName$[, imageHandle&][, requirements$])
+Caused by (or after):_SAVEIMAGE "a",1 , 1 , "b",1 , 2
+LINE 5:_SAVEIMAGE "a", 1, "b", 2
+exit=1

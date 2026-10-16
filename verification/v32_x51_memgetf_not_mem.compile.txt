@@ -1,0 +1,5 @@
+
+1st function argument requires TYPE '_MEM'
+Caused by (or after):PRINT _MEMGET ( K , 0 , LONG )
+LINE 9:PRINT _MEMGET(k, 0, LONG)
+exit=1

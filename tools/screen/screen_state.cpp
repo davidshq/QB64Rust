@@ -3,25 +3,34 @@
 // program runs with one of two environment variables:
 //
 //   QB64_SCREEN_STATE=<file>  when the program exits, the state of the screen pages is written to the file
-//   QB64_SCREEN_KEYS=<file>   the keys of the file are given to the program as if typed
+//   QB64_SCREEN_KEYS=<file>   the keys of the file are given to the program as if typed, its mouse steps as if
+//                             the mouse moved over the window; its `state` steps write states while the program
+//                             runs, before the one at exit
+//   QB64_SCREEN_PROMPT_MS=<n> how long a `prompt` step waits for the program, and a mouse step for the window
+//                             (default 30000)
 //
-// It reads libqb's own variables and calls keyboard_keydown, so it is compiled against the headers of the libqb
-// it is linked with; libqb itself is not changed.
+// It reads libqb's own variables and calls keyboard_keydown and the Mouse_Queue... functions, so it is compiled
+// against the headers of the libqb it is linked with; libqb itself is not changed.
 
 #include "cmem.h"
 #include "graphics.h"
 #include "keyboard.h"
+#include "mouse.h"
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
 
 extern int32_t pages; // libqb.cpp: the number of entries of `page`
+// libqb.cpp: the last pixel of the screen in the window, set with each frame drawn; and the size of each font.
+extern int32_t environment_2d__screen_x2, environment_2d__screen_y2;
+extern int32_t *fontwidth, *fontheight;
 
 namespace {
 
@@ -73,7 +82,17 @@ void put_image(FILE *f, const char *what, const img_struct *im) {
         fprintf(f, " color %u background %u\n", im->color, im->background_color);
     if (!wide && im->pal) {
         fprintf(f, "palette");
-        put_runs(f, im->pal, 256, 8);
+        if (im->compatible_mode == 10) {
+            // SCREEN 10: libqb sets entries 0 to 3 of the displayed page at every refresh, from entries 4 to 7 (the
+            // mode's own palette) and the clock (the two phases of its blink, `GetTicks() & 512`). What they hold
+            // depends on when the program ends, and on whether a refresh came at all, so they are written as 0.
+            uint32_t pal[256];
+            memcpy(pal, im->pal, sizeof pal);
+            pal[0] = pal[1] = pal[2] = pal[3] = 0;
+            put_runs(f, pal, 256, 8);
+        } else {
+            put_runs(f, im->pal, 256, 8);
+        }
     }
     const size_t row_bytes = (size_t)w * (im->text ? 2 : im->bytes_per_pixel);
     std::vector<uint32_t> row(w);
@@ -107,13 +126,20 @@ void put_image(FILE *f, const char *what, const img_struct *im) {
     }
 }
 
+// The states of one run go into one file: the first write starts it, every later one (a `state` step of the keys
+// file, then the state at exit) is appended. The key thread and the exit may both write.
+std::mutex state_lock;
+bool state_started = false;
+
 void write_state() {
     const char *name = getenv("QB64_SCREEN_STATE");
     if (!name || !*name || !display_page)
         return;
-    FILE *f = fopen(name, "wb");
+    std::lock_guard<std::mutex> hold(state_lock);
+    FILE *f = fopen(name, state_started ? "ab" : "wb");
     if (!f)
         return;
+    state_started = true;
     fprintf(f, "screen-state 1\npages %d", pages);
     put_place(f, "display", display_page);
     put_place(f, "write", write_page);
@@ -151,12 +177,25 @@ const struct {
 };
 
 struct Step {
-    enum { Press, Wait, Repeat } kind;
-    uint32_t value; // a key code, or milliseconds
+    enum { Press, Wait, Repeat, Prompt, State, MouseMove, MouseDown, MouseUp, Wheel } kind;
+    uint32_t value; // a key code, milliseconds, the line of a `prompt`, or a mouse button
+    int32_t x = 0, y = 0; // the pixel of a `mouse` step; the steps of a `wheel` in y
+    uint32_t line = 0;    // the line of a mouse step
 };
 
-// The steps of a keys file, one per line: "text <characters>", "key <name>", "wait <ms>", and as the last line
-// "repeat <name>" (the key every 100 ms until the program exits: for END's "Press any key to continue").
+// An integer, with a minus sign if `sign`: the whole of `s`, or false.
+bool read_int(const std::string &s, bool sign, int32_t &v) {
+    const size_t from = sign && !s.empty() && s[0] == '-' ? 1 : 0;
+    if (s.size() == from || s.size() > from + 6 || s.find_first_not_of("0123456789", from) != std::string::npos)
+        return false;
+    v = atoi(s.c_str());
+    return true;
+}
+
+// The steps of a keys file, one per line: "text <characters>", "key <name>", "wait <ms>", "prompt", "state", the
+// mouse steps "mouse <x> <y>" (a move to pixel x, y of the window's content), "press <button>" and "release
+// <button>" (1 left, 2 right, 3 middle, at the last position), "wheel <n>" (n steps, negative up), and as the last
+// line "repeat <name>" (the key every 100 ms until the program exits: for END's "Press any key to continue").
 // Returns the number of the first line that is none of these, or 0.
 int read_steps(const std::string &script, std::vector<Step> &steps) {
     std::istringstream in(script);
@@ -188,6 +227,30 @@ int read_steps(const std::string &script, std::vector<Step> &steps) {
             steps.push_back({repeats ? Step::Repeat : Step::Press, code});
         } else if (verb == "wait" && !arg.empty() && arg.find_first_not_of("0123456789") == std::string::npos) {
             steps.push_back({Step::Wait, (uint32_t)atoi(arg.c_str())});
+        } else if (verb == "mouse") {
+            const size_t sp2 = arg.find(' ');
+            Step s{Step::MouseMove, 0};
+            if (sp2 == std::string::npos || !read_int(arg.substr(0, sp2), false, s.x) ||
+                !read_int(arg.substr(sp2 + 1), false, s.y))
+                return n;
+            s.line = (uint32_t)n;
+            steps.push_back(s);
+        } else if (verb == "press" || verb == "release") {
+            int32_t b = 0;
+            if (!read_int(arg, false, b) || b < 1 || b > 3)
+                return n;
+            steps.push_back({verb == "press" ? Step::MouseDown : Step::MouseUp, (uint32_t)b});
+            steps.back().line = (uint32_t)n;
+        } else if (verb == "wheel") {
+            Step s{Step::Wheel, 0};
+            if (!read_int(arg, true, s.y) || s.y == 0)
+                return n;
+            s.line = (uint32_t)n;
+            steps.push_back(s);
+        } else if (line == "prompt") {
+            steps.push_back({Step::Prompt, (uint32_t)n});
+        } else if (line == "state") {
+            steps.push_back({Step::State, 0});
         } else {
             return n;
         }
@@ -207,12 +270,105 @@ void press(uint32_t code) {
     keyboard_keyup(code);
 }
 
-void feed(std::vector<Step> steps) {
+// A program announces that it waits for a key by counting in byte 0x4F0 of conventional memory, which libqb does
+// not use: `DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG`, right before its read. The k-th `prompt`
+// of the keys file waits for the k-th announcement: then everything the program draws before that read is drawn.
+const int announced_at = 0x4F0;
+
+// Ends the program from the key thread: the state as it is, a message, and an exit code of the check's own. The
+// message is also the last line of the state file: libqb points stderr at the console the program was started
+// from (`AttachConsole`), so a test that reads the program's stderr through a pipe does not see it.
+[[noreturn]] void stop(int code, const char *keys, uint32_t line, const char *why) {
+    write_state();
+    if (const char *name = getenv("QB64_SCREEN_STATE"))
+        if (*name) {
+            std::lock_guard<std::mutex> hold(state_lock);
+            if (FILE *f = fopen(name, state_started ? "ab" : "wb")) {
+                fprintf(f, "stopped %s line %u: %s\n", keys, line, why);
+                fclose(f);
+            }
+        }
+    fprintf(stderr, "screen_state: %s line %u: %s\n", keys, line, why);
+    fflush(stderr);
+    _Exit(code);
+}
+
+void prompt(const char *keys, uint32_t line, uint8_t expected, uint32_t limit_ms) {
+    const auto until = std::chrono::steady_clock::now() + std::chrono::milliseconds(limit_ms);
+    for (;;) {
+        const uint8_t ahead = (uint8_t)(cmem[announced_at] - expected);
+        if (ahead == 0)
+            return;
+        if (ahead < 128)
+            stop(125, keys, line, "the program announced more waits than the keys file has prompts");
+        if (std::chrono::steady_clock::now() > until)
+            stop(124, keys, line, "no prompt in time");
+        sleep_ms(1);
+    }
+}
+
+// Whether libqb has drawn a frame of the displayed page at the page's own size, which is when it sets how a pixel
+// of the window maps to the screen. Before that `_MOUSEX` and `_MOUSEY` give -1 (libqb's screen size is still 0) or
+// map by the size of the screen before the last `SCREEN`: a program that reads its events right after `SCREEN`
+// would see that (found while task 4.3 of m3-images-fonts-mouse recorded its programs).
+// It reads the page from this thread without a lock: a `SCREEN` run by the program while a mouse step waits can free
+// the page under it and crash the test program. No mouse program changes the screen after its `prompt`; one that
+// does must announce a wait after the change and put its mouse steps after that `prompt`.
+bool window_shows_screen() {
+    const img_struct *p = display_page;
+    if (!p)
+        return false;
+    int32_t w = p->width, h = p->height;
+    if (p->text) {
+        w *= fontwidth[p->font];
+        h *= fontheight[p->font];
+    }
+    return environment_2d__screen_x2 == w - 1 && environment_2d__screen_y2 == h - 1;
+}
+
+void feed(std::vector<Step> steps, std::string keys) {
+    uint32_t limit_ms = 30000;
+    if (const char *ms = getenv("QB64_SCREEN_PROMPT_MS"))
+        if (*ms)
+            limit_ms = (uint32_t)atoi(ms);
     while (!cmem[0x41a]) // the runtime sets the buffer's head when it starts
         sleep_ms(1);
+    // Counted from 0, not from the byte as it is now: the program may announce its first wait before this thread
+    // wakes, and cmem starts as zeros.
+    uint8_t prompts = 0;
+    double mx = 0, my = 0; // the last position of a `mouse` step
     for (const Step &s : steps) {
-        if (s.kind == Step::Wait) {
+        // A mouse step goes into libqb's queue of mouse events at once, as the window's callbacks put one there:
+        // the queue holds 65536 events, so nothing waits as a key does. The queue is a single-producer ring buffer
+        // and this thread a second writer beside the window's callbacks: a real cursor event at the same moment can
+        // lose or overwrite one. Those callbacks drop moves and scrolls while the window has no focus or the cursor
+        // is outside it, so a test is safe with the real cursor off the window (design D4 of m3-images-fonts-mouse).
+        // Each waits until the window shows the displayed page, so the program maps the event by that page.
+        if (s.line) {
+            const auto until = std::chrono::steady_clock::now() + std::chrono::milliseconds(limit_ms);
+            while (!window_shows_screen()) {
+                if (std::chrono::steady_clock::now() > until)
+                    stop(124, keys.c_str(), s.line, "the window never showed the screen");
+                sleep_ms(1);
+            }
+        }
+        if (s.kind == Step::MouseMove) {
+            mx = s.x;
+            my = s.y;
+            Mouse_QueuePositionEvent(mx, my, GLUTEnum_MouseCursorMode::Normal);
+        } else if (s.kind == Step::MouseDown) {
+            Mouse_QueueButtonDownEvent((int)s.value, mx, my);
+        } else if (s.kind == Step::MouseUp) {
+            Mouse_QueueButtonUpEvent((int)s.value, mx, my);
+        } else if (s.kind == Step::Wheel) {
+            // libqb's yOffset is GLFW's (positive up); _MOUSEWHEEL is positive down.
+            Mouse_QueueScrollEvent(mx, my, 0, -(double)s.y);
+        } else if (s.kind == Step::Wait) {
             sleep_ms(s.value);
+        } else if (s.kind == Step::Prompt) {
+            prompt(keys.c_str(), s.value, ++prompts, limit_ms);
+        } else if (s.kind == Step::State) {
+            write_state();
         } else {
             do {
                 press(s.value);
@@ -241,7 +397,7 @@ struct Start {
                 fprintf(stderr, "screen_state: %s line %d: not a step\n", name, bad);
             _Exit(125);
         }
-        std::thread(feed, std::move(steps)).detach();
+        std::thread(feed, std::move(steps), std::string(name)).detach();
     }
 } start;
 

@@ -1,0 +1,22 @@
+# Mouse steps for u01_mouse_queue: after the program has emptied its queue and announced its wait.
+prompt
+# A click: four events at 40, 30.
+mouse 40 30
+press 1
+release 1
+# A move, then the right and the middle button there.
+mouse 100 50
+press 2
+release 2
+press 3
+release 3
+# The wheel one step down, then two up.
+wheel 1
+wheel -2
+# A last move with the left button held.
+mouse 45 33
+press 1
+mouse 60 40
+release 1
+# The key that ends the wait: every mouse event is in the queue by now.
+text x

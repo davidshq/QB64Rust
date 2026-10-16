@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):FIELD # 1 , "4",1 AS A
+LINE 15:FIELD #1, "4" AS a
+exit=1

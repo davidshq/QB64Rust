@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _CLIPBOARDIMAGE
+Caused by (or after):L = _CLIPBOARDIMAGE ( 1 )
+LINE 5:l = _CLIPBOARDIMAGE(1)
+exit=1

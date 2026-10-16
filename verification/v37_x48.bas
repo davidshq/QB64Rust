@@ -1,0 +1,6 @@
+$CONSOLE:ONLY
+' DECLARE LIBRARY, one form: ALIAS of an empty string.
+DECLARE LIBRARY "v37_lib/v37h"
+    FUNCTION f& ALIAS "" (BYVAL v AS LONG)
+END DECLARE
+SYSTEM

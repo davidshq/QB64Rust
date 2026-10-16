@@ -1,0 +1,5 @@
+
+Name already in use (AS)
+Caused by (or after):_MEMGET M , M . OFFSET , K AS LONG
+LINE 9:_MEMGET m, m.OFFSET, k AS LONG
+exit=1

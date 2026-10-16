@@ -1,0 +1,13 @@
+1. a local, twice:
+    0  1  0  0 
+    0  1  0  0 
+2. a STATIC local, twice:
+    0  1  0  0 
+    0  4  5  5 
+3. SHARED: before 0  1  after 8  9  99 
+4. a parameter: callee sees 0  1  caller sees 3  3  3 
+5. the member as an array argument: callee sees 3  3  caller sees 6  7  7 
+6. a FUNCTION's parameter: 7 
+7. an element as a parameter: callee sees 2  3  caller sees 3  3  3 
+8. the parent array as an argument: callee sees 1  3  caller sees 4  4 
+9. a bound named by a CONST: 0  4 

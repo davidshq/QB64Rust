@@ -1,0 +1,5 @@
+
+Syntax error - Reference: KILL fileSpec$
+Caused by (or after):KILL
+LINE 6:KILL: l = 1
+exit=1

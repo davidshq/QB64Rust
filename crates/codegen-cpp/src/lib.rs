@@ -33,12 +33,16 @@ mod arrays;
 mod builtins;
 mod decl;
 mod io;
+mod library;
+mod mem;
 mod names;
+mod owner;
 mod place;
 mod procs;
 mod stmt;
 mod value;
 
+pub use library::{Linkage, Resolved, ResolvedLibrary, dll_handle, strip_version};
 pub use names::{c_type, proc_name, var_name};
 
 use decl::is_qbs;
@@ -89,8 +93,9 @@ impl Fragments {
 /// Emits the program. `source_name` goes into the `#line` directives; `included` names the files the program
 /// included, as shown in diagnostics (their statements get their own `#line` name, and their event checks report
 /// the file, as the old compiler's do: `evnt(line, line in file, "file")`, measured `verification\
-/// v19_include_runtime_error`: "Line: 3 (in raise.bi)").
-pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) -> Fragments {
+/// v19_include_runtime_error`: "Line: 3 (in raise.bi)"). `resolved` is what the driver found for the program's
+/// `DECLARE LIBRARY` blocks.
+pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>, resolved: &Resolved) -> Fragments {
     let included = included
         .iter()
         .map(|(&f, name)| {
@@ -100,22 +105,29 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
         .collect();
     let mut e = Emitter {
         p,
+        resolved,
         line_file: line_name(source_name),
         included,
         skip: 0,
         pass: 0,
         pass_decls: Vec::new(),
+        byte_element: 0,
         handlers: Vec::new(),
         body: &p.main,
         k: 0,
         gosubs: 0,
         ret_cases: String::new(),
         returns: false,
+        funcs: 0,
+        func_decls: Vec::new(),
+        file_types: Vec::new(),
+        stmt_at: (None, 0),
     };
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
     let mut set = |name: &str, text: String| files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
-    set("global.txt", e.global());
-    set("regsf.txt", e.prototypes());
+    set("global.txt", e.global() + &e.library_globals());
+    // The libraries' headers and prototypes first: a program procedure's prototype names no type of theirs.
+    set("regsf.txt", e.library_prototypes() + &e.prototypes());
     set("clear.txt", e.per_program_var(|v, n| e.clear(v, n)));
     set(
         "mainfree.txt",
@@ -125,13 +137,19 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
             } else if is_qbs(v.ty) {
                 format!("qbs_free({n});\n")
             } else {
-                // The strings a variable of a user type holds.
-                e.free_strings(v.ty, &format!("(char*){n}"))
+                // The strings and dynamic member arrays a variable of a user type holds.
+                if let qb64rust_ir::Ty::User(_) = v.ty {
+                    e.free_value(v.ty, &format!("(char*){n}"))
+                } else {
+                    String::new()
+                }
             }
         }),
     );
+    // Procedure K is the K-th program procedure; a library procedure has no fragments.
+    let program_procs = p.procs.iter().filter(|q| q.external.is_none()).count();
     let mut main = String::from("#include \"main0.txt\"\n");
-    for k in 1..=p.procs.len() {
+    for k in 1..=program_procs {
         writeln!(main, "#include \"main{k}.txt\"").unwrap();
     }
     write!(
@@ -145,7 +163,9 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
     // main0 first: it collects the `passN` declarations that go into maindata.txt.
     let main0 = e.main0();
     set("main0.txt", main0);
-    let mut maindata = e.per_program_var(|v, n| {
+    // The libraries' start first, as the old compiler's: a `DYNAMIC` library's errors come before anything else.
+    let mut maindata = e.library_start();
+    maindata += &e.per_program_var(|v, n| {
         let mut text = e.alloc(v, n);
         if let Shape::Dynamic {
             at_start: Some(bounds), ..
@@ -163,8 +183,8 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
     if let Some(ret) = e.take_ret(0) {
         files.push(("ret0.txt".into(), ret));
     }
-    for (i, proc) in p.procs.iter().enumerate() {
-        let k = i + 1;
+    let program_procs = p.procs.iter().enumerate().filter(|(_, q)| q.external.is_none());
+    for (k, (i, proc)) in (1..).zip(program_procs) {
         let (main_k, data_k, free_k) = e.procedure(i, proc, k);
         files.push((format!("main{k}.txt"), main_k));
         files.push((format!("data{k}.txt"), data_k));
@@ -188,6 +208,9 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>) 
     }
     mainerr.push_str("exit(99);\n}\n");
     files.iter_mut().find(|(n, _)| n == "mainerr.txt").unwrap().1 = mainerr;
+    // Also last: the temporaries of blocks are counted while the bodies are emitted.
+    let global = &mut files.iter_mut().find(|(n, _)| n == "global.txt").unwrap().1;
+    global.extend(e.func_decls.drain(..));
     Fragments { files }
 }
 
@@ -209,6 +232,8 @@ pub fn dump(f: &Fragments) -> String {
 
 struct Emitter<'a> {
     p: &'a Program,
+    /// The files of the program's libraries (`library.rs`).
+    resolved: &'a Resolved,
     line_file: String,
     /// Per included file: its `#line` name and its base name as a C string (for `evnt`).
     included: HashMap<FileId, (String, String)>,
@@ -218,6 +243,8 @@ struct Emitter<'a> {
     pass: u32,
     /// Declarations of the `passN` of the body being emitted.
     pass_decls: Vec<String>,
+    /// Counter for the `byte_element_N` temporaries of graphics `GET` and `PUT`.
+    byte_element: u32,
     /// Handler labels; handler number N is entry N - 1.
     handlers: Vec<LabelId>,
     /// The body being emitted, whose labels the jumps name, and its number K (0 for the main module).
@@ -229,4 +256,12 @@ struct Emitter<'a> {
     ret_cases: String,
     /// Whether the body being emitted has a `RETURN` without label (which includes its `retK.txt`).
     returns: bool,
+    /// Counter for the `funcN` temporaries a block of a built-in is held in, and their declarations, which go into
+    /// `global.txt` (design D2 of `m3-mem`).
+    funcs: u32,
+    func_decls: Vec<String>,
+    /// The owner types whose file functions are in `func_decls` (`Emitter::owner_file`).
+    file_types: Vec<qb64rust_ir::TypeId>,
+    /// The file and line of the statement being emitted, for an event check inside it (`END n`).
+    stmt_at: (Option<FileId>, u32),
 }

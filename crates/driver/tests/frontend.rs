@@ -10,7 +10,7 @@
 //! `cargo insta review`. `QB64RUST_FRONTEND_DIR` points the harness at another folder (used once to check that
 //! the harness itself fails bad files).
 
-use qb64rust_driver::{FileLoader, dump_cpp, dump_ir, frontend, frontend_with};
+use qb64rust_driver::{FileLoader, Linkage, Resolved, ResolvedLibrary, dump_cpp, dump_ir, frontend, frontend_with};
 use qb64rust_syntax::tree::print;
 use std::path::{Path, PathBuf};
 
@@ -36,7 +36,8 @@ fn run(name: &str, path: &Path, bytes: Vec<u8>, mode: &str) -> Result<Option<Str
     // its own, so that a file next to the main file is not found through the root); diagnostics name them
     // relative to the test file.
     let root = frontend_dir().join("inc/root");
-    let fe = frontend_with(name, bytes.clone(), |file| Box::new(FileLoader::new(&root, file, path)));
+    let mut fe = frontend_with(name, bytes.clone(), |file| Box::new(FileLoader::new(&root, file, path)));
+    qb64rust_driver::check_exe_icon(&mut fe, path);
     let syntax_errors = fe.parsed.diagnostics().has_errors();
     match mode {
         "parse-ok" => {
@@ -62,11 +63,52 @@ fn run(name: &str, path: &Path, bytes: Vec<u8>, mode: &str) -> Result<Option<Str
                 "check-ok" => None,
                 "typed" => Some(qb64rust_sema::dump_typed(&fe.program)),
                 "ir" => Some(dump_ir(&fe)),
-                "cpp" => Some(dump_cpp(&fe)),
+                "cpp" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program))),
                 _ => unreachable!(),
             })
         }
     }
+}
+
+/// What the `cpp` tests take the files of a `DECLARE LIBRARY` block to be, so that they need none (design D5 of
+/// `m3-declare-library`), after the layout of `verification\v37_*`: a `DYNAMIC` library is `<name>.dll`; a name
+/// that starts with `./` is a library file `<name>.a` without a header, whose functions have C++ linkage when the
+/// name holds `cpp` and C linkage otherwise; any other name is a header `<name>.h`. A C++ function's demangled
+/// text stands in for `nm`'s with an `int` per parameter (`cpp_add(int, int)`).
+fn fixed_libraries(p: &qb64rust_sema::Program) -> Resolved {
+    let mut resolved = Resolved::default();
+    for lib in &p.libraries {
+        let mut found = ResolvedLibrary::default();
+        for name in &lib.names {
+            let n = &name.text;
+            if lib.kind == qb64rust_sema::LibraryKind::Dynamic {
+                found.dll = Some(format!("{n}.dll"));
+            } else if n.starts_with("./") {
+                found.files.push(PathBuf::from(format!("{n}.a")));
+            } else {
+                found.headers.push(PathBuf::from(format!("{n}.h")));
+            }
+        }
+        resolved.libraries.push(found);
+    }
+    for (i, q) in p.procs.iter().enumerate() {
+        if let Some(e) = &q.external {
+            let lib = &p.libraries[e.library.0 as usize];
+            let cpp = lib
+                .names
+                .iter()
+                .any(|n| n.text.starts_with("./") && n.text.contains("cpp"));
+            let linkage = if cpp {
+                Linkage::Cpp(format!("{}({})", e.c_name, vec!["int"; q.params.len()].join(", ")))
+            } else {
+                Linkage::C
+            };
+            resolved
+                .linkage
+                .insert(qb64rust_sema::ProcId(qb64rust_base::to_u32(i)), linkage);
+        }
+    }
+    resolved
 }
 
 #[test]

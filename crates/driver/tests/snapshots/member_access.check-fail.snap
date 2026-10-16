@@ -2,7 +2,11 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-member_access.bas:7:7: error: only a value of a `TYPE` has members
-member_access.bas:8:7: error: only a value of a `TYPE` has members
-member_access.bas:9:1: error: only a value of a `TYPE` has members
-member_access.bas:11:10: error: not supported yet: omitted arguments
+member_access.bas:9:7: error: only a value of a `TYPE` has members
+member_access.bas:10:7: error: only a value of a `TYPE` has members
+member_access.bas:11:1: error: only a value of a `TYPE` has members
+member_access.bas:13:10: error: not supported yet: omitted arguments
+member_access.bas:14:15: error: not supported yet: omitted arguments
+member_access.bas:15:15: error: not supported yet: omitted arguments
+member_access.bas:16:9: error: not supported yet: omitted arguments
+member_access.bas:17:5: error: `_LOADIMAGE` takes 1 to 3 arguments

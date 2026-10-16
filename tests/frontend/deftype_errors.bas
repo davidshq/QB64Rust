@@ -3,8 +3,9 @@ $CONSOLE:ONLY
 ' Default types (m2-defxxx-common-arrays task 2.1): the old compiler's errors as errors (verification\v24_x05 to
 ' x26, x34 to x37): types that cannot be a default, malformed statements, and the ordinary errors of the type a
 ' default gives (a STRING FOR variable, a number stored into a STRING, a _BIT parameter, a FUNCTION called with
-' the suffix of another type). An unknown type and _MEM are "not supported yet", as in DIM; they stand last
-' because a marked declaration drops the real errors after it.
+' the suffix of another type). _MEM is a user type, so it cannot be a default either ("Cannot convert type (_MEM)
+' to symbol", m3-mem); an unknown type is "not supported yet", as in DIM, and stands last because a marked
+' declaration drops the real errors after it.
 TYPE rec
     n AS LONG
 END TYPE
@@ -37,5 +38,5 @@ FUNCTION f (x)
 END FUNCTION
 SUB show (p1)
 END SUB
-_DEFINE q AS nosuch
 _DEFINE q AS _MEM
+_DEFINE q AS nosuch

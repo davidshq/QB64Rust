@@ -10,6 +10,8 @@
 //! | `LOOP WHILE c` / `LOOP UNTIL c` | `Ltop:` body; `Branch(c, NonZero / Zero → Ltop)`; `Lexit:` |
 //! | `FOR v = a TO b STEP s` | see [`Lowerer::for_loop`] |
 //! | `EXIT FOR/DO/WHILE` | `Jump(Lexit)` of the innermost loop of that kind |
+//! | `EXIT SELECT` | `Jump(Lend)` of the `SELECT` whose `CASE` it stands in ([`Lowerer::select`]) |
+//! | `EXIT CASE` | `Jump` to the end of its `CASE` body ([`Lowerer::case_end`]); in a `CASE ELSE` as `EXIT SELECT` |
 //! | `GOTO x` / `GOSUB x` / `RETURN` | `Jump(x)` / `Gosub(x)` / `Return` |
 //!
 //! `IF c GOTO x` is an `IF` whose branch is `GOTO x`. Conditions of `IF`, `WHILE`, `DO` and `LOOP` are
@@ -34,6 +36,7 @@ pub fn lower(p: &sema::Program) -> Program {
             ty: v.ty,
             storage: storage(v.storage),
             shape: v.shape.clone(),
+            conventional: v.conventional,
         })
         .collect();
     // The main module first, so the temporaries are numbered in source order as far as possible.
@@ -53,6 +56,7 @@ pub fn lower(p: &sema::Program) -> Program {
             body,
             line: q.line,
             end_line: q.end_line,
+            external: q.external.clone(),
         });
     }
     let program = Program {
@@ -61,18 +65,27 @@ pub fn lower(p: &sema::Program) -> Program {
         main,
         types: p.types.clone(),
         data: p.data.clone(),
+        libraries: p.libraries.clone(),
         settings: crate::Settings {
             console: p.settings.console,
             window: p.settings.window,
             window_hidden: p.settings.window_hidden,
+            asserts: p.settings.asserts,
             runtime_parts: p
                 .settings
                 .runtime_parts
                 .iter()
                 .map(|part| match part {
                     sema::RuntimePart::Icon => crate::RuntimePart::Icon,
+                    sema::RuntimePart::Audio => crate::RuntimePart::Audio,
+                    sema::RuntimePart::Printer => crate::RuntimePart::Printer,
+                    sema::RuntimePart::ImageCodec => crate::RuntimePart::ImageCodec,
+                    sema::RuntimePart::Font => crate::RuntimePart::Font,
+                    sema::RuntimePart::ScreenImage => crate::RuntimePart::ScreenImage,
+                    sema::RuntimePart::DataProcessing => crate::RuntimePart::DataProcessing,
                 })
                 .collect(),
+            exe_icon: p.settings.exe_icon.is_some(),
         },
     };
     if cfg!(debug_assertions)
@@ -105,6 +118,13 @@ struct Lowerer<'a> {
     stmts: Vec<Stmt>,
     /// The exit labels of the loops around the statement being lowered, innermost last.
     exits: Vec<(sema::LoopKind, LabelId)>,
+    /// The `CASE` bodies around the statement being lowered, innermost last: the end label of each one's
+    /// `SELECT`, and whether it is a `CASE ELSE`. A loop inside a `CASE` does not hide it, and a `SELECT` inside
+    /// a loop does not hide the loop from `EXIT FOR`.
+    selects: Vec<(LabelId, bool)>,
+    /// The label an `EXIT CASE` jumps to, waiting to be placed at the end of the next `CASE` body that closes
+    /// ([`Lowerer::case_end`]).
+    case_end: Option<LabelId>,
     /// Operations that belong to the next statement and run first in it (`joined` of
     /// [`sema::StmtKind::Allocate`]), each with the span and line it was written at.
     joined: Vec<(Span, u32, Op)>,
@@ -140,7 +160,26 @@ impl<'a> Lowerer<'a> {
             labels,
             stmts: Vec::new(),
             exits: Vec::new(),
+            selects: Vec::new(),
+            case_end: None,
             joined: Vec::new(),
+        }
+    }
+
+    /// The label of an `EXIT CASE` in a `CASE`: **the end of the next `CASE` body that closes in the body's
+    /// text**, before what ends that `CASE` (the jump out of a plain `SELECT`, the mark of a match of `SELECT
+    /// EVERYCASE`). That is the `CASE` the statement stands in, unless a `SELECT` with a `CASE` follows it inside
+    /// that `CASE`: then it is the first `CASE` of that inner `SELECT`, and the program goes on after the inner
+    /// `END SELECT`. The old compiler names the label by a count of the `CASE`s closed so far (`qb64pe.bas`
+    /// 7511, `sc_ec_<n + 1>_end`); kept as it is and listed for review (`SOMEDAY.md`).
+    fn case_end(&mut self, line: u32) -> LabelId {
+        match self.case_end {
+            Some(l) => l,
+            None => {
+                let l = self.label(line);
+                self.case_end = Some(l);
+                l
+            }
         }
     }
 
@@ -267,12 +306,23 @@ impl<'a> Lowerer<'a> {
                     .expect("the parser checked that a loop of this kind is open");
                 Op::Jump(exit)
             }
+            sema::StmtKind::ExitSelect { case } => {
+                let &(end, in_else) = self
+                    .selects
+                    .last()
+                    .expect("the parser checked that a `CASE` of a `SELECT` is open");
+                if *case && !in_else {
+                    Op::Jump(self.case_end(s.line))
+                } else {
+                    Op::Jump(end)
+                }
+            }
             sema::StmtKind::Goto(l) => Op::Jump(self.ids.get(*l)),
             sema::StmtKind::Gosub(l) => Op::Gosub(self.ids.get(*l)),
             sema::StmtKind::Return(l) => Op::Return(l.map(|l| self.ids.get(l))),
             sema::StmtKind::ConsoleOnly => Op::SelectConsole,
-            sema::StmtKind::End => Op::End,
-            sema::StmtKind::System => Op::System,
+            sema::StmtKind::End(code) => Op::End(code.clone()),
+            sema::StmtKind::System(code) => Op::System(code.clone()),
             sema::StmtKind::Exit => Op::Exit,
             sema::StmtKind::OnError(l) => Op::SetHandler(l.map(|l| self.ids.get(l))),
             sema::StmtKind::Resume(r) => Op::Resume(match r {
@@ -296,7 +346,7 @@ impl<'a> Lowerer<'a> {
                 joined,
             } => {
                 let op = Op::Allocate {
-                    array: *array,
+                    array: array.clone(),
                     bounds: bounds.clone(),
                     mode: *mode,
                 };
@@ -307,12 +357,59 @@ impl<'a> Lowerer<'a> {
                 op
             }
             sema::StmtKind::Clear { array } => Op::Clear { array: array.clone() },
-            sema::StmtKind::Release { array } => Op::Release { array: *array },
+            sema::StmtKind::Release { array } => Op::Release { array: array.clone() },
             sema::StmtKind::EraseParam { array } => Op::EraseParam { array: *array },
+            sema::StmtKind::CopyArray { from, to } => Op::CopyArray {
+                from: from.clone(),
+                to: to.clone(),
+            },
             sema::StmtKind::Print { to, items, newline } => Op::Print {
                 to: to.clone(),
                 items: print_items(items),
                 newline: *newline,
+            },
+            sema::StmtKind::PrintUsing {
+                to,
+                before,
+                format,
+                values,
+                newline,
+            } => Op::PrintUsing {
+                to: to.clone(),
+                before: print_items(before),
+                format: format.clone(),
+                values: values.clone(),
+                newline: *newline,
+            },
+            sema::StmtKind::MemGet { block, offset, target } => Op::MemGet {
+                block: block.clone(),
+                offset: offset.clone(),
+                target: target.clone(),
+            },
+            sema::StmtKind::MemPut { block, offset, value } => Op::MemPut {
+                block: block.clone(),
+                offset: offset.clone(),
+                value: value.clone(),
+            },
+            sema::StmtKind::MemFill {
+                block,
+                offset,
+                bytes,
+                value,
+            } => Op::MemFill {
+                block: block.clone(),
+                offset: offset.clone(),
+                bytes: bytes.clone(),
+                value: value.clone(),
+            },
+            sema::StmtKind::Field { file, parts } => Op::Field {
+                file: file.clone(),
+                parts: parts.clone(),
+            },
+            sema::StmtKind::Lset { right, target, value } => Op::Lset {
+                right: *right,
+                target: target.clone(),
+                value: value.clone(),
             },
             sema::StmtKind::Write { to, items, newline } => Op::Write {
                 to: to.clone(),
@@ -578,7 +675,13 @@ impl<'a> Lowerer<'a> {
                 on_error: OnError::Skip,
             };
             self.emit(s.span, c.line, vec![branch]);
+            self.selects.push((end, false));
             self.stmts_of(&c.body);
+            self.selects.pop();
+            // Where an `EXIT CASE` met since the last `CASE` closed continues.
+            if let Some(l) = self.case_end.take() {
+                self.place(l);
+            }
             let leave = match matched {
                 Some(f) => Op::Assign {
                     place: Place::Var(f),
@@ -599,7 +702,9 @@ impl<'a> Lowerer<'a> {
                 };
                 self.emit(s.span, sel.end_line, vec![skip]);
             }
+            self.selects.push((end, true));
             self.stmts_of(body);
+            self.selects.pop();
         }
         self.place(end);
     }
@@ -681,6 +786,7 @@ impl<'a> Lowerer<'a> {
             ty,
             storage,
             shape: crate::Shape::Scalar,
+            conventional: false,
         });
         VarId(to_u32(self.vars.len() - 1))
     }

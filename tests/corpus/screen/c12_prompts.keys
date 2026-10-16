@@ -1,0 +1,15 @@
+# The box, as it is when the first key is wanted.
+prompt
+state
+text x
+# The loop between the two reads gets no key: b comes at the second announcement.
+prompt
+text b
+# The menu announces after every key.
+prompt
+key down
+prompt
+key down
+prompt
+state
+key enter

@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_WIDTH 5
+LINE 5:_WIDTH 5
+exit=1

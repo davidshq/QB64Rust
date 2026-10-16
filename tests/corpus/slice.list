@@ -1,4 +1,4 @@
-# Corpus programs the new compiler must pass (changes m2-workspace-and-slice, m2-procedures-and-errors, m2-control-flow-slice, m2-arrays-and-types, m2-parser-breadth, m2-core-builtins, m2-numeric-types, m2-builtin-statements, m2-defxxx-common-arrays and m2-console-screenhide).
+# Corpus programs the new compiler must pass (changes m2-workspace-and-slice, m2-procedures-and-errors, m2-control-flow-slice, m2-arrays-and-types, m2-parser-breadth, m2-core-builtins, m2-numeric-types, m2-builtin-statements, m2-defxxx-common-arrays, m2-console-screenhide and m3-window-output).
 # One <group>/<name> per line; run with: run_legacy_tests.py --suite corpus --list tests/corpus/slice.list
 slice/s01_literals
 slice/s02_integer_wrap
@@ -229,6 +229,8 @@ runtime_comparison/180_eof_empty_file
 runtime_comparison/181_loc_after_write
 runtime_comparison/182_lof_binary
 runtime_comparison/183_freefile_multiple
+runtime_comparison/184_print_tab
+runtime_comparison/185_print_spc
 runtime_comparison/213_chdir
 runtime_comparison/219_fileexists_direxists
 slice/s39_data
@@ -305,3 +307,163 @@ slice/s67_auto_constants
 slice/s68_precompiler_flags
 slice/s68_precompiler_flags_b
 slice/s68_precompiler_flags_c
+slice/s69_console_screen_functions
+slice/s70_sub_name_labels
+slice/s71_tab_spc
+slice/s72_bload_peek_poke
+slice/s73_conventional_arrays
+slice/s74_sound_queue
+slice/s75_sound_wait
+slice/s76_sound_errors
+slice/s77_exeicon
+runtime_comparison/189_width
+runtime_comparison/237_csrlin_pos
+# m3-console-files group 2: _IIF, _MIN, _MAX, _CLAMP, _SHL, _SHR, _ROL, _ROR
+slice/s78_choice_min_shifts
+runtime_comparison/243_iif
+runtime_comparison/108_clamp
+runtime_comparison/78_min_max
+runtime_comparison/159_bitwise_shl_shr
+runtime_comparison/160_bitwise_rol_ror
+# m3-console-files group 3: EXIT SELECT, EXIT CASE
+slice/s79_exit_select
+runtime_comparison/151_exit_select
+# m3-console-files group 4: PRINT USING, LPRINT (239_lprint is compiled only: its .norun)
+slice/s80_print_using_numbers
+slice/s81_print_using_strings
+slice/s82_print_using_file
+runtime_comparison/186_print_using
+runtime_comparison/239_lprint
+# m3-console-files group 5: GET and PUT on a file, LOCK, UNLOCK
+slice/s83_binary_file
+slice/s84_random_file
+slice/s85_file_locks
+runtime_comparison/175_get_put
+runtime_comparison/177_open_binary
+runtime_comparison/179_file_lock
+# m3-console-files group 6: FIELD, LSET, RSET
+slice/s86_field_lset
+# m3-console-files group 7: CHAIN (s87 holds it as code that is not reached; 238_chain names a program that is not there)
+slice/s87_chain_not_reached
+runtime_comparison/238_chain
+# Screen programs (m3-window-output): checked by the state of the screen they leave, tests/corpus/screen/SOURCE.md
+screen/c01_text_cells
+screen/c02_screen12_shapes
+screen/c03_pages
+screen/c04_image_dest
+screen/c05_inkey_keys
+screen/c06_inkey_many
+screen/c07_input_window
+screen/c08_end_prompt
+screen/c09_off_the_end
+screen/c10_runtime_error
+screen/c11_screenhide
+screen/c12_prompts
+screen/d01_print_window
+screen/d02_color_locate
+screen/d03_cls_view_print
+screen/d04_width
+screen/d05_color_cls_graphics
+screen/d06_pset_line
+screen/d07_circle
+screen/d08_paint
+screen/d09_view_window
+screen/d10_palette_pages
+screen/d11_draw
+screen/d12_numeric_types
+screen/d13_functions
+screen/d14_errors
+screen/d15_pacing
+screen/d16_screen_13
+screen/d17_tab_window
+screen/d18_get_put
+screen/g01_flags
+screen/g02_cannon
+screen/g03_capitol
+screen/g04_ironclad
+screen/g05_schooner
+screen/g06_message_box
+screen/g07_mountains
+screen/g08_icon
+screen/g09_faces_forts
+screen/g10_snapshot
+screen/g11_city_report
+screen/g12_game
+screen/m00_width_80_50
+screen/m01_screen_1
+screen/m02_screen_2
+screen/m07_screen_7
+screen/m08_screen_8
+screen/m09_screen_9
+screen/m10_screen_10
+screen/m11_screen_11
+screen/m12_screen_12
+screen/m13_screen_13
+screen/m256_newimage_256
+screen/m32_newimage_32
+# m3-images-fonts-mouse group 2: the colour and image built-ins, screen programs (tests/corpus/screen/SOURCE.md)
+screen/i01_new_copy_put
+screen/i02_load_images
+screen/i03_save_load
+screen/i04_maptriangle
+screen/i05_alpha_blend
+screen/i06_palette_colours
+screen/i07_colours_32
+screen/i08_pmap_autodisplay
+# m3-images-fonts-mouse group 3: the font built-ins, screen programs (tests/corpus/screen/SOURCE.md)
+screen/f01_builtin_fonts
+screen/f02_loaded_fonts
+# m3-images-fonts-mouse group 4: the mouse, read from the mouse steps of a keys file (tests/corpus/screen/SOURCE.md)
+screen/u01_mouse_queue
+screen/u02_mouse_text
+# m3-mem group 2: the type _MEM and the blocks of built-ins (tests/corpus/slice/SOURCE.md)
+slice/s88_mem_new_image
+# m3-mem group 3: the block and the address of every kind of place
+slice/s89_mem_references
+# m3-mem group 4: reading and writing through a block, and one program per runtime error 300 to 313
+slice/s90_mem_get_put
+slice/s91_mem_error_300
+slice/s92_mem_error_301
+slice/s93_mem_error_302
+slice/s94_mem_error_303
+slice/s95_mem_error_304
+slice/s96_mem_error_305
+slice/s97_mem_error_306
+slice/s98_mem_error_307
+slice/s99_mem_error_308
+slice/s100_mem_error_309
+slice/s101_mem_error_310
+slice/s102_mem_error_311
+slice/s103_mem_error_312
+slice/s104_mem_error_313
+# m3-mem group 5: a number and its bytes
+slice/s105_mk_cv
+# m3-asserts-debug-zlib group 2: $ASSERTS, _ASSERT and $DEBUG
+slice/s106_asserts
+slice/s107_assert_message
+slice/s108_asserts_off_debug
+# m3-asserts-debug-zlib group 3: checksums, compression and base64
+slice/s109_data_processing
+# m3-asserts-debug-zlib group 4: END and SYSTEM with an exit code
+slice/s110_system_code
+slice/s111_end_code
+slice/s112_redim_retain
+slice/s113_redim_retain_kinds
+# m3-typefields group 3: _DYNAMIC member arrays of variables and elements
+slice/s114_dyn_members
+slice/s115_dyn_member_procs
+# m3-typefields group 4: owner values in arrays, copies, every kind of element, reads into members
+slice/s116_dyn_member_parents
+slice/s117_dyn_member_kinds
+# m3-typefields group 5: whole arrays of owner types in files
+slice/s118_dyn_member_files
+# m3-whole-array-assign group 3: whole-array assignment of array variables
+slice/s119_whole_array
+# m3-whole-array-assign group 4: member arrays and owner types
+slice/s120_whole_array_members
+# m3-declare-library group 5: DECLARE LIBRARY with a header in <name>.files, the C runtime, kernel32
+slice/s121_library_numbers
+slice/s122_library_strings_types
+slice/s123_library_alias
+slice/s124_library_customtype
+slice/s125_library_runtime_dll

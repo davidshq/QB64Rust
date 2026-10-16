@@ -1,0 +1,70 @@
+screen-state 1
+pages 8 display 0 write 0 read 0
+page 0 mode 0 text 80x25 bits 16 font 16 cursor 30,20 on color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "yellow on blue                                                                  "
+a 1E*14 07*66
+t "background only                                                                 "
+a 2E*15 07*65
+t "foreground only                                                                 "
+a 2C*15 07*65
+t "with a border colour                                                            "
+a 07*80
+t "blinking                                                                        "
+a 8F*8 07*72
+t "                                                                                "
+a 07*80
+= 3
+t "                   at 10, 20                                                    "
+a 07*80
+t "                                       column 40                                "
+a 07*80
+t "                                                row 12                          "
+a 07*80
+t "                                                                                "
+a 07*80
+t "    cursor off                                                                  "
+a 07*80
+t "                                                                                "
+a 07*80
+t "    cursor shape                                                                "
+a 07*80
+t "                                                                                "
+a 07*80
+= 8
+page 1 mode 0 text 80x25 bits 16 font 16 cursor 1,1 on color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 2 mode 0 text 80x25 bits 16 font 16 cursor 1,1 on color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 3 mode 0 text 80x25 bits 16 font 16 cursor 1,1 on color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 4 mode 0 text 80x25 bits 16 font 16 cursor 1,1 on color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 5 mode 0 text 80x25 bits 16 font 16 cursor 1,1 on color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 6 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 7 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+end

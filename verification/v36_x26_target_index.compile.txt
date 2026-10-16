@@ -1,0 +1,5 @@
+
+Whole-array assignment requires empty parentheses on both sides
+Caused by (or after):A ( 1 ) = B ( )
+LINE 4:a(1) = b()
+exit=1

@@ -1,0 +1,5 @@
+
+1st sub argument requires a number
+Caused by (or after):_PUTIMAGE ( "a",1 , 2 ) , IMG
+LINE 5:_PUTIMAGE ("a", 2), img
+exit=1

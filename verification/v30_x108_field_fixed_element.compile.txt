@@ -1,0 +1,5 @@
+
+Fixed length strings cannot be used in a FIELD statement
+Caused by (or after):FIELD # 1 , 4 AS FX ( 1 )
+LINE 15:FIELD #1, 4 AS fx(1)
+exit=1

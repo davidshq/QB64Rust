@@ -1,0 +1,5 @@
+
+Expected CASE expression
+Caused by (or after):EXIT SELECT
+LINE 4:EXIT SELECT
+exit=1

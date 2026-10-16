@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):VARPTR ( I )
+LINE 7:VARPTR(i)
+exit=1

@@ -1,0 +1,5 @@
+
+Expected operator in equation
+Caused by (or after):_PUTIMAGE ( 0 , 0 ) - ( 9 , 9 ) , IMG _SMOOTH
+LINE 5:_PUTIMAGE (0, 0)-(9, 9), img _SMOOTH
+exit=1

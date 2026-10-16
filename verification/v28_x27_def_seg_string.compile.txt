@@ -1,0 +1,5 @@
+
+Number required for sub
+Caused by (or after):DEF SEG = "a",1
+LINE 7:DEF SEG = "a"
+exit=1

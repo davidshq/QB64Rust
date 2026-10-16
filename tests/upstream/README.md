@@ -91,13 +91,21 @@ python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\rele
 
 runs the programs of `pass.list` end to end from the clone's `tests\compile_tests` (with its binary assets),
 with the suite's settings (`-f:OptimizeCppProgram=true -f:StripDebugSymbols=false -q -m -x`); CI runs the same
-list from this copy against the QB64pe release (`rust.yml`, job `tier2`).
+list the same way, from the `tests\compile_tests` of the clone it checks out at the reference commit (`rust.yml`,
+job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 2026-10-12). Not from this copy since
+`m3-declare-library`: `declare_library_static/test` and `declare_library_dynamic/test` need `lib-windows.a` and
+`lib.dll`, which the copy (text files only) lacks. The copy stays the input of tier 1.
 
 - `pass.list`: the upstream programs the new compiler passes. A ratchet: add a program when it passes, never
   remove one.
-- `deferred.list`: the 125 programs that need a feature deferred to `SOMEDAY.md` (`$UNSTABLE:TYPEFIELDS` 109,
-  `REDIM _RETAIN` 28, whole-array assignment 21, `_ARRAYCOPY` 4; a program may use several), found by pattern and
-  checked by eye.
+- `deferred.list`: the 5 programs that need a feature deferred to `SOMEDAY.md` (`_ARRAYCOPY` 4) or left out of
+  a change (`arrays/t001_whole_array_core`: a plain scalar beside an array typed by `DIM … AS`, user,
+  2026-10-15), found by pattern and checked by eye. `REDIM _RETAIN` compiles since `m3-redim-retain`,
+  `$UNSTABLE:TYPEFIELDS` since `m3-typefields` and whole-array assignment since `m3-whole-array-assign`. 97
+  programs left it with `m3-typefields`: 18 with its group 2, 74 with its group 3, 5 with its group 5 (`t266` and
+  `t267` left with group 3, came back with group 4 and left with group 5; each passing on its first run; the
+  change's `tasks.md`). 16 left it with `m3-whole-array-assign` (12 accepted programs and 4 `.err` ones, with its
+  group 2, each passing on its first run).
 
 Progress is the pass list out of the programs not deferred; `cargo test` checks that no program is in both lists
 and prints the line (`cargo test -p qb64rust-driver --test inputs upstream_progress -- --nocapture`).
@@ -333,3 +341,112 @@ failure `http/read_example`; none builds and prints the wrong output. The 26 pro
 the 26 that joined `pass.list`. The three lists are unchanged (0 false errors, 0 parse gaps, 53 only-marked
 rejections). What comes next for the suite outside `deferred.list`: `_MEM`, `$ASSERTS`/`$DEBUG` and the image
 built-ins that run.
+
+**Upstream progress, 2026-10-13: 148 of 279** (`m3-console-files` task 8.1, the full runs that close the
+change; 142 before it). The six new ones compile cleanly with the step's built-ins and pass: `iif/iif_test`,
+`rotations/test`, `func_tostr/double`, `func_tostr/float`, `func_tostr/single` (`PRINT USING`) and
+`arrays/put_get_write_read_fixed_string` (`GET` and `PUT` on a file). `pass.list` run by itself: 148 of 148.
+The full run of the suite (404 programs): 148 pass, 255 rejected or with only marked errors (217 at the
+compile, 38 `.err` programs), the known failure `http/read_example`; none builds and prints the wrong output.
+The three lists are unchanged.
+
+**Upstream progress, 2026-10-13: 142 of 279** (`m3-sound` task 6.1, the full runs that close the change; 140
+before it). The two new ones: `console_only/audio_out` (`PLAY "O3"` and a `PRINT`) and `icon_relative/test`
+(`$EXEICON:'./qb64pe.ico'`, compile-only, run from the clone, where its icon lies; the copy here holds no
+binary files). `audio_out/test`, the same `PLAY` with the generated licence file, compiles cleanly and is on
+`tests\known_clean_not_passing.list`. `pass.list` run by itself: 142 of 142. The full run of the suite (404
+programs): 142 pass, 261 rejected or with only marked errors, the known failure `http/read_example`; none
+builds and prints the wrong output. Still marked among the icon tests: `icon/test` and `winresource/test` name
+their icon relative to the compiler's folder (`SOMEDAY.md`), the second with `$VERSIONINFO`.
+
+**Upstream progress, 2026-10-14: 153 of 279** (`m3-images-fonts-mouse` tasks 6.1 and 6.2, the full runs that close
+the change; 148 before it). The five new ones: `colors/test`, `console_only/image` and `image/svg_test` (group 2,
+the colours and images; `svg_test` runs from the clone with its `.svg` files), `console_only/screenimage` and
+`screenimage/test` (group 5: `_SCREENIMAGE`, whose Windows branch prints the handle). `image/test` compiles cleanly
+and is on `tests\known_clean_not_passing.list` (built with the generated licence file, as `audio_out/test`). Of
+the 24 upstream programs that name a built-in of the change, the other 17 wait on something else: `MKL$` (the six
+`paint/tile_*` programs), `_MEM` (`image/pcx_test`, `image/webp_test`, `putimage/putimage_test` and the two
+`view/window_view_*`), and one each on `_CONTINUE`, `_ERRORMESSAGE$`, a `TYPE` in a SUB, `SUB _GL`, `_PI` and
+`CHR$` in a `CONST`. The demand report names no built-in of the change but in a `CONST` (`_RGB32` and the colour
+functions, outside the change). `pass.list` run by itself: 153 of 153. The full run of the suite (404 programs):
+153 pass, 250 rejected or with only marked errors (212 at the compile, 38 `.err` programs), the known failure
+`http/read_example`; none builds and prints the wrong output. The three lists are unchanged.
+
+**Upstream progress, 2026-10-14: 174 of 279** (`m3-mem` tasks 6.1 and 6.2, the full runs that close the change;
+153 before it). The 21 new ones, each joining when tier 1 found it compiling cleanly: `types/all_types`, `dim`,
+`dim_array`, `static`, `static_array` (group 2: they declare `_MEM` variables), `arrays/09_layout_and_mixed_members`,
+`46_Mem_Parent`, `multiple_arrays_same_type`, `nonzero_bounds_negative` (group 3: `_MEM` of references),
+`arrays/nonzero_bounds_positive`, `whole_member_array_ops_nonzero_bounds`, `offset/offset_test`,
+`putimage/putimage_test` (group 4: `_MEMGET`, `_MEMPUT`, `_MEMFILL`), the six `paint/tile_*` and
+`view/window_view_mandelbrot`, `window_view_screen_line` (group 5: `MKL$` and `MKI$`). Of the upstream programs
+that name a built-in of the change, the others wait on something else: the deferred `_DYNAMIC`/`_STATIC` members and
+`$Unstable` (18), `_BASE64DECODE$` and `_INFLATE$` (`font/test`, `image/curico_test`, `pcx_test`, `webp_test`, the
+tests of `imageassert.bm`), `$CHECKING` (`source_ordering/checking_off`), a `TYPE` in a SUB (`mem/mem_checking_off`),
+`_SNDNEW`, blanks around a dot, a whole array where no parameter takes it, and `LEN` of a whole member array
+(`arrays/test_mem_vs_len`, the one form this change marks). `pass.list` run by itself: 174 of 174. The full run of
+the suite (404 programs): 174 pass, 229 rejected or with only marked errors (191 at the compile, 38 `.err`
+programs), the known failure `http/read_example`; none builds and prints the wrong output. The three lists are
+unchanged.
+
+**Upstream progress, 2026-10-14: 186 of 279** (`m3-asserts-debug-zlib` task 6.1, the full runs that close the
+change; 174 before it). The 12 new ones: `precomp-flags/asserts`, `assertscon`, `debug` and `auto_include/debug`
+(group 2: `$ASSERTS`, `$ASSERTS:CONSOLE`, `$DEBUG`), `console_only/libz`, `image/pcx_test` and `image/webp_test`
+(group 3: the data-processing functions, which `imageassert.bm` needs), `arrays/t_qb64pe_refactor_preserve_inline_varstrings`
+(group 4: `SYSTEM n`), and `libz/test`, `audio_out/test`, `image/test` and `basic/test` (group 5: the licence file
+`-f:GenerateLicenseFile` writes, compared with their `.win.license`; the last three left
+`tests\known_clean_not_passing.list`). The other programs with `SYSTEM n` (14) wait on `REDIM _RETAIN`,
+`_ARRAYCOPY` or `$Unstable`; `font/test` on `CHR$` in a `CONST`, `image/curico_test` on `_ERRORMESSAGE$`,
+`_INCLERRORFILE$` and `_INCLERRORLINE`. `pass.list` run by itself: 186
+of 186 (197 s, `--jobs 8 --build-cache`). The full run of the suite (404 programs): 186 pass, 217 rejected or with
+only marked errors (179 at the compile, 38 `.err` programs), the known failure `http/read_example`; none builds and
+prints the wrong output. The three lists are unchanged.
+
+**Upstream progress, 2026-10-14: 193 of 286** (`m3-redim-retain` task 4.1; 186 of 279 before it). The seven
+programs that were deferred for `REDIM _RETAIN` alone left `deferred.list` (now 118, so the programs counted are
+404 − 118 = 286) and joined `pass.list`, each passing on its first run: `arrays/37_redim_retain_packed_bit_2d`,
+`Retain_Preserve`, `retain_test`, `t_qb64pe_refactor_raw_redim_preserve`,
+`t_qb64pe_refactor_retain_coordinate_payloads`, `t_qb64pe_refactor_retain_nested_owner_array`, and the `.err`
+program `array_elements_change`, now rejected by a real error ("Cannot change the number of elements"), which
+left `tests\known_unsupported_rejections.list` (52). `ArrayCopyTest_3` showed that a `_DYNAMIC` written before a
+member's name was not seen; it is "not supported yet" now, as one after the name, so the demand report names
+`_DYNAMIC`/`_STATIC` members in 90 programs (86 before). `pass.list` run by itself: 193 of 193. The full run of the
+suite (404 programs): 193 pass, 210 rejected or with only marked errors (173 at the compile, 37 `.err` programs),
+the known failure `http/read_example`; none builds and prints the wrong output. The demand report (348 programs
+without an `.err`): 173 without errors, 164 held back, 11 with other errors; it names no `REDIM _RETAIN`.
+
+**Upstream progress, 2026-10-15: 290 of 383** (`m3-typefields` task 6.1; 193 of 286 before it). The change took
+`$UNSTABLE:TYPEFIELDS`, the member markers and `_DYNAMIC` member arrays: 97 programs left `deferred.list` (118 to
+21, so the programs counted are 404 − 21 = 383) and joined `pass.list` group by group, each passing on its first
+run. The last five came with group 5:
+`arrays/put_get_write_read_UDT_fixed_string`, `t266_putget_fixed_dynamic_fields`,
+`t267_putget_fixed_scalar_string_nonzero_bounds` (whole arrays of an owner type in files), and the `.err` programs
+`t268_negative_put_scalar_varstring` and `t269_negative_get_dynamic_varstring_field`. The 21 left need only
+whole-array assignment or `_ARRAYCOPY`. `pass.list` run by itself: 290 of 290. The full run of the suite (404
+programs): 290 pass, 113 rejected or with only marked errors (92 at the compile, 21 `.err` programs), the known
+failure `http/read_example`; none builds and prints the wrong output. The demand report (348 programs without an
+`.err`): 254 without errors, 83 held back, 11 with other errors; it names no `$UNSTABLE`, member marker or
+dynamic member array. `tests\known_unsupported_rejections.list` holds 36; the other lists are unchanged.
+
+**Upstream progress, 2026-10-15: 310 of 399** (`m3-whole-array-assign` task 5.3; 290 of 383 before it). The change
+took whole-array assignment: 16 programs left `deferred.list` (21 to 5, so the programs counted are 404 − 5 = 399),
+and 20 joined `pass.list` with its group 2, each passing on its first run: the 12 accepted programs
+`arrays/07_nested_udt`, `90`–`94_type_codegen_*`, `t002`, `t003`, `t203`, `t207`, `t272`, `t278` and the eight
+`.err` programs `t024`–`t027`, `t037`, `t038`, `t040_scalar_equals_whole_array`, `t041` (four of them deferred,
+four counted before), which now get the old compiler's errors and left `tests\known_unsupported_rejections.list`. The 5 left need `_ARRAYCOPY` or,
+`t001`, a plain scalar beside an array typed by `DIM … AS`. `pass.list` run by itself: 310 of 310. The full run of
+the suite (404 programs): 310 pass, 93 rejected or with only marked errors (80 at the compile, 13 `.err`
+programs), the known failure `http/read_example`; none builds and prints the wrong output. The demand report (348
+programs without an `.err`): 266 without errors, 71 held back, 11 with other errors; it names no whole-array
+assignment (the whole arrays it names are `LEN(a())`, 4 programs). `tests\known_unsupported_rejections.list`
+holds 28; the other lists are unchanged.
+
+**Upstream progress, 2026-10-16: 318 of 399** (`m3-declare-library` task 6.2). The change took `DECLARE LIBRARY`:
+8 programs joined `pass.list` with its task 5.2, `auto_include/am-trigger`, `declare_library/test`,
+`declare_library_dynamic/test`, `declare_library_static/test` and the four of `declare_library_header`; they left
+`tests\known_clean_not_passing.list`. The ninth with a block, `on_error/errtest`, also needs `_NEWHANDLER` and
+`_LASTHANDLER` and stays out. Since this change CI runs the list from the clone (above). `pass.list` run by
+itself: 318 of 318. The full run of the suite (404 programs): 318 pass, 85 rejected or with only marked errors (72
+at the compile, 13 `.err` programs), the known failure `http/read_example`; none builds and prints the wrong
+output. The demand report (348 programs without an `.err`): 274 without errors, 63 held back, 11 with other
+errors; its first lines are `_SNDOPEN` 6, `_ARRAYCOPY` 4, `$VERSIONINFO` 4. `tests\known_unsupported_rejections.list`
+holds 28 and `known_clean_not_passing.list` 5.

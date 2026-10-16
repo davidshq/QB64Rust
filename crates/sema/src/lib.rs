@@ -384,8 +384,65 @@ pub fn holds_strings(types: &[UserType], t: Ty) -> bool {
     }
 }
 
+/// Whether a value of this type owns dynamic member arrays (design D3 of `m3-typefields`): a user type with a
+/// `_DYNAMIC` member, or with a member (also a member array) of a user type that owns one. Such a value is laid out
+/// with its descriptor pointers aligned and is made, released and copied with its members.
+pub fn owns_desc(types: &[UserType], t: Ty) -> bool {
+    match t {
+        Ty::User(id) => types[id.0 as usize]
+            .members
+            .iter()
+            .any(|m| m.dynamic || owns_desc(types, m.ty)),
+        Ty::I8
+        | Ty::U8
+        | Ty::I16
+        | Ty::U16
+        | Ty::I32
+        | Ty::U32
+        | Ty::I64
+        | Ty::U64
+        | Ty::Off
+        | Ty::UOff
+        | Ty::Bit { .. }
+        | Ty::F32
+        | Ty::F64
+        | Ty::F80
+        | Ty::Str
+        | Ty::FixedStr(_) => false,
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TypeId(pub u32);
+
+/// The name of the predefined user type `_MEM` (design D1 of `m3-mem`), which no `TYPE` block may take.
+pub const MEM_TYPE: &str = "_MEM";
+
+/// The predefined user type `_MEM`, libqb's `mem_block` (design D1 of `m3-mem`; measured, `qb64pe.bas` 1588,
+/// `verification\v32_a_blocks`): 56 bytes, the members in the old compiler's order and sizes. The two lock
+/// members have names a program cannot write, as the old compiler names them, so no member access finds them.
+/// The checker adds it to [`Program::types`] when a program first names the type or a built-in that gives one.
+pub fn mem_type() -> UserType {
+    let member = |name: &str, ty| Member {
+        name: name.to_string(),
+        ty,
+        bounds: Vec::new(),
+        dynamic: false,
+    };
+    UserType {
+        name: MEM_TYPE.to_string(),
+        members: vec![
+            member("OFFSET", Ty::Off),
+            member("SIZE", Ty::Off),
+            member("$_LOCK_ID", Ty::I64),
+            member("$_LOCK_OFFSET", Ty::Off),
+            member("TYPE", Ty::Off),
+            member("ELEMENTSIZE", Ty::Off),
+            member("IMAGE", Ty::I32),
+            member("SOUND", Ty::I32),
+        ],
+    }
+}
 
 /// A member of a user type: its index in [`UserType::members`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -412,6 +469,9 @@ pub struct Member {
     /// elements are part of each value of the type and the bounds never change (measured,
     /// `verification\v24_h_member_arrays`, `v24_x184`–`x190`).
     pub bounds: Vec<(i64, i64)>,
+    /// A member array marked `_DYNAMIC` (design D2 of `m3-typefields`): an array of its own in each value, which
+    /// `bounds` only starts at. False for every other member, `_STATIC` ones included.
+    pub dynamic: bool,
 }
 
 impl Member {
@@ -540,6 +600,16 @@ pub enum AllocMode {
     /// `REDIM _PRESERVE`: new bounds; the elements keep their values by flat position, as many as the smaller of
     /// the old and the new number of elements.
     Preserve,
+    /// `REDIM _RETAIN`: new bounds; the elements whose indexes lie within both the old and the new bounds of every
+    /// dimension keep their values at the same indexes (design D1 of `m3-redim-retain`).
+    Retain,
+}
+
+impl AllocMode {
+    /// The mode keeps some of the elements of an allocated array: `_PRESERVE` or `_RETAIN`.
+    pub fn keeps_elements(self) -> bool {
+        matches!(self, AllocMode::Preserve | AllocMode::Retain)
+    }
 }
 
 /// A variable: a name plus a type (design D5), and its storage. An array is a variable with a shape other than
@@ -552,6 +622,10 @@ pub struct Var {
     pub ty: Ty,
     pub storage: Storage,
     pub shape: Shape,
+    /// An array a `VARPTR` or `VARSEG` of the program names: it lives in libqb's conventional memory, where
+    /// `DEF SEG` with `PEEK`, `POKE`, `BLOAD` and `BSAVE` reach it (design D4 of `m3-get-put-bload`). Only an
+    /// array of the main module with numeric elements is one.
+    pub conventional: bool,
 }
 
 impl Var {
@@ -678,17 +752,6 @@ impl Place {
             Place::Member { base, .. } => base.indexes(),
         }
     }
-
-    /// Whether the place is reached through a member with an index on the way: a member of an element
-    /// (`a(i).m`) or an element of a member array (`t.v(i)`, `a(i).v(j)`). A store into such a place has a rule
-    /// of its own ([`StmtKind::Assign`]).
-    pub fn through_member(&self) -> bool {
-        match self {
-            Place::Var(_) => false,
-            Place::Element { array, .. } => matches!(array, ArrayRef::Member { .. }),
-            Place::Member { base, .. } => base.has_element(),
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -712,6 +775,52 @@ pub struct Proc {
     /// 1-based source lines of the header and of the closing `END SUB`/`END FUNCTION`.
     pub line: u32,
     pub end_line: u32,
+    /// A procedure declared in a `DECLARE LIBRARY` block (design D1 of `m3-declare-library`): its C function. It has
+    /// no statements.
+    pub external: Option<External>,
+}
+
+/// The C function behind a procedure of a `DECLARE LIBRARY` block.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct External {
+    pub library: LibraryId,
+    /// The `ALIAS` text (a C or C++ name, `hns::twice`), else the procedure's name as written without its suffix,
+    /// in its own letter case (measured, `verification\v37_x31`).
+    pub c_name: String,
+    /// Per parameter: written `BYVAL`.
+    pub byval: Vec<bool>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct LibraryId(pub u32);
+
+/// A `DECLARE [STATIC|DYNAMIC|CUSTOMTYPE] LIBRARY` block (design D1 of `m3-declare-library`). `sema` reads no file:
+/// finding the libraries is the driver's work.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Library {
+    pub kind: LibraryKind,
+    /// The names as written, without the empty ones: a block with no name or `""` has none (measured,
+    /// `verification\v37_a`, `x27`).
+    pub names: Vec<LibraryName>,
+    /// The block's header line; its file is the one the block stands in, whose folder a header is also looked for
+    /// from.
+    pub span: Span,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LibraryKind {
+    Plain,
+    Static,
+    Dynamic,
+    Customtype,
+}
+
+/// A library name of a block: the text between the quotes.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LibraryName {
+    /// Taken as UTF-8; a byte that is no UTF-8 is shown as `show_bytes` shows it.
+    pub text: String,
+    pub span: Span,
 }
 
 /// How an argument is passed to a procedure (design D4).
@@ -729,6 +838,14 @@ pub enum Arg {
     /// `verification\v24_x315`): its place is found once, where the argument stands, and an index outside its
     /// bounds on the way raises error 9, so that the procedure is not entered.
     Array(ArrayRef),
+    /// To a `BYVAL` parameter of a library procedure: the value converted to the parameter's type as for an
+    /// assignment (measured, `verification\v37_b`, `v37_c`).
+    Value(Expr),
+    /// To a `BYVAL` parameter of a library procedure: an argument written `0`, `(0)`, `0&` or as a `CONST` whose
+    /// value is 0, which the old compiler writes C++ `NULL` (`qb64pe.bas` 12307, 21954; measured,
+    /// `verification\v37_c`, `x56`–`x61`). `1 - 1` is not one (`x57`). Decided here, where the argument's text is
+    /// known, not from a folded value.
+    Null,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -835,6 +952,27 @@ pub enum ExprKind {
         array: ArrayRef,
         dim: Option<Box<Expr>>,
     },
+    /// `VARPTR(a(i))`: the offset of an element in its array, in bytes: its flat position, bounds check included,
+    /// times the size of an element. Typed `_INTEGER64` (measured, `verification\v28_d_varptr_index`: an index
+    /// outside the bounds raises error 9 and gives 0). The array is one in conventional memory
+    /// ([`Var::conventional`]).
+    VarPtr {
+        array: VarId,
+        index: Vec<Expr>,
+    },
+    /// `VARSEG(a(i))`: the segment of the array's data in conventional memory, typed `_INTEGER64`. The index
+    /// is not part of it: the old compiler does not evaluate it (measured, `v28_d_varptr_index`: a FUNCTION in it
+    /// is not called, an index outside the bounds raises nothing).
+    VarSeg {
+        array: VarId,
+    },
+    /// The bytes of a numeric array from an element (the first, for a whole array `a()`) to its end, as a
+    /// function's [`builtins::Slot::Block`]: the array of `_UCHARPOS` (`qb64pe.bas` 20903; design D1 of
+    /// `m3-images-fonts-mouse`). No value: it stands only as that argument, typed as the array's elements.
+    Block {
+        array: VarId,
+        index: Vec<Expr>,
+    },
     Convert {
         how: ConvKind,
         from: Box<Expr>,
@@ -858,6 +996,17 @@ pub enum ExprKind {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+    /// `_IIF(condition, then, else_)`: the condition is evaluated, and then **only the part it chooses** (`then`
+    /// when it is not zero). The condition is an integer of any type (a float is already rounded half to even).
+    /// The parts are both strings, and the node is a string, or both numbers as they are, of any two types: the
+    /// node's `ty` is their own when it is one type, else C's common type of the two (`ops::held`), which the part
+    /// chosen is converted to; its `qb` is `ops::widest` of what they are believed (design D6 of
+    /// `m3-console-files`; measured, `verification\v30_g_iif_min_max`, `v30_result_types.txt`).
+    Choice {
+        condition: Box<Expr>,
+        then: Box<Expr>,
+        else_: Box<Expr>,
+    },
     /// A built-in function call; one slot per table argument, `None` for an absent optional argument. Each
     /// present argument is already converted to the slot's type.
     Call {
@@ -870,6 +1019,74 @@ pub enum ExprKind {
         proc: ProcId,
         args: Vec<Arg>,
     },
+    /// `_MEM(reference)` (`element` false) or `_MEMELEMENT(reference)`: the block of a place or of an array, typed
+    /// `_MEM` (design D3 of `m3-mem`). Its address, size, type value, element size and lock follow the old
+    /// compiler's rule for the kind of reference (`qb64pe.bas` 22406–23038; measured, `verification\v32_a_blocks`,
+    /// the change's design D3 has one line per kind). The reference is found as a place is: an index outside its
+    /// bounds raises error 9 and counts as the first element. **An index is evaluated twice** (for the address
+    /// and for the size), as the old compiler writes it. Stands only as the value stored into a `_MEM` place.
+    MemOf {
+        of: Reference,
+        element: bool,
+    },
+    /// `_MEM(offset, size)`: a block of `size` bytes at `offset`, both `_OFFSET` values, typed `_MEM`. A negative
+    /// size raises error 301 (not trapped) and gives a block of 0 bytes. Stands only as the value stored into a
+    /// `_MEM` place.
+    MemAt {
+        offset: Box<Expr>,
+        size: Box<Expr>,
+    },
+    /// `_OFFSET(reference)`: the address of a place, of the characters of a string, or of an array's first
+    /// element, typed `_UNSIGNED _OFFSET` (design D6 of `m3-mem`). The reference is found as for [`ExprKind::MemOf`].
+    AddressOf(Reference),
+    /// `_MEMGET(block, offset, type)` (design D4 of `m3-mem`): the value of type `of` at `offset` (an `_OFFSET`)
+    /// of the block, a place of type `_MEM`. The runtime checks the block: one never set raises error 309, one
+    /// freed 308, a region beyond the block 300 (none trapped), and the value is then read from zero bytes. The
+    /// node is typed `of`, a fixed-length string's as a `STRING`; a value of a user type stands only as the value
+    /// stored into a place of that type.
+    MemRead {
+        block: Place,
+        offset: Box<Expr>,
+        of: Ty,
+    },
+}
+
+/// What `_MEMPUT` writes or `_MEMFILL` fills with (design D4 of `m3-mem`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum MemValue {
+    /// `value AS type`: a number converted to the numeric type `ty` as a store into a variable of it converts it.
+    Typed { value: Expr, ty: Ty },
+    /// A variable, element, member, whole array or whole member array: its bytes, as many as it has (of a
+    /// variable-length string its characters, as many as it holds then).
+    Bytes(Reference),
+    /// A string that is no variable: its characters.
+    Str(Expr),
+}
+
+/// What `_MEM`, `_MEMELEMENT` and `_OFFSET` name (design D3 of `m3-mem`): a variable, element or member, or an
+/// array as a whole, an array variable (`a()`) or a member array (`t.v()`, also written `t.v`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum Reference {
+    Place(Place),
+    Array(ArrayRef),
+}
+
+impl Reference {
+    /// The variable the reference is, or is part of.
+    pub fn root(&self) -> VarId {
+        match self {
+            Reference::Place(p) => p.root(),
+            Reference::Array(a) => a.root(),
+        }
+    }
+
+    /// The indexes on the way to the reference, outermost element first.
+    pub fn indexes(&self) -> Vec<&Expr> {
+        match self {
+            Reference::Place(p) => p.indexes(),
+            Reference::Array(a) => a.indexes(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -880,6 +1097,32 @@ pub enum PrintItem {
     Num(Expr),
     /// `,`: move to the next print zone.
     Zone,
+}
+
+/// Where a `PRINT` sends its text ([`StmtKind::Print`], [`StmtKind::PrintUsing`]).
+#[derive(Clone, Debug, PartialEq)]
+pub enum PrintTo {
+    /// `PRINT`: the program's destination of text, the console or the window.
+    Screen,
+    /// `PRINT #n,`: file `n`, already converted to LONG.
+    File(Expr),
+    /// `LPRINT`: the printer (design D8 of `m3-console-files`). No test runs it.
+    Printer,
+}
+
+/// A value of a `PRINT USING` ([`StmtKind::PrintUsing`]), which goes to the next field of the format.
+#[derive(Clone, Debug, PartialEq)]
+pub enum UsingValue {
+    /// A string, for a string field.
+    Str(Expr),
+    /// A number, for a number field, formatted as a value of type `as_`: SINGLE, DOUBLE or `_FLOAT` for a value
+    /// believed one (the type gives the letter of an exponent), `_UNSIGNED _INTEGER64` for an unsigned integer of
+    /// 64 bits, `_INTEGER64` for every other integer (`qb64pe.bas` 27369–27378). The value is as it is; it is
+    /// converted to `as_` as an argument of that type is.
+    Num { value: Expr, as_: Ty },
+    /// `TAB(n)` or `SPC(n)` written as a value (the call, a string of blanks): what is formatted so far is
+    /// printed, then the blanks; the place in the format is kept.
+    Blanks(Expr),
 }
 
 /// Where an [`StmtKind::Input`] reads from.
@@ -905,6 +1148,19 @@ pub enum StmtArg {
     Value(Expr),
     /// A variable, element or member the statement stores into or exchanges.
     Place(Place),
+    /// The bytes of an array from the element at `index` to its end; of the whole array when `index` is empty
+    /// (`GET (0, 0)-(9, 9), a`, `PUT (0, 0), a(5)`). An index outside the bounds raises error 9 and counts as the
+    /// first element. The index is used twice, for the address and for the number of bytes left, so it is one
+    /// that reads only: no call of a SUB or FUNCTION (measured: the old compiler evaluates it twice).
+    Block { array: VarId, index: Vec<Expr> },
+    /// The bytes of one place, which `GET` on a file reads into and `PUT` writes from (design D2 of
+    /// `m3-console-files`; measured, `verification\v30_d_binary`, `v30_e_random`): a number's bytes, the
+    /// characters of a fixed-length string, the bytes of a value of a user type without a `STRING` in it; of a
+    /// variable-length string the string itself, which is read for as many characters as it holds and written
+    /// with those it holds. Never a `_BIT`. An index outside the bounds on the way raises error 9 and the first
+    /// element stands in. **The place of a variable-length string is found twice by `PUT`** (for its characters
+    /// and for their number, as the old compiler writes it), so a FUNCTION in its index is called twice.
+    Bytes(Place),
     /// Which alternative of a choice was written, from 0 (`FOR OUTPUT` of `OPEN` is 3).
     Word(u8),
     /// An optional argument or choice left out.
@@ -916,32 +1172,51 @@ pub enum StmtKind {
     /// A built-in statement that is one call of the runtime ([`builtins::STATEMENTS`]): the table entry of the form
     /// written and one slot per argument or choice. The arguments are evaluated in order and the call is made also
     /// after a raising argument (measured, `verification\v22_a_calls`).
-    Builtin {
-        id: BuiltinId,
-        args: Vec<StmtArg>,
-    },
+    Builtin { id: BuiltinId, args: Vec<StmtArg> },
     /// `$CONSOLE:ONLY`: output and input go to the console.
     ConsoleOnly,
-    /// A store; the value has the place's type (never a user type: [`StmtKind::CopyWhole`]). The store rule
+    /// `_MEMGET block, offset, variable` (design D4 of `m3-mem`): the variable's bytes read from the block, at
+    /// `offset` (an `_OFFSET`). In order: the offset is evaluated; a block never set raises error 309, a freed one
+    /// 308, a region beyond the block 300 (none trapped), and nothing is copied; otherwise the bytes are copied.
+    MemGet {
+        block: Place,
+        offset: Expr,
+        target: Reference,
+    },
+    /// `_MEMPUT block, offset, value` (design D4 of `m3-mem`): the value's bytes written into the block, checked
+    /// as for [`StmtKind::MemGet`]; a [`MemValue::Str`] is evaluated before the offset, a typed value after the
+    /// checks.
+    MemPut {
+        block: Place,
+        offset: Expr,
+        value: MemValue,
+    },
+    /// `_MEMFILL block, offset, bytes, value` (design D4 of `m3-mem`): `bytes` bytes of the block from `offset`
+    /// (both `_OFFSET`s) filled with the value's bytes, repeated, by the runtime's `sub__memfill`: a block never set
+    /// raises error 309, a freed one 308, a negative count or a value of no bytes 301, a region beyond the block
+    /// 300.
+    MemFill {
+        block: Place,
+        offset: Expr,
+        bytes: Expr,
+        value: MemValue,
+    },
+    /// A store; the value has the place's type. A user type only as the value of a built-in: a block stored
+    /// into a `_MEM` place, or a value `_MEMGET` reads (design D2 and D4 of `m3-mem`); a copy between two places of
+    /// a user type is a [`StmtKind::CopyWhole`]. The store rule
     /// depends on the place (design D6 of `m2-arrays-and-types`): for an element of an array variable the
     /// indexes come first, and with an error pending after them the value is not evaluated and nothing is
     /// stored. For a place reached through a member with an index on the way ([`Place::through_member`]) a
     /// number is evaluated before the indexes and a string after them (measured, `verification\v24_x313`,
     /// `x316`), and nothing is stored when an index is outside its bounds (`DIVERGENCES.md` D-004).
-    Assign {
-        place: Place,
-        value: Expr,
-    },
+    Assign { place: Place, value: Expr },
     /// `to = from` for two places of one user type (design D9 of `m2-defxxx-common-arrays`): every member is
     /// copied, a `STRING` member as a string of its own. The copy is not guarded (measured,
     /// `verification\v24_h_whole`, `v24_x210`): an index outside its bounds raises error 9 and the array's first
     /// element stands in for the element named, on either side. `to` is found before `from`; for a type that
     /// holds strings ([`holds_strings`]) both are found again for every part of the value (`v24_x306`, `x307`;
     /// the parts are the IR's, `Op::CopyWhole`).
-    CopyWhole {
-        from: Place,
-        to: Place,
-    },
+    CopyWhole { from: Place, to: Place },
     /// A `DIM`, `REDIM` or `REDIM _PRESERVE` that runs (design D4 of `m2-defxxx-common-arrays`): gives an array
     /// its bounds and its elements, zero or empty. One lower and one upper bound per dimension, each already
     /// converted to `_INTEGER64`, evaluated in order. The array may be a static one: the statement then raises
@@ -951,8 +1226,12 @@ pub enum StmtKind {
     /// allocation of an array used without `DIM` below `$DYNAMIC`, which the statement that names it first
     /// does; measured, `verification\v24_x101`): an error it raises is an error of that statement, so the stores
     /// of the statement are skipped by their rule and `RESUME NEXT` goes on after the statement.
+    ///
+    /// The array may be a dynamic member array (design D5 of `m3-typefields`): the place it is part of is found
+    /// once, before the bounds, and not guarded (an index outside its bounds on the way raises error 9 and the
+    /// member of the element at position 0 stands in); it is never static.
     Allocate {
-        array: VarId,
+        array: ArrayRef,
         bounds: Vec<(Expr, Expr)>,
         mode: AllocMode,
         joined: bool,
@@ -964,25 +1243,55 @@ pub enum StmtKind {
     /// part of is found once, and the clear is not guarded: an index outside its bounds on the way raises error
     /// 9 and the member array of that array's first element is cleared, as it is after any other error the
     /// index raises.
-    Clear {
-        array: ArrayRef,
-    },
+    Clear { array: ArrayRef },
     /// `ERASE` of a dynamic array: its elements are released and it is not allocated afterwards. Of one that is
-    /// not allocated it does nothing.
-    Release {
-        array: VarId,
-    },
+    /// not allocated it does nothing. The array may be a dynamic member array, whose place is found as for
+    /// [`StmtKind::Allocate`].
+    Release { array: ArrayRef },
     /// `ERASE` of an array parameter: a [`StmtKind::Clear`] when the array passed is a static one, a
     /// [`StmtKind::Release`] when it is dynamic, which is known when the statement runs.
-    EraseParam {
-        array: VarId,
-    },
-    /// `PRINT` (`to` is `None`) or `PRINT #n,`: `to` is the file number, already converted to LONG.
+    EraseParam { array: VarId },
+    /// `to() = from()`, a whole-array assignment (design D1 and D3 of `m3-whole-array-assign`; measured,
+    /// `verification\v36_*`): two arrays of one element type and number of dimensions, each an array variable or a
+    /// member array. `to`'s place is found before `from`'s. What runs (the checks of allocation and bounds, error
+    /// 9, the copy by kind) is the IR's `Op::CopyArray`.
+    CopyArray { from: ArrayRef, to: ArrayRef },
+    /// `PRINT`, `PRINT #n,` or `LPRINT`, by `to`.
     Print {
-        to: Option<Expr>,
+        to: PrintTo,
         items: Vec<PrintItem>,
         newline: bool,
     },
+    /// `PRINT [#n,] [before] USING format; values` and `LPRINT … USING …` (design D1 of `m3-console-files`;
+    /// measured, `verification\v30_a`–`v30_c`, `v30_x01`–`x19`; `study\00` §5). `before` is printed first, as a
+    /// `PRINT` with no line end prints it. Then the format is evaluated, once, and each value in turn is
+    /// formatted by the format's next field into the statement's text; a format with values left starts again.
+    /// The text is printed at the end, with a line end if `newline` (the statement's last element is no `;` or
+    /// `,`). At least one value.
+    ///
+    /// The statement is one unit with error checks of its own: after the format and after each value an error
+    /// that is pending ends it; what was formatted until then is printed with no line end, and the error stays.
+    PrintUsing {
+        to: PrintTo,
+        before: Vec<PrintItem>,
+        format: Expr,
+        values: Vec<UsingValue>,
+        newline: bool,
+    },
+    /// `FIELD [#]file, width AS string, …` (design D3 of `m3-console-files`; measured, `verification\v30_j_field`,
+    /// `v30_k_field_errors`, `v30_x100`–`x132`): names parts of the record buffer of a file open `FOR RANDOM` by
+    /// variable-length strings, in order from the buffer's first byte. `file` and each width are already
+    /// converted to LONG; each target is a place of type `STRING`. The file number is evaluated first, then for
+    /// each part the indexes of its target before its width. Each `FIELD` starts at the buffer's first byte
+    /// again; the strings of an earlier one stay fields. What a field string then is (its length, what `GET`
+    /// and `PUT` with no variable and `LSET` do to it) is the runtime's.
+    Field { file: Expr, parts: Vec<(Place, Expr)> },
+    /// `LSET target = value` (`right` false) or `RSET target = value`: the value's characters into the string
+    /// at `target`, at its left or at its right, without changing its length: a shorter value is padded with
+    /// blanks, a longer one cut at its end (measured, `verification\v30_l_lset_rset`, `v30_x140`–`x170`). The
+    /// target is a place of type `STRING` or `STRING * n`, found before the value is evaluated; with an error
+    /// pending after the value nothing is stored. A field string's part of its file's buffer is set too.
+    Lset { right: bool, target: Place, value: Expr },
     /// `WRITE` to the console (`to` is `None`) or to file `to`: the items separated by commas, strings in quotes,
     /// numbers without blanks, then a line end unless the statement ends with a comma (`newline` false; measured,
     /// `verification\v22_x59`). An item is a [`PrintItem::Str`] or a [`PrintItem::Num`].
@@ -1005,14 +1314,14 @@ pub enum StmtKind {
     /// after the label in file order, [`Label::data_at`]). The label may be of any body (measured,
     /// `verification\v22_c_restore`).
     Restore(Option<LabelId>),
-    End,
-    /// `SYSTEM`: ends the program at once, without the "press any key" prompt of `END`.
-    System,
+    /// `END [code]`. The code (design D5 of `m3-asserts-debug-zlib`) is the process's exit code: a float already
+    /// converted to LONG through `qbr_float_to_long`, an integer as it is.
+    End(Option<Expr>),
+    /// `SYSTEM [code]`: ends the program at once, without the "press any key" prompt of `END`; the code as for
+    /// [`StmtKind::End`].
+    System(Option<Expr>),
     /// A SUB call; one argument per parameter.
-    Call {
-        proc: ProcId,
-        args: Vec<Arg>,
-    },
+    Call { proc: ProcId, args: Vec<Arg> },
     /// `EXIT SUB` / `EXIT FUNCTION`: leaves the procedure (either word leaves either kind, measured).
     Exit,
     /// `ON ERROR GOTO label` (`Some`) or `ON ERROR GOTO 0` (`None`): sets or removes the program's error handler.
@@ -1070,6 +1379,13 @@ pub enum StmtKind {
     /// `EXIT FOR`, `EXIT DO`, `EXIT WHILE`: leaves the innermost loop of that kind (the parser checked there is
     /// one).
     ExitLoop(LoopKind),
+    /// `EXIT SELECT` (`case` false) or `EXIT CASE` (design D5 of `m3-console-files`; measured,
+    /// `verification\v30_f_exit_select`, `v30_x60`–`x65`; `qb64pe.bas` 7491–7520). It stands inside a `CASE` or
+    /// `CASE ELSE` of a `SELECT` of its body, also within loops and `IF`s there (the parser checked that).
+    /// `EXIT SELECT` continues after the `END SELECT` of the nearest such `SELECT`. `EXIT CASE` ends the `CASE`
+    /// it stands in as reaching its last statement does: a plain `SELECT` is left, a `SELECT EVERYCASE` goes on
+    /// with its next `CASE`; in a `CASE ELSE` it is `EXIT SELECT`.
+    ExitSelect { case: bool },
     /// `ON n GOTO l1, l2, …` (`gosub` false) or `ON n GOSUB …`: to the n-th label of the same body; 0 and values past
     /// the count (also above 255, `DIVERGENCES-QB45.md` Q-001) continue with the next statement, a negative value
     /// raises error 5. `value` is LONG (design D8 of `m2-core-builtins`, measured `verification\v20_i_on_goto`).
@@ -1173,6 +1489,8 @@ pub struct Program {
     pub consts: Vec<Const>,
     /// The user types, in source order.
     pub types: Vec<UserType>,
+    /// The `DECLARE LIBRARY` blocks, in the order pass 1 meets them (file order).
+    pub libraries: Vec<Library>,
     /// Where each variable and procedure is defined and used (design D12).
     pub symbols: Symbols,
     /// The program's console and window.
@@ -1190,8 +1508,32 @@ pub struct Settings {
     /// The last of `$SCREENHIDE` and `$SCREENSHOW` in the file is `$SCREENHIDE`. The old compiler records it
     /// whether the program has a window or not.
     pub window_hidden: bool,
+    /// `$ASSERTS` or `$ASSERTS:CONSOLE` stands in the program's compiled code: `_ASSERT` checks its condition.
+    pub asserts: bool,
     /// The optional parts of the runtime the program's built-ins need (the table's `dependency` column).
     pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
+    /// The icon `$EXEICON` gives the executable.
+    pub exe_icon: Option<ExeIcon>,
+}
+
+/// The icon of a program's executable (`$EXEICON:'name'`; design D4 of `m3-sound`). `sema` reads no file: whether
+/// the file is there is the driver's check.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExeIcon {
+    /// The file's name as written (taken as UTF-8), without the blanks at its ends: one that starts with `./` or
+    /// `.\` (looked for in the folder of the main source file) or an absolute one.
+    pub name: String,
+    /// The name's bytes as written, for a message (`show_bytes`): a byte that is no UTF-8 is not in `name`.
+    pub shown: String,
+    /// The metacommand's line.
+    pub span: Span,
+}
+
+impl ExeIcon {
+    /// The rest of a name that starts with `./` or `.\`; `None` for an absolute name.
+    pub fn beside_source(name: &str) -> Option<&str> {
+        name.strip_prefix("./").or_else(|| name.strip_prefix(".\\"))
+    }
 }
 
 /// An optional part of the runtime that a built-in needs linked in.
@@ -1199,6 +1541,18 @@ pub struct Settings {
 pub enum RuntimePart {
     /// Setting the window's icon from an image (`_ICON`).
     Icon,
+    /// libqb's audio (`SOUND`, `PLAY`; `BEEP` is the system's bell and needs none).
+    Audio,
+    /// The printer (`LPRINT`, `_PRINTIMAGE`).
+    Printer,
+    /// The image decoders and encoders (`_LOADIMAGE`, `_SAVEIMAGE`).
+    ImageCodec,
+    /// FreeType, for fonts loaded from a file (`_LOADFONT`, the `_U…` font functions).
+    Font,
+    /// Images of the desktop and the clipboard (`_SCREENIMAGE`, `_CLIPBOARDIMAGE`).
+    ScreenImage,
+    /// Checksums, compression and base64 (`_CRC32`, `_DEFLATE$`, ...; the old compiler's `DEPENDENCY_ZLIB`).
+    DataProcessing,
 }
 
 impl RuntimePart {
@@ -1206,6 +1560,12 @@ impl RuntimePart {
     pub fn of_dependency(name: &str) -> Option<RuntimePart> {
         match name {
             "DEPENDENCY_ICON" => Some(RuntimePart::Icon),
+            "DEPENDENCY_MINIAUDIO" => Some(RuntimePart::Audio),
+            "DEPENDENCY_PRINTER" => Some(RuntimePart::Printer),
+            "DEPENDENCY_IMAGE_CODEC" => Some(RuntimePart::ImageCodec),
+            "DEPENDENCY_LOADFONT" => Some(RuntimePart::Font),
+            "DEPENDENCY_SCREENIMAGE" => Some(RuntimePart::ScreenImage),
+            "DEPENDENCY_ZLIB" => Some(RuntimePart::DataProcessing),
             _ => None,
         }
     }
@@ -1218,6 +1578,11 @@ impl Program {
 
     pub fn user_type(&self, id: TypeId) -> &UserType {
         &self.types[id.0 as usize]
+    }
+
+    /// Whether `t` is the predefined type `_MEM` ([`mem_type`]; no `TYPE` block may take its name).
+    pub fn is_mem(&self, t: Ty) -> bool {
+        matches!(t, Ty::User(id) if self.user_type(id).name == MEM_TYPE)
     }
 
     /// The member of a place of user type `base`.

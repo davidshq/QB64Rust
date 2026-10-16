@@ -1,0 +1,5 @@
+
+Expected variable name/array element
+Caused by (or after):M = _MEM ( 5 )
+LINE 9:m = _MEM(5)
+exit=1

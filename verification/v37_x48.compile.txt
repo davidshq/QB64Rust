@@ -1,0 +1,5 @@
+
+Expected ALIAS name-in-library
+Caused by (or after):
+LINE 4:FUNCTION F& ALIAS "",0 ( BYVAL V AS LONG )
+exit=1

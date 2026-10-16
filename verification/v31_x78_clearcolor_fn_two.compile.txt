@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _CLEARCOLOR[(sourceHandle&)]
+Caused by (or after):PRINT _CLEARCOLOR ( 1 , 2 )
+LINE 5:PRINT _CLEARCOLOR(1, 2)
+exit=1

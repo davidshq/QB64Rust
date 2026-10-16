@@ -1,0 +1,5 @@
+
+Unexpected element 'H_L&'
+Caused by (or after):
+LINE 6:CONST C = H_L& ( 1 )
+exit=1

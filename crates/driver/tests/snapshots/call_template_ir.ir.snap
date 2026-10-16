@@ -1,0 +1,121 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+Settings: window, runtime parts: icon, audio
+Array A:I16 static (1 To 100)
+Stmt line 7 may_raise
+  Builtin SCREEN [Value(Const 12:I32), Absent, Absent, Absent, Absent, Absent]
+Stmt line 8 may_raise
+  Builtin CLS [Absent, Absent, Absent]
+Stmt line 9 may_raise
+  Builtin CLS [Value(Const 1:I32), Absent, Absent]
+Stmt line 10 may_raise
+  Builtin COLOR [Value(Const 1:I32), Value(Const 2:I32), Absent, Absent]
+Stmt line 11 may_raise
+  Builtin LOCATE [Value(Const 1:I32), Value(Const 2:I32), Absent, Absent, Absent]
+Stmt line 12 may_raise
+  Builtin LOCATE [Absent, Value(Const 2:I32), Absent, Absent, Absent]
+Stmt line 13 may_raise
+  Builtin WIDTH [Absent, Value(Const 80:I32), Absent, Absent, Absent]
+Stmt line 14 may_raise
+  Builtin SCREEN [Value(Const 12:I32), Absent, Absent, Absent, Absent, Absent]
+Stmt line 15 may_raise
+  Builtin PSET [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I32)]
+Stmt line 16 may_raise
+  Builtin PRESET [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent]
+Stmt line 17 may_raise
+  Builtin LINE [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Absent, Absent, Absent]
+Stmt line 18 may_raise
+  Builtin LINE [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Value(Const 3:I16), Value(Const 4:I16), Value(Const 5:I32), Word 1, Absent]
+Stmt line 19 may_raise
+  Builtin LINE [Absent, Absent, Absent, Absent, Value(Const 3:I16), Value(Const 4:I16), Absent, Absent, Absent]
+Stmt line 20 may_raise
+  Builtin CIRCLE [Absent, Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Absent, Absent, Absent, Absent]
+Stmt line 21 may_raise
+  Builtin PAINT [Absent, Value(Const 1:I16), Value(Const 2:I16), Absent, Absent, Absent]
+Stmt line 22 may_raise
+  Builtin PALETTE [Absent, Absent]
+Stmt line 23 may_raise
+  Builtin PALETTE [Value(Const 1:I32), Value(Const 2:I32)]
+Stmt line 24 may_raise
+  Builtin SLEEP [Absent]
+Stmt line 25 may_raise
+  Builtin SLEEP [Value(Const 1:I32)]
+Stmt line 26 may_raise
+  Builtin VIEW form 1 [Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 27 may_raise
+  Builtin VIEW form 1 [Absent, Value(Const 1:I32), Value(Const 2:I32), Value(Const 3:I32), Value(Const 4:I32), Absent, Absent]
+Stmt line 28 may_raise
+  Builtin WINDOW [Absent, Absent, Absent, Absent, Absent]
+Stmt line 29 may_raise
+  Builtin BLOAD [Value(Var T:Str), Value(Var L:I32)]
+Stmt line 30 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 1:I16), Value(Const 2:I16), Bytes A, Absent, Absent, Absent]
+Stmt line 31 may_raise
+  Builtin _FULLSCREEN [Absent, Absent]
+Stmt line 32 may_raise
+  Builtin _ICON [Absent, Absent]
+Stmt line 33 may_raise
+  Builtin _ICON [Value(Const 1:I32), Absent]
+Stmt line 34 may_raise
+  Builtin _ICON [Value(Const 1:I32), Value(Const 2:I32)]
+Stmt line 35 may_raise
+  Builtin _MOUSECURSOR [Value(Const 1:I32), Value(Const 2:I32), Value(Const 3:I32)]
+Stmt line 36 may_raise
+  Builtin _MOUSEHIDE [Word 0]
+Stmt line 37 may_raise
+  Builtin _FREEIMAGE [Absent]
+Stmt line 38 may_raise
+  Builtin _FREEIMAGE [Value(Const 1:I32)]
+Stmt line 39 may_raise
+  Builtin _SCREENHIDE []
+Stmt line 40 may_raise
+  Builtin _SCREENSHOW []
+Stmt line 41 may_raise
+  Builtin _SCREENICON []
+Stmt line 42 may_raise
+  Builtin _WINDOWSIZELIMIT [Value(Const 1:I32), Value(Const 2:I32), Value(Const 3:I32), Value(Const 4:I32)]
+Stmt line 43 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 44 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Value(Const 0.5E+0:F64), Value(Const 0:I16), Value(Const 4:I32), Value(Const 0.5E+0:F64), Value(Const 1:U32), Absent]
+Stmt line 45 may_raise
+  Builtin SOUND [Value(Const 440:I16), Value(Const 1:I16), Absent, Absent, Absent, Absent, Absent, Word 0]
+Stmt line 46 may_raise
+  Builtin SOUND [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Word 0]
+Stmt line 47 may_raise
+  Builtin SOUND [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 48 may_raise
+  Builtin PLAY [Value(Var T:Str), Absent, Absent, Absent]
+Stmt line 49 may_raise
+  Builtin PLAY [Value(Var T:Str), Value(Var T:Str), Absent, Absent]
+Stmt line 50 may_raise
+  Builtin SHELL form 3 [Value(Const "echo x")]
+Stmt line 51 may_raise
+  Builtin SHELL form 1 [Word 0, Absent, Value(Const "echo x")]
+Stmt line 52 may_raise
+  Builtin RANDOMIZE [Absent, Value((Const 5:I16 -> Convert F64 Nearest))]
+Stmt line 53 may_raise
+  Builtin RANDOMIZE [Word 0, Value((Const 5:I16 -> Convert F64 Nearest))]
+Stmt line 54 may_raise
+  Builtin _MOUSESHOW [Value(Const "a")]
+Stmt line 55 may_raise
+  Builtin BLOAD [Value(Const "f"), Value(Const 1:I32)]
+Stmt line 56
+  Branch Zero -> @1 Skip: Var L:I32
+Stmt line 56 may_raise
+  Builtin CLS [Absent, Absent, Absent]
+Stmt line 56
+  Jump @0
+Label @1 line 56
+Stmt line 56 may_raise
+  Builtin CLS [Value(Const 1:I32), Absent, Absent]
+Label @0 line 56
+Stmt line 57 may_raise
+  Builtin CLS [Absent, Absent, Absent]
+Stmt line 57 may_raise
+  Builtin LOCATE [Value(Const 1:I32), Value(Const 2:I32), Absent, Absent, Absent]
+Stmt line 58
+  System

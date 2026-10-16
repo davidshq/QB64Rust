@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _FREEFONT fontHandle&
+Caused by (or after):_FREEFONT
+LINE 5:_FREEFONT
+exit=1

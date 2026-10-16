@@ -1,0 +1,21 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+asserts_errors.bas:6:1: error: `$ASSERTS` must stand alone on its line
+asserts_errors.bas:7:1: error: expected `$ASSERTS` or `$ASSERTS:CONSOLE`
+asserts_errors.bas:8:1: error: expected `$ASSERTS` or `$ASSERTS:CONSOLE`
+asserts_errors.bas:9:1: error: expected `$ASSERTS` or `$ASSERTS:CONSOLE`
+asserts_errors.bas:10:1: error: `$ASSERTS` must stand alone on its line
+asserts_errors.bas:11:1: error: `$DEBUG` must stand alone on its line
+asserts_errors.bas:12:8: error: a metacommand must stand at the start of a line
+asserts_errors.bas:13:8: error: a metacommand must stand at the start of a line
+asserts_errors.bas:18:8: error: this `_ASSERT` statement matches none of its forms: `_ASSERT ?[,?]`
+asserts_errors.bas:19:9: error: argument 1 of `_ASSERT` needs a number
+asserts_errors.bas:20:12: error: argument 2 of `_ASSERT` needs a string
+asserts_errors.bas:21:15: error: this `_ASSERT` statement matches none of its forms: `_ASSERT ?[,?]`
+asserts_errors.bas:22:11: error: this `_ASSERT` statement matches none of its forms: `_ASSERT ?[,?]`
+asserts_errors.bas:23:9: error: this `_ASSERT` statement matches none of its forms: `_ASSERT ?[,?]`
+asserts_errors.bas:24:13: error: this `_ASSERT` statement matches none of its forms: `_ASSERT ?[,?]`
+asserts_errors.bas:25:9: error: a whole `TYPE` value cannot be used here: `v`

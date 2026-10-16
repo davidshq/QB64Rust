@@ -1,0 +1,5 @@
+
+User defined types in expressions are invalid
+Caused by (or after):PRINT H_PTSUM& ( P )
+LINE 11:PRINT h_ptsum&(p)
+exit=1

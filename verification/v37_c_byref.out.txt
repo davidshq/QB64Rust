@@ -1,0 +1,15 @@
+variable: 11 
+parenthesised: 11 
+expression: 11 
+element: 21 
+member: 31 
+literal: done
+other type: 40 
+single: 2.5 
+call: 12 
+null literal 0: 0  null 1: 0  null var: 0 
+byval offset 0: 1 
+peek: 1234 
+add: 5 
+ticks: 3 
+exit=0

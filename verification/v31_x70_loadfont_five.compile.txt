@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _LOADFONT(fileName$, size&[, "{MONOSPACE|, UNICODE|, DONTBLEND|, MEMORY|, AUTOMONO}"][, fontIndex])
+Caused by (or after):L = _LOADFONT ( "cour.ttf",8 , 16 , "",0 , 1 , 2 )
+LINE 5:l = _LOADFONT("cour.ttf", 16, "", 1, 2)
+exit=1

@@ -1,0 +1,5 @@
+
+Name already in use (STOP)
+Caused by (or after):PLAY STOP
+LINE 7:PLAY STOP
+exit=1

@@ -3,8 +3,8 @@
 
 use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
 use crate::{
-    Arg, ArrayRef, Body, BuiltinId, Expr, ExprKind, LabelId, Member, MemberId, Op, Place, PrintItem, ProcId, Program,
-    Resume, Shape, Source, StmtArg, Storage, Ty, Var, VarId,
+    Arg, ArrayRef, Body, BuiltinId, Expr, ExprKind, LabelId, MemValue, Member, MemberId, Op, Place, PrintItem, PrintTo,
+    ProcId, Program, Reference, Resume, Shape, Source, StmtArg, Storage, Ty, UsingValue, Var, VarId,
 };
 
 /// Every problem found, each as `<body>: <where>: <what>`; `Ok` when there is none.
@@ -35,6 +35,31 @@ pub fn validate(p: &Program) -> Result<(), Vec<String>> {
             && p.var(r).storage != Storage::Result(id)
         {
             v.problem(format!("{}: the result is not a result of this procedure", proc.name));
+        }
+        // A library procedure: a function of one of the program's libraries, with no body, no array parameter,
+        // and a `BYVAL` flag per parameter.
+        if let Some(e) = &proc.external {
+            if p.libraries.get(e.library.0 as usize).is_none() {
+                v.problem(format!("{}: library {} does not exist", proc.name, e.library.0));
+            }
+            if !proc.body.stmts.is_empty() || !proc.body.labels.is_empty() {
+                v.problem(format!("{}: a library procedure with statements", proc.name));
+            }
+            if e.byval.len() != proc.params.len() {
+                v.problem(format!(
+                    "{}: {} BYVAL flags for {} parameters",
+                    proc.name,
+                    e.byval.len(),
+                    proc.params.len()
+                ));
+            }
+            if proc
+                .params
+                .iter()
+                .any(|&v| p.vars.get(v.0 as usize).is_some_and(Var::is_array))
+            {
+                v.problem(format!("{}: an array parameter of a library procedure", proc.name));
+            }
         }
     }
     // An array allocated at the start lives for the program, and has one pair of bounds per dimension.
@@ -114,6 +139,14 @@ fn member_checked<'p>(p: &'p Program, base: &Place, member: MemberId) -> Option<
     }
 }
 
+/// Whether an array is a dynamic member array (design D5 of `m3-typefields`).
+fn is_dynamic_member(p: &Program, array: &ArrayRef) -> bool {
+    match array {
+        ArrayRef::Var(_) => false,
+        ArrayRef::Member { base, member } => member_checked(p, base, *member).is_some_and(|m| m.dynamic),
+    }
+}
+
 struct Validator<'p> {
     p: &'p Program,
     problems: Vec<String>,
@@ -190,7 +223,35 @@ impl Validator<'_> {
                     self.problem(format!("{at}: the console is selected in a program without one"));
                 }
             }
-            Op::End | Op::System | Op::Exit | Op::SetHandler(None) | Op::Return(None) => {}
+            // A block, an `_OFFSET` offset (and count), and a variable or a value.
+            Op::MemGet { block, offset, target } => {
+                self.mem_at(block, offset, owner, at);
+                self.mem_bytes(target, owner, at);
+            }
+            Op::MemPut { block, offset, value } => {
+                self.mem_at(block, offset, owner, at);
+                self.mem_value(value, owner, at);
+            }
+            Op::MemFill {
+                block,
+                offset,
+                bytes,
+                value,
+            } => {
+                self.mem_at(block, offset, owner, at);
+                if bytes.ty != Ty::Off {
+                    self.problem(format!("{at}: a count of bytes of type {:?}", bytes.ty));
+                }
+                self.value(bytes, owner, at);
+                self.mem_value(value, owner, at);
+            }
+            Op::End(None) | Op::System(None) | Op::Exit | Op::SetHandler(None) | Op::Return(None) => {}
+            Op::End(Some(code)) | Op::System(Some(code)) => {
+                if code.ty == Ty::Str {
+                    self.problem(format!("{at}: an exit code of type {:?}", code.ty));
+                }
+                self.value(code, owner, at);
+            }
             Op::Resume(Resume::Retry | Resume::Next) => {}
             Op::SetHandler(Some(l)) => self.main_label(*l, at, "handler"),
             Op::Resume(Resume::To(l)) => self.main_label(*l, at, "resume"),
@@ -204,6 +265,34 @@ impl Validator<'_> {
             Op::Assign { place, value } => {
                 self.place(place, owner, at);
                 self.value(value, owner, at);
+                // A value of a user type only from a built-in: a block, or what `_MEMGET` reads; into a place of
+                // its type (two places of one are a `CopyWhole`).
+                if let Ty::User(_) = value.ty {
+                    let built_in = match &value.kind {
+                        ExprKind::MemOf { .. } | ExprKind::MemAt { .. } | ExprKind::MemRead { .. } => true,
+                        ExprKind::Call { builtin, .. } => builtin.get().ret == Some("_MEM"),
+                        ExprKind::Int(_)
+                        | ExprKind::Float(_)
+                        | ExprKind::Str(_)
+                        | ExprKind::Load(_)
+                        | ExprKind::Bound { .. }
+                        | ExprKind::VarPtr { .. }
+                        | ExprKind::VarSeg { .. }
+                        | ExprKind::Block { .. }
+                        | ExprKind::Convert { .. }
+                        | ExprKind::Binary { .. }
+                        | ExprKind::Unary { .. }
+                        | ExprKind::Concat(..)
+                        | ExprKind::StrCompare { .. }
+                        | ExprKind::Choice { .. }
+                        | ExprKind::CallProc { .. }
+                        | ExprKind::AddressOf(_) => false,
+                    };
+                    let to = place_ty_checked(self.p, place);
+                    if !built_in || to.is_some_and(|t| t != value.ty) {
+                        self.problem(format!("{at}: a store of a {:?} value into a {to:?}", value.ty));
+                    }
+                }
             }
             Op::AssignAll(stores) => {
                 for (place, value) in stores {
@@ -223,17 +312,27 @@ impl Validator<'_> {
             }
             Op::Raise(v) => self.value(v, owner, at),
             // An allocation names an array of either kind (of a static one it raises an error when it runs), with
-            // one pair of `I64` bounds per dimension.
+            // one pair of `I64` bounds per dimension, or a dynamic member array, with any number of them.
             Op::Allocate { array, bounds, .. } => {
-                if self.array_use(*array, owner, at, "Allocate")
-                    && let Some(n) = self.p.var(*array).dim_count()
-                    && n != bounds.len()
-                {
-                    let name = &self.p.var(*array).name;
-                    self.problem(format!(
-                        "{at}: {} pairs of bounds for {name} of {n} dimensions",
-                        bounds.len()
-                    ));
+                match array {
+                    ArrayRef::Var(array) => {
+                        if self.array_use(*array, owner, at, "Allocate")
+                            && let Some(n) = self.p.var(*array).dim_count()
+                            && n != bounds.len()
+                        {
+                            let name = &self.p.var(*array).name;
+                            self.problem(format!(
+                                "{at}: {} pairs of bounds for {name} of {n} dimensions",
+                                bounds.len()
+                            ));
+                        }
+                    }
+                    ArrayRef::Member { .. } => {
+                        self.dynamic_member(array, owner, at, "Allocate");
+                        if bounds.is_empty() {
+                            self.problem(format!("{at}: an Allocate of a member array without bounds"));
+                        }
+                    }
                 }
                 for bound in bounds.iter().flat_map(|(lower, upper)| [lower, upper]) {
                     if bound.ty != Ty::I64 {
@@ -242,8 +341,8 @@ impl Validator<'_> {
                     self.value(bound, owner, at);
                 }
             }
-            // A static array, or a member array (whose bounds never change: no Allocate, Release or EraseParam
-            // names one, their arrays being variables).
+            // A static array, or a member array that is not dynamic (whose bounds never change: only a dynamic
+            // one is named by an Allocate or a Release; EraseParam names a variable).
             Op::Clear { array } => match array {
                 ArrayRef::Var(array) => {
                     if self.array_use(*array, owner, at, "Clear")
@@ -254,10 +353,17 @@ impl Validator<'_> {
                     }
                 }
                 ArrayRef::Member { .. } => {
-                    self.array_ref(array, owner, at, "Clear");
+                    if self.array_ref(array, owner, at, "Clear").is_some() && is_dynamic_member(self.p, array) {
+                        self.problem(format!("{at}: Clear of a dynamic member array"));
+                    }
                 }
             },
-            Op::Release { array } => {
+            Op::Release {
+                array: array @ ArrayRef::Member { .. },
+            } => self.dynamic_member(array, owner, at, "Release"),
+            Op::Release {
+                array: ArrayRef::Var(array),
+            } => {
                 if self.array_use(*array, owner, at, "Release") {
                     let v = self.p.var(*array);
                     if !matches!(v.shape, Shape::Dynamic { .. }) {
@@ -276,20 +382,104 @@ impl Validator<'_> {
                     self.problem(format!("{at}: EraseParam of {name}, which is no parameter"));
                 }
             }
-            Op::Print { to, items, .. } | Op::Write { to, items, .. } => {
-                if let Some(n) = to {
+            // Two arrays of one element type and, where both numbers are known, one number of dimensions.
+            Op::CopyArray { from, to } => {
+                let to_ref = self.array_ref(to, owner, at, "CopyArray");
+                let from_ref = self.array_ref(from, owner, at, "CopyArray");
+                if let (Some((tn, td)), Some((fn_, fd))) = (to_ref, from_ref) {
+                    let (tt, ft) = (self.p.array_ty(to), self.p.array_ty(from));
+                    if tt != ft {
+                        self.problem(format!("{at}: a CopyArray from {fn_} of {ft:?} to {tn} of {tt:?}"));
+                    }
+                    if let (Some(td), Some(fd)) = (td, fd)
+                        && td != fd
+                    {
+                        self.problem(format!(
+                            "{at}: a CopyArray from {fn_} of {fd} dimensions to {tn} of {td}"
+                        ));
+                    }
+                }
+            }
+            Op::Print { to, items, .. } => {
+                if let PrintTo::File(n) = to {
                     self.file_number(n, owner, at);
                 }
-                for i in items {
-                    match i {
-                        PrintItem::Str(v) | PrintItem::Num(v) => self.value(v, owner, at),
-                        PrintItem::Zone => {
-                            if matches!(op, Op::Write { .. }) {
-                                self.problem(format!("{at}: a zone in a Write"));
+                self.print_items(items, false, owner, at);
+            }
+            // One unit with its own error checks (the crate documentation's rules for a pending error do not
+            // apply inside it): a string format, at least one value, each value of the kind its variant says.
+            Op::PrintUsing {
+                to,
+                before,
+                format,
+                values,
+                ..
+            } => {
+                if let PrintTo::File(n) = to {
+                    self.file_number(n, owner, at);
+                }
+                self.print_items(before, false, owner, at);
+                if format.ty != Ty::Str {
+                    self.problem(format!("{at}: the format of a PrintUsing is a {:?}", format.ty));
+                }
+                self.value(format, owner, at);
+                if values.is_empty() {
+                    self.problem(format!("{at}: a PrintUsing without a value"));
+                }
+                for v in values {
+                    match v {
+                        UsingValue::Str(e) | UsingValue::Blanks(e) => {
+                            if e.ty != Ty::Str {
+                                self.problem(format!("{at}: a string value of a PrintUsing is a {:?}", e.ty));
                             }
+                            self.value(e, owner, at);
+                        }
+                        UsingValue::Num { value, as_ } => {
+                            let entry = matches!(as_, Ty::F32 | Ty::F64 | Ty::F80 | Ty::I64 | Ty::U64);
+                            if !entry || !value.ty.is_numeric() || value.ty.is_float() != as_.is_float() {
+                                self.problem(format!(
+                                    "{at}: a number of a PrintUsing, a {:?}, formatted as {as_:?}",
+                                    value.ty
+                                ));
+                            }
+                            self.value(value, owner, at);
                         }
                     }
                 }
+            }
+            Op::Write { to, items, .. } => {
+                if let Some(n) = to {
+                    self.file_number(n, owner, at);
+                }
+                self.print_items(items, true, owner, at);
+            }
+            // A file number, and at least one part: a place of a variable-length string and a width of type I32.
+            Op::Field { file, parts } => {
+                self.file_number(file, owner, at);
+                if parts.is_empty() {
+                    self.problem(format!("{at}: a Field without a part"));
+                }
+                for (place, width) in parts {
+                    self.place(place, owner, at);
+                    if place_ty_checked(self.p, place).is_some_and(|t| t != Ty::Str) {
+                        self.problem(format!("{at}: a part of a Field is no variable-length string"));
+                    }
+                    if width.ty != Ty::I32 {
+                        self.problem(format!("{at}: a width of a Field is a {:?}", width.ty));
+                    }
+                    self.value(width, owner, at);
+                }
+            }
+            // A string place of either kind and a string value.
+            Op::Lset { target, value, .. } => {
+                self.place(target, owner, at);
+                if place_ty_checked(self.p, target).is_some_and(|t| !t.is_string()) {
+                    self.problem(format!("{at}: the target of an Lset is no string"));
+                }
+                if value.ty != Ty::Str {
+                    self.problem(format!("{at}: an Lset stores a value of type {:?}", value.ty));
+                }
+                self.value(value, owner, at);
             }
             Op::Input { from, line, targets } => {
                 match from {
@@ -311,11 +501,6 @@ impl Validator<'_> {
                         }
                         Some(_) | None => {}
                     }
-                    if place.through_member() {
-                        self.problem(format!(
-                            "{at}: an Input target reached through a member with an index on the way"
-                        ));
-                    }
                 }
             }
             Op::Read(targets) => {
@@ -326,11 +511,6 @@ impl Validator<'_> {
                     self.place(place, owner, at);
                     if let Some(Ty::User(_)) = place_ty_checked(self.p, place) {
                         self.problem(format!("{at}: a Read target of a user type"));
-                    }
-                    if place.through_member() {
-                        self.problem(format!(
-                            "{at}: a Read target reached through a member with an index on the way"
-                        ));
                     }
                 }
             }
@@ -344,6 +524,20 @@ impl Validator<'_> {
             }
             Op::Call { proc, args } => self.call(*proc, args, owner, at),
             Op::Builtin { id, args } => self.builtin(*id, args, owner, at),
+        }
+    }
+
+    /// The items of a print or (`write`) a write, which has no zones.
+    fn print_items(&mut self, items: &[PrintItem], write: bool, owner: Option<ProcId>, at: &At) {
+        for i in items {
+            match i {
+                PrintItem::Str(v) | PrintItem::Num(v) => self.value(v, owner, at),
+                PrintItem::Zone => {
+                    if write {
+                        self.problem(format!("{at}: a zone in a Write"));
+                    }
+                }
+            }
         }
     }
 
@@ -364,13 +558,18 @@ impl Validator<'_> {
             return;
         };
         match form.rule {
-            StmtRule::Plain => {}
+            // `File`: the template's slots, the third the bytes of a place or of a whole array, or nothing.
+            StmtRule::Plain | StmtRule::Graphics | StmtRule::File => {}
             // Any number of file numbers.
             StmtRule::Close => {
                 for (k, arg) in args.iter().enumerate() {
                     match arg {
                         StmtArg::Value(v) => self.file_number(v, owner, at),
-                        StmtArg::Place(_) | StmtArg::Word(_) | StmtArg::Absent => {
+                        StmtArg::Place(_)
+                        | StmtArg::Block { .. }
+                        | StmtArg::Bytes(_)
+                        | StmtArg::Word(_)
+                        | StmtArg::Absent => {
                             self.problem(format!("{at}: slot {} of {name} is no value", k + 1));
                         }
                     }
@@ -416,7 +615,9 @@ impl Validator<'_> {
                 match length {
                     StmtArg::Value(l) => self.value(l, owner, at),
                     StmtArg::Absent => {}
-                    StmtArg::Place(_) | StmtArg::Word(_) => self.problem(format!("{at}: slot 3 of {name} is no value")),
+                    StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Bytes(_) | StmtArg::Word(_) => {
+                        self.problem(format!("{at}: slot 3 of {name} is no value"));
+                    }
                 }
                 if v.ty != Ty::Str {
                     self.problem(format!("{at}: {name} stores a value of type {:?}", v.ty));
@@ -437,15 +638,73 @@ impl Validator<'_> {
                 (StmtSlot::Arg { slot, .. }, StmtArg::Value(v)) => {
                     let string = match slot {
                         Slot::Str => true,
-                        Slot::Long | Slot::Int64 | Slot::Double | Slot::Float | Slot::AnyNumeric => false,
+                        Slot::Long
+                        | Slot::Integer
+                        | Slot::Int64
+                        | Slot::Double
+                        | Slot::Float
+                        | Slot::AnyNumeric
+                        | Slot::UInt64
+                        | Slot::ULong
+                        | Slot::Offset => false,
+                        // A number or a string: whichever the value is.
+                        Slot::ColorOrTile => v.ty == Ty::Str,
+                        Slot::Block | Slot::Bytes => {
+                            self.problem(format!("{at}: slot {k} of {name} takes bytes, not a value"));
+                            v.ty == Ty::Str
+                        }
+                        Slot::Mem => {
+                            self.problem(format!("{at}: slot {k} of {name} takes a block, not a value"));
+                            v.ty == Ty::Str
+                        }
                     };
                     if string != (v.ty == Ty::Str) {
                         self.problem(format!("{at}: slot {k} of {name} holds a value of type {:?}", v.ty));
                     }
                     self.value(v, owner, at);
                 }
+                // A block: a place of type `_MEM`.
+                (StmtSlot::Arg { slot: Slot::Mem, .. }, StmtArg::Place(place)) => self.block_place(place, owner, at),
                 (StmtSlot::Arg { .. }, StmtArg::Place(_)) => {
                     self.problem(format!("{at}: slot {k} of {name} holds a place"));
+                }
+                // The bytes of one place, for a file: of any type with a fixed size, or a variable-length string.
+                (StmtSlot::Arg { slot, .. }, StmtArg::Bytes(place)) => {
+                    if *slot != Slot::Bytes {
+                        self.problem(format!("{at}: slot {k} of {name} holds a place's bytes"));
+                    }
+                    self.place(place, owner, at);
+                    if let Some(t) = place_ty_checked(self.p, place)
+                        && (matches!(t, Ty::Bit { .. }) || crate::holds_strings(&self.p.types, t))
+                    {
+                        self.problem(format!("{at}: the bytes of a {t:?}, which has no fixed size in bytes"));
+                    }
+                }
+                // The bytes of an array, whole or from an element with an index per dimension: of numbers for
+                // graphics; for a file the whole array, of anything with a fixed size.
+                (StmtSlot::Arg { slot, .. }, StmtArg::Block { array, index }) => {
+                    if !matches!(slot, Slot::Block | Slot::Bytes) {
+                        self.problem(format!("{at}: slot {k} of {name} holds an array's bytes"));
+                    }
+                    self.array_ref(&ArrayRef::Var(*array), owner, at, "bytes");
+                    let a = self.p.var(*array);
+                    let fits = if *slot == Slot::Bytes {
+                        index.is_empty()
+                            && a.ty != Ty::Str
+                            && !matches!(a.ty, Ty::Bit { .. })
+                            && !crate::holds_strings(&self.p.types, a.ty)
+                    } else {
+                        a.ty.is_int() || a.ty.is_float()
+                    };
+                    if !fits {
+                        self.problem(format!("{at}: the bytes of {}, an array of {:?}", a.name, a.ty));
+                    }
+                    if !index.is_empty() && a.dim_count().is_some_and(|n| n != index.len()) {
+                        self.problem(format!("{at}: {} indexes for {}", index.len(), a.name));
+                    }
+                    for i in index {
+                        self.value(i, owner, at);
+                    }
                 }
                 (StmtSlot::Choice { alts, .. }, StmtArg::Word(w)) => {
                     if w >= alts {
@@ -460,7 +719,10 @@ impl Validator<'_> {
                 (StmtSlot::Arg { .. }, StmtArg::Word(_)) => {
                     self.problem(format!("{at}: slot {k} of {name} is an argument, not a choice"));
                 }
-                (StmtSlot::Choice { .. }, StmtArg::Value(_) | StmtArg::Place(_)) => {
+                (
+                    StmtSlot::Choice { .. },
+                    StmtArg::Value(_) | StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Bytes(_),
+                ) => {
                     self.problem(format!("{at}: slot {k} of {name} is a choice, not an argument"));
                 }
             }
@@ -479,14 +741,32 @@ impl Validator<'_> {
             Some(_) => {}
         }
         let params = self.p.procs.get(proc.0 as usize).map_or(&[][..], |q| &q.params[..]);
+        let external = self.p.procs.get(proc.0 as usize).and_then(|q| q.external.as_ref());
         for (k, a) in args.iter().enumerate() {
             // An array parameter takes a whole array and nothing else does; the two have one number of
             // dimensions where both have one.
             let param = params.get(k).and_then(|&v| self.p.vars.get(v.0 as usize));
             let to_array = param.is_some_and(Var::is_array);
+            // A `BYVAL` parameter of a library procedure takes a number or `NULL`, and nothing else does.
+            let byval = external.is_some_and(|e| e.byval.get(k).copied().unwrap_or(false));
+            let value = matches!(a, Arg::Value(_) | Arg::Null);
+            if param.is_some() && byval != value {
+                self.problem(format!(
+                    "{at}: argument {} is {} for a parameter that is {}",
+                    k + 1,
+                    if value { "a BYVAL value" } else { "no BYVAL value" },
+                    if byval { "BYVAL" } else { "not BYVAL" }
+                ));
+            }
+            if let Arg::Value(v) = a
+                && !v.ty.is_numeric()
+            {
+                self.problem(format!("{at}: BYVAL argument {} is no number", k + 1));
+            }
             match a {
                 Arg::Ref(place) => self.place(place, owner, at),
-                Arg::Temp(v) => self.value(v, owner, at),
+                Arg::Temp(v) | Arg::Value(v) => self.value(v, owner, at),
+                Arg::Null => {}
                 Arg::Array(array) => {
                     if let Some((name, n)) = self.array_ref(array, owner, at, "an array argument")
                         && let Some(param) = param.filter(|_| to_array)
@@ -534,6 +814,9 @@ impl Validator<'_> {
             Place::Element { array, index } => {
                 match self.array_ref(array, owner, at, "an element") {
                     Some((_, Some(n))) if n == index.len() => {}
+                    // A dynamic member array has the number of dimensions of its last `REDIM`, checked when the
+                    // element is used.
+                    Some(_) if is_dynamic_member(self.p, array) => {}
                     Some((name, Some(n))) => {
                         let msg = format!("{at}: {} indexes for {name} of {n} dimensions", index.len());
                         self.problem(msg);
@@ -561,6 +844,15 @@ impl Validator<'_> {
                     None => self.problem(format!("{at}: member {} of a place without it", member.0)),
                 }
             }
+        }
+    }
+
+    /// The member array an `Allocate` or a `Release` names: a dynamic one.
+    fn dynamic_member(&mut self, array: &ArrayRef, owner: Option<ProcId>, at: &At, what: &str) {
+        if let Some((name, _)) = self.array_ref(array, owner, at, what)
+            && !is_dynamic_member(self.p, array)
+        {
+            self.problem(format!("{at}: {what} of the member array {name}, which is not dynamic"));
         }
     }
 
@@ -633,16 +925,89 @@ impl Validator<'_> {
         match &v.kind {
             ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => {}
             ExprKind::Load(place) => self.place(place, owner, at),
+            // A block of a reference, typed `_MEM`: never of a variable-length string or a `_BIT`.
+            ExprKind::MemOf { of, .. } => {
+                if !self.p.is_mem(v.ty) {
+                    self.problem(format!("{at}: a block typed {:?}", v.ty));
+                }
+                self.reference(of, owner, at, false);
+            }
+            // An address, typed `_UNSIGNED _OFFSET`: never of a `_BIT`.
+            ExprKind::AddressOf(of) => {
+                if v.ty != Ty::UOff {
+                    self.problem(format!("{at}: an address typed {:?}", v.ty));
+                }
+                self.reference(of, owner, at, true);
+            }
+            // A value read from a block: of a number (not `_BIT`), a fixed-length string (a `STRING` value) or a
+            // user type, at an `_OFFSET`.
+            ExprKind::MemRead { block, offset, of } => {
+                let held = if let Ty::FixedStr(_) = of { Ty::Str } else { *of };
+                if matches!(of, Ty::Bit { .. } | Ty::Str) || v.ty != held {
+                    self.problem(format!("{at}: a value read as {of:?} typed {:?}", v.ty));
+                }
+                self.mem_at(block, offset, owner, at);
+            }
+            // A block at an address: an offset and a size, both `_OFFSET` values.
+            ExprKind::MemAt { offset, size } => {
+                if !self.p.is_mem(v.ty) || !matches!(offset.ty, Ty::Off | Ty::UOff) || size.ty != Ty::Off {
+                    self.problem(format!(
+                        "{at}: a block at an address typed {:?}, from a {:?} and a {:?}",
+                        v.ty, offset.ty, size.ty
+                    ));
+                }
+                self.value(offset, owner, at);
+                self.value(size, owner, at);
+            }
             ExprKind::Bound { array, dim, .. } => {
                 self.array_ref(array, owner, at, "bound");
                 if let Some(d) = dim {
                     self.value(d, owner, at);
                 }
             }
+            // An offset or a segment is of an array in conventional memory; an offset has an index per dimension.
+            ExprKind::VarPtr { array, .. } | ExprKind::VarSeg { array } => {
+                self.array_ref(&ArrayRef::Var(*array), owner, at, "address");
+                let a = self.p.var(*array);
+                if !a.conventional {
+                    self.problem(format!(
+                        "{at}: an address of {}, which is not in conventional memory",
+                        a.name
+                    ));
+                }
+                if let ExprKind::VarPtr { index, .. } = &v.kind {
+                    if a.dim_count().is_some_and(|n| n != index.len()) {
+                        self.problem(format!("{at}: {} indexes for {}", index.len(), a.name));
+                    }
+                    for i in index {
+                        self.value(i, owner, at);
+                    }
+                }
+            }
+            // An array's bytes have no value: they stand only in a function's `Slot::Block` ([`Validator::bytes`]).
+            ExprKind::Block { array, .. } => {
+                let name = &self.p.var(*array).name;
+                self.problem(format!("{at}: the bytes of {name} as a value"));
+            }
             ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => self.value(from, owner, at),
             ExprKind::Binary { lhs, rhs, .. } | ExprKind::Concat(lhs, rhs) | ExprKind::StrCompare { lhs, rhs, .. } => {
                 self.value(lhs, owner, at);
                 self.value(rhs, owner, at);
+            }
+            // The condition an integer; the parts both strings, as the node is, or both numbers, as the node is.
+            ExprKind::Choice { condition, then, else_ } => {
+                if !condition.ty.is_int() {
+                    self.problem(format!("{at}: the condition of a choice is a {:?}", condition.ty));
+                }
+                let string = v.ty == Ty::Str;
+                for part in [then, else_] {
+                    if (part.ty == Ty::Str) != string || !(string || part.ty.is_numeric() && v.ty.is_numeric()) {
+                        self.problem(format!("{at}: a part of a choice typed {:?} is a {:?}", v.ty, part.ty));
+                    }
+                }
+                for part in [condition, then, else_] {
+                    self.value(part, owner, at);
+                }
             }
             ExprKind::Call { builtin: id, args } => {
                 // The table's slots, or as many as the built-in's rule gives it (`ASC` has two).
@@ -654,11 +1019,130 @@ impl Validator<'_> {
                         args.len()
                     ));
                 }
-                for a in args.iter().flatten() {
-                    self.value(a, owner, at);
+                // A `Slot::Block` holds an array's bytes and nothing else; every other slot a value.
+                let kinds: Vec<Slot> = qb64rust_sema::builtins::find(*id)
+                    .map(|s| {
+                        qb64rust_sema::builtins::slots(s)
+                            .into_iter()
+                            .map(|(slot, _)| slot)
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                for (k, a) in args.iter().enumerate() {
+                    let Some(a) = a else { continue };
+                    match (&a.kind, kinds.get(k)) {
+                        (ExprKind::Block { array, index }, Some(Slot::Block)) => {
+                            self.bytes(a, *array, index, owner, at);
+                        }
+                        (_, Some(Slot::Block)) => self.problem(format!(
+                            "{at}: argument {} of {} takes an array's bytes, not a value",
+                            k + 1,
+                            id.get().name
+                        )),
+                        // A block: a place of type `_MEM`, loaded as itself.
+                        (ExprKind::Load(place), Some(Slot::Mem)) => self.block_place(place, owner, at),
+                        (_, Some(Slot::Mem)) => self.problem(format!(
+                            "{at}: argument {} of {} takes a block, not a value",
+                            k + 1,
+                            id.get().name
+                        )),
+                        (_, _) => self.value(a, owner, at),
+                    }
                 }
             }
             ExprKind::CallProc { proc, args } => self.call(*proc, args, owner, at),
+        }
+    }
+
+    /// What `_MEM`, `_MEMELEMENT` (`address` false) or `_OFFSET` names: a place or a whole array of this body,
+    /// never of `_BIT`; for a block, never of variable-length strings either.
+    fn reference(&mut self, of: &Reference, owner: Option<ProcId>, at: &At, address: bool) {
+        let ty = match of {
+            Reference::Place(place) => {
+                self.place(place, owner, at);
+                place_ty_checked(self.p, place)
+            }
+            Reference::Array(array) => {
+                self.array_ref(array, owner, at, "reference");
+                Some(self.p.array_ty(array))
+            }
+        };
+        if let Some(t) = ty
+            && (matches!(t, Ty::Bit { .. }) || (!address && t == Ty::Str))
+        {
+            self.problem(format!("{at}: a reference to a {t:?}"));
+        }
+    }
+
+    /// The block and the offset of `_MEMGET`, `_MEMPUT` and `_MEMFILL`: a place of type `_MEM` and an `_OFFSET`.
+    fn mem_at(&mut self, block: &Place, offset: &Expr, owner: Option<ProcId>, at: &At) {
+        self.block_place(block, owner, at);
+        if offset.ty != Ty::Off {
+            self.problem(format!("{at}: an offset of type {:?}", offset.ty));
+        }
+        self.value(offset, owner, at);
+    }
+
+    /// The variable `_MEMGET` reads into, or `_MEMPUT` and `_MEMFILL` take the bytes of: never a `_BIT`, and a
+    /// variable-length string only as a variable.
+    fn mem_bytes(&mut self, of: &Reference, owner: Option<ProcId>, at: &At) {
+        self.reference(of, owner, at, true);
+        let string = match of {
+            Reference::Place(place) => {
+                place_ty_checked(self.p, place) == Some(Ty::Str) && !matches!(place, Place::Var(_))
+            }
+            Reference::Array(array) => self.p.array_ty(array) == Ty::Str,
+        };
+        if string {
+            self.problem(format!("{at}: the bytes of an element, member or array of strings"));
+        }
+    }
+
+    /// What `_MEMPUT` writes or `_MEMFILL` fills with.
+    fn mem_value(&mut self, value: &MemValue, owner: Option<ProcId>, at: &At) {
+        match value {
+            MemValue::Typed { value, ty } => {
+                if !(ty.is_numeric() && !matches!(ty, Ty::Bit { .. }) && value.ty == ty.held_value()) {
+                    self.problem(format!("{at}: a value of type {:?} as a {ty:?}", value.ty));
+                }
+                self.value(value, owner, at);
+            }
+            MemValue::Bytes(of) => self.mem_bytes(of, owner, at),
+            MemValue::Str(s) => {
+                if s.ty != Ty::Str {
+                    self.problem(format!("{at}: a string value of type {:?}", s.ty));
+                }
+                self.value(s, owner, at);
+            }
+        }
+    }
+
+    /// A block passed to a built-in ([`Slot::Mem`]): a place of the predefined type `_MEM`.
+    fn block_place(&mut self, place: &Place, owner: Option<ProcId>, at: &At) {
+        self.place(place, owner, at);
+        if let Some(t) = place_ty_checked(self.p, place)
+            && !self.p.is_mem(t)
+        {
+            self.problem(format!("{at}: a block that is a place of type {t:?}"));
+        }
+    }
+
+    /// The array of `_UCHARPOS`, whole or from an element with an index per dimension: of 32-bit integers, typed as
+    /// its elements.
+    fn bytes(&mut self, v: &Expr, array: VarId, index: &[Expr], owner: Option<ProcId>, at: &At) {
+        self.array_ref(&ArrayRef::Var(array), owner, at, "bytes");
+        let a = self.p.var(array);
+        if !matches!(a.ty, Ty::I32 | Ty::U32) || v.ty != a.ty {
+            self.problem(format!(
+                "{at}: the bytes of {}, an array of {:?}, as {:?}",
+                a.name, a.ty, v.ty
+            ));
+        }
+        if !index.is_empty() && a.dim_count().is_some_and(|n| n != index.len()) {
+            self.problem(format!("{at}: {} indexes for {}", index.len(), a.name));
+        }
+        for i in index {
+            self.value(i, owner, at);
         }
     }
 }
@@ -700,6 +1184,7 @@ mod tests {
             ty: Ty::I32,
             storage,
             shape: crate::Shape::Scalar,
+            conventional: false,
         }
     }
 
@@ -738,6 +1223,7 @@ mod tests {
                 },
                 line: 3,
                 end_line: 5,
+                external: None,
             }],
             main: Body {
                 labels: vec![label(0)],
@@ -751,6 +1237,7 @@ mod tests {
             },
             types: Vec::new(),
             data: Vec::new(),
+            libraries: Vec::new(),
             settings: Settings {
                 console: true,
                 ..Settings::default()
@@ -880,6 +1367,108 @@ mod tests {
         );
     }
 
+    /// A library procedure (design D1 of `m3-declare-library`): of a library that exists, with no statements, a
+    /// `BYVAL` flag per parameter; a `BYVAL` parameter takes a number or `NULL`, another one neither.
+    #[test]
+    fn library_procedures() {
+        let mut p = program();
+        p.libraries.push(crate::Library {
+            kind: crate::LibraryKind::Plain,
+            names: Vec::new(),
+            span: Span::new(FileId(0), 0, 0),
+        });
+        p.vars.push(var("V", Storage::Param(ProcId(1))));
+        p.procs.push(Proc {
+            name: "F".into(),
+            kind: ProcKind::Sub,
+            params: vec![VarId(3)],
+            result: None,
+            body: Body::default(),
+            line: 2,
+            end_line: 2,
+            external: Some(crate::External {
+                library: crate::LibraryId(0),
+                c_name: "f".into(),
+                byval: vec![true],
+            }),
+        });
+        let call = |a: Arg| Op::Call {
+            proc: ProcId(1),
+            args: vec![a],
+        };
+        p.main.stmts[0].ops.extend([
+            call(Arg::Value(load(0))),
+            call(Arg::Null),
+            call(Arg::Ref(Place::Var(VarId(0)))),
+            call(Arg::Value(expr(Ty::Str, ExprKind::Str(b"a".to_vec())))),
+        ]);
+        p.main.stmts[0].ops.push(Op::Call {
+            proc: ProcId(0),
+            args: vec![Arg::Null],
+        });
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: argument 1 is no BYVAL value for a parameter that is BYVAL"),
+                format!("{at}: BYVAL argument 1 is no number"),
+                format!("{at}: argument 1 is a BYVAL value for a parameter that is not BYVAL"),
+            ]
+        );
+        p.procs[1].external.as_mut().unwrap().library = crate::LibraryId(1);
+        p.procs[1].external.as_mut().unwrap().byval.clear();
+        p.procs[1].body.stmts.push(stmt(Vec::new()));
+        p.main.stmts[0].ops.clear();
+        assert_eq!(
+            problems(&p),
+            [
+                "F: library 1 does not exist",
+                "F: a library procedure with statements",
+                "F: 0 BYVAL flags for 1 parameters",
+            ]
+        );
+    }
+
+    /// A choice (`_IIF`): its condition is an integer, and its parts are both strings or both numbers, as the
+    /// node is; each part is checked as a value of the statement's body.
+    #[test]
+    fn choice() {
+        let choice = |ty: Ty, condition: Expr, then: Expr, else_: Expr| {
+            let kind = ExprKind::Choice {
+                condition: Box::new(condition),
+                then: Box::new(then),
+                else_: Box::new(else_),
+            };
+            Op::Raise(expr(ty, kind))
+        };
+        let text = || expr(Ty::Str, ExprKind::Str(b"a".to_vec()));
+        let single = || expr(Ty::F32, ExprKind::Float("1.5E+0".into()));
+        let mut p = program();
+        p.main.stmts[0].ops.extend([
+            choice(Ty::F32, load(0), load(0), single()),
+            choice(Ty::Str, load(0), text(), text()),
+        ]);
+        assert_eq!(problems(&p), Vec::<String>::new());
+        p.main.stmts[0].ops.extend([
+            // A float as the condition, a string beside a number, a number in a string choice, a part that
+            // names a variable of another body.
+            choice(Ty::I32, single(), load(0), load(0)),
+            choice(Ty::I32, load(0), text(), load(0)),
+            choice(Ty::Str, load(0), text(), load(0)),
+            choice(Ty::I32, load(0), load(0), load(2)),
+        ]);
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: the condition of a choice is a F32"),
+                format!("{at}: a part of a choice typed I32 is a Str"),
+                format!("{at}: a part of a choice typed Str is a I32"),
+                format!("{at}: uses L of S"),
+            ]
+        );
+    }
+
     #[test]
     fn builtin_statement_slots() {
         use crate::StmtArg;
@@ -989,7 +1578,7 @@ mod tests {
 
     fn allocate(array: u32, bounds: Vec<(Expr, Expr)>) -> Op {
         Op::Allocate {
-            array: VarId(array),
+            array: ArrayRef::Var(VarId(array)),
             bounds,
             mode: AllocMode::Redim,
         }
@@ -1005,7 +1594,9 @@ mod tests {
             Op::Clear {
                 array: ArrayRef::Var(VarId(3)),
             },
-            Op::Release { array: VarId(4) },
+            Op::Release {
+                array: ArrayRef::Var(VarId(4)),
+            },
         ]);
         assert_eq!(problems(&p), Vec::<String>::new());
     }
@@ -1074,7 +1665,9 @@ mod tests {
         // The array passed may be a static one: a parameter is never released, and only a parameter is erased
         // by what is passed.
         let mut p = array_param(4);
-        p.procs[0].body.stmts[0].ops = vec![Op::Release { array: VarId(1) }];
+        p.procs[0].body.stmts[0].ops = vec![Op::Release {
+            array: ArrayRef::Var(VarId(1)),
+        }];
         assert_eq!(
             problems(&p),
             ["S: statement 0 (line 1): Release of the array parameter P"]
@@ -1128,7 +1721,9 @@ mod tests {
     #[test]
     fn release_of_a_static_array() {
         let mut p = arrays();
-        p.main.stmts[0].ops.push(Op::Release { array: VarId(3) });
+        p.main.stmts[0].ops.push(Op::Release {
+            array: ArrayRef::Var(VarId(3)),
+        });
         assert_eq!(
             problems(&p),
             ["main: statement 0 (line 1): Release of S, which is no dynamic array"]
@@ -1145,6 +1740,33 @@ mod tests {
             problems(&p),
             ["main: statement 0 (line 1): Clear of D, which is no static array"]
         );
+    }
+
+    #[test]
+    fn copy_between_arrays_of_another_type_or_shape() {
+        let mut p = arrays();
+        p.main.stmts[0].ops.push(Op::CopyArray {
+            from: ArrayRef::Var(VarId(3)),
+            to: ArrayRef::Var(VarId(4)),
+        });
+        assert_eq!(problems(&p), Vec::<String>::new());
+        let at = "main: statement 0 (line 1)";
+        p.vars[4].ty = Ty::F64;
+        assert_eq!(problems(&p), [format!("{at}: a CopyArray from S of I32 to D of F64")]);
+        p.vars[4].ty = Ty::I32;
+        p.vars[4].shape = Shape::Dynamic {
+            dims: Some(2),
+            at_start: None,
+        };
+        assert_eq!(
+            problems(&p),
+            [format!("{at}: a CopyArray from S of 1 dimensions to D of 2")]
+        );
+        *p.main.stmts[0].ops.last_mut().expect("the copy") = Op::CopyArray {
+            from: ArrayRef::Var(VarId(0)),
+            to: ArrayRef::Var(VarId(3)),
+        };
+        assert_eq!(problems(&p), [format!("{at}: CopyArray of G, which is no array")]);
     }
 
     #[test]
@@ -1174,7 +1796,9 @@ mod tests {
             Op::Clear {
                 array: ArrayRef::Var(VarId(0)),
             },
-            Op::Release { array: VarId(0) },
+            Op::Release {
+                array: ArrayRef::Var(VarId(0)),
+            },
         ]);
         let at = "main: statement 0 (line 1)";
         assert_eq!(
@@ -1223,6 +1847,7 @@ mod tests {
                 name: "X".into(),
                 ty: Ty::I32,
                 bounds: Vec::new(),
+                dynamic: false,
             }],
         };
         p.types = vec![ut("T1"), ut("T2")];
@@ -1241,6 +1866,7 @@ mod tests {
             name: "V".into(),
             ty: Ty::I32,
             bounds: vec![(0, 3)],
+            dynamic: false,
         });
         p
     }
@@ -1283,6 +1909,56 @@ mod tests {
                 format!("{at}: an element of the member X, which is no array"),
                 format!("{at}: the member array V used as a single value"),
                 format!("{at}: Clear of the member X, which is no array"),
+            ]
+        );
+    }
+
+    /// A dynamic member array (design D5 of `m3-typefields`) is allocated and released, with any number of pairs
+    /// of bounds and of indexes; one that is not dynamic is cleared only.
+    #[test]
+    fn dynamic_member_arrays() {
+        let mut p = member_arrays();
+        p.types[0].members.push(crate::Member {
+            name: "D".into(),
+            ty: Ty::I32,
+            bounds: vec![(0, 1)],
+            dynamic: true,
+        });
+        let member = |m: u32| ArrayRef::Member {
+            base: Box::new(Place::Var(VarId(0))),
+            member: MemberId(m),
+        };
+        let bound = || expr(Ty::I64, ExprKind::Int(1));
+        let allocate = |m: u32, n: usize| Op::Allocate {
+            array: member(m),
+            bounds: vec![(bound(), bound()); n],
+            mode: AllocMode::Retain,
+        };
+        let element = Op::Raise(expr(
+            Ty::I32,
+            ExprKind::Load(Place::Element {
+                array: member(2),
+                index: vec![bound(); 3],
+            }),
+        ));
+        p.main.stmts[0]
+            .ops
+            .extend([allocate(2, 2), element, Op::Release { array: member(2) }]);
+        assert_eq!(problems(&p), Vec::<String>::new());
+        p.main.stmts[0].ops.extend([
+            allocate(1, 1),
+            allocate(2, 0),
+            Op::Release { array: member(1) },
+            Op::Clear { array: member(2) },
+        ]);
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: Allocate of the member array V, which is not dynamic"),
+                format!("{at}: an Allocate of a member array without bounds"),
+                format!("{at}: Release of the member array V, which is not dynamic"),
+                format!("{at}: Clear of a dynamic member array"),
             ]
         );
     }
@@ -1343,5 +2019,67 @@ mod tests {
         let got = problems(&p);
         assert_eq!(got.len(), 1, "{got:?}");
         assert!(got[0].ends_with("with 1 argument slots for 3"), "{got:?}");
+    }
+
+    /// The array of `_UCHARPOS`: of 32-bit integers, typed as its elements, one index per dimension.
+    #[test]
+    fn bytes_of_an_array_as_a_function_argument() {
+        let mut p = arrays();
+        p.vars[3].ty = Ty::I64;
+        let block = |array: u32, ty: Ty, index: Vec<Expr>| {
+            let array = VarId(array);
+            Some(expr(ty, ExprKind::Block { array, index }))
+        };
+        let index = || vec![expr(Ty::I64, ExprKind::Int(2))];
+        let uchar = qb64rust_builtins::find_function(b"_UCHARPOS").unwrap();
+        for arg in [
+            block(4, Ty::I32, Vec::new()),
+            block(4, Ty::I32, index()),
+            block(3, Ty::I64, Vec::new()),
+            block(4, Ty::U32, Vec::new()),
+            block(4, Ty::I32, vec![index().remove(0), index().remove(0)]),
+        ] {
+            let call = ExprKind::Call {
+                builtin: uchar,
+                args: vec![Some(expr(Ty::Str, ExprKind::Str(b"a".to_vec()))), arg, None, None],
+            };
+            p.main.stmts[0].ops.push(Op::Raise(expr(Ty::I32, call)));
+        }
+        // A value in the array's slot, and the bytes where a value goes: as an operand and in a value slot.
+        let call = ExprKind::Call {
+            builtin: uchar,
+            args: vec![
+                Some(expr(Ty::Str, ExprKind::Str(b"a".to_vec()))),
+                Some(expr(Ty::I32, ExprKind::Int(5))),
+                None,
+                None,
+            ],
+        };
+        p.main.stmts[0].ops.push(Op::Raise(expr(Ty::I32, call)));
+        p.main.stmts[0]
+            .ops
+            .push(Op::Raise(block(4, Ty::I32, Vec::new()).unwrap()));
+        let call = ExprKind::Call {
+            builtin: uchar,
+            args: vec![
+                Some(expr(Ty::Str, ExprKind::Str(b"a".to_vec()))),
+                None,
+                block(4, Ty::I32, Vec::new()),
+                None,
+            ],
+        };
+        p.main.stmts[0].ops.push(Op::Raise(expr(Ty::I32, call)));
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: the bytes of S, an array of I64, as I64"),
+                format!("{at}: the bytes of D, an array of I32, as U32"),
+                format!("{at}: 2 indexes for D"),
+                format!("{at}: argument 2 of _UCharPos takes an array's bytes, not a value"),
+                format!("{at}: the bytes of D as a value"),
+                format!("{at}: the bytes of D as a value"),
+            ]
+        );
     }
 }

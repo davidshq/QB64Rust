@@ -5,12 +5,16 @@
 //! of its own body; `ON ERROR GOTO` names one of the main module's, from any body (all measured).
 
 use super::{Checker, R, Skips, nested_statements};
-use crate::{ConvKind, Label, LabelId, ProcId, Resume, StmtKind, SymbolKind, Ty};
-use qb64rust_base::{show_bytes, to_u32};
+use crate::builtins::stmt_lookup;
+use crate::{ConvKind, Label, LabelId, ProcId, ProcKind, Resume, StmtKind, SymbolKind, Ty};
+use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::find_any;
-use qb64rust_syntax::SyntaxKind::Number;
+use qb64rust_syntax::SyntaxKind::{
+    GosubStmt, GotoStmt, Ident, Number, OnErrorStmt, OnEventStmt, OnJumpStmt, RestoreStmt, ResumeStmt, ReturnStmt,
+};
 use qb64rust_syntax::ast;
 use qb64rust_syntax::tree::{Node, Tok};
+use std::collections::HashSet;
 
 impl Checker<'_> {
     /// Enters the labels of one body (`body`: `None` for the main module) among `statements` and inside their
@@ -41,19 +45,101 @@ impl Checker<'_> {
 
     // ---- labels and error handling ----
 
+    /// Collects the words the jumps of the whole program name as their targets, before the labels are entered
+    /// (design D1 of `m3-get-put-bload`). A line that is a SUB's name and a colon is a label when one of them is
+    /// that name and a call of the SUB when none is, whichever body the jump stands in (measured,
+    /// `verification\v28_c_labels`, `v28_x71`–`x92`: `GOTO`, `GOSUB`, `RETURN`, `RESTORE`, `RESUME`, `ON ERROR
+    /// GOTO`, `ON n GOTO/GOSUB` and `ON <event> GOSUB` make the label; `IF c THEN name`, `CALL name` and `ON
+    /// <event> name` do not). The statements are taken from every tree, compiled by `sema` or not, so no jump is
+    /// missed; the words of a line the parser could not read are kept apart ([`Self::declare_label`]).
+    pub(super) fn collect_jump_words(&mut self, skips: &Skips) {
+        let program = self.program;
+        for tree in &program.trees {
+            let root = tree.root();
+            self.jump_words_in(root);
+            // The lines with a parse error, and everything after the point where the parser stopped recording.
+            let lines: HashSet<u32> = skips
+                .error_starts
+                .get(&root.tree)
+                .into_iter()
+                .flatten()
+                .map(|&o| self.line(Span::new(root.file, o, o)))
+                .collect();
+            let cap = skips.cap_start.get(&root.tree).copied();
+            if lines.is_empty() && cap.is_none() {
+                continue;
+            }
+            for t in root.tokens() {
+                if t.kind == Ident && (cap.is_some_and(|c| t.span.end >= c) || lines.contains(&self.line(t.span))) {
+                    let word = self.word(t);
+                    self.doubt_words.insert(word);
+                }
+            }
+        }
+    }
+
+    /// The targets of the jumps in `node` and below it.
+    fn jump_words_in(&mut self, node: Node) {
+        // The words of the statement that can be a target: all of them where only the target is one (`GOTO a`,
+        // `RESUME NEXT`: a keyword in the set does no harm), those after `GOTO` or `GOSUB` where an expression's
+        // words stand before it.
+        let kind = node.kind();
+        let after_jump_word = if matches!(
+            kind,
+            GotoStmt | GosubStmt | ReturnStmt | RestoreStmt | ResumeStmt | OnErrorStmt
+        ) {
+            Some(false)
+        } else if matches!(kind, OnJumpStmt | OnEventStmt) {
+            Some(true)
+        } else {
+            None
+        };
+        if let Some(after) = after_jump_word {
+            let mut seen = !after;
+            for t in node.child_tokens() {
+                if t.kind != Ident {
+                    continue;
+                }
+                let word = self.word(t);
+                if seen {
+                    self.jump_words.insert(word);
+                } else if word == "GOTO" || word == "GOSUB" {
+                    seen = true;
+                }
+            }
+        }
+        for c in node.children() {
+            if let Some(n) = c.as_node() {
+                self.jump_words_in(n);
+            }
+        }
+    }
+
     /// Enters a label of `body` (before pass 2). The old compiler does not take a built-in name as a label
-    /// (`CLS:` is a call of `CLS`), and may take a SUB name as a call; both are left unsupported here.
+    /// (`CLS:` is a call of `CLS`). A built-in statement `sema` compiles is that statement, checked in pass 2
+    /// ([`Self::label_stmt`]); any other built-in's name is left unsupported here. The name of a SUB that can be
+    /// called without an argument is a call of the SUB unless a jump of the program names it
+    /// ([`Self::collect_jump_words`]); the name of any other SUB and of a FUNCTION is a label.
     fn declare_label(&mut self, l: ast::LabelDef, body: Option<ProcId>) -> R<()> {
         let node = l.node();
         let t = self.need(l.name(), node.span())?;
         let name = self.word(t);
         let shown = show_bytes(self.text(t.span));
+        if !stmt_lookup(&name, false).is_empty() {
+            return Ok(());
+        }
         if find_any(name.as_bytes()).next().is_some() {
             return Err(self.unsupported(t.span, format!("the label `{shown}:` (`{shown}` is a built-in)")));
         }
-        if self.procs_by_name.contains_key(&name) {
-            let msg = format!("a label with the name of a SUB or FUNCTION: `{shown}`");
-            return Err(self.unsupported(t.span, msg));
+        if let Some(&p) = self.procs_by_name.get(&name) {
+            if self.unclear_proc_label(p, &name) {
+                let msg = format!("a label with the name of a SUB or FUNCTION: `{shown}`");
+                return Err(self.unsupported(t.span, msg));
+            }
+            if self.callable_bare(p) && !self.jump_words.contains(&name) {
+                self.sub_call_lines.insert(node.key(), p);
+                return Ok(());
+            }
         }
         let key = (body, name);
         if self.labels_by_name.contains_key(&key) {
@@ -76,13 +162,49 @@ impl Checker<'_> {
 
     /// A label in pass 2: it stands before the next statement of its body.
     pub(super) fn label_stmt(&mut self, l: ast::LabelDef) -> R<()> {
-        // Without an entry the label's declaration had an error, already reported.
         if let Some(&id) = self.label_of_def.get(&l.node().key()) {
             // Pass 2 is in file order, so the items collected so far are those before the label.
             self.prog.labels[id.0 as usize].data_at = self.prog.data.len();
             self.push(l.node(), StmtKind::Label(id));
+            return Ok(());
         }
-        Ok(())
+        // The name of a SUB and a colon, with no jump to the name: a call of the SUB.
+        if let Some(&proc) = self.sub_call_lines.get(&l.node().key()) {
+            if let Some(t) = l.name() {
+                self.names.push((SymbolKind::Proc(proc), t.span));
+            }
+            self.push(l.node(), StmtKind::Call { proc, args: Vec::new() });
+            return Ok(());
+        }
+        // The name of a built-in statement and a colon: the statement with no argument, as in the old compiler.
+        // Any other label without an entry had an error in its declaration, already reported.
+        match l.name() {
+            Some(t) if !stmt_lookup(&self.word(t), false).is_empty() => self.bare_stmt(l.node(), t),
+            Some(_) | None => Ok(()),
+        }
+    }
+
+    /// Whether a label of this name gets a mark in place of an entry ([`Self::declare_label`]): the name of a
+    /// built-in, or of a SUB or FUNCTION where the label could not be told from a call.
+    fn marked_label_name(&self, name: &str) -> bool {
+        find_any(name.as_bytes()).next().is_some()
+            || self
+                .procs_by_name
+                .get(name)
+                .is_some_and(|&p| self.unclear_proc_label(p, name))
+    }
+
+    /// Whether the procedure is a SUB that can be called without an argument.
+    fn callable_bare(&self, p: ProcId) -> bool {
+        let proc = self.prog.proc(p);
+        proc.kind == ProcKind::Sub && proc.params.is_empty()
+    }
+
+    /// Whether a line that is the procedure's name and a colon cannot be told to be a call or a label: the
+    /// procedure's header, or a line that may hold a jump to the name of a SUB callable without an argument, could
+    /// not be read.
+    fn unclear_proc_label(&self, p: ProcId, name: &str) -> bool {
+        self.broken.contains(&p) || (self.callable_bare(p) && self.doubt_words.contains(name))
     }
 
     /// A label of `body` named at `t`: `ON ERROR GOTO` and `RESUME` in the main module, and every jump.
@@ -94,7 +216,7 @@ impl Checker<'_> {
         }
         let Some(&id) = self.labels_by_name.get(&(body, name.clone())) else {
             // A label with such a name is "not supported yet" (`declare_label`), so it may exist.
-            if self.procs_by_name.contains_key(&name) || find_any(name.as_bytes()).next().is_some() {
+            if self.marked_label_name(&name) {
                 let msg = format!("a label with the name of a SUB, FUNCTION or built-in: `{shown}`");
                 return Err(self.unsupported(t.span, msg));
             }
@@ -142,7 +264,7 @@ impl Checker<'_> {
         let (first, second) = (found.next(), found.next());
         let Some(id) = first else {
             // A label with such a name is "not supported yet" (`declare_label`), so it may exist.
-            if self.procs_by_name.contains_key(&name) || find_any(name.as_bytes()).next().is_some() {
+            if self.marked_label_name(&name) {
                 let msg = format!("a label with the name of a SUB, FUNCTION or built-in: `{shown}`");
                 return Err(self.unsupported(t.span, msg));
             }

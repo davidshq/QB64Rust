@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _MEMFREE memoryVariable
+Caused by (or after):_MEMFREE M , N
+LINE 9:_MEMFREE m, n
+exit=1

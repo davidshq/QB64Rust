@@ -1,0 +1,5 @@
+
+_MEMPUT requires numeric type
+Caused by (or after):_MEMPUT M , M . OFFSET , 1 AS STRING
+LINE 9:_MEMPUT m, m.OFFSET, 1 AS STRING
+exit=1

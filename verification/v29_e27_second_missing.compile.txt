@@ -1,0 +1,5 @@
+
+$EXEICON already defined in line 4
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 7:$EXEICON:'./v29_inc/missing.ico'
+exit=1

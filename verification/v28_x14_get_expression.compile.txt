@@ -1,0 +1,5 @@
+
+Expected variable name/array element
+Caused by (or after):GET ( 1 , 2 ) - ( 3 , 4 ) , I + 1
+LINE 7:GET (1, 2)-(3, 4), i + 1
+exit=1

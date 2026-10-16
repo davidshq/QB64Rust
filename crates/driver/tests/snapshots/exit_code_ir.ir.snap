@@ -1,0 +1,29 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+Settings: console, no window
+Stmt line 4
+  SelectConsole
+Stmt line 6
+  Branch Zero -> @1 Skip: Var K:I32
+Stmt line 6
+  System (Const 2.5E+0:F64 -> Convert I32 RoundEven)
+Stmt line 6
+  Jump @0
+Label @1 line 6
+Stmt line 6
+  End (Var D:F64 -> Convert I32 RoundEven)
+Label @0 line 6
+Stmt line 7
+  System Var K:I32
+Stmt line 8
+  End Add:I64(Var Q:I64, Const 1:I64) wrap
+Stmt line 9
+  System Var O:Off
+Stmt line 10 may_raise
+  Call S []
+Sub S lines 11-13
+Stmt line 12
+  System Const 3:I16

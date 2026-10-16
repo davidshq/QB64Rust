@@ -1,0 +1,246 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+TYPE PT
+  X:I32
+  Y:I32
+ARRAY A:I32(0 TO 3)
+LIBRARY 0 Plain "v37_lib/v37h"
+LIBRARY 1 Static "./v37s"
+LIBRARY 2 Dynamic "kernel32"
+LIBRARY 3 Customtype "v37_lib/v37h"
+LIBRARY 4 Plain "./v37c"
+LIBRARY 5 Plain
+LIBRARY 6 Plain "../v37_lib/v37h"
+LIBRARY 7 Plain "v37_lib/v37h"
+line 2: ConsoleOnly
+line 12: Print newline
+  Num
+    CallProc EARLY : I32
+      value
+        Int 1 : I32
+line 48: Print newline
+  Num
+    CallProc H_D : I32
+      value
+        Float 1.7E+0 : F64 (qb F32)
+  Num
+    CallProc H_DP : F64
+      value
+        Int 2 : I32
+  Num
+    CallProc MAXL : I32
+      value
+        Int 3 : I32
+      value
+        Int 9 : I32
+  Num
+    CallProc TWICE : I32
+      value
+        Int 21 : I32
+  Num
+    CallProc H_B : I8
+      value
+        Int 44 : I8
+  Num
+    CallProc ISDIGIT : I32
+      value
+        Int 48 : I32
+  Num
+    CallProc INC_ADD : I32
+      value
+        Int 1 : I32
+      value
+        Int 2 : I32
+line 49: Print newline
+  Num
+    CallProc H_ISNULL : I32
+      null
+  Num
+    CallProc H_ISNULL : I32
+      null
+  Num
+    CallProc H_ISNULL : I32
+      null
+  Num
+    CallProc H_ISNULL : I32
+      null
+  Num
+    CallProc H_ISNULL : I32
+      value
+        Int 0 : Off
+  Num
+    CallProc H_ISNULL : I32
+      value
+        Convert Truncate : Off
+          AddressOf X : UOff
+line 50: Print newline
+  Num
+    CallProc EARLY : I32
+      value
+        Convert Truncate : I32
+          Convert RoundEven : I64
+            Float 2.6E+0 : F64 (qb F32)
+  Num
+    CallProc H.DOT : I32
+      value
+        Convert Truncate : I32
+          Convert RoundEven : I64
+            Var Y : F64
+  Num
+    CallProc H_PTSUM : I32
+      ref P : T:PT
+  Num
+    CallProc FAST_SQRT : I32
+      value
+        Int 2000 : I32
+  Num
+    CallProc S_ADD : I32
+      value
+        Int 1 : I32
+      value
+        Int 2 : I32
+  Num
+    CallProc LSTRLENA : I32
+      temp
+        Str "seven!!" : Str
+  Num
+    CallProc ADDLL : I64
+      value
+        Int 3 : I32
+      value
+        Int 4 : I32
+line 51: Call H_PL
+  ref X : I32
+line 51: Call H_PL
+  temp
+    Var X : I32
+line 51: Call H_PL
+  ref A(…) : I32
+    Int 2 : I64
+line 51: Call H_PL
+  ref P.X : I32
+line 51: Call H_PL
+  temp
+    Convert Widen : I32
+      Var K : I16
+line 51: Call H_PL
+  temp
+    Int 5 : I32
+line 52: Call H_PL
+  ref X : I32
+line 52: Call H_PL
+  temp
+    Var X : I32
+line 53: Call H_UPPER
+  ref S : Str
+line 53: Call H_UPPER
+  temp
+    Str "lit" : Str
+line 53: Call H_UPPER
+  temp
+    Concat : Str
+      Var S : Str
+      Str "t" : Str
+line 54: Call H_TICK
+line 54: Call H_TICK
+line 55: Print newline
+  Num
+    CallProc H_TICKS : I32
+  Str
+    CallProc H_NULLSTR : Str
+line 56: Call IN_SUB
+SUB IN_SUB
+line 62: Print newline
+  Num
+    CallProc H_L2 : I32
+      value
+        Int 5 : I32
+  Num
+    CallProc EARLY : I32
+      value
+        Int 3 : I32
+FUNCTION EARLY : I32
+  external h_l of LIBRARY 0 (byval)
+  param V:I32
+  result EARLY:I32
+FUNCTION H_D : I32
+  external h_d of LIBRARY 0 (byval)
+  param V:F64
+  result H_D:I32
+FUNCTION H_DP : F64
+  external h_d of LIBRARY 0 (byval)
+  param DV:I32
+  result H_DP:F64
+FUNCTION MAXL : I32
+  external h_max<int32_t> of LIBRARY 0 (byval, byval)
+  param A:I32
+  param B:I32
+  result MAXL:I32
+FUNCTION TWICE : I32
+  external hns::twice of LIBRARY 0 (byval)
+  param V:I32
+  result TWICE:I32
+FUNCTION H_B : I8
+  external h_b of LIBRARY 0 (byval)
+  param V:I8
+  result H_B:I8
+FUNCTION H_ISNULL : I32
+  external h_isnull of LIBRARY 0 (byval)
+  param P:Off
+  result H_ISNULL:I32
+FUNCTION H_PTSUM : I32
+  external h_ptsum of LIBRARY 0 (ref)
+  param P:T:PT
+  result H_PTSUM:I32
+FUNCTION FAST_SQRT : I32
+  external Fast_Sqrt of LIBRARY 0 (byval)
+  param VAL:I32
+  result FAST_SQRT:I32
+FUNCTION H.DOT : I32
+  external h_l of LIBRARY 0 (byval)
+  param V:I32
+  result H.DOT:I32
+SUB H_PL
+  external h_pl of LIBRARY 0 (ref)
+  param V:I32
+SUB H_UPPER
+  external h_upper of LIBRARY 0 (ref)
+  param S:Str
+SUB H_TICK
+  external h_tick of LIBRARY 0 ()
+FUNCTION H_TICKS : I32
+  external h_ticks of LIBRARY 0 ()
+  result H_TICKS:I32
+FUNCTION H_NULLSTR : Str
+  external h_nullstr of LIBRARY 0 ()
+  result H_NULLSTR:Str
+FUNCTION S_ADD : I32
+  external s_add of LIBRARY 1 (byval, byval)
+  param A:I32
+  param B:I32
+  result S_ADD:I32
+FUNCTION LSTRLENA : I32
+  external lstrlenA of LIBRARY 2 (ref)
+  param S:Str
+  result LSTRLENA:I32
+FUNCTION ADDLL : I64
+  external h_add of LIBRARY 3 (byval, byval)
+  param A:I32
+  param B:I32
+  result ADDLL:I64
+FUNCTION ISDIGIT : I32
+  external isdigit of LIBRARY 5 (byval)
+  param C:I32
+  result ISDIGIT:I32
+FUNCTION INC_ADD : I32
+  external h_add of LIBRARY 6 (byval, byval)
+  param A:I32
+  param B:I32
+  result INC_ADD:I32
+FUNCTION H_L2 : I32
+  external h_l of LIBRARY 7 (byval)
+  param V:I32
+  result H_L2:I32

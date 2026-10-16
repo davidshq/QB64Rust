@@ -218,9 +218,9 @@ parser diagnostic. A construct that the later stages do not compile yet SHALL be
 `sema` at that node, not by the parser.
 
 #### Scenario: Statement not compiled yet
-- **WHEN** a program contains `DO: LSET a$ = b$: LOOP UNTIL a > 0`
-- **THEN** the tree has a `DoBlock` holding an `LsetStmt`, and the only diagnostic is one "not supported yet" error
-  at `LSET`
+- **WHEN** a program contains `DO: STOP: LOOP UNTIL a > 0`
+- **THEN** the tree has a `DoBlock` holding a `StopStmt`, and the only diagnostic is one "not supported yet" error
+  at `STOP`
 
 #### Scenario: Built-in statement read by its template
 - **WHEN** a program contains `LINE (0, 0)-(9, 9), , BF`
@@ -324,15 +324,15 @@ knows but the new one does not yet (such as the constants of the auto-included f
 supported yet", not as reserved names.
 
 #### Scenario: Unsupported declaration
-- **WHEN** a program has `DIM m AS _MEM` and then `PRINT LEN(m)`
-- **THEN** the only error is the "not supported yet" error at the `DIM`
+- **WHEN** a program has `CONST c$ = CHR$(65)` and then `PRINT LEN(c$)`
+- **THEN** the only error is the "not supported yet" error at the `CONST`
 
 #### Scenario: Real error after an unsupported declaration
-- **WHEN** a program has `DIM m AS _MEM` and, later, a statement that stores a string in a number variable
-- **THEN** the only error is the "not supported yet" error at the `DIM`, and the compile fails
+- **WHEN** a program has `CONST c$ = CHR$(65)` and, later, a statement that stores a string in a number variable
+- **THEN** the only error is the "not supported yet" error at the `CONST`, and the compile fails
 
 #### Scenario: Real error before an unsupported declaration
-- **WHEN** a program has a statement that stores a string in a number variable and, later, `DIM m AS _MEM`
+- **WHEN** a program has a statement that stores a string in a number variable and, later, `CONST c$ = CHR$(65)`
 - **THEN** both errors are reported
 
 #### Scenario: Auto-included constant
@@ -376,9 +376,12 @@ An array of the IR SHALL be static (its bounds are constants, it exists for the 
 a number of dimensions and no bounds). A dynamic array that lives for the program MAY carry constant bounds it is
 allocated with when the program starts (`STATIC a(3)` in a procedure); no operation allocates it then, and the IR
 SHALL NOT say where that allocation stands in the output. The IR SHALL have operations that allocate a dynamic
-array with bounds given as values (stating whether an allocated array is an error, is replaced, or is replaced
-keeping its elements by flat position), that clear a static array, that release a dynamic one, and that erase an
-array parameter, which is either kind when the program runs. The allocation SHALL be allowed to name a static array or a
+array with bounds given as values (stating whether an allocated array is an error, is replaced, is replaced
+keeping its elements by flat position, or is replaced keeping its elements by their indexes), that clear a static
+array, that release a dynamic one, that erase an
+array parameter, which is either kind when the program runs, and that copy the elements of one array into
+another of the same element type and number of dimensions (each an array variable or a member array; the
+checks of bounds and the copy by kind follow from the types and SHALL NOT appear as other operations). The allocation SHALL be allowed to name a static array or a
 parameter (it then raises an error when it runs). An array SHALL carry a storage class
 as a scalar does, and an array parameter SHALL be a reference to the caller's array. The IR SHALL NOT state when a
 per-call array is released, nor name a descriptor, an allocation function or a size in bytes.
@@ -391,6 +394,11 @@ per-call array is released, nor name a descriptor, an allocation function or a s
 #### Scenario: REDIM _PRESERVE
 - **WHEN** `REDIM _PRESERVE d(9) AS LONG` is lowered
 - **THEN** the IR holds the same operation marked as keeping the elements
+
+#### Scenario: REDIM _RETAIN
+- **WHEN** `REDIM _RETAIN d(2 TO 9) AS LONG` is lowered
+- **THEN** the IR holds the same operation marked as keeping the elements by their indexes, and no loop over the
+  dimensions or old descriptor appears before the C++ output
 
 #### Scenario: Static array
 - **WHEN** `DIM s(5) AS LONG` is lowered in the main module without `$DYNAMIC`
@@ -409,16 +417,25 @@ per-call array is released, nor name a descriptor, an allocation function or a s
 - **WHEN** `fill x()` is lowered for `SUB fill (a() AS LONG)`
 - **THEN** the argument is a reference to the array `x`, and inside the SUB `a(1)` is an element of the parameter
 
+#### Scenario: Whole-array assignment
+- **WHEN** `d() = s()` and `t.v() = a()` are lowered
+- **THEN** the IR holds one copy from `s` to `d`, marked as raising, and one from `a` to member `v` of `t`, and no
+  loop over the elements, descriptor or bounds check appears before the C++ output
+
 ### Requirement: Member arrays in the IR
 An element place SHALL name its array as an array variable or as an array member of a place of a user type, so
 that `x(0).n(1).q(2)` is one place built from elements and members. The bounds of a member array SHALL be part of
-the user type in the program's list of types. A whole user-type store SHALL be one operation from a place to a
-place of the same type. The operation that clears an array SHALL be allowed to name a member array, and then
-finds the place it is part of once and is not guarded (an index outside its bounds on the way raises error 9 and
-the member array of the element at position 0 is cleared, as in the old compiler); no operation SHALL allocate
-or release a member array. A bound of a member array and a whole member array as an array argument SHALL name it
-the same way; the bound SHALL NOT evaluate the indexes on the way to it. Byte offsets, the layout of a member
-array and how a `STRING` member is held SHALL NOT appear in the IR.
+the user type in the program's list of types, with whether it is a dynamic member array. A whole user-type store
+SHALL be one operation from a place to a place of the same type. The operation that clears an array SHALL be
+allowed to name a member array, and then finds the place it is part of once and is not guarded (an index outside
+its bounds on the way raises error 9 and the member array of the element at position 0 is cleared, as in the old
+compiler); no operation SHALL allocate or release a member array that is not dynamic. A dynamic member array
+SHALL be allocated and released by the operations that allocate and release a dynamic array, naming it as a
+member array, with the same modes and the same order of evaluation and errors. A bound of a member array and a
+whole member array as an array argument SHALL name it the same way; the bound SHALL NOT evaluate the indexes on
+the way to a member array that is not dynamic. Byte offsets, the layout of a member array, how a `STRING` member
+or a dynamic member array is held, and the setting up, release and copy of the dynamic member arrays an owner
+value holds SHALL NOT appear in the IR: they follow from the type.
 
 #### Scenario: Chain of members and elements
 - **WHEN** `x(0).n(1).q(2) = 77` is lowered
@@ -433,6 +450,15 @@ array and how a `STRING` member is held SHALL NOT appear in the IR.
 - **WHEN** `REDIM a(i).v(0 TO 3)` and `ERASE t.v` are lowered for a member `v(0 TO 3) AS LONG`
 - **THEN** the IR holds a clear of member `v` of element `i` of `a`, marked as raising, and a clear of member `v`
   of `t`, not marked; `REDIM _PRESERVE a(i).v(0 TO 3)` gives no operation
+
+#### Scenario: REDIM and ERASE of a dynamic member array
+- **WHEN** `REDIM _RETAIN a(i).v(2 TO 5) AS LONG` and `ERASE t.v` are lowered for a member `v(1) _DYNAMIC AS LONG`
+- **THEN** the IR holds an allocation of member `v` of element `i` of `a` with bounds 2 and 5 and the mode
+  `Retain`, and a release of member `v` of `t`
+
+#### Scenario: Copy of an owner value
+- **WHEN** `q = p` is lowered for two variables of a type with a dynamic member array
+- **THEN** the IR holds one whole-value store from `p` to `q`, as for any user type
 
 ### Requirement: $STATIC and $DYNAMIC take effect
 `$DYNAMIC` and `$STATIC` in a metacommand comment SHALL decide, for the declarations that follow by the old
@@ -513,8 +539,9 @@ where the old compiler's own passes disagree about the flag's value on that line
 
 ### Requirement: Program settings in the IR
 The IR SHALL say of a program, in terms that name no libqb symbol and no make flag: whether it has a console,
-whether it has a window, whether the window is hidden at the start, and which optional parts of the runtime its
-built-ins need. The IR dump SHALL show them.
+whether it has a window, whether the window is hidden at the start, which optional parts of the runtime its
+built-ins need, and whether its executable carries an icon. The IR dump SHALL show them, and SHALL NOT show
+the folder the icon's file is in.
 
 #### Scenario: Console and hidden window
 - **WHEN** a program with `$CONSOLE` and `$SCREENHIDE` is lowered
@@ -524,10 +551,20 @@ built-ins need. The IR dump SHALL show them.
 - **WHEN** a program with `$CONSOLE:ONLY` is lowered
 - **THEN** the IR says it has a console and no window
 
+#### Scenario: Sound
+- **WHEN** a program with `SOUND 440, 1` is lowered
+- **THEN** the IR says it needs the audio part of the runtime, and a program with only `BEEP` does not
+
+#### Scenario: An icon
+- **WHEN** a program with `$EXEICON:'./game.ico'` is lowered
+- **THEN** the IR says its executable carries an icon and that it needs the icon part of the runtime
+
 ### Requirement: The build follows the program
 The emitter and the driver SHALL give a program the start-up settings and the make flags the old compiler gives
-it: a console, a console without a window, a window hidden at the start, and each optional part of the runtime
-one of its built-ins needs. Two builds that differ in any of them SHALL NOT share a cached executable.
+it: a console, a console without a window, a window hidden at the start, each optional part of the runtime
+one of its built-ins needs, the icon `$EXEICON` names as a resource of the executable, and the library files its
+`DECLARE LIBRARY` blocks name on the link command. Two builds that differ in any of them, or in the bytes of the
+icon, of a library file or of a header a block names, SHALL NOT share a cached executable.
 
 #### Scenario: A program with a console and a window
 - **WHEN** a program with `$CONSOLE`, `$SCREENHIDE` and `_DEST _CONSOLE` is built and run
@@ -541,3 +578,28 @@ one of its built-ins needs. Two builds that differ in any of them SHALL NOT shar
 #### Scenario: Reference clone unchanged
 - **WHEN** a program with `$CONSOLE` is built for the first time
 - **THEN** `git status --porcelain` in the reference clone prints the same as before the build
+
+#### Scenario: A program with sound
+- **WHEN** a program names `SOUND` or `PLAY`
+- **THEN** it is built with the make flag the old compiler passes for the audio dependency, and a program
+  without them is built without it
+
+#### Scenario: An icon in the executable
+- **WHEN** a program with `$EXEICON:'./game.ico'` is built
+- **THEN** the executable holds the images of `game.ico` as its icon resource, as the old compiler's does
+
+#### Scenario: A changed icon
+- **WHEN** the icon file's bytes change and the program is built again with the build cache
+- **THEN** the executable is built again, not copied from the cache
+
+#### Scenario: A file that is not an icon
+- **WHEN** `$EXEICON` names a text file
+- **THEN** the build fails, as the old compiler's does
+
+#### Scenario: A library on the link command
+- **WHEN** a program's block names `"./v37c"` and `v37c.a` lies beside it
+- **THEN** the executable is linked with that file, as the old compiler's is
+
+#### Scenario: A changed header
+- **WHEN** the bytes of a header a block names change and the program is built again with the build cache
+- **THEN** the executable is built again, not copied from the cache

@@ -1,0 +1,5 @@
+
+Command not implemented
+Caused by (or after):CALL _MEMGET ( M , M . OFFSET , K )
+LINE 9:CALL _MEMGET(m, m.OFFSET, k)
+exit=1

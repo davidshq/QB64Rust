@@ -13,7 +13,7 @@
 
 use crate::{Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Ty};
 use qb64rust_builtins::passing::plan;
-use qb64rust_builtins::{Builtin, BuiltinId, find_function, find_statements, find_stub};
+use qb64rust_builtins::{Builtin, BuiltinId, find_function_form, find_statements, find_stub};
 
 /// How the old compiler treats a built-in function: one variant per kind of special-casing, not per function.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -48,6 +48,31 @@ pub enum Rule {
     /// `ENVIRON$(name$)` or `ENVIRON$(n)`: a string as it is, or a number converted as the table's LONG slot
     /// (`qb64pe.bas` 20952; libqb has an entry for each, `func_environ(qbs*)` and `func_environ(int32_t)`).
     StrOrIndex,
+    /// `_RGB32`: the table's slots, of which the first n are needed; the call is written with the arguments given
+    /// and nothing for the others (libqb has an entry for each number of arguments; measured,
+    /// `verification\v28_x01`, `x45`, `x46`).
+    GivenArgs(usize),
+    /// `_MIN`, `_MAX`, `_CLAMP`: every argument a number as it is; the result is typed by what the arguments are
+    /// believed (`check\ops.rs`, `widest`), and the call is written with that type as its C++ template argument,
+    /// which converts each argument ([`cpp_arithmetic`]; design D6 of `m3-console-files`).
+    Widest,
+    /// `_ROL`, `_ROR`: two integers as they are; the bits turn within the width of the first one's believed type,
+    /// and the result is the unsigned type of that width (`check\ops.rs`, `rotated`; design D7).
+    Rotate,
+    /// `_IIF`: no call but a choice that evaluates one of its parts, checked as [`ExprKind::Choice`].
+    Choice,
+    /// No call but an expression of its own, which the checker builds before it looks at the table (`_MEM`,
+    /// `_MEMELEMENT`: [`ExprKind::MemOf`], [`ExprKind::MemAt`]; `_OFFSET`: [`ExprKind::AddressOf`]). Named bare,
+    /// such a built-in is an arity error.
+    Own,
+    /// `MKI$`, `MKL$`, `MKS$`, `MKD$` (the type given) and `_MK$` (`None`: the type is its first argument): the
+    /// bytes of a number as a string, libqb's `<t>2string` (design D5 of `m3-mem`; `qb64pe.bas` 21217–21255).
+    /// The number is converted to an integer type as a store would, and passed to a float type as it is. `_MK$`'s
+    /// first slot holds a 0 of the type named (`_BIT` and `_UNSIGNED _BIT` are one bit wide).
+    Mk(Option<Ty>),
+    /// `CVI`, `CVL`, `CVS`, `CVD` (the type given) and `_CV` (`None`, as for [`Rule::Mk`]): the number a string's
+    /// bytes hold, libqb's `string2<t>`, typed as the type (a `_BIT` as an `_INTEGER64`).
+    Cv(Option<Ty>),
 }
 
 /// Every built-in function `sema` compiles, as written (with its required suffix), and its rule. The coverage check
@@ -141,7 +166,7 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_SOURCE", Rule::Plain),
     ("_CONSOLE", Rule::Plain),
     // The window functions (design D6 of `m2-console-screenhide`, measured from the old compiler's C++): compiled
-    // and never run yet ([`WINDOW_BUILTINS`]). No slot and called bare only, a LONG, but for the three below.
+    // and never run yet ([`NEVER_RUN`]). No slot and called bare only, a LONG, but for the three below.
     ("_SCREENICON", Rule::Plain),
     ("_DESKTOPWIDTH", Rule::Plain),
     ("_DESKTOPHEIGHT", Rule::Plain),
@@ -155,7 +180,150 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // `_NEWIMAGE(w, h[, mode])`; `_WINDOWHANDLE[(kind)]` is an `_UNSIGNED _OFFSET`, bare or with its argument.
     ("_NEWIMAGE", Rule::Plain),
     ("_WINDOWHANDLE", Rule::Plain),
+    // The screen and keyboard functions (design D2 of `m3-window-output`, measured from the old compiler's C++;
+    // `verification\v27_*`). `INKEY$` and `CSRLIN` have no slot and are called bare only; `POS(n)` is a LONG.
+    ("INKEY$", Rule::Plain),
+    ("CSRLIN", Rule::Plain),
+    ("POS", Rule::Plain),
+    // `POINT(x, y)` and `POINT(n)`: one entry with an optional second slot, a DOUBLE.
+    ("POINT", Rule::Plain),
+    // `SCREEN(row, column[, colorflag])`: an `_UNSIGNED LONG`.
+    ("SCREEN", Rule::Plain),
+    // `TAB(n)` and `SPC(n)` are functions that give a string, one LONG slot each: `PRINT`, `PRINT #` and `WRITE`
+    // take them as the string items they are (design D2 of `m3-get-put-bload`; `verification\v28_a_tab_spc`).
+    ("TAB", Rule::Plain),
+    ("SPC", Rule::Plain),
+    // `PEEK(offset)`: a LONG, in the segment `DEF SEG` set (`verification\v28_b_bload`).
+    ("PEEK", Rule::Plain),
+    // `VARPTR(a(i))` and `VARSEG(a(i))`: written by the compiler, an `_INTEGER64` to `PRINT` and to operators
+    // against the table's LONG (`qb64pe.bas` 21328; measured, `verification\v28_d_varptr_index`); checked as
+    // [`ExprKind::VarPtr`] and [`ExprKind::VarSeg`].
+    ("VARPTR", Rule::Fixed(Ty::I64)),
+    ("VARSEG", Rule::Fixed(Ty::I64)),
+    // `_RGB32` with one to four LONG slots (libqb has an entry for each number of arguments) and `_RGBA32` with
+    // four: an `_UNSIGNED LONG`. `_FULLSCREEN` has no slot and is called bare only, a LONG ([`NEVER_RUN`]).
+    ("_RGB32", Rule::GivenArgs(1)),
+    ("_RGBA32", Rule::Plain),
+    ("_FULLSCREEN", Rule::Plain),
+    // The date and the time as strings: no slot, called bare only. Civil War Strategy writes `DATE$` into its
+    // history file, on a line `TAB` kept marked until now.
+    ("DATE$", Rule::Plain),
+    ("TIME$", Rule::Plain),
+    // `PLAY[(voice)]`: the seconds of sound left to play in a voice, a DOUBLE; one optional slot, so it is also
+    // called bare (design D1 of `m3-sound`; `verification\v29_x55`–`x60`).
+    ("PLAY", Rule::Plain),
+    // The choice, the least and greatest, and the shifts (design D6, D7 of `m3-console-files`;
+    // `verification\v30_g_iif_min_max`, `v30_h_shifts`, `v30_result_types.txt`). `_SHL` and `_SHR` are plain: an
+    // `_UNSIGNED _INTEGER64` and a LONG slot, the result an `_UNSIGNED _INTEGER64`.
+    ("_IIF", Rule::Choice),
+    ("_MIN", Rule::Widest),
+    ("_MAX", Rule::Widest),
+    ("_CLAMP", Rule::Widest),
+    ("_SHL", Rule::Plain),
+    ("_SHR", Rule::Plain),
+    ("_ROL", Rule::Rotate),
+    ("_ROR", Rule::Rotate),
+    // The colour functions (design D1 of `m3-images-fonts-mouse`; `verification\v31_a_colours`, `v31_x01`,
+    // `x27`–`x36`): each the plain call of its row. `_RGB` and `_RGBA` are `_UNSIGNED LONG` with an optional
+    // handle; `_RED` to `_ALPHA` LONG with an optional handle; the `…32` parts LONG; `_HSB32` and `_HSBA32`
+    // `_UNSIGNED LONG` of DOUBLE slots; `_HUE32`, `_SATURATION32`, `_BRIGHTNESS32` DOUBLE.
+    ("_RGB", Rule::Plain),
+    ("_RGBA", Rule::Plain),
+    ("_RED", Rule::Plain),
+    ("_GREEN", Rule::Plain),
+    ("_BLUE", Rule::Plain),
+    ("_ALPHA", Rule::Plain),
+    ("_RED32", Rule::Plain),
+    ("_GREEN32", Rule::Plain),
+    ("_BLUE32", Rule::Plain),
+    ("_ALPHA32", Rule::Plain),
+    ("_HSB32", Rule::Plain),
+    ("_HSBA32", Rule::Plain),
+    ("_HUE32", Rule::Plain),
+    ("_SATURATION32", Rule::Plain),
+    ("_BRIGHTNESS32", Rule::Plain),
+    // The image functions (same design, `v31_b_images`, `v31_c_save_load`): LONG each, but `PMAP`, a SINGLE.
+    // `_LOADIMAGE` needs the image codec ([`crate::RuntimePart::ImageCodec`]).
+    ("_LOADIMAGE", Rule::Plain),
+    ("_COPYIMAGE", Rule::Plain),
+    ("_WIDTH", Rule::Plain),
+    ("_HEIGHT", Rule::Plain),
+    ("_PIXELSIZE", Rule::Plain),
+    ("_CLEARCOLOR", Rule::Plain),
+    ("_BLEND", Rule::Plain),
+    ("_PALETTECOLOR", Rule::Plain),
+    ("_AUTODISPLAY", Rule::Plain),
+    ("PMAP", Rule::Plain),
+    // The font functions (same design, `v31_d_fonts`): LONG each. `_LOADFONT` and the `_U…` functions need the
+    // font part ([`crate::RuntimePart::Font`]); `_UCHARPOS` takes a LONG array as its bytes ([`Slot::Block`]).
+    ("_LOADFONT", Rule::Plain),
+    ("_FONT", Rule::Plain),
+    ("_FONTWIDTH", Rule::Plain),
+    ("_FONTHEIGHT", Rule::Plain),
+    ("_PRINTWIDTH", Rule::Plain),
+    ("_PRINTMODE", Rule::Plain),
+    ("_UFONTHEIGHT", Rule::Plain),
+    ("_ULINESPACING", Rule::Plain),
+    ("_UPRINTWIDTH", Rule::Plain),
+    ("_UCHARPOS", Rule::Plain),
+    ("_MAPUNICODE", Rule::Plain),
+    // The mouse functions (same design, `v31_x01_accepted`, `x13`–`x16`, `x101`–`x103`): the event last taken
+    // from libqb's queue. `_MOUSEINPUT`, `_MOUSEBUTTON`, `_MOUSEHIDDEN`, `_MOUSEDISABLED` LONG; `_MOUSEX`,
+    // `_MOUSEY`, `_MOUSEWHEEL` and the movements DOUBLE. Read in tests from the mouse steps of a keys file
+    // (`tools\screen\screen_state.cpp`, design D4).
+    ("_MOUSEINPUT", Rule::Plain),
+    ("_MOUSEX", Rule::Plain),
+    ("_MOUSEY", Rule::Plain),
+    ("_MOUSEBUTTON", Rule::Plain),
+    ("_MOUSEWHEEL", Rule::Plain),
+    ("_MOUSEMOVEMENTX", Rule::Plain),
+    ("_MOUSEMOVEMENTY", Rule::Plain),
+    ("_MOUSEHIDDEN", Rule::Plain),
+    ("_MOUSEDISABLED", Rule::Plain),
+    // An image of the desktop or of the clipboard (same design, `v31_x01_accepted`): LONG each, with libqb's
+    // screen-image part ([`crate::RuntimePart::ScreenImage`]). Compiled and never run ([`NEVER_RUN`]).
+    ("_SCREENIMAGE", Rule::Plain),
+    ("_CLIPBOARDIMAGE", Rule::Plain),
+    // Memory blocks (design D2 and D4 of `m3-mem`; `verification\v32_x01_accepted`): `_MEMNEW`, `_MEMIMAGE` and
+    // `_MEMSOUND` give a block, which is only stored into a `_MEM` place (`check\mod.rs`, `assign`); `_MEMEXISTS`
+    // takes one ([`Slot::Mem`]). `_MEMSOUND` needs libqb's audio part and no test runs it ([`NEVER_RUN`]).
+    ("_MEMNEW", Rule::Plain),
+    ("_MEMIMAGE", Rule::Plain),
+    ("_MEMSOUND", Rule::Plain),
+    ("_MEMEXISTS", Rule::Plain),
+    // The block of a reference or of an address, and the address of a reference (design D3 and D6 of `m3-mem`).
+    ("_MEM", Rule::Own),
+    ("_MEMELEMENT", Rule::Own),
+    ("_OFFSET", Rule::Own),
+    // A value read from a block (design D4 of `m3-mem`), [`ExprKind::MemRead`].
+    ("_MEMGET", Rule::Own),
+    // A number and its bytes (design D5 of `m3-mem`; `verification\v32_c_mk_cv`, `v32_x97`–`x113`).
+    ("MKI$", Rule::Mk(Some(Ty::I16))),
+    ("MKL$", Rule::Mk(Some(Ty::I32))),
+    ("MKS$", Rule::Mk(Some(Ty::F32))),
+    ("MKD$", Rule::Mk(Some(Ty::F64))),
+    ("_MK$", Rule::Mk(None)),
+    ("CVI", Rule::Cv(Some(Ty::I16))),
+    ("CVL", Rule::Cv(Some(Ty::I32))),
+    ("CVS", Rule::Cv(Some(Ty::F32))),
+    ("CVD", Rule::Cv(Some(Ty::F64))),
+    ("_CV", Rule::Cv(None)),
+    // Checksums, compression and base64 (design D4 of `m3-asserts-debug-zlib`; `verification\v33_b*`, `x25`–`x36`):
+    // each the plain call of its row, with libqb's data-processing part ([`crate::RuntimePart::DataProcessing`]).
+    // `_ADLER32` and `_CRC32` are `_UNSIGNED LONG`; `_DEFLATE$`'s level is a LONG slot, `_INFLATE$`'s size an
+    // `_INTEGER64` one, both optional.
+    ("_ADLER32", Rule::Plain),
+    ("_CRC32", Rule::Plain),
+    ("_DEFLATE$", Rule::Plain),
+    ("_INFLATE$", Rule::Plain),
+    ("_BASE64ENCODE$", Rule::Plain),
+    ("_BASE64DECODE$", Rule::Plain),
 ];
+
+/// The built-in functions whose result is a block of the predefined type `_MEM` (design D2 of `m3-mem`), as
+/// written. The old compiler takes such a call only as the value stored into a place of type `_MEM` (measured,
+/// `verification\v32_x02`, `x03`, `x80`, `x93`–`x96`).
+pub const MEM_RESULTS: &[&str] = &["_MEM", "_MEMELEMENT", "_MEMNEW", "_MEMIMAGE", "_MEMSOUND"];
 
 /// How the old compiler treats a built-in statement that is one call of the runtime (design D3 of
 /// `m2-builtin-statements`): one variant per kind of special-casing.
@@ -174,6 +342,14 @@ pub enum StmtRule {
     /// `MID$(target$, start[, length]) = value$`: a string place, a LONG value, a LONG value or absent, a string
     /// value (measured, `verification\v22_d_mid`).
     MidAssign,
+    /// Graphics `GET` and `PUT`: as [`StmtRule::Plain`], for the entries of the name whose call is libqb's
+    /// `sub_graphics_…` only. The name's other entry is the file form ([`StmtRule::File`]).
+    Graphics,
+    /// `GET` and `PUT` on a file (design D2 of `m3-console-files`): the entry of the name whose call is `sub_get`
+    /// or `sub_put`. Its slots are the template's: the file number, the position or nothing, and the variable or
+    /// nothing ([`Slot::Bytes`]). The variable decides the runtime's entry: none, the file's record buffer; a
+    /// variable-length string, the string itself; anything else, its bytes.
+    File,
 }
 
 /// Every built-in statement `sema` compiles as a call of the runtime, as written, and its rule. A name stands for
@@ -204,7 +380,7 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_SOURCE", StmtRule::Plain),
     ("_ECHO", StmtRule::Plain),
     // The window statements (design D6 of `m2-console-screenhide`): compiled and never run yet
-    // ([`WINDOW_BUILTINS`]).
+    // ([`NEVER_RUN`]).
     ("_SCREENHIDE", StmtRule::Plain),
     ("_SCREENSHOW", StmtRule::Plain),
     ("_SCREENICON", StmtRule::Plain),
@@ -214,13 +390,102 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_MOUSEHIDE", StmtRule::Plain),
     ("_MOUSECURSOR", StmtRule::Plain),
     ("_WINDOWSIZELIMIT", StmtRule::Plain),
+    // Run by the screen programs of `m3-images-fonts-mouse` since then.
     ("_FREEIMAGE", StmtRule::Plain),
+    // The screen statements (design D2 of `m3-window-output`: 455 forms read from the old compiler's C++; accepted
+    // and rejected forms, `verification\v27_*`). Each is the plain call of its row and template, in every form.
+    // Text screen: `VIEW` stands for both of its entries, `VIEW PRINT` and the graphics viewport.
+    ("SCREEN", StmtRule::Plain),
+    ("CLS", StmtRule::Plain),
+    ("COLOR", StmtRule::Plain),
+    ("LOCATE", StmtRule::Plain),
+    ("WIDTH", StmtRule::Plain),
+    ("VIEW", StmtRule::Plain),
+    // Drawing. `PAINT`'s fill is a number or a tile string ([`Slot::ColorOrTile`]).
+    ("PSET", StmtRule::Plain),
+    ("PRESET", StmtRule::Plain),
+    ("LINE", StmtRule::Plain),
+    ("CIRCLE", StmtRule::Plain),
+    ("PAINT", StmtRule::Plain),
+    ("DRAW", StmtRule::Plain),
+    ("WINDOW", StmtRule::Plain),
+    ("PALETTE", StmtRule::Plain),
+    ("PCOPY", StmtRule::Plain),
+    // Pacing.
+    ("_LIMIT", StmtRule::Plain),
+    ("_DELAY", StmtRule::Plain),
+    ("SLEEP", StmtRule::Plain),
+    ("_DISPLAY", StmtRule::Plain),
+    // Conventional memory (design D2 of `m3-get-put-bload`; `verification\v28_b_bload`, `v28_x26`–`x35`): `DEF`
+    // stands for `DEF SEG [= segment]`, the one entry of that name with a call.
+    ("DEF", StmtRule::Plain),
+    ("POKE", StmtRule::Plain),
+    ("BLOAD", StmtRule::Plain),
+    ("BSAVE", StmtRule::Plain),
+    // `_FULLSCREEN [mode][, _SMOOTH]`: compiled and never run ([`NEVER_RUN`]).
+    ("_FULLSCREEN", StmtRule::Plain),
+    // Graphics `GET` and `PUT` (design D5 of `m3-get-put-bload`; `verification\v28_x10`–`x25`): the array is
+    // a slot of its own kind ([`Slot::Block`]).
+    ("GET", StmtRule::Graphics),
+    ("PUT", StmtRule::Graphics),
+    // `GET` and `PUT` on a file open `FOR RANDOM` or `FOR BINARY`, the second row of each name (design D2 of
+    // `m3-console-files`; `verification\v30_d_binary`, `v30_e_random`, `v30_x20`-`x48`), and `LOCK` and `UNLOCK`,
+    // plain: a file number and one record, a range with `TO`, or neither (D4; `v30_i_lock`, `x50`-`x56`).
+    ("GET", StmtRule::File),
+    ("PUT", StmtRule::File),
+    ("LOCK", StmtRule::Plain),
+    ("UNLOCK", StmtRule::Plain),
+    // `CHAIN name$`: one string, written like a SUB call (design D8 of `m3-console-files`;
+    // `verification\v30_x95`-`x98`). Compiled and never run ([`NEVER_RUN`]).
+    ("CHAIN", StmtRule::Plain),
+    // Sound (design D1 of `m3-sound`; `verification\v29_x01`–`x86`): each the plain call of its row and template.
+    // `SOUND` and `PLAY` need libqb's audio part ([`crate::RuntimePart::Audio`]); `BEEP` is never run
+    // ([`NEVER_RUN`]).
+    ("SOUND", StmtRule::Plain),
+    ("PLAY", StmtRule::Plain),
+    ("BEEP", StmtRule::Plain),
+    // The image statements (design D1 of `m3-images-fonts-mouse`; `verification\v31_x01`, `x02`–`x109`): each the
+    // plain call of its row and template. `_SAVEIMAGE` needs the image codec; `_MAPTRIANGLE`'s 3-D form (a z on
+    // each destination point) is compiled and run by no test (design D3).
+    ("_SAVEIMAGE", StmtRule::Plain),
+    ("_PUTIMAGE", StmtRule::Plain),
+    ("_MAPTRIANGLE", StmtRule::Plain),
+    ("_CLEARCOLOR", StmtRule::Plain),
+    ("_SETALPHA", StmtRule::Plain),
+    ("_BLEND", StmtRule::Plain),
+    ("_DONTBLEND", StmtRule::Plain),
+    ("_PALETTECOLOR", StmtRule::Plain),
+    ("_COPYPALETTE", StmtRule::Plain),
+    ("_AUTODISPLAY", StmtRule::Plain),
+    // The font statements (same design): each the plain call of its row and template. `_UPRINTSTRING` needs the
+    // font part.
+    ("_FONT", StmtRule::Plain),
+    ("_FREEFONT", StmtRule::Plain),
+    ("_PRINTSTRING", StmtRule::Plain),
+    ("_PRINTMODE", StmtRule::Plain),
+    ("_UPRINTSTRING", StmtRule::Plain),
+    ("_MAPUNICODE", StmtRule::Plain),
+    // It moves the machine's cursor: compiled, and run by no test (design D3).
+    ("_MOUSEMOVE", StmtRule::Plain),
+    // Compiled and run by no test (design D3): `_CLIPBOARDIMAGE = h` sets the clipboard (the screen-image part),
+    // `_PRINTIMAGE` prints a page (the printer part), `_DEPTHBUFFER` acts on hardware images only.
+    ("_CLIPBOARDIMAGE", StmtRule::Plain),
+    ("_PRINTIMAGE", StmtRule::Plain),
+    ("_DEPTHBUFFER", StmtRule::Plain),
+    // Memory blocks (design D2 and D4 of `m3-mem`): each a plain call whose blocks are `_MEM` places
+    // ([`Slot::Mem`]); `_MEMCOPY a, o, n TO b, p` by its template.
+    ("_MEMFREE", StmtRule::Plain),
+    ("_MEMCOPY", StmtRule::Plain),
+    // `_ASSERT condition[, message$]` (design D3 of `m3-asserts-debug-zlib`; `verification\v33_a*`, `x17`–`x24`):
+    // the plain call of its row, which checks nothing without `$ASSERTS` (the program's global `asserts`).
+    ("_ASSERT", StmtRule::Plain),
 ];
 
-/// The window built-ins, as written: statements and functions that no test runs yet, because what they do shows
-/// only in a window (M3). The coverage check of tier 1 wants each in a slice program as code that is compiled and
-/// not reached, and in a call-site program (`tests\callsite`), which compares its call with the old compiler's.
-pub const WINDOW_BUILTINS: &[&str] = &[
+/// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
+/// is compiled and not reached, and in a call-site program (`tests\callsite`), which compares its call with the old
+/// compiler's.
+pub const NEVER_RUN: &[&str] = &[
+    // The window built-ins: what they do shows only in a window, outside the state the screen check reads.
     "_SCREENHIDE",
     "_SCREENSHOW",
     "_SCREENICON",
@@ -230,7 +495,6 @@ pub const WINDOW_BUILTINS: &[&str] = &[
     "_MOUSEHIDE",
     "_MOUSECURSOR",
     "_WINDOWSIZELIMIT",
-    "_FREEIMAGE",
     "_SCREENEXISTS",
     "_TITLE$",
     "_DESKTOPWIDTH",
@@ -239,7 +503,26 @@ pub const WINDOW_BUILTINS: &[&str] = &[
     "_SCREENY",
     "_WINDOWHANDLE",
     "_WINDOWHASFOCUS",
-    "_NEWIMAGE",
+    "_FULLSCREEN",
+    // `BEEP` rings the system's bell: it is not libqb's audio, so no volume silences it (design D6 of `m3-sound`).
+    "BEEP",
+    // `LPRINT` prints a page on the default printer (design D8 of `m3-console-files`; user, `DECISIONS.md`
+    // 2026-10-13). It is no row of [`STATEMENTS`]: `PRINT` to the printer, with a syntax node of its own.
+    "LPRINT",
+    // `CHAIN` compiles another program: libqb starts `qb64pe.exe -c` beside the running program through `cmd`
+    // (`tests\corpus\README.md`), which no test machine may be asked for (same decision).
+    "CHAIN",
+    // `_MOUSEMOVE` moves the machine's cursor; `_SCREENIMAGE` and `_CLIPBOARDIMAGE` read the desktop and the
+    // clipboard, `_PRINTIMAGE` prints a page, `_DEPTHBUFFER` needs a hardware image (design D3 of
+    // `m3-images-fonts-mouse`).
+    "_MOUSEMOVE",
+    "_SCREENIMAGE",
+    "_CLIPBOARDIMAGE",
+    "_PRINTIMAGE",
+    "_DEPTHBUFFER",
+    // `_MEMSOUND` needs a sound handle, which no supported statement gives (`_SNDOPEN` is not supported; design D7
+    // of `m3-mem`).
+    "_MEMSOUND",
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.
@@ -263,6 +546,14 @@ pub fn stmt_lookup(name: &str, string: bool) -> Vec<StmtSupported> {
         .flat_map(|&(written, rule)| {
             let forms = match rule {
                 StmtRule::Plain => find_statements(name.as_bytes(), string),
+                StmtRule::Graphics => find_statements(name.as_bytes(), string)
+                    .into_iter()
+                    .filter(|id| id.get().callname.starts_with("sub_graphics_"))
+                    .collect(),
+                StmtRule::File => find_statements(name.as_bytes(), string)
+                    .into_iter()
+                    .filter(|id| matches!(id.get().callname, "sub_get" | "sub_put"))
+                    .collect(),
                 // The statements the old compiler writes itself are named by their stub entry.
                 StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign => {
                     find_stub(name.as_bytes(), string).into_iter().collect()
@@ -344,6 +635,16 @@ fn stmt_slot_type(b: &Builtin, k: usize, table: &str) -> Slot {
         // `sub_seek(int32 i, int64 pos)`: the table says LONG, but the old compiler passes the position as it is
         // and C++ keeps its 64 bits (measured from the C++, `verification\v22_a_args`).
         ("sub_seek", 1) => Slot::Int64,
+        // `PAINT (x, y), fill`: a colour or a tile string; libqb has an entry for each (measured from the C++,
+        // design D2 of `m3-window-output`).
+        ("sub_paint", 2) => Slot::ColorOrTile,
+        // `sub_get(int32 i, int64 offset, …)` and `sub_put`: the position is passed as it is, an `_INTEGER64`
+        // too (measured from the C++: `sub_put( 1 ,*__INTEGER64_Q,…)`), a float rounded.
+        ("sub_get" | "sub_put", 1) => Slot::Int64,
+        // The array of graphics `GET` and `PUT`.
+        _ if table.starts_with("offset+size (largest safe block") => Slot::Block,
+        // The variable of `GET` and `PUT` on a file.
+        _ if table.starts_with("offset+size (element size") => Slot::Bytes,
         _ => Slot::from_table(table),
     }
 }
@@ -366,7 +667,7 @@ pub fn lookup(name: &str, string: bool) -> Option<Supported> {
             None => (written, false),
         };
         (bare == name && dollar == string).then(|| Supported {
-            id: find_function(bare.as_bytes()).expect("every supported built-in is in the table"),
+            id: find_function_form(bare.as_bytes(), dollar).expect("every supported built-in is in the table"),
             rule,
             name: written,
         })
@@ -408,7 +709,14 @@ pub fn slot_count(id: BuiltinId) -> usize {
             | Rule::Val
             | Rule::Radix(_)
             | Rule::StringFill
-            | Rule::StrOrIndex,
+            | Rule::StrOrIndex
+            | Rule::GivenArgs(_)
+            | Rule::Widest
+            | Rule::Rotate
+            | Rule::Choice
+            | Rule::Own
+            | Rule::Mk(_)
+            | Rule::Cv(_),
         )
         | None => id.get().arg_types.len(),
     }
@@ -419,6 +727,19 @@ pub fn slots(s: Supported) -> Vec<(Slot, bool)> {
     let b = s.id.get();
     match s.rule {
         Rule::Asc => vec![(Slot::Str, false), (Slot::Long, true)],
+        Rule::GivenArgs(required) => b
+            .arg_types
+            .iter()
+            .enumerate()
+            .map(|(i, t)| (Slot::from_table(t), i >= required))
+            .collect(),
+        // Numbers as they are, as many as the table has arguments (its types for them are placeholders).
+        Rule::Widest | Rule::Rotate | Rule::Choice => vec![(Slot::Float, false); b.arg_types.len()],
+        // Checked as an expression of its own, by no slot.
+        Rule::Own => Vec::new(),
+        // Checked by their rule (`check\mem.rs`, `number_bytes`): a number or a string, and for `_MK$` and
+        // `_CV` first a type.
+        Rule::Mk(_) | Rule::Cv(_) => Vec::new(),
         Rule::Plain
         | Rule::ResultOfArg
         | Rule::IntFix
@@ -450,6 +771,11 @@ pub enum Slot {
     /// Converted as a store into an `_INTEGER64` (a float rounded half to even); only where a rule says so: the
     /// table has no such slot.
     Int64,
+    /// The table's INTEGER, the condition of `_ASSERT`: the old compiler writes a float through
+    /// `qbr_float_to_long` (narrowed to SINGLE, rounded half to even) and an integer as it is, and libqb takes an
+    /// `int32`, so an integer keeps its low 32 bits (measured, `verification\v33_a08`: `1E+10` passes and
+    /// `4294967296` fails). The conversion of `ON n GOTO`.
+    Integer,
     /// Converted exactly to DOUBLE (C's implicit conversion of a `double` parameter).
     Double,
     /// Passed in its own type (`func_sqr(*__INTEGER_I)`, measured from the C++).
@@ -457,16 +783,58 @@ pub enum Slot {
     /// Cast to its believed type (`func_abs((int16)(…))`, `qbs_str((int16)(…))`).
     AnyNumeric,
     Str,
+    /// Converted as a store into an `_UNSIGNED _INTEGER64` (a float rounded half to even to `_INTEGER64` first): the
+    /// value `_SHL` and `_SHR` shift. The old compiler writes an integer as it is and a float through `qbr`, and
+    /// C++ converts to libqb's `uint64` (measured, `verification\v30_h_shifts`: `_SHR(-1, 1)` is 2^63 - 1).
+    UInt64,
+    /// Converted as a store into an `_UNSIGNED LONG`: the colours libqb takes as `uint32` (`CLS`, `CIRCLE`,
+    /// `PAINT`). The old compiler writes it as it writes a LONG slot, an integer as it is and a float through
+    /// `qbr`, and C++ keeps the low 32 bits (measured, design D2 of `m3-window-output`).
+    ULong,
+    /// The fill of `PAINT`: a number (an integer as it is, a float rounded half to even to an `_INTEGER64`) or a
+    /// string as it is. The emitter writes the old compiler's cast before it, `(uint32)` or `(qbs*)`, which picks
+    /// one of libqb's two `sub_paint` and, for a number, keeps its low 32 bits. The old compiler's cast stands
+    /// before the first operand of an expression only (`(uint32)*__LONG_L+ 1`); that gives the same 32 bits as a
+    /// cast of the whole, which is what is written here: its infix operators at that level are `+`, `-`, `*` and
+    /// the bitwise ones, and every other operation is a call (measured, design D2 of `m3-window-output`).
+    ColorOrTile,
+    /// The array of graphics `GET` and `PUT`: no value but the bytes of an array from one of its elements to
+    /// its end, or of the whole array ([`crate::StmtArg::Block`]; design D5 of `m3-get-put-bload`).
+    Block,
+    /// The variable of `GET` and `PUT` on a file: no value but the bytes of one place
+    /// ([`crate::StmtArg::Bytes`]) or of a whole array ([`crate::StmtArg::Block`] with no index); design D2 of
+    /// `m3-console-files`.
+    Bytes,
+    /// Converted as a store into an `_OFFSET` (a float rounded half to even): the sizes and offsets of memory blocks
+    /// (`func__memnew(qbr( 1.5E+0 ))`, measured, `verification\v32_x01_accepted`).
+    Offset,
+    /// A block: no value but a place of the predefined type `_MEM` (a variable, an element, a member), passed as its
+    /// address (design D4 of `m3-mem`): an [`ExprKind::Load`] of the place in a function's slot, a
+    /// [`crate::StmtArg::Place`] in a statement's. Anything else is the old compiler's "TYPE '_MEM' required for
+    /// function" (measured, `verification\v32_x02`, `x67`–`x73`).
+    Mem,
 }
 
 impl Slot {
     fn from_table(t: &str) -> Slot {
         match t {
             "LONG" => Slot::Long,
+            // The condition of `_ASSERT`, the one supported built-in with such a slot.
+            "INTEGER" => Slot::Integer,
+            // The records of `LOCK` and `UNLOCK`.
+            "_INTEGER64" => Slot::Int64,
+            "_UNSIGNED LONG" => Slot::ULong,
+            "_UNSIGNED _INTEGER64" => Slot::UInt64,
             "DOUBLE" => Slot::Double,
-            "_FLOAT" => Slot::Float,
+            // SINGLE (`POINT`): passed in its own type as a `_FLOAT` slot is; libqb's parameter is a `float` either
+            // way and C++ converts (measured: `func_point(*__INTEGER64_Q,*__DOUBLE_D,0|1)`).
+            "_FLOAT" | "SINGLE" => Slot::Float,
             "any-numeric" => Slot::AnyNumeric,
             "STRING" => Slot::Str,
+            "_OFFSET" => Slot::Offset,
+            "_MEM" => Slot::Mem,
+            // The array of `_UCHARPOS`, the one function with such a slot.
+            _ if t.starts_with("offset+size (largest safe block") => Slot::Block,
             other => unreachable!("slot type {other} of a supported built-in"),
         }
     }
@@ -481,7 +849,7 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
             .expect("the first argument of a typed-by-argument built-in")
     };
     match s.rule {
-        Rule::Plain => {
+        Rule::Plain | Rule::GivenArgs(_) => {
             let qb = table_ty(b);
             let held = if b.callname.starts_with("std::") {
                 overload(args.iter().flatten().map(|a| a.ty))
@@ -527,6 +895,35 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
         Rule::Len | Rule::Asc => (Ty::I32, Ty::I32),
         Rule::Radix(_) | Rule::StringFill | Rule::StrOrIndex => (Ty::Str, Ty::Str),
         Rule::Val => unreachable!("typed by its type argument (check::builtins)"),
+        Rule::Widest | Rule::Rotate | Rule::Choice => {
+            unreachable!("typed by what its arguments are believed (check::builtins)")
+        }
+        Rule::Own => unreachable!("an expression of its own (check::mem)"),
+        Rule::Mk(_) | Rule::Cv(_) => unreachable!("typed by their type (check::mem)"),
+    }
+}
+
+/// The C++ arithmetic type the old compiler names for a type in a template argument (`std::min<int16_t>`,
+/// `func__rol<uint8_t>`; its `Type_GetCppArithmeticType`): a `_BIT * n` by its storage, an `_OFFSET` as a pointer-
+/// sized integer.
+pub fn cpp_arithmetic(t: Ty) -> &'static str {
+    match t {
+        Ty::I8 => "int8_t",
+        Ty::U8 => "uint8_t",
+        Ty::I16 => "int16_t",
+        Ty::U16 => "uint16_t",
+        Ty::I32 => "int32_t",
+        Ty::U32 => "uint32_t",
+        Ty::I64 => "int64_t",
+        Ty::U64 => "uint64_t",
+        Ty::Off => "intptr_t",
+        Ty::UOff => "uintptr_t",
+        Ty::Bit { .. } => cpp_arithmetic(t.storage()),
+        Ty::F32 => "float",
+        Ty::F64 => "double",
+        Ty::F80 => "long double",
+        Ty::Str | Ty::User(_) => unreachable!("an arithmetic type, not {t:?}"),
+        crate::place_only_types!() => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
     }
 }
 
@@ -680,7 +1077,11 @@ fn table_ty(b: &Builtin) -> Ty {
     match b.ret {
         Some("INTEGER") => Ty::I16,
         Some("LONG") => Ty::I32,
+        // The `SCREEN` function (measured: `qbs_str((uint32)(func_screen(…)))`).
+        Some("_UNSIGNED LONG") => Ty::U32,
         Some("_INTEGER64") => Ty::I64,
+        // `_SHL`, `_SHR`.
+        Some("_UNSIGNED _INTEGER64") => Ty::U64,
         Some("SINGLE") => Ty::F32,
         Some("DOUBLE") => Ty::F64,
         Some("_FLOAT") => Ty::F80,
@@ -731,15 +1132,20 @@ mod tests {
 
     #[test]
     fn every_statement_row_is_in_the_table_once() {
-        let mut names: Vec<&str> = STATEMENTS.iter().map(|(n, _)| *n).collect();
-        names.sort_unstable();
-        names.dedup();
-        assert_eq!(names.len(), STATEMENTS.len(), "a row is listed twice");
+        // A name may have a row per rule (`GET`: the graphics form and the file form), never two of one rule.
+        let mut rows: Vec<String> = STATEMENTS.iter().map(|(n, r)| format!("{n} {r:?}")).collect();
+        rows.sort_unstable();
+        rows.dedup();
+        assert_eq!(rows.len(), STATEMENTS.len(), "a row is listed twice");
         for &(written, rule) in STATEMENTS {
             let bare = written.strip_suffix('$').unwrap_or(written);
             let forms = stmt_lookup(bare, bare.len() != written.len());
             assert!(!forms.is_empty(), "{written} has no statement entry in the table");
             for s in forms {
+                // A name with two rules gives the forms of both; each form has the rule of its own row.
+                if s.rule != rule {
+                    continue;
+                }
                 assert_eq!(stmt_find(s.id).map(|f| f.rule), Some(rule), "{written}");
                 // Every argument has a table type, and the table has no more types than C arguments and the mask.
                 let slots = stmt_slots(s.id);
@@ -775,6 +1181,55 @@ mod tests {
                 },
             ]
         );
+    }
+
+    /// The slot kinds of the screen statements (design D2 of `m3-window-output`): `_UNSIGNED LONG` in the table is
+    /// [`Slot::ULong`], SINGLE and `_FLOAT` are [`Slot::Float`], and the fill of `PAINT` takes a number or a string.
+    #[test]
+    fn screen_slot_kinds() {
+        let args = |name: &str, form: usize| -> Vec<Slot> {
+            stmt_slots(stmt_lookup(name, false)[form].id)
+                .into_iter()
+                .filter_map(|s| match s {
+                    StmtSlot::Arg { slot, .. } => Some(slot),
+                    StmtSlot::Choice { .. } => None,
+                })
+                .collect()
+        };
+        assert_eq!(args("CLS", 0), [Slot::Long, Slot::ULong, Slot::Long]);
+        assert_eq!(
+            args("CIRCLE", 0),
+            [
+                Slot::Float,
+                Slot::Float,
+                Slot::Float,
+                Slot::ULong,
+                Slot::Float,
+                Slot::Float,
+                Slot::Float
+            ]
+        );
+        assert_eq!(
+            args("PAINT", 0),
+            [Slot::Float, Slot::Float, Slot::ColorOrTile, Slot::ULong, Slot::Str]
+        );
+        assert_eq!(args("_LIMIT", 0), [Slot::Double]);
+        // `VIEW` is two statements: the graphics viewport (six LONG slots) and `VIEW PRINT` (two).
+        assert_eq!(stmt_lookup("VIEW", false).len(), 2);
+        assert_eq!(args("VIEW", 0), [Slot::Long; 6]);
+        assert_eq!(args("VIEW", 1), [Slot::Long; 2]);
+        // The functions: `POINT` takes its two arguments as they are, the second optional; `SCREEN` is unsigned.
+        let point = lookup("POINT", false).unwrap();
+        assert_eq!(slots(point), [(Slot::Float, false), (Slot::Float, true)]);
+        assert_eq!(result_types(point, &[None, None]), (Ty::F64, Ty::F64));
+        let screen = lookup("SCREEN", false).unwrap();
+        assert_eq!(
+            slots(screen),
+            [(Slot::Long, false), (Slot::Long, false), (Slot::Long, true)]
+        );
+        assert_eq!(result_types(screen, &[None, None, None]), (Ty::U32, Ty::U32));
+        assert_eq!(result_types(lookup("CSRLIN", false).unwrap(), &[]), (Ty::I32, Ty::I32));
+        assert_eq!(result_types(lookup("INKEY", true).unwrap(), &[]), (Ty::Str, Ty::Str));
     }
 
     #[test]

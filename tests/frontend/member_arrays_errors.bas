@@ -69,13 +69,11 @@ ERASE t
 fill t.s()
 fill t.v
 ' Not supported yet: a member array of an array element beside other targets of ERASE or REDIM (the old compiler
-' goes on with them before an error is handled, v24_x312); an element of a member array as a target of INPUT,
-' READ or the MID$ statement, and REDIM t.v(0) under OPTION BASE 1 (not measured).
+' goes on with them before an error is handled, v24_x312), and REDIM t.v(0) under OPTION BASE 1 (not measured).
+' An element of a member array as a target of INPUT, READ or the MID$ statement compiles since m3-typefields
+' task 4.2.
 ERASE a(1).v, t.v
 REDIM a(1).v(0 TO 3), t.v(0 TO 3)
-INPUT t.v(1)
-READ a(1).v(1)
-MID$(a(1).s(1), 1) = "x"
 OPTION BASE 1
 REDIM t.v(0) AS LONG
 SYSTEM
@@ -83,14 +81,10 @@ SYSTEM
 SUB fill (b() AS LONG)
 END SUB
 ' Marked: a bound that is not written with numbers alone (the old compiler takes a CONST and an expression of
-' one, v24_x196; the blocks are read before the CONSTs here), and the _STATIC and _DYNAMIC markers
-' ("_Static/_Dynamic require $Unstable:TypeFields", v24_x204, x205).
+' one, v24_x196; the blocks are read before the CONSTs here). The markers are in typefields_markers.bas.
 CONST top = 3
 TYPE named
     v(top) AS LONG
-END TYPE
-TYPE marked
-    v(0 TO 3) _DYNAMIC AS LONG
 END TYPE
 ' Marked, not measured: bounds whose distance does not fit 64 bits, and a TYPE whose members together pass
 ' 64 bits of bytes (five members of 2^31 - 1 elements of a type of 2^31 - 1 bytes).

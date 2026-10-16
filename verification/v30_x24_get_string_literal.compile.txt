@@ -1,0 +1,5 @@
+
+UNEXPECTED INTERNAL COMPILER ERROR!
+Caused by (or after):GET # 1 , , "lit",3
+LINE 5:GET #1, , "lit"
+exit=1

@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 108
 expression: snap
 ---
-blocks_not_compiled_yet.bas:8:5: error: not supported yet: `LSET`
+blocks_not_compiled_yet.bas:8:5: error: not supported yet: `STOP`

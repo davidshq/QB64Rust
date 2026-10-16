@@ -1,0 +1,5 @@
+
+Cannot set read-only element of _MEM TYPE
+Caused by (or after):INPUT # 1 , M . SIZE
+LINE 6:INPUT #1, m.SIZE
+exit=1

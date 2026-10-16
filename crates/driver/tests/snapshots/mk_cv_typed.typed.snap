@@ -1,0 +1,128 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+line 2: ConsoleOnly
+line 8: Assign S:Str
+  Concat : Str
+    Concat : Str
+      Concat : Str
+        Call MKI : Str
+          Var I : I16
+        Call MKI : Str
+          Convert Truncate : I16
+            Var K : I32
+      Call MKI : Str
+        Convert Truncate : I16
+          Convert RoundEven : I32
+            Float 1.7E+0 : F64 (qb F32)
+    Call MKI : Str
+      Convert Truncate : I16
+        Convert RoundEven : I32
+          Var D : F64
+line 9: Assign S:Str
+  Concat : Str
+    Concat : Str
+      Concat : Str
+        Concat : Str
+          Concat : Str
+            Call MKL : Str
+              Var K : I32
+            Call MKL : Str
+              Convert Truncate : I32
+                Convert RoundEven : I64
+                  Var D : F64
+          Call MKS : Str
+            Var SG : F32
+        Call MKS : Str
+          Var K : I32
+      Call MKD : Str
+        Var D : F64
+    Call MKD : Str
+      Int 1 : I16
+line 10: Assign S:Str
+  Concat : Str
+    Concat : Str
+      Concat : Str
+        Call _MK : Str
+          Int 0 : I16
+          Convert Truncate : I16
+            Var K : I32
+        Call _MK : Str
+          Int 0 : F32
+          Var K : I32
+      Call _MK : Str
+        Int 0 : U8
+        Int 255 : U8
+    Call _MK : Str
+      Int 0 : I64
+      Convert RoundEven : I64
+        Var D : F64
+line 11: Assign S:Str
+  Concat : Str
+    Concat : Str
+      Concat : Str
+        Call _MK : Str
+          Int 0 : Bit1
+          Convert Widen : I64
+            Var K : I32
+        Call _MK : Str
+          Int 0 : UBit1
+          Convert Truncate : U64
+            Var K : I32
+      Call _MK : Str
+        Int 0 : Off
+        Convert Widen : Off
+          Var K : I32
+    Call _MK : Str
+      Int 0 : F80
+      Var D : F64
+line 12: Print newline
+  Num
+    Call CVI : I16
+      Var S : Str
+  Num
+    Call CVL : I32
+      Var F : Str
+  Num
+    Call CVS : F32
+      Var S : Str
+  Num
+    Call CVD : F64
+      Concat : Str
+        Var S : Str
+        Var F : Str
+line 13: Print newline
+  Num
+    Call _CV : U32
+      Int 0 : U32
+      Var S : Str
+  Num
+    Call _CV : F80
+      Int 0 : F80
+      Var S : Str
+  Num
+    Call _CV : I64
+      Int 0 : Bit1
+      Var S : Str
+  Num
+    Call _CV : U64
+      Int 0 : UBit1
+      Var S : Str
+  Num
+    Call _CV : UOff
+      Int 0 : UOff
+      Var S : Str
+line 14: Assign Q:I64
+  Binary Add : I64
+    Call _CV : I64
+      Int 0 : I64
+      Call _MK : Str
+        Int 0 : I64
+        Int -9 : I64
+    Convert Widen : I64
+      Call CVL : I32
+        Call MKL : Str
+          Int -2 : I32
+line 15: System

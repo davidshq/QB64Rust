@@ -1,0 +1,14 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+Settings: console, window, asserts
+Stmt line 6 may_raise
+  Builtin _ASSERT [Value(Var K:I32), Absent]
+Stmt line 7 may_raise
+  Builtin _ASSERT [Value((Var D:F64 -> Convert I32 RoundEven)), Value(Var S:Str)]
+Stmt line 8 may_raise
+  Builtin _ASSERT [Value(Eq:I32(Var K:I32, Const 1:I32)), Value(Const "m")]
+Stmt line 9
+  System

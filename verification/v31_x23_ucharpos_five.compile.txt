@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _UCHARPOS&(text$[, posArray&([index&])][, utfEncoding&][, fontHandle&])
+Caused by (or after):N = _UCHARPOS ( "abc",3 , P ( ) , 8 , 0 , 1 )
+LINE 5:DIM p(10) AS LONG: n = _UCHARPOS("abc", p(), 8, 0, 1)
+exit=1

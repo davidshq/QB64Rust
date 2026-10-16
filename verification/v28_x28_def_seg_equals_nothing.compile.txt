@@ -1,0 +1,5 @@
+
+Syntax error - Reference: DEF SEG [=][{segment|VARSEG(variable}]
+Caused by (or after):DEF SEG =
+LINE 7:DEF SEG =
+exit=1

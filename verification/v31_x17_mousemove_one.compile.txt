@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _MOUSEMOVE x, y
+Caused by (or after):_MOUSEMOVE 10
+LINE 5:_MOUSEMOVE 10
+exit=1

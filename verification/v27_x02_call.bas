@@ -1,0 +1,30 @@
+$CONSOLE:ONLY
+' Verification (m3-window-output, task 1.3): the screen statements after CALL, as the old compiler accepts
+' them, as code that is not reached.
+DIM i AS INTEGER, l AS LONG, q AS _INTEGER64, s AS SINGLE, d AS DOUBLE, f AS _FLOAT, t AS STRING, k AS STRING
+PRINT "ok"
+SYSTEM
+CALL SCREEN(12)
+CALL CLS
+CALL CLS(1)
+CALL COLOR(1, 2)
+CALL LOCATE(1, 2)
+CALL WIDTH(80)
+CALL PSET((1, 2), 3)
+CALL PRESET((1, 2))
+CALL LINE((1, 2)-(3, 4))
+CALL LINE((1, 2)-(3, 4), 5, BF)
+CALL CIRCLE((1, 2), 3)
+CALL PAINT((1, 2))
+CALL DRAW(t)
+CALL PALETTE
+CALL PALETTE(1, 2)
+CALL PCOPY(1, 2)
+CALL _LIMIT(60)
+CALL _DELAY(1)
+CALL SLEEP
+CALL SLEEP(1)
+CALL _DISPLAY
+CALL VIEW
+CALL VIEW((1, 2)-(3, 4))
+CALL WINDOW

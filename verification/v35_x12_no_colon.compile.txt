@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ UNSTABLE
+LINE 2:$UNSTABLE
+exit=1

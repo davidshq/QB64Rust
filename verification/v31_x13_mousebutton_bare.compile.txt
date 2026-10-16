@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _MOUSEBUTTON(buttonNumber)
+Caused by (or after):PRINT _MOUSEBUTTON
+LINE 5:PRINT _MOUSEBUTTON
+exit=1

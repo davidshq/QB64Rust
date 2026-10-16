@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: PLAY [voice&]
+Caused by (or after):D = PLAY ( 0 , 1 )
+LINE 7:d = PLAY(0, 1)
+exit=1

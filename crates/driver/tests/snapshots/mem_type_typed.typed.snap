@@ -1,0 +1,77 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+TYPE _MEM
+  OFFSET:Off
+  SIZE:Off
+  $_LOCK_ID:I64
+  $_LOCK_OFFSET:Off
+  TYPE:Off
+  ELEMENTSIZE:Off
+  IMAGE:I32
+  SOUND:I32
+TYPE W
+  A:I16
+  MM:T:_MEM
+ARRAY Z:T:_MEM(0 TO 3)
+ARRAY R:T:_MEM dynamic, 1 dimension
+line 2: ConsoleOnly
+line 11: Allocate R:T:_MEM (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+line 12: CopyWhole N:T:_MEM <- M
+line 13: Builtin SWAP
+  place M : T:_MEM
+  place N : T:_MEM
+line 14: CopyWhole U.MM:T:_MEM <- Z(…)
+  From index
+    Int 1 : I64
+line 15: Print newline
+  Num
+    Int 56 : I32
+  Num
+    Int 58 : I32
+  Num
+    Int 56 : I32
+line 16: Print newline
+  Num
+    Member M.OFFSET : Off
+  Num
+    Member M.SIZE : Off
+  Num
+    Member M.TYPE : Off
+  Num
+    Member M.ELEMENTSIZE : Off
+  Num
+    Member M.IMAGE : I32
+  Num
+    Member M.SOUND : I32
+line 17: Print newline
+  Num
+    Member U.MM.SIZE : Off
+  Num
+    Convert Truncate : Off
+      Binary Add : I64 (qb Off)
+        Convert Truncate : I64
+          Member Z(…).OFFSET : Off
+            Int 1 : I64
+        Int 1 : I64
+  Num
+    Member R(…).ELEMENTSIZE : Off
+      Int 2 : I64
+line 18: Call X
+  ref M : T:_MEM
+line 19: System
+SUB X
+  param P:T:_MEM
+  static S:T:_MEM
+line 23: CopyWhole S (static):T:_MEM <- P (param)
+line 24: Print newline
+  Num
+    Member P (param).SIZE : Off
+  Num
+    Member S (static).IMAGE : I32

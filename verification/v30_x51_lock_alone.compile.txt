@@ -1,0 +1,5 @@
+
+Syntax error - Reference: LOCK #fileNumber%, record& or LOCK #fileNumber% firstRecord& TO lastRecord&
+Caused by (or after):LOCK
+LINE 3:LOCK
+exit=1

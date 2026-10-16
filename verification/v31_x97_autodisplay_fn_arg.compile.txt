@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _AUTODISPLAY
+Caused by (or after):PRINT _AUTODISPLAY ( 1 )
+LINE 5:PRINT _AUTODISPLAY(1)
+exit=1

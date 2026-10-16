@@ -1,0 +1,5 @@
+label one
+read 2 
+label three
+back
+exit=0

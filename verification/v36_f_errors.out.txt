@@ -1,0 +1,10 @@
+1. same count, moved: error 9  99 
+2. fewer: error 9  98 
+3. more: error 9  97 
+4. second dimension: error 9  done
+5. target erased: error 9  done
+6. source erased: error 9  1 
+7. target never allocated again: error 9  done
+8. static after ERASE: 6 
+9. strings: error 9  keep
+exit=0

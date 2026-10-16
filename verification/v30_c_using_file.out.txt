@@ -1,0 +1,26 @@
+<error 13 >
+<error 5 >
+[ 3.14]
+[ 1  2]
+[ 1 2 3]
+[ 1 2 3]
+[ 1|]
+[ 1|]
+[a and b]
+[x 5]
+[x              5]
+[ 1  5 6]
+[ 1        2]
+[ 1     2]
+[after]
+[ 1 after]
+open for input
+<error 54 >
+not open
+<error 52 >
+<error 5 >
+the console
+ 3.14
+echo
+ 1|
+exit=0

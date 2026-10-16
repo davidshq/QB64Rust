@@ -1,0 +1,5 @@
+
+Could not find sub/function 'c_add' in '<verification>\v37cpp.a'
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 0:
+exit=1

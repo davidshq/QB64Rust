@@ -1,0 +1,23 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+Settings: console, no window
+Array Z:T:_MEM static (0 To 3)
+Array B:I16 static (0 To 10)
+Stmt line 2
+  SelectConsole
+Stmt line 10
+  Assign M:T:_MEM = Mem K:T:_MEM
+Stmt line 11 may_raise
+  Assign Z((Var K:I32 -> Convert I64 Widen)):T:_MEM = Mem B((Var K:I32 -> Convert I64 Widen)):T:_MEM
+Stmt line 12
+  Assign U.MM:T:_MEM = MemElement B():T:_MEM
+Stmt line 13 may_raise
+  Assign M:T:_MEM = MemAt(Var O:Off, (Var K:I32 -> Convert Off Widen)):T:_MEM
+Stmt line 14 may_raise
+  Print console newline
+    Num AddressOf B(Const 2:I64):UOff
+Stmt line 15
+  System

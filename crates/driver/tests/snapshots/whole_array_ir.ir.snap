@@ -1,0 +1,42 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Member array T.V:I32 (1 To 3)
+Member array OWN.D:I32 (0 To 1) dynamic
+Array A(param):I32 passed, dimensions: 1
+Array S:I32 static (1 To 3)
+Array D:I32 static (1 To 3)
+Array E:T:T static (0 To 2)
+Array OS:T:OWN static (0 To 1)
+Array OD:T:OWN static (0 To 1)
+Array B(local):I32 dynamic, dimensions: 1
+Stmt line 2
+  SelectConsole
+Stmt line 17 may_raise
+  CopyArray S -> D:I32
+Stmt line 18 may_raise
+  CopyArray S -> D:I32
+Stmt line 19 may_raise
+  CopyArray X.V -> S:I32
+Stmt line 20 may_raise
+  CopyArray D -> X.V:I32
+Stmt line 21 may_raise
+  CopyArray E((Var I:I32 -> Convert I64 Widen)).V -> E((Add:I32(Var I:I32, Const 1:I32) wrap -> Convert I64 Widen)).V:I32
+Stmt line 22 may_raise
+  CopyArray P.D -> Q.D:I32
+Stmt line 23 may_raise
+  CopyArray OS -> OD:T:OWN
+Stmt line 24 may_raise
+  Call FILL [Array D:I32]
+Stmt line 25
+  System
+Sub FILL lines 26-29
+  param A():I32
+  local B:I32
+Stmt line 27 may_raise
+  Allocate Dim B(local):I32
+    Const 1:I64 To Const 3:I64
+Stmt line 28 may_raise
+  CopyArray B(local) -> A(param):I32

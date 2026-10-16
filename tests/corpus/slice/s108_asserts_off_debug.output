@@ -1,0 +1,6 @@
+asserts off
+debug on
+sockets on
+f called
+g called
+after

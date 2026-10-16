@@ -1,0 +1,125 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+int32 *__LONG_L=NULL;
+int16 *__INTEGER_I=NULL;
+qbs *__STRING_T=NULL;
+ptrszint *__ARRAY_LONG_P=NULL;
+ptrszint *__ARRAY_LONG_Z=NULL;
+int32 console=0;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> clear.txt <==
+*__LONG_L=0;
+*__INTEGER_I=0;
+__STRING_T->len=0;
+memset((void*)(__ARRAY_LONG_P[0]),0,__ARRAY_LONG_P[5]*4);
+memset((void*)(__ARRAY_LONG_Z[0]),0,__ARRAY_LONG_Z[9]*__ARRAY_LONG_Z[5]*4);
+==> maindata.txt <==
+if(__LONG_L==NULL){
+__LONG_L=(int32*)mem_static_malloc(4);
+*__LONG_L=0;
+}
+if(__INTEGER_I==NULL){
+__INTEGER_I=(int16*)mem_static_malloc(2);
+*__INTEGER_I=0;
+}
+if (!__STRING_T)__STRING_T=qbs_new(0,0);
+if (!__ARRAY_LONG_P){
+__ARRAY_LONG_P=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_P)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_P[4]=0ll;
+__ARRAY_LONG_P[5]=(10ll)-__ARRAY_LONG_P[4]+1;
+if (__ARRAY_LONG_P[5]<=0) error(5);
+__ARRAY_LONG_P[6]=1;
+__ARRAY_LONG_P[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_P[5]*4);
+memset((void*)(__ARRAY_LONG_P[0]),0,__ARRAY_LONG_P[5]*4);
+__ARRAY_LONG_P[2]=1+2;
+}
+if (!__ARRAY_LONG_Z){
+__ARRAY_LONG_Z=(ptrszint*)mem_static_malloc(13*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_Z)[12]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_Z[8]=0ll;
+__ARRAY_LONG_Z[9]=(3ll)-__ARRAY_LONG_Z[8]+1;
+if (__ARRAY_LONG_Z[9]<=0) error(5);
+__ARRAY_LONG_Z[10]=1;
+__ARRAY_LONG_Z[4]=0ll;
+__ARRAY_LONG_Z[5]=(3ll)-__ARRAY_LONG_Z[4]+1;
+if (__ARRAY_LONG_Z[5]<=0) error(5);
+__ARRAY_LONG_Z[6]=__ARRAY_LONG_Z[10]*__ARRAY_LONG_Z[9];
+__ARRAY_LONG_Z[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_Z[9]*__ARRAY_LONG_Z[5]*4);
+memset((void*)(__ARRAY_LONG_Z[0]),0,__ARRAY_LONG_Z[9]*__ARRAY_LONG_Z[5]*4);
+__ARRAY_LONG_Z[2]=1+2;
+}
+byte_element_struct *byte_element_1=NULL;
+if (!byte_element_1){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_1=(byte_element_struct*)(mem_static_pointer-12); else byte_element_1=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_2=NULL;
+if (!byte_element_2){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_2=(byte_element_struct*)(mem_static_pointer-12); else byte_element_2=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_3=NULL;
+if (!byte_element_3){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_3=(byte_element_struct*)(mem_static_pointer-12); else byte_element_3=(byte_element_struct*)mem_static_malloc(12);
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 7 "fonts_cpp.bas"
+do{
+#line 7 "fonts_cpp.bas"
+*__LONG_L=func__UCharPos(__STRING_T,byte_element((uint64)(&(((int32*)(__ARRAY_LONG_P[0]))[0])),((4*(__ARRAY_LONG_P[2]&1)*__ARRAY_LONG_P[5])-(4*(0))),byte_element_1),NULL,NULL,1);
+#line 7 "fonts_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 7 "fonts_cpp.bas"
+if(!qbevent)break;evnt(7);}while(r);
+#line 8 "fonts_cpp.bas"
+do{
+#line 8 "fonts_cpp.bas"
+*__LONG_L=func__UCharPos(__STRING_T,byte_element((uint64)(&(((int32*)(__ARRAY_LONG_P[0]))[array_check((((int64)(*__INTEGER_I)))-__ARRAY_LONG_P[4],__ARRAY_LONG_P[5])])),((4*(__ARRAY_LONG_P[2]&1)*__ARRAY_LONG_P[5])-(4*(array_check((((int64)(*__INTEGER_I)))-__ARRAY_LONG_P[4],__ARRAY_LONG_P[5])))),byte_element_2),NULL,NULL,1);
+#line 8 "fonts_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 8 "fonts_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 9 "fonts_cpp.bas"
+do{
+#line 9 "fonts_cpp.bas"
+*__LONG_L=func__UCharPos(__STRING_T,byte_element((uint64)(&(((int32*)(__ARRAY_LONG_Z[0]))[array_check((1ll)-__ARRAY_LONG_Z[8],__ARRAY_LONG_Z[9])+array_check((2ll)-__ARRAY_LONG_Z[4],__ARRAY_LONG_Z[5])*__ARRAY_LONG_Z[6]])),((4*(__ARRAY_LONG_Z[2]&1)*__ARRAY_LONG_Z[5]*__ARRAY_LONG_Z[9])-(4*(array_check((1ll)-__ARRAY_LONG_Z[8],__ARRAY_LONG_Z[9])+array_check((2ll)-__ARRAY_LONG_Z[4],__ARRAY_LONG_Z[5])*__ARRAY_LONG_Z[6]))),byte_element_3),8,NULL,3);
+#line 9 "fonts_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 9 "fonts_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(__STRING_T);
+==> empty: regsf.txt dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt

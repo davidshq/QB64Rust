@@ -1,0 +1,5 @@
+
+Expected variable name/array element
+Caused by (or after):_MEMGET M , M . OFFSET , 5
+LINE 9:_MEMGET m, m.OFFSET, 5
+exit=1

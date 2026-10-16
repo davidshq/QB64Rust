@@ -1,0 +1,5 @@
+
+STRINGs cannot be passed using BYVAL
+Caused by (or after):FUNCTION H_LEN& ( BYVAL S AS STRING )
+LINE 4:FUNCTION h_len& (BYVAL s AS STRING)
+exit=1

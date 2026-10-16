@@ -9,6 +9,10 @@ __pycache__/
 
 # Compiled verification programs
 /verification/*.exe
+# Libraries built by verification/v37_lib/build_libs.py
+/verification/*.a
+/verification/*.o
+/verification/*.dll
 
 # QB64pe wiki cache: no licence stated, local reference only (CLAUDE.md)
 /tools/wiki/cache/

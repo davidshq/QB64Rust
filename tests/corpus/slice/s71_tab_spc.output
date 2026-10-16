@@ -1,0 +1,33 @@
+a    b         c
+abcdefgh    below
+a   bc
+   7            -7 
+    
+    x
+    string after
+x       y  z
+   i     s r   q
+zeronegative
+123456789         at ten         again
+wide    past the width
+     spc past the width
+pq
+ 1                     1       1 
+[     ] 5 
+[    ] 4 
+ 11  2  10 
+abcdef 2  32 
+"  ","  "
+screen
+[a   b    c]
+[abcdefgh]
+[    below]
+[a   b]
+[    ]
+[    x]
+[ 7         -7                z]
+[f  g]
+FF010203 FFFF8000 FF050505 10050505 4010203
+4010203 4FF0006 4278190080  0 
+FFC86403 FFFF6403
+ 10 -- 8 :: 18 

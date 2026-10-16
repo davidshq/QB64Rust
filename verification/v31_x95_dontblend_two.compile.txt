@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _DONTBLEND [imageHandle&]
+Caused by (or after):_DONTBLEND 1 , 2
+LINE 5:_DONTBLEND 1, 2
+exit=1

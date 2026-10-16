@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _RED32(rgbaColor&)
+Caused by (or after):PRINT _RED32 ( 1 , 2 )
+LINE 5:PRINT _RED32(1, 2)
+exit=1

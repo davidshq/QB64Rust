@@ -1,0 +1,41 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+line 5: ConsoleOnly
+line 7: Assign U:U32
+  Call _ADLER32 : U32
+    Var S : Str
+line 8: Assign U:U32
+  Call _CRC32 : U32
+    Concat : Str
+      Var F : Str
+      Str "x" : Str
+line 9: Assign S:Str
+  Call _DEFLATE : Str
+    Var S : Str
+    (absent)
+line 10: Assign S:Str
+  Call _DEFLATE : Str
+    Var S : Str
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+line 11: Assign S:Str
+  Call _INFLATE : Str
+    Var S : Str
+    (absent)
+line 12: Assign S:Str
+  Call _INFLATE : Str
+    Var F : Str
+    Convert Widen : I64
+      Var K : I32
+line 13: Assign S:Str
+  Call _BASE64ENCODE : Str
+    Var S : Str
+line 14: Assign S:Str
+  Call _BASE64DECODE : Str
+    Call _BASE64ENCODE : Str
+      Str "ab" : Str
+line 15: System

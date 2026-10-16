@@ -10,6 +10,7 @@ use qb64rust_driver::frontend;
 use qb64rust_syntax::tree::print;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 const DEFAULT_SEED: u64 = 0x5EED_0B64_2026_1004;
 const DEFAULT_COUNT: u64 = 20;
@@ -151,29 +152,42 @@ fn mutated_corpus_programs_go_through_the_front_end() {
     let programs = corpus_programs();
     assert!(programs.len() >= 270, "found only {} corpus programs", programs.len());
     let threads = std::thread::available_parallelism().map_or(4, |n| n.get());
-    let indexed: Vec<(usize, &PathBuf)> = programs.iter().enumerate().collect();
-    let chunk = indexed.len().div_ceil(threads).max(1);
-    // The first failure in program order: (program index, mutant, program name, problem, bytes).
+    let sources: Vec<Vec<u8>> = programs.iter().map(|p| std::fs::read(p).unwrap()).collect();
+    // Each thread takes the next mutant not yet taken, those of the largest programs first. One program's mutants
+    // are not kept together: `g12_game` is a third of the corpus's bytes, and its mutants on one thread made the
+    // run as long as that thread (as in `inputs.rs`).
+    let mut order: Vec<(usize, u64)> = (0..programs.len())
+        .flat_map(|i| (0..count).map(move |m| (i, m)))
+        .collect();
+    order.sort_by_key(|&(i, _)| std::cmp::Reverse(sources[i].len()));
+    let next = AtomicUsize::new(0);
+    // A mutant's place in program order, and the first failing place found so far. A mutant after that place is
+    // skipped: the one reported stays the first in program order, and a broken front end panics a few times, not
+    // once per mutant.
+    let place = |i: usize, m: u64| i * usize::try_from(count).unwrap() + usize::try_from(m).unwrap();
+    let first = AtomicUsize::new(usize::MAX);
+    // The failures: (program index, mutant, program name, problem, bytes); the first in program order is reported.
     let failures: Vec<(usize, u64, String, String, Vec<u8>)> = std::thread::scope(|s| {
-        let handles: Vec<_> = indexed
-            .chunks(chunk)
-            .map(|part| {
-                s.spawn(move || {
-                    for &(i, path) in part {
-                        let src = std::fs::read(path).unwrap();
-                        for m in 0..count {
-                            let bytes = mutate(&src, &mut Rng::new(mutant_seed(seed, i, m)));
-                            if let Some(problem) = check(&bytes) {
-                                let name = path.file_name().unwrap().to_string_lossy().to_string();
-                                return Some((i, m, name, problem, bytes));
-                            }
+        let handles: Vec<_> = (0..threads)
+            .map(|_| {
+                s.spawn(|| {
+                    let mut part = Vec::new();
+                    while let Some(&(i, m)) = order.get(next.fetch_add(1, Ordering::Relaxed)) {
+                        if place(i, m) > first.load(Ordering::Relaxed) {
+                            continue;
+                        }
+                        let bytes = mutate(&sources[i], &mut Rng::new(mutant_seed(seed, i, m)));
+                        if let Some(problem) = check(&bytes) {
+                            first.fetch_min(place(i, m), Ordering::Relaxed);
+                            let name = programs[i].file_name().unwrap().to_string_lossy().to_string();
+                            part.push((i, m, name, problem, bytes));
                         }
                     }
-                    None
+                    part
                 })
             })
             .collect();
-        handles.into_iter().filter_map(|h| h.join().unwrap()).collect()
+        handles.into_iter().flat_map(|h| h.join().unwrap()).collect()
     });
     if let Some((i, m, name, problem, bytes)) = failures.into_iter().min_by_key(|f| (f.0, f.1)) {
         let out = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/mutate-failure.bas");

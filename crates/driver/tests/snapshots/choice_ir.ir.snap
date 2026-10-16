@@ -1,0 +1,33 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+Settings: console, no window
+Array A:I32 static (0 To 3)
+Stmt line 2
+  SelectConsole
+Stmt line 7 may_raise
+  Assign L:I32 = Choice:I32(Gt:I32((Var I:I16 -> Convert I32 Widen), Const 0:I32) ? Load A((Var I:I16 -> Convert I64 Widen)):I32 : Const 0:I16)
+Stmt line 8 may_raise
+  Assign L:I32 = Choice:I32((Var S:F32 -> Convert I64 RoundEven) ? CallProc F:I32 [Temp(Const 1:I32)] : CallProc F:I32 [Temp(Const 2:I32)])
+Stmt line 9 may_raise
+  Assign V:Str = Choice:Str(Var I:I16 ? Concat(Var V:Str, Const "a") : CallBuiltin MID:Str [Some(Var V:Str), Some(Const 2:I32), None])
+Stmt line 10
+  Print console newline
+    Num (Choice:F64(Var I:I16 ? Const 1:I16 : Const 2.5E+0:F64) -> Convert F32 Nearest)
+    Str Choice:Str(Var I:I16 ? Const "a" : Var V:Str)
+Stmt line 11
+  Branch Zero -> @0 Skip: Gt:I32(Choice:F32(Var I:I16 ? Var L:I32 : Var S:F32), (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 11 may_raise
+  Assign L:I32 = CallBuiltin _MIN:I32 [Some(Var I:I16), Some(Var L:I32)]
+Label @0 line 11
+Stmt line 12 may_raise
+  Assign S:F32 = Add:F32(CallBuiltin _MAX:F32 [Some(Var S:F32), Some(Load A(Const 1:I64):I32)], (CallBuiltin _CLAMP:I32 [Some(Var I:I16), Some(CallProc F:I32 [Temp(Const 0:I32)]), Some(Const 10:I16)] -> Convert F32 Nearest))
+Stmt line 13
+  System
+Function F:I32 lines 14-16
+  param N:I32
+  result F:I32
+Stmt line 15
+  Assign F(result):I32 = Var N(param):I32

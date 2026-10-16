@@ -1,0 +1,5 @@
+before
+
+Runtime error: Line: 7 (in main module)
+Source and destination memory not initialized
+exit=0

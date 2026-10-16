@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _PRINTIMAGE imageHandle&
+Caused by (or after):_PRINTIMAGE 1 , 2
+LINE 5:_PRINTIMAGE 1, 2
+exit=1

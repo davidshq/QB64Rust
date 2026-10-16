@@ -1,0 +1,5 @@
+
+SADD only accepts variable-length string variables
+Caused by (or after):L = SADD ( "a",1 )
+LINE 7:l = SADD("a")
+exit=1

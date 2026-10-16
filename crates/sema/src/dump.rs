@@ -1,8 +1,8 @@
 //! `--dump typed`: one node per line, indented, with its type (FreeBASIC lesson L8: assertions on types).
 
 use crate::{
-    Arg, ArrayRef, CaseItem, Expr, ExprKind, InputSource, Place, PrintItem, ProcKind, Program, Resume, Shape, Stmt,
-    StmtArg, StmtKind, Storage, Ty, VarId,
+    Arg, ArrayRef, CaseItem, Expr, ExprKind, InputSource, MemValue, Place, PrintItem, PrintTo, ProcKind, Program,
+    Reference, Resume, Shape, Stmt, StmtArg, StmtKind, Storage, Ty, UsingValue, VarId,
 };
 
 use qb64rust_base::show_bytes;
@@ -59,11 +59,27 @@ pub fn dump_typed(p: &Program) -> String {
         let q = if item.quoted { "\"" } else { "" };
         writeln!(out, "DATA {i}: {q}{}{q}", show_bytes(&item.text)).unwrap();
     }
+    // The `DECLARE LIBRARY` blocks: the form and the names as written.
+    for (i, lib) in p.libraries.iter().enumerate() {
+        let names: Vec<String> = lib.names.iter().map(|n| format!(" \"{}\"", n.text)).collect();
+        writeln!(out, "LIBRARY {i} {:?}{}", lib.kind, names.concat()).unwrap();
+    }
     stmts(p, &p.stmts, 0, &mut out);
     for (i, proc) in p.procs.iter().enumerate() {
         match proc.kind {
             ProcKind::Sub => writeln!(out, "SUB {}", proc.name).unwrap(),
             ProcKind::Function(t) => writeln!(out, "FUNCTION {} : {}", proc.name, ty(p, t)).unwrap(),
+        }
+        if let Some(e) = &proc.external {
+            let byval: Vec<&str> = e.byval.iter().map(|&b| if b { "byval" } else { "ref" }).collect();
+            writeln!(
+                out,
+                "  external {} of LIBRARY {} ({})",
+                e.c_name,
+                e.library.0,
+                byval.join(", ")
+            )
+            .unwrap();
         }
         for v in &p.vars {
             let class = match v.storage {
@@ -120,6 +136,57 @@ fn array_text(p: &Program, array: &ArrayRef) -> String {
     }
 }
 
+/// The block, the offset and (`_MEMFILL`) the number of bytes of a statement of memory blocks, under its line.
+fn mem_parts(p: &Program, block: &Place, offset: &Expr, bytes: Option<&Expr>, d: usize, out: &mut String) {
+    let pad = "  ".repeat(d + 1);
+    writeln!(out, "{pad}block {}", place_text(p, block)).unwrap();
+    indexes(p, block, d + 2, out);
+    writeln!(out, "{pad}offset").unwrap();
+    expr(p, offset, d + 2, out);
+    if let Some(b) = bytes {
+        writeln!(out, "{pad}bytes").unwrap();
+        expr(p, b, d + 2, out);
+    }
+}
+
+/// What `_MEMPUT` writes or `_MEMFILL` fills with, under its line.
+fn mem_value(p: &Program, value: &MemValue, d: usize, out: &mut String) {
+    let pad = "  ".repeat(d + 1);
+    match value {
+        MemValue::Typed { value, ty: t } => {
+            writeln!(out, "{pad}as {}", ty(p, *t)).unwrap();
+            expr(p, value, d + 2, out);
+        }
+        MemValue::Bytes(of) => {
+            let t = ty(p, reference_ty(p, of));
+            writeln!(out, "{pad}bytes of {} : {t}", reference_text(p, of)).unwrap();
+            for i in of.indexes() {
+                expr(p, i, d + 2, out);
+            }
+        }
+        MemValue::Str(s) => {
+            writeln!(out, "{pad}string").unwrap();
+            expr(p, s, d + 2, out);
+        }
+    }
+}
+
+/// The type of what a reference names: a place's, an array's elements'.
+fn reference_ty(p: &Program, of: &Reference) -> Ty {
+    match of {
+        Reference::Place(place) => p.place_ty(place),
+        Reference::Array(array) => p.array_ty(array),
+    }
+}
+
+/// What `_MEM`, `_MEMELEMENT` and `_OFFSET` name as text: a place, or an array as a whole with `()`.
+fn reference_text(p: &Program, of: &Reference) -> String {
+    match of {
+        Reference::Place(place) => place_text(p, place),
+        Reference::Array(array) => format!("{}()", array_text(p, array)),
+    }
+}
+
 /// The indexes of the elements on the way to a place, outermost first, each at `depth`.
 fn indexes(p: &Program, place: &Place, depth: usize, out: &mut String) {
     for e in place.indexes() {
@@ -140,6 +207,11 @@ fn args(p: &Program, args: &[Arg], depth: usize, out: &mut String) {
                 writeln!(out, "{pad}temp").unwrap();
                 expr(p, e, depth + 1, out);
             }
+            Arg::Value(e) => {
+                writeln!(out, "{pad}value").unwrap();
+                expr(p, e, depth + 1, out);
+            }
+            Arg::Null => writeln!(out, "{pad}null").unwrap(),
             Arg::Array(a) => {
                 let t = ty(p, p.array_ty(a));
                 writeln!(out, "{pad}array {}() : {t}", array_text(p, a)).unwrap();
@@ -147,6 +219,37 @@ fn args(p: &Program, args: &[Arg], depth: usize, out: &mut String) {
                     expr(p, e, depth + 1, out);
                 }
             }
+        }
+    }
+}
+
+/// Where a `PRINT` goes, as the words after the statement's name.
+fn print_to(to: &PrintTo) -> &'static str {
+    match to {
+        PrintTo::Screen => "",
+        PrintTo::File(_) => " to a file",
+        PrintTo::Printer => " to the printer",
+    }
+}
+
+fn ending(newline: bool) -> &'static str {
+    if newline { " newline" } else { "" }
+}
+
+/// The items of a `PRINT` or `WRITE` at nesting depth `d`, each under its heading.
+fn print_items(p: &Program, items: &[PrintItem], d: usize, out: &mut String) {
+    let pad = "  ".repeat(d);
+    for i in items {
+        match i {
+            PrintItem::Str(e) => {
+                writeln!(out, "{pad}  Str").unwrap();
+                expr(p, e, d + 2, out);
+            }
+            PrintItem::Num(e) => {
+                writeln!(out, "{pad}  Num").unwrap();
+                expr(p, e, d + 2, out);
+            }
+            PrintItem::Zone => writeln!(out, "{pad}  Zone").unwrap(),
         }
     }
 }
@@ -165,10 +268,46 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
             StmtKind::Return(None) => line(out, "Return"),
             StmtKind::Return(Some(l)) => line(out, &format!("Return {}", p.label(*l).name)),
             StmtKind::ConsoleOnly => line(out, "ConsoleOnly"),
-            StmtKind::End => line(out, "End"),
-            StmtKind::System => line(out, "System"),
+            StmtKind::MemGet { block, offset, target } => {
+                line(out, "MemGet");
+                mem_parts(p, block, offset, None, d, out);
+                let t = ty(p, reference_ty(p, target));
+                heading(out, &format!("into {} : {t}", reference_text(p, target)));
+                for i in target.indexes() {
+                    expr(p, i, d + 2, out);
+                }
+            }
+            StmtKind::MemPut { block, offset, value } => {
+                line(out, "MemPut");
+                mem_parts(p, block, offset, None, d, out);
+                mem_value(p, value, d, out);
+            }
+            StmtKind::MemFill {
+                block,
+                offset,
+                bytes,
+                value,
+            } => {
+                line(out, "MemFill");
+                mem_parts(p, block, offset, Some(bytes), d, out);
+                mem_value(p, value, d, out);
+            }
+            StmtKind::End(code) | StmtKind::System(code) => {
+                line(
+                    out,
+                    if matches!(s.kind, StmtKind::End(_)) {
+                        "End"
+                    } else {
+                        "System"
+                    },
+                );
+                if let Some(code) = code {
+                    expr(p, code, d + 1, out);
+                }
+            }
             StmtKind::Exit => line(out, "Exit"),
             StmtKind::ExitLoop(k) => line(out, &format!("Exit {k:?}")),
+            StmtKind::ExitSelect { case } => line(out, if *case { "Exit Case" } else { "Exit Select" }),
             StmtKind::OnError(Some(l)) => line(out, &format!("OnError {}", p.label(*l).name)),
             StmtKind::OnError(None) => line(out, "OnError 0"),
             StmtKind::Resume(r) => {
@@ -195,6 +334,18 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                         StmtArg::Place(place) => {
                             let t = ty(p, p.place_ty(place));
                             heading(out, &format!("place {} : {t}", place_text(p, place)));
+                            indexes(p, place, d + 2, out);
+                        }
+                        StmtArg::Block { array, index } => {
+                            let from = if index.is_empty() { "whole" } else { "from an element" };
+                            heading(out, &format!("bytes of {} ({from})", var_name(p, *array)));
+                            for i in index {
+                                expr(p, i, d + 2, out);
+                            }
+                        }
+                        StmtArg::Bytes(place) => {
+                            let t = ty(p, p.place_ty(place));
+                            heading(out, &format!("bytes of place {} : {t}", place_text(p, place)));
                             indexes(p, place, d + 2, out);
                         }
                         StmtArg::Word(w) => heading(out, &format!("word {w}")),
@@ -231,9 +382,19 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 mode,
                 joined,
             } => {
-                let t = ty(p, p.var(*array).ty);
+                let t = ty(p, p.array_ty(array));
                 let joined = if *joined { ", with the next statement" } else { "" };
-                line(out, &format!("Allocate {}:{t} ({mode:?}{joined})", var_name(p, *array)));
+                line(
+                    out,
+                    &format!("Allocate {}:{t} ({mode:?}{joined})", array_text(p, array)),
+                );
+                let index = array.indexes();
+                if !index.is_empty() {
+                    heading(out, "Index");
+                    for e in index {
+                        expr(p, e, d + 2, out);
+                    }
+                }
                 for (lower, upper) in bounds {
                     heading(out, "Lower");
                     expr(p, lower, d + 2, out);
@@ -249,38 +410,98 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 }
             }
             StmtKind::Release { array } => {
-                let t = ty(p, p.var(*array).ty);
-                line(out, &format!("Release {}:{t}", var_name(p, *array)));
+                let t = ty(p, p.array_ty(array));
+                line(out, &format!("Release {}:{t}", array_text(p, array)));
+                for e in array.indexes() {
+                    expr(p, e, d + 1, out);
+                }
+            }
+            StmtKind::CopyArray { from, to } => {
+                let t = ty(p, p.array_ty(to));
+                line(
+                    out,
+                    &format!("CopyArray {} -> {}:{t}", array_text(p, from), array_text(p, to)),
+                );
+                for (side, array) in [("To", to), ("From", from)] {
+                    if !array.indexes().is_empty() {
+                        heading(out, &format!("{side} index"));
+                        for e in array.indexes() {
+                            expr(p, e, d + 2, out);
+                        }
+                    }
+                }
             }
             StmtKind::EraseParam { array } => {
                 let t = ty(p, p.var(*array).ty);
                 line(out, &format!("EraseParam {}:{t}", var_name(p, *array)));
             }
-            StmtKind::Print { to, items, newline } | StmtKind::Write { to, items, newline } => {
-                let word = if matches!(&s.kind, StmtKind::Write { .. }) {
-                    "Write"
-                } else {
-                    "Print"
-                };
+            StmtKind::Print { to, items, newline } => {
+                line(out, &format!("Print{}{}", print_to(to), ending(*newline)));
+                if let PrintTo::File(n) = to {
+                    heading(out, "File");
+                    expr(p, n, d + 2, out);
+                }
+                print_items(p, items, d, out);
+            }
+            StmtKind::PrintUsing {
+                to,
+                before,
+                format,
+                values,
+                newline,
+            } => {
+                line(out, &format!("PrintUsing{}{}", print_to(to), ending(*newline)));
+                if let PrintTo::File(n) = to {
+                    heading(out, "File");
+                    expr(p, n, d + 2, out);
+                }
+                print_items(p, before, d, out);
+                heading(out, "Format");
+                expr(p, format, d + 2, out);
+                for v in values {
+                    match v {
+                        UsingValue::Str(e) => {
+                            heading(out, "Str");
+                            expr(p, e, d + 2, out);
+                        }
+                        UsingValue::Num { value, as_ } => {
+                            heading(out, &format!("Num as {}", ty(p, *as_)));
+                            expr(p, value, d + 2, out);
+                        }
+                        UsingValue::Blanks(e) => {
+                            heading(out, "Blanks");
+                            expr(p, e, d + 2, out);
+                        }
+                    }
+                }
+            }
+            StmtKind::Field { file, parts } => {
+                line(out, "Field");
+                heading(out, "File");
+                expr(p, file, d + 2, out);
+                for (place, width) in parts {
+                    let t = ty(p, p.place_ty(place));
+                    heading(out, &format!("place {} : {t}", place_text(p, place)));
+                    indexes(p, place, d + 2, out);
+                    heading(out, "Width");
+                    expr(p, width, d + 2, out);
+                }
+            }
+            StmtKind::Lset { right, target, value } => {
+                let t = ty(p, p.place_ty(target));
+                let word = if *right { "Rset" } else { "Lset" };
+                line(out, &format!("{word} {} : {t}", place_text(p, target)));
+                indexes(p, target, d + 1, out);
+                expr(p, value, d + 1, out);
+            }
+            StmtKind::Write { to, items, newline } => {
                 let file = if to.is_some() { " to a file" } else { "" };
-                line(out, &format!("{word}{file}{}", if *newline { " newline" } else { "" }));
+                line(out, &format!("Write{file}{}", ending(*newline)));
                 if let Some(n) = to {
                     heading(out, "File");
                     expr(p, n, d + 2, out);
                 }
-                for i in items {
-                    match i {
-                        PrintItem::Str(e) => {
-                            heading(out, "Str");
-                            expr(p, e, d + 2, out);
-                        }
-                        PrintItem::Num(e) => {
-                            heading(out, "Num");
-                            expr(p, e, d + 2, out);
-                        }
-                        PrintItem::Zone => heading(out, "Zone"),
-                    }
-                }
+                print_items(p, items, d, out);
             }
             StmtKind::Input {
                 from,
@@ -486,6 +707,42 @@ fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
                 expr(p, d, depth + 1, out);
             }
         }
+        ExprKind::VarPtr { array, index } => {
+            writeln!(out, "{pad}VarPtr {} : {types}", var_name(p, *array)).unwrap();
+            for i in index {
+                expr(p, i, depth + 1, out);
+            }
+        }
+        ExprKind::VarSeg { array } => writeln!(out, "{pad}VarSeg {} : {types}", var_name(p, *array)).unwrap(),
+        ExprKind::Block { array, index } => {
+            writeln!(out, "{pad}Bytes {} : {types}", var_name(p, *array)).unwrap();
+            for i in index {
+                expr(p, i, depth + 1, out);
+            }
+        }
+        ExprKind::MemOf { of, element } => {
+            let word = if *element { "MemElement" } else { "Mem" };
+            writeln!(out, "{pad}{word} {} : {types}", reference_text(p, of)).unwrap();
+            for i in of.indexes() {
+                expr(p, i, depth + 1, out);
+            }
+        }
+        ExprKind::AddressOf(of) => {
+            writeln!(out, "{pad}AddressOf {} : {types}", reference_text(p, of)).unwrap();
+            for i in of.indexes() {
+                expr(p, i, depth + 1, out);
+            }
+        }
+        ExprKind::MemRead { block, offset, of } => {
+            writeln!(out, "{pad}MemRead {} as {} : {types}", place_text(p, block), ty(p, *of)).unwrap();
+            indexes(p, block, depth + 1, out);
+            expr(p, offset, depth + 1, out);
+        }
+        ExprKind::MemAt { offset, size } => {
+            writeln!(out, "{pad}MemAt : {types}").unwrap();
+            expr(p, offset, depth + 1, out);
+            expr(p, size, depth + 1, out);
+        }
         ExprKind::Convert { how, from } => {
             writeln!(out, "{pad}Convert {how:?} : {types}").unwrap();
             expr(p, from, depth + 1, out);
@@ -508,6 +765,12 @@ fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
             writeln!(out, "{pad}StrCompare {op:?} : {types}").unwrap();
             expr(p, lhs, depth + 1, out);
             expr(p, rhs, depth + 1, out);
+        }
+        ExprKind::Choice { condition, then, else_ } => {
+            writeln!(out, "{pad}Choice : {types}").unwrap();
+            expr(p, condition, depth + 1, out);
+            expr(p, then, depth + 1, out);
+            expr(p, else_, depth + 1, out);
         }
         ExprKind::Call { builtin, args: slots } => {
             writeln!(out, "{pad}Call {} : {types}", builtin.get().name.to_ascii_uppercase()).unwrap();

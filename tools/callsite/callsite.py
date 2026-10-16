@@ -23,6 +23,8 @@ instead).
 from __future__ import annotations
 
 import argparse
+import hashlib
+import os
 import re
 import shutil
 import subprocess
@@ -81,9 +83,11 @@ TYPES = INT_TYPES | {"float", "double", "long", "qbs"}
 # Words before a `(` that do not make it a call.
 NOT_CALLS = {"if", "while", "for", "switch", "return", "else", "goto"}
 # Numbered temporaries and labels: renumbered in order of first use (rule 2).
-NUMBERED = re.compile(r"^(pass|skip|sc_|RETURN_|temp_\w*?|L_)(\d+)$")
-# An integer literal with the `long long` suffix (rule 5).
-LONG_LONG = re.compile(r"^\d+ll$")
+NUMBERED = re.compile(
+    r"^(pass|skip_pu|skip|sc_|RETURN_|temp_\w*?|L_|byte_element_|print_using_format)(\d+)$"
+)
+# An integer literal with the `long long`, the `unsigned` or the `unsigned long long` suffix (rule 5).
+SUFFIXED = re.compile(r"^(\d+)(ull|ll|u)$")
 
 
 def tokenize(text: str) -> list[str]:
@@ -174,9 +178,9 @@ def norm_seq(items: list, whole_arg: bool) -> list:
                 items = rest
                 continue
         break
-    # Rule 5: the `ll` suffix of an integer literal that is a whole argument.
-    if whole_arg and is_simple(items) and LONG_LONG.match(items[-1]):
-        items = [*items[:-1], items[-1][:-2]]
+    # Rule 5: the `ll`, `u` or `ull` suffix of an integer literal that is a whole argument.
+    if whole_arg and is_simple(items) and SUFFIXED.match(items[-1]):
+        items = [*items[:-1], SUFFIXED.match(items[-1]).group(1)]
     # Rule 6: a whole argument that is integer literals joined by `|` is their value (`0|1` is `1`).
     if (
         whole_arg
@@ -311,6 +315,44 @@ def last_line(text: str) -> str:
     return lines[-1] if lines else "no output"
 
 
+def cache_key(qb_root: Path, source: bytes, name: str) -> str:
+    """The key of the old compiler's answer for a program: the program, its file name (the C++ names
+    it in #line) and the compiler's executable by size and time. The old compiler's C++ for a program
+    changes only when one of these does."""
+    exe = (qb_root / "qb64pe.exe").stat()
+    h = hashlib.sha256()
+    for part in (
+        b"callsite cache 1",
+        name.encode(),
+        source,
+        f"{exe.st_size} {exe.st_mtime_ns}".encode(),
+    ):
+        h.update(len(part).to_bytes(8, "little"))
+        h.update(part)
+    return h.hexdigest()
+
+
+def old_cpp_cached(
+    qb_root: Path, work: Path, name: str, source: bytes, cache: Path | None
+) -> tuple[str | None, str]:
+    """`old_cpp`, kept per program in `cache` (a folder; None: no cache): an accepted program's
+    main-module fragment is `<key>.txt`. A rejection is never kept: the compiler also fails for
+    reasons that pass (a file in use), and a kept failure would never be tried again. The file is
+    written under another name and renamed, so a run that is stopped leaves no half answer."""
+    if cache is None:
+        return old_cpp(qb_root, work, name)
+    hit = cache / f"{cache_key(qb_root, source, name)}.txt"
+    if hit.is_file():
+        return hit.read_text(encoding="latin-1"), ""
+    text, why = old_cpp(qb_root, work, name)
+    if text is not None:
+        cache.mkdir(parents=True, exist_ok=True)
+        part = hit.with_suffix(f".{os.getpid()}.part")
+        part.write_text(text, encoding="latin-1", newline="")
+        os.replace(part, hit)
+    return text, why
+
+
 def old_cpp(qb_root: Path, work: Path, name: str) -> tuple[str | None, str]:
     clear_temp(qb_root)
     r = subprocess.run(
@@ -347,7 +389,9 @@ def new_cpp(qb64rust: Path, work: Path, name: str) -> tuple[str | None, str]:
     return (folder / "main0.txt").read_text(encoding="latin-1"), ""
 
 
-def compare(path: Path, qb_root: Path, qb64rust: Path, work: Path) -> tuple[str, str]:
+def compare(
+    path: Path, qb_root: Path, qb64rust: Path, work: Path, cache: Path | None = None
+) -> tuple[str, str]:
     """(verdict, detail) for one program: equal, differ or not compared."""
     name = path.name
     source = path.read_bytes()
@@ -356,10 +400,55 @@ def compare(path: Path, qb_root: Path, qb64rust: Path, work: Path) -> tuple[str,
     except ValueError as e:
         return "not compared", str(e)
     shutil.copyfile(path, work / name)
+    # The files a program names (the icon of `$EXEICON`) lie in `<name>.files` and are copied beside
+    # it, as the corpus runner does. Their bytes are in no C++, so the cache key leaves them out.
+    # They are taken away again: `work` is one folder for all programs, and the next program must
+    # not find them.
+    copied = place_files(path, work)
+    try:
+        return compare_in(path, qb_root, qb64rust, work, cache, source, line)
+    finally:
+        remove_files(copied)
+
+
+def place_files(path: Path, work: Path) -> list[Path]:
+    """Copies what lies in the program's `<name>.files` folder into `work`; returns the copies."""
+    files = path.with_suffix(".files")
+    copied = [work / p.name for p in files.iterdir()] if files.is_dir() else []
+    if copied:
+        shutil.copytree(files, work, dirs_exist_ok=True)
+    return copied
+
+
+def remove_files(copied: list[Path]) -> None:
+    for p in copied:
+        if p.is_dir():
+            shutil.rmtree(p, ignore_errors=True)
+        else:
+            p.unlink(missing_ok=True)
+
+
+def programs_of(folder: Path, glob: str) -> list[Path]:
+    """The programs of `folder` that `glob` names. Files only: a glob without `.bas` also matches a
+    program's `<name>.files` folder."""
+    return sorted(p for p in folder.glob(glob) if p.is_file())
+
+
+def compare_in(
+    path: Path,
+    qb_root: Path,
+    qb64rust: Path,
+    work: Path,
+    cache: Path | None,
+    source: bytes,
+    line: int,
+) -> tuple[str, str]:
+    """`compare`, once the program and its files lie in `work`."""
+    name = path.name
     new, why = new_cpp(qb64rust, work, name)
     if new is None:
         return "not compared", why
-    old, why = old_cpp(qb_root, work, name)
+    old, why = old_cpp_cached(qb_root, work, name, source, cache)
     if old is None:
         return "not compared", why
     a, b = normalise(extract(old, line, name)), normalise(extract(new, line, name))
@@ -420,9 +509,65 @@ PAIRS = [
         ["sub_kill(func_chr((-1)));"],
     ),
     (
+        "PUT (1, 2), a",
+        [
+            "sub_graphics_put( 1 , 2 ,byte_element((uint64)(&(((int16*)(__ARRAY_INTEGER_A[0]))[0])),"
+            "((2*(__ARRAY_INTEGER_A[2]&1)*__ARRAY_INTEGER_A[5])-(2*(0))),byte_element_9),NULL,NULL,0);"
+        ],
+        [
+            "sub_graphics_put(1,2,byte_element((uint64)(&(((int16*)(__ARRAY_INTEGER_A[0]))[0])),"
+            "((2*(__ARRAY_INTEGER_A[2]&1)*__ARRAY_INTEGER_A[5])-(2*(0))),byte_element_1),NULL,NULL,0);"
+        ],
+    ),
+    (
+        "CLS , 1",
+        ["sub_clsDest(NULL, 1 ,NULL,2);"],
+        ["sub_clsDest(NULL,1u,NULL,2);"],
+    ),
+    (
+        "CIRCLE (1, 2), 3, 4294967295",
+        ["sub_circle( 1 , 2 , 3 , 4294967295ll ,NULL,NULL,NULL,2);"],
+        ["sub_circle(1,2,3,4294967295u,NULL,NULL,NULL,2);"],
+    ),
+    (
+        "uq = _SHL(1, 40)",
+        ["*__UINTEGER64_UQ=func__shl( 1 , 40 );"],
+        ["*__UINTEGER64_UQ=func__shl(1ull,40);"],
+    ),
+    (
+        "PAINT (n, n), d",
+        ["sub_paint(*__LONG_N,*__LONG_N,(uint32)qbr(*__DOUBLE_D),NULL,NULL,2);"],
+        ["sub_paint(*__LONG_N,*__LONG_N,(uint32)qbr(*__DOUBLE_D),NULL,NULL,2);"],
+    ),
+    (
         "PRINT with numbered labels",
         ["if (is_error_pending()) goto skip7;", "skip7:"],
         ["if (is_error_pending()) goto skip2;", "skip2:"],
+    ),
+    (
+        "PRINT USING f; d",
+        [
+            "tqbs=qbs_new(0,0);",
+            "tmp_long=0;",
+            "print_using_format7=qbs_new(0,0); qbs_set(print_using_format7,__STRING_F);",
+            "if (is_error_pending()) goto skip_pu7;",
+            "tmp_long=print_using_double(print_using_format7,*__DOUBLE_D,tmp_long,tqbs);",
+            "if (is_error_pending()) goto skip_pu7;",
+            "skip_pu7:",
+            "qbs_free(print_using_format7);",
+            "skip7:",
+        ],
+        [
+            "tqbs=qbs_new(0,0);",
+            "tmp_long=0;",
+            "print_using_format2=qbs_new(0,0); qbs_set(print_using_format2,__STRING_F);",
+            "if (is_error_pending()) goto skip_pu2;",
+            "tmp_long=print_using_double(print_using_format2,*__DOUBLE_D,tmp_long,tqbs);",
+            "if (is_error_pending()) goto skip_pu2;",
+            "skip_pu2:",
+            "qbs_free(print_using_format2);",
+            "skip2:",
+        ],
     ),
 ]
 
@@ -473,6 +618,12 @@ def self_test() -> int:
         (["f(1,NULL,2);"], ["f(1,0,2);"]),
         (["f(a*2ll);"], ["f(a*2);"]),
         (["x=2ll;"], ["x=2;"]),
+        (["f(a*2u);"], ["f(a*2);"]),
+        (["x=2u;"], ["x=2;"]),
+        (["f(1u);"], ["f(2u);"]),
+        (["f(a*2ull);"], ["f(a*2);"]),
+        (["x=2ull;"], ["x=2;"]),
+        (["f(1ull);"], ["f(2ull);"]),
         (["f(x,0|2);"], ["f(x,1);"]),
         (["f(a|1);"], ["f(1);"]),
     ]
@@ -485,6 +636,65 @@ def self_test() -> int:
     frag = '#line 4 "t.bas"\ndo{\n#line 4 "t.bas"\nsub_kill(__STRING_S);\n#line 5 "t.bas"\nsub_end();\n'
     if extract(frag, 4, "t.bas") != ["do{", "sub_kill(__STRING_S);"]:
         failures.append("extract: wrong lines")
+    # The cache of the old compiler's answers: keyed by the program, its name and the compiler; an
+    # entry is read without running the compiler (the folder here holds no working one).
+    with tempfile.TemporaryDirectory(prefix="qb64rust-callsite-") as tmp:
+        root, cache = Path(tmp) / "qb", Path(tmp) / "cache"
+        root.mkdir()
+        (root / "qb64pe.exe").write_bytes(b"one")
+        key = cache_key(root, src, "t.bas")
+        if key in (cache_key(root, src + b" ", "t.bas"), cache_key(root, src, "u.bas")):
+            failures.append("cache_key: the same key for another program or name")
+        cache.mkdir()
+        (cache / f"{key}.txt").write_text(frag, encoding="latin-1", newline="")
+        if old_cpp_cached(root, root, "t.bas", src, cache) != (frag, ""):
+            failures.append("old_cpp_cached: a kept answer is not read back")
+        (root / "qb64pe.exe").write_bytes(b"another compiler")
+        if cache_key(root, src, "t.bas") == key:
+            failures.append("cache_key: the same key for another compiler")
+        # A rejection is not kept, and an answer is written whole: with the compiler replaced by a
+        # stand-in, a rejection leaves no file and is asked for again, an answer leaves one .txt.
+        answers = [(None, "rejected"), (frag, "")]
+        asked = []
+
+        def stand_in(_root, _work, name):
+            asked.append(name)
+            return answers[len(asked) - 1]
+
+        real = globals()["old_cpp"]
+        globals()["old_cpp"] = stand_in
+        try:
+            first = old_cpp_cached(root, root, "v.bas", src, cache)
+            between = sorted(p.name for p in cache.iterdir())
+            second = old_cpp_cached(root, root, "v.bas", src, cache)
+            third = old_cpp_cached(root, root, "v.bas", src, cache)
+        finally:
+            globals()["old_cpp"] = real
+        if first != (None, "rejected") or len(between) != 1:
+            failures.append("old_cpp_cached: a rejection is kept")
+        if second != (frag, "") or third != (frag, "") or len(asked) != 2:
+            failures.append("old_cpp_cached: an answer is not kept after a rejection")
+        if any(not p.name.endswith(".txt") for p in cache.iterdir()):
+            failures.append("old_cpp_cached: a file that is no whole answer is left")
+    # A program's files lie beside it for its comparison only, and its `.files` folder is no program.
+    with tempfile.TemporaryDirectory() as tmp:
+        programs, work = Path(tmp) / "programs", Path(tmp) / "work"
+        (programs / "icon.files" / "sub").mkdir(parents=True)
+        work.mkdir()
+        (programs / "icon.bas").write_text("BEEP\n")
+        (programs / "icon.files" / "a.ico").write_bytes(b"icon")
+        (programs / "icon.files" / "sub" / "b.ico").write_bytes(b"icon")
+        if programs_of(programs, "icon*") != [programs / "icon.bas"]:
+            failures.append("programs_of: a `.files` folder is taken for a program")
+        (work / "icon.bas").write_text("BEEP\n")
+        copied = place_files(programs / "icon.bas", work)
+        if not ((work / "a.ico").is_file() and (work / "sub" / "b.ico").is_file()):
+            failures.append("place_files: a program's files are not beside it")
+        remove_files(copied)
+        if sorted(p.name for p in work.iterdir()) != ["icon.bas"]:
+            failures.append("remove_files: a program's files are left for the next program")
+        if place_files(work / "icon.bas", work):
+            failures.append("place_files: files for a program that has none")
     for f in failures:
         print("self-test FAILED:", f)
     print(
@@ -512,11 +722,20 @@ def main() -> int:
         action="store_true",
         help="wait for another run to leave the clone instead of stopping with exit code 3",
     )
+    ap.add_argument(
+        "--cache",
+        type=Path,
+        default=REPO / "target" / "callsite-cache",
+        help="folder that keeps the old compiler's C++ per program (default: target/callsite-cache)",
+    )
+    ap.add_argument(
+        "--no-cache", action="store_true", help="run the old compiler for every program"
+    )
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
         return self_test()
-    programs = sorted(args.programs.glob(args.glob))
+    programs = programs_of(args.programs, args.glob)
     if not programs:
         print("no programs")
         return 1
@@ -533,7 +752,13 @@ def main() -> int:
     work = Path(tempfile.mkdtemp(prefix="qb64rust-callsite-"))
     try:
         for p in programs:
-            verdict, detail = compare(p, args.qb_root.resolve(), args.qb64rust.resolve(), work)
+            verdict, detail = compare(
+                p,
+                args.qb_root.resolve(),
+                args.qb64rust.resolve(),
+                work,
+                None if args.no_cache else args.cache,
+            )
             counts[verdict] += 1
             if verdict == "equal" and not args.verbose:
                 print(f"equal         {p.stem}")

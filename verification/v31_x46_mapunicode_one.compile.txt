@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _MAPUNICODE unicode& TO asciiCode%
+Caused by (or after):_MAPUNICODE 1
+LINE 5:_MAPUNICODE 1
+exit=1

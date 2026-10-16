@@ -11,7 +11,7 @@ ON ERROR GOTO a$
 ERROR "x"
 PRINT CHR$("a")
 PRINT CHR$(1, 2)
-cls: PRINT 1
+files: PRINT 1
 s: PRINT 2
 PRINT ERR(1)
 SUB s (k AS LONG)

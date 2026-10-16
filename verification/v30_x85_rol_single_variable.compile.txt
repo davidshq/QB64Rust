@@ -1,0 +1,5 @@
+
+Expected non-floating-point numeric argument
+Caused by (or after):PRINT _ROL ( S , 1 ) ; _ROR ( D , 1 )
+LINE 5:PRINT _ROL(s, 1); _ROR(d, 1)
+exit=1

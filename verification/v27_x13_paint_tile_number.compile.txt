@@ -1,0 +1,5 @@
+
+5th sub argument requires a string
+Caused by (or after):PAINT ( 1 , 2 ) , 3 , 4 , 5
+LINE 6:PAINT (1, 2), 3, 4, 5
+exit=1

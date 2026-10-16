@@ -1,0 +1,5 @@
+
+Expected reference to a variable/array
+Caused by (or after):L = VARPTR ( 5 )
+LINE 7:l = VARPTR(5)
+exit=1

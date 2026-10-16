@@ -1,0 +1,5 @@
+
+_Dynamic and _Static can only be used on array members inside TYPE
+Caused by (or after):
+LINE 5:N AS LONG _STATIC
+exit=1

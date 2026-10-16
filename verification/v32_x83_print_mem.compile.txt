@@ -1,0 +1,5 @@
+
+User defined types in expressions are invalid
+Caused by (or after):PRINT M
+LINE 9:PRINT m
+exit=1

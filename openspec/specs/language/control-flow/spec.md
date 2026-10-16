@@ -231,3 +231,106 @@ line numbers as targets SHALL be reported "not supported yet".
 #### Scenario: ON GOSUB returns
 - **WHEN** `ON 1 GOSUB g: PRINT "back"` runs and `g` prints `in g` and executes `RETURN`
 - **THEN** the output is `in g`, then `back`
+
+### Requirement: A SUB's name and a colon, with no jump to the name
+A line that starts with the name of a SUB and a colon SHALL be a call of that SUB when the SUB can be called with
+no argument and no jump of the program, in any body, names the word; a statement after the colon SHALL follow the
+call. This is the old compiler's rule.
+
+#### Scenario: A call
+- **WHEN** a program has the line `topbar:` in its main module, a `SUB topbar` without parameters, and no jump to
+  `topbar`
+- **THEN** the line calls the SUB, as with the old compiler
+
+#### Scenario: Twice in one body
+- **WHEN** the main module has the line `one:` twice, the program has a `SUB one` without parameters and no jump
+  to `one`
+- **THEN** the SUB is called twice
+
+#### Scenario: A statement after the colon
+- **WHEN** the line is `one: PRINT "after"` and `SUB one` prints `sub one`
+- **THEN** the output is `sub one`, then `after`
+
+### Requirement: A SUB's name and a colon, with a jump to the name
+When a jump anywhere in the program (`GOTO`, `GOSUB`, `RETURN`, `RESTORE`, `RESUME`, `ON ERROR GOTO`, `ON … GOTO`,
+`ON … GOSUB`) names the word, every line that is the word and a colon SHALL be a label, with the rules of any
+label, and `CALL name` SHALL still call the SUB. The name of a SUB that needs an argument, and the name of a
+FUNCTION, SHALL always be a label there.
+
+#### Scenario: A label beside a call
+- **WHEN** a SUB has the line `ships:`, later `IF n < 2 GOTO ships` and `CALL ships`, and the program has a `SUB
+  ships` without parameters
+- **THEN** the `GOTO` continues at the line and the `CALL` calls the SUB
+
+#### Scenario: A jump in another body
+- **WHEN** the main module has the line `one:`, a SUB has its own line `one:` and `GOTO one`, and the program has a
+  `SUB one` without parameters
+- **THEN** the main module's line is a label and calls nothing
+
+#### Scenario: A jump with no such line in its body
+- **WHEN** a SUB executes `GOTO one`, `one:` stands only in the main module, and the program has a `SUB one`
+- **THEN** it is a compile error (the label is not defined in the SUB)
+
+#### Scenario: Twice in one body, with a jump
+- **WHEN** the main module has the line `one:` twice and `GOTO one`, and the program has a `SUB one`
+- **THEN** it is a compile error (a duplicate label)
+
+#### Scenario: A SUB with a parameter, and a FUNCTION
+- **WHEN** a program has the line `one:` and `SUB one (k AS INTEGER)`, or the line `fone:` and `FUNCTION fone`
+- **THEN** the line is a label, with or without a jump to it
+
+### Requirement: EXIT SELECT and EXIT CASE
+`EXIT SELECT` SHALL continue after the `END SELECT` of the innermost `SELECT` that has a `CASE` or `CASE ELSE`
+open around it, also from inside an `IF` or a loop within that `CASE`, and also in `SELECT EVERYCASE`. `EXIT
+CASE` SHALL do the same in a plain `SELECT`, and in `SELECT EVERYCASE` SHALL go on with the next `CASE`. With
+no `CASE` open around it either SHALL be a compile error.
+
+#### Scenario: Out of a CASE from inside an IF
+- **WHEN** `SELECT CASE 1: CASE 1: PRINT "a": IF 1 THEN EXIT SELECT` … `PRINT "b": CASE ELSE: PRINT "c": END
+  SELECT: PRINT "d"` runs
+- **THEN** it prints `a` and `d`
+
+#### Scenario: A loop around the SELECT goes on
+- **WHEN** a `FOR i = 1 TO 3` loop holds a `SELECT CASE i` whose `CASE 2` runs `EXIT SELECT` before a `PRINT`,
+  and the loop prints `i` after `END SELECT`
+- **THEN** it prints 1, 2 and 3, and the `PRINT` in `CASE 2` does not run
+
+#### Scenario: From a loop inside the CASE
+- **WHEN** a `CASE` body holds a `DO` loop that runs `EXIT SELECT`
+- **THEN** execution continues after `END SELECT`
+
+#### Scenario: EVERYCASE
+- **WHEN** `SELECT EVERYCASE 5` has `CASE IS > 1` with `EXIT CASE` before a `PRINT`, then `CASE IS > 2` with
+  `EXIT SELECT` before a `PRINT`, then `CASE IS > 3` with a `PRINT`
+- **THEN** nothing is printed: the first leaves its `CASE`, the second the whole block
+
+#### Scenario: The nearest SELECT
+- **WHEN** a `SELECT` inside a `CASE` of another runs `EXIT SELECT`
+- **THEN** execution continues after the inner `END SELECT`, inside the outer `CASE`
+
+#### Scenario: No CASE open
+- **WHEN** a program has `EXIT SELECT` outside any `SELECT`, in a SUB called from a `CASE`, or between `SELECT
+  CASE x` and its first `CASE`
+- **THEN** each is a compile error
+
+### Requirement: END and SYSTEM with an exit code
+`SYSTEM n` and `END n` SHALL end the program as `SYSTEM` and `END` do, with `n`, converted as the old compiler
+converts it (to an `_INTEGER64`, then to the process's exit code as libqb does), as the process's exit code. A
+pending error SHALL be handled before `n` is stored, as the old compiler's program does. `n` SHALL be any numeric
+expression the old compiler accepts there, and a string a compile error, as with it.
+
+#### Scenario: An exit code
+- **WHEN** a console program runs `PRINT "x": SYSTEM 3`
+- **THEN** it prints `x` and its exit code is 3
+
+#### Scenario: END with a code
+- **WHEN** a console program runs `END 7`
+- **THEN** its exit code is what the old compiler's program gives (7, as measured)
+
+#### Scenario: A value out of range
+- **WHEN** a program runs `SYSTEM -1` or `SYSTEM 2.7`
+- **THEN** its exit code is the old compiler's program's
+
+#### Scenario: A string
+- **WHEN** a program has `SYSTEM "a"`
+- **THEN** it is a compile error, as with the old compiler

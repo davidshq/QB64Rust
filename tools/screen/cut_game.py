@@ -7,11 +7,20 @@ Each program is a few lines written here (a comment, DEFINT A-Z as in the game, 
 variables its procedures use, the calls, SYSTEM) followed by procedures of
 tests/programs/civil-war-strategy/CWSTRAT.BAS, copied byte for byte with LF line ends. So what is
 drawn is the game's own code, and a program can be made again when the copy of the game changes.
+Where a procedure of the game cannot be cut whole (the map, the reports: they read the whole state
+of a game), lines of it stand among the written ones: a (first line, last line, start of the first
+line) entry copies that range of the game byte for byte, and the script stops when the first line
+no longer starts as said. A program that loads pictures gets copies of them in <name>.files/,
+which the corpus runner puts beside the program when it runs (tools/legacy_tests).
+A copy (COPIES) is the whole game with a few listed edits, for a game played from a keys file
+(g12_game: tools/screen/README.md, "Prompts"); its data files and a CWS.CFG of its own go into its
+.files/ folder.
 The recordings (.output, .screen) are made by the corpus runner's --record, not by this script.
 """
 
 from __future__ import annotations
 
+import shutil
 import sys
 from pathlib import Path
 
@@ -19,7 +28,8 @@ REPO = Path(__file__).resolve().parent.parent.parent
 GAME = REPO / "tests" / "programs" / "civil-war-strategy" / "CWSTRAT.BAS"
 OUT = REPO / "tests" / "corpus" / "screen"
 
-# name: (what it covers, the lines before the procedures, the procedures taken from the game)
+# name: (what it covers, the lines before the procedures, the procedures taken from the game).
+# A line before the procedures is text written here, or a range of the game's lines.
 CUTS = {
     "g01_flags": (
         (
@@ -74,8 +84,151 @@ CUTS = {
         ],
         ["image2", "mxw", "TICK"],
     ),
+    "g07_mountains": (
+        (
+            "BLOAD of a picture into an array in conventional memory (DEF SEG, VARSEG, VARPTR) and "
+            "graphics PUT with PSET: the game's mountains, loaded as its main module loads them and "
+            "drawn as the first lines of SUB usa draw them"
+        ),
+        [
+            "DIM SHARED mtn(1 TO 1564)",
+            (139, 141, "\tDEF SEG = VARSEG(mtn(1))"),
+            (4145, 4160, "SCREEN 12"),
+        ],
+        [],
+    ),
+    "g08_icon": (
+        (
+            "BLOAD, PUT and a GET out of the picture just drawn: the game's icon and the capital "
+            "marker its main module takes from it, then the marker put in a row as SUB showcity "
+            "puts it on a city"
+        ),
+        [
+            "DIM SHARED graphic(1 TO 1564), Ncap(60)",
+            (169, 175, "SCREEN 12"),
+            "FOR i = 0 TO 5: PUT (300 + 20 * i, 200 + 5 * i), Ncap, PSET: NEXT i",
+        ],
+        [],
+    ),
+    "g09_faces_forts": (
+        (
+            "BLOAD with a file name in a string, eight pictures one after the other into the same two "
+            "arrays: the faces SUB battle loads and the forts SUB menu loads, each with the game's own "
+            "three lines, put in two rows"
+        ),
+        [
+            "DIM SHARED graft(1 TO 1564)",
+            "DIM SHARED graphic(1 TO 1564)",
+            "SCREEN 12",
+            "FOR k = 1 TO 5",
+            'IF k < 4 THEN t$ = "fort" + LTRIM$(STR$(k - 1)) + ".vga"',
+            "IF k < 4 THEN",
+            (4817, 4819, "\t\t\t\t\tDEF SEG = VARSEG(graft(1))"),
+            "PUT (100 * k - 80, 150), graft, PSET",
+            "END IF",
+            't$ = "face" + LTRIM$(STR$(k)) + ".vga"',
+            (1008, 1010, "\t\tDEF SEG = VARSEG(graphic(1))"),
+            "PUT (100 * k - 80, 20), graphic, PSET",
+            "NEXT k",
+        ],
+        [],
+    ),
+    "g10_snapshot": (
+        (
+            "graphics GET and PUT through a SUB on a shared array: the game's snapshot takes the screen "
+            "under a place and puts it back, here over a drawing that was changed in between, and at "
+            "a second place"
+        ),
+        [
+            "DIM SHARED image(300)",
+            "SCREEN 12",
+            "LINE (80, 80)-(120, 120), 9, BF",
+            "CIRCLE (100, 100), 8, 14",
+            "CALL snapshot(100, 100, 0)",
+            "LINE (60, 60)-(140, 140), 4, BF",
+            "CALL snapshot(100, 100, 1)",
+            "CALL snapshot(300, 200, 1)",
+        ],
+        ["snapshot"],
+    ),
+    "g11_city_report": (
+        (
+            "TAB in PRINT in SCREEN 12, after LOCATE and with numbers: the game's city report, the "
+            "lines of SUB report from its label cityrep on, over values written here"
+        ),
+        [
+            "DIM SHARED month$(12), city$(40), cityp(40), cityv(40), force$(2), control(2), income(2), cash(2)",
+            "SCREEN 12",
+            'month = 4: year = 1861: month$(4) = "April"',
+            'force$(0) = "NEUTRAL": force$(1) = "Union": force$(2) = "Rebel"',
+            "control(1) = 14: control(2) = 12: income(1) = 420: income(2) = 310: cash(1) = 1250: cash(2) = 980",
+            "FOR i = 1 TO 40",
+            'city$(i) = "City" + LTRIM$(STR$(i)): cityp(i) = i MOD 3: cityv(i) = 5 * i',
+            "NEXT i",
+            (3553, 3571, "CLS : LOCATE 1, 1: COLOR 14"),
+        ],
+        [],
+    ),
 }
 KEYS = {"g06_message_box": "text x\n"}
+
+# The whole game for a scripted game (OpenSpec change m3-scripted-game, design D1): every line of the
+# game byte for byte except the edits, each (line of the game, text the line must hold exactly once,
+# what that text becomes). The script stops when a line no longer holds its text. Line n of the copy
+# is line n of the game; what the copy is, is said in comments after its last line. Its keys file
+# (<name>.keys) is written by hand, not here.
+ANNOUNCE = "DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG"
+WAIT = 'DO WHILE INKEY$ = "": LOOP'
+COPIES = {
+    "g12_game": (
+        [
+            "Civil War Strategy played from a keys file (tools/screen/README.md, \"Prompts\"). Edits:",
+            "a fixed seed; no _FULLSCREEN (a test does not take the screen); SUB TICK returns at once",
+            "(its pauses only wait, and a key that came while one waits would be eaten); and before",
+            "each of the 14 places the game waits for a key, a line that announces the wait in byte",
+            "&H4F0 of conventional memory, which the keys file's prompt steps wait for.",
+        ],
+        [
+            (168, "_FULLSCREEN _SQUAREPIXELS, _SMOOTH", "' _FULLSCREEN _SQUAREPIXELS, _SMOOTH"),
+            (218, "RANDOMIZE TIMER", "RANDOMIZE 1861"),
+            *[
+                (n, WAIT, f"{ANNOUNCE}: {WAIT}")
+                for n in (662, 829, 1002, 1091, 2462, 2719, 3127, 3263, 3266, 3366, 3408, 3675)
+            ],
+            (3394, "INPUT a$", f"{ANNOUNCE}: INPUT a$"),
+            (4037, "start! = TIMER", "' start! = TIMER"),
+            (4038, "DO WHILE TIMER", "' DO WHILE TIMER"),
+            (
+                4855,
+                'crsr:   a$ = INKEY$: IF a$ = "" GOTO crsr',
+                f'crsr: {ANNOUNCE}: DO: a$ = INKEY$: LOOP WHILE a$ = ""',
+            ),
+        ],
+    ),
+}
+# The game's configuration (CWS.CFG: side, graf, noise, difficult, player, turbo!, randbal, train(1),
+# train(2), jancam, realism, batwon(1), batwon(2), casualty&(1), casualty&(2), history, bold) with these
+# fields changed: noise 0 (no sound, and no title music, which waits for its notes), history 0 (no
+# SHELL "copy ...", no DATE$ written).
+CONFIG_CHANGES = {2: "0", 15: "0"}
+# The pictures a program loads, by their names in the game's folder; copied into <name>.files/.
+FILES = {
+    "g07_mountains": ["MTN.VGA"],
+    "g08_icon": ["CWSICON.VGA"],
+    "g09_faces_forts": [f"FACE{k}.VGA" for k in range(1, 6)] + [f"FORT{k}.VGA" for k in range(3)],
+    # Every file the game reads, and its icon ($EXEICON needs it when the program is built).
+    "g12_game": [
+        "CITIES.GRD",
+        "CWS.INI",
+        "CWSLEAD.DAT",
+        "HISCORE.CWS",
+        "MTN.VGA",
+        "CWSICON.VGA",
+        "cws.ico",
+    ]
+    + [f"FACE{k}.VGA" for k in range(1, 6)]
+    + [f"FORT{k}.VGA" for k in range(3)],
+}
 
 
 def procedure(lines: list[bytes], name: str) -> list[bytes]:
@@ -89,24 +242,76 @@ def procedure(lines: list[bytes], name: str) -> list[bytes]:
     return lines[start[0] : end + 1]
 
 
+def head_lines(lines: list[bytes], head: list) -> list[bytes]:
+    """The lines before the procedures: written ones as they are, a (first, last, start) entry
+    as lines first to last of the game (counted from 1), whose first must start with `start`."""
+    out: list[bytes] = []
+    for item in head:
+        if isinstance(item, str):
+            out.append(item.encode())
+            continue
+        first, last, start = item
+        if not lines[first - 1].startswith(start.encode()):
+            raise SystemExit(f"{GAME.name} line {first} no longer starts with {start!r}")
+        out += lines[first - 1 : last]
+    return out
+
+
+def edited(lines: list[bytes], edits: list[tuple[int, str, str]]) -> list[bytes]:
+    """The game's lines with the edits made, each line checked to hold its text exactly once."""
+    out = list(lines)
+    for n, old, new in edits:
+        if out[n - 1].count(old.encode()) != 1:
+            raise SystemExit(f"{GAME.name} line {n} no longer holds {old!r} exactly once")
+        out[n - 1] = out[n - 1].replace(old.encode(), new.encode())
+    return out
+
+
+def config() -> bytes:
+    """The game's CWS.CFG with CONFIG_CHANGES made."""
+    fields = (GAME.parent / "CWS.CFG").read_bytes().strip().split(b",")
+    for i, value in CONFIG_CHANGES.items():
+        fields[i] = value.encode()
+    return b",".join(fields) + b"\n"
+
+
+def finish(name: str) -> None:
+    """The empty .screen of a program not recorded yet, its keys, and its data files."""
+    screen = OUT / f"{name}.screen"
+    if not screen.exists():
+        screen.write_bytes(b"")  # marks a screen program before its first recording
+    if name in KEYS:
+        (OUT / f"{name}.keys").write_bytes(KEYS[name].encode())
+    if name in FILES:
+        folder = OUT / f"{name}.files"
+        folder.mkdir(exist_ok=True)
+        for picture in FILES[name]:
+            shutil.copyfile(GAME.parent / picture, folder / picture)
+    print(f"{name}.bas")
+
+
 def main() -> int:
     lines = GAME.read_bytes().replace(b"\r\n", b"\n").split(b"\n")
     for name, (covers, head, procedures) in CUTS.items():
         out = [
             f"' Cut from Civil War Strategy (tools/screen/cut_game.py): {covers}.".encode(),
             b"DEFINT A-Z",
-            *(line.encode() for line in head),
+            *head_lines(lines, head),
             b"SYSTEM",
         ]
         for p in procedures:
             out += [b"", *procedure(lines, p)]
         (OUT / f"{name}.bas").write_bytes(b"\n".join(out) + b"\n")
-        screen = OUT / f"{name}.screen"
-        if not screen.exists():
-            screen.write_bytes(b"")  # marks a screen program before its first recording
-        if name in KEYS:
-            (OUT / f"{name}.keys").write_bytes(KEYS[name].encode())
-        print(f"{name}.bas")
+        finish(name)
+    for name, (about, edits) in COPIES.items():
+        body = edited(lines, edits)
+        while body and not body[-1]:
+            body.pop()
+        notes = [b"", b"' Copied from Civil War Strategy by tools/screen/cut_game.py."]
+        notes += [f"' {line}".encode() for line in about]
+        (OUT / f"{name}.bas").write_bytes(b"\n".join(body + notes) + b"\n")
+        finish(name)
+        (OUT / f"{name}.files" / "CWS.CFG").write_bytes(config())
     return 0
 
 

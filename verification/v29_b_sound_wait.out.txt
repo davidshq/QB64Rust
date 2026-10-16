@@ -1,0 +1,9 @@
+SOUND 440, 18.2 took over 0.4 s: yes, under 1.5 s: yes
+SOUND 440, 1 took under 0.3 s: yes
+PLAY T120 L1 C (2 s) took over 1.2 s: yes, under 2.5 s: yes
+after MB, PLAY T120 L1 C took under 0.3 s: yes, PLAY(0) over 1.5: yes
+after MB, SOUND 440, 18.2 took under 0.3 s: yes, PLAY(0) over 2.5: yes
+after MF, with 3 s queued, SOUND 440, 1 took over 1.5 s: yes
+after SOUND WAIT, SOUND 440, 18.2 took under 0.3 s: yes
+SOUND RESUME took under 0.3 s: yes, PLAY(0) over 0.5: yes
+exit=0

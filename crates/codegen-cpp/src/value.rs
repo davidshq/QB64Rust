@@ -2,40 +2,53 @@
 
 use crate::Emitter;
 use crate::decl::{dim_slot, is_qbs, lock_slot};
-use crate::names::{c_string, c_type, int_const, proc_name};
-use qb64rust_ir::{Arg, ArrayRef, BinOp, Conv, Expr, ExprKind, MemberId, Place, ProcId, Ty, UnOp};
+use crate::names::{bare, c_string, c_type, int_const, proc_name};
+use qb64rust_ir::{Arg, ArrayRef, BinOp, Conv, Expr, ExprKind, MemberId, Place, ProcId, Ty, UnOp, VarId};
 
 impl Emitter<'_> {
     /// Arguments of a call of `proc`: a place's own pointer (cast to the parameter's type when the place has the same
     /// width and the other signedness, as the old compiler passes it), a string temporary as it is, a numeric copy
     /// in a new `passN`, or a whole array's descriptor.
+    /// Not for a library procedure: its calls are `library_call`'s.
     pub(crate) fn args(&mut self, proc: ProcId, args: &[Arg]) -> String {
         let params = self.p.proc(proc).params.clone();
-        let parts: Vec<String> = args
-            .iter()
-            .zip(params)
-            .map(|(a, param)| match a {
-                Arg::Ref(place) => {
-                    let (from, to) = (self.p.place_ty(place), self.p.var(param).ty);
-                    let r = self.place_ref(place);
-                    if from == to || is_qbs(to) {
-                        r
-                    } else {
-                        format!("({}*)({r})", c_type(to))
-                    }
-                }
-                Arg::Temp(v) if is_qbs(v.ty) => self.value(v),
-                Arg::Temp(v) => {
-                    self.pass += 1;
-                    let n = format!("pass{}", self.pass);
-                    self.pass_decls.push(format!("{} {n};\n", c_type(v.ty)));
-                    format!("&({n}={})", self.value(v))
-                }
-                Arg::Array(ArrayRef::Var(a)) => self.name(*a),
-                Arg::Array(ArrayRef::Member { base, member }) => self.member_array_arg(base, *member),
-            })
-            .collect();
+        let parts: Vec<String> = args.iter().zip(params).map(|(a, param)| self.arg(a, param)).collect();
         parts.join(",")
+    }
+
+    /// One argument of a call, to parameter `param`.
+    pub(crate) fn arg(&mut self, a: &Arg, param: VarId) -> String {
+        match a {
+            Arg::Ref(place) => {
+                let (from, to) = (self.p.place_ty(place), self.p.var(param).ty);
+                let r = self.place_ref(place);
+                if from == to || is_qbs(to) {
+                    r
+                } else {
+                    format!("({}*)({r})", c_type(to))
+                }
+            }
+            Arg::Temp(v) if is_qbs(v.ty) => self.value(v),
+            Arg::Temp(v) => {
+                self.pass += 1;
+                let n = format!("pass{}", self.pass);
+                self.pass_decls.push(format!("{} {n};\n", c_type(v.ty)));
+                format!("&({n}={})", self.value(v))
+            }
+            Arg::Array(ArrayRef::Var(a)) => self.name(*a),
+            // A dynamic member array is passed as its descriptor: a `REDIM` or `ERASE` in the procedure
+            // changes the member (design D4 of `m3-typefields`).
+            Arg::Array(ArrayRef::Member { base, member }) if self.dynamic_member(base, *member).is_some() => {
+                let (id, m) = self.dynamic_member(base, *member).expect("a dynamic member array");
+                let slot = self.dyn_slot(base, *member);
+                format!("{}({slot})", crate::owner::dyn_fn(id, m, "desc"))
+            }
+            Arg::Array(ArrayRef::Member { base, member }) => self.member_array_arg(base, *member),
+            // To a `BYVAL` parameter of a library procedure: the converted value with no cast, or `NULL`
+            // (design D3 of `m3-declare-library`).
+            Arg::Value(v) => self.value(crate::library::byval_value(v)),
+            Arg::Null => "NULL".to_string(),
+        }
     }
 
     /// A whole member array as an array argument (design D8 of `m2-defxxx-common-arrays`; measured,
@@ -44,7 +57,7 @@ impl Emitter<'_> {
     /// its bounds written where it is declared; the argument sets its block, which finds the place the array is
     /// part of once. In the procedure an `ERASE` of it clears and a `REDIM` raises error 10, as for any static
     /// array passed.
-    fn member_array_arg(&mut self, base: &Place, member: MemberId) -> String {
+    pub(crate) fn member_array_arg(&mut self, base: &Place, member: MemberId) -> String {
         let dims = self.member_dims(base, member);
         let n = dims.len();
         // The block, an unused slot, the flags (allocated, static), an unused slot; four slots per dimension;
@@ -104,6 +117,18 @@ impl Emitter<'_> {
         }
     }
 
+    /// A value's text for a place the old compiler puts between parentheses or commas itself, where the two
+    /// texts are compared token by token (a part of a choice, an argument of a call written with a template
+    /// argument): without the parentheses this emitter writes around an operation or a conversion ([`bare`]). A
+    /// choice keeps its own, which the old compiler writes too.
+    pub(crate) fn inner(&mut self, v: &Expr) -> String {
+        let text = self.value(v);
+        if matches!(v.kind, ExprKind::Choice { .. }) {
+            return text;
+        }
+        bare(&text).to_string()
+    }
+
     pub(crate) fn value(&mut self, v: &Expr) -> String {
         match &v.kind {
             ExprKind::Int(i) => int_const(*i, v.ty),
@@ -128,11 +153,49 @@ impl Emitter<'_> {
                 let n = crate::decl::dim_count(self.p.var(*array));
                 format!("((int64){f}({},{d},{n}))", self.name(*array))
             }
+            // Of a dynamic member array: the place it is part of is found, and its descriptor gives the bounds
+            // (design D4 of `m3-typefields`; measured, `verification\v35_x59`).
+            ExprKind::Bound {
+                upper,
+                array: ArrayRef::Member { base, member },
+                dim,
+            } if self.dynamic_member(base, *member).is_some() => {
+                let (id, m) = self.dynamic_member(base, *member).expect("a dynamic member array");
+                let slot = self.dyn_slot(base, *member);
+                let d = dim.as_deref().map_or("1".to_string(), |d| self.value(d));
+                format!(
+                    "({}(*(ptrszint**){slot},{},{d}))",
+                    crate::owner::dyn_fn(id, m, "bound"),
+                    u8::from(*upper)
+                )
+            }
             ExprKind::Bound {
                 upper,
                 array: ArrayRef::Member { base, member },
                 dim,
             } => self.member_bound(*upper, base, *member, dim.as_deref()),
+            // As the old compiler writes them (`qb64pe.bas` 21328; measured, `study\00` §5): the element's checked
+            // flat position times the size of an element, and the array's distance from the start of libqb's
+            // conventional memory in 16-byte segments.
+            ExprKind::VarPtr { array, index } => {
+                let flat = self.flat_index(*array, index);
+                format!("(({flat})*{})", self.ty_size(self.p.var(*array).ty))
+            }
+            ExprKind::VarSeg { array } => {
+                format!(
+                    "( ( ((ptrszint)({}[0])) - ((ptrszint)(&cmem[0])) ) /16)",
+                    self.name(*array)
+                )
+            }
+            // The array of `_UCHARPOS`, as a graphics `GET` passes its array.
+            ExprKind::Block { array, index } => self.block(*array, index),
+            // Blocks and addresses of references (design D3 and D6 of `m3-mem`, `mem.rs`).
+            ExprKind::MemOf { of, element } => self.mem_of(of, *element),
+            ExprKind::MemRead { block, offset, of } => self.mem_read(block, offset, *of),
+            ExprKind::AddressOf(of) => self.address_of(of),
+            ExprKind::MemAt { offset, size } => {
+                format!("func__mem_at_offset({},{})", self.value(offset), self.value(size))
+            }
             ExprKind::Convert { how, from } => {
                 let x = self.value(from);
                 match (how, v.ty) {
@@ -203,7 +266,16 @@ impl Emitter<'_> {
                 };
                 format!("{f}({},{})", self.value(lhs), self.value(rhs))
             }
+            // `_IIF`, as the old compiler writes it (`qb64pe.bas` 20737): C++ evaluates the condition and then one
+            // part, and converts it to the common type of the two.
+            ExprKind::Choice { condition, then, else_ } => {
+                let (c, a, b) = (self.inner(condition), self.inner(then), self.inner(else_));
+                format!("(({c})?({a}):({b}))")
+            }
             ExprKind::Call { builtin: id, args } => self.call(*id, args, v.ty, v.qb),
+            ExprKind::CallProc { proc, args } if self.p.proc(*proc).external.is_some() => {
+                self.library_call(*proc, args)
+            }
             ExprKind::CallProc { proc, args } => {
                 let a = self.args(*proc, args);
                 format!("{}({a})", proc_name(self.p.proc(*proc)))

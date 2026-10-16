@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):PRINT TAB ( "a",1 ) ; 1
+LINE 7:PRINT TAB("a"); 1
+exit=1

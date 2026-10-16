@@ -1,0 +1,141 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: window, runtime parts: image codec
+Stmt line 10 may_raise
+  Assign IMG:I32 = CallBuiltin _LOADIMAGE:I32 [Some(Const "a.bmp"), Some(Const 32:I32), None]
+Stmt line 11 may_raise
+  Builtin _SAVEIMAGE [Value(Const "a.png"), Absent, Absent]
+Stmt line 12 may_raise
+  Builtin _SAVEIMAGE [Value(Const "a.png"), Value(Var IMG:I32), Absent]
+Stmt line 13 may_raise
+  Builtin _SAVEIMAGE [Value(Const "a.png"), Absent, Value(Const "bmp")]
+Stmt line 14 may_raise
+  Builtin _SAVEIMAGE [Value(Var T:Str), Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(Var T:Str)]
+Stmt line 15 may_raise
+  Builtin _PUTIMAGE [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 16 may_raise
+  Builtin _PUTIMAGE [Absent, Value((Const 10:I16 -> Convert F64 Nearest)), Value((Const 10:I16 -> Convert F64 Nearest)), Absent, Absent, Absent, Value(Var IMG:I32), Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 17 may_raise
+  Builtin _PUTIMAGE [Absent, Value((Const 0:I16 -> Convert F64 Nearest)), Value((Const 0:I16 -> Convert F64 Nearest)), Absent, Value((Const 99:I16 -> Convert F64 Nearest)), Value((Const 99:I16 -> Convert F64 Nearest)), Value(Var IMG:I32), Value(Const 0:I32), Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 18 may_raise
+  Builtin _PUTIMAGE [Word 0, Value((Const 5:I16 -> Convert F64 Nearest)), Value((Const 5:I16 -> Convert F64 Nearest)), Absent, Absent, Absent, Value(Var IMG:I32), Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 19 may_raise
+  Builtin _PUTIMAGE [Absent, Absent, Absent, Absent, Absent, Absent, Value(Var IMG:I32), Value(Const 0:I32), Absent, Value((Const 0:I16 -> Convert F64 Nearest)), Value((Const 0:I16 -> Convert F64 Nearest)), Absent, Value((Const 9:I16 -> Convert F64 Nearest)), Value((Const 9:I16 -> Convert F64 Nearest)), Absent]
+Stmt line 20 may_raise
+  Builtin _PUTIMAGE [Absent, Value((Const 0:I16 -> Convert F64 Nearest)), Value((Const 0:I16 -> Convert F64 Nearest)), Absent, Value((Const 9:I16 -> Convert F64 Nearest)), Value((Const 9:I16 -> Convert F64 Nearest)), Value(Var IMG:I32), Absent, Absent, Absent, Absent, Absent, Absent, Absent, Word 0]
+Stmt line 21 may_raise
+  Builtin _PUTIMAGE [Absent, Value((Const 0:I16 -> Convert F64 Nearest)), Value((Const 0:I16 -> Convert F64 Nearest)), Word 0, Value((Const 9:I16 -> Convert F64 Nearest)), Value((Const 9:I16 -> Convert F64 Nearest)), Value(Var IMG:I32), Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 22 may_raise
+  Builtin _PUTIMAGE [Word 0, Value((Const 1:I16 -> Convert F64 Nearest)), Value((Const 1:I16 -> Convert F64 Nearest)), Word 0, Value((Const 9:I16 -> Convert F64 Nearest)), Value((Const 9:I16 -> Convert F64 Nearest)), Value(Var IMG:I32), Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 23 may_raise
+  Builtin _PUTIMAGE [Absent, Absent, Absent, Absent, Absent, Absent, Value(Var IMG:I32), Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 24 may_raise
+  Builtin _PUTIMAGE [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Value(Const 0:I32), Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 25 may_raise
+  Builtin _PUTIMAGE [Absent, Absent, Absent, Absent, Absent, Absent, Value(Var IMG:I32), Value(Const 0:I32), Absent, Value((Const 1:I16 -> Convert F64 Nearest)), Value((Const 1:I16 -> Convert F64 Nearest)), Absent, Absent, Absent, Absent]
+Stmt line 26 may_raise
+  Builtin _PUTIMAGE [Absent, Absent, Absent, Absent, Absent, Absent, Value(Var IMG:I32), Value(Const 0:I32), Word 0, Value((Const 1:I16 -> Convert F64 Nearest)), Value((Const 1:I16 -> Convert F64 Nearest)), Word 0, Value((Const 3:I16 -> Convert F64 Nearest)), Value((Const 3:I16 -> Convert F64 Nearest)), Absent]
+Stmt line 27 may_raise
+  Builtin _PUTIMAGE [Absent, Value((Const 1:I16 -> Convert F64 Nearest)), Value((Const 2:I16 -> Convert F64 Nearest)), Absent, Absent, Absent, Value(Var IMG:I32), Value(Const 0:I32), Absent, Value((Const 1:I16 -> Convert F64 Nearest)), Value((Const 1:I16 -> Convert F64 Nearest)), Absent, Value((Const 3:I16 -> Convert F64 Nearest)), Value((Const 3:I16 -> Convert F64 Nearest)), Word 0]
+Stmt line 28 may_raise
+  Builtin _PUTIMAGE [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Value((Const 1:I16 -> Convert F64 Nearest)), Value((Const 1:I16 -> Convert F64 Nearest)), Absent, Value((Const 3:I16 -> Convert F64 Nearest)), Value((Const 3:I16 -> Convert F64 Nearest)), Absent]
+Stmt line 29 may_raise
+  Builtin _PUTIMAGE [Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Word 0]
+Stmt line 30 may_raise
+  Builtin _PUTIMAGE [Absent, Value((Var I:I16 -> Convert F64 Nearest)), Value((Var L:I32 -> Convert F64 Nearest)), Absent, Value((Var Q:I64 -> Convert F64 Nearest)), Value((Var S:F32 -> Convert F64 Widen)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(((Var F:F80 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Absent, Value((Var U:U32 -> Convert F64 Nearest)), Value((Var U:U32 -> Convert F64 Nearest)), Absent, Value((Var I:I16 -> Convert F64 Nearest)), Value((Var I:I16 -> Convert F64 Nearest)), Absent]
+Stmt line 31 may_raise
+  Builtin _PUTIMAGE [Absent, Value((Const 1:I16 -> Convert F64 Nearest)), Value((Const 2:I16 -> Convert F64 Nearest)), Absent, Value((Const 3:I16 -> Convert F64 Nearest)), Value((Const 4:I16 -> Convert F64 Nearest)), Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 32 may_raise
+  Builtin _MAPTRIANGLE [Absent, Absent, Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Var IMG:I32), Word 0, Value(Const 10:I16), Value(Const 10:I16), Absent, Value(Const 50:I16), Value(Const 10:I16), Absent, Value(Const 10:I16), Value(Const 50:I16), Absent, Absent, Absent]
+Stmt line 33 may_raise
+  Builtin _MAPTRIANGLE [Absent, Absent, Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Var IMG:I32), Word 0, Value(Const 10:I16), Value(Const 10:I16), Absent, Value(Const 50:I16), Value(Const 10:I16), Absent, Value(Const 10:I16), Value(Const 50:I16), Absent, Value(Const 0:I32), Word 0]
+Stmt line 34 may_raise
+  Builtin _MAPTRIANGLE [Absent, Absent, Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Var IMG:I32), Word 0, Value(Const 10:I16), Value(Const 10:I16), Absent, Value(Const 50:I16), Value(Const 10:I16), Absent, Value(Const 10:I16), Value(Const 50:I16), Absent, Absent, Word 1]
+Stmt line 35 may_raise
+  Builtin _MAPTRIANGLE [Absent, Absent, Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Var IMG:I32), Word 0, Value(Const 10:I16), Value(Const 10:I16), Absent, Value(Const 50:I16), Value(Const 10:I16), Absent, Value(Const 10:I16), Value(Const 50:I16), Absent, Absent, Word 2]
+Stmt line 36 may_raise
+  Builtin _MAPTRIANGLE [Absent, Word 0, Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Var IMG:I32), Word 0, Value(Const 10:I16), Value(Const 10:I16), Absent, Value(Const 50:I16), Value(Const 10:I16), Absent, Value(Const 10:I16), Value(Const 50:I16), Absent, Absent, Absent]
+Stmt line 37 may_raise
+  Builtin _MAPTRIANGLE [Word 0, Absent, Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Var IMG:I32), Word 0, Value(Const 10:I16), Value(Const 10:I16), Absent, Value(Const 50:I16), Value(Const 10:I16), Absent, Value(Const 10:I16), Value(Const 50:I16), Absent, Absent, Absent]
+Stmt line 38 may_raise
+  Builtin _MAPTRIANGLE [Word 1, Word 0, Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Var IMG:I32), Word 0, Value(Const 10:I16), Value(Const 10:I16), Absent, Value(Const 50:I16), Value(Const 10:I16), Absent, Value(Const 10:I16), Value(Const 50:I16), Absent, Absent, Absent]
+Stmt line 39 may_raise
+  Builtin _MAPTRIANGLE [Absent, Absent, Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Absent, Word 0, Value(Const 10:I16), Value(Const 10:I16), Absent, Value(Const 50:I16), Value(Const 10:I16), Absent, Value(Const 10:I16), Value(Const 50:I16), Absent, Absent, Absent]
+Stmt line 40 may_raise
+  Builtin _MAPTRIANGLE [Absent, Absent, Value(Var I:I16), Value(Var L:I32), Value(Var Q:I64), Value(Var S:F32), Value(Var D:F64), Value(Var F:F80), Value((Var U:U32 -> Convert I32 Truncate)), Word 0, Value(Var I:I16), Value(Var L:I32), Absent, Value(Var Q:I64), Value(Var S:F32), Absent, Value(Var D:F64), Value(Var F:F80), Absent, Value((Var U:U32 -> Convert I32 Truncate)), Absent]
+Stmt line 41 may_raise
+  Builtin _MAPTRIANGLE [Absent, Absent, Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Var IMG:I32), Word 0, Value(Const 10:I16), Value(Const 10:I16), Value(Const -1:I16), Value(Const 50:I16), Value(Const 10:I16), Value(Const -1:I16), Value(Const 10:I16), Value(Const 50:I16), Value(Const -1:I16), Value(Const 0:I32), Word 0]
+Stmt line 42 may_raise
+  Builtin _MAPTRIANGLE [Absent, Absent, Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Var IMG:I32), Word 0, Value(Const 10:I16), Value(Const 10:I16), Value(Const -1:I16), Value(Const 50:I16), Value(Const 10:I16), Absent, Value(Const 10:I16), Value(Const 50:I16), Absent, Absent, Absent]
+Stmt line 43 may_raise
+  Builtin _CLEARCOLOR [Absent, Absent, Absent]
+Stmt line 44 may_raise
+  Builtin _CLEARCOLOR [Absent, Value(Const 4:U32), Absent]
+Stmt line 45 may_raise
+  Builtin _CLEARCOLOR [Absent, Value(Const 4:U32), Value(Var IMG:I32)]
+Stmt line 46 may_raise
+  Builtin _CLEARCOLOR [Word 0, Absent, Absent]
+Stmt line 47 may_raise
+  Builtin _CLEARCOLOR [Word 0, Absent, Value(Var IMG:I32)]
+Stmt line 48 may_raise
+  Builtin _CLEARCOLOR [Word 0, Value(Const 4:U32), Absent]
+Stmt line 49 may_raise
+  Builtin _CLEARCOLOR [Absent, Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert U32 Truncate)), Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 50 may_raise
+  Builtin _SETALPHA [Value(Const 128:U32), Absent, Absent, Absent, Absent]
+Stmt line 51 may_raise
+  Builtin _SETALPHA [Value(Const 128:U32), Absent, Absent, Absent, Value(Var IMG:I32)]
+Stmt line 52 may_raise
+  Builtin _SETALPHA [Value(Const 128:U32), Value(Const 5:U32), Absent, Absent, Absent]
+Stmt line 53 may_raise
+  Builtin _SETALPHA [Value(Const 128:U32), Value(Const 5:U32), Word 0, Value(Const 9:U32), Value(Var IMG:I32)]
+Stmt line 54 may_raise
+  Builtin _SETALPHA [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert U32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert U32 Truncate)), Word 0, Value((Var Q:I64 -> Convert U32 Truncate)), Value((Var I:I16 -> Convert I32 Widen))]
+Stmt line 55 may_raise
+  Builtin _BLEND [Absent]
+Stmt line 56 may_raise
+  Builtin _BLEND [Value(Var IMG:I32)]
+Stmt line 57 may_raise
+  Builtin _DONTBLEND [Absent]
+Stmt line 58 may_raise
+  Builtin _DONTBLEND [Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 59 may_raise
+  Builtin _PALETTECOLOR [Value(Const 3:I32), Value(CallBuiltin _RGB32:U32 [Some(Const 10:I32), Some(Const 20:I32), Some(Const 30:I32), None]), Absent]
+Stmt line 60 may_raise
+  Builtin _PALETTECOLOR [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert U32 Truncate)), Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 61 may_raise
+  Builtin _COPYPALETTE [Absent, Absent]
+Stmt line 62 may_raise
+  Builtin _COPYPALETTE [Value(Var IMG:I32), Absent]
+Stmt line 63 may_raise
+  Builtin _COPYPALETTE [Absent, Value(Var IMG:I32)]
+Stmt line 64 may_raise
+  Builtin _COPYPALETTE [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 65 may_raise
+  Builtin _AUTODISPLAY []
+Stmt line 66 may_raise
+  Builtin _FREEIMAGE [Value(Var IMG:I32)]
+Stmt line 67 may_raise
+  Builtin _FREEIMAGE [Absent]
+Stmt line 68 may_raise
+  Builtin _PUTIMAGE [Absent, Value((Const 10:I16 -> Convert F64 Nearest)), Value((Const 10:I16 -> Convert F64 Nearest)), Absent, Absent, Absent, Value(Var IMG:I32), Absent, Absent, Absent, Absent, Absent, Absent, Absent, Absent]
+Stmt line 69 may_raise
+  Builtin _SETALPHA [Value(Const 128:U32), Value(Const 5:U32), Word 0, Value(Const 9:U32), Absent]
+Stmt line 70 may_raise
+  Builtin _CLEARCOLOR [Word 0, Absent, Absent]
+Stmt line 71 may_raise
+  Builtin _BLEND [Absent]
+Stmt line 72 may_raise
+  Builtin _AUTODISPLAY []
+Stmt line 73 may_raise
+  Builtin _SAVEIMAGE [Value(Const "a.png"), Absent, Absent]
+Stmt line 74 may_raise
+  Builtin _COPYPALETTE [Absent, Absent]
+Stmt line 75 may_raise
+  Builtin _PALETTECOLOR [Value(Const 3:I32), Value(Const 4:U32), Absent]
+Stmt line 76 may_raise
+  Builtin _DONTBLEND [Value(Var IMG:I32)]
+Stmt line 77 may_raise
+  Builtin _MAPTRIANGLE [Absent, Absent, Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Const 0:I16), Value(Const 0:I16), Value(Const 9:I16), Value(Var IMG:I32), Word 0, Value(Const 10:I16), Value(Const 10:I16), Absent, Value(Const 50:I16), Value(Const 10:I16), Absent, Value(Const 10:I16), Value(Const 50:I16), Absent, Absent, Absent]

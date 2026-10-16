@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: MKI$(integerVariableOrLiteral%)
+Caused by (or after):S = MKI$ ( 1 , 2 )
+LINE 9:s = MKI$(1, 2)
+exit=1

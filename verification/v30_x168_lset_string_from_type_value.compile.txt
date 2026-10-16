@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):LSET A = R
+LINE 15:a = "....": LSET a = r
+exit=1

@@ -1,0 +1,156 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+line 2: ConsoleOnly
+line 10: Print newline
+  Num
+    Call _SHL : U64
+      Convert Truncate : U64
+        Var I : I16
+      Int 2 : I32
+  Num
+    Call _SHR : U64
+      Convert Truncate : U64
+        Convert RoundEven : I64
+          Var S : F32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var D : F64
+  Num
+    Call _SHL : U64
+      Int 1 : U64
+      Int 2 : I32
+  Num
+    Call _SHR : U64
+      Convert Truncate : U64
+        Var Q : I64
+      Convert Truncate : I32
+        Var Q : I64
+  Num
+    Call _SHL : U64
+      Var UQ : U64
+      Convert Widen : I32
+        Var UB : U8
+  Num
+    Call _SHR : U64
+      Int -1 : U64
+      Int 1 : I32
+line 11: Print newline
+  Num
+    Call _ROL : U8
+      Var B : I8
+      Int 1 : I16
+  Num
+    Call _ROL : U8
+      Var UB : U8
+      Int 1 : I16
+  Num
+    Call _ROL : U16
+      Var I : I16
+      Int 1 : I16
+  Num
+    Call _ROL : U16
+      Var UI : U16
+      Int 1 : I16
+  Num
+    Call _ROL : U32
+      Var L : I32
+      Int 1 : I16
+  Num
+    Call _ROL : U32
+      Var UL : U32
+      Int 1 : I16
+  Num
+    Call _ROL : U64
+      Var Q : I64
+      Int 1 : I16
+  Num
+    Call _ROL : U64
+      Var UQ : U64
+      Int 1 : I16
+line 12: Print newline
+  Num
+    Call _ROR : U64
+      Var O : Off
+      Int 1 : I16
+  Num
+    Call _ROR : U64
+      Var UO : UOff
+      Int 1 : I16
+  Num
+    Call _ROR : U8
+      Var B8 : I32 (qb Bit8)
+      Int 1 : I16
+line 14: Print newline
+  Num
+    Call _ROL : U16
+      Int 1 : I16
+      Int 2 : I16
+  Num
+    Call _ROL : U32
+      Int 70000 : I32
+      Var I : I16
+  Num
+    Call _ROR : U64
+      Int 5000000000 : I64
+      Var L : I32
+  Num
+    Call _ROL : U16
+      Int -1 : I16
+      Int 1 : I16
+  Num
+    Call _ROL : U64
+      Binary Add : I32 (qb I64)
+        Convert Widen : I32
+          Var I : I16
+        Int 1 : I32
+      Int 2 : I16
+line 16: Print newline
+  Num
+    Call _ROL : U8
+      Var B : I8
+      Var Q : I64
+  Num
+    Call _ROR : U32
+      Var L : I32
+      Var UB : U8
+  Num
+    Call _ROL : U16
+      Var I : I16
+      Var UQ : U64
+line 18: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Convert Widen : I32
+      Call _ROL : U16
+        Var I : I16
+        Int 1 : I16
+    Int 1 : I32
+line 19: Assign UQ:U64
+  Binary Or : U64
+    Call _SHL : U64
+      Int 1 : U64
+      Int 40 : I32
+    Call _SHR : U64
+      Var UQ : U64
+      Int 1 : I32
+line 20: Assign V:Str
+  Concat : Str
+    Call HEX : Str
+      Call _ROL : U8
+        Var B : I8
+        Int 1 : I16
+    Call HEX : Str
+      Call _SHL : U64
+        Convert Truncate : U64
+          Var B : I8
+        Int 1 : I32
+line 21: Print newline
+  Num
+    Call _MIN : U16
+      Call _ROL : U16
+        Var I : I16
+        Int 1 : I16
+      Var B : I8
+line 22: System

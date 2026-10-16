@@ -1,0 +1,47 @@
+at start: 0  0  0 
+SOUND
+SOUND 440, 18.2, 0: 10 
+SOUND 880, 9.1, 0: 5 
+SOUND 440, 27.3, 0: 15 
+SOUND 0, 18.2, 0: 10 
+SOUND 0, 18.2, with a trailing comma: 10 
+SOUND 440, 0, 0: 0 
+an INTEGER, a LONG of 91 and an _INTEGER64: 50 
+a LONG, a SINGLE of 9.1: 5 
+all seven, a DOUBLE of 18.2: 10 
+CALL SOUND(440, 18.2, 0): 10 
+pan -1, waveform 3: 10 
+PLAY
+T120 L4 C: 5 
+C (the tempo and the length are kept): 5 
+T120 L4 C D E: 15 
+T60 L1 C: 40 
+T60 L4 C.: 15 
+T120 L4 C2: 10 
+T120 P4: 5 
+T120 L4 N0: 5 
+T120 L4 N37: 5 
+MS T120 L4 C: 5 
+ML T120 L4 C: 5 
+MN T120 L4 C: 5 
+t120 l4 o3 c# d- e+ >c <c: 25 
+the empty string: 0 
+MST150o1e8o0b8o1e8e8: 8 
+a variable: 5 
+an expression: 10 
+a trailing comma: 5 
+CALL PLAY(t): 5 
+a fixed-length string: 5 
+voices
+voice 1: SOUND 440, 18.2, 0, , , , 1: 10 
+voice 1: the second string, T120 L2 C: 10 
+voice 2: the third string: 10 
+voice 3: the fourth string, a fixed-length string: 5 
+voice 3: of four strings: 5 
+voice 0 has over 5 s left:-1 -1  as have the voices 4 and -1:-1 -1 
+voices 1 and 2 by a variable:-1 -1 
+SOUND WAIT
+held back: SOUND 440, 18.2, 0, , , , 1: 0 
+SOUND RESUME: 10 
+SOUND 440, 18.2, 0, , , , 1 WAIT: 0 
+SOUND 880, 9.1, 0, , , , 1 RESUME: 15 

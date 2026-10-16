@@ -1,0 +1,5 @@
+
+Invalid TYPE name
+Caused by (or after):PRINT _MEMGET ( M , M . OFFSET , FOO )
+LINE 9:PRINT _MEMGET(m, m.OFFSET, FOO)
+exit=1

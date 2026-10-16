@@ -1,0 +1,129 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+Settings: console, no window, runtime parts: printer
+Stmt line 2
+  SelectConsole
+Stmt line 10 may_raise
+  PrintUsing console newline
+    Format Const "##"
+    Num as I64: Var B:I8
+    Num as I64: Var I:I16
+    Num as I64: Var L:I32
+    Num as I64: Var UL:U32
+    Num as I64: Var Q:I64
+    Num as U64: Var UQ:U64
+    Num as I64: Var O:Off
+    Num as U64: Var UO:UOff
+Stmt line 11 may_raise
+  PrintUsing console newline
+    Format Const "#.##^^^^"
+    Num as F32: Var S:F32
+    Num as F64: Var D:F64
+    Num as F80: Var F:F80
+    Num as F32: Const 1234.0E+0:F64
+    Num as F64: Const 1234.0E+0:F64
+    Num as I64: Const 5:I16
+    Num as I64: Add:I32((Var I:I16 -> Convert I32 Widen), Const 1:I32) wrap
+    Num as F80: Div:F80((Var L:I32 -> Convert F80 Nearest), (Const 2:I16 -> Convert F80 Nearest))
+Stmt line 12 may_raise
+  PrintUsing console newline
+    Format Const "& ! \  \"
+    Str Var V:Str
+    Str Var X:Str
+    Str Concat(Const "lit", Var V:Str)
+Stmt line 14 may_raise
+  PrintUsing console newline
+    Format Var V:Str
+    Num as I64: Var I:I16
+Stmt line 15 may_raise
+  PrintUsing console newline
+    Format Concat(Var V:Str, CallBuiltin LEFT:Str [Some(Const "###xx"), Some(Const 3:I32)])
+    Num as I64: Var I:I16
+Stmt line 16 may_raise
+  PrintUsing console newline
+    Format CallProc FMT:Str []
+    Num as I64: Const 1:I16
+    Num as I64: Const 2:I16
+    Num as I64: Const 3:I16
+Stmt line 18 may_raise
+  PrintUsing console newline
+    Format Const "## ##"
+    Num as I64: Const 1:I16
+    Blanks CallBuiltin TAB:Str [Some(Const 10:I32)]
+    Num as I64: Const 2:I16
+    Blanks CallBuiltin SPC:Str [Some((Var I:I16 -> Convert I32 Widen))]
+    Num as I64: Const 3:I16
+Stmt line 19 may_raise
+  PrintUsing console newline
+    Format Const "&"
+    Str Concat(CallBuiltin TAB:Str [Some(Const 3:I32)], Const "x")
+Stmt line 21 may_raise
+  PrintUsing console newline
+    Str Const "a"
+    Format Const "##"
+    Num as I64: Const 5:I16
+Stmt line 22 may_raise
+  PrintUsing console newline
+    Num Const 1:I16
+    Num Const 2:I16
+    Format Const "##"
+    Num as I64: Const 3:I16
+Stmt line 23 may_raise
+  PrintUsing console newline
+    Str Const "a"
+    Zone
+    Format Const "##"
+    Num as I64: Const 5:I16
+Stmt line 25 may_raise
+  PrintUsing console
+    Format Const "##"
+    Num as I64: Const 1:I16
+Stmt line 26 may_raise
+  PrintUsing console
+    Format Const "##"
+    Num as I64: Const 1:I16
+Stmt line 27 may_raise
+  PrintUsing console newline
+    Format Const "##x"
+    Num as I64: Const 1:I16
+    Num as I64: Const 2:I16
+    Num as I64: Const 3:I16
+Stmt line 29 may_raise
+  PrintUsing file Const 1:I32 newline
+    Format Const "##.##"
+    Num as F64: Var D:F64
+Stmt line 30 may_raise
+  PrintUsing file Add:I32(Var L:I32, Const 1:I32) wrap
+    Str Const "x"
+    Format Var V:Str
+    Num as I64: Var I:I16
+    Str Var V:Str
+Stmt line 31 may_raise
+  PrintUsing console newline
+    Format Const "##"
+    Num as I64: Const 5:I16
+Stmt line 33
+  Branch Zero -> @0 Skip: Var I:I16
+Stmt line 33 may_raise
+  Print printer newline
+    Str Const "a"
+    Num Var I:I16
+    Zone
+    Str Var V:Str
+Label @0 line 33
+Stmt line 34
+  Branch Zero -> @1 Skip: Var I:I16
+Stmt line 34 may_raise
+  PrintUsing printer
+    Format Const "##"
+    Num as I64: Var I:I16
+Label @1 line 34
+Stmt line 35
+  System
+Function FMT:Str lines 36-38
+  result FMT:Str
+Stmt line 37
+  Assign FMT(result):Str = Const "#"

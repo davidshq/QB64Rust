@@ -1,0 +1,17 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: window
+Stmt line 5 may_raise
+  Builtin _MOUSEMOVE [Value((Const 10:I16 -> Convert F64 Nearest)), Value((Const 20:I16 -> Convert F64 Nearest))]
+Stmt line 6 may_raise
+  Builtin _MOUSEMOVE [Value((Var I:I16 -> Convert F64 Nearest)), Value((Var L:I32 -> Convert F64 Nearest))]
+Stmt line 7 may_raise
+  Builtin _MOUSEMOVE [Value((Var Q:I64 -> Convert F64 Nearest)), Value((Var S:F32 -> Convert F64 Widen))]
+Stmt line 8 may_raise
+  Builtin _MOUSEMOVE [Value(Var D:F64), Value((Var F:F80 -> Convert F64 Nearest))]
+Stmt line 9 may_raise
+  Builtin _MOUSEMOVE [Value((Var U:U32 -> Convert F64 Nearest)), Value((Var U:U32 -> Convert F64 Nearest))]
+Stmt line 10 may_raise
+  Builtin _MOUSEMOVE [Value((Const 10:I16 -> Convert F64 Nearest)), Value((Const 20:I16 -> Convert F64 Nearest))]

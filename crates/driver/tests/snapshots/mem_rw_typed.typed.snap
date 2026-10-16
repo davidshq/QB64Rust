@@ -1,0 +1,67 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+TYPE _MEM
+  OFFSET:Off
+  SIZE:Off
+  $_LOCK_ID:I64
+  $_LOCK_OFFSET:Off
+  TYPE:Off
+  ELEMENTSIZE:Off
+  IMAGE:I32
+  SOUND:I32
+TYPE T
+  A:I16
+  D:F64
+  MM:T:_MEM
+ARRAY Z:T:_MEM(0 TO 2)
+line 2: ConsoleOnly
+line 12: Assign K:I32
+  MemRead M as I32 : I32
+    Var O : Off
+line 13: Assign D:F64
+  MemRead M as F64 : F64
+    Convert Truncate : Off
+      Binary Add : I64 (qb Off)
+        Convert Truncate : I64
+          Member M.OFFSET : Off
+        Int 8 : I64
+line 14: Print newline
+  Num
+    MemRead M as U8 : U8
+      Var O : Off
+  Num
+    MemRead Z(…) as I16 : I16
+      Int 1 : I64
+      Int 5 : Off
+  Num
+    MemRead U.MM as UOff : UOff
+      Convert Widen : Off
+        Var K : I32
+line 15: Assign F:Str*4
+  MemRead M as Str*4 : Str
+    Var O : Off
+line 16: Print newline
+  Str
+    Concat : Str
+      MemRead M as Str*2 : Str
+        Var O : Off
+      Str "!" : Str
+line 17: Assign U:T:T
+  MemRead M as T:T : T:T
+    Var O : Off
+line 18: Assign FL:F80
+  Binary Add : F80
+    MemRead M as F80 : F80
+      Var O : Off
+    Convert Nearest : F80
+      Int 1 : I16
+line 19: Assign Z(…):T:_MEM
+  Index
+    Int 2 : I64
+  Value
+    MemRead M as T:_MEM : T:_MEM
+      Var O : Off
+line 20: System

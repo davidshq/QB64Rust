@@ -1,0 +1,18 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+exeicon_errors.bas:9:1: error: expected `$EXEICON:'filename'`
+exeicon_errors.bas:10:1: error: expected `$EXEICON:'filename'`
+exeicon_errors.bas:11:1: error: expected `$EXEICON:'filename'`
+exeicon_errors.bas:12:1: error: expected `$EXEICON:'filename'`
+exeicon_errors.bas:13:1: error: not supported yet: a `$EXEICON` name that neither starts with `./` nor is absolute
+exeicon_errors.bas:14:1: error: not supported yet: a `$EXEICON` name that neither starts with `./` nor is absolute
+exeicon_errors.bas:15:1: error: not supported yet: a `$EXEICON` name that neither starts with `./` nor is absolute
+exeicon_errors.bas:17:1: error: `$EXEICON` is already defined in line 16
+exeicon_errors.bas:18:1: error: `$EXEICON` is already defined in line 16
+exeicon_errors.bas:19:1: error: `$EXEICON` is already defined in line 16
+exeicon_errors.bas:21:8: error: a metacommand must stand at the start of a line
+exeicon_errors.bas:22:2: error: a metacommand must not have a tab before it
+inc/exeicon.bi:1:1: error: `$EXEICON` is already defined in line 16

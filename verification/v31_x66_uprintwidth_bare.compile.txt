@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _UPRINTWIDTH&(text$[, utfEncoding&][, fontHandle&])
+Caused by (or after):PRINT _UPRINTWIDTH
+LINE 5:PRINT _UPRINTWIDTH
+exit=1

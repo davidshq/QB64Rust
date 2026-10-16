@@ -1,0 +1,5 @@
+
+$EXEICON already defined in line 4 in line 1 of <verification>\v29_inc/exeicon.bi included
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 5:$EXEICON:'./v29_inc/icon.ico'
+exit=1

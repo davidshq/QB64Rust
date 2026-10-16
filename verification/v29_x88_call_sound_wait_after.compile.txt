@@ -1,0 +1,5 @@
+
+Expected CALL sub-name (...)
+Caused by (or after):CALL SOUND ( 440 , 1 ) WAIT
+LINE 7:CALL SOUND(440, 1) WAIT
+exit=1

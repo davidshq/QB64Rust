@@ -1,0 +1,5 @@
+
+Expected _MEM type
+Caused by (or after):_MEMGET K , 0 , K
+LINE 9:_MEMGET k, 0, k
+exit=1

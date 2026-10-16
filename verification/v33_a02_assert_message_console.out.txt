@@ -1,0 +1,6 @@
+before
+bad
+
+Runtime error: Line: 5 (in main module)
+_ASSERT failed (check console for description)
+exit=0

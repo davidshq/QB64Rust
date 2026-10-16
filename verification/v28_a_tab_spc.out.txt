@@ -1,0 +1,32 @@
+a    b         c
+abcdefgh    below
+a   bc
+   7            -7 
+    
+    x
+    string after
+x       y  z
+   i     s r
+zeronegative
+123456789         at ten         again
+wide    past the width
+big                                       far
+     spc past the width
+pq
+ 1                     1       1 
+[     ] 5 
+[    ] 4 
+ab[     ] 5 
+ 11  2 
+abcdef 2  32 
+"  ","  "
+screen
+[a   b    c]
+[abcdefgh]
+[    below]
+[a   b]
+[    ]
+[    x]
+[ 7         -7                z]
+[f  g]
+exit=0

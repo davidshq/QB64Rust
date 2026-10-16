@@ -1,0 +1,5 @@
+
+2nd sub argument requires a number
+Caused by (or after):BLOAD "f",1 , "g",1
+LINE 7:BLOAD "f", "g"
+exit=1

@@ -46,7 +46,7 @@ changing direction, design or scope.**
      Neither is imported or built on (decisions in `DECISIONS.md`: the extension is written fresh; QB64Fresh's
      front end and IR are unsound). A self-contained helper, test, grammar fragment or fixture may be copied when
      it saves time, provided it is read in full, fits the design here, and anything it asserts about QB64pe is
-     checked against `qb64pe.exe`. QB64Fresh's 261 `runtime_comparison` BASIC programs are taken as test inputs.
+     checked against `qb64pe.exe`. QB64Fresh's `runtime_comparison` BASIC programs are taken as test inputs.
      *Why:* the reviews (`study\archive`) found their architecture unreliable, not their provenance; a blanket
      ban would be a handicap (user, 2026-10-03).
 6. **"The panel"** means a review by these roles: a pragmatic engineer, a QB64 engineer, a compiler/languages
@@ -72,6 +72,32 @@ changing direction, design or scope.**
    runs are rare; the user: "it isn't going to take time", and about 80% of the pragmatic engineer's timing
    objections would go away (user, 2026-10-10).
 
+9. **Test cadence: run what a change can affect, once.**
+   - While working: `cargo test` (tier 1), with fmt and clippy before a group is reported done.
+   - Tier 2 (the slice list, the pass lists, the call-site check) runs **once per change, at its close**, not per
+     task group. Before that, run only the programs the work touches (`--glob`, `--category`, a short `--list`),
+     or a list with `--pass-cache target\pass-cache`, which runs only the programs whose executable changed.
+     The closing runs go without `--pass-cache`: it cannot see a result that depends on time or load.
+   - The run without folding (`QB64RUST_NO_FOLD=1`) and the two full suites run once, at the close.
+   - After the closing runs, a further edit is rerun only for what it can affect; say which runs were not
+     repeated and why that is safe.
+   - **Read a run's output from a log, not by running it again.** Send a run that may need a second look to a
+     file (`cargo test > target\t1.log 2>&1`, then `tail`/`grep` the file); a run piped through `tail` or `grep`
+     whose lines turn out to say too little is not started again with another filter. *Why:* by 2026-10-14, 84
+     `cargo test` runs had been repeated with nothing edited, after a failure or an output cut down to nothing
+     (`tools\testtime\REPORT.md`, about 22 minutes).
+   - Do not write "tier 2 after every group" or "check CI after the push" into a change's `tasks.md`.
+   - **CI is not a gate.** Look at it when the user asks. The `tier2` job runs by hand and weekly, not on a push.
+     Claude may start a CI run (`gh workflow run`), but never waits on one: the next piece of work goes ahead,
+     and the result is read when it comes (user, 2026-10-16).
+   - **Every test run is on record** (`tools\testtime\`, user, 2026-10-13): at the close of a change run
+     `python tools\testtime\test_time.py` and name its three files among those to stage. Start a test run by
+     its own command, not through a script file, or the record does not see it.
+
+   *Why:* in the session that built `m3-window-output` the slice list ran five times, the call-site check
+   three times at almost six minutes each, and two tasks waited on CI; the user: "it feels like we run the tests
+   over and over", "not sure why you are so insistent on making ci be green" (user, 2026-10-12).
+
 ## Project decisions
 
 The decision log is **`DECISIONS.md`** (one dated row per decision, oldest first; moved out of this file on
@@ -80,9 +106,13 @@ Expert-panel recommendations: `study\07-expert-panel.md`. Open questions: `STATU
 
 ## Layout
 
+This table says where things are, not how many: counts live in the files that are regenerated or updated with
+them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folder's `README.md` (ninth review,
+`study\30` §2).
+
 | Path | Content |
 |---|---|
-| `STATUS.md` | The current state only: where we are, open items, next steps, numbers of the last full runs, known bugs. No history: a finished step changes a line, it does not add a paragraph (its first table says where everything else lives) |
+| `STATUS.md` | The current state only: where we are, what is waiting on the user, next steps, numbers of the last full runs, known bugs. No history: a finished step changes a line, it does not add a paragraph (its first table says where everything else lives) |
 | `ROADMAP.md` | Short overview from start to finish: milestones M0–M6, what is done, what is left |
 | `DECISIONS.md` | Decision log: every project decision, dated, with the document that holds its details |
 | `DIVERGENCES.md` | Divergence register: decided differences from the old compiler's observed behaviour |
@@ -94,26 +124,28 @@ Expert-panel recommendations: `study\07-expert-panel.md`. Open questions: `STATU
 | `study\progress-record.md` | Closed record: the per-change history `STATUS.md` held until 2026-10-09 (M0 to M2 step 8), moved unchanged. Not added to |
 | `study\archive\` | Closed reviews of other repositories, kept for the record only: `11` existing VS Code extensions, `12` QB64Fresh (the user's earlier Rust rewrite), `13` reference-doc sources, `14` the `docs-new-2` branch, and `qb64fresh-scripts\` (measurements behind `12`). Their conclusions are in `study\00` §11; nothing in the active plan depends on reading them. |
 | `Cargo.toml`, `crates\` | The new compiler `qb64rust` (Rust workspace, one crate per stage; `crates\README.md`: crate map, build, tests, snapshots) |
+| `mise.toml` | Tool versions for this repo, read by mise: Node 24 (for `vscode\`) |
 | `vscode\` | M1 VS Code extension (`qb64rust`): sources, tests, fixtures, `README.md`, `DEVELOPMENT.md` |
-| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release; `rust.yml` runs fmt, clippy, `cargo test` (tier 1) and the test runner's own tests on Windows, and tier 2 (the call-site check, slice list, upstream pass list, differential pass list) against QB64pe's sources at the reference clone's commit; `repo-check.yml` runs `tools\repo_check` on every push |
-| `tests\corpus\` | Golden corpus: 367 programs with the old compiler's recorded output or compile error (`README.md`), including the `slice\` group and `screen\` (29 programs with a window, each with the recorded state of its screen, `.screen`); checked by `run_legacy_tests.py --suite corpus`; `slice.list` names the 297 the new compiler must pass |
+| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release; `rust.yml` runs fmt, clippy, `cargo test` (tier 1), the test runner's own tests and those of `tools\testtime` on Windows on every push, and, only when started by hand and once a week (working rule 9), tier 2 (the call-site check, slice list without its screen programs, which get no window there and run locally only, upstream pass list, differential pass list) against QB64pe's sources at the reference clone's commit; `repo-check.yml` runs `tools\repo_check` on every push |
+| `tests\corpus\` | Golden corpus: programs with the old compiler's recorded output or compile error (`README.md`, which has the counts), including the `slice\` group and `screen\` (programs with a window, each with the recorded state of its screen, `.screen`, or several states taken while it runs; a program may have its data files in a folder `<name>.files\`; `g12_game` is Civil War Strategy played from its keys file); checked by `run_legacy_tests.py --suite corpus`; `slice.list` names those the new compiler must pass |
 | `tests\frontend\` | Front-end tests of the new compiler, run by mode line (`' TEST: <mode>`; modes `parse-ok`, `check-ok`, `check-fail`, `typed`, `ir`, `cpp`); their included files in `inc\` (compiler root `inc\root\`) |
-| `tests\upstream\` | Copy of the text files of QB64pe's `tests\compile_tests` (MIT, `SOURCE.md`, never edited by hand), and `root\` (the compiler root for them: a mirror of `extra\`, made by the copy script); `pass.list` (upstream programs the new compiler passes) and `deferred.list` (the 125 that need deferred array features); progress "x of 279" (`README.md`) |
+| `tests\upstream\` | Copy of the text files of QB64pe's `tests\compile_tests` (MIT, `SOURCE.md`, never edited by hand), and `root\` (the compiler root for them: a mirror of `extra\`, made by the copy script); `pass.list` (upstream programs the new compiler passes) and `deferred.list` (those that need `_ARRAYCOPY` or a form left out of a change); progress as "x of y" (`README.md`) |
 | `tests\differential\` | Differential programs generated by `crates\difftest` (never edited by hand) with their output recorded from `qb64pe.exe`; `pass.list` names those the new compiler passes (`README.md`) |
-| `tests\callsite\` | One-statement programs for the call-site check, one per built-in form and argument type; never run. A new plain built-in comes in with a program here (`DECISIONS.md` 2026-10-10) |
+| `tests\callsite\` | One-statement programs for the call-site check, one per built-in form and argument type; never run (a program may have a file it names in a folder `<name>.files\`). A new plain built-in comes in with a program here (`DECISIONS.md` 2026-10-10) |
 | `tests\programs\` | Real programs taken whole (`README.md`): `civil-war-strategy\`, the user's MIT game, the real-program target for QB 4.5 graphics; byte for byte, never edited by hand; tier 1 runs the front end over them |
 | `tests\snippets\` | QB64Fresh's inline test snippets as inputs, labelled by `qb64pe.exe` (`.err` when it rejects one; `SOURCE.md`) |
 | `tests\known_false_errors.list`, `tests\known_unsupported_rejections.list`, `tests\known_parse_gaps.list`, `tests\known_clean_not_passing.list` | Shrink-only lists of tier 1: programs the old compiler accepts that get a real error, programs it rejects that get only "not supported yet" errors, accepted programs (plus the old compiler's sources) that do not parse cleanly (`tests\upstream\README.md`), and programs that compile cleanly but are on no pass list, with the reason (kept by hand) |
 | `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure; format tests 24 of 24) |
-| `verification\` | Small programs behind `study\09`, `study\10` and later measurements (`v13*`: type suffixes on DIMmed names; `v14*`, `v15*`: procedures, scopes, reserved names, errors; `v16*`: comment metacommands, `DATA`, line numbers, blocks, templates, `$IF`, `$INCLUDE`, member access, with include files in `v16_inc\`; `v17*`: control flow, constants, operators; `v18*`: arrays, `TYPE`, store rules per place; `v19*`: procedure names (`v19_proc_names.py` and its list), blanks around a dot, `OPTION _EXPLICIT` and runtime errors in included files, with include files in `v19_inc\`; `v20*`: core built-ins, `SELECT CASE`, `ON … GOTO/GOSUB`, `v20_x*` one rejection each; `v21*`: the new numeric types, `_BIT`, fixed-length strings, the numeric-types spec scenarios, `v21_x*` one rejection each; `v22*`: built-in statements (`v22_a` statement calls, `v22_b` files, `v22_c` data, `v22_d` `SWAP`, `MID$`, `RANDOMIZE`, `SHELL`, `ENVIRON$`, `v22_e` console input with `.stdin` files, `v22_f` functions added by demand, `v22_x*` one rejection or accepted form each, include files in `v22_inc\`; `v23_post_keys.py`: posts keys to a program's window, the method measured and not taken for the screen-state check; its programs are in `tests\corpus\screen\`; `v24*`: step 10, measured before its design: `v24_a` default types, `v24_b` dynamic arrays and `$DYNAMIC`, `v24_c` `REDIM` and `_PRESERVE`, `v24_d` `ERASE`, `v24_e` `OPTION BASE`, `v24_f` arrays used without `DIM`, `v24_g` arrays in procedures, array parameters and `COMMON`, `v24_h` `TYPE` member arrays, `STRING` members, whole values and `TYPE` parameters, `v24_i` the type before the names, `v24_j` a minus right of `^`, `v24_x*` one accepted or rejected form each (`x244`–`x255`: measured while group 4 was built and reviewed; `x256`–`x263`: before group 5, arrays used without `DIM`; `x264`–`x268`: by the review of group 5, where their allocation runs inside a statement; `x269`–`x282`: while group 6 was built, arrays in procedures, `STATIC` arrays and procedures, `SHARED a()`; `x283`–`x285`: by the review of group 6, `DIM` in a procedure with `STATIC` after its header and after `STATIC c(3)`; `x286`–`x296`: before group 7, array parameters; `x297`–`x302`: while group 7 was built, what gives an array listed by `COMMON a()` or `STATIC a()` its number of dimensions; `x303`–`x305`: by the review of group 7, what may stand between an array parameter's parentheses; `x306`–`x308`: before group 8, the order of a whole-value copy and more forms of a user-type parameter; `x309`: by the review of group 8, `STRING` members in arrays, parameters and procedures; `x310`–`x326`: before and while group 9 was built, member arrays: what finds the place of one, the order of a store through a member, whole values, arguments, and ten forms settled one program each); `v25*`: the signs the old compiler drops from an expression (`v25_signs`, `v25_signs_const`, `v25_x*` one rejection each); `v26*`: step 11, measured before its design: `$CONSOLE`, `$SCREENHIDE`, `_DEST _CONSOLE`, `_ECHO`, the flag `_CONSOLE_` (`v26_a`–`v26_h2`, `v26_x*` one accepted or rejected form each; `x40`–`x56`: measured as the step's first task group, the line rules of every metacommand and more on the flags, include files in `v26_inc\`; `x57`, `x58`: while its group 2 was built, a colon in a branch that is not taken, a tab after a metacommand; `x59`–`x61`: by the review of group 2, a tab or a word after `$INCLUDEONCE`, a letter after `$CONSOLE:ONLY`; `x62`–`x73`: while its group 3 was built, more forms of `_DEST`, `_SOURCE`, `_CONSOLE` and `_ECHO`, accepted and rejected; `x74`–`x113`: while its group 4 was built, the window built-ins, one accepted program and one rejected form each; `x114`–`x126`: while its group 5 was built, the constants of the auto-included file; `x127`: while its group 6 was built, precompiler flags across an included file; `x128`: by the review of groups 4 to 6, `SWAP` after `CALL`)), their outputs, and `run.sh` (starts the runner's `--suite verification`, which records them) |
+| `verification\` | Measurement programs of the old compiler, each with its recorded output, and `run.sh` (starts the runner's `--suite verification`, which records them); the catalogue of the families, `v13*` to the newest, is `verification\README.md` |
 | `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler), the golden corpus and the verification programs (`--suite verification`, a recorder), its own tests (`test_run_legacy_tests.py`: a change to a comparison or recording rule comes with a change to its test), and its `known_failures.txt` |
 | `tools\callsite\` | `callsite.py`: compares the libqb call the new compiler writes for each program of `tests\callsite\` with the old compiler's (`-z` on both, nothing built or run); part of tier 2 (`README.md`: the normalisation rules and what it does not compare) |
 | `tools\repo_check\` | `check_repo.py`: tracked files must hold no local paths, temp folders or network shares (rule 2) and no stray control bytes (rule 7); `--untracked` also checks new files before they are staged |
+| `tools\testtime\` | `test_time.py`: every test run of every Claude Code session, how long it took and, where the transcript shows it, whether it passed, read from the sessions' transcripts; `runs.csv` and `sessions.csv` (the record, added to at the close of each change) and `REPORT.md` (testing as a share of the working time, by day and by kind of run, and the runs repeated with nothing edited; `README.md`); its own tests (`test_record.py`) |
 | `tools\builtins\` | Extractor for the built-in table (`extract_builtins.py`) and its output `builtins.json` (with the names of QB64pe's auto-included files and, for each constant of the file included before the first line, its suffix and the text of its expression) |
 | `tools\wiki\` | `fetch_wiki.py` fetches the QB64pe wiki as raw wikitext into `cache\` (git-ignored, no licence stated; local reference only) |
 | `tools\upstream\` | `copy_upstream_tests.py`: redoes the copy in `tests\upstream\` from the clone at the pinned commit |
 | `tools\snippets\` | `extract_qb64fresh_snippets.py`: extracts and labels the snippets in `tests\snippets\` |
-| `tools\screen\` | The screen-state check (`README.md`): `screen_state.cpp`, linked into a test program of either compiler, writes the state of the screen at exit and gives the program its keys; `state_to_png.py` shows a state; `cut_game.py` writes the drawing programs cut from Civil War Strategy |
+| `tools\screen\` | The screen-state check (`README.md`): `screen_state.cpp`, linked into a test program of either compiler, writes the state of the screen at exit and gives the program its keys, and with the keys file's `prompt` and `state` waits for a program's announced waits and writes states while it runs; `state_to_png.py` shows a state (one of several, or all); `cut_game.py` writes the programs cut from Civil War Strategy, with the pictures they load, and `g12_game`, the whole game with listed edits for the scripted game; `make_images.py` writes the images the screen program `i02_load_images` loads |
 | `..\QB64pe\` | Reference clone of QB64pe (`davidshq-contribute/QB64pe`, tracks upstream `main`, version 4.7.0-GLFW) |
 | `..\FreeBASIC\` | Reference clone of FreeBASIC (shallow, `5714d10adb`, 2026-04-05). Read-only; GPL/LGPL, nothing copied |
 | `<qb64contain>`, `<share>` | Placeholders for the user's local folder of earlier projects (QB64Fresh, qb64pe-vscode, a QB64pe clone with notes) and its network copy; used in `study\` and `STATUS.md` instead of machine-specific paths. Do not write full local paths or host names into this repo. |

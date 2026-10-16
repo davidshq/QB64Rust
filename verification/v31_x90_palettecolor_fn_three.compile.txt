@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _PALETTECOLOR(attributeNumber%, imgHandle&)
+Caused by (or after):PRINT _PALETTECOLOR ( 1 , 2 , 3 )
+LINE 5:PRINT _PALETTECOLOR(1, 2, 3)
+exit=1

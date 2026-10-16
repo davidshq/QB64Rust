@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _CLIPBOARDIMAGE = existingImageHandle&
+Caused by (or after):_CLIPBOARDIMAGE L
+LINE 5:_CLIPBOARDIMAGE l
+exit=1

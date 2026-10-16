@@ -1,0 +1,4 @@
+a after the inner SELECT end
+b after the inner SELECT second end
+c end
+exit=0

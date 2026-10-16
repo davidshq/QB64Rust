@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _PRINTWIDTH(textToPrint$[, destinationHandle&])
+Caused by (or after):PRINT _PRINTWIDTH
+LINE 5:PRINT _PRINTWIDTH
+exit=1

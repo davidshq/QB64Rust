@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: VARPTR(variable_name[(reference_index%)])
+Caused by (or after):L = VARPTR ( I , L )
+LINE 7:l = VARPTR(i, l)
+exit=1

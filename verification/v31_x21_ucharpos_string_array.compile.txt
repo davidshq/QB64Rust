@@ -1,0 +1,5 @@
+
+Expected LONG array-name
+Caused by (or after):N = _UCHARPOS ( "abc",3 , T$ ( ) )
+LINE 5:DIM t$(10): n = _UCHARPOS("abc", t$())
+exit=1

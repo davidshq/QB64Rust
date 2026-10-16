@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _MOUSEMOVEMENTX
+Caused by (or after):PRINT _MOUSEMOVEMENTX ( 1 )
+LINE 5:PRINT _MOUSEMOVEMENTX(1)
+exit=1

@@ -1,0 +1,5 @@
+
+Expected variable =, look for conflict with a CONST name
+Caused by (or after):PLAY = 1
+LINE 7:PLAY = 1
+exit=1

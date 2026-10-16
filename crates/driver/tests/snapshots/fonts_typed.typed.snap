@@ -1,0 +1,239 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY P:I32(0 TO 10)
+ARRAY W:U32(0 TO 10)
+ARRAY Z:I32(0 TO 3, 0 TO 3)
+line 2: ConsoleOnly
+line 9: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Call _LOADFONT : I32
+          Var T : Str
+          Int 16 : I32
+          (absent)
+          (absent)
+        Call _LOADFONT : I32
+          Str "cour.ttf" : Str
+          Convert Widen : I32
+            Var I : I16
+          Str "MONOSPACE" : Str
+          (absent)
+      Call _LOADFONT : I32
+        Var T : Str
+        Convert Truncate : I32
+          Convert RoundEven : I64
+            Var S : F32
+        (absent)
+        Int 1 : I32
+    Call _LOADFONT : I32
+      Var T : Str
+      Convert Truncate : I32
+        Var U : U32
+      Var T : Str
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var F : F80
+line 10: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Binary Add : I32 (qb I64)
+          Binary Add : I32 (qb I64)
+            Call _FONT : I32
+              (absent)
+            Call _FONT : I32
+              Var L : I32
+          Call _FONTWIDTH : I32
+            (absent)
+        Call _FONTWIDTH : I32
+          Convert Truncate : I32
+            Convert RoundEven : I64
+              Var S : F32
+      Call _FONTHEIGHT : I32
+        (absent)
+    Call _FONTHEIGHT : I32
+      Convert Truncate : I32
+        Var Q : I64
+line 11: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Call _PRINTWIDTH : I32
+          Var T : Str
+          (absent)
+        Call _PRINTWIDTH : I32
+          Str "abc" : Str
+          Convert Truncate : I32
+            Convert RoundEven : I64
+              Var D : F64
+      Call _PRINTMODE : I32
+        (absent)
+    Call _PRINTMODE : I32
+      Convert Truncate : I32
+        Var U : U32
+line 12: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Call _UFONTHEIGHT : I32
+          (absent)
+        Call _UFONTHEIGHT : I32
+          Var L : I32
+      Call _ULINESPACING : I32
+        (absent)
+    Call _ULINESPACING : I32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+line 13: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Call _UPRINTWIDTH : I32
+          Var T : Str
+          (absent)
+          (absent)
+        Call _UPRINTWIDTH : I32
+          Var T : Str
+          Int 8 : I32
+          (absent)
+      Call _UPRINTWIDTH : I32
+        Var T : Str
+        (absent)
+        Var L : I32
+    Call _UPRINTWIDTH : I32
+      Var T : Str
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var D : F64
+line 14: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Binary Add : I32 (qb I64)
+          Call _UCHARPOS : I32
+            Var T : Str
+            (absent)
+            (absent)
+            (absent)
+          Call _UCHARPOS : I32
+            Var T : Str
+            Bytes P : I32
+            (absent)
+            (absent)
+        Call _UCHARPOS : I32
+          Var T : Str
+          Bytes P : I32
+          Int 8 : I32
+          Var L : I32
+      Call _UCHARPOS : I32
+        Var T : Str
+        Bytes P : I32
+        (absent)
+        Var L : I32
+    Call _UCHARPOS : I32
+      Var T : Str
+      (absent)
+      Int 8 : I32
+      (absent)
+line 15: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Binary Add : I32 (qb I64)
+      Binary Add : I32 (qb I64)
+        Binary Add : I32 (qb I64)
+          Call _UCHARPOS : I32
+            Var T : Str
+            Bytes P : I32
+              Int 2 : I64
+            (absent)
+            (absent)
+          Call _UCHARPOS : I32
+            Var T : Str
+            Bytes P : I32
+              Convert Widen : I64
+                Var I : I16
+            (absent)
+            (absent)
+        Call _UCHARPOS : I32
+          Var T : Str
+          Bytes W : U32
+          (absent)
+          (absent)
+      Call _UCHARPOS : I32
+        Var T : Str
+        Bytes Z : I32
+        (absent)
+        (absent)
+    Call _UCHARPOS : I32
+      Var T : Str
+      Bytes Z : I32
+        Int 1 : I64
+        Int 2 : I64
+      (absent)
+      (absent)
+line 16: Assign L:I32
+  Binary Add : I32 (qb I64)
+    Call _MAPUNICODE : I32
+      Int 1 : I32
+    Call _MAPUNICODE : I32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+line 17: Print newline
+  Str
+    Call HEX : Str
+      Call _LOADFONT : I32
+        Var T : Str
+        Int 16 : I32
+        (absent)
+        (absent)
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Call _FONT : I32
+          (absent)
+        Int 1 : I32
+  Str
+    Call HEX : Str
+      Call _PRINTWIDTH : I32
+        Var T : Str
+        (absent)
+  Num
+    Binary Div : F80
+      Convert Nearest : F80
+        Call _UFONTHEIGHT : I32
+          (absent)
+      Convert Nearest : F80
+        Int 2 : I16
+  Str
+    Call HEX : Str
+      Call _UCHARPOS : I32
+        Var T : Str
+        Bytes P : I32
+        (absent)
+        (absent)
+line 18: Print newline
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Call _MAPUNICODE : I32
+          Var L : I32
+        Int 1 : I32
+  Str
+    Call HEX : Str
+      Call _PRINTMODE : I32
+        (absent)
+  Num
+    Convert Widen : I64
+      Binary Mul : I32 (qb I64)
+        Call _UPRINTWIDTH : I32
+          Var T : Str
+          (absent)
+          (absent)
+        Int 2 : I32

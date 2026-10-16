@@ -5,8 +5,18 @@
 
 use crate::Emitter;
 use crate::names::{c_ident, c_string, c_type};
-use qb64rust_ir::{Conv, DataItem, Expr, ExprKind, Op, Place, PrintItem, Source, Ty};
+use qb64rust_ir::{Conv, DataItem, Expr, ExprKind, Op, Place, PrintItem, PrintTo, Source, Ty, UsingValue};
 use std::fmt::Write as _;
+
+/// libqb's entries for a print to the screen or to the printer: the one that prints a string and the one that
+/// fits it to the line.
+fn screen_entries(printer: bool) -> (&'static str, &'static str) {
+    if printer {
+        ("qbs_lprint", "lprint_makefit")
+    } else {
+        ("qbs_print", "makefit")
+    }
+}
 
 /// The bits of the old compiler's type value that say what kind of place a target is (`qb64pe.bas`: `ISPOINTER`
 /// and `ISREFERENCE`, plus `ISARRAY` or `ISUDT`). libqb reads none of them; they are written so that the call is
@@ -66,13 +76,218 @@ impl Emitter<'_> {
         self.value(n)
     }
 
+    /// `PRINT items` to the screen, or `LPRINT items` (`printer`): each item set into the statement's string,
+    /// fitted to the line and printed; the IR's raise rule for a print (a raising item skips the rest). `LPRINT`
+    /// is the same code with the printer's two entries, between `tab_LPRINT=1;` and `tab_LPRINT=0;` (measured,
+    /// `verification\v30_x13`; `study\00` §5).
+    pub(crate) fn print(&mut self, printer: bool, items: &[PrintItem], newline: bool, out: &mut Vec<String>) {
+        let skip = self.skip_label();
+        let (print, _) = screen_entries(printer);
+        if printer {
+            out.push("tab_LPRINT=1;".into());
+        }
+        out.push("tqbs=qbs_new(0,0);".into());
+        self.screen_items(printer, items, &skip, out);
+        if newline {
+            out.push(format!("{print}(nothingstring,1);"));
+        }
+        out.push(format!("{skip}:"));
+        out.push("qbs_free(tqbs);".into());
+        out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        if printer {
+            out.push("tab_LPRINT=0;".into());
+        }
+    }
+
+    /// The items of a print to the screen or the printer, each followed by the jump to `skip` when an error is
+    /// pending.
+    fn screen_items(&mut self, printer: bool, items: &[PrintItem], skip: &str, out: &mut Vec<String>) {
+        let (print, makefit) = screen_entries(printer);
+        for item in items {
+            let text = match item {
+                PrintItem::Zone => {
+                    out.push("tab();".into());
+                    continue;
+                }
+                PrintItem::Str(v) => self.value(v),
+                PrintItem::Num(v) => {
+                    format!(
+                        "qbs_add(qbs_str(({})({})),qbs_new_txt(\" \"))",
+                        c_type(v.ty),
+                        self.value(v)
+                    )
+                }
+            };
+            out.push(format!("qbs_set(tqbs,{text});"));
+            out.push(format!("if (is_error_pending()) goto {skip};"));
+            out.push(format!("{makefit}(tqbs);"));
+            out.push(format!("{print}(tqbs,0);"));
+        }
+    }
+
+    /// `PRINT [#n,] [before] USING format; values` and `LPRINT … USING …`, as the old compiler writes it
+    /// (`qb64pe.bas` 27285–27400 and 27713–27851; read with `qb64pe -z`, `study\00` §5): the statement's string
+    /// and its place in the format, the format copied once into a string of the statement's own, one call per
+    /// value chosen by its type, each followed by the jump to the statement's second label when an error is
+    /// pending; at that label what was built is printed, with no line end after an error, which stays. The
+    /// string of the format, the two labels and the first label of a plain print share one number.
+    pub(crate) fn print_using(
+        &mut self,
+        to: &PrintTo,
+        before: &[PrintItem],
+        format: &Expr,
+        values: &[UsingValue],
+        newline: bool,
+        out: &mut Vec<String>,
+    ) {
+        self.skip += 1;
+        let n = self.skip;
+        let (skip, skip_pu, fmt) = (
+            format!("skip{n}"),
+            format!("skip_pu{n}"),
+            format!("print_using_format{n}"),
+        );
+        self.pass_decls.push(format!("static qbs *{fmt};\n"));
+        let test = |label: &str| format!("if (is_error_pending()) goto {label};");
+        let printer = matches!(to, PrintTo::Printer);
+        let file = matches!(to, PrintTo::File(_));
+        let (print, makefit) = screen_entries(printer);
+        // The statement's string sent to where the statement prints, with or without a line end.
+        let send = |line_end: bool| {
+            let end = u8::from(line_end);
+            if file {
+                format!("sub_file_print(tmp_fileno,tqbs,0,0,{end});")
+            } else {
+                format!("{print}(tqbs,{end});")
+            }
+        };
+        match to {
+            PrintTo::File(number) => {
+                out.push("tab_spc_cr_size=2;".into());
+                out.push(format!("tab_fileno=tmp_fileno={};", self.file_number(number)));
+                out.push(test(&skip));
+                self.file_items(before, false, &skip, out);
+                out.push("tqbs=qbs_new(0,0);".into());
+            }
+            PrintTo::Screen | PrintTo::Printer => {
+                if printer {
+                    out.push("tab_LPRINT=1;".into());
+                }
+                out.push("tqbs=qbs_new(0,0);".into());
+                self.screen_items(printer, before, &skip, out);
+                if !before.is_empty() {
+                    out.push("qbs_set(tqbs,qbs_new_txt_len(\"\",0));".into());
+                }
+            }
+        }
+        out.push("tmp_long=0;".into());
+        out.push(format!("{fmt}=qbs_new(0,0); qbs_set({fmt},{});", self.value(format)));
+        // After the format a statement that prints to a file leaves by its first label.
+        out.push(test(if file { &skip } else { &skip_pu }));
+        for v in values {
+            match v {
+                UsingValue::Str(e) => {
+                    out.push(format!("tmp_long=print_using({fmt},tmp_long,tqbs,{});", self.value(e)));
+                }
+                UsingValue::Num { value, as_ } => {
+                    let entry = match as_ {
+                        Ty::F32 => "single",
+                        Ty::F64 => "double",
+                        Ty::F80 => "float",
+                        Ty::U64 => "uinteger64",
+                        Ty::I64 => "integer64",
+                        Ty::I8
+                        | Ty::U8
+                        | Ty::I16
+                        | Ty::U16
+                        | Ty::I32
+                        | Ty::U32
+                        | Ty::Off
+                        | Ty::UOff
+                        | Ty::Bit { .. }
+                        | Ty::Str
+                        | Ty::FixedStr(_)
+                        | Ty::User(_) => unreachable!("a `PRINT USING` number formatted as {as_:?} (`validate`)"),
+                    };
+                    let x = self.value(value);
+                    out.push(format!("tmp_long=print_using_{entry}({fmt},{x},tmp_long,tqbs);"));
+                }
+                // `TAB(n)` or `SPC(n)`: what is built is printed, then the blanks; the string starts again.
+                UsingValue::Blanks(e) => {
+                    out.push(send(false));
+                    out.push(format!("qbs_set(tqbs,{});", self.value(e)));
+                    out.push(test(&skip_pu));
+                    if !file {
+                        out.push(format!("{makefit}(tqbs);"));
+                    }
+                    out.push(send(false));
+                    out.push("tqbs->len=0;".into());
+                }
+            }
+            out.push(test(&skip_pu));
+        }
+        out.push(format!("{skip_pu}:"));
+        out.push("if (is_error_pending()){".into());
+        out.push(format!(
+            "g_tmp_long=new_error; new_error=0; {} new_error=g_tmp_long;",
+            send(false)
+        ));
+        out.push("}else{".into());
+        out.push(send(newline));
+        out.push("}".into());
+        out.push("qbs_free(tqbs);".into());
+        out.push(format!("qbs_free({fmt});"));
+        out.push(format!("{skip}:"));
+        out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        if file {
+            out.push("tab_spc_cr_size=1;".into());
+        }
+        if printer {
+            out.push("tab_LPRINT=0;".into());
+        }
+    }
+
+    /// `FIELD`, as the old compiler writes it (`qb64pe.bas` 7340–7432; read with `qb64pe -z`, `study\00` §5):
+    /// one call for the file, then one per part with the string itself and its width, nothing between them.
+    /// libqb keeps the record buffer, the file's field strings and each string's link to its field.
+    pub(crate) fn field(&mut self, file: &Expr, parts: &[(Place, Expr)], out: &mut Vec<String>) {
+        out.push(format!("field_new({});", self.value(file)));
+        for (place, width) in parts {
+            let string = self.place_ref(place);
+            out.push(format!("field_add({string},{});", self.value(width)));
+        }
+        out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+    }
+
+    /// `LSET` and `RSET` (`qb64pe.bas` 11327–11374): the target as a string (a fixed-length element or member
+    /// as a temporary fixed `qbs` over its bytes), then the value.
+    pub(crate) fn lset(&mut self, right: bool, target: &Place, value: &Expr, out: &mut Vec<String>) {
+        let f = if right { "sub_rset" } else { "sub_lset" };
+        let string = self.place_ref(target);
+        out.push(format!("{f}({string},{});", self.value(value)));
+        out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+    }
+
     /// `PRINT #n, items`. A comma is the `tab` flag of the item before it, or a call of its own when there is none.
     pub(crate) fn file_print(&mut self, to: &Expr, items: &[PrintItem], newline: bool, out: &mut Vec<String>) {
         let skip = self.skip_label();
         let test = format!("if (is_error_pending()) goto {skip};");
         out.push("tab_spc_cr_size=2;".into());
         out.push(format!("tab_fileno=tmp_fileno={};", self.file_number(to)));
-        out.push(test.clone());
+        out.push(test);
+        self.file_items(items, newline, &skip, out);
+        if items.is_empty() && newline {
+            out.push("sub_file_print(tmp_fileno,nothingstring,0,0,1);".into());
+        }
+        out.push(format!("{skip}:"));
+        out.push("tab_spc_cr_size=1;".into());
+        out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+    }
+
+    /// The items of a print to the file in `tmp_fileno`, the last one with the line end if `newline`, each
+    /// followed by the jump to `skip` when an error is pending.
+    fn file_items(&mut self, items: &[PrintItem], newline: bool, skip: &str, out: &mut Vec<String>) {
+        let test = format!("if (is_error_pending()) goto {skip};");
         let mut i = 0;
         while i < items.len() {
             let (text, extra_space, zone) = match &items[i] {
@@ -90,12 +305,6 @@ impl Emitter<'_> {
             ));
             out.push(test.clone());
         }
-        if items.is_empty() && newline {
-            out.push("sub_file_print(tmp_fileno,nothingstring,0,0,1);".into());
-        }
-        out.push(format!("{skip}:"));
-        out.push("tab_spc_cr_size=1;".into());
-        out.push("qbs_cleanup(qbs_tmp_base,0);".into());
     }
 
     /// `WRITE [#n,] items`: each item's text is built here (a number without blanks, a string in quotes, a comma

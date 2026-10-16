@@ -118,6 +118,7 @@ node_wrapper!(
     TypeHeader,
     TypeField,
     FieldName,
+    FieldMarker,
     ArrayBounds,
     DeclareLibraryBlock,
     DeclareLibraryHeader,
@@ -183,15 +184,31 @@ pub enum PrintPart<'a> {
     Comma(Tok),
 }
 
+impl PrintPart<'_> {
+    /// Where the part starts in its file.
+    pub fn start(self) -> u32 {
+        match self {
+            PrintPart::Expr(e) => e.node().span().start,
+            PrintPart::Semicolon(t) | PrintPart::Comma(t) => t.span.start,
+        }
+    }
+}
+
+/// The items and separators of a `PRINT` or `LPRINT` statement, in source order: those before a `USING` clause
+/// and those after it (the clause's own format and separator are inside its node).
+fn print_parts<'a>(node: Node<'a>) -> impl Iterator<Item = PrintPart<'a>> + 'a {
+    node.children().filter_map(|e| match e {
+        Element::Token(t) if t.kind == Semicolon => Some(PrintPart::Semicolon(t)),
+        Element::Token(t) if t.kind == Comma => Some(PrintPart::Comma(t)),
+        Element::Node(n) => Expr::cast(n).map(PrintPart::Expr),
+        Element::Token(_) => None,
+    })
+}
+
 impl<'a> PrintStmt<'a> {
     /// The items and separators after the `PRINT` or `?` keyword.
     pub fn parts(self) -> impl Iterator<Item = PrintPart<'a>> + 'a {
-        self.0.children().filter_map(|e| match e {
-            Element::Token(t) if t.kind == Semicolon => Some(PrintPart::Semicolon(t)),
-            Element::Token(t) if t.kind == Comma => Some(PrintPart::Comma(t)),
-            Element::Node(n) => Expr::cast(n).map(PrintPart::Expr),
-            Element::Token(_) => None,
-        })
+        print_parts(self.0)
     }
 
     /// `#n,` of `PRINT #n, …`.
@@ -199,9 +216,38 @@ impl<'a> PrintStmt<'a> {
         child(self.0, FileNumber::cast)
     }
 
-    /// `USING format;`.
+    /// `USING format;`: the first one of the statement.
     pub fn using(self) -> Option<UsingClause<'a>> {
         child(self.0, UsingClause::cast)
+    }
+
+    /// Every `USING` clause of the statement (a second one is an error).
+    pub fn usings(self) -> impl Iterator<Item = UsingClause<'a>> + 'a {
+        self.0.child_nodes().filter_map(UsingClause::cast)
+    }
+}
+
+impl<'a> LprintStmt<'a> {
+    /// The items and separators after the `LPRINT` keyword.
+    pub fn parts(self) -> impl Iterator<Item = PrintPart<'a>> + 'a {
+        print_parts(self.0)
+    }
+
+    /// Every `USING` clause of the statement (a second one is an error).
+    pub fn usings(self) -> impl Iterator<Item = UsingClause<'a>> + 'a {
+        self.0.child_nodes().filter_map(UsingClause::cast)
+    }
+}
+
+impl<'a> UsingClause<'a> {
+    /// The format's expression.
+    pub fn format(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+
+    /// The `;` (or the `,`, an error) after the format.
+    pub fn separator(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| matches!(t.kind, Semicolon | Comma))
     }
 }
 
@@ -321,6 +367,48 @@ impl<'a> SwapStmt<'a> {
     }
 }
 
+impl<'a> MemStmt<'a> {
+    /// The statement's word, `_MEMPUT` or `_MEMFILL`.
+    pub fn word(self) -> Option<Tok> {
+        self.0.first_token()
+    }
+
+    /// The arguments, in order (the type after `AS` is not one).
+    pub fn args(self) -> impl Iterator<Item = Expr<'a>> + 'a {
+        self.0.child_nodes().filter_map(Expr::cast)
+    }
+
+    /// `AS type` after the last argument.
+    pub fn as_clause(self) -> Option<AsClause<'a>> {
+        child(self.0, AsClause::cast)
+    }
+}
+
+impl<'a> FieldStmt<'a> {
+    /// `#n,` of `FIELD #n, …`; `None` when the file number is written without `#`.
+    pub fn file(self) -> Option<FileNumber<'a>> {
+        child(self.0, FileNumber::cast)
+    }
+
+    /// The statement's other expressions, in order: the file number when it is written without `#`, then for
+    /// each part its width and its target (`FIELD 1, 3 AS a$, 5 AS b$`).
+    pub fn exprs(self) -> impl Iterator<Item = Expr<'a>> + 'a {
+        self.0.child_nodes().filter_map(Expr::cast)
+    }
+}
+
+impl<'a> LsetStmt<'a> {
+    /// The statement's word: `LSET` or `RSET`.
+    pub fn keyword(self) -> Option<Tok> {
+        self.0.child_tokens().find(|t| t.kind == Ident)
+    }
+
+    /// The target and the value, in order.
+    pub fn operands(self) -> impl Iterator<Item = Expr<'a>> + 'a {
+        self.0.child_nodes().filter_map(Expr::cast)
+    }
+}
+
 /// One part of a built-in statement read by its template, after its name, in source order.
 #[derive(Clone, Copy, Debug)]
 pub enum FormPart<'a> {
@@ -333,25 +421,46 @@ pub enum FormPart<'a> {
 }
 
 impl<'a> BuiltinStmt<'a> {
-    /// The statement's name, as written (`OPEN`, `TIME$`).
+    /// The statement's name, as written (`OPEN`, `TIME$`): the node's one word, or its second after `CALL` (the
+    /// template's words and arguments are nodes of their own).
     pub fn name(self) -> Option<Tok> {
-        self.0.child_tokens().find(|t| t.kind == Ident)
+        let mut words = self.0.child_tokens().filter(|t| t.kind == Ident);
+        let first = words.next();
+        words.next().or(first)
     }
 
-    /// The words, punctuation and arguments after the name, in source order.
+    /// The statement stands after `CALL`, its template's part between parentheses (`CALL LINE((1, 2)-(3, 4))`).
+    pub fn after_call(self) -> bool {
+        self.0.child_tokens().filter(|t| t.kind == Ident).count() == 2
+    }
+
+    /// The words, punctuation and arguments after the name, in source order; after `CALL`, those between the
+    /// parentheses that enclose them.
     pub fn parts(self) -> impl Iterator<Item = FormPart<'a>> + 'a {
         let name_end = self.name().map_or(0, |t| t.span.end);
-        self.0.children().filter_map(move |e| match e {
-            Element::Node(n) => FormWord::cast(n)
-                .map(FormPart::Word)
-                .or_else(|| FormArg::cast(n).map(FormPart::Arg)),
-            Element::Token(t)
-                if t.span.start >= name_end && matches!(t.kind, Comma | LParen | RParen | Minus | Eq | Hash) =>
-            {
-                Some(FormPart::Punct(t))
-            }
-            Element::Token(_) => None,
-        })
+        let mut parts: Vec<FormPart<'a>> = self
+            .0
+            .children()
+            .filter_map(move |e| match e {
+                Element::Node(n) => FormWord::cast(n)
+                    .map(FormPart::Word)
+                    .or_else(|| FormArg::cast(n).map(FormPart::Arg)),
+                Element::Token(t)
+                    if t.span.start >= name_end && matches!(t.kind, Comma | LParen | RParen | Minus | Eq | Hash) =>
+                {
+                    Some(FormPart::Punct(t))
+                }
+                Element::Token(_) => None,
+            })
+            .collect();
+        if self.after_call()
+            && let [FormPart::Punct(open), .., FormPart::Punct(close)] = parts[..]
+            && (open.kind, close.kind) == (LParen, RParen)
+        {
+            parts.pop();
+            parts.remove(0);
+        }
+        parts.into_iter()
     }
 
     /// The arguments, in source order.
@@ -1194,6 +1303,12 @@ impl<'a> TypeField<'a> {
     pub fn as_clause(self) -> Option<AsClause<'a>> {
         child(self.0, AsClause::cast)
     }
+
+    /// The markers outside every [`FieldName`]: before the name (`_DYNAMIC v(1 TO 3) AS LONG`) and after the type
+    /// (`v(1) AS LONG _DYNAMIC`), in source order. They belong to every name of the field.
+    pub fn markers(self) -> impl Iterator<Item = Tok> + 'a {
+        markers(self.0)
+    }
 }
 
 impl<'a> FieldName<'a> {
@@ -1206,10 +1321,17 @@ impl<'a> FieldName<'a> {
         child(self.0, ArrayBounds::cast)
     }
 
-    /// `_DYNAMIC` or `_STATIC`.
-    pub fn modifier(self) -> Option<Tok> {
-        words(self.0).nth(1)
+    /// This name's own markers (`_DYNAMIC` or `_STATIC`), in source order.
+    pub fn markers(self) -> impl Iterator<Item = Tok> + 'a {
+        markers(self.0)
     }
+}
+
+/// The token of each [`FieldMarker`] child of a node.
+fn markers<'a>(node: Node<'a>) -> impl Iterator<Item = Tok> + 'a {
+    node.child_nodes()
+        .filter_map(FieldMarker::cast)
+        .filter_map(|m| m.0.child_tokens().find(|t| t.kind == Ident))
 }
 
 impl<'a> ArrayBounds<'a> {

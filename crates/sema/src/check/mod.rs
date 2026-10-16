@@ -14,11 +14,15 @@ mod decl;
 mod expr;
 mod flow;
 mod io;
+mod library;
+mod mem;
 mod ops;
 mod places;
 mod proc;
+mod whole;
 
 use blocks::nested_statements;
+use whole::{without_parens, written_whole};
 
 use crate::{ConstId, LabelId, Place, ProcId, Program, Shape, Stmt, StmtKind, SymbolKind, Ty, TypeId, VarId};
 use qb64rust_base::{Diagnostics, SourceMap, Span, show_bytes};
@@ -58,11 +62,16 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         dim_shared_plain: HashMap::new(),
         labels_by_name: HashMap::new(),
         label_of_def: HashMap::new(),
+        jump_words: HashSet::new(),
+        doubt_words: HashSet::new(),
+        sub_call_lines: HashMap::new(),
         diags: Diagnostics::new(),
         stmt_error: false,
         console: false,
         console_only: false,
         window_hidden: false,
+        asserts: false,
+        exe_icon: None,
         echoes: Vec::new(),
         runtime_parts: std::collections::BTreeSet::new(),
         names: Vec::new(),
@@ -79,6 +88,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         type_defs: HashSet::new(),
         dim_shared_array_plain: HashMap::new(),
         len_place: None,
+        mem_store: false,
         types_marked: HashSet::new(),
         follow_on: false,
         param_len: HashMap::new(),
@@ -93,6 +103,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         dim_facts: Vec::new(),
         dims_open: HashSet::new(),
         type_bases: HashMap::new(),
+        type_flags: HashSet::new(),
+        type_const_bounds: HashMap::new(),
     };
     let skips = Skips::new(program);
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
@@ -117,9 +129,9 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // A header with an error (a parse error, a reserved name...) still enters its name as a broken procedure, so
     // calls of it fail without a second error. A member array's bounds go by `OPTION BASE` as it stands at its
     // block, which follows the file (design D8 of `m2-defxxx-common-arrays`).
-    let mut base = 0;
+    let mut at_block = BlockSettings::default();
     for &stmt in &top {
-        c.collect_option_bases(stmt, &skips, &mut base);
+        c.collect_block_settings(stmt, &skips, &mut at_block);
     }
     c.declare_types(&statements, &skips);
     // The default types follow the file (design D2): the table as it stands at each procedure's header.
@@ -155,6 +167,12 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
             Err(Failed) => c.declare_broken(header),
         }
     }
+    // The declarations of `DECLARE LIBRARY` blocks, wherever they stand (design D1 of `m3-declare-library`): their
+    // names are global and usable above the block (measured, `verification\v37_i`, `x49`).
+    let mut externals = Vec::new();
+    for block in c.library_blocks(&top) {
+        c.declare_library(block, &skips, &mut externals);
+    }
     for (def, id) in declared {
         c.stmt_error = false;
         c.defaults = c.defaults_at(def);
@@ -166,9 +184,19 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
             c.broken.insert(id);
         }
     }
+    for d in externals {
+        c.stmt_error = false;
+        let id = d.id();
+        let ok = c.external_params(d).is_ok();
+        c.flush_names();
+        if !ok {
+            c.broken.insert(id);
+        }
+    }
 
     // The labels of each body, also those inside blocks, so that a jump or `ON ERROR GOTO` may name one further
     // down (design D5).
+    c.collect_jump_words(&skips);
     c.declare_labels(&top, &skips, None);
     for &def in &defs {
         if let Some(&id) = c.proc_of_def.get(&def.node().key()) {
@@ -192,11 +220,12 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // `m2-console-screenhide`; measured, `verification\v26_x26`, `x38`). "No window" comes from the lines that are
     // compiled, so a `$CONSOLE:ONLY` in such a branch leaves the window.
     c.console |= program.flags.console();
+    // So are assertions: the old compiler writes the global from the feature's state, which a `$ASSERTS` met in any
+    // round sets (`qb64pe.bas` 13088).
+    c.asserts |= program.flags.get(qb64rust_syntax::pp::Feature::Asserts) != 0;
     if !c.console {
-        // Its only output is the window's, which nothing checks yet (M3).
-        let at = Span::new(root.file, 0, 0);
-        c.diags
-            .unsupported(at, "programs without `$CONSOLE` or `$CONSOLE:ONLY`");
+        // A program with neither metacommand is one with a window and no console (design D1 of
+        // `m3-window-output`; measured, `verification\v27_*`: `console=0`, the same statement code).
         // Measured: "_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first" (`verification\v26_x17`).
         for at in std::mem::take(&mut c.echoes) {
             c.diags
@@ -207,31 +236,41 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         console: c.console,
         window: !c.console_only,
         window_hidden: c.window_hidden,
+        asserts: c.asserts,
         runtime_parts: std::mem::take(&mut c.runtime_parts),
+        exe_icon: c.exe_icon.take().map(|(icon, _)| icon),
     };
     (c.prog, c.diags)
 }
 
-/// One of the four metacommands that choose a program's console and window.
+/// One of the metacommands that are settings of the whole program: the four that choose its console and window,
+/// and those of assertions and the debugger.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ConsoleMeta {
     Console,
     ConsoleOnly,
     ScreenHide,
     ScreenShow,
+    Asserts,
+    AssertsConsole,
+    Debug,
 }
 
-/// The console or window metacommand a metacommand token is: `None` for any other metacommand, an error for a form
-/// of one of the four that the old compiler rejects. It compares the whole line, in upper case and without the
-/// blanks at its ends, with the four names, so anything else on the line is "Syntax error" (measured,
-/// `verification\v26_x09`–`x12`, `x14`, `x29`–`x32`, `x35`, `x37`: `$CONSOLE:OFF`, a word, a comment or a colon and
-/// a statement after the name, blanks around the colon of `$CONSOLE:ONLY`).
+/// The setting metacommand a metacommand token is: `None` for any other metacommand, an error for a form of one of
+/// them that the old compiler rejects. It compares the whole line, in upper case and without the blanks at its
+/// ends, with the names, so anything else on the line is "Syntax error" (measured, `verification\v26_x09`–`x12`,
+/// `x14`, `x29`–`x32`, `x35`, `x37`: `$CONSOLE:OFF`, a word, a comment or a colon and a statement after the name,
+/// blanks around the colon of `$CONSOLE:ONLY`; `v33_x02`–`x13`: the same for `$ASSERTS`, `$ASSERTS:CONSOLE` and
+/// `$DEBUG`).
 fn console_meta(raw: &[u8]) -> Option<Result<ConsoleMeta, String>> {
-    const NAMES: [(&str, ConsoleMeta); 4] = [
+    const NAMES: [(&str, ConsoleMeta); 7] = [
         ("$CONSOLE:ONLY", ConsoleMeta::ConsoleOnly),
         ("$CONSOLE", ConsoleMeta::Console),
         ("$SCREENHIDE", ConsoleMeta::ScreenHide),
         ("$SCREENSHOW", ConsoleMeta::ScreenShow),
+        ("$ASSERTS:CONSOLE", ConsoleMeta::AssertsConsole),
+        ("$ASSERTS", ConsoleMeta::Asserts),
+        ("$DEBUG", ConsoleMeta::Debug),
     ];
     let text = meta_line(raw);
     for (name, meta) in NAMES {
@@ -246,10 +285,42 @@ fn console_meta(raw: &[u8]) -> Option<Result<ConsoleMeta, String>> {
             Some(b':') if meta == ConsoleMeta::Console => {
                 Some(Err("expected `$CONSOLE` or `$CONSOLE:ONLY`".to_string()))
             }
+            Some(b':') if meta == ConsoleMeta::Asserts => {
+                Some(Err("expected `$ASSERTS` or `$ASSERTS:CONSOLE`".to_string()))
+            }
             Some(_) => Some(Err(format!("`{name}` must stand alone on its line"))),
         };
     }
     None
+}
+
+/// The flag of a `$UNSTABLE` line (design D1 of `m3-typefields`; `qb64pe.bas` 2073–2089).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Unstable {
+    /// `TYPEFIELDS`: the member markers.
+    TypeFields,
+    /// `MIDI` or `HTTP`: accepted, with a warning; nothing changes.
+    Stable,
+}
+
+/// The flag a metacommand token sets when it is `$UNSTABLE`: `None` for any other metacommand, an error for a form
+/// the old compiler rejects. It takes the line in upper case and without the blanks at its ends, and the flag
+/// after the colon without its blanks, so any letter case and a blank after the colon are the same flag
+/// (measured, `verification\v35_h`, `x13`); another flag or none is "Unrecognized unstable flag", and the name
+/// without a colon "Syntax error" (`x10`–`x12`).
+fn unstable_meta(raw: &[u8]) -> Option<Result<Unstable, String>> {
+    let text = meta_line(raw);
+    let rest = text.strip_prefix(b"$UNSTABLE".as_slice())?;
+    match rest {
+        [b':', flag @ ..] => Some(match meta_line(flag).as_slice() {
+            b"TYPEFIELDS" => Ok(Unstable::TypeFields),
+            b"MIDI" | b"HTTP" => Ok(Unstable::Stable),
+            other => Err(format!("unrecognized `$UNSTABLE` flag \"{}\"", show_bytes(other))),
+        }),
+        // Another name that starts alike.
+        [b, ..] if b.is_ascii_alphanumeric() || *b == b'_' => None,
+        _ => Some(Err("expected `$UNSTABLE:` and a flag".to_string())),
+    }
 }
 
 /// Which statements the checker skips: those with a parse error, and those past the parser's error cap. Kept per
@@ -335,6 +406,12 @@ struct Checker<'a> {
     /// The labels by body (`None`: the main module) and name, and the label of each `LabelDef` node (by its key).
     labels_by_name: HashMap<(Option<ProcId>, String), LabelId>,
     label_of_def: HashMap<(TreeId, u32), LabelId>,
+    /// The words the jumps of the whole program name as their targets, in upper case ([`Self::collect_jump_words`]).
+    jump_words: HashSet<String>,
+    /// The words on lines the parser could not read: one of them may be a jump's target.
+    doubt_words: HashSet<String>,
+    /// The lines that are a SUB's name and a colon and call the SUB.
+    sub_call_lines: HashMap<(TreeId, u32), ProcId>,
     diags: Diagnostics,
     stmt_error: bool,
     /// The program's console and window, from the metacommands of its compiled code, wherever they stand (design
@@ -343,6 +420,10 @@ struct Checker<'a> {
     console: bool,
     console_only: bool,
     window_hidden: bool,
+    /// A `$ASSERTS` or `$ASSERTS:CONSOLE` was met in the compiled code.
+    asserts: bool,
+    /// The first `$EXEICON` met, with the node it is (its tree and offset).
+    exe_icon: Option<(crate::ExeIcon, (TreeId, u32))>,
     /// The `_ECHO` statements met: each is an error when the program turns out to have no console, which is known
     /// only after the walk (design D5 of `m2-console-screenhide`; measured, `verification\v26_x17`, `x62`).
     echoes: Vec<Span>,
@@ -377,6 +458,9 @@ struct Checker<'a> {
     /// The span of a `LEN` argument being typed: a whole user-type place loaded with exactly this span is taken as
     /// a place (its size), not rejected as a value.
     len_place: Option<Span>,
+    /// The value being typed is stored into a place of type `_MEM`, so a built-in that gives a block may stand
+    /// there (design D2 of `m3-mem`); the call takes it, so it holds for that call alone.
+    mem_store: bool,
     /// Main-module `TYPE` blocks (by key) that pass 1 marked "not supported yet".
     types_marked: HashSet<(TreeId, u32)>,
     /// The follow-on rule is on (design D10): a declaration was marked "not supported yet", so real errors are
@@ -392,7 +476,7 @@ struct Checker<'a> {
     /// D2). It is the table at the point of the file being read: pass 1 sets it from [`Self::proc_defaults`] for
     /// each header, pass 2 changes it at each `DEFxxx` and `_DEFINE` statement, wherever that stands.
     defaults: [Ty; 27],
-    /// Per `ProcDef` node (by key): the table at its header.
+    /// Per `ProcDef` and `DeclareLibraryBlock` node (by key): the table at its header.
     proc_defaults: HashMap<(TreeId, u32), [Ty; 27]>,
     /// `OPTION BASE` as it stands at this point of the file, 0 or 1 (design D3): the lower bound of a dimension
     /// written without `TO`. Like the default types it follows the file and nothing else.
@@ -418,8 +502,22 @@ struct Checker<'a> {
     /// gave them a number of dimensions: theirs is found with the parameter's.
     dims_open: HashSet<VarId>,
     /// Per `TYPE` block (by key): `OPTION BASE` as it stands at the block, which the bounds of its member arrays
-    /// go by ([`Self::collect_option_bases`]).
+    /// go by ([`Self::collect_block_settings`]).
     type_bases: HashMap<(TreeId, u32), i64>,
+    /// The `TYPE` blocks (by key) that stand below a `$UNSTABLE:TYPEFIELDS`, where the member markers are allowed
+    /// ([`Self::collect_block_settings`]).
+    type_flags: HashSet<(TreeId, u32)>,
+    /// The `TYPE` blocks (by key, with their type) with a dynamic member array whose bounds name a `CONST`: they
+    /// are read when pass 2 reaches the block, below the constants above it ([`Self::type_block`]).
+    type_const_bounds: HashMap<(TreeId, u32), TypeId>,
+}
+
+/// What pass 1 keeps as it walks the file in order to the `TYPE` blocks: `OPTION BASE` and whether
+/// `$UNSTABLE:TYPEFIELDS` stood above.
+#[derive(Clone, Copy, Debug, Default)]
+struct BlockSettings {
+    base: i64,
+    typefields: bool,
 }
 
 /// One thing that says how many dimensions an array has, for an array whose number is found from everything that
@@ -441,6 +539,8 @@ enum DimFact {
         param: VarId,
         shown: String,
         span: Span,
+        /// `arg` is the source of a whole-array assignment and `param` its target.
+        copied: bool,
     },
 }
 
@@ -599,7 +699,7 @@ impl Checker<'_> {
         if ast::InactiveCode::cast(node).is_some() {
             return;
         }
-        if ast::ProcDef::cast(node).is_some() {
+        if ast::ProcDef::cast(node).is_some() || ast::DeclareLibraryBlock::cast(node).is_some() {
             self.proc_defaults.insert(node.key(), self.defaults);
         }
         if ast::MetaCommentStmt::cast(node).is_some() {
@@ -620,11 +720,23 @@ impl Checker<'_> {
     /// [`Self::collect_defaults`] does, applies every `OPTION BASE` that pass 2 will apply (wherever it stands,
     /// whether or not it runs) and keeps the base at each `TYPE` block. A statement with an error changes
     /// nothing here and is reported by pass 2.
-    fn collect_option_bases(&mut self, node: Node, skips: &Skips, base: &mut i64) {
+    ///
+    /// `$UNSTABLE:TYPEFIELDS` is read in the same walk (design D1 of `m3-typefields`; `qb64pe.bas` 2071–2090):
+    /// the old compiler sets the flag as it reads the lines in order, before its first pass, so it allows the
+    /// markers in the blocks below it, also after the first statement, and not in a `$IF` branch that is not taken
+    /// (measured, `verification\v35_x14`, `x15`, `x45`, `x47`).
+    fn collect_block_settings(&mut self, node: Node, skips: &Skips, at: &mut BlockSettings) {
         if let Some(s) = ast::OptionStmt::cast(node) {
             let digits = s.base().filter(|_| skips.usable(node)).map(|t| self.text(t.span));
             if let Some(n) = digits.and_then(decl::option_base_of) {
-                *base = n;
+                at.base = n;
+            }
+            return;
+        }
+        if let Some(s) = ast::MetaStmt::cast(node) {
+            let raw = s.token().filter(|_| skips.usable(node)).map(|t| self.text(t.span));
+            if raw.and_then(unstable_meta) == Some(Ok(Unstable::TypeFields)) {
+                at.typefields = true;
             }
             return;
         }
@@ -632,25 +744,33 @@ impl Checker<'_> {
             return;
         }
         if ast::TypeBlock::cast(node).is_some() {
-            self.type_bases.insert(node.key(), *base);
+            self.type_bases.insert(node.key(), at.base);
+            if at.typefields {
+                self.type_flags.insert(node.key());
+            }
             return;
         }
         if ast::MetaCommentStmt::cast(node).is_some() {
             let program = self.program;
             if let Some(tree) = program.included(node) {
-                self.collect_option_bases(tree.root(), skips, base);
+                self.collect_block_settings(tree.root(), skips, at);
             }
             return;
         }
         for n in node.child_nodes() {
-            self.collect_option_bases(n, skips, base);
+            self.collect_block_settings(n, skips, at);
         }
     }
 
     /// The default types at a procedure's header.
     fn defaults_at(&self, def: ast::ProcDef) -> [Ty; 27] {
+        self.defaults_at_node(def.node())
+    }
+
+    /// The default types at a procedure's header or a `DECLARE LIBRARY` block.
+    fn defaults_at_node(&self, node: Node) -> [Ty; 27] {
         self.proc_defaults
-            .get(&def.node().key())
+            .get(&node.key())
             .copied()
             .unwrap_or(DEFAULTS_AT_START)
     }
@@ -723,6 +843,7 @@ impl Checker<'_> {
                     param,
                     shown,
                     span,
+                    copied,
                 } => {
                     let (a, b) = (root(&parent, arg), root(&parent, param));
                     if a == b {
@@ -730,10 +851,12 @@ impl Checker<'_> {
                     }
                     match (number.get(&a).copied(), number.get(&b).copied()) {
                         (Some(n), Some(m)) if n != m => {
-                            let msg = format!(
-                                "`{shown}` has {n} dimension{}, and is passed to an array parameter that has {m}",
-                                plural(n)
-                            );
+                            let to = if copied {
+                                "is copied to an array"
+                            } else {
+                                "is passed to an array parameter"
+                            };
+                            let msg = format!("`{shown}` has {n} dimension{}, and {to} that has {m}", plural(n));
                             self.stmt_error = false;
                             let _ = self.error(span, msg);
                         }
@@ -824,12 +947,15 @@ impl Checker<'_> {
             self.close(s)
         } else if let Some(s) = ast::SwapStmt::cast(node) {
             self.swap(s)
-        } else if ast::LprintStmt::cast(node).is_some()
-            || ast::FieldStmt::cast(node).is_some()
-            || ast::LsetStmt::cast(node).is_some()
-            || ast::MemStmt::cast(node).is_some()
-            || ast::ArrayCopyStmt::cast(node).is_some()
-        {
+        } else if let Some(s) = ast::LprintStmt::cast(node) {
+            self.lprint(s)
+        } else if let Some(s) = ast::FieldStmt::cast(node) {
+            self.field_stmt(s)
+        } else if let Some(s) = ast::LsetStmt::cast(node) {
+            self.lset(s)
+        } else if let Some(s) = ast::MemStmt::cast(node) {
+            self.mem_stmt(s)
+        } else if ast::ArrayCopyStmt::cast(node).is_some() {
             // Task 7.4: parsed, compiled later (file I/O and the other built-in statements, step 8).
             let t = first_token_span(node);
             let word = show_bytes(&self.text(t).to_ascii_uppercase());
@@ -894,12 +1020,28 @@ impl Checker<'_> {
     }
 
     /// `END` or `SYSTEM` (`kind`); with an exit code not supported yet.
-    fn end_or_system(&mut self, node: Node, kind: StmtKind) -> R<()> {
-        if let Some(code) = node.child_nodes().find_map(ast::Expr::cast) {
-            let word = show_bytes(&self.text(first_token_span(node)).to_ascii_uppercase());
-            return Err(self.unsupported(code.node().span(), format!("`{word}` with an exit code")));
-        }
-        self.push(node, kind);
+    /// `END [code]` or `SYSTEM [code]` (design D5 of `m3-asserts-debug-zlib`; `qb64pe.bas` 9850–9895). The old
+    /// compiler converts the code with `evaluatetotyp(…, ISINTEGER64)`, which reads the target's width as 0: a float
+    /// goes through `qbr_float_to_long` and an integer is stored as it is into libqb's `int64 exit_code`, whose low 32
+    /// bits are the process's exit code (measured, `verification\v33_c*`: `SYSTEM 2.5` gives 2, `SYSTEM 2 ^ 40` 0).
+    /// A string is "Illegal string-number conversion" there (`v33_x37`, `x38`).
+    fn end_or_system(&mut self, node: Node, kind: fn(Option<crate::Expr>) -> StmtKind) -> R<()> {
+        let code = match node.child_nodes().find_map(ast::Expr::cast) {
+            None => None,
+            Some(x) => {
+                let e = self.expr(x)?;
+                if e.ty == Ty::Str {
+                    let word = show_bytes(&self.text(first_token_span(node)).to_ascii_uppercase());
+                    return Err(self.error(e.span, format!("the exit code of `{word}` must be a number")));
+                }
+                Some(if e.ty.is_float() {
+                    expr::conv(e, Ty::I32, crate::ConvKind::RoundEven)
+                } else {
+                    e
+                })
+            }
+        };
+        self.push(node, kind(code));
         Ok(())
     }
 
@@ -940,6 +1082,29 @@ impl Checker<'_> {
                 // The last of the two in the file counts (`qb64pe.bas` 3615–3624).
                 Ok(ConsoleMeta::ScreenHide) => self.window_hidden = true,
                 Ok(ConsoleMeta::ScreenShow) => self.window_hidden = false,
+                // The global `asserts` (design D1 of `m3-asserts-debug-zlib`); `$ASSERTS:CONSOLE` gives a console as
+                // `$CONSOLE` does (`qb64pe.bas` 1984; measured, `verification\v33_a06`).
+                Ok(ConsoleMeta::Asserts) => self.asserts = true,
+                Ok(ConsoleMeta::AssertsConsole) => {
+                    self.asserts = true;
+                    self.console = true;
+                }
+                // No debugger code is written (user, design D2): only the flags, which the parser settles, and the
+                // old compiler's warning from the command line (`qb64pe.bas` 3556).
+                Ok(ConsoleMeta::Debug) => self.diags.warning(tok.span, "$DEBUG features only work from the IDE"),
+                Err(msg) => return Err(self.error(tok.span, msg)),
+            }
+            Ok(())
+        } else if line.starts_with(b"$EXEICON") {
+            self.exe_icon_meta(node, tok)
+        } else if let Some(u) = unstable_meta(raw) {
+            match u {
+                // Read by pass 1, where the blocks are (`Self::collect_block_settings`).
+                Ok(Unstable::TypeFields) => {}
+                // The old compiler's warning (`qb64pe.bas` 3891, 3895), given with `-w` as every warning is.
+                Ok(Unstable::Stable) => self
+                    .diags
+                    .warning(tok.span, "No longer required, feature is stable now"),
                 Err(msg) => return Err(self.error(tok.span, msg)),
             }
             Ok(())
@@ -947,6 +1112,61 @@ impl Checker<'_> {
             let shown = show_bytes(raw.split(|&b| b == b':' || b == b' ').next().unwrap_or(raw));
             Err(self.unsupported(tok.span, format!("metacommand `{shown}`")))
         }
+    }
+
+    /// `$EXEICON:'name'` (design D4 of `m3-sound`; `qb64pe.bas` 3829–3880; measured, `verification\v29_e01`–`e31`):
+    /// the icon of the executable, and where it stands the statement `_ICON` with no argument. The old compiler
+    /// takes any line that starts with `$EXEICON` in upper case; the name stands between the line's first two
+    /// `'`, and the rest of the line is dropped (the lexer makes one token of a metacommand's whole line).
+    fn exe_icon_meta(&mut self, node: Node, tok: Tok) -> R<()> {
+        if let Some((_, first)) = &self.exe_icon {
+            // Before the line's own name is read (`e27`). The old compiler names a line of the main file: for a
+            // first one inside an included file the line of its `$INCLUDE` (`e31`).
+            let line = self.main_line(*first);
+            return Err(self.error(tok.span, format!("`$EXEICON` is already defined in line {line}")));
+        }
+        let raw = self.text(tok.span);
+        let mut quoted = raw.split(|&b| b == b'\'');
+        let written = match (quoted.next(), quoted.next(), quoted.next()) {
+            (Some(_), Some(name), Some(_)) => name.trim_ascii(),
+            _ => b"",
+        };
+        if written.is_empty() {
+            return Err(self.error(tok.span, "expected `$EXEICON:'filename'`"));
+        }
+        // The name is a file's, taken as UTF-8 as an included file's is (`qb64rust_syntax::include_name`).
+        #[expect(clippy::disallowed_methods, reason = "a file name, not BASIC source")]
+        let name = String::from_utf8_lossy(written).into_owned();
+        let shown = show_bytes(written);
+        let absolute = matches!(written, [drive, b':', b'/' | b'\\', ..] if drive.is_ascii_alphabetic())
+            || matches!(written, [b'/' | b'\\', b'/' | b'\\', ..]);
+        if crate::ExeIcon::beside_source(&name).is_none() && !absolute {
+            // The old compiler looks for such a name in its own folder, for one with a single leading slash on
+            // its own drive (`e02`, `e03`, `e08`, `e18`) and for one with a drive and no slash after it
+            // (`C:game.ico`) in the folder it stands in on that drive, none of which has a counterpart here.
+            let msg = "a `$EXEICON` name that neither starts with `./` nor is absolute";
+            return Err(self.unsupported(tok.span, msg));
+        }
+        self.absent_stmt(node, "_ICON")?;
+        let icon = crate::ExeIcon {
+            name,
+            shown,
+            span: tok.span,
+        };
+        self.exe_icon = Some((icon, node.key()));
+        Ok(())
+    }
+
+    /// The line of the main file a node of any tree belongs to: its own line, or the line of the `$INCLUDE` that
+    /// brought its file in.
+    fn main_line(&self, (mut tree, mut offset): (TreeId, u32)) -> u32 {
+        while tree != self.program.main().id {
+            let Some((&at, _)) = self.program.includes.iter().find(|&(_, &included)| included == tree) else {
+                break;
+            };
+            (tree, offset) = at;
+        }
+        self.map.file(self.program.tree(tree).file).line_col(offset).0
     }
 
     /// A metacommand comment. Its `$STATIC` and `$DYNAMIC` decide what a `DIM` with constant bounds makes from
@@ -977,6 +1197,20 @@ impl Checker<'_> {
         let node = stmt.node();
         let target_node = self.need(stmt.target(), node.span())?;
         let value_node = self.need(stmt.value(), node.span())?;
+        // Whole-array assignment (design D1 of `m3-whole-array-assign`): both sides written `name()` or as a member
+        // chain ending in `()`, the source also in parentheses. One side a whole array `name()` and the other not
+        // written so is the old compiler's guard (design D2), also with the value in parentheses (`n = (a())`,
+        // `a() = (b(1))`); a whole member array beside a side of another form keeps the errors it gets below.
+        let source = without_parens(value_node);
+        if written_whole(target_node) && written_whole(source) {
+            return self.copy_array(node, target_node, source);
+        }
+        if let Some((_, t)) = self.whole_array(target_node) {
+            return Err(self.half_whole(node, (target_node, t), source, false));
+        }
+        if let Some((_, t)) = self.whole_array(source) {
+            return Err(self.half_whole(node, (source, t), target_node, true));
+        }
         let place = match target_node {
             ast::Expr::NameRef(n) => {
                 let t = self.need(n.name(), node.span())?;
@@ -1021,6 +1255,24 @@ impl Checker<'_> {
             }
         };
         let ty = self.prog.place_ty(&place);
+        self.read_only_member(&place, target_node.node().span())?;
+        let read = self.names_word(value_node, "_MEMGET");
+        if (self.prog.is_mem(ty) && self.gives_block(value_node)) || (matches!(ty, Ty::User(_)) && read) {
+            // A built-in that gives a block, stored into a `_MEM` place: a copy of its 56 bytes (design D2 of
+            // `m3-mem`); a value of a user type `_MEMGET` reads, stored into a place of that type (design D4;
+            // measured, `verification\v32_x01_accepted`).
+            self.mem_store = true;
+            let value = self.expr(value_node);
+            self.mem_store = false;
+            let value = value?;
+            if value.ty != ty {
+                // Measured for two user types: "Expected = similar user defined type" (`v24_x208`).
+                let msg = format!("a value of `TYPE {}` is required here", self.prog.type_name(ty));
+                return Err(self.error(value.span, msg));
+            }
+            self.push(node, StmtKind::Assign { place, value });
+            return Ok(());
+        }
         if let Ty::User(_) = ty {
             // Measured (`verification\v24_h_whole`, `v24_x208`, `x209`): `q = p` copies the whole value between
             // two places of one `TYPE`; a place of another `TYPE`, also one with the same members, and a number
@@ -1051,6 +1303,38 @@ impl Checker<'_> {
     /// Whether a variable holds a whole user-type value.
     fn is_whole_type(&self, v: VarId) -> bool {
         matches!(self.prog.var(v).ty, Ty::User(_))
+    }
+
+    /// A member of a `_MEM` block as the place of an assignment, `READ` or `INPUT #` (the old compiler's `setrefer`,
+    /// `qb64pe.bas` 26850). Measured: "Cannot set read-only element of _MEM TYPE" (`verification\v32_x05`, `x06`,
+    /// `x117`, `x118`).
+    pub(super) fn read_only_member(&mut self, place: &Place, span: Span) -> R<()> {
+        if let Place::Member { base, .. } = place
+            && self.prog.is_mem(self.prog.place_ty(base))
+        {
+            return Err(self.error(span, "a member of a `_MEM` block cannot be stored to"));
+        }
+        Ok(())
+    }
+
+    /// Whether an expression is a call of a built-in that gives a block ([`crate::builtins::MEM_RESULTS`]),
+    /// with or without its argument list.
+    pub(super) fn gives_block(&self, node: ast::Expr) -> bool {
+        crate::builtins::MEM_RESULTS.iter().any(|w| self.names_word(node, w))
+    }
+
+    /// Whether an expression is a call of the built-in `word`, with or without its argument list.
+    fn names_word(&self, node: ast::Expr, word: &str) -> bool {
+        let name = match node {
+            ast::Expr::Call(c) => c.name(),
+            ast::Expr::NameRef(n) => n.name(),
+            ast::Expr::Literal(_)
+            | ast::Expr::Paren(_)
+            | ast::Expr::Prefix(_)
+            | ast::Expr::Bin(_)
+            | ast::Expr::Field(_) => None,
+        };
+        name.is_some_and(|t| self.word(t) == word)
     }
 }
 

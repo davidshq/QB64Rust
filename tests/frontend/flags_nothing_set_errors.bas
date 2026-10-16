@@ -1,7 +1,7 @@
-' TEST: check-fail
+' TEST: check-ok
 ' Precompiler flags (m2-console-screenhide task 6.1, the scenario "Nothing sets a flag"): in a program with none
 ' of the features every flag is 0, so none of these branches is compiled; each holds an error that would show
-' if it were. The one diagnostic is the mark of a program without a console.
+' if it were. There is no diagnostic: a program without a console is compiled (m3-window-output task 2.1).
 $IF _CONSOLE_ THEN
     x = "console"
 $END IF

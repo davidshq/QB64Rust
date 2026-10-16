@@ -1,0 +1,5 @@
+
+Expected array index after v
+Caused by (or after):X . V ( ) = X . K
+LINE 8:x.v() = x.k
+exit=1

@@ -47,7 +47,7 @@ From the expert panel (`07`), whose recommendations R1–R13 the decisions above
 | M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
 | M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | **done** (`vscode\`) |
 | M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server (the formatter matching `-y` left this criterion on 2026-10-09, `DECISIONS.md`) | **done 2026-10-12**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling; upstream tests; control flow and constants; arrays and `TYPE`; parser breadth (every accepted program parses, no false error); core built-ins; the language server; the numeric types; built-in statements; the screen-state check; default types, dynamic arrays, arrays in procedures, `COMMON`, the rest of `TYPE` and member arrays; a console and a window (`$CONSOLE`, `$SCREENHIDE`, `_DEST _CONSOLE`), the window built-ins as compiled code, the auto-included constants and the precompiler flags (`crates\`). No step of the order of work is left. Order of work and the numbers of the last full runs: `STATUS.md` |
-| M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests; programs without `$CONSOLE:ONLY` with a screen-state oracle | started early: the slice already links with libqb |
+| M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests; programs without `$CONSOLE:ONLY` with a screen-state oracle | under way: the slice links with libqb since M2; since `m3-window-output` (2026-10-12) a program whose output is a window compiles, with the text-screen, drawing and pacing statements, and 42 screen programs pass by their screen state |
 | M4 | Parity | The corpus (275) and the upstream tests in reach (279 of 404; 125 need the deferred array features) match; `qb64pe.bas` compiles and the result passes the suite (exit criterion, `study\20`) | |
 | M5 | Debugger | Debug symbol file + DAP adapter | |
 | M6 | Runtime modernisation | ABI owned by the new compiler; error model, string heap, threading redesigned behind golden tests | |
@@ -124,7 +124,7 @@ Full lists: `01` §11.1, `02` §9.1, `03` §9.1. Items marked ✓ were confirmed
 **Runtime model**
 - By-reference arguments, with a silent by-value temporary (no copy-back) on type mismatch, expression, or `(x)`.
 - Arrays: column-major, descriptor layout, static-vs-dynamic rule; `REDIM _PRESERVE` keeps the flat position, not
-  coordinates, unless only the last dimension changes (✓).
+  coordinates, unless only the last dimension changes (✓); `REDIM _RETAIN` keeps coordinates (✓, `v34`).
 - Errors and events are serviced only at statement boundaries; `RESUME`/`RESUME NEXT` are statement-granular; a
   runtime error in one PRINT item skips the rest of the statement (`10` §2.1).
 - Integer division or `MOD` by zero is **fatal** (critical error 11 from `qb_safe_idiv`/`qb_safe_mod`; not trappable,
@@ -1106,6 +1106,38 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   (2, 1) reads 1 2 3 / 4 0 0), another lower bound (0 to 3 holding 1 2 3 4 to 10 to 15 reads 1 2 3 4 0 0). Of an
   array that is not allocated it is `REDIM`. The new block is made first, then the copy, then the old block is
   released, then the descriptor is committed (the C++ of `REDIM _PRESERVE p(n + 1) AS STRING`).
+- **`REDIM _RETAIN` (`v34_*`, 28 programs, measured 2026-10-14 before `m3-redim-retain`; `qb64pe.bas` 8779,
+  8988–8993, 14782–14812, 15228–15296):** a third mode of `REDIM` (`redimoption = 3`).
+  - **The words**: `_RETAIN` only right after `REDIM`, then an optional `SHARED` (`REDIM _RETAIN SHARED`, `x02`).
+    `REDIM SHARED _RETAIN`, `REDIM _PRESERVE _RETAIN`, `REDIM _RETAIN _PRESERVE`, `REDIM _RETAIN _RETAIN`, `REDIM
+    _RETAIN _preserve(3)` and `DIM _RETAIN` are "Invalid variable name"; `REDIM _RETAIN` alone "Expected REDIM
+    _RETAIN ..."; `x = _RETAIN` "Invalid variable name" (`x01`, `x03`–`x05`, `x07`, `x14`, `x22`, `x23`). Lower
+    case is the same (`x08`).
+  - **Everything else is `_PRESERVE`'s statement**: a list of names, the type before the names, `REDIM _RETAIN
+    SHARED` in a SUB ("DIM/REDIM SHARED invalid within a SUB/FUNCTION"), another number of dimensions ("Cannot
+    change the number of elements an array has!"), another type ("Name already in use"), `REDIM _RETAIN a()` and
+    `a AS LONG` (a scalar), `$DYNAMIC`, `COMMON SHARED a()`, `SUB … STATIC`, a local, `SHARED` or parameter array,
+    the first `REDIM _RETAIN` of an array and after `ERASE` (new elements), a static array (error 10, unchanged;
+    "Duplicate definition" with no handler), a dimension with no element (5, the old elements gone), a bound that
+    raises (5; `e(1 TO ASC(""))` leaves 1 to 0), conventional memory, a `_MEM` block of the array no longer
+    valid after it (`x02`, `x06`, `x11`–`x13`, `x15`–`x21`, `x24`, `v34_c`).
+  - **It keeps elements by coordinates**: per dimension the overlap `max(old lower, new lower)` to `min(old upper,
+    new upper)`; every element whose indexes lie in all of them is copied to the same indexes, the rest are zero
+    or empty; ranges that do not meet keep nothing (`v34_a`: `a(1 TO 5)` = 10…50 to `a(3 TO 7)` reads 30 40 50 0
+    0; `m(1 TO 3, 1 TO 4)` to `m(2 TO 5, 0 TO 3)` keeps rows 2 and 3, columns 1 to 3; three dimensions alike). The
+    C++: the old descriptor's slots 4 to `4 * dims + 3` copied into `preserve_old_desc` where the old block is
+    captured, the overlap after the size checks (`preserve_any=0` when the old array had no element or a range
+    is empty), then an odometer over the indexes, the first dimension fastest, with the offsets of the element in
+    both blocks. The copy of one element is `_PRESERVE`'s (`qbs_set`, `setbits`/`getubits` counting elements,
+    the parts of a user type with strings, `memcpy` for the rest), so strings, `STRING * n` (NUL bytes where
+    nothing is kept), `_BIT`, `_UNSIGNED _BIT * 5`, user types with strings and with member arrays keep every
+    member (`v34_b`).
+  - **On a member array (`REDIM _RETAIN x.v(1 TO 3)`, `x(1).v(…)`) it does nothing**, as `_PRESERVE` (`x09`,
+    `x10`).
+  - **A FUNCTION in a bound that gives the same array new bounds** (`REDIM _RETAIN z(2 TO shrinkz)` where
+    `shrinkz` does `REDIM z(1 TO 2)`) ends the program with exit 127 and no output (`v34_d`): the old block and
+    descriptor are captured before the bounds are evaluated and freed again after the FUNCTION freed them. The
+    same with **plain `REDIM`** (`v34_d2`) and with `_PRESERVE` (`v34_d3`). Not followed: `DIVERGENCES.md` D-018.
 - **`ERASE` (`v24_d_*`, `v24_x57`–`x63`):** a static array is cleared (0, `""`, NUL bytes, every member of a user
   type) and keeps its bounds, in every dimension; an array used without `DIM` likewise. A dynamic array is
   released: `UBOUND` and every element raise 9; a second `ERASE` does nothing; `REDIM`, and the `DIM` that made
@@ -1332,7 +1364,8 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   alone without `AS` ("REDIM of a TYPE member array must include AS <type> or explicit lower TO upper bounds");
   another type ("REDIM type does not match the declared TYPE member array"). `ERASE t` of a variable is
   "Undefined array passed to ERASE". A `_BIT` member array is "Cannot use _BIT inside user defined types"; the
-  `_STATIC` and `_DYNAMIC` markers are "_Static/_Dynamic require $Unstable:TypeFields".
+  `_STATIC` and `_DYNAMIC` markers are "_Static/_Dynamic require $Unstable:TypeFields" without that flag (with
+  it: the next paragraph, `v35`).
   **Measured 2026-10-11 before and while group 9 was built (`v24_x310`–`x326`):**
   **What finds the place a member array is part of.** `LBOUND`, `UBOUND` and `LEN` do not: `UBOUND(a(one(1)).v)`
   calls no FUNCTION, `LBOUND(a(9).v)` and `UBOUND(x(1).n(9).q)` raise nothing, only the dimension argument is
@@ -1373,6 +1406,253 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   `REDIM SHARED t.v(0 TO 3)` (clears). **In `REDIM t.v(3) AS LONG` the upper bound alone goes by `OPTION BASE`
   as it stands at the `REDIM`**: below `OPTION BASE 1` it is accepted for a member declared `1 TO 3` and
   "Cannot change the number of elements an array has!" for one declared `0 TO 3`.
+- **`$UNSTABLE:TYPEFIELDS` and the member markers (`v35_*`, 69 programs measured 2026-10-14 before
+  `m3-typefields` and 9 while it was built, `x60`–`x68`; `qb64pe.bas` 2071–2090, 2180–2460, 8890–8990, 15654–16520, 17075–17300, `utilities\type.bas`
+  10–2140):**
+  - **The flag is read in source order, before the first pass**, as the lines are read: it allows the markers in
+    the `TYPE` blocks below it, also when it stands after the first statement (`x47`), and not in a `$IF` branch
+    that is not taken (`x14`; taken, `x15`); below the `TYPE` the marker is "_Static/_Dynamic require
+    $Unstable:TypeFields" (`x45`). Any letter case, twice, a blank after the colon (`v35_h`, `x13`). `MIDI` and
+    `HTTP` give the warning "No longer required, feature is stable now"; another flag or an empty one is
+    "Unrecognized unstable flag \"FOO\"" (`""`), `$UNSTABLE` alone "Syntax error" (`x10`–`x12`).
+  - **The markers**: before the name (`_DYNAMIC v(1) AS LONG`), after the name or bounds, after the type (`v(1) AS
+    LONG _DYNAMIC`), in an `AS type` list before a name or after its bounds, where it marks that name only (`AS
+    LONG v(1) _DYNAMIC, w(1)`: `REDIM x.w(0 TO 5)` is "Cannot change the number of elements an array has!")
+    (`x01`–`x04`, `x44`). `AS _DYNAMIC LONG v(1)` is "Expected element-name AS type, AS type element-list, or END
+    TYPE" (`x05`), and so is a marker before an `AS type` list, `_STATIC AS LONG v(1), w(2)` (`x60`, measured by
+    the review of group 2: a marker first is read as `marker name AS type`, with `AS` the name); both markers or one twice "A TYPE member array cannot use both _Dynamic and _Static" (`x06`,
+    `x07`); a marker on a member that is no array "_Dynamic and _Static can only be used on array members inside
+    TYPE" (`x08`, `x09`); `v() _DYNAMIC` "Array bounds missing" (`x16`); a `CONST` bound is accepted (`x17`);
+    `_BIT` is refused as before (`x25`). **`_STATIC` changes nothing**: the member is the unmarked one, with its
+    rules, layout and `LEN` (`v35_f`, `x34`, `x40`, `x53`: 12 and 10 bytes).
+  - **A `_DYNAMIC` member is an array owned by the value**: each variable, element and copy has its own; it
+    starts at its declared bounds (the `OPTION BASE` of the block) with zero or empty elements. `REDIM` gives it
+    any bounds (plain, `_PRESERVE`, `_RETAIN` as for a dynamic array; another number of dimensions; `SHARED`; a
+    list; a suffix on the name; `lower TO upper` or `AS` the type needed: "REDIM of a TYPE member array must
+    include AS <type> or explicit lower TO upper bounds", another type "REDIM type does not match the declared
+    TYPE member array") (`v35_a`, `x18`, `x19`, `x29`–`x33`); `DIM x.v(3)` is "DIM: Expected ," (`x37`). `ERASE`
+    releases it: every use (`LBOUND`, `UBOUND`, an element read or stored) raises 9 until a `REDIM`. An index
+    outside, another number of indexes than it has now, and a dimension of `LBOUND`/`UBOUND` it does not have
+    raise 9 (`v35_g`). Every kind of element works: each numeric type, `_OFFSET`, `STRING * n`, `STRING`, a user
+    type with strings, one with `_DYNAMIC` members of its own (`v35_c`). Reversed bounds at run time end the
+    program with "Out of memory" (`v35_g2`); a `REDIM` to 2³¹ × 2³¹ `_INTEGER64`s succeeds and `UBOUND` reads
+    back (`v35_g3`: the size overflows, no check).
+  - **The value's life**: `y = x` copies deep (`x.v` unchanged after `y.v(5) = 999`, `v35_a` 8.); `SWAP`
+    exchanges whole values, members included (`x28`, `v35_b` 4.); a parent's `REDIM _PRESERVE`/`_RETAIN` keeps the
+    members of kept elements and gives new ones their declared bounds, plain `REDIM` resets every element's,
+    `ERASE` of a dynamic parent frees them, **`ERASE` of a static parent leaves each member not allocated** (error
+    9) until a `REDIM` of it (`v35_b`, `x51`). A local is new on each call, a `STATIC` local keeps its members, a
+    `SHARED` variable is shared; a parameter of the type, an element as one, an array of the type and the member
+    as `x.v()` to `a() AS LONG` are by reference: a `REDIM` in the callee is seen by the caller (`v35_d`, `x36`).
+    `READ`, `INPUT`, `INPUT #`, `LINE INPUT #`, `SWAP` and the `MID$` statement take an element (`v35_e` 1.–4.,
+    `x42`).
+  - **The parent's place is found for every use** of the member, `LBOUND`/`UBOUND` included (`UBOUND(p(one(1)).v)`
+    calls `one`, `x59`; unlike an unmarked member); an index outside raises 9 and element 0 stands in: `REDIM
+    p(9).v(4 TO 6)` gives `p(0).v` bounds 4 to 6, **`p(9).v(5) = 55` stores into `p(0).v(5)`**, `ERASE p(9).v`
+    erases `p(0).v` (`x58`). A whole-value copy with an index outside copies into or from element 0 deep (`x57`).
+  - **The evaluations of a copy** (`x56`): `a(one(1)) = b(one(2))` prints `1 2` four times for a type of a LONG, a
+    `_DYNAMIC` LONG member and a LONG, and ` 1  2  1  2  1  2  1  2  1  1  2  1 ` for a LONG, a `STRING`, a
+    `_DYNAMIC` LONG member and a `_DYNAMIC` `STRING` member. Read from `copy_full_udt_dyn` (`type.bas` 2049) and
+    checked by `x61` (measured with task 4.3), each statement of the copy finds both places anew: first a test that
+    they differ (a copy to itself does nothing); then, for a type that holds no `STRING` (also in a member or a
+    `_DYNAMIC` member), every member but the `_DYNAMIC` ones (one move for an inline array of numbers, one per
+    element of an inline array of an owner type, into its members), then each `_DYNAMIC` member (target, source); for
+    a type that holds one (`udtxvariable`), each member in order, a `_DYNAMIC` one erased (target) and then made as
+    the source's (source, target), an inline array of `STRING` or of a user type element by element. A nested owner
+    type as a member and as an inline member array of two: 8 pairs without a `STRING`, 29 evaluations with one.
+    **The two paths differ for a source member that is not allocated**: without a `STRING` the target's member is
+    kept (`x61` 3.: bounds 0 to 1, element 7); with one it becomes not allocated (4.: error 9 on `LBOUND`).
+  - **Reading into a place through a member** (`x62`, with task 4.2, for `_DYNAMIC` and fixed member arrays and
+    members of elements alike): `READ`, `INPUT #` and `LINE INPUT #` read a number before the indexes and a string
+    after them (an index FUNCTION that reads an item itself gets the second item for a number, the first for a
+    string), as an assignment evaluates its value. An index outside raises 9: a number's item is taken and stored
+    into position 0 of that dimension (`READ a(9).m` sets `a(0).m`; `DIVERGENCES.md` D-004 here); a string's read
+    takes nothing (libqb's readers return while an error is pending). Console `INPUT` prints `? `, then evaluates
+    every target's indexes, then reads; after error 9 there it reads and stores nothing. `MID$(a(f(1)).s, 1) = z$`
+    evaluates the index before the value; an index outside raises 9 and changes nothing.
+  - **The layout of an owner type** (`x52`): `a AS INTEGER`, `v(1) _DYNAMIC AS LONG`, `b AS INTEGER` is 24 bytes
+    (`v` a pointer at 8, `b` at 16); `c AS _BYTE`, `i AS` that type, `d AS _BYTE` is 40 (`i` at 8, `d` at 32);
+    elements of an array 24 apart. `_MEM` of the value, of a member and of an element works with that layout
+    (`x22`–`x24`); `_OFFSET` of an element works (`x26`); a type without `_DYNAMIC` keeps the packed layout (`x53`).
+  - **Files**: `PUT #1, 1, p()` of a whole array writes the declared layout (24 bytes for two elements of the type
+    above: `a`, the two LONGs, `b`); a member with other bounds raises 9 and nothing is written (`LOF` 0); `GET`
+    into an array whose member has other bounds raises 9 and **still copies the declared bytes into that member's
+    smaller block** (`q(0).v(5 TO 5)` reads the first LONG, the next is written past its end) (`v35_e` 5.–6.). On
+    a random file the whole array is one record: `LEN = 10` gives error 59, `LEN = 20` a 20-byte file (`x55`).
+    Nested owner types (`x65`, measured with task 5.1): a member of an owner type, an inline member array of one,
+    a `_DYNAMIC` member of an owner type and one of a plain `TYPE` are each written in their declared layout,
+    recursively (72 bytes for two elements of a two-dimensional array `(1 TO 2, 0 TO 0)`), and read back; a
+    mismatch inside a nested value raises 9 (`PUT`: nothing written; `GET`: the smaller block written past again).
+    The code is `UDTFileArrayBE$` and `AppendUDTFileConvCode` (`qb64pe.bas` 17075–17265): a buffer per type grown
+    with `realloc`, packed before `PUT`, unpacked after `GET` by a line written after the call with no test of an
+    error. `GET` into an array that `ERASE` released raises 9 and then ends the program with "Out of memory" (`x67`,
+    found while `s118` was recorded).
+  - **`_MEM` of a `_DYNAMIC` member** (`x66`, measured with task 5.2): of the whole member, the block of its
+    descriptor's elements (`x.v()` of `v(1) AS LONG`: size 8, type 65668, an array of LONG, element size 4, offset
+    that of `x.v(0)`); of an element, and with `_MEMELEMENT`, the element alone in its type (size 4, type 132); the
+    same for a member of an array element; of `STRING * 3` elements 9 bytes, type 66048; of a plain `TYPE`'s
+    elements (6 bytes each, packed) type 98304 and per element 32768. Each takes the descriptor's lock: a `REDIM` or
+    an `ERASE` of the member makes the block invalid (`_MEMEXISTS` 0). **`_MEM` of a member that `ERASE` released
+    crashes the program** (exit code 139; the line was taken out of `x66` after it was recorded so).
+  - **Compile errors for an owner value** ("_MEM cannot reference a TYPE value that contains explicit _Dynamic
+    member arrays"): `LEN(x)` and `LEN(p(0))` (`x20`, `x64`; `LEN(x.v(0))` is 4, `x21`), `_OFFSET(x)` (`x68`;
+    `_OFFSET(x.a)` is taken, `x52`), `COMMON SHARED x` (`x39`)
+    and `COMMON SHARED p() AS t` (`x63`, reported at no line: "[INFORMATION UNAVAILABLE]"), `PUT`/`GET` of one
+    variable or element (`x43`, `x46`, `x50`, `x54`); a whole array with a `STRING` in the type is "UDT must have
+    fixed size" (`x48`); `PRINT x.v` "Expected array index" (`x41`). Measured, not followed (`DIVERGENCES.md`):
+    the `GET` into a smaller block (D-019), the size that overflows (D-020), the store through `p(9)` (D-004), the
+    crash of `_MEM` of a released member and the "Out of memory" of `GET` into a released array (D-021).
+- **Whole-array assignment, `target() = source()` (`v36_*`, 58 programs measured 2026-10-15 before
+  `m3-whole-array-assign`; `qb64pe.bas` `assign` 17343, `EmitAssignWhole` 16675, `CheckAsgRHS` 16809,
+  `AppendDynUDTArrayAssign` 16855, `AppendWholeArrayAssign` 17272):**
+  - **The form**: each side a name with empty parentheses or a chain of members ending in one (`x.v()`,
+    `e(1).v()`); the source may stand in parentheses (`a() = (b())`, `x14`); `LET`, blanks inside the
+    parentheses (`a ( ) = b ( )`, `x20`), after a colon and in a one-line `IF` are accepted (`v36_a` 8., 9.). Each
+    name must pass `validname`, so **a name with a type suffix never takes this path** (below).
+  - **Checked at compile time** (`EmitAssignWhole`): the element types must be equal, else "Cannot assign arrays
+    of different types": `LONG`/`INTEGER`, signed/unsigned, `SINGLE`/`DOUBLE`, `_BIT * 2`/`* 3`, signed and
+    unsigned `_BIT`, `_OFFSET`/`_INTEGER64`, `STRING`/`STRING * 4`, two user types of one layout, a user type and
+    `LONG`, two member arrays of a type, a `REDIM` target (`x05`–`x07`, `x10`–`x12`, `x19`, `x21`–`x23`, `x34`,
+    `x35`); two lengths of `STRING * n`: "Cannot assign fixed-length STRING arrays with different element sizes"
+    (`x09`); the numbers of dimensions: "Cannot assign arrays with different dimensions" (`x08`). An array
+    parameter's number of dimensions is taken from its other uses: alone it is accepted with either (`x17`,
+    `x39`), after `p(1)` a source of two dimensions is that error (`x45`). `_MEM` arrays copy (`x31`); owner types
+    of every pair measured copy (`x46`, `x47`).
+  - **Not whole on both sides** (`CheckAsgRHS`, the guard of an ordinary assignment): "Expected array index after
+    <name>" at the side that is an array named bare or with `()` against something that is no array: `a() = b`
+    (`x01`), `a = b()` (`x03`), `a() = 5` (`x04`), `a() = b() + 1` (`x13`), `x.v() = x.k` (`x32`); "Whole-array
+    assignment requires empty parentheses on both sides" for `a() = b(1)`, `a(1) = b()` (`x02`, `x26`) and when the
+    other name is undeclared or a `CONST` (`x15`, `x16`, `x29`); a FUNCTION as the source is "Expected (...)"
+    (`x18`), a SUB "Name already in use" (`x55`). The value in parentheses gets the same errors as without them
+    (`n = (a())`, `a() = (b(1))`; `x53`, `x54`, measured by the review of the change). The upstream `.err`
+    programs `t024`–`t027`, `t037`, `t038`, `t040`, `t041` are these forms.
+  - **At run time** (`v36_f`): both arrays must be allocated and have, in every dimension, the same lower bound and
+    number of elements, else error 9 and nothing is copied (the same count moved, fewer, more, a second dimension,
+    a target or source after `ERASE`, a `$DYNAMIC` array after `ERASE`, strings). A static array after `ERASE` is
+    allocated and takes the copy. The target is never given new bounds. `a() = a()` copies nothing (`v36_a` 6.);
+    `b() = a(): a() = b()` is two copies (`x30`).
+  - **The copy is deep, by kind** (`v36_a`, `v36_b`): every numeric type, `_OFFSET`, `STRING * n`, `_BIT` and
+    `_UNSIGNED _BIT * 3` (an element has `n/8+1` bytes, as the allocation gives it), user types of numbers and
+    `_MEM` as one move of the bytes; `STRING` element by element (the target's own strings afterwards); a user type
+    with a `STRING`, a nested type, member arrays of numbers and strings, as a whole-value copy of each element.
+    Two and three dimensions, bounds that are not 0, a `REDIM` array on either side.
+  - **Every place** (`v36_c`, `x27`, `x28`, `x36`): `SHARED` into `COMMON SHARED` (conventional memory) from a SUB,
+    local and `STATIC` arrays, a SUB declared `STATIC`, array parameters on both sides and on one (the caller's
+    array is changed), untyped parameters, `$DYNAMIC`, an array used without `DIM` (`w() = u()`), a FUNCTION.
+  - **Member arrays, without the flag** (`v36_d`, `x33`): member to member, member to array, array to member,
+    members of array elements, `STRING` and user-type member arrays; a member whose bounds differ from the array's
+    raises 9 and copies nothing. **The target's place is found before the source's** (`e(f(2)).v() =
+    e(f(1)).v()` prints `f 2` then `f 1`, `x49`). **An index outside its bounds on the way** (`x48`) raises 9 and
+    element 0 stands in: a `LONG` member is then not copied (the descriptor's check sees the pending error) but a
+    `STRING` member is copied through element 0's (`e(0).w(1)` becomes `z`). An error raised and handled before
+    the statement changes nothing (`x50`).
+  - **Owner types under `$UNSTABLE:TYPEFIELDS`** (`v36_e`, `x46`, `x47`, `x51`): each element copied deep, its
+    `_DYNAMIC` members with their own bounds, strings and a nested owner type, into a `DIM` target in place and
+    into a `REDIM` target through a new block (`AppendDynUDTArrayAssign`); a whole array of the type as an inline
+    member array or a `_DYNAMIC` member array, either side. A `_DYNAMIC` member array to another or to a plain array
+    and back is checked as two arrays (error 9 for other bounds, the target keeps its own). `_MEMEXISTS` of a block
+    on a member of an element of the target stays true for both targets (`x51`). **An array of an owner type with
+    other bounds raises 9 and is copied anyway**, as many elements as the target has (`d(0 TO 1) = s(1 TO 2)`
+    copies both; `e(1 TO 3) = s(1 TO 2)` reads a third element past `s`'s block), and an erased target raises 9
+    alone (`x52`).
+  - **A type suffix on both names** (`a%() = b%()`, `a&() = b%()`, `a$() = b$()`, `a%() = b%()` for arrays
+    declared `AS INTEGER`) is not this path: an ordinary assignment of element 0 to element 0, converting, with no
+    type check (`x24`, `x38`, `x40`, `x43`, `x44`, `v36_a` 7.–9.). A suffix on one side only is "Expected array
+    index after" the other name (`x41`, `x42`). `PRINT a()` prints element 0 (`x37`). A scalar and an array of one
+    name (`DIM a AS LONG, a(2) AS LONG`) copy as arrays (`x25`).
+- **`DECLARE LIBRARY` (`v37_*`, 76 programs measured 2026-10-15 before the design of `m3-declare-library`;
+  `qb64pe.bas` at the reference clone's commit: the block 4447–5318, its declarations 5324–5920, pass 1
+  2750–3074, the `nm` step 13776–13933, the call 12296 and 21943, the result 22091).** The libraries are built
+  from `verification\v37_lib\` by `build_libs.py` into `verification\` (git-ignored): `v37h.h` (a header, with
+  `#pragma once`), `v37g.h` (a header without a guard), `v37p.hpp`, `v37c.a` and `v37s.a` (C), `v37o.o` (C),
+  `v37cpp.a` (C++), `v37dll.dll`.
+  - **The forms**: `DECLARE [STATIC|DYNAMIC|CUSTOMTYPE] LIBRARY ["name"[, "name"…]]`, then `SUB`/`FUNCTION`
+    headers to `END DECLARE`; only headers, comments and metacommands inside ("Expected SUB/FUNCTION definition
+    or END DECLARE (#2)" for a statement or a missing `END DECLARE`, `x20`, `x21`); `END DECLARE` alone is "Name
+    already in use (DECLARE)" (`x19`). A block may stand in an included file, in a SUB, in a `$IF` branch, after
+    the first SUB; its names are global and usable before the block (`v37_i`, `x49`). A header is `SUB name
+    [ALIAS c] [(params)]` or `FUNCTION name[suffix] [ALIAS c] [(params)]`: no suffix gives the default type, as
+    `DEFLNG` sets it, and the C result is cast to it, so truncated (`h_d(1.5)` of a C `double` is 2.5, under
+    `DEFLNG H` `h_d(1.7)` is 2, not 3, `x62`, `x63`; `x35`, `x36` give 3 either way); a SUB with a suffix "Type symbols after a SUB name are invalid" (`x44`);
+    `AS type` after a FUNCTION "Expected (" (`x46`); `STATIC` after it "STATIC cannot be used in a library
+    declaration" (`x12`). A name with a dot is allowed (`x45`).
+  - **Parameters**: `[BYVAL] name[suffix] [AS type]`, no type the default (`BYVAL v` given 1.5 is 1.5, under
+    `DEFLNG V` 2, `x64`, `x65`; `x37`, `x38` cannot tell). `BYVAL` outside a
+    library: "BYVAL can currently only be used with DECLARE LIBRARY" (`x09`). "STRINGs cannot be passed using
+    BYVAL" (`x10`); "Arrays cannot be passed to a library" (`x11`); `STRING * n` "Cannot convert type ($4) to
+    symbol" (`x26`); a TYPE defined after the block "Illegal SUB/FUNCTION parameter" (`x15`); `BYVAL p AS pt`
+    is accepted but its call is "User defined types in expressions are invalid" (`x28`); `_BIT` makes the name
+    "Name already in use" at its use (`x25`).
+  - **`ALIAS`**: a string or a name; the string may hold letters, digits and ` !%&()*+,-./:;<=>?[]^{|}~`, so C++
+    names: `"h_max<int32_t>"`, `"hns::twice"` (`v37_e`); `ALIAS ""`, `ALIAS "h@l"` "Expected ALIAS
+    name-in-library" (`x48`, `x29`); `ALIAS` with no name "Expected (" (`x47`). The C name is otherwise the
+    declared name **in its own letter case** (`FUNCTION H_L&` calls `H_L`, a C++ error, `x31`). `ALIAS` in a
+    `DECLARE SUB` line is accepted and ignored (`x08`).
+  - **Names**: a library name used again in a second block, or the name of a built-in (`sqr#`), is "Name already
+    in use" (`x40`, `x32`); a library FUNCTION and a program SUB of one name are both accepted (`x22`). A
+    FUNCTION declared with or without `()` and no parameters is called without parentheses only: `f&()` is
+    "Expected (...)" (`x14`, `x54`); a FUNCTION as a statement is "Syntax error" (`x33`), a SUB as a value
+    "Name already in use" (`x34`), assigning to a FUNCTION's name "Incorrect number of arguments passed to
+    function" (`x41`), one in a `CONST` "Unexpected element" (`x50`). `OPTION _EXPLICIT` does not touch them
+    (`x42`). A SUB may be called with `CALL` and with parentheses (`v37_c`, `x43`).
+  - **Finding the library** (Windows): the version after a `.` or `:` is dropped (`"v37_lib/v37h.2"`, `v37_i`). The
+    path is taken from **the old compiler's folder** (`qb64pe` works there), except a path that is exactly `./`,
+    which becomes the source's folder: `"v37c"` beside the program is "LIBRARY not found" (`x18`), `"./v37c"`
+    is found, `"./v37_lib/v37c"` is not (only `./` itself is replaced), `"internal/c/parts/core/core"` finds the
+    old compiler's own `core.a` (`x51`). Not `DYNAMIC`: `<path>name.lib`, `.a`, `.o`, then `name.lib`, `.a`, `.o`
+    (the same without the path); then a header `<path>name.h`, `.hpp`, `name.h`, `.hpp`, and only for a header
+    **the folder of the source (or of the included file) joined with the written path** (`"v37_lib/v37h"`,
+    `"../v37_lib/v37h"` from `v37_inc\`, `v37_i`). `DYNAMIC`: `<path>name.dll`, then System32, then `name.dll`
+    beside the old compiler, the source or the IDE, then System32 (`"kernel32"`, `v37_g`). Nothing found: "LIBRARY
+    not found", "DYNAMIC LIBRARY not found" (`x01`, `x02`, `x52`: `STATIC` of a DLL, `x53`: `DYNAMIC` of a header).
+    An empty name `""` and no name are the same: nothing is linked or included (`x27`, `v37_a`). `DYNAMIC` and
+    `CUSTOMTYPE` need a name ("Expected DECLARE DYNAMIC LIBRARY "..."", `x03`; `CUSTOMTYPE` without one fails in
+    C++, `x04`); a name needs quotes ("Expected LIBRARY "..."", `x05`) and a comma before the next ("Expected ,",
+    `x07`); `DYNAMIC` takes one name ("Cannot specify multiple DYNAMIC LIBRARY names …", `x06`).
+  - **What is written**: a library file is added to the link command by its full path (`CXXLIBS_EXTRA`; a `.o` is
+    linked whole, so two files holding one name are a link error). **A header is `#include`d once for each block
+    that names it**, at the block's place in `regsf.txt` (a header without a guard named twice fails in C++,
+    `x16`). **A header in a block writes no prototypes for the whole block**: the header must declare every name
+    (`x23`: `c_half` of `./v37c` beside `v37h` is undeclared; `x30`). Without a header each declaration writes a
+    prototype from its types (`int32 c_add(int32,int32);`, `void c_inc(int32*);`, `char* c_hello();`; `_UNSIGNED
+    _OFFSET` as `ptrszint`) after `#include "externtypeN.txt"`, which the **`nm` step** fills after the C++ is
+    written: `nm --demangle -g` on the library, a line with ` name(` is C++ (empty file), a line ending in ` name`
+    is C (`extern "C" `); none: "Could not find sub/function 'c_none' in '…v37c.a'" (`x13`, even if never called);
+    two: "Unable to resolve multiple instances …" (read, not measured); both at "LINE 0", not the block's line. **With several names in one block each
+    declaration is looked up in the last library only** (`x24`). `STATIC` only skips `.so`/`.dylib` (Linux,
+    macOS; read, not measured); on Windows it acts as the plain form (`v37_f`).
+  - **`DYNAMIC`** (`v37_g`): `HINSTANCE DLL_<name>` and a `typedef <ret> (CALLBACK* DLLCALL_FUNC_X)(<args>)`
+    pointer per declaration in `regsf.txt`; at the start of the program (`maindata.txt`, also for a block in a
+    SUB) `LoadLibrary("<full path>.dll")` once per library, error 259 if it fails, and `GetProcAddress(…,
+    "<ALIAS or name>")` once per declaration, error 260 if it fails. **Error 260 comes before the first statement,
+    `ON ERROR` cannot catch it**: "Sub/Function does not exist in dynamic library" (`v37_j`). The handle is
+    declared once per block, so **two `DYNAMIC` blocks of one DLL fail in C++**: "redefinition of
+    'DLL_kernel32'" (`x67`, measured 2026-10-16). A header without a guard named twice fails only when it defines
+    something (`x16`); one that only declares builds (`x68`). A block without a header whose last name is a
+    folder only gives `nm` no file, writes no prototype, and its C++ fails (`x69`). A library file whose path
+    holds a `$` fails at the link: `make` expands it (`lib$dir` becomes `libir`, `x70`).
+  - **`CUSTOMTYPE`** (`v37_h`): `typedef <ret> CUSTOMCALL_FUNC_X(<args>); CUSTOMCALL_FUNC_X *FUNC_X=NULL;` and at
+    the start `FUNC_X=(CUSTOMCALL_FUNC_X*)&<ALIAS or name>;`, so the declared types may differ from the C
+    function's (`addll&&` of `h_add`); without a header the `nm` step writes `extern "C"{ extern void c_add(void);
+    }` into `global.txt` for a C name.
+  - **The call** (`v37_b`, `v37_c`): `(  int32  )h_add( 2 , 3 )`; the arguments are those of a call to a program's
+    SUB: a variable, element or member of the parameter's type by its address (`h_pl(__LONG_X)`, the C function
+    changes it), anything else through a fresh copy (`&(pass2=*__LONG_X)`: in parentheses, an expression, a
+    literal, another type; not written back). A `BYVAL` argument is converted as for any assignment (2.6 to
+    `LONG` is 3, 300 to `_BYTE` 44) but **written as BASIC's own expression with no cast**: with a header,
+    overloads follow the argument's BASIC type (`overd&(1)` calls `h_over(int)`, `overd&(y& + 0.5)` the
+    `double` one, `v37_e`), a `DOUBLE` to `BYVAL LONG` is `qbr(x)` (an `int64`, ambiguous between `int32` and
+    `double`), and a `BYVAL _OFFSET` literal `5` to a `void*` fails in C++ (`x17`). **An argument whose C++ text
+    is exactly `0` is written `NULL`** (`qb64pe.bas` 12307, 21954; a `BYVAL` parameter of any type): `0`, `(0)`, `0&` and a `CONST` 0 reach a `void*` (`v37_c`, `x56`, `x58`, `x59`), `1 - 1` is
+    not written `0` and fails in C++ (`x57`; the C++ text itself was not seen); `NULL` to an overloaded `h_over` takes the `int32_t` one (`x60`), to an
+    `int32_t` it is 0 (`x61`). A 0 by reference is a copy (`h_isnull&(0)` is 0, `v37_c`). A `STRING` is
+    `(char*)(s)->chr`: C sees the string's bytes and changes them in place (a `STRING * n` too; a copy `c$ = b$`
+    is not touched); a variable, literal, concatenation or `LEFT$` result ends in a NUL, a `STRING * n` member
+    does not: `strlen` reads on into the next member (`"abcd"` before a `LONG` 65 is 5, `x66`). A `MID$` result
+    was not measured. A TYPE is `void*` to the value (`v37_e`). Every
+    numeric type passes and returns its own C type (`v37_b`; `_FLOAT` is `long double`).
+  - **The result**: a `STRING` FUNCTION is `char*` copied into a new string (`qbs_new_txt`); `NULL` gives ""
+    (`x39`). A FUNCTION with no parameters is called `h_ticks()`.
 - **`STRING` members, whole values, `TYPE` parameters (`v24_h_string_members`, `v24_h_whole`,
   `v24_h_type_params`, `v24_x206`–`x216`):** a `STRING` member starts empty in a variable, a local (on each
   call), a `STATIC` one (kept), each element of a static and of a dynamic array and in a nested type; it holds
@@ -1585,6 +1865,871 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     `$SCREENHIDE` does start there: the `tier2` job is green with `s63_console_window` and the other slice
     programs that have a hidden window (seen 2026-10-12, task 2.6 of `m2-console-screenhide`). A window that is
     shown is not measured on the runner.
+- **A program with a window as its output, and the screen statements (`v27_*`, measured 2026-10-12 before the
+  first step of M3, OpenSpec change `m3-window-output`; 65 programs):**
+  - **The build of a program with no console (read from `internal\temp\compilelog.txt` and `global.txt` after
+    `qb64pe -x`).** With neither `$CONSOLE` nor `$CONSOLE:ONLY`: no make flag, the libqb variant
+    `libqb_make_00000000` (the one a `$CONSOLE` program with a window links), `window-gui.o` and
+    `main-thread-gui.o`, `-mwindows` in place of `-mconsole`, `console=0`; with `$SCREENHIDE` alone the same and
+    `screen_hide_startup=1`. The C++ of `PRINT`, `INPUT`, `LINE INPUT`, `ERROR`, `END` and `SYSTEM` is the same
+    text as under `$CONSOLE:ONLY`: the mode is in the two globals and in libqb, not in a statement's code.
+  - **The calls (read from the C++ of `qb64pe -z`, every form; the table is design D2 of `m3-window-output`).**
+    `SCREEN`, `CLS`, `COLOR`, `LOCATE`, `WIDTH`, `VIEW PRINT`, `VIEW`, `WINDOW`, `PSET`, `PRESET`, `LINE`,
+    `CIRCLE`, `DRAW`, `PALETTE`, `PCOPY`, `_LIMIT`, `_DELAY`, `SLEEP` and `_DISPLAY` are the plain call of their
+    table row and template, `LINE` too. A slot the table types LONG or `_UNSIGNED LONG` takes an integer as it is
+    and a float through `qbr`; a `_FLOAT`, SINGLE or DOUBLE slot takes any number as it is (libqb's parameters
+    are `float` or `double`, C++ converts). `PAINT` is the one exception: its fill is a number or a string and
+    the old compiler writes a cast before it, `(uint32)` or `(qbs*)`, which picks one of libqb's two `sub_paint`
+    (`(uint32)NULL` when it is left out). `WIDTH #1, 80` is `qbsub_width(1,1,80,…)` and `WIDTH LPRINT 80`
+    `qbsub_width(2,80,…)`: the same entry with the choice as its first argument.
+  - **The functions.** `INKEY$` is `qbs_inkey()`, `CSRLIN` `func_csrlin()` (a LONG), `POS(n)` `func_pos(n)` (a
+    LONG), `POINT(x, y)` and `POINT(n)` one entry, `func_point`, with a `passed` flag for the second argument (a
+    `double`, believed DOUBLE), `SCREEN(r, c[, f])` `func_screen` (a `uint32`, believed `_UNSIGNED LONG`).
+  - **Accepted forms (`v27_x01`, as code that is not reached).** Each statement with nothing after its name
+    where its whole template is optional (`SCREEN`, `COLOR`, `LOCATE`, `WIDTH`, `VIEW`, `WINDOW`, `PALETTE`,
+    `SLEEP`, `VIEW PRINT`); a comma with nothing after it where the template has an optional part behind the
+    comma (`SCREEN 12,`, `CLS ,`, `COLOR 1,`, `LOCATE 1,`, `LINE (1, 2)-(3, 4),` and `…, 5,`, `CIRCLE (1, 2), 3,`,
+    `PAINT (1, 2),`, `VIEW (1, 2)-(3, 4),`); `COLOR` with four arguments; `SCREEN 12, , , , _MANUALDISPLAY 1`;
+    `WIDTH #1`, `WIDTH #1, 80, 50`, `WIDTH LPRINT`; a blank between `STEP` and its parenthesis and around the `-`
+    of `LINE`; `B` and `BF` in lower case; `LINE -(5, 5)` and `LINE STEP(1, 1)-STEP(2, 2)`. `l = INKEY` and `k =
+    CSRLIN$` are variables, not the functions.
+  - **After `CALL` (`v27_x02`, `x14`, `x15`).** Every one of the statements is accepted after `CALL`, with the
+    form of its template between the parentheses (`CALL SCREEN(12)`, `CALL CLS`, `CALL PSET((1, 2), 3)`, `CALL
+    LINE((1, 2)-(3, 4), 5, BF)`, `CALL PALETTE`, `CALL SLEEP`); `CALL PSET(1, 2)` is a syntax error (the point's
+    own parentheses are missing) and `CALL VIEW PRINT` is "Expected CALL sub-name (...)".
+  - **Rejected forms, one program each (`v27_x03`–`x50`).** "Syntax error - Reference: …" for a form that is
+    none of the template's: `LINE (1, 2), 3` (`x03`), `LOCATE` with six arguments and with four commas (`x04`,
+    `x18`), `VIEW PRINT 2` (`x05`), `PALETTE 1` and `PALETTE 1, 2, 3` (`x06`, `x43`), a fifth argument of
+    `SCREEN` without `_MANUALDISPLAY`, alone and after four others (`x16`, `x17`), a comma after the box word of `LINE` and
+    a box word that is neither `B` nor `BF` (`x19`, `x41`), `PSET (1, 2),` and `PSET 1, 2` (`x20`, `x36`),
+    `CIRCLE (1, 2),` and eight arguments (`x21`, `x45`), `VIEW (1, 2)-(3, 4), 5,`, `VIEW SCREEN`, `VIEW
+    STEP(…)` (`x22`, `x24`, `x35`), `WINDOW SCREEN` and `WINDOW` with a colour (`x23`, `x47`), `WIDTH` with five
+    values (`x25`), `_LIMIT` with none (`x27`), `SLEEP 1, 2` (`x28`), `PCOPY 1` (`x34`), `CLS` with four (`x37`),
+    `PAINT` with five (`x46`), `DRAW t, k` (`x48`). "SUB does not require any arguments" for `_DISPLAY 1`
+    (`x26`). A string where a number is wanted: "1st sub argument requires a number" (`COLOR t`, `x10`; the
+    argument's place in the C call is counted: "2nd" for `WIDTH t`, `x38`, "5th" for the colour of `LINE`,
+    `x42`, "4th" for the border of `PAINT`, `x12`), "Number required for sub" (`_DELAY t`, `x49`); a number
+    where a string is: "String required for sub" (`DRAW 1`, `x11`), "5th sub argument requires a string" (the
+    tile of `PAINT`, `x13`). Functions: `INKEY$()` and `CSRLIN()` "Expected (...)" (`x07`, `x08`); `INKEY$(1)`,
+    `CSRLIN(1)`, `POS` bare, `POINT` bare, `POINT(1, 2, 3)`, `POINT(, 2)`, `SCREEN(1)` "Incorrect number of
+    arguments" (`x31`, `x32`, `x29`, `x33`, `x09`, `x50`, `x30`); a string argument "Number required for
+    function" (`POS(t)`, `x40`) or "Nth function argument requires a number" (`POINT(1, t)`, `SCREEN(t, 1)`,
+    `x39`, `x44`).
+  - **`INKEY$`, `CSRLIN` and `POS` in a program with a console and no window (`v27_a_console_functions`,
+    standard input and output redirected).** They compile and run: `INKEY$` gives an empty string; `POS(0)` is
+    1 wherever the output stands (after `PRINT "abc";` too); `CSRLIN` does not change as lines are printed (its
+    difference from an earlier `CSRLIN` is 0). So `POS(0)` and a difference of two `CSRLIN` are stable in a
+    console program's recorded output; the value of `CSRLIN` itself is not recorded.
+  - **A statement's name, parentheses and `=` (`v27_x51`–`x57`; measured for 44 statement names while group 3
+    was built).** A statement that starts `name (…) =`, the `=` right after the matching parenthesis, is an
+    assignment to the old compiler whatever follows, and for a built-in statement's name an error: "Name
+    already in use (CLS)" for `CLS (1) = 5`, `LOCATE (1) = 2, 3`, `PCOPY (1) = 1, 2`, `KILL (t) = t`, `OPEN`,
+    `NAME`, `SWAP`, `LINE`, `PSET`, `PAINT` and the others (`x52`–`x54`); another message where the name is
+    also a function or has a leading underscore ("Incorrect number of arguments" for `SCREEN (12) = 12` and
+    `_DEST (1) = 1`, "Expected variable =" for `SEEK (1) = 2, 3`, "Invalid array name" for `_LIMIT (60) = 60`
+    and `_TITLE (1) = 1`: `x55`–`x57`). With something between the parenthesis and the `=` the line is the
+    statement with a comparison as its argument: `CLS (1) + 2 = 5`, `CLS ((1) = 5)`, `CLS (1) <> 5`, `CLS -(1) =
+    5`, `LOCATE (1) * 2 = 2` compile (`x51`). **`WIDTH` is the exception:** `WIDTH (80) = 80` stores into an
+    array named `WIDTH` (made 0 to 10 like any array used without `DIM`), `WIDTH = 80` into a variable, and
+    `PRINT WIDTH(1)` reads the array (`x51`).
+  - **A statement's name and a colon at the start of a line (`v27_x58`–`x63`; measured while group 5 was
+    built).** It is the statement with no argument, never a label: `CLS: l = 1` and `CLS : l = 2` are
+    `sub_clsDest(NULL,NULL,NULL,0)` and then the assignment, and so for `SCREEN`, `COLOR`, `LOCATE`, `WIDTH`,
+    `VIEW`, `WINDOW`, `PALETTE`, `SLEEP`, `_DISPLAY`, `CLOSE`, `RANDOMIZE`, `SHELL`, `_SCREENHIDE`, `_ICON`,
+    `_MOUSEHIDE` and `_FREEIMAGE` (`x58`), also with nothing after the colon. A statement that needs an argument
+    is "Syntax error - Reference: …" (`PSET:`, `DRAW:`, `KILL:`, `_LIMIT:`, `x59`–`x62`; `LINE:`, `PCOPY:` and
+    `CIRCLE:` likewise), and `GOTO CLS` after a line `CLS: l = 1` is "Invalid label!" (`x63`). Civil War
+    Strategy starts ten lines with `CLS :`.
+  - **`PALETTE USING` (`v27_x64`).** `PALETTE USING a(0)` and `PALETTE USING a` are accepted: the old compiler
+    reads the form by hand (`qb64pe.bas` 7238), outside the template of `PALETTE` (`[?,?]`). It is the only
+    built-in of `m3-window-output` with a form of its own; `SLEEP`'s two mentions in the source are for the
+    debugger, and `WIDTH`'s make its name free for a variable or an array.
+  - **The cast before the fill of `PAINT` and an expression (read from the C++ of `qb64pe -z`, 14
+    expressions).** The cast stands before the first operand only: `PAINT (1, 2), l + 1` is `(uint32)*__LONG_L+
+    1`, `l AND 3` `(uint32)*__LONG_L& 3`, `l * q` `(uint32)*__LONG_L**__INTEGER64_Q`. C++ then computes in
+    unsigned (or 64-bit) arithmetic, which gives the same low 32 bits as casting the whole value, and every
+    other operation is one call or parenthesised operand behind the cast (`(uint32)qb_safe_idiv(…)` for `\`,
+    `qb_safe_mod` for `MOD`, `(uint32)qbr(…)` for `/`, `^` and anything with a float, `(uint32)-(…)` for a
+    comparison and a negation, `(uint32)~(…)` for `NOT`). So the fill libqb gets is the value's low 32 bits
+    in every case.
+  - **The first screen programs of the new compiler (2026-10-12).** Of the 45 programs of `tests\corpus\screen`
+    42 compile and all 42 leave the recorded state on their first run, with and without folding: the calls
+    are the old compiler's, and what they draw is libqb's. The three others wait on `PLAY` (`g03`), graphics
+    `GET` and `PUT` (`g06`) and `_RGB32`/`_RGBA32` (`m32`).
+- **What Civil War Strategy needs to build, apart from sound (`v28_*`, 100 programs: 83 measured 2026-10-12
+  before the design of `m3-get-put-bload`, `v28_d`, `v28_e`, `v28_f` and `x82`–`x95` on 2026-10-13 as its tasks 1.2 and 4.4; the
+  C++ read with `qb64pe -z` from programs outside the repository).**
+  - **`TAB` and `SPC` are functions (`v28_a_tab_spc`, `x01`, `x03`–`x09`, `x53`).** `PRINT TAB(5); "a"` is
+    `qbs_set(tqbs,func_tab( 5 ))`, `makefit`, `qbs_print(tqbs,0)`: the lines of any string item. To a file it is
+    `sub_file_print(tmp_fileno,func_tab( 5 ), 0, 0, newline)`; `WRITE TAB(5)` writes the string in quotes.
+    `t$ = TAB(5)`, `SPC(i) + "x"` and `LEN(TAB(l))` compile. The slot is a LONG: an INTEGER, a LONG and an
+    `_INTEGER64` are passed as they are, a SINGLE and a DOUBLE through `qbr`. A string item may follow without a
+    separator (`PRINT TAB(5) "a"`, `PRINT "x" TAB(8) "y"`), a number or another `TAB` may not ("Expected
+    operator in equation", `x03`, `x04`). Rejected: a string argument ("Number required for function"), no
+    argument, two, no parentheses, `TAB(5) = 1`. In a file the column is the file's (`"abcdefgh"; TAB(5)`
+    starts a new line there); on the console `POS(0)` is always 1, so `TAB(n)` is n - 1 blanks wherever the
+    line stands (`"a"; TAB(5); "b"` is `a`, four blanks, `b`).
+  - **`DEF SEG`, `BLOAD`, `BSAVE`, `POKE`, `PEEK` are plain calls (`v28_b_bload`, `x01`, `x26`–`x35`,
+    `x42`–`x44`, `x61`, `x62`).** `DEF SEG` is `sub_defseg(NULL,0)`, `DEF SEG = x` `sub_defseg(x,1)` (LONG slot);
+    `BLOAD f$` `sub_bload(f,NULL,0)`, `BLOAD f$, x` `sub_bload(f,x,1)`; `BSAVE f$, x, n` `sub_bsave(f,x,n)`;
+    `POKE x, v` `sub_poke(x,v)`; `PEEK(x)` `func_peek(x)`, a LONG. Rejected: `DEF SEG 5`, `DEF SEG =`, a string
+    for the segment, `DEF` alone ("Command not implemented"), `BLOAD` with none or three arguments or a number
+    for the name, `BSAVE` with two. After `CALL` `BLOAD`, `BSAVE`, `POKE`, `PUT` and `_FULLSCREEN` are accepted
+    (`x65`, `x66`, `x68`–`x70`), `CALL DEF SEG` is not (`x67`).
+  - **`VARPTR` and `VARSEG` are written by the compiler, and put their variable into conventional memory.**
+    `VARPTR(a(i))` is `((array_check((i)-A[4],A[5]))*2)`: the element's index from the lower bound times the
+    element's size, with the bounds check (two dimensions: the combined index); `VARSEG(a(i))` is
+    `( ( ((ptrszint)(A[0])) - ((ptrszint)(&cmem[0])) ) /16)`, the same for every element. A scalar is
+    `((unsigned short)(((uint8*)V)-&cmem[1280]))` and segment 80; a string's `VARPTR` is its
+    `cmem_descriptor_offset`. `PRINT` and `+` take both as `_INTEGER64` (`qbs_str((int64)(…))`; `qb64pe.bas` sets
+    `typ& = 64&`, against the table's LONG). The index inside `VARSEG(a(i))` is not written at all. A variable named in `VARPTR`, `VARSEG`, `SADD` or `VARPTR$`
+    anywhere in the program is allocated differently (`cmemlist` in `qb64pe.bas`, with a second pass of the
+    compiler): a static array's data comes from `cmem_static_pointer`, rounded up to 16 bytes, with error 257
+    past 65,536 bytes and flags `1+2+4` in place of `1+2`; a dynamic one from `cmem_dynamic_malloc`; a scalar
+    from `dblock+cmem_sp`; a string from `qbs_new_cmem`. A parameter named so makes the callers' arguments
+    conventional too (read in `qb64pe.bas`, 12081 and 12810; not measured). Arrays lie in the order they are declared (`v28_b_bload`: three arrays of 20 bytes are 2
+    segments apart). `BSAVE` writes 7 bytes of header and the block; `BLOAD` reads it back at the given offset
+    or, with none, at the saved one; a missing file is error 53. Rejected: a literal, an expression, a function
+    call or a string literal as the argument ("Expected reference to a variable/array"), `SADD` of a
+    fixed-length string or a literal, `VARPTR$` of a numeric array, `VARPTR(i)` as a statement.
+  - **Graphics `GET` and `PUT` are plain calls with an argument made of an array's bytes (`x01`,
+    `x10`–`x25`, `x58`–`x60`, `x63`, `x64`).** `GET (x1, y1)-(x2, y2), a` is `sub_graphics_get(x1,y1,x2,y2,
+    byte_element((uint64)(&(((int16*)(A[0]))[0])),((2*(A[2]&1)*A[5])-(2*(0))),byte_element_N),NULL,step)`: the
+    address of the element, the bytes from it to the array's end (0 for an array not allocated), and a
+    temporary of 12 bytes declared with the body's variables. `a`, `a()` and `a(lower bound)` differ only in
+    the index (`a(5)`: `array_check(( 5 )-A[4],A[5])` in both places); two dimensions multiply the sizes.
+    `step` is 1 for `STEP` before the first point and 2 before the second. `PUT (x, y), a[, [_CLIP] [action][,
+    colour]]` is `sub_graphics_put(x,y,bytes,action,colour,flags)`: the action `NULL` or 1 to 5 for `PSET`,
+    `PRESET`, `AND`, `OR`, `XOR`; flags 1 for `STEP`, 2 for `_CLIP`, 4 for a colour. The coordinates are passed
+    as they are, whatever their type. The array may be static or dynamic, of the main module or a procedure, a
+    parameter, of a user type, of fixed-length strings (accepted, `x12`, `x13`, `x20`); a name with no array is
+    that plain variable's bytes (`GET …, i`; an undeclared name too, `x59`). Rejected: no array, one point for
+    `GET` or two for `PUT`, an expression or a `CONST`, an unknown action word, two actions, `_CLIP` after the
+    action. `GET (1, 2)-(3, 4), 5` is "UNEXPECTED INTERNAL COMPILER ERROR!" (`x15`).
+  - **`_RGB32`, `_RGBA32`, `_FULLSCREEN` (`x01`, `x45`–`x52`).** `_RGB32` with one to four LONG slots is
+    `func__rgb32(…)` with the arguments it is given (C++ overloads), `_RGBA32` `func__rgba32(r,g,b,a)`; both
+    `_UNSIGNED LONG` (`PRINT` `(uint32)`, `HEX$` width 8, `+ 1` an `_INTEGER64`). `_FULLSCREEN [mode][,
+    _SMOOTH]` is `sub__fullscreen(mode,smooth)`: `NULL` or 1 to 4 for `_OFF`, `_STRETCH`, `_SQUAREPIXELS`,
+    `OFF`, and 0 or 1; the function is `func__fullscreen()`, a LONG. Rejected: none or five arguments for
+    `_RGB32`, three for `_RGBA32`, a string, an argument left out, `_FULLSCREEN 5`, `_SMOOTH` first, two modes.
+  - **A line `name:` with the name of a SUB (`v28_c_labels`, `x71`–`x81`; `validlabel` and the label check of
+    `qb64pe.bas`, 27121 and 13027).** With no jump to the name anywhere in the program the line is a call of the
+    SUB: in the main module, in the SUB itself (`x77`), twice (`x73`), before any `DECLARE`
+    (`x78`), and with a statement after the colon (`x79`). When any `GOTO`, `GOSUB`, `RESTORE` or `ON ERROR
+    GOTO` names the word, the compiler starts again with the word as a label in every body (`x80`, `x81`: a jump
+    in one SUB makes the main module's line a label too), `CALL name` still calls the SUB, and the label rules
+    hold: twice in a body is "Duplicate label" (`x74`), a jump from a body without it "Label 'one' not defined"
+    (`x72`, also with no such line at all, `x71`). A SUB that needs an argument is always a label (`x76`), as is
+    a FUNCTION (`x75`). Civil War Strategy has all three cases: `topbar:` in its main module is a call (no jump
+    names it), `ships:` and `cannon:` in `SUB navy` are labels (`GOTO ships`, `GOTO cannon`) beside `CALL ships`
+    and `CALL cannon`. **Which statements make the word a label (`x82`–`x92`, each with the statement as code
+    that is not reached):** `RESUME one`, `RETURN one`, `ON n GOTO two, one`, `ON n GOSUB one`, `ON KEY(1) GOSUB
+    one`, `ON TIMER(1) GOSUB one`, `ON STRIG(0) GOSUB one` and `IF n = 5 GOTO one` do; `IF n = 5 THEN one` and
+    `CALL one` do not (the line stays a call, and `THEN one` is one too); `RUN one` is "Name already in use
+    (one)". These are all the places of `qb64pe.bas` that make a reference to a label (3963 and 4025 make the
+    label itself; 7627, 7807 and 7968 the three `ON <event> GOSUB`; 9717 `GOTO`; 9808 `RUN`; 9968 `RETURN`; 10027
+    and 10092 `RESUME` and `ON ERROR GOTO`; 10137 `RESTORE`; 27593 and 27675 `GOSUB` and `ON n GOTO/GOSUB`).
+  - **Conventional arrays used as any array is, and the index of `VARPTR` and `VARSEG` (`v28_d_varptr_index`,
+    `v28_e_cmem_arrays`, `x95`).** A FUNCTION in the index of `VARPTR` is called once; in the index of
+    `VARSEG` it is not called, and an index outside the bounds raises nothing there (`VARSEG(a(99))` is the
+    array's segment). `VARPTR(a(11))` of `a(1 TO 10)` raises error 9 and gives 0. Stored into an INTEGER, a
+    SINGLE or an `_INTEGER64` the value goes as it is; `STR$` and operators take it as an `_INTEGER64`;
+    `HEX$(VARPTR(…))` is `func_hex(…,0)`, a width of 0 (accepted, `x95`). **An array listed in `COMMON` is
+    dynamic to the old compiler** (`COMMON SHARED cm()` with `DIM SHARED cm(1 TO 20)`): in conventional memory
+    its descriptor starts with flag 4 in place of 0 and nothing else of its declaration changes, because every
+    allocation of a dynamic array of numbers tests that flag when it runs (`if (A[2]&4){ A[0]=(ptrszint)
+    cmem_dynamic_malloc(…); … memset … }else{ … calloc … }`, also for the new block of a `REDIM`, and
+    `cmem_dynamic_free` or `free` for the old one and in `ERASE`). So `DIM dy(1 TO n)`, `REDIM`, `REDIM
+    _PRESERVE`, `ERASE` and passing to a SUB that erases or redims work on a conventional array as on any
+    other, and `PEEK` reads the new block after each (`v28_e`). Static arrays lie from the start of the block
+    in the order of their `DIM`; dynamic ones come from the other end (a later one has a lower segment). A
+    static one larger than a segment (`DIM big(1 TO 40000) AS INTEGER`, 80,000 bytes) ends the program at its
+    start with "Out of memory" (error 257), before its first statement (`v28_f_cmem_too_large`).
+  - **`GET` and `PUT` with a parenthesised first argument are the graphics form (`x93`, `x94`).** `GET (1), ,
+    x` and `PUT (i), 2, x` are "Syntax error - Reference: GET [STEP] (column1, row1)-…": a statement that
+    starts with `(` is never the file form. In the array's place an element's index is written twice
+    (`byte_element((uint64)(&(…[array_check((FUNC_F(…))-…)])),(…-(2*(array_check((FUNC_F(…))-…)))),…)`), so a
+    FUNCTION in it runs twice. Other kinds in that place, each accepted: an array of a `TYPE`
+    `(uint64)(((char*)R[0])+((index)*6+0))`, a fixed-length string array `&((uint8*)(FS[0]))[(index)*4]`, a
+    string variable `T->chr,T->len`, a `TYPE` variable `((char*)ONE)+((0+0)),6-((0+0))`, a name with no
+    array the plain variable (`(uint64)__SINGLE_TS,4`).
+- **Sound and `$EXEICON` (`v29_*`, 130 programs: 110 measured 2026-10-13 before the design of `m3-sound`, as its
+  task 1.1; `v29_d`, `v29_f`, `v29_g`, `v29_h` and `e29`–`e31` the same day as its task 1.2, `x87`–`x98` as its
+  task 2.1, `e32` by the review of the change; the C++ read with
+  `qb64pe -z` from programs outside the repository; numbers `x33`–`x39` are not used).**
+  - **Every sound form is a plain call (`x01`–`x86`: 43 accepted, 36 rejected).** `SOUND f, d` is
+    `sub_sound( 440 , 1 ,NULL,NULL,NULL,NULL,NULL,0,1)`: seven slots (frequency, duration, volume, pan position:
+    SINGLE; waveform: LONG; waveform parameter: SINGLE; voice: `_UNSIGNED LONG`), then 1 for `WAIT`, 2 for
+    `RESUME` or 0, then the mask of what was given. A SINGLE in the waveform slot goes through `qbr`. Accepted:
+    `SOUND` with no argument at all (`x03`; error 5 when it runs), `SOUND WAIT`, `SOUND RESUME`, `WAIT` or
+    `RESUME` after the arguments without a comma (`x13`, `x15`, `x29`), a trailing comma (`SOUND 440, 1,`,
+    `x21`), `CALL SOUND(440, 1)`, lower case. Rejected: one argument, no frequency, no duration, eight
+    arguments, a comma before `WAIT` ("Name already in use (WAIT)"), `WAIT RESUME`, a string, `SOUND(440, 1)`,
+    all commas (`x31`), `SOUND = 1`, `l = SOUND`, a variable named `wait`. `PLAY a$[, b$][, c$][, d$]` is
+    `sub_play(a,b,c,d,mask)`, a fixed-length string taken as a string, a trailing comma accepted (`x50`);
+    rejected: none or five strings, no first string, a number, `PLAY(t, t)`, `PLAY(0)` and `CALL PLAY(0)` ("1st
+    sub argument requires a string"), `PLAY = 1`. The function is `func_play( 0 ,0|1)`, a DOUBLE, also bare
+    (`d = PLAY`); rejected: `PLAY()`, a string, two arguments. `BEEP` is `sub_beep()`, also after `CALL`;
+    `BEEP 1` and `BEEP()` are "SUB does not require any arguments".
+  - **A built-in statement with a template after `CALL` (`x27`, `x54`, `x85`, `x87`–`x98`; `v26_x74`,
+    `v27_x02`, `x14`, `x15`, `v28_x65`–`x70`; `qb64pe.bas` 10617–10627).** After `CALL name` comes nothing, or
+    an opening parenthesis as the third element and a closing one as the last, with something between them;
+    the compiler drops the two and reads the rest as the statement without `CALL`, by its template. So `CALL
+    SOUND(440, 1 WAIT)`, `CALL SOUND(WAIT)`, `CALL SOUND`, `CALL LINE(-(3, 4))`, `CALL PLAY(t, t)` and `CALL
+    CLS` are accepted; `CALL CLS()`, `CALL SOUND(440, 1) WAIT`, `CALL LINE((1, 2)-(3, 4)), 5`, `CALL LOCATE 1,
+    2`, `CALL VIEW PRINT` and `CALL DEF SEG` are "Expected CALL sub-name (...)"; `CALL SOUND(440)`, `CALL PLAY`
+    and `CALL PSET(1, 2)` are the statement's own "Syntax error - Reference: …"; `CALL PLAY(0)` is "1st sub
+    argument requires a string".
+  - **`PLAY` is no event word to the old compiler (`x61`–`x64`).** `ON PLAY(5) GOSUB 10` is `ON <number> GOSUB`
+    with the function (`ongo = qbr_float_to_long(func_play( 5 ,0|1))`); `PLAY ON`, `PLAY OFF` and `PLAY STOP`
+    are "Name already in use (ON)" and so on.
+  - **The name and a colon (`x24`, `x65`, `x72`, `x78`–`x83`).** `BEEP:` and `SOUND:` are the statement with no
+    argument, alone on a line or before another statement; `PLAY:` is the statement without its string, a
+    syntax error. `GOTO BEEP` and `GOTO SOUND` after such a line are "Invalid label!".
+  - **What a program can observe of sound (`v29_a_sound_queue`, `v29_b_sound_wait`, `v29_f_queue_slice`).**
+    `PLAY(n)` is the seconds left to play in voice n (voice 0 for `PLAY`, `PLAY(4)` and `PLAY(-1)`). In the
+    foreground, the default, a statement holds the program for 0.95 times what is queued minus a quarter of a
+    second (`AwaitPlaybackCompletion` in `audio.cpp`), so a sound under about 0.26 s returns at once. After
+    `PLAY "MB"` every statement returns at once and adds its length to `PLAY(0)`: a `SOUND` its duration
+    divided by 18.2, a `PLAY` string its notes and pauses by tempo, length and dots (`T120 L4 C` 0.5 s, `T60 L1
+    C` 4 s, `T60 L4 C.` 1.5 s; a frequency of 0 and a duration of 0 are a pause and nothing). Tempo, length
+    and octave hold from one `PLAY` to the next; `MS`, `ML` and `MN` do not change a note's length in the
+    queue. `PLAY "MF"` makes the next statement wait for all that is queued. Read directly before and after a
+    statement and rounded to tenths, with lengths of whole tenths, the numbers were equal in three recordings
+    and in 24 runs made eight at a time (`v29_f`); `v29_a` prints between its readings and has three lengths
+    at a rounding edge, so its numbers are equal only run alone.
+  - **`SOUND WAIT` and `SOUND RESUME`.** After `SOUND WAIT` no statement holds the program and what is queued
+    is not in `PLAY(0)` (0 until `SOUND RESUME`, then the whole of it). A second `SOUND WAIT` or `SOUND RESUME`
+    is no error.
+  - **Voices (`v29_g_voice`).** Background and foreground are set per voice: with voice 0 in the background,
+    `SOUND 440, 18.2, , , , , 1` holds the program and adds nothing to `PLAY(0)`. `MB` in a voice's own string
+    (`PLAY "", "MB"`) puts that voice in the background. **A `PLAY` with more than one string never holds the
+    program**, whatever its voices' modes, **and it ends a `SOUND WAIT`** (`v29_h`, line 25): `PlayMML` pauses
+    all voices, reads the strings and resumes all.
+  - **Volume 0 (`v29_d_volume_zero`).** `SOUND f, d, 0` and `PLAY "V0 …"` queue and wait exactly as at the
+    default volume. The volume is the voice's, kept for the next statement and shared by `SOUND` and `PLAY`
+    (read in `audio.cpp`; not observable).
+  - **Run-time errors, all error 5 (`v29_c_sound_errors`, `v29_h_sound_ranges`).** `SOUND` with no argument; a
+    frequency below 20 other than 0, or above 32767; a duration below 0 or above 65535; a volume outside 0 to
+    1; a pan position outside -1 to 1; a waveform outside 1 to 10; a waveform parameter outside 0 to 1, only
+    in a statement that itself gives waveform 9 (`SOUND 440, 1, , , 4, 2` and `SOUND 440, 1, , , , 2` after a
+    waveform 9 raise nothing); a voice outside 0 to 3. A `PLAY` string: an unknown command (`H`), `L0`, `L65`,
+    `N85`, `V101`, in any voice; no error for `O7`, `T31`, `T256` (QuickBASIC's limits), `V0`, `V100`, an
+    empty string. **Without a sound device** (read in `PlayWaveform` and `PlayMML`, not measured): the first
+    three checks of `SOUND` and its voice are made before the device is asked for and raise the error on any
+    machine; volume, pan, waveform and its parameter come after and raise nothing; no `PLAY` string is read,
+    and `PLAY(n)` is 0.
+  - **`BEEP` is not libqb's audio.** `sub_beep` is in the window part (`gui.cpp`, the system's bell); it has no
+    dependency in the table, while `SOUND` and `PLAY` have `DEPENDENCY_MINIAUDIO`: the make flag
+    `DEP_AUDIO_MINIAUDIO=y`, written last (`qb64pe.bas` 13721), `-DDEPENDENCY_AUDIO_MINIAUDIO` and `audio.a` in
+    the compile log.
+  - **`$EXEICON:'file'` (`e01`–`e31`; `qb64pe.bas` 3829–3880 and 13551–13604).** The line's text in upper case
+    starts with `$EXEICON` (`$EXEICONS:'…'`, `$EXEICON '…'` and lower case are the same, `e20`, `e08`, `e10`);
+    the name is what stands between the first two `'`, blanks at its ends dropped; the rest of the line is
+    dropped, a statement after a colon included (`e09`, `e22`, `e24`: `PRINT "same line"` does not run). Where
+    it stands the compiler writes `sub__icon(NULL,NULL,0)`, the call of `_ICON` with no argument (`e28`: between
+    two `PRINT`s; also in a SUB, after `SYSTEM`, in an included file, beside an `_ICON` statement), and the
+    program is compiled with `-DDEPENDENCY_ICON`. The build gets `internal\temp\icon.rc` with the line `0 ICON
+    "icon.ico"`, a copy of the file beside it, `DEP_ICON_RC=y` (after `DEP_CONSOLE=y`), `windres` and
+    `icon.o`. **Where the file is looked for:** a name that starts with `./` or `.\` in the folder of the main
+    source file (`e01`, `e21`; from an included file too, `e12`), the rest of the name added to the folder as
+    text, so `.//v29_inc/icon.ico` is found there too (`e32`, measured 2026-10-13 by the review of the change;
+    `qb64pe.bas` 3853); a name with a drive letter as written; one
+    leading slash on the compiler's drive (both tried outside the repository); **any other relative name in
+    the old compiler's own folder**, so a file beside the program is "File 'icon.ico' not found" (`e02`,
+    `e08`, `e18`; the message holds only the last part of the name, and the resolved folder for a `./` name,
+    `e04`). Errors: none or an empty name, double quotes, no closing quote: "Expected $EXEICON:'filename'"; a
+    second one: "$EXEICON already defined in line n", before its own name is read (`e05`, `e27`), also when
+    the second is in an included file (`e29`), with n a line of the main file (the `$INCLUDE` line for a first
+    one in an included file, `e31`); one in a `$IF` branch that is not taken does not count and is not read
+    (`e11`, `e30`). After a colon it is "Unexpected character on line" (`e13`), after a tab "Syntax error"
+    (`e23`): the line rules of every metacommand. In a comment or after `REM` it is a comment (`e14`). A file
+    that is not an icon passes the front end and fails in the build (`e16`).
+- **`PRINT USING`, `GET` and `PUT` on a file, `LOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, the
+  shift functions, `CHAIN` and `LPRINT`, `FIELD`, `LSET` and `RSET` (`v30_*`, 177 programs and one table: 100
+  measured 2026-10-13 before the design of step 4 of M3, what the twelve corpus programs that still wait name,
+  67 for `FIELD`, `LSET` and `RSET` as the step's first task group, `x66` and `x67` while the step was
+  built, and `x171`–`x178` by the review of the change; the C++ read with `qb64pe -z` from programs outside the repository).** Everything here that happens when the program runs is libqb's, which
+  both compilers link: the new compiler has to write the same calls, and the recorded outputs are what a slice
+  program may expect.
+  - **`PRINT USING` at compile time (`x01`–`x19`; `xprint`, `qb64pe.bas` 27713–27851, and 27285 for a file).**
+    The form is `PRINT [#n,] [items] USING format; value {;|,} value … [;|,]`. The format is any string
+    expression (a variable, `f + f`, `LEFT$(…)`, a fixed-length string, one in parentheses) and ends at the first
+    `;` outside parentheses; at least one value follows. `?` works as `PRINT` (`x14`). Rejected with "Expected
+    PRINT USING formatstring ; ..." : a comma after the format, no value, nothing after the `;`, a number as
+    the format, no separator after the format (`x01`–`x04`, `x06`), and `PRINT USING #1, …` (`x17`); with a
+    file number the message is "Expected PRINT USING #filenumber, formatstring ; ..." (`x07`, `x16`). No format
+    at all and an empty value (`; ;`) are "Syntax error" (`x05`, `x09`, `x10`); two values with no separator
+    "Expected operator in equation" (`x08`); a second `USING` "Name already in use (USING)" (`x11`, `x12`); a
+    `TYPE` value "User defined types in expressions are invalid" (`x15`). A whole array (`a()`) is accepted as a
+    value (`x18`, which prints 0). Measured with task 4.1 of `m3-console-files` (24 forms, one program each,
+    read with `qb64pe -z` outside the repository): **two values always need a separator**, also next to a
+    string literal (`PRINT USING "&&"; "a" "b"` and `…; 5 "a"` are "Expected operator in equation"), where a
+    plain `PRINT` takes the two as joined by `;`; an item before `USING` needs none (`PRINT "a" USING "##"; 5`
+    and `PRINT 1 USING …` are accepted); `;;` at the end and `n, , 5` are "Syntax error"; one trailing `,` is
+    accepted and leaves the line open as `;` does; a `TAB(n)` alone counts as the value the statement needs;
+    `TAB(3) + "x"` is a string value, not a `TAB`; `LPRINT #1, "a"` is "Invalid expression".
+  - **The calls of `PRINT USING`.** `tqbs=qbs_new(0,0); tmp_long=0;`, the format copied once into a string of
+    the statement's own (`print_using_formatN`) before any value is evaluated, then one call per value, each
+    followed by `if (is_error_pending()) goto skip_puN;`: a string `tmp_long=print_using(fmt,tmp_long,tqbs,s)`;
+    a SINGLE `print_using_single(fmt,v,tmp_long,tqbs)`, a DOUBLE `print_using_double`, a `_FLOAT`
+    `print_using_float`, an `_UNSIGNED _INTEGER64` `print_using_uinteger64`, every other integer type
+    `print_using_integer64` with no cast. `TAB(n)` or `SPC(n)` among the values prints what is built, prints the
+    blanks and empties the string (`qbs_print(tqbs,0); qbs_set(tqbs,func_tab(…)); makefit(tqbs);
+    qbs_print(tqbs,0); tqbs->len=0;`), and the place in the format is kept. At the end `qbs_print(tqbs,1)`, or
+    `qbs_print(tqbs,0)` when the statement's last element is `;` or `,`; after an error what was built is
+    printed with no line end and the error stays (`g_tmp_long=new_error; new_error=0; qbs_print(tqbs,0);
+    new_error=g_tmp_long;`). To a file `sub_file_print(tmp_fileno,tqbs,0,0,nl)` in each of those places (and no
+    `makefit` around a `TAB`); there the check after the format jumps to the statement's first label, `skipN`,
+    past the two `qbs_free` calls, where the console form jumps to `skip_puN`. The string of the format is
+    `static qbs *print_using_formatN;` among the body's data, N the number of the statement's `skipN`. After
+    items before `USING` the console form empties its string first (`qbs_set(tqbs,qbs_new_txt_len("",0));`).
+    Items before `USING` are printed first as a plain `PRINT` prints them (`PRINT "a"; USING "##"; 5`, `PRINT
+    1; 2; USING …`, `PRINT "a"; "b" USING …`, `PRINT TAB(5); USING …`, `PRINT ; USING …`, and after a comma,
+    which a redirected console cannot show). A comma between two values does what a semicolon does: no zone.
+  - **What libqb prints (`v30_a_using_numbers`, `v30_b_using_strings`, `v30_c_using_file`).** A number field is
+    its `#` signs, right-aligned, a minus sign taking one place; a number that does not fit is printed whole
+    after `%`. A point sets the decimals, rounded half away from zero (`0.25` in `#.#` is `0.3`, `2.5` in `##`
+    is ` 3`), and a second point starts a new field. `+` before the field puts the sign at the field's first
+    place (`+  5`), after it at the end; `-` after it is a blank or a minus; `-` before it is text (`- -5`).
+    `**` fills with stars, `$$` puts a dollar before the number, `**$` both, each counting as places; one `$`
+    or `*` is text. A comma left of the point groups the thousands and counts as a place; right of the point
+    it is text. `^^^^` is an exponent of two digits, `^^^^^` of three, and its letter is the value's type: `E`
+    for a SINGLE or an integer, `D` for a DOUBLE, `F` for a `_FLOAT`; three carets are text. `_` makes the next
+    character text. `!` is the first character (a blank for an empty string), `&` the whole string, `\`, n
+    blanks and `\` a field of n + 2 characters, padded with blanks; anything else between the backslashes
+    makes them text. Text after a field is printed up to the next field or the format's end; when values are
+    left the format starts again, and text after the last value used is printed only up to the next field
+    (`"## ## ##"` with two values is ` 1  2 `). A format with no field prints its text and raises error 5; an
+    empty format too, after one stray character (`[a` in `v30_b`: libqb reads past the empty string). A
+    string for a number field or a number for a string field is error 13, a value that is not finite error 5,
+    each after the text before it is printed. To a file the same text is written; a file open for input gives
+    error 54, one not open 52, and an error in a value comes before the file's.
+  - **`GET` and `PUT` on a file, the forms (`x20`–`x48`, `v30_d_binary`; `qb64pe.bas` 11880–11955).** The
+    template is `[#]?[,[?][,?]]`. With a variable: `sub_get(n,position|NULL,byte_element((uint64)address,
+    bytes,byte_element_N),mask)` and `sub_put(…)`, mask 1 when the position is given; the place and size are
+    those of graphics `GET` (above): a numeric variable `(uint64)__INTEGER_I,2`, a fixed-length string
+    `X->chr,6`, a `TYPE` variable or member, an element `&(…[array_check(…)])`, a whole array `a()` from
+    element 0 with the bytes of all its elements (also of a `TYPE`, of fixed-length strings, dynamic, of two
+    dimensions: `x43`–`x46`). A variable-length string or an element of a string array goes to other entry
+    points: `sub_get2(n,position|NULL,s,mask)` with the string itself, `sub_put2(n,position|NULL,
+    byte_element((uint64)s->chr,s->len,…),mask)`. With no variable (`GET #1`, `GET #1, 2`, `GET #1,`, `PUT #1,
+    3`) the call is `field_get(n,position|NULL,mask)` or `field_put(…)`. The file number is any numeric
+    expression after `#` (`GET #k + 1, …`), but a first argument that starts with `(` is the graphics form and
+    is rejected as one (`x36`). `CALL GET(1, 1, c)` and `CALL PUT(#1, 1, c)` are accepted. The third argument
+    must be a variable: a literal, an expression, a function's result and a `CONST` are "Expected variable
+    name/array element" (`x20`–`x22`, `x33`, `x34`), a variable in parentheses is accepted (`x23`), and `GET
+    #1, , "lit"` is "UNEXPECTED INTERNAL COMPILER ERROR!" (`x24`). Also rejected: a `_BIT` variable or array
+    ("Variable/element cannot be _BIT aligned"), a whole array of variable-length strings ("Cannot pass array
+    of variable-length strings"), a `TYPE` with a `STRING` member ("UDT must have fixed size"), a whole member
+    array `r.v()` ("Expected array index", `x48`), `GET #1, ,`, no argument and four arguments ("Syntax error -
+    Reference: …"), `GET #, , c` ("Invalid expression"), a string as the file number or the position ("1st" or
+    "2nd sub argument requires a number"). Measured with task 5.1 of `m3-console-files` (`x67`, and 43 forms
+    read with `qb64pe -z`): **a name alone is a scalar variable**, also when only an array has the name (`PUT
+    #1, 1, a` with `DIM a(1 TO 3) AS INTEGER` writes the 4 bytes of a new SINGLE `a`; with a LONG scalar `b`
+    beside an array `b` its 4 bytes); only `a()` is the whole array. Measured by the review of the change (`x171`–`x178`): a
+    FUNCTION's name with empty parentheses is "Expected (...)" as the variable of `GET` and `PUT` and as the
+    string of `FIELD`, `LSET` and `RSET`; an array that is not declared is accepted by `GET` and `PUT`
+    (`und()`, and `und$()` too, although a declared array of variable-length strings is rejected). The position is passed as it is, an
+    `_INTEGER64` too (`sub_put( 1 ,*__INTEGER64_Q,…)`: libqb's parameter is an `int64`), a float through `qbr`.
+    A fixed-length string element is `qbs_new_fixed(…)->chr`, a `TYPE` variable `(((char*)__UDT_R)+((0+0)))`
+    with the type's size, a whole array of fixed-length strings `&((uint8*)(A[0]))[(0)*n]` and of a `TYPE`
+    `(((char*)A[0])+(((0)*size+0)))`, each with the bytes of all elements. `sub_put2` names a string element
+    twice, for `->chr` and for `->len`, so an index is evaluated twice there.
+  - **A file open `FOR BINARY` (`v30_d_binary`).** `PUT` writes the variable's bytes (INTEGER 2, LONG 4,
+    SINGLE 4, DOUBLE 8, `_INTEGER64` 8, `_BYTE` 1, `_FLOAT` 32, `_OFFSET` 8; a string its characters with no
+    length), `GET` reads as many: a variable-length string as many as it is long, so an empty one reads
+    nothing. The position is a byte from 1, rounded as a number is (`2.5` is 2, `3.5` is 4); left out, it is
+    the byte after the last one read or written (`SEEK(n)`; `LOC(n)` is one less). A `GET` at or past the end
+    sets the bytes it cannot read to 0, sets `EOF`, moves on only by what it read and does not grow the file; a
+    `PUT` past the end fills the gap with 0. Position 0 or below is error 63 and moves nothing. `GET` or `PUT`
+    with no variable is error 54 here. A file number that is not open is error 52; a file open for `OUTPUT`,
+    `INPUT` or `APPEND` error 54 for both; `ACCESS READ` gives error 75 for `PUT`, `ACCESS WRITE` for `GET`.
+    `PRINT #` to a binary file is error 54 (`177_open_binary` of the corpus expects that); `LINE INPUT #`
+    reads from one.
+  - **A file open `FOR RANDOM` (`v30_e_random`).** The record length is `LEN =`, 128 when left out (also for
+    `OPEN f AS #1`); 0 is error 5 at the `OPEN`, a fraction is rounded, 40000 is accepted, and a binary file
+    ignores it. The position is a record number from 1; left out, the record after the last one (`SEEK(n)`;
+    `LOC(n)` the last one). **`PUT` writes only the variable's bytes at the record's start**, so the file ends
+    after them and not at the record's end, and a later record leaves a gap of 0. A variable-length string is
+    written as two bytes of length and its characters, and read back by that length. A value longer than the
+    record (a string with its two bytes included) is error 59 for `PUT` and for `GET`, and nothing is written.
+    A record past the end reads as 0 and sets `EOF`; record 0 or below is error 63, as is `SEEK #n, 0`. With no
+    variable `GET` reads a record and `PUT` writes a whole one (the buffer `FIELD` would name: `PUT #1, 9` on
+    records of 14 bytes makes the file 126 long), and each moves on by one record.
+  - **`LOCK` and `UNLOCK` (`v30_i_lock`, `x50`–`x56`).** Template `[#]?[,[?][{To}?]]`:
+    `sub_lock(n,first|NULL,last|NULL,mask)` with mask 0 (`LOCK #1`, also `LOCK #1,`), 1 (`LOCK #1, 2`) or 3
+    (`LOCK #1, 2 TO 4`), `sub_unlock` the same, both also after `CALL`. `TO` with no first record, with no last
+    one or with no comma before the records is "Name already in use (TO)"; none or three arguments a syntax
+    error; a string "1st sub argument requires a number". When it runs: a record of 0 or below is error 5, a
+    range the wrong way round error 75, an `UNLOCK` that matches no `LOCK` error 70, a second `LOCK` of the
+    same bytes error 70; the program itself reads and writes what it locked, a second `OPEN` of the file
+    cannot read it (error 70), and `CLOSE` ends the lock. Every mode takes it; a file not open is error 52.
+  - **`EXIT SELECT` (`v30_f_exit_select`, `x60`–`x65`; `qb64pe.bas` 7491–7503).** It is `goto sc_N_end;` for
+    the innermost `SELECT` that has a `CASE` or `CASE ELSE` open around it, from inside an `IF` and from inside
+    loops within the `CASE`; a loop around the `SELECT` goes on. In `SELECT EVERYCASE` it leaves the whole
+    block, where `EXIT CASE` goes on with the next `CASE`. `EXIT CASE` in a plain `SELECT` is accepted and
+    leaves the block (`x62`). With no `CASE` open, also in a SUB called from one, it is "EXIT SELECT without
+    SELECT"; between `SELECT` and the first `CASE` "Expected CASE expression" (`x61`). `EXIT CASE` in a `CASE`
+    is `goto sc_ec_<n + 1>_end;`, n the number of `CASE`s closed so far in the file, and that label stands at
+    the end of each `CASE` body, before what ends the `CASE` (`goto sc_N_end;`, or the mark of a match of
+    `SELECT EVERYCASE`, which is therefore still set); in a `CASE ELSE` it is `goto sc_N_end;`. **So an `EXIT
+    CASE` followed in its `CASE` by a `SELECT` with a `CASE` jumps into that inner `SELECT`**, to the end of
+    its first `CASE`: the program goes on after the inner `END SELECT` and runs the rest of the outer `CASE`
+    (`x66`, measured 2026-10-13 with task 3.1 of `m3-console-files`: `a after the inner SELECT end`; with
+    `EVERYCASE` the inner selector's copy was never stored, so its later `CASE`s compare with 0).
+  - **`_IIF` (`v30_g_iif_min_max`, `x70`–`x76`, `x88`, `x89`, `x99`; `qb64pe.bas` 20737).** It is C++'s
+    `((condition)?(a):(b))`, so only the part chosen is evaluated. The condition is a number (a string is "1st
+    function argument requires a number") taken as an integer: a float goes through `qbr`, so `0.5`, `0.4`,
+    `-0.5` and `1E-30` are false and `4294967296` is true. The two parts are both strings or both numbers
+    ("falsePart and truePart must be of the same type"); two strings may be of different kinds and the value
+    is the one chosen, with its length. Two, four or no parenthesised arguments are "Incorrect number of
+    arguments - Reference: …", `TYPE` values are rejected, `_IIF` as a statement is a syntax error. Whole
+    arrays (`a()`, `b()`) are accepted as the two parts (`x99`, which prints 0).
+  - **The type of the result of `_IIF`, `_MIN`, `_MAX` and `_CLAMP` (`v30_result_types.py` and its table, 794
+    forms).** One rule for all four (`_CLAMP(a, b, b)` and `_IIF(1, a, b)` have `_MIN(a, b)`'s type for all
+    256 pairs), and **not** the usual one: a `_FLOAT` among them gives `_FLOAT`, else a DOUBLE gives DOUBLE,
+    else a SINGLE gives SINGLE, whatever the integer beside it (`_MAX(s, q)` is `std::max<float>`); of two
+    integers the wider wins, and of two of one width the unsigned one, so `_MIN(b, ub)` with -1 and 255 is 255
+    and `_MIN(i, ub)` is an INTEGER. A `_BIT` type counts as narrower than a `_BYTE`; two `_BIT` types give a
+    32-bit C++ type printed as an `_INTEGER64`. An `_OFFSET` beats every integer but an `_UNSIGNED _INTEGER64`
+    and is printed as an `_INTEGER64`. Two pairs depend on the order: `_INTEGER64` with `_OFFSET`, and
+    `_UNSIGNED _INTEGER64` with `_UNSIGNED _OFFSET`, each the first one's C++ type. (`Type_PromoteArithmeticType`
+    in `utilities\type.bas` reads as if a SINGLE beside a wider integer gave DOUBLE; the C++ says SINGLE.) The
+    result is then converted as any value of that type. **The rule as built** (task 2.1 of
+    `m3-console-files`, `widest` in `sema\src\check\ops.rs`, on what the two arguments are believed; 110 more
+    forms read with `qb64pe -z`: literals, operator results, elements, members, parameters): a float wins
+    over any integer and of two floats the wider; of two unsigned integers the one of more bits, **the second**
+    when they have as many; of two integers of one width the unsigned one, **the first** when both are signed;
+    else the one of more bits; a `_BIT * n` counts n bits (`_MIN(b40, l)` is an `int64_t`). The result is
+    believed that type: `_MIN(o, q)` is an `_OFFSET` to a following operator (`_MIN(o, o) ^ 2` is the `_OFFSET`
+    error), `HEX$(_MIN(bt, bt))` has the width of one bit. The arguments are written as they are and C++
+    converts them (`std::min<float>(*__INTEGER64_Q,*__SINGLE_S)`). The two special cases of
+    `Type_PromoteArithmeticType` (an `_OFFSET`; a SINGLE beside a wider integer made DOUBLE) are never taken:
+    each compares with a type value that carries a flag (`ISPOINTER`) no argument's type has.
+  - **`_MIN`, `_MAX`, `_CLAMP` (`v30_g_iif_min_max`, `x77`–`x81`, `x94`).** `std::min<T>(a,b)`,
+    `std::max<T>(a,b)`, `func_clamp<T>(value,low,high)`, every argument evaluated once, in order. A value that
+    is not a number comes out when it is first and not when it is second (`_MIN(nan, 1)` against `_MIN(1,
+    nan)`). `_CLAMP` with its bounds the wrong way round still gives a value between them. A string or a `TYPE`
+    value is "Expected numeric argument"; a wrong count "Incorrect number of arguments - Reference: …".
+  - **`_SHL`, `_SHR`, `_ROL`, `_ROR` (`v30_h_shifts`, `x82`–`x87`).** `_SHL` and `_SHR` are plain functions,
+    `func__shl(value,count)` and `func__shr`, of an `_UNSIGNED _INTEGER64` and a LONG giving an `_UNSIGNED
+    _INTEGER64`, whatever the argument: `_SHR(-1, 1)` is 9223372036854775807, a float is rounded by `qbr`, and a
+    count of 64 or more or below 0 is taken modulo 64 (`_SHL(1, 65)` is 2). `_ROL` and `_ROR` are
+    `func__rol<uintN_t>(value,count)` and `func__ror<…>`, N the width of the first argument's type (`_BYTE`
+    8, INTEGER 16, LONG 32, `_INTEGER64` and `_OFFSET` 64; a literal by its size: `1` is 16, `70000` 32,
+    `5000000000` 64), the result unsigned of that width, the count modulo the width, a negative count turning
+    the other way. A float as either argument and a string are "Expected non-floating-point numeric argument"
+    (`x84`–`x87`), a `_BIT` type "Unsupported integral type size".
+  - **Not in a `CONST`.** `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`, `_SHR`, `_ROL` and `_ROR` in a `CONST`
+    expression are "Unexpected element '…'" (`x89`–`x93`).
+  - **`CHAIN` and `LPRINT` (`x13`, `x95`–`x98`).** `CHAIN name$` is `sub_chain(name)` for any string
+    expression; none, a number or two arguments are rejected. `LPRINT` is `PRINT`'s code with `qbs_lprint` and
+    `lprint_makefit` in place of `qbs_print` and `makefit`, between `tab_LPRINT=1;` and `tab_LPRINT=0;`, with
+    `USING` too. Neither is run here: `CHAIN` starts `qb64pe.exe -c` beside the program through `cmd`
+    (`tests\corpus\README.md`), and `LPRINT` prints a page; the programs hold them behind `IF 0 THEN`.
+  - **`FIELD`, `LSET` and `RSET` (`v30_j_field`, `v30_k_field_errors`, `v30_l_lset_rset`, `x100`–`x132`,
+    `x140`–`x170`: 67 programs, measured 2026-10-13 as the first task group of `m3-console-files`;
+    `qb64pe.bas` 7340–7432 and 11327–11374, libqb's `file-fields.cpp` and `string_functions.cpp`).** The old
+    compiler writes calls and nothing else; the record buffer, the list of a file's field strings and the link
+    from a string to its field are libqb's (a `field` pointer in every `qbs`), so a field variable is an
+    ordinary variable-length string for the compiler.
+    - **The calls.** `FIELD #n, w1 AS a, w2 AS b` is `field_new(n);` then `field_add(a,w1);` and
+      `field_add(b,w2);`, one call per part, in order, with nothing between them. The file number and each width
+      are converted as a LONG is (`qbr(…)` for a float: a width of 2.5 is 2, of 3.5 is 4; a DOUBLE file number
+      is accepted). The target is the string itself: `__STRING_A`, an element with its bounds check
+      (`((qbs**)(__ARRAY_STRING_E[0]))[array_check(…)]`), a `STRING` member (`*((qbs**)((char*)__UDT_R+(6)))`),
+      also of an array element. `LSET a = v` is `sub_lset(a,v);` and `RSET` `sub_rset(a,v);`: the target as a
+      string value (a fixed-length string, member or element as `qbs_new_fixed(address,length,1)`), then the
+      value as any string expression. The target is evaluated before the value, and in `FIELD` the file number
+      before a target's index before its width (`fn ix wd`).
+    - **Accepted forms of `FIELD`.** The `#` may be left out, the file number is any numeric expression (`#k +
+      1`, `(1)`), a width any numeric expression, also in parentheses. A target is a variable-length string
+      variable, an array element, a `STRING` member of a `TYPE` variable or element; a name not seen before with
+      `$` (`fresh$`, and `und$(2)`, which makes the array of 0 to 10); a variable in parentheses (`(a)`, `x106`);
+      and a whole array `e()`, which is taken as its element 0 with no bounds check (`x109`). One variable may
+      stand in two parts (`x127`: it is the last one). `FIELD` works in a SUB on shared and local strings.
+    - **Rejected forms of `FIELD`.** A fixed-length string, also as a member or element: "Fixed length strings
+      cannot be used in a FIELD statement". "Expected FIELD #filenumber, characters AS variable$, ..." for: a
+      number, a literal, an expression, a function's result, a string `CONST`, a `TYPE` value, a numeric member,
+      a new name with no `$`; `FIELD` alone, with the file only, with a comma after it and nothing more, no
+      `AS`, no width, no target, a comma after the last part, `#` with no number, no comma after the file. Two
+      parts with no comma are "Name already in use (AS)", a semicolon between parts "Invalid expression", a
+      string as the file number or as a width "Illegal string-number conversion", `CALL FIELD(…)` "Expected CALL
+      sub-name [(...)]".
+    - **`FIELD` when it runs.** Each `FIELD` starts again at the buffer's first byte, and the strings of an
+      earlier `FIELD` on the file stay fields: after `FIELD #1, 3 AS a, 5 AS b` and `FIELD #1, 8 AS w`, an `LSET`
+      to `w` changes `a` and `b` and one to `b` changes `w`. `FIELD` gives the string the width as its length
+      and the bytes the buffer holds (0 in a new file). A string named again leaves its earlier field. The
+      widths of one statement may add up to the record length; the part that goes beyond is error 50, and that
+      part and every part after it are left as they were (the parts before it are fields). A negative width is
+      error 5, a width of 0 is accepted (the string is empty). A file not open, and file number 0, is error 52;
+      a negative file number, a file open `FOR BINARY`, `OUTPUT` or `INPUT` error 54; an element out of range
+      error 9. The default record length is 128 (`100 AS a, 28 AS b` is accepted, `29` is error 50).
+    - **`GET` and `PUT` with no variable.** `GET #1[, record]` fills the buffer and every field string of the
+      file; a record past the end reads as bytes of 0 and sets `EOF`. `PUT #1[, record]` writes the whole
+      buffer, so the file ends at the record's end. Record 0 or below is error 63; a file not open 52; a file
+      that is not random 54; `ACCESS READ` gives error 75 for `PUT`, `ACCESS WRITE` for `GET`. `GET` and `PUT`
+      **with** a variable do not go through the buffer: `GET #1, 1, l` leaves the field strings as they are, and
+      after `PUT #1, 1, x` they hold the old bytes until a `GET` with no variable.
+    - **`=` to a field variable** changes the string and not the buffer, and the string stays a field: `a =
+      "QQ"` gives `a` the length 2, and the next `LSET` to any field of the file or `GET` with no variable gives
+      it its width and the buffer's bytes again. `LSET` to a field string whose length was changed by `=` works
+      on that length first and then on the field (`b = "": LSET b = "k"` leaves the buffer's part of `b` as five
+      blanks). After `CLOSE` a field string keeps its value and its length; `LSET` to it works as on any
+      string; when the file number is opened again the string is no field of the new file.
+    - **`LSET` and `RSET` on any string.** The target keeps its length: a shorter value is padded with blanks
+      at the right (`LSET`) or the left (`RSET`); a longer one is cut at its end by **both** (`RSET a =
+      "abcdef"` into three characters is `abc`); an empty value gives blanks; an empty target stays empty. The
+      target may be a fixed-length string, an element, a member of either kind, also of an array element, and
+      a name not seen before with `$` (an empty string, so nothing happens). The value may name the target
+      (`LSET a = MID$(a, 3)`). An error in the value leaves the target as it was (`LSET a = CHR$(-1)`); an
+      element out of range is error 9. A whole array `e()` as the target is accepted and is element 0 (`x153`).
+    - **Rejected forms of `LSET` and `RSET`.** "LSET/RSET expects a string variable/array-element as its first
+      argument": a numeric variable, element or member, **a `TYPE` value** (`LSET r = r2`, which QuickBASIC
+      uses to copy a record, and `LSET r = "abcd"`), a literal, an expression, a `CONST`, a function's result,
+      `MID$(a, 2, 2)`, a new name with no `$`. "Expected LSET/RSET stringvariable=string": no `=`, no value,
+      `CALL LSET(a, "x")`. "Expected LSET ..." (or `RSET`) for the word alone. A number or a `TYPE` value as
+      the value, and `LSET a = b = "x"` (the first `=` outside parentheses ends the target, the rest is the
+      value), are "Illegal string-number conversion". `LSET = "a"` and `LSET (a) = "x"` are read as an
+      assignment to a variable or array named `LSET`: "Name already in use (LSET)".
+- **Civil War Strategy played from a keys file (measured 2026-10-14 for `m3-scripted-game`, task 1.1: a copy
+  of `CWSTRAT.BAS` with the edits of the change's design D1, built by `qb64pe.exe` with `screen_state.cpp`,
+  outside the repository).**
+  - **What makes the game as it stands unscriptable.** `RANDOMIZE TIMER` (line 218); `_FULLSCREEN` (line 168);
+    `SUB TICK` (68 calls) waits up to a time or until a key and eats that key; 14 places wait for a key (the
+    menu's `crsr:` loop, twelve `DO WHILE INKEY$ = "": LOOP`, one `INPUT`); the title music and `SUB shen` only
+    look for a key (`IF INKEY$ <> ""`) and run only with `noise` 2. `CWS.CFG` holds `side, graf, noise,
+    difficult, player, turbo!, randbal, …, history, bold`; `history` 1 makes a new game `SHELL "copy cws.his
+    oldhist.ory"` and write `DATE$` into `cws.his`.
+  - **Byte 0x4F0 of conventional memory is free.** libqb's `DEF SEG` alone points at 0x500 (`&cmem[1280]`) and
+    no line of libqb names `cmem[0x4F0]`; `DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG` before each
+    wait counted every one of about 25 waits of a short game exactly, with no write from elsewhere.
+  - **A menu announces once per key**: `SUB menu` returns to `crsr` after every arrow key, so each arrow is a
+    wait of its own; the keys file has a `prompt` before every key.
+  - **A short game** (new game as the Union, END TURN, the computer's turn with one battle, the May menu, Files,
+    Quit, Yes, END's prompt): 1.1 to 1.4 s with `TICK` empty and no sound, four runs byte for byte equal. The
+    computer's turn waits three times (the month's events, the battle, "hit any key to continue"). A new
+    executable's first start once took more than 1.5 s to its first wait.
+  - **Size of a state**: one `SCREEN 12` state is 95 kB (the title) to 121 kB (the map with the main menu), as
+    written by `screen_state.cpp`.
+  - **`$EXEICON`** of the copy needs `cws.ico` beside it when it is built; the corpus runner copies
+    `<name>.files\` into the program's folder before it compiles.
+- **The image, colour, font and mouse built-ins (`v31_*`, 113 programs, measured 2026-10-14 as task 1.1 of
+  `m3-images-fonts-mouse`: 225 accepted forms read with `qb64pe -z` from programs outside the repository,
+  kept as code that is not reached in `v31_x01_accepted`; 108 rejected forms, one program each, `x02`–`x109`;
+  the values in `v31_a`–`v31_d`, each printed to the console of a program with a hidden window).**
+  - **Every accepted form is the plain call of its table row and template.** The slots are the table's, a float
+    into an integer slot is `qbr(…)`, an integer or a float into a SINGLE or DOUBLE slot is passed as it is, an
+    `_UNSIGNED LONG` into a LONG slot as it is, a literal as written (`&HFF102030` into an `_UNSIGNED LONG` slot
+    is `-15720400`). A left-out slot is `NULL`; a function's optional slots are counted in a last argument
+    `0|1|2…` (`func__rgb(1,2,3,NULL,0)`, `func__loadimage(f,NULL,s,0|2)`), a statement's in a plain number
+    (`sub__putimage(…,616)`). The words of a template are numbers in their slot: `_PRINTMODE` `_FILLBACKGROUND`
+    1, `_KEEPBACKGROUND` 2, `_ONLYBACKGROUND` 3; `_DEPTHBUFFER` `ON` 1, `OFF` 2, `LOCK` 3, `_CLEAR` 4;
+    `_MAPTRIANGLE` `_CLOCKWISE` 1, `_ANTICLOCKWISE` 2 in its first slot, `_SEAMLESS` a bit of the mask,
+    `_SMOOTH` 1, `_SMOOTHSHRUNK` 2, `_SMOOTHSTRETCHED` 3 in its last; `_PUTIMAGE`'s `_SMOOTH` and `STEP` and
+    `_CLEARCOLOR`'s `_NONE` are bits of the mask only. Every statement takes `CALL` with its template in
+    parentheses (`CALL _PUTIMAGE((10, 10), img)`, `CALL _MAPUNICODE(9786 TO 1)`) and writes the same call.
+  - **Result types, as the table says**: a LONG for the handles, sizes, `_RED` to `_ALPHA`, `_RED32` to
+    `_ALPHA32`, `_CLEARCOLOR`, `_BLEND`, `_PALETTECOLOR`, `_AUTODISPLAY`, `_FONT`, `_FONTWIDTH`, `_FONTHEIGHT`,
+    `_PRINTWIDTH`, `_PRINTMODE`, the `_U…` functions, `_MAPUNICODE`, `_MOUSEINPUT`, `_MOUSEBUTTON`,
+    `_MOUSEHIDDEN`, `_MOUSEDISABLED`, `_SCREENIMAGE`, `_CLIPBOARDIMAGE`; an `_UNSIGNED LONG` for `_RGB`,
+    `_RGBA`, `_HSB32`, `_HSBA32` (and `_RGB32`, `_RGBA32`); a DOUBLE for `_HUE32`, `_SATURATION32`,
+    `_BRIGHTNESS32`, `_MOUSEX`, `_MOUSEY`, `_MOUSEWHEEL`, `_MOUSEMOVEMENTX`, `_MOUSEMOVEMENTY`; a SINGLE for
+    `PMAP` (`HEX$` of it is `func_hex_float`).
+  - **Forms the template allows that look odd**: `_CLEARCOLOR` alone (`sub__clearcolor(NULL,NULL,0)`) and
+    `_CLEARCOLOR _NONE 4` (the word and a colour, mask 3) are accepted; `_PUTIMAGE` alone, `_PUTIMAGE , , , ,
+    _SMOOTH` and every other choice of its four parts; `_MAPTRIANGLE` with no source handle (`(…) TO (…)`) and
+    with a z on some of the destination's points only (`(10, 10, -1)-(50, 10)-(10, 50)`, mask 6); `_MOUSEWHEEL`
+    bare and with an axis.
+  - **`_UCHARPOS`'s second argument** (`qb64pe.bas` 20901–20918) must be a whole array or an element of an
+    array whose type is a 32-bit integer that is not an offset: LONG and `_UNSIGNED LONG` are accepted, also
+    with two dimensions or used without `DIM` (`nd&()`); any other type, a scalar, a literal and an array name
+    with no parentheses are "Expected LONG array-name". It is passed as the bytes from the element (or from
+    the first element of a whole array, its `LBOUND`, with no bounds check) to the array's end, as graphics `GET` passes its array:
+    `byte_element((uint64)(&(((int32*)(__ARRAY_LONG_P[0]))[0])),((4*(__ARRAY_LONG_P[2]&1)*__ARRAY_LONG_P[5])-(4*(0))),byte_element_1)`.
+  - **Rejected** (`x02`–`x109`): a function with too few or too many arguments, also when bare, is "Incorrect
+    number of arguments - Reference: …" (`_COPYIMAGE`, `_LOADIMAGE`, `_RGB(1, 2)`, `_MOUSEBUTTON`,
+    `_MOUSEX(1)`, `PMAP(1)`; also `_SCREENIMAGE(1, 2)`, `x81`: its template `[?,?,?,?]` is one group, so it
+    takes no argument or four, the only function template of the table whose counts are not a plain range,
+    found by task 5.1); empty parentheses "Expected (...)"; a string for a number "1st function argument
+    requires a number" or "Number required for function" (a function with one slot), a number for a string
+    "… requires a string"; a statement in a form its template does not have "Syntax error - Reference: …"
+    (`_PUTIMAGE (1, 2)-`, `_PRINTMODE` alone or with a number, `_DEPTHBUFFER 1`, `_MAPUNICODE 1, 2`, `_FONT`
+    alone, `_PRINTSTRING` with a `-` or no text, `_UPRINTSTRING STEP`, `_MAPTRIANGLE` with two points, with
+    `STEP`, with a z in the source, with `_SEAMLESS` before `_CLOCKWISE`, `_CLIPBOARDIMAGE l` without `=`);
+    `_SETALPHA 128 TO 9` "Name already in use (TO)"; `_AUTODISPLAY 1` "SUB does not require any arguments";
+    a function as a statement (`_MOUSEINPUT`, `_WIDTH 5`) "Syntax error".
+  - **Values (`v31_a`–`v31_d`).** In `SCREEN 13` `_RGB(255, 0, 0)` is 40 and `_RED(4)`, `_GREEN(4)`,
+    `_BLUE(4)`, `_ALPHA(4)` are 170, 0, 0, 255. `_RGB32(5)` is `FF050505`, `_RGB32(5, 6)` `6050505`;
+    `_HSB32(120, 50, 50)` is `FF408040`; `_RGB32(10, 200, 30)` has hue 126.3157894736842, saturation 95,
+    brightness 78.43137254901961; a colour part out of range is clamped. `_WIDTH(_NEWIMAGE(64, 48, 32))` is
+    64; a text image `_NEWIMAGE(10, 10, 0)` has `_PIXELSIZE` 0. `_LOADIMAGE` of a file that is not there is
+    -1. `_COPYIMAGE(a&, 32)` of a 256-colour image is error 5 (only 33, a hardware copy, changes the mode).
+    `_WIDTH` of a freed handle is error 258 ("Invalid handle"), as is freeing it again; **`_WIDTH(12345)`,
+    a number that was never a handle, is no error and gives the screen's width** (640); `_FREEIMAGE 0` is
+    error 5. `_CLEARCOLOR` of `SCREEN 12` is -1 (none); of a 32-bit image after `_CLEARCOLOR _RGB32(1, 2, 3)`
+    it is 0. `_PALETTECOLOR 3, _RGB32(10, 20, 30)` then `_PALETTECOLOR(3)` is `FF0A141E` in `SCREEN 12` and in
+    a 256-colour image. `_BLEND` is -1 for a 32-bit image, 0 for a palette one. After `WINDOW (0, 0)-(100,
+    100)` in `SCREEN 12`, `PMAP(50, 0)` is 320, `PMAP(50, 1)` 240, `PMAP(320, 2)` 50.07825. `_AUTODISPLAY` is
+    -1 before and after `_DISPLAY` (in a hidden window).
+  - **Saved and loaded again (`v31_c`).** `_SAVEIMAGE` writes BMP, PNG, JPG, TGA, QOI and HDR by the name's
+    extension; each loads again at its size with the pixels as drawn (JPG changes `FFFF0000` to `FFFE0000`). A
+    name with no extension gets `.png`; `_SAVEIMAGE "x.dat", h, "bmp"` writes `x.dat.bmp`. A palette image
+    saved and loaded with mode 256 keeps its indices. **`_SAVEIMAGE` with a handle that was never made writes
+    a file and raises no error.**
+  - **Found by the screen programs of group 2** (`tests\corpus\screen\i01`–`i08`, 2026-10-14). In 32 bits
+    `_CLEARCOLOR c, h` makes the pixels of colour `c` transparent (alpha 0) and keeps no colour:
+    `_CLEARCOLOR(h)` is 0 after it and after `_CLEARCOLOR _NONE, h`, and `_ALPHA32` of such a pixel of a copy is
+    0 (`i05_alpha_blend`); in 256 colours it is the index (2). `_DONTBLEND` makes `_BLEND` 0, `_BLEND` -1 again.
+    `_LOADIMAGE(f$, , "")` loads in the screen's mode (`i02`). **`PRINT` into a 32-bit image of 5 by 5 pixels,
+    whose 16-pixel font does not fit, and then `_FREEIMAGE` of it ends the program with exit code 0xC0000374,
+    a heap corruption** (found while `i01_new_copy_put` was written; libqb's, so the program uses an image of 40
+    by 20).
+  - **Fonts (`v31_d`).** In `SCREEN 12` the font is 16, 8 by 16 pixels; `_FONT 8` is 8 by 8, `_FONT 14` 8 by
+    14; `_PRINTWIDTH("abc")` is 24. `_LOADFONT("cour.ttf", 16)` and `_LOADFONT("arial.ttf", 20)` load
+    Windows' fonts by their bare names (handles above 31); a font that is not there gives 0, no error. A
+    loaded font that is not loaded `MONOSPACE` has `_FONTWIDTH` 0; Courier New 16 is 16 high, `_PRINTWIDTH`
+    of "abc" 30, `_UFONTHEIGHT` and `_ULINESPACING` 18; Arial 20 is 20 high, `_UFONTHEIGHT` 22. `_UCHARPOS("abc",
+    p())` is 3 and gives the left edge of each character and the end (0, 10, 20, 30), also into an
+    `_UNSIGNED LONG` array; with no array it gives the count only. `_FONT` and `_FREEFONT` of a freed handle
+    are error 258, also `_FREEFONT 16` (a built-in font). `_PRINTMODE` is 3 at first; after
+    `_KEEPBACKGROUND` 1, `_ONLYBACKGROUND` 2, `_FILLBACKGROUND` 3 (other numbers than the statement's).
+    `_MAPUNICODE(1)` is 9786 before and after `_MAPUNICODE 9786 TO 1`, `_MAPUNICODE(65)` 65. In the screen
+    programs of task 3.2 (`f01_builtin_fonts`, `f02_loaded_fonts`): `_PRINTSTRING STEP(x, y)` without an image
+    counts from another image's last point, not the destination's (after `SCREEN 13: PSET (100, 0)` the text
+    starts at (4, 4); `SOMEDAY.md`, "QB64pe behaviours to review"); `_FONTWIDTH` of a freed font is error 258 too.
+  - **The build (task 1.2, six programs built with `qb64pe -x` outside the repository, read from the clone's
+    `compilelog.txt`).** `_LOADIMAGE` and `_SAVEIMAGE` set `DEP_IMAGE_CODEC=y` (define `DEPENDENCY_IMAGE_CODEC`,
+    variant `libqb_make_01000000`); `_SCREENIMAGE` and `_CLIPBOARDIMAGE` set `DEP_SCREENIMAGE=y` alone, and the
+    clone's `Makefile` builds the image codec in too (`01000010`, both defines); `_LOADFONT` and the `_U…`
+    functions set `DEP_FONT=y`, which has no define and links FreeType's objects in place of the font stub
+    `font.o`; the variant stays `00000000`. All three with `$CONSOLE:ONLY` is `01100010`, `-mconsole`. The order
+    of the flags is `qb64pe.bas` 13706–13721.
+  - **The mouse of a window, fed through libqb's queue** (`Mouse_QueuePositionEvent` and the others, from a
+    thread of `tools\screen\screen_state.cpp`, read by a program of the old compiler that prints every event):
+    in `SCREEN 12` the window's pixel is the screen's (40, 30 gives `_MOUSEX` 40, `_MOUSEY` 30); in `SCREEN 0`
+    a column and a row (40, 30 is 6, 2; 100, 50 is 13, 4). A move is two events in the queue (the move, then a
+    copy with the movement 0), a button one, a wheel turn two (the steps, then 0). `_MOUSEBUTTON(1)` is -1 while
+    the left button is down, `_MOUSEBUTTON(2)` for the right. A scroll of yOffset -1 (down, GLFW's sign) gives
+    `_MOUSEWHEEL` 1; up is negative. **The user's real cursor over a shown window adds events** (30 before the
+    first scripted one in that run), and the movement of the first scripted move is counted from the real
+    cursor's last position; between two scripted moves it is their own difference. The queue is a
+    single-producer ring buffer (`ring-buffer.h`), so the scripted thread is a second writer beside the window's
+    callbacks: a real event at the moment of a step can lose or overwrite one. The position and scroll callbacks
+    drop events while the window has no focus or the cursor is outside it (`mouse.cpp` 646–661).
+    **`_MOUSEX` and `_MOUSEY` map an event when they are read, by the frame libqb last drew** (`mouse.cpp` 268–
+    340: through `environment_2d__screen_x1`, the scale and the screen's size, set in `libqb.cpp` 25390 for each
+    frame). A program that reads its events right after `SCREEN 12`, before the first frame, gets -1 for both
+    (the screen's size is still 0, so the clamp gives width - 1); the movement and the buttons are right (found
+    while task 4.3 recorded `u01_mouse_queue`; the program of task 1.2 printed to its console first and so read
+    later). So a mouse step of the keys file waits until the window shows the displayed page
+    (`tools\screen\README.md`). In `SCREEN 0` a pixel at or beyond the right or bottom edge (639, 399; 700, 450)
+    is column 80, row 25, and 0, 0 is 1, 1 (`u02_mouse_text`). After the queue is empty the values of the last
+    event stay (`u01`: 60, 40).
+- **`_MEM`, its functions and statements, `_OFFSET`, `MKI$` … `_CV` (`v32_*`, 158 programs, measured 2026-10-14 as
+  tasks 1.1 and 1.2 of `m3-mem`: about 230 accepted forms read with `qb64pe -z` from programs outside the
+  repository, kept as code that is not reached in `v32_x01_accepted`; 115 other forms, one program each,
+  `x02`–`x116`, all rejected but `x80`; the values in `v32_a`–`v32_c`; the runtime errors and the life of a block
+  in `v32_d01`–`d34`; by the review of the change, `x117`–`x120`).** The C++ of every kind of place is in design
+  D3 of the change.
+  - **The type.** `_MEM` is user type 1, defined before the program's first line (`qb64pe.bas` 1588): 56 bytes,
+    `OFFSET`, `SIZE`, two lock members a program cannot name, `TYPE`, `ELEMENTSIZE` (8 bytes each), `IMAGE` and
+    `SOUND` (LONG). It is accepted wherever a user type is: `DIM`, `DIM SHARED`, `REDIM` arrays, `STATIC`, a
+    member of a `TYPE` (`LEN` of `a AS INTEGER, mm AS _MEM, v(1 TO 2) AS LONG` is 66), a parameter `p AS _MEM`;
+    `LEN(m)` is 56; `n = m` is a `memcpy` of 56 bytes and `SWAP m, n` `swap_block(…,56)`. A member is read as any
+    member (`*(ptrszint*)(((char*)__UDT_M)+((0+8)))`, printed as an `_INTEGER64`; `IMAGE` and `SOUND` as `int32`).
+    A store to a member is "Cannot set read-only element of _MEM TYPE", by `=` and also by `READ m.SIZE` and
+    `INPUT #1, m.SIZE` (`x117`, `x118`; the old compiler's `setrefer`, `qb64pe.bas` 26850, which `FOR` calls
+    too); `m.LOCK_ID` "Element not defined"; `m =
+    5` and `m = k` "Expected = similar user defined type"; `PRINT m` "User defined types in expressions are
+    invalid".
+  - **A function that gives a block** (`_MEM`, `_MEMELEMENT`, `_MEMNEW`, `_MEMIMAGE`, `_MEMSOUND`) is accepted
+    only as the value stored into a place of type `_MEM` (a variable, an element, a member): `mem_block funcN;` in
+    `global.txt` and `memcpy(dest,(((char*)&(funcN=call))+(0)),56)`. As an argument (of `_MEMEXISTS`,
+    `_MEMFREE`, a SUB or FUNCTION) it is "TYPE '_MEM' required for function" (or "… for sub"); with a member
+    read (`_MEM(k).SIZE`, `_MEMNEW(4).SIZE`) "Invalid expression". **Stored into a number (`k = _MEMNEW(4)`,
+    `x80`) it is accepted and the C++ build fails** ("assigning to 'int32_t' from incompatible type
+    'mem_block'").
+  - **A block as an argument** (of `_MEMEXISTS`, `_MEMFREE`, both blocks of `_MEMCOPY`, the first argument of
+    the `_MEMGET` function) is a place of type `_MEM`, passed as its address:
+    `(void*)( ((char*)(__UDT_M)) + ((0+0)) )`, of an element `(void*)( ((char*)(__ARRAY_UDT_RM[0])) +
+    (((array_check(( 1 )-__ARRAY_UDT_RM[4],__ARRAY_UDT_RM[5]))*56+0)) )`, of a member `(void*)( ((char*)(__UDT_U))
+    + ((0+2)) )`; the statements `_MEMGET`, `_MEMPUT` and `_MEMFILL` write it as `(((char*)__UDT_M)+((0+0)))`.
+    Anything else is "TYPE '_MEM' required for function", "1st function argument requires TYPE '_MEM'", "4th sub
+    argument requires TYPE '_MEM'" or "Expected _MEM type". `CALL _MEMFREE(m)` and `CALL _MEMCOPY(m, 0, 8 TO n, 0)`
+    are the statements; `CALL _MEMPUT(…)`, `CALL _MEMGET(…)` and `CALL _MEMFILL(…)` are "Command not implemented".
+  - **`_MEM(reference)`** is `func__mem(address, size, type value, element size, lock)` (the "-7 helper",
+    `qb64pe.bas` 22730–23038). The type value (`Type2MemTypeValue`, 14731): the bytes of a number (1, 2, 4, 8,
+    32 for `_FLOAT`) + 128 an integer, + 256 a float, + 1024 unsigned, + 8192 an offset; 512 a fixed-length string
+    (its length not added); 4096 a `_MEM`, 32768 any other user type and any member (`u.a` of an INTEGER is
+    32768); + 65536 when the place's variable is an array. The lock: **the `sf_mem_lock` of the SUB, FUNCTION or
+    main module where `_MEM` stands**, not of the one the variable lives in, for anything but an array variable
+    or its element, which take the lock in slot `4 * dimensions + 4` of the descriptor (`d34`: a block of a
+    main-module or `STATIC` variable taken in a SUB stops being valid when the SUB returns). The size and element
+    size by kind (`v32_a`): a variable its bytes; a whole array the bytes of all elements (0 while not
+    allocated), an element the bytes from it to the end; a whole `TYPE` value, a member, a member of an element
+    and the element of a member array of a variable: the bytes from the place to the end of the variable (or of
+    the whole array) with element size 1 for a member that is no user type and the type's size for a whole value
+    or a member of a user type (a member of type `_MEM` is typed 4096, measured while group 3 was built); a whole member
+    array (`u.v()`, `ut(1).v()`) its own bytes, typed as an array of its elements, with the `sf_mem_lock`; an
+    element of a member array of an array element (`ut(1).v(2)`): the whole member array's bytes from that
+    element's address, typed 98304, element size the elements'. Errors: a variable-length string "_MEM cannot
+    reference variable-length strings" (also an array of them), a value "Expected variable name/array element",
+    a `_BIT` "Variable/element cannot be _BIT aligned", `_MEM()` "Expected (...)", three arguments "Incorrect
+    number of arguments".
+  - **An array parameter whose number of dimensions nothing above has given** (`_MEM(p())` before any index of
+    `p` and with no call passing an array above the procedure; `v32_a`, SUB `y`) takes slot 0 of the descriptor
+    as its lock (`4 * -1 + 4`): the pointer to the elements, so **the first 8 bytes of the elements are read as
+    the lock's id** and the block stops being valid when element 0 changes ("after q(0) = 6: 0"). Once an index
+    or such a call stands above, the slot is 8.
+  - **`_MEMELEMENT(reference)`** (the "-8 helper", 22406) is the one element or value: of an element its own
+    bytes; of a whole array the same as `_MEM` (of a whole array of a user type with the offset of an element,
+    `((0)*18+0)`, where `_MEM` writes 0); of a member the member's own type (`u.a`: 2, 130, 2; `u.d`: 8, 264, 8);
+    of any whole value of a user type, a `_MEM` too, the type's size typed 32768; but of an element of a member
+    array the whole member array's bytes and type value of the element (`u.v(1)`: 16, 132, 16).
+    `_MEMELEMENT(u.v())` is "Expected array index", `_MEMELEMENT(s$)` "_MEMELEMENT cannot reference
+    variable-length strings". Of a member of an element of a user-type array, the member alone in its own type
+    (`ut(1).d`: 8, 264, 8; `ut(1).s`: 5, 512, 5); of an element of a member array of such an element the same
+    block as `_MEM` (`ut(1).v(2)`: 16, 98304, 4; `x119`). `_MEMGET(m, o, _UNSIGNED STRING * 4)` is "Invalid TYPE
+    name" (`x120`).
+  - **`_MEM(offset, size)`** is `func__mem_at_offset(offset, size)`: the offset must be an `_OFFSET` or
+    `_UNSIGNED _OFFSET` ("Expected _MEM(_OFFSET-value,...)" for any other type), the size any number (a float
+    through `qbr`; a string "2nd function argument requires a number"). Type 16384, element size 1, `IMAGE` -1;
+    a negative size raises error 301 and gives a block of 0 bytes.
+  - **`_MEMNEW(n)`** (`func__memnew( 64 )`; a float through `qbr`): type 16384, element size 1, `IMAGE` -1.
+    `_MEMNEW(0)` has `OFFSET` 1 and `SIZE` 0; `_MEMNEW(-1)` raises error 5, which is trapped, and gives a block
+    that exists, of `SIZE` 0 and `OFFSET` 0. **`_MEMFREE` of a block of `_MEMNEW(0)` taken after another block
+    was freed ends the program with exit code 127** (`d33`): libqb sets no lock type for a block of 0 bytes, so
+    a lock taken again from the freed list keeps type 1 and its old pointer, which is freed a second time.
+  - **`_MEMIMAGE[(handle)]`** is `func__memimage(NULL,0)` (the destination) or `func__memimage(h,0|1)`: of a
+    32-bit image of 4 by 2, `SIZE` 32, `TYPE` 3204 (4 + 128 + 1024 + 2048), `ELEMENTSIZE` 4, `IMAGE` the handle;
+    of a 256-colour image of 3 by 3, 9, 3201, 1. After `_MEMFREE` of it, or `_FREEIMAGE` of the image, it is not
+    valid (`_MEMEXISTS` 0, a read error 308). **`_MEMSOUND(h[, channel])`** is `func__memsound(h,NULL,0)` or
+    `(h, c,0|1)`, with libqb's audio part.
+  - **The `_MEMGET` function** is `*(int32*)(func__memget((mem_block*)(((char*)__UDT_M)+((0+0))),offset,4))` by
+    the type word: any numeric type (`_OFFSET` through `ptrszint`, `_FLOAT` `long double` of 32 bytes), `STRING *
+    n` (`qbs_new_txt_len((char*)func__memget(…,n),n)`), a user type (`((void*)+func__memget(…))`, copied by a
+    `memcpy` of the type's size: `u = _MEMGET(m, o, t)`). The offset is converted to `_OFFSET`. Errors:
+    `STRING` "Expected STRING * ...", `_BIT` and `_BIT * 4` "_BIT TYPE unsupported", a number or an unknown word
+    "Invalid TYPE name", a user type printed "Number required for function", `STRING * 4` into a number "Illegal
+    string-number conversion".
+  - **`_MEMGET`, `_MEMPUT` and `_MEMFILL` as statements are written inline** (10168–10500): `tmp_long=offset;`,
+    then `if ( ((mem_block*)(blk))->lock_offset ){ if ( tmp_long < …->offset || (tmp_long+(size)) > ( …->offset
+    + …->size) || ((mem_lock*)…->lock_offset)->id != …->lock_id ){ if (…id != …lock_id) error(308); else
+    error(300); }else{ copy } }else error(309);`. The copy of a variable is by its size as the "-5" helper
+    spells it: 1, 2, 4 or 8 as an `int8` … `int64` (a DOUBLE as `int64`, a `STRING * 4` as `int32`), anything
+    else `memmove`. A variable is a number, a fixed-length or variable-length string (its characters and its
+    present length, `__STRING_S->len`), a value of a user type, an element, a member, a whole array `a()` or a
+    whole member array; `_MEMPUT` also takes a string expression, held in `g_tmp_str`. `_MEMPUT … AS type` stores
+    the value converted to the type (`*(uint8*)tmp_long=*__LONG_K;`: a LONG of 1000 `AS _BYTE` is -24, 2.7 `AS
+    LONG` is 3). `_MEMFILL` is a call after all: `sub__memfill_2(blk,offset,bytes,value)` (`_1`, `_2`, `_4`, `_8`,
+    `_SINGLE`, `_DOUBLE`, `_FLOAT`, `_OFFSET`) or `sub__memfill(blk,offset,bytes,(ptrszint)address,size)`, a
+    string expression through `tmp_long`. Errors: an expression that is not a string "Expected variable
+    name/array element"; `AS` a string, `STRING * n`, a user type or `_BIT` "_MEMPUT requires numeric type" (and
+    `_MEMFILL`'s); an unknown word "Invalid type"; a string `AS LONG` "Illegal string-number conversion"; a
+    wrong count "Expected _MEMPUT mem-reference, offset, variable|value[AS type]"; `_MEMGET … AS` "Name already in
+    use (AS)"; a `_BIT` variable "Variable/element cannot be _BIT aligned"; an array of variable-length strings
+    "Cannot pass array of variable-length strings".
+  - **`_MEMCOPY a, aoffset, bytes TO b, boffset`** is `sub__memcopy(a,aoffset,bytes,b,boffset)`; without `TO`
+    or with four parts "Syntax error - Reference: …".
+  - **`_OFFSET(reference)`** is `((uptrszint)(address))`, an `_UNSIGNED _OFFSET`; the address as `_MEM` takes it
+    (a whole array its first element, a fixed-length string or variable-length string its characters). A value
+    is "_OFFSET expects the name of a variable/array", a `_BIT` array "_OFFSET cannot reference _BIT type arrays",
+    a `_BIT` variable "Variable/element cannot be _BIT aligned".
+  - **The runtime errors** (`v32_d01`–`d32`): each of 300 to 313 is reached, each from `ON ERROR GOTO`, and none
+    runs the handler: the program stops with `Runtime error: Line: N (in main module)` and libqb's message, exit
+    code 0 (`fix_error`, `libqb\src\error_handle.cpp` 368). 300 a region out of range (also before the block's
+    offset), 301 a negative size of `_MEM(o, n)`, `_MEMFILL` or `_MEMCOPY`, 302–304 `_MEMCOPY` beyond the source,
+    the destination or both, 305, 306 and 313 a freed source, destination or both, 307 `_MEMFREE` twice, 308 a
+    freed block (also after its SUB returned, its array was redimensioned, its image freed), 309 a block never
+    set, 310–312 `_MEMCOPY` with one or both never set.
+  - **When a block stops being valid** (`v32_b`, `d27`–`d29`, `d34`): freed; the procedure where `_MEM` stood
+    returns; its array is redimensioned (`REDIM`, `REDIM _PRESERVE`); its image freed. **Not after `ERASE`**: of a
+    static array (the elements are cleared, the block still holds them) and **of a dynamic array, whose block
+    stays valid and whose released memory `_MEMPUT` then writes with no error** (`d29`; libqb renews the lock
+    only in `REDIM`).
+  - **`MKI$` … `_CV`** (`qb64pe.bas` 21217–21296; `v32_c`): `MKI$(x)` is `i2string(x)` with `x` converted as a
+    store into an INTEGER (`qbr_float_to_long( 1.7E+0 )`: 1.5 and 2.5 give 2), `MKL$` into a LONG (`qbr`;
+    3000000000 gives `005ED0B2`), `MKS$` and `MKD$` as they are (`s2string(*__LONG_K)`); `CVI(s)` is
+    `string2i(s)`, and so `CVL`, `CVS`, `CVD`. `_MK$(type, x)` and `_CV(type, s)` take every numeric type word
+    (`f2string` of 32 bytes for `_FLOAT`, `o2string`, `uo2string`), `_BIT` and `_UNSIGNED _BIT`
+    (`bit2string(1,x)`, `string2bit(s,1)`, an `_INTEGER64`); **a `_BIT` width cannot be written**: `_BIT * 4` is
+    "Cannot convert type (_BIT * 4%) to symbol" (the parser hands the type over with a suffix on its number). A
+    string shorter than the type raises error 5 (also `_CV(_BIT, "")`); a longer one gives its first bytes
+    (`CVI("ABC")` 16961). Errors: `CVL(5)` "CVL requires a STRING argument", `_CV(LONG, 5)` "_CV requires a STRING
+    argument", `MKL$("a")` "Number required for function", `_MK$(LONG, "a")` "2nd function argument requires a
+    number", `_MK$(STRING, k)` "_MK only accepts numeric types", `_CV(STRING, s)` "_CV cannot return STRING
+    type!", `_MK$(STRING * 4, k)`, `_MK$(FOO, 1)` and `_MK$(k, 1)` "Cannot convert type (…) to symbol", a wrong
+    count "Incorrect number of arguments - Reference: …".
+- **`$ASSERTS`, `_ASSERT`, `$DEBUG`, the checksum, compression and base64 functions, `END n` and `SYSTEM n`
+  (`v33_*`, 99 programs, measured 2026-10-14 as task 1.1 and 1.2 of `m3-asserts-debug-zlib`; every accepted form
+  kept as code that is not reached in `v33_x01_accepted`, 54 other forms one program each, `x02`–`x55`).**
+  - **The metacommands' lines** (`x02`–`x16`, `a11`–`a13`, `d08`, `d09`; `qb64pe.bas` 1978–2008, 3553): the
+    rules of `$CONSOLE` (above): the whole line in upper case without the blanks at its ends is compared, so
+    `$asserts`, `$asserts:console`, `$debug` and blanks after them are fine, and a tab or a word after them,
+    `$ASSERTS:CONSOLEX`, `$ASSERTS:`, `$ASSERTS:ONLY` and `$ASSERTS : CONSOLE` are "Syntax error";
+    `x = 1: $ASSERTS` is "Unexpected character on line". Each counts for the whole program wherever it stands:
+    on the last line (`a05`: an `_ASSERT` on line 4 fails), in an included file (`a11`), in a SUB never called
+    (`a13`, `d08`), twice or mixed with `$ASSERTS:CONSOLE` and `$CONSOLE:ONLY` (`x14`, `x15`); in a `$IF`
+    branch not taken it does not count (`a12`, `d09`).
+  - **`_ASSERT condition[, message$]`** is the row `sub__assert` (`?[,?]`; the condition an INTEGER slot, a
+    float through `qbr_float_to_long`): `sub__assert(*__LONG_K,NULL,0)`,
+    `sub__assert(-(*__LONG_K== 1 ),qbs_new_txt_len("m",1),1)`, and `CALL _ASSERT(k)` the same (`a14`). Without
+    `$ASSERTS` the global `asserts` is 0 and the call returns at once, **after the condition and the message are
+    evaluated** (`a03`: both functions print); with it `int32 asserts=1;` (global.txt). The condition is passed
+    as a 16-bit value: `1E+10` passes and `4294967296` fails (`a08`). Errors: no argument, `_ASSERT 1,`,
+    `_ASSERT , "a"`, three arguments, `CALL _ASSERT` "Syntax error - Reference: _ASSERT condition[,
+    errorMessage$]"; a string condition "1st sub argument requires a number"; a number as the message "2nd sub
+    argument requires a string"; a `TYPE` value "User defined types in expressions are invalid"; `k =
+    _ASSERT(1)` "Invalid array name"; `_ASSERT$ 1` "Syntax error" (`x17`–`x24`, `x47`, `x50`).
+  - **A failing assertion** raises error 314 ("_ASSERT failed"), or, in a program with a console (`console=1`:
+    `$CONSOLE`, `$CONSOLE:ONLY` or `$ASSERTS:CONSOLE`) and with a message, writes the message to the console as
+    `_ECHO` does and raises 315 ("_ASSERT failed (check console for description)") (`a02`, `a06`, `a14`); with a
+    console and no message 314 (`a07`); in a program with a window only 314 (`a09`, nothing written). **Neither
+    is trapped by `ON ERROR`**, like 300–313 (`a01`): the handler does not run, the program stops with
+    `Runtime error: Line: N (in main module)` and the message, exit code 0. In a SUB the line named is the
+    `_ASSERT`'s (`a10`).
+  - **`$DEBUG` outside the IDE** (`d01`–`d11`; `vwatch.bm` 684): a program prints what it prints without
+    `$DEBUG` (`ERR`, `ERL`, `_ERRORLINE`, an error in a SUB, an untrapped error's message, start-up time,
+    `OPTION BASE 1` and `OPTION _EXPLICIT` after it, a variable named `vwatch_linenumber`, a window program). **Two
+    things differ**: `_SOCKETS_` is 1 (`d01`: the included `vwatch.bm` uses `_OPENCLIENT`, which sets the sockets
+    dependency, and the program is compiled again with the flag; its build links `DEP_SOCKETS=y DEP_HTTP=y`;
+    also above a `$DEBUG` on the last line, `d11`),
+    and the names of `vwatch.bi` and `vwatch.bm` are taken: a SUB named `vwatch_stoptimers` is "Name already in
+    use (vwatch_stoptimers) in line 22 of internal\support\vwatch\vwatch.bm auto-included" (`x49`; the globals
+    `vwatch_linenumber` and the like are `DIM SHARED` there, so a variable of that name is that global). With
+    `-w` the old compiler prints `<file>:<line>: warning: $DEBUG features only work from the IDE` once per round
+    of compiling, so twice for a program whose first round changed a flag (read 2026-10-14 by hand).
+  - **The six functions** (`subs_functions.bas` 4019–4100; `b01`–`b03`, `x25`–`x36`, `x45`, `x46`, `x53`): each
+    a plain row with the dependency `DEPENDENCY_ZLIB`, which the build turns into `DEP_ZLIB=y` (also for a call in
+    a SUB never called, `b03`). `_ADLER32` and `_CRC32` are `_UNSIGNED LONG` (`_CRC32("abc")` 891568578,
+    `_ADLER32("abc")` 38600999, of `""` 0 and 1); `_DEFLATE$(s[, level])` (a LONG slot, a float through `qbr`:
+    `func__deflate(__STRING_S,qbr(*__DOUBLE_D),0|1)`) writes a zlib stream (`78 9C …`, 8 bytes for `""`);
+    every level is accepted, -2 to 12 alike but 0, which stores (1011 bytes for 1000 `a`s, 24 otherwise);
+    `_INFLATE$(s[, size])` (an `_INTEGER64` slot): with a size the result has that length (fewer bytes cut; with
+    more, the bytes past the data are not set: libqb's `qbs_new`, `parts\data\compression.cpp` 59), 0 or less
+    gives `""`; **bytes that are not a zlib stream give no error but a string of zero bytes, 10485760 of them
+    without a size** (`b02`; with a size, that many bytes not set). `_BASE64ENCODE$` pads with `=`;
+    `_BASE64DECODE$` of anything that is not whole groups of four valid characters (`YQ`, `YWJ`, `!!!!`, `Y Q = =`)
+    is `""`. Errors: without `$` (and `_CRC32$`) "Invalid array name"; a number for a string "String required for
+    function" (`_ADLER32`) or "1st function argument requires a string" (`_INFLATE$`); a string for the level or
+    the size "2nd function argument requires a number"; a wrong count "Incorrect number of arguments - Reference:
+    …"; `_DEFLATE$()` "Expected (...)".
+  - **`END n` and `SYSTEM n`** (`qb64pe.bas` 9850–9895; `c01`–`c25`, `x37`–`x44`, `x48`, `x51`, `x52`): `if(qbevent){evnt(N);}`,
+    then `exit_code=<n>;` (libqb's `int64 exit_code`), then the usual end (`sub_end();`, or for `SYSTEM` `if
+    (sub_gl_called) error(271);`, `close_program=1;`, `end();`). `n` is converted by `evaluatetotyp(…,
+    ISINTEGER64)`, whose width is read as 0: an integer as it is, **a float through `qbr_float_to_long`** (2.7 gives
+    3, 2.5 and a `_FLOAT` 1.5 give 2, `2 ^ 40` 0); a string "Illegal string-number conversion", a `TYPE` value "User
+    defined types in expressions are invalid", `SYSTEM 1, 2` "Invalid expression", `SYSTEM ()` "Unexpected (";
+    an `_OFFSET` is accepted; both in a SUB, a FUNCTION and a one-line `IF` too. The process's exit code is the
+    value's low 32 bits: `END 7` 7, `END -1` 0xFFFFFFFF, `END 300` 300 (measured by hand through
+    `press_any_key.py`, since `END` waits for a key); as Git Bash reports them (`exit=`), `SYSTEM 3` 3, `-1` 127,
+    256 and `2 ^ 40` 0, 258 2, an `_UNSIGNED _INTEGER64` of 18446744073709551615 127. With a window `SYSTEM 5`
+    gives 5 (`c21`). `SYSTEM f` where `f` raises an error under a handler (`c23`): the handler runs and the exit
+    code is `f`'s value; not trapped (`c25`), the runtime error at the line of `ERROR`, exit code 0.
+  - **The test runners and exit codes**: the corpus runner records no exit code and compares none; the upstream
+    suite fails a program whose exit code is not 0; the verification suite writes `exit=` as Git Bash reports it.
 
 ## 6. Bug-compatibility choices (all decided)
 
@@ -1809,6 +2954,7 @@ as a reading of the code, not a measurement.
 | `27` | Sixth review (2026-10-08): architecture holds, no bug found; the corpus is blocked by built-in statements, file I/O and `DATA` that no step names (step 9 to become "by demand"), upstream by types and arrays; "`Ty` as a type table" dropped; the language server's design points (one binary, parser only, the encoding boundary, includes from open documents, two diagnostic sources); all accepted 2026-10-08 |
 | `28` | Seventh review (2026-10-09): not going astray; the expected outputs come from the reference clone while CI links the 4.7.0 release's libqb (16 commits apart); graphics are on the critical path to M4 (built-ins used by `qb64pe.bas`, the corpus and upstream, counted), a screen-state oracle and a call-site check proposed; Civil War Strategy assessed as the real-program graphics target; `STATUS.md` cut to the current state; the formatter off M2's exit criterion; the user's answers and what was done are its §9 (the local clone is the reference, the game copied, the formatter out of M2); the screen-state check and the call-site check wait for a yes |
 | `29` | Eighth review (2026-10-10, before step 9a): nothing to change in the code, no bug found; the screen-state hook needs neither the libqb copy nor a libqb change (one extra C++ file linked through `-f:ExtraLinkerFlags`/`CXXLIBS_EXTRA`, `atexit`, programs ending with `SYSTEM`, keys by `PostMessage`), so the copy can stay at M3; keep 9a small, then step 11 before 10 (the game's needs, measured); a demand report over the input sets; tests for the runner; the user's answers and what was done are its §8 (all accepted; the demand report's first numbers; the CI recommendation withdrawn: the reference commit's compiler differs from the release's in typed `VAL`) |
+| `30` | Ninth review (2026-10-16, during `m3-declare-library`): the compiler is in better shape than its documents; no bug found, every local check green; `STATUS.md` and `CLAUDE.md` have become history files (403 lines; an 11.5 KB table cell), decisions Claude made alone are scattered and unconfirmed (a "Waiting on the user" list proposed), `main` is eleven changes behind and tier 2 has never run on GitHub as its own job; the checker's 72 fields and the emitter's transcription of the old C++ noted for M4 and M6; what not to change; an order of actions |
 | `progress-record` | Closed record of what `STATUS.md` held until 2026-10-09: the per-change history of M0 to M2 step 8, unchanged |
 | `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |
 

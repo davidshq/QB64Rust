@@ -1,0 +1,7 @@
+$CONSOLE:ONLY
+' DECLARE LIBRARY, one form: a library FUNCTION named as a built-in.
+DECLARE LIBRARY
+    FUNCTION sqr# (BYVAL v AS DOUBLE)
+END DECLARE
+PRINT sqr#(16)
+SYSTEM

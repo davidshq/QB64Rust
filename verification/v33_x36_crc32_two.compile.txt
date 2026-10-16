@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _CRC32(dataString$)
+Caused by (or after):PRINT _CRC32 ( "a",1 , "b",1 )
+LINE 3:PRINT _CRC32("a", "b")
+exit=1

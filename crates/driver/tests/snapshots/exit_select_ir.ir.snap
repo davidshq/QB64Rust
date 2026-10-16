@@ -1,0 +1,120 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+Settings: console, no window
+Stmt line 2
+  SelectConsole
+Stmt line 10
+  Branch Zero -> @1 Skip: Eq:I32(Var N:I32, Const 1:I32)
+Stmt line 11
+  Jump @0
+Stmt line 20
+  Jump @0
+Label @1 line 20
+Stmt line 12
+  Branch Zero -> @2 Skip: Eq:I32(Var N:I32, Const 2:I32)
+Stmt line 13
+  Branch Zero -> @3 Skip: Var K:I32
+Stmt line 13
+  Jump @0
+Label @3 line 13
+Stmt line 14
+  Print console newline
+    Str Const "b"
+Stmt line 20
+  Jump @0
+Label @2 line 20
+Stmt line 15
+  Branch Zero -> @4 Skip: Eq:I32(Var N:I32, Const 3:I32)
+Stmt line 16
+  Jump @5
+Stmt line 17
+  Print console newline
+    Str Const "c"
+Label @5 line 16
+Stmt line 20
+  Jump @0
+Label @4 line 20
+Stmt line 19
+  Jump @0
+Label @0 line 20
+Stmt line 22
+  Assign select2.matched(temp):I32 = Const 0:I32
+Stmt line 23
+  Branch Zero -> @7 Skip: Eq:I32(Var N:I32, Const 1:I32)
+Stmt line 24
+  Jump @8
+Stmt line 25
+  Print console newline
+    Str Const "a"
+Label @8 line 24
+Stmt line 30
+  Assign select2.matched(temp):I32 = Const -1:I32
+Label @7 line 30
+Stmt line 26
+  Branch Zero -> @9 Skip: Gt:I32(Var N:I32, Const 0:I32)
+Stmt line 27
+  Jump @6
+Stmt line 30
+  Assign select2.matched(temp):I32 = Const -1:I32
+Label @9 line 30
+Stmt line 30
+  Branch NonZero -> @6 UseValue: Var select2.matched(temp):I32
+Stmt line 29
+  Jump @6
+Label @6 line 30
+Stmt line 32
+  AssignAll
+    for1.value(temp):I64 = Const 1:I64
+    for1.limit(temp):I64 = Const 3:I64
+    for1.step(temp):I64 = Const 1:I64
+    for1.negative(temp):I32 = Lt:I32(Var for1.step(temp):I64, Const 0:I64)
+  Jump @11
+Label @10 line 32
+Stmt line 34
+  Branch Zero -> @14 Skip: Eq:I32(Var K:I32, Const 1:I32)
+Label @15 line 35
+Stmt line 36
+  Jump @13
+Stmt line 37
+  Jump @15
+Label @16 line 37
+Stmt line 40
+  Jump @13
+Label @14 line 40
+Stmt line 38
+  Branch Zero -> @17 Skip: Eq:I32(Var K:I32, Const 2:I32)
+Stmt line 39
+  Jump @12
+Stmt line 40
+  Jump @13
+Label @13 line 40
+Label @17 line 40
+Stmt line 41
+  Assign for1.value(temp):I64 = Add:I64(Var for1.step(temp):I64, (Var K:I32 -> Convert I64 Widen)) wrap
+Label @11 line 41
+Stmt line 41
+  Assign K:I32 = (Var for1.value(temp):I64 -> Convert I32 Truncate)
+  Branch NonZero -> @12 Skip: Or:I32(And:I32(Var for1.negative(temp):I32, Lt:I32(Var for1.value(temp):I64, Var for1.limit(temp):I64)), And:I32(Not:I32(Var for1.negative(temp):I32), Gt:I32(Var for1.value(temp):I64, Var for1.limit(temp):I64)))
+  Jump @10
+Label @12 line 41
+Stmt line 44
+  Branch Zero -> @19 Skip: Eq:I32(Var N:I32, Const 1:I32)
+Stmt line 46
+  Branch Zero -> @21 Skip: Eq:I32(Var K:I32, Const 2:I32)
+Stmt line 47
+  Jump @20
+Stmt line 48
+  Jump @20
+Label @20 line 48
+Label @21 line 48
+Stmt line 49
+  Jump @18
+Stmt line 50
+  Jump @18
+Label @18 line 50
+Label @19 line 50
+Stmt line 51
+  System

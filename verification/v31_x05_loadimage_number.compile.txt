@@ -1,0 +1,5 @@
+
+1st function argument requires a string
+Caused by (or after):L = _LOADIMAGE ( 5 )
+LINE 5:l = _LOADIMAGE(5)
+exit=1

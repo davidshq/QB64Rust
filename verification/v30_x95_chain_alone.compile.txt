@@ -1,0 +1,5 @@
+
+Syntax error - Reference: CHAIN moduleName$
+Caused by (or after):CHAIN
+LINE 3:IF 0 THEN CHAIN
+exit=1

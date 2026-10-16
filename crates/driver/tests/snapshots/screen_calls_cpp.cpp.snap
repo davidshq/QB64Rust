@@ -1,0 +1,178 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+int64 *__INTEGER64_Q=NULL;
+double *__DOUBLE_D=NULL;
+qbs *__STRING_S=NULL;
+uint32 *__ULONG_U=NULL;
+int32 console=0;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> clear.txt <==
+*__INTEGER64_Q=0;
+*__DOUBLE_D=0;
+__STRING_S->len=0;
+*__ULONG_U=0;
+==> maindata.txt <==
+if(__INTEGER64_Q==NULL){
+__INTEGER64_Q=(int64*)mem_static_malloc(8);
+*__INTEGER64_Q=0;
+}
+if(__DOUBLE_D==NULL){
+__DOUBLE_D=(double*)mem_static_malloc(8);
+*__DOUBLE_D=0;
+}
+if (!__STRING_S)__STRING_S=qbs_new(0,0);
+if(__ULONG_U==NULL){
+__ULONG_U=(uint32*)mem_static_malloc(4);
+*__ULONG_U=0;
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 8 "screen_calls_cpp.bas"
+do{
+#line 8 "screen_calls_cpp.bas"
+sub_clsDest(NULL,((uint32)(*__INTEGER64_Q)),NULL,2);
+#line 8 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 9 "screen_calls_cpp.bas"
+do{
+#line 9 "screen_calls_cpp.bas"
+sub_clsDest(NULL,((uint32)(qbr(*__DOUBLE_D))),NULL,2);
+#line 9 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+#line 10 "screen_calls_cpp.bas"
+do{
+#line 10 "screen_calls_cpp.bas"
+sub_clsDest(NULL,4294967295u,NULL,2);
+#line 10 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 11 "screen_calls_cpp.bas"
+do{
+#line 11 "screen_calls_cpp.bas"
+sub_circle(*__INTEGER64_Q,*__DOUBLE_D,*__DOUBLE_D,((uint32)(qbr(*__DOUBLE_D))),NULL,NULL,NULL,2);
+#line 11 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 12 "screen_calls_cpp.bas"
+do{
+#line 12 "screen_calls_cpp.bas"
+sub_paint(*__INTEGER64_Q,*__DOUBLE_D,(uint32)NULL,NULL,NULL,0);
+#line 12 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 13 "screen_calls_cpp.bas"
+do{
+#line 13 "screen_calls_cpp.bas"
+sub_paint(*__INTEGER64_Q,*__DOUBLE_D,(uint32)*__INTEGER64_Q,NULL,NULL,2);
+#line 13 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 14 "screen_calls_cpp.bas"
+do{
+#line 14 "screen_calls_cpp.bas"
+sub_paint(*__INTEGER64_Q,*__DOUBLE_D,(uint32)qbr(*__DOUBLE_D),((uint32)(qbr(*__DOUBLE_D))),NULL,6);
+#line 14 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 15 "screen_calls_cpp.bas"
+do{
+#line 15 "screen_calls_cpp.bas"
+sub_paint(*__INTEGER64_Q,*__DOUBLE_D,(qbs*)__STRING_S,NULL,NULL,2);
+#line 15 "screen_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 15 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "screen_calls_cpp.bas"
+do{
+#line 16 "screen_calls_cpp.bas"
+sub_paint(*__INTEGER64_Q,*__DOUBLE_D,(qbs*)qbs_add(__STRING_S,qbs_new_txt_len("x",1)),((uint32)(*__INTEGER64_Q)),__STRING_S,14);
+#line 16 "screen_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 16 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "screen_calls_cpp.bas"
+do{
+#line 17 "screen_calls_cpp.bas"
+*__DOUBLE_D=func_point(*__INTEGER64_Q,*__DOUBLE_D,1);
+#line 17 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "screen_calls_cpp.bas"
+do{
+#line 18 "screen_calls_cpp.bas"
+*__DOUBLE_D=func_point(*__INTEGER64_Q,NULL,0);
+#line 18 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "screen_calls_cpp.bas"
+do{
+#line 19 "screen_calls_cpp.bas"
+*__ULONG_U=func_screen(((int32)(*__INTEGER64_Q)),((int32)(qbr(*__DOUBLE_D))),NULL,0);
+#line 19 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "screen_calls_cpp.bas"
+do{
+#line 20 "screen_calls_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 20 "screen_calls_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((uint32)(func_screen(1,1,NULL,0))),qbs_new_txt(" ")));
+#line 20 "screen_calls_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 20 "screen_calls_cpp.bas"
+makefit(tqbs);
+#line 20 "screen_calls_cpp.bas"
+qbs_print(tqbs,0);
+#line 20 "screen_calls_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((double)(func_point(1,1,1))),qbs_new_txt(" ")));
+#line 20 "screen_calls_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 20 "screen_calls_cpp.bas"
+makefit(tqbs);
+#line 20 "screen_calls_cpp.bas"
+qbs_print(tqbs,0);
+#line 20 "screen_calls_cpp.bas"
+qbs_print(nothingstring,1);
+#line 20 "screen_calls_cpp.bas"
+skip1:
+#line 20 "screen_calls_cpp.bas"
+qbs_free(tqbs);
+#line 20 "screen_calls_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 20 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "screen_calls_cpp.bas"
+do{
+#line 21 "screen_calls_cpp.bas"
+if (sub_gl_called) error(271);
+#line 21 "screen_calls_cpp.bas"
+close_program=1;
+#line 21 "screen_calls_cpp.bas"
+end();
+#line 21 "screen_calls_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(__STRING_S);
+==> empty: regsf.txt dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt

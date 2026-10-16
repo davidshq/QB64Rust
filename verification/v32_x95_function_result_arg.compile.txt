@@ -1,0 +1,5 @@
+
+TYPE '_MEM' required for function
+Caused by (or after):PRINT F ( _MEMNEW ( 4 ) )
+LINE 9:PRINT f(_MEMNEW(4))
+exit=1

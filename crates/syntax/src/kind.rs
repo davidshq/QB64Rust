@@ -233,8 +233,11 @@ pub enum SyntaxKind {
     /// `name [bounds] AS type` (one `FieldName`, then the `AsClause`) or `AS type name, ...` (the `AsClause`,
     /// then `FieldName`s).
     TypeField,
-    /// A field's name, its element bounds (`ArrayBounds`) and `_DYNAMIC`/`_STATIC`, if any.
+    /// A field's name, its element bounds (`ArrayBounds`) and the `FieldMarker`s around them, if any.
     FieldName,
+    /// One `_DYNAMIC` or `_STATIC` of a field: in a `TypeField` before the name or after the type, in a
+    /// `FieldName` before the name of an `AS type` list, after the name or after the bounds.
+    FieldMarker,
     /// `(range, ...)` of an array declaration; a range is `expr [TO expr]`.
     ArrayBounds,
     /// `DECLARE [CUSTOMTYPE|DYNAMIC|STATIC] LIBRARY` block: a `DeclareLibraryHeader`, `ProcHeader`s (with `ALIAS`

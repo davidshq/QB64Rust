@@ -1,0 +1,6 @@
+passed
+bad
+
+Runtime error: Line: 8 (in main module)
+_ASSERT failed (check console for description)
+exit=0

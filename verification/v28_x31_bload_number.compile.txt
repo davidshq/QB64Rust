@@ -1,0 +1,5 @@
+
+1st sub argument requires a string
+Caused by (or after):BLOAD 5
+LINE 7:BLOAD 5
+exit=1

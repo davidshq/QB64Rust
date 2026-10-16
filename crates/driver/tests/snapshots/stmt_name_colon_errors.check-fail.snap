@@ -1,0 +1,15 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+stmt_name_colon_errors.bas:7:5: error: this `PSET` statement matches none of its forms: `PSET [{Step}](?,?)[,?]`
+stmt_name_colon_errors.bas:8:1: error: `LINE` needs its arguments
+stmt_name_colon_errors.bas:9:1: error: `DRAW` needs its arguments
+stmt_name_colon_errors.bas:10:1: error: `PCOPY` needs its arguments
+stmt_name_colon_errors.bas:11:1: error: `_LIMIT` needs its arguments
+stmt_name_colon_errors.bas:12:1: error: `KILL` needs its arguments
+stmt_name_colon_errors.bas:13:1: error: `CIRCLE` needs its arguments
+stmt_name_colon_errors.bas:14:1: error: `SWAP` needs its arguments
+stmt_name_colon_errors.bas:16:6: error: not supported yet: a label with the name of a SUB, FUNCTION or built-in: `CLS`
+stmt_name_colon_errors.bas:17:1: error: not supported yet: the label `FILES:` (`FILES` is a built-in)

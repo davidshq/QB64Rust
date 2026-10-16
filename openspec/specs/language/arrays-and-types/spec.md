@@ -319,7 +319,9 @@ dimensions than the array has, another type written with `AS` than the array was
 between `STRING` and `STRING * n` or of n, SHALL be compile errors. A dimension with no element, a lower upper
 bound still and a bound that raises SHALL behave as for `DIM` (requirement "Dynamic arrays"), the old elements
 being gone. `REDIM name()` and `REDIM name AS type` SHALL declare a scalar, as `DIM name()` does. The words after
-`REDIM` SHALL be `_PRESERVE`, then `SHARED`; `REDIM SHARED _PRESERVE` SHALL be a compile error. `SHARED` SHALL
+`REDIM` SHALL be one of `_PRESERVE` and `_RETAIN`, then `SHARED`; `REDIM SHARED _PRESERVE`, `REDIM SHARED
+_RETAIN`, both words together in either order, either word twice, `REDIM _RETAIN` with nothing after it and `DIM
+_RETAIN` SHALL be compile errors. `SHARED` SHALL
 share the array only in the statement that declares it: on a later `REDIM` of the array it SHALL change nothing,
 as in the old compiler. `PRESERVE` and `RETAIN` without their underscore SHALL be names like any other (`REDIM
 preserve(3)` declares an array of that name).
@@ -353,6 +355,12 @@ preserve(3)` declares an array of that name).
 - **WHEN** `n = 3: DIM x(n) AS LONG: REDIM x(7): x(1) = 100000: PRINT UBOUND(x); x(1)` runs
 - **THEN** it prints ` 7  100000 `
 
+#### Scenario: The words after REDIM
+- **WHEN** `REDIM a(3) AS LONG` is followed by `REDIM SHARED _RETAIN a(5) AS LONG`, by `REDIM _PRESERVE _RETAIN
+  a(5) AS LONG`, by `REDIM _RETAIN _PRESERVE a(5) AS LONG` or by `REDIM _RETAIN _RETAIN a(5) AS LONG`, each in a
+  program of its own, or a program holds `REDIM _RETAIN` alone or `DIM _RETAIN a(3) AS LONG`
+- **THEN** each program is a compile error, and `REDIM _RETAIN SHARED a(5) AS LONG` in the main module is not
+
 ### Requirement: REDIM _PRESERVE
 `REDIM _PRESERVE` SHALL keep the values of the elements by their flat position (first dimension fastest), as many
 as the smaller of the old and the new number of elements; new elements SHALL be zero or empty. Of an array that
@@ -381,6 +389,66 @@ is not allocated it SHALL behave as `REDIM`.
 - **WHEN** `DIM s(5) AS LONG: s(1) = 3: REDIM _PRESERVE s(9) AS LONG` runs under a handler that prints `ERR` and
   resumes next, then `PRINT UBOUND(s); s(1)`
 - **THEN** the handler prints 10, then ` 5  3 ` is printed
+
+### Requirement: REDIM _RETAIN
+`REDIM _RETAIN` SHALL give the array new bounds and SHALL keep each element whose indexes lie within both the old
+and the new bounds of every dimension, at the same indexes; every other element SHALL be zero or empty. In all
+else it SHALL behave as `REDIM _PRESERVE`, for every kind of element and every kind of array, and on a member
+array it SHALL change nothing.
+
+#### Scenario: One dimension moved
+- **WHEN** `REDIM a(1 TO 5) AS LONG` holds 10, 20, 30, 40, 50, then `REDIM _RETAIN a(3 TO 7) AS LONG` runs and
+  `a(3)` to `a(7)` are printed
+- **THEN** it prints ` 30  40  50  0  0 `
+
+#### Scenario: Grown and shrunk
+- **WHEN** that array is then given `REDIM _RETAIN a(0 TO 9) AS LONG`, and after it `REDIM _RETAIN a(4 TO 5) AS
+  LONG`
+- **THEN** `a(0)` to `a(9)` are 0, 0, 0, 30, 40, 50, 0, 0, 0, 0, then `a(4)` and `a(5)` are 40 and 50
+
+#### Scenario: Two dimensions keep coordinates
+- **WHEN** `REDIM m(1 TO 3, 1 TO 4) AS INTEGER` holds `10 * i + j` at `m(i, j)`, then `REDIM _RETAIN m(2 TO 5, 0
+  TO 3) AS INTEGER` runs
+- **THEN** `m(2, 1)` to `m(2, 3)` are 21, 22, 23, `m(3, 1)` to `m(3, 3)` are 31, 32, 33, and the other elements
+  are 0
+
+#### Scenario: Ranges that do not meet
+- **WHEN** an array `a(4 TO 5) AS LONG` holding 40 and 50 is given `REDIM _RETAIN a(100 TO 102) AS LONG`
+- **THEN** its three elements are 0
+
+#### Scenario: Strings, fixed-length strings and bits
+- **WHEN** `s(1 TO 4) AS STRING` holding `A` to `D` is given `REDIM _RETAIN s(3 TO 6) AS STRING`, `x(1 TO 3) AS
+  STRING * 3` holding `aaa`, `bbb`, `ccc` is given `REDIM _RETAIN x(2 TO 5) AS STRING * 3`, and `p(0 TO 9) AS
+  _UNSIGNED _BIT * 5` holding `3 * i` is given `REDIM _RETAIN p(5 TO 14) AS _UNSIGNED _BIT * 5`
+- **THEN** `s(3)` to `s(6)` are `C`, `D` and two empty strings, `x(2)` to `x(5)` are `bbb`, `ccc` and two strings
+  of three NUL bytes, and `p(5)` to `p(14)` are 15, 18, 21, 24, 27 and five zeros
+
+#### Scenario: User types
+- **WHEN** an array of a user type with a `STRING` member, a `STRING * 3` member and a `LONG` is given
+  `REDIM _RETAIN` with bounds that move it by one, and another of a user type with a member array is given
+  `REDIM _RETAIN` with a second dimension moved by one
+- **THEN** the elements at kept indexes have every member as before, member arrays included, and the others are
+  zero or empty
+
+#### Scenario: Not allocated
+- **WHEN** `REDIM _RETAIN f(2 TO 4) AS LONG` is the first statement of `f`, and later, after `ERASE f`, `REDIM
+  _RETAIN f(1 TO 5) AS LONG` runs
+- **THEN** both give an array of zeros with those bounds
+
+#### Scenario: Static array
+- **WHEN** `DIM st(5) AS LONG: st(1) = 3: REDIM _RETAIN st(9) AS LONG` runs under a handler that prints `ERR` and
+  resumes next, then `PRINT UBOUND(st); st(1)`
+- **THEN** the handler prints 10, then ` 5  3 ` is printed
+
+#### Scenario: In a procedure
+- **WHEN** a SUB with a parameter `p() AS LONG` does `REDIM _RETAIN p(0 TO 5) AS LONG` and is called for an array
+  `w(1 TO 3)` holding 1, 2, 3
+- **THEN** `w(0)` to `w(5)` are 0, 1, 2, 3, 0, 0 after the call
+
+#### Scenario: Member array
+- **WHEN** a type has `v(1 TO 3) AS LONG`, `DIM x AS` that type`: x.v(2) = 5: REDIM _RETAIN x.v(1 TO 3) AS LONG:
+  PRINT x.v(2)` runs
+- **THEN** it prints ` 5 `
 
 ### Requirement: ERASE
 `ERASE name[, name…]` of a static array SHALL set every element to zero, an empty string or NUL bytes and keep its
@@ -694,10 +762,18 @@ own there (`z(0)` under base 1 is a compile error, as are bounds that are not co
 A bound written with numbers alone, also as an expression of numbers, SHALL be accepted; one that names a
 `CONST`, which the old compiler accepts, SHALL be reported "not supported yet" (the blocks are read before the
 program's constants).
+Below `$UNSTABLE:TYPEFIELDS` (`language/unstable-features`) a member array SHALL take the marker `_STATIC` or
+`_DYNAMIC` before its name, after its name or bounds, or after its type, and in an `AS type` list after the
+bounds of a name or before it, where it marks that name alone. `_STATIC` SHALL change nothing: the member array
+is the one this requirement describes. `_DYNAMIC` SHALL make it a dynamic member array (requirement "Dynamic
+member arrays"), to which the rest of this requirement does not apply. A marker without the flag, both markers,
+one marker twice, a marker on a member that is no array, a marker between `AS` and the type and a marker before
+an `AS type` list SHALL be compile errors.
 `place.name(index, …)` SHALL name an element, through any chain of members and elements, with the index and
 by-reference rules of array elements; a member array named without an index, with nothing between its
-parentheses or with another number of indexes than its dimensions SHALL be a compile error, as an index after a
-member that is no array SHALL be. A store SHALL evaluate a numeric value before the indexes and a string value
+parentheses (except as an array argument and as a side of a whole-array assignment, requirement "Whole-array
+assignment of member arrays") or with another number of indexes than its dimensions SHALL be a compile error,
+as an index after a member that is no array SHALL be. A store SHALL evaluate a numeric value before the indexes and a string value
 after them (as the old compiler's program does), the indexes from left to
 right, and SHALL store nothing when an index is outside its bounds (error 9; the old compiler writes element 0 of
 that dimension, `DIVERGENCES.md` D-004). The elements of a member array SHALL be part of the value of their
@@ -797,10 +873,25 @@ element beside other targets of one `ERASE` or `REDIM`, and an element of a memb
 - **WHEN** `ERASE t.v` runs after the elements and the members beside the array were set
 - **THEN** the elements are 0, `UBOUND(t.v)` is 3, and the other members keep their values
 
+#### Scenario: A _STATIC member
+- **WHEN** below `$UNSTABLE:TYPEFIELDS` a type has `id AS INTEGER`, `v(1) _STATIC AS LONG` and `n AS INTEGER`,
+  and `PRINT LEN(x)` runs for a variable of it; and in another program `REDIM x.v(0 TO 5) AS LONG` is compiled
+- **THEN** the first prints ` 12 ` and the second is a compile error, as for an unmarked member
+
+#### Scenario: Positions of the marker
+- **WHEN** below the flag a member is written `_DYNAMIC v(1) AS LONG`, `v(1) _DYNAMIC AS LONG`, `v(1) AS LONG
+  _DYNAMIC`, `AS LONG _DYNAMIC v(1), w(1)` or `AS LONG v(1) _DYNAMIC, w(1)`
+- **THEN** each compiles; in the two lists `v` is a dynamic member array and `w` is not (`REDIM x.w(0 TO 5) AS
+  LONG` is a compile error)
+
 #### Scenario: Marked member
-- **WHEN** a `TYPE` block has `v(0 TO 3) _DYNAMIC AS LONG`
-- **THEN** the compiler reports it "not supported yet" (the old compiler compiles it only under
-  `$UNSTABLE:TYPEFIELDS`)
+- **WHEN** a `TYPE` block has `v(0 TO 3) _DYNAMIC AS LONG` and no `$UNSTABLE:TYPEFIELDS` stands above it
+- **THEN** it is a compile error that names the flag, as in the old compiler
+
+#### Scenario: Marker errors
+- **WHEN** below the flag a type has `v(1) _DYNAMIC _STATIC AS LONG`, `v(1) _DYNAMIC _DYNAMIC AS LONG`, `n
+  _DYNAMIC AS LONG`, `n AS LONG _STATIC`, `AS _DYNAMIC LONG v(1)` or `_STATIC AS LONG v(1), w(2)`
+- **THEN** each is a compile error
 
 ### Requirement: Whole user-type values
 `q = p` for two places of the same user type (variables, array elements, members of a user type) SHALL copy every
@@ -815,12 +906,20 @@ the value, as in the old compiler: a `STRING` member is a part, a member of a us
 gives its own parts, any other member is one part (measured, `verification\v24_x306`, `x307`; listed for review
 in `SOMEDAY.md`). Each element of a `STRING` member array SHALL be a part, each element of a member array of a
 user type that holds a `STRING` SHALL give its own parts, and any other member array SHALL be one part, all its
-elements together (measured, `v24_x310`).
+elements together (measured, `v24_x310`). A dynamic member array SHALL be copied deep (requirement "Dynamic
+member arrays"); for an owner type the indexes SHALL be evaluated as many times, and in the order, the old
+compiler's copy evaluates them (measured, `verification\v35_x56`; listed for review in `SOMEDAY.md`).
 
 #### Scenario: Indexes evaluated per part
 - **WHEN** `a(one(1)) = b(one(2))` runs, where FUNCTION `one` prints its argument and returns 1, for a type of a
   LONG and an INTEGER, and for a type of a LONG, a `STRING` and a `STRING * 2`
 - **THEN** ` 1  2 ` is printed for the first and ` 1  2  1  2  1  2 ` for the second
+
+#### Scenario: Indexes of an owner type
+- **WHEN** the same runs for a type of a LONG, a `_DYNAMIC` LONG member array and a LONG, and for a type of a LONG,
+  a `STRING`, a `_DYNAMIC` LONG member array and a `_DYNAMIC` `STRING` member array
+- **THEN** the old compiler's sequences are printed: ` 1  2  1  2  1  2  1  2 ` and ` 1  2  1  2  1  2  1  2  1
+  1  2  1 `
 
 #### Scenario: Index outside
 - **WHEN** `a(0).x = 100: p.x = 6: a(9) = p` runs for `DIM a(3)` under a handler that prints `ERR` and resumes
@@ -848,3 +947,248 @@ elements together (measured, `v24_x310`).
 #### Scenario: SWAP with string members
 - **WHEN** `p.n = "p": q.n = "q": SWAP p, q: PRINT p.n; q.n` runs
 - **THEN** it prints `qp`
+
+#### Scenario: SWAP of owner values
+- **WHEN** `REDIM x.v(3 TO 4) AS LONG: x.v(4) = 4: SWAP x, y` runs for two owner values
+- **THEN** `x.v` has bounds 0 to 1, `y.v` has bounds 3 to 4 and `y.v(4)` is 4
+
+### Requirement: Dynamic member arrays
+A member array marked `_DYNAMIC` SHALL be an array of its own in each value of its type: each variable, each
+array element and each copy SHALL have its own bounds and elements. A value of a type that has such a member, in
+itself or in a member of a user type, an owner value, SHALL be made with each such member at its declared bounds
+(under the `OPTION BASE` of the `TYPE` block, a `CONST` allowed in a bound) with zero or empty elements, and SHALL
+release them when it goes: a local variable of a procedure at each return (a new one on each call), the elements
+of an array when it is erased or given new elements. Every kind of element SHALL be allowed: every numeric type
+and `_OFFSET`, `STRING * n`, `STRING`, a user type, also one with strings or with dynamic member arrays of its own.
+
+`REDIM place.name(bounds) [AS type]` SHALL give the member array of that one value new bounds and new elements as
+`REDIM` gives a dynamic array (requirements "REDIM", "REDIM _PRESERVE", "REDIM _RETAIN"), also with another
+number of dimensions, `SHARED`, a list of targets, a type suffix on the member's name; it SHALL need `lower TO
+upper` in the first dimension or `AS` the member's type, and another type after `AS` SHALL be a compile error.
+`ERASE place.name` SHALL release its elements; it is then not allocated, and every use of it (an element,
+`LBOUND`, `UBOUND`) SHALL raise error 9 until a `REDIM` gives it bounds again. An element outside the bounds, an
+index with another number of dimensions than the member has now and a dimension it does not have in `LBOUND` or
+`UBOUND` SHALL raise error 9. A `REDIM` whose bounds are reversed at run time, or too large for memory, SHALL end
+the program with "Out of memory", as for an array (the old compiler gives a member too large an overflowed size
+and goes on, `DIVERGENCES.md`). Every use of the member, `LBOUND` and `UBOUND` included, SHALL find the place it
+is part of, evaluating its indexes once. An index outside its bounds on the way SHALL raise error 9, and the
+element at position 0 of that dimension SHALL then stand in, for `REDIM`, `ERASE`, a read, `LBOUND` and
+`UBOUND`, as in the old compiler; a store SHALL then store nothing (the old compiler stores into the member of
+element 0; as `DIVERGENCES.md` D-004).
+
+An element SHALL be a place like an element of a dynamic array: in stores, as an argument by reference, in
+`SWAP`, `READ`, `INPUT`, `INPUT #`, `LINE INPUT #` and the `MID$` statement. The member written with empty
+parentheses SHALL be an argument for an array parameter of its element type, passed as a dynamic array: the
+procedure sees its bounds and a `REDIM` or `ERASE` there changes the member. A parameter of the owner type and an
+array of it as an argument SHALL be passed by reference, so a `REDIM` of the member in the procedure is seen by
+the caller. A `STATIC` local of an owner type SHALL keep its members between calls.
+
+A whole-value copy SHALL copy each such member deep: the target then has the bounds and elements of the source
+and no change to either is seen in the other. `SWAP` of two owner values SHALL exchange them, members included.
+`REDIM` of an array of an owner type SHALL give the elements it keeps (`_PRESERVE`, `_RETAIN`) their members as
+they were and the new elements members at their declared bounds; plain `REDIM` SHALL give every element new
+members at their declared bounds. `ERASE` of a dynamic array of an owner type SHALL release the members with the
+elements; `ERASE` of a static one SHALL release them and leave each member not allocated until a `REDIM` of it,
+as in the old compiler (listed for review in `SOMEDAY.md`).
+
+An owner value SHALL be laid out in memory with each member that is a dynamic member array, and each member of an
+owner type, at a multiple of 8 bytes, and with its size rounded up to a multiple of 8; `_MEM` of an owner value
+SHALL give that size. A type with no dynamic member array, also with `_STATIC` members, SHALL keep its layout.
+`LEN` of an owner value, `_OFFSET` of it, `COMMON` of a variable of an owner type and `PUT` or `GET` of one owner
+value SHALL be compile errors, as in the old compiler. A whole member array with no index SHALL be a compile
+error where a value is expected, as for any array.
+
+#### Scenario: First bounds and REDIM
+- **WHEN** below the flag a type has `a AS INTEGER`, `v(2) _DYNAMIC AS LONG` and `b AS INTEGER`, and for `DIM x`
+  `PRINT LBOUND(x.v); UBOUND(x.v); x.v(2)` runs, then `REDIM x.v(1 TO 5) AS LONG` and the bounds are printed
+- **THEN** it prints ` 0  2  0 ` then ` 1  5 `, and `x.a` and `x.b` keep their values
+
+#### Scenario: _PRESERVE and _RETAIN of a member
+- **WHEN** `x.v(1 TO 5)` holds 21 to 25, then `REDIM _PRESERVE x.v(3 TO 5) AS LONG` and `REDIM _RETAIN x.v(4 TO
+  8) AS LONG` run
+- **THEN** after the first `x.v(3 TO 5)` holds 21 22 23, after the second `x.v(4 TO 8)` holds 22 23 0 0 0
+
+#### Scenario: ERASE of a member
+- **WHEN** `ERASE x.v` runs, then `UBOUND(x.v)` and `x.v(1)` are read under a handler that prints `ERR`, then
+  `REDIM x.v(0 TO 1) AS LONG: x.v(1) = 5` runs
+- **THEN** the handler prints 9 twice, and the member then has bounds 0 to 1 and `x.v(1)` is 5
+
+#### Scenario: Each element has its own
+- **WHEN** `REDIM p(0 TO 2)` of a type with `v(1) _DYNAMIC AS LONG`, and `REDIM p(i).v(0 TO i + 1) AS LONG` for
+  each `i`
+- **THEN** `UBOUND(p(0).v)`, `UBOUND(p(1).v)`, `UBOUND(p(2).v)` are 1, 2 and 3
+
+#### Scenario: Deep copy
+- **WHEN** `y = x` runs for owner values, then `y.v(5) = 999`
+- **THEN** `x.v(5)` keeps its value and `y.v` has the bounds `x.v` had
+
+#### Scenario: REDIM of the parent
+- **WHEN** `REDIM _PRESERVE p(0 TO 3)` runs for the array of the scenario above, then plain `REDIM p(0 TO 1)`
+- **THEN** after the first `p(0)` to `p(2)` keep their members and `p(3).v` has bounds 0 to 1; after the second
+  every element's `v` has bounds 0 to 1 and zero elements
+
+#### Scenario: ERASE of a static parent
+- **WHEN** `DIM s(1)` of the type, `ERASE s`, then `LBOUND(s(1).v)` under a handler, then `REDIM s(1).v(2 TO 3)
+  AS LONG`
+- **THEN** the handler prints 9, and after the `REDIM` `s(1).v` has bounds 2 to 3
+
+#### Scenario: Every kind of element
+- **WHEN** a type has dynamic member arrays of `_BYTE`, `_UNSIGNED _INTEGER64`, `_FLOAT`, `_OFFSET`, `STRING *
+  3`, `STRING`, a type with a `STRING` and a type with a dynamic member array, each set, copied with `y = x`, the
+  source changed, and `_RETAIN` and `_PRESERVE` applied to the strings and types
+- **THEN** each element prints the value stored, the copy keeps the values before the change, and the kept
+  elements keep theirs (the measured output of `verification\v35_c_dyn_kinds`)
+
+#### Scenario: In procedures
+- **WHEN** a SUB has a local of the type and is called twice, another a `STATIC` local, another `REDIM`s a
+  parameter's member, another `REDIM`s the member passed as `x.v()` to `a() AS LONG`
+- **THEN** the local starts at its declared bounds on each call, the `STATIC` local keeps its member, and the
+  caller sees both `REDIM`s (the measured output of `verification\v35_d_dyn_places`)
+
+#### Scenario: Statements on an element
+- **WHEN** `READ x.v(0), x.v(1)`, `SWAP x.v(0), x.v(1)`, `MID$(z.w(0), 2, 3) = "EYY"`, `INPUT #1, x.v(1)` and
+  `LINE INPUT #1, z.w(1)` run
+- **THEN** each stores into the element (the measured output of `verification\v35_e_dyn_statements`)
+
+#### Scenario: Index errors
+- **WHEN** `x.v(5)` is read and `x.v(-1) = 3` stored for bounds 0 to 1, `UBOUND(x.v, 2)` is read, and `x.v(1)` is
+  read after `REDIM x.v(0 TO 1, 0 TO 1) AS LONG`, each under a handler
+- **THEN** each raises error 9
+
+#### Scenario: The place on the way
+- **WHEN** for `REDIM p(2)` of the type, under a handler that prints `ERR` and resumes next, `REDIM p(9).v(4 TO 6)
+  AS LONG`, then `p(9).v(5) = 55`, then `PRINT UBOUND(p(one(1)).v)` run, where FUNCTION `one` prints its argument
+  and returns 1
+- **THEN** the handler prints 9 twice, `p(0).v` has bounds 4 to 6 and `p(0).v(5)` is 0, and ` 1  1 ` is printed
+  (`one` is called, then `UBOUND(p(1).v)`)
+
+#### Scenario: Layout
+- **WHEN** a type `t` has `a AS INTEGER`, `v(1) _DYNAMIC AS LONG`, `b AS INTEGER`, a type `o` has `c AS _BYTE`, `i
+  AS t`, `d AS _BYTE`, and the `SIZE` of `_MEM` of a variable of each and the offsets of their members are printed
+- **THEN** `t` is 24 bytes with `b` at 16, `o` is 40 bytes with `i` at 8 and `d` at 32, and two elements of an
+  array of `t` are 24 bytes apart
+
+#### Scenario: Forms that are compile errors
+- **WHEN** for an owner type `LEN(x)`, `_OFFSET(x)`, `COMMON SHARED x AS t`, `PUT #1, 1, x`, `GET #1, 1, p(0)`,
+  `REDIM x.v(5)`, `REDIM x.v(0 TO 5) AS INTEGER` or `PRINT x.v` is compiled
+- **THEN** each is a compile error; `LEN(x.v(0))` compiles and is 4
+
+### Requirement: Whole-array assignment
+`target() = source()` (also after `LET`, the source in parentheses) SHALL copy every element of the source array
+into the target array, where each side is an array variable or a member array written with empty parentheses. The
+copy SHALL be deep: a `STRING` element, a `STRING` member and a dynamic member array of a user-type element are the
+target's own afterwards. The target SHALL keep its bounds, and the same array on both sides SHALL change nothing.
+
+#### Scenario: Numbers
+- **WHEN** `DIM s(1 TO 3) AS LONG, d(1 TO 3) AS LONG`, `s(i) = i * 10` for each `i`, then `d() = s(): s(2) = 5`
+  runs and `d(2)` is printed
+- **THEN** it prints ` 20 `
+
+#### Scenario: Strings are copied
+- **WHEN** `d() = s()` runs for two `STRING` arrays of the same bounds, then `s(1) = "changed"`
+- **THEN** `d(1)` keeps the string `s(1)` had at the copy
+
+#### Scenario: User type with strings and member arrays
+- **WHEN** `dh() = sh()` runs for arrays of a type with `v(2) AS INTEGER` and `w(1) AS STRING`, then
+  `sh(1).w(1) = "shallow"`
+- **THEN** `dh(1).w(1)` keeps its copied value and `dh(0).v(2)` is the source's
+
+#### Scenario: Itself
+- **WHEN** `r() = r()` runs
+- **THEN** the elements of `r` keep their values
+
+#### Scenario: Every place of an array
+- **WHEN** one side is `SHARED`, local, `STATIC`, an array parameter, `COMMON SHARED`, `$DYNAMIC` or used without
+  `DIM`, in the main module, a SUB or a FUNCTION
+- **THEN** the copy is made as for two arrays of the main module (`verification` `v36_c`)
+
+### Requirement: Whole-array assignment at run time
+Before copying, a whole-array assignment SHALL check that both arrays are allocated and that in every dimension they
+have the same lower bound and the same number of elements; if not, it SHALL raise error 9 and copy nothing. A static
+array after `ERASE` SHALL count as allocated. A target with other bounds SHALL NOT be given the source's.
+
+#### Scenario: Other bounds
+- **WHEN** `b() = a()` runs for `a(0 TO 5)` and `b(1 TO 6)`, also `c(0 TO 4)`, `d(0 TO 6)`, and two arrays of two
+  dimensions whose second differs, under a handler that prints `ERR` and resumes next
+- **THEN** the handler prints 9 for each and the target's elements keep their values
+
+#### Scenario: Not allocated
+- **WHEN** the target or the source is a dynamic array after `ERASE`, or a `$DYNAMIC` array after `ERASE`
+- **THEN** error 9 is raised and nothing is copied
+
+#### Scenario: A static array after ERASE
+- **WHEN** `ERASE st: st() = a()` runs for two static arrays of the same bounds
+- **THEN** no error is raised and `st` holds the elements of `a`
+
+### Requirement: Whole-array assignment checks
+A whole-array assignment SHALL be a compile error, as in the old compiler, when the element types differ
+(kind, width, sign, `STRING * n` length, user type), when the numbers of dimensions differ, and when one side is
+`name()` and the other is not a whole array (a scalar, an element, an expression, a literal, a FUNCTION, a constant,
+an undeclared name). A scalar or element target with a whole array as its value SHALL be a compile error too.
+
+#### Scenario: Types that differ
+- **WHEN** `a() = b()` is compiled for `LONG` and `INTEGER`, `LONG` and `_UNSIGNED LONG`, `SINGLE` and `DOUBLE`,
+  `_BIT * 2` and `_BIT * 3`, `_OFFSET` and `_INTEGER64`, `STRING` and `STRING * 4`, two user types of one layout
+- **THEN** each is a compile error that names the two element types (the old compiler: "Cannot assign arrays of
+  different types")
+
+#### Scenario: Sizes and dimensions
+- **WHEN** `a() = b()` is compiled for `STRING * 4` and `STRING * 8`, and for one and two dimensions
+- **THEN** each is a compile error (the old compiler: "Cannot assign fixed-length STRING arrays with different
+  element sizes", "Cannot assign arrays with different dimensions")
+
+#### Scenario: Not a whole array on one side
+- **WHEN** `arrA() = arrB`, `arrA() = arrB(1)`, `arrA = arrB()`, `arrA(1) = arrB()`, `values() = scalarVal`,
+  `scalarVal = values()`, `a() = b() + 1` or `a() = 5` is compiled for arrays `arrA`, `arrB`, `values`, `a`, `b` and
+  a scalar `scalarVal`
+- **THEN** each is a compile error at the side that is not a whole array, or at the statement when neither side
+  can be taken alone (the old compiler: "Expected array index after" the name, or "Whole-array assignment requires
+  empty parentheses on both sides")
+
+#### Scenario: Suffixes on both names
+- **WHEN** `b%() = a%()` is compiled
+- **THEN** it is reported "not supported yet" (the old compiler copies element 0 into element 0)
+
+### Requirement: Whole-array assignment of member arrays
+A member array written with empty parentheses (`x.v()`, `e(1).v()`, a `_DYNAMIC` member) SHALL be a side of a
+whole-array assignment with an array variable or another member array, with the same checks. The target's place
+SHALL be found before the source's, each once. If an index on the way raises an error, nothing SHALL be copied (the
+old compiler copies strings through the member of element 0, `DIVERGENCES.md` D-004).
+
+#### Scenario: Member to member, member to array and back
+- **WHEN** `y.v() = x.v(): a() = x.v(): x.v() = a()` runs for a type with `v(1 TO 3) AS LONG` and `a(1 TO 3) AS
+  LONG`, also with `STRING` and user-type member arrays
+- **THEN** each copy is made as for two arrays
+
+#### Scenario: Bounds of a member that differ
+- **WHEN** `b() = x.v()` runs for `b(0 TO 2)` and `v(1 TO 3)` under a handler that prints `ERR`
+- **THEN** the handler prints 9 and `b` keeps its elements
+
+#### Scenario: Index outside on the way
+- **WHEN** `e(i).v() = a(): e(i).w() = s()` runs with `i` outside the bounds of `e`, for a `LONG` and a `STRING`
+  member array, under a handler that prints `ERR` and resumes next
+- **THEN** the handler prints 9 twice and no member of any element of `e` changes
+
+#### Scenario: Order of the places
+- **WHEN** `e(f(2)).v() = e(f(1)).v()` runs, where FUNCTION `f` prints its argument
+- **THEN** ` 2 ` is printed before ` 1 `
+
+#### Scenario: Dynamic member arrays
+- **WHEN** below `$UNSTABLE:TYPEFIELDS` `q.v() = p.v()` runs for a `_DYNAMIC` member, first with other bounds, then
+  after `REDIM q.v` to the bounds of `p.v`
+- **THEN** the first raises error 9 and leaves `q.v` with its bounds, the second copies the elements
+
+### Requirement: Whole-array assignment of owner types
+Below `$UNSTABLE:TYPEFIELDS` a whole-array assignment of arrays of a type with dynamic member arrays SHALL copy each
+element as a whole-value copy does: each dynamic member of the target then has the bounds and elements of the
+source's, strings and nested owner types included, for a `DIM` and a `REDIM` target alike.
+
+#### Scenario: Members with their own bounds
+- **WHEN** `dst() = src()` runs where `src(1).v` was given the bounds 3 to 5 and `src(1).v(4) = 44`, then
+  `src(1).v(4) = -1`
+- **THEN** `LBOUND(dst(1).v)`, `UBOUND(dst(1).v)` and `dst(1).v(4)` are 3, 5 and 44
+
+#### Scenario: Other bounds copy nothing
+- **WHEN** `e() = s()` runs for `s(1 TO 2)` and `e(1 TO 3)` of an owner type, under a handler that prints `ERR`
+- **THEN** the handler prints 9 and every element of `e` keeps its values (the old compiler copies three elements,
+  reading past `s`, `DIVERGENCES.md` D-022)

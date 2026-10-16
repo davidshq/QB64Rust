@@ -54,6 +54,13 @@ fn build_settings(settings: &[String]) -> Result<build::Settings, String> {
                     _ => return Err(format!("setting `{name}` needs `true` or `false`, not `{value}`")),
                 }
             }
+            "GenerateLicenseFile" => {
+                out.license = match value.to_ascii_lowercase().as_str() {
+                    "true" => true,
+                    "false" => false,
+                    _ => return Err(format!("setting `{name}` needs `true` or `false`, not `{value}`")),
+                }
+            }
             "ExtraLinkerFlags" => out.extra_link = value.to_string(),
             "StripDebugSymbols" => {}
             _ => return Err(format!("setting `{name}` is not supported yet")),
@@ -241,12 +248,31 @@ fn run() -> Result<ExitCode, String> {
         return Ok(ExitCode::SUCCESS);
     }
     let include_root = include_root(&o)?;
-    let fe = frontend_with(&name, bytes, |file| {
+    let mut fe = frontend_with(&name, bytes, |file| {
         Box::new(FileLoader::new(&include_root, file, &input))
     });
+    qb64rust_driver::check_exe_icon(&mut fe, &input);
+    // The files of the program's `DECLARE LIBRARY` blocks, looked for from the clone as the old compiler's folder,
+    // for a build, `-z` and the `cpp` dump; the other dumps need none, nor does a block with no name.
+    let resolved = if matches!(o.dump.as_deref(), None | Some("cpp"))
+        && !fe.has_errors()
+        && fe.program.libraries.iter().any(|l| !l.names.is_empty())
+    {
+        let places = build::find_root(o.root.as_deref())
+            .and_then(|root| qb64rust_driver::library::Places::new(&root, &input).map_err(|e| e.to_string()));
+        let places = places.inspect_err(|_| {
+            if o.dump.is_none() && !o.cpp_only {
+                let _ = std::fs::remove_file(&exe);
+            }
+        })?;
+        qb64rust_driver::library::resolve(&mut fe, &places)
+    } else {
+        qb64rust_driver::Resolved::default()
+    };
     let errors = fe.diagnostics.error_count();
     // Warnings only with -w, never counted in the summary (spec `compiler/cli`).
     let report = |fe: &qb64rust_driver::Frontend| {
+        let errors = fe.diagnostics.error_count();
         if o.warnings {
             print!("{}", fe.render_with_warnings());
         } else if errors > 0 {
@@ -262,7 +288,7 @@ fn run() -> Result<ExitCode, String> {
             _ if errors > 0 => {}
             "typed" => print!("{}", qb64rust_sema::dump_typed(&fe.program)),
             "ir" => print!("{}", dump_ir(&fe)),
-            "cpp" => print!("{}", dump_cpp(&fe)),
+            "cpp" => print!("{}", dump_cpp(&fe, &resolved)),
             _ => unreachable!(),
         }
         report(&fe);
@@ -276,7 +302,11 @@ fn run() -> Result<ExitCode, String> {
     let mut settings = build_settings(&o.settings).inspect_err(|_| {
         let _ = std::fs::remove_file(&exe);
     })?;
-    if errors > 0 {
+    for lib in &resolved.libraries {
+        settings.libraries.extend(lib.files.iter().cloned());
+        settings.headers.extend(lib.headers.iter().cloned());
+    }
+    if fe.diagnostics.error_count() > 0 {
         let _ = std::fs::remove_file(&exe);
         report(&fe);
         return Ok(ExitCode::FAILURE);
@@ -285,7 +315,7 @@ fn run() -> Result<ExitCode, String> {
 
     let ir = lower(&fe);
     settings.flags = build::make_flags(&ir.settings);
-    let fragments = emit_ir(&fe, &ir);
+    let fragments = emit_ir(&fe, &ir, &resolved);
     let build_dir = build::build_dir(&exe);
     if o.cpp_only {
         let temp = build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
@@ -296,6 +326,9 @@ fn run() -> Result<ExitCode, String> {
     let _ = std::fs::remove_file(&exe);
     let root = build::find_root(o.root.as_deref())?;
     build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
+    if let Some(icon) = qb64rust_driver::exe_icon_path(&fe, &input) {
+        build::write_icon(&build_dir, &icon).map_err(|e| format!("copying {}: {e}", icon.display()))?;
+    }
     build::build(&root, &build_dir, &exe, o.quiet, &settings)?;
     if !o.keep_build {
         let _ = std::fs::remove_dir_all(&build_dir);

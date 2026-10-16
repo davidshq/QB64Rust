@@ -1,0 +1,5 @@
+
+Syntax error - Reference: PUT [STEP](column, row), Array([index])[,] [_CLIP]  [{PSET|PRESET|AND|OR|XOR}]][, omitcolor]
+Caused by (or after):PUT ( 1 , 2 ) , A , PSET _CLIP
+LINE 7:PUT (1, 2), a, PSET _CLIP
+exit=1

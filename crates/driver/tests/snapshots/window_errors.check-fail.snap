@@ -1,54 +1,48 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 107
 expression: snap
 ---
-window_errors.bas:13:5: error: `_SCREENEXISTS` takes 0 arguments
-window_errors.bas:14:5: error: `ERR` takes 0 arguments
-window_errors.bas:15:5: error: `ERL` takes 0 arguments
-window_errors.bas:16:11: error: this `_ICON` statement matches none of its forms: `_ICON [?[,?]]`
-window_errors.bas:17:7: error: argument 1 of `_ICON` needs a number
-window_errors.bas:18:12: error: `_MOUSESHOW` needs a string
-window_errors.bas:19:15: error: this `_MOUSESHOW` statement matches none of its forms: `_MOUSESHOW [?]`
-window_errors.bas:20:12: error: this `_MOUSEHIDE` statement matches none of its forms: `_MOUSEHIDE [{_Hide|_Disable}]`
+window_errors.bas:14:5: error: `_SCREENEXISTS` takes 0 arguments
+window_errors.bas:15:5: error: `ERR` takes 0 arguments
+window_errors.bas:16:5: error: `ERL` takes 0 arguments
+window_errors.bas:17:11: error: this `_ICON` statement matches none of its forms: `_ICON [?[,?]]`
+window_errors.bas:18:7: error: argument 1 of `_ICON` needs a number
+window_errors.bas:19:12: error: `_MOUSESHOW` needs a string
+window_errors.bas:20:15: error: this `_MOUSESHOW` statement matches none of its forms: `_MOUSESHOW [?]`
 window_errors.bas:21:12: error: this `_MOUSEHIDE` statement matches none of its forms: `_MOUSEHIDE [{_Hide|_Disable}]`
-window_errors.bas:22:13: error: this `_MOUSECURSOR` statement matches none of its forms: `_MOUSECURSOR ?[,(?,?)]`
-window_errors.bas:23:17: error: this `_MOUSECURSOR` statement matches none of its forms: `_MOUSECURSOR ?[,(?,?)]`
-window_errors.bas:24:19: error: this `_MOUSECURSOR` statement matches none of its forms: `_MOUSECURSOR ?[,(?,?)]`
-window_errors.bas:25:18: error: this `_WINDOWSIZELIMIT` statement matches none of its forms: `_WINDOWSIZELIMIT [(?,?)][-(?,?)]`
-window_errors.bas:26:22: error: this `_WINDOWSIZELIMIT` statement matches none of its forms: `_WINDOWSIZELIMIT [(?,?)][-(?,?)]`
-window_errors.bas:27:27: error: this `_WINDOWSIZELIMIT` statement matches none of its forms: `_WINDOWSIZELIMIT [(?,?)][-(?,?)]`
-window_errors.bas:28:12: error: `_FREEIMAGE` needs a number
-window_errors.bas:29:13: error: this `_FREEIMAGE` statement matches none of its forms: `_FREEIMAGE [?]`
-window_errors.bas:30:1: error: `_TITLE` takes 1 argument
-window_errors.bas:31:8: error: `_TITLE` needs a string
-window_errors.bas:32:1: error: `_TITLE` takes 1 argument
-window_errors.bas:33:1: error: `_SCREENHIDE` takes 0 arguments
-window_errors.bas:34:1: error: `_SCREENSHOW` takes 0 arguments
-window_errors.bas:35:1: error: `_SCREENICON` takes 0 arguments
-window_errors.bas:36:5: error: `_SCREENX` with empty parentheses
-window_errors.bas:37:5: error: `_SCREENX` takes 0 arguments
-window_errors.bas:38:5: error: `_SCREENEXISTS` with empty parentheses
-window_errors.bas:39:5: error: `_TITLE$` with empty parentheses
-window_errors.bas:40:5: error: `_TITLE$` takes 0 arguments
-window_errors.bas:41:5: error: names starting with `_` are reserved: `_TITLE`
-window_errors.bas:42:5: error: `_NEWIMAGE` takes 2 or 3 arguments
+window_errors.bas:22:12: error: this `_MOUSEHIDE` statement matches none of its forms: `_MOUSEHIDE [{_Hide|_Disable}]`
+window_errors.bas:23:13: error: this `_MOUSECURSOR` statement matches none of its forms: `_MOUSECURSOR ?[,(?,?)]`
+window_errors.bas:24:17: error: this `_MOUSECURSOR` statement matches none of its forms: `_MOUSECURSOR ?[,(?,?)]`
+window_errors.bas:25:19: error: this `_MOUSECURSOR` statement matches none of its forms: `_MOUSECURSOR ?[,(?,?)]`
+window_errors.bas:26:18: error: this `_WINDOWSIZELIMIT` statement matches none of its forms: `_WINDOWSIZELIMIT [(?,?)][-(?,?)]`
+window_errors.bas:27:22: error: this `_WINDOWSIZELIMIT` statement matches none of its forms: `_WINDOWSIZELIMIT [(?,?)][-(?,?)]`
+window_errors.bas:28:27: error: this `_WINDOWSIZELIMIT` statement matches none of its forms: `_WINDOWSIZELIMIT [(?,?)][-(?,?)]`
+window_errors.bas:29:12: error: `_FREEIMAGE` needs a number
+window_errors.bas:30:13: error: this `_FREEIMAGE` statement matches none of its forms: `_FREEIMAGE [?]`
+window_errors.bas:31:1: error: `_TITLE` takes 1 argument
+window_errors.bas:32:8: error: `_TITLE` needs a string
+window_errors.bas:33:1: error: `_TITLE` takes 1 argument
+window_errors.bas:34:1: error: `_SCREENHIDE` takes 0 arguments
+window_errors.bas:35:1: error: `_SCREENSHOW` takes 0 arguments
+window_errors.bas:36:1: error: `_SCREENICON` takes 0 arguments
+window_errors.bas:37:5: error: `_SCREENX` with empty parentheses
+window_errors.bas:38:5: error: `_SCREENX` takes 0 arguments
+window_errors.bas:39:5: error: `_SCREENEXISTS` with empty parentheses
+window_errors.bas:40:5: error: `_TITLE$` with empty parentheses
+window_errors.bas:41:5: error: `_TITLE$` takes 0 arguments
+window_errors.bas:42:5: error: names starting with `_` are reserved: `_TITLE`
 window_errors.bas:43:5: error: `_NEWIMAGE` takes 2 or 3 arguments
-window_errors.bas:44:15: error: argument 1 of `_NEWIMAGE` needs a number
-window_errors.bas:45:5: error: `_NEWIMAGE` takes 2 or 3 arguments
-window_errors.bas:46:5: error: `_WINDOWHANDLE` with empty parentheses
-window_errors.bas:47:5: error: `_WINDOWHANDLE` takes 0 or 1 arguments
-window_errors.bas:48:19: error: `_WINDOWHANDLE` needs a number
-window_errors.bas:49:1: error: names starting with `_` are reserved: `_SCREENX`
-window_errors.bas:50:1: error: `_NEWIMAGE` is a function, not a statement
-window_errors.bas:51:5: error: `_DESKTOPWIDTH` takes 0 arguments
-window_errors.bas:52:6: error: not supported yet: `_ICON`
-window_errors.bas:53:6: error: not supported yet: `_ICON`
-window_errors.bas:54:6: error: not supported yet: `_FREEIMAGE`
-window_errors.bas:55:6: error: not supported yet: `_MOUSESHOW`
-window_errors.bas:56:6: error: not supported yet: `_MOUSEHIDE`
-window_errors.bas:57:6: error: not supported yet: `_MOUSECURSOR`
-window_errors.bas:58:6: error: not supported yet: `_WINDOWSIZELIMIT`
-window_errors.bas:59:5: error: not supported yet: `_SCREENHIDE`
-window_errors.bas:60:10: error: not supported yet: `_SCREENEXISTS` as the argument of `HEX$`
-window_errors.bas:61:10: error: not supported yet: `_SCREENEXISTS` as the argument of `OCT$`
-window_errors.bas:62:11: error: not supported yet: `_SCREENEXISTS` as the argument of `_BIN$`
+window_errors.bas:44:5: error: `_NEWIMAGE` takes 2 or 3 arguments
+window_errors.bas:45:15: error: argument 1 of `_NEWIMAGE` needs a number
+window_errors.bas:46:5: error: `_NEWIMAGE` takes 2 or 3 arguments
+window_errors.bas:47:5: error: `_WINDOWHANDLE` with empty parentheses
+window_errors.bas:48:5: error: `_WINDOWHANDLE` takes 0 or 1 arguments
+window_errors.bas:49:19: error: `_WINDOWHANDLE` needs a number
+window_errors.bas:50:1: error: names starting with `_` are reserved: `_SCREENX`
+window_errors.bas:51:1: error: `_NEWIMAGE` is a function, not a statement
+window_errors.bas:52:5: error: `_DESKTOPWIDTH` takes 0 arguments
+window_errors.bas:53:5: error: not supported yet: `_SCREENHIDE`
+window_errors.bas:54:10: error: not supported yet: `_SCREENEXISTS` as the argument of `HEX$`
+window_errors.bas:55:10: error: not supported yet: `_SCREENEXISTS` as the argument of `OCT$`
+window_errors.bas:56:11: error: not supported yet: `_SCREENEXISTS` as the argument of `_BIN$`

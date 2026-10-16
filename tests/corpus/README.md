@@ -11,9 +11,9 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 75 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags; `SOURCE.md`) |
-| `screen\` | 29 programs with a window, checked by the state of the screen they leave: 23 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error) and 6 drawing programs cut from Civil War Strategy (`SOURCE.md`, `tools\screen\README.md`). None is on `slice.list`: the new compiler builds a program with a window, but compiles no statement that draws yet (M3) |
-| `slice.list` | The 297 programs the new compiler must pass: all 75 of `slice\`, 220 of `runtime_comparison` and `verification\` `v11`, `v12` (see below) |
+| `slice\` | 132 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags, the screen functions in a console program, labels with the name of a SUB, `TAB` and `SPC`, conventional memory, sound, `$EXEICON`, the choice and the shifts, `EXIT SELECT`, `PRINT USING`, binary and random files, locks, `FIELD`, `CHAIN`, memory blocks (`_MEM`), one program per runtime error 300 to 313, `MKI$` … `_CV`, `$ASSERTS` and `_ASSERT`, `$DEBUG`, the checksum, compression and base64 functions, the exit code of `SYSTEM n` and `END n`, `REDIM _RETAIN`, `_DYNAMIC` member arrays, whole-array assignment, `DECLARE LIBRARY` with a header in `<name>.files`; `SOURCE.md`) |
+| `screen\` | 66 programs with a window, checked by the state of the screen they leave: 24 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error, and `c12_prompts`: states taken while a program runs, `m3-scripted-game`), 18 for the screen statements form by form (`d01`–`d16`, `m3-window-output`; `d17` `TAB` and `SPC`, `d18` graphics `GET` and `PUT`, `m3-get-put-bload`), 12 for images, fonts and the mouse (`i01`–`i08`, `f01`, `f02`, `u01`, `u02`, `m3-images-fonts-mouse`), 11 programs cut from Civil War Strategy, three of them with the pictures they load in a `.files` folder, and `g12_game`, the whole game played from its keys file with 23 states compared (`SOURCE.md`, `tools\screen\README.md`, `tests\programs\README.md`). All 66 are on `slice.list` ("Screen programs" below) |
+| `slice.list` | The 436 programs the new compiler must pass: all 132 of `slice\`, 236 of `runtime_comparison`, `verification\` `v11`, `v12` and all 66 of `screen\` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -26,28 +26,38 @@ and may have `<name>.normalize`: rules (a Python regular expression, a tab, a re
 applied to each output line before comparing and before recording, for values that differ between machines or runs,
 and `<name>.noprompt`: the value of `QB64PE_NOPROMPT` for the run instead of `y` (`continue` lets a program go on
 after an untrapped runtime error; `slice\s12_error_in_print`),
+and `<name>.exitcode`: the exit code the program must end with (`END n`, `SYSTEM n`; without it, 0; written by
+`--record`),
 and `<name>.stdin`: the program's standard input, byte for byte, for a program that reads the console with `INPUT`
 or `LINE INPUT` (without it the program gets no input). **A program with a `.stdin` file must end with `SYSTEM`**:
 `END` waits for a key that never arrives while standard input is a file (measured, 2026-10-10).
 
 A program with an `.output` may also have `<name>.screen`: the state of the screen it must leave at exit, for a
 program with a window (text cells or pixels, palette, cursor, pages; format in `tools\screen\README.md`), and with
-it `<name>.keys`: the keys it is given. All 29 are in `screen\`; their `.output` is empty.
+it `<name>.keys`: the keys it is given. A keys file with `state` steps makes the program write states while it
+runs, and `.screen` then holds them all, the one at exit last (`c12_prompts`, `g12_game`). All 66 are in
+`screen\`; their `.output` is empty.
+
+A program that runs may have a folder `<name>.files`: the data files it reads (the pictures a game loads with
+`BLOAD`). Everything in it is copied beside the program before it is compiled and again before each run, with either
+compiler, so the program finds its files by their bare names and a file it changes is whole again for the next
+run; `.gitattributes` keeps the bytes. Beside an `.err` or a `.norun` the folder is an error in the test.
 
 A program that reaches `END` prints an empty line and `Press any key to continue` (no line end) on Windows; that
 trailer is part of its `.output`.
 
-## Counts (recorded 2026-10-03; `slice` as each change added its programs, the last 2026-10-12)
+## Counts (recorded 2026-10-03; `slice` as each change added its programs, the last 2026-10-16)
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 75 |
+| `.output` | 235 | 2 | 132 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
 | `.normalize` sidecars | 3 (`212` `PATH` length, `234` `TIMER`, `238` a folder name in `cmd`'s error) | 0 | 0 |
 | `.noprompt` sidecars | 0 | 0 | 2 (`s12_error_in_print`, `s19_header_errors`: `continue`) |
-| `.stdin` sidecars | 0 | 0 | 2 (`s42_console_input`, `s65_console_input`) |
+| `.stdin` sidecars | 0 | 0 | 3 (`s42_console_input`, `s65_console_input`, `s117_dyn_member_kinds`) |
+| `.exitcode` sidecars | 0 | 0 | 2 (`s110_system_code` 3, `s111_end_code` 4294967295) |
 
 The 20 compile errors are programs written against QB64Fresh's idea of the language. They still test that a
 compiler rejects them, but not what their names say:
@@ -139,7 +149,9 @@ without a window; the first program with a console and a window), `s64` (two pro
 with a hidden window), `s66` (the window built-ins in every form, below the program's `SYSTEM`: compiled, linked
 and never run), `s67` (the 231 constants of QB64pe's auto-included file that are computed, their types, and the
 places a constant may stand; its list of names is generated from `tools\builtins\builtins.json`) and `s68`
-(three programs: the precompiler flags in `$IF`, each program one set of settings) by `m2-console-screenhide`.
+(three programs: the precompiler flags in `$IF`, each program one set of settings) by `m2-console-screenhide`,
+`s69` (`INKEY$`, `CSRLIN` and `POS` in a program with a console and no window: only values that are the same
+on every run) by `m3-window-output`.
 `s52_dynamic_memory` ends with the runtime's "Out of memory" message,
 which is part of its `.output`; the runner's `QB64PE_NOPROMPT` keeps that from opening a dialog.
 Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
@@ -152,8 +164,68 @@ and ends with `SYSTEM`. It must not use `PRINT` with a comma at all: with the co
 redirected output, the old compiler's program prints blanks without end (measured, `verification\v26_a`,
 `study\00` §5).
 
-`slice.list` names the 297 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`; `s66_window_builtins`, `s67_auto_constants` and the three `s68_precompiler_flags` programs
+**Screen programs.** A program of `screen\` is listed as `screen/<name>`; the tier 2 slice run then builds it
+with the state file, runs it (with its keys) and passes it only if the state it leaves equals its `.screen`
+(`m3-window-output`, design D4). Its window shows on the desktop for about 0.3 s unless the program has
+`$SCREENHIDE`, several at a time with `--jobs`; a key typed just then can reach it. They are the slice programs
+of the screen statements and functions: tier 1's coverage rule is met by a listed screen program.
+
+All 66 are listed: `g03_capitol` joined with `m3-sound` (its five `PLAY` lines are compiled and not reached,
+because the program was cut with the game's sound option off), `c12_prompts` and `g12_game` with
+`m3-scripted-game`.
+
+`slice.list` names the 436 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`. Joined with `m3-declare-library` (each left the recorded output on its first run):
+`s121_library_numbers` (`verification\v37_b`, `v37_c`, the `BYVAL` 0 forms of `x56`, `x58`, `x59`, `x63`, a block
+in a SUB; `v37_b`'s literal above `_INTEGER64` written with `~&&`), `s122_library_strings_types` (`v37_d`, the
+TYPE of `v37_e`, `x39`), `s123_library_alias` (`v37_e`, `x60`), `s124_library_customtype` (`v37_h` without its
+`.a`) and `s125_library_runtime_dll` (`v37_a`, `kernel32` of `v37_g`). The first four have the header `v37h.h`
+in their `<name>.files\`, a copy of `verification\v37_lib\v37h.h` with its first comment line changed; the
+libraries of `v37_lib` that must be built are left to the CLI tests. Joined with `m3-whole-array-assign` (each
+left the recorded output on its first run): `s119_whole_array` (the programs of `verification\v36_a`, `v36_b`,
+`v36_c`, `v36_f`, `x14`, `x17`, `x20`, `x36`, without `v36_a`'s suffixed names and with a literal that fits
+`_INTEGER64`) and `s120_whole_array_members` (`v36_d`, `v36_e`, `x33`, `x46`, `x47`, `x49`–`x51`; the two
+divergences of the change, `DIVERGENCES.md` D-004 and D-022, are left out and held by CLI tests).
+Joined with `m3-typefields` (each left the recorded output on its first run): `s118_dyn_member_files`
+(`verification\v35_e` 5.-6b, `v35_x55`, `v35_x65`; its lines 3 and 10, where the new compiler keeps a member
+with other bounds as it was (`DIVERGENCES.md` D-019), recorded from the program that
+gives the member its declared bounds, reads, raises `ERROR 9` and puts the member back in place of that `GET`),
+`s116_dyn_member_parents` (`verification\v35_b`, `v35_x51`), `s117_dyn_member_kinds` (`v35_c`, `x56`, `x57`,
+`x61`, `x62`, with a `.stdin`; its items 23, 38 and 39, where the new compiler stores nothing through an index
+outside (`DIVERGENCES.md` D-004), recorded from the program with the item read into `q$` and `ERROR 9` in place
+of that read),
+`s114_dyn_members` (the programs of `verification\v35_a`, `v35_g`, `v35_x58`; its line 20, where the new compiler
+stores nothing through a parent index outside (`DIVERGENCES.md` D-004), recorded from the program with `ERROR 9` in
+place of that store) and `s115_dyn_member_procs` (`v35_d`, and a bound named by a `CONST`, `v35_x17`). Joined with `m3-redim-retain` (each left the recorded output on its first run):
+`s112_redim_retain` and `s113_redim_retain_kinds` (the programs of `verification\v34_a`, `v34_b`, `v34_c`). Joined with `m3-asserts-debug-zlib` (every one left the recorded output on its first run):
+the six slice programs `s106_asserts`, `s107_assert_message`, `s108_asserts_off_debug`, `s109_data_processing`,
+`s110_system_code` and `s111_end_code`, the last two with an `.exitcode`. Joined with `m3-mem` (every one left the recorded output on its first run): the 18
+slice programs `s88_mem_new_image`, `s89_mem_references`, `s90_mem_get_put` (the programs of
+`verification\v32_a_blocks` and `v32_b_get_put`), `s91_mem_error_300` to `s104_mem_error_313` (each runtime
+error of memory blocks, which ends the program also under `ON ERROR`; made from the `v32_d` programs) and
+`s105_mk_cv`. Joined with `m3-images-fonts-mouse`: the 12 screen programs `i01`–`i08`, `f01`, `f02`, `u01`,
+`u02`. Joined with `m3-console-files` (every one left the recorded output on its first run):
+the ten slice programs `s78_choice_min_shifts`, `s79_exit_select`, `s80_print_using_numbers`,
+`s81_print_using_strings`, `s82_print_using_file` (with `LPRINT` below its `SYSTEM`), `s83_binary_file`,
+`s84_random_file`, `s85_file_locks`, `s86_field_lset` and `s87_chain_not_reached`, each with files named after
+itself, and the twelve programs of `runtime_comparison` that waited: `78_min_max`, `108_clamp`,
+`151_exit_select`, `159_bitwise_shl_shr`, `160_bitwise_rol_ror`, `175_get_put`, `177_open_binary`,
+`179_file_lock`, `186_print_using`, `243_iif`, `239_lprint` (compiled and linked only: its `.norun`) and
+`238_chain`. **`238_chain` is on the list**: it names a program that is not there, and both compilers' programs
+then print the same three lines (its `.normalize` rule takes the folder out of `cmd`'s message); no test
+chains to a program that exists. Before that: `s74_sound_queue`, `s75_sound_wait`, `s76_sound_errors` (sound at volume 0, checked by what
+a program can observe: the queue in tenths of a second, the waits as yes or no against one-sided limits, the
+errors; `s75` waits about seven seconds, and it and the second part of `s76` need a machine with a sound
+device), `s77_exeicon` (its icon in `s77_exeicon.files\`) and `g03_capitol` joined with `m3-sound` (every one
+left the recorded output or state on its first run); `s70_sub_name_labels`, `s71_tab_spc`, `s72_bload_peek_poke` and `s73_conventional_arrays`,
+the screen programs `d17_tab_window`, `d18_get_put` and `g07` to `g11` (new), `g06_message_box` and
+`m32_newimage_32` (which waited on graphics `GET`/`PUT` and on `_RGB32`) and `184_print_tab` and `185_print_spc`
+joined with `m3-get-put-bload` (every one left the recorded output or state on its first run);
+`c07_input_window`, `c08_end_prompt` and `d01_print_window` of `screen\` joined with
+`m3-window-output` task 2.2 (the first programs whose only output is a window's), 39 more screen programs with
+its tasks 3.4, 4.2 and 5.1 (every one that compiled left the recorded state on its first run),
+`189_width` and `237_csrlin_pos` (console programs that waited on `WIDTH`, `CSRLIN` and `POS`) and
+`s69_console_screen_functions` with its task 3.3; `s66_window_builtins`, `s67_auto_constants` and the three `s68_precompiler_flags` programs
 joined with `m2-console-screenhide` tasks 4.3, 5.3 and 6.2; `s64_dest_console`, `s64_dest_console_b` and `s65_console_input` joined with
 `m2-console-screenhide` task 3.2, `s62_console_only_forms` and `s63_console_window` with its task 2.4; the three `s50` programs and `235_deftype` joined with `m2-defxxx-common-arrays` task 2.2,
 the three `s51` programs and `236_option_base` with its tasks 3.2 and 3.3, the five `s52`–`s55` programs and
@@ -178,6 +250,98 @@ requires no panic, an exact round trip, no diagnostics for the listed ones, at l
 with an `.err` file, and the two shrink-only lists `tests\known_false_errors.list` and
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
 uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
+
+### Full corpus with `qb64rust` (2026-10-14, after `m3-images-fonts-mouse`; not a pass criterion)
+
+After the sixth step of M3 (its task 6.2, release build, against the reference clone, `--jobs 8 --build-cache`),
+423 programs (`g12_game` and `c12_prompts` of `m3-scripted-game`, and the screen programs `i01` to `i08`, `f01`,
+`f02`, `u01` and `u02` new); `slice.list` by itself passes 398 of 398 with and without `QB64RUST_NO_FOLD=1`:
+
+| Result | Programs |
+|---|---|
+| Pass | 417: the 398 of `slice.list` and 19 `.err` programs |
+| Rejected with a diagnostic (exit status 1) | 0 |
+| `.err` programs that get only "not supported yet" errors | 1 (`218` `FRE`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+`qb64rust --report unsupported tests\corpus` holds nothing back; `s77_exeicon` and `g12_game` have an icon only
+the runner puts beside them.
+
+### Full corpus with `qb64rust` (2026-10-13, after `m3-console-files`; not a pass criterion)
+
+After the fourth step of M3 (its task 8.1, release build, against the reference clone, `--jobs 8
+--build-cache`), 409 programs (`s78` to `s87` new); `slice.list` by itself passes 384 of 384 with and without
+`QB64RUST_NO_FOLD=1`:
+
+| Result | Programs |
+|---|---|
+| Pass | 403: the 384 of `slice.list` and 19 `.err` programs |
+| Rejected with a diagnostic (exit status 1) | 0 |
+| `.err` programs that get only "not supported yet" errors | 1 (`218` `FRE`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+**No program of the corpus that the old compiler accepts is held back any more**: the twelve of the run before
+compile and pass. `qb64rust --report unsupported tests\corpus` names none.
+
+### Full corpus with `qb64rust` (2026-10-13, after `m3-sound`; not a pass criterion)
+
+After the third step of M3 (its task 6.1, release build, against the reference clone, `--jobs 8 --build-cache`),
+399 programs (`s74` to `s77` new); `slice.list` by itself passes 362 of 362 with and without
+`QB64RUST_NO_FOLD=1`:
+
+| Result | Programs |
+|---|---|
+| Pass | 381: the 362 of `slice.list` and 19 `.err` programs |
+| Rejected with a diagnostic (exit status 1) | 12 (11 `.output` programs of `runtime_comparison` and the compile-only `239_lprint`) |
+| `.err` programs that get only "not supported yet" errors | 1 (`218` `FRE`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+All 52 screen programs pass by their screen state. The 11 `.output` programs still rejected are those of the
+run before: `PRINT USING`, random and binary files, `EXIT SELECT`, `CHAIN` and a few functions (step 4 of M3's
+order).
+
+### Full corpus with `qb64rust` (2026-10-13, after `m3-get-put-bload`; not a pass criterion)
+
+After the second step of M3 (its task 7.1, release build, against the reference clone, `--jobs 8 --build-cache`),
+395 programs (`s70` to `s73`, `d17`, `d18` and `g07` to `g11` new); `slice.list` by itself passes 357 of 357 with
+and without `QB64RUST_NO_FOLD=1`:
+
+| Result | Programs |
+|---|---|
+| Pass | 376: the 357 of `slice.list` and 19 `.err` programs |
+| Rejected with a diagnostic (exit status 1) | 13 (11 `.output` programs of `runtime_comparison`, `g03_capitol` of `screen\` and the compile-only `239_lprint`) |
+| `.err` programs that get only "not supported yet" errors | 1 (`218` `FRE`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+51 of the 52 screen programs pass by their screen state; `184_print_tab`, `185_print_spc`, `g06_message_box` and
+`m32_newimage_32` left the rejected ones. The 11 `.output` programs still rejected wait on `PRINT USING`,
+random and binary files (`175_get_put`, `177_open_binary`, `179_file_lock`), `EXIT SELECT`, `CHAIN` and a few
+functions (`_SHL`, `_ROL`, `_MIN`, `_CLAMP`, `_IIF`); `g03_capitol` on `PLAY`.
+
+### Full corpus with `qb64rust` (2026-10-12, after `m3-window-output`; not a pass criterion)
+
+After the first step of M3 (its task 6.1, release build, against the reference clone, `--jobs 8 --build-cache`),
+384 programs (the 16 `d…` screen programs and `s69` new); `slice.list` by itself passes 342 of 342 with and
+without `QB64RUST_NO_FOLD=1`:
+
+| Result | Programs |
+|---|---|
+| Pass | 360 in the run: 341 of `slice.list` and 19 `.err` programs (361 with `m10_screen_10`, below) |
+| Rejected with a diagnostic (exit status 1) | 17 (13 `.output` programs, 3 of `screen\` and the compile-only `239_lprint`) |
+| `.err` programs that get only "not supported yet" errors | 1 (`218` `FRE`) |
+| Known failures | 5, as below |
+| Compiler crash, or an executable for a rejected program or with wrong output | 0 |
+
+42 of the 45 screen programs pass by their screen state; `189_width` and `237_csrlin_pos` left the rejected
+ones. In the run itself `m10_screen_10` failed once: its recorded palette depended on the clock, which was a
+fault of the state file, fixed the same day (`tools\screen\README.md`); the screen programs were run again with
+both compilers after the fix, and all pass. The 13 `.output` programs still rejected wait on `PRINT USING`,
+`TAB` and `SPC`, random and binary files, `EXIT SELECT`, `CHAIN` and a few functions (`_SHL`, `_ROL`, `_MIN`,
+`_CLAMP`, `_IIF`); the three screen programs on `PLAY`, graphics `GET`/`PUT` and `_RGB32`.
 
 ### Full corpus with `qb64rust` (2026-10-12, after step 11; not a pass criterion)
 

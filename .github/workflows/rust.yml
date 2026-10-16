@@ -18,6 +18,9 @@ on:
       - "openspec/**"
       - "**.md"
   workflow_dispatch:
+  # Tier 2 once a week (Monday 05:00 UTC), on the default branch; the other jobs run then too.
+  schedule:
+    - cron: "0 5 * * 1"
 
 permissions:
   contents: read
@@ -48,6 +51,8 @@ jobs:
 
       # The test runner's own rules (what "pass" means, what gets recorded): standard library only, no compiler.
       - run: python -m unittest discover -s tools/legacy_tests -p "test_*.py"
+      # The same for the record of test runs (which commands count as a run, what is read as its result).
+      - run: python -m unittest discover -s tools/testtime -p "test_*.py"
 
   # Licences, advisories and sources of the dependencies (deny.toml; study\21 item 7). The action runs on Linux;
   # the dependency graph is the same on every platform.
@@ -61,13 +66,16 @@ jobs:
   # Tier 2 (study\19): the slice list of the corpus and the upstream pass list end to end, built against QB64pe's
   # sources at the commit of the local reference clone, the one reference for expected outputs (DECISIONS.md
   # 2026-10-09, study\28 section 2). The C++ toolchain is taken from the 4.7.0 release download, which is 16 commits
-  # older and ships it under internal\c\c_compiler. Written 2026-10-09 and not yet seen running on GitHub. The
-  # upstream programs come from the copy in tests\upstream, which holds every file the pass list needs.
+  # older and ships it under internal\c\c_compiler. Written 2026-10-09. The upstream programs come from the
+  # clone's tests\compile_tests (its binary assets; the copy in tests\upstream holds text files only).
   # The call-site check (tools\callsite, DECISIONS.md 2026-10-10) needs the old compiler itself, so qb64pe.exe is
   # built once from the checked-out sources, as setup_win.cmd builds it, and cached with them. The release's
   # qb64pe.exe will not do: the reference commit's compiler writes other C++ for VAL(s$, SINGLE) and VAL(s$,
   # DOUBLE) (study\29 section 8).
+  # Not on a push or a pull request (user, DECISIONS.md 2026-10-12): the job takes about 20 minutes and tier 2 is
+  # run locally at the close of each change. It runs when started by hand ("Run workflow") and once a week.
   tier2:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: windows-latest
     timeout-minutes: 45
     env:
@@ -123,20 +131,24 @@ jobs:
           QB64RUST_QB64PE_ROOT: ${{ runner.temp }}\qb64pe
         run: python tools/callsite/callsite.py --qb-root $env:QB64RUST_QB64PE_ROOT
 
-      - name: Corpus slice list
+      # Without the screen programs: the runner gives them no window, so each waits out its time limit (seen
+      # 2026-10-16, run 38923356942). They are run locally only (STATUS.md, DECISIONS.md 2026-10-16).
+      - name: Corpus slice list (console programs)
         env:
           QB64RUST_QB64PE_ROOT: ${{ runner.temp }}\qb64pe
-        run: >
-          python tools/legacy_tests/run_legacy_tests.py --suite corpus --qb-root $env:QB64RUST_QB64PE_ROOT
-          --qb64 target/release/qb64rust.exe --list tests/corpus/slice.list
+        run: |
+          Get-Content tests/corpus/slice.list | Where-Object { $_ -notmatch '^screen/' } | Set-Content "$env:RUNNER_TEMP/slice-console.list"
+          python tools/legacy_tests/run_legacy_tests.py --suite corpus --qb-root $env:QB64RUST_QB64PE_ROOT `
+            --qb64 target/release/qb64rust.exe --list "$env:RUNNER_TEMP/slice-console.list"
 
+      # From the clone's tests\compile_tests, not the copy tests/upstream/compile_tests: two programs of the list
+      # need the binaries lib-windows.a and lib.dll, which the copy (text files only) lacks (m3-declare-library D4).
       - name: Upstream pass list
         env:
           QB64RUST_QB64PE_ROOT: ${{ runner.temp }}\qb64pe
         run: >
           python tools/legacy_tests/run_legacy_tests.py --suite compile --qb-root $env:QB64RUST_QB64PE_ROOT
-          --compile-tests tests/upstream/compile_tests --qb64 target/release/qb64rust.exe
-          --list tests/upstream/pass.list
+          --qb64 target/release/qb64rust.exe --list tests/upstream/pass.list
 
       # The differential programs of the pass list against their recordings (spec testing/differential-tests).
       - name: Differential pass list

@@ -1,9 +1,10 @@
 ' TEST: check-fail
 $CONSOLE:ONLY
-' sema checks the statements inside every block kind (the strings stored in numbers below are real errors); it
-' marks `DECLARE LIBRARY` "not supported yet" at its first word (IF, FOR, DO, WHILE and EXIT FOR/DO/WHILE are typed
-' since m2-control-flow-slice task 5.2, `TYPE` since m2-arrays-and-types task 4.1, `SELECT CASE` since
-' m2-core-builtins task 6.1); `DEF FN` is a real error, as in the old compiler (m2-parser-breadth task 6.4)
+' sema checks the statements inside every block kind (the strings stored in numbers below are real errors; IF,
+' FOR, DO, WHILE and EXIT FOR/DO/WHILE are typed since m2-control-flow-slice task 5.2, `TYPE` since
+' m2-arrays-and-types task 4.1, `SELECT CASE` since m2-core-builtins task 6.1, `DECLARE LIBRARY` since
+' m3-declare-library task 2.1, library_typed.bas); `DEF FN` is a real error, as in the old compiler
+' (m2-parser-breadth task 6.4)
 FOR i = 1 TO 2
     a% = "for"
 NEXT
@@ -37,7 +38,3 @@ ON ERROR GOTO handler
 FOR i = 1 TO 2
 handler:
 NEXT
-' Last: a marked declaration drops the real errors after it (follow-on rule, m2-parser-breadth design D10).
-DECLARE LIBRARY
-    FUNCTION toupper& (BYVAL c AS LONG)
-END DECLARE

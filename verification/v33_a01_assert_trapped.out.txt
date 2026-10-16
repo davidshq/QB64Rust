@@ -1,0 +1,6 @@
+before
+passed
+
+Runtime error: Line: 10 (in main module)
+_ASSERT failed
+exit=0

@@ -1,5 +1,6 @@
 ---
 source: crates/syntax/tests/parser.rs
+assertion_line: 418
 expression: "tree(\"TYPE t\\n  a AS LONG\\n  AS INTEGER b, c(1 TO 2)\\n  s AS STRING * 8\\n  AS STRING * 4 u, v\\n  w AS _UNSIGNED _BYTE\\n\\n  e(-1 TO 1, 3) _DYNAMIC AS t2\\n  _STATIC f(9) AS DOUBLE\\nEND TYPE\\n\")"
 ---
 SourceFile 0..173
@@ -109,7 +110,8 @@ SourceFile 0..173
             Number 3
           RParen )
         Whitespace  
-        Ident _DYNAMIC
+        FieldMarker 124..132
+          Ident _DYNAMIC
       Whitespace  
       AsClause 133..138
         Ident AS
@@ -118,7 +120,8 @@ SourceFile 0..173
     Newline \x0A
     Whitespace   
     TypeField 141..163
-      Ident _STATIC
+      FieldMarker 141..148
+        Ident _STATIC
       Whitespace  
       FieldName 149..153
         Ident f

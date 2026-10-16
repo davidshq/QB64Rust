@@ -1,0 +1,5 @@
+
+2nd function argument requires a number
+Caused by (or after):M = _MEM ( O , "a",1 )
+LINE 9:m = _MEM(o, "a")
+exit=1

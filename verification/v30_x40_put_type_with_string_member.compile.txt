@@ -1,0 +1,5 @@
+
+UDT must have fixed size
+Caused by (or after):PUT # 1 , 1 , R
+LINE 11:PUT #1, 1, r
+exit=1

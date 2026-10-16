@@ -1,0 +1,5 @@
+
+Syntax error - Reference: BLOAD fileName$, VARPTR(imageArray%(index))
+Caused by (or after):BLOAD "f",1 , 1 , 2
+LINE 7:BLOAD "f", 1, 2
+exit=1

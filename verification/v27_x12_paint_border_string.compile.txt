@@ -1,0 +1,5 @@
+
+4th sub argument requires a number
+Caused by (or after):PAINT ( 1 , 2 ) , 3 , T
+LINE 6:PAINT (1, 2), 3, t
+exit=1

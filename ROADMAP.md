@@ -51,17 +51,60 @@ and its shrink-only lists hold no false error and no parse gap (`tests\known_fal
 - [x] The step's closing runs (the two full suites with the new compiler), its documents and CI after the push
       (group 7 of `m2-console-screenhide`)
 
-## M3. Code generation to the existing ABI: started early
+## M3. Code generation to the existing ABI: under way
 
 Done when: the compiler emits the `qbx.cpp` fragments, links with libqb and passes the expected-output and
 differential tests; programs without `$CONSOLE:ONLY` are checked by their screen state.
 
 - [x] The slice links with libqb and runs (since M2's first slice)
-- [x] A program with a window is built (`$CONSOLE` without `:ONLY`, since M2's last step); it draws nothing yet
-- [ ] Plain copy of QB64pe's `internal\c` at the reference clone's commit
-- [ ] Programs with a window: the drawing statements, each coming in with screen programs that pass
-- [ ] Civil War Strategy builds and its screens match (`tests\programs\README.md`)
-- [ ] Data files beside a corpus program (`BLOAD` of the game's pictures)
+- [x] A program with a window is built (`$CONSOLE` without `:ONLY`, since M2's last step)
+- [x] A program with a window as its only output (no `$CONSOLE` at all); the text-screen statements (`SCREEN`,
+      `CLS`, `COLOR`, `LOCATE`, `WIDTH`, `VIEW PRINT`), the drawing statements (`PSET`, `PRESET`, `LINE`,
+      `CIRCLE`, `PAINT`, `DRAW`, `VIEW`, `WINDOW`, `PALETTE`, `PCOPY`), pacing (`_LIMIT`, `_DELAY`, `SLEEP`,
+      `_DISPLAY`) and the functions `INKEY$`, `CSRLIN`, `POS`, `POINT`, `SCREEN`, with screen programs that pass
+      on `tests\corpus\slice.list` (`m3-window-output`)
+- [x] Graphics `GET` and `PUT`, `DEF SEG` with `BLOAD`, `BSAVE`, `PEEK`, `POKE`, `VARPTR` and `VARSEG` on arrays
+      in conventional memory, `TAB` and `SPC`, labels named like a SUB, `_RGB32`, `_RGBA32`, `_FULLSCREEN`,
+      `DATE$`, `TIME$`: what Civil War Strategy needs to build apart from sound (`m3-get-put-bload`)
+- [x] Data files beside a corpus program (`<name>.files\`); five more programs cut from the game, three of them
+      loading its pictures with `BLOAD`
+- [x] Sound (`SOUND`, `PLAY` as statement and function, `BEEP`) with the audio part of libqb, checked without
+      noise by what a program can observe (the queue, the waits, the errors); `$EXEICON`; a built-in statement
+      with a template after `CALL` (`m3-sound`)
+- [x] Civil War Strategy compiles with no diagnostic and builds (`m3-sound`; `tests\programs\README.md`, stage 2)
+- [x] Civil War Strategy's screens match in a scripted game (`tests\programs\README.md`, stage 3): a copy with
+      listed edits plays two turns from a keys file, 23 states compared; the screen-state check's keys file
+      gained `prompt` and `state` (`m3-scripted-game`)
+- [x] The image built-ins that run (`_LOADIMAGE`, `_PUTIMAGE`, `_MAPTRIANGLE`, the colour functions, …), fonts,
+      the mouse fed by mouse steps of a keys file, 12 screen programs; `_SCREENIMAGE`, `_CLIPBOARDIMAGE`,
+      `_PRINTIMAGE`, `_DEPTHBUFFER` and `_MOUSEMOVE` compiled and never run (`m3-images-fonts-mouse`)
+- [x] `_MEM`: the type, the blocks of references, addresses, new memory and images, `_MEMGET`, `_MEMPUT`,
+      `_MEMFILL`, `_MEMCOPY`, `_MEMFREE`, `_MEMEXISTS`, `_OFFSET`, every runtime error 300 to 313; `MKI$` …
+      `_CV`; `_MEMSOUND` compiled and never run (`m3-mem`). Upstream 153 to 174 of 279
+- [x] `$ASSERTS`, `$ASSERTS:CONSOLE`, `_ASSERT`; `$DEBUG` without the IDE's debugger (`DIVERGENCES.md` D-017);
+      `_ADLER32`, `_CRC32`, `_DEFLATE$`, `_INFLATE$`, `_BASE64ENCODE$`, `_BASE64DECODE$`; `END n` and `SYSTEM n`;
+      `-f:GenerateLicenseFile` (`m3-asserts-debug-zlib`). Upstream 174 to 186 of 279
+- [x] `REDIM _RETAIN`, the elements kept by their indexes, for every kind of element and array; a `REDIM` with a
+      FUNCTION in a bound that redims the same array no longer crashes (`DIVERGENCES.md` D-018)
+      (`m3-redim-retain`). Upstream 186 to 193, now of 286 (the seven left `deferred.list`)
+- [x] `$UNSTABLE:TYPEFIELDS`: the `_DYNAMIC`/`_STATIC` member markers; `_DYNAMIC` member arrays of variables,
+      elements and nested values, their copies, `_MEM`, and whole arrays of their types in files; `DIVERGENCES.md`
+      D-019 to D-021 (`m3-typefields`). Upstream 193 of 286 to 290 of 383 (the programs that needed it left
+      `deferred.list`; the 21 left there need whole-array assignment or `_ARRAYCOPY`)
+- [x] Whole-array assignment `a() = b()`: arrays and member arrays (plain and `_DYNAMIC`) of every element type and
+      place, arrays of owner types, with the old compiler's compile-time and run-time checks; a type suffix on both
+      names stays marked; `DIVERGENCES.md` D-004 widened and D-022 (`m3-whole-array-assign`). Upstream 290 of 383 to
+      310 of 399 (16 programs left `deferred.list`; the 5 left need `_ARRAYCOPY` or, `t001`, a plain scalar beside
+      an array typed by `DIM … AS`)
+- [x] `DECLARE LIBRARY` in its four forms on Windows (plain, `STATIC`, `DYNAMIC`, `CUSTOMTYPE`): the old
+      compiler's lookup, `nm` linkage, C++, calls and start-up errors 259 and 260; the forms whose C++ fails with
+      the old compiler are rejected before the C++ (`m3-declare-library`; D-023 and D-024 proposed and not
+      built). Upstream 310 to 318 of 399; CI's upstream list runs from the clone
+- [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
+      file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
+      `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program
+      of the corpus that the old compiler accepts is held back any more
+- [ ] Plain copy of QB64pe's `internal\c` at the reference clone's commit, when libqb must change
 
 ## M4. Parity
 
@@ -77,7 +120,9 @@ suite (`study\20`).
 
 ## M6. Runtime modernisation
 
-- [ ] The ABI owned by the new compiler; error model, string heap and threading redesigned behind golden tests
+- [ ] The ABI owned by the new compiler; error model, string heap and threading redesigned behind golden tests.
+  This starts as a second backend crate beside `codegen-cpp`, which stays pinned to libqb's ABI and to the
+  call-site check; `codegen-cpp` is not modernised in place (`study\30` §7, user 2026-10-16)
 
 ## Not tied to a milestone yet
 

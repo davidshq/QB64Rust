@@ -1,0 +1,5 @@
+
+Expected LSET/RSET stringvariable=string
+Caused by (or after):CALL LSET ( A , "x",1 )
+LINE 15:CALL LSET(a, "x")
+exit=1

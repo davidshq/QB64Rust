@@ -29,13 +29,9 @@ member_arrays_errors.bas:64:15: error: the member array `t.v` cannot stand in a 
 member_arrays_errors.bas:66:7: error: `t` is no declared array (`ERASE`)
 member_arrays_errors.bas:69:6: error: the array `t.s` (STRING) cannot be passed to an array parameter of type LONG
 member_arrays_errors.bas:70:6: error: this parameter takes a whole array, written `t.v()`
-member_arrays_errors.bas:74:7: error: not supported yet: a member array of an array element in a list of `ERASE` or `REDIM` targets
 member_arrays_errors.bas:75:7: error: not supported yet: a member array of an array element in a list of `ERASE` or `REDIM` targets
-member_arrays_errors.bas:76:7: error: not supported yet: a member of an array element, or an element of a member array, as a target of `INPUT`
-member_arrays_errors.bas:77:6: error: not supported yet: a member of an array element, or an element of a member array, as a target of `READ`
-member_arrays_errors.bas:78:6: error: not supported yet: a member of an array element, or an element of a member array, as a target of `MID$`
-member_arrays_errors.bas:80:11: error: not supported yet: `REDIM t.v(0)` of a member array under `OPTION BASE 1`
-member_arrays_errors.bas:90:7: error: not supported yet: a bound of a member array that is not written with numbers alone (a `CONST`)
-member_arrays_errors.bas:93:15: error: not supported yet: `_DYNAMIC`/`_STATIC` members
-member_arrays_errors.bas:98:6: error: not supported yet: an array of more than 2^31 elements
-member_arrays_errors.bas:103:1: error: not supported yet: a `TYPE` of more than 2^31 bytes
+member_arrays_errors.bas:76:7: error: not supported yet: a member array of an array element in a list of `ERASE` or `REDIM` targets
+member_arrays_errors.bas:78:11: error: not supported yet: `REDIM t.v(0)` of a member array under `OPTION BASE 1`
+member_arrays_errors.bas:87:7: error: not supported yet: a bound of a member array that is not written with numbers alone (a `CONST`)
+member_arrays_errors.bas:92:6: error: not supported yet: an array of more than 2^31 elements
+member_arrays_errors.bas:97:1: error: not supported yet: a `TYPE` of more than 2^31 bytes

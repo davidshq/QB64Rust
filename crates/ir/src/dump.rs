@@ -1,8 +1,8 @@
 //! `--dump ir`: the lowering-pair text of design D6.
 
 use crate::{
-    Arg, ArrayRef, BinOp, Body, Expr, ExprKind, LabelId, OnError, Op, Place, PrintItem, ProcKind, Program, Resume,
-    RuntimePart, Settings, Shape, Source, StmtArg, Storage, Ty, VarId, When,
+    Arg, ArrayRef, BinOp, Body, Expr, ExprKind, LabelId, MemValue, OnError, Op, Place, PrintItem, PrintTo, ProcKind,
+    Program, Reference, Resume, RuntimePart, Settings, Shape, Source, StmtArg, Storage, Ty, UsingValue, VarId, When,
 };
 
 use qb64rust_base::{show_bytes, to_u32};
@@ -18,15 +18,28 @@ fn settings(s: &Settings) -> String {
     if s.window_hidden {
         parts.push("hidden at the start".to_string());
     }
+    if s.asserts {
+        parts.push("asserts".to_string());
+    }
     if !s.runtime_parts.is_empty() {
         let names: Vec<&str> = s
             .runtime_parts
             .iter()
             .map(|p| match p {
                 RuntimePart::Icon => "icon",
+                RuntimePart::Audio => "audio",
+                RuntimePart::Printer => "printer",
+                RuntimePart::ImageCodec => "image codec",
+                RuntimePart::Font => "font",
+                RuntimePart::ScreenImage => "screen image",
+                RuntimePart::DataProcessing => "data processing",
             })
             .collect();
         parts.push(format!("runtime parts: {}", names.join(", ")));
+    }
+    if s.exe_icon {
+        // Not the name: an absolute one would put a folder of the machine into a dump.
+        parts.push("an icon for the executable".to_string());
     }
     parts.join(", ")
 }
@@ -45,9 +58,11 @@ pub fn dump(p: &Program) -> String {
     for t in &p.types {
         for m in t.members.iter().filter(|m| m.is_array()) {
             let dims: Vec<String> = m.bounds.iter().map(|(l, u)| format!("{l} To {u}")).collect();
+            // A dynamic member array's bounds are those it starts with (design D5 of `m3-typefields`).
+            let dynamic = if m.dynamic { " dynamic" } else { "" };
             writeln!(
                 out,
-                "Member array {}.{}:{} ({})",
+                "Member array {}.{}:{} ({}){dynamic}",
                 t.name,
                 m.name,
                 ty(p, m.ty),
@@ -59,11 +74,12 @@ pub fn dump(p: &Program) -> String {
     // The arrays, when there are any: a static one with its bounds, a dynamic one with its number of dimensions.
     for (i, v) in p.vars.iter().enumerate() {
         let name = var(p, VarId(to_u32(i)));
+        let memory = if v.conventional { ", in conventional memory" } else { "" };
         match &v.shape {
             Shape::Scalar => {}
             Shape::Static { bounds } => {
                 let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} To {u}")).collect();
-                writeln!(out, "Array {name}:{} static ({})", ty(p, v.ty), dims.join(", ")).unwrap();
+                writeln!(out, "Array {name}:{} static ({}){memory}", ty(p, v.ty), dims.join(", ")).unwrap();
             }
             Shape::Dynamic { dims, at_start } => {
                 let dims = dims.map_or("?".to_string(), |n| n.to_string());
@@ -77,9 +93,19 @@ pub fn dump(p: &Program) -> String {
                 } else {
                     "dynamic"
                 };
-                writeln!(out, "Array {name}:{} {kind}, dimensions: {dims}{start}", ty(p, v.ty)).unwrap();
+                writeln!(
+                    out,
+                    "Array {name}:{} {kind}, dimensions: {dims}{start}{memory}",
+                    ty(p, v.ty)
+                )
+                .unwrap();
             }
         }
+    }
+    // The `DECLARE LIBRARY` blocks: the form and the names as written.
+    for (i, lib) in p.libraries.iter().enumerate() {
+        let names: Vec<String> = lib.names.iter().map(|n| format!(" \"{}\"", n.text)).collect();
+        writeln!(out, "Library {i} {:?}{}", lib.kind, names.concat()).unwrap();
     }
     body(p, &p.main, &mut out);
     for (i, proc) in p.procs.iter().enumerate() {
@@ -94,6 +120,17 @@ pub fn dump(p: &Program) -> String {
                 proc.end_line
             )
             .unwrap(),
+        }
+        if let Some(e) = &proc.external {
+            let byval: Vec<&str> = e.byval.iter().map(|&b| if b { "byval" } else { "ref" }).collect();
+            writeln!(
+                out,
+                "  external {} of library {} ({})",
+                e.c_name,
+                e.library.0,
+                byval.join(", ")
+            )
+            .unwrap();
         }
         for v in &p.vars {
             let class = match v.storage {
@@ -120,6 +157,25 @@ pub fn dump(p: &Program) -> String {
     out
 }
 
+/// Where a print goes: `console`, `file <number>` or `printer`.
+fn print_to(p: &Program, to: &PrintTo) -> String {
+    match to {
+        PrintTo::Screen => "console".to_string(),
+        PrintTo::File(n) => format!("file {}", val(p, n)),
+        PrintTo::Printer => "printer".to_string(),
+    }
+}
+
+fn print_items(p: &Program, items: &[PrintItem], out: &mut String) {
+    for i in items {
+        match i {
+            PrintItem::Str(v) => writeln!(out, "    Str {}", val(p, v)).unwrap(),
+            PrintItem::Num(v) => writeln!(out, "    Num {}", val(p, v)).unwrap(),
+            PrintItem::Zone => writeln!(out, "    Zone").unwrap(),
+        }
+    }
+}
+
 fn body(p: &Program, b: &Body, out: &mut String) {
     let labels = |at: usize, out: &mut String| {
         for (i, l) in b.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
@@ -138,8 +194,40 @@ fn body(p: &Program, b: &Body, out: &mut String) {
         for op in &s.ops {
             match op {
                 Op::SelectConsole => writeln!(out, "  SelectConsole").unwrap(),
-                Op::End => writeln!(out, "  End").unwrap(),
-                Op::System => writeln!(out, "  System").unwrap(),
+                Op::MemGet { block, offset, target } => writeln!(
+                    out,
+                    "  MemGet {} at {} into {}",
+                    place_text(p, block),
+                    val(p, offset),
+                    reference_text(p, target)
+                )
+                .unwrap(),
+                Op::MemPut { block, offset, value } => writeln!(
+                    out,
+                    "  MemPut {} at {} = {}",
+                    place_text(p, block),
+                    val(p, offset),
+                    mem_value(p, value)
+                )
+                .unwrap(),
+                Op::MemFill {
+                    block,
+                    offset,
+                    bytes,
+                    value,
+                } => writeln!(
+                    out,
+                    "  MemFill {} at {} for {} with {}",
+                    place_text(p, block),
+                    val(p, offset),
+                    val(p, bytes),
+                    mem_value(p, value)
+                )
+                .unwrap(),
+                Op::End(None) => writeln!(out, "  End").unwrap(),
+                Op::System(None) => writeln!(out, "  System").unwrap(),
+                Op::End(Some(code)) => writeln!(out, "  End {}", val(p, code)).unwrap(),
+                Op::System(Some(code)) => writeln!(out, "  System {}", val(p, code)).unwrap(),
                 Op::Exit => writeln!(out, "  Exit").unwrap(),
                 Op::SetHandler(Some(l)) => writeln!(out, "  SetHandler {}", label(&p.main, *l)).unwrap(),
                 Op::SetHandler(None) => writeln!(out, "  SetHandler none").unwrap(),
@@ -186,8 +274,8 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     writeln!(
                         out,
                         "  Allocate {mode:?} {}:{}",
-                        var(p, *array),
-                        ty(p, p.var(*array).ty)
+                        array_text(p, array),
+                        ty(p, p.array_ty(array))
                     )
                     .unwrap();
                     for (lower, upper) in bounds {
@@ -198,29 +286,61 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     writeln!(out, "  Clear {}:{}", array_text(p, array), ty(p, p.array_ty(array))).unwrap();
                 }
                 Op::Release { array } => {
-                    writeln!(out, "  Release {}:{}", var(p, *array), ty(p, p.var(*array).ty)).unwrap();
+                    writeln!(out, "  Release {}:{}", array_text(p, array), ty(p, p.array_ty(array))).unwrap();
                 }
                 Op::EraseParam { array } => {
                     writeln!(out, "  EraseParam {}:{}", var(p, *array), ty(p, p.var(*array).ty)).unwrap();
                 }
-                Op::Print { to, items, newline } | Op::Write { to, items, newline } => {
-                    let word = if matches!(op, Op::Write { .. }) {
-                        "Write"
-                    } else {
-                        "Print"
-                    };
+                Op::CopyArray { from, to } => {
+                    let t = ty(p, p.array_ty(to));
+                    let (from, to) = (array_text(p, from), array_text(p, to));
+                    writeln!(out, "  CopyArray {from} -> {to}:{t}").unwrap();
+                }
+                Op::Print { to, items, newline } => {
+                    let to = print_to(p, to);
+                    writeln!(out, "  Print {to}{}", if *newline { " newline" } else { "" }).unwrap();
+                    print_items(p, items, out);
+                }
+                Op::PrintUsing {
+                    to,
+                    before,
+                    format,
+                    values,
+                    newline,
+                } => {
+                    let to = print_to(p, to);
+                    writeln!(out, "  PrintUsing {to}{}", if *newline { " newline" } else { "" }).unwrap();
+                    print_items(p, before, out);
+                    writeln!(out, "    Format {}", val(p, format)).unwrap();
+                    for v in values {
+                        match v {
+                            UsingValue::Str(e) => writeln!(out, "    Str {}", val(p, e)).unwrap(),
+                            UsingValue::Num { value, as_ } => {
+                                writeln!(out, "    Num as {}: {}", ty(p, *as_), val(p, value)).unwrap();
+                            }
+                            UsingValue::Blanks(e) => writeln!(out, "    Blanks {}", val(p, e)).unwrap(),
+                        }
+                    }
+                }
+                Op::Field { file, parts } => {
+                    writeln!(out, "  Field file {}", val(p, file)).unwrap();
+                    for (place, width) in parts {
+                        let t = ty(p, p.place_ty(place));
+                        writeln!(out, "    {}:{t} width {}", place_text(p, place), val(p, width)).unwrap();
+                    }
+                }
+                Op::Lset { right, target, value } => {
+                    let word = if *right { "Rset" } else { "Lset" };
+                    let t = ty(p, p.place_ty(target));
+                    writeln!(out, "  {word} {}:{t} = {}", place_text(p, target), val(p, value)).unwrap();
+                }
+                Op::Write { to, items, newline } => {
                     let to = match to {
                         None => "console".to_string(),
                         Some(n) => format!("file {}", val(p, n)),
                     };
-                    writeln!(out, "  {word} {to}{}", if *newline { " newline" } else { "" }).unwrap();
-                    for i in items {
-                        match i {
-                            PrintItem::Str(v) => writeln!(out, "    Str {}", val(p, v)).unwrap(),
-                            PrintItem::Num(v) => writeln!(out, "    Num {}", val(p, v)).unwrap(),
-                            PrintItem::Zone => writeln!(out, "    Zone").unwrap(),
-                        }
-                    }
+                    writeln!(out, "  Write {to}{}", if *newline { " newline" } else { "" }).unwrap();
+                    print_items(p, items, out);
                 }
                 Op::Input { from, line, targets } => {
                     let word = if *line { "LineInput" } else { "Input" };
@@ -261,6 +381,14 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                             StmtArg::Value(v) => format!("Value({})", val(p, v)),
                             StmtArg::Place(place) => {
                                 format!("Place {}:{}", place_text(p, place), ty(p, p.place_ty(place)))
+                            }
+                            StmtArg::Block { array, index } if index.is_empty() => format!("Bytes {}", var(p, *array)),
+                            StmtArg::Block { array, index } => {
+                                let i: Vec<String> = index.iter().map(|i| val(p, i)).collect();
+                                format!("Bytes {}({})", var(p, *array), i.join(", "))
+                            }
+                            StmtArg::Bytes(place) => {
+                                format!("BytesOf {}:{}", place_text(p, place), ty(p, p.place_ty(place)))
                             }
                             StmtArg::Word(w) => format!("Word {w}"),
                             StmtArg::Absent => "Absent".to_string(),
@@ -340,6 +468,23 @@ fn array_text(p: &Program, array: &ArrayRef) -> String {
     }
 }
 
+/// What `_MEMPUT` writes or `_MEMFILL` fills with.
+fn mem_value(p: &Program, value: &MemValue) -> String {
+    match value {
+        MemValue::Typed { value, ty: t } => format!("{} as {}", val(p, value), ty(p, *t)),
+        MemValue::Bytes(of) => format!("bytes of {}", reference_text(p, of)),
+        MemValue::Str(s) => format!("string {}", val(p, s)),
+    }
+}
+
+/// What `_MEM`, `_MEMELEMENT` and `_OFFSET` name: a place, or an array as a whole with `()`.
+fn reference_text(p: &Program, of: &Reference) -> String {
+    match of {
+        Reference::Place(place) => place_text(p, place),
+        Reference::Array(array) => format!("{}()", array_text(p, array)),
+    }
+}
+
 /// A variable's name, with its storage class unless it is global (`X(param)`).
 fn var(p: &Program, id: VarId) -> String {
     let v = p.var(id);
@@ -360,6 +505,8 @@ fn args(p: &Program, args: &[Arg]) -> String {
             Arg::Ref(place) => format!("Ref {}:{}", place_text(p, place), ty(p, p.place_ty(place))),
             Arg::Temp(v) => format!("Temp({})", val(p, v)),
             Arg::Array(a) => format!("Array {}:{}", array_text(p, a), ty(p, p.array_ty(a))),
+            Arg::Value(v) => format!("Value({})", val(p, v)),
+            Arg::Null => "Null".to_string(),
         })
         .collect::<Vec<_>>()
         .join(", ")
@@ -377,6 +524,29 @@ fn val(p: &Program, v: &Expr) -> String {
             let d = dim.as_deref().map_or("1".to_string(), |d| val(p, d));
             format!("{word} {}({d}):{}", array_text(p, array), ty(p, v.ty))
         }
+        ExprKind::VarPtr { array, index } => {
+            let i: Vec<String> = index.iter().map(|i| val(p, i)).collect();
+            format!("VarPtr {}({}):{}", var(p, *array), i.join(", "), ty(p, v.ty))
+        }
+        ExprKind::VarSeg { array } => format!("VarSeg {}:{}", var(p, *array), ty(p, v.ty)),
+        ExprKind::MemOf { of, element } => {
+            let word = if *element { "MemElement" } else { "Mem" };
+            format!("{word} {}:{}", reference_text(p, of), ty(p, v.ty))
+        }
+        ExprKind::AddressOf(of) => format!("AddressOf {}:{}", reference_text(p, of), ty(p, v.ty)),
+        ExprKind::MemRead { block, offset, of } => format!(
+            "MemRead {} at {} as {}:{}",
+            place_text(p, block),
+            val(p, offset),
+            ty(p, *of),
+            ty(p, v.ty)
+        ),
+        ExprKind::MemAt { offset, size } => format!("MemAt({}, {}):{}", val(p, offset), val(p, size), ty(p, v.ty)),
+        ExprKind::Block { array, index } if index.is_empty() => format!("Bytes {}", var(p, *array)),
+        ExprKind::Block { array, index } => {
+            let i: Vec<String> = index.iter().map(|i| val(p, i)).collect();
+            format!("Bytes {}({})", var(p, *array), i.join(", "))
+        }
         ExprKind::Convert { how, from } => format!("({} -> Convert {} {how:?})", val(p, from), ty(p, v.ty)),
         ExprKind::Binary { op, lhs, rhs } => {
             // Only `+`, `-` and `*` can overflow an integer type (and `\` of the smallest value by -1, unspecified).
@@ -387,6 +557,13 @@ fn val(p: &Program, v: &Expr) -> String {
         ExprKind::Unary { op, operand } => format!("{op:?}:{}({})", ty(p, v.ty), val(p, operand)),
         ExprKind::Concat(a, b) => format!("Concat({}, {})", val(p, a), val(p, b)),
         ExprKind::StrCompare { op, lhs, rhs } => format!("StrCompare {op:?}({}, {})", val(p, lhs), val(p, rhs)),
+        ExprKind::Choice { condition, then, else_ } => format!(
+            "Choice:{}({} ? {} : {})",
+            ty(p, v.ty),
+            val(p, condition),
+            val(p, then),
+            val(p, else_)
+        ),
         ExprKind::Call { builtin: id, args } => {
             let args: Vec<String> = args
                 .iter()

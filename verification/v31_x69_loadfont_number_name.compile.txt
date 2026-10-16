@@ -1,0 +1,5 @@
+
+1st function argument requires a string
+Caused by (or after):L = _LOADFONT ( 5 , 16 )
+LINE 5:l = _LOADFONT(5, 16)
+exit=1

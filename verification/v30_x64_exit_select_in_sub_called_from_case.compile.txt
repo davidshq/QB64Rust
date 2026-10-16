@@ -1,0 +1,5 @@
+
+EXIT SELECT without SELECT
+Caused by (or after):EXIT SELECT
+LINE 9:EXIT SELECT
+exit=1

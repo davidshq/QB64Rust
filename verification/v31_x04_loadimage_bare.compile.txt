@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _LOADIMAGE(fileName$[, [mode&][, requirements$]])
+Caused by (or after):L = _LOADIMAGE
+LINE 5:l = _LOADIMAGE
+exit=1

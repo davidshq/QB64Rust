@@ -1,0 +1,5 @@
+
+Variable/element cannot be _BIT aligned
+Caused by (or after):GET # 1 , , BT
+LINE 6:GET #1, , bt
+exit=1

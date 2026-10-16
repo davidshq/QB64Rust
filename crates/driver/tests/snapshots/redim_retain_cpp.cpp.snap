@@ -1,0 +1,2316 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+ptrszint *__ARRAY_LONG_A=NULL;
+ptrszint *__ARRAY_STRING_S=NULL;
+ptrszint *__ARRAY_STRING3_X=NULL;
+ptrszint *__ARRAY_UBIT5_P=NULL;
+ptrszint *__ARRAY_UDT_R=NULL;
+ptrszint *__ARRAY_DOUBLE_C=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> clear.txt <==
+if (__ARRAY_LONG_A[2]&1){
+if (__ARRAY_LONG_A[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_LONG_A[0])); else free((void*)(__ARRAY_LONG_A[0]));
+__ARRAY_LONG_A[2]^=1;
+__ARRAY_LONG_A[4]=2147483647;
+__ARRAY_LONG_A[5]=0;
+__ARRAY_LONG_A[6]=0;
+__ARRAY_LONG_A[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_STRING_S[2]&1){
+tmp_long=__ARRAY_STRING_S[5];
+while(tmp_long--){
+qbs_free(((qbs**)(__ARRAY_STRING_S[0]))[tmp_long]);
+}
+free((void*)(__ARRAY_STRING_S[0]));
+__ARRAY_STRING_S[2]^=1;
+__ARRAY_STRING_S[4]=2147483647;
+__ARRAY_STRING_S[5]=0;
+__ARRAY_STRING_S[6]=0;
+__ARRAY_STRING_S[0]=(ptrszint)&nothingstring;
+}
+if (__ARRAY_STRING3_X[2]&1){
+free((void*)(__ARRAY_STRING3_X[0]));
+__ARRAY_STRING3_X[2]^=1;
+__ARRAY_STRING3_X[4]=2147483647;
+__ARRAY_STRING3_X[5]=0;
+__ARRAY_STRING3_X[6]=0;
+__ARRAY_STRING3_X[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_UBIT5_P[2]&1){
+free((void*)(__ARRAY_UBIT5_P[0]));
+__ARRAY_UBIT5_P[2]^=1;
+__ARRAY_UBIT5_P[4]=2147483647;
+__ARRAY_UBIT5_P[5]=0;
+__ARRAY_UBIT5_P[6]=0;
+__ARRAY_UBIT5_P[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_UDT_R[2]&1){
+tmp_long=__ARRAY_UDT_R[5];
+while(tmp_long--){
+qbs_free(*(qbs**)(((char*)(__ARRAY_UDT_R[0])+tmp_long*15)+4));
+}
+free((void*)(__ARRAY_UDT_R[0]));
+__ARRAY_UDT_R[2]^=1;
+__ARRAY_UDT_R[4]=2147483647;
+__ARRAY_UDT_R[5]=0;
+__ARRAY_UDT_R[6]=0;
+__ARRAY_UDT_R[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_DOUBLE_C[2]&1){
+if (__ARRAY_DOUBLE_C[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_DOUBLE_C[0])); else free((void*)(__ARRAY_DOUBLE_C[0]));
+__ARRAY_DOUBLE_C[2]^=1;
+__ARRAY_DOUBLE_C[4]=2147483647;
+__ARRAY_DOUBLE_C[5]=0;
+__ARRAY_DOUBLE_C[6]=0;
+__ARRAY_DOUBLE_C[8]=2147483647;
+__ARRAY_DOUBLE_C[9]=0;
+__ARRAY_DOUBLE_C[10]=0;
+__ARRAY_DOUBLE_C[12]=2147483647;
+__ARRAY_DOUBLE_C[13]=0;
+__ARRAY_DOUBLE_C[14]=0;
+__ARRAY_DOUBLE_C[0]=(ptrszint)nothingvalue;
+}
+==> maindata.txt <==
+if (!__ARRAY_LONG_A){
+__ARRAY_LONG_A=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_A)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_A[2]=0;
+__ARRAY_LONG_A[4]=2147483647;
+__ARRAY_LONG_A[5]=0;
+__ARRAY_LONG_A[6]=0;
+__ARRAY_LONG_A[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_STRING_S){
+__ARRAY_STRING_S=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING_S)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING_S[2]=0;
+__ARRAY_STRING_S[4]=2147483647;
+__ARRAY_STRING_S[5]=0;
+__ARRAY_STRING_S[6]=0;
+__ARRAY_STRING_S[0]=(ptrszint)&nothingstring;
+}
+if (!__ARRAY_STRING3_X){
+__ARRAY_STRING3_X=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING3_X)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING3_X[2]=0;
+__ARRAY_STRING3_X[4]=2147483647;
+__ARRAY_STRING3_X[5]=0;
+__ARRAY_STRING3_X[6]=0;
+__ARRAY_STRING3_X[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_UBIT5_P){
+__ARRAY_UBIT5_P=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UBIT5_P)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UBIT5_P[2]=0;
+__ARRAY_UBIT5_P[4]=2147483647;
+__ARRAY_UBIT5_P[5]=0;
+__ARRAY_UBIT5_P[6]=0;
+__ARRAY_UBIT5_P[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_UDT_R){
+__ARRAY_UDT_R=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_R)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_R[2]=0;
+__ARRAY_UDT_R[4]=2147483647;
+__ARRAY_UDT_R[5]=0;
+__ARRAY_UDT_R[6]=0;
+__ARRAY_UDT_R[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_DOUBLE_C){
+__ARRAY_DOUBLE_C=(ptrszint*)mem_static_malloc(17*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_DOUBLE_C)[16]=(ptrszint)mem_lock_tmp;
+__ARRAY_DOUBLE_C[2]=0;
+__ARRAY_DOUBLE_C[4]=2147483647;
+__ARRAY_DOUBLE_C[5]=0;
+__ARRAY_DOUBLE_C[6]=0;
+__ARRAY_DOUBLE_C[8]=2147483647;
+__ARRAY_DOUBLE_C[9]=0;
+__ARRAY_DOUBLE_C[10]=0;
+__ARRAY_DOUBLE_C[12]=2147483647;
+__ARRAY_DOUBLE_C[13]=0;
+__ARRAY_DOUBLE_C[14]=0;
+__ARRAY_DOUBLE_C[0]=(ptrszint)nothingvalue;
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "redim_retain_cpp.bas"
+do{
+#line 2 "redim_retain_cpp.bas"
+sub__dest(func__console());
+#line 2 "redim_retain_cpp.bas"
+sub__source(func__console());
+#line 2 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 13 "redim_retain_cpp.bas"
+do{
+#line 13 "redim_retain_cpp.bas"
+if (__ARRAY_LONG_A[2]&2){
+#line 13 "redim_retain_cpp.bas"
+error(10);
+#line 13 "redim_retain_cpp.bas"
+}else{
+#line 13 "redim_retain_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 13 "redim_retain_cpp.bas"
+uint64 preserve_old_total=0;
+#line 13 "redim_retain_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 13 "redim_retain_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 13 "redim_retain_cpp.bas"
+int64 alloc_new_desc[8];
+#line 13 "redim_retain_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 13 "redim_retain_cpp.bas"
+uint64 alloc_req_bytes;
+#line 13 "redim_retain_cpp.bas"
+uint64 alloc_dim_value;
+#line 13 "redim_retain_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 13 "redim_retain_cpp.bas"
+alloc_new_desc[4]=1ll;
+#line 13 "redim_retain_cpp.bas"
+alloc_new_desc[5]=(5ll)-alloc_new_desc[4]+1;
+#line 13 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 13 "redim_retain_cpp.bas"
+alloc_new_desc[6]=1;
+#line 13 "redim_retain_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_LONG_A)[8])->id=(++mem_lock_id);
+#line 13 "redim_retain_cpp.bas"
+if (__ARRAY_LONG_A[2]&1){
+#line 13 "redim_retain_cpp.bas"
+preserve_old_ptr=__ARRAY_LONG_A[0];
+#line 13 "redim_retain_cpp.bas"
+preserve_old_total=__ARRAY_LONG_A[5];
+#line 13 "redim_retain_cpp.bas"
+}
+#line 13 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 13 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 13 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 13 "redim_retain_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 13 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 13 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 13 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 13 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 13 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 13 "redim_retain_cpp.bas"
+}
+#line 13 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 13 "redim_retain_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 13 "redim_retain_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 13 "redim_retain_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 13 "redim_retain_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 13 "redim_retain_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 13 "redim_retain_cpp.bas"
+if (preserve_old_total){
+#line 13 "redim_retain_cpp.bas"
+if (__ARRAY_LONG_A[2]&4){
+#line 13 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 13 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 13 "redim_retain_cpp.bas"
+memset((void*)(preserve_new_ptr),0,(size_t)alloc_req_bytes);
+#line 13 "redim_retain_cpp.bas"
+}else{
+#line 13 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 13 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 13 "redim_retain_cpp.bas"
+}
+#line 13 "redim_retain_cpp.bas"
+if (__ARRAY_LONG_A[2]&4) cmem_dynamic_free((uint8*)(preserve_old_ptr)); else free((void*)(preserve_old_ptr));
+#line 13 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[0]=preserve_new_ptr;
+#line 13 "redim_retain_cpp.bas"
+}else{
+#line 13 "redim_retain_cpp.bas"
+if (__ARRAY_LONG_A[2]&4){
+#line 13 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 13 "redim_retain_cpp.bas"
+if (!__ARRAY_LONG_A[0]) error(257);
+#line 13 "redim_retain_cpp.bas"
+memset((void*)(__ARRAY_LONG_A[0]),0,(size_t)alloc_req_bytes);
+#line 13 "redim_retain_cpp.bas"
+}else{
+#line 13 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 13 "redim_retain_cpp.bas"
+if (!__ARRAY_LONG_A[0]) error(257);
+#line 13 "redim_retain_cpp.bas"
+}
+#line 13 "redim_retain_cpp.bas"
+}
+#line 13 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[2]|=1;
+#line 13 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[4]=alloc_new_desc[4];
+#line 13 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[5]=alloc_new_desc[5];
+#line 13 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[6]=alloc_new_desc[6];
+#line 13 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[7]=alloc_new_desc[7];
+#line 13 "redim_retain_cpp.bas"
+}
+#line 13 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 14 "redim_retain_cpp.bas"
+do{
+#line 14 "redim_retain_cpp.bas"
+if (__ARRAY_LONG_A[2]&2){
+#line 14 "redim_retain_cpp.bas"
+error(10);
+#line 14 "redim_retain_cpp.bas"
+}else{
+#line 14 "redim_retain_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 14 "redim_retain_cpp.bas"
+uint64 preserve_old_total=0;
+#line 14 "redim_retain_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 14 "redim_retain_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 14 "redim_retain_cpp.bas"
+int32 preserve_any=0;
+#line 14 "redim_retain_cpp.bas"
+int64 preserve_old_desc[8];
+#line 14 "redim_retain_cpp.bas"
+int64 preserve_lo[1];
+#line 14 "redim_retain_cpp.bas"
+int64 preserve_hi[1];
+#line 14 "redim_retain_cpp.bas"
+int64 preserve_idx[1];
+#line 14 "redim_retain_cpp.bas"
+int64 preserve_old_off;
+#line 14 "redim_retain_cpp.bas"
+int64 preserve_new_off;
+#line 14 "redim_retain_cpp.bas"
+ptrszint preserve_dim;
+#line 14 "redim_retain_cpp.bas"
+int64 alloc_new_desc[8];
+#line 14 "redim_retain_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 14 "redim_retain_cpp.bas"
+uint64 alloc_req_bytes;
+#line 14 "redim_retain_cpp.bas"
+uint64 alloc_dim_value;
+#line 14 "redim_retain_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 14 "redim_retain_cpp.bas"
+alloc_new_desc[4]=3ll;
+#line 14 "redim_retain_cpp.bas"
+alloc_new_desc[5]=(7ll)-alloc_new_desc[4]+1;
+#line 14 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 14 "redim_retain_cpp.bas"
+alloc_new_desc[6]=1;
+#line 14 "redim_retain_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_LONG_A)[8])->id=(++mem_lock_id);
+#line 14 "redim_retain_cpp.bas"
+if (__ARRAY_LONG_A[2]&1){
+#line 14 "redim_retain_cpp.bas"
+preserve_old_ptr=__ARRAY_LONG_A[0];
+#line 14 "redim_retain_cpp.bas"
+preserve_old_total=__ARRAY_LONG_A[5];
+#line 14 "redim_retain_cpp.bas"
+preserve_old_desc[4]=__ARRAY_LONG_A[4];
+#line 14 "redim_retain_cpp.bas"
+preserve_old_desc[5]=__ARRAY_LONG_A[5];
+#line 14 "redim_retain_cpp.bas"
+preserve_old_desc[6]=__ARRAY_LONG_A[6];
+#line 14 "redim_retain_cpp.bas"
+preserve_old_desc[7]=__ARRAY_LONG_A[7];
+#line 14 "redim_retain_cpp.bas"
+}
+#line 14 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 14 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 14 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 14 "redim_retain_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 14 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 14 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 14 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 14 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 14 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 14 "redim_retain_cpp.bas"
+}
+#line 14 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 14 "redim_retain_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 14 "redim_retain_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 14 "redim_retain_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 14 "redim_retain_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 14 "redim_retain_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 14 "redim_retain_cpp.bas"
+preserve_any=(preserve_old_total!=0);
+#line 14 "redim_retain_cpp.bas"
+preserve_lo[0]=alloc_new_desc[4];
+#line 14 "redim_retain_cpp.bas"
+if (preserve_old_desc[4]>preserve_lo[0]) preserve_lo[0]=preserve_old_desc[4];
+#line 14 "redim_retain_cpp.bas"
+preserve_hi[0]=alloc_new_desc[4]+(alloc_new_desc[5]-1);
+#line 14 "redim_retain_cpp.bas"
+if ((preserve_old_desc[4]+(preserve_old_desc[5]-1))<preserve_hi[0]) preserve_hi[0]=preserve_old_desc[4]+(preserve_old_desc[5]-1);
+#line 14 "redim_retain_cpp.bas"
+if (preserve_hi[0]<preserve_lo[0]) preserve_any=0;
+#line 14 "redim_retain_cpp.bas"
+if (preserve_old_total){
+#line 14 "redim_retain_cpp.bas"
+if (__ARRAY_LONG_A[2]&4){
+#line 14 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 14 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 14 "redim_retain_cpp.bas"
+memset((void*)(preserve_new_ptr),0,(size_t)alloc_req_bytes);
+#line 14 "redim_retain_cpp.bas"
+}else{
+#line 14 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 14 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 14 "redim_retain_cpp.bas"
+}
+#line 14 "redim_retain_cpp.bas"
+if (preserve_any){
+#line 14 "redim_retain_cpp.bas"
+preserve_idx[0]=preserve_lo[0];
+#line 14 "redim_retain_cpp.bas"
+for(;;){
+#line 14 "redim_retain_cpp.bas"
+preserve_old_off=preserve_idx[0]-preserve_old_desc[4];
+#line 14 "redim_retain_cpp.bas"
+preserve_new_off=preserve_idx[0]-alloc_new_desc[4];
+#line 14 "redim_retain_cpp.bas"
+memcpy(((uint8*)(preserve_new_ptr))+preserve_new_off*4,((uint8*)(preserve_old_ptr))+preserve_old_off*4,4);
+#line 14 "redim_retain_cpp.bas"
+preserve_dim=0;
+#line 14 "redim_retain_cpp.bas"
+while (preserve_dim<1){
+#line 14 "redim_retain_cpp.bas"
+preserve_idx[preserve_dim]++;
+#line 14 "redim_retain_cpp.bas"
+if (preserve_idx[preserve_dim]<=preserve_hi[preserve_dim]) break;
+#line 14 "redim_retain_cpp.bas"
+preserve_idx[preserve_dim]=preserve_lo[preserve_dim];
+#line 14 "redim_retain_cpp.bas"
+preserve_dim++;
+#line 14 "redim_retain_cpp.bas"
+}
+#line 14 "redim_retain_cpp.bas"
+if (preserve_dim==1) break;
+#line 14 "redim_retain_cpp.bas"
+}
+#line 14 "redim_retain_cpp.bas"
+}
+#line 14 "redim_retain_cpp.bas"
+if (__ARRAY_LONG_A[2]&4) cmem_dynamic_free((uint8*)(preserve_old_ptr)); else free((void*)(preserve_old_ptr));
+#line 14 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[0]=preserve_new_ptr;
+#line 14 "redim_retain_cpp.bas"
+}else{
+#line 14 "redim_retain_cpp.bas"
+if (__ARRAY_LONG_A[2]&4){
+#line 14 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 14 "redim_retain_cpp.bas"
+if (!__ARRAY_LONG_A[0]) error(257);
+#line 14 "redim_retain_cpp.bas"
+memset((void*)(__ARRAY_LONG_A[0]),0,(size_t)alloc_req_bytes);
+#line 14 "redim_retain_cpp.bas"
+}else{
+#line 14 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 14 "redim_retain_cpp.bas"
+if (!__ARRAY_LONG_A[0]) error(257);
+#line 14 "redim_retain_cpp.bas"
+}
+#line 14 "redim_retain_cpp.bas"
+}
+#line 14 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[2]|=1;
+#line 14 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[4]=alloc_new_desc[4];
+#line 14 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[5]=alloc_new_desc[5];
+#line 14 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[6]=alloc_new_desc[6];
+#line 14 "redim_retain_cpp.bas"
+__ARRAY_LONG_A[7]=alloc_new_desc[7];
+#line 14 "redim_retain_cpp.bas"
+}
+#line 14 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 15 "redim_retain_cpp.bas"
+do{
+#line 15 "redim_retain_cpp.bas"
+if (__ARRAY_STRING_S[2]&2){
+#line 15 "redim_retain_cpp.bas"
+error(10);
+#line 15 "redim_retain_cpp.bas"
+}else{
+#line 15 "redim_retain_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 15 "redim_retain_cpp.bas"
+uint64 preserve_old_total=0;
+#line 15 "redim_retain_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 15 "redim_retain_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 15 "redim_retain_cpp.bas"
+int64 alloc_new_desc[8];
+#line 15 "redim_retain_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 15 "redim_retain_cpp.bas"
+uint64 alloc_req_bytes;
+#line 15 "redim_retain_cpp.bas"
+uint64 alloc_dim_value;
+#line 15 "redim_retain_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(8);
+#line 15 "redim_retain_cpp.bas"
+alloc_new_desc[4]=1ll;
+#line 15 "redim_retain_cpp.bas"
+alloc_new_desc[5]=(4ll)-alloc_new_desc[4]+1;
+#line 15 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 15 "redim_retain_cpp.bas"
+alloc_new_desc[6]=1;
+#line 15 "redim_retain_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_STRING_S)[8])->id=(++mem_lock_id);
+#line 15 "redim_retain_cpp.bas"
+if (__ARRAY_STRING_S[2]&1){
+#line 15 "redim_retain_cpp.bas"
+preserve_old_ptr=__ARRAY_STRING_S[0];
+#line 15 "redim_retain_cpp.bas"
+preserve_old_total=__ARRAY_STRING_S[5];
+#line 15 "redim_retain_cpp.bas"
+}
+#line 15 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 15 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 15 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 15 "redim_retain_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 15 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 15 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 15 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 15 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 15 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 15 "redim_retain_cpp.bas"
+}
+#line 15 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 15 "redim_retain_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 15 "redim_retain_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 15 "redim_retain_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 15 "redim_retain_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 15 "redim_retain_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 15 "redim_retain_cpp.bas"
+if (preserve_old_total){
+#line 15 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)malloc((size_t)alloc_req_bytes);
+#line 15 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 15 "redim_retain_cpp.bas"
+tmp_long=(ptrszint)alloc_req_elems;
+#line 15 "redim_retain_cpp.bas"
+while(tmp_long--) ((qbs**)(preserve_new_ptr))[tmp_long]=qbs_new(0,0);
+#line 15 "redim_retain_cpp.bas"
+tmp_long=preserve_old_total;
+#line 15 "redim_retain_cpp.bas"
+while(tmp_long--) qbs_free(((qbs**)(preserve_old_ptr))[tmp_long]);
+#line 15 "redim_retain_cpp.bas"
+free((void*)(preserve_old_ptr));
+#line 15 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[0]=preserve_new_ptr;
+#line 15 "redim_retain_cpp.bas"
+}else{
+#line 15 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[0]=(ptrszint)malloc((size_t)alloc_req_bytes);
+#line 15 "redim_retain_cpp.bas"
+if (!__ARRAY_STRING_S[0]) error(257);
+#line 15 "redim_retain_cpp.bas"
+tmp_long=(ptrszint)alloc_req_elems;
+#line 15 "redim_retain_cpp.bas"
+while(tmp_long--) ((qbs**)(__ARRAY_STRING_S[0]))[tmp_long]=qbs_new(0,0);
+#line 15 "redim_retain_cpp.bas"
+}
+#line 15 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[2]|=1;
+#line 15 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[4]=alloc_new_desc[4];
+#line 15 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[5]=alloc_new_desc[5];
+#line 15 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[6]=alloc_new_desc[6];
+#line 15 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[7]=alloc_new_desc[7];
+#line 15 "redim_retain_cpp.bas"
+}
+#line 15 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "redim_retain_cpp.bas"
+do{
+#line 16 "redim_retain_cpp.bas"
+if (__ARRAY_STRING_S[2]&2){
+#line 16 "redim_retain_cpp.bas"
+error(10);
+#line 16 "redim_retain_cpp.bas"
+}else{
+#line 16 "redim_retain_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 16 "redim_retain_cpp.bas"
+uint64 preserve_old_total=0;
+#line 16 "redim_retain_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 16 "redim_retain_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 16 "redim_retain_cpp.bas"
+int32 preserve_any=0;
+#line 16 "redim_retain_cpp.bas"
+int64 preserve_old_desc[8];
+#line 16 "redim_retain_cpp.bas"
+int64 preserve_lo[1];
+#line 16 "redim_retain_cpp.bas"
+int64 preserve_hi[1];
+#line 16 "redim_retain_cpp.bas"
+int64 preserve_idx[1];
+#line 16 "redim_retain_cpp.bas"
+int64 preserve_old_off;
+#line 16 "redim_retain_cpp.bas"
+int64 preserve_new_off;
+#line 16 "redim_retain_cpp.bas"
+ptrszint preserve_dim;
+#line 16 "redim_retain_cpp.bas"
+int64 alloc_new_desc[8];
+#line 16 "redim_retain_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 16 "redim_retain_cpp.bas"
+uint64 alloc_req_bytes;
+#line 16 "redim_retain_cpp.bas"
+uint64 alloc_dim_value;
+#line 16 "redim_retain_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(8);
+#line 16 "redim_retain_cpp.bas"
+alloc_new_desc[4]=3ll;
+#line 16 "redim_retain_cpp.bas"
+alloc_new_desc[5]=(6ll)-alloc_new_desc[4]+1;
+#line 16 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 16 "redim_retain_cpp.bas"
+alloc_new_desc[6]=1;
+#line 16 "redim_retain_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_STRING_S)[8])->id=(++mem_lock_id);
+#line 16 "redim_retain_cpp.bas"
+if (__ARRAY_STRING_S[2]&1){
+#line 16 "redim_retain_cpp.bas"
+preserve_old_ptr=__ARRAY_STRING_S[0];
+#line 16 "redim_retain_cpp.bas"
+preserve_old_total=__ARRAY_STRING_S[5];
+#line 16 "redim_retain_cpp.bas"
+preserve_old_desc[4]=__ARRAY_STRING_S[4];
+#line 16 "redim_retain_cpp.bas"
+preserve_old_desc[5]=__ARRAY_STRING_S[5];
+#line 16 "redim_retain_cpp.bas"
+preserve_old_desc[6]=__ARRAY_STRING_S[6];
+#line 16 "redim_retain_cpp.bas"
+preserve_old_desc[7]=__ARRAY_STRING_S[7];
+#line 16 "redim_retain_cpp.bas"
+}
+#line 16 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 16 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 16 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 16 "redim_retain_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 16 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 16 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 16 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 16 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 16 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 16 "redim_retain_cpp.bas"
+}
+#line 16 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 16 "redim_retain_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 16 "redim_retain_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 16 "redim_retain_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 16 "redim_retain_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 16 "redim_retain_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 16 "redim_retain_cpp.bas"
+preserve_any=(preserve_old_total!=0);
+#line 16 "redim_retain_cpp.bas"
+preserve_lo[0]=alloc_new_desc[4];
+#line 16 "redim_retain_cpp.bas"
+if (preserve_old_desc[4]>preserve_lo[0]) preserve_lo[0]=preserve_old_desc[4];
+#line 16 "redim_retain_cpp.bas"
+preserve_hi[0]=alloc_new_desc[4]+(alloc_new_desc[5]-1);
+#line 16 "redim_retain_cpp.bas"
+if ((preserve_old_desc[4]+(preserve_old_desc[5]-1))<preserve_hi[0]) preserve_hi[0]=preserve_old_desc[4]+(preserve_old_desc[5]-1);
+#line 16 "redim_retain_cpp.bas"
+if (preserve_hi[0]<preserve_lo[0]) preserve_any=0;
+#line 16 "redim_retain_cpp.bas"
+if (preserve_old_total){
+#line 16 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)malloc((size_t)alloc_req_bytes);
+#line 16 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 16 "redim_retain_cpp.bas"
+tmp_long=(ptrszint)alloc_req_elems;
+#line 16 "redim_retain_cpp.bas"
+while(tmp_long--) ((qbs**)(preserve_new_ptr))[tmp_long]=qbs_new(0,0);
+#line 16 "redim_retain_cpp.bas"
+if (preserve_any){
+#line 16 "redim_retain_cpp.bas"
+preserve_idx[0]=preserve_lo[0];
+#line 16 "redim_retain_cpp.bas"
+for(;;){
+#line 16 "redim_retain_cpp.bas"
+preserve_old_off=preserve_idx[0]-preserve_old_desc[4];
+#line 16 "redim_retain_cpp.bas"
+preserve_new_off=preserve_idx[0]-alloc_new_desc[4];
+#line 16 "redim_retain_cpp.bas"
+qbs_set(((qbs**)(preserve_new_ptr))[preserve_new_off],((qbs**)(preserve_old_ptr))[preserve_old_off]);
+#line 16 "redim_retain_cpp.bas"
+preserve_dim=0;
+#line 16 "redim_retain_cpp.bas"
+while (preserve_dim<1){
+#line 16 "redim_retain_cpp.bas"
+preserve_idx[preserve_dim]++;
+#line 16 "redim_retain_cpp.bas"
+if (preserve_idx[preserve_dim]<=preserve_hi[preserve_dim]) break;
+#line 16 "redim_retain_cpp.bas"
+preserve_idx[preserve_dim]=preserve_lo[preserve_dim];
+#line 16 "redim_retain_cpp.bas"
+preserve_dim++;
+#line 16 "redim_retain_cpp.bas"
+}
+#line 16 "redim_retain_cpp.bas"
+if (preserve_dim==1) break;
+#line 16 "redim_retain_cpp.bas"
+}
+#line 16 "redim_retain_cpp.bas"
+}
+#line 16 "redim_retain_cpp.bas"
+tmp_long=preserve_old_total;
+#line 16 "redim_retain_cpp.bas"
+while(tmp_long--) qbs_free(((qbs**)(preserve_old_ptr))[tmp_long]);
+#line 16 "redim_retain_cpp.bas"
+free((void*)(preserve_old_ptr));
+#line 16 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[0]=preserve_new_ptr;
+#line 16 "redim_retain_cpp.bas"
+}else{
+#line 16 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[0]=(ptrszint)malloc((size_t)alloc_req_bytes);
+#line 16 "redim_retain_cpp.bas"
+if (!__ARRAY_STRING_S[0]) error(257);
+#line 16 "redim_retain_cpp.bas"
+tmp_long=(ptrszint)alloc_req_elems;
+#line 16 "redim_retain_cpp.bas"
+while(tmp_long--) ((qbs**)(__ARRAY_STRING_S[0]))[tmp_long]=qbs_new(0,0);
+#line 16 "redim_retain_cpp.bas"
+}
+#line 16 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[2]|=1;
+#line 16 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[4]=alloc_new_desc[4];
+#line 16 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[5]=alloc_new_desc[5];
+#line 16 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[6]=alloc_new_desc[6];
+#line 16 "redim_retain_cpp.bas"
+__ARRAY_STRING_S[7]=alloc_new_desc[7];
+#line 16 "redim_retain_cpp.bas"
+}
+#line 16 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "redim_retain_cpp.bas"
+do{
+#line 17 "redim_retain_cpp.bas"
+if (__ARRAY_STRING3_X[2]&2){
+#line 17 "redim_retain_cpp.bas"
+error(10);
+#line 17 "redim_retain_cpp.bas"
+}else{
+#line 17 "redim_retain_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 17 "redim_retain_cpp.bas"
+uint64 preserve_old_total=0;
+#line 17 "redim_retain_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 17 "redim_retain_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 17 "redim_retain_cpp.bas"
+int64 alloc_new_desc[8];
+#line 17 "redim_retain_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 17 "redim_retain_cpp.bas"
+uint64 alloc_req_bytes;
+#line 17 "redim_retain_cpp.bas"
+uint64 alloc_dim_value;
+#line 17 "redim_retain_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(3);
+#line 17 "redim_retain_cpp.bas"
+alloc_new_desc[4]=1ll;
+#line 17 "redim_retain_cpp.bas"
+alloc_new_desc[5]=(3ll)-alloc_new_desc[4]+1;
+#line 17 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 17 "redim_retain_cpp.bas"
+alloc_new_desc[6]=1;
+#line 17 "redim_retain_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_STRING3_X)[8])->id=(++mem_lock_id);
+#line 17 "redim_retain_cpp.bas"
+if (__ARRAY_STRING3_X[2]&1){
+#line 17 "redim_retain_cpp.bas"
+preserve_old_ptr=__ARRAY_STRING3_X[0];
+#line 17 "redim_retain_cpp.bas"
+preserve_old_total=__ARRAY_STRING3_X[5];
+#line 17 "redim_retain_cpp.bas"
+}
+#line 17 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 17 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 17 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 17 "redim_retain_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 17 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 17 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 17 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 17 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 17 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 17 "redim_retain_cpp.bas"
+}
+#line 17 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 17 "redim_retain_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 17 "redim_retain_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 17 "redim_retain_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 17 "redim_retain_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 17 "redim_retain_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 17 "redim_retain_cpp.bas"
+if (preserve_old_total){
+#line 17 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 17 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 17 "redim_retain_cpp.bas"
+free((void*)(preserve_old_ptr));
+#line 17 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[0]=preserve_new_ptr;
+#line 17 "redim_retain_cpp.bas"
+}else{
+#line 17 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 17 "redim_retain_cpp.bas"
+if (!__ARRAY_STRING3_X[0]) error(257);
+#line 17 "redim_retain_cpp.bas"
+}
+#line 17 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[2]|=1;
+#line 17 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[4]=alloc_new_desc[4];
+#line 17 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[5]=alloc_new_desc[5];
+#line 17 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[6]=alloc_new_desc[6];
+#line 17 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[7]=alloc_new_desc[7];
+#line 17 "redim_retain_cpp.bas"
+}
+#line 17 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "redim_retain_cpp.bas"
+do{
+#line 18 "redim_retain_cpp.bas"
+if (__ARRAY_STRING3_X[2]&2){
+#line 18 "redim_retain_cpp.bas"
+error(10);
+#line 18 "redim_retain_cpp.bas"
+}else{
+#line 18 "redim_retain_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 18 "redim_retain_cpp.bas"
+uint64 preserve_old_total=0;
+#line 18 "redim_retain_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 18 "redim_retain_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 18 "redim_retain_cpp.bas"
+int32 preserve_any=0;
+#line 18 "redim_retain_cpp.bas"
+int64 preserve_old_desc[8];
+#line 18 "redim_retain_cpp.bas"
+int64 preserve_lo[1];
+#line 18 "redim_retain_cpp.bas"
+int64 preserve_hi[1];
+#line 18 "redim_retain_cpp.bas"
+int64 preserve_idx[1];
+#line 18 "redim_retain_cpp.bas"
+int64 preserve_old_off;
+#line 18 "redim_retain_cpp.bas"
+int64 preserve_new_off;
+#line 18 "redim_retain_cpp.bas"
+ptrszint preserve_dim;
+#line 18 "redim_retain_cpp.bas"
+int64 alloc_new_desc[8];
+#line 18 "redim_retain_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 18 "redim_retain_cpp.bas"
+uint64 alloc_req_bytes;
+#line 18 "redim_retain_cpp.bas"
+uint64 alloc_dim_value;
+#line 18 "redim_retain_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(3);
+#line 18 "redim_retain_cpp.bas"
+alloc_new_desc[4]=2ll;
+#line 18 "redim_retain_cpp.bas"
+alloc_new_desc[5]=(5ll)-alloc_new_desc[4]+1;
+#line 18 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 18 "redim_retain_cpp.bas"
+alloc_new_desc[6]=1;
+#line 18 "redim_retain_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_STRING3_X)[8])->id=(++mem_lock_id);
+#line 18 "redim_retain_cpp.bas"
+if (__ARRAY_STRING3_X[2]&1){
+#line 18 "redim_retain_cpp.bas"
+preserve_old_ptr=__ARRAY_STRING3_X[0];
+#line 18 "redim_retain_cpp.bas"
+preserve_old_total=__ARRAY_STRING3_X[5];
+#line 18 "redim_retain_cpp.bas"
+preserve_old_desc[4]=__ARRAY_STRING3_X[4];
+#line 18 "redim_retain_cpp.bas"
+preserve_old_desc[5]=__ARRAY_STRING3_X[5];
+#line 18 "redim_retain_cpp.bas"
+preserve_old_desc[6]=__ARRAY_STRING3_X[6];
+#line 18 "redim_retain_cpp.bas"
+preserve_old_desc[7]=__ARRAY_STRING3_X[7];
+#line 18 "redim_retain_cpp.bas"
+}
+#line 18 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 18 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 18 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 18 "redim_retain_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 18 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 18 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 18 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 18 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 18 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 18 "redim_retain_cpp.bas"
+}
+#line 18 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 18 "redim_retain_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 18 "redim_retain_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 18 "redim_retain_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 18 "redim_retain_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 18 "redim_retain_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 18 "redim_retain_cpp.bas"
+preserve_any=(preserve_old_total!=0);
+#line 18 "redim_retain_cpp.bas"
+preserve_lo[0]=alloc_new_desc[4];
+#line 18 "redim_retain_cpp.bas"
+if (preserve_old_desc[4]>preserve_lo[0]) preserve_lo[0]=preserve_old_desc[4];
+#line 18 "redim_retain_cpp.bas"
+preserve_hi[0]=alloc_new_desc[4]+(alloc_new_desc[5]-1);
+#line 18 "redim_retain_cpp.bas"
+if ((preserve_old_desc[4]+(preserve_old_desc[5]-1))<preserve_hi[0]) preserve_hi[0]=preserve_old_desc[4]+(preserve_old_desc[5]-1);
+#line 18 "redim_retain_cpp.bas"
+if (preserve_hi[0]<preserve_lo[0]) preserve_any=0;
+#line 18 "redim_retain_cpp.bas"
+if (preserve_old_total){
+#line 18 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 18 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 18 "redim_retain_cpp.bas"
+if (preserve_any){
+#line 18 "redim_retain_cpp.bas"
+preserve_idx[0]=preserve_lo[0];
+#line 18 "redim_retain_cpp.bas"
+for(;;){
+#line 18 "redim_retain_cpp.bas"
+preserve_old_off=preserve_idx[0]-preserve_old_desc[4];
+#line 18 "redim_retain_cpp.bas"
+preserve_new_off=preserve_idx[0]-alloc_new_desc[4];
+#line 18 "redim_retain_cpp.bas"
+memcpy(((uint8*)(preserve_new_ptr))+preserve_new_off*3,((uint8*)(preserve_old_ptr))+preserve_old_off*3,3);
+#line 18 "redim_retain_cpp.bas"
+preserve_dim=0;
+#line 18 "redim_retain_cpp.bas"
+while (preserve_dim<1){
+#line 18 "redim_retain_cpp.bas"
+preserve_idx[preserve_dim]++;
+#line 18 "redim_retain_cpp.bas"
+if (preserve_idx[preserve_dim]<=preserve_hi[preserve_dim]) break;
+#line 18 "redim_retain_cpp.bas"
+preserve_idx[preserve_dim]=preserve_lo[preserve_dim];
+#line 18 "redim_retain_cpp.bas"
+preserve_dim++;
+#line 18 "redim_retain_cpp.bas"
+}
+#line 18 "redim_retain_cpp.bas"
+if (preserve_dim==1) break;
+#line 18 "redim_retain_cpp.bas"
+}
+#line 18 "redim_retain_cpp.bas"
+}
+#line 18 "redim_retain_cpp.bas"
+free((void*)(preserve_old_ptr));
+#line 18 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[0]=preserve_new_ptr;
+#line 18 "redim_retain_cpp.bas"
+}else{
+#line 18 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 18 "redim_retain_cpp.bas"
+if (!__ARRAY_STRING3_X[0]) error(257);
+#line 18 "redim_retain_cpp.bas"
+}
+#line 18 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[2]|=1;
+#line 18 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[4]=alloc_new_desc[4];
+#line 18 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[5]=alloc_new_desc[5];
+#line 18 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[6]=alloc_new_desc[6];
+#line 18 "redim_retain_cpp.bas"
+__ARRAY_STRING3_X[7]=alloc_new_desc[7];
+#line 18 "redim_retain_cpp.bas"
+}
+#line 18 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "redim_retain_cpp.bas"
+do{
+#line 19 "redim_retain_cpp.bas"
+if (__ARRAY_UBIT5_P[2]&2){
+#line 19 "redim_retain_cpp.bas"
+error(10);
+#line 19 "redim_retain_cpp.bas"
+}else{
+#line 19 "redim_retain_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 19 "redim_retain_cpp.bas"
+uint64 preserve_old_total=0;
+#line 19 "redim_retain_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 19 "redim_retain_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 19 "redim_retain_cpp.bas"
+int64 alloc_new_desc[8];
+#line 19 "redim_retain_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 19 "redim_retain_cpp.bas"
+uint64 alloc_req_bytes;
+#line 19 "redim_retain_cpp.bas"
+uint64 alloc_dim_value;
+#line 19 "redim_retain_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(5/8+1);
+#line 19 "redim_retain_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 19 "redim_retain_cpp.bas"
+alloc_new_desc[5]=(9ll)-alloc_new_desc[4]+1;
+#line 19 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 19 "redim_retain_cpp.bas"
+alloc_new_desc[6]=1;
+#line 19 "redim_retain_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_UBIT5_P)[8])->id=(++mem_lock_id);
+#line 19 "redim_retain_cpp.bas"
+if (__ARRAY_UBIT5_P[2]&1){
+#line 19 "redim_retain_cpp.bas"
+preserve_old_ptr=__ARRAY_UBIT5_P[0];
+#line 19 "redim_retain_cpp.bas"
+preserve_old_total=__ARRAY_UBIT5_P[5];
+#line 19 "redim_retain_cpp.bas"
+}
+#line 19 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 19 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 19 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 19 "redim_retain_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 19 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 19 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 19 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 19 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 19 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 19 "redim_retain_cpp.bas"
+}
+#line 19 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 19 "redim_retain_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 19 "redim_retain_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 19 "redim_retain_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 19 "redim_retain_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 19 "redim_retain_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 19 "redim_retain_cpp.bas"
+if (preserve_old_total){
+#line 19 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 19 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 19 "redim_retain_cpp.bas"
+free((void*)(preserve_old_ptr));
+#line 19 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[0]=preserve_new_ptr;
+#line 19 "redim_retain_cpp.bas"
+}else{
+#line 19 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 19 "redim_retain_cpp.bas"
+if (!__ARRAY_UBIT5_P[0]) error(257);
+#line 19 "redim_retain_cpp.bas"
+}
+#line 19 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[2]|=1;
+#line 19 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[4]=alloc_new_desc[4];
+#line 19 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[5]=alloc_new_desc[5];
+#line 19 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[6]=alloc_new_desc[6];
+#line 19 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[7]=alloc_new_desc[7];
+#line 19 "redim_retain_cpp.bas"
+}
+#line 19 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "redim_retain_cpp.bas"
+do{
+#line 20 "redim_retain_cpp.bas"
+if (__ARRAY_UBIT5_P[2]&2){
+#line 20 "redim_retain_cpp.bas"
+error(10);
+#line 20 "redim_retain_cpp.bas"
+}else{
+#line 20 "redim_retain_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 20 "redim_retain_cpp.bas"
+uint64 preserve_old_total=0;
+#line 20 "redim_retain_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 20 "redim_retain_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 20 "redim_retain_cpp.bas"
+int32 preserve_any=0;
+#line 20 "redim_retain_cpp.bas"
+int64 preserve_old_desc[8];
+#line 20 "redim_retain_cpp.bas"
+int64 preserve_lo[1];
+#line 20 "redim_retain_cpp.bas"
+int64 preserve_hi[1];
+#line 20 "redim_retain_cpp.bas"
+int64 preserve_idx[1];
+#line 20 "redim_retain_cpp.bas"
+int64 preserve_old_off;
+#line 20 "redim_retain_cpp.bas"
+int64 preserve_new_off;
+#line 20 "redim_retain_cpp.bas"
+ptrszint preserve_dim;
+#line 20 "redim_retain_cpp.bas"
+int64 alloc_new_desc[8];
+#line 20 "redim_retain_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 20 "redim_retain_cpp.bas"
+uint64 alloc_req_bytes;
+#line 20 "redim_retain_cpp.bas"
+uint64 alloc_dim_value;
+#line 20 "redim_retain_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(5/8+1);
+#line 20 "redim_retain_cpp.bas"
+alloc_new_desc[4]=5ll;
+#line 20 "redim_retain_cpp.bas"
+alloc_new_desc[5]=(14ll)-alloc_new_desc[4]+1;
+#line 20 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 20 "redim_retain_cpp.bas"
+alloc_new_desc[6]=1;
+#line 20 "redim_retain_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_UBIT5_P)[8])->id=(++mem_lock_id);
+#line 20 "redim_retain_cpp.bas"
+if (__ARRAY_UBIT5_P[2]&1){
+#line 20 "redim_retain_cpp.bas"
+preserve_old_ptr=__ARRAY_UBIT5_P[0];
+#line 20 "redim_retain_cpp.bas"
+preserve_old_total=__ARRAY_UBIT5_P[5];
+#line 20 "redim_retain_cpp.bas"
+preserve_old_desc[4]=__ARRAY_UBIT5_P[4];
+#line 20 "redim_retain_cpp.bas"
+preserve_old_desc[5]=__ARRAY_UBIT5_P[5];
+#line 20 "redim_retain_cpp.bas"
+preserve_old_desc[6]=__ARRAY_UBIT5_P[6];
+#line 20 "redim_retain_cpp.bas"
+preserve_old_desc[7]=__ARRAY_UBIT5_P[7];
+#line 20 "redim_retain_cpp.bas"
+}
+#line 20 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 20 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 20 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 20 "redim_retain_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 20 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 20 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 20 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 20 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 20 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 20 "redim_retain_cpp.bas"
+}
+#line 20 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 20 "redim_retain_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 20 "redim_retain_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 20 "redim_retain_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 20 "redim_retain_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 20 "redim_retain_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 20 "redim_retain_cpp.bas"
+preserve_any=(preserve_old_total!=0);
+#line 20 "redim_retain_cpp.bas"
+preserve_lo[0]=alloc_new_desc[4];
+#line 20 "redim_retain_cpp.bas"
+if (preserve_old_desc[4]>preserve_lo[0]) preserve_lo[0]=preserve_old_desc[4];
+#line 20 "redim_retain_cpp.bas"
+preserve_hi[0]=alloc_new_desc[4]+(alloc_new_desc[5]-1);
+#line 20 "redim_retain_cpp.bas"
+if ((preserve_old_desc[4]+(preserve_old_desc[5]-1))<preserve_hi[0]) preserve_hi[0]=preserve_old_desc[4]+(preserve_old_desc[5]-1);
+#line 20 "redim_retain_cpp.bas"
+if (preserve_hi[0]<preserve_lo[0]) preserve_any=0;
+#line 20 "redim_retain_cpp.bas"
+if (preserve_old_total){
+#line 20 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 20 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 20 "redim_retain_cpp.bas"
+if (preserve_any){
+#line 20 "redim_retain_cpp.bas"
+preserve_idx[0]=preserve_lo[0];
+#line 20 "redim_retain_cpp.bas"
+for(;;){
+#line 20 "redim_retain_cpp.bas"
+preserve_old_off=preserve_idx[0]-preserve_old_desc[4];
+#line 20 "redim_retain_cpp.bas"
+preserve_new_off=preserve_idx[0]-alloc_new_desc[4];
+#line 20 "redim_retain_cpp.bas"
+setbits(5,(uint8*)(preserve_new_ptr),preserve_new_off,(int64)getubits(5,(uint8*)(preserve_old_ptr),preserve_old_off));
+#line 20 "redim_retain_cpp.bas"
+preserve_dim=0;
+#line 20 "redim_retain_cpp.bas"
+while (preserve_dim<1){
+#line 20 "redim_retain_cpp.bas"
+preserve_idx[preserve_dim]++;
+#line 20 "redim_retain_cpp.bas"
+if (preserve_idx[preserve_dim]<=preserve_hi[preserve_dim]) break;
+#line 20 "redim_retain_cpp.bas"
+preserve_idx[preserve_dim]=preserve_lo[preserve_dim];
+#line 20 "redim_retain_cpp.bas"
+preserve_dim++;
+#line 20 "redim_retain_cpp.bas"
+}
+#line 20 "redim_retain_cpp.bas"
+if (preserve_dim==1) break;
+#line 20 "redim_retain_cpp.bas"
+}
+#line 20 "redim_retain_cpp.bas"
+}
+#line 20 "redim_retain_cpp.bas"
+free((void*)(preserve_old_ptr));
+#line 20 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[0]=preserve_new_ptr;
+#line 20 "redim_retain_cpp.bas"
+}else{
+#line 20 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 20 "redim_retain_cpp.bas"
+if (!__ARRAY_UBIT5_P[0]) error(257);
+#line 20 "redim_retain_cpp.bas"
+}
+#line 20 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[2]|=1;
+#line 20 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[4]=alloc_new_desc[4];
+#line 20 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[5]=alloc_new_desc[5];
+#line 20 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[6]=alloc_new_desc[6];
+#line 20 "redim_retain_cpp.bas"
+__ARRAY_UBIT5_P[7]=alloc_new_desc[7];
+#line 20 "redim_retain_cpp.bas"
+}
+#line 20 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "redim_retain_cpp.bas"
+do{
+#line 21 "redim_retain_cpp.bas"
+if (__ARRAY_UDT_R[2]&2){
+#line 21 "redim_retain_cpp.bas"
+error(10);
+#line 21 "redim_retain_cpp.bas"
+}else{
+#line 21 "redim_retain_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 21 "redim_retain_cpp.bas"
+uint64 preserve_old_total=0;
+#line 21 "redim_retain_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 21 "redim_retain_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 21 "redim_retain_cpp.bas"
+int64 alloc_new_desc[8];
+#line 21 "redim_retain_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 21 "redim_retain_cpp.bas"
+uint64 alloc_req_bytes;
+#line 21 "redim_retain_cpp.bas"
+uint64 alloc_dim_value;
+#line 21 "redim_retain_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(15);
+#line 21 "redim_retain_cpp.bas"
+alloc_new_desc[4]=1ll;
+#line 21 "redim_retain_cpp.bas"
+alloc_new_desc[5]=(3ll)-alloc_new_desc[4]+1;
+#line 21 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 21 "redim_retain_cpp.bas"
+alloc_new_desc[6]=1;
+#line 21 "redim_retain_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_UDT_R)[8])->id=(++mem_lock_id);
+#line 21 "redim_retain_cpp.bas"
+if (__ARRAY_UDT_R[2]&1){
+#line 21 "redim_retain_cpp.bas"
+preserve_old_ptr=__ARRAY_UDT_R[0];
+#line 21 "redim_retain_cpp.bas"
+preserve_old_total=__ARRAY_UDT_R[5];
+#line 21 "redim_retain_cpp.bas"
+}
+#line 21 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 21 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 21 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 21 "redim_retain_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 21 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 21 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 21 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 21 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 21 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 21 "redim_retain_cpp.bas"
+}
+#line 21 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 21 "redim_retain_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 21 "redim_retain_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 21 "redim_retain_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 21 "redim_retain_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 21 "redim_retain_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 21 "redim_retain_cpp.bas"
+if (preserve_old_total){
+#line 21 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 21 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 21 "redim_retain_cpp.bas"
+tmp_long=(ptrszint)alloc_req_elems;
+#line 21 "redim_retain_cpp.bas"
+while(tmp_long--){
+#line 21 "redim_retain_cpp.bas"
+*(qbs**)(((char*)(preserve_new_ptr)+tmp_long*15)+4)=qbs_new(0,0);
+#line 21 "redim_retain_cpp.bas"
+}
+#line 21 "redim_retain_cpp.bas"
+tmp_long=(ptrszint)preserve_old_total;
+#line 21 "redim_retain_cpp.bas"
+while(tmp_long--){
+#line 21 "redim_retain_cpp.bas"
+qbs_free(*(qbs**)(((char*)(preserve_old_ptr)+tmp_long*15)+4));
+#line 21 "redim_retain_cpp.bas"
+}
+#line 21 "redim_retain_cpp.bas"
+free((void*)(preserve_old_ptr));
+#line 21 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[0]=preserve_new_ptr;
+#line 21 "redim_retain_cpp.bas"
+}else{
+#line 21 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 21 "redim_retain_cpp.bas"
+if (!__ARRAY_UDT_R[0]) error(257);
+#line 21 "redim_retain_cpp.bas"
+tmp_long=(ptrszint)alloc_req_elems;
+#line 21 "redim_retain_cpp.bas"
+while(tmp_long--){
+#line 21 "redim_retain_cpp.bas"
+*(qbs**)(((char*)(__ARRAY_UDT_R[0])+tmp_long*15)+4)=qbs_new(0,0);
+#line 21 "redim_retain_cpp.bas"
+}
+#line 21 "redim_retain_cpp.bas"
+}
+#line 21 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[2]|=1;
+#line 21 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[4]=alloc_new_desc[4];
+#line 21 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[5]=alloc_new_desc[5];
+#line 21 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[6]=alloc_new_desc[6];
+#line 21 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[7]=alloc_new_desc[7];
+#line 21 "redim_retain_cpp.bas"
+}
+#line 21 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 22 "redim_retain_cpp.bas"
+do{
+#line 22 "redim_retain_cpp.bas"
+if (__ARRAY_UDT_R[2]&2){
+#line 22 "redim_retain_cpp.bas"
+error(10);
+#line 22 "redim_retain_cpp.bas"
+}else{
+#line 22 "redim_retain_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 22 "redim_retain_cpp.bas"
+uint64 preserve_old_total=0;
+#line 22 "redim_retain_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 22 "redim_retain_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 22 "redim_retain_cpp.bas"
+int32 preserve_any=0;
+#line 22 "redim_retain_cpp.bas"
+int64 preserve_old_desc[8];
+#line 22 "redim_retain_cpp.bas"
+int64 preserve_lo[1];
+#line 22 "redim_retain_cpp.bas"
+int64 preserve_hi[1];
+#line 22 "redim_retain_cpp.bas"
+int64 preserve_idx[1];
+#line 22 "redim_retain_cpp.bas"
+int64 preserve_old_off;
+#line 22 "redim_retain_cpp.bas"
+int64 preserve_new_off;
+#line 22 "redim_retain_cpp.bas"
+ptrszint preserve_dim;
+#line 22 "redim_retain_cpp.bas"
+int64 alloc_new_desc[8];
+#line 22 "redim_retain_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 22 "redim_retain_cpp.bas"
+uint64 alloc_req_bytes;
+#line 22 "redim_retain_cpp.bas"
+uint64 alloc_dim_value;
+#line 22 "redim_retain_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(15);
+#line 22 "redim_retain_cpp.bas"
+alloc_new_desc[4]=2ll;
+#line 22 "redim_retain_cpp.bas"
+alloc_new_desc[5]=(4ll)-alloc_new_desc[4]+1;
+#line 22 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 22 "redim_retain_cpp.bas"
+alloc_new_desc[6]=1;
+#line 22 "redim_retain_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_UDT_R)[8])->id=(++mem_lock_id);
+#line 22 "redim_retain_cpp.bas"
+if (__ARRAY_UDT_R[2]&1){
+#line 22 "redim_retain_cpp.bas"
+preserve_old_ptr=__ARRAY_UDT_R[0];
+#line 22 "redim_retain_cpp.bas"
+preserve_old_total=__ARRAY_UDT_R[5];
+#line 22 "redim_retain_cpp.bas"
+preserve_old_desc[4]=__ARRAY_UDT_R[4];
+#line 22 "redim_retain_cpp.bas"
+preserve_old_desc[5]=__ARRAY_UDT_R[5];
+#line 22 "redim_retain_cpp.bas"
+preserve_old_desc[6]=__ARRAY_UDT_R[6];
+#line 22 "redim_retain_cpp.bas"
+preserve_old_desc[7]=__ARRAY_UDT_R[7];
+#line 22 "redim_retain_cpp.bas"
+}
+#line 22 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 22 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 22 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 22 "redim_retain_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 22 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 22 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 22 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 22 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 22 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 22 "redim_retain_cpp.bas"
+}
+#line 22 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 22 "redim_retain_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 22 "redim_retain_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 22 "redim_retain_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 22 "redim_retain_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 22 "redim_retain_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 22 "redim_retain_cpp.bas"
+preserve_any=(preserve_old_total!=0);
+#line 22 "redim_retain_cpp.bas"
+preserve_lo[0]=alloc_new_desc[4];
+#line 22 "redim_retain_cpp.bas"
+if (preserve_old_desc[4]>preserve_lo[0]) preserve_lo[0]=preserve_old_desc[4];
+#line 22 "redim_retain_cpp.bas"
+preserve_hi[0]=alloc_new_desc[4]+(alloc_new_desc[5]-1);
+#line 22 "redim_retain_cpp.bas"
+if ((preserve_old_desc[4]+(preserve_old_desc[5]-1))<preserve_hi[0]) preserve_hi[0]=preserve_old_desc[4]+(preserve_old_desc[5]-1);
+#line 22 "redim_retain_cpp.bas"
+if (preserve_hi[0]<preserve_lo[0]) preserve_any=0;
+#line 22 "redim_retain_cpp.bas"
+if (preserve_old_total){
+#line 22 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 22 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 22 "redim_retain_cpp.bas"
+tmp_long=(ptrszint)alloc_req_elems;
+#line 22 "redim_retain_cpp.bas"
+while(tmp_long--){
+#line 22 "redim_retain_cpp.bas"
+*(qbs**)(((char*)(preserve_new_ptr)+tmp_long*15)+4)=qbs_new(0,0);
+#line 22 "redim_retain_cpp.bas"
+}
+#line 22 "redim_retain_cpp.bas"
+if (preserve_any){
+#line 22 "redim_retain_cpp.bas"
+preserve_idx[0]=preserve_lo[0];
+#line 22 "redim_retain_cpp.bas"
+for(;;){
+#line 22 "redim_retain_cpp.bas"
+preserve_old_off=preserve_idx[0]-preserve_old_desc[4];
+#line 22 "redim_retain_cpp.bas"
+preserve_new_off=preserve_idx[0]-alloc_new_desc[4];
+#line 22 "redim_retain_cpp.bas"
+memcpy(((char*)(preserve_new_ptr)+preserve_new_off*15+0),((char*)(preserve_old_ptr)+preserve_old_off*15+0),4);
+#line 22 "redim_retain_cpp.bas"
+qbs_set(*(qbs**)((char*)(preserve_new_ptr)+preserve_new_off*15+4),*(qbs**)((char*)(preserve_old_ptr)+preserve_old_off*15+4));
+#line 22 "redim_retain_cpp.bas"
+memcpy(((char*)(preserve_new_ptr)+preserve_new_off*15+12),((char*)(preserve_old_ptr)+preserve_old_off*15+12),3);
+#line 22 "redim_retain_cpp.bas"
+preserve_dim=0;
+#line 22 "redim_retain_cpp.bas"
+while (preserve_dim<1){
+#line 22 "redim_retain_cpp.bas"
+preserve_idx[preserve_dim]++;
+#line 22 "redim_retain_cpp.bas"
+if (preserve_idx[preserve_dim]<=preserve_hi[preserve_dim]) break;
+#line 22 "redim_retain_cpp.bas"
+preserve_idx[preserve_dim]=preserve_lo[preserve_dim];
+#line 22 "redim_retain_cpp.bas"
+preserve_dim++;
+#line 22 "redim_retain_cpp.bas"
+}
+#line 22 "redim_retain_cpp.bas"
+if (preserve_dim==1) break;
+#line 22 "redim_retain_cpp.bas"
+}
+#line 22 "redim_retain_cpp.bas"
+}
+#line 22 "redim_retain_cpp.bas"
+tmp_long=(ptrszint)preserve_old_total;
+#line 22 "redim_retain_cpp.bas"
+while(tmp_long--){
+#line 22 "redim_retain_cpp.bas"
+qbs_free(*(qbs**)(((char*)(preserve_old_ptr)+tmp_long*15)+4));
+#line 22 "redim_retain_cpp.bas"
+}
+#line 22 "redim_retain_cpp.bas"
+free((void*)(preserve_old_ptr));
+#line 22 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[0]=preserve_new_ptr;
+#line 22 "redim_retain_cpp.bas"
+}else{
+#line 22 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 22 "redim_retain_cpp.bas"
+if (!__ARRAY_UDT_R[0]) error(257);
+#line 22 "redim_retain_cpp.bas"
+tmp_long=(ptrszint)alloc_req_elems;
+#line 22 "redim_retain_cpp.bas"
+while(tmp_long--){
+#line 22 "redim_retain_cpp.bas"
+*(qbs**)(((char*)(__ARRAY_UDT_R[0])+tmp_long*15)+4)=qbs_new(0,0);
+#line 22 "redim_retain_cpp.bas"
+}
+#line 22 "redim_retain_cpp.bas"
+}
+#line 22 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[2]|=1;
+#line 22 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[4]=alloc_new_desc[4];
+#line 22 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[5]=alloc_new_desc[5];
+#line 22 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[6]=alloc_new_desc[6];
+#line 22 "redim_retain_cpp.bas"
+__ARRAY_UDT_R[7]=alloc_new_desc[7];
+#line 22 "redim_retain_cpp.bas"
+}
+#line 22 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "redim_retain_cpp.bas"
+do{
+#line 23 "redim_retain_cpp.bas"
+if (__ARRAY_DOUBLE_C[2]&2){
+#line 23 "redim_retain_cpp.bas"
+error(10);
+#line 23 "redim_retain_cpp.bas"
+}else{
+#line 23 "redim_retain_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 23 "redim_retain_cpp.bas"
+uint64 preserve_old_total=0;
+#line 23 "redim_retain_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 23 "redim_retain_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 23 "redim_retain_cpp.bas"
+int64 alloc_new_desc[16];
+#line 23 "redim_retain_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 23 "redim_retain_cpp.bas"
+uint64 alloc_req_bytes;
+#line 23 "redim_retain_cpp.bas"
+uint64 alloc_dim_value;
+#line 23 "redim_retain_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(8);
+#line 23 "redim_retain_cpp.bas"
+alloc_new_desc[12]=0ll;
+#line 23 "redim_retain_cpp.bas"
+alloc_new_desc[13]=(2ll)-alloc_new_desc[12]+1;
+#line 23 "redim_retain_cpp.bas"
+if (alloc_new_desc[13]<=0) error(5);
+#line 23 "redim_retain_cpp.bas"
+alloc_new_desc[14]=1;
+#line 23 "redim_retain_cpp.bas"
+alloc_new_desc[8]=0ll;
+#line 23 "redim_retain_cpp.bas"
+alloc_new_desc[9]=(2ll)-alloc_new_desc[8]+1;
+#line 23 "redim_retain_cpp.bas"
+if (alloc_new_desc[9]<=0) error(5);
+#line 23 "redim_retain_cpp.bas"
+alloc_new_desc[10]=alloc_new_desc[14]*alloc_new_desc[13];
+#line 23 "redim_retain_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 23 "redim_retain_cpp.bas"
+alloc_new_desc[5]=(2ll)-alloc_new_desc[4]+1;
+#line 23 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 23 "redim_retain_cpp.bas"
+alloc_new_desc[6]=alloc_new_desc[10]*alloc_new_desc[9];
+#line 23 "redim_retain_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_DOUBLE_C)[16])->id=(++mem_lock_id);
+#line 23 "redim_retain_cpp.bas"
+if (__ARRAY_DOUBLE_C[2]&1){
+#line 23 "redim_retain_cpp.bas"
+preserve_old_ptr=__ARRAY_DOUBLE_C[0];
+#line 23 "redim_retain_cpp.bas"
+preserve_old_total=__ARRAY_DOUBLE_C[13]*__ARRAY_DOUBLE_C[9]*__ARRAY_DOUBLE_C[5];
+#line 23 "redim_retain_cpp.bas"
+}
+#line 23 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 23 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 23 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 23 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 23 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 23 "redim_retain_cpp.bas"
+}
+#line 23 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[8]))!=alloc_new_desc[8]) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (alloc_new_desc[9]<0) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[9]))!=alloc_new_desc[9]) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (alloc_new_desc[10]<0) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[10]))!=alloc_new_desc[10]) error(257);
+#line 23 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[9];
+#line 23 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 23 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 23 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 23 "redim_retain_cpp.bas"
+}
+#line 23 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[12]))!=alloc_new_desc[12]) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (alloc_new_desc[13]<0) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[13]))!=alloc_new_desc[13]) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (alloc_new_desc[14]<0) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[14]))!=alloc_new_desc[14]) error(257);
+#line 23 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[13];
+#line 23 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 23 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 23 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 23 "redim_retain_cpp.bas"
+}
+#line 23 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 23 "redim_retain_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 23 "redim_retain_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 23 "redim_retain_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 23 "redim_retain_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 23 "redim_retain_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 23 "redim_retain_cpp.bas"
+if (preserve_old_total){
+#line 23 "redim_retain_cpp.bas"
+if (__ARRAY_DOUBLE_C[2]&4){
+#line 23 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 23 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 23 "redim_retain_cpp.bas"
+memset((void*)(preserve_new_ptr),0,(size_t)alloc_req_bytes);
+#line 23 "redim_retain_cpp.bas"
+}else{
+#line 23 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 23 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 23 "redim_retain_cpp.bas"
+}
+#line 23 "redim_retain_cpp.bas"
+if (__ARRAY_DOUBLE_C[2]&4) cmem_dynamic_free((uint8*)(preserve_old_ptr)); else free((void*)(preserve_old_ptr));
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[0]=preserve_new_ptr;
+#line 23 "redim_retain_cpp.bas"
+}else{
+#line 23 "redim_retain_cpp.bas"
+if (__ARRAY_DOUBLE_C[2]&4){
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 23 "redim_retain_cpp.bas"
+if (!__ARRAY_DOUBLE_C[0]) error(257);
+#line 23 "redim_retain_cpp.bas"
+memset((void*)(__ARRAY_DOUBLE_C[0]),0,(size_t)alloc_req_bytes);
+#line 23 "redim_retain_cpp.bas"
+}else{
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 23 "redim_retain_cpp.bas"
+if (!__ARRAY_DOUBLE_C[0]) error(257);
+#line 23 "redim_retain_cpp.bas"
+}
+#line 23 "redim_retain_cpp.bas"
+}
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[2]|=1;
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[4]=alloc_new_desc[4];
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[5]=alloc_new_desc[5];
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[6]=alloc_new_desc[6];
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[7]=alloc_new_desc[7];
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[8]=alloc_new_desc[8];
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[9]=alloc_new_desc[9];
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[10]=alloc_new_desc[10];
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[11]=alloc_new_desc[11];
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[12]=alloc_new_desc[12];
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[13]=alloc_new_desc[13];
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[14]=alloc_new_desc[14];
+#line 23 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[15]=alloc_new_desc[15];
+#line 23 "redim_retain_cpp.bas"
+}
+#line 23 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "redim_retain_cpp.bas"
+do{
+#line 24 "redim_retain_cpp.bas"
+if (__ARRAY_DOUBLE_C[2]&2){
+#line 24 "redim_retain_cpp.bas"
+error(10);
+#line 24 "redim_retain_cpp.bas"
+}else{
+#line 24 "redim_retain_cpp.bas"
+ptrszint preserve_old_ptr=0;
+#line 24 "redim_retain_cpp.bas"
+uint64 preserve_old_total=0;
+#line 24 "redim_retain_cpp.bas"
+uint64 preserve_copy_count=0;
+#line 24 "redim_retain_cpp.bas"
+ptrszint preserve_new_ptr;
+#line 24 "redim_retain_cpp.bas"
+int32 preserve_any=0;
+#line 24 "redim_retain_cpp.bas"
+int64 preserve_old_desc[16];
+#line 24 "redim_retain_cpp.bas"
+int64 preserve_lo[3];
+#line 24 "redim_retain_cpp.bas"
+int64 preserve_hi[3];
+#line 24 "redim_retain_cpp.bas"
+int64 preserve_idx[3];
+#line 24 "redim_retain_cpp.bas"
+int64 preserve_old_off;
+#line 24 "redim_retain_cpp.bas"
+int64 preserve_new_off;
+#line 24 "redim_retain_cpp.bas"
+ptrszint preserve_dim;
+#line 24 "redim_retain_cpp.bas"
+int64 alloc_new_desc[16];
+#line 24 "redim_retain_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 24 "redim_retain_cpp.bas"
+uint64 alloc_req_bytes;
+#line 24 "redim_retain_cpp.bas"
+uint64 alloc_dim_value;
+#line 24 "redim_retain_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(8);
+#line 24 "redim_retain_cpp.bas"
+alloc_new_desc[12]=1ll;
+#line 24 "redim_retain_cpp.bas"
+alloc_new_desc[13]=(3ll)-alloc_new_desc[12]+1;
+#line 24 "redim_retain_cpp.bas"
+if (alloc_new_desc[13]<=0) error(5);
+#line 24 "redim_retain_cpp.bas"
+alloc_new_desc[14]=1;
+#line 24 "redim_retain_cpp.bas"
+alloc_new_desc[8]=0ll;
+#line 24 "redim_retain_cpp.bas"
+alloc_new_desc[9]=(1ll)-alloc_new_desc[8]+1;
+#line 24 "redim_retain_cpp.bas"
+if (alloc_new_desc[9]<=0) error(5);
+#line 24 "redim_retain_cpp.bas"
+alloc_new_desc[10]=alloc_new_desc[14]*alloc_new_desc[13];
+#line 24 "redim_retain_cpp.bas"
+alloc_new_desc[4]=1ll;
+#line 24 "redim_retain_cpp.bas"
+alloc_new_desc[5]=(2ll)-alloc_new_desc[4]+1;
+#line 24 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 24 "redim_retain_cpp.bas"
+alloc_new_desc[6]=alloc_new_desc[10]*alloc_new_desc[9];
+#line 24 "redim_retain_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_DOUBLE_C)[16])->id=(++mem_lock_id);
+#line 24 "redim_retain_cpp.bas"
+if (__ARRAY_DOUBLE_C[2]&1){
+#line 24 "redim_retain_cpp.bas"
+preserve_old_ptr=__ARRAY_DOUBLE_C[0];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_total=__ARRAY_DOUBLE_C[13]*__ARRAY_DOUBLE_C[9]*__ARRAY_DOUBLE_C[5];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_desc[4]=__ARRAY_DOUBLE_C[4];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_desc[5]=__ARRAY_DOUBLE_C[5];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_desc[6]=__ARRAY_DOUBLE_C[6];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_desc[7]=__ARRAY_DOUBLE_C[7];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_desc[8]=__ARRAY_DOUBLE_C[8];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_desc[9]=__ARRAY_DOUBLE_C[9];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_desc[10]=__ARRAY_DOUBLE_C[10];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_desc[11]=__ARRAY_DOUBLE_C[11];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_desc[12]=__ARRAY_DOUBLE_C[12];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_desc[13]=__ARRAY_DOUBLE_C[13];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_desc[14]=__ARRAY_DOUBLE_C[14];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_desc[15]=__ARRAY_DOUBLE_C[15];
+#line 24 "redim_retain_cpp.bas"
+}
+#line 24 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 24 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 24 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 24 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 24 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 24 "redim_retain_cpp.bas"
+}
+#line 24 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[8]))!=alloc_new_desc[8]) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (alloc_new_desc[9]<0) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[9]))!=alloc_new_desc[9]) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (alloc_new_desc[10]<0) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[10]))!=alloc_new_desc[10]) error(257);
+#line 24 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[9];
+#line 24 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 24 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 24 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 24 "redim_retain_cpp.bas"
+}
+#line 24 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[12]))!=alloc_new_desc[12]) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (alloc_new_desc[13]<0) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[13]))!=alloc_new_desc[13]) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (alloc_new_desc[14]<0) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[14]))!=alloc_new_desc[14]) error(257);
+#line 24 "redim_retain_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[13];
+#line 24 "redim_retain_cpp.bas"
+if (alloc_dim_value){
+#line 24 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 24 "redim_retain_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 24 "redim_retain_cpp.bas"
+}
+#line 24 "redim_retain_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 24 "redim_retain_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 24 "redim_retain_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 24 "redim_retain_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 24 "redim_retain_cpp.bas"
+preserve_copy_count=preserve_old_total;
+#line 24 "redim_retain_cpp.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 24 "redim_retain_cpp.bas"
+preserve_any=(preserve_old_total!=0);
+#line 24 "redim_retain_cpp.bas"
+preserve_lo[0]=alloc_new_desc[12];
+#line 24 "redim_retain_cpp.bas"
+if (preserve_old_desc[12]>preserve_lo[0]) preserve_lo[0]=preserve_old_desc[12];
+#line 24 "redim_retain_cpp.bas"
+preserve_hi[0]=alloc_new_desc[12]+(alloc_new_desc[13]-1);
+#line 24 "redim_retain_cpp.bas"
+if ((preserve_old_desc[12]+(preserve_old_desc[13]-1))<preserve_hi[0]) preserve_hi[0]=preserve_old_desc[12]+(preserve_old_desc[13]-1);
+#line 24 "redim_retain_cpp.bas"
+if (preserve_hi[0]<preserve_lo[0]) preserve_any=0;
+#line 24 "redim_retain_cpp.bas"
+preserve_lo[1]=alloc_new_desc[8];
+#line 24 "redim_retain_cpp.bas"
+if (preserve_old_desc[8]>preserve_lo[1]) preserve_lo[1]=preserve_old_desc[8];
+#line 24 "redim_retain_cpp.bas"
+preserve_hi[1]=alloc_new_desc[8]+(alloc_new_desc[9]-1);
+#line 24 "redim_retain_cpp.bas"
+if ((preserve_old_desc[8]+(preserve_old_desc[9]-1))<preserve_hi[1]) preserve_hi[1]=preserve_old_desc[8]+(preserve_old_desc[9]-1);
+#line 24 "redim_retain_cpp.bas"
+if (preserve_hi[1]<preserve_lo[1]) preserve_any=0;
+#line 24 "redim_retain_cpp.bas"
+preserve_lo[2]=alloc_new_desc[4];
+#line 24 "redim_retain_cpp.bas"
+if (preserve_old_desc[4]>preserve_lo[2]) preserve_lo[2]=preserve_old_desc[4];
+#line 24 "redim_retain_cpp.bas"
+preserve_hi[2]=alloc_new_desc[4]+(alloc_new_desc[5]-1);
+#line 24 "redim_retain_cpp.bas"
+if ((preserve_old_desc[4]+(preserve_old_desc[5]-1))<preserve_hi[2]) preserve_hi[2]=preserve_old_desc[4]+(preserve_old_desc[5]-1);
+#line 24 "redim_retain_cpp.bas"
+if (preserve_hi[2]<preserve_lo[2]) preserve_any=0;
+#line 24 "redim_retain_cpp.bas"
+if (preserve_old_total){
+#line 24 "redim_retain_cpp.bas"
+if (__ARRAY_DOUBLE_C[2]&4){
+#line 24 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 24 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 24 "redim_retain_cpp.bas"
+memset((void*)(preserve_new_ptr),0,(size_t)alloc_req_bytes);
+#line 24 "redim_retain_cpp.bas"
+}else{
+#line 24 "redim_retain_cpp.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 24 "redim_retain_cpp.bas"
+if (!preserve_new_ptr) error(257);
+#line 24 "redim_retain_cpp.bas"
+}
+#line 24 "redim_retain_cpp.bas"
+if (preserve_any){
+#line 24 "redim_retain_cpp.bas"
+preserve_idx[0]=preserve_lo[0];
+#line 24 "redim_retain_cpp.bas"
+preserve_idx[1]=preserve_lo[1];
+#line 24 "redim_retain_cpp.bas"
+preserve_idx[2]=preserve_lo[2];
+#line 24 "redim_retain_cpp.bas"
+for(;;){
+#line 24 "redim_retain_cpp.bas"
+preserve_old_off=preserve_idx[0]-preserve_old_desc[12];
+#line 24 "redim_retain_cpp.bas"
+preserve_new_off=preserve_idx[0]-alloc_new_desc[12];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_off+=(preserve_idx[1]-preserve_old_desc[8])*preserve_old_desc[10];
+#line 24 "redim_retain_cpp.bas"
+preserve_new_off+=(preserve_idx[1]-alloc_new_desc[8])*alloc_new_desc[10];
+#line 24 "redim_retain_cpp.bas"
+preserve_old_off+=(preserve_idx[2]-preserve_old_desc[4])*preserve_old_desc[6];
+#line 24 "redim_retain_cpp.bas"
+preserve_new_off+=(preserve_idx[2]-alloc_new_desc[4])*alloc_new_desc[6];
+#line 24 "redim_retain_cpp.bas"
+memcpy(((uint8*)(preserve_new_ptr))+preserve_new_off*8,((uint8*)(preserve_old_ptr))+preserve_old_off*8,8);
+#line 24 "redim_retain_cpp.bas"
+preserve_dim=0;
+#line 24 "redim_retain_cpp.bas"
+while (preserve_dim<3){
+#line 24 "redim_retain_cpp.bas"
+preserve_idx[preserve_dim]++;
+#line 24 "redim_retain_cpp.bas"
+if (preserve_idx[preserve_dim]<=preserve_hi[preserve_dim]) break;
+#line 24 "redim_retain_cpp.bas"
+preserve_idx[preserve_dim]=preserve_lo[preserve_dim];
+#line 24 "redim_retain_cpp.bas"
+preserve_dim++;
+#line 24 "redim_retain_cpp.bas"
+}
+#line 24 "redim_retain_cpp.bas"
+if (preserve_dim==3) break;
+#line 24 "redim_retain_cpp.bas"
+}
+#line 24 "redim_retain_cpp.bas"
+}
+#line 24 "redim_retain_cpp.bas"
+if (__ARRAY_DOUBLE_C[2]&4) cmem_dynamic_free((uint8*)(preserve_old_ptr)); else free((void*)(preserve_old_ptr));
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[0]=preserve_new_ptr;
+#line 24 "redim_retain_cpp.bas"
+}else{
+#line 24 "redim_retain_cpp.bas"
+if (__ARRAY_DOUBLE_C[2]&4){
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 24 "redim_retain_cpp.bas"
+if (!__ARRAY_DOUBLE_C[0]) error(257);
+#line 24 "redim_retain_cpp.bas"
+memset((void*)(__ARRAY_DOUBLE_C[0]),0,(size_t)alloc_req_bytes);
+#line 24 "redim_retain_cpp.bas"
+}else{
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 24 "redim_retain_cpp.bas"
+if (!__ARRAY_DOUBLE_C[0]) error(257);
+#line 24 "redim_retain_cpp.bas"
+}
+#line 24 "redim_retain_cpp.bas"
+}
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[2]|=1;
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[4]=alloc_new_desc[4];
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[5]=alloc_new_desc[5];
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[6]=alloc_new_desc[6];
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[7]=alloc_new_desc[7];
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[8]=alloc_new_desc[8];
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[9]=alloc_new_desc[9];
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[10]=alloc_new_desc[10];
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[11]=alloc_new_desc[11];
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[12]=alloc_new_desc[12];
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[13]=alloc_new_desc[13];
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[14]=alloc_new_desc[14];
+#line 24 "redim_retain_cpp.bas"
+__ARRAY_DOUBLE_C[15]=alloc_new_desc[15];
+#line 24 "redim_retain_cpp.bas"
+}
+#line 24 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "redim_retain_cpp.bas"
+do{
+#line 25 "redim_retain_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 25 "redim_retain_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(((int32*)(__ARRAY_LONG_A[0]))[array_check((3ll)-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])])),qbs_new_txt(" ")));
+#line 25 "redim_retain_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 25 "redim_retain_cpp.bas"
+makefit(tqbs);
+#line 25 "redim_retain_cpp.bas"
+qbs_print(tqbs,0);
+#line 25 "redim_retain_cpp.bas"
+qbs_set(tqbs,(((qbs**)(__ARRAY_STRING_S[0]))[array_check((3ll)-__ARRAY_STRING_S[4],__ARRAY_STRING_S[5])]));
+#line 25 "redim_retain_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 25 "redim_retain_cpp.bas"
+makefit(tqbs);
+#line 25 "redim_retain_cpp.bas"
+qbs_print(tqbs,0);
+#line 25 "redim_retain_cpp.bas"
+qbs_set(tqbs,qbs_new_fixed(&((uint8*)(__ARRAY_STRING3_X[0]))[(array_check((2ll)-__ARRAY_STRING3_X[4],__ARRAY_STRING3_X[5]))*3],3,1));
+#line 25 "redim_retain_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 25 "redim_retain_cpp.bas"
+makefit(tqbs);
+#line 25 "redim_retain_cpp.bas"
+qbs_print(tqbs,0);
+#line 25 "redim_retain_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(((uint32)(getubits(5,(uint8*)(__ARRAY_UBIT5_P[0]),array_check((5ll)-__ARRAY_UBIT5_P[4],__ARRAY_UBIT5_P[5])))))))),qbs_new_txt(" ")));
+#line 25 "redim_retain_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 25 "redim_retain_cpp.bas"
+makefit(tqbs);
+#line 25 "redim_retain_cpp.bas"
+qbs_print(tqbs,0);
+#line 25 "redim_retain_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(*(int32*)(((((char*)__ARRAY_UDT_R[0])+((array_check((2ll)-__ARRAY_UDT_R[4],__ARRAY_UDT_R[5]))*15))+0)))),qbs_new_txt(" ")));
+#line 25 "redim_retain_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 25 "redim_retain_cpp.bas"
+makefit(tqbs);
+#line 25 "redim_retain_cpp.bas"
+qbs_print(tqbs,0);
+#line 25 "redim_retain_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((double)(((double*)(__ARRAY_DOUBLE_C[0]))[array_check((1ll)-__ARRAY_DOUBLE_C[12],__ARRAY_DOUBLE_C[13])+array_check((0ll)-__ARRAY_DOUBLE_C[8],__ARRAY_DOUBLE_C[9])*__ARRAY_DOUBLE_C[10]+array_check((1ll)-__ARRAY_DOUBLE_C[4],__ARRAY_DOUBLE_C[5])*__ARRAY_DOUBLE_C[6]])),qbs_new_txt(" ")));
+#line 25 "redim_retain_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 25 "redim_retain_cpp.bas"
+makefit(tqbs);
+#line 25 "redim_retain_cpp.bas"
+qbs_print(tqbs,0);
+#line 25 "redim_retain_cpp.bas"
+qbs_print(nothingstring,1);
+#line 25 "redim_retain_cpp.bas"
+skip1:
+#line 25 "redim_retain_cpp.bas"
+qbs_free(tqbs);
+#line 25 "redim_retain_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 25 "redim_retain_cpp.bas"
+if(!qbevent)break;evnt(25);}while(r);
+sub_end();
+return;
+}
+==> empty: regsf.txt dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt

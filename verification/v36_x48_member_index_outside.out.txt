@@ -1,0 +1,7 @@
+error 9 
+error 9 
+ 0 [z]
+error 9 
+error 9 
+ 7 [z]
+exit=0

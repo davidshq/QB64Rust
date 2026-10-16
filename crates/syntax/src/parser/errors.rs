@@ -29,8 +29,10 @@ pub(crate) fn label_def(p: &mut Parser) {
     p.finish_node();
 }
 
-/// The events of `ON <event> GOSUB` and of the switches `<event>[(n)] ON|OFF|STOP|FREE`.
-pub(crate) const EVENT_WORDS: [&str; 7] = ["TIMER", "KEY", "STRIG", "PLAY", "PEN", "COM", "UEVENT"];
+/// The events of `ON <event> GOSUB` and of the switches `<event>[(n)] ON|OFF|STOP|FREE`. `PLAY`, an event of
+/// QuickBASIC, is none to the old compiler: `ON PLAY(5) GOSUB 10` is `ON <number> GOSUB` with the function, and
+/// `PLAY ON` is an error (measured, `verification/v29_x61`–`x64`).
+pub(crate) const EVENT_WORDS: [&str; 6] = ["TIMER", "KEY", "STRIG", "PEN", "COM", "UEVENT"];
 
 /// `ON ERROR GOTO …`, `ON <event>[(args)] GOSUB label` (or a SUB's name: `ON TIMER(1) handler`), or
 /// `ON expr GOTO|GOSUB target, ...`.

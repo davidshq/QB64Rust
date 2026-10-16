@@ -1,0 +1,5 @@
+
+STATIC cannot be used in a library declaration
+Caused by (or after):FUNCTION H_L& ( BYVAL V AS LONG ) STATIC
+LINE 4:FUNCTION h_l& (BYVAL v AS LONG) STATIC
+exit=1

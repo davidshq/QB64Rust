@@ -1,0 +1,33 @@
+[rd 11] 1. 10 
+[rd x] 2. y
+[rd 21] 3. 20 
+[rd p] 4. q
+[rd 31] 5. 30 
+[rd r] 6. s
+[error 9 ] 7. 40 
+[error 9 ] 8. 
+[error 2 ] 9. 0 
+[error 2 ]10. 0 
+[error 9 ]11. 
+12. next item: u
+[rf L101]13. L102
+[rf L103]14. L104
+[rf L105]15. L106
+[rf L107]16. L108
+[error 9 ]17. 
+[error 9 ]18. 
+19. next line: L109
+[rf 202]20. 201 
+[rf 204]21. 203 
+[error 9 ]22. 205 
+[error 9 ]23. 206 
+24. next line: 207
+? [ci][ci]25. 1  2 
+[ci]26. line three
+? [error 9 ]27. 205 
+[error 9 ]28. 
+[mf]29. Bbcdef
+[mf]30. uBwxyz
+[error 9 ]31. 000000
+[error 9 ]32. nnnnnn
+exit=0

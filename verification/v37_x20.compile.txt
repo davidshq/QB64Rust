@@ -1,0 +1,5 @@
+
+Expected SUB/FUNCTION definition or END DECLARE (#2)
+Caused by (or after):
+LINE 5:PRINT "ok",2
+exit=1

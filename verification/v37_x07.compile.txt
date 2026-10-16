@@ -1,0 +1,5 @@
+
+Expected ,
+Caused by (or after):DECLARE LIBRARY "v37_lib/v37h",12 "./v37c",6
+LINE 3:DECLARE LIBRARY "v37_lib/v37h" "./v37c"
+exit=1

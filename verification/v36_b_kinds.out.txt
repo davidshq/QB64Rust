@@ -1,0 +1,10 @@
+1. STRING: zero one two changed
+2. STRING * 4: [A   ][BBBB][CCCC]
+3. _BIT:-1  0  0 -1  0  0 -1  0  0 -1  0  0 -1  0  0 -1  0  0 -1  0 
+4. _UNSIGNED _BIT * 3: 0  1  2  3  4  5  6  7  0  1 
+5. TYPE of numbers: 1024  3.5 
+6. TYPE with STRING and STRING * 3: 10 first abc second changed
+7. nested TYPE: 7 inner xyz
+8. TYPE with member arrays: 42 deep
+9. _MEM: 4 -1 
+exit=0

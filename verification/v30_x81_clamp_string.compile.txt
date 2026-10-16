@@ -1,0 +1,5 @@
+
+Expected numeric argument
+Caused by (or after):PRINT _CLAMP ( "a",1 , 1 , 2 )
+LINE 3:PRINT _CLAMP("a", 1, 2)
+exit=1

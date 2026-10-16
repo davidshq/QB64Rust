@@ -1,0 +1,100 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+Settings: console, no window
+Array A:I32 static (1 To 4)
+Array E:Str static (0 To 3)
+Array FX:Str*4 static (0 To 2)
+Array WA:T:FIXED static (0 To 2)
+Stmt line 2
+  SelectConsole
+Stmt line 19 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, BytesOf I:I16]
+Stmt line 20 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Value(Const 3:I64), BytesOf L:I32]
+Stmt line 21 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Absent, BytesOf Q:I64]
+Stmt line 22 may_raise
+  Builtin PUT form 3 [Value(Add:I32(Var K:I32, Const 1:I32) wrap), Value((Var D:F64 -> Convert I64 RoundEven)), BytesOf F:F80]
+Stmt line 23 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Value(Var Q:I64), BytesOf I:I16]
+Stmt line 25 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, BytesOf V:Str]
+Stmt line 26 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Value(Const 2:I64), BytesOf V:Str]
+Stmt line 27 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, BytesOf X:Str*6]
+Stmt line 28 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Value(Const 2:I64), BytesOf X:Str*6]
+Stmt line 30 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Absent, BytesOf W:T:FIXED]
+Stmt line 31 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Value(Const 1:I64), BytesOf W:T:FIXED]
+Stmt line 32 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, BytesOf R.N:I32]
+Stmt line 33 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Absent, BytesOf R.S:Str*6]
+Stmt line 34 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, BytesOf R.V:Str]
+Stmt line 36 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, BytesOf A(Const 2:I64):I32]
+Stmt line 37 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Value((Var K:I32 -> Convert I64 Widen)), BytesOf A((Var K:I32 -> Convert I64 Widen)):I32]
+Stmt line 38 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, BytesOf E(Const 1:I64):Str]
+Stmt line 39 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Absent, BytesOf E((Var K:I32 -> Convert I64 Widen)):Str]
+Stmt line 40 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, BytesOf FX(Const 1:I64):Str*4]
+Stmt line 41 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Absent, BytesOf WA(Const 1:I64):T:FIXED]
+Stmt line 42 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, BytesOf WA((Var K:I32 -> Convert I64 Widen)).S:Str*6]
+Stmt line 44 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, Bytes A]
+Stmt line 45 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Value(Const 1:I64), Bytes FX]
+Stmt line 46 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Value(Const 1:I64), Bytes WA]
+Stmt line 48 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, Absent]
+Stmt line 49 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Value(Const 2:I64), Absent]
+Stmt line 50 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Absent, Absent]
+Stmt line 51 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Value((Var K:I32 -> Convert I64 Widen)), Absent]
+Stmt line 52 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Absent, BytesOf I:I16]
+Stmt line 53 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, BytesOf FRESH:F32]
+Stmt line 55 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Value(Const 1:I64), BytesOf I:I16]
+Stmt line 56 may_raise
+  Builtin PUT form 3 [Value(Const 1:I32), Absent, BytesOf V:Str]
+Stmt line 57 may_raise
+  Builtin GET form 3 [Value(Const 1:I32), Absent, Absent]
+Stmt line 59 may_raise
+  Builtin LOCK [Value(Const 1:I32), Absent, Absent, Absent]
+Stmt line 60 may_raise
+  Builtin LOCK [Value(Const 1:I32), Value(Const 2:I64), Absent, Absent]
+Stmt line 61 may_raise
+  Builtin LOCK [Value(Const 1:I32), Value(Const 2:I64), Word 0, Value(Const 4:I64)]
+Stmt line 62 may_raise
+  Builtin LOCK [Value(Const 1:I32), Absent, Absent, Absent]
+Stmt line 63 may_raise
+  Builtin UNLOCK [Value(Var K:I32), Value((Var D:F64 -> Convert I64 RoundEven)), Word 0, Value(Var Q:I64)]
+Stmt line 64 may_raise
+  Builtin UNLOCK [Value(Const 1:I32), Absent, Absent, Absent]
+Stmt line 65 may_raise
+  Builtin LOCK [Value(Const 1:I32), Value(Const 2:I64), Word 0, Value(Const 3:I64)]
+Stmt line 66 may_raise
+  Builtin UNLOCK [Value(Const 1:I32), Value(Const 2:I64), Word 0, Value(Const 3:I64)]
+Stmt line 68 may_raise
+  Builtin GET form 1 [Absent, Value(Const 0:I16), Value(Const 0:I16), Absent, Value(Const 3:I16), Value(Const 3:I16), Bytes A, Absent]
+Stmt line 69 may_raise
+  Builtin PUT form 1 [Absent, Value(Const 0:I16), Value(Const 0:I16), Bytes A, Absent, Word 0, Absent]
+Stmt line 70
+  System

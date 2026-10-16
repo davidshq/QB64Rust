@@ -53,6 +53,7 @@ impl Checker<'_> {
             stmts: Vec::new(),
             line: 0,
             end_line: 0,
+            external: None,
         });
         self.param_scopes.push(Scope::default());
         self.procs_by_name.insert(name, id);
@@ -87,6 +88,7 @@ impl Checker<'_> {
             stmts: Vec::new(),
             line: 0,
             end_line: 0,
+            external: None,
         });
         self.param_scopes.push(Scope::default());
         self.procs_by_name.insert(name, id);
@@ -166,8 +168,11 @@ impl Checker<'_> {
                     _ => self.type_of(a)?,
                 },
             };
-            // A parameter of a user type is the place passed ([`Self::type_arg`]).
-            if let Ty::Bit { .. } = ty {
+            // A parameter of a user type is the place passed ([`Self::type_arg`]). A library procedure's `_BIT`
+            // parameter is the error of its use (`library.rs`).
+            if let Ty::Bit { .. } = ty
+                && self.prog.proc(id).external.is_none()
+            {
                 // Decided (`DECISIONS.md` 2026-10-08, design D7): the old compiler fails its C++ build for any
                 // procedure with a `_BIT` parameter, called or not (`verification\v21_x20`–`x24`).
                 let shown = show_bytes(self.text(name_tok.span));
@@ -176,7 +181,11 @@ impl Checker<'_> {
                     format!("a parameter cannot be a `_BIT`: `{shown}`"),
                 ));
             }
-            self.reserved(name_tok, &name, suffix)?;
+            // A library procedure's parameter is no BASIC variable: a built-in's name is accepted there (QB64pe's
+            // `declare_library_header` tests, `BYVAL val AS LONG`).
+            if self.prog.proc(id).external.is_none() {
+                self.reserved(name_tok, &name, suffix)?;
+            }
             if self.procs_by_name.contains_key(&name) || scope.vars.contains_key(&(name.clone(), ty)) {
                 return Err(self.in_use(name_tok));
             }
@@ -245,6 +254,7 @@ impl Checker<'_> {
         }
         let v = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
+            conventional: false,
             name: name.clone(),
             ty,
             storage: Storage::Param(id),
@@ -273,7 +283,7 @@ impl Checker<'_> {
     }
 
     /// Whether an `AS` clause is `STRING * n`.
-    fn fixed_string_size(&self, a: ast::AsClause) -> bool {
+    pub(super) fn fixed_string_size(&self, a: ast::AsClause) -> bool {
         let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
         a.size().is_some() && words == ["STRING"]
     }
@@ -313,6 +323,16 @@ impl Checker<'_> {
             None => self.split_name(name_tok)?,
         };
         let shown = show_bytes(self.text(name_tok.span));
+        // The statements of memory blocks written inline (design D4 of `m3-mem`): `_MEMGET` is read as a call.
+        // Measured: after `CALL` each is "Command not implemented" (`verification\v32_x90`–`x92`).
+        if suffix.is_none() && matches!(name.as_str(), "_MEMGET" | "_MEMPUT" | "_MEMFILL") {
+            if stmt.call_keyword().is_some() {
+                return Err(self.error(name_tok.span, format!("`{shown}` cannot be written after `CALL`")));
+            }
+            if name == "_MEMGET" {
+                return self.mem_get_stmt(stmt);
+            }
+        }
         // A built-in statement whose entry has no template is written like a SUB call (`KILL f$`). So is one whose
         // template is a single argument, after `CALL` (measured, `verification\v26_x70`: `CALL _DEST(_CONSOLE)`;
         // without `CALL` the parser reads it by its template). A statement with a rule of its own (`SWAP`, `CLOSE`,
@@ -343,6 +363,11 @@ impl Checker<'_> {
                 self.names.push((SymbolKind::Proc(p), name_tok.span));
                 self.push(node, StmtKind::Call { proc: p, args });
                 Ok(())
+            }
+            Some((p, ProcKind::Function(_))) if self.prog.proc(p).external.is_some() => {
+                // Measured: "Syntax error" (`verification\v37_x33`).
+                let msg = format!("the library FUNCTION `{shown}` cannot be called as a statement");
+                Err(self.error(name_tok.span, msg))
             }
             Some((_, ProcKind::Function(_))) => {
                 let msg = format!("calling the FUNCTION `{shown}` as a statement");
@@ -385,6 +410,9 @@ impl Checker<'_> {
     /// The arguments of a call of procedure `p`, passed as design D4 says: a plain variable of exactly the
     /// parameter's type by reference, anything else as a converted copy.
     pub(super) fn args(&mut self, p: ProcId, name_tok: Tok, nodes: &[ast::Expr], span: Span) -> R<Vec<Arg>> {
+        if self.bit_param(p) {
+            return Err(self.in_use(name_tok));
+        }
         let params = self.prog.proc(p).params.clone();
         if nodes.len() != params.len() {
             let n = params.len();
@@ -396,8 +424,15 @@ impl Checker<'_> {
             );
             return Err(self.error(span, msg));
         }
+        let byval = self
+            .prog
+            .proc(p)
+            .external
+            .as_ref()
+            .map(|e| e.byval.clone())
+            .unwrap_or_default();
         let mut args = Vec::with_capacity(nodes.len());
-        for (&node, param) in nodes.iter().zip(params) {
+        for (k, (&node, param)) in nodes.iter().zip(params).enumerate() {
             let pty = self.prog.var(param).ty;
             if self.prog.var(param).is_array() {
                 args.push(self.array_arg(node, param)?);
@@ -408,6 +443,10 @@ impl Checker<'_> {
                 let shown = show_bytes(self.text(t.span));
                 let msg = format!("the whole array `{shown}()` cannot be passed to a parameter that is no array");
                 return Err(self.error(node.node().span(), msg));
+            }
+            if byval.get(k).copied().unwrap_or(false) {
+                args.push(self.byval_arg(node, pty)?);
+                continue;
             }
             if let Ty::User(_) = pty {
                 args.push(self.type_arg(node, pty)?);
@@ -456,6 +495,30 @@ impl Checker<'_> {
         Ok(args)
     }
 
+    /// The argument for a `BYVAL` parameter of a library procedure, of type `pty` (design D1 of
+    /// `m3-declare-library`; measured, `verification\v37_b`, `v37_c`, `x28`): the value converted as for an
+    /// assignment, or `NULL` ([`Self::null_arg`]). A user type cannot be one: "User defined types in expressions are
+    /// invalid".
+    fn byval_arg(&mut self, node: ast::Expr, pty: Ty) -> R<Arg> {
+        if let Ty::User(_) = pty {
+            let msg = format!(
+                "a `BYVAL` parameter of `TYPE {}` takes no value (a user type is passed by reference)",
+                self.prog.type_name(pty)
+            );
+            return Err(self.error(node.node().span(), msg));
+        }
+        let null = self.null_arg(node);
+        let e = self.expr(node)?;
+        if e.ty == Ty::Str {
+            // A `STRING` parameter cannot be `BYVAL` (`x10`), so this one is a number.
+            return Err(self.error(e.span, "a number is required for this parameter"));
+        }
+        if null {
+            return Ok(Arg::Null);
+        }
+        Ok(Arg::Value(self.store(e, pty)?))
+    }
+
     /// The argument for a parameter of the user type `pty` (design D9 of `m2-defxxx-common-arrays`; measured,
     /// `verification\v24_h_type_params`, `v24_x211`–`x213`, `x308`): a variable, an element or a member of exactly
     /// that type, passed by reference. An element with an index outside its bounds raises error 9 and the
@@ -491,7 +554,7 @@ impl Checker<'_> {
     }
 
     /// `name()` naming an array that is visible here: the array and the name's token.
-    fn whole_array(&mut self, node: ast::Expr) -> Option<(VarId, Tok)> {
+    pub(super) fn whole_array(&mut self, node: ast::Expr) -> Option<(VarId, Tok)> {
         let ast::Expr::Call(call) = node else {
             return None;
         };
@@ -599,6 +662,7 @@ impl Checker<'_> {
                     param,
                     shown,
                     span,
+                    copied: false,
                 }
             }
         };
@@ -625,6 +689,15 @@ impl Checker<'_> {
         // `x17`, `x47`; uncalled it compiles, `x48`).
         if suffix.is_some_and(|s| !suffix_fits(s, ty)) || matches!(ty, Ty::Bit { .. }) {
             return Err(self.in_use(t));
+        }
+        let proc = self.prog.proc(p);
+        if proc.external.is_some() && proc.params.is_empty() && args.is_some() {
+            // Measured: "Expected (...)", also when the declaration has `()` (`verification\v37_x14`, `x54`).
+            let msg = format!(
+                "`{}` is called without parentheses: a library FUNCTION without parameters",
+                show_bytes(self.text(t.span))
+            );
+            return Err(self.error(span, msg));
         }
         let nodes = self.present_args(args)?;
         let args = self.args(p, t, &nodes, span)?;

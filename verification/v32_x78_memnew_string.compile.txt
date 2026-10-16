@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):M = _MEMNEW ( "a",1 )
+LINE 9:m = _MEMNEW("a")
+exit=1

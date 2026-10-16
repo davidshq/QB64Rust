@@ -1,0 +1,5 @@
+
+Unexpected element '_CLAMP'
+Caused by (or after):
+LINE 3:CONST C = _CLAMP ( 5 , 1 , 3 )
+exit=1

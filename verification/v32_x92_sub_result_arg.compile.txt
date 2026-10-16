@@ -1,0 +1,5 @@
+
+TYPE '_MEM' required for sub
+Caused by (or after):X _MEMNEW ( 4 )
+LINE 9:x _MEMNEW(4)
+exit=1

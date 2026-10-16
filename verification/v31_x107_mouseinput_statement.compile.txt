@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_MOUSEINPUT
+LINE 5:_MOUSEINPUT
+exit=1

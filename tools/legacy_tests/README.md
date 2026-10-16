@@ -36,6 +36,10 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
 - `<name>.normalize`: one rule per line, a Python regular expression, a tab, a replacement (`#` lines are
   comments), applied in order to each output line before comparing and before recording. Keep rules anchored and
   narrow, e.g. `^timer: *[0-9.]+ *$` → `timer: <TIMER>` (`PRINT` puts a space after a number).
+- `<name>.exitcode` (beside an `.output`): the exit code the run must end with, in decimal as the process
+  reports it (`END n`, `SYSTEM n`; `4294967295` for -1 on Windows); without it the code must be 0. `--record`
+  writes it when the two runs end with the same code that is not 0, and removes it when the code is 0
+  (`m3-asserts-debug-zlib`, design D7).
 - `<name>.stdin`: the program's standard input is a copy of this file, byte for byte, when checking and when
   recording, with either compiler (on Windows `press_any_key.py` passes it on as its second argument). Without
   the file a program runs as before (no input). Such a program must end with `SYSTEM`: with standard input from a
@@ -50,12 +54,27 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   the two are equal. To add a screen program, create an empty `<name>.screen` and record it. A `.screen` beside an
   `.err` or `.norun` is an error in the test, as is a `.keys` without a `.screen`, and a screen program that does
   not compile is never recorded as an `.err`. The path of this repo must hold no blank (`make` splits the flag).
+- `<name>.files`, a folder beside a program that runs: the data files it reads (a picture loaded with `BLOAD`).
+  Everything in it, folders too, is copied into the program's folder before the compile and again before each
+  run (the folder is emptied between the two runs of `--record`, and a run may have changed a file), with either
+  compiler. Beside an `.err` or a `.norun` it is an error in the test. `.gitattributes` stores the files byte
+  for byte.
 - A program listed in `known_failures.txt` that has no expected file (it hangs or loops forever, so nothing can
   be recorded) is compiled but never run, and reported as KFAIL `not run`. To try it again, remove the entry and
   record it.
 - `--list <file>` runs only the programs named in the file: one `<group>/<name>` per line (no `.bas`), `#`
   starts a comment. A name with no program is an error. Combines with `--category` and `--glob` (both must match).
   `tests\corpus\slice.list` names the programs the new compiler's first slice must pass.
+- `--pass-cache <folder>` (corpus suite, not with `--record`): a program that passed is remembered by a hash of
+  its executable, its source and every file its run and comparison read (`.output`, `.screen`, `.keys`, `.stdin`,
+  `.normalize`, `.exitcode`, `.noprompt`, and each file of `.files` by its path and bytes). The next run with the option still compiles and builds it, and when the hash is
+  the same reports `PASS` with "not run: passed before …" without running it; a last line says how many were
+  not run. With `--build-cache`, which gives an unchanged program a byte-identical executable, an edit to the
+  compiler then runs only the programs whose C++ it changed: the 342 of `slice.list` take 24 s when nothing
+  changed, against 92 s (`--jobs 8`, 2026-10-12). A failure is never remembered. **The closing runs of a change
+  go without it** (`CLAUDE.md` working rule 9): it cannot see a result that depends on time or load, which is
+  how `m10_screen_10` was found. With `qb64pe` it does no harm and saves nothing (its builds differ byte for
+  byte). The folder is safe to delete.
 - `--cpp-opt` adds `-f:OptimizeCppProgram=true`; its failures list the programs whose behaviour depends on the
   C++ optimiser (`tests\corpus\README.md`). It cannot be combined with `--record`.
 - On Windows, `END` in a console program waits for a key from the console ("Press any key to continue"), which
@@ -83,7 +102,11 @@ python -m unittest discover -s tools/legacy_tests -p "test_*.py"
 - every outcome of one corpus program, with `run_proc` (through which every process is started) replaced by a
   stand-in for the compiler and for the program: equal and different output, each kind of `.err` result with the
   old and the new compiler, `.norun`, `.stdin`, `.normalize`, a known failure without an expected file, a failed
-  or timed-out run, and `--record` with equal runs, with differing runs and with a rejection;
+  or timed-out run, `--record` with equal runs, with differing runs and with a rejection, and the data files of
+  `<name>.files` copied for a run and for a recording, and refused beside `.err` or `.norun`;
+- `--pass-cache`: a program that passed is compiled and not run; another executable, source, expected file,
+  input file, screen state or data file (changed, added, renamed, gone) runs it; a failure and a `--record` run
+  are not remembered;
 - every outcome of one screen program, the stand-in writing the state file the environment names: equal and
   different state, no state, a state left by an earlier run, the keys file passed on, `.screen` beside `.err` or
   `.norun`, `.keys` without `.screen`, and `--record` with equal states, differing states and a run without one.
@@ -109,7 +132,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification              
   stdout and stderr, `(timed out after 60 s)` after a timeout, then `exit=<code>`; or `(not compiled)`). The
   `.out.txt` text is printed too. A file is reported as `recorded new` or `warning: ... changed`, and left
   untouched when it differs only by CRLF against LF: `.gitattributes` marks both kinds `text=auto`, so git
-  stores text with LF on every machine. A file git takes for binary (a NUL, a CR without LF; six today) is
+  stores text with LF on every machine. A file git takes for binary (a NUL, a CR without LF; eight today) is
   stored and compared byte for byte.
 - Exit code: 0 when every program was recorded, whatever it did (a rejected or crashing program is a result);
   1 when a compile timed out and nothing was recorded for it. `run.sh` passes the code on and needs `python`

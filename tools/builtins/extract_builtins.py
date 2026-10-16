@@ -287,7 +287,7 @@ def auto_include_names():
             meta = code.strip().upper()
             if meta.startswith("$IF "):
                 if in_if:
-                    raise SystemExit("%s: a nested $IF, which this extractor does not read" % rel)
+                    raise SystemExit(f"{rel}: a nested $IF, which this extractor does not read")
                 in_if = True
                 flag = meta[4:].replace("THEN", "").strip()
                 # `None`: a condition not known here (`_SOCKETS_`); a `CONST` inside it stops the extractor.
@@ -301,7 +301,7 @@ def auto_include_names():
                 in_if = False
                 continue
             if meta.startswith("$ELSEIF"):
-                raise SystemExit("%s: a $ELSEIF, which this extractor does not read" % rel)
+                raise SystemExit(f"{rel}: a $ELSEIF, which this extractor does not read")
             for stmt in split_statements(code):
                 s = stmt.strip()
                 u = s.upper()
@@ -319,7 +319,7 @@ def auto_include_names():
                         written, _, value = item.partition("=")
                         rec = add(name_of(written), "const")
                         if taken is None:
-                            raise SystemExit("%s: a CONST under a $IF not known here: %s" % (rel, s))
+                            raise SystemExit(f"{rel}: a CONST under a $IF not known here: {s}")
                         if rec is not None and taken:
                             # The type suffix as written (`##` of `_E##`), and the text of the expression.
                             rec["suffix"] = written.strip()[len(rec["name"]) :]

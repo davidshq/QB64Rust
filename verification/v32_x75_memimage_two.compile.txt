@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _MEMIMAGE[(imageHandle&)]
+Caused by (or after):M = _MEMIMAGE ( 1 , 2 )
+LINE 9:m = _MEMIMAGE(1, 2)
+exit=1

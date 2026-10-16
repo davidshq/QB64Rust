@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 108
 expression: snap
 ---
 blocks_recovery.bas:8:1: error: `NEXT` while the `IF` on line 7 is still open; expected `END IF` first
@@ -13,7 +14,6 @@ blocks_recovery.bas:19:5: error: `CASE` while the `IF` on line 18 is still open;
 blocks_recovery.bas:20:9: error: `END IF` without `IF`
 blocks_recovery.bas:24:5: error: expected a field (`name AS type` or `AS type name, ...`) or `END TYPE`
 blocks_recovery.bas:25:1: error: `END TYPE` without `TYPE`
-blocks_recovery.bas:26:1: error: not supported yet: `DECLARE LIBRARY`
 blocks_recovery.bas:27:5: error: expected a SUB or FUNCTION declaration or `END DECLARE`
 blocks_recovery.bas:28:1: error: `END DECLARE` without `DECLARE LIBRARY`
 blocks_recovery.bas:29:17: error: `NEXT` names more variables than there are `FOR` blocks open around it

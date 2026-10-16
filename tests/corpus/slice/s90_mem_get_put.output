@@ -1,0 +1,66 @@
+put and get a LONG
+ 7  7 
+-1  4 
+each type AS, read back by the function
+-5  251 
+-300  65236 
+-70000  4294897296 
+-5000000000  18446744068709551616 
+ 1.5  1069547520 
+ 2.25  4612248968380809216 
+ 3.5 
+ 99  99 
+ 3 
+ 44 
+-24 
+variables and strings
+abcdefghcde
+wxyzef
+12yzef
+--xzef
+ 12  3.25 
+1234 52 
+-2 
+the statement into each kind of variable
+-12345 
+-12345 
+-57 
+-12345 
+ 6.5 
+ 0 
+ 1.25 
+pqrs
+pqr
+ 12  3.25 
+ 12 
+fill and copy
+ 3  3  7  3 
+ 258  258  2  3 
+62616261
+-1 -1  25185 
+03FC0 0 
+ 0 
+03FC0
+new memory
+-1  16  16384  1 -1 
+ 0 
+-1  0  1 
+ 0  0  0 
+an image
+FF0A141E 32  3204  4 -1 
+-1 
+ 0 
+ 0 
+ 9  3201  1 
+when a block stops being valid
+-1 
+-1 
+ 0 
+ 0 
+-1 
+-1  0 
+the address
+ 0 -1 
+-1 
+ 9  4  16384  1 -1 
+-1 -1  2 

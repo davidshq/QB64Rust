@@ -1,9 +1,9 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 108
 expression: snap
 ---
-common_unsupported.bas:8:8: error: not supported yet: `COMMON a()` of an array that exists already
-common_unsupported.bas:9:1: error: not supported yet: `CHAIN`
-common_unsupported.bas:10:9: error: not supported yet: an array named with `$n`: `t$3`
-common_unsupported.bas:12:13: error: not supported yet: an `_UNSIGNED STRING` array parameter
-common_unsupported.bas:14:22: error: not supported yet: a second array parameter named `t`, of another type
+common_unsupported.bas:7:8: error: not supported yet: `COMMON a()` of an array that exists already
+common_unsupported.bas:8:9: error: not supported yet: an array named with `$n`: `t$3`
+common_unsupported.bas:10:13: error: not supported yet: an `_UNSIGNED STRING` array parameter
+common_unsupported.bas:12:22: error: not supported yet: a second array parameter named `t`, of another type

@@ -1,0 +1,5 @@
+
+Cannot assign arrays with different dimensions
+Caused by (or after):A ( ) = B ( )
+LINE 4:a() = b()
+exit=1

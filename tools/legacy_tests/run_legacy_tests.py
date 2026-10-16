@@ -37,12 +37,19 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     that read the console with INPUT or LINE INPUT), when checking and when recording
   * <name>.normalize: one rule per line, <regex><TAB><replacement> ('#' lines are comments),
     applied in order to each line of the actual output before comparing or recording
+  * <name>.exitcode (beside an .output): the exit code the run must end with, in decimal as the
+    process reports it (END n, SYSTEM n); without it, 0. --record writes it when the code is not
+    0 (the two runs must agree) and removes it when the code is 0
   * <name>.screen (beside an .output): a screen program. It is built with tools/screen/screen_state.cpp
     on the link line (-f:ExtraLinkerFlags=) and run with QB64_SCREEN_STATE naming a file in the
     results folder; the state of the screen it writes there at exit must equal .screen (CRLF as
     LF), and a run that writes none fails. <name>.keys, when present, is given to it as
     QB64_SCREEN_KEYS (the keys it reads); a .keys without a .screen is an error in the test.
     --record writes .screen when both runs wrote equal states
+  * <name>.files: a folder of data files the program reads (the pictures a game loads with
+    BLOAD). Everything in it is copied into the program's folder before it is compiled, with
+    either compiler, when checking and when recording; beside an .err or a .norun it is an
+    error in the test
   * --record compiles once, runs twice, and writes .output (or .err for a failed compile)
     only if both normalised runs are equal; otherwise the program is reported
     non-deterministic and nothing is written. With a compiler other than qb64pe, a failed compile
@@ -684,6 +691,34 @@ def write_expected(path: Path, data: bytes, other: Path) -> str:
     return f"warning: {other.name} replaced by {path.name}"
 
 
+PASSED_BEFORE = "not run: passed before with this executable and these expected files"
+
+
+def pass_key(exe: Path, parts: list[bytes | None]) -> str:
+    """The key of a corpus program's run for --pass-cache: its executable and everything else the
+    run and its comparison read (`parts`; None for a file that is not there). A program whose key
+    equals one that passed gives the same output again, so it is not run."""
+    h = hashlib.sha256()
+    for part in (b"pass cache 1", exe.read_bytes(), *parts):
+        data = b"\0" if part is None else b"\1" + part
+        h.update(len(data).to_bytes(8, "little"))
+        h.update(data)
+    return h.hexdigest()
+
+
+def data_files(folder: Path) -> bytes | None:
+    """What a program's <name>.files folder holds, for pass_key: every file by its path in the
+    folder and its bytes, in the order of the paths. None when there is no such folder."""
+    if not folder.is_dir():
+        return None
+    h = hashlib.sha256()
+    for p in sorted(q for q in folder.rglob("*") if q.is_file()):
+        for part in (p.relative_to(folder).as_posix().encode(), p.read_bytes()):
+            h.update(len(part).to_bytes(8, "little"))
+            h.update(part)
+    return h.digest()
+
+
 def corpus_test(
     bas: Path, args, results: Path, qb_root: Path, corpus_root: Path, known: dict[str, str]
 ) -> Result:
@@ -724,6 +759,13 @@ def corpus_test(
     keys_file = tdir / f"{name}.keys"
     if keys_file.is_file() and not screen:
         return fail("expected", ".keys without .screen: only a screen program is given keys")
+    # <name>.files: the data files the program reads, copied beside it before it is compiled.
+    files_dir = tdir / f"{name}.files"
+    if files_dir.is_dir() and (norun or err_file.is_file()):
+        return fail("expected", f".files beside {present[0]}: a program with data files runs")
+    exitcode_file = tdir / f"{name}.exitcode"
+    if exitcode_file.is_file() and (norun or err_file.is_file()):
+        return fail("expected", f".exitcode beside {present[0]}: only a program that runs has one")
     if screen and any(c.isspace() for c in SCREEN_STATE_SOURCE.as_posix()):
         return fail("screen", f"a blank in the path of {SCREEN_STATE_SOURCE.name}: make splits it")
     if not present and not args.record and not skip_run:
@@ -736,6 +778,8 @@ def corpus_test(
         shutil.rmtree(work)
     work.mkdir(parents=True)
     shutil.copyfile(bas, work / bas.name)
+    if files_dir.is_dir():
+        shutil.copytree(files_dir, work, dirs_exist_ok=True)
     exe = work / f"{name}.exe"
     compile_out = results / f"{key}-compile_result.txt"
 
@@ -819,6 +863,34 @@ def corpus_test(
     np_file = tdir / f"{name}.noprompt"
     if np_file.is_file():
         noprompt = np_file.read_text(encoding="latin-1").strip()
+    stdin_file = tdir / f"{name}.stdin"
+    # <name>.exitcode: the exit code the program must end with (END n, SYSTEM n), as the process
+    # reports it (Python's returncode: on Windows the unsigned 32-bit value); without it, 0.
+    want_rc = int(exitcode_file.read_text(encoding="latin-1").strip()) if exitcode_file.is_file() else 0
+    # --pass-cache: a program that passed with this executable, this source and these expected and
+    # input files is not run again. Never with --record, which is what makes the expected files.
+    remembered = None
+    pass_cache = getattr(args, "pass_cache", None)
+    if pass_cache and not args.record:
+
+        def read(p: Path) -> bytes | None:
+            return p.read_bytes() if p.is_file() else None
+
+        parts = [
+            bas.read_bytes(),
+            read(out_file),
+            read(screen_file),
+            read(keys_file),
+            read(stdin_file),
+            read(tdir / f"{name}.normalize"),
+            read(exitcode_file),
+            data_files(files_dir),
+            noprompt.encode(),
+            Path(__file__).with_name("press_any_key.py").read_bytes() if os.name == "nt" else None,
+        ]
+        remembered = pass_cache / pass_key(exe, parts)
+        if remembered.is_file():
+            return passed(PASSED_BEFORE)
     env = dict(os.environ)
     env.update(
         {
@@ -830,7 +902,6 @@ def corpus_test(
     )
     # <name>.stdin: the program's standard input is a copy of that file, kept beside the results so
     # that the program's own folder holds only what the program finds without the sidecar.
-    stdin_file = tdir / f"{name}.stdin"
     stdin_copy = None
     if stdin_file.is_file():
         stdin_copy = results / f"{key}-stdin.txt"
@@ -850,8 +921,12 @@ def corpus_test(
         cmd, flags = [str(exe)], 0
     outputs: list[bytes] = []
     states: list[bytes] = []
+    codes: list[int] = []
     for run in range(1, 3 if args.record else 2):
         reset_folder(work, {bas.name, exe.name})
+        if files_dir.is_dir():
+            # Fresh for every run: the first one may have changed or removed a data file.
+            shutil.copytree(files_dir, work, dirs_exist_ok=True)
         run_out = results / f"{key}-run{run}-output.txt"
         state_out = results / f"{key}-run{run}-screen.txt"
         if screen:
@@ -869,8 +944,10 @@ def corpus_test(
         )
         if timed_out:
             return fail("run", "timeout")
-        if rc != 0:
-            return fail("run", f"exit code {rc}")
+        # A recording takes any code (two runs must agree); a check wants the .exitcode's, or 0.
+        if rc != want_rc and not args.record:
+            return fail("run", f"exit code {rc}" + (f", expected {want_rc}" if want_rc else ""))
+        codes.append(rc)
         outputs.append(apply_normalize(run_out.read_bytes(), rules))
         if screen:
             # A build that lost the state file, or a program killed before exit(), must not pass.
@@ -883,7 +960,15 @@ def corpus_test(
             return fail("record", "non-deterministic: the two runs differ after normalisation")
         if screen and states[0] != states[1]:
             return fail("record", "non-deterministic: the screen states of the two runs differ")
+        if codes[0] != codes[1]:
+            return fail("record", f"non-deterministic: exit codes {codes[0]} and {codes[1]}")
         changes = [write_expected(out_file, outputs[0], err_file)]
+        # The exit code: a file only for one that is not 0.
+        if codes[0] != 0:
+            changes.append(write_recorded(exitcode_file, f"{codes[0]}\n".encode()))
+        elif exitcode_file.is_file():
+            exitcode_file.unlink()
+            changes.append(f"removed {exitcode_file.name}")
         if screen:
             first = (
                 screen_file.stat().st_size == 0
@@ -895,6 +980,9 @@ def corpus_test(
         return fail("result", "program output differs from .output")
     if screen and norm_output(screen_file.read_bytes()) != norm_output(states[0]):
         return fail("screen", "screen state differs from .screen")
+    if remembered:
+        remembered.parent.mkdir(parents=True, exist_ok=True)
+        remembered.touch()
     return passed()
 
 
@@ -1192,9 +1280,9 @@ def main() -> int:
     ap.add_argument(
         "--compile-tests",
         type=Path,
-        help="compile suite's test folder (default: <qb-root>/tests/compile_tests; "
-        "CI passes the copy tests/upstream/compile_tests, which has no binary "
-        "assets)",
+        help="compile suite's test folder (default: <qb-root>/tests/compile_tests, as "
+        "CI runs it; the copy tests/upstream/compile_tests has no binary assets, so "
+        "programs that need one fail from it)",
     )
     ap.add_argument(
         "--list",
@@ -1230,7 +1318,18 @@ def main() -> int:
         "program is still compiled, run and compared). Not for CI, which builds "
         "every program",
     )
+    ap.add_argument(
+        "--pass-cache",
+        type=Path,
+        help="corpus: a folder that remembers which programs passed, by executable, source "
+        "and expected files; such a program is compiled and built and not run again. "
+        "For work between the closing runs of a change, which go without it: it would "
+        "hide a result that depends on time or load. Not with --record",
+    )
     args = ap.parse_args()
+    if args.pass_cache and (args.suite != "corpus" or args.record):
+        print("--pass-cache applies to --suite corpus without --record", file=sys.stderr)
+        return 2
     if args.jobs < 1:
         print("--jobs must be 1 or more", file=sys.stderr)
         return 2
@@ -1286,6 +1385,8 @@ def main() -> int:
             return 2
         # Inherited by every compile this run starts (crates/driver/src/build.rs).
         os.environ["QB64RUST_BUILD_CACHE"] = str(args.build_cache.resolve())
+    if args.pass_cache:
+        args.pass_cache = args.pass_cache.resolve()
 
     compile_root = (args.compile_tests or qb_root / "tests" / "compile_tests").resolve()
     all_results: list[Result] = []
@@ -1461,6 +1562,9 @@ def main() -> int:
     for r in all_results:
         s = summary.setdefault(r.suite, {"PASS": 0, "FAIL": 0, "KFAIL": 0})
         s[r.status] += 1
+    if args.pass_cache:
+        kept = sum(1 for r in all_results if r.detail == PASSED_BEFORE)
+        print(f"--pass-cache: {kept} of {len(all_results)} programs not run (passed before)")
     # A partial run must not overwrite the results of a fuller one.
     if args.category or args.glob != "*.bas" or args.list or args.names:
         name = "results-partial.json"

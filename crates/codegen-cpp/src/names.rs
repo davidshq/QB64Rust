@@ -103,6 +103,34 @@ pub(crate) fn c_string(bytes: &[u8]) -> String {
     s
 }
 
+/// A value's text without the parentheses around the whole of it, when it has them: `(a+b)` is `a+b`, `(a)+(b)`
+/// and `f(a)` are themselves. A value is written in parentheses wherever an operator could meet it; where it is
+/// put between parentheses or commas anyway (a part of a choice, an argument of a call written with a template
+/// argument) the old compiler writes it without, and the call-site check compares those places token by token.
+/// The emitter's string literals hold no `"` ([`c_string`]), so a `"` always opens or closes one.
+pub(crate) fn bare(text: &str) -> &str {
+    let bytes = text.as_bytes();
+    if bytes.first() != Some(&b'(') || bytes.last() != Some(&b')') {
+        return text;
+    }
+    let (mut depth, mut in_string) = (0usize, false);
+    for (i, &c) in bytes.iter().enumerate() {
+        match c {
+            b'"' => in_string = !in_string,
+            b'(' if !in_string => depth += 1,
+            b')' if !in_string => {
+                depth = depth.saturating_sub(1);
+                // The first parenthesis closes before the end: it is not around the whole.
+                if depth == 0 && i + 1 != bytes.len() {
+                    return text;
+                }
+            }
+            _ => {}
+        }
+    }
+    &text[1..text.len() - 1]
+}
+
 /// The file name of a `#line` directive. Its string is unevaluated, where clang rejects numeric escapes (`\134`),
 /// so only `\\` and `\"` are escaped; other bytes stay as they are (the name is UTF-8), control bytes become `_`.
 pub(crate) fn line_name(name: &str) -> String {
@@ -218,6 +246,7 @@ mod tests {
             ty,
             storage,
             shape: qb64rust_ir::Shape::Scalar,
+            conventional: false,
         };
         let mut p = Program::default();
         for (name, kind) in [("BUMP", ProcKind::Sub), ("TWICE", ProcKind::Function(Ty::I32))] {
@@ -229,6 +258,7 @@ mod tests {
                 body: Body::default(),
                 line: 1,
                 end_line: 1,
+                external: None,
             });
         }
         assert_eq!(var_name(&p, &var("A", Ty::I32, Storage::Global)), "__LONG_A");

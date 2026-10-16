@@ -1,0 +1,5 @@
+
+User defined types in expressions are invalid
+Caused by (or after):_ASSERT V
+LINE 7:_ASSERT v
+exit=1

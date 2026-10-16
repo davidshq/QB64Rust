@@ -1,0 +1,5 @@
+
+Cannot convert type (FOO) to symbol
+Caused by (or after):K = _CV ( FOO , S )
+LINE 9:k = _CV(FOO, s)
+exit=1

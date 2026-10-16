@@ -1,0 +1,5 @@
+
+User defined types in expressions are invalid
+Caused by (or after):SYSTEM V
+LINE 7:SYSTEM v
+exit=1

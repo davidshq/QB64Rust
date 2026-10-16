@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _MOUSEWHEEL [axis]
+Caused by (or after):PRINT _MOUSEWHEEL ( 1 , 2 )
+LINE 5:PRINT _MOUSEWHEEL(1, 2)
+exit=1

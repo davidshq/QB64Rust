@@ -127,6 +127,10 @@ pub(crate) fn field_stmt(p: &mut Parser) {
             if p.at(Comma) {
                 p.bump();
             } else {
+                if p.at(Semicolon) {
+                    // Measured: "Invalid expression" (`verification\v30_x128`).
+                    p.error("expected `,` between the parts of `FIELD`");
+                }
                 break;
             }
         }

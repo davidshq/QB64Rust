@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _PRINTSTRING(x, y), text$[, imageHandle&]
+Caused by (or after):_PRINTSTRING ( 1 , 2 )
+LINE 5:_PRINTSTRING (1, 2)
+exit=1

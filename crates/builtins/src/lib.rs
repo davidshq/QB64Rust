@@ -80,6 +80,19 @@ pub fn find_function(name: &[u8]) -> Option<BuiltinId> {
         .map(|i| BuiltinId(u16::try_from(i).expect("fewer than 65536 built-ins")))
 }
 
+/// The function-form entry for a name that is written with `$` (`string`) or without it: `VARPTR` and `VARPTR$`
+/// are two functions.
+pub fn find_function_form(name: &[u8], string: bool) -> Option<BuiltinId> {
+    BUILTINS
+        .iter()
+        .position(|b| {
+            b.kind == Kind::Function
+                && b.name.as_bytes().eq_ignore_ascii_case(name)
+                && (b.musthave == Some("$")) == string
+        })
+        .map(|i| BuiltinId(u16::try_from(i).expect("fewer than 65536 built-ins")))
+}
+
 /// The built-in statements a statement starting with `name` (a word as written, suffix included) may be, with
 /// their templates, in table order: SUB entries with a `specialformat` whose name matches, with the required
 /// suffix if the entry has one (`TIME$ = …`) and without one otherwise (`LINE …`).

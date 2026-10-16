@@ -1,0 +1,9 @@
+1. SHARED into COMMON (conventional memory), from a SUB: 1  2  3 
+2. local and STATIC arrays of a SUB: 0  101  101  102 
+3. array parameters, both sides: 10  20  30 
+4. a parameter and a SHARED array: 1 -2  3 
+5. a parameter of strings: g1 g2
+6. $DYNAMIC: 10  20  30 
+7. used without DIM: 44  10 
+8. in a FUNCTION: 6 
+exit=0

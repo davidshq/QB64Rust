@@ -1,0 +1,5 @@
+
+Cannot change the number of elements an array has!
+Caused by (or after):REDIM X . W ( 0 TO 5 ) AS LONG
+LINE 10:REDIM x.w(0 TO 5) AS LONG
+exit=1

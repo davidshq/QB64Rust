@@ -1,0 +1,5 @@
+
+_OFFSET expects the name of a variable/array
+Caused by (or after):PRINT _OFFSET ( K + 1 )
+LINE 9:PRINT _OFFSET(k + 1)
+exit=1

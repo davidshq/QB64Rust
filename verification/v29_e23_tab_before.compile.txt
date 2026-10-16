@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ EXEICON
+LINE 6:	$EXEICON:'./v29_inc/icon.ico'
+exit=1

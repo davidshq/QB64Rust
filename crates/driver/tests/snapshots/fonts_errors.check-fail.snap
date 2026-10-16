@@ -1,0 +1,39 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+fonts_errors.bas:7:22: error: `_UCHARPOS` needs an array of LONG here
+fonts_errors.bas:8:22: error: `_UCHARPOS` needs an array of LONG here
+fonts_errors.bas:9:22: error: `_UCHARPOS` needs an array of LONG here
+fonts_errors.bas:10:22: error: `_UCHARPOS` needs an array of LONG here
+fonts_errors.bas:11:5: error: `_UCHARPOS` takes 1 to 4 arguments
+fonts_errors.bas:12:5: error: `_UCHARPOS` takes 1 to 4 arguments
+fonts_errors.bas:13:22: error: `_UCHARPOS` needs an array of LONG here
+fonts_errors.bas:14:22: error: `_UCHARPOS` needs an array of LONG here
+fonts_errors.bas:15:11: error: this `_PRINTMODE` statement matches none of its forms: `_PRINTMODE {_FillBackground|_KeepBackground|_OnlyBackground}[,?]`
+fonts_errors.bas:16:12: error: this `_PRINTMODE` statement matches none of its forms: `_PRINTMODE {_FillBackground|_KeepBackground|_OnlyBackground}[,?]`
+fonts_errors.bas:17:7: error: `_PRINTMODE` takes 0 or 1 arguments
+fonts_errors.bas:18:14: error: this `_MAPUNICODE` statement matches none of its forms: `_MAPUNICODE ?{To}?`
+fonts_errors.bas:19:14: error: this `_MAPUNICODE` statement matches none of its forms: `_MAPUNICODE ?{To}?`
+fonts_errors.bas:20:7: error: `_MAPUNICODE` takes 1 argument
+fonts_errors.bas:21:7: error: `_MAPUNICODE` takes 1 argument
+fonts_errors.bas:22:6: error: this `_FONT` statement matches none of its forms: `_FONT ?[,?]`
+fonts_errors.bas:23:11: error: this `_FONT` statement matches none of its forms: `_FONT ?[,?]`
+fonts_errors.bas:24:7: error: `_FONT` takes 0 or 1 arguments
+fonts_errors.bas:25:10: error: this `_FREEFONT` statement matches none of its forms: `_FREEFONT ?`
+fonts_errors.bas:26:12: error: this `_FREEFONT` statement matches none of its forms: `_FREEFONT ?`
+fonts_errors.bas:27:14: error: this `_PRINTSTRING` statement matches none of its forms: `_PRINTSTRING [{Step}](?,?),?[,?]`
+fonts_errors.bas:28:22: error: argument 3 of `_PRINTSTRING` needs a string
+fonts_errors.bas:29:20: error: this `_PRINTSTRING` statement matches none of its forms: `_PRINTSTRING [{Step}](?,?),?[,?]`
+fonts_errors.bas:30:20: error: this `_PRINTSTRING` statement matches none of its forms: `_PRINTSTRING [{Step}](?,?),?[,?]`
+fonts_errors.bas:31:7: error: `_PRINTWIDTH` takes 1 or 2 arguments
+fonts_errors.bas:32:19: error: argument 1 of `_PRINTWIDTH` needs a string
+fonts_errors.bas:33:21: error: this `_UPRINTSTRING` statement matches none of its forms: `_UPRINTSTRING (?,?),?[,[?][,[?][,[?][,?]]]]`
+fonts_errors.bas:34:15: error: this `_UPRINTSTRING` statement matches none of its forms: `_UPRINTSTRING (?,?),?[,[?][,[?][,[?][,?]]]]`
+fonts_errors.bas:35:38: error: this `_UPRINTSTRING` statement matches none of its forms: `_UPRINTSTRING (?,?),?[,[?][,[?][,[?][,?]]]]`
+fonts_errors.bas:36:7: error: `_UPRINTWIDTH` takes 1 to 3 arguments
+fonts_errors.bas:37:7: error: `_UFONTHEIGHT` takes 0 or 1 arguments
+fonts_errors.bas:38:5: error: `_LOADFONT` takes 2 to 4 arguments
+fonts_errors.bas:39:15: error: argument 1 of `_LOADFONT` needs a string
+fonts_errors.bas:40:5: error: `_LOADFONT` takes 2 to 4 arguments
+fonts_errors.bas:41:7: error: `_FONTWIDTH` takes 0 or 1 arguments

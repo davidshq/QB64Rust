@@ -1,0 +1,465 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 149
+expression: snap
+---
+==> global.txt <==
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+int32 *__LONG_X=NULL;
+ptrszint *__ARRAY_LONG_A=NULL;
+void *__UDT_P=NULL;
+ptrszint *__ARRAY_UDT_Q=NULL;
+int16 *__INTEGER_K=NULL;
+qbs *__STRING_S=NULL;
+qbs *__STRING6_FX=NULL;
+double *__DOUBLE_Y=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+extern "C"{
+extern void c_twice(void);
+}
+extern void cpp_ticks();
+==> regsf.txt <==
+#include "v37_lib/v37h.h"
+extern "C" int32 c_add(int32,int32);
+extern "C" void c_inc(int32*);
+extern "C" int32 c_len(char*);
+extern "C" double c_half(double);
+extern "C" char* c_hello();
+extern "C" int64 c_big(int64,ptrszint,void*);
+int32 cpp_add(int32,int32);
+void cpp_tick();
+HINSTANCE DLL_v37dll=NULL;
+typedef int32 (CALLBACK* DLLCALL_FUNC_D_ADD)(int32,int32);
+DLLCALL_FUNC_D_ADD FUNC_D_ADD=NULL;
+typedef void (CALLBACK* DLLCALL_SUB_D_INC)(int32*);
+DLLCALL_SUB_D_INC SUB_D_INC=NULL;
+typedef char* (CALLBACK* DLLCALL_FUNC_D_HELLO)();
+DLLCALL_FUNC_D_HELLO FUNC_D_HELLO=NULL;
+typedef int32 (CALLBACK* DLLCALL_FUNC_TICKS)();
+DLLCALL_FUNC_TICKS FUNC_TICKS=NULL;
+HINSTANCE DLL_kernel32=NULL;
+typedef int32 (CALLBACK* DLLCALL_FUNC_LSTRLENA)(char*);
+DLLCALL_FUNC_LSTRLENA FUNC_LSTRLENA=NULL;
+typedef int32 (CALLBACK* DLLCALL_FUNC_GETTICKCOUNT)();
+DLLCALL_FUNC_GETTICKCOUNT FUNC_GETTICKCOUNT=NULL;
+#include "v37_lib/v37h.h"
+typedef int64 CUSTOMCALL_FUNC_ADDLL(int32,int32);
+CUSTOMCALL_FUNC_ADDLL *FUNC_ADDLL=NULL;
+typedef void CUSTOMCALL_SUB_CT_PL(int32*);
+CUSTOMCALL_SUB_CT_PL *SUB_CT_PL=NULL;
+typedef int32 CUSTOMCALL_FUNC_CT_ADD(int32,int32);
+CUSTOMCALL_FUNC_CT_ADD *FUNC_CT_ADD=NULL;
+typedef int32 CUSTOMCALL_FUNC_CT_CPP();
+CUSTOMCALL_FUNC_CT_CPP *FUNC_CT_CPP=NULL;
+#include "v37_lib/v37h.h"
+void SUB_IN_SUB();
+==> clear.txt <==
+*__LONG_X=0;
+memset((void*)(__ARRAY_LONG_A[0]),0,__ARRAY_LONG_A[5]*4);
+memset((void*)__UDT_P,0,8);
+memset((void*)(__ARRAY_UDT_Q[0]),0,__ARRAY_UDT_Q[5]*8);
+*__INTEGER_K=0;
+__STRING_S->len=0;
+memset((void*)(__STRING6_FX->chr),0,6);
+*__DOUBLE_Y=0;
+==> maindata.txt <==
+if (!DLL_v37dll){
+DLL_v37dll=LoadLibrary("./v37dll.dll");
+if (!DLL_v37dll){error(259);}
+}
+if (!FUNC_D_ADD){
+FUNC_D_ADD=(DLLCALL_FUNC_D_ADD)GetProcAddress(DLL_v37dll,"d_add");
+if (!FUNC_D_ADD){error(260);}
+}
+if (!SUB_D_INC){
+SUB_D_INC=(DLLCALL_SUB_D_INC)GetProcAddress(DLL_v37dll,"d_inc");
+if (!SUB_D_INC){error(260);}
+}
+if (!FUNC_D_HELLO){
+FUNC_D_HELLO=(DLLCALL_FUNC_D_HELLO)GetProcAddress(DLL_v37dll,"d_hello");
+if (!FUNC_D_HELLO){error(260);}
+}
+if (!FUNC_TICKS){
+FUNC_TICKS=(DLLCALL_FUNC_TICKS)GetProcAddress(DLL_v37dll,"d_ticks");
+if (!FUNC_TICKS){error(260);}
+}
+if (!DLL_kernel32){
+DLL_kernel32=LoadLibrary("kernel32.dll");
+if (!DLL_kernel32){error(259);}
+}
+if (!FUNC_LSTRLENA){
+FUNC_LSTRLENA=(DLLCALL_FUNC_LSTRLENA)GetProcAddress(DLL_kernel32,"lstrlenA");
+if (!FUNC_LSTRLENA){error(260);}
+}
+if (!FUNC_GETTICKCOUNT){
+FUNC_GETTICKCOUNT=(DLLCALL_FUNC_GETTICKCOUNT)GetProcAddress(DLL_kernel32,"GetTickCount");
+if (!FUNC_GETTICKCOUNT){error(260);}
+}
+FUNC_ADDLL=(CUSTOMCALL_FUNC_ADDLL*)&h_add;
+SUB_CT_PL=(CUSTOMCALL_SUB_CT_PL*)&h_pl;
+FUNC_CT_ADD=(CUSTOMCALL_FUNC_CT_ADD*)&c_twice;
+FUNC_CT_CPP=(CUSTOMCALL_FUNC_CT_CPP*)&cpp_ticks;
+if(__LONG_X==NULL){
+__LONG_X=(int32*)mem_static_malloc(4);
+*__LONG_X=0;
+}
+if (!__ARRAY_LONG_A){
+__ARRAY_LONG_A=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_A)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_A[4]=0ll;
+__ARRAY_LONG_A[5]=(3ll)-__ARRAY_LONG_A[4]+1;
+if (__ARRAY_LONG_A[5]<=0) error(5);
+__ARRAY_LONG_A[6]=1;
+__ARRAY_LONG_A[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_A[5]*4);
+memset((void*)(__ARRAY_LONG_A[0]),0,__ARRAY_LONG_A[5]*4);
+__ARRAY_LONG_A[2]=1+2;
+}
+if(__UDT_P==NULL){
+__UDT_P=(void*)mem_static_malloc(8);
+memset(__UDT_P,0,8);
+}
+if (!__ARRAY_UDT_Q){
+__ARRAY_UDT_Q=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_Q)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_Q[4]=0ll;
+__ARRAY_UDT_Q[5]=(2ll)-__ARRAY_UDT_Q[4]+1;
+if (__ARRAY_UDT_Q[5]<=0) error(5);
+__ARRAY_UDT_Q[6]=1;
+__ARRAY_UDT_Q[0]=(ptrszint)mem_static_malloc(__ARRAY_UDT_Q[5]*8);
+memset((void*)(__ARRAY_UDT_Q[0]),0,__ARRAY_UDT_Q[5]*8);
+__ARRAY_UDT_Q[2]=1+2;
+}
+if(__INTEGER_K==NULL){
+__INTEGER_K=(int16*)mem_static_malloc(2);
+*__INTEGER_K=0;
+}
+if (!__STRING_S)__STRING_S=qbs_new(0,0);
+if(__STRING6_FX==NULL){
+__STRING6_FX=qbs_new_fixed((uint8*)mem_static_malloc(6),6,0);
+memset(__STRING6_FX->chr,0,6);
+}
+if(__DOUBLE_Y==NULL){
+__DOUBLE_Y=(double*)mem_static_malloc(8);
+*__DOUBLE_Y=0;
+}
+int32 pass1;
+int32 pass2;
+int32 pass3;
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "library_cpp.bas"
+do{
+#line 2 "library_cpp.bas"
+sub__dest(func__console());
+#line 2 "library_cpp.bas"
+sub__source(func__console());
+#line 2 "library_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 72 "library_cpp.bas"
+do{
+#line 72 "library_cpp.bas"
+*__LONG_X=((int32)((((uint64)(qbr((((long double)(((((double)(((((int32)h_l(qbr(2.6E+0)))+((int32)h_l(qbr(*__DOUBLE_Y))))+((int32)(((int8)h_b(44)))))))+((double)h_d(1)))+((double)h_d(*__LONG_X)))))+((long double)h_f(1.5E+0))))))+((uint64)(((uptrszint)h_uo(41ull)))))));
+#line 72 "library_cpp.bas"
+if(!qbevent)break;evnt(72);}while(r);
+#line 73 "library_cpp.bas"
+do{
+#line 73 "library_cpp.bas"
+*__LONG_X=((((((int32)h_isnull(NULL))+((int32)h_isnull(0ll)))+((int32)h_isnull(((uptrszint)(__LONG_X)))))+((int32)h_ptsum(__UDT_P)))+((int32)h_ptsum(((void*)(((char*)__ARRAY_UDT_Q[0])+((array_check((1ll)-__ARRAY_UDT_Q[4],__ARRAY_UDT_Q[5]))*8))))));
+#line 73 "library_cpp.bas"
+if(!qbevent)break;evnt(73);}while(r);
+#line 74 "library_cpp.bas"
+do{
+#line 74 "library_cpp.bas"
+*__LONG_X=(((((((int32)h_max<int32_t>(3,9))+((int32)hns::twice(21)))+((int32)h_len((char*)(__STRING_S)->chr)))+((int32)h_len((char*)(qbs_new_txt_len("abc",3))->chr)))+((int32)h_len((char*)(qbs_add(__STRING_S,qbs_new_txt_len("xy",2)))->chr)))+((int32)h_len((char*)(__STRING6_FX)->chr)));
+#line 74 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 74 "library_cpp.bas"
+if(!qbevent)break;evnt(74);}while(r);
+#line 75 "library_cpp.bas"
+do{
+#line 75 "library_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 75 "library_cpp.bas"
+qbs_set(tqbs,qbs_new_txt((char*)h_hello()));
+#line 75 "library_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 75 "library_cpp.bas"
+makefit(tqbs);
+#line 75 "library_cpp.bas"
+qbs_print(tqbs,0);
+#line 75 "library_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(((int32)(qbs_new_txt((char*)h_hello()))->len))),qbs_new_txt(" ")));
+#line 75 "library_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 75 "library_cpp.bas"
+makefit(tqbs);
+#line 75 "library_cpp.bas"
+qbs_print(tqbs,0);
+#line 75 "library_cpp.bas"
+qbs_print(nothingstring,1);
+#line 75 "library_cpp.bas"
+skip1:
+#line 75 "library_cpp.bas"
+qbs_free(tqbs);
+#line 75 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 75 "library_cpp.bas"
+if(!qbevent)break;evnt(75);}while(r);
+#line 76 "library_cpp.bas"
+do{
+#line 76 "library_cpp.bas"
+h_pl(__LONG_X);
+#line 76 "library_cpp.bas"
+if(!qbevent)break;evnt(76);}while(r);
+#line 76 "library_cpp.bas"
+do{
+#line 76 "library_cpp.bas"
+h_pl(&(pass1=*__LONG_X));
+#line 76 "library_cpp.bas"
+if(!qbevent)break;evnt(76);}while(r);
+#line 76 "library_cpp.bas"
+do{
+#line 76 "library_cpp.bas"
+h_pl((&((int32*)(__ARRAY_LONG_A[0]))[array_check((2ll)-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])]));
+#line 76 "library_cpp.bas"
+if(!qbevent)break;evnt(76);}while(r);
+#line 76 "library_cpp.bas"
+do{
+#line 76 "library_cpp.bas"
+h_pl((int32*)(void*)((((char*)__UDT_P)+4)));
+#line 76 "library_cpp.bas"
+if(!qbevent)break;evnt(76);}while(r);
+#line 76 "library_cpp.bas"
+do{
+#line 76 "library_cpp.bas"
+h_pl(&(pass2=((int32)(*__INTEGER_K))));
+#line 76 "library_cpp.bas"
+if(!qbevent)break;evnt(76);}while(r);
+#line 76 "library_cpp.bas"
+do{
+#line 76 "library_cpp.bas"
+h_pl(&(pass3=5));
+#line 76 "library_cpp.bas"
+if(!qbevent)break;evnt(76);}while(r);
+#line 77 "library_cpp.bas"
+do{
+#line 77 "library_cpp.bas"
+h_upper((char*)(__STRING_S)->chr);
+#line 77 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 77 "library_cpp.bas"
+if(!qbevent)break;evnt(77);}while(r);
+#line 77 "library_cpp.bas"
+do{
+#line 77 "library_cpp.bas"
+h_upper((char*)(__STRING6_FX)->chr);
+#line 77 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 77 "library_cpp.bas"
+if(!qbevent)break;evnt(77);}while(r);
+#line 77 "library_cpp.bas"
+do{
+#line 77 "library_cpp.bas"
+h_tick();
+#line 77 "library_cpp.bas"
+if(!qbevent)break;evnt(77);}while(r);
+#line 78 "library_cpp.bas"
+do{
+#line 78 "library_cpp.bas"
+*__LONG_X=((int32)(qbr((((((double)((((int32)c_add(2,3))+((int32)c_len((char*)(qbs_new_txt_len("abcd",4))->chr)))))+((double)c_half(5)))+((double)(((int64)c_big(4000000000ll,7ull,__UDT_P)))))+((double)(((int32)cpp_add(20,22))))))));
+#line 78 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 78 "library_cpp.bas"
+if(!qbevent)break;evnt(78);}while(r);
+#line 79 "library_cpp.bas"
+do{
+#line 79 "library_cpp.bas"
+c_inc(__LONG_X);
+#line 79 "library_cpp.bas"
+if(!qbevent)break;evnt(79);}while(r);
+#line 79 "library_cpp.bas"
+do{
+#line 79 "library_cpp.bas"
+cpp_tick();
+#line 79 "library_cpp.bas"
+if(!qbevent)break;evnt(79);}while(r);
+#line 79 "library_cpp.bas"
+do{
+#line 79 "library_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 79 "library_cpp.bas"
+qbs_set(tqbs,qbs_new_txt((char*)c_hello()));
+#line 79 "library_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 79 "library_cpp.bas"
+makefit(tqbs);
+#line 79 "library_cpp.bas"
+qbs_print(tqbs,0);
+#line 79 "library_cpp.bas"
+qbs_print(nothingstring,1);
+#line 79 "library_cpp.bas"
+skip2:
+#line 79 "library_cpp.bas"
+qbs_free(tqbs);
+#line 79 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 79 "library_cpp.bas"
+if(!qbevent)break;evnt(79);}while(r);
+#line 80 "library_cpp.bas"
+do{
+#line 80 "library_cpp.bas"
+*__LONG_X=((((int32)FUNC_D_ADD(2,3))+((int32)FUNC_TICKS()))+((int32)FUNC_LSTRLENA((char*)(qbs_new_txt_len("seven!!",7))->chr)));
+#line 80 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 80 "library_cpp.bas"
+if(!qbevent)break;evnt(80);}while(r);
+#line 80 "library_cpp.bas"
+do{
+#line 80 "library_cpp.bas"
+SUB_D_INC(__LONG_X);
+#line 80 "library_cpp.bas"
+if(!qbevent)break;evnt(80);}while(r);
+#line 80 "library_cpp.bas"
+do{
+#line 80 "library_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 80 "library_cpp.bas"
+qbs_set(tqbs,qbs_new_txt((char*)FUNC_D_HELLO()));
+#line 80 "library_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 80 "library_cpp.bas"
+makefit(tqbs);
+#line 80 "library_cpp.bas"
+qbs_print(tqbs,0);
+#line 80 "library_cpp.bas"
+qbs_print(nothingstring,1);
+#line 80 "library_cpp.bas"
+skip3:
+#line 80 "library_cpp.bas"
+qbs_free(tqbs);
+#line 80 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 80 "library_cpp.bas"
+if(!qbevent)break;evnt(80);}while(r);
+#line 81 "library_cpp.bas"
+do{
+#line 81 "library_cpp.bas"
+*__LONG_X=((int32)(((((int64)FUNC_ADDLL(3,4))+((int64)(((int32)FUNC_CT_ADD(5,6)))))+((int64)(((int32)isdigit(48)))))));
+#line 81 "library_cpp.bas"
+if(!qbevent)break;evnt(81);}while(r);
+#line 81 "library_cpp.bas"
+do{
+#line 81 "library_cpp.bas"
+SUB_CT_PL(__LONG_X);
+#line 81 "library_cpp.bas"
+if(!qbevent)break;evnt(81);}while(r);
+#line 82 "library_cpp.bas"
+do{
+#line 82 "library_cpp.bas"
+*__LONG_X=(((int32)FUNC_CT_CPP())+((int32)FUNC_GETTICKCOUNT()));
+#line 82 "library_cpp.bas"
+if(!qbevent)break;evnt(82);}while(r);
+#line 83 "library_cpp.bas"
+do{
+#line 83 "library_cpp.bas"
+SUB_IN_SUB();
+#line 83 "library_cpp.bas"
+if(!qbevent)break;evnt(83);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(__STRING_S);
+qbs_free(__STRING6_FX);
+==> main1.txt <==
+#line 85 "library_cpp.bas"
+void SUB_IN_SUB(){
+#line 85 "library_cpp.bas"
+qbs *tqbs;
+#line 85 "library_cpp.bas"
+ptrszint tmp_long;
+#line 85 "library_cpp.bas"
+int32 tmp_fileno;
+#line 85 "library_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 85 "library_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 85 "library_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 85 "library_cpp.bas"
+#include "data1.txt"
+#line 85 "library_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 85 "library_cpp.bas"
+new_mem_lock();
+#line 85 "library_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 85 "library_cpp.bas"
+sf_mem_lock->type=3;
+#line 85 "library_cpp.bas"
+libqb_check_stack();
+#line 85 "library_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 89 "library_cpp.bas"
+do{
+#line 89 "library_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 89 "library_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(((int32)h_l(5)))),qbs_new_txt(" ")));
+#line 89 "library_cpp.bas"
+if (is_error_pending()) goto skip4;
+#line 89 "library_cpp.bas"
+makefit(tqbs);
+#line 89 "library_cpp.bas"
+qbs_print(tqbs,0);
+#line 89 "library_cpp.bas"
+qbs_print(nothingstring,1);
+#line 89 "library_cpp.bas"
+skip4:
+#line 89 "library_cpp.bas"
+qbs_free(tqbs);
+#line 89 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 89 "library_cpp.bas"
+if(!qbevent)break;evnt(89);}while(r);
+#line 90 "library_cpp.bas"
+exit_subfunc:;
+#line 90 "library_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 90 "library_cpp.bas"
+#include "free1.txt"
+#line 90 "library_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 90 "library_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 90 "library_cpp.bas"
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt data1.txt free1.txt

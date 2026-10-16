@@ -1,0 +1,5 @@
+
+Name already in use (h_tick)
+Caused by (or after):PRINT H_TICK
+LINE 6:PRINT h_tick
+exit=1

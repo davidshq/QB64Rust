@@ -1,0 +1,5 @@
+ 3 
+cd
+de
+ok
+exit=0

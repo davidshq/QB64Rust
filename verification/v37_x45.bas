@@ -1,0 +1,7 @@
+$CONSOLE:ONLY
+' DECLARE LIBRARY, one form: a FUNCTION name with a dot.
+DECLARE LIBRARY "v37_lib/v37h"
+    FUNCTION h.l& ALIAS h_l (BYVAL v AS LONG)
+END DECLARE
+PRINT h.l&(4)
+SYSTEM

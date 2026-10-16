@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):PRINT _DEFLATE ( "x",1 )
+LINE 3:PRINT _DEFLATE("x")
+exit=1

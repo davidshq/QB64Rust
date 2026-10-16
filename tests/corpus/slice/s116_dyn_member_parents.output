@@ -1,0 +1,33 @@
+1. first bounds of p(1).v: 0  1 
+   p( 0 ): n = 0  v 0 TO 1 : 0  1 
+   p( 1 ): n = 1  v 0 TO 2 : 100  101  102 
+   p( 2 ): n = 2  v 0 TO 3 : 200  201  202  203 
+2. REDIM _PRESERVE p(0 TO 3):
+   p( 0 ): n = 0  v 0 TO 1 : 0  1 
+   p( 1 ): n = 1  v 0 TO 2 : 100  101  102 
+   p( 2 ): n = 2  v 0 TO 3 : 200  201  202  203 
+   p( 3 ): n = 0  v 0 TO 1 : 0  0 
+3. REDIM _RETAIN p(1 TO 3):
+   p( 1 ): n = 1  v 0 TO 2 : 100  101  102 
+   p( 2 ): n = 2  v 0 TO 3 : 200  201  202  203 
+   p( 3 ): n = 0  v 0 TO 1 : 0  0 
+4. SWAP p(1), p(2):
+   p( 1 ): n = 2  v 0 TO 3 : 200  201  202  203 
+   p( 2 ): n = 1  v 0 TO 2 : 100  101  102 
+   p( 3 ): n = 0  v 0 TO 1 : 0  0 
+5. p(3) = p(1), then p(1).v(0) = -1:
+   p( 1 ): n = 2  v 0 TO 3 :-1  201  202  203 
+   p( 2 ): n = 1  v 0 TO 2 : 100  101  102 
+   p( 3 ): n = 2  v 0 TO 3 : 200  201  202  203 
+6. w = p(2), then p(2).v(1) = -2:
+   w: 1  0  2  100  101 
+7. plain REDIM p(0 TO 1):
+   p( 0 ): n = 0  v 0 TO 1 : 0  0 
+   p( 1 ): n = 0  v 0 TO 1 : 0  0 
+8. ERASE p, then REDIM p(0 TO 0):
+   p( 0 ): n = 0  v 0 TO 1 : 0  0 
+9. a static parent s(1):
+   0  1  5  6  66 
+   ERASE s:[error 9 ]10. REDIM of a member after ERASE of a static parent:
+   2  3  3 
+  [error 9 ]

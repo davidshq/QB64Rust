@@ -1,0 +1,5 @@
+
+Expected (...)
+Caused by (or after):K = INKEY$ ( )
+LINE 6:k = INKEY$()
+exit=1

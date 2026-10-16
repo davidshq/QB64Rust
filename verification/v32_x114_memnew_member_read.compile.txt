@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):PRINT _MEMNEW ( 4 ) . SIZE
+LINE 9:PRINT _MEMNEW(4).SIZE
+exit=1

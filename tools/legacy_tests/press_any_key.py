@@ -124,7 +124,15 @@ def main() -> int:
             p.kill()
             return 125
         time.sleep(0.05)
-    return p.returncode
+    return exit_status(p.returncode)
+
+
+def exit_status(code: int) -> int:
+    """The value for sys.exit that makes this process end with the code `code`, as Windows reports it
+    (unsigned 32 bits). sys.exit takes a C long, 32 bits on Windows: a code from 2**31 up is an
+    OverflowError there, and the process ends with 4294967295 whatever the code was. Its negative
+    value ends with the code itself (END -2 of a program: 4294967294)."""
+    return code - 2**32 if code >= 2**31 else code
 
 
 if __name__ == "__main__":

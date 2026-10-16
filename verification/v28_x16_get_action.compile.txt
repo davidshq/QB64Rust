@@ -1,0 +1,5 @@
+
+Name already in use (PSET)
+Caused by (or after):GET ( 1 , 2 ) - ( 3 , 4 ) , A , PSET
+LINE 7:GET (1, 2)-(3, 4), a, PSET
+exit=1

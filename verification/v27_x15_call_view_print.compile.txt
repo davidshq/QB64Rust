@@ -1,0 +1,5 @@
+
+Expected CALL sub-name (...)
+Caused by (or after):CALL VIEW PRINT
+LINE 6:CALL VIEW PRINT
+exit=1

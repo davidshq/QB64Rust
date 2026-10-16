@@ -1,0 +1,5 @@
+
+Syntax error - Reference: CLS [method%][, bgColor&][, dest&]
+Caused by (or after):CLS 1 , 2 , 3 , 4
+LINE 6:CLS 1, 2, 3, 4
+exit=1

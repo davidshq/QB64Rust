@@ -1,0 +1,22 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+stmt_name_assigned.bas:9:1: error: name already in use: `CLS`
+stmt_name_assigned.bas:10:1: error: name already in use: `CLS`
+stmt_name_assigned.bas:11:1: error: name already in use: `LOCATE`
+stmt_name_assigned.bas:12:1: error: name already in use: `COLOR`
+stmt_name_assigned.bas:13:1: error: name already in use: `SLEEP`
+stmt_name_assigned.bas:14:1: error: name already in use: `SCREEN`
+stmt_name_assigned.bas:15:13: error: this `LINE` statement matches none of its forms: `LINE [[{Step}](?,?)]-[{Step}](?,?)[,[?][,[{B|BF}][,?]]]`
+stmt_name_assigned.bas:16:1: error: name already in use: `PALETTE`
+stmt_name_assigned.bas:17:8: error: this `VIEW` statement matches none of its forms: `VIEW [[{Screen}](?,?)-(?,?)[,[?][,?]]]`, `VIEW {Print}[?{To}?]`
+stmt_name_assigned.bas:18:1: error: name already in use: `SEEK`
+stmt_name_assigned.bas:19:1: error: name already in use: `RANDOMIZE`
+stmt_name_assigned.bas:20:1: error: name already in use: `_DEST`
+stmt_name_assigned.bas:21:1: error: name already in use: `KILL`
+stmt_name_assigned.bas:22:1: error: name already in use: `DRAW`
+stmt_name_assigned.bas:23:1: error: name already in use: `PCOPY`
+stmt_name_assigned.bas:24:1: error: not supported yet: `_LIMIT(...)` (an array used without `DIM`, or no FUNCTION of this name)
+stmt_name_assigned.bas:25:1: error: not supported yet: an array named `WIDTH`

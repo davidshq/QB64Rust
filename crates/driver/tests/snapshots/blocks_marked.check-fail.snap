@@ -1,17 +1,17 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 108
 expression: snap
 ---
-blocks_marked.bas:8:10: error: cannot store a string in a number variable
-blocks_marked.bas:11:10: error: cannot store a string in a number variable
-blocks_marked.bas:15:10: error: cannot store a string in a number variable
-blocks_marked.bas:18:10: error: cannot store a string in a number variable
-blocks_marked.bas:20:10: error: cannot store a string in a number variable
-blocks_marked.bas:22:10: error: cannot store a string in a number variable
-blocks_marked.bas:24:16: error: cannot store a string in a number variable
-blocks_marked.bas:24:33: error: cannot store a string in a number variable
-blocks_marked.bas:27:14: error: cannot store a string in a number variable
-blocks_marked.bas:32:1: error: `DEF FN` is not available in QB64; use a FUNCTION
+blocks_marked.bas:9:10: error: cannot store a string in a number variable
+blocks_marked.bas:12:10: error: cannot store a string in a number variable
+blocks_marked.bas:16:10: error: cannot store a string in a number variable
+blocks_marked.bas:19:10: error: cannot store a string in a number variable
+blocks_marked.bas:21:10: error: cannot store a string in a number variable
+blocks_marked.bas:23:10: error: cannot store a string in a number variable
+blocks_marked.bas:25:16: error: cannot store a string in a number variable
+blocks_marked.bas:25:33: error: cannot store a string in a number variable
+blocks_marked.bas:28:14: error: cannot store a string in a number variable
 blocks_marked.bas:33:1: error: `DEF FN` is not available in QB64; use a FUNCTION
-blocks_marked.bas:34:10: error: cannot store a string in a number variable
-blocks_marked.bas:41:1: error: not supported yet: `DECLARE LIBRARY`
+blocks_marked.bas:34:1: error: `DEF FN` is not available in QB64; use a FUNCTION
+blocks_marked.bas:35:10: error: cannot store a string in a number variable

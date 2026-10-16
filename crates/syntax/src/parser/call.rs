@@ -10,10 +10,11 @@
 use super::Parser;
 use super::expr::{arg_list, expr};
 use crate::SyntaxKind::*;
-use qb64rust_builtins::statement_templates;
-use qb64rust_builtins::template::Item;
 
 pub(crate) fn call_stmt(p: &mut Parser) {
+    if p.at_word("CALL") && p.nth(1) == Some(Ident) && p.template_call() {
+        return;
+    }
     p.start_node(CallStmt);
     let explicit = p.at_word("CALL");
     if explicit {
@@ -25,24 +26,23 @@ pub(crate) fn call_stmt(p: &mut Parser) {
         p.finish_node();
         return;
     }
+    if explicit && (p.at_word("FIELD") || p.at_word("LSET") || p.at_word("RSET")) {
+        // Measured: "Expected CALL sub-name [(...)]" for `CALL FIELD(#1, 4 AS a)`, "Expected LSET/RSET
+        // stringvariable=string" for `CALL LSET(a, "x")` (`verification\v30_x123`, `x155`).
+        p.error("`CALL` cannot be followed by `FIELD`, `LSET` or `RSET`");
+        p.recover();
+        p.finish_node();
+        return;
+    }
     // After `CALL`, a built-in statement with a template keeps the template's forms between the parentheses
     // (measured, `verification\v26_x74`: `CALL _MOUSECURSOR(1, (2, 3))`, `CALL _MOUSEHIDE(_HIDE)`), which are not
-    // an expression list. They are left unread, as arguments without `CALL` that do not parse are; `sema` reports
-    // the statement. A template of one argument is an expression list (`CALL _DEST(h)`).
-    let by_template = explicit && {
-        let forms = statement_templates(p.nth_text(0));
-        !forms.is_empty() && !forms.iter().any(|(_, items)| matches!(items[..], [Item::Arg]))
-    };
+    // an expression list: `template_call` above read such a statement, or reported it. What comes here after
+    // `CALL` is a SUB's name or a statement with a template of one argument, which is an expression list
+    // (`CALL _DEST(h)`).
     p.start_node(NameRef);
     p.bump();
     p.finish_node();
-    if by_template {
-        if p.at(LParen) {
-            p.start_node(ArgList);
-            p.rest_into_error_node();
-            p.finish_node();
-        }
-    } else if explicit {
+    if explicit {
         if p.at(LParen) {
             arg_list(p);
         }

@@ -1,0 +1,5 @@
+
+2nd function argument requires a number
+Caused by (or after):S = _MK$ ( LONG , "a",1 )
+LINE 9:s = _MK$(LONG, "a")
+exit=1

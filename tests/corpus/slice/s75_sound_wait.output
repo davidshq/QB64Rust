@@ -1,0 +1,13 @@
+in the foreground, a SOUND of 1 s holds the program (over 0.4 s): yes
+a SOUND of a clock tick does not (under 1 s): yes
+a PLAY of 2 s holds it (over 1.2 s): yes
+after MB the same PLAY returns at once (under 1 s): yes, with over 1 s left to play: yes
+and so does a SOUND of 1 s (under 1 s): yes, with over 2 s left: yes
+after MF a SOUND waits for what is queued (over 1.5 s): yes
+after SOUND WAIT a SOUND of 2 s returns at once (under 1 s): yes, with nothing left to play: yes
+SOUND RESUME returns at once (under 1 s): yes, with over 1 s left: yes
+voice 0 in the background, voice 1 holds the program (over 0.4 s): yes
+after MB in its own string it does not (under 1 s): yes, with over 1 s left: yes
+a PLAY with several strings never holds the program (under 1 s): yes, with over 1 s left in voice 2: yes
+held back by SOUND WAIT, voice 3 has nothing to play: yes
+a PLAY with several strings ends the SOUND WAIT (over 1 s left): yes

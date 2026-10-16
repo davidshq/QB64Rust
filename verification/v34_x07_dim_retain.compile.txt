@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):DIM _RETAIN A ( 3 ) AS LONG
+LINE 3:DIM _RETAIN a(3) AS LONG
+exit=1

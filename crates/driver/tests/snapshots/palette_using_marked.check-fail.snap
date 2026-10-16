@@ -1,0 +1,7 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+palette_using_marked.bas:6:1: error: not supported yet: `PALETTE USING`
+palette_using_marked.bas:7:1: error: not supported yet: `PALETTE USING`

@@ -1,0 +1,5 @@
+
+Syntax error - Reference: SOUND [frequency!, duration![, volume!][, panPosition!][, waveform&][, waveformParameters!][, voice&]] [{Wait|Resume}]
+Caused by (or after):SOUND WAIT RESUME
+LINE 7:SOUND WAIT RESUME
+exit=1

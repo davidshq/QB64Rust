@@ -1,0 +1,7 @@
+$CONSOLE:ONLY
+' DECLARE LIBRARY, one form: a DLL that exists nowhere.
+DECLARE DYNAMIC LIBRARY "v37_nowhere"
+    FUNCTION f& ()
+END DECLARE
+PRINT f&
+SYSTEM

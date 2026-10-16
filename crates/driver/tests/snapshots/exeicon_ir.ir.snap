@@ -1,0 +1,20 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 108
+expression: snap
+---
+Settings: console, no window, runtime parts: icon, an icon for the executable
+Stmt line 2
+  SelectConsole
+Stmt line 13
+  Print console newline
+    Str Const "before"
+Stmt line 14 may_raise
+  Builtin _ICON [Absent, Absent]
+Stmt line 15
+  Print console newline
+    Str Const "after"
+Stmt line 16 may_raise
+  Builtin _ICON [Absent, Absent]
+Stmt line 17
+  System

@@ -1,0 +1,5 @@
+before
+
+Runtime error: Line: 8 (in main module)
+Destination memory region out of range
+exit=0

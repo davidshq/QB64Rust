@@ -1,0 +1,5 @@
+
+falsePart and truePart must be of the same type
+Caused by (or after):PRINT _IIF ( 1 , 2 , "a",1 )
+LINE 3:PRINT _IIF(1, 2, "a")
+exit=1

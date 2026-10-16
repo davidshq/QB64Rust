@@ -1,0 +1,6 @@
+$CONSOLE:ONLY
+' DECLARE LIBRARY, one form: ALIAS with a character not allowed.
+DECLARE LIBRARY "v37_lib/v37h"
+    FUNCTION f& ALIAS "h@l" (BYVAL v AS LONG)
+END DECLARE
+SYSTEM

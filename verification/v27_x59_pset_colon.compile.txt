@@ -1,0 +1,5 @@
+
+Syntax error - Reference: PSET [STEP](column%, row%)[, colorAttribute]
+Caused by (or after):PSET
+LINE 6:PSET: l = 1
+exit=1

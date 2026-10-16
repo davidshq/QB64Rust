@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _DEPTHBUFFER {On|Off|Lock|_Clear}[,handle&]
+Caused by (or after):_DEPTHBUFFER
+LINE 5:_DEPTHBUFFER
+exit=1

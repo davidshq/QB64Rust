@@ -20,6 +20,7 @@ use qb64rust_syntax::tree::{Node, print};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// What the old compiler says about a file.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -174,9 +175,14 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
     let root = include_root(&name);
     let base = include_base(&name, path);
     let result = catch_unwind(AssertUnwindSafe(|| {
-        let fe = frontend_with(&name, bytes.clone(), |file| {
+        let mut fe = frontend_with(&name, bytes.clone(), |file| {
             Box::new(FileLoader::new(&root, file, &base))
         });
+        // The icon `$EXEICON` names is looked for only for the real programs, which are here whole. The upstream
+        // copy holds no binary files, and a corpus program's data files lie in a folder of their own until it runs.
+        if name.starts_with("programs/") {
+            qb64rust_driver::check_exe_icon(&mut fe, &base);
+        }
         // Every tree prints its own file back (spec compiler/pipeline, "Lossless syntax tree").
         let round_trip = fe
             .parsed
@@ -225,7 +231,7 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
         } else {
             let ir = lower(&fe);
             let invalid_ir = qb64rust_ir::validate(&ir).err().map(|p| p.join("; "));
-            emit(&fe);
+            emit(&fe, &qb64rust_driver::Resolved::default());
             (true, invalid_ir)
         };
         (
@@ -274,20 +280,29 @@ fn outcomes() -> &'static [Outcome] {
     OUTCOMES.get_or_init(|| {
         let inputs = inputs();
         let threads = std::thread::available_parallelism().map_or(4, |n| n.get());
-        let chunk = inputs.len().div_ceil(threads).max(1);
-        std::thread::scope(|s| {
-            let handles: Vec<_> = inputs
-                .chunks(chunk)
-                .map(|part| {
-                    s.spawn(move || {
-                        part.iter()
-                            .map(|(name, path, verdict)| run(name.clone(), path, *verdict))
-                            .collect::<Vec<_>>()
+        // Each thread takes the next input not yet taken, the largest files first. The run is as long as its
+        // busiest thread: the large files stand side by side in the list (the old compiler's sources, at its
+        // end), and equal shares of the list gave them all to one thread.
+        let mut order: Vec<usize> = (0..inputs.len()).collect();
+        order.sort_by_key(|&i| std::cmp::Reverse(std::fs::metadata(&inputs[i].1).map_or(0, |m| m.len())));
+        let next = AtomicUsize::new(0);
+        let mut done: Vec<(usize, Outcome)> = std::thread::scope(|s| {
+            let handles: Vec<_> = (0..threads)
+                .map(|_| {
+                    s.spawn(|| {
+                        let mut part = Vec::new();
+                        while let Some(&i) = order.get(next.fetch_add(1, Ordering::Relaxed)) {
+                            let (name, path, verdict) = &inputs[i];
+                            part.push((i, run(name.clone(), path, *verdict)));
+                        }
+                        part
                     })
                 })
                 .collect();
             handles.into_iter().flat_map(|h| h.join().unwrap()).collect()
-        })
+        });
+        done.sort_by_key(|d| d.0);
+        done.into_iter().map(|d| d.1).collect()
     })
 }
 
@@ -335,6 +350,34 @@ fn accepted_inputs_lower_and_emit() {
         .filter_map(|o| o.invalid_ir.as_ref().map(|p| format!("{}: invalid IR: {p}", o.name)))
         .collect();
     assert!(bad.is_empty(), "{}", bad.join("\n"));
+}
+
+/// "A real program taken whole compiles" (spec `testing/compiler-tests`; design D7 of `m3-sound`): every program of
+/// `tests\programs` goes through the front end with no diagnostic at all, a warning included, the icon its
+/// `$EXEICON` names is there, and its IR is valid and emitted.
+#[test]
+fn real_programs_have_no_diagnostics() {
+    let root = repo().join("tests/programs");
+    let inc = repo().join("tests/upstream/root");
+    let programs = files(&root, &["bas"]);
+    assert!(!programs.is_empty(), "no program under tests/programs");
+    for path in programs {
+        let name = path.file_name().unwrap().to_string_lossy().to_string();
+        let mut fe = frontend_with(&name, std::fs::read(&path).unwrap(), |file| {
+            Box::new(FileLoader::new(&inc, file, &path))
+        });
+        qb64rust_driver::check_exe_icon(&mut fe, &path);
+        assert!(
+            fe.diagnostics.list().is_empty(),
+            "{name}:\n{}",
+            fe.render_with_warnings()
+        );
+        let ir = lower(&fe);
+        if let Err(problems) = qb64rust_ir::validate(&ir) {
+            panic!("{name}: invalid IR: {}", problems.join("; "));
+        }
+        assert!(!emit(&fe, &qb64rust_driver::Resolved::default()).files.is_empty());
+    }
 }
 
 #[test]
@@ -738,6 +781,11 @@ fn uses_word(code: &str, name: &str) -> bool {
     })
 }
 
+/// The statements `sema` compiles from a syntax node of their own, with no row in `STATEMENTS`, that the coverage
+/// rule covers by name (`m3-console-files`): each must be used in a slice program and in an `ir` test, as a row
+/// is. `LPRINT` is also on the list of built-ins no test runs (design D8).
+const OWN_NODE: &[&str] = &["LPRINT", "FIELD", "LSET", "RSET"];
+
 /// "Built-in coverage" (spec `testing/compiler-tests`, design D9 of `m2-core-builtins`): every built-in function
 /// `sema` compiles is called in a program of `slice.list` (its output is compared with the old compiler's in tier 2)
 /// and in a `typed` front-end test (its result type and argument conversions are pinned in tier 1).
@@ -767,7 +815,8 @@ fn every_supported_builtin_is_covered() {
     assert!(!slice.is_empty() && !typed.is_empty() && !ir.is_empty());
     let mut missing = Vec::new();
     // A built-in statement: in a slice program, and in an `ir` test that pins its slots, places and items.
-    for &(name, _) in qb64rust_sema::builtins::STATEMENTS {
+    let statements = qb64rust_sema::builtins::STATEMENTS.iter().map(|&(name, _)| name);
+    for name in statements.chain(OWN_NODE.iter().copied()) {
         if !slice.iter().any(|c| uses_word(c, name)) {
             missing.push(format!("`{name}` is used in no program of tests/corpus/slice.list"));
         }
@@ -786,20 +835,22 @@ fn every_supported_builtin_is_covered() {
             missing.push(format!("`{}` is called in no `typed` test of tests/frontend", s.name));
         }
     }
-    // A window built-in is compiled and never run: its slice program holds it as code that is not reached, so
-    // each also has a call-site program, where its call is compared with the old compiler's.
+    // A built-in no test runs (a window built-in, `BEEP`, `CHAIN`, `LPRINT`) is compiled and never run: its slice
+    // program holds it as code that is not reached, so each also has a call-site program, where its call is
+    // compared with the old compiler's.
     let callsite: Vec<String> = files(&repo().join("tests/callsite"), &["bas"])
         .iter()
         .map(|p| code_only(&std::fs::read(p).unwrap()))
         .collect();
     assert!(!callsite.is_empty());
-    let window = qb64rust_sema::builtins::WINDOW_BUILTINS;
+    let window = qb64rust_sema::builtins::NEVER_RUN;
     for &name in window {
         let row = qb64rust_sema::builtins::STATEMENTS.iter().any(|&(n, _)| n == name)
-            || qb64rust_sema::builtins::supported().any(|s| s.name == name);
+            || qb64rust_sema::builtins::supported().any(|s| s.name == name)
+            || OWN_NODE.contains(&name);
         assert!(
             row,
-            "`{name}` is listed as a window built-in and is no supported built-in"
+            "`{name}` is listed as a built-in no test runs and is no supported built-in"
         );
     }
     missing.extend(without_callsite(window, &callsite));
@@ -809,6 +860,13 @@ fn every_supported_builtin_is_covered() {
         let function = qb64rust_sema::builtins::supported().any(|s| s.name == name);
         if statement && function {
             missing.extend(without_both_uses(name, &callsite));
+        }
+        // A statement with a node of its own must stand as a statement there: `LPRINT` is also a word of another
+        // statement (`WIDTH LPRINT`).
+        if OWN_NODE.contains(&name) && !used_as_statement(name, &callsite) {
+            missing.push(format!(
+                "`{name}` (a built-in no test runs) is used as a statement in no program of tests/callsite"
+            ));
         }
     }
     assert!(missing.is_empty(), "{}", missing.join("\n"));
@@ -820,29 +878,40 @@ fn without_callsite(names: &[&str], callsite: &[String]) -> Vec<String> {
     names
         .iter()
         .filter(|name| !callsite.iter().any(|c| uses_word(c, name)))
-        .map(|name| format!("`{name}` (a window built-in) is used in no program of tests/callsite"))
+        .map(|name| format!("`{name}` (a built-in no test runs) is used in no program of tests/callsite"))
         .collect()
+}
+
+/// Whether `line` (without the blanks before it) starts with the word `name`.
+fn first_word(name: &str, line: &str) -> bool {
+    let more = |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '$' | '%' | '&' | '!' | '#' | '~' | '`');
+    line.strip_prefix(name)
+        .is_some_and(|rest| !rest.chars().next().is_some_and(more))
+}
+
+/// Whether a program of `callsite` (from [`code_only`]) has `name` as the first word of a line: as a statement.
+fn used_as_statement(name: &str, callsite: &[String]) -> bool {
+    callsite
+        .iter()
+        .flat_map(|c| c.lines())
+        .any(|line| first_word(name, line.trim_start()))
 }
 
 /// One line per use of `name` (a statement and a function of one name) that no program of `callsite` has: as a
 /// statement (the first word of a line) and as a function (anywhere else).
 fn without_both_uses(name: &str, callsite: &[String]) -> Vec<String> {
     let lines = || callsite.iter().flat_map(|c| c.lines()).map(str::trim_start);
-    let first_word = |line: &str| {
-        let more =
-            |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '$' | '%' | '&' | '!' | '#' | '~' | '`');
-        line.strip_prefix(name)
-            .is_some_and(|rest| !rest.chars().next().is_some_and(more))
-    };
-    let statement = lines().any(first_word);
+    let statement = used_as_statement(name, callsite);
     let function = lines().any(|line| match line.strip_prefix(name) {
-        Some(rest) if first_word(line) => uses_word(rest, name),
+        Some(rest) if first_word(name, line) => uses_word(rest, name),
         _ => uses_word(line, name),
     });
     [(statement, "statement"), (function, "function")]
         .iter()
         .filter(|(found, _)| !found)
-        .map(|(_, what)| format!("`{name}` (a window built-in) is used as a {what} in no program of tests/callsite"))
+        .map(|(_, what)| {
+            format!("`{name}` (a built-in no test runs) is used as a {what} in no program of tests/callsite")
+        })
         .collect()
 }
 
@@ -854,14 +923,19 @@ fn window_builtin_without_callsite_is_named() {
     let func = [code_only(b"$CONSOLE:ONLY\nn = _SCREENICON\n_SCREENICONS\nEND\n")];
     assert_eq!(
         without_both_uses("_SCREENICON", &stmt),
-        ["`_SCREENICON` (a window built-in) is used as a function in no program of tests/callsite"]
+        ["`_SCREENICON` (a built-in no test runs) is used as a function in no program of tests/callsite"]
     );
     assert_eq!(
         without_both_uses("_SCREENICON", &func),
-        ["`_SCREENICON` (a window built-in) is used as a statement in no program of tests/callsite"]
+        ["`_SCREENICON` (a built-in no test runs) is used as a statement in no program of tests/callsite"]
     );
     let both = [stmt[0].clone(), func[0].clone()];
     assert!(without_both_uses("_SCREENICON", &both).is_empty());
+    // A word of another statement is no statement: `WIDTH LPRINT 80` does not stand for `LPRINT`.
+    let width = [code_only(b"$CONSOLE:ONLY\nWIDTH LPRINT 80\nEND\n")];
+    assert!(!used_as_statement("LPRINT", &width));
+    let indented = [code_only(b"$CONSOLE:ONLY\nIF 0 THEN x = 1\n  LPRINT USING f; 1\n")];
+    assert!(used_as_statement("LPRINT", &indented));
     let programs = [
         code_only(b"$CONSOLE:ONLY\n' _MOUSEHIDE in a comment\n_TITLE \"_ICON\"\nEND\n"),
         code_only(b"$CONSOLE:ONLY\nn = _SCREENX\nEND\n"),
@@ -870,9 +944,9 @@ fn window_builtin_without_callsite_is_named() {
     assert_eq!(
         without_callsite(&["_TITLE", "_TITLE$", "_MOUSEHIDE", "_ICON", "_SCREENX"], &programs),
         [
-            "`_TITLE$` (a window built-in) is used in no program of tests/callsite",
-            "`_MOUSEHIDE` (a window built-in) is used in no program of tests/callsite",
-            "`_ICON` (a window built-in) is used in no program of tests/callsite",
+            "`_TITLE$` (a built-in no test runs) is used in no program of tests/callsite",
+            "`_MOUSEHIDE` (a built-in no test runs) is used in no program of tests/callsite",
+            "`_ICON` (a built-in no test runs) is used in no program of tests/callsite",
         ]
     );
 }

@@ -1,0 +1,11 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 107
+expression: snap
+---
+Settings: window
+Stmt line 5
+  Print console newline
+    Num Const 1:I16
+Stmt line 6
+  End

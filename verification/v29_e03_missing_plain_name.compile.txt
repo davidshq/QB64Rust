@@ -1,0 +1,5 @@
+
+File 'missing.ico' not found
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 4:$EXEICON:'missing.ico'
+exit=1
