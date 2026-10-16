@@ -88,6 +88,8 @@ changing direction, design or scope.**
      (`tools\testtime\REPORT.md`, about 22 minutes).
    - Do not write "tier 2 after every group" or "check CI after the push" into a change's `tasks.md`.
    - **CI is not a gate.** Look at it when the user asks. The `tier2` job runs by hand and weekly, not on a push.
+     Claude may start a CI run (`gh workflow run`), but never waits on one: the next piece of work goes ahead,
+     and the result is read when it comes (user, 2026-10-16).
    - **Every test run is on record** (`tools\testtime\`, user, 2026-10-13): at the close of a change run
      `python tools\testtime\test_time.py` and name its three files among those to stage. Start a test run by
      its own command, not through a script file, or the record does not see it.
@@ -124,7 +126,7 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `Cargo.toml`, `crates\` | The new compiler `qb64rust` (Rust workspace, one crate per stage; `crates\README.md`: crate map, build, tests, snapshots) |
 | `mise.toml` | Tool versions for this repo, read by mise: Node 24 (for `vscode\`) |
 | `vscode\` | M1 VS Code extension (`qb64rust`): sources, tests, fixtures, `README.md`, `DEVELOPMENT.md` |
-| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release; `rust.yml` runs fmt, clippy, `cargo test` (tier 1), the test runner's own tests and those of `tools\testtime` on Windows on every push, and, only when started by hand and once a week (working rule 9), tier 2 (the call-site check, slice list, upstream pass list, differential pass list) against QB64pe's sources at the reference clone's commit; `repo-check.yml` runs `tools\repo_check` on every push |
+| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release; `rust.yml` runs fmt, clippy, `cargo test` (tier 1), the test runner's own tests and those of `tools\testtime` on Windows on every push, and, only when started by hand and once a week (working rule 9), tier 2 (the call-site check, slice list without its screen programs, which get no window there and run locally only, upstream pass list, differential pass list) against QB64pe's sources at the reference clone's commit; `repo-check.yml` runs `tools\repo_check` on every push |
 | `tests\corpus\` | Golden corpus: programs with the old compiler's recorded output or compile error (`README.md`, which has the counts), including the `slice\` group and `screen\` (programs with a window, each with the recorded state of its screen, `.screen`, or several states taken while it runs; a program may have its data files in a folder `<name>.files\`; `g12_game` is Civil War Strategy played from its keys file); checked by `run_legacy_tests.py --suite corpus`; `slice.list` names those the new compiler must pass |
 | `tests\frontend\` | Front-end tests of the new compiler, run by mode line (`' TEST: <mode>`; modes `parse-ok`, `check-ok`, `check-fail`, `typed`, `ir`, `cpp`); their included files in `inc\` (compiler root `inc\root\`) |
 | `tests\upstream\` | Copy of the text files of QB64pe's `tests\compile_tests` (MIT, `SOURCE.md`, never edited by hand), and `root\` (the compiler root for them: a mirror of `extra\`, made by the copy script); `pass.list` (upstream programs the new compiler passes) and `deferred.list` (those that need `_ARRAYCOPY` or a form left out of a change); progress as "x of y" (`README.md`) |

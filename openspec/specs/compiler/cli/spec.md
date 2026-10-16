@@ -40,7 +40,8 @@ executable SHALL be left at the output path.
 
 #### Scenario: No licence file unless asked
 - **WHEN** a program is built without the setting, or with `-f:GenerateLicenseFile=false`
-- **THEN** no `<exe>.license.txt` is written, and one an earlier build left at that path is removed
+- **THEN** no `<exe>.license.txt` is written, and one an earlier build left at that path stays, as with the old
+  compiler
 
 #### Scenario: An extra source file on the link line
 - **WHEN** `-f:ExtraLinkerFlags=<path>/screen_state.cpp` is given and the program runs with `QB64_SCREEN_STATE`

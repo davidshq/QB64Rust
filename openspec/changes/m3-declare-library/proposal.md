@@ -43,6 +43,12 @@ LIBRARY`"):
   a header without a guard then fails in C++): `DIVERGENCES.md` D-023. For the user to confirm.
 - **With several libraries in one block each name is looked up in all of them** (the old compiler looks only in
   the last and rejects the program): `DIVERGENCES.md` D-024. For the user to confirm.
+- **Answered 2026-10-16 (`DECISIONS.md`): D-023 and D-024 are not built.** The old compiler's way is kept: a
+  header named by two blocks is included once per block (a header without a guard fails in C++ as it does with
+  the old compiler; a clear compile error instead where the design can tell it before the C++), and a name is
+  looked up only in the block's last library, rejected with the old compiler's error.
+  Accepting both is listed in `SOMEDAY.md` for later. Task 3.2's single include and group 4's lookup change
+  with it.
 - **A header in a block still writes no prototype for the block** (followed; listed in `SOMEDAY.md` "QB64pe
   behaviours to review"): a prototype could disagree with what a header declares.
 - **Tests and lists**: `verification\v37_*` with `v37_lib\build_libs.py`; front-end tests (each rejected form,

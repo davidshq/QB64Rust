@@ -28,60 +28,44 @@ been merged.
 
 ## Waiting on the user
 
-Oldest first. Each line names where the details are. All but the last two are choices Claude made and built;
-until the user answers, the program does what is described there. Separate from this list and standing:
-`SOMEDAY.md`'s "QB64pe behaviours to review", the questionable behaviours each change kept QB64pe's way.
+Oldest first. Each line names where the details are. The list of 2026-10-16 was answered item by item that day
+(`DECISIONS.md` 2026-10-16); a question is never accepted by default, so one left open is put again at each
+change's close. Separate from this list and standing: `SOMEDAY.md`'s "QB64pe behaviours to review", the
+questionable behaviours each change kept QB64pe's way.
 
-1. **`m3-sound`** (2026-10-13; its `tasks.md` 2.1): a built-in statement with a template after `CALL` is compiled
-   for every statement, not for `SOUND` and `PLAY` alone. Also a question: is the full corpus still worth a
-   closing run, now that all but 37 of its programs are on the slice list?
-2. **`m3-get-put-bload`** (`DECISIONS.md` 2026-10-13, "Choices made by Claude inside the design"): six choices,
-   among them dynamic arrays in conventional memory (against the answer "static ones only"), `DATE$` and `TIME$`,
-   five changed `cpp` snapshots, programs cut from the game by line ranges.
-3. **`m3-console-files`** (`DECISIONS.md` 2026-10-13, "Choices made by Claude while `m3-console-files` was
-   built"): seven choices, among them a whole array as the string of `FIELD`, `LSET` or `RSET` left "not
-   supported yet", `EXIT CASE` compiled the old compiler's way, `238_chain` on `slice.list`, `DEP_PRINTER=y`.
-4. **`m3-scripted-game`** (its `tasks.md` 1.1, 2.2, 2.3, 4.1): a `prompt` counts announcements; a failed `prompt`
-   writes its reason into the state file; four small departures from the tasks as written (`c12_prompts` in
-   `screen\`, the never-coming `prompt` tested in `cli.rs`, `state_to_png.py --all`, `g12_game.bas` marked `-text`);
-   what the script does not reach (`SOMEDAY.md`).
-5. **`m3-images-fonts-mouse`** (`DECISIONS.md` 2026-10-14, "Three forms … were built, not marked"; its `tasks.md`
-   2.3, 3.1, 4.1, 5.1): three forms built instead of marked; `_UCHARPOS(t$, nd&())` left marked; each mouse step
-   waits for a drawn frame.
-6. **`m3-mem`** (`DECISIONS.md` 2026-10-14, "Four choices made while `m3-mem` was built"), among them
-   `k = _MEMNEW(4)` a compile error where the old compiler fails to build.
-7. **`m3-asserts-debug-zlib`** (its `tasks.md` and `design.md`, "Found by task …"): the corpus runner compares an
-   exit code (`<name>.exitcode`); a build without `-f:GenerateLicenseFile=true` removes an older licence file.
-   Three statements of the spec corrected by the measurements: errors 314 and 315 are not trapped by `ON ERROR`,
-   `_ASSERT`'s condition is an INTEGER slot, the exit code is the low 32 bits.
-8. **`m3-typefields`** (`DECISIONS.md` 2026-10-15, "Three choices made while group 5 …"; `DIVERGENCES.md`
-   D-021): two crashes and an unpack of a failed read not followed; a file's bounds check also tests the number
-   of dimensions; `_OFFSET` of a whole `_DYNAMIC` member left marked. Beyond its tasks: `_OFFSET` of an owner
-   value, which the spec names an error and the code accepted, is the error now (`verification\v35_x68`); `ERASE`
-   of a `_DYNAMIC` member makes a `_MEM` block over it invalid (`x66`).
-9. **`m3-whole-array-assign`** (`DECISIONS.md` 2026-10-15; `DIVERGENCES.md` D-004 widened, D-022): nothing copied
-   after an index outside on the way to a member array, and after error 9 for an owner type with other bounds.
-   Beyond its design: a dynamic member array's descriptor must also have the copy's number of dimensions (its
-   `tasks.md` 3.1, not measured); the messages of the rejected forms differ in wording from the old compiler's.
-10. **`m3-declare-library`** (`DECISIONS.md` 2026-10-15, "Claude's defaults, for the user to confirm"; its
-    `proposal.md`, `DIVERGENCES.md` D-023, D-024 when task 6.1 writes them): all four forms, Windows only, the
-    measurement libraries built by a script and git-ignored, CI's upstream pass list run from the clone's
-    `tests\compile_tests`; D-023 and D-024 turn programs the old compiler fails to build into working ones.
-11. **The `tier2` job on `m3`** (`study\30` §4): one "Run workflow" on branch `m3`. It has not run on GitHub since
-    `m3` began; it will show whether the runner gives the 66 screen programs a window and whether
-    `s75_sound_wait` and `s76_sound_errors` run without a sound device. If either fails there and passes here,
-    the fallback is the design's: a list run locally and not by the job.
-12. **The rest of the ninth review** (`study\30` §12): merging `m3` into `main` at the close of
-    `m3-declare-library`; whether an unanswered item counts as accepted after two changes (§3); the M6 sentence in
-    `ROADMAP.md` and the longer limit of `screen_state_prompt_that_never_comes` (§7, §8); shorter `DECISIONS.md`
-    rows (§2, third point).
+Nothing waiting.
+
+**The `tier2` job on `m3`** (`study\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
+`acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
+screen programs no window**, each waited out its 60 s limit, and the job ran into its 45-minute limit. The
+design's fallback is applied in `rust.yml`: the job runs `slice.list` without its `screen/` lines (365 programs),
+and the 66 screen programs run locally only. Still unseen on GitHub: whether `s75_sound_wait` and
+`s76_sound_errors` run without a sound device, and the upstream and differential steps; the next run after the
+push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-**`m3-declare-library` group 4**: the lookup of the library files and the build in the driver. After the change,
-the upstream report's first lines are `_SNDOPEN` (6), `_ARRAYCOPY` (4, deferred), `$VERSIONINFO` (4), the event
-handlers and switches (4 each), `_MIDISOUNDBANK` (4) and `LEN` of a whole array (4); the plain copy of
-`internal\c` waits until libqb must change.
+**Decided 2026-10-16 and not built yet** (`DECISIONS.md` 2026-10-16), in this order:
+
+1. **`m3-declare-library`, reworked for the answer on D-023 and D-024**: a header included once per block and a
+   name looked up only in the block's last library, as the old compiler does (task 3.2 changes; its `proposal.md`
+   says how); then group 4, the lookup of the library files and the build in the driver.
+2. **Three measurements, each then done QB64pe's way unless it misuses memory**: the unpack after a `GET` whose
+   read raised an error (D-021); the dimension count in the bounds check of a file's `_DYNAMIC` member
+   (`m3-typefields`); the dimension count of a dynamic member array's descriptor in a whole-array copy
+   (`m3-whole-array-assign` tasks 3.1).
+3. **D-022 narrowed**: QB64pe's copy where nothing is read past the source; nothing copied only where it would be.
+4. **A run-time trace of divergences**: an environment variable makes the runtime print one line when a D-row's
+   path is taken; the test runner sets it for every run and fails on a line it does not expect. Every D-row with
+   a run-time path.
+5. **Merge `m3` into `main`** at the close of `m3-declare-library` (a pull request for the user to merge), then
+   every two or three changes.
+6. **Its own change after `m3-declare-library`**: every diagnostic whose wording differs from the old compiler's
+   carries the old wording as a note, from recorded output.
+
+After the change, the upstream report's first lines are `_SNDOPEN` (6), `_ARRAYCOPY` (4, deferred),
+`$VERSIONINFO` (4), the event handlers and switches (4 each), `_MIDISOUNDBANK` (4) and `LEN` of a whole array (4);
+the plain copy of `internal\c` waits until libqb must change.
 
 **M3's steps** (user, `DECISIONS.md` 2026-10-12, and one row per later step). Done, each archived under
 `openspec\changes\archive\` with its `tasks.md` and `design.md`; its measurements in `study\00` §5; what stayed

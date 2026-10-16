@@ -156,10 +156,12 @@ pub fn license_path(exe: &Path) -> PathBuf {
 /// [`build_dir`]) and then moved to `exe`. On failure the build folder is kept and the make output is returned.
 pub fn build(root: &Path, build: &Path, exe: &Path, quiet: bool, settings: &Settings) -> Result<(), String> {
     let cache = std::env::var_os(CACHE_ENV).map(PathBuf::from);
-    // A licence file at the output path is the build's own or none: never one of an earlier build, also when this
-    // build writes none.
+    // A build that writes a licence file first removes the one at the output path, so it is never an earlier
+    // build's; a build that writes none leaves it, as `qb64pe` does (measured 2026-10-16).
     let license = license_path(exe);
-    let _ = std::fs::remove_file(&license);
+    if settings.license {
+        let _ = std::fs::remove_file(&license);
+    }
     if let Some(dir) = &cache {
         let hit = dir.join(format!("{}.exe", build_key(root, build, settings)));
         // With a licence file, an entry without its file is a miss.

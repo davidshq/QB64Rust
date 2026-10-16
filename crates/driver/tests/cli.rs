@@ -119,8 +119,9 @@ fn unknown_setting() {
 
 /// `-f:GenerateLicenseFile=true` writes `<exe>.license.txt` beside the executable, naming the parts of libqb the
 /// program links (spec `compiler/cli`, "The licence file"; design D6 of `m3-asserts-debug-zlib`); without the
-/// setting, or with `false`, there is none, also when an earlier build left one. Through the build cache the file is kept and copied with the
-/// executable, and an entry without it is no hit for a build that asks for it.
+/// setting, or with `false`, none is written and one an earlier build left stays, as `qb64pe` does. Through the
+/// build cache the file is kept and copied with the executable, and an entry without it is no hit for a build that
+/// asks for it.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn license_file() {
@@ -150,10 +151,13 @@ fn license_file() {
     // The runtime's own licence, and that of the data-processing part (miniz), which this program links.
     assert!(has("License of QB64-PE runtime"));
     assert!(has("miniz"));
-    // A build without the setting removes the file an earlier build left.
+    // A build without the setting leaves the file an earlier build left, as `qb64pe` does.
     build(&[], false);
-    assert!(!license.exists());
+    assert_eq!(std::fs::read(&license).unwrap(), text);
     build(&["-f:GenerateLicenseFile=false"], false);
+    assert_eq!(std::fs::read(&license).unwrap(), text);
+    std::fs::remove_file(&license).unwrap();
+    build(&[], false);
     assert!(!license.exists());
     // Through the cache: an entry made without the file is no hit for a build with it, and the one made with it
     // brings its file along.
@@ -439,7 +443,8 @@ fn screen_state_prompt_that_never_comes() {
         .current_dir(&d)
         .env("QB64_SCREEN_STATE", &state)
         .env("QB64_SCREEN_KEYS", d.join("p.keys"))
-        .env("QB64_SCREEN_PROMPT_MS", "500")
+        // Long enough that the box is drawn on a loaded machine (500 ms failed once, `study\30` §8).
+        .env("QB64_SCREEN_PROMPT_MS", "5000")
         .stdin(std::process::Stdio::null())
         .output()
         .unwrap();

@@ -116,7 +116,9 @@ suite (`study\20`).
 
 ## M6. Runtime modernisation
 
-- [ ] The ABI owned by the new compiler; error model, string heap and threading redesigned behind golden tests
+- [ ] The ABI owned by the new compiler; error model, string heap and threading redesigned behind golden tests.
+  This starts as a second backend crate beside `codegen-cpp`, which stays pinned to libqb's ABI and to the
+  call-site check; `codegen-cpp` is not modernised in place (`study\30` §7, user 2026-10-16)
 
 ## Not tied to a milestone yet
 

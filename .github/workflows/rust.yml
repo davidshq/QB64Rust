@@ -131,12 +131,15 @@ jobs:
           QB64RUST_QB64PE_ROOT: ${{ runner.temp }}\qb64pe
         run: python tools/callsite/callsite.py --qb-root $env:QB64RUST_QB64PE_ROOT
 
-      - name: Corpus slice list
+      # Without the screen programs: the runner gives them no window, so each waits out its time limit (seen
+      # 2026-10-16, run 38923356942). They are run locally only (STATUS.md, DECISIONS.md 2026-10-16).
+      - name: Corpus slice list (console programs)
         env:
           QB64RUST_QB64PE_ROOT: ${{ runner.temp }}\qb64pe
-        run: >
-          python tools/legacy_tests/run_legacy_tests.py --suite corpus --qb-root $env:QB64RUST_QB64PE_ROOT
-          --qb64 target/release/qb64rust.exe --list tests/corpus/slice.list
+        run: |
+          Get-Content tests/corpus/slice.list | Where-Object { $_ -notmatch '^screen/' } | Set-Content "$env:RUNNER_TEMP/slice-console.list"
+          python tools/legacy_tests/run_legacy_tests.py --suite corpus --qb-root $env:QB64RUST_QB64PE_ROOT `
+            --qb64 target/release/qb64rust.exe --list "$env:RUNNER_TEMP/slice-console.list"
 
       - name: Upstream pass list
         env:
