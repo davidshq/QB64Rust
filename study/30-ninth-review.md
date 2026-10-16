@@ -39,7 +39,7 @@ working branch has not met `main` or the weekly tier 2 job in eleven changes.
 
 | § | Finding | Kind | Severity |
 |---|---|---|---|
-| 2 | `STATUS.md` and `CLAUDE.md` have become history files that every session must read | trajectory | high |
+| 2 | `STATUS.md` and `CLAUDE.md` had become history files that every session must read | trajectory | done 2026-10-16 (one point left) |
 | 3 | Decisions "for the user to confirm" are scattered and unanswered | trajectory, correctness | high |
 | 4 | `main` is eleven changes behind; tier 2 has never run on GitHub as its own job | release | medium |
 | 5 | Each change updates eight or nine documents; three of them say the same thing | trajectory | medium |
@@ -49,36 +49,23 @@ working branch has not met `main` or the weekly tier 2 job in eleven changes.
 | 9 | No bug found; where correctness exposure is | correctness | none found |
 | 10 | What the lesser models need most | process | medium |
 
-## 2. The hand-off documents have become history files (documentation engineer, pragmatic engineer)
+## 2. The hand-off documents had become history files (done 2026-10-16, one point left)
 
-`STATUS.md` says of itself: "the current state only ... no history ... a finished step changes a line, it does
-not add a paragraph". It is 403 lines and 39 KB. Its "Open items" section holds a block of four to seven bullets
-for each of ten M3 changes ("for the user to look at, each in the change's `tasks.md`"), and its "Where we are"
-paragraph narrates all eleven M3 steps in one paragraph of 40 lines. Each block was right to write once; kept,
-they are history, and the file no longer answers its own question (where are we, what is next) in under a page.
+**Was:** `STATUS.md` was 403 lines and 39 KB against its own rule ("the current state only, no history"): a block
+of "for the user to look at" bullets for each of ten M3 changes and a 40-line paragraph narrating every M3 step.
+`CLAUDE.md` was 29 KB, 11.5 KB of it one layout-table cell cataloguing every verification family (`v13`–`v37`),
+appended on every change, plus counts that go stale. The two files every session starts from came to about
+68 KB, and the questions for the user were buried among them (finding 3).
 
-`CLAUDE.md` is 29 KB. Its layout table has one cell of 11,493 characters: the catalogue of every verification
-program family, `v13` to `v37`, with the number ranges of every `x` program and what each measured. That cell is
-appended on every change (task 1.2 of the open change adds to it again). It is a catalogue, not a rule, and it is
-loaded into every session before any work starts.
+**Now** (user: "fix 2"; `DECISIONS.md` 2026-10-16): `STATUS.md` is 146 lines and 14 KB: where we are in one
+paragraph, a "Waiting on the user" list (oldest first, the only place that asks anything; the first point of
+finding 3), the next step, a one-line table of M3's steps, the numbers, known bugs. The catalogue is
+`verification\README.md`, moved word for word; `CLAUDE.md` is 18 KB, holds no counts, and says that counts and
+catalogues belong elsewhere. The open change's closing task points to the new homes.
 
-Together the two files every session starts from are about 68 KB, roughly 17,000 tokens, before `DECISIONS.md`
-(67 KB) is read "before changing direction". For a lesser model that is a quarter of its working context spent
-before the first file of code is opened, on text of which perhaps a tenth bears on the task. For the user it is the
-reason finding 3 exists: the things that need an answer are buried in the things that do not.
-
-**What to do** (Claude's time: an hour; no code; cost that stays: none; the user's time: one read of a shorter file):
-
-- `STATUS.md` becomes: where we are (one paragraph), the next step, a "Waiting on the user" list (finding 3), the
-  numbers table, known bugs. Every "for the user to look at" block moves out: its items are already in the
-  change's `tasks.md` and in `DECISIONS.md`; a one-line pointer per change in a closed table is enough.
-- The verification catalogue leaves `CLAUDE.md` for `verification\README.md`, written by a small script from
-  the files' header comments if they have one, else moved as it is. The layout row says "measurement programs;
-  see its `README.md`". Counts leave `CLAUDE.md` too (456, 431, 66, 261): they go stale (`tests\corpus\README.md`
-  was found stale by `m3-mem`) and a stale rule file teaches a model the wrong number.
-- `DECISIONS.md` rows become one or two sentences with the document that holds the details, which is what the
-  file's own header says a row is. The 2026-10-13 to 2026-10-15 rows are 700 to 1,500 characters each and repeat
-  their change's `design.md`.
+**Left:** `DECISIONS.md` rows cut to one or two sentences with the document that holds the details (the
+2026-10-13 to 2026-10-15 rows are 700 to 1,500 characters and repeat their change's `design.md`). On the
+"Waiting on the user" list (item 12), since it moves details between files.
 
 ## 3. Decisions made by Claude are piling up unconfirmed (QB64 engineer, pragmatic engineer)
 
@@ -249,8 +236,8 @@ rebuilt by `run.sh`; they cost disk only.
 
 1. Dispatch `tier2` on `m3` by hand and read it once (user: one click; Claude: the reading). Merge `m3` into
    `main` at the close of `m3-declare-library` (§4).
-2. `STATUS.md` cut to its own rule and the "Waiting on the user" list added; the verification catalogue and the
-   counts out of `CLAUDE.md` (§2, §3). One short change, no code, before the next feature.
+2. Done 2026-10-16: `STATUS.md` cut to its own rule with the "Waiting on the user" list; the verification
+   catalogue and the counts out of `CLAUDE.md` (§2, §3). Shorter `DECISIONS.md` rows still open.
 3. The user answers the list in one message (§3).
 4. Continue `m3-declare-library` at group 4 as planned.
 5. One sentence in `ROADMAP.md` under M6 (§7); the long limit on the load-sensitive test (§8).

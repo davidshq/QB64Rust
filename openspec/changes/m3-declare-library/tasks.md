@@ -171,8 +171,9 @@ with `python verification\v37_lib\build_libs.py`.
   block's prototypes beside a header, a result truncated by its cast (`x63`), a `STRING * n` member with no NUL
   (`x66`); what stayed marked; `errtest`'s handlers), `crates\README.md` (also: a header's own includes are not in
   the build cache's key),
-  `tests\upstream\README.md`, `tests\corpus\README.md`, `CLAUDE.md`'s layout table (counts), `ROADMAP.md`,
-  `STATUS.md`. Verify: `check_repo.py --untracked` is clean.
+  `tests\upstream\README.md`, `tests\corpus\README.md`, `verification\README.md` (`v37*` and any new numbers; `CLAUDE.md` holds
+  no counts or catalogue since 2026-10-16), `ROADMAP.md`, `STATUS.md` (its line in the steps table, and the items
+  of "Waiting on the user" the change settles or adds). Verify: `check_repo.py --untracked` is clean.
 - [ ] 6.2 Closing runs, once (working rule 9): tier 1 with the command-line tests that build, the runner's tests,
   the slice list with and without folding, the upstream and differential pass lists, the two full suites, the
   demand reports, the shrink-only lists regenerated (the call-site check is not affected: no built-in changes;

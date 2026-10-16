@@ -78,5 +78,5 @@ Out of scope: `on_error/errtest` (`_NEWHANDLER`, `_LASTHANDLER`); Linux and macO
 - Tests: `tests\frontend\`, `crates\driver\tests\cli.rs`, `tests\corpus\` (new slice programs),
   `tests\upstream\pass.list`, the shrink-only lists; `.github\workflows\rust.yml` (the `tier2` job's upstream
   step) and the runner's `--compile-tests` help text.
-- Documents: `DIVERGENCES.md` (D-023, D-024), `SOMEDAY.md`, `DECISIONS.md`, `study\00` §5, `CLAUDE.md`'s layout
-  table (`v37*`), `crates\README.md`, `tests\upstream\README.md`, `STATUS.md`, `ROADMAP.md`.
+- Documents: `DIVERGENCES.md` (D-023, D-024), `SOMEDAY.md`, `DECISIONS.md`, `study\00` §5, `verification\README.md`
+  (`v37*`; was `CLAUDE.md`'s layout table until 2026-10-16), `crates\README.md`, `tests\upstream\README.md`, `STATUS.md`, `ROADMAP.md`.
