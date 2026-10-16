@@ -1,6 +1,7 @@
 //! The compiler pipeline as a library, so that tests can run each stage; `main.rs` is the command line.
 
 pub mod build;
+pub mod library;
 pub mod report;
 
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
@@ -195,20 +196,6 @@ pub fn check_exe_icon(fe: &mut Frontend, main_path: &Path) {
     {
         let msg = format!("the file `{}` of `$EXEICON` is not found", icon.shown);
         fe.diagnostics.error(icon.span, msg);
-    }
-}
-
-/// What the driver cannot do yet for a `DECLARE LIBRARY` block (`m3-declare-library`: `sema` enters the
-/// declarations and checks their calls, `codegen-cpp` writes their C++; the lookup of the files is still to come):
-/// each block is "not supported yet" at its line, so such a program is never built without its library. Called
-/// before `-z`, a build and the demand report; not for the dumps, the LSP or tier 1's list of clean programs
-/// (which keeps the 8 upstream programs on `tests\known_clean_not_passing.list`). Task 4.3 lifts it.
-pub fn mark_libraries(fe: &mut Frontend) {
-    for lib in &fe.program.libraries {
-        fe.diagnostics.unsupported(
-            lib.span,
-            "building a program with `DECLARE LIBRARY` (its C++ and the library files)",
-        );
     }
 }
 

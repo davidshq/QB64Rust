@@ -1141,29 +1141,24 @@ fn report_unsupported_counts_a_folder() {
     assert_eq!(stdout(&o), expected);
 }
 
-/// `m3-declare-library` until its group 4: a program with a library block is "not supported yet" in the demand
-/// report, as in a build; the dumps show its declarations and calls (the `cpp` dump with no file found, task 4.1).
+/// A program with a library block is clean in the demand report, which looks for no file; the dumps show its
+/// declarations and calls.
 #[test]
-fn a_library_block_is_marked_until_it_builds() {
+fn a_library_block_in_the_report_and_the_dumps() {
     let d = scratch("report-library");
     let program = "$CONSOLE:ONLY\nDECLARE LIBRARY\n    FUNCTION isdigit& (BYVAL c AS LONG)\nEND DECLARE\n\
                    PRINT isdigit&(48)\n";
     std::fs::write(d.join("lib.bas"), program).unwrap();
-    let mark = "not supported yet: building a program with `DECLARE LIBRARY` (its C++ and the library files)";
     let o = qb64rust(&d, &["--report", "unsupported", "lib.bas"]);
     assert!(o.status.success(), "{}", stdout(&o));
-    assert!(
-        stdout(&o).starts_with("1 program: 0 without errors, 1 with only"),
-        "{}",
-        stdout(&o)
-    );
+    assert!(stdout(&o).starts_with("1 program: 1 without errors"), "{}", stdout(&o));
+    // A block with no name needs no lookup, so no clone either.
     for (stage, call) in [
         ("ir", "CallProc ISDIGIT:I32 [Value(Const 48:I32)]"),
         ("cpp", "((int32)isdigit(48))"),
     ] {
         let o = qb64rust(&d, &["--dump", stage, "lib.bas"]);
         assert!(o.status.success(), "{stage}: {}", stdout(&o));
-        assert!(!stdout(&o).contains(mark), "{stage}: {}", stdout(&o));
         assert!(stdout(&o).contains(call), "{stage}: {}", stdout(&o));
     }
     let o = qb64rust(&d, &["--dump", "typed", "lib.bas"]);
@@ -1194,4 +1189,190 @@ fn report_unsupported_names_programs_with_other_errors() {
     let o = qb64rust(&d, &["bad.bas", "bad.bas"]);
     assert_eq!(o.status.code(), Some(1));
     assert!(stdout(&o).contains("more than one input file"), "{}", stdout(&o));
+}
+
+#[expect(clippy::disallowed_methods, reason = "a tool's messages")]
+fn text(b: &[u8]) -> String {
+    String::from_utf8_lossy(b).to_string()
+}
+
+/// The libraries of `verification\v37_lib` built into `dir` with the clone's toolchain, as `build_libs.py` builds
+/// them: `v37c.a` (C), `v37cpp.a` (C++), `v37o.o` (C), `v37dll.dll`.
+fn build_v37_libraries(dir: &Path) {
+    let root = qb64rust_driver::build::find_root(None).expect("the QB64pe reference clone");
+    let bin = root.join("internal/c/c_compiler/bin");
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../verification/v37_lib");
+    let out = |name: &str| dir.join(name).to_string_lossy().into_owned();
+    let run = |tool: &str, args: &[&str]| {
+        let o = Command::new(bin.join(format!("{tool}.exe")))
+            .current_dir(&src)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(o.status.success(), "{tool} {args:?}: {}", text(&o.stderr));
+    };
+    run("gcc", &["-O2", "-c", "v37c.c", "-o", &out("v37c.o")]);
+    run("ar", &["rcs", &out("v37c.a"), &out("v37c.o")]);
+    run("gcc", &["-O2", "-c", "v37o.c", "-o", &out("v37o.o")]);
+    run("g++", &["-O2", "-c", "v37cpp.cpp", "-o", &out("v37cpp.o")]);
+    run("ar", &["rcs", &out("v37cpp.a"), &out("v37cpp.o")]);
+    run("gcc", &["-O2", "-shared", "v37dll.c", "-o", &out("v37dll.dll")]);
+}
+
+/// `language/external-libraries`, "A library beside the program", "A C++ library without a header", and
+/// `compiler/pipeline`, "A library on the link command": a C `.a`, a C++ `.a` (its linkage from `nm`), a `.o`, a
+/// `CUSTOMTYPE` function of the C++ library and a DLL, each found by `./` beside the program.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn library_files_are_linked_and_called() {
+    let d = scratch("library-files");
+    build_v37_libraries(&d);
+    let program = "$CONSOLE:ONLY\n\
+                   DECLARE LIBRARY \"./v37c\"\n\
+                   FUNCTION c_add& (BYVAL a AS LONG, BYVAL b AS LONG)\nSUB c_inc (v AS LONG)\nFUNCTION c_hello$\n\
+                   END DECLARE\n\
+                   DECLARE LIBRARY \"./v37cpp\"\nFUNCTION cpp_add& (BYVAL a AS LONG, BYVAL b AS LONG)\nEND DECLARE\n\
+                   DECLARE STATIC LIBRARY \"./v37o\"\nSUB o_tick\nFUNCTION o_ticks&\nEND DECLARE\n\
+                   DECLARE CUSTOMTYPE LIBRARY \"./v37cpp\"\nFUNCTION ct_half# ALIAS cpp_half (BYVAL v AS DOUBLE)\n\
+                   END DECLARE\n\
+                   DECLARE DYNAMIC LIBRARY \"./v37dll\"\nFUNCTION d_add& (BYVAL a AS LONG, BYVAL b AS LONG)\n\
+                   FUNCTION d_hello$\nEND DECLARE\n\
+                   DIM x AS LONG\nx = 41: c_inc x\no_tick: o_tick\n\
+                   PRINT c_add&(1, 2); x; c_hello$; cpp_add&(20, 22); o_ticks&; ct_half#(5); d_add&(2, 3); d_hello$\nSYSTEM\n";
+    std::fs::write(d.join("lib.bas"), program).unwrap();
+    let exe = d.join("lib.exe");
+    let o = qb64rust(&d, &["-q", "lib.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let run = Command::new(&exe).current_dir(&d).output().unwrap();
+    assert_eq!(text(&run.stdout), " 3  42 c-hello 42  2  2.5  5 d-hello\r\n");
+}
+
+/// `language/external-libraries`, "A name the DLL does not export": error 260 before the first statement, which
+/// `ON ERROR` does not catch (measured, `verification\v37_j`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn a_function_the_dll_does_not_export_is_error_260() {
+    let d = scratch("library-260");
+    build_v37_libraries(&d);
+    let program = "$CONSOLE:ONLY\nON ERROR GOTO handler\nDECLARE DYNAMIC LIBRARY \"./v37dll\"\n\
+                   FUNCTION d_add& (BYVAL a AS LONG, BYVAL b AS LONG)\nFUNCTION d_none& (BYVAL a AS LONG)\n\
+                   END DECLARE\nPRINT \"start\"\nSYSTEM\nhandler:\nPRINT \"handled\"; ERR\nRESUME NEXT\n";
+    std::fs::write(d.join("dll.bas"), program).unwrap();
+    let exe = d.join("dll.exe");
+    let o = qb64rust(&d, &["-q", "dll.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let run = Command::new(&exe).current_dir(&d).output().unwrap();
+    assert_eq!(text(&run.stdout), "");
+    assert!(
+        text(&run.stderr).contains("Runtime error: Sub/Function does not exist in dynamic library"),
+        "{}",
+        text(&run.stderr)
+    );
+}
+
+/// The lookup's and `nm`'s errors at the block, before the C++ (`language/external-libraries`, "Rejected library
+/// names"; `DECISIONS.md` 2026-10-16: the old compiler's way where it rejects a program, a clear error where its
+/// C++ fails): a library that is not found (`v37_x18`), a name the library does not hold (`x13`), a name of the
+/// first of two libraries, looked for in the last only (`x24`), a header without a guard that defines and that two
+/// blocks name (`x16`; one with a guard and one that only declares are accepted, `x68`), two `DYNAMIC` blocks of
+/// one DLL (`x67`) and of two DLLs whose names give one handle, a block without a header whose last name finds no
+/// file (`x69`), and a library file whose path holds a `$`. With `-z`, which runs `nm` too.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn library_errors_before_the_cpp() {
+    let d = scratch("library-errors");
+    build_v37_libraries(&d);
+    std::fs::write(d.join("g.h"), "int g_one(void) { return 1; }\n").unwrap();
+    std::fs::write(d.join("p.h"), "#pragma once\nint p_one(void) { return 1; }\n").unwrap();
+    std::fs::write(d.join("q.h"), "int q_one(void);\nint q_two(void);\n").unwrap();
+    for copy in ["v37.dll.dll", "v37_dll.dll"] {
+        std::fs::copy(d.join("v37dll.dll"), d.join(copy)).unwrap();
+    }
+    let cases = [
+        (
+            "DECLARE LIBRARY \"v37c\"\nFUNCTION c_add& (BYVAL a AS LONG, BYVAL b AS LONG)\nEND DECLARE\n",
+            Some("2:17: error: LIBRARY not found"),
+        ),
+        (
+            "DECLARE LIBRARY \"./v37c\"\nFUNCTION c_none& (BYVAL v AS LONG)\nEND DECLARE\n",
+            Some("2:1: error: Could not find sub/function 'c_none' in './v37c.a'"),
+        ),
+        (
+            "DECLARE LIBRARY \"./v37c\", \"./v37cpp\"\nFUNCTION c_add& (BYVAL a AS LONG, BYVAL b AS LONG)\n\
+             END DECLARE\n",
+            Some("2:1: error: Could not find sub/function 'c_add' in './v37cpp.a'"),
+        ),
+        (
+            "DECLARE LIBRARY \"./g\"\nFUNCTION g_one& ()\nEND DECLARE\n\
+             DECLARE LIBRARY \"./g\"\nFUNCTION g_two& ()\nEND DECLARE\n",
+            Some(
+                "5:17: error: the header of `./g` is named by an earlier `DECLARE LIBRARY` too, defines what it \
+                 declares and has no include guard",
+            ),
+        ),
+        (
+            "DECLARE LIBRARY \"./p\"\nFUNCTION p_one& ()\nEND DECLARE\n\
+             DECLARE LIBRARY \"./p\"\nFUNCTION p_two& ALIAS p_one ()\nEND DECLARE\n",
+            None,
+        ),
+        (
+            "DECLARE LIBRARY \"./q\"\nFUNCTION q_one& ()\nEND DECLARE\n\
+             DECLARE LIBRARY \"./q\"\nFUNCTION q_two& ()\nEND DECLARE\n",
+            None,
+        ),
+        (
+            "DECLARE DYNAMIC LIBRARY \"kernel32\"\nFUNCTION lstrlenA& (s AS STRING)\nEND DECLARE\n\
+             DECLARE DYNAMIC LIBRARY \"kernel32\"\nFUNCTION GetTickCount&\nEND DECLARE\n",
+            Some(
+                "5:1: error: an earlier `DECLARE DYNAMIC LIBRARY` block has the DLL handle `DLL_kernel32` too: the \
+                 old compiler declares it once per block and its C++ fails; declare the functions in one block",
+            ),
+        ),
+        (
+            "DECLARE DYNAMIC LIBRARY \"./v37dll\"\nFUNCTION d_add& (BYVAL a AS LONG, BYVAL b AS LONG)\nEND DECLARE\n\
+             DECLARE DYNAMIC LIBRARY \"v37dll\"\nFUNCTION d_hello$\nEND DECLARE\n",
+            Some("5:1: error: an earlier `DECLARE DYNAMIC LIBRARY` block has the DLL handle `DLL_v37dll` too"),
+        ),
+        (
+            "DECLARE DYNAMIC LIBRARY \"./v37.dll\"\nFUNCTION d_add& (BYVAL a AS LONG, BYVAL b AS LONG)\nEND DECLARE\n\
+             DECLARE DYNAMIC LIBRARY \"./v37_dll\"\nFUNCTION d_hello$\nEND DECLARE\n",
+            Some(
+                "5:1: error: an earlier `DECLARE DYNAMIC LIBRARY` block has the DLL handle `DLL_v37_dll` too: the \
+                 old compiler declares it once per block and its C++ fails; `./v37.dll` and `./v37_dll` are two \
+                 DLLs whose names give one handle; rename one of them",
+            ),
+        ),
+        (
+            "DECLARE LIBRARY \"./v37c\", \"sub/\"\nFUNCTION c_add& (BYVAL a AS LONG, BYVAL b AS LONG)\nEND DECLARE\n",
+            Some("2:1: error: the last name of the block, `sub/`, finds no library file"),
+        ),
+    ];
+    for (i, (blocks, error)) in cases.iter().enumerate() {
+        let name = format!("e{i}.bas");
+        std::fs::write(d.join(&name), format!("$CONSOLE:ONLY\n{blocks}PRINT 1\n")).unwrap();
+        let o = qb64rust(&d, &["-z", &name]);
+        match error {
+            Some(e) => {
+                assert_eq!(o.status.code(), Some(1), "{name}: {}", stdout(&o));
+                assert!(stdout(&o).contains(&format!("{name}:{e}")), "{name}: {}", stdout(&o));
+            }
+            None => assert!(o.status.success(), "{name}: {}", stdout(&o)),
+        }
+    }
+    // A library beside a program in a folder whose name holds a `$`.
+    let dollar = d.join("lib$dir");
+    std::fs::create_dir_all(&dollar).unwrap();
+    std::fs::copy(d.join("v37c.a"), dollar.join("v37c.a")).unwrap();
+    std::fs::write(
+        dollar.join("e.bas"),
+        "DECLARE LIBRARY \"./v37c\"\nFUNCTION c_add& (BYVAL a AS LONG, BYVAL b AS LONG)\nEND DECLARE\nPRINT 1\n",
+    )
+    .unwrap();
+    let o = qb64rust(&dollar, &["-z", "e.bas"]);
+    assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+    assert!(
+        stdout(&o).contains("e.bas:1:17: error: the path of the library file of `./v37c` holds a `$`"),
+        "{}",
+        stdout(&o)
+    );
 }

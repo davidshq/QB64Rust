@@ -252,9 +252,23 @@ fn run() -> Result<ExitCode, String> {
         Box::new(FileLoader::new(&include_root, file, &input))
     });
     qb64rust_driver::check_exe_icon(&mut fe, &input);
-    // The files of the program's libraries: none found until the driver looks for them (`m3-declare-library` task
-    // 4.1), so the `cpp` dump writes each block as one without a header and without files.
-    let resolved = qb64rust_driver::Resolved::default();
+    // The files of the program's `DECLARE LIBRARY` blocks, looked for from the clone as the old compiler's folder,
+    // for a build, `-z` and the `cpp` dump; the other dumps need none, nor does a block with no name.
+    let resolved = if matches!(o.dump.as_deref(), None | Some("cpp"))
+        && !fe.has_errors()
+        && fe.program.libraries.iter().any(|l| !l.names.is_empty())
+    {
+        let places = build::find_root(o.root.as_deref())
+            .and_then(|root| qb64rust_driver::library::Places::new(&root, &input).map_err(|e| e.to_string()));
+        let places = places.inspect_err(|_| {
+            if o.dump.is_none() && !o.cpp_only {
+                let _ = std::fs::remove_file(&exe);
+            }
+        })?;
+        qb64rust_driver::library::resolve(&mut fe, &places)
+    } else {
+        qb64rust_driver::Resolved::default()
+    };
     let errors = fe.diagnostics.error_count();
     // Warnings only with -w, never counted in the summary (spec `compiler/cli`).
     let report = |fe: &qb64rust_driver::Frontend| {
@@ -288,7 +302,10 @@ fn run() -> Result<ExitCode, String> {
     let mut settings = build_settings(&o.settings).inspect_err(|_| {
         let _ = std::fs::remove_file(&exe);
     })?;
-    qb64rust_driver::mark_libraries(&mut fe);
+    for lib in &resolved.libraries {
+        settings.libraries.extend(lib.files.iter().cloned());
+        settings.headers.extend(lib.headers.iter().cloned());
+    }
     if fe.diagnostics.error_count() > 0 {
         let _ = std::fs::remove_file(&exe);
         report(&fe);

@@ -726,9 +726,10 @@ What the compiler supports so far:
   library N`); validation checks that a `BYVAL` parameter takes `Arg::Value` or `Arg::Null` and nothing else does.
   `codegen-cpp\src\library.rs` takes a `Resolved` (what the driver found: per block its headers, files and DLL name,
   per declaration without a header its C or C++ linkage) as an input of `emit`, and writes into `regsf.txt`, before
-  the program's prototypes: each header once in the program (D-023), a prototype per declaration of a named block
+  the program's prototypes: each block's headers, once per name that finds one, as the old compiler includes
+  them, a prototype per declaration of a named block
   without a header (`extern "C"` for C linkage; none for a block with no name, the C runtime), a `DYNAMIC` block's
-  `HINSTANCE` (one per DLL, named as the old compiler names it, `_2` after a name another DLL took) and `DLLCALL_`
+  `HINSTANCE` (named as the old compiler names it) and `DLLCALL_`
   pointers, a `CUSTOMTYPE` block's `CUSTOMCALL_` pointers; into `maindata.txt`, first, the `LoadLibrary` and
   `GetProcAddress` lines with errors 259 and 260 and the `CUSTOMTYPE` pointers; into `global.txt` the declaration
   of a function a `CUSTOMTYPE` block without a header points to (`extern "C"` for a C name, `nm`'s demangled text,
@@ -738,8 +739,24 @@ What the compiler supports so far:
   conversions left to C (a float to an integer keeps `qbr`). A library procedure has no fragments of its own:
   procedure K is the K-th program procedure. Tests: `library_ir` (`ir`), `library_cpp` (`cpp`, with a fixed
   `Resolved` in `frontend.rs`: `./name` a library file, `cpp` in it C++ linkage, any other name a header).
-  Not yet: finding the library files (group 4); the CLI's `cpp` dump uses an empty `Resolved` until then, and the
-  driver marks each block "not supported yet" before `-z`, a build and the demand report (`mark_libraries`).
+- **`DECLARE LIBRARY` in the driver** (`m3-declare-library` group 4, design D2, D4; `driver\src\library.rs`):
+  after `sema`, for a build, `-z` and the `cpp` dump, each name of a block is looked for as the old compiler
+  does on Windows, with the reference clone as its folder (so a program with a named block needs the clone, also
+  for `-z`): a `.lib`, `.a`, `.o` by the written folder, then by the name alone, then a header `.h`, `.hpp`, also
+  from the folder of the file the block stands in; `DYNAMIC` a `.dll`, also in System32 and beside the source;
+  `./` is the source's folder. "LIBRARY not found" and "DYNAMIC LIBRARY not found" at the name. For a block
+  without a header the clone's `nm` gives each declaration's linkage, from the block's last library only, as the
+  old compiler's ("Could not find sub/function …", "Unable to resolve multiple instances …" at the block).
+  Where the old compiler's build would fail the program is rejected first: a header found a second time that has
+  no guard (`#pragma once`, or an `#ifndef X` whose `X` is then defined) and defines something (a `{` that opens
+  no `extern "C"` and no namespace; one that only declares builds, `v37_x68`), a second `DYNAMIC` block whose
+  handle has an earlier one's name, a block without a header whose last name finds no library file (`v37_x69`),
+  and a library file whose path holds a `$` (`DECISIONS.md` 2026-10-16). The library files go on the link command after `ExtraLinkerFlags`, and their bytes
+  and the headers' into the build cache's key; **the files a header itself includes are not in the key**, so a
+  change to such a file alone needs a build without the cache. The demand report runs no lookup, and **the LSP
+  reports no lookup error** (its crate does not depend on the driver). Tests: the lookup's, `nm`'s and the key's
+  unit tests; CLI tests (`--ignored`) that build `verification\v37_lib`'s libraries into a temporary folder and
+  link, call and reject them.
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`

@@ -22,10 +22,10 @@ pub struct Resolved {
 /// The files of one block.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ResolvedLibrary {
-    /// The headers its names found, in the order of the names. A block with one writes no prototype (measured,
-    /// `verification\v37_x23`). Each is included once in the program (`DIVERGENCES.md` D-023; the old compiler
-    /// includes it once per block that names it): the paths are compared as given, so the driver gives each header
-    /// its canonical path, one path per file.
+    /// The headers its names found, in the order of the names, each `#include`d at the block as the old compiler
+    /// does: once per name that finds it, so a header two blocks name is included twice (measured,
+    /// `verification\v37_x16`; the driver rejects that for a header without a guard, whose C++ would fail). A block
+    /// with one writes no prototype (measured, `verification\v37_x23`).
     pub headers: Vec<PathBuf>,
     /// The library files, for the link command (the driver's).
     pub files: Vec<PathBuf>,
@@ -67,8 +67,6 @@ impl Resolved {
 struct Dll {
     handle: String,
     dll: String,
-    /// The first library with this handle: it declares and loads it.
-    first: bool,
 }
 
 /// A type of a prototype, as the old compiler's `typ2ctyp` writes it: both `_OFFSET`s are `ptrszint` (measured,
@@ -97,8 +95,9 @@ fn proto_ty(t: Ty) -> &'static str {
 
 /// The name of a `DYNAMIC` library's handle as the old compiler makes it (`qb64pe.bas` 4526–4567, 5243–5249): `DLL_`
 /// and the written name without its version and folder, each byte that is no ASCII letter or digit an `_` (so
-/// `"my.lib"` gives `DLL_my_lib`).
-fn dll_handle(written: &str) -> String {
+/// `"my.lib"` gives `DLL_my_lib`). Each `DYNAMIC` block declares its handle, so two blocks whose handles have one
+/// name fail in C++ (read in `qb64pe.bas` 5206, 5271): the driver rejects them.
+pub fn dll_handle(written: &str) -> String {
     let name = strip_version(written);
     let file = name.rsplit(['/', '\\']).next().unwrap_or(name);
     let ident: String = file
@@ -111,7 +110,7 @@ fn dll_handle(written: &str) -> String {
 /// A library's name without its version, as the old compiler's `striplibver` (`qb64pe.bas` 4526–4543): from the
 /// end, a part after a `.` or a `:` that is a number without a leading zero is dropped, until a part that is no
 /// number, a folder or a `:` (`lib.1.0` and `lib:1` give `lib`, `lib:1.0` gives `lib`).
-fn strip_version(mut name: &str) -> &str {
+pub fn strip_version(mut name: &str) -> &str {
     let is_uinteger =
         |s: &str| !s.is_empty() && !(s.len() > 1 && s.starts_with('0')) && s.bytes().all(|b| b.is_ascii_digit());
     while let Some(at) = name.rfind(['.', ':', '/', '\\']) {
@@ -169,67 +168,32 @@ impl Emitter<'_> {
         (ret, format!("({})", params.join(",")))
     }
 
-    /// The handle of each `DYNAMIC` library, by its index in [`qb64rust_ir::Program::libraries`] (`None` for the other
-    /// forms and a block with no name). A library that loads the DLL an earlier one loads shares its handle; one
-    /// that loads another DLL whose handle name is taken gets `_2`, `_3`, … after it. The old compiler declares the
-    /// handle once per block, so its C++ fails for either (read in `qb64pe.bas` 5206, 5271, not measured).
-    fn dlls(&self) -> Vec<Option<Dll>> {
-        let mut taken: Vec<(String, String)> = Vec::new();
-        let mut out = Vec::new();
-        for (i, lib) in self.p.libraries.iter().enumerate() {
-            let name = match lib.names.first() {
-                Some(name) if lib.kind == LibraryKind::Dynamic => name,
-                _ => {
-                    out.push(None);
-                    continue;
-                }
-            };
-            let dll = self
-                .resolved
-                .library(LibraryId(qb64rust_base::to_u32(i)))
-                .and_then(|l| l.dll.clone())
-                .unwrap_or_else(|| format!("{}.dll", name.text));
-            if let Some((handle, _)) = taken.iter().find(|(_, d)| *d == dll) {
-                out.push(Some(Dll {
-                    handle: handle.clone(),
-                    dll,
-                    first: false,
-                }));
-                continue;
-            }
-            let base = dll_handle(&name.text);
-            let mut handle = base.clone();
-            for n in 2.. {
-                if !taken.iter().any(|(h, _)| *h == handle) {
-                    break;
-                }
-                handle = format!("{base}_{n}");
-            }
-            taken.push((handle.clone(), dll.clone()));
-            out.push(Some(Dll {
-                handle,
-                dll,
-                first: true,
-            }));
-        }
-        out
+    /// The handle of a `DYNAMIC` library `id` (`None` for the other forms): its name ([`dll_handle`]) and the name
+    /// `LoadLibrary` is given.
+    fn dll(&self, id: LibraryId) -> Option<Dll> {
+        let lib = self.p.library(id);
+        let name = lib.names.first().filter(|_| lib.kind == LibraryKind::Dynamic)?;
+        let dll = self
+            .resolved
+            .library(id)
+            .and_then(|l| l.dll.clone())
+            .unwrap_or_else(|| format!("{}.dll", name.text));
+        Some(Dll {
+            handle: dll_handle(&name.text),
+            dll,
+        })
     }
 
-    /// The libraries' part of `regsf.txt`, block by block: each header once in the program; with names but no
-    /// header a prototype per declaration, `extern "C"` for a C name; a `DYNAMIC` block's handle and function pointers; a
-    /// `CUSTOMTYPE` block's function pointers.
+    /// The libraries' part of `regsf.txt`, block by block: its headers; with names but no header a prototype per
+    /// declaration, `extern "C"` for a C name; a `DYNAMIC` block's handle and function pointers; a `CUSTOMTYPE`
+    /// block's function pointers.
     pub(crate) fn library_prototypes(&self) -> String {
         let mut out = String::new();
-        let mut included: Vec<&PathBuf> = Vec::new();
-        let dlls = self.dlls();
         for (i, lib) in self.p.libraries.iter().enumerate() {
             let id = LibraryId(qb64rust_base::to_u32(i));
             let headers = self.resolved.headers(id);
             for h in headers {
-                if !included.contains(&h) {
-                    included.push(h);
-                    out.push_str(&include_line(h));
-                }
+                out.push_str(&include_line(h));
             }
             match lib.kind {
                 LibraryKind::Plain | LibraryKind::Static => {
@@ -249,10 +213,7 @@ impl Emitter<'_> {
                     }
                 }
                 LibraryKind::Dynamic => {
-                    if let Some(Dll {
-                        handle, first: true, ..
-                    }) = &dlls[i]
-                    {
+                    if let Some(Dll { handle, .. }) = self.dll(id) {
                         writeln!(out, "HINSTANCE {handle}=NULL;").unwrap();
                     }
                     for (_, q) in self.declarations(id) {
@@ -305,23 +266,20 @@ impl Emitter<'_> {
     /// is set to the C function's address.
     pub(crate) fn library_start(&self) -> String {
         let mut out = String::new();
-        let dlls = self.dlls();
         for (i, lib) in self.p.libraries.iter().enumerate() {
             let id = LibraryId(qb64rust_base::to_u32(i));
             match lib.kind {
                 LibraryKind::Plain | LibraryKind::Static => {}
                 LibraryKind::Dynamic => {
-                    let Some(Dll { handle, dll, first }) = &dlls[i] else {
+                    let Some(Dll { handle, dll }) = self.dll(id) else {
                         continue;
                     };
-                    if *first {
-                        writeln!(
-                            out,
-                            "if (!{handle}){{\n{handle}=LoadLibrary({});\nif (!{handle}){{error(259);}}\n}}",
-                            c_string(dll.as_bytes())
-                        )
-                        .unwrap();
-                    }
+                    writeln!(
+                        out,
+                        "if (!{handle}){{\n{handle}=LoadLibrary({});\nif (!{handle}){{error(259);}}\n}}",
+                        c_string(dll.as_bytes())
+                    )
+                    .unwrap();
                     for (_, q) in self.declarations(id) {
                         let x = proc_name(q);
                         let name = &q.external.as_ref().expect("a library procedure").c_name;

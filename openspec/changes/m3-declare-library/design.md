@@ -77,12 +77,19 @@ the block are searched, the old compiler searches the last), two lines in one fi
 the block: "Unable to resolve multiple instances …" (the old compiler's rule for one file, applied to the
 block). Both errors stand at the block's line (the old compiler gives "LINE 0", `x13`, `x24`).
 `nm` runs once per file per compile, also with `-z`.
+*Answered 2026-10-16 (`DECISIONS.md`): D-024 is not built.* Only the file of the block's last name is searched,
+as the old compiler does, and two lines in it are the only "multiple instances"; `x24` is rejected with the old
+compiler's message. Where the old compiler's C++ fails, the driver rejects the program before the C++ instead:
+a header without a guard that defines something and that two names find (`x16`, the D-023 case; one that only
+declares builds, `x68`), two `DYNAMIC` blocks whose handles have one name (`x67`), and a block without a header
+whose last name finds no library file (`x69`). The error names the library as written with its file's extension, not the full path.
 
 ### D3. The C++
 
 A new `codegen-cpp\src\library.rs`, writing what `qb64pe.bas` writes (`study\00` §5):
 - **`regsf.txt`**, at the block's place among the prototypes: `#include "<header path>"` **once per header for
-  the program** (D-023, the old compiler once per block); a block with a header writes no prototype (followed;
+  the program** (D-023, the old compiler once per block; *answered 2026-10-16: not built, once per name that
+  finds it as the old compiler, the unguarded case rejected by the driver*); a block with a header writes no prototype (followed;
   `x23`). Without a header, per declaration: `extern "C" ` (C linkage) or nothing (C++), then
   `<ret> <c_name>(<args>);` with `typ2ctyp`'s types (`int32`, `char*` for `STRING`, `void*` for a TYPE,
   `ptrszint` for both `_OFFSET`s, `long double`), a by-reference parameter a pointer. The old compiler's

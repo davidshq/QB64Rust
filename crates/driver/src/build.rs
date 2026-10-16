@@ -143,6 +143,23 @@ pub struct Settings {
     /// `GenerateLicenseFile`: the clone's `Makefile` writes the licences of the parts it links, which go beside the
     /// executable as `<exe>.license.txt`, as `qb64pe` does (design D6 of `m3-asserts-debug-zlib`).
     pub license: bool,
+    /// The library files the program's `DECLARE LIBRARY` blocks found (`library.rs`): on the link command after
+    /// the extra link flags, as `qb64pe` adds them (`qb64pe.bas` 13726, 13741), and in the build's key.
+    pub libraries: Vec<PathBuf>,
+    /// The headers they found: in the build's key (the fragments name them by path only). The files a header
+    /// itself includes are not (design D4 of `m3-declare-library`).
+    pub headers: Vec<PathBuf>,
+}
+
+/// The link command's extra part: the extra link flags, then each library file, in quotes if its path has a space.
+fn libs_extra(settings: &Settings) -> String {
+    let mut parts = vec![settings.extra_link.clone()];
+    for lib in &settings.libraries {
+        let p = slash(lib);
+        parts.push(if p.contains(' ') { format!("\"{p}\"") } else { p });
+    }
+    parts.retain(|p| !p.is_empty());
+    parts.join(" ")
 }
 
 /// The licence file of an executable: `<exe>.license.txt`, the name the clone's `Makefile` gives it.
@@ -205,7 +222,7 @@ pub const CACHE_ENV: &str = "QB64RUST_BUILD_CACHE";
 
 /// The key of a build: a 128-bit FNV-1a hash of everything `make` reads that can change between builds — the
 /// fragments in `<build>/temp`, the clone's `qbx.cpp` and `Makefile`, the settings (with the contents of each word
-/// of the extra link flags that names a file), and the size and modification
+/// of the extra link flags that names a file, and of each library file and header), and the size and modification
 /// time of every file under the clone's `internal/c` (libqb's sources, headers and objects) and of the toolchain's
 /// executables. A changed file of the clone or a rebuilt libqb object gives a new key.
 fn build_key(root: &Path, build: &Path, settings: &Settings) -> String {
@@ -228,6 +245,12 @@ fn build_key(root: &Path, build: &Path, settings: &Settings) -> String {
         if p.is_file() {
             h.file(&p, word);
         }
+    }
+    // The libraries and headers of `DECLARE LIBRARY`, by path and contents (nothing for a program without them, so
+    // its key is unchanged).
+    for p in settings.libraries.iter().chain(&settings.headers) {
+        h.write(b"library\0");
+        h.file(p, &p.to_string_lossy());
     }
     let mut fragments: Vec<PathBuf> = std::fs::read_dir(build.join("temp"))
         .map(|d| d.flatten().map(|e| e.path()).collect())
@@ -360,8 +383,9 @@ fn build_with_make(root: &Path, build: &Path, exe: &Path, quiet: bool, settings:
             if settings.optimize { "-O2 " } else { "" },
             slash(root)
         ));
-    if !settings.extra_link.is_empty() {
-        cmd.arg(format!("CXXLIBS_EXTRA={}", settings.extra_link));
+    let libs = libs_extra(settings);
+    if !libs.is_empty() {
+        cmd.arg(format!("CXXLIBS_EXTRA={libs}"));
     }
     // After the dependencies, as `qb64pe` adds it (`qb64pe.bas` 13772); the `Makefile` names the file after `EXE`.
     let linked_license = license_path(&linked);
@@ -423,10 +447,8 @@ mod tests {
         std::fs::write(&file, "int a;").unwrap();
         let key = |extra: &str| {
             let settings = Settings {
-                flags: Vec::new(),
-                optimize: false,
                 extra_link: extra.to_string(),
-                license: false,
+                ..Settings::default()
             };
             build_key(d.path(), d.path(), &settings)
         };
@@ -581,6 +603,43 @@ mod tests {
             std::fs::read(d.path().join("temp/icon.rc")).unwrap(),
             b"0 ICON \"icon.ico\"\n"
         );
+    }
+
+    /// The bytes of a library file and of a header are part of the key (spec `compiler/pipeline`, "A changed
+    /// header"); a program without them keeps its key.
+    #[test]
+    fn build_key_follows_the_libraries_and_headers() {
+        let d = tempfile::tempdir().unwrap();
+        let (lib, header) = (d.path().join("v.a"), d.path().join("v.h"));
+        std::fs::write(&lib, "a").unwrap();
+        std::fs::write(&header, "int f(void);").unwrap();
+        let none = build_key(d.path(), d.path(), &Settings::default());
+        let with = Settings {
+            libraries: vec![lib.clone()],
+            headers: vec![header.clone()],
+            ..Settings::default()
+        };
+        let key = || build_key(d.path(), d.path(), &with);
+        let first = key();
+        assert_ne!(none, first);
+        assert_eq!(first, key());
+        std::fs::write(&header, "int f(int);").unwrap();
+        let second = key();
+        assert_ne!(first, second);
+        std::fs::write(&lib, "b").unwrap();
+        assert_ne!(second, key());
+    }
+
+    /// The libraries come after the extra link flags, as `qb64pe` adds them; a path with a space is quoted.
+    #[test]
+    fn libraries_on_the_link_command() {
+        let s = Settings {
+            extra_link: "screen_state.o".to_string(),
+            libraries: vec![PathBuf::from("libs\\v.a"), PathBuf::from("my libs\\w.o")],
+            ..Settings::default()
+        };
+        assert_eq!(libs_extra(&s), "screen_state.o libs/v.a \"my libs/w.o\"");
+        assert_eq!(libs_extra(&Settings::default()), "");
     }
 
     fn with_audio(mut s: qb64rust_ir::Settings) -> qb64rust_ir::Settings {

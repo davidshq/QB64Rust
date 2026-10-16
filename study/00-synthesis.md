@@ -1625,7 +1625,12 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     pointer per declaration in `regsf.txt`; at the start of the program (`maindata.txt`, also for a block in a
     SUB) `LoadLibrary("<full path>.dll")` once per library, error 259 if it fails, and `GetProcAddress(…,
     "<ALIAS or name>")` once per declaration, error 260 if it fails. **Error 260 comes before the first statement,
-    `ON ERROR` cannot catch it**: "Sub/Function does not exist in dynamic library" (`v37_j`).
+    `ON ERROR` cannot catch it**: "Sub/Function does not exist in dynamic library" (`v37_j`). The handle is
+    declared once per block, so **two `DYNAMIC` blocks of one DLL fail in C++**: "redefinition of
+    'DLL_kernel32'" (`x67`, measured 2026-10-16). A header without a guard named twice fails only when it defines
+    something (`x16`); one that only declares builds (`x68`). A block without a header whose last name is a
+    folder only gives `nm` no file, writes no prototype, and its C++ fails (`x69`). A library file whose path
+    holds a `$` fails at the link: `make` expands it (`lib$dir` becomes `libir`, `x70`).
   - **`CUSTOMTYPE`** (`v37_h`): `typedef <ret> CUSTOMCALL_FUNC_X(<args>); CUSTOMCALL_FUNC_X *FUNC_X=NULL;` and at
     the start `FUNC_X=(CUSTOMCALL_FUNC_X*)&<ALIAS or name>;`, so the declared types may differ from the C
     function's (`addll&&` of `h_add`); without a header the `nm` step writes `extern "C"{ extern void c_add(void);

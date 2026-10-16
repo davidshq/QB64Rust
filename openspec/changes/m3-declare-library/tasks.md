@@ -90,7 +90,7 @@ with `python verification\v37_lib\build_libs.py`.
   is a number (unit test `library_procedures`). A `Value` is not checked to have the parameter's type: `sema`
   leaves an integer literal to a `DOUBLE` parameter an integer (the old compiler's text, which picks a C++
   overload). The CLI test now checks that both dumps succeed and show the call.
-- [x] 3.2 `codegen-cpp\src\library.rs`: the header included once (D-023), the prototypes with their linkage, the
+- [x] 3.2 `codegen-cpp\src\library.rs`: the header included once (D-023; reworked: once per name, below), the prototypes with their linkage, the
   call, its arguments (place, copy, string, TYPE, value with no cast, `NULL` for `Arg::Null`, which `sema`
   decides: task 2.3) and the result's cast and string result (design D3), with
   `Resolved` as an input of `emit`. Verify: `library_cpp.bas` (`cpp`) compared line by line with the
@@ -111,6 +111,10 @@ with `python verification\v37_lib\build_libs.py`.
   compiler, compiles here with folding on and fails with `QB64RUST_NO_FOLD=1` (the 2026-10-08 rule: a failed
   compile may be fixed; task 4.4 records it). The CLI's `cpp` dump uses `Resolved::default()` until task 4.1, so
   a named block appears there as one without a header.
+  **Reworked for the answer of 2026-10-16 (`DECISIONS.md`: D-023 and D-024 not built):** a header is
+  `#include`d at each block, once per name that finds it, as the old compiler does; nothing is de-duplicated.
+  Where that fails in C++ (a header without a guard found twice, `x16`) the driver rejects the program first
+  (task 4.1). `library_cpp.bas` includes `v37h` (which has `#pragma once`) at its three blocks.
 - [x] 3.3 `DYNAMIC` and `CUSTOMTYPE`: their typedefs and pointers, the start-up lines in `maindata.txt` with
   errors 259 and 260, the `extern "C"` line of a `CUSTOMTYPE` C name. Verify: `library_cpp.bas` holds a block of
   each, compared with the old compiler's C++ of `v37_g` and `v37_h`.
@@ -127,28 +131,88 @@ with `python verification\v37_lib\build_libs.py`.
   `qb64pe.bas` 5206, 5271, not measured; task 4.4 measures it; a failed compile fixed by the 2026-10-08 rule; task 4.4 records it, task 6.1 decides whether it is a
   register row). The header de-duplication of D-023 compares paths as given: task 4.1 gives each header its
   canonical path.
+  **Reworked with task 3.2 (the answer of 2026-10-16 applied to this case too):** each `DYNAMIC` block declares
+  and loads its own handle, as the old compiler does, and the driver rejects a second block whose handle has the
+  name of an earlier one's (measured by task 4.4, `v37_x67`: the old compiler's C++ fails, "redefinition of
+  'DLL_kernel32'"). The `_2` names and the shared handle are gone; `dll_handle` is public for the driver.
 
 ## 4. The lookup and the build in the driver
 
-- [ ] 4.1 `driver\src\library.rs`: the lookup of design D2 with the clone as the old compiler's folder, its
+- [x] 4.1 `driver\src\library.rs`: the lookup of design D2 with the clone as the old compiler's folder, its
   errors at the block's line; each header given by its canonical path, so that D-023 sees one file as one path
-  (task 3.3). Verify: unit tests in a temporary folder for each step of the order (a `.a`
+  (task 3.3; *D-023 not built: the canonical path serves the check below*). Verify: unit tests in a temporary folder for each step of the order (a `.a`
   beside with `./`, without it `x18`, a header from an included file's folder, `.hpp`, a version, System32, an
   empty name); `x01`, `x02`, `x52`, `x53` give the old compiler's text.
-- [ ] 4.2 Linkage by the clone's `nm` over all files of a block (D-024), "Could not find sub/function …" and
+  As built: `find` (one name) and `resolve` (the program); unit tests `library_files_and_headers_in_the_old_
+  compilers_order`, `dlls_in_the_old_compilers_order`. A "not found" error stands at the name, the others at the
+  block. D-023 is not built (`DECISIONS.md` 2026-10-16): the canonical path serves the check instead, a header
+  found a second time that has neither `#pragma once` nor any `#if` line is an error before the C++ ("… has no
+  include guard …: the old compiler includes it twice and its C++ fails", `x16`; `has_guard` errs towards
+  accepting, leaving any header with an `#if` to the C++ compiler). Two `DYNAMIC` blocks whose handles have one
+  name are an error at the second (task 3.3, `x67`). The lookup runs for a build, `-z` and the `cpp` dump, and
+  only when a block has a name: then the clone is needed (`--qb64pe-root`), also for `-z`. The `LoadLibrary`
+  name of a DLL found by `./` is its full path, as the old compiler's; it stays in the C++, not in a diagnostic.
+  **Fixed by the review of group 4 (2026-10-16):** the guard check rejected a header that only declares, which the
+  old compiler builds when two blocks name it (measured, `v37_x68`, a new program: ` 3  2.5  0`). A header found
+  a second time is now an error only when it has no guard and defines something (`defines`: outside comments,
+  literals and preprocessor lines, a `{` that opens neither `extern "C"` nor a namespace; unit test
+  `definitions_in_a_header`; a definition without a brace, `int x;`, is left to the C++ compiler). `has_guard` no
+  longer takes any `#if` for a guard: `#pragma once`, or an `#ifndef X` / `#if !defined(X)` whose `X` a later
+  `#define` defines (`#ifdef __cplusplus` is none). Also fixed: a handle clash of two different DLLs (`"my.lib"`,
+  `"my_lib"`) says to rename one, not to join the blocks (one DLL by the file the lookup found, `Found::dll_file`,
+  by its canonical path: `./v37dll` and `v37dll` beside the source are one, `a/x` and `b/x` two); a block without a header whose last name finds no file (a folder only) is an error, where it built
+  with C linkage before (the old compiler writes no prototype and its C++ fails, measured, `v37_x69`, new;
+  `qb64pe.bas` 4490, 5856, 13808); a library file whose path holds a `$`, which `make` expands, is an error at
+  its name (measured, `v37_x70`, new, recorded from a folder `lib$dir` given to the runner with
+  `--verification-root`: the old compiler's link gets `…\libir\v37c.a`, "no such file or directory", and it says
+  "C++ compilation failed"; `qb64pe.bas` 13741 hands the path to `make` as this compiler does); `defines` reads the scope a `{` opens from the words before it, so a macro
+  without a `;` before `extern "C" {` is no definition; `has_guard` and `defines` both err towards accepting
+  (their doc comments list how); an `nm` that cannot be run is one error per block, naming `nm.exe` within the clone, not its full path.
+- [x] 4.2 Linkage by the clone's `nm` over all files of a block (D-024; *not built: the last file only*), "Could not find sub/function …" and
   "Unable to resolve multiple instances …"; a C++ match gives `Linkage::Cpp` the text of `nm`'s line from the
   name to the first `)` (task 3.3). Verify: unit tests on a C and a C++ library built from
   `verification\v37_lib\` (skipped with a message when the clone's toolchain is not there).
-- [ ] 4.3 The library files on the link command, the bytes of libraries and headers in the build cache's key;
+  As built: D-024 is not built: a declaration is looked for in the file of the block's last name only, as the old
+  compiler does (`x24` is rejected with its message). `linkage_in` reads `nm`'s lines as the old compiler does
+  (` name(` in `-g` is C++, two of them an error; else a line ending in ` name` in `-g`, then in `-D`), unit test
+  `linkage_from_nm`; `nm` runs once per file and option. The error names the library as written with the file's
+  extension (`'./v37c.a'`), where the old compiler names its full path (no folder of the machine in a
+  diagnostic, as D-015). The tests on built libraries are the CLI tests of task 4.3, `#[ignore]`d as every test
+  that needs the clone.
+- [x] 4.3 The library files on the link command, the bytes of libraries and headers in the build cache's key;
   the LSP reports the lookup's errors if its crate can reach the function (else noted in `crates\README.md`);
   `mark_libraries` and the rest of its CLI test go (`-z`, a build and the demand report no longer mark a block).
   Verify: a unit test of the key (a changed header changes it); CLI tests (`--ignored`): a C `.a`, a C++ `.a`, a
-  `.o`, a DLL beside the program and error 260, D-023 and D-024, each library built into a temporary folder.
-- [ ] 4.4 `verification\v37_*` compiled and run with this compiler. Verify: every accepted program prints what
+  `.o`, a DLL beside the program and error 260, D-023 and D-024 (*rejected, not built*), each library built into
+  a temporary folder.
+  As built: `Settings::libraries` and `Settings::headers`; the libraries follow `ExtraLinkerFlags` on the link
+  command (`qb64pe.bas` 13726, 13741), a path with a space in quotes. The key of a program without libraries is
+  unchanged, so the build cache stays valid. Unit tests `build_key_follows_the_libraries_and_headers`,
+  `libraries_on_the_link_command`. The LSP's crate does not depend on the driver: it reports no lookup error
+  (`crates\README.md`). The demand report runs no lookup (it reads no library). CLI tests:
+  `library_files_are_linked_and_called` (C `.a`, C++ `.a`, `.o`, `CUSTOMTYPE` of the C++ library, DLL),
+  `a_function_the_dll_does_not_export_is_error_260`, `library_errors_before_the_cpp` (`x18`, `x13`, `x24`, `x16`,
+  a guarded header and one that only declares named twice accepted, `x67`, two DLLs whose names give one handle,
+  `x69`, a `$` in a library's path); `a_library_block_in_the_report_and_the_dumps` (not ignored: a
+  block with no name needs no clone). The 8 upstream programs pass run from the clone (2026-10-16); they stay on
+  `tests\known_clean_not_passing.list` until task 5.2.
+- [x] 4.4 `verification\v37_*` compiled and run with this compiler. Verify: every accepted program prints what
   the old compiler's prints and every rejected one is rejected with its reason, apart from D-023 (`x16`) and
-  D-024 (`x24`), which now compile and run; the C++ failures of the old compiler (`x04`, `x17`, `x23`, `x30`,
-  `x31`, `x57`) fail here too; two `DYNAMIC` blocks of one DLL (a new `v37_x` program, recorded with `qb64pe.exe` first) compile and run here
-  (task 3.3); `x56`–`x59` give the old compiler's result with and without `QB64RUST_NO_FOLD=1`.
+  D-024 (`x24`), which now compile and run (*not built: both rejected*); the C++ failures of the old compiler
+  (`x04`, `x17`, `x23`, `x30`, `x31`, `x57`) fail here too; two `DYNAMIC` blocks of one DLL (a new `v37_x`
+  program, recorded with `qb64pe.exe` first) compile and run here (task 3.3; *reworked: rejected*); `x56`–`x59`
+  give the old compiler's result with and without `QB64RUST_NO_FOLD=1`.
+  As built (2026-10-16, 77 programs with `v37_x67`, recorded first: the old compiler's C++ fails, "redefinition
+  of 'DLL_kernel32'"; then 79 with `x68` and `x69`, recorded first by the review of group 4): 31 print what the
+  old compiler's print (`x68` among them); 44 are rejected as the old compiler rejects them, each by the reason
+  it gives (the wording differs; `x13`, `x24` and `x51` by its own message, the library named as written),
+  `x16`, `x67` and `x69` now before the C++; `x04`, `x17`, `x23`, `x30`, `x31` fail in C++ as the old compiler's
+  do. Not equal: `v37_b` ("not supported yet: unsigned literals", the literal
+  `18446744073709551614` above `_INTEGER64`, no library form; with that literal given `~&&` a copy prints what
+  `v37_b` records), `x08` and `x22` (kept so by task 2.2), and **`x57`**: with folding on it compiles and runs
+  (`1 - 1` is written `0ll`, which C++ takes as a null pointer), without folding it fails in C++ as the old
+  compiler's does; put to the user (`STATUS.md`). `x56`, `x58`, `x59` are equal both ways. Run by a script of the
+  session, not kept: the runner's `--suite verification` records with the old compiler only.
 
 ## 5. Slice programs and upstream
 

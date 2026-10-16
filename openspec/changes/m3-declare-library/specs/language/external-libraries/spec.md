@@ -97,13 +97,33 @@ called.
 - **THEN** compiling it fails with "DYNAMIC LIBRARY not found"
 
 ### Requirement: Headers and libraries in the C++
-A header SHALL be included once however many blocks name it, and a block that names a header SHALL write no
-prototype for its declarations. Without a header, each declaration SHALL be reachable with the linkage the
-library gives it (C or C++), and each name of a block SHALL be looked for in all of the block's libraries.
+A header SHALL be included at each block, once per name that finds it, as the old compiler includes it, and a
+block that names a header SHALL write no prototype for its declarations. Without a header, each declaration
+SHALL be reachable with the linkage the library gives it (C or C++), looked for in the block's last library only.
+Where the old compiler's C++ fails for these rules, the program SHALL be rejected before the C++ with an error
+that says why: a header without an include guard that defines something and that two names find, two `DYNAMIC`
+blocks whose DLL handles have one name, and a block without a header whose last name finds no library file.
 
 #### Scenario: A header without a guard named twice
-- **WHEN** two blocks name a header that has no include guard
-- **THEN** the program compiles and runs (the old compiler's C++ fails, `DIVERGENCES.md` D-023)
+- **WHEN** two blocks name a header that has no include guard and defines its functions
+- **THEN** compiling it fails with an error naming the header and the missing guard (the old compiler's C++
+  fails, `verification\v37_x16`); with `#pragma once` in the header the program compiles
+
+#### Scenario: A header without a guard that only declares
+- **WHEN** two blocks name a header that has no include guard and only declares (`extern "C" int32_t
+  c_add(int32_t a, int32_t b);`), and a third block links `"./v37c"`
+- **THEN** the program compiles and prints what the old compiler's prints, ` 3  2.5  0`
+  (`verification\v37_x68`)
+
+#### Scenario: A last name that finds no file
+- **WHEN** a block without a header names `"./v37c", "v37_lib/"` (the last a folder only) and declares `c_add&`
+- **THEN** compiling it fails at the block with an error naming `v37_lib/` (the old compiler writes no prototype
+  and its C++ fails, `verification\v37_x69`)
+
+#### Scenario: Two DYNAMIC blocks of one DLL
+- **WHEN** two blocks name `DECLARE DYNAMIC LIBRARY "kernel32"`
+- **THEN** compiling it fails at the second block with an error naming the handle `DLL_kernel32` (the old
+  compiler's C++ fails, `verification\v37_x67`)
 
 #### Scenario: A C++ library without a header
 - **WHEN** a block names `"./v37cpp"` (a C++ `.a`) and declares `FUNCTION cpp_add& (BYVAL a AS LONG, BYVAL b AS
@@ -112,7 +132,8 @@ library gives it (C or C++), and each name of a block SHALL be looked for in all
 
 #### Scenario: A name in the first of two libraries
 - **WHEN** a block names `"./v37c", "./v37cpp"` and declares `c_add&`, which only `v37c.a` holds
-- **THEN** the program compiles and `c_add&(1, 2)` is 3 (the old compiler rejects it, `DIVERGENCES.md` D-024)
+- **THEN** compiling it fails with "Could not find sub/function 'c_add' in" `v37cpp.a`, as the old compiler's
+  (`verification\v37_x24`)
 
 ### Requirement: Arguments of a library call
 An argument SHALL be passed as to a program's SUB: a variable, element or member of the parameter's type by its

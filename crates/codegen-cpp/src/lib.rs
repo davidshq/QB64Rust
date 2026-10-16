@@ -42,7 +42,7 @@ mod procs;
 mod stmt;
 mod value;
 
-pub use library::{Linkage, Resolved, ResolvedLibrary};
+pub use library::{Linkage, Resolved, ResolvedLibrary, dll_handle, strip_version};
 pub use names::{c_type, proc_name, var_name};
 
 use decl::is_qbs;

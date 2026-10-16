@@ -21,8 +21,10 @@ M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: eleven of its st
 archived on branch `m3` (table below). Every program of the corpus that the old compiler accepts compiles, and
 every one that can be compared passes; Civil War Strategy compiles with no diagnostic, builds, and played for two
 turns from a keys file shows the same 23 screens as the old compiler's build. Upstream is at 310 of 399. The
-twelfth step, `DECLARE LIBRARY` (OpenSpec change `m3-declare-library`), is under way: groups 1 to 3 are done (the
-measurements `verification\v37_*`, the blocks and calls in `sema`, the IR and the C++). `main` is at the merge of
+twelfth step, `DECLARE LIBRARY` (OpenSpec change `m3-declare-library`), is under way: groups 1 to 4 are done (the
+measurements `verification\v37_*`, the blocks and calls in `sema`, the IR and the C++, reworked for the answer on
+D-023 and D-024, the lookup, `nm` and the link in the driver); the 8 upstream programs pass run from the clone,
+and join `pass.list` with group 5. `main` is at the merge of
 `m2-console-screenhide` (pull request 4, 2026-10-13; every workflow green there, seen 2026-10-13); `m3` has not
 been merged.
 
@@ -33,7 +35,15 @@ Oldest first. Each line names where the details are. The list of 2026-10-16 was 
 change's close. Separate from this list and standing: `SOMEDAY.md`'s "QB64pe behaviours to review", the
 questionable behaviours each change kept QB64pe's way.
 
-Nothing waiting.
+1. **`m3-declare-library`, the answer of 2026-10-16 applied to two more cases** (`tasks.md` 3.3, 4.1): two
+   `DYNAMIC` blocks of one DLL (`verification\v37_x67`, measured) and a block without a header whose last name
+   is a folder only (`x69`, measured), whose C++ fails with the old compiler, are rejected before the C++ with an
+   error that says why, as the unguarded header that defines something (`x16`) is. Before, this compiler built
+   both programs (the first with one shared handle, the second with C linkage).
+2. **`m3-declare-library`, `v37_x57`** (`tasks.md` 4.4): `h_isnull&(1 - 1)` to a header's `const void*`
+   compiles and runs with folding on (`1 - 1` becomes `0ll`, which C++ takes as a null pointer) and fails in C++
+   without it, as the old compiler's does. Leave it (a failed compile fixed by folding), or write a folded
+   integer to a `BYVAL _OFFSET` so that C++ fails as without folding?
 
 **The `tier2` job on `m3`** (`study\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -47,9 +57,8 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 **Decided 2026-10-16 and not built yet** (`DECISIONS.md` 2026-10-16), in this order:
 
-1. **`m3-declare-library`, reworked for the answer on D-023 and D-024**: a header included once per block and a
-   name looked up only in the block's last library, as the old compiler does (task 3.2 changes; its `proposal.md`
-   says how); then group 4, the lookup of the library files and the build in the driver.
+1. **`m3-declare-library` groups 5 and 6**: the console slice programs, the 8 upstream programs on `pass.list`
+   (with the `tier2` job's upstream step run from the clone), the documents and the closing runs.
 2. **Three measurements, each then done QB64pe's way unless it misuses memory**: the unpack after a `GET` whose
    read raised an error (D-021); the dimension count in the bounds check of a file's `_DYNAMIC` member
    (`m3-typefields`); the dimension count of a dynamic member array's descriptor in a whole-array copy
@@ -84,7 +93,7 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 9 | `2026-10-14-m3-redim-retain` | `REDIM _RETAIN`; D-018 |
 | 10 | `2026-10-15-m3-typefields` | `$UNSTABLE:TYPEFIELDS`, member markers, `_DYNAMIC` member arrays; the arrays used after a marked declaration (`DECISIONS.md` 2026-10-14, item 1) are no longer named by the demand report |
 | 11 | `2026-10-15-m3-whole-array-assign` | whole-array assignment `a() = b()` |
-| 12 | `m3-declare-library` (open) | `DECLARE LIBRARY`: groups 1 to 3 done, group 4 next |
+| 12 | `m3-declare-library` (open) | `DECLARE LIBRARY`: groups 1 to 4 done, group 5 next |
 
 ## Numbers at the last full runs
 

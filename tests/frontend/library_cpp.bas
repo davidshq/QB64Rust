@@ -3,11 +3,11 @@ $CONSOLE:ONLY
 ' The C++ of DECLARE LIBRARY (m3-declare-library tasks 3.2, 3.3; design D3; compared with the old compiler's C++
 ' of verification\v37_b to v37_h). The test takes "v37_lib/v37h" as a header, "./v37c" as a C library and
 ' "./v37cpp" as a C++ library without one, and a DYNAMIC library as "<name>.dll" (frontend.rs, fixed_libraries).
-' A header named by two blocks is included once (D-023); a block with a header writes no prototype, one without
-' writes one per declaration, extern "C" for a C name; a DYNAMIC block a handle and a function pointer per
-' declaration, loaded at the start with errors 259 and 260 (a second block of the same DLL shares its handle,
-' another DLL whose handle name is taken gets "_2"); a CUSTOMTYPE block a pointer per declaration, set at the
-' start, and without a header an extern "C" declaration of a C name, one with nm's parameters of a C++ name.
+' A header is included at each block that names it, as the old compiler does (v37h has a guard); a block with a
+' header writes no prototype, one without writes one per declaration, extern "C" for a C name; a DYNAMIC block a
+' handle and a function pointer per declaration, loaded at the start with errors 259 and 260; a CUSTOMTYPE block
+' a pointer per declaration, set at the start, and without a header an extern "C" declaration of a C name, one
+' with nm's parameters of a C++ name.
 ' Calls: a place by its pointer, a copy as &(passN=...), a STRING as its characters, a TYPE as its bytes, a BYVAL
 ' value with no cast (an integer to a DOUBLE stays an integer; a DOUBLE to a LONG is qbr), NULL, a FUNCTION's
 ' result cast to its type, a STRING result copied into a new string.
@@ -51,6 +51,7 @@ DECLARE DYNAMIC LIBRARY "./v37dll"
 END DECLARE
 DECLARE DYNAMIC LIBRARY "kernel32"
     FUNCTION lstrlenA& (s AS STRING)
+    FUNCTION GetTickCount&
 END DECLARE
 DECLARE CUSTOMTYPE LIBRARY "v37_lib/v37h"
     FUNCTION addll&& ALIAS h_add (BYVAL a AS LONG, BYVAL b AS LONG)
@@ -61,12 +62,6 @@ DECLARE CUSTOMTYPE LIBRARY "./v37c"
 END DECLARE
 DECLARE CUSTOMTYPE LIBRARY "./v37cpp"
     FUNCTION ct_cpp& ALIAS cpp_ticks
-END DECLARE
-DECLARE DYNAMIC LIBRARY "kernel32"
-    FUNCTION GetTickCount&
-END DECLARE
-DECLARE DYNAMIC LIBRARY "./kernel32"
-    FUNCTION k_own&
 END DECLARE
 ' No name: the C runtime, no prototype (v37_a).
 DECLARE LIBRARY
@@ -84,7 +79,7 @@ x = c_add&(2, 3) + c_len&("abcd") + c_half#(5) + c_big&&(4000000000, 7, p) + cpp
 c_inc x: cpp_tick: PRINT c_hello$
 x = d_add&(2, 3) + ticks& + lstrlenA&("seven!!"): d_inc x: PRINT d_hello$
 x = addll&&(3, 4) + ct_add&(5, 6) + isdigit&(48): ct_pl x
-x = ct_cpp& + GetTickCount& + k_own&
+x = ct_cpp& + GetTickCount&
 in_sub
 
 SUB in_sub

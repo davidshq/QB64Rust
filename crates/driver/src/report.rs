@@ -69,8 +69,6 @@ pub fn outcome(path: &Path, include_root: &Path) -> Result<Outcome, String> {
     let name = path.to_string_lossy().to_string();
     let mut fe = frontend_with(&name, bytes, |file| Box::new(FileLoader::new(include_root, file, path)));
     crate::check_exe_icon(&mut fe, path);
-    // As a compile run: a program with `DECLARE LIBRARY` does not build yet.
-    crate::mark_libraries(&mut fe);
     let unsupported = fe
         .diagnostics
         .errors()

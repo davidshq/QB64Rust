@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 149
 expression: snap
 ---
 ==> global.txt <==
@@ -45,6 +46,9 @@ DLLCALL_FUNC_TICKS FUNC_TICKS=NULL;
 HINSTANCE DLL_kernel32=NULL;
 typedef int32 (CALLBACK* DLLCALL_FUNC_LSTRLENA)(char*);
 DLLCALL_FUNC_LSTRLENA FUNC_LSTRLENA=NULL;
+typedef int32 (CALLBACK* DLLCALL_FUNC_GETTICKCOUNT)();
+DLLCALL_FUNC_GETTICKCOUNT FUNC_GETTICKCOUNT=NULL;
+#include "v37_lib/v37h.h"
 typedef int64 CUSTOMCALL_FUNC_ADDLL(int32,int32);
 CUSTOMCALL_FUNC_ADDLL *FUNC_ADDLL=NULL;
 typedef void CUSTOMCALL_SUB_CT_PL(int32*);
@@ -53,11 +57,7 @@ typedef int32 CUSTOMCALL_FUNC_CT_ADD(int32,int32);
 CUSTOMCALL_FUNC_CT_ADD *FUNC_CT_ADD=NULL;
 typedef int32 CUSTOMCALL_FUNC_CT_CPP();
 CUSTOMCALL_FUNC_CT_CPP *FUNC_CT_CPP=NULL;
-typedef int32 (CALLBACK* DLLCALL_FUNC_GETTICKCOUNT)();
-DLLCALL_FUNC_GETTICKCOUNT FUNC_GETTICKCOUNT=NULL;
-HINSTANCE DLL_kernel32_2=NULL;
-typedef int32 (CALLBACK* DLLCALL_FUNC_K_OWN)();
-DLLCALL_FUNC_K_OWN FUNC_K_OWN=NULL;
+#include "v37_lib/v37h.h"
 void SUB_IN_SUB();
 ==> clear.txt <==
 *__LONG_X=0;
@@ -97,22 +97,14 @@ if (!FUNC_LSTRLENA){
 FUNC_LSTRLENA=(DLLCALL_FUNC_LSTRLENA)GetProcAddress(DLL_kernel32,"lstrlenA");
 if (!FUNC_LSTRLENA){error(260);}
 }
-FUNC_ADDLL=(CUSTOMCALL_FUNC_ADDLL*)&h_add;
-SUB_CT_PL=(CUSTOMCALL_SUB_CT_PL*)&h_pl;
-FUNC_CT_ADD=(CUSTOMCALL_FUNC_CT_ADD*)&c_twice;
-FUNC_CT_CPP=(CUSTOMCALL_FUNC_CT_CPP*)&cpp_ticks;
 if (!FUNC_GETTICKCOUNT){
 FUNC_GETTICKCOUNT=(DLLCALL_FUNC_GETTICKCOUNT)GetProcAddress(DLL_kernel32,"GetTickCount");
 if (!FUNC_GETTICKCOUNT){error(260);}
 }
-if (!DLL_kernel32_2){
-DLL_kernel32_2=LoadLibrary("./kernel32.dll");
-if (!DLL_kernel32_2){error(259);}
-}
-if (!FUNC_K_OWN){
-FUNC_K_OWN=(DLLCALL_FUNC_K_OWN)GetProcAddress(DLL_kernel32_2,"k_own");
-if (!FUNC_K_OWN){error(260);}
-}
+FUNC_ADDLL=(CUSTOMCALL_FUNC_ADDLL*)&h_add;
+SUB_CT_PL=(CUSTOMCALL_SUB_CT_PL*)&h_pl;
+FUNC_CT_ADD=(CUSTOMCALL_FUNC_CT_ADD*)&c_twice;
+FUNC_CT_CPP=(CUSTOMCALL_FUNC_CT_CPP*)&cpp_ticks;
 if(__LONG_X==NULL){
 __LONG_X=(int32*)mem_static_malloc(4);
 *__LONG_X=0;
@@ -191,22 +183,152 @@ sub__dest(func__console());
 sub__source(func__console());
 #line 2 "library_cpp.bas"
 if(!qbevent)break;evnt(2);}while(r);
+#line 72 "library_cpp.bas"
+do{
+#line 72 "library_cpp.bas"
+*__LONG_X=((int32)((((uint64)(qbr((((long double)(((((double)(((((int32)h_l(qbr(2.6E+0)))+((int32)h_l(qbr(*__DOUBLE_Y))))+((int32)(((int8)h_b(44)))))))+((double)h_d(1)))+((double)h_d(*__LONG_X)))))+((long double)h_f(1.5E+0))))))+((uint64)(((uptrszint)h_uo(41ull)))))));
+#line 72 "library_cpp.bas"
+if(!qbevent)break;evnt(72);}while(r);
+#line 73 "library_cpp.bas"
+do{
+#line 73 "library_cpp.bas"
+*__LONG_X=((((((int32)h_isnull(NULL))+((int32)h_isnull(0ll)))+((int32)h_isnull(((uptrszint)(__LONG_X)))))+((int32)h_ptsum(__UDT_P)))+((int32)h_ptsum(((void*)(((char*)__ARRAY_UDT_Q[0])+((array_check((1ll)-__ARRAY_UDT_Q[4],__ARRAY_UDT_Q[5]))*8))))));
+#line 73 "library_cpp.bas"
+if(!qbevent)break;evnt(73);}while(r);
+#line 74 "library_cpp.bas"
+do{
+#line 74 "library_cpp.bas"
+*__LONG_X=(((((((int32)h_max<int32_t>(3,9))+((int32)hns::twice(21)))+((int32)h_len((char*)(__STRING_S)->chr)))+((int32)h_len((char*)(qbs_new_txt_len("abc",3))->chr)))+((int32)h_len((char*)(qbs_add(__STRING_S,qbs_new_txt_len("xy",2)))->chr)))+((int32)h_len((char*)(__STRING6_FX)->chr)));
+#line 74 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 74 "library_cpp.bas"
+if(!qbevent)break;evnt(74);}while(r);
+#line 75 "library_cpp.bas"
+do{
+#line 75 "library_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 75 "library_cpp.bas"
+qbs_set(tqbs,qbs_new_txt((char*)h_hello()));
+#line 75 "library_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 75 "library_cpp.bas"
+makefit(tqbs);
+#line 75 "library_cpp.bas"
+qbs_print(tqbs,0);
+#line 75 "library_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int32)(((int32)(qbs_new_txt((char*)h_hello()))->len))),qbs_new_txt(" ")));
+#line 75 "library_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 75 "library_cpp.bas"
+makefit(tqbs);
+#line 75 "library_cpp.bas"
+qbs_print(tqbs,0);
+#line 75 "library_cpp.bas"
+qbs_print(nothingstring,1);
+#line 75 "library_cpp.bas"
+skip1:
+#line 75 "library_cpp.bas"
+qbs_free(tqbs);
+#line 75 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 75 "library_cpp.bas"
+if(!qbevent)break;evnt(75);}while(r);
+#line 76 "library_cpp.bas"
+do{
+#line 76 "library_cpp.bas"
+h_pl(__LONG_X);
+#line 76 "library_cpp.bas"
+if(!qbevent)break;evnt(76);}while(r);
+#line 76 "library_cpp.bas"
+do{
+#line 76 "library_cpp.bas"
+h_pl(&(pass1=*__LONG_X));
+#line 76 "library_cpp.bas"
+if(!qbevent)break;evnt(76);}while(r);
+#line 76 "library_cpp.bas"
+do{
+#line 76 "library_cpp.bas"
+h_pl((&((int32*)(__ARRAY_LONG_A[0]))[array_check((2ll)-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])]));
+#line 76 "library_cpp.bas"
+if(!qbevent)break;evnt(76);}while(r);
+#line 76 "library_cpp.bas"
+do{
+#line 76 "library_cpp.bas"
+h_pl((int32*)(void*)((((char*)__UDT_P)+4)));
+#line 76 "library_cpp.bas"
+if(!qbevent)break;evnt(76);}while(r);
+#line 76 "library_cpp.bas"
+do{
+#line 76 "library_cpp.bas"
+h_pl(&(pass2=((int32)(*__INTEGER_K))));
+#line 76 "library_cpp.bas"
+if(!qbevent)break;evnt(76);}while(r);
+#line 76 "library_cpp.bas"
+do{
+#line 76 "library_cpp.bas"
+h_pl(&(pass3=5));
+#line 76 "library_cpp.bas"
+if(!qbevent)break;evnt(76);}while(r);
 #line 77 "library_cpp.bas"
 do{
 #line 77 "library_cpp.bas"
-*__LONG_X=((int32)((((uint64)(qbr((((long double)(((((double)(((((int32)h_l(qbr(2.6E+0)))+((int32)h_l(qbr(*__DOUBLE_Y))))+((int32)(((int8)h_b(44)))))))+((double)h_d(1)))+((double)h_d(*__LONG_X)))))+((long double)h_f(1.5E+0))))))+((uint64)(((uptrszint)h_uo(41ull)))))));
+h_upper((char*)(__STRING_S)->chr);
+#line 77 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 77 "library_cpp.bas"
+if(!qbevent)break;evnt(77);}while(r);
+#line 77 "library_cpp.bas"
+do{
+#line 77 "library_cpp.bas"
+h_upper((char*)(__STRING6_FX)->chr);
+#line 77 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 77 "library_cpp.bas"
+if(!qbevent)break;evnt(77);}while(r);
+#line 77 "library_cpp.bas"
+do{
+#line 77 "library_cpp.bas"
+h_tick();
 #line 77 "library_cpp.bas"
 if(!qbevent)break;evnt(77);}while(r);
 #line 78 "library_cpp.bas"
 do{
 #line 78 "library_cpp.bas"
-*__LONG_X=((((((int32)h_isnull(NULL))+((int32)h_isnull(0ll)))+((int32)h_isnull(((uptrszint)(__LONG_X)))))+((int32)h_ptsum(__UDT_P)))+((int32)h_ptsum(((void*)(((char*)__ARRAY_UDT_Q[0])+((array_check((1ll)-__ARRAY_UDT_Q[4],__ARRAY_UDT_Q[5]))*8))))));
+*__LONG_X=((int32)(qbr((((((double)((((int32)c_add(2,3))+((int32)c_len((char*)(qbs_new_txt_len("abcd",4))->chr)))))+((double)c_half(5)))+((double)(((int64)c_big(4000000000ll,7ull,__UDT_P)))))+((double)(((int32)cpp_add(20,22))))))));
+#line 78 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
 #line 78 "library_cpp.bas"
 if(!qbevent)break;evnt(78);}while(r);
 #line 79 "library_cpp.bas"
 do{
 #line 79 "library_cpp.bas"
-*__LONG_X=(((((((int32)h_max<int32_t>(3,9))+((int32)hns::twice(21)))+((int32)h_len((char*)(__STRING_S)->chr)))+((int32)h_len((char*)(qbs_new_txt_len("abc",3))->chr)))+((int32)h_len((char*)(qbs_add(__STRING_S,qbs_new_txt_len("xy",2)))->chr)))+((int32)h_len((char*)(__STRING6_FX)->chr)));
+c_inc(__LONG_X);
+#line 79 "library_cpp.bas"
+if(!qbevent)break;evnt(79);}while(r);
+#line 79 "library_cpp.bas"
+do{
+#line 79 "library_cpp.bas"
+cpp_tick();
+#line 79 "library_cpp.bas"
+if(!qbevent)break;evnt(79);}while(r);
+#line 79 "library_cpp.bas"
+do{
+#line 79 "library_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 79 "library_cpp.bas"
+qbs_set(tqbs,qbs_new_txt((char*)c_hello()));
+#line 79 "library_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 79 "library_cpp.bas"
+makefit(tqbs);
+#line 79 "library_cpp.bas"
+qbs_print(tqbs,0);
+#line 79 "library_cpp.bas"
+qbs_print(nothingstring,1);
+#line 79 "library_cpp.bas"
+skip2:
+#line 79 "library_cpp.bas"
+qbs_free(tqbs);
 #line 79 "library_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
 #line 79 "library_cpp.bas"
@@ -214,19 +336,25 @@ if(!qbevent)break;evnt(79);}while(r);
 #line 80 "library_cpp.bas"
 do{
 #line 80 "library_cpp.bas"
+*__LONG_X=((((int32)FUNC_D_ADD(2,3))+((int32)FUNC_TICKS()))+((int32)FUNC_LSTRLENA((char*)(qbs_new_txt_len("seven!!",7))->chr)));
+#line 80 "library_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 80 "library_cpp.bas"
+if(!qbevent)break;evnt(80);}while(r);
+#line 80 "library_cpp.bas"
+do{
+#line 80 "library_cpp.bas"
+SUB_D_INC(__LONG_X);
+#line 80 "library_cpp.bas"
+if(!qbevent)break;evnt(80);}while(r);
+#line 80 "library_cpp.bas"
+do{
+#line 80 "library_cpp.bas"
 tqbs=qbs_new(0,0);
 #line 80 "library_cpp.bas"
-qbs_set(tqbs,qbs_new_txt((char*)h_hello()));
+qbs_set(tqbs,qbs_new_txt((char*)FUNC_D_HELLO()));
 #line 80 "library_cpp.bas"
-if (is_error_pending()) goto skip1;
-#line 80 "library_cpp.bas"
-makefit(tqbs);
-#line 80 "library_cpp.bas"
-qbs_print(tqbs,0);
-#line 80 "library_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((int32)(((int32)(qbs_new_txt((char*)h_hello()))->len))),qbs_new_txt(" ")));
-#line 80 "library_cpp.bas"
-if (is_error_pending()) goto skip1;
+if (is_error_pending()) goto skip3;
 #line 80 "library_cpp.bas"
 makefit(tqbs);
 #line 80 "library_cpp.bas"
@@ -234,7 +362,7 @@ qbs_print(tqbs,0);
 #line 80 "library_cpp.bas"
 qbs_print(nothingstring,1);
 #line 80 "library_cpp.bas"
-skip1:
+skip3:
 #line 80 "library_cpp.bas"
 qbs_free(tqbs);
 #line 80 "library_cpp.bas"
@@ -244,163 +372,27 @@ if(!qbevent)break;evnt(80);}while(r);
 #line 81 "library_cpp.bas"
 do{
 #line 81 "library_cpp.bas"
-h_pl(__LONG_X);
+*__LONG_X=((int32)(((((int64)FUNC_ADDLL(3,4))+((int64)(((int32)FUNC_CT_ADD(5,6)))))+((int64)(((int32)isdigit(48)))))));
 #line 81 "library_cpp.bas"
 if(!qbevent)break;evnt(81);}while(r);
 #line 81 "library_cpp.bas"
 do{
 #line 81 "library_cpp.bas"
-h_pl(&(pass1=*__LONG_X));
-#line 81 "library_cpp.bas"
-if(!qbevent)break;evnt(81);}while(r);
-#line 81 "library_cpp.bas"
-do{
-#line 81 "library_cpp.bas"
-h_pl((&((int32*)(__ARRAY_LONG_A[0]))[array_check((2ll)-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])]));
-#line 81 "library_cpp.bas"
-if(!qbevent)break;evnt(81);}while(r);
-#line 81 "library_cpp.bas"
-do{
-#line 81 "library_cpp.bas"
-h_pl((int32*)(void*)((((char*)__UDT_P)+4)));
-#line 81 "library_cpp.bas"
-if(!qbevent)break;evnt(81);}while(r);
-#line 81 "library_cpp.bas"
-do{
-#line 81 "library_cpp.bas"
-h_pl(&(pass2=((int32)(*__INTEGER_K))));
-#line 81 "library_cpp.bas"
-if(!qbevent)break;evnt(81);}while(r);
-#line 81 "library_cpp.bas"
-do{
-#line 81 "library_cpp.bas"
-h_pl(&(pass3=5));
+SUB_CT_PL(__LONG_X);
 #line 81 "library_cpp.bas"
 if(!qbevent)break;evnt(81);}while(r);
 #line 82 "library_cpp.bas"
 do{
 #line 82 "library_cpp.bas"
-h_upper((char*)(__STRING_S)->chr);
-#line 82 "library_cpp.bas"
-qbs_cleanup(qbs_tmp_base,0);
-#line 82 "library_cpp.bas"
-if(!qbevent)break;evnt(82);}while(r);
-#line 82 "library_cpp.bas"
-do{
-#line 82 "library_cpp.bas"
-h_upper((char*)(__STRING6_FX)->chr);
-#line 82 "library_cpp.bas"
-qbs_cleanup(qbs_tmp_base,0);
-#line 82 "library_cpp.bas"
-if(!qbevent)break;evnt(82);}while(r);
-#line 82 "library_cpp.bas"
-do{
-#line 82 "library_cpp.bas"
-h_tick();
+*__LONG_X=(((int32)FUNC_CT_CPP())+((int32)FUNC_GETTICKCOUNT()));
 #line 82 "library_cpp.bas"
 if(!qbevent)break;evnt(82);}while(r);
 #line 83 "library_cpp.bas"
 do{
 #line 83 "library_cpp.bas"
-*__LONG_X=((int32)(qbr((((((double)((((int32)c_add(2,3))+((int32)c_len((char*)(qbs_new_txt_len("abcd",4))->chr)))))+((double)c_half(5)))+((double)(((int64)c_big(4000000000ll,7ull,__UDT_P)))))+((double)(((int32)cpp_add(20,22))))))));
-#line 83 "library_cpp.bas"
-qbs_cleanup(qbs_tmp_base,0);
+SUB_IN_SUB();
 #line 83 "library_cpp.bas"
 if(!qbevent)break;evnt(83);}while(r);
-#line 84 "library_cpp.bas"
-do{
-#line 84 "library_cpp.bas"
-c_inc(__LONG_X);
-#line 84 "library_cpp.bas"
-if(!qbevent)break;evnt(84);}while(r);
-#line 84 "library_cpp.bas"
-do{
-#line 84 "library_cpp.bas"
-cpp_tick();
-#line 84 "library_cpp.bas"
-if(!qbevent)break;evnt(84);}while(r);
-#line 84 "library_cpp.bas"
-do{
-#line 84 "library_cpp.bas"
-tqbs=qbs_new(0,0);
-#line 84 "library_cpp.bas"
-qbs_set(tqbs,qbs_new_txt((char*)c_hello()));
-#line 84 "library_cpp.bas"
-if (is_error_pending()) goto skip2;
-#line 84 "library_cpp.bas"
-makefit(tqbs);
-#line 84 "library_cpp.bas"
-qbs_print(tqbs,0);
-#line 84 "library_cpp.bas"
-qbs_print(nothingstring,1);
-#line 84 "library_cpp.bas"
-skip2:
-#line 84 "library_cpp.bas"
-qbs_free(tqbs);
-#line 84 "library_cpp.bas"
-qbs_cleanup(qbs_tmp_base,0);
-#line 84 "library_cpp.bas"
-if(!qbevent)break;evnt(84);}while(r);
-#line 85 "library_cpp.bas"
-do{
-#line 85 "library_cpp.bas"
-*__LONG_X=((((int32)FUNC_D_ADD(2,3))+((int32)FUNC_TICKS()))+((int32)FUNC_LSTRLENA((char*)(qbs_new_txt_len("seven!!",7))->chr)));
-#line 85 "library_cpp.bas"
-qbs_cleanup(qbs_tmp_base,0);
-#line 85 "library_cpp.bas"
-if(!qbevent)break;evnt(85);}while(r);
-#line 85 "library_cpp.bas"
-do{
-#line 85 "library_cpp.bas"
-SUB_D_INC(__LONG_X);
-#line 85 "library_cpp.bas"
-if(!qbevent)break;evnt(85);}while(r);
-#line 85 "library_cpp.bas"
-do{
-#line 85 "library_cpp.bas"
-tqbs=qbs_new(0,0);
-#line 85 "library_cpp.bas"
-qbs_set(tqbs,qbs_new_txt((char*)FUNC_D_HELLO()));
-#line 85 "library_cpp.bas"
-if (is_error_pending()) goto skip3;
-#line 85 "library_cpp.bas"
-makefit(tqbs);
-#line 85 "library_cpp.bas"
-qbs_print(tqbs,0);
-#line 85 "library_cpp.bas"
-qbs_print(nothingstring,1);
-#line 85 "library_cpp.bas"
-skip3:
-#line 85 "library_cpp.bas"
-qbs_free(tqbs);
-#line 85 "library_cpp.bas"
-qbs_cleanup(qbs_tmp_base,0);
-#line 85 "library_cpp.bas"
-if(!qbevent)break;evnt(85);}while(r);
-#line 86 "library_cpp.bas"
-do{
-#line 86 "library_cpp.bas"
-*__LONG_X=((int32)(((((int64)FUNC_ADDLL(3,4))+((int64)(((int32)FUNC_CT_ADD(5,6)))))+((int64)(((int32)isdigit(48)))))));
-#line 86 "library_cpp.bas"
-if(!qbevent)break;evnt(86);}while(r);
-#line 86 "library_cpp.bas"
-do{
-#line 86 "library_cpp.bas"
-SUB_CT_PL(__LONG_X);
-#line 86 "library_cpp.bas"
-if(!qbevent)break;evnt(86);}while(r);
-#line 87 "library_cpp.bas"
-do{
-#line 87 "library_cpp.bas"
-*__LONG_X=((((int32)FUNC_CT_CPP())+((int32)FUNC_GETTICKCOUNT()))+((int32)FUNC_K_OWN()));
-#line 87 "library_cpp.bas"
-if(!qbevent)break;evnt(87);}while(r);
-#line 88 "library_cpp.bas"
-do{
-#line 88 "library_cpp.bas"
-SUB_IN_SUB();
-#line 88 "library_cpp.bas"
-if(!qbevent)break;evnt(88);}while(r);
 sub_end();
 return;
 }
@@ -408,66 +400,66 @@ return;
 qbs_free(__STRING_S);
 qbs_free(__STRING6_FX);
 ==> main1.txt <==
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 void SUB_IN_SUB(){
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 qbs *tqbs;
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 ptrszint tmp_long;
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 int32 tmp_fileno;
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 uint32 qbs_tmp_base=qbs_tmp_list_nexti;
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 uint8 *tmp_mem_static_pointer=mem_static_pointer;
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 uint32 tmp_cmem_sp=cmem_sp;
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 #include "data1.txt"
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 mem_lock *sf_mem_lock;
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 new_mem_lock();
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 sf_mem_lock=mem_lock_tmp;
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 sf_mem_lock->type=3;
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 libqb_check_stack();
-#line 90 "library_cpp.bas"
+#line 85 "library_cpp.bas"
 if (is_error_pending()) goto exit_subfunc;
-#line 94 "library_cpp.bas"
+#line 89 "library_cpp.bas"
 do{
-#line 94 "library_cpp.bas"
+#line 89 "library_cpp.bas"
 tqbs=qbs_new(0,0);
-#line 94 "library_cpp.bas"
+#line 89 "library_cpp.bas"
 qbs_set(tqbs,qbs_add(qbs_str((int32)(((int32)h_l(5)))),qbs_new_txt(" ")));
-#line 94 "library_cpp.bas"
+#line 89 "library_cpp.bas"
 if (is_error_pending()) goto skip4;
-#line 94 "library_cpp.bas"
+#line 89 "library_cpp.bas"
 makefit(tqbs);
-#line 94 "library_cpp.bas"
+#line 89 "library_cpp.bas"
 qbs_print(tqbs,0);
-#line 94 "library_cpp.bas"
+#line 89 "library_cpp.bas"
 qbs_print(nothingstring,1);
-#line 94 "library_cpp.bas"
+#line 89 "library_cpp.bas"
 skip4:
-#line 94 "library_cpp.bas"
+#line 89 "library_cpp.bas"
 qbs_free(tqbs);
-#line 94 "library_cpp.bas"
+#line 89 "library_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
-#line 94 "library_cpp.bas"
-if(!qbevent)break;evnt(94);}while(r);
-#line 95 "library_cpp.bas"
+#line 89 "library_cpp.bas"
+if(!qbevent)break;evnt(89);}while(r);
+#line 90 "library_cpp.bas"
 exit_subfunc:;
-#line 95 "library_cpp.bas"
+#line 90 "library_cpp.bas"
 free_mem_lock(sf_mem_lock);
-#line 95 "library_cpp.bas"
+#line 90 "library_cpp.bas"
 #include "free1.txt"
-#line 95 "library_cpp.bas"
+#line 90 "library_cpp.bas"
 if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
-#line 95 "library_cpp.bas"
+#line 90 "library_cpp.bas"
 cmem_sp=tmp_cmem_sp;
-#line 95 "library_cpp.bas"
+#line 90 "library_cpp.bas"
 }
 ==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt data1.txt free1.txt
