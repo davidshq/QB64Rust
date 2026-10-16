@@ -1,0 +1,12 @@
+len: 5  3  0  7 
+len left$: 3 
+len nul: 2 
+len fixed: 6 
+upper var: MIXED CASE
+upper fixed: ABC   
+upper copy: XYZ xyz
+result: hello||| 5 HELLO
+hello!
+udt: 7 
+udt set: 7  4 
+udt element: 11 

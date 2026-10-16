@@ -197,6 +197,7 @@ arrays/type_nested_descriptor_payload_clone
 arrays/type_owner_self_assignment
 arrays/whole_member_array_ops_nonzero_bounds
 audio_out/test
+auto_include/am-trigger
 auto_include/debug
 auto_include/no-debug
 basic/test
@@ -227,8 +228,15 @@ const/too_few_arguments_to_boolean
 const/type_mismatch_string_integer
 const/type_mismatch_string_subtract
 data/test
+declare_library/test
+declare_library_dynamic/test
 declare_library_external/test
 declare_library_external/test_stripped
+declare_library_header/test
+declare_library_header/test-compile-base
+declare_library_header/test-compile-base-directory
+declare_library_header/test-include
+declare_library_static/test
 dollar$sign$test/dollar$sign
 filename/filename.extra.extension
 func_tostr/double

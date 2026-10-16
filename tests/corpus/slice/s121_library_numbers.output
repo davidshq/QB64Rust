@@ -1,0 +1,22 @@
+byval: 127  255  32767  65535 -4  4294967295 
+byval:-8  18446744073709551615  2.5  3.25  4.125 
+byval offset: 42  42 
+wrap:-128  0 -32768  0 -2147483648 
+byref: 2  3  4  5  6  7  8  9  10.5  11.5  12.5  13  14 
+convert: 4  5  8  1.333333333333333 
+expr: 32  4  2  2 
+variable: 11 
+parenthesised: 11 
+expression: 11 
+element: 21 
+member: 31 
+literal: done
+other type: 40 
+single: 2.5 
+call: 12 
+null literal 0: 0  null 1: 0  null var: 0 
+byval offset 0: 1  1  1  1 
+peek: 1234 
+add: 5 
+ticks: 3 
+sub: 42  3 

@@ -11,9 +11,9 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 125 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags, the screen functions in a console program, labels with the name of a SUB, `TAB` and `SPC`, conventional memory, sound, `$EXEICON`, the choice and the shifts, `EXIT SELECT`, `PRINT USING`, binary and random files, locks, `FIELD`, `CHAIN`, memory blocks (`_MEM`), one program per runtime error 300 to 313, `MKI$` … `_CV`, `$ASSERTS` and `_ASSERT`, `$DEBUG`, the checksum, compression and base64 functions, the exit code of `SYSTEM n` and `END n`, `REDIM _RETAIN`, `_DYNAMIC` member arrays; `SOURCE.md`) |
+| `slice\` | 132 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags, the screen functions in a console program, labels with the name of a SUB, `TAB` and `SPC`, conventional memory, sound, `$EXEICON`, the choice and the shifts, `EXIT SELECT`, `PRINT USING`, binary and random files, locks, `FIELD`, `CHAIN`, memory blocks (`_MEM`), one program per runtime error 300 to 313, `MKI$` … `_CV`, `$ASSERTS` and `_ASSERT`, `$DEBUG`, the checksum, compression and base64 functions, the exit code of `SYSTEM n` and `END n`, `REDIM _RETAIN`, `_DYNAMIC` member arrays, whole-array assignment, `DECLARE LIBRARY` with a header in `<name>.files`; `SOURCE.md`) |
 | `screen\` | 66 programs with a window, checked by the state of the screen they leave: 24 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error, and `c12_prompts`: states taken while a program runs, `m3-scripted-game`), 18 for the screen statements form by form (`d01`–`d16`, `m3-window-output`; `d17` `TAB` and `SPC`, `d18` graphics `GET` and `PUT`, `m3-get-put-bload`), 12 for images, fonts and the mouse (`i01`–`i08`, `f01`, `f02`, `u01`, `u02`, `m3-images-fonts-mouse`), 11 programs cut from Civil War Strategy, three of them with the pictures they load in a `.files` folder, and `g12_game`, the whole game played from its keys file with 23 states compared (`SOURCE.md`, `tools\screen\README.md`, `tests\programs\README.md`). All 66 are on `slice.list` ("Screen programs" below) |
-| `slice.list` | The 431 programs the new compiler must pass: all 127 of `slice\`, 236 of `runtime_comparison`, `verification\` `v11`, `v12` and all 66 of `screen\` (see below) |
+| `slice.list` | The 436 programs the new compiler must pass: all 132 of `slice\`, 236 of `runtime_comparison`, `verification\` `v11`, `v12` and all 66 of `screen\` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -46,11 +46,11 @@ run; `.gitattributes` keeps the bytes. Beside an `.err` or a `.norun` the folder
 A program that reaches `END` prints an empty line and `Press any key to continue` (no line end) on Windows; that
 trailer is part of its `.output`.
 
-## Counts (recorded 2026-10-03; `slice` as each change added its programs, the last 2026-10-15)
+## Counts (recorded 2026-10-03; `slice` as each change added its programs, the last 2026-10-16)
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 127 |
+| `.output` | 235 | 2 | 132 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
@@ -174,14 +174,21 @@ All 66 are listed: `g03_capitol` joined with `m3-sound` (its five `PLAY` lines a
 because the program was cut with the game's sound option off), `c12_prompts` and `g12_game` with
 `m3-scripted-game`.
 
-`slice.list` names the 431 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`. Joined with `m3-whole-array-assign` (each left the recorded output on its first run):
-`s119_whole_array` (the programs of `verification\v36_a`, `v36_b`, `v36_c`, `v36_f`, `x14`, `x17`, `x20`, `x36`,
-without `v36_a`'s suffixed names and with a literal that fits `_INTEGER64`) and `s120_whole_array_members`
-(`v36_d`, `v36_e`, `x33`, `x46`, `x47`, `x49`–`x51`; the two divergences of the change, `DIVERGENCES.md` D-004 and
-D-022, are left out and held by CLI tests). Joined with `m3-typefields` (each left the recorded output on its first run):
-`s118_dyn_member_files` (`verification\v35_e` 5.-6b, `v35_x55`, `v35_x65`; its lines 3 and 10, where the new
-compiler keeps a member with other bounds as it was (`DIVERGENCES.md` D-019), recorded from the program that
+`slice.list` names the 436 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`. Joined with `m3-declare-library` (each left the recorded output on its first run):
+`s121_library_numbers` (`verification\v37_b`, `v37_c`, the `BYVAL` 0 forms of `x56`, `x58`, `x59`, `x63`, a block
+in a SUB; `v37_b`'s literal above `_INTEGER64` written with `~&&`), `s122_library_strings_types` (`v37_d`, the
+TYPE of `v37_e`, `x39`), `s123_library_alias` (`v37_e`, `x60`), `s124_library_customtype` (`v37_h` without its
+`.a`) and `s125_library_runtime_dll` (`v37_a`, `kernel32` of `v37_g`). The first four have the header `v37h.h`
+in their `<name>.files\`, a copy of `verification\v37_lib\v37h.h` with its first comment line changed; the
+libraries of `v37_lib` that must be built are left to the CLI tests. Joined with `m3-whole-array-assign` (each
+left the recorded output on its first run): `s119_whole_array` (the programs of `verification\v36_a`, `v36_b`,
+`v36_c`, `v36_f`, `x14`, `x17`, `x20`, `x36`, without `v36_a`'s suffixed names and with a literal that fits
+`_INTEGER64`) and `s120_whole_array_members` (`v36_d`, `v36_e`, `x33`, `x46`, `x47`, `x49`–`x51`; the two
+divergences of the change, `DIVERGENCES.md` D-004 and D-022, are left out and held by CLI tests).
+Joined with `m3-typefields` (each left the recorded output on its first run): `s118_dyn_member_files`
+(`verification\v35_e` 5.-6b, `v35_x55`, `v35_x65`; its lines 3 and 10, where the new compiler keeps a member
+with other bounds as it was (`DIVERGENCES.md` D-019), recorded from the program that
 gives the member its declared bounds, reads, raises `ERROR 9` and puts the member back in place of that `GET`),
 `s116_dyn_member_parents` (`verification\v35_b`, `v35_x51`), `s117_dyn_member_kinds` (`v35_c`, `x56`, `x57`,
 `x61`, `x62`, with a `.stdin`; its items 23, 38 and 39, where the new compiler stores nothing through an index

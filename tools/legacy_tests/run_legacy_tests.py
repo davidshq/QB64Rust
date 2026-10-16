@@ -1280,9 +1280,9 @@ def main() -> int:
     ap.add_argument(
         "--compile-tests",
         type=Path,
-        help="compile suite's test folder (default: <qb-root>/tests/compile_tests; "
-        "CI passes the copy tests/upstream/compile_tests, which has no binary "
-        "assets)",
+        help="compile suite's test folder (default: <qb-root>/tests/compile_tests, as "
+        "CI runs it; the copy tests/upstream/compile_tests has no binary assets, so "
+        "programs that need one fail from it)",
     )
     ap.add_argument(
         "--list",

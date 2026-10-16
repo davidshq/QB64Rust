@@ -461,3 +461,9 @@ slice/s118_dyn_member_files
 slice/s119_whole_array
 # m3-whole-array-assign group 4: member arrays and owner types
 slice/s120_whole_array_members
+# m3-declare-library group 5: DECLARE LIBRARY with a header in <name>.files, the C runtime, kernel32
+slice/s121_library_numbers
+slice/s122_library_strings_types
+slice/s123_library_alias
+slice/s124_library_customtype
+slice/s125_library_runtime_dll

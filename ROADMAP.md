@@ -96,6 +96,10 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
       names stays marked; `DIVERGENCES.md` D-004 widened and D-022 (`m3-whole-array-assign`). Upstream 290 of 383 to
       310 of 399 (16 programs left `deferred.list`; the 5 left need `_ARRAYCOPY` or, `t001`, a plain scalar beside
       an array typed by `DIM … AS`)
+- [x] `DECLARE LIBRARY` in its four forms on Windows (plain, `STATIC`, `DYNAMIC`, `CUSTOMTYPE`): the old
+      compiler's lookup, `nm` linkage, C++, calls and start-up errors 259 and 260; the forms whose C++ fails with
+      the old compiler are rejected before the C++ (`m3-declare-library`; D-023 and D-024 proposed and not
+      built). Upstream 310 to 318 of 399; CI's upstream list runs from the clone
 - [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
       file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
       `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program

@@ -216,11 +216,20 @@ with `python verification\v37_lib\build_libs.py`.
 
 ## 5. Slice programs and upstream
 
-- [ ] 5.1 Console slice programs in `tests\corpus\slice\`, a header in each `<name>.files\` (the header's text
+- [x] 5.1 Console slice programs in `tests\corpus\slice\`, a header in each `<name>.files\` (the header's text
   taken from `v37_lib\v37h.h`): numbers by value and by reference and the kinds of argument; strings and a TYPE;
   `ALIAS` with C++ names and overloads; `CUSTOMTYPE`; the C runtime with no name and `kernel32` with `DYNAMIC`;
   recorded with `qb64pe.exe`. Verify: each passes on its first run with this compiler; they join `slice.list`.
-- [ ] 5.2 Upstream: `declare_library/test`, `declare_library_dynamic/test`, the four `declare_library_header`
+  As built (2026-10-16): `s121_library_numbers` (`v37_b`, `v37_c`; also the `BYVAL` 0 forms `(0)`, `0&` and a
+  `CONST` 0 of `x56`, `x58`, `x59`, a result truncated by its cast, `x63`, two blocks naming the header and a
+  block in a SUB), `s122_library_strings_types` (`v37_d`, the TYPE of `v37_e`, a `NULL` string result, `x39`),
+  `s123_library_alias` (`v37_e`'s `ALIAS` forms, `x60`), `s124_library_customtype` (the header part of `v37_h`;
+  a `.a` needs building, which the CLI tests do), `s125_library_runtime_dll` (`v37_a`, and `kernel32` with four
+  declarations). The first four have `v37h.h` in their `.files\`, its first comment line naming its source; the
+  block names `"v37h"` (`s123`: `"./v37h"`), found in the program's folder. `v37_b`'s literal
+  `18446744073709551614` is written with `~&&`. Each recorded output equals the `v37` measurement's lines; all
+  five passed on their first run.
+- [x] 5.2 Upstream: `declare_library/test`, `declare_library_dynamic/test`, the four `declare_library_header`
   programs, `declare_library_static/test` and `auto_include/am-trigger` join `pass.list` (310 to 318 of 399).
   First the `tier2` job's step "Upstream pass list" in `rust.yml` drops `--compile-tests
   tests/upstream/compile_tests` (design D4: the copy lacks `lib-windows.a` and `lib.dll`, the clone the job
@@ -228,21 +237,39 @@ with `python verification\v37_lib\build_libs.py`.
   `tests\upstream\README.md` ("CI runs the same list from this copy") brought in line. Verify: the 8 pass run by
   themselves from the clone, as CI will run them; tier 1's list tests pass; the demand report's first line is no
   longer `DECLARE LIBRARY`.
+  As built (2026-10-16): the 8 pass run alone from the clone; they left `tests\known_clean_not_passing.list`.
+  `rust.yml`'s job comment, which said the copy holds every file the list needs, now says the clone, and the
+  step has a comment why. The demand report over `tests\upstream` begins with `_SNDOPEN` (6).
 
 ## 6. Close
 
-- [ ] 6.1 Documents: `DIVERGENCES.md` (D-023, D-024), `SOMEDAY.md` (under "QB64pe behaviours to review": the
+- [x] 6.1 Documents: `DIVERGENCES.md` (D-023, D-024), `SOMEDAY.md` (under "QB64pe behaviours to review": the
   block's prototypes beside a header, a result truncated by its cast (`x63`), a `STRING * n` member with no NUL
   (`x66`); what stayed marked; `errtest`'s handlers), `crates\README.md` (also: a header's own includes are not in
   the build cache's key),
   `tests\upstream\README.md`, `tests\corpus\README.md`, `verification\README.md` (`v37*` and any new numbers; `CLAUDE.md` holds
   no counts or catalogue since 2026-10-16), `ROADMAP.md`, `STATUS.md` (its line in the steps table, and the items
   of "Waiting on the user" the change settles or adds). Verify: `check_repo.py --untracked` is clean.
-- [ ] 6.2 Closing runs, once (working rule 9): tier 1 with the command-line tests that build, the runner's tests,
+  As built (2026-10-16): D-023 and D-024 are not built, so `DIVERGENCES.md` has no rows for them: a paragraph
+  below the table says they were proposed and not built and that the ids are not reused (no register row either
+  for `x16`, `x67`, `x69`: rejecting a program whose build fails with the old compiler is no divergence).
+  `SOMEDAY.md`: "Left marked by `m3-declare-library`" (`x22`, `x08`, `errtest`, Linux and macOS) and three rows
+  under "QB64pe behaviours to review" (`x23`/`x30`, `x63`, `x66`); accepting D-023 and D-024 was already under
+  "Other ideas". `verification\README.md` already named `x67`–`x70`. "Waiting on the user" keeps its two items
+  (the answer applied to `x67` and `x69`; `x57`), which this change does not settle.
+- [x] 6.2 Closing runs, once (working rule 9): tier 1 with the command-line tests that build, the runner's tests,
   the slice list with and without folding, the upstream and differential pass lists, the two full suites, the
   demand reports, the shrink-only lists regenerated (the call-site check is not affected: no built-in changes;
   say so); `python tools\testtime\test_time.py`. Verify: numbers in `STATUS.md`; nothing on a pass list fails;
   the files to stage and a commit message named.
+  As built (2026-10-16, release build, `--jobs 8 --build-cache`): tier 1 322 tests (at the close of group 5;
+  only documents and the runner's help text changed after it, which no tier 1 test reads apart from the list
+  checks, unchanged since), the 30 command-line tests that build, the runner's 73 tests; slice list 436 of 436,
+  also with `QB64RUST_NO_FOLD=1`; upstream pass list 318 of 318; differential 59 of 59; full corpus 455 of 461
+  (the slice list and 19 `.err` programs; `218_fre` and the 5 known failures as before); full upstream suite 318
+  pass, 85 rejected (72 at the compile, 13 `.err` with only marked errors), 1 known failure, none wrong; demand
+  reports and the lists in `STATUS.md`; the lists regenerated, unchanged. The call-site check was not run: no
+  built-in changed. `tools\testtime\test_time.py` run.
 
 ## Workflow follow-up
 

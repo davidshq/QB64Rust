@@ -156,6 +156,16 @@ What the old compiler accepts and the new one still marks "not supported yet":
 | A whole-array assignment with a type suffix on both names (`b%() = a%()`, `a&() = b%()`, `a$() = b$()`, also for arrays declared `AS INTEGER`) | The old compiler does not take the whole-array path for a suffixed name: it copies element 0 into element 0, converting, with no type check (`b%(1)` and `b%(2)` keep their values). Marked rather than copied so (user, 2026-10-15, as for a whole array in `FIELD`); also under "QB64pe behaviours to review" | `verification\v36_x24`, `x38`, `x40`, `x43`, `x44`, `v36_a` 7.–9.; `sema\src\check\whole.rs` |
 | A whole array as a value of `PRINT` (`PRINT a()`) | The old compiler prints element 0; a whole array in an expression is marked, as before the change | `verification\v36_x37`; `check\places.rs`, `element` |
 
+**Left marked by `m3-declare-library`** (the twelfth step of M3, 2026-10-16: `DECLARE LIBRARY` in its four forms on
+Windows). What the old compiler accepts and the new one still marks "not supported yet", or does otherwise:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A library FUNCTION beside a program SUB of the same name (`x22`) | The old compiler accepts both; which one a use names was not measured | `verification\v37_x22`; `sema\src\check\library.rs` |
+| `ALIAS` in a `DECLARE SUB` outside a library block (`DECLARE SUB s ALIAS t ()`, `x08`) | The old compiler accepts it and ignores it; this compiler keeps the parser's error it gave before the change ("expected the end of the statement"; design D1, task 2.2) | `verification\v37_x08` |
+| `on_error/errtest`, the ninth upstream program with a block | It also needs `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`, which stay "not supported yet" (left out of the change, user, 2026-10-15) | `DECISIONS.md` 2026-10-15 |
+| Linux and macOS libraries (`.so`, `.dylib`, `/usr/lib`, `dlopen`) and the IDE's folder in the lookup | The project is Windows only | design Non-Goals |
+
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
 
@@ -252,6 +262,9 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | A whole-value copy from a value whose `_DYNAMIC` member is not allocated (after `ERASE x.v`) keeps the target's member when the type holds no `STRING`, and leaves it not allocated when it holds one: the old compiler has two copy routines, `AppendDynUDTDescCopy` and `AppendDynUDTOwnCopyEx` | One rule: the target's member as the source's (not allocated) | `m3-typefields` task 4.3 (`verification\v35_x61` 3. and 4.; `s117_dyn_member_kinds` item 16) |
 | `b%() = a%()`, a whole-array assignment with a type suffix on both names, copies element 0 of `a%` into element 0 of `b%` (converting, `a&() = b%()`) and nothing else, with no check of types or bounds; with a suffix on one name only it is an error (not implemented here: marked, see "Left marked by `m3-whole-array-assign`") | Copy the whole array, as without the suffix | `m3-whole-array-assign` (`verification\v36_x24`, `x38`, `x40`, `x43`, `x44`) |
 | `_MEMELEMENT` of an element of a member array (`_MEMELEMENT(u.v(1))`) is the whole member array's bytes typed as one element (16, 132, 16 for four LONGs), and `_MEM` of a member is typed 32768 with element size 1 whatever the member's type, where `_MEMELEMENT` of it has the member's own type | One element, as for an array variable; the member's type for `_MEM` too | `m3-mem` task 1.1 (`verification\v32_a_blocks`) |
+| A `DECLARE LIBRARY` block that finds a header writes no prototype for any of its declarations, also for those of the block's other libraries: a function of a `.a` named beside a header must be declared by the header, or the C++ fails (`DECLARE LIBRARY "v37h", "./v37c"` with `c_half#`, which only `v37c` has) | A prototype for each declaration the header does not declare; that needs the header read, and a prototype could disagree with what it declares | `m3-declare-library` (`verification\v37_x23`, `x30`; design D3) |
+| A library FUNCTION's result is cast to its declared type, so a C `double` returned to a FUNCTION typed LONG (no suffix under `DEFLNG`) is truncated: 2.7 gives 2, where an assignment of 2.7 to a LONG gives 3 | Round as every other conversion to an integer does | `m3-declare-library` (`verification\v37_x63`; `slice\s121_library_numbers`, line `expr:`) |
+| A `STRING * n` member passed to a library's `char*` has no NUL after its n bytes: C reads on into the next member (`"abcd"` before a LONG of 65 has length 5) | Pass a copy with a NUL, as a variable-length string is passed. A change to the call, not to libqb | `m3-declare-library` (`verification\v37_x66`) |
 
 ## Other ideas raised during the study
 

@@ -756,7 +756,9 @@ What the compiler supports so far:
   change to such a file alone needs a build without the cache. The demand report runs no lookup, and **the LSP
   reports no lookup error** (its crate does not depend on the driver). Tests: the lookup's, `nm`'s and the key's
   unit tests; CLI tests (`--ignored`) that build `verification\v37_lib`'s libraries into a temporary folder and
-  link, call and reject them.
+  link, call and reject them; the slice programs `s121`–`s125` (group 5: a header in each `<name>.files`, the C
+  runtime, `kernel32`) and the 8 upstream programs with a block (`pass.list`, run from the clone: two need its
+  `lib-windows.a` and `lib.dll`).
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
 (`m2-parser-breadth`: `tests\known_parse_gaps.list` is empty): parsed into typed nodes but still marked by `sema`

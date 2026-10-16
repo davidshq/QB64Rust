@@ -43,3 +43,10 @@ D-022: reads past a block's end) or
 computes a value by a slip (D-005, D-007); D-008 and D-013 accept programs the
 old compiler rejects. D-017 leaves out what only the old compiler's IDE uses, and accepts the programs that name
 what it leaves out.
+
+D-023 and D-024 were proposed by `m3-declare-library` (a header named by two `DECLARE LIBRARY` blocks included
+once; a name looked up in every library of a block) and **not built** (user, `DECISIONS.md` 2026-10-16): the old
+compiler's way is kept, and where its C++ fails (`verification\v37_x16`, `x67`, `x69`) this compiler rejects the
+program before the C++ with an error that says why, or rejects it with the old compiler's message (`x24`). Not
+divergences: a rejection with a clearer message of a program whose build fails with the old compiler. Accepting
+them is listed in `SOMEDAY.md` ("Other ideas"). The two ids are not reused.

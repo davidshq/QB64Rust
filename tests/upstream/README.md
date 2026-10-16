@@ -91,7 +91,10 @@ python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\rele
 
 runs the programs of `pass.list` end to end from the clone's `tests\compile_tests` (with its binary assets),
 with the suite's settings (`-f:OptimizeCppProgram=true -f:StripDebugSymbols=false -q -m -x`); CI runs the same
-list from this copy against the QB64pe release (`rust.yml`, job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 2026-10-12).
+list the same way, from the `tests\compile_tests` of the clone it checks out at the reference commit (`rust.yml`,
+job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 2026-10-12). Not from this copy since
+`m3-declare-library`: `declare_library_static/test` and `declare_library_dynamic/test` need `lib-windows.a` and
+`lib.dll`, which the copy (text files only) lacks. The copy stays the input of tier 1.
 
 - `pass.list`: the upstream programs the new compiler passes. A ratchet: add a program when it passes, never
   remove one.
@@ -436,3 +439,14 @@ programs), the known failure `http/read_example`; none builds and prints the wro
 programs without an `.err`): 266 without errors, 71 held back, 11 with other errors; it names no whole-array
 assignment (the whole arrays it names are `LEN(a())`, 4 programs). `tests\known_unsupported_rejections.list`
 holds 28; the other lists are unchanged.
+
+**Upstream progress, 2026-10-16: 318 of 399** (`m3-declare-library` task 6.2). The change took `DECLARE LIBRARY`:
+8 programs joined `pass.list` with its task 5.2, `auto_include/am-trigger`, `declare_library/test`,
+`declare_library_dynamic/test`, `declare_library_static/test` and the four of `declare_library_header`; they left
+`tests\known_clean_not_passing.list`. The ninth with a block, `on_error/errtest`, also needs `_NEWHANDLER` and
+`_LASTHANDLER` and stays out. Since this change CI runs the list from the clone (above). `pass.list` run by
+itself: 318 of 318. The full run of the suite (404 programs): 318 pass, 85 rejected or with only marked errors (72
+at the compile, 13 `.err` programs), the known failure `http/read_example`; none builds and prints the wrong
+output. The demand report (348 programs without an `.err`): 274 without errors, 63 held back, 11 with other
+errors; its first lines are `_SNDOPEN` 6, `_ARRAYCOPY` 4, `$VERSIONINFO` 4. `tests\known_unsupported_rejections.list`
+holds 28 and `known_clean_not_passing.list` 5.
