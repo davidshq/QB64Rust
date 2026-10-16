@@ -4,24 +4,42 @@ expression: snap
 ---
 redim_errors.bas:10:7: error: name already in use: `x`
 redim_errors.bas:12:7: error: a `REDIM` cannot change the array `fs` between `STRING` and `STRING * n`
+redim_errors.bas:12:7: note: QB64pe: Type mismatch
 redim_errors.bas:14:7: error: a `REDIM` cannot change the array `f3` between `STRING` and `STRING * n`
+redim_errors.bas:14:7: note: QB64pe: Type mismatch
 redim_errors.bas:17:8: error: `m` has 2 dimensions, not 1
+redim_errors.bas:17:8: note: QB64pe: Cannot change the number of elements an array has!
 redim_errors.bas:18:18: error: `m` has 2 dimensions, not 1
+redim_errors.bas:18:18: note: QB64pe: Cannot change the number of elements an array has!
 redim_errors.bas:19:6: error: `m` has 2 dimensions, not 1
+redim_errors.bas:19:6: note: QB64pe: Cannot change the number of elements an array has!
 redim_errors.bas:21:7: error: `dy` has 1 dimension, not 2
 redim_errors.bas:23:9: error: `st` has 1 dimension, not 2
 redim_errors.bas:26:14: error: `_PRESERVE` comes before `SHARED` in a `REDIM`
+redim_errors.bas:26:14: note: QB64pe: Invalid variable name
 redim_errors.bas:27:16: error: expected the end of the statement
 redim_errors.bas:30:11: error: invalid bounds for `neg`: 0 TO -2
+redim_errors.bas:30:11: note: QB64pe: Invalid array bounds
 redim_errors.bas:31:16: error: invalid bounds for `rev`: 5 TO 1
+redim_errors.bas:31:16: note: QB64pe: Invalid array bounds
 redim_errors.bas:33:15: error: invalid bounds for `rev2`: 5 TO 1
+redim_errors.bas:33:15: note: QB64pe: Invalid array bounds
 redim_errors.bas:35:18: error: invalid bounds for `half`: 0 TO -1
+redim_errors.bas:35:18: note: QB64pe: Invalid array bounds
 redim_errors.bas:36:18: error: invalid bounds for `part`: 3 TO 1
+redim_errors.bas:36:18: note: QB64pe: Invalid array bounds
 redim_errors.bas:41:5: error: the static array `st` is already declared
+redim_errors.bas:41:5: note: QB64pe: Cannot redefine st static array!
 redim_errors.bas:47:7: error: `x1` is no declared array (`ERASE`)
+redim_errors.bas:47:7: note: QB64pe: Undefined array passed to ERASE
 redim_errors.bas:48:7: error: `nothing` is no declared array (`ERASE`)
+redim_errors.bas:48:7: note: QB64pe: Undefined array passed to ERASE
 redim_errors.bas:49:7: error: `ERASE` takes the array's name without `()`
+redim_errors.bas:49:7: note: QB64pe: Undefined array passed to ERASE
 redim_errors.bas:50:7: error: `ERASE` takes a whole array, by its name
 redim_errors.bas:52:7: error: `s$` is no declared array (`ERASE`)
+redim_errors.bas:52:7: note: QB64pe: Undefined array passed to ERASE
 redim_errors.bas:53:7: error: `st%` is no declared array (`ERASE`)
+redim_errors.bas:53:7: note: QB64pe: Undefined array passed to ERASE
 redim_errors.bas:56:6: error: expected an array name
+redim_errors.bas:56:6: note: QB64pe: Syntax error

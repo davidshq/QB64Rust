@@ -27,7 +27,10 @@ reads the parser's trees only, so the server cannot report anything `sema` decid
 `m2-language-server`).
 
 Source is bytes throughout (`study\15` §1): files are never converted to `str`; positions are byte offsets;
-columns in diagnostics are byte columns.
+columns in diagnostics are byte columns. A real error whose wording by the old compiler is known from recorded
+output is followed by `note: QB64pe: <its wording>` (`base\src\old_wording.rs`, the table written by
+`tools\diagnostics\old_wording.py`; `m3-old-wording-notes`). A program built here writes the rows of
+`DIVERGENCES.md` whose paths it takes to the file `QB64RUST_DIVERGENCES` names (`m3-divergence-trace`).
 
 ## Lints
 
@@ -792,6 +795,7 @@ panics on purpose, for the CLI test only.
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\release\qb64rust.exe --list tests\upstream\pass.list` | The upstream programs of the pass list end to end (`tests\upstream\README.md`); also in CI (`rust.yml`, job `tier2`) |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --corpus-root tests\differential --qb64 target\release\qb64rust.exe --list tests\differential\pass.list` | The differential programs of the pass list end to end against their recordings (`tests\differential\README.md`); also in CI |
 | 2 | `python tools\callsite\callsite.py` | The call-site check (`tools\callsite\README.md`): for each program of `tests\callsite`, the libqb call the new compiler writes for one built-in statement or function equals the old compiler's (`-z`, nothing built or run). The old compiler's C++ is kept per program in `target\callsite-cache`: about 40 s for the 663 programs when it is filled, about 6 min without it. Needs `qb64pe.exe` in the clone; also in CI. A new plain built-in comes in with a program here |
+| 2, when messages changed | `python tools\diagnostics\old_wording.py`, then after a release build `--check` | The table of the old compiler's wording from recorded rejections, and every note on them equal to the recorded message (`tools\diagnostics\README.md`) |
 
 **When to run what** (`CLAUDE.md` working rule 9, `DECISIONS.md` 2026-10-12): tier 1 while working; tier 2 once
 per change, at its close, and before that only the programs the work touches (`--glob`, `--category`, a short

@@ -14,4 +14,6 @@ unary_plus.bas:15:12: error: expected an expression
 unary_plus.bas:16:11: error: expected an expression
 unary_plus.bas:17:11: error: expected an expression
 unary_plus.bas:18:7: error: unary `-` needs a number
+unary_plus.bas:18:7: note: QB64pe: Cannot convert string to number
 unary_plus.bas:19:8: error: unary `-` needs a number
+unary_plus.bas:19:8: note: QB64pe: Cannot convert string to number

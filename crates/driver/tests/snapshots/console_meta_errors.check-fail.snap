@@ -3,24 +3,43 @@ source: crates/driver/tests/frontend.rs
 expression: snap
 ---
 console_meta_errors.bas:7:1: error: expected `$CONSOLE` or `$CONSOLE:ONLY`
+console_meta_errors.bas:7:1: note: QB64pe: Syntax error
 console_meta_errors.bas:8:1: error: `$CONSOLE` must stand alone on its line
+console_meta_errors.bas:8:1: note: QB64pe: Syntax error
 console_meta_errors.bas:9:1: error: `$CONSOLE` must stand alone on its line
+console_meta_errors.bas:9:1: note: QB64pe: Syntax error
 console_meta_errors.bas:10:1: error: expected `$CONSOLE` or `$CONSOLE:ONLY`
+console_meta_errors.bas:10:1: note: QB64pe: Syntax error
 console_meta_errors.bas:11:1: error: `$CONSOLE:ONLY` must stand alone on its line
+console_meta_errors.bas:11:1: note: QB64pe: Syntax error
 console_meta_errors.bas:12:1: error: `$CONSOLE:ONLY` must stand alone on its line
+console_meta_errors.bas:12:1: note: QB64pe: Syntax error
 console_meta_errors.bas:13:1: error: `$CONSOLE` must stand alone on its line
+console_meta_errors.bas:13:1: note: QB64pe: Syntax error
 console_meta_errors.bas:14:1: error: expected `$CONSOLE` or `$CONSOLE:ONLY`
+console_meta_errors.bas:14:1: note: QB64pe: Syntax error
 console_meta_errors.bas:15:1: error: `$INCLUDEONCE` must stand alone on its line
+console_meta_errors.bas:15:1: note: QB64pe: Syntax error
 console_meta_errors.bas:16:1: error: `$SCREENHIDE` must stand alone on its line
+console_meta_errors.bas:16:1: note: QB64pe: Syntax error
 console_meta_errors.bas:17:1: error: `$SCREENHIDE` must stand alone on its line
+console_meta_errors.bas:17:1: note: QB64pe: Syntax error
 console_meta_errors.bas:18:1: error: `$SCREENHIDE` must stand alone on its line
+console_meta_errors.bas:18:1: note: QB64pe: Syntax error
 console_meta_errors.bas:19:1: error: `$SCREENSHOW` must stand alone on its line
+console_meta_errors.bas:19:1: note: QB64pe: Syntax error
 console_meta_errors.bas:21:8: error: a metacommand must stand at the start of a line
+console_meta_errors.bas:21:8: note: QB64pe: Unexpected character on line
 console_meta_errors.bas:22:8: error: a metacommand must stand at the start of a line
+console_meta_errors.bas:22:8: note: QB64pe: Unexpected character on line
 console_meta_errors.bas:23:8: error: a metacommand must stand at the start of a line
+console_meta_errors.bas:23:8: note: QB64pe: Unexpected character on line
 console_meta_errors.bas:24:8: error: a metacommand must stand at the start of a line
+console_meta_errors.bas:24:8: note: QB64pe: Unexpected character on line
 console_meta_errors.bas:25:8: error: a metacommand must stand at the start of a line
+console_meta_errors.bas:25:8: note: QB64pe: Unexpected character on line
 console_meta_errors.bas:26:8: error: a metacommand must stand at the start of a line
+console_meta_errors.bas:26:8: note: QB64pe: Unexpected character on line
 console_meta_errors.bas:28:2: error: a metacommand must not have a tab before it
 console_meta_errors.bas:29:2: error: a metacommand must not have a tab before it
 console_meta_errors.bas:30:2: error: a metacommand must not have a tab before it

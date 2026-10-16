@@ -1,78 +1,125 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 108
+assertion_line: 149
 expression: snap
 ---
 mem_errors.bas:11:1: error: a member of a `_MEM` block cannot be stored to
+mem_errors.bas:11:1: note: QB64pe: Cannot set read-only element of _MEM TYPE
 mem_errors.bas:12:1: error: a member of a `_MEM` block cannot be stored to
+mem_errors.bas:12:1: note: QB64pe: Cannot set read-only element of _MEM TYPE
 mem_errors.bas:13:1: error: a member of a `_MEM` block cannot be stored to
+mem_errors.bas:13:1: note: QB64pe: Cannot set read-only element of _MEM TYPE
 mem_errors.bas:15:6: error: a member of a `_MEM` block cannot be stored to
+mem_errors.bas:15:6: note: QB64pe: Cannot set read-only element of _MEM TYPE
 mem_errors.bas:16:11: error: a member of a `_MEM` block cannot be stored to
+mem_errors.bas:16:11: note: QB64pe: Cannot set read-only element of _MEM TYPE
 mem_errors.bas:17:5: error: a `TYPE` variable takes only a value of its `TYPE`
+mem_errors.bas:17:5: note: QB64pe: Expected = similar user defined type
 mem_errors.bas:18:5: error: a `TYPE` variable takes only a value of its `TYPE`
+mem_errors.bas:18:5: note: QB64pe: Expected = similar user defined type
 mem_errors.bas:19:7: error: a whole `TYPE` value cannot be used here: `m`
 mem_errors.bas:20:7: error: a whole `TYPE` value cannot be used here: `m`
 mem_errors.bas:21:5: error: `LOCK_ID` is not a member of `TYPE _MEM` (`m.LOCK_ID`)
+mem_errors.bas:21:5: note: QB64pe: Element not defined
 mem_errors.bas:22:5: error: `FOO` is not a member of `TYPE _MEM` (`m.FOO`)
+mem_errors.bas:22:5: note: QB64pe: Element not defined
 mem_errors.bas:23:7: error: `_MEM` cannot be `_UNSIGNED`
 mem_errors.bas:25:18: error: `_MEMEXISTS` needs a `_MEM` variable, element or member here
+mem_errors.bas:25:18: note: QB64pe: TYPE '_MEM' required for function
 mem_errors.bas:26:7: error: a member of a block a built-in gives cannot be read: store it first
+mem_errors.bas:26:7: note: QB64pe: Invalid expression
 mem_errors.bas:27:5: error: `_MEMNEW` gives a `_MEM` block, which can only be stored into a `_MEM` variable
 mem_errors.bas:28:3: error: `_MEMNEW` gives a `_MEM` block, which can only be stored into a `_MEM` variable
 mem_errors.bas:29:8: error: `_MEMNEW` gives a `_MEM` block, which can only be stored into a `_MEM` variable
 mem_errors.bas:31:10: error: `_MEMFREE` needs a `_MEM` variable, element or member here
+mem_errors.bas:31:10: note: QB64pe: TYPE '_MEM' required for sub
 mem_errors.bas:32:10: error: `_MEMFREE` needs a `_MEM` variable, element or member here
+mem_errors.bas:32:10: note: QB64pe: TYPE '_MEM' required for sub
 mem_errors.bas:33:18: error: `_MEMEXISTS` needs a `_MEM` variable, element or member here
+mem_errors.bas:33:18: note: QB64pe: TYPE '_MEM' required for function
 mem_errors.bas:34:21: error: `_MEMCOPY` needs a `_MEM` variable, element or member here
 mem_errors.bas:35:10: error: `_MEMCOPY` needs a `_MEM` variable, element or member here
 mem_errors.bas:37:13: error: `_MEMNEW` needs a number
+mem_errors.bas:37:13: note: QB64pe: Number required for function
 mem_errors.bas:38:15: error: `_MEMIMAGE` needs a number
+mem_errors.bas:38:15: note: QB64pe: Number required for function
 mem_errors.bas:39:5: error: `_MEMNEW` takes 1 argument
+mem_errors.bas:39:5: note: QB64pe: Incorrect number of arguments - Reference: _MEMNEW(byteSize)
 mem_errors.bas:40:5: error: `_MEMNEW` takes 1 argument
+mem_errors.bas:40:5: note: QB64pe: Incorrect number of arguments - Reference: _MEMNEW(byteSize)
 mem_errors.bas:41:5: error: `_MEMIMAGE` takes 0 or 1 arguments
+mem_errors.bas:41:5: note: QB64pe: Incorrect number of arguments - Reference: _MEMIMAGE[(imageHandle&)]
 mem_errors.bas:42:5: error: `_MEMIMAGE` with empty parentheses
+mem_errors.bas:42:5: note: QB64pe: Expected (...)
 mem_errors.bas:43:7: error: `_MEMEXISTS` takes 1 argument
+mem_errors.bas:43:7: note: QB64pe: Incorrect number of arguments - Reference: _MEMEXISTS(memBlock)
 mem_errors.bas:44:5: error: `_MEMSOUND` takes 1 or 2 arguments
+mem_errors.bas:44:5: note: QB64pe: Incorrect number of arguments - Reference: _MEMSOUND(soundHandle&)
 mem_errors.bas:45:5: error: `_MEMSOUND` takes 1 or 2 arguments
+mem_errors.bas:45:5: note: QB64pe: Incorrect number of arguments - Reference: _MEMSOUND(soundHandle&)
 mem_errors.bas:46:1: error: `_MEMFREE` takes 1 argument
+mem_errors.bas:46:1: note: QB64pe: Syntax error - Reference: _MEMFREE memoryVariable
 mem_errors.bas:47:1: error: `_MEMFREE` takes 1 argument
+mem_errors.bas:47:1: note: QB64pe: Syntax error - Reference: _MEMFREE memoryVariable
 mem_errors.bas:48:17: error: this `_MEMCOPY` statement matches none of its forms: `_MEMCOPY ?,?,?{To}?,?`
 mem_errors.bas:49:22: error: this `_MEMCOPY` statement matches none of its forms: `_MEMCOPY ?,?,?{To}?,?`
 mem_errors.bas:51:17: error: `_MEMELEMENT` takes an element, not a whole member array
+mem_errors.bas:51:17: note: QB64pe: Expected array index
 mem_errors.bas:52:10: error: `_MEM` cannot take a variable-length string
+mem_errors.bas:52:10: note: QB64pe: _MEM cannot reference variable-length strings
 mem_errors.bas:53:17: error: `_MEMELEMENT` cannot take a variable-length string
+mem_errors.bas:53:17: note: QB64pe: _MEMELEMENT cannot reference variable-length strings
 mem_errors.bas:54:10: error: the first argument of `_MEM(offset, size)` must be an `_OFFSET` value
+mem_errors.bas:54:10: note: QB64pe: Expected _MEM(_OFFSET-value,...)
 mem_errors.bas:55:10: error: the first argument of `_MEM(offset, size)` must be an `_OFFSET` value
+mem_errors.bas:55:10: note: QB64pe: Expected _MEM(_OFFSET-value,...)
 mem_errors.bas:56:10: error: `_MEM` needs a variable, an element or an array
 mem_errors.bas:57:10: error: `_MEM` needs a variable, an element or an array
 mem_errors.bas:58:17: error: `_MEMELEMENT` needs a variable, an element or an array
 mem_errors.bas:59:10: error: `_MEM` cannot take a `_BIT` variable or element
 mem_errors.bas:60:10: error: `_MEM` cannot take a `_BIT` variable or element
 mem_errors.bas:61:10: error: `_MEM` cannot take a variable-length string
+mem_errors.bas:61:10: note: QB64pe: _MEM cannot reference variable-length strings
 mem_errors.bas:62:10: error: `_MEM` cannot take a variable-length string
+mem_errors.bas:62:10: note: QB64pe: _MEM cannot reference variable-length strings
 mem_errors.bas:63:5: error: `_MEM` with empty parentheses
+mem_errors.bas:63:5: note: QB64pe: Expected (...)
 mem_errors.bas:64:5: error: `_MEM` takes 1 or 2 arguments
+mem_errors.bas:64:5: note: QB64pe: Incorrect number of arguments - Reference: _MEM(referenceVariable) or _MEM(offset, byteSize)
 mem_errors.bas:65:13: error: argument 2 of `_MEM` needs a number
 mem_errors.bas:66:5: error: `_MEMELEMENT` takes 1 argument
 mem_errors.bas:67:5: error: `_MEM` gives a `_MEM` block, which can only be stored into a `_MEM` variable
+mem_errors.bas:67:5: note: QB64pe: TYPE '_MEM' required for sub
 mem_errors.bas:68:5: error: `_MEM` needs its argument
 mem_errors.bas:69:15: error: `_OFFSET` needs a variable, an element or an array
 mem_errors.bas:70:15: error: `_OFFSET` needs a variable, an element or an array
 mem_errors.bas:71:15: error: `_OFFSET` cannot take a `_BIT` array
+mem_errors.bas:71:15: note: QB64pe: _OFFSET cannot reference _BIT type arrays
 mem_errors.bas:72:15: error: `_OFFSET` cannot take a `_BIT` variable
 mem_errors.bas:73:7: error: `_OFFSET` with empty parentheses
+mem_errors.bas:73:7: note: QB64pe: Expected (...)
 mem_errors.bas:75:22: error: `_MEMPUT` needs a variable, a string or a value with `AS type`
 mem_errors.bas:76:22: error: cannot store a string in a number variable
+mem_errors.bas:76:22: note: QB64pe: Illegal string-number conversion
 mem_errors.bas:77:24: error: `_MEMPUT` needs a numeric type after `AS`
+mem_errors.bas:77:24: note: QB64pe: _MEMPUT requires numeric type
 mem_errors.bas:78:24: error: `_MEMPUT` needs a numeric type after `AS`
+mem_errors.bas:78:24: note: QB64pe: _MEMPUT requires numeric type
 mem_errors.bas:79:24: error: `_MEMPUT` needs a numeric type after `AS`
+mem_errors.bas:79:24: note: QB64pe: _MEMPUT requires numeric type
 mem_errors.bas:80:24: error: `_MEMPUT` needs a numeric type after `AS`
+mem_errors.bas:80:24: note: QB64pe: _MEMPUT requires numeric type
 mem_errors.bas:81:24: error: `FOO` is no type
+mem_errors.bas:81:24: note: QB64pe: Invalid type
 mem_errors.bas:82:9: error: `_MEMPUT` needs a `_MEM` variable, element or member here
+mem_errors.bas:82:9: note: QB64pe: Expected _MEM type
 mem_errors.bas:83:1: error: `_MEMPUT` takes a block, an offset, and a value
+mem_errors.bas:83:1: note: QB64pe: Expected _MEMPUT mem-reference, offset, variable|value[AS type]
 mem_errors.bas:84:12: error: the offset of `_MEMPUT` must be a number
+mem_errors.bas:84:12: note: QB64pe: Illegal string-number conversion
 mem_errors.bas:85:22: error: `_MEMPUT` cannot take a `_BIT` variable or element
 mem_errors.bas:86:22: error: `_MEMPUT` cannot take an array of variable-length strings
+mem_errors.bas:86:22: note: QB64pe: Cannot pass array of variable-length strings
 mem_errors.bas:87:1: error: `_MEMGET` takes a block, an offset and a variable
 mem_errors.bas:88:22: error: `_MEMGET` needs a variable, an element or an array
 mem_errors.bas:89:22: error: `_MEMGET` needs a variable, an element or an array
@@ -80,22 +127,39 @@ mem_errors.bas:90:1: error: `_MEMGET` takes a block, an offset and a variable
 mem_errors.bas:91:9: error: `_MEMGET` needs a `_MEM` variable, element or member here
 mem_errors.bas:92:22: error: `_MEMGET` cannot take a `_BIT` variable or element
 mem_errors.bas:93:6: error: `_MEMGET` cannot be written after `CALL`
+mem_errors.bas:93:6: note: QB64pe: Command not implemented
 mem_errors.bas:94:28: error: `_MEMGET` needs `STRING * n`, a length
+mem_errors.bas:94:28: note: QB64pe: Expected STRING * ...
 mem_errors.bas:95:28: error: `_MEMGET` cannot read a `_BIT`
+mem_errors.bas:95:28: note: QB64pe: _BIT TYPE unsupported
 mem_errors.bas:96:28: error: `_MEMGET` cannot read a `_BIT`
+mem_errors.bas:96:28: note: QB64pe: _BIT TYPE unsupported
 mem_errors.bas:97:28: error: `_UNSIGNED STRING` is no type
+mem_errors.bas:97:28: note: QB64pe: Invalid TYPE name
 mem_errors.bas:98:28: error: `FOO` names no type
+mem_errors.bas:98:28: note: QB64pe: Invalid TYPE name
 mem_errors.bas:99:15: error: `_MEMGET` needs a `_MEM` variable, element or member here
 mem_errors.bas:100:7: error: `_MEMGET` takes 3 arguments
+mem_errors.bas:100:7: note: QB64pe: Incorrect number of arguments - Reference: _MEMGET(block, offset, type)
 mem_errors.bas:101:28: error: the third argument of `_MEMGET` is a type name
+mem_errors.bas:101:28: note: QB64pe: Invalid TYPE name
 mem_errors.bas:102:18: error: the offset of `_MEMGET` must be a number
 mem_errors.bas:103:7: error: `_MEMGET` of a `TYPE` gives a whole value, which can only be stored into a variable of it
+mem_errors.bas:103:7: note: QB64pe: Number required for function
 mem_errors.bas:104:5: error: cannot store a string in a number variable
+mem_errors.bas:104:5: note: QB64pe: Illegal string-number conversion
 mem_errors.bas:105:5: error: a value of `TYPE T` is required here
+mem_errors.bas:105:5: note: QB64pe: Expected = similar user defined type
 mem_errors.bas:106:28: error: `_MEMFILL` needs a numeric type after `AS`
+mem_errors.bas:106:28: note: QB64pe: _MEMFILL requires numeric type
 mem_errors.bas:107:28: error: `_MEMFILL` needs a numeric type after `AS`
+mem_errors.bas:107:28: note: QB64pe: _MEMFILL requires numeric type
 mem_errors.bas:108:28: error: `_MEMFILL` needs a numeric type after `AS`
+mem_errors.bas:108:28: note: QB64pe: _MEMFILL requires numeric type
 mem_errors.bas:109:1: error: `_MEMFILL` takes a block, an offset, a count of bytes, and a value
+mem_errors.bas:109:1: note: QB64pe: Expected _MEMFILL mem-reference, offset, bytes, variable|value[AS type]
 mem_errors.bas:110:26: error: `_MEMFILL` needs a variable, a string or a value with `AS type`
 mem_errors.bas:111:26: error: cannot store a string in a number variable
+mem_errors.bas:111:26: note: QB64pe: Illegal string-number conversion
 mem_errors.bas:112:10: error: `_MEMFILL` needs a `_MEM` variable, element or member here
+mem_errors.bas:112:10: note: QB64pe: Expected _MEM type

@@ -59,6 +59,15 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   run (the folder is emptied between the two runs of `--record`, and a run may have changed a file), with either
   compiler. Beside an `.err` or a `.norun` it is an error in the test. `.gitattributes` stores the files byte
   for byte.
+- **The run-time trace of divergences** (`m3-divergence-trace`; corpus and compile suites): every run has
+  `QB64RUST_DIVERGENCES` naming a fresh file `<results>\<key>-run<n>-divergences.txt`, where a program built by
+  the new compiler writes `D-0nn` the first time it takes the path of that row of `DIVERGENCES.md` (the old
+  compiler's programs write nothing). When checking, a row that `<name>.divergences` (one `D-0nn` per line, `#`
+  starts a comment) does not list fails the program at the stage `divergences`; a listed row not taken does not.
+  A corpus program's sidecar lies beside it; a compile-suite program's is
+  `tests\upstream\divergences\<category>\<name>.divergences`, since its own folder is the clone's or the copy that
+  `tools\upstream\copy_upstream_tests.py` remakes.
+  The verification suite records the old compiler only and does not set it.
 - A program listed in `known_failures.txt` that has no expected file (it hangs or loops forever, so nothing can
   be recorded) is compiled but never run, and reported as KFAIL `not run`. To try it again, remove the entry and
   record it.
@@ -67,7 +76,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   `tests\corpus\slice.list` names the programs the new compiler's first slice must pass.
 - `--pass-cache <folder>` (corpus suite, not with `--record`): a program that passed is remembered by a hash of
   its executable, its source and every file its run and comparison read (`.output`, `.screen`, `.keys`, `.stdin`,
-  `.normalize`, `.exitcode`, `.noprompt`, and each file of `.files` by its path and bytes). The next run with the option still compiles and builds it, and when the hash is
+  `.normalize`, `.exitcode`, `.noprompt`, `.divergences`, and each file of `.files` by its path and bytes). The next run with the option still compiles and builds it, and when the hash is
   the same reports `PASS` with "not run: passed before …" without running it; a last line says how many were
   not run. With `--build-cache`, which gives an unchanged program a byte-identical executable, an edit to the
   compiler then runs only the programs whose C++ it changed: the 342 of `slice.list` take 24 s when nothing

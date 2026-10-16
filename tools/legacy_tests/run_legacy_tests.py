@@ -50,6 +50,11 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     BLOAD). Everything in it is copied into the program's folder before it is compiled, with
     either compiler, when checking and when recording; beside an .err or a .norun it is an
     error in the test
+  * every run (also in the compile suite) has QB64RUST_DIVERGENCES naming a fresh file in the
+    results folder, where a program built by the new compiler writes D-0nn the first time it takes
+    the path of that row of DIVERGENCES.md; when checking, a row that <name>.divergences (one
+    D-0nn per line, '#' starts a comment) does not list fails the program (stage "divergences").
+    A compile-suite program's sidecar is tests/upstream/divergences/<category>/<name>.divergences
   * --record compiles once, runs twice, and writes .output (or .err for a failed compile)
     only if both normalised runs are equal; otherwise the program is reported
     non-deterministic and nothing is written. With a compiler other than qb64pe, a failed compile
@@ -170,6 +175,15 @@ def is_old_compiler(qb64: Path) -> bool:
 # The compiler root for included files of the upstream tests (m2-parser-breadth design D9): it holds
 # tests/compile_tests/extra, which two tests include relative to the compiler's own folder.
 INCLUDE_ROOT = Path(__file__).resolve().parents[2] / "tests" / "upstream" / "root"
+
+# The .divergences sidecars of the compile suite, as <category>/<name>.divergences: not beside the program, whose
+# folder is the clone's (read-only) or tests/upstream/compile_tests (a copy the copy script remakes).
+UPSTREAM_DIVERGENCES = Path(__file__).resolve().parents[2] / "tests" / "upstream" / "divergences"
+
+
+def compile_sidecar(category: str, name: str) -> Path:
+    """The .divergences sidecar of a compile-suite program."""
+    return UPSTREAM_DIVERGENCES / category / f"{name}.divergences"
 
 
 def include_root_args(qb64: Path) -> list[str]:
@@ -548,6 +562,8 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
             "QB64PE_LOG_FILE_PATH": str(results / f"{category}-{name}-log.txt"),
         }
     )
+    trace = results / f"{category}-{name}-divergences.txt"
+    set_trace(env, trace)
     with folder_lock(tdir):
         rc, timed_out = run_proc(
             [str(exe), str(results), f"{category}-{name}"],
@@ -563,6 +579,9 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         return fail("run", f"exit code {rc}")
     if norm_output(out_file.read_bytes()) != norm_output(run_out.read_bytes()):
         return fail("result", "program output differs from .output")
+    odd = unexpected_rows(trace, allowed_rows(compile_sidecar(category, name)))
+    if odd:
+        return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES.md")
     r.seconds = round(time.time() - t0, 1)
     return r
 
@@ -660,6 +679,39 @@ def apply_normalize(data: bytes, rules: list[tuple[re.Pattern, str]]) -> bytes:
             text = pattern.sub(repl, text)
         lines.append(text.encode("latin-1") + (b"\r" if cr else b""))
     return b"\n".join(lines)
+
+
+# The run-time trace of divergences (m3-divergence-trace): a program built by the new compiler appends a line
+# D-0nn to the file this variable names the first time in a run that it takes the path of that row of
+# DIVERGENCES.md; the old compiler's programs know nothing of it. Every run of the corpus and compile suites sets
+# it, and a row that the program's <name>.divergences does not list fails the run.
+TRACE_ENV = "QB64RUST_DIVERGENCES"
+
+
+def set_trace(env: dict[str, str], trace: Path) -> None:
+    """Points a run at a fresh trace file."""
+    trace.unlink(missing_ok=True)
+    env[TRACE_ENV] = str(trace)
+
+
+def allowed_rows(path: Path) -> set[str]:
+    """The rows of a <name>.divergences file (none if it does not exist): one D-0nn per line; '#' starts a
+    comment."""
+    rows: set[str] = set()
+    if path.is_file():
+        for line in path.read_text(encoding="latin-1").splitlines():
+            line = line.split("#", 1)[0].strip()
+            if line:
+                rows.add(line)
+    return rows
+
+
+def unexpected_rows(trace: Path, allowed: set[str]) -> list[str]:
+    """The rows a run's trace names that are not allowed, in the order taken."""
+    if not trace.is_file():
+        return []
+    taken = [line.strip() for line in trace.read_text(encoding="latin-1").splitlines()]
+    return [row for row in taken if row and row not in allowed]
 
 
 def reset_folder(folder: Path, keep: set[str]) -> None:
@@ -884,6 +936,7 @@ def corpus_test(
             read(stdin_file),
             read(tdir / f"{name}.normalize"),
             read(exitcode_file),
+            read(tdir / f"{name}.divergences"),
             data_files(files_dir),
             noprompt.encode(),
             Path(__file__).with_name("press_any_key.py").read_bytes() if os.name == "nt" else None,
@@ -929,6 +982,8 @@ def corpus_test(
             shutil.copytree(files_dir, work, dirs_exist_ok=True)
         run_out = results / f"{key}-run{run}-output.txt"
         state_out = results / f"{key}-run{run}-screen.txt"
+        trace = results / f"{key}-run{run}-divergences.txt"
+        set_trace(env, trace)
         if screen:
             state_out.unlink(missing_ok=True)
             env["QB64_SCREEN_STATE"] = str(state_out)
@@ -978,6 +1033,9 @@ def corpus_test(
         return passed("; ".join(c for c in changes if c))
     if norm_output(out_file.read_bytes()) != norm_output(outputs[0]):
         return fail("result", "program output differs from .output")
+    odd = unexpected_rows(trace, allowed_rows(tdir / f"{name}.divergences"))
+    if odd:
+        return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES.md")
     if screen and norm_output(screen_file.read_bytes()) != norm_output(states[0]):
         return fail("screen", "screen state differs from .screen")
     if remembered:

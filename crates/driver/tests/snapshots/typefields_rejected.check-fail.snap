@@ -6,6 +6,7 @@ typefields_rejected.bas:16:15: error: a `TYPE T` value in `COMMON`: a `TYPE` wit
 typefields_rejected.bas:17:15: error: a `TYPE T` value in `COMMON`: a `TYPE` with a dynamic member array cannot be passed on
 typefields_rejected.bas:21:11: error: a `REDIM` of the member array `x.v` names its bounds as `lower TO upper`, or its type with `AS`
 typefields_rejected.bas:22:19: error: the member array `x.v` is declared LONG: a `REDIM` cannot give it another type
+typefields_rejected.bas:22:19: note: QB64pe: REDIM type does not match the declared TYPE member array
 typefields_rejected.bas:23:11: error: `LEN` of a `TYPE T` value: a `TYPE` with a dynamic member array has no fixed size
 typefields_rejected.bas:24:11: error: `LEN` of a `TYPE T` value: a `TYPE` with a dynamic member array has no fixed size
 typefields_rejected.bas:25:15: error: `_OFFSET` of a `TYPE T` value: a `TYPE` with a dynamic member array has no fixed address

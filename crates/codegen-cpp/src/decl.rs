@@ -124,15 +124,29 @@ impl Emitter<'_> {
     }
 
     pub(crate) fn global(&self) -> String {
+        // The run-time trace of divergences (design D1 of `m3-divergence-trace`): `qbr_diverged(n)` stands where the
+        // program takes the path of row D-n of `DIVERGENCES.md`; with `QB64RUST_DIVERGENCES` naming a file, the first
+        // time of each row in a run appends `D-0nn` to it. Without the variable it does nothing. `qbr_diverged_on(n)`
+        // stands at an error after which only a program that goes on differs (D-003, D-004): it traces unless libqb's
+        // `fix_error` will end the program, that is a critical error (300 to 315) pending, or no handler active
+        // (`ON ERROR GOTO`, not inside it) with `QB64PE_NOPROMPT` starting with `y`. Unset, its dialog may go on.
         // The old compiler's templates, with a divisor of -1 tested for a signed result type (`DIVERGENCES.md` D-006:
         // the smallest value divided by -1 crashed the old program): `\` raises error 6 and gives the dividend, `MOD`
         // gives its exact result, 0.
         let mut out = String::from(
-            "template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}\
-             if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}\
+            "static void qbr_diverged(int32 qbr_n){\nstatic int32 qbr_on=-1;\nstatic uint8 qbr_seen[100];\n\
+             static const char *qbr_path=NULL;\n\
+             if (qbr_on<0){qbr_path=getenv(\"QB64RUST_DIVERGENCES\");qbr_on=qbr_path&&*qbr_path;}\n\
+             if (!qbr_on||qbr_n<0||qbr_n>=100||qbr_seen[qbr_n]) return;\nqbr_seen[qbr_n]=1;\n\
+             FILE *qbr_f=fopen(qbr_path,\"ab\");\nif (qbr_f){fprintf(qbr_f,\"D-%03d\\n\",(int)qbr_n);fclose(qbr_f);}\n}\n\
+             static void qbr_diverged_on(int32 qbr_n){\nif (new_error>=300&&new_error<=315) return;\n\
+             const char *qbr_np=getenv(\"QB64PE_NOPROMPT\");\n\
+             if ((error_goto_line&&!error_handling)||!qbr_np||(*qbr_np!='y'&&*qbr_np!='Y')) qbr_diverged(qbr_n);\n}\n\
+             template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}\
+             if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){qbr_diverged(6);error(6);return qb_l;}}\
              return qb_l/qb_r;}\n\
              template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}\
-             if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}\
+             if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1){if (qb_l==std::numeric_limits<decltype(qb_l%qb_r)>::min()) qbr_diverged(6);return (decltype(qb_l%qb_r))0;}}\
              return qb_l%qb_r;}\n",
         );
         out.push_str(&self.owner_functions());

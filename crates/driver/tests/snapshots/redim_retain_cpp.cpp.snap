@@ -1,10 +1,26 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 149
 expression: snap
 ---
 ==> global.txt <==
-template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
-template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+static void qbr_diverged(int32 qbr_n){
+static int32 qbr_on=-1;
+static uint8 qbr_seen[100];
+static const char *qbr_path=NULL;
+if (qbr_on<0){qbr_path=getenv("QB64RUST_DIVERGENCES");qbr_on=qbr_path&&*qbr_path;}
+if (!qbr_on||qbr_n<0||qbr_n>=100||qbr_seen[qbr_n]) return;
+qbr_seen[qbr_n]=1;
+FILE *qbr_f=fopen(qbr_path,"ab");
+if (qbr_f){fprintf(qbr_f,"D-%03d\n",(int)qbr_n);fclose(qbr_f);}
+}
+static void qbr_diverged_on(int32 qbr_n){
+if (new_error>=300&&new_error<=315) return;
+const char *qbr_np=getenv("QB64PE_NOPROMPT");
+if ((error_goto_line&&!error_handling)||!qbr_np||(*qbr_np!='y'&&*qbr_np!='Y')) qbr_diverged(qbr_n);
+}
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){qbr_diverged(6);error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1){if (qb_l==std::numeric_limits<decltype(qb_l%qb_r)>::min()) qbr_diverged(6);return (decltype(qb_l%qb_r))0;}}return qb_l%qb_r;}
 ptrszint *__ARRAY_LONG_A=NULL;
 ptrszint *__ARRAY_STRING_S=NULL;
 ptrszint *__ARRAY_STRING3_X=NULL;
@@ -207,6 +223,10 @@ uint64 alloc_dim_value;
 #line 13 "redim_retain_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(4);
 #line 13 "redim_retain_cpp.bas"
+ptrszint alloc_old_block=__ARRAY_LONG_A[0];
+#line 13 "redim_retain_cpp.bas"
+ptrszint alloc_old_set=__ARRAY_LONG_A[2]&1;
+#line 13 "redim_retain_cpp.bas"
 alloc_new_desc[4]=1ll;
 #line 13 "redim_retain_cpp.bas"
 alloc_new_desc[5]=(5ll)-alloc_new_desc[4]+1;
@@ -214,6 +234,8 @@ alloc_new_desc[5]=(5ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 13 "redim_retain_cpp.bas"
 alloc_new_desc[6]=1;
+#line 13 "redim_retain_cpp.bas"
+if (__ARRAY_LONG_A[0]!=alloc_old_block||(__ARRAY_LONG_A[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 13 "redim_retain_cpp.bas"
 ((mem_lock*)((ptrszint*)__ARRAY_LONG_A)[8])->id=(++mem_lock_id);
 #line 13 "redim_retain_cpp.bas"
@@ -355,6 +377,10 @@ uint64 alloc_dim_value;
 #line 14 "redim_retain_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(4);
 #line 14 "redim_retain_cpp.bas"
+ptrszint alloc_old_block=__ARRAY_LONG_A[0];
+#line 14 "redim_retain_cpp.bas"
+ptrszint alloc_old_set=__ARRAY_LONG_A[2]&1;
+#line 14 "redim_retain_cpp.bas"
 alloc_new_desc[4]=3ll;
 #line 14 "redim_retain_cpp.bas"
 alloc_new_desc[5]=(7ll)-alloc_new_desc[4]+1;
@@ -362,6 +388,8 @@ alloc_new_desc[5]=(7ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 14 "redim_retain_cpp.bas"
 alloc_new_desc[6]=1;
+#line 14 "redim_retain_cpp.bas"
+if (__ARRAY_LONG_A[0]!=alloc_old_block||(__ARRAY_LONG_A[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 14 "redim_retain_cpp.bas"
 ((mem_lock*)((ptrszint*)__ARRAY_LONG_A)[8])->id=(++mem_lock_id);
 #line 14 "redim_retain_cpp.bas"
@@ -539,6 +567,10 @@ uint64 alloc_dim_value;
 #line 15 "redim_retain_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(8);
 #line 15 "redim_retain_cpp.bas"
+ptrszint alloc_old_block=__ARRAY_STRING_S[0];
+#line 15 "redim_retain_cpp.bas"
+ptrszint alloc_old_set=__ARRAY_STRING_S[2]&1;
+#line 15 "redim_retain_cpp.bas"
 alloc_new_desc[4]=1ll;
 #line 15 "redim_retain_cpp.bas"
 alloc_new_desc[5]=(4ll)-alloc_new_desc[4]+1;
@@ -546,6 +578,8 @@ alloc_new_desc[5]=(4ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 15 "redim_retain_cpp.bas"
 alloc_new_desc[6]=1;
+#line 15 "redim_retain_cpp.bas"
+if (__ARRAY_STRING_S[0]!=alloc_old_block||(__ARRAY_STRING_S[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 15 "redim_retain_cpp.bas"
 ((mem_lock*)((ptrszint*)__ARRAY_STRING_S)[8])->id=(++mem_lock_id);
 #line 15 "redim_retain_cpp.bas"
@@ -675,6 +709,10 @@ uint64 alloc_dim_value;
 #line 16 "redim_retain_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(8);
 #line 16 "redim_retain_cpp.bas"
+ptrszint alloc_old_block=__ARRAY_STRING_S[0];
+#line 16 "redim_retain_cpp.bas"
+ptrszint alloc_old_set=__ARRAY_STRING_S[2]&1;
+#line 16 "redim_retain_cpp.bas"
 alloc_new_desc[4]=3ll;
 #line 16 "redim_retain_cpp.bas"
 alloc_new_desc[5]=(6ll)-alloc_new_desc[4]+1;
@@ -682,6 +720,8 @@ alloc_new_desc[5]=(6ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 16 "redim_retain_cpp.bas"
 alloc_new_desc[6]=1;
+#line 16 "redim_retain_cpp.bas"
+if (__ARRAY_STRING_S[0]!=alloc_old_block||(__ARRAY_STRING_S[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 16 "redim_retain_cpp.bas"
 ((mem_lock*)((ptrszint*)__ARRAY_STRING_S)[8])->id=(++mem_lock_id);
 #line 16 "redim_retain_cpp.bas"
@@ -847,6 +887,10 @@ uint64 alloc_dim_value;
 #line 17 "redim_retain_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(3);
 #line 17 "redim_retain_cpp.bas"
+ptrszint alloc_old_block=__ARRAY_STRING3_X[0];
+#line 17 "redim_retain_cpp.bas"
+ptrszint alloc_old_set=__ARRAY_STRING3_X[2]&1;
+#line 17 "redim_retain_cpp.bas"
 alloc_new_desc[4]=1ll;
 #line 17 "redim_retain_cpp.bas"
 alloc_new_desc[5]=(3ll)-alloc_new_desc[4]+1;
@@ -854,6 +898,8 @@ alloc_new_desc[5]=(3ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 17 "redim_retain_cpp.bas"
 alloc_new_desc[6]=1;
+#line 17 "redim_retain_cpp.bas"
+if (__ARRAY_STRING3_X[0]!=alloc_old_block||(__ARRAY_STRING3_X[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 17 "redim_retain_cpp.bas"
 ((mem_lock*)((ptrszint*)__ARRAY_STRING3_X)[8])->id=(++mem_lock_id);
 #line 17 "redim_retain_cpp.bas"
@@ -971,6 +1017,10 @@ uint64 alloc_dim_value;
 #line 18 "redim_retain_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(3);
 #line 18 "redim_retain_cpp.bas"
+ptrszint alloc_old_block=__ARRAY_STRING3_X[0];
+#line 18 "redim_retain_cpp.bas"
+ptrszint alloc_old_set=__ARRAY_STRING3_X[2]&1;
+#line 18 "redim_retain_cpp.bas"
 alloc_new_desc[4]=2ll;
 #line 18 "redim_retain_cpp.bas"
 alloc_new_desc[5]=(5ll)-alloc_new_desc[4]+1;
@@ -978,6 +1028,8 @@ alloc_new_desc[5]=(5ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 18 "redim_retain_cpp.bas"
 alloc_new_desc[6]=1;
+#line 18 "redim_retain_cpp.bas"
+if (__ARRAY_STRING3_X[0]!=alloc_old_block||(__ARRAY_STRING3_X[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 18 "redim_retain_cpp.bas"
 ((mem_lock*)((ptrszint*)__ARRAY_STRING3_X)[8])->id=(++mem_lock_id);
 #line 18 "redim_retain_cpp.bas"
@@ -1131,6 +1183,10 @@ uint64 alloc_dim_value;
 #line 19 "redim_retain_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(5/8+1);
 #line 19 "redim_retain_cpp.bas"
+ptrszint alloc_old_block=__ARRAY_UBIT5_P[0];
+#line 19 "redim_retain_cpp.bas"
+ptrszint alloc_old_set=__ARRAY_UBIT5_P[2]&1;
+#line 19 "redim_retain_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 19 "redim_retain_cpp.bas"
 alloc_new_desc[5]=(9ll)-alloc_new_desc[4]+1;
@@ -1138,6 +1194,8 @@ alloc_new_desc[5]=(9ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 19 "redim_retain_cpp.bas"
 alloc_new_desc[6]=1;
+#line 19 "redim_retain_cpp.bas"
+if (__ARRAY_UBIT5_P[0]!=alloc_old_block||(__ARRAY_UBIT5_P[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 19 "redim_retain_cpp.bas"
 ((mem_lock*)((ptrszint*)__ARRAY_UBIT5_P)[8])->id=(++mem_lock_id);
 #line 19 "redim_retain_cpp.bas"
@@ -1255,6 +1313,10 @@ uint64 alloc_dim_value;
 #line 20 "redim_retain_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(5/8+1);
 #line 20 "redim_retain_cpp.bas"
+ptrszint alloc_old_block=__ARRAY_UBIT5_P[0];
+#line 20 "redim_retain_cpp.bas"
+ptrszint alloc_old_set=__ARRAY_UBIT5_P[2]&1;
+#line 20 "redim_retain_cpp.bas"
 alloc_new_desc[4]=5ll;
 #line 20 "redim_retain_cpp.bas"
 alloc_new_desc[5]=(14ll)-alloc_new_desc[4]+1;
@@ -1262,6 +1324,8 @@ alloc_new_desc[5]=(14ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 20 "redim_retain_cpp.bas"
 alloc_new_desc[6]=1;
+#line 20 "redim_retain_cpp.bas"
+if (__ARRAY_UBIT5_P[0]!=alloc_old_block||(__ARRAY_UBIT5_P[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 20 "redim_retain_cpp.bas"
 ((mem_lock*)((ptrszint*)__ARRAY_UBIT5_P)[8])->id=(++mem_lock_id);
 #line 20 "redim_retain_cpp.bas"
@@ -1415,6 +1479,10 @@ uint64 alloc_dim_value;
 #line 21 "redim_retain_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(15);
 #line 21 "redim_retain_cpp.bas"
+ptrszint alloc_old_block=__ARRAY_UDT_R[0];
+#line 21 "redim_retain_cpp.bas"
+ptrszint alloc_old_set=__ARRAY_UDT_R[2]&1;
+#line 21 "redim_retain_cpp.bas"
 alloc_new_desc[4]=1ll;
 #line 21 "redim_retain_cpp.bas"
 alloc_new_desc[5]=(3ll)-alloc_new_desc[4]+1;
@@ -1422,6 +1490,8 @@ alloc_new_desc[5]=(3ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 21 "redim_retain_cpp.bas"
 alloc_new_desc[6]=1;
+#line 21 "redim_retain_cpp.bas"
+if (__ARRAY_UDT_R[0]!=alloc_old_block||(__ARRAY_UDT_R[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 21 "redim_retain_cpp.bas"
 ((mem_lock*)((ptrszint*)__ARRAY_UDT_R)[8])->id=(++mem_lock_id);
 #line 21 "redim_retain_cpp.bas"
@@ -1563,6 +1633,10 @@ uint64 alloc_dim_value;
 #line 22 "redim_retain_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(15);
 #line 22 "redim_retain_cpp.bas"
+ptrszint alloc_old_block=__ARRAY_UDT_R[0];
+#line 22 "redim_retain_cpp.bas"
+ptrszint alloc_old_set=__ARRAY_UDT_R[2]&1;
+#line 22 "redim_retain_cpp.bas"
 alloc_new_desc[4]=2ll;
 #line 22 "redim_retain_cpp.bas"
 alloc_new_desc[5]=(4ll)-alloc_new_desc[4]+1;
@@ -1570,6 +1644,8 @@ alloc_new_desc[5]=(4ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 22 "redim_retain_cpp.bas"
 alloc_new_desc[6]=1;
+#line 22 "redim_retain_cpp.bas"
+if (__ARRAY_UDT_R[0]!=alloc_old_block||(__ARRAY_UDT_R[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 22 "redim_retain_cpp.bas"
 ((mem_lock*)((ptrszint*)__ARRAY_UDT_R)[8])->id=(++mem_lock_id);
 #line 22 "redim_retain_cpp.bas"
@@ -1751,6 +1827,10 @@ uint64 alloc_dim_value;
 #line 23 "redim_retain_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(8);
 #line 23 "redim_retain_cpp.bas"
+ptrszint alloc_old_block=__ARRAY_DOUBLE_C[0];
+#line 23 "redim_retain_cpp.bas"
+ptrszint alloc_old_set=__ARRAY_DOUBLE_C[2]&1;
+#line 23 "redim_retain_cpp.bas"
 alloc_new_desc[12]=0ll;
 #line 23 "redim_retain_cpp.bas"
 alloc_new_desc[13]=(2ll)-alloc_new_desc[12]+1;
@@ -1774,6 +1854,8 @@ alloc_new_desc[5]=(2ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 23 "redim_retain_cpp.bas"
 alloc_new_desc[6]=alloc_new_desc[10]*alloc_new_desc[9];
+#line 23 "redim_retain_cpp.bas"
+if (__ARRAY_DOUBLE_C[0]!=alloc_old_block||(__ARRAY_DOUBLE_C[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 23 "redim_retain_cpp.bas"
 ((mem_lock*)((ptrszint*)__ARRAY_DOUBLE_C)[16])->id=(++mem_lock_id);
 #line 23 "redim_retain_cpp.bas"
@@ -1971,6 +2053,10 @@ uint64 alloc_dim_value;
 #line 24 "redim_retain_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(8);
 #line 24 "redim_retain_cpp.bas"
+ptrszint alloc_old_block=__ARRAY_DOUBLE_C[0];
+#line 24 "redim_retain_cpp.bas"
+ptrszint alloc_old_set=__ARRAY_DOUBLE_C[2]&1;
+#line 24 "redim_retain_cpp.bas"
 alloc_new_desc[12]=1ll;
 #line 24 "redim_retain_cpp.bas"
 alloc_new_desc[13]=(3ll)-alloc_new_desc[12]+1;
@@ -1994,6 +2080,8 @@ alloc_new_desc[5]=(2ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 24 "redim_retain_cpp.bas"
 alloc_new_desc[6]=alloc_new_desc[10]*alloc_new_desc[9];
+#line 24 "redim_retain_cpp.bas"
+if (__ARRAY_DOUBLE_C[0]!=alloc_old_block||(__ARRAY_DOUBLE_C[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 24 "redim_retain_cpp.bas"
 ((mem_lock*)((ptrszint*)__ARRAY_DOUBLE_C)[16])->id=(++mem_lock_id);
 #line 24 "redim_retain_cpp.bas"

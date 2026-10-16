@@ -134,7 +134,7 @@ impl Emitter<'_> {
             // The decrement is guarded, unlike the old compiler's, whose counter wrapped below zero (DIVERGENCES.md
             // D-003).
             Op::Return(Some(l)) => {
-                out.push("if (!next_return_point) error(3); else next_return_point--;".into());
+                out.push("if (!next_return_point){qbr_diverged_on(3);error(3);} else next_return_point--;".into());
                 out.push(format!("goto {};", self.label_name(*l)));
             }
             Op::Call { proc, args } => {
@@ -402,6 +402,9 @@ impl Emitter<'_> {
         out.push("ptrszint mbr_off=0;".into());
         let root = self.member_path(place, out);
         out.push("int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());".into());
+        // An index that raised with nothing pending: the old compiler stores into element 0 (D-004); one outside its
+        // bounds is traced where it is checked.
+        out.push("if (!mbr_bad&&!mbr_ok) qbr_diverged_on(4);".into());
         // The address last: an index may have given the array another block.
         let at = format!("((char*){root})+mbr_off");
         let store = if let Ty::FixedStr(k) = ty {
@@ -425,7 +428,9 @@ impl Emitter<'_> {
     /// first, adding the place's distance in bytes from its root to `mbr_off` and setting `mbr_bad` for an index
     /// outside its bounds. Gives the root: the pointer of a variable of a user type, or the block of an array.
     fn member_path(&mut self, place: &Place, out: &mut Vec<String>) -> String {
-        let check = |count: &str| format!("if ((uptrszint)mbr_k>=(uptrszint){count}){{error(9);mbr_bad=1;}}");
+        let check = |count: &str| {
+            format!("if ((uptrszint)mbr_k>=(uptrszint){count}){{qbr_diverged_on(4);error(9);mbr_bad=1;}}")
+        };
         match place {
             Place::Var(v) => self.name(*v),
             Place::Element {

@@ -1,17 +1,29 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 108
+assertion_line: 149
 expression: snap
 ---
 blocks_marked.bas:9:10: error: cannot store a string in a number variable
+blocks_marked.bas:9:10: note: QB64pe: Illegal string-number conversion
 blocks_marked.bas:12:10: error: cannot store a string in a number variable
+blocks_marked.bas:12:10: note: QB64pe: Illegal string-number conversion
 blocks_marked.bas:16:10: error: cannot store a string in a number variable
+blocks_marked.bas:16:10: note: QB64pe: Illegal string-number conversion
 blocks_marked.bas:19:10: error: cannot store a string in a number variable
+blocks_marked.bas:19:10: note: QB64pe: Illegal string-number conversion
 blocks_marked.bas:21:10: error: cannot store a string in a number variable
+blocks_marked.bas:21:10: note: QB64pe: Illegal string-number conversion
 blocks_marked.bas:23:10: error: cannot store a string in a number variable
+blocks_marked.bas:23:10: note: QB64pe: Illegal string-number conversion
 blocks_marked.bas:25:16: error: cannot store a string in a number variable
+blocks_marked.bas:25:16: note: QB64pe: Illegal string-number conversion
 blocks_marked.bas:25:33: error: cannot store a string in a number variable
+blocks_marked.bas:25:33: note: QB64pe: Illegal string-number conversion
 blocks_marked.bas:28:14: error: cannot store a string in a number variable
+blocks_marked.bas:28:14: note: QB64pe: Illegal string-number conversion
 blocks_marked.bas:33:1: error: `DEF FN` is not available in QB64; use a FUNCTION
+blocks_marked.bas:33:1: note: QB64pe: Command not implemented
 blocks_marked.bas:34:1: error: `DEF FN` is not available in QB64; use a FUNCTION
+blocks_marked.bas:34:1: note: QB64pe: Command not implemented
 blocks_marked.bas:35:10: error: cannot store a string in a number variable
+blocks_marked.bas:35:10: note: QB64pe: Illegal string-number conversion

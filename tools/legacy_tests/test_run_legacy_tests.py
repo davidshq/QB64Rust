@@ -173,6 +173,38 @@ class Recording(unittest.TestCase):
         self.assertEqual(err.read_bytes(), b"bad\n")
 
 
+class DivergenceRows(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.addCleanup(self.tmp.cleanup)
+
+    def test_allowed_rows(self):
+        self.assertEqual(rlt.allowed_rows(self.dir / "none.divergences"), set())
+        path = self.dir / "p.divergences"
+        path.write_text("# why\n\nD-004\n  D-019 # a member block\n", encoding="latin-1")
+        self.assertEqual(rlt.allowed_rows(path), {"D-004", "D-019"})
+
+    def test_unexpected_rows_in_the_order_taken(self):
+        trace = self.dir / "t.txt"
+        self.assertEqual(rlt.unexpected_rows(trace, set()), [])
+        trace.write_bytes(b"D-022\r\nD-004\n\n")
+        self.assertEqual(rlt.unexpected_rows(trace, set()), ["D-022", "D-004"])
+        self.assertEqual(rlt.unexpected_rows(trace, {"D-022"}), ["D-004"])
+
+    def test_a_compile_suite_sidecar_is_outside_the_copied_folder(self):
+        path = rlt.compile_sidecar("arrays", "p")
+        self.assertEqual(path.parts[-5:], ("tests", "upstream", "divergences", "arrays", "p.divergences"))
+
+    def test_set_trace_clears_the_file(self):
+        trace = self.dir / "t.txt"
+        trace.write_bytes(b"D-004\n")
+        env: dict[str, str] = {}
+        rlt.set_trace(env, trace)
+        self.assertFalse(trace.exists())
+        self.assertEqual(env[rlt.TRACE_ENV], str(trace))
+
+
 class Lists(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -222,8 +254,11 @@ class Tools:
         run_times_out=False,
         states=(),
         exe_bytes=b"",
+        trace=None,
     ):
         self.exe_bytes = exe_bytes
+        # What each run writes to the trace of divergences (the file QB64RUST_DIVERGENCES names).
+        self.trace = trace
         self.rc, self.compile_out, self.exe = rc, compile_out, exe
         self.runs, self.run_rc, self.run_times_out = list(runs), run_rc, run_times_out
         # The screen state each run writes to the file QB64_SCREEN_STATE names (the last one again
@@ -248,6 +283,8 @@ class Tools:
         state = self.states[min(len(self.run_cmds), len(self.states)) - 1] if self.states else None
         if state is not None and "QB64_SCREEN_STATE" in (env or {}):
             Path(env["QB64_SCREEN_STATE"]).write_bytes(state)
+        if self.trace is not None and rlt.TRACE_ENV in (env or {}):
+            Path(env[rlt.TRACE_ENV]).write_bytes(self.trace)
         if self.run_times_out:
             return None, True
         return self.run_rc, False
@@ -364,6 +401,27 @@ class CorpusProgram(CorpusFixture):
             )
             r = rlt.corpus_test(self.bas, args, self.results, self.clone, self.corpus, {})
         self.assert_fail(r, "record", "exit codes 3 and 4")
+
+    def test_every_run_has_a_trace_of_divergences(self):
+        self.sidecar("output", b"1\n")
+        tools = Tools(runs=[b"1\n"])
+        self.assertEqual(self.run_test(tools).status, "PASS")
+        self.assertIn(rlt.TRACE_ENV, tools.run_envs[0])
+
+    def test_a_row_the_program_does_not_list_fails(self):
+        self.sidecar("output", b"1\n")
+        r = self.run_test(Tools(runs=[b"1\n"], trace=b"D-004\r\nD-022\r\n"))
+        self.assert_fail(r, "divergences", "took D-004, D-022 of DIVERGENCES.md")
+        self.sidecar("divergences", b"# the index outside on purpose\nD-004\n")
+        r = self.run_test(Tools(runs=[b"1\n"], trace=b"D-004\nD-022\n"))
+        self.assert_fail(r, "divergences", "took D-022 of")
+        self.sidecar("divergences", b"D-004\nD-022  # and this\n")
+        self.assertEqual(self.run_test(Tools(runs=[b"1\n"], trace=b"D-004\n")).status, "PASS")
+
+    def test_a_trace_of_an_earlier_run_is_not_read(self):
+        self.sidecar("output", b"1\n")
+        self.run_test(Tools(runs=[b"1\n"], trace=b"D-004\n"))
+        self.assertEqual(self.run_test(Tools(runs=[b"1\n"])).status, "PASS")
 
     def test_compile_failures(self):
         self.sidecar("output", b"1\n")

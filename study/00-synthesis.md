@@ -1653,6 +1653,30 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     numeric type passes and returns its own C type (`v37_b`; `_FLOAT` is `long double`).
   - **The result**: a `STRING` FUNCTION is `char*` copied into a new string (`qbs_new_txt`); `NULL` gives ""
     (`x39`). A FUNCTION with no parameters is called `h_ticks()`.
+- **What owner types copy after an error (`v38_*`, 4 programs measured 2026-10-16 before `m3-measured-copies`;
+  `qb64pe.bas` `UDTFileArrayBE$` 17181, `AppendUDTFileBoundsCheck` 17047, `UDTDynArrayDescGuard$`,
+  `AppendDynUDTArrayAssign` 16855)**. `libqb`'s `error()` only marks an error pending, so each check below goes on
+  after it:
+  - **A failed `GET` of a whole array of an owner type** (`v38_a`): the statement's own buffer (one per `GET`,
+    `uniquenumber`) is unpacked after the read whatever it raised. A `GET` that read before brings back what it read
+    last (error 52 on a closed file); one that never read unpacks `realloc` memory nobody wrote: zeros in the four
+    runs of `v38_a`, other values in one of two recordings of `s126_owner_copies` (error 59). A `GET` past the end
+    of a binary file raises nothing and reads 0 for the bytes it cannot read.
+  - **A dynamic member with other bounds in a file** (`v38_b`): the check compares slot 3 (the number of
+    dimensions) and then the declared number of bound slots, raises error 9 on any difference, and copies the
+    declared bytes anyway. `PUT` then writes nothing (an error is pending). `GET` writes the declared elements
+    into the member's block, whose bounds stay: another number of dimensions of the same or more elements (`0 TO 1,
+    0 TO 0`, `0 TO 1, 0 TO 1` for `v(1)`; `0 TO 3` for `w(1, 1)`), other bounds of as many or more (`5 TO 6`, `0 TO
+    2`); with fewer (`0 TO 1` for `w(1, 1)`) it writes past the block (D-019). For a descriptor of fewer
+    dimensions the check also reads bound slots past it.
+  - **A whole-array copy of a dynamic member with another number of dimensions** (`v38_c`): the guard raises error
+    9 and gives a stand-in descriptor, so nothing is copied, whichever side changed and also when both did.
+  - **A whole-array copy of arrays of an owner type with other bounds** (`v38_d`): error 9, then the target's
+    number of elements is copied in order, element `i` from element `i`, deep (a later change to the target's member
+    leaves the source's), the target keeping its bounds: a static or a `REDIM` target with as many or fewer
+    elements, a 2 × 2 target from 4 × 1. A target with more elements gets the source's and one read past its block
+    (D-022); from a source that `ERASE` released the old program reads through the missing block and the target's
+    elements become 0.
 - **`STRING` members, whole values, `TYPE` parameters (`v24_h_string_members`, `v24_h_whole`,
   `v24_h_type_params`, `v24_x206`–`x216`):** a `STRING` member starts empty in a variable, a local (on each
   call), a `STATIC` one (kept), each element of a static and of a dynamic array and in a nested type; it holds

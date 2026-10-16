@@ -13,6 +13,9 @@ use crate::names::int_const;
 use crate::owner::dyn_fn;
 use qb64rust_ir::{AllocMode, ArrayRef, Expr, Facts, Ty, Var, VarId};
 
+/// The name of the descriptor of a dynamic member array that [`Emitter::allocate`] allocates.
+const DYN_DESC: &str = "dyn_d";
+
 /// The lines of a text, each a line of a statement.
 fn push_lines(out: &mut Vec<String>, text: &str) {
     out.extend(text.lines().map(str::to_string));
@@ -95,7 +98,7 @@ impl Emitter<'_> {
                     dyn_fn(id, m, "blank")
                 ));
                 let texts = self.bound_texts(bounds);
-                self.allocate_with(ty, "dyn_d", &texts, mode, out);
+                self.allocate_with(ty, DYN_DESC, &texts, mode, out);
                 out.push("}".into());
                 cleanup |= base.uses_strings(self.p);
             }
@@ -184,6 +187,11 @@ impl Emitter<'_> {
         out.push("uint64 alloc_req_bytes;".into());
         out.push("uint64 alloc_dim_value;".into());
         out.push(format!("uint64 alloc_bytes_per_element=(uint64)({size});"));
+        if redim {
+            // A FUNCTION in a bound that gives the array another block or erases it (D-018).
+            out.push(format!("ptrszint alloc_old_block={n}[0];"));
+            out.push(format!("ptrszint alloc_old_set={n}[2]&1;"));
+        }
         // The bounds, lower before upper, first dimension first. A dimension without an element raises error 5 and
         // the statement goes on, as it does after a bound that raises.
         for (k, (lower, upper)) in bounds.iter().enumerate() {
@@ -209,6 +217,9 @@ impl Emitter<'_> {
             // compiler then frees a block twice (`DIVERGENCES.md` D-018). It is kept until the new one exists;
             // `_MEM` blocks over it become invalid.
             out.push(format!(
+                "if ({n}[0]!=alloc_old_block||({n}[2]&1)!=alloc_old_set) qbr_diverged(18);"
+            ));
+            out.push(format!(
                 "((mem_lock*)((ptrszint*){n})[{}])->id=(++mem_lock_id);",
                 lock_slot(dims)
             ));
@@ -224,6 +235,7 @@ impl Emitter<'_> {
         }
         // What the machine cannot hold is error 257, which ends the program: a negative number of elements, a
         // bound or a number that does not fit a pointer, a product or a size in bytes that overflows.
+        let checks = out.len();
         for a in (1..=dims).map(|i| 4 * i) {
             let fits = |slot: usize| {
                 format!("if (((int64)((ptrszint)alloc_new_desc[{slot}]))!=alloc_new_desc[{slot}]) error(257);")
@@ -243,6 +255,12 @@ impl Emitter<'_> {
         out.push("alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;".into());
         out.push("if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);".into());
         out.push("if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);".into());
+        if n == DYN_DESC {
+            // A dynamic member array: the old compiler checks none of these (D-020).
+            for line in &mut out[checks..] {
+                *line = line.replace("error(257);", "{qbr_diverged(20);error(257);}");
+            }
+        }
         if redim {
             out.push("preserve_copy_count=preserve_old_total;".into());
             out.push("if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;".into());
@@ -418,11 +436,16 @@ impl Emitter<'_> {
     /// else, a string or a user type that holds strings element by element, an owner value deep in place
     /// ([`Self::copy_owner`]; the old compiler gives a `REDIM` target a new block, with the same values). A
     /// dynamic member's descriptor must also have the number of dimensions of the copy, which it can lose to a
-    /// `REDIM` (the old compiler reads the slots of another number).
+    /// `REDIM` (the old compiler's guard then raises error 9 and gives a stand-in descriptor, so nothing is copied:
+    /// `verification\v38_c`). Two array variables of an owner type with other bounds: [`Self::copy_owner_array`].
     pub(crate) fn copy_array(&mut self, from: &ArrayRef, to: &ArrayRef, out: &mut Vec<String>) {
         let t = self.p.array_ty(to);
         let dims = self.copy_dims(to).or_else(|| self.copy_dims(from)).unwrap_or(1);
         let (dst, src) = (self.whole_desc(to), self.whole_desc(from));
+        if self.owns_desc(t) && matches!((to, from), (ArrayRef::Var(_), ArrayRef::Var(_))) {
+            self.copy_owner_array(t, dims, (&dst, &src), out);
+            return;
+        }
         let guarded = to.may_raise() || from.may_raise();
         out.push("{".into());
         out.push(format!("ptrszint *whole_arr_dst={dst};"));
@@ -432,6 +455,11 @@ impl Emitter<'_> {
         } else {
             "int32 whole_arr_ok=1;".into()
         });
+        // An index on the way raised: the old compiler copies strings and user types element by element through the
+        // element at position 0 (D-004); its move of bytes checks for the error, as here.
+        if guarded && matches!(t, Ty::Str | Ty::User(_)) {
+            out.push("if (!whole_arr_ok) qbr_diverged_on(4);".into());
+        }
         out.push("uint64 whole_arr_total=1;".into());
         let mut missing = "!(whole_arr_dst[2]&1)||!(whole_arr_src[2]&1)||(!whole_arr_dst[0])||(!whole_arr_src[0])||(whole_arr_dst[0]==(ptrszint)nothingvalue)||(whole_arr_src[0]==(ptrszint)nothingvalue)".to_string();
         for (side, array) in [("dst", to), ("src", from)] {
@@ -505,6 +533,44 @@ impl Emitter<'_> {
         if strings(to) || strings(from) {
             out.push("qbs_cleanup(qbs_tmp_base,0);".into());
         }
+    }
+
+    /// `CopyArray` of two array variables of an owner type, as the old compiler's `AppendDynUDTArrayAssign`
+    /// (`qb64pe.bas` 16855) checks them: both must be allocated, else error 9 and nothing is copied; other bounds
+    /// raise error 9 and the copy goes on, element `i` of the target from element `i` of the source for every
+    /// element of the target, deep, the target keeping its bounds. Only when the source has fewer elements, which
+    /// the old program reads past, is nothing copied (`DIVERGENCES.md` D-022; design D3 of `m3-measured-copies`).
+    fn copy_owner_array(&mut self, t: Ty, dims: usize, (dst, src): (&str, &str), out: &mut Vec<String>) {
+        out.push("{".into());
+        out.push(format!("ptrszint *whole_arr_dst={dst};"));
+        out.push(format!("ptrszint *whole_arr_src={src};"));
+        out.push("int32 whole_arr_ok=1, whole_arr_same=1;".into());
+        out.push("uint64 whole_arr_total=1, whole_arr_have=1;".into());
+        // A target with elements from a source that is not allocated: the old compiler reads through its missing
+        // block (D-022).
+        out.push("if (!(whole_arr_dst[2]&1)||!(whole_arr_src[2]&1)||(!whole_arr_dst[0])||(!whole_arr_src[0])||(whole_arr_dst[0]==(ptrszint)nothingvalue)||(whole_arr_src[0]==(ptrszint)nothingvalue)){error(9); whole_arr_ok=0; if ((whole_arr_dst[2]&1)&&!(whole_arr_src[2]&1)) qbr_diverged(22);}".into());
+        out.push("if (whole_arr_ok){".into());
+        out.push(format!(
+            "for(ptrszint whole_arr_dim=1; whole_arr_dim<={dims}; whole_arr_dim++){{"
+        ));
+        out.push(format!("ptrszint whole_arr_arg=({dims}-whole_arr_dim)*4+4;"));
+        out.push("if ((whole_arr_dst[whole_arr_arg]!=whole_arr_src[whole_arr_arg])||(whole_arr_dst[whole_arr_arg+1]!=whole_arr_src[whole_arr_arg+1])) whole_arr_same=0;".into());
+        out.push("if ((whole_arr_dst[whole_arr_arg+1]<0)||(whole_arr_src[whole_arr_arg+1]<0)){error(9); whole_arr_ok=0; break;}".into());
+        out.push("if ((whole_arr_dst[whole_arr_arg+1]&&whole_arr_total>(18446744073709551615ull/(uint64)whole_arr_dst[whole_arr_arg+1]))||(whole_arr_src[whole_arr_arg+1]&&whole_arr_have>(18446744073709551615ull/(uint64)whole_arr_src[whole_arr_arg+1]))){error(257); whole_arr_ok=0; break;}".into());
+        out.push("whole_arr_total*=(uint64)whole_arr_dst[whole_arr_arg+1];".into());
+        out.push("whole_arr_have*=(uint64)whole_arr_src[whole_arr_arg+1];".into());
+        out.push("}".into());
+        out.push("if (whole_arr_ok&&!whole_arr_same) error(9);".into());
+        out.push("if (whole_arr_ok&&whole_arr_total>whole_arr_have){whole_arr_ok=0; qbr_diverged(22);}".into());
+        out.push("}".into());
+        out.push("if (whole_arr_ok&&(whole_arr_dst[0]!=whole_arr_src[0])){".into());
+        let size = self.ty_size(t);
+        let at = |side: &str| format!("((char*)whole_arr_{side}[0]+whole_arr_i*{size})");
+        out.push("for(ptrszint whole_arr_i=0; whole_arr_i<(ptrszint)whole_arr_total; whole_arr_i++){".into());
+        self.copy_owner(t, &at("dst"), &at("src"), out);
+        out.push("}".into());
+        out.push("}".into());
+        out.push("}".into());
     }
 
     /// The number of dimensions of a side of a `CopyArray`, where it is known.

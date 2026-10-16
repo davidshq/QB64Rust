@@ -3,6 +3,9 @@ source: crates/driver/tests/frontend.rs
 expression: snap
 ---
 bit_arrays_errors.bas:11:1: error: `SWAP` cannot exchange `_BIT` variables
+bit_arrays_errors.bas:11:1: note: QB64pe: Cannot SWAP bit-length variables
 bit_arrays_errors.bas:12:11: error: `LEN` of a `_BIT` variable
 bit_arrays_errors.bas:13:7: error: `INPUT` from the console cannot read into a `_BIT` array element
+bit_arrays_errors.bas:13:7: note: QB64pe: INPUT cannot handle _BIT array elements
 bit_arrays_errors.bas:14:15: error: `INPUT` from the console cannot read into a `_BIT` array element
+bit_arrays_errors.bas:14:15: note: QB64pe: INPUT cannot handle _BIT array elements

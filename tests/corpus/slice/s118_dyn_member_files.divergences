@@ -1,0 +1,3 @@
+# GET into a member with fewer elements than declared (its lines 3 and 10, recorded from a program that keeps
+# the member as this compiler does), on purpose.
+D-019

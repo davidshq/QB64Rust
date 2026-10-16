@@ -303,19 +303,8 @@ fn return_label_with_nothing_pending() {
     let program = "$CONSOLE:ONLY\nON ERROR GOTO handler\nRETURN back\nPRINT \"not printed\"\nback:\n\
                    PRINT \"at back\"\nGOSUB sub1\nPRINT \"after sub1\"\nGOSUB sub1\nPRINT \"after sub1 again\"\nSYSTEM\n\
                    sub1:\nPRINT \"in sub1\"\nRETURN\nhandler:\nPRINT \"error\"; ERR\nRESUME NEXT\n";
-    std::fs::write(d.join("p.bas"), program).unwrap();
-    let exe = d.join("p.exe");
-    let o = qb64rust(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
-    assert!(o.status.success(), "{}", stdout(&o));
-    let run = Command::new(&exe)
-        .current_dir(&d)
-        .env("QB64PE_NOPROMPT", "y")
-        .stdin(std::process::Stdio::null())
-        .output()
-        .unwrap();
-    assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
     assert_eq!(
-        stdout(&run).replace("\r\n", "\n"),
+        build_and_run_tracing(&d, program, "D-003\n"),
         "error 3 \nat back\nin sub1\nafter sub1\nin sub1\nafter sub1 again\n"
     );
 }
@@ -334,19 +323,8 @@ fn member_store_with_bad_index() {
                    PRINT \"after both:\"; a(0).m\na(INSTR(CHR$(k), \"x\")).m = 7\nPRINT \"after raising index:\"; a(0).m\n\
                    a(2).m = 3: a(2).m = INSTR(CHR$(k), \"x\")\nPRINT \"a(2).m:\"; a(2).m\nSYSTEM\n\
                    handler:\nPRINT \"error\"; ERR\nRESUME NEXT\n";
-    std::fs::write(d.join("p.bas"), program).unwrap();
-    let exe = d.join("p.exe");
-    let o = qb64rust(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
-    assert!(o.status.success(), "{}", stdout(&o));
-    let run = Command::new(&exe)
-        .current_dir(&d)
-        .env("QB64PE_NOPROMPT", "y")
-        .stdin(std::process::Stdio::null())
-        .output()
-        .unwrap();
-    assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
     assert_eq!(
-        stdout(&run).replace("\r\n", "\n"),
+        build_and_run_tracing(&d, program, "D-004\n"),
         "error 9 \nafter a(9): 70 \nerror 9 \nafter a(-1): 70 \nerror 5 \nafter both: 70 \nerror 5 \n\
          after raising index: 70 \nerror 5 \na(2).m: 0 \n"
     );
@@ -372,7 +350,7 @@ fn member_array_store_with_bad_index() {
                    x.v(1) = 3: x.v(1) = INSTR(CHR$(k), \"x\")\nPRINT \"x.v(1):\"; x.v(1)\nSYSTEM\n\
                    handler:\nPRINT \"error\"; ERR\nRESUME NEXT\n";
     assert_eq!(
-        build_and_run(&d, program),
+        build_and_run_tracing(&d, program, "D-004\n"),
         "error 9 \nx.v(9): 100 \nerror 9 \na(9).v(1): 201 \nerror 9 \na(1).v(9): 210 \nerror 9 \na(9).v(9): 200 \n\
          error 9 \nx.g(2, 9): 7 \nerror 9 \nx.s(9): old\nerror 5 \nboth: 100 \nerror 5 \nx.v(1): 0 \n"
     );
@@ -701,17 +679,33 @@ fn civil_war_strategy_builds() {
 
 /// Builds `program` as `p.bas` in `d` with `-q -x`, runs it and gives its output with `\n` line ends.
 fn build_and_run(d: &Path, program: &str) -> String {
+    build_and_run_tracing(d, program, "")
+}
+
+/// [`build_and_run`] of a program that takes the paths of rows of `DIVERGENCES.md`: the run-time trace
+/// (`QB64RUST_DIVERGENCES`, design D1 of `m3-divergence-trace`) must name exactly `rows`, one `D-0nn` line each, in
+/// the order the program first takes them.
+fn build_and_run_tracing(d: &Path, program: &str, rows: &str) -> String {
     std::fs::write(d.join("p.bas"), program).unwrap();
     let exe = d.join("p.exe");
     let o = qb64rust(d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
+    let trace = d.join("divergences.txt");
+    let _ = std::fs::remove_file(&trace);
     let run = Command::new(&exe)
         .current_dir(d)
         .env("QB64PE_NOPROMPT", "y")
+        .env("QB64RUST_DIVERGENCES", &trace)
         .stdin(std::process::Stdio::null())
         .output()
         .unwrap();
     assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
+    let taken: Vec<u8> = std::fs::read(&trace)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|&b| b != b'\r')
+        .collect();
+    assert_eq!(taken, rows.as_bytes(), "the rows of DIVERGENCES.md the program took");
     stdout(&run).replace("\r\n", "\n")
 }
 
@@ -735,7 +729,7 @@ fn smallest_integer_divided_by_minus_one() {
                    q&& = -9223372036854775808: r&& = -1\nPRINT q&& \\ r&&\nPRINT q&& MOD r&&\n\
                    PRINT 7 \\ m&; -7 MOD m&; l& \\ 2\nSYSTEM\nh:\nPRINT \"[handler\"; ERR; \"]\"\nRESUME NEXT\n";
     assert_eq!(
-        build_and_run(&d, program),
+        build_and_run_tracing(&d, program, "D-006\n"),
         "[handler 6 ]\n 0 \n[handler 6 ]\n 0 \n-7  0 -1073741824 \n"
     );
 }
@@ -756,14 +750,15 @@ fn redim_with_a_bound_that_redims() {
                    SYSTEM\nFUNCTION shrinkz\nREDIM z(1 TO 2) AS LONG\nz(2) = 20\nshrinkz = 3\nEND FUNCTION\n\
                    FUNCTION erasez\nERASE z\nerasez = 3\nEND FUNCTION\n";
     assert_eq!(
-        build_and_run(&d, program),
+        build_and_run_tracing(&d, program, "D-018\n"),
         " 2  3  0  0 \n 0  20 \n 20  0 \n 2  3  0  0 \n"
     );
 }
 
-/// `GET` of a whole array whose type has a dynamic member array, into an element whose member has other bounds,
-/// raises error 9, reads the rest and keeps that member as it was (`DIVERGENCES.md` D-019: the old compiler writes
-/// the declared bytes into the member's smaller block, `verification\v35_e_dyn_statements` 6.).
+/// `GET` of a whole array whose type has a dynamic member array, into an element whose member has other bounds and
+/// fewer elements than declared, raises error 9, reads the rest and keeps that member as it was (`DIVERGENCES.md`
+/// D-019: the old compiler writes the declared bytes past the member's block, `verification\v35_e_dyn_statements`
+/// 6., `v38_b` 4.).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn get_into_a_dynamic_member_with_other_bounds() {
@@ -774,7 +769,7 @@ fn get_into_a_dynamic_member_with_other_bounds() {
                    REDIM q(0).v(5 TO 5) AS LONG: q(0).v(5) = 5\nGET #1, 1, q()\nCLOSE #1\n\
                    PRINT q(0).a; LBOUND(q(0).v); UBOUND(q(0).v); q(0).v(5); q(1).a\nSYSTEM\n\
                    trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
-    assert_eq!(build_and_run(&d, program), "[ 9 ] 1  5  5  5  2 \n");
+    assert_eq!(build_and_run_tracing(&d, program, "D-019\n"), "[ 9 ] 1  5  5  5  2 \n");
 }
 
 /// A `REDIM` of a dynamic member array to more than memory holds ends the program with "Out of memory"
@@ -788,7 +783,7 @@ fn redim_of_a_dynamic_member_too_large() {
                    REDIM x.v(0 TO hi, 0 TO hi) AS _INTEGER64\nPRINT \"not reached\"\nSYSTEM\n\
                    trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
     // "Out of memory" goes to stderr; the handler is not called and the program stops there.
-    assert_eq!(build_and_run(&d, program), "");
+    assert_eq!(build_and_run_tracing(&d, program, "D-020\n"), "");
 }
 
 /// `_MEM` of a dynamic member array that is not allocated, and `GET` of a whole array of its type into an erased
@@ -803,7 +798,57 @@ fn dynamic_member_not_allocated_in_mem_and_get() {
                    PRINT \"mem\"; _MEMEXISTS(m)\nREDIM p(1) AS t\nOPEN \"g.bin\" FOR BINARY AS #1\nPUT #1, 1, p()\n\
                    ERASE p\nGET #1, 1, p()\nCLOSE #1\nPRINT \"get\"\nSYSTEM\n\
                    trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
-    assert_eq!(build_and_run(&d, program), "[ 9 ]mem 0 \n[ 9 ]get\n");
+    assert_eq!(build_and_run_tracing(&d, program, "D-021\n"), "[ 9 ]mem 0 \n[ 9 ]get\n");
+}
+
+/// D-003 and D-004 differ from the old compiler only in a program that goes on after the error: with no handler and
+/// `QB64PE_NOPROMPT=y` the error ends the program as it ends the old one, and the trace names no row; with
+/// `continue` the program goes on and the trace names both.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn an_error_that_ends_the_program_traces_nothing() {
+    let d = scratch("trace-ends");
+    let program = "$CONSOLE:ONLY\nTYPE t\nm AS LONG\nEND TYPE\nDIM a(3) AS t\nPRINT \"before\"\nRETURN back\nback:\n\
+                   a(9).m = 5\nPRINT \"after\"\nSYSTEM\n";
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    for (noprompt, rows, output) in [("y", "", "before\n"), ("continue", "D-003\nD-004\n", "before\nafter\n")] {
+        let trace = d.join("divergences.txt");
+        let _ = std::fs::remove_file(&trace);
+        let run = Command::new(&exe)
+            .current_dir(&d)
+            .env("QB64PE_NOPROMPT", noprompt)
+            .env("QB64RUST_DIVERGENCES", &trace)
+            .stdin(std::process::Stdio::null())
+            .output()
+            .unwrap();
+        assert_eq!(stdout(&run).replace("\r\n", "\n"), output, "QB64PE_NOPROMPT={noprompt}");
+        let taken: Vec<u8> = std::fs::read(&trace)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|&b| b != b'\r')
+            .collect();
+        assert_eq!(taken, rows.as_bytes(), "QB64PE_NOPROMPT={noprompt}");
+    }
+}
+
+/// `GET` of a whole array whose type has a dynamic member array unpacks the statement's buffer whatever its read
+/// raised, as the old compiler does; where that statement never read, the buffer holds zeros (`DIVERGENCES.md`
+/// D-021: the old program reads memory nobody wrote, which gave other values on each run, `verification\v38_a`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn get_after_a_failed_read_unpacks_zeros() {
+    let d = scratch("get-failed-read");
+    let program = "$CONSOLE:ONLY\n$UNSTABLE:TYPEFIELDS\nTYPE t\na AS INTEGER\nv(1) _DYNAMIC AS LONG\nEND TYPE\n\
+                   ON ERROR GOTO trap\nREDIM p(1) AS t\np(0).a = 5: p(1).v(1) = 6\nGET #2, 1, p()\n\
+                   PRINT p(0).a; p(1).v(1)\nOPEN \"g.bin\" FOR RANDOM AS #1 LEN = 4\np(0).a = 7\nGET #1, 1, p()\n\
+                   PRINT p(0).a\nCLOSE #1\nSYSTEM\ntrap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
+    assert_eq!(
+        build_and_run_tracing(&d, program, "D-021\n"),
+        "[ 52 ] 0  0 \n[ 59 ] 0 \n"
+    );
 }
 
 /// A whole-array assignment to a member array of an element whose index is outside its bounds raises error 9 and
@@ -817,12 +862,12 @@ fn whole_array_to_a_member_through_an_index_outside() {
                    DIM e(2) AS t, a(1) AS LONG, s(1) AS STRING\na(1) = 7: s(1) = \"z\"\ni = 5\n\
                    e(i).v() = a(): e(i).w() = s()\nPRINT e(0).v(1); \"[\"; e(0).w(1); \"]\"\nSYSTEM\n\
                    trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
-    assert_eq!(build_and_run(&d, program), "[ 9 ][ 9 ] 0 []\n");
+    assert_eq!(build_and_run_tracing(&d, program, "D-004\n"), "[ 9 ][ 9 ] 0 []\n");
 }
 
-/// A whole-array assignment of arrays of an owner type with other bounds raises error 9 and copies nothing, as for
-/// any other array (`DIVERGENCES.md` D-022: the old compiler copies as many elements as the target has, reading past
-/// the source's block, `verification\v36_x52`).
+/// A whole-array assignment of arrays of an owner type with other bounds raises error 9 and copies the target's
+/// number of elements, as the old compiler does, but nothing when the source has fewer (`DIVERGENCES.md` D-022: the
+/// old compiler reads past the source's block, `verification\v36_x52`, `v38_d`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn whole_array_of_an_owner_type_with_other_bounds() {
@@ -832,7 +877,10 @@ fn whole_array_of_an_owner_type_with_other_bounds() {
                    s(1).k = 4: s(2).k = 5: d(0).k = 9: e(1).k = 8\nd() = s(): PRINT d(0).k; d(1).k\n\
                    e() = s(): PRINT e(1).k; e(2).k; e(3).k\nSYSTEM\n\
                    trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
-    assert_eq!(build_and_run(&d, program), "[ 9 ] 9  0 \n[ 9 ] 8  0  0 \n");
+    assert_eq!(
+        build_and_run_tracing(&d, program, "D-022\n"),
+        "[ 9 ] 4  5 \n[ 9 ] 8  0  0 \n"
+    );
 }
 
 /// `_MEM` of an element of a dynamic member array, where an index of the value the member is part of reads another
@@ -846,6 +894,19 @@ fn mem_of_a_dynamic_element_through_a_dynamic_index() {
                    DIM x AS t\nDIM m AS _MEM\nREDIM p(1) AS t\nx.v(0) = 1\nm = _MEM(p(x.v(0)).v(1))\n\
                    ERASE x.v\ne = _MEMEXISTS(m)\nERASE p(1).v\nPRINT e; _MEMEXISTS(m)\nSYSTEM\n";
     assert_eq!(build_and_run(&d, program), "-1  0 \n");
+}
+
+/// `_MEM(q())` of an array parameter that nothing above it has given its number of dimensions takes the array's
+/// own lock, so the block stays valid when an element changes (`DIVERGENCES.md` D-016: the old compiler reads the
+/// lock from slot 0, the pointer to the elements, and the block ends at `q(0) = 6`, `verification\v32_a_blocks`
+/// SUB `y`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn mem_of_an_array_parameter_with_no_number_yet() {
+    let d = scratch("mem-param-slot");
+    let program = "$CONSOLE:ONLY\nCALL zz\nSYSTEM\nSUB y (q() AS LONG)\nDIM m AS _MEM\nm = _MEM(q())\nq(0) = 6\n\
+                   PRINT _MEMEXISTS(m)\nEND SUB\nSUB zz\nDIM q2(3) AS LONG\nCALL y(q2())\nEND SUB\n";
+    assert_eq!(build_and_run_tracing(&d, program, "D-016\n"), "-1 \n");
 }
 
 /// An integer power beyond `_INTEGER64` in a `CONST` is a DOUBLE (`DIVERGENCES.md` D-007: the old evaluator wraps it

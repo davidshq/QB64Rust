@@ -34,7 +34,12 @@ impl Checker<'_> {
             (&[node], _) => {
                 let of = self.reference(node, word)?;
                 self.block_reference(&of, word, element, node.node().span())?;
-                ExprKind::MemOf { of, element }
+                let lock_slot0 = self.lock_slot0(&of);
+                ExprKind::MemOf {
+                    of,
+                    element,
+                    lock_slot0,
+                }
             }
             (&[offset, size], false) => {
                 let offset = self.expr(offset)?;
@@ -59,6 +64,26 @@ impl Checker<'_> {
             (_, true) => return Err(self.error(span, "`_MEMELEMENT` takes 1 argument")),
         };
         Ok(Expr { span, ty, qb: ty, kind })
+    }
+
+    /// Whether `_MEM` of `of` is where the old compiler reads the lock of an array parameter from slot 0
+    /// ([`ExprKind::MemOf`] `lock_slot0`, `DIVERGENCES.md` D-016, `verification\v32_a_blocks` SUB `y`): a whole
+    /// array parameter of numbers or of fixed-length strings with no fact about its number of dimensions so far,
+    /// neither an index nor a call that passed it an array, both recorded in the order the program is checked.
+    fn lock_slot0(&self, of: &Reference) -> bool {
+        let Reference::Array(ArrayRef::Var(p)) = of else {
+            return false;
+        };
+        let v = self.prog.var(*p);
+        // A `_BIT` array has no block (`block_reference`); a `STRING` or user-type one takes the body's lock.
+        let own_lock = !matches!(v.ty, Ty::Str | Ty::User(_));
+        own_lock
+            && matches!(v.storage, crate::Storage::Param(_))
+            && v.dim_count().is_none()
+            && !self.dim_facts.iter().any(|f| match f {
+                super::DimFact::Count { array, .. } => array == p,
+                super::DimFact::Same { arg, param, .. } => arg == p || param == p,
+            })
     }
 
     /// `_OFFSET(reference)`: the address of a place, of a string's characters or of an array's first element,

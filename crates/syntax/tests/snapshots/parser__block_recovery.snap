@@ -235,12 +235,15 @@ SourceFile 0..268
       Ident DO
     Newline \x0A
 t.bas:3:1: error: `NEXT` while the `IF` on line 2 is still open; expected `END IF` first
+t.bas:3:1: note: QB64pe: NEXT without FOR
 t.bas:4:1: error: `END IF` without `IF`
 t.bas:5:1: error: `WEND` without `WHILE`
 t.bas:6:27: error: `NEXT` inside a single-line `IF` cannot close a block outside it
 t.bas:8:11: error: `DO` without `LOOP` before the end of the single-line `IF`
 t.bas:10:3: error: only comments may stand between `SELECT CASE` and the first `CASE`
+t.bas:10:3: note: QB64pe: Expected CASE expression
 t.bas:13:3: error: expected a field (`name AS type` or `AS type name, ...`) or `END TYPE`
+t.bas:13:3: note: QB64pe: Expected element-name AS type, AS type element-list, or END TYPE
 t.bas:14:1: error: `END TYPE` without `TYPE`
 t.bas:15:17: error: `NEXT` names more variables than there are `FOR` blocks open around it
 t.bas:16:1: error: `EXIT DO` without `DO`

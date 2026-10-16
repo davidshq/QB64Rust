@@ -1,6 +1,6 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 107
+assertion_line: 149
 expression: snap
 ---
 screen_draw_errors.bas:8:12: error: this `LINE` statement matches none of its forms: `LINE [[{Step}](?,?)]-[{Step}](?,?)[,[?][,[{B|BF}][,?]]]`
@@ -11,25 +11,38 @@ screen_draw_errors.bas:12:24: error: this `LINE` statement matches none of its f
 screen_draw_errors.bas:13:28: error: this `LINE` statement matches none of its forms: `LINE [[{Step}](?,?)]-[{Step}](?,?)[,[?][,[{B|BF}][,?]]]`
 screen_draw_errors.bas:14:21: error: argument 5 of `LINE` needs a number
 screen_draw_errors.bas:15:5: error: this `PSET` statement matches none of its forms: `PSET [{Step}](?,?)[,?]`
+screen_draw_errors.bas:15:5: note: QB64pe: Syntax error - Reference: PSET [STEP](column%, row%)[, colorAttribute]
 screen_draw_errors.bas:16:6: error: this `PSET` statement matches none of its forms: `PSET [{Step}](?,?)[,?]`
+screen_draw_errors.bas:16:6: note: QB64pe: Syntax error - Reference: PSET [STEP](column%, row%)[, colorAttribute]
 screen_draw_errors.bas:17:13: error: this `PSET` statement matches none of its forms: `PSET [{Step}](?,?)[,?]`
+screen_draw_errors.bas:17:13: note: QB64pe: Syntax error - Reference: PSET [STEP](column%, row%)[, colorAttribute]
 screen_draw_errors.bas:18:15: error: this `PSET` statement matches none of its forms: `PSET [{Step}](?,?)[,?]`
+screen_draw_errors.bas:18:15: note: QB64pe: Syntax error - Reference: PSET [STEP](column%, row%)[, colorAttribute]
 screen_draw_errors.bas:19:11: error: this `PSET` statement matches none of its forms: `PSET [{Step}](?,?)[,?]`
+screen_draw_errors.bas:19:11: note: QB64pe: Syntax error - Reference: PSET [STEP](column%, row%)[, colorAttribute]
 screen_draw_errors.bas:20:7: error: argument 1 of `PSET` needs a number
 screen_draw_errors.bas:21:14: error: argument 3 of `PSET` needs a number
 screen_draw_errors.bas:22:14: error: this `CIRCLE` statement matches none of its forms: `CIRCLE [{Step}](?,?),?[,[?][,[?][,[?][,?]]]]`
+screen_draw_errors.bas:22:14: note: QB64pe: Syntax error - Reference: CIRCLE [STEP] (x!, y!), radius![, [color&] [, [start!] [, [end!] [, aspect!]]]]
 screen_draw_errors.bas:23:15: error: this `CIRCLE` statement matches none of its forms: `CIRCLE [{Step}](?,?),?[,[?][,[?][,[?][,?]]]]`
+screen_draw_errors.bas:23:15: note: QB64pe: Syntax error - Reference: CIRCLE [STEP] (x!, y!), radius![, [color&] [, [start!] [, [end!] [, aspect!]]]]
 screen_draw_errors.bas:24:29: error: this `CIRCLE` statement matches none of its forms: `CIRCLE [{Step}](?,?),?[,[?][,[?][,[?][,?]]]]`
+screen_draw_errors.bas:24:29: note: QB64pe: Syntax error - Reference: CIRCLE [STEP] (x!, y!), radius![, [color&] [, [start!] [, [end!] [, aspect!]]]]
 screen_draw_errors.bas:25:16: error: argument 3 of `CIRCLE` needs a number
 screen_draw_errors.bas:26:19: error: argument 4 of `CIRCLE` needs a number
 screen_draw_errors.bas:27:6: error: this `PAINT` statement matches none of its forms: `PAINT [{Step}](?,?)[,[?][,[?][,?]]]`
+screen_draw_errors.bas:27:6: note: QB64pe: Syntax error - Reference: PAINT [STEP] (x!, y!)[,[fillColor&] [,[bordercolor&] [,pattern$]]]
 screen_draw_errors.bas:28:18: error: argument 4 of `PAINT` needs a number
 screen_draw_errors.bas:29:21: error: argument 5 of `PAINT` needs a string
 screen_draw_errors.bas:30:22: error: this `PAINT` statement matches none of its forms: `PAINT [{Step}](?,?)[,[?][,[?][,?]]]`
+screen_draw_errors.bas:30:22: note: QB64pe: Syntax error - Reference: PAINT [STEP] (x!, y!)[,[fillColor&] [,[bordercolor&] [,pattern$]]]
 screen_draw_errors.bas:31:8: error: argument 1 of `PAINT` needs a number
 screen_draw_errors.bas:32:1: error: `DRAW` takes 1 argument
+screen_draw_errors.bas:32:1: note: QB64pe: Syntax error - Reference: DRAW drawString$
 screen_draw_errors.bas:33:6: error: `DRAW` needs a string
+screen_draw_errors.bas:33:6: note: QB64pe: String required for sub
 screen_draw_errors.bas:34:1: error: `DRAW` takes 1 argument
+screen_draw_errors.bas:34:1: note: QB64pe: Syntax error - Reference: DRAW drawString$
 screen_draw_errors.bas:35:12: error: this `VIEW` statement matches none of its forms: `VIEW [[{Screen}](?,?)-(?,?)[,[?][,?]]]`, `VIEW {Print}[?{To}?]`
 screen_draw_errors.bas:36:12: error: this `VIEW` statement matches none of its forms: `VIEW [[{Screen}](?,?)-(?,?)[,[?][,?]]]`, `VIEW {Print}[?{To}?]`
 screen_draw_errors.bas:37:23: error: this `VIEW` statement matches none of its forms: `VIEW [[{Screen}](?,?)-(?,?)[,[?][,?]]]`, `VIEW {Print}[?{To}?]`
@@ -44,16 +57,23 @@ screen_draw_errors.bas:45:10: error: this `PALETTE` statement matches none of it
 screen_draw_errors.bas:46:13: error: this `PALETTE` statement matches none of its forms: `PALETTE [?,?]`
 screen_draw_errors.bas:47:9: error: argument 1 of `PALETTE` needs a number
 screen_draw_errors.bas:48:1: error: `PCOPY` takes 2 arguments
+screen_draw_errors.bas:48:1: note: QB64pe: Syntax error - Reference: PCOPY sourcePage%, destinationPage%
 screen_draw_errors.bas:49:1: error: `PCOPY` takes 2 arguments
+screen_draw_errors.bas:49:1: note: QB64pe: Syntax error - Reference: PCOPY sourcePage%, destinationPage%
 screen_draw_errors.bas:50:7: error: argument 1 of `PCOPY` needs a number
 screen_draw_errors.bas:51:1: error: `_LIMIT` takes 1 argument
+screen_draw_errors.bas:51:1: note: QB64pe: Syntax error - Reference: _LIMIT framesPerSecond!
 screen_draw_errors.bas:52:1: error: `_LIMIT` takes 1 argument
+screen_draw_errors.bas:52:1: note: QB64pe: Syntax error - Reference: _LIMIT framesPerSecond!
 screen_draw_errors.bas:53:8: error: `_LIMIT` needs a number
 screen_draw_errors.bas:54:1: error: `_DELAY` takes 1 argument
 screen_draw_errors.bas:55:8: error: `_DELAY` needs a number
+screen_draw_errors.bas:55:8: note: QB64pe: Number required for sub
 screen_draw_errors.bas:56:8: error: this `SLEEP` statement matches none of its forms: `SLEEP [?]`
+screen_draw_errors.bas:56:8: note: QB64pe: Syntax error - Reference: SLEEP seconds%
 screen_draw_errors.bas:57:7: error: `SLEEP` needs a number
 screen_draw_errors.bas:58:1: error: `_DISPLAY` takes 0 arguments
+screen_draw_errors.bas:58:1: note: QB64pe: SUB does not require any arguments
 screen_draw_errors.bas:59:5: error: `POINT` takes 1 or 2 arguments
 screen_draw_errors.bas:60:5: error: `POINT` with empty parentheses
 screen_draw_errors.bas:61:5: error: `POINT` takes 1 or 2 arguments

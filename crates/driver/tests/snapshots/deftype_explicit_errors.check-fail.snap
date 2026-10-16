@@ -3,5 +3,7 @@ source: crates/driver/tests/frontend.rs
 expression: snap
 ---
 deftype_explicit_errors.bas:6:1: error: variable `v` (SINGLE) is not declared (`OPTION _EXPLICIT`)
+deftype_explicit_errors.bas:6:1: note: QB64pe: Variable 'v' (SINGLE) not defined
 deftype_explicit_errors.bas:8:1: error: variable `v` (LONG) is not declared (`OPTION _EXPLICIT`)
+deftype_explicit_errors.bas:8:1: note: QB64pe: Variable 'v' (LONG) not defined
 deftype_explicit_errors.bas:12:1: error: variable `w` (STRING) is not declared (`OPTION _EXPLICIT`)

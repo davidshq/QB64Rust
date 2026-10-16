@@ -286,7 +286,10 @@ impl Emitter<'_> {
         if owners.is_empty() {
             return String::new();
         }
-        let mut protos = String::from("static ptrszint qbr_dyn_count(ptrszint *d);\n");
+        let mut protos = String::from(
+            "static ptrszint qbr_dyn_count(ptrszint *d);\n\
+             static ptrszint *qbr_dyn_unset(ptrszint *d){\nif (!d||!(d[2]&1)) qbr_diverged(21);\nreturn d;\n}\n",
+        );
         // `_MEM` of a whole dynamic member array and of an element of one ([`Emitter::mem_of`]): a descriptor from a
         // guard that raised error 9 (its dummy, of no dimensions) gives a block that does not exist.
         let mut defs = String::from(
@@ -534,12 +537,13 @@ impl Emitter<'_> {
 impl Emitter<'_> {
     /// `PUT` or `GET` of a whole array of owner type (design D8 of `m3-typefields`; the old compiler's
     /// `UDTFileArrayBE$`, `qb64pe.bas` 17181): the file holds its elements in the declared layout, written from and
-    /// read into a buffer of the type. `PUT` packs every element into it and writes it; a dynamic member array
-    /// with other bounds than its declared ones raises error 9, so libqb writes nothing. `GET` reads into it and,
-    /// when the read raised nothing, unpacks it element by element; a dynamic member array with other bounds
-    /// raises error 9 and keeps its elements (`DIVERGENCES.md` D-019: the old compiler writes the declared bytes
-    /// into its block). After a read that raised an error nothing is unpacked (the old compiler unpacks what the
-    /// buffer holds).
+    /// read into a buffer of the statement's own (`qbr_fbufN`, cleared where it grows: design D1 of
+    /// `m3-measured-copies`). `PUT` packs every element into it and writes it; a dynamic member array with other
+    /// bounds than its declared ones raises error 9, so libqb writes nothing. `GET` reads into it and then, whatever
+    /// the read raised, unpacks it element by element, as the old compiler does: a failed read brings back what the
+    /// statement read last, or zeros. A dynamic member array with other bounds raises error 9 and gets its declared
+    /// elements when its block holds them, else keeps its elements (`DIVERGENCES.md` D-019: the old compiler writes
+    /// the declared bytes past the block's end).
     pub(crate) fn owner_file(&mut self, array: VarId, get: bool, (file, position, mask): (&str, &str, u32)) -> String {
         let v = self.p.var(array);
         let Ty::User(id) = v.ty else {
@@ -549,12 +553,27 @@ impl Emitter<'_> {
             self.file_types.push(id);
             self.func_decls.push(self.file_functions(id));
         }
+        self.file_buffers += 1;
+        let (buf, cap) = (
+            format!("qbr_fbuf{}", self.file_buffers),
+            format!("qbr_fcap{}", self.file_buffers),
+        );
+        // `qbr_fhadN`: the bytes the statement has read, for the trace of a failed read that brings back bytes
+        // nobody wrote (D-021).
+        let had = format!("qbr_fhad{}", self.file_buffers);
+        self.func_decls.push(format!(
+            "static uint8 *{buf}=NULL;\nstatic uint64 {cap}=0;\nstatic uint64 {had}=0;\n"
+        ));
         let (a, dims) = (format!("(ptrszint*){}", self.name(array)), dim_count(v));
         let t = self.byte_element_temp();
-        let buffer = format!("{}({a},{dims},{t},{})", udt_fn(id, "file"), i32::from(!get));
+        let buffer = format!(
+            "{}({a},{dims},{t},{},&{buf},&{cap})",
+            udt_fn(id, "file"),
+            i32::from(!get)
+        );
         if get {
             format!(
-                "sub_get({file},{position},{buffer},{mask});\nif (!is_error_pending()) {}({a},{dims});",
+                "sub_get({file},{position},{buffer},{mask});\n{}({a},{dims},{buf},{cap},&{had});",
                 udt_fn(id, "commit")
             )
         } else {
@@ -563,33 +582,33 @@ impl Emitter<'_> {
     }
 
     /// The file functions of owner type `id`, for `global.txt`: `qbr_udtN_pack` (a value to its declared layout;
-    /// 0 when a dynamic member array has other bounds), `_unpack`, `_file` (the buffer of a whole array, packed for
-    /// `PUT`) and `_commit` (the buffer unpacked into the array after `GET`).
+    /// 0 when a dynamic member array has other bounds), `_unpack`, `_file` (a statement's buffer for a whole array,
+    /// grown and cleared to its size and packed for `PUT`) and `_commit` (the buffer unpacked into the array after
+    /// `GET`; nothing when the array is not allocated, whose error `_file` raised).
     fn file_functions(&self, id: TypeId) -> String {
         let t = Ty::User(id);
         let (ms, fs) = (self.ty_size(t), self.file_size(t));
-        let (buf, cap) = (udt_fn(id, "fbuf"), udt_fn(id, "fcap"));
         let (mut pack, mut unpack) = (String::new(), String::new());
         let mut depth = 0;
         self.file_conv(id, ("p", "f"), false, &mut depth, &mut pack);
         let mut depth = 0;
         self.file_conv(id, ("p", "f"), true, &mut depth, &mut unpack);
         format!(
-            "static uint8 *{buf}=NULL;\nstatic uint64 {cap}=0;\n\
-             static int32 {}(uint8 *f,char *p){{\nint32 qbr_ok=1;\n{pack}return qbr_ok;\n}}\n\
+            "static int32 {}(uint8 *f,char *p){{\nint32 qbr_ok=1;\n{pack}return qbr_ok;\n}}\n\
              static int32 {}(char *p,uint8 *f){{\nint32 qbr_ok=1;\n{unpack}return qbr_ok;\n}}\n\
-             static uint64 {}(ptrszint *a,ptrszint dims){{\nif (!(a[2]&1)){{error(9);return 0;}}\nuint64 n=1;\n\
+             static uint64 {}(ptrszint *a,ptrszint dims){{\nif (!(a[2]&1)) return 0;\nuint64 n=1;\n\
              for(ptrszint i=1;i<=dims;i++) n*=(uint64)a[i*4+1];\nreturn n;\n}}\n\
-             static void *{}(ptrszint *a,ptrszint dims,byte_element_struct *be,int32 put){{\n\
-             uint64 n={}(a,dims);\nuint64 need=n*{fs};\n\
+             static void *{}(ptrszint *a,ptrszint dims,byte_element_struct *be,int32 put,uint8 **buf,uint64 *cap){{\n\
+             if (!(a[2]&1)){{error(9);if (!put) qbr_diverged(21);}}\nuint64 n={}(a,dims);\nuint64 need=n*{fs};\n\
              if (need>2147483647){{error(257);n=0;need=0;}}\n\
-             if ({cap}<need){{\nuint8 *b=(uint8*)realloc({buf},need);\n\
-             if (!b){{error(257);n=0;need=0;}}else{{{buf}=b;{cap}=need;}}\n}}\n\
-             if (put) for(uint64 i=0;i<n;i++) {}({buf}+i*{fs},(char*)a[0]+i*{ms});\n\
-             return byte_element((uint64){buf},(int32)need,be);\n}}\n\
-             static void {}(ptrszint *a,ptrszint dims){{\nuint64 n={}(a,dims);\n\
-             if (n*{fs}>{cap}) return;\n\
-             for(uint64 i=0;i<n;i++) {}((char*)a[0]+i*{ms},{buf}+i*{fs});\n}}\n",
+             if (*cap<need){{\nuint8 *b=(uint8*)realloc(*buf,need);\n\
+             if (!b){{error(257);n=0;need=0;}}else{{memset(b+*cap,0,need-*cap);*buf=b;*cap=need;}}\n}}\n\
+             if (put) for(uint64 i=0;i<n;i++) {}(*buf+i*{fs},(char*)a[0]+i*{ms});\n\
+             return byte_element((uint64)*buf,(int32)need,be);\n}}\n\
+             static void {}(ptrszint *a,ptrszint dims,uint8 *buf,uint64 cap,uint64 *had){{\nuint64 n={}(a,dims);\n\
+             if (n*{fs}>cap) return;\n\
+             if (!is_error_pending()){{if (n*{fs}>*had) *had=n*{fs};}}else if (n*{fs}>*had) qbr_diverged(21);\n\
+             for(uint64 i=0;i<n;i++) {}((char*)a[0]+i*{ms},buf+i*{fs});\n}}\n",
             udt_fn(id, "pack"),
             udt_fn(id, "unpack"),
             udt_fn(id, "fcount"),
@@ -607,7 +626,9 @@ impl Emitter<'_> {
     /// (`unpack`), as the old compiler's `AppendUDTFileConvCode` (`qb64pe.bas` 17075) walks them: each member in
     /// order, a member of an owner type and the elements of a dynamic member array of one recursively, any other
     /// member as its bytes, a dynamic member array as its elements at its declared bounds. One with other
-    /// bounds, or not allocated, raises error 9, sets `qbr_ok` to 0 and moves nothing.
+    /// bounds or another number of dimensions, or not allocated, raises error 9 and sets `qbr_ok` to 0; it moves
+    /// nothing, but for an unpack into a block that holds the declared number of elements, which gets them
+    /// (design D2 of `m3-measured-copies`).
     fn file_conv(&self, id: TypeId, (mem, file): (&str, &str), unpack: bool, depth: &mut u32, out: &mut String) {
         let (offsets, _) = self.layout(id);
         let members = &self.p.user_type(id).members;
@@ -634,9 +655,23 @@ impl Emitter<'_> {
                     )
                     .unwrap();
                 }
+                // Unpacking, a member with other bounds whose block holds the declared elements gets them after
+                // the error, as in the old compiler; one with fewer gets nothing (D-019).
+                let room = if unpack {
+                    format!("||({d}&&({d}[2]&1)&&qbr_dyn_count({d})>={count})")
+                } else {
+                    String::new()
+                };
+                // Nothing moved where the old compiler writes past the block, or through a missing one (D-019).
+                let trace = if unpack {
+                    format!("if (!(({fits}){room})) qbr_diverged(19);\n")
+                } else {
+                    String::new()
+                };
                 writeln!(
                     out,
-                    "{{\nptrszint *{d}=*(ptrszint**){here};\nif (!({fits})){{error(9);qbr_ok=0;}}else{{"
+                    "{{\nptrszint *{d}=*(ptrszint**){here};\nif (!({fits})){{error(9);qbr_ok=0;}}\n\
+                     {trace}if (({fits}){room}){{"
                 )
                 .unwrap();
                 let elements = format!("((char*){d}[0])");

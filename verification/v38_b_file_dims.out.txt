@@ -1,0 +1,16 @@
+t file: 20 
+u file: 36 
+1. PUT: [error 9 ] 0 
+1. GET: [error 9 ] 10  100  200  11  101  201  1  0 
+2. PUT: [error 9 ] 0 
+2. GET: [error 9 ] 10  100  200  11  101  201  9  6 
+3. PUT: [error 9 ] 0 
+3. GET: [error 9 ] 20  300  330  21  301  311  321  331  3 
+4. PUT: [error 9 ] 0 
+4. GET: [error 9 ] 20  300  330  21  301  311  1 
+5. PUT: [error 9 ] 0 
+5. GET: [error 9 ] 10  100  200  11  101  201  5 
+6. PUT: [error 9 ] 0 
+6. GET: [error 9 ] 10  100  200  11  101  201  9 
+ok
+exit=0

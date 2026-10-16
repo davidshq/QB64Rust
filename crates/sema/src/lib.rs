@@ -1028,6 +1028,10 @@ pub enum ExprKind {
     MemOf {
         of: Reference,
         element: bool,
+        /// A whole array parameter of numbers or fixed-length strings that nothing above the `_MEM` has given its
+        /// number of dimensions: the old compiler takes the lock from slot 0 of the descriptor here, this one from
+        /// the array's own (`DIVERGENCES.md` D-016). Read only by the run-time trace of divergences.
+        lock_slot0: bool,
     },
     /// `_MEM(offset, size)`: a block of `size` bytes at `offset`, both `_OFFSET` values, typed `_MEM`. A negative
     /// size raises error 301 (not trapped) and gives a block of 0 bytes. Stands only as the value stored into a

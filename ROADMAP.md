@@ -100,6 +100,9 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
       compiler's lookup, `nm` linkage, C++, calls and start-up errors 259 and 260; the forms whose C++ fails with
       the old compiler are rejected before the C++ (`m3-declare-library`; D-023 and D-024 proposed and not
       built). Upstream 310 to 318 of 399; CI's upstream list runs from the clone
+- [x] The answers of 2026-10-16: what owner types copy after an error, QB64pe's way where no memory is misused
+      (`m3-measured-copies`; D-019, D-021, D-022 narrowed); a run-time trace of the divergences that the runner
+      checks (`m3-divergence-trace`); the old compiler's wording as a note after an error (`m3-old-wording-notes`)
 - [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
       file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
       `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program

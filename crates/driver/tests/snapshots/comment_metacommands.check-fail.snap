@@ -3,4 +3,5 @@ source: crates/driver/tests/frontend.rs
 expression: snap
 ---
 comment_metacommands.bas:4:1: error: included file `missing.bi` not found
+comment_metacommands.bas:4:1: note: QB64pe: File missing.bi not found
 comment_metacommands.bas:11:1: error: expected `$INCLUDE:'filename'`

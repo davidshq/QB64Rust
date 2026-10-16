@@ -3,4 +3,6 @@ source: crates/driver/tests/frontend.rs
 expression: snap
 ---
 explicit_in_block.bas:9:1: error: variable `x` (SINGLE) is not declared (`OPTION _EXPLICIT`)
+explicit_in_block.bas:9:1: note: QB64pe: Variable 'x' (SINGLE) not defined
 explicit_in_block.bas:10:7: error: variable `x` (SINGLE) is not declared (`OPTION _EXPLICIT`)
+explicit_in_block.bas:10:7: note: QB64pe: Variable 'x' (SINGLE) not defined

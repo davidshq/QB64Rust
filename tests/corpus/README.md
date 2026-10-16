@@ -11,9 +11,9 @@ not say whether that behaviour is right (that is the divergence register's job).
 |---|---|
 | `runtime_comparison\` | 261 programs from QB64Fresh (`SOURCE.md`), unchanged copies |
 | `verification\` | `v11_wrap_o2` and `v12_wrap_int64` from `verification\` (LONG and `_INTEGER64` overflow, `SOURCE.md`) |
-| `slice\` | 132 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags, the screen functions in a console program, labels with the name of a SUB, `TAB` and `SPC`, conventional memory, sound, `$EXEICON`, the choice and the shifts, `EXIT SELECT`, `PRINT USING`, binary and random files, locks, `FIELD`, `CHAIN`, memory blocks (`_MEM`), one program per runtime error 300 to 313, `MKI$` … `_CV`, `$ASSERTS` and `_ASSERT`, `$DEBUG`, the checksum, compression and base64 functions, the exit code of `SYSTEM n` and `END n`, `REDIM _RETAIN`, `_DYNAMIC` member arrays, whole-array assignment, `DECLARE LIBRARY` with a header in `<name>.files`; `SOURCE.md`) |
+| `slice\` | 133 programs written for the new compiler (numeric rules, PRINT forms, CP437 bytes, procedures, error handling, control flow, operators, constants, arrays and `TYPE`, built-ins, the numeric types, fixed-length strings, built-in statements, files, data, console input, default types, dynamic arrays, arrays used without `DIM`, arrays in procedures, array parameters, `COMMON`, `STRING` members, whole `TYPE` values and parameters of a user type, member arrays, a console and a window, `_DEST` and `_ECHO`, the window built-ins, the auto-included constants, the precompiler flags, the screen functions in a console program, labels with the name of a SUB, `TAB` and `SPC`, conventional memory, sound, `$EXEICON`, the choice and the shifts, `EXIT SELECT`, `PRINT USING`, binary and random files, locks, `FIELD`, `CHAIN`, memory blocks (`_MEM`), one program per runtime error 300 to 313, `MKI$` … `_CV`, `$ASSERTS` and `_ASSERT`, `$DEBUG`, the checksum, compression and base64 functions, the exit code of `SYSTEM n` and `END n`, `REDIM _RETAIN`, `_DYNAMIC` member arrays, whole-array assignment, what types with `_DYNAMIC` members copy after an error, `DECLARE LIBRARY` with a header in `<name>.files`; `SOURCE.md`) |
 | `screen\` | 66 programs with a window, checked by the state of the screen they leave: 24 written for the method (text cells, every screen mode, pages, keys, `END`, a runtime error, and `c12_prompts`: states taken while a program runs, `m3-scripted-game`), 18 for the screen statements form by form (`d01`–`d16`, `m3-window-output`; `d17` `TAB` and `SPC`, `d18` graphics `GET` and `PUT`, `m3-get-put-bload`), 12 for images, fonts and the mouse (`i01`–`i08`, `f01`, `f02`, `u01`, `u02`, `m3-images-fonts-mouse`), 11 programs cut from Civil War Strategy, three of them with the pictures they load in a `.files` folder, and `g12_game`, the whole game played from its keys file with 23 states compared (`SOURCE.md`, `tools\screen\README.md`, `tests\programs\README.md`). All 66 are on `slice.list` ("Screen programs" below) |
-| `slice.list` | The 436 programs the new compiler must pass: all 132 of `slice\`, 236 of `runtime_comparison`, `verification\` `v11`, `v12` and all 66 of `screen\` (see below) |
+| `slice.list` | The 437 programs the new compiler must pass: all 133 of `slice\`, 236 of `runtime_comparison`, `verification\` `v11`, `v12` and all 66 of `screen\` (see below) |
 
 Each `<name>.bas` has exactly one of:
 
@@ -50,7 +50,7 @@ trailer is part of its `.output`.
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 132 |
+| `.output` | 235 | 2 | 133 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
@@ -58,6 +58,7 @@ trailer is part of its `.output`.
 | `.noprompt` sidecars | 0 | 0 | 2 (`s12_error_in_print`, `s19_header_errors`: `continue`) |
 | `.stdin` sidecars | 0 | 0 | 3 (`s42_console_input`, `s65_console_input`, `s117_dyn_member_kinds`) |
 | `.exitcode` sidecars | 0 | 0 | 2 (`s110_system_code` 3, `s111_end_code` 4294967295) |
+| `.divergences` sidecars (the rows of `DIVERGENCES.md` a program may take, for the run-time trace) | 0 | 0 | 5 (`s22_store_rules`, `s61_member_arrays`, `s114_dyn_members`, `s117_dyn_member_kinds`: D-004; `s118_dyn_member_files`: D-019) |
 
 The 20 compile errors are programs written against QB64Fresh's idea of the language. They still test that a
 compiler rejects them, but not what their names say:
@@ -174,8 +175,11 @@ All 66 are listed: `g03_capitol` joined with `m3-sound` (its five `PLAY` lines a
 because the program was cut with the game's sound option off), `c12_prompts` and `g12_game` with
 `m3-scripted-game`.
 
-`slice.list` names the 436 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`. Joined with `m3-declare-library` (each left the recorded output on its first run):
+`slice.list` names the 437 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`. Joined with `m3-measured-copies` (it left the recorded output on its first run):
+`s126_owner_copies` (`verification\v38_a`, `v38_b`, `v38_d`, without the cases of `DIVERGENCES.md` D-019,
+D-021 and D-022, which CLI tests hold; its first recording differed between the two runs where a `GET` that never
+read unpacks memory nobody wrote, and those lines were taken out). Joined with `m3-declare-library` (each left the recorded output on its first run):
 `s121_library_numbers` (`verification\v37_b`, `v37_c`, the `BYVAL` 0 forms of `x56`, `x58`, `x59`, `x63`, a block
 in a SUB; `v37_b`'s literal above `_INTEGER64` written with `~&&`), `s122_library_strings_types` (`v37_d`, the
 TYPE of `v37_e`, `x39`), `s123_library_alias` (`v37_e`, `x60`), `s124_library_customtype` (`v37_h` without its

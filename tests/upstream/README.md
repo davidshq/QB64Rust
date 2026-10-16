@@ -2,6 +2,8 @@
 
 `compile_tests/` is a copy of the text files of QB64pe's `tests/compile_tests` (provenance and licence:
 `SOURCE.md`, `LICENSE-QB64pe.txt`; made by `tools/upstream/copy_upstream_tests.py`, never edited by hand).
+`divergences/<category>/<name>.divergences` (kept by hand, none yet) lists the rows of `DIVERGENCES.md` an upstream
+program may take, for the run-time trace (`tools/legacy_tests/README.md`).
 
 ## Tier 1
 

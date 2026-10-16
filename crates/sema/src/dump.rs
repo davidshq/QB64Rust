@@ -720,7 +720,7 @@ fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
                 expr(p, i, depth + 1, out);
             }
         }
-        ExprKind::MemOf { of, element } => {
+        ExprKind::MemOf { of, element, .. } => {
             let word = if *element { "MemElement" } else { "Mem" };
             writeln!(out, "{pad}{word} {} : {types}", reference_text(p, of)).unwrap();
             for i in of.indexes() {

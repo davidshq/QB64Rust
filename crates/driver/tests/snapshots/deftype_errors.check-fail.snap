@@ -4,6 +4,7 @@ expression: snap
 ---
 deftype_errors.bas:12:11: error: a default type cannot be a `TYPE`
 deftype_errors.bas:13:11: error: a default type cannot be `_UNSIGNED STRING`
+deftype_errors.bas:13:11: note: QB64pe: Cannot convert type (_UNSIGNED STRING) to symbol
 deftype_errors.bas:14:11: error: `SINGLE` cannot be `_UNSIGNED`
 deftype_errors.bas:15:23: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
 deftype_errors.bas:16:11: error: `_UNSIGNED` needs a type after it
@@ -19,7 +20,9 @@ deftype_errors.bas:25:10: error: expected the end of the statement
 deftype_errors.bas:26:10: error: expected a letter or a range of letters (`a-z`)
 deftype_errors.bas:27:10: error: not supported yet: word `AS` (expected the end of the statement)
 deftype_errors.bas:30:5: error: the `FOR` variable `s` must be a number, not a string
+deftype_errors.bas:30:5: note: QB64pe: Unsupported variable used in FOR statement
 deftype_errors.bas:31:6: error: cannot store a number in a string variable
+deftype_errors.bas:31:6: note: QB64pe: Illegal string-number conversion
 deftype_errors.bas:33:7: error: name already in use: `f!`
 deftype_errors.bas:39:11: error: a parameter cannot be a `_BIT`: `p1`
 deftype_errors.bas:41:11: error: a default type cannot be a `TYPE`
