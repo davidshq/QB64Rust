@@ -18,11 +18,9 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 
 ## Where we are
 
-M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: nineteen of its steps are built (table below);
-the eighteenth, `m3-arraycopy`, is archived and committed (`7439ea8`), the nineteenth, `m3-events`, is built and
-waits for the user's look and archive, as does `test-parallel-runs` (the test cadence of `study\32`, not an M3
-step). Every
-program of the corpus that the old compiler accepts compiles, and every one that can be compared passes; Civil
+M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: nineteen of its steps are built and archived
+(table below), the last `m3-events` (`81c05ed`); `test-parallel-runs` (the test cadence of `study\32`, not an M3
+step, `4a8d06e`) is archived too. Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes; Civil
 War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same 23
 screens as the old compiler's build. Upstream is at 336 of 399. `main` is at the merge of `m3` (pull request 5,
 2026-10-16).
@@ -35,18 +33,13 @@ change's close. Separate from this list and standing: `SOMEDAY.md`'s "QB64pe beh
 questionable behaviours each change kept QB64pe's way.
 
 1. **Merge `changes` into `main`**: the three changes of `447bb05`, then `m3-sound-handles` (`b1a818d`),
-   `m3-versioninfo` (`3c93e14`), `m3-arraycopy` (`7439ea8`) and `m3-events` once committed, since the last merge
-   (`DECISIONS.md` 2026-10-16, "every two or three changes").
-2. **`m3-events`: look at it and archive it** (`openspec\changes\m3-events\`); it kept four old-compiler
-   behaviours, listed in `SOMEDAY.md`'s "QB64pe behaviours to review" (`ON KEY`'s key cut, a SUB handler's
-   argument through an `_INTEGER64`, an event during an error handler held, a `TYPE` parameter rejected).
-3. **The next M3 step**: the upstream report's first lines are `_OPENCLIENT`, the function `CHR$` in a `CONST` and
+   `m3-versioninfo` (`3c93e14`), `m3-arraycopy` (`7439ea8`), `m3-events` (`81c05ed`) and `test-parallel-runs`
+   (`4a8d06e`), since the last merge (`DECISIONS.md` 2026-10-16, "every two or three changes").
+2. **The next M3 step**: the upstream report's first lines are `_OPENCLIENT`, the function `CHR$` in a `CONST` and
    `_ERRORLINE` (3 programs each).
-4. **`test-parallel-runs`: look at it and archive it** (`openspec\changes\test-parallel-runs\`; the answers to
-   `study\32` §5, `DECISIONS.md` 2026-10-17): the clone's lock shared by runs of the new compiler, the driver's
-   lock on the libqb objects, a failure beside other builds run again alone, `--pass-cache` with the compile
-   suite. It differs from `study\32` §2's sketch in one point (design D1: no warm-up; the driver checks with
-   `make -q`).
+3. **`m3-events`' four kept behaviours** (archived without a ruling on them; `SOMEDAY.md`'s "QB64pe behaviours to
+   review"): `ON KEY`'s key cut, a SUB handler's argument through an `_INTEGER64`, an event during an error
+   handler held, a `TYPE` parameter rejected.
 
 **The `tier2` job on `m3`** (`study\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -58,7 +51,7 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-`m3` goes to `main` every two or three changes; seven wait now. The next M3 step is the user's to choose (the
+`m3` goes to `main` every two or three changes; eight wait now. The next M3 step is the user's to choose (the
 upstream report's first lines are `_OPENCLIENT`, `CHR$` in a `CONST` and `_ERRORLINE`, 3 each); the plain copy of
 `internal\c` waits until libqb must change.
 
@@ -86,7 +79,7 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 16 | `2026-10-16-m3-sound-handles` | `_SNDOPEN`, the `_SND*` family, `_MIDISOUNDBANK`, `_WAVE`: every name of the audio part; `_MEMSOUND` run |
 | 17 | `2026-10-17-m3-versioninfo` | `$VERSIONINFO`: the version resource and manifest byte for byte; a compile error where the old build fails or its executable cannot start |
 | 18 | `2026-10-17-m3-arraycopy` | `_ARRAYCOPY` in its six forms, member arrays included; D-004 widened, D-025 |
-| 19 | `m3-events` (not archived yet) | `ON TIMER`, `ON KEY`, the switches, `_FREETIMER`, `KEY ON`/`OFF`/`LIST`, `KEY n, text$`; `STRIG` left for device input |
+| 19 | `2026-10-17-m3-events` | `ON TIMER`, `ON KEY`, the switches, `_FREETIMER`, `KEY ON`/`OFF`/`LIST`, `KEY n, text$`; `STRIG` left for device input |
 
 ## Numbers at the last full runs
 

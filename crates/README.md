@@ -121,6 +121,7 @@ catalogue this section held until 2026-10-16, with the code each feature lives i
 | `_MEM`; `DEF SEG`, `VARPTR`, `PEEK`/`POKE` | `language/mem-blocks`, `language/conventional-memory` |
 | `$ASSERTS`, `$DEBUG`; checksums, compression, base64 | `language/asserts-and-debug`, `language/data-processing` |
 | `DECLARE LIBRARY` | `language/external-libraries` |
+| `ON TIMER`, `ON KEY`, the event switches, `KEY ON`/`OFF`/`LIST` | `language/events` |
 | The language server | `editor/language-server` |
 
 Not listed, as they are not about what the compiler accepts: the VS Code extension's other specs
