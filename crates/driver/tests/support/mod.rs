@@ -1,0 +1,200 @@
+//! The child processes of the CLI tests, each with a deadline (`study\31` item 1). `Command::output` waits for ever,
+//! and a generated program whose runtime error opens libqb's dialog waits for a person: on 2026-10-16 a test waited
+//! 2 h 15 min on one. Here every child runs with stdin closed (or fed from a buffer) and a deadline; past it, its
+//! whole process tree is killed and the test fails, naming the phase and showing what the child had printed. Each
+//! run writes a line `cli-time <test> <phase> <seconds>` to the test's captured stderr (shown with `--nocapture`).
+
+use std::fmt;
+use std::fs::{File, TryLockError};
+use std::io::{Read, Write as _};
+use std::path::Path;
+use std::process::{Child, Command, Output, Stdio};
+use std::sync::{Arc, Mutex, OnceLock, mpsc};
+use std::thread;
+use std::time::{Duration, Instant};
+
+/// The deadline of a run of the compiler, or of a tool of the clone's toolchain: the test runner's
+/// (`COMPILE_TIMEOUT`). A build takes seconds; the first after the clone's libqb objects are gone builds them too,
+/// about 3 minutes more (`tools\legacy_tests\README.md`).
+pub const COMPILER_LIMIT: Duration = Duration::from_secs(900);
+/// The deadline of a generated program: the runner's for a corpus program (`CORPUS_RUN_TIMEOUT`). The tests' programs
+/// end in well under a second, a screen program's announced waits in a few.
+pub const PROGRAM_LIMIT: Duration = Duration::from_secs(60);
+/// How long a test that builds waits for another run to leave the reference clone (a tier-2 run takes about 12 min).
+pub const CLONE_WAIT_LIMIT: Duration = Duration::from_secs(30 * 60);
+/// How long the output pipes may stay open after the child has ended or been killed: a process the child started
+/// that outlived it may hold them.
+const PIPE_GRACE: Duration = Duration::from_secs(10);
+
+/// A child that did not end in time, killed with its tree, or one whose output pipes stayed open after it ended;
+/// with what it had printed.
+pub struct Timeout {
+    pub program: String,
+    pub limit: Duration,
+    pub reason: &'static str,
+    pub stdout: Vec<u8>,
+    pub stderr: Vec<u8>,
+}
+
+impl fmt::Display for Timeout {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} {} (limit {} s)\nstdout so far: {}\nstderr so far: {}",
+            self.program,
+            self.reason,
+            self.limit.as_secs(),
+            self.stdout.escape_ascii(),
+            self.stderr.escape_ascii()
+        )
+    }
+}
+
+/// Reads a pipe to its end on a thread of its own, so that a child writing much to both pipes never blocks. The
+/// buffer holds what has come so far; the receiver gets a message when the pipe is at its end.
+fn read_pipe(mut pipe: impl Read + Send + 'static) -> (Arc<Mutex<Vec<u8>>>, mpsc::Receiver<()>) {
+    let buffer = Arc::new(Mutex::new(Vec::new()));
+    let (done, ended) = mpsc::channel();
+    let to = Arc::clone(&buffer);
+    thread::spawn(move || {
+        let mut chunk = [0u8; 8192];
+        while let Ok(n @ 1..) = pipe.read(&mut chunk) {
+            to.lock().unwrap().extend_from_slice(&chunk[..n]);
+        }
+        let _ = done.send(());
+    });
+    (buffer, ended)
+}
+
+/// Kills the child and every process it started, then reaps it. `Child::kill` ends only the child itself: a
+/// compiler's `make` and `g++`, or a program's own children, would live on and hold the build folder and the pipes.
+/// `taskkill` is the runner's way too (`kill_tree` in `run_legacy_tests.py`); it is a system tool that does not wait
+/// on what it kills, so it gets no deadline. The child is not reaped before it, so its process id is not reused.
+fn kill_tree(child: &mut Child) {
+    #[cfg(windows)]
+    let _ = Command::new("taskkill")
+        .args(["/T", "/F", "/PID", &child.id().to_string()])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+/// Runs `cmd` with stdin closed, or fed `input` and then closed, and both outputs read whole. Past `limit` the
+/// process tree is killed and the result is a [`Timeout`] holding what it had printed.
+pub fn try_run(cmd: &mut Command, input: Option<&[u8]>, limit: Duration) -> Result<Output, Timeout> {
+    let program = cmd.get_program().to_string_lossy().into_owned();
+    cmd.stdin(if input.is_some() { Stdio::piped() } else { Stdio::null() })
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = cmd.spawn().unwrap_or_else(|e| panic!("cannot start {program}: {e}"));
+    if let Some(input) = input {
+        let mut stdin = child.stdin.take().unwrap();
+        let input = input.to_vec();
+        // A child that stops reading would block this write: on its own thread, it cannot hold up the deadline.
+        thread::spawn(move || {
+            let _ = stdin.write_all(&input);
+        });
+    }
+    let (stdout, stdout_ended) = read_pipe(child.stdout.take().unwrap());
+    let (stderr, stderr_ended) = read_pipe(child.stderr.take().unwrap());
+    let start = Instant::now();
+    let mut pause = Duration::from_millis(1);
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break Some(status);
+        }
+        if start.elapsed() >= limit {
+            kill_tree(&mut child);
+            break None;
+        }
+        thread::sleep(pause);
+        pause = (pause * 2).min(Duration::from_millis(50));
+    };
+    let grace = Instant::now() + PIPE_GRACE;
+    let pipes_ended = [stdout_ended, stderr_ended].iter().all(|ended| {
+        ended
+            .recv_timeout(grace.saturating_duration_since(Instant::now()))
+            .is_ok()
+    });
+    let take = |buffer: &Arc<Mutex<Vec<u8>>>| std::mem::take(&mut *buffer.lock().unwrap());
+    let (stdout, stderr) = (take(&stdout), take(&stderr));
+    // The limit named is the wait that ran out: the run's, or the pipes' after the child had ended.
+    let (reason, limit) = match status {
+        Some(status) if pipes_ended => return Ok(Output { status, stdout, stderr }),
+        // Its tree cannot be found once the child has ended: `taskkill /T` follows the parent's process id.
+        Some(_) => (
+            "ended, but a process it started kept its output open (that process may still run)",
+            PIPE_GRACE,
+        ),
+        None => ("did not end in time; its process tree was killed", limit),
+    };
+    Err(Timeout {
+        program,
+        limit,
+        reason,
+        stdout,
+        stderr,
+    })
+}
+
+/// [`try_run`] for a test: a [`Timeout`] fails the test, naming `phase` (`compiler`, `program`, `toolchain`, …).
+pub fn run(cmd: &mut Command, input: Option<&[u8]>, limit: Duration, phase: &str) -> Output {
+    let start = Instant::now();
+    let result = try_run(cmd, input, limit);
+    let test = thread::current().name().unwrap_or("?").to_owned();
+    eprintln!("cli-time {test} {phase} {:.2}", start.elapsed().as_secs_f64());
+    result.unwrap_or_else(|timeout| panic!("{phase}: {timeout}"))
+}
+
+/// A generated program, to be run unattended: a runtime error is written to stderr and ends the program, with no
+/// dialog that waits for a person (`QB64PE_NOPROMPT=y`). A test of another mode sets the variable again.
+pub fn unattended(exe: &Path) -> Command {
+    let mut cmd = Command::new(exe);
+    cmd.env("QB64PE_NOPROMPT", "y");
+    cmd
+}
+
+/// The lock of the reference clone (`tools\legacy_tests\clone_lock.py`): a build runs `make` in the clone, which
+/// must not meet a run of the test runner, `verification\run.sh` or `callsite.py` there. Taken by the first test that
+/// builds and held by this test process until it ends, so its tests still build side by side. While another run
+/// holds it, one line on the console (not captured) says why the tests wait; past [`CLONE_WAIT_LIMIT`] they fail.
+pub fn lock_clone() {
+    static CLONE: OnceLock<File> = OnceLock::new();
+    CLONE.get_or_init(|| {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/qb64pe-clone");
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = File::options()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(dir.join("in-use.lock"))
+            .unwrap();
+        let start = Instant::now();
+        let mut told = false;
+        loop {
+            match file.try_lock() {
+                Ok(()) => return file,
+                Err(TryLockError::WouldBlock) => {}
+                Err(TryLockError::Error(e)) => panic!("cannot lock the reference clone: {e}"),
+            }
+            assert!(
+                start.elapsed() < CLONE_WAIT_LIMIT,
+                "another run held the reference clone for {} min; start the tests again when it has ended",
+                CLONE_WAIT_LIMIT.as_secs() / 60
+            );
+            if !told {
+                let _ = writeln!(
+                    std::io::stderr(),
+                    "waiting for another run (the test runner, verification\\run.sh or callsite.py) to leave the \
+                     reference clone"
+                );
+                told = true;
+            }
+            thread::sleep(Duration::from_secs(1));
+        }
+    });
+}

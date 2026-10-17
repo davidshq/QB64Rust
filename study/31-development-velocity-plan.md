@@ -46,27 +46,52 @@ deadline. An interactive error dialog is a likely explanation, not a confirmed r
 
 ### Implementation
 
-- [ ] **P1** Inspect the test's transcript and runtime error path, and measure the individual error-260 test with
+- [x] **P1** Inspect the test's transcript and runtime error path, and measure the individual error-260 test with
   `QB64PE_NOPROMPT=y` explicitly set. Preserve its expected error text and lack of program output.
-- [ ] **P1** Introduce a small shared subprocess helper for the CLI tests. It must accept an explicit deadline,
+  *Confirmed in libqb, not guessed:* error 260 is critical (`error_handle.cpp`, `fatal_error_alert`); with
+  `QB64PE_NOPROMPT` unset it calls `gui_alert` (`parts\gui\gui.cpp`), which writes `Runtime error: …` to stderr
+  and then opens a modal `tinyfd_messageBox`. So the test passed its stderr assertion once a person had closed
+  the box, 8,150 s later. With the variable set: 2.6 s for the whole test, the same assertions.
+- [x] **P1** Introduce a small shared subprocess helper for the CLI tests. It must accept an explicit deadline,
   capture stdout and stderr without blocking on full pipes, and report elapsed time and the failing phase.
-- [ ] **P1** Set `QB64PE_NOPROMPT=y` and close stdin when running generated programs unattended. Preserve explicit
-  overrides for tests that intentionally exercise `Continue` or other prompt modes.
-- [ ] **P1** Give compiler/build commands a separate, longer deadline from generated-program execution. Choose
+  `crates\driver\tests\support\mod.rs`: `try_run`/`run`, one reader thread per pipe, a `cli-time <test> <phase>
+  <seconds>` line per child (captured; shown with `--nocapture`), a panic naming the phase on a timeout.
+- [x] **P1** Set `QB64PE_NOPROMPT=y` and close stdin when running generated programs unattended. Preserve explicit
+  overrides for tests that intentionally exercise `Continue` or other prompt modes. (`support::unattended`;
+  `an_error_that_ends_the_program_traces_nothing` sets `y` and `continue` itself, which still takes effect.)
+- [x] **P1** Give compiler/build commands a separate, longer deadline from generated-program execution. Choose
   initial limits from existing timings with allowance for a cold runtime build; document those limits.
-- [ ] **P1** On timeout, stop the owned process tree on Windows, reap it, and retain partial output. Avoid killing
+  The runner's limits: 900 s for a compiler or toolchain run (`COMPILE_TIMEOUT`, which allows for the libqb
+  objects' first build, about 3 min, `tools\legacy_tests\README.md`), 60 s for a program
+  (`CORPUS_RUN_TIMEOUT`); documented in `crates\README.md`, "Tests".
+- [x] **P1** On timeout, stop the owned process tree on Windows, reap it, and retain partial output. Avoid killing
   unrelated compiler or runtime processes. Use an existing suitable process utility if one is already present.
-- [ ] **P1** Migrate direct subprocess waits in `cli.rs`, including library tests, to the helper. Check whether direct
+  `taskkill /T /F /PID <child>`, as the runner's `kill_tree` (a Job Object would need `unsafe`, which the
+  workspace forbids); only the child's own tree is named. A child that ends while a process it started keeps its
+  pipes open is reported after 10 s, not killed: its tree can no longer be found by parent.
+- [x] **P1** Migrate direct subprocess waits in `cli.rs`, including library tests, to the helper. Check whether direct
   build tests can collide with another run using the reference clone; reuse the existing clone-lock protocol
   where necessary, with bounded lock waiting and a visible reason for the wait.
+  Every `output()`/`spawn()` in `cli.rs` now goes through the helper, the language server's too (its input is
+  written by the helper). They could collide: `make` runs in the clone. Tests that build take
+  `target\qb64pe-clone\in-use.lock` with `File::try_lock` once per test process (waiting at most 30 min, with
+  one console line saying why); checked against `clone_lock.py` holding it: the test waited 20 s, said why, then
+  passed.
 
 ### Validation and completion
 
-- [ ] **P1** A deliberately hanging child fails within its deadline and leaves no child process running.
-- [ ] **P1** A child producing more output than a pipe buffer completes with its output captured.
-- [ ] **P1** The error-260 test completes unattended and still asserts the expected runtime error.
-- [ ] **P1** Run the ignored CLI suite once after migration, logging the result and per-test timing. Investigate any
+- [x] **P1** A deliberately hanging child fails within its deadline and leaves no child process running.
+  `a_child_past_its_deadline_is_killed_with_its_tree`: `cmd` starts a `cmd` that writes a tick a second, and the
+  tick file must stop growing. Run once with `/T` removed: it failed ("the grandchild still writes").
+- [x] **P1** A child producing more output than a pipe buffer completes with its output captured.
+  `a_child_with_much_output_is_read_whole`: 1.3 MB on each of stdout and stderr.
+- [x] **P1** The error-260 test completes unattended and still asserts the expected runtime error.
+- [x] **P1** Run the ignored CLI suite once after migration, logging the result and per-test timing. Investigate any
   outlier rather than raising the overall timeout to make the suite pass.
+  2026-10-16: 33 of 33 in 29.6 s (before: 8,150.6 s); 52 compiler runs (204 s in all, longest 9.5 s, Civil
+  War Strategy), 33 program runs (16 s; longest 5.3 s, `screen_state_prompt_that_never_comes`, whose 5 s wait
+  is the test), 18 toolchain runs (4 s). No outlier. Not measured: a cold build, which would mean deleting the
+  libqb objects of the read-only reference clone; the 900 s limit rests on the runner's recorded 3 minutes.
 
 **Done when:** every subprocess wait in the CLI suite is bounded or explicitly justified, and no generated
 program needs a person to dismiss a dialog. Record cold-build time separately from normal suite time.
@@ -83,9 +108,29 @@ decision history and the evidence for compatibility; reduce duplication in curre
 
 ### Implementation
 
-- [ ] **P1** Inventory the documents updated by the last three completed changes. Record each document's distinct
+- [x] **P1** Inventory the documents updated by the last three completed changes. Record each document's distinct
   purpose and identify repeated feature descriptions, counts and standing instructions.
-- [ ] **P1** Use this ownership map when simplifying the active documentation:
+  Done over the four commits `fe98a44`, `b9b3525`, `447bb05` (three changes) and `b1a818d` (`m3-sound-handles`).
+  Besides the change's own `proposal.md`, `design.md`, `tasks.md` and delta specs, a change edits 10 to 13
+  documents. Per document, what is distinct and what repeats:
+
+  | Document | Distinct | Repeated |
+  |---|---|---|
+  | `openspec\specs\` (merged) | what a program may use | — (the home) |
+  | `crates\README.md` | crate map, build, test commands | **the feature again** (28 lines for the sound handles: the rows, the array check, the tests by name), the change's design in short |
+  | `ROADMAP.md` | the milestone's step | the feature in one line, the upstream count |
+  | `STATUS.md` | where we are, what waits | the step's row (feature again), **every count** of the close |
+  | `tests\upstream\README.md` | membership rules | **a progress paragraph appended per change** (counts, the programs that joined, by name) |
+  | `tests\corpus\README.md` | what a kind of program is | the slice count, a "joined with …" sentence per change |
+  | `study\00` §5 | measured facts | — (the home) |
+  | `DECISIONS.md`, `DIVERGENCES.md`, `SOMEDAY.md` | decisions, divergences, deferred work | — (each the home; rows kept whole, user 2026-10-16) |
+  | `verification\README.md` | the families | — |
+  | `tools\testtime\REPORT.md` | generated | — |
+  | `tasks.md` header | what this change does differently | **the standing rules of `CLAUDE.md`** (subagents, staging, backslashes, `check_repo.py`, test cadence), a paragraph per change |
+
+  So one feature is written four times (spec, `crates\README.md`, `ROADMAP.md`, `STATUS.md`), each count of a
+  close three times (`STATUS.md`, a test README, `tasks.md`), and the standing rules once per change.
+- [x] **P1** Use this ownership map when simplifying the active documentation:
 
   | Information | Authoritative home | Other documents contain |
   |---|---|---|
@@ -98,24 +143,49 @@ decision history and the evidence for compatibility; reduce duplication in curre
   | Test-set membership and results | Lists and runner result files | Generated count/result blocks |
   | Build and contributor instructions | `crates/README.md`, tool READMEs | Links to those instructions |
 
-- [ ] **P1** Replace the detailed feature catalogue in `crates/README.md` with a short capability overview and links
+- [x] **P1** Replace the detailed feature catalogue in `crates/README.md` with a short capability overview and links
   to the specs, retaining useful build, crate-map and development instructions.
-- [ ] **P2** Add a narrow generator for marked count/result blocks in the test READMEs and, where appropriate,
+  The catalogue (692 lines) moved unchanged to `study\support-record.md`, a closed record as
+  `study\progress-record.md` is, because it is the only place that names, feature by feature, the code that
+  implements it; deleting it would lose that. In its place, "What the compiler supports": where each kind of
+  information now lives and a table from area to spec (20 rows). `crates\README.md`: 900 lines to 236. The
+  standing paragraphs after it ("not supported yet" means an error, the follow-on rule, the panic report) stay.
+- [x] **P2** Add a narrow generator for marked count/result blocks in the test READMEs and, where appropriate,
   `STATUS.md`. Read membership from lists and outcomes from runner JSON; do not infer a pass from compilation
   alone. Include run identity and configuration, and distinguish measured results from current membership.
-- [ ] **P2** Make the generator deterministic, idempotent and usable in a check-only mode. Preserve prose outside
+  `tools\legacy_tests\counts.py`: five blocks, membership (corpus by folder, upstream "x of y", differential)
+  and results (corpus, upstream: the last full run's date, compiler build, options, counts, and the pass list
+  judged in it by `check_list`). The corpus README's hand-kept `.output` and `.err` rows went to the block; the
+  upstream README's progress paragraphs stay as history, closed to new ones. **`STATUS.md` not generated:** its
+  table of numbers is a sentence per row with names and reasons, and its rows come from a dozen tools.
+- [x] **P2** Make the generator deterministic, idempotent and usable in a check-only mode. Preserve prose outside
   its marked blocks. Do not publish local paths or raw transcripts.
-- [ ] **P1** Remove repeated standing-rule prose from future task templates where a link to `CLAUDE.md` suffices.
+  `--check`; a second run rewrites nothing; each file keeps its own line ends (the checkouts are CR LF).
+- [x] **P1** Remove repeated standing-rule prose from future task templates where a link to `CLAUDE.md` suffices.
   Update workflow instructions to perform routine summary updates once at close, while recording decisions
   and new measured findings when they occur.
-- [ ] **P1** Update affected ownership references together. Preserve archived changes and detailed decision rows;
+  There is no template: the paragraph was written by habit. `openspec\config.yaml` now has `rules` for `tasks`
+  (no standing rules restated, one line "Standing rules: CLAUDE.md." at most; decisions and measured facts where
+  they happen, `STATUS.md`, `ROADMAP.md` and test-README counts once in the closing task; no feature text in
+  `crates\README.md`) and for `design` (name where the code lives, since nothing else does now). `openspec
+  instructions tasks` serves them; the propose skill applies them without copying them.
+- [x] **P1** Update affected ownership references together. Preserve archived changes and detailed decision rows;
   the user explicitly chose to retain those rows.
+  `STATUS.md`'s table of homes, `CLAUDE.md`'s layout table, `study\00`'s document map (this study and the
+  record), `SOMEDAY.md`'s row of the window built-ins (it pointed into the moved text). Archived changes and
+  `DECISIONS.md` rows untouched.
 
 ### Validation and completion
 
-- [ ] **P1** Check that every removed description has a working link to its retained authoritative content.
-- [ ] **P2** Verify generation is unchanged on a second invocation, preserves manual prose, and rejects missing or
+- [x] **P1** Check that every removed description has a working link to its retained authoritative content.
+  Nothing was deleted: the text is in `study\support-record.md`, linked from the overview. Every reference to
+  `crates\README.md` outside the archives was read: one (`SOMEDAY.md`) pointed into the moved text and now names
+  the record; the others point to what stayed (crate map, tests table, build). No test or tool parses the file.
+  The 20 areas of the overview were checked against the specs' contents (`COMMON`, `DEF SEG`, `$EXEICON`, the
+  auto-included constants each found in the spec named).
+- [x] **P2** Verify generation is unchanged on a second invocation, preserves manual prose, and rejects missing or
   incompatible result data rather than presenting stale numbers as a fresh pass.
+  `test_counts.py` (5 tests); on the repo, the second run: "5 blocks, 0 differ".
 - [ ] **P1** Pilot the simplified closeout on the next feature and record which documents actually needed edits.
 
 **Done when:** routine counts are generated, each detailed feature description has one home, and a feature's
@@ -133,34 +203,73 @@ programs. Retain every distinct assertion and configuration while executing equi
 
 ### Implementation
 
-- [ ] **P2** Build a coverage matrix for the existing closeout commands: selected programs, compiler/build identity,
+- [x] **P2** Build a coverage matrix for the existing closeout commands: selected programs, compiler/build identity,
   folding mode, reference root, assets, screen availability, environment, expected outputs, divergence checks,
   and pass/failure policy. Identify actual overlap before replacing a command.
-- [ ] **P2** Extend runner result records only where needed to identify those properties and whether a case was
+  From the commands of `m3-sound-handles`' close (its transcript) and the runner's code. Every runner command
+  used `--qb64 target\release\qb64rust.exe --jobs 8 --build-cache target\build-cache`, one build of the compiler,
+  the same results folder and `known_failures.txt`:
+
+  | Closing run | Programs | Differs from a full suite in | Covered by |
+  |---|---|---|---|
+  | slice list | 440 of the corpus | the selection only (`--list`); each program goes through the same `corpus_test`, with its screen state, keys, `.divergences` and known-failure rule | the full corpus: **derived** |
+  | slice list, `QB64RUST_NO_FOLD=1` | the same 440 | folding off | nothing: **kept** |
+  | upstream pass list | 325 of the clone's `compile_tests` | the selection only; same root (the clone) | the full upstream suite: **derived** |
+  | differential pass list | 59 | another corpus root (`tests\differential`) | nothing: **kept** |
+  | full corpus, full upstream suite | 465, 404 | — | **kept** (they carry the derived checks) |
+  | call-site check, `--ignored` CLI tests, `cargo test`, the runner's tests, demand reports | — | other tools | nothing: **kept** |
+
+  One difference in policy: a list run let a program of the list that is in `known_failures.txt` pass as KFAIL;
+  the derived check fails it. No program of either list is a known failure today.
+- [x] **P2** Extend runner result records only where needed to identify those properties and whether a case was
   executed, reused from a build cache, compile-only, skipped, rejected or a known failure.
-- [ ] **P2** Add a summary/check operation that evaluates pass-list membership against the full suite's results.
+  A `run` record per summary (selection, roots, folding, `--cpp-opt`, `--record`, `--jobs`, caches, SHA-256 of the
+  compiler and the runner, start and end). Per program nothing new was needed: `kind` (output, compile only,
+  error), `status` (PASS, FAIL, KFAIL) and the pass cache's "not run" detail were there; a build-cache hit is not
+  recorded, since the program is still compiled, run and compared.
+- [x] **P2** Add a summary/check operation that evaluates pass-list membership against the full suite's results.
   Missing, skipped or unexpectedly failing required cases must fail that check. A known failure allowed by the
   full suite must not silently satisfy a required pass-list entry.
-- [ ] **P2** Replace separate normal-folding slice/pass-list runs with those derived checks only when the full run
+  `run_legacy_tests.py --check-list <list>` (`check_list`); also fails a program whose files changed after the
+  run started, and a run of another compiler build, runner, root or folding.
+- [x] **P2** Replace separate normal-folding slice/pass-list runs with those derived checks only when the full run
   covers identical inputs, roots, assets and assertions. Preserve a separate run where they differ.
-- [ ] **P2** Keep the slice run without folding as a distinct configuration. Keep differential execution, call-site
+- [x] **P2** Keep the slice run without folding as a distinct configuration. Keep differential execution, call-site
   ABI comparisons, screen comparisons and CLI integration assertions that the full suites do not cover.
-- [ ] **P1** Keep focused checks during implementation. Continue using build caches; retain the current prohibition
+- [x] **P1** Keep focused checks during implementation. Continue using build caches; retain the current prohibition
   on pass-cache skipping for closing runs, since unchanged executables may behave differently under load.
+  Unchanged; the check refuses a run made with `--pass-cache`.
 - [ ] **P2** Produce one closeout summary listing executed configurations, required memberships, known failures and
   exclusions. Log each underlying test command directly so the current recorder still sees it; introduce a
   wrapper only after item 4 can record its child runs reliably.
-- [ ] **P2** Update `CLAUDE.md`, the active cadence guidance and future task templates together. Preserve the user's
+  *Not done:* the `run` record and the check's output hold the parts; a single summary over all closing runs
+  would be a new tool, and the plan says to log each command directly for now.
+- [x] **P2** Update `CLAUDE.md`, the active cadence guidance and future task templates together. Preserve the user's
   rule that CI is not a gate and need not be waited on.
+  `CLAUDE.md` working rule 9, `crates\README.md` ("When to run what"), `tools\legacy_tests\README.md`; CI and its
+  rule unchanged (the `tier2` job runs no full suite, so it keeps its list runs). `test_time.py` records a check as
+  its own kind, "pass list checked from a full run".
 
 ### Validation and completion
 
-- [ ] **P2** Add focused runner tests for missing required results, unexpected failures, configuration mismatch,
+- [x] **P2** Add focused runner tests for missing required results, unexpected failures, configuration mismatch,
   compile-only cases, and full-suite known failures that are forbidden by a pass list.
-- [ ] **P2** For one representative compiler state, compare old and consolidated closeout outcomes. This is a
+  `CheckList` in `test_run_legacy_tests.py`, 7 tests (also: kept by the pass cache, an input changed after the
+  run, a summary without a run record); 87 runner tests pass.
+- [x] **P2** For one representative compiler state, compare old and consolidated closeout outcomes. This is a
   one-time migration check; reuse matching retained results where their identity can be established.
-- [ ] **P2** Demonstrate equal required coverage, no weaker pass policy, and fewer program executions. Measure the
+  The release build of `m3-sound-handles` (17:37, unchanged since; its close ran at 20:00–20:11 with it, logs
+  kept). New full runs with this runner: corpus 459 pass, `218_fre` and 5 known failures, as at the close;
+  upstream 325 pass, 78, 1 known failure, as at the close. `--check-list`: `slice.list` 440 of 440, `pass.list`
+  325 of 325, program for program the same set the close's list runs passed.
+- [x] **P2** Demonstrate equal required coverage, no weaker pass policy, and fewer program executions. Measure the
   elapsed saving, including the time to build, execute and summarize.
+  Coverage equal (the matrix), policy stricter (KFAIL, changed inputs, run identity), 765 program runs fewer per
+  close; a check takes about a second. **The saving in time is smaller than the list runs' rows suggest:** at
+  that close the slice list took 7 min and the upstream and differential lists 4 min, but they filled the build
+  cache, after which the full suites took 50 s each. Without the list runs the full suites build what changed, so
+  the saving is the second compile, run and compare of 765 programs: about 1.5 min of machine time per close
+  (the full suites' time with a warm cache, scaled to the lists' share), and two commands fewer to start and read.
 
 **Done when:** each required program/configuration pair runs once at close, except for intentional repeated
 recordings or load-sensitive checks with a documented purpose.
@@ -179,17 +288,29 @@ the time the user spent waiting. Improve attribution without inventing precision
 
 ### Implementation
 
-- [ ] **P2** Preserve the existing CSV history and definitions. Add versioned, additive records or separate files;
+- [x] **P2** Preserve the existing CSV history and definitions. Add versioned, additive records or separate files;
   do not relabel old estimates as newly measured facts.
-- [ ] **P2** Associate work with an OpenSpec change where the transcript or an explicit workflow marker establishes
+  `runs.csv` and `sessions.csv` keep their columns and rules; two new files, `changes.csv` and `activity.csv`,
+  each with a `version` column (1), kept for sessions whose transcript is gone as the old files are.
+- [x] **P2** Associate work with an OpenSpec change where the transcript or an explicit workflow marker establishes
   it. Use stable session/tool identifiers to deduplicate records. Mark ambiguous attribution as unknown.
-- [ ] **P2** Record event categories: product implementation, test/fixture authoring, reference measurement
+  Each moment goes to the change named last in its session (`tools\testtime\README.md`, "Changes"); before any
+  naming, and after an archive, to "no change named". Actions are deduplicated by tool-use id.
+- [x] **P2** Record event categories: product implementation, test/fixture authoring, reference measurement
   preparation, documentation/planning, review/investigation, test execution, builds, and unknown/mixed work.
-- [ ] **P2** Classify edits by file and tool activity, while distinguishing product source from test source and
+  Twelve kinds (README, "Kinds of work"); review and investigation is "reading" for the tools that only read,
+  while a shell command that is no run stays "other commands", since its purpose is not read. Added after the
+  first run: "scratch files" (a temporary folder), which held 11% of the bytes written as "other".
+- [x] **P2** Classify edits by file and tool activity, while distinguishing product source from test source and
   generated outputs. Treat action counts and written bytes as activity proxies, not elapsed-time percentages.
-- [ ] **P1** Add lightweight start/completion markers at feature boundaries through the existing workflow. Record
+- [x] **P1** Add lightweight start/completion markers at feature boundaries through the existing workflow. Record
   wall-clock elapsed duration, estimated active duration, foreground waiting, and background execution
   separately. Expose gaps and interruptions; do not count the entire wall-clock interval as agent work.
+  No new step: the workflow already marks the boundaries in every transcript (`openspec new change`, the first
+  touch of the change's folder; `openspec archive`, or a move of the folder into the archive), so the record
+  goes back to 2026-10-02. `REPORT.md`, "By change": elapsed (calendar), active, waits per bucket, background,
+  idle stretches and the longest, the longest wait, the closing stretch. 11 of the 31 archived changes are seen
+  archived; the other 20 are marked "archived, not seen" and end where they were last seen.
 - [ ] **P3** Capture structured command start/end, exit status, configuration, result/log location and timeout where
   available. Separate lock waiting and approval waiting from execution when evidence permits; otherwise label
   the duration as combined or unknown. Recognize wrapper child runs before adopting a closeout wrapper.
@@ -199,14 +320,25 @@ the time the user spent waiting. Improve attribution without inventing precision
 - [ ] **P2 for basic totals; P3 for failure-cause attribution.** Extend the report with per-change elapsed and active time, activity counts by category, closeout time,
   longest stalls, repeat execution, and evidence about failure causes. Separate product defects from fixture,
   environment and infrastructure failures where the logs establish the distinction.
-- [ ] **P1** Retain the privacy rule: persist aggregate categories and identifiers, not prompts, raw commands with
+  *P2 part done* (per change: elapsed, active, actions by kind, the closing stretch from the last edit of product
+  code to the archive, the longest wait and idle stretch, repeats). *P3 part not done*: failure causes.
+- [x] **P1** Retain the privacy rule: persist aggregate categories and identifiers, not prompts, raw commands with
   local paths, or secrets. Handle incomplete sessions without marking them complete.
+  The new files hold a session's 8-character id, a change's name, a kind and numbers; a change is "open" until a
+  transcript shows its archive.
 
 ### Validation and completion
 
 - [ ] **P2 for baseline reporting; P3 for advanced attribution.** Use small synthetic transcripts to check background overlap, long idle gaps, missing results, timeout
   handling, duplicate events, mixed commands, feature boundaries and ambiguous attribution.
-- [ ] **P2** Reconcile the old foreground totals on a fixed transcript sample, explaining intentional differences.
+  *P2 part done* (`tools\testtime\test_record.py`, class `Changes`, 6 tests besides the 38 before): feature
+  boundaries, work before a naming and after an archive, two changes in one session, an archived change read, a
+  background run, a 20-minute idle stretch, an archive refused or failed, a line held twice, the kinds of
+  paths, a change summed over two sessions; timeout handling and mixed commands were tested before.
+- [x] **P2** Reconcile the old foreground totals on a fixed transcript sample, explaining intentional differences.
+  All 277 transcripts of 2026-10-16: the per-change rows sum to the session totals within 8 s of 338,523 s of
+  active time and 3 s of each bucket's waiting, the rounding of each row to whole seconds; the synthetic test
+  asserts the equality exactly.
 - [ ] **P2** Pilot the additional metrics over the next three comparable feature changes. Review elapsed completion
   time and defect outcomes together; do not optimize for fewer tests, fewer documents or more code lines alone.
 

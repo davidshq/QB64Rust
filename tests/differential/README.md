@@ -29,6 +29,10 @@ A six-type group `old6` (the same programs for `INTEGER`, `LONG`, `_INTEGER64`, 
 only, 48) let tier 2 check today's types while the full programs could not compile (`DECISIONS.md` 2026-10-08); it
 went with task 10.1 of `m2-numeric-types` (2026-10-09), once all 59 passed.
 
+<!-- counts:differential-membership -->
+`pass.list` names **59** of the 59 programs.
+<!-- /counts:differential-membership -->
+
 Each line is labelled with the operator, the types and the value pair (`^ LONG SINGLE 7:`), so a differing line
 names its case. Values are stored into their variables from literals of the variable's own type (the `_OFFSET`
 types, which have no literal suffix, from `&&` and `~&&` literals; the smallest `_INTEGER64` as

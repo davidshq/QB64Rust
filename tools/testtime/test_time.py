@@ -13,7 +13,10 @@ back. This script reads them and writes, beside itself:
                 build (README.md, "Kinds"): session, start, bucket, kind, seconds, background,
                 result, repeat_after
   sessions.csv  one row per session: start, end, active seconds, seconds inside commands
-  REPORT.md     the summary made from the two: per day, per kind, repeats, the longest runs
+  changes.csv   one row per session and OpenSpec change: its times, waits and idle stretches
+  activity.csv  one row per session, change and kind of work: actions and bytes written
+  REPORT.md     the summary made from them: per day, per kind, repeats, the longest runs, per change,
+                per kind of work
 
 Nothing is measured by the tests themselves, so nothing has to be remembered while working: a run
 is on record because it was run. The script only adds: rows of sessions whose transcript is gone
@@ -24,6 +27,7 @@ only the kind of each run, its times and what is known of its result.
 from __future__ import annotations
 
 import argparse
+import bisect
 import csv
 import itertools
 import json
@@ -37,6 +41,30 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
 RUNS, SESSIONS, REPORT = HERE / "runs.csv", HERE / "sessions.csv", HERE / "REPORT.md"
+# Added 2026-10-16 (study\31 item 4); the files above keep their columns and meaning.
+CHANGES, ACTIVITY = HERE / "changes.csv", HERE / "activity.csv"
+# The format of the two files: a later change to what a column means writes another number.
+WORK_VERSION = "1"
+CHANGE_FIELDS = [
+    "version",
+    "session",
+    "change",
+    "first",
+    "last",
+    "active_seconds",
+    "test_seconds",
+    "measure_seconds",
+    "build_seconds",
+    "background_seconds",
+    "repeats",
+    "longest_wait",
+    "idle_stretches",
+    "idle_seconds",
+    "longest_idle",
+    "last_code_edit",
+    "archived",
+]
+ACTIVITY_FIELDS = ["version", "session", "change", "category", "actions", "bytes"]
 RUN_FIELDS = [
     "session",
     "start",
@@ -166,7 +194,10 @@ def classify_statement(c: str) -> list[tuple[str, str]]:
     runner = has(PY + r"run_legacy_tests\.py") and not asks_help
     if runner or has(r"(^|\b(sh|bash)\s+)\S*verification[/\\]run\.sh"):
         new = has(r"--qb64\s+\S*qb64rust")
-        if has(r"--suite\s+verification|run\.sh"):
+        if has(r"--check-list\b"):
+            # Runs nothing: judges a pass list from the last full run's results.
+            found.append((TEST, "pass list checked from a full run"))
+        elif has(r"--suite\s+verification|run\.sh"):
             found.append((MEASURE, "verification programs (old compiler)"))
         elif has(r"--record"):
             found.append((MEASURE, "recording expected results (old compiler)"))
@@ -264,6 +295,7 @@ def said(kind: str, text: str, shared: bool = False) -> str:
         or "differential" in kind
         or "slice" in kind
         or "suite" in kind
+        or "pass list" in kind
     ):
         if any(f for _, f in summaries) or has(r"^\[\d+/\d+\] FAIL "):
             return FAIL
@@ -309,6 +341,147 @@ def said(kind: str, text: str, shared: bool = False) -> str:
             return FAIL
         return PASS if has(r"\d+ passing") else ""
     return ""
+
+
+# The OpenSpec change a moment of work belongs to (README.md, "Changes"). A folder of a change, not of
+# the archive: reading an archived change is not working on it.
+CHANGE_PATH = re.compile(
+    r"openspec[/\\]+changes[/\\]+(?!archive(?![\w-]))([a-z0-9][a-z0-9-]*)(?![\w.-])"
+)
+CHANGE_NAME = re.compile(r"[a-z0-9][a-z0-9-]*")
+OPENSPEC = re.compile(r"(?<![\w./\\-])openspec\s+(.*)")
+# A change archived by moving its folder (as some were before `openspec archive` was used).
+MOVED_TO_ARCHIVE = re.compile(
+    r"(?<![\w-])(?:mv|Move-Item)\s.*archive[/\\]+\d{4}-\d\d-\d\d-([a-z0-9][a-z0-9-]*)",
+    re.IGNORECASE,
+)
+# The fields of a tool's input that name a file or a folder.
+PATH_FIELDS = ("file_path", "notebook_path", "path")
+NO_CHANGE = ""
+
+
+def changes_named(command: str) -> tuple[list[str], list[str]]:
+    """The changes a command names, and of those the ones it archives: a path of a change's folder,
+    `openspec new change NAME`, `openspec archive NAME`, `openspec validate NAME`, `--change NAME`."""
+    named: list[str] = []
+    archived: list[str] = []
+    for s in statements(command):
+        head = s.split("|")[0]
+        named += CHANGE_PATH.findall(head)
+        if m := MOVED_TO_ARCHIVE.search(head):
+            named.append(m[1])
+            archived.append(m[1])
+            continue
+        m = OPENSPEC.search(head)
+        if not m:
+            continue
+        words = [unquote(w) for w in m[1].split()]
+        name = ""
+        if "--change" in words[:-1]:
+            name = words[words.index("--change") + 1]
+        elif words[:2] == ["new", "change"] or words[:1] in (["archive"], ["validate"]):
+            rest = words[2:] if words[0] == "new" else words[1:]
+            name = next((w for w in rest if not w.startswith("-")), "")
+        if CHANGE_NAME.fullmatch(name):
+            named.append(name)
+            if words[0] == "archive":
+                archived.append(name)
+    return named, archived
+
+
+def changes_in(tool: str, arg: dict) -> list[str]:
+    """The changes a tool's input names: by a path of a change's folder, or by the command."""
+    if tool in SHELLS:
+        return changes_named(str(arg.get("command") or ""))[0]
+    named = []
+    for field in (*PATH_FIELDS, "pattern" if tool == "Glob" else ""):
+        value = arg.get(field) if field else None
+        if isinstance(value, str):
+            named += CHANGE_PATH.findall(value)
+    return named
+
+
+# Kinds of work, by what a tool did (README.md, "Kinds of work"). Counts of actions and bytes
+# written, not time: the transcript does not say how long a piece of writing took.
+PRODUCT, TESTS, PREPARATION, DOCUMENTS, GENERATED = (
+    "product code",
+    "tests and fixtures",
+    "measurement preparation",
+    "documents and planning",
+    "generated files",
+)
+SCRATCH = "scratch files"
+READING, TEST_RUNS, MEASURE_RUNS, BUILDS = "reading", "test runs", "measurement runs", "builds"
+OTHER_COMMANDS, OTHER = "other commands", "other"
+CATEGORIES = [
+    PRODUCT,
+    TESTS,
+    PREPARATION,
+    DOCUMENTS,
+    GENERATED,
+    SCRATCH,
+    READING,
+    TEST_RUNS,
+    MEASURE_RUNS,
+    BUILDS,
+    OTHER_COMMANDS,
+    OTHER,
+]
+READING_TOOLS = {"Read", "Grep", "Glob", "LSP", "WebFetch", "WebSearch", "ToolSearch"}
+
+
+def file_category(path: str) -> str:
+    """What kind of file an edit wrote, by its path (the first rule that fits)."""
+    p = "/" + path.replace("\\", "/").lower()
+    # Scripts and programs written to a temporary folder for one task (an edit, a trial, a measurement).
+    if re.search(r"/te?mp/", p):
+        return SCRATCH
+    if re.search(
+        r"\.(snap|output|err|screen)$|/tools/testtime/(runs|sessions|changes|activity)\.csv$"
+        r"|/tools/testtime/report\.md$|/builtins\.json$|/old_wording\.tsv$",
+        p,
+    ):
+        return GENERATED
+    if "/verification/" in p:
+        return PREPARATION
+    if re.search(
+        r"/crates/[^/]+/tests/|/tests/|/test_[^/]*\.py$|/vscode/src/test/|/tools/|/\.github/", p
+    ):
+        return TESTS
+    if re.search(r"/crates/|/vscode/|\.(rs|cpp|h|ts|toml)$", p):
+        return PRODUCT
+    if re.search(r"\.(md|ya?ml)$|/openspec/|/study/", p):
+        return DOCUMENTS
+    return OTHER
+
+
+def written(tool: str, arg: dict) -> int:
+    """The bytes an edit wrote: what it put in (a whole file, or each replacement)."""
+    if tool == "Write":
+        return len(str(arg.get("content") or "").encode("utf-8"))
+    if tool == "MultiEdit":
+        edits = arg.get("edits") or []
+        return sum(
+            len(str(e.get("new_string") or "").encode("utf-8"))
+            for e in edits
+            if isinstance(e, dict)
+        )
+    return len(str(arg.get("new_string") or arg.get("new_source") or "").encode("utf-8"))
+
+
+def category(tool: str, arg: dict) -> str:
+    """The kind of work a tool call is."""
+    if tool in EDITS:
+        path = next((arg[f] for f in PATH_FIELDS if isinstance(arg.get(f), str)), "")
+        return file_category(path)
+    if tool in SHELLS:
+        buckets = {b for b, _ in classify(str(arg.get("command") or ""))}
+        if TEST in buckets:
+            return TEST_RUNS
+        if MEASURE in buckets:
+            return MEASURE_RUNS
+        return BUILDS if BUILD in buckets else OTHER_COMMANDS
+    return READING if tool in READING_TOOLS else OTHER
 
 
 def result_of(
@@ -357,9 +530,11 @@ def default_folders() -> list[Path]:
     return [d for d in base.iterdir() if d.is_dir() and d.name.lower() in wanted]
 
 
-def read_session(path: Path):
-    """One transcript: its runs and its row for sessions.csv; None when it holds no time."""
+def read_session(path: Path, work: dict | None = None):
+    """One transcript: its runs and its row for sessions.csv; None when it holds no time. With
+    `work`, also its rows for changes.csv and activity.csv, as work["changes"] and work["activity"]."""
     times: list[datetime] = []
+    actions: list[tuple[datetime, str, str, dict]] = []  # time, tool_use id, tool, its input
     # tool_use id: start, command, background, files edited before it, the time limit asked for
     calls: dict[str, tuple[datetime, str, bool, int, timedelta]] = {}
     ends: dict[str, datetime] = {}
@@ -402,6 +577,10 @@ def read_session(path: Path):
                     continue
                 if item.get("type") == "tool_use":
                     arg = item.get("input") or {}
+                    # A line the transcript holds twice is one action.
+                    known = item.get("id") in calls
+                    if isinstance(arg, dict) and isinstance(item.get("name"), str) and not known:
+                        actions.append((t, item.get("id", ""), item["name"], arg))
                     if item.get("name") in EDITS:
                         edits += 1
                     command = arg.get("command") if item.get("name") in SHELLS else None
@@ -499,6 +678,7 @@ def read_session(path: Path):
             for number, (a, b, behind) in enumerate(stretches):
                 runs.append(
                     {
+                        "at": a,
                         "session": key,
                         "start": a.astimezone().strftime("%Y-%m-%d %H:%M:%S"),
                         "bucket": bucket,
@@ -520,7 +700,115 @@ def read_session(path: Path):
         "command_seconds": f"{covered.total_seconds():.0f}",
     }
     share_out(runs)
+    if work is not None:
+        archived = [
+            (ends[use], name)
+            for _, use, tool, arg in actions
+            if tool in SHELLS
+            and use in ends
+            and not outputs[use][1]
+            and not outputs[use][0].startswith(NOT_RUN)
+            for name in changes_named(str(arg.get("command") or ""))[1]
+        ]
+        work["changes"], work["activity"] = work_rows(key, times, merged, actions, archived, runs)
+    for r in runs:
+        del r["at"]
     return runs, row
+
+
+def local(t: datetime) -> str:
+    return t.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def work_rows(key: str, times, merged, actions, archived, runs) -> tuple[list[dict], list[dict]]:
+    """The rows of one session for changes.csv and activity.csv. Each moment belongs to the change
+    named last before it in the session (`changes_in`); before the first, to none (NO_CHANGE). A gap
+    between two lines of the transcript is active time by the rule of sessions.csv (inside a command,
+    or no longer than IDLE); a longer one is an idle stretch of the change it falls in."""
+    # Once a change is archived, the work after it belongs to none until another is named.
+    marks = sorted(
+        [(t, 0, name) for t, _, tool, arg in actions for name in changes_in(tool, arg)]
+        + [(t, 1, NO_CHANGE) for t, _ in archived]
+    )
+    stamps = [t for t, _, _ in marks]
+
+    def change_at(t: datetime) -> str:
+        i = bisect.bisect_right(stamps, t)
+        return marks[i - 1][2] if i else NO_CHANGE
+
+    rows: dict[str, dict] = {}
+
+    def row(change: str, t: datetime) -> dict:
+        if change not in rows:
+            rows[change] = {
+                "version": WORK_VERSION,
+                "session": key,
+                "change": change,
+                "first": t,
+                "last": t,
+                **dict.fromkeys(CHANGE_FIELDS[5:15], 0.0),
+                "last_code_edit": None,
+                "archived": None,
+            }
+        r = rows[change]
+        r["first"], r["last"] = min(r["first"], t), max(r["last"], t)
+        return r
+
+    for a, b in itertools.pairwise(times):
+        r = row(change_at(a), a)
+        gap = (b - a).total_seconds()
+        if b - a <= IDLE or any(s <= a and b <= e for s, e in merged):
+            r["active_seconds"] += gap
+            r["last"] = max(r["last"], b)
+        else:
+            r["idle_stretches"] += 1
+            r["idle_seconds"] += gap
+            r["longest_idle"] = max(r["longest_idle"], gap)
+    for run in runs:
+        r = row(change_at(run["at"]), run["at"])
+        seconds = float(run["seconds"])
+        if run["background"] == "1":
+            r["background_seconds"] += seconds
+        else:
+            r[f"{run['bucket']}_seconds"] += seconds
+            r["longest_wait"] = max(r["longest_wait"], seconds)
+        r["repeats"] += 1 if run.get("repeat_after") else 0
+    for t, name in archived:
+        r = row(name, t)
+        r["archived"] = max(r["archived"] or t, t)
+    activity: dict[tuple[str, str], list[int]] = defaultdict(lambda: [0, 0])
+    for t, _, tool, arg in actions:
+        change, kind = change_at(t), category(tool, arg)
+        row(change, t)
+        counts = activity[(change, kind)]
+        counts[0] += 1
+        counts[1] += written(tool, arg) if tool in EDITS else 0
+        if kind == PRODUCT:
+            rows[change]["last_code_edit"] = max(rows[change]["last_code_edit"] or t, t)
+    out = []
+    for r in rows.values():
+        out.append(
+            {
+                **r,
+                **{f: f"{r[f]:.0f}" for f in CHANGE_FIELDS[5:15]},
+                "first": local(r["first"]),
+                "last": local(r["last"]),
+                "last_code_edit": local(r["last_code_edit"]) if r["last_code_edit"] else "",
+                "archived": local(r["archived"]) if r["archived"] else "",
+            }
+        )
+    acts = [
+        {
+            "version": WORK_VERSION,
+            "session": key,
+            "change": change,
+            "category": kind,
+            "actions": str(n),
+            "bytes": str(size),
+        }
+        for (change, kind), (n, size) in sorted(activity.items())
+    ]
+    return out, acts
 
 
 def share_out(runs: list[dict]) -> None:
@@ -575,7 +863,114 @@ def share(part: float, whole: float) -> str:
     return f"{100 * part / whole:.0f}%" if whole else "-"
 
 
-def report(runs: list[dict], sessions: list[dict]) -> str:
+def stamp(text: str) -> datetime:
+    return datetime.strptime(text, "%Y-%m-%d %H:%M:%S")
+
+
+def archived_folders() -> set[str]:
+    """The names of the changes in this repo's archive (`2026-10-14-m3-x` is `m3-x`)."""
+    folder = REPO / "openspec" / "changes" / "archive"
+    return {p.name[11:] for p in folder.iterdir() if p.is_dir()} if folder.is_dir() else set()
+
+
+def by_change(changes: list[dict], in_archive: set[str] = frozenset()) -> list[str]:
+    """The table of changes.csv's rows summed per change, in the order the changes were started.
+    `in_archive`: changes whose folder is in the archive, archived where no transcript shows it."""
+    groups: dict[str, list[dict]] = defaultdict(list)
+    for c in changes:
+        groups[c["change"]].append(c)
+
+    def num(rows, field, how=sum) -> float:
+        return how([float(r[field] or 0) for r in rows] or [0.0])
+
+    out = [
+        (
+            "| Change | State | Sessions | Started | Ended | Elapsed | Active | Waiting: tests | measurements | builds "
+            "| In the background | Repeats | Longest wait | Idle stretches | Longest idle | Closing stretch |"
+        ),
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    named = sorted(
+        (n for n in groups if n != NO_CHANGE), key=lambda n: min(r["first"] for r in groups[n])
+    )
+    for name in [*named, NO_CHANGE] if NO_CHANGE in groups else named:
+        rows = groups[name]
+        first = min(r["first"] for r in rows)
+        archived = max((r["archived"] for r in rows if r.get("archived")), default="")
+        end = archived or max(r["last"] for r in rows)
+        code = max((r["last_code_edit"] for r in rows if r.get("last_code_edit")), default="")
+        closing = (
+            clock((stamp(archived) - stamp(code)).total_seconds())
+            if archived and code and code < archived
+            else ""
+        )
+        idle = num(rows, "idle_seconds")
+        state = (
+            ""
+            if not name
+            else "archived"
+            if archived
+            else "archived, not seen"
+            if name in in_archive
+            else "open"
+        )
+        out.append(
+            f"| {name or '(no change named)'} | {state} "
+            f"| {len({r['session'] for r in rows})} | {first[:16]} | {end[:16]}{'' if archived or not name else ' (last seen)'} "
+            f"| {clock((stamp(end) - stamp(first)).total_seconds()) if name else ''} "
+            f"| {clock(num(rows, 'active_seconds'))} | {clock(num(rows, 'test_seconds'))} "
+            f"| {clock(num(rows, 'measure_seconds'))} | {clock(num(rows, 'build_seconds'))} "
+            f"| {clock(num(rows, 'background_seconds'))} | {num(rows, 'repeats'):.0f} "
+            f"| {clock(num(rows, 'longest_wait', max))} "
+            f"| {num(rows, 'idle_stretches'):.0f} ({clock(idle)}) | {clock(num(rows, 'longest_idle', max))} "
+            f"| {closing} |"
+        )
+    return out
+
+
+def by_kind_of_work(activity: list[dict]) -> list[str]:
+    """Actions and bytes written per kind of work, in all and per change."""
+    totals: dict[str, list[int]] = defaultdict(lambda: [0, 0])
+    per_change: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for a in activity:
+        totals[a["category"]][0] += int(a["actions"])
+        totals[a["category"]][1] += int(a["bytes"])
+        per_change[a["change"]][a["category"]] += int(a["actions"])
+    edits = sum(totals[c][1] for c in CATEGORIES)
+    out = [
+        "| Kind of work | Actions | Bytes written | Share of bytes written |",
+        "|---|---|---|---|",
+    ]
+    for c in CATEGORIES:
+        if c in totals:
+            out.append(
+                f"| {c} | {totals[c][0]} | {totals[c][1]} | {share(totals[c][1], edits) if totals[c][1] else ''} |"
+            )
+    columns = [c for c in CATEGORIES if c in totals]
+    out += [
+        "",
+        "Actions per change:",
+        "",
+        "| Change | " + " | ".join(columns) + " |",
+        "|---|" + "---|" * len(columns),
+    ]
+    for name in sorted(per_change, key=lambda n: (n == NO_CHANGE, n)):
+        counts = per_change[name]
+        out.append(
+            f"| {name or '(no change named)'} | "
+            + " | ".join(str(counts.get(c, 0)) for c in columns)
+            + " |"
+        )
+    return out
+
+
+def report(
+    runs: list[dict],
+    sessions: list[dict],
+    changes: list[dict] = (),
+    activity: list[dict] = (),
+    in_archive: set[str] = frozenset(),
+) -> str:
     def secs(rows, bucket=None, background=None):
         return sum(
             float(r["seconds"])
@@ -708,6 +1103,31 @@ def report(runs: list[dict], sessions: list[dict]) -> str:
         out.append(
             f"| {r['start']} | {r['kind']} | {clock(float(r['seconds']))} | {'yes' if r['background'] == '1' else ''} |"
         )
+    if changes:
+        out += [
+            "",
+            "## By change",
+            "",
+            'Each moment of a session belongs to the OpenSpec change named last before it (`README.md`, "Changes"):',
+            "a guess from the workflow's own commands and the files read and edited, not a record kept by hand. *Elapsed*",
+            "is calendar time from the first moment to the archive (or the last moment seen), nights and other work",
+            'included; *Active* is Claude working on it (the rule of "Active time"); an *idle stretch* is a gap of more',
+            "than 5 minutes inside a session (the user away or reading). *Closing stretch*: calendar time from the last",
+            "edit of product code to the archive. *Archived, not seen*: the change is in the archive, but no transcript",
+            "shows it archived (by `openspec archive` or by moving its folder); it ends where it was last seen.",
+            "",
+            *by_change(changes, in_archive),
+        ]
+    if activity:
+        out += [
+            "",
+            "## By kind of work",
+            "",
+            'What each tool call did (`README.md`, "Kinds of work"): counts of actions and the bytes edits wrote. These',
+            "are not shares of time: the transcript does not say how long a piece of writing took.",
+            "",
+            *by_kind_of_work(activity),
+        ]
     out.append("")
     return "\n".join(out)
 
@@ -731,22 +1151,34 @@ def main() -> int:
     files = sorted(p for d in folders for p in d.glob("*.jsonl"))
     new_runs: list[dict] = []
     new_sessions: list[dict] = []
+    new_changes: list[dict] = []
+    new_activity: list[dict] = []
     for path in files:
-        got = read_session(path)
+        work: dict = {}
+        got = read_session(path, work)
         if got is None:
             continue
         runs, row = got
         new_runs += runs
         new_sessions.append(row)
+        new_changes += work["changes"]
+        new_activity += work["activity"]
     seen = {s["session"] for s in new_sessions}
     # Sessions whose transcript is gone keep the rows they have.
     runs = [r for r in load(RUNS) if r["session"] not in seen] + new_runs
     sessions = [s for s in load(SESSIONS) if s["session"] not in seen] + new_sessions
+    changes = [c for c in load(CHANGES) if c["session"] not in seen] + new_changes
+    activity = [a for a in load(ACTIVITY) if a["session"] not in seen] + new_activity
     runs.sort(key=lambda r: (r["start"], r["kind"]))
     sessions.sort(key=lambda s: s["start"])
+    changes.sort(key=lambda c: (c["first"], c["change"]))
+    activity.sort(key=lambda a: (a["session"], a["change"], a["category"]))
     save(RUNS, runs, RUN_FIELDS)
     save(SESSIONS, sessions, ["session", "start", "end", "active_seconds", "command_seconds"])
-    REPORT.write_text(report(runs, sessions), encoding="utf-8", newline="\n")
+    save(CHANGES, changes, CHANGE_FIELDS)
+    save(ACTIVITY, activity, ACTIVITY_FIELDS)
+    text = report(runs, sessions, changes, activity, archived_folders())
+    REPORT.write_text(text, encoding="utf-8", newline="\n")
     print(f"{len(files)} transcripts read; {len(sessions)} sessions and {len(runs)} runs on record")
     return 0
 

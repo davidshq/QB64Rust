@@ -11,18 +11,19 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 | What a change did, task by task, and what was found on the way | the change's `tasks.md` and `design.md` under `openspec\changes\` (archived ones in `archive\`), and `git log` |
 | A measured fact about the old compiler | `study\00` §5 (one home per fact); the measurement programs: `verification\README.md` |
 | A decision | `DECISIONS.md`; a decided difference from QB64pe: `DIVERGENCES.md` |
-| What the compiler supports, how to build and test it | `crates\README.md`, the merged specs under `openspec\specs\`; per test set: `tests\*\README.md` |
+| What the compiler supports | the merged specs under `openspec\specs\` (an index by area: `crates\README.md`, "What the compiler supports"); how a change built it: its `design.md` |
+| How to build and test it | `crates\README.md`; per test set: `tests\*\README.md` |
 | Milestones, done and not done | `ROADMAP.md` |
 | History up to 2026-10-09 (what this file held before) | `study\progress-record.md` (closed) |
 
 ## Where we are
 
 M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: sixteen of its steps are done (table below); the
-sixteenth, `m3-sound-handles`, is built and closed in the working tree of branch `changes` (not committed, not
-archived). Every program of the corpus that the old compiler accepts compiles, and every one that can be compared
-passes; Civil War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows
-the same 23 screens as the old compiler's build. Upstream is at 325 of 399. `main` is at the merge of `m3` (pull
-request 5, 2026-10-16).
+sixteenth, `m3-sound-handles`, is built and committed on branch `changes` (`b1a818d`), not archived yet. Every
+program of the corpus that the old compiler accepts compiles, and every one that can be compared passes; Civil
+War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same 23
+screens as the old compiler's build. Upstream is at 325 of 399. `main` is at the merge of `m3` (pull request 5,
+2026-10-16).
 
 ## Waiting on the user
 
@@ -31,10 +32,13 @@ Oldest first. Each line names where the details are. The list of 2026-10-16 was 
 change's close. Separate from this list and standing: `SOMEDAY.md`'s "QB64pe behaviours to review", the
 questionable behaviours each change kept QB64pe's way.
 
-1. **Merge `changes` into `main`**: the three changes of `447bb05` since the last merge (`DECISIONS.md`
-   2026-10-16, "every two or three changes"), four with `m3-sound-handles` once committed.
-2. **Look at `m3-sound-handles`, stage and commit it, then archive it** (`openspec archive m3-sound-handles`; the
-   files and a message are in the session's last report).
+1. **Merge `changes` into `main`**: the three changes of `447bb05` and `m3-sound-handles` (`b1a818d`) since the
+   last merge (`DECISIONS.md` 2026-10-16, "every two or three changes").
+2. **Archive `m3-sound-handles`** (`openspec archive m3-sound-handles`), now that it is committed.
+3. **The velocity plan (`study\31`) is built; two choices of Claude's to confirm** (`DECISIONS.md` 2026-10-16):
+   `crates\README.md`'s feature catalogue kept whole as the closed record `study\support-record.md` rather than
+   deleted, and working rule 9's close judging the slice list and upstream pass list from the full suites
+   (`--check-list`) instead of running them again.
 
 **The `tier2` job on `m3`** (`study\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the

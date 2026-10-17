@@ -18,6 +18,26 @@ schema: spec-driven
 #       - Always state what is out of scope
 #     tasks:
 #       - Break tasks into chunks of max 2 hours
+# The rules below come from study\31 item 2 (one home per kind of information, 2026-10-16).
+rules:
+  tasks:
+    - >-
+      Do not restate the standing rules of CLAUDE.md (no subagents, nothing staged, backslashes through the
+      Edit and Write tools, check_repo.py, the test cadence of working rule 9) in the header or in tasks; write
+      at most one line: "Standing rules: CLAUDE.md." Name only what this change does differently.
+    - >-
+      Record a decision in DECISIONS.md and a new measured fact in study\00 section 5 in the task where it
+      happens. Update the routine summaries (STATUS.md, ROADMAP.md) once, in the closing task, not in each
+      group. The counts of tests\*\README.md are written by tools\legacy_tests\counts.py in the closing task,
+      never by hand, and no "progress" paragraph is added to tests\upstream\README.md.
+    - >-
+      Do not add a feature description to crates\README.md: what a program may use is the change's delta spec,
+      how and where it is built is design.md and tasks.md. crates\README.md changes only for the crate map,
+      the build and run instructions, and the test commands.
+  design:
+    - >-
+      Say where the code of each decision lives (crate, module, function); since 2026-10-16 this is the only
+      place it is written down (crates\README.md no longer has a catalogue of features).
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.

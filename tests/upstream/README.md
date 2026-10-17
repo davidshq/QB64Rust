@@ -98,6 +98,20 @@ job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 202
 `m3-declare-library`: `declare_library_static/test` and `declare_library_dynamic/test` need `lib-windows.a` and
 `lib.dll`, which the copy (text files only) lacks. The copy stays the input of tier 1.
 
+The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
+
+<!-- counts:upstream-membership -->
+**Upstream progress: 325 of 399**: the programs of `pass.list` of the suite's 404 programs less the 5 of `deferred.list`.
+<!-- /counts:upstream-membership -->
+
+<!-- counts:upstream-results -->
+Last full run: 2026-10-16, compiler build `cbde4b06ba8c`, folding on, `--jobs 8`, build cache, 1 min. Of 404 programs: **325 pass**, 78 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 1 known failure (`target\legacy-tests\results-compile.json`).
+`pass.list` judged in it (`--check-list`): **325 of 325** pass.
+<!-- /counts:upstream-results -->
+
+The "Upstream progress" paragraphs below are the history up to 2026-10-16, one per change; a later change adds
+none: what joined `pass.list` is in its `tasks.md`, and the numbers are the blocks above.
+
 - `pass.list`: the upstream programs the new compiler passes. A ratchet: add a program when it passes, never
   remove one.
 - `deferred.list`: the 5 programs that need a feature deferred to `SOMEDAY.md` (`_ARRAYCOPY` 4) or left out of

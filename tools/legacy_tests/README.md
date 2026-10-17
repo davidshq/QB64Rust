@@ -163,7 +163,35 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification              
 Results (executables, compiler output, run output, a JSON summary) go to `target\legacy-tests\` (ignored by
 git). The summary is `results.json` for `--suite all`, `results-<suite>.json` for one whole suite, and
 `results-partial.json` when `--category`, `--glob`, `--list` or program names narrow the run, so a partial run never
-overwrites a full one.
+overwrites a full one. Since 2026-10-16 the summary holds a `run` record (format 1): the selection, the roots of the
+corpus and compile suites (relative to the repo), `QB64RUST_NO_FOLD`, `--cpp-opt`, `--record`, `--jobs`, whether a
+build or pass cache was used, the SHA-256 of the compiler and of this runner, and when the run started and ended.
+
+**A pass list judged from a full run** (`--check-list <list>`, corpus and compile suites, `study\31` item 3): runs
+nothing, and judges every program of the list from the suite's last full summary, `results-<suite>.json`. Each
+listed program must have `PASS` there, run (not kept by `--pass-cache`); a known failure fails it (a pass list needs
+a pass), as do a missing result and any file of the program (the `.bas`, every `<name>.*` beside it, its
+`<name>.files\`, a compile-suite sidecar) changed after the run started. And the run must be the same as a run of
+the list would be: a full run, the same root, the same compiler build and runner (by hash), the same
+`QB64RUST_NO_FOLD`, and no `--pass-cache`, `--record` or `--cpp-opt`; a summary written before the `run` record fails.
+It prints the failures, the runner's summary line and `<list>: n of m passed in results-<suite>.json`; exit code 0
+when all passed, 1 otherwise, 2 for a usage error. **Not seen:** an included file changed after the run, and
+the reference clone (its libqb and toolchain, which a corpus program is linked with) changed after it. At a
+change's close it stands for the slice list and the upstream pass list (`CLAUDE.md` working rule 9): the full suites
+run those programs with the same options, so running the lists too ran 765 programs twice. Checked once on
+2026-10-16 (the build of `m3-sound-handles`): `slice.list` 440 of 440 and `pass.list` 325 of 325, the same programs
+as the list runs of that build passed; about a second each. The run without folding, the differential pass list
+(another corpus root) and the call-site check are still run.
+
+**The count blocks of the test READMEs** (`counts.py`, `study\31` item 2): `python tools\legacy_tests\counts.py`
+rewrites the text between `<!-- counts:NAME -->` and `<!-- /counts:NAME -->` in `tests\corpus\README.md`,
+`tests\upstream\README.md` and `tests\differential\README.md`, and nothing outside them; `--check` compares and
+writes nothing (exit code 1 when a block differs). Membership blocks come from the lists and the folders (the
+upstream "x of y": `pass.list` of the copy's programs less `deferred.list`). Result blocks come from the suite's
+last full summary and are written only when it is of the release build at `target\release\qb64rust.exe` and of
+this runner, a plain full run (no selection, folding on, no cache that skips a program); the pass list is judged
+in it as `--check-list` does. Otherwise the block is left as it is, with its own run's date and build, and the
+reason is printed. Run it at a change's close, after the full suites; tests: `test_counts.py`.
 
 Known failures: `known_failures.txt` lists tests (`<suite>:<test>  <reason>`) whose failure is reported as
 `KFAIL` and does not fail the run. Today only `http/read_example` (environment-dependent, see `baselines\`).
@@ -197,8 +225,10 @@ Notes:
     clone, reads `internal\temp` and builds the libqb objects the clone lacks.
   - The one exception is `--jobs` with `qb64pe` (next point): it builds in its copies and can run beside
     another run that uses another results folder.
-  - Not covered: `qb64rust` started without this runner (by hand, or `cargo test -p qb64rust-driver --test
-    cli -- --ignored`).
+  - The CLI tests that build (`cargo test -p qb64rust-driver --test cli -- --ignored`) take the same lock,
+    with `File::try_lock` on the same file (`crates\driver\tests\support`), and hold it until the test process
+    ends; they wait for it at most 30 min.
+  - Not covered: `qb64rust` started by hand.
   - Not covered: runs from two checkouts (or git worktrees) of this repo that use one clone. The lock file
     is under each checkout's own `target\` (the clone is a read-only reference and gets no lock file). Use
     one checkout per clone.

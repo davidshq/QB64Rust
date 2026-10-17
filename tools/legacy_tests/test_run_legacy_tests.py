@@ -21,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -132,7 +133,7 @@ class ExitCodes(unittest.TestCase):
                 f"import sys; sys.path.insert(0, {here!r}); "
                 f"from press_any_key import exit_status; sys.exit(exit_status({code}))"
             )
-            p = subprocess.run([sys.executable, "-c", script], capture_output=True)
+            p = subprocess.run([sys.executable, "-c", script], check=False, capture_output=True)
             self.assertEqual(p.returncode, code, p.stderr)
 
 
@@ -194,7 +195,9 @@ class DivergenceRows(unittest.TestCase):
 
     def test_a_compile_suite_sidecar_is_outside_the_copied_folder(self):
         path = rlt.compile_sidecar("arrays", "p")
-        self.assertEqual(path.parts[-5:], ("tests", "upstream", "divergences", "arrays", "p.divergences"))
+        self.assertEqual(
+            path.parts[-5:], ("tests", "upstream", "divergences", "arrays", "p.divergences")
+        )
 
     def test_set_trace_clears_the_file(self):
         trace = self.dir / "t.txt"
@@ -239,6 +242,121 @@ class Lists(unittest.TestCase):
         self.assertFalse(rlt.written_by_builds((), "qbx.cpp"))
         self.assertFalse(rlt.written_by_builds((), "libqb.cpp"))
         self.assertFalse(rlt.written_by_builds(("c_compiler", "lib"), "libm.a"))
+
+
+class CheckList(unittest.TestCase):
+    """check_list (--check-list, study/31 item 3): a pass list judged from a full run's results."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        base = Path(self.tmp.name)
+        self.addCleanup(self.tmp.cleanup)
+        self.root = base / "corpus"
+        (self.root / "g").mkdir(parents=True)
+        self.programs = {}
+        for name in ("a", "b"):
+            bas = self.root / "g" / f"{name}.bas"
+            bas.write_bytes(b"PRINT 1\n")
+            bas.with_suffix(".output").write_bytes(b"1\n")
+            self.programs[name] = bas.resolve()
+        self.compiler = base / "qb64rust.exe"
+        self.compiler.write_bytes(b"compiler build 1")
+
+    def data(self, statuses: dict, **run) -> dict:
+        record = {
+            "version": rlt.RUN_RECORD_VERSION,
+            "suite": "corpus",
+            "selection": {},
+            "roots": {"corpus": rlt.repo_relative(self.root.resolve())},
+            "no_fold": False,
+            "cpp_opt": False,
+            "record": False,
+            "pass_cache": False,
+            "compiler_sha256": rlt.file_sha256(self.compiler),
+            "runner_sha256": rlt.file_sha256(Path(rlt.__file__).resolve()),
+            "started": time.time() + 60,
+        }
+        record.update(run)
+        results = [
+            {
+                "suite": "corpus",
+                "test": f"g/{n}",
+                "kind": kind,
+                "status": status,
+                "stage": "run",
+                "detail": detail,
+            }
+            for n, (status, kind, detail) in statuses.items()
+        ]
+        return {"run": record, "results": results}
+
+    def check(self, data: dict, names=("a", "b")):
+        wanted = {self.programs[n] for n in names}
+        return rlt.check_list("corpus", wanted, self.root.resolve(), data, self.compiler)
+
+    def test_every_listed_program_passed(self):
+        data = self.data(
+            {
+                "a": ("PASS", "output", ""),
+                "b": ("PASS", "compile", ""),
+                "c": ("FAIL", "output", "x"),
+            }
+        )
+        # A compile-only program passes as the run judged it; a failure off the list does not count.
+        self.assertEqual(self.check(data), ([], [], 2))
+
+    def test_a_program_with_no_result_fails(self):
+        problems, failures, passed = self.check(self.data({"a": ("PASS", "output", "")}))
+        self.assertEqual((problems, passed), ([], 1))
+        self.assertEqual(failures, [("corpus:g/b", "no result in the full run")])
+
+    def test_a_failure_and_a_known_failure_fail_the_list(self):
+        data = self.data(
+            {"a": ("FAIL", "output", "differs"), "b": ("KFAIL", "output", "(known: hangs)")}
+        )
+        _, failures, passed = self.check(data)
+        self.assertEqual(passed, 0)
+        self.assertEqual(failures[0], ("corpus:g/a", "run: differs"))
+        self.assertIn("a pass list needs a pass", failures[1][1])
+
+    def test_a_program_the_pass_cache_kept_from_running_fails(self):
+        data = self.data({"a": ("PASS", "output", rlt.PASSED_BEFORE), "b": ("PASS", "output", "")})
+        self.assertEqual(
+            self.check(data)[1], [("corpus:g/a", "not run in the full run (--pass-cache)")]
+        )
+
+    def test_an_input_changed_after_the_run_started_fails(self):
+        data = self.data(
+            {"a": ("PASS", "output", ""), "b": ("PASS", "output", "")}, started=time.time() - 60
+        )
+        for path in (self.root / "g").iterdir():
+            os.utime(path, (time.time() - 120, time.time() - 120))
+        self.assertEqual(self.check(data, names=("b",))[1], [])
+        os.utime(self.programs["b"].with_suffix(".output"))
+        self.assertEqual(
+            self.check(data, names=("b",))[1],
+            [("corpus:g/b", "changed after the run started: b.output")],
+        )
+
+    def test_a_run_of_another_kind_fails_every_program(self):
+        ok = {"a": ("PASS", "output", ""), "b": ("PASS", "output", "")}
+        for run, why in [
+            ({"compiler_sha256": "0"}, "another build of the compiler"),
+            ({"runner_sha256": "0"}, "the runner has changed"),
+            ({"no_fold": True}, "QB64RUST_NO_FOLD=1"),
+            ({"pass_cache": True}, "--pass-cache"),
+            ({"selection": {"list": "tests/corpus/slice.list"}}, "not a full run"),
+            ({"suite": "compile"}, "not a full run"),
+            ({"roots": {"corpus": "elsewhere"}}, "another root"),
+        ]:
+            problems, failures, passed = self.check(self.data(ok, **run))
+            self.assertEqual((failures, passed), ([], 0), run)
+            self.assertTrue(any(why in p for p in problems), (run, problems))
+
+    def test_results_without_a_run_record_fail(self):
+        problems, _, passed = self.check({"results": []})
+        self.assertEqual(passed, 0)
+        self.assertIn("no run record", problems[0])
 
 
 class Tools:
@@ -365,7 +483,9 @@ class CorpusProgram(CorpusFixture):
         self.sidecar("output", b"1\n")
         self.sidecar("exitcode", b"3\n")
         self.assertEqual(self.run_test(Tools(runs=[b"1\n"], run_rc=3)).status, "PASS")
-        self.assert_fail(self.run_test(Tools(runs=[b"1\n"], run_rc=0)), "run", "exit code 0, expected 3")
+        self.assert_fail(
+            self.run_test(Tools(runs=[b"1\n"], run_rc=0)), "run", "exit code 0, expected 3"
+        )
         self.assert_fail(self.run_test(Tools(runs=[b"1\n"], run_rc=4)), "run", "expected 3")
 
     def test_an_exitcode_file_beside_err_or_norun_is_an_error_in_the_test(self):

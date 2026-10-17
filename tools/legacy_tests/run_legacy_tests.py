@@ -918,7 +918,9 @@ def corpus_test(
     stdin_file = tdir / f"{name}.stdin"
     # <name>.exitcode: the exit code the program must end with (END n, SYSTEM n), as the process
     # reports it (Python's returncode: on Windows the unsigned 32-bit value); without it, 0.
-    want_rc = int(exitcode_file.read_text(encoding="latin-1").strip()) if exitcode_file.is_file() else 0
+    want_rc = (
+        int(exitcode_file.read_text(encoding="latin-1").strip()) if exitcode_file.is_file() else 0
+    )
     # --pass-cache: a program that passed with this executable, this source and these expected and
     # input files is not run again. Never with --record, which is what makes the expected files.
     remembered = None
@@ -1179,6 +1181,117 @@ def load_list(path: Path, root: Path) -> set[Path]:
     return wanted
 
 
+REPO = Path(__file__).resolve().parents[2]
+# The format of the "run" record of a results file (check_list reads it).
+RUN_RECORD_VERSION = 1
+
+
+def repo_relative(path: Path) -> str:
+    """A path as a results file records it, so it reveals no local absolute path: relative to this
+    repo when it lies inside the repo's parent folder, else its name only (a longer relative path
+    could still name user folders)."""
+    try:
+        rel = Path(os.path.relpath(path, REPO))
+        return rel.as_posix() if rel.parts.count("..") <= 1 else path.name
+    except ValueError:  # different drive
+        return path.name
+
+
+def file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def fold_is_off() -> bool:
+    """QB64RUST_NO_FOLD=1 turns the compiler's constant folding off (crates/driver/src/lib.rs)."""
+    return os.environ.get("QB64RUST_NO_FOLD") == "1"
+
+
+def result_key(suite: str, bas: Path, root: Path) -> tuple[str, str]:
+    """(suite, test) as a corpus or compile-suite result names the program."""
+    if suite == "corpus":
+        return "corpus", bas.relative_to(root).with_suffix("").as_posix()
+    return "compile_tests", f"{bas.parent.name}/{bas.stem}"
+
+
+def program_inputs(suite: str, bas: Path) -> list[Path]:
+    """The files of a program that decide its result besides the compiler and the runner: the
+    program, every file beside it named <name>.<anything> (expected output, keys, sidecars), the
+    files of <name>.files/, and a compile-suite program's .divergences sidecar. An included file is
+    not among them."""
+    found = [p for p in bas.parent.glob(f"{glob.escape(bas.stem)}.*") if p.is_file()]
+    data = bas.with_name(bas.stem + ".files")
+    if data.is_dir():
+        found += [p for p in data.rglob("*") if p.is_file()]
+    if suite == "compile":
+        sidecar = compile_sidecar(bas.parent.name, bas.stem)
+        if sidecar.is_file():
+            found.append(sidecar)
+    return found
+
+
+def check_list(
+    suite: str, wanted: set[Path], root: Path, data: dict, compiler: Path
+) -> tuple[list[str], list[tuple[str, str]], int]:
+    """Judges a pass list from the results of a full run of its suite instead of running it again
+    (--check-list, study/31 item 3). Returns (the run's problems, the failures as (key, why), the
+    number passed). A problem of the run (another compiler build or runner, another root, folding
+    or pass cache, a partial run, no run record) fails every program; so does a program with no
+    result, a known failure (a pass list needs a pass), any failure, or an input changed after the
+    run started."""
+    run = data.get("run")
+    if not isinstance(run, dict) or run.get("version") != RUN_RECORD_VERSION:
+        return ["the results hold no run record of this runner: run the suite again"], [], 0
+    problems = []
+    if run.get("suite") != suite or run.get("selection"):
+        problems.append(
+            f"not a full run of suite {suite}: {run.get('suite')} {run.get('selection')}"
+        )
+    if run.get("roots", {}).get(suite) != repo_relative(root):
+        problems.append(
+            f"another root: {run.get('roots', {}).get(suite)}, not {repo_relative(root)}"
+        )
+    if run.get("compiler_sha256") != file_sha256(compiler):
+        problems.append("the results are from another build of the compiler")
+    if run.get("runner_sha256") != file_sha256(Path(__file__).resolve()):
+        problems.append("the runner has changed since the run")
+    if run.get("no_fold") != fold_is_off():
+        problems.append(f"the run had QB64RUST_NO_FOLD={'1' if run.get('no_fold') else 'unset'}")
+    if run.get("pass_cache") or run.get("record") or run.get("cpp_opt"):
+        problems.append(
+            "a run with --pass-cache, --record or --cpp-opt cannot stand for a run of the list"
+        )
+    if problems:
+        return problems, [], 0
+    results = {(r["suite"], r["test"]): r for r in data.get("results", [])}
+    started = float(run.get("started", 0))
+    failures: list[tuple[str, str]] = []
+    passed = 0
+    for bas in sorted(wanted):
+        key = result_key(suite, bas, root)
+        name = f"{key[0]}:{key[1]}"
+        r = results.get(key)
+        changed = [p.name for p in program_inputs(suite, bas) if p.stat().st_mtime > started]
+        if r is None:
+            failures.append((name, "no result in the full run"))
+        elif changed:
+            failures.append((name, f"changed after the run started: {', '.join(sorted(changed))}"))
+        elif r["status"] == "KFAIL":
+            failures.append(
+                (name, f"a known failure in the full run; a pass list needs a pass ({r['detail']})")
+            )
+        elif r["status"] != "PASS":
+            failures.append((name, f"{r['stage']}: {r['detail']}"))
+        elif r["detail"] == PASSED_BEFORE:
+            failures.append((name, "not run in the full run (--pass-cache)"))
+        else:
+            passed += 1
+    return [], failures, passed
+
+
 def load_known_failures(path: Path) -> dict[str, str]:
     """Reads known_failures.txt into {"<suite>:<test>": reason} (empty if it does not exist).
 
@@ -1349,6 +1462,13 @@ def main() -> int:
         "(<group>/<name> per line)",
     )
     ap.add_argument(
+        "--check-list",
+        type=Path,
+        help="corpus and compile: run nothing; judge the programs of this pass list from the "
+        "suite's last full run (results-<suite>.json under --results), which must be of this "
+        "compiler build, runner, root and folding, and newer than every listed program's files",
+    )
+    ap.add_argument(
         "--jobs",
         type=int,
         default=1,
@@ -1411,6 +1531,21 @@ def main() -> int:
             "--record uses the default build; it cannot be combined with --cpp-opt", file=sys.stderr
         )
         return 2
+    if args.check_list and (
+        args.suite not in ("corpus", "compile")
+        or args.list
+        or args.category
+        or args.glob != "*.bas"
+        or args.record
+        or args.cpp_opt
+        or args.pass_cache
+    ):
+        print(
+            "--check-list takes --suite corpus or compile, and no --list, --category, --glob, "
+            "--record, --cpp-opt or --pass-cache",
+            file=sys.stderr,
+        )
+        return 2
     known = load_known_failures(args.known_failures)
 
     qb_root = args.qb_root.resolve()
@@ -1418,6 +1553,32 @@ def main() -> int:
     if not args.qb64.is_file():
         print(f"compiler not found: {args.qb64}", file=sys.stderr)
         return 2
+    if args.check_list:
+        root = (
+            args.corpus_root.resolve()
+            if args.suite == "corpus"
+            else (args.compile_tests or qb_root / "tests" / "compile_tests").resolve()
+        )
+        try:
+            wanted = load_list(args.check_list, root)
+        except (ValueError, OSError) as e:
+            print(e, file=sys.stderr)
+            return 2
+        source = args.results.resolve() / f"results-{args.suite}.json"
+        if not source.is_file():
+            print(f"no full run of suite {args.suite} to check against: {source}", file=sys.stderr)
+            return 1
+        data = json.loads(source.read_text(encoding="utf-8"))
+        problems, failures, passed = check_list(args.suite, wanted, root, data, args.qb64)
+        for p in problems:
+            print(f"{source.name}: {p}", flush=True)
+        for key, why in failures:
+            print(f"[check] FAIL {key}  {why}", flush=True)
+        name = "corpus" if args.suite == "corpus" else "compile_tests"
+        failed = len(wanted) - passed
+        print(json.dumps({name: {"PASS": passed, "FAIL": failed, "KFAIL": 0}}))
+        print(f"{args.check_list.name}: {passed} of {len(wanted)} passed in {source.name}")
+        return 0 if failed == 0 else 1
     if args.suite == "verification" and not is_old_compiler(args.qb64):
         print("--suite verification records the old compiler: it needs qb64pe", file=sys.stderr)
         return 2
@@ -1538,6 +1699,7 @@ def main() -> int:
             print(CLONE_BUSY, file=sys.stderr)
             return BUSY_EXIT
 
+    started = time.time()
     for suite, results, tests in selected:
         run_one = functools.partial(
             run_suite_test,
@@ -1631,18 +1793,40 @@ def main() -> int:
         name = "results.json" if args.suite == "all" else f"results-{args.suite}{mode}.json"
     out = args.results.resolve() / name
     out.parent.mkdir(parents=True, exist_ok=True)
-    # Record the compiler relative to this repo so results do not reveal local absolute paths.
-    # Only paths inside the repo's parent folder qualify; anything further away is reduced to
-    # its file name (a relative path could still name user folders).
-    try:
-        rel = Path(os.path.relpath(args.qb64, here.parents[2]))
-        compiler = rel.as_posix() if rel.parts.count("..") <= 1 else args.qb64.name
-    except ValueError:  # different drive
-        compiler = args.qb64.name
+    # What the run was, so that a pass list can be judged from it (check_list) and two results files
+    # compared: the selection, the roots, the settings that change a result, and the identity of the
+    # compiler and of this runner. Paths relative to this repo (repo_relative).
+    selection = {
+        k: v
+        for k, v in {
+            "list": repo_relative(args.list.resolve()) if args.list else None,
+            "category": args.category,
+            "glob": None if args.glob == "*.bas" else args.glob,
+            "names": args.names or None,
+        }.items()
+        if v
+    }
+    run = {
+        "version": RUN_RECORD_VERSION,
+        "suite": args.suite,
+        "selection": selection,
+        "roots": {"corpus": repo_relative(corpus_root), "compile": repo_relative(compile_root)},
+        "no_fold": fold_is_off(),
+        "cpp_opt": args.cpp_opt,
+        "record": args.record,
+        "jobs": args.jobs,
+        "build_cache": bool(args.build_cache),
+        "pass_cache": bool(args.pass_cache),
+        "compiler_sha256": file_sha256(args.qb64),
+        "runner_sha256": file_sha256(Path(__file__).resolve()),
+        "started": round(started, 3),
+        "ended": round(time.time(), 3),
+    }
     out.write_text(
         json.dumps(
             {
-                "compiler": compiler,
+                "compiler": repo_relative(args.qb64),
+                "run": run,
                 "summary": summary,
                 "results": [asdict(r) for r in all_results],
             },

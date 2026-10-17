@@ -10,10 +10,12 @@ python tools\testtime\test_time.py
 
 | File | Content |
 |---|---|
-| `test_time.py` | Reads the transcripts of the Claude Code sessions and writes the three files below |
+| `test_time.py` | Reads the transcripts of the Claude Code sessions and writes the files below |
 | `runs.csv` | One row per run: `session` (the first 8 characters of its id), `start` (local time), `bucket`, `kind`, `seconds`, `background` (1: not waited for), `result` (`pass`, `fail`, or empty: not known), `repeat_after` (empty, or the result of the run this one repeats: `pass`, `fail`, `unknown`) |
 | `sessions.csv` | One row per session: `start`, `end`, `active_seconds`, `command_seconds` |
-| `REPORT.md` | The summary: in all, by day, by kind of run with results, runs repeated with nothing edited, the 20 longest runs. Made from the two CSV files; not edited by hand |
+| `changes.csv` | Since 2026-10-16 (`study\31` item 4), format `version` 1: one row per session and change ("Changes" below): `first`, `last`, `active_seconds`, the seconds waited for `test`, `measure` and `build` runs, `background_seconds`, `repeats`, `longest_wait`, `idle_stretches`, `idle_seconds`, `longest_idle`, `last_code_edit` (the last edit of product code), `archived` (when, if this session archived it) |
+| `activity.csv` | Since 2026-10-16, format `version` 1: one row per session, change and kind of work ("Kinds of work" below): `actions`, `bytes` (written by edits) |
+| `REPORT.md` | The summary: in all, by day, by kind of run with results, runs repeated with nothing edited, the 20 longest runs, by change, by kind of work. Made from the four CSV files; not edited by hand |
 | `test_record.py` | Tests of the script's rules (`python -m unittest discover -s tools/testtime -p "test_*.py"`): a change to what counts as a run, or to what is read as its result, comes with a change there |
 
 ## Where the numbers come from
@@ -95,6 +97,46 @@ was filled or cleared. So the table "Runs repeated with nothing
 edited" is an upper bound of the runs that could have been left out, and it does not count a rerun of the same
 tests by a different command line.
 
+## Changes
+
+Which OpenSpec change a moment of work belongs to is read from the workflow's own steps, so nothing is kept by
+hand: a change is **named** by `openspec new change NAME`, `openspec archive NAME`, `openspec validate NAME`,
+`--change NAME`, and by any read, edit or command that names a file of its folder `openspec\changes\NAME\`
+(not of the archive: reading an archived change is not working on it). Each moment of a session belongs to the
+change named last before it; before the first naming, and after an archive until the next naming, to none
+("no change named"). A change is **archived** by `openspec archive NAME` or by moving its folder into the archive
+(as some were), when the command did not fail.
+
+So the time of a change is a guess, a good one where a session works on one change: a session that works on two
+gives each the stretch after it was named; reading a change's tasks to answer a question about it moves the time
+there; work before a change's proposal (measuring, exploring) is "no change named". *Elapsed* is calendar time
+(nights, other changes and the user's time included); *active* is by the rule of "Active time" below; an *idle
+stretch* is a gap of more than 5 minutes inside a session. The report marks a change in the archive whose
+archiving no transcript shows as "archived, not seen" (it ends where it was last seen). The per-change sums equal
+the session totals of `sessions.csv` and `runs.csv` up to rounding (2026-10-16, all 277 sessions: 8 s of 94 h of
+active time, at most 3 s of a bucket's waiting).
+
+## Kinds of work
+
+Each tool call is one action of one kind; an edit (`Edit`, `Write`, `MultiEdit`) also counts the bytes it put in.
+These are counts, **not time**: the transcript does not say how long a piece of writing or reading took.
+
+| Kind | What |
+|---|---|
+| product code | an edit of `crates\` (not its tests), `vscode\` (not its tests), `.rs`, `.cpp`, `.h`, `.ts`, `.toml` |
+| tests and fixtures | an edit of `crates\*\tests\`, `tests\`, `tools\` (the test tooling), `test_*.py`, `vscode\src\test\`, `.github\` |
+| measurement preparation | an edit of `verification\` |
+| documents and planning | an edit of `.md`, `.yaml`, `openspec\`, `study\` |
+| generated files | an edit of a snapshot, a recorded `.output`, `.err` or `.screen`, this folder's CSV files and report, `builtins.json`, `old_wording.tsv` |
+| scratch files | an edit of a file in a temporary folder: a script or a program for one task |
+| reading | `Read`, `Grep`, `Glob`, `LSP`, `WebFetch`, `WebSearch`, `ToolSearch` |
+| test runs, measurement runs, builds | a command with a run of that bucket ("Kinds" above) |
+| other commands | any other command: `git`, `ls`, `grep`, a scratch script, an edit by `sed` (a shell command's purpose is not read) |
+| other | any other tool, and an edit of another file |
+
+The first rule that fits wins, in the order generated, scratch, measurement, tests, product, documents. No path,
+command or text is written: only the change's name, the kind and the counts.
+
 ## Reading the report
 
 - **Active time** is the time Claude worked: the time inside commands, plus every gap between two lines of a
@@ -124,5 +166,8 @@ tests by a different command line.
   for, and the rest in the background, which carries the result.
 - **A background run counts until its end was reported** to the session; one whose session ended first is left
   out.
-- **Which change a run belonged to** is not recorded.
+- **Which change a run belonged to** is a guess ("Changes" above), and how long a kind of work took is not known
+  ("Kinds of work"): coding time is not measured, only waiting for runs is.
+- **Not separated**: the time a command waited for a lock (another run in the clone) or for the user to allow it
+  is inside its time; a run started through a wrapper is not seen (above).
 - Sessions of subagents are part of their parent's transcript and counted with it.

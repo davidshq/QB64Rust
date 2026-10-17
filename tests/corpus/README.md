@@ -46,12 +46,31 @@ run; `.gitattributes` keeps the bytes. Beside an `.err` or a `.norun` the folder
 A program that reaches `END` prints an empty line and `Press any key to continue` (no line end) on Windows; that
 trailer is part of its `.output`.
 
-## Counts (recorded 2026-10-03; `slice` as each change added its programs, the last 2026-10-16)
+## Counts
+
+Written by `python tools\legacy_tests\counts.py` (`tools\legacy_tests\README.md`), not by hand: what the folders
+and `slice.list` hold, and what the last full run of the release build gave.
+
+<!-- counts:corpus-membership -->
+`slice.list` names **440** programs. By folder:
+
+| Folder | Programs | `.output` | `.err` | `.norun` | `.screen` | In `slice.list` |
+|---|---|---|---|---|---|---|
+| `runtime_comparison` | 261 | 235 | 20 | 1 | 0 | 236 |
+| `screen` | 66 | 66 | 0 | 0 | 66 | 66 |
+| `slice` | 136 | 136 | 0 | 0 | 0 | 136 |
+| `verification` | 2 | 2 | 0 | 0 | 0 | 2 |
+<!-- /counts:corpus-membership -->
+
+<!-- counts:corpus-results -->
+Last full run: 2026-10-16, compiler build `cbde4b06ba8c`, folding on, `--jobs 8`, build cache, 1 min. Of 465 programs: **459 pass**, 1 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 5 known failures (`target\legacy-tests\results-corpus.json`).
+`slice.list` judged in it (`--check-list`): **440 of 440** pass.
+<!-- /counts:corpus-results -->
+
+Kept by hand (recorded 2026-10-03; `slice` as each change added its programs):
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 136 |
-| `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
 | `.normalize` sidecars | 3 (`212` `PATH` length, `234` `TIMER`, `238` a folder name in `cmd`'s error) | 0 | 0 |

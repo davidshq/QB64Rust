@@ -77,6 +77,10 @@ class Classify(unittest.TestCase):
             ("npm run lint", [(TEST, "extension tests (npm)")]),
             ("npm run compile", [(BUILD, "extension build (npm)")]),
             ("../QB64pe/qb64pe.exe -x t.bas -o t.exe", [(MEASURE, "old compiler run directly")]),
+            (
+                f"{RUNNER} {NEW} --suite corpus --check-list tests/corpus/slice.list",
+                [(TEST, "pass list checked from a full run")],
+            ),
         ]
         for command, expected in cases:
             with self.subTest(command=command):
@@ -417,6 +421,212 @@ class ReadSession(unittest.TestCase):
 
     def test_a_transcript_without_a_time_is_none(self):
         self.assertIsNone(self.read(["not json", json.dumps({"message": {}})]))
+
+
+def tool(ident: str, name: str, **arg) -> dict:
+    return {"type": "tool_use", "id": ident, "name": name, "input": arg}
+
+
+class Changes(unittest.TestCase):
+    """changes.csv and activity.csv (study\\31 item 4): which change a moment belongs to, and what
+    kind of work each tool call is."""
+
+    def read(self, lines: list[str]):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "s.jsonl"
+            path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            work: dict = {}
+            runs, row = test_time.read_session(path, work)
+            return runs, row, {c["change"]: c for c in work["changes"]}, work["activity"]
+
+    def test_the_commands_that_name_a_change(self):
+        named = test_time.changes_named
+        self.assertEqual(named('openspec new change "m3-x"'), (["m3-x"], []))
+        self.assertEqual(named("openspec archive m3-x -y"), (["m3-x"], ["m3-x"]))
+        self.assertEqual(named("openspec archive -y m3-x"), (["m3-x"], ["m3-x"]))
+        self.assertEqual(named("openspec status --change m3-x --json"), (["m3-x"], []))
+        self.assertEqual(named("openspec validate m3-x"), (["m3-x"], []))
+        self.assertEqual(named("cat openspec/changes/m3-x/tasks.md"), (["m3-x"], []))
+        self.assertEqual(named("cat openspec\\changes\\m3-x\\tasks.md"), (["m3-x"], []))
+        # Archived by moving the folder; asking for the archive's instructions archives nothing.
+        moved = "test ! -e archive/2026-10-14-m3-x && mv m3-x archive/2026-10-14-m3-x && ls"
+        self.assertEqual(named(moved), (["m3-x"], ["m3-x"]))
+        self.assertEqual(named("openspec instructions archive --change m3-x"), (["m3-x"], []))
+        # Not a change: the archive, a list of all, the folder itself, a file beside the changes.
+        for command in (
+            "cat openspec/changes/archive/2026-10-16-m3-x/design.md",
+            "ls openspec/changes/archive",
+            "openspec list",
+            "ls openspec/changes/",
+            "openspec validate --all",
+        ):
+            self.assertEqual(named(command), ([], []), command)
+
+    def test_the_kind_of_an_edit_by_its_path(self):
+        cases = {
+            "r\\crates\\sema\\src\\check\\mod.rs": test_time.PRODUCT,
+            "r\\crates\\driver\\tests\\cli.rs": test_time.TESTS,
+            "r\\tests\\corpus\\slice\\s01.bas": test_time.TESTS,
+            "r\\tools\\legacy_tests\\run_legacy_tests.py": test_time.TESTS,
+            "r\\crates\\driver\\tests\\snapshots\\x.snap": test_time.GENERATED,
+            "r\\tests\\corpus\\slice\\s01.output": test_time.GENERATED,
+            "r\\tools\\testtime\\REPORT.md": test_time.GENERATED,
+            "r\\verification\\v39_a.bas": test_time.PREPARATION,
+            "r\\STATUS.md": test_time.DOCUMENTS,
+            "r\\openspec\\changes\\m3-x\\tasks.md": test_time.DOCUMENTS,
+            "r\\Cargo.toml": test_time.PRODUCT,
+            "r\\vscode\\package.json": test_time.PRODUCT,
+            "r\\.github\\workflows\\rust.yml": test_time.TESTS,
+            "u\\Temp\\claude\\x\\scratchpad\\edit.py": test_time.SCRATCH,
+            "/tmp/t.bas": test_time.SCRATCH,
+            "r\\.gitignore": test_time.OTHER,
+        }
+        for path, kind in cases.items():
+            self.assertEqual(test_time.file_category(path), kind, path)
+
+    def test_a_change_from_its_first_naming_to_its_archive(self):
+        archive = "openspec archive m3-x -y"
+        runs, row, changes, activity = self.read(
+            [
+                at("00:00", [says("start")]),
+                at("00:30", [tool("a", "Read", file_path="r/STATUS.md")]),
+                at("00:31", [result("a")]),
+                at("01:00", [use("b", 'openspec new change "m3-x"')]),
+                at("01:02", [result("b")]),
+                at(
+                    "01:10",
+                    [tool("c", "Write", file_path="r/crates/sema/src/a.rs", content="abcd")],
+                ),
+                at("01:11", [result("c")]),
+                at("02:00", [use("d", "cargo test")]),
+                at("02:40", [result("d", "test result: ok.")]),
+                # The user away for 20 minutes.
+                at("22:40", [use("e", "cargo test", background=True)]),
+                at("22:41", [result("e", "Command running in background with ID: bg1")]),
+                at("25:41", [says("<task-id>bg1</task-id> done")]),
+                at("26:00", [use("f", archive)]),
+                at("26:05", [result("f", "Change 'm3-x' archived")]),
+                # After the archive the work belongs to no change.
+                at("27:00", [says("done")]),
+            ]
+        )
+        x, none = changes["m3-x"], changes[test_time.NO_CHANGE]
+        # Minutes and seconds: the rows are in local time.
+        self.assertEqual((none["first"][-5:], none["last"][-5:]), ("00:00", "27:00"))
+        self.assertEqual(none["active_seconds"], str(60 + 55))
+        self.assertEqual(
+            (x["first"][-5:], x["last"][-5:], x["archived"][-5:]), ("01:00", "26:05", "26:05")
+        )
+        self.assertEqual(x["test_seconds"], "40")
+        self.assertEqual((x["background_seconds"], x["longest_wait"]), ("181", "40"))
+        self.assertEqual((x["idle_stretches"], x["idle_seconds"]), ("1", "1200"))
+        self.assertEqual(x["last_code_edit"][-5:], "01:10")
+        # Every second of the session's active time belongs to one row, and every run's time.
+        total = sum(int(c["active_seconds"]) for c in changes.values())
+        self.assertEqual(total, int(row["active_seconds"]))
+        waited = sum(float(r["seconds"]) for r in runs if r["background"] == "0")
+        self.assertEqual(sum(float(c["test_seconds"]) for c in changes.values()), waited)
+        kinds = {(a["change"], a["category"]): (a["actions"], a["bytes"]) for a in activity}
+        self.assertEqual(kinds[("m3-x", test_time.PRODUCT)], ("1", "4"))
+        self.assertEqual(kinds[(test_time.NO_CHANGE, test_time.READING)], ("1", "0"))
+        self.assertEqual(kinds[("m3-x", test_time.TEST_RUNS)], ("2", "0"))
+        # `openspec new change` and `openspec archive`.
+        self.assertEqual(kinds[("m3-x", test_time.OTHER_COMMANDS)], ("2", "0"))
+
+    def test_work_on_two_changes_in_one_session_goes_to_the_one_named_last(self):
+        _, _, changes, _ = self.read(
+            [
+                at("00:00", [tool("a", "Read", file_path="r/openspec/changes/one/tasks.md")]),
+                at("01:00", [result("a")]),
+                at(
+                    "02:00",
+                    [
+                        tool(
+                            "b",
+                            "Edit",
+                            file_path="r/openspec/changes/two/tasks.md",
+                            new_string="x",
+                        )
+                    ],
+                ),
+                at("03:00", [result("b")]),
+                # Reading an archived change does not move the work to it.
+                at(
+                    "03:30",
+                    [
+                        tool(
+                            "c",
+                            "Read",
+                            file_path="r/openspec/changes/archive/2026-10-01-one/design.md",
+                        )
+                    ],
+                ),
+                at("04:00", [result("c")]),
+            ]
+        )
+        self.assertEqual(sorted(changes), ["one", "two"])
+        # A line held twice is one action.
+        edit = tool("b", "Edit", file_path="r/crates/a/src/x.rs", new_string="xy")
+        _, _, _, activity = self.read(
+            [at("00:00", [edit]), at("00:00", [edit]), at("00:10", [result("b")])]
+        )
+        self.assertEqual(
+            [(a["category"], a["actions"], a["bytes"]) for a in activity],
+            [(test_time.PRODUCT, "1", "2")],
+        )
+        self.assertEqual(
+            (changes["one"]["active_seconds"], changes["two"]["active_seconds"]), ("120", "120")
+        )
+
+    def test_an_archive_that_did_not_run_completes_nothing(self):
+        refused = test_time.NOT_RUN[0] + ". The tool use was rejected."
+        for text, error in ((refused, True), ("Error: change not found", True)):
+            _, _, changes, _ = self.read(
+                [
+                    at("00:00", [use("a", "openspec archive m3-x")]),
+                    at("00:10", [result("a", text, error)]),
+                ]
+            )
+            self.assertEqual(changes["m3-x"]["archived"], "", text)
+
+    def test_the_report_sums_a_change_over_its_sessions(self):
+        row = dict.fromkeys(test_time.CHANGE_FIELDS, "0")
+        one = {
+            **row,
+            "session": "s1",
+            "change": "m3-x",
+            "first": "2026-10-13 10:00:00",
+            "last": "2026-10-13 11:00:00",
+            "active_seconds": "600",
+            "last_code_edit": "2026-10-13 10:30:00",
+            "archived": "",
+        }
+        two = {
+            **row,
+            "session": "s2",
+            "change": "m3-x",
+            "first": "2026-10-14 09:00:00",
+            "last": "2026-10-14 09:30:00",
+            "active_seconds": "300",
+            "last_code_edit": "",
+            "archived": "2026-10-14 09:30:00",
+        }
+        open_ = {
+            **one,
+            "change": "m3-y",
+            "first": "2026-10-14 10:00:00",
+            "last": "2026-10-14 10:05:00",
+        }
+        lines = test_time.by_change([two, one, open_])
+        self.assertIn(
+            "| m3-x | archived | 2 | 2026-10-13 10:00 | 2026-10-14 09:30 | 23 h 30 min | 15 min 00 s |",
+            lines[2],
+        )
+        self.assertTrue(lines[2].endswith("| 23 h 00 min |"), lines[2])
+        self.assertIn(
+            "| m3-y | open | 1 | 2026-10-14 10:00 | 2026-10-14 10:05 (last seen) | 5 min 00 s |",
+            lines[3],
+        )
 
 
 if __name__ == "__main__":

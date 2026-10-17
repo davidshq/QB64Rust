@@ -1,10 +1,16 @@
 //! One test per scenario of the `compiler/cli` spec. Tests that build an executable need the QB64pe reference
 //! clone and its toolchain; they are `#[ignore]`d and run by hand: `cargo test -p qb64rust-driver --test cli --
-//! --ignored`.
+//! --ignored`. Every child process runs through `support`, with a deadline and no dialog to wait on; a test that
+//! builds takes the reference clone's lock first.
+
+mod support;
 
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+use std::time::Duration;
+
+use support::{COMPILER_LIMIT, PROGRAM_LIMIT, lock_clone, run, unattended};
 
 const SLICE_PROGRAM: &str = "$CONSOLE:ONLY\nx = 1 / 4\nPRINT \"x=\"; x; INSTR(3, \"hello\", \"l\")\nEND\n";
 
@@ -34,12 +40,19 @@ fn scratch(name: &str) -> Scratch {
     )
 }
 
-fn qb64rust(dir: &Path, args: &[&str]) -> Output {
+fn compiler() -> Command {
     Command::new(env!("CARGO_BIN_EXE_qb64rust"))
-        .current_dir(dir)
-        .args(args)
-        .output()
-        .unwrap()
+}
+
+/// A run of the compiler that stops before `make` (a dump, `-z`, a report, an error), so it needs no lock.
+fn qb64rust(dir: &Path, args: &[&str]) -> Output {
+    run(compiler().current_dir(dir).args(args), None, COMPILER_LIMIT, "compiler")
+}
+
+/// A run of the compiler that builds: it runs `make` in the reference clone, so it takes the clone's lock first.
+fn qb64rust_build(dir: &Path, args: &[&str]) -> Output {
+    lock_clone();
+    qb64rust(dir, args)
 }
 
 #[expect(clippy::disallowed_methods, reason = "the compiler's own messages")]
@@ -53,7 +66,7 @@ fn runners_compile_line() {
     let d = scratch("runner");
     std::fs::write(d.join("prog.bas"), SLICE_PROGRAM).unwrap();
     let exe = d.join("prog.exe");
-    let o = qb64rust(&d, &["-q", "-m", "-x", "prog.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(&d, &["-q", "-m", "-x", "prog.bas", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
     assert!(exe.is_file());
     assert!(
@@ -68,7 +81,7 @@ fn compile_suites_settings() {
     let d = scratch("settings");
     std::fs::write(d.join("prog.bas"), SLICE_PROGRAM).unwrap();
     let exe = d.join("prog - output.exe"); // the suite's naming: spaces in the name
-    let o = qb64rust(
+    let o = qb64rust_build(
         &d,
         &[
             "-f:OptimizeCppProgram=true",
@@ -135,12 +148,13 @@ fn license_file() {
     let build = |settings: &[&str], cached: bool| {
         let mut args = settings.to_vec();
         args.extend(["-q", "-m", "-x", "p.bas", "-o", "p.exe"]);
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_qb64rust"));
+        let mut cmd = compiler();
         cmd.current_dir(&d).args(&args);
         if cached {
             cmd.env("QB64RUST_BUILD_CACHE", &cache);
         }
-        let o = cmd.output().unwrap();
+        lock_clone();
+        let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
         assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
         assert!(d.join("p.exe").is_file());
     };
@@ -278,12 +292,15 @@ fn no_clone_found() {
     let d = scratch("noclone");
     std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
     std::fs::write(d.join("p.exe"), b"stale").unwrap();
-    let o = Command::new(env!("CARGO_BIN_EXE_qb64rust"))
-        .current_dir(&d)
-        .env("QB64RUST_QB64PE_ROOT", d.join("no-such-clone"))
-        .args(["-q", "p.bas"])
-        .output()
-        .unwrap();
+    let o = run(
+        compiler()
+            .current_dir(&d)
+            .env("QB64RUST_QB64PE_ROOT", d.join("no-such-clone"))
+            .args(["-q", "p.bas"]),
+        None,
+        COMPILER_LIMIT,
+        "compiler",
+    );
     assert_eq!(o.status.code(), Some(1));
     let out = stdout(&o);
     assert!(
@@ -378,15 +395,15 @@ fn extra_linker_flags_link_the_screen_state_file() {
     let exe = d.join("p.exe");
     let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
     let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
     let state = d.join("state.txt");
-    let run = Command::new(&exe)
-        .current_dir(&d)
-        .env("QB64_SCREEN_STATE", &state)
-        .stdin(std::process::Stdio::null())
-        .output()
-        .unwrap();
+    let run = run(
+        unattended(&exe).current_dir(&d).env("QB64_SCREEN_STATE", &state),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
     assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
     let text = std::fs::read(&state).unwrap();
     assert!(
@@ -414,18 +431,20 @@ fn screen_state_prompt_that_never_comes() {
     let exe = d.join("p.exe");
     let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
     let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
     let state = d.join("state.txt");
-    let run = Command::new(&exe)
-        .current_dir(&d)
-        .env("QB64_SCREEN_STATE", &state)
-        .env("QB64_SCREEN_KEYS", d.join("p.keys"))
-        // Long enough that the box is drawn on a loaded machine (500 ms failed once, `study\30` §8).
-        .env("QB64_SCREEN_PROMPT_MS", "5000")
-        .stdin(std::process::Stdio::null())
-        .output()
-        .unwrap();
+    let run = run(
+        unattended(&exe)
+            .current_dir(&d)
+            .env("QB64_SCREEN_STATE", &state)
+            .env("QB64_SCREEN_KEYS", d.join("p.keys"))
+            // Long enough that the box is drawn on a loaded machine (500 ms failed once, `study\30` §8).
+            .env("QB64_SCREEN_PROMPT_MS", "5000"),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
     assert_eq!(run.status.code(), Some(124));
     let text = std::fs::read(&state).unwrap();
     assert!(text.starts_with(b"screen-state 1\n"), "{}", text.escape_ascii());
@@ -453,7 +472,7 @@ fn screen_state_mistake_in_a_mouse_step() {
     let exe = d.join("p.exe");
     let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
     let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
     for (keys, line) in [
         ("mouse 40 30\npress 9\n", 2),
@@ -462,13 +481,15 @@ fn screen_state_mistake_in_a_mouse_step() {
         ("wheel 0\n", 1),
     ] {
         std::fs::write(d.join("p.keys"), keys).unwrap();
-        let run = Command::new(&exe)
-            .current_dir(&d)
-            .env("QB64_SCREEN_STATE", d.join("state.txt"))
-            .env("QB64_SCREEN_KEYS", d.join("p.keys"))
-            .stdin(std::process::Stdio::null())
-            .output()
-            .unwrap();
+        let run = run(
+            unattended(&exe)
+                .current_dir(&d)
+                .env("QB64_SCREEN_STATE", d.join("state.txt"))
+                .env("QB64_SCREEN_KEYS", d.join("p.keys")),
+            None,
+            PROGRAM_LIMIT,
+            "program",
+        );
         assert_eq!(run.status.code(), Some(125), "{keys:?}");
         let err = run.stderr.escape_ascii().to_string();
         assert!(
@@ -494,17 +515,19 @@ fn screen_state_mouse_step_of_a_hidden_window() {
     let exe = d.join("p.exe");
     let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
     let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
     let state = d.join("state.txt");
-    let run = Command::new(&exe)
-        .current_dir(&d)
-        .env("QB64_SCREEN_STATE", &state)
-        .env("QB64_SCREEN_KEYS", d.join("p.keys"))
-        .env("QB64_SCREEN_PROMPT_MS", "500")
-        .stdin(std::process::Stdio::null())
-        .output()
-        .unwrap();
+    let run = run(
+        unattended(&exe)
+            .current_dir(&d)
+            .env("QB64_SCREEN_STATE", &state)
+            .env("QB64_SCREEN_KEYS", d.join("p.keys"))
+            .env("QB64_SCREEN_PROMPT_MS", "500"),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
     assert_eq!(run.status.code(), Some(124));
     let text = std::fs::read(&state).unwrap();
     assert!(
@@ -649,7 +672,7 @@ fn exe_icon_that_is_no_icon_fails_the_build() {
     std::fs::write(d.join("game.ico"), "this is not an icon\n").unwrap();
     std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\n$EXEICON:'./game.ico'\nSYSTEM\n").unwrap();
     let exe = d.join("p.exe");
-    let o = qb64rust(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
     assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
     assert!(!exe.exists());
 }
@@ -667,7 +690,7 @@ fn civil_war_strategy_builds() {
         std::fs::copy(game.join(file), d.join(file)).unwrap();
     }
     let exe = d.join("CWSTRAT.exe");
-    let o = qb64rust(&d, &["-q", "-x", "CWSTRAT.BAS", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(&d, &["-q", "-x", "CWSTRAT.BAS", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
     assert_eq!(stdout(&o), "", "a diagnostic or a warning");
     let ico = std::fs::read(d.join("cws.ico")).unwrap();
@@ -688,17 +711,16 @@ fn build_and_run(d: &Path, program: &str) -> String {
 fn build_and_run_tracing(d: &Path, program: &str, rows: &str) -> String {
     std::fs::write(d.join("p.bas"), program).unwrap();
     let exe = d.join("p.exe");
-    let o = qb64rust(d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
     let trace = d.join("divergences.txt");
     let _ = std::fs::remove_file(&trace);
-    let run = Command::new(&exe)
-        .current_dir(d)
-        .env("QB64PE_NOPROMPT", "y")
-        .env("QB64RUST_DIVERGENCES", &trace)
-        .stdin(std::process::Stdio::null())
-        .output()
-        .unwrap();
+    let run = run(
+        unattended(&exe).current_dir(d).env("QB64RUST_DIVERGENCES", &trace),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
     assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
     let taken: Vec<u8> = std::fs::read(&trace)
         .unwrap_or_default()
@@ -812,18 +834,20 @@ fn an_error_that_ends_the_program_traces_nothing() {
                    a(9).m = 5\nPRINT \"after\"\nSYSTEM\n";
     std::fs::write(d.join("p.bas"), program).unwrap();
     let exe = d.join("p.exe");
-    let o = qb64rust(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
     for (noprompt, rows, output) in [("y", "", "before\n"), ("continue", "D-003\nD-004\n", "before\nafter\n")] {
         let trace = d.join("divergences.txt");
         let _ = std::fs::remove_file(&trace);
-        let run = Command::new(&exe)
-            .current_dir(&d)
-            .env("QB64PE_NOPROMPT", noprompt)
-            .env("QB64RUST_DIVERGENCES", &trace)
-            .stdin(std::process::Stdio::null())
-            .output()
-            .unwrap();
+        let run = run(
+            unattended(&exe)
+                .current_dir(&d)
+                .env("QB64PE_NOPROMPT", noprompt)
+                .env("QB64RUST_DIVERGENCES", &trace),
+            None,
+            PROGRAM_LIMIT,
+            "program",
+        );
         assert_eq!(stdout(&run).replace("\r\n", "\n"), output, "QB64PE_NOPROMPT={noprompt}");
         let taken: Vec<u8> = std::fs::read(&trace)
             .unwrap_or_default()
@@ -948,7 +972,7 @@ fn chained_power_warning() {
     let d = scratch("pow-warning");
     std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nCONST c = 2 ^ 3 ^ 2\nPRINT c\nSYSTEM\n").unwrap();
     let exe = d.join("p.exe");
-    let o = qb64rust(&d, &["-w", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(&d, &["-w", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
     assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
     let out = stdout(&o);
     assert!(
@@ -957,15 +981,11 @@ fn chained_power_warning() {
     );
     assert!(!out.contains("error"), "{out}");
     assert!(exe.is_file());
-    let run = Command::new(&exe)
-        .current_dir(&d)
-        .stdin(std::process::Stdio::null())
-        .output()
-        .unwrap();
+    let run = run(unattended(&exe).current_dir(&d), None, PROGRAM_LIMIT, "program");
     assert_eq!(stdout(&run).replace("\r\n", "\n"), " 512 \n");
 
     std::fs::remove_file(&exe).unwrap();
-    let o = qb64rust(&d, &["-q", "-m", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(&d, &["-q", "-m", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
     assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
     assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
     assert!(exe.is_file());
@@ -1091,12 +1111,12 @@ fn internal_compiler_error() {
     let d = scratch("ice");
     std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
     let run = |args: &[&str]| {
-        Command::new(env!("CARGO_BIN_EXE_qb64rust"))
-            .current_dir(&d)
-            .env("QB64RUST_TEST_PANIC", "1")
-            .args(args)
-            .output()
-            .unwrap()
+        support::run(
+            compiler().current_dir(&d).env("QB64RUST_TEST_PANIC", "1").args(args),
+            None,
+            COMPILER_LIMIT,
+            "compiler",
+        )
     };
 
     std::fs::write(d.join("p.exe"), b"stale").unwrap();
@@ -1122,34 +1142,25 @@ fn internal_compiler_error() {
 /// exit code 0 after `shutdown` and `exit`.
 #[test]
 fn language_server() {
-    use std::io::{Read as _, Write as _};
-    use std::process::Stdio;
     let d = scratch("lsp");
-    let mut child = Command::new(env!("CARGO_BIN_EXE_qb64rust"))
-        .current_dir(&d)
-        .arg("lsp")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
     let messages = [
         r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}"#,
         r#"{"jsonrpc":"2.0","method":"initialized","params":{}}"#,
         r#"{"jsonrpc":"2.0","id":2,"method":"shutdown"}"#,
         r#"{"jsonrpc":"2.0","method":"exit"}"#,
     ];
-    let mut stdin = child.stdin.take().unwrap();
-    for m in messages {
-        write!(stdin, "Content-Length: {}\r\n\r\n{m}", m.len()).unwrap();
-    }
-    drop(stdin);
-    let mut out = Vec::new();
-    child.stdout.take().unwrap().read_to_end(&mut out).unwrap();
-    let status = child.wait().unwrap();
-    #[expect(clippy::disallowed_methods, reason = "protocol messages, not BASIC source")]
-    let out = String::from_utf8_lossy(&out).to_string();
-    assert_eq!(status.code(), Some(0), "{out}");
+    let input: String = messages
+        .iter()
+        .map(|m| format!("Content-Length: {}\r\n\r\n{m}", m.len()))
+        .collect();
+    let o = run(
+        compiler().current_dir(&d).arg("lsp"),
+        Some(input.as_bytes()),
+        COMPILER_LIMIT,
+        "language server",
+    );
+    let out = stdout(&o);
+    assert_eq!(o.status.code(), Some(0), "{out}");
     assert!(
         out.contains(r#""id":1"#) && out.contains("documentSymbolProvider"),
         "{out}"
@@ -1265,11 +1276,14 @@ fn build_v37_libraries(dir: &Path) {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../verification/v37_lib");
     let out = |name: &str| dir.join(name).to_string_lossy().into_owned();
     let run = |tool: &str, args: &[&str]| {
-        let o = Command::new(bin.join(format!("{tool}.exe")))
-            .current_dir(&src)
-            .args(args)
-            .output()
-            .unwrap();
+        let o = support::run(
+            Command::new(bin.join(format!("{tool}.exe")))
+                .current_dir(&src)
+                .args(args),
+            None,
+            COMPILER_LIMIT,
+            "toolchain",
+        );
         assert!(o.status.success(), "{tool} {args:?}: {}", text(&o.stderr));
     };
     run("gcc", &["-O2", "-c", "v37c.c", "-o", &out("v37c.o")]);
@@ -1302,14 +1316,16 @@ fn library_files_are_linked_and_called() {
                    PRINT c_add&(1, 2); x; c_hello$; cpp_add&(20, 22); o_ticks&; ct_half#(5); d_add&(2, 3); d_hello$\nSYSTEM\n";
     std::fs::write(d.join("lib.bas"), program).unwrap();
     let exe = d.join("lib.exe");
-    let o = qb64rust(&d, &["-q", "lib.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(&d, &["-q", "lib.bas", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
-    let run = Command::new(&exe).current_dir(&d).output().unwrap();
+    let run = run(unattended(&exe).current_dir(&d), None, PROGRAM_LIMIT, "program");
     assert_eq!(text(&run.stdout), " 3  42 c-hello 42  2  2.5  5 d-hello\r\n");
 }
 
 /// `language/external-libraries`, "A name the DLL does not export": error 260 before the first statement, which
-/// `ON ERROR` does not catch (measured, `verification\v37_j`).
+/// `ON ERROR` does not catch (measured, `verification\v37_j`). libqb writes the error to stderr and, unless
+/// `QB64PE_NOPROMPT` is set, then opens a dialog that waits for a person (`gui_alert`); `support::unattended` sets
+/// it.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn a_function_the_dll_does_not_export_is_error_260() {
@@ -1320,9 +1336,9 @@ fn a_function_the_dll_does_not_export_is_error_260() {
                    END DECLARE\nPRINT \"start\"\nSYSTEM\nhandler:\nPRINT \"handled\"; ERR\nRESUME NEXT\n";
     std::fs::write(d.join("dll.bas"), program).unwrap();
     let exe = d.join("dll.exe");
-    let o = qb64rust(&d, &["-q", "dll.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(&d, &["-q", "dll.bas", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
-    let run = Command::new(&exe).current_dir(&d).output().unwrap();
+    let run = run(unattended(&exe).current_dir(&d), None, PROGRAM_LIMIT, "program");
     assert_eq!(text(&run.stdout), "");
     assert!(
         text(&run.stderr).contains("Runtime error: Sub/Function does not exist in dynamic library"),
@@ -1436,4 +1452,52 @@ fn library_errors_before_the_cpp() {
         "{}",
         stdout(&o)
     );
+}
+
+/// `support::try_run` past its deadline (`study\31` item 1): the child is ended in time with the process it started,
+/// and what it printed is kept. The child, `cmd`, starts a second `cmd` that writes a tick to a file every second;
+/// once the tree is killed, the file stops growing.
+#[cfg(windows)]
+#[test]
+fn a_child_past_its_deadline_is_killed_with_its_tree() {
+    use std::os::windows::process::CommandExt as _;
+    let d = scratch("deadline");
+    let ticks = d.join("ticks.txt");
+    let mut cmd = Command::new("cmd");
+    cmd.current_dir(&d).raw_arg(
+        r#"/D /C cmd /D /C "for /L %i in (1,1,60) do @(echo tick%i & echo x>>ticks.txt & ping -n 2 127.0.0.1 >nul)""#,
+    );
+    let start = std::time::Instant::now();
+    let Err(timeout) = support::try_run(&mut cmd, None, Duration::from_secs(3)) else {
+        panic!("the child ended by itself");
+    };
+    assert!(start.elapsed() < Duration::from_secs(15), "{:?}", start.elapsed());
+    assert_eq!(timeout.reason, "did not end in time; its process tree was killed");
+    assert!(timeout.stdout.starts_with(b"tick1"), "{}", timeout);
+    let written = std::fs::metadata(&ticks).unwrap().len();
+    assert!(written > 0);
+    std::thread::sleep(Duration::from_millis(2500));
+    assert_eq!(
+        std::fs::metadata(&ticks).unwrap().len(),
+        written,
+        "the grandchild still writes"
+    );
+}
+
+/// A child that writes more than a pipe holds to both stdout and stderr ends, with both read whole.
+#[cfg(windows)]
+#[test]
+fn a_child_with_much_output_is_read_whole() {
+    use std::os::windows::process::CommandExt as _;
+    let d = scratch("much-output");
+    let text = "0123456789abcdef".repeat(4) + "\r\n";
+    let text = text.repeat(20_000).into_bytes();
+    std::fs::write(d.join("big.txt"), &text).unwrap();
+    let mut cmd = Command::new("cmd");
+    cmd.current_dir(&d)
+        .raw_arg(r#"/D /C "type big.txt 1>&2 & type big.txt""#);
+    let o = run(&mut cmd, None, PROGRAM_LIMIT, "type");
+    assert!(o.status.success());
+    assert!(o.stdout == text, "stdout: {} of {} bytes", o.stdout.len(), text.len());
+    assert!(o.stderr == text, "stderr: {} of {} bytes", o.stderr.len(), text.len());
 }
