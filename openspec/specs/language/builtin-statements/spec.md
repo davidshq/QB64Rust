@@ -16,7 +16,7 @@ runtime error in one does, and the behaviour of the statements that belong to no
 PRINT`, `PSET`, `PRESET`, `LINE`, `CIRCLE`, `PAINT`, `DRAW`, `VIEW`, `WINDOW`, `PALETTE`, `PCOPY`, `_LIMIT`,
 `_DELAY`, `SLEEP`, `_DISPLAY`, graphics `GET` and graphics `PUT` (`language/screen-output`), and the statements of
 conventional memory `DEF SEG`, `POKE`, `BLOAD`, `BSAVE` (`language/conventional-memory`), and the sound
-statements `SOUND`, `PLAY`, `BEEP` (`language/sound`), `PRINT USING` (`language/print-using`), the statements of
+statements `SOUND`, `PLAY`, `BEEP` and the sound handle statements `_SNDCLOSE`, `_SNDPLAY`, `_SNDPLAYCOPY`, `_SNDPLAYFILE`, `_SNDPAUSE`, `_SNDSTOP`, `_SNDLOOP`, `_SNDVOL`, `_SNDBAL`, `_SNDSETPOS`, `_SNDLIMIT`, `_SNDRAW`, `_SNDRAWBATCH`, `_SNDRAWDONE`, `_MIDISOUNDBANK`, `_WAVE` (`language/sound`), `PRINT USING` (`language/print-using`), the statements of
 files read and written by position `GET`, `PUT`, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`
 (`language/record-files`), `LPRINT` and `CHAIN`, and the image, font and mouse statements
 (`language/images`, `language/fonts`, `language/mouse`): `_SAVEIMAGE`, `_PUTIMAGE`, `_MAPTRIANGLE`,

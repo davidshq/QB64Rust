@@ -580,7 +580,7 @@ icon, of a library file or of a header a block names, SHALL NOT share a cached e
 - **THEN** `git status --porcelain` in the reference clone prints the same as before the build
 
 #### Scenario: A program with sound
-- **WHEN** a program names `SOUND` or `PLAY`
+- **WHEN** a program names `SOUND`, `PLAY` or another built-in of the audio part (`_SNDOPEN`, `_SNDRAW`, `_MIDISOUNDBANK`, `_WAVE`, `_MEMSOUND`, …)
 - **THEN** it is built with the make flag the old compiler passes for the audio dependency, and a program
   without them is built without it
 

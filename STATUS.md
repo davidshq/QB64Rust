@@ -19,7 +19,7 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 ## Where we are
 
 M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: sixteen of its steps are done (table below); the
-sixteenth, `m3-sound-handles`, is built and committed on branch `changes` (`b1a818d`), not archived yet. Every
+sixteenth, `m3-sound-handles`, is built, committed on branch `changes` (`b1a818d`) and archived. Every
 program of the corpus that the old compiler accepts compiles, and every one that can be compared passes; Civil
 War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same 23
 screens as the old compiler's build. Upstream is at 325 of 399. `main` is at the merge of `m3` (pull request 5,
@@ -34,11 +34,7 @@ questionable behaviours each change kept QB64pe's way.
 
 1. **Merge `changes` into `main`**: the three changes of `447bb05` and `m3-sound-handles` (`b1a818d`) since the
    last merge (`DECISIONS.md` 2026-10-16, "every two or three changes").
-2. **Archive `m3-sound-handles`** (`openspec archive m3-sound-handles`), now that it is committed.
-3. **The velocity plan (`study\31`) is built; two choices of Claude's to confirm** (`DECISIONS.md` 2026-10-16):
-   `crates\README.md`'s feature catalogue kept whole as the closed record `study\support-record.md` rather than
-   deleted, and working rule 9's close judging the slice list and upstream pass list from the full suites
-   (`--check-list`) instead of running them again.
+2. **The next M3 step** (see "Next").
 
 **The `tier2` job on `m3`** (`study\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -50,7 +46,7 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-`m3-sound-handles` (row 16) is built; `m3` goes to `main` every two or three changes. The next M3 step is the
+`m3-sound-handles` (row 16) is archived; `m3` goes to `main` every two or three changes. The next M3 step is the
 user's choice: the upstream report's first lines are `_ARRAYCOPY` (4, deferred), `$VERSIONINFO` (4) and the event
 handlers and switches (4 each); the plain copy of `internal\c` waits until libqb must change.
 
@@ -75,7 +71,7 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 13 | `2026-10-16-m3-measured-copies` | what owner types copy after an error done QB64pe's way where no memory is misused (`v38`); D-019, D-021, D-022 narrowed |
 | 14 | `2026-10-16-m3-divergence-trace` | the run-time trace of divergences (`QB64RUST_DIVERGENCES`), checked by the runner and the CLI tests |
 | 15 | `2026-10-16-m3-old-wording-notes` | the old compiler's wording as a note after an error, from recorded output |
-| 16 | `m3-sound-handles` (not archived yet) | `_SNDOPEN`, the `_SND*` family, `_MIDISOUNDBANK`, `_WAVE`: every name of the audio part; `_MEMSOUND` run |
+| 16 | `2026-10-16-m3-sound-handles` | `_SNDOPEN`, the `_SND*` family, `_MIDISOUNDBANK`, `_WAVE`: every name of the audio part; `_MEMSOUND` run |
 
 ## Numbers at the last full runs
 

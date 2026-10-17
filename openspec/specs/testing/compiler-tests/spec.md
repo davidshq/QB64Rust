@@ -111,8 +111,7 @@ either is missing. For a built-in that no test runs (a window built-in, `languag
 which rings the machine's bell, `language/sound`; `CHAIN`, which starts another compiler, and `LPRINT`, which
 prints a page, `language/builtin-statements`; `_SCREENIMAGE`, `_CLIPBOARDIMAGE`, `_PRINTIMAGE`, `_DEPTHBUFFER`
 and the 3-D form of `_MAPTRIANGLE`, which read the desktop or the clipboard, print a page or draw through
-OpenGL, `language/images`; `_MOUSEMOVE`, which moves the machine's cursor, `language/mouse`; `_MEMSOUND`, which needs a sound handle
-that no supported statement gives, `language/mem-blocks`), the slice program
+OpenGL, `language/images`; `_MOUSEMOVE`, which moves the machine's cursor, `language/mouse`), the slice program
 SHALL hold it as code that is compiled and not reached, and the built-in SHALL also have a call-site program for
 each of its forms; the list of such built-ins SHALL be explicit, and `cargo test` SHALL fail when one of them has
 no call-site program.
