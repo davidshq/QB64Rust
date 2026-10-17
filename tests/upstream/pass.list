@@ -60,6 +60,10 @@ arrays/91_type_codegen_nested_inline_owner
 arrays/92_type_codegen_dynamic_varstrings
 arrays/93_type_codegen_dynamic_owner_udt
 arrays/94_type_codegen_inline_descriptor_udt
+arrays/ArrayCopyTest
+arrays/ArrayCopyTest_1
+arrays/ArrayCopyTest_2
+arrays/ArrayCopyTest_3
 arrays/Retain_Preserve
 arrays/array_arg_dimensions_transitive
 arrays/array_elements_change

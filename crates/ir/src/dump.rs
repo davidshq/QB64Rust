@@ -316,6 +316,22 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     let (from, to) = (array_text(p, from), array_text(p, to));
                     writeln!(out, "  CopyArray {from} -> {to}:{t}").unwrap();
                 }
+                Op::ArrayCopy {
+                    from,
+                    to,
+                    ranges,
+                    starts,
+                } => {
+                    let t = ty(p, p.array_ty(to));
+                    let ranges: Vec<String> = ranges
+                        .iter()
+                        .map(|(lower, upper)| format!("{} TO {}", val(p, lower), val(p, upper)))
+                        .collect();
+                    let starts: Vec<String> = starts.iter().map(|v| val(p, v)).collect();
+                    let (from, to) = (array_text(p, from), array_text(p, to));
+                    let (ranges, starts) = (ranges.join(", "), starts.join(", "));
+                    writeln!(out, "  ArrayCopy {from}({ranges}) -> {to}({starts}):{t}").unwrap();
+                }
                 Op::Print { to, items, newline } => {
                     let to = print_to(p, to);
                     writeln!(out, "  Print {to}{}", if *newline { " newline" } else { "" }).unwrap();

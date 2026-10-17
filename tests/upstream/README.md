@@ -101,12 +101,13 @@ job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 202
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:upstream-membership -->
-**Upstream progress: 328 of 399**: the programs of `pass.list` of the suite's 404 programs less the 5 of `deferred.list`.
+**Upstream progress: 332 of 403**: the programs of `pass.list` of the suite's 404 programs less the 1 of `deferred.list`.
 <!-- /counts:upstream-membership -->
 
 <!-- counts:upstream-results -->
-Last full run: 2026-10-16, compiler build `31c0f3717751`, folding on, `--jobs 8`, build cache, 4 min. Of 404 programs: **328 pass**, 75 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 1 known failure (`target\legacy-tests\results-compile.json`).
-`pass.list` judged in it (`--check-list`): **328 of 328** pass.
+Last full run: 2026-10-17, compiler build `b20ca5ae9ac2`, folding on, `--jobs 8`, build cache, 6 min. Of 404 programs: **331 pass**, 72 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 1 known failure (`target\legacy-tests\results-compile.json`).
+`pass.list` judged in it (`--check-list`): **331 of 332** pass.
+- compile_tests:midi/midisoundbank_file_test: run: timeout
 <!-- /counts:upstream-results -->
 
 The "Upstream progress" paragraphs below are the history up to 2026-10-16, one per change; a later change adds
@@ -114,10 +115,12 @@ none: what joined `pass.list` is in its `tasks.md`, and the numbers are the bloc
 
 - `pass.list`: the upstream programs the new compiler passes. A ratchet: add a program when it passes, never
   remove one.
-- `deferred.list`: the 5 programs that need a feature deferred to `SOMEDAY.md` (`_ARRAYCOPY` 4) or left out of
-  a change (`arrays/t001_whole_array_core`: a plain scalar beside an array typed by `DIM … AS`, user,
-  2026-10-15), found by pattern and checked by eye. `REDIM _RETAIN` compiles since `m3-redim-retain`,
-  `$UNSTABLE:TYPEFIELDS` since `m3-typefields` and whole-array assignment since `m3-whole-array-assign`. 97
+- `deferred.list`: the program left out of a change (`arrays/t001_whole_array_core`: a plain scalar beside an
+  array typed by `DIM … AS`, user, 2026-10-15); it held the programs that needed a feature deferred to
+  `SOMEDAY.md`, found by pattern and checked by eye. `REDIM _RETAIN` compiles since `m3-redim-retain`,
+  `$UNSTABLE:TYPEFIELDS` since `m3-typefields`, whole-array assignment since `m3-whole-array-assign` and
+  `_ARRAYCOPY` since `m3-arraycopy` (its 4 programs left with task 3.4 of the change, each passing on its first
+  run). 97
   programs left it with `m3-typefields`: 18 with its group 2, 74 with its group 3, 5 with its group 5 (`t266` and
   `t267` left with group 3, came back with group 4 and left with group 5; each passing on its first run; the
   change's `tasks.md`). 16 left it with `m3-whole-array-assign` (12 accepted programs and 4 `.err` ones, with its

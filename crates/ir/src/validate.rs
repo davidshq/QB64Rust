@@ -400,6 +400,44 @@ impl Validator<'_> {
                     }
                 }
             }
+            // One element type of a kind the copy takes; the ranges and the starts none or one per dimension where
+            // the number is known; each an `I64`.
+            Op::ArrayCopy {
+                from,
+                to,
+                ranges,
+                starts,
+            } => {
+                let from_ref = self.array_ref(from, owner, at, "ArrayCopy");
+                let to_ref = self.array_ref(to, owner, at, "ArrayCopy");
+                if let (Some((fname, _)), Some((tname, _))) = (&from_ref, &to_ref) {
+                    let (ft, tt) = (self.p.array_ty(from), self.p.array_ty(to));
+                    if ft != tt {
+                        self.problem(format!(
+                            "{at}: an ArrayCopy from {fname} of {ft:?} to {tname} of {tt:?}"
+                        ));
+                    } else if matches!(ft, Ty::User(_) | Ty::Bit { .. }) {
+                        self.problem(format!("{at}: an ArrayCopy of {fname} of {ft:?}"));
+                    }
+                }
+                for ((side, count), what) in [(&from_ref, ranges.len()), (&to_ref, starts.len())]
+                    .into_iter()
+                    .zip(["ranges", "starts"])
+                {
+                    if let Some((name, Some(n))) = side
+                        && count != 0
+                        && count != *n
+                    {
+                        self.problem(format!("{at}: {count} {what} for {name} of {n} dimensions"));
+                    }
+                }
+                for v in ranges.iter().flat_map(|(lower, upper)| [lower, upper]).chain(starts) {
+                    if v.ty != Ty::I64 {
+                        self.problem(format!("{at}: a bound or start of type {:?}", v.ty));
+                    }
+                    self.value(v, owner, at);
+                }
+            }
             Op::Print { to, items, .. } => {
                 if let PrintTo::File(n) = to {
                     self.file_number(n, owner, at);
@@ -1767,6 +1805,51 @@ mod tests {
             to: ArrayRef::Var(VarId(3)),
         };
         assert_eq!(problems(&p), [format!("{at}: CopyArray of G, which is no array")]);
+    }
+
+    /// `ArrayCopy` (design D4 of `m3-arraycopy`): one element type, of a kind the copy takes; ranges and starts
+    /// none or one per dimension; each an `I64`; both sides arrays.
+    #[test]
+    fn array_copy_problems() {
+        let mut p = arrays();
+        let one = || expr(Ty::I64, ExprKind::Int(1));
+        let copy = |ranges: Vec<(Expr, Expr)>, starts: Vec<Expr>| Op::ArrayCopy {
+            from: ArrayRef::Var(VarId(3)),
+            to: ArrayRef::Var(VarId(4)),
+            ranges,
+            starts,
+        };
+        p.main.stmts[0].ops.push(copy(vec![(one(), one())], vec![one()]));
+        assert_eq!(problems(&p), Vec::<String>::new());
+        let at = "main: statement 0 (line 1)";
+        p.vars[4].ty = Ty::F64;
+        assert_eq!(problems(&p), [format!("{at}: an ArrayCopy from S of I32 to D of F64")]);
+        p.vars[3].ty = Ty::Bit { width: 1, signed: true };
+        p.vars[4].ty = p.vars[3].ty;
+        assert_eq!(
+            problems(&p),
+            [format!("{at}: an ArrayCopy of S of Bit {{ width: 1, signed: true }}")]
+        );
+        p.vars[3].ty = Ty::I32;
+        p.vars[4].ty = Ty::I32;
+        *p.main.stmts[0].ops.last_mut().expect("the copy") = copy(vec![(one(), one()); 2], vec![one(); 2]);
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: 2 ranges for S of 1 dimensions"),
+                format!("{at}: 2 starts for D of 1 dimensions")
+            ]
+        );
+        let narrow = expr(Ty::I32, ExprKind::Int(1));
+        *p.main.stmts[0].ops.last_mut().expect("the copy") = copy(Vec::new(), vec![narrow]);
+        assert_eq!(problems(&p), [format!("{at}: a bound or start of type I32")]);
+        *p.main.stmts[0].ops.last_mut().expect("the copy") = Op::ArrayCopy {
+            from: ArrayRef::Var(VarId(0)),
+            to: ArrayRef::Var(VarId(4)),
+            ranges: Vec::new(),
+            starts: Vec::new(),
+        };
+        assert_eq!(problems(&p), [format!("{at}: ArrayCopy of G, which is no array")]);
     }
 
     #[test]

@@ -498,6 +498,34 @@ pub enum Op {
     ///
     /// The target keeps its bounds. Always may raise.
     CopyArray { from: ArrayRef, to: ArrayRef },
+    /// Copy elements of the array `from` into the array `to` (`_ARRAYCOPY`; design D4 of `m3-arraycopy`; measured,
+    /// `study\00` §5, the `v41` paragraph). Both have one element type: a number type, `_OFFSET`, `STRING * n` or
+    /// `STRING`; each is an array variable or a member array. `ranges` is the source's lower and upper bound per
+    /// dimension, none for the whole array; `starts` the destination's first indexes, one per dimension, none for
+    /// the whole array; each an `I64`. In this order:
+    ///
+    /// 1. `from`'s place is found, then `to`'s, each once (an [`ArrayRef::Member`] with indexes on the way: an index
+    ///    outside its bounds raises error 9, and the member of the element at position 0 stands in; a dynamic
+    ///    member that a `REDIM` gave another number of dimensions than declared raises error 9 and is not copied);
+    /// 2. every lower bound, then every upper bound, then every start is evaluated, first dimension first. **A
+    ///    raising bound or start does not stop the copy**, which goes on with its value;
+    /// 3. **if finding a place raised, nothing is copied** (`DIVERGENCES.md` D-004: the old compiler copies
+    ///    through the member of element 0);
+    /// 4. both arrays must be allocated (a static array always is, also after `ERASE`); every range must lie in
+    ///    the source with its lower bound not above its upper; the elements must fit in the destination: from the
+    ///    starts, or, with no starts, at the indexes the range gives them (with no ranges either: one dimension,
+    ///    the source's own indexes; several, the same bounds on both sides). Else error 9 and nothing is copied;
+    /// 5. the elements are copied as if all were read before any is written (the two may overlap or be one
+    ///    array): a range's elements to the starts, each coordinate mapped by itself; a whole source in its order
+    ///    of elements from the starts; a `STRING` as a string of its own.
+    ///
+    /// Always may raise.
+    ArrayCopy {
+        from: ArrayRef,
+        to: ArrayRef,
+        ranges: Vec<(Expr, Expr)>,
+        starts: Vec<Expr>,
+    },
     /// Items in order, to the program's destination of text, to the file with a number (an `I32`) or to the
     /// printer ([`PrintTo`]); a raising item skips the rest, including the line end. In a file a
     /// [`PrintItem::Zone`] is 14 columns wide, on the console 10 (the runtime's).
@@ -665,6 +693,7 @@ impl Op {
             | Op::Return(_)
             | Op::Allocate { .. }
             | Op::CopyArray { .. }
+            | Op::ArrayCopy { .. }
             | Op::MemGet { .. }
             | Op::MemPut { .. }
             | Op::MemFill { .. } => true,

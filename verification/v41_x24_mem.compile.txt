@@ -1,0 +1,5 @@
+
+_ArrayCopy supports only byte-aligned numeric or fixed-length STRING arrays
+Caused by (or after):_ARRAYCOPY A ( ) TO B ( )
+LINE 4:_ARRAYCOPY a() TO b()
+exit=1

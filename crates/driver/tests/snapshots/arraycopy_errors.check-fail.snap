@@ -1,0 +1,112 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+arraycopy_errors.bas:26:16: error: expected `TO` and the target array
+arraycopy_errors.bas:27:23: error: one `TO` stands between the source and the destination of `_ARRAYCOPY`
+arraycopy_errors.bas:27:23: note: QB64pe: Expected one TO between _ArrayCopy source and destination
+arraycopy_errors.bas:28:15: error: expected `TO` and the target array
+arraycopy_errors.bas:29:15: error: expected an expression
+arraycopy_errors.bas:30:15: error: expected `TO` and the target array
+arraycopy_errors.bas:31:18: error: expected a variable name
+arraycopy_errors.bas:32:1: error: `_ARRAYCOPY` takes one of `s() TO d()`, `s(lo TO hi) TO d(start)`, `s() TO d(start, …)`, `s(lo TO hi) TO d()`, `s(lo TO hi, …) TO d(start, …)` and `s(lo TO hi, …) TO d()`
+arraycopy_errors.bas:33:1: error: `_ARRAYCOPY` takes one of `s() TO d()`, `s(lo TO hi) TO d(start)`, `s() TO d(start, …)`, `s(lo TO hi) TO d()`, `s(lo TO hi, …) TO d(start, …)` and `s(lo TO hi, …) TO d()`
+arraycopy_errors.bas:34:1: error: `_ARRAYCOPY` takes one of `s() TO d()`, `s(lo TO hi) TO d(start)`, `s() TO d(start, …)`, `s(lo TO hi) TO d()`, `s(lo TO hi, …) TO d(start, …)` and `s(lo TO hi, …) TO d()`
+arraycopy_errors.bas:35:1: error: `_ARRAYCOPY` takes one of `s() TO d()`, `s(lo TO hi) TO d(start)`, `s() TO d(start, …)`, `s(lo TO hi) TO d()`, `s(lo TO hi, …) TO d(start, …)` and `s(lo TO hi, …) TO d()`
+arraycopy_errors.bas:36:1: error: `_ARRAYCOPY` takes one of `s() TO d()`, `s(lo TO hi) TO d(start)`, `s() TO d(start, …)`, `s(lo TO hi) TO d()`, `s(lo TO hi, …) TO d(start, …)` and `s(lo TO hi, …) TO d()`
+arraycopy_errors.bas:37:12: error: expected a variable name
+arraycopy_errors.bas:39:12: error: the source of `_ARRAYCOPY` must be an array: `x` names none here
+arraycopy_errors.bas:39:12: note: QB64pe: _ArrayCopy source must be an array
+arraycopy_errors.bas:40:19: error: the destination of `_ARRAYCOPY` must be an array: `x` names none here
+arraycopy_errors.bas:40:19: note: QB64pe: _ArrayCopy destination must be an array
+arraycopy_errors.bas:41:12: error: the source of `_ARRAYCOPY` must be an array: `zz` names none here
+arraycopy_errors.bas:41:12: note: QB64pe: _ArrayCopy source must be an array
+arraycopy_errors.bas:42:19: error: the destination of `_ARRAYCOPY` must be an array: `zz` names none here
+arraycopy_errors.bas:42:19: note: QB64pe: _ArrayCopy destination must be an array
+arraycopy_errors.bas:43:12: error: the source of `_ARRAYCOPY` must be an array named without a type suffix: `a%`
+arraycopy_errors.bas:43:12: note: QB64pe: _ArrayCopy source must be an array
+arraycopy_errors.bas:44:12: error: the source of `_ARRAYCOPY` must be an array named without a type suffix: `a&`
+arraycopy_errors.bas:44:12: note: QB64pe: _ArrayCopy source must be an array
+arraycopy_errors.bas:45:12: error: the source of `_ARRAYCOPY` must be an array: `fn` names none here
+arraycopy_errors.bas:45:12: note: QB64pe: _ArrayCopy source must be an array
+arraycopy_errors.bas:46:12: error: the source of `_ARRAYCOPY` must be an array: `k` names none here
+arraycopy_errors.bas:46:12: note: QB64pe: _ArrayCopy source must be an array
+arraycopy_errors.bas:47:12: error: the source of `_ARRAYCOPY` must be an array: `pv.x` is a member that is no array
+arraycopy_errors.bas:47:12: note: QB64pe: _ArrayCopy source must be an array
+arraycopy_errors.bas:48:14: error: an index is expected between the parentheses
+arraycopy_errors.bas:48:14: note: QB64pe: Expected array index
+arraycopy_errors.bas:50:1: error: `_ARRAYCOPY` copies between arrays of one element type, not `LONG` and `INTEGER`
+arraycopy_errors.bas:50:1: note: QB64pe: _ArrayCopy requires arrays with the same element type
+arraycopy_errors.bas:51:1: error: `_ARRAYCOPY` copies between arrays of one element type, not `LONG` and `_UNSIGNED LONG`
+arraycopy_errors.bas:51:1: note: QB64pe: _ArrayCopy requires arrays with the same element type
+arraycopy_errors.bas:52:1: error: `_ARRAYCOPY` copies between arrays of one element type, not `SINGLE` and `DOUBLE`
+arraycopy_errors.bas:52:1: note: QB64pe: _ArrayCopy requires arrays with the same element type
+arraycopy_errors.bas:53:1: error: `_ARRAYCOPY` copies between arrays of one element type, not `STRING` and `STRING * 4`
+arraycopy_errors.bas:53:1: note: QB64pe: _ArrayCopy requires arrays with the same element type
+arraycopy_errors.bas:54:1: error: `_ARRAYCOPY` copies between arrays of one element type, not `STRING * 4` and `STRING`
+arraycopy_errors.bas:54:1: note: QB64pe: _ArrayCopy requires arrays with the same element type
+arraycopy_errors.bas:55:1: error: `_ARRAYCOPY` copies between arrays of one element type, not `STRING * 4` and `STRING * 5`
+arraycopy_errors.bas:55:1: note: QB64pe: _ArrayCopy requires fixed-length STRING arrays with the same element size
+arraycopy_errors.bas:56:1: error: `_ARRAYCOPY` copies arrays of numbers, `_OFFSET` and strings, not of `P`
+arraycopy_errors.bas:56:1: note: QB64pe: _ArrayCopy supports only byte-aligned numeric or fixed-length STRING arrays
+arraycopy_errors.bas:57:1: error: `_ARRAYCOPY` copies arrays of numbers, `_OFFSET` and strings, not of `_BIT`
+arraycopy_errors.bas:57:1: note: QB64pe: _ArrayCopy supports only byte-aligned numeric or fixed-length STRING arrays
+arraycopy_errors.bas:58:1: error: `_ARRAYCOPY` copies arrays of numbers, `_OFFSET` and strings, not of `_BIT * 4`
+arraycopy_errors.bas:58:1: note: QB64pe: _ArrayCopy supports only byte-aligned numeric or fixed-length STRING arrays
+arraycopy_errors.bas:59:1: error: `_ARRAYCOPY` copies arrays of numbers, `_OFFSET` and strings, not of `_MEM`
+arraycopy_errors.bas:59:1: note: QB64pe: _ArrayCopy supports only byte-aligned numeric or fixed-length STRING arrays
+arraycopy_errors.bas:60:1: error: `_ARRAYCOPY` copies arrays of numbers, `_OFFSET` and strings, not of `P`
+arraycopy_errors.bas:60:1: note: QB64pe: _ArrayCopy supports only byte-aligned numeric or fixed-length STRING arrays
+arraycopy_errors.bas:61:1: error: `_ARRAYCOPY` copies between arrays of one element type, not `_OFFSET` and `_UNSIGNED _OFFSET`
+arraycopy_errors.bas:61:1: note: QB64pe: _ArrayCopy requires arrays with the same element type
+arraycopy_errors.bas:62:1: error: `_ARRAYCOPY` copies between arrays of one element type, not `_INTEGER64` and `_OFFSET`
+arraycopy_errors.bas:62:1: note: QB64pe: _ArrayCopy requires arrays with the same element type
+arraycopy_errors.bas:63:1: error: `_ARRAYCOPY` copies between arrays of one element type, not `INTEGER` and `LONG`
+arraycopy_errors.bas:63:1: note: QB64pe: _ArrayCopy requires arrays with the same element type
+arraycopy_errors.bas:65:1: error: `m` has 2 dimensions: a range `lo TO hi` alone, or a start alone, is for arrays of one dimension
+arraycopy_errors.bas:66:1: error: `a` has 1 dimension and `n` has 2: `_ARRAYCOPY` needs as many on both sides here
+arraycopy_errors.bas:66:1: note: QB64pe: _ArrayCopy whole-array source and destination must have the same number of dimensions
+arraycopy_errors.bas:67:1: error: `a` has 1 dimension and `n` has 2: `_ARRAYCOPY` needs as many on both sides here
+arraycopy_errors.bas:67:1: note: QB64pe: _ArrayCopy whole-array source and destination must have the same number of dimensions
+arraycopy_errors.bas:68:1: error: `n` has 2 dimensions: `_ARRAYCOPY` needs a start for each, not 1
+arraycopy_errors.bas:68:1: note: QB64pe: _ArrayCopy destination start coordinate count must match destination dimensions
+arraycopy_errors.bas:69:1: error: `b` has 1 dimension: `_ARRAYCOPY` needs a start for each, not 2
+arraycopy_errors.bas:69:1: note: QB64pe: _ArrayCopy destination start coordinate count must match destination dimensions
+arraycopy_errors.bas:70:1: error: `a` has 1 dimension: `_ARRAYCOPY` with more than one range needs a source of two dimensions or more
+arraycopy_errors.bas:70:1: note: QB64pe: _ArrayCopy multidimensional source ranges require at least two dimensions
+arraycopy_errors.bas:71:1: error: `m3` has 3 dimensions: `_ARRAYCOPY` needs a range for each, not 2
+arraycopy_errors.bas:71:1: note: QB64pe: _ArrayCopy source range count must match source dimensions
+arraycopy_errors.bas:72:1: error: `n` has 2 dimensions: `_ARRAYCOPY` needs a start for each, not 1
+arraycopy_errors.bas:72:1: note: QB64pe: _ArrayCopy destination start coordinate count must match destination dimensions
+arraycopy_errors.bas:73:1: error: `n` has 2 dimensions: `_ARRAYCOPY` needs a start for each, not 3
+arraycopy_errors.bas:73:1: note: QB64pe: _ArrayCopy destination start coordinate count must match destination dimensions
+arraycopy_errors.bas:74:22: error: each range of `_ARRAYCOPY` is written `lower TO upper`
+arraycopy_errors.bas:74:22: note: QB64pe: _ArrayCopy source dimension requires lower TO upper
+arraycopy_errors.bas:75:21: error: expected `,` or `)`
+arraycopy_errors.bas:76:38: error: expected an expression
+arraycopy_errors.bas:77:22: error: expected an expression
+arraycopy_errors.bas:78:1: error: `a` has 1 dimension: `_ARRAYCOPY` with more than one range needs a source of two dimensions or more
+arraycopy_errors.bas:78:1: note: QB64pe: _ArrayCopy multidimensional source ranges require at least two dimensions
+arraycopy_errors.bas:79:1: error: `m` has 2 dimensions and `n3` has 3: `_ARRAYCOPY` needs as many on both sides here
+arraycopy_errors.bas:79:1: note: QB64pe: _ArrayCopy whole-array source and destination must have the same number of dimensions
+arraycopy_errors.bas:80:1: error: `sm` has 2 dimensions: a range `lo TO hi` alone, or a start alone, is for arrays of one dimension
+arraycopy_errors.bas:81:1: error: `st` has 1 dimension and `sn` has 2: `_ARRAYCOPY` needs as many on both sides here
+arraycopy_errors.bas:81:1: note: QB64pe: _ArrayCopy whole-array source and destination must have the same number of dimensions
+arraycopy_errors.bas:82:1: error: `sm` has 2 dimensions and `s3` has 3: `_ARRAYCOPY` of `STRING` arrays with ranges needs as many on both sides, two or more
+arraycopy_errors.bas:82:1: note: QB64pe: _ArrayCopy source and destination must have the same multidimensional shape rank
+arraycopy_errors.bas:83:1: error: `sm` has 2 dimensions and `u` has 1: `_ARRAYCOPY` needs as many on both sides here
+arraycopy_errors.bas:83:1: note: QB64pe: _ArrayCopy whole-array source and destination must have the same number of dimensions
+arraycopy_errors.bas:85:14: error: a bound of `_ARRAYCOPY` must be a number
+arraycopy_errors.bas:85:14: note: QB64pe: Illegal string-number conversion
+arraycopy_errors.bas:86:27: error: a start of `_ARRAYCOPY` must be a number
+arraycopy_errors.bas:86:27: note: QB64pe: Illegal string-number conversion
+arraycopy_errors.bas:98:5: error: `y` has 2 dimensions: `_ARRAYCOPY` needs a start for each, not 1
+arraycopy_errors.bas:98:5: note: QB64pe: _ArrayCopy destination start coordinate count must match destination dimensions
+arraycopy_errors.bas:102:5: error: the number of dimensions of `x` is not known here: nothing else in the program gives it, and `_ARRAYCOPY` does not
+arraycopy_errors.bas:102:5: note: QB64pe: _ArrayCopy cannot determine the array dimensions
+arraycopy_errors.bas:106:5: error: `x` has 2 dimensions and `y` has 1: `_ARRAYCOPY` needs as many on both sides here
+arraycopy_errors.bas:106:5: note: QB64pe: _ArrayCopy whole-array source and destination must have the same number of dimensions
+arraycopy_errors.bas:111:5: error: the number of dimensions of `x` is not known here: nothing else in the program gives it, and `_ARRAYCOPY` does not
+arraycopy_errors.bas:111:5: note: QB64pe: _ArrayCopy cannot determine the array dimensions
+arraycopy_errors.bas:115:5: error: the number of dimensions of `x` is not known here: nothing else in the program gives it, and `_ARRAYCOPY` does not
+arraycopy_errors.bas:115:5: note: QB64pe: _ArrayCopy cannot determine the array dimensions

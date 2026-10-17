@@ -52,19 +52,20 @@ Written by `python tools\legacy_tests\counts.py` (`tools\legacy_tests\README.md`
 and `slice.list` hold, and what the last full run of the release build gave.
 
 <!-- counts:corpus-membership -->
-`slice.list` names **441** programs. By folder:
+`slice.list` names **444** programs. By folder:
 
 | Folder | Programs | `.output` | `.err` | `.norun` | `.screen` | In `slice.list` |
 |---|---|---|---|---|---|---|
 | `runtime_comparison` | 261 | 235 | 20 | 1 | 0 | 236 |
 | `screen` | 66 | 66 | 0 | 0 | 66 | 66 |
-| `slice` | 137 | 137 | 0 | 0 | 0 | 137 |
+| `slice` | 140 | 140 | 0 | 0 | 0 | 140 |
 | `verification` | 2 | 2 | 0 | 0 | 0 | 2 |
 <!-- /counts:corpus-membership -->
 
 <!-- counts:corpus-results -->
-Last full run: 2026-10-16, compiler build `31c0f3717751`, folding on, `--jobs 8`, build cache, 4 min. Of 466 programs: **460 pass**, 1 does not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 5 known failures (`target\legacy-tests\results-corpus.json`).
-`slice.list` judged in it (`--check-list`): **441 of 441** pass.
+Last full run: 2026-10-17, compiler build `b20ca5ae9ac2`, folding on, `--jobs 8`, build cache, 7 min. Of 468 programs: **461 pass**, 2 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 5 known failures (`target\legacy-tests\results-corpus.json`).
+`slice.list` judged in it (`--check-list`): **442 of 443** pass.
+- corpus:slice/s127_sound_handles: run: exit code 3221225477
 <!-- /counts:corpus-results -->
 
 Kept by hand (recorded 2026-10-03; `slice` as each change added its programs):
@@ -195,7 +196,11 @@ because the program was cut with the game's sound option off), `c12_prompts` and
 `m3-scripted-game`.
 
 `slice.list` names the 440 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`. Joined with `m3-sound-handles` (each left the recorded output on its first run, and passed
+`QB64RUST_NO_FOLD=1`. Joined with `m3-arraycopy` (each left the recorded output on its first run):
+`s131_arraycopy` (`verification\v41_a`, `v41_b`, `v41_c`, `v41_f`, `v41_g`, `v41_h`, without `_FLOAT` arrays) and
+`s132_arraycopy_members` (`v41_d`, `v41_e`, `v41_k`); the two divergences of the change, `DIVERGENCES.md` D-004
+and D-025, are left out and held by CLI tests. `s131`'s recording holds NUL bytes, the elements of a `STRING * 3`
+array never set, which both compilers print alike. Joined with `m3-sound-handles` (each left the recorded output on its first run, and passed
 with the old compiler eight at a time): `s127_sound_handles` (`verification\v39_a`), `s128_sound_new_memory`
 (`v39_b`) and `s129_sound_files_raw_midi` (`v39_c`), which build their WAV and MIDI data in strings, play only
 silence or at volume 0, and print only what is exact on any sound device (design D5 of the change). Joined with

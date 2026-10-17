@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):_ARRAYCOPY A ( 1 TO 2 ) TO B ( "0",1 )
+LINE 4:_ARRAYCOPY a(1 TO 2) TO b("0")
+exit=1

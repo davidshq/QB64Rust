@@ -1,0 +1,7 @@
+1. array to a member: [] [one] [two] [three]
+2. after the source changed: [two]
+3. range to whole member: [] [one] [two] []
+4. member to member: [] [one] [two] []
+5. overlap: [] [] [one] [two]
+6. neighbours: 0  0 
+exit=0

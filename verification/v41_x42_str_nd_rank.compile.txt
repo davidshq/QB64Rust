@@ -1,0 +1,5 @@
+
+_ArrayCopy source and destination must have the same multidimensional shape rank
+Caused by (or after):_ARRAYCOPY SM ( 1 TO 2 , 1 TO 2 ) TO S3 ( 0 , 0 , 0 )
+LINE 4:_ARRAYCOPY sm(1 TO 2, 1 TO 2) TO s3(0, 0, 0)
+exit=1

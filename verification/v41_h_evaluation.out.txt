@@ -1,0 +1,20 @@
+1. order: f2 f4 f6
+ 0  0  0  0  0  0  2  3  4  0 
+2. order with members: f1 f2 f2 f3 f1
+    0  0 
+3. 2D order: f1 f3 f2 f3 f0 f1
+4. halves:
+ 2  3  4 -1 -1 -1 -1 -1 -1 -1 
+5. near halves:
+-1 -1 -1 -1  2  3 -1 -1 -1 -1 
+6. parentheses:
+-1 -1 -1 -1 -1  1  2  3 -1 -1 
+7. other types:
+-1 -1 -1 -1  2  3 -1 -1 -1 -1 
+8. operators:
+-1  1  2  3  4 -1 -1 -1 -1 -1 
+9. parent index outside: error 9  done
+10. source parent index outside: error 9  done
+11. error in the start, then the copy: error 5 
+ 1  2 -1 -1 -1 -1 -1 -1 -1 -1 
+exit=0

@@ -8,11 +8,8 @@ and where the details are. Nothing here is rejected; it is just not on the roadm
 These are recent upstream QB64pe additions (not the user's own work). They add a lot of complexity to arrays, so they
 wait until the core compiler works (roadmap M4 or later, `study\07-expert-panel.md`).
 
-| Feature | Upstream origin | Why deferred | Details |
-|---|---|---|---|
-| `_ARRAYCOPY` | Petr, 2026-09-12 | Weeks old; depends on the member-array layer; 954-line runtime (`array-copy.cpp`) | `study\01` §8.2, `study\03` §2.3 |
-
-Whole-array assignment `a() = b()`, from the same work, came with `m3-whole-array-assign` (2026-10-15).
+None is left. Whole-array assignment `a() = b()` came with `m3-whole-array-assign` (2026-10-15), and `_ARRAYCOPY`
+(Petr, 2026-09-12; `study\01` §8.2, `study\03` §2.3), from the same work, with `m3-arraycopy` (2026-10-17).
 
 Features from the same period that are **kept** in scope: `$USELIBRARY`, `$ERRORLOCATION`, the GLFW runtime.
 
@@ -185,6 +182,13 @@ version resource and manifest). Nothing the old compiler builds into a working e
 | `$VERSIONINFO` on other systems than Windows | The old compiler writes the files on Windows only and ignores the lines elsewhere | design Non-Goals |
 | `s130_versioninfo` on a machine without PowerShell | It reads the version resource back with a PowerShell script; every Windows machine and GitHub's runner have one | design, risks |
 
+**Left marked by `m3-arraycopy`** (the eighteenth step of M3, 2026-10-17: `_ARRAYCOPY`). No form of `_ARRAYCOPY` is
+marked; left out:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `_ARRAYCOPY` under `$CHECKING:OFF` (`verification\v41_x62`, not run with this compiler) | `$CHECKING` is marked "not supported yet" by itself | task 3.4 |
+
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
 
@@ -292,6 +296,8 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | Any metacommand that starts with `$VERSIONINFO` is taken as one: `$VERSIONINFOX:CompanyName='a'` sets the company name | "Syntax error", as for an unknown metacommand | `m3-versioninfo` (`verification\v40_j`) |
 | `FILEVERSION#` and `PRODUCTVERSION#` accept parts the resource compiler refuses (empty, over 65535, a leading 0 with an 8 or 9), so the old compiler's build fails; this compiler rejects them with a compile error. A part with a leading 0 is octal (`010` is 8), which the old compiler passes on unchanged | Read every part as decimal (writing it without its leading zeros) | `m3-versioninfo` (`verification\v40_h1`–`h7`; design D3) |
 | A `<` or `&` (or a byte that is not UTF-8) in the company name, product name or description goes unescaped into the manifest, and Windows does not start the executable; this compiler rejects them with a compile error (user, 2026-10-16) | Escape them in the manifest (`&lt;`, `&amp;`), so the program starts | `m3-versioninfo` (`verification\v40_g2`–`g6`; design D3) |
+| `_ARRAYCOPY s() TO d()` keeps the source's indexes for a one-dimensional source (`d` must hold them), but for a source of several dimensions needs the destination's bounds exactly (error 9 for `m(1 TO 2, 1 TO 3)` to `n(0 TO 4, 0 TO 5)`, which holds it) | Keep the indexes in every number of dimensions, as `s(lo TO hi, …) TO d()` does | `m3-arraycopy` (`verification\v41_a` 1., `v41_g` 15., 16., `x57`) |
+| `_ARRAYCOPY m(1 TO 2) TO n(0)` for two-dimensional arrays is "_ArrayCopy TYPE-member step supports only one-dimensional arrays", a message about members for arrays that are none (this compiler's message names the dimensions) | A message that names the form and the dimensions | `m3-arraycopy` (`verification\v41_x25`) |
 
 ## Other ideas raised during the study
 

@@ -1260,6 +1260,18 @@ pub enum StmtKind {
     /// member array. `to`'s place is found before `from`'s. What runs (the checks of allocation and bounds, error
     /// 9, the copy by kind) is the IR's `Op::CopyArray`.
     CopyArray { from: ArrayRef, to: ArrayRef },
+    /// `_ARRAYCOPY from(ranges) TO to(starts)` (design D1–D4 of `m3-arraycopy`; measured, `verification\v41_*`): two
+    /// arrays of one element type (a number type, `_OFFSET`, `STRING * n` or `STRING`), each an array variable or
+    /// a member array; `ranges` the source's, lower and upper bound per dimension (none: the whole array),
+    /// `starts` the destination's, one per dimension (none: the whole array, a range then keeping its indexes);
+    /// each converted to `_INTEGER64` as an index is. `from`'s place is found, then `to`'s, then every lower
+    /// bound, every upper bound and every start are evaluated. What runs is the IR's `Op::ArrayCopy`.
+    ArrayCopy {
+        from: ArrayRef,
+        to: ArrayRef,
+        ranges: Vec<(Expr, Expr)>,
+        starts: Vec<Expr>,
+    },
     /// `PRINT`, `PRINT #n,` or `LPRINT`, by `to`.
     Print {
         to: PrintTo,

@@ -299,6 +299,30 @@ fn unsupported_statement_message() {
     assert_eq!(d.span.start, 9);
 }
 
+/// A `TO` the parser does not expect in an `_ARRAYCOPY` is a plain syntax error, not "not supported yet" (design D2
+/// of `m3-arraycopy`; `verification\v41_x02`, `x04`, `x35`, which the old compiler rejects); elsewhere it keeps its
+/// mark.
+#[test]
+fn array_copy_unexpected_to() {
+    for (src, message) in [
+        (
+            "_ARRAYCOPY a() TO b() TO c()\n",
+            "one `TO` stands between the source and the destination of `_ARRAYCOPY`",
+        ),
+        ("_ARRAYCOPY a( TO b()\n", "expected an expression"),
+        ("_ARRAYCOPY m(1 TO 2 TO 3, 1 TO 2) TO n(0, 0)\n", "expected `,` or `)`"),
+    ] {
+        let p = parse_one(src.as_bytes());
+        let diags = p.diagnostics();
+        assert_eq!(diags.list().len(), 1, "{src}");
+        let d = &diags.list()[0];
+        assert_eq!(d.message, message);
+        assert!(!d.unsupported, "{src}");
+    }
+    let p = parse_one(b"PRINT 1 TO 2\n");
+    assert!(p.diagnostics().list()[0].unsupported);
+}
+
 /// The expression depth limit counts tree levels the same way for every kind of node: an expression exactly 1,000
 /// levels deep parses, one a level deeper is one "not supported yet" error. Runs on a large stack, as the compiler
 /// does (`driver::with_stack`); a test thread's 2 MiB would not hold the parser at this depth in a debug build.

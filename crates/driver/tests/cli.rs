@@ -889,6 +889,65 @@ fn whole_array_to_a_member_through_an_index_outside() {
     assert_eq!(build_and_run_tracing(&d, program, "D-004\n"), "[ 9 ][ 9 ] 0 []\n");
 }
 
+/// `_ARRAYCOPY` to or from a member array of an element whose index is outside its bounds raises error 9 and copies
+/// nothing, numbers and `STRING * n` alike (`DIVERGENCES.md` D-004: the old compiler copies through the member of
+/// element 0, `verification\v41_j`; design D5 of `m3-arraycopy`). A FUNCTION in a bound is entered with the error
+/// pending and so runs no line (its first line in both compilers).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn arraycopy_through_an_index_outside() {
+    let d = scratch("arraycopy-outside");
+    let program = "$CONSOLE:ONLY\nTYPE t\nb(1 TO 3) AS LONG\ns(1 TO 2) AS STRING * 2\nEND TYPE\nON ERROR GOTO trap\n\
+                   DIM tt(1 TO 2) AS t, src(1 TO 3) AS LONG, d(1 TO 3) AS LONG, fs(1 TO 2) AS STRING * 2\n\
+                   src(1) = 7: src(2) = 14: src(3) = 21: fs(1) = \"ab\": fs(2) = \"cd\"\n\
+                   tt(1).b(1) = 51: tt(1).s(1) = \"zz\": tt(0 + 1).b(2) = 52\n\
+                   _ARRAYCOPY src() TO tt(3).b()\n_ARRAYCOPY fs() TO tt(-5).s()\n\
+                   _ARRAYCOPY tt(0).b(1 TO 2) TO d(2)\n_ARRAYCOPY src(1 TO f(2)) TO tt(3).b(1)\n\
+                   PRINT tt(1).b(1); tt(1).b(2); \"[\"; tt(1).s(1); \"]\"; d(2)\nSYSTEM\n\
+                   trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n\
+                   FUNCTION f (n)\nPRINT \"f\";\nf = n\nEND FUNCTION\n";
+    assert_eq!(
+        build_and_run_tracing(&d, program, "D-004\n"),
+        "[ 9 ][ 9 ][ 9 ][ 9 ] 51  52 [zz] 0 \n"
+    );
+}
+
+/// `_ARRAYCOPY` between a `_DYNAMIC` member that a `REDIM` gave another number of dimensions and a member array
+/// through an index outside its bounds copies nothing and takes no D-004 trace: the old compiler copies nothing
+/// either, its stand-in descriptor being not allocated (read from its C++: `UDTDynArrayDescGuard` never sets slot
+/// 2; `verification\v41_l`; design D5 of `m3-arraycopy`). The trace writes a row once per run, so no other statement
+/// stands here: a member of its own number beside an index outside, which takes the row, is
+/// `arraycopy_through_an_index_outside`.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn arraycopy_reshaped_member_beside_an_index_outside() {
+    let d = scratch("arraycopy-reshaped");
+    let program = "$CONSOLE:ONLY\n$UNSTABLE:TYPEFIELDS\nTYPE dy\n_DYNAMIC n(1 TO 3) AS LONG\nEND TYPE\n\
+                   TYPE t\nb(1 TO 3) AS LONG\nEND TYPE\nON ERROR GOTO trap\nDIM v AS dy, tt(1 TO 2) AS t\n\
+                   tt(1).b(1) = 51\nREDIM v.n(1 TO 2, 1 TO 2) AS LONG\n\
+                   _ARRAYCOPY v.n() TO tt(9).b()\n_ARRAYCOPY tt(9).b() TO v.n()\nPRINT tt(1).b(1)\nSYSTEM\n\
+                   trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
+    assert_eq!(build_and_run_tracing(&d, program, ""), "[ 9 ][ 9 ] 51 \n");
+}
+
+/// `_ARRAYCOPY` of `_FLOAT` arrays copies the elements the program names (`DIVERGENCES.md` D-025: the old compiler
+/// passes 32 as the size of an element, which lie 16 bytes apart, and copies others, `verification\v41_i`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn arraycopy_of_float_arrays() {
+    let d = scratch("arraycopy-float");
+    let program = "$CONSOLE:ONLY\nDIM g1(1 TO 4) AS _FLOAT, g3(0 TO 7) AS _FLOAT\n\
+                   DIM h(1 TO 2, 1 TO 2) AS _FLOAT, k(1 TO 2, 1 TO 2) AS _FLOAT\n\
+                   FOR i = 1 TO 4: g1(i) = i + 0.25: NEXT\nh(1, 2) = 1.5: h(2, 2) = 2.5\n\
+                   _ARRAYCOPY g1(2 TO 3) TO g3(0): PRINT g3(0); g3(1); g3(2)\n\
+                   _ARRAYCOPY g1() TO g3(2): PRINT g3(2); g3(5); g3(6)\n\
+                   _ARRAYCOPY h(1 TO 2, 2 TO 2) TO k(1, 1): PRINT k(1, 1); k(2, 1); k(1, 2)\nSYSTEM\n";
+    assert_eq!(
+        build_and_run(&d, program),
+        " 2.25  3.25  0 \n 1.25  4.25  0 \n 1.5  2.5  0 \n"
+    );
+}
+
 /// A whole-array assignment of arrays of an owner type with other bounds raises error 9 and copies the target's
 /// number of elements, as the old compiler does, but nothing when the source has fewer (`DIVERGENCES.md` D-022: the
 /// old compiler reads past the source's block, `verification\v36_x52`, `v38_d`).

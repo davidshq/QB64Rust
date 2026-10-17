@@ -364,6 +364,17 @@ impl<'a> Lowerer<'a> {
                 from: from.clone(),
                 to: to.clone(),
             },
+            sema::StmtKind::ArrayCopy {
+                from,
+                to,
+                ranges,
+                starts,
+            } => Op::ArrayCopy {
+                from: from.clone(),
+                to: to.clone(),
+                ranges: ranges.clone(),
+                starts: starts.clone(),
+            },
             sema::StmtKind::Print { to, items, newline } => Op::Print {
                 to: to.clone(),
                 items: print_items(items),

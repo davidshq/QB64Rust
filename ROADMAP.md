@@ -108,6 +108,9 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
 - [x] `$VERSIONINFO`: the version resource and manifest byte for byte, beside `$EXEICON`'s icon; a compile error
       where the old compiler's build fails or its executable cannot start (`m3-versioninfo`). Upstream 325 to 328
       of 399
+- [x] `_ARRAYCOPY` in its six forms, for arrays and member arrays (plain and `_DYNAMIC`) of numbers, `_OFFSET` and
+      strings, with the old compiler's checks, order and libqb call; `DIVERGENCES.md` D-004 widened and D-025
+      (`m3-arraycopy`). Upstream 328 to 332 of 399 (`deferred.list` holds `t001` alone)
 - [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
       file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
       `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program

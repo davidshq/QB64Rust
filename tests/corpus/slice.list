@@ -472,3 +472,6 @@ slice/s127_sound_handles
 slice/s128_sound_new_memory
 slice/s129_sound_files_raw_midi
 slice/s130_versioninfo
+slice/s131_arraycopy
+slice/s132_arraycopy_members
+slice/s133_arraycopy_dynamic_dims

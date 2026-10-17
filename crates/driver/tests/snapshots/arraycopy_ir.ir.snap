@@ -1,0 +1,50 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Member array T.B:I32 (1 To 4)
+Member array T.G:I32 (1 To 2, 1 To 3)
+Array X(param):I32 passed, dimensions: 1
+Array Y(param):I32 passed, dimensions: 1
+Array S:I32 static (1 To 5)
+Array D:I32 static (0 To 9)
+Array M:I32 static (1 To 2, 1 To 3)
+Array N:I32 static (0 To 3, 0 To 4)
+Array VS:Str static (1 To 3)
+Array WS:Str static (0 To 4)
+Array TT:T:T static (1 To 2)
+Stmt line 2
+  SelectConsole
+Stmt line 12 may_raise
+  ArrayCopy S() -> D():I32
+Stmt line 13 may_raise
+  ArrayCopy S(Const 2:I64 TO Const 4:I64) -> D((CallProc F:I32 [Temp(Const 1:I32)] -> Convert I64 Widen)):I32
+Stmt line 14 may_raise
+  ArrayCopy S() -> D((Var I:I16 -> Convert I64 Widen)):I32
+Stmt line 15 may_raise
+  ArrayCopy S((Const 1.5E+0:F64 -> Convert I64 RoundEven) TO (Const 3.5E+0:F64 -> Convert I64 RoundEven)) -> D():I32
+Stmt line 16 may_raise
+  ArrayCopy M(Const 1:I64 TO Const 2:I64, Const 2:I64 TO Const 3:I64) -> N(Const 0:I64, Const 1:I64):I32
+Stmt line 17 may_raise
+  ArrayCopy M(Const 1:I64 TO Const 2:I64, Const 2:I64 TO Const 3:I64) -> N():I32
+Stmt line 18 may_raise
+  ArrayCopy M() -> N(Const 1:I64, Const 1:I64):I32
+Stmt line 19 may_raise
+  ArrayCopy VS(Const 2:I64 TO Const 3:I64) -> WS(Const 0:I64):Str
+Stmt line 20 may_raise
+  ArrayCopy TT((CallProc F:I32 [Temp(Const 1:I32)] -> Convert I64 Widen)).B(Const 2:I64 TO Const 3:I64) -> TT((CallProc F:I32 [Temp(Const 2:I32)] -> Convert I64 Widen)).B(Const 1:I64):I32
+Stmt line 21 may_raise
+  ArrayCopy TT(Const 1:I64).G() -> N(Const 1:I64, Const 1:I64):I32
+Stmt line 22 may_raise
+  Call CP [Array S:I32, Array D:I32]
+Sub CP lines 24-26
+  param X():I32
+  param Y():I32
+Stmt line 25 may_raise
+  ArrayCopy X(param)() -> Y(param)(Const 2:I64):I32
+Function F:I32 lines 28-30
+  param K:I32
+  result F:I32
+Stmt line 29
+  Assign F(result):I32 = Var K(param):I32

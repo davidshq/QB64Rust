@@ -133,7 +133,7 @@ are line numbers and jumps to them (also as `ON … GOTO` and `RESTORE` targets)
 `READ`, `INPUT`, `INPUT #` or `SWAP` with a whole array, every other
 built-in statement read by its template (`TIME$ =`, ...), the declaration
 forms (arrays named `name$n`,
-`_MEMPUT`/`_MEMFILL … AS type`, `_ARRAYCOPY`), `CHAIN`, type names as arguments, the
+`_MEMPUT`/`_MEMFILL … AS type`), `CHAIN`, type names as arguments, the
 constants of QB64pe's auto-included file that are not computed yet and the names of its other auto-included
 files; of arrays and `TYPE`:
 whole arrays (`x()`) where neither an array parameter nor a whole-array assignment takes them (`PRINT a()`),

@@ -1560,6 +1560,91 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     type check (`x24`, `x38`, `x40`, `x43`, `x44`, `v36_a` 7.–9.). A suffix on one side only is "Expected array
     index after" the other name (`x41`, `x42`). `PRINT a()` prints element 0 (`x37`). A scalar and an array of one
     name (`DIM a AS LONG, a(2) AS LONG`) copy as arrays (`x25`).
+- **`_ARRAYCOPY source TO destination` (`v41_*`, 87 programs measured 2026-10-17 before the proposal of
+  `m3-arraycopy`; `qb64pe.bas` 10520–10600, `source\utilities\arrcpy.bm`; the runtime libqb's `array-copy.cpp`,
+  twelve entry points `qb64_array_copy_{1d,nd}_{whole,whole_at,range_at}_{fixed,string}`):**
+  - **The statement**: one `TO` outside parentheses splits it ("Expected one TO between _ArrayCopy source and
+    destination" for a second, `x02`; an unclosed `(` "Expected )", `x04`); every other shape is "Expected
+    _ArrayCopy source(lower TO upper) TO destination(start), …" (no `TO`, a side missing, a side without
+    parentheses, `a(1) TO b()`, `a(1 TO 2) TO b(1 TO 2)`, `(a()) TO b()`, an extra `)`: `x01`, `x03`, `x05`–`x10`,
+    `x52`, `x67`). Lower case, blanks, a one-line `IF`, after a colon, before a comment, an array named `arraycopy`
+    or `too` are accepted (`v41_a` 11., `x59`–`x61`, `x63`, `x64`, `x73`, `x74`).
+  - **Six forms**, tried in this order on the shape of each side's last parentheses (`ParseArrayCopyRef`): `s(lo TO
+    hi) TO d(start)`, `s() TO d()`, `s() TO d(start, …)` (one start or more), `s(lo TO hi) TO d()`, `s(lo TO hi, …)
+    TO d(start, …)` and `s(lo TO hi, …) TO d()` (two ranges or more). **What each copies** (`v41_a`, `v41_c`): a
+    range its elements from `lo` to `hi`; to a start they go from there on; to `d()` a range keeps its indexes
+    (`s(4 TO 6) TO d()` sets `d(4)` to `d(6)`); **a whole one-dimensional source keeps its indexes too** (`s() TO
+    d()` for `s(3 TO 8)` sets `d(3)` to `d(8)`; `d` must hold them, error 9 else), **but a whole source of several
+    dimensions to `d()` needs the destination's bounds exactly** (`x57`, `v41_g` 15., 16.); a whole source to a
+    start goes in its order of elements; in several dimensions each coordinate is mapped by itself (`big(1 TO 2, 2
+    TO 4) TO small(1, 0)` puts rows 1 and 2, columns 2 to 4, at rows 1 and 2, columns 0 to 2). Overlap, forward and
+    backward, and an array copied to itself are safe (`v41_a` 7.–10., `v41_k` 5.).
+  - **Element types** (`v41_b`, `x15`–`x24`, `x68`, `x69`, `x72`): every number type, `_OFFSET`, `_UNSIGNED
+    _OFFSET`, `STRING * n` and `STRING`, both sides of one type ("_ArrayCopy requires arrays with the same element
+    type": `LONG`/`INTEGER`, signed/unsigned, `SINGLE`/`DOUBLE`, `STRING`/`STRING * 4` either way,
+    `_OFFSET`/`_UNSIGNED _OFFSET`, `_INTEGER64`/`_OFFSET`, a member array of `INTEGER` and an array of `LONG`), two
+    `STRING * n` of one length ("… fixed-length STRING arrays with the same element size", `x20`); user types,
+    `_BIT`, `_BIT * 4` and `_MEM` are "_ArrayCopy supports only byte-aligned numeric or fixed-length STRING arrays"
+    (also a member array of a user type, `x55`). **`STRING` is deep**: the destination's own strings afterwards
+    (`v41_b`, `v41_k` 2.).
+  - **Places** (`v41_f`, `x46`, `x70`): `SHARED`, local, `STATIC`, `COMMON SHARED`, `$DYNAMIC`, a `REDIM` array
+    (also after `_PRESERVE`), `OPTION BASE 1`, an array used without `DIM` (`a(1) = 1` first, `x46`), array
+    parameters of one and two dimensions; **member arrays of a plain `TYPE`** of a variable, of an element, nested,
+    of an element of a nested member, `LONG`, `STRING * 3` and `STRING` (`v41_d`, `v41_k`, also of two dimensions,
+    `x53`, `x54`), the members beside them unchanged; **`_DYNAMIC` member arrays** below `$UNSTABLE:TYPEFIELDS`, of
+    one and two dimensions and `STRING`, after a `REDIM` of the member, of an element (`v41_e`). Not an array, "…
+    source must be an array" or "… destination must be an array": a scalar, an undeclared name, a FUNCTION, a
+    `CONST`, a scalar member (`x11`–`x14`, `x47`, `x48`, `x51`), and **a name with a type suffix, also one the
+    array was declared with** (`a%()` for `DIM a%(1 TO 5)`, `a&()` for `DIM a(…) AS LONG`; `x44`, `x45`).
+    `v().x() TO b()` is "Expected array index" (`x56`).
+  - **Evaluation** (`v41_h`, `v41_d` 9., 10.): the places on the way to member arrays first, the source's, then
+    the destination's; then every lower bound, then every upper bound, then the starts, left to right, each once
+    (`tt(f(1)).b(f(2) TO f(3)) TO tt(f(2)).b(f(1))` prints `f1 f2 f2 f3 f1`; `m(f(1) TO f(2), f(3) TO f(3)) TO
+    n(f(0), f(1))` prints `f1 f3 f2 f3 f0 f1`). A bound or start is converted as an index is, half to even (`1.5
+    TO 3.5` is 2 to 4, `d(0.5)` is `d(0)`, `4.5` is 4; any number type). **An error raised in a bound or start
+    does not stop the copy**, which goes on with the value the FUNCTION returned (`v41_g` 24., `v41_h` 11.).
+  - **Run-time errors** (`v41_g`, `x62`): error 9, raised by libqb before anything is copied, the destination
+    unchanged: low above high, a range or a start outside its array, elements that run past the destination's end
+    (from a start, and a whole source to `d()` whose indexes it does not hold), a source or destination not
+    allocated (`ERASE` of a dynamic or `$DYNAMIC` array, an erased `_DYNAMIC` member, `v41_e` 10.), a whole copy
+    of several dimensions with other bounds, a range of 2^63−1 elements; strings the same. A static array after
+    `ERASE` is allocated and takes the copy. The same under `$CHECKING:OFF` (`x62`). **A `_DYNAMIC` member that
+    a `REDIM` gave another number of dimensions than declared** (`v41_l`, measured 2026-10-17 after the change's
+    review): error 9 where its place is found and nothing copied, as source or destination, in every form (the
+    guard `UDTDynArrayDescGuard`, `qb64pe.bas` 16234, as for a whole-array copy, `v38_c`: error 9 for a null
+    descriptor or another number of dimensions, then a stand-in that is not allocated, so libqb raises error 9 too
+    and copies nothing; a member not allocated is left to libqb). The places of plain member sides, with any
+    FUNCTION in their indexes, come before the guard (read with `qb64pe -z`). libqb itself reads the bounds by the
+    number it is given and never checks the descriptor's.
+  - **Compile errors in the old compiler's order** (`arrcpy.bm`; 22 messages over the 60 rejected programs of
+    `x01`–`x76`, 16 accepted): the form; the source's array, then the destination's; then per form: for `s(lo TO
+    hi) TO d(start)`, `s(lo TO hi) TO d()` and a whole source to one start, a `STRING` pair must be both `STRING`
+    and of one dimension ("… variable-length STRING step supports only one-dimensional arrays", `x40`), any other
+    pair of one dimension ("… TYPE-member step supports only one-dimensional arrays", `x25`), then the element
+    pair; for `s() TO d()` with both of one dimension the same, else (and for a whole source to several starts and
+    for the range forms of several dimensions) a `STRING` pair must have one number of dimensions, at least two
+    for ranges ("… whole-array source and destination must have the same number of dimensions", `x41`, `x43`; "…
+    must have the same multidimensional shape rank", `x42`), any other pair one number of dimensions ("… whole-array
+    source and destination must have the same number of dimensions", `x26`, `x27`, `x39`), then the element pair;
+    then for the range forms of several dimensions "… multidimensional source ranges require at least two
+    dimensions" (`x30`, `x38`); then each range ("… source range expression cannot be empty", "… source dimension
+    requires exactly one TO", "… requires lower TO upper": `x37`, `x35`, `x34`) with its lower and upper bound
+    as values ("Illegal string-number conversion", `x49`), and their count ("… source range count must match
+    source dimensions", `x31`); then the starts (empty, `x36`; as values, `x50`) and their count ("… destination
+    start coordinate count must match destination dimensions", `x28`, `x29`, `x32`, `x33`, `x71`).
+    **An array parameter takes its number of dimensions from the program's calls, above or below; one that nothing
+    gives a number is "_ArrayCopy cannot determine the array dimensions"** (`x75`: a SUB never called with
+    `x(1 TO 2, 1 TO 2) TO y(1, 1)`, though the statement itself writes two dimensions; the same SUB called with
+    one-dimensional arrays compiles; called with two and one dimensions, `x76`, the dimension error). The
+    statement adds nothing to what is known of a parameter.
+  - **Two faults of the old compiler.** **An index outside its bounds on the way to a member array** (`v41_j`;
+    `tt(3).b()` for `tt(1 TO 2)`) raises error 9 and still copies, through the member of the element at position
+    0 of that dimension, numbers as well as `STRING * n`, as destination and as source (`v41_h` 9., 10.).
+    **`_FLOAT` arrays** (`v41_b`, `v41_i`): it passes 32 as the element size, the `LEN` of an element, but an
+    element of a `_FLOAT` array lies 16 bytes from the next (each block holds 32 bytes per element, so `_MEM` of
+    one says 32 and 128 for four); a whole copy to `d()`, in one or two dimensions, is right (the offsets are 0),
+    any other reads and writes the wrong elements (`g1(2 TO 3) TO g3(0)` puts `g1(3)` and `g1(4)` there, `g1() TO
+    g3(2)` fills `g3(4)` to `g3(7)`). Both stay inside the blocks.
 - **`DECLARE LIBRARY` (`v37_*`, 76 programs measured 2026-10-15 before the design of `m3-declare-library`;
   `qb64pe.bas` at the reference clone's commit: the block 4447–5318, its declarations 5324–5920, pass 1
   2750–3074, the `nm` step 13776–13933, the call 12296 and 21943, the result 22091).** The libraries are built

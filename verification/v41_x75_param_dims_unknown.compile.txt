@@ -1,0 +1,5 @@
+
+_ArrayCopy cannot determine the array dimensions
+Caused by (or after):_ARRAYCOPY X ( 1 TO 2 , 1 TO 2 ) TO Y ( 1 , 1 )
+LINE 16:_ARRAYCOPY x(1 TO 2, 1 TO 2) TO y(1, 1)
+exit=1

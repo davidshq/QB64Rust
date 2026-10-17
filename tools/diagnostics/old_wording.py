@@ -248,7 +248,7 @@ def main() -> int:
         # Text of one program that the pattern does not carry: a number ("1st", "line 4") or a name in capitals
         # that is no keyword ("Cannot convert type (FOO)"); its note would be wrong for another program.
         rest = re.sub(r"\{\d+(:[A-Z=|]+)?\}", "", old)
-        names = [w for w in re.findall(r"[A-Z_][A-Z0-9_$]+", rest) if w not in KEYWORDS]
+        names = [w for w in re.findall(r"(?<![A-Za-z0-9_$])[A-Z_][A-Z0-9_$]+(?![A-Za-z0-9_$])", rest) if w not in KEYWORDS]
         if re.search(r"\d", rest) or any(w not in pattern.upper() for w in names):
             specific += 1
             continue

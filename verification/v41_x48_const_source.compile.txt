@@ -1,0 +1,5 @@
+
+_ArrayCopy source must be an array
+Caused by (or after):_ARRAYCOPY K ( ) TO B ( )
+LINE 5:_ARRAYCOPY k() TO b()
+exit=1

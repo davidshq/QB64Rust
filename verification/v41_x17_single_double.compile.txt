@@ -1,0 +1,5 @@
+
+_ArrayCopy requires arrays with the same element type
+Caused by (or after):_ARRAYCOPY A ( ) TO B ( )
+LINE 4:_ARRAYCOPY a() TO b()
+exit=1

@@ -9,9 +9,9 @@
 
 use crate::Emitter;
 use crate::decl::{Part, count_of, dim_slot, lock_slot};
-use crate::names::int_const;
+use crate::names::{bare, int_const};
 use crate::owner::dyn_fn;
-use qb64rust_ir::{AllocMode, ArrayRef, Expr, Facts, Ty, Var, VarId};
+use qb64rust_ir::{AllocMode, ArrayRef, Conv, Expr, ExprKind, Facts, Ty, Var, VarId};
 
 /// The name of the descriptor of a dynamic member array that [`Emitter::allocate`] allocates.
 const DYN_DESC: &str = "dyn_d";
@@ -571,6 +571,149 @@ impl Emitter<'_> {
         out.push("}".into());
         out.push("}".into());
         out.push("}".into());
+    }
+
+    /// `ArrayCopy` (design D5 of `m3-arraycopy`): the old compiler's block (`source\utilities\arrcpy.bm`
+    /// `EmitArrayCopy1D` … `EmitArrayCopyRangeWholeND`) with its names, calling libqb's `qb64_array_copy_*`, which
+    /// checks the bounds and copies. The entry point goes by the ranges and the source's number of dimensions: a
+    /// range of one dimension `1d_range_at` (to the whole destination with its lower bound as the start), several
+    /// `nd_range_at` (likewise), a whole source `1d_whole`, `1d_whole_at`, `nd_whole` or `nd_whole_at`; `_string`
+    /// for `STRING`, else `_fixed` with the size of an element. A member side's descriptor is taken first, where
+    /// its place is found (source, then destination); when a place may raise, nothing is copied after an error
+    /// there (`DIVERGENCES.md` D-004); the guard is taken before the bounds, so an error a bound raises does not
+    /// stop the copy, as in the old compiler. A dynamic member side whose number of dimensions a `REDIM` changed
+    /// raises error 9 there and is not copied. A `_FLOAT` element is `sizeof(long double)` bytes from the next
+    /// (`DIVERGENCES.md` D-025: the old compiler passes 32, its `LEN`).
+    pub(crate) fn array_copy(
+        &mut self,
+        (from, to): (&ArrayRef, &ArrayRef),
+        ranges: &[(Expr, Expr)],
+        starts: &[Expr],
+        out: &mut Vec<String>,
+    ) {
+        let t = self.p.array_ty(from);
+        let dims = self.copy_dims(from).unwrap_or(1);
+        out.push("{".into());
+        let mut sides = Vec::new();
+        for (side, array) in [("src", from), ("dst", to)] {
+            let desc = self.whole_desc(array);
+            let line = format!("ptrszint *array_copy_{side}={desc};");
+            if matches!(array, ArrayRef::Member { .. }) {
+                out.push(line);
+            } else {
+                sides.push(line);
+            }
+        }
+        let guarded = from.may_raise() || to.may_raise();
+        if guarded {
+            out.push("int32 array_copy_ok=!is_error_pending();".into());
+        }
+        // A dynamic member that a `REDIM` gave another number of dimensions: error 9 where its place is found, and
+        // nothing is copied, as the old compiler's stand-in descriptor does (`verification\v41_l`; libqb reads the
+        // bounds by the number it is given and never checks the descriptor's).
+        let reshaped: Vec<String> = [("src", from), ("dst", to)]
+            .into_iter()
+            .filter(|(_, array)| self.is_dynamic_member(array))
+            .map(|(side, array)| format!("array_copy_{side}[3]=={}", self.copy_dims(array).unwrap_or(1)))
+            .collect();
+        let dims_checked = !reshaped.is_empty();
+        if dims_checked {
+            out.push(format!("int32 array_copy_dims={};", reshaped.join("&&")));
+            out.push("if (!array_copy_dims) error(9);".into());
+        }
+        // A narrower integer, and a constant that a `LONG` holds, go into the statement's own `(int64)(…)` as they
+        // are, as the old compiler writes them.
+        let int64 = |c: &mut Self, v: &Expr| {
+            if let ExprKind::Convert { how: Conv::Widen, from } = &v.kind {
+                format!("(int64)({})", c.inner(from))
+            } else if let ExprKind::Int(i) = v.kind
+                && i32::try_from(i).is_ok()
+            {
+                format!("(int64)({})", bare(&int_const(i, Ty::I32)))
+            } else {
+                format!("(int64)({})", c.inner(v))
+            }
+        };
+        let list = |c: &mut Self, vs: &mut dyn Iterator<Item = &Expr>| -> String {
+            vs.map(|v| int64(c, v)).collect::<Vec<_>>().join(",")
+        };
+        match (ranges, starts) {
+            ([(lower, upper)], _) => {
+                out.push(format!("int64 array_copy_src_low={};", int64(self, lower)));
+                out.push(format!("int64 array_copy_src_high={};", int64(self, upper)));
+            }
+            ([], _) => {}
+            _ => {
+                let n = ranges.len();
+                let lows = list(self, &mut ranges.iter().map(|(lower, _)| lower));
+                let highs = list(self, &mut ranges.iter().map(|(_, upper)| upper));
+                out.push(format!("int64 array_copy_src_low[{n}]={{{lows}}};"));
+                out.push(format!("int64 array_copy_src_high[{n}]={{{highs}}};"));
+            }
+        }
+        match (ranges.len(), starts) {
+            (_, []) => {}
+            (0 | 1, [start]) if dims == 1 || ranges.len() == 1 => {
+                out.push(format!("int64 array_copy_dst_start={};", int64(self, start)));
+            }
+            _ => {
+                let starts_text = list(self, &mut starts.iter());
+                out.push(format!(
+                    "int64 array_copy_dst_start[{}]={{{starts_text}}};",
+                    starts.len()
+                ));
+            }
+        }
+        out.extend(sides);
+        let (kind, size) = if t == Ty::Str {
+            ("string", None)
+        } else if t == Ty::F80 {
+            ("fixed", Some("(uint64)sizeof(long double)".to_string()))
+        } else {
+            ("fixed", Some(format!("(uint64){}", self.ty_size(t))))
+        };
+        let (entry, args) = match (ranges.len(), starts.is_empty()) {
+            (1, false) => (
+                "1d_range_at",
+                "array_copy_src_low,array_copy_src_high,array_copy_dst_start".to_string(),
+            ),
+            (1, true) => (
+                "1d_range_at",
+                "array_copy_src_low,array_copy_src_high,array_copy_src_low".to_string(),
+            ),
+            (0, true) if dims == 1 => ("1d_whole", String::new()),
+            (0, false) if dims == 1 => ("1d_whole_at", "array_copy_dst_start".to_string()),
+            (0, true) => ("nd_whole", dims.to_string()),
+            (0, false) => ("nd_whole_at", format!("{dims},array_copy_dst_start")),
+            (n, false) => (
+                "nd_range_at",
+                format!("{n},array_copy_src_low,array_copy_src_high,array_copy_dst_start"),
+            ),
+            (n, true) => (
+                "nd_range_at",
+                format!("{n},array_copy_src_low,array_copy_src_high,array_copy_src_low"),
+            ),
+        };
+        let args: Vec<String> = ["array_copy_src".to_string(), "array_copy_dst".to_string()]
+            .into_iter()
+            .chain((!args.is_empty()).then_some(args))
+            .chain(size)
+            .collect();
+        let call = format!("qb64_array_copy_{entry}_{kind}({});", args.join(","));
+        out.push(match (guarded, dims_checked) {
+            // With a reshaped dynamic side the old compiler copies nothing either (read from its C++: the stand-in
+            // descriptor is not allocated, so libqb raises error 9): no D-004 trace then.
+            (true, true) => format!("if (array_copy_dims){{if (array_copy_ok) {call} else qbr_diverged_on(4);}}"),
+            (true, false) => format!("if (array_copy_ok) {call} else qbr_diverged_on(4);"),
+            (false, true) => format!("if (array_copy_dims) {call}"),
+            (false, false) => call,
+        });
+        out.push("}".into());
+        let strings = |a: &ArrayRef| matches!(a, ArrayRef::Member { base, .. } if base.uses_strings(self.p));
+        let values = ranges.iter().flat_map(|(lower, upper)| [lower, upper]).chain(starts);
+        if strings(from) || strings(to) || values.into_iter().any(|v| v.uses_strings(self.p)) {
+            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        }
     }
 
     /// The number of dimensions of a side of a `CopyArray`, where it is known.

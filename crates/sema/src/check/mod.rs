@@ -6,6 +6,7 @@
 //! `DIM SHARED` after a procedure is not seen by it, and a `SHARED x AS T` in an earlier procedure acts like a
 //! main-module `DIM x AS T` for the main-module code after it.
 
+mod arraycopy;
 mod auto;
 mod blocks;
 mod builtins;
@@ -104,6 +105,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         no_join: None,
         dim_facts: Vec::new(),
         dims_open: HashSet::new(),
+        copy_checks: Vec::new(),
         type_bases: HashMap::new(),
         type_flags: HashSet::new(),
         type_const_bounds: HashMap::new(),
@@ -217,6 +219,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         c.check_statement(stmt, &skips);
     }
     c.solve_dims();
+    c.run_copy_checks();
     // The program has a console by its precompiler flag too: the old compiler reads the flag, which stays set
     // when the metacommand that set it stands in a `$IF` branch the flag itself switches off (design D1 of
     // `m2-console-screenhide`; measured, `verification\v26_x26`, `x38`). "No window" comes from the lines that are
@@ -565,6 +568,9 @@ struct Checker<'a> {
     /// The arrays listed by `COMMON a()` or `STATIC a()` that were passed to an array parameter before anything
     /// gave them a number of dimensions: theirs is found with the parameter's.
     dims_open: HashSet<VarId>,
+    /// The checks of `_ARRAYCOPY` statements whose sides' numbers of dimensions were not known where they stand,
+    /// run after [`Self::solve_dims`] (design D3 of `m3-arraycopy`).
+    copy_checks: Vec<arraycopy::CopyCheck>,
     /// Per `TYPE` block (by key): `OPTION BASE` as it stands at the block, which the bounds of its member arrays
     /// go by ([`Self::collect_block_settings`]).
     type_bases: HashMap<(TreeId, u32), i64>,
@@ -1019,11 +1025,8 @@ impl Checker<'_> {
             self.lset(s)
         } else if let Some(s) = ast::MemStmt::cast(node) {
             self.mem_stmt(s)
-        } else if ast::ArrayCopyStmt::cast(node).is_some() {
-            // Task 7.4: parsed, compiled later (file I/O and the other built-in statements, step 8).
-            let t = first_token_span(node);
-            let word = show_bytes(&self.text(t).to_ascii_uppercase());
-            Err(self.unsupported(t, format!("`{word}`")))
+        } else if let Some(s) = ast::ArrayCopyStmt::cast(node) {
+            self.array_copy(s)
         } else if let Some(s) = ast::BuiltinStmt::cast(node) {
             self.builtin_stmt(s)
         } else if ast::StopStmt::cast(node).is_some() {

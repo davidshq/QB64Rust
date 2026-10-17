@@ -175,20 +175,25 @@ pub(crate) fn mem_stmt(p: &mut Parser) {
 }
 
 /// `_ARRAYCOPY source TO target`; each side an array, a slice of one (`a(2 TO 3, 2 TO 4)`) or a member array, in
-/// the shape of a `REDIM` item (a `DimItem` with `ArrayBounds`).
+/// the shape of a `REDIM` item (a `DimItem` with `ArrayBounds`). A `TO` the parser does not expect is a plain
+/// syntax error here (design D2 of `m3-arraycopy`; measured, `verification\v41_x02`, `x04`, `x35`).
 pub(crate) fn array_copy_stmt(p: &mut Parser) {
     p.start_node(ArrayCopyStmt);
     p.bump(); // _ARRAYCOPY
     p.redim_items = true;
+    p.array_copy = true;
     if super::decl::dim_item(p) {
         if p.at_word("TO") {
             p.bump();
-            super::decl::dim_item(p);
+            if super::decl::dim_item(p) && p.at_word("TO") {
+                p.error("one `TO` stands between the source and the destination of `_ARRAYCOPY`");
+            }
         } else {
             p.syntax_error("expected `TO` and the target array");
         }
     }
     p.redim_items = false;
+    p.array_copy = false;
     p.recover();
     p.finish_node();
 }

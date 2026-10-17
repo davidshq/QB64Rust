@@ -1,0 +1,5 @@
+
+_ArrayCopy TYPE-member step supports only one-dimensional arrays
+Caused by (or after):_ARRAYCOPY M ( 1 TO 2 ) TO N ( 0 )
+LINE 4:_ARRAYCOPY m(1 TO 2) TO n(0)
+exit=1

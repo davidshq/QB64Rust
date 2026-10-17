@@ -504,6 +504,13 @@ impl<'a> DimStmt<'a> {
     }
 }
 
+impl<'a> ArrayCopyStmt<'a> {
+    /// The source, then the destination (`_ARRAYCOPY source TO destination`).
+    pub fn sides(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
+        self.0.child_nodes().filter_map(DimItem::cast)
+    }
+}
+
 impl<'a> RedimStmt<'a> {
     pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
         self.0.child_nodes().filter_map(DimItem::cast)
