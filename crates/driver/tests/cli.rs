@@ -41,7 +41,9 @@ fn scratch(name: &str) -> Scratch {
 }
 
 fn compiler() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_qb64rust"))
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_qb64rust"));
+    cmd.env(support::OBJECTS_LOCK_ENV, support::objects_lock());
+    cmd
 }
 
 /// A run of the compiler that stops before `make` (a dump, `-z`, a report, an error), so it needs no lock.

@@ -7,7 +7,7 @@
 use std::fmt;
 use std::fs::{File, TryLockError};
 use std::io::{Read, Write as _};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Output, Stdio};
 use std::sync::{Arc, Mutex, OnceLock, mpsc};
 use std::thread;
@@ -157,14 +157,30 @@ pub fn unattended(exe: &Path) -> Command {
     cmd
 }
 
-/// The lock of the reference clone (`tools\legacy_tests\clone_lock.py`): a build runs `make` in the clone, which
-/// must not meet a run of the test runner, `verification\run.sh` or `callsite.py` there. Taken by the first test that
-/// builds and held by this test process until it ends, so its tests still build side by side. While another run
-/// holds it, one line on the console (not captured) says why the tests wait; past [`CLONE_WAIT_LIMIT`] they fail.
+/// The folder of the clone's locks (`tools\legacy_tests\clone_lock.py`, `CLONE_LOCK_DIR`).
+fn clone_lock_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/qb64pe-clone")
+}
+
+/// The lock the driver takes around each `make` when [`OBJECTS_LOCK_ENV`] names it: shared while the clone's libqb
+/// objects are up to date, alone while they are built (`clone_lock.py`, `OBJECTS_LOCK`). Every compiler a test
+/// starts is given it, so the tests' builds and a test runner's run of the new compiler build side by side.
+pub fn objects_lock() -> PathBuf {
+    clone_lock_dir().join("objects.lock")
+}
+
+/// The variable that names [`objects_lock`] to the driver (`OBJECTS_LOCK_ENV` of `crates\driver\src\build.rs`).
+pub const OBJECTS_LOCK_ENV: &str = "QB64RUST_OBJECTS_LOCK";
+
+/// The lock of the reference clone (`tools\legacy_tests\clone_lock.py`), taken shared: a build runs `make` in the
+/// clone, which must not meet a run of `qb64pe.exe` there (the test runner's, `verification\run.sh`, `callsite.py`),
+/// which take it alone; runs of the new compiler share it. Taken by the first test that builds and held by this test
+/// process until it ends, so its tests still build side by side. While another run holds it alone, one line on the
+/// console (not captured) says why the tests wait; past [`CLONE_WAIT_LIMIT`] they fail.
 pub fn lock_clone() {
     static CLONE: OnceLock<File> = OnceLock::new();
     CLONE.get_or_init(|| {
-        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/qb64pe-clone");
+        let dir = clone_lock_dir();
         std::fs::create_dir_all(&dir).unwrap();
         let file = File::options()
             .read(true)
@@ -176,7 +192,7 @@ pub fn lock_clone() {
         let start = Instant::now();
         let mut told = false;
         loop {
-            match file.try_lock() {
+            match file.try_lock_shared() {
                 Ok(()) => return file,
                 Err(TryLockError::WouldBlock) => {}
                 Err(TryLockError::Error(e)) => panic!("cannot lock the reference clone: {e}"),
@@ -189,7 +205,7 @@ pub fn lock_clone() {
             if !told {
                 let _ = writeln!(
                     std::io::stderr(),
-                    "waiting for another run (the test runner, verification\\run.sh or callsite.py) to leave the \
+                    "waiting for a run of qb64pe.exe (the test runner, verification\\run.sh or callsite.py) to leave the \
                      reference clone"
                 );
                 told = true;

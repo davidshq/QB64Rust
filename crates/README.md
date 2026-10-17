@@ -161,13 +161,16 @@ panics on purpose, for the CLI test only.
 | 2 | `python tools\callsite\callsite.py` | The call-site check (`tools\callsite\README.md`): for each program of `tests\callsite`, the libqb call the new compiler writes for one built-in statement or function equals the old compiler's (`-z`, nothing built or run). The old compiler's C++ is kept per program in `target\callsite-cache`: about 40 s for the 663 programs when it is filled, about 6 min without it. Needs `qb64pe.exe` in the clone; also in CI. A new plain built-in comes in with a program here |
 | 2, when messages changed | `python tools\diagnostics\old_wording.py`, then after a release build `--check` | The table of the old compiler's wording from recorded rejections, and every note on them equal to the recorded message (`tools\diagnostics\README.md`) |
 
-**When to run what** (`CLAUDE.md` working rule 9, `DECISIONS.md` 2026-10-12): tier 1 while working; tier 2 once
-per change, at its close, and before that only the programs the work touches (`--glob`, `--category`, a short
-`--list`). At the close the two full suites run, and the slice list and the upstream pass list are judged from
-their results instead of being run again, by the runner with `--suite corpus --check-list tests\corpus\slice.list`
-and `--suite compile --check-list tests\upstream\pass.list` after them (`tools\legacy_tests\README.md`). In CI the `tier2` job runs when started by hand and once a week, not on a push. While working, add
-`--pass-cache target\pass-cache` to a corpus run: a program that passed with the same executable and expected
-files is not run again (`tools\legacy_tests\README.md`). The closing runs of a change go without it.
+**When to run what** (`CLAUDE.md` working rule 9, `DECISIONS.md` 2026-10-12 and 2026-10-17): tier 1 while
+working; tier 2 once per change, at its close, and before that only the programs the work touches (`--glob`,
+`--category`, a short `--list`). Add `--pass-cache target\pass-cache` to a corpus or compile run: a program that
+passed with the same executable and expected files is not run again (`tools\legacy_tests\README.md`). At a
+change's close the slice list and the upstream pass list run with it, and the run without folding only when the
+change touched `sema`'s constants or a numeric conversion. At each merge into `main` the two full suites run
+without it, and the slice list and the upstream pass list are judged from their results instead of being run
+again, by the runner with `--suite corpus --check-list tests\corpus\slice.list` and `--suite compile --check-list
+tests\upstream\pass.list` after them. Runs of the new compiler may run side by side (`tools\legacy_tests\README.md`,
+"Locks"). In CI the `tier2` job runs when started by hand and once a week, not on a push.
 
 Tier 2 locally: add `--jobs 8 --build-cache target\build-cache` to each command. `--jobs` runs programs in
 parallel; `--build-cache` (environment variable `QB64RUST_BUILD_CACHE`, `driver\src\build.rs`) skips `make` for a

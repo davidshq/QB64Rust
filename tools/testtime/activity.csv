@@ -27,6 +27,11 @@ version,session,change,category,actions,bytes
 1,01e5f9d8,m2-arrays-and-types,other commands,19,0
 1,01e5f9d8,m2-arrays-and-types,reading,4,0
 1,01e5f9d8,m2-arrays-and-types,test runs,3,0
+1,02dc9d37,,other commands,1,0
+1,02dc9d37,m3-events,other commands,20,0
+1,02dc9d37,m3-events,product code,2,170
+1,02dc9d37,m3-events,reading,1,0
+1,02dc9d37,m3-events,test runs,2,0
 1,030151d6,,builds,1,0
 1,030151d6,,measurement preparation,4,8273
 1,030151d6,,measurement runs,2,0
@@ -499,6 +504,21 @@ version,session,change,category,actions,bytes
 1,3ed10cce,m2-upstream-tests,reading,2,0
 1,3ed10cce,m2-upstream-tests,test runs,1,0
 1,3ed10cce,m2-upstream-tests,tests and fixtures,2,1444
+1,3ee337a0,,other commands,11,0
+1,3ee337a0,m3-events,builds,1,0
+1,3ee337a0,m3-events,documents and planning,3,3581
+1,3ee337a0,m3-events,measurement runs,1,0
+1,3ee337a0,m3-events,other commands,30,0
+1,3ee337a0,m3-events,product code,4,4110
+1,3ee337a0,m3-events,reading,4,0
+1,3ee337a0,m3-events,scratch files,5,2499
+1,3ee337a0,m3-events,test runs,8,0
+1,3ee337a0,m3-events,tests and fixtures,20,29115
+1,3ee337a0,test-parallel-runs,documents and planning,9,13263
+1,3ee337a0,test-parallel-runs,other,1,0
+1,3ee337a0,test-parallel-runs,other commands,8,0
+1,3ee337a0,test-parallel-runs,reading,2,0
+1,3ee337a0,test-parallel-runs,test runs,4,0
 1,404c65b5,,other commands,1,0
 1,404c65b5,,reading,1,0
 1,404c65b5,m3-typefields,builds,4,0
@@ -1945,11 +1965,11 @@ version,session,change,category,actions,bytes
 1,e8a99cdc,,other commands,34,0
 1,e8a99cdc,,reading,5,0
 1,e8a99cdc,m3-events,builds,8,0
-1,e8a99cdc,m3-events,documents and planning,33,64504
+1,e8a99cdc,m3-events,documents and planning,34,65145
 1,e8a99cdc,m3-events,measurement preparation,10,9767
 1,e8a99cdc,m3-events,measurement runs,11,0
 1,e8a99cdc,m3-events,other,1,0
-1,e8a99cdc,m3-events,other commands,163,0
+1,e8a99cdc,m3-events,other commands,164,0
 1,e8a99cdc,m3-events,product code,31,37249
 1,e8a99cdc,m3-events,reading,5,0
 1,e8a99cdc,m3-events,scratch files,3,8319
@@ -1990,6 +2010,13 @@ version,session,change,category,actions,bytes
 1,eee0062a,,product code,18,9088
 1,eee0062a,,reading,18,0
 1,eee0062a,,test runs,9,0
+1,ef8d6a97,,other commands,5,0
+1,ef8d6a97,,reading,6,0
+1,ef8d6a97,test-parallel-runs,documents and planning,6,2767
+1,ef8d6a97,test-parallel-runs,other commands,10,0
+1,ef8d6a97,test-parallel-runs,reading,12,0
+1,ef8d6a97,test-parallel-runs,test runs,2,0
+1,ef8d6a97,test-parallel-runs,tests and fixtures,10,4784
 1,f0c732d9,,documents and planning,4,2714
 1,f0c732d9,,measurement preparation,1,622
 1,f0c732d9,,measurement runs,5,0
@@ -2035,6 +2062,7 @@ version,session,change,category,actions,bytes
 1,f7bcc1d6,,reading,2,0
 1,f7bcc1d6,,test runs,3,0
 1,f7bcc1d6,,tests and fixtures,1,758
+1,f7f3b4f1,m3-events,other commands,1,0
 1,f821a2b8,,documents and planning,3,1138
 1,f821a2b8,,measurement runs,2,0
 1,f821a2b8,,other commands,6,0

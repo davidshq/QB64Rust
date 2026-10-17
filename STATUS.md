@@ -20,7 +20,8 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 
 M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: nineteen of its steps are built (table below);
 the eighteenth, `m3-arraycopy`, is archived and committed (`7439ea8`), the nineteenth, `m3-events`, is built and
-waits for the user's look and archive. Every
+waits for the user's look and archive, as does `test-parallel-runs` (the test cadence of `study\32`, not an M3
+step). Every
 program of the corpus that the old compiler accepts compiles, and every one that can be compared passes; Civil
 War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same 23
 screens as the old compiler's build. Upstream is at 336 of 399. `main` is at the merge of `m3` (pull request 5,
@@ -41,8 +42,11 @@ questionable behaviours each change kept QB64pe's way.
    argument through an `_INTEGER64`, an event during an error handler held, a `TYPE` parameter rejected).
 3. **The next M3 step**: the upstream report's first lines are `_OPENCLIENT`, the function `CHR$` in a `CONST` and
    `_ERRORLINE` (3 programs each).
-4. **Test cadence and parallel runs** (`study\32` §5): a lighter close with the full set at each merge; a
-   readers-writer lock so that runs of the new compiler overlap; the runner running a timing failure again alone.
+4. **`test-parallel-runs`: look at it and archive it** (`openspec\changes\test-parallel-runs\`; the answers to
+   `study\32` §5, `DECISIONS.md` 2026-10-17): the clone's lock shared by runs of the new compiler, the driver's
+   lock on the libqb objects, a failure beside other builds run again alone, `--pass-cache` with the compile
+   suite. It differs from `study\32` §2's sketch in one point (design D1: no warm-up; the driver checks with
+   `make -q`).
 
 **The `tier2` job on `m3`** (`study\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the

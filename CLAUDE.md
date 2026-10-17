@@ -74,14 +74,23 @@ changing direction, design or scope.**
 
 9. **Test cadence: run what a change can affect, once.**
    - While working: `cargo test` (tier 1), with fmt and clippy before a group is reported done.
-   - Tier 2 (the slice list, the pass lists, the call-site check) runs **once per change, at its close**, not per
-     task group. Before that, run only the programs the work touches (`--glob`, `--category`, a short `--list`),
-     or a list with `--pass-cache target\pass-cache`, which runs only the programs whose executable changed.
-     The closing runs go without `--pass-cache`: it cannot see a result that depends on time or load.
-   - The run without folding (`QB64RUST_NO_FOLD=1`) and the two full suites run once, at the close. The slice
-     list and the upstream pass list are then judged from the full suites' results (`--check-list`,
-     `tools\legacy_tests\README.md`), not run a second time; the differential pass list and the call-site check
-     still run (`study\31` item 3, 2026-10-16).
+   - Tier 2 runs **once per change, at its close**, not per task group. Before that, run only the programs the
+     work touches (`--glob`, `--category`, a short `--list`), or a list with `--pass-cache target\pass-cache`,
+     which runs only the programs whose executable changed.
+   - **At a change's close** (`study\32` §4 item 1, user, 2026-10-17): tier 1 with fmt and clippy; the CLI tests
+     that build (`--ignored`); the change's own new programs and its `verification` family; the call-site check;
+     the slice list and the upstream pass list **with `--pass-cache target\pass-cache`** and
+     `--build-cache target\build-cache`; the run without folding (`QB64RUST_NO_FOLD=1`) **only when** the change
+     touched `sema`'s constant evaluation or a numeric conversion; the demand reports, the shrink-only lists and
+     the wording table as before.
+   - **At each merge of `changes` (or `m3`) into `main`**, every two or three changes (`study\32` §4 item 2): the
+     full set, no pass cache: both full suites with the slice list and the upstream pass list judged from them
+     (`--check-list`, `tools\legacy_tests\README.md`), the run without folding, the differential pass list and the
+     call-site check. A failure there is found among the merged changes with the build cache. The pass cache is
+     left out there because it cannot see a result that depends on time or load.
+   - **Order:** whatever changes the compiler (the wording table, generated tables) comes before the first long
+     run, so that no run is thrown away for a new build. Runs of the new compiler may run side by side (they share
+     the clone's lock; `tools\legacy_tests\README.md`, "Locks"); a run of `qb64pe.exe` in the clone has it alone.
    - After the closing runs, a further edit is rerun only for what it can affect; say which runs were not
      repeated and why that is safe.
    - **Read a run's output from a log, not by running it again.** Send a run that may need a second look to a

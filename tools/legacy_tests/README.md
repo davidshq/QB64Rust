@@ -80,10 +80,10 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   the same reports `PASS` with "not run: passed before …" without running it; a last line says how many were
   not run. With `--build-cache`, which gives an unchanged program a byte-identical executable, an edit to the
   compiler then runs only the programs whose C++ it changed: the 342 of `slice.list` take 24 s when nothing
-  changed, against 92 s (`--jobs 8`, 2026-10-12). A failure is never remembered. **The closing runs of a change
-  go without it** (`CLAUDE.md` working rule 9): it cannot see a result that depends on time or load, which is
-  how `m10_screen_10` was found. With `qb64pe` it does no harm and saves nothing (its builds differ byte for
-  byte). The folder is safe to delete.
+  changed, against 92 s (`--jobs 8`, 2026-10-12). A failure is never remembered. A change's close runs the slice
+  and upstream pass lists with it; **the runs at a merge into `main` go without it** (`CLAUDE.md` working rule
+  9): it cannot see a result that depends on time or load, which is how `m10_screen_10` was found. With
+  `qb64pe` it does no harm and saves nothing (its builds differ byte for byte). The folder is safe to delete.
 - `--cpp-opt` adds `-f:OptimizeCppProgram=true`; its failures list the programs whose behaviour depends on the
   C++ optimiser (`tests\corpus\README.md`). It cannot be combined with `--record`.
 - On Windows, `END` in a console program waits for a key from the console ("Press any key to continue"), which
@@ -216,19 +216,47 @@ Notes:
   their own `--results`, do not meet here. The summary file is not locked: two narrowed runs with one
   `--results` both write `results-partial.json` when they end, and the later one stays. Give one of them its
   own `--results` when both summaries are wanted.
-- **One run at a time builds in the clone** (`clone_lock.py`). This runner (so `verification\run.sh` and
-  tier 2 too) and `tools\callsite\callsite.py` take a lock on `target\qb64pe-clone\in-use.lock` first; a
-  second one started meanwhile stops at once with exit code 3, or with `--wait` prints that it is waiting and
-  starts when the other has ended. The system drops the lock when the run ends, however it ends.
-  - With `qb64pe`: two runs would empty and read each other's `internal\temp`.
-  - With `qb64rust` (any `--jobs`): its C++ and executable are outside the clone, but its `make` runs in the
-    clone, reads `internal\temp` and builds the libqb objects the clone lacks.
+- <a id="locks"></a>**Locks: runs of `qb64rust` side by side, a run of `qb64pe` alone in the clone**
+  (`clone_lock.py`, `test-parallel-runs`). This runner (so `verification\run.sh` and tier 2 too) and
+  `tools\callsite\callsite.py` take a lock on `target\qb64pe-clone\in-use.lock` first: **alone** for a run
+  that uses `qb64pe.exe` in the clone, **shared** for a run that builds with `qb64rust` only. A run that
+  cannot have it stops at once with exit code 3, or with `--wait` prints that it is waiting and starts when it
+  can. The system drops the lock when the run ends, however it ends.
+  - With `qb64pe`: two runs would empty and read each other's `internal\temp`, and its `make` writes the
+    libqb objects in `internal\c` that every build reads. So the verification suite, a corpus run of the old
+    compiler with one job, and `callsite.py` (its old side runs `qb64pe -z` in the clone) have it alone.
+  - With `qb64rust` (any `--jobs`): its fragments, `qbx.cpp`, `qbx.o` and executable are in its own build
+    folder (`PATH_INTERNAL_TEMP` points there), and it only reads the clone, except for the libqb objects its
+    `make` builds when one it links is missing or older than its source. That case has a lock of its own,
+    `target\qb64pe-clone\objects.lock`, which the runner names in `QB64RUST_OBJECTS_LOCK` for every compile:
+    the driver runs `make -q` on the objects of the build's flags under a shared lock and keeps it for the
+    build when they are up to date; otherwise it builds alone (`crates\driver\src\build.rs`, `lock_objects`).
+    So the full corpus, the full upstream suite and the run without folding can run side by side (each with
+    its own results folder, which they have), and the builds within one `--jobs` run no longer race for a
+    missing object either.
   - The one exception is `--jobs` with `qb64pe` (next point): it builds in its copies and can run beside
-    another run that uses another results folder.
-  - The CLI tests that build (`cargo test -p qb64rust-driver --test cli -- --ignored`) take the same lock,
-    with `File::try_lock` on the same file (`crates\driver\tests\support`), and hold it until the test process
-    ends; they wait for it at most 30 min.
-  - Not covered: `qb64rust` started by hand.
+    another run that uses another results folder; it takes the clone's lock alone only to run a failed program
+    again.
+  - The CLI tests that build (`cargo test -p qb64rust-driver --test cli -- --ignored`) take the clone's lock
+    shared, with `File::try_lock_shared` on the same file (`crates\driver\tests\support`), give every compiler
+    they start `QB64RUST_OBJECTS_LOCK`, and hold the lock until the test process ends; they wait for it at
+    most 30 min. Python's lock is `LockFileEx` over the whole file, the range Rust's `File::lock` takes, so
+    the two see each other.
+  - **A failure beside other builds runs again alone** (corpus and compile suites, `--jobs` above 1 with
+    `qb64rust`): after the others, once, and both outcomes are printed (`[again]`). A failure that cannot
+    pass alone is not run again (`SETTLED_STAGES`): wrong expected files, or a program expected to be
+    rejected that was not rejected with a real error. The latter may be a failed C++ build after the
+    compiler wrongly accepted the program, and its detail then names the build; alone it would fail with
+    "compiled successfully, expected an error". A `compile` failure is run again, as its exit code is also
+    the C++ build's. One that then passes is
+    counted as passed with a `note:` at the end; it makes the exit code 1 unless it is **timing-sensitive**
+    (`timing_sensitive`: a screen program, or one whose source names `SOUND`, `PLAY`, `BEEP`, `_SND…`,
+    `TIMER`, `_DELAY`, `SLEEP`, `_LIMIT`, `_MOUSE…`, `INKEY$`, `_KEYHIT`, `_KEYDOWN`, `ON KEY` or `KEY(`),
+    whose result may change with the load of the machine. The list is wide on purpose: a word in a comment
+    counts, and so does `RANDOMIZE TIMER`, so 83 of the 471 corpus programs and 33 of the 404 upstream ones
+    match (2026-10-17); a shared-build fault in one of them shows only as its `note:`, so read the notes.
+    "Alone" is alone in this run: a run beside it that shares the clone's lock may still be building.
+  - Not covered: `qb64rust` started by hand without `QB64RUST_OBJECTS_LOCK` takes no lock.
   - Not covered: runs from two checkouts (or git worktrees) of this repo that use one clone. The lock file
     is under each checkout's own `target\` (the clone is a read-only reference and gets no lock file). Use
     one checkout per clone.

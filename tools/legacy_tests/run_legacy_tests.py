@@ -78,7 +78,11 @@ and compares nothing:
 Speed (corpus and compile suites; the C++ build is most of each program's time):
   * --jobs N runs N programs at a time, after the first one alone (it builds any libqb object the
     clone lacks); results are printed as they finish. Compile tests of one folder run (not build)
-    one at a time, since it is their working folder. --record runs one at a time
+    one at a time, since it is their working folder. --record runs one at a time. With qb64rust a
+    program that fails beside other builds runs again alone after them and both outcomes are
+    reported; a pass alone fails the run unless the program is timing-sensitive (timing_sensitive)
+  * runs of qb64rust share the clone's lock, so two of them (the corpus and the compile suite, say)
+    run side by side; a run of qb64pe in the clone has it alone (clone_lock.py)
   * --jobs N with qb64pe (corpus suite only): qb64pe builds inside its own folder (internal/temp,
     and the libqb objects in internal/c), so each worker compiles with a private copy of the
     compiler under --copies-dir (default target/qb64pe-copies/w1..wN, about 800 MB each: qb64pe.exe,
@@ -552,6 +556,27 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         r.seconds = round(time.time() - t0, 1)
         return r
 
+    # --pass-cache, as for a corpus program: a program that passed with this executable, this
+    # source and these expected files is not run again. It runs in its category's folder, so every
+    # file there counts (one it writes and leaves only makes it run again).
+    remembered = None
+    pass_cache = getattr(args, "pass_cache", None)
+    sidecar = compile_sidecar(category, name)
+    if pass_cache:
+        parts = [
+            b"compile suite",
+            bas.read_bytes(),
+            out_file.read_bytes(),
+            sidecar.read_bytes() if sidecar.is_file() else None,
+            noprompt.encode(),
+            data_files(tdir),
+        ]
+        remembered = pass_cache / pass_key(exe, parts)
+        if remembered.is_file():
+            r.detail = PASSED_BEFORE
+            r.seconds = round(time.time() - t0, 1)
+            return r
+
     run_out = results / f"{category}-{name}-run-output.txt"
     env = dict(os.environ)
     env.update(
@@ -579,9 +604,12 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         return fail("run", f"exit code {rc}")
     if norm_output(out_file.read_bytes()) != norm_output(run_out.read_bytes()):
         return fail("result", "program output differs from .output")
-    odd = unexpected_rows(trace, allowed_rows(compile_sidecar(category, name)))
+    odd = unexpected_rows(trace, allowed_rows(sidecar))
     if odd:
         return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES.md")
+    if remembered:
+        remembered.parent.mkdir(parents=True, exist_ok=True)
+        remembered.touch()
     r.seconds = round(time.time() - t0, 1)
     return r
 
@@ -1380,6 +1408,79 @@ def run_all(tests: list[Path], run_one, jobs: int):
         pool.shutdown(wait=True, cancel_futures=True)
 
 
+# What a program names when its result may change with the load of the machine: it waits in real
+# time, reads the clock, plays sound or reads the keyboard or the mouse while it runs (the failures
+# seen under --jobs: m10_screen_10, u02_mouse_text, the sound programs). Every failure runs again
+# alone; a match only keeps a pass alone from failing the run. A word in a comment counts too, and
+# so does RANDOMIZE TIMER, which errs towards not failing the run: about a sixth of the corpus and
+# a twelfth of the upstream programs match (2026-10-17).
+TIMING_WORDS = re.compile(
+    r"\b(?:SOUND|PLAY|BEEP|_SND\w*|TIMER|_DELAY|SLEEP|_LIMIT|_MOUSE\w*|INKEY\$|_KEYHIT|_KEYDOWN"
+    r"|ON\s+KEY|KEY\s*\()(?!\w)",
+    re.IGNORECASE,
+)
+
+
+def timing_sensitive(bas: Path) -> bool:
+    """True for a program whose result may depend on time or load: a screen program (it has a
+    window and is given its keys in time) or one whose source names a word of TIMING_WORDS."""
+    if bas.with_suffix(".screen").is_file():
+        return True
+    try:
+        return TIMING_WORDS.search(bas.read_text(encoding="latin-1")) is not None
+    except OSError:
+        return False
+
+
+# Stages at which a qb64rust program cannot pass alone, so that it is not run again: its expected
+# files are wrong, or a program expected to be rejected was not rejected with a real error
+# (new_compiler_rejection). The latter can come from a failed C++ build, when the compiler wrongly
+# accepted the program; alone it then fails with "compiled successfully, expected an error", so only
+# the kept detail differs: it may name the build, not the accepted program. A "compile" failure
+# stays out: its exit code is also the C++ build's, and alone it may pass.
+SETTLED_STAGES = frozenset({"expected", "error result"})
+
+
+def run_again_alone(
+    tests: list[Path], by_test: dict[int, list[Result]], run_one, old_compiler: bool
+) -> tuple[list[str], list[str]]:
+    """Runs each program of by_test that failed beside other builds once more, alone, after them,
+    replaces its result by the new one and prints it; both outcomes are in its detail. Returns the
+    keys that passed alone and fail the run, and those that passed alone and do not: with qb64rust,
+    a timing-sensitive program (timing_sensitive). With qb64pe every one fails the run: its copies
+    gave another answer than the clone (alone in the clone: the caller holds the clone's lock).
+    With qb64rust a failure at a stage of SETTLED_STAGES is left as it is: alone it fails too.
+    "Alone" is alone in this run: another run that shares the clone's lock may still be building."""
+    where = "alone in the clone" if old_compiler else "alone"
+    failing: list[str] = []
+    timing: list[str] = []
+    for idx in sorted(by_test):
+        if len(by_test[idx]) != 1 or by_test[idx][0].status != "FAIL":
+            continue
+        if not old_compiler and by_test[idx][0].stage in SETTLED_STAGES:
+            continue
+        before = by_test[idx][0]
+        after = run_one(tests[idx])[0]
+        first = f"{before.stage}: {before.detail}"
+        key = f"{after.suite}:{after.test}"
+        if after.status == "PASS":
+            after.detail = f"passed {where}; failed with --jobs ({first})"
+            if not old_compiler and timing_sensitive(tests[idx]):
+                after.detail += " (timing-sensitive)"
+                timing.append(key)
+            else:
+                failing.append(key)
+        else:
+            after.detail += f" ({where}; with --jobs: {first})"
+        by_test[idx] = [after]
+        print(
+            f"[again] {after.status} {key} ({after.kind}, {after.seconds}s)  "
+            f"{after.stage + ': ' if after.stage else ''}{after.detail}",
+            flush=True,
+        )
+    return failing, timing
+
+
 def main() -> int:
     """Runs the selected suites and writes the results file.
 
@@ -1499,14 +1600,14 @@ def main() -> int:
     ap.add_argument(
         "--pass-cache",
         type=Path,
-        help="corpus: a folder that remembers which programs passed, by executable, source "
-        "and expected files; such a program is compiled and built and not run again. "
-        "For work between the closing runs of a change, which go without it: it would "
-        "hide a result that depends on time or load. Not with --record",
+        help="corpus and compile: a folder that remembers which programs passed, by "
+        "executable, source and expected files; such a program is compiled and built and "
+        "not run again. For work and a change's close; the runs at a merge into main go "
+        "without it: it would hide a result that depends on time or load. Not with --record",
     )
     args = ap.parse_args()
-    if args.pass_cache and (args.suite != "corpus" or args.record):
-        print("--pass-cache applies to --suite corpus without --record", file=sys.stderr)
+    if args.pass_cache and (args.suite not in ("corpus", "compile") or args.record):
+        print("--pass-cache applies to --suite corpus or compile without --record", file=sys.stderr)
         return 2
     if args.jobs < 1:
         print("--jobs must be 1 or more", file=sys.stderr)
@@ -1611,6 +1712,7 @@ def main() -> int:
     all_results: list[Result] = []
     known_passed: list[str] = []
     retried_passed: list[str] = []
+    timing_passed: list[str] = []
     corpus_root = args.corpus_root.resolve()
     suites = ["compile", "qbasic", "format", "corpus"] if args.suite == "all" else [args.suite]
     # The tests of every suite are selected before any lock is taken: a usage error is reported at
@@ -1688,13 +1790,13 @@ def main() -> int:
             )
             return BUSY_EXIT
         results_locks.append(lock)
-    # One run at a time builds in the clone (clone_lock.py): qb64pe in its internal/temp, and
-    # qb64rust's make runs there too and builds the libqb objects it lacks. Only a qb64pe run with
-    # --jobs starts without the lock: it compiles in its copies and takes the lock when it comes back
-    # to the clone.
+    # The clone's lock (clone_lock.py): a run of qb64pe has it alone, as qb64pe builds in the clone's
+    # internal/temp and internal/c; runs of qb64rust share it, and their builds take the objects'
+    # lock around each make. Only a qb64pe run with --jobs starts without it: it compiles in its
+    # copies and takes the lock when it comes back to the clone.
     clone_lock = None
     if selected and not (is_old_compiler(args.qb64) and args.jobs > 1):
-        clone_lock = lock_clone(args.wait)
+        clone_lock = lock_clone(args.wait, shared=not is_old_compiler(args.qb64))
         if clone_lock is None:
             print(CLONE_BUSY, file=sys.stderr)
             return BUSY_EXIT
@@ -1755,26 +1857,15 @@ def main() -> int:
             # one runs again alone in the clone, as with one job, and both outcomes are reported.
             args.copies.close()
             args.copies = None
-            for idx in sorted(by_test):
-                before = by_test[idx][0]
-                if before.status != "FAIL":
-                    continue
-                if clone_lock is None:
-                    # This late in a long run, wait for the clone (also without --wait).
-                    clone_lock = lock_clone(wait=True)
-                after = run_one(tests[idx])[0]
-                first = f"{before.stage}: {before.detail}"
-                if after.status == "PASS":
-                    after.detail = f"passed alone in the clone; failed with --jobs ({first})"
-                    retried_passed.append(f"{after.suite}:{after.test}")
-                else:
-                    after.detail += f" (alone in the clone; with --jobs: {first})"
-                by_test[idx] = [after]
-                print(
-                    f"[again] {after.status} {after.suite}:{after.test} ({after.kind}, "
-                    f"{after.seconds}s)  {after.stage + ': ' if after.stage else ''}{after.detail}",
-                    flush=True,
-                )
+            if clone_lock is None and any(rs[0].status == "FAIL" for rs in by_test.values()):
+                # This late in a long run, wait for the clone (also without --wait).
+                clone_lock = lock_clone(wait=True)
+            failed_alone, _ = run_again_alone(tests, by_test, run_one, old_compiler=True)
+            retried_passed += failed_alone
+        elif args.jobs > 1 and len(tests) > 1 and not is_old_compiler(args.qb64):
+            failed_alone, timing = run_again_alone(tests, by_test, run_one, old_compiler=False)
+            retried_passed += failed_alone
+            timing_passed += timing
         for idx in sorted(by_test):
             all_results.extend(by_test[idx])
 
@@ -1837,10 +1928,14 @@ def main() -> int:
     for key in known_passed:
         print(f"note: {key} passed but is listed in {args.known_failures.name}; remove the entry")
     for key in retried_passed:
-        print(f"note: {key} failed with --jobs and passed alone in the clone; find out why")
+        print(f"note: {key} failed with --jobs and passed alone; find out why")
+    for key in timing_passed:
+        print(f"note: {key} failed with --jobs and passed alone (timing-sensitive, run not failed)")
     print(f"results: {out}")
     # A program that passed only alone counts as passed in the results, and still fails the run: the
-    # copies gave another answer than the clone, which nobody reading only the exit code may miss.
+    # copies gave another answer than the clone, or a program whose result should not depend on load
+    # did, which nobody reading only the exit code may miss. A timing-sensitive one does not
+    # (test-parallel-runs, design D3).
     return 0 if all(s["FAIL"] == 0 for s in summary.values()) and not retried_passed else 1
 
 

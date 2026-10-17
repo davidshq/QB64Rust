@@ -244,6 +244,109 @@ class Lists(unittest.TestCase):
         self.assertFalse(rlt.written_by_builds(("c_compiler", "lib"), "libm.a"))
 
 
+class RunAgainAlone(unittest.TestCase):
+    """timing_sensitive and run_again_alone (test-parallel-runs, design D3): a program that failed
+    beside other builds runs once more alone, and only a timing-sensitive one that then passes
+    leaves the run passing."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.addCleanup(self.tmp.cleanup)
+
+    def program(self, name: str, source: str, screen: bool = False) -> Path:
+        bas = self.dir / f"{name}.bas"
+        bas.write_text(source, encoding="latin-1")
+        if screen:
+            bas.with_suffix(".screen").write_bytes(b"")
+        return bas
+
+    def test_timing_sensitive(self):
+        self.assertTrue(rlt.timing_sensitive(self.program("a", "SOUND 440, 2\n")))
+        self.assertTrue(rlt.timing_sensitive(self.program("b", "x = _MOUSEX\n")))
+        self.assertTrue(rlt.timing_sensitive(self.program("c", "on key(1) gosub h\n")))
+        self.assertTrue(rlt.timing_sensitive(self.program("d", "t! = TIMER\n")))
+        self.assertTrue(rlt.timing_sensitive(self.program("e", "PRINT 1\n", screen=True)))
+        self.assertFalse(rlt.timing_sensitive(self.program("f", "PRINT SOUNDS%\nDISPLAY = 1\n")))
+        self.assertFalse(rlt.timing_sensitive(self.dir / "missing.bas"))
+
+    def outcomes(self, tests, first, second, old_compiler=False):
+        by_test = {i: [r] for i, r in enumerate(first)}
+        again = dict(zip([t for t, r in zip(tests, first) if r.status == "FAIL"], second))
+        ran = []
+
+        def run_one(bas):
+            ran.append(bas)
+            return [again[bas]]
+
+        with mock.patch("builtins.print"):
+            result = rlt.run_again_alone(tests, by_test, run_one, old_compiler)
+        return by_test, ran, result
+
+    def test_only_failures_run_again(self):
+        tests = [self.program("p", "PRINT 1\n"), self.program("q", "PRINT 2\n")]
+        known = rlt.Result("corpus", "g/q", "output", "KFAIL", "output", "differs")
+        by_test, ran, result = self.outcomes(
+            tests, [rlt.Result("corpus", "g/p", "output"), known], []
+        )
+        self.assertEqual(ran, [])
+        self.assertEqual(result, ([], []))
+        self.assertIs(by_test[1][0], known)
+
+    def test_a_settled_failure_does_not_run_again(self):
+        tests = [self.program("p", "PRINT 1\n"), self.program("q", "PRINT 2\n")]
+        wrong_err = rlt.Result("corpus", "g/p", "error", "FAIL", "error result", "differs from .err")
+        layout = rlt.Result("corpus", "g/q", "output", "FAIL", "expected", "no .output")
+        by_test, ran, result = self.outcomes(tests, [wrong_err, layout], [])
+        self.assertEqual(ran, [])
+        self.assertEqual(result, ([], []))
+        self.assertIs(by_test[0][0], wrong_err)
+        self.assertIs(by_test[1][0], layout)
+
+    def test_with_qb64pe_a_settled_failure_runs_again(self):
+        tests = [self.program("p", "PRINT 1\n")]
+        before = rlt.Result("corpus", "g/p", "error", "FAIL", "error result", "differs from .err")
+        _, ran, _ = self.outcomes(
+            tests, [before], [rlt.Result("corpus", "g/p", "error")], old_compiler=True
+        )
+        self.assertEqual(ran, tests)
+
+    def test_a_timing_sensitive_pass_alone_does_not_fail_the_run(self):
+        tests = [self.program("s", "BEEP\n")]
+        before = rlt.Result("corpus", "g/s", "output", "FAIL", "output", "differs")
+        after = rlt.Result("corpus", "g/s", "output")
+        by_test, ran, result = self.outcomes(tests, [before], [after])
+        self.assertEqual(ran, tests)
+        self.assertEqual(result, ([], ["corpus:g/s"]))
+        self.assertEqual(by_test[0][0].status, "PASS")
+        self.assertIn("failed with --jobs (output: differs)", by_test[0][0].detail)
+        self.assertIn("timing-sensitive", by_test[0][0].detail)
+
+    def test_another_pass_alone_fails_the_run(self):
+        tests = [self.program("p", "PRINT 1\n")]
+        before = rlt.Result("corpus", "g/p", "output", "FAIL", "build", "make")
+        _, _, result = self.outcomes(tests, [before], [rlt.Result("corpus", "g/p", "output")])
+        self.assertEqual(result, (["corpus:g/p"], []))
+
+    def test_with_qb64pe_every_pass_alone_fails_the_run(self):
+        tests = [self.program("s", "BEEP\n")]
+        before = rlt.Result("corpus", "g/s", "output", "FAIL", "output", "differs")
+        by_test, _, result = self.outcomes(
+            tests, [before], [rlt.Result("corpus", "g/s", "output")], old_compiler=True
+        )
+        self.assertEqual(result, (["corpus:g/s"], []))
+        self.assertIn("passed alone in the clone", by_test[0][0].detail)
+
+    def test_a_failure_alone_keeps_both_outcomes(self):
+        tests = [self.program("s", "BEEP\n")]
+        before = rlt.Result("corpus", "g/s", "output", "FAIL", "output", "differs")
+        after = rlt.Result("corpus", "g/s", "output", "FAIL", "run", "timed out")
+        by_test, _, result = self.outcomes(tests, [before], [after])
+        self.assertEqual(result, ([], []))
+        self.assertEqual(by_test[0][0].status, "FAIL")
+        self.assertEqual(by_test[0][0].detail, "timed out (alone; with --jobs: output: differs)")
+
+
 class CheckList(unittest.TestCase):
     """check_list (--check-list, study/31 item 3): a pass list judged from a full run's results."""
 
@@ -680,6 +783,50 @@ class CorpusProgram(CorpusFixture):
 
 
 STATE = b"screen-state 1\npages 1 display 0 write 0 read 0\nend\n"
+
+
+class CompilePassCache(unittest.TestCase):
+    """--pass-cache with the compile suite (test-parallel-runs): the same rule as a corpus program's,
+    with every file of the program's category folder counted."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        base = Path(self.tmp.name)
+        self.addCleanup(self.tmp.cleanup)
+        self.category = base / "tests" / "no-such-category-here"
+        self.category.mkdir(parents=True)
+        self.results, self.cache = base / "results", base / "passes"
+        self.results.mkdir()
+        self.bas = self.category / "p.bas"
+        self.bas.write_bytes(b"PRINT 1\n")
+        (self.category / "p.output").write_bytes(b"1\n")
+
+    def go(self, runs=(b"1\n",), exe_bytes=b"exe one"):
+        tools = Tools(runs=list(runs), exe_bytes=exe_bytes)
+        args = SimpleNamespace(qb64=Path("qb64rust.exe"), pass_cache=self.cache)
+        with mock.patch.object(rlt, "run_proc", tools):
+            r = rlt.compile_test(self.bas, args, self.results, self.results, "windows")
+        return r, len(tools.run_cmds)
+
+    def test_a_program_that_passed_is_not_run(self):
+        r, ran = self.go()
+        self.assertEqual((r.status, r.detail, ran), ("PASS", "", 1))
+        r, ran = self.go(runs=[b"wrong\n"])
+        self.assertEqual((r.status, r.detail, ran), ("PASS", rlt.PASSED_BEFORE, 0))
+
+    def test_another_executable_or_file_of_the_folder_runs(self):
+        self.go()
+        r, ran = self.go(exe_bytes=b"exe two")
+        self.assertEqual((r.status, ran), ("PASS", 1))
+        (self.category / "data.txt").write_bytes(b"x")
+        r, ran = self.go(exe_bytes=b"exe two")
+        self.assertEqual((r.status, ran), ("PASS", 1))
+
+    def test_a_failure_is_not_remembered(self):
+        r, _ = self.go(runs=[b"2\n"])
+        self.assertEqual(r.status, "FAIL")
+        r, ran = self.go()
+        self.assertEqual((r.status, r.detail, ran), ("PASS", "", 1))
 
 
 class PassCache(CorpusFixture):

@@ -141,5 +141,7 @@ or three changes later, and still before `main`.
 2. **Parallel runs:** build §2's readers-writer lock now, as a small change before the next M3 step, or later.
 3. **Timing failures:** add §4 item 4 to the same change, or not.
 
-When answered: a row in `DECISIONS.md`, `CLAUDE.md` working rule 9 updated, and this section marked with the
-answers.
+**Answered** (user, 2026-10-17: "1. Yes, adopt 2. Yes 3. Yes. Do it"; `DECISIONS.md` 2026-10-17): (1) §4 items 1
+and 2 are adopted, in `CLAUDE.md` working rule 9; (2) the readers-writer lock is built now, as the change
+`test-parallel-runs`, before the next M3 step; (3) the run again alone is part of the same change. How the change
+built them, and where it differs from §2's sketch, is in its `design.md`.

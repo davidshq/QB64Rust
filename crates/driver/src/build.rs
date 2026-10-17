@@ -508,6 +508,50 @@ impl Fnv128 {
     }
 }
 
+/// Names a lock file for the libqb objects of one clone, which every build of a program writes when one it links is
+/// missing or older than its source, and reads otherwise. Set by the test runner and the CLI tests
+/// (`tools\legacy_tests\clone_lock.py`), so that their builds can run side by side; without it nothing is locked.
+pub const OBJECTS_LOCK_ENV: &str = "QB64RUST_OBJECTS_LOCK";
+
+/// The goal of the makefile [`lock_objects`] adds: everything `exe` takes from the clone (`QBLIB` and `EXE_LIBS`,
+/// the `Makefile`'s own names) and nothing of the program's own (`qbx.o`, the icon's object, the executable).
+const OBJECTS_MAKEFILE: &str = "# Written by qb64rust: what a build with these flags takes from the clone.\n\
+                                qb64rust-objects: $(QBLIB) $(EXE_LIBS)\n";
+
+/// With [`OBJECTS_LOCK_ENV`] set, takes its lock: shared when `make -q` says the clone's objects for these flags
+/// are up to date, so the build only reads them, and otherwise alone, so that one build at a time writes them.
+/// The returned file holds the lock until it is dropped. `make` is `cmd` before its goal.
+fn lock_objects(make: &Command, build: &Path) -> Result<Option<std::fs::File>, String> {
+    let Some(path) = std::env::var_os(OBJECTS_LOCK_ENV) else {
+        return Ok(None);
+    };
+    let path = PathBuf::from(path);
+    let err = |e: std::io::Error| format!("locking the libqb objects ({}): {e}", path.display());
+    let file = std::fs::File::options()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&path)
+        .map_err(err)?;
+    file.lock_shared().map_err(err)?;
+    let makefile = build.join("objects.mk");
+    std::fs::write(&makefile, OBJECTS_MAKEFILE).map_err(|e| format!("writing {}: {e}", makefile.display()))?;
+    let mut check = Command::new(make.get_program());
+    check
+        .args(make.get_args())
+        .args(["-q", "-f", "Makefile", "-f"])
+        .arg(slash(&makefile))
+        .arg("qb64rust-objects");
+    // 0: up to date. 1 (to be built) or 2 (make could not tell): built alone, by the build itself.
+    let fresh = check.output().is_ok_and(|o| o.status.success());
+    if !fresh {
+        file.unlock().map_err(err)?;
+        file.lock().map_err(err)?;
+    }
+    Ok(Some(file))
+}
+
 fn build_with_make(root: &Path, build: &Path, exe: &Path, quiet: bool, settings: &Settings) -> Result<(), String> {
     let c = build.join("c");
     std::fs::create_dir_all(&c).map_err(|e| e.to_string())?;
@@ -523,7 +567,6 @@ fn build_with_make(root: &Path, build: &Path, exe: &Path, quiet: bool, settings:
         .arg("-j3")
         .args(["OS=win", "BITS=64"])
         .args(&settings.flags)
-        .arg("exe")
         .arg(format!("EXE={}", slash(&linked)))
         .arg(format!("QB_QBX_SRC={}/qbx.cpp", slash(&c)))
         .arg(format!("PATH_INTERNAL_TEMP={}", slash(&build.join("temp"))))
@@ -546,6 +589,9 @@ fn build_with_make(root: &Path, build: &Path, exe: &Path, quiet: bool, settings:
     if !quiet {
         println!("building {}", exe.display());
     }
+    // Held until `make` has ended: shared while the clone's objects are only read, alone while they are built.
+    let _objects = lock_objects(&cmd, build)?;
+    cmd.arg("exe");
     let out = cmd.output().map_err(|e| format!("running {}: {e}", make.display()))?;
     if out.status.success() && linked.is_file() && (!settings.license || linked_license.is_file()) {
         if settings.license {
