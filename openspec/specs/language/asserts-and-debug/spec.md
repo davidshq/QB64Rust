@@ -49,7 +49,8 @@ treats 300 to 315 as errors no handler takes): the program stops with the runtim
 
 ### Requirement: $DEBUG
 `$DEBUG` SHALL be accepted anywhere the old compiler accepts it and set `_DEBUG_` and `_SOCKETS_` to 1 (the old
-compiler's debugger code uses sockets), and with `-w` the
+compiler's debugger code uses sockets), so that the program links libqb's sockets part as the old compiler's
+does, and with `-w` the
 compiler SHALL warn "$DEBUG features only work from the IDE" at it, as the old compiler does from the command
 line. No code for the IDE's debugger SHALL be written: the program SHALL behave as the old compiler's program
 does when it runs outside the IDE (`DIVERGENCES.md`).
@@ -61,6 +62,10 @@ does when it runs outside the IDE (`DIVERGENCES.md`).
 #### Scenario: The sockets flag
 - **WHEN** a program has `$DEBUG` on its last line and `$IF _SOCKETS_ THEN PRINT "on" $END IF` above it
 - **THEN** it prints `on`, as the old compiler's program does
+
+#### Scenario: The sockets part
+- **WHEN** a program with `$DEBUG` and no network function is built
+- **THEN** it links libqb's sockets and HTTP part, as the old compiler's build does
 
 #### Scenario: The warning
 - **WHEN** a program with `$DEBUG` is compiled with `-w`
