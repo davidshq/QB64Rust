@@ -125,6 +125,12 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // `ERR` is LONG, not `_UNSIGNED LONG` as in the table (design D5 of `m2-procedures-and-errors`).
     ("ERR", Rule::Fixed(Ty::I32)),
     ("ERL", Rule::Fixed(Ty::F64)),
+    // The line and file of the last error, and an error's message (`verification\v43_a_errorline`, `v43_b_include`;
+    // `_ERRORMESSAGE$` has one optional slot, so it is also called bare).
+    ("_ERRORLINE", Rule::Plain),
+    ("_INCLERRORLINE", Rule::Plain),
+    ("_INCLERRORFILE$", Rule::Plain),
+    ("_ERRORMESSAGE$", Rule::Plain),
     // File functions (`verification\v22_b_funcs`); `FREEFILE` and `_CWD$` have no slot and are called bare.
     ("EOF", Rule::Plain),
     ("LOF", Rule::Plain),

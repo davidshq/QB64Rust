@@ -1,0 +1,5 @@
+
+Expected variable =, look for conflict with a CONST name
+Caused by (or after):_ERRORLINE = 5
+LINE 3:_ERRORLINE = 5
+exit=1

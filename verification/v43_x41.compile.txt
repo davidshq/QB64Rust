@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):PRINT _ERRORLINE&
+LINE 3:PRINT _ERRORLINE&
+exit=1

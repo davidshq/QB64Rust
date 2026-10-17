@@ -1,0 +1,5 @@
+
+Unexpected argument: "A",1
+Caused by (or after):
+LINE 3:CONST Z = CHR$ ( CHR$ ( 65 ) )
+exit=1

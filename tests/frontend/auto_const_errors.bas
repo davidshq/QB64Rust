@@ -4,8 +4,8 @@ $CONSOLE:ONLY
 ' verification\v26_x115-x126, where the old compiler rejects it too): a name of the file is a reserved name, so a
 ' CONST, a DIM, a SUB, an assignment, FOR, INPUT, READ and SWAP with it are errors, with the same value too; a
 ' numeric constant with `$` is a type mismatch; LEN of a numeric constant is an error. Left "not supported yet",
-' with the reason: a constant whose value needs CHR$ or EXP (_STR_CRLF, _CHR_CR, _E; also in a CONST and as a
-' string length), one whose number the CONST evaluator does not read yet (_DOUBLE_MAX, _FLOAT_MAX,
+' with the reason: a constant whose value needs EXP (_E; also as a string length; _STR_CRLF and _CHR_CR compile
+' since m3-errorline-chr-const), one whose number the CONST evaluator does not read yet (_DOUBLE_MAX, _FLOAT_MAX,
 ' _INTEGER64_MIN, _UINTEGER64_MAX: the old compiler's values for them are in v26_x114), a constant with an index,
 ' and the three functions of the file included after the last line (_WhatIsMyIP)
 DIM n AS LONG, d AS DOUBLE, s AS STRING

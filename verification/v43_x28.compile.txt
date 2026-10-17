@@ -1,0 +1,5 @@
+
+Cannot convert number to string
+Caused by (or after):Y = Z + 1
+LINE 3:CONST z = CHR$(65): y = z + 1
+exit=1

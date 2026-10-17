@@ -200,12 +200,12 @@ impl Emitter<'_> {
         }
     }
 
-    /// The arguments of `evnt` for source line `line` of `file`: the line, and for an included file the line
-    /// again and the file's name. (The old compiler's first argument is the main file's line there; it only feeds
-    /// `_ERRORLINE`, not supported yet.)
-    pub(crate) fn evnt_args(&self, file: Option<FileId>, line: u32) -> String {
+    /// The arguments of `evnt` for source line `line` of `file`: the line, and for an included file the line of
+    /// the main file that `_ERRORLINE` gives (`include_line`), the line in the file and the file's name, as the old
+    /// compiler writes them (`verification\v43_b_include`).
+    pub(crate) fn evnt_args(&self, file: Option<FileId>, line: u32, include_line: Option<u32>) -> String {
         match file.and_then(|f| self.included.get(&f)) {
-            Some((_, base)) => format!("{line},{line},{base}"),
+            Some((_, base)) => format!("{},{line},{base}", include_line.unwrap_or(line)),
             None => line.to_string(),
         }
     }

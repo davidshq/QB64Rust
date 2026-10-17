@@ -3001,6 +3001,36 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     `KEY n, text$`: error 5 for `n` 0, 12, 40, a soft key of 20 characters; 1.6 accepted; user key 15 with any text.
     `KEY(1) FREE`, `TIMER(1, 2) ON`, `TIMER(1)` alone are the template's "Syntax error - Reference: …" (`x15`,
     `x16`, `x49`).
+- **`CHR$` in a `CONST` and the error functions (`v43_*`, 54 programs, measured 2026-10-17 before
+  `m3-errorline-chr-const`; included files in `v43_inc\`):**
+  - **`CHR$` in a `CONST`** (`const_eval.bas` 1027; `v43_c`, `x01`–`x28`): the code is computed and turned into one
+    element, converted to `_UNSIGNED _INTEGER64` with a float rounded half to even (`65.4` 65, `65.5` 66, `66.5` 66,
+    `0.5` 0, `1.5` 2, `-0.4` and `-0.5` 0, `255.4` 255, `131 / 2` 66), and must be 0–255: `256`, `-1`, `255.5`,
+    `-0.6`, `1E300`, `18446744073709551615~&&` are "Invalid argument to CHR$, valid range is 0-255: <code>". Every
+    kind of literal (`&H`, `&O`, `&B`, `!`, `#`, `##`, `~%%`, `&&` …), a constant, an expression, `NOT -66` and
+    parentheses may be the code; a string or string constant, `CHR$(CHR$(65))` "Unexpected argument"; `CHR$()`,
+    `CHR$(1, 2)`, `CHR$ 65`, `CHR(65)` errors; `CONST z% = CHR$(65)` "Type mismatch"; the string with `+ 1`, `* 2`,
+    `= "A"` or a minus before it errors. `CHR$(n%)` with `CONST n = 65` is accepted (`x20`; a constant with a suffix
+    inside a `CONST`, which this compiler marks). A `CHR$` constant used in `y = z + 1` is "Cannot convert number to
+    string" (`x28`).
+  - **`_ERRORLINE`** (`v43_a`, `x43`, `x44`): the main file's line of the statement that raised the last error,
+    0 before any, kept after `RESUME NEXT`; in a SUB, a FUNCTION or a GOSUB the raising statement's line; ERL
+    meanwhile the last numeric label. LONG. **In an included file**, also one included by another and in a SUB of
+    one called from main, it is the main file's line of the outermost `$INCLUDE` (`v43_b`): libqb's `ercl`, the
+    first argument of `evnt`. `_INCLERRORLINE` is the line in the innermost file and `_INCLERRORFILE$` its name
+    without folder (0 and empty in the main file). `_ERRORMESSAGE$` is the last error's message (`No error` before
+    any), `_ERRORMESSAGE$(n)` that of `n` (a LONG: `9.6` is 10, `52.5` 52; 0 `No error`, 1000 and -1 `Unprintable
+    error`).
+  - **A line joined by a continuation is numbered as its last line** (`v43_d`, `v43_e`): `ERROR 5: x = 1 + _` /
+    `2` reports the second line, for `_ERRORLINE` and in the message of an untrapped error ("Line: 6"); so does a
+    statement after the join, a single-line `IF` continued before its statement, a block `IF`'s continued
+    condition; a FUNCTION in a continued single-line `IF` condition works (`x46`).
+  - **Rejected** (`x29`–`x42`): `_ERRORLINE(1)` "Incorrect number of arguments", `_ERRORLINE()`,
+    `_ERRORMESSAGE$()`, `_INCLERRORFILE$()` "Expected (...)", `_ERRORLINE` alone "Syntax error", `_ERRORLINE = 5`,
+    `CONST c = _ERRORLINE`, `_ERRORLINE&`, `_INCLERRORFILE`, `_ERRORMESSAGE(5)`, `_ERRORMESSAGE$("a")`,
+    `_ERRORMESSAGE$(1, 2)`; `ERRORLINE` without the underscore is a variable; `$NOPREFIX` is rejected whole by this
+    version ("a deprecated feature", `x32`). `ERROR 11` is fatal, as known (Q-003): the first `v43_d` stopped
+    there.
 
 ## 6. Bug-compatibility choices (all decided)
 
@@ -3228,6 +3258,7 @@ as a reading of the code, not a measurement.
 | `30` | Ninth review (2026-10-16, during `m3-declare-library`): the compiler is in better shape than its documents; no bug found, every local check green; `STATUS.md` and `CLAUDE.md` have become history files (403 lines; an 11.5 KB table cell), decisions Claude made alone are scattered and unconfirmed (a "Waiting on the user" list proposed), `main` is eleven changes behind and tier 2 has never run on GitHub as its own job; the checker's 72 fields and the emitter's transcription of the old C++ noted for M4 and M6; what not to change; an order of actions |
 | `31` | Development velocity plan (2026-10-16): four changes, each marked with its result as it is built: CLI tests that never wait for a person or for ever, one home per kind of document, closing runs that run each program and setting once, and a record of where the working time goes |
 | `32` | Test cadence and parallel runs, panel notes (2026-10-17): what each closing run is and costs; why runs of the new compiler cannot overlap (one lock for the clone, though they share only libqb's objects) and a readers-writer lock to fix it; a lighter close with the full set at each merge; the three questions answered (adopted, built as `test-parallel-runs`) |
+| `33` | The close tool, panel notes (2026-10-17): why `tools\close\close.py` exists (a close worked from memory missed steps); the panel's six points (a program on no list, tier 1 as CI runs it, a run before a rebuild, log times, a reason printed once, the plan is Bash), all done; `--merge` left for a next step |
 | `progress-record` | Closed record of what `STATUS.md` held until 2026-10-09: the per-change history of M0 to M2 step 8, unchanged |
 | `support-record` | Closed record of the catalogue "What the compiler supports so far" that `crates\README.md` held until 2026-10-16 (to `m3-sound-handles`), unchanged: the code each feature lives in |
 | `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |

@@ -440,6 +440,26 @@ pub fn unary(op: UnOp, a: &Value) -> R<Value> {
     }
 }
 
+/// `CHR$(code)` of the old evaluator (`const_eval.bas` 1027; measured, `verification\v43_c_chr_const`, `v43_x*`):
+/// the code, its argument already read back as a parenthesised group is, converted to `_UNSIGNED _INTEGER64` with a
+/// float rounded half to even (`-0.5` is 0, `65.5` 66), must lie in 0 to 255 (`-0.6`, `255.5` and `1E300` are
+/// errors). A string is an error.
+pub fn chr(code: &Value) -> R<Value> {
+    let range = "`CHR$` in a `CONST` needs a code from 0 to 255";
+    let code = match code {
+        Value::Str(_) => return error("`CHR$` in a `CONST` needs a number, not a string"),
+        Value::Int(i) => *i,
+        // Beyond these the rounding cannot bring the code into range.
+        Value::Float(f) if f.v.is_finite() && (-1.0..=256.0).contains(&f.v) => round_to_int(*f)?,
+        Value::Float(f) if f.v.is_nan() => return unsupported("`CHR$` of this value in a `CONST`"),
+        Value::Float(_) => return error(range),
+    };
+    match u8::try_from(code) {
+        Ok(b) => Ok(Value::Str(vec![b])),
+        Err(_) => error(range),
+    }
+}
+
 /// The type and value of a constant: the value's own (an integer `_INTEGER64`, a float DOUBLE, measured), or the
 /// type of the suffix on its name. A float suffix converts the value as an assignment does; an integer or `_BIT`
 /// suffix keeps the value, rounded half to even if it is a float, in range of the type or not: the constant is then
@@ -523,6 +543,26 @@ mod tests {
         assert_eq!(bin(BinOp::Mul, &int(3000000000), &int(4)), int(12000000000));
         assert_eq!(bin(BinOp::Sub, &int(2), &int(3)), int(-1));
         assert_eq!(unary(UnOp::Neg, &int(i64::MIN)).unwrap(), int(i64::MIN));
+    }
+
+    /// `verification\v43_c_chr_const`, `v43_x01`, `x02`, `x03`, `x10`–`x13`.
+    #[test]
+    fn chr_rounds_half_to_even_within_a_byte() {
+        let s = |b: u8| Ok(Value::Str(vec![b]));
+        assert_eq!(chr(&int(65)), s(65));
+        assert_eq!(chr(&int(0)), s(0));
+        assert_eq!(chr(&int(255)), s(255));
+        assert_eq!(chr(&flt("6.55E+1")), s(66));
+        assert_eq!(chr(&flt("6.65E+1")), s(66));
+        // Exact values only: `65.4`, `-0.4` and `-0.6` are in `s135_chr_const` and `v43_x12`.
+        assert_eq!(chr(&flt("6.525E+1")), s(65));
+        assert_eq!(chr(&flt("-5E-1")), s(0));
+        assert_eq!(chr(&flt("-2.5E-1")), s(0));
+        assert_eq!(chr(&flt("2.5525E+2")), s(255));
+        for bad in [int(256), int(-1), flt("2.555E+2"), flt("-7.5E-1"), flt("1E+300")] {
+            assert!(is_error(chr(&bad)), "{bad:?}");
+        }
+        assert!(is_error(chr(&Value::Str(b"A".to_vec()))));
     }
 
     #[test]

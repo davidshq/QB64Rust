@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):PRINT _INCLERRORFILE
+LINE 3:PRINT _INCLERRORFILE
+exit=1

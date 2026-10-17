@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 108
 expression: snap
 ---
 Settings: console, no window, runtime parts: icon, an icon for the executable
@@ -11,5 +10,5 @@ Stmt line 6
     Str Const "ok"
 Stmt line 7
   System
-Stmt line 1 may_raise
+Stmt line 1 in main line 8 may_raise
   Builtin _ICON [Absent, Absent]

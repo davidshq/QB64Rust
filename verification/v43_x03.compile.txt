@@ -1,0 +1,5 @@
+
+Unexpected argument: "A",1
+Caused by (or after):
+LINE 3:CONST Z = CHR$ ( "A",1 )
+exit=1

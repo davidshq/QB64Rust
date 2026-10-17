@@ -1,0 +1,16 @@
+1.
+  in raise1
+  error 20 ERL 0 _ERRORLINE 7 _INCLERRORLINE 3 file [raise1.bi]
+  error 5 ERL 0 _ERRORLINE 8 _INCLERRORLINE 0 file []
+2.
+  in outer
+  in inner
+  error 22 ERL 0 _ERRORLINE 10 _INCLERRORLINE 3 file [inner.bi]
+  error 21 ERL 0 _ERRORLINE 10 _INCLERRORLINE 3 file [outer.bi]
+  error 6 ERL 0 _ERRORLINE 11 _INCLERRORLINE 0 file []
+3.
+  in insub
+  error 23 ERL 0 _ERRORLINE 22 _INCLERRORLINE 3 file [subs.bi]
+  error 7 ERL 0 _ERRORLINE 14 _INCLERRORLINE 0 file []
+4.
+exit=0

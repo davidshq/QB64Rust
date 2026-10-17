@@ -8,5 +8,5 @@ IF x THEN PRINT "y": PRINT 1 MOD 2; _KEYHIT
 PRINT "a" - "b"; 1 + "x"
 x% = "s"
 STOP
-CONST c$ = CHR$(65)
+CONST c = EXP(1)
 END

@@ -229,7 +229,7 @@ impl<'a> Emitter<'a> {
         for (i, s) in b.stmts.iter().enumerate() {
             self.labels(i, out);
             let mut body = Vec::new();
-            self.stmt_at = (Some(s.span.file), s.line);
+            self.stmt_at = (Some(s.span.file), s.line, s.include_line);
             // Whether an earlier operation of the statement may have left an error pending.
             let mut raised = false;
             for op in &s.ops {
@@ -241,7 +241,7 @@ impl<'a> Emitter<'a> {
             let file = Some(s.span.file);
             lines.push(format!(
                 "if(!qbevent)break;evnt({});}}while(r);",
-                self.evnt_args(file, s.line)
+                self.evnt_args(file, s.line, s.include_line)
             ));
             self.lines_in(file, s.line, &lines, out);
         }
@@ -253,7 +253,10 @@ impl<'a> Emitter<'a> {
         for (i, l) in self.body.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
             let mut lines = vec![format!("{}:;", self.local_label(LabelId(to_u32(i))))];
             if l.name.is_some() {
-                lines.push(format!("if(qbevent){{evnt({});r=0;}}", self.evnt_args(l.file, l.line)));
+                lines.push(format!(
+                    "if(qbevent){{evnt({});r=0;}}",
+                    self.evnt_args(l.file, l.line, l.include_line)
+                ));
             }
             self.lines_in(l.file, l.line, &lines, out);
         }

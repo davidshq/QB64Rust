@@ -18,7 +18,6 @@ const_errors.bas:24:17: error: `LEN` cannot be used in a `CONST`
 const_errors.bas:24:17: note: QB64pe: Unexpected element 'LEN'
 const_errors.bas:25:19: error: cannot mix strings and numbers
 const_errors.bas:26:20: error: strings cannot be compared in a `CONST`
-const_errors.bas:26:20: note: QB64pe: Unexpected element '<'
 const_errors.bas:27:7: error: type mismatch
 const_errors.bas:28:7: error: type mismatch
 const_errors.bas:29:17: error: division by zero

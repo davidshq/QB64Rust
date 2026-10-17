@@ -77,8 +77,17 @@ changing direction, design or scope.**
    - Tier 2 runs **once per change, at its close**, not per task group. Before that, run only the programs the
      work touches (`--glob`, `--category`, a short `--list`), or a list with `--pass-cache target\pass-cache`,
      which runs only the programs whose executable changed.
-   - **At a change's close** (`study\32` §4 item 1, user, 2026-10-17): tier 1 with fmt and clippy; the CLI tests
-     that build (`--ignored`); the change's own new programs and its `verification` family; the call-site check;
+   - **At a change's close, follow `python tools\close\close.py --plan` and end with `--check`** (user,
+     2026-10-17): it prints the closing set below as commands, in order, each started by its own command, and the
+     check names any step that is missing, stale or failing. Its task in `tasks.md` reads "the closing runs:
+     `tools\close\close.py --check` passes". *Why:* at the close of `m3-errorline-chr-const` the set was worked
+     from memory: the `verification` family was not checked as the rule says, and `cargo test` stopped at a
+     failing test binary, so about 230 tests never ran, one of them failing.
+   - **The closing set** (`study\32` §4 item 1, user, 2026-10-17): tier 1 with fmt and clippy; the CLI tests
+     that build (`--ignored`); the change's own new programs and its `verification` family (the runner records
+     the old compiler only, so the new compiler's side is the slice programs and front-end tests made from the
+     family; an accepted program of the family that none of them covers is run by hand, as the runner would run
+     it, and named in the report); the call-site check;
      the slice list and the upstream pass list **with `--pass-cache target\pass-cache`** and
      `--build-cache target\build-cache`; the run without folding (`QB64RUST_NO_FOLD=1`) **only when** the change
      touched `sema`'s constant evaluation or a numeric conversion; the demand reports, the shrink-only lists and
@@ -139,7 +148,7 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `Cargo.toml`, `crates\` | The new compiler `qb64rust` (Rust workspace, one crate per stage; `crates\README.md`: crate map, build, tests, snapshots) |
 | `mise.toml` | Tool versions for this repo, read by mise: Node 24 (for `vscode\`) |
 | `vscode\` | M1 VS Code extension (`qb64rust`): sources, tests, fixtures, `README.md`, `DEVELOPMENT.md` |
-| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release; `rust.yml` runs fmt, clippy, `cargo test` (tier 1), the test runner's own tests and those of `tools\testtime` on Windows on every push, and, only when started by hand and once a week (working rule 9), tier 2 (the call-site check, slice list without its screen programs, which get no window there and run locally only, upstream pass list, differential pass list) against QB64pe's sources at the reference clone's commit; `repo-check.yml` runs `tools\repo_check` on every push |
+| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release; `rust.yml` runs fmt, clippy, `cargo test` (tier 1), the test runner's own tests and those of `tools\testtime` and `tools\close` on Windows on every push, and, only when started by hand and once a week (working rule 9), tier 2 (the call-site check, slice list without its screen programs, which get no window there and run locally only, upstream pass list, differential pass list) against QB64pe's sources at the reference clone's commit; `repo-check.yml` runs `tools\repo_check` on every push |
 | `tests\corpus\` | Golden corpus: programs with the old compiler's recorded output or compile error (`README.md`, which has the counts), including the `slice\` group and `screen\` (programs with a window, each with the recorded state of its screen, `.screen`, or several states taken while it runs; a program may have its data files in a folder `<name>.files\`; `g12_game` is Civil War Strategy played from its keys file); checked by `run_legacy_tests.py --suite corpus`; `slice.list` names those the new compiler must pass |
 | `tests\frontend\` | Front-end tests of the new compiler, run by mode line (`' TEST: <mode>`; modes `parse-ok`, `check-ok`, `check-fail`, `typed`, `ir`, `cpp`); their included files in `inc\` (compiler root `inc\root\`) |
 | `tests\upstream\` | Copy of the text files of QB64pe's `tests\compile_tests` (MIT, `SOURCE.md`, never edited by hand), and `root\` (the compiler root for them: a mirror of `extra\`, made by the copy script); `pass.list` (upstream programs the new compiler passes) and `deferred.list` (those that need `_ARRAYCOPY` or a form left out of a change); progress as "x of y" (`README.md`) |
@@ -151,6 +160,7 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure; format tests 24 of 24) |
 | `verification\` | Measurement programs of the old compiler, each with its recorded output, and `run.sh` (starts the runner's `--suite verification`, which records them); the catalogue of the families, `v13*` to the newest, is `verification\README.md` |
 | `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler), the golden corpus and the verification programs (`--suite verification`, a recorder), its own tests (`test_run_legacy_tests.py`: a change to a comparison or recording rule comes with a change to its test), and its `known_failures.txt`; `--check-list` judges a pass list from a full run's results; `counts.py` writes the count blocks of the test READMEs (`test_counts.py`) |
+| `tools\close\` | `close.py`: the closing runs of a change (working rule 9) as a plan (`--plan`, the commands in order, each run by its own command) and a check (`--check`, each log: ran on the current build, and passed); its own tests (`test_close.py`; `README.md`) |
 | `tools\callsite\` | `callsite.py`: compares the libqb call the new compiler writes for each program of `tests\callsite\` with the old compiler's (`-z` on both, nothing built or run); part of tier 2 (`README.md`: the normalisation rules and what it does not compare) |
 | `tools\repo_check\` | `check_repo.py`: tracked files must hold no local paths, temp folders or network shares (rule 2) and no stray control bytes (rule 7); `--untracked` also checks new files before they are staged |
 | `tools\testtime\` | `test_time.py`: every test run of every Claude Code session, how long it took and, where the transcript shows it, whether it passed, read from the sessions' transcripts; `runs.csv` and `sessions.csv` (the record, added to at the close of each change), `changes.csv` and `activity.csv` (each OpenSpec change's elapsed and active time, waits and kinds of work, since 2026-10-16) and `REPORT.md` (testing as a share of the working time, by day and by kind of run, the runs repeated with nothing edited, and per change; `README.md`); its own tests (`test_record.py`) |

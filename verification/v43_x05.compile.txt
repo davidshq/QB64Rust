@@ -1,0 +1,5 @@
+
+Wrong number of arguments provided to CHR$!
+Caused by (or after):
+LINE 3:CONST Z = CHR$ ( 1 , 2 )
+exit=1

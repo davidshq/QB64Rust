@@ -1269,6 +1269,7 @@ mod tests {
                 end: 0,
             },
             line: 1,
+            include_line: None,
             ops,
             may_raise: false,
         }
@@ -1278,6 +1279,7 @@ mod tests {
         Label {
             name: None,
             line: 1,
+            include_line: None,
             file: None,
             at,
         }

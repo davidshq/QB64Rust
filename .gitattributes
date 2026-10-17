@@ -13,6 +13,10 @@ tests/corpus/**/*.files/** -text
 # takes for binary (a NUL, a CR without LF) keeps its bytes (tools/legacy_tests/README.md, "Verification programs")
 verification/*.compile.txt text=auto
 verification/*.out.txt text=auto
+# Resource fixtures match the old compiler's CRLF output byte for byte, including in CI.
+verification/v40_rc/*.manifest text eol=crlf
+verification/v40_rc/*.manifest.h text eol=crlf
+verification/v40_rc/*.icon.rc text eol=crlf
 # Differential programs: tier 1 compares them byte for byte with the generator; their recorded output as recorded
 tests/differential/**/*.bas -text
 tests/differential/**/*.output -text

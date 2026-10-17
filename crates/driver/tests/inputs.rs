@@ -166,6 +166,16 @@ fn include_root(name: &str) -> PathBuf {
 fn include_base(name: &str, path: &Path) -> PathBuf {
     match (name.strip_prefix("upstream/"), clone_root()) {
         (Some(rel), Some(clone)) if name.starts_with(UPSTREAM_QB64PE) => clone.join("tests/compile_tests").join(rel),
+        _ => beside_files(path),
+    }
+}
+
+/// A corpus program's files lie in its `<name>.files` folder until it runs, when the runner copies them beside it
+/// (`tools\legacy_tests\README.md`): its includes are looked up there, as from a program standing in that folder.
+fn beside_files(path: &Path) -> PathBuf {
+    let files = path.with_extension("files");
+    match path.file_name() {
+        Some(name) if files.is_dir() => files.join(name),
         _ => path.to_path_buf(),
     }
 }
@@ -394,8 +404,9 @@ fn slice_list_programs_have_no_diagnostics() {
         let name = format!("{line}.bas");
         let path = root.join(&name);
         let inc = repo().join("tests/upstream/root");
+        let base = beside_files(&path);
         let fe = frontend_with(&name, std::fs::read(&path).unwrap(), |file| {
-            Box::new(FileLoader::new(&inc, file, &path))
+            Box::new(FileLoader::new(&inc, file, &base))
         });
         // Warnings are allowed (`s18_const` has the chained `^` the constants spec warns about).
         assert!(!fe.has_errors(), "{line}:\n{}", fe.render_diagnostics());

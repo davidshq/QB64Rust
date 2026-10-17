@@ -129,6 +129,8 @@ struct Lowerer<'a> {
     /// Operations that belong to the next statement and run first in it (`joined` of
     /// [`sema::StmtKind::Allocate`]), each with the span and line it was written at.
     joined: Vec<(Span, u32, Op)>,
+    /// The [`sema::Stmt::include_line`] of the statement being lowered.
+    include_line: Option<u32>,
 }
 
 impl<'a> Lowerer<'a> {
@@ -148,6 +150,7 @@ impl<'a> Lowerer<'a> {
             .map(|l| Label {
                 name: Some(l.name.clone()),
                 line: l.line,
+                include_line: l.include_line,
                 file: Some(l.file),
                 at: 0,
             })
@@ -164,6 +167,7 @@ impl<'a> Lowerer<'a> {
             selects: Vec::new(),
             case_end: None,
             joined: Vec::new(),
+            include_line: None,
         }
     }
 
@@ -195,7 +199,10 @@ impl<'a> Lowerer<'a> {
 
     fn stmts_of(&mut self, stmts: &[sema::Stmt]) {
         for s in stmts {
+            // Every statement lowered from `s` stands where `s` stands: a block does not cross a file.
+            let outer = std::mem::replace(&mut self.include_line, s.include_line);
             self.stmt(s);
+            self.include_line = outer;
         }
     }
 
@@ -204,6 +211,7 @@ impl<'a> Lowerer<'a> {
         self.labels.push(Label {
             name: None,
             line,
+            include_line: self.include_line,
             file: None,
             at: usize::MAX,
         });
@@ -233,6 +241,7 @@ impl<'a> Lowerer<'a> {
         self.stmts.push(Stmt {
             span,
             line,
+            include_line: self.include_line,
             ops,
             may_raise,
         });

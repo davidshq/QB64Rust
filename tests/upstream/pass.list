@@ -247,7 +247,9 @@ declare_library_header/test-compile-base-directory
 declare_library_header/test-include
 declare_library_static/test
 dollar$sign$test/dollar$sign
+environ/set_environ
 filename/filename.extra.extension
+font/test
 func_tostr/double
 func_tostr/float
 func_tostr/mmLiteral
@@ -274,6 +276,7 @@ glut/windowhasfocus
 glut/windowsizelimit
 icon_relative/test
 iif/iif_test
+image/curico_test
 image/pcx_test
 image/svg_test
 image/test

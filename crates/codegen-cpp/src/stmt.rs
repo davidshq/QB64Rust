@@ -27,8 +27,11 @@ impl Emitter<'_> {
     /// included file's name when it stands in one), then the code is stored into libqb's `exit_code`.
     fn exit_code(&mut self, code: Option<&Expr>, out: &mut Vec<String>) {
         if let Some(code) = code {
-            let (file, line) = self.stmt_at;
-            out.push(format!("if(qbevent){{evnt({});}}", self.evnt_args(file, line)));
+            let (file, line, include_line) = self.stmt_at;
+            out.push(format!(
+                "if(qbevent){{evnt({});}}",
+                self.evnt_args(file, line, include_line)
+            ));
             out.push(format!("exit_code={};", self.value(code)));
         }
     }

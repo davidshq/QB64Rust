@@ -1,0 +1,35 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 7: Assign N:I32
+  Call _ERRORLINE : I32
+line 8: Assign N:I32
+  Call _INCLERRORLINE : I32
+line 9: Assign S:Str
+  Call _INCLERRORFILE : Str
+line 10: Assign S:Str
+  Call _ERRORMESSAGE : Str
+    (absent)
+line 11: Assign S:Str
+  Call _ERRORMESSAGE : Str
+    Var N : I32
+line 12: Assign S:Str
+  Call _ERRORMESSAGE : Str
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+line 13: Print newline
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Call _ERRORLINE : I32
+        Int 1 : I32
+  Num
+    Binary Div : F80
+      Convert Nearest : F80
+        Call _ERRORLINE : I32
+      Convert Nearest : F80
+        Int 2 : I16
+line 14: System

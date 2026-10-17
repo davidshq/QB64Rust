@@ -197,18 +197,25 @@ fn print_items(p: &Program, items: &[PrintItem], out: &mut String) {
     }
 }
 
+/// The main file's line of a statement or label of an included file (`_ERRORLINE`'s), when it has one.
+fn in_main(include_line: Option<u32>) -> String {
+    include_line.map_or_else(String::new, |l| format!(" in main line {l}"))
+}
+
 fn body(p: &Program, b: &Body, out: &mut String) {
     let labels = |at: usize, out: &mut String| {
         for (i, l) in b.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
-            writeln!(out, "Label {} line {}", label(b, LabelId(to_u32(i))), l.line).unwrap();
+            let name = label(b, LabelId(to_u32(i)));
+            writeln!(out, "Label {name} line {}{}", l.line, in_main(l.include_line)).unwrap();
         }
     };
     for (i, s) in b.stmts.iter().enumerate() {
         labels(i, out);
         writeln!(
             out,
-            "Stmt line {}{}",
+            "Stmt line {}{}{}",
             s.line,
+            in_main(s.include_line),
             if s.may_raise { " may_raise" } else { "" }
         )
         .unwrap();

@@ -517,6 +517,8 @@ pub struct Label {
     pub name: String,
     /// 1-based source line of the label, in its file.
     pub line: u32,
+    /// In an included file, the line of the main file that `_ERRORLINE` gives ([`Stmt::include_line`]).
+    pub include_line: Option<u32>,
     /// The file the label stands in (an included file's labels report errors with its name).
     pub file: FileId,
     /// The procedure whose body holds the label; `None` for the main module.
@@ -1519,8 +1521,10 @@ pub enum LoopKind {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Stmt {
     pub span: Span,
-    /// 1-based source line of the statement's first token.
+    /// 1-based source line of the statement's first token, a line joined by a continuation counted as its last.
     pub line: u32,
+    /// In an included file, the line of the main file that `_ERRORLINE` gives (the outermost `$INCLUDE`'s).
+    pub include_line: Option<u32>,
     pub kind: StmtKind,
 }
 
