@@ -96,10 +96,15 @@ changing direction, design or scope.**
      full set, no pass cache: both full suites with the slice list and the upstream pass list judged from them
      (`--check-list`, `tools\legacy_tests\README.md`), the run without folding, the differential pass list and the
      call-site check. A failure there is found among the merged changes with the build cache. The pass cache is
-     left out there because it cannot see a result that depends on time or load.
+     left out there because it cannot see a result that depends on time or load. They may run in a worktree of the
+     merge commit beside this repo while the next change goes on here (`tools\legacy_tests\README.md`, "The runs
+     at a merge into `main` in a worktree").
    - **Order:** whatever changes the compiler (the wording table, generated tables) comes before the first long
      run, so that no run is thrown away for a new build. Runs of the new compiler may run side by side (they share
      the clone's lock; `tools\legacy_tests\README.md`, "Locks"); a run of `qb64pe.exe` in the clone has it alone.
+   - **Work goes on during a run** (`study\34`): each run of the new compiler tests a copy of it named by hash,
+     so start a long run in the background and go on building, running tier 1 and editing; read its log when it
+     ends. Only a recording with `qb64pe.exe` waits for the clone; batch recordings before the closing runs.
    - After the closing runs, a further edit is rerun only for what it can affect; say which runs were not
      repeated and why that is safe.
    - **Read a run's output from a log, not by running it again.** Send a run that may need a second look to a

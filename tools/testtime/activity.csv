@@ -304,6 +304,9 @@ version,session,change,category,actions,bytes
 1,2293eaae,m2-parser-breadth,test runs,7,0
 1,2293eaae,m2-parser-breadth,tests and fixtures,1,110
 1,2309881c,,other commands,4,0
+1,248bdaa7,,other commands,5,0
+1,248bdaa7,,reading,6,0
+1,248bdaa7,,scratch files,1,4807
 1,2689520c,,measurement runs,2,0
 1,2689520c,,other commands,19,0
 1,2689520c,,reading,8,0
@@ -533,13 +536,13 @@ version,session,change,category,actions,bytes
 1,3ee337a0,test-parallel-runs,test runs,4,0
 1,3f52816f,,other commands,1,0
 1,3f52816f,m3-network-embed,builds,3,0
-1,3f52816f,m3-network-embed,documents and planning,9,3954
+1,3f52816f,m3-network-embed,documents and planning,12,13601
 1,3f52816f,m3-network-embed,measurement preparation,4,921
 1,3f52816f,m3-network-embed,measurement runs,2,0
-1,3f52816f,m3-network-embed,other commands,54,0
+1,3f52816f,m3-network-embed,other commands,66,0
 1,3f52816f,m3-network-embed,product code,3,1394
-1,3f52816f,m3-network-embed,reading,5,0
-1,3f52816f,m3-network-embed,test runs,12,0
+1,3f52816f,m3-network-embed,reading,7,0
+1,3f52816f,m3-network-embed,test runs,13,0
 1,3f52816f,m3-network-embed,tests and fixtures,4,678
 1,404c65b5,,other commands,1,0
 1,404c65b5,,reading,1,0
@@ -669,6 +672,20 @@ version,session,change,category,actions,bytes
 1,4eb0be18,,other commands,1,0
 1,4eb0be18,,reading,3,0
 1,4eb0be18,,test runs,2,0
+1,4ed8c305,,other commands,6,0
+1,4ed8c305,,reading,10,0
+1,4ed8c305,m3-network-embed,documents and planning,1,946
+1,4ed8c305,m3-network-embed,measurement runs,1,0
+1,4ed8c305,m3-network-embed,other commands,21,0
+1,4ed8c305,m3-network-embed,product code,4,5166
+1,4ed8c305,m3-network-embed,reading,3,0
+1,4ed8c305,m3-network-embed,test runs,11,0
+1,4ed8c305,m3-network-embed,tests and fixtures,31,23644
+1,4ed8c305,test-while-building,builds,1,0
+1,4ed8c305,test-while-building,documents and planning,11,14827
+1,4ed8c305,test-while-building,other commands,17,0
+1,4ed8c305,test-while-building,reading,2,0
+1,4ed8c305,test-while-building,test runs,9,0
 1,4ef89253,,documents and planning,6,1102
 1,4ef89253,,other,1,0
 1,4ef89253,,other commands,3,0
@@ -1244,6 +1261,7 @@ version,session,change,category,actions,bytes
 1,8110b834,m2-workspace-and-slice,other commands,4,0
 1,8110b834,m2-workspace-and-slice,reading,2,0
 1,8110b834,m2-workspace-and-slice,test runs,2,0
+1,836b2277,,other commands,2,0
 1,838d3f3c,,builds,2,0
 1,838d3f3c,,documents and planning,1,1124
 1,838d3f3c,,other commands,13,0
@@ -1252,6 +1270,7 @@ version,session,change,category,actions,bytes
 1,838d3f3c,,test runs,5,0
 1,838d3f3c,,tests and fixtures,1,2306
 1,8444969c,m3-declare-library,other commands,1,0
+1,84ef368a,m3-network-embed,other commands,2,0
 1,852a154d,,other commands,1,0
 1,867f84d0,,other commands,2,0
 1,86b01453,,documents and planning,1,321

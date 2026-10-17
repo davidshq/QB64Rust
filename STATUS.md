@@ -45,6 +45,9 @@ questionable behaviours each change kept QB64pe's way.
 3. **`m3-events`' four kept behaviours** (archived without a ruling on them; `SOMEDAY.md`'s "QB64pe behaviours to
    review"): `ON KEY`'s key cut, a SUB handler's argument through an `_INTEGER64`, an event during an error
    handler held, a `TYPE` parameter rejected.
+4. **Look at `test-while-building`, then archive it** (`study\34` §3 items 1–3, built and closed, not committed):
+   the build cache keyed without what builds write in the clone, runs that test a copy of the compiler, the merge
+   runs in a worktree.
 
 **The `tier2` job on `m3`** (`study\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the

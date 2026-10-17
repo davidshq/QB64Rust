@@ -176,8 +176,12 @@ tests\upstream\pass.list` after them. Runs of the new compiler may run side by s
 Tier 2 locally: add `--jobs 8 --build-cache target\build-cache` to each command. `--jobs` runs programs in
 parallel; `--build-cache` (environment variable `QB64RUST_BUILD_CACHE`, `driver\src\build.rs`) skips `make` for a
 program whose C++ build has the same inputs as an earlier one's (the fragments, the clone's `qbx.cpp`, `Makefile`
-and every file of its `internal\c` by size and time, the options), so after an edit only the programs whose C++
-changed are rebuilt; every program is still compiled by `qb64rust`, run and compared. CI uses neither.
+and every file of its `internal\c` that no build writes, by size and time, the options), so after an edit only the
+programs whose C++ changed are rebuilt, and a compile with `qb64pe.exe` in the clone (which rewrites its `qbx.o`)
+throws nothing away; every program is still compiled by `qb64rust`, run and compared. CI uses neither.
+A run of the runner or of `callsite.py` compiles with a copy of `qb64rust.exe` made at its start
+(`target\test-bin\<hash>`), so the compiler may be built again, and tier 1 run, while a tier 2 run goes on
+(`tools\legacy_tests\README.md`, "The compiler a run tests").
 The slice list holds screen programs (`screen/<name>`, checked by the state of the screen they leave,
 `tools\screen\README.md`): each shows its window on the desktop for about 0.3 s, several at a time with `--jobs`,
 and a key typed just then can reach one (`SOMEDAY.md`: a desktop of their own).

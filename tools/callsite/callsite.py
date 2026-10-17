@@ -8,7 +8,9 @@ compiler's main-module fragment, normalised and compared. Whole files are never 
 Output: one line per program (equal, differ with both token lists, not compared with the reason) and
 a summary line. No local path is printed. Nothing is written inside this repository; qb64pe writes its
 C++ into the clone's git-ignored internal/temp (emptied first, as the corpus runner does), qb64rust
-into a scratch folder that is removed at the end.
+into a scratch folder that is removed at the end. qb64rust runs as a copy made at the start under the
+git-ignored target/test-bin (tools/legacy_tests/compiler_copy.py), so that a build during the check
+changes nothing it reads; the first line, "[compiler] <path> sha256 <hash> started <time>", names it.
 
 Usage:
     python tools/callsite/callsite.py [--qb-root DIR] [--qb64rust EXE] [--glob PATTERN] [--verbose]
@@ -30,6 +32,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -41,6 +44,7 @@ from clone_lock import (  # pylint: disable=wrong-import-position,import-error
     CLONE_BUSY,
     lock_clone,
 )
+from compiler_copy import header, run_copy  # pylint: disable=wrong-import-position,import-error
 
 # ---- normalisation -------------------------------------------------------------------------------
 
@@ -748,6 +752,20 @@ def main() -> int:
     if clone_lock is None:
         print(CLONE_BUSY, file=sys.stderr)
         return BUSY_EXIT
+    started = time.time()
+    named = args.qb64rust.resolve()
+    try:
+        shown = Path(os.path.relpath(named, REPO)).as_posix()
+    except ValueError:  # another drive
+        shown = named.name
+    shown = shown if not shown.startswith("..") else named.name
+    try:
+        qb64rust, digest = run_copy(named)
+    except OSError as e:
+        # The error's own text names the full path (module docstring: no local path is printed).
+        print(f"could not copy {shown} for the run: {e.strerror or type(e).__name__}", file=sys.stderr)
+        return 1
+    print(header(shown, digest, started), flush=True)
     counts = {"equal": 0, "differ": 0, "not compared": 0}
     work = Path(tempfile.mkdtemp(prefix="qb64rust-callsite-"))
     try:
@@ -755,7 +773,7 @@ def main() -> int:
             verdict, detail = compare(
                 p,
                 args.qb_root.resolve(),
-                args.qb64rust.resolve(),
+                qb64rust,
                 work,
                 None if args.no_cache else args.cache,
             )

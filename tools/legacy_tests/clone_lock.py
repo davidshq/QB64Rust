@@ -16,14 +16,15 @@ of qb64pe waits for all of them, and they for it (test-parallel-runs, design D1)
 lock_folder is the same lock for a folder of private copies (run_legacy_tests.py --jobs with qb64pe)
 and for a folder of results, where the runner builds and runs each program; those are exclusive.
 
-The lock is on a file under this repo's target/ (git-ignored), not in the clone. It belongs to the
-process: the system drops it when the process ends, however it ends. On Windows it is LockFileEx
-over the whole file range, which is what Rust's File::lock and File::lock_shared take, so the CLI
-tests (crates/driver/tests/support) and these tools see each other's locks.
+The lock is on a file under the main checkout's target/ (git-ignored), not in the clone. It belongs
+to the process: the system drops it when the process ends, however it ends. On Windows it is
+LockFileEx over the whole file range, which is what Rust's File::lock and File::lock_shared take, so
+the CLI tests (crates/driver/tests/support) and these tools see each other's locks.
 
-Not covered: runs started from two checkouts (or git worktrees) of this repo that use one clone.
-Each checkout has its own target/, so they do not see each other's lock; the clone is a read-only
-reference and gets no lock file. Use one checkout per clone.
+A git worktree of this repo (the runs at a merge into main, study/34 section 3 item 3) takes the
+locks of the main checkout (main_checkout), so its runs and the main checkout's see each other. Not
+covered: two separate clones of this repo that use one reference clone; the reference clone is
+read-only and gets no lock file. Use worktrees, not clones, for a second checkout.
 """
 
 from __future__ import annotations
@@ -32,9 +33,24 @@ import os
 import time
 from pathlib import Path
 
+def main_checkout(repo: Path) -> Path:
+    """The checkout whose target/ holds the locks: repo itself, or for a git worktree (its .git a
+    file "gitdir: <main>/.git/worktrees/<name>", which names the main .git in its commondir file) the
+    main checkout. The same rule as clone_lock_dir in crates/driver/tests/support/mod.rs."""
+    dot = repo / ".git"
+    if dot.is_file():
+        text = dot.read_text(encoding="utf-8").strip()
+        if text.startswith("gitdir:"):
+            gitdir = (repo / text[len("gitdir:") :].strip()).resolve()
+            common = gitdir / "commondir"
+            if common.is_file():
+                return (gitdir / common.read_text(encoding="utf-8").strip()).resolve().parent
+    return repo
+
+
 # One lock for every clone: a run with another --qb-root waits for nothing it shares, which costs
 # time and never a wrong result.
-CLONE_LOCK_DIR = Path(__file__).resolve().parents[2] / "target" / "qb64pe-clone"
+CLONE_LOCK_DIR = main_checkout(Path(__file__).resolve().parents[2]) / "target" / "qb64pe-clone"
 # The file the driver locks around each make (OBJECTS_LOCK_ENV in crates/driver/src/build.rs).
 OBJECTS_LOCK = CLONE_LOCK_DIR / "objects.lock"
 OBJECTS_LOCK_ENV = "QB64RUST_OBJECTS_LOCK"
