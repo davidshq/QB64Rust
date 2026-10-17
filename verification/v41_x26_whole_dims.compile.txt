@@ -1,0 +1,5 @@
+
+_ArrayCopy whole-array source and destination must have the same number of dimensions
+Caused by (or after):_ARRAYCOPY A ( ) TO N ( )
+LINE 4:_ARRAYCOPY a() TO n()
+exit=1

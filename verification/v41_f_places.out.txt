@@ -1,0 +1,7 @@
+1. REDIM to SHARED: 0  1  2  3  0 
+2. after _PRESERVE: 1  0  1  2  3  0 
+3. $DYNAMIC to COMMON SHARED: 0  0  0  0  0 
+4. by a SUB on SHARED: 0  1  2  31  32 
+5. parameters: 0  7  8  9  0 
+6. 2D parameters: 1  2  3  4 
+exit=0

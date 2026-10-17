@@ -1,0 +1,10 @@
+show 6 
+show 6 
+main label h
+plain
+unsigned16 65531 
+wide-5 
+small 44 
+wide 2 
+wide 4 
+exit=0

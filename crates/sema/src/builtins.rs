@@ -138,6 +138,8 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // is a `float`; `TIMER` is believed SINGLE and held DOUBLE (libqb's `func_timer` returns `double`).
     ("RND", Rule::Plain),
     ("TIMER", Rule::Plain),
+    // The number of a new timer for `ON TIMER(n, …)` (design D2 of `m3-events`; `verification\v42_b`).
+    ("_FREETIMER", Rule::Plain),
     // `verification\v22_d_shell`, `v22_d_environ`: the `SHELL` function is an `_INTEGER64`; `COMMAND$` has one
     // optional slot and is also called bare.
     ("SHELL", Rule::Plain),
@@ -212,6 +214,20 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // `PLAY[(voice)]`: the seconds of sound left to play in a voice, a DOUBLE; one optional slot, so it is also
     // called bare (design D1 of `m3-sound`; `verification\v29_x55`–`x60`).
     ("PLAY", Rule::Plain),
+    // Sound handles (design D1 of `m3-sound-handles`; `verification\v39_x01_accepted`, `x02`–`x70`): each the plain
+    // call of its row, with libqb's audio part. LONG handles and states, DOUBLE lengths and positions. `_SNDRATE`
+    // and `_SNDOPENRAW` have no slot and are called bare only; `_SNDRAWLEN` has one optional slot, so it is also
+    // called bare.
+    ("_SNDOPEN", Rule::Plain),
+    ("_SNDCOPY", Rule::Plain),
+    ("_SNDLEN", Rule::Plain),
+    ("_SNDGETPOS", Rule::Plain),
+    ("_SNDPLAYING", Rule::Plain),
+    ("_SNDPAUSED", Rule::Plain),
+    ("_SNDRATE", Rule::Plain),
+    ("_SNDOPENRAW", Rule::Plain),
+    ("_SNDRAWLEN", Rule::Plain),
+    ("_SNDNEW", Rule::Plain),
     // The choice, the least and greatest, and the shifts (design D6, D7 of `m3-console-files`;
     // `verification\v30_g_iif_min_max`, `v30_h_shifts`, `v30_result_types.txt`). `_SHL` and `_SHR` are plain: an
     // `_UNSIGNED _INTEGER64` and a LONG slot, the result an `_UNSIGNED _INTEGER64`.
@@ -286,7 +302,8 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_CLIPBOARDIMAGE", Rule::Plain),
     // Memory blocks (design D2 and D4 of `m3-mem`; `verification\v32_x01_accepted`): `_MEMNEW`, `_MEMIMAGE` and
     // `_MEMSOUND` give a block, which is only stored into a `_MEM` place (`check\mod.rs`, `assign`); `_MEMEXISTS`
-    // takes one ([`Slot::Mem`]). `_MEMSOUND` needs libqb's audio part and no test runs it ([`NEVER_RUN`]).
+    // takes one ([`Slot::Mem`]). `_MEMSOUND` needs libqb's audio part; it is run on the block of a `_SNDNEW` sound
+    // and of a decoded one (design D4 of `m3-sound-handles`).
     ("_MEMNEW", Rule::Plain),
     ("_MEMIMAGE", Rule::Plain),
     ("_MEMSOUND", Rule::Plain),
@@ -444,6 +461,30 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("SOUND", StmtRule::Plain),
     ("PLAY", StmtRule::Plain),
     ("BEEP", StmtRule::Plain),
+    // The event switches (design D2 of `m3-events`; `verification\v42_a`, `v42_b`, `v42_d`, `x15`, `x16`, `x49`):
+    // `TIMER[(n)] ON|OFF|STOP|FREE` and `KEY(k) ON|OFF|STOP`, each the plain call of its row and template. `KEY`'s
+    // own forms are a node of their own (`check\events.rs`); `STRIG` waits for device input.
+    ("TIMER", StmtRule::Plain),
+    ("KEY", StmtRule::Plain),
+    // Sound handles (design D1 of `m3-sound-handles`; `verification\v39_x01_accepted`, `x02`–`x72`): each the plain
+    // call of its row and template, with libqb's audio part. The arrays of `_WAVE` and `_SNDRAWBATCH` are the bytes
+    // from an element to the array's end ([`Slot::Block`]), of one element type each (D2, `check\builtins.rs`).
+    ("_SNDCLOSE", StmtRule::Plain),
+    ("_SNDPLAY", StmtRule::Plain),
+    ("_SNDPLAYCOPY", StmtRule::Plain),
+    ("_SNDPLAYFILE", StmtRule::Plain),
+    ("_SNDPAUSE", StmtRule::Plain),
+    ("_SNDSTOP", StmtRule::Plain),
+    ("_SNDLOOP", StmtRule::Plain),
+    ("_SNDVOL", StmtRule::Plain),
+    ("_SNDBAL", StmtRule::Plain),
+    ("_SNDSETPOS", StmtRule::Plain),
+    ("_SNDLIMIT", StmtRule::Plain),
+    ("_SNDRAW", StmtRule::Plain),
+    ("_SNDRAWBATCH", StmtRule::Plain),
+    ("_SNDRAWDONE", StmtRule::Plain),
+    ("_MIDISOUNDBANK", StmtRule::Plain),
+    ("_WAVE", StmtRule::Plain),
     // The image statements (design D1 of `m3-images-fonts-mouse`; `verification\v31_x01`, `x02`–`x109`): each the
     // plain call of its row and template. `_SAVEIMAGE` needs the image codec; `_MAPTRIANGLE`'s 3-D form (a z on
     // each destination point) is compiled and run by no test (design D3).
@@ -520,9 +561,6 @@ pub const NEVER_RUN: &[&str] = &[
     "_CLIPBOARDIMAGE",
     "_PRINTIMAGE",
     "_DEPTHBUFFER",
-    // `_MEMSOUND` needs a sound handle, which no supported statement gives (`_SNDOPEN` is not supported; design D7
-    // of `m3-mem`).
-    "_MEMSOUND",
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.

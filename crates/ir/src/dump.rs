@@ -1,8 +1,9 @@
 //! `--dump ir`: the lowering-pair text of design D6.
 
 use crate::{
-    Arg, ArrayRef, BinOp, Body, Expr, ExprKind, LabelId, MemValue, OnError, Op, Place, PrintItem, PrintTo, ProcKind,
-    Program, Reference, Resume, RuntimePart, Settings, Shape, Source, StmtArg, Storage, Ty, UsingValue, VarId, When,
+    Arg, ArrayRef, BinOp, Body, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId, MemValue, OnError, Op, Place,
+    PrintItem, PrintTo, ProcKind, Program, Reference, Resume, RuntimePart, Settings, Shape, Source, StmtArg, Storage,
+    Ty, UsingValue, VarId, When,
 };
 
 use qb64rust_base::{show_bytes, to_u32};
@@ -44,11 +45,31 @@ fn settings(s: &Settings) -> String {
     parts.join(", ")
 }
 
+/// The version resource, one line for the numbers and one per string field that is set.
+fn version_info(out: &mut String, v: &crate::VersionInfo) {
+    let number = |n: &[u8]| if n.is_empty() { "-".to_string() } else { show_bytes(n) };
+    writeln!(
+        out,
+        "Version info: file {}, product {}",
+        number(&v.file_version),
+        number(&v.product_version)
+    )
+    .unwrap();
+    for (key, value) in crate::VersionInfo::STRING_KEYS.iter().zip(&v.strings) {
+        if !value.is_empty() {
+            writeln!(out, "  {key}: \"{}\"", show_bytes(value)).unwrap();
+        }
+    }
+}
+
 /// The program's settings, the main module's statements, then each procedure: its header, its variables by storage
 /// class, its statements.
 pub fn dump(p: &Program) -> String {
     let mut out = String::new();
     writeln!(out, "Settings: {}", settings(&p.settings)).unwrap();
+    if let Some(v) = &p.settings.version_info {
+        version_info(&mut out, v);
+    }
     // The program's data, when there is any: one item per line, a quoted one in quotes.
     for (i, item) in p.data.iter().enumerate() {
         let q = if item.quoted { "\"" } else { "" };
@@ -296,6 +317,22 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     let (from, to) = (array_text(p, from), array_text(p, to));
                     writeln!(out, "  CopyArray {from} -> {to}:{t}").unwrap();
                 }
+                Op::ArrayCopy {
+                    from,
+                    to,
+                    ranges,
+                    starts,
+                } => {
+                    let t = ty(p, p.array_ty(to));
+                    let ranges: Vec<String> = ranges
+                        .iter()
+                        .map(|(lower, upper)| format!("{} TO {}", val(p, lower), val(p, upper)))
+                        .collect();
+                    let starts: Vec<String> = starts.iter().map(|v| val(p, v)).collect();
+                    let (from, to) = (array_text(p, from), array_text(p, to));
+                    let (ranges, starts) = (ranges.join(", "), starts.join(", "));
+                    writeln!(out, "  ArrayCopy {from}({ranges}) -> {to}({starts}):{t}").unwrap();
+                }
                 Op::Print { to, items, newline } => {
                     let to = print_to(p, to);
                     writeln!(out, "  Print {to}{}", if *newline { " newline" } else { "" }).unwrap();
@@ -373,6 +410,30 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 },
                 Op::Call { proc, args: a } => {
                     writeln!(out, "  Call {} [{}]", p.proc(*proc).name, args(p, a)).unwrap();
+                }
+                Op::OnEvent { event, handler } => {
+                    let event = match event {
+                        Event::Timer { number: None, seconds } => format!("Timer every {}", val(p, seconds)),
+                        Event::Timer {
+                            number: Some(n),
+                            seconds,
+                        } => format!("Timer {} every {}", val(p, n), val(p, seconds)),
+                        Event::Key { key } => format!("Key {}", val(p, key)),
+                    };
+                    let handler = match handler {
+                        EventHandler::Label(l) => format!("Gosub {}", label(&p.main, *l)),
+                        EventHandler::Sub { proc, arg: None } => format!("Sub {}", p.proc(*proc).name),
+                        EventHandler::Sub { proc, arg: Some(a) } => {
+                            format!("Sub {} [{}]", p.proc(*proc).name, val(p, a))
+                        }
+                    };
+                    writeln!(out, "  OnEvent {event} -> {handler}").unwrap();
+                }
+                Op::Key(KeyForm::On) => writeln!(out, "  KeyOn").unwrap(),
+                Op::Key(KeyForm::Off) => writeln!(out, "  KeyOff").unwrap(),
+                Op::Key(KeyForm::List) => writeln!(out, "  KeyList").unwrap(),
+                Op::Key(KeyForm::Assign { number, text }) => {
+                    writeln!(out, "  KeyAssign {} = {}", val(p, number), val(p, text)).unwrap();
                 }
                 Op::Builtin { id, args: a } => {
                     let slots: Vec<String> = a
@@ -529,7 +590,7 @@ fn val(p: &Program, v: &Expr) -> String {
             format!("VarPtr {}({}):{}", var(p, *array), i.join(", "), ty(p, v.ty))
         }
         ExprKind::VarSeg { array } => format!("VarSeg {}:{}", var(p, *array), ty(p, v.ty)),
-        ExprKind::MemOf { of, element } => {
+        ExprKind::MemOf { of, element, .. } => {
             let word = if *element { "MemElement" } else { "Mem" };
             format!("{word} {}:{}", reference_text(p, of), ty(p, v.ty))
         }

@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _SNDRATE
+Caused by (or after):L = _SNDRATE ( 1 )
+LINE 9:l = _SNDRATE(1)
+exit=1

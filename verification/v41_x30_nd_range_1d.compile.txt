@@ -1,0 +1,5 @@
+
+_ArrayCopy multidimensional source ranges require at least two dimensions
+Caused by (or after):_ARRAYCOPY A ( 1 TO 2 , 1 TO 2 ) TO B ( 0 , 0 )
+LINE 4:_ARRAYCOPY a(1 TO 2, 1 TO 2) TO b(0, 0)
+exit=1

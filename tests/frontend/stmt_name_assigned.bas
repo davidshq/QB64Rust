@@ -4,7 +4,8 @@ $CONSOLE:ONLY
 ' already in use (CLS)"; measured for every supported statement, verification\v27_x51-x57, m3-window-output), also
 ' with more arguments after it and for a statement without a template. With something between the `)` and the
 ' `=` the line is the statement with a comparison as its argument, and compiles (the last four lines). WIDTH is
-' the one name the old compiler takes as an array there: not supported yet
+' the one name the old compiler takes as an array there: not supported yet. _LIMIT, with its leading underscore, is
+' "Invalid array name" (v27_x57; an error since m3-sound-handles)
 DIM t AS STRING
 CLS (1) = 5
 CLS (1) = 5, 2

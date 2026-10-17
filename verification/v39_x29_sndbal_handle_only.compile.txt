@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDBAL handle&[, x!][, y!][, z!]
+Caused by (or after):_SNDBAL H
+LINE 9:_SNDBAL h
+exit=1

@@ -1,0 +1,5 @@
+
+Type symbols after a SUB name are invalid
+Caused by (or after):
+LINE 8:SUB S& ( N AS LONG )
+exit=1

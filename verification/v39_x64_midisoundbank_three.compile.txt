@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _MIDISOUNDBANK fileName$[, capabilities$]
+Caused by (or after):_MIDISOUNDBANK T , T , T
+LINE 9:_MIDISOUNDBANK t, t, t
+exit=1

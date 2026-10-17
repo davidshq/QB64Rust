@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):L = _SNDPLAY ( H )
+LINE 9:l = _SNDPLAY(h)
+exit=1

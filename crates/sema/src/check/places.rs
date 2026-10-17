@@ -803,6 +803,16 @@ impl Checker<'_> {
         // calls a built-in, and the table does not know every spelling of those (`_CONNECTIONADDRESS$`, the
         // functions of the auto-included files): it keeps its mark.
         let underscore = name.starts_with('_') && !name.starts_with("__");
+        // The name of a supported built-in statement that is no function is that error for certain (`v39_x11`:
+        // `l = _SNDPLAY(h)`).
+        if underscore
+            && !self.follow_on
+            && !is_builtin_function(name, suffix)
+            && !crate::builtins::stmt_lookup(name, suffix == Some(Ty::Str)).is_empty()
+        {
+            self.implicit_names.insert(name.to_string());
+            return Err(self.error(t.span, format!("`{shown}(...)`: `{shown}` is a built-in statement")));
+        }
         if self.follow_on || underscore || self.procs_by_name.contains_key(name) {
             return Err(self.not_an_array(t, name));
         }
@@ -1308,45 +1318,26 @@ impl Checker<'_> {
         Ok((place, t))
     }
 
-    /// `REDIM [_PRESERVE | _RETAIN] path(bounds) [AS type]` where the path names a member array (`t.v`, `a(1).v`,
-    /// `x(0).n(1).q`; design D8 of `m2-defxxx-common-arrays`). Returns false for an item that names none: a
-    /// plain array.
-    ///
-    /// The bounds of a member array never change (measured, `verification\v24_x184`–`x190`, `x218`–`x223`,
-    /// `x312`): the statement is accepted only with constant bounds equal to the declared ones, written `lower
-    /// TO upper`, or the upper bound alone with `AS` and the member's type. It then clears the elements
-    /// ([`StmtKind::Clear`]); with `_PRESERVE` or `_RETAIN` (`keeps`) it does nothing at all, and the indexes of
-    /// its path are not evaluated (measured, `verification\v34_x09`, `x10`). The compile errors: other bounds, also
-    /// the same number of elements shifted ("Cannot change the number of elements an array has!"), a bound that is
-    /// not constant ("TYPE member array bounds must be numeric constant"), the upper bound alone without `AS`
-    /// ("REDIM of a TYPE member array must include AS <type> or explicit lower TO upper bounds"), another type
-    /// ("REDIM type does not match the declared TYPE member array").
-    ///
-    /// `alone`: the item is the only one of its statement. `listed`: the type stands before the names.
-    ///
-    /// A dynamic member array (design D4 of `m3-typefields`) takes new bounds as a dynamic array does
-    /// ([`Self::redim_dynamic_member`]).
-    pub(super) fn redim_member(
+    /// The member a `DimItem`'s path names (`t.v`, `a(1).v`, `x(0).n(1).q`), with the parentheses after its last
+    /// part and that part's token: the place before those parentheses, each index on the way evaluated once and
+    /// in order, as a `REDIM` (design D8 of `m2-defxxx-common-arrays`) and an `_ARRAYCOPY` (design D1 of
+    /// `m3-arraycopy`) name a member array. `None` for an item that names no member: a plain array.
+    pub(super) fn member_path_array<'t>(
         &mut self,
-        item: ast::DimItem,
-        mode: AllocMode,
-        (listed, alone): (bool, bool),
-        stmt: Node,
-    ) -> R<bool> {
-        let keeps = mode.keeps_elements();
-        let span = item.node().span();
+        item: ast::DimItem<'t>,
+    ) -> R<Option<(Place, Option<ast::ArrayBounds<'t>>, Tok)>> {
         let parts = item.path();
         let Some(&(first, first_parens)) = parts.first() else {
-            return Ok(false);
+            return Ok(None);
         };
         if parts.len() == 1 && !self.text(first.span).contains(&b'.') {
-            return Ok(false);
+            return Ok(None);
         }
         let (name, suffix) = self.split_name(first)?;
         let mut index_used = false;
         let mut place = match self.dotted_any(first, &name, suffix)? {
             Some(place) => place,
-            None if parts.len() == 1 => return Ok(false),
+            None if parts.len() == 1 => return Ok(None),
             // `a(i).member…`: an element of an array of a user type.
             None => {
                 let shown = show_bytes(self.text(first.span));
@@ -1400,7 +1391,39 @@ impl Checker<'_> {
                 };
             }
         }
-        let (last_tok, _) = parts[last];
+        Ok(Some((place, bounds, parts[last].0)))
+    }
+
+    /// `REDIM [_PRESERVE | _RETAIN] path(bounds) [AS type]` where the path names a member array (`t.v`, `a(1).v`,
+    /// `x(0).n(1).q`; design D8 of `m2-defxxx-common-arrays`). Returns false for an item that names none: a
+    /// plain array.
+    ///
+    /// The bounds of a member array never change (measured, `verification\v24_x184`–`x190`, `x218`–`x223`,
+    /// `x312`): the statement is accepted only with constant bounds equal to the declared ones, written `lower
+    /// TO upper`, or the upper bound alone with `AS` and the member's type. It then clears the elements
+    /// ([`StmtKind::Clear`]); with `_PRESERVE` or `_RETAIN` (`keeps`) it does nothing at all, and the indexes of
+    /// its path are not evaluated (measured, `verification\v34_x09`, `x10`). The compile errors: other bounds, also
+    /// the same number of elements shifted ("Cannot change the number of elements an array has!"), a bound that is
+    /// not constant ("TYPE member array bounds must be numeric constant"), the upper bound alone without `AS`
+    /// ("REDIM of a TYPE member array must include AS <type> or explicit lower TO upper bounds"), another type
+    /// ("REDIM type does not match the declared TYPE member array").
+    ///
+    /// `alone`: the item is the only one of its statement. `listed`: the type stands before the names.
+    ///
+    /// A dynamic member array (design D4 of `m3-typefields`) takes new bounds as a dynamic array does
+    /// ([`Self::redim_dynamic_member`]).
+    pub(super) fn redim_member(
+        &mut self,
+        item: ast::DimItem,
+        mode: AllocMode,
+        (listed, alone): (bool, bool),
+        stmt: Node,
+    ) -> R<bool> {
+        let keeps = mode.keeps_elements();
+        let span = item.node().span();
+        let Some((place, bounds, last_tok)) = self.member_path_array(item)? else {
+            return Ok(false);
+        };
         let shown = show_bytes(self.text(last_tok.span));
         let Some((declared, member_ty, dynamic)) = self
             .member_of(&place)

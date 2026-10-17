@@ -190,7 +190,19 @@ impl Emitter<'_> {
             // The array of `_UCHARPOS`, as a graphics `GET` passes its array.
             ExprKind::Block { array, index } => self.block(*array, index),
             // Blocks and addresses of references (design D3 and D6 of `m3-mem`, `mem.rs`).
-            ExprKind::MemOf { of, element } => self.mem_of(of, *element),
+            ExprKind::MemOf {
+                of,
+                element,
+                lock_slot0,
+            } => {
+                let block = self.mem_of(of, *element);
+                if *lock_slot0 {
+                    // The old compiler reads the lock from slot 0 here (`DIVERGENCES.md` D-016).
+                    format!("(qbr_diverged(16),{block})")
+                } else {
+                    block
+                }
+            }
             ExprKind::MemRead { block, offset, of } => self.mem_read(block, offset, *of),
             ExprKind::AddressOf(of) => self.address_of(of),
             ExprKind::MemAt { offset, size } => {

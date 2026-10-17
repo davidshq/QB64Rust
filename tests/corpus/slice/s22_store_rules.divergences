@@ -1,0 +1,3 @@
+# Stores into a member through an index outside its bounds (bad(9).m = 5), on purpose: no line prints the
+# element the old compiler writes then.
+D-004

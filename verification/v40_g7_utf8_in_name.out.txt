@@ -1,0 +1,15 @@
+ok
+FileVersion=[1,0,0,0]
+ProductVersion=[]
+CompanyName=[]
+FileDescription=[cafAc]
+InternalName=[]
+LegalCopyright=[]
+LegalTrademarks=[]
+OriginalFilename=[]
+ProductName=[cafAc]
+Comments=[]
+Language=[English (United States)]
+FileParts=1,0,0,0
+ProductParts=0,0,0,0
+exit=0

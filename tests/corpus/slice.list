@@ -467,3 +467,14 @@ slice/s122_library_strings_types
 slice/s123_library_alias
 slice/s124_library_customtype
 slice/s125_library_runtime_dll
+slice/s126_owner_copies
+slice/s127_sound_handles
+slice/s128_sound_new_memory
+slice/s129_sound_files_raw_midi
+slice/s130_versioninfo
+slice/s131_arraycopy
+slice/s132_arraycopy_members
+slice/s133_arraycopy_dynamic_dims
+# m3-events: timers in a console program, and ON KEY in a window from a keys file (tests/corpus/screen/SOURCE.md)
+slice/s134_events_timer
+screen/k01_on_key

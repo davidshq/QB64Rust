@@ -1,0 +1,7 @@
+LEN of an element: 32 
+whole to whole: 1.25  2.25  3.25  4.25 
+whole to start: 0  0  0  0  1.25  2.25  3.25  4.25 
+range to start: 3.25  4.25  0  0  0  0  0  0 
+2D whole: 1.5  2.5  3.5  4.5 
+_MEM element size: 32  size: 128 
+exit=0

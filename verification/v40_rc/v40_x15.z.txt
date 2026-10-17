@@ -1,0 +1,5 @@
+
+Invalid key. (Use FILEVERSION#, PRODUCTVERSION#, CompanyName, FileDescription, FileVersion, InternalName, LegalCopyright, LegalTrademarks, OriginalFilename, ProductName, ProductVersion, Comments or Web)
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 3:$VERSIONINFO:CompanyName$='a'
+exit=1

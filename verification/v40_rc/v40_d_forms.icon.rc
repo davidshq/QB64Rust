@@ -1,0 +1,30 @@
+
+#include "manifest.h"
+
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "v40_d_forms.exe.manifest"
+
+1 VERSIONINFO
+FILEVERSION     1,2,3,4
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "CompanyName","double quoted\0"
+            VALUE "FileDescription","spaced\0"
+            VALUE "FileVersion","1,2,3,4\0"
+            VALUE "InternalName","a:b=c\0"
+            VALUE "LegalCopyright","\0"
+            VALUE "LegalTrademarks","\0"
+            VALUE "OriginalFilename","\0"
+            VALUE "ProductName","no quotes\0"
+            VALUE "ProductVersion","\0"
+            VALUE "Comments","'a' ' trailing comment\0"
+            VALUE "Web","\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+            VALUE "Translation", 0x409, 0x04E4
+    END
+END

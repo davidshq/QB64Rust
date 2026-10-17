@@ -7,6 +7,9 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+mod old_wording;
+pub use old_wording::old_wording;
+
 /// The largest source file, in bytes: offsets are `u32`. A caller that reads a file checks this before handing
 /// the bytes to any stage; every count derived from one file (lines, tokens, names) then fits a `u32`.
 pub const MAX_SOURCE_LEN: usize = u32::MAX as usize;
@@ -219,15 +222,30 @@ impl Diagnostic {
     }
 
     /// `<file>:<line>:<column>: error: <message>`, or `...: error: not supported yet: <message>` when marked
-    /// (spec `compiler/cli`).
+    /// (spec `compiler/cli`). A real error whose wording the old compiler's differs from has a second line,
+    /// `<file>:<line>:<column>: note: QB64pe: <its wording>` ([`old_wording`]).
     pub fn render(&self, map: &SourceMap) -> String {
         let file = map.file(self.span.file);
         let (line, col) = file.line_col(self.span.start);
         let mark = if self.unsupported { "not supported yet: " } else { "" };
-        format!(
+        let mut out = format!(
             "{}:{}:{}: {}: {mark}{}",
             file.name, line, col, self.severity, self.message
-        )
+        );
+        if let Some(old) = self.old_wording() {
+            out.push_str(&format!("\n{}:{}:{}: note: QB64pe: {old}", file.name, line, col));
+        }
+        out
+    }
+
+    /// The old compiler's wording of this error, for a real error the table of recorded output holds
+    /// (`m3-old-wording-notes`).
+    pub fn old_wording(&self) -> Option<String> {
+        if self.is_real_error() {
+            old_wording(&self.message)
+        } else {
+            None
+        }
     }
 }
 

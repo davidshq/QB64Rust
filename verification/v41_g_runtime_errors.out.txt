@@ -1,0 +1,25 @@
+1. low above high: error 9 -1 -1 -1 -1 -1 -1 
+2. low below LBOUND: error 9 -1 -1 -1 -1 -1 -1 
+3. high above UBOUND: error 9 -1 -1 -1 -1 -1 -1 
+4. start below LBOUND: error 9 -1 -1 -1 -1 -1 -1 
+5. start above UBOUND: error 9 -1 -1 -1 -1 -1 -1 
+6. runs past the end: error 9 -1 -1 -1 -1 -1 -1 
+7. whole to start past the end: error 9 -1 -1 -1 -1 -1 -1 
+8. whole to whole, index 5 fits:-1  1  2  3  4  5 
+9. whole to whole, destination smaller: error 9  0  0  0 
+10. range to whole, outside the destination: error 9  0  0  0 
+11. erased source: error 9 -1 -1 -1 -1 -1 -1 
+12. erased destination: error 9  done
+13. never allocated again: error 9  done
+14. static after ERASE: 1  5 
+15. 2D whole, other shape: error 9  done
+16. 2D whole, same counts, other lower: error 9  done
+17. 2D whole to start, does not fit: error 9  done
+18. 2D range outside: error 9  done
+19. 2D range to whole outside: error 9  done
+20. strings past the end: error 9  keep
+21. strings low above high: error 9  keep
+22. 2D strings whole, other bounds: error 9  done
+23. huge range: error 9  done
+24. error in a bound: error 5  1  2 -1 -1 -1 -1 
+exit=0

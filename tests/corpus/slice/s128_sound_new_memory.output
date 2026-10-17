@@ -1,0 +1,21 @@
+a new sound: 1  1600  130  2 -1  0 -1  .1000000014901161 
+not playing, paused, at 0: 0 -1  0 
+its samples are 0: 0  0 
+a copy has the sample written: 2  1600  130  2  1234  .1000000014901161 
+channels, bits and rates:
+ 3200  130  4  .1000000014901161 
+ 800  1153  1  0 
+ 6400  260  8  .1000000014901161 
+ 3200  260  4 
+ 3200  260  4 
+ 1600  130  2  .2000000029802322 
+ .5 -1 
+arguments refused: 0  0  0  0  0  0  0  0  0  0  0 
+decoded, 16 bits mono:-1  130  2 -1  0  .5 
+decoded, 8 bits stereo:-1  1153  2  .5 
+channel 0, 1, 2:-1 -1  0  0 
+a stream has no block:-1  0  .5 
+nor a sound not decoded:-1  0  .5 
+a new sound playing at volume 0:-1 -1 
+closed: 0 
+the block of handle 0: 0  0 

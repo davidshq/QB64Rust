@@ -3,5 +3,7 @@ source: crates/driver/tests/frontend.rs
 expression: snap
 ---
 array_params_parens_errors.bas:7:16: error: an array parameter's parentheses cannot hold `(` or `AS`
+array_params_parens_errors.bas:7:16: note: QB64pe: Syntax error - too many opening brackets
 array_params_parens_errors.bas:9:16: error: an array parameter's parentheses cannot hold `(` or `AS`
+array_params_parens_errors.bas:9:16: note: QB64pe: Syntax error - too many opening brackets
 array_params_parens_errors.bas:11:14: error: expected `)` after an array parameter

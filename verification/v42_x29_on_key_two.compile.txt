@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):ON KEY ( 1 , 2 ) GOSUB H
+LINE 3:ON KEY(1, 2) GOSUB h
+exit=1

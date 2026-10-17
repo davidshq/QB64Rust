@@ -1,0 +1,327 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 149
+expression: snap
+---
+TYPE _MEM
+  OFFSET:Off
+  SIZE:Off
+  $_LOCK_ID:I64
+  $_LOCK_OFFSET:Off
+  TYPE:Off
+  ELEMENTSIZE:Off
+  IMAGE:I32
+  SOUND:I32
+line 2: ConsoleOnly
+line 9: Assign H:I32
+  Call _SNDOPEN : I32
+    Var T : Str
+    (absent)
+line 10: Assign H:I32
+  Call _SNDOPEN : I32
+    Var T : Str
+    Str "memory" : Str
+line 11: Assign H:I32
+  Call _SNDOPEN : I32
+    Var FS : Str
+    Var FS : Str
+line 12: Assign H:I32
+  Call _SNDOPEN : I32
+    Concat : Str
+      Var T : Str
+      Str "x" : Str
+    Str "stream, noasync" : Str
+line 13: Print newline
+  Num
+    Call _SNDOPEN : I32
+      Var T : Str
+      (absent)
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Call _SNDOPEN : I32
+          Var T : Str
+          (absent)
+        Int 1 : I32
+  Str
+    Call HEX : Str
+      Call _SNDOPEN : I32
+        Var T : Str
+        (absent)
+line 14: Assign H:I32
+  Call _SNDCOPY : I32
+    Var H : I32
+line 14: Assign H:I32
+  Call _SNDCOPY : I32
+    Convert Widen : I32
+      Var I : I16
+line 14: Assign H:I32
+  Call _SNDCOPY : I32
+    Convert Truncate : I32
+      Var Q : I64
+line 14: Assign H:I32
+  Call _SNDCOPY : I32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var S : F32
+line 14: Assign H:I32
+  Call _SNDCOPY : I32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+line 14: Assign H:I32
+  Call _SNDCOPY : I32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var F : F80
+line 14: Assign H:I32
+  Call _SNDCOPY : I32
+    Convert Truncate : I32
+      Var U : U32
+line 15: Assign D:F64
+  Call _SNDLEN : F64
+    Var H : I32
+line 16: Print newline
+  Num
+    Call _SNDLEN : F64
+      Convert Widen : I32
+        Var I : I16
+  Num
+    Call _SNDLEN : F64
+      Convert Truncate : I32
+        Var Q : I64
+  Num
+    Call _SNDLEN : F64
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+  Num
+    Call _SNDLEN : F64
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var F : F80
+  Num
+    Call _SNDLEN : F64
+      Convert Truncate : I32
+        Var U : U32
+  Num
+    Binary Add : F64
+      Call _SNDLEN : F64
+        Int 1 : I32
+      Convert Nearest : F64
+        Int 1 : I16
+  Num
+    Binary Div : F64
+      Call _SNDLEN : F64
+        Int 1 : I32
+      Convert Nearest : F64
+        Int 3 : I16
+line 17: Assign D:F64
+  Call _SNDGETPOS : F64
+    Var H : I32
+line 18: Print newline
+  Num
+    Call _SNDGETPOS : F64
+      Convert Widen : I32
+        Var I : I16
+  Num
+    Call _SNDGETPOS : F64
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+  Num
+    Call _SNDGETPOS : F64
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var D : F64
+  Num
+    Call _SNDGETPOS : F64
+      Convert Truncate : I32
+        Var U : U32
+line 19: Assign L:I32
+  Call _SNDPLAYING : I32
+    Var H : I32
+line 19: Assign L:I32
+  Call _SNDPAUSED : I32
+    Var H : I32
+line 20: Print newline
+  Num
+    Call _SNDPLAYING : I32
+      Convert Widen : I32
+        Var I : I16
+  Num
+    Call _SNDPAUSED : I32
+      Convert Truncate : I32
+        Var Q : I64
+  Num
+    Call _SNDPLAYING : I32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+  Num
+    Call _SNDPAUSED : I32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var D : F64
+  Num
+    Call _SNDPLAYING : I32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var F : F80
+  Num
+    Call _SNDPAUSED : I32
+      Convert Truncate : I32
+        Var U : U32
+line 21: Print newline
+  Str
+    Call HEX : Str
+      Call _SNDPLAYING : I32
+        Int 1 : I32
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Call _SNDPAUSED : I32
+          Int 1 : I32
+        Int 1 : I32
+line 22: Assign L:I32
+  Call _SNDRATE : I32
+line 23: Print newline
+  Num
+    Call _SNDRATE : I32
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Call _SNDRATE : I32
+        Int 1 : I32
+  Str
+    Call HEX : Str
+      Call _SNDRATE : I32
+line 24: Assign R:I32
+  Call _SNDOPENRAW : I32
+line 25: Print newline
+  Num
+    Call _SNDOPENRAW : I32
+  Str
+    Call HEX : Str
+      Call _SNDOPENRAW : I32
+line 26: Assign D:F64
+  Call _SNDRAWLEN : F64
+    (absent)
+line 27: Assign D:F64
+  Call _SNDRAWLEN : F64
+    Var R : I32
+line 28: Print newline
+  Num
+    Call _SNDRAWLEN : F64
+      Convert Widen : I32
+        Var I : I16
+  Num
+    Call _SNDRAWLEN : F64
+      Convert Truncate : I32
+        Var Q : I64
+  Num
+    Call _SNDRAWLEN : F64
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+  Num
+    Call _SNDRAWLEN : F64
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var D : F64
+  Num
+    Call _SNDRAWLEN : F64
+      Convert Truncate : I32
+        Var U : U32
+  Num
+    Binary Add : F64
+      Call _SNDRAWLEN : F64
+        (absent)
+      Convert Nearest : F64
+        Int 1 : I16
+line 29: Assign H:I32
+  Call _SNDNEW : I32
+    Int 800 : U32
+    (absent)
+    (absent)
+    (absent)
+line 30: Assign H:I32
+  Call _SNDNEW : I32
+    Int 800 : U32
+    Int 1 : I32
+    Int 16 : I32
+    Int 8000 : U32
+line 31: Assign H:I32
+  Call _SNDNEW : I32
+    Int 800 : U32
+    (absent)
+    Int 16 : I32
+    (absent)
+line 32: Assign H:I32
+  Call _SNDNEW : I32
+    Int 800 : U32
+    (absent)
+    (absent)
+    Int 8000 : U32
+line 33: Assign H:I32
+  Call _SNDNEW : I32
+    Convert Truncate : U32
+      Var Q : I64
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var S : F32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+    Convert Truncate : U32
+      Convert RoundEven : I64
+        Var F : F80
+line 34: Assign H:I32
+  Call _SNDNEW : I32
+    Convert Truncate : U32
+      Var I : I16
+    Convert Truncate : I32
+      Var U : U32
+    Var L : I32
+    Convert Truncate : U32
+      Var I : I16
+line 35: Print newline
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Call _SNDNEW : I32
+          Int 1 : U32
+          (absent)
+          (absent)
+          (absent)
+        Int 1 : I32
+  Str
+    Call HEX : Str
+      Call _SNDNEW : I32
+        Int 1 : U32
+        (absent)
+        (absent)
+        (absent)
+line 36: Assign M:T:_MEM
+  Call _MEMSOUND : T:_MEM
+    Var H : I32
+    (absent)
+line 37: Assign M:T:_MEM
+  Call _MEMSOUND : T:_MEM
+    Var H : I32
+    Int 0 : I32
+line 38: Assign M:T:_MEM
+  Call _MEMSOUND : T:_MEM
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var S : F32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+line 39: Assign H:I32
+  Call _SNDOPEN : I32
+    Var T : Str
+    (absent)
+line 39: Assign D:F64
+  Call _SNDLEN : F64
+    Var H : I32

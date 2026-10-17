@@ -29,9 +29,11 @@ pub(crate) fn label_def(p: &mut Parser) {
     p.finish_node();
 }
 
-/// The events of `ON <event> GOSUB` and of the switches `<event>[(n)] ON|OFF|STOP|FREE`. `PLAY`, an event of
-/// QuickBASIC, is none to the old compiler: `ON PLAY(5) GOSUB 10` is `ON <number> GOSUB` with the function, and
-/// `PLAY ON` is an error (measured, `verification/v29_x61`–`x64`).
+/// The words read as events after `ON`. The old compiler has three events, `TIMER`, `KEY` and `STRIG`; `PEN`,
+/// `COM` and `UEVENT` are read here too so that `sema` rejects them as events (measured, `verification\
+/// v42_x17`–`x19`). The switches (`TIMER ON`, `KEY(1) OFF`) are built-in statements read by their template.
+/// `PLAY`, an event of QuickBASIC, is none to the old compiler: `ON PLAY(5) GOSUB 10` is `ON <number> GOSUB` with
+/// the function, and `PLAY ON` is an error (measured, `verification/v29_x61`–`x64`).
 pub(crate) const EVENT_WORDS: [&str; 6] = ["TIMER", "KEY", "STRIG", "PEN", "COM", "UEVENT"];
 
 /// `ON ERROR GOTO …`, `ON <event>[(args)] GOSUB label` (or a SUB's name: `ON TIMER(1) handler`), or
@@ -61,11 +63,16 @@ fn on_event(p: &mut Parser) {
         p.finish_node();
         return;
     }
-    if p.at_word("GOSUB") {
+    let gosub = p.at_word("GOSUB");
+    if gosub {
         p.bump();
     }
     if p.at(Ident) || p.at(Number) {
         p.bump();
+        // A SUB's argument: `ON TIMER(1) handler 5`.
+        if !gosub && !p.at_stmt_end() {
+            expr(p);
+        }
     } else {
         p.syntax_error("expected `GOSUB` and a label, or a SUB's name");
     }
@@ -96,31 +103,6 @@ fn on_jump(p: &mut Parser) {
     }
     p.recover();
     p.finish_node();
-}
-
-/// `<event>[(args)] ON|OFF|STOP|FREE` (`TIMER ON`, `KEY(1) OFF`, `TIMER(t) FREE`), at an event word. Returns
-/// false (taking nothing) when the statement is not of that shape (`KEY 1, "x"`, `PLAY "abc"`).
-pub(crate) fn event_switch(p: &mut Parser) -> bool {
-    let mut n = 1;
-    if p.nth(1) == Some(LParen) {
-        match p.skip_parens(1) {
-            Some(after) => n = after,
-            None => return false,
-        }
-    }
-    let switch = ["ON", "OFF", "STOP", "FREE"].iter().any(|w| p.nth_is_word(n, w));
-    if !switch || !p.ends_at(n + 1) {
-        return false;
-    }
-    p.start_node(EventSwitchStmt);
-    p.bump(); // the event
-    if p.at(LParen) {
-        arg_list(p);
-    }
-    p.bump(); // ON, OFF, STOP or FREE
-    p.recover();
-    p.finish_node();
-    true
 }
 
 /// `ON ERROR GOTO label`, `ON ERROR GOTO 0`, and QB64's `ON ERROR GOTO _NEWHANDLER label` / `_LASTHANDLER`.

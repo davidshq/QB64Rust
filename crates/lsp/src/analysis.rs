@@ -63,7 +63,11 @@ impl Analysis {
                         Severity::Warning => DiagnosticSeverity::WARNING,
                     }),
                     source: Some("qb64rust".to_string()),
-                    message: format!("{mark}{}", d.message),
+                    // The old compiler's wording on a line of its own, as the CLI's note (`m3-old-wording-notes`).
+                    message: match d.old_wording() {
+                        Some(old) => format!("{mark}{}\nQB64pe: {old}", d.message),
+                        None => format!("{mark}{}", d.message),
+                    },
                     ..lsp_types::Diagnostic::default()
                 });
             }

@@ -1,0 +1,5 @@
+
+Expected KEY ON only
+Caused by (or after):KEY ON 1
+LINE 3:KEY ON 1
+exit=1

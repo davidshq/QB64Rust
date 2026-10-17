@@ -4,7 +4,10 @@ use crate::Emitter;
 use crate::decl::{Part, dim_count, dim_slot, is_qbs};
 use crate::names::{c_type, int_const, proc_name};
 use crate::place::fixed_at;
-use qb64rust_ir::{ArrayRef, Expr, ExprKind, Facts, LabelId, MemberId, OnError, Op, Place, PrintTo, Resume, Ty, When};
+use qb64rust_ir::{
+    ArrayRef, Event, EventHandler, Expr, ExprKind, Facts, LabelId, MemberId, OnError, Op, Place, PrintTo, Resume, Ty,
+    When,
+};
 use std::fmt::Write as _;
 
 impl Emitter<'_> {
@@ -84,6 +87,12 @@ impl Emitter<'_> {
             Op::Release { array } => self.release_array(array, out),
             Op::EraseParam { array } => self.erase_param(*array, out),
             Op::CopyArray { from, to } => self.copy_array(from, to, out),
+            Op::ArrayCopy {
+                from,
+                to,
+                ranges,
+                starts,
+            } => self.array_copy((from, to), ranges, starts, out),
             Op::AssignAll(stores) => {
                 for (place, value) in stores {
                     self.assign(&Place::Var(*place), value, out);
@@ -134,7 +143,7 @@ impl Emitter<'_> {
             // The decrement is guarded, unlike the old compiler's, whose counter wrapped below zero (DIVERGENCES.md
             // D-003).
             Op::Return(Some(l)) => {
-                out.push("if (!next_return_point) error(3); else next_return_point--;".into());
+                out.push("if (!next_return_point){qbr_diverged_on(3);error(3);} else next_return_point--;".into());
                 out.push(format!("goto {};", self.label_name(*l)));
             }
             Op::Call { proc, args } => {
@@ -154,6 +163,18 @@ impl Emitter<'_> {
                 }
             }
             Op::Builtin { id, args } => self.stmt_call(*id, args, out),
+            Op::OnEvent { event, handler } => {
+                self.on_event(event, handler, out);
+                let strings = |e: &Expr| e.uses_strings(self.p);
+                let operands = match event {
+                    Event::Timer { number, seconds } => number.as_ref().is_some_and(strings) || strings(seconds),
+                    Event::Key { key } => strings(key),
+                };
+                if operands || matches!(handler, EventHandler::Sub { arg: Some(a), .. } if strings(a)) {
+                    out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+                }
+            }
+            Op::Key(form) => self.key_stmt(form, out),
             Op::MemGet { block, offset, target } => {
                 self.mem_get_stmt(block, offset, target, out);
                 let p = self.p;
@@ -402,6 +423,9 @@ impl Emitter<'_> {
         out.push("ptrszint mbr_off=0;".into());
         let root = self.member_path(place, out);
         out.push("int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());".into());
+        // An index that raised with nothing pending: the old compiler stores into element 0 (D-004); one outside its
+        // bounds is traced where it is checked.
+        out.push("if (!mbr_bad&&!mbr_ok) qbr_diverged_on(4);".into());
         // The address last: an index may have given the array another block.
         let at = format!("((char*){root})+mbr_off");
         let store = if let Ty::FixedStr(k) = ty {
@@ -425,7 +449,9 @@ impl Emitter<'_> {
     /// first, adding the place's distance in bytes from its root to `mbr_off` and setting `mbr_bad` for an index
     /// outside its bounds. Gives the root: the pointer of a variable of a user type, or the block of an array.
     fn member_path(&mut self, place: &Place, out: &mut Vec<String>) -> String {
-        let check = |count: &str| format!("if ((uptrszint)mbr_k>=(uptrszint){count}){{error(9);mbr_bad=1;}}");
+        let check = |count: &str| {
+            format!("if ((uptrszint)mbr_k>=(uptrszint){count}){{qbr_diverged_on(4);error(9);mbr_bad=1;}}")
+        };
         match place {
             Place::Var(v) => self.name(*v),
             Place::Element {

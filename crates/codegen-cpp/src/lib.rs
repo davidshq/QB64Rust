@@ -32,6 +32,7 @@
 mod arrays;
 mod builtins;
 mod decl;
+mod events;
 mod io;
 mod library;
 mod mem;
@@ -121,7 +122,10 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>, 
         funcs: 0,
         func_decls: Vec::new(),
         file_types: Vec::new(),
+        file_buffers: 0,
         stmt_at: (None, 0),
+        on_timer: events::EventCode::default(),
+        on_key: events::EventCode::default(),
     };
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
     let mut set = |name: &str, text: String| files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
@@ -208,6 +212,15 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>, 
     }
     mainerr.push_str("exit(99);\n}\n");
     files.iter_mut().find(|(n, _)| n == "mainerr.txt").unwrap().1 = mainerr;
+    // Also last: the handlers of events are numbered while the bodies are emitted.
+    for (name, text) in [
+        ("ontimer.txt", std::mem::take(&mut e.on_timer.cases)),
+        ("ontimerj.txt", std::mem::take(&mut e.on_timer.jumpers)),
+        ("onkey.txt", std::mem::take(&mut e.on_key.cases)),
+        ("onkeyj.txt", std::mem::take(&mut e.on_key.jumpers)),
+    ] {
+        files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
+    }
     // Also last: the temporaries of blocks are counted while the bodies are emitted.
     let global = &mut files.iter_mut().find(|(n, _)| n == "global.txt").unwrap().1;
     global.extend(e.func_decls.drain(..));
@@ -262,6 +275,11 @@ struct Emitter<'a> {
     func_decls: Vec<String>,
     /// The owner types whose file functions are in `func_decls` (`Emitter::owner_file`).
     file_types: Vec<qb64rust_ir::TypeId>,
+    /// Counter for the buffers of those file statements, one per statement (`qbr_fbufN`).
+    file_buffers: u32,
     /// The file and line of the statement being emitted, for an event check inside it (`END n`).
     stmt_at: (Option<FileId>, u32),
+    /// The handlers of `ON TIMER` and of `ON KEY` (`events.rs`).
+    on_timer: events::EventCode,
+    on_key: events::EventCode,
 }

@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDCLOSE handle&
+Caused by (or after):_SNDCLOSE
+LINE 9:_SNDCLOSE
+exit=1

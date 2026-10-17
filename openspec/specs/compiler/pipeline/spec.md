@@ -580,7 +580,7 @@ icon, of a library file or of a header a block names, SHALL NOT share a cached e
 - **THEN** `git status --porcelain` in the reference clone prints the same as before the build
 
 #### Scenario: A program with sound
-- **WHEN** a program names `SOUND` or `PLAY`
+- **WHEN** a program names `SOUND`, `PLAY` or another built-in of the audio part (`_SNDOPEN`, `_SNDRAW`, `_MIDISOUNDBANK`, `_WAVE`, `_MEMSOUND`, …)
 - **THEN** it is built with the make flag the old compiler passes for the audio dependency, and a program
   without them is built without it
 
@@ -603,3 +603,57 @@ icon, of a library file or of a header a block names, SHALL NOT share a cached e
 #### Scenario: A changed header
 - **WHEN** the bytes of a header a block names change and the program is built again with the build cache
 - **THEN** the executable is built again, not copied from the cache
+
+### Requirement: The version resource in the build
+A program with `$VERSIONINFO` SHALL be built with the version resource and the manifest the old compiler writes
+for it, the same bytes, after the icon of `$EXEICON` when it has one, and with the make flag the old compiler
+passes for them. Two builds whose version resources differ SHALL NOT share a cached executable.
+
+#### Scenario: The files of every measured program
+- **WHEN** the front end and the driver write the resource files of each accepted `verification\v40_*` program
+- **THEN** the resource file, its header and the manifest equal those `qb64pe.exe` wrote for it, apart from the
+  manifest's file name, which follows the executable's
+
+#### Scenario: Read back from the executable
+- **WHEN** a slice program with `$VERSIONINFO` lines is built and prints its own version resource
+- **THEN** its output equals the old compiler's program's
+
+#### Scenario: With an icon
+- **WHEN** a program has `$EXEICON:'./icon.ico'` and `$VERSIONINFO:ProductName='p'`
+- **THEN** the executable carries both, and its resource file has the icon line first, as the old compiler's
+
+#### Scenario: A changed value
+- **WHEN** a `$VERSIONINFO` value changes and the program is built again with the build cache
+- **THEN** the executable is built again, not copied from the cache
+
+### Requirement: Partial array copies in the IR
+The IR SHALL have one operation for `_ARRAYCOPY`: a source and a destination, each an array variable or a member
+array, with the source's ranges (none for the whole array) and the destination's starts (none for the whole
+array) as 64-bit integer values, evaluated in the statement's order. Bounds checks, the copy by kind and the
+choice of runtime entry point SHALL follow from the operands and SHALL NOT appear as other operations.
+
+#### Scenario: A range to a start
+- **WHEN** `_ARRAYCOPY s(2 TO 4) TO d(f(1))` is lowered
+- **THEN** the IR holds one copy from `s` with the range 2 to 4 to `d` at the value of `f(1)`, each converted to a
+  64-bit integer, marked as raising, and no loop, descriptor or bounds check appears before the C++ output
+
+#### Scenario: Member arrays
+- **WHEN** `_ARRAYCOPY t(1).v() TO a(1, 1)` is lowered for a member array `v` of two dimensions
+- **THEN** the IR holds one copy from member `v` of `t(1)` as a whole to `a` at the two starts
+
+### Requirement: Event handlers in the IR
+The IR SHALL have one operation that sets up an event handler: the event (timer or key), its operands as values of
+the types the old compiler converts them to, and the handler, either a label of the main module or a procedure with
+its argument as a 64-bit integer value. The label MAY belong to the main module while the operation stands in a
+procedure; no other jump SHALL leave its body.
+
+#### Scenario: A timer handler set up in a procedure
+- **WHEN** `ON TIMER(t, 1.5) GOSUB h` inside a SUB is lowered, `h` a label of the main module
+- **THEN** the IR holds one handler setup for timer `t` (a 32-bit integer) every 1.5 seconds (a double) with the
+  main module's label `h`, it passes the IR's validation, and the main module keeps `h` as a place that can be
+  entered
+
+#### Scenario: A key handler with a SUB
+- **WHEN** `ON KEY(3) s x%` is lowered for `SUB s (n AS INTEGER)`
+- **THEN** the IR holds one handler setup for key 3 with procedure `s` and the value of `x%` converted to a 64-bit
+  integer

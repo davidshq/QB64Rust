@@ -1,0 +1,7 @@
+1. [error 9 ] 1  2 
+2. [error 9 ] 5  6 
+3. [error 9 ] 5  6 
+4. [error 9 ] 5  6  3  4 
+5. [error 9 ] 9  12  30 
+ok
+exit=0

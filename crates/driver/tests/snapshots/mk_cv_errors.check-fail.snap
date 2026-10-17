@@ -1,23 +1,30 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 108
+assertion_line: 149
 expression: snap
 ---
 mk_cv_errors.bas:7:10: error: `_MK$` takes no width or length in its type
 mk_cv_errors.bas:8:9: error: `_CV` takes no width or length in its type
 mk_cv_errors.bas:9:9: error: `_CV` takes no width or length in its type
 mk_cv_errors.bas:10:10: error: `_MK$` takes a numeric type
+mk_cv_errors.bas:10:10: note: QB64pe: _MK only accepts numeric types
 mk_cv_errors.bas:11:9: error: `_CV` takes a numeric type
+mk_cv_errors.bas:11:9: note: QB64pe: _CV cannot return STRING type!
 mk_cv_errors.bas:12:10: error: `_MK$` takes no width or length in its type
 mk_cv_errors.bas:13:16: error: `_MK$` needs a number
 mk_cv_errors.bas:14:9: error: `CVL` needs a string
+mk_cv_errors.bas:14:9: note: QB64pe: CVL requires a STRING argument
 mk_cv_errors.bas:15:9: error: `CVI` needs a string
+mk_cv_errors.bas:15:9: note: QB64pe: CVI requires a STRING argument
 mk_cv_errors.bas:16:15: error: `_CV` needs a string
+mk_cv_errors.bas:16:15: note: QB64pe: _CV requires a STRING argument
 mk_cv_errors.bas:17:10: error: `MKL$` needs a number
 mk_cv_errors.bas:18:5: error: `MKI$` takes 1 argument
 mk_cv_errors.bas:19:5: error: `MKI$` takes 1 argument
 mk_cv_errors.bas:20:5: error: `_MK$` takes a type and 1 argument
+mk_cv_errors.bas:20:5: note: QB64pe: Incorrect number of arguments - Reference: _MK$(numericalType, numericalValue)
 mk_cv_errors.bas:21:10: error: the first argument of `_MK$` is a type name
 mk_cv_errors.bas:22:9: error: the first argument of `_CV` is a type name
 mk_cv_errors.bas:23:5: error: `_MK$` takes a type and 1 argument
+mk_cv_errors.bas:23:5: note: QB64pe: Incorrect number of arguments - Reference: _MK$(numericalType, numericalValue)
 mk_cv_errors.bas:24:10: error: the first argument of `_MK$` is a type name

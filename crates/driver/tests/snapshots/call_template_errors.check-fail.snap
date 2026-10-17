@@ -1,16 +1,24 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 108
+assertion_line: 149
 expression: snap
 ---
 call_template_errors.bas:8:11: error: this `PSET` statement matches none of its forms: `PSET [{Step}](?,?)[,?]`
+call_template_errors.bas:8:11: note: QB64pe: Syntax error - Reference: PSET [STEP](column%, row%)[, colorAttribute]
 call_template_errors.bas:9:11: error: expected `CALL VIEW(…)`, the parentheses around all that follows
+call_template_errors.bas:9:11: note: QB64pe: Expected CALL sub-name (...)
 call_template_errors.bas:10:10: error: expected `CALL DEF(…)`, the parentheses around all that follows
+call_template_errors.bas:10:10: note: QB64pe: Expected CALL sub-name (...)
 call_template_errors.bas:11:9: error: expected something between the parentheses of `CALL CLS(…)`
+call_template_errors.bas:11:9: note: QB64pe: Expected CALL sub-name (...)
 call_template_errors.bas:12:15: error: this `SOUND` statement matches none of its forms: `SOUND [?,?[,[?][,[?][,[?][,[?][,?]]]]]][{Wait|Resume}]`
 call_template_errors.bas:13:11: error: expected `CALL SOUND(…)`, the parentheses around all that follows
+call_template_errors.bas:13:11: note: QB64pe: Expected CALL sub-name (...)
 call_template_errors.bas:14:10: error: expected something between the parentheses of `CALL PLAY(…)`
+call_template_errors.bas:14:10: note: QB64pe: Expected CALL sub-name (...)
 call_template_errors.bas:15:10: error: this `PLAY` statement matches none of its forms: `PLAY ?[,[?][,[?][,?]]]`
 call_template_errors.bas:16:10: error: expected `CALL LINE(…)`, the parentheses around all that follows
+call_template_errors.bas:16:10: note: QB64pe: Expected CALL sub-name (...)
 call_template_errors.bas:17:13: error: expected `CALL LOCATE(…)`, the parentheses around all that follows
+call_template_errors.bas:17:13: note: QB64pe: Expected CALL sub-name (...)
 call_template_errors.bas:18:11: error: argument 1 of `PLAY` needs a string

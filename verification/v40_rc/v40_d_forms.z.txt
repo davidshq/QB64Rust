@@ -1,0 +1,5 @@
+v40_d_forms.bas:5: warning: Missing string bracket delimiters ('')
+    no quotes
+v40_d_forms.bas:6: warning: Missing string bracket delimiters ('')
+    'a' ' trailing comment
+exit=0

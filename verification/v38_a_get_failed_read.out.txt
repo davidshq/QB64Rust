@@ -1,0 +1,8 @@
+PUT: LOF = 20 
+1. never read, file not open: [error 52 ] 0  0  0  0  0  0 
+2. 1 : 10  100  200  11  101  201 
+2. 2 : [error 52 ] 10  100  200  11  101  201 
+3. record too short: [error 59 ] 0  0  0  0  0  0 
+4. past the end: 0  201  0  0  0  0 
+ok
+exit=0

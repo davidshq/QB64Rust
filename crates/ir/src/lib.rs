@@ -101,6 +101,8 @@ pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, U
 /// An item of the program's data: its text, and whether it was written in quotes (the runtime reads a quoted
 /// item's text as it is, and takes an unquoted one as a number where a number is read).
 pub use qb64rust_sema::DataItem;
+/// The fields of the executable's version resource (`$VERSIONINFO`), which the driver writes as they are.
+pub use qb64rust_sema::VersionInfo;
 /// Which built-in functions are compiled and the rule each follows; the emitter writes a call by its rule.
 pub use qb64rust_sema::builtins;
 /// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
@@ -113,6 +115,8 @@ pub use qb64rust_sema::{AllocMode, Shape};
 pub use qb64rust_sema::{
     Arg, ArrayRef, Expr, ExprKind, InputSource as Source, MemValue, Place, ProcId, Reference, StmtArg, VarId,
 };
+/// The event of an [`Op::OnEvent`] and the forms of [`Op::Key`] are `sema`'s (design D3 of `m3-events`).
+pub use qb64rust_sema::{Event, KeyForm};
 /// The `DECLARE LIBRARY` blocks and the C function behind a library procedure are `sema`'s (design D1 of
 /// `m3-declare-library`): the names as written. Finding the files they name is the driver's.
 pub use qb64rust_sema::{External, Library, LibraryId, LibraryKind, LibraryName};
@@ -485,8 +489,10 @@ pub enum Op {
     /// 2. **if an error was raised so far, nothing is copied** (`DIVERGENCES.md` D-004: the old compiler copies a
     ///    `STRING` member array through the one of element 0);
     /// 3. both arrays must be allocated (a static array always is, also after `ERASE`) and have, in every
-    ///    dimension, the same lower bound and number of elements; else error 9, and nothing is copied
-    ///    (`DIVERGENCES.md` D-022 for an owner type: the old compiler copies the target's number of elements);
+    ///    dimension, the same lower bound and number of elements; else error 9, and nothing is copied, but for
+    ///    two array variables of an owner type, which copy the target's number of elements after the error when
+    ///    the source has that many, as the old compiler does (`DIVERGENCES.md` D-022: it also does when the source
+    ///    has fewer, reading past it);
     /// 4. the same block on both sides (`a() = a()`) copies nothing;
     /// 5. every element is copied deep, by kind: a `STRING` as a string of its own, a user type as
     ///    [`Op::CopyWhole`] copies a value, an owner value with the bounds and elements of each of its dynamic
@@ -494,6 +500,34 @@ pub enum Op {
     ///
     /// The target keeps its bounds. Always may raise.
     CopyArray { from: ArrayRef, to: ArrayRef },
+    /// Copy elements of the array `from` into the array `to` (`_ARRAYCOPY`; design D4 of `m3-arraycopy`; measured,
+    /// `study\00` §5, the `v41` paragraph). Both have one element type: a number type, `_OFFSET`, `STRING * n` or
+    /// `STRING`; each is an array variable or a member array. `ranges` is the source's lower and upper bound per
+    /// dimension, none for the whole array; `starts` the destination's first indexes, one per dimension, none for
+    /// the whole array; each an `I64`. In this order:
+    ///
+    /// 1. `from`'s place is found, then `to`'s, each once (an [`ArrayRef::Member`] with indexes on the way: an index
+    ///    outside its bounds raises error 9, and the member of the element at position 0 stands in; a dynamic
+    ///    member that a `REDIM` gave another number of dimensions than declared raises error 9 and is not copied);
+    /// 2. every lower bound, then every upper bound, then every start is evaluated, first dimension first. **A
+    ///    raising bound or start does not stop the copy**, which goes on with its value;
+    /// 3. **if finding a place raised, nothing is copied** (`DIVERGENCES.md` D-004: the old compiler copies
+    ///    through the member of element 0);
+    /// 4. both arrays must be allocated (a static array always is, also after `ERASE`); every range must lie in
+    ///    the source with its lower bound not above its upper; the elements must fit in the destination: from the
+    ///    starts, or, with no starts, at the indexes the range gives them (with no ranges either: one dimension,
+    ///    the source's own indexes; several, the same bounds on both sides). Else error 9 and nothing is copied;
+    /// 5. the elements are copied as if all were read before any is written (the two may overlap or be one
+    ///    array): a range's elements to the starts, each coordinate mapped by itself; a whole source in its order
+    ///    of elements from the starts; a `STRING` as a string of its own.
+    ///
+    /// Always may raise.
+    ArrayCopy {
+        from: ArrayRef,
+        to: ArrayRef,
+        ranges: Vec<(Expr, Expr)>,
+        starts: Vec<Expr>,
+    },
     /// Items in order, to the program's destination of text, to the file with a number (an `I32`) or to the
     /// printer ([`PrintTo`]); a raising item skips the rest, including the line end. In a file a
     /// [`PrintItem::Zone`] is 14 columns wide, on the console 10 (the runtime's).
@@ -636,6 +670,24 @@ pub enum Op {
     /// Back to after the last pending [`Op::Gosub`], also one made in another body (`None`), or forget it and
     /// continue at a label of the main module (`Some`). Raises error 3 when no `GOSUB` is pending.
     Return(Option<LabelId>),
+    /// Set the handler of an event (design D3 of `m3-events`): the operands are evaluated in order, then the event's
+    /// handler is replaced. The handler runs when the runtime services the event at a statement boundary (not
+    /// while an error handler runs, not while the same event's handler runs): a label of the main module as a
+    /// `GOSUB` from there, whatever body set it up, or a SUB with the argument evaluated here. A timer number that
+    /// is not allocated, or a key outside 1 to 31, raises error 5. Always may raise.
+    OnEvent { event: Event, handler: EventHandler },
+    /// `KEY ON`, `KEY OFF`, `KEY LIST` or `KEY n, text$`; a soft key's number outside its range raises error 5.
+    /// Always may raise.
+    Key(KeyForm),
+}
+
+/// The handler of an [`Op::OnEvent`].
+#[derive(Clone, Debug, PartialEq)]
+pub enum EventHandler {
+    /// A label of the main module ([`Body::labels`] of [`Program::main`]).
+    Label(LabelId),
+    /// A SUB with no parameter or one of an integer type, and its argument (an `I64`) for it.
+    Sub { proc: ProcId, arg: Option<Expr> },
 }
 
 impl Op {
@@ -656,11 +708,14 @@ impl Op {
             // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
             Op::Call { .. }
             | Op::Builtin { .. }
+            | Op::OnEvent { .. }
+            | Op::Key(_)
             | Op::Raise(_)
             | Op::Resume(_)
             | Op::Return(_)
             | Op::Allocate { .. }
             | Op::CopyArray { .. }
+            | Op::ArrayCopy { .. }
             | Op::MemGet { .. }
             | Op::MemPut { .. }
             | Op::MemFill { .. } => true,
@@ -764,6 +819,8 @@ pub struct Settings {
     pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
     /// The executable carries an icon (`$EXEICON`). Its file is the driver's to find, from the checked program.
     pub exe_icon: bool,
+    /// The executable carries a version resource and a manifest (`$VERSIONINFO`).
+    pub version_info: Option<VersionInfo>,
 }
 
 /// An optional part of the runtime.

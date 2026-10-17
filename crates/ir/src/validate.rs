@@ -3,8 +3,9 @@
 
 use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
 use crate::{
-    Arg, ArrayRef, Body, BuiltinId, Expr, ExprKind, LabelId, MemValue, Member, MemberId, Op, Place, PrintItem, PrintTo,
-    ProcId, Program, Reference, Resume, Shape, Source, StmtArg, Storage, Ty, UsingValue, Var, VarId,
+    Arg, ArrayRef, Body, BuiltinId, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId, MemValue, Member, MemberId,
+    Op, Place, PrintItem, PrintTo, ProcId, ProcKind, Program, Reference, Resume, Shape, Source, StmtArg, Storage, Ty,
+    UsingValue, Var, VarId,
 };
 
 /// Every problem found, each as `<body>: <where>: <what>`; `Ok` when there is none.
@@ -400,6 +401,44 @@ impl Validator<'_> {
                     }
                 }
             }
+            // One element type of a kind the copy takes; the ranges and the starts none or one per dimension where
+            // the number is known; each an `I64`.
+            Op::ArrayCopy {
+                from,
+                to,
+                ranges,
+                starts,
+            } => {
+                let from_ref = self.array_ref(from, owner, at, "ArrayCopy");
+                let to_ref = self.array_ref(to, owner, at, "ArrayCopy");
+                if let (Some((fname, _)), Some((tname, _))) = (&from_ref, &to_ref) {
+                    let (ft, tt) = (self.p.array_ty(from), self.p.array_ty(to));
+                    if ft != tt {
+                        self.problem(format!(
+                            "{at}: an ArrayCopy from {fname} of {ft:?} to {tname} of {tt:?}"
+                        ));
+                    } else if matches!(ft, Ty::User(_) | Ty::Bit { .. }) {
+                        self.problem(format!("{at}: an ArrayCopy of {fname} of {ft:?}"));
+                    }
+                }
+                for ((side, count), what) in [(&from_ref, ranges.len()), (&to_ref, starts.len())]
+                    .into_iter()
+                    .zip(["ranges", "starts"])
+                {
+                    if let Some((name, Some(n))) = side
+                        && count != 0
+                        && count != *n
+                    {
+                        self.problem(format!("{at}: {count} {what} for {name} of {n} dimensions"));
+                    }
+                }
+                for v in ranges.iter().flat_map(|(lower, upper)| [lower, upper]).chain(starts) {
+                    if v.ty != Ty::I64 {
+                        self.problem(format!("{at}: a bound or start of type {:?}", v.ty));
+                    }
+                    self.value(v, owner, at);
+                }
+            }
             Op::Print { to, items, .. } => {
                 if let PrintTo::File(n) = to {
                     self.file_number(n, owner, at);
@@ -524,6 +563,72 @@ impl Validator<'_> {
             }
             Op::Call { proc, args } => self.call(*proc, args, owner, at),
             Op::Builtin { id, args } => self.builtin(*id, args, owner, at),
+            Op::OnEvent { event, handler } => self.on_event(event, handler, owner, at),
+            Op::Key(KeyForm::On | KeyForm::Off | KeyForm::List) => {}
+            Op::Key(KeyForm::Assign { number, text }) => {
+                self.typed_value(number, Ty::I32, "key number", owner, at);
+                self.typed_value(text, Ty::Str, "key text", owner, at);
+            }
+        }
+    }
+
+    /// A value of one type.
+    fn typed_value(&mut self, v: &Expr, ty: Ty, what: &str, owner: Option<ProcId>, at: &At) {
+        if v.ty != ty {
+            self.problem(format!("{at}: a {what} of type {:?}", v.ty));
+        }
+        self.value(v, owner, at);
+    }
+
+    /// The operands of an event's setup and its handler (design D3 of `m3-events`): a label of the main module from
+    /// any body, or a SUB with an integer parameter given an `I64` argument, or with none and none given.
+    fn on_event(&mut self, event: &Event, handler: &EventHandler, owner: Option<ProcId>, at: &At) {
+        match event {
+            Event::Timer { number, seconds } => {
+                if let Some(n) = number {
+                    self.typed_value(n, Ty::I32, "timer number", owner, at);
+                }
+                self.typed_value(seconds, Ty::F64, "timer interval", owner, at);
+            }
+            Event::Key { key } => self.typed_value(key, Ty::F64, "key number", owner, at),
+        }
+        match handler {
+            EventHandler::Label(l) => self.main_label(*l, at, "event handler"),
+            EventHandler::Sub { proc, arg } => {
+                let Some(q) = self.p.procs.get(proc.0 as usize) else {
+                    self.problem(format!("{at}: event handler {}, which does not exist", proc.0));
+                    return;
+                };
+                if q.kind != ProcKind::Sub || q.external.is_some() {
+                    self.problem(format!(
+                        "{at}: event handler {}, which is no SUB of the program",
+                        q.name
+                    ));
+                }
+                let param = q.params.first().and_then(|v| self.p.vars.get(v.0 as usize));
+                match (param, arg) {
+                    (None, None) => {}
+                    (Some(v), Some(a)) => {
+                        let integer = v.ty.is_int() && !matches!(v.ty, Ty::Bit { .. });
+                        if v.is_array() || !integer {
+                            self.problem(format!(
+                                "{at}: event handler {} with a parameter of type {:?}",
+                                q.name, v.ty
+                            ));
+                        }
+                        if q.params.len() > 1 {
+                            self.problem(format!("{at}: event handler {} with more than one parameter", q.name));
+                        }
+                        self.typed_value(a, Ty::I64, "handler argument", owner, at);
+                    }
+                    (Some(_), None) | (None, Some(_)) => self.problem(format!(
+                        "{at}: event handler {} with {} arguments for {} parameters",
+                        q.name,
+                        usize::from(arg.is_some()),
+                        q.params.len()
+                    )),
+                }
+            }
         }
     }
 
@@ -1151,8 +1256,8 @@ impl Validator<'_> {
 mod tests {
     use super::validate;
     use crate::{
-        AllocMode, Arg, ArrayRef, Body, Expr, ExprKind, Label, LabelId, MemberId, Op, Place, Proc, ProcId, ProcKind,
-        Program, Resume, Settings, Shape, Stmt, Storage, Ty, Var, VarId,
+        AllocMode, Arg, ArrayRef, Body, Event, EventHandler, Expr, ExprKind, Label, LabelId, MemberId, Op, Place, Proc,
+        ProcId, ProcKind, Program, Resume, Settings, Shape, Stmt, Storage, Ty, Var, VarId,
     };
     use qb64rust_base::{FileId, Span};
 
@@ -1302,6 +1407,56 @@ mod tests {
             [
                 "S: statement 0 (line 1): handler to label 2, which the main module does not have",
                 "S: statement 0 (line 1): return to label 3, which the main module does not have",
+            ]
+        );
+    }
+
+    /// An event's handler (design D3 of `m3-events`): a label of the main module from any body; a SUB given an
+    /// argument exactly when it has a parameter; the operands of their types.
+    #[test]
+    fn event_handlers() {
+        let f64 = |v: &str| expr(Ty::F64, ExprKind::Float(v.into()));
+        let mut p = program();
+        p.procs[0].body.stmts[0].ops.extend([
+            Op::OnEvent {
+                event: Event::Timer {
+                    number: None,
+                    seconds: f64("1E+0"),
+                },
+                handler: EventHandler::Label(LabelId(0)),
+            },
+            Op::OnEvent {
+                event: Event::Key { key: f64("1E+0") },
+                handler: EventHandler::Sub {
+                    proc: ProcId(0),
+                    arg: Some(expr(Ty::I64, ExprKind::Int(5))),
+                },
+            },
+        ]);
+        assert_eq!(problems(&p), Vec::<String>::new());
+        p.procs[0].body.stmts[0].ops.extend([
+            Op::OnEvent {
+                event: Event::Timer {
+                    number: Some(f64("2E+0")),
+                    seconds: f64("1E+0"),
+                },
+                handler: EventHandler::Label(LabelId(1)),
+            },
+            Op::OnEvent {
+                event: Event::Key { key: load(0) },
+                handler: EventHandler::Sub {
+                    proc: ProcId(0),
+                    arg: None,
+                },
+            },
+        ]);
+        assert_eq!(
+            problems(&p),
+            [
+                "S: statement 0 (line 1): a timer number of type F64",
+                "S: statement 0 (line 1): event handler to label 1, which the main module does not have",
+                "S: statement 0 (line 1): a key number of type I32",
+                "S: statement 0 (line 1): event handler S with 0 arguments for 1 parameters",
             ]
         );
     }
@@ -1767,6 +1922,51 @@ mod tests {
             to: ArrayRef::Var(VarId(3)),
         };
         assert_eq!(problems(&p), [format!("{at}: CopyArray of G, which is no array")]);
+    }
+
+    /// `ArrayCopy` (design D4 of `m3-arraycopy`): one element type, of a kind the copy takes; ranges and starts
+    /// none or one per dimension; each an `I64`; both sides arrays.
+    #[test]
+    fn array_copy_problems() {
+        let mut p = arrays();
+        let one = || expr(Ty::I64, ExprKind::Int(1));
+        let copy = |ranges: Vec<(Expr, Expr)>, starts: Vec<Expr>| Op::ArrayCopy {
+            from: ArrayRef::Var(VarId(3)),
+            to: ArrayRef::Var(VarId(4)),
+            ranges,
+            starts,
+        };
+        p.main.stmts[0].ops.push(copy(vec![(one(), one())], vec![one()]));
+        assert_eq!(problems(&p), Vec::<String>::new());
+        let at = "main: statement 0 (line 1)";
+        p.vars[4].ty = Ty::F64;
+        assert_eq!(problems(&p), [format!("{at}: an ArrayCopy from S of I32 to D of F64")]);
+        p.vars[3].ty = Ty::Bit { width: 1, signed: true };
+        p.vars[4].ty = p.vars[3].ty;
+        assert_eq!(
+            problems(&p),
+            [format!("{at}: an ArrayCopy of S of Bit {{ width: 1, signed: true }}")]
+        );
+        p.vars[3].ty = Ty::I32;
+        p.vars[4].ty = Ty::I32;
+        *p.main.stmts[0].ops.last_mut().expect("the copy") = copy(vec![(one(), one()); 2], vec![one(); 2]);
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: 2 ranges for S of 1 dimensions"),
+                format!("{at}: 2 starts for D of 1 dimensions")
+            ]
+        );
+        let narrow = expr(Ty::I32, ExprKind::Int(1));
+        *p.main.stmts[0].ops.last_mut().expect("the copy") = copy(Vec::new(), vec![narrow]);
+        assert_eq!(problems(&p), [format!("{at}: a bound or start of type I32")]);
+        *p.main.stmts[0].ops.last_mut().expect("the copy") = Op::ArrayCopy {
+            from: ArrayRef::Var(VarId(0)),
+            to: ArrayRef::Var(VarId(4)),
+            ranges: Vec::new(),
+            starts: Vec::new(),
+        };
+        assert_eq!(problems(&p), [format!("{at}: ArrayCopy of G, which is no array")]);
     }
 
     #[test]

@@ -1560,6 +1560,91 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     type check (`x24`, `x38`, `x40`, `x43`, `x44`, `v36_a` 7.–9.). A suffix on one side only is "Expected array
     index after" the other name (`x41`, `x42`). `PRINT a()` prints element 0 (`x37`). A scalar and an array of one
     name (`DIM a AS LONG, a(2) AS LONG`) copy as arrays (`x25`).
+- **`_ARRAYCOPY source TO destination` (`v41_*`, 87 programs measured 2026-10-17 before the proposal of
+  `m3-arraycopy`; `qb64pe.bas` 10520–10600, `source\utilities\arrcpy.bm`; the runtime libqb's `array-copy.cpp`,
+  twelve entry points `qb64_array_copy_{1d,nd}_{whole,whole_at,range_at}_{fixed,string}`):**
+  - **The statement**: one `TO` outside parentheses splits it ("Expected one TO between _ArrayCopy source and
+    destination" for a second, `x02`; an unclosed `(` "Expected )", `x04`); every other shape is "Expected
+    _ArrayCopy source(lower TO upper) TO destination(start), …" (no `TO`, a side missing, a side without
+    parentheses, `a(1) TO b()`, `a(1 TO 2) TO b(1 TO 2)`, `(a()) TO b()`, an extra `)`: `x01`, `x03`, `x05`–`x10`,
+    `x52`, `x67`). Lower case, blanks, a one-line `IF`, after a colon, before a comment, an array named `arraycopy`
+    or `too` are accepted (`v41_a` 11., `x59`–`x61`, `x63`, `x64`, `x73`, `x74`).
+  - **Six forms**, tried in this order on the shape of each side's last parentheses (`ParseArrayCopyRef`): `s(lo TO
+    hi) TO d(start)`, `s() TO d()`, `s() TO d(start, …)` (one start or more), `s(lo TO hi) TO d()`, `s(lo TO hi, …)
+    TO d(start, …)` and `s(lo TO hi, …) TO d()` (two ranges or more). **What each copies** (`v41_a`, `v41_c`): a
+    range its elements from `lo` to `hi`; to a start they go from there on; to `d()` a range keeps its indexes
+    (`s(4 TO 6) TO d()` sets `d(4)` to `d(6)`); **a whole one-dimensional source keeps its indexes too** (`s() TO
+    d()` for `s(3 TO 8)` sets `d(3)` to `d(8)`; `d` must hold them, error 9 else), **but a whole source of several
+    dimensions to `d()` needs the destination's bounds exactly** (`x57`, `v41_g` 15., 16.); a whole source to a
+    start goes in its order of elements; in several dimensions each coordinate is mapped by itself (`big(1 TO 2, 2
+    TO 4) TO small(1, 0)` puts rows 1 and 2, columns 2 to 4, at rows 1 and 2, columns 0 to 2). Overlap, forward and
+    backward, and an array copied to itself are safe (`v41_a` 7.–10., `v41_k` 5.).
+  - **Element types** (`v41_b`, `x15`–`x24`, `x68`, `x69`, `x72`): every number type, `_OFFSET`, `_UNSIGNED
+    _OFFSET`, `STRING * n` and `STRING`, both sides of one type ("_ArrayCopy requires arrays with the same element
+    type": `LONG`/`INTEGER`, signed/unsigned, `SINGLE`/`DOUBLE`, `STRING`/`STRING * 4` either way,
+    `_OFFSET`/`_UNSIGNED _OFFSET`, `_INTEGER64`/`_OFFSET`, a member array of `INTEGER` and an array of `LONG`), two
+    `STRING * n` of one length ("… fixed-length STRING arrays with the same element size", `x20`); user types,
+    `_BIT`, `_BIT * 4` and `_MEM` are "_ArrayCopy supports only byte-aligned numeric or fixed-length STRING arrays"
+    (also a member array of a user type, `x55`). **`STRING` is deep**: the destination's own strings afterwards
+    (`v41_b`, `v41_k` 2.).
+  - **Places** (`v41_f`, `x46`, `x70`): `SHARED`, local, `STATIC`, `COMMON SHARED`, `$DYNAMIC`, a `REDIM` array
+    (also after `_PRESERVE`), `OPTION BASE 1`, an array used without `DIM` (`a(1) = 1` first, `x46`), array
+    parameters of one and two dimensions; **member arrays of a plain `TYPE`** of a variable, of an element, nested,
+    of an element of a nested member, `LONG`, `STRING * 3` and `STRING` (`v41_d`, `v41_k`, also of two dimensions,
+    `x53`, `x54`), the members beside them unchanged; **`_DYNAMIC` member arrays** below `$UNSTABLE:TYPEFIELDS`, of
+    one and two dimensions and `STRING`, after a `REDIM` of the member, of an element (`v41_e`). Not an array, "…
+    source must be an array" or "… destination must be an array": a scalar, an undeclared name, a FUNCTION, a
+    `CONST`, a scalar member (`x11`–`x14`, `x47`, `x48`, `x51`), and **a name with a type suffix, also one the
+    array was declared with** (`a%()` for `DIM a%(1 TO 5)`, `a&()` for `DIM a(…) AS LONG`; `x44`, `x45`).
+    `v().x() TO b()` is "Expected array index" (`x56`).
+  - **Evaluation** (`v41_h`, `v41_d` 9., 10.): the places on the way to member arrays first, the source's, then
+    the destination's; then every lower bound, then every upper bound, then the starts, left to right, each once
+    (`tt(f(1)).b(f(2) TO f(3)) TO tt(f(2)).b(f(1))` prints `f1 f2 f2 f3 f1`; `m(f(1) TO f(2), f(3) TO f(3)) TO
+    n(f(0), f(1))` prints `f1 f3 f2 f3 f0 f1`). A bound or start is converted as an index is, half to even (`1.5
+    TO 3.5` is 2 to 4, `d(0.5)` is `d(0)`, `4.5` is 4; any number type). **An error raised in a bound or start
+    does not stop the copy**, which goes on with the value the FUNCTION returned (`v41_g` 24., `v41_h` 11.).
+  - **Run-time errors** (`v41_g`, `x62`): error 9, raised by libqb before anything is copied, the destination
+    unchanged: low above high, a range or a start outside its array, elements that run past the destination's end
+    (from a start, and a whole source to `d()` whose indexes it does not hold), a source or destination not
+    allocated (`ERASE` of a dynamic or `$DYNAMIC` array, an erased `_DYNAMIC` member, `v41_e` 10.), a whole copy
+    of several dimensions with other bounds, a range of 2^63−1 elements; strings the same. A static array after
+    `ERASE` is allocated and takes the copy. The same under `$CHECKING:OFF` (`x62`). **A `_DYNAMIC` member that
+    a `REDIM` gave another number of dimensions than declared** (`v41_l`, measured 2026-10-17 after the change's
+    review): error 9 where its place is found and nothing copied, as source or destination, in every form (the
+    guard `UDTDynArrayDescGuard`, `qb64pe.bas` 16234, as for a whole-array copy, `v38_c`: error 9 for a null
+    descriptor or another number of dimensions, then a stand-in that is not allocated, so libqb raises error 9 too
+    and copies nothing; a member not allocated is left to libqb). The places of plain member sides, with any
+    FUNCTION in their indexes, come before the guard (read with `qb64pe -z`). libqb itself reads the bounds by the
+    number it is given and never checks the descriptor's.
+  - **Compile errors in the old compiler's order** (`arrcpy.bm`; 22 messages over the 60 rejected programs of
+    `x01`–`x76`, 16 accepted): the form; the source's array, then the destination's; then per form: for `s(lo TO
+    hi) TO d(start)`, `s(lo TO hi) TO d()` and a whole source to one start, a `STRING` pair must be both `STRING`
+    and of one dimension ("… variable-length STRING step supports only one-dimensional arrays", `x40`), any other
+    pair of one dimension ("… TYPE-member step supports only one-dimensional arrays", `x25`), then the element
+    pair; for `s() TO d()` with both of one dimension the same, else (and for a whole source to several starts and
+    for the range forms of several dimensions) a `STRING` pair must have one number of dimensions, at least two
+    for ranges ("… whole-array source and destination must have the same number of dimensions", `x41`, `x43`; "…
+    must have the same multidimensional shape rank", `x42`), any other pair one number of dimensions ("… whole-array
+    source and destination must have the same number of dimensions", `x26`, `x27`, `x39`), then the element pair;
+    then for the range forms of several dimensions "… multidimensional source ranges require at least two
+    dimensions" (`x30`, `x38`); then each range ("… source range expression cannot be empty", "… source dimension
+    requires exactly one TO", "… requires lower TO upper": `x37`, `x35`, `x34`) with its lower and upper bound
+    as values ("Illegal string-number conversion", `x49`), and their count ("… source range count must match
+    source dimensions", `x31`); then the starts (empty, `x36`; as values, `x50`) and their count ("… destination
+    start coordinate count must match destination dimensions", `x28`, `x29`, `x32`, `x33`, `x71`).
+    **An array parameter takes its number of dimensions from the program's calls, above or below; one that nothing
+    gives a number is "_ArrayCopy cannot determine the array dimensions"** (`x75`: a SUB never called with
+    `x(1 TO 2, 1 TO 2) TO y(1, 1)`, though the statement itself writes two dimensions; the same SUB called with
+    one-dimensional arrays compiles; called with two and one dimensions, `x76`, the dimension error). The
+    statement adds nothing to what is known of a parameter.
+  - **Two faults of the old compiler.** **An index outside its bounds on the way to a member array** (`v41_j`;
+    `tt(3).b()` for `tt(1 TO 2)`) raises error 9 and still copies, through the member of the element at position
+    0 of that dimension, numbers as well as `STRING * n`, as destination and as source (`v41_h` 9., 10.).
+    **`_FLOAT` arrays** (`v41_b`, `v41_i`): it passes 32 as the element size, the `LEN` of an element, but an
+    element of a `_FLOAT` array lies 16 bytes from the next (each block holds 32 bytes per element, so `_MEM` of
+    one says 32 and 128 for four); a whole copy to `d()`, in one or two dimensions, is right (the offsets are 0),
+    any other reads and writes the wrong elements (`g1(2 TO 3) TO g3(0)` puts `g1(3)` and `g1(4)` there, `g1() TO
+    g3(2)` fills `g3(4)` to `g3(7)`). Both stay inside the blocks.
 - **`DECLARE LIBRARY` (`v37_*`, 76 programs measured 2026-10-15 before the design of `m3-declare-library`;
   `qb64pe.bas` at the reference clone's commit: the block 4447–5318, its declarations 5324–5920, pass 1
   2750–3074, the `nm` step 13776–13933, the call 12296 and 21943, the result 22091).** The libraries are built
@@ -1653,6 +1738,144 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     numeric type passes and returns its own C type (`v37_b`; `_FLOAT` is `long double`).
   - **The result**: a `STRING` FUNCTION is `char*` copied into a new string (`qbs_new_txt`); `NULL` gives ""
     (`x39`). A FUNCTION with no parameters is called `h_ticks()`.
+- **What owner types copy after an error (`v38_*`, 4 programs measured 2026-10-16 before `m3-measured-copies`;
+  `qb64pe.bas` `UDTFileArrayBE$` 17181, `AppendUDTFileBoundsCheck` 17047, `UDTDynArrayDescGuard$`,
+  `AppendDynUDTArrayAssign` 16855)**. `libqb`'s `error()` only marks an error pending, so each check below goes on
+  after it:
+  - **A failed `GET` of a whole array of an owner type** (`v38_a`): the statement's own buffer (one per `GET`,
+    `uniquenumber`) is unpacked after the read whatever it raised. A `GET` that read before brings back what it read
+    last (error 52 on a closed file); one that never read unpacks `realloc` memory nobody wrote: zeros in the four
+    runs of `v38_a`, other values in one of two recordings of `s126_owner_copies` (error 59). A `GET` past the end
+    of a binary file raises nothing and reads 0 for the bytes it cannot read.
+  - **A dynamic member with other bounds in a file** (`v38_b`): the check compares slot 3 (the number of
+    dimensions) and then the declared number of bound slots, raises error 9 on any difference, and copies the
+    declared bytes anyway. `PUT` then writes nothing (an error is pending). `GET` writes the declared elements
+    into the member's block, whose bounds stay: another number of dimensions of the same or more elements (`0 TO 1,
+    0 TO 0`, `0 TO 1, 0 TO 1` for `v(1)`; `0 TO 3` for `w(1, 1)`), other bounds of as many or more (`5 TO 6`, `0 TO
+    2`); with fewer (`0 TO 1` for `w(1, 1)`) it writes past the block (D-019). For a descriptor of fewer
+    dimensions the check also reads bound slots past it.
+  - **A whole-array copy of a dynamic member with another number of dimensions** (`v38_c`): the guard raises error
+    9 and gives a stand-in descriptor, so nothing is copied, whichever side changed and also when both did.
+  - **A whole-array copy of arrays of an owner type with other bounds** (`v38_d`): error 9, then the target's
+    number of elements is copied in order, element `i` from element `i`, deep (a later change to the target's member
+    leaves the source's), the target keeping its bounds: a static or a `REDIM` target with as many or fewer
+    elements, a 2 × 2 target from 4 × 1. A target with more elements gets the source's and one read past its block
+    (D-022); from a source that `ERASE` released the old program reads through the missing block and the target's
+    elements become 0.
+- **Sound handles: `_SNDOPEN`, the `_SND*` family, `_MIDISOUNDBANK`, `_WAVE` (`v39_*`, 84 programs measured
+  2026-10-16 as task 1.1 of `m3-sound-handles`; the C++ read with `qb64pe -z` from copies outside the repository;
+  `qb64pe.bas` 2092 and 11807–11847, `audio.cpp`).**
+  - **Every accepted form is the plain call of its row and template** (`x01_accepted`, 160 calls). A function's
+    mask counts the optional slots given (`func__sndopen(t,NULL,0)`, `func__sndopen(t,qbs_new_txt_len("memory",6),
+    0|1)`, `func__sndnew( 800 ,NULL, 16 ,NULL,0|2)`, `func__sndrawlen(NULL,0)`, `func__memsound(h, 0 ,0|1)`); a
+    statement's the slots after the required ones (`sub__sndbal(h,NULL,NULL, 3 ,NULL,4)`, `sub__sndplayfile(t,NULL,
+    0 ,2)`, `sub__sndraw( 0 ,NULL,r,2)`, `sub__sndrawdone(NULL,0)`, `sub__midisoundbank(t,NULL,0)`). `_SNDRATE` and
+    `_SNDOPENRAW` have no slot and are called bare only; `_SNDRAWLEN` bare or with its handle. A SINGLE, DOUBLE or
+    `_FLOAT` in a LONG slot goes through `qbr`; other integers are passed as they are. Results: LONG handles and
+    states, DOUBLE lengths and positions. `_SNDBAL`'s fifth slot (a LONG, ignored by libqb) is accepted though its
+    reference shows four. `CALL name(args)` is the statement; `CALL _SNDRAWDONE` too, `_SNDRAWDONE:` is the
+    statement with no argument (`x55`); lower case is accepted.
+  - **Rejected (`x02`–`x70`, 62 forms):** too few or too many arguments ("Syntax error - Reference: …" for a
+    statement, "Incorrect number of arguments - Reference: …" for a function), empty parentheses ("Expected
+    (...)"), a number for a string ("1st function argument requires a string", "1st sub argument requires a
+    string") and a string for a number ("Number required for function", "Number required for sub", "1st sub
+    argument requires a number"), a function called bare that needs its argument (`h = _SNDPLAYING`, `_SNDCOPY`,
+    `_SNDOPEN`, `_MEMSOUND`), a statement used as a function ("Invalid array name") or assigned ("Invalid variable
+    name"), `_SNDVOL (h, 1)`, `_SNDPLAY:` (a syntax error), `CALL _SNDPLAY h`, `CALL _SNDRAWDONE()` ("Expected
+    CALL sub-name (...)"), `CALL _SNDRATE`.
+  - **The arrays of `_WAVE` and `_SNDRAWBATCH`** (`x22`–`x27`, `x46`–`x54`, `x57`–`x61`, `x71`, `x72`). The slot
+    is the bytes from an element to the array's end, or the whole array (`byte_element(…)`, as graphics `PUT`).
+    Accepted: a whole array `w()`, an element `w(5)`, a two-dimensional array and its element, an array named
+    with its suffix `z%%()`, **an array's name alone `_WAVE 0, w`** (the whole array), an array parameter of a
+    SUB, whole and an element. `_WAVE` takes only `_BYTE`: an `INTEGER`, `_UNSIGNED _BYTE`, `SINGLE`, `_BIT`,
+    `STRING` array, a `_BYTE` variable and a `_BYTE` member of an element are "Expected _BYTE array name"; a
+    number (`_WAVE 0, 5`, also after `CALL`) is "UNEXPECTED INTERNAL COMPILER ERROR!". `_SNDRAWBATCH` takes
+    only `SINGLE`: `DOUBLE`, `_FLOAT`, `LONG`, `_BYTE`, a user type and a `SINGLE` variable are "Expected SINGLE
+    array name". A member array (`x.m()`) is "Expected array index" for both.
+  - **`$MIDISOUNDFONT` (`x73`–`x81`).** A line whose text in upper case starts with `$MIDISOUNDFONT:` is
+    "$MIDISOUNDFONT is a deprecated keyword, use _MIDISOUNDBANK instead", whatever follows the colon and in any
+    case; `$MIDISOUNDFONT` alone, `$MIDISOUNDFONT :DEFAULT` and `$MIDISOUNDFONTS:` are "Syntax error", as any
+    unknown metacommand (`$MIDISOUND:DEFAULT`); after `'` or `REM` it is a comment.
+  - **What a program observes (`v39_a_handles`, `v39_b_new_mem`, `v39_c_files_raw_midi`).** No handle function
+    raises an error: a handle that is not open (0, negative, never opened, closed) makes a statement do nothing
+    and a function give 0, and a function gives 0 for a closed handle at once (`IsHandleValid` refuses a handle
+    marked to be freed). `_SNDOPEN` of a missing file and of `""` is 0; with `"memory"` the string is the data (a
+    file's name given so is 0). A WAV of 4000 frames at 8000 Hz from memory is handle 1 with `_SNDLEN` .5, a
+    copy handle 2 of the same length. **A sound just opened, paused or stopped is not playing and is paused
+    (`_SNDPAUSED` -1)**; `_SNDPLAY` and `_SNDLOOP` make it playing and not paused; `_SNDSTOP` sets the position to
+    0. `_SNDSETPOS` moves a sound that is not playing (`.25` reads `.25`); a negative position is ignored, one past
+    the end stops the sound and leaves the position. `_SNDLIMIT` changes neither length nor position, and a copy
+    has no limit. A copy of a playing sound is not playing. A raw handle gives 0 to `_SNDLEN`, `_SNDGETPOS`,
+    `_SNDPLAYING`, `_SNDPAUSED` and `_SNDCOPY`. `_SNDBAL` and `_SNDVOL` change nothing printed. `_SNDPLAYFILE`
+    and each `_SNDPLAYCOPY` take a handle of their own (the next `_SNDOPENRAW` shows it); `_SNDPLAYFILE`'s second
+    argument is read and ignored. `_SNDNEW(800, 1, 16, 8000)` is a silent sound whose block is `SIZE` 1600, `TYPE`
+    130, `ELEMENTSIZE` 2, `SOUND` its handle, `IMAGE` 0; **its `_SNDLEN` is a SINGLE widened, .1000000014901161**;
+    stereo doubles the element, 8 bits is `TYPE` 1153 (samples 0, not 128), 32 bits `TYPE` 260; a sample written
+    with `_MEMPUT` is read back through `_SNDCOPY`'s block. `_SNDNEW` with 0 frames, a channel count other than 1
+    or 2, a bit depth other than 8, 16 or 32, a rate of 0 or `-1024` frames is 0, and `_MEMSOUND` of 0 a block of
+    size 0. `_MEMSOUND` of a sound decoded from memory is its samples **at the device's rate** (`SIZE` 44100 for
+    half a second, 16 bits, at 44100 Hz); a stream or `"nodecode"` sound has none; `_MEMSOUND(h, 0)` and `(h, 1)`
+    are the same block, `(h, 2)` a block of size 0. A block stays valid right after `_SNDCLOSE` (freed later).
+    Raw sound: `_SNDRAWLEN` is 0 before the first sample and over 0 and at most 1 after one second of samples
+    (`_SNDRATE` of them), on a stream of its own and on the default one; `_SNDRAWDONE` raises nothing. `_WAVE`
+    raises error 5 for fewer than 2 frames (an array of one, a frame count of 1) and for voice 4; `SOUND 440, 1, 0,
+    , 10` then plays the custom wave. A MIDI file of one note of one second built in a string opens with the
+    default bank, length 1; `_MIDISOUNDBANK` of a file that is not there, a string given with `"memory, sf2"`
+    that is no sound bank, and `""` (the default bank) raise nothing, and the next MIDI opens with length 1
+    after each. A MIDI at volume 0 plays and stops as a WAV does.
+  - **What depends on the machine or on time.** `_SNDRATE` (44100 here). **A decoded sound's length and
+    position are counted in frames of the device's rate**: `.125` s of a WAV reads `.1249886602163315` at 44100
+    Hz, as does `_SNDSETPOS h, .125`; whole half-seconds are exact at 44100 and 48000 Hz. `_SNDRAWLEN` drains as
+    the program runs. A file opened with `"stream"` (also after `_SNDCLOSE`) or by `_SNDPLAYFILE` stays open until
+    the sound loop frees it: `KILL` raises error 75 until then (gone after `_DELAY 1`). In 16 runs made eight at
+    a time, once `_SNDOPEN` of the WAV file the program had just written gave 0 (the later handles one lower); two
+    of about 50 runs of `v39_a`, both the first after copying the executable, ended with an access violation after
+    the last line. Everything else was equal in two runs alone, 16 or 24 runs eight at a time, with `"noasync"`
+    and at the default volume (programs not recorded).
+- **`$VERSIONINFO` (`v40_*`, 47 programs measured 2026-10-16 before the proposal of `m3-versioninfo`; the files
+  `qb64pe -z -w -q` writes for the resource compiler recorded by `verification\v40_rc.py` into
+  `verification\v40_rc\`; each accepted program prints its own version resource through
+  `v40_inc\show_version.ps1`; `qb64pe.bas` 3647–3741, 13561–13640, 13719).**
+  - **The line.** Any metacommand line whose upper case starts with `$VERSIONINFO`, `$VERSIONINFOX:…` too
+    (`v40_j`). On the line with its spaces trimmed: the key stands between the first `:` and the first `=` after
+    it, spaces trimmed, in any letter case (`$VERSIONINFO : FileDescription = 'spaced'`, `v40_d`); the value is
+    the rest of the line, spaces trimmed, every `"` made `'`. No `:`, no `=` after it, or `=` right after `:` is
+    "Expected $VERSIONINFO:key=value" (`x01`–`x04`, `x14` `;` for `:`, `x21`, `x22` `=` before `:`). A `:` or `=`
+    in the value stays (`'a:b=c'`). Thirteen keys; any other (`Author`, `CompanyName$`, `Company Name`, `x05`,
+    `x15`, `x16`) is "Invalid key. (Use FILEVERSION#, PRODUCTVERSION#, CompanyName, FileDescription, FileVersion,
+    InternalName, LegalCopyright, LegalTrademarks, OriginalFilename, ProductName, ProductVersion, Comments or
+    Web)". `FILEVERSION` without `#` is a string key (`x20`, `1,2,3,4,5` accepted).
+  - **`FILEVERSION#`, `PRODUCTVERSION#`.** Only digits and commas, exactly three commas, not ending in a comma;
+    otherwise "Expected $VERSIONINFO:FILEVERSION#=#,#,#,# (4 comma-separated numeric values: major, minor,
+    revision and build)" with the key as written in upper case (`x06`–`x13`, `x17`–`x19`: empty, three or five
+    parts, a trailing comma, a space, quotes, letters, a sign, dots, a trailing comment). It lets through parts
+    its resource compiler (`llvm-rc`) refuses, so the build fails: an empty part (`1,,2,3`, `,1,2,3`, `h1`,
+    `h4`), a part over 65535 (`h2`, `h7` 65536), a leading `0` with an 8 or 9 (`08`, read as octal, `h5`).
+    `65535` (`h6`) and leading zeros of octal digits (`01,02,03,0004`, `h3`) build. The value goes into the
+    resource as written; the string version of the same name takes it when that string is still empty (`v40_b`:
+    `FileVersion` reads `1,2,3,4`; `v40_c`: a `FileVersion='text first'` before it stays, a `ProductVersion`
+    after it replaces the digits).
+  - **The eleven strings.** The value without one pair of enclosing `'` (longer than one byte, first and last
+    `'`). Without that pair, with `-w`, the warning "Missing string bracket delimiters ('')" with the value on
+    the next line, indented (`v40_d`: `no quotes`; `'a' ' trailing comment`, **a trailing comment is part of the
+    value**, which keeps its quotes). `''` is empty; a `'` inside, a backslash, `"` (made `'`) go through
+    (`v40_g1`). The last line of a key counts (`v40_e`, a numeric key too, while the string version keeps the
+    first one's digits). A line in a `$IF` branch not taken counts for nothing; one in a SUB or an included file
+    counts (`v40_i`).
+  - **The files.** With any `$VERSIONINFO`, `icon.rc` (CRLF lines) holds the icon line `0 ICON "icon.ico"` first
+    when `$EXEICON` stands (wherever it stands in the source, `v40_f`), then a blank line, `#include
+    "manifest.h"`, the manifest resource `CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "<exe>.exe.manifest"`,
+    `1 VERSIONINFO` with `FILEVERSION     …` and `PRODUCTVERSION  …` when set, then all eleven `VALUE` lines
+    (each value with `\0` before its closing quote, empty ones too) and the translation `0x409, 0x04E4`.
+    `manifest.h` (fixed text) and `<exe>.exe.manifest` are written beside it; the manifest asks for the common
+    controls version 6, its assembly name is `CompanyName.ProductName.ProductName` and its description
+    `FileDescription`, both unescaped. The make flag is `DEP_ICON_RC=y`, as for `$EXEICON`.
+  - **What the executable shows.** .NET's `FileVersionInfo` reads every string as empty without `FILEVERSION#`
+    (`v40_f`, `g1`, `i`); with it each string reads as written, the parts as numbers, the language "English
+    (United States)". UTF-8 bytes go into the resource as written (`v40_g7`: the resource compiler reads them as
+    code page 1252). **A `<` or `&` in the company name, product name or description (`g2`, `g3`, `g4`), or a
+    byte that is not UTF-8 there (`g6`, 0xE9), gives an executable Windows does not start** ("side-by-side
+    configuration is incorrect"); `>` (`g5`), UTF-8 (`g7`) and `&` or `<` in another value (`g8`) work.
 - **`STRING` members, whole values, `TYPE` parameters (`v24_h_string_members`, `v24_h_whole`,
   `v24_h_type_params`, `v24_x206`–`x216`):** a `STRING` member starts empty in a variable, a local (on each
   call), a `STATIC` one (kept), each element of a static and of a dynamic array and in a nested type; it holds
@@ -2730,6 +2953,54 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     code is `f`'s value; not trapped (`c25`), the runtime error at the line of `ERROR`, exit code 0.
   - **The test runners and exit codes**: the corpus runner records no exit code and compares none; the upstream
     suite fails a program whose exit code is not 0; the verification suite writes `exit=` as Git Bash reports it.
+- **Event trapping: `ON TIMER`, `ON KEY`, the switches and `KEY`'s own forms (`v42_*`, 66 programs, measured
+  2026-10-17 for `m3-events`; `qb64pe.bas` 7281–7340, 7534–8052; `qbx.cpp` 1235–1600, libqb `key-events.cpp`)**:
+  - **Three events**: `TIMER`, `KEY`, `STRIG`. `ON PEN`, `ON COM(1)`, `ON UEVENT GOSUB h` are "Name already in use
+    (PEN)" and so on, `PEN ON`, `UEVENT ON`, `COM(1) ON` "Syntax error" (`x17`–`x22`); `ON STRIG(0, 1) GOSUB h`,
+    `STRIG(0, 1) ON`, `STRIG ON` compile (`x11`).
+  - **Handler forms**: `ON TIMER([n,] s)` and `ON KEY(k)`, then `GOSUB label` or a SUB's name. The label is looked
+    up among the main module's labels only, also from a SUB or a FUNCTION (`x01`, `x38`, `x50`; a main label `h`
+    and one in a SUB both named `h`: the main one, `x37`); only in a SUB "Label 'g' not defined" (`x02`), none
+    "Label 'nowhere' not defined" (`x09`); a line number compiles (`x46`); a label with no `RETURN` too (`x12`);
+    `ON TIMER(1) 10` without `GOSUB` "Expected GOSUB/sub" (`x59`). The SUB: none or a FUNCTION "Expected GOSUB/sub"
+    (`x10`, `x13`, also a label's name `x52`); two parameters "SUB requires more than one argument" (`x24`); an
+    argument for none "SUB has no arguments" (`x04`), none for one "Expected argument after SUB" (`x03`, `x48`); the
+    parameter a float, `STRING`, `_BIT`, array or `#` suffix "Only SUB arguments of integer-type allowed" (`x05`,
+    `x14`, `x40`, `x41`, `x58`), `BYVAL` "BYVAL can currently only be used with DECLARE LIBRARY" (`x23`), a `TYPE`
+    accepted but its C++ fails to build (`x42`); `_UNSIGNED INTEGER`, `_OFFSET`, `%` accepted (`x06`, `x39`, `x57`),
+    a SUB declared later too (`x53`), the argument in parentheses (`x47`); a string argument "Illegal
+    string-number conversion" (`x35`), `s 1, 2` "Invalid expression" (`x36`). Operands: `ON TIMER()` "Expected
+    ... )", three "Expected )", none "Expected (", no target "Expected GOSUB/sub-name", `GOSUB` alone "Expected
+    linenumber/label" (`x27`, `x28`, `x30`–`x32`); a string "Illegal string-number conversion" (`x33`, `x34`); `ON
+    KEY(1, 2)` "Invalid expression" (`x29`).
+  - **Conversions**: `ON TIMER`'s number is a `LONG` (2.4 gives 2, 2.6 gives 3, `v42_b` 10., 11.), its seconds a
+    `DOUBLE` (0 and -1 accepted, 13., 14.); **`ON KEY`'s key is a `DOUBLE` passed to `onkey_setup`'s `int32`, so C++
+    cuts it**: 0.7 and -0.7 are 0, error 5, 31.6 is 31 (`v42_d` 12.–14.); the switch `KEY(31.6) ON` rounds to 32,
+    error 5 (17.), as do `TIMER(n)` switches (`v42_b` 12.). A SUB's argument is converted to `_INTEGER64` (2.5 gives
+    2, 3.5 gives 4) **when the handler is set up** (`x * 2` with `x` 3, then `x = 100`, gives 6), and the SUB gets a
+    pointer to that value cast to its parameter's type: `_UNSIGNED INTEGER` -5 gives 65531, `_BYTE` 300 gives 44; what
+    the SUB stores into it is lost (`v42_c`).
+  - **Timers** (`v42_a`, `v42_b`): off until `TIMER ON`, counted from it; `_DELAY` and `SLEEP` service events while
+    they wait (`_DELAY 1` at 0.4 s: 2); `TIMER STOP` holds one event and the next `TIMER ON` runs it before the
+    following statement; `TIMER OFF` forgets it and restarts the count; a handler is not entered again while it
+    runs (one of 0.5 s every 0.4 s for 1.3 s: 2); `SLEEP 10` ends at the first event (`v42_e` 1.). `_FREETIMER`
+    gives 1, 2, …, a number released by `TIMER(n) FREE` again; error 5 for `ON TIMER` or `TIMER ON` of a released or
+    never allocated number, `TIMER FREE`, `TIMER(-1) ON`. Handlers run between the statements of a SUB and of a
+    FUNCTION called from an expression (`v42_e` 2., 3.).
+  - **An event during an error handler** (`v42_e`, `v42_f`): not serviced there; after `RESUME` it waits through
+    plain statements, also a SUB's loop, and runs at the next `TIMER ON` or within the next `_DELAY` (four timer
+    events at once after 1.2 s). libqb's: `evnt` clears `qbevent`, `events()` skips during error handling, and the
+    timer thread sets `qbevent` only when it marks a new event.
+  - **`SLEEP` under the corpus runner**: a `$CONSOLE:ONLY` program run by `--suite corpus` (stdin from the null
+    device) returns from `SLEEP 10` after about 0.1 s with no event, with either compiler's build; run by the
+    verification suite or by hand with `< /dev/null` it waits for the timer (`v42_e` 1.). The slice programs of
+    events use `_DELAY`.
+  - **`KEY`** (`v42_d`, `x25`, `x26`, `x43`–`x45`, `x60`): `KEY ON`, `KEY OFF`, `KEY LIST` compile in a
+    `$CONSOLE:ONLY` program; `KEY LIST` prints `F1` … `F12` and their texts there; `KEY ON 1` "Expected KEY ON
+    only", likewise `LIST`, `OFF`; `KEY` alone "Expected KEY ..."; `KEY 1, 5` "Illegal string-number conversion".
+    `KEY n, text$`: error 5 for `n` 0, 12, 40, a soft key of 20 characters; 1.6 accepted; user key 15 with any text.
+    `KEY(1) FREE`, `TIMER(1, 2) ON`, `TIMER(1)` alone are the template's "Syntax error - Reference: …" (`x15`,
+    `x16`, `x49`).
 
 ## 6. Bug-compatibility choices (all decided)
 
@@ -2955,7 +3226,10 @@ as a reading of the code, not a measurement.
 | `28` | Seventh review (2026-10-09): not going astray; the expected outputs come from the reference clone while CI links the 4.7.0 release's libqb (16 commits apart); graphics are on the critical path to M4 (built-ins used by `qb64pe.bas`, the corpus and upstream, counted), a screen-state oracle and a call-site check proposed; Civil War Strategy assessed as the real-program graphics target; `STATUS.md` cut to the current state; the formatter off M2's exit criterion; the user's answers and what was done are its §9 (the local clone is the reference, the game copied, the formatter out of M2); the screen-state check and the call-site check wait for a yes |
 | `29` | Eighth review (2026-10-10, before step 9a): nothing to change in the code, no bug found; the screen-state hook needs neither the libqb copy nor a libqb change (one extra C++ file linked through `-f:ExtraLinkerFlags`/`CXXLIBS_EXTRA`, `atexit`, programs ending with `SYSTEM`, keys by `PostMessage`), so the copy can stay at M3; keep 9a small, then step 11 before 10 (the game's needs, measured); a demand report over the input sets; tests for the runner; the user's answers and what was done are its §8 (all accepted; the demand report's first numbers; the CI recommendation withdrawn: the reference commit's compiler differs from the release's in typed `VAL`) |
 | `30` | Ninth review (2026-10-16, during `m3-declare-library`): the compiler is in better shape than its documents; no bug found, every local check green; `STATUS.md` and `CLAUDE.md` have become history files (403 lines; an 11.5 KB table cell), decisions Claude made alone are scattered and unconfirmed (a "Waiting on the user" list proposed), `main` is eleven changes behind and tier 2 has never run on GitHub as its own job; the checker's 72 fields and the emitter's transcription of the old C++ noted for M4 and M6; what not to change; an order of actions |
+| `31` | Development velocity plan (2026-10-16): four changes, each marked with its result as it is built: CLI tests that never wait for a person or for ever, one home per kind of document, closing runs that run each program and setting once, and a record of where the working time goes |
+| `32` | Test cadence and parallel runs, panel notes (2026-10-17): what each closing run is and costs; why runs of the new compiler cannot overlap (one lock for the clone, though they share only libqb's objects) and a readers-writer lock to fix it; a lighter close with the full set at each merge; the three questions answered (adopted, built as `test-parallel-runs`) |
 | `progress-record` | Closed record of what `STATUS.md` held until 2026-10-09: the per-change history of M0 to M2 step 8, unchanged |
+| `support-record` | Closed record of the catalogue "What the compiler supports so far" that `crates\README.md` held until 2026-10-16 (to `m3-sound-handles`), unchanged: the code each feature lives in |
 | `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

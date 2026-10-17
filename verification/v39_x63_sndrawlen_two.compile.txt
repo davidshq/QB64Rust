@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _SNDRAWLEN [pipeHandle&]
+Caused by (or after):D = _SNDRAWLEN ( 1 , 2 )
+LINE 9:d = _SNDRAWLEN(1, 2)
+exit=1

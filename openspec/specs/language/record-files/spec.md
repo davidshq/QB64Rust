@@ -39,12 +39,17 @@ fixed-length string its length, a `TYPE` variable or member its size, an array e
 characters and read for as many characters as it holds.
 A whole array of a type with dynamic member arrays (`language/arrays-and-types`, "Dynamic member arrays") SHALL
 be written and read in the type's declared layout: each element as the type's members one after the other with
-no padding, each dynamic member array as its elements at its declared bounds. A dynamic member array whose bounds
-are not its declared ones SHALL raise error 9: `PUT` then writes nothing; `GET` reads the file and stores the
-other members and elements, and leaves that member as it was (the old compiler writes the declared bytes into
-the member's smaller block, `DIVERGENCES.md`). A type with a `STRING` member anywhere in it SHALL be a compile
-error there ("UDT must have fixed size"), as SHALL be one value of such a type (requirement "Dynamic member
-arrays"). On a file open `FOR RANDOM` the whole array SHALL be one record, as any whole array is.
+no padding, each dynamic member array as its elements at its declared bounds, through a buffer that belongs to
+the statement. `GET` SHALL unpack that buffer into the array after its read whatever the read raised, as the old
+compiler does, so a read that raised an error brings back what the same statement read last; bytes the statement
+never read SHALL be 0 (the old program reads memory nobody wrote, `DIVERGENCES.md` D-021). A dynamic member array
+whose bounds or number of dimensions are not its declared ones SHALL raise error 9: `PUT` then writes nothing;
+`GET` reads the file, stores the other members and elements, and stores that member's declared number of elements
+into its block, its bounds unchanged, when the block holds at least that many, and leaves it as it was when it
+holds fewer (the old compiler writes past the block, `DIVERGENCES.md` D-019). A type with a `STRING` member
+anywhere in it SHALL be a compile error there ("UDT must have fixed size"), as SHALL be one value of such a type
+(requirement "Dynamic member arrays"). On a file open `FOR RANDOM` the whole array SHALL be one record, as any
+whole array is.
 
 #### Scenario: Numbers of each size in a binary file
 - **WHEN** a program writes an INTEGER, a LONG, a DOUBLE and a `_BYTE` with `PUT #1, , v` to a file open `FOR
@@ -77,6 +82,21 @@ arrays"). On a file open `FOR RANDOM` the whole array SHALL be one record, as an
   to 5 and `GET #1, 1, q()` runs
 - **THEN** the `PUT` raises error 9 and the file stays empty; the `GET` raises error 9, `q(0).a`, `q(0).b` and
   `q(1)` are read, and `q(0).v` keeps its bounds and element
+
+#### Scenario: A member block that holds the declared elements
+- **WHEN** `p(1).v` of `v(1) _DYNAMIC AS LONG` is given the bounds `0 TO 1, 0 TO 0`, or `5 TO 6`, or `0 TO 2`, and
+  `GET #1, 1, p()` reads a file written with the declared bounds, under a handler
+- **THEN** error 9 is raised, the member keeps its bounds, and its first two elements are the two LONGs of the file
+  (`verification\v38_b`)
+
+#### Scenario: A failed read
+- **WHEN** `GET #3, 1, p()` reads a file in one pass of a loop and, after `CLOSE #3`, runs again in the next pass
+  under a handler, after the program set every element of `p` to -1
+- **THEN** the second raises error 52 and `p` holds the values the first read (`verification\v38_a`)
+
+#### Scenario: A failed read of a statement that never read
+- **WHEN** `GET #2, 1, p()` runs once with file 2 not open, under a handler
+- **THEN** error 52 is raised and every member of every element of `p` is 0
 
 #### Scenario: Strings
 - **WHEN** `PUT #1, 1, p()` is compiled for a type with `v(1) _DYNAMIC AS STRING`

@@ -1,0 +1,49 @@
+1. KEY ON: done
+2. KEY OFF: done
+3. KEY 1, abc: done
+4. KEY LIST:
+F1  abc
+F2  
+F3  
+F4  
+F5  
+F6  
+F7  
+F8  
+F9  
+F10 
+F11 
+F12 
+5. KEY 15, a user key: done
+6. ON KEY(15): done
+7. KEY(0) ON: done
+8. KEY(1) STOP: done
+9. KEY(31) OFF: done
+10. ON KEY(0): error 5  done
+11. ON KEY(32): error 5  done
+12. ON KEY(0.7): error 5  done
+13. ON KEY(31.6): done
+14. ON KEY(-0.7): error 5  done
+15. KEY(32) ON: error 5  done
+16. KEY(-1) ON: error 5  done
+17. KEY(31.6) ON: error 5  done
+18. KEY 0, x: error 5  done
+19. KEY 40, x: error 5  done
+20. KEY 1.6, x: done
+21. KEY 12, x: error 5  done
+22. KEY 15, too long: done
+23. KEY 2, empty: done
+24. KEY 2, 20 characters: error 5  done
+F1  abc
+F2  
+F3  
+F4  
+F5  
+F6  
+F7  
+F8  
+F9  
+F10 
+F11 
+F12 
+exit=0

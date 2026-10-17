@@ -8,11 +8,8 @@ and where the details are. Nothing here is rejected; it is just not on the roadm
 These are recent upstream QB64pe additions (not the user's own work). They add a lot of complexity to arrays, so they
 wait until the core compiler works (roadmap M4 or later, `study\07-expert-panel.md`).
 
-| Feature | Upstream origin | Why deferred | Details |
-|---|---|---|---|
-| `_ARRAYCOPY` | Petr, 2026-09-12 | Weeks old; depends on the member-array layer; 954-line runtime (`array-copy.cpp`) | `study\01` §8.2, `study\03` §2.3 |
-
-Whole-array assignment `a() = b()`, from the same work, came with `m3-whole-array-assign` (2026-10-15).
+None is left. Whole-array assignment `a() = b()` came with `m3-whole-array-assign` (2026-10-15), and `_ARRAYCOPY`
+(Petr, 2026-09-12; `study\01` §8.2, `study\03` §2.3), from the same work, with `m3-arraycopy` (2026-10-17).
 
 Features from the same period that are **kept** in scope: `$USELIBRARY`, `$ERRORLOCATION`, the GLFW runtime.
 
@@ -35,7 +32,7 @@ still marks "not supported yet":
 
 | Form | Why it waits | Details |
 |---|---|---|
-| The window built-ins are compiled and never run (`_TITLE`, `_ICON`, `_MOUSESHOW`, `_SCREENX`, `_NEWIMAGE`, … 20 of them) | What they do shows only in a window; M3 gives programs with a window a check (`tools\screen`) | `crates\README.md`; `sema\src\builtins.rs`, `WINDOW_BUILTINS`; call-site programs in `tests\callsite` |
+| The window built-ins are compiled and never run (`_TITLE`, `_ICON`, `_MOUSESHOW`, `_SCREENX`, `_NEWIMAGE`, … 20 of them) | What they do shows only in a window; M3 gives programs with a window a check (`tools\screen`) | `study\support-record.md` ("Window built-ins, compiled and never run"); `sema\src\builtins.rs`, `WINDOW_BUILTINS`; call-site programs in `tests\callsite` |
 | `SWAP`, `CLOSE` and the `MID$` statement after `CALL` (`CALL SWAP(a, b)`) | Each has a rule of its own, which reads the statement without `CALL` only. Until the review of groups 4 to 6 `CALL SWAP(a, b)` was a false error ("`SWAP` takes 0 arguments") | `verification\v26_x128`; `tests\frontend\swap_mid_marked.bas` |
 | The function `_SCREENHIDE` | Not in the change's scope (no upstream test names it) | `verification\v26_x74` |
 | `_SCREENEXISTS` as the direct argument of `HEX$`, `OCT$` or `_BIN$` | The table gives the function no return type, and the old compiler passes the width 0 there, not a LONG's 8 or 32; the function runs from M3 on, where the width can be given | Design D6 of the change |
@@ -86,10 +83,8 @@ accepts and the new one still marks "not supported yet", and what is compiled bu
 |---|---|---|
 | A relative `$EXEICON` name that does not start with `./` or `.\` (`$EXEICON:'icons/game.ico'`), one with a single leading slash, and one with a drive and no slash after it (`C:game.ico`) | The old compiler looks for the first in its own folder, for the second on its own drive and for the third in the folder it stands in on that drive (read in `qb64pe.bas` 3854–3873, not measured), which has no counterpart here (user, `DECISIONS.md` 2026-10-13). Also under "QB64pe behaviours to review" below | `verification\v29_e02`, `e03`, `e08`, `e18`; the upstream tests `icon` and `winresource` name their icon so |
 | The language server does not check that the icon of `$EXEICON` is there | The check is the driver's (`check_exe_icon`), because `sema` reads no file; the server would need the folder of the main file behind its loader | Design D4 of `m3-sound` |
-| `$VERSIONINFO` | Not in the change's scope; it shares the resource file of `$EXEICON` (`icon.rc`) in the old compiler | The upstream test `winresource` |
 | `ON PLAY(n) GOSUB 10` and any `ON … GOSUB` or `ON … GOTO` whose target is a line number | Line numbers are not compiled yet, whatever the number of the `ON` is; with a label the statement compiles | `verification\v29_x64`; `tests\frontend\sound_typed.bas` |
 | `VARPTR$` in a `PLAY` string (`PLAY "X" + VARPTR$(a$)`) | `VARPTR$` is not compiled (the table above) | Not measured |
-| The other sound built-ins (`_SNDOPEN`, `_SNDPLAY`, `_SNDRAW`, `_WAVE`, `_SNDRATE`, … 27 names with the audio dependency) | No row yet: none is named by the corpus, the game or an upstream program that would otherwise pass | `tools\builtins\builtins.json`, `DEPENDENCY_MINIAUDIO` |
 | `BEEP` is compiled, and no test runs it | It rings the system's bell, which no volume silences (user, `DECISIONS.md` 2026-10-13). Its call is compared by `tests\callsite\beep_*.bas`, and `s74_sound_queue` holds it as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
 | What is heard is checked by no test | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; the samples would test libqb. The slice programs check what a program can observe: the queue, the waits, the errors | Design D6 of `m3-sound` |
 | `SOUND 440, 65535`, the longest accepted duration, is in no slice program | libqb fills a buffer of an hour of samples for it, about 700 MB | `verification\v29_c_sound_errors` line 19 |
@@ -165,6 +160,43 @@ Windows). What the old compiler accepts and the new one still marks "not support
 | `ALIAS` in a `DECLARE SUB` outside a library block (`DECLARE SUB s ALIAS t ()`, `x08`) | The old compiler accepts it and ignores it; this compiler keeps the parser's error it gave before the change ("expected the end of the statement"; design D1, task 2.2) | `verification\v37_x08` |
 | `on_error/errtest`, the ninth upstream program with a block | It also needs `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`, which stay "not supported yet" (left out of the change, user, 2026-10-15) | `DECISIONS.md` 2026-10-15 |
 | Linux and macOS libraries (`.so`, `.dylib`, `/usr/lib`, `dlopen`) and the IDE's folder in the lookup | The project is Windows only | design Non-Goals |
+
+**Left marked by `m3-sound-handles`** (the sixteenth step of M3, 2026-10-16: `_SNDOPEN`, the `_SND*` family,
+`_MIDISOUNDBANK`, `_WAVE`; every name of libqb's audio part has a row now). What the old compiler accepts and the
+new one still marks "not supported yet", and what is compiled but not checked by a run:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A FUNCTION call in the index of the array of `_WAVE` or `_SNDRAWBATCH` (`_WAVE 0, w(f(1))`), and an array used without `DIM` there | The old compiler writes the index twice (the FUNCTION is called twice); both are marked as for graphics `GET` and `PUT` (`block_arg`) | `verification\v39_x01_accepted` (its C++) |
+| `$MIDISOUNDFONT` without its colon (`$MIDISOUNDFONT`, `$MIDISOUNDFONT :x`) | The old compiler's "Syntax error" for any unknown metacommand; every unknown metacommand is "not supported yet" here | `verification\v39_x74`, `x79`–`x81` |
+| `$EMBED` and `_EMBEDDED$` (so `midi/midisoundbank_embed_test` stays held back) | Not in the change's scope | proposal |
+| What is heard, the 3-D position of `_SNDBAL` and `_SNDPLAYCOPY`, `"stream"` and `"nodecode"` beyond what their lengths show | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form | design Non-Goals |
+| The sound handle programs on a machine without a sound device | libqb's engine is not started there: every function gives 0 and every statement does nothing, so `s127`–`s129` would fail; not known until the `tier2` job runs them on GitHub | design, risks |
+
+**Left marked by `m3-versioninfo`** (the seventeenth step of M3, 2026-10-16: `$VERSIONINFO`, the executable's
+version resource and manifest). Nothing the old compiler builds into a working executable is marked; left out:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `winresource/test` (`$VERSIONINFO` with `$EXEICON:'tests/compile_tests/winresource/qb64pe.ico'`) | Held back by its `$EXEICON` name, which neither starts with `./` nor is absolute (the row of `m3-sound` above) | proposal |
+| `$VERSIONINFO` on other systems than Windows | The old compiler writes the files on Windows only and ignores the lines elsewhere | design Non-Goals |
+| `s130_versioninfo` on a machine without PowerShell | It reads the version resource back with a PowerShell script; every Windows machine and GitHub's runner have one | design, risks |
+
+**Left marked by `m3-arraycopy`** (the eighteenth step of M3, 2026-10-17: `_ARRAYCOPY`). No form of `_ARRAYCOPY` is
+marked; left out:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `_ARRAYCOPY` under `$CHECKING:OFF` (`verification\v41_x62`, not run with this compiler) | `$CHECKING` is marked "not supported yet" by itself | task 3.4 |
+
+**Left marked by `m3-events`** (the nineteenth step of M3, 2026-10-17: `ON TIMER`, `ON KEY`, the switches,
+`_FREETIMER`, `KEY`'s own forms). What the old compiler accepts and the new one still marks "not supported yet":
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `ON STRIG(…) GOSUB label` or `… sub`, and `STRIG[(…)] ON\|OFF\|STOP` | libqb's device-input part is not built, nor its other names (`STICK`, `STRIG()`, `_DEVICES`, …): a later device-input change (user, `DECISIONS.md` 2026-10-17) | `verification\v42_x11` |
+| A line number as a handler (`ON TIMER(1) GOSUB 10`) | Line numbers are not compiled yet (the row of `ON PLAY` above) | `verification\v42_x46` |
+| A SUB of a `DECLARE LIBRARY` block as a handler | Not measured | `sema\src\check\events.rs` |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -246,6 +278,10 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | A relative `$EXEICON` name without `./` is looked for in the compiler's own folder, not beside the program (`$EXEICON:'game.ico'` with `game.ico` beside the source is "File 'game.ico' not found") | Look beside the main source file, as for a name with `./`. Marked "not supported yet" until decided | `verification\v29_e02`, `e03`, `e08`, `e18`; `qb64pe.bas` 3852 |
 | `$EXEICON` drops the rest of its line, a statement after a colon included (`$EXEICON:'./a.ico': PRINT 1` prints nothing), and takes any line that starts with the word (`$EXEICONS:'…'`, `$EXEICON '…'` without the colon) | Reject what is not `$EXEICON:'name'` alone on its line, as the console metacommands are | `verification\v29_e08`, `e09`, `e20`, `e24` |
 | A `PLAY` with more than one string never holds the program, even for a voice in the foreground, and ends a `SOUND WAIT`; a `PLAY` string takes a tempo and an octave outside QuickBASIC's range (`T31`, `T256`, `O7`: `DIVERGENCES-QB45.md` Q-011) | Wait for the longest foreground voice; raise error 5 for the values QuickBASIC rejects | `verification\v29_g_voice`, `v29_h_sound_ranges`, `v29_c_sound_errors`; `PlayMML` in libqb's `audio.cpp` |
+| A sound handle that is not open (0, negative, never opened, closed) raises no error: a statement does nothing and a function gives 0; a missing file or a sound bank that is not there is silently 0 or ignored | Error 5 or 52 for a bad handle, as QuickBASIC raises for a bad file number | `m3-sound-handles` (`verification\v39_a_handles` 5., 6., 13.; `IsHandleValid` in libqb's `audio.cpp`) |
+| A sound just opened, paused or stopped has `_SNDPAUSED` -1 (a sound that never played counts as paused) | 0 until the sound has been paused | Same (`v39_a_handles` 2., 7.) |
+| `_SNDLEN` of a `_SNDNEW` sound is a SINGLE widened to DOUBLE (`.1000000014901161` for 800 frames at 8000 Hz), and the length and position of a decoded sound are counted in frames of the device's rate (`.125` s reads `.1249886602163315` at 44100 Hz) | Compute in DOUBLE from the sound's own rate | Same (`v39_b_new_mem` 1., `v39_a_handles` 4.; `GetSoundDuration`, `GetSoundPosition`) |
+| `_SNDPLAYFILE`'s second argument (`sync`) is read and ignored; `_SNDBAL`'s fifth (the channel) is accepted though its reference shows four, and ignored | An error for an argument that does nothing, or drop it from the forms | Same (`verification\v39_x01_accepted`; `PlaySoundFile`, `SetSoundBalance`) |
 | A whole array `e()` where a string variable is expected (`FIELD #1, 4 AS e()`, `LSET e() = "x"`), as a value of `PRINT USING` and as a part of `_IIF` is accepted and is the array's first element, with no bounds check (not compiled here: marked, or an error) | An error, as for any other whole array in an expression | `verification\v30_x18`, `x99`, `x109`, `x153` |
 | `_MIN(nan, 1)` gives the value that is not a number and `_MIN(1, nan)` gives 1 (`std::min` compares once); `RSET` cuts a value that is too long at its end, as `LSET` does, where QuickBASIC's manual says nothing else | Document, or return the number in both orders | `verification\v30_g_iif_min_max`, `v30_l_lset_rset`; line 19 of `s78_choice_min_shifts` |
 | A field string keeps its field after `=` gives it another length, and gets its width and the buffer's bytes back at the next `LSET` to any field of the file or `GET` with no variable; a second `FIELD` on a file keeps the strings of the first as fields | QuickBASIC ends a string's field at an assignment. A decision for a strict mode | `verification\v30_j_field`; lines 6 to 9 of `s86_field_lset` |
@@ -265,6 +301,16 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | A `DECLARE LIBRARY` block that finds a header writes no prototype for any of its declarations, also for those of the block's other libraries: a function of a `.a` named beside a header must be declared by the header, or the C++ fails (`DECLARE LIBRARY "v37h", "./v37c"` with `c_half#`, which only `v37c` has) | A prototype for each declaration the header does not declare; that needs the header read, and a prototype could disagree with what it declares | `m3-declare-library` (`verification\v37_x23`, `x30`; design D3) |
 | A library FUNCTION's result is cast to its declared type, so a C `double` returned to a FUNCTION typed LONG (no suffix under `DEFLNG`) is truncated: 2.7 gives 2, where an assignment of 2.7 to a LONG gives 3 | Round as every other conversion to an integer does | `m3-declare-library` (`verification\v37_x63`; `slice\s121_library_numbers`, line `expr:`) |
 | A `STRING * n` member passed to a library's `char*` has no NUL after its n bytes: C reads on into the next member (`"abcd"` before a LONG of 65 has length 5) | Pass a copy with a NUL, as a variable-length string is passed. A change to the call, not to libqb | `m3-declare-library` (`verification\v37_x66`) |
+| A `$VERSIONINFO` string value keeps a trailing comment: `$VERSIONINFO:Comments='a' ' note` is the value `'a' ' note`, with the warning "Missing string bracket delimiters" under `-w` (on a numeric key the comment makes the line an error) | End the value at a `'` that follows the closing quote, as a comment ends any other line | `m3-versioninfo` (`verification\v40_d`, `x18`) |
+| Any metacommand that starts with `$VERSIONINFO` is taken as one: `$VERSIONINFOX:CompanyName='a'` sets the company name | "Syntax error", as for an unknown metacommand | `m3-versioninfo` (`verification\v40_j`) |
+| `FILEVERSION#` and `PRODUCTVERSION#` accept parts the resource compiler refuses (empty, over 65535, a leading 0 with an 8 or 9), so the old compiler's build fails; this compiler rejects them with a compile error. A part with a leading 0 is octal (`010` is 8), which the old compiler passes on unchanged | Read every part as decimal (writing it without its leading zeros) | `m3-versioninfo` (`verification\v40_h1`–`h7`; design D3) |
+| A `<` or `&` (or a byte that is not UTF-8) in the company name, product name or description goes unescaped into the manifest, and Windows does not start the executable; this compiler rejects them with a compile error (user, 2026-10-16) | Escape them in the manifest (`&lt;`, `&amp;`), so the program starts | `m3-versioninfo` (`verification\v40_g2`–`g6`; design D3) |
+| `_ARRAYCOPY s() TO d()` keeps the source's indexes for a one-dimensional source (`d` must hold them), but for a source of several dimensions needs the destination's bounds exactly (error 9 for `m(1 TO 2, 1 TO 3)` to `n(0 TO 4, 0 TO 5)`, which holds it) | Keep the indexes in every number of dimensions, as `s(lo TO hi, …) TO d()` does | `m3-arraycopy` (`verification\v41_a` 1., `v41_g` 15., 16., `x57`) |
+| `_ARRAYCOPY m(1 TO 2) TO n(0)` for two-dimensional arrays is "_ArrayCopy TYPE-member step supports only one-dimensional arrays", a message about members for arrays that are none (this compiler's message names the dimensions) | A message that names the form and the dimensions | `m3-arraycopy` (`verification\v41_x25`) |
+| `ON KEY(k)`'s key is a `DOUBLE` that C++ cuts toward zero into libqb's `int32`: `ON KEY(0.7)` is error 5 and `ON KEY(31.6)` key 31, while `KEY(31.6) ON` rounds to 32 (error 5) and every other integer argument rounds | Round as the switch does | `m3-events` (`verification\v42_d` 12.–14., 17.) |
+| A SUB handler's argument is converted to `_INTEGER64` when the handler is set up, and the SUB gets a pointer to that value cast to its parameter's type: `_BYTE` given 300 sees 44, `_UNSIGNED INTEGER` given -5 sees 65531, with no overflow error; what the SUB stores into its parameter is lost | Convert the argument to the parameter's type, with its overflow error, at the setup | `m3-events` (`verification\v42_c`) |
+| A timer event that comes while an error handler runs is not serviced after `RESUME` either: it waits through plain statements (also a SUB's loop) until the next `TIMER ON` or the next `_DELAY`, where several come at once. libqb's: `evnt` clears `qbevent`, `events()` skips during error handling, and the timer thread sets `qbevent` only when it marks a new event | Service the held event at the first statement boundary after the handler ends. libqb's, so a change is a change to the runtime | `m3-events` (`verification\v42_e` 4.–6., `v42_f`) |
+| A SUB with a `TYPE` parameter passes the old compiler's checks as an event handler, and its C++ then fails to build; this compiler rejects it with a compile error | The error of a parameter that is not an integer | `m3-events` (`verification\v42_x42`) |
 
 ## Other ideas raised during the study
 

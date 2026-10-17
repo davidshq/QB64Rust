@@ -60,6 +60,10 @@ arrays/91_type_codegen_nested_inline_owner
 arrays/92_type_codegen_dynamic_varstrings
 arrays/93_type_codegen_dynamic_owner_udt
 arrays/94_type_codegen_inline_descriptor_udt
+arrays/ArrayCopyTest
+arrays/ArrayCopyTest_1
+arrays/ArrayCopyTest_2
+arrays/ArrayCopyTest_3
 arrays/Retain_Preserve
 arrays/array_arg_dimensions_transitive
 arrays/array_elements_change
@@ -196,7 +200,11 @@ arrays/type_member_arrays_as_parameters
 arrays/type_nested_descriptor_payload_clone
 arrays/type_owner_self_assignment
 arrays/whole_member_array_ops_nonzero_bounds
+audio_handle_test/handle_test
+audio_mem_test/newsound_test
+audio_mem_test/sndopen_mem_test
 audio_out/test
+audio_test/test
 auto_include/am-trigger
 auto_include/debug
 auto_include/no-debug
@@ -213,6 +221,7 @@ console_only/audio_out
 console_only/data
 console_only/image
 console_only/libz
+console_only/midi
 console_only/print_console_null_char
 console_only/screenimage
 const/bad_boolean_arg
@@ -276,6 +285,8 @@ include_paths/include_relative
 keyboard/devices_windows
 libz/test
 logging/consts
+midi/midisoundbank_file_test
+midi/midisoundbank_memory_test
 name with spaces/test
 noprompt/noprompt-continue
 noprompt/noprompt-continue-fatal
@@ -306,6 +317,10 @@ source_ordering/define
 source_ordering/goto_gosub
 source_ordering/sub_after_main
 source_ordering/sub_before_main
+timer/sleep_ends_early
+timer/timer_delayed_run
+timer/timer_first_run
+timer/timer_stop
 types/all_types
 types/dim
 types/dim_array
@@ -317,5 +332,8 @@ types/static_array
 types/static_bad_bit_no_length
 types/static_bad_string_no_length
 types/udt
+versioninfo/test
+versioninfo2/test
+versioninfo3/test
 view/window_view_mandelbrot
 view/window_view_screen_line

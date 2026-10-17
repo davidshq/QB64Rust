@@ -7,10 +7,15 @@ type_whole_errors.bas:21:11: error: `LEN` of a `TYPE TS` value: a `TYPE` with a 
 type_whole_errors.bas:22:11: error: `LEN` of a `TYPE OUTER` value: a `TYPE` with a `STRING` member has no fixed size
 type_whole_errors.bas:23:11: error: `LEN` of a `TYPE TS` value: a `TYPE` with a `STRING` member has no fixed size
 type_whole_errors.bas:26:5: error: a value of `TYPE T1` is required here
+type_whole_errors.bas:26:5: note: QB64pe: Expected = similar user defined type
 type_whole_errors.bas:27:8: error: a value of `TYPE T1` is required here
+type_whole_errors.bas:27:8: note: QB64pe: Expected = similar user defined type
 type_whole_errors.bas:28:8: error: a `TYPE` variable takes only a value of its `TYPE`
+type_whole_errors.bas:28:8: note: QB64pe: Expected = similar user defined type
 type_whole_errors.bas:29:5: error: a `TYPE` variable takes only a value of its `TYPE`
+type_whole_errors.bas:29:5: note: QB64pe: Expected = similar user defined type
 type_whole_errors.bas:30:5: error: a value of `TYPE T1` is required here
+type_whole_errors.bas:30:5: note: QB64pe: Expected = similar user defined type
 type_whole_errors.bas:31:6: error: a whole `TYPE` value cannot be used here: `q`
 type_whole_errors.bas:34:6: error: this parameter takes a variable of `TYPE T1`
 type_whole_errors.bas:35:6: error: this parameter takes a variable of `TYPE T1`

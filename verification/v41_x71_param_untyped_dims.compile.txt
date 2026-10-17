@@ -1,0 +1,5 @@
+
+_ArrayCopy destination start coordinate count must match destination dimensions
+Caused by (or after):_ARRAYCOPY X ( ) TO Y ( 1 )
+LINE 10:_ARRAYCOPY x() TO y(1)
+exit=1

@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):ON TIMER ( "a",1 ) GOSUB H
+LINE 3:ON TIMER("a") GOSUB h
+exit=1

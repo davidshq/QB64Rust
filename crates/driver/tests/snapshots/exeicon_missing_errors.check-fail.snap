@@ -1,7 +1,8 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 108
+assertion_line: 149
 expression: snap
 ---
 exeicon_missing_errors.bas:8:1: error: the file `./inc/missing.ico` of `$EXEICON` is not found
 exeicon_missing_errors.bas:9:5: error: cannot store a string in a number variable
+exeicon_missing_errors.bas:9:5: note: QB64pe: Illegal string-number conversion

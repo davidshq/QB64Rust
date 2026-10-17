@@ -9,6 +9,7 @@ fixed_strings_errors.bas:13:20: error: expected a size after `*`
 fixed_strings_errors.bas:14:20: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
 fixed_strings_errors.bas:15:5: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
 fixed_strings_errors.bas:17:5: error: the `FOR` variable `f` must be a number, not a string
+fixed_strings_errors.bas:17:5: note: QB64pe: Unsupported variable used in FOR statement
 fixed_strings_errors.bas:22:1: error: not supported yet: a type suffix on a `STRING * n` member: `r.nm$`
 fixed_strings_errors.bas:24:1: error: not supported yet: `k$3` beside a constant or `STRING * n` parameter of its name, or with a `.`
 fixed_strings_errors.bas:25:5: error: not supported yet: `k$4` beside a constant or `STRING * n` parameter of its name, or with a `.`

@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _SNDOPENRAW
+Caused by (or after):R = _SNDOPENRAW ( 1 )
+LINE 9:r = _SNDOPENRAW(1)
+exit=1

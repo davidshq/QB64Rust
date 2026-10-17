@@ -1,0 +1,175 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 149
+expression: snap
+---
+Settings: console, no window, runtime parts: audio
+Array A(param):I8 passed, dimensions: 1
+Array C(param):F32 passed, dimensions: 1
+Array W:I8 static (1 To 64)
+Array B:F32 static (1 To 16)
+Array W2:I8 static (0 To 3, 0 To 3)
+Array Z:I8 static (1 To 8)
+Array Z:F32 static (1 To 8)
+Stmt line 2
+  SelectConsole
+Stmt line 11 may_raise
+  Builtin _SNDCLOSE [Value(Var H:I32)]
+Stmt line 12 may_raise
+  Builtin _SNDCLOSE [Value((Var I:I16 -> Convert I32 Widen))]
+Stmt line 12 may_raise
+  Builtin _SNDCLOSE [Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 12 may_raise
+  Builtin _SNDCLOSE [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 12 may_raise
+  Builtin _SNDCLOSE [Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 12 may_raise
+  Builtin _SNDCLOSE [Value(((Var F:F80 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 12 may_raise
+  Builtin _SNDCLOSE [Value((Var U:U32 -> Convert I32 Truncate))]
+Stmt line 13 may_raise
+  Builtin _SNDPLAY [Value(Var H:I32)]
+Stmt line 14 may_raise
+  Builtin _SNDPLAY [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 15 may_raise
+  Builtin _SNDPAUSE [Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 16 may_raise
+  Builtin _SNDSTOP [Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 17 may_raise
+  Builtin _SNDLOOP [Value((Var U:U32 -> Convert I32 Truncate))]
+Stmt line 18 may_raise
+  Builtin _SNDVOL [Value(Var H:I32), Value(Const 0:I16)]
+Stmt line 19 may_raise
+  Builtin _SNDVOL [Value((Var I:I16 -> Convert I32 Widen)), Value(Var D:F64)]
+Stmt line 20 may_raise
+  Builtin _SNDVOL [Value((Var Q:I64 -> Convert I32 Truncate)), Value(Var F:F80)]
+Stmt line 21 may_raise
+  Builtin _SNDSETPOS [Value(Var H:I32), Value(Const 0.25E+0:F64)]
+Stmt line 22 may_raise
+  Builtin _SNDSETPOS [Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value((Var I:I16 -> Convert F64 Nearest))]
+Stmt line 23 may_raise
+  Builtin _SNDLIMIT [Value(Var H:I32), Value((Const 1:I16 -> Convert F64 Nearest))]
+Stmt line 24 may_raise
+  Builtin _SNDLIMIT [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value((Var U:U32 -> Convert F64 Nearest))]
+Stmt line 25 may_raise
+  Builtin _SNDBAL [Value(Var H:I32), Value(Const 1:I16), Absent, Absent, Absent]
+Stmt line 26 may_raise
+  Builtin _SNDBAL [Value(Var H:I32), Value(Const 1:I16), Value(Const 2:I16), Absent, Absent]
+Stmt line 27 may_raise
+  Builtin _SNDBAL [Value(Var H:I32), Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Absent]
+Stmt line 28 may_raise
+  Builtin _SNDBAL [Value(Var H:I32), Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16), Value(Const 1:I32)]
+Stmt line 29 may_raise
+  Builtin _SNDBAL [Value(Var H:I32), Absent, Value(Const 2:I16), Absent, Absent]
+Stmt line 30 may_raise
+  Builtin _SNDBAL [Value(Var H:I32), Absent, Absent, Value(Const 3:I16), Absent]
+Stmt line 31 may_raise
+  Builtin _SNDBAL [Value(Var H:I32), Absent, Absent, Absent, Value(Const 1:I32)]
+Stmt line 32 may_raise
+  Builtin _SNDBAL [Value((Var I:I16 -> Convert I32 Widen)), Value(Var S:F32), Value(Var D:F64), Value(Var Q:I64), Value(((Var F:F80 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 33 may_raise
+  Builtin _SNDPLAYCOPY [Value(Var H:I32), Absent, Absent, Absent, Absent]
+Stmt line 34 may_raise
+  Builtin _SNDPLAYCOPY [Value(Var H:I32), Value(Const 0:I16), Absent, Absent, Absent]
+Stmt line 35 may_raise
+  Builtin _SNDPLAYCOPY [Value(Var H:I32), Value(Const 0:I16), Value(Const 1:I16), Value(Const 2:I16), Value(Const 3:I16)]
+Stmt line 36 may_raise
+  Builtin _SNDPLAYCOPY [Value(Var H:I32), Absent, Value(Const 1:I16), Absent, Absent]
+Stmt line 37 may_raise
+  Builtin _SNDPLAYCOPY [Value(Var H:I32), Absent, Absent, Absent, Value(Const 3:I16)]
+Stmt line 38 may_raise
+  Builtin _SNDPLAYCOPY [Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(Var I:I16), Value(Var Q:I64), Value(Var U:U32), Value(Var F:F80)]
+Stmt line 39 may_raise
+  Builtin _SNDPLAYFILE [Value(Var T:Str), Absent, Absent]
+Stmt line 40 may_raise
+  Builtin _SNDPLAYFILE [Value(Var T:Str), Value(Const 1:I32), Absent]
+Stmt line 41 may_raise
+  Builtin _SNDPLAYFILE [Value(Var T:Str), Absent, Value(Const 0:I16)]
+Stmt line 42 may_raise
+  Builtin _SNDPLAYFILE [Value(Var FS:Str), Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(Var D:F64)]
+Stmt line 43 may_raise
+  Builtin _SNDRAW [Value(Const 0:I16), Absent, Absent]
+Stmt line 44 may_raise
+  Builtin _SNDRAW [Value(Const 0:I16), Value(Const 0:I16), Absent]
+Stmt line 45 may_raise
+  Builtin _SNDRAW [Value(Const 0:I16), Value(Const 0:I16), Value(Var R:I32)]
+Stmt line 46 may_raise
+  Builtin _SNDRAW [Value(Const 0:I16), Absent, Value(Var R:I32)]
+Stmt line 47 may_raise
+  Builtin _SNDRAW [Value(Var S:F32), Value(Var D:F64), Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 48 may_raise
+  Builtin _SNDRAWBATCH [Bytes B, Absent, Absent, Absent]
+Stmt line 49 may_raise
+  Builtin _SNDRAWBATCH [Bytes B, Absent, Absent, Absent]
+Stmt line 50 may_raise
+  Builtin _SNDRAWBATCH [Bytes B(Const 3:I64), Value(Const 2:I32), Value(Var R:I32), Value(Const 4:U32)]
+Stmt line 51 may_raise
+  Builtin _SNDRAWBATCH [Bytes B, Absent, Value(Var R:I32), Absent]
+Stmt line 52 may_raise
+  Builtin _SNDRAWBATCH [Bytes B, Absent, Absent, Value(Const 8:U32)]
+Stmt line 53 may_raise
+  Builtin _SNDRAWBATCH [Bytes B, Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(((Var F:F80 -> Convert I64 RoundEven) -> Convert U32 Truncate))]
+Stmt line 54 may_raise
+  Builtin _SNDRAWBATCH [Bytes Z, Absent, Absent, Absent]
+Stmt line 55 may_raise
+  Builtin _SNDRAWDONE [Absent]
+Stmt line 56 may_raise
+  Builtin _SNDRAWDONE [Value(Var R:I32)]
+Stmt line 57 may_raise
+  Builtin _SNDRAWDONE [Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 58 may_raise
+  Builtin _SNDRAWDONE [Absent]
+Stmt line 58
+  Print console newline
+    Num Const 1:I16
+Stmt line 59 may_raise
+  Builtin _MIDISOUNDBANK [Value(Var T:Str), Absent]
+Stmt line 60 may_raise
+  Builtin _MIDISOUNDBANK [Value(Const ""), Absent]
+Stmt line 61 may_raise
+  Builtin _MIDISOUNDBANK [Value(Var T:Str), Value(Const "memory, sf2")]
+Stmt line 62 may_raise
+  Builtin _MIDISOUNDBANK [Value(Var FS:Str), Value(Var FS:Str)]
+Stmt line 63 may_raise
+  Builtin _WAVE [Value(Const 0:U32), Bytes W, Absent]
+Stmt line 64 may_raise
+  Builtin _WAVE [Value(Const 0:U32), Bytes W, Absent]
+Stmt line 65 may_raise
+  Builtin _WAVE [Value(Const 0:U32), Bytes W(Const 1:I64), Value(Const 32:U32)]
+Stmt line 66 may_raise
+  Builtin _WAVE [Value((Var I:I16 -> Convert U32 Truncate)), Bytes W, Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert U32 Truncate))]
+Stmt line 67 may_raise
+  Builtin _WAVE [Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert U32 Truncate)), Bytes W(Const 5:I64), Value((Var Q:I64 -> Convert U32 Truncate))]
+Stmt line 68 may_raise
+  Builtin _WAVE [Value(Var U:U32), Bytes W2, Absent]
+Stmt line 69 may_raise
+  Builtin _WAVE [Value(Const 1:U32), Bytes W2(Const 1:I64, Const 1:I64), Value(Const 4:U32)]
+Stmt line 70 may_raise
+  Builtin _WAVE [Value(Const 0:U32), Bytes Z, Absent]
+Stmt line 71 may_raise
+  Builtin _SNDPLAY [Value(Var H:I32)]
+Stmt line 72 may_raise
+  Builtin _SNDBAL [Value(Var H:I32), Absent, Value(Const 2:I16), Absent, Absent]
+Stmt line 73 may_raise
+  Builtin _SNDPLAYFILE [Value(Var T:Str), Absent, Value(Const 0:I16)]
+Stmt line 74 may_raise
+  Builtin _SNDRAWBATCH [Bytes B, Value(Const 1:I32), Value(Var R:I32), Absent]
+Stmt line 75 may_raise
+  Builtin _SNDRAWDONE [Absent]
+Stmt line 76 may_raise
+  Builtin _SNDRAWDONE [Value(Var R:I32)]
+Stmt line 77 may_raise
+  Builtin _WAVE [Value(Const 0:U32), Bytes W, Absent]
+Stmt line 78 may_raise
+  Builtin _SNDPLAY [Value(Var H:I32)]
+Sub P lines 80-85
+  param A():I8
+  param C():F32
+Stmt line 81 may_raise
+  Builtin _WAVE [Value(Const 0:U32), Bytes A(param), Absent]
+Stmt line 82 may_raise
+  Builtin _WAVE [Value(Const 0:U32), Bytes A(param)(Const 1:I64), Value(Const 4:U32)]
+Stmt line 83 may_raise
+  Builtin _SNDRAWBATCH [Bytes C(param), Absent, Absent, Absent]
+Stmt line 84 may_raise
+  Builtin _SNDRAWBATCH [Bytes C(param)(Const 1:I64), Value(Const 1:I32), Absent, Absent]

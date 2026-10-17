@@ -1,0 +1,5 @@
+
+Expected SINGLE array name
+Caused by (or after):_SNDRAWBATCH LW ( )
+LINE 9:_SNDRAWBATCH lw()
+exit=1

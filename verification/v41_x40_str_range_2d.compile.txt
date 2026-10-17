@@ -1,0 +1,5 @@
+
+_ArrayCopy variable-length STRING step supports only one-dimensional arrays
+Caused by (or after):_ARRAYCOPY SM ( 1 TO 2 ) TO SN ( 0 )
+LINE 4:_ARRAYCOPY sm(1 TO 2) TO sn(0)
+exit=1

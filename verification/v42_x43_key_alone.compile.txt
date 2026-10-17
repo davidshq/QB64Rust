@@ -1,0 +1,5 @@
+
+Expected KEY ...
+Caused by (or after):KEY
+LINE 3:KEY
+exit=1

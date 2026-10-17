@@ -1,18 +1,21 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 107
+assertion_line: 149
 expression: snap
 ---
 sound_errors.bas:8:10: error: this `SOUND` statement matches none of its forms: `SOUND [?,?[,[?][,[?][,[?][,[?][,?]]]]]][{Wait|Resume}]`
 sound_errors.bas:9:30: error: this `SOUND` statement matches none of its forms: `SOUND [?,?[,[?][,[?][,[?][,[?][,?]]]]]][{Wait|Resume}]`
 sound_errors.bas:10:15: error: name already in use: `WAIT`
+sound_errors.bas:10:15: note: QB64pe: Name already in use (WAIT)
 sound_errors.bas:11:12: error: this `SOUND` statement matches none of its forms: `SOUND [?,?[,[?][,[?][,[?][,[?][,?]]]]]][{Wait|Resume}]`
 sound_errors.bas:12:7: error: argument 1 of `SOUND` needs a number
 sound_errors.bas:13:12: error: argument 2 of `SOUND` needs a number
 sound_errors.bas:14:7: error: this `SOUND` statement matches none of its forms: `SOUND [?,?[,[?][,[?][,[?][,[?][,?]]]]]][{Wait|Resume}]`
 sound_errors.bas:15:12: error: this `SOUND` statement matches none of its forms: `SOUND [?,?[,[?][,[?][,[?][,[?][,?]]]]]][{Wait|Resume}]`
 sound_errors.bas:16:1: error: name already in use: `SOUND`
+sound_errors.bas:16:1: note: QB64pe: Name already in use (SOUND)
 sound_errors.bas:17:5: error: name already in use: `SOUND`
+sound_errors.bas:17:5: note: QB64pe: Name already in use (SOUND)
 sound_errors.bas:18:14: error: this `SOUND` statement matches none of its forms: `SOUND [?,?[,[?][,[?][,[?][,[?][,?]]]]]][{Wait|Resume}]`
 sound_errors.bas:19:5: error: name already in use: `wait`
 sound_errors.bas:20:22: error: this `SOUND` statement matches none of its forms: `SOUND [?,?[,[?][,[?][,[?][,[?][,?]]]]]][{Wait|Resume}]`
@@ -22,20 +25,31 @@ sound_errors.bas:23:6: error: argument 1 of `PLAY` needs a string
 sound_errors.bas:24:6: error: this `PLAY` statement matches none of its forms: `PLAY ?[,[?][,[?][,?]]]`
 sound_errors.bas:25:7: error: expected `)`
 sound_errors.bas:26:5: error: `PLAY` with empty parentheses
+sound_errors.bas:26:5: note: QB64pe: Expected (...)
 sound_errors.bas:27:10: error: `PLAY` needs a number
+sound_errors.bas:27:10: note: QB64pe: Number required for function
 sound_errors.bas:28:5: error: `PLAY` takes 0 or 1 arguments
+sound_errors.bas:28:5: note: QB64pe: Incorrect number of arguments - Reference: PLAY [voice&]
 sound_errors.bas:29:6: error: name already in use: `ON`
+sound_errors.bas:29:6: note: QB64pe: Name already in use (ON)
 sound_errors.bas:30:6: error: name already in use: `OFF`
+sound_errors.bas:30:6: note: QB64pe: Name already in use (OFF)
 sound_errors.bas:31:6: error: name already in use: `STOP`
+sound_errors.bas:31:6: note: QB64pe: Name already in use (STOP)
 sound_errors.bas:32:5: error: this `PLAY` statement matches none of its forms: `PLAY ?[,[?][,[?][,?]]]`
 sound_errors.bas:33:1: error: name already in use: `PLAY`
+sound_errors.bas:33:1: note: QB64pe: Expected variable =, look for conflict with a CONST name
 sound_errors.bas:34:5: error: argument 1 of `PLAY` needs a string
 sound_errors.bas:35:11: error: argument 1 of `PLAY` needs a string
 sound_errors.bas:36:5: error: this `PLAY` statement matches none of its forms: `PLAY ?[,[?][,[?][,?]]]`
 sound_errors.bas:37:1: error: `BEEP` takes 0 arguments
+sound_errors.bas:37:1: note: QB64pe: SUB does not require any arguments
 sound_errors.bas:38:1: error: name already in use: `BEEP`
+sound_errors.bas:38:1: note: QB64pe: Name already in use (BEEP)
 sound_errors.bas:39:5: error: name already in use: `BEEP`
+sound_errors.bas:39:5: note: QB64pe: Name already in use (BEEP)
 sound_errors.bas:40:6: error: cannot read the arguments of `BEEP`
+sound_errors.bas:40:6: note: QB64pe: SUB does not require any arguments
 sound_errors.bas:42:6: error: not supported yet: a label with the name of a SUB, FUNCTION or built-in: `BEEP`
 sound_errors.bas:44:6: error: not supported yet: a label with the name of a SUB, FUNCTION or built-in: `SOUND`
 sound_errors.bas:45:6: error: not supported yet: a label with the name of a SUB, FUNCTION or built-in: `PLAY`

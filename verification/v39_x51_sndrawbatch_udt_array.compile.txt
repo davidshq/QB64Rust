@@ -1,0 +1,5 @@
+
+Expected SINGLE array name
+Caused by (or after):_SNDRAWBATCH UT ( )
+LINE 13:_SNDRAWBATCH ut()
+exit=1

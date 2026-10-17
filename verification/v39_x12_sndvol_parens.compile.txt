@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDVOL handle&, volume!
+Caused by (or after):_SNDVOL ( H , 1 )
+LINE 9:_SNDVOL (h, 1)
+exit=1

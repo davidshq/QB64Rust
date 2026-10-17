@@ -18,8 +18,8 @@
 //! [`OnError::Skip`] branches.
 
 use crate::{
-    Body, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId, ProcKind, Program, Resume, Stmt,
-    Storage, Ty, Var, VarId, When,
+    Body, EventHandler, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId, ProcKind, Program,
+    Resume, Stmt, Storage, Ty, Var, VarId, When,
 };
 use qb64rust_base::{Span, to_u32};
 use qb64rust_sema as sema;
@@ -86,6 +86,7 @@ pub fn lower(p: &sema::Program) -> Program {
                 })
                 .collect(),
             exe_icon: p.settings.exe_icon.is_some(),
+            version_info: p.settings.version_info.clone(),
         },
     };
     if cfg!(debug_assertions)
@@ -325,6 +326,17 @@ impl<'a> Lowerer<'a> {
             sema::StmtKind::System(code) => Op::System(code.clone()),
             sema::StmtKind::Exit => Op::Exit,
             sema::StmtKind::OnError(l) => Op::SetHandler(l.map(|l| self.ids.get(l))),
+            sema::StmtKind::OnEvent { event, handler } => Op::OnEvent {
+                event: event.clone(),
+                handler: match handler {
+                    sema::Handler::Label(l) => EventHandler::Label(self.ids.get(*l)),
+                    sema::Handler::Sub { proc, arg } => EventHandler::Sub {
+                        proc: *proc,
+                        arg: arg.clone(),
+                    },
+                },
+            },
+            sema::StmtKind::Key(form) => Op::Key(form.clone()),
             sema::StmtKind::Resume(r) => Op::Resume(match r {
                 sema::Resume::Retry => Resume::Retry,
                 sema::Resume::Next => Resume::Next,
@@ -362,6 +374,17 @@ impl<'a> Lowerer<'a> {
             sema::StmtKind::CopyArray { from, to } => Op::CopyArray {
                 from: from.clone(),
                 to: to.clone(),
+            },
+            sema::StmtKind::ArrayCopy {
+                from,
+                to,
+                ranges,
+                starts,
+            } => Op::ArrayCopy {
+                from: from.clone(),
+                to: to.clone(),
+                ranges: ranges.clone(),
+                starts: starts.clone(),
             },
             sema::StmtKind::Print { to, items, newline } => Op::Print {
                 to: to.clone(),

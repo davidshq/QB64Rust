@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _SNDPLAYING(handle&)
+Caused by (or after):H = _SNDPLAYING
+LINE 9:h = _SNDPLAYING
+exit=1

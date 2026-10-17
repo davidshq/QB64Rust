@@ -1,21 +1,28 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 108
+assertion_line: 149
 expression: snap
 ---
 blocks_recovery.bas:8:1: error: `NEXT` while the `IF` on line 7 is still open; expected `END IF` first
+blocks_recovery.bas:8:1: note: QB64pe: NEXT without FOR
 blocks_recovery.bas:9:1: error: `END IF` without `IF`
 blocks_recovery.bas:10:5: error: cannot store a string in a number variable
+blocks_recovery.bas:10:5: note: QB64pe: Illegal string-number conversion
 blocks_recovery.bas:11:1: error: `WEND` without `WHILE`
 blocks_recovery.bas:12:27: error: `NEXT` inside a single-line `IF` cannot close a block outside it
 blocks_recovery.bas:14:11: error: `FOR` without `NEXT` before the end of the single-line `IF`
+blocks_recovery.bas:14:11: note: QB64pe: END IF without IF
 blocks_recovery.bas:16:5: error: only comments may stand between `SELECT CASE` and the first `CASE`
+blocks_recovery.bas:16:5: note: QB64pe: Expected CASE expression
 blocks_recovery.bas:19:5: error: `CASE` while the `IF` on line 18 is still open; expected `END IF` first
+blocks_recovery.bas:19:5: note: QB64pe: CASE without SELECT CASE
 blocks_recovery.bas:20:9: error: `END IF` without `IF`
 blocks_recovery.bas:24:5: error: expected a field (`name AS type` or `AS type name, ...`) or `END TYPE`
+blocks_recovery.bas:24:5: note: QB64pe: Expected element-name AS type, AS type element-list, or END TYPE
 blocks_recovery.bas:25:1: error: `END TYPE` without `TYPE`
 blocks_recovery.bas:27:5: error: expected a SUB or FUNCTION declaration or `END DECLARE`
 blocks_recovery.bas:28:1: error: `END DECLARE` without `DECLARE LIBRARY`
+blocks_recovery.bas:28:1: note: QB64pe: Name already in use (DECLARE)
 blocks_recovery.bas:29:17: error: `NEXT` names more variables than there are `FOR` blocks open around it
 blocks_recovery.bas:30:1: error: `EXIT DO` without `DO`
 blocks_recovery.bas:32:1: error: a `DO` with a condition cannot have one at `LOOP` too

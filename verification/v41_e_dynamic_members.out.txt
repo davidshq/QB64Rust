@@ -1,0 +1,11 @@
+1. to a dynamic member: 100  200  300  400 
+2. after REDIM: 0  0  0  0  0  0  100  200  300  400 
+3. member to array: 0  0  0  0  0  0  100  200  300  400 
+4. member to member of an element: 100  200  300  0 
+5. 2D dynamic member: 11  12  13  21  22  23 
+6. 2D member range: 12  13  0  22  23  0 
+7. strings to a dynamic member: [x] [yy] [zzz]
+8. string member to member: [yy] [zzz] []
+9. string member back: [x] [yy] [zzz]
+10. erased member as source: error 9  done
+exit=0

@@ -1,0 +1,5 @@
+
+Expected $VERSIONINFO:key=value
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 3:$VERSIONINFO
+exit=1

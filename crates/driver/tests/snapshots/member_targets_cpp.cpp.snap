@@ -1,11 +1,31 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 149
 expression: snap
 ---
 ==> global.txt <==
-template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){error(6);return qb_l;}}return qb_l/qb_r;}
-template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1)return (decltype(qb_l%qb_r))0;}return qb_l%qb_r;}
+static void qbr_diverged(int32 qbr_n){
+static int32 qbr_on=-1;
+static uint8 qbr_seen[100];
+static const char *qbr_path=NULL;
+if (qbr_on<0){qbr_path=getenv("QB64RUST_DIVERGENCES");qbr_on=qbr_path&&*qbr_path;}
+if (!qbr_on||qbr_n<0||qbr_n>=100||qbr_seen[qbr_n]) return;
+qbr_seen[qbr_n]=1;
+FILE *qbr_f=fopen(qbr_path,"ab");
+if (qbr_f){fprintf(qbr_f,"D-%03d\n",(int)qbr_n);fclose(qbr_f);}
+}
+static void qbr_diverged_on(int32 qbr_n){
+if (new_error>=300&&new_error<=315) return;
+const char *qbr_np=getenv("QB64PE_NOPROMPT");
+if ((error_goto_line&&!error_handling)||!qbr_np||(*qbr_np!='y'&&*qbr_np!='Y')) qbr_diverged(qbr_n);
+}
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){qbr_diverged(6);error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1){if (qb_l==std::numeric_limits<decltype(qb_l%qb_r)>::min()) qbr_diverged(6);return (decltype(qb_l%qb_r))0;}}return qb_l%qb_r;}
 static ptrszint qbr_dyn_count(ptrszint *d);
+static ptrszint *qbr_dyn_unset(ptrszint *d){
+if (!d||!(d[2]&1)) qbr_diverged(21);
+return d;
+}
 static void qbr_udt0_new(char *p);
 static void qbr_udt0_free(char *p);
 static void qbr_udt0_zero(char *p);
@@ -267,6 +287,10 @@ uint64 alloc_dim_value;
 #line 18 "member_targets_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(4);
 #line 18 "member_targets_cpp.bas"
+ptrszint alloc_old_block=dyn_d[0];
+#line 18 "member_targets_cpp.bas"
+ptrszint alloc_old_set=dyn_d[2]&1;
+#line 18 "member_targets_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 18 "member_targets_cpp.bas"
 alloc_new_desc[5]=(1ll)-alloc_new_desc[4]+1;
@@ -274,6 +298,8 @@ alloc_new_desc[5]=(1ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
 #line 18 "member_targets_cpp.bas"
 alloc_new_desc[6]=1;
+#line 18 "member_targets_cpp.bas"
+if (dyn_d[0]!=alloc_old_block||(dyn_d[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 18 "member_targets_cpp.bas"
 ((mem_lock*)((ptrszint*)dyn_d)[8])->id=(++mem_lock_id);
 #line 18 "member_targets_cpp.bas"
@@ -285,33 +311,33 @@ preserve_old_total=dyn_d[5];
 #line 18 "member_targets_cpp.bas"
 }
 #line 18 "member_targets_cpp.bas"
-if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) {qbr_diverged(20);error(257);}
 #line 18 "member_targets_cpp.bas"
-if (alloc_new_desc[5]<0) error(257);
+if (alloc_new_desc[5]<0) {qbr_diverged(20);error(257);}
 #line 18 "member_targets_cpp.bas"
-if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) {qbr_diverged(20);error(257);}
 #line 18 "member_targets_cpp.bas"
-if (alloc_new_desc[6]<0) error(257);
+if (alloc_new_desc[6]<0) {qbr_diverged(20);error(257);}
 #line 18 "member_targets_cpp.bas"
-if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) {qbr_diverged(20);error(257);}
 #line 18 "member_targets_cpp.bas"
 alloc_dim_value=(uint64)alloc_new_desc[5];
 #line 18 "member_targets_cpp.bas"
 if (alloc_dim_value){
 #line 18 "member_targets_cpp.bas"
-if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) {qbr_diverged(20);error(257);}
 #line 18 "member_targets_cpp.bas"
 alloc_req_elems*=alloc_dim_value;
 #line 18 "member_targets_cpp.bas"
 }
 #line 18 "member_targets_cpp.bas"
-if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) {qbr_diverged(20);error(257);}
 #line 18 "member_targets_cpp.bas"
 alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
 #line 18 "member_targets_cpp.bas"
-if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) {qbr_diverged(20);error(257);}
 #line 18 "member_targets_cpp.bas"
-if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) {qbr_diverged(20);error(257);}
 #line 18 "member_targets_cpp.bas"
 preserve_copy_count=preserve_old_total;
 #line 18 "member_targets_cpp.bas"
@@ -391,13 +417,15 @@ ptrszint mbr_off=0;
 #line 20 "member_targets_cpp.bas"
 mbr_k=(((int64)(*__LONG_I)))-__ARRAY_UDT_A[4];
 #line 20 "member_targets_cpp.bas"
-if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[5]){error(9);mbr_bad=1;}
+if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[5]){qbr_diverged_on(4);error(9);mbr_bad=1;}
 #line 20 "member_targets_cpp.bas"
 mbr_off=mbr_k;
 #line 20 "member_targets_cpp.bas"
 mbr_off*=56;
 #line 20 "member_targets_cpp.bas"
 int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 20 "member_targets_cpp.bas"
+if (!mbr_bad&&!mbr_ok) qbr_diverged_on(4);
 #line 20 "member_targets_cpp.bas"
 if (mbr_ok) *(int32*)(((char*)__ARRAY_UDT_A[0])+mbr_off)=mbr_value;
 #line 20 "member_targets_cpp.bas"
@@ -421,11 +449,13 @@ mbr_off+=12;
 #line 20 "member_targets_cpp.bas"
 mbr_k=(((int64)(*__LONG_I)))-0ll;
 #line 20 "member_targets_cpp.bas"
-if ((uptrszint)mbr_k>=(uptrszint)3){error(9);mbr_bad=1;}
+if ((uptrszint)mbr_k>=(uptrszint)3){qbr_diverged_on(4);error(9);mbr_bad=1;}
 #line 20 "member_targets_cpp.bas"
 mbr_off+=mbr_k*4;
 #line 20 "member_targets_cpp.bas"
 int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 20 "member_targets_cpp.bas"
+if (!mbr_bad&&!mbr_ok) qbr_diverged_on(4);
 #line 20 "member_targets_cpp.bas"
 if (mbr_ok) *(int32*)(((char*)__UDT_T)+mbr_off)=mbr_value;
 #line 20 "member_targets_cpp.bas"
@@ -445,7 +475,7 @@ ptrszint mbr_off=0;
 #line 20 "member_targets_cpp.bas"
 mbr_k=(1ll)-__ARRAY_UDT_A[4];
 #line 20 "member_targets_cpp.bas"
-if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[5]){error(9);mbr_bad=1;}
+if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[5]){qbr_diverged_on(4);error(9);mbr_bad=1;}
 #line 20 "member_targets_cpp.bas"
 mbr_off=mbr_k;
 #line 20 "member_targets_cpp.bas"
@@ -461,11 +491,13 @@ mbr_off=0;
 #line 20 "member_targets_cpp.bas"
 mbr_k=(((int64)(*__LONG_I)))-mbr_d1[4];
 #line 20 "member_targets_cpp.bas"
-if ((uptrszint)mbr_k>=(uptrszint)mbr_d1[5]){error(9);mbr_bad=1;}
+if ((uptrszint)mbr_k>=(uptrszint)mbr_d1[5]){qbr_diverged_on(4);error(9);mbr_bad=1;}
 #line 20 "member_targets_cpp.bas"
 mbr_off+=mbr_k*mbr_d1[6]*4;
 #line 20 "member_targets_cpp.bas"
 int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 20 "member_targets_cpp.bas"
+if (!mbr_bad&&!mbr_ok) qbr_diverged_on(4);
 #line 20 "member_targets_cpp.bas"
 if (mbr_ok) *(int32*)(((char*)mbr_d1[0])+mbr_off)=mbr_value;
 #line 20 "member_targets_cpp.bas"
@@ -503,13 +535,15 @@ ptrszint mbr_off=0;
 #line 22 "member_targets_cpp.bas"
 mbr_k=(((int64)(*__LONG_I)))-__ARRAY_UDT_A[4];
 #line 22 "member_targets_cpp.bas"
-if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[5]){error(9);mbr_bad=1;}
+if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_A[5]){qbr_diverged_on(4);error(9);mbr_bad=1;}
 #line 22 "member_targets_cpp.bas"
 mbr_off=mbr_k;
 #line 22 "member_targets_cpp.bas"
 mbr_off*=56;
 #line 22 "member_targets_cpp.bas"
 int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 22 "member_targets_cpp.bas"
+if (!mbr_bad&&!mbr_ok) qbr_diverged_on(4);
 #line 22 "member_targets_cpp.bas"
 if (mbr_ok) *(int32*)(((char*)__ARRAY_UDT_A[0])+mbr_off)=mbr_value;
 #line 22 "member_targets_cpp.bas"

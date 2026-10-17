@@ -1,0 +1,5 @@
+
+_ArrayCopy source must be an array
+Caused by (or after):_ARRAYCOPY V . X ( ) TO B ( )
+LINE 7:_ARRAYCOPY v.x() TO b()
+exit=1

@@ -1,8 +1,8 @@
 //! `--dump typed`: one node per line, indented, with its type (FreeBASIC lesson L8: assertions on types).
 
 use crate::{
-    Arg, ArrayRef, CaseItem, Expr, ExprKind, InputSource, MemValue, Place, PrintItem, PrintTo, ProcKind, Program,
-    Reference, Resume, Shape, Stmt, StmtArg, StmtKind, Storage, Ty, UsingValue, VarId,
+    Arg, ArrayRef, CaseItem, Event, Expr, ExprKind, Handler, InputSource, KeyForm, MemValue, Place, PrintItem, PrintTo,
+    ProcKind, Program, Reference, Resume, Shape, Stmt, StmtArg, StmtKind, Storage, Ty, UsingValue, VarId,
 };
 
 use qb64rust_base::show_bytes;
@@ -431,6 +431,35 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                     }
                 }
             }
+            StmtKind::ArrayCopy {
+                from,
+                to,
+                ranges,
+                starts,
+            } => {
+                let t = ty(p, p.array_ty(to));
+                line(
+                    out,
+                    &format!("ArrayCopy {} -> {}:{t}", array_text(p, from), array_text(p, to)),
+                );
+                for (side, array) in [("From", from), ("To", to)] {
+                    if !array.indexes().is_empty() {
+                        heading(out, &format!("{side} index"));
+                        for e in array.indexes() {
+                            expr(p, e, d + 2, out);
+                        }
+                    }
+                }
+                for (lower, upper) in ranges {
+                    heading(out, "range");
+                    expr(p, lower, d + 2, out);
+                    expr(p, upper, d + 2, out);
+                }
+                for start in starts {
+                    heading(out, "start");
+                    expr(p, start, d + 2, out);
+                }
+            }
             StmtKind::EraseParam { array } => {
                 let t = ty(p, p.var(*array).ty);
                 line(out, &format!("EraseParam {}:{t}", var_name(p, *array)));
@@ -616,6 +645,42 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 line(out, &format!("On{kw} {}", names.join(", ")));
                 expr(p, value, d + 1, out);
             }
+            StmtKind::OnEvent { event, handler } => {
+                let target = match handler {
+                    Handler::Label(l) => format!("Gosub {}", p.label(*l).name),
+                    Handler::Sub { proc, .. } => format!("Sub {}", p.proc(*proc).name),
+                };
+                match event {
+                    Event::Timer { number, seconds } => {
+                        line(out, &format!("OnTimer {target}"));
+                        if let Some(n) = number {
+                            heading(out, "Number");
+                            expr(p, n, d + 2, out);
+                        }
+                        heading(out, "Seconds");
+                        expr(p, seconds, d + 2, out);
+                    }
+                    Event::Key { key } => {
+                        line(out, &format!("OnKey {target}"));
+                        heading(out, "Key");
+                        expr(p, key, d + 2, out);
+                    }
+                }
+                if let Handler::Sub { arg: Some(a), .. } = handler {
+                    heading(out, "Argument");
+                    expr(p, a, d + 2, out);
+                }
+            }
+            StmtKind::Key(form) => match form {
+                KeyForm::On => line(out, "KeyOn"),
+                KeyForm::Off => line(out, "KeyOff"),
+                KeyForm::List => line(out, "KeyList"),
+                KeyForm::Assign { number, text } => {
+                    line(out, "KeyAssign");
+                    expr(p, number, d + 1, out);
+                    expr(p, text, d + 1, out);
+                }
+            },
             StmtKind::Select {
                 selector,
                 copied,
@@ -720,7 +785,7 @@ fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
                 expr(p, i, depth + 1, out);
             }
         }
-        ExprKind::MemOf { of, element } => {
+        ExprKind::MemOf { of, element, .. } => {
             let word = if *element { "MemElement" } else { "Mem" };
             writeln!(out, "{pad}{word} {} : {types}", reference_text(p, of)).unwrap();
             for i in of.indexes() {

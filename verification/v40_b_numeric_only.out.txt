@@ -1,0 +1,15 @@
+ok
+FileVersion=[1,2,3,4]
+ProductVersion=[10,20,30,40]
+CompanyName=[]
+FileDescription=[]
+InternalName=[]
+LegalCopyright=[]
+LegalTrademarks=[]
+OriginalFilename=[]
+ProductName=[]
+Comments=[]
+Language=[English (United States)]
+FileParts=1,2,3,4
+ProductParts=10,20,30,40
+exit=0

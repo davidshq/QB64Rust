@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDRAWBATCH sampleFrameArray!([index&])[, channels&][, pipeHandle&][, frameCount&]
+Caused by (or after):_SNDRAWBATCH
+LINE 9:_SNDRAWBATCH
+exit=1

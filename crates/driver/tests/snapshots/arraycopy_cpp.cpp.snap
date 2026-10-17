@@ -1,0 +1,761 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+static void qbr_diverged(int32 qbr_n){
+static int32 qbr_on=-1;
+static uint8 qbr_seen[100];
+static const char *qbr_path=NULL;
+if (qbr_on<0){qbr_path=getenv("QB64RUST_DIVERGENCES");qbr_on=qbr_path&&*qbr_path;}
+if (!qbr_on||qbr_n<0||qbr_n>=100||qbr_seen[qbr_n]) return;
+qbr_seen[qbr_n]=1;
+FILE *qbr_f=fopen(qbr_path,"ab");
+if (qbr_f){fprintf(qbr_f,"D-%03d\n",(int)qbr_n);fclose(qbr_f);}
+}
+static void qbr_diverged_on(int32 qbr_n){
+if (new_error>=300&&new_error<=315) return;
+const char *qbr_np=getenv("QB64PE_NOPROMPT");
+if ((error_goto_line&&!error_handling)||!qbr_np||(*qbr_np!='y'&&*qbr_np!='Y')) qbr_diverged(qbr_n);
+}
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){qbr_diverged(6);error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1){if (qb_l==std::numeric_limits<decltype(qb_l%qb_r)>::min()) qbr_diverged(6);return (decltype(qb_l%qb_r))0;}}return qb_l%qb_r;}
+static ptrszint qbr_dyn_count(ptrszint *d);
+static ptrszint *qbr_dyn_unset(ptrszint *d){
+if (!d||!(d[2]&1)) qbr_diverged(21);
+return d;
+}
+static void qbr_udt1_new(char *p);
+static void qbr_udt1_free(char *p);
+static void qbr_udt1_zero(char *p);
+static void qbr_udt1_clone(char *to,char *from);
+static ptrszint *qbr_udt1_m0_blank(ptrszint dims);
+static void qbr_udt1_m0_release(ptrszint *d);
+static void qbr_udt1_m0_free(ptrszint *d);
+static ptrszint *qbr_udt1_m0_make();
+static ptrszint *qbr_udt1_m0_dup(ptrszint *s);
+static void qbr_udt1_m0_copy(ptrszint **to,ptrszint **from);
+static void qbr_udt1_m0_set(ptrszint **to,ptrszint **from);
+static ptrszint *qbr_udt1_m0_guard(ptrszint *d,ptrszint n);
+static int64 qbr_udt1_m0_bound(ptrszint *d,int32 upper,int32 dim);
+static ptrszint *qbr_udt1_m0_desc(char *slot);
+static ptrszint qbr_dyn_count(ptrszint *d){
+ptrszint n=1;
+for(ptrszint i=1;i<=d[3];i++) n*=d[i*4+1];
+return n;
+}
+static mem_block qbr_dyn_mem_none(){
+mem_block b;
+memset(&b,0,sizeof(b));
+b.image=-1;
+return b;
+}
+static mem_block qbr_dyn_mem_all(ptrszint *d,ptrszint es,int32 type){
+if (!d[3]) return qbr_dyn_mem_none();
+return func__mem((ptrszint)d[0],qbr_dyn_count(d)*es,type,es,(mem_lock*)d[d[3]*4+4]);
+}
+static mem_block qbr_dyn_mem_one(char *at,ptrszint **dp,ptrszint es,int32 type){
+ptrszint *d=*dp;
+if (!d[3]) return qbr_dyn_mem_none();
+return func__mem((ptrszint)at,es,type,es,(mem_lock*)d[d[3]*4+4]);
+}
+static void qbr_udt1_new(char *p){
+*(ptrszint**)(p+0)=qbr_udt1_m0_make();
+}
+static void qbr_udt1_free(char *p){
+qbr_udt1_m0_free(*(ptrszint**)(p+0));
+*(ptrszint**)(p+0)=NULL;
+}
+static void qbr_udt1_zero(char *p){
+qbr_udt1_m0_free(*(ptrszint**)(p+0));
+*(ptrszint**)(p+0)=NULL;
+}
+static void qbr_udt1_clone(char *to,char *from){
+qbr_udt1_m0_copy((ptrszint**)(to+0),(ptrszint**)(from+0));
+}
+static ptrszint *qbr_udt1_m0_blank(ptrszint dims){
+ptrszint *d=(ptrszint*)calloc(dims*4+5,ptrsz);
+if (!d) error(257);
+new_mem_lock();
+mem_lock_tmp->type=4;
+d[dims*4+4]=(ptrszint)mem_lock_tmp;
+d[3]=dims;
+for(ptrszint i=1;i<=dims;i++) d[i*4]=2147483647;
+d[0]=(ptrszint)nothingvalue;
+return d;
+}
+static void qbr_udt1_m0_release(ptrszint *d){
+if (!d||!(d[2]&1)) return;
+((mem_lock*)d[d[3]*4+4])->id=(++mem_lock_id);
+free((void*)d[0]);
+d[2]&=~1;
+for(ptrszint i=1;i<=d[3];i++){d[i*4]=2147483647;d[i*4+1]=0;d[i*4+2]=0;}
+d[0]=(ptrszint)nothingvalue;
+}
+static void qbr_udt1_m0_free(ptrszint *d){
+if (!d) return;
+qbr_udt1_m0_release(d);
+free_mem_lock((mem_lock*)d[d[3]*4+4]);
+free(d);
+}
+static ptrszint *qbr_udt1_m0_make(){
+ptrszint *d=qbr_udt1_m0_blank(1);
+d[4]=1ll;
+d[5]=4;
+d[6]=1;
+ptrszint qbr_n=4;
+d[0]=(ptrszint)calloc(qbr_n*4,1);
+if (!d[0]) error(257);
+d[2]|=1;
+return d;
+}
+static ptrszint *qbr_udt1_m0_dup(ptrszint *s){
+ptrszint dims=s[3];
+ptrszint *d=(ptrszint*)calloc(dims*4+5,ptrsz);
+if (!d) error(257);
+memcpy((void*)d,(void*)s,(dims*4+4)*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+d[dims*4+4]=(ptrszint)mem_lock_tmp;
+ptrszint qbr_n=qbr_dyn_count(s);
+d[0]=(ptrszint)calloc(qbr_n?qbr_n*4:1,1);
+if (!d[0]) error(257);
+memcpy((void*)d[0],(void*)s[0],qbr_n*4);
+return d;
+}
+static void qbr_udt1_m0_copy(ptrszint **to,ptrszint **from){
+ptrszint *s=*from;
+if (!s||!(s[2]&1)) return;
+ptrszint *d=qbr_udt1_m0_dup(s);
+qbr_udt1_m0_free(*to);
+*to=d;
+}
+static void qbr_udt1_m0_set(ptrszint **to,ptrszint **from){
+ptrszint *s=*from;
+*to=!s?NULL:(s[2]&1)?qbr_udt1_m0_dup(s):qbr_udt1_m0_blank(s[3]);
+}
+static ptrszint *qbr_udt1_m0_guard(ptrszint *d,ptrszint n){
+if (d&&(d[2]&1)&&d[3]==n) return d;
+error(9);
+static ptrszint *z=NULL;
+if (!z){
+z=(ptrszint*)calloc(64*4+5,ptrsz);
+z[2]=1;
+for(ptrszint i=1;i<=64;i++){z[i*4+1]=1;z[i*4+2]=1;}
+z[0]=(ptrszint)calloc(4,1);
+}
+return z;
+}
+static int64 qbr_udt1_m0_bound(ptrszint *d,int32 upper,int32 dim){
+if (!d){error(9);return 0;}
+if (upper) return func_ubound(d,dim,d[3]);
+return func_lbound(d,dim,d[3]);
+}
+static ptrszint *qbr_udt1_m0_desc(char *slot){
+ptrszint *d=*(ptrszint**)slot;
+if (!d){d=qbr_udt1_m0_blank(1);*(ptrszint**)slot=d;}
+return d;
+}
+ptrszint *__ARRAY_LONG_S=NULL;
+ptrszint *__ARRAY_LONG_D=NULL;
+ptrszint *__ARRAY_LONG_M=NULL;
+ptrszint *__ARRAY_LONG_N=NULL;
+ptrszint *__ARRAY_STRING_VS=NULL;
+ptrszint *__ARRAY_STRING_WS=NULL;
+ptrszint *__ARRAY_STRING3_FS=NULL;
+ptrszint *__ARRAY_STRING3_GS=NULL;
+ptrszint *__ARRAY_OFFSET_O=NULL;
+ptrszint *__ARRAY_OFFSET_P=NULL;
+ptrszint *__ARRAY_FLOAT_G1=NULL;
+ptrszint *__ARRAY_FLOAT_G3=NULL;
+void *__UDT_V=NULL;
+ptrszint *__ARRAY_UDT_TT=NULL;
+void *__UDT_W=NULL;
+int32 *__LONG_I=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> clear.txt <==
+memset((void*)(__ARRAY_LONG_S[0]),0,__ARRAY_LONG_S[5]*4);
+memset((void*)(__ARRAY_LONG_D[0]),0,__ARRAY_LONG_D[5]*4);
+memset((void*)(__ARRAY_LONG_M[0]),0,__ARRAY_LONG_M[9]*__ARRAY_LONG_M[5]*4);
+memset((void*)(__ARRAY_LONG_N[0]),0,__ARRAY_LONG_N[9]*__ARRAY_LONG_N[5]*4);
+tmp_long=__ARRAY_STRING_VS[5];
+while(tmp_long--){
+(((qbs**)(__ARRAY_STRING_VS[0]))[tmp_long])->len=0;
+}
+tmp_long=__ARRAY_STRING_WS[5];
+while(tmp_long--){
+(((qbs**)(__ARRAY_STRING_WS[0]))[tmp_long])->len=0;
+}
+memset((void*)(__ARRAY_STRING3_FS[0]),0,__ARRAY_STRING3_FS[5]*3);
+memset((void*)(__ARRAY_STRING3_GS[0]),0,__ARRAY_STRING3_GS[5]*3);
+memset((void*)(__ARRAY_OFFSET_O[0]),0,__ARRAY_OFFSET_O[5]*8);
+memset((void*)(__ARRAY_OFFSET_P[0]),0,__ARRAY_OFFSET_P[5]*8);
+memset((void*)(__ARRAY_FLOAT_G1[0]),0,__ARRAY_FLOAT_G1[5]*32);
+memset((void*)(__ARRAY_FLOAT_G3[0]),0,__ARRAY_FLOAT_G3[5]*32);
+memset((void*)((char*)__UDT_V+0),0,16);
+(*(qbs**)((char*)__UDT_V+16))->len=0;
+(*(qbs**)((char*)__UDT_V+24))->len=0;
+(*(qbs**)((char*)__UDT_V+32))->len=0;
+tmp_long=__ARRAY_UDT_TT[5];
+while(tmp_long--){
+memset((void*)(((char*)(__ARRAY_UDT_TT[0])+tmp_long*40)+0),0,16);
+(*(qbs**)(((char*)(__ARRAY_UDT_TT[0])+tmp_long*40)+16))->len=0;
+(*(qbs**)(((char*)(__ARRAY_UDT_TT[0])+tmp_long*40)+24))->len=0;
+(*(qbs**)(((char*)(__ARRAY_UDT_TT[0])+tmp_long*40)+32))->len=0;
+}
+qbr_udt1_zero((char*)((char*)__UDT_W));
+*__LONG_I=0;
+==> maindata.txt <==
+if (!__ARRAY_LONG_S){
+__ARRAY_LONG_S=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_S)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_S[4]=1ll;
+__ARRAY_LONG_S[5]=(5ll)-__ARRAY_LONG_S[4]+1;
+if (__ARRAY_LONG_S[5]<=0) error(5);
+__ARRAY_LONG_S[6]=1;
+__ARRAY_LONG_S[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_S[5]*4);
+memset((void*)(__ARRAY_LONG_S[0]),0,__ARRAY_LONG_S[5]*4);
+__ARRAY_LONG_S[2]=1+2;
+}
+if (!__ARRAY_LONG_D){
+__ARRAY_LONG_D=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_D)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_D[4]=0ll;
+__ARRAY_LONG_D[5]=(9ll)-__ARRAY_LONG_D[4]+1;
+if (__ARRAY_LONG_D[5]<=0) error(5);
+__ARRAY_LONG_D[6]=1;
+__ARRAY_LONG_D[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_D[5]*4);
+memset((void*)(__ARRAY_LONG_D[0]),0,__ARRAY_LONG_D[5]*4);
+__ARRAY_LONG_D[2]=1+2;
+}
+if (!__ARRAY_LONG_M){
+__ARRAY_LONG_M=(ptrszint*)mem_static_malloc(13*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_M)[12]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_M[8]=1ll;
+__ARRAY_LONG_M[9]=(2ll)-__ARRAY_LONG_M[8]+1;
+if (__ARRAY_LONG_M[9]<=0) error(5);
+__ARRAY_LONG_M[10]=1;
+__ARRAY_LONG_M[4]=1ll;
+__ARRAY_LONG_M[5]=(3ll)-__ARRAY_LONG_M[4]+1;
+if (__ARRAY_LONG_M[5]<=0) error(5);
+__ARRAY_LONG_M[6]=__ARRAY_LONG_M[10]*__ARRAY_LONG_M[9];
+__ARRAY_LONG_M[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_M[9]*__ARRAY_LONG_M[5]*4);
+memset((void*)(__ARRAY_LONG_M[0]),0,__ARRAY_LONG_M[9]*__ARRAY_LONG_M[5]*4);
+__ARRAY_LONG_M[2]=1+2;
+}
+if (!__ARRAY_LONG_N){
+__ARRAY_LONG_N=(ptrszint*)mem_static_malloc(13*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_N)[12]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_N[8]=0ll;
+__ARRAY_LONG_N[9]=(3ll)-__ARRAY_LONG_N[8]+1;
+if (__ARRAY_LONG_N[9]<=0) error(5);
+__ARRAY_LONG_N[10]=1;
+__ARRAY_LONG_N[4]=0ll;
+__ARRAY_LONG_N[5]=(4ll)-__ARRAY_LONG_N[4]+1;
+if (__ARRAY_LONG_N[5]<=0) error(5);
+__ARRAY_LONG_N[6]=__ARRAY_LONG_N[10]*__ARRAY_LONG_N[9];
+__ARRAY_LONG_N[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_N[9]*__ARRAY_LONG_N[5]*4);
+memset((void*)(__ARRAY_LONG_N[0]),0,__ARRAY_LONG_N[9]*__ARRAY_LONG_N[5]*4);
+__ARRAY_LONG_N[2]=1+2;
+}
+if (!__ARRAY_STRING_VS){
+__ARRAY_STRING_VS=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING_VS)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING_VS[4]=1ll;
+__ARRAY_STRING_VS[5]=(3ll)-__ARRAY_STRING_VS[4]+1;
+if (__ARRAY_STRING_VS[5]<=0) error(5);
+__ARRAY_STRING_VS[6]=1;
+__ARRAY_STRING_VS[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING_VS[5]*ptrsz);
+tmp_long=__ARRAY_STRING_VS[5];
+while(tmp_long--){
+((qbs**)(__ARRAY_STRING_VS[0]))[tmp_long]=qbs_new(0,0);
+}
+__ARRAY_STRING_VS[2]=1+2;
+}
+if (!__ARRAY_STRING_WS){
+__ARRAY_STRING_WS=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING_WS)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING_WS[4]=0ll;
+__ARRAY_STRING_WS[5]=(4ll)-__ARRAY_STRING_WS[4]+1;
+if (__ARRAY_STRING_WS[5]<=0) error(5);
+__ARRAY_STRING_WS[6]=1;
+__ARRAY_STRING_WS[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING_WS[5]*ptrsz);
+tmp_long=__ARRAY_STRING_WS[5];
+while(tmp_long--){
+((qbs**)(__ARRAY_STRING_WS[0]))[tmp_long]=qbs_new(0,0);
+}
+__ARRAY_STRING_WS[2]=1+2;
+}
+if (!__ARRAY_STRING3_FS){
+__ARRAY_STRING3_FS=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING3_FS)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING3_FS[4]=1ll;
+__ARRAY_STRING3_FS[5]=(3ll)-__ARRAY_STRING3_FS[4]+1;
+if (__ARRAY_STRING3_FS[5]<=0) error(5);
+__ARRAY_STRING3_FS[6]=1;
+__ARRAY_STRING3_FS[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING3_FS[5]*3);
+memset((void*)(__ARRAY_STRING3_FS[0]),0,__ARRAY_STRING3_FS[5]*3);
+__ARRAY_STRING3_FS[2]=1+2;
+}
+if (!__ARRAY_STRING3_GS){
+__ARRAY_STRING3_GS=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING3_GS)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING3_GS[4]=0ll;
+__ARRAY_STRING3_GS[5]=(4ll)-__ARRAY_STRING3_GS[4]+1;
+if (__ARRAY_STRING3_GS[5]<=0) error(5);
+__ARRAY_STRING3_GS[6]=1;
+__ARRAY_STRING3_GS[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING3_GS[5]*3);
+memset((void*)(__ARRAY_STRING3_GS[0]),0,__ARRAY_STRING3_GS[5]*3);
+__ARRAY_STRING3_GS[2]=1+2;
+}
+if (!__ARRAY_OFFSET_O){
+__ARRAY_OFFSET_O=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_OFFSET_O)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_OFFSET_O[4]=1ll;
+__ARRAY_OFFSET_O[5]=(3ll)-__ARRAY_OFFSET_O[4]+1;
+if (__ARRAY_OFFSET_O[5]<=0) error(5);
+__ARRAY_OFFSET_O[6]=1;
+__ARRAY_OFFSET_O[0]=(ptrszint)mem_static_malloc(__ARRAY_OFFSET_O[5]*8);
+memset((void*)(__ARRAY_OFFSET_O[0]),0,__ARRAY_OFFSET_O[5]*8);
+__ARRAY_OFFSET_O[2]=1+2;
+}
+if (!__ARRAY_OFFSET_P){
+__ARRAY_OFFSET_P=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_OFFSET_P)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_OFFSET_P[4]=0ll;
+__ARRAY_OFFSET_P[5]=(4ll)-__ARRAY_OFFSET_P[4]+1;
+if (__ARRAY_OFFSET_P[5]<=0) error(5);
+__ARRAY_OFFSET_P[6]=1;
+__ARRAY_OFFSET_P[0]=(ptrszint)mem_static_malloc(__ARRAY_OFFSET_P[5]*8);
+memset((void*)(__ARRAY_OFFSET_P[0]),0,__ARRAY_OFFSET_P[5]*8);
+__ARRAY_OFFSET_P[2]=1+2;
+}
+if (!__ARRAY_FLOAT_G1){
+__ARRAY_FLOAT_G1=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_FLOAT_G1)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_FLOAT_G1[4]=1ll;
+__ARRAY_FLOAT_G1[5]=(4ll)-__ARRAY_FLOAT_G1[4]+1;
+if (__ARRAY_FLOAT_G1[5]<=0) error(5);
+__ARRAY_FLOAT_G1[6]=1;
+__ARRAY_FLOAT_G1[0]=(ptrszint)mem_static_malloc(__ARRAY_FLOAT_G1[5]*32);
+memset((void*)(__ARRAY_FLOAT_G1[0]),0,__ARRAY_FLOAT_G1[5]*32);
+__ARRAY_FLOAT_G1[2]=1+2;
+}
+if (!__ARRAY_FLOAT_G3){
+__ARRAY_FLOAT_G3=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_FLOAT_G3)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_FLOAT_G3[4]=0ll;
+__ARRAY_FLOAT_G3[5]=(7ll)-__ARRAY_FLOAT_G3[4]+1;
+if (__ARRAY_FLOAT_G3[5]<=0) error(5);
+__ARRAY_FLOAT_G3[6]=1;
+__ARRAY_FLOAT_G3[0]=(ptrszint)mem_static_malloc(__ARRAY_FLOAT_G3[5]*32);
+memset((void*)(__ARRAY_FLOAT_G3[0]),0,__ARRAY_FLOAT_G3[5]*32);
+__ARRAY_FLOAT_G3[2]=1+2;
+}
+if(__UDT_V==NULL){
+__UDT_V=(void*)mem_static_malloc(40);
+memset(__UDT_V,0,40);
+*(qbs**)((char*)__UDT_V+16)=qbs_new(0,0);
+*(qbs**)((char*)__UDT_V+24)=qbs_new(0,0);
+*(qbs**)((char*)__UDT_V+32)=qbs_new(0,0);
+}
+if (!__ARRAY_UDT_TT){
+__ARRAY_UDT_TT=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_TT)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_TT[4]=1ll;
+__ARRAY_UDT_TT[5]=(2ll)-__ARRAY_UDT_TT[4]+1;
+if (__ARRAY_UDT_TT[5]<=0) error(5);
+__ARRAY_UDT_TT[6]=1;
+__ARRAY_UDT_TT[0]=(ptrszint)mem_static_malloc(__ARRAY_UDT_TT[5]*40);
+memset((void*)(__ARRAY_UDT_TT[0]),0,__ARRAY_UDT_TT[5]*40);
+tmp_long=__ARRAY_UDT_TT[5];
+while(tmp_long--){
+*(qbs**)(((char*)(__ARRAY_UDT_TT[0])+tmp_long*40)+16)=qbs_new(0,0);
+*(qbs**)(((char*)(__ARRAY_UDT_TT[0])+tmp_long*40)+24)=qbs_new(0,0);
+*(qbs**)(((char*)(__ARRAY_UDT_TT[0])+tmp_long*40)+32)=qbs_new(0,0);
+}
+__ARRAY_UDT_TT[2]=1+2;
+}
+if(__UDT_W==NULL){
+__UDT_W=(void*)mem_static_malloc(8);
+memset(__UDT_W,0,8);
+qbr_udt1_new((char*)((char*)__UDT_W));
+}
+if(__LONG_I==NULL){
+__LONG_I=(int32*)mem_static_malloc(4);
+*__LONG_I=0;
+}
+ptrszint pass1[9]={0,0,1+2,0,1ll,4,1,0,0};
+ptrszint pass2[9]={0,0,1+2,0,1ll,4,1,0,0};
+ptrszint pass3[9]={0,0,1+2,0,0ll,3,1,0,0};
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "arraycopy_cpp.bas"
+do{
+#line 2 "arraycopy_cpp.bas"
+sub__dest(func__console());
+#line 2 "arraycopy_cpp.bas"
+sub__source(func__console());
+#line 2 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 20 "arraycopy_cpp.bas"
+do{
+#line 20 "arraycopy_cpp.bas"
+{
+#line 20 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_LONG_S;
+#line 20 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_LONG_D;
+#line 20 "arraycopy_cpp.bas"
+qb64_array_copy_1d_whole_fixed(array_copy_src,array_copy_dst,(uint64)4);
+#line 20 "arraycopy_cpp.bas"
+}
+#line 20 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "arraycopy_cpp.bas"
+do{
+#line 21 "arraycopy_cpp.bas"
+{
+#line 21 "arraycopy_cpp.bas"
+int64 array_copy_src_low=(int64)(2);
+#line 21 "arraycopy_cpp.bas"
+int64 array_copy_src_high=(int64)(4);
+#line 21 "arraycopy_cpp.bas"
+int64 array_copy_dst_start=(int64)(*__LONG_I);
+#line 21 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_LONG_S;
+#line 21 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_LONG_D;
+#line 21 "arraycopy_cpp.bas"
+qb64_array_copy_1d_range_at_fixed(array_copy_src,array_copy_dst,array_copy_src_low,array_copy_src_high,array_copy_dst_start,(uint64)4);
+#line 21 "arraycopy_cpp.bas"
+}
+#line 21 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 22 "arraycopy_cpp.bas"
+do{
+#line 22 "arraycopy_cpp.bas"
+{
+#line 22 "arraycopy_cpp.bas"
+int64 array_copy_dst_start=(int64)(1);
+#line 22 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_LONG_S;
+#line 22 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_LONG_D;
+#line 22 "arraycopy_cpp.bas"
+qb64_array_copy_1d_whole_at_fixed(array_copy_src,array_copy_dst,array_copy_dst_start,(uint64)4);
+#line 22 "arraycopy_cpp.bas"
+}
+#line 22 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "arraycopy_cpp.bas"
+do{
+#line 23 "arraycopy_cpp.bas"
+{
+#line 23 "arraycopy_cpp.bas"
+int64 array_copy_src_low=(int64)(2);
+#line 23 "arraycopy_cpp.bas"
+int64 array_copy_src_high=(int64)(4);
+#line 23 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_LONG_S;
+#line 23 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_LONG_D;
+#line 23 "arraycopy_cpp.bas"
+qb64_array_copy_1d_range_at_fixed(array_copy_src,array_copy_dst,array_copy_src_low,array_copy_src_high,array_copy_src_low,(uint64)4);
+#line 23 "arraycopy_cpp.bas"
+}
+#line 23 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "arraycopy_cpp.bas"
+do{
+#line 24 "arraycopy_cpp.bas"
+{
+#line 24 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_LONG_M;
+#line 24 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_LONG_N;
+#line 24 "arraycopy_cpp.bas"
+qb64_array_copy_nd_whole_fixed(array_copy_src,array_copy_dst,2,(uint64)4);
+#line 24 "arraycopy_cpp.bas"
+}
+#line 24 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "arraycopy_cpp.bas"
+do{
+#line 25 "arraycopy_cpp.bas"
+{
+#line 25 "arraycopy_cpp.bas"
+int64 array_copy_dst_start[2]={(int64)(1),(int64)(1)};
+#line 25 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_LONG_M;
+#line 25 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_LONG_N;
+#line 25 "arraycopy_cpp.bas"
+qb64_array_copy_nd_whole_at_fixed(array_copy_src,array_copy_dst,2,array_copy_dst_start,(uint64)4);
+#line 25 "arraycopy_cpp.bas"
+}
+#line 25 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(25);}while(r);
+#line 26 "arraycopy_cpp.bas"
+do{
+#line 26 "arraycopy_cpp.bas"
+{
+#line 26 "arraycopy_cpp.bas"
+int64 array_copy_src_low[2]={(int64)(1),(int64)(2)};
+#line 26 "arraycopy_cpp.bas"
+int64 array_copy_src_high[2]={(int64)(2),(int64)(3)};
+#line 26 "arraycopy_cpp.bas"
+int64 array_copy_dst_start[2]={(int64)(0),(int64)(1)};
+#line 26 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_LONG_M;
+#line 26 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_LONG_N;
+#line 26 "arraycopy_cpp.bas"
+qb64_array_copy_nd_range_at_fixed(array_copy_src,array_copy_dst,2,array_copy_src_low,array_copy_src_high,array_copy_dst_start,(uint64)4);
+#line 26 "arraycopy_cpp.bas"
+}
+#line 26 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(26);}while(r);
+#line 27 "arraycopy_cpp.bas"
+do{
+#line 27 "arraycopy_cpp.bas"
+{
+#line 27 "arraycopy_cpp.bas"
+int64 array_copy_src_low[2]={(int64)(1),(int64)(2)};
+#line 27 "arraycopy_cpp.bas"
+int64 array_copy_src_high[2]={(int64)(2),(int64)(3)};
+#line 27 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_LONG_M;
+#line 27 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_LONG_N;
+#line 27 "arraycopy_cpp.bas"
+qb64_array_copy_nd_range_at_fixed(array_copy_src,array_copy_dst,2,array_copy_src_low,array_copy_src_high,array_copy_src_low,(uint64)4);
+#line 27 "arraycopy_cpp.bas"
+}
+#line 27 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(27);}while(r);
+#line 28 "arraycopy_cpp.bas"
+do{
+#line 28 "arraycopy_cpp.bas"
+{
+#line 28 "arraycopy_cpp.bas"
+int64 array_copy_src_low=(int64)(2);
+#line 28 "arraycopy_cpp.bas"
+int64 array_copy_src_high=(int64)(3);
+#line 28 "arraycopy_cpp.bas"
+int64 array_copy_dst_start=(int64)(0);
+#line 28 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_STRING_VS;
+#line 28 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_STRING_WS;
+#line 28 "arraycopy_cpp.bas"
+qb64_array_copy_1d_range_at_string(array_copy_src,array_copy_dst,array_copy_src_low,array_copy_src_high,array_copy_dst_start);
+#line 28 "arraycopy_cpp.bas"
+}
+#line 28 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(28);}while(r);
+#line 29 "arraycopy_cpp.bas"
+do{
+#line 29 "arraycopy_cpp.bas"
+{
+#line 29 "arraycopy_cpp.bas"
+int64 array_copy_dst_start=(int64)(1);
+#line 29 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_STRING_VS;
+#line 29 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_STRING_WS;
+#line 29 "arraycopy_cpp.bas"
+qb64_array_copy_1d_whole_at_string(array_copy_src,array_copy_dst,array_copy_dst_start);
+#line 29 "arraycopy_cpp.bas"
+}
+#line 29 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(29);}while(r);
+#line 30 "arraycopy_cpp.bas"
+do{
+#line 30 "arraycopy_cpp.bas"
+{
+#line 30 "arraycopy_cpp.bas"
+int64 array_copy_dst_start=(int64)(1);
+#line 30 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_STRING3_FS;
+#line 30 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_STRING3_GS;
+#line 30 "arraycopy_cpp.bas"
+qb64_array_copy_1d_whole_at_fixed(array_copy_src,array_copy_dst,array_copy_dst_start,(uint64)3);
+#line 30 "arraycopy_cpp.bas"
+}
+#line 30 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(30);}while(r);
+#line 31 "arraycopy_cpp.bas"
+do{
+#line 31 "arraycopy_cpp.bas"
+{
+#line 31 "arraycopy_cpp.bas"
+int64 array_copy_src_low=(int64)(1);
+#line 31 "arraycopy_cpp.bas"
+int64 array_copy_src_high=(int64)(2);
+#line 31 "arraycopy_cpp.bas"
+int64 array_copy_dst_start=(int64)(0);
+#line 31 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_OFFSET_O;
+#line 31 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_OFFSET_P;
+#line 31 "arraycopy_cpp.bas"
+qb64_array_copy_1d_range_at_fixed(array_copy_src,array_copy_dst,array_copy_src_low,array_copy_src_high,array_copy_dst_start,(uint64)8);
+#line 31 "arraycopy_cpp.bas"
+}
+#line 31 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(31);}while(r);
+#line 32 "arraycopy_cpp.bas"
+do{
+#line 32 "arraycopy_cpp.bas"
+{
+#line 32 "arraycopy_cpp.bas"
+int64 array_copy_src_low=(int64)(2);
+#line 32 "arraycopy_cpp.bas"
+int64 array_copy_src_high=(int64)(3);
+#line 32 "arraycopy_cpp.bas"
+int64 array_copy_dst_start=(int64)(0);
+#line 32 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_FLOAT_G1;
+#line 32 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_FLOAT_G3;
+#line 32 "arraycopy_cpp.bas"
+qb64_array_copy_1d_range_at_fixed(array_copy_src,array_copy_dst,array_copy_src_low,array_copy_src_high,array_copy_dst_start,(uint64)sizeof(long double));
+#line 32 "arraycopy_cpp.bas"
+}
+#line 32 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(32);}while(r);
+#line 33 "arraycopy_cpp.bas"
+do{
+#line 33 "arraycopy_cpp.bas"
+{
+#line 33 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=(pass1[0]=(ptrszint)((((char*)__UDT_V)+0)),pass1);
+#line 33 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_LONG_S;
+#line 33 "arraycopy_cpp.bas"
+qb64_array_copy_1d_whole_fixed(array_copy_src,array_copy_dst,(uint64)4);
+#line 33 "arraycopy_cpp.bas"
+}
+#line 33 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(33);}while(r);
+#line 34 "arraycopy_cpp.bas"
+do{
+#line 34 "arraycopy_cpp.bas"
+{
+#line 34 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=(pass2[0]=(ptrszint)(((((char*)__ARRAY_UDT_TT[0])+((array_check((((int64)(*__LONG_I)))-__ARRAY_UDT_TT[4],__ARRAY_UDT_TT[5]))*40))+0)),pass2);
+#line 34 "arraycopy_cpp.bas"
+int32 array_copy_ok=!is_error_pending();
+#line 34 "arraycopy_cpp.bas"
+int64 array_copy_src_low=(int64)(1);
+#line 34 "arraycopy_cpp.bas"
+int64 array_copy_src_high=(int64)(2);
+#line 34 "arraycopy_cpp.bas"
+int64 array_copy_dst_start=(int64)(0);
+#line 34 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=__ARRAY_LONG_D;
+#line 34 "arraycopy_cpp.bas"
+if (array_copy_ok) qb64_array_copy_1d_range_at_fixed(array_copy_src,array_copy_dst,array_copy_src_low,array_copy_src_high,array_copy_dst_start,(uint64)4); else qbr_diverged_on(4);
+#line 34 "arraycopy_cpp.bas"
+}
+#line 34 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(34);}while(r);
+#line 35 "arraycopy_cpp.bas"
+do{
+#line 35 "arraycopy_cpp.bas"
+{
+#line 35 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=(pass3[0]=(ptrszint)(((((char*)__ARRAY_UDT_TT[0])+((array_check((2ll)-__ARRAY_UDT_TT[4],__ARRAY_UDT_TT[5]))*40))+16)),pass3);
+#line 35 "arraycopy_cpp.bas"
+int32 array_copy_ok=!is_error_pending();
+#line 35 "arraycopy_cpp.bas"
+int64 array_copy_dst_start=(int64)(0);
+#line 35 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_STRING_VS;
+#line 35 "arraycopy_cpp.bas"
+if (array_copy_ok) qb64_array_copy_1d_whole_at_string(array_copy_src,array_copy_dst,array_copy_dst_start); else qbr_diverged_on(4);
+#line 35 "arraycopy_cpp.bas"
+}
+#line 35 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(35);}while(r);
+#line 36 "arraycopy_cpp.bas"
+do{
+#line 36 "arraycopy_cpp.bas"
+{
+#line 36 "arraycopy_cpp.bas"
+ptrszint *array_copy_dst=qbr_udt1_m0_desc((((char*)__UDT_W)+0));
+#line 36 "arraycopy_cpp.bas"
+int32 array_copy_dims=array_copy_dst[3]==1;
+#line 36 "arraycopy_cpp.bas"
+if (!array_copy_dims) error(9);
+#line 36 "arraycopy_cpp.bas"
+int64 array_copy_src_low=(int64)(1);
+#line 36 "arraycopy_cpp.bas"
+int64 array_copy_src_high=(int64)(4);
+#line 36 "arraycopy_cpp.bas"
+ptrszint *array_copy_src=__ARRAY_LONG_S;
+#line 36 "arraycopy_cpp.bas"
+if (array_copy_dims) qb64_array_copy_1d_range_at_fixed(array_copy_src,array_copy_dst,array_copy_src_low,array_copy_src_high,array_copy_src_low,(uint64)4);
+#line 36 "arraycopy_cpp.bas"
+}
+#line 36 "arraycopy_cpp.bas"
+if(!qbevent)break;evnt(36);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(*(qbs**)((char*)__UDT_V+16));
+qbs_free(*(qbs**)((char*)__UDT_V+24));
+qbs_free(*(qbs**)((char*)__UDT_V+32));
+qbr_udt1_free((char*)((char*)__UDT_W));
+==> empty: regsf.txt dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt

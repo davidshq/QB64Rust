@@ -1,15 +1,21 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 107
+assertion_line: 149
 expression: snap
 ---
 proc_errors.bas:7:1: error: `s` takes 1 argument, not 2
+proc_errors.bas:7:1: note: QB64pe: Syntax error - Reference: s a AS LONG
 proc_errors.bas:8:1: error: `s` takes 1 argument, not 0
+proc_errors.bas:8:1: note: QB64pe: Syntax error - Reference: s a AS LONG
 proc_errors.bas:9:5: error: cannot read the arguments of `s`; expected expressions separated by `,`
 proc_errors.bas:10:3: error: a number is required for this parameter
+proc_errors.bas:10:3: note: QB64pe: Number required for sub
 proc_errors.bas:11:3: error: a string is required for this parameter
+proc_errors.bas:11:3: note: QB64pe: String required for sub
 proc_errors.bas:12:8: error: a number is required for this parameter
+proc_errors.bas:12:8: note: QB64pe: Number required for sub
 proc_errors.bas:13:1: error: `EXIT SUB` must be inside a SUB or FUNCTION
+proc_errors.bas:13:1: note: QB64pe: EXIT SUB must be used within a SUB
 proc_errors.bas:14:1: error: `EXIT FUNCTION` must be inside a SUB or FUNCTION
 proc_errors.bas:15:7: error: name already in use: `s`
 proc_errors.bas:16:7: error: name already in use: `f%`
@@ -18,6 +24,7 @@ proc_errors.bas:18:1: error: not supported yet: `nothere` as a statement (no SUB
 proc_errors.bas:19:1: error: not supported yet: `FILES`
 proc_errors.bas:20:1: error: name already in use: `y`
 proc_errors.bas:24:10: error: cannot store a string in a number variable
+proc_errors.bas:24:10: note: QB64pe: Illegal string-number conversion
 proc_errors.bas:25:5: error: name already in use: `f!`
 proc_errors.bas:29:5: error: not supported yet: a SUB name with a type suffix
 proc_errors.bas:32:5: error: `DIM SHARED` cannot stand inside a SUB or FUNCTION

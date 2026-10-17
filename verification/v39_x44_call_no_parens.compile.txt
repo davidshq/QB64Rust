@@ -1,0 +1,5 @@
+
+Expected CALL sub-name (...)
+Caused by (or after):CALL _SNDPLAY H
+LINE 9:CALL _SNDPLAY h
+exit=1

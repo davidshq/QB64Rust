@@ -67,22 +67,160 @@ pub fn write_fragments(build: &Path, fragments: &Fragments) -> std::io::Result<P
     Ok(temp)
 }
 
-/// The icon of the executable (design D5 of `m3-sound`; `qb64pe.bas` 13551–13604): a copy of the file as
-/// `<build>/temp/icon.ico` and the resource file `icon.rc` that names it, in the old compiler's one line. With the
-/// make flag `DEP_ICON_RC=y` the clone's `Makefile` runs `windres` on that file and links the result. A file that
-/// is no icon fails there, as in the old compiler's build. The copy is of the bytes alone: `std::fs::copy` would
-/// make the copy of a read-only icon read-only, and the next build into a kept folder could not replace it.
-pub fn write_icon(build: &Path, icon: &Path) -> std::io::Result<()> {
+/// The resources of the executable (design D5 of `m3-sound`, D4 of `m3-versioninfo`; `qb64pe.bas` 13551–13640):
+/// for an icon a copy of the file as `<build>/temp/icon.ico`, and the files of [`version_files`]. With the make flag
+/// `DEP_ICON_RC=y` the clone's `Makefile` runs `windres` on `icon.rc` and links the result. A file that is no icon
+/// fails there, as in the old compiler's build. The copy is of the bytes alone: `std::fs::copy` would make the copy
+/// of a read-only icon read-only, and the next build into a kept folder could not replace it. `exe_name` is the
+/// executable's file name (`game.exe`), which the manifest's file name follows. The resource files an earlier build
+/// left in a kept folder are removed first, so the cache key ([`build_key`]) hashes this build's alone.
+pub fn write_resources(
+    build: &Path,
+    icon: Option<&Path>,
+    version: Option<&qb64rust_ir::VersionInfo>,
+    exe_name: &str,
+) -> Result<(), String> {
+    if icon.is_none() && version.is_none() {
+        return Ok(());
+    }
     let temp = build.join("temp");
-    std::fs::create_dir_all(&temp)?;
-    std::fs::write(temp.join(ICON_FILES[0]), std::fs::read(icon)?)?;
-    std::fs::write(temp.join(ICON_FILES[1]), "0 ICON \"icon.ico\"\n")
+    let writing = |e: std::io::Error| format!("writing the resources into {}: {e}", temp.display());
+    std::fs::create_dir_all(&temp).map_err(writing)?;
+    for entry in std::fs::read_dir(&temp).map_err(writing)?.flatten() {
+        if is_resource_file(&entry.file_name().to_string_lossy()) {
+            std::fs::remove_file(entry.path()).map_err(writing)?;
+        }
+    }
+    if let Some(icon) = icon {
+        let bytes = std::fs::read(icon).map_err(|e| format!("copying {}: {e}", icon.display()))?;
+        std::fs::write(temp.join("icon.ico"), bytes).map_err(|e| format!("copying {}: {e}", icon.display()))?;
+    }
+    for (name, bytes) in version_files(icon.is_some(), version, exe_name) {
+        std::fs::write(temp.join(name), bytes).map_err(writing)?;
+    }
+    Ok(())
 }
 
-/// The files [`write_icon`] writes into `<build>/temp`.
-const ICON_FILES: [&str; 2] = ["icon.ico", "icon.rc"];
+/// The resource script `icon.rc` and, with a version resource, the header and the manifest it includes, as the
+/// old compiler writes them (`qb64pe.bas` 13561–13640; measured, `verification\v40_rc\`): with no version
+/// resource the icon line alone, with a line end of its own (`windres` reads it as the old compiler's); with one
+/// CRLF lines, the icon line first when there is an icon, every value's bytes as written. The manifest is named
+/// `<exe_name>.manifest`.
+pub fn version_files(icon: bool, version: Option<&qb64rust_ir::VersionInfo>, exe_name: &str) -> Vec<(String, Vec<u8>)> {
+    let Some(v) = version else {
+        return if icon {
+            vec![("icon.rc".to_string(), b"0 ICON \"icon.ico\"\n".to_vec())]
+        } else {
+            Vec::new()
+        };
+    };
+    fn lines(parts: &[&[u8]]) -> Vec<u8> {
+        let mut out = Vec::new();
+        for p in parts {
+            out.extend_from_slice(p);
+            out.extend_from_slice(b"\r\n");
+        }
+        out
+    }
+    let manifest_name = format!("{exe_name}.manifest");
+    let mut rc: Vec<Vec<u8>> = Vec::new();
+    if icon {
+        rc.push(b"0 ICON \"icon.ico\"".to_vec());
+    }
+    rc.push(Vec::new());
+    rc.push(b"#include \"manifest.h\"".to_vec());
+    rc.push(Vec::new());
+    rc.push(format!("CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST \"{manifest_name}\"").into_bytes());
+    rc.push(Vec::new());
+    rc.push(b"1 VERSIONINFO".to_vec());
+    if !v.file_version.is_empty() {
+        rc.push([b"FILEVERSION     ".as_slice(), &v.file_version].concat());
+    }
+    if !v.product_version.is_empty() {
+        rc.push([b"PRODUCTVERSION  ".as_slice(), &v.product_version].concat());
+    }
+    for line in [
+        "BEGIN",
+        "    BLOCK \"StringFileInfo\"",
+        "    BEGIN",
+        "        BLOCK \"040904E4\"",
+        "        BEGIN",
+    ] {
+        rc.push(line.as_bytes().to_vec());
+    }
+    for (key, value) in qb64rust_ir::VersionInfo::STRING_KEYS.iter().zip(&v.strings) {
+        let head = format!("            VALUE \"{key}\",\"");
+        rc.push([head.as_bytes(), value, b"\\0\""].concat());
+    }
+    for line in [
+        "        END",
+        "    END",
+        "    BLOCK \"VarFileInfo\"",
+        "    BEGIN",
+        "            VALUE \"Translation\", 0x409, 0x04E4",
+        "    END",
+        "END",
+    ] {
+        rc.push(line.as_bytes().to_vec());
+    }
+    let rc: Vec<&[u8]> = rc.iter().map(Vec::as_slice).collect();
 
-/// The make flag that links the icon `$EXEICON` names.
+    let s = |i: usize| v.strings[i].as_slice();
+    use qb64rust_ir::VersionInfo as V;
+    let identity = [s(V::COMPANY_NAME), b".", s(V::PRODUCT_NAME), b".", s(V::PRODUCT_NAME)].concat();
+    let name_line = [b"    name=\"".as_slice(), &identity, b"\""].concat();
+    let description = [b"<description>".as_slice(), s(V::FILE_DESCRIPTION), b"</description>"].concat();
+    let manifest: [&[u8]; 22] = [
+        b"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>",
+        b"<assembly xmlns=\"urn:schemas-microsoft-com:asm.v1\" manifestVersion=\"1.0\">",
+        b"<assemblyIdentity",
+        b"    version=\"1.0.0.0\"",
+        b"    processorArchitecture=\"*\"",
+        &name_line,
+        b"    type=\"win32\"",
+        b"/>",
+        &description,
+        b"<dependency>",
+        b"    <dependentAssembly>",
+        b"        <assemblyIdentity",
+        b"            type=\"win32\"",
+        b"            name=\"Microsoft.Windows.Common-Controls\"",
+        b"            version=\"6.0.0.0\"",
+        b"            processorArchitecture=\"*\"",
+        b"            publicKeyToken=\"6595b64144ccf1df\"",
+        b"            language=\"*\"",
+        b"        />",
+        b"    </dependentAssembly>",
+        b"</dependency>",
+        b"</assembly>",
+    ];
+    let header: [&[u8]; 11] = [
+        b"#ifndef RESOURCE_H",
+        b"#define   RESOURCE_H",
+        b"#ifdef    __cplusplus",
+        b"extern \"C\" {",
+        b"#endif",
+        b"#ifdef    __cplusplus",
+        b"}",
+        b"#endif",
+        b"#endif    /* RESOURCE_H */",
+        b"#define CREATEPROCESS_MANIFEST_RESOURCE_ID 1 /*Defined manifest file*/",
+        b"#define RT_MANIFEST                       24",
+    ];
+    vec![
+        (manifest_name, lines(&manifest)),
+        ("manifest.h".to_string(), lines(&header)),
+        ("icon.rc".to_string(), lines(&rc)),
+    ]
+}
+
+/// The files of [`write_resources`] in `<build>/temp` that the build reads: the icon, the resource script, the
+/// header and the manifest (named after the executable).
+fn is_resource_file(name: &str) -> bool {
+    matches!(name, "icon.ico" | "icon.rc" | "manifest.h") || name.ends_with(".manifest")
+}
+
+/// The make flag that links the resource script of `$EXEICON` and `$VERSIONINFO`.
 const ICON_RC_FLAG: &str = "DEP_ICON_RC=y";
 
 fn slash(p: &Path) -> String {
@@ -93,7 +231,8 @@ fn slash(p: &Path) -> String {
 /// compared with its builds of four programs, design D3 of `m2-console-screenhide`). A program without a window
 /// links the libqb without one; a console links with `-mconsole`; the icon part is a libqb variant of its own, as
 /// is the audio part, and so are the image codec, FreeType and the screen image (compared with six builds, design
-/// D2 of `m3-images-fonts-mouse`); `DEP_ICON_RC=y` links the icon `$EXEICON` names ([`write_icon`]).
+/// D2 of `m3-images-fonts-mouse`); `DEP_ICON_RC=y` links the resources of `$EXEICON` and `$VERSIONINFO`
+/// ([`write_resources`]).
 /// The clone's `Makefile` names each variant's object by the flags, so the variants stand side by side.
 pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     let mut flags = Vec::new();
@@ -121,7 +260,7 @@ pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     if s.console {
         flags.push("DEP_CONSOLE=y");
     }
-    if s.exe_icon {
+    if s.exe_icon || s.version_info.is_some() {
         flags.push(ICON_RC_FLAG);
     }
     if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Audio) {
@@ -265,10 +404,21 @@ fn build_key(root: &Path, build: &Path, settings: &Settings) -> String {
                 .unwrap_or_default(),
         );
     }
-    // The icon of the executable and its resource file, for a program that has one ([`write_icon`]). Only then
-    // does `make` read them: a kept build folder may hold those of an earlier build.
+    // The resource files of the executable, for a program that has them ([`write_resources`], which removes those
+    // an earlier build left first). Only then does `make` read them: a kept build folder of a program without them
+    // may hold an earlier build's. A value of the version resource is in `icon.rc` or the manifest, so a changed
+    // one changes the key.
     if settings.flags.contains(&ICON_RC_FLAG) {
-        for name in ICON_FILES {
+        let mut names: Vec<String> = std::fs::read_dir(build.join("temp"))
+            .map(|d| {
+                d.flatten()
+                    .map(|e| e.file_name().to_string_lossy().into_owned())
+                    .filter(|n| is_resource_file(n))
+                    .collect()
+            })
+            .unwrap_or_default();
+        names.sort();
+        for name in &names {
             let p = build.join("temp").join(name);
             if p.is_file() {
                 h.file(&p, name);
@@ -358,6 +508,50 @@ impl Fnv128 {
     }
 }
 
+/// Names a lock file for the libqb objects of one clone, which every build of a program writes when one it links is
+/// missing or older than its source, and reads otherwise. Set by the test runner and the CLI tests
+/// (`tools\legacy_tests\clone_lock.py`), so that their builds can run side by side; without it nothing is locked.
+pub const OBJECTS_LOCK_ENV: &str = "QB64RUST_OBJECTS_LOCK";
+
+/// The goal of the makefile [`lock_objects`] adds: everything `exe` takes from the clone (`QBLIB` and `EXE_LIBS`,
+/// the `Makefile`'s own names) and nothing of the program's own (`qbx.o`, the icon's object, the executable).
+const OBJECTS_MAKEFILE: &str = "# Written by qb64rust: what a build with these flags takes from the clone.\n\
+                                qb64rust-objects: $(QBLIB) $(EXE_LIBS)\n";
+
+/// With [`OBJECTS_LOCK_ENV`] set, takes its lock: shared when `make -q` says the clone's objects for these flags
+/// are up to date, so the build only reads them, and otherwise alone, so that one build at a time writes them.
+/// The returned file holds the lock until it is dropped. `make` is `cmd` before its goal.
+fn lock_objects(make: &Command, build: &Path) -> Result<Option<std::fs::File>, String> {
+    let Some(path) = std::env::var_os(OBJECTS_LOCK_ENV) else {
+        return Ok(None);
+    };
+    let path = PathBuf::from(path);
+    let err = |e: std::io::Error| format!("locking the libqb objects ({}): {e}", path.display());
+    let file = std::fs::File::options()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&path)
+        .map_err(err)?;
+    file.lock_shared().map_err(err)?;
+    let makefile = build.join("objects.mk");
+    std::fs::write(&makefile, OBJECTS_MAKEFILE).map_err(|e| format!("writing {}: {e}", makefile.display()))?;
+    let mut check = Command::new(make.get_program());
+    check
+        .args(make.get_args())
+        .args(["-q", "-f", "Makefile", "-f"])
+        .arg(slash(&makefile))
+        .arg("qb64rust-objects");
+    // 0: up to date. 1 (to be built) or 2 (make could not tell): built alone, by the build itself.
+    let fresh = check.output().is_ok_and(|o| o.status.success());
+    if !fresh {
+        file.unlock().map_err(err)?;
+        file.lock().map_err(err)?;
+    }
+    Ok(Some(file))
+}
+
 fn build_with_make(root: &Path, build: &Path, exe: &Path, quiet: bool, settings: &Settings) -> Result<(), String> {
     let c = build.join("c");
     std::fs::create_dir_all(&c).map_err(|e| e.to_string())?;
@@ -373,7 +567,6 @@ fn build_with_make(root: &Path, build: &Path, exe: &Path, quiet: bool, settings:
         .arg("-j3")
         .args(["OS=win", "BITS=64"])
         .args(&settings.flags)
-        .arg("exe")
         .arg(format!("EXE={}", slash(&linked)))
         .arg(format!("QB_QBX_SRC={}/qbx.cpp", slash(&c)))
         .arg(format!("PATH_INTERNAL_TEMP={}", slash(&build.join("temp"))))
@@ -396,6 +589,9 @@ fn build_with_make(root: &Path, build: &Path, exe: &Path, quiet: bool, settings:
     if !quiet {
         println!("building {}", exe.display());
     }
+    // Held until `make` has ended: shared while the clone's objects are only read, alone while they are built.
+    let _objects = lock_objects(&cmd, build)?;
+    cmd.arg("exe");
     let out = cmd.output().map_err(|e| format!("running {}: {e}", make.display()))?;
     if out.status.success() && linked.is_file() && (!settings.license || linked_license.is_file()) {
         if settings.license {
@@ -473,6 +669,7 @@ mod tests {
             asserts: false,
             runtime_parts: icon.then_some(qb64rust_ir::RuntimePart::Icon).into_iter().collect(),
             exe_icon: false,
+            version_info: None,
         }
     }
 
@@ -547,8 +744,8 @@ mod tests {
         let mut read_only = std::fs::metadata(&icon).unwrap().permissions();
         read_only.set_readonly(true);
         std::fs::set_permissions(&icon, read_only).unwrap();
-        write_icon(&build, &icon).unwrap();
-        write_icon(&build, &icon).unwrap();
+        write_resources(&build, Some(&icon), None, "game.exe").unwrap();
+        write_resources(&build, Some(&icon), None, "game.exe").unwrap();
         assert_eq!(std::fs::read(build.join("temp/icon.ico")).unwrap(), b"first");
         assert_eq!(plain, key(vec![]));
         assert_ne!(with_icon, key(vec![ICON_RC_FLAG]));
@@ -592,12 +789,12 @@ mod tests {
         let key = || build_key(d.path(), d.path(), &with_icon);
         let none = key();
         std::fs::write(&icon, [0, 0, 1, 0, 1]).unwrap();
-        write_icon(d.path(), &icon).unwrap();
+        write_resources(d.path(), Some(&icon), None, "game.exe").unwrap();
         let first = key();
         assert_ne!(none, first);
         assert_eq!(first, key());
         std::fs::write(&icon, [0, 0, 1, 0, 2]).unwrap();
-        write_icon(d.path(), &icon).unwrap();
+        write_resources(d.path(), Some(&icon), None, "game.exe").unwrap();
         assert_ne!(first, key());
         assert_eq!(
             std::fs::read(d.path().join("temp/icon.rc")).unwrap(),
@@ -717,6 +914,42 @@ mod tests {
                 "DEP_CONSOLE=y"
             ]
         );
+    }
+
+    /// A value of the version resource is part of the key: a changed one is another executable (spec
+    /// `compiler/pipeline`, "A changed value"); `$VERSIONINFO` alone sets the flag of the resource script.
+    #[test]
+    fn build_key_follows_the_version_info() {
+        let d = tempfile::tempdir().unwrap();
+        let mut s = program_settings(true, false, false);
+        s.version_info = Some(qb64rust_ir::VersionInfo::default());
+        assert_eq!(make_flags(&s), ["DEP_CONSOLE_ONLY=y", "DEP_CONSOLE=y", "DEP_ICON_RC=y"]);
+        let settings = Settings {
+            flags: make_flags(&s),
+            ..Settings::default()
+        };
+        let key = |product: &[u8]| {
+            let mut v = qb64rust_ir::VersionInfo::default();
+            v.strings[qb64rust_ir::VersionInfo::PRODUCT_NAME] = product.to_vec();
+            write_resources(d.path(), None, Some(&v), "game.exe").unwrap();
+            build_key(d.path(), d.path(), &settings)
+        };
+        let first = key(b"first");
+        assert_eq!(first, key(b"first"));
+        assert_ne!(first, key(b"second"));
+        // An icon alone into the same kept folder: the earlier build's header and manifest are gone, so the key is
+        // that of a fresh folder.
+        let icon = d.path().join("game.ico");
+        std::fs::write(&icon, [0, 0, 1, 0, 1]).unwrap();
+        let icon_only = |build: &Path| {
+            write_resources(build, Some(&icon), None, "game.exe").unwrap();
+            build_key(d.path(), build, &settings)
+        };
+        let kept = icon_only(d.path());
+        assert!(!d.path().join("temp/manifest.h").exists());
+        assert!(!d.path().join("temp/game.exe.manifest").exists());
+        let fresh = d.path().join("fresh");
+        assert_eq!(kept, icon_only(&fresh));
     }
 
     /// The data-processing part stands after `DEP_FONT=y` and before `DEP_CONSOLE=y`, `DEP_ICON_RC=y` and the

@@ -1,10 +1,15 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 108
+assertion_line: 149
 expression: snap
 ---
 console_meta_tab_after.bas:7:1: error: `$SCREENHIDE` must stand alone on its line
+console_meta_tab_after.bas:7:1: note: QB64pe: Syntax error
 console_meta_tab_after.bas:9:1: error: `$CONSOLE` must stand alone on its line
+console_meta_tab_after.bas:9:1: note: QB64pe: Syntax error
 console_meta_tab_after.bas:10:1: error: `$INCLUDEONCE` must stand alone on its line
+console_meta_tab_after.bas:10:1: note: QB64pe: Syntax error
 console_meta_tab_after.bas:11:1: error: `$ASSERTS` must stand alone on its line
+console_meta_tab_after.bas:11:1: note: QB64pe: Syntax error
 console_meta_tab_after.bas:12:1: error: `$DEBUG` must stand alone on its line
+console_meta_tab_after.bas:12:1: note: QB64pe: Syntax error

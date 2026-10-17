@@ -359,8 +359,9 @@ impl Emitter<'_> {
         Some(match of {
             Reference::Array(_) => {
                 let slot = self.dyn_slot(base, member);
+                // `qbr_dyn_unset` traces a member that is not allocated (D-021: the old program crashes).
                 format!(
-                    "qbr_dyn_mem_all({}(*(ptrszint**){slot},{dims}),{size},{})",
+                    "qbr_dyn_mem_all({}(qbr_dyn_unset(*(ptrszint**){slot}),{dims}),{size},{})",
                     crate::owner::dyn_fn(id, m, "guard"),
                     tv + ARRAY
                 )

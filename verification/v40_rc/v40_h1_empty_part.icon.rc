@@ -1,0 +1,30 @@
+
+#include "manifest.h"
+
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "v40_h1_empty_part.exe.manifest"
+
+1 VERSIONINFO
+FILEVERSION     1,,2,3
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "CompanyName","\0"
+            VALUE "FileDescription","\0"
+            VALUE "FileVersion","1,,2,3\0"
+            VALUE "InternalName","\0"
+            VALUE "LegalCopyright","\0"
+            VALUE "LegalTrademarks","\0"
+            VALUE "OriginalFilename","\0"
+            VALUE "ProductName","\0"
+            VALUE "ProductVersion","\0"
+            VALUE "Comments","\0"
+            VALUE "Web","\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+            VALUE "Translation", 0x409, 0x04E4
+    END
+END

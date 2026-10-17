@@ -1,0 +1,5 @@
+
+Expected _ArrayCopy source(lower TO upper) TO destination(start), source() TO destination(), source() TO destination(start), source(lower TO upper) TO destination(), source(lower1 TO upper1, ...) TO destination(start1, ...), or source(lower1 TO upper1, ...) TO destination()
+Caused by (or after):_ARRAYCOPY A ( 1 ) TO B ( )
+LINE 4:_ARRAYCOPY a(1) TO b()
+exit=1

@@ -74,11 +74,23 @@ changing direction, design or scope.**
 
 9. **Test cadence: run what a change can affect, once.**
    - While working: `cargo test` (tier 1), with fmt and clippy before a group is reported done.
-   - Tier 2 (the slice list, the pass lists, the call-site check) runs **once per change, at its close**, not per
-     task group. Before that, run only the programs the work touches (`--glob`, `--category`, a short `--list`),
-     or a list with `--pass-cache target\pass-cache`, which runs only the programs whose executable changed.
-     The closing runs go without `--pass-cache`: it cannot see a result that depends on time or load.
-   - The run without folding (`QB64RUST_NO_FOLD=1`) and the two full suites run once, at the close.
+   - Tier 2 runs **once per change, at its close**, not per task group. Before that, run only the programs the
+     work touches (`--glob`, `--category`, a short `--list`), or a list with `--pass-cache target\pass-cache`,
+     which runs only the programs whose executable changed.
+   - **At a change's close** (`study\32` §4 item 1, user, 2026-10-17): tier 1 with fmt and clippy; the CLI tests
+     that build (`--ignored`); the change's own new programs and its `verification` family; the call-site check;
+     the slice list and the upstream pass list **with `--pass-cache target\pass-cache`** and
+     `--build-cache target\build-cache`; the run without folding (`QB64RUST_NO_FOLD=1`) **only when** the change
+     touched `sema`'s constant evaluation or a numeric conversion; the demand reports, the shrink-only lists and
+     the wording table as before.
+   - **At each merge of `changes` (or `m3`) into `main`**, every two or three changes (`study\32` §4 item 2): the
+     full set, no pass cache: both full suites with the slice list and the upstream pass list judged from them
+     (`--check-list`, `tools\legacy_tests\README.md`), the run without folding, the differential pass list and the
+     call-site check. A failure there is found among the merged changes with the build cache. The pass cache is
+     left out there because it cannot see a result that depends on time or load.
+   - **Order:** whatever changes the compiler (the wording table, generated tables) comes before the first long
+     run, so that no run is thrown away for a new build. Runs of the new compiler may run side by side (they share
+     the clone's lock; `tools\legacy_tests\README.md`, "Locks"); a run of `qb64pe.exe` in the clone has it alone.
    - After the closing runs, a further edit is rerun only for what it can affect; say which runs were not
      repeated and why that is safe.
    - **Read a run's output from a log, not by running it again.** Send a run that may need a second look to a
@@ -91,7 +103,7 @@ changing direction, design or scope.**
      Claude may start a CI run (`gh workflow run`), but never waits on one: the next piece of work goes ahead,
      and the result is read when it comes (user, 2026-10-16).
    - **Every test run is on record** (`tools\testtime\`, user, 2026-10-13): at the close of a change run
-     `python tools\testtime\test_time.py` and name its three files among those to stage. Start a test run by
+     `python tools\testtime\test_time.py` and name its five files among those to stage. Start a test run by
      its own command, not through a script file, or the record does not see it.
 
    *Why:* in the session that built `m3-window-output` the slice list ran five times, the call-site check
@@ -122,6 +134,7 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `study\00-synthesis.md` | Start here: summary of all studies, decisions, plan, measured facts, reuse verdicts; its "Document map" lists every study |
 | `study\01`–`29` | Studies and reviews: `01`–`05` the old compiler, runtime, IDE and build; `06`–`10` VS Code parity, panel, QB 4.5 mode, verification, gaps; `15`–`29` reviews of plan and code, FreeBASIC, extension testing and practices, test cadence, Rust review, IR review. One line each in `study\00`'s "Document map" |
 | `study\progress-record.md` | Closed record: the per-change history `STATUS.md` held until 2026-10-09 (M0 to M2 step 8), moved unchanged. Not added to |
+| `study\support-record.md` | Closed record: the feature catalogue `crates\README.md` held until 2026-10-16, moved unchanged. Not added to: what a program may use is in the merged specs, how a change built it in its `design.md` |
 | `study\archive\` | Closed reviews of other repositories, kept for the record only: `11` existing VS Code extensions, `12` QB64Fresh (the user's earlier Rust rewrite), `13` reference-doc sources, `14` the `docs-new-2` branch, and `qb64fresh-scripts\` (measurements behind `12`). Their conclusions are in `study\00` §11; nothing in the active plan depends on reading them. |
 | `Cargo.toml`, `crates\` | The new compiler `qb64rust` (Rust workspace, one crate per stage; `crates\README.md`: crate map, build, tests, snapshots) |
 | `mise.toml` | Tool versions for this repo, read by mise: Node 24 (for `vscode\`) |
@@ -137,10 +150,11 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `tests\known_false_errors.list`, `tests\known_unsupported_rejections.list`, `tests\known_parse_gaps.list`, `tests\known_clean_not_passing.list` | Shrink-only lists of tier 1: programs the old compiler accepts that get a real error, programs it rejects that get only "not supported yet" errors, accepted programs (plus the old compiler's sources) that do not parse cleanly (`tests\upstream\README.md`), and programs that compile cleanly but are on no pass list, with the reason (kept by hand) |
 | `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure; format tests 24 of 24) |
 | `verification\` | Measurement programs of the old compiler, each with its recorded output, and `run.sh` (starts the runner's `--suite verification`, which records them); the catalogue of the families, `v13*` to the newest, is `verification\README.md` |
-| `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler), the golden corpus and the verification programs (`--suite verification`, a recorder), its own tests (`test_run_legacy_tests.py`: a change to a comparison or recording rule comes with a change to its test), and its `known_failures.txt` |
+| `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler), the golden corpus and the verification programs (`--suite verification`, a recorder), its own tests (`test_run_legacy_tests.py`: a change to a comparison or recording rule comes with a change to its test), and its `known_failures.txt`; `--check-list` judges a pass list from a full run's results; `counts.py` writes the count blocks of the test READMEs (`test_counts.py`) |
 | `tools\callsite\` | `callsite.py`: compares the libqb call the new compiler writes for each program of `tests\callsite\` with the old compiler's (`-z` on both, nothing built or run); part of tier 2 (`README.md`: the normalisation rules and what it does not compare) |
 | `tools\repo_check\` | `check_repo.py`: tracked files must hold no local paths, temp folders or network shares (rule 2) and no stray control bytes (rule 7); `--untracked` also checks new files before they are staged |
-| `tools\testtime\` | `test_time.py`: every test run of every Claude Code session, how long it took and, where the transcript shows it, whether it passed, read from the sessions' transcripts; `runs.csv` and `sessions.csv` (the record, added to at the close of each change) and `REPORT.md` (testing as a share of the working time, by day and by kind of run, and the runs repeated with nothing edited; `README.md`); its own tests (`test_record.py`) |
+| `tools\testtime\` | `test_time.py`: every test run of every Claude Code session, how long it took and, where the transcript shows it, whether it passed, read from the sessions' transcripts; `runs.csv` and `sessions.csv` (the record, added to at the close of each change), `changes.csv` and `activity.csv` (each OpenSpec change's elapsed and active time, waits and kinds of work, since 2026-10-16) and `REPORT.md` (testing as a share of the working time, by day and by kind of run, the runs repeated with nothing edited, and per change; `README.md`); its own tests (`test_record.py`) |
+| `tools\diagnostics\` | `old_wording.py`: the old compiler's wording of each error, paired from recorded rejections, written to `crates\base\src\old_wording.tsv` for the note after an error; `--check` holds the notes to the recorded messages (`README.md`) |
 | `tools\builtins\` | Extractor for the built-in table (`extract_builtins.py`) and its output `builtins.json` (with the names of QB64pe's auto-included files and, for each constant of the file included before the first line, its suffix and the text of its expression) |
 | `tools\wiki\` | `fetch_wiki.py` fetches the QB64pe wiki as raw wikitext into `cache\` (git-ignored, no licence stated; local reference only) |
 | `tools\upstream\` | `copy_upstream_tests.py`: redoes the copy in `tests\upstream\` from the clone at the pinned commit |

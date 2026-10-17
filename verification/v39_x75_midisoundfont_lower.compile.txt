@@ -1,0 +1,5 @@
+
+$MIDISOUNDFONT is a deprecated keyword, use _MIDISOUNDBANK instead
+Caused by (or after):
+LINE 5:$midisoundfont:default
+exit=1

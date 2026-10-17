@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-16 (cut to its own rule by finding 2 of the ninth review, `study\30` §2).
+Updated 2026-10-17 (cut to its own rule by finding 2 of the ninth review, `study\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -11,18 +11,19 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 | What a change did, task by task, and what was found on the way | the change's `tasks.md` and `design.md` under `openspec\changes\` (archived ones in `archive\`), and `git log` |
 | A measured fact about the old compiler | `study\00` §5 (one home per fact); the measurement programs: `verification\README.md` |
 | A decision | `DECISIONS.md`; a decided difference from QB64pe: `DIVERGENCES.md` |
-| What the compiler supports, how to build and test it | `crates\README.md`, the merged specs under `openspec\specs\`; per test set: `tests\*\README.md` |
+| What the compiler supports | the merged specs under `openspec\specs\` (an index by area: `crates\README.md`, "What the compiler supports"); how a change built it: its `design.md` |
+| How to build and test it | `crates\README.md`; per test set: `tests\*\README.md` |
 | Milestones, done and not done | `ROADMAP.md` |
 | History up to 2026-10-09 (what this file held before) | `study\progress-record.md` (closed) |
 
 ## Where we are
 
-M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: twelve of its steps are done, committed and
-archived on branch `m3` (table below). Every program of the corpus that the old compiler accepts compiles, and
-every one that can be compared passes; Civil War Strategy compiles with no diagnostic, builds, and played for two
-turns from a keys file shows the same 23 screens as the old compiler's build. Upstream is at 318 of 399. `main`
-is at the merge of `m2-console-screenhide` (pull request 4, 2026-10-13); `m3` is in a pull request to `main`,
-opened 2026-10-16, for the user to merge.
+M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: nineteen of its steps are built and archived
+(table below), the last `m3-events` (`81c05ed`); `test-parallel-runs` (the test cadence of `study\32`, not an M3
+step, `4a8d06e`) is archived too. Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes; Civil
+War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same 23
+screens as the old compiler's build. Upstream is at 336 of 399. `main` is at the merge of `m3` (pull request 5,
+2026-10-16).
 
 ## Waiting on the user
 
@@ -31,7 +32,14 @@ Oldest first. Each line names where the details are. The list of 2026-10-16 was 
 change's close. Separate from this list and standing: `SOMEDAY.md`'s "QB64pe behaviours to review", the
 questionable behaviours each change kept QB64pe's way.
 
-1. **Merge the pull request of `m3` into `main`** (opened 2026-10-16).
+1. **Merge `changes` into `main`**: the three changes of `447bb05`, then `m3-sound-handles` (`b1a818d`),
+   `m3-versioninfo` (`3c93e14`), `m3-arraycopy` (`7439ea8`), `m3-events` (`81c05ed`) and `test-parallel-runs`
+   (`4a8d06e`), since the last merge (`DECISIONS.md` 2026-10-16, "every two or three changes").
+2. **The next M3 step**: the upstream report's first lines are `_OPENCLIENT`, the function `CHR$` in a `CONST` and
+   `_ERRORLINE` (3 programs each).
+3. **`m3-events`' four kept behaviours** (archived without a ruling on them; `SOMEDAY.md`'s "QB64pe behaviours to
+   review"): `ON KEY`'s key cut, a SUB handler's argument through an `_INTEGER64`, an event during an error
+   handler held, a `TYPE` parameter rejected.
 
 **The `tier2` job on `m3`** (`study\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -43,23 +51,9 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-**Decided 2026-10-16 and not built yet** (`DECISIONS.md` 2026-10-16), in this order:
-
-1. **Three measurements, each then done QB64pe's way unless it misuses memory**: the unpack after a `GET` whose
-   read raised an error (D-021); the dimension count in the bounds check of a file's `_DYNAMIC` member
-   (`m3-typefields`); the dimension count of a dynamic member array's descriptor in a whole-array copy
-   (`m3-whole-array-assign` tasks 3.1).
-2. **D-022 narrowed**: QB64pe's copy where nothing is read past the source; nothing copied only where it would be.
-3. **A run-time trace of divergences**: an environment variable makes the runtime print one line when a D-row's
-   path is taken; the test runner sets it for every run and fails on a line it does not expect. Every D-row with
-   a run-time path.
-4. **Merge `m3` into `main`** every two or three changes (the first pull request opened 2026-10-16).
-5. **Its own change after `m3-declare-library`**: every diagnostic whose wording differs from the old compiler's
-   carries the old wording as a note, from recorded output.
-
-The upstream report's first lines are `_SNDOPEN` (6), `_ARRAYCOPY` (4, deferred),
-`$VERSIONINFO` (4), the event handlers and switches (4 each) and `_MIDISOUNDBANK` (4) (2026-10-16);
-the plain copy of `internal\c` waits until libqb must change.
+`m3` goes to `main` every two or three changes; eight wait now. The next M3 step is the user's to choose (the
+upstream report's first lines are `_OPENCLIENT`, `CHR$` in a `CONST` and `_ERRORLINE`, 3 each); the plain copy of
+`internal\c` waits until libqb must change.
 
 **M3's steps** (user, `DECISIONS.md` 2026-10-12, and one row per later step). Done, each archived under
 `openspec\changes\archive\` with its `tasks.md` and `design.md`; its measurements in `study\00` §5; what stayed
@@ -79,38 +73,42 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 10 | `2026-10-15-m3-typefields` | `$UNSTABLE:TYPEFIELDS`, member markers, `_DYNAMIC` member arrays; the arrays used after a marked declaration (`DECISIONS.md` 2026-10-14, item 1) are no longer named by the demand report |
 | 11 | `2026-10-15-m3-whole-array-assign` | whole-array assignment `a() = b()` |
 | 12 | `2026-10-16-m3-declare-library` | `DECLARE LIBRARY` in its four forms on Windows; D-023 and D-024 not built |
+| 13 | `2026-10-16-m3-measured-copies` | what owner types copy after an error done QB64pe's way where no memory is misused (`v38`); D-019, D-021, D-022 narrowed |
+| 14 | `2026-10-16-m3-divergence-trace` | the run-time trace of divergences (`QB64RUST_DIVERGENCES`), checked by the runner and the CLI tests |
+| 15 | `2026-10-16-m3-old-wording-notes` | the old compiler's wording as a note after an error, from recorded output |
+| 16 | `2026-10-16-m3-sound-handles` | `_SNDOPEN`, the `_SND*` family, `_MIDISOUNDBANK`, `_WAVE`: every name of the audio part; `_MEMSOUND` run |
+| 17 | `2026-10-17-m3-versioninfo` | `$VERSIONINFO`: the version resource and manifest byte for byte; a compile error where the old build fails or its executable cannot start |
+| 18 | `2026-10-17-m3-arraycopy` | `_ARRAYCOPY` in its six forms, member arrays included; D-004 widened, D-025 |
+| 19 | `2026-10-17-m3-events` | `ON TIMER`, `ON KEY`, the switches, `_FREETIMER`, `KEY ON`/`OFF`/`LIST`, `KEY n, text$`; `STRIG` left for device input |
 
 ## Numbers at the last full runs
 
-From 2026-10-16 (task 6.2 of `m3-declare-library`, release build against the reference clone, each runner run
-with `--jobs 8 --build-cache target\build-cache`): tier 1 (run again last, after the edit to `s125`), the
-command-line tests that build, the runner's tests, the slice list with and without folding, the upstream and
-differential pass lists, the two full suites and the demand reports, each run once after the last change to the
-compiler. `s125` was then changed to read `GetLastError` before its `PRINT`: recorded again with the old compiler
-(output unchanged) and run alone, with and without folding; the corpus demand report was run again. The
-call-site check is from `m3-asserts-debug-zlib` (no row of the built-in table changed since; `m3-declare-library`
-adds none, so it was not run). The rows of the real programs, of the old compiler and of `--pass-cache` are older
-(sessions 56, 40 and 54).
+From 2026-10-17 (the close of `m3-events`, release build against the reference clone, each runner run with
+`--jobs 8 --build-cache target\build-cache`, none with `--pass-cache`): tier 1, the 37 command-line tests that
+build, the two full suites (the slice list and the upstream pass list judged from them with `--check-list`), the
+slice list without folding, the differential pass list, the call-site check, the demand reports, the shrink-only
+lists and the old compiler's wording, all on one build. Not run: the runner's tests and those of `tools\testtime`
+(untouched). The rows of the real programs, of the old compiler and of `--pass-cache` are older.
 
 | Yardstick | Result |
 |---|---|
-| `tests\corpus\slice.list` (tier 2) | **436 of 436** (66 of them screen programs, `g12_game` the scripted game; `s121`–`s125`, new with `m3-declare-library`, each passing on its first run); 436 of 436 also with `QB64RUST_NO_FOLD=1` |
-| Full corpus (461 programs) | 455 pass (the 436 of the slice list, 19 `.err` programs), none wrong at run time; **none rejected with "not supported yet"**; 1 `.err` program with only marked errors (`218` `FRE`); 5 known failures (`tests\corpus\README.md`) |
-| Upstream | **318 of 399** (`tests\upstream\pass.list`: 318, all passing, run by itself from the clone; the 8 with a `DECLARE LIBRARY` block joined with `m3-declare-library`); the full suite: 404 programs, 318 pass, 85 rejected or with only marked errors (72 at the compile, 13 `.err` programs), 1 known failure, none wrong |
-| Call-site check | 1677 of 1677 programs equal (`tools\callsite\README.md`; 46 of them for `m3-asserts-debug-zlib`: `_ASSERT` 18, the data-processing functions 28) |
+| `tests\corpus\slice.list` (tier 2) | **446 of 446**, judged from the full corpus run (67 of them screen programs, `g12_game` the scripted game; `s134_events_timer` and `k01_on_key`, new with `m3-events`, and `s133_arraycopy_dynamic_dims` passing on their first full run; five take a row of `DIVERGENCES.md` on purpose and list it in a `.divergences` sidecar); with `QB64RUST_NO_FOLD=1` 445 of 446, `u02_mouse_text` (the mouse program a real cursor can disturb) failing once under load and passing alone |
+| Full corpus (471 programs) | 465 pass (the 446 of the slice list, 19 `.err` programs), none wrong at run time; **none rejected with "not supported yet"**; 1 `.err` program with only marked errors (`218` `FRE`); 5 known failures (`tests\corpus\README.md`) |
+| Upstream | **336 of 399** (`tests\upstream\pass.list`: 336, all passing in the full run; the four `timer/` programs joined with `m3-events`); the full suite: 404 programs, 336 pass, 67 rejected or with only marked errors, 1 known failure, none wrong; no program of either suite takes a row of `DIVERGENCES.md` it does not list |
+| Call-site check | 1864 of 1864 programs equal (26 `event_*` new) (`tools\callsite\README.md`) |
 | Real programs (`tests\programs`) | Civil War Strategy: **no diagnostic, and it builds** (3.6 s; the old compiler 6.9 s the same day). Its C++ compared once with the old compiler's, line by line: no call differs on 4,332 lines. **Played for two turns from a keys file (`g12_game`, a copy with listed edits): 23 states equal to the old compiler's**, 1.1–1.9 s a run (`tests\programs\README.md`) |
 | Differential (`tests\differential\pass.list`) | 59 of 59 |
-| Shrink-only lists | 0 false errors, 0 parse gaps, 28 only-marked rejections, 5 clean programs on no pass list (the 8 upstream programs of `DECLARE LIBRARY` left it; `tests\upstream\README.md`); regenerated at the close, unchanged by it |
-| Tier 1 (`cargo test`) | 322 tests pass; the 30 command-line tests that build an executable (`--ignored`, run alone) pass too (3 new with `m3-declare-library`: libraries linked and called, error 260, the rejections before the C++) |
-| The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 73 pass, 1 s; those of `tools\testtime` 38 (not run with this change, which does not touch it) |
+| Shrink-only lists | 0 false errors, 0 parse gaps, 28 only-marked rejections, 5 clean programs on no pass list (`tests\upstream\README.md`); regenerated at the close of `m3-events`, unchanged by it |
+| Tier 1 (`cargo test`) | 338 tests pass (new with `m3-events`: two parser tests, a unit test of the IR's validation; the front-end tests `events_errors`, `_ok`, `_typed`, `_ir`, `_cpp` run within one test); the 37 command-line tests that build an executable (`--ignored`, run alone) pass too (new: `event_handlers_run`) |
+| The runner's own tests (`python -m unittest discover -s tools/legacy_tests -p "test_*.py"`) | 80 pass, 1 s; those of `tools\testtime` 38 (not run: untouched) |
 | `slice.list` while working, with `--pass-cache` | 24 s when no program's executable changed, 92 s when all are run (`--jobs 8 --build-cache`, 2026-10-12) |
-| Screen programs (`tests\corpus\screen`, 66) | Old compiler: 66 recorded, each from two equal runs. New compiler: 66 pass; the 12 of `m3-images-fonts-mouse` (`i01`–`i08`, `f01`, `f02`, `u01`, `u02`) each on its first run (`u01` and `u02` were recorded again after the fix of the mouse steps' wait, task 4.1) |
-| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus: **nothing held back** (441 without an `.err`: 439 without errors, and `s77_exeicon` and `g12_game`, whose icons only the runner puts beside them). Upstream (348 without an `.err`): 274 without errors, 63 held back, 11 with other errors (the ten that include the old compiler's sources, and `icon_relative/test`, whose icon lies in the clone); `DECLARE LIBRARY` is no longer named; first lines: `_SNDOPEN` 6, `_ARRAYCOPY` 4, `$VERSIONINFO` 4 |
+| Screen programs (`tests\corpus\screen`, 67) | Old compiler: 67 recorded, each from two equal runs. New compiler: 67 pass; `k01_on_key` (`m3-events`) on its first run |
+| Demand (`qb64rust --report unsupported`; upstream with `--include-root tests\upstream\root`) | Corpus and `tests\programs`: **nothing held back** (452 without an `.err`: 450 without errors, and `s77_exeicon` and `g12_game`, whose icons only the runner puts beside them). Upstream (348 without an `.err`): 292 without errors, 45 held back, 11 with other errors (the ten that include the old compiler's sources, and `icon_relative/test`, whose icon lies in the clone); first lines: `_OPENCLIENT`, `CHR$` in a `CONST`, `_ERRORLINE` 3 each; the event switches and handlers no longer named |
+| The old compiler's wording (`tools\diagnostics\old_wording.py`) | 1,525 recorded rejections paired on the same line; 522 messages with a note (19 new with `m3-events`); `--check`: 819 notes on recorded rejections, all the recorded message |
 | Tier 2 as CI runs it, locally | about 12 min at the last full build; about 2 min with `--jobs 8 --build-cache` when little C++ changed |
 | Full corpus with the old compiler (2026-10-10, 336 programs) | 331 pass, 5 known failures, `--jobs 8`; the 305 before the screen programs took about 12 min with one job, 3 min 44 s with `--jobs 8` (`tools\legacy_tests\README.md`) |
 
-What `deferred.list` still holds needs `_ARRAYCOPY` or, `t001`, a plain scalar beside an array typed by `DIM …
-AS`.
+`deferred.list` holds `t001` alone: a plain scalar beside an array typed by `DIM … AS`.
 
 ## Known bugs
 

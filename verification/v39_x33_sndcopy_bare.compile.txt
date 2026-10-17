@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _SNDCOPY(handle&)
+Caused by (or after):H = _SNDCOPY
+LINE 9:h = _SNDCOPY
+exit=1

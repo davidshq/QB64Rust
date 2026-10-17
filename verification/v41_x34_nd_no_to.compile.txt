@@ -1,0 +1,5 @@
+
+_ArrayCopy source dimension requires lower TO upper
+Caused by (or after):_ARRAYCOPY M ( 1 TO 2 , 3 ) TO N ( 0 , 0 )
+LINE 4:_ARRAYCOPY m(1 TO 2, 3) TO n(0, 0)
+exit=1

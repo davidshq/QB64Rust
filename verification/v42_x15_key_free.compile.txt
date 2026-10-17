@@ -1,0 +1,5 @@
+
+Syntax error - Reference: KEY(number) {On|Off|Stop}
+Caused by (or after):KEY ( 1 ) FREE
+LINE 4:KEY(1) FREE
+exit=1

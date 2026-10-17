@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _SNDOPEN(fileName$[, capabilities$])
+Caused by (or after):H = _SNDOPEN ( T , "",0 , 1 )
+LINE 9:h = _SNDOPEN(t, "", 1)
+exit=1

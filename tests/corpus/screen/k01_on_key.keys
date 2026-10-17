@@ -1,0 +1,11 @@
+# F1, the up arrow and A (user key 15), each at an announced wait; the soft-key line is on the screen then.
+prompt
+key f1
+prompt
+state
+key up
+prompt
+text a
+# F1 again, switched off: it reaches INKEY$.
+prompt
+key f1

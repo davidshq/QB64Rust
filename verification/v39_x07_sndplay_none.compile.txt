@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDPLAY handle&
+Caused by (or after):_SNDPLAY
+LINE 9:_SNDPLAY
+exit=1

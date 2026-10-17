@@ -1,19 +1,30 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 107
+assertion_line: 149
 expression: snap
 ---
 dest_errors.bas:10:6: error: this `_DEST` statement matches none of its forms: `_DEST ?`
+dest_errors.bas:10:6: note: QB64pe: Syntax error - Reference: _DEST imageHandle&
 dest_errors.bas:11:7: error: `_DEST` needs a number
+dest_errors.bas:11:7: note: QB64pe: Number required for sub
 dest_errors.bas:12:8: error: this `_DEST` statement matches none of its forms: `_DEST ?`
+dest_errors.bas:12:8: note: QB64pe: Syntax error - Reference: _DEST imageHandle&
 dest_errors.bas:13:8: error: this `_SOURCE` statement matches none of its forms: `_SOURCE ?`
+dest_errors.bas:13:8: note: QB64pe: Syntax error - Reference: _SOURCE handle&
 dest_errors.bas:14:9: error: `_SOURCE` needs a number
+dest_errors.bas:14:9: note: QB64pe: Number required for sub
 dest_errors.bas:15:10: error: this `_SOURCE` statement matches none of its forms: `_SOURCE ?`
+dest_errors.bas:15:10: note: QB64pe: Syntax error - Reference: _SOURCE handle&
 dest_errors.bas:16:1: error: names starting with `_` are reserved: `_CONSOLE`
+dest_errors.bas:16:1: note: QB64pe: Expected variable =, look for conflict with a CONST name
 dest_errors.bas:17:7: error: `_ECHO` needs a string
+dest_errors.bas:17:7: note: QB64pe: String required for sub
 dest_errors.bas:18:1: error: `_ECHO` takes 1 argument
+dest_errors.bas:18:1: note: QB64pe: Syntax error - Reference: _ECHO text$
 dest_errors.bas:19:1: error: `_ECHO` takes 1 argument
+dest_errors.bas:19:1: note: QB64pe: Syntax error - Reference: _ECHO text$
 dest_errors.bas:20:5: error: `_DEST` takes 0 arguments
+dest_errors.bas:20:5: note: QB64pe: Incorrect number of arguments - Reference: _DEST
 dest_errors.bas:21:5: error: `_DEST` with empty parentheses
 dest_errors.bas:22:5: error: `_SOURCE` takes 0 arguments
 dest_errors.bas:23:5: error: `_SOURCE` with empty parentheses
@@ -22,5 +33,6 @@ dest_errors.bas:25:5: error: `_CONSOLE` with empty parentheses
 dest_errors.bas:26:1: error: `_DEST` takes 1 argument
 dest_errors.bas:27:1: error: `_DEST` takes 1 argument
 dest_errors.bas:28:1: error: `_ECHO` takes 1 argument
+dest_errors.bas:28:1: note: QB64pe: Syntax error - Reference: _ECHO text$
 dest_errors.bas:29:1: error: not supported yet: `_CONSOLE`
 dest_errors.bas:30:1: error: not supported yet: `_CONSOLE`

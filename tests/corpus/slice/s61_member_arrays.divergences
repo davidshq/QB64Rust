@@ -1,0 +1,3 @@
+# Stores into member arrays with an index outside (part 5, bump in part 22), on purpose: no line prints the
+# position the old compiler writes then.
+D-004

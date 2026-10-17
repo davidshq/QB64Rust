@@ -1,0 +1,5 @@
+
+Expected _BYTE array name
+Caused by (or after):_WAVE 0 , E ( 1 ) . V
+LINE 13:_WAVE 0, e(1).v
+exit=1

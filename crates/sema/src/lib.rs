@@ -1028,6 +1028,10 @@ pub enum ExprKind {
     MemOf {
         of: Reference,
         element: bool,
+        /// A whole array parameter of numbers or fixed-length strings that nothing above the `_MEM` has given its
+        /// number of dimensions: the old compiler takes the lock from slot 0 of the descriptor here, this one from
+        /// the array's own (`DIVERGENCES.md` D-016). Read only by the run-time trace of divergences.
+        lock_slot0: bool,
     },
     /// `_MEM(offset, size)`: a block of `size` bytes at `offset`, both `_OFFSET` values, typed `_MEM`. A negative
     /// size raises error 301 (not trapped) and gives a block of 0 bytes. Stands only as the value stored into a
@@ -1167,6 +1171,39 @@ pub enum StmtArg {
     Absent,
 }
 
+/// The event of [`StmtKind::OnEvent`], its operands converted as the old compiler converts them (measured,
+/// `verification\v42_b`, `v42_d`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum Event {
+    /// `ON TIMER([number,] seconds)`: `number` LONG (absent: timer 0), `seconds` DOUBLE.
+    Timer { number: Option<Expr>, seconds: Expr },
+    /// `ON KEY(key)`: `key` DOUBLE, which libqb's `int32` parameter cuts toward zero.
+    Key { key: Expr },
+}
+
+/// What runs when the event is serviced.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Handler {
+    /// `GOSUB label`: a label of the main module, whatever body the statement stands in.
+    Label(LabelId),
+    /// A SUB with no parameter or one of an integer type, and its argument as `_INTEGER64`, evaluated when the
+    /// handler is set up.
+    Sub { proc: ProcId, arg: Option<Expr> },
+}
+
+/// The forms of `KEY` outside its template.
+#[derive(Clone, Debug, PartialEq)]
+pub enum KeyForm {
+    /// `KEY ON`: show the soft keys.
+    On,
+    /// `KEY OFF`: hide them.
+    Off,
+    /// `KEY LIST`: list them.
+    List,
+    /// `KEY n, text$`: soft key `n` (LONG), or user key 15–25 with `CHR$(flags) + CHR$(scancode)`.
+    Assign { number: Expr, text: Expr },
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum StmtKind {
     /// A built-in statement that is one call of the runtime ([`builtins::STATEMENTS`]): the table entry of the form
@@ -1256,6 +1293,18 @@ pub enum StmtKind {
     /// member array. `to`'s place is found before `from`'s. What runs (the checks of allocation and bounds, error
     /// 9, the copy by kind) is the IR's `Op::CopyArray`.
     CopyArray { from: ArrayRef, to: ArrayRef },
+    /// `_ARRAYCOPY from(ranges) TO to(starts)` (design D1–D4 of `m3-arraycopy`; measured, `verification\v41_*`): two
+    /// arrays of one element type (a number type, `_OFFSET`, `STRING * n` or `STRING`), each an array variable or
+    /// a member array; `ranges` the source's, lower and upper bound per dimension (none: the whole array),
+    /// `starts` the destination's, one per dimension (none: the whole array, a range then keeping its indexes);
+    /// each converted to `_INTEGER64` as an index is. `from`'s place is found, then `to`'s, then every lower
+    /// bound, every upper bound and every start are evaluated. What runs is the IR's `Op::ArrayCopy`.
+    ArrayCopy {
+        from: ArrayRef,
+        to: ArrayRef,
+        ranges: Vec<(Expr, Expr)>,
+        starts: Vec<Expr>,
+    },
     /// `PRINT`, `PRINT #n,` or `LPRINT`, by `to`.
     Print {
         to: PrintTo,
@@ -1394,6 +1443,11 @@ pub enum StmtKind {
         gosub: bool,
         targets: Vec<LabelId>,
     },
+    /// `ON TIMER(…)` or `ON KEY(…)` with its handler (design D2 of `m3-events`): libqb's setup of the event, where
+    /// the statement stands; the handler runs when libqb services the event.
+    OnEvent { event: Event, handler: Handler },
+    /// `KEY ON`, `KEY OFF`, `KEY LIST`, `KEY n, text$` (design D2 of `m3-events`).
+    Key(KeyForm),
     /// `SELECT CASE` or `SELECT EVERYCASE` (design D7 of `m2-core-builtins`, measured `verification\v20_h_select`).
     Select {
         /// What the cases are compared with. A plain scalar variable is read at each test (`copied` false); anything
@@ -1514,6 +1568,49 @@ pub struct Settings {
     pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
     /// The icon `$EXEICON` gives the executable.
     pub exe_icon: Option<ExeIcon>,
+    /// The version resource `$VERSIONINFO` gives the executable, when a line of it stands in the program.
+    pub version_info: Option<VersionInfo>,
+}
+
+/// The fields of a program's version resource (`$VERSIONINFO:key=value`; design D1 of `m3-versioninfo`). Each
+/// value is the source's bytes as written, without one pair of enclosing `'` for a string (the old compiler copies
+/// them unchanged into the resource, measured, `verification\v40_g7`); an empty one was not set.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct VersionInfo {
+    /// `FILEVERSION#`: four comma-separated numbers.
+    pub file_version: Vec<u8>,
+    /// `PRODUCTVERSION#`: likewise.
+    pub product_version: Vec<u8>,
+    /// The string fields, in the order of [`VersionInfo::STRING_KEYS`].
+    pub strings: [Vec<u8>; VERSION_STRINGS],
+}
+
+/// The number of string fields of a version resource.
+pub const VERSION_STRINGS: usize = 11;
+
+impl VersionInfo {
+    /// The string keys, in the order the resource lists them (`qb64pe.bas` 13617–13627).
+    pub const STRING_KEYS: [&'static str; VERSION_STRINGS] = [
+        "CompanyName",
+        "FileDescription",
+        "FileVersion",
+        "InternalName",
+        "LegalCopyright",
+        "LegalTrademarks",
+        "OriginalFilename",
+        "ProductName",
+        "ProductVersion",
+        "Comments",
+        "Web",
+    ];
+    /// The indexes in [`Self::STRING_KEYS`] of the keys the compiler names.
+    pub const COMPANY_NAME: usize = 0;
+    pub const FILE_DESCRIPTION: usize = 1;
+    pub const FILE_VERSION: usize = 2;
+    pub const PRODUCT_NAME: usize = 7;
+    pub const PRODUCT_VERSION: usize = 8;
+    /// The string fields the executable's manifest holds.
+    pub const MANIFEST: [usize; 3] = [Self::COMPANY_NAME, Self::PRODUCT_NAME, Self::FILE_DESCRIPTION];
 }
 
 /// The icon of a program's executable (`$EXEICON:'name'`; design D4 of `m3-sound`). `sema` reads no file: whether

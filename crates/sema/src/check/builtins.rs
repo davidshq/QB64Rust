@@ -925,6 +925,45 @@ impl Checker<'_> {
         })
     }
 
+    /// The array of `_WAVE` (`_BYTE`) or `_SNDRAWBATCH` (`SINGLE`), which the old compiler checks itself after the
+    /// argument is read (design D2 of `m3-sound-handles`; `qb64pe.bas` 11807–11847; measured,
+    /// `verification\v39_x22`–`x27`, `x46`–`x54`, `x57`–`x61`, `x71`, `x72`): an array of exactly that type, whole
+    /// (`w()`, `w`) or from an element, as [`Checker::block_arg`] takes it. Any other type, a variable and a member
+    /// are the old compiler's error ("Expected _BYTE array name", "Expected SINGLE array name"; a member array is
+    /// "Expected array index"), where `block_arg` alone would mark some of them not supported yet.
+    fn typed_array_arg(&mut self, node: ast::Expr, name: &str, want: Ty) -> R<StmtArg> {
+        let span = node.node().span();
+        let kind = if want == Ty::I8 { "_BYTE" } else { "SINGLE" };
+        let expected = |c: &mut Self| c.error(span, format!("`{name}` needs an array of {kind} here"));
+        let whole = match &node {
+            ast::Expr::NameRef(n) => n.name().map(|t| (t, true)),
+            ast::Expr::Call(c) if c.arg_list().is_some_and(|l| l.args().is_empty()) => c.name().map(|t| (t, false)),
+            ast::Expr::Field(_) => return Err(expected(self)),
+            ast::Expr::Call(_)
+            | ast::Expr::Literal(_)
+            | ast::Expr::Paren(_)
+            | ast::Expr::Prefix(_)
+            | ast::Expr::Bin(_) => None,
+        };
+        if let Some((t, bare)) = whole {
+            let (word, suffix) = self.split_name(t)?;
+            match self.find_array(&word, suffix) {
+                Some(array) if self.prog.var(array).ty != want => return Err(expected(self)),
+                // A plain variable or a constant; `w()` with no array of that name is an array used without `DIM`,
+                // which `block_arg` marks, as for `GET`.
+                None if bare || word.contains('.') => return Err(expected(self)),
+                _ => {}
+            }
+        }
+        let arg = self.block_arg(node, name)?;
+        if let StmtArg::Block { array, .. } = &arg
+            && self.prog.var(*array).ty != want
+        {
+            return Err(expected(self));
+        }
+        Ok(arg)
+    }
+
     /// The variable of `GET` or `PUT` on a file (design D2 of `m3-console-files`; measured,
     /// `verification\v30_x20`–`x48`, `x67`): a variable, element or member, of any type but `_BIT` and a `TYPE`
     /// with a `STRING` in it, or a whole array `a()` of anything but variable-length strings. A name alone is a
@@ -1020,7 +1059,11 @@ impl Checker<'_> {
             args.push(match (slot, m) {
                 (StmtSlot::Arg { slot: Slot::Block, .. }, Matched::Arg(Some(arg))) => {
                     k += 1;
-                    self.block_arg(arg, form.name)?
+                    match form.id.get().callname {
+                        "sub__wave" => self.typed_array_arg(arg, form.name, Ty::I8)?,
+                        "sub__sndrawbatch" => self.typed_array_arg(arg, form.name, Ty::F32)?,
+                        _ => self.block_arg(arg, form.name)?,
+                    }
                 }
                 (StmtSlot::Arg { slot: Slot::Bytes, .. }, Matched::Arg(Some(arg))) => {
                     k += 1;

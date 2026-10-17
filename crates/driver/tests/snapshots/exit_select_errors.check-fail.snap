@@ -1,12 +1,17 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 108
+assertion_line: 149
 expression: snap
 ---
 exit_select_errors.bas:7:1: error: `EXIT SELECT` without `SELECT CASE`
+exit_select_errors.bas:7:1: note: QB64pe: EXIT SELECT without SELECT
 exit_select_errors.bas:8:1: error: `EXIT CASE` without `SELECT CASE`
 exit_select_errors.bas:10:5: error: only comments may stand between `SELECT CASE` and the first `CASE`
+exit_select_errors.bas:10:5: note: QB64pe: Expected CASE expression
 exit_select_errors.bas:16:1: error: `EXIT SELECT` without `SELECT CASE`
+exit_select_errors.bas:16:1: note: QB64pe: EXIT SELECT without SELECT
 exit_select_errors.bas:22:5: error: `EXIT SELECT` without `SELECT CASE`
+exit_select_errors.bas:22:5: note: QB64pe: EXIT SELECT without SELECT
 exit_select_errors.bas:25:5: error: `EXIT SELECT` without `SELECT CASE`
+exit_select_errors.bas:25:5: note: QB64pe: EXIT SELECT without SELECT
 exit_select_errors.bas:26:5: error: `EXIT CASE` without `SELECT CASE`

@@ -1,0 +1,5 @@
+
+1st function argument requires a string
+Caused by (or after):H = _SNDOPEN ( 1 )
+LINE 9:h = _SNDOPEN(1)
+exit=1

@@ -59,6 +59,15 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   run (the folder is emptied between the two runs of `--record`, and a run may have changed a file), with either
   compiler. Beside an `.err` or a `.norun` it is an error in the test. `.gitattributes` stores the files byte
   for byte.
+- **The run-time trace of divergences** (`m3-divergence-trace`; corpus and compile suites): every run has
+  `QB64RUST_DIVERGENCES` naming a fresh file `<results>\<key>-run<n>-divergences.txt`, where a program built by
+  the new compiler writes `D-0nn` the first time it takes the path of that row of `DIVERGENCES.md` (the old
+  compiler's programs write nothing). When checking, a row that `<name>.divergences` (one `D-0nn` per line, `#`
+  starts a comment) does not list fails the program at the stage `divergences`; a listed row not taken does not.
+  A corpus program's sidecar lies beside it; a compile-suite program's is
+  `tests\upstream\divergences\<category>\<name>.divergences`, since its own folder is the clone's or the copy that
+  `tools\upstream\copy_upstream_tests.py` remakes.
+  The verification suite records the old compiler only and does not set it.
 - A program listed in `known_failures.txt` that has no expected file (it hangs or loops forever, so nothing can
   be recorded) is compiled but never run, and reported as KFAIL `not run`. To try it again, remove the entry and
   record it.
@@ -67,14 +76,14 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   `tests\corpus\slice.list` names the programs the new compiler's first slice must pass.
 - `--pass-cache <folder>` (corpus suite, not with `--record`): a program that passed is remembered by a hash of
   its executable, its source and every file its run and comparison read (`.output`, `.screen`, `.keys`, `.stdin`,
-  `.normalize`, `.exitcode`, `.noprompt`, and each file of `.files` by its path and bytes). The next run with the option still compiles and builds it, and when the hash is
+  `.normalize`, `.exitcode`, `.noprompt`, `.divergences`, and each file of `.files` by its path and bytes). The next run with the option still compiles and builds it, and when the hash is
   the same reports `PASS` with "not run: passed before …" without running it; a last line says how many were
   not run. With `--build-cache`, which gives an unchanged program a byte-identical executable, an edit to the
   compiler then runs only the programs whose C++ it changed: the 342 of `slice.list` take 24 s when nothing
-  changed, against 92 s (`--jobs 8`, 2026-10-12). A failure is never remembered. **The closing runs of a change
-  go without it** (`CLAUDE.md` working rule 9): it cannot see a result that depends on time or load, which is
-  how `m10_screen_10` was found. With `qb64pe` it does no harm and saves nothing (its builds differ byte for
-  byte). The folder is safe to delete.
+  changed, against 92 s (`--jobs 8`, 2026-10-12). A failure is never remembered. A change's close runs the slice
+  and upstream pass lists with it; **the runs at a merge into `main` go without it** (`CLAUDE.md` working rule
+  9): it cannot see a result that depends on time or load, which is how `m10_screen_10` was found. With
+  `qb64pe` it does no harm and saves nothing (its builds differ byte for byte). The folder is safe to delete.
 - `--cpp-opt` adds `-f:OptimizeCppProgram=true`; its failures list the programs whose behaviour depends on the
   C++ optimiser (`tests\corpus\README.md`). It cannot be combined with `--record`.
 - On Windows, `END` in a console program waits for a key from the console ("Press any key to continue"), which
@@ -154,7 +163,35 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification              
 Results (executables, compiler output, run output, a JSON summary) go to `target\legacy-tests\` (ignored by
 git). The summary is `results.json` for `--suite all`, `results-<suite>.json` for one whole suite, and
 `results-partial.json` when `--category`, `--glob`, `--list` or program names narrow the run, so a partial run never
-overwrites a full one.
+overwrites a full one. Since 2026-10-16 the summary holds a `run` record (format 1): the selection, the roots of the
+corpus and compile suites (relative to the repo), `QB64RUST_NO_FOLD`, `--cpp-opt`, `--record`, `--jobs`, whether a
+build or pass cache was used, the SHA-256 of the compiler and of this runner, and when the run started and ended.
+
+**A pass list judged from a full run** (`--check-list <list>`, corpus and compile suites, `study\31` item 3): runs
+nothing, and judges every program of the list from the suite's last full summary, `results-<suite>.json`. Each
+listed program must have `PASS` there, run (not kept by `--pass-cache`); a known failure fails it (a pass list needs
+a pass), as do a missing result and any file of the program (the `.bas`, every `<name>.*` beside it, its
+`<name>.files\`, a compile-suite sidecar) changed after the run started. And the run must be the same as a run of
+the list would be: a full run, the same root, the same compiler build and runner (by hash), the same
+`QB64RUST_NO_FOLD`, and no `--pass-cache`, `--record` or `--cpp-opt`; a summary written before the `run` record fails.
+It prints the failures, the runner's summary line and `<list>: n of m passed in results-<suite>.json`; exit code 0
+when all passed, 1 otherwise, 2 for a usage error. **Not seen:** an included file changed after the run, and
+the reference clone (its libqb and toolchain, which a corpus program is linked with) changed after it. At a
+change's close it stands for the slice list and the upstream pass list (`CLAUDE.md` working rule 9): the full suites
+run those programs with the same options, so running the lists too ran 765 programs twice. Checked once on
+2026-10-16 (the build of `m3-sound-handles`): `slice.list` 440 of 440 and `pass.list` 325 of 325, the same programs
+as the list runs of that build passed; about a second each. The run without folding, the differential pass list
+(another corpus root) and the call-site check are still run.
+
+**The count blocks of the test READMEs** (`counts.py`, `study\31` item 2): `python tools\legacy_tests\counts.py`
+rewrites the text between `<!-- counts:NAME -->` and `<!-- /counts:NAME -->` in `tests\corpus\README.md`,
+`tests\upstream\README.md` and `tests\differential\README.md`, and nothing outside them; `--check` compares and
+writes nothing (exit code 1 when a block differs). Membership blocks come from the lists and the folders (the
+upstream "x of y": `pass.list` of the copy's programs less `deferred.list`). Result blocks come from the suite's
+last full summary and are written only when it is of the release build at `target\release\qb64rust.exe` and of
+this runner, a plain full run (no selection, folding on, no cache that skips a program); the pass list is judged
+in it as `--check-list` does. Otherwise the block is left as it is, with its own run's date and build, and the
+reason is printed. Run it at a change's close, after the full suites; tests: `test_counts.py`.
 
 Known failures: `known_failures.txt` lists tests (`<suite>:<test>  <reason>`) whose failure is reported as
 `KFAIL` and does not fail the run. Today only `http/read_example` (environment-dependent, see `baselines\`).
@@ -179,17 +216,47 @@ Notes:
   their own `--results`, do not meet here. The summary file is not locked: two narrowed runs with one
   `--results` both write `results-partial.json` when they end, and the later one stays. Give one of them its
   own `--results` when both summaries are wanted.
-- **One run at a time builds in the clone** (`clone_lock.py`). This runner (so `verification\run.sh` and
-  tier 2 too) and `tools\callsite\callsite.py` take a lock on `target\qb64pe-clone\in-use.lock` first; a
-  second one started meanwhile stops at once with exit code 3, or with `--wait` prints that it is waiting and
-  starts when the other has ended. The system drops the lock when the run ends, however it ends.
-  - With `qb64pe`: two runs would empty and read each other's `internal\temp`.
-  - With `qb64rust` (any `--jobs`): its C++ and executable are outside the clone, but its `make` runs in the
-    clone, reads `internal\temp` and builds the libqb objects the clone lacks.
+- <a id="locks"></a>**Locks: runs of `qb64rust` side by side, a run of `qb64pe` alone in the clone**
+  (`clone_lock.py`, `test-parallel-runs`). This runner (so `verification\run.sh` and tier 2 too) and
+  `tools\callsite\callsite.py` take a lock on `target\qb64pe-clone\in-use.lock` first: **alone** for a run
+  that uses `qb64pe.exe` in the clone, **shared** for a run that builds with `qb64rust` only. A run that
+  cannot have it stops at once with exit code 3, or with `--wait` prints that it is waiting and starts when it
+  can. The system drops the lock when the run ends, however it ends.
+  - With `qb64pe`: two runs would empty and read each other's `internal\temp`, and its `make` writes the
+    libqb objects in `internal\c` that every build reads. So the verification suite, a corpus run of the old
+    compiler with one job, and `callsite.py` (its old side runs `qb64pe -z` in the clone) have it alone.
+  - With `qb64rust` (any `--jobs`): its fragments, `qbx.cpp`, `qbx.o` and executable are in its own build
+    folder (`PATH_INTERNAL_TEMP` points there), and it only reads the clone, except for the libqb objects its
+    `make` builds when one it links is missing or older than its source. That case has a lock of its own,
+    `target\qb64pe-clone\objects.lock`, which the runner names in `QB64RUST_OBJECTS_LOCK` for every compile:
+    the driver runs `make -q` on the objects of the build's flags under a shared lock and keeps it for the
+    build when they are up to date; otherwise it builds alone (`crates\driver\src\build.rs`, `lock_objects`).
+    So the full corpus, the full upstream suite and the run without folding can run side by side (each with
+    its own results folder, which they have), and the builds within one `--jobs` run no longer race for a
+    missing object either.
   - The one exception is `--jobs` with `qb64pe` (next point): it builds in its copies and can run beside
-    another run that uses another results folder.
-  - Not covered: `qb64rust` started without this runner (by hand, or `cargo test -p qb64rust-driver --test
-    cli -- --ignored`).
+    another run that uses another results folder; it takes the clone's lock alone only to run a failed program
+    again.
+  - The CLI tests that build (`cargo test -p qb64rust-driver --test cli -- --ignored`) take the clone's lock
+    shared, with `File::try_lock_shared` on the same file (`crates\driver\tests\support`), give every compiler
+    they start `QB64RUST_OBJECTS_LOCK`, and hold the lock until the test process ends; they wait for it at
+    most 30 min. Python's lock is `LockFileEx` over the whole file, the range Rust's `File::lock` takes, so
+    the two see each other.
+  - **A failure beside other builds runs again alone** (corpus and compile suites, `--jobs` above 1 with
+    `qb64rust`): after the others, once, and both outcomes are printed (`[again]`). A failure that cannot
+    pass alone is not run again (`SETTLED_STAGES`): wrong expected files, or a program expected to be
+    rejected that was not rejected with a real error. The latter may be a failed C++ build after the
+    compiler wrongly accepted the program, and its detail then names the build; alone it would fail with
+    "compiled successfully, expected an error". A `compile` failure is run again, as its exit code is also
+    the C++ build's. One that then passes is
+    counted as passed with a `note:` at the end; it makes the exit code 1 unless it is **timing-sensitive**
+    (`timing_sensitive`: a screen program, or one whose source names `SOUND`, `PLAY`, `BEEP`, `_SND…`,
+    `TIMER`, `_DELAY`, `SLEEP`, `_LIMIT`, `_MOUSE…`, `INKEY$`, `_KEYHIT`, `_KEYDOWN`, `ON KEY` or `KEY(`),
+    whose result may change with the load of the machine. The list is wide on purpose: a word in a comment
+    counts, and so does `RANDOMIZE TIMER`, so 83 of the 471 corpus programs and 33 of the 404 upstream ones
+    match (2026-10-17); a shared-build fault in one of them shows only as its `note:`, so read the notes.
+    "Alone" is alone in this run: a run beside it that shares the clone's lock may still be building.
+  - Not covered: `qb64rust` started by hand without `QB64RUST_OBJECTS_LOCK` takes no lock.
   - Not covered: runs from two checkouts (or git worktrees) of this repo that use one clone. The lock file
     is under each checkout's own `target\` (the clone is a read-only reference and gets no lock file). Use
     one checkout per clone.

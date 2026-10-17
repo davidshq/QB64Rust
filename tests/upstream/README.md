@@ -2,6 +2,8 @@
 
 `compile_tests/` is a copy of the text files of QB64pe's `tests/compile_tests` (provenance and licence:
 `SOURCE.md`, `LICENSE-QB64pe.txt`; made by `tools/upstream/copy_upstream_tests.py`, never edited by hand).
+`divergences/<category>/<name>.divergences` (kept by hand, none yet) lists the rows of `DIVERGENCES.md` an upstream
+program may take, for the run-time trace (`tools/legacy_tests/README.md`).
 
 ## Tier 1
 
@@ -96,12 +98,28 @@ job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 202
 `m3-declare-library`: `declare_library_static/test` and `declare_library_dynamic/test` need `lib-windows.a` and
 `lib.dll`, which the copy (text files only) lacks. The copy stays the input of tier 1.
 
+The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
+
+<!-- counts:upstream-membership -->
+**Upstream progress: 336 of 403**: the programs of `pass.list` of the suite's 404 programs less the 1 of `deferred.list`.
+<!-- /counts:upstream-membership -->
+
+<!-- counts:upstream-results -->
+Last full run: 2026-10-17, compiler build `b344942736e7`, folding on, `--jobs 8`, build cache, 4 min. Of 404 programs: **336 pass**, 67 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 1 known failure (`target\legacy-tests\results-compile.json`).
+`pass.list` judged in it (`--check-list`): **336 of 336** pass.
+<!-- /counts:upstream-results -->
+
+The "Upstream progress" paragraphs below are the history up to 2026-10-16, one per change; a later change adds
+none: what joined `pass.list` is in its `tasks.md`, and the numbers are the blocks above.
+
 - `pass.list`: the upstream programs the new compiler passes. A ratchet: add a program when it passes, never
   remove one.
-- `deferred.list`: the 5 programs that need a feature deferred to `SOMEDAY.md` (`_ARRAYCOPY` 4) or left out of
-  a change (`arrays/t001_whole_array_core`: a plain scalar beside an array typed by `DIM … AS`, user,
-  2026-10-15), found by pattern and checked by eye. `REDIM _RETAIN` compiles since `m3-redim-retain`,
-  `$UNSTABLE:TYPEFIELDS` since `m3-typefields` and whole-array assignment since `m3-whole-array-assign`. 97
+- `deferred.list`: the program left out of a change (`arrays/t001_whole_array_core`: a plain scalar beside an
+  array typed by `DIM … AS`, user, 2026-10-15); it held the programs that needed a feature deferred to
+  `SOMEDAY.md`, found by pattern and checked by eye. `REDIM _RETAIN` compiles since `m3-redim-retain`,
+  `$UNSTABLE:TYPEFIELDS` since `m3-typefields`, whole-array assignment since `m3-whole-array-assign` and
+  `_ARRAYCOPY` since `m3-arraycopy` (its 4 programs left with task 3.4 of the change, each passing on its first
+  run). 97
   programs left it with `m3-typefields`: 18 with its group 2, 74 with its group 3, 5 with its group 5 (`t266` and
   `t267` left with group 3, came back with group 4 and left with group 5; each passing on its first run; the
   change's `tasks.md`). 16 left it with `m3-whole-array-assign` (12 accepted programs and 4 `.err` ones, with its
@@ -450,3 +468,15 @@ at the compile, 13 `.err` programs), the known failure `http/read_example`; none
 output. The demand report (348 programs without an `.err`): 274 without errors, 63 held back, 11 with other
 errors; its first lines are `_SNDOPEN` 6, `_ARRAYCOPY` 4, `$VERSIONINFO` 4. `tests\known_unsupported_rejections.list`
 holds 28 and `known_clean_not_passing.list` 5.
+
+**Upstream progress, 2026-10-16: 325 of 399** (`m3-sound-handles` task 3.2). The change took the sound handles
+(`_SNDOPEN`, the `_SND*` family, `_MIDISOUNDBANK`, `_WAVE`): 7 programs joined `pass.list`,
+`audio_handle_test/handle_test`, `audio_mem_test/newsound_test`, `audio_mem_test/sndopen_mem_test`,
+`console_only/midi`, `midi/midisoundbank_file_test`, `midi/midisoundbank_memory_test` (each compared with its
+`.output`; the MIDI and sound bank files they read lie in the clone) and `audio_test/test`, which has no
+`.output` and so is compiled only, as `compile_tests.sh` does. `midi/midisoundbank_embed_test` stays held back by
+`$EMBED` and `_EMBEDDED$`. `pass.list` run by itself: 325 of 325. The full run of the suite (404 programs): 325
+pass, 78 rejected or with only marked errors (65 at the compile, 13 `.err` programs), the known failure
+`http/read_example`; none builds and prints the wrong output. The demand report (348 programs without an `.err`):
+281 without errors, 56 held back, 11 with other errors; its first lines are `_ARRAYCOPY` 4, `$VERSIONINFO` 4 and
+the event switches and handlers 4 each. The shrink-only lists are unchanged.

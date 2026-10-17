@@ -60,3 +60,4 @@ SourceFile 0..89
     DataText "a" b, 2
   Newline \x0A
 t.bas:6:10: error: expected `,` after a quoted `DATA` item
+t.bas:6:10: note: QB64pe: Expected , after quoted string in DATA statement

@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDLIMIT handle&, numberOfSeconds#
+Caused by (or after):_SNDLIMIT H
+LINE 9:_SNDLIMIT h
+exit=1

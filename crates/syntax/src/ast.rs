@@ -81,7 +81,7 @@ node_wrapper!(
     OptionStmt,
     OnJumpStmt,
     OnEventStmt,
-    EventSwitchStmt,
+    KeyStmt,
     StopStmt,
     RunStmt,
     RedimStmt,
@@ -504,6 +504,13 @@ impl<'a> DimStmt<'a> {
     }
 }
 
+impl<'a> ArrayCopyStmt<'a> {
+    /// The source, then the destination (`_ARRAYCOPY source TO destination`).
+    pub fn sides(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
+        self.0.child_nodes().filter_map(DimItem::cast)
+    }
+}
+
 impl<'a> RedimStmt<'a> {
     pub fn items(self) -> impl Iterator<Item = DimItem<'a>> + 'a {
         self.0.child_nodes().filter_map(DimItem::cast)
@@ -869,6 +876,47 @@ impl<'a> OnJumpStmt<'a> {
 impl ReturnStmt<'_> {
     pub fn target(self) -> Option<Tok> {
         jump_target(self.0)
+    }
+}
+
+impl<'a> OnEventStmt<'a> {
+    /// The event's word (`TIMER`, `KEY`, …).
+    pub fn event(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+
+    /// The parentheses after the event.
+    pub fn args(self) -> Option<ArgList<'a>> {
+        child(self.0, ArgList::cast)
+    }
+
+    /// The names and numbers after the event and its parentheses: `GOSUB` and the label or line number, or the
+    /// SUB's name (its argument is a node, not among them).
+    pub fn handler_words(self) -> Vec<Tok> {
+        let Some(event) = self.event() else {
+            return Vec::new();
+        };
+        self.0
+            .child_tokens()
+            .filter(|t| t.span.start > event.span.start && matches!(t.kind, Ident | Number))
+            .collect()
+    }
+
+    /// The SUB's argument (`ON TIMER(1) handler 5`).
+    pub fn argument(self) -> Option<Expr<'a>> {
+        self.0.child_nodes().filter_map(Expr::cast).next()
+    }
+}
+
+impl<'a> KeyStmt<'a> {
+    /// `ON`, `OFF` or `LIST`; `None` for `KEY n, text$`.
+    pub fn word(self) -> Option<Tok> {
+        words(self.0).nth(1)
+    }
+
+    /// `n` and `text$` of `KEY n, text$`.
+    pub fn exprs(self) -> impl Iterator<Item = Expr<'a>> + 'a {
+        self.0.child_nodes().filter_map(Expr::cast)
     }
 }
 

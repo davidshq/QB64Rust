@@ -18,12 +18,15 @@ file_get_put_errors.bas:27:11: error: `PUT` needs a variable here
 file_get_put_errors.bas:28:11: error: `PUT` of a `_BIT` variable
 file_get_put_errors.bas:29:1: error: this is no form of graphics `GET`
 file_get_put_errors.bas:30:12: error: `PUT` of a whole array of variable-length strings
+file_get_put_errors.bas:30:12: note: QB64pe: Cannot pass array of variable-length strings
 file_get_put_errors.bas:31:12: error: `PUT` of a `TYPE T` value: a `TYPE` with a `STRING` member has no fixed size
 file_get_put_errors.bas:32:12: error: `PUT` of a whole member array
+file_get_put_errors.bas:32:12: note: QB64pe: Expected array index
 file_get_put_errors.bas:33:11: error: `GET` needs a variable here
 file_get_put_errors.bas:34:4: error: this `PUT` statement matches none of its forms: `PUT [{Step}](?,?),?[,[{_Clip}][{PSet|PReset|And|Or|Xor}][,?]]`, `PUT [#]?[,[?][,?]]`
 file_get_put_errors.bas:35:13: error: this `PUT` statement matches none of its forms: `PUT [{Step}](?,?),?[,[{_Clip}][{PSet|PReset|And|Or|Xor}][,?]]`, `PUT [#]?[,[?][,?]]`
 file_get_put_errors.bas:36:1: error: `LOCK` needs the first record before `TO`
+file_get_put_errors.bas:36:1: note: QB64pe: Name already in use (TO)
 file_get_put_errors.bas:37:5: error: this `LOCK` statement matches none of its forms: `LOCK [#]?[,[?][{To}?]]`
 file_get_put_errors.bas:38:14: error: this `LOCK` statement matches none of its forms: `LOCK [#]?[,[?][{To}?]]`
 file_get_put_errors.bas:39:9: error: this `LOCK` statement matches none of its forms: `LOCK [#]?[,[?][{To}?]]`

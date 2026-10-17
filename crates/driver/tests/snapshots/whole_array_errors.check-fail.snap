@@ -3,32 +3,60 @@ source: crates/driver/tests/frontend.rs
 expression: snap
 ---
 whole_array_errors.bas:25:1: error: `a()` is a whole array, and the other side of `=` is not one
+whole_array_errors.bas:25:1: note: QB64pe: Expected array index after a
 whole_array_errors.bas:26:5: error: `a()` is a whole array, and the other side of `=` is not one
+whole_array_errors.bas:26:5: note: QB64pe: Expected array index after a
 whole_array_errors.bas:27:1: error: `a()` is a whole array, and the other side of `=` is not one
+whole_array_errors.bas:27:1: note: QB64pe: Expected array index after a
 whole_array_errors.bas:28:1: error: `a()` is a whole array, and the other side of `=` is not one
+whole_array_errors.bas:28:1: note: QB64pe: Expected array index after a
 whole_array_errors.bas:30:1: error: both sides of a whole-array assignment need an array name with empty parentheses
+whole_array_errors.bas:30:1: note: QB64pe: Whole-array assignment requires empty parentheses on both sides
 whole_array_errors.bas:31:1: error: both sides of a whole-array assignment need an array name with empty parentheses
+whole_array_errors.bas:31:1: note: QB64pe: Whole-array assignment requires empty parentheses on both sides
 whole_array_errors.bas:32:1: error: `undeclared()` names no array here; a whole-array assignment needs an array on each side
+whole_array_errors.bas:32:1: note: QB64pe: Whole-array assignment requires empty parentheses on both sides
 whole_array_errors.bas:33:1: error: `c()` names no array here; a whole-array assignment needs an array on each side
+whole_array_errors.bas:33:1: note: QB64pe: Whole-array assignment requires empty parentheses on both sides
 whole_array_errors.bas:35:7: error: `f` is a FUNCTION; a whole-array assignment needs an array on each side
+whole_array_errors.bas:35:7: note: QB64pe: Expected (...)
 whole_array_errors.bas:37:1: error: cannot assign an array of `INTEGER` to an array of `LONG`
+whole_array_errors.bas:37:1: note: QB64pe: Cannot assign arrays of different types
 whole_array_errors.bas:38:1: error: cannot assign an array of `_UNSIGNED LONG` to an array of `LONG`
+whole_array_errors.bas:38:1: note: QB64pe: Cannot assign arrays of different types
 whole_array_errors.bas:39:1: error: cannot assign an array of `DOUBLE` to an array of `SINGLE`
+whole_array_errors.bas:39:1: note: QB64pe: Cannot assign arrays of different types
 whole_array_errors.bas:40:1: error: cannot assign an array of `STRING * 4` to an array of `STRING`
+whole_array_errors.bas:40:1: note: QB64pe: Cannot assign arrays of different types
 whole_array_errors.bas:41:1: error: cannot assign an array of `T2` to an array of `T1`
+whole_array_errors.bas:41:1: note: QB64pe: Cannot assign arrays of different types
 whole_array_errors.bas:42:1: error: cannot assign an array of `LONG` to an array of `T1`
+whole_array_errors.bas:42:1: note: QB64pe: Cannot assign arrays of different types
 whole_array_errors.bas:43:1: error: cannot assign an array of `INTEGER` to an array of `LONG`
+whole_array_errors.bas:43:1: note: QB64pe: Cannot assign arrays of different types
 whole_array_errors.bas:44:1: error: cannot assign an array of `_BIT * 3` to an array of `_BIT * 2`
+whole_array_errors.bas:44:1: note: QB64pe: Cannot assign arrays of different types
 whole_array_errors.bas:45:1: error: cannot assign an array of `_UNSIGNED _BIT` to an array of `_BIT`
+whole_array_errors.bas:45:1: note: QB64pe: Cannot assign arrays of different types
 whole_array_errors.bas:46:1: error: cannot assign an array of `_INTEGER64` to an array of `_OFFSET`
+whole_array_errors.bas:46:1: note: QB64pe: Cannot assign arrays of different types
 whole_array_errors.bas:47:1: error: cannot assign an array of `LONG` to an array of `T1`
+whole_array_errors.bas:47:1: note: QB64pe: Cannot assign arrays of different types
 whole_array_errors.bas:48:1: error: cannot assign an array of `LONG` to an array of `INTEGER`
+whole_array_errors.bas:48:1: note: QB64pe: Cannot assign arrays of different types
 whole_array_errors.bas:50:1: error: cannot assign an array of `STRING * 8` to an array of `STRING * 4`: the lengths differ
+whole_array_errors.bas:50:1: note: QB64pe: Cannot assign fixed-length STRING arrays with different element sizes
 whole_array_errors.bas:52:1: error: cannot assign an array of 2 dimensions to an array of 1 dimension
+whole_array_errors.bas:52:1: note: QB64pe: Cannot assign arrays with different dimensions
 whole_array_errors.bas:54:1: error: `a()` is a whole array, and `b%()`, named with a type suffix, is not one here
+whole_array_errors.bas:54:1: note: QB64pe: Expected array index after a
 whole_array_errors.bas:55:8: error: `b()` is a whole array, and `a%()`, named with a type suffix, is not one here
+whole_array_errors.bas:55:8: note: QB64pe: Expected array index after b
 whole_array_errors.bas:56:1: error: not supported yet: whole-array assignment of arrays named with a type suffix
 whole_array_errors.bas:58:6: error: `a()` is a whole array, and the other side of `=` is not one
+whole_array_errors.bas:58:6: note: QB64pe: Expected array index after a
 whole_array_errors.bas:59:1: error: both sides of a whole-array assignment need an array name with empty parentheses
+whole_array_errors.bas:59:1: note: QB64pe: Whole-array assignment requires empty parentheses on both sides
 whole_array_errors.bas:60:7: error: `S` is a SUB; a whole-array assignment needs an array on each side
+whole_array_errors.bas:60:7: note: QB64pe: Name already in use (S)
 whole_array_errors.bas:69:5: error: `p` has 1 dimension, not 2

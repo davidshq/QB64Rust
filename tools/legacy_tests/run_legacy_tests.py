@@ -50,6 +50,11 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     BLOAD). Everything in it is copied into the program's folder before it is compiled, with
     either compiler, when checking and when recording; beside an .err or a .norun it is an
     error in the test
+  * every run (also in the compile suite) has QB64RUST_DIVERGENCES naming a fresh file in the
+    results folder, where a program built by the new compiler writes D-0nn the first time it takes
+    the path of that row of DIVERGENCES.md; when checking, a row that <name>.divergences (one
+    D-0nn per line, '#' starts a comment) does not list fails the program (stage "divergences").
+    A compile-suite program's sidecar is tests/upstream/divergences/<category>/<name>.divergences
   * --record compiles once, runs twice, and writes .output (or .err for a failed compile)
     only if both normalised runs are equal; otherwise the program is reported
     non-deterministic and nothing is written. With a compiler other than qb64pe, a failed compile
@@ -73,7 +78,11 @@ and compares nothing:
 Speed (corpus and compile suites; the C++ build is most of each program's time):
   * --jobs N runs N programs at a time, after the first one alone (it builds any libqb object the
     clone lacks); results are printed as they finish. Compile tests of one folder run (not build)
-    one at a time, since it is their working folder. --record runs one at a time
+    one at a time, since it is their working folder. --record runs one at a time. With qb64rust a
+    program that fails beside other builds runs again alone after them and both outcomes are
+    reported; a pass alone fails the run unless the program is timing-sensitive (timing_sensitive)
+  * runs of qb64rust share the clone's lock, so two of them (the corpus and the compile suite, say)
+    run side by side; a run of qb64pe in the clone has it alone (clone_lock.py)
   * --jobs N with qb64pe (corpus suite only): qb64pe builds inside its own folder (internal/temp,
     and the libqb objects in internal/c), so each worker compiles with a private copy of the
     compiler under --copies-dir (default target/qb64pe-copies/w1..wN, about 800 MB each: qb64pe.exe,
@@ -170,6 +179,15 @@ def is_old_compiler(qb64: Path) -> bool:
 # The compiler root for included files of the upstream tests (m2-parser-breadth design D9): it holds
 # tests/compile_tests/extra, which two tests include relative to the compiler's own folder.
 INCLUDE_ROOT = Path(__file__).resolve().parents[2] / "tests" / "upstream" / "root"
+
+# The .divergences sidecars of the compile suite, as <category>/<name>.divergences: not beside the program, whose
+# folder is the clone's (read-only) or tests/upstream/compile_tests (a copy the copy script remakes).
+UPSTREAM_DIVERGENCES = Path(__file__).resolve().parents[2] / "tests" / "upstream" / "divergences"
+
+
+def compile_sidecar(category: str, name: str) -> Path:
+    """The .divergences sidecar of a compile-suite program."""
+    return UPSTREAM_DIVERGENCES / category / f"{name}.divergences"
 
 
 def include_root_args(qb64: Path) -> list[str]:
@@ -538,6 +556,27 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         r.seconds = round(time.time() - t0, 1)
         return r
 
+    # --pass-cache, as for a corpus program: a program that passed with this executable, this
+    # source and these expected files is not run again. It runs in its category's folder, so every
+    # file there counts (one it writes and leaves only makes it run again).
+    remembered = None
+    pass_cache = getattr(args, "pass_cache", None)
+    sidecar = compile_sidecar(category, name)
+    if pass_cache:
+        parts = [
+            b"compile suite",
+            bas.read_bytes(),
+            out_file.read_bytes(),
+            sidecar.read_bytes() if sidecar.is_file() else None,
+            noprompt.encode(),
+            data_files(tdir),
+        ]
+        remembered = pass_cache / pass_key(exe, parts)
+        if remembered.is_file():
+            r.detail = PASSED_BEFORE
+            r.seconds = round(time.time() - t0, 1)
+            return r
+
     run_out = results / f"{category}-{name}-run-output.txt"
     env = dict(os.environ)
     env.update(
@@ -548,6 +587,8 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
             "QB64PE_LOG_FILE_PATH": str(results / f"{category}-{name}-log.txt"),
         }
     )
+    trace = results / f"{category}-{name}-divergences.txt"
+    set_trace(env, trace)
     with folder_lock(tdir):
         rc, timed_out = run_proc(
             [str(exe), str(results), f"{category}-{name}"],
@@ -563,6 +604,12 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         return fail("run", f"exit code {rc}")
     if norm_output(out_file.read_bytes()) != norm_output(run_out.read_bytes()):
         return fail("result", "program output differs from .output")
+    odd = unexpected_rows(trace, allowed_rows(sidecar))
+    if odd:
+        return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES.md")
+    if remembered:
+        remembered.parent.mkdir(parents=True, exist_ok=True)
+        remembered.touch()
     r.seconds = round(time.time() - t0, 1)
     return r
 
@@ -660,6 +707,39 @@ def apply_normalize(data: bytes, rules: list[tuple[re.Pattern, str]]) -> bytes:
             text = pattern.sub(repl, text)
         lines.append(text.encode("latin-1") + (b"\r" if cr else b""))
     return b"\n".join(lines)
+
+
+# The run-time trace of divergences (m3-divergence-trace): a program built by the new compiler appends a line
+# D-0nn to the file this variable names the first time in a run that it takes the path of that row of
+# DIVERGENCES.md; the old compiler's programs know nothing of it. Every run of the corpus and compile suites sets
+# it, and a row that the program's <name>.divergences does not list fails the run.
+TRACE_ENV = "QB64RUST_DIVERGENCES"
+
+
+def set_trace(env: dict[str, str], trace: Path) -> None:
+    """Points a run at a fresh trace file."""
+    trace.unlink(missing_ok=True)
+    env[TRACE_ENV] = str(trace)
+
+
+def allowed_rows(path: Path) -> set[str]:
+    """The rows of a <name>.divergences file (none if it does not exist): one D-0nn per line; '#' starts a
+    comment."""
+    rows: set[str] = set()
+    if path.is_file():
+        for line in path.read_text(encoding="latin-1").splitlines():
+            line = line.split("#", 1)[0].strip()
+            if line:
+                rows.add(line)
+    return rows
+
+
+def unexpected_rows(trace: Path, allowed: set[str]) -> list[str]:
+    """The rows a run's trace names that are not allowed, in the order taken."""
+    if not trace.is_file():
+        return []
+    taken = [line.strip() for line in trace.read_text(encoding="latin-1").splitlines()]
+    return [row for row in taken if row and row not in allowed]
 
 
 def reset_folder(folder: Path, keep: set[str]) -> None:
@@ -866,7 +946,9 @@ def corpus_test(
     stdin_file = tdir / f"{name}.stdin"
     # <name>.exitcode: the exit code the program must end with (END n, SYSTEM n), as the process
     # reports it (Python's returncode: on Windows the unsigned 32-bit value); without it, 0.
-    want_rc = int(exitcode_file.read_text(encoding="latin-1").strip()) if exitcode_file.is_file() else 0
+    want_rc = (
+        int(exitcode_file.read_text(encoding="latin-1").strip()) if exitcode_file.is_file() else 0
+    )
     # --pass-cache: a program that passed with this executable, this source and these expected and
     # input files is not run again. Never with --record, which is what makes the expected files.
     remembered = None
@@ -884,6 +966,7 @@ def corpus_test(
             read(stdin_file),
             read(tdir / f"{name}.normalize"),
             read(exitcode_file),
+            read(tdir / f"{name}.divergences"),
             data_files(files_dir),
             noprompt.encode(),
             Path(__file__).with_name("press_any_key.py").read_bytes() if os.name == "nt" else None,
@@ -929,6 +1012,8 @@ def corpus_test(
             shutil.copytree(files_dir, work, dirs_exist_ok=True)
         run_out = results / f"{key}-run{run}-output.txt"
         state_out = results / f"{key}-run{run}-screen.txt"
+        trace = results / f"{key}-run{run}-divergences.txt"
+        set_trace(env, trace)
         if screen:
             state_out.unlink(missing_ok=True)
             env["QB64_SCREEN_STATE"] = str(state_out)
@@ -978,6 +1063,9 @@ def corpus_test(
         return passed("; ".join(c for c in changes if c))
     if norm_output(out_file.read_bytes()) != norm_output(outputs[0]):
         return fail("result", "program output differs from .output")
+    odd = unexpected_rows(trace, allowed_rows(tdir / f"{name}.divergences"))
+    if odd:
+        return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES.md")
     if screen and norm_output(screen_file.read_bytes()) != norm_output(states[0]):
         return fail("screen", "screen state differs from .screen")
     if remembered:
@@ -1121,6 +1209,117 @@ def load_list(path: Path, root: Path) -> set[Path]:
     return wanted
 
 
+REPO = Path(__file__).resolve().parents[2]
+# The format of the "run" record of a results file (check_list reads it).
+RUN_RECORD_VERSION = 1
+
+
+def repo_relative(path: Path) -> str:
+    """A path as a results file records it, so it reveals no local absolute path: relative to this
+    repo when it lies inside the repo's parent folder, else its name only (a longer relative path
+    could still name user folders)."""
+    try:
+        rel = Path(os.path.relpath(path, REPO))
+        return rel.as_posix() if rel.parts.count("..") <= 1 else path.name
+    except ValueError:  # different drive
+        return path.name
+
+
+def file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def fold_is_off() -> bool:
+    """QB64RUST_NO_FOLD=1 turns the compiler's constant folding off (crates/driver/src/lib.rs)."""
+    return os.environ.get("QB64RUST_NO_FOLD") == "1"
+
+
+def result_key(suite: str, bas: Path, root: Path) -> tuple[str, str]:
+    """(suite, test) as a corpus or compile-suite result names the program."""
+    if suite == "corpus":
+        return "corpus", bas.relative_to(root).with_suffix("").as_posix()
+    return "compile_tests", f"{bas.parent.name}/{bas.stem}"
+
+
+def program_inputs(suite: str, bas: Path) -> list[Path]:
+    """The files of a program that decide its result besides the compiler and the runner: the
+    program, every file beside it named <name>.<anything> (expected output, keys, sidecars), the
+    files of <name>.files/, and a compile-suite program's .divergences sidecar. An included file is
+    not among them."""
+    found = [p for p in bas.parent.glob(f"{glob.escape(bas.stem)}.*") if p.is_file()]
+    data = bas.with_name(bas.stem + ".files")
+    if data.is_dir():
+        found += [p for p in data.rglob("*") if p.is_file()]
+    if suite == "compile":
+        sidecar = compile_sidecar(bas.parent.name, bas.stem)
+        if sidecar.is_file():
+            found.append(sidecar)
+    return found
+
+
+def check_list(
+    suite: str, wanted: set[Path], root: Path, data: dict, compiler: Path
+) -> tuple[list[str], list[tuple[str, str]], int]:
+    """Judges a pass list from the results of a full run of its suite instead of running it again
+    (--check-list, study/31 item 3). Returns (the run's problems, the failures as (key, why), the
+    number passed). A problem of the run (another compiler build or runner, another root, folding
+    or pass cache, a partial run, no run record) fails every program; so does a program with no
+    result, a known failure (a pass list needs a pass), any failure, or an input changed after the
+    run started."""
+    run = data.get("run")
+    if not isinstance(run, dict) or run.get("version") != RUN_RECORD_VERSION:
+        return ["the results hold no run record of this runner: run the suite again"], [], 0
+    problems = []
+    if run.get("suite") != suite or run.get("selection"):
+        problems.append(
+            f"not a full run of suite {suite}: {run.get('suite')} {run.get('selection')}"
+        )
+    if run.get("roots", {}).get(suite) != repo_relative(root):
+        problems.append(
+            f"another root: {run.get('roots', {}).get(suite)}, not {repo_relative(root)}"
+        )
+    if run.get("compiler_sha256") != file_sha256(compiler):
+        problems.append("the results are from another build of the compiler")
+    if run.get("runner_sha256") != file_sha256(Path(__file__).resolve()):
+        problems.append("the runner has changed since the run")
+    if run.get("no_fold") != fold_is_off():
+        problems.append(f"the run had QB64RUST_NO_FOLD={'1' if run.get('no_fold') else 'unset'}")
+    if run.get("pass_cache") or run.get("record") or run.get("cpp_opt"):
+        problems.append(
+            "a run with --pass-cache, --record or --cpp-opt cannot stand for a run of the list"
+        )
+    if problems:
+        return problems, [], 0
+    results = {(r["suite"], r["test"]): r for r in data.get("results", [])}
+    started = float(run.get("started", 0))
+    failures: list[tuple[str, str]] = []
+    passed = 0
+    for bas in sorted(wanted):
+        key = result_key(suite, bas, root)
+        name = f"{key[0]}:{key[1]}"
+        r = results.get(key)
+        changed = [p.name for p in program_inputs(suite, bas) if p.stat().st_mtime > started]
+        if r is None:
+            failures.append((name, "no result in the full run"))
+        elif changed:
+            failures.append((name, f"changed after the run started: {', '.join(sorted(changed))}"))
+        elif r["status"] == "KFAIL":
+            failures.append(
+                (name, f"a known failure in the full run; a pass list needs a pass ({r['detail']})")
+            )
+        elif r["status"] != "PASS":
+            failures.append((name, f"{r['stage']}: {r['detail']}"))
+        elif r["detail"] == PASSED_BEFORE:
+            failures.append((name, "not run in the full run (--pass-cache)"))
+        else:
+            passed += 1
+    return [], failures, passed
+
+
 def load_known_failures(path: Path) -> dict[str, str]:
     """Reads known_failures.txt into {"<suite>:<test>": reason} (empty if it does not exist).
 
@@ -1209,6 +1408,79 @@ def run_all(tests: list[Path], run_one, jobs: int):
         pool.shutdown(wait=True, cancel_futures=True)
 
 
+# What a program names when its result may change with the load of the machine: it waits in real
+# time, reads the clock, plays sound or reads the keyboard or the mouse while it runs (the failures
+# seen under --jobs: m10_screen_10, u02_mouse_text, the sound programs). Every failure runs again
+# alone; a match only keeps a pass alone from failing the run. A word in a comment counts too, and
+# so does RANDOMIZE TIMER, which errs towards not failing the run: about a sixth of the corpus and
+# a twelfth of the upstream programs match (2026-10-17).
+TIMING_WORDS = re.compile(
+    r"\b(?:SOUND|PLAY|BEEP|_SND\w*|TIMER|_DELAY|SLEEP|_LIMIT|_MOUSE\w*|INKEY\$|_KEYHIT|_KEYDOWN"
+    r"|ON\s+KEY|KEY\s*\()(?!\w)",
+    re.IGNORECASE,
+)
+
+
+def timing_sensitive(bas: Path) -> bool:
+    """True for a program whose result may depend on time or load: a screen program (it has a
+    window and is given its keys in time) or one whose source names a word of TIMING_WORDS."""
+    if bas.with_suffix(".screen").is_file():
+        return True
+    try:
+        return TIMING_WORDS.search(bas.read_text(encoding="latin-1")) is not None
+    except OSError:
+        return False
+
+
+# Stages at which a qb64rust program cannot pass alone, so that it is not run again: its expected
+# files are wrong, or a program expected to be rejected was not rejected with a real error
+# (new_compiler_rejection). The latter can come from a failed C++ build, when the compiler wrongly
+# accepted the program; alone it then fails with "compiled successfully, expected an error", so only
+# the kept detail differs: it may name the build, not the accepted program. A "compile" failure
+# stays out: its exit code is also the C++ build's, and alone it may pass.
+SETTLED_STAGES = frozenset({"expected", "error result"})
+
+
+def run_again_alone(
+    tests: list[Path], by_test: dict[int, list[Result]], run_one, old_compiler: bool
+) -> tuple[list[str], list[str]]:
+    """Runs each program of by_test that failed beside other builds once more, alone, after them,
+    replaces its result by the new one and prints it; both outcomes are in its detail. Returns the
+    keys that passed alone and fail the run, and those that passed alone and do not: with qb64rust,
+    a timing-sensitive program (timing_sensitive). With qb64pe every one fails the run: its copies
+    gave another answer than the clone (alone in the clone: the caller holds the clone's lock).
+    With qb64rust a failure at a stage of SETTLED_STAGES is left as it is: alone it fails too.
+    "Alone" is alone in this run: another run that shares the clone's lock may still be building."""
+    where = "alone in the clone" if old_compiler else "alone"
+    failing: list[str] = []
+    timing: list[str] = []
+    for idx in sorted(by_test):
+        if len(by_test[idx]) != 1 or by_test[idx][0].status != "FAIL":
+            continue
+        if not old_compiler and by_test[idx][0].stage in SETTLED_STAGES:
+            continue
+        before = by_test[idx][0]
+        after = run_one(tests[idx])[0]
+        first = f"{before.stage}: {before.detail}"
+        key = f"{after.suite}:{after.test}"
+        if after.status == "PASS":
+            after.detail = f"passed {where}; failed with --jobs ({first})"
+            if not old_compiler and timing_sensitive(tests[idx]):
+                after.detail += " (timing-sensitive)"
+                timing.append(key)
+            else:
+                failing.append(key)
+        else:
+            after.detail += f" ({where}; with --jobs: {first})"
+        by_test[idx] = [after]
+        print(
+            f"[again] {after.status} {key} ({after.kind}, {after.seconds}s)  "
+            f"{after.stage + ': ' if after.stage else ''}{after.detail}",
+            flush=True,
+        )
+    return failing, timing
+
+
 def main() -> int:
     """Runs the selected suites and writes the results file.
 
@@ -1291,6 +1563,13 @@ def main() -> int:
         "(<group>/<name> per line)",
     )
     ap.add_argument(
+        "--check-list",
+        type=Path,
+        help="corpus and compile: run nothing; judge the programs of this pass list from the "
+        "suite's last full run (results-<suite>.json under --results), which must be of this "
+        "compiler build, runner, root and folding, and newer than every listed program's files",
+    )
+    ap.add_argument(
         "--jobs",
         type=int,
         default=1,
@@ -1321,14 +1600,14 @@ def main() -> int:
     ap.add_argument(
         "--pass-cache",
         type=Path,
-        help="corpus: a folder that remembers which programs passed, by executable, source "
-        "and expected files; such a program is compiled and built and not run again. "
-        "For work between the closing runs of a change, which go without it: it would "
-        "hide a result that depends on time or load. Not with --record",
+        help="corpus and compile: a folder that remembers which programs passed, by "
+        "executable, source and expected files; such a program is compiled and built and "
+        "not run again. For work and a change's close; the runs at a merge into main go "
+        "without it: it would hide a result that depends on time or load. Not with --record",
     )
     args = ap.parse_args()
-    if args.pass_cache and (args.suite != "corpus" or args.record):
-        print("--pass-cache applies to --suite corpus without --record", file=sys.stderr)
+    if args.pass_cache and (args.suite not in ("corpus", "compile") or args.record):
+        print("--pass-cache applies to --suite corpus or compile without --record", file=sys.stderr)
         return 2
     if args.jobs < 1:
         print("--jobs must be 1 or more", file=sys.stderr)
@@ -1353,6 +1632,21 @@ def main() -> int:
             "--record uses the default build; it cannot be combined with --cpp-opt", file=sys.stderr
         )
         return 2
+    if args.check_list and (
+        args.suite not in ("corpus", "compile")
+        or args.list
+        or args.category
+        or args.glob != "*.bas"
+        or args.record
+        or args.cpp_opt
+        or args.pass_cache
+    ):
+        print(
+            "--check-list takes --suite corpus or compile, and no --list, --category, --glob, "
+            "--record, --cpp-opt or --pass-cache",
+            file=sys.stderr,
+        )
+        return 2
     known = load_known_failures(args.known_failures)
 
     qb_root = args.qb_root.resolve()
@@ -1360,6 +1654,32 @@ def main() -> int:
     if not args.qb64.is_file():
         print(f"compiler not found: {args.qb64}", file=sys.stderr)
         return 2
+    if args.check_list:
+        root = (
+            args.corpus_root.resolve()
+            if args.suite == "corpus"
+            else (args.compile_tests or qb_root / "tests" / "compile_tests").resolve()
+        )
+        try:
+            wanted = load_list(args.check_list, root)
+        except (ValueError, OSError) as e:
+            print(e, file=sys.stderr)
+            return 2
+        source = args.results.resolve() / f"results-{args.suite}.json"
+        if not source.is_file():
+            print(f"no full run of suite {args.suite} to check against: {source}", file=sys.stderr)
+            return 1
+        data = json.loads(source.read_text(encoding="utf-8"))
+        problems, failures, passed = check_list(args.suite, wanted, root, data, args.qb64)
+        for p in problems:
+            print(f"{source.name}: {p}", flush=True)
+        for key, why in failures:
+            print(f"[check] FAIL {key}  {why}", flush=True)
+        name = "corpus" if args.suite == "corpus" else "compile_tests"
+        failed = len(wanted) - passed
+        print(json.dumps({name: {"PASS": passed, "FAIL": failed, "KFAIL": 0}}))
+        print(f"{args.check_list.name}: {passed} of {len(wanted)} passed in {source.name}")
+        return 0 if failed == 0 else 1
     if args.suite == "verification" and not is_old_compiler(args.qb64):
         print("--suite verification records the old compiler: it needs qb64pe", file=sys.stderr)
         return 2
@@ -1392,6 +1712,7 @@ def main() -> int:
     all_results: list[Result] = []
     known_passed: list[str] = []
     retried_passed: list[str] = []
+    timing_passed: list[str] = []
     corpus_root = args.corpus_root.resolve()
     suites = ["compile", "qbasic", "format", "corpus"] if args.suite == "all" else [args.suite]
     # The tests of every suite are selected before any lock is taken: a usage error is reported at
@@ -1469,17 +1790,18 @@ def main() -> int:
             )
             return BUSY_EXIT
         results_locks.append(lock)
-    # One run at a time builds in the clone (clone_lock.py): qb64pe in its internal/temp, and
-    # qb64rust's make runs there too and builds the libqb objects it lacks. Only a qb64pe run with
-    # --jobs starts without the lock: it compiles in its copies and takes the lock when it comes back
-    # to the clone.
+    # The clone's lock (clone_lock.py): a run of qb64pe has it alone, as qb64pe builds in the clone's
+    # internal/temp and internal/c; runs of qb64rust share it, and their builds take the objects'
+    # lock around each make. Only a qb64pe run with --jobs starts without it: it compiles in its
+    # copies and takes the lock when it comes back to the clone.
     clone_lock = None
     if selected and not (is_old_compiler(args.qb64) and args.jobs > 1):
-        clone_lock = lock_clone(args.wait)
+        clone_lock = lock_clone(args.wait, shared=not is_old_compiler(args.qb64))
         if clone_lock is None:
             print(CLONE_BUSY, file=sys.stderr)
             return BUSY_EXIT
 
+    started = time.time()
     for suite, results, tests in selected:
         run_one = functools.partial(
             run_suite_test,
@@ -1535,26 +1857,15 @@ def main() -> int:
             # one runs again alone in the clone, as with one job, and both outcomes are reported.
             args.copies.close()
             args.copies = None
-            for idx in sorted(by_test):
-                before = by_test[idx][0]
-                if before.status != "FAIL":
-                    continue
-                if clone_lock is None:
-                    # This late in a long run, wait for the clone (also without --wait).
-                    clone_lock = lock_clone(wait=True)
-                after = run_one(tests[idx])[0]
-                first = f"{before.stage}: {before.detail}"
-                if after.status == "PASS":
-                    after.detail = f"passed alone in the clone; failed with --jobs ({first})"
-                    retried_passed.append(f"{after.suite}:{after.test}")
-                else:
-                    after.detail += f" (alone in the clone; with --jobs: {first})"
-                by_test[idx] = [after]
-                print(
-                    f"[again] {after.status} {after.suite}:{after.test} ({after.kind}, "
-                    f"{after.seconds}s)  {after.stage + ': ' if after.stage else ''}{after.detail}",
-                    flush=True,
-                )
+            if clone_lock is None and any(rs[0].status == "FAIL" for rs in by_test.values()):
+                # This late in a long run, wait for the clone (also without --wait).
+                clone_lock = lock_clone(wait=True)
+            failed_alone, _ = run_again_alone(tests, by_test, run_one, old_compiler=True)
+            retried_passed += failed_alone
+        elif args.jobs > 1 and len(tests) > 1 and not is_old_compiler(args.qb64):
+            failed_alone, timing = run_again_alone(tests, by_test, run_one, old_compiler=False)
+            retried_passed += failed_alone
+            timing_passed += timing
         for idx in sorted(by_test):
             all_results.extend(by_test[idx])
 
@@ -1573,18 +1884,40 @@ def main() -> int:
         name = "results.json" if args.suite == "all" else f"results-{args.suite}{mode}.json"
     out = args.results.resolve() / name
     out.parent.mkdir(parents=True, exist_ok=True)
-    # Record the compiler relative to this repo so results do not reveal local absolute paths.
-    # Only paths inside the repo's parent folder qualify; anything further away is reduced to
-    # its file name (a relative path could still name user folders).
-    try:
-        rel = Path(os.path.relpath(args.qb64, here.parents[2]))
-        compiler = rel.as_posix() if rel.parts.count("..") <= 1 else args.qb64.name
-    except ValueError:  # different drive
-        compiler = args.qb64.name
+    # What the run was, so that a pass list can be judged from it (check_list) and two results files
+    # compared: the selection, the roots, the settings that change a result, and the identity of the
+    # compiler and of this runner. Paths relative to this repo (repo_relative).
+    selection = {
+        k: v
+        for k, v in {
+            "list": repo_relative(args.list.resolve()) if args.list else None,
+            "category": args.category,
+            "glob": None if args.glob == "*.bas" else args.glob,
+            "names": args.names or None,
+        }.items()
+        if v
+    }
+    run = {
+        "version": RUN_RECORD_VERSION,
+        "suite": args.suite,
+        "selection": selection,
+        "roots": {"corpus": repo_relative(corpus_root), "compile": repo_relative(compile_root)},
+        "no_fold": fold_is_off(),
+        "cpp_opt": args.cpp_opt,
+        "record": args.record,
+        "jobs": args.jobs,
+        "build_cache": bool(args.build_cache),
+        "pass_cache": bool(args.pass_cache),
+        "compiler_sha256": file_sha256(args.qb64),
+        "runner_sha256": file_sha256(Path(__file__).resolve()),
+        "started": round(started, 3),
+        "ended": round(time.time(), 3),
+    }
     out.write_text(
         json.dumps(
             {
-                "compiler": compiler,
+                "compiler": repo_relative(args.qb64),
+                "run": run,
                 "summary": summary,
                 "results": [asdict(r) for r in all_results],
             },
@@ -1595,10 +1928,14 @@ def main() -> int:
     for key in known_passed:
         print(f"note: {key} passed but is listed in {args.known_failures.name}; remove the entry")
     for key in retried_passed:
-        print(f"note: {key} failed with --jobs and passed alone in the clone; find out why")
+        print(f"note: {key} failed with --jobs and passed alone; find out why")
+    for key in timing_passed:
+        print(f"note: {key} failed with --jobs and passed alone (timing-sensitive, run not failed)")
     print(f"results: {out}")
     # A program that passed only alone counts as passed in the results, and still fails the run: the
-    # copies gave another answer than the clone, which nobody reading only the exit code may miss.
+    # copies gave another answer than the clone, or a program whose result should not depend on load
+    # did, which nobody reading only the exit code may miss. A timing-sensitive one does not
+    # (test-parallel-runs, design D3).
     return 0 if all(s["FAIL"] == 0 for s in summary.values()) and not retried_passed else 1
 
 
