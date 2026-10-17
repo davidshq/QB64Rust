@@ -18,10 +18,9 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 
 ## Where we are
 
-M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: nineteen of its steps are built and archived
-(table below), the last `m3-events` (`81c05ed`); `test-parallel-runs` (the test cadence of `study\32`, not an M3
-step, `4a8d06e`) is archived too. The twentieth, **`m3-errorline-chr-const`** (`CHR$` in a `CONST`, `_ERRORLINE`
-and its three siblings), is built and closed, in the working tree, not archived. Every program of the corpus that
+M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: twenty of its steps are built and archived
+(table below), the last `m3-errorline-chr-const` (`9aebb3c`); `test-parallel-runs` (the test cadence of
+`study\32`, not an M3 step, `4a8d06e`) is archived too. Every program of the corpus that
 the old compiler accepts compiles, and every one that can be compared passes; Civil
 War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same 23
 screens as the old compiler's build. Upstream is at 339 of 399. `main` is at the merge of `m3` (pull request 5,
@@ -35,13 +34,12 @@ change's close. Separate from this list and standing: `SOMEDAY.md`'s "QB64pe beh
 questionable behaviours each change kept QB64pe's way.
 
 1. **Merge `changes` into `main`**: the three changes of `447bb05`, then `m3-sound-handles` (`b1a818d`),
-   `m3-versioninfo` (`3c93e14`), `m3-arraycopy` (`7439ea8`), `m3-events` (`81c05ed`) and `test-parallel-runs`
-   (`4a8d06e`), since the last merge (`DECISIONS.md` 2026-10-16, "every two or three changes").
-2. **`m3-errorline-chr-const`**: look at it, stage it and say when to archive it
-   (`openspec\changes\m3-errorline-chr-const\`).
-3. **The next M3 step**: the upstream report's first lines are `_OPENCLIENT`, `_EMBEDDED$` and `$EMBED` (3 programs
+   `m3-versioninfo` (`3c93e14`), `m3-arraycopy` (`7439ea8`), `m3-events` (`81c05ed`), `test-parallel-runs`
+   (`4a8d06e`) and `m3-errorline-chr-const` (`9aebb3c`), since the last merge (`DECISIONS.md` 2026-10-16, "every
+   two or three changes").
+2. **The next M3 step**: the upstream report's first lines are `_OPENCLIENT`, `_EMBEDDED$` and `$EMBED` (3 programs
    each), then `_DEVICES` and `_OPENHOST` (2 each).
-4. **`m3-events`' four kept behaviours** (archived without a ruling on them; `SOMEDAY.md`'s "QB64pe behaviours to
+3. **`m3-events`' four kept behaviours** (archived without a ruling on them; `SOMEDAY.md`'s "QB64pe behaviours to
    review"): `ON KEY`'s key cut, a SUB handler's argument through an `_INTEGER64`, an event during an error
    handler held, a `TYPE` parameter rejected.
 
@@ -55,7 +53,7 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-`m3` goes to `main` every two or three changes; eight wait now, nine with `m3-errorline-chr-const`. The next M3
+`m3` goes to `main` every two or three changes; nine wait now. The next M3
 step is the user's to choose (the upstream report's first lines are `_OPENCLIENT`, `_EMBEDDED$` and `$EMBED`, 3
 each); the plain copy of `internal\c` waits until libqb must change.
 
@@ -84,6 +82,7 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 17 | `2026-10-17-m3-versioninfo` | `$VERSIONINFO`: the version resource and manifest byte for byte; a compile error where the old build fails or its executable cannot start |
 | 18 | `2026-10-17-m3-arraycopy` | `_ARRAYCOPY` in its six forms, member arrays included; D-004 widened, D-025 |
 | 19 | `2026-10-17-m3-events` | `ON TIMER`, `ON KEY`, the switches, `_FREETIMER`, `KEY ON`/`OFF`/`LIST`, `KEY n, text$`; `STRIG` left for device input |
+| 20 | `2026-10-17-m3-errorline-chr-const` | `CHR$` in a `CONST`, `_ERRORLINE`, `_INCLERRORLINE`, `_INCLERRORFILE$`, `_ERRORMESSAGE$`; the line of a joined line |
 
 ## Numbers at the last full runs
 

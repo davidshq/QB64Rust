@@ -52,8 +52,11 @@ suffix other than its own, or a `_BIT` constant with another suffix, SHALL be "n
 suffixed literal inside a `CONST` expression is its held value (`CONST r = 300~%%` is 300). An expression the old evaluator rejects (a variable, a string mixed
 with a number, a string comparison, a function outside its list, integer division or `MOD` by 0, a suffix of the
 wrong kind) SHALL be a compile error, and so SHALL a `/` by 0 (the old evaluator gives 0, D-007); a function from
-its list and a floating-point value the compiler cannot show to equal the old evaluator's `_FLOAT` result SHALL be
-"not supported yet". A floating-point result outside `_INTEGER64` range SHALL be DOUBLE.
+its list other than `CHR$` and a floating-point value the compiler cannot show to equal the old evaluator's `_FLOAT` result SHALL be
+"not supported yet". A floating-point result outside `_INTEGER64` range SHALL be DOUBLE. `CHR$(code)` SHALL
+give the one-byte string of the code, the code computed as a parenthesised group is and, when a float,
+rounded half to even; a code outside 0 to 255 after the rounding, a string as the code, or another number of
+codes than one SHALL be a compile error (measured, `verification\v43_c_chr_const`, `v43_x01`–`x28`).
 
 #### Scenario: Float beyond _INTEGER64
 - **WHEN** `CONST a = 1E+19 / 1: PRINT a` runs
@@ -98,6 +101,15 @@ its list and a floating-point value the compiler cannot show to equal the old ev
 #### Scenario: Power beyond _INTEGER64
 - **WHEN** `CONST c = 2 ^ 70: PRINT c` runs
 - **THEN** it prints ` 1.180591620717411D+21 `
+
+#### Scenario: CHR$ in a CONST
+- **WHEN** `CONST a = CHR$(65) + CHR$(65.5) + CHR$(66.5) + CHR$(-0.5): PRINT ASC(a, 2); ASC(a, 3); ASC(a, 4)`
+  runs
+- **THEN** it prints ` 66  66  0 `
+
+#### Scenario: CHR$ of a code out of range
+- **WHEN** `CONST a = CHR$(255.5)` or `CONST a = CHR$(-0.6)` is compiled
+- **THEN** it is a compile error (not "not supported yet")
 
 ### Requirement: OPTION _EXPLICIT
 `OPTION _EXPLICIT` SHALL apply to the whole program, wherever it stands (also inside a block or a procedure, and
@@ -163,8 +175,12 @@ SHALL NOT affect a program that does not use it.
 - **THEN** it prints what the old compiler's program prints for it
 
 #### Scenario: A value not computed yet
-- **WHEN** a program uses `_STR_CRLF`, whose `CONST` line needs `CHR$`
+- **WHEN** a program uses `_E`, whose `CONST` line needs `EXP`
 - **THEN** the only diagnostic is "not supported yet" at that use
+
+#### Scenario: A value made with CHR$
+- **WHEN** `PRINT LEN(_STR_CRLF); ASC(_STR_CRLF, 2); ASC(_CHR_ESC)` runs
+- **THEN** it prints ` 2  10  27 `
 
 #### Scenario: Not used
 - **WHEN** a program names no constant of the auto-included file
