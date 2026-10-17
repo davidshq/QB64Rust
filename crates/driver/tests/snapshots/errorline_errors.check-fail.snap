@@ -1,0 +1,23 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+errorline_errors.bas:7:7: error: `_ERRORLINE` takes 0 arguments
+errorline_errors.bas:7:7: note: QB64pe: Incorrect number of arguments - Reference: _ERRORLINE
+errorline_errors.bas:8:1: error: `_ERRORLINE` is a function, not a statement
+errorline_errors.bas:8:1: note: QB64pe: Syntax error
+errorline_errors.bas:9:20: error: `_ERRORMESSAGE$` needs a number
+errorline_errors.bas:10:5: error: `_ERRORMESSAGE$` takes 0 or 1 arguments
+errorline_errors.bas:11:7: error: not supported yet: `_ERRORMESSAGE(...)` (an array used without `DIM`, or no FUNCTION of this name)
+errorline_errors.bas:12:5: error: `_INCLERRORFILE$` with empty parentheses
+errorline_errors.bas:12:5: note: QB64pe: Expected (...)
+errorline_errors.bas:13:1: error: names starting with `_` are reserved: `_ERRORLINE`
+errorline_errors.bas:13:1: note: QB64pe: Expected variable =, look for conflict with a CONST name
+errorline_errors.bas:14:5: error: `_ERRORMESSAGE$` with empty parentheses
+errorline_errors.bas:14:5: note: QB64pe: Expected (...)
+errorline_errors.bas:15:7: error: `_ERRORLINE` with empty parentheses
+errorline_errors.bas:15:7: note: QB64pe: Expected (...)
+errorline_errors.bas:16:11: error: `_ERRORLINE` cannot be used in a `CONST`
+errorline_errors.bas:17:7: error: names starting with `_` are reserved: `_ERRORLINE&`
+errorline_errors.bas:18:7: error: names starting with `_` are reserved: `_INCLERRORFILE`
+errorline_errors.bas:18:7: note: QB64pe: Invalid variable name

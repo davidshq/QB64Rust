@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 unsupported.bas:5:14: error: not supported yet: `_KEYDOWN`
@@ -9,4 +8,4 @@ unsupported.bas:8:11: error: this operator cannot be used on strings
 unsupported.bas:9:6: error: cannot store a string in a number variable
 unsupported.bas:9:6: note: QB64pe: Illegal string-number conversion
 unsupported.bas:10:1: error: not supported yet: `STOP`
-unsupported.bas:11:12: error: not supported yet: the function `CHR$` in a `CONST`
+unsupported.bas:11:11: error: not supported yet: the function `EXP` in a `CONST`

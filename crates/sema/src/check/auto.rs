@@ -8,10 +8,11 @@
 //! before, and a constant is visible in the main module and in every procedure (a user's name cannot start with an
 //! underscore, so nothing hides it).
 //!
-//! The expressions of the file have three shapes: one operand; two operands with `+`, `*` or `/` between them; a
-//! function call. An operand is a number with or without a minus, a string, or a constant that stands earlier in
-//! the file. A function (`CHR$`, `EXP`) is not computed in a `CONST` yet, and neither is a value beyond `DOUBLE`
-//! range; such a constant is "not supported yet" where it is used, with that reason. A shape that is none of these
+//! The expressions of the file have three shapes: one term; two terms with `+`, `*` or `/` between them. A term is
+//! an operand or a function call of one operand (`CHR$(13)`, `EXP(1.0##)`); an operand is a number with or without
+//! a minus, a string, or a constant that stands earlier in the file. `CHR$` is computed as in a `CONST`; `EXP` is
+//! not computed yet, and neither is a value beyond `DOUBLE` range; such a constant is "not supported yet" where it
+//! is used, with that reason. A shape that is none of these
 //! is marked too, so a new version of the file cannot be misread.
 
 use super::{Checker, R};
@@ -81,22 +82,37 @@ impl Checker<'_> {
 
     /// The value of an expression of the file (the shapes: this module's comment).
     fn auto_expr(&mut self, index: usize, text: &str) -> Result<Value, String> {
-        if let Some(open) = text.find('(') {
-            let function = text[..open].trim();
-            if function.is_empty() || function.contains(' ') {
-                // Parentheses that are no function call: none of the file's shapes.
-                return Err(format!("its expression `{text}` is not read yet"));
-            }
-            return Err(format!("the function `{function}` in a `CONST`"));
-        }
         for (sign, op) in [(" + ", BinOp::Add), (" * ", BinOp::Mul), (" / ", BinOp::Div)] {
             if let Some((left, right)) = text.split_once(sign) {
-                let a = self.auto_operand(index, left)?;
-                let b = self.auto_operand(index, right)?;
+                if cuts_parentheses(left) || cuts_parentheses(right) {
+                    // A sign inside parentheses: none of the file's shapes, named whole.
+                    return Err(format!("its expression `{text}` is not read yet"));
+                }
+                let a = self.auto_term(index, left)?;
+                let b = self.auto_term(index, right)?;
                 return consteval::binary(op, &a, &b).map_err(reason);
             }
         }
-        self.auto_operand(index, text)
+        self.auto_term(index, text)
+    }
+
+    /// An operand, or a function call whose argument is one (`CHR$(13)`; `EXP` is not computed yet).
+    fn auto_term(&mut self, index: usize, text: &str) -> Result<Value, String> {
+        let text = text.trim();
+        let Some(open) = text.find('(') else {
+            return self.auto_operand(index, text);
+        };
+        let function = text[..open].trim();
+        let arg = text[open + 1..].strip_suffix(')');
+        if function.is_empty() || function.contains(' ') || arg.is_none_or(|a| a.contains(['(', ')', ','])) {
+            // Parentheses that are no call of one argument: none of the file's shapes.
+            return Err(format!("its expression `{text}` is not read yet"));
+        }
+        if function != "CHR$" {
+            return Err(format!("the function `{function}` in a `CONST`"));
+        }
+        let code = self.auto_operand(index, arg.unwrap_or_default())?;
+        consteval::chr(&code).map_err(reason)
     }
 
     /// One operand: a string, a constant that stands earlier in the file, or a number with or without a minus.
@@ -149,5 +165,26 @@ fn reason(p: Problem) -> String {
     match p {
         Problem::Error(msg) => msg,
         Problem::Unsupported(what) => what,
+    }
+}
+
+/// Whether one side of a split at a sign holds a parenthesis without its partner: the sign stood inside
+/// parentheses (`CHR$(1 + 2)`, `(1 + 2)`).
+fn cuts_parentheses(part: &str) -> bool {
+    part.matches('(').count() != part.matches(')').count()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cuts_parentheses;
+
+    #[test]
+    fn a_sign_inside_parentheses_cuts_them() {
+        for (left, right) in [("CHR$(13)", "CHR$(10)"), ("_CHR_CR", "_CHR_LF"), ("1", "2")] {
+            assert!(!cuts_parentheses(left) && !cuts_parentheses(right), "{left} + {right}");
+        }
+        for (left, right) in [("CHR$(1", "2)"), ("(1", "2)")] {
+            assert!(cuts_parentheses(left) && cuts_parentheses(right), "{left} + {right}");
+        }
     }
 }

@@ -27,7 +27,7 @@ use blocks::nested_statements;
 use whole::{without_parens, written_whole};
 
 use crate::{ConstId, LabelId, Place, ProcId, Program, Shape, Stmt, StmtKind, SymbolKind, Ty, TypeId, VarId};
-use qb64rust_base::{Diagnostics, SourceMap, Span, show_bytes};
+use qb64rust_base::{Diagnostics, FileId, SourceMap, Span, show_bytes};
 use qb64rust_syntax::ParsedProgram;
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
@@ -46,10 +46,19 @@ pub fn check(map: &SourceMap, program: &ParsedProgram) -> (Program, Diagnostics)
 /// print the same either way (design D5).
 pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Program, Diagnostics) {
     let root = program.main().root();
+    // The lines that end with a line continuation, in every file (design D1 of `m3-errorline-chr-const`).
+    let continued = program
+        .trees
+        .iter()
+        .flat_map(|t| t.root().tokens())
+        .filter(|t| t.kind == SyntaxKind::LineContinuation)
+        .map(|t| (t.span.file, map.file(t.span.file).line_col(t.span.start).0))
+        .collect();
     let mut c = Checker {
         fold,
         map,
         program,
+        continued,
         prog: Program::default(),
         main: Scope::default(),
         local: Scope::default(),
@@ -444,6 +453,8 @@ struct Checker<'a> {
     map: &'a SourceMap,
     /// Every tree, for the included ones ([`Checker::expand`]).
     program: &'a ParsedProgram,
+    /// The lines of each file that end with a line continuation (`_`), so that the next line continues them.
+    continued: HashSet<(FileId, u32)>,
     prog: Program,
     main: Scope,
     /// The scope of the procedure being checked (only meaningful while `cur` is set).
@@ -674,9 +685,15 @@ impl Checker<'_> {
         self.map.text(span)
     }
 
-    /// The 1-based line a span starts on, in its own file.
+    /// The 1-based line of a span in its own file, as the old compiler counts it: a line joined to the next by a
+    /// line continuation is numbered as the last line of the join (measured, `verification\v43_d_continued`,
+    /// `v43_e_continued_untrapped`: `ERROR 5: x = 1 + _` reports the line below it).
     fn line(&self, span: Span) -> u32 {
-        self.map.file(span.file).line_col(span.start).0
+        let mut line = self.map.file(span.file).line_col(span.start).0;
+        while self.continued.contains(&(span.file, line)) {
+            line += 1;
+        }
+        line
     }
 
     /// The token in upper case, other than printable ASCII escaped (`\xC9`).
@@ -963,7 +980,13 @@ impl Checker<'_> {
     fn push(&mut self, node: Node, kind: StmtKind) {
         let span = node.span();
         let line = self.line(node.first_token().map_or(span, |t| t.span));
-        let stmt = Stmt { span, line, kind };
+        let include_line = self.include_line(node);
+        let stmt = Stmt {
+            span,
+            line,
+            include_line,
+            kind,
+        };
         self.sink().push(stmt);
     }
 
@@ -1330,7 +1353,15 @@ impl Checker<'_> {
             };
             (tree, offset) = at;
         }
-        self.map.file(self.program.tree(tree).file).line_col(offset).0
+        let file = self.program.tree(tree).file;
+        self.line(Span::new(file, offset, offset))
+    }
+
+    /// For a node of an included file, the line of the main file that `_ERRORLINE` gives there: that of the
+    /// `$INCLUDE` that brought the outermost included file in (measured, `verification\v43_b_include`); `None` in
+    /// the main file.
+    fn include_line(&self, node: Node) -> Option<u32> {
+        (node.key().0 != self.program.main().id).then(|| self.main_line(node.key()))
     }
 
     /// A metacommand comment. Its `$STATIC` and `$DYNAMIC` decide what a `DIM` with constant bounds makes from

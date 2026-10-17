@@ -123,7 +123,7 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>, 
         func_decls: Vec::new(),
         file_types: Vec::new(),
         file_buffers: 0,
-        stmt_at: (None, 0),
+        stmt_at: (None, 0, None),
         on_timer: events::EventCode::default(),
         on_key: events::EventCode::default(),
     };
@@ -277,8 +277,8 @@ struct Emitter<'a> {
     file_types: Vec<qb64rust_ir::TypeId>,
     /// Counter for the buffers of those file statements, one per statement (`qbr_fbufN`).
     file_buffers: u32,
-    /// The file and line of the statement being emitted, for an event check inside it (`END n`).
-    stmt_at: (Option<FileId>, u32),
+    /// The file, line and main-file line of the statement being emitted, for an event check inside it (`END n`).
+    stmt_at: (Option<FileId>, u32, Option<u32>),
     /// The handlers of `ON TIMER` and of `ON KEY` (`events.rs`).
     on_timer: events::EventCode,
     on_key: events::EventCode,

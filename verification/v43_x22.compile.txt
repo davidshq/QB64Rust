@@ -1,0 +1,5 @@
+
+Invalid argument to CHR$, valid range is 0-255: 9223372036854775807&&
+Caused by (or after):
+LINE 3:CONST Z = CHR$ ( 18446744073709551616 )
+exit=1

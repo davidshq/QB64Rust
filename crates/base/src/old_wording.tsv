@@ -20,6 +20,7 @@
 `CHAIN` needs a string	String required for sub
 `CHAIN` takes {#} argument	Syntax error - Reference: CHAIN moduleName$
 `CHDIR` takes {#} argument	Syntax error - Reference: CHDIR path$
+`CHR` cannot be used in a `CONST`	Unexpected element 'CHR'
 `CLOSE` needs file numbers	Illegal string-number conversion
 `COM` is not an event QB64pe traps, and no statement	Syntax error
 `COM` is not an event: `ON COM` cannot be trapped	Name already in use (COM)
@@ -135,6 +136,9 @@
 `_ECHO` needs a program with `$CONSOLE` or `$CONSOLE:ONLY`	_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first
 `_ECHO` needs a string	String required for sub
 `_ECHO` takes {#} argument	Syntax error - Reference: _ECHO text$
+`_ERRORLINE` is a function, not a statement	Syntax error
+`_ERRORLINE` takes {#} arguments	Incorrect number of arguments - Reference: _ERRORLINE
+`_ERRORLINE` with empty parentheses	Expected (...)
 `_FILEEXISTS` needs a string	String required for function
 `_FONTWIDTH` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _FONTWIDTH[(fontHandle&)]
 `_FONT` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _FONT[(imageHandle&)]
@@ -418,6 +422,8 @@ name already in use: `{}` (a `CONST` of this name follows on line {#})	Name alre
 name already in use: `{}```	Name already in use ({1:S})
 names starting with `_` are reserved: `_CONSOLE`	Expected variable =, look for conflict with a CONST name
 names starting with `_` are reserved: `_CWD`	Invalid variable name
+names starting with `_` are reserved: `_ERRORLINE`	Expected variable =, look for conflict with a CONST name
+names starting with `_` are reserved: `_INCLERRORFILE`	Invalid variable name
 names starting with `_` are reserved: `_SCREENX`	Expected variable =, look for conflict with a CONST name
 names starting with `_` are reserved: `_SNDPLAY`	Invalid variable name
 names starting with `_` are reserved: `_STARTDIR`	Invalid variable name
@@ -425,7 +431,6 @@ names starting with `_` are reserved: `_TITLE`	Invalid variable name
 one `TO` stands between the source and the destination of `{}`	Expected one TO between _ArrayCopy source and destination
 only a value of a `TYPE` has members	Invalid expression
 only comments may stand between `SELECT CASE` and the first `CASE`	Expected CASE expression
-strings cannot be compared in a `CONST`	Unexpected element '<'
 the FUNCTION's own name cannot be a target of `LINE INPUT`	Expected variable-name
 the FUNCTION's own name cannot be a target of `READ`	Expected variable
 the FUNCTION's own name cannot be a target of `SWAP`	Expected variable

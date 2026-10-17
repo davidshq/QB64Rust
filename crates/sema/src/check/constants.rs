@@ -12,12 +12,13 @@ use crate::consteval::{self, Problem, Value, exact_text, shortest_text};
 use crate::literal::{self, LitError, NumLit};
 use crate::{BinOp, Const, ConstId, Expr, ExprKind, Storage, SymbolKind, Ty, UnOp};
 use qb64rust_base::{Span, show_bytes, to_u32};
+use qb64rust_builtins::find_function_form;
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::tree::Tok;
 
-/// The functions of the old evaluator (`Set_ConstFunctions`, `study\02` §7): "not supported yet" in a `CONST`.
-/// Any other function is an error there.
+/// The functions of the old evaluator (`Set_ConstFunctions`, `study\02` §7): `CHR$` is computed, the others are
+/// "not supported yet" in a `CONST`. Any other function is an error there.
 const FUNCTIONS: &[&str] = &[
     "_PI", "_ACOS", "_ASIN", "_ARCSEC", "_ARCCSC", "_ARCCOT", "_SECH", "_CSCH", "_COTH", "COS", "SIN", "TAN", "LOG",
     "EXP", "ATN", "SQR", "_D2R", "_D2G", "_R2D", "_R2G", "_G2D", "_G2R", "ABS", "SGN", "INT", "_ROUND", "_CEIL", "FIX",
@@ -221,6 +222,10 @@ impl Checker<'_> {
                         let msg = format!("a constant with a type suffix inside a `CONST`: `{shown}`");
                         Err(self.unsupported(t.span, msg))
                     }
+                    // Measured, `verification\v43_x06`: `CHR$ 65` is an error.
+                    (None, _) if self.word(t) == "CHR$" => {
+                        Err(self.error(t.span, format!("`{shown}` needs its code in parentheses")))
+                    }
                     (None, _) if is_const_function(&self.word(t)) => {
                         Err(self.unsupported(t.span, format!("the function `{shown}` in a `CONST`")))
                     }
@@ -229,13 +234,28 @@ impl Checker<'_> {
                     (None, _) if self.is_variable_name(&name) => {
                         Err(self.error(t.span, format!("`{shown}` is a variable, not a constant")))
                     }
+                    // A built-in function's name is no constant's (measured, `verification\v43_x40`: `CONST c =
+                    // _ERRORLINE` is an error).
+                    (None, suffix) if find_function_form(name.as_bytes(), suffix == Some(Ty::Str)).is_some() => {
+                        Err(self.error(t.span, format!("`{shown}` cannot be used in a `CONST`")))
+                    }
                     (None, _) => Err(self.unsupported(t.span, format!("`{shown}`, not a constant defined so far"))),
                 }
             }
             ast::Expr::Call(call) => {
                 let t = self.need(call.name(), span)?;
                 let shown = show_bytes(self.text(t.span));
-                if is_const_function(&self.word(t)) {
+                if self.word(t) == "CHR$" {
+                    let args = call.arg_list().map(ast::ArgList::args).unwrap_or_default();
+                    let [Some(code)] = args[..] else {
+                        // Measured: `CHR$()` and `CHR$(1, 2)` are errors (`verification\v43_x04`, `x05`).
+                        return Err(self.error(t.span, format!("`{shown}` in a `CONST` takes one code")));
+                    };
+                    // The argument is computed and read back as a parenthesised group is.
+                    let v = self.const_value(code)?;
+                    let v = self.problem(consteval::reread(v), code.node().span())?;
+                    self.problem(consteval::chr(&v), code.node().span())
+                } else if is_const_function(&self.word(t)) {
                     Err(self.unsupported(t.span, format!("the function `{shown}` in a `CONST`")))
                 } else {
                     Err(self.error(t.span, format!("`{shown}` cannot be used in a `CONST`")))

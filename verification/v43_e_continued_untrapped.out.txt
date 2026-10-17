@@ -1,0 +1,6 @@
+before
+
+Runtime error: Line: 6 (in main module)
+Illegal function call
+after
+exit=0

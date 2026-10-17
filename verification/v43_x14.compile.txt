@@ -1,0 +1,5 @@
+
+Unexpected element 'X'
+Caused by (or after):
+LINE 3:X = 65 : CONST Z = CHR$ ( X )
+exit=1

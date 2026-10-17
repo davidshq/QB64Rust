@@ -20,9 +20,11 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 
 M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: nineteen of its steps are built and archived
 (table below), the last `m3-events` (`81c05ed`); `test-parallel-runs` (the test cadence of `study\32`, not an M3
-step, `4a8d06e`) is archived too. Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes; Civil
+step, `4a8d06e`) is archived too. The twentieth, **`m3-errorline-chr-const`** (`CHR$` in a `CONST`, `_ERRORLINE`
+and its three siblings), is built and closed, in the working tree, not archived. Every program of the corpus that
+the old compiler accepts compiles, and every one that can be compared passes; Civil
 War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same 23
-screens as the old compiler's build. Upstream is at 336 of 399. `main` is at the merge of `m3` (pull request 5,
+screens as the old compiler's build. Upstream is at 339 of 399. `main` is at the merge of `m3` (pull request 5,
 2026-10-16).
 
 ## Waiting on the user
@@ -35,9 +37,11 @@ questionable behaviours each change kept QB64pe's way.
 1. **Merge `changes` into `main`**: the three changes of `447bb05`, then `m3-sound-handles` (`b1a818d`),
    `m3-versioninfo` (`3c93e14`), `m3-arraycopy` (`7439ea8`), `m3-events` (`81c05ed`) and `test-parallel-runs`
    (`4a8d06e`), since the last merge (`DECISIONS.md` 2026-10-16, "every two or three changes").
-2. **The next M3 step**: the upstream report's first lines are `_OPENCLIENT`, the function `CHR$` in a `CONST` and
-   `_ERRORLINE` (3 programs each).
-3. **`m3-events`' four kept behaviours** (archived without a ruling on them; `SOMEDAY.md`'s "QB64pe behaviours to
+2. **`m3-errorline-chr-const`**: look at it, stage it and say when to archive it
+   (`openspec\changes\m3-errorline-chr-const\`).
+3. **The next M3 step**: the upstream report's first lines are `_OPENCLIENT`, `_EMBEDDED$` and `$EMBED` (3 programs
+   each), then `_DEVICES` and `_OPENHOST` (2 each).
+4. **`m3-events`' four kept behaviours** (archived without a ruling on them; `SOMEDAY.md`'s "QB64pe behaviours to
    review"): `ON KEY`'s key cut, a SUB handler's argument through an `_INTEGER64`, an event during an error
    handler held, a `TYPE` parameter rejected.
 
@@ -51,9 +55,9 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-`m3` goes to `main` every two or three changes; eight wait now. The next M3 step is the user's to choose (the
-upstream report's first lines are `_OPENCLIENT`, `CHR$` in a `CONST` and `_ERRORLINE`, 3 each); the plain copy of
-`internal\c` waits until libqb must change.
+`m3` goes to `main` every two or three changes; eight wait now, nine with `m3-errorline-chr-const`. The next M3
+step is the user's to choose (the upstream report's first lines are `_OPENCLIENT`, `_EMBEDDED$` and `$EMBED`, 3
+each); the plain copy of `internal\c` waits until libqb must change.
 
 **M3's steps** (user, `DECISIONS.md` 2026-10-12, and one row per later step). Done, each archived under
 `openspec\changes\archive\` with its `tasks.md` and `design.md`; its measurements in `study\00` §5; what stayed
@@ -82,6 +86,15 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 19 | `2026-10-17-m3-events` | `ON TIMER`, `ON KEY`, the switches, `_FREETIMER`, `KEY ON`/`OFF`/`LIST`, `KEY n, text$`; `STRIG` left for device input |
 
 ## Numbers at the last full runs
+
+**At the close of `m3-errorline-chr-const`** (2026-10-17, the lighter close, working rule 9; the table below is
+still the last full set): `slice.list` 449 of 449 (`--pass-cache`, which skipped none: the last close ran without
+it), also without folding; upstream `pass.list` 339 of 339; the call-site check 1871 of 1871 equal; the 37
+command-line tests that build pass; tier 1 339 of 339 (`--workspace --locked --no-fail-fast`), after the files
+of `verification\v40_rc` that the `.gitattributes` edit made CRLF were checked out again (they had LF in the
+working tree, and `resource_files_equal_the_old_compilers` failed). `tools\close\close.py --check` passes.
+Demand: corpus 452 of 455 without errors (the other three, `s77_exeicon`, `g12_game` and `s137_errorline_include`,
+have files only the runner puts beside them); upstream 295 of 348 without errors, 42 held back.
 
 From 2026-10-17 (the close of `m3-events`, release build against the reference clone, each runner run with
 `--jobs 8 --build-cache target\build-cache`, none with `--pass-cache`): tier 1, the 37 command-line tests that

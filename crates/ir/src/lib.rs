@@ -141,6 +141,8 @@ pub struct Label {
     /// The BASIC name in upper case; `None` for a label the lowering made.
     pub name: Option<String>,
     pub line: u32,
+    /// In an included file, the line of the main file that `_ERRORLINE` gives there ([`Stmt::include_line`]).
+    pub include_line: Option<u32>,
     /// The file of a BASIC label (`None` for one the lowering made).
     pub file: Option<FileId>,
     pub at: usize,
@@ -769,6 +771,9 @@ pub enum OnError {
 pub struct Stmt {
     pub span: Span,
     pub line: u32,
+    /// In an included file, the line of the main file that `_ERRORLINE` gives there: that of the `$INCLUDE` that
+    /// brought the outermost included file in; `None` in the main file.
+    pub include_line: Option<u32>,
     pub ops: Vec<Op>,
     pub may_raise: bool,
 }

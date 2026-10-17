@@ -1,0 +1,22 @@
+1. before any error: 0  0 [] [No error]
+  error 5 ERL 0 _ERRORLINE 8 _INCLERRORLINE 0 file [] message [Illegal function call]
+2. after RESUME NEXT: 8 
+3.
+  error 6 ERL 10 _ERRORLINE 12 _INCLERRORLINE 0 file [] message [Overflow]
+  error 7 ERL 10 _ERRORLINE 13 _INCLERRORLINE 0 file [] message [Out of memory]
+  error 8 ERL 20 _ERRORLINE 16 _INCLERRORLINE 0 file [] message [Label not defined]
+  in s
+  error 9 ERL 20 _ERRORLINE 40 _INCLERRORLINE 0 file [] message [Subscript out of range]
+  error 10 ERL 20 _ERRORLINE 44 _INCLERRORLINE 0 file [] message [Duplicate definition]
+4. back in main: 44  0  20 
+5. messages: [Illegal function call] [No error] [Unprintable error] [Unprintable error]
+6. [Unprintable error] [Duplicate definition] [Bad file name or number]
+  error 255 ERL 20 _ERRORLINE 23 _INCLERRORLINE 0 file [] message [Unprintable error]
+7. continued:
+  error 12 ERL 20 _ERRORLINE 26 _INCLERRORLINE 0 file [] message [Illegal in direct mode]
+  error 13 ERL 20 _ERRORLINE 28 _INCLERRORLINE 0 file [] message [Type mismatch]
+8. arithmetic: 28.5  14 
+
+Runtime error: Line: 31 (in main module)
+Memory region out of range
+exit=0

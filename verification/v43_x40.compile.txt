@@ -1,0 +1,5 @@
+
+Unexpected element '_ERRORLINE'
+Caused by (or after):
+LINE 3:CONST C = _ERRORLINE
+exit=1

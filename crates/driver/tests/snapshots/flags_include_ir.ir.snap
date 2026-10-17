@@ -5,9 +5,9 @@ expression: snap
 Settings: console, no window
 Stmt line 6 may_raise
   Builtin _ECHO [Value(Const "main: 2 above the include")]
-Stmt line 1
+Stmt line 1 in main line 8
   SelectConsole
-Stmt line 3
+Stmt line 3 in main line 8
   Print console newline
     Str Const "included: 2"
 Stmt line 10

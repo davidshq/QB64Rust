@@ -147,9 +147,11 @@ impl Checker<'_> {
         }
         let id = LabelId(to_u32(self.prog.labels.len()));
         let line = self.line(t.span);
+        let include_line = self.include_line(node);
         self.prog.labels.push(Label {
             name: key.1.clone(),
             line,
+            include_line,
             file: t.span.file,
             proc: body,
             data_at: 0,

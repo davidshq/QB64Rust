@@ -1,0 +1,5 @@
+
+Invalid argument to CHR$, valid range is 0-255: 1F+300
+Caused by (or after):
+LINE 3:CONST Z = CHR$ ( 1.0E+300,1E300 )
+exit=1

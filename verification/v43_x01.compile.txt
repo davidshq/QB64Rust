@@ -1,0 +1,5 @@
+
+Invalid argument to CHR$, valid range is 0-255: 256&&
+Caused by (or after):
+LINE 3:CONST Z = CHR$ ( 256 )
+exit=1

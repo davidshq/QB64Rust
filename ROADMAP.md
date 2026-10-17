@@ -132,12 +132,14 @@ or measurements; listing an area does not settle those choices.
 - [ ] Networking: clients, hosts, connection addresses and status (`_OPENCLIENT`, `_OPENHOST`,
       `_CONNECTIONADDRESS$`, `_STATUSCODE`, and related functions); the `_SOCKETS_` flag and auto-included
       helpers that depend on them
-- [ ] Constant evaluation: built-in functions in `CONST`, suffixed constant references, `_FLOAT` precision and
-      range, and the remaining constants from QB64pe's auto-included files; `$COLOR` constants
+- [ ] Constant evaluation: built-in functions in `CONST` (`CHR$` done, with the 69 auto-included constants
+      made with it, `m3-errorline-chr-const`), suffixed constant references, `_FLOAT` precision and range, and the
+      remaining constants from QB64pe's auto-included files; `$COLOR` constants
 - [ ] Embedded resources (`$EMBED`, `_EMBEDDED$`), including their use for MIDI sound banks; remaining
       `$EXEICON` path lookup forms
-- [ ] Runtime error and source-location support: `_ERRORLINE`, `_INCLERRORLINE`, `_INCLERRORFILE$`,
-      `_ERRORMESSAGE$`, `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`; logging built-ins
+- [ ] Runtime error and source-location support: `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`; logging
+      built-ins (done: `_ERRORLINE`, `_INCLERRORLINE`, `_INCLERRORFILE$`, `_ERRORMESSAGE$`, and a joined line
+      numbered as its last, `m3-errorline-chr-const`; upstream 336 to 339 of 399)
 - [ ] `$CHECKING:OFF` and the corresponding unchecked code generation, including memory operations and
       `_ARRAYCOPY`
 - [ ] OpenGL user code (`SUB _GL`) and its integration with the existing runtime
