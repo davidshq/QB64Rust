@@ -157,9 +157,25 @@ pub fn unattended(exe: &Path) -> Command {
     cmd
 }
 
-/// The folder of the clone's locks (`tools\legacy_tests\clone_lock.py`, `CLONE_LOCK_DIR`).
+/// The folder of the clone's locks (`tools\legacy_tests\clone_lock.py`, `CLONE_LOCK_DIR`): under the main checkout's
+/// `target`, also when the tests run in a git worktree, so that its runs and the main checkout's see each other.
 fn clone_lock_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/qb64pe-clone")
+    main_checkout(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")).join("target/qb64pe-clone")
+}
+
+/// The checkout whose `target` holds the locks: `repo`, or for a git worktree (its `.git` a file `gitdir: <main>/.git/
+/// worktrees/<name>`, whose `commondir` file names the main `.git`) the main checkout (`clone_lock.py`,
+/// `main_checkout`).
+#[expect(clippy::disallowed_methods, reason = "git's files of paths, not BASIC source")]
+fn main_checkout(repo: &Path) -> PathBuf {
+    let worktree = || -> Option<PathBuf> {
+        let text = std::fs::read_to_string(repo.join(".git")).ok()?;
+        let gitdir = repo.join(text.trim().strip_prefix("gitdir:")?.trim());
+        let common = std::fs::read_to_string(gitdir.join("commondir")).ok()?;
+        let dot_git = std::fs::canonicalize(gitdir.join(common.trim())).ok()?;
+        Some(dot_git.parent()?.to_path_buf())
+    };
+    worktree().unwrap_or_else(|| repo.to_path_buf())
 }
 
 /// The lock the driver takes around each `make` when [`OBJECTS_LOCK_ENV`] names it: shared while the clone's libqb

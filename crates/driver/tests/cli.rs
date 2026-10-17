@@ -568,6 +568,76 @@ fn holds(haystack: &[u8], needle: &[u8]) -> bool {
     haystack.windows(needle.len()).any(|w| w == needle)
 }
 
+/// Spec `language/embedded-files`, "Where the file is", scenario "Missing file or a folder" (measured,
+/// `verification\v44_x07`, `x27`): an error at the line that names the file as written, for every command that
+/// reports diagnostics; no executable. With the file there the program has no diagnostic.
+#[test]
+fn embedded_file_is_missing_or_a_folder() {
+    let d = scratch("embed-missing");
+    std::fs::create_dir_all(d.join("folder")).unwrap();
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\n$EMBED:'./none.txt','a'\n$EMBED:'./folder','b'\nPRINT _EMBEDDED$(\"a\")\nSYSTEM\n",
+    )
+    .unwrap();
+    let lines = "p.bas:2:1: error: the file `./none.txt` of `$EMBED` is not found\n\
+                 p.bas:3:1: error: the file `./folder` of `$EMBED` is not found\n2 errors\n";
+    for args in [&["-x", "p.bas"][..], &["-z", "p.bas"], &["p.bas", "--dump", "ir"]] {
+        let o = qb64rust(&d, args);
+        assert_eq!(o.status.code(), Some(1), "{args:?}: {}", stdout(&o));
+        assert_eq!(stdout(&o), lines, "{args:?}");
+    }
+    assert!(!d.join("p.exe").exists());
+    let o = qb64rust(&d, &["--report", "unsupported", "p.bas"]);
+    assert!(stdout(&o).contains("1 with other errors"), "{}", stdout(&o));
+    std::fs::write(d.join("none.txt"), "x").unwrap();
+    std::fs::remove_dir(d.join("folder")).unwrap();
+    std::fs::write(d.join("folder"), "y").unwrap();
+    let o = qb64rust(&d, &["p.bas", "--dump", "ir"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(
+        stdout(&o).starts_with("Settings: console, no window, runtime parts: embedded files\n"),
+        "{}",
+        stdout(&o)
+    );
+}
+
+/// Only a file a compiled `_EMBEDDED$` names is built in (spec `language/embedded-files`, "Only used files are
+/// built in"; design D3 of `m3-network-embed`): the kept build folder's `embedded.cpp` holds the used file's
+/// handle and not the other's, and the program prints the file's bytes. A program whose only file is unused links
+/// no embed part and gets no `embedded.cpp`.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn only_used_embedded_files_are_built_in() {
+    let d = scratch("embed-used");
+    std::fs::write(d.join("used.txt"), "used!").unwrap();
+    std::fs::write(d.join("unused.txt"), "unused").unwrap();
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\n$EMBED:'./used.txt','u'\n$EMBED:'./unused.txt','n'\nPRINT _EMBEDDED$(\"u\")\nSYSTEM\n",
+    )
+    .unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap(), "--keep-build"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let cpp = std::fs::read(d.join("p.exe.qb64rust/temp/embedded.cpp")).unwrap();
+    assert!(holds(&cpp, b"qbs_new_txt(\"u\")"));
+    assert!(!holds(&cpp, b"qbs_new_txt(\"n\")"));
+    let ran = run(unattended(&exe).current_dir(&d), None, PROGRAM_LIMIT, "program");
+    assert_eq!(stdout(&ran).replace("\r\n", "\n"), "used!\n");
+    // Only the unused file: no embed part, and the earlier build's `embedded.cpp` is gone.
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\n$EMBED:'./unused.txt','n'\nPRINT \"none\"\nSYSTEM\n",
+    )
+    .unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap(), "--keep-build"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(!d.join("p.exe.qb64rust/temp/embedded.cpp").exists());
+    let ran = run(unattended(&exe).current_dir(&d), None, PROGRAM_LIMIT, "program");
+    assert_eq!(stdout(&ran).replace("\r\n", "\n"), "none\n");
+}
+
 /// Spec `language/console-and-window`, "Errors of $EXEICON", scenario "A missing file": an error at the line for
 /// every command that reports diagnostics, naming the file as written; no executable and nothing built.
 #[test]
@@ -1106,6 +1176,38 @@ fn debug_warning() {
     let o = qb64rust(&d, &["-z", "p.bas"]);
     assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
     assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
+}
+
+/// A program with `$DEBUG` and no network function links libqb's sockets and HTTP part, as the old compiler's
+/// build does (spec `language/asserts-and-debug`, "The sockets part"; `DIVERGENCES.md` D-017, narrowed by
+/// `m3-network-embed`): `_SOCKETS_` is 1, so QB64pe's file included after the last line compiles `_WhatIsMyIP$`,
+/// and the licence file names libcurl. The program prints what it prints without `$DEBUG`.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_links_the_sockets_part() {
+    let d = scratch("debug-sockets");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\n$IF _SOCKETS_ THEN\nPRINT \"on\"\n$END IF\nSYSTEM\n$DEBUG\n",
+    )
+    .unwrap();
+    let mut cmd = compiler();
+    cmd.current_dir(&d)
+        .args(["-f:GenerateLicenseFile=true", "-q", "-m", "-x", "p.bas", "-o", "p.exe"]);
+    lock_clone();
+    let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    let license = std::fs::read(d.join("p.exe.license.txt")).unwrap();
+    let has = |what: &str| license.windows(what.len()).any(|w| w == what.as_bytes());
+    assert!(has("License of libcurl"));
+    let o = run(
+        unattended(&d.join("p.exe")).current_dir(&d),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert_eq!(stdout(&o).replace("\r\n", "\n"), "on\n");
 }
 
 /// `$UNSTABLE:MIDI` and `$UNSTABLE:HTTP` compile and, with `-w`, give the old compiler's warning at their line

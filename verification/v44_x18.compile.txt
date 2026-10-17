@@ -1,0 +1,5 @@
+
+Embed-Handle must be a single literal string in quotes, not a variable
+Caused by (or after):PRINT LEN ( _EMBEDDED$ ( "a",1 + "b",1 ) )
+LINE 4:PRINT LEN(_EMBEDDED$("a" + "b"))
+exit=1

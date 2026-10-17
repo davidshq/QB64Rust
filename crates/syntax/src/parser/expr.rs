@@ -5,6 +5,7 @@
 
 use super::Parser;
 use crate::SyntaxKind::{self, *};
+use crate::pp::Feature;
 use crate::tree::Checkpoint;
 
 /// Precedence level of a binary operator at the current token, if it is one.
@@ -233,6 +234,12 @@ fn primary(p: &mut Parser) -> Option<u32> {
             ok.then(|| inner.unwrap_or(0) + 1)
         }
         Some(Ident) if !RESERVED_IN_EXPR.iter().any(|w| p.at_word(w)) => {
+            // The old compiler sets `_SOCKETS_` when it compiles a call of either, wherever it stands (design D6
+            // of `m3-network-embed`; measured, `verification\v44_c_flags`, `v44_x51`–`x53`).
+            if p.at_word("_OPENHOST") || p.at_word("_OPENCLIENT") {
+                p.pp.met(Feature::Sockets, 1);
+            }
+            note_url_name(p);
             if p.nth(1) == Some(LParen) {
                 p.start_node(CallExpr);
                 p.start_node(NameRef);
@@ -252,6 +259,19 @@ fn primary(p: &mut Parser) -> Option<u32> {
             p.syntax_error("expected an expression");
             None
         }
+    }
+}
+
+/// Notes a name at the current token, any suffix, of a function of QB64pe's file included after the last line
+/// (`_ENCODEURL`, `_DECODEURL`): the program needs the file (design D7 of `m3-network-embed`).
+pub(super) fn note_url_name(p: &mut Parser) {
+    let word = p.nth_text(0);
+    let end = word
+        .iter()
+        .position(|&b| !(b.is_ascii_alphanumeric() || b == b'_'))
+        .unwrap_or(word.len());
+    if word[..end].eq_ignore_ascii_case(b"_ENCODEURL") || word[..end].eq_ignore_ascii_case(b"_DECODEURL") {
+        p.pp.url_named = true;
     }
 }
 

@@ -1,0 +1,27 @@
+text 35 723E074 72  101  108  108  111  44 
+all256 256 29058C73 0  1  2  3  4  5 
+Empty 0 0
+big 300000 A851F2D8 81  66  54  52  32  101 
+noise 1000 FCFD9F35 220  4  101  170  31  173 
+odd 33 CB263FE0 65  66  67  68  69  70 
+Back1 35 723E074 72  101  108  108  111  44 
+Blanks9 256 29058C73 0  1  2  3  4  5 
+dotdot 1000 FCFD9F35 220  4  101  170  31  173 
+lower 15 59B350EC 108  111  119  101  114  32 
+longer 25 776569EE 97  32  108  111  110  103 
+c 23 D757BA0B 98  108  97  110  107  115 
+q 18 11F2F44 110  111  32  99  111  108 
+h 7 91FEC5C4 104  32  115  109  97  108 
+H 10 28DAF75C 72  32  99  97  112  105 
+long 28 3C3FB652 97  32  104  97  110  100 
+fromInc 24 89D8F019 102  114  111  109  32  116 
+HELLO, embedded world!
+Second line
+Hello, embedded world!
+Second line
+in a function: 600000 
+length of a sum: 66 
+as an argument: 255 
+blanks in the call: 35 
+lines:lower case line|H capital!|h small
+done

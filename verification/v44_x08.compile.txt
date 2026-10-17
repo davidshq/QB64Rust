@@ -1,0 +1,5 @@
+
+File '<verification>\v44_files/text.txt' was already embedded in line 3
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 4:$EMBED:'./v44_files/text.txt','g'
+exit=1

@@ -33,6 +33,10 @@ pub struct ParsedProgram {
     /// (tree, offset of the metacommand token) of each `$IF` and `$ELSEIF` that names a flag where the old
     /// compiler's two passes see different values of it; `sema` marks them "not supported yet".
     pub passes_disagree: HashSet<(TreeId, u32)>,
+    /// The tree of QB64pe's file included after the last line, when the program needs it (design D7 of
+    /// `m3-network-embed`): parsed after the main file and its includes, with the preprocessor state the main file
+    /// ended with, as if it stood after the main file's last line.
+    pub after_last_line: Option<TreeId>,
 }
 
 impl ParsedProgram {
@@ -132,12 +136,34 @@ impl<'h> Includer<'h> {
 /// Parses the main file and the files it includes through `loader`, in file order, with one preprocessor state
 /// for all of them, in a round where the precompiler flags are `flags`. Also gives the settings the round met
 /// and whether a condition named a flag.
-fn parse_round(map: &mut SourceMap, main: FileId, loader: &mut dyn Loader, flags: PpFlags) -> Round<ParsedProgram> {
+/// `auto` is the source file of QB64pe's file included after the last line once a round has added it to the map.
+fn parse_round(
+    map: &mut SourceMap,
+    main: FileId,
+    loader: &mut dyn Loader,
+    flags: PpFlags,
+    auto: &mut Option<FileId>,
+) -> Round<ParsedProgram> {
     let bytes = map.file(main).bytes.clone();
     let mut inc = Includer::new(map, loader);
     let id = inc.next_tree();
-    let (tree, pp) = crate::parser::parse_tree_with(id, main, &bytes, PpState::with_flags(flags), &mut inc, false);
+    let (tree, mut pp) = crate::parser::parse_tree_with(id, main, &bytes, PpState::with_flags(flags), &mut inc, false);
     inc.trees[0] = Some(tree);
+    let mut after_last_line = None;
+    if pp.needs_after_last_line() {
+        let file = *auto.get_or_insert_with(|| {
+            inc.map.add(
+                qb64rust_builtins::AFTER_LAST_LINE_NAME,
+                qb64rust_builtins::AFTER_LAST_LINE.to_vec(),
+            )
+        });
+        let id = inc.next_tree();
+        let (tree, end) =
+            crate::parser::parse_tree_with(id, file, qb64rust_builtins::AFTER_LAST_LINE, pp, &mut inc, false);
+        inc.trees[id.0 as usize] = Some(tree);
+        pp = end;
+        after_last_line = Some(id);
+    }
     let (settings, flag_named) = pp.round_facts();
     Round {
         result: ParsedProgram {
@@ -149,6 +175,7 @@ fn parse_round(map: &mut SourceMap, main: FileId, loader: &mut dyn Loader, flags
             includes: inc.includes,
             flags,
             passes_disagree: inc.passes_disagree,
+            after_last_line,
         },
         settings,
         flag_named,
@@ -160,7 +187,8 @@ fn parse_round(map: &mut SourceMap, main: FileId, loader: &mut dyn Loader, flags
 /// a `$IF` that names a flag can read differently in another round. The trees and diagnostics are the last
 /// round's. A loader must give the same file for the same name in every round.
 pub fn parse_settled(map: &mut SourceMap, main: FileId, loader: &mut dyn Loader) -> ParsedProgram {
-    match settle(MAX_ROUNDS, |flags| parse_round(map, main, loader, flags)) {
+    let mut auto = None;
+    match settle(MAX_ROUNDS, |flags| parse_round(map, main, loader, flags, &mut auto)) {
         Ok((mut program, flags)) => {
             program.flags = flags;
             program

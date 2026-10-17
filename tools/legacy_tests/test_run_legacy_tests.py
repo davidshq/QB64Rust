@@ -136,6 +136,28 @@ class ExitCodes(unittest.TestCase):
             p = subprocess.run([sys.executable, "-c", script], check=False, capture_output=True)
             self.assertEqual(p.returncode, code, p.stderr)
 
+    @unittest.skipUnless(os.name == "nt", "press_any_key.py runs on Windows only")
+    def test_press_any_key_on_a_hidden_desktop_passes_stdin_stdout_and_the_exit_code(self):
+        # As the runner starts it: a console of its own, output to a file. cmd.exe reads its
+        # commands from the stdin file and writes to the helper's stdout.
+        with tempfile.TemporaryDirectory() as tmp:
+            commands, out = Path(tmp, "in.txt"), Path(tmp, "out.txt")
+            commands.write_bytes(b"echo from-the-hidden-desktop\r\nexit 7\r\n")
+            helper = Path(__file__).with_name("press_any_key.py")
+            cmd = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "cmd.exe")
+            with open(out, "wb") as f:
+                p = subprocess.run(
+                    [sys.executable, str(helper), "--hidden-desktop", cmd, str(commands)],
+                    stdout=f,
+                    stderr=subprocess.STDOUT,
+                    stdin=subprocess.DEVNULL,
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                    timeout=60,
+                    check=False,
+                )
+            self.assertEqual(p.returncode, 7, out.read_bytes())
+            self.assertIn(b"from-the-hidden-desktop", out.read_bytes())
+
 
 class Recording(unittest.TestCase):
     def setUp(self):
@@ -957,12 +979,24 @@ class ScreenProgram(CorpusFixture):
         )
         self.assertNotIn("QB64_SCREEN_KEYS", tools.run_envs[0])
 
+    @unittest.skipUnless(os.name == "nt", "the helper and its desktop are Windows only")
+    def test_a_screen_program_runs_on_a_hidden_desktop_unless_windows_are_asked_for(self):
+        with mock.patch.dict(os.environ, {"QB64RUST_SHOW_WINDOWS": ""}):
+            tools = Tools(states=[STATE])
+            self.assertEqual(self.run_test(tools).status, "PASS")
+            self.assertIn("--hidden-desktop", tools.run_cmds[0])
+        with mock.patch.dict(os.environ, {"QB64RUST_SHOW_WINDOWS": "1"}):
+            tools = Tools(states=[STATE])
+            self.assertEqual(self.run_test(tools).status, "PASS")
+            self.assertNotIn("--hidden-desktop", tools.run_cmds[0])
+
     def test_a_program_without_screen_gets_neither_the_flag_nor_the_variable(self):
         self.screen.unlink()
         tools = Tools(states=[STATE])
         self.assertEqual(self.run_test(tools).status, "PASS")
         self.assertFalse([a for a in tools.compile_cmd if "ExtraLinkerFlags" in a])
         self.assertNotIn("QB64_SCREEN_STATE", tools.run_envs[0])
+        self.assertNotIn("--hidden-desktop", tools.run_cmds[0])
 
     def test_a_different_state_fails_and_is_kept(self):
         other = STATE.replace(b"display 0", b"display 1")

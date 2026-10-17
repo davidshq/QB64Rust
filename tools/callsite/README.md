@@ -37,8 +37,9 @@ with code before the closing `END`** (or `SYSTEM`). One program per statement fo
 are never run.
 
 A program that names a file the compilers look for has it in a folder `<name>.files\` beside it, as a corpus
-program has: its files are copied beside the program's copy before either compiler reads it. One program has one
-today, `exeicon_line` (the icon of its `$EXEICON` line, whose call is `_ICON`'s with no argument).
+program has: its files are copied beside the program's copy before either compiler reads it. Two programs have
+one today: `exeicon_line` (the icon of its `$EXEICON` line, whose call is `_ICON`'s with no argument) and
+`func_embedded` (the file of its `$EMBED` line).
 
 ## What is compared
 

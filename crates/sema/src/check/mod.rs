@@ -12,6 +12,7 @@ mod blocks;
 mod builtins;
 mod constants;
 mod decl;
+mod embed;
 mod events;
 mod expr;
 mod flow;
@@ -119,6 +120,12 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         type_bases: HashMap::new(),
         type_flags: HashSet::new(),
         type_const_bounds: HashMap::new(),
+        auto_file: program.after_last_line.map(|t| program.tree(t).file),
+        auto_procs: HashSet::new(),
+        hidden_procs: Vec::new(),
+        checking: true,
+        embeds: Vec::new(),
+        embed_parents: HashMap::new(),
     };
     let skips = Skips::new(program);
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
@@ -133,8 +140,13 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // The main file's statements, and the same with every include statement followed by what it includes (pass 1
     // reads the user types and procedures of included files from these; pass 2 and the label pre-pass descend into
     // includes as they meet them).
-    let top: Vec<Node> = ast::SourceFile::cast(root)
+    // QB64pe's file included after the last line follows the main file's statements, as if it stood there (design
+    // D7 of `m3-network-embed`).
+    let after_last_line = program.after_last_line.map(|t| program.tree(t).root());
+    let top: Vec<Node> = [Some(root), after_last_line]
         .into_iter()
+        .flatten()
+        .filter_map(ast::SourceFile::cast)
         .flat_map(|f| f.statements())
         .collect();
     let statements = expand(program, top.iter().copied());
@@ -152,11 +164,14 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     for &stmt in &top {
         c.collect_defaults(stmt, &skips);
     }
-    let defs: Vec<ast::ProcDef> = statements
+    let mut defs: Vec<ast::ProcDef> = statements
         .iter()
         .filter_map(|&s| ast::ProcDef::cast(s))
         .filter(|d| d.header().is_some() && !skips.past_cap(d.node()))
         .collect();
+    // The functions of the file included after the last line are the language's: declared first, so that a
+    // program's procedure of the same name is the one in error (measured, `verification\v44_x50`).
+    defs.sort_by_key(|d| !c.in_after_last_line(d.node().span()));
     let mut declared = Vec::new();
     for &def in &defs {
         let header = def.header().unwrap();
@@ -220,11 +235,21 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     }
 
     // Pass 2: everything in file order (procedures where they stand, included files at their include). The
-    // default types start again and are set by each `DEFxxx` as it is met.
+    // default types start again and are set by each `DEFxxx` as it is met. The helpers of the file included after
+    // the last line are known only in that file.
     c.defaults = DEFAULTS_AT_START;
+    c.collect_embeds();
+    for (name, _) in &c.hidden_procs {
+        c.procs_by_name.remove(name);
+    }
     for stmt in top {
         if skips.past_cap(stmt) {
             break;
+        }
+        if c.in_after_last_line(stmt.span()) {
+            for (name, id) in std::mem::take(&mut c.hidden_procs) {
+                c.procs_by_name.insert(name, id);
+            }
         }
         c.check_statement(stmt, &skips);
     }
@@ -256,6 +281,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         runtime_parts: std::mem::take(&mut c.runtime_parts),
         exe_icon: c.exe_icon.take().map(|(icon, _)| icon),
         version_info: c.version_info.take(),
+        embedded: c.embedded_files(),
     };
     (c.prog, c.diags)
 }
@@ -592,6 +618,19 @@ struct Checker<'a> {
     /// The `TYPE` blocks (by key, with their type) with a dynamic member array whose bounds name a `CONST`: they
     /// are read when pass 2 reaches the block, below the constants above it ([`Self::type_block`]).
     type_const_bounds: HashMap<(TreeId, u32), TypeId>,
+    /// The source file of QB64pe's file included after the last line, when the program has it (design D7 of
+    /// `m3-network-embed`).
+    auto_file: Option<FileId>,
+    /// The procedures of that file, and those of them the program's own code cannot call (`_WhatIsMyIP$`): they
+    /// are out of [`Self::procs_by_name`] while the program's own statements are checked.
+    auto_procs: HashSet<ProcId>,
+    hidden_procs: Vec<(String, ProcId)>,
+    /// No `$CHECKING:OFF` is in force at this point of the file (design D8; read in that file only).
+    checking: bool,
+    /// The program's compiled `$EMBED` lines in file order, and each included tree's `$INCLUDE` (design D1 of
+    /// `m3-network-embed`, `check\embed.rs`).
+    embeds: Vec<embed::EmbedLine>,
+    embed_parents: HashMap<TreeId, (TreeId, u32)>,
 }
 
 /// What pass 1 keeps as it walks the file in order to the `TYPE` blocks: `OPTION BASE` and whether
@@ -701,6 +740,11 @@ impl Checker<'_> {
         show_bytes(&self.text(t.span).to_ascii_uppercase())
     }
 
+    /// Whether `span` lies in QB64pe's file included after the last line (design D7 of `m3-network-embed`).
+    fn in_after_last_line(&self, span: Span) -> bool {
+        self.auto_file == Some(span.file)
+    }
+
     /// Records the names of the statement just checked, unless it had an error (one error per statement).
     fn flush_names(&mut self) {
         let names = std::mem::take(&mut self.names);
@@ -755,6 +799,7 @@ impl Checker<'_> {
         let Some(&id) = self.proc_of_def.get(&def.node().key()) else {
             return;
         };
+        self.prog.procs[id.0 as usize].checked = self.checking;
         self.cur = Some(id);
         self.local = self.param_scopes[id.0 as usize].clone();
         self.static_scope = self.static_procs.contains(&id);
@@ -1188,6 +1233,8 @@ impl Checker<'_> {
             Ok(())
         } else if line.starts_with(b"$EXEICON") {
             self.exe_icon_meta(node, tok)
+        } else if line.starts_with(b"$EMBED") {
+            self.embed_meta(node, tok)
         } else if line.starts_with(b"$VERSIONINFO") {
             self.version_info_meta(tok)
         } else if let Some(u) = unstable_meta(raw) {
@@ -1200,6 +1247,11 @@ impl Checker<'_> {
                     .warning(tok.span, "No longer required, feature is stable now"),
                 Err(msg) => return Err(self.error(tok.span, msg)),
             }
+            Ok(())
+        } else if self.in_after_last_line(tok.span) && (line == b"$CHECKING:OFF" || line == b"$CHECKING:ON") {
+            // Only in QB64pe's file included after the last line (design D8 of `m3-network-embed`): the procedures
+            // below `$CHECKING:OFF` have no event checks. Anywhere else it is "not supported yet" (below).
+            self.checking = line == b"$CHECKING:ON";
             Ok(())
         } else if line.starts_with(b"$MIDISOUNDFONT:") {
             // The old compiler's own error, whatever follows the colon (design D3 of `m3-sound-handles`;

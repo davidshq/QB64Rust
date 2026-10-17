@@ -1,0 +1,5 @@
+
+Embed-Handle 'h' is undefined (check your $EMBED lines)
+Caused by (or after):PRINT "accepted:",9 ; LEN ( _EMBEDDED$ ( "h",1 ) )
+LINE 4:PRINT "accepted:"; LEN(_EMBEDDED$("h"))
+exit=1

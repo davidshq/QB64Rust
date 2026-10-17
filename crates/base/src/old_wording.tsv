@@ -136,6 +136,7 @@
 `_ECHO` needs a program with `$CONSOLE` or `$CONSOLE:ONLY`	_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first
 `_ECHO` needs a string	String required for sub
 `_ECHO` takes {#} argument	Syntax error - Reference: _ECHO text$
+`_ERRORLINE` cannot be used in a `CONST`	Unexpected element '_ERRORLINE'
 `_ERRORLINE` is a function, not a statement	Syntax error
 `_ERRORLINE` takes {#} arguments	Incorrect number of arguments - Reference: _ERRORLINE
 `_ERRORLINE` with empty parentheses	Expected (...)
@@ -195,6 +196,8 @@
 `_OFFSET` cannot take a `_BIT` array	_OFFSET cannot reference _BIT type arrays
 `_OFFSET` of a `{}` value: a `TYPE` with a dynamic member array has no fixed address	_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
 `_OFFSET` with empty parentheses	Expected (...)
+`_OPENCLIENT` needs a string	String required for function
+`_OPENHOST` is a function, not a statement	Syntax error
 `_PALETTECOLOR` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _PALETTECOLOR(attributeNumber%, imgHandle&)
 `_PIXELSIZE` with empty parentheses	Expected (...)
 `_PI` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _PI[(multiplier)]
@@ -241,6 +244,7 @@
 `_SNDSETPOS` takes {#} arguments	Syntax error - Reference: _SNDSETPOS handle&, position#
 `_SNDVOL` takes {#} arguments	Syntax error - Reference: _SNDVOL handle&, volume!
 `_SOURCE` needs a number	Number required for sub
+`_STATUSCODE` needs a number	Number required for function
 `_TITLE` needs a string	String required for sub
 `_TITLE` takes {#} argument	Syntax error - Reference: _TITLE text$
 `_UCHARPOS` needs an array of LONG here	Expected LONG array-name
@@ -281,6 +285,7 @@
 `{}` has {#} dimensions: `{}` needs a start for each, not {#}	_ArrayCopy destination start coordinate count must match destination dimensions
 `{}` is a FUNCTION; a whole-array assignment needs an array on each side	Expected (...)
 `{}` is a SUB; a whole-array assignment needs an array on each side	Name already in use ({1:=|P|S})
+`{}` is a function, not a statement	Syntax error
 `{}` is a member that is no array	Element is not an array
 `{}` is a member that is no array: it has no index	Element is not an array
 `{}` is a variable, not a constant	Unexpected element '{1:U|PU|SU}'
@@ -337,17 +342,20 @@ a metacommand must stand at the start of a line	Unexpected character on line
 a name in a list with the type before the names cannot have an `AS` clause	DIM: Expected ,
 a name with a type suffix cannot have an `AS` clause	DIM: Expected ,
 a number is required for this parameter	Number required for sub
+a number is required for this parameter of a FUNCTION	Number required for function
 a number of bits is expected after `_BIT *`	Number expected after *
 a prompt is a string literal, and targets are separated by `,`	Invalid expression
 a second `USING` in one statement	Name already in use (USING)
 a start of `{}` must be a number	Illegal string-number conversion
 a string is required for this parameter	String required for sub
+a string is required for this parameter of a FUNCTION	String required for function
 a value of `{}` is required here	Expected = similar user defined type
 a width of `FIELD` must be a number	Illegal string-number conversion
 an `_OFFSET` suffix cannot follow a number	Cannot use _OFFSET symbols after numbers
 an array cannot be passed to a library: `{}`	Arrays cannot be passed to a library
 an array index must be a number	Illegal string-number conversion
 an array parameter's parentheses cannot hold `(` or `AS`	Syntax error - too many opening brackets
+an embed handle cannot be an empty string	Embed-Handle cannot be an empty string
 an index is expected between the parentheses	Expected array index
 argument {#} of `_CLAMP` needs a number	Expected numeric argument
 argument {#} of `_MIN` needs a number	Expected numeric argument
@@ -452,11 +460,15 @@ the condition of `LOOP` must be a number, not a string	LOOP ERROR! Cannot accept
 the condition of `WHILE` must be a number, not a string	WHILE ERROR! Cannot accept a STRING type.
 the constant `{}` cannot be a `FOR` variable	Unsupported variable used in FOR statement
 the destination of `{}` must be an array: `{}` names none here	_ArrayCopy destination must be an array
+the embed handle `{}` is already used in line {#}	Embed-Handle '{1:=|P|S}' is already used in line {2:=|U|P|PU|S|SU}
+the embed handle `{}` is named by no `$EMBED` line above	Embed-Handle '{1:=|P|S}' is undefined (check your $EMBED lines)
+the embed handle of `{}` must be one string literal, not an expression	Embed-Handle must be a single literal string in quotes, not a variable
 the exit code of `END` must be a number	Illegal string-number conversion
 the exit code of `SYSTEM` must be a number	Illegal string-number conversion
 the file number of `FIELD` must be a number	Illegal string-number conversion
 the file number of `PRINT #` must be a number	Illegal string-number conversion
 the first argument of `{}` must be an `_OFFSET` value	Expected _MEM(_OFFSET-value,...)
+the first character of the embed handle `{}` must be a letter	First char of Embed-Handle '{1:=|P|S}' must be a letter
 the format of `USING` must be a string	Expected PRINT USING formatstring ; ...
 the items of `PRINT #` need `;` or `,` between them	Expected operator in equation
 the key number of `ON KEY` must be a number	Illegal string-number conversion

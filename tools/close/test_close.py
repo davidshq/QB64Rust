@@ -280,6 +280,54 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("STALE    lists: older than crates/a.rs: run it again, then build", text)
 
+    def copy_log(self, name: str, digest: str, started: float, end: float = 300):
+        """The log of a run of a copy (compiler_copy.header) that started at `started` and ended at `end`."""
+        path = self.root / close.log(name)
+        path.write_text(
+            f"[compiler] target/release/qb64rust.exe sha256 {digest} started {started:.3f}\n"
+            '{"corpus": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n'
+        )
+        self.at(path, end)
+
+    def test_a_run_of_a_copy_of_the_current_build(self):
+        # Built again with the same bytes after the run ended: the run still counts, its log being older.
+        self.copy_log("slice", close.sha256_of(self.exe), 250, end=260)
+        self.at(self.exe, 280)
+        code, text = self.run_check()
+        self.assertIn("ok       slice:", text)
+        self.assertNotIn("STALE    slice", text)
+
+    def test_a_run_of_a_copy_of_another_build(self):
+        # Started on an earlier build and ended after the current one was built (study/34 2.1).
+        self.copy_log("slice", "ab" * 32, 150, end=300)
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("STALE    slice: of build abababababab, not the current", text)
+
+    def test_a_run_of_a_copy_and_an_input_edited_while_it_ran(self):
+        # A test input changed after the run started reaches the run by no build: stale, though the log is newer.
+        listed = self.root / "tests/corpus/slice.list"
+        listed.parent.mkdir(parents=True)
+        listed.write_text("x\n")
+        self.at(listed, 270)
+        self.copy_log("slice", close.sha256_of(self.exe), 250, end=300)
+        with mock.patch.object(close, "changed_files", return_value=["crates/a.rs", "tests/corpus/slice.list"]):
+            code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("STALE    slice: started before tests/corpus/slice.list", text)
+
+    def test_a_run_of_a_copy_is_not_stale_by_a_source_edit_alone(self):
+        # A source edited while the run went on does not make the run stale by itself: the build does, if it changes.
+        self.copy_log("slice", close.sha256_of(self.exe), 250, end=300)
+        self.at(self.source, 270)
+        code, text = self.run_check()
+        self.assertIn("ok       slice:", text)
+        self.assertIn("STALE    build", text)
+
+    def test_copy_steps(self):
+        copies = {s.name for s in steps(True) if s.copy}
+        self.assertEqual(copies, {"slice", "upstream", "nofold", "callsite"})
+
     def test_a_step_before_the_build_is_not_stale_by_what_one_writes(self):
         # `wording` at 150, then `lists` rewrote a list at 160 and ended at 170, then the build at 200.
         listed = self.root / "tests/known_false_errors.list"

@@ -222,6 +222,7 @@ console_only/data
 console_only/image
 console_only/libz
 console_only/midi
+console_only/network
 console_only/print_console_null_char
 console_only/screenimage
 const/bad_boolean_arg
@@ -247,6 +248,7 @@ declare_library_header/test-compile-base-directory
 declare_library_header/test-include
 declare_library_static/test
 dollar$sign$test/dollar$sign
+embed_relative/test
 environ/set_environ
 filename/filename.extra.extension
 font/test
@@ -274,6 +276,8 @@ glut/title_func
 glut/windowhandle
 glut/windowhasfocus
 glut/windowsizelimit
+http/invalid_url
+http/statuscode_invalid_handle
 icon_relative/test
 iif/iif_test
 image/curico_test
@@ -288,6 +292,7 @@ include_paths/include_relative
 keyboard/devices_windows
 libz/test
 logging/consts
+midi/midisoundbank_embed_test
 midi/midisoundbank_file_test
 midi/midisoundbank_memory_test
 name with spaces/test
@@ -303,6 +308,7 @@ paint/tile_border_white_nocolor
 paint/tile_noborder_black_bg
 paint/tile_noborder_white_bg
 parens()/parens()
+precomp-flags/all
 precomp-flags/asserts
 precomp-flags/assertscon
 precomp-flags/console
@@ -310,11 +316,13 @@ precomp-flags/consoleonly
 precomp-flags/debug
 precomp-flags/explicit
 precomp-flags/explicitarr
+precomp-flags/socket
 print/auto_semicolon_insertion
 putimage/putimage_test
 rotations/test
 screenimage/test
 single'quote'test/single'quote'test
+sockets/test
 source_ordering/data_positioning
 source_ordering/define
 source_ordering/goto_gosub

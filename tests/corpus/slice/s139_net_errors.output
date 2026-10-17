@@ -1,0 +1,28 @@
+statuscode 0:  error 52 line 8 
+statuscode 20:  error 52 line 9 
+connected 0:  error 52 line 10 
+address 0: [  error 52 line 11 
+address without $: [  error 52 line 12 
+openconnection 0:  error 258 line 13 
+client nonsense:  error 5 line 14 
+client empty:  error 5 line 15 
+client lower case: 0 
+client no port: 0 
+client http bad name: 0 
+client http ftp: 0 
+host nonsense:  error 5 line 20 
+host no port:-2 
+host empty:  error 5 line 22 
+connected -5:  error 52 line 24 
+address -5: [  error 52 line 25 
+openconnection -5:  error 258 line 26 
+eof -5:  error 52 line 27 
+lof -5:  error 52 line 28 
+  error 52 line 29 
+get -5: [x]
+  error 52 line 30 
+put -5
+  error 52 line 31 
+get without #: [y]
+closed -5
+done

@@ -1331,6 +1331,7 @@ mod tests {
                 line: 3,
                 end_line: 5,
                 external: None,
+                checked: true,
             }],
             main: Body {
                 labels: vec![label(0)],
@@ -1548,6 +1549,7 @@ mod tests {
                 c_name: "f".into(),
                 byval: vec![true],
             }),
+            checked: true,
         });
         let call = |a: Arg| Op::Call {
             proc: ProcId(1),

@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):PRINT _WHATISMYIP$
+LINE 3:IF 0 THEN PRINT _WHATISMYIP$: PRINT _OPENCLIENT("x")
+exit=1

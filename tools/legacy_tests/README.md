@@ -54,6 +54,9 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   the two are equal. To add a screen program, create an empty `<name>.screen` and record it. A `.screen` beside an
   `.err` or `.norun` is an error in the test, as is a `.keys` without a `.screen`, and a screen program that does
   not compile is never recorded as an `.err`. The path of this repo must hold no blank (`make` splits the flag).
+  On Windows a screen program runs on a desktop of its own that is never shown (`press_any_key.py
+  --hidden-desktop`), so its window does not appear and the user's keys and mouse cannot reach it;
+  `QB64RUST_SHOW_WINDOWS=1` shows the windows again (`tools\screen\README.md`, "Where the window goes").
 - `<name>.files`, a folder beside a program that runs: the data files it reads (a picture loaded with `BLOAD`).
   Everything in it, folders too, is copied into the program's folder before the compile and again before each
   run (the folder is emptied between the two runs of `--record`, and a run may have changed a file), with either
@@ -257,9 +260,39 @@ Notes:
     match (2026-10-17); a shared-build fault in one of them shows only as its `note:`, so read the notes.
     "Alone" is alone in this run: a run beside it that shares the clone's lock may still be building.
   - Not covered: `qb64rust` started by hand without `QB64RUST_OBJECTS_LOCK` takes no lock.
-  - Not covered: runs from two checkouts (or git worktrees) of this repo that use one clone. The lock file
-    is under each checkout's own `target\` (the clone is a read-only reference and gets no lock file). Use
-    one checkout per clone.
+  - A git worktree of this repo (the merge runs, below) takes the main checkout's lock files: `clone_lock.py`
+    and the CLI tests find the main checkout from the worktree's `.git` file (`main_checkout`). Not covered:
+    two separate clones of this repo that use one reference clone; the lock file is under each one's own
+    `target\` (the reference clone is read-only and gets no lock file). Use a worktree, not a second clone.
+- <a id="the-compiler-a-run-tests"></a>**The compiler a run tests** (`compiler_copy.py`, `study\34` §3 item 2).
+  A run of `qb64rust` (and `callsite.py`) copies the executable it is given, at its start, to
+  `target\test-bin\<first 16 hex digits of its SHA-256>\qb64rust.exe` and compiles every program with that
+  copy, so `cargo build --release` during the run replaces nothing the run reads: build, run tier 1 or a
+  narrowed run of the new build while a long run goes on. The first line of the output names it:
+  `[compiler] target/release/qb64rust.exe sha256 <hash> started <seconds since 1970>`; the results file still
+  names the compiler as given, with the same `compiler_sha256`. `tools\close\close.py --check` judges a run by
+  that hash against the current build and by its start against the test inputs changed since
+  (`tools\close\README.md`). The copy behaves as the original: the driver finds the reference clone from the folder it was
+  built in, a path fixed at build time. A copy not used for a day is removed at the next run's start (about
+  10 MB each). Not covered: what the copy cannot hold, the clone itself; a recording with `qb64pe.exe` still
+  waits for the clone's lock.
+- <a id="merge-runs-in-a-worktree"></a>**The runs at a merge into `main` in a worktree** (`study\34` §3 item 3,
+  optional). The full set at a merge (`CLAUDE.md` working rule 9, about an hour) may run in a second checkout
+  of the merge commit, so that the next change goes on in this one:
+
+  ```
+  git worktree add ../QB64Rust-merge <merge commit>    # beside this repo, so ..\QB64pe is the clone for both
+  cd ../QB64Rust-merge && cargo build --release        # its own target\, a full build the first time
+  python tools/legacy_tests/run_legacy_tests.py --suite corpus --qb64 target/release/qb64rust.exe --jobs 8 ...
+  git worktree remove ../QB64Rust-merge                # when the runs are read
+  ```
+
+  The worktree must sit beside this repo: the driver, the runner and `callsite.py` find the clone as
+  `..\QB64pe` of the checkout they belong to. Its runs take this checkout's locks (above), so a run of
+  `qb64pe` in either waits for the other's runs; `--build-cache` may name this checkout's
+  `target\build-cache` to share its entries (a key holds every input, so a shared entry is never wrong). The
+  worktree's `target\` is several GB; remove the worktree when its runs are read. Creating and removing one
+  stages nothing (`CLAUDE.md` rule 1).
 - **`--jobs N` with `qb64pe`** (corpus suite only, not with `--record`) runs N programs at a time. The old
   compiler's answer is what gets recorded as truth, so nothing is shared between workers: each one compiles
   with a private copy of the compiler, `target\qb64pe-copies\w1` … `wN` (`--copies-dir` for another place).

@@ -6,8 +6,8 @@ $CONSOLE:ONLY
 ' numeric constant with `$` is a type mismatch; LEN of a numeric constant is an error. Left "not supported yet",
 ' with the reason: a constant whose value needs EXP (_E; also as a string length; _STR_CRLF and _CHR_CR compile
 ' since m3-errorline-chr-const), one whose number the CONST evaluator does not read yet (_DOUBLE_MAX, _FLOAT_MAX,
-' _INTEGER64_MIN, _UINTEGER64_MAX: the old compiler's values for them are in v26_x114), a constant with an index,
-' and the three functions of the file included after the last line (_WhatIsMyIP)
+' _INTEGER64_MIN, _UINTEGER64_MAX: the old compiler's values for them are in v26_x114), a constant with an index.
+' The functions of the file included after the last line are compiled since m3-network-embed (url_errors).
 DIM n AS LONG, d AS DOUBLE, s AS STRING
 CONST _TRUE = 1
 CONST _ONE_MB = 1048576
@@ -31,7 +31,7 @@ n = _INTEGER64_MIN
 n = _UINTEGER64_MAX
 CONST k = _CHR_CR
 DIM t AS STRING * _E
-s = _WhatIsMyIP
+' s = _WhatIsMyIP stood here: an error since m3-network-embed (url_errors)
 SYSTEM
 
 SUB _FALSE

@@ -1,0 +1,17 @@
+statuscode 0:  error 52 line 5 
+statuscode 20:  error 52 line 6 
+connected 0:  error 52 line 7 
+address 0: [  error 52 line 8 
+openconnection 0:  error 258 line 9 
+client nonsense:  error 5 line 10 
+client empty:  error 5 line 11 
+client lower case: 0 
+client no port: 0 
+client http bad name: 0 
+client http ftp: 0 
+host nonsense:  error 5 line 16 
+host no port:-2 
+host empty:  error 5 line 18 
+constants: 0  0  0 
+done
+exit=0

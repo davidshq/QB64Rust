@@ -1,0 +1,5 @@
+
+Expected $EMBED:'filename','handle'
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 3:$EMBED:'./v44_files/text.txt'
+exit=1

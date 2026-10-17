@@ -92,5 +92,32 @@ class CloneLock(unittest.TestCase):
         self.assertIsNone(clone_lock.lock_clone())
 
 
+class MainCheckout(unittest.TestCase):
+    """A worktree takes the main checkout's locks (study/34 section 3, item 3): the layout git writes."""
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
+        self.addCleanup(self.dir.cleanup)
+        self.root = Path(self.dir.name).resolve()
+
+    def test_the_main_checkout_is_itself(self):
+        main = self.root / "QB64Rust"
+        (main / ".git").mkdir(parents=True)
+        self.assertEqual(clone_lock.main_checkout(main), main)
+
+    def test_a_worktree_finds_the_main_checkout(self):
+        main = self.root / "QB64Rust"
+        gitdir = main / ".git" / "worktrees" / "merge"
+        gitdir.mkdir(parents=True)
+        (gitdir / "commondir").write_text("../..\n")
+        tree = self.root / "QB64Rust-merge"
+        tree.mkdir()
+        (tree / ".git").write_text(f"gitdir: {gitdir.as_posix()}\n")
+        self.assertEqual(clone_lock.main_checkout(tree), main)
+
+    def test_no_git_at_all(self):
+        self.assertEqual(clone_lock.main_checkout(self.root), self.root)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _OPENCLIENT("TCP/IP:port:address")
+Caused by (or after):PRINT _OPENCLIENT ( "a",1 , "b",1 )
+LINE 3:PRINT _OPENCLIENT("a", "b")
+exit=1

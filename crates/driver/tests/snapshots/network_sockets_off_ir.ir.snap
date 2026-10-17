@@ -1,0 +1,21 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 4
+  SelectConsole
+Stmt line 8
+  Print console newline
+    Str Const "sockets off"
+Stmt line 13
+  Branch Zero -> @0 Skip: Const 0:I16
+Stmt line 13 may_raise
+  Print console newline
+    Num CallBuiltin _OPENCONNECTION:I32 [Some(Const 0:I32)]
+    Num CallBuiltin _CONNECTED:I32 [Some(Const 0:I32)]
+    Num CallBuiltin _STATUSCODE:I32 [Some(Const 0:I32)]
+    Str CallBuiltin _CONNECTIONADDRESS:Str [Some(Const 0:I32)]
+Label @0 line 13
+Stmt line 14
+  System

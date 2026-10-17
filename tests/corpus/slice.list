@@ -482,3 +482,9 @@ screen/k01_on_key
 slice/s135_chr_const
 slice/s136_errorline
 slice/s137_errorline_include
+# m3-network-embed: $EMBED and _EMBEDDED$, the network functions where nothing listens, the URL functions of
+# afterlastline.bm, an exchange over loopback
+slice/s138_embed
+slice/s139_net_errors
+slice/s140_url
+slice/s141_tcp_loopback

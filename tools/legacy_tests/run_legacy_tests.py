@@ -92,9 +92,13 @@ Speed (corpus and compile suites; the C++ build is most of each program's time):
     outcomes are reported. With one job, and for --record, the clone itself compiles, as before
   * --build-cache DIR reuses an executable when a program's C++ build has exactly the inputs of an
     earlier one (QB64RUST_BUILD_CACHE, crates/driver/src/build.rs: the fragments, qbx.cpp, the
-    Makefile, the options and every file of the clone's internal/c by size and time); the program
-    is still compiled by qb64rust, run and compared. For local runs (e.g. target/build-cache, about
-    2.4 MB per program); CI builds every program
+    Makefile, the options and every file of the clone's internal/c that no build writes, by size
+    and time); the program is still compiled by qb64rust, run and compared. For local runs (e.g.
+    target/build-cache, about 2.4 MB per program); CI builds every program
+  * a run of qb64rust compiles with a copy of it, made at its start under target/test-bin/<hash>
+    (compiler_copy.py), so that a build during the run changes nothing the run reads; the line
+    "[compiler] <path> sha256 <hash> started <time>" names it, and the results file names the
+    compiler as given
 Differences from the bash runners (all deliberate):
   * .err and .license comparisons ignore CR characters (line-ending normalisation)
   * .output comparison treats CRLF as LF (bare CR still significant); the bash
@@ -127,6 +131,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from clone_lock import BUSY_EXIT, CLONE_BUSY, lock_clone, lock_folder
+from compiler_copy import header, run_copy
 
 COMPILE_TIMEOUT = 900  # seconds; first compiles build libqb for each feature set
 RUN_TIMEOUT = 120
@@ -996,7 +1001,11 @@ def corpus_test(
         env["QB64_SCREEN_KEYS"] = str(keys_copy)
     if os.name == "nt":
         # END waits for a console key event, which the null device never sends (press_any_key.py).
-        cmd = [sys.executable, str(Path(__file__).with_name("press_any_key.py")), str(exe)]
+        cmd = [sys.executable, str(Path(__file__).with_name("press_any_key.py"))]
+        # A screen program's window goes on a desktop that is never shown (press_any_key.py).
+        if screen and os.environ.get("QB64RUST_SHOW_WINDOWS") != "1":
+            cmd.append("--hidden-desktop")
+        cmd.append(str(exe))
         if stdin_copy:
             cmd.append(str(stdin_copy))
         flags = subprocess.CREATE_NO_WINDOW
@@ -1802,6 +1811,18 @@ def main() -> int:
             return BUSY_EXIT
 
     started = time.time()
+    # The compiler as given, for the results file; the run compiles with a copy (compiler_copy.py).
+    named = args.qb64
+    if selected and not is_old_compiler(args.qb64):
+        try:
+            args.qb64, digest = run_copy(named)
+        except OSError as e:
+            print(
+                f"could not copy {repo_relative(named)} for the run: {e.strerror or type(e).__name__}",
+                file=sys.stderr,
+            )
+            return 1
+        print(header(repo_relative(named), digest, started), flush=True)
     for suite, results, tests in selected:
         run_one = functools.partial(
             run_suite_test,
@@ -1916,7 +1937,7 @@ def main() -> int:
     out.write_text(
         json.dumps(
             {
-                "compiler": repo_relative(args.qb64),
+                "compiler": repo_relative(named),
                 "run": run,
                 "summary": summary,
                 "results": [asdict(r) for r in all_results],

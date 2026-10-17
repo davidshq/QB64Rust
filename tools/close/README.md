@@ -28,7 +28,13 @@ command-line tests that build, alone; the two demand reports; the counts. Then `
   test tools, changed against `HEAD`, staged or not; documents and the test-time record do not count); for the
   build, also when the executable itself is older than a changed input (a build that stopped, another profile);
   for the wording table and the shrink-only lists, when the log is newer than the build or older than a changed
-  input other than the files those two write (a log left by an earlier change). A passing step older than an edit that cannot affect it
+  input other than the files those two write (a log left by an earlier change); for a run that compiles with a
+  copy of the release build (the slice and upstream lists, the run without folding, the call-site check;
+  `tools\legacy_tests\README.md`, "The compiler a run tests"), when the build its first line names by hash is not
+  the current one, or when it started before a changed input that does not reach it through the build (a file
+  under `tests\` or the test tools; one under `crates\` reaches it only through the build, which is judged
+  itself). Such a run may end after a new build and still count, as long as the bytes are the same; a log
+  without that line is judged by its time, as before. A passing step older than an edit that cannot affect it
   is accepted with `--not-repeated STEP[,STEP...]=REASON`: the step points to the reason by number and the reason
   is printed once, with the steps it covers (rule 9: "say which runs were not repeated and why"); a failing step
   never is;

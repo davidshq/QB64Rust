@@ -1,0 +1,19 @@
+text 35 723E074 72  101  108  108  111  44 
+all256 256 29058C73 0  1  2  3  4  5 
+Empty 0 0
+big 300000 A851F2D8 81  66  54  52  32  101 
+noise 1000 FCFD9F35 220  4  101  170  31  173 
+odd 33 CB263FE0 65  66  67  68  69  70 
+Back1 35 723E074 72  101  108  108  111  44 
+Blanks9 256 29058C73 0  1  2  3  4  5 
+dotdot 1000 FCFD9F35 220  4  101  170  31  173 
+HELLO, embedded world!
+Second line
+Hello, embedded world!
+Second line
+in a function: 600000 
+length of a sum: 66 
+as an argument: 255 
+blanks in the call: 35 
+done
+exit=0

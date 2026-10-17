@@ -4,7 +4,7 @@ pub mod build;
 pub mod library;
 pub mod report;
 
-use qb64rust_base::{Diagnostics, FileId, SourceMap};
+use qb64rust_base::{Diagnostics, FileId, SourceMap, Span};
 use qb64rust_sema::Program;
 use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_name, parse_settled};
 use std::collections::HashMap;
@@ -197,6 +197,48 @@ pub fn check_exe_icon(fe: &mut Frontend, main_path: &Path) {
         let msg = format!("the file `{}` of `$EXEICON` is not found", icon.shown);
         fe.diagnostics.error(icon.span, msg);
     }
+}
+
+/// Where a file a `$EMBED` line names lies, as for the icon ([`exe_icon_path`]; design D3 of `m3-network-embed`).
+pub fn embedded_path(file: &qb64rust_sema::EmbeddedFile, main_path: &Path) -> PathBuf {
+    match qb64rust_sema::ExeIcon::beside_source(&file.name) {
+        Some(rest) => beside(main_path, rest),
+        None => PathBuf::from(&file.name),
+    }
+}
+
+/// The check `sema` cannot make: each file a `$EMBED` line names is a file (measured, `verification\v44_x07`,
+/// `x27`: a missing file and a folder). An error at the line that names the file as the program writes it, where
+/// the old compiler names the folder it looked in (`DIVERGENCES.md` D-015).
+pub fn check_embedded_files(fe: &mut Frontend, main_path: &Path) {
+    let missing: Vec<(Span, String)> = fe
+        .program
+        .settings
+        .embedded
+        .iter()
+        .filter(|f| !embedded_path(f, main_path).is_file())
+        .map(|f| (f.span, format!("the file `{}` of `$EMBED` is not found", f.shown)))
+        .collect();
+    for (span, msg) in missing {
+        fe.diagnostics.error(span, msg);
+    }
+}
+
+/// The handle and bytes of each file a compiled `_EMBEDDED$` names, in file order, for the build
+/// (`build::write_embedded`).
+pub fn used_embedded_files(fe: &Frontend, main_path: &Path) -> Result<Vec<(String, Vec<u8>)>, String> {
+    fe.program
+        .settings
+        .embedded
+        .iter()
+        .filter(|f| f.used)
+        .map(|f| {
+            let path = embedded_path(f, main_path);
+            let bytes =
+                std::fs::read(&path).map_err(|e| format!("reading the embedded file {}: {e}", path.display()))?;
+            Ok((f.handle.clone(), bytes))
+        })
+        .collect()
 }
 
 /// The IR of a checked program (one without errors). Everything the front end accepts lowers and is emitted.

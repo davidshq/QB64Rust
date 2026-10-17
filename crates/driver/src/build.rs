@@ -223,6 +223,62 @@ fn is_resource_file(name: &str) -> bool {
 /// The make flag that links the resource script of `$EXEICON` and `$VERSIONINFO`.
 const ICON_RC_FLAG: &str = "DEP_ICON_RC=y";
 
+/// The make flag that compiles and links `<build>/temp/embedded.cpp` ([`write_embedded`]).
+const EMBED_FLAG: &str = "DEP_EMBED=y";
+
+/// The file of [`write_embedded`] in `<build>/temp`.
+const EMBEDDED_CPP: &str = "embedded.cpp";
+
+/// The files `$EMBED` builds into the executable (design D3 and D4 of `m3-network-embed`; `qb64pe.bas`
+/// 13650–13690, 28096–28180): `<build>/temp/embedded.cpp` holds each used file (`files`: its handle and its bytes)
+/// as an array of its bytes, stored as they are, and `func__embedded`, which `qbx.cpp` declares: a new string of the
+/// bytes of the file whose handle equals its argument, or an empty one, as the old compiler's function ends.
+/// Without a used file the file an earlier build left in a kept folder is removed, and nothing is written.
+pub fn write_embedded(build: &Path, files: &[(String, Vec<u8>)]) -> Result<(), String> {
+    let temp = build.join("temp");
+    let path = temp.join(EMBEDDED_CPP);
+    let writing = |e: std::io::Error| format!("writing {}: {e}", path.display());
+    if files.is_empty() {
+        return match std::fs::remove_file(&path) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(writing(e)),
+            _ => Ok(()),
+        };
+    }
+    std::fs::create_dir_all(&temp).map_err(writing)?;
+    std::fs::write(&path, embedded_cpp(files)).map_err(writing)
+}
+
+/// The text of `embedded.cpp` ([`write_embedded`]). A handle is letters and digits (`sema` checked it), so it names
+/// a C++ array; two handles that differ in letter case are two arrays.
+pub fn embedded_cpp(files: &[(String, Vec<u8>)]) -> String {
+    use std::fmt::Write as _;
+    let mut out = String::from("#include <stdint.h>\n#include <string.h>\n#include \"common.h\"\n\n");
+    for (handle, bytes) in files.iter().filter(|(_, b)| !b.is_empty()) {
+        writeln!(out, "static const uint8_t embed_{handle}[] = {{").unwrap();
+        for line in bytes.chunks(16) {
+            let hex: Vec<String> = line.iter().map(|b| format!("0x{b:02X}")).collect();
+            writeln!(out, "    {},", hex.join(",")).unwrap();
+        }
+        out.push_str("};\n\n");
+    }
+    out.push_str("qbs *func__embedded(qbs *handle)\n{\n");
+    for (handle, bytes) in files {
+        let len = bytes.len();
+        let copy = if len == 0 {
+            String::new()
+        } else {
+            format!("memcpy(data->chr, embed_{handle}, {len}); ")
+        };
+        writeln!(
+            out,
+            "    if (qbs_equal(handle, qbs_new_txt(\"{handle}\"))) {{qbs *data = qbs_new({len}, 1); {copy}return data;}}"
+        )
+        .unwrap();
+    }
+    out.push_str("    return qbs_new_txt(\"\");\n}\n");
+    out
+}
+
 fn slash(p: &Path) -> String {
     p.to_string_lossy().replace('\\', "/")
 }
@@ -242,6 +298,9 @@ pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     if !s.window {
         flags.push("DEP_CONSOLE_ONLY=y");
     }
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Sockets) {
+        flags.extend(["DEP_SOCKETS=y", "DEP_HTTP=y"]);
+    }
     if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Printer) {
         flags.push("DEP_PRINTER=y");
     }
@@ -256,6 +315,9 @@ pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     }
     if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::DataProcessing) {
         flags.push("DEP_ZLIB=y");
+    }
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Embed) {
+        flags.push(EMBED_FLAG);
     }
     if s.console {
         flags.push("DEP_CONSOLE=y");
@@ -362,8 +424,11 @@ pub const CACHE_ENV: &str = "QB64RUST_BUILD_CACHE";
 /// The key of a build: a 128-bit FNV-1a hash of everything `make` reads that can change between builds — the
 /// fragments in `<build>/temp`, the clone's `qbx.cpp` and `Makefile`, the settings (with the contents of each word
 /// of the extra link flags that names a file, and of each library file and header), and the size and modification
-/// time of every file under the clone's `internal/c` (libqb's sources, headers and objects) and of the toolchain's
-/// executables. A changed file of the clone or a rebuilt libqb object gives a new key.
+/// time of every file under the clone's `internal/c` that no build writes (libqb's sources and headers,
+/// [`written_by_builds`]) and of the toolchain's executables. A changed source or header of the clone gives a new
+/// key; a libqb object rebuilt from them, or the `qbx.o` a `qb64pe.exe` compile leaves in the clone, does not
+/// (`study\34` §2.2): an object is made from the sources and the make flags, both in the key, and from the
+/// lasting compiler settings of `qb64pe.exe` when it builds the object ([`compiler_settings`]), also in the key.
 fn build_key(root: &Path, build: &Path, settings: &Settings) -> String {
     let mut h = Fnv128::new();
     // The version stands for `build_with_make`'s fixed arguments: change it when they change.
@@ -425,8 +490,18 @@ fn build_key(root: &Path, build: &Path, settings: &Settings) -> String {
             }
         }
     }
+    // The embedded files ([`write_embedded`]), which `make` reads only with the flag; a changed file changes it.
+    if settings.flags.contains(&EMBED_FLAG) {
+        let p = build.join("temp").join(EMBEDDED_CPP);
+        if p.is_file() {
+            h.file(&p, EMBEDDED_CPP);
+        }
+    }
     h.file(&root.join("internal/c/qbx.cpp"), "qbx.cpp");
     h.file(&root.join("Makefile"), "Makefile");
+    h.write(b"config\0");
+    h.write(&compiler_settings(&root.join("settings/config.ini")));
+    h.write(b"\0");
     let c = root.join("internal/c");
     let mut stamps = Vec::new();
     stamp_tree(&c, &c, &mut stamps);
@@ -443,8 +518,8 @@ fn build_key(root: &Path, build: &Path, settings: &Settings) -> String {
     format!("{:032x}", h.0)
 }
 
-/// The stamps of the files under `dir`, without the toolchain (`c_compiler`, stamped by its executables) and
-/// `temp` folders (`qb64pe.exe`'s scratch space).
+/// The stamps of the files under `dir`, without the toolchain (`c_compiler`, stamped by its executables), the
+/// `temp` folders (`qb64pe.exe`'s scratch space) and the files a build writes ([`written_by_builds`]).
 fn stamp_tree(base: &Path, dir: &Path, out: &mut Vec<String>) {
     let Ok(d) = std::fs::read_dir(dir) else {
         return;
@@ -456,10 +531,45 @@ fn stamp_tree(base: &Path, dir: &Path, out: &mut Vec<String>) {
             if name != "c_compiler" && name != "temp" {
                 stamp_tree(base, &p, out);
             }
-        } else {
+        } else if !written_by_builds(dir == base, &name.to_string_lossy()) {
             stamp(base, &p, out);
         }
     }
+}
+
+/// True for a file of the clone's `internal/c` outside `c_compiler` and `temp` that a build of either compiler
+/// writes: the libqb objects and archives (`.o`, `.a`), make's `.tmp` files, and in `internal/c` itself the
+/// `qbx<N>.cpp` and `qbx*.o` of the program `qb64pe.exe` builds. `top`: the file is in `internal/c` itself. The
+/// same files as `written_by_builds` of `tools\legacy_tests\run_legacy_tests.py`, so the two stamps agree.
+fn written_by_builds(top: bool, name: &str) -> bool {
+    if name.ends_with(".o") || name.ends_with(".a") || name.ends_with(".tmp") {
+        return true;
+    }
+    top && name.starts_with("qbx") && name != "qbx.cpp"
+}
+
+/// The `[COMPILER SETTINGS]` section of the clone's `settings/config.ini` (empty when there is none): a libqb object
+/// that `qb64pe.exe` builds takes its `ExtraCppFlags` and `OptimizeCppProgram`, and the objects are not in the key
+/// ([`written_by_builds`]). Not the same options given for one compile (`-f:`), which never reach the file
+/// (`openspec\changes\test-while-building\design.md` D1). Only that section, as `qb64pe.exe` rewrites the file at
+/// each run and the IDE's settings in it change nothing `make` builds. Lines are compared without the whitespace
+/// around them, so a line ending changes nothing.
+fn compiler_settings(config: &Path) -> Vec<u8> {
+    let Ok(bytes) = std::fs::read(config) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    let mut inside = false;
+    for line in bytes.split(|&b| b == b'\n') {
+        let line = line.trim_ascii();
+        if line.starts_with(b"[") {
+            inside = line.eq_ignore_ascii_case(b"[COMPILER SETTINGS]");
+        } else if inside && !line.is_empty() {
+            out.extend_from_slice(line);
+            out.push(b'\n');
+        }
+    }
+    out
 }
 
 /// `<path relative to base> <size> <modified, ns since 1970>` of a file.
@@ -659,6 +769,83 @@ mod tests {
         std::fs::write(&file, "int c;").unwrap();
         assert_ne!(relative, key("extra.cpp"));
         assert_ne!(key("-lm"), key("-lz"));
+    }
+
+    /// The key follows libqb's sources and headers, and not what a build writes in the clone: the `qbx.o` and
+    /// `qbx<N>.cpp` of a `qb64pe.exe` compile, a libqb object or archive (`study\34` §2.2). Rewritten with another
+    /// length, so the stamp changes whatever the clock's resolution.
+    #[test]
+    fn build_key_leaves_out_what_builds_write() {
+        let d = tempfile::tempdir().unwrap();
+        let c = d.path().join("internal/c");
+        let libqb = c.join("libqb/src");
+        std::fs::create_dir_all(&libqb).unwrap();
+        let written = [
+            c.join("qbx.o"),
+            c.join("qbx2.cpp"),
+            libqb.join("qbs.o"),
+            c.join("libqb_make_000.o"),
+            c.join("parts/video/font/temp/a.a"),
+        ];
+        let sources = [c.join("qbx.cpp"), libqb.join("qbs.cpp"), c.join("libqb.h")];
+        for p in written.iter().chain(&sources) {
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, "1").unwrap();
+        }
+        let key = || build_key(d.path(), d.path(), &Settings::default());
+        let first = key();
+        for p in &written {
+            std::fs::write(p, "22").unwrap();
+            assert_eq!(first, key(), "{}", p.display());
+        }
+        std::fs::remove_file(&written[0]).unwrap();
+        assert_eq!(first, key());
+        for p in &sources {
+            let before = key();
+            std::fs::write(p, "333").unwrap();
+            assert_ne!(before, key(), "{}", p.display());
+        }
+        // A new source file is a new input too.
+        let before = key();
+        std::fs::write(libqb.join("new.cpp"), "1").unwrap();
+        assert_ne!(before, key());
+    }
+
+    /// The key follows the compiler settings of `qb64pe.exe`, with which it builds libqb objects the key leaves
+    /// out, and not the rest of its settings file, which it rewrites at each run.
+    #[test]
+    fn build_key_follows_the_compiler_settings_only() {
+        let d = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(d.path().join("settings")).unwrap();
+        let config = d.path().join("settings/config.ini");
+        let write = |ide: &str, flags: &str| {
+            let text = format!(
+                "[GENERAL SETTINGS]\r\nBackupSize={ide}\r\n\r\n[COMPILER SETTINGS]\r\nExtraCppFlags={flags}\r\n\r\n[IDE WINDOW 1]\r\nIDE_Width={ide}\r\n"
+            );
+            std::fs::write(&config, text).unwrap();
+        };
+        let key = || build_key(d.path(), d.path(), &Settings::default());
+        write("500", "");
+        let first = key();
+        write("600", "");
+        assert_eq!(first, key());
+        write("600", "-O2");
+        assert_ne!(first, key());
+        std::fs::remove_file(&config).unwrap();
+        assert_ne!(first, key());
+    }
+
+    /// The same rule as the runner's `written_by_builds` (`tools\legacy_tests\test_run_legacy_tests.py`,
+    /// `test_what_a_copy_of_the_clone_leaves_out`), less the folders `stamp_tree` does not enter.
+    #[test]
+    fn written_by_builds_is_the_runners() {
+        assert!(written_by_builds(false, "qbs.o"));
+        assert!(written_by_builds(true, "qbx2.cpp"));
+        assert!(written_by_builds(true, "qbx.o"));
+        assert!(written_by_builds(false, "libqb.a"));
+        assert!(!written_by_builds(true, "qbx.cpp"));
+        assert!(!written_by_builds(true, "libqb.cpp"));
+        assert!(!written_by_builds(false, "qbx2.cpp"));
     }
 
     fn program_settings(console: bool, window: bool, icon: bool) -> qb64rust_ir::Settings {
@@ -977,5 +1164,81 @@ mod tests {
         let mut s = program_settings(false, true, false);
         s.runtime_parts.insert(DataProcessing);
         assert_eq!(make_flags(&s), ["DEP_ZLIB=y"]);
+    }
+
+    /// The embed part stands after `DEP_ZLIB=y` and before `DEP_CONSOLE=y`, as the old compiler orders them
+    /// (`qb64pe.bas` 13715–13717; design D3 of `m3-network-embed`).
+    #[test]
+    fn make_flags_of_the_embed_part() {
+        use qb64rust_ir::RuntimePart::{DataProcessing, Embed};
+        let mut s = program_settings(true, false, false);
+        s.runtime_parts.insert(Embed);
+        assert_eq!(make_flags(&s), ["DEP_CONSOLE_ONLY=y", "DEP_EMBED=y", "DEP_CONSOLE=y"]);
+        s.runtime_parts.insert(DataProcessing);
+        assert_eq!(
+            make_flags(&s),
+            ["DEP_CONSOLE_ONLY=y", "DEP_ZLIB=y", "DEP_EMBED=y", "DEP_CONSOLE=y"]
+        );
+    }
+
+    /// `embedded.cpp` holds each used file's bytes as they are: an empty file has no array and gives an empty
+    /// string, every byte value is written, a file of 33 bytes ends with a short line; a program without a used file
+    /// gets no `embedded.cpp`, and one an earlier build left is removed (design D3 and D4 of `m3-network-embed`).
+    #[test]
+    fn embedded_files_in_the_build() {
+        let all: Vec<u8> = (0..=255).collect();
+        let odd: Vec<u8> = (b'A'..=b'Z').chain(b'a'..=b'g').collect();
+        let files = [
+            ("Empty".to_string(), Vec::new()),
+            ("all256".to_string(), all),
+            ("odd".to_string(), odd.clone()),
+        ];
+        let text = embedded_cpp(&files);
+        assert!(text.starts_with("#include <stdint.h>\n#include <string.h>\n#include \"common.h\"\n"));
+        assert!(!text.contains("embed_Empty"));
+        assert!(
+            text.contains("if (qbs_equal(handle, qbs_new_txt(\"Empty\"))) {qbs *data = qbs_new(0, 1); return data;}")
+        );
+        assert!(text.contains("static const uint8_t embed_all256[] = {\n    0x00,0x01,"));
+        assert!(text.contains("0xFE,0xFF,\n};"));
+        assert!(text.contains("memcpy(data->chr, embed_all256, 256); return data;}"));
+        // 33 bytes: two lines of 16 and one of 1.
+        assert!(text.contains("    0x67,\n};"));
+        assert!(text.contains("memcpy(data->chr, embed_odd, 33);"));
+        assert!(text.ends_with("    return qbs_new_txt(\"\");\n}\n"));
+        assert_eq!(odd.len(), 33);
+
+        let d = tempfile::tempdir().unwrap();
+        write_embedded(d.path(), &files).unwrap();
+        let path = d.path().join("temp/embedded.cpp");
+        assert_eq!(std::fs::read(&path).unwrap(), text.as_bytes());
+        write_embedded(d.path(), &[]).unwrap();
+        assert!(!path.exists());
+        write_embedded(d.path(), &[]).unwrap();
+    }
+
+    /// The sockets part is two flags after `DEP_CONSOLE_ONLY=y` and before `DEP_PRINTER=y`, as the old compiler
+    /// orders them (`qb64pe.bas` 13709; design D5 of `m3-network-embed`).
+    #[test]
+    fn make_flags_of_the_sockets_part() {
+        use qb64rust_ir::RuntimePart::{DataProcessing, ImageCodec, Printer, Sockets};
+        let mut s = program_settings(true, false, false);
+        s.runtime_parts.insert(Sockets);
+        assert_eq!(
+            make_flags(&s),
+            ["DEP_CONSOLE_ONLY=y", "DEP_SOCKETS=y", "DEP_HTTP=y", "DEP_CONSOLE=y"]
+        );
+        let mut s = program_settings(false, true, false);
+        s.runtime_parts.extend([Sockets, ImageCodec, Printer, DataProcessing]);
+        assert_eq!(
+            make_flags(&s),
+            [
+                "DEP_IMAGE_CODEC=y",
+                "DEP_SOCKETS=y",
+                "DEP_HTTP=y",
+                "DEP_PRINTER=y",
+                "DEP_ZLIB=y"
+            ]
+        );
     }
 }

@@ -1,0 +1,5 @@
+
+Embed-Handle cannot be an empty string
+Caused by (or after):PRINT LEN ( _EMBEDDED$ ( "",0 ) )
+LINE 4:PRINT LEN(_EMBEDDED$(""))
+exit=1

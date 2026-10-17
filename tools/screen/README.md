@@ -108,7 +108,8 @@ program sees (measured, `study\00` §5):
 - In a graphics mode a step's pixel is the screen's (`mouse 40 30` gives `_MOUSEX` 40, `_MOUSEY` 30); in a text
   mode `_MOUSEX` and `_MOUSEY` are the column and row of that pixel (40, 30 in `SCREEN 0` is 6, 2). This holds for
   the window a test program opens (no `_FULLSCREEN`, no resize: a scale of 1).
-- **The real cursor counts too**: while the window is shown, the user's mouse over it adds events, and the
+- **The real cursor counts too** when the window is shown (the runner shows it only with
+  `QB64RUST_SHOW_WINDOWS=1`, "Where the window goes" below): the user's mouse over it adds events, and the
   movement of the first `mouse` step (`_MOUSEMOVEMENTX`) is counted from the real cursor's last position. So a
   program empties the queue (`WHILE _MOUSEINPUT: WEND`) right before it announces its wait, the keys file puts
   its mouse steps after that `prompt`, and the program prints no movement of a first step. The queue has one
@@ -147,7 +148,16 @@ horizontal wheel, a double click (two clicks, timed by the program) or the conso
 - End with `SYSTEM`. `END`, and running off the end, print a prompt into the bottom row first and wait for a key.
 - No `RANDOMIZE TIMER`, no loop paced by `TIMER`, nothing else that differs between two runs: `--record` runs the
   program twice and refuses to record states that differ.
-- The window shows while the program runs (about 0.3 s).
+- The window is open while the program runs (about 0.3 s), on a desktop that is not shown (below).
+
+## Where the window goes
+
+The runner starts a screen program on a desktop of its own that is never shown
+(`tools\legacy_tests\press_any_key.py --hidden-desktop`, one desktop per run), so no window appears on the
+user's desktop and the user's keys and mouse cannot reach it. Keys, mouse steps and the state need no shown
+window: this file calls libqb directly. All 67 screen programs of the slice list wrote the states they write on
+the user's desktop (2026-10-17). To watch the windows, set `QB64RUST_SHOW_WINDOWS=1` for the run. The CLI tests
+of `crates\driver\tests\cli.rs` that run a screen program still open their window on the user's desktop.
 - `SLEEP` and the keys file: a key ends `SLEEP` only when it comes while `SLEEP` waits, and the next key of the
   file is given only when the key buffer is empty. Empty the buffer right before (`DO: LOOP UNTIL INKEY$ = ""`),
   end the keys file with `repeat <name>`, and give `SLEEP` a time, which is then the longest it can take

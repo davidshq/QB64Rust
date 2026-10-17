@@ -29,6 +29,8 @@ pub struct Builtin {
     pub ret: Option<&'static str>,
     /// The suffix the name must be written with (`$` for `LEFT$`, `CHR$`); `None` when it is written bare.
     pub musthave: Option<&'static str>,
+    /// The suffix the name may be written with or without (`$` of `_CONNECTIONADDRESS`); `None` for most.
+    pub mayhave: Option<&'static str>,
     /// The optional part of libqb the old compiler links when a program uses the built-in (`DEPENDENCY_ICON`);
     /// `None` for most.
     pub dependency: Option<&'static str>,
@@ -48,6 +50,14 @@ pub struct AutoConstant {
 }
 
 include!(concat!(env!("OUT_DIR"), "/builtins_table.rs"));
+
+/// QB64pe's auto-included file `afterlastline.bm`, byte for byte (QB64pe's MIT licence; copied from the reference
+/// clone by `tools\builtins\extract_builtins.py`; design D7 of `m3-network-embed`): the BASIC functions of the
+/// language (`_ENCODEURL$`, `_DECODEURL$`) and the helper libqb's network part calls.
+pub const AFTER_LAST_LINE: &[u8] = include_bytes!("afterlastline.bm");
+
+/// The name the old compiler's `#line` directives give the file, relative to its own folder.
+pub const AFTER_LAST_LINE_NAME: &str = "internal\\support\\include\\afterlastline.bm";
 
 /// The auto-included constant of this name (without suffix, any case) and its place in the file's order; a
 /// constant's expression names only constants before it.
@@ -81,14 +91,14 @@ pub fn find_function(name: &[u8]) -> Option<BuiltinId> {
 }
 
 /// The function-form entry for a name that is written with `$` (`string`) or without it: `VARPTR` and `VARPTR$`
-/// are two functions.
+/// are two functions. A function that may have its `$` (`_CONNECTIONADDRESS`) is found either way.
 pub fn find_function_form(name: &[u8], string: bool) -> Option<BuiltinId> {
     BUILTINS
         .iter()
         .position(|b| {
             b.kind == Kind::Function
                 && b.name.as_bytes().eq_ignore_ascii_case(name)
-                && (b.musthave == Some("$")) == string
+                && ((b.musthave == Some("$")) == string || (string && b.mayhave == Some("$")))
         })
         .map(|i| BuiltinId(u16::try_from(i).expect("fewer than 65536 built-ins")))
 }
@@ -182,6 +192,21 @@ pub fn find_any(name: &[u8]) -> impl Iterator<Item = &'static Builtin> + '_ {
 
 #[cfg(test)]
 mod tests {
+    /// The copy of `afterlastline.bm` is QB64pe's file (its header line), with its functions.
+    #[test]
+    fn after_last_line_is_the_file() {
+        let text = super::AFTER_LAST_LINE;
+        assert!(text.starts_with(b"'==========================================================================\n"));
+        assert!(text.windows(25).any(|w| w == b"' This file is automatica"));
+        for name in [
+            b"FUNCTION _IKW_EncodeURL$".as_slice(),
+            b"FUNCTION _IKW_DecodeURL$",
+            b"FUNCTION _WhatIsMyIP$",
+        ] {
+            assert!(text.windows(name.len()).any(|w| w == name), "{name:?}");
+        }
+    }
+
     use super::*;
 
     #[test]

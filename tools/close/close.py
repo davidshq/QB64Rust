@@ -27,6 +27,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "tools" / "legacy_tests"))
+from compiler_copy import read_header, sha256_of  # noqa: E402  # pylint: disable=wrong-import-position,import-error
+
 LOGS = "target/close"
 EXE = "target/release/qb64rust.exe"
 RUNNER = "python tools/legacy_tests/run_legacy_tests.py"
@@ -39,6 +42,8 @@ NOFOLD_FILES = re.compile(r"^crates/sema/src/(consteval\.rs|literal\.rs|check/co
 # test-time record are written during the close and do not.
 INPUTS = re.compile(r"^(crates/|tests/|tools/(legacy_tests|callsite|diagnostics|builtins)/|Cargo\.(toml|lock)$)")
 NOT_INPUTS = re.compile(r"(\.md$|^tools/testtime/)")
+# Changed inputs that reach a run only through the release build: a run of a copy is judged by the build's hash.
+BUILT_FROM = r"^(crates/|Cargo\.(toml|lock)$)"
 
 
 @dataclass
@@ -53,6 +58,9 @@ class Step:
     alone: bool = False
     # The files a step before the build writes: they make no log of a step before the build stale.
     writes: str | None = None
+    # Compiles with a copy of the release build and names its hash and start in the log
+    # (tools/legacy_tests/compiler_copy.py): judged by that hash, not by the log's time.
+    copy: bool = False
 
 
 def log(name: str) -> str:
@@ -83,15 +91,30 @@ def steps(nofold: bool) -> list[Step]:
         Step("fmt", f"cargo fmt --all --check > {log('fmt')} 2>&1", "empty"),
         Step("clippy", f"cargo clippy --all-targets > {log('clippy')} 2>&1", "clippy"),
         Step("wording-check", f"python tools/diagnostics/old_wording.py --check > {log('wording-check')} 2>&1", "wording"),
-        Step("slice", f"{RUNNER} --suite corpus {NEW} {CACHE} --list tests/corpus/slice.list > {log('slice')} 2>&1", "runner"),
-        Step("upstream", f"{RUNNER} --suite compile {NEW} {CACHE} --list tests/upstream/pass.list > {log('upstream')} 2>&1", "runner"),
+        Step(
+            "slice",
+            f"{RUNNER} --suite corpus {NEW} {CACHE} --list tests/corpus/slice.list > {log('slice')} 2>&1",
+            "runner",
+            copy=True,
+        ),
+        Step(
+            "upstream",
+            f"{RUNNER} --suite compile {NEW} {CACHE} --list tests/upstream/pass.list > {log('upstream')} 2>&1",
+            "runner",
+            copy=True,
+        ),
     ]
     if nofold:
         out.append(
-            Step("nofold", f"QB64RUST_NO_FOLD=1 {RUNNER} --suite corpus {NEW} --wait --list tests/corpus/slice.list > {log('nofold')} 2>&1", "runner")
+            Step(
+                "nofold",
+                f"QB64RUST_NO_FOLD=1 {RUNNER} --suite corpus {NEW} --wait --list tests/corpus/slice.list > {log('nofold')} 2>&1",
+                "runner",
+                copy=True,
+            )
         )
     out += [
-        Step("callsite", f"python tools/callsite/callsite.py --wait > {log('callsite')} 2>&1", "callsite"),
+        Step("callsite", f"python tools/callsite/callsite.py --wait > {log('callsite')} 2>&1", "callsite", copy=True),
         Step("cli", f"cargo test -p qb64rust-driver --test cli -- --ignored > {log('cli')} 2>&1", "cargo", alone=True),
         Step("demand-corpus", f"{EXE} --report unsupported tests/corpus tests/programs > {log('demand-corpus')} 2>&1", None),
         Step(
@@ -236,9 +259,21 @@ def check(nofold: bool, known: set[str], not_repeated: dict[str, str] | None = N
             continue
         t = path.stat().st_mtime
         summary_at = f" [{when(t)}]"
+        text = path.read_text(encoding="utf-8", errors="replace")
+        tested = read_header(text) if s.copy else None
         # A step before the build must come before it, and after every changed input but those it writes (a log
         # left by an earlier change is not this one's); every other one after the build and every changed input.
-        if s.before_build and s.name != "build":
+        # A run of a copy of the compiler: of the current build by its hash, and started after every changed input
+        # that does not reach it through the build (a log written before the copies, without the line, by time).
+        if tested:
+            digest, started = tested
+            current = sha256_of(exe) if exe.is_file() else ""
+            source, source_why = stamp(files, exe_too=False, written=BUILT_FROM)
+            if digest != current:
+                stale, reason = True, f"of build {digest[:12]}, not the current {current[:12] or '(none)'}"
+            else:
+                stale, reason = started < source, f"started before {source_why}"
+        elif s.before_build and s.name != "build":
             source, source_why = stamp(files, exe_too=False, written=written)
             if exe.is_file() and t > exe.stat().st_mtime:
                 stale, reason = True, "after the build: build again, then run what follows"
@@ -251,7 +286,6 @@ def check(nofold: bool, known: set[str], not_repeated: dict[str, str] | None = N
         else:
             stale = t < after
             reason = f"older than {why}"
-        text = path.read_text(encoding="utf-8", errors="replace")
         ok, summary = judge(s.judge, text, known)
         summary += summary_at
         if stale and ok and s.name in not_repeated:

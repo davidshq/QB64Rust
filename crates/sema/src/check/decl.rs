@@ -115,15 +115,20 @@ impl Checker<'_> {
     /// other suffixes are "not supported yet". (The old compiler accepts `name$`, `not$` and `key$`, found in
     /// `qbasic_testcases` in task 6.4 of `m2-parser-breadth`; the rule above is not "whatever suffix".)
     pub(super) fn reserved(&mut self, t: Tok, name: &str, suffix: Option<Ty>) -> R<()> {
-        // A name QB64pe's auto-included files declare that is no constant of the file included before the first
-        // line (the three functions of the file included after the last line): those files are not included
-        // (design D10 of `m2-parser-breadth`). A constant of the first file is a reserved name like any other
+        // QB64pe's file included after the last line names its own variables and procedures with a leading `_`
+        // (design D7 of `m3-network-embed`).
+        if self.in_after_last_line(t.span) {
+            return Ok(());
+        }
+        // A name of a procedure of the file included after the last line (`_IKW_EncodeURL$`, the helper
+        // `_WhatIsMyIP$`): the program can neither declare nor use it (measured, `verification\v44_x47`–`x50`:
+        // "Invalid variable name", "Invalid name"). A constant of the first file is a reserved name like any other
         // with a leading underscore (measured, `verification\v26_x115`–`x117`: `CONST _TRUE = 1` is "Invalid
         // name", `DIM _TRUE` "Invalid variable name"); its uses are resolved before this (`auto.rs`).
         if is_auto_include_name(name.as_bytes()) && auto_constant(name.as_bytes()).is_none() {
             let shown = show_bytes(self.text(t.span));
-            let msg = format!("`{shown}` (a name of QB64pe's auto-included files)");
-            return Err(self.unsupported(t.span, msg));
+            let msg = format!("`{shown}` is a name of QB64pe's auto-included file, reserved");
+            return Err(self.error(t.span, msg));
         }
         // `validname` (`qb64pe.bas` 28271–28274) refuses a single leading `_` only: `__name$` is a parameter of
         // `qb64pe.bas` itself.

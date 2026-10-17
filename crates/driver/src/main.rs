@@ -252,6 +252,7 @@ fn run() -> Result<ExitCode, String> {
         Box::new(FileLoader::new(&include_root, file, &input))
     });
     qb64rust_driver::check_exe_icon(&mut fe, &input);
+    qb64rust_driver::check_embedded_files(&mut fe, &input);
     // The files of the program's `DECLARE LIBRARY` blocks, looked for from the clone as the old compiler's folder,
     // for a build, `-z` and the `cpp` dump; the other dumps need none, nor does a block with no name.
     let resolved = if matches!(o.dump.as_deref(), None | Some("cpp"))
@@ -337,6 +338,7 @@ fn run() -> Result<ExitCode, String> {
         ir.settings.version_info.as_ref(),
         &exe_name,
     )?;
+    build::write_embedded(&build_dir, &qb64rust_driver::used_embedded_files(&fe, &input)?)?;
     build::build(&root, &build_dir, &exe, o.quiet, &settings)?;
     if !o.keep_build {
         let _ = std::fs::remove_dir_all(&build_dir);

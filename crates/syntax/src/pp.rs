@@ -58,14 +58,17 @@ pub enum Feature {
     Console,
     /// `$DEBUG`.
     Debug,
+    /// `_OPENHOST` or `_OPENCLIENT` in compiled code (design D6 of `m3-network-embed`).
+    Sockets,
 }
 
-const FEATURES: [Feature; 5] = [
+const FEATURES: [Feature; 6] = [
     Feature::Explicit,
     Feature::ExplicitArray,
     Feature::Asserts,
     Feature::Console,
     Feature::Debug,
+    Feature::Sockets,
 ];
 
 /// The values of the features in one round of compiling: what every `$IF` of the old compiler's main pass sees.
@@ -102,10 +105,14 @@ impl PpFlags {
             ("_ASSERTS_", self.get(Feature::Asserts)),
             ("_CONSOLE_", self.get(Feature::Console)),
             ("_DEBUG_", self.get(Feature::Debug)),
-            // The network functions are not compiled yet; `$DEBUG` sets it, since the old compiler's debugger code
-            // uses `_OPENCLIENT` (user, `DECISIONS.md` 2026-10-14; measured, `verification\v33_d01`, `d11`). It
-            // comes from the round's value, not at the line: the old compiler sets it by the dependency.
-            ("_SOCKETS_", self.get(Feature::Debug)),
+            // A network function that opens a handle sets it, and so does `$DEBUG`, since the old compiler's
+            // debugger code uses `_OPENCLIENT` (user, `DECISIONS.md` 2026-10-14; measured, `verification\v33_d01`,
+            // `d11`, `v44_c_flags`). It comes from the round's value, not at the line: the old compiler sets it by
+            // the dependency.
+            (
+                "_SOCKETS_",
+                u8::from(self.get(Feature::Debug) != 0 || self.get(Feature::Sockets) != 0),
+            ),
         ]
     }
 }
@@ -117,7 +124,7 @@ fn running_flag(f: Feature) -> Option<&'static str> {
         Feature::Asserts => Some("_ASSERTS_"),
         Feature::Console => Some("_CONSOLE_"),
         Feature::Debug => Some("_DEBUG_"),
-        Feature::Explicit | Feature::ExplicitArray => None,
+        Feature::Explicit | Feature::ExplicitArray | Feature::Sockets => None,
     }
 }
 
@@ -187,8 +194,8 @@ pub struct Round<T> {
     pub flag_named: bool,
 }
 
-/// At most this many rounds are parsed: every round but the last locks a feature, and there are five.
-pub const MAX_ROUNDS: usize = 7;
+/// At most this many rounds are parsed: every round but the last locks a feature, and there are six.
+pub const MAX_ROUNDS: usize = 8;
 
 /// Runs the old compiler's rounds: `round` parses the program with the flags of a round, and is called again
 /// until no setting it met asks for another. A round is parsed again only when a condition named a flag;
@@ -308,6 +315,9 @@ pub struct PpState {
     settings: Vec<(Feature, u8)>,
     /// A `$IF` or `$ELSEIF` of compiled code named a flag.
     flag_named: bool,
+    /// Compiled code named `_ENCODEURL` or `_DECODEURL`, functions of QB64pe's file included after the last line
+    /// (design D7 of `m3-network-embed`).
+    pub(crate) url_named: bool,
 }
 
 /// How many entries of `defines` are predefined (`UserDefineCountPresets` + 1).
@@ -342,6 +352,7 @@ impl PpState {
             flags,
             settings: Vec::new(),
             flag_named: false,
+            url_named: false,
         };
         for (name, value) in flags.defines() {
             state.defines.push(d(name.as_bytes(), value.to_string().as_bytes()));
@@ -382,6 +393,15 @@ impl PpState {
     /// The settings met so far and whether a condition named a flag, for [`settle`].
     pub fn round_facts(&self) -> (Vec<(Feature, u8)>, bool) {
         (self.settings.clone(), self.flag_named)
+    }
+
+    /// Whether the program needs QB64pe's file included after the last line (design D7 of `m3-network-embed`):
+    /// its code named one of the file's functions, or `_SOCKETS_` is 1 for the program (libqb's network part calls
+    /// two of them). `_SOCKETS_` is 1 when it is in this round, or when this round met a setting that makes it 1
+    /// in the next: a value that is not 0 stays.
+    pub fn needs_after_last_line(&self) -> bool {
+        let sockets = |f: Feature| self.flags.get(f) != 0 || self.settings.iter().any(|&(g, v)| g == f && v != 0);
+        self.url_named || sockets(Feature::Sockets) || sockets(Feature::Debug)
     }
 
     /// Code at the current place is compiled (no enclosing `$IF` branch is skipped).
@@ -1058,5 +1078,35 @@ mod tests {
             "the inner low point counts for the outer tracking"
         );
         assert_eq!(s.depth(), 1);
+    }
+
+    /// The settled flags of a program of one file.
+    fn settled(src: &str) -> PpFlags {
+        let mut map = qb64rust_base::SourceMap::new();
+        let file = map.add("t.bas", src.as_bytes().to_vec());
+        crate::parse_settled(&mut map, file, &mut crate::NoLoader).flags
+    }
+
+    /// `_SOCKETS_` from `_OPENHOST` and `_OPENCLIENT` in compiled code (design D6 of `m3-network-embed`; measured,
+    /// `verification\v44_c_flags`, `v44_x51`–`x53`).
+    #[test]
+    fn sockets_from_the_network_functions() {
+        let sockets = |src: &str| {
+            let flags = settled(src);
+            (flags.get(Feature::Sockets), flags.defines()[5])
+        };
+        // In a SUB never called, below a `$IF` that reads it: the flag holds for the whole program.
+        let sub = "$IF _SOCKETS_ THEN\nPRINT 1\n$END IF\nSYSTEM\nSUB s\nPRINT _openclient(\"x\")\nEND SUB\n";
+        assert_eq!(sockets(sub), (1, ("_SOCKETS_", 1)));
+        assert_eq!(sockets("k = _OPENHOST(\"TCP/IP:1\")\n").0, 1);
+        // In a branch not taken, in a string, a comment or `DATA`: not met.
+        let skipped = "$IF 0 THEN\nPRINT _OPENCLIENT(\"x\")\n$END IF\nPRINT \"_OPENHOST(\"\n' _OPENCLIENT(\"x\")\nDATA _OPENHOST\n";
+        assert_eq!(sockets(skipped), (0, ("_SOCKETS_", 0)));
+        // The other four functions do not set it.
+        let others = "PRINT _OPENCONNECTION(0); _CONNECTED(0); _STATUSCODE(0); _CONNECTIONADDRESS$(0)\n";
+        assert_eq!(sockets(others), (0, ("_SOCKETS_", 0)));
+        // `$DEBUG` sets it too, and the two together are 1.
+        assert_eq!(sockets("$DEBUG\n").1, ("_SOCKETS_", 1));
+        assert_eq!(sockets("$DEBUG\nPRINT _OPENCLIENT(\"x\")\n").1, ("_SOCKETS_", 1));
     }
 }

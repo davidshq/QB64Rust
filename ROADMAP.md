@@ -129,19 +129,22 @@ or measurements; listing an area does not settle those choices.
       including dispatch through the existing runtime: handlers with a label or a SUB, numbered timers and
       `_FREETIMER`, `KEY ON`/`OFF`/`LIST` and `KEY n, text$`; `PEN`, `COM`, `UEVENT` real errors (`m3-events`).
       Upstream 332 to 336 of 399. `STRIG` events go with device input, below
-- [ ] Networking: clients, hosts, connection addresses and status (`_OPENCLIENT`, `_OPENHOST`,
-      `_CONNECTIONADDRESS$`, `_STATUSCODE`, and related functions); the `_SOCKETS_` flag and auto-included
-      helpers that depend on them
+- [x] Networking: clients, hosts, connection addresses and status (`_OPENCLIENT`, `_OPENHOST`,
+      `_OPENCONNECTION`, `_CONNECTED`, `_CONNECTIONADDRESS$`, `_STATUSCODE`); the `_SOCKETS_` flag, which `$DEBUG`
+      sets too, and QB64pe's `afterlastline.bm` compiled from a copy of the file (`_ENCODEURL$`, `_DECODEURL$`
+      and libqb's helper) (`m3-network-embed`, with the next item). Upstream 339 to 347 of 399
 - [ ] Constant evaluation: built-in functions in `CONST` (`CHR$` done, with the 69 auto-included constants
       made with it, `m3-errorline-chr-const`), suffixed constant references, `_FLOAT` precision and range, and the
       remaining constants from QB64pe's auto-included files; `$COLOR` constants
-- [ ] Embedded resources (`$EMBED`, `_EMBEDDED$`), including their use for MIDI sound banks; remaining
-      `$EXEICON` path lookup forms
+- [x] Embedded resources (`$EMBED`, `_EMBEDDED$`), including their use for MIDI sound banks
+      (`m3-network-embed`; each file stored as it is)
+- [ ] The `$EXEICON` and `$EMBED` names relative to the old compiler's own folder (`icon/test`,
+      `winresource/test`, `embed/test`; `SOMEDAY.md`)
 - [ ] Runtime error and source-location support: `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`; logging
       built-ins (done: `_ERRORLINE`, `_INCLERRORLINE`, `_INCLERRORFILE$`, `_ERRORMESSAGE$`, and a joined line
       numbered as its last, `m3-errorline-chr-const`; upstream 336 to 339 of 399)
 - [ ] `$CHECKING:OFF` and the corresponding unchecked code generation, including memory operations and
-      `_ARRAYCOPY`
+      `_ARRAYCOPY` (read in `afterlastline.bm` only since `m3-network-embed`: no event checks there)
 - [ ] OpenGL user code (`SUB _GL`) and its integration with the existing runtime
 - [ ] Remaining built-in families and statements, including device input (`_DEVICES` and related functions,
       `STICK`, `STRIG()`, and the `STRIG` events `ON STRIG` and `STRIG ON`, user 2026-10-17),

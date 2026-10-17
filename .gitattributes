@@ -4,6 +4,10 @@ tests/corpus/**/*.err -text
 # Standard input of a program that reads the console: given to it byte for byte (tests/corpus/README.md)
 tests/corpus/**/*.stdin -text
 verification/*.stdin -text
+# The files the $EMBED measurements embed: byte for byte (verification/README.md, v44)
+verification/v44_files/** -text
+# The copy of QB64pe's afterlastline.bm the compiler compiles (design D7 of m3-network-embed): byte for byte
+crates/builtins/src/afterlastline.bm -text
 # The recorded state of a screen program and the keys it is given (tools/screen/README.md)
 tests/corpus/**/*.screen -text
 tests/corpus/**/*.keys -text
