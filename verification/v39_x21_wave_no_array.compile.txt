@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _WAVE voice&, waveDefinition%%([index&])[, frameCount&]
+Caused by (or after):_WAVE 0
+LINE 9:_WAVE 0
+exit=1

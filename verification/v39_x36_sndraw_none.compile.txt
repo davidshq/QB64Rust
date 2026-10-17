@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDRAW leftSample[, rightSample][, pipeHandle&]
+Caused by (or after):_SNDRAW
+LINE 9:_SNDRAW
+exit=1

@@ -1,0 +1,5 @@
+
+Expected array index
+Caused by (or after):_WAVE 0 , X . M ( )
+LINE 13:_WAVE 0, x.m()
+exit=1

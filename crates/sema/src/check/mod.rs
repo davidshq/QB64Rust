@@ -1108,6 +1108,14 @@ impl Checker<'_> {
                 Err(msg) => return Err(self.error(tok.span, msg)),
             }
             Ok(())
+        } else if line.starts_with(b"$MIDISOUNDFONT:") {
+            // The old compiler's own error, whatever follows the colon (design D3 of `m3-sound-handles`;
+            // `qb64pe.bas` 2092; measured, `verification\v39_x73`–`x81`). Without the colon it is an unknown
+            // metacommand, as below.
+            Err(self.error(
+                tok.span,
+                "$MIDISOUNDFONT is a deprecated keyword, use _MIDISOUNDBANK instead",
+            ))
         } else {
             let shown = show_bytes(raw.split(|&b| b == b':' || b == b' ').next().unwrap_or(raw));
             Err(self.unsupported(tok.span, format!("metacommand `{shown}`")))

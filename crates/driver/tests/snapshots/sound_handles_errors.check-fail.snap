@@ -1,0 +1,73 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 149
+expression: snap
+---
+sound_handles_errors.bas:21:5: error: `_SNDOPEN` with empty parentheses
+sound_handles_errors.bas:22:14: error: argument 1 of `_SNDOPEN` needs a string
+sound_handles_errors.bas:23:5: error: `_SNDOPEN` takes 1 or 2 arguments
+sound_handles_errors.bas:24:5: error: `_SNDOPEN` takes 1 or 2 arguments
+sound_handles_errors.bas:25:5: error: `_SNDPLAYING` takes 1 argument
+sound_handles_errors.bas:26:13: error: `_SNDLEN` needs a number
+sound_handles_errors.bas:27:5: error: `_SNDCOPY` takes 1 argument
+sound_handles_errors.bas:28:5: error: `_SNDGETPOS` with empty parentheses
+sound_handles_errors.bas:29:5: error: `_SNDRATE` takes 0 arguments
+sound_handles_errors.bas:30:5: error: `_SNDRATE` with empty parentheses
+sound_handles_errors.bas:31:5: error: `_SNDOPENRAW` takes 0 arguments
+sound_handles_errors.bas:32:5: error: `_SNDRAWLEN` with empty parentheses
+sound_handles_errors.bas:33:5: error: `_SNDRAWLEN` takes 0 or 1 arguments
+sound_handles_errors.bas:34:5: error: `_SNDNEW` with empty parentheses
+sound_handles_errors.bas:35:5: error: `_SNDNEW` takes 1 to 4 arguments
+sound_handles_errors.bas:36:5: error: `_MEMSOUND` takes 1 or 2 arguments
+sound_handles_errors.bas:36:5: note: QB64pe: Incorrect number of arguments - Reference: _MEMSOUND(soundHandle&)
+sound_handles_errors.bas:37:1: error: `_SNDPLAY` takes 1 argument
+sound_handles_errors.bas:38:1: error: `_SNDPLAY` takes 1 argument
+sound_handles_errors.bas:39:10: error: `_SNDPLAY` needs a number
+sound_handles_errors.bas:40:5: error: `_SNDPLAY(...)`: `_SNDPLAY` is a built-in statement
+sound_handles_errors.bas:41:1: error: names starting with `_` are reserved: `_SNDPLAY`
+sound_handles_errors.bas:42:1: error: `_SNDPLAY` needs its arguments
+sound_handles_errors.bas:43:1: error: `_SNDVOL` takes 2 arguments
+sound_handles_errors.bas:44:11: error: cannot read the arguments of `_SNDVOL`
+sound_handles_errors.bas:45:10: error: this `_SNDBAL` statement matches none of its forms: `_SNDBAL ?,[?][,[?][,[?][,[?]]]]`
+sound_handles_errors.bas:46:22: error: this `_SNDBAL` statement matches none of its forms: `_SNDBAL ?,[?][,[?][,[?][,[?]]]]`
+sound_handles_errors.bas:47:1: error: `_SNDLIMIT` takes 2 arguments
+sound_handles_errors.bas:48:1: error: `_SNDSETPOS` takes 2 arguments
+sound_handles_errors.bas:49:1: error: `_SNDCLOSE` takes 1 argument
+sound_handles_errors.bas:50:27: error: this `_SNDPLAYCOPY` statement matches none of its forms: `_SNDPLAYCOPY ?[,[?][,[?][,[?][,[?]]]]]`
+sound_handles_errors.bas:51:13: error: this `_SNDPLAYFILE` statement matches none of its forms: `_SNDPLAYFILE ?[,[?][,?]]`
+sound_handles_errors.bas:52:14: error: argument 1 of `_SNDPLAYFILE` needs a string
+sound_handles_errors.bas:53:21: error: this `_SNDPLAYFILE` statement matches none of its forms: `_SNDPLAYFILE ?[,[?][,?]]`
+sound_handles_errors.bas:54:8: error: this `_SNDRAW` statement matches none of its forms: `_SNDRAW ?[,[?][,?]]`
+sound_handles_errors.bas:55:9: error: argument 1 of `_SNDRAW` needs a number
+sound_handles_errors.bas:56:16: error: this `_SNDRAW` statement matches none of its forms: `_SNDRAW ?[,[?][,?]]`
+sound_handles_errors.bas:57:14: error: this `_SNDRAWDONE` statement matches none of its forms: `_SNDRAWDONE [?]`
+sound_handles_errors.bas:58:15: error: this `_MIDISOUNDBANK` statement matches none of its forms: `_MIDISOUNDBANK ?[,?]`
+sound_handles_errors.bas:59:16: error: argument 1 of `_MIDISOUNDBANK` needs a string
+sound_handles_errors.bas:60:20: error: this `_MIDISOUNDBANK` statement matches none of its forms: `_MIDISOUNDBANK ?[,?]`
+sound_handles_errors.bas:61:15: error: expected the end of the statement
+sound_handles_errors.bas:62:6: error: `_SNDRATE` is a function, not a statement
+sound_handles_errors.bas:63:17: error: expected something between the parentheses of `CALL _SNDRAWDONE(…)`
+sound_handles_errors.bas:63:17: note: QB64pe: Expected CALL sub-name (...)
+sound_handles_errors.bas:64:8: error: this `_WAVE` statement matches none of its forms: `_WAVE ?,?[,?]`
+sound_handles_errors.bas:65:16: error: this `_WAVE` statement matches none of its forms: `_WAVE ?,?[,?]`
+sound_handles_errors.bas:66:10: error: `_WAVE` needs an array of _BYTE here
+sound_handles_errors.bas:67:10: error: `_WAVE` needs an array of _BYTE here
+sound_handles_errors.bas:68:10: error: `_WAVE` needs an array of _BYTE here
+sound_handles_errors.bas:69:10: error: `_WAVE` needs an array of _BYTE here
+sound_handles_errors.bas:70:10: error: `_WAVE` needs an array of _BYTE here
+sound_handles_errors.bas:71:10: error: `_WAVE` needs an array of _BYTE here
+sound_handles_errors.bas:72:10: error: `_WAVE` needs an array here
+sound_handles_errors.bas:73:10: error: `_WAVE` needs an array of _BYTE here
+sound_handles_errors.bas:74:10: error: `_WAVE` needs an array of _BYTE here
+sound_handles_errors.bas:75:15: error: `_WAVE` needs an array here
+sound_handles_errors.bas:76:13: error: this `_SNDRAWBATCH` statement matches none of its forms: `_SNDRAWBATCH ?[,[?][,[?][,?]]]`
+sound_handles_errors.bas:77:26: error: this `_SNDRAWBATCH` statement matches none of its forms: `_SNDRAWBATCH ?[,[?][,[?][,?]]]`
+sound_handles_errors.bas:78:14: error: `_SNDRAWBATCH` needs an array of SINGLE here
+sound_handles_errors.bas:79:14: error: `_SNDRAWBATCH` needs an array of SINGLE here
+sound_handles_errors.bas:80:14: error: `_SNDRAWBATCH` needs an array of SINGLE here
+sound_handles_errors.bas:81:14: error: `_SNDRAWBATCH` needs an array of SINGLE here
+sound_handles_errors.bas:82:14: error: `_SNDRAWBATCH` needs an array of SINGLE here
+sound_handles_errors.bas:83:14: error: `_SNDRAWBATCH` needs an array of SINGLE here
+sound_handles_errors.bas:84:1: error: $MIDISOUNDFONT is a deprecated keyword, use _MIDISOUNDBANK instead
+sound_handles_errors.bas:85:1: error: $MIDISOUNDFONT is a deprecated keyword, use _MIDISOUNDBANK instead
+sound_handles_errors.bas:86:1: error: $MIDISOUNDFONT is a deprecated keyword, use _MIDISOUNDBANK instead

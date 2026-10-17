@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _SNDNEW(frames&[, channels&][, bits&][, sampleRate&])
+Caused by (or after):H = _SNDNEW ( 1 , 2 , 3 , 4 , 5 )
+LINE 9:h = _SNDNEW(1, 2, 3, 4, 5)
+exit=1

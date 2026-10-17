@@ -340,7 +340,7 @@ What the compiler supports so far:
   test requires for the names of `NEVER_RUN` (the list's name since `m3-sound`, when `BEEP` joined it). A
   built-in's `dependency` in the table is the optional part
   of the runtime it needs (`sema::RuntimePart`, in `Program::settings`): `_ICON` gives the make flag
-  `DEP_ICON=y`, `SOUND` and `PLAY` `DEP_AUDIO_MINIAUDIO=y`; a built-in whose part no build provides yet is "not
+  `DEP_ICON=y`, `SOUND`, `PLAY` and the sound handles `DEP_AUDIO_MINIAUDIO=y`; a built-in whose part no build provides yet is "not
   supported yet". Still marked: the function `_SCREENHIDE`, and `_SCREENEXISTS` as the
   direct argument of `HEX$`, `OCT$` or `_BIN$` (QB64pe passes another width than for a LONG).
 - **The screen statements and functions** (`m3-window-output`; design D2 of the change holds the call of every
@@ -399,6 +399,30 @@ What the compiler supports so far:
     error, as there (`CALL CLS()`, `CALL LOCATE 1, 2`, `CALL PSET(1, 2)`). Still marked after `CALL`: `SWAP`,
     `CLOSE` and the `MID$` statement, which have rules of their own.
   - Still marked or not checked by a run: `SOMEDAY.md`, "Left marked by `m3-sound`".
+- **Sound handles** (`m3-sound-handles`; the facts in `study\00` §5, `verification\v39_*`): with them every name
+  of libqb's audio part has a row.
+  - **Ten functions and sixteen statements**, each a plain row (`SUPPORTED`, `STATEMENTS` in
+    `sema\src\builtins.rs`) in every form the old compiler accepts: `_SNDOPEN`, `_SNDCOPY`, `_SNDLEN`,
+    `_SNDGETPOS`, `_SNDPLAYING`, `_SNDPAUSED`, `_SNDRATE` and `_SNDOPENRAW` (bare only), `_SNDRAWLEN` (bare or with
+    its handle), `_SNDNEW`; `_SNDCLOSE`, `_SNDPLAY`, `_SNDPLAYCOPY`, `_SNDPLAYFILE`, `_SNDPAUSE`, `_SNDSTOP`,
+    `_SNDLOOP`, `_SNDVOL`, `_SNDBAL`, `_SNDSETPOS`, `_SNDLIMIT`, `_SNDRAW`, `_SNDRAWBATCH`, `_SNDRAWDONE`,
+    `_MIDISOUNDBANK` and `_WAVE`. LONG handles and states, DOUBLE lengths and positions. Each needs
+    `RuntimePart::Audio`, as `SOUND` does.
+  - **The arrays of `_WAVE` and `_SNDRAWBATCH`** are `Slot::Block`, the bytes from an element to the array's end,
+    as for graphics `PUT`; `check\builtins.rs` (`typed_array_arg`) also wants the old compiler's element type,
+    `_BYTE` and `SINGLE`, and makes a variable, a member or another type its error where `block_arg` alone would
+    mark some of them.
+  - **`$MIDISOUNDFONT:`** (any value, any case) is the old compiler's error, which names `_MIDISOUNDBANK`
+    (`check\mod.rs`, `meta`); without the colon it is an unknown metacommand, "not supported yet" as any other.
+    A built-in statement's name used as an array or FUNCTION (`l = _SNDPLAY(h)`, `_LIMIT (60) = 60`) is an error
+    when the name has a leading underscore and no function shares it (`check\places.rs`, `implicit_array`).
+  - **`_MEMSOUND` is run** (off `NEVER_RUN`): on the block of a `_SNDNEW` sound and of one decoded from memory.
+  - **Tests make no noise:** the slice programs `s127_sound_handles`, `s128_sound_new_memory` and
+    `s129_sound_files_raw_midi` build their WAV and MIDI data in strings (and write the one WAV file they open),
+    play only silence or at volume 0, and print only what is exact on any device: lengths and positions of whole
+    half-seconds, `_SNDRATE` and `_SNDRAWLEN` against one-sided limits, handle numbers only before the first close.
+    The front-end tests `sound_handles_ir`, `sound_handles_typed`, `sound_handles_cpp` (an array from an element)
+    and `sound_handles_errors`; 131 call-site programs (`snd*`, `midisoundbank_*`, `wave_*`).
 - **The console programs of the corpus that waited** (`m3-console-files`; the facts in `study\00` §5,
   `verification\v30_*`):
   - **`_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`, `_SHR`, `_ROL`, `_ROR`** are eight rows of `SUPPORTED`
@@ -555,7 +579,7 @@ What the compiler supports so far:
   - **A block as an argument** is `Slot::Mem` (`_MEMEXISTS`; `_MEMFREE` and both blocks of `_MEMCOPY a, o, n TO
     b, p`): a variable, element or member of type `_MEM`, passed as its address (`mem_ref`,
     `codegen-cpp\src\place.rs`); an offset or a size is `Slot::Offset`, a store into an `_OFFSET`.
-    `_MEMSOUND` (libqb's audio part) is on `NEVER_RUN`. Checked by the slice program `s88_mem_new_image`, the
+    `_MEMSOUND` (libqb's audio part) is run since `m3-sound-handles` (`s128_sound_new_memory`). Checked by the slice program `s88_mem_new_image`, the
     front-end tests `mem_type_typed`, `mem_blocks_typed`, `mem_blocks_ir` and `mem_errors`, and 26 call-site
     programs (`mem*`).
   - **The block of a reference** (group 3, design D3): `_MEM(reference)` and `_MEMELEMENT(reference)` are

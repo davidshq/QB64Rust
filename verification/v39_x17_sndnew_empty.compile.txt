@@ -1,0 +1,5 @@
+
+Expected (...)
+Caused by (or after):H = _SNDNEW ( )
+LINE 9:h = _SNDNEW()
+exit=1

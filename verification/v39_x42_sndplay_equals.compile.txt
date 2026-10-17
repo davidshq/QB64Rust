@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):_SNDPLAY = 1
+LINE 9:_SNDPLAY = 1
+exit=1

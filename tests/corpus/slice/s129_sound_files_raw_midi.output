@@ -1,0 +1,20 @@
+a WAV file: 1  .5  0 -1 
+streamed: 2  .5 not decoded:-1  .5 its name taken as data: 0  0 
+played and copied at volume 0: 0  0 
+a raw stream:-1 rate over 0:-1 nothing queued: 0 
+one second queued, over 0 and at most 1:-1 -1 
+and a batch:-1 -1 
+done: 0 
+the default stream: 0 -1 -1  0 
+a custom wave: 0 
+an array of one, a frame count of 1, voice 4, and two frames:
+error 5 
+error 5 
+error 5 
+ 0 
+a MIDI of one second:-1  1 
+with a bank that is not there:-1  1  0 
+with a bank of bad data:-1  1  0 
+with the default bank again:-1  1  0 
+played at volume 0:-1  0  0 -1  0 
+removed: 0 

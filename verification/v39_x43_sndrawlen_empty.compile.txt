@@ -1,0 +1,5 @@
+
+Expected (...)
+Caused by (or after):D = _SNDRAWLEN ( )
+LINE 9:d = _SNDRAWLEN()
+exit=1

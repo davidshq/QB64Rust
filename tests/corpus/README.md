@@ -50,7 +50,7 @@ trailer is part of its `.output`.
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.output` | 235 | 2 | 133 |
+| `.output` | 235 | 2 | 136 |
 | `.err` | 20 | 0 | 0 |
 | `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
 | Known failure, no expected file | 5 | 0 | 0 |
@@ -175,8 +175,12 @@ All 66 are listed: `g03_capitol` joined with `m3-sound` (its five `PLAY` lines a
 because the program was cut with the game's sound option off), `c12_prompts` and `g12_game` with
 `m3-scripted-game`.
 
-`slice.list` names the 437 programs the new compiler must pass (tier 2, `study\19`), also with
-`QB64RUST_NO_FOLD=1`. Joined with `m3-measured-copies` (it left the recorded output on its first run):
+`slice.list` names the 440 programs the new compiler must pass (tier 2, `study\19`), also with
+`QB64RUST_NO_FOLD=1`. Joined with `m3-sound-handles` (each left the recorded output on its first run, and passed
+with the old compiler eight at a time): `s127_sound_handles` (`verification\v39_a`), `s128_sound_new_memory`
+(`v39_b`) and `s129_sound_files_raw_midi` (`v39_c`), which build their WAV and MIDI data in strings, play only
+silence or at volume 0, and print only what is exact on any sound device (design D5 of the change). Joined with
+`m3-measured-copies` (it left the recorded output on its first run):
 `s126_owner_copies` (`verification\v38_a`, `v38_b`, `v38_d`, without the cases of `DIVERGENCES.md` D-019,
 D-021 and D-022, which CLI tests hold; its first recording differed between the two runs where a `GET` that never
 read unpacks memory nobody wrote, and those lines were taken out). Joined with `m3-declare-library` (each left the recorded output on its first run):

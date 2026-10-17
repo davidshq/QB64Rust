@@ -1,0 +1,27 @@
+no file, and the empty name: 0  0 
+opened from memory: 1  .5  0 playing 0 paused-1 
+a copy: 2  .5  0  0 -1 
+position .25: .25  0 -1 
+a negative position is ignored: .25 
+one past the end stops the sound and leaves the position: .25  0 -1 
+stopped: 0  0 -1 
+a handle that is not open: 0  0  0  0  0  0 
+no statement raised an error: 0 
+ten seconds: 3  10 open 0 -1 
+play-1  0 
+pause 0 -1 
+play-1  0 
+stop 0 -1  0 
+loop-1  0 
+pause 0 -1 
+stop 0 -1 
+balance and volume change nothing printed: 10  0  0 -1 
+a limit changes neither length nor position: 10  0  0 -1 
+a limit past the end: 10 -1  0 
+a copy of a sound with a limit: 4  10  0  0 -1 
+a copy of a playing sound: 5  10  0 -1 and the sound:-1 
+a raw handle: 6  0  0  0  0  0 
+CALL:-1  0  3  10 
+closed, the functions give 0 at once: 0  0  0  0  0 
+closed again: 0 
+opened again:-1  .5 

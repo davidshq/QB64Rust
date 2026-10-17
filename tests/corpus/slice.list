@@ -468,3 +468,6 @@ slice/s123_library_alias
 slice/s124_library_customtype
 slice/s125_library_runtime_dll
 slice/s126_owner_copies
+slice/s127_sound_handles
+slice/s128_sound_new_memory
+slice/s129_sound_files_raw_midi

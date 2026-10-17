@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ MIDISOUNDFONT
+LINE 5:$MIDISOUNDFONT :DEFAULT
+exit=1

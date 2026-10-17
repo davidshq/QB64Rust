@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDSETPOS handle&, position#
+Caused by (or after):_SNDSETPOS H
+LINE 9:_SNDSETPOS h
+exit=1

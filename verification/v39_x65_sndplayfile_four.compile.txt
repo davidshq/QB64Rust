@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDPLAYFILE fileName$[, , volume!]
+Caused by (or after):_SNDPLAYFILE T , 1 , 1 , 1
+LINE 9:_SNDPLAYFILE t, 1, 1, 1
+exit=1

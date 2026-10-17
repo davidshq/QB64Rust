@@ -103,6 +103,8 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
 - [x] The answers of 2026-10-16: what owner types copy after an error, QB64pe's way where no memory is misused
       (`m3-measured-copies`; D-019, D-021, D-022 narrowed); a run-time trace of the divergences that the runner
       checks (`m3-divergence-trace`); the old compiler's wording as a note after an error (`m3-old-wording-notes`)
+- [x] Sound handles: `_SNDOPEN`, the `_SND*` family, `_MIDISOUNDBANK`, `_WAVE` (every name of libqb's audio part
+      has a row), checked without a sound heard; `_MEMSOUND` run (`m3-sound-handles`). Upstream 318 to 325 of 399
 - [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
       file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
       `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program

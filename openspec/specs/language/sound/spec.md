@@ -1,9 +1,10 @@
 # language/sound Specification
 
 ## Purpose
-The sound statements of a program, `SOUND`, `PLAY` and `BEEP`, and the function `PLAY`: which forms compile, what
-a statement queues, when it holds the program and which arguments are a run-time error, as the old compiler's
-program behaves.
+The sound statements of a program, `SOUND`, `PLAY` and `BEEP`, the function `PLAY`, and the sound handles
+(`_SNDOPEN` and the `_SND*` family, `_MIDISOUNDBANK`, `_WAVE`): which forms compile, what a statement queues, when
+it holds the program, what a handle gives a program and which arguments are a run-time error, as the old
+compiler's program behaves.
 
 ## Requirements
 

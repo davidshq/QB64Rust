@@ -196,7 +196,11 @@ arrays/type_member_arrays_as_parameters
 arrays/type_nested_descriptor_payload_clone
 arrays/type_owner_self_assignment
 arrays/whole_member_array_ops_nonzero_bounds
+audio_handle_test/handle_test
+audio_mem_test/newsound_test
+audio_mem_test/sndopen_mem_test
 audio_out/test
+audio_test/test
 auto_include/am-trigger
 auto_include/debug
 auto_include/no-debug
@@ -213,6 +217,7 @@ console_only/audio_out
 console_only/data
 console_only/image
 console_only/libz
+console_only/midi
 console_only/print_console_null_char
 console_only/screenimage
 const/bad_boolean_arg
@@ -276,6 +281,8 @@ include_paths/include_relative
 keyboard/devices_windows
 libz/test
 logging/consts
+midi/midisoundbank_file_test
+midi/midisoundbank_memory_test
 name with spaces/test
 noprompt/noprompt-continue
 noprompt/noprompt-continue-fatal

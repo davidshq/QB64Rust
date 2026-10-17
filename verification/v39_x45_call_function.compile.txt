@@ -1,0 +1,5 @@
+
+Expected CALL sub-name [(...)]
+Caused by (or after):CALL _SNDRATE
+LINE 9:CALL _SNDRATE
+exit=1

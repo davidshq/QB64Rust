@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDPLAYCOPY handle&[, volume!][, x!][, y!][, z!]
+Caused by (or after):_SNDPLAYCOPY H , 1 , 2 , 3 , 4 , 5
+LINE 9:_SNDPLAYCOPY h, 1, 2, 3, 4, 5
+exit=1

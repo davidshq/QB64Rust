@@ -1,0 +1,173 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 149
+expression: snap
+---
+==> global.txt <==
+static void qbr_diverged(int32 qbr_n){
+static int32 qbr_on=-1;
+static uint8 qbr_seen[100];
+static const char *qbr_path=NULL;
+if (qbr_on<0){qbr_path=getenv("QB64RUST_DIVERGENCES");qbr_on=qbr_path&&*qbr_path;}
+if (!qbr_on||qbr_n<0||qbr_n>=100||qbr_seen[qbr_n]) return;
+qbr_seen[qbr_n]=1;
+FILE *qbr_f=fopen(qbr_path,"ab");
+if (qbr_f){fprintf(qbr_f,"D-%03d\n",(int)qbr_n);fclose(qbr_f);}
+}
+static void qbr_diverged_on(int32 qbr_n){
+if (new_error>=300&&new_error<=315) return;
+const char *qbr_np=getenv("QB64PE_NOPROMPT");
+if ((error_goto_line&&!error_handling)||!qbr_np||(*qbr_np!='y'&&*qbr_np!='Y')) qbr_diverged(qbr_n);
+}
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){qbr_diverged(6);error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1){if (qb_l==std::numeric_limits<decltype(qb_l%qb_r)>::min()) qbr_diverged(6);return (decltype(qb_l%qb_r))0;}}return qb_l%qb_r;}
+ptrszint *__ARRAY_BYTE_W=NULL;
+ptrszint *__ARRAY_SINGLE_B=NULL;
+ptrszint *__ARRAY_BYTE_W2=NULL;
+int32 *__LONG_R=NULL;
+int32 *__LONG_L=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> clear.txt <==
+memset((void*)(__ARRAY_BYTE_W[0]),0,__ARRAY_BYTE_W[5]*1);
+memset((void*)(__ARRAY_SINGLE_B[0]),0,__ARRAY_SINGLE_B[5]*4);
+memset((void*)(__ARRAY_BYTE_W2[0]),0,__ARRAY_BYTE_W2[9]*__ARRAY_BYTE_W2[5]*1);
+*__LONG_R=0;
+*__LONG_L=0;
+==> maindata.txt <==
+if (!__ARRAY_BYTE_W){
+__ARRAY_BYTE_W=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_BYTE_W)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_BYTE_W[4]=1ll;
+__ARRAY_BYTE_W[5]=(64ll)-__ARRAY_BYTE_W[4]+1;
+if (__ARRAY_BYTE_W[5]<=0) error(5);
+__ARRAY_BYTE_W[6]=1;
+__ARRAY_BYTE_W[0]=(ptrszint)mem_static_malloc(__ARRAY_BYTE_W[5]*1);
+memset((void*)(__ARRAY_BYTE_W[0]),0,__ARRAY_BYTE_W[5]*1);
+__ARRAY_BYTE_W[2]=1+2;
+}
+if (!__ARRAY_SINGLE_B){
+__ARRAY_SINGLE_B=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_B)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_B[4]=1ll;
+__ARRAY_SINGLE_B[5]=(16ll)-__ARRAY_SINGLE_B[4]+1;
+if (__ARRAY_SINGLE_B[5]<=0) error(5);
+__ARRAY_SINGLE_B[6]=1;
+__ARRAY_SINGLE_B[0]=(ptrszint)mem_static_malloc(__ARRAY_SINGLE_B[5]*4);
+memset((void*)(__ARRAY_SINGLE_B[0]),0,__ARRAY_SINGLE_B[5]*4);
+__ARRAY_SINGLE_B[2]=1+2;
+}
+if (!__ARRAY_BYTE_W2){
+__ARRAY_BYTE_W2=(ptrszint*)mem_static_malloc(13*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_BYTE_W2)[12]=(ptrszint)mem_lock_tmp;
+__ARRAY_BYTE_W2[8]=0ll;
+__ARRAY_BYTE_W2[9]=(3ll)-__ARRAY_BYTE_W2[8]+1;
+if (__ARRAY_BYTE_W2[9]<=0) error(5);
+__ARRAY_BYTE_W2[10]=1;
+__ARRAY_BYTE_W2[4]=0ll;
+__ARRAY_BYTE_W2[5]=(3ll)-__ARRAY_BYTE_W2[4]+1;
+if (__ARRAY_BYTE_W2[5]<=0) error(5);
+__ARRAY_BYTE_W2[6]=__ARRAY_BYTE_W2[10]*__ARRAY_BYTE_W2[9];
+__ARRAY_BYTE_W2[0]=(ptrszint)mem_static_malloc(__ARRAY_BYTE_W2[9]*__ARRAY_BYTE_W2[5]*1);
+memset((void*)(__ARRAY_BYTE_W2[0]),0,__ARRAY_BYTE_W2[9]*__ARRAY_BYTE_W2[5]*1);
+__ARRAY_BYTE_W2[2]=1+2;
+}
+if(__LONG_R==NULL){
+__LONG_R=(int32*)mem_static_malloc(4);
+*__LONG_R=0;
+}
+if(__LONG_L==NULL){
+__LONG_L=(int32*)mem_static_malloc(4);
+*__LONG_L=0;
+}
+byte_element_struct *byte_element_1=NULL;
+if (!byte_element_1){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_1=(byte_element_struct*)(mem_static_pointer-12); else byte_element_1=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_2=NULL;
+if (!byte_element_2){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_2=(byte_element_struct*)(mem_static_pointer-12); else byte_element_2=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_3=NULL;
+if (!byte_element_3){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_3=(byte_element_struct*)(mem_static_pointer-12); else byte_element_3=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_4=NULL;
+if (!byte_element_4){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_4=(byte_element_struct*)(mem_static_pointer-12); else byte_element_4=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_5=NULL;
+if (!byte_element_5){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_5=(byte_element_struct*)(mem_static_pointer-12); else byte_element_5=(byte_element_struct*)mem_static_malloc(12);
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "sound_handles_cpp.bas"
+do{
+#line 2 "sound_handles_cpp.bas"
+sub__dest(func__console());
+#line 2 "sound_handles_cpp.bas"
+sub__source(func__console());
+#line 2 "sound_handles_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 8 "sound_handles_cpp.bas"
+do{
+#line 8 "sound_handles_cpp.bas"
+sub__wave(0u,byte_element((uint64)(&(((int8*)(__ARRAY_BYTE_W[0]))[array_check((1ll)-__ARRAY_BYTE_W[4],__ARRAY_BYTE_W[5])])),((1*(__ARRAY_BYTE_W[2]&1)*__ARRAY_BYTE_W[5])-(1*(array_check((1ll)-__ARRAY_BYTE_W[4],__ARRAY_BYTE_W[5])))),byte_element_1),32u,1);
+#line 8 "sound_handles_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 9 "sound_handles_cpp.bas"
+do{
+#line 9 "sound_handles_cpp.bas"
+sub__wave(0u,byte_element((uint64)(&(((int8*)(__ARRAY_BYTE_W[0]))[array_check((((int64)(*__LONG_L)))-__ARRAY_BYTE_W[4],__ARRAY_BYTE_W[5])])),((1*(__ARRAY_BYTE_W[2]&1)*__ARRAY_BYTE_W[5])-(1*(array_check((((int64)(*__LONG_L)))-__ARRAY_BYTE_W[4],__ARRAY_BYTE_W[5])))),byte_element_2),NULL,0);
+#line 9 "sound_handles_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+#line 10 "sound_handles_cpp.bas"
+do{
+#line 10 "sound_handles_cpp.bas"
+sub__wave(1u,byte_element((uint64)(&(((int8*)(__ARRAY_BYTE_W2[0]))[array_check((1ll)-__ARRAY_BYTE_W2[8],__ARRAY_BYTE_W2[9])+array_check((1ll)-__ARRAY_BYTE_W2[4],__ARRAY_BYTE_W2[5])*__ARRAY_BYTE_W2[6]])),((1*(__ARRAY_BYTE_W2[2]&1)*__ARRAY_BYTE_W2[5]*__ARRAY_BYTE_W2[9])-(1*(array_check((1ll)-__ARRAY_BYTE_W2[8],__ARRAY_BYTE_W2[9])+array_check((1ll)-__ARRAY_BYTE_W2[4],__ARRAY_BYTE_W2[5])*__ARRAY_BYTE_W2[6]))),byte_element_3),4u,1);
+#line 10 "sound_handles_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 11 "sound_handles_cpp.bas"
+do{
+#line 11 "sound_handles_cpp.bas"
+sub__sndrawbatch(byte_element((uint64)(&(((float*)(__ARRAY_SINGLE_B[0]))[array_check((3ll)-__ARRAY_SINGLE_B[4],__ARRAY_SINGLE_B[5])])),((4*(__ARRAY_SINGLE_B[2]&1)*__ARRAY_SINGLE_B[5])-(4*(array_check((3ll)-__ARRAY_SINGLE_B[4],__ARRAY_SINGLE_B[5])))),byte_element_4),2,*__LONG_R,4u,7);
+#line 11 "sound_handles_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 12 "sound_handles_cpp.bas"
+do{
+#line 12 "sound_handles_cpp.bas"
+sub__sndrawbatch(byte_element((uint64)(&(((float*)(__ARRAY_SINGLE_B[0]))[array_check((((int64)(*__LONG_L)))-__ARRAY_SINGLE_B[4],__ARRAY_SINGLE_B[5])])),((4*(__ARRAY_SINGLE_B[2]&1)*__ARRAY_SINGLE_B[5])-(4*(array_check((((int64)(*__LONG_L)))-__ARRAY_SINGLE_B[4],__ARRAY_SINGLE_B[5])))),byte_element_5),NULL,NULL,NULL,0);
+#line 12 "sound_handles_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+sub_end();
+return;
+}
+==> empty: regsf.txt dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt

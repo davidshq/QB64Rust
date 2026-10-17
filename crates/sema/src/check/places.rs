@@ -803,6 +803,16 @@ impl Checker<'_> {
         // calls a built-in, and the table does not know every spelling of those (`_CONNECTIONADDRESS$`, the
         // functions of the auto-included files): it keeps its mark.
         let underscore = name.starts_with('_') && !name.starts_with("__");
+        // The name of a supported built-in statement that is no function is that error for certain (`v39_x11`:
+        // `l = _SNDPLAY(h)`).
+        if underscore
+            && !self.follow_on
+            && !is_builtin_function(name, suffix)
+            && !crate::builtins::stmt_lookup(name, suffix == Some(Ty::Str)).is_empty()
+        {
+            self.implicit_names.insert(name.to_string());
+            return Err(self.error(t.span, format!("`{shown}(...)`: `{shown}` is a built-in statement")));
+        }
         if self.follow_on || underscore || self.procs_by_name.contains_key(name) {
             return Err(self.not_an_array(t, name));
         }

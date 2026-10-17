@@ -452,3 +452,15 @@ at the compile, 13 `.err` programs), the known failure `http/read_example`; none
 output. The demand report (348 programs without an `.err`): 274 without errors, 63 held back, 11 with other
 errors; its first lines are `_SNDOPEN` 6, `_ARRAYCOPY` 4, `$VERSIONINFO` 4. `tests\known_unsupported_rejections.list`
 holds 28 and `known_clean_not_passing.list` 5.
+
+**Upstream progress, 2026-10-16: 325 of 399** (`m3-sound-handles` task 3.2). The change took the sound handles
+(`_SNDOPEN`, the `_SND*` family, `_MIDISOUNDBANK`, `_WAVE`): 7 programs joined `pass.list`,
+`audio_handle_test/handle_test`, `audio_mem_test/newsound_test`, `audio_mem_test/sndopen_mem_test`,
+`console_only/midi`, `midi/midisoundbank_file_test`, `midi/midisoundbank_memory_test` (each compared with its
+`.output`; the MIDI and sound bank files they read lie in the clone) and `audio_test/test`, which has no
+`.output` and so is compiled only, as `compile_tests.sh` does. `midi/midisoundbank_embed_test` stays held back by
+`$EMBED` and `_EMBEDDED$`. `pass.list` run by itself: 325 of 325. The full run of the suite (404 programs): 325
+pass, 78 rejected or with only marked errors (65 at the compile, 13 `.err` programs), the known failure
+`http/read_example`; none builds and prints the wrong output. The demand report (348 programs without an `.err`):
+281 without errors, 56 held back, 11 with other errors; its first lines are `_ARRAYCOPY` 4, `$VERSIONINFO` 4 and
+the event switches and handlers 4 each. The shrink-only lists are unchanged.

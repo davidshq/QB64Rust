@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ MIDISOUND
+LINE 5:$MIDISOUND:DEFAULT
+exit=1

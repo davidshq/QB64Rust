@@ -1677,6 +1677,76 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     elements, a 2 × 2 target from 4 × 1. A target with more elements gets the source's and one read past its block
     (D-022); from a source that `ERASE` released the old program reads through the missing block and the target's
     elements become 0.
+- **Sound handles: `_SNDOPEN`, the `_SND*` family, `_MIDISOUNDBANK`, `_WAVE` (`v39_*`, 84 programs measured
+  2026-10-16 as task 1.1 of `m3-sound-handles`; the C++ read with `qb64pe -z` from copies outside the repository;
+  `qb64pe.bas` 2092 and 11807–11847, `audio.cpp`).**
+  - **Every accepted form is the plain call of its row and template** (`x01_accepted`, 160 calls). A function's
+    mask counts the optional slots given (`func__sndopen(t,NULL,0)`, `func__sndopen(t,qbs_new_txt_len("memory",6),
+    0|1)`, `func__sndnew( 800 ,NULL, 16 ,NULL,0|2)`, `func__sndrawlen(NULL,0)`, `func__memsound(h, 0 ,0|1)`); a
+    statement's the slots after the required ones (`sub__sndbal(h,NULL,NULL, 3 ,NULL,4)`, `sub__sndplayfile(t,NULL,
+    0 ,2)`, `sub__sndraw( 0 ,NULL,r,2)`, `sub__sndrawdone(NULL,0)`, `sub__midisoundbank(t,NULL,0)`). `_SNDRATE` and
+    `_SNDOPENRAW` have no slot and are called bare only; `_SNDRAWLEN` bare or with its handle. A SINGLE, DOUBLE or
+    `_FLOAT` in a LONG slot goes through `qbr`; other integers are passed as they are. Results: LONG handles and
+    states, DOUBLE lengths and positions. `_SNDBAL`'s fifth slot (a LONG, ignored by libqb) is accepted though its
+    reference shows four. `CALL name(args)` is the statement; `CALL _SNDRAWDONE` too, `_SNDRAWDONE:` is the
+    statement with no argument (`x55`); lower case is accepted.
+  - **Rejected (`x02`–`x70`, 62 forms):** too few or too many arguments ("Syntax error - Reference: …" for a
+    statement, "Incorrect number of arguments - Reference: …" for a function), empty parentheses ("Expected
+    (...)"), a number for a string ("1st function argument requires a string", "1st sub argument requires a
+    string") and a string for a number ("Number required for function", "Number required for sub", "1st sub
+    argument requires a number"), a function called bare that needs its argument (`h = _SNDPLAYING`, `_SNDCOPY`,
+    `_SNDOPEN`, `_MEMSOUND`), a statement used as a function ("Invalid array name") or assigned ("Invalid variable
+    name"), `_SNDVOL (h, 1)`, `_SNDPLAY:` (a syntax error), `CALL _SNDPLAY h`, `CALL _SNDRAWDONE()` ("Expected
+    CALL sub-name (...)"), `CALL _SNDRATE`.
+  - **The arrays of `_WAVE` and `_SNDRAWBATCH`** (`x22`–`x27`, `x46`–`x54`, `x57`–`x61`, `x71`, `x72`). The slot
+    is the bytes from an element to the array's end, or the whole array (`byte_element(…)`, as graphics `PUT`).
+    Accepted: a whole array `w()`, an element `w(5)`, a two-dimensional array and its element, an array named
+    with its suffix `z%%()`, **an array's name alone `_WAVE 0, w`** (the whole array), an array parameter of a
+    SUB, whole and an element. `_WAVE` takes only `_BYTE`: an `INTEGER`, `_UNSIGNED _BYTE`, `SINGLE`, `_BIT`,
+    `STRING` array, a `_BYTE` variable and a `_BYTE` member of an element are "Expected _BYTE array name"; a
+    number (`_WAVE 0, 5`, also after `CALL`) is "UNEXPECTED INTERNAL COMPILER ERROR!". `_SNDRAWBATCH` takes
+    only `SINGLE`: `DOUBLE`, `_FLOAT`, `LONG`, `_BYTE`, a user type and a `SINGLE` variable are "Expected SINGLE
+    array name". A member array (`x.m()`) is "Expected array index" for both.
+  - **`$MIDISOUNDFONT` (`x73`–`x81`).** A line whose text in upper case starts with `$MIDISOUNDFONT:` is
+    "$MIDISOUNDFONT is a deprecated keyword, use _MIDISOUNDBANK instead", whatever follows the colon and in any
+    case; `$MIDISOUNDFONT` alone, `$MIDISOUNDFONT :DEFAULT` and `$MIDISOUNDFONTS:` are "Syntax error", as any
+    unknown metacommand (`$MIDISOUND:DEFAULT`); after `'` or `REM` it is a comment.
+  - **What a program observes (`v39_a_handles`, `v39_b_new_mem`, `v39_c_files_raw_midi`).** No handle function
+    raises an error: a handle that is not open (0, negative, never opened, closed) makes a statement do nothing
+    and a function give 0, and a function gives 0 for a closed handle at once (`IsHandleValid` refuses a handle
+    marked to be freed). `_SNDOPEN` of a missing file and of `""` is 0; with `"memory"` the string is the data (a
+    file's name given so is 0). A WAV of 4000 frames at 8000 Hz from memory is handle 1 with `_SNDLEN` .5, a
+    copy handle 2 of the same length. **A sound just opened, paused or stopped is not playing and is paused
+    (`_SNDPAUSED` -1)**; `_SNDPLAY` and `_SNDLOOP` make it playing and not paused; `_SNDSTOP` sets the position to
+    0. `_SNDSETPOS` moves a sound that is not playing (`.25` reads `.25`); a negative position is ignored, one past
+    the end stops the sound and leaves the position. `_SNDLIMIT` changes neither length nor position, and a copy
+    has no limit. A copy of a playing sound is not playing. A raw handle gives 0 to `_SNDLEN`, `_SNDGETPOS`,
+    `_SNDPLAYING`, `_SNDPAUSED` and `_SNDCOPY`. `_SNDBAL` and `_SNDVOL` change nothing printed. `_SNDPLAYFILE`
+    and each `_SNDPLAYCOPY` take a handle of their own (the next `_SNDOPENRAW` shows it); `_SNDPLAYFILE`'s second
+    argument is read and ignored. `_SNDNEW(800, 1, 16, 8000)` is a silent sound whose block is `SIZE` 1600, `TYPE`
+    130, `ELEMENTSIZE` 2, `SOUND` its handle, `IMAGE` 0; **its `_SNDLEN` is a SINGLE widened, .1000000014901161**;
+    stereo doubles the element, 8 bits is `TYPE` 1153 (samples 0, not 128), 32 bits `TYPE` 260; a sample written
+    with `_MEMPUT` is read back through `_SNDCOPY`'s block. `_SNDNEW` with 0 frames, a channel count other than 1
+    or 2, a bit depth other than 8, 16 or 32, a rate of 0 or `-1024` frames is 0, and `_MEMSOUND` of 0 a block of
+    size 0. `_MEMSOUND` of a sound decoded from memory is its samples **at the device's rate** (`SIZE` 44100 for
+    half a second, 16 bits, at 44100 Hz); a stream or `"nodecode"` sound has none; `_MEMSOUND(h, 0)` and `(h, 1)`
+    are the same block, `(h, 2)` a block of size 0. A block stays valid right after `_SNDCLOSE` (freed later).
+    Raw sound: `_SNDRAWLEN` is 0 before the first sample and over 0 and at most 1 after one second of samples
+    (`_SNDRATE` of them), on a stream of its own and on the default one; `_SNDRAWDONE` raises nothing. `_WAVE`
+    raises error 5 for fewer than 2 frames (an array of one, a frame count of 1) and for voice 4; `SOUND 440, 1, 0,
+    , 10` then plays the custom wave. A MIDI file of one note of one second built in a string opens with the
+    default bank, length 1; `_MIDISOUNDBANK` of a file that is not there, a string given with `"memory, sf2"`
+    that is no sound bank, and `""` (the default bank) raise nothing, and the next MIDI opens with length 1
+    after each. A MIDI at volume 0 plays and stops as a WAV does.
+  - **What depends on the machine or on time.** `_SNDRATE` (44100 here). **A decoded sound's length and
+    position are counted in frames of the device's rate**: `.125` s of a WAV reads `.1249886602163315` at 44100
+    Hz, as does `_SNDSETPOS h, .125`; whole half-seconds are exact at 44100 and 48000 Hz. `_SNDRAWLEN` drains as
+    the program runs. A file opened with `"stream"` (also after `_SNDCLOSE`) or by `_SNDPLAYFILE` stays open until
+    the sound loop frees it: `KILL` raises error 75 until then (gone after `_DELAY 1`). In 16 runs made eight at
+    a time, once `_SNDOPEN` of the WAV file the program had just written gave 0 (the later handles one lower); two
+    of about 50 runs of `v39_a`, both the first after copying the executable, ended with an access violation after
+    the last line. Everything else was equal in two runs alone, 16 or 24 runs eight at a time, with `"noasync"`
+    and at the default volume (programs not recorded).
 - **`STRING` members, whole values, `TYPE` parameters (`v24_h_string_members`, `v24_h_whole`,
   `v24_h_type_params`, `v24_x206`–`x216`):** a `STRING` member starts empty in a variable, a local (on each
   call), a `STATIC` one (kept), each element of a static and of a dynamic array and in a nested type; it holds
