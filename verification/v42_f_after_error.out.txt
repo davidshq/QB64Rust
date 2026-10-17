@@ -1,0 +1,7 @@
+1. after 0.4 s in the error handler, n = 0 
+2. a loop of 1 s after RESUME NEXT, n = 0 
+3. a SUB's loop of 1 s, n = 0 
+4. right after TIMER ON again, n = 1 
+1. after 0.4 s in the error handler, n = 0 
+5. after the second error, _DELAY 0.05: n = 1 
+exit=0

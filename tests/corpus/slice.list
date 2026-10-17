@@ -475,3 +475,6 @@ slice/s130_versioninfo
 slice/s131_arraycopy
 slice/s132_arraycopy_members
 slice/s133_arraycopy_dynamic_dims
+# m3-events: timers in a console program, and ON KEY in a window from a keys file (tests/corpus/screen/SOURCE.md)
+slice/s134_events_timer
+screen/k01_on_key

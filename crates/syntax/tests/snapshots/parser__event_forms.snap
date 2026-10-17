@@ -1,0 +1,82 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"ON TIMER(1) s 5\\nON KEY(2) GOSUB h\\nTIMER(t) FREE\\nTIMER ON\\nKEY(0) ON\\nKEY ON\\nKEY LIST\\nKEY 15, x$\\n\")"
+---
+SourceFile 0..94
+  OnEventStmt 0..15
+    Ident ON
+    Whitespace  
+    Ident TIMER
+    ArgList 8..11
+      LParen (
+      Literal 9..10
+        Number 1
+      RParen )
+    Whitespace  
+    Ident s
+    Whitespace  
+    Literal 14..15
+      Number 5
+  Newline \x0A
+  OnEventStmt 16..33
+    Ident ON
+    Whitespace  
+    Ident KEY
+    ArgList 22..25
+      LParen (
+      Literal 23..24
+        Number 2
+      RParen )
+    Whitespace  
+    Ident GOSUB
+    Whitespace  
+    Ident h
+  Newline \x0A
+  BuiltinStmt 34..47
+    Ident TIMER
+    LParen (
+    FormArg 40..41
+      NameRef 40..41
+        Ident t
+    RParen )
+    Whitespace  
+    FormWord 43..47
+      Ident FREE
+  Newline \x0A
+  BuiltinStmt 48..56
+    Ident TIMER
+    Whitespace  
+    FormWord 54..56
+      Ident ON
+  Newline \x0A
+  BuiltinStmt 57..66
+    Ident KEY
+    LParen (
+    FormArg 61..62
+      Literal 61..62
+        Number 0
+    RParen )
+    Whitespace  
+    FormWord 64..66
+      Ident ON
+  Newline \x0A
+  KeyStmt 67..73
+    Ident KEY
+    Whitespace  
+    Ident ON
+  Newline \x0A
+  KeyStmt 74..82
+    Ident KEY
+    Whitespace  
+    Ident LIST
+  Newline \x0A
+  KeyStmt 83..93
+    Ident KEY
+    Whitespace  
+    Literal 87..89
+      Number 15
+    Comma ,
+    Whitespace  
+    NameRef 91..93
+      Ident x$
+  Newline \x0A

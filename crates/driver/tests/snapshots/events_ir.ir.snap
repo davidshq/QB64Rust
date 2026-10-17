@@ -1,0 +1,43 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 2
+  SelectConsole
+Stmt line 7 may_raise
+  Assign T:F32 = (CallBuiltin _FREETIMER:I32 [] -> Convert F32 Nearest)
+Stmt line 8 may_raise
+  OnEvent Timer ((Var T:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate) every Const 1.5E+0:F64 -> Gosub H
+Stmt line 9 may_raise
+  OnEvent Timer every (Const 2:I16 -> Convert F64 Nearest) -> Gosub H
+Stmt line 10 may_raise
+  OnEvent Key (Const 3:I16 -> Convert F64 Nearest) -> Sub S [(Var X:I16 -> Convert I64 Widen)]
+Stmt line 11 may_raise
+  OnEvent Key Const 1.7E+0:F64 -> Sub PLAIN
+Stmt line 12 may_raise
+  Builtin TIMER [Value(((Var T:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Word 0]
+Stmt line 13 may_raise
+  Builtin TIMER [Absent, Word 2]
+Stmt line 14 may_raise
+  Builtin KEY [Value(Const 0:I32), Word 1]
+Stmt line 15 may_raise
+  KeyOn
+Stmt line 16 may_raise
+  KeyList
+Stmt line 17 may_raise
+  KeyAssign Const 15:I32 = Concat(CallBuiltin CHR:Str [Some(Const 0:I32)], CallBuiltin CHR:Str [Some(Const 30:I32)])
+Stmt line 18 may_raise
+  Call SETUP []
+Stmt line 19
+  End
+Label H line 21
+Stmt line 22 may_raise
+  Return
+Sub S lines 24-25
+  param N:I16
+Sub PLAIN lines 27-28
+Sub SETUP lines 30-32
+  local T:F32
+Stmt line 31 may_raise
+  OnEvent Timer ((Add:F64((Var T(local):F32 -> Convert F64 Widen), Const 0.5E+0:F64) -> Convert I64 RoundEven) -> Convert I32 Truncate) every (Const 1:I16 -> Convert F64 Nearest) -> Gosub H

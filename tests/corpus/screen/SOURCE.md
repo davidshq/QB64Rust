@@ -138,3 +138,11 @@ window adds events, so a program prints no movement of the first move; when one 
 |---|---|
 | `u01_mouse_queue` | `SCREEN 12`: the queue read event by event with `_MOUSEINPUT`; `_MOUSEX`, `_MOUSEY`, `_MOUSEBUTTON` of the three buttons, `_MOUSEWHEEL` (down and up, and with an argument), `_MOUSEMOVEMENTX`, `_MOUSEMOVEMENTY`, a move with a button held; `_MOUSEHIDDEN`, `_MOUSEDISABLED`; `_MOUSEMOVE` as code that is not reached |
 | `u02_mouse_text` | `SCREEN 0`: `_MOUSEX` and `_MOUSEY` as a column and row of a window pixel, at the corners and beyond the window's edges, and a click |
+
+Written by `m3-events` (task 3.3, 2026-10-17) and recorded the same way, with a keys file: the program announces
+each wait, and the keys file gives the key after its `prompt`. A key the program traps runs its handler and never
+reaches `INKEY$`, so the tool's wait for an empty `INKEY$` buffer does not hold it.
+
+| Program | Covers |
+|---|---|
+| `k01_on_key` | `ON KEY` of F1, the up arrow and a user key (`KEY 15` with flags 0 and the scancode of A), each switched on; F1 switched off reaching `INKEY$` (two bytes, 59); the soft-key line of `KEY ON` with a soft key set by `KEY 2, "two"`, and `KEY LIST` |

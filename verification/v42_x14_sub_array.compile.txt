@@ -1,0 +1,5 @@
+
+Only SUB arguments of integer-type allowed
+Caused by (or after):ON TIMER ( 1 ) S 5
+LINE 3:ON TIMER(1) s 5
+exit=1

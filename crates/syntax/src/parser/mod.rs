@@ -563,8 +563,6 @@ impl<'a> Parser<'a, '_> {
             self.word_and_operand(StopStmt)
         } else if self.at_word("RUN") {
             self.word_and_operand(RunStmt)
-        } else if errors::EVENT_WORDS.iter().any(|w| self.at_word(w)) && errors::event_switch(self) {
-            // `TIMER ON`, `KEY(1) OFF` (other statements starting with these words fall through).
         } else if self.at_word("CALL") {
             call::call_stmt(self)
         } else if self.at_word("EXIT") {
@@ -709,6 +707,15 @@ impl<'a> Parser<'a, '_> {
     /// A language word the parser does not handle yet (`FOR`, `IF`, `GOTO`...).
     fn not_supported_statement(&mut self) {
         let word = qb64rust_base::show_bytes(self.nth_text(0));
+        if ["PEN", "COM", "UEVENT"].iter().any(|w| self.at_word(w)) {
+            // QuickBASIC's event switches (`PEN ON`, `COM(1) OFF`), which the old compiler does not have: "Syntax
+            // error" (measured, `verification\v42_x20`–`x22`).
+            let word = word.to_ascii_uppercase();
+            let span = self.current_span();
+            self.error_at(span, format!("`{word}` is not an event QB64pe traps, and no statement"));
+            self.rest_into_error_node();
+            return;
+        }
         self.unsupported(format!("statement `{word}`"));
         self.recover();
     }

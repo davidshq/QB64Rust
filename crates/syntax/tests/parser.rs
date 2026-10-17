@@ -323,6 +323,39 @@ fn array_copy_unexpected_to() {
     assert!(p.diagnostics().list()[0].unsupported);
 }
 
+/// Event handlers, switches and `KEY`'s own forms (design D1 of `m3-events`): a SUB handler's argument; the
+/// switches read by their template; `KEY ON|OFF|LIST` and `KEY n, text$` as a `KeyStmt`, `KEY(0) ON` not.
+#[test]
+fn event_forms() {
+    insta::assert_snapshot!(tree(
+        "ON TIMER(1) s 5\nON KEY(2) GOSUB h\nTIMER(t) FREE\nTIMER ON\nKEY(0) ON\nKEY ON\nKEY LIST\nKEY 15, x$\n"
+    ));
+}
+
+/// `KEY ON` with more after it is a syntax error (`verification\v42_x25`: "Expected KEY ON only"); a switch form
+/// outside the template is the template's error (`x15`, `x16`). None is "not supported yet".
+#[test]
+fn event_form_errors() {
+    for (src, message) in [
+        ("KEY ON 1\n", "expected the end of the statement after `KEY ON`"),
+        ("KEY LIST 2\n", "expected the end of the statement after `KEY LIST`"),
+        ("KEY 1 2, x$\n", "expected `,` and the key's text"),
+    ] {
+        let p = parse_one(src.as_bytes());
+        let diags = p.diagnostics();
+        assert_eq!(diags.list().len(), 1, "{src}");
+        let d = &diags.list()[0];
+        assert_eq!(d.message, message, "{src}");
+        assert!(!d.unsupported, "{src}");
+    }
+    for src in ["KEY(1) FREE\n", "TIMER(1, 2) ON\n"] {
+        let p = parse_one(src.as_bytes());
+        let diags = p.diagnostics();
+        assert_eq!(diags.list().len(), 1, "{src}");
+        assert!(!diags.list()[0].unsupported, "{src}");
+    }
+}
+
 /// The expression depth limit counts tree levels the same way for every kind of node: an expression exactly 1,000
 /// levels deep parses, one a level deeper is one "not supported yet" error. Runs on a large stack, as the compiler
 /// does (`driver::with_stack`); a test thread's 2 MiB would not hold the parser at this depth in a debug build.

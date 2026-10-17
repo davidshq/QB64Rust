@@ -3,8 +3,9 @@
 
 use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
 use crate::{
-    Arg, ArrayRef, Body, BuiltinId, Expr, ExprKind, LabelId, MemValue, Member, MemberId, Op, Place, PrintItem, PrintTo,
-    ProcId, Program, Reference, Resume, Shape, Source, StmtArg, Storage, Ty, UsingValue, Var, VarId,
+    Arg, ArrayRef, Body, BuiltinId, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId, MemValue, Member, MemberId,
+    Op, Place, PrintItem, PrintTo, ProcId, ProcKind, Program, Reference, Resume, Shape, Source, StmtArg, Storage, Ty,
+    UsingValue, Var, VarId,
 };
 
 /// Every problem found, each as `<body>: <where>: <what>`; `Ok` when there is none.
@@ -562,6 +563,72 @@ impl Validator<'_> {
             }
             Op::Call { proc, args } => self.call(*proc, args, owner, at),
             Op::Builtin { id, args } => self.builtin(*id, args, owner, at),
+            Op::OnEvent { event, handler } => self.on_event(event, handler, owner, at),
+            Op::Key(KeyForm::On | KeyForm::Off | KeyForm::List) => {}
+            Op::Key(KeyForm::Assign { number, text }) => {
+                self.typed_value(number, Ty::I32, "key number", owner, at);
+                self.typed_value(text, Ty::Str, "key text", owner, at);
+            }
+        }
+    }
+
+    /// A value of one type.
+    fn typed_value(&mut self, v: &Expr, ty: Ty, what: &str, owner: Option<ProcId>, at: &At) {
+        if v.ty != ty {
+            self.problem(format!("{at}: a {what} of type {:?}", v.ty));
+        }
+        self.value(v, owner, at);
+    }
+
+    /// The operands of an event's setup and its handler (design D3 of `m3-events`): a label of the main module from
+    /// any body, or a SUB with an integer parameter given an `I64` argument, or with none and none given.
+    fn on_event(&mut self, event: &Event, handler: &EventHandler, owner: Option<ProcId>, at: &At) {
+        match event {
+            Event::Timer { number, seconds } => {
+                if let Some(n) = number {
+                    self.typed_value(n, Ty::I32, "timer number", owner, at);
+                }
+                self.typed_value(seconds, Ty::F64, "timer interval", owner, at);
+            }
+            Event::Key { key } => self.typed_value(key, Ty::F64, "key number", owner, at),
+        }
+        match handler {
+            EventHandler::Label(l) => self.main_label(*l, at, "event handler"),
+            EventHandler::Sub { proc, arg } => {
+                let Some(q) = self.p.procs.get(proc.0 as usize) else {
+                    self.problem(format!("{at}: event handler {}, which does not exist", proc.0));
+                    return;
+                };
+                if q.kind != ProcKind::Sub || q.external.is_some() {
+                    self.problem(format!(
+                        "{at}: event handler {}, which is no SUB of the program",
+                        q.name
+                    ));
+                }
+                let param = q.params.first().and_then(|v| self.p.vars.get(v.0 as usize));
+                match (param, arg) {
+                    (None, None) => {}
+                    (Some(v), Some(a)) => {
+                        let integer = v.ty.is_int() && !matches!(v.ty, Ty::Bit { .. });
+                        if v.is_array() || !integer {
+                            self.problem(format!(
+                                "{at}: event handler {} with a parameter of type {:?}",
+                                q.name, v.ty
+                            ));
+                        }
+                        if q.params.len() > 1 {
+                            self.problem(format!("{at}: event handler {} with more than one parameter", q.name));
+                        }
+                        self.typed_value(a, Ty::I64, "handler argument", owner, at);
+                    }
+                    (Some(_), None) | (None, Some(_)) => self.problem(format!(
+                        "{at}: event handler {} with {} arguments for {} parameters",
+                        q.name,
+                        usize::from(arg.is_some()),
+                        q.params.len()
+                    )),
+                }
+            }
         }
     }
 
@@ -1189,8 +1256,8 @@ impl Validator<'_> {
 mod tests {
     use super::validate;
     use crate::{
-        AllocMode, Arg, ArrayRef, Body, Expr, ExprKind, Label, LabelId, MemberId, Op, Place, Proc, ProcId, ProcKind,
-        Program, Resume, Settings, Shape, Stmt, Storage, Ty, Var, VarId,
+        AllocMode, Arg, ArrayRef, Body, Event, EventHandler, Expr, ExprKind, Label, LabelId, MemberId, Op, Place, Proc,
+        ProcId, ProcKind, Program, Resume, Settings, Shape, Stmt, Storage, Ty, Var, VarId,
     };
     use qb64rust_base::{FileId, Span};
 
@@ -1340,6 +1407,56 @@ mod tests {
             [
                 "S: statement 0 (line 1): handler to label 2, which the main module does not have",
                 "S: statement 0 (line 1): return to label 3, which the main module does not have",
+            ]
+        );
+    }
+
+    /// An event's handler (design D3 of `m3-events`): a label of the main module from any body; a SUB given an
+    /// argument exactly when it has a parameter; the operands of their types.
+    #[test]
+    fn event_handlers() {
+        let f64 = |v: &str| expr(Ty::F64, ExprKind::Float(v.into()));
+        let mut p = program();
+        p.procs[0].body.stmts[0].ops.extend([
+            Op::OnEvent {
+                event: Event::Timer {
+                    number: None,
+                    seconds: f64("1E+0"),
+                },
+                handler: EventHandler::Label(LabelId(0)),
+            },
+            Op::OnEvent {
+                event: Event::Key { key: f64("1E+0") },
+                handler: EventHandler::Sub {
+                    proc: ProcId(0),
+                    arg: Some(expr(Ty::I64, ExprKind::Int(5))),
+                },
+            },
+        ]);
+        assert_eq!(problems(&p), Vec::<String>::new());
+        p.procs[0].body.stmts[0].ops.extend([
+            Op::OnEvent {
+                event: Event::Timer {
+                    number: Some(f64("2E+0")),
+                    seconds: f64("1E+0"),
+                },
+                handler: EventHandler::Label(LabelId(1)),
+            },
+            Op::OnEvent {
+                event: Event::Key { key: load(0) },
+                handler: EventHandler::Sub {
+                    proc: ProcId(0),
+                    arg: None,
+                },
+            },
+        ]);
+        assert_eq!(
+            problems(&p),
+            [
+                "S: statement 0 (line 1): a timer number of type F64",
+                "S: statement 0 (line 1): event handler to label 1, which the main module does not have",
+                "S: statement 0 (line 1): a key number of type I32",
+                "S: statement 0 (line 1): event handler S with 0 arguments for 1 parameters",
             ]
         );
     }

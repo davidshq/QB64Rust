@@ -4,7 +4,10 @@ use crate::Emitter;
 use crate::decl::{Part, dim_count, dim_slot, is_qbs};
 use crate::names::{c_type, int_const, proc_name};
 use crate::place::fixed_at;
-use qb64rust_ir::{ArrayRef, Expr, ExprKind, Facts, LabelId, MemberId, OnError, Op, Place, PrintTo, Resume, Ty, When};
+use qb64rust_ir::{
+    ArrayRef, Event, EventHandler, Expr, ExprKind, Facts, LabelId, MemberId, OnError, Op, Place, PrintTo, Resume, Ty,
+    When,
+};
 use std::fmt::Write as _;
 
 impl Emitter<'_> {
@@ -160,6 +163,18 @@ impl Emitter<'_> {
                 }
             }
             Op::Builtin { id, args } => self.stmt_call(*id, args, out),
+            Op::OnEvent { event, handler } => {
+                self.on_event(event, handler, out);
+                let strings = |e: &Expr| e.uses_strings(self.p);
+                let operands = match event {
+                    Event::Timer { number, seconds } => number.as_ref().is_some_and(strings) || strings(seconds),
+                    Event::Key { key } => strings(key),
+                };
+                if operands || matches!(handler, EventHandler::Sub { arg: Some(a), .. } if strings(a)) {
+                    out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+                }
+            }
+            Op::Key(form) => self.key_stmt(form, out),
             Op::MemGet { block, offset, target } => {
                 self.mem_get_stmt(block, offset, target, out);
                 let p = self.p;

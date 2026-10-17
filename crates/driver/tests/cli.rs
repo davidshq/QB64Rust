@@ -948,6 +948,22 @@ fn arraycopy_of_float_arrays() {
     );
 }
 
+/// Event handlers built and run (design D4 of `m3-events`): a SUB with its argument, then a label of the main
+/// module set up from a SUB, after an error handler, a loop and a `SELECT`, which `QBMAIN` is re-entered to reach.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn event_handlers_run() {
+    let d = scratch("event-handlers");
+    let program = "$CONSOLE:ONLY\nDIM SHARED n AS LONG\nON ERROR GOTO oops\nERROR 5\n\
+                   FOR i = 1 TO 2\nSELECT CASE i\nCASE 1: n = 0\nEND SELECT\nNEXT\n\
+                   ON TIMER(0.3) show 7\nTIMER ON: _DELAY 0.45: TIMER OFF\n\
+                   setup\nTIMER ON: _DELAY 0.45: TIMER OFF\nPRINT n\nSYSTEM\n\
+                   oops:\nPRINT \"e\"; ERR\nRESUME NEXT\ntick:\nn = n + 1\nPRINT \"tick\"\nRETURN\n\
+                   SUB show (k AS INTEGER)\nPRINT \"show\"; k\nEND SUB\n\
+                   SUB setup\nON TIMER(0.3) GOSUB tick\nEND SUB\n";
+    assert_eq!(build_and_run(&d, program), "e 5 \nshow 7 \ntick\n 1 \n");
+}
+
 /// A whole-array assignment of arrays of an owner type with other bounds raises error 9 and copies the target's
 /// number of elements, as the old compiler does, but nothing when the source has fewer (`DIVERGENCES.md` D-022: the
 /// old compiler reads past the source's block, `verification\v36_x52`, `v38_d`).

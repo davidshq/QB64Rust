@@ -1,0 +1,15 @@
+1. first _FREETIMER: 1 
+2. second: 2 
+3. a, b after 1 s: 2  1 
+4. _FREETIMER after FREE of the first: 1 
+5. ON TIMER of a released timer: error 5  done
+6. TIMER ON of a released timer: error 5  done
+7. ON TIMER(9, 1): error 5  done
+8. TIMER FREE: error 5  done
+9. TIMER(-1) ON: error 5  done
+10. ON TIMER(u + 0.4, 1), a float rounded: done
+11. ON TIMER(u + 0.6, 1): error 5  done
+12. TIMER(u + 0.6) ON: error 5  done
+13. ON TIMER(0) of seconds 0: done
+14. ON TIMER(-1) of seconds -1: done
+exit=0

@@ -1,0 +1,5 @@
+
+Name already in use (COM)
+Caused by (or after):ON COM ( 1 ) GOSUB H
+LINE 3:ON COM(1) GOSUB h
+exit=1

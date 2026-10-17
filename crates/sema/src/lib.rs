@@ -1171,6 +1171,39 @@ pub enum StmtArg {
     Absent,
 }
 
+/// The event of [`StmtKind::OnEvent`], its operands converted as the old compiler converts them (measured,
+/// `verification\v42_b`, `v42_d`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum Event {
+    /// `ON TIMER([number,] seconds)`: `number` LONG (absent: timer 0), `seconds` DOUBLE.
+    Timer { number: Option<Expr>, seconds: Expr },
+    /// `ON KEY(key)`: `key` DOUBLE, which libqb's `int32` parameter cuts toward zero.
+    Key { key: Expr },
+}
+
+/// What runs when the event is serviced.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Handler {
+    /// `GOSUB label`: a label of the main module, whatever body the statement stands in.
+    Label(LabelId),
+    /// A SUB with no parameter or one of an integer type, and its argument as `_INTEGER64`, evaluated when the
+    /// handler is set up.
+    Sub { proc: ProcId, arg: Option<Expr> },
+}
+
+/// The forms of `KEY` outside its template.
+#[derive(Clone, Debug, PartialEq)]
+pub enum KeyForm {
+    /// `KEY ON`: show the soft keys.
+    On,
+    /// `KEY OFF`: hide them.
+    Off,
+    /// `KEY LIST`: list them.
+    List,
+    /// `KEY n, text$`: soft key `n` (LONG), or user key 15–25 with `CHR$(flags) + CHR$(scancode)`.
+    Assign { number: Expr, text: Expr },
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum StmtKind {
     /// A built-in statement that is one call of the runtime ([`builtins::STATEMENTS`]): the table entry of the form
@@ -1410,6 +1443,11 @@ pub enum StmtKind {
         gosub: bool,
         targets: Vec<LabelId>,
     },
+    /// `ON TIMER(…)` or `ON KEY(…)` with its handler (design D2 of `m3-events`): libqb's setup of the event, where
+    /// the statement stands; the handler runs when libqb services the event.
+    OnEvent { event: Event, handler: Handler },
+    /// `KEY ON`, `KEY OFF`, `KEY LIST`, `KEY n, text$` (design D2 of `m3-events`).
+    Key(KeyForm),
     /// `SELECT CASE` or `SELECT EVERYCASE` (design D7 of `m2-core-builtins`, measured `verification\v20_h_select`).
     Select {
         /// What the cases are compared with. A plain scalar variable is read at each test (`copied` false); anything

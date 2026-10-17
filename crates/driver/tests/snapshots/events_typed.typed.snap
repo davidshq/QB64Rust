@@ -1,0 +1,33 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 7: Assign T:I32
+  Call _FREETIMER : I32
+line 8: OnTimer Gosub H
+  Number
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Binary Add : F64 (qb F32)
+          Convert Nearest : F64
+            Var T : I32
+          Float 0.4E+0 : F64 (qb F32)
+  Seconds
+    Convert Nearest : F64
+      Int 2 : I16
+line 9: OnKey Sub S
+  Key
+    Float 31.6E+0 : F64 (qb F32)
+  Argument
+    Convert RoundEven : I64
+      Float 2.5E+0 : F64 (qb F32)
+line 10: KeyAssign
+  Int 1 : I32
+  Str "x" : Str
+line 11: KeyOff
+line 12: End
+line 14: Label H
+line 15: Return
+SUB S
+  param N:I32

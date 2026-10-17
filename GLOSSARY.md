@@ -224,6 +224,53 @@ once from `qb64pe.exe`; tier 2 compiles the same program with `qb64rust` and req
 that crash the old compiler's program or fail to compile are left out (each program's header names them); any
 other difference is fixed in the new compiler or becomes a decided row in `DIVERGENCES.md`.
 
+The **differential pass list** (`tests\differential\pass.list`) names the generated programs the new compiler must
+pass; tier 2 runs them.
+
+### Golden corpus / recorded output
+
+**Simply:** a pile of homework with the teacher's answers already written on the back. To check a new student, you
+give them the same homework and compare their answers with the back of each sheet.
+
+**Here:** `tests\corpus\`: BASIC programs, each run once with the old compiler and its output (or its compile
+error, or the state of its screen) saved beside it. A test compiles the program with `qb64rust`, runs it and
+compares.
+
+### Slice list
+
+**Simply:** the part of the homework pile the new student must already get right. The pile grows; the list of
+"must pass" sheets grows with it and never shrinks.
+
+**Here:** `tests\corpus\slice.list`, the corpus programs the new compiler must pass end to end (output, and the
+screen for window programs). Since `study\31` item 3 it is not run by itself at a change's close: it is judged
+from the full corpus run with `--check-list`.
+
+### Without folding (`QB64RUST_NO_FOLD=1`)
+
+**Simply:** checking the sums both ways. Normally the compiler does the easy sums in advance (constant folding);
+with this switch it leaves every sum for the running program to do. Both ways must give the same answer.
+
+**Here:** an environment variable that turns constant folding off. The slice list is run once with it at a change's
+close, so a difference between a value worked out by `sema` and the same value computed at run time shows up.
+
+### Call-site check
+
+**Simply:** checking that two cooks call the same supplier with the same order, without cooking the meal. You only
+compare the order forms.
+
+**Here:** `tools\callsite\callsite.py`: one tiny program per built-in form (`tests\callsite\`), compiled by both
+compilers to C++ only (`-z`); the libqb call each writes for that statement must be the same, after small
+spelling rules (`tools\callsite\README.md`). Nothing is built or run, so it is fast and covers many forms.
+
+### Tier 1 / tier 2
+
+**Simply:** a quick check you do every few minutes, and a thorough one you do before you hand the work in.
+
+**Here:** tier 1 is `cargo test`: the compiler's own tests, seconds to minutes, no QB64pe needed. Tier 2 needs the
+QB64pe reference clone and builds and runs real programs: the full corpus and upstream suites (with the slice and
+upstream pass lists judged from them), the slice list without folding, the differential pass list and the
+call-site check (`CLAUDE.md` working rule 9).
+
 ## Editor tooling
 
 ### Language server (LSP)

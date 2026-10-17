@@ -52,20 +52,19 @@ Written by `python tools\legacy_tests\counts.py` (`tools\legacy_tests\README.md`
 and `slice.list` hold, and what the last full run of the release build gave.
 
 <!-- counts:corpus-membership -->
-`slice.list` names **444** programs. By folder:
+`slice.list` names **446** programs. By folder:
 
 | Folder | Programs | `.output` | `.err` | `.norun` | `.screen` | In `slice.list` |
 |---|---|---|---|---|---|---|
 | `runtime_comparison` | 261 | 235 | 20 | 1 | 0 | 236 |
-| `screen` | 66 | 66 | 0 | 0 | 66 | 66 |
-| `slice` | 140 | 140 | 0 | 0 | 0 | 140 |
+| `screen` | 67 | 67 | 0 | 0 | 67 | 67 |
+| `slice` | 141 | 141 | 0 | 0 | 0 | 141 |
 | `verification` | 2 | 2 | 0 | 0 | 0 | 2 |
 <!-- /counts:corpus-membership -->
 
 <!-- counts:corpus-results -->
-Last full run: 2026-10-17, compiler build `b20ca5ae9ac2`, folding on, `--jobs 8`, build cache, 7 min. Of 468 programs: **461 pass**, 2 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 5 known failures (`target\legacy-tests\results-corpus.json`).
-`slice.list` judged in it (`--check-list`): **442 of 443** pass.
-- corpus:slice/s127_sound_handles: run: exit code 3221225477
+Last full run: 2026-10-17, compiler build `b344942736e7`, folding on, `--jobs 8`, build cache, 5 min. Of 471 programs: **465 pass**, 1 does not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 5 known failures (`target\legacy-tests\results-corpus.json`).
+`slice.list` judged in it (`--check-list`): **446 of 446** pass.
 <!-- /counts:corpus-results -->
 
 Kept by hand (recorded 2026-10-03; `slice` as each change added its programs):

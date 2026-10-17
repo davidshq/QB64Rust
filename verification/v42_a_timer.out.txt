@@ -1,0 +1,10 @@
+1. before TIMER ON: 0 
+2. one _DELAY 1 at 0.4 s: 2 
+3. a loop for 1 s: 2 
+4. stopped for 1 s: 0 
+5. right after TIMER ON: 1 
+6. off for 1 s: 0 
+7. 0.2 s after ON again: 0 
+8. 0.6 s after ON again: 1 
+9. a handler of 0.5 s every 0.4 s for 1.3 s: 2 
+exit=0

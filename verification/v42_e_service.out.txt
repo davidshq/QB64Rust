@@ -1,0 +1,17 @@
+tick
+1. SLEEP 10 ended after about .5 s, n = 1 
+tick
+in busy, n = 1 
+2. after a SUB of 0.7 s, n = 1 
+tick
+3. a FUNCTION of 0.7 s: it saw 1 , n = 1 
+4. in the error handler for 0.7 s, n = 0 -> 0 
+5. after RESUME NEXT, n = 0 
+tick
+tick
+tick
+tick
+6. 1.2 s later, n = 4 
+tick
+7. after TIMER OFF, TIMER ON and 0.7 s, n = 5 
+exit=0

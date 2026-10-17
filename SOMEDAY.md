@@ -189,6 +189,15 @@ marked; left out:
 |---|---|---|
 | `_ARRAYCOPY` under `$CHECKING:OFF` (`verification\v41_x62`, not run with this compiler) | `$CHECKING` is marked "not supported yet" by itself | task 3.4 |
 
+**Left marked by `m3-events`** (the nineteenth step of M3, 2026-10-17: `ON TIMER`, `ON KEY`, the switches,
+`_FREETIMER`, `KEY`'s own forms). What the old compiler accepts and the new one still marks "not supported yet":
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `ON STRIG(…) GOSUB label` or `… sub`, and `STRIG[(…)] ON\|OFF\|STOP` | libqb's device-input part is not built, nor its other names (`STICK`, `STRIG()`, `_DEVICES`, …): a later device-input change (user, `DECISIONS.md` 2026-10-17) | `verification\v42_x11` |
+| A line number as a handler (`ON TIMER(1) GOSUB 10`) | Line numbers are not compiled yet (the row of `ON PLAY` above) | `verification\v42_x46` |
+| A SUB of a `DECLARE LIBRARY` block as a handler | Not measured | `sema\src\check\events.rs` |
+
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
 
@@ -298,6 +307,10 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | A `<` or `&` (or a byte that is not UTF-8) in the company name, product name or description goes unescaped into the manifest, and Windows does not start the executable; this compiler rejects them with a compile error (user, 2026-10-16) | Escape them in the manifest (`&lt;`, `&amp;`), so the program starts | `m3-versioninfo` (`verification\v40_g2`–`g6`; design D3) |
 | `_ARRAYCOPY s() TO d()` keeps the source's indexes for a one-dimensional source (`d` must hold them), but for a source of several dimensions needs the destination's bounds exactly (error 9 for `m(1 TO 2, 1 TO 3)` to `n(0 TO 4, 0 TO 5)`, which holds it) | Keep the indexes in every number of dimensions, as `s(lo TO hi, …) TO d()` does | `m3-arraycopy` (`verification\v41_a` 1., `v41_g` 15., 16., `x57`) |
 | `_ARRAYCOPY m(1 TO 2) TO n(0)` for two-dimensional arrays is "_ArrayCopy TYPE-member step supports only one-dimensional arrays", a message about members for arrays that are none (this compiler's message names the dimensions) | A message that names the form and the dimensions | `m3-arraycopy` (`verification\v41_x25`) |
+| `ON KEY(k)`'s key is a `DOUBLE` that C++ cuts toward zero into libqb's `int32`: `ON KEY(0.7)` is error 5 and `ON KEY(31.6)` key 31, while `KEY(31.6) ON` rounds to 32 (error 5) and every other integer argument rounds | Round as the switch does | `m3-events` (`verification\v42_d` 12.–14., 17.) |
+| A SUB handler's argument is converted to `_INTEGER64` when the handler is set up, and the SUB gets a pointer to that value cast to its parameter's type: `_BYTE` given 300 sees 44, `_UNSIGNED INTEGER` given -5 sees 65531, with no overflow error; what the SUB stores into its parameter is lost | Convert the argument to the parameter's type, with its overflow error, at the setup | `m3-events` (`verification\v42_c`) |
+| A timer event that comes while an error handler runs is not serviced after `RESUME` either: it waits through plain statements (also a SUB's loop) until the next `TIMER ON` or the next `_DELAY`, where several come at once. libqb's: `evnt` clears `qbevent`, `events()` skips during error handling, and the timer thread sets `qbevent` only when it marks a new event | Service the held event at the first statement boundary after the handler ends. libqb's, so a change is a change to the runtime | `m3-events` (`verification\v42_e` 4.–6., `v42_f`) |
+| A SUB with a `TYPE` parameter passes the old compiler's checks as an event handler, and its C++ then fails to build; this compiler rejects it with a compile error | The error of a parameter that is not an integer | `m3-events` (`verification\v42_x42`) |
 
 ## Other ideas raised during the study
 

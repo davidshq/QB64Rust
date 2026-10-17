@@ -1,8 +1,12 @@
 # Roadmap
 
-Milestones from start to finish, and what is done. No progress numbers and no "now" marker: the current step, the
-open items and the numbers of the last full runs are in `STATUS.md` (`DECISIONS.md` 2026-10-07). The plan behind
-the milestones is `study\00-synthesis.md` §2.
+Milestones from start to finish, what is done, and the significant work remaining. Keep completed entries and
+add newly discovered work; mark existing items complete as they land. The remaining items are broad areas, not
+a fixed order or an exhaustive list of changes. Keep them current as the gaps become clearer.
+
+No progress numbers and no "now" marker: the current step, immediate next steps, open questions and the numbers
+of the last full runs are in `STATUS.md` (`DECISIONS.md` 2026-10-07). The plan behind the milestones is
+`study\00-synthesis.md` §2.
 
 This file was written again on 2026-10-12 from `study\00` §2, `STATUS.md` and `DECISIONS.md`: the earlier file
 was never committed and was no longer on disk.
@@ -115,6 +119,38 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
       file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
       `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program
       of the corpus that the old compiler accepts is held back any more
+
+Significant work remaining, from the unsupported report at the close of `m3-arraycopy` and the recorded gaps
+in `SOMEDAY.md`. M3 builds the missing capabilities; M4 checks and closes parity across the full inputs.
+These areas may take several changes each. Deliberately marked behaviours still need their recorded decisions
+or measurements; listing an area does not settle those choices.
+
+- [x] Event handlers and switches (`ON TIMER`, `ON KEY`, `TIMER ON`, `KEY(n) OFF`, and the related event forms),
+      including dispatch through the existing runtime: handlers with a label or a SUB, numbered timers and
+      `_FREETIMER`, `KEY ON`/`OFF`/`LIST` and `KEY n, text$`; `PEN`, `COM`, `UEVENT` real errors (`m3-events`).
+      Upstream 332 to 336 of 399. `STRIG` events go with device input, below
+- [ ] Networking: clients, hosts, connection addresses and status (`_OPENCLIENT`, `_OPENHOST`,
+      `_CONNECTIONADDRESS$`, `_STATUSCODE`, and related functions); the `_SOCKETS_` flag and auto-included
+      helpers that depend on them
+- [ ] Constant evaluation: built-in functions in `CONST`, suffixed constant references, `_FLOAT` precision and
+      range, and the remaining constants from QB64pe's auto-included files; `$COLOR` constants
+- [ ] Embedded resources (`$EMBED`, `_EMBEDDED$`), including their use for MIDI sound banks; remaining
+      `$EXEICON` path lookup forms
+- [ ] Runtime error and source-location support: `_ERRORLINE`, `_INCLERRORLINE`, `_INCLERRORFILE$`,
+      `_ERRORMESSAGE$`, `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`; logging built-ins
+- [ ] `$CHECKING:OFF` and the corresponding unchecked code generation, including memory operations and
+      `_ARRAYCOPY`
+- [ ] OpenGL user code (`SUB _GL`) and its integration with the existing runtime
+- [ ] Remaining built-in families and statements, including device input (`_DEVICES` and related functions,
+      `STICK`, `STRIG()`, and the `STRIG` events `ON STRIG` and `STRIG ON`, user 2026-10-17),
+      clipboard text, `_FILES$`, `_MD5$`, `_OS$`, `_CAST`, `_CONTINUE` and `CLEAR`; cover their forms through
+      the call-site check and runnable tests where applicable
+- [ ] Remaining name, declaration and array rules: a scalar beside an array typed by `DIM ... AS`
+      (`arrays/t001_whole_array_core`, the last deferred upstream program), implicit arrays and forward
+      procedure references, `REDIM` without bounds in procedures, and the remaining member-array forms
+- [ ] Remaining memory and conventional-memory references: string-bearing types, nested and dynamic member
+      arrays, `LEN` of a whole member array, and the `VARPTR`/`VARSEG` forms deferred until a program needs them
+      (`SOMEDAY.md` records the individual forms and constraints)
 - [ ] Plain copy of QB64pe's `internal\c` at the reference clone's commit, when libqb must change
 
 ## M4. Parity
@@ -123,7 +159,17 @@ Done when: the corpus and the upstream tests in reach match, and `qb64pe.bas` co
 suite (`study\20`).
 
 - [ ] The corpus and the upstream tests outside `tests\upstream\deferred.list`
+- [ ] Close the remaining compatibility gaps exposed by the full suites, including accepted programs still
+      marked "not supported yet" and rejected programs receiving only that mark; keep false errors and parse
+      gaps at zero (`tests\known_*.list`)
+- [ ] Bring the last deferred upstream program into the parity run when its scalar/array naming rule is built;
+      finish with no feature-deferred programs left (`tests\upstream\deferred.list`)
 - [ ] `qb64pe.bas`, reached through its own include files, smallest first (`study\22` §4.2)
+- [ ] Build and run the compiler produced from `qb64pe.bas` against the suite (`study\20`); compiling its source
+      alone does not meet M4's exit criterion
+- [ ] Review the coverage of features checked only by emitted calls or compiled-but-never-run programs; add
+      execution checks where needed to establish parity, using screen state for window output and retaining
+      documented limits for hardware-dependent behaviour
 
 ## M5. Debugger
 

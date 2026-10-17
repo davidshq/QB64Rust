@@ -12,6 +12,7 @@ mod blocks;
 mod builtins;
 mod constants;
 mod decl;
+mod events;
 mod expr;
 mod flow;
 mod io;
@@ -1003,10 +1004,10 @@ impl Checker<'_> {
             self.end_or_system(node, StmtKind::System)
         } else if let Some(s) = ast::OnJumpStmt::cast(node) {
             self.on_jump(s)
-        } else if ast::OnEventStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "event handlers (`ON TIMER`, `ON KEY`, …)"))
-        } else if ast::EventSwitchStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "event switches (`TIMER ON`, `KEY(n) OFF`, …)"))
+        } else if let Some(s) = ast::OnEventStmt::cast(node) {
+            self.on_event(s)
+        } else if let Some(s) = ast::KeyStmt::cast(node) {
+            self.key_stmt(s)
         } else if let Some(s) = ast::WriteStmt::cast(node) {
             self.write(s)
         } else if let Some(s) = ast::InputStmt::cast(node) {

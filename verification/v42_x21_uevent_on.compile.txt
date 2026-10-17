@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):UEVENT ON
+LINE 3:UEVENT ON
+exit=1

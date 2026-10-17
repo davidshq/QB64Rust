@@ -101,13 +101,12 @@ job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 202
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:upstream-membership -->
-**Upstream progress: 332 of 403**: the programs of `pass.list` of the suite's 404 programs less the 1 of `deferred.list`.
+**Upstream progress: 336 of 403**: the programs of `pass.list` of the suite's 404 programs less the 1 of `deferred.list`.
 <!-- /counts:upstream-membership -->
 
 <!-- counts:upstream-results -->
-Last full run: 2026-10-17, compiler build `b20ca5ae9ac2`, folding on, `--jobs 8`, build cache, 6 min. Of 404 programs: **331 pass**, 72 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 1 known failure (`target\legacy-tests\results-compile.json`).
-`pass.list` judged in it (`--check-list`): **331 of 332** pass.
-- compile_tests:midi/midisoundbank_file_test: run: timeout
+Last full run: 2026-10-17, compiler build `b344942736e7`, folding on, `--jobs 8`, build cache, 4 min. Of 404 programs: **336 pass**, 67 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 1 known failure (`target\legacy-tests\results-compile.json`).
+`pass.list` judged in it (`--check-list`): **336 of 336** pass.
 <!-- /counts:upstream-results -->
 
 The "Upstream progress" paragraphs below are the history up to 2026-10-16, one per change; a later change adds

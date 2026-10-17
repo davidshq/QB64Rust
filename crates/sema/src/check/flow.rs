@@ -208,7 +208,7 @@ impl Checker<'_> {
     }
 
     /// A label of `body` named at `t`: `ON ERROR GOTO` and `RESUME` in the main module, and every jump.
-    fn label_ref(&mut self, t: Tok, body: Option<ProcId>) -> R<LabelId> {
+    pub(super) fn label_ref(&mut self, t: Tok, body: Option<ProcId>) -> R<LabelId> {
         let shown = show_bytes(self.text(t.span));
         let (name, suffix) = self.split_name(t)?;
         if suffix.is_some() {

@@ -21,6 +21,8 @@
 `CHAIN` takes {#} argument	Syntax error - Reference: CHAIN moduleName$
 `CHDIR` takes {#} argument	Syntax error - Reference: CHDIR path$
 `CLOSE` needs file numbers	Illegal string-number conversion
+`COM` is not an event QB64pe traps, and no statement	Syntax error
+`COM` is not an event: `ON COM` cannot be trapped	Name already in use (COM)
 `CSRLIN` takes {#} arguments	Incorrect number of arguments - Reference: CSRLIN
 `CSRLIN` with empty parentheses	Expected (...)
 `CVI` needs a string	CVI requires a STRING argument
@@ -61,9 +63,13 @@
 `LSET` needs a string as its value	Illegal string-number conversion
 `MKDIR` needs a string	String required for sub
 `NEXT` while the `IF` on line {#} is still open; expected `END IF` first	NEXT without FOR
+`ON KEY` takes one key number	Invalid expression
+`ON TIMER` needs its operands in parentheses	Expected (
 `PCOPY` takes {#} arguments	Syntax error - Reference: PCOPY sourcePage%, destinationPage%
 `PEEK` needs a number	Number required for function
 `PEEK` takes {#} argument	Incorrect number of arguments - Reference: PEEK(segment_offset)
+`PEN` is not an event QB64pe traps, and no statement	Syntax error
+`PEN` is not an event: `ON PEN` cannot be trapped	Name already in use (PEN)
 `PLAY` needs a number	Number required for function
 `PLAY` takes {#} or {#} arguments	Incorrect number of arguments - Reference: PLAY [voice&]
 `PLAY` with empty parentheses	Expected (...)
@@ -98,6 +104,8 @@
 `TIMER` needs a number	Number required for function
 `TIMER` takes {#} or {#} arguments	Incorrect number of arguments - Reference: TIMER[(accuracy!)]
 `TIMER` with empty parentheses	Expected (...)
+`UEVENT` is not an event QB64pe traps, and no statement	Syntax error
+`UEVENT` is not an event: `ON UEVENT` cannot be trapped	Name already in use (UEVENT)
 `USING` needs a value after its format	Expected PRINT USING formatstring ; ...
 `USING` needs a value before this separator	Syntax error
 `VAL` cannot give a `STRING`	VAL TYPE unsupported
@@ -382,6 +390,9 @@ expected a name after `{}`	Expected (
 expected a statement	Unexpected character on line
 expected an array name	Syntax error
 expected something between the parentheses of `{}`	Expected CALL sub-name (...)
+expected the end of the statement after `KEY LIST`	Expected KEY LIST only
+expected the end of the statement after `KEY OFF`	Expected KEY OFF only
+expected the end of the statement after `KEY ON`	Expected KEY ON only
 included file `{}` not found	File {1:=|P|S} not found
 invalid `$VERSIONINFO` key; use FILEVERSION#, PRODUCTVERSION#, CompanyName, FileDescription, FileVersion, InternalName, LegalCopyright, LegalTrademarks, OriginalFilename, ProductName, ProductVersion, Comments or Web	Invalid key. (Use FILEVERSION#, PRODUCTVERSION#, CompanyName, FileDescription, FileVersion, InternalName, LegalCopyright, LegalTrademarks, OriginalFilename, ProductName, ProductVersion, Comments or Web)
 invalid bounds for `{}`: {#} TO -{#}	Invalid array bounds
@@ -418,9 +429,12 @@ strings cannot be compared in a `CONST`	Unexpected element '<'
 the FUNCTION's own name cannot be a target of `LINE INPUT`	Expected variable-name
 the FUNCTION's own name cannot be a target of `READ`	Expected variable
 the FUNCTION's own name cannot be a target of `SWAP`	Expected variable
+the SUB `{}` needs its argument after its name	Expected argument after SUB
+the SUB `{}` of an event handler may have one parameter at most	SUB requires more than one argument
 the `FOR` variable `{}` must be a number, not a string	Unsupported variable used in FOR statement
 the `_BIT` variable `{}` cannot be a `FOR` variable	Unsupported variable used in FOR statement
 the `{}` statement stores a string	Illegal string-number conversion
+the argument of the SUB `{}` must be a number	Illegal string-number conversion
 the array `{}` (INTEGER) cannot be passed to an array parameter of type LONG	Incorrect array type passed to sub
 the array `{}` (R1) cannot be passed to an array parameter of type R2	Incorrect array type passed to sub
 the array `{}` (SINGLE) cannot be passed to an array parameter of type LONG	Incorrect array type passed to sub
@@ -440,18 +454,22 @@ the file number of `PRINT #` must be a number	Illegal string-number conversion
 the first argument of `{}` must be an `_OFFSET` value	Expected _MEM(_OFFSET-value,...)
 the format of `USING` must be a string	Expected PRINT USING formatstring ; ...
 the items of `PRINT #` need `;` or `,` between them	Expected operator in equation
+the key number of `ON KEY` must be a number	Illegal string-number conversion
 the library FUNCTION `{}` cannot be called as a statement	Syntax error
 the member array `{}` cannot stand in a `REDIM` with the type before the names	Unknown type
 the member array `{}` is declared LONG: a `REDIM` cannot give it another type	REDIM type does not match the declared TYPE member array
 the member array `{}` needs bounds	Array bounds missing
 the number of dimensions of `{}` is not known here: nothing else in the program gives it, and `{}` does not	_ArrayCopy cannot determine the array dimensions
 the offset of `_MEMPUT` must be a number	Illegal string-number conversion
+the parameter of the SUB `{}` of an event handler must be an integer	Only SUB arguments of integer-type allowed
+the seconds of `ON TIMER` must be a number	Illegal string-number conversion
 the signs before a value in a `CONST` amount to `+`, which cannot start a value	Unexpected element '+'
 the source of `{}` must be an array named without a type suffix: `{}`	_ArrayCopy source must be an array
 the source of `{}` must be an array: `{}` is a member that is no array	_ArrayCopy source must be an array
 the source of `{}` must be an array: `{}` names none here	_ArrayCopy source must be an array
 the start of the `{}` statement must be a number	Illegal string-number conversion
 the static array `{}` is already declared	Cannot redefine {1:=|P|S} static array!
+the text of `{}` must be a string	Illegal string-number conversion
 the third argument of `_MEMGET` is a type name	Invalid TYPE name
 the two parts of `_IIF` must be both strings or both numbers	falsePart and truePart must be of the same type
 the value of `ON … GOTO` must be a number	Expected numeric expression
@@ -468,6 +486,7 @@ this `SCREEN` statement matches none of its forms: `{}`	Syntax error - Reference
 this `SEEK` statement matches none of its forms: `SEEK [#]?,?`	Syntax error - Reference: SEEK filenumber&, position
 this `SLEEP` statement matches none of its forms: `SLEEP [?]`	Syntax error - Reference: SLEEP seconds%
 this `SOUND` statement matches none of its forms: `{}`	Syntax error - Reference: SOUND [frequency!, duration![, volume!][, panPosition!][, waveform&][, waveformParameters!][, voice&]] [{Wait|Resume}]
+this `TIMER` statement matches none of its forms: `{}`	Syntax error - Reference: TIMER[(number%)] {On|Off|Stop|Free}
 this `WIDTH` statement matches none of its forms: `{}`	Syntax error - Reference: WIDTH [columns%][, rows%] or WIDTH {file_number|device}, columnwidth%
 this `_ASSERT` statement matches none of its forms: `_ASSERT ?[,?]`	Syntax error - Reference: _ASSERT condition[, errorMessage$]
 this `_BLEND` statement matches none of its forms: `_BLEND [?]`	Syntax error - Reference: _BLEND [imageHandle&]

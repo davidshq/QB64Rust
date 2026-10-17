@@ -1,0 +1,5 @@
+
+Expected )
+Caused by (or after):ON TIMER ( 1 , 2 , 3 ) GOSUB H
+LINE 3:ON TIMER(1, 2, 3) GOSUB h
+exit=1

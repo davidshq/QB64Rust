@@ -317,6 +317,10 @@ source_ordering/define
 source_ordering/goto_gosub
 source_ordering/sub_after_main
 source_ordering/sub_before_main
+timer/sleep_ends_early
+timer/timer_delayed_run
+timer/timer_first_run
+timer/timer_stop
 types/all_types
 types/dim
 types/dim_array

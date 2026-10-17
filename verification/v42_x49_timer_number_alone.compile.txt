@@ -1,0 +1,5 @@
+
+Syntax error - Reference: TIMER[(number%)] {On|Off|Stop|Free}
+Caused by (or after):TIMER ( 1 )
+LINE 3:TIMER(1)
+exit=1

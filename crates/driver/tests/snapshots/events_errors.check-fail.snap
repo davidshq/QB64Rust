@@ -1,0 +1,67 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+events_errors.bas:10:19: error: label `g` is not defined in the main module
+events_errors.bas:10:19: note: QB64pe: Label 'g' not defined
+events_errors.bas:11:19: error: label `nowhere` is not defined in the main module
+events_errors.bas:11:19: note: QB64pe: Label 'nowhere' not defined
+events_errors.bas:12:13: error: `nosuch` is no SUB: `ON TIMER` needs `GOSUB label` or a SUB's name
+events_errors.bas:13:13: error: `f` is no SUB: `ON TIMER` needs `GOSUB label` or a SUB's name
+events_errors.bas:14:13: error: `h` is no SUB: `ON TIMER` needs `GOSUB label` or a SUB's name
+events_errors.bas:16:13: error: the SUB `needsarg` needs its argument after its name
+events_errors.bas:16:13: note: QB64pe: Expected argument after SUB
+events_errors.bas:17:22: error: the SUB `noparams` has no parameter
+events_errors.bas:18:13: error: the parameter of the SUB `floatparam` of an event handler must be an integer
+events_errors.bas:18:13: note: QB64pe: Only SUB arguments of integer-type allowed
+events_errors.bas:19:13: error: the parameter of the SUB `arrayparam` of an event handler must be an integer
+events_errors.bas:19:13: note: QB64pe: Only SUB arguments of integer-type allowed
+events_errors.bas:20:13: error: the SUB `twoparams` of an event handler may have one parameter at most
+events_errors.bas:20:13: note: QB64pe: SUB requires more than one argument
+events_errors.bas:21:22: error: the argument of the SUB `needsarg` must be a number
+events_errors.bas:21:22: note: QB64pe: Illegal string-number conversion
+events_errors.bas:22:23: error: expected the end of the statement
+events_errors.bas:23:13: error: the parameter of the SUB `stringparam` of an event handler must be an integer
+events_errors.bas:23:13: note: QB64pe: Only SUB arguments of integer-type allowed
+events_errors.bas:24:13: error: the parameter of the SUB `typeparam` of an event handler must be an integer
+events_errors.bas:24:13: note: QB64pe: Only SUB arguments of integer-type allowed
+events_errors.bas:25:11: error: the SUB `needsarg` needs its argument after its name
+events_errors.bas:25:11: note: QB64pe: Expected argument after SUB
+events_errors.bas:26:13: error: the parameter of the SUB `suffixparam` of an event handler must be an integer
+events_errors.bas:26:13: note: QB64pe: Only SUB arguments of integer-type allowed
+events_errors.bas:28:9: error: `ON TIMER` takes the seconds, or a timer number and the seconds
+events_errors.bas:29:9: error: `ON TIMER` takes the seconds, or a timer number and the seconds
+events_errors.bas:30:7: error: `ON KEY` takes one key number
+events_errors.bas:30:7: note: QB64pe: Invalid expression
+events_errors.bas:31:1: error: `ON TIMER` needs its operands in parentheses
+events_errors.bas:31:1: note: QB64pe: Expected (
+events_errors.bas:32:10: error: the seconds of `ON TIMER` must be a number
+events_errors.bas:32:10: note: QB64pe: Illegal string-number conversion
+events_errors.bas:33:8: error: the key number of `ON KEY` must be a number
+events_errors.bas:33:8: note: QB64pe: Illegal string-number conversion
+events_errors.bas:35:12: error: expected `GOSUB` and a label, or a SUB's name
+events_errors.bas:36:18: error: expected `GOSUB` and a label, or a SUB's name
+events_errors.bas:38:8: error: this `KEY` statement matches none of its forms: `KEY (?){On|Off|Stop}`
+events_errors.bas:39:8: error: this `TIMER` statement matches none of its forms: `TIMER [(?)]{On|Off|Stop|Free}`
+events_errors.bas:40:9: error: this `TIMER` statement matches none of its forms: `TIMER [(?)]{On|Off|Stop|Free}`
+events_errors.bas:42:8: error: expected the end of the statement after `KEY ON`
+events_errors.bas:42:8: note: QB64pe: Expected KEY ON only
+events_errors.bas:43:10: error: expected the end of the statement after `KEY LIST`
+events_errors.bas:43:10: note: QB64pe: Expected KEY LIST only
+events_errors.bas:44:9: error: expected the end of the statement after `KEY OFF`
+events_errors.bas:44:9: note: QB64pe: Expected KEY OFF only
+events_errors.bas:45:8: error: the text of `KEY n, text$` must be a string
+events_errors.bas:45:8: note: QB64pe: Illegal string-number conversion
+events_errors.bas:46:4: error: this `KEY` statement matches none of its forms: `KEY (?){On|Off|Stop}`
+events_errors.bas:48:4: error: `PEN` is not an event: `ON PEN` cannot be trapped
+events_errors.bas:48:4: note: QB64pe: Name already in use (PEN)
+events_errors.bas:49:4: error: `COM` is not an event: `ON COM` cannot be trapped
+events_errors.bas:49:4: note: QB64pe: Name already in use (COM)
+events_errors.bas:50:4: error: `UEVENT` is not an event: `ON UEVENT` cannot be trapped
+events_errors.bas:50:4: note: QB64pe: Name already in use (UEVENT)
+events_errors.bas:51:1: error: `PEN` is not an event QB64pe traps, and no statement
+events_errors.bas:51:1: note: QB64pe: Syntax error
+events_errors.bas:52:1: error: `UEVENT` is not an event QB64pe traps, and no statement
+events_errors.bas:52:1: note: QB64pe: Syntax error
+events_errors.bas:53:1: error: `COM` is not an event QB64pe traps, and no statement
+events_errors.bas:53:1: note: QB64pe: Syntax error

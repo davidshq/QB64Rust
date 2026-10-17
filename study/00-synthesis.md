@@ -2953,6 +2953,54 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     code is `f`'s value; not trapped (`c25`), the runtime error at the line of `ERROR`, exit code 0.
   - **The test runners and exit codes**: the corpus runner records no exit code and compares none; the upstream
     suite fails a program whose exit code is not 0; the verification suite writes `exit=` as Git Bash reports it.
+- **Event trapping: `ON TIMER`, `ON KEY`, the switches and `KEY`'s own forms (`v42_*`, 66 programs, measured
+  2026-10-17 for `m3-events`; `qb64pe.bas` 7281–7340, 7534–8052; `qbx.cpp` 1235–1600, libqb `key-events.cpp`)**:
+  - **Three events**: `TIMER`, `KEY`, `STRIG`. `ON PEN`, `ON COM(1)`, `ON UEVENT GOSUB h` are "Name already in use
+    (PEN)" and so on, `PEN ON`, `UEVENT ON`, `COM(1) ON` "Syntax error" (`x17`–`x22`); `ON STRIG(0, 1) GOSUB h`,
+    `STRIG(0, 1) ON`, `STRIG ON` compile (`x11`).
+  - **Handler forms**: `ON TIMER([n,] s)` and `ON KEY(k)`, then `GOSUB label` or a SUB's name. The label is looked
+    up among the main module's labels only, also from a SUB or a FUNCTION (`x01`, `x38`, `x50`; a main label `h`
+    and one in a SUB both named `h`: the main one, `x37`); only in a SUB "Label 'g' not defined" (`x02`), none
+    "Label 'nowhere' not defined" (`x09`); a line number compiles (`x46`); a label with no `RETURN` too (`x12`);
+    `ON TIMER(1) 10` without `GOSUB` "Expected GOSUB/sub" (`x59`). The SUB: none or a FUNCTION "Expected GOSUB/sub"
+    (`x10`, `x13`, also a label's name `x52`); two parameters "SUB requires more than one argument" (`x24`); an
+    argument for none "SUB has no arguments" (`x04`), none for one "Expected argument after SUB" (`x03`, `x48`); the
+    parameter a float, `STRING`, `_BIT`, array or `#` suffix "Only SUB arguments of integer-type allowed" (`x05`,
+    `x14`, `x40`, `x41`, `x58`), `BYVAL` "BYVAL can currently only be used with DECLARE LIBRARY" (`x23`), a `TYPE`
+    accepted but its C++ fails to build (`x42`); `_UNSIGNED INTEGER`, `_OFFSET`, `%` accepted (`x06`, `x39`, `x57`),
+    a SUB declared later too (`x53`), the argument in parentheses (`x47`); a string argument "Illegal
+    string-number conversion" (`x35`), `s 1, 2` "Invalid expression" (`x36`). Operands: `ON TIMER()` "Expected
+    ... )", three "Expected )", none "Expected (", no target "Expected GOSUB/sub-name", `GOSUB` alone "Expected
+    linenumber/label" (`x27`, `x28`, `x30`–`x32`); a string "Illegal string-number conversion" (`x33`, `x34`); `ON
+    KEY(1, 2)` "Invalid expression" (`x29`).
+  - **Conversions**: `ON TIMER`'s number is a `LONG` (2.4 gives 2, 2.6 gives 3, `v42_b` 10., 11.), its seconds a
+    `DOUBLE` (0 and -1 accepted, 13., 14.); **`ON KEY`'s key is a `DOUBLE` passed to `onkey_setup`'s `int32`, so C++
+    cuts it**: 0.7 and -0.7 are 0, error 5, 31.6 is 31 (`v42_d` 12.–14.); the switch `KEY(31.6) ON` rounds to 32,
+    error 5 (17.), as do `TIMER(n)` switches (`v42_b` 12.). A SUB's argument is converted to `_INTEGER64` (2.5 gives
+    2, 3.5 gives 4) **when the handler is set up** (`x * 2` with `x` 3, then `x = 100`, gives 6), and the SUB gets a
+    pointer to that value cast to its parameter's type: `_UNSIGNED INTEGER` -5 gives 65531, `_BYTE` 300 gives 44; what
+    the SUB stores into it is lost (`v42_c`).
+  - **Timers** (`v42_a`, `v42_b`): off until `TIMER ON`, counted from it; `_DELAY` and `SLEEP` service events while
+    they wait (`_DELAY 1` at 0.4 s: 2); `TIMER STOP` holds one event and the next `TIMER ON` runs it before the
+    following statement; `TIMER OFF` forgets it and restarts the count; a handler is not entered again while it
+    runs (one of 0.5 s every 0.4 s for 1.3 s: 2); `SLEEP 10` ends at the first event (`v42_e` 1.). `_FREETIMER`
+    gives 1, 2, …, a number released by `TIMER(n) FREE` again; error 5 for `ON TIMER` or `TIMER ON` of a released or
+    never allocated number, `TIMER FREE`, `TIMER(-1) ON`. Handlers run between the statements of a SUB and of a
+    FUNCTION called from an expression (`v42_e` 2., 3.).
+  - **An event during an error handler** (`v42_e`, `v42_f`): not serviced there; after `RESUME` it waits through
+    plain statements, also a SUB's loop, and runs at the next `TIMER ON` or within the next `_DELAY` (four timer
+    events at once after 1.2 s). libqb's: `evnt` clears `qbevent`, `events()` skips during error handling, and the
+    timer thread sets `qbevent` only when it marks a new event.
+  - **`SLEEP` under the corpus runner**: a `$CONSOLE:ONLY` program run by `--suite corpus` (stdin from the null
+    device) returns from `SLEEP 10` after about 0.1 s with no event, with either compiler's build; run by the
+    verification suite or by hand with `< /dev/null` it waits for the timer (`v42_e` 1.). The slice programs of
+    events use `_DELAY`.
+  - **`KEY`** (`v42_d`, `x25`, `x26`, `x43`–`x45`, `x60`): `KEY ON`, `KEY OFF`, `KEY LIST` compile in a
+    `$CONSOLE:ONLY` program; `KEY LIST` prints `F1` … `F12` and their texts there; `KEY ON 1` "Expected KEY ON
+    only", likewise `LIST`, `OFF`; `KEY` alone "Expected KEY ..."; `KEY 1, 5` "Illegal string-number conversion".
+    `KEY n, text$`: error 5 for `n` 0, 12, 40, a soft key of 20 characters; 1.6 accepted; user key 15 with any text.
+    `KEY(1) FREE`, `TIMER(1, 2) ON`, `TIMER(1)` alone are the template's "Syntax error - Reference: …" (`x15`,
+    `x16`, `x49`).
 
 ## 6. Bug-compatibility choices (all decided)
 
@@ -3179,6 +3227,7 @@ as a reading of the code, not a measurement.
 | `29` | Eighth review (2026-10-10, before step 9a): nothing to change in the code, no bug found; the screen-state hook needs neither the libqb copy nor a libqb change (one extra C++ file linked through `-f:ExtraLinkerFlags`/`CXXLIBS_EXTRA`, `atexit`, programs ending with `SYSTEM`, keys by `PostMessage`), so the copy can stay at M3; keep 9a small, then step 11 before 10 (the game's needs, measured); a demand report over the input sets; tests for the runner; the user's answers and what was done are its §8 (all accepted; the demand report's first numbers; the CI recommendation withdrawn: the reference commit's compiler differs from the release's in typed `VAL`) |
 | `30` | Ninth review (2026-10-16, during `m3-declare-library`): the compiler is in better shape than its documents; no bug found, every local check green; `STATUS.md` and `CLAUDE.md` have become history files (403 lines; an 11.5 KB table cell), decisions Claude made alone are scattered and unconfirmed (a "Waiting on the user" list proposed), `main` is eleven changes behind and tier 2 has never run on GitHub as its own job; the checker's 72 fields and the emitter's transcription of the old C++ noted for M4 and M6; what not to change; an order of actions |
 | `31` | Development velocity plan (2026-10-16): four changes, each marked with its result as it is built: CLI tests that never wait for a person or for ever, one home per kind of document, closing runs that run each program and setting once, and a record of where the working time goes |
+| `32` | Test cadence and parallel runs, panel notes (2026-10-17): what each closing run is and costs; why runs of the new compiler cannot overlap (one lock for the clone, though they share only libqb's objects) and a readers-writer lock to fix it; a lighter close with the full set at each merge; open questions for the user |
 | `progress-record` | Closed record of what `STATUS.md` held until 2026-10-09: the per-change history of M0 to M2 step 8, unchanged |
 | `support-record` | Closed record of the catalogue "What the compiler supports so far" that `crates\README.md` held until 2026-10-16 (to `m3-sound-handles`), unchanged: the code each feature lives in |
 | `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |

@@ -1,8 +1,8 @@
 //! `--dump typed`: one node per line, indented, with its type (FreeBASIC lesson L8: assertions on types).
 
 use crate::{
-    Arg, ArrayRef, CaseItem, Expr, ExprKind, InputSource, MemValue, Place, PrintItem, PrintTo, ProcKind, Program,
-    Reference, Resume, Shape, Stmt, StmtArg, StmtKind, Storage, Ty, UsingValue, VarId,
+    Arg, ArrayRef, CaseItem, Event, Expr, ExprKind, Handler, InputSource, KeyForm, MemValue, Place, PrintItem, PrintTo,
+    ProcKind, Program, Reference, Resume, Shape, Stmt, StmtArg, StmtKind, Storage, Ty, UsingValue, VarId,
 };
 
 use qb64rust_base::show_bytes;
@@ -645,6 +645,42 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 line(out, &format!("On{kw} {}", names.join(", ")));
                 expr(p, value, d + 1, out);
             }
+            StmtKind::OnEvent { event, handler } => {
+                let target = match handler {
+                    Handler::Label(l) => format!("Gosub {}", p.label(*l).name),
+                    Handler::Sub { proc, .. } => format!("Sub {}", p.proc(*proc).name),
+                };
+                match event {
+                    Event::Timer { number, seconds } => {
+                        line(out, &format!("OnTimer {target}"));
+                        if let Some(n) = number {
+                            heading(out, "Number");
+                            expr(p, n, d + 2, out);
+                        }
+                        heading(out, "Seconds");
+                        expr(p, seconds, d + 2, out);
+                    }
+                    Event::Key { key } => {
+                        line(out, &format!("OnKey {target}"));
+                        heading(out, "Key");
+                        expr(p, key, d + 2, out);
+                    }
+                }
+                if let Handler::Sub { arg: Some(a), .. } = handler {
+                    heading(out, "Argument");
+                    expr(p, a, d + 2, out);
+                }
+            }
+            StmtKind::Key(form) => match form {
+                KeyForm::On => line(out, "KeyOn"),
+                KeyForm::Off => line(out, "KeyOff"),
+                KeyForm::List => line(out, "KeyList"),
+                KeyForm::Assign { number, text } => {
+                    line(out, "KeyAssign");
+                    expr(p, number, d + 1, out);
+                    expr(p, text, d + 1, out);
+                }
+            },
             StmtKind::Select {
                 selector,
                 copied,

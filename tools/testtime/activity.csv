@@ -627,6 +627,15 @@ version,session,change,category,actions,bytes
 1,4eb0be18,,other commands,1,0
 1,4eb0be18,,reading,3,0
 1,4eb0be18,,test runs,2,0
+1,4ef89253,,documents and planning,6,1102
+1,4ef89253,,other,1,0
+1,4ef89253,,other commands,3,0
+1,4ef89253,,reading,3,0
+1,4ef89253,,test runs,1,0
+1,4ef89253,m3-arraycopy,other,1,0
+1,4ef89253,m3-arraycopy,other commands,7,0
+1,4ef89253,m3-arraycopy,scratch files,1,1600
+1,4ef89253,m3-arraycopy,test runs,2,0
 1,4f03d310,,other commands,3,0
 1,4f03d310,,reading,1,0
 1,4f03d310,m3-get-put-bload,documents and planning,4,689
@@ -1931,6 +1940,21 @@ version,session,change,category,actions,bytes
 1,e863fd62,m2-control-flow-slice,reading,5,0
 1,e863fd62,m2-control-flow-slice,scratch files,3,3717
 1,e863fd62,m2-control-flow-slice,test runs,2,0
+1,e8a99cdc,,measurement runs,1,0
+1,e8a99cdc,,other,2,0
+1,e8a99cdc,,other commands,34,0
+1,e8a99cdc,,reading,5,0
+1,e8a99cdc,m3-events,builds,8,0
+1,e8a99cdc,m3-events,documents and planning,33,64504
+1,e8a99cdc,m3-events,measurement preparation,10,9767
+1,e8a99cdc,m3-events,measurement runs,11,0
+1,e8a99cdc,m3-events,other,1,0
+1,e8a99cdc,m3-events,other commands,163,0
+1,e8a99cdc,m3-events,product code,31,37249
+1,e8a99cdc,m3-events,reading,5,0
+1,e8a99cdc,m3-events,scratch files,3,8319
+1,e8a99cdc,m3-events,test runs,40,0
+1,e8a99cdc,m3-events,tests and fixtures,10,11315
 1,e91a12e1,,reading,1,0
 1,e91a12e1,m2-control-flow-slice,builds,1,0
 1,e91a12e1,m2-control-flow-slice,documents and planning,3,3867

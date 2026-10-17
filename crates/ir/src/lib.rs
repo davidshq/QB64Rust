@@ -115,6 +115,8 @@ pub use qb64rust_sema::{AllocMode, Shape};
 pub use qb64rust_sema::{
     Arg, ArrayRef, Expr, ExprKind, InputSource as Source, MemValue, Place, ProcId, Reference, StmtArg, VarId,
 };
+/// The event of an [`Op::OnEvent`] and the forms of [`Op::Key`] are `sema`'s (design D3 of `m3-events`).
+pub use qb64rust_sema::{Event, KeyForm};
 /// The `DECLARE LIBRARY` blocks and the C function behind a library procedure are `sema`'s (design D1 of
 /// `m3-declare-library`): the names as written. Finding the files they name is the driver's.
 pub use qb64rust_sema::{External, Library, LibraryId, LibraryKind, LibraryName};
@@ -668,6 +670,24 @@ pub enum Op {
     /// Back to after the last pending [`Op::Gosub`], also one made in another body (`None`), or forget it and
     /// continue at a label of the main module (`Some`). Raises error 3 when no `GOSUB` is pending.
     Return(Option<LabelId>),
+    /// Set the handler of an event (design D3 of `m3-events`): the operands are evaluated in order, then the event's
+    /// handler is replaced. The handler runs when the runtime services the event at a statement boundary (not
+    /// while an error handler runs, not while the same event's handler runs): a label of the main module as a
+    /// `GOSUB` from there, whatever body set it up, or a SUB with the argument evaluated here. A timer number that
+    /// is not allocated, or a key outside 1 to 31, raises error 5. Always may raise.
+    OnEvent { event: Event, handler: EventHandler },
+    /// `KEY ON`, `KEY OFF`, `KEY LIST` or `KEY n, text$`; a soft key's number outside its range raises error 5.
+    /// Always may raise.
+    Key(KeyForm),
+}
+
+/// The handler of an [`Op::OnEvent`].
+#[derive(Clone, Debug, PartialEq)]
+pub enum EventHandler {
+    /// A label of the main module ([`Body::labels`] of [`Program::main`]).
+    Label(LabelId),
+    /// A SUB with no parameter or one of an integer type, and its argument (an `I64`) for it.
+    Sub { proc: ProcId, arg: Option<Expr> },
 }
 
 impl Op {
@@ -688,6 +708,8 @@ impl Op {
             // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
             Op::Call { .. }
             | Op::Builtin { .. }
+            | Op::OnEvent { .. }
+            | Op::Key(_)
             | Op::Raise(_)
             | Op::Resume(_)
             | Op::Return(_)

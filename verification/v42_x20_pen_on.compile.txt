@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):PEN ON
+LINE 3:PEN ON
+exit=1

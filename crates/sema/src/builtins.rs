@@ -138,6 +138,8 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // is a `float`; `TIMER` is believed SINGLE and held DOUBLE (libqb's `func_timer` returns `double`).
     ("RND", Rule::Plain),
     ("TIMER", Rule::Plain),
+    // The number of a new timer for `ON TIMER(n, …)` (design D2 of `m3-events`; `verification\v42_b`).
+    ("_FREETIMER", Rule::Plain),
     // `verification\v22_d_shell`, `v22_d_environ`: the `SHELL` function is an `_INTEGER64`; `COMMAND$` has one
     // optional slot and is also called bare.
     ("SHELL", Rule::Plain),
@@ -459,6 +461,11 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("SOUND", StmtRule::Plain),
     ("PLAY", StmtRule::Plain),
     ("BEEP", StmtRule::Plain),
+    // The event switches (design D2 of `m3-events`; `verification\v42_a`, `v42_b`, `v42_d`, `x15`, `x16`, `x49`):
+    // `TIMER[(n)] ON|OFF|STOP|FREE` and `KEY(k) ON|OFF|STOP`, each the plain call of its row and template. `KEY`'s
+    // own forms are a node of their own (`check\events.rs`); `STRIG` waits for device input.
+    ("TIMER", StmtRule::Plain),
+    ("KEY", StmtRule::Plain),
     // Sound handles (design D1 of `m3-sound-handles`; `verification\v39_x01_accepted`, `x02`–`x72`): each the plain
     // call of its row and template, with libqb's audio part. The arrays of `_WAVE` and `_SNDRAWBATCH` are the bytes
     // from an element to the array's end ([`Slot::Block`]), of one element type each (D2, `check\builtins.rs`).

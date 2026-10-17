@@ -34,6 +34,9 @@ impl Parser<'_, '_> {
         if forms.is_empty() {
             return false;
         }
+        if self.at_word("KEY") && self.key_own_form() {
+            return true;
+        }
         if self.at_word("PALETTE") && self.nth_is_word(1, "USING") {
             // `PALETTE USING array(index)`: the old compiler reads it by hand, outside the statement's template
             // (`PALETTE [?,?]`), so no form of the table matches it. Marked, not a syntax error.
@@ -54,6 +57,40 @@ impl Parser<'_, '_> {
             return false;
         }
         self.no_form(&forms, furthest);
+        true
+    }
+
+    /// At `KEY`: the forms the old compiler reads before the statement's template (`qb64pe.bas` 7281–7330), as a
+    /// `KeyStmt`: `KEY ON`, `KEY OFF` and `KEY LIST` alone, and `KEY n, text$` (a comma outside parentheses).
+    /// Returns false, taking nothing, for any other `KEY` statement (`KEY(1) ON`), which the template reads.
+    fn key_own_form(&mut self) -> bool {
+        if let Some(word) = ["ON", "OFF", "LIST"].into_iter().find(|w| self.nth_is_word(1, w)) {
+            self.start_node(KeyStmt);
+            self.bump(); // KEY
+            self.bump(); // ON, OFF or LIST
+            if !self.at_stmt_end() {
+                // Measured: "Expected KEY ON only" (`verification\v42_x25`).
+                self.syntax_error(format!("expected the end of the statement after `KEY {word}`"));
+                self.rest_into_error_node();
+            }
+            self.finish_node();
+            return true;
+        }
+        if !self.comma_outside_parens() {
+            return false;
+        }
+        self.start_node(KeyStmt);
+        self.bump(); // KEY
+        if expr(self) {
+            if self.at(Comma) {
+                self.bump();
+                expr(self);
+            } else {
+                self.syntax_error("expected `,` and the key's text");
+            }
+        }
+        self.recover();
+        self.finish_node();
         true
     }
 

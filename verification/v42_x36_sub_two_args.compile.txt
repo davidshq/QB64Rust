@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):ON TIMER ( 1 ) S 1 , 2
+LINE 3:ON TIMER(1) s 1, 2
+exit=1

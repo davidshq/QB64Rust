@@ -124,10 +124,10 @@ pub enum SyntaxKind {
     CallStmt,
     /// `ON expr GOTO|GOSUB target, ...`
     OnJumpStmt,
-    /// `ON TIMER|KEY|STRIG|PLAY|PEN|COM|UEVENT[(args)] GOSUB label` or `… name` (a SUB).
+    /// `ON TIMER|KEY|STRIG|PEN|COM|UEVENT[(args)] GOSUB label` or `… name [argument]` (a SUB).
     OnEventStmt,
-    /// `TIMER|KEY|STRIG|…[(args)] ON|OFF|STOP|FREE`
-    EventSwitchStmt,
+    /// `KEY ON`, `KEY OFF`, `KEY LIST` or `KEY n, text$`: the forms of `KEY` outside its template.
+    KeyStmt,
     /// `STOP [code]`
     StopStmt,
     /// `RUN [line number|label|file name]`

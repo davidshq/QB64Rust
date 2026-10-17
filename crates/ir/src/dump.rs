@@ -1,8 +1,9 @@
 //! `--dump ir`: the lowering-pair text of design D6.
 
 use crate::{
-    Arg, ArrayRef, BinOp, Body, Expr, ExprKind, LabelId, MemValue, OnError, Op, Place, PrintItem, PrintTo, ProcKind,
-    Program, Reference, Resume, RuntimePart, Settings, Shape, Source, StmtArg, Storage, Ty, UsingValue, VarId, When,
+    Arg, ArrayRef, BinOp, Body, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId, MemValue, OnError, Op, Place,
+    PrintItem, PrintTo, ProcKind, Program, Reference, Resume, RuntimePart, Settings, Shape, Source, StmtArg, Storage,
+    Ty, UsingValue, VarId, When,
 };
 
 use qb64rust_base::{show_bytes, to_u32};
@@ -409,6 +410,30 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 },
                 Op::Call { proc, args: a } => {
                     writeln!(out, "  Call {} [{}]", p.proc(*proc).name, args(p, a)).unwrap();
+                }
+                Op::OnEvent { event, handler } => {
+                    let event = match event {
+                        Event::Timer { number: None, seconds } => format!("Timer every {}", val(p, seconds)),
+                        Event::Timer {
+                            number: Some(n),
+                            seconds,
+                        } => format!("Timer {} every {}", val(p, n), val(p, seconds)),
+                        Event::Key { key } => format!("Key {}", val(p, key)),
+                    };
+                    let handler = match handler {
+                        EventHandler::Label(l) => format!("Gosub {}", label(&p.main, *l)),
+                        EventHandler::Sub { proc, arg: None } => format!("Sub {}", p.proc(*proc).name),
+                        EventHandler::Sub { proc, arg: Some(a) } => {
+                            format!("Sub {} [{}]", p.proc(*proc).name, val(p, a))
+                        }
+                    };
+                    writeln!(out, "  OnEvent {event} -> {handler}").unwrap();
+                }
+                Op::Key(KeyForm::On) => writeln!(out, "  KeyOn").unwrap(),
+                Op::Key(KeyForm::Off) => writeln!(out, "  KeyOff").unwrap(),
+                Op::Key(KeyForm::List) => writeln!(out, "  KeyList").unwrap(),
+                Op::Key(KeyForm::Assign { number, text }) => {
+                    writeln!(out, "  KeyAssign {} = {}", val(p, number), val(p, text)).unwrap();
                 }
                 Op::Builtin { id, args: a } => {
                     let slots: Vec<String> = a
