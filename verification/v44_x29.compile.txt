@@ -1,0 +1,5 @@
+
+Embed-Handle 'hé' has invalid chars, use Aa-Zz/0-9 only
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 3:$EMBED:'./v44_files/text.txt','hé'
+exit=1

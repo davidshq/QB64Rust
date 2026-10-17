@@ -69,6 +69,7 @@ pub fn outcome(path: &Path, include_root: &Path) -> Result<Outcome, String> {
     let name = path.to_string_lossy().to_string();
     let mut fe = frontend_with(&name, bytes, |file| Box::new(FileLoader::new(include_root, file, path)));
     crate::check_exe_icon(&mut fe, path);
+    crate::check_embedded_files(&mut fe, path);
     let unsupported = fe
         .diagnostics
         .errors()

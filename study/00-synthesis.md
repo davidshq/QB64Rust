@@ -3031,6 +3031,70 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     `_ERRORMESSAGE$(1, 2)`; `ERRORLINE` without the underscore is a variable; `$NOPREFIX` is rejected whole by this
     version ("a deprecated feature", `x32`). `ERROR 11` is fatal, as known (Q-003): the first `v43_d` stopped
     there.
+- **`$EMBED`, `_EMBEDDED$`, the network functions and `afterlastline.bm` (`v44_*`, 74 programs, measured
+  2026-10-17 before `m3-network-embed`, `x69`–`x71` by its review; the embedded files in `v44_files\`, kept byte for byte by `.gitattributes`,
+  an included file in `v44_inc\`):**
+  - **The `$EMBED` line** (`qb64pe.bas` 3743–3818; `v44_a`, `x01`–`x39`): any line whose upper-case text starts
+    with `$EMBED` (`$embed`, `$EMBEDX`, `$EMBED : '…'`, `x22`, `x23`, `x28`); one in a comment is a comment (`x24`).
+    The file and the handle are the text between the first two and the next two `'`, trimmed (`' Blanks9 '` is
+    `Blanks9`); the rest of the line is dropped (`x35`, `v44_a`'s "trailing words"). No quotes, an empty file or
+    an empty handle: "Expected $EMBED:'filename','handle'" (`x01`–`x04`). Handle: "First char of Embed-Handle
+    '1abc' must be a letter" (`x05`), "Embed-Handle 'my_h' has invalid chars, use Aa-Zz/0-9 only" (`x06`, a
+    letter outside ASCII `x29`); 40 characters accepted (`x38`); case counts (`h` and `H` two handles, `x30`;
+    `_EMBEDDED$("abc")` for `ABC` undefined, `x13`). **The file**: `./` or `.\` is the main source file's folder,
+    also from an included file (`x16`); any other relative name is looked for in the compiler's folder ("File
+    'text.txt' not found", `x26`, naming the last part only); a missing file or a folder "File '<folder>\…' not
+    found" (`x07`, `x27`). **Twice**: "File '…' was already embedded in line 3" (`x08`, `x31`) and "Embed-Handle
+    'h' is already used in line 3" (`x09`), at the second line; files are compared by their names as written with
+    the folder in front, so `./v44_files/../v44_files/noise.bin` embeds `noise.bin` a second time (`v44_a`), while
+    `./` and `.\` are the same prefix (`./f` then `.\f` "was already embedded", `x69`) and the rest stays as
+    written (`./d/f` and `./d\f` two files, `x70`; by the change's review). An absolute name's folder is first
+    made the folder's own name (`CHDIR` and `_CWD$`, `qb64pe.bas` 3765–3777; not measured: a recording would hold a
+    local folder).
+  - **`_EMBEDDED$("h")`** (`v44_a`): the file's bytes, every byte value, an empty file and 300,000 bytes alike, a
+    new string at each call (changing one does not change the next); in a SUB, a FUNCTION, a sum, an argument.
+    The argument must be one string literal: a variable, `"a" + "b"`, `CHR$(104)` "Embed-Handle must be a single
+    literal string in quotes, not a variable" (`x11`, `x18`, `x33`); `""` "Embed-Handle cannot be an empty
+    string" (`x12`); `" h "` the first-character error (`x25`, blanks are not trimmed); a handle no line names
+    "Embed-Handle 'h' is undefined (check your $EMBED lines)", also when the line stands **below the call in file
+    order** (`x14`, after the last SUB `x34`), in a SUB above a call in the main code (`x15`), in a `$IF` branch
+    not taken (`x17`), or nowhere (`x36`). A call in a branch not taken checks nothing (`x37`). `_EMBEDDED("h")`
+    "Invalid array name" (`x19`); no argument or two "Incorrect number of arguments - Reference:
+    _EMBEDDED$("handle")" (`x20`, `x21`); in a `CONST` "Unexpected element '_EMBEDDED$'" (`x32`). The C++ is
+    `func__embedded(qbs_new_txt_len("h",1))` and `embedded.cpp` holds each used file, deflated when that saves a
+    fifth.
+  - **The network functions** (`v44_b`, `x40`–`x46`, `x53`, `x59`–`x68`; `x66` not used): `_OPENHOST`,
+    `_OPENCLIENT` (a string), `_OPENCONNECTION`, `_CONNECTED`, `_STATUSCODE` (a number) are LONG,
+    `_CONNECTIONADDRESS$` a string, also without its `$` (`x44`); plain calls of their rows. Rejected: no argument
+    or two "Incorrect number of arguments - Reference: _OPENCLIENT("TCP/IP:port:address")" (`x40`, `x41`), a
+    number "String required for function" (`x42`), a string to `_STATUSCODE` "Number required for function"
+    (`x45`), `_OPENCLIENT&(…)` "Invalid array name" (`x46`), `_OPENHOST "…"` as a statement "Syntax error"
+    (`x43`). **Where nothing listens** (`v44_b`): `_OPENCLIENT` of `nonsense` or `""` error 5, of
+    `tcp/ip:1:localhost`, `TCP/IP:x:localhost`, `HTTP:NotARealURL`, `HTTP:ftp://…` 0; `_OPENHOST` of `foobar` or
+    `""` error 5, of `TCP/IP:abc` -2; `_STATUSCODE`, `_CONNECTED`, `_CONNECTIONADDRESS$` of 0, 20 or -5 error 52,
+    `_OPENCONNECTION` error 258; `EOF`, `LOF`, `GET`, `PUT` of `#-5` error 52 (`GET` leaves the variable), `CLOSE
+    #-5` nothing (`x60`–`x68`). `_STATUSCODE(-5)` ends the program with an access violation (`x59`, exit 139).
+    **Over the loopback address** (`v44_e`, task 1.2, the same output recorded twice): a host on `TCP/IP:47391`, a
+    client to `TCP/IP:47391:localhost` and the connection `_OPENCONNECTION` gives (within the first tries) are
+    three negative handles; `_CONNECTED` of the client and the connection -1; the client's address is
+    `TCP/IP:47391:localhost` as opened, the connection's `TCP/IP:<the client's port>:127.0.0.1`; a string `PUT`
+    on one end is read whole by `GET` on the other, byte values 0 and 255 included; after the reads `EOF` and `LOF`
+    of the client are 0; once the client is closed, `_CONNECTED` of the connection is 0 after a `GET` on it.
+  - **`_SOCKETS_`** (`v44_c`, `x51`–`x53`): 1 for the whole program, also at a `$IF` above the call, when
+    `_OPENHOST` or `_OPENCLIENT` stands in compiled code, even in a SUB never called (`x52`); 0 for one in a `$IF 0`
+    branch (`x51`) and for the other four functions (`x53`).
+  - **`afterlastline.bm`** (`v44_c`, `v44_d`, `x47`–`x50`, `x54`–`x58`): `_ENCODEURL$` and `_DECODEURL$` are
+    functions of every program, also under `OPTION _EXPLICIT` (`x54`) and without the `$` (`x55`); a number to
+    them "String required for function" (`x56`), as a statement "Syntax error" (`x57`); `DECODEURL$` without the
+    underscore is a variable ("Illegal string-number conversion", `x58`). `_ENCODEURL$` writes `%XX` (upper case)
+    for every byte but letters, digits and `-._~`; `#/:?@[]` are kept before the first `?` only, `=` in a query's
+    key and `&` in its value (`v44_d`). `_DECODEURL$` keeps `+`, decodes `%xx` in either case, and turns a `%`
+    whose next two characters are not hexadecimal into a byte 0 (`%zz` one byte, `abc%` four), its `VAL("&H…")`.
+    With `_SOCKETS_` the file also holds `_WhatIsMyIP$`; `_WHATISMYIP$` in a program is "Invalid variable name",
+    with or without a network function (`x47`, `x48`), and a SUB `_WhatIsMyIP` or a FUNCTION `_EncodeURL$` "Invalid
+    name" (`x49`, `x50`). The file starts with `$CHECKING:OFF`: its procedures' C++ has no `evnt`.
+  - **A user FUNCTION's argument of the wrong kind** (`x71`, by the change's review): a string for a LONG
+    parameter of `f&` is "Number required for function", where a SUB's is "… required for sub" (`v14_err_*`).
 
 ## 6. Bug-compatibility choices (all decided)
 

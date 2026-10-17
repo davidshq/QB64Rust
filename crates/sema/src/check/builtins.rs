@@ -66,7 +66,8 @@ fn takes_as_is(rule: Rule) -> bool {
         | Rule::Choice
         | Rule::Own
         | Rule::Mk(_)
-        | Rule::Cv(_) => false,
+        | Rule::Cv(_)
+        | Rule::Embedded => false,
     }
 }
 
@@ -104,6 +105,7 @@ impl Checker<'_> {
             // with three, `verification\v32_x19`).
             Rule::Own => return Err(self.error(span, format!("`{name}` needs its argument"))),
             Rule::Mk(_) | Rule::Cv(_) => return self.number_bytes(s, list, span),
+            Rule::Embedded => return self.embedded(s, list, span),
             Rule::Plain
             | Rule::ResultOfArg
             | Rule::IntFix

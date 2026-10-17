@@ -1,0 +1,5 @@
+
+Embed-Handle 'my_h' has invalid chars, use Aa-Zz/0-9 only
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 3:$EMBED:'./v44_files/text.txt','my_h'
+exit=1

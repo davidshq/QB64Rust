@@ -73,6 +73,9 @@ pub enum Rule {
     /// `CVI`, `CVL`, `CVS`, `CVD` (the type given) and `_CV` (`None`, as for [`Rule::Mk`]): the number a string's
     /// bytes hold, libqb's `string2<t>`, typed as the type (a `_BIT` as an `_INTEGER64`).
     Cv(Option<Ty>),
+    /// `_EMBEDDED$("handle")`: one string literal naming the handle of a `$EMBED` line above the call (design D2 of
+    /// `m3-network-embed`, `check\embed.rs`); the plain call of its row.
+    Embedded,
 }
 
 /// Every built-in function `sema` compiles, as written (with its required suffix), and its rule. The coverage check
@@ -341,6 +344,18 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_INFLATE$", Rule::Plain),
     ("_BASE64ENCODE$", Rule::Plain),
     ("_BASE64DECODE$", Rule::Plain),
+    // The network functions (design D5 of `m3-network-embed`; `verification\v44_b`, `x40`–`x46`, `x59`–`x68`): each
+    // the plain call of its row. `_OPENHOST` and `_OPENCLIENT` need libqb's sockets part
+    // ([`crate::RuntimePart::Sockets`]); `_CONNECTIONADDRESS` is written with or without its `$`.
+    ("_OPENHOST", Rule::Plain),
+    ("_OPENCLIENT", Rule::Plain),
+    ("_OPENCONNECTION", Rule::Plain),
+    ("_CONNECTED", Rule::Plain),
+    ("_STATUSCODE", Rule::Plain),
+    ("_CONNECTIONADDRESS", Rule::Plain),
+    // The bytes of a file `$EMBED` builds into the executable (design D2 of `m3-network-embed`;
+    // `verification\v44_a_embed`, `x10`–`x21`, `x25`, `x32`–`x37`).
+    ("_EMBEDDED$", Rule::Embedded),
 ];
 
 /// The built-in functions whose result is a block of the predefined type `_MEM` (design D2 of `m3-mem`), as
@@ -710,8 +725,14 @@ pub fn lookup(name: &str, string: bool) -> Option<Supported> {
             Some(b) => (b, true),
             None => (written, false),
         };
-        (bare == name && dollar == string).then(|| Supported {
-            id: find_function_form(bare.as_bytes(), dollar).expect("every supported built-in is in the table"),
+        if bare != name {
+            return None;
+        }
+        let id = find_function_form(bare.as_bytes(), dollar).expect("every supported built-in is in the table");
+        // A function that may have its `$` is listed without it and found either way.
+        let either = !dollar && id.get().mayhave == Some("$");
+        (dollar == string || either).then_some(Supported {
+            id,
             rule,
             name: written,
         })
@@ -760,7 +781,8 @@ pub fn slot_count(id: BuiltinId) -> usize {
             | Rule::Choice
             | Rule::Own
             | Rule::Mk(_)
-            | Rule::Cv(_),
+            | Rule::Cv(_)
+            | Rule::Embedded,
         )
         | None => id.get().arg_types.len(),
     }
@@ -784,6 +806,8 @@ pub fn slots(s: Supported) -> Vec<(Slot, bool)> {
         // Checked by their rule (`check\mem.rs`, `number_bytes`): a number or a string, and for `_MK$` and
         // `_CV` first a type.
         Rule::Mk(_) | Rule::Cv(_) => Vec::new(),
+        // One string literal, checked by its rule (`check\embed.rs`).
+        Rule::Embedded => vec![(Slot::Str, false)],
         Rule::Plain
         | Rule::ResultOfArg
         | Rule::IntFix
@@ -944,6 +968,7 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
         }
         Rule::Own => unreachable!("an expression of its own (check::mem)"),
         Rule::Mk(_) | Rule::Cv(_) => unreachable!("typed by their type (check::mem)"),
+        Rule::Embedded => unreachable!("typed by its rule (check::embed)"),
     }
 }
 

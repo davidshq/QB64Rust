@@ -39,6 +39,7 @@ pub(crate) fn call_stmt(p: &mut Parser) {
     // an expression list: `template_call` above read such a statement, or reported it. What comes here after
     // `CALL` is a SUB's name or a statement with a template of one argument, which is an expression list
     // (`CALL _DEST(h)`).
+    super::expr::note_url_name(p);
     p.start_node(NameRef);
     p.bump();
     p.finish_node();

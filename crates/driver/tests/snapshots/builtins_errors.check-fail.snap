@@ -12,6 +12,7 @@ builtins_errors.bas:11:7: error: `SPACE$` with empty parentheses
 builtins_errors.bas:11:7: note: QB64pe: Expected (...)
 builtins_errors.bas:12:14: error: `UCASE$` needs a string
 builtins_errors.bas:13:1: error: `LEFT$` is a function, not a statement
+builtins_errors.bas:13:1: note: QB64pe: Syntax error
 builtins_errors.bas:14:11: error: `LEN` needs a string or a variable, element or member
 builtins_errors.bas:14:11: note: QB64pe: String expression or variable name required in LEN statement
 builtins_errors.bas:15:11: error: `LEN` needs a string or a variable, element or member

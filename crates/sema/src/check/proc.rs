@@ -37,13 +37,29 @@ impl Checker<'_> {
         } else {
             ProcKind::Sub
         };
-        self.reserved_proc(name_tok, &name, suffix, matches!(kind, ProcKind::Function(_)))?;
+        // QB64pe's file included after the last line (design D7 of `m3-network-embed`): its names start with `_`,
+        // a procedure named `_IKW_x` is a function of the language named `_x` (the old compiler registers it
+        // without `_IKW`, `afterlastline.bm` lines 41–53), and any other is a helper the program cannot call.
+        let auto = self.in_after_last_line(name_tok.span);
+        let (name, keyword) = match name.strip_prefix("_IKW") {
+            Some(rest) if auto && rest.starts_with('_') => (rest.to_string(), true),
+            _ => (name, false),
+        };
+        if !auto {
+            self.reserved_proc(name_tok, &name, suffix, matches!(kind, ProcKind::Function(_)))?;
+        }
         if self.procs_by_name.contains_key(&name) {
             return Err(self.in_use(name_tok));
         }
         let id = ProcId(to_u32(self.prog.procs.len()));
         if header.static_word().is_some() {
             self.static_procs.insert(id);
+        }
+        if auto {
+            self.auto_procs.insert(id);
+            if !keyword {
+                self.hidden_procs.push((name.clone(), id));
+            }
         }
         self.prog.procs.push(Proc {
             name: name.clone(),
@@ -54,6 +70,7 @@ impl Checker<'_> {
             line: 0,
             end_line: 0,
             external: None,
+            checked: true,
         });
         self.param_scopes.push(Scope::default());
         self.procs_by_name.insert(name, id);
@@ -89,6 +106,7 @@ impl Checker<'_> {
             line: 0,
             end_line: 0,
             external: None,
+            checked: true,
         });
         self.param_scopes.push(Scope::default());
         self.procs_by_name.insert(name, id);
@@ -369,6 +387,11 @@ impl Checker<'_> {
                 let msg = format!("the library FUNCTION `{shown}` cannot be called as a statement");
                 Err(self.error(name_tok.span, msg))
             }
+            // A function of QB64pe's file included after the last line is a function of the language: as a
+            // statement it is the old compiler's "Syntax error" (measured, `verification\v44_x57`).
+            Some((p, ProcKind::Function(_))) if self.auto_procs.contains(&p) => {
+                Err(self.error(name_tok.span, format!("`{shown}` is a function, not a statement")))
+            }
             Some((_, ProcKind::Function(_))) => {
                 let msg = format!("calling the FUNCTION `{shown}` as a statement");
                 Err(self.unsupported(name_tok.span, msg))
@@ -453,9 +476,19 @@ impl Checker<'_> {
                 continue;
             }
             let e = self.expr(node)?;
+            // The old compiler words a FUNCTION's "... required for function" and a SUB's "... for sub"
+            // (`verification\v44_x56`), so the two are told apart for the note after the error.
+            let of = match self.prog.proc(p).kind {
+                ProcKind::Function(_) => " of a FUNCTION",
+                ProcKind::Sub => "",
+            };
             match (e.ty == Ty::Str, pty == Ty::Str) {
-                (true, false) => return Err(self.error(e.span, "a number is required for this parameter")),
-                (false, true) => return Err(self.error(e.span, "a string is required for this parameter")),
+                (true, false) => {
+                    return Err(self.error(e.span, format!("a number is required for this parameter{of}")));
+                }
+                (false, true) => {
+                    return Err(self.error(e.span, format!("a string is required for this parameter{of}")));
+                }
                 _ => {}
             }
             // A place of exactly the parameter's type is passed by reference: a variable, an element, a member

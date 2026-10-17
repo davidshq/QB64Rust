@@ -1,0 +1,4 @@
+sockets on
+sockets = 1
+url:a%20b a b
+exit=0

@@ -21,8 +21,9 @@ impl Emitter<'_> {
         };
         let arg = |k: usize| args[k].as_ref().expect("a required argument");
         match s.rule {
-            // `ENVIRON$`: C++ overloading picks the entry for a string or for a number.
-            Rule::Plain | Rule::ResultOfArg | Rule::FloatByArg | Rule::Fixed(_) | Rule::StrOrIndex => {
+            // `ENVIRON$`: C++ overloading picks the entry for a string or for a number. `_EMBEDDED$`: the handle's
+            // literal, `func__embedded(qbs_new_txt_len("h",1))` (design D2 of `m3-network-embed`).
+            Rule::Plain | Rule::ResultOfArg | Rule::FloatByArg | Rule::Fixed(_) | Rule::StrOrIndex | Rule::Embedded => {
                 let slots: Vec<Slot> = slots(s).into_iter().map(|(slot, _)| slot).collect();
                 self.table_call(id, args, &slots)
             }

@@ -38,9 +38,8 @@ still marks "not supported yet":
 | `_SCREENEXISTS` as the direct argument of `HEX$`, `OCT$` or `_BIN$` | The table gives the function no return type, and the old compiler passes the width 0 there, not a LONG's 8 or 32; the function runs from M3 on, where the width can be given | Design D6 of the change |
 | 10 of the 310 constants of `beforefirstline.bi`: `_E` and the nine of the next row | `_E`'s `CONST` line needs `EXP`, which the `CONST` evaluator does not compute yet (of its functions only `CHR$` is, with the 69 `_CHR_…`/`_STR_…` strings, since `m3-errorline-chr-const`) | `sema\src\check\auto.rs`; `tests\frontend\auto_const_errors.bas` |
 | The other nine: `_DOUBLE_MIN`, `_DOUBLE_MAX`, `_FLOAT_MIN`, `_FLOAT_MAX`, `_FLOAT_MIN_FRAC`, `_INTEGER64_MIN`, `_UINTEGER64_MAX`, `_OFFSET_MIN`, `_UOFFSET_MAX` | Numbers the `CONST` evaluator does not read yet (a value at a rounding boundary, beyond `DOUBLE` range, or beyond `_INTEGER64`). The old compiler's values for them are recorded and odd: see "QB64pe behaviours to review" | `verification\v26_x114` |
-| The three functions of `afterlastline.bm` (`_WhatIsMyIP`, …) and the `$COLOR` constants | The files are not included; the functions need the network functions | `tools\builtins\builtins.json`, `auto_include` |
+| The `$COLOR` constants | The files are not included (`afterlastline.bm` is compiled since `m3-network-embed`) | `tools\builtins\builtins.json`, `auto_include` |
 | A `$IF` that names `_CONSOLE_` between `$CONSOLE:ONLY` and a later `$CONSOLE` (or the other way round) | The old compiler's two passes read the line with different values (its program prints nothing from the branches; a `CONST` in them is "Name already in use"); no value here would be right | `verification\v26_x27`, `x34`; `tests\frontend\flags_between_errors.bas` |
-| `$ASSERTS`, `$DEBUG`, the network functions | Features of their own; their flags (`_ASSERTS_`, `_DEBUG_`) are set, `_SOCKETS_` is always 0 | Upstream `precomp-flags` (5 of its 9 tests wait on them) |
 
 **Left marked by `m3-window-output`** (the first step of M3, 2026-10-12: a program with a window as its
 output, the text-screen, drawing and pacing statements, the screen functions). What the old compiler accepts and
@@ -169,7 +168,6 @@ new one still marks "not supported yet", and what is compiled but not checked by
 |---|---|---|
 | A FUNCTION call in the index of the array of `_WAVE` or `_SNDRAWBATCH` (`_WAVE 0, w(f(1))`), and an array used without `DIM` there | The old compiler writes the index twice (the FUNCTION is called twice); both are marked as for graphics `GET` and `PUT` (`block_arg`) | `verification\v39_x01_accepted` (its C++) |
 | `$MIDISOUNDFONT` without its colon (`$MIDISOUNDFONT`, `$MIDISOUNDFONT :x`) | The old compiler's "Syntax error" for any unknown metacommand; every unknown metacommand is "not supported yet" here | `verification\v39_x74`, `x79`–`x81` |
-| `$EMBED` and `_EMBEDDED$` (so `midi/midisoundbank_embed_test` stays held back) | Not in the change's scope | proposal |
 | What is heard, the 3-D position of `_SNDBAL` and `_SNDPLAYCOPY`, `"stream"` and `"nodecode"` beyond what their lengths show | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form | design Non-Goals |
 | The sound handle programs on a machine without a sound device | libqb's engine is not started there: every function gives 0 and every statement does nothing, so `s127`–`s129` would fail; not known until the `tier2` job runs them on GitHub | design, risks |
 
@@ -197,6 +195,21 @@ marked; left out:
 | `ON STRIG(…) GOSUB label` or `… sub`, and `STRIG[(…)] ON\|OFF\|STOP` | libqb's device-input part is not built, nor its other names (`STICK`, `STRIG()`, `_DEVICES`, …): a later device-input change (user, `DECISIONS.md` 2026-10-17) | `verification\v42_x11` |
 | A line number as a handler (`ON TIMER(1) GOSUB 10`) | Line numbers are not compiled yet (the row of `ON PLAY` above) | `verification\v42_x46` |
 | A SUB of a `DECLARE LIBRARY` block as a handler | Not measured | `sema\src\check\events.rs` |
+
+**Left marked by `m3-network-embed`** (2026-10-17: `$EMBED`, `_EMBEDDED$`, the network functions, `_SOCKETS_`,
+`afterlastline.bm`). What the old compiler accepts and the new one still marks "not supported yet", and what is
+left out:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A relative `$EMBED` name that does not start with `./` or `.\` (`$EMBED:'data/f.txt','h'`), so `embed/test` stays held back, beside `icon/test` and `winresource/test` | The old compiler looks for it in its own folder, as for `$EXEICON` (the row of `m3-sound` above, and "QB64pe behaviours to review") | `verification\v44_x26` |
+| `_EMBEDDED` without its `$` (`x19`) and `_OPENCLIENT&("x")` (`x46`), "Invalid array name" in the old compiler | Every `_name(...)` that names no array is "not supported yet", as `_DEFLATE("x")` (`v33_x25`–`x29`) | `tests\frontend\network_errors.bas` |
+| `_EMBEDDED$` with its argument in parentheses (`_EMBEDDED$(("h"))`) | Not measured | `sema\src\check\embed.rs` |
+| Two absolute `$EMBED` names of one file written differently (`<drive>/d/f` and `<drive>\d\f`, or with `..`): "was already embedded" in the old compiler, which resolves the folder first (`CHDIR`, `_CWD$`, `qb64pe.bas` 3765–3777); compared as written here, so both are accepted | Not measured: a recording would hold a local folder (`CLAUDE.md` rule 2); `sema` reads no folder | `sema\src\check\embed.rs` `same_file` |
+| `$CHECKING:OFF` and `:ON` in a program's own code | Read in `afterlastline.bm` only, whose procedures have no array, `_MEM` or `ON ERROR`; elsewhere the statements it changes need more than the event check left out | design D8 |
+| Compressing an embedded file as the old compiler does when that saves a fifth | The program sees the same bytes; only the executable's size differs (design D4) | design D4 |
+| `auto_include/general` | Held back by `_E` (the `CONST` evaluator's `EXP`, the row of `m2-console-screenhide` above), no longer by `_ENCODEURL$` | proposal |
+| An HTTP download from a real server (`http/read_example`) | The page it downloads changed; it compiles and stays a known failure | `tools\legacy_tests\known_failures.txt` |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -314,6 +327,9 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `_ERRORLINE` for an error in an included file is the main file's line of the outermost `$INCLUDE`, the same for every statement of that file and of the files it includes; only `_INCLERRORLINE` tells them apart | None needed if kept: the pair names the place. A change would be to libqb's meaning of `_ERRORLINE` | `m3-errorline-chr-const` (`verification\v43_b_include`) |
 | A line joined to the next by a continuation (`_`) is numbered as the join's last line for every statement on it: `ERROR 5: x = 1 + _` reports the line below it, in `_ERRORLINE` and in the message of an untrapped error | The line each statement starts on | `m3-errorline-chr-const` (`verification\v43_d_continued`, `v43_e_continued_untrapped`) |
 | `CHR$` in a `CONST` rounds its code half to even through `_UNSIGNED _INTEGER64`, so `CHR$(-0.5)` is `CHR$(0)` while `CHR$(-0.6)` is an error | Range-check the code before rounding | `m3-errorline-chr-const` (`verification\v43_x11`, `x12`) |
+| `_STATUSCODE` of a negative handle that was never opened (`_STATUSCODE(-5)`) ends the program with an access violation (exit 139), where `_CONNECTED`, `_CONNECTIONADDRESS$`, `EOF`, `LOF`, `GET` and `PUT` of it raise error 52 | Error 52, as the other functions raise. libqb's (`func__statusCode`), so a change is a change to the runtime | `m3-network-embed` (`verification\v44_x59`, `x60`–`x68`) |
+| `$EMBED` takes any line that starts with the word (`$EMBEDX:'…'`, `$EMBED '…''h'` without the colon and the comma) and drops the rest of its line; two files are the same only when their names are the same text with the folder in front (`./a/../a/f` embeds `./a/f` a second time, `./d\f` embeds `./d/f`; only `./` and `.\` count as one) | Reject what is not `$EMBED:'file','handle'` alone on its line; compare the files themselves | `m3-network-embed` (`verification\v44_a_embed`, `x22`, `x35`, `x39`, `x69`, `x70`) |
+| `_DECODEURL$` turns a `%` whose next two characters are not hexadecimal into a byte 0 (`%zz` is one byte 0, `abc%` ends with one) | Keep such a `%` as it is | `m3-network-embed` (`verification\v44_d_url`) |
 
 ## Other ideas raised during the study
 

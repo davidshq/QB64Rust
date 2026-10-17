@@ -345,6 +345,29 @@ def auto_include_names():
     return out
 
 
+AFTER_LAST_LINE = os.path.join(SUPPORT, "include", "afterlastline.bm")
+AFTER_LAST_LINE_COPY = os.path.normpath(
+    os.path.join(HERE, "..", "..", "crates", "builtins", "src", "afterlastline.bm")
+)
+
+
+def copy_after_last_line():
+    """Copies QB64pe's auto-included `afterlastline.bm` byte for byte into the builtins crate (design D7 of
+    `m3-network-embed`): the front end compiles it from there and needs no clone. Written only when it differs."""
+    with open(AFTER_LAST_LINE, "rb") as f:
+        data = f.read()
+    try:
+        with open(AFTER_LAST_LINE_COPY, "rb") as f:
+            if f.read() == data:
+                print("afterlastline.bm: copy unchanged")
+                return
+    except FileNotFoundError:
+        pass
+    with open(AFTER_LAST_LINE_COPY, "wb") as f:
+        f.write(data)
+    print("wrote", AFTER_LAST_LINE_COPY)
+
+
 def main():
     records, anomalies = parse_table()
     entries = [build(r) for r in records]
@@ -365,6 +388,7 @@ def main():
     with open(out_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(result, f, indent=1, ensure_ascii=False)
         f.write("\n")
+    copy_after_last_line()
 
     print(
         "entries:",

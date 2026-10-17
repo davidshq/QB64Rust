@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):PRINT _OPENCLIENT& ( "x",1 )
+LINE 3:PRINT _OPENCLIENT&("x")
+exit=1

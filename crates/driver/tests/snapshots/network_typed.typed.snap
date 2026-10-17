@@ -1,0 +1,316 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 4: ConsoleOnly
+line 6: Assign K:I32
+  Call _OPENHOST : I32
+    Concat : Str
+      Str "TCP/IP:" : Str
+      Var S : Str
+line 7: Assign K:I32
+  Call _OPENCLIENT : I32
+    Var F : Str
+line 8: Assign K:I32
+  Call _OPENCONNECTION : I32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+line 9: Assign K:I32
+  Call _CONNECTED : I32
+    Convert Truncate : I32
+      Var Q : I64
+line 10: Assign K:I32
+  Call _STATUSCODE : I32
+    Var K : I32
+line 11: Assign S:Str
+  Call _CONNECTIONADDRESS : Str
+    Var K : I32
+line 12: Assign S:Str
+  Call _CONNECTIONADDRESS : Str
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+line 13: System
+FUNCTION _ENCODEURL : Str
+  param _URL:Str
+  result _ENCODEURL:Str
+  local _TMP:Str
+  local _INQUERY:I16
+  local _ISKEY:I16
+  local _P:I16
+  local _A:I16
+  local _VALID:I16
+line 66: Assign _TMP (local):Str
+  Str "" : Str
+line 66: Assign _INQUERY (local):I16
+  Int 0 : I16
+line 66: Assign _ISKEY (local):I16
+  Int 0 : I16
+line 68: For _P (local):I16 counting in I32 (NEXT line 90)
+  From
+    Int 1 : I32
+  To
+    Call LEN : I32
+      Var _URL (param) : Str
+  Body
+    line 69: Assign _A (local):I16
+      Convert Truncate : I16
+        Call ASC : I32
+          Var _URL (param) : Str
+          Convert Widen : I32
+            Var _P (local) : I16
+    line 69: Assign _VALID (local):I16
+      Int 0 : I16
+    line 71: SelectCase, selector read at each test (END SELECT line 83)
+        Var _A (local) : I16
+      Case line 72
+        Is Eq
+          Int 45 : I64
+        Is Eq
+          Int 46 : I64
+        Is Eq
+          Int 95 : I64
+        Is Eq
+          Int 126 : I64
+        Range
+          Int 48 : I32
+          Int 57 : I32
+        Range
+          Int 65 : I32
+          Int 90 : I32
+        Range
+          Int 97 : I32
+          Int 122 : I32
+        Body
+          line 73: Assign _VALID (local):I16
+            Int -1 : I16
+      Case line 74
+        Is Eq
+          Int 35 : I64
+        Is Eq
+          Int 47 : I64
+        Is Eq
+          Int 58 : I64
+        Is Eq
+          Int 63 : I64
+        Is Eq
+          Int 64 : I64
+        Is Eq
+          Int 91 : I64
+        Is Eq
+          Int 93 : I64
+        Body
+          line 75: If (END IF line 78)
+            If line 75
+              Not : I32 (qb I64)
+                Convert Widen : I32
+                  Var _INQUERY (local) : I16
+              line 76: Assign _VALID (local):I16
+                Int -1 : I16
+              line 77: If (END IF line 77)
+                If line 77
+                  Binary Eq : I32
+                    Convert Widen : I64
+                      Var _A (local) : I16
+                    Int 63 : I64
+                  line 77: Assign _INQUERY (local):I16
+                    Int -1 : I16
+                  line 77: Assign _ISKEY (local):I16
+                    Int -1 : I16
+      Case line 79
+        Is Eq
+          Int 61 : I64
+        Body
+          line 80: If (END IF line 80)
+            If line 80
+              Binary And : I32 (qb I64)
+                Convert Widen : I32
+                  Var _INQUERY (local) : I16
+                Convert Widen : I32
+                  Var _ISKEY (local) : I16
+              line 80: Assign _VALID (local):I16
+                Int -1 : I16
+              line 80: Assign _ISKEY (local):I16
+                Int 0 : I16
+      Case line 81
+        Is Eq
+          Int 38 : I64
+        Body
+          line 82: If (END IF line 82)
+            If line 82
+              Binary And : I32 (qb I64)
+                Convert Widen : I32
+                  Var _INQUERY (local) : I16
+                Not : I32 (qb I64)
+                  Convert Widen : I32
+                    Var _ISKEY (local) : I16
+              line 82: Assign _VALID (local):I16
+                Int -1 : I16
+              line 82: Assign _ISKEY (local):I16
+                Int -1 : I16
+    line 85: If (END IF line 89)
+      If line 85
+        Var _VALID (local) : I16
+        line 86: Assign _TMP (local):Str
+          Concat : Str
+            Var _TMP (local) : Str
+            Call CHR : Str
+              Convert Widen : I32
+                Var _A (local) : I16
+      Else
+        line 88: Assign _TMP (local):Str
+          Concat : Str
+            Concat : Str
+              Var _TMP (local) : Str
+              Str "%" : Str
+            Call RIGHT : Str
+              Concat : Str
+                Str "00" : Str
+                Call HEX : Str
+                  Var _A (local) : I16
+              Int 2 : I32
+line 92: Assign _ENCODEURL (result):Str
+  Var _TMP (local) : Str
+FUNCTION _DECODEURL : Str
+  param _URL:Str
+  result _DECODEURL:Str
+  local _TMP:Str
+  local _P:I16
+  local _A:I16
+line 103: Assign _TMP (local):Str
+  Str "" : Str
+line 105: For _P (local):I16 counting in I32 (NEXT line 114)
+  From
+    Int 1 : I32
+  To
+    Call LEN : I32
+      Var _URL (param) : Str
+  Body
+    line 106: Assign _A (local):I16
+      Convert Truncate : I16
+        Call ASC : I32
+          Var _URL (param) : Str
+          Convert Widen : I32
+            Var _P (local) : I16
+    line 108: If (END IF line 113)
+      If line 108
+        Binary Ne : I32
+          Convert Widen : I64
+            Var _A (local) : I16
+          Int 37 : I64
+        line 109: Assign _TMP (local):Str
+          Concat : Str
+            Var _TMP (local) : Str
+            Call CHR : Str
+              Convert Widen : I32
+                Var _A (local) : I16
+      Else
+        line 111: Assign _TMP (local):Str
+          Concat : Str
+            Var _TMP (local) : Str
+            Call CHR : Str
+              Convert Truncate : I32
+                Binary And : I64
+                  Convert RoundEven : I64
+                    Call VAL : F80
+                      Concat : Str
+                        Str "&H" : Str
+                        Call MID : Str
+                          Var _URL (param) : Str
+                          Binary Add : I32 (qb I64)
+                            Convert Widen : I32
+                              Var _P (local) : I16
+                            Int 1 : I32
+                          Int 2 : I32
+                      (absent)
+                  Int 255 : I64
+        line 112: Assign _P (local):I16
+          Convert Truncate : I16
+            Binary Add : I32 (qb I64)
+              Convert Widen : I32
+                Var _P (local) : I16
+              Int 2 : I32
+line 116: Assign _DECODEURL (result):Str
+  Var _TMP (local) : Str
+FUNCTION _WHATISMYIP : Str
+  result _WHATISMYIP:Str
+  local _CH:I32
+  local _ST:F64
+  local _RES:Str
+  local _REC:Str
+line 148: Assign _CH (local):I32
+  Call _OPENCLIENT : I32
+    Str "http://qb64phoenix.com/qb64_files/ip.php" : Str
+line 149: If (END IF line 149)
+  If line 149
+    Binary Eq : I32
+      Convert Widen : I64
+        Var _CH (local) : I32
+      Int 0 : I64
+    line 149: Exit
+line 151: If (END IF line 163)
+  If line 151
+    Binary Eq : I32
+      Call _STATUSCODE : I32
+        Var _CH (local) : I32
+      Int 200 : I32
+    line 152: Assign _RES (local):Str
+      Str "" : Str
+    line 152: Assign _ST (local):F64
+      Call TIMER : F64 (qb F32)
+        Float 0.001E+0 : F64 (qb F32)
+    line 153: Do (LOOP line 162)
+      Until at Bottom
+        Binary Gt : I32
+          Convert Nearest : F32
+            Call TIMER : F64 (qb F32)
+              Float 0.001E+0 : F64 (qb F32)
+          Convert Nearest : F32
+            Binary Add : F64
+              Var _ST (local) : F64
+              Convert Nearest : F64
+                Int 10 : I16
+      Body
+        line 154: Builtin _DELAY
+          Float 0.1E+0 : F64 (qb F32)
+        line 155: Builtin GET
+          Var _CH (local) : I32
+          (absent)
+          bytes of place _REC (local) : Str
+        line 156: If (END IF line 156)
+          If line 156
+            Binary Gt : I32
+              Call LEN : I32
+                Var _REC (local) : Str
+              Int 0 : I32
+            line 156: Assign _ST (local):F64
+              Call TIMER : F64 (qb F32)
+                Float 0.001E+0 : F64 (qb F32)
+        line 157: Assign _RES (local):Str
+          Concat : Str
+            Var _RES (local) : Str
+            Var _REC (local) : Str
+        line 158: If (END IF line 160)
+          If line 158
+            Call EOF : I32
+              Var _CH (local) : I32
+            line 159: Assign _WHATISMYIP (result):Str
+              Var _RES (local) : Str
+            line 159: Exit Do
+        line 161: If (END IF line 161)
+          If line 161
+            Binary Ge : I32
+              Binary Add : F64
+                Var _ST (local) : F64
+                Convert Nearest : F64
+                  Int 10 : I16
+              Convert Nearest : F64
+                Int 86400 : I64
+            line 161: Assign _ST (local):F64
+              Binary Sub : F64
+                Var _ST (local) : F64
+                Convert Nearest : F64
+                  Int 86400 : I64
+line 164: Builtin CLOSE
+  Var _CH (local) : I32

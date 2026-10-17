@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_OPENHOST "TCP/IP:1",8
+LINE 3:_OPENHOST "TCP/IP:1"
+exit=1

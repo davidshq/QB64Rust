@@ -1,0 +1,5 @@
+
+Embed-Handle 'abc' is undefined (check your $EMBED lines)
+Caused by (or after):PRINT LEN ( _EMBEDDED$ ( "abc",3 ) )
+LINE 4:PRINT LEN(_EMBEDDED$("abc"))
+exit=1

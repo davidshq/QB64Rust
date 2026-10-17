@@ -77,7 +77,7 @@ impl<'a> Emitter<'a> {
         // each time a handler re-enters `QBMAIN`, as in the old compiler.
         let mut out = String::from("error_track_line(0,0,NULL);\nS_0:;\n");
         let p = self.p;
-        self.body(&p.main, 0, &mut out);
+        self.body(&p.main, 0, true, &mut out);
         out.push_str("sub_end();\nreturn;\n}\n");
         out
     }
@@ -176,7 +176,7 @@ impl<'a> Emitter<'a> {
         header.push(format!("#include \"data{k}.txt\""));
         header.extend(PROLOGUE_AFTER_DATA.iter().map(|s| s.to_string()));
         self.lines(proc.line, &header, &mut main);
-        self.body(&proc.body, k, &mut main);
+        self.body(&proc.body, k, proc.checked, &mut main);
         let mut footer = vec!["exit_subfunc:;".to_string()];
         // A FUNCTION `f$n`: a copy of its n bytes, made before the epilogue releases the static pool they lie in (the
         // old compiler returns the fixed string itself, so a second call in the same expression overwrites the first
@@ -222,12 +222,14 @@ impl<'a> Emitter<'a> {
         (main, data, free)
     }
 
-    /// Body number `k` (0 for the main module, K for procedure K).
-    fn body(&mut self, b: &'a Body, k: usize, out: &mut String) {
+    /// Body number `k` (0 for the main module, K for procedure K). Without `checked` (below `$CHECKING:OFF`, design
+    /// D8 of `m3-network-embed`) each statement is written alone, as the old compiler writes it there: no event
+    /// check after it, and none at a label (read from its C++ of `afterlastline.bm`).
+    fn body(&mut self, b: &'a Body, k: usize, checked: bool, out: &mut String) {
         self.body = b;
         self.k = k;
         for (i, s) in b.stmts.iter().enumerate() {
-            self.labels(i, out);
+            self.labels(i, checked, out);
             let mut body = Vec::new();
             self.stmt_at = (Some(s.span.file), s.line, s.include_line);
             // Whether an earlier operation of the statement may have left an error pending.
@@ -236,23 +238,28 @@ impl<'a> Emitter<'a> {
                 self.op(op, raised, &mut body);
                 raised |= op.may_raise();
             }
+            let file = Some(s.span.file);
+            if !checked {
+                self.lines_in(file, s.line, &body, out);
+                continue;
+            }
             let mut lines = vec!["do{".to_string()];
             lines.extend(body);
-            let file = Some(s.span.file);
             lines.push(format!(
                 "if(!qbevent)break;evnt({});}}while(r);",
                 self.evnt_args(file, s.line, s.include_line)
             ));
             self.lines_in(file, s.line, &lines, out);
         }
-        self.labels(b.stmts.len(), out);
+        self.labels(b.stmts.len(), checked, out);
     }
 
-    /// The labels that stand before statement `at`; a user label with the old compiler's event check.
-    fn labels(&self, at: usize, out: &mut String) {
+    /// The labels that stand before statement `at`; a user label with the old compiler's event check where the
+    /// body is `checked`.
+    fn labels(&self, at: usize, checked: bool, out: &mut String) {
         for (i, l) in self.body.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
             let mut lines = vec![format!("{}:;", self.local_label(LabelId(to_u32(i))))];
-            if l.name.is_some() {
+            if l.name.is_some() && checked {
                 lines.push(format!(
                     "if(qbevent){{evnt({});r=0;}}",
                     self.evnt_args(l.file, l.line, l.include_line)

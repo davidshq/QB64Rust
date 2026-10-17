@@ -23,5 +23,4 @@ auto_const_errors.bas:29:5: error: not supported yet: `_FLOAT_MAX`, a constant o
 auto_const_errors.bas:30:5: error: not supported yet: `_INTEGER64_MIN`, a constant of QB64pe's auto-included file: a number beyond `_INTEGER64` in a `CONST`
 auto_const_errors.bas:31:5: error: not supported yet: `_UINTEGER64_MAX`, a constant of QB64pe's auto-included file: a number beyond `_INTEGER64` in a `CONST`
 auto_const_errors.bas:33:19: error: not supported yet: `_E`, a constant of QB64pe's auto-included file: the function `EXP` in a `CONST`
-auto_const_errors.bas:34:5: error: not supported yet: `_WhatIsMyIP` (a name of QB64pe's auto-included files)
 auto_const_errors.bas:37:5: error: names starting with `_` are reserved: `_FALSE`

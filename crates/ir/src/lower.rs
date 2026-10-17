@@ -57,6 +57,7 @@ pub fn lower(p: &sema::Program) -> Program {
             line: q.line,
             end_line: q.end_line,
             external: q.external.clone(),
+            checked: q.checked,
         });
     }
     let program = Program {
@@ -83,6 +84,8 @@ pub fn lower(p: &sema::Program) -> Program {
                     sema::RuntimePart::Font => crate::RuntimePart::Font,
                     sema::RuntimePart::ScreenImage => crate::RuntimePart::ScreenImage,
                     sema::RuntimePart::DataProcessing => crate::RuntimePart::DataProcessing,
+                    sema::RuntimePart::Sockets => crate::RuntimePart::Sockets,
+                    sema::RuntimePart::Embed => crate::RuntimePart::Embed,
                 })
                 .collect(),
             exe_icon: p.settings.exe_icon.is_some(),

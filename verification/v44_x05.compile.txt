@@ -1,0 +1,5 @@
+
+First char of Embed-Handle '1abc' must be a letter
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 3:$EMBED:'./v44_files/text.txt','1abc'
+exit=1

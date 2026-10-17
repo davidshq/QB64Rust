@@ -590,7 +590,8 @@ impl Checker<'_> {
             | Rule::Widest
             | Rule::Rotate
             | Rule::Choice
-            | Rule::Own => unreachable!("`{name}` is no conversion between a number and its bytes"),
+            | Rule::Own
+            | Rule::Embedded => unreachable!("`{name}` is no conversion between a number and its bytes"),
         };
         let positions = list.map(|l| l.args()).unwrap_or_default();
         let type_arg = list.and_then(|l| l.type_arg());

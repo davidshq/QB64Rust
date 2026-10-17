@@ -251,6 +251,9 @@ pub struct Proc {
     /// sake: nothing stores into them. A `BYVAL` parameter takes an [`Arg::Value`] or an [`Arg::Null`], another
     /// one an [`Arg::Ref`] or an [`Arg::Temp`]; only a library procedure takes those two.
     pub external: Option<External>,
+    /// Its statements are written with the event check between them; false below `$CHECKING:OFF` (design D8 of
+    /// `m3-network-embed`), where each statement is written alone and a label has no event check.
+    pub checked: bool,
 }
 
 /// What the error rule and the emitter ask of a value, a place or an argument of the shared tree.
@@ -845,6 +848,10 @@ pub enum RuntimePart {
     ScreenImage,
     /// Checksums, compression and base64.
     DataProcessing,
+    /// TCP/IP and HTTP.
+    Sockets,
+    /// The files built into the executable.
+    Embed,
 }
 
 impl Program {

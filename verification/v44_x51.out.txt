@@ -1,0 +1,2 @@
+no sockets
+exit=0

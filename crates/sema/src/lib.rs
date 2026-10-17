@@ -780,6 +780,9 @@ pub struct Proc {
     /// A procedure declared in a `DECLARE LIBRARY` block (design D1 of `m3-declare-library`): its C function. It has
     /// no statements.
     pub external: Option<External>,
+    /// Its statements check for events and errors between them; false for a procedure below `$CHECKING:OFF`,
+    /// which only QB64pe's file included after the last line has here (design D8 of `m3-network-embed`).
+    pub checked: bool,
 }
 
 /// The C function behind a procedure of a `DECLARE LIBRARY` block.
@@ -1574,6 +1577,25 @@ pub struct Settings {
     pub exe_icon: Option<ExeIcon>,
     /// The version resource `$VERSIONINFO` gives the executable, when a line of it stands in the program.
     pub version_info: Option<VersionInfo>,
+    /// The files the program's `$EMBED` lines name, in file order (design D1 of `m3-network-embed`).
+    pub embedded: Vec<EmbeddedFile>,
+}
+
+/// A file a `$EMBED:'file','handle'` line names (design D1 of `m3-network-embed`). `sema` reads no file: whether it
+/// is there is the driver's check, and the driver builds the used ones into the executable.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EmbeddedFile {
+    /// The handle, letters and digits, as written (letter case counts).
+    pub handle: String,
+    /// The file's name as written (taken as UTF-8), without the blanks at its ends: one that starts with `./` or
+    /// `.\` (looked for in the folder of the main source file, [`ExeIcon::beside_source`]) or an absolute one.
+    pub name: String,
+    /// The name's bytes as written, for a message (`show_bytes`).
+    pub shown: String,
+    /// The metacommand's line.
+    pub span: Span,
+    /// A compiled `_EMBEDDED$` names its handle: only then is the file built in.
+    pub used: bool,
 }
 
 /// The fields of a program's version resource (`$VERSIONINFO:key=value`; design D1 of `m3-versioninfo`). Each
@@ -1654,6 +1676,11 @@ pub enum RuntimePart {
     ScreenImage,
     /// Checksums, compression and base64 (`_CRC32`, `_DEFLATE$`, ...; the old compiler's `DEPENDENCY_ZLIB`).
     DataProcessing,
+    /// libqb's TCP/IP and HTTP part (`_OPENHOST`, `_OPENCLIENT`, and `$DEBUG`; the old compiler's
+    /// `DEPENDENCY_SOCKETS`).
+    Sockets,
+    /// The files built into the executable (`_EMBEDDED$`; the old compiler's `DEPENDENCY_EMBED`).
+    Embed,
 }
 
 impl RuntimePart {
@@ -1667,6 +1694,8 @@ impl RuntimePart {
             "DEPENDENCY_LOADFONT" => Some(RuntimePart::Font),
             "DEPENDENCY_SCREENIMAGE" => Some(RuntimePart::ScreenImage),
             "DEPENDENCY_ZLIB" => Some(RuntimePart::DataProcessing),
+            "DEPENDENCY_SOCKETS" => Some(RuntimePart::Sockets),
+            "DEPENDENCY_EMBED" => Some(RuntimePart::Embed),
             _ => None,
         }
     }

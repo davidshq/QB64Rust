@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):PRINT LEN ( _EMBEDDED ( "h",1 ) )
+LINE 4:PRINT LEN(_EMBEDDED("h"))
+exit=1

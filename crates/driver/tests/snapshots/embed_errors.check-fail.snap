@@ -1,0 +1,43 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+embed_errors.bas:10:22: error: the embed handle `early` is named by no `$EMBED` line above
+embed_errors.bas:10:22: note: QB64pe: Embed-Handle 'early' is undefined (check your $EMBED lines)
+embed_errors.bas:11:1: error: expected `$EMBED:'filename','handle'`
+embed_errors.bas:12:1: error: expected `$EMBED:'filename','handle'`
+embed_errors.bas:13:1: error: expected `$EMBED:'filename','handle'`
+embed_errors.bas:14:1: error: expected `$EMBED:'filename','handle'`
+embed_errors.bas:15:1: error: the first character of the embed handle `1abc` must be a letter
+embed_errors.bas:15:1: note: QB64pe: First char of Embed-Handle '1abc' must be a letter
+embed_errors.bas:16:1: error: the embed handle `my_h` may hold only letters A to Z and digits
+embed_errors.bas:18:1: error: the file `./a.txt` was already embedded in line 17
+embed_errors.bas:19:1: error: the embed handle `h` is already used in line 17
+embed_errors.bas:19:1: note: QB64pe: Embed-Handle 'h' is already used in line 17
+embed_errors.bas:27:22: error: the embed handle of `_EMBEDDED$` must be one string literal, not an expression
+embed_errors.bas:27:22: note: QB64pe: Embed-Handle must be a single literal string in quotes, not a variable
+embed_errors.bas:28:22: error: an embed handle cannot be an empty string
+embed_errors.bas:28:22: note: QB64pe: Embed-Handle cannot be an empty string
+embed_errors.bas:29:22: error: the embed handle `abc` is named by no `$EMBED` line above
+embed_errors.bas:29:22: note: QB64pe: Embed-Handle 'abc' is undefined (check your $EMBED lines)
+embed_errors.bas:30:22: error: the embed handle `nope` is named by no `$EMBED` line above
+embed_errors.bas:30:22: note: QB64pe: Embed-Handle 'nope' is undefined (check your $EMBED lines)
+embed_errors.bas:31:22: error: the embed handle of `_EMBEDDED$` must be one string literal, not an expression
+embed_errors.bas:31:22: note: QB64pe: Embed-Handle must be a single literal string in quotes, not a variable
+embed_errors.bas:32:11: error: `_EMBEDDED$` takes 1 argument
+embed_errors.bas:33:11: error: `_EMBEDDED$` takes 1 argument
+embed_errors.bas:34:22: error: the embed handle `incomment` is named by no `$EMBED` line above
+embed_errors.bas:34:22: note: QB64pe: Embed-Handle 'incomment' is undefined (check your $EMBED lines)
+embed_errors.bas:35:22: error: the embed handle `skipped` is named by no `$EMBED` line above
+embed_errors.bas:35:22: note: QB64pe: Embed-Handle 'skipped' is undefined (check your $EMBED lines)
+embed_errors.bas:36:22: error: the first character of the embed handle ` h ` must be a letter
+embed_errors.bas:36:22: note: QB64pe: First char of Embed-Handle ' h ' must be a letter
+embed_errors.bas:37:22: error: the embed handle of `_EMBEDDED$` must be one string literal, not an expression
+embed_errors.bas:37:22: note: QB64pe: Embed-Handle must be a single literal string in quotes, not a variable
+embed_errors.bas:38:22: error: the embed handle `insub` is named by no `$EMBED` line above
+embed_errors.bas:38:22: note: QB64pe: Embed-Handle 'insub' is undefined (check your $EMBED lines)
+embed_errors.bas:39:22: error: the embed handle `below` is named by no `$EMBED` line above
+embed_errors.bas:39:22: note: QB64pe: Embed-Handle 'below' is undefined (check your $EMBED lines)
+embed_errors.bas:40:11: error: `_EMBEDDED$` cannot be used in a `CONST`
+embed_errors.bas:40:11: note: QB64pe: Unexpected element '_EMBEDDED$'
+embed_errors.bas:46:1: error: the file `.\x.txt` was already embedded in line 45

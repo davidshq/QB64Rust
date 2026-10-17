@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _EMBEDDED$("handle")
+Caused by (or after):PRINT LEN ( _EMBEDDED$ )
+LINE 4:PRINT LEN(_EMBEDDED$)
+exit=1

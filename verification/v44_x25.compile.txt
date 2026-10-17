@@ -1,0 +1,5 @@
+
+First char of Embed-Handle ' h ' must be a letter
+Caused by (or after):PRINT LEN ( _EMBEDDED$ ( " h ",3 ) )
+LINE 4:PRINT LEN(_EMBEDDED$(" h "))
+exit=1

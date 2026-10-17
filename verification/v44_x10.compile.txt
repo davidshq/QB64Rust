@@ -1,0 +1,5 @@
+
+Embed-Handle 'nope' is undefined (check your $EMBED lines)
+Caused by (or after):PRINT LEN ( _EMBEDDED$ ( "nope",4 ) )
+LINE 4:PRINT LEN(_EMBEDDED$("nope"))
+exit=1

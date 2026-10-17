@@ -1,0 +1,5 @@
+
+Unexpected element '_EMBEDDED$'
+Caused by (or after):
+LINE 4:CONST C = _EMBEDDED$ ( "h",1 )
+exit=1

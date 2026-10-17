@@ -223,6 +223,62 @@ fn is_resource_file(name: &str) -> bool {
 /// The make flag that links the resource script of `$EXEICON` and `$VERSIONINFO`.
 const ICON_RC_FLAG: &str = "DEP_ICON_RC=y";
 
+/// The make flag that compiles and links `<build>/temp/embedded.cpp` ([`write_embedded`]).
+const EMBED_FLAG: &str = "DEP_EMBED=y";
+
+/// The file of [`write_embedded`] in `<build>/temp`.
+const EMBEDDED_CPP: &str = "embedded.cpp";
+
+/// The files `$EMBED` builds into the executable (design D3 and D4 of `m3-network-embed`; `qb64pe.bas`
+/// 13650–13690, 28096–28180): `<build>/temp/embedded.cpp` holds each used file (`files`: its handle and its bytes)
+/// as an array of its bytes, stored as they are, and `func__embedded`, which `qbx.cpp` declares: a new string of the
+/// bytes of the file whose handle equals its argument, or an empty one, as the old compiler's function ends.
+/// Without a used file the file an earlier build left in a kept folder is removed, and nothing is written.
+pub fn write_embedded(build: &Path, files: &[(String, Vec<u8>)]) -> Result<(), String> {
+    let temp = build.join("temp");
+    let path = temp.join(EMBEDDED_CPP);
+    let writing = |e: std::io::Error| format!("writing {}: {e}", path.display());
+    if files.is_empty() {
+        return match std::fs::remove_file(&path) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(writing(e)),
+            _ => Ok(()),
+        };
+    }
+    std::fs::create_dir_all(&temp).map_err(writing)?;
+    std::fs::write(&path, embedded_cpp(files)).map_err(writing)
+}
+
+/// The text of `embedded.cpp` ([`write_embedded`]). A handle is letters and digits (`sema` checked it), so it names
+/// a C++ array; two handles that differ in letter case are two arrays.
+pub fn embedded_cpp(files: &[(String, Vec<u8>)]) -> String {
+    use std::fmt::Write as _;
+    let mut out = String::from("#include <stdint.h>\n#include <string.h>\n#include \"common.h\"\n\n");
+    for (handle, bytes) in files.iter().filter(|(_, b)| !b.is_empty()) {
+        writeln!(out, "static const uint8_t embed_{handle}[] = {{").unwrap();
+        for line in bytes.chunks(16) {
+            let hex: Vec<String> = line.iter().map(|b| format!("0x{b:02X}")).collect();
+            writeln!(out, "    {},", hex.join(",")).unwrap();
+        }
+        out.push_str("};\n\n");
+    }
+    out.push_str("qbs *func__embedded(qbs *handle)\n{\n");
+    for (handle, bytes) in files {
+        let len = bytes.len();
+        let copy = if len == 0 {
+            String::new()
+        } else {
+            format!("memcpy(data->chr, embed_{handle}, {len}); ")
+        };
+        writeln!(
+            out,
+            "    if (qbs_equal(handle, qbs_new_txt(\"{handle}\"))) {{qbs *data = qbs_new({len}, 1); {copy}return data;}}"
+        )
+        .unwrap();
+    }
+    out.push_str("    return qbs_new_txt(\"\");\n}\n");
+    out
+}
+
 fn slash(p: &Path) -> String {
     p.to_string_lossy().replace('\\', "/")
 }
@@ -242,6 +298,9 @@ pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     if !s.window {
         flags.push("DEP_CONSOLE_ONLY=y");
     }
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Sockets) {
+        flags.extend(["DEP_SOCKETS=y", "DEP_HTTP=y"]);
+    }
     if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Printer) {
         flags.push("DEP_PRINTER=y");
     }
@@ -256,6 +315,9 @@ pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     }
     if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::DataProcessing) {
         flags.push("DEP_ZLIB=y");
+    }
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Embed) {
+        flags.push(EMBED_FLAG);
     }
     if s.console {
         flags.push("DEP_CONSOLE=y");
@@ -423,6 +485,13 @@ fn build_key(root: &Path, build: &Path, settings: &Settings) -> String {
             if p.is_file() {
                 h.file(&p, name);
             }
+        }
+    }
+    // The embedded files ([`write_embedded`]), which `make` reads only with the flag; a changed file changes it.
+    if settings.flags.contains(&EMBED_FLAG) {
+        let p = build.join("temp").join(EMBEDDED_CPP);
+        if p.is_file() {
+            h.file(&p, EMBEDDED_CPP);
         }
     }
     h.file(&root.join("internal/c/qbx.cpp"), "qbx.cpp");
@@ -977,5 +1046,81 @@ mod tests {
         let mut s = program_settings(false, true, false);
         s.runtime_parts.insert(DataProcessing);
         assert_eq!(make_flags(&s), ["DEP_ZLIB=y"]);
+    }
+
+    /// The embed part stands after `DEP_ZLIB=y` and before `DEP_CONSOLE=y`, as the old compiler orders them
+    /// (`qb64pe.bas` 13715–13717; design D3 of `m3-network-embed`).
+    #[test]
+    fn make_flags_of_the_embed_part() {
+        use qb64rust_ir::RuntimePart::{DataProcessing, Embed};
+        let mut s = program_settings(true, false, false);
+        s.runtime_parts.insert(Embed);
+        assert_eq!(make_flags(&s), ["DEP_CONSOLE_ONLY=y", "DEP_EMBED=y", "DEP_CONSOLE=y"]);
+        s.runtime_parts.insert(DataProcessing);
+        assert_eq!(
+            make_flags(&s),
+            ["DEP_CONSOLE_ONLY=y", "DEP_ZLIB=y", "DEP_EMBED=y", "DEP_CONSOLE=y"]
+        );
+    }
+
+    /// `embedded.cpp` holds each used file's bytes as they are: an empty file has no array and gives an empty
+    /// string, every byte value is written, a file of 33 bytes ends with a short line; a program without a used file
+    /// gets no `embedded.cpp`, and one an earlier build left is removed (design D3 and D4 of `m3-network-embed`).
+    #[test]
+    fn embedded_files_in_the_build() {
+        let all: Vec<u8> = (0..=255).collect();
+        let odd: Vec<u8> = (b'A'..=b'Z').chain(b'a'..=b'g').collect();
+        let files = [
+            ("Empty".to_string(), Vec::new()),
+            ("all256".to_string(), all),
+            ("odd".to_string(), odd.clone()),
+        ];
+        let text = embedded_cpp(&files);
+        assert!(text.starts_with("#include <stdint.h>\n#include <string.h>\n#include \"common.h\"\n"));
+        assert!(!text.contains("embed_Empty"));
+        assert!(
+            text.contains("if (qbs_equal(handle, qbs_new_txt(\"Empty\"))) {qbs *data = qbs_new(0, 1); return data;}")
+        );
+        assert!(text.contains("static const uint8_t embed_all256[] = {\n    0x00,0x01,"));
+        assert!(text.contains("0xFE,0xFF,\n};"));
+        assert!(text.contains("memcpy(data->chr, embed_all256, 256); return data;}"));
+        // 33 bytes: two lines of 16 and one of 1.
+        assert!(text.contains("    0x67,\n};"));
+        assert!(text.contains("memcpy(data->chr, embed_odd, 33);"));
+        assert!(text.ends_with("    return qbs_new_txt(\"\");\n}\n"));
+        assert_eq!(odd.len(), 33);
+
+        let d = tempfile::tempdir().unwrap();
+        write_embedded(d.path(), &files).unwrap();
+        let path = d.path().join("temp/embedded.cpp");
+        assert_eq!(std::fs::read(&path).unwrap(), text.as_bytes());
+        write_embedded(d.path(), &[]).unwrap();
+        assert!(!path.exists());
+        write_embedded(d.path(), &[]).unwrap();
+    }
+
+    /// The sockets part is two flags after `DEP_CONSOLE_ONLY=y` and before `DEP_PRINTER=y`, as the old compiler
+    /// orders them (`qb64pe.bas` 13709; design D5 of `m3-network-embed`).
+    #[test]
+    fn make_flags_of_the_sockets_part() {
+        use qb64rust_ir::RuntimePart::{DataProcessing, ImageCodec, Printer, Sockets};
+        let mut s = program_settings(true, false, false);
+        s.runtime_parts.insert(Sockets);
+        assert_eq!(
+            make_flags(&s),
+            ["DEP_CONSOLE_ONLY=y", "DEP_SOCKETS=y", "DEP_HTTP=y", "DEP_CONSOLE=y"]
+        );
+        let mut s = program_settings(false, true, false);
+        s.runtime_parts.extend([Sockets, ImageCodec, Printer, DataProcessing]);
+        assert_eq!(
+            make_flags(&s),
+            [
+                "DEP_IMAGE_CODEC=y",
+                "DEP_SOCKETS=y",
+                "DEP_HTTP=y",
+                "DEP_PRINTER=y",
+                "DEP_ZLIB=y"
+            ]
+        );
     }
 }

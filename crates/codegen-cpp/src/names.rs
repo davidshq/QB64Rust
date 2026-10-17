@@ -259,6 +259,7 @@ mod tests {
                 line: 1,
                 end_line: 1,
                 external: None,
+                checked: true,
             });
         }
         assert_eq!(var_name(&p, &var("A", Ty::I32, Storage::Global)), "__LONG_A");

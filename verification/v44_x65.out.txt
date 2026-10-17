@@ -1,0 +1,4 @@
+  error 52 line 4 
+get -5: [x]
+done
+exit=0

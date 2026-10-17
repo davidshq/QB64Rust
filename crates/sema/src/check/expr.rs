@@ -403,11 +403,12 @@ impl Checker<'_> {
 }
 
 /// Whether `name` with `suffix` names a built-in function as it must be written: `LEN` bare, `LEFT$` with its `$`
-/// (a bare `left` is free, design D3).
+/// (a bare `left` is free, design D3); one that may have its `$` (`_CONNECTIONADDRESS`) either way.
 pub(super) fn is_builtin_function(name: &str, suffix: Option<Ty>) -> bool {
     find_any(name.as_bytes()).any(|b| {
         b.kind == qb64rust_builtins::Kind::Function
             && match b.musthave {
+                None if b.mayhave == Some("$") => suffix.is_none() || suffix == Some(Ty::Str),
                 None => suffix.is_none(),
                 Some("$") => suffix == Some(Ty::Str),
                 Some(_) => false,

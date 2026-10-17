@@ -18,6 +18,7 @@ errorline_errors.bas:14:5: note: QB64pe: Expected (...)
 errorline_errors.bas:15:7: error: `_ERRORLINE` with empty parentheses
 errorline_errors.bas:15:7: note: QB64pe: Expected (...)
 errorline_errors.bas:16:11: error: `_ERRORLINE` cannot be used in a `CONST`
+errorline_errors.bas:16:11: note: QB64pe: Unexpected element '_ERRORLINE'
 errorline_errors.bas:17:7: error: names starting with `_` are reserved: `_ERRORLINE&`
 errorline_errors.bas:18:7: error: names starting with `_` are reserved: `_INCLERRORFILE`
 errorline_errors.bas:18:7: note: QB64pe: Invalid variable name

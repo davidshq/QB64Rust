@@ -1,0 +1,11 @@
+host:-1 
+client:-1 -1 
+connection:-1 -1 -1 
+connected:-1 -1 
+client address: TCP/IP:47392:localhost
+connection address: TCP/IP:<port>:127.0.0.1-1 
+host got: [hello from the client]
+client got: 11 -1  255 
+eof: 0 lof: 0 
+after the client closed: 0 
+done

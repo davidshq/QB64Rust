@@ -34,6 +34,8 @@ fn settings(s: &Settings) -> String {
                 RuntimePart::Font => "font",
                 RuntimePart::ScreenImage => "screen image",
                 RuntimePart::DataProcessing => "data processing",
+                RuntimePart::Sockets => "sockets",
+                RuntimePart::Embed => "embedded files",
             })
             .collect();
         parts.push(format!("runtime parts: {}", names.join(", ")));
@@ -131,8 +133,8 @@ pub fn dump(p: &Program) -> String {
     body(p, &p.main, &mut out);
     for (i, proc) in p.procs.iter().enumerate() {
         match proc.kind {
-            ProcKind::Sub => writeln!(out, "Sub {} lines {}-{}", proc.name, proc.line, proc.end_line).unwrap(),
-            ProcKind::Function(t) => writeln!(
+            ProcKind::Sub => write!(out, "Sub {} lines {}-{}", proc.name, proc.line, proc.end_line).unwrap(),
+            ProcKind::Function(t) => write!(
                 out,
                 "Function {}:{} lines {}-{}",
                 proc.name,
@@ -142,6 +144,7 @@ pub fn dump(p: &Program) -> String {
             )
             .unwrap(),
         }
+        writeln!(out, "{}", if proc.checked { "" } else { " unchecked" }).unwrap();
         if let Some(e) = &proc.external {
             let byval: Vec<&str> = e.byval.iter().map(|&b| if b { "byval" } else { "ref" }).collect();
             writeln!(
