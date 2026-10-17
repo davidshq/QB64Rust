@@ -23,8 +23,8 @@ M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: twenty-one of it
 cadence of `study\32` and `study\34`, not M3 steps, `4a8d06e` and `5d3730f`) are archived too.
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
 Civil War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same
-23 screens as the old compiler's build. Upstream is at 347 of 399. `main` is at the merge of `m3-new` (pull
-request 7, 2026-10-17), which holds every change up to `m3-errorline-chr-const`.
+23 screens as the old compiler's build. Upstream is at 347 of 399. `main` is at the merge of `m3-newer` (pull
+request 8, 2026-10-17), which holds every change up to `m3-network-embed` and `test-while-building`.
 
 ## Waiting on the user
 
@@ -33,12 +33,7 @@ Oldest first. Each line names where the details are. The list of 2026-10-16 was 
 change's close. Separate from this list and standing: `SOMEDAY.md`'s "QB64pe behaviours to review", the
 questionable behaviours each change kept QB64pe's way.
 
-1. **Merge `m3-newer` into `main`**: `m3-network-embed` (`3701aa0`) and `test-while-building` (`5d3730f`), with
-   their archive, the changes since pull request 7 (`DECISIONS.md` 2026-10-16, "every two or three changes"); the
-   full set of runs at a merge (working rule 9) is run on `5d3730f`.
-2. **`m3-network-embed`'s three kept behaviours** (archived without a ruling on them; `SOMEDAY.md`'s "QB64pe
-   behaviours to review"): `_STATUSCODE` of a never-opened handle crashing, `$EMBED`'s loose line,
-   `_DECODEURL$`'s bad `%`.
+Nothing waits now.
 
 **The `tier2` job on `m3`** (`study\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -50,7 +45,7 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-The work goes to `main` every two or three changes; two wait now (item 1). The next M3 step is the user's to choose: the
+The work goes to `main` every two or three changes; none waits now. The next M3 step is the user's to choose: the
 upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, `_FLOAT` constants and blanks around
 `.` (2 programs each). The plain copy of `internal\c` waits until libqb must change.
 
@@ -83,6 +78,13 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 21 | `2026-10-17-m3-network-embed` | the network functions and `_SOCKETS_`, `$EMBED` and `_EMBEDDED$`, the URL functions, `afterlastline.bm` |
 
 ## Numbers at the last full runs
+
+**At the merge into `main` of pull request 8** (2026-10-17, the full set at a merge on `5d3730f`, no pass
+cache, `--jobs 8 --build-cache`): tier 1 349 of 349; the full corpus suite 472 pass, 5 known failures and
+`218_fre` (only marked errors), `slice.list` judged from it (`--check-list`) 453 of 453, and 453 of 453 with
+`QB64RUST_NO_FOLD=1`; the full upstream suite 347 pass, 56 rejected or with only marked errors, 1 known failure,
+`pass.list` judged from it 347 of 347; the differential pass list 59 of 59; the call-site check 1884 of 1884
+equal.
 
 **At the close of `m3-network-embed`** (2026-10-17, `close.py --check` passes): `slice.list` 453 of 453
 (`--pass-cache`, which skipped none: the regenerated wording table changed every executable); upstream `pass.list`
