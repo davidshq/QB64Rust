@@ -134,6 +134,7 @@ version,session,change,category,actions,bytes
 1,0b62e185,m3-sound,reading,2,0
 1,0b62e185,m3-sound,scratch files,2,7127
 1,0b62e185,m3-sound,test runs,2,0
+1,0e4635d2,,other commands,1,0
 1,0f33b8c8,,measurement runs,3,0
 1,0f33b8c8,,other commands,32,0
 1,0f33b8c8,,reading,5,0
@@ -299,6 +300,17 @@ version,session,change,category,actions,bytes
 1,28041ce0,m1-vscode-extension-v0,measurement runs,2,0
 1,28041ce0,m1-vscode-extension-v0,other commands,6,0
 1,28041ce0,m1-vscode-extension-v0,test runs,1,0
+1,28867a87,,other commands,1,0
+1,28867a87,m3-versioninfo,builds,3,0
+1,28867a87,m3-versioninfo,documents and planning,17,12585
+1,28867a87,m3-versioninfo,measurement preparation,1,802
+1,28867a87,m3-versioninfo,measurement runs,1,0
+1,28867a87,m3-versioninfo,other,2,3282
+1,28867a87,m3-versioninfo,other commands,69,0
+1,28867a87,m3-versioninfo,product code,26,20963
+1,28867a87,m3-versioninfo,reading,19,0
+1,28867a87,m3-versioninfo,test runs,30,0
+1,28867a87,m3-versioninfo,tests and fixtures,8,13484
 1,2a17bf8b,m3-asserts-debug-zlib,other,1,0
 1,2a17bf8b,m3-asserts-debug-zlib,other commands,6,0
 1,2a17bf8b,m3-asserts-debug-zlib,reading,1,0
@@ -908,6 +920,14 @@ version,session,change,category,actions,bytes
 1,6d30f8f6,m2-defxxx-common-arrays,scratch files,3,3305
 1,6d30f8f6,m2-defxxx-common-arrays,test runs,16,0
 1,6d30f8f6,m2-defxxx-common-arrays,tests and fixtures,29,25244
+1,6f06e603,,other commands,14,0
+1,6f06e603,,reading,3,0
+1,6f06e603,,test runs,1,0
+1,6f06e603,m3-versioninfo,documents and planning,5,946
+1,6f06e603,m3-versioninfo,other commands,15,0
+1,6f06e603,m3-versioninfo,product code,5,2772
+1,6f06e603,m3-versioninfo,reading,4,0
+1,6f06e603,m3-versioninfo,test runs,9,0
 1,6fc6e11a,,reading,1,0
 1,6fc6e11a,m2-upstream-tests,builds,4,0
 1,6fc6e11a,m2-upstream-tests,documents and planning,8,7394
@@ -1062,6 +1082,11 @@ version,session,change,category,actions,bytes
 1,7c13021e,m2-control-flow-slice,other commands,9,0
 1,7c13021e,m2-control-flow-slice,reading,6,0
 1,7c13021e,m2-control-flow-slice,test runs,1,0
+1,7ca42c41,,documents and planning,6,910
+1,7ca42c41,,other,1,0
+1,7ca42c41,,other commands,5,0
+1,7ca42c41,,test runs,1,0
+1,7ca42c41,m3-sound-handles,other commands,4,0
 1,7cf84f30,,reading,1,0
 1,7cf84f30,m2-parser-breadth,builds,1,0
 1,7cf84f30,m2-parser-breadth,documents and planning,3,2123
@@ -1242,6 +1267,16 @@ version,session,change,category,actions,bytes
 1,9793c5ff,m2-control-flow-slice,reading,6,0
 1,9793c5ff,m2-control-flow-slice,test runs,6,0
 1,9793c5ff,m2-control-flow-slice,tests and fixtures,22,28058
+1,9954616d,,measurement preparation,3,3334
+1,9954616d,,measurement runs,3,0
+1,9954616d,,other,2,0
+1,9954616d,,other commands,32,0
+1,9954616d,,reading,4,0
+1,9954616d,,scratch files,4,7344
+1,9954616d,m3-versioninfo,documents and planning,7,22370
+1,9954616d,m3-versioninfo,other commands,11,0
+1,9954616d,m3-versioninfo,reading,1,0
+1,9954616d,m3-versioninfo,test runs,1,0
 1,99bacfb3,,documents and planning,1,89
 1,99bacfb3,,other,1,0
 1,99bacfb3,,other commands,2,0

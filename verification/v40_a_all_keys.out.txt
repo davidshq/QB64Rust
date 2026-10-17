@@ -1,0 +1,15 @@
+ok
+FileVersion=[1.2.3.4 beta]
+ProductVersion=[5.6 prod]
+CompanyName=[Acme Co]
+FileDescription=[A test file]
+InternalName=[internal]
+LegalCopyright=[(c) 2026]
+LegalTrademarks=[TM]
+OriginalFilename=[orig.exe]
+ProductName=[Product]
+Comments=[a comment]
+Language=[English (United States)]
+FileParts=1,2,3,4
+ProductParts=5,6,7,8
+exit=0

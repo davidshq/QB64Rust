@@ -1053,6 +1053,27 @@ fn unstable_stable_flag_warning() {
     assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
 }
 
+/// A `$VERSIONINFO` string value without enclosing `'` compiles and, with `-w`, gives the old compiler's warning
+/// with the value on the next line (spec `language/console-and-window`, "A value without quotes"; measured,
+/// `verification\v40_d`, its `v40_rc\v40_d_forms.z.txt`). The C++ only, so no clone is needed.
+#[test]
+fn versioninfo_missing_quotes_warning() {
+    let d = scratch("versioninfo-quotes");
+    let src = "$CONSOLE:ONLY\n$VERSIONINFO:CompanyName='quoted'\n$VERSIONINFO:ProductName=no quotes\n\
+               $VERSIONINFO:Comments='a' ' trailing comment\nPRINT 1\nSYSTEM\n";
+    std::fs::write(d.join("p.bas"), src).unwrap();
+    let o = qb64rust(&d, &["-w", "-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    let out = stdout(&o);
+    let at = out.find("p.bas:3:1: warning").unwrap_or_else(|| panic!("{out}"));
+    let expected = "p.bas:3:1: warning: Missing string bracket delimiters ('')\n    no quotes\n\
+                    p.bas:4:1: warning: Missing string bracket delimiters ('')\n    'a' ' trailing comment\n";
+    assert!(out[at..].replace("\r\n", "\n").starts_with(expected), "{out}");
+    let o = qb64rust(&d, &["-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
+}
+
 /// Deeply nested expressions are one "not supported yet" error, not a stack overflow (the known bug of
 /// 2026-10-07). Through the binary, which runs on its own large stack; a test thread's 2 MiB would not hold the
 /// later walks of an expression 1,000 levels deep in a debug build.

@@ -105,6 +105,9 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
       checks (`m3-divergence-trace`); the old compiler's wording as a note after an error (`m3-old-wording-notes`)
 - [x] Sound handles: `_SNDOPEN`, the `_SND*` family, `_MIDISOUNDBANK`, `_WAVE` (every name of libqb's audio part
       has a row), checked without a sound heard; `_MEMSOUND` run (`m3-sound-handles`). Upstream 318 to 325 of 399
+- [x] `$VERSIONINFO`: the version resource and manifest byte for byte, beside `$EXEICON`'s icon; a compile error
+      where the old compiler's build fails or its executable cannot start (`m3-versioninfo`). Upstream 325 to 328
+      of 399
 - [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
       file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
       `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program

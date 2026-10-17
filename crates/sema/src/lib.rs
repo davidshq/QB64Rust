@@ -1518,6 +1518,49 @@ pub struct Settings {
     pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
     /// The icon `$EXEICON` gives the executable.
     pub exe_icon: Option<ExeIcon>,
+    /// The version resource `$VERSIONINFO` gives the executable, when a line of it stands in the program.
+    pub version_info: Option<VersionInfo>,
+}
+
+/// The fields of a program's version resource (`$VERSIONINFO:key=value`; design D1 of `m3-versioninfo`). Each
+/// value is the source's bytes as written, without one pair of enclosing `'` for a string (the old compiler copies
+/// them unchanged into the resource, measured, `verification\v40_g7`); an empty one was not set.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct VersionInfo {
+    /// `FILEVERSION#`: four comma-separated numbers.
+    pub file_version: Vec<u8>,
+    /// `PRODUCTVERSION#`: likewise.
+    pub product_version: Vec<u8>,
+    /// The string fields, in the order of [`VersionInfo::STRING_KEYS`].
+    pub strings: [Vec<u8>; VERSION_STRINGS],
+}
+
+/// The number of string fields of a version resource.
+pub const VERSION_STRINGS: usize = 11;
+
+impl VersionInfo {
+    /// The string keys, in the order the resource lists them (`qb64pe.bas` 13617–13627).
+    pub const STRING_KEYS: [&'static str; VERSION_STRINGS] = [
+        "CompanyName",
+        "FileDescription",
+        "FileVersion",
+        "InternalName",
+        "LegalCopyright",
+        "LegalTrademarks",
+        "OriginalFilename",
+        "ProductName",
+        "ProductVersion",
+        "Comments",
+        "Web",
+    ];
+    /// The indexes in [`Self::STRING_KEYS`] of the keys the compiler names.
+    pub const COMPANY_NAME: usize = 0;
+    pub const FILE_DESCRIPTION: usize = 1;
+    pub const FILE_VERSION: usize = 2;
+    pub const PRODUCT_NAME: usize = 7;
+    pub const PRODUCT_VERSION: usize = 8;
+    /// The string fields the executable's manifest holds.
+    pub const MANIFEST: [usize; 3] = [Self::COMPANY_NAME, Self::PRODUCT_NAME, Self::FILE_DESCRIPTION];
 }
 
 /// The icon of a program's executable (`$EXEICON:'name'`; design D4 of `m3-sound`). `sema` reads no file: whether

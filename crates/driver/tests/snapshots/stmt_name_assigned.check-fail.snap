@@ -23,4 +23,5 @@ stmt_name_assigned.bas:23:1: error: name already in use: `DRAW`
 stmt_name_assigned.bas:24:1: error: name already in use: `PCOPY`
 stmt_name_assigned.bas:24:1: note: QB64pe: Name already in use (PCOPY)
 stmt_name_assigned.bas:25:1: error: `_LIMIT(...)`: `_LIMIT` is a built-in statement
+stmt_name_assigned.bas:25:1: note: QB64pe: Invalid array name
 stmt_name_assigned.bas:26:1: error: not supported yet: an array named `WIDTH`

@@ -1,0 +1,36 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 149
+expression: snap
+---
+versioninfo_errors.bas:8:1: error: expected `$VERSIONINFO:key=value`
+versioninfo_errors.bas:9:1: error: expected `$VERSIONINFO:key=value`
+versioninfo_errors.bas:10:1: error: expected `$VERSIONINFO:key=value`
+versioninfo_errors.bas:11:1: error: expected `$VERSIONINFO:key=value`
+versioninfo_errors.bas:12:1: error: invalid `$VERSIONINFO` key; use FILEVERSION#, PRODUCTVERSION#, CompanyName, FileDescription, FileVersion, InternalName, LegalCopyright, LegalTrademarks, OriginalFilename, ProductName, ProductVersion, Comments or Web
+versioninfo_errors.bas:12:1: note: QB64pe: Invalid key. (Use FILEVERSION#, PRODUCTVERSION#, CompanyName, FileDescription, FileVersion, InternalName, LegalCopyright, LegalTrademarks, OriginalFilename, ProductName, ProductVersion, Comments or Web)
+versioninfo_errors.bas:13:1: error: expected `$VERSIONINFO:FILEVERSION#=#,#,#,#` (four comma-separated numbers: major, minor, revision and build)
+versioninfo_errors.bas:14:1: error: expected `$VERSIONINFO:FILEVERSION#=#,#,#,#` (four comma-separated numbers: major, minor, revision and build)
+versioninfo_errors.bas:15:1: error: expected `$VERSIONINFO:FILEVERSION#=#,#,#,#` (four comma-separated numbers: major, minor, revision and build)
+versioninfo_errors.bas:16:1: error: expected `$VERSIONINFO:FILEVERSION#=#,#,#,#` (four comma-separated numbers: major, minor, revision and build)
+versioninfo_errors.bas:17:1: error: expected `$VERSIONINFO:FILEVERSION#=#,#,#,#` (four comma-separated numbers: major, minor, revision and build)
+versioninfo_errors.bas:18:1: error: expected `$VERSIONINFO:FILEVERSION#=#,#,#,#` (four comma-separated numbers: major, minor, revision and build)
+versioninfo_errors.bas:19:1: error: expected `$VERSIONINFO:FILEVERSION#=#,#,#,#` (four comma-separated numbers: major, minor, revision and build)
+versioninfo_errors.bas:20:1: error: expected `$VERSIONINFO:FILEVERSION#=#,#,#,#` (four comma-separated numbers: major, minor, revision and build)
+versioninfo_errors.bas:21:1: error: expected `$VERSIONINFO:key=value`
+versioninfo_errors.bas:22:1: error: invalid `$VERSIONINFO` key; use FILEVERSION#, PRODUCTVERSION#, CompanyName, FileDescription, FileVersion, InternalName, LegalCopyright, LegalTrademarks, OriginalFilename, ProductName, ProductVersion, Comments or Web
+versioninfo_errors.bas:22:1: note: QB64pe: Invalid key. (Use FILEVERSION#, PRODUCTVERSION#, CompanyName, FileDescription, FileVersion, InternalName, LegalCopyright, LegalTrademarks, OriginalFilename, ProductName, ProductVersion, Comments or Web)
+versioninfo_errors.bas:23:1: error: invalid `$VERSIONINFO` key; use FILEVERSION#, PRODUCTVERSION#, CompanyName, FileDescription, FileVersion, InternalName, LegalCopyright, LegalTrademarks, OriginalFilename, ProductName, ProductVersion, Comments or Web
+versioninfo_errors.bas:23:1: note: QB64pe: Invalid key. (Use FILEVERSION#, PRODUCTVERSION#, CompanyName, FileDescription, FileVersion, InternalName, LegalCopyright, LegalTrademarks, OriginalFilename, ProductName, ProductVersion, Comments or Web)
+versioninfo_errors.bas:24:1: error: expected `$VERSIONINFO:PRODUCTVERSION#=#,#,#,#` (four comma-separated numbers: major, minor, revision and build)
+versioninfo_errors.bas:25:1: error: expected `$VERSIONINFO:FILEVERSION#=#,#,#,#` (four comma-separated numbers: major, minor, revision and build)
+versioninfo_errors.bas:26:1: error: expected `$VERSIONINFO:FILEVERSION#=#,#,#,#` (four comma-separated numbers: major, minor, revision and build)
+versioninfo_errors.bas:27:1: error: expected `$VERSIONINFO:key=value`
+versioninfo_errors.bas:28:1: error: expected `$VERSIONINFO:key=value`
+versioninfo_errors.bas:29:1: error: part 2 of `FILEVERSION#` is empty; the resource compiler needs a number from 0 to 65535
+versioninfo_errors.bas:30:1: error: part 1 of `FILEVERSION#` is empty; the resource compiler needs a number from 0 to 65535
+versioninfo_errors.bas:31:1: error: part 1 of `FILEVERSION#`, `70000`, is not a number from 0 to 65535 the resource compiler reads
+versioninfo_errors.bas:32:1: error: part 1 of `PRODUCTVERSION#`, `65536`, is not a number from 0 to 65535 the resource compiler reads
+versioninfo_errors.bas:33:1: error: part 1 of `FILEVERSION#`, `08`, is not a number from 0 to 65535 the resource compiler reads (after a leading 0 it is octal)
+versioninfo_errors.bas:36:1: error: `ProductName` holds `<`, which the executable's manifest cannot hold; Windows would not start the program
+versioninfo_errors.bas:38:1: error: `FileDescription` holds `&`, which the executable's manifest cannot hold; Windows would not start the program

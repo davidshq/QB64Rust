@@ -86,6 +86,7 @@ pub fn lower(p: &sema::Program) -> Program {
                 })
                 .collect(),
             exe_icon: p.settings.exe_icon.is_some(),
+            version_info: p.settings.version_info.clone(),
         },
     };
     if cfg!(debug_assertions)

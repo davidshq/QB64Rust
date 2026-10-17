@@ -1,0 +1,22 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 149
+expression: snap
+---
+Settings: console, no window
+Version info: file 2,2,2,2, product 3,0,0,0
+  CompanyName: "second"
+  FileDescription: "from an included file"
+  FileVersion: "1,1,1,1"
+  ProductName: "in a sub"
+  ProductVersion: "text first"
+Stmt line 2
+  SelectConsole
+Stmt line 18
+  Print console newline
+    Str Const "ok"
+Stmt line 19 may_raise
+  Call S []
+Stmt line 20
+  System
+Sub S lines 21-23

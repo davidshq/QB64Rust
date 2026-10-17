@@ -101,6 +101,8 @@ pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, U
 /// An item of the program's data: its text, and whether it was written in quotes (the runtime reads a quoted
 /// item's text as it is, and takes an unquoted one as a number where a number is read).
 pub use qb64rust_sema::DataItem;
+/// The fields of the executable's version resource (`$VERSIONINFO`), which the driver writes as they are.
+pub use qb64rust_sema::VersionInfo;
 /// Which built-in functions are compiled and the rule each follows; the emitter writes a call by its rule.
 pub use qb64rust_sema::builtins;
 /// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
@@ -766,6 +768,8 @@ pub struct Settings {
     pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
     /// The executable carries an icon (`$EXEICON`). Its file is the driver's to find, from the checked program.
     pub exe_icon: bool,
+    /// The executable carries a version resource and a manifest (`$VERSIONINFO`).
+    pub version_info: Option<VersionInfo>,
 }
 
 /// An optional part of the runtime.

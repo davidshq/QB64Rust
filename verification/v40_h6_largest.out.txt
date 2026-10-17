@@ -1,0 +1,15 @@
+ok
+FileVersion=[65535,65535,65535,65535]
+ProductVersion=[]
+CompanyName=[]
+FileDescription=[]
+InternalName=[]
+LegalCopyright=[]
+LegalTrademarks=[]
+OriginalFilename=[]
+ProductName=[]
+Comments=[]
+Language=[English (United States)]
+FileParts=65535,65535,65535,65535
+ProductParts=0,0,0,0
+exit=0

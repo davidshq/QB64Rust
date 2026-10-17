@@ -44,11 +44,31 @@ fn settings(s: &Settings) -> String {
     parts.join(", ")
 }
 
+/// The version resource, one line for the numbers and one per string field that is set.
+fn version_info(out: &mut String, v: &crate::VersionInfo) {
+    let number = |n: &[u8]| if n.is_empty() { "-".to_string() } else { show_bytes(n) };
+    writeln!(
+        out,
+        "Version info: file {}, product {}",
+        number(&v.file_version),
+        number(&v.product_version)
+    )
+    .unwrap();
+    for (key, value) in crate::VersionInfo::STRING_KEYS.iter().zip(&v.strings) {
+        if !value.is_empty() {
+            writeln!(out, "  {key}: \"{}\"", show_bytes(value)).unwrap();
+        }
+    }
+}
+
 /// The program's settings, the main module's statements, then each procedure: its header, its variables by storage
 /// class, its statements.
 pub fn dump(p: &Program) -> String {
     let mut out = String::new();
     writeln!(out, "Settings: {}", settings(&p.settings)).unwrap();
+    if let Some(v) = &p.settings.version_info {
+        version_info(&mut out, v);
+    }
     // The program's data, when there is any: one item per line, a quoted one in quotes.
     for (i, item) in p.data.iter().enumerate() {
         let q = if item.quoted { "\"" } else { "" };

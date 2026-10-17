@@ -72,6 +72,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         window_hidden: false,
         asserts: false,
         exe_icon: None,
+        version_info: None,
+        version_lines: [None; crate::VERSION_STRINGS],
         echoes: Vec::new(),
         runtime_parts: std::collections::BTreeSet::new(),
         names: Vec::new(),
@@ -232,6 +234,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
                 .error(at, "`_ECHO` needs a program with `$CONSOLE` or `$CONSOLE:ONLY`");
         }
     }
+    c.check_manifest_fields();
     c.prog.settings = crate::Settings {
         console: c.console,
         window: !c.console_only,
@@ -239,6 +242,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         asserts: c.asserts,
         runtime_parts: std::mem::take(&mut c.runtime_parts),
         exe_icon: c.exe_icon.take().map(|(icon, _)| icon),
+        version_info: c.version_info.take(),
     };
     (c.prog, c.diags)
 }
@@ -321,6 +325,62 @@ fn unstable_meta(raw: &[u8]) -> Option<Result<Unstable, String>> {
         [b, ..] if b.is_ascii_alphanumeric() || *b == b'_' => None,
         _ => Some(Err("expected `$UNSTABLE:` and a flag".to_string())),
     }
+}
+
+/// The bytes without the spaces at their ends (`LTRIM$`/`RTRIM$`, which take spaces only).
+fn trim_spaces(s: &[u8]) -> &[u8] {
+    let start = s.iter().position(|&b| b != b' ').unwrap_or(s.len());
+    let end = s.iter().rposition(|&b| b != b' ').map_or(start, |e| e + 1);
+    &s[start..end]
+}
+
+/// Checks the value of `FILEVERSION#` or `PRODUCTVERSION#` (`key`, in upper case). First the old compiler's check
+/// (`qb64pe.bas` 3729–3739; measured, `verification\v40_x06`–`x13`, `x17`–`x19`): digits and commas only, three
+/// commas, no comma at the end. Then each part as its resource compiler reads it (design D3 of `m3-versioninfo`;
+/// `v40_h1`–`h7`): not empty, octal after a leading `0`, at most 65535.
+fn version_number(key: &str, value: &[u8]) -> Result<(), String> {
+    let shape = !value.is_empty()
+        && value.iter().all(|&b| b.is_ascii_digit() || b == b',')
+        && value.iter().filter(|&&b| b == b',').count() == 3
+        && value.last() != Some(&b',');
+    if !shape {
+        return Err(format!(
+            "expected `$VERSIONINFO:{key}=#,#,#,#` (four comma-separated numbers: major, minor, revision and build)"
+        ));
+    }
+    for (n, part) in value.split(|&b| b == b',').enumerate() {
+        let n = n + 1;
+        if part.is_empty() {
+            return Err(format!(
+                "part {n} of `{key}` is empty; the resource compiler needs a number from 0 to 65535"
+            ));
+        }
+        let octal = part.len() > 1 && part[0] == b'0';
+        let radix = if octal { 8 } else { 10 };
+        let number = part.iter().try_fold(0u32, |acc, &b| {
+            let digit = u32::from(b - b'0');
+            (digit < radix).then(|| acc * radix + digit).filter(|&v| v <= 65535)
+        });
+        if number.is_none() {
+            let why = if octal { " (after a leading 0 it is octal)" } else { "" };
+            return Err(format!(
+                "part {n} of `{key}`, `{}`, is not a number from 0 to 65535 the resource compiler reads{why}",
+                show_bytes(part)
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// What in a value of the executable's manifest makes Windows refuse it (design D3 of `m3-versioninfo`): the
+/// first `<` or `&`, or a byte that is not UTF-8; `None` when it has neither.
+fn manifest_refusal(value: &[u8]) -> Option<String> {
+    if let Some(&b) = value.iter().find(|&&b| b == b'<' || b == b'&') {
+        return Some(format!("`{}`", b as char));
+    }
+    #[expect(clippy::disallowed_methods, reason = "whether the bytes are UTF-8 is the question")]
+    let bad = std::str::from_utf8(value).err()?.valid_up_to();
+    Some(format!("the byte {} (not UTF-8)", show_bytes(&value[bad..=bad])))
 }
 
 /// Which statements the checker skips: those with a parse error, and those past the parser's error cap. Kept per
@@ -424,6 +484,10 @@ struct Checker<'a> {
     asserts: bool,
     /// The first `$EXEICON` met, with the node it is (its tree and offset).
     exe_icon: Option<(crate::ExeIcon, (TreeId, u32))>,
+    /// The fields the `$VERSIONINFO` lines met so far set, and the line that last set each string field (for the
+    /// manifest check after the walk, design D3 of `m3-versioninfo`).
+    version_info: Option<crate::VersionInfo>,
+    version_lines: [Option<Span>; crate::VERSION_STRINGS],
     /// The `_ECHO` statements met: each is an error when the program turns out to have no console, which is known
     /// only after the walk (design D5 of `m2-console-screenhide`; measured, `verification\v26_x17`, `x62`).
     echoes: Vec<Span>,
@@ -1097,6 +1161,8 @@ impl Checker<'_> {
             Ok(())
         } else if line.starts_with(b"$EXEICON") {
             self.exe_icon_meta(node, tok)
+        } else if line.starts_with(b"$VERSIONINFO") {
+            self.version_info_meta(tok)
         } else if let Some(u) = unstable_meta(raw) {
             match u {
                 // Read by pass 1, where the blocks are (`Self::collect_block_settings`).
@@ -1163,6 +1229,92 @@ impl Checker<'_> {
         };
         self.exe_icon = Some((icon, node.key()));
         Ok(())
+    }
+
+    /// `$VERSIONINFO:key=value` (design D1 of `m3-versioninfo`; `qb64pe.bas` 3647–3741; measured,
+    /// `verification\v40_*`): one field of the executable's version resource. The old compiler takes any line that
+    /// starts with `$VERSIONINFO` in upper case (`$VERSIONINFOX:…` too, `v40_j`) and reads it with the spaces at
+    /// its ends trimmed: the key between the first `:` and the first `=` after it, the value after that `=`, a
+    /// trailing comment included (`v40_d`).
+    fn version_info_meta(&mut self, tok: Tok) -> R<()> {
+        let map = self.map;
+        let line = trim_spaces(map.text(tok.span));
+        let colon = line.iter().position(|&b| b == b':');
+        let eq = colon.and_then(|c| line[c + 1..].iter().position(|&b| b == b'=').map(|e| c + 1 + e));
+        let (Some(colon), Some(eq)) = (colon, eq) else {
+            return Err(self.error(tok.span, "expected `$VERSIONINFO:key=value`"));
+        };
+        if eq == colon + 1 {
+            return Err(self.error(tok.span, "expected `$VERSIONINFO:key=value`"));
+        }
+        let key = trim_spaces(&line[colon + 1..eq]).to_ascii_uppercase();
+        let value: Vec<u8> = trim_spaces(&line[eq + 1..])
+            .iter()
+            .map(|&b| if b == b'"' { b'\'' } else { b })
+            .collect();
+        if key == b"FILEVERSION#" || key == b"PRODUCTVERSION#" {
+            let key = show_bytes(&key);
+            if let Err(msg) = version_number(&key, &value) {
+                return Err(self.error(tok.span, msg));
+            }
+            let info = self.version_info.get_or_insert_with(Default::default);
+            // The string version of the same name takes the digits while it is empty (`v40_b`, `v40_c`).
+            let (number, string) = if key == "FILEVERSION#" {
+                (&mut info.file_version, crate::VersionInfo::FILE_VERSION)
+            } else {
+                (&mut info.product_version, crate::VersionInfo::PRODUCT_VERSION)
+            };
+            *number = value.clone();
+            if info.strings[string].is_empty() {
+                info.strings[string] = value;
+            }
+            return Ok(());
+        }
+        let Some(i) = crate::VersionInfo::STRING_KEYS
+            .iter()
+            .position(|k| k.as_bytes().eq_ignore_ascii_case(&key))
+        else {
+            let msg = "invalid `$VERSIONINFO` key; use FILEVERSION#, PRODUCTVERSION#, CompanyName, FileDescription, \
+                       FileVersion, InternalName, LegalCopyright, LegalTrademarks, OriginalFilename, ProductName, \
+                       ProductVersion, Comments or Web";
+            return Err(self.error(tok.span, msg));
+        };
+        // `RemoveStringEnclosingPair`: one pair of `'` around a value longer than one byte.
+        let quoted = value.len() > 1 && value.first() == Some(&b'\'') && value.last() == Some(&b'\'');
+        let info = self.version_info.get_or_insert_with(Default::default);
+        info.strings[i] = if quoted {
+            value[1..value.len() - 1].to_vec()
+        } else {
+            value.clone()
+        };
+        self.version_lines[i] = Some(tok.span);
+        if !quoted {
+            // The old compiler's warning with the value on the next line (`qb64pe.bas` 3727; `v40_d`), given with
+            // `-w` as every warning is.
+            let msg = format!("Missing string bracket delimiters ('')\n    {}", show_bytes(&value));
+            self.diags.warning(tok.span, msg);
+        }
+        Ok(())
+    }
+
+    /// The three string fields the old compiler writes unescaped into the executable's manifest (design D3 of
+    /// `m3-versioninfo`; user, 2026-10-16): a `<`, an `&` or bytes that are not UTF-8 there give an executable
+    /// Windows does not start (measured, `verification\v40_g2`–`g6`). Checked after the walk, at the line that set
+    /// the value kept, so a bad value replaced by a later line compiles.
+    fn check_manifest_fields(&mut self) {
+        let Some(info) = &self.version_info else {
+            return;
+        };
+        for i in crate::VersionInfo::MANIFEST {
+            let (Some(span), Some(why)) = (self.version_lines[i], manifest_refusal(&info.strings[i])) else {
+                continue;
+            };
+            let key = crate::VersionInfo::STRING_KEYS[i];
+            self.diags.error(
+                span,
+                format!("`{key}` holds {why}, which the executable's manifest cannot hold; Windows would not start the program"),
+            );
+        }
     }
 
     /// The line of the main file a node of any tree belongs to: its own line, or the line of the `$INCLUDE` that

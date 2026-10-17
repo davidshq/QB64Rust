@@ -86,7 +86,6 @@ accepts and the new one still marks "not supported yet", and what is compiled bu
 |---|---|---|
 | A relative `$EXEICON` name that does not start with `./` or `.\` (`$EXEICON:'icons/game.ico'`), one with a single leading slash, and one with a drive and no slash after it (`C:game.ico`) | The old compiler looks for the first in its own folder, for the second on its own drive and for the third in the folder it stands in on that drive (read in `qb64pe.bas` 3854–3873, not measured), which has no counterpart here (user, `DECISIONS.md` 2026-10-13). Also under "QB64pe behaviours to review" below | `verification\v29_e02`, `e03`, `e08`, `e18`; the upstream tests `icon` and `winresource` name their icon so |
 | The language server does not check that the icon of `$EXEICON` is there | The check is the driver's (`check_exe_icon`), because `sema` reads no file; the server would need the folder of the main file behind its loader | Design D4 of `m3-sound` |
-| `$VERSIONINFO` | Not in the change's scope; it shares the resource file of `$EXEICON` (`icon.rc`) in the old compiler | The upstream test `winresource` |
 | `ON PLAY(n) GOSUB 10` and any `ON … GOSUB` or `ON … GOTO` whose target is a line number | Line numbers are not compiled yet, whatever the number of the `ON` is; with a label the statement compiles | `verification\v29_x64`; `tests\frontend\sound_typed.bas` |
 | `VARPTR$` in a `PLAY` string (`PLAY "X" + VARPTR$(a$)`) | `VARPTR$` is not compiled (the table above) | Not measured |
 | `BEEP` is compiled, and no test runs it | It rings the system's bell, which no volume silences (user, `DECISIONS.md` 2026-10-13). Its call is compared by `tests\callsite\beep_*.bas`, and `s74_sound_queue` holds it as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
@@ -176,6 +175,15 @@ new one still marks "not supported yet", and what is compiled but not checked by
 | `$EMBED` and `_EMBEDDED$` (so `midi/midisoundbank_embed_test` stays held back) | Not in the change's scope | proposal |
 | What is heard, the 3-D position of `_SNDBAL` and `_SNDPLAYCOPY`, `"stream"` and `"nodecode"` beyond what their lengths show | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form | design Non-Goals |
 | The sound handle programs on a machine without a sound device | libqb's engine is not started there: every function gives 0 and every statement does nothing, so `s127`–`s129` would fail; not known until the `tier2` job runs them on GitHub | design, risks |
+
+**Left marked by `m3-versioninfo`** (the seventeenth step of M3, 2026-10-16: `$VERSIONINFO`, the executable's
+version resource and manifest). Nothing the old compiler builds into a working executable is marked; left out:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `winresource/test` (`$VERSIONINFO` with `$EXEICON:'tests/compile_tests/winresource/qb64pe.ico'`) | Held back by its `$EXEICON` name, which neither starts with `./` nor is absolute (the row of `m3-sound` above) | proposal |
+| `$VERSIONINFO` on other systems than Windows | The old compiler writes the files on Windows only and ignores the lines elsewhere | design Non-Goals |
+| `s130_versioninfo` on a machine without PowerShell | It reads the version resource back with a PowerShell script; every Windows machine and GitHub's runner have one | design, risks |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -280,6 +288,10 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | A `DECLARE LIBRARY` block that finds a header writes no prototype for any of its declarations, also for those of the block's other libraries: a function of a `.a` named beside a header must be declared by the header, or the C++ fails (`DECLARE LIBRARY "v37h", "./v37c"` with `c_half#`, which only `v37c` has) | A prototype for each declaration the header does not declare; that needs the header read, and a prototype could disagree with what it declares | `m3-declare-library` (`verification\v37_x23`, `x30`; design D3) |
 | A library FUNCTION's result is cast to its declared type, so a C `double` returned to a FUNCTION typed LONG (no suffix under `DEFLNG`) is truncated: 2.7 gives 2, where an assignment of 2.7 to a LONG gives 3 | Round as every other conversion to an integer does | `m3-declare-library` (`verification\v37_x63`; `slice\s121_library_numbers`, line `expr:`) |
 | A `STRING * n` member passed to a library's `char*` has no NUL after its n bytes: C reads on into the next member (`"abcd"` before a LONG of 65 has length 5) | Pass a copy with a NUL, as a variable-length string is passed. A change to the call, not to libqb | `m3-declare-library` (`verification\v37_x66`) |
+| A `$VERSIONINFO` string value keeps a trailing comment: `$VERSIONINFO:Comments='a' ' note` is the value `'a' ' note`, with the warning "Missing string bracket delimiters" under `-w` (on a numeric key the comment makes the line an error) | End the value at a `'` that follows the closing quote, as a comment ends any other line | `m3-versioninfo` (`verification\v40_d`, `x18`) |
+| Any metacommand that starts with `$VERSIONINFO` is taken as one: `$VERSIONINFOX:CompanyName='a'` sets the company name | "Syntax error", as for an unknown metacommand | `m3-versioninfo` (`verification\v40_j`) |
+| `FILEVERSION#` and `PRODUCTVERSION#` accept parts the resource compiler refuses (empty, over 65535, a leading 0 with an 8 or 9), so the old compiler's build fails; this compiler rejects them with a compile error. A part with a leading 0 is octal (`010` is 8), which the old compiler passes on unchanged | Read every part as decimal (writing it without its leading zeros) | `m3-versioninfo` (`verification\v40_h1`–`h7`; design D3) |
+| A `<` or `&` (or a byte that is not UTF-8) in the company name, product name or description goes unescaped into the manifest, and Windows does not start the executable; this compiler rejects them with a compile error (user, 2026-10-16) | Escape them in the manifest (`&lt;`, `&amp;`), so the program starts | `m3-versioninfo` (`verification\v40_g2`–`g6`; design D3) |
 
 ## Other ideas raised during the study
 

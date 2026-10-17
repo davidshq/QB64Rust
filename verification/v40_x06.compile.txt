@@ -1,0 +1,5 @@
+
+Expected $VERSIONINFO:FILEVERSION#=#,#,#,# (4 comma-separated numeric values: major, minor, revision and build)
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 3:$VERSIONINFO:FILEVERSION#=
+exit=1

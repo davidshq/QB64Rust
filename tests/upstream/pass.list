@@ -324,5 +324,8 @@ types/static_array
 types/static_bad_bit_no_length
 types/static_bad_string_no_length
 types/udt
+versioninfo/test
+versioninfo2/test
+versioninfo3/test
 view/window_view_mandelbrot
 view/window_view_screen_line

@@ -326,9 +326,17 @@ fn run() -> Result<ExitCode, String> {
     let _ = std::fs::remove_file(&exe);
     let root = build::find_root(o.root.as_deref())?;
     build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
-    if let Some(icon) = qb64rust_driver::exe_icon_path(&fe, &input) {
-        build::write_icon(&build_dir, &icon).map_err(|e| format!("copying {}: {e}", icon.display()))?;
-    }
+    let icon = qb64rust_driver::exe_icon_path(&fe, &input);
+    let exe_name = exe
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    build::write_resources(
+        &build_dir,
+        icon.as_deref(),
+        ir.settings.version_info.as_ref(),
+        &exe_name,
+    )?;
     build::build(&root, &build_dir, &exe, o.quiet, &settings)?;
     if !o.keep_build {
         let _ = std::fs::remove_dir_all(&build_dir);

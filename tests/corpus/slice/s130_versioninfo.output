@@ -1,0 +1,14 @@
+before
+FileVersion=[1,2,3,4]
+ProductVersion=[5.6 prod]
+CompanyName=[Acme Co]
+FileDescription=[double quoted]
+InternalName=[a:b=c]
+LegalCopyright=[(c) 2026]
+LegalTrademarks=[TM]
+OriginalFilename=[orig.exe]
+ProductName=[Product]
+Comments=[A & B <c>]
+FileParts=1,2,3,4
+ProductParts=5,6,8,0
+after

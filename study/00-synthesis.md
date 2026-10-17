@@ -1747,6 +1747,50 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     of about 50 runs of `v39_a`, both the first after copying the executable, ended with an access violation after
     the last line. Everything else was equal in two runs alone, 16 or 24 runs eight at a time, with `"noasync"`
     and at the default volume (programs not recorded).
+- **`$VERSIONINFO` (`v40_*`, 47 programs measured 2026-10-16 before the proposal of `m3-versioninfo`; the files
+  `qb64pe -z -w -q` writes for the resource compiler recorded by `verification\v40_rc.py` into
+  `verification\v40_rc\`; each accepted program prints its own version resource through
+  `v40_inc\show_version.ps1`; `qb64pe.bas` 3647–3741, 13561–13640, 13719).**
+  - **The line.** Any metacommand line whose upper case starts with `$VERSIONINFO`, `$VERSIONINFOX:…` too
+    (`v40_j`). On the line with its spaces trimmed: the key stands between the first `:` and the first `=` after
+    it, spaces trimmed, in any letter case (`$VERSIONINFO : FileDescription = 'spaced'`, `v40_d`); the value is
+    the rest of the line, spaces trimmed, every `"` made `'`. No `:`, no `=` after it, or `=` right after `:` is
+    "Expected $VERSIONINFO:key=value" (`x01`–`x04`, `x14` `;` for `:`, `x21`, `x22` `=` before `:`). A `:` or `=`
+    in the value stays (`'a:b=c'`). Thirteen keys; any other (`Author`, `CompanyName$`, `Company Name`, `x05`,
+    `x15`, `x16`) is "Invalid key. (Use FILEVERSION#, PRODUCTVERSION#, CompanyName, FileDescription, FileVersion,
+    InternalName, LegalCopyright, LegalTrademarks, OriginalFilename, ProductName, ProductVersion, Comments or
+    Web)". `FILEVERSION` without `#` is a string key (`x20`, `1,2,3,4,5` accepted).
+  - **`FILEVERSION#`, `PRODUCTVERSION#`.** Only digits and commas, exactly three commas, not ending in a comma;
+    otherwise "Expected $VERSIONINFO:FILEVERSION#=#,#,#,# (4 comma-separated numeric values: major, minor,
+    revision and build)" with the key as written in upper case (`x06`–`x13`, `x17`–`x19`: empty, three or five
+    parts, a trailing comma, a space, quotes, letters, a sign, dots, a trailing comment). It lets through parts
+    its resource compiler (`llvm-rc`) refuses, so the build fails: an empty part (`1,,2,3`, `,1,2,3`, `h1`,
+    `h4`), a part over 65535 (`h2`, `h7` 65536), a leading `0` with an 8 or 9 (`08`, read as octal, `h5`).
+    `65535` (`h6`) and leading zeros of octal digits (`01,02,03,0004`, `h3`) build. The value goes into the
+    resource as written; the string version of the same name takes it when that string is still empty (`v40_b`:
+    `FileVersion` reads `1,2,3,4`; `v40_c`: a `FileVersion='text first'` before it stays, a `ProductVersion`
+    after it replaces the digits).
+  - **The eleven strings.** The value without one pair of enclosing `'` (longer than one byte, first and last
+    `'`). Without that pair, with `-w`, the warning "Missing string bracket delimiters ('')" with the value on
+    the next line, indented (`v40_d`: `no quotes`; `'a' ' trailing comment`, **a trailing comment is part of the
+    value**, which keeps its quotes). `''` is empty; a `'` inside, a backslash, `"` (made `'`) go through
+    (`v40_g1`). The last line of a key counts (`v40_e`, a numeric key too, while the string version keeps the
+    first one's digits). A line in a `$IF` branch not taken counts for nothing; one in a SUB or an included file
+    counts (`v40_i`).
+  - **The files.** With any `$VERSIONINFO`, `icon.rc` (CRLF lines) holds the icon line `0 ICON "icon.ico"` first
+    when `$EXEICON` stands (wherever it stands in the source, `v40_f`), then a blank line, `#include
+    "manifest.h"`, the manifest resource `CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "<exe>.exe.manifest"`,
+    `1 VERSIONINFO` with `FILEVERSION     …` and `PRODUCTVERSION  …` when set, then all eleven `VALUE` lines
+    (each value with `\0` before its closing quote, empty ones too) and the translation `0x409, 0x04E4`.
+    `manifest.h` (fixed text) and `<exe>.exe.manifest` are written beside it; the manifest asks for the common
+    controls version 6, its assembly name is `CompanyName.ProductName.ProductName` and its description
+    `FileDescription`, both unescaped. The make flag is `DEP_ICON_RC=y`, as for `$EXEICON`.
+  - **What the executable shows.** .NET's `FileVersionInfo` reads every string as empty without `FILEVERSION#`
+    (`v40_f`, `g1`, `i`); with it each string reads as written, the parts as numbers, the language "English
+    (United States)". UTF-8 bytes go into the resource as written (`v40_g7`: the resource compiler reads them as
+    code page 1252). **A `<` or `&` in the company name, product name or description (`g2`, `g3`, `g4`), or a
+    byte that is not UTF-8 there (`g6`, 0xE9), gives an executable Windows does not start** ("side-by-side
+    configuration is incorrect"); `>` (`g5`), UTF-8 (`g7`) and `&` or `<` in another value (`g8`) work.
 - **`STRING` members, whole values, `TYPE` parameters (`v24_h_string_members`, `v24_h_whole`,
   `v24_h_type_params`, `v24_x206`–`x216`):** a `STRING` member starts empty in a variable, a local (on each
   call), a `STATIC` one (kept), each element of a static and of a dynamic array and in a nested type; it holds
