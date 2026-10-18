@@ -1,0 +1,29 @@
+$CONSOLE:ONLY
+' Verification (m3-constant-evaluation, task 1.2): the 32-bit colour functions of the evaluator
+CONST c1 = _RGB32(2, 3, 4)
+PRINT "_RGB32(2, 3, 4):"; HEX$(c1); c1
+CONST c2 = _RGB32(2)
+PRINT "_RGB32(2):"; HEX$(c2); c2
+CONST c3 = _RGB32(2, 3)
+PRINT "_RGB32(2, 3):"; HEX$(c3); c3
+CONST c4 = _RGB32(2, 3, 4, 5)
+PRINT "_RGB32(2, 3, 4, 5):"; HEX$(c4); c4
+CONST c5 = _RGB32(300, -1, 2.6)
+PRINT "_RGB32(300, -1, 2.6):"; HEX$(c5); c5
+CONST c6 = _RGBA32(2, 3, 4, 5)
+PRINT "_RGBA32(2, 3, 4, 5):"; HEX$(c6); c6
+CONST c7 = _RGBA32(256, 3, 4, 5)
+PRINT "_RGBA32(256, 3, 4, 5):"; HEX$(c7); c7
+CONST c8 = _RED32(&H80112233)
+PRINT "_RED32(&H80112233):"; HEX$(c8); c8
+CONST c9 = _GREEN32(&H80112233)
+PRINT "_GREEN32(&H80112233):"; HEX$(c9); c9
+CONST c10 = _BLUE32(&H80112233)
+PRINT "_BLUE32(&H80112233):"; HEX$(c10); c10
+CONST c11 = _ALPHA32(&H80112233)
+PRINT "_ALPHA32(&H80112233):"; HEX$(c11); c11
+CONST c12 = _RED32(22)
+PRINT "_RED32(22):"; HEX$(c12); c12
+CONST c13 = _ALPHA32(-1)
+PRINT "_ALPHA32(-1):"; HEX$(c13); c13
+SYSTEM

@@ -59,6 +59,18 @@ pub const AFTER_LAST_LINE: &[u8] = include_bytes!("afterlastline.bm");
 /// The name the old compiler's `#line` directives give the file, relative to its own folder.
 pub const AFTER_LAST_LINE_NAME: &str = "internal\\support\\include\\afterlastline.bm";
 
+/// libqb's default palettes, for the colour functions of the `CONST` evaluator (design D5 of
+/// `m3-constant-evaluation`).
+pub mod palettes;
+
+/// QB64pe's `color0.bi` and `color32.bi`, byte for byte (QB64pe's MIT licence; copied by
+/// `tools\builtins\extract_builtins.py`; design D8 of `m3-constant-evaluation`): the constants `$COLOR:0` and
+/// `$COLOR:32` include before a program's first line, with the names the old compiler gives them.
+pub const COLOR0: &[u8] = include_bytes!("color0.bi");
+pub const COLOR32: &[u8] = include_bytes!("color32.bi");
+pub const COLOR0_NAME: &str = "internal\\support\\color\\color0.bi";
+pub const COLOR32_NAME: &str = "internal\\support\\color\\color32.bi";
+
 /// The auto-included constant of this name (without suffix, any case) and its place in the file's order; a
 /// constant's expression names only constants before it.
 pub fn auto_constant(name: &[u8]) -> Option<(usize, &'static AutoConstant)> {

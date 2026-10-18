@@ -1,0 +1,5 @@
+
+UNEXPECTED INTERNAL COMPILER ERROR!
+Caused by (or after):
+LINE 3:CONST C = _CSC ( 0 )
+exit=1

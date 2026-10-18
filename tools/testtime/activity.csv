@@ -304,9 +304,13 @@ version,session,change,category,actions,bytes
 1,2293eaae,m2-parser-breadth,test runs,7,0
 1,2293eaae,m2-parser-breadth,tests and fixtures,1,110
 1,2309881c,,other commands,4,0
-1,248bdaa7,,other commands,5,0
-1,248bdaa7,,reading,6,0
-1,248bdaa7,,scratch files,1,4807
+1,248bdaa7,,builds,1,0
+1,248bdaa7,,documents and planning,2,772
+1,248bdaa7,,other commands,14,0
+1,248bdaa7,,reading,20,0
+1,248bdaa7,,scratch files,3,6965
+1,248bdaa7,,test runs,8,0
+1,248bdaa7,,tests and fixtures,20,13067
 1,2689520c,,measurement runs,2,0
 1,2689520c,,other commands,19,0
 1,2689520c,,reading,8,0
@@ -593,6 +597,12 @@ version,session,change,category,actions,bytes
 1,4227b7f9,m2-numeric-types,reading,7,0
 1,4227b7f9,m2-numeric-types,scratch files,1,6656
 1,4227b7f9,m2-numeric-types,test runs,2,0
+1,42c02202,,builds,1,0
+1,42c02202,,documents and planning,17,4323
+1,42c02202,,other commands,31,0
+1,42c02202,,reading,8,0
+1,42c02202,,scratch files,2,1595
+1,42c02202,,test runs,10,0
 1,43313a4a,,reading,1,0
 1,43313a4a,m2-control-flow-slice,builds,11,0
 1,43313a4a,m2-control-flow-slice,documents and planning,6,6791
@@ -668,6 +678,10 @@ version,session,change,category,actions,bytes
 1,4d7947b4,,reading,8,0
 1,4d7947b4,,test runs,8,0
 1,4d7947b4,,tests and fixtures,11,3098
+1,4d8100fd,,documents and planning,9,1988
+1,4d8100fd,,other commands,4,0
+1,4d8100fd,,reading,7,0
+1,4d8100fd,,test runs,1,0
 1,4eb0be18,,documents and planning,5,16115
 1,4eb0be18,,other commands,1,0
 1,4eb0be18,,reading,3,0
@@ -682,7 +696,7 @@ version,session,change,category,actions,bytes
 1,4ed8c305,m3-network-embed,test runs,11,0
 1,4ed8c305,m3-network-embed,tests and fixtures,31,23644
 1,4ed8c305,test-while-building,builds,1,0
-1,4ed8c305,test-while-building,documents and planning,11,14827
+1,4ed8c305,test-while-building,documents and planning,12,15490
 1,4ed8c305,test-while-building,other commands,17,0
 1,4ed8c305,test-while-building,reading,2,0
 1,4ed8c305,test-while-building,test runs,9,0
@@ -723,6 +737,15 @@ version,session,change,category,actions,bytes
 1,5087a0db,m2-workspace-and-slice,scratch files,5,8748
 1,5087a0db,m2-workspace-and-slice,test runs,4,0
 1,5087a0db,m2-workspace-and-slice,tests and fixtures,4,1307
+1,509dde77,,other commands,2,0
+1,509dde77,,reading,1,0
+1,509dde77,m3-constant-evaluation,builds,1,0
+1,509dde77,m3-constant-evaluation,documents and planning,4,1079
+1,509dde77,m3-constant-evaluation,other commands,31,0
+1,509dde77,m3-constant-evaluation,product code,11,4387
+1,509dde77,m3-constant-evaluation,reading,9,0
+1,509dde77,m3-constant-evaluation,test runs,14,0
+1,509dde77,m3-constant-evaluation,tests and fixtures,2,1326
 1,50bac4d8,,reading,1,0
 1,50bac4d8,m2-builtin-statements,builds,1,0
 1,50bac4d8,m2-builtin-statements,documents and planning,29,28499
@@ -970,6 +993,16 @@ version,session,change,category,actions,bytes
 1,6975f1f7,,scratch files,1,1108
 1,6975f1f7,,test runs,2,0
 1,6975f1f7,test-parallel-runs,other commands,1,0
+1,698be838,,other,1,0
+1,698be838,,other commands,2,0
+1,698be838,,reading,3,0
+1,698be838,,scratch files,1,201
+1,698be838,test-while-building,documents and planning,2,1398
+1,698be838,test-while-building,other commands,10,0
+1,698be838,test-while-building,product code,7,3434
+1,698be838,test-while-building,reading,7,0
+1,698be838,test-while-building,test runs,4,0
+1,698be838,test-while-building,tests and fixtures,10,5178
 1,6a1cc2e4,,reading,1,0
 1,6a1cc2e4,m2-defxxx-common-arrays,builds,2,0
 1,6a1cc2e4,m2-defxxx-common-arrays,documents and planning,17,16229
@@ -1076,6 +1109,22 @@ version,session,change,category,actions,bytes
 1,71ec1b14,,scratch files,1,125
 1,71ec1b14,,test runs,9,0
 1,71ec1b14,,tests and fixtures,13,4966
+1,729041fe,,measurement runs,3,0
+1,729041fe,,other,3,0
+1,729041fe,,other commands,45,0
+1,729041fe,,reading,7,0
+1,729041fe,,scratch files,2,1076
+1,729041fe,m3-constant-evaluation,builds,10,0
+1,729041fe,m3-constant-evaluation,documents and planning,37,69011
+1,729041fe,m3-constant-evaluation,measurement preparation,3,3345
+1,729041fe,m3-constant-evaluation,measurement runs,10,0
+1,729041fe,m3-constant-evaluation,other,3,0
+1,729041fe,m3-constant-evaluation,other commands,170,0
+1,729041fe,m3-constant-evaluation,product code,51,124674
+1,729041fe,m3-constant-evaluation,reading,34,0
+1,729041fe,m3-constant-evaluation,scratch files,15,28622
+1,729041fe,m3-constant-evaluation,test runs,68,0
+1,729041fe,m3-constant-evaluation,tests and fixtures,26,21629
 1,749d54cb,,other commands,1,0
 1,752e15a1,,documents and planning,4,10676
 1,752e15a1,,measurement preparation,20,17128
@@ -1579,6 +1628,16 @@ version,session,change,category,actions,bytes
 1,afa5c140,m2-golden-corpus,reading,10,0
 1,afa5c140,m2-golden-corpus,test runs,5,0
 1,afa5c140,m2-golden-corpus,tests and fixtures,13,7390
+1,b22d7e8f,,other,2,0
+1,b22d7e8f,,other commands,5,0
+1,b22d7e8f,m3-network-embed,documents and planning,4,1510
+1,b22d7e8f,m3-network-embed,other commands,2,0
+1,b22d7e8f,m3-network-embed,product code,1,166
+1,b22d7e8f,m3-network-embed,reading,4,0
+1,b22d7e8f,m3-network-embed,test runs,2,0
+1,b22d7e8f,test-while-building,other commands,2,0
+1,b22d7e8f,test-while-building,scratch files,1,2545
+1,b22d7e8f,test-while-building,test runs,2,0
 1,b2441000,,builds,1,0
 1,b2441000,,other commands,22,0
 1,b2441000,,reading,8,0
@@ -1691,6 +1750,7 @@ version,session,change,category,actions,bytes
 1,c043705b,m1-vscode-extension-v0,scratch files,16,26972
 1,c043705b,m1-vscode-extension-v0,test runs,37,0
 1,c043705b,m1-vscode-extension-v0,tests and fixtures,1,2360
+1,c08e6904,test-while-building,other commands,1,0
 1,c144bdec,,other commands,1,0
 1,c144bdec,,reading,1,0
 1,c144bdec,m2-console-screenhide,documents and planning,5,1091

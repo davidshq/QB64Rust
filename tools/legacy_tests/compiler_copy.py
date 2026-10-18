@@ -1,4 +1,4 @@
-"""The copy of the new compiler a test run uses (study/34 section 3, item 2).
+"""The copy of the new compiler a test run uses (study/archive/34 section 3, item 2).
 
 A run of the new compiler takes minutes, and `cargo build --release` replaces target/release/
 qb64rust.exe. A run that called that file would compile its later programs with another compiler

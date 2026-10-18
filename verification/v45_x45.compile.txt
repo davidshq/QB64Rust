@@ -1,0 +1,5 @@
+
+$COLOR:0 already set, cannot use both color sets together
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 4:$COLOR:32
+exit=1

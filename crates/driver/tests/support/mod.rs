@@ -1,7 +1,7 @@
-//! The child processes of the CLI tests, each with a deadline (`study\31` item 1). `Command::output` waits for ever,
-//! and a generated program whose runtime error opens libqb's dialog waits for a person: on 2026-10-16 a test waited
-//! 2 h 15 min on one. Here every child runs with stdin closed (or fed from a buffer) and a deadline; past it, its
-//! whole process tree is killed and the test fails, naming the phase and showing what the child had printed. Each
+//! The child processes of the CLI tests, each with a deadline (`study\archive\31` item 1). `Command::output` waits for
+//! ever, and a generated program whose runtime error opens libqb's dialog waits for a person: on 2026-10-16 a test
+//! waited 2 h 15 min on one. Here every child runs with stdin closed (or fed from a buffer) and a deadline; past it,
+//! its whole process tree is killed and the test fails, naming the phase and showing what the child had printed. Each
 //! run writes a line `cli-time <test> <phase> <seconds>` to the test's captured stderr (shown with `--nocapture`).
 
 use std::fmt;

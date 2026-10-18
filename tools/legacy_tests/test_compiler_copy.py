@@ -1,4 +1,4 @@
-"""Tests of compiler_copy.py: the copy of the new compiler a run uses (study/34 section 3, item 2).
+"""Tests of compiler_copy.py: the copy of the new compiler a run uses (study/archive/34 section 3, item 2).
 
     python -m unittest discover -s tools/legacy_tests -p "test_*.py"
 

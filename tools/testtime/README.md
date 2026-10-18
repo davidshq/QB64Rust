@@ -13,7 +13,7 @@ python tools\testtime\test_time.py
 | `test_time.py` | Reads the transcripts of the Claude Code sessions and writes the files below |
 | `runs.csv` | One row per run: `session` (the first 8 characters of its id), `start` (local time), `bucket`, `kind`, `seconds`, `background` (1: not waited for), `result` (`pass`, `fail`, or empty: not known), `repeat_after` (empty, or the result of the run this one repeats: `pass`, `fail`, `unknown`) |
 | `sessions.csv` | One row per session: `start`, `end`, `active_seconds`, `command_seconds` |
-| `changes.csv` | Since 2026-10-16 (`study\31` item 4), format `version` 1: one row per session and change ("Changes" below): `first`, `last`, `active_seconds`, the seconds waited for `test`, `measure` and `build` runs, `background_seconds`, `repeats`, `longest_wait`, `idle_stretches`, `idle_seconds`, `longest_idle`, `last_code_edit` (the last edit of product code), `archived` (when, if this session archived it) |
+| `changes.csv` | Since 2026-10-16 (`study\archive\31` item 4), format `version` 1: one row per session and change ("Changes" below): `first`, `last`, `active_seconds`, the seconds waited for `test`, `measure` and `build` runs, `background_seconds`, `repeats`, `longest_wait`, `idle_stretches`, `idle_seconds`, `longest_idle`, `last_code_edit` (the last edit of product code), `archived` (when, if this session archived it) |
 | `activity.csv` | Since 2026-10-16, format `version` 1: one row per session, change and kind of work ("Kinds of work" below): `actions`, `bytes` (written by edits) |
 | `REPORT.md` | The summary: in all, by day, by kind of run with results, runs repeated with nothing edited, the 20 longest runs, by change, by kind of work. Made from the four CSV files; not edited by hand |
 | `test_record.py` | Tests of the script's rules (`python -m unittest discover -s tools/testtime -p "test_*.py"`): a change to what counts as a run, or to what is read as its result, comes with a change there |
@@ -171,3 +171,6 @@ command or text is written: only the change's name, the kind and the counts.
 - **Not separated**: the time a command waited for a lock (another run in the clone) or for the user to allow it
   is inside its time; a run started through a wrapper is not seen (above).
 - Sessions of subagents are part of their parent's transcript and counted with it.
+- **Not built yet** (`study\archive\31` item 4 and item 3): why a failed run failed (a product defect, a fixture,
+  the environment or the infrastructure, where the logs can tell them apart), and one summary over all the
+  closing runs of a change.

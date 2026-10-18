@@ -92,6 +92,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         consts_main: HashMap::new(),
         consts_local: HashMap::new(),
         auto_consts: HashMap::new(),
+        fell_back: HashSet::new(),
         used_names: HashMap::new(),
         used_local: HashMap::new(),
         explicit: false,
@@ -126,7 +127,13 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         checking: true,
         embeds: Vec::new(),
         embed_parents: HashMap::new(),
+        color_file: program.colors.map(|t| program.tree(t).file),
+        color_consts: HashSet::new(),
+        color_set: None,
+        first_color: None,
+        const_at: None,
     };
+    c.first_color = c.first_color_line(program);
     let skips = Skips::new(program);
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
     // (`verification\v19_explicit_*`).
@@ -143,7 +150,10 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // QB64pe's file included after the last line follows the main file's statements, as if it stood there (design
     // D7 of `m3-network-embed`).
     let after_last_line = program.after_last_line.map(|t| program.tree(t).root());
-    let top: Vec<Node> = [Some(root), after_last_line]
+    // QB64pe's colour file of `$COLOR` stands before the main file's first line (design D8 of
+    // `m3-constant-evaluation`).
+    let colors = program.colors.map(|t| program.tree(t).root());
+    let top: Vec<Node> = [colors, Some(root), after_last_line]
         .into_iter()
         .flatten()
         .filter_map(ast::SourceFile::cast)
@@ -543,6 +553,9 @@ struct Checker<'a> {
     /// The auto-included constants named so far, by their place in the file: the constant each became, or why
     /// its value is not computed yet (`auto.rs`).
     auto_consts: HashMap<usize, Result<ConstId, String>>,
+    /// The constants whose value took a correctly rounded one where the old compiler's depends on the machine
+    /// (`DIVERGENCES.md` D-026): a `CONST` that names one warns too, and so does a use of an auto-included one.
+    fell_back: HashSet<ConstId>,
     /// The first use or declaration of each variable name so far, anywhere, and in the procedure being checked:
     /// a later `CONST` of the name is an error there (design D6).
     used_names: HashMap<String, Span>,
@@ -631,6 +644,15 @@ struct Checker<'a> {
     /// `m3-network-embed`, `check\embed.rs`).
     embeds: Vec<embed::EmbedLine>,
     embed_parents: HashMap<TreeId, (TreeId, u32)>,
+    /// QB64pe's colour file of `$COLOR` (design D8 of `m3-constant-evaluation`), its constants, the set the first
+    /// `$COLOR` checked chose (1 `:0`, 2 `:32`), and the place in the old compiler's first pass (an offset of the
+    /// main file, [`Self::main_offset`]) of the first `$COLOR` line; `const_at` is that place of the `CONST` being
+    /// checked.
+    color_file: Option<FileId>,
+    color_consts: HashSet<ConstId>,
+    color_set: Option<u8>,
+    first_color: Option<u32>,
+    const_at: Option<u32>,
 }
 
 /// What pass 1 keeps as it walks the file in order to the `TYPE` blocks: `OPTION BASE` and whether
@@ -1253,6 +1275,24 @@ impl Checker<'_> {
             // below `$CHECKING:OFF` have no event checks. Anywhere else it is "not supported yet" (below).
             self.checking = line == b"$CHECKING:ON";
             Ok(())
+        } else if line.starts_with(b"$COLOR") {
+            // The parser included the colour file (design D8 of `m3-constant-evaluation`); measured,
+            // `verification\v45_x45`, `x46`, `x51`–`x53`: the other set after one is an error, and so is any other
+            // text.
+            let set = match line.as_slice() {
+                b"$COLOR:0" => 1,
+                b"$COLOR:32" => 2,
+                _ => return Err(self.error(tok.span, "`$COLOR` takes `:0` or `:32`, alone on its line")),
+            };
+            match self.color_set {
+                Some(first) if first != set => {
+                    Err(self.error(tok.span, "`$COLOR:0` and `$COLOR:32` cannot be used in one program"))
+                }
+                _ => {
+                    self.color_set = Some(set);
+                    Ok(())
+                }
+            }
         } else if line.starts_with(b"$MIDISOUNDFONT:") {
             // The old compiler's own error, whatever follows the colon (design D3 of `m3-sound-handles`;
             // `qb64pe.bas` 2092; measured, `verification\v39_x73`–`x81`). Without the colon it is an unknown
@@ -1407,6 +1447,48 @@ impl Checker<'_> {
         }
         let file = self.program.tree(tree).file;
         self.line(Span::new(file, offset, offset))
+    }
+
+    /// The offset of the main file where a place of the program stands in the old compiler's first pass: its own
+    /// in the main file, that of the `$INCLUDE` that brought the outermost included file in otherwise.
+    fn main_offset(&self, (mut tree, mut offset): (TreeId, u32)) -> u32 {
+        while tree != self.program.main().id {
+            let Some((&at, _)) = self.program.includes.iter().find(|&(_, &included)| included == tree) else {
+                break;
+            };
+            (tree, offset) = at;
+        }
+        offset
+    }
+
+    /// The place ([`Self::main_offset`]) of the first `$COLOR:0` or `$COLOR:32` line that is compiled, in any
+    /// file of the program but QB64pe's own.
+    fn first_color_line(&self, program: &ParsedProgram) -> Option<u32> {
+        fn walk(node: Node, out: &mut Vec<Tok>) {
+            for e in node.children() {
+                match e {
+                    qb64rust_syntax::tree::Element::Node(n) if n.kind() != SyntaxKind::InactiveCode => walk(n, out),
+                    qb64rust_syntax::tree::Element::Token(t) if t.kind == SyntaxKind::Metacommand => out.push(t),
+                    qb64rust_syntax::tree::Element::Node(_) | qb64rust_syntax::tree::Element::Token(_) => {}
+                }
+            }
+        }
+        let mut first: Option<u32> = None;
+        for tree in &program.trees {
+            if Some(tree.id) == program.colors || Some(tree.id) == program.after_last_line {
+                continue;
+            }
+            let mut toks = Vec::new();
+            walk(tree.root(), &mut toks);
+            for t in toks {
+                let line = meta_line(self.text(t.span));
+                if line == b"$COLOR:0" || line == b"$COLOR:32" {
+                    let at = self.main_offset((tree.id, t.span.start));
+                    first = Some(first.map_or(at, |f| f.min(at)));
+                }
+            }
+        }
+        first
     }
 
     /// For a node of an included file, the line of the main file that `_ERRORLINE` gives there: that of the

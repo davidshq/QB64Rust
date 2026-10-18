@@ -441,7 +441,7 @@ fn screen_state_prompt_that_never_comes() {
             .current_dir(&d)
             .env("QB64_SCREEN_STATE", &state)
             .env("QB64_SCREEN_KEYS", d.join("p.keys"))
-            // Long enough that the box is drawn on a loaded machine (500 ms failed once, `study\30` §8).
+            // Long enough that the box is drawn on a loaded machine (500 ms failed once, `study\archive\30` §8).
             .env("QB64_SCREEN_PROMPT_MS", "5000"),
         None,
         PROGRAM_LIMIT,
@@ -1080,8 +1080,8 @@ fn mem_of_an_array_parameter_with_no_number_yet() {
     assert_eq!(build_and_run_tracing(&d, program, "D-016\n"), "-1 \n");
 }
 
-/// An integer power beyond `_INTEGER64` in a `CONST` is a DOUBLE (`DIVERGENCES.md` D-007: the old evaluator wraps it
-/// to -9223372036854775808).
+/// An integer power beyond `_INTEGER64` in a `CONST` is the float it is, a `_FLOAT` by its text, printed as a DOUBLE
+/// (`DIVERGENCES.md` D-007: the old evaluator wraps it to -9223372036854775808).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn const_power_beyond_integer64() {
@@ -1654,9 +1654,9 @@ fn library_errors_before_the_cpp() {
     );
 }
 
-/// `support::try_run` past its deadline (`study\31` item 1): the child is ended in time with the process it started,
-/// and what it printed is kept. The child, `cmd`, starts a second `cmd` that writes a tick to a file every second;
-/// once the tree is killed, the file stops growing.
+/// `support::try_run` past its deadline (`study\archive\31` item 1): the child is ended in time with the process it
+/// started, and what it printed is kept. The child, `cmd`, starts a second `cmd` that writes a tick to a file every
+/// second; once the tree is killed, the file stops growing.
 #[cfg(windows)]
 #[test]
 fn a_child_past_its_deadline_is_killed_with_its_tree() {

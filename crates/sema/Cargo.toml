@@ -11,6 +11,7 @@ workspace = true
 qb64rust-base.workspace = true
 qb64rust-syntax.workspace = true
 qb64rust-builtins.workspace = true
+astro-float-num.workspace = true
 
 [dev-dependencies]
 insta.workspace = true

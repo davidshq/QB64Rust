@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 103
 expression: snap
 ---
 line 2: ConsoleOnly
@@ -8,7 +7,7 @@ line 8: Print newline
   Num
     Int 3000000000 : I64
   Num
-    Float 3.333333333333333E-1 : F64
+    Float 0.3333333333333333333E+0 : F64
   Num
     Int 2 : I16
   Str
@@ -26,11 +25,11 @@ line 9: Print newline
 line 11: Print newline
   Num
     Convert Nearest : F32
-      Float 3.333333333333333E-1 : F64 (qb F32)
+      Float 0.3333333333333333333E+0 : F64 (qb F32)
   Num
-    Float 5.0E-1 : F80
+    Float 0.5E+0 : F80
   Num
-    Float 1.0E+19 : F64
+    Float 1.0E+19 : F80
 line 12: Call SB
   temp
     Convert Nearest : F32

@@ -123,8 +123,8 @@ static PANIC_CONTEXT: Mutex<PanicContext> = Mutex::new(PanicContext { input: Non
 /// Exit code of an internal compiler error; every other failure exits with 1 (spec `compiler/cli`).
 const ICE_EXIT_CODE: i32 = 3;
 
-/// A panic is an internal compiler error (`study\21` item 6, design D11 of `m2-parser-breadth`): one message with
-/// its location and the input file, no executable left behind, exit code 3.
+/// A panic is an internal compiler error (`study\archive\21` item 6, design D11 of `m2-parser-breadth`): one message
+/// with its location and the input file, no executable left behind, exit code 3.
 fn install_panic_hook() {
     std::panic::set_hook(Box::new(|info| {
         let payload = info.payload();

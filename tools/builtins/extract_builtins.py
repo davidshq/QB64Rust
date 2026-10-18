@@ -351,21 +351,70 @@ AFTER_LAST_LINE_COPY = os.path.normpath(
 )
 
 
+CRATE_SRC = os.path.normpath(os.path.join(HERE, "..", "..", "crates", "builtins", "src"))
+# The colour constants of `$COLOR:0` and `$COLOR:32` (design D8 of `m3-constant-evaluation`).
+COLOR_FILES = [os.path.join(SUPPORT, "color", n) for n in ("color0.bi", "color32.bi")]
+LIBQB = os.path.normpath(os.path.join(HERE, "..", "..", "..", "QB64pe", "internal", "c", "libqb.cpp"))
+PALETTES_COPY = os.path.join(CRATE_SRC, "palettes.rs")
+
+
+def write_if_changed(path, data):
+    """Writes `data` (bytes) to `path` only when it differs."""
+    try:
+        with open(path, "rb") as f:
+            if f.read() == data:
+                print(os.path.basename(path) + ": copy unchanged")
+                return
+    except FileNotFoundError:
+        pass
+    with open(path, "wb") as f:
+        f.write(data)
+    print("wrote", path)
+
+
 def copy_after_last_line():
     """Copies QB64pe's auto-included `afterlastline.bm` byte for byte into the builtins crate (design D7 of
     `m3-network-embed`): the front end compiles it from there and needs no clone. Written only when it differs."""
     with open(AFTER_LAST_LINE, "rb") as f:
-        data = f.read()
-    try:
-        with open(AFTER_LAST_LINE_COPY, "rb") as f:
-            if f.read() == data:
-                print("afterlastline.bm: copy unchanged")
-                return
-    except FileNotFoundError:
-        pass
-    with open(AFTER_LAST_LINE_COPY, "wb") as f:
-        f.write(data)
-    print("wrote", AFTER_LAST_LINE_COPY)
+        write_if_changed(AFTER_LAST_LINE_COPY, f.read())
+
+
+def copy_color_files():
+    """Copies `color0.bi` and `color32.bi` byte for byte into the builtins crate (design D8 of
+    `m3-constant-evaluation`)."""
+    for src in COLOR_FILES:
+        with open(src, "rb") as f:
+            write_if_changed(os.path.join(CRATE_SRC, os.path.basename(src)), f.read())
+
+
+def table_bytes(text, name):
+    """The bytes of libqb's `static const uint8 <name>[] = { … };`."""
+    m = re.search(r"static const uint8 " + name + r"\[\] = \{(.*?)\};", text, re.S)
+    if not m:
+        raise SystemExit("libqb.cpp: no table " + name)
+    return [int(v) for v in m.group(1).replace("\n", " ").split(",") if v.strip()]
+
+
+def write_palettes():
+    """Writes libqb's default palettes (`file_qb64_pal`, `file_qb64ega_pal`: blue, green, red and a zero byte per
+    colour) as Rust tables, for the colour functions of the `CONST` evaluator (design D5 of
+    `m3-constant-evaluation`)."""
+    with open(LIBQB, encoding="latin-1") as f:
+        text = f.read()
+    out = [
+        "//! libqb's default palettes (`libqb.cpp` `file_qb64_pal`, `file_qb64ega_pal`; QB64pe's MIT licence), written",
+        "//! by `tools\\builtins\\extract_builtins.py`. Each colour is `0x00RRGGBB`. Not edited by hand.",
+        "",
+    ]
+    for rust, name in (("PALETTE_256", "file_qb64_pal"), ("PALETTE_64", "file_qb64ega_pal")):
+        b = table_bytes(text, name)
+        colours = [b[i] | b[i + 1] << 8 | b[i + 2] << 16 for i in range(0, len(b), 4)]
+        out.append("pub const " + rust + ": [u32; " + str(len(colours)) + "] = [")
+        for i in range(0, len(colours), 8):
+            out.append("    " + ", ".join("0x%06X" % c for c in colours[i : i + 8]) + ",")
+        out.append("];")
+        out.append("")
+    write_if_changed(PALETTES_COPY, ("\n".join(out)).encode("utf-8"))
 
 
 def main():
@@ -389,6 +438,8 @@ def main():
         json.dump(result, f, indent=1, ensure_ascii=False)
         f.write("\n")
     copy_after_last_line()
+    copy_color_files()
+    write_palettes()
 
     print(
         "entries:",

@@ -206,7 +206,10 @@ audio_mem_test/sndopen_mem_test
 audio_out/test
 audio_test/test
 auto_include/am-trigger
+auto_include/color0
+auto_include/color32
 auto_include/debug
+auto_include/general
 auto_include/no-debug
 basic/test
 basic/val_default_large_integer_decimal
@@ -229,11 +232,15 @@ const/bad_boolean_arg
 const/bad_not_no_arg
 const/bad_not_to_many_args
 const/comma
+const/const_float
+const/const_replace
 const/const_sub
 const/expression
 const/hex_literals
+const/math_funcs
 const/not_string
 const/offset
+const/rho_test
 const/too_few_arguments_to_boolean
 const/type_mismatch_string_integer
 const/type_mismatch_string_subtract
@@ -254,6 +261,7 @@ filename/filename.extra.extension
 font/test
 func_tostr/double
 func_tostr/float
+func_tostr/mmConst
 func_tostr/mmLiteral
 func_tostr/mmVariable
 func_tostr/single
@@ -301,6 +309,7 @@ noprompt/noprompt-continue-fatal
 noprompt/noprompt-y
 offset/offset_test
 operators_test/op_exp
+overloaded/test
 paint/tile_border_black_bg
 paint/tile_border_black_nocolor
 paint/tile_border_white_bg

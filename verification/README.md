@@ -2,7 +2,7 @@
 
 Small programs that measure what the old compiler (`qb64pe.exe` at the reference clone's commit) does, each
 recorded with its output. The facts they establish are written in `study\00` §5 (one home per fact); this file
-is the catalogue of the families, moved here from `CLAUDE.md`'s layout table on 2026-10-16 (`study\30` §2).
+is the catalogue of the families, moved here from `CLAUDE.md`'s layout table on 2026-10-16 (`study\archive\30` §2).
 A new family, or new numbers in one, gets a line here, not in `CLAUDE.md`.
 
 Small programs behind `study\09`, `study\10` and later measurements:
@@ -38,6 +38,14 @@ Small programs behind `study\09`, `study\10` and later measurements:
 - `v42*`: event trapping, measured as the first task of `m3-events`: `v42_a` timer 0 (off, on, `STOP`, `OFF`, during `_DELAY` and a loop, a slow handler), `v42_b` numbered timers, `_FREETIMER`, `FREE` and the run-time errors, `v42_c` SUB handlers and their argument, a handler set up in a SUB, `v42_d` `KEY` in a console program (its own forms, the switches, the errors, a float key number), `v42_e` when an event is serviced (`SLEEP`, a SUB, a FUNCTION, an error handler), `v42_f` an event that comes during an error handler, `v42_x01`–`x60` one accepted or rejected form each
 - `v43*`: `CHR$` in a `CONST` and the error functions, measured before the proposal of `m3-errorline-chr-const`: `v43_a` `_ERRORLINE`, `_INCLERRORLINE`, `_INCLERRORFILE$` and `_ERRORMESSAGE$` in the main file, `v43_b` in included files (`v43_inc\`), `v43_c` the accepted forms of `CHR$` in a `CONST`, `v43_d` lines joined by a continuation, `v43_e` the message of an untrapped error on one, `v43_x01`–`x28` one form of `CHR$` in a `CONST` each, `x29`–`x44` one form of the error functions each, `x45`, `x46` a FUNCTION in a single-line `IF`'s condition, on one line and continued
 - `v44*`: `$EMBED`, `_EMBEDDED$`, the network functions and `afterlastline.bm`, measured before the proposal of `m3-network-embed`: `v44_a` the accepted forms of `$EMBED` and `_EMBEDDED$` (every byte value, an empty file, 300,000 bytes, blanks, `.\`, `..`), `v44_b` the network functions where nothing listens, `v44_c` `_SOCKETS_` from `_OPENCLIENT` in a SUB never called, `v44_d` `_ENCODEURL$` and `_DECODEURL$`, `v44_e` (with the change's task 1.2) a TCP/IP exchange over the loopback address on port 47391 (it listens: Windows may ask once whether it may), `v44_x01`–`x68` one accepted or rejected form each (`x66` not used; `x59` ends with an access violation; `x69`–`x71`: by the review of the change, a file as `./` and as `.\`, another separator after `./`, a string for a number parameter of a user FUNCTION); the files they embed in `v44_files\` (byte for byte, `.gitattributes`), an included file in `v44_inc\`
+- `v45*`: the `CONST` evaluator in full and `$COLOR`, for `m3-constant-evaluation`: `v45_a` the measurements
+  before its proposal (precision, typing by text, the lanes, the clamp, the auto-included limits), and as its task
+  1.2 `v45_b_conv` floats in the integer lanes, `v45_b_funcs` every function as a `_FLOAT` constant,
+  `v45_b_funcs_plain` some without a suffix, `v45_b_colors32` and `v45_b_colors_m<mode>` the colour functions per
+  screen mode, `v45_b_asc_suffix` `ASC` and suffixed constants inside a `CONST`, `v45_b_color0` and
+  `v45_b_color32` the colour constants, `v45_x01`–`x66` one accepted or rejected form each (functions, colours,
+  `$COLOR`), an included file in `v45_inc\`; as its task 1.3 `v45_sample` the library results behind the
+  certification of the functions
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

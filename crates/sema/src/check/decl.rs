@@ -265,12 +265,12 @@ impl Checker<'_> {
         if size.kind == SyntaxKind::Ident {
             let (name, suffix) = self.split_name(size)?;
             if consts {
-                self.auto_const(&name, size.span)?;
+                self.auto_const_use(&name, size.span)?;
             }
             let found = match (consts, suffix, self.visible_const(&name)) {
                 (true, None, Some(c)) => match self.prog.constant(c).value {
                     Value::Int(v) => Some((c, v)),
-                    Value::Float(_) | Value::Str(_) => None,
+                    Value::UInt(_) | Value::Float(..) | Value::Str(_) => None,
                 },
                 _ => None,
             };

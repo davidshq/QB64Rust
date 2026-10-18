@@ -17,10 +17,5 @@ auto_const_errors.bas:22:9: error: `LEN` needs a string or a variable, element o
 auto_const_errors.bas:22:9: note: QB64pe: String expression or variable name required in LEN statement
 auto_const_errors.bas:23:1: error: cannot assign to the constant `_STR_EMPTY`
 auto_const_errors.bas:24:5: error: not supported yet: `_TRUE(...)` (an array used without `DIM`, or no FUNCTION of this name)
-auto_const_errors.bas:27:5: error: not supported yet: `_E`, a constant of QB64pe's auto-included file: the function `EXP` in a `CONST`
-auto_const_errors.bas:28:5: error: not supported yet: `_DOUBLE_MAX`, a constant of QB64pe's auto-included file: a number this close to a rounding boundary in a `CONST`
-auto_const_errors.bas:29:5: error: not supported yet: `_FLOAT_MAX`, a constant of QB64pe's auto-included file: a number beyond `DOUBLE` range in a `CONST`
-auto_const_errors.bas:30:5: error: not supported yet: `_INTEGER64_MIN`, a constant of QB64pe's auto-included file: a number beyond `_INTEGER64` in a `CONST`
-auto_const_errors.bas:31:5: error: not supported yet: `_UINTEGER64_MAX`, a constant of QB64pe's auto-included file: a number beyond `_INTEGER64` in a `CONST`
-auto_const_errors.bas:33:19: error: not supported yet: `_E`, a constant of QB64pe's auto-included file: the function `EXP` in a `CONST`
+auto_const_errors.bas:33:19: error: not supported yet: this name as the length of a `STRING * n`: `_E`
 auto_const_errors.bas:37:5: error: names starting with `_` are reserved: `_FALSE`

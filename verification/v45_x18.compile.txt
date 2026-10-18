@@ -1,0 +1,5 @@
+
+Invalid Screen Mode (3)
+Caused by (or after):
+LINE 3:CONST C = _RED ( 1 , 3 )
+exit=1

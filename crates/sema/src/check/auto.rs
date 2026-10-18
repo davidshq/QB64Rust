@@ -10,14 +10,16 @@
 //!
 //! The expressions of the file have three shapes: one term; two terms with `+`, `*` or `/` between them. A term is
 //! an operand or a function call of one operand (`CHR$(13)`, `EXP(1.0##)`); an operand is a number with or without
-//! a minus, a string, or a constant that stands earlier in the file. `CHR$` is computed as in a `CONST`; `EXP` is
-//! not computed yet, and neither is a value beyond `DOUBLE` range; such a constant is "not supported yet" where it
-//! is used, with that reason. A shape that is none of these
-//! is marked too, so a new version of the file cannot be misread.
+//! a minus, a string, or a constant that stands earlier in the file. Literals and calls take the paths of a program's
+//! `CONST` (`consteval::literal`, `consteval::function`; design D7 of `m3-constant-evaluation`); a value that does
+//! not certify takes the correctly rounded one (`_E`; `DIVERGENCES.md` D-026), and each use of it warns: a `CONST`
+//! that names it, or a use outside one ([`Checker::auto_const_use`]). A value that cannot be computed is "not
+//! supported yet" where it is used, with that reason. A shape that is none of these is marked too, so a new version
+//! of the file cannot be misread.
 
 use super::{Checker, R};
 use crate::consteval::{self, Problem, Value};
-use crate::literal::{self, LitError, NumLit};
+use crate::literal;
 use crate::{BinOp, Const, ConstId, Ty, UnOp};
 use qb64rust_base::{Span, to_u32};
 use qb64rust_builtins::{AUTO_CONSTANTS, auto_constant};
@@ -42,13 +44,40 @@ impl Checker<'_> {
         }
     }
 
+    /// [`Self::auto_const`] for a use outside a `CONST`: an auto-included constant whose value took the correctly
+    /// rounded one (`_E`; `DIVERGENCES.md` D-026) warns at the use, as it has no `CONST` line of the program's.
+    pub(super) fn auto_const_use(&mut self, name: &str, at: Span) -> R<()> {
+        self.auto_const(name, at)?;
+        if let Some((index, _)) = auto_constant(name.as_bytes())
+            && let Some(Ok(id)) = self.auto_consts.get(&index)
+            && self.fell_back.contains(id)
+        {
+            let shown = qb64rust_base::show_bytes(self.text(at));
+            self.diags.warning(
+                at,
+                format!(
+                    "`{shown}` is computed with correctly rounded math functions; QB64pe's value depends on the CPU \
+                     and the system's library and may differ"
+                ),
+            );
+        }
+        Ok(())
+    }
+
     /// The constant at `index` of the file's order, defined on the first call.
     fn auto_const_at(&mut self, index: usize) -> Result<ConstId, String> {
         if let Some(known) = self.auto_consts.get(&index) {
             return known.clone();
         }
         let c = &AUTO_CONSTANTS[index];
-        let result = self.auto_value(index).map(|(ty, value)| {
+        // The first use may stand inside a program's `CONST`, whose own note of a fallback is kept apart.
+        let outer = consteval::take_fallback();
+        let value = self.auto_value(index);
+        let fell_back = consteval::take_fallback();
+        if outer {
+            consteval::fell_back();
+        }
+        let result = value.map(|(ty, value)| {
             let id = ConstId(to_u32(self.prog.consts.len()));
             self.prog.consts.push(Const {
                 name: c.name.to_string(),
@@ -57,6 +86,9 @@ impl Checker<'_> {
                 proc: None,
             });
             self.consts_main.insert(c.name.to_string(), id);
+            if fell_back {
+                self.fell_back.insert(id);
+            }
             id
         });
         self.auto_consts.insert(index, result.clone());
@@ -76,7 +108,7 @@ impl Checker<'_> {
             },
         };
         let value = self.auto_expr(index, c.value)?;
-        let value = consteval::reread(value).map_err(reason)?;
+        let value = consteval::reread(value, true).map_err(reason)?;
         consteval::settle(value, suffix).map_err(reason)
     }
 
@@ -96,7 +128,8 @@ impl Checker<'_> {
         self.auto_term(index, text)
     }
 
-    /// An operand, or a function call whose argument is one (`CHR$(13)`; `EXP` is not computed yet).
+    /// An operand, or a call of a function of the evaluator whose argument is one (`CHR$(13)`, `EXP(1.0##)`),
+    /// computed as in a `CONST` (`consteval::function`).
     fn auto_term(&mut self, index: usize, text: &str) -> Result<Value, String> {
         let text = text.trim();
         let Some(open) = text.find('(') else {
@@ -108,11 +141,11 @@ impl Checker<'_> {
             // Parentheses that are no call of one argument: none of the file's shapes.
             return Err(format!("its expression `{text}` is not read yet"));
         }
-        if function != "CHR$" {
-            return Err(format!("the function `{function}` in a `CONST`"));
-        }
-        let code = self.auto_operand(index, arg.unwrap_or_default())?;
-        consteval::chr(&code).map_err(reason)
+        let arg = self.auto_operand(index, arg.unwrap_or_default())?;
+        // The argument is read back as the evaluator reads a function's arguments.
+        let arg = consteval::reread(arg, false).map_err(reason)?;
+        let v = consteval::function(function, &[arg]).map_err(reason)?;
+        consteval::reread(v, false).map_err(reason)
     }
 
     /// One operand: a string, a constant that stands earlier in the file, or a number with or without a minus.
@@ -129,7 +162,11 @@ impl Checker<'_> {
             return match auto_constant(text.as_bytes()) {
                 Some((earlier, _)) if earlier < index => {
                     let id = self.auto_const_at(earlier)?;
-                    Ok(self.prog.constant(id).value.clone())
+                    if self.fell_back.contains(&id) {
+                        consteval::fell_back();
+                    }
+                    let c = self.prog.constant(id);
+                    Ok(consteval::lookup(c.ty, &c.value))
                 }
                 _ => Err(unread()),
             };
@@ -141,17 +178,7 @@ impl Checker<'_> {
         if !digits.starts_with(|c: char| c.is_ascii_digit()) || digits.contains(' ') {
             return Err(unread());
         }
-        if digits.bytes().all(|b| b.is_ascii_digit()) && digits.parse::<i64>().is_err() {
-            // The evaluator reads no literal of this size yet (it would be an unsigned one).
-            return Err("a number beyond `_INTEGER64` in a `CONST`".to_string());
-        }
-        let value = match literal::number(digits.as_bytes(), false) {
-            Ok(NumLit::Int { value, .. }) => Value::Int(value),
-            Ok(NumLit::Float { text, .. }) => Value::Float(consteval::float_literal(&text).map_err(reason)?),
-            Err(LitError::Overflow) => return Err("a number beyond 64 bits".to_string()),
-            Err(LitError::Error(msg)) => return Err(msg.to_string()),
-            Err(LitError::Unsupported(what)) => return Err(what.to_string()),
-        };
+        let value = consteval::literal(digits.as_bytes()).map_err(reason)?;
         if negative {
             consteval::unary(UnOp::Neg, &value).map_err(reason)
         } else {

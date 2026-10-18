@@ -4,9 +4,9 @@ $CONSOLE:ONLY
 ' verification\v26_x115-x126, where the old compiler rejects it too): a name of the file is a reserved name, so a
 ' CONST, a DIM, a SUB, an assignment, FOR, INPUT, READ and SWAP with it are errors, with the same value too; a
 ' numeric constant with `$` is a type mismatch; LEN of a numeric constant is an error. Left "not supported yet",
-' with the reason: a constant whose value needs EXP (_E; also as a string length; _STR_CRLF and _CHR_CR compile
-' since m3-errorline-chr-const), one whose number the CONST evaluator does not read yet (_DOUBLE_MAX, _FLOAT_MAX,
-' _INTEGER64_MIN, _UINTEGER64_MAX: the old compiler's values for them are in v26_x114), a constant with an index.
+' with the reason: a float constant as a string length (_E), a constant with an index. _E, _DOUBLE_MAX, _FLOAT_MAX,
+' _INTEGER64_MIN and _UINTEGER64_MAX compile since m3-constant-evaluation (no error on their lines; their values,
+' the old compiler's, are in verification\v45_a_auto); _STR_CRLF and _CHR_CR since m3-errorline-chr-const.
 ' The functions of the file included after the last line are compiled since m3-network-embed (url_errors).
 DIM n AS LONG, d AS DOUBLE, s AS STRING
 CONST _TRUE = 1

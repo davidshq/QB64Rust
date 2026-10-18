@@ -78,7 +78,7 @@ After a change, regenerate the three lists with `QB64RUST_UPDATE_LISTS=1 cargo t
 and review the diff: entries may only go away (a new entry is a regression to fix, unless it is a program new to
 the inputs).
 
-**Fourth list, `tests/known_clean_not_passing.list`** (2026-10-07, `study\26` §3; spec `testing/compiler-tests`,
+**Fourth list, `tests/known_clean_not_passing.list`** (2026-10-07, `study\archive\26` §3; spec `testing/compiler-tests`,
 "Clean programs are listed"): every corpus or upstream program the old compiler accepts that the new compiler
 compiles without an error must be on `tests/corpus/slice.list`, on `pass.list` or here, with the reason it does not
 pass tier 2. It is kept by hand (not regenerated) and shrink-only; today it holds the five corpus `KFAIL` programs.
@@ -101,7 +101,7 @@ job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 202
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:upstream-membership -->
-**Upstream progress: 347 of 403**: the programs of `pass.list` of the suite's 404 programs less the 1 of `deferred.list`.
+**Upstream progress: 356 of 403**: the programs of `pass.list` of the suite's 404 programs less the 1 of `deferred.list`.
 <!-- /counts:upstream-membership -->
 
 <!-- counts:upstream-results -->
@@ -180,9 +180,9 @@ array parameters).
 build against the QB64pe 4.7.0 release (404 programs, 48 s): 34 pass; added to `pass.list`: the four
 `include_once`/`include_paths` programs (comment `$INCLUDE` followed, `--include-root tests/upstream/root`), the
 two `declare_library_external` programs (their `DECLARE LIBRARY` is in a `$IF` branch not taken on Windows; also
-found by `study\26` §3) and the four `types/*_no_length` `.err` programs (now the old compiler's reason, no size
+found by `study\archive\26` §3) and the four `types/*_no_length` `.err` programs (now the old compiler's reason, no size
 after `*`). None builds and prints the wrong output: an earlier run of the change found
-`precomp-flags/consoleonly` doing so (`$IF _CONSOLE_` false), now marked "not supported yet" (`study\26` §2).
+`precomp-flags/consoleonly` doing so (`$IF _CONSOLE_` false), now marked "not supported yet" (`study\archive\26` §2).
 `auto_include/no-debug` passed by luck before the fix (its `_DEBUG_` is 0) and is marked now. 1 known failure.
 The tier-2 runner passes `--include-root tests/upstream/root` to the new compiler on its own.
 
@@ -212,7 +212,7 @@ compiler crash. Added to `pass.list`: `const/offset`, an `.err` program that get
 4.
 
 **Upstream progress, 2026-10-09 (later): 47 of 279.** No compiler change: the reference clone (`16f629784e`) was
-decided to be the one reference for the old compiler, in CI too (`DECISIONS.md`, `study\28` §2 and §9). The two
+decided to be the one reference for the old compiler, in CI too (`DECISIONS.md`, `study\archive\28` §2 and §9). The two
 `VAL` programs that pass against the clone and not against the 4.7.0 release, `basic/val_default_large_integer_decimal`
 and `val_typed_large_integer_decimal`, were run again (both pass) and moved from
 `tests\known_clean_not_passing.list` to `pass.list`. Where this file says a program passes "against the 4.7.0

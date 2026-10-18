@@ -1,0 +1,5 @@
+
+Unexpected element 'BLACK'
+Caused by (or after):
+LINE 3:CONST MINE = BLACK + 1
+exit=1

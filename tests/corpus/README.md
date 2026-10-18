@@ -52,13 +52,13 @@ Written by `python tools\legacy_tests\counts.py` (`tools\legacy_tests\README.md`
 and `slice.list` hold, and what the last full run of the release build gave.
 
 <!-- counts:corpus-membership -->
-`slice.list` names **453** programs. By folder:
+`slice.list` names **458** programs. By folder:
 
 | Folder | Programs | `.output` | `.err` | `.norun` | `.screen` | In `slice.list` |
 |---|---|---|---|---|---|---|
 | `runtime_comparison` | 261 | 235 | 20 | 1 | 0 | 236 |
 | `screen` | 67 | 67 | 0 | 0 | 67 | 67 |
-| `slice` | 148 | 148 | 0 | 0 | 0 | 148 |
+| `slice` | 153 | 153 | 0 | 0 | 0 | 153 |
 | `verification` | 2 | 2 | 0 | 0 | 0 | 2 |
 <!-- /counts:corpus-membership -->
 
@@ -194,7 +194,7 @@ All 66 are listed: `g03_capitol` joined with `m3-sound` (its five `PLAY` lines a
 because the program was cut with the game's sound option off), `c12_prompts` and `g12_game` with
 `m3-scripted-game`.
 
-`slice.list` names the 440 programs the new compiler must pass (tier 2, `study\19`), also with
+`slice.list` names the 440 programs the new compiler must pass (tier 2, `study\archive\19`), also with
 `QB64RUST_NO_FOLD=1`. Joined with `m3-arraycopy` (each left the recorded output on its first run):
 `s131_arraycopy` (`verification\v41_a`, `v41_b`, `v41_c`, `v41_f`, `v41_g`, `v41_h`, without `_FLOAT` arrays) and
 `s132_arraycopy_members` (`v41_d`, `v41_e`, `v41_k`); the two divergences of the change, `DIVERGENCES.md` D-004

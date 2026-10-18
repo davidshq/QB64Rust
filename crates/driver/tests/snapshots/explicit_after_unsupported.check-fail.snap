@@ -2,6 +2,6 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-explicit_after_unsupported.bas:9:1: error: variable `a` (SINGLE) is not declared (`OPTION _EXPLICIT`)
-explicit_after_unsupported.bas:9:1: note: QB64pe: Variable 'a' (SINGLE) not defined
-explicit_after_unsupported.bas:12:11: error: not supported yet: the function `EXP` in a `CONST`
+explicit_after_unsupported.bas:10:1: error: variable `a` (SINGLE) is not declared (`OPTION _EXPLICIT`)
+explicit_after_unsupported.bas:10:1: note: QB64pe: Variable 'a' (SINGLE) not defined
+explicit_after_unsupported.bas:14:5: error: not supported yet: `TYPE` blocks inside a SUB, FUNCTION or block

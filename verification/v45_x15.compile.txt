@@ -1,0 +1,5 @@
+
+Invalid comma count (1&&,2&&,3&&,4&&,5&&)
+Caused by (or after):
+LINE 3:CONST C = _RGB32 ( 1 , 2 , 3 , 4 , 5 )
+exit=1

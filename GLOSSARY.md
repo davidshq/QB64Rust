@@ -242,7 +242,7 @@ compares.
 "must pass" sheets grows with it and never shrinks.
 
 **Here:** `tests\corpus\slice.list`, the corpus programs the new compiler must pass end to end (output, and the
-screen for window programs). Since `study\31` item 3 it is not run by itself at a change's close: it is judged
+screen for window programs). Since `study\archive\31` item 3 it is not run by itself at a change's close: it is judged
 from the full corpus run with `--check-list`.
 
 ### Without folding (`QB64RUST_NO_FOLD=1`)

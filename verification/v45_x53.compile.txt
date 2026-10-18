@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ COLOR
+LINE 3:$COLOR
+exit=1

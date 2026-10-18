@@ -298,7 +298,7 @@ class Check(unittest.TestCase):
         self.assertNotIn("STALE    slice", text)
 
     def test_a_run_of_a_copy_of_another_build(self):
-        # Started on an earlier build and ended after the current one was built (study/34 2.1).
+        # Started on an earlier build and ended after the current one was built (study/archive/34 2.1).
         self.copy_log("slice", "ab" * 32, 150, end=300)
         code, text = self.run_check()
         self.assertEqual(code, 1)

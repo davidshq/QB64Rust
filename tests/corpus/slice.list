@@ -488,3 +488,8 @@ slice/s138_embed
 slice/s139_net_errors
 slice/s140_url
 slice/s141_tcp_loopback
+slice/s142_const_float
+slice/s143_const_funcs
+slice/s144_color0
+slice/s145_color32
+slice/s146_const_edges

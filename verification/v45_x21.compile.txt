@@ -1,0 +1,5 @@
+
+Unexpected element '"",0'
+Caused by (or after):
+LINE 4:CONST C = N$ + "",0
+exit=1

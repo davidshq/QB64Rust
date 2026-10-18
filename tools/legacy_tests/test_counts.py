@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests of counts.py (study/31 item 2): a block is replaced and nothing else, and results that are
+"""Tests of counts.py (study/archive/31 item 2): a block is replaced and nothing else, and results that are
 missing or not of this build are never written as current.
 
     python -m unittest discover -s tools/legacy_tests -p "test_*.py"

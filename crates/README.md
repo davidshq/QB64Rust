@@ -26,7 +26,7 @@ difftest -> sema (the type list only)
 reads the parser's trees only, so the server cannot report anything `sema` decides (design D1 of
 `m2-language-server`).
 
-Source is bytes throughout (`study\15` §1): files are never converted to `str`; positions are byte offsets;
+Source is bytes throughout (`study\archive\15` §1): files are never converted to `str`; positions are byte offsets;
 columns in diagnostics are byte columns. A real error whose wording by the old compiler is known from recorded
 output is followed by `note: QB64pe: <its wording>` (`base\src\old_wording.rs`, the table written by
 `tools\diagnostics\old_wording.py`; `m3-old-wording-notes`). A program built here writes the rows of
@@ -35,7 +35,7 @@ output is followed by `note: QB64pe: <its wording>` (`base\src\old_wording.rs`, 
 ## Lints
 
 `cargo clippy --workspace --all-targets -- -D warnings` must be clean (CI runs it). Beyond the defaults
-(`study\21`):
+(`study\archive\21`):
 
 - `sema`, `ir`, `codegen-cpp`: no `_ =>` arm on an enum (`wildcard_enum_match_arm`). List the variants; where a
   default is right, say why in `#[expect(clippy::wildcard_enum_match_arm, reason = "...")]`. The lint sees only
@@ -95,11 +95,11 @@ cache keeps the file with its executable, and an entry without it is no hit for 
 ## What the compiler supports
 
 What a program may use, and how it behaves, is in the merged specs under `openspec\specs\` (one home per
-behaviour, `study\31` item 2). How and where a change built it is in that change's `design.md` and `tasks.md`
+behaviour, `study\archive\31` item 2). How and where a change built it is in that change's `design.md` and `tasks.md`
 (`openspec\changes\archive\`); what it left "not supported yet" on purpose is in `SOMEDAY.md` ("Left marked by
 …"); what the corpus and upstream programs still need is the demand report (`--report unsupported`, above). The
 catalogue this section held until 2026-10-16, with the code each feature lives in, is
-[`study\support-record.md`](../study/support-record.md) (closed: a new change adds nothing to it or here).
+[`study\archive\support-record.md`](../study/archive/support-record.md) (closed: a new change adds nothing to it or here).
 
 | Area | Spec (`openspec\specs\…\spec.md`) |
 |---|---|
@@ -152,7 +152,7 @@ panics on purpose, for the CLI test only.
 
 ## Tests
 
-| Tier (`study\19`) | Command | What |
+| Tier (`study\archive\19`) | Command | What |
 |---|---|---|
 | 1 | `cargo test` | Unit tests; lexer and parser snapshots; symbol-table snapshots; `tests\frontend\` by mode line (included files under `tests\frontend\inc\`); every input set through the front end with its included files (`inputs.rs`: corpus, `tests\upstream`, snippets, `tests\differential`, the real programs of `tests\programs`, and from the clone `qbasic_testcases` and the old compiler's sources, `qb64pe.bas` through all its includes; no panic, exact round trip of every tree, the copy equals the clone, the three lists of `tests\upstream\README.md`); the programs of `tests\corpus\slice.list` without diagnostics; every program with an `.err` file rejected; reserved names of variables and procedures against the measured lists (`names.rs`); the seeded mutation test (`mutate.rs`); the command line; the differential programs equal to what the generator writes, each with its recording (`difftest\tests\fresh.rs`) |
 | 1 | `cargo test -p qb64rust-lsp` | The language server: encoding tables against `iconv-lite`'s bytes, positions, URIs (unit); symbols and folding snapshots and every go-to-definition form on `lsp\tests\fixtures\outline.bas` (`features.rs`); the protocol scenarios of spec `editor/language-server` through an in-process connection (`server.rs`); the walks over every corpus and upstream program (`walk.rs`) |
@@ -231,7 +231,9 @@ tier 2 with it set), not for normal use.
 
 ## Dependencies
 
-The compiler itself has none. The language server (`lsp`) has `lsp-server` (the transport and message loop,
+The compiler itself has one: `sema` has `astro-float-num` (pure Rust, MIT; with `itertools` and `lazy_static`),
+the high-precision reference behind the `CONST` evaluator's functions and its exact decimal conversions
+(`consteval.rs`, `f80.rs`, `certify.rs`; `DECISIONS.md` 2026-10-17). The language server (`lsp`) has `lsp-server` (the transport and message loop,
 synchronous) and `lsp-types` (the protocol types), with `serde_json` for their messages; they bring `serde`,
 `crossbeam-channel`, `fluent-uri` and a few more. `serde_json` also reads the built-in table at build time, and
 `insta` and `tempfile` serve the tests. `cargo deny check` (`deny.toml`; CI job `deny` in `rust.yml`; install with
@@ -242,11 +244,14 @@ The policy (decided 2026-10-07):
   the language server, their DAP equivalents for the debugger, `insta` for snapshots, `tempfile` for scratch
   folders that are deleted when a test fails.
 - No crate that takes source as `str` (`rowan`, `logos`, `ariadne`, `codespan-reporting`): source is bytes
-  (`study\15` §1). No crate that replaces a pipeline stage or the analysis model (`salsa`; `DECISIONS.md`,
+  (`study\archive\15` §1). No crate that replaces a pipeline stage or the analysis model (`salsa`; `DECISIONS.md`,
   2026-10-04).
 - Performance crates (`memchr`, `rustc-hash`, `indexmap`, `rayon`) only after a measurement shows the need.
+- A numeric crate where exact or high-precision arithmetic cannot reasonably be written here, guarded so that a
+  fault in it cannot become a wrong value in a program (`astro-float-num`, 2026-10-17: its results are checked at
+  two precisions and against fixed values, and anything it cannot settle is "not supported yet").
 - Not needed at this size: `clap` (the flags copy `qb64pe`'s `-x`, `-z`, `-f:name=value`, about 80 lines by hand),
   `thiserror`/`anyhow` (driver errors are messages), per-file test runners (`libtest-mimic`: the harnesses already
   name each failing file and share one run over all inputs).
-- `cargo-deny` comes with the first dependency that is not build- or dev-only (`study\21` item 7; added with the
+- `cargo-deny` comes with the first dependency that is not build- or dev-only (`study\archive\21` item 7; added with the
   language server, 2026-10-08); it also enforces rule 5 of `CLAUDE.md` (no GPL code by way of a crate).
