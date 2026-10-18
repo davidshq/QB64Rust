@@ -162,7 +162,7 @@ or measurements; listing an area does not settle those choices.
 ## M4. Parity
 
 Done when: the corpus and the upstream tests in reach match, and `qb64pe.bas` compiles and the result passes the
-suite (`study\20`).
+suite (`study\archive\20`).
 
 - [ ] The corpus and the upstream tests outside `tests\upstream\deferred.list`
 - [ ] Close the remaining compatibility gaps exposed by the full suites, including accepted programs still
@@ -170,8 +170,8 @@ suite (`study\20`).
       gaps at zero (`tests\known_*.list`)
 - [ ] Bring the last deferred upstream program into the parity run when its scalar/array naming rule is built;
       finish with no feature-deferred programs left (`tests\upstream\deferred.list`)
-- [ ] `qb64pe.bas`, reached through its own include files, smallest first (`study\22` §4.2)
-- [ ] Build and run the compiler produced from `qb64pe.bas` against the suite (`study\20`); compiling its source
+- [ ] `qb64pe.bas`, reached through its own include files, smallest first (`study\archive\22` §4.2)
+- [ ] Build and run the compiler produced from `qb64pe.bas` against the suite (`study\archive\20`); compiling its source
       alone does not meet M4's exit criterion
 - [ ] Review the coverage of features checked only by emitted calls or compiled-but-never-run programs; add
       execution checks where needed to establish parity, using screen state for window output and retaining
@@ -185,7 +185,7 @@ suite (`study\20`).
 
 - [ ] The ABI owned by the new compiler; error model, string heap and threading redesigned behind golden tests.
   This starts as a second backend crate beside `codegen-cpp`, which stays pinned to libqb's ABI and to the
-  call-site check; `codegen-cpp` is not modernised in place (`study\30` §7, user 2026-10-16)
+  call-site check; `codegen-cpp` is not modernised in place (`study\archive\30` §7, user 2026-10-16)
 
 ## Not tied to a milestone yet
 

@@ -1274,7 +1274,7 @@ def check_list(
     suite: str, wanted: set[Path], root: Path, data: dict, compiler: Path
 ) -> tuple[list[str], list[tuple[str, str]], int]:
     """Judges a pass list from the results of a full run of its suite instead of running it again
-    (--check-list, study/31 item 3). Returns (the run's problems, the failures as (key, why), the
+    (--check-list, study/archive/31 item 3). Returns (the run's problems, the failures as (key, why), the
     number passed). A problem of the run (another compiler build or runner, another root, folding
     or pass cache, a partial run, no run record) fails every program; so does a program with no
     result, a known failure (a pass list needs a pass), any failure, or an input changed after the

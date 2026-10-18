@@ -1,8 +1,10 @@
 # 00 — Synthesis: start here
 
 The one-page entry point to this folder. It summarises every study, the decisions, the plan, what was
-measured, and what is still open. Details live in the numbered documents; each section points to them. The reviews
-of other repositories (`11`–`14`) are closed and live in `archive\`; their conclusions are in §11 here.
+measured, and what is still open. Details live in the numbered documents; each section points to them. Closed
+documents live in `archive\` and are read only when needed (`CLAUDE.md` working rule 10): the reviews of other
+repositories (`11`–`14`, conclusions in §11 here) and, since 2026-10-18, the reviews and plans whose outcomes are
+decided and built (`08`, `15`, `19`–`34`).
 
 First written 2026-10-02 from `01`–`05`; rewritten 2026-10-02 (session 5) to cover `06`–`14`, `baselines\` and
 `verification\`; trimmed 2026-10-03 when `11`–`14` were archived. Tree studied: `..\QB64pe`, HEAD `16f629784e`,
@@ -11,16 +13,10 @@ Current phase and next steps: `STATUS.md`. Rules: `CLAUDE.md`. Decision log: `DE
 
 ## 1. Decisions
 
-All taken 2026-10-02; the authoritative list is in `DECISIONS.md`.
-
-| Decision | Consequence |
-|---|---|
-| Ground-up rewrite of QB64pe | Understand the old code first (done: `01`–`05`, checked in `09`–`10`) |
-| Do not port the text-mode IDE; reach parity with a VS Code extension | Compiler must be a library with an analysis API, a separate formatter, column-accurate diagnostics, debug symbols (`06`) |
-| New compiler in **Rust** | Self-hosting is not a goal; compiling the old `qb64pe.bas` remains a large test case |
-| **New error messages** (columns, several errors per run) | The 56 `.err` tests compare old texts; use them loosely (must fail, right line). Old texts optional during a transition |
-| No strict QuickBASIC 4.5 mode | What one would need is recorded in `08` |
-| Target dialect = upstream QB64pe 4.7.0 | The "fork" features turned out to be upstream work. Keep `$USELIBRARY`, `$ERRORLOCATION`, GLFW; defer TYPE member arrays, `_ARRAYCOPY`, whole-array assignment, `REDIM _RETAIN` (`SOMEDAY.md`) |
+The decisions that set the project's direction (2026-10-02: a ground-up rewrite, no port of the text-mode IDE
+but a VS Code extension, the compiler in Rust, new error messages, no strict QuickBASIC 4.5 mode, upstream QB64pe
+4.7.0 as the dialect) and every later one are in `DECISIONS.md`. This section's first table, as it stood until
+2026-10-18, is in `study\archive\00-synthesis.md`.
 
 ## 2. Plan: architecture and roadmap
 
@@ -42,15 +38,8 @@ From the expert panel (`07`), whose recommendations R1–R13 the decisions above
 - **Toolchain (R13):** pin and checksum the Windows C++ toolchain (QB64pe's setup downloads the latest llvm-mingw
   with no checksum; build problems in `baselines\README.md`).
 
-| # | Milestone | Done when | State |
-|---|---|---|---|
-| M0 | Baseline | Old compiler builds on Windows; Windows runner; baseline recorded; dialect settled; study gaps closed | **done** |
-| M1 | VS Code extension v0 on the old compiler | Highlighting, build/run, diagnostics from `-z`, formatting via `-y`, CP437 default | **done** (`vscode\`) |
-| M2 | Front end | Lossless parser with recovery over the whole language (no false syntax error on any program the old compiler accepts: corpus, upstream tests, `qbasic_testcases`, its own sources), resolution, type checker, a thin language server (the formatter matching `-y` left this criterion on 2026-10-09, `DECISIONS.md`) | **done 2026-10-12**: golden corpus; Rust workspace and end-to-end slice; procedures and error handling; upstream tests; control flow and constants; arrays and `TYPE`; parser breadth (every accepted program parses, no false error); core built-ins; the language server; the numeric types; built-in statements; the screen-state check; default types, dynamic arrays, arrays in procedures, `COMMON`, the rest of `TYPE` and member arrays; a console and a window (`$CONSOLE`, `$SCREENHIDE`, `_DEST _CONSOLE`), the window built-ins as compiled code, the auto-included constants and the precompiler flags (`crates\`). No step of the order of work is left. Order of work and the numbers of the last full runs: `STATUS.md` |
-| M3 | Code generation to the existing ABI | Emits `qbx.cpp` fragments, links with libqb, passes expected-output and differential tests; programs without `$CONSOLE:ONLY` with a screen-state oracle | under way: the slice links with libqb since M2; since `m3-window-output` (2026-10-12) a program whose output is a window compiles, with the text-screen, drawing and pacing statements, and 42 screen programs pass by their screen state |
-| M4 | Parity | The corpus (275) and the upstream tests in reach (279 of 404; 125 need the deferred array features) match; `qb64pe.bas` compiles and the result passes the suite (exit criterion, `study\20`) | |
-| M5 | Debugger | Debug symbol file + DAP adapter | |
-| M6 | Runtime modernisation | ABI owned by the new compiler; error model, string heap, threading redesigned behind golden tests | |
+Milestones M0–M6, what each needs to be done and where it stands: `ROADMAP.md` (the table that stood here until
+2026-10-18 is in `study\archive\00-synthesis.md`).
 
 ## 3. The old system in one page
 
@@ -571,7 +560,7 @@ Measured for the core built-ins, `SELECT CASE` and `ON … GOTO/GOSUB` (2026-10-
 - **Parse only, as the language server does it** (`m2-language-server` task 1.3, 2026-10-08, release build, best
   of 5, `parse` with no `sema`): `qb64pe.bas` with its includes (40 trees, 1.3 MB) 111 ms; the largest corpus
   program (`slice\s28_select_case`, 6 KB) 0.2 ms; 1,000 lines with a syntax error on every tenth 1.8 ms (stopped at
-  the 100-error cap). The 0.6 s of `study\27` §2 was a whole `--dump tree` process (start, parse, printing the
+  the 100-error cap). The 0.6 s of `study\archive\27` §2 was a whole `--dump tree` process (start, parse, printing the
   trees); a 100 ms debounce costs more than any parse but the old compiler's own source.
 
 Measured for the new numeric types and fixed-length strings (2026-10-08, `m2-numeric-types` group 1;
@@ -3274,43 +3263,11 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
 
 ## 10. Testing position
 
-- **Runner:** `tools\legacy_tests\run_legacy_tests.py` re-implements the bash suites on Windows (compile,
-  qbasic, format) for the old or the new compiler; `known_failures.txt` marks expected failures.
-- **Baseline** (`baselines\`, old compiler at `16f629784e`): compile_tests 330 of 331 expected-output, 56 of 56
-  expected-error, 17 of 17 compile-only; qbasic_testcases 143 of 143 (compile only); format_tests 24 of 24. The one
-  failure (`http/read_example`) depends on a web page that changed.
-- **Reusable as black-box conformance:** the 331 expected-output tests (357 of 404 programs are `$CONSOLE:ONLY`)
-  and the 143 qbasic programs. Tied to the old implementation: the `.err` texts, `qb64pe/*` internals tests,
-  formatter tests, licence tests.
-- **Planned layers (R11):** (1) existing suite; (2) golden corpus: run the 143 qbasic programs and QB64Fresh's 261
-  `runtime_comparison` programs through the old compiler and freeze their output (**the 261 done 2026-10-03**:
-  `tests\corpus\`, 263 programs with `verification\` v11 and v12; 237 `.output`, 20 `.err`, 1 compile-only, 5
-  known failures; with the 12 `slice\` programs written for the new compiler, 275; baseline `baselines\qb64pe-16f629784e-win64-corpus.json`; how often it runs: `study\19`. The 143
-  qbasic programs are still compile-only); (3) differential testing of
-  random expressions old vs. new; (4) formatter goldens from `-y` over all available `.bas`; plus golden images for
-  LINE/CIRCLE/PAINT/DRAW/GET/PUT (only 12 image tests exist).
-- **Not covered by anything yet:** the IDE, real graphics output, audio, interactive input, run-time behaviour of
-  the 143 qbasic programs, and classic QBasic areas (PRINT USING, file modes, string functions) beyond light use.
-- **Test hygiene:** run every program with `QB64PE_NOPROMPT=y`; detect fatal errors from output, not exit code;
-  never use screen `PRINT` with a comma under a redirected `$CONSOLE`.
-- `verification\` holds 77 small programs with recorded outputs behind `09`, `10`, `16`, the slice's design
-  (`v13`, `v13b`: type suffixes on DIMmed names) and `m2-procedures-and-errors` (`v14_*`: scopes, reserved names,
-  compile errors, `ERROR` values; `v15_*`: names of built-ins, unary `+`) (`run.sh` reruns them).
-- **New compiler (2026-10-03, `crates\README.md`):** tier 1 `cargo test` runs unit and snapshot tests (`insta`),
-  `tests\frontend\` by mode line (`' TEST: parse-ok|check-ok|check-fail|typed|ir|cpp`), and the front end over every
-  corpus program (no panic, exact byte round trip; no diagnostics for `tests\corpus\slice.list`; at least one error
-  for every `.err` program). Tier 2 runs the programs of `slice.list` end to end with the corpus runner's
-  `--list` (70 on 2026-10-06): all pass, also with constant folding off. The full corpus with `qb64rust`: those
-  pass, and so do the `.err` programs that get a real error; the 5 known failures are not run; everything else is
-  rejected with a diagnostic (`tests\corpus\README.md`).
-  Intentional differences from the old compiler are in `DIVERGENCES.md` (D-001, D-002: integer overflow wraps);
-  the numeric rules are the spec `openspec\specs\language\numeric-semantics`, procedures and error handling the
-  specs `language\procedures` and `language\error-handling`.
-- **The call-site check (kept 2026-10-10, `DECISIONS.md`; `tools\callsite\README.md`):** for one statement per
-  program of `tests\callsite` (256 on 2026-10-10), the libqb call the new compiler writes is compared with the
-  old compiler's (`-z` on both, six normalisation rules, none naming a built-in). Part of tier 2, about a minute.
-  It is how a plain built-in comes in: a row in the list, a program here, a line in a slice program. It does not
-  see behaviour, element addressing, stores or the cleanup of string temporaries; the corpus does.
+How the new compiler is tested, tier by tier: `crates\README.md`; each test set and its counts: its
+`tests\*\README.md`; when each run happens: `CLAUDE.md` working rule 9; the old compiler's baseline:
+`baselines\README.md`; the runner and how it runs the old compiler's programs (`QB64PE_NOPROMPT=y`, fatal
+errors read from the output): `tools\legacy_tests\README.md`. The position as written on 2026-10-03, with the
+plan of R11's test layers, is in `study\archive\00-synthesis.md`.
 
 ## 11. Other repositories and sources: conclusions (reviews archived)
 
@@ -3337,12 +3294,13 @@ Kept in one place, `STATUS.md`, so they don't go stale here. As of 2026-10-03 M1
 ## 13. Remaining study gaps
 
 Closed: DIM/REDIM/STATIC/COMMON/ERASE, PRINT/INPUT/WRITE emission, the built-in table (`10`); "nothing was
-executed" (`09`, `10`). Deferred with the array features: the member-array layer. Still open, to be read when the
+executed" (`09`, `10`); ON TIMER/KEY/STRIG, `FIELD` and the `_MEM*` statements by the M3 changes that built them
+(the row is in `study\archive\00-synthesis.md`). Deferred with the array features: the member-array layer. Still
+open, to be read when the
 matching milestone starts:
 
 | Gap | Milestone | Where |
 |---|---|---|
-| ON TIMER/KEY/STRIG, FIELD, `_MEM*` statements (skimmed; FOR/DO/WHILE closed by `verification\v17_*` and the `FOR` temporaries at 6510–6522, 2026-10-06) | M2/M3 | `qb64pe.bas` 6212–8765 |
 | Runtime drawing/printing/input bodies (PAINT, CIRCLE, DRAW, GET/PUT, `qbs_input`, `print_using`) | M3/M6 | `libqb.cpp` |
 | CHAIN array COMMON handling | M4 | `10` §1.6 |
 | Most of the ~45 accidental behaviours (only those in §6 were run) | M2–M4 | `01` §11.3, `02` §9.2, `04` G.4 |
@@ -3362,35 +3320,16 @@ as a reading of the code, not a measurement.
 | `01` | Compiler front end: lexer, passes, name resolution, restarts, metacommands |
 | `02` | Expressions and code generation: typing, storage, arrays, built-in calls, generated C++ |
 | `03` | Runtime library: error model, strings, screen modes, graphics, files, input |
-| `04` | IDE and debugger (vWATCH protocol), with the parity list used by `06` |
+| `04` | IDE and debugger (vWATCH protocol), with the parity list used by `06`; the IDE's internals (Parts A–D, Part E §1–§4) are in `archive\04-ide-debugger.md` |
 | `05` | Build, bootstrap, CI, vendored libraries, test suites |
 | `06` | IDE features mapped to LSP, DAP, tasks and settings |
 | `07` | Expert panel: strategy, architecture, roadmap, recommendations R1–R13 |
-| `08` | What a strict QuickBASIC 4.5 mode would need (not planned) |
 | `09` | Study claims checked by running the old compiler; bug-compatibility list |
 | `10` | Study gaps closed: DIM family, PRINT/INPUT/WRITE, built-in table |
-| `15` | Pre-coding review: bytes not strings, early vertical slice, diagnostics policy, minimal M1 backend, libqb copy |
 | `16` | FreeBASIC: lessons to take (module split, runtime-call tables, `-fwrapv`, lowering notes, test conventions), things not to take, proposed follow-ups and the panel review |
 | `17` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do); how M1 compares |
 | `18` | Other VS Code extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
-| `19` | Test cadence: four tiers, what a full run costs, how the new compiler's runs are kept fast |
-| `20` | Review of code and plan after the first slice (2026-10-04); panel outcome; the order of work (replaced by `22` §5) |
-| `21` | Rust review of the workspace setup: lints adopted and not, CI, the repo check, how to apply them |
-| `22` | Second review (2026-10-04): test inputs from QB64pe and QB64Fresh and what is taken, the upstream yardstick (x of 279); its order of work is replaced by `23` §4 |
-| `23` | Third review (2026-10-05): path check of the codebase, the panel's outcome; its order of work is replaced by `24` §4 |
-| `24` | Fourth review (2026-10-07): code against plan after the control-flow slice's groups 1–5, why arrays and `TYPE` move before the type table and built-ins, `STATUS.md` as entry point; the current order of work |
-| `25` | IR review (2026-10-07): what the lowering does and the emitter still does, keep or merge, the place question for the arrays-and-`TYPE` slice with the old compiler's store rules to measure |
-| `26` | Fifth review (2026-10-07): a wrong-code bug in `$IF`, clean programs that tier 2 never runs, member arrays no longer behind `$UNSTABLE`, `$CONSOLE` tests as M2 work, blockers by kind and the new order (all accepted 2026-10-07; plain member arrays un-deferred) |
-| `27` | Sixth review (2026-10-08): architecture holds, no bug found; the corpus is blocked by built-in statements, file I/O and `DATA` that no step names (step 9 to become "by demand"), upstream by types and arrays; "`Ty` as a type table" dropped; the language server's design points (one binary, parser only, the encoding boundary, includes from open documents, two diagnostic sources); all accepted 2026-10-08 |
-| `28` | Seventh review (2026-10-09): not going astray; the expected outputs come from the reference clone while CI links the 4.7.0 release's libqb (16 commits apart); graphics are on the critical path to M4 (built-ins used by `qb64pe.bas`, the corpus and upstream, counted), a screen-state oracle and a call-site check proposed; Civil War Strategy assessed as the real-program graphics target; `STATUS.md` cut to the current state; the formatter off M2's exit criterion; the user's answers and what was done are its §9 (the local clone is the reference, the game copied, the formatter out of M2); the screen-state check and the call-site check wait for a yes |
-| `29` | Eighth review (2026-10-10, before step 9a): nothing to change in the code, no bug found; the screen-state hook needs neither the libqb copy nor a libqb change (one extra C++ file linked through `-f:ExtraLinkerFlags`/`CXXLIBS_EXTRA`, `atexit`, programs ending with `SYSTEM`, keys by `PostMessage`), so the copy can stay at M3; keep 9a small, then step 11 before 10 (the game's needs, measured); a demand report over the input sets; tests for the runner; the user's answers and what was done are its §8 (all accepted; the demand report's first numbers; the CI recommendation withdrawn: the reference commit's compiler differs from the release's in typed `VAL`) |
-| `30` | Ninth review (2026-10-16, during `m3-declare-library`): the compiler is in better shape than its documents; no bug found, every local check green; `STATUS.md` and `CLAUDE.md` have become history files (403 lines; an 11.5 KB table cell), decisions Claude made alone are scattered and unconfirmed (a "Waiting on the user" list proposed), `main` is eleven changes behind and tier 2 has never run on GitHub as its own job; the checker's 72 fields and the emitter's transcription of the old C++ noted for M4 and M6; what not to change; an order of actions |
-| `31` | Development velocity plan (2026-10-16): four changes, each marked with its result as it is built: CLI tests that never wait for a person or for ever, one home per kind of document, closing runs that run each program and setting once, and a record of where the working time goes |
-| `32` | Test cadence and parallel runs, panel notes (2026-10-17): what each closing run is and costs; why runs of the new compiler cannot overlap (one lock for the clone, though they share only libqb's objects) and a readers-writer lock to fix it; a lighter close with the full set at each merge; the three questions answered (adopted, built as `test-parallel-runs`) |
-| `33` | The close tool, panel notes (2026-10-17): why `tools\close\close.py` exists (a close worked from memory missed steps); the panel's six points (a program on no list, tier 1 as CI runs it, a run before a rebuild, log times, a reason printed once, the plan is Bash), all done; `--merge` left for a next step |
-| `34` | Developing while tests run (2026-10-17): what professional teams do (immutable artifacts, content-addressed caches, impact analysis, tiers, background runners); what stops work here: runs read the compiler the next build replaces, and the build cache keys on the clone's `qbx.o`, which every `qb64pe.exe` compile rewrites, so a recording throws the cache away; four recommendations, the first three built as `test-while-building` |
-| `progress-record` | Closed record of what `STATUS.md` held until 2026-10-09: the per-change history of M0 to M2 step 8, unchanged |
-| `support-record` | Closed record of the catalogue "What the compiler supports so far" that `crates\README.md` held until 2026-10-16 (to `m3-sound-handles`), unchanged: the code each feature lives in |
-| `archive\11`–`14` | Closed reviews of other repositories (VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`); conclusions in §11 |
+| `35` | Tenth review (2026-10-18, at the close of `m3-constant-evaluation`): no bug, nothing astray, tier 1 green; the slowness is the long tail of M3 (2 to 9 upstream programs per change), meta-work and the user's rulings per change; recommended: M3 declared done and the compiler made usable (the `internal\c` copy, the extension's diagnostics from the new compiler, a `.vsix`), the verification families run against the new compiler, ceremony at the merge cadence, D-026 as the standing rule for machine-dependent values, M4's exit criterion demoted to `qb64pe.bas` compiling |
+| `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 10; catalogue in `archive\README.md`): the reviews of other repositories (`11`–`14`: VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`; conclusions in §11), the reviews and plans whose outcomes are decided and built (`15`, `19`–`34`), `08` (strict QB 4.5 mode) and the closed records `progress-record` and `support-record` |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

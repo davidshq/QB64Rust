@@ -3,7 +3,7 @@
 ## Purpose
 Generated BASIC programs that compare the new compiler's numeric results with the old compiler's, for every operator,
 pair of numeric types and conversion, so that typing and conversion rules are checked by measurement rather than
-derived by hand (`study\07` test layer 3, `study\20` §3.3).
+derived by hand (`study\07` test layer 3, `study\archive\20` §3.3).
 
 ## Requirements
 

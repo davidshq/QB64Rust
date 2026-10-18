@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-17 (cut to its own rule by finding 2 of the ninth review, `study\30` §2).
+Updated 2026-10-17 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -14,14 +14,14 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 | What the compiler supports | the merged specs under `openspec\specs\` (an index by area: `crates\README.md`, "What the compiler supports"); how a change built it: its `design.md` |
 | How to build and test it | `crates\README.md`; per test set: `tests\*\README.md` |
 | Milestones, done and not done | `ROADMAP.md` |
-| History up to 2026-10-09 (what this file held before) | `study\progress-record.md` (closed) |
+| History up to 2026-10-09 (what this file held before) | `study\archive\progress-record.md` (closed) |
 
 ## Where we are
 
 M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: twenty-one of its steps are built and archived
 (table below), the last `m3-network-embed` (`3701aa0`), and the twenty-second, `m3-constant-evaluation`, is built
 and closed, waiting to be committed and archived; `test-parallel-runs` and `test-while-building` (the test
-cadence of `study\32` and `study\34`, not M3 steps, `4a8d06e` and `5d3730f`) are archived too.
+cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` and `5d3730f`) are archived too.
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
 Civil War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same
 23 screens as the old compiler's build. Upstream is at 356 of 399. `main` is at the merge of `m3-newer` (pull
@@ -41,7 +41,7 @@ questionable behaviours each change kept QB64pe's way.
    range being 0; a `CONST` above `$COLOR` that names a colour being an error; `_COTH(x)` being `2 * EXP(x) - 1`.
 2. **Commit and archive `m3-constant-evaluation`** (the files to stage are named at its close).
 
-**The `tier2` job on `m3`** (`study\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
+**The `tier2` job on `m3`** (`study\archive\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
 screen programs no window**, each waited out its 60 s limit, and the job ran into its 45-minute limit. The
 design's fallback is applied in `rust.yml`: the job runs `slice.list` without its `screen/` lines (365 programs),
@@ -154,5 +154,5 @@ None known.
 |---|---|
 | M3 | Plain copy of `..\QB64pe\internal\c` at the reference clone's commit, `16f629784e` (`DECISIONS.md` 2026-10-02 and 2026-10-09) |
 | Any time | A formatter that matches `-y` (out of M2's exit criterion, `DECISIONS.md` 2026-10-09) |
-| M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\22` §4.2) |
+| M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\archive\22` §4.2) |
 | Help/hover work | Ask the QB64pe maintainers about the wiki licence before shipping any wiki text |

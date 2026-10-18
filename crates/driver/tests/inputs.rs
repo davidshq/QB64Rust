@@ -1,4 +1,4 @@
-//! Tier 1 (`study\19`, specs `testing/compiler-tests` and `testing/upstream-tests`): the front end over every
+//! Tier 1 (`study\archive\19`, specs `testing/compiler-tests` and `testing/upstream-tests`): the front end over every
 //! whole-program input set, without C++ (design D2 of `m2-upstream-tests`).
 //!
 //! | Prefix | Root | Verdict |
@@ -687,7 +687,7 @@ fn upstream_progress() {
     assert!(pass.len() <= in_reach);
 }
 
-/// Programs that compile cleanly but are known not to pass tier 2, each with its reason (`study\26` §3).
+/// Programs that compile cleanly but are known not to pass tier 2, each with its reason (`study\archive\26` §3).
 const CLEAN_NOT_PASSING: &str = "known_clean_not_passing.list";
 
 /// Entries of `tests\differential\pass.list` (`group/name`, `#` comments) as input names (`differential/<group>/<name>.bas`).
@@ -702,7 +702,7 @@ fn differential_pass_list() -> Vec<String> {
         .collect()
 }
 
-/// "Clean programs are listed" (spec `testing/compiler-tests`, `study\26` §3): every corpus, upstream or
+/// "Clean programs are listed" (spec `testing/compiler-tests`, `study\archive\26` §3): every corpus, upstream or
 /// differential program the old compiler accepts and the new one compiles without an error is in `slice.list`, a
 /// `pass.list` or `known_clean_not_passing.list`, so "never wrong code" covers every program that gets an
 /// executable. The last list is shrink-only and hand-kept: an entry that no longer compiles cleanly, or that a pass

@@ -32,7 +32,7 @@ still marks "not supported yet":
 
 | Form | Why it waits | Details |
 |---|---|---|
-| The window built-ins are compiled and never run (`_TITLE`, `_ICON`, `_MOUSESHOW`, `_SCREENX`, `_NEWIMAGE`, … 20 of them) | What they do shows only in a window; M3 gives programs with a window a check (`tools\screen`) | `study\support-record.md` ("Window built-ins, compiled and never run"); `sema\src\builtins.rs`, `WINDOW_BUILTINS`; call-site programs in `tests\callsite` |
+| The window built-ins are compiled and never run (`_TITLE`, `_ICON`, `_MOUSESHOW`, `_SCREENX`, `_NEWIMAGE`, … 20 of them) | What they do shows only in a window; M3 gives programs with a window a check (`tools\screen`) | `study\archive\support-record.md` ("Window built-ins, compiled and never run"); `sema\src\builtins.rs`, `WINDOW_BUILTINS`; call-site programs in `tests\callsite` |
 | `SWAP`, `CLOSE` and the `MID$` statement after `CALL` (`CALL SWAP(a, b)`) | Each has a rule of its own, which reads the statement without `CALL` only. Until the review of groups 4 to 6 `CALL SWAP(a, b)` was a false error ("`SWAP` takes 0 arguments") | `verification\v26_x128`; `tests\frontend\swap_mid_marked.bas` |
 | The function `_SCREENHIDE` | Not in the change's scope (no upstream test names it) | `verification\v26_x74` |
 | `_SCREENEXISTS` as the direct argument of `HEX$`, `OCT$` or `_BIN$` | The table gives the function no return type, and the old compiler passes the width 0 there, not a LONG's 8 or 32; the function runs from M3 on, where the width can be given | Design D6 of the change |
@@ -221,7 +221,7 @@ measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFA
 
 ## Strict QuickBASIC 4.5 mode
 
-Not planned (QB64pe has no such mode). What it would take: `study\08-qb45-strict-mode.md`.
+Not planned (QB64pe has no such mode). What it would take: `study\archive\08-qb45-strict-mode.md`.
 
 ## QB64pe behaviours to review
 
@@ -349,7 +349,7 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | Accept two `DECLARE LIBRARY` forms whose build fails with the old compiler: a header named by two blocks included once (it is included once per block, and a header without a guard fails in C++; was D-023), and a name looked up in every library of a block (the old compiler looks only in the last; was D-024); and two `DYNAMIC` blocks of one DLL sharing its handle (each declares it, and the C++ fails, `verification\v37_x67`). Kept the old compiler's way for now, so code that compiles here compiles with QB64pe; the unguarded header that defines something (one that only declares builds, `v37_x68`), the doubled handle and a block without a header whose last name finds no file (`v37_x69`) are rejected before the C++ with an error that says why | User, `DECISIONS.md` 2026-10-16 (`m3-declare-library` proposal) |
 | New compiler compiles the old `qb64pe.bas` as a stress test | `study\07-expert-panel.md` R10 |
 | Redesign the runtime ABI (variables as pointers, `qbs` moving heap, `passed` bitmasks) once the old compiler is no longer a producer | `study\07-expert-panel.md` R6 |
-| Fuzz the lexer and parser with a coverage-guided fuzzer: "no panic, exact round trip" is an ideal fuzz property. A seeded mutation test over the corpus comes first, in `m2-upstream-tests` (`study\22` §5) | `study\21-rust-review.md` §4 |
+| Fuzz the lexer and parser with a coverage-guided fuzzer: "no panic, exact round trip" is an ideal fuzz property. A seeded mutation test over the corpus comes first, in `m2-upstream-tests` (`study\archive\22` §5) | `study\archive\21-rust-review.md` §4 |
 | An expression as the `INPUT` prompt (`INPUT p$; x`), a language extension; QB64pe and QB 4.5 accept only a string literal | Bug-compatibility decisions, 2026-10-08 (`study\10` §2.8) |
 | The language server notices included files that change on disk while not open (`workspace/didChangeWatchedFiles`, or parsing the includers again on `didSave`); today the change shows at the includer's next edit | Review of `m2-language-server`, 2026-10-08 |
 | Screen recordings of QB64pe's `tests\qbasic_testcases` (143 programs by several authors, no licence stated, so not copied; 134 read the keyboard, 46 use `RANDOMIZE TIMER`). Of the 9 that read no key, 6 end with equal states in two runs. They could be run from the clone, where they are, with only the recordings kept here | `m2-screen-state-check`, design D8, 2026-10-10 |

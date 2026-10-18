@@ -1,5 +1,6 @@
-# Source is bytes throughout (study\15 §1, study\21): files are never converted to `str`. A place that must show
-# bytes as text (a diagnostic, a name for generated code) uses `#[expect(clippy::disallowed_methods, reason = ...)]`.
+# Source is bytes throughout (study\archive\15 §1, study\archive\21): files are never converted to `str`. A place that
+# must show bytes as text (a diagnostic, a name for generated code) uses
+# `#[expect(clippy::disallowed_methods, reason = ...)]`.
 disallowed-methods = [
     { path = "std::fs::read_to_string", reason = "source is bytes: read with std::fs::read" },
     { path = "std::io::read_to_string", reason = "source is bytes: read with read_to_end" },

@@ -170,7 +170,7 @@ overwrites a full one. Since 2026-10-16 the summary holds a `run` record (format
 corpus and compile suites (relative to the repo), `QB64RUST_NO_FOLD`, `--cpp-opt`, `--record`, `--jobs`, whether a
 build or pass cache was used, the SHA-256 of the compiler and of this runner, and when the run started and ended.
 
-**A pass list judged from a full run** (`--check-list <list>`, corpus and compile suites, `study\31` item 3): runs
+**A pass list judged from a full run** (`--check-list <list>`, corpus and compile suites, `study\archive\31` item 3): runs
 nothing, and judges every program of the list from the suite's last full summary, `results-<suite>.json`. Each
 listed program must have `PASS` there, run (not kept by `--pass-cache`); a known failure fails it (a pass list needs
 a pass), as do a missing result and any file of the program (the `.bas`, every `<name>.*` beside it, its
@@ -186,7 +186,7 @@ run those programs with the same options, so running the lists too ran 765 progr
 as the list runs of that build passed; about a second each. The run without folding, the differential pass list
 (another corpus root) and the call-site check are still run.
 
-**The count blocks of the test READMEs** (`counts.py`, `study\31` item 2): `python tools\legacy_tests\counts.py`
+**The count blocks of the test READMEs** (`counts.py`, `study\archive\31` item 2): `python tools\legacy_tests\counts.py`
 rewrites the text between `<!-- counts:NAME -->` and `<!-- /counts:NAME -->` in `tests\corpus\README.md`,
 `tests\upstream\README.md` and `tests\differential\README.md`, and nothing outside them; `--check` compares and
 writes nothing (exit code 1 when a block differs). Membership blocks come from the lists and the folders (the
@@ -264,7 +264,7 @@ Notes:
     and the CLI tests find the main checkout from the worktree's `.git` file (`main_checkout`). Not covered:
     two separate clones of this repo that use one reference clone; the lock file is under each one's own
     `target\` (the reference clone is read-only and gets no lock file). Use a worktree, not a second clone.
-- <a id="the-compiler-a-run-tests"></a>**The compiler a run tests** (`compiler_copy.py`, `study\34` §3 item 2).
+- <a id="the-compiler-a-run-tests"></a>**The compiler a run tests** (`compiler_copy.py`, `study\archive\34` §3 item 2).
   A run of `qb64rust` (and `callsite.py`) copies the executable it is given, at its start, to
   `target\test-bin\<first 16 hex digits of its SHA-256>\qb64rust.exe` and compiles every program with that
   copy, so `cargo build --release` during the run replaces nothing the run reads: build, run tier 1 or a
@@ -276,7 +276,7 @@ Notes:
   built in, a path fixed at build time. A copy not used for a day is removed at the next run's start (about
   10 MB each). Not covered: what the copy cannot hold, the clone itself; a recording with `qb64pe.exe` still
   waits for the clone's lock.
-- <a id="merge-runs-in-a-worktree"></a>**The runs at a merge into `main` in a worktree** (`study\34` §3 item 3,
+- <a id="merge-runs-in-a-worktree"></a>**The runs at a merge into `main` in a worktree** (`study\archive\34` §3 item 3,
   optional). The full set at a merge (`CLAUDE.md` working rule 9, about an hour) may run in a second checkout
   of the merge commit, so that the next change goes on in this one:
 

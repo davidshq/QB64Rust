@@ -1,4 +1,5 @@
-//! Tier 1 (`study\19`): every corpus program parses without a panic and its tree prints back to the exact bytes.
+//! Tier 1 (`study\archive\19`): every corpus program parses without a panic and its tree prints back to the exact
+//! bytes.
 
 use qb64rust_base::SourceMap;
 use qb64rust_syntax::tree::print;

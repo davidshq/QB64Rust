@@ -93,7 +93,7 @@ class CloneLock(unittest.TestCase):
 
 
 class MainCheckout(unittest.TestCase):
-    """A worktree takes the main checkout's locks (study/34 section 3, item 3): the layout git writes."""
+    """A worktree takes the main checkout's locks (study/archive/34 section 3, item 3): the layout git writes."""
 
     def setUp(self):
         self.dir = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with

@@ -3,7 +3,7 @@
 
 Run:  python -m unittest discover -s tools/legacy_tests -p "test_*.py"
 
-The runner judges tier 2 and records every expected output (study/29 section 5), so its comparison
+The runner judges tier 2 and records every expected output (study/archive/29 section 5), so its comparison
 and recording rules are pinned here. Two kinds of test:
   * the pure functions (normalisation, the new compiler's rejection rule, .normalize files, exit
     codes as Git Bash reports them and as press_any_key.py passes them on, the --list and
@@ -370,7 +370,7 @@ class RunAgainAlone(unittest.TestCase):
 
 
 class CheckList(unittest.TestCase):
-    """check_list (--check-list, study/31 item 3): a pass list judged from a full run's results."""
+    """check_list (--check-list, study/archive/31 item 3): a pass list judged from a full run's results."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

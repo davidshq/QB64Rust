@@ -2,7 +2,7 @@
 
 ## Purpose
 How the new compiler is tested below the golden corpus: our own front-end tests with mode lines, snapshot tests
-of the typed tree, IR and C++, and the tier-1 and tier-2 runs over the corpus (`study\19`).
+of the typed tree, IR and C++, and the tier-1 and tier-2 runs over the corpus (`study\archive\19`).
 
 ## Requirements
 
@@ -57,7 +57,7 @@ IR, validated, and emitted as C++ fragments, without panicking and without a val
 `cargo test` SHALL fail when a corpus or upstream program that the old compiler accepts compiles without an error
 and is named in none of `tests/corpus/slice.list`, `tests/upstream/pass.list` and
 `tests/known_clean_not_passing.list`, so that every program the new compiler builds an executable for is run in
-tier 2 or has a recorded reason why not (`study\26` §3). `tests/known_clean_not_passing.list` SHALL be shrink-only
+tier 2 or has a recorded reason why not (`study\archive\26` §3). `tests/known_clean_not_passing.list` SHALL be shrink-only
 and kept by hand, one entry per program with its reason; `cargo test` SHALL fail for an entry that no longer
 compiles cleanly or that a pass list names.
 

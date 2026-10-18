@@ -2,7 +2,7 @@
 
 Whole programs written by people for their own use, kept as targets between the golden corpus (small console
 programs) and the old compiler's own source (`qb64pe.bas`, the M4 exit criterion). Decided 2026-10-09
-(`DECISIONS.md`, `study\28` §4).
+(`DECISIONS.md`, `study\archive\28` §4).
 
 | Folder | Program | Why it is here |
 |---|---|---|
@@ -11,7 +11,7 @@ programs) and the old compiler's own source (`qb64pe.bas`, the M4 exit criterion
 ## How they are used
 
 A real program waits for keys, seeds from the clock and plays sound, so it is not a recorded-output test as it
-stands. Three stages (`study\28` §4):
+stands. Three stages (`study\archive\28` §4):
 
 1. **Tier 1** (`cargo test`, `crates\driver\tests\inputs.rs`): the front end reads every `.bas` here without a
    panic and prints its tree back byte for byte (set `programs/`), and since `m3-sound` with **no diagnostic at
@@ -19,7 +19,7 @@ stands. Three stages (`study\28` §4):
    (`real_programs_have_no_diagnostics`).
 2. **Done for the build:** "compiles, and the C++ builds" (`civil_war_strategy_builds` in
    `crates\driver\tests\cli.rs`, `#[ignore]`d: it needs the clone), and small non-interactive programs cut from
-   the game, one per kind of drawing, each ending by itself and checked by the screen-state dump (`study\28`
+   the game, one per kind of drawing, each ending by itself and checked by the screen-state dump (`study\archive\28`
    §3.1). The cut programs are new files with their own recordings; the copies here stay untouched.
 3. **Done:** a scripted game with a fixed seed (`m3-scripted-game`): `tests\corpus\screen\g12_game` is a copy
    of the game with a few listed edits, written by `tools\screen\cut_game.py` (a fixed seed, no `_FULLSCREEN`,

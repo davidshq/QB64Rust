@@ -2,7 +2,7 @@
 
 Small programs that measure what the old compiler (`qb64pe.exe` at the reference clone's commit) does, each
 recorded with its output. The facts they establish are written in `study\00` §5 (one home per fact); this file
-is the catalogue of the families, moved here from `CLAUDE.md`'s layout table on 2026-10-16 (`study\30` §2).
+is the catalogue of the families, moved here from `CLAUDE.md`'s layout table on 2026-10-16 (`study\archive\30` §2).
 A new family, or new numbers in one, gets a line here, not in `CLAUDE.md`.
 
 Small programs behind `study\09`, `study\10` and later measurements:

@@ -194,7 +194,7 @@ All 66 are listed: `g03_capitol` joined with `m3-sound` (its five `PLAY` lines a
 because the program was cut with the game's sound option off), `c12_prompts` and `g12_game` with
 `m3-scripted-game`.
 
-`slice.list` names the 440 programs the new compiler must pass (tier 2, `study\19`), also with
+`slice.list` names the 440 programs the new compiler must pass (tier 2, `study\archive\19`), also with
 `QB64RUST_NO_FOLD=1`. Joined with `m3-arraycopy` (each left the recorded output on its first run):
 `s131_arraycopy` (`verification\v41_a`, `v41_b`, `v41_c`, `v41_f`, `v41_g`, `v41_h`, without `_FLOAT` arrays) and
 `s132_arraycopy_members` (`v41_d`, `v41_e`, `v41_k`); the two divergences of the change, `DIVERGENCES.md` D-004

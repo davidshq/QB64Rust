@@ -25,7 +25,7 @@
 //! `static` in `maindata.txt` for the main module, per call in `dataK.txt`; none is declared inside a statement,
 //! so no `goto` crosses an initialisation.
 
-// A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
+// A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\archive\21).
 #![warn(clippy::wildcard_enum_match_arm)]
 
 // The emitter by concern (design D6 of `m2-core-builtins`): each module adds the `Emitter` methods of its part.

@@ -1,4 +1,4 @@
-//! `qb64rust --report unsupported`: what the programs of an input set still need (`study\29` §4).
+//! `qb64rust --report unsupported`: what the programs of an input set still need (`study\archive\29` §4).
 //!
 //! Every program goes through the front end with the error cap lifted; each message marked "not supported yet" is
 //! counted over the set. The report is for choosing what comes in next; it is no test and has no expected output.

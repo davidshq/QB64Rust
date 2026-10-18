@@ -427,7 +427,7 @@ pub const CACHE_ENV: &str = "QB64RUST_BUILD_CACHE";
 /// time of every file under the clone's `internal/c` that no build writes (libqb's sources and headers,
 /// [`written_by_builds`]) and of the toolchain's executables. A changed source or header of the clone gives a new
 /// key; a libqb object rebuilt from them, or the `qbx.o` a `qb64pe.exe` compile leaves in the clone, does not
-/// (`study\34` §2.2): an object is made from the sources and the make flags, both in the key, and from the
+/// (`study\archive\34` §2.2): an object is made from the sources and the make flags, both in the key, and from the
 /// lasting compiler settings of `qb64pe.exe` when it builds the object ([`compiler_settings`]), also in the key.
 fn build_key(root: &Path, build: &Path, settings: &Settings) -> String {
     let mut h = Fnv128::new();
@@ -772,8 +772,8 @@ mod tests {
     }
 
     /// The key follows libqb's sources and headers, and not what a build writes in the clone: the `qbx.o` and
-    /// `qbx<N>.cpp` of a `qb64pe.exe` compile, a libqb object or archive (`study\34` §2.2). Rewritten with another
-    /// length, so the stamp changes whatever the clock's resolution.
+    /// `qbx<N>.cpp` of a `qb64pe.exe` compile, a libqb object or archive (`study\archive\34` §2.2). Rewritten with
+    /// another length, so the stamp changes whatever the clock's resolution.
     #[test]
     fn build_key_leaves_out_what_builds_write() {
         let d = tempfile::tempdir().unwrap();

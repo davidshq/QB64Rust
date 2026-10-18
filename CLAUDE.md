@@ -54,7 +54,7 @@ changing direction, design or scope.**
    roles and say why). The panel is role-played inline; it is not a set of subagents (rule 1) (user, 2026-10-03).
    Every role, the pragmatic engineer first, counts effort by rule 8.
 7. **Text with backslashes goes through the Edit/Write tools or a script file, never through the shell.** That
-   covers Windows paths (`study\19`), C or Python escapes (`\\`, `\n`) and anything else containing `\`. Do not
+   covers Windows paths (`study\archive\19`), C or Python escapes (`\\`, `\n`) and anything else containing `\`. Do not
    pass it in a heredoc, inline `python -c`/`python - <<EOF`, `sed` or `printf` in the Bash tool, which collapses
    `\\` to `\`. Python then reads `\1`, `\v` or `\r` as control characters. If a shell edit with backslashes
    happened anyway, scan the touched files for bytes 0x00–0x1F (other than tab, LF and the CR of CRLF) before
@@ -83,7 +83,7 @@ changing direction, design or scope.**
      `tools\close\close.py --check` passes". *Why:* at the close of `m3-errorline-chr-const` the set was worked
      from memory: the `verification` family was not checked as the rule says, and `cargo test` stopped at a
      failing test binary, so about 230 tests never ran, one of them failing.
-   - **The closing set** (`study\32` §4 item 1, user, 2026-10-17): tier 1 with fmt and clippy; the CLI tests
+   - **The closing set** (`study\archive\32` §4 item 1, user, 2026-10-17): tier 1 with fmt and clippy; the CLI tests
      that build (`--ignored`); the change's own new programs and its `verification` family (the runner records
      the old compiler only, so the new compiler's side is the slice programs and front-end tests made from the
      family; an accepted program of the family that none of them covers is run by hand, as the runner would run
@@ -92,7 +92,7 @@ changing direction, design or scope.**
      `--build-cache target\build-cache`; the run without folding (`QB64RUST_NO_FOLD=1`) **only when** the change
      touched `sema`'s constant evaluation or a numeric conversion; the demand reports, the shrink-only lists and
      the wording table as before.
-   - **At each merge of `changes` (or `m3`) into `main`**, every two or three changes (`study\32` §4 item 2): the
+   - **At each merge of `changes` (or `m3`) into `main`**, every two or three changes (`study\archive\32` §4 item 2): the
      full set, no pass cache: both full suites with the slice list and the upstream pass list judged from them
      (`--check-list`, `tools\legacy_tests\README.md`), the run without folding, the differential pass list and the
      call-site check. A failure there is found among the merged changes with the build cache. The pass cache is
@@ -102,7 +102,7 @@ changing direction, design or scope.**
    - **Order:** whatever changes the compiler (the wording table, generated tables) comes before the first long
      run, so that no run is thrown away for a new build. Runs of the new compiler may run side by side (they share
      the clone's lock; `tools\legacy_tests\README.md`, "Locks"); a run of `qb64pe.exe` in the clone has it alone.
-   - **Work goes on during a run** (`study\34`): each run of the new compiler tests a copy of it named by hash,
+   - **Work goes on during a run** (`study\archive\34`): each run of the new compiler tests a copy of it named by hash,
      so start a long run in the background and go on building, running tier 1 and editing; read its log when it
      ends. Only a recording with `qb64pe.exe` waits for the clone; batch recordings before the closing runs.
    - After the closing runs, a further edit is rerun only for what it can affect; say which runs were not
@@ -124,6 +124,18 @@ changing direction, design or scope.**
    three times at almost six minutes each, and two tasks waited on CI; the user: "it feels like we run the tests
    over and over", "not sure why you are so insistent on making ci be green" (user, 2026-10-12).
 
+10. **`study\archive\` is read only when needed**: when a live document points there for a fact or a reason the
+    task in hand needs, or when the user asks. It is not read to get oriented, and its files are never edited
+    (paths inside them may be out of date). A study keeps its number when it is archived: a `study\NN` that is
+    not in `study\` is in `study\archive\`. When only part of a study is archived, the part goes to a file of the
+    same name in `study\archive\`, under the same headings, and each half names the other at its top: a section
+    not found in the active file is in the archived one. A study is archived once its recommendations are all
+    decided and built, so that what came of it lives in `DECISIONS.md`, this file or `ROADMAP.md`; a study of the
+    old system stays active while a milestone still needs it, and a review stays active while the user has not
+    answered it; a part is archived when the IDE it describes is not ported or a current document has taken it over.
+    *Why:* by 2026-10-18 `study\` held 32 documents, two thirds of them reviews whose outcomes were already
+    recorded elsewhere (user, 2026-10-18).
+
 ## Project decisions
 
 The decision log is **`DECISIONS.md`** (one dated row per decision, oldest first; moved out of this file on
@@ -134,7 +146,7 @@ Expert-panel recommendations: `study\07-expert-panel.md`. Open questions: `STATU
 
 This table says where things are, not how many: counts live in the files that are regenerated or updated with
 them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folder's `README.md` (ninth review,
-`study\30` §2).
+`study\archive\30` §2).
 
 | Path | Content |
 |---|---|
@@ -146,10 +158,8 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `SOMEDAY.md` | Deferred features and ideas, and "QB64pe behaviours to review": questionable behaviours implemented QB64pe's way |
 | `GLOSSARY.md` | Plain-language definitions of compiler terms: the compiler pipeline, runtime and build, editor tooling |
 | `study\00-synthesis.md` | Start here: summary of all studies, decisions, plan, measured facts, reuse verdicts; its "Document map" lists every study |
-| `study\01`–`29` | Studies and reviews: `01`–`05` the old compiler, runtime, IDE and build; `06`–`10` VS Code parity, panel, QB 4.5 mode, verification, gaps; `15`–`29` reviews of plan and code, FreeBASIC, extension testing and practices, test cadence, Rust review, IR review. One line each in `study\00`'s "Document map" |
-| `study\progress-record.md` | Closed record: the per-change history `STATUS.md` held until 2026-10-09 (M0 to M2 step 8), moved unchanged. Not added to |
-| `study\support-record.md` | Closed record: the feature catalogue `crates\README.md` held until 2026-10-16, moved unchanged. Not added to: what a program may use is in the merged specs, how a change built it in its `design.md` |
-| `study\archive\` | Closed reviews of other repositories, kept for the record only: `11` existing VS Code extensions, `12` QB64Fresh (the user's earlier Rust rewrite), `13` reference-doc sources, `14` the `docs-new-2` branch, and `qb64fresh-scripts\` (measurements behind `12`). Their conclusions are in `study\00` §11; nothing in the active plan depends on reading them. |
+| `study\01`–`35` (active) | Studies still in use: `01`–`05` the old compiler, runtime, IDE and debugger, build; `06` VS Code parity; `07` the expert panel's plan; `09`, `10` claims checked and gaps closed; `16` FreeBASIC; `17`, `18` extension testing and practices; the newest review while it is open. One line each in `study\00`'s "Document map" |
+| `study\archive\` | Closed documents, read only when needed (working rule 10); catalogue in its `README.md`: the reviews of other repositories (`11`–`14`, with `qb64fresh-scripts\`), the reviews and plans whose outcomes are decided and built (`15`, `19`–`34`), `08` (strict QB 4.5 mode, not planned), and the closed records `progress-record.md` (what `STATUS.md` held until 2026-10-09) and `support-record.md` (the feature catalogue `crates\README.md` held until 2026-10-16) |
 | `Cargo.toml`, `crates\` | The new compiler `qb64rust` (Rust workspace, one crate per stage; `crates\README.md`: crate map, build, tests, snapshots) |
 | `mise.toml` | Tool versions for this repo, read by mise: Node 24 (for `vscode\`) |
 | `vscode\` | M1 VS Code extension (`qb64rust`): sources, tests, fixtures, `README.md`, `DEVELOPMENT.md` |

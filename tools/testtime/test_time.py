@@ -41,7 +41,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
 RUNS, SESSIONS, REPORT = HERE / "runs.csv", HERE / "sessions.csv", HERE / "REPORT.md"
-# Added 2026-10-16 (study\31 item 4); the files above keep their columns and meaning.
+# Added 2026-10-16 (study\archive\31 item 4); the files above keep their columns and meaning.
 CHANGES, ACTIVITY = HERE / "changes.csv", HERE / "activity.csv"
 # The format of the two files: a later change to what a column means writes another number.
 WORK_VERSION = "1"

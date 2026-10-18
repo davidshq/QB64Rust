@@ -78,7 +78,7 @@
 //!   `_ANDALSO` and `_ORELSE` only when the left one does not decide.
 //! - **Integer overflow wraps** in two's complement (`DIVERGENCES.md` D-001, D-002).
 
-// A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
+// A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\archive\21).
 #![warn(clippy::wildcard_enum_match_arm)]
 
 mod dump;
@@ -94,8 +94,8 @@ use qb64rust_base::{FileId, Span};
 /// The [`Ty`] variants nothing produces yet, and those no value of reaches the IR yet, as patterns, and the reasons
 /// their arms give.
 pub use qb64rust_sema::{BIT_VALUE_UNREACHABLE, PLACE_ONLY_UNREACHABLE, place_only_types};
-/// Types, operators and conversion kinds are `sema`'s (`study\20` §3.4): integers by width, floats by width (`F80`
-/// is extended precision), strings, user types. They name no C type, so the IR stays ABI-neutral.
+/// Types, operators and conversion kinds are `sema`'s (`study\archive\20` §3.4): integers by width, floats by width
+/// (`F80` is extended precision), strings, user types. They name no C type, so the IR stays ABI-neutral.
 pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, UnOp, UserType};
 
 /// An item of the program's data: its text, and whether it was written in quotes (the runtime reads a quoted

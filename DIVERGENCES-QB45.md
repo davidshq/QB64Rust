@@ -8,7 +8,7 @@ decided and QB 4.5 is known or believed to differ (decided 2026-10-07, user).
 There is no QB 4.5 oracle on the development machine yet (DOSBox is installed, QB 4.5 is not). Each row says where
 its QB 4.5 behaviour comes from: **documented** (Microsoft's QB 4.5 manuals or help), **believed** (from memory of
 how QB 4.5 works, not checked), or **measured** (run under DOSBox, with the program in `verification\`). Rows that are
-not measured are to be checked once QB 4.5 runs under DOSBox (`study\08` "Effort estimate": the oracle a strict mode
+not measured are to be checked once QB 4.5 runs under DOSBox (`study\archive\08` "Effort estimate": the oracle a strict mode
 would need).
 
 | Id | Behaviour | QuickBASIC 4.5 | QB64Rust (= QB64pe unless noted) | Source of the QB 4.5 column | Decided | Pinned by |
@@ -29,4 +29,4 @@ would need).
 | Q-014 | An assignment with `=` (or `INPUT`) to a string named by `FIELD` | The string is no field any more: it moves out of the record buffer | The string gets the value and its length and stays a field: the next `LSET` to any field of the file, or `GET` with no variable, gives it its width and the buffer's bytes again. A second `FIELD` on a file keeps the strings of the first as fields, as there | Documented | 2026-10-13 (as QB64pe) | Lines 6 to 9 of `tests\corpus\slice\s86_field_lset` (`verification\v30_j_field`) |
 
 Known differences not yet entered (QB64pe's, inherited; to be entered as they are decided or measured): the list in
-`study\08-qb45-strict-mode.md` (numeric checks, literal typing, `DEF FN`, memory model, timing, hardware access).
+`study\archive\08-qb45-strict-mode.md` (numeric checks, literal typing, `DEF FN`, memory model, timing, hardware access).

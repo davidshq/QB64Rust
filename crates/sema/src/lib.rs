@@ -8,7 +8,7 @@
 //! operand is `_INTEGER64` but believed `_INTEGER64`; a SINGLE literal is held as a DOUBLE; and a float operation
 //! with a SINGLE literal operand is computed in DOUBLE but believed SINGLE.
 
-// A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\21).
+// A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\archive\21).
 #![warn(clippy::wildcard_enum_match_arm)]
 
 pub mod builtins;

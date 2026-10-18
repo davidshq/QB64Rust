@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Writes the count blocks of the test READMEs from the lists, the files and the runner's results, so
-that a change's close copies no number by hand (study/31 item 2).
+that a change's close copies no number by hand (study/archive/31 item 2).
 
     python tools/legacy_tests/counts.py            # rewrite every block
     python tools/legacy_tests/counts.py --check    # compare, write nothing; exit code 1 when one differs

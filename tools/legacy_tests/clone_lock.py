@@ -21,7 +21,7 @@ to the process: the system drops it when the process ends, however it ends. On W
 LockFileEx over the whole file range, which is what Rust's File::lock and File::lock_shared take, so
 the CLI tests (crates/driver/tests/support) and these tools see each other's locks.
 
-A git worktree of this repo (the runs at a merge into main, study/34 section 3 item 3) takes the
+A git worktree of this repo (the runs at a merge into main, study/archive/34 section 3 item 3) takes the
 locks of the main checkout (main_checkout), so its runs and the main checkout's see each other. Not
 covered: two separate clones of this repo that use one reference clone; the reference clone is
 read-only and gets no lock file. Use worktrees, not clones, for a second checkout.
