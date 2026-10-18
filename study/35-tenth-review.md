@@ -69,12 +69,12 @@ standard. The feeling of slowness has three real causes:
    software x87 float, a big-float certification layer and a table of `mpmath` values (about 2,400 lines) to match
    `CONST` values whose old results depend on the libraries `qb64pe.exe` was built with. The user's ruling D-026
    (correctly rounded, one register row) was the right call. Make it the standing rule, so the next such case
-   costs a paragraph and not a module. *Kind:* a cost that stays (code to maintain), scope.
+   costs a paragraph and not a module. *Kind:* a cost that stays (code to maintain), scope. BUT DON'T GET RID OF EXISTING FIDELITY WE BUILT.
 
 5. **Demote M4's exit criterion.** "The compiler built from `qb64pe.bas` passes the suite" (`study\archive\20`) means
    debugging a 30,000-line program nobody will ship, since self-hosting and the text-mode IDE are both out of
    scope (`DECISIONS.md` 2026-10-02). Keep `qb64pe.bas` compiling with no diagnostic as the test; running the
-   result against the suite becomes optional. *Kind:* scope, the user's decision.
+   result against the suite becomes optional. *Kind:* scope, the user's decision. WE WANT TO KEEP THIS QB64PE.BAS AS A LATER SOMEDAY TASK.
 
 6. **Leave alone:** the crate split, the IR, the C++ emitter as a transcription of the old compiler's, the three
    test tiers, the measurement discipline, and the checker's 72 fields until M4 starts (`study\archive\30` §6, §11).

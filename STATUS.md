@@ -18,9 +18,8 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 
 ## Where we are
 
-M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: twenty-one of its steps are built and archived
-(table below), the last `m3-network-embed` (`3701aa0`), and the twenty-second, `m3-constant-evaluation`, is built
-and closed, waiting to be committed and archived; `test-parallel-runs` and `test-while-building` (the test
+M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: twenty-two of its steps are built and archived
+(table below), the last `m3-constant-evaluation` (`4f647a9`); `test-parallel-runs` and `test-while-building` (the test
 cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` and `5d3730f`) are archived too.
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
 Civil War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same
@@ -39,7 +38,6 @@ questionable behaviours each change kept QB64pe's way.
    -9223372036854775807, `_UINTEGER64_MAX` and `_UOFFSET_MAX` 9223372036854775807) and the clamp of an unsuffixed
    literal or a plain-digit float beyond `_INTEGER64`; `2 ^ -1` being 0 in a `CONST`; a value beyond `_FLOAT`
    range being 0; a `CONST` above `$COLOR` that names a colour being an error; `_COTH(x)` being `2 * EXP(x) - 1`.
-2. **Commit and archive `m3-constant-evaluation`** (the files to stage are named at its close).
 
 **The `tier2` job on `m3`** (`study\archive\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -51,7 +49,7 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-The work goes to `main` every two or three changes; one waits now (`m3-constant-evaluation`, once committed). The
+The work goes to `main` every two or three changes; one waits now (`m3-constant-evaluation`). The
 next M3 step is the user's to choose: the upstream report's first lines are `_DEVICES`, the `$EXEICON` relative
 names, blanks around `.` and `_CONTINUE` (2 programs each). The plain copy of `internal\c` waits until libqb must
 change.
@@ -83,7 +81,7 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 19 | `2026-10-17-m3-events` | `ON TIMER`, `ON KEY`, the switches, `_FREETIMER`, `KEY ON`/`OFF`/`LIST`, `KEY n, text$`; `STRIG` left for device input |
 | 20 | `2026-10-17-m3-errorline-chr-const` | `CHR$` in a `CONST`, `_ERRORLINE`, `_INCLERRORLINE`, `_INCLERRORFILE$`, `_ERRORMESSAGE$`; the line of a joined line |
 | 21 | `2026-10-17-m3-network-embed` | the network functions and `_SOCKETS_`, `$EMBED` and `_EMBEDDED$`, the URL functions, `afterlastline.bm` |
-| 22 | `m3-constant-evaluation` (built, not archived yet) | the `CONST` evaluator in full: `_FLOAT` in software, its lanes and typing by text, every function (math functions certified, else D-026), suffixed constants, the auto-included constants, `$COLOR`; the dependency `astro-float-num` |
+| 22 | `2026-10-18-m3-constant-evaluation` | the `CONST` evaluator in full: `_FLOAT` in software, its lanes and typing by text, every function (math functions certified, else D-026), suffixed constants, the auto-included constants, `$COLOR`; the dependency `astro-float-num` |
 
 ## Numbers at the last full runs
 
