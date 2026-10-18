@@ -22,7 +22,8 @@ const_errors.bas:27:7: error: type mismatch
 const_errors.bas:28:7: error: type mismatch
 const_errors.bas:29:17: error: division by zero
 const_errors.bas:30:16: error: division by zero
-const_errors.bas:31:17: error: a negative number to a fractional power
+const_errors.bas:31:17: error: `^(-8)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")
+const_errors.bas:31:17: note: QB64pe: UNEXPECTED INTERNAL COMPILER ERROR!
 const_errors.bas:32:14: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value
 const_errors.bas:32:14: note: QB64pe: Unexpected element '+'
 const_errors.bas:33:14: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value

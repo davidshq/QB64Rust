@@ -17,6 +17,8 @@ qb64rust-sema = { path = "crates/sema" }
 qb64rust-ir = { path = "crates/ir" }
 qb64rust-codegen-cpp = { path = "crates/codegen-cpp" }
 qb64rust-lsp = { path = "crates/lsp" }
+# The high-precision reference of the `CONST` evaluator's functions (`sema` `certify.rs`; DECISIONS.md 2026-10-17).
+astro-float-num = { version = "0.3.7", default-features = false, features = ["std"] }
 insta = "1"
 lsp-server = "0.10"
 lsp-types = "0.97"

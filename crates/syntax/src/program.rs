@@ -37,6 +37,10 @@ pub struct ParsedProgram {
     /// `m3-network-embed`): parsed after the main file and its includes, with the preprocessor state the main file
     /// ended with, as if it stood after the main file's last line.
     pub after_last_line: Option<TreeId>,
+    /// The tree of QB64pe's colour file (`color0.bi` or `color32.bi`) when the program has `$COLOR:0` or
+    /// `$COLOR:32` (design D8 of `m3-constant-evaluation`): parsed before the main file, as the old compiler's
+    /// recompile includes it before the program's first line.
+    pub colors: Option<TreeId>,
 }
 
 impl ParsedProgram {
@@ -143,11 +147,26 @@ fn parse_round(
     loader: &mut dyn Loader,
     flags: PpFlags,
     auto: &mut Option<FileId>,
+    color_file: &mut Option<FileId>,
 ) -> Round<ParsedProgram> {
     let bytes = map.file(main).bytes.clone();
     let mut inc = Includer::new(map, loader);
     let id = inc.next_tree();
-    let (tree, mut pp) = crate::parser::parse_tree_with(id, main, &bytes, PpState::with_flags(flags), &mut inc, false);
+    let mut pp = PpState::with_flags(flags);
+    let mut colors = None;
+    if let Some((name, text)) = match flags.get(crate::pp::Feature::Color) {
+        1 => Some((qb64rust_builtins::COLOR0_NAME, qb64rust_builtins::COLOR0)),
+        2 => Some((qb64rust_builtins::COLOR32_NAME, qb64rust_builtins::COLOR32)),
+        _ => None,
+    } {
+        let file = *color_file.get_or_insert_with(|| inc.map.add(name, text.to_vec()));
+        let cid = inc.next_tree();
+        let (tree, end) = crate::parser::parse_tree_with(cid, file, text, pp, &mut inc, false);
+        inc.trees[cid.0 as usize] = Some(tree);
+        pp = end;
+        colors = Some(cid);
+    }
+    let (tree, mut pp) = crate::parser::parse_tree_with(id, main, &bytes, pp, &mut inc, false);
     inc.trees[0] = Some(tree);
     let mut after_last_line = None;
     if pp.needs_after_last_line() {
@@ -176,6 +195,7 @@ fn parse_round(
             flags,
             passes_disagree: inc.passes_disagree,
             after_last_line,
+            colors,
         },
         settings,
         flag_named,
@@ -188,7 +208,10 @@ fn parse_round(
 /// round's. A loader must give the same file for the same name in every round.
 pub fn parse_settled(map: &mut SourceMap, main: FileId, loader: &mut dyn Loader) -> ParsedProgram {
     let mut auto = None;
-    match settle(MAX_ROUNDS, |flags| parse_round(map, main, loader, flags, &mut auto)) {
+    let mut color_file = None;
+    match settle(MAX_ROUNDS, |flags| {
+        parse_round(map, main, loader, flags, &mut auto, &mut color_file)
+    }) {
         Ok((mut program, flags)) => {
             program.flags = flags;
             program

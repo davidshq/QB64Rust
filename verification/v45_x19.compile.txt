@@ -1,0 +1,5 @@
+
+Unexpected argument: '65&&'
+Caused by (or after):
+LINE 3:CONST C = ASC ( 65 )
+exit=1

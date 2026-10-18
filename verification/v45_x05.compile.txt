@@ -1,0 +1,5 @@
+
+UNEXPECTED INTERNAL COMPILER ERROR!
+Caused by (or after):
+LINE 3:CONST C = LOG ( - 1 )
+exit=1

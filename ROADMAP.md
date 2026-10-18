@@ -133,9 +133,10 @@ or measurements; listing an area does not settle those choices.
       `_OPENCONNECTION`, `_CONNECTED`, `_CONNECTIONADDRESS$`, `_STATUSCODE`); the `_SOCKETS_` flag, which `$DEBUG`
       sets too, and QB64pe's `afterlastline.bm` compiled from a copy of the file (`_ENCODEURL$`, `_DECODEURL$`
       and libqb's helper) (`m3-network-embed`, with the next item). Upstream 339 to 347 of 399
-- [ ] Constant evaluation: built-in functions in `CONST` (`CHR$` done, with the 69 auto-included constants
-      made with it, `m3-errorline-chr-const`), suffixed constant references, `_FLOAT` precision and range, and the
-      remaining constants from QB64pe's auto-included files; `$COLOR` constants
+- [x] Constant evaluation: `_FLOAT` arithmetic to the bit, the evaluator's three lanes and its typing by text,
+      every function of its list (the math functions certified, else correctly rounded, D-026), suffixed constant
+      references, the remaining constants of QB64pe's auto-included file, `$COLOR:0` and `$COLOR:32`
+      (`m3-constant-evaluation`; `CHR$` with `m3-errorline-chr-const`). Upstream 347 to 356 of 399
 - [x] Embedded resources (`$EMBED`, `_EMBEDDED$`), including their use for MIDI sound banks
       (`m3-network-embed`; each file stored as it is)
 - [ ] The `$EXEICON` and `$EMBED` names relative to the old compiler's own folder (`icon/test`,

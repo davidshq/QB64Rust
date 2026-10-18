@@ -1080,8 +1080,8 @@ fn mem_of_an_array_parameter_with_no_number_yet() {
     assert_eq!(build_and_run_tracing(&d, program, "D-016\n"), "-1 \n");
 }
 
-/// An integer power beyond `_INTEGER64` in a `CONST` is a DOUBLE (`DIVERGENCES.md` D-007: the old evaluator wraps it
-/// to -9223372036854775808).
+/// An integer power beyond `_INTEGER64` in a `CONST` is the float it is, a `_FLOAT` by its text, printed as a DOUBLE
+/// (`DIVERGENCES.md` D-007: the old evaluator wraps it to -9223372036854775808).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn const_power_beyond_integer64() {

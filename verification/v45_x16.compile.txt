@@ -1,0 +1,5 @@
+
+Wrong number of arguments provided to _RGBA32!
+Caused by (or after):
+LINE 3:CONST C = _RGBA32 ( 1 , 2 , 3 )
+exit=1

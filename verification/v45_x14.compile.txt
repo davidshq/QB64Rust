@@ -1,0 +1,5 @@
+
+Expected variable/value after 'NOT'
+Caused by (or after):
+LINE 3:CONST C = _RGB32 ( )
+exit=1

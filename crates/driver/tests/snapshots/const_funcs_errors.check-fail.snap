@@ -1,0 +1,54 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+const_funcs_errors.bas:11:13: error: `SQR` in a `CONST` cannot take a negative number
+const_funcs_errors.bas:11:13: note: QB64pe: Argument to SQR cannot be negative
+const_funcs_errors.bas:12:13: error: `_ARCSEC` in a `CONST` needs a value of at least 1 in size
+const_funcs_errors.bas:12:13: note: QB64pe: ABS(_ARCSEC) value < 1
+const_funcs_errors.bas:13:13: error: `_ARCCSC` in a `CONST` needs a value of at least 1 in size
+const_funcs_errors.bas:13:13: note: QB64pe: ABS(_ARCCSC) value < 1
+const_funcs_errors.bas:14:13: error: `LOG(0)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")
+const_funcs_errors.bas:14:13: note: QB64pe: UNEXPECTED INTERNAL COMPILER ERROR!
+const_funcs_errors.bas:15:13: error: `LOG(-1)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")
+const_funcs_errors.bas:15:13: note: QB64pe: UNEXPECTED INTERNAL COMPILER ERROR!
+const_funcs_errors.bas:16:13: error: `_SECH(100)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")
+const_funcs_errors.bas:16:13: note: QB64pe: UNEXPECTED INTERNAL COMPILER ERROR!
+const_funcs_errors.bas:17:13: error: the value `NAN` cannot be used in a `CONST`
+const_funcs_errors.bas:17:13: note: QB64pe: Unexpected element 'NAN'
+const_funcs_errors.bas:18:13: error: `ASC` in a `CONST` cannot take an empty string
+const_funcs_errors.bas:18:13: note: QB64pe: ASC cannot apply to empty string
+const_funcs_errors.bas:19:13: error: `ASC` at position 5 of a string of 2 bytes is an error of the old compiler's own run time, which stops it
+const_funcs_errors.bas:20:13: error: `ASC` at position 0 of a string of 2 bytes is an error of the old compiler's own run time, which stops it
+const_funcs_errors.bas:21:13: error: wrong number of arguments to `SIN` in a `CONST`
+const_funcs_errors.bas:22:13: error: wrong number of arguments to `SIN` in a `CONST`
+const_funcs_errors.bas:23:13: error: `SIN` in a `CONST` takes numbers, not strings
+const_funcs_errors.bas:24:13: error: wrong number of arguments to `_RGB32` in a `CONST`
+const_funcs_errors.bas:25:13: error: wrong number of arguments to `_RGB32` in a `CONST`
+const_funcs_errors.bas:26:13: error: wrong number of arguments to `_RGBA32` in a `CONST`
+const_funcs_errors.bas:27:13: error: screen mode 5 in a colour function of a `CONST`
+const_funcs_errors.bas:27:13: note: QB64pe: Invalid Screen Mode (5)
+const_funcs_errors.bas:28:13: error: screen mode 3 in a colour function of a `CONST`
+const_funcs_errors.bas:28:13: note: QB64pe: Invalid Screen Mode (3)
+const_funcs_errors.bas:29:13: error: `ASC` in a `CONST` needs a string
+const_funcs_errors.bas:30:13: error: `ASC` in a `CONST` needs a number as its position
+const_funcs_errors.bas:31:13: error: type mismatch: `n$`
+const_funcs_errors.bas:32:13: error: type mismatch: `s%`
+const_funcs_errors.bas:33:13: error: type mismatch: `s%`
+const_funcs_errors.bas:34:13: error: wrong number of arguments to `_PI` in a `CONST`
+const_funcs_errors.bas:34:13: note: QB64pe: Wrong number of arguments provided to _PI!
+const_funcs_errors.bas:35:13: error: `EXP(20000)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")
+const_funcs_errors.bas:35:13: note: QB64pe: UNEXPECTED INTERNAL COMPILER ERROR!
+const_funcs_errors.bas:36:13: error: `EXP(1000)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")
+const_funcs_errors.bas:36:13: note: QB64pe: UNEXPECTED INTERNAL COMPILER ERROR!
+const_funcs_errors.bas:37:13: error: `_COT(0)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")
+const_funcs_errors.bas:37:13: note: QB64pe: UNEXPECTED INTERNAL COMPILER ERROR!
+const_funcs_errors.bas:38:13: error: `_CSC(0)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")
+const_funcs_errors.bas:38:13: note: QB64pe: UNEXPECTED INTERNAL COMPILER ERROR!
+const_funcs_errors.bas:39:13: error: `_CSCH(0)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")
+const_funcs_errors.bas:39:13: note: QB64pe: UNEXPECTED INTERNAL COMPILER ERROR!
+const_funcs_errors.bas:40:13: error: `^(-8)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")
+const_funcs_errors.bas:40:13: note: QB64pe: UNEXPECTED INTERNAL COMPILER ERROR!
+const_funcs_errors.bas:41:13: error: `_RED` of a colour outside the mode's palette is an error of the old compiler's own run time, which stops it
+const_funcs_errors.bas:42:13: error: `_RED` of a colour outside the mode's palette is an error of the old compiler's own run time, which stops it
+const_funcs_errors.bas:43:13: error: `_RED` of a colour outside the mode's palette is an error of the old compiler's own run time, which stops it

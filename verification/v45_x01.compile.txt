@@ -1,0 +1,5 @@
+
+Argument to SQR cannot be negative
+Caused by (or after):
+LINE 3:CONST C = SQR ( - 1 )
+exit=1

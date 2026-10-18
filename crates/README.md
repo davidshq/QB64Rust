@@ -231,7 +231,9 @@ tier 2 with it set), not for normal use.
 
 ## Dependencies
 
-The compiler itself has none. The language server (`lsp`) has `lsp-server` (the transport and message loop,
+The compiler itself has one: `sema` has `astro-float-num` (pure Rust, MIT; with `itertools` and `lazy_static`),
+the high-precision reference behind the `CONST` evaluator's functions and its exact decimal conversions
+(`consteval.rs`, `f80.rs`, `certify.rs`; `DECISIONS.md` 2026-10-17). The language server (`lsp`) has `lsp-server` (the transport and message loop,
 synchronous) and `lsp-types` (the protocol types), with `serde_json` for their messages; they bring `serde`,
 `crossbeam-channel`, `fluent-uri` and a few more. `serde_json` also reads the built-in table at build time, and
 `insta` and `tempfile` serve the tests. `cargo deny check` (`deny.toml`; CI job `deny` in `rust.yml`; install with
@@ -245,6 +247,9 @@ The policy (decided 2026-10-07):
   (`study\15` §1). No crate that replaces a pipeline stage or the analysis model (`salsa`; `DECISIONS.md`,
   2026-10-04).
 - Performance crates (`memchr`, `rustc-hash`, `indexmap`, `rayon`) only after a measurement shows the need.
+- A numeric crate where exact or high-precision arithmetic cannot reasonably be written here, guarded so that a
+  fault in it cannot become a wrong value in a program (`astro-float-num`, 2026-10-17: its results are checked at
+  two precisions and against fixed values, and anything it cannot settle is "not supported yet").
 - Not needed at this size: `clap` (the flags copy `qb64pe`'s `-x`, `-z`, `-f:name=value`, about 80 lines by hand),
   `thiserror`/`anyhow` (driver errors are messages), per-file test runners (`libtest-mimic`: the harnesses already
   name each failing file and share one run over all inputs).

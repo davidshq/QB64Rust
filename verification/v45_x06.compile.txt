@@ -1,0 +1,5 @@
+
+UNEXPECTED INTERNAL COMPILER ERROR!
+Caused by (or after):
+LINE 3:CONST C = _SECH ( 100 )
+exit=1

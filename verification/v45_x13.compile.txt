@@ -1,0 +1,5 @@
+
+Unexpected argument: "a",1
+Caused by (or after):
+LINE 3:CONST C = SIN ( "a",1 )
+exit=1

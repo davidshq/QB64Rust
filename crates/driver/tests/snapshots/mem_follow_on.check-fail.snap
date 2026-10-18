@@ -4,5 +4,4 @@ expression: snap
 ---
 mem_follow_on.bas:9:5: error: cannot store a string in a number variable
 mem_follow_on.bas:9:5: note: QB64pe: Illegal string-number conversion
-mem_follow_on.bas:10:11: error: not supported yet: the function `EXP` in a `CONST`
-mem_follow_on.bas:13:7: error: not supported yet: `_E`, a constant of QB64pe's auto-included file: the function `EXP` in a `CONST`
+mem_follow_on.bas:11:5: error: not supported yet: `TYPE` blocks inside a SUB, FUNCTION or block

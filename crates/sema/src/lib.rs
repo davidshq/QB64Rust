@@ -12,10 +12,15 @@
 #![warn(clippy::wildcard_enum_match_arm)]
 
 pub mod builtins;
+pub mod certify;
 mod check;
+mod colors;
 pub mod consteval;
 mod dump;
+pub mod f80;
 pub mod literal;
+#[cfg(test)]
+mod mpmath_values;
 mod symbols;
 
 pub use check::{check, check_with};

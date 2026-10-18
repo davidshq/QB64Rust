@@ -1,0 +1,5 @@
+
+ASC cannot apply to empty string
+Caused by (or after):
+LINE 3:CONST C = ASC ( "",0 )
+exit=1

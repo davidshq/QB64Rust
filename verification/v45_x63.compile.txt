@@ -1,0 +1,5 @@
+
+UNEXPECTED INTERNAL COMPILER ERROR!
+Caused by (or after):
+LINE 3:CONST C = _RED ( - 15654349&,&HFF112233 , 0 )
+exit=1

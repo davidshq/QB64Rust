@@ -2,7 +2,7 @@
 //! references, and a lookup from a byte position to the symbol named there. Spans are those of the name token,
 //! suffix included. Variables of every storage class, procedures, labels and constants are recorded.
 
-use crate::consteval::{Value, shortest_text};
+use crate::consteval::Value;
 use crate::{ConstId, LabelId, ProcId, ProcKind, Program, Storage, VarId};
 use qb64rust_base::show_bytes;
 use qb64rust_base::{FileId, SourceMap, Span, to_u32};
@@ -124,8 +124,11 @@ pub fn dump_symbols(p: &Program, map: &SourceMap) -> String {
             SymbolKind::Const(c) => {
                 let c = p.constant(c);
                 let value = match &c.value {
+                    Value::Int(i) if c.ty.is_unsigned() => i.cast_unsigned().to_string(),
                     Value::Int(i) => i.to_string(),
-                    Value::Float(f) => shortest_text(f.v),
+                    Value::UInt(u) => u.to_string(),
+                    // `_TOSTR$`'s 19 digits.
+                    Value::Float(r, _) => r.lo.to_g19(),
                     Value::Str(b) => format!("\"{}\"", show_bytes(b)),
                 };
                 let owner = c.proc.map_or(String::new(), |q| format!(" (in {})", p.proc(q).name));

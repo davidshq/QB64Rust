@@ -1,0 +1,5 @@
+
+Wrong number of arguments provided to SIN!
+Caused by (or after):
+LINE 3:CONST C = SIN ( 1 , 2 )
+exit=1

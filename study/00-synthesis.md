@@ -3095,6 +3095,71 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     name" (`x49`, `x50`). The file starts with `$CHECKING:OFF`: its procedures' C++ has no `evnt`.
   - **A user FUNCTION's argument of the wrong kind** (`x71`, by the change's review): a string for a LONG
     parameter of `f&` is "Number required for function", where a SUB's is "… required for sub" (`v14_err_*`).
+- **The `CONST` evaluator in full and `$COLOR` (`v45_*`, measured 2026-10-17 for `m3-constant-evaluation`:
+  `v45_a` before its proposal, `v45_b` and `v45_x01`–`x66` as its task 1.2; an included file in `v45_inc\`;
+  `const_eval.bas`, `elements.bas`, `qbs__tostr.cpp`, `qbs_val.cpp`, `rounding.h`, `extended_math.h`):**
+  - **Floats are x87 extended with a 64-bit mantissa** (`v45_a_precision`: `1## / 3##` is `0.3333333333333333333`).
+    Each parenthesised group, function result and whole value is printed by `_TOSTR$` (`__mingw_snprintf
+    "%.19LG"`, `E` made `F`) and read back by `elementGetNumericValue` (`__mingw_sscanf "%Lf"`, typed by the text:
+    `F` or `##` `_FLOAT`, `E` or `!` SINGLE, `D`, `#` or `.` DOUBLE, `~&&` unsigned, `&&` signed, plain digits
+    `VAL(…, _INTEGER64)`). So **a float constant is `_FLOAT` when its 19-digit text has an exponent** (`1E+30 / 3`
+    `3.333333333333333333F+29`, `1E-10 / 3`, `1E-5 / 1`, `1E+19 / 1`) **and DOUBLE when not** (`1 / 3`,
+    `0.0001 / 1`, `123456789012345678 / 10`); an integer value below 10^19 prints as plain digits and is read back
+    as an `_INTEGER64`, **clamped**: `9.3E+18 / 1` and `9.9E+18 / 1` are 9223372036854775807, `9.2E+18 / 1` exact
+    (`v45_b_conv`). `0.1 * 3` is `0.3` (the `_FLOAT` product prints as `0.3`). A DOUBLE constant is written into
+    the C++ as its 19 digits (`0.3333333333333333333E+0`), a `_FLOAT` one with `L`.
+  - **Three lanes** (`v45_a_lanes`, `v45_b_conv`): an operator works on floats if either operand is one, else on
+    unsigned 64-bit if either is unsigned, else signed; `/` always on floats; `\`, `MOD`, the logical operators and
+    `NOT` on unsigned or signed. A float enters an integer lane by `qbr` (half to even; above 2^63 less 2^63 with
+    the top bit set; out of range `-9223372036854775808`): `2.5 \ 1` 2, `3.5 \ 1` 4, `-2.5 \ 1` -2, `7.5 MOD 4` 0,
+    `-1.5 OR 0~&&` 18446744073709551614, `1E+19 OR 0~&&` 10000000000000000000, `1E+19 OR 0`
+    -8446744073709551616, `-1E+19 OR 0` and `1E+30 OR 0` -9223372036854775808, `NOT 2.5` -3. Unsigned arithmetic
+    wraps (`18446744073709551615~&& + 1` 0); a unary minus takes the signed lane (`-18446744073709551615~&&` is 1);
+    `NOT 0~&&` is 18446744073709551615. **An unsuffixed literal beyond `_INTEGER64` is clamped**:
+    `18446744073709551615` is 9223372036854775807 even for `CONST big~&&`, so `_UINTEGER64_MAX` and `_UOFFSET_MAX`
+    are 9223372036854775807 and `_INTEGER64_MIN` and `_OFFSET_MIN` -9223372036854775807 (`v45_a_auto`). An integer
+    `^` is the float power converted by `qbr`: `2 ^ -1` 0, `3 ^ 41` and `0 ^ -1` -9223372036854775808.
+  - **A constant named with a suffix inside a `CONST` is the constant** with its own value and type, whatever the
+    suffix (`v45_b_asc_suffix`: with `CONST c% = 8`, `c% * 2` 16, `c& + 1` 9, `c! / 2` 4, `c~&& - 9` -1; with
+    `CONST u~& = 4294967295`, `u% + 1` 4294967296; with `CONST fl# = 0.1`, `fl% * 3` 0.3); `n$` of a number is
+    "Unexpected element" (`x21`), `s%` of a string in a sum with a number "Unexpected element '1'" (`x22`), with a
+    string "Type mismatch" (`x23`).
+  - **The functions** (`v45_b_funcs`, each as a `##` constant so `_TOSTR$` shows 19 digits; `v45_b_funcs_plain`):
+    `_PI` is π in `_FLOAT` (`3.141592653589793239`; as a plain constant DOUBLE, `3.141592653589793`), `_PI(x)` π
+    times x; `INT`, `FIX`, `_CEIL`, `_ROUND`, `ABS`, `SGN` give `_INTEGER64` through `qbr` (`ABS(-2.5)` 2,
+    `_ROUND(20.5)` 20, `_ROUND(-2.5)` -2; beyond range -9223372036854775808, `x36`, `x37`, `x39`); `SQR` and `LOG`
+    work in `double` (`SQR(2)` `1.414213562373095145`); `_D2R` … `_G2R` multiply by a `double` literal
+    (`_D2R(180)` `3.141592649999999723`); `ROOT` is `^ (1 / n)` with the sign handled (`-8 ROOT 3` -2, `2 ROOT 0`
+    0, `x25`). The C++ of `qb64pe.exe`'s own functions for a `_FLOAT` argument: `std::cos`, `sin`, `tan`, `atan`,
+    `acos`, `asin` on `long double` (mingw's x87 `cosl` …), `func_exp_float` (`expl`), `pow2` (`powl`);
+    `func_log`, `func_sqr`, `func_arcsec` … `func_cot` on `double` (UCRT). Large arguments are accepted (`TAN(1E+20)`,
+    `SIN(1E+19)`, `x26`, `x27`); `_COTH(0)` is 1 (`x32`). **Errors**: `SQR(-1)` "Argument to SQR cannot be
+    negative", `_ARCSEC(.5)` and `_ARCCSC(-.5)` "ABS(_ARCSEC) value < 1", `ASC("")` "ASC cannot apply to empty
+    string", a wrong count "Wrong number of arguments provided to SIN!" (`_RGB32` "Invalid comma count"), no
+    argument "Expected variable/value after 'NOT'", a string to a number function "Unexpected argument", `ASC(65)`
+    "Unexpected argument: '65&&'", a string position "Expected integer argument", a mode outside 0–2, 7–13, 256, 32
+    "Invalid Screen Mode (5)", `_ACOS(2)` "Unexpected element 'NAN'" (`x01`–`x24`). **A run-time error inside
+    `qb64pe.exe` ends the compile with "UNEXPECTED INTERNAL COMPILER ERROR!" and builds nothing**: `LOG(0)`,
+    `LOG(-1)`, `_SECH(100)`, `ASC("ab", 5)`, `ASC("ab", 0)`, `EXP(1000)`, `EXP(20000)`, `_COT(0)`, `_CSC(0)`,
+    `_CSCH(0)`, `(-8) ^ 0.5`, a palette index outside the mode's palette (`_RED(5, 1)`, `_RED(16, 12)`,
+    `_RED(-1, 256)`, `x62`, `x63`, `x66`). A `_FLOAT` literal beyond DOUBLE range is a `_FLOAT` constant
+    (`1F+4000 * 1`, `x35`); a product beyond `_FLOAT` range gives 0 (`x38`, the `INF` text read back).
+  - **Colour functions** (`v45_b_colors32`, `v45_b_colors_m*`): `_RGB32`, `_RGBA32`, `_RED32` … as at run time
+    (`_RGB32(2, 3)` `3020202`, `_RGB32(300, -1, 2.6)` `FFFF0003`); `_RGB`, `_RGBA`, `_RED` … on a 1 × 1 image of
+    the mode: the nearest colour of the mode's default palette (modes 0, 7–9, 12: the 16 EGA colours; 13 and 256:
+    the 256-colour palette, `_RGB(255, 0, 0, 13)` `&H28`; 1: 4, 2 and 11: 2; mode 10's palette reads all zeros),
+    mode 32 the 32-bit value. Mode 0 takes any index for `_RED` … (`_RED(22, 0)` 0, `_ALPHA(2222, 0)` 255, `x60`,
+    `x64`, `x65`).
+  - **`$COLOR:0` and `$COLOR:32`** (`v45_b_color0`, `v45_b_color32`, `x41`–`x59`): the constants of `color0.bi`
+    (`Black~%%` 0 … `BrightWhite~%%` 15) or `color32.bi` (`AliceBlue~&` …), usable plainly, with their suffix or
+    another (`Red%`), in a SUB and in a `CONST`; the metacommand counts wherever it stands, in a SUB, after the
+    names are used, in an included file, twice, in lower case (`x41`–`x44`, `x50`); in a `$IF` branch not taken
+    it does not (`x54`). A `CONST` that names a colour above a `$COLOR` at the end of the program is "Unexpected
+    element 'BLACK'" (`x59`), while `PRINT` of one there works (`x42`). Both sets "$COLOR:0 already set, cannot
+    use both color sets together" (`x45`); `$COLOR:16`, a word after it, a blank after the colon, `$COLOR` alone
+    "Syntax error" (`x46`, `x51`–`x53`); a variable, SUB or `CONST` named `Red` "Name already in use (Red)"
+    (`x47`–`x49`); a store into one "Expected variable =, look for conflict with a CONST name" (`x55`), `Red$`
+    "Type mismatch" (`x56`).
 
 ## 6. Bug-compatibility choices (all decided)
 

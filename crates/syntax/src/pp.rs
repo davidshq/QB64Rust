@@ -60,15 +60,19 @@ pub enum Feature {
     Debug,
     /// `_OPENHOST` or `_OPENCLIENT` in compiled code (design D6 of `m3-network-embed`).
     Sockets,
+    /// `$COLOR:0` (1) or `$COLOR:32` (2): QB64pe's colour file included before the program (`ColorSet`,
+    /// `qb64pe.bas` 1903–1913, 1734; design D8 of `m3-constant-evaluation`).
+    Color,
 }
 
-const FEATURES: [Feature; 6] = [
+const FEATURES: [Feature; 7] = [
     Feature::Explicit,
     Feature::ExplicitArray,
     Feature::Asserts,
     Feature::Console,
     Feature::Debug,
     Feature::Sockets,
+    Feature::Color,
 ];
 
 /// The values of the features in one round of compiling: what every `$IF` of the old compiler's main pass sees.
@@ -124,7 +128,7 @@ fn running_flag(f: Feature) -> Option<&'static str> {
         Feature::Asserts => Some("_ASSERTS_"),
         Feature::Console => Some("_CONSOLE_"),
         Feature::Debug => Some("_DEBUG_"),
-        Feature::Explicit | Feature::ExplicitArray | Feature::Sockets => None,
+        Feature::Explicit | Feature::ExplicitArray | Feature::Sockets | Feature::Color => None,
     }
 }
 
@@ -137,6 +141,8 @@ pub fn meta_settings(line: &[u8]) -> &'static [(Feature, u8)] {
         b"$ASSERTS" => &[(Feature::Asserts, 1)],
         b"$ASSERTS:CONSOLE" => &[(Feature::Asserts, 1), (Feature::Console, 1)],
         b"$DEBUG" => &[(Feature::Debug, 1)],
+        b"$COLOR:0" => &[(Feature::Color, 1)],
+        b"$COLOR:32" => &[(Feature::Color, 2)],
         _ => &[],
     }
 }
@@ -194,7 +200,7 @@ pub struct Round<T> {
     pub flag_named: bool,
 }
 
-/// At most this many rounds are parsed: every round but the last locks a feature, and there are six.
+/// At most this many rounds are parsed: every round but the last locks a feature, and there are seven.
 pub const MAX_ROUNDS: usize = 8;
 
 /// Runs the old compiler's rounds: `round` parses the program with the flags of a round, and is called again
@@ -210,8 +216,11 @@ pub fn settle<T>(max_rounds: usize, mut round: impl FnMut(PpFlags) -> Round<T>) 
         if !states.apply(&r.settings) {
             return Ok((r.result, flags));
         }
+        let before = flags;
         flags = states.start_round();
-        if r.flag_named {
+        // `$COLOR` changes what is parsed (the colour file before the program) without a `$IF` naming a flag.
+        let colors = flags.get(Feature::Color) != before.get(Feature::Color);
+        if r.flag_named || colors {
             if parses == max_rounds {
                 return Err(r.result);
             }
@@ -363,6 +372,11 @@ impl PpState {
     /// A setting met in compiled code: noted for the rounds, and the flag a metacommand changes at its line takes
     /// its value from here on in this round.
     pub fn met(&mut self, feature: Feature, value: u8) {
+        // The old compiler recompiles at the first `$COLOR` line, with the set it chose locked (`qb64pe.bas`
+        // 1903–1913): the first one counts (measured, `verification\v45_x45`: "$COLOR:0 already set").
+        if feature == Feature::Color && self.settings.iter().any(|&(f, _)| f == Feature::Color) {
+            return;
+        }
         self.settings.push((feature, value));
         if let Some(flag) = running_flag(feature) {
             let entry = self.defines[PRESETS..]

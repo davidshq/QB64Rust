@@ -1,0 +1,5 @@
+
+Name already in use (Red)
+Caused by (or after):DIM RED AS INTEGER
+LINE 4:DIM Red AS INTEGER
+exit=1

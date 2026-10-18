@@ -1,0 +1,5 @@
+
+ABS(_ARCSEC) value < 1
+Caused by (or after):
+LINE 3:CONST C = _ARCSEC ( 0.5E+0,.5 )
+exit=1

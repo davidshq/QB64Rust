@@ -8,8 +8,8 @@
 //! or variable. A parameter with a main constant's name hides the constant.
 
 use super::{Checker, R};
-use crate::consteval::{self, Problem, Value, exact_text, shortest_text};
-use crate::literal::{self, LitError, NumLit};
+use crate::consteval::{self, FloatTy, Problem, Value};
+use crate::literal::{self, NumLit};
 use crate::{BinOp, Const, ConstId, Expr, ExprKind, Storage, SymbolKind, Ty, UnOp};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::find_function_form;
@@ -17,19 +17,12 @@ use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::tree::Tok;
 
-/// The functions of the old evaluator (`Set_ConstFunctions`, `study\02` §7): `CHR$` is computed, the others are
-/// "not supported yet" in a `CONST`. Any other function is an error there.
-const FUNCTIONS: &[&str] = &[
-    "_PI", "_ACOS", "_ASIN", "_ARCSEC", "_ARCCSC", "_ARCCOT", "_SECH", "_CSCH", "_COTH", "COS", "SIN", "TAN", "LOG",
-    "EXP", "ATN", "SQR", "_D2R", "_D2G", "_R2D", "_R2G", "_G2D", "_G2R", "ABS", "SGN", "INT", "_ROUND", "_CEIL", "FIX",
-    "_SEC", "_CSC", "_COT", "_RGB32", "_RGBA32", "_RGB", "_RGBA", "_RED32", "_GREEN32", "_BLUE32", "_ALPHA32", "_RED",
-    "_GREEN", "_BLUE", "_ALPHA", "CHR$", "ASC",
-];
-
 impl Checker<'_> {
     /// `CONST name = value, ...`. Defines no statement: uses of the constants become literals.
     pub(super) fn const_stmt(&mut self, stmt: ast::ConstStmt) -> R<()> {
         // A label before it on its line is no problem here (the old compiler fails, `DIVERGENCES.md` D-008).
+        self.const_at = Some(self.main_offset(stmt.node().key()));
+        let in_colors = self.color_file == Some(stmt.node().span().file);
         for item in stmt.items() {
             let name_tok = self.need(item.name(), item.node().span())?;
             let value_node = self.need(item.value(), item.node().span())?;
@@ -38,9 +31,19 @@ impl Checker<'_> {
                 return Err(self.in_use(name_tok));
             }
             self.reserved(name_tok, &name, suffix)?;
+            consteval::take_fallback();
             let value = self.const_value(value_node)?;
-            let value = self.problem(consteval::reread(value), value_node.node().span())?;
+            let value = self.problem(consteval::reread(value, true), value_node.node().span())?;
             let (ty, value) = self.problem(consteval::settle(value, suffix), name_tok.span)?;
+            let fell_back = consteval::take_fallback();
+            if fell_back {
+                // `DIVERGENCES.md` D-026: the old compiler's value depends on the CPU and the system's library.
+                self.diags.warning(
+                    value_node.node().span(),
+                    "this `CONST` is computed with correctly rounded math functions; QB64pe's value depends on the \
+                     CPU and the system's library and may differ",
+                );
+            }
             let existing = match self.cur {
                 Some(_) => self.consts_local.get(&name),
                 None => self.consts_main.get(&name),
@@ -66,6 +69,12 @@ impl Checker<'_> {
                 Some(_) => self.consts_local.insert(name, id),
                 None => self.consts_main.insert(name, id),
             };
+            if in_colors {
+                self.color_consts.insert(id);
+            }
+            if fell_back {
+                self.fell_back.insert(id);
+            }
             self.names.push((SymbolKind::Const(id), name_tok.span));
         }
         Ok(())
@@ -197,16 +206,8 @@ impl Checker<'_> {
                     let inner = &raw[1..];
                     return Ok(Value::Str(inner.strip_suffix(b"\"").unwrap_or(inner).to_vec()));
                 }
-                match literal::number(self.text(t.span), false) {
-                    Ok(NumLit::Int { value, .. }) => Ok(Value::Int(value)),
-                    Ok(NumLit::Float { text, .. }) => {
-                        let f = self.problem(consteval::float_literal(&text), t.span)?;
-                        Ok(Value::Float(f))
-                    }
-                    Err(LitError::Overflow) => Err(self.error(t.span, "overflow")),
-                    Err(LitError::Error(msg)) => Err(self.error(t.span, msg)),
-                    Err(LitError::Unsupported(what)) => Err(self.unsupported(t.span, what)),
-                }
+                let text = self.text(t.span).to_vec();
+                self.problem(consteval::literal(&text), t.span)
             }
             ast::Expr::NameRef(n) => {
                 let t = self.need(n.name(), span)?;
@@ -214,20 +215,44 @@ impl Checker<'_> {
                 let shown = show_bytes(self.text(t.span));
                 self.auto_const(&name, t.span)?;
                 match (self.visible_const(&name), suffix) {
-                    (Some(id), None) => {
+                    // With a suffix or without, the constant itself, with its own value and type (the old
+                    // evaluator drops the suffix, design D6; measured, `verification\v45_b_asc_suffix`), but a
+                    // string suffix on a number or a number suffix on a string is an error (`v45_x21`–`x23`).
+                    (Some(id), suffix) => {
+                        let c = self.prog.constant(id);
+                        let string = c.ty == Ty::Str;
+                        if suffix.is_some_and(|s| (s == Ty::Str) != string) {
+                            return Err(self.error(t.span, format!("type mismatch: `{shown}`")));
+                        }
+                        // The old compiler's first pass includes the colour file at the `$COLOR` line, so a `CONST`
+                        // above it does not know the colours (measured, `verification\v45_x59`).
+                        if self.color_consts.contains(&id)
+                            && self
+                                .first_color
+                                .zip(self.const_at)
+                                .is_some_and(|(color, at)| at < color)
+                        {
+                            let msg = format!(
+                                "`{shown}` is a `$COLOR` constant, which a `CONST` above the `$COLOR` line cannot name"
+                            );
+                            return Err(self.error(t.span, msg));
+                        }
+                        let v = consteval::lookup(c.ty, &c.value);
+                        // A constant that took the correctly rounded value passes it on (D-026).
+                        if self.fell_back.contains(&id) {
+                            consteval::fell_back();
+                        }
                         self.names.push((SymbolKind::Const(id), t.span));
-                        Ok(self.prog.constant(id).value.clone())
-                    }
-                    (Some(_), Some(_)) => {
-                        let msg = format!("a constant with a type suffix inside a `CONST`: `{shown}`");
-                        Err(self.unsupported(t.span, msg))
+                        Ok(v)
                     }
                     // Measured, `verification\v43_x06`: `CHR$ 65` is an error.
                     (None, _) if self.word(t) == "CHR$" => {
                         Err(self.error(t.span, format!("`{shown}` needs its code in parentheses")))
                     }
-                    (None, _) if is_const_function(&self.word(t)) => {
-                        Err(self.unsupported(t.span, format!("the function `{shown}` in a `CONST`")))
+                    // `_PI` alone is pi (`const_eval.bas` `Numeric&`); another function's name alone is an error.
+                    (None, None) if self.word(t) == "_PI" => Ok(Value::float(consteval::pi(), FloatTy::Float)),
+                    (None, _) if consteval::function_arity(&self.word(t)).is_some() => {
+                        Err(self.error(t.span, format!("`{shown}` needs its arguments in parentheses")))
                     }
                     // Measured: a variable is an error (`v17_e_err_const_var`). Another name may be a constant
                     // of an auto-included file (`$COLOR`), or one whose `CONST` was not supported.
@@ -245,27 +270,37 @@ impl Checker<'_> {
             ast::Expr::Call(call) => {
                 let t = self.need(call.name(), span)?;
                 let shown = show_bytes(self.text(t.span));
-                if self.word(t) == "CHR$" {
-                    let args = call.arg_list().map(ast::ArgList::args).unwrap_or_default();
-                    let [Some(code)] = args[..] else {
-                        // Measured: `CHR$()` and `CHR$(1, 2)` are errors (`verification\v43_x04`, `x05`).
-                        return Err(self.error(t.span, format!("`{shown}` in a `CONST` takes one code")));
-                    };
-                    // The argument is computed and read back as a parenthesised group is.
-                    let v = self.const_value(code)?;
-                    let v = self.problem(consteval::reread(v), code.node().span())?;
-                    self.problem(consteval::chr(&v), code.node().span())
-                } else if is_const_function(&self.word(t)) {
-                    Err(self.unsupported(t.span, format!("the function `{shown}` in a `CONST`")))
-                } else {
-                    Err(self.error(t.span, format!("`{shown}` cannot be used in a `CONST`")))
+                let word = self.word(t);
+                if consteval::function_arity(&word).is_none() {
+                    return Err(self.error(t.span, format!("`{shown}` cannot be used in a `CONST`")));
                 }
+                let args = call.arg_list().map(ast::ArgList::args).unwrap_or_default();
+                if word == "CHR$" && !matches!(args[..], [Some(_)]) {
+                    // Measured: `CHR$()` and `CHR$(1, 2)` are errors (`verification\v43_x04`, `x05`).
+                    return Err(self.error(t.span, format!("`{shown}` in a `CONST` takes one code")));
+                }
+                let mut values = Vec::new();
+                for arg in args {
+                    // Measured, `verification\v45_x11`, `x14`: `SIN()` is an error.
+                    let Some(arg) = arg else {
+                        return Err(self.error(
+                            t.span,
+                            format!("`{shown}` in a `CONST` needs a value for each argument"),
+                        ));
+                    };
+                    // Each argument is computed and read back as a parenthesised group is.
+                    let v = self.const_value(arg)?;
+                    values.push(self.problem(consteval::reread(v, false), arg.node().span())?);
+                }
+                let v = self.problem(consteval::function(&word, &values), span)?;
+                // The result is printed and read back into the expression (`EvaluateFunction$`).
+                self.problem(consteval::reread(v, false), span)
             }
             ast::Expr::Paren(p) => {
                 let inner = self.need(p.inner(), span)?;
                 let v = self.const_value(inner)?;
                 // The old evaluator computes each parenthesised group and reads its printed result back.
-                self.problem(consteval::reread(v), span)
+                self.problem(consteval::reread(v, false), span)
             }
             ast::Expr::Prefix(prefix) => {
                 let op_tok = self.need(prefix.op(), span)?;
@@ -309,7 +344,7 @@ impl Checker<'_> {
             Some(false) => Some(BinOp::Add),
             None => self.bin_op(op_tok),
         };
-        let Some(op) = op else {
+        let Some(op) = op.or_else(|| (self.word(op_tok) == "ROOT").then_some(BinOp::Pow)) else {
             let shown = self.word(op_tok);
             return Err(self.unsupported(op_tok.span, format!("operator `{shown}`")));
         };
@@ -318,18 +353,18 @@ impl Checker<'_> {
         if !logical && (prefix_op(self, l) == Some(UnOp::Not) || prefix_op(self, r) == Some(UnOp::Not)) {
             return Err(self.unsupported(span, "`NOT` as an operand in a `CONST`"));
         }
-        if op == BinOp::Pow {
-            // `^` is right-associative in the old evaluator: `a ^ b ^ c` (parsed `(a ^ b) ^ c`) is `a ^ (b ^ c)`.
-            let mut operands = vec![r];
+        if let Some(first_root) = self.exponent_op(op_tok) {
+            // `^` and `ROOT` are right-associative in the old evaluator: `a ^ b ^ c` (parsed `(a ^ b) ^ c`) is
+            // `a ^ (b ^ c)`.
+            let mut operands = vec![(first_root, r)];
             let mut left = l;
             while let ast::Expr::Bin(b) = left
-                && b.op().is_some_and(|t| self.bin_op(t) == Some(BinOp::Pow))
+                && let Some(root) = b.op().and_then(|t| self.exponent_op(t))
             {
-                operands.push(self.need(b.rhs(), span)?);
+                operands.push((root, self.need(b.rhs(), span)?));
                 left = self.need(b.lhs(), span)?;
             }
-            operands.push(left);
-            if operands.len() > 2 {
+            if operands.len() > 1 {
                 // The spec's warning (`language/constants`): the same text in a statement means another value.
                 self.diags.warning(
                     span,
@@ -337,17 +372,39 @@ impl Checker<'_> {
                      to right (64); add parentheses to say which",
                 );
             }
-            // `operands` runs from the rightmost operand to the leftmost.
-            let mut v = self.const_value(operands[0])?;
-            for &o in &operands[1..] {
+            // `operands` runs from the rightmost operand to the leftmost, each with the operator on its left.
+            let mut v = self.const_value(operands[0].1)?;
+            let mut root = operands[0].0;
+            for &(next_root, o) in &operands[1..] {
                 let base = self.const_value(o)?;
-                v = self.problem(consteval::binary(BinOp::Pow, &base, &v), span)?;
+                v = self.exponent(root, &base, &v, span)?;
+                root = next_root;
             }
-            return Ok(v);
+            let base = self.const_value(left)?;
+            return self.exponent(root, &base, &v, span);
         }
         let a = self.const_value(l)?;
         let b = self.const_value(r)?;
         self.problem(consteval::binary(op, &a, &b), op_tok.span)
+    }
+
+    /// Whether `t` is `^` (`Some(false)`) or `ROOT` (`Some(true)`).
+    fn exponent_op(&self, t: Tok) -> Option<bool> {
+        if t.kind == SyntaxKind::Caret {
+            Some(false)
+        } else {
+            (self.word(t) == "ROOT").then_some(true)
+        }
+    }
+
+    /// `base ^ v` or `base ROOT v`.
+    fn exponent(&mut self, root: bool, base: &Value, v: &Value, span: Span) -> R<Value> {
+        let r = if root {
+            consteval::root(base, v)
+        } else {
+            consteval::binary(BinOp::Pow, base, v)
+        };
+        self.problem(r, span)
     }
 }
 
@@ -366,23 +423,19 @@ fn prefix_op(c: &Checker, e: ast::Expr) -> Option<UnOp> {
     }
 }
 
-fn is_const_function(word: &str) -> bool {
-    FUNCTIONS.contains(&word)
-}
-
 /// A constant's value as a literal node of type `ty`, as the old compiler substitutes it: an integer typed `ty`,
-/// a float like a literal of `ty` (a SINGLE one held as a DOUBLE), a string.
+/// a float as the text the old compiler writes (its 19 digits, design D2; C++ reads it as a `long double` for a
+/// `_FLOAT`, else as a `double`, a SINGLE one held as a DOUBLE), a string.
 fn literal_expr(span: Span, ty: Ty, value: Value) -> Expr {
     let (held, kind) = match value {
         Value::Int(i) => (ty, ExprKind::Int(i)),
-        Value::Float(f) => {
-            // A `_FLOAT` is exact here (`consteval::convert`); the others are read by C++ as a `double`.
-            let text = if ty == Ty::F80 {
-                exact_text(f.v)
-            } else {
-                shortest_text(f.v)
-            };
-            (if ty == Ty::F32 { Ty::F64 } else { ty }, ExprKind::Float(text))
+        Value::UInt(u) => (ty, ExprKind::Int(u.cast_signed())),
+        Value::Float(r, _) => {
+            let v = r.one().expect("a constant's value is one value (`consteval::settle`)");
+            (
+                if ty == Ty::F32 { Ty::F64 } else { ty },
+                ExprKind::Float(consteval::c_text(v)),
+            )
         }
         Value::Str(s) => (Ty::Str, ExprKind::Str(s)),
     };

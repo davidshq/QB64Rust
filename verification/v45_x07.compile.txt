@@ -1,0 +1,5 @@
+
+Unexpected element 'NAN'
+Caused by (or after):
+LINE 3:CONST C = _ACOS ( 2 )
+exit=1

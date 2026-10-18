@@ -1,0 +1,5 @@
+
+Type mismatch
+Caused by (or after):CONST C = S% + "x",1
+LINE 4:CONST c = s% + "x"
+exit=1
