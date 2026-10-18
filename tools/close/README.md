@@ -51,6 +51,7 @@ Each `ok` line shows when its log was written. The exit code is 0 when every ste
 **Not in it:** the change's new programs before they are on a list (`--glob` while working), and its
 `verification` family: the runner's `--suite verification` records the old compiler only, so the new compiler's
 side of a family is seen through the slice programs and front-end tests made from it. The full set at a merge
-into `main` (rule 9) is not a change's close.
+into `main` (rule 9) is not a change's close; a `--plan --merge` for it is not built yet (left for a next small
+step by the panel, `study\archive\33`).
 
 Its own tests: `python -m unittest discover -s tools/close -p "test_*.py"` (`test_close.py`; also run by CI).

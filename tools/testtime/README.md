@@ -171,3 +171,6 @@ command or text is written: only the change's name, the kind and the counts.
 - **Not separated**: the time a command waited for a lock (another run in the clone) or for the user to allow it
   is inside its time; a run started through a wrapper is not seen (above).
 - Sessions of subagents are part of their parent's transcript and counted with it.
+- **Not built yet** (`study\archive\31` item 4 and item 3): why a failed run failed (a product defect, a fixture,
+  the environment or the infrastructure, where the logs can tell them apart), and one summary over all the
+  closing runs of a change.

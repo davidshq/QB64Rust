@@ -3190,14 +3190,9 @@ row in `DIVERGENCES.md`; a kept behaviour that differs from QuickBASIC 4.5 is a 
   tracks the console column itself instead of asking Windows, so a redirected program no longer hangs (D-011).
   Making it 14 everywhere is to be evaluated (`SOMEDAY.md`).
 
-**Fixed (no compatibility value):** `RETURN label` with no `GOSUB` pending breaking the `GOSUB` stack (2026-10-06,
-D-003); `a IMP b IMP c` computing `a OR b OR c` (D-005); the smallest LONG/`_INTEGER64` `\ -1` and `MOD -1`
-crashing the program (D-006); `CONST 1 / 0` giving 0 and `CONST 2 ^ 70` wrapping while `1E+19 / 1` does not
-(D-007); `label: CONST …` on one line failing to compile (D-008); `_BIT * n` with n > 32 overwriting 4 bytes
-of the `_BIT` scalar allocated before it (D-009; the victim measured by `verification\v21_b_bit_overlap`); `INF` printed with padding and a stray `D` (D-010); the console `tab()` hang and the
-`CONOUT$` handle leak (D-011); runtime errors exiting 0 (D-012); `_LogMinLevel` and `_ScreenExists` registered
-without a return type (D-013); two calls of a FUNCTION `f$n` in one expression reading memory the FUNCTION had
-released (2026-10-09, D-014). Rejected by both compilers, so no register row, only a proper message: `ELSE` while an
+**Fixed (no compatibility value):** each is a row of `DIVERGENCES.md` (D-003, D-005 to D-014 from these
+decisions, later ones from the changes that found them; the list that stood here until 2026-10-18 is in
+`study\archive\00-synthesis.md`). Rejected by both compilers, so no register row, only a proper message: `ELSE` while an
 inner `FOR` is open (the old one fails in C++), `CONST … \ 0` and `MOD 0` (the old compiler crashes) and
 `CONST (-8) ^ (1 / 3)` (an internal compiler error).
 
@@ -3295,13 +3290,13 @@ Kept in one place, `STATUS.md`, so they don't go stale here. As of 2026-10-03 M1
 
 Closed: DIM/REDIM/STATIC/COMMON/ERASE, PRINT/INPUT/WRITE emission, the built-in table (`10`); "nothing was
 executed" (`09`, `10`); ON TIMER/KEY/STRIG, `FIELD` and the `_MEM*` statements by the M3 changes that built them
-(the row is in `study\archive\00-synthesis.md`). Deferred with the array features: the member-array layer. Still
-open, to be read when the
+(the row is in `study\archive\00-synthesis.md`). The member-array layer, once deferred with the array features, is
+partly built (M2, `m3-typefields`); the forms left are in `ROADMAP.md` (M3). Still open, to be read when the
 matching milestone starts:
 
 | Gap | Milestone | Where |
 |---|---|---|
-| Runtime drawing/printing/input bodies (PAINT, CIRCLE, DRAW, GET/PUT, `qbs_input`, `print_using`) | M3/M6 | `libqb.cpp` |
+| Runtime drawing/printing/input bodies (PAINT, CIRCLE, DRAW, GET/PUT, `qbs_input`, `print_using`; M3 calls them in libqb unchanged) | M6 | `libqb.cpp` |
 | CHAIN array COMMON handling | M4 | `10` §1.6 |
 | Most of the ~45 accidental behaviours (only those in §6 were run) | M2–M4 | `01` §11.3, `02` §9.2, `04` G.4 |
 
@@ -3329,7 +3324,7 @@ as a reading of the code, not a measurement.
 | `16` | FreeBASIC: lessons to take (module split, runtime-call tables, `-fwrapv`, lowering notes, test conventions), things not to take, proposed follow-ups and the panel review |
 | `17` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do); how M1 compares |
 | `18` | Other VS Code extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
-| `35` | Tenth review (2026-10-18, at the close of `m3-constant-evaluation`): no bug, nothing astray, tier 1 green; the slowness is the long tail of M3 (2 to 9 upstream programs per change), meta-work and the user's rulings per change; recommended: M3 declared done and the compiler made usable (the `internal\c` copy, the extension's diagnostics from the new compiler, a `.vsix`), the verification families run against the new compiler, ceremony at the merge cadence, D-026 as the standing rule for machine-dependent values, M4's exit criterion demoted to `qb64pe.bas` compiling |
-| `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 10; catalogue in `archive\README.md`): the reviews of other repositories (`11`–`14`: VS Code extensions, QB64Fresh, documentation sources, `docs-new-2`; conclusions in §11), the reviews and plans whose outcomes are decided and built (`15`, `19`–`34`), `08` (strict QB 4.5 mode) and the closed records `progress-record` and `support-record` |
+| `35` | Tenth review (2026-10-18): nothing astray; where the time goes in M3, and six recommendations waiting on the user |
+| `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 10); what each holds: `archive\README.md` |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

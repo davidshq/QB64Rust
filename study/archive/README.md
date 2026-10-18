@@ -12,7 +12,7 @@ not found in the active file is here.
 
 | File | What was moved | Why |
 |---|---|---|
-| `00-synthesis.md` | §1 (the decisions table of 2026-10-02), §2's milestone table, §10 (the testing position as of 2026-10-03 to 2026-10-10), the closed row of §13's table | Their current homes are `DECISIONS.md`, `ROADMAP.md`, `crates\README.md`, the `tests\*\README.md` files and `CLAUDE.md` working rule 9; their figures had gone out of date |
+| `00-synthesis.md` | §1 (the decisions table of 2026-10-02), §2's milestone table, §6's "Fixed" list, §10 (the testing position as of 2026-10-03 to 2026-10-10), the closed row of §13's table | Their current homes are `DECISIONS.md`, `ROADMAP.md`, `DIVERGENCES.md`, `crates\README.md`, the `tests\*\README.md` files and `CLAUDE.md` working rule 9; their figures had gone out of date |
 | `04-ide-debugger.md` | Parts A–D and Part E §1–§4: the text-mode IDE's internals (the compiler side of the IDE, `ide2`, text buffer, dialog toolkit, every dialog and menu, help, configuration, export, converters) | The IDE is not ported (`DECISIONS.md` 2026-10-02); the debugger (Part F) and the assessment (Part G) stay active for M5 |
 
 ## Reviews of other repositories

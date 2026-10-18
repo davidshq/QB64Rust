@@ -30,6 +30,20 @@ All taken 2026-10-02; the authoritative list is in `DECISIONS.md`.
 | M5 | Debugger | Debug symbol file + DAP adapter | |
 | M6 | Runtime modernisation | ABI owned by the new compiler; error model, string heap, threading redesigned behind golden tests | |
 
+## 6. Bug-compatibility choices (the "Fixed" list)
+
+Replaced in the active file by a pointer to `DIVERGENCES.md`, whose rows D-003 and D-005 to D-014 hold the same
+fixes. The paragraph went on with the programs rejected by both compilers, which stays in the active file.
+
+**Fixed (no compatibility value):** `RETURN label` with no `GOSUB` pending breaking the `GOSUB` stack (2026-10-06,
+D-003); `a IMP b IMP c` computing `a OR b OR c` (D-005); the smallest LONG/`_INTEGER64` `\ -1` and `MOD -1`
+crashing the program (D-006); `CONST 1 / 0` giving 0 and `CONST 2 ^ 70` wrapping while `1E+19 / 1` does not
+(D-007); `label: CONST …` on one line failing to compile (D-008); `_BIT * n` with n > 32 overwriting 4 bytes
+of the `_BIT` scalar allocated before it (D-009; the victim measured by `verification\v21_b_bit_overlap`); `INF` printed with padding and a stray `D` (D-010); the console `tab()` hang and the
+`CONOUT$` handle leak (D-011); runtime errors exiting 0 (D-012); `_LogMinLevel` and `_ScreenExists` registered
+without a return type (D-013); two calls of a FUNCTION `f$n` in one expression reading memory the FUNCTION had
+released (2026-10-09, D-014).
+
 ## 10. Testing position
 
 - **Runner:** `tools\legacy_tests\run_legacy_tests.py` re-implements the bash suites on Windows (compile,
