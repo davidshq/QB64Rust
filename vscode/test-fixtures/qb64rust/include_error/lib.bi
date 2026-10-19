@@ -1,0 +1,3 @@
+PRINT 2
+DIM y AS STRING
+y = 5

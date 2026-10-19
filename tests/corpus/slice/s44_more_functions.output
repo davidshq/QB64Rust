@@ -24,6 +24,7 @@ _CSC(0)
  0 
 _SEC(0)
  1 
+_COTH above 1:-1 -1 -1 
 _SINH(1000) inf _COSH(1000) inf _TANH(1000) 1 
 _CEIL of large values: 1D+20  123456790  0 
 nested: 90  4  0 

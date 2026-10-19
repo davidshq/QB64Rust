@@ -1,0 +1,23 @@
+# Changelog
+
+## 0.2.0
+
+The first release with the new compiler, `qb64rust`, inside the extension (Windows x64).
+
+- **The compiler comes with the extension.** Live syntax errors, the outline, folding, go to definition and the
+  check on save come from the bundled `qb64rust` without any setting. `qb64rust.path` still chooses another
+  binary.
+- **Build, Build and Run and the build task use `qb64rust`.** The new setting `qb64rust.buildWith` (`auto`,
+  `qb64rust`, `qb64pe`) chooses the compiler; `auto`, the default, uses `qb64rust` when it is found. A build that
+  fails only on forms marked "not supported yet" offers to build that program once with QB64pe.
+- **QB64pe is still needed**: its C++ toolchain builds the program (tested with QB64pe 4.7.0). Formatting still
+  uses QB64pe.
+- **The first build after installing takes longer** (about 40 seconds for a console program): it builds the
+  QB64pe runtime library once, in the extension's storage.
+- **Changed:** with `qb64rust.includeRoot` empty, included files not found next to the including file are looked
+  up in the QB64pe folder, as a build does, no longer in the folder of the `qb64rust` binary. Set
+  `qb64rust.includeRoot` to keep the old folder.
+
+## 0.1.0
+
+Highlighting, check on save, formatting, build and run with QB64pe; the optional language server.

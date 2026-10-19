@@ -83,3 +83,8 @@ standard. The feeling of slowness has three real causes:
 
 Items 1, 4 and 5 are scope decisions for the user. Items 2 and 3 can start on the user's word. None of them
 changes the code's direction; they change where the hours go.
+
+**Answered** (`DECISIONS.md` 2026-10-18): item 1 taken (user: "Do step 1"); items 2 and 3 approved; items 4 and 5
+taken with the user's notes above (the fidelity built stays; running the compiler made from `qb64pe.bas` is a
+someday task). Built: item 3 (`CLAUDE.md` working rules 11, 12, `ROADMAP.md` M4, `SOMEDAY.md`); item 2 waits
+behind the three changes of `ROADMAP.md` "After M3".

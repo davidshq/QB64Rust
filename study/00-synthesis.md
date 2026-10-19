@@ -128,6 +128,9 @@ Full lists: `01` §11.1, `02` §9.1, `03` §9.1. Items marked ✓ were confirmed
 
 ## 5. Statement semantics worth knowing (measured)
 
+Closed to new facts on 2026-10-18 (`CLAUDE.md` working rule 11): it holds the families up to `v45`; a later
+family's facts are its recorded output and its line in `verification\README.md`.
+
 From `10` (checked by `verification\v09_dim.bas`, `v10_print.bas`):
 
 - **DIM in the main module** with constant bounds (no `$DYNAMIC`) is allocated at program start: the array exists
@@ -3324,7 +3327,7 @@ as a reading of the code, not a measurement.
 | `16` | FreeBASIC: lessons to take (module split, runtime-call tables, `-fwrapv`, lowering notes, test conventions), things not to take, proposed follow-ups and the panel review |
 | `17` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do); how M1 compares |
 | `18` | Other VS Code extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
-| `35` | Tenth review (2026-10-18): nothing astray; where the time goes in M3, and six recommendations waiting on the user |
+| `35` | Tenth review (2026-10-18): nothing astray; where the time goes in M3, and six recommendations, all answered; item 2 (the verification families as a suite) still to build |
 | `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 10); what each holds: `archive\README.md` |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

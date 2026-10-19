@@ -3,7 +3,7 @@
 //! Every program goes through the front end with the error cap lifted; each message marked "not supported yet" is
 //! counted over the set. The report is for choosing what comes in next; it is no test and has no expected output.
 
-use crate::{FileLoader, frontend_with};
+use crate::{FileLoader, frontend_at};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
@@ -67,9 +67,12 @@ pub fn outcome(path: &Path, include_root: &Path) -> Result<Outcome, String> {
         return Err(format!("{} is too large", path.display()));
     }
     let name = path.to_string_lossy().to_string();
-    let mut fe = frontend_with(&name, bytes, |file| Box::new(FileLoader::new(include_root, file, path)));
-    crate::check_exe_icon(&mut fe, path);
-    crate::check_embedded_files(&mut fe, path);
+    let fe = frontend_at(
+        &name,
+        bytes,
+        |file| Box::new(FileLoader::new(include_root, file, path)),
+        Some(path),
+    );
     let unsupported = fe
         .diagnostics
         .errors()

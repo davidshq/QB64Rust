@@ -4,7 +4,7 @@ pub mod build;
 pub mod library;
 pub mod report;
 
-use qb64rust_base::{Diagnostics, FileId, SourceMap, Span};
+use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_sema::Program;
 use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_name, parse_settled};
 use std::collections::HashMap;
@@ -135,17 +135,25 @@ pub fn frontend(name: &str, bytes: Vec<u8>) -> Frontend {
     frontend_with(name, bytes, |_| Box::new(NoLoader))
 }
 
-/// [`frontend`] with included files found by the loader `loader` makes for the main file's id.
+/// [`frontend`] with included files found by the loader `loader` makes for the main file's id. The checks that
+/// read the disk are left out: [`frontend_at`] makes them.
 pub fn frontend_with(name: &str, bytes: Vec<u8>, loader: impl FnOnce(FileId) -> Box<dyn Loader>) -> Frontend {
+    frontend_at(name, bytes, loader, None)
+}
+
+/// [`frontend_with`] for the main file at `main_path` on disk, if given: then the checks of [`check_program`] that
+/// read the disk are made too, as for a compile run.
+pub fn frontend_at(
+    name: &str,
+    bytes: Vec<u8>,
+    loader: impl FnOnce(FileId) -> Box<dyn Loader>,
+    main_path: Option<&Path>,
+) -> Frontend {
     let mut map = SourceMap::new();
     let file = map.add(name, bytes);
     let mut loader = loader(file);
     let parsed = parse_settled(&mut map, file, loader.as_mut());
-    // QB64RUST_NO_FOLD=1 turns integer constant folding off (test use only, design D5).
-    let fold = std::env::var_os("QB64RUST_NO_FOLD").is_none_or(|v| v != "1");
-    let (program, sema_diags) = qb64rust_sema::check_with(&map, &parsed, fold);
-    let mut diagnostics = parsed.diagnostics();
-    diagnostics.extend(sema_diags);
+    let (program, diagnostics) = check_program(&map, &parsed, main_path);
     Frontend {
         map,
         file,
@@ -155,12 +163,37 @@ pub fn frontend_with(name: &str, bytes: Vec<u8>, loader: impl FnOnce(FileId) -> 
     }
 }
 
+/// The front end after the parse, for the CLI and the language server's check alike (design D2 of
+/// `extension-diagnostics`): `sema`, then, when the main file's path `main_path` is given, the checks that read the
+/// disk ([`check_exe_icon`], [`check_embedded_files`]). The diagnostics are the parse's first, then the others.
+pub fn check_program(map: &SourceMap, parsed: &ParsedProgram, main_path: Option<&Path>) -> (Program, Diagnostics) {
+    // QB64RUST_NO_FOLD=1 turns integer constant folding off (test use only, design D5).
+    let fold = std::env::var_os("QB64RUST_NO_FOLD").is_none_or(|v| v != "1");
+    let (program, sema_diags) = qb64rust_sema::check_with(map, parsed, fold);
+    let mut diagnostics = parsed.diagnostics();
+    diagnostics.extend(sema_diags);
+    if let Some(path) = main_path {
+        check_exe_icon(&program, &mut diagnostics, path);
+        check_embedded_files(&program, &mut diagnostics, path);
+    }
+    (program, diagnostics)
+}
+
+/// [`check_program`] for the language server (`qb64rust_lsp::Check`): the diagnostics alone.
+pub fn check_for_server(map: &SourceMap, parsed: &ParsedProgram, main_path: Option<&Path>) -> Diagnostics {
+    check_program(map, parsed, main_path).1
+}
+
 /// Where the icon `$EXEICON` names lies: a name that starts with `./` or `.\` in the folder of the main source
 /// file `main_path`, an absolute name as written (design D4 of `m3-sound`). `None` for a program without one.
 /// The rest of a `./` name is added to the folder as text, as the old compiler does (`qb64pe.bas` 3853), not
 /// joined as a path: a rest that starts with a slash (`.//icons/game.ico`) stays inside the folder.
 pub fn exe_icon_path(fe: &Frontend, main_path: &Path) -> Option<PathBuf> {
-    let icon = fe.program.settings.exe_icon.as_ref()?;
+    icon_path(&fe.program, main_path)
+}
+
+fn icon_path(program: &Program, main_path: &Path) -> Option<PathBuf> {
+    let icon = program.settings.exe_icon.as_ref()?;
     Some(match qb64rust_sema::ExeIcon::beside_source(&icon.name) {
         Some(rest) => beside(main_path, rest),
         None => PathBuf::from(&icon.name),
@@ -187,15 +220,15 @@ fn beside(main_path: &Path, rest: &str) -> PathBuf {
 /// The check `sema` cannot make, since it reads no file: the icon `$EXEICON` names is there. A missing file is an
 /// error at the metacommand's line, counted with the others. It names the file as the program writes it, where
 /// the old compiler names the folder it looked in (`DIVERGENCES.md`): no diagnostic holds a folder of the machine.
-pub fn check_exe_icon(fe: &mut Frontend, main_path: &Path) {
-    let Some(path) = exe_icon_path(fe, main_path) else {
+pub fn check_exe_icon(program: &Program, diagnostics: &mut Diagnostics, main_path: &Path) {
+    let Some(path) = icon_path(program, main_path) else {
         return;
     };
     if !path.is_file()
-        && let Some(icon) = &fe.program.settings.exe_icon
+        && let Some(icon) = &program.settings.exe_icon
     {
         let msg = format!("the file `{}` of `$EXEICON` is not found", icon.shown);
-        fe.diagnostics.error(icon.span, msg);
+        diagnostics.error(icon.span, msg);
     }
 }
 
@@ -210,17 +243,11 @@ pub fn embedded_path(file: &qb64rust_sema::EmbeddedFile, main_path: &Path) -> Pa
 /// The check `sema` cannot make: each file a `$EMBED` line names is a file (measured, `verification\v44_x07`,
 /// `x27`: a missing file and a folder). An error at the line that names the file as the program writes it, where
 /// the old compiler names the folder it looked in (`DIVERGENCES.md` D-015).
-pub fn check_embedded_files(fe: &mut Frontend, main_path: &Path) {
-    let missing: Vec<(Span, String)> = fe
-        .program
-        .settings
-        .embedded
-        .iter()
-        .filter(|f| !embedded_path(f, main_path).is_file())
-        .map(|f| (f.span, format!("the file `{}` of `$EMBED` is not found", f.shown)))
-        .collect();
-    for (span, msg) in missing {
-        fe.diagnostics.error(span, msg);
+pub fn check_embedded_files(program: &Program, diagnostics: &mut Diagnostics, main_path: &Path) {
+    for f in &program.settings.embedded {
+        if !embedded_path(f, main_path).is_file() {
+            diagnostics.error(f.span, format!("the file `{}` of `$EMBED` is not found", f.shown));
+        }
     }
 }
 

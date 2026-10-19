@@ -1,0 +1,11 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 149
+expression: snap
+---
+const_rulings_errors.bas:8:11: error: this number is beyond `_UNSIGNED _INTEGER64`'s range
+const_rulings_errors.bas:9:11: error: this `CONST` overflows: its value is beyond `_FLOAT`'s range
+const_rulings_errors.bas:10:11: error: this `CONST` overflows: its value is beyond `_FLOAT`'s range
+const_rulings_errors.bas:11:11: error: `_COTH(0)` in a `CONST` is a division by zero
+const_rulings_errors.bas:12:11: error: division by zero
+const_rulings_errors.bas:13:12: error: this `CONST` overflows: its value is beyond `_FLOAT`'s range

@@ -130,7 +130,14 @@ import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from clone_lock import BUSY_EXIT, CLONE_BUSY, lock_clone, lock_folder
+from clone_lock import (
+    BUSY_EXIT,
+    CLONE_BUSY,
+    clone_lock_kind,
+    lock_clone,
+    lock_folder,
+    name_objects_lock,
+)
 from compiler_copy import header, run_copy
 
 COMPILE_TIMEOUT = 900  # seconds; first compiles build libqb for each feature set
@@ -1799,13 +1806,21 @@ def main() -> int:
             )
             return BUSY_EXIT
         results_locks.append(lock)
-    # The clone's lock (clone_lock.py): a run of qb64pe has it alone, as qb64pe builds in the clone's
-    # internal/temp and internal/c; runs of qb64rust share it, and their builds take the objects'
-    # lock around each make. Only a qb64pe run with --jobs starts without it: it compiles in its
-    # copies and takes the lock when it comes back to the clone.
+    # The clone's lock (clone_lock.py, clone_lock_kind): a run of qb64pe has it alone, as qb64pe
+    # builds in the clone's internal/temp and internal/c. A run of qb64rust builds against the copy of
+    # libqb and reads only the clone's toolchain, so it takes the lock only to run programs in the
+    # clone's own test folders, shared; its builds take the objects' lock around each make. Only a
+    # qb64pe run with --jobs starts without it: it compiles in its copies and takes the lock when it
+    # comes back to the clone.
     clone_lock = None
-    if selected and not (is_old_compiler(args.qb64) and args.jobs > 1):
-        clone_lock = lock_clone(args.wait, shared=not is_old_compiler(args.qb64))
+    if not is_old_compiler(args.qb64):
+        name_objects_lock()
+    in_clone = any(
+        t.resolve().is_relative_to(qb_root.resolve()) for _, _, ts in selected for t in ts
+    )
+    kind = clone_lock_kind(is_old_compiler(args.qb64), args.jobs, in_clone) if selected else None
+    if kind is not None:
+        clone_lock = lock_clone(args.wait, shared=kind == "shared")
         if clone_lock is None:
             print(CLONE_BUSY, file=sys.stderr)
             return BUSY_EXIT

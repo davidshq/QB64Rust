@@ -18,7 +18,7 @@ allow = [
     "Unicode-3.0",
 ]
 confidence-threshold = 0.9
-# The workspace's own crates (`publish = false`) state no licence.
+# The workspace's own crates (`publish = false`, MIT since 2026-10-19) are not checked against the list.
 private = { ignore = true }
 
 [bans]

@@ -284,9 +284,28 @@ fn ucrt_within(x: f64, ulps: f64, f: impl Fn(&BigFloat, usize, &mut Consts) -> B
     let lo = r.sub(&b, P2 + 64, RoundingMode::ToEven);
     let hi = r.add(&b, P2 + 64, RoundingMode::ToEven);
     // The `double` values inside the interval, and the nearest to the reference.
-    let (below, above) = (f64_down(&r), f64_up(&r));
-    let dist = |d: f64| F80::from_f64(d).to_big().sub(&r, P2 + 64, RoundingMode::ToEven).abs();
-    let mid = match dist(below).partial_cmp(&dist(above)) {
+    Ok(D {
+        lo: f64_up(&lo),
+        hi: f64_down(&hi),
+        mid: f64_nearest(&r),
+    })
+}
+
+/// The `double` nearest to `r` (half to even). Beyond `f64::MAX` an infinity stands for 2^1024, as IEEE rounding
+/// takes it, so a value from `MAX` plus half its last place up is the infinity.
+fn f64_nearest(r: &BigFloat) -> f64 {
+    let (below, above) = (f64_down(r), f64_up(r));
+    let dist = |d: f64| {
+        let b = if d.is_infinite() {
+            let half = BigFloat::from_f64(2f64.powi(512), 64);
+            let p = half.mul(&half, 64, RoundingMode::ToEven);
+            if d < 0.0 { p.neg() } else { p }
+        } else {
+            F80::from_f64(d).to_big()
+        };
+        b.sub(r, P2 + 64, RoundingMode::ToEven).abs()
+    };
+    match dist(below).partial_cmp(&dist(above)) {
         Some(Ordering::Less) => below,
         Some(Ordering::Greater) => above,
         _ => {
@@ -296,12 +315,7 @@ fn ucrt_within(x: f64, ulps: f64, f: impl Fn(&BigFloat, usize, &mut Consts) -> B
                 above
             }
         }
-    };
-    Ok(D {
-        lo: f64_up(&lo),
-        hi: f64_down(&hi),
-        mid,
-    })
+    }
 }
 
 /// The error the old compiler stops with when its own run time raises one inside `qb64pe.exe` ("UNEXPECTED
@@ -449,17 +463,18 @@ pub fn function(name: &str, x: F80) -> R<Range> {
             let den = den.divisor(name, x)?;
             Ok(D::exact(2.0).corners(den, |p, q| p / q).into_range())
         }
-        // `2 * std::exp(num) - 1` (libqb's, not the hyperbolic cotangent; measured, `v45_x32`: `_COTH(0)` is 1).
+        // The hyperbolic cotangent of the `double` argument, as the `double` libqb's `func_coth` returns, correctly
+        // rounded (`DIVERGENCES.md` D-031: the old compiler's is `2 * std::exp(num) - 1`, measured, `v45_x32`). At 0 an
+        // error, as libqb's error 5.
         "_COTH" => {
             let d = x.to_f64();
-            if d > 44.014845 {
-                return Err(inside(name, x));
+            if d == 0.0 {
+                return error("`_COTH(0)` in a `CONST` is a division by zero");
             }
-            let e = ucrt_within(d, UCRT_EXP_ULPS, |a, p, cc| a.exp(p, rm, cc))?;
-            let v = D::exact(2.0)
-                .corners(e, |p, q| p * q)
-                .corners(D::exact(1.0), |p, q| p - q);
-            Ok(v.divisor(name, x)?.into_range())
+            let xb = F80::from_f64(d).to_big();
+            let one = BigFloat::from_u64(1, 64);
+            let r = reference(|p, cc| one.div(&xb.tanh(p + 64, rm, cc), p, rm))?;
+            Ok(Range::exact(F80::from_f64(f64_nearest(&r))))
         }
         "_SEC" | "_CSC" | "_COT" => {
             let d = x.to_f64();
@@ -596,13 +611,45 @@ mod tests {
             ("_ASIN", ".2", "0.2013579207903307915"),
             ("_ARCSEC", "1.2", "0.5856855434571508479"),
             ("_SECH", ".2", "0.9803279976447253352"),
-            ("_COTH", ".2", "1.442805516320339709"),
             ("_SEC", "2", "-2.402997961722380893"),
             ("TAN", "1.5", "14.10141994717171939"),
         ];
         for (name, arg, want) in cases {
             let r = function(name, decimal(arg)).unwrap();
             assert!(within(r, want), "{name}({arg}): {:?} does not hold {want}", g19(r));
+        }
+    }
+
+    /// `_COTH` is the hyperbolic cotangent as a correctly rounded `double` (D-031; the values are `mpmath`'s at 300
+    /// bits, rounded to `double`), with no upper limit, and an error at 0.
+    #[test]
+    fn coth_is_the_hyperbolic_cotangent() {
+        for (arg, want) in [
+            (".2", 5.066_489_563_439_473),
+            ("1", 1.313_035_285_499_331_2),
+            ("-.5", -2.163_953_413_738_653),
+            ("45", 1.0),
+        ] {
+            let x = if let Some(a) = arg.strip_prefix('-') {
+                -decimal(a)
+            } else {
+                decimal(arg)
+            };
+            assert_eq!(
+                function("_COTH", x).unwrap().one(),
+                Some(F80::from_f64(want)),
+                "_COTH({arg})"
+            );
+        }
+        assert_eq!(
+            function("_COTH", decimal(".2")).unwrap().one().unwrap().to_g19(),
+            "5.066489563439472654"
+        );
+        assert!(matches!(function("_COTH", F80::ZERO), Err(Problem::Error(_))));
+        // Beyond `double` range the result rounds to the infinity, as `1 / std::tanh` gives it (found in review).
+        for (x, want) in [(1e-310, f64::INFINITY), (-1e-310, f64::NEG_INFINITY), (1e-308, 1e308)] {
+            let got = function("_COTH", F80::from_f64(x)).unwrap().one().unwrap().to_f64();
+            assert!(got == want || (got / want - 1.0).abs() < 1e-15, "_COTH({x}): {got}");
         }
     }
 
@@ -696,7 +743,8 @@ mod tests {
     #[test]
     fn the_sample_lies_in_its_ranges() {
         let mut bad = Vec::new();
-        for (name, x, _, got, range) in sample() {
+        // `_COTH` is the hyperbolic cotangent here, not the old compiler's (D-031).
+        for (name, x, _, got, range) in sample().into_iter().filter(|s| s.0 != "_COTH") {
             let ok = match range {
                 Ok(r) => {
                     r.lo.partial_cmp(got) != Some(Ordering::Greater) && r.hi.partial_cmp(got) != Some(Ordering::Less)

@@ -77,7 +77,7 @@ Kept by hand (recorded 2026-10-03; `slice` as each change added its programs):
 | `.noprompt` sidecars | 0 | 0 | 2 (`s12_error_in_print`, `s19_header_errors`: `continue`) |
 | `.stdin` sidecars | 0 | 0 | 3 (`s42_console_input`, `s65_console_input`, `s117_dyn_member_kinds`) |
 | `.exitcode` sidecars | 0 | 0 | 2 (`s110_system_code` 3, `s111_end_code` 4294967295) |
-| `.divergences` sidecars (the rows of `DIVERGENCES.md` a program may take, for the run-time trace) | 0 | 0 | 5 (`s22_store_rules`, `s61_member_arrays`, `s114_dyn_members`, `s117_dyn_member_kinds`: D-004; `s118_dyn_member_files`: D-019) |
+| `.divergences` sidecars (the rows of `DIVERGENCES.md` a program may take, for the run-time trace) | 0 | 0 | 6 (`s22_store_rules`, `s61_member_arrays`, `s114_dyn_members`, `s117_dyn_member_kinds`: D-004; `s118_dyn_member_files`: D-019; `s44_more_functions`: D-031) |
 
 The 20 compile errors are programs written against QB64Fresh's idea of the language. They still test that a
 compiler rejects them, but not what their names say:

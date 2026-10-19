@@ -8,6 +8,8 @@ export class CompilerStatus implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
     private discovery: Discovery = { found: false, reason: "not searched yet" };
     private busy: string | undefined;
+    /** Which compiler builds now (design D5 of extension-vsix); set once the language server exists. */
+    builder: (() => "qb64rust" | "qb64pe") | undefined;
 
     constructor() {
         this.item.name = "QB64 compiler";
@@ -16,10 +18,17 @@ export class CompilerStatus implements vscode.Disposable {
             vscode.workspace.onDidChangeConfiguration((e) => {
                 if (config.affectsCompilerPath(e)) {
                     this.refresh();
+                } else if (config.affectsBuildWith(e)) {
+                    this.render();
                 }
             }),
         );
         this.refresh();
+    }
+
+    /** The detail line's "builds with …", shown again after the `qb64rust` binary was looked for. */
+    update(): void {
+        this.render();
     }
 
     /** Runs discovery again (on activation and whenever `qb64rust.compilerPath` changes). */
@@ -62,6 +71,11 @@ export class CompilerStatus implements vscode.Disposable {
         return this.item.text;
     }
 
+    /** The detail shown; exposed for tests. */
+    get detail(): string | undefined {
+        return this.item.detail;
+    }
+
     /** The severity shown; exposed for tests. */
     get severity(): vscode.LanguageStatusSeverity {
         return this.item.severity;
@@ -71,7 +85,7 @@ export class CompilerStatus implements vscode.Disposable {
         const d = this.discovery;
         if (d.found) {
             this.item.text = this.busy ? `qb64pe: ${this.busy}` : "qb64pe";
-            this.item.detail = `${d.path} (${d.source})`;
+            this.item.detail = `${d.path} (${d.source}) · builds with ${this.builder?.() ?? "qb64pe"}`;
             this.item.severity = vscode.LanguageStatusSeverity.Information;
             this.item.busy = this.busy !== undefined;
             this.item.command = undefined;

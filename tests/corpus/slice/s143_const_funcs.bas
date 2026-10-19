@@ -2,7 +2,9 @@ $CONSOLE:ONLY
 ' The functions of the CONST evaluator (m3-constant-evaluation; verification\v45_b_funcs, v45_b_funcs_plain,
 ' v45_b_colors32, v45_b_colors_m*): each function as a _FLOAT constant, printed with _TOSTR$'s 19 digits, some
 ' as plain constants, the 32-bit colour functions and the palette colour functions of every screen mode. Not
-' here: COS(1000), SIN(100) and 3 ^ 41, whose values are DIVERGENCES.md D-026's (crates\driver\tests\consts_v45.rs).
+' here: COS(1000), SIN(100) and 3 ^ 41, whose values are DIVERGENCES.md D-026's (crates\driver\tests\consts_v45.rs),
+' and _COTH(.2) and 2 ^ -1, fixed by D-031 and D-028 (const-rulings; the same test, and the CLI test
+' const_rulings_run).
 ' Built by the old compiler on another machine, the last digits of the others may differ too (D-026).
 CONST f01## = _PI
 CONST f02## = _PI(2)
@@ -19,7 +21,6 @@ CONST f12## = _ARCCSC(1.2)
 CONST f13## = _SECH(.2)
 CONST f14## = _SECH(-3)
 CONST f15## = _CSCH(.2)
-CONST f16## = _COTH(.2)
 CONST f17## = COS(.2)
 CONST f18## = COS(1)
 CONST f19## = COS(10)
@@ -72,7 +73,6 @@ CONST f65## = -8 ROOT 3
 CONST f66## = 2 ^ 0.3
 CONST f67## = 10 ^ 0.5
 CONST f68## = 1.5 ^ 2
-CONST f69## = 2 ^ -1
 CONST f70## = 2.5 ^ 3
 CONST f71## = SIN(1##)
 CONST f72## = EXP(1.0##)
@@ -91,7 +91,6 @@ PRINT "_ARCCSC(1.2): "; _TOSTR$(f12##)
 PRINT "_SECH(.2): "; _TOSTR$(f13##)
 PRINT "_SECH(-3): "; _TOSTR$(f14##)
 PRINT "_CSCH(.2): "; _TOSTR$(f15##)
-PRINT "_COTH(.2): "; _TOSTR$(f16##)
 PRINT "COS(.2): "; _TOSTR$(f17##)
 PRINT "COS(1): "; _TOSTR$(f18##)
 PRINT "COS(10): "; _TOSTR$(f19##)
@@ -144,7 +143,6 @@ PRINT "-8 ROOT 3: "; _TOSTR$(f65##)
 PRINT "2 ^ 0.3: "; _TOSTR$(f66##)
 PRINT "10 ^ 0.5: "; _TOSTR$(f67##)
 PRINT "1.5 ^ 2: "; _TOSTR$(f68##)
-PRINT "2 ^ -1: "; _TOSTR$(f69##)
 PRINT "2.5 ^ 3: "; _TOSTR$(f70##)
 PRINT "SIN(1##): "; _TOSTR$(f71##)
 PRINT "EXP(1.0##): "; _TOSTR$(f72##)

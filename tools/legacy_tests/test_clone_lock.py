@@ -62,8 +62,24 @@ class Lock(unittest.TestCase):
         self.assertIsNone(clone_lock.lock_file(folder / "in-use.lock", shared=True))
 
 
+class CloneLockKind(unittest.TestCase):
+    """Which runs take the clone's lock, and how (design D5 of libqb-copy)."""
+
+    def test_qb64pe_alone(self):
+        self.assertEqual(clone_lock.clone_lock_kind(True, 1, False), "exclusive")
+        self.assertEqual(clone_lock.clone_lock_kind(True, 1, True), "exclusive")
+
+    def test_qb64pe_with_jobs_takes_it_later(self):
+        self.assertIsNone(clone_lock.clone_lock_kind(True, 8, True))
+
+    def test_qb64rust_only_for_programs_in_the_clone(self):
+        self.assertIsNone(clone_lock.clone_lock_kind(False, 1, False))
+        self.assertIsNone(clone_lock.clone_lock_kind(False, 8, False))
+        self.assertEqual(clone_lock.clone_lock_kind(False, 8, True), "shared")
+
+
 class CloneLock(unittest.TestCase):
-    """lock_clone names the objects' lock for the compiles of a shared run, not of an exclusive one."""
+    """name_objects_lock names the objects' lock for a run's compiles; lock_clone names nothing."""
 
     def setUp(self):
         d = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
@@ -76,14 +92,14 @@ class CloneLock(unittest.TestCase):
         self.addCleanup(env.stop)
         os.environ.pop(clone_lock.OBJECTS_LOCK_ENV, None)
 
-    def test_shared_names_the_objects_lock(self):
-        fh = clone_lock.lock_clone(shared=True)
-        self.addCleanup(fh.close)
+    def test_name_objects_lock(self):
+        clone_lock.name_objects_lock()
         self.assertEqual(os.environ[clone_lock.OBJECTS_LOCK_ENV], str(clone_lock.OBJECTS_LOCK))
 
-    def test_exclusive_names_nothing(self):
-        fh = clone_lock.lock_clone()
-        self.addCleanup(fh.close)
+    def test_lock_clone_names_nothing(self):
+        for shared in (True, False):
+            fh = clone_lock.lock_clone(shared=shared)
+            fh.close()
         self.assertNotIn(clone_lock.OBJECTS_LOCK_ENV, os.environ)
 
     def test_a_qb64pe_run_waits_for_a_qb64rust_run(self):

@@ -1,0 +1,71 @@
+# Spec Delta
+
+## Purpose
+
+Describes the released extension package: what the Windows `.vsix` carries (the `qb64rust` binary, the copy of
+libqb and their licences), how the extension finds and prepares what it carries, and how a release is made.
+
+## ADDED Requirements
+
+### Requirement: Platform package contents
+The released `.vsix` SHALL target `win32-x64` and SHALL hold the `qb64rust` binary built in release mode, the copy
+of libqb (its `Makefile`, `internal\c` without built objects, `licenses` and `COPYING.txt`) with its `libqb.id`,
+and a notice of the licences of the Rust crates linked into the binary. It SHALL NOT hold the extension's TypeScript sources, its
+tests or fixtures, or a C++ toolchain.
+
+#### Scenario: Listing the package
+- **WHEN** the files of the released `.vsix` are listed
+- **THEN** they include the `qb64rust` executable, the copy's `internal\c\qbx.cpp` and `COPYING.txt`, `libqb.id`,
+  and the crate licence notice, and include no `.ts` file, no `.o` file and no `c_compiler` folder
+
+### Requirement: Bundled binary lookup
+The extension SHALL find the `qb64rust` binary in this order: the setting `qb64rust.path` when it is set, else the
+binary carried in the extension, else `qb64rust` on `PATH`. The language server and a build SHALL use the binary
+found this way.
+
+#### Scenario: Nothing set
+- **WHEN** the extension is installed from the `.vsix`, `qb64rust.path` is empty and no `qb64rust` is on `PATH`
+- **THEN** the language server starts from the binary carried in the extension, and its status says so
+
+#### Scenario: Setting wins over the bundled binary
+- **WHEN** `qb64rust.path` names another existing `qb64rust` binary
+- **THEN** that binary runs the language server and builds, not the bundled one
+
+#### Scenario: Development install without a bundled binary
+- **WHEN** the extension runs from its source folder, which carries no binary, and `qb64rust` is on `PATH`
+- **THEN** the binary on `PATH` is used
+
+### Requirement: libqb objects outside the extension folder
+The extension SHALL NOT write into its own installation folder. Before the first build with `qb64rust`, it SHALL
+copy the carried copy of libqb into its global storage, in a folder named by the extension's version and the
+package's `bundle\libqb.id` (a hash of libqb's files written when the package is made, so that a package of the
+same version with other files of libqb does not reuse an earlier copy), and SHALL
+pass that folder to the compiler, so libqb's objects are built there. Copies left by other versions SHALL be
+removed when the extension starts.
+
+#### Scenario: First build after installing
+- **WHEN** the user builds a program for the first time after installing version 0.2.0
+- **THEN** a copy of libqb exists in the extension's global storage under a folder named for 0.2.0, the build's
+  libqb objects are written there, and no file of the installation folder has changed
+
+#### Scenario: Update removes the old copy
+- **WHEN** version 0.2.1 starts and a copy for 0.2.0 exists in global storage
+- **THEN** the 0.2.0 copy is removed
+
+#### Scenario: Copy interrupted
+- **WHEN** the copy into global storage was interrupted before it finished
+- **THEN** the next build makes the copy again instead of using the partial one
+
+### Requirement: Release from a tag
+Pushing a tag `vscode-v<version>`, where `<version>` equals the version in the extension's `package.json`, SHALL
+build the binary, package the `win32-x64` `.vsix`, check its contents against "Platform package contents", and
+attach it to a GitHub release of that tag. A tag whose version differs from `package.json` SHALL fail the release
+without publishing anything.
+
+#### Scenario: Matching tag
+- **WHEN** the tag `vscode-v0.2.0` is pushed and `package.json` says `0.2.0`
+- **THEN** a release `vscode-v0.2.0` exists with `qb64rust-win32-x64-0.2.0.vsix` attached
+
+#### Scenario: Mismatched tag
+- **WHEN** the tag `vscode-v0.2.1` is pushed and `package.json` says `0.2.0`
+- **THEN** the workflow fails before packaging and no release is created

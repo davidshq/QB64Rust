@@ -1,0 +1,3 @@
+<FIXTURES>\include_error\lib.bi:3:5: error: cannot store a number in a string variable
+<FIXTURES>\include_error\lib.bi:3:5: note: QB64pe: Illegal string-number conversion
+1 error

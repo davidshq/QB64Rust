@@ -1,0 +1,25 @@
+# _COTH(x) is the hyperbolic cotangent (DIVERGENCES.md D-031, UPSTREAM.md "_COTH(x) is not the hyperbolic
+# cotangent"). QB64pe's func_coth returns 2 * exp(x) - 1 and raises error 5 above 44.014845. Here: 1 / tanh(x),
+# which does not overflow for any argument, with error 5 at 0, as func_csch raises it for a division by zero.
+file: internal/c/libqb/include/extended_math.h
+--- old
+static inline double func_coth(double num) {
+    if (num > 44.014845) {
+        error(5);
+        return 0;
+    }
+    if (2 * std::exp(num) - 1 == 0) {
+        error(5);
+        return 0;
+    }
+    return 2 * std::exp(num) - 1;
+}
+--- new
+static inline double func_coth(double num) {
+    if (num == 0) {
+        error(5);
+        return 0;
+    }
+    return 1 / std::tanh(num);
+}
+--- end

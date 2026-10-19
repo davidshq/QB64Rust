@@ -2,7 +2,8 @@ $CONSOLE:ONLY
 ' The functions added by demand (spec language/builtin-functions "Supported functions"): _ACOS, _ASIN, _SINH,
 ' _COSH, _TANH, _COT, _CSC, _SEC, _D2R, _R2D, _CEIL with an argument of every kind (a SINGLE is computed as a
 ' float by the std:: functions, an integer as a double), in arithmetic, at the values where _COT, _CSC and _SEC
-' raise error 5, at large values; _STRCMP and _STRICMP.
+' raise error 5, at large values; _STRCMP and _STRICMP. _COTH only as above 1: the old compiler's is 2 * EXP(x) - 1,
+' the hyperbolic cotangent here (DIVERGENCES.md D-031; its values in the CLI test const_rulings_run).
 ON ERROR GOTO h
 DIM i AS INTEGER, l AS LONG, q AS _INTEGER64, s AS SINGLE, d AS DOUBLE, f AS _FLOAT, a AS STRING, b AS STRING
 i = 1: l = 1: q = 1: s = .5: d = .5: f = .5
@@ -27,6 +28,7 @@ l = _R2D(1): PRINT "_R2D(1) in a LONG:"; l
 PRINT "_COT(0)": d = _COT(0): PRINT d
 PRINT "_CSC(0)": d = _CSC(0): PRINT d
 PRINT "_SEC(0)": d = _SEC(0): PRINT d
+PRINT "_COTH above 1:"; _COTH(s) > 1; _COTH(d + .5) > 1; _COTH(i + 1) > 1
 PRINT "_SINH(1000)"; _SINH(1000); "_COSH(1000)"; _COSH(1000); "_TANH(1000)"; _TANH(1000)
 PRINT "_CEIL of large values:"; _CEIL(1E+20); _CEIL(123456789.5#); _CEIL(-.5)
 PRINT "nested:"; _R2D(_ACOS(0)); _CEIL(_D2R(180)); _ASIN(_SINH(0))

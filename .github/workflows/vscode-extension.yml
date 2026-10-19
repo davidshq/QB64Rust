@@ -1,6 +1,6 @@
 # Tests the VS Code extension in vscode\ on Windows: lint, unit, grammar, and the integration suite on VS Code stable
 # and on the oldest supported version (engines.vscode), against the QB64pe release the extension is tested with and
-# with the language server from this repository's qb64rust (built first, release).
+# with the language server from this repository's qb64rust (built first, release); packages the win32-x64 .vsix.
 name: VS Code extension
 
 on:
@@ -8,6 +8,7 @@ on:
     paths:
       - "vscode/**"
       - "crates/**"
+      - "libqb/**"
       - "Cargo.toml"
       - "Cargo.lock"
       - "rust-toolchain.toml"
@@ -16,6 +17,7 @@ on:
     paths:
       - "vscode/**"
       - "crates/**"
+      - "libqb/**"
       - "Cargo.toml"
       - "Cargo.lock"
       - "rust-toolchain.toml"
@@ -89,7 +91,11 @@ jobs:
           QB64RUST_TEST_QB64PE: ${{ runner.temp }}\qb64pe\qb64pe.exe
           QB64RUST_TEST_QB64RUST: ${{ github.workspace }}\target\release\qb64rust.exe
 
+      # The platform package (change extension-vsix): stages the binary built above, libqb and the crates' notice,
+      # then holds the package to spec editor/packaging.
+      - run: python -m unittest discover -s scripts -p "test_*.py"
       - run: npm run package
+      - run: python scripts/check_vsix.py qb64rust-win32-x64-$((Get-Content package.json | ConvertFrom-Json).version).vsix
 
       - uses: actions/upload-artifact@v7
         with:

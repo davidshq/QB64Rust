@@ -1,7 +1,9 @@
 # Verification programs
 
 Small programs that measure what the old compiler (`qb64pe.exe` at the reference clone's commit) does, each
-recorded with its output. The facts they establish are written in `study\00` §5 (one home per fact); this file
+recorded with its output. The facts the families up to `v45` establish are written in `study\00` §5, which takes no
+new facts since 2026-10-18 (`CLAUDE.md` working rule 11): a later family's facts are its recorded output, and its
+line here says what it shows. This file
 is the catalogue of the families, moved here from `CLAUDE.md`'s layout table on 2026-10-16 (`study\archive\30` §2).
 A new family, or new numbers in one, gets a line here, not in `CLAUDE.md`.
 

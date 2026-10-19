@@ -7,6 +7,13 @@ __pycache__/
 # qb64rust's build folders, next to the executable (`<exe>.qb64rust/`; `-z` and `--keep-build` leave them)
 *.qb64rust/
 
+# The libqb objects builds write in the copy of libqb (design D1 of libqb-copy)
+/libqb/**/*.o
+/libqb/**/*.a
+/libqb/**/*.tmp
+# What those objects were built with (design D2 of libqb-object-flags)
+/libqb/objects.stamp
+
 # Compiled verification programs
 /verification/*.exe
 # Libraries built by verification/v37_lib/build_libs.py
@@ -22,6 +29,9 @@ __pycache__/
 /vscode/out/
 /vscode/.vscode-test/
 /vscode/*.vsix
+# What the platform .vsix carries, written by vscode/scripts/stage_bundle.py
+/vscode/bundle/
+/vscode/LICENSE
 /vscode/*.tsbuildinfo
 /vscode/test-fixtures/**/*.exe
 

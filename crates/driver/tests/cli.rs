@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::time::Duration;
 
-use support::{COMPILER_LIMIT, PROGRAM_LIMIT, lock_clone, run, unattended};
+use support::{COMPILER_LIMIT, PROGRAM_LIMIT, run, unattended};
 
 const SLICE_PROGRAM: &str = "$CONSOLE:ONLY\nx = 1 / 4\nPRINT \"x=\"; x; INSTR(3, \"hello\", \"l\")\nEND\n";
 
@@ -51,9 +51,9 @@ fn qb64rust(dir: &Path, args: &[&str]) -> Output {
     run(compiler().current_dir(dir).args(args), None, COMPILER_LIMIT, "compiler")
 }
 
-/// A run of the compiler that builds: it runs `make` in the reference clone, so it takes the clone's lock first.
+/// A run of the compiler that builds: `make` in the copy of libqb with the clone's toolchain. No lock of the clone, which
+/// it only reads (design D5 of `libqb-copy`); `compiler` names the objects' lock.
 fn qb64rust_build(dir: &Path, args: &[&str]) -> Output {
-    lock_clone();
     qb64rust(dir, args)
 }
 
@@ -75,6 +75,40 @@ fn runners_compile_line() {
         !d.join("prog.exe.qb64rust").exists(),
         "build folder deleted after success"
     );
+}
+
+/// A build changes no tracked file of the reference clone or of the copy of libqb, and nothing git sees in the copy:
+/// the libqb objects it may build there are git-ignored (spec `compiler/pipeline`, scenarios "Reference clone
+/// unchanged" and "The copy unchanged"). Built with `make`, not from the build cache.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn a_build_changes_nothing_git_sees() {
+    let status = |dir: &Path, path: &str| {
+        let o = Command::new("git")
+            .arg("-C")
+            .arg(dir)
+            .args(["status", "--porcelain", "--untracked-files=all", "--", path])
+            .output()
+            .unwrap();
+        assert!(o.status.success());
+        o.stdout
+    };
+    let clone = qb64rust_driver::build::find_root(None).expect("the QB64pe reference clone");
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let before = (status(&clone, "."), status(&repo, "libqb"));
+    let d = scratch("unchanged");
+    std::fs::write(d.join("prog.bas"), SLICE_PROGRAM).unwrap();
+    let o = run(
+        compiler()
+            .current_dir(&d)
+            .env_remove("QB64RUST_BUILD_CACHE")
+            .args(["-q", "prog.bas", "-o", "prog.exe"]),
+        None,
+        COMPILER_LIMIT,
+        "compiler",
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(before, (status(&clone, "."), status(&repo, "libqb")));
 }
 
 #[test]
@@ -155,7 +189,6 @@ fn license_file() {
         if cached {
             cmd.env("QB64RUST_BUILD_CACHE", &cache);
         }
-        lock_clone();
         let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
         assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
         assert!(d.join("p.exe").is_file());
@@ -310,6 +343,33 @@ fn no_clone_found() {
         "{out}"
     );
     assert!(!d.join("p.exe").exists());
+}
+
+/// A build without the copy of libqb fails naming its option and variable; `-z` needs no copy (spec `compiler/cli`,
+/// scenario "No copy of libqb found"). The clone is a stand-in folder: this test builds nothing.
+#[test]
+fn no_libqb_copy_found() {
+    let d = scratch("nolibqb");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    std::fs::create_dir_all(d.join("clone/internal/c")).unwrap();
+    std::fs::write(d.join("clone/internal/c/qbx.cpp"), "").unwrap();
+    std::fs::create_dir_all(d.join("empty")).unwrap();
+    let compile = |extra: &[&str]| {
+        let mut cmd = compiler();
+        cmd.current_dir(&d)
+            .args(["-q", "--qb64pe-root", "clone", "--libqb-root", "empty"])
+            .args(extra)
+            .arg("p.bas");
+        run(&mut cmd, None, COMPILER_LIMIT, "compiler")
+    };
+    let o = compile(&[]);
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    assert!(
+        out.contains("--libqb-root") && out.contains("QB64RUST_LIBQB_ROOT"),
+        "{out}"
+    );
+    assert_eq!(compile(&["-z"]).status.code(), Some(0));
 }
 
 /// `RETURN label` with no `GOSUB` pending raises error 3 and leaves the `GOSUB` stack intact, so a later `GOSUB`
@@ -1090,6 +1150,24 @@ fn const_power_beyond_integer64() {
     assert_eq!(build_and_run(&d, program), " 1.180591620717411D+21 \n");
 }
 
+/// The `CONST` rulings of 2026-10-18, built and run: an unsuffixed literal beyond `_INTEGER64` and the limits
+/// (`DIVERGENCES.md` D-027; the old compiler prints 9223372036854775807 and -9223372036854775807), `2 ^ -1` (D-028;
+/// 0 there), and `_COTH` at run time from the edited copy of libqb (D-031; `2 * EXP(x) - 1` and error 5 above
+/// 44.014845 there), error 5 at 0.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn const_rulings_run() {
+    let d = scratch("const-rulings");
+    let program = "$CONSOLE:ONLY\nCONST plain = 18446744073709551615, half = 2 ^ -1\n\
+                   PRINT plain; half; _UINTEGER64_MAX; _INTEGER64_MIN\n\
+                   x# = .2: y# = -.5: z# = 45: PRINT CLNG(_COTH(x#) * 1000); CLNG(_COTH(y#) * 1000); _COTH(z#)\n\
+                   ON ERROR GOTO h\nPRINT _COTH(0)\nSYSTEM\nh: PRINT \"error\"; ERR: RESUME NEXT\n";
+    assert_eq!(
+        build_and_run_tracing(&d, program, "D-031\n"),
+        " 18446744073709551615  .5  18446744073709551615 -9223372036854775808 \n 5066 -2164  1 \nerror 5 \n"
+    );
+}
+
 /// A label and a `CONST` on one line (`DIVERGENCES.md` D-008: the old compiler fails to compile it).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1194,7 +1272,6 @@ fn debug_links_the_sockets_part() {
     let mut cmd = compiler();
     cmd.current_dir(&d)
         .args(["-f:GenerateLicenseFile=true", "-q", "-m", "-x", "p.bas", "-o", "p.exe"]);
-    lock_clone();
     let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
     assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
     let license = std::fs::read(d.join("p.exe.license.txt")).unwrap();

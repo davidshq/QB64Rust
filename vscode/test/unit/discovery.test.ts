@@ -58,4 +58,27 @@ describe("findCompiler", () => {
         const m = findCompiler({ setting: "C:\\nope", envPath: "", platform: "win32", isFile: () => false }, QB64RUST);
         assert.match(m.found ? "" : m.reason, /^qb64rust\.path points to/);
     });
+
+    // Spec editor/packaging, "Bundled binary lookup".
+    const bundled = "C:\\ext\\bundle\\bin\\qb64rust.exe";
+
+    it("nothing set: the bundled binary, before PATH", () => {
+        const r = findCompiler({ setting: "", bundled, envPath: "C:\\p", platform: "win32", isFile: files(bundled, "C:\\p\\qb64rust.exe") }, QB64RUST);
+        assert.deepStrictEqual(r, { found: true, path: bundled, source: "bundle" });
+    });
+
+    it("setting wins over the bundled binary", () => {
+        const r = findCompiler({ setting: "C:\\mine\\qb64rust.exe", bundled, envPath: "", platform: "win32", isFile: files(bundled, "C:\\mine\\qb64rust.exe") }, QB64RUST);
+        assert.deepStrictEqual(r, { found: true, path: "C:\\mine\\qb64rust.exe", source: "setting" });
+    });
+
+    it("a setting that does not exist does not fall back to the bundled binary", () => {
+        const r = findCompiler({ setting: "C:\\nope.exe", bundled, envPath: "", platform: "win32", isFile: files(bundled) }, QB64RUST);
+        assert.strictEqual(r.found, false);
+    });
+
+    it("development install without a bundled binary: PATH", () => {
+        const r = findCompiler({ setting: "", bundled, envPath: "C:\\p", platform: "win32", isFile: files("C:\\p\\qb64rust.exe") }, QB64RUST);
+        assert.deepStrictEqual(r, { found: true, path: "C:\\p\\qb64rust.exe", source: "PATH" });
+    });
 });

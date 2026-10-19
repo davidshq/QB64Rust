@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-17 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
+Updated 2026-10-19 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -9,7 +9,7 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 | Kind of information | Home |
 |---|---|
 | What a change did, task by task, and what was found on the way | the change's `tasks.md` and `design.md` under `openspec\changes\` (archived ones in `archive\`), and `git log` |
-| A measured fact about the old compiler | `study\00` §5 (one home per fact); the measurement programs: `verification\README.md` |
+| A measured fact about the old compiler | the family's recorded output and its line in `verification\README.md`; the families up to `v45` also in `study\00` §5 (closed to new facts, `CLAUDE.md` working rule 11) |
 | A decision | `DECISIONS.md`; a decided difference from QB64pe: `DIVERGENCES.md` |
 | What the compiler supports | the merged specs under `openspec\specs\` (an index by area: `crates\README.md`, "What the compiler supports"); how a change built it: its `design.md` |
 | How to build and test it | `crates\README.md`; per test set: `tests\*\README.md` |
@@ -18,26 +18,25 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 
 ## Where we are
 
-M0, M1 and M2 are complete (`ROADMAP.md`). **M3 is under way**: twenty-two of its steps are built and archived
+M0, M1, M2 and M3 are complete (`ROADMAP.md`; M3 declared done at the merge of pull request 9, user, 2026-10-18,
+tenth review `study\35` §3 item 1; the areas it left are M4's). Twenty-two M3 steps are built and archived
 (table below), the last `m3-constant-evaluation` (`4f647a9`); `test-parallel-runs` and `test-while-building` (the test
 cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` and `5d3730f`) are archived too.
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
 Civil War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same
-23 screens as the old compiler's build. Upstream is at 356 of 399. `main` is at the merge of `m3-newer` (pull
-request 8, 2026-10-17), which holds every change up to `m3-network-embed` and `test-while-building`.
+23 screens as the old compiler's build. Upstream is at 356 of 399. `main` is at the merge of `m3-newest` (pull
+request 9, `61ae7be`, 2026-10-18), which holds every change up to `m3-constant-evaluation`.
 
 ## Waiting on the user
 
-Oldest first. Each line names where the details are. The list of 2026-10-16 was answered item by item that day
-(`DECISIONS.md` 2026-10-16); a question is never accepted by default, so one left open is put again at each
-change's close. Separate from this list and standing: `SOMEDAY.md`'s "QB64pe behaviours to review", the
-questionable behaviours each change kept QB64pe's way.
+Oldest first. Each line names where the details are. A question is never accepted by default; one left open is
+put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64pe behaviours to review", the
+questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
+working rule 11).
 
-1. **`m3-constant-evaluation`'s kept behaviours** (built QB64pe's way; `SOMEDAY.md`'s "QB64pe behaviours to
-   review", each marked `m3-constant-evaluation`): the clamped limits (`_INTEGER64_MIN` is
-   -9223372036854775807, `_UINTEGER64_MAX` and `_UOFFSET_MAX` 9223372036854775807) and the clamp of an unsuffixed
-   literal or a plain-digit float beyond `_INTEGER64`; `2 ^ -1` being 0 in a `CONST`; a value beyond `_FLOAT`
-   range being 0; a `CONST` above `$COLOR` that names a colour being an error; `_COTH(x)` being `2 * EXP(x) - 1`.
+- **The first release of the extension** (`extension-vsix`, `DECISIONS.md` 2026-10-19): after the merge into
+  `main`, push the tag `vscode-v0.2.0`; `.github\workflows\release-vsix.yml` then attaches
+  `qb64rust-win32-x64-0.2.0.vsix` to a GitHub release (`vscode\DEVELOPMENT.md`, "Package").
 
 **The `tier2` job on `m3`** (`study\archive\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -49,10 +48,19 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-The work goes to `main` every two or three changes; one waits now (`m3-constant-evaluation`). The
-next M3 step is the user's to choose: the upstream report's first lines are `_DEVICES`, the `$EXEICON` relative
-names, blanks around `.` and `_CONTINUE` (2 programs each). The plain copy of `internal\c` waits until libqb must
-change.
+1. **Three changes to make the compiler usable** (`ROADMAP.md`, "After M3"), all built: the plain copy of
+   `internal\c` (`libqb-copy`, archived, `89ec865`); the extension's diagnostics on save from the new compiler
+   (`extension-diagnostics`, archived, `32a4849`); the `.vsix` (`extension-vsix`, archived, `b3666e9`: a
+   `win32-x64` package carrying `qb64rust.exe` and the copy of libqb, Build and Run through `qb64rust` under
+   `qb64rust.buildWith`, releases from a tag `vscode-v<version>`; the repository became MIT-licensed with it).
+2. **Built and closed, not archived:** `libqb-object-flags` (the driver's flags reach the program's own objects
+   only; a stamp rebuilds a copy's libqb objects built otherwise) and `const-rulings` (D-027 to D-031; the copy of
+   libqb's first edit, `_COTH`, a supported built-in now); `close.py --check` passes. Then their archive and the
+   merge of `newer-changes` into `main` with its full runs.
+   Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
+3. **The verification families as a suite of the new compiler** (`study\35` §3 item 2, approved).
+4. Then M4's parity work; the upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, blanks
+   around `.` and `_CONTINUE` (2 programs each).
 
 **M3's steps** (user, `DECISIONS.md` 2026-10-12, and one row per later step). Done, each archived under
 `openspec\changes\archive\` with its `tasks.md` and `design.md`; its measurements in `study\00` §5; what stayed
@@ -84,6 +92,16 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 22 | `2026-10-18-m3-constant-evaluation` | the `CONST` evaluator in full: `_FLOAT` in software, its lanes and typing by text, every function (math functions certified, else D-026), suffixed constants, the auto-included constants, `$COLOR`; the dependency `astro-float-num` |
 
 ## Numbers at the last full runs
+
+**At the merge into `main` of pull request 9** (2026-10-18, `61ae7be`; the compiler is the one of the change's
+close, the commits after it touched comments and documents only): the differential pass list 59 of 59. The full
+suites were left to the next merge (user, `DECISIONS.md` 2026-10-18); the close's runs below stand for the rest.
+
+**At the close of `libqb-object-flags` and `const-rulings`** (2026-10-19, one closing set for both,
+`close.py --check` passes): tier 1 388 of 388; `slice.list` 458 of 458 (`--pass-cache`), also without folding;
+upstream `pass.list` 355 of 355 (`const/math_funcs` left it, D-031); the call-site check 1888 of 1888 equal; the
+41 command-line tests that build pass. Demand: corpus 460 of 464 without errors (the same four as before); upstream
+312 of 348 without errors, 24 held back.
 
 **At the close of `m3-constant-evaluation`** (2026-10-18, `close.py --check` passes, again after the review's fix
 of the D-026 warning): tier 1 364 of 364;
@@ -144,13 +162,12 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 ## Known bugs
 
-None known.
+None known (the stale libqb objects are fixed by `libqb-object-flags`).
 
 ## Queued for later milestones
 
 | When | Item |
 |---|---|
-| M3 | Plain copy of `..\QB64pe\internal\c` at the reference clone's commit, `16f629784e` (`DECISIONS.md` 2026-10-02 and 2026-10-09) |
 | Any time | A formatter that matches `-y` (out of M2's exit criterion, `DECISIONS.md` 2026-10-09) |
 | M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\archive\22` §4.2) |
 | Help/hover work | Ask the QB64pe maintainers about the wiki licence before shipping any wiki text |

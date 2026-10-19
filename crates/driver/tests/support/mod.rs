@@ -5,23 +5,20 @@
 //! run writes a line `cli-time <test> <phase> <seconds>` to the test's captured stderr (shown with `--nocapture`).
 
 use std::fmt;
-use std::fs::{File, TryLockError};
 use std::io::{Read, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Output, Stdio};
-use std::sync::{Arc, Mutex, OnceLock, mpsc};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
 /// The deadline of a run of the compiler, or of a tool of the clone's toolchain: the test runner's
-/// (`COMPILE_TIMEOUT`). A build takes seconds; the first after the clone's libqb objects are gone builds them too,
+/// (`COMPILE_TIMEOUT`). A build takes seconds; the first after the copy's libqb objects are gone builds them too,
 /// about 3 minutes more (`tools\legacy_tests\README.md`).
 pub const COMPILER_LIMIT: Duration = Duration::from_secs(900);
 /// The deadline of a generated program: the runner's for a corpus program (`CORPUS_RUN_TIMEOUT`). The tests' programs
 /// end in well under a second, a screen program's announced waits in a few.
 pub const PROGRAM_LIMIT: Duration = Duration::from_secs(60);
-/// How long a test that builds waits for another run to leave the reference clone (a tier-2 run takes about 12 min).
-pub const CLONE_WAIT_LIMIT: Duration = Duration::from_secs(30 * 60);
 /// How long the output pipes may stay open after the child has ended or been killed: a process the child started
 /// that outlived it may hold them.
 const PIPE_GRACE: Duration = Duration::from_secs(10);
@@ -178,7 +175,7 @@ fn main_checkout(repo: &Path) -> PathBuf {
     worktree().unwrap_or_else(|| repo.to_path_buf())
 }
 
-/// The lock the driver takes around each `make` when [`OBJECTS_LOCK_ENV`] names it: shared while the clone's libqb
+/// The lock the driver takes around each `make` when [`OBJECTS_LOCK_ENV`] names it: shared while the copy's libqb
 /// objects are up to date, alone while they are built (`clone_lock.py`, `OBJECTS_LOCK`). Every compiler a test
 /// starts is given it, so the tests' builds and a test runner's run of the new compiler build side by side.
 pub fn objects_lock() -> PathBuf {
@@ -187,46 +184,3 @@ pub fn objects_lock() -> PathBuf {
 
 /// The variable that names [`objects_lock`] to the driver (`OBJECTS_LOCK_ENV` of `crates\driver\src\build.rs`).
 pub const OBJECTS_LOCK_ENV: &str = "QB64RUST_OBJECTS_LOCK";
-
-/// The lock of the reference clone (`tools\legacy_tests\clone_lock.py`), taken shared: a build runs `make` in the
-/// clone, which must not meet a run of `qb64pe.exe` there (the test runner's, `verification\run.sh`, `callsite.py`),
-/// which take it alone; runs of the new compiler share it. Taken by the first test that builds and held by this test
-/// process until it ends, so its tests still build side by side. While another run holds it alone, one line on the
-/// console (not captured) says why the tests wait; past [`CLONE_WAIT_LIMIT`] they fail.
-pub fn lock_clone() {
-    static CLONE: OnceLock<File> = OnceLock::new();
-    CLONE.get_or_init(|| {
-        let dir = clone_lock_dir();
-        std::fs::create_dir_all(&dir).unwrap();
-        let file = File::options()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .open(dir.join("in-use.lock"))
-            .unwrap();
-        let start = Instant::now();
-        let mut told = false;
-        loop {
-            match file.try_lock_shared() {
-                Ok(()) => return file,
-                Err(TryLockError::WouldBlock) => {}
-                Err(TryLockError::Error(e)) => panic!("cannot lock the reference clone: {e}"),
-            }
-            assert!(
-                start.elapsed() < CLONE_WAIT_LIMIT,
-                "another run held the reference clone for {} min; start the tests again when it has ended",
-                CLONE_WAIT_LIMIT.as_secs() / 60
-            );
-            if !told {
-                let _ = writeln!(
-                    std::io::stderr(),
-                    "waiting for a run of qb64pe.exe (the test runner, verification\\run.sh or callsite.py) to leave the \
-                     reference clone"
-                );
-                told = true;
-            }
-            thread::sleep(Duration::from_secs(1));
-        }
-    });
-}

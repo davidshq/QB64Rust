@@ -11,6 +11,18 @@ export function compilerPath(): string {
     return settings().get<string>("compilerPath", "").trim();
 }
 
+export type BuildWith = "auto" | "qb64rust" | "qb64pe";
+
+/** `qb64rust.buildWith`: which compiler builds (design D5 of extension-vsix); anything unknown is `auto`. */
+export function buildWith(uri?: vscode.Uri): BuildWith {
+    const v = settings(uri).get<string>("buildWith", "auto");
+    return v === "qb64rust" || v === "qb64pe" ? v : "auto";
+}
+
+export function affectsBuildWith(e: vscode.ConfigurationChangeEvent): boolean {
+    return e.affectsConfiguration(`${SECTION}.buildWith`);
+}
+
 export function checkOnSave(uri: vscode.Uri): boolean {
     return settings(uri).get<boolean>("checkOnSave", true);
 }
@@ -38,7 +50,8 @@ export function serverPath(): string {
     return settings().get<string>("path", "").trim();
 }
 
-/** `qb64rust.includeRoot`: where the language server looks up included files after the including file's folder. */
+/** `qb64rust.includeRoot` as set: where the language server and a build look up included files after the including
+ * file's folder (`protocol.ts` `includeRootFor` gives the default). */
 export function includeRoot(): string {
     return settings().get<string>("includeRoot", "").trim();
 }
@@ -48,10 +61,11 @@ export function defaultEncoding(): string | undefined {
     return vscode.workspace.getConfiguration("files", { languageId: "qb64rust" }).get<string>("encoding");
 }
 
-/** A change that needs the language server started again. */
+/** A change that needs the language server started again (the QB64pe folder is its include root's default). */
 export function affectsLanguageServer(e: vscode.ConfigurationChangeEvent): boolean {
     return (
         e.affectsConfiguration(`${SECTION}.path`) ||
+        e.affectsConfiguration(`${SECTION}.compilerPath`) ||
         e.affectsConfiguration(`${SECTION}.includeRoot`) ||
         e.affectsConfiguration("files.encoding", { languageId: "qb64rust" })
     );

@@ -1,0 +1,58 @@
+# Releases the VS Code extension (change extension-vsix, design D8; spec editor/packaging, "Release from a tag"):
+# on a tag vscode-v<version> equal to vscode\package.json's version, builds qb64rust (release), packages the
+# win32-x64 .vsix with it and the copy of libqb, holds the package to the spec and attaches it to a GitHub release
+# of the tag, with the version's section of vscode\CHANGELOG.md as notes. The integration tests are not repeated:
+# the tagged commit has had its run of vscode-extension.yml. The user pushes the tag.
+name: Release VS Code extension
+
+on:
+  push:
+    tags:
+      - "vscode-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: vscode
+    steps:
+      - uses: actions/checkout@v7
+
+      # First, so a wrong tag publishes nothing and builds nothing.
+      - name: Tag, version and changelog
+        run: python scripts/check_vsix.py --tag $env:GITHUB_REF_NAME --notes-out $env:RUNNER_TEMP\notes.md
+
+      - run: rustup toolchain install
+        working-directory: .
+      - run: cargo build --release --locked -p qb64rust-driver
+        working-directory: .
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+
+      - run: npm ci
+      - run: npm run test:unit
+      - run: python -m unittest discover -s scripts -p "test_*.py"
+      - run: npm run package
+
+      - name: Check the package
+        id: vsix
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $vsix = "qb64rust-win32-x64-$version.vsix"
+          python scripts/check_vsix.py $vsix --tag $env:GITHUB_REF_NAME
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "file=$vsix" >> $env:GITHUB_OUTPUT
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create $env:GITHUB_REF_NAME ${{ steps.vsix.outputs.file }} --title "QB64 for VS Code $env:GITHUB_REF_NAME" --notes-file $env:RUNNER_TEMP\notes.md --verify-tag

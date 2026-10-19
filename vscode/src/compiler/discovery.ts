@@ -1,10 +1,11 @@
 // Finds a program: its setting (`qb64rust.compilerPath` for `qb64pe`, `qb64rust.path` for `qb64rust`), then the
-// program on PATH. Pure apart from the injected file-existence check, so it is unit-tested without VS Code.
+// copy the extension carries (`qb64rust` only, design D2 of extension-vsix), then the program on PATH. Pure apart
+// from the injected file-existence check, so it is unit-tested without VS Code.
 import * as fs from "fs";
 import * as path from "path";
 
 export type Discovery =
-    | { found: true; path: string; source: "setting" | "PATH" }
+    | { found: true; path: string; source: "setting" | "bundle" | "PATH" }
     | { found: false; reason: string };
 
 /** What to look for: the executable's name (without `.exe`), its setting, and what to say when it is not found. */
@@ -25,6 +26,8 @@ export interface DiscoveryInput {
     /** The PATH environment variable. */
     envPath: string | undefined;
     platform: NodeJS.Platform;
+    /** The program the extension carries (`bundle\bin\qb64rust.exe`), tried after the setting and before PATH. */
+    bundled?: string;
     isFile?: (p: string) => boolean;
 }
 
@@ -55,6 +58,11 @@ export function findCompiler(input: DiscoveryInput, program: Program = QB64PE): 
             return { found: true, path: inside, source: "setting" };
         }
         return { found: false, reason: `${program.setting} points to "${input.setting}", which does not exist.` };
+    }
+
+    // Before PATH: an installed extension runs the binary it was packaged and tested with.
+    if (input.bundled && isFile(input.bundled)) {
+        return { found: true, path: input.bundled, source: "bundle" };
     }
 
     const sep = input.platform === "win32" ? ";" : ":";

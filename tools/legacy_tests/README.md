@@ -219,32 +219,37 @@ Notes:
   their own `--results`, do not meet here. The summary file is not locked: two narrowed runs with one
   `--results` both write `results-partial.json` when they end, and the later one stays. Give one of them its
   own `--results` when both summaries are wanted.
-- <a id="locks"></a>**Locks: runs of `qb64rust` side by side, a run of `qb64pe` alone in the clone**
-  (`clone_lock.py`, `test-parallel-runs`). This runner (so `verification\run.sh` and tier 2 too) and
-  `tools\callsite\callsite.py` take a lock on `target\qb64pe-clone\in-use.lock` first: **alone** for a run
-  that uses `qb64pe.exe` in the clone, **shared** for a run that builds with `qb64rust` only. A run that
-  cannot have it stops at once with exit code 3, or with `--wait` prints that it is waiting and starts when it
-  can. The system drops the lock when the run ends, however it ends.
+- <a id="locks"></a>**Locks: runs of `qb64rust` side by side and beside a run of `qb64pe`, which has the clone
+  alone** (`clone_lock.py`, `test-parallel-runs`, design D5 of `libqb-copy`). This runner (so
+  `verification\run.sh` and tier 2 too) and `tools\callsite\callsite.py` take a lock on
+  `target\qb64pe-clone\in-use.lock` first: **alone** for a run that uses `qb64pe.exe` in the clone,
+  **shared** for a run of `qb64rust` whose programs are in the clone's own test folders (a compile suite run
+  from the clone's `tests\compile_tests`, the qbasic and format suites), **none** for any other run of
+  `qb64rust` (the corpus suite, the compile suite of `tests\upstream`). A run that cannot have it stops at once
+  with exit code 3, or with `--wait` prints that it is waiting and starts when it can. The system drops the
+  lock when the run ends, however it ends.
   - With `qb64pe`: two runs would empty and read each other's `internal\temp`, and its `make` writes the
-    libqb objects in `internal\c` that every build reads. So the verification suite, a corpus run of the old
-    compiler with one job, and `callsite.py` (its old side runs `qb64pe -z` in the clone) have it alone.
+    libqb objects in `internal\c`. So the verification suite, a corpus run of the old compiler with one job, and
+    `callsite.py` (its old side runs `qb64pe -z` in the clone) have it alone.
   - With `qb64rust` (any `--jobs`): its fragments, `qbx.cpp`, `qbx.o` and executable are in its own build
-    folder (`PATH_INTERNAL_TEMP` points there), and it only reads the clone, except for the libqb objects its
-    `make` builds when one it links is missing or older than its source. That case has a lock of its own,
+    folder (`PATH_INTERNAL_TEMP` points there), it builds against this repo's copy of libqb (`libqb\`, `make -C
+    libqb`), and from the clone it reads only the toolchain and the files `DECLARE LIBRARY` names, which a
+    compile with `qb64pe.exe` never writes; so it needs no lock of the clone, unless it runs programs in the
+    clone's folders, where a run of `qb64pe` runs the same programs. The libqb objects its `make` builds in
+    the copy when one it links is missing or older than its source have a lock of their own,
     `target\qb64pe-clone\objects.lock`, which the runner names in `QB64RUST_OBJECTS_LOCK` for every compile:
     the driver runs `make -q` on the objects of the build's flags under a shared lock and keeps it for the
     build when they are up to date; otherwise it builds alone (`crates\driver\src\build.rs`, `lock_objects`).
     So the full corpus, the full upstream suite and the run without folding can run side by side (each with
-    its own results folder, which they have), and the builds within one `--jobs` run no longer race for a
-    missing object either.
+    its own results folder, which they have), a recording with `qb64pe.exe` can run beside them, and the
+    builds within one `--jobs` run no longer race for a missing object either.
   - The one exception is `--jobs` with `qb64pe` (next point): it builds in its copies and can run beside
     another run that uses another results folder; it takes the clone's lock alone only to run a failed program
     again.
-  - The CLI tests that build (`cargo test -p qb64rust-driver --test cli -- --ignored`) take the clone's lock
-    shared, with `File::try_lock_shared` on the same file (`crates\driver\tests\support`), give every compiler
-    they start `QB64RUST_OBJECTS_LOCK`, and hold the lock until the test process ends; they wait for it at
-    most 30 min. Python's lock is `LockFileEx` over the whole file, the range Rust's `File::lock` takes, so
-    the two see each other.
+  - The CLI tests that build (`cargo test -p qb64rust-driver --test cli -- --ignored`) take no lock of the
+    clone (they run no program there) and give every compiler they start `QB64RUST_OBJECTS_LOCK`
+    (`crates\driver\tests\support`). Python's lock is `LockFileEx` over the whole file, the range Rust's
+    `File::lock` takes, so the driver and these tools see each other's locks on the objects.
   - **A failure beside other builds runs again alone** (corpus and compile suites, `--jobs` above 1 with
     `qb64rust`): after the others, once, and both outcomes are printed (`[again]`). A failure that cannot
     pass alone is not run again (`SETTLED_STAGES`): wrong expected files, or a program expected to be
@@ -258,7 +263,7 @@ Notes:
     whose result may change with the load of the machine. The list is wide on purpose: a word in a comment
     counts, and so does `RANDOMIZE TIMER`, so 83 of the 471 corpus programs and 33 of the 404 upstream ones
     match (2026-10-17); a shared-build fault in one of them shows only as its `note:`, so read the notes.
-    "Alone" is alone in this run: a run beside it that shares the clone's lock may still be building.
+    "Alone" is alone in this run: a run of `qb64rust` beside it may still be building.
   - Not covered: `qb64rust` started by hand without `QB64RUST_OBJECTS_LOCK` takes no lock.
   - A git worktree of this repo (the merge runs, below) takes the main checkout's lock files: `clone_lock.py`
     and the CLI tests find the main checkout from the worktree's `.git` file (`main_checkout`). Not covered:
@@ -272,10 +277,9 @@ Notes:
   `[compiler] target/release/qb64rust.exe sha256 <hash> started <seconds since 1970>`; the results file still
   names the compiler as given, with the same `compiler_sha256`. `tools\close\close.py --check` judges a run by
   that hash against the current build and by its start against the test inputs changed since
-  (`tools\close\README.md`). The copy behaves as the original: the driver finds the reference clone from the folder it was
-  built in, a path fixed at build time. A copy not used for a day is removed at the next run's start (about
-  10 MB each). Not covered: what the copy cannot hold, the clone itself; a recording with `qb64pe.exe` still
-  waits for the clone's lock.
+  (`tools\close\README.md`). The copy behaves as the original: the driver finds the reference clone and the copy of libqb from
+  the folder it was built in, a path fixed at build time. A copy not used for a day is removed at the next
+  run's start (about 10 MB each).
 - <a id="merge-runs-in-a-worktree"></a>**The runs at a merge into `main` in a worktree** (`study\archive\34` §3 item 3,
   optional). The full set at a merge (`CLAUDE.md` working rule 9, about an hour) may run in a second checkout
   of the merge commit, so that the next change goes on in this one:

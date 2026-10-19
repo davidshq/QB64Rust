@@ -100,8 +100,9 @@ changing direction, design or scope.**
      merge commit beside this repo while the next change goes on here (`tools\legacy_tests\README.md`, "The runs
      at a merge into `main` in a worktree").
    - **Order:** whatever changes the compiler (the wording table, generated tables) comes before the first long
-     run, so that no run is thrown away for a new build. Runs of the new compiler may run side by side (they share
-     the clone's lock; `tools\legacy_tests\README.md`, "Locks"); a run of `qb64pe.exe` in the clone has it alone.
+     run, so that no run is thrown away for a new build. Runs of the new compiler may run side by side, and beside a
+     recording with `qb64pe.exe`, which has the clone alone: they build against `libqb\` and take the clone's
+     lock only to run programs in its own test folders (`tools\legacy_tests\README.md`, "Locks").
    - **Work goes on during a run** (`study\archive\34`): each run of the new compiler tests a copy of it named by hash,
      so start a long run in the background and go on building, running tier 1 and editing; read its log when it
      ends. Only a recording with `qb64pe.exe` waits for the clone; batch recordings before the closing runs.
@@ -135,6 +136,20 @@ changing direction, design or scope.**
     answered it; a part is archived when the IDE it describes is not ported or a current document has taken it over.
     *Why:* by 2026-10-18 `study\` held 32 documents, two thirds of them reviews whose outcomes were already
     recorded elsewhere (user, 2026-10-18).
+11. **The paperwork around a change goes at the merge cadence, not per change** (tenth review `study\35` §3 item 3,
+    user, 2026-10-18). A change's close asks the user nothing about the behaviours it kept QB64pe's way: each is a
+    row in `SOMEDAY.md`'s "QB64pe behaviours to review" and stays silent until the user asks for them. Reviews,
+    and the edits of `ROADMAP.md` and of `STATUS.md` beyond its "Next" and known bugs, come once per merge into
+    `main` (every two or three changes). `study\00` §5 takes no new facts: a fact measured from now on lives in its
+    family's recorded output, with the family's line in `verification\README.md` saying what it shows; a change's
+    `design.md` names the programs it rests on.
+    *Why:* every change ended with rulings to ask for, and `study\00` §5 had grown to about 3,000 lines that no
+    session reads whole (`study\35` §2).
+12. **Where QB64pe's own result depends on the machine, do not build to match it bit for bit** (`study\35` §3
+    item 4, user, 2026-10-18). When the old compiler's value comes from the CPU or the libraries `qb64pe.exe` was
+    built with (x87 instructions, the C runtime's math), take a well-defined value (correctly rounded, as D-026)
+    with a `DIVERGENCES.md` row, and say so in the design in a paragraph, not a module. The fidelity already built
+    (the software `_FLOAT`, the certification of the math constants) stays; this rule does not remove it.
 
 ## Project decisions
 
@@ -155,12 +170,14 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `DECISIONS.md` | Decision log: every project decision, dated, with the document that holds its details |
 | `DIVERGENCES.md` | Divergence register: decided differences from the old compiler's observed behaviour |
 | `DIVERGENCES-QB45.md` | Differences from QuickBASIC 4.5 (most inherited from QB64pe), each with the source of its QB 4.5 behaviour |
+| `UPSTREAM.md` | Fixes to offer QB64pe: its bugs that this project fixes, each with where it is in QB64pe's sources, the fix and the divergence row |
 | `SOMEDAY.md` | Deferred features and ideas, and "QB64pe behaviours to review": questionable behaviours implemented QB64pe's way |
 | `GLOSSARY.md` | Plain-language definitions of compiler terms: the compiler pipeline, runtime and build, editor tooling |
 | `study\00-synthesis.md` | Start here: summary of all studies, decisions, plan, measured facts, reuse verdicts; its "Document map" lists every study |
 | `study\01`–`35` (active) | Studies still in use: `01`–`05` the old compiler, runtime, IDE and debugger, build; `06` VS Code parity; `07` the expert panel's plan; `09`, `10` claims checked and gaps closed; `16` FreeBASIC; `17`, `18` extension testing and practices; the newest review while it is open. One line each in `study\00`'s "Document map" |
 | `study\archive\` | Closed documents, read only when needed (working rule 10); catalogue in its `README.md`: the reviews of other repositories (`11`–`14`, with `qb64fresh-scripts\`), the reviews and plans whose outcomes are decided and built (`15`, `19`–`34`), `08` (strict QB 4.5 mode, not planned), and the closed records `progress-record.md` (what `STATUS.md` held until 2026-10-09) and `support-record.md` (the feature catalogue `crates\README.md` held until 2026-10-16) |
 | `Cargo.toml`, `crates\` | The new compiler `qb64rust` (Rust workspace, one crate per stage; `crates\README.md`: crate map, build, tests, snapshots) |
+| `libqb\` | Plain copy of QB64pe's `Makefile`, `internal\c` (no toolchain), `licenses` and `COPYING.txt` at the reference commit (`SOURCE.md`), byte for byte but for the edits of `tools\libqb\edits\` that `SOURCE.md` lists, never edited by hand; the new compiler builds against it with the clone's toolchain, and its objects with `objects.stamp` (git-ignored) |
 | `mise.toml` | Tool versions for this repo, read by mise: Node 24 (for `vscode\`) |
 | `vscode\` | M1 VS Code extension (`qb64rust`): sources, tests, fixtures, `README.md`, `DEVELOPMENT.md` |
 | `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release; `rust.yml` runs fmt, clippy, `cargo test` (tier 1), the test runner's own tests and those of `tools\testtime` and `tools\close` on Windows on every push, and, only when started by hand and once a week (working rule 9), tier 2 (the call-site check, slice list without its screen programs, which get no window there and run locally only, upstream pass list, differential pass list) against QB64pe's sources at the reference clone's commit; `repo-check.yml` runs `tools\repo_check` on every push |
@@ -176,6 +193,7 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `verification\` | Measurement programs of the old compiler, each with its recorded output, and `run.sh` (starts the runner's `--suite verification`, which records them); the catalogue of the families, `v13*` to the newest, is `verification\README.md` |
 | `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler), the golden corpus and the verification programs (`--suite verification`, a recorder), its own tests (`test_run_legacy_tests.py`: a change to a comparison or recording rule comes with a change to its test), and its `known_failures.txt`; `--check-list` judges a pass list from a full run's results; `counts.py` writes the count blocks of the test READMEs (`test_counts.py`) |
 | `tools\close\` | `close.py`: the closing runs of a change (working rule 9) as a plan (`--plan`, the commands in order, each run by its own command) and a check (`--check`, each log: ran on the current build, and passed); its own tests (`test_close.py`; `README.md`) |
+| `tools\libqb\` | `copy_libqb.py`: writes `libqb\` from the clone at a commit with the copy's own edits (`edits\*.edit`, each with its reason and divergence row) and, with `--check`, says whether it still equals them; its own tests (`test_copy_libqb.py`) |
 | `tools\callsite\` | `callsite.py`: compares the libqb call the new compiler writes for each program of `tests\callsite\` with the old compiler's (`-z` on both, nothing built or run); part of tier 2 (`README.md`: the normalisation rules and what it does not compare) |
 | `tools\repo_check\` | `check_repo.py`: tracked files must hold no local paths, temp folders or network shares (rule 2) and no stray control bytes (rule 7); `--untracked` also checks new files before they are staged |
 | `tools\testtime\` | `test_time.py`: every test run of every Claude Code session, how long it took and, where the transcript shows it, whether it passed, read from the sessions' transcripts; `runs.csv` and `sessions.csv` (the record, added to at the close of each change), `changes.csv` and `activity.csv` (each OpenSpec change's elapsed and active time, waits and kinds of work, since 2026-10-16) and `REPORT.md` (testing as a share of the working time, by day and by kind of run, the runs repeated with nothing edited, and per change; `README.md`); its own tests (`test_record.py`) |

@@ -4,11 +4,19 @@ import { api, closeAll, compiler, open, saveAndCheck, setSetting, setText, sleep
 
 const plus = "Expected variable/value after '+'";
 
+// The check with the old compiler, `qb64pe -z`: the language server, when the run has one, is stopped meanwhile, as
+// for a user without `qb64rust` (the check with the server: `languageServer.test.ts`).
 describe("diagnostics", () => {
-    before(function () {
+    before(async function () {
         if (!compiler) {
             this.skip();
         }
+        await (await api()).server.stop();
+    });
+    after(async () => {
+        const a = await api();
+        a.server.ready = a.server.restart();
+        await a.server.ready;
     });
     afterEach(closeAll);
 

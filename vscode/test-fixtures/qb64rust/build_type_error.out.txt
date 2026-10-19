@@ -1,0 +1,5 @@
+<FIXTURES>\type_error.bas:2:6: error: cannot store a number in a string variable
+<FIXTURES>\type_error.bas:2:6: note: QB64pe: Illegal string-number conversion
+<FIXTURES>\type_error.bas:3:6: error: label `nowhere` is not defined in the main module
+<FIXTURES>\type_error.bas:3:6: note: QB64pe: Label 'nowhere' not defined
+2 errors

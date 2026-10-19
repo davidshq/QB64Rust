@@ -1,11 +1,14 @@
 // The new compiler's language server (design D6 of m2-language-server): `qb64rust lsp` started over stdio when the
 // binary is found, its diagnostics live in their own collection (source `qb64rust`), and the outline, folding
-// ranges and go to definition come from it. Without the binary nothing changes from M1.
+// ranges and go to definition come from it. Without the binary nothing changes from M1. While it runs, a check on
+// save or by command is its `qb64rust/check` (design D5 of extension-diagnostics).
+import * as path from "path";
 import * as vscode from "vscode";
-import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node";
+import { LSPErrorCodes, LanguageClient, LanguageClientOptions, ResponseError, ServerOptions } from "vscode-languageclient/node";
 import * as config from "./config";
 import { Discovery, QB64RUST, findCompiler } from "./compiler/discovery";
-import { DOCUMENT_ENCODING, EncodingTracker, initializationOptions } from "./server/protocol";
+import { CHECK, CheckResult, DOCUMENT_ENCODING, EncodingTracker, checkParams, initializationOptions } from "./server/protocol";
+import { CompilerStatus } from "./statusBar";
 
 type State = { kind: "stopped" } | { kind: "untrusted" } | { kind: "starting" } | { kind: "running" } | { kind: "failed"; reason: string };
 
@@ -20,8 +23,17 @@ export class LanguageServer implements vscode.Disposable {
     private generation = 0;
     /** Resolves when the last start or restart has finished; for tests. */
     ready: Promise<void>;
+    /** The check under way for each document, to cancel when a newer one starts. */
+    private readonly checks = new Map<string, vscode.CancellationTokenSource>();
 
-    constructor() {
+    /**
+     * `bundled` is the binary the extension carries (design D2 of extension-vsix), which may not exist. `status`
+     * gives the QB64pe folder, the include root's default (design D6), and is told when the binary was looked for.
+     */
+    constructor(
+        private readonly bundled: string,
+        private readonly status: CompilerStatus,
+    ) {
         this.item.name = "QB64 language server";
         this.disposables.push(
             this.item,
@@ -41,6 +53,11 @@ export class LanguageServer implements vscode.Disposable {
         this.ready = this.restart();
     }
 
+    /** Where the `qb64rust` binary was looked for and found, as of the last start; a build uses the same one. */
+    get binary(): Discovery {
+        return this.discovery;
+    }
+
     /** The client while the server runs; for tests. */
     get running(): LanguageClient | undefined {
         return this.state.kind === "running" ? this.client : undefined;
@@ -54,13 +71,15 @@ export class LanguageServer implements vscode.Disposable {
     /** Stops the server if it runs, looks for the binary again and starts it. */
     async restart(): Promise<void> {
         const generation = ++this.generation;
+        // Looked for before the stop's wait, so that a build started at activation sees the binary (`binary`).
+        const folder = vscode.workspace.workspaceFolders?.[0]?.uri;
+        const baseDir = folder?.scheme === "file" ? folder.fsPath : undefined;
+        this.discovery = findCompiler({ setting: config.serverPath(), baseDir, bundled: this.bundled, envPath: process.env.PATH, platform: process.platform }, QB64RUST);
+        this.status.update();
         await this.stop();
         if (generation !== this.generation) {
             return;
         }
-        const folder = vscode.workspace.workspaceFolders?.[0]?.uri;
-        const baseDir = folder?.scheme === "file" ? folder.fsPath : undefined;
-        this.discovery = findCompiler({ setting: config.serverPath(), baseDir, envPath: process.env.PATH, platform: process.platform }, QB64RUST);
         if (!this.discovery.found) {
             this.render();
             return;
@@ -78,7 +97,13 @@ export class LanguageServer implements vscode.Disposable {
                 { language: "qb64rust", scheme: "untitled" },
             ],
             diagnosticCollectionName: "qb64rust",
-            initializationOptions: initializationOptions(config.defaultEncoding(), config.includeRoot(), baseDir, process.platform),
+            initializationOptions: initializationOptions(
+                config.defaultEncoding(),
+                config.includeRoot(),
+                baseDir,
+                process.platform,
+                this.status.current.found ? path.dirname(this.status.current.path) : undefined,
+            ),
         };
         const client = new LanguageClient("qb64rust", "QB64 language server (qb64rust)", serverOptions, clientOptions);
         this.client = client;
@@ -91,7 +116,15 @@ export class LanguageServer implements vscode.Disposable {
             failure = e instanceof Error ? e.message : String(e);
         }
         if (generation !== this.generation) {
-            // A later restart (or the dispose) has stopped this client already and owns the state.
+            // A later restart (or the dispose) owns the state. Its stop came while this client was starting, which
+            // need not stop it (two clients then publish everything twice): stop it here.
+            if (failure === undefined) {
+                try {
+                    await client.stop();
+                } catch {
+                    // Already stopped.
+                }
+            }
             return;
         }
         if (failure === undefined) {
@@ -104,6 +137,40 @@ export class LanguageServer implements vscode.Disposable {
             this.state = { kind: "failed", reason: failure };
         }
         this.render();
+    }
+
+    /**
+     * Asks the server to check a document's program; the server publishes the diagnostics into its own collection.
+     * Undefined when the server does not run, or the check was cancelled: after `timeoutMs`, by a newer check of the
+     * same document (the server then answers the older one with ContentModified), or by the server stopping.
+     * Throws when the check failed otherwise (an internal error of the server, which it logs).
+     */
+    async check(uri: vscode.Uri, timeoutMs: number): Promise<CheckResult | undefined> {
+        const client = this.running;
+        if (!client) {
+            return undefined;
+        }
+        const key = uri.toString();
+        this.checks.get(key)?.cancel();
+        const source = new vscode.CancellationTokenSource();
+        this.checks.set(key, source);
+        const timer = setTimeout(() => source.cancel(), timeoutMs);
+        try {
+            const params = checkParams(client.code2ProtocolConverter.asUri(uri));
+            return await client.sendRequest<CheckResult>(CHECK, params, source.token);
+        } catch (e) {
+            const cancelled = e instanceof ResponseError && (e.code === LSPErrorCodes.RequestCancelled || e.code === LSPErrorCodes.ContentModified);
+            if (cancelled || source.token.isCancellationRequested || this.running !== client) {
+                return undefined;
+            }
+            throw e;
+        } finally {
+            clearTimeout(timer);
+            if (this.checks.get(key) === source) {
+                this.checks.delete(key);
+            }
+            source.dispose();
+        }
     }
 
     private tellEncoding(doc: vscode.TextDocument): void {
@@ -146,7 +213,7 @@ export class LanguageServer implements vscode.Disposable {
         switch (s.kind) {
             case "running":
             case "starting":
-                this.item.text = "qb64rust";
+                this.item.text = d.source === "bundle" ? "qb64rust (bundled)" : "qb64rust";
                 this.item.severity = vscode.LanguageStatusSeverity.Information;
                 break;
             case "untrusted":
