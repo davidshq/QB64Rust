@@ -149,6 +149,8 @@ version,session,change,category,actions,bytes
 1,0b62e185,m3-sound,reading,2,0
 1,0b62e185,m3-sound,scratch files,2,7127
 1,0b62e185,m3-sound,test runs,2,0
+1,0d0a3828,,other commands,1,0
+1,0d0a3828,m3-constant-evaluation,other commands,1,0
 1,0e4635d2,,other commands,1,0
 1,0f33b8c8,,measurement runs,3,0
 1,0f33b8c8,,other commands,32,0
@@ -483,6 +485,14 @@ version,session,change,category,actions,bytes
 1,3bec3600,m2-console-screenhide,test runs,37,0
 1,3bec3600,m2-console-screenhide,tests and fixtures,39,31041
 1,3cdb7172,m2-defxxx-common-arrays,other commands,1,0
+1,3ce73be8,,documents and planning,27,16090
+1,3ce73be8,,other,1,0
+1,3ce73be8,,other commands,61,0
+1,3ce73be8,,product code,1,129
+1,3ce73be8,,reading,10,0
+1,3ce73be8,,scratch files,12,17107
+1,3ce73be8,,test runs,4,0
+1,3ce73be8,,tests and fixtures,2,592
 1,3d20ac3d,,other commands,1,0
 1,3d20ac3d,,reading,1,0
 1,3d20ac3d,m3-declare-library,documents and planning,6,2112
@@ -741,7 +751,7 @@ version,session,change,category,actions,bytes
 1,509dde77,,reading,1,0
 1,509dde77,m3-constant-evaluation,builds,1,0
 1,509dde77,m3-constant-evaluation,documents and planning,4,1079
-1,509dde77,m3-constant-evaluation,other commands,31,0
+1,509dde77,m3-constant-evaluation,other commands,34,0
 1,509dde77,m3-constant-evaluation,product code,11,4387
 1,509dde77,m3-constant-evaluation,reading,9,0
 1,509dde77,m3-constant-evaluation,test runs,14,0
@@ -1125,6 +1135,7 @@ version,session,change,category,actions,bytes
 1,729041fe,m3-constant-evaluation,scratch files,15,28622
 1,729041fe,m3-constant-evaluation,test runs,68,0
 1,729041fe,m3-constant-evaluation,tests and fixtures,26,21629
+1,73a9cfe7,,other commands,2,0
 1,749d54cb,,other commands,1,0
 1,752e15a1,,documents and planning,4,10676
 1,752e15a1,,measurement preparation,20,17128
@@ -1181,6 +1192,23 @@ version,session,change,category,actions,bytes
 1,781a3112,m3-get-put-bload,scratch files,16,28564
 1,781a3112,m3-get-put-bload,test runs,30,0
 1,781a3112,m3-get-put-bload,tests and fixtures,20,42418
+1,7837fe7e,,builds,1,0
+1,7837fe7e,,documents and planning,33,11334
+1,7837fe7e,,measurement preparation,1,270
+1,7837fe7e,,other,1,0
+1,7837fe7e,,other commands,32,0
+1,7837fe7e,,reading,17,0
+1,7837fe7e,,scratch files,2,2537
+1,7837fe7e,,test runs,3,0
+1,7837fe7e,libqb-copy,builds,6,0
+1,7837fe7e,libqb-copy,documents and planning,35,35465
+1,7837fe7e,libqb-copy,measurement runs,1,0
+1,7837fe7e,libqb-copy,other,7,317
+1,7837fe7e,libqb-copy,other commands,78,0
+1,7837fe7e,libqb-copy,product code,29,15776
+1,7837fe7e,libqb-copy,reading,27,0
+1,7837fe7e,libqb-copy,test runs,34,0
+1,7837fe7e,libqb-copy,tests and fixtures,18,22614
 1,78821586,,documents and planning,3,268
 1,78821586,,other commands,5,0
 1,78821586,,reading,1,0
@@ -1562,6 +1590,11 @@ version,session,change,category,actions,bytes
 1,a6985f8a,m2-builtin-statements,documents and planning,7,3312
 1,a6985f8a,m2-builtin-statements,other commands,8,0
 1,a6985f8a,m2-builtin-statements,test runs,1,0
+1,a70893be,,other commands,17,0
+1,a70893be,,reading,1,0
+1,a70893be,m3-constant-evaluation,documents and planning,2,6281
+1,a70893be,m3-constant-evaluation,other commands,9,0
+1,a70893be,m3-constant-evaluation,test runs,2,0
 1,a741c6ff,,other,1,0
 1,a741c6ff,,other commands,1,0
 1,a741c6ff,,reading,6,0
@@ -1908,6 +1941,7 @@ version,session,change,category,actions,bytes
 1,d1813b70,m3-whole-array-assign,reading,11,0
 1,d1813b70,m3-whole-array-assign,test runs,7,0
 1,d1813b70,m3-whole-array-assign,tests and fixtures,2,231
+1,d1d9897d,,reading,2,0
 1,d2b068fa,,documents and planning,6,11702
 1,d2b068fa,,measurement preparation,10,6521
 1,d2b068fa,,other commands,13,0
@@ -2078,6 +2112,14 @@ version,session,change,category,actions,bytes
 1,e3fa5b59,m3-arraycopy,reading,2,0
 1,e3fa5b59,m3-arraycopy,scratch files,2,10109
 1,e3fa5b59,m3-arraycopy,test runs,3,0
+1,e4b9441d,,documents and planning,4,396
+1,e4b9441d,,other commands,1,0
+1,e4b9441d,,reading,2,0
+1,e4b9441d,,test runs,1,0
+1,e4b9441d,m3-constant-evaluation,other commands,5,0
+1,e4b9441d,m3-constant-evaluation,reading,2,0
+1,e4b9441d,m3-constant-evaluation,scratch files,1,1450
+1,e4b9441d,m3-constant-evaluation,test runs,2,0
 1,e50d6c13,,other commands,3,0
 1,e50d6c13,,reading,8,0
 1,e50d6c13,,test runs,1,0

@@ -12,7 +12,7 @@ The new compiler, `qb64rust`. One crate per pipeline stage, so the layering is e
 | `ir` | `qb64rust-ir` | The ABI-neutral IR (no libqb names, no C types: procedures, storage classes, places and their store rules, handlers and `RESUME` as statement-level rules; values, places and arguments are `sema`'s typed tree) and its lowering from the typed tree; `validate` checks its structure |
 | `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...): `lib.rs` the entry points and the fragment set, one module per concern adding the emitter's methods (`names.rs`: C types, identifiers, labels, literals, `#line`; `decl.rs`: sizes, declarations, allocation, temporaries; `procs.rs`: procedures, bodies, labels, `retK.txt`; `stmt.rs`: operations and stores; `place.rs`: places; `value.rs`: values and procedure arguments; `builtins.rs`: built-in calls; `owner.rs`: values that own dynamic member arrays) |
 | `lsp` | `qb64rust-lsp` | The language server (`qb64rust lsp`, OpenSpec change `m2-language-server`): the message loop with debounce, a parse worker and cancellation (`server.rs`), one program's parse with included files from open documents first (`analysis.rs`), the encoding boundary (`encoding.rs`: tables generated from `iconv-lite` by `tools\encodings\gen_tables.js`, UTF-16 columns), `file:` URIs (`uri.rs`), and the features from the trees alone: diagnostics, document symbols (`symbols.rs`), folding ranges (`folding.rs`), go to definition for procedures and labels (`definition.rs`) |
-| `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, the file loader for included files (`FileLoader`), build through the reference clone's `Makefile`; `qb64rust lsp` starts the language server |
+| `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, the file loader for included files (`FileLoader`), build through the copy of libqb's `Makefile` (`libqb\`) with the clone's toolchain; `qb64rust lsp` starts the language server |
 | `difftest` | `qb64rust-difftest` | Not part of the compiler: the generator of the differential programs in `tests\differential` (binary `qb64rust-difftest`, `gen [--check]`; design D2 of `m2-numeric-types`, `tests\differential\README.md`): the numeric type list with each type's `AS` name, literal suffix and value slots (extremes, -1, 0, 1, two seeded random values from a fixed-seed xorshift), the operators and the exclusions; `for_sema` maps every `sema::Ty` exhaustively, so a new numeric type fails its build until the generator covers it |
 
 ```
@@ -76,18 +76,23 @@ Included files (`'$INCLUDE:'file'`) are looked up in the including file's folder
 root: the folder of `qb64rust.exe`, or `--include-root <dir>` (the old compiler's rule; never the working
 directory). The tier-2 runner passes `--include-root tests\upstream\root`.
 
-Building an executable uses the QB64pe reference clone for `qbx.cpp`, libqb and the toolchain: `--qb64pe-root
-<dir>`, else the environment variable `QB64RUST_QB64PE_ROOT`, else `..\QB64pe` next to this repository. The
-fragments, the copy of `qbx.cpp`, `qbx.o` and the `.sym` file go into `<exe>.qb64rust\` next to the executable
-(characters other than `A-Z a-z 0-9 . _ -` in that folder name become `_`, because `make` cannot take them; the
-executable is linked there and moved into place; the folder is deleted after a successful build unless
-`--keep-build`); libqb objects are built into the clone's git-ignored folders if missing. No tracked file of the
-clone changes. `-z` keeps that folder: run over many files (to collect diagnostics), it leaves a
+Building an executable uses this repo's copy of libqb (`libqb\`: QB64pe's `Makefile`, `qbx.cpp` and libqb at the
+reference commit, `libqb\SOURCE.md`; written and checked by `tools\libqb\copy_libqb.py`) with the QB64pe reference
+clone's toolchain. The copy: `--libqb-root <dir>`, else the environment variable `QB64RUST_LIBQB_ROOT`, else
+`libqb\` of this repository. The clone (its toolchain, and the folder `DECLARE LIBRARY` names are looked for in):
+`--qb64pe-root <dir>`, else the environment variable `QB64RUST_QB64PE_ROOT`, else `..\QB64pe` next to this
+repository. The fragments, the copy of `qbx.cpp`, `qbx.o` and the `.sym` file go into `<exe>.qb64rust\` next to the
+executable (characters other than `A-Z a-z 0-9 . _ -` in that folder name become `_`, because `make` cannot take
+them; the executable is linked there and moved into place; the folder is deleted after a successful build unless
+`--keep-build`); libqb objects are built into the copy's git-ignored places if missing (the first build after a
+checkout builds those its flags need, about 40 s for a console program). Nothing is written into the clone, and no
+tracked file of the copy changes. `-z` keeps that folder: run over many files (to collect diagnostics), it leaves a
 `<name>.exe.qb64rust\temp\` next to every program without errors, so give `-o` a scratch folder outside the repo and
 the clone, or use `--dump tree`. The QB64pe Windows release works as the root too (CI uses it). `-f:OptimizeCppProgram=true` builds
 with `-O2` as `qb64pe` does; `-f:ExtraLinkerFlags=<value>` adds the value to the end of the link command as `qb64pe`
 does (the test runner gives `tools\screen\screen_state.cpp` this way; the build cache's key takes the value and the
-contents of a file it names); `-f:GenerateLicenseFile=true` has the clone's `Makefile` write the licences of the
+contents of a file it names; a relative name is the clone's file, as `qb64pe` links in its own folder);
+`-f:GenerateLicenseFile=true` has the `Makefile` write the licences of the
 parts the program links, moved beside the executable as `<exe>.license.txt` (`build.rs`, `license_path`; the build
 cache keeps the file with its executable, and an entry without it is no hit for a build that asks for it);
 `-f:StripDebugSymbols=...` is ignored; other `-f:` settings are "not supported yet".
@@ -156,7 +161,7 @@ panics on purpose, for the CLI test only.
 |---|---|---|
 | 1 | `cargo test` | Unit tests; lexer and parser snapshots; symbol-table snapshots; `tests\frontend\` by mode line (included files under `tests\frontend\inc\`); every input set through the front end with its included files (`inputs.rs`: corpus, `tests\upstream`, snippets, `tests\differential`, the real programs of `tests\programs`, and from the clone `qbasic_testcases` and the old compiler's sources, `qb64pe.bas` through all its includes; no panic, exact round trip of every tree, the copy equals the clone, the three lists of `tests\upstream\README.md`); the programs of `tests\corpus\slice.list` without diagnostics; every program with an `.err` file rejected; reserved names of variables and procedures against the measured lists (`names.rs`); the seeded mutation test (`mutate.rs`); the command line; the differential programs equal to what the generator writes, each with its recording (`difftest\tests\fresh.rs`) |
 | 1 | `cargo test -p qb64rust-lsp` | The language server: encoding tables against `iconv-lite`'s bytes, positions, URIs (unit); symbols and folding snapshots and every go-to-definition form on `lsp\tests\fixtures\outline.bas` (`features.rs`); the protocol scenarios of spec `editor/language-server` through an in-process connection (`server.rs`); the walks over every corpus and upstream program (`walk.rs`) |
-| 1, by hand | `cargo test -p qb64rust-driver --test cli -- --ignored` | The command-line scenarios that build an executable; about 30 s with the clone's libqb objects built. Unattended (`driver\tests\support`): every child has a deadline, a compiler or toolchain run 900 s (room for a first build of the libqb objects), a built program 60 s, after which its process tree is killed and the test fails naming the phase; programs run with `QB64PE_NOPROMPT=y`, so no runtime-error dialog waits for a person; the first test that builds takes the clone's lock (`tools\legacy_tests\clone_lock.py`), waiting at most 30 min for another run, with a line on the console saying so. `--nocapture` shows a `cli-time <test> <phase> <seconds>` line per child |
+| 1, by hand | `cargo test -p qb64rust-driver --test cli -- --ignored` | The command-line scenarios that build an executable; about 30 s with the copy's libqb objects built. Unattended (`driver\tests\support`): every child has a deadline, a compiler or toolchain run 900 s (room for a first build of the libqb objects), a built program 60 s, after which its process tree is killed and the test fails naming the phase; programs run with `QB64PE_NOPROMPT=y`, so no runtime-error dialog waits for a person; no lock of the clone is taken (they run nothing there), and every compiler they start is given the objects' lock (`tools\legacy_tests\README.md`, "Locks"). `--nocapture` shows a `cli-time <test> <phase> <seconds>` line per child |
 | 1 | `python -m unittest discover -s tools/legacy_tests -p "test_*.py"` | The test runner's own rules (`tools\legacy_tests\README.md`, "Tests of the runner"): what "pass" means and what gets recorded, without a compiler; also in CI (`rust.yml`, job `test`) |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --qb64 target\release\qb64rust.exe --list tests\corpus\slice.list` | The listed corpus programs end to end against the output recorded from `qb64pe.exe` |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\release\qb64rust.exe --list tests\upstream\pass.list` | The upstream programs of the pass list end to end (`tests\upstream\README.md`); also in CI (`rust.yml`, job `tier2`) |
@@ -177,10 +182,10 @@ tests\upstream\pass.list` after them. Runs of the new compiler may run side by s
 
 Tier 2 locally: add `--jobs 8 --build-cache target\build-cache` to each command. `--jobs` runs programs in
 parallel; `--build-cache` (environment variable `QB64RUST_BUILD_CACHE`, `driver\src\build.rs`) skips `make` for a
-program whose C++ build has the same inputs as an earlier one's (the fragments, the clone's `qbx.cpp`, `Makefile`
-and every file of its `internal\c` that no build writes, by size and time, the options), so after an edit only the
-programs whose C++ changed are rebuilt, and a compile with `qb64pe.exe` in the clone (which rewrites its `qbx.o`)
-throws nothing away; every program is still compiled by `qb64rust`, run and compared. CI uses neither.
+program whose C++ build has the same inputs as an earlier one's (the fragments, the copy's `qbx.cpp`, `Makefile`
+and every file of its `internal\c` that no build writes, by size and time, the clone's toolchain, the options), so
+after an edit only the programs whose C++ changed are rebuilt, and a compile with `qb64pe.exe` in the clone throws
+nothing away; every program is still compiled by `qb64rust`, run and compared. CI uses neither.
 A run of the runner or of `callsite.py` compiles with a copy of `qb64rust.exe` made at its start
 (`target\test-bin\<hash>`), so the compiler may be built again, and tier 1 run, while a tier 2 run goes on
 (`tools\legacy_tests\README.md`, "The compiler a run tests").

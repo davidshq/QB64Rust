@@ -27,6 +27,8 @@ tests/differential/**/*.output -text
 tests/differential/**/*.err -text
 # CP437 bytes and CRLF line ends are the point of this program (design D2 of m2-workspace-and-slice)
 tests/corpus/slice/s07_cp437_bytes.bas -text
+# Copy of QB64pe's libqb: the commit's bytes and line ends (design D1 of libqb-copy, tools/libqb/copy_libqb.py)
+libqb/** -text
 # Copy of QB64pe's compile tests: keep upstream's bytes and line ends (design D1 of m2-upstream-tests)
 tests/upstream/compile_tests/**/*.bas -text
 tests/upstream/compile_tests/**/*.bi -text

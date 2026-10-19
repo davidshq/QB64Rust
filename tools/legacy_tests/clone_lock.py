@@ -6,12 +6,14 @@ objects in internal/c. Two runs that compile with the same qb64pe at the same ti
 read each other's files, and what the old compiler answers is what gets recorded as truth. So a run
 that uses qb64pe in the clone takes the clone's lock alone (lock_clone, exclusive).
 
-A build with qb64rust keeps its C++, its qbx.o and its executable in a folder of its own and only
-reads the clone, except for the libqb objects its make builds when one is missing. That case has a
-lock of its own, OBJECTS_LOCK, which the driver takes around each make (QB64RUST_OBJECTS_LOCK,
-crates/driver/src/build.rs): shared while the objects are up to date, alone while they are built.
-So runs of qb64rust share the clone's lock (lock_clone(shared=True)) and run side by side, and a run
-of qb64pe waits for all of them, and they for it (test-parallel-runs, design D1).
+A build with qb64rust keeps its C++, its qbx.o and its executable in a folder of its own, builds
+against this repo's copy of libqb (libqb/) and reads from the clone only its toolchain and the files
+DECLARE LIBRARY names, which no compile writes (design D5 of libqb-copy). The libqb objects its make
+builds in the copy when one is missing have a lock of their own, OBJECTS_LOCK, which the driver takes
+around each make (QB64RUST_OBJECTS_LOCK, crates/driver/src/build.rs): shared while the objects are up
+to date, alone while they are built. So a run of qb64rust takes no lock of the clone and runs beside
+a run of qb64pe, unless its programs are in the clone's own test folders, where it runs them: then it
+shares the clone's lock (clone_lock_kind), and a run of qb64pe waits for it.
 
 lock_folder is the same lock for a folder of private copies (run_legacy_tests.py --jobs with qb64pe)
 and for a folder of results, where the runner builds and runs each program; those are exclusive.
@@ -32,6 +34,7 @@ from __future__ import annotations
 import os
 import time
 from pathlib import Path
+
 
 def main_checkout(repo: Path) -> Path:
     """The checkout whose target/ holds the locks: repo itself, or for a git worktree (its .git a
@@ -58,8 +61,9 @@ OBJECTS_LOCK_ENV = "QB64RUST_OBJECTS_LOCK"
 # 2 (a usage error), so that a script can tell "start again later" from "fix the command".
 BUSY_EXIT = 3
 CLONE_BUSY = (
-    "another run holds the reference clone (a run of qb64pe there has it alone; runs of qb64rust, "
-    "the CLI tests among them, share it); start again when it has ended, or pass --wait"
+    "another run holds the reference clone (a run of qb64pe there has it alone; runs of qb64rust "
+    "share it to run programs in the clone's test folders); start again when it has ended, or pass "
+    "--wait"
 )
 
 
@@ -136,11 +140,23 @@ def lock_folder(folder: Path, wait: bool = False, waiting: str = ""):
     return lock_file(folder / "in-use.lock", wait, waiting)
 
 
+def clone_lock_kind(old_compiler: bool, jobs: int, programs_in_clone: bool) -> str | None:
+    """How a run takes the clone's lock: "exclusive" for one that uses qb64pe in the clone (none at its
+    start with --jobs above 1, which compiles in private copies and takes it when it comes back),
+    "shared" for a run of qb64rust whose programs are in the clone's own folders (it runs them there),
+    None for any other run of qb64rust (design D5 of libqb-copy)."""
+    if old_compiler:
+        return None if jobs > 1 else "exclusive"
+    return "shared" if programs_in_clone else None
+
+
+def name_objects_lock() -> None:
+    """Names OBJECTS_LOCK in the environment the compiles of a qb64rust run inherit, so that the
+    driver takes it around each make."""
+    os.environ[OBJECTS_LOCK_ENV] = str(OBJECTS_LOCK)
+
+
 def lock_clone(wait: bool = False, shared: bool = False):
     """The lock of the reference clone (lock_file's result): exclusive for a run that uses qb64pe in
-    the clone, shared for one that builds with qb64rust only. A shared run also names OBJECTS_LOCK in
-    the environment its compiles inherit, so that the driver takes it around each make."""
-    fh = lock_file(CLONE_LOCK_DIR / "in-use.lock", wait, CLONE_WAITING, shared)
-    if fh is not None and shared:
-        os.environ[OBJECTS_LOCK_ENV] = str(OBJECTS_LOCK)
-    return fh
+    the clone, shared for a run of qb64rust that runs programs in the clone's folders."""
+    return lock_file(CLONE_LOCK_DIR / "in-use.lock", wait, CLONE_WAITING, shared)

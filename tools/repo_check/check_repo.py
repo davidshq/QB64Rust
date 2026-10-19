@@ -43,6 +43,12 @@ ALLOWED = [
     ("tests/upstream/compile_tests/qb64pe/file.output", rb""),
 ]
 
+# Third-party copies held byte for byte to an upstream commit by their own check, not checked here (rule 2 is about
+# what this project writes): QB64pe's libqb (tools/libqb/copy_libqb.py --check; design D6 of libqb-copy). The
+# SOURCE.md this project writes there is checked.
+THIRD_PARTY = ["libqb/*"]
+THIRD_PARTY_CHECKED = ["libqb/SOURCE.md"]
+
 BINARY_SUFFIXES = (".bin", ".exe", ".png", ".ico", ".7z", ".zip", ".vsix")
 
 # Output recorded from the old compiler or its programs: control bytes there are measured behaviour (NULs after
@@ -69,6 +75,10 @@ def unchecked_text(root: str, paths: list[str]) -> set[str]:
     return {p.decode() for p, _, v in triples if v == b"unset"}
 
 
+def third_party(path: str) -> bool:
+    return any(fnmatch.fnmatch(path, g) for g in THIRD_PARTY) and path not in THIRD_PARTY_CHECKED
+
+
 def allowed(path: str, line: bytes) -> bool:
     return any(fnmatch.fnmatch(path, f) and text in line for f, text in ALLOWED)
 
@@ -91,7 +101,7 @@ def main() -> int:
     if "--untracked" in sys.argv[1:]:
         # Also new files not yet staged (and not ignored), to check them before staging (CLAUDE.md rule 2).
         listing += ["--cached", "--others", "--exclude-standard"]
-    paths = [p for p in git(*listing, cwd=root).decode().split("\0") if p]
+    paths = [p for p in git(*listing, cwd=root).decode().split("\0") if p and not third_party(p)]
     skip_bytes = unchecked_text(root, paths) if paths else set()
     findings = []
     for path in paths:

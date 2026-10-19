@@ -55,10 +55,13 @@ and its shrink-only lists hold no false error and no parse gap (`tests\known_fal
 - [x] The step's closing runs (the two full suites with the new compiler), its documents and CI after the push
       (group 7 of `m2-console-screenhide`)
 
-## M3. Code generation to the existing ABI: under way
+## M3. Code generation to the existing ABI: done
 
 Done when: the compiler emits the `qbx.cpp` fragments, links with libqb and passes the expected-output and
 differential tests; programs without `$CONSOLE:ONLY` are checked by their screen state.
+
+The criterion is met; M3 was declared done at the merge into `main` that took `m3-constant-evaluation` (pull
+request 9; user, 2026-10-18, tenth review `study\35` §3 item 1). The areas it had left are now M4's, below.
 
 - [x] The slice links with libqb and runs (since M2's first slice)
 - [x] A program with a window is built (`$CONSOLE` without `:ONLY`, since M2's last step)
@@ -120,10 +123,7 @@ differential tests; programs without `$CONSOLE:ONLY` are checked by their screen
       `_SHR`, `_ROL`, `_ROR`, and `CHAIN` and `LPRINT` compiled and never run (`m3-console-files`). No program
       of the corpus that the old compiler accepts is held back any more
 
-Significant work remaining, from the unsupported report at the close of `m3-arraycopy` and the recorded gaps
-in `SOMEDAY.md`. M3 builds the missing capabilities; M4 checks and closes parity across the full inputs.
-These areas may take several changes each. Deliberately marked behaviours still need their recorded decisions
-or measurements; listing an area does not settle those choices.
+The areas built from the unsupported report at the close of `m3-arraycopy`:
 
 - [x] Event handlers and switches (`ON TIMER`, `ON KEY`, `TIMER ON`, `KEY(n) OFF`, and the related event forms),
       including dispatch through the existing runtime: handlers with a label or a SUB, numbered timers and
@@ -139,6 +139,30 @@ or measurements; listing an area does not settle those choices.
       (`m3-constant-evaluation`; `CHR$` with `m3-errorline-chr-const`). Upstream 347 to 356 of 399
 - [x] Embedded resources (`$EMBED`, `_EMBEDDED$`), including their use for MIDI sound banks
       (`m3-network-embed`; each file stored as it is)
+
+## After M3: the compiler in use
+
+The first point at which someone would choose this over QB64pe (user, 2026-10-18, tenth review `study\35` §3
+item 1). Three changes, in this order, before the work of M4 goes on:
+
+- [ ] Plain copy of QB64pe's `internal\c` into this repo at the reference clone's commit (`DECISIONS.md`
+      2026-10-02 and 2026-10-09)
+- [ ] The extension's diagnostics on save from the new compiler instead of `qb64pe -z`: columns and several
+      errors per run (`DECISIONS.md` 2026-10-02)
+- [ ] The extension published as a `.vsix`
+- [ ] The verification families run against the new compiler as a suite, so their recordings become regression
+      tests and a change no longer writes slice programs by hand for forms a family covers (tenth review
+      `study\35` §3 item 2, user 2026-10-18)
+
+## M4. Parity
+
+Done when: the corpus and the upstream tests in reach match, and `qb64pe.bas` compiles with no diagnostic
+(`DECISIONS.md` 2026-10-18; running the compiler built from it against the suite is in `SOMEDAY.md`).
+
+The areas M3 left (moved here on 2026-10-18), from the unsupported report at the close of `m3-arraycopy` and the
+recorded gaps in `SOMEDAY.md`; each may take several changes. Deliberately marked behaviours still need their
+recorded decisions or measurements; listing an area does not settle those choices:
+
 - [ ] The `$EXEICON` and `$EMBED` names relative to the old compiler's own folder (`icon/test`,
       `winresource/test`, `embed/test`; `SOMEDAY.md`)
 - [ ] Runtime error and source-location support: `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`; logging
@@ -157,12 +181,8 @@ or measurements; listing an area does not settle those choices.
 - [ ] Remaining memory and conventional-memory references: string-bearing types, nested and dynamic member
       arrays, `LEN` of a whole member array, and the `VARPTR`/`VARSEG` forms deferred until a program needs them
       (`SOMEDAY.md` records the individual forms and constraints)
-- [ ] Plain copy of QB64pe's `internal\c` at the reference clone's commit, when libqb must change
 
-## M4. Parity
-
-Done when: the corpus and the upstream tests in reach match, and `qb64pe.bas` compiles and the result passes the
-suite (the exit criterion, not a stretch goal, since the review after the first slice, `DECISIONS.md` 2026-10-04).
+The parity work:
 
 - [ ] The corpus and the upstream tests outside `tests\upstream\deferred.list`
 - [ ] Close the remaining compatibility gaps exposed by the full suites, including accepted programs still
@@ -173,8 +193,6 @@ suite (the exit criterion, not a stretch goal, since the review after the first 
 - [ ] `qb64pe.bas`, reached through its own include files, smallest first (the idea of QB64Fresh's
       `qb64pe_incremental` tests, which compiled `qb64pe.bas` in phases through extracted sections and stubs; the
       idea is taken, not the files: the second review, `DECISIONS.md` 2026-10-04)
-- [ ] Build and run the compiler produced from `qb64pe.bas` against the suite; compiling its source alone does not
-      meet M4's exit criterion
 - [ ] Review the coverage of features checked only by emitted calls or compiled-but-never-run programs; add
       execution checks where needed to establish parity, using screen state for window output and retaining
       documented limits for hardware-dependent behaviour
@@ -202,5 +220,4 @@ suite (the exit criterion, not a stretch goal, since the review after the first 
 
 - A formatter that matches `-y` (left M2's exit criterion on 2026-10-09, `DECISIONS.md`; the extension keeps
   formatting through the old compiler)
-- Publishing the extension as a `.vsix`
 - Deferred features and ideas: `SOMEDAY.md`

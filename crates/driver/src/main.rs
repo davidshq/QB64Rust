@@ -1,7 +1,7 @@
 //! `qb64rust`: the command line (design D9, spec `compiler/cli`).
 //!
 //! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
-//! [--qb64pe-root <dir>] [--include-root <dir>] [--keep-build]`
+//! [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build]`
 //!
 //! `qb64rust --report unsupported <file or folder>... [--include-root <dir>]`: what a set of programs still needs
 //! (`report.rs`).
@@ -15,7 +15,8 @@ use std::process::ExitCode;
 use std::sync::Mutex;
 
 const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
-[--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--include-root <dir>] [--keep-build]\n\
+[--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
+[--keep-build]\n\
        qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
        qb64rust lsp    (the language server, over stdin and stdout)";
 
@@ -30,6 +31,8 @@ struct Options {
     cpp_only: bool,
     dump: Option<String>,
     root: Option<PathBuf>,
+    /// `--libqb-root`: the copy of libqb a build uses (design D3 of `libqb-copy`).
+    libqb_root: Option<PathBuf>,
     /// `--include-root`: where included files are looked up after the including file's folder.
     include_root: Option<PathBuf>,
     keep_build: bool,
@@ -91,6 +94,7 @@ fn parse_args() -> Result<Options, String> {
                 o.dump = Some(d);
             }
             "--qb64pe-root" => o.root = Some(PathBuf::from(value("--qb64pe-root")?)),
+            "--libqb-root" => o.libqb_root = Some(PathBuf::from(value("--libqb-root")?)),
             "--include-root" => o.include_root = Some(PathBuf::from(value("--include-root")?)),
             "--keep-build" => o.keep_build = true,
             "--report" => {
@@ -325,7 +329,10 @@ fn run() -> Result<ExitCode, String> {
     }
     // Before any step that can fail, so a failed build never leaves an older executable behind.
     let _ = std::fs::remove_file(&exe);
-    let root = build::find_root(o.root.as_deref())?;
+    let roots = build::Roots {
+        clone: build::find_root(o.root.as_deref())?,
+        libqb: build::find_libqb(o.libqb_root.as_deref())?,
+    };
     build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
     let icon = qb64rust_driver::exe_icon_path(&fe, &input);
     let exe_name = exe
@@ -339,7 +346,7 @@ fn run() -> Result<ExitCode, String> {
         &exe_name,
     )?;
     build::write_embedded(&build_dir, &qb64rust_driver::used_embedded_files(&fe, &input)?)?;
-    build::build(&root, &build_dir, &exe, o.quiet, &settings)?;
+    build::build(&roots, &build_dir, &exe, o.quiet, &settings)?;
     if !o.keep_build {
         let _ = std::fs::remove_dir_all(&build_dir);
     }
