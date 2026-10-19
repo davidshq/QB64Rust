@@ -462,7 +462,7 @@ pub const CACHE_ENV: &str = "QB64RUST_BUILD_CACHE";
 fn build_key(roots: &Roots, build: &Path, settings: &Settings) -> String {
     let mut h = Fnv128::new();
     // The version stands for `build_with_make`'s fixed arguments: change it when they change.
-    h.write(b"qb64rust build cache 4\0");
+    h.write(b"qb64rust build cache 5\0");
     // The program's make flags are in no fragment: `console=1` is the same text with and without a window.
     for flag in &settings.flags {
         h.write(flag.as_bytes());
@@ -633,11 +633,87 @@ pub const OBJECTS_LOCK_ENV: &str = "QB64RUST_OBJECTS_LOCK";
 const OBJECTS_MAKEFILE: &str = "# Written by qb64rust: what a build with these flags takes from the copy of libqb.\n\
                                 qb64rust-objects: $(QBLIB) $(EXE_LIBS)\n";
 
-/// With [`OBJECTS_LOCK_ENV`] set, takes its lock: shared when `make -q` says the copy's objects for these flags
-/// are up to date, so the build only reads them, and otherwise alone, so that one build at a time writes them.
-/// The returned file holds the lock until it is dropped. `make` is `cmd` before its goal.
-fn lock_objects(make: &Command, build: &Path) -> Result<Option<std::fs::File>, String> {
+/// The file at the top of a copy of libqb that says how its objects were built ([`objects_stamp`]); git-ignored.
+pub const OBJECTS_STAMP: &str = "objects.stamp";
+
+/// What the copy's libqb objects are built with: no flags of the driver (design D1 of `libqb-object-flags`, as
+/// `qb64pe.exe` builds them without `-f:` settings) and the clone's toolchain, by the size and time of each of its
+/// executables. Change the first line when what libqb's objects are built with changes.
+fn objects_stamp(clone: &Path) -> String {
+    let mut text = String::from("qb64rust libqb objects 1: no extra flags\n");
+    let clone_c = clone.join("internal/c");
+    let mut stamps = Vec::new();
+    if let Ok(d) = std::fs::read_dir(clone_c.join("c_compiler/bin")) {
+        for e in d.flatten() {
+            stamp(&clone_c, &e.path(), &mut stamps);
+        }
+    }
+    stamps.sort();
+    for s in &stamps {
+        text.push_str(s);
+        text.push('\n');
+    }
+    text
+}
+
+/// Whether the copy's objects were built as `want` says ([`objects_stamp`]).
+fn objects_current(libqb: &Path, want: &str) -> bool {
+    std::fs::read(libqb.join(OBJECTS_STAMP)).is_ok_and(|s| s == want.as_bytes())
+}
+
+/// Makes the copy's objects those of `want` (design D2 of `libqb-object-flags`): unless its stamp says so already,
+/// removes every file a build wrote under the copy's `internal/c` ([`written_by_builds`]), so that `make` builds them
+/// again, and writes the stamp. Called holding the objects' lock alone, when there is one.
+fn refresh_objects(libqb: &Path, want: &str) -> Result<(), String> {
+    if objects_current(libqb, want) {
+        return Ok(());
+    }
+    let c = libqb.join("internal/c");
+    remove_built(&c, &c)?;
+    let path = libqb.join(OBJECTS_STAMP);
+    std::fs::write(&path, want).map_err(|e| format!("writing {}: {e}", path.display()))
+}
+
+/// Removes the files under `dir` that builds write ([`written_by_builds`]), outside `c_compiler` and `temp`.
+fn remove_built(base: &Path, dir: &Path) -> Result<(), String> {
+    let Ok(d) = std::fs::read_dir(dir) else {
+        return Ok(());
+    };
+    for e in d.flatten() {
+        let p = e.path();
+        let name = e.file_name();
+        if p.is_dir() {
+            if name != "c_compiler" && name != "temp" {
+                remove_built(base, &p)?;
+            }
+        } else if written_by_builds(dir == base, &name.to_string_lossy()) {
+            std::fs::remove_file(&p).map_err(|e| format!("removing {}: {e}", p.display()))?;
+        }
+    }
+    Ok(())
+}
+
+/// The makefile read after the copy's `Makefile` that gives the driver's flags to the program's own objects only
+/// (design D1 of `libqb-object-flags`): `-fwrapv` (LONG and `_INTEGER64` overflow wraps, `DIVERGENCES.md` D-001,
+/// D-002), `-O2` for `OptimizeCppProgram`, and the copy's `internal/c` for the headers `qbx.cpp` and `embedded.cpp`
+/// include from the build folder. `private` keeps the variable from the prerequisites `make` builds for these two
+/// targets, so libqb's objects take none of the flags, whatever the targets come to depend on.
+fn program_makefile(libqb: &Path, optimize: bool) -> String {
+    format!(
+        "# Written by qb64rust: the program's own flags, for the program's own objects only.\n\
+         $(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += {}-fwrapv -I{}/internal/c\n",
+        if optimize { "-O2 " } else { "" },
+        slash(libqb)
+    )
+}
+
+/// Takes the objects' lock where there is one ([`OBJECTS_LOCK_ENV`]) and makes the copy's objects current
+/// ([`refresh_objects`], alone). Then holds it shared when `make -q` says the copy's objects for these flags are up
+/// to date, so the build only reads them, and otherwise alone, so that one build at a time writes them. The returned
+/// file holds the lock until it is dropped. `make` is `cmd` before its goal; `stamp` is [`objects_stamp`].
+fn lock_objects(make: &Command, build: &Path, libqb: &Path, stamp: &str) -> Result<Option<std::fs::File>, String> {
     let Some(path) = std::env::var_os(OBJECTS_LOCK_ENV) else {
+        refresh_objects(libqb, stamp)?;
         return Ok(None);
     };
     let path = PathBuf::from(path);
@@ -650,6 +726,14 @@ fn lock_objects(make: &Command, build: &Path) -> Result<Option<std::fs::File>, S
         .open(&path)
         .map_err(err)?;
     file.lock_shared().map_err(err)?;
+    if !objects_current(libqb, stamp) {
+        // Alone, and checked again: another build may have refreshed them meanwhile. The objects are then built by
+        // this build, still alone.
+        file.unlock().map_err(err)?;
+        file.lock().map_err(err)?;
+        refresh_objects(libqb, stamp)?;
+        return Ok(Some(file));
+    }
     let makefile = build.join("objects.mk");
     std::fs::write(&makefile, OBJECTS_MAKEFILE).map_err(|e| format!("writing {}: {e}", makefile.display()))?;
     let mut check = Command::new(make.get_program());
@@ -720,13 +804,7 @@ fn build_with_make(roots: &Roots, build: &Path, exe: &Path, quiet: bool, setting
     cmd.args(&settings.flags)
         .arg(format!("EXE={}", slash(&linked)))
         .arg(format!("QB_QBX_SRC={}/qbx.cpp", slash(&c)))
-        .arg(format!("PATH_INTERNAL_TEMP={}", slash(&build.join("temp"))))
-        // -fwrapv: LONG and _INTEGER64 overflow wraps (DIVERGENCES.md D-001, D-002).
-        .arg(format!(
-            "CXXFLAGS_EXTRA={}-fwrapv -I{}/internal/c",
-            if settings.optimize { "-O2 " } else { "" },
-            slash(&roots.libqb)
-        ));
+        .arg(format!("PATH_INTERNAL_TEMP={}", slash(&build.join("temp"))));
     let libs = libs_extra(&roots.clone, settings);
     if !libs.is_empty() {
         cmd.arg(format!("CXXLIBS_EXTRA={libs}"));
@@ -741,8 +819,11 @@ fn build_with_make(roots: &Roots, build: &Path, exe: &Path, quiet: bool, setting
         println!("building {}", exe.display());
     }
     // Held until `make` has ended: shared while the copy's objects are only read, alone while they are built.
-    let _objects = lock_objects(&cmd, build)?;
-    cmd.arg("exe");
+    let _objects = lock_objects(&cmd, build, &roots.libqb, &objects_stamp(&roots.clone))?;
+    let program_mk = build.join("program.mk");
+    std::fs::write(&program_mk, program_makefile(&roots.libqb, settings.optimize))
+        .map_err(|e| format!("writing {}: {e}", program_mk.display()))?;
+    cmd.args(["-f", "Makefile", "-f"]).arg(slash(&program_mk)).arg("exe");
     let out = cmd.output().map_err(|e| format!("running {}: {e}", make.display()))?;
     if out.status.success() && linked.is_file() && (!settings.license || linked_license.is_file()) {
         if settings.license {
@@ -877,6 +958,61 @@ mod tests {
             extra_link_args(&spaced, "x.o"),
             format!("\"{}\"", slash(&spaced.join("x.o")))
         );
+    }
+
+    /// A copy's libqb objects built without the stamp, or under another toolchain, are removed once; libqb's sources
+    /// are kept (design D2 of `libqb-object-flags`).
+    #[test]
+    fn objects_built_otherwise_are_removed_once() {
+        let d = tempfile::tempdir().unwrap();
+        let roots = two_roots(d.path());
+        let c = roots.libqb.join("internal/c");
+        let bin = roots.clone.join("internal/c/c_compiler/bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        std::fs::write(bin.join("gcc.exe"), "1").unwrap();
+        let built = [
+            c.join("libqb_make_000.o"),
+            c.join("libqb/src/qbs.o"),
+            c.join("parts/a/b.a"),
+        ];
+        let sources = [c.join("qbx.cpp"), c.join("libqb/src/qbs.cpp")];
+        let write_all = |files: &[PathBuf]| {
+            for p in files {
+                std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+                std::fs::write(p, "1").unwrap();
+            }
+        };
+        write_all(&built);
+        write_all(&sources);
+        // Objects of an earlier driver (no stamp): removed, the sources kept, the stamp written.
+        let want = objects_stamp(&roots.clone);
+        assert!(want.contains("c_compiler/bin/gcc.exe 1 "), "{want}");
+        refresh_objects(&roots.libqb, &want).unwrap();
+        assert!(built.iter().all(|p| !p.exists()));
+        assert!(sources.iter().all(|p| p.is_file()));
+        assert!(objects_current(&roots.libqb, &want));
+        // Built again under the stamp: kept.
+        write_all(&built);
+        refresh_objects(&roots.libqb, &want).unwrap();
+        assert!(built.iter().all(|p| p.is_file()));
+        // Another toolchain: removed again.
+        std::fs::write(bin.join("gcc.exe"), "22").unwrap();
+        let other = objects_stamp(&roots.clone);
+        assert_ne!(want, other);
+        refresh_objects(&roots.libqb, &other).unwrap();
+        assert!(built.iter().all(|p| !p.exists()));
+    }
+
+    #[test]
+    fn the_programs_flags_go_to_its_own_objects() {
+        let mk = program_makefile(Path::new("x/libqb"), false);
+        assert!(
+            mk.ends_with(
+                "$(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += -fwrapv -Ix/libqb/internal/c\n"
+            ),
+            "{mk}"
+        );
+        assert!(program_makefile(Path::new("x/libqb"), true).contains("private CXXFLAGS += -O2 -fwrapv "));
     }
 
     /// The key follows libqb's sources and headers in the copy, and not what a build writes there: a libqb object or

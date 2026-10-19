@@ -165,6 +165,8 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_COT", Rule::Plain),
     ("_CSC", Rule::Plain),
     ("_SEC", Rule::Plain),
+    // libqb's `func_coth` is the hyperbolic cotangent in this repo's copy of libqb (`DIVERGENCES.md` D-031).
+    ("_COTH", Rule::Plain),
     ("_D2R", Rule::Plain),
     ("_R2D", Rule::Plain),
     ("_STRCMP", Rule::Plain),
@@ -1004,7 +1006,7 @@ fn held_override(callname: &str) -> Option<Ty> {
         "func_lof" | "func_loc" | "func_seek" => Some(Ty::I64),
         "func_timer" => Some(Ty::F64),
         // Believed `_FLOAT`; libqb's prototypes take and return a `double` (`extended_math.h`).
-        "func_cot" | "func_csc" | "func_sec" | "func_deg2rad" | "func_rad2deg" => Some(Ty::F64),
+        "func_cot" | "func_csc" | "func_sec" | "func_coth" | "func_deg2rad" | "func_rad2deg" => Some(Ty::F64),
         _ => None,
     }
 }

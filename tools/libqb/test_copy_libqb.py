@@ -47,8 +47,18 @@ class CopyTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_tool(self, *args):
-        return copy_libqb.main(["--clone", str(self.clone), "--dest", str(self.dest), *args])
+    def run_tool(self, *args, edits=None):
+        edits = edits or pathlib.Path(self.tmp.name) / "no-edits"
+        return copy_libqb.main(
+            ["--clone", str(self.clone), "--dest", str(self.dest), "--edits", str(edits), *args]
+        )
+
+    def edits_dir(self, **files):
+        d = pathlib.Path(self.tmp.name) / "edits"
+        d.mkdir(exist_ok=True)
+        for name, text in files.items():
+            (d / f"{name}.edit").write_bytes(text)
+        return d
 
     def problems(self):
         commit = copy_libqb.pinned_commit(self.dest)
@@ -94,6 +104,32 @@ class CopyTest(unittest.TestCase):
         self.assertEqual(self.run_tool(), 0)
         self.assertFalse((self.dest / "internal/c/parts/a/stale.h").exists())
         self.assertEqual(self.problems(), [])
+
+    def test_an_edit_is_applied_and_checked(self):
+        # The edit file has LF line ends; the target's CR LF are kept.
+        edits = self.edits_dir(
+            a=b"# why\nfile: internal/c/libqb.cpp\n--- old\nint x;\n--- new\nint y;\nint z;\n--- end\n"
+        )
+        self.assertEqual(self.run_tool(edits=edits), 0)
+        self.assertEqual(
+            (self.dest / "internal/c/libqb.cpp").read_bytes(), b"int y;\r\nint z;\r\n"
+        )
+        self.assertIn("tools/libqb/edits/a.edit", (self.dest / "SOURCE.md").read_text("utf-8"))
+        self.assertEqual(self.run_tool("--check", edits=edits), 0)
+        # Without the edit the file differs from the commit's.
+        self.assertEqual(self.run_tool("--check"), 1)
+        self.assertEqual(self.problems(), ["differs: internal/c/libqb.cpp"])
+
+    def test_an_edit_that_does_not_fit_stops_the_tool(self):
+        for text in [
+            b"file: internal/c/libqb.cpp\n--- old\nint w;\n--- new\n--- end\n",  # not in the file
+            b"file: internal/c/none.cpp\n--- old\nint x;\n--- new\n--- end\n",  # no such file
+            b"file: internal/c/libqb.cpp\n--- old\nint x;\n",  # no end
+        ]:
+            with self.subTest(text=text):
+                edits = self.edits_dir(a=text)
+                self.assertEqual(self.run_tool(edits=edits), 1)
+                self.assertFalse((self.dest / "Makefile").exists())
 
 
 if __name__ == "__main__":

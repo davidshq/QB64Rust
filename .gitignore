@@ -11,6 +11,8 @@ __pycache__/
 /libqb/**/*.o
 /libqb/**/*.a
 /libqb/**/*.tmp
+# What those objects were built with (design D2 of libqb-object-flags)
+/libqb/objects.stamp
 
 # Compiled verification programs
 /verification/*.exe

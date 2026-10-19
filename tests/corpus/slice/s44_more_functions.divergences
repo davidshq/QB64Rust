@@ -1,0 +1,3 @@
+# Calls _COTH, the hyperbolic cotangent here and 2 * EXP(x) - 1 in the old compiler, on purpose: its line prints
+# only whether each value is above 1, which both are.
+D-031

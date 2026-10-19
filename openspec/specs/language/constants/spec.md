@@ -36,8 +36,12 @@ SHALL be a compile error.
 A constant's value SHALL be computed when compiling, as the old compiler's constant evaluator does: integer
 arithmetic in 64 bits, `/` in floating point, `^` right-associative, comparisons giving -1 or 0, string `+` on
 string constants. An integer result, and a floating-point result with an integer value within `_INTEGER64` range,
-SHALL be typed `_INTEGER64`; any other floating-point result is a float typed by its text (below), also an integer
-power outside `_INTEGER64` range (the old evaluator wraps it, `DIVERGENCES.md` D-007). A floating-point suffix on the name SHALL convert the
+SHALL be typed `_INTEGER64`; any other floating-point result is a float typed by its text (below), also one beyond
+`_INTEGER64` range whose text has no exponent (the old evaluator clamps it, `DIVERGENCES.md` D-027). `^` SHALL give
+a floating-point result in every lane, read back by its text as every float is (the old evaluator rounds a power
+of two integers to an integer, D-028, and wraps one outside `_INTEGER64` range, D-007). An unsuffixed integer
+literal beyond `_INTEGER64` SHALL be `_UNSIGNED _INTEGER64`, and beyond that a compile error (the old evaluator
+clamps it to 9223372036854775807, D-027). A floating-point suffix on the name SHALL convert the
 value to that type as an assignment does. An integer suffix, `_BIT` suffixes included, SHALL make the constant
 behave as a literal with that suffix (`numeric-semantics`, "Integer literal typing") whose digits are the
 evaluator's value, rounded half to even if it is a float, and for an unsigned suffix a negative value written as
@@ -51,12 +55,15 @@ a float (measured, `verification\v21_g_const_suffix`: with `CONST u~& = 42949672
 suffix other than its own, or a `_BIT` constant with another suffix, SHALL be "not supported yet" (not measured). A
 suffixed literal inside a `CONST` expression is its held value (`CONST r = 300~%%` is 300). An expression the old evaluator rejects (a variable, a string mixed
 with a number, a string comparison, a function outside its list, integer division or `MOD` by 0, a suffix of the
-wrong kind) SHALL be a compile error, and so SHALL a `/` by 0 (the old evaluator gives 0, D-007). Floating-point
+wrong kind) SHALL be a compile error, and so SHALL a `/` by 0 and 0 to a negative power (the old evaluator gives 0
+and -9223372036854775808, D-007, D-028), and a value beyond `_FLOAT`'s range, as the whole value too (the old
+evaluator gives 0 there, D-029). Floating-point
 values SHALL be computed as the old evaluator computes them, in `_FLOAT` (a 64-bit mantissa), each parenthesised
 group, function result and the whole value printed to 19 significant digits and read back, so that a constant
 computed from literals, constants and the operators has the old compiler's value to the bit. A floating-point
-result whose 19-digit text has an exponent SHALL be typed `_FLOAT`, one without DOUBLE; an unsigned result
-`_UNSIGNED _INTEGER64` (measured, `verification\v45_*`). `CHR$(code)` SHALL
+result whose 19-digit text has an exponent SHALL be typed `_FLOAT`, one with a point DOUBLE, and plain digits
+beyond `_INTEGER64` `_FLOAT`; an unsigned result `_UNSIGNED _INTEGER64` (measured, `verification\v45_*`).
+`CHR$(code)` SHALL
 give the one-byte string of the code, the code computed as a parenthesised group is and, when a float,
 rounded half to even; a code outside 0 to 255 after the rounding, a string as the code, or another number of
 codes than one SHALL be a compile error (measured, `verification\v43_c_chr_const`, `v43_x01`–`x28`).
@@ -65,6 +72,10 @@ codes than one SHALL be a compile error (measured, `verification\v43_c_chr_const
 - **WHEN** `CONST a = 1E+19 / 1: PRINT a` runs
 - **THEN** it prints ` 1D+19 `
 
+#### Scenario: Float beyond _INTEGER64 without an exponent
+- **WHEN** `CONST g = 9.3E+18 / 1` is compiled
+- **THEN** `g` is the `_FLOAT` 9300000000000000000 (the old compiler's is the `_INTEGER64` 9223372036854775807)
+
 #### Scenario: Integer-valued constant is 64-bit
 - **WHEN** `CONST i3 = 3, f2 = 4 / 2: PRINT i3 * 1000000000; f2 * 4611686018427387904` runs
 - **THEN** it prints ` 3000000000 -9223372036854775808 ` (`3 * 1000000000` with the literal wraps at 32 bits)
@@ -72,6 +83,10 @@ codes than one SHALL be a compile error (measured, `verification\v43_c_chr_const
 #### Scenario: Right-associative power
 - **WHEN** `CONST c = 2 ^ 3 ^ 2: PRINT c; 2 ^ 3 ^ 2` runs
 - **THEN** it prints ` 512  64 ` (the run-time `^` is left-associative)
+
+#### Scenario: A power of integers is a float
+- **WHEN** `CONST half = 2 ^ -1, eight = 2 ^ 3: PRINT half; eight` runs
+- **THEN** it prints ` .5  8 `, `half` a DOUBLE and `eight` an `_INTEGER64` (the old compiler's `half` is 0)
 
 #### Scenario: Suffix rounds
 - **WHEN** `CONST c% = 3.7: PRINT c%` runs
@@ -98,8 +113,12 @@ codes than one SHALL be a compile error (measured, `verification\v43_c_chr_const
 - **THEN** it is a compile error
 
 #### Scenario: Division by zero
-- **WHEN** `CONST c = 1 / 0` is compiled
+- **WHEN** `CONST c = 1 / 0` or `CONST c = 0 ^ -1` is compiled
 - **THEN** it is a compile error (not "not supported yet")
+
+#### Scenario: Beyond _FLOAT
+- **WHEN** `CONST a = 1F+4000 * 1F+4000` or `CONST a = 2 ROOT 0` is compiled
+- **THEN** it is a compile error that says the value overflows (the old compiler gives 0)
 
 #### Scenario: Power beyond _INTEGER64
 - **WHEN** `CONST c = 2 ^ 70: PRINT c` runs
@@ -131,9 +150,13 @@ codes than one SHALL be a compile error (measured, `verification\v43_c_chr_const
 - **THEN** it prints ` 18446744073709551615  0  18446744073709551614 `
 
 #### Scenario: Unsuffixed literal beyond _INTEGER64
-- **WHEN** `CONST big~&& = 18446744073709551615: PRINT big~&&` runs
-- **THEN** it prints ` 9223372036854775807 `, as with the old compiler (the literal is read as an `_INTEGER64`
-  and clamped)
+- **WHEN** `CONST big~&& = 18446744073709551615, plain = 18446744073709551615: PRINT big~&&; plain` runs
+- **THEN** it prints ` 18446744073709551615  18446744073709551615 ` (the old compiler prints
+  9223372036854775807 twice)
+
+#### Scenario: Unsuffixed literal beyond 64 bits
+- **WHEN** `CONST a = 18446744073709551616` is compiled
+- **THEN** it is a compile error
 
 ### Requirement: OPTION _EXPLICIT
 `OPTION _EXPLICIT` SHALL apply to the whole program, wherever it stands (also inside a block or a procedure, and
@@ -182,10 +205,12 @@ right. The warning SHALL NOT change the value or stop the compile.
 ### Requirement: Constants of the auto-included file
 Every program SHALL know the constants QB64pe declares in its auto-included file `beforefirstline.bi` (the
 Windows 64-bit branches), as if their `CONST` lines stood above the program's first line: visible in the main
-module and in every procedure, each with the value and type the `CONST` evaluator gives its expression, the
-limits whose literals the old evaluator clamps included (`_INTEGER64_MIN` is -9223372036854775807,
-`_UINTEGER64_MAX` 9223372036854775807). A constant whose expression has a form the compiler does not read SHALL be
-reported "not supported yet" where it is used, and SHALL NOT affect a program that does not use it.
+module and in every procedure, each with the value and type the `CONST` evaluator gives its expression. The limits
+written as literals beyond `_INTEGER64` SHALL hold their types' limits (`_INTEGER64_MIN` and `_OFFSET_MIN`
+-9223372036854775808, `_UINTEGER64_MAX` and `_UOFFSET_MAX` 18446744073709551615; the old evaluator clamps them to
+-9223372036854775807 and 9223372036854775807, `DIVERGENCES.md` D-027). A constant whose expression has a form the
+compiler does not read SHALL be reported "not supported yet" where it is used, and SHALL NOT affect a program that
+does not use it.
 
 #### Scenario: _TRUE and _FALSE
 - **WHEN** `PRINT _TRUE; _FALSE` runs
@@ -214,7 +239,7 @@ reported "not supported yet" where it is used, and SHALL NOT affect a program th
 
 #### Scenario: The limits of the types
 - **WHEN** `PRINT _INTEGER64_MIN; _UINTEGER64_MAX; _TOSTR$(_DOUBLE_MAX); " "; _TOSTR$(_FLOAT_MAX)` runs
-- **THEN** it prints `-9223372036854775807  9223372036854775807 1.797693134862315D+308 1.189731495357231765F+4932`
+- **THEN** it prints `-9223372036854775808  18446744073709551615 1.797693134862315D+308 1.189731495357231765F+4932`
 
 #### Scenario: Not used
 - **WHEN** a program names no constant of the auto-included file
@@ -225,7 +250,9 @@ Every function of the old evaluator's list SHALL be computed in a `CONST`, with 
 counts, argument kinds and errors. A function the old compiler computes exactly SHALL have its value. Where the old
 value depends on the CPU and system library (`SIN`, `LOG`, `ROOT` …), the constant SHALL have the value every
 result that library could give leads to, or, when they lead to different constants, the value of correctly
-rounded calls with a warning (`DIVERGENCES.md` D-026).
+rounded calls with a warning (`DIVERGENCES.md` D-026). `_COTH` SHALL be the hyperbolic cotangent of its argument
+as a `double`, correctly rounded to a `double`, with no upper limit, and a compile error at 0 (the old compiler's
+is `2 * EXP(x) - 1`, D-031).
 
 #### Scenario: Exact functions
 - **WHEN** `CONST a = ABS(2), s = SGN(-20), i = INT(20.2), r = _ROUND(20.2), c = _CEIL(20.2), f = FIX(20.5)` and
@@ -258,6 +285,15 @@ rounded calls with a warning (`DIVERGENCES.md` D-026).
 #### Scenario: An argument the old evaluator rejects
 - **WHEN** `CONST c = SQR(-1)` or `CONST c = _ARCSEC(0.5)` is compiled
 - **THEN** it is a compile error (not "not supported yet")
+
+#### Scenario: The hyperbolic cotangent
+- **WHEN** `CONST c## = _COTH(.2), d = _COTH(45)` is compiled
+- **THEN** `c##` is 5.066489563439472654 and `d` the `_INTEGER64` 1 (the old compiler's `_COTH(.2)` is
+  1.442805516320339709, and `_COTH(45)` stops it)
+
+#### Scenario: _COTH(0)
+- **WHEN** `CONST c = _COTH(0)` is compiled
+- **THEN** it is a compile error (the old compiler gives 1)
 
 ### Requirement: Suffixed constants inside a CONST
 A constant named with a type suffix inside a `CONST` expression SHALL be read as the old evaluator reads it: the

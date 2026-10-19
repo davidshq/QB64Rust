@@ -81,7 +81,9 @@ the inputs).
 **Fourth list, `tests/known_clean_not_passing.list`** (2026-10-07, `study\archive\26` §3; spec `testing/compiler-tests`,
 "Clean programs are listed"): every corpus or upstream program the old compiler accepts that the new compiler
 compiles without an error must be on `tests/corpus/slice.list`, on `pass.list` or here, with the reason it does not
-pass tier 2. It is kept by hand (not regenerated) and shrink-only; today it holds the five corpus `KFAIL` programs.
+pass tier 2. It is kept by hand (not regenerated) and shrink-only; today it holds the five corpus `KFAIL` programs,
+`http/read_example` (`KFAIL`) and `const/math_funcs`, which left `pass.list` with `const-rulings` (it tests `_COTH`
+against QB64pe's value, `DIVERGENCES.md` D-031).
 A program that becomes clean fails tier 1 until it has been run in tier 2 and listed.
 
 ## Tier 2 and upstream progress
@@ -101,7 +103,7 @@ job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 202
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:upstream-membership -->
-**Upstream progress: 356 of 403**: the programs of `pass.list` of the suite's 404 programs less the 1 of `deferred.list`.
+**Upstream progress: 355 of 403**: the programs of `pass.list` of the suite's 404 programs less the 1 of `deferred.list`.
 <!-- /counts:upstream-membership -->
 
 <!-- counts:upstream-results -->
@@ -113,7 +115,8 @@ The "Upstream progress" paragraphs below are the history up to 2026-10-16, one p
 none: what joined `pass.list` is in its `tasks.md`, and the numbers are the blocks above.
 
 - `pass.list`: the upstream programs the new compiler passes. A ratchet: add a program when it passes, never
-  remove one.
+  remove one, but for a decided divergence the program tests (`const/math_funcs`, D-031, `const-rulings`; to the
+  user at that change's close).
 - `deferred.list`: the program left out of a change (`arrays/t001_whole_array_core`: a plain scalar beside an
   array typed by `DIM … AS`, user, 2026-10-15); it held the programs that needed a feature deferred to
   `SOMEDAY.md`, found by pattern and checked by eye. `REDIM _RETAIN` compiles since `m3-redim-retain`,

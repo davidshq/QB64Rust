@@ -237,7 +237,6 @@ const/const_replace
 const/const_sub
 const/expression
 const/hex_literals
-const/math_funcs
 const/not_string
 const/offset
 const/rho_test

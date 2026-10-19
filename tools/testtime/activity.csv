@@ -1021,6 +1021,19 @@ version,session,change,category,actions,bytes
 1,698be838,test-while-building,reading,7,0
 1,698be838,test-while-building,test runs,4,0
 1,698be838,test-while-building,tests and fixtures,10,5178
+1,69fd946a,,other commands,21,0
+1,69fd946a,,reading,4,0
+1,69fd946a,const-rulings,documents and planning,6,28300
+1,69fd946a,const-rulings,other commands,1,0
+1,69fd946a,libqb-object-flags,builds,1,0
+1,69fd946a,libqb-object-flags,documents and planning,18,16139
+1,69fd946a,libqb-object-flags,measurement runs,1,0
+1,69fd946a,libqb-object-flags,other,1,107
+1,69fd946a,libqb-object-flags,other commands,101,0
+1,69fd946a,libqb-object-flags,product code,29,19948
+1,69fd946a,libqb-object-flags,reading,4,0
+1,69fd946a,libqb-object-flags,test runs,38,0
+1,69fd946a,libqb-object-flags,tests and fixtures,37,17022
 1,6a1cc2e4,,reading,1,0
 1,6a1cc2e4,m2-defxxx-common-arrays,builds,2,0
 1,6a1cc2e4,m2-defxxx-common-arrays,documents and planning,17,16229
@@ -1088,6 +1101,13 @@ version,session,change,category,actions,bytes
 1,6d586be5,m3-errorline-chr-const,scratch files,1,3576
 1,6d586be5,m3-errorline-chr-const,test runs,23,0
 1,6d586be5,m3-errorline-chr-const,tests and fixtures,27,33611
+1,6e612bb3,extension-vsix,builds,1,0
+1,6e612bb3,extension-vsix,documents and planning,9,2677
+1,6e612bb3,extension-vsix,other commands,33,0
+1,6e612bb3,extension-vsix,product code,33,12913
+1,6e612bb3,extension-vsix,reading,9,0
+1,6e612bb3,extension-vsix,test runs,15,0
+1,6e612bb3,extension-vsix,tests and fixtures,3,1815
 1,6f06e603,,other commands,14,0
 1,6f06e603,,reading,3,0
 1,6f06e603,,test runs,1,0
@@ -1167,6 +1187,13 @@ version,session,change,category,actions,bytes
 1,762aec7d,m3-mem,scratch files,4,4806
 1,762aec7d,m3-mem,test runs,1,0
 1,76c8a4d1,,other commands,1,0
+1,7702bcbf,libqb-object-flags,builds,1,0
+1,7702bcbf,libqb-object-flags,documents and planning,3,828
+1,7702bcbf,libqb-object-flags,other commands,31,0
+1,7702bcbf,libqb-object-flags,product code,7,2949
+1,7702bcbf,libqb-object-flags,reading,5,0
+1,7702bcbf,libqb-object-flags,test runs,12,0
+1,7702bcbf,libqb-object-flags,tests and fixtures,5,1281
 1,77c77d98,,builds,1,0
 1,77c77d98,,documents and planning,13,8329
 1,77c77d98,,measurement preparation,18,4214
@@ -1434,10 +1461,10 @@ version,session,change,category,actions,bytes
 1,8e1a13d1,extension-vsix,builds,4,0
 1,8e1a13d1,extension-vsix,documents and planning,16,39971
 1,8e1a13d1,extension-vsix,other,4,1380
-1,8e1a13d1,extension-vsix,other commands,81,0
+1,8e1a13d1,extension-vsix,other commands,82,0
 1,8e1a13d1,extension-vsix,product code,102,83176
 1,8e1a13d1,extension-vsix,reading,22,0
-1,8e1a13d1,extension-vsix,test runs,28,0
+1,8e1a13d1,extension-vsix,test runs,29,0
 1,8e1a13d1,extension-vsix,tests and fixtures,7,10720
 1,8e797edb,,other commands,2,0
 1,8f6b12de,,builds,3,0
@@ -1448,6 +1475,13 @@ version,session,change,category,actions,bytes
 1,8f6b12de,,scratch files,1,3470
 1,8f6b12de,,test runs,3,0
 1,8f6b12de,,tests and fixtures,2,440
+1,8f6e34f0,,other commands,2,0
+1,8f6e34f0,extension-vsix,documents and planning,7,7807
+1,8f6e34f0,extension-vsix,other,1,0
+1,8f6e34f0,extension-vsix,other commands,5,0
+1,8f6e34f0,extension-vsix,reading,2,0
+1,8f6e34f0,extension-vsix,scratch files,1,971
+1,8f6e34f0,extension-vsix,test runs,1,0
 1,8fa25c37,,other commands,2,0
 1,8fa25c37,,reading,2,0
 1,8fa25c37,m2-console-screenhide,documents and planning,2,584

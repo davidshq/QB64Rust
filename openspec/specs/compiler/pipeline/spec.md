@@ -166,8 +166,11 @@ SHALL raise error 9, and a read with it SHALL give the value at position 0 of th
 The C++ emitter SHALL write every fragment that `qbx.cpp` includes into a build folder that is inside neither the
 QB64pe reference clone nor this repo's copy of libqb, and the driver SHALL build the executable with the copy's
 `Makefile`, `qbx.cpp` and libqb sources and the clone's toolchain, compiling generated code with `-fwrapv`. The
-libqb objects a build needs SHALL be written into the copy's git-ignored places, never into the clone. A build
-SHALL NOT change any tracked file of the reference clone or of the copy.
+driver's flags (`-fwrapv`, `-O2` for `OptimizeCppProgram`) SHALL reach the program's own objects only; libqb's
+objects SHALL be built with none of them, whatever build makes them. The libqb objects a build needs SHALL be
+written into the copy's git-ignored places, never into the clone, and a copy whose objects were built by another
+toolchain or with other flags of the driver SHALL have them built again. A build SHALL NOT change any tracked file
+of the reference clone or of the copy.
 
 #### Scenario: Reference clone unchanged
 - **WHEN** a slice program is built
@@ -182,11 +185,22 @@ SHALL NOT change any tracked file of the reference clone or of the copy.
 - **WHEN** a program in `tests/corpus/slice.list` is compiled by `qb64rust` and run by the corpus runner
 - **THEN** its output equals the `.output` recorded from `qb64pe.exe`
 
+#### Scenario: An optimised build first
+- **WHEN** the copy has no libqb objects and a program with `OptimizeCppProgram` is built first
+- **THEN** `qbx.cpp` is compiled with `-O2 -fwrapv` and libqb's sources without either
+
+#### Scenario: Objects of an earlier build
+- **WHEN** the copy holds libqb objects built before its stamp was written, or by another toolchain, and a program
+  is built
+- **THEN** those objects are removed and built again, and the copy's stamp names the toolchain
+
 ### Requirement: The copy of libqb equals the reference commit
 This repo SHALL hold a copy of QB64pe's `Makefile`, `internal\c` (without the toolchain), `licenses` and
 `COPYING.txt`, each file byte for byte as at the commit its `SOURCE.md` names, which SHALL be the reference
-clone's commit. A tool SHALL write the copy from the clone and SHALL say, with `--check`, which files differ from
-the commit, are missing or are extra.
+clone's commit, but for the copy's own edits. Each edit SHALL be a file of `tools\libqb\edits` that names its
+target file and the exact lines it replaces, and `SOURCE.md` SHALL list the edits. A tool SHALL write the copy from
+the clone and its edits and SHALL say, with `--check`, which files differ from the commit's with the edits applied,
+are missing or are extra; an edit whose lines do not occur exactly once in its target SHALL stop the tool.
 
 #### Scenario: A file edited by hand
 - **WHEN** a file of the copy is edited and the check is run
@@ -195,6 +209,14 @@ the commit, are missing or are extra.
 #### Scenario: The copy as written
 - **WHEN** the copy has just been written by the tool and the check is run
 - **THEN** it exits with status 0
+
+#### Scenario: An edit of the copy
+- **WHEN** an edit file names a file of the copy and lines it holds once, and the tool writes the copy
+- **THEN** that file holds the edit's new lines, `SOURCE.md` names the edit, and the check exits with status 0
+
+#### Scenario: An edit that does not fit
+- **WHEN** an edit's old lines do not occur in its target, or occur twice
+- **THEN** the tool stops with status 1 and writes nothing
 
 ### Requirement: Symbol table
 `sema` SHALL record every variable (including parameters and function results), procedure and label as a symbol

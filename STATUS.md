@@ -50,14 +50,14 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 1. **Three changes to make the compiler usable** (`ROADMAP.md`, "After M3"), all built: the plain copy of
    `internal\c` (`libqb-copy`, archived, `89ec865`); the extension's diagnostics on save from the new compiler
-   (`extension-diagnostics`, archived, `32a4849`); the `.vsix` (`extension-vsix`, built, not archived yet: a
+   (`extension-diagnostics`, archived, `32a4849`); the `.vsix` (`extension-vsix`, archived, `b3666e9`: a
    `win32-x64` package carrying `qb64rust.exe` and the copy of libqb, Build and Run through `qb64rust` under
    `qb64rust.buildWith`, releases from a tag `vscode-v<version>`; the repository became MIT-licensed with it).
-2. **The rulings of 2026-10-18 on `m3-constant-evaluation`'s kept behaviours**, not built: D-027 to D-030 (the
-   `CONST` evaluator; one change, any time), D-031 (`_COTH`, the first edit of the copy of libqb, now possible;
-   noted for QB64pe in `UPSTREAM.md`). Found by `libqb-copy` for a later change: libqb's objects take the driver's
-   `-fwrapv` (and `-O2` when the first build asks), and `s75_sound_wait` crashed once under load (its design,
-   "Risks").
+2. **Built and closed, not archived:** `libqb-object-flags` (the driver's flags reach the program's own objects
+   only; a stamp rebuilds a copy's libqb objects built otherwise) and `const-rulings` (D-027 to D-031; the copy of
+   libqb's first edit, `_COTH`, a supported built-in now); `close.py --check` passes. Then their archive and the
+   merge of `newer-changes` into `main` with its full runs.
+   Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 3. **The verification families as a suite of the new compiler** (`study\35` §3 item 2, approved).
 4. Then M4's parity work; the upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, blanks
    around `.` and `_CONTINUE` (2 programs each).
@@ -96,6 +96,12 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 **At the merge into `main` of pull request 9** (2026-10-18, `61ae7be`; the compiler is the one of the change's
 close, the commits after it touched comments and documents only): the differential pass list 59 of 59. The full
 suites were left to the next merge (user, `DECISIONS.md` 2026-10-18); the close's runs below stand for the rest.
+
+**At the close of `libqb-object-flags` and `const-rulings`** (2026-10-19, one closing set for both,
+`close.py --check` passes): tier 1 388 of 388; `slice.list` 458 of 458 (`--pass-cache`), also without folding;
+upstream `pass.list` 355 of 355 (`const/math_funcs` left it, D-031); the call-site check 1888 of 1888 equal; the
+41 command-line tests that build pass. Demand: corpus 460 of 464 without errors (the same four as before); upstream
+312 of 348 without errors, 24 held back.
 
 **At the close of `m3-constant-evaluation`** (2026-10-18, `close.py --check` passes, again after the review's fix
 of the D-026 warning): tier 1 364 of 364;
@@ -156,12 +162,7 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 ## Known bugs
 
-- **libqb's objects are not rebuilt when the driver's flags change.** `make` rebuilds an object by file times
-  only, so the objects in a copy of libqb keep the flags of the build that made them (`CXXFLAGS_EXTRA`: `-fwrapv`,
-  and `-O2` if the first build asked; "Next" item 2). In the extension, the prepared copy is named by the version
-  and `libqb.id`, which hashes libqb's files but not the binary: a local package with a new `qb64rust.exe` and
-  the same libqb reuses objects built under the old flags. Releases are not affected (a new version, a new copy).
-  To fix in the driver, for its own `libqb\` too, not by hashing the binary into the extension's id.
+None known (the stale libqb objects are fixed by `libqb-object-flags`).
 
 ## Queued for later milestones
 

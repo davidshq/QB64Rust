@@ -490,9 +490,24 @@ impl Emitter<'_> {
         if optional.iter().any(|&o| o) {
             parts.push(mask.to_string());
         }
-        format!("{}({})", b.callname, parts.join(","))
+        // Every result of `_COTH` takes the path of `DIVERGENCES.md` D-031 (the copy of libqb's `func_coth` is the
+        // hyperbolic cotangent): a wrapper in `global.txt`, written for a program that calls it, traces it
+        // (`tools\callsite` reads it as `func_coth`).
+        let callname = if b.callname == "func_coth" {
+            if !self.func_decls.iter().any(|d| d == COTH_WRAPPER) {
+                self.func_decls.push(COTH_WRAPPER.to_string());
+            }
+            "qbr_coth"
+        } else {
+            b.callname
+        };
+        format!("{callname}({})", parts.join(","))
     }
 }
+
+/// `_COTH` with the run-time trace of `DIVERGENCES.md` D-031 (`qbr_diverged`, design D1 of `m3-divergence-trace`):
+/// every call takes the row's path.
+const COTH_WRAPPER: &str = "static inline double qbr_coth(double qbr_x){qbr_diverged(31);return func_coth(qbr_x);}\n";
 
 /// The letters of libqb's `<t>2string` and `string2<t>` for a numeric type (`qb64pe.bas` 21230–21244).
 fn bytes_letters(t: Ty) -> &'static str {

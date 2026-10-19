@@ -1,27 +1,28 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 149
 expression: snap
 ---
-const_chr_errors.bas:8:12: error: `CHR$` in a `CONST` needs a code from 0 to 255
 const_chr_errors.bas:9:12: error: `CHR$` in a `CONST` needs a code from 0 to 255
 const_chr_errors.bas:10:12: error: `CHR$` in a `CONST` needs a code from 0 to 255
 const_chr_errors.bas:11:12: error: `CHR$` in a `CONST` needs a code from 0 to 255
 const_chr_errors.bas:12:12: error: `CHR$` in a `CONST` needs a code from 0 to 255
 const_chr_errors.bas:13:12: error: `CHR$` in a `CONST` needs a code from 0 to 255
-const_chr_errors.bas:14:12: error: `CHR$` in a `CONST` takes numbers, not strings
-const_chr_errors.bas:16:12: error: `CHR$` in a `CONST` takes numbers, not strings
+const_chr_errors.bas:14:12: error: `CHR$` in a `CONST` needs a code from 0 to 255
+const_chr_errors.bas:15:12: error: `CHR$` in a `CONST` takes numbers, not strings
 const_chr_errors.bas:17:12: error: `CHR$` in a `CONST` takes numbers, not strings
-const_chr_errors.bas:18:13: error: `CHR$` in a `CONST` takes one code
+const_chr_errors.bas:18:12: error: `CHR$` in a `CONST` takes numbers, not strings
 const_chr_errors.bas:19:13: error: `CHR$` in a `CONST` takes one code
-const_chr_errors.bas:20:18: error: expected the end of the statement
-const_chr_errors.bas:21:7: error: type mismatch
-const_chr_errors.bas:22:22: error: cannot mix strings and numbers
-const_chr_errors.bas:23:15: error: cannot mix strings and numbers
-const_chr_errors.bas:24:22: error: cannot mix strings and numbers
-const_chr_errors.bas:25:22: error: strings cannot be compared in a `CONST`
-const_chr_errors.bas:26:13: error: this operator cannot be used on strings
-const_chr_errors.bas:27:13: error: `CHR` cannot be used in a `CONST`
-const_chr_errors.bas:27:13: note: QB64pe: Unexpected element 'CHR'
-const_chr_errors.bas:29:18: error: `x` is a variable, not a constant
-const_chr_errors.bas:29:18: note: QB64pe: Unexpected element 'X'
-const_chr_errors.bas:31:13: error: `CHR$` in a `CONST` needs a code from 0 to 255
+const_chr_errors.bas:20:13: error: `CHR$` in a `CONST` takes one code
+const_chr_errors.bas:21:18: error: expected the end of the statement
+const_chr_errors.bas:22:7: error: type mismatch
+const_chr_errors.bas:23:22: error: cannot mix strings and numbers
+const_chr_errors.bas:24:15: error: cannot mix strings and numbers
+const_chr_errors.bas:25:22: error: cannot mix strings and numbers
+const_chr_errors.bas:26:22: error: strings cannot be compared in a `CONST`
+const_chr_errors.bas:27:13: error: this operator cannot be used on strings
+const_chr_errors.bas:28:13: error: `CHR` cannot be used in a `CONST`
+const_chr_errors.bas:28:13: note: QB64pe: Unexpected element 'CHR'
+const_chr_errors.bas:30:18: error: `x` is a variable, not a constant
+const_chr_errors.bas:30:18: note: QB64pe: Unexpected element 'X'
+const_chr_errors.bas:31:18: error: this number is beyond `_UNSIGNED _INTEGER64`'s range

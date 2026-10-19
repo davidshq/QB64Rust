@@ -1150,6 +1150,24 @@ fn const_power_beyond_integer64() {
     assert_eq!(build_and_run(&d, program), " 1.180591620717411D+21 \n");
 }
 
+/// The `CONST` rulings of 2026-10-18, built and run: an unsuffixed literal beyond `_INTEGER64` and the limits
+/// (`DIVERGENCES.md` D-027; the old compiler prints 9223372036854775807 and -9223372036854775807), `2 ^ -1` (D-028;
+/// 0 there), and `_COTH` at run time from the edited copy of libqb (D-031; `2 * EXP(x) - 1` and error 5 above
+/// 44.014845 there), error 5 at 0.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn const_rulings_run() {
+    let d = scratch("const-rulings");
+    let program = "$CONSOLE:ONLY\nCONST plain = 18446744073709551615, half = 2 ^ -1\n\
+                   PRINT plain; half; _UINTEGER64_MAX; _INTEGER64_MIN\n\
+                   x# = .2: y# = -.5: z# = 45: PRINT CLNG(_COTH(x#) * 1000); CLNG(_COTH(y#) * 1000); _COTH(z#)\n\
+                   ON ERROR GOTO h\nPRINT _COTH(0)\nSYSTEM\nh: PRINT \"error\"; ERR: RESUME NEXT\n";
+    assert_eq!(
+        build_and_run_tracing(&d, program, "D-031\n"),
+        " 18446744073709551615  .5  18446744073709551615 -9223372036854775808 \n 5066 -2164  1 \nerror 5 \n"
+    );
+}
+
 /// A label and a `CONST` on one line (`DIVERGENCES.md` D-008: the old compiler fails to compile it).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]

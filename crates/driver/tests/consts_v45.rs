@@ -2,7 +2,14 @@
 //! `verification\v45_b_funcs` holds each one as a `_FLOAT` constant and its recorded output prints each value's 19
 //! digits; `v45_b_funcs_plain` some as plain constants. A constant compiled here prints the same text, or its line
 //! has the warning of `DIVERGENCES.md` D-026 (the old value depends on the CPU and the system's library, and the
-//! correctly rounded one was taken). None may differ without it.
+//! correctly rounded one was taken), or it is one of [`DECIDED`]. None may differ otherwise.
+
+/// The constants of `v45_b_funcs` that differ from the old compiler's by a decided row of `DIVERGENCES.md`: the
+/// recorded expression, the row, and the value here.
+const DECIDED: [(&str, &str, &str); 2] = [
+    ("_COTH(.2)", "D-031", "5.066489563439472654"),
+    ("2 ^ -1", "D-028", "0.5"),
+];
 
 use qb64rust_driver::frontend;
 use qb64rust_sema::consteval::Value;
@@ -66,10 +73,16 @@ fn every_function_has_the_old_value_or_its_warning() {
     let p = compile("v45_b_funcs");
     assert_eq!(p.consts.len(), p.out.len(), "one constant per line of output");
     let mut fell_back = Vec::new();
+    let mut decided = Vec::new();
     for ((name, line, ours), recorded) in p.consts.iter().zip(&p.out) {
         let (what, theirs) = recorded.split_once(": ").unwrap();
         // `_TOSTR$` writes the exponent's `E` as `F`.
         let theirs = theirs.replace('F', "E");
+        if let Some((_, row, want)) = DECIDED.iter().find(|(w, _, _)| *w == what) {
+            assert_eq!(ours, want, "{name} ({what}) by {row}");
+            decided.push(what);
+            continue;
+        }
         if *ours == theirs {
             continue;
         }
@@ -78,6 +91,10 @@ fn every_function_has_the_old_value_or_its_warning() {
             "{name} ({what}) is {ours}, the old compiler's {theirs}, with no D-026 warning on line {line}"
         );
         fell_back.push(format!("{what}: {ours} (old {theirs})"));
+    }
+    // Each decided row matched a recorded line, so none is listed in vain.
+    for (what, row, _) in DECIDED {
+        assert!(decided.contains(&what), "{what} ({row}) is in no recorded line");
     }
     // The values D-026 took, for the record (`cargo test … -- --nocapture`).
     println!(

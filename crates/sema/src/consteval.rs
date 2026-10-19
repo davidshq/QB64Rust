@@ -120,21 +120,21 @@ pub fn error<T>(msg: &str) -> R<T> {
 // ---- Numbers from text ----
 
 /// A number literal of the source as the old evaluator reads it (`elementGetNumericValue`): an integer with a suffix
-/// in its lane (unsigned when the suffix is), a plain integer as an `_INTEGER64` clamped to its range (`VAL(…,
-/// _INTEGER64)`, measured: `18446744073709551615` is 9223372036854775807), a float by `VAL` in `_FLOAT`, typed by
-/// its letter or suffix.
+/// in its lane (unsigned when the suffix is), a plain integer as an `_INTEGER64`, a float by `VAL` in `_FLOAT`, typed
+/// by its letter or suffix. A plain integer beyond `_INTEGER64` is read as a statement reads it, in the unsigned
+/// lane, and beyond `_UNSIGNED _INTEGER64` it is an error (`DIVERGENCES.md` D-027: the old evaluator clamps it to
+/// 9223372036854775807, measured, `verification\v45_a_lanes`).
 pub fn literal(text: &[u8]) -> R<Value> {
     let plain = !text.is_empty() && text.iter().all(u8::is_ascii_digit);
     if plain {
         let digits: Vec<u8> = text.iter().copied().skip_while(|&c| c == b'0').collect();
-        // At most 19 digits fit a `u128` with room to spare; beyond `_INTEGER64` the value is clamped.
-        let v = if digits.len() > 19 {
-            i64::MAX
-        } else {
-            let n = digits.iter().fold(0u128, |v, &c| v * 10 + u128::from(c - b'0'));
-            i64::try_from(n).unwrap_or(i64::MAX)
+        // At most 20 digits can be within 64 bits; a `u128` holds them with room to spare.
+        let n = (digits.len() <= 20).then(|| digits.iter().fold(0u128, |v, &c| v * 10 + u128::from(c - b'0')));
+        return match n {
+            Some(n) if n <= u128::from(i64::MAX.cast_unsigned()) => Ok(Value::Int(i64::try_from(n).expect("in range"))),
+            Some(n) if n <= u128::from(u64::MAX) => Ok(Value::UInt(u64::try_from(n).expect("in range"))),
+            _ => error("this number is beyond `_UNSIGNED _INTEGER64`'s range"),
         };
-        return Ok(Value::Int(v));
     }
     match literal::number(text, false) {
         Ok(NumLit::Int { value, qb, .. }) => Ok(if qb.is_unsigned() {
@@ -218,9 +218,10 @@ pub fn shortest_text(v: f64) -> String {
 
 /// What the old evaluator does with a value it prints and reads back (a parenthesised group, a function result,
 /// the whole value; design D2): an integer comes back in its lane; a float as `_TOSTR$` prints it, read as its
-/// text says: an exponent a `_FLOAT`, a point a DOUBLE, plain digits an `_INTEGER64` (clamped). `INF` or `NAN`
-/// inside an expression is an error; as the whole value (`outermost`) `VAL` reads it as 0 (measured,
-/// `verification\v45_x25`, `x38`).
+/// text says: an exponent a `_FLOAT`, a point a DOUBLE, plain digits an `_INTEGER64` within its range, and beyond
+/// it the `_FLOAT` it is (`DIVERGENCES.md` D-027: the old evaluator clamps it). `INF` is an error, as the whole
+/// value too (D-029: there `VAL` reads it as 0, measured, `verification\v45_x25`, `x38`). `NAN` inside an
+/// expression is an error, and as the whole value 0.
 pub fn reread(v: Value, outermost: bool) -> R<Value> {
     let Value::Float(r, _) = v else {
         return Ok(v);
@@ -237,16 +238,15 @@ pub fn reread(v: Value, outermost: bool) -> R<Value> {
 /// The value of a text `_TOSTR$` gave (design D2).
 fn read_text(t: &str, outermost: bool) -> R<Value> {
     let upper = t.trim_start_matches('-');
-    if upper == "INF" || upper == "NAN" {
+    if upper == "INF" {
+        return error("this `CONST` overflows: its value is beyond `_FLOAT`'s range");
+    }
+    if upper == "NAN" {
         if !outermost {
             return error(&format!("the value `{t}` cannot be used in a `CONST`"));
         }
-        // `VAL` of `INF` (with the `F` of a `_FLOAT`) or `NAN` (plain, an `_INTEGER64`) is 0.
-        return Ok(if upper == "INF" {
-            Value::float(F80::ZERO, FloatTy::Float)
-        } else {
-            Value::Int(0)
-        });
+        // `VAL` of `NAN` (plain, an `_INTEGER64`) is 0.
+        return Ok(Value::Int(0));
     }
     if t.contains('E') {
         return Ok(Value::float(decimal(t), FloatTy::Float));
@@ -254,24 +254,11 @@ fn read_text(t: &str, outermost: bool) -> R<Value> {
     if t.contains('.') {
         return Ok(Value::float(decimal(t), FloatTy::Double));
     }
-    // Plain digits, perhaps with a minus: `VAL(…, _INTEGER64)`, clamped.
-    let (neg, digits) = t.strip_prefix('-').map_or((false, t), |d| (true, d));
-    let Value::Int(v) = literal(digits.as_bytes())? else {
-        unreachable!("plain digits");
-    };
-    Ok(Value::Int(if neg {
-        if digits.len() > 18 && v == i64::MAX {
-            // `VAL` clamps a negative too.
-            match digits.parse::<u128>() {
-                Ok(m) if m > u128::from(i64::MAX.cast_unsigned()) => i64::MIN,
-                _ => -v,
-            }
-        } else {
-            -v
-        }
-    } else {
-        v
-    }))
+    // Plain digits, perhaps with a minus.
+    Ok(match t.parse::<i64>() {
+        Ok(v) => Value::Int(v),
+        Err(_) => Value::float(decimal(t), FloatTy::Float),
+    })
 }
 
 // ---- The lanes ----
@@ -518,28 +505,17 @@ fn holds(op: BinOp, o: Ordering) -> bool {
     }
 }
 
-/// `a ^ b` (`Exponent`): in the float lane libqb's `pow2` (`powl`, certified); in an integer lane the same power
-/// stored back by `qbr` (`2 ^ -1` is 0, `0 ^ -1` `i64::MIN`, measured), except a power beyond `_INTEGER64` range,
-/// which is the float it is (`DIVERGENCES.md` D-007: the old evaluator stores `i64::MIN`).
+/// `a ^ b` (`Exponent`): libqb's `pow2` (`powl`, certified), a float in every lane, as `/` gives one and `^` does in
+/// a statement (`DIVERGENCES.md` D-028: in an integer lane the old evaluator stores the power back by `qbr`, so
+/// `2 ^ -1` is 0, measured, `verification\v45_b_funcs`; D-007: beyond `_INTEGER64` `i64::MIN`). As every float, it
+/// is read back by its text where a group or the whole value ends, so `2 ^ 3` is still the `_INTEGER64` 8. 0 to a
+/// negative power is a division by zero.
 fn power(a: &Value, b: &Value) -> R<Value> {
     let (x, y) = (as_float(a), as_float(b));
-    let p = crate::certify::pow2(x, y)?;
-    if is_float(a) || is_float(b) {
-        return Ok(float_result(p));
+    if x.one().is_some_and(F80::is_zero) && y.one().is_some_and(|y| y.is_neg() && !y.is_zero()) {
+        return error("division by zero");
     }
-    // An integer lane.
-    let max = Range::exact(F80::from_i64(i64::MAX));
-    let min = Range::exact(F80::from_i64(i64::MIN));
-    let beyond = compare(p, max)? == Some(Ordering::Greater) || compare(p, min)? == Some(Ordering::Less);
-    if beyond && p.mid.is_finite() {
-        return Ok(float_result(p));
-    }
-    let i = qbr_range(p)?;
-    Ok(if is_unsigned(a) || is_unsigned(b) {
-        Value::UInt(i.cast_unsigned())
-    } else {
-        Value::Int(i)
-    })
+    Ok(float_result(crate::certify::pow2(x, y)?))
 }
 
 /// `a ROOT b` (`const_eval.bas` 659–672): `a ^ (1 / b)` in the float lane, with the sign of a negative `a` kept
@@ -901,7 +877,6 @@ mod tests {
         assert_eq!(max, Value::UInt(u64::MAX));
         assert_eq!(bin(BinOp::Add, &max, &int(1)), Value::UInt(0));
         assert_eq!(bin(BinOp::Sub, &max, &int(1)), Value::UInt(u64::MAX - 1));
-        assert_eq!(flt("18446744073709551615"), int(i64::MAX));
         assert_eq!(unary(UnOp::Neg, &max).unwrap(), int(1));
         assert_eq!(unary(UnOp::Not, &Value::UInt(0)).unwrap(), Value::UInt(u64::MAX));
         assert_eq!(unary(UnOp::Not, &flt("2.5")).unwrap(), int(-3));
@@ -944,7 +919,6 @@ mod tests {
             Value::Float(_, FloatTy::Double)
         ));
         assert_eq!(rr(bin(BinOp::Div, &int(4), &int(2))), int(2));
-        assert_eq!(rr(bin(BinOp::Div, &flt("9.3E+18"), &int(1))), int(i64::MAX));
         assert_eq!(rr(bin(BinOp::Div, &flt("9.2E+18"), &int(1))), int(9200000000000000000));
         assert_eq!(text(&rr(bin(BinOp::Mul, &flt("0.1"), &int(3)))), "0.3");
         assert!(matches!(
@@ -988,10 +962,61 @@ mod tests {
             Value::float(F80::Inf { neg: false }, FloatTy::Float),
             false
         )));
+        assert_eq!(reread(Value::float(F80::Nan, FloatTy::Float), true).unwrap(), int(0));
+    }
+
+    /// D-027: a plain integer beyond `_INTEGER64` is read as a statement reads it, and a float beyond it stays a
+    /// float; the old evaluator clamps both to 9223372036854775807 (`verification\v45_a_lanes`, `v45_b_conv`).
+    #[test]
+    fn values_beyond_integer64_are_not_clamped() {
+        assert_eq!(flt("9223372036854775807"), int(i64::MAX));
+        assert_eq!(flt("9223372036854775808"), Value::UInt(1 << 63));
+        assert_eq!(flt("18446744073709551615"), Value::UInt(u64::MAX));
+        assert!(is_error(literal(b"18446744073709551616")));
+        assert!(is_error(literal(b"123456789012345678901234567890")));
+        // `-9223372036854775808` is the smallest `_INTEGER64`.
+        assert_eq!(unary(UnOp::Neg, &flt("9223372036854775808")).unwrap(), int(i64::MIN));
+        let rr = |v: Value| reread(v, true).unwrap();
+        let big = rr(bin(BinOp::Div, &flt("9.3E+18"), &int(1)));
+        assert_eq!(big, Value::float(decimal("9300000000000000000"), FloatTy::Float));
+        let small = rr(unary(UnOp::Neg, &bin(BinOp::Div, &flt("9.3E+18"), &int(1))).unwrap());
+        assert_eq!(small, Value::float(decimal("-9300000000000000000"), FloatTy::Float));
+        assert_eq!(rr(Value::float(F80::from_i64(i64::MIN), FloatTy::Float)), int(i64::MIN));
+    }
+
+    /// D-028: `^` gives a float in every lane, read back by its text (`verification\v45_b_funcs`: the old
+    /// evaluator's `2 ^ -1` is 0).
+    #[test]
+    fn integer_powers_are_floats() {
+        let rr = |v: Value| reread(v, true).unwrap();
+        assert_eq!(text(&rr(bin(BinOp::Pow, &int(2), &int(-1)))), "0.5");
+        assert_eq!(text(&rr(bin(BinOp::Pow, &int(2), &int(-2)))), "0.25");
+        assert!(matches!(
+            rr(bin(BinOp::Pow, &int(2), &int(-1))),
+            Value::Float(_, FloatTy::Double)
+        ));
+        assert_eq!(rr(bin(BinOp::Pow, &int(2), &int(3))), int(8));
+        assert_eq!(rr(bin(BinOp::Pow, &Value::UInt(2), &int(3))), int(8));
+        // Beyond `_INTEGER64` a float, from unsigned operands too.
         assert_eq!(
-            reread(Value::float(F80::Inf { neg: false }, FloatTy::Float), true).unwrap(),
-            Value::float(F80::ZERO, FloatTy::Float)
+            rr(bin(BinOp::Pow, &Value::UInt(2), &int(63))),
+            Value::float(decimal("9223372036854775808"), FloatTy::Float)
         );
+        // Not wrapped in the signed lane: `2 ^ 62 * 4` is 2^64 as a float.
+        let p = bin(BinOp::Mul, &bin(BinOp::Pow, &int(2), &int(62)), &int(4));
+        assert_eq!(rr(p), Value::float(decimal("1.844674407370955162E+19"), FloatTy::Float));
+        assert!(is_error(binary(BinOp::Pow, &int(0), &int(-1))));
+        assert_eq!(rr(bin(BinOp::Pow, &int(0), &int(0))), int(1));
+    }
+
+    /// D-029: a value beyond `_FLOAT`'s range is an error as the whole value too (the old evaluator gives 0,
+    /// `verification\v45_x25`, `x38`).
+    #[test]
+    fn a_value_beyond_float_is_an_error() {
+        let huge = bin(BinOp::Mul, &flt("1F+4000"), &flt("1F+4000"));
+        assert!(is_error(reread(huge.clone(), true)));
+        assert!(is_error(reread(unary(UnOp::Neg, &huge).unwrap(), true)));
+        assert!(is_error(reread(root(&int(2), &int(0)).unwrap(), true)));
     }
 
     #[test]

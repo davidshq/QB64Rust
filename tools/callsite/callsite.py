@@ -92,6 +92,9 @@ NUMBERED = re.compile(
 )
 # An integer literal with the `long long`, the `unsigned` or the `unsigned long long` suffix (rule 5).
 SUFFIXED = re.compile(r"^(\d+)(ull|ll|u)$")
+# The new compiler's wrappers that trace a row of DIVERGENCES.md on every call, and the libqb function each calls
+# with the same arguments (rule 7).
+WRAPPERS = {"qbr_coth": "func_coth"}
 
 
 def tokenize(text: str) -> list[str]:
@@ -251,7 +254,7 @@ def normalise(lines: list[str]) -> list[str]:
     """The normalised tokens of a statement's C++ lines."""
     kept = [ln.strip() for ln in lines]
     kept = [ln for ln in kept if not any(f.match(ln) for f in FRAME)]
-    tokens = tokenize("\n".join(kept))
+    tokens = [WRAPPERS.get(t, t) for t in tokenize("\n".join(kept))]
     return rename(flatten(norm_seq(parse(tokens), False)))
 
 
@@ -634,6 +637,12 @@ def self_test() -> int:
     for x, y in distinct:
         if normalise(x) == normalise(y):
             failures.append(f"{x[0]} and {y[0]} compare equal")
+    # Rule 7: a trace wrapper is its libqb function, and only that one, with the same arguments.
+    if normalise(["d=func_coth(e);"]) != normalise(["d=qbr_coth(e);"]):
+        failures.append("qbr_coth(e) and func_coth(e) compare unequal")
+    for other in (["d=func_sec(e);"], ["d=func_coth(f);"]):
+        if normalise(other) == normalise(["d=qbr_coth(e);"]):
+            failures.append(f"qbr_coth(e) and {other[0]} compare equal")
     src = b"$CONSOLE:ONLY\nDIM s AS STRING\n' a comment\nKILL s\n\nEND\n"
     if statement_line(src) != 4:
         failures.append("statement_line: expected line 4")

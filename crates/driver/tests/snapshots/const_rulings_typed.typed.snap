@@ -1,0 +1,41 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 149
+expression: snap
+---
+line 2: ConsoleOnly
+line 12: Print newline
+  Num
+    Int -1 : U64
+  Num
+    Int -1 : U64
+  Num
+    Int -9223372036854775808 : I64
+  Num
+    Float 9300000000000000000.0E+0 : F80
+  Num
+    Float -9900000000000000000.0E+0 : F80
+line 13: Print newline
+  Num
+    Int -9223372036854775808 : I64
+  Num
+    Int -1 : U64
+  Num
+    Int -9223372036854775808 : I64
+  Num
+    Int -1 : U64
+line 15: Print newline
+  Num
+    Float 0.5E+0 : F64
+  Num
+    Float 0.25E+0 : F64
+  Num
+    Int 8 : I64
+  Num
+    Float 1.844674407370955162E+19 : F80
+line 17: Print newline
+  Num
+    Float 5.066489563439472654E+0 : F80
+  Num
+    Int 1 : I64
+line 18: System

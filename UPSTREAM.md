@@ -17,13 +17,15 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Fix:** the hyperbolic cotangent, `(EXP(2x) + 1) / (EXP(2x) - 1)`, written so it does not overflow for large
   arguments (for example `1 / std::tanh(num)`), with error 5 at 0 as the neighbouring functions raise for a
   division by zero (`func_csch`), and no upper limit.
-- **Here:** `DIVERGENCES.md` D-031, built in this repo's copy of libqb after `libqb-copy`.
+- **Here:** `DIVERGENCES.md` D-031, built by `const-rulings`: the edit `tools/libqb/edits/d031-coth.edit` of this
+  repo's copy of libqb (`1 / std::tanh(num)`, error 5 at 0) is the patch to offer, and the `CONST` evaluator here
+  computes the same function.
 - **Sent:** not yet.
 
 ## Other candidates
 
-Bugs this project fixes in the `CONST` evaluator, which QB64pe might also want (not ruled to be sent; listed so
-they are not forgotten):
+Bugs this project fixes in the `CONST` evaluator (built by `const-rulings`), which QB64pe might also want (not
+ruled to be sent; listed so they are not forgotten):
 
 - Values beyond `_INTEGER64` in a `CONST` clamped, and the four limits `_INTEGER64_MIN`, `_OFFSET_MIN`,
   `_UINTEGER64_MAX`, `_UOFFSET_MAX` wrong by it (`DIVERGENCES.md` D-027).
