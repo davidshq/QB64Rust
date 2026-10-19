@@ -8,6 +8,8 @@ export interface CompilerMessage {
     file: string | undefined;
     /** 1-based. */
     line: number;
+    /** 1-based byte column, from the new compiler only; without it the whole line is meant. */
+    column?: number;
     message: string;
 }
 

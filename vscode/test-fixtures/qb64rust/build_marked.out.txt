@@ -1,0 +1,4 @@
+<FIXTURES>\marked.bas:2:5: error: `_MEM` with empty parentheses
+<FIXTURES>\marked.bas:2:5: note: QB64pe: Expected (...)
+<FIXTURES>\marked.bas:3:7: error: not supported yet: `_DEVICES`
+2 errors (1 not supported yet)

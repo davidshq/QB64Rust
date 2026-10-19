@@ -30,7 +30,8 @@ async function main(): Promise<void> {
 
     const settingsDir = path.join(workspace, ".vscode");
     fs.mkdirSync(settingsDir, { recursive: true });
-    const settings: Record<string, unknown> = { "qb64rust.noPrompt": true };
+    // Builds with QB64pe unless a test chooses qb64rust (buildQb64rust.test.ts), so the M1 build tests keep testing it.
+    const settings: Record<string, unknown> = { "qb64rust.noPrompt": true, "qb64rust.buildWith": "qb64pe" };
     if (fs.existsSync(compiler)) {
         settings["qb64rust.compilerPath"] = compiler;
     }

@@ -2,6 +2,8 @@
 // extension-diagnostics task 4.3), started from the binary that QB64RUST_TEST_QB64RUST names. Skipped when it is
 // unset.
 import * as assert from "assert";
+import * as fs from "fs";
+import * as path from "path";
 import * as vscode from "vscode";
 import {
     api,
@@ -50,6 +52,19 @@ describe("language server", function () {
 
     it("shows qb64rust in the language status", async () => {
         assert.strictEqual((await api()).server.text, "qb64rust");
+    });
+
+    // Spec editor/language-server, "Included files": with qb64rust.includeRoot empty, the QB64pe folder.
+    it("include from QB64pe's folder", async function () {
+        if (!compiler || !fs.existsSync(path.join(path.dirname(compiler), "internal", "support", "color", "color0.bi"))) {
+            this.skip();
+        }
+        const editor = await open(writeFile("ls/inc_root.bas", "PRINT 1\r\n"));
+        const uri = editor.document.uri;
+        await setText(editor, "'$INCLUDE:'internal/support/color/nothing.bi'\r\nPRINT 1\r\n");
+        await waitFor("the missing include's error", () => qb64rustDiagnostics(uri).length === 1);
+        await setText(editor, "'$INCLUDE:'internal/support/color/color0.bi'\r\nPRINT 1\r\n");
+        await waitFor("no error: the file is found under the QB64pe folder", () => qb64rustDiagnostics(uri).length === 0);
     });
 
     it("syntax errors as you type, beside the old compiler's from a build", async function () {

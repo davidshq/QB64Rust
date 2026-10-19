@@ -1,7 +1,10 @@
+import * as path from "path";
 import * as vscode from "vscode";
+import { copyVersion, removeOtherVersions } from "./compiler/libqbStore";
 import * as qb64pe from "./compiler/qb64pe";
 import { RunQueue } from "./compiler/runQueue";
 import { Builder } from "./build";
+import { Bundle, chosenCompiler } from "./buildPlan";
 import { Diagnostics } from "./diagnostics";
 import { Formatter, removeStaleTempFiles } from "./format";
 import { LanguageServer } from "./languageServer";
@@ -14,6 +17,8 @@ export interface Api {
     diagnostics: Diagnostics;
     queue: RunQueue;
     server: LanguageServer;
+    bundle: Bundle;
+    builder: Builder;
 }
 
 let server: LanguageServer | undefined;
@@ -24,20 +29,31 @@ export function activate(context: vscode.ExtensionContext): Api {
     const queue = new RunQueue();
     const status = new CompilerStatus();
     queue.onBusyChange = (kind) => status.setBusy(kind ? BUSY_TEXT[kind] : undefined);
-    server = new LanguageServer();
-    const diagnostics = new Diagnostics(queue, status, server);
-    const builder = new Builder(queue, status, diagnostics);
+    // What the platform package carries (design D1-D3 of extension-vsix); a development host has no `bundle\`.
+    const libqb = context.asAbsolutePath(path.join("bundle", "libqb"));
+    const bundle: Bundle = {
+        libqb,
+        storage: context.globalStorageUri.fsPath,
+        version: copyVersion(context.extension.packageJSON.version, libqb),
+    };
+    const lsp = new LanguageServer(context.asAbsolutePath(path.join("bundle", "bin", "qb64rust.exe")), status);
+    server = lsp;
+    status.builder = () => chosenCompiler(lsp);
+    status.update();
+    const diagnostics = new Diagnostics(queue, status, lsp);
+    const builder = new Builder(queue, status, diagnostics, lsp, bundle);
     context.subscriptions.push(
         { dispose: () => queue.dispose() },
         status,
         diagnostics,
         builder,
-        server,
+        lsp,
         vscode.languages.registerDocumentFormattingEditProvider("qb64rust", new Formatter(queue, status, diagnostics)),
-        vscode.tasks.registerTaskProvider(TASK_TYPE, new Qb64TaskProvider(status)),
+        vscode.tasks.registerTaskProvider(TASK_TYPE, new Qb64TaskProvider(status, lsp, bundle)),
     );
     void removeStaleTempFiles();
-    return { status, diagnostics, queue, server };
+    void removeOtherVersions(bundle.storage, bundle.version);
+    return { status, diagnostics, queue, server: lsp, bundle, builder };
 }
 
 export async function deactivate(): Promise<void> {

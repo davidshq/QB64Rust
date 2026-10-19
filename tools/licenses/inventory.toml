@@ -1,0 +1,58 @@
+# Reviewed provenance, not an automatically inferred compatibility verdict.
+[[components]]
+name = "QB64 Phoenix Edition runtime and bundled libraries"
+paths = ["libqb"]
+source = "https://github.com/QB64-Phoenix-Edition/QB64pe/tree/16f629784e"
+license = "MIT for libqb; individual library terms in libqb/licenses/README.md"
+provenance = ["libqb/SOURCE.md"]
+notices = [
+    "libqb/COPYING.txt", "libqb/licenses/README.md",
+    "libqb/licenses/license_clip.txt", "libqb/licenses/license_foo_midi.txt",
+    "libqb/licenses/license_freetype_ftl.txt", "libqb/licenses/license_glfw.txt",
+    "libqb/licenses/license_hivelytracker.txt", "libqb/licenses/license_hqx.txt",
+    "libqb/licenses/license_libcurl.txt", "libqb/licenses/license_libstdc++.txt",
+    "libqb/licenses/license_libstem_gamepad.txt", "libqb/licenses/license_libxmp-lite.txt",
+    "libqb/licenses/license_mingw-base-runtime.txt", "libqb/licenses/license_miniaudio.txt",
+    "libqb/licenses/license_miniz.txt", "libqb/licenses/license_mmpx.txt",
+    "libqb/licenses/license_modp_b64.txt", "libqb/licenses/license_nanosvg.txt",
+    "libqb/licenses/license_primesynth.txt", "libqb/licenses/license_qb64.txt",
+    "libqb/licenses/license_qoa.txt", "libqb/licenses/license_qoi.txt",
+    "libqb/licenses/license_radv2.txt", "libqb/licenses/license_stb_image_write.txt",
+    "libqb/licenses/license_stb_image.txt", "libqb/licenses/license_stb_vorbis.txt",
+    "libqb/licenses/license_sxbr.txt", "libqb/licenses/license_tiny_webp.txt",
+    "libqb/licenses/license_tinyfiledialogs.txt", "libqb/licenses/license_tinysoundfont.txt",
+    "libqb/licenses/license_ymfmidi.txt",
+]
+package_prefix = "extension/bundle/"
+
+[[components]]
+name = "QB64 Phoenix Edition tests"
+paths = ["tests/upstream"]
+source = "https://github.com/QB64-Phoenix-Edition/QB64pe/tree/16f629784e"
+license = "MIT"
+provenance = ["tests/upstream/SOURCE.md"]
+notices = ["tests/upstream/LICENSE-QB64pe.txt"]
+
+[[components]]
+name = "QB64Fresh test inputs"
+paths = ["tests/snippets/qb64fresh", "tests/corpus/runtime_comparison"]
+source = "QB64Fresh; pinned revisions in the provenance records"
+license = "MIT; author's earlier code; some tests derived from QB64pe"
+provenance = ["tests/snippets/qb64fresh/SOURCE.md", "tests/corpus/runtime_comparison/SOURCE.md"]
+notices = ["LICENSE", "tests/upstream/LICENSE-QB64pe.txt"]
+
+[[components]]
+name = "Civil War Strategy and derived screen tests"
+paths = ["tests/programs/civil-war-strategy", "tests/corpus/screen"]
+source = "Civil War Strategy; revision and derived programs documented in provenance"
+license = "MIT; W.R. Hutsell and David Mackey"
+provenance = ["tests/programs/civil-war-strategy/SOURCE.md", "tests/corpus/screen/SOURCE.md"]
+notices = ["tests/programs/civil-war-strategy/LICENSE.md"]
+
+[[components]]
+name = "QB64Rust original test inputs"
+paths = ["tests/corpus/slice", "tests/corpus/verification"]
+source = "Written in this repository"
+license = "MIT"
+provenance = ["tests/corpus/slice/SOURCE.md", "tests/corpus/verification/SOURCE.md"]
+notices = ["LICENSE"]

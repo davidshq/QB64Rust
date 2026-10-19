@@ -38,23 +38,31 @@ export interface InitializationOptions {
 }
 
 /**
- * The options sent with `initialize`: the `[qb64rust]` `files.encoding` (cp437 unless changed) and
- * `qb64rust.includeRoot`, a relative one resolved against the workspace folder as `qb64rust.path` is. Without a
- * workspace folder a relative one means nothing, so the server's default is used: the server would resolve it
- * against its working directory, which is whatever VS Code's is.
+ * The include root the server and a build with `qb64rust` are given (design D6 of extension-vsix, spec
+ * editor/language-server "Included files"): `qb64rust.includeRoot`, a relative one resolved against the workspace
+ * folder as `qb64rust.path` is; else the QB64pe folder, where QB64pe looks after the including file's folder. Empty
+ * when neither applies, for the default of `qb64rust`, the folder of its binary. Without a workspace folder a
+ * relative setting means nothing: the server would resolve it against its working directory, which is whatever
+ * VS Code's is.
  */
+export function includeRootFor(setting: string, baseDir: string | undefined, qb64peFolder: string | undefined, platform: NodeJS.Platform): string {
+    const p = platform === "win32" ? path.win32 : path.posix;
+    let root = setting.trim();
+    if (root && !p.isAbsolute(root)) {
+        root = baseDir ? p.resolve(baseDir, root) : "";
+    }
+    return root || qb64peFolder || "";
+}
+
+/** The options sent with `initialize`: the `[qb64rust]` `files.encoding` (cp437 unless changed) and the include root. */
 export function initializationOptions(
     defaultEncoding: string | undefined,
     includeRoot: string,
     baseDir: string | undefined,
     platform: NodeJS.Platform,
+    qb64peFolder?: string,
 ): InitializationOptions {
-    const p = platform === "win32" ? path.win32 : path.posix;
-    let root = includeRoot.trim();
-    if (root && !p.isAbsolute(root)) {
-        root = baseDir ? p.resolve(baseDir, root) : "";
-    }
-    return { encoding: defaultEncoding || "cp437", includeRoot: root };
+    return { encoding: defaultEncoding || "cp437", includeRoot: includeRootFor(includeRoot, baseDir, qb64peFolder, platform) };
 }
 
 /** Remembers the encoding the server was told for each document, so each change is told once. */

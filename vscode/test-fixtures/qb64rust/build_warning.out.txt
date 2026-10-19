@@ -1,0 +1,3 @@
+<FIXTURES>\warning.bas:1:11: warning: a chain of `^` in a `CONST` is computed right to left (`2 ^ 3 ^ 2` is 512), in a statement left to right (64); add parentheses to say which
+building <OUT>\out.exe
+<OUT>\out.exe

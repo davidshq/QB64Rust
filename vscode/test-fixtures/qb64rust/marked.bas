@@ -1,0 +1,3 @@
+DIM m AS _MEM
+m = _MEM()
+PRINT _DEVICES

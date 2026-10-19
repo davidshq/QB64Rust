@@ -8,6 +8,8 @@ edition = "2024"
 # Same as rust-toolchain.toml.
 rust-version = "1.99"
 publish = false
+# The repository's licence (LICENSE; DECISIONS.md 2026-10-19).
+license = "MIT"
 
 [workspace.dependencies]
 qb64rust-base = { path = "crates/base" }

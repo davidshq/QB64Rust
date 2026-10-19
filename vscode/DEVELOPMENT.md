@@ -30,12 +30,18 @@ Integration options (environment variables): `QB64RUST_TEST_QB64PE` (path to `qb
 not exist, so CI cannot silently skip the compiler tests), `QB64RUST_TEST_QB64RUST` (path to `qb64rust.exe`, same
 rule; without it `qb64rust.path` is set to a file that does not exist, so a `qb64rust` on `PATH` is not used and
 the run is the extension without the server), `QB64RUST_TEST_VSCODE_VERSION` (default `stable`),
-`QB64RUST_TEST_GREP` (run only tests whose name matches).
+`QB64RUST_TEST_GREP` (run only tests whose name matches). The test workspace sets `qb64rust.buildWith` to `qb64pe`,
+so the build tests of QB64pe test it; `buildQb64rust.test.ts` sets `auto` and needs both variables' programs (QB64pe
+gives the toolchain). With `bundle\` staged it also checks the copy of libqb prepared in the test profile's global
+storage; the first such build there builds libqb's objects. Without `bundle\` the binary uses the repo's `libqb\`.
+`scripts\record-qb64rust-fixtures.sh` records the output fixtures of `test-fixtures\qb64rust\` (the parser's unit
+tests) with `target\release\qb64rust.exe`.
 
 ## The language server
 
-`src\languageServer.ts` starts `qb64rust lsp` (`vscode-languageclient`, stdio) when `qb64rust.path` or `PATH`
-names a binary and the workspace is trusted; `src\server\protocol.ts` holds the parts without VS Code (the
+`src\languageServer.ts` starts `qb64rust lsp` (`vscode-languageclient`, stdio) when `qb64rust.path`, the bundled
+binary (`bundle\bin\qb64rust.exe`, present only once `npm run stage` has run) or `PATH` names a binary and the
+workspace is trusted; a build with `qb64rust` uses the same binary (`src\buildPlan.ts`); `src\server\protocol.ts` holds the parts without VS Code (the
 initialization options, the `qb64rust/documentEncoding` notification). The server itself is the Rust crate
 `crates\lsp` (its tests: `cargo test -p qb64rust-lsp`). To run the extension against it:
 
@@ -99,7 +105,38 @@ identifiers (`CHR$` is a function, not a variable).
 
 ## Package
 
+Run `python tools/licenses/check.py` from the repository root to check the copied-content inventory.
+`tools/licenses/inventory.toml` records provenance and required notices; add an entry when importing code,
+tests or assets, after reviewing their terms. New `SOURCE.md` records and content in common vendor directories
+require inventory coverage. Imports elsewhere still require human review: this is not a code similarity or
+legal compatibility scanner. `cargo deny check` separately checks Rust dependency licenses.
+The license workflow runs the repository check on pushes and pull requests. The VSIX checker also runs it
+against the archive, requiring every inventoried runtime notice to match the repository text (ignoring CRLF).
+Tests: `python -m unittest discover -s tools/licenses -p "test_*.py"` from the repository root.
+
+The `.vsix` is a platform package for Windows x64 that carries the new compiler (`openspec\specs\editor\packaging`):
+
 ```sh
-npm run package      # → qb64rust-<version>.vsix
-code --install-extension qb64rust-0.1.0.vsix
+cargo build --release                       # from the repository root: target\release\qb64rust.exe
+npm run package                             # stage, then vsce → qb64rust-win32-x64-<version>.vsix
+python scripts/check_vsix.py qb64rust-win32-x64-0.2.0.vsix
+code --install-extension qb64rust-win32-x64-0.2.0.vsix
 ```
+
+`npm run stage` (`scripts\stage_bundle.py`, run by `package`) writes the git-ignored `bundle\`: `bin\qb64rust.exe`
+(`--binary` for another), `libqb\` (the tracked files of the repo's `libqb\`, so no object a build left there
+ships), `libqb.id` (a hash of those files, which names the extension's prepared copy so that a package with other
+libqb files never reuses an older copy), and `THIRD-PARTY-NOTICES.txt`, the licence texts of the crates linked
+into the binary as `cargo tree` resolves them for the Windows target. It also copies the repository's `LICENSE` here, where `vsce` looks for it.
+A crate without a licence file of its own takes `scripts\licenses\<name>.txt` (now `astro-float-num`, its text
+taken from its repository); a crate with neither stops the staging, naming it. `scripts\check_vsix.py` holds a
+package to the spec's list: the target, the required files, no `.ts`, `.o`, `.a` or `.map` file and no
+`c_compiler`; with `--tag vscode-v<version>` it also checks the tag against `package.json`. The scripts' tests:
+`python -m unittest discover -s scripts -p "test_*.py"`.
+
+Measured 2026-10-19 (0.2.0): 8.2 MB, 1,512 files; uncompressed the bundle is the binary (4.8 MB), libqb (25.6 MB,
+1,233 files) and the notice (244 KB). Without the bundle the package was under 1 MB.
+
+**Release.** Push a tag `vscode-v<version>` equal to `package.json`'s version (and a matching section in
+`CHANGELOG.md`): `.github\workflows\release-vsix.yml` builds, packages, checks and attaches the `.vsix` to a GitHub
+release of the tag.

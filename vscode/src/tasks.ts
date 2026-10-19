@@ -2,7 +2,9 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import * as config from "./config";
+import { Bundle, planBuild } from "./buildPlan";
 import * as qb64pe from "./compiler/qb64pe";
+import { LanguageServer } from "./languageServer";
 import { CompilerStatus } from "./statusBar";
 
 export const TASK_TYPE = "qb64rust";
@@ -13,19 +15,27 @@ interface Qb64TaskDefinition extends vscode.TaskDefinition {
 }
 
 export class Qb64TaskProvider implements vscode.TaskProvider {
-    constructor(private readonly status: CompilerStatus) {}
+    constructor(
+        private readonly status: CompilerStatus,
+        private readonly server: LanguageServer,
+        private readonly bundle: Bundle,
+    ) {}
 
-    provideTasks(): vscode.Task[] {
+    async provideTasks(): Promise<vscode.Task[]> {
         if (!vscode.workspace.isTrusted) {
             return [];
         }
-        return (["build", "run"] as const).flatMap((action) => {
-            const task = this.makeTask({ type: TASK_TYPE, action }, vscode.TaskScope.Workspace);
-            return task ? [task] : [];
-        });
+        const tasks: vscode.Task[] = [];
+        for (const action of ["build", "run"] as const) {
+            const task = await this.makeTask({ type: TASK_TYPE, action }, vscode.TaskScope.Workspace);
+            if (task) {
+                tasks.push(task);
+            }
+        }
+        return tasks;
     }
 
-    resolveTask(task: vscode.Task): vscode.Task | undefined {
+    async resolveTask(task: vscode.Task): Promise<vscode.Task | undefined> {
         if (!vscode.workspace.isTrusted) {
             return undefined;
         }
@@ -36,7 +46,7 @@ export class Qb64TaskProvider implements vscode.TaskProvider {
         return this.makeTask(def, task.scope ?? vscode.TaskScope.Workspace);
     }
 
-    private makeTask(def: Qb64TaskDefinition, scope: vscode.TaskScope | vscode.WorkspaceFolder): vscode.Task | undefined {
+    private async makeTask(def: Qb64TaskDefinition, scope: vscode.TaskScope | vscode.WorkspaceFolder): Promise<vscode.Task | undefined> {
         const file = this.targetFile(def, scope);
         const name = def.action;
         if (!file) {
@@ -45,8 +55,17 @@ export class Qb64TaskProvider implements vscode.TaskProvider {
         }
         const cwd = path.dirname(file);
         if (def.action === "build") {
-            const compiler = this.status.current.found ? this.status.current.path : "qb64pe";
-            const task = new vscode.Task(def, scope, name, TASK_TYPE, new vscode.ProcessExecution(compiler, qb64pe.buildArgs(file), { cwd }));
+            // The Build command's compiler and command line (spec editor/build-run, "Tasks"). Without QB64pe,
+            // `qb64pe` by name, whose failure in the terminal says what is wrong. When qb64rust would build but
+            // cannot (not found, libqb not prepared), the task fails with the reason, never building with QB64pe.
+            const plan = await planBuild(file, this.status, this.server, this.bundle, false);
+            const execution =
+                plan.compiler !== "none"
+                    ? new vscode.ProcessExecution(plan.command, plan.args, { cwd, env: plan.compiler === "qb64rust" ? lockEnv(plan.env) : undefined })
+                    : this.status.current.found
+                      ? failing(plan.reason)
+                      : new vscode.ProcessExecution("qb64pe", qb64pe.buildArgs(file), { cwd });
+            const task = new vscode.Task(def, scope, name, TASK_TYPE, execution);
             task.group = vscode.TaskGroup.Build;
             return task;
         }
@@ -66,6 +85,29 @@ export class Qb64TaskProvider implements vscode.TaskProvider {
         const doc = vscode.window.activeTextEditor?.document;
         return doc && doc.languageId === "qb64rust" && doc.uri.scheme === "file" && !doc.isUntitled ? doc.uri.fsPath : undefined;
     }
+}
+
+/** A task that prints why it cannot build and ends with exit code 1. */
+function failing(reason: string): vscode.CustomExecution {
+    return new vscode.CustomExecution(async () => {
+        const write = new vscode.EventEmitter<string>();
+        const close = new vscode.EventEmitter<number>();
+        return {
+            onDidWrite: write.event,
+            onDidClose: close.event,
+            open: () => {
+                write.fire(`QB64: ${reason}\r\n`);
+                close.fire(1);
+            },
+            close: () => undefined,
+        };
+    });
+}
+
+/** The variables a task adds to the terminal's environment: the objects' lock, when there is one. */
+function lockEnv(env: NodeJS.ProcessEnv): Record<string, string> | undefined {
+    const lock = env.QB64RUST_OBJECTS_LOCK;
+    return lock ? { QB64RUST_OBJECTS_LOCK: lock } : undefined;
 }
 
 /** Splits `qb64rust.runArguments` for a process start: whitespace separates, double quotes group. */

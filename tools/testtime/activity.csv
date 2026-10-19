@@ -1428,6 +1428,17 @@ version,session,change,category,actions,bytes
 1,8bc265c2,m3-get-put-bload,scratch files,1,2839
 1,8bc265c2,m3-get-put-bload,test runs,2,0
 1,8d796208,,other commands,3,0
+1,8e1a13d1,,other,2,0
+1,8e1a13d1,,other commands,16,0
+1,8e1a13d1,,reading,2,0
+1,8e1a13d1,extension-vsix,builds,4,0
+1,8e1a13d1,extension-vsix,documents and planning,16,39971
+1,8e1a13d1,extension-vsix,other,4,1380
+1,8e1a13d1,extension-vsix,other commands,81,0
+1,8e1a13d1,extension-vsix,product code,102,83176
+1,8e1a13d1,extension-vsix,reading,22,0
+1,8e1a13d1,extension-vsix,test runs,28,0
+1,8e1a13d1,extension-vsix,tests and fixtures,7,10720
 1,8e797edb,,other commands,2,0
 1,8f6b12de,,builds,3,0
 1,8f6b12de,,other,1,0
@@ -1938,11 +1949,15 @@ version,session,change,category,actions,bytes
 1,cf4bfa06,m3-declare-library,other commands,24,0
 1,cf4bfa06,m3-declare-library,reading,1,0
 1,cf4bfa06,m3-declare-library,test runs,2,0
-1,cf844802,extension-diagnostics,documents and planning,2,1823
-1,cf844802,extension-diagnostics,other commands,25,0
+1,cf844802,,documents and planning,1,283
+1,cf844802,,other commands,2,0
+1,cf844802,extension-diagnostics,documents and planning,8,8280
+1,cf844802,extension-diagnostics,other,1,0
+1,cf844802,extension-diagnostics,other commands,31,0
 1,cf844802,extension-diagnostics,product code,13,4095
-1,cf844802,extension-diagnostics,reading,13,0
-1,cf844802,extension-diagnostics,test runs,9,0
+1,cf844802,extension-diagnostics,reading,16,0
+1,cf844802,extension-diagnostics,scratch files,1,669
+1,cf844802,extension-diagnostics,test runs,10,0
 1,cf844802,extension-diagnostics,tests and fixtures,2,1966
 1,d0d88245,,reading,1,0
 1,d0d88245,m2-language-server,builds,6,0

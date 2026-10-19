@@ -1,0 +1,2 @@
+<FIXTURES>\marked_only.bas:2:7: error: not supported yet: `_DEVICES`
+1 error (1 not supported yet)

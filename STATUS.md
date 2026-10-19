@@ -34,7 +34,9 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 11).
 
-Nothing waits on the user now.
+- **The first release of the extension** (`extension-vsix`, `DECISIONS.md` 2026-10-19): after the merge into
+  `main`, push the tag `vscode-v0.2.0`; `.github\workflows\release-vsix.yml` then attaches
+  `qb64rust-win32-x64-0.2.0.vsix` to a GitHub release (`vscode\DEVELOPMENT.md`, "Package").
 
 **The `tier2` job on `m3`** (`study\archive\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -46,11 +48,11 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. **Three changes to make the compiler usable** (`ROADMAP.md`, "After M3"), in order: the plain copy of
-   `internal\c` (`libqb-copy`, done and archived, `89ec865`: the compiler builds against `libqb\`); the
-   extension's diagnostics on save from the new compiler (`extension-diagnostics`, done and archived: with
-   `qb64rust` the check on save and `qb64rust.check` are the language server's `qb64rust/check`, the whole front
-   end with columns, `qb64pe -z` only without it); a `.vsix` next.
+1. **Three changes to make the compiler usable** (`ROADMAP.md`, "After M3"), all built: the plain copy of
+   `internal\c` (`libqb-copy`, archived, `89ec865`); the extension's diagnostics on save from the new compiler
+   (`extension-diagnostics`, archived, `32a4849`); the `.vsix` (`extension-vsix`, built, not archived yet: a
+   `win32-x64` package carrying `qb64rust.exe` and the copy of libqb, Build and Run through `qb64rust` under
+   `qb64rust.buildWith`, releases from a tag `vscode-v<version>`; the repository became MIT-licensed with it).
 2. **The rulings of 2026-10-18 on `m3-constant-evaluation`'s kept behaviours**, not built: D-027 to D-030 (the
    `CONST` evaluator; one change, any time), D-031 (`_COTH`, the first edit of the copy of libqb, now possible;
    noted for QB64pe in `UPSTREAM.md`). Found by `libqb-copy` for a later change: libqb's objects take the driver's
@@ -154,7 +156,12 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 ## Known bugs
 
-None known.
+- **libqb's objects are not rebuilt when the driver's flags change.** `make` rebuilds an object by file times
+  only, so the objects in a copy of libqb keep the flags of the build that made them (`CXXFLAGS_EXTRA`: `-fwrapv`,
+  and `-O2` if the first build asked; "Next" item 2). In the extension, the prepared copy is named by the version
+  and `libqb.id`, which hashes libqb's files but not the binary: a local package with a new `qb64rust.exe` and
+  the same libqb reuses objects built under the old flags. Releases are not affected (a new version, a new copy).
+  To fix in the driver, for its own `libqb\` too, not by hashing the binary into the extension's id.
 
 ## Queued for later milestones
 

@@ -1,10 +1,15 @@
 {
   "name": "qb64rust",
   "displayName": "QB64 (qb64rust)",
-  "description": "QB64 language support: highlighting, build and run, diagnostics and formatting with the QB64pe compiler.",
-  "version": "0.1.0",
+  "description": "QB64 language support: highlighting, live errors, check, build and run with the new compiler qb64rust (bundled), formatting with QB64pe.",
+  "version": "0.2.0",
   "publisher": "qb64rust",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidshq/QB64Rust.git",
+    "directory": "vscode"
+  },
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -62,17 +67,32 @@
           "scope": "machine-overridable",
           "markdownDescription": "Full path to `qb64pe.exe` (or `qb64pe`). When empty, `qb64pe` is looked up on `PATH`."
         },
+        "qb64rust.buildWith": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "qb64rust",
+            "qb64pe"
+          ],
+          "enumDescriptions": [
+            "The new compiler qb64rust when it is found (bundled, `qb64rust.path` or PATH), else QB64pe.",
+            "Always qb64rust; a build fails when it is not found.",
+            "Always QB64pe, the old compiler."
+          ],
+          "default": "auto",
+          "markdownDescription": "Which compiler **Build**, **Build and Run** and the build task use. Both need QB64pe (`qb64rust.compilerPath`): `qb64rust` builds with its C++ toolchain."
+        },
         "qb64rust.path": {
           "type": "string",
           "default": "",
           "scope": "machine-overridable",
-          "markdownDescription": "Full path to the `qb64rust` binary (the new compiler), which runs the language server: syntax errors as you type, the outline, folding and go to definition. When empty, `qb64rust` is looked up on `PATH`; without it the extension works as before."
+          "markdownDescription": "Full path to the `qb64rust` binary (the new compiler), which runs the language server (syntax errors as you type, the outline, folding, go to definition, the check on save) and builds. When empty, the binary that comes with the extension, else `qb64rust` on `PATH`."
         },
         "qb64rust.includeRoot": {
           "type": "string",
           "default": "",
           "scope": "machine-overridable",
-          "markdownDescription": "Where the language server looks up `$INCLUDE` files after the including file's folder, as `qb64rust --include-root` does. When empty, the folder of the `qb64rust` binary. A relative path is resolved against the workspace folder (without a workspace folder it is ignored)."
+          "markdownDescription": "Where the language server and a build with `qb64rust` look up `$INCLUDE` files after the including file's folder (`qb64rust --include-root`). When empty, the QB64pe folder (as QB64pe looks in its own folder), else the folder of the `qb64rust` binary. A relative path is resolved against the workspace folder (without a workspace folder it is ignored)."
         },
         "qb64rust.checkOnSave": {
           "type": "boolean",
@@ -197,7 +217,8 @@
     "test:integration:min": "npm run compile && node ./out/test/integration/runTests.js --min",
     "test": "npm run test:unit && npm run test:grammar && npm run test:integration && npm run test:integration:min",
     "vscode:prepublish": "npm run compile",
-    "package": "vsce package --allow-missing-repository --skip-license"
+    "package": "npm run stage && vsce package --target win32-x64",
+    "stage": "python scripts/stage_bundle.py"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
