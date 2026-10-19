@@ -201,6 +201,7 @@ version,session,change,category,actions,bytes
 1,11e6949c,m2-defxxx-common-arrays,scratch files,3,2924
 1,11e6949c,m2-defxxx-common-arrays,test runs,27,0
 1,11e6949c,m2-defxxx-common-arrays,tests and fixtures,42,30549
+1,12d91049,,other commands,1,0
 1,14f6ddf8,,builds,1,0
 1,14f6ddf8,,other commands,16,0
 1,14f6ddf8,,reading,3,0
@@ -423,6 +424,10 @@ version,session,change,category,actions,bytes
 1,310c990e,m3-images-fonts-mouse,reading,2,0
 1,310c990e,m3-images-fonts-mouse,scratch files,2,4820
 1,310c990e,m3-images-fonts-mouse,test runs,2,0
+1,33a0ea69,,other,2,0
+1,33a0ea69,,other commands,8,0
+1,33a0ea69,,scratch files,1,2799
+1,33a0ea69,,test runs,1,0
 1,34da0406,,measurement preparation,3,1056
 1,34da0406,,measurement runs,2,0
 1,34da0406,,other commands,16,0
@@ -1101,6 +1106,12 @@ version,session,change,category,actions,bytes
 1,6d586be5,m3-errorline-chr-const,scratch files,1,3576
 1,6d586be5,m3-errorline-chr-const,test runs,23,0
 1,6d586be5,m3-errorline-chr-const,tests and fixtures,27,33611
+1,6d5aabb1,,builds,1,0
+1,6d5aabb1,,documents and planning,4,877
+1,6d5aabb1,,other commands,19,0
+1,6d5aabb1,,reading,1,0
+1,6d5aabb1,,scratch files,1,2246
+1,6d5aabb1,,test runs,7,0
 1,6e612bb3,extension-vsix,builds,1,0
 1,6e612bb3,extension-vsix,documents and planning,9,2677
 1,6e612bb3,extension-vsix,other commands,33,0
@@ -1164,6 +1175,7 @@ version,session,change,category,actions,bytes
 1,729041fe,m3-constant-evaluation,test runs,68,0
 1,729041fe,m3-constant-evaluation,tests and fixtures,26,21629
 1,73a9cfe7,,other commands,2,0
+1,741137ec,,other commands,4,0
 1,749d54cb,,other commands,1,0
 1,752e15a1,,documents and planning,4,10676
 1,752e15a1,,measurement preparation,20,17128
@@ -1187,12 +1199,13 @@ version,session,change,category,actions,bytes
 1,762aec7d,m3-mem,scratch files,4,4806
 1,762aec7d,m3-mem,test runs,1,0
 1,76c8a4d1,,other commands,1,0
+1,7702bcbf,const-rulings,documents and planning,3,27
 1,7702bcbf,libqb-object-flags,builds,1,0
-1,7702bcbf,libqb-object-flags,documents and planning,3,828
-1,7702bcbf,libqb-object-flags,other commands,31,0
+1,7702bcbf,libqb-object-flags,documents and planning,6,2002
+1,7702bcbf,libqb-object-flags,other commands,34,0
 1,7702bcbf,libqb-object-flags,product code,7,2949
 1,7702bcbf,libqb-object-flags,reading,5,0
-1,7702bcbf,libqb-object-flags,test runs,12,0
+1,7702bcbf,libqb-object-flags,test runs,13,0
 1,7702bcbf,libqb-object-flags,tests and fixtures,5,1281
 1,77c77d98,,builds,1,0
 1,77c77d98,,documents and planning,13,8329
