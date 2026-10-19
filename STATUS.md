@@ -47,8 +47,10 @@ push shows them (the user is not concerned with CI, working rule 9).
 ## Next
 
 1. **Three changes to make the compiler usable** (`ROADMAP.md`, "After M3"), in order: the plain copy of
-   `internal\c` (`libqb-copy`, built, closing runs pass, to be archived: the compiler builds against `libqb\`);
-   the extension's diagnostics on save from the new compiler; a `.vsix`.
+   `internal\c` (`libqb-copy`, done and archived, `89ec865`: the compiler builds against `libqb\`); the
+   extension's diagnostics on save from the new compiler (`extension-diagnostics`, done and archived: with
+   `qb64rust` the check on save and `qb64rust.check` are the language server's `qb64rust/check`, the whole front
+   end with columns, `qb64pe -z` only without it); a `.vsix` next.
 2. **The rulings of 2026-10-18 on `m3-constant-evaluation`'s kept behaviours**, not built: D-027 to D-030 (the
    `CONST` evaluator; one change, any time), D-031 (`_COTH`, the first edit of the copy of libqb, now possible;
    noted for QB64pe in `UPSTREAM.md`). Found by `libqb-copy` for a later change: libqb's objects take the driver's

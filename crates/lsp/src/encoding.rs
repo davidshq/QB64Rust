@@ -52,6 +52,18 @@ impl Encoding {
         }
     }
 
+    /// The text of `bytes` in a single-byte table, as the editor shows a file in it ([`Encoding::encode`] gives the
+    /// bytes back); `None` in UTF-8, which the server never reads into text.
+    pub fn decode(self, bytes: &[u8]) -> Option<String> {
+        match self {
+            Encoding::Utf8 => None,
+            Encoding::Table(_, table) => {
+                let units: Vec<u16> = bytes.iter().map(|&b| table[usize::from(b)]).collect();
+                Some(String::from_utf16_lossy(&units))
+            }
+        }
+    }
+
     /// Where the UTF-16 columns of `file`'s lines differ from their byte columns.
     pub fn columns(self, file: &SourceFile) -> Columns {
         match self {

@@ -1,9 +1,12 @@
 //! The server driven in-process through `Connection::memory()` (design D7): the scenarios of spec
 //! `editor/language-server`.
 
-use lsp_server::{Connection, Message, Notification, Request, RequestId, Response};
+use lsp_server::{Connection, ErrorCode, Message, Notification, Request, RequestId, Response};
 use lsp_types::Uri;
+use qb64rust_base::{Diagnostics, SourceMap, Span, to_u32};
+use qb64rust_lsp::Check;
 use qb64rust_lsp::uri::from_path;
+use qb64rust_syntax::ParsedProgram;
 use serde_json::{Value, json};
 use std::collections::VecDeque;
 use std::path::Path;
@@ -22,13 +25,46 @@ struct Client {
     inbox: VecDeque<Notification>,
 }
 
+/// The front end of a check in these tests (the real one is the driver's, tested in `crates\driver\tests`): an
+/// error at each word `BAD`, a warning at each `WARN`, in every file of the program; a check of a program with
+/// `SLOW` in it takes half a second.
+fn stand_in(map: &SourceMap, _: &ParsedProgram, _: Option<&Path>) -> Diagnostics {
+    let mut d = Diagnostics::new();
+    for (id, file) in map.files() {
+        let text = &file.bytes;
+        for (word, warning) in [(&b"BAD"[..], false), (&b"WARN"[..], true)] {
+            for start in (0..text.len()).filter(|&i| text[i..].starts_with(word)) {
+                let span = Span::new(id, to_u32(start), to_u32(start + word.len()));
+                if warning {
+                    d.warning(span, "a WARN word");
+                } else {
+                    d.error(span, "a BAD word");
+                }
+            }
+        }
+        if text.windows(4).any(|w| w == b"SLOW") {
+            std::thread::sleep(Duration::from_millis(500));
+        }
+    }
+    d
+}
+
+/// A check that must not run: the live parse never calls it.
+fn never(_: &SourceMap, _: &ParsedProgram, _: Option<&Path>) -> Diagnostics {
+    panic!("the check ran")
+}
+
 impl Client {
     fn start(root: &Path, options: Value) -> (Client, Value) {
+        Client::start_with(root, options, stand_in)
+    }
+
+    fn start_with(root: &Path, options: Value, check: Check) -> (Client, Value) {
         let (server_side, conn) = Connection::memory();
         let root = root.to_path_buf();
         let server = std::thread::Builder::new()
             .stack_size(qb64rust_base::STACK_SIZE)
-            .spawn(move || qb64rust_lsp::serve(server_side, root))
+            .spawn(move || qb64rust_lsp::serve(server_side, root, check))
             .unwrap();
         let mut c = Client {
             conn,
@@ -185,12 +221,181 @@ fn error_appears_and_goes() {
 
 #[test]
 fn unsupported_statement_is_no_diagnostic() {
-    // `OPEN` does not compile yet, but parses: nothing from `sema` is published.
+    // `x$ = 1` is a type error of `sema`, but parses: the live parse publishes nothing for it, and never runs the
+    // check (which would panic, and publish nothing at all).
+    let dir = temp();
+    let (mut c, _) = Client::start_with(dir.path(), Value::Null, never);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "PRINT 1\nx$ = 1\n");
+    assert_eq!(c.diagnostics(&u).unwrap(), Vec::<Value>::new());
+    c.change(&u, 2, "PRINT 2\nx$ = 1\n");
+    assert_eq!(c.diagnostics(&u).unwrap(), Vec::<Value>::new());
+    c.shutdown().unwrap();
+}
+
+fn check_params(u: &Uri) -> Value {
+    json!({ "uri": u })
+}
+
+/// The error code of a response that failed.
+fn error_code(r: Response) -> i32 {
+    r.response_result.unwrap_err().code
+}
+
+#[test]
+fn check_publishes_and_counts() {
     let dir = temp();
     let (mut c, _) = Client::start(dir.path(), Value::Null);
     let u = uri(dir.path(), "p.bas");
-    c.open(&u, "OPEN \"f\" FOR OUTPUT AS #1\nPRINT #1, 1\n");
+    c.open(&u, "PRINT 1 ' WARN\r\nx = BAD\r\ny = BAD\r\n");
+    // The live parse: nothing.
     assert_eq!(c.diagnostics(&u).unwrap(), Vec::<Value>::new());
+    let r = c.request(qb64rust_lsp::CHECK, check_params(&u));
+    assert_eq!(r.response_result.unwrap(), json!({ "errors": 2, "warnings": 1 }));
+    let d = c.diagnostics(&u).unwrap();
+    let found: Vec<_> = d.iter().map(|d| (at(d), d["severity"].as_u64().unwrap())).collect();
+    assert_eq!(
+        found,
+        [
+            ((0, 10, "a WARN word".to_string()), 2),
+            ((1, 4, "a BAD word".to_string()), 1),
+            ((2, 4, "a BAD word".to_string()), 1),
+        ]
+    );
+    assert!(d.iter().all(|d| d["source"] == "qb64rust"));
+    c.shutdown().unwrap();
+}
+
+#[test]
+fn check_of_a_document_not_open() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let r = c.request(qb64rust_lsp::CHECK, check_params(&uri(dir.path(), "none.bas")));
+    assert_eq!(error_code(r), ErrorCode::InvalidParams as i32);
+    let r = c.request(qb64rust_lsp::CHECK, json!({}));
+    assert_eq!(error_code(r), ErrorCode::InvalidParams as i32);
+    assert!(c.inbox.is_empty(), "published: {:?}", c.inbox);
+    assert!(c.recv(Instant::now() + WAIT).is_none());
+    c.shutdown().unwrap();
+}
+
+#[test]
+fn check_error_in_an_included_file() {
+    let dir = temp();
+    std::fs::write(dir.path().join("lib.bi"), "' lib\r\nDIM a\r\nb = 1\r\ny$ = BAD\r\n").unwrap();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let main = uri(dir.path(), "main.bas");
+    let lib = uri(dir.path(), "lib.bi");
+    c.open(&main, "'$INCLUDE: 'lib.bi'\r\nPRINT 1\r\n");
+    assert_eq!(c.diagnostics(&main).unwrap(), Vec::<Value>::new());
+    assert_eq!(c.diagnostics(&lib).unwrap(), Vec::<Value>::new());
+    let r = c.request(qb64rust_lsp::CHECK, check_params(&main));
+    assert_eq!(r.response_result.unwrap()["errors"], 1);
+    assert_eq!(c.diagnostics(&main).unwrap(), Vec::<Value>::new());
+    let d = c.diagnostics(&lib).unwrap();
+    assert_eq!(d.len(), 1);
+    assert_eq!(at(&d[0]).0, 3);
+    c.shutdown().unwrap();
+}
+
+#[test]
+fn edit_after_a_check() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "x = BAD\n");
+    assert_eq!(c.diagnostics(&u).unwrap(), Vec::<Value>::new());
+    c.request(qb64rust_lsp::CHECK, check_params(&u));
+    assert_eq!(c.diagnostics(&u).unwrap().len(), 1);
+    // The parse after the edit publishes the parser's diagnostics alone.
+    c.change(&u, 2, "x = BAD + 1\n");
+    assert_eq!(c.diagnostics(&u).unwrap(), Vec::<Value>::new());
+    c.shutdown().unwrap();
+}
+
+#[test]
+fn check_right_after_an_edit_is_not_overwritten() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "x = 1\n");
+    assert_eq!(c.diagnostics(&u).unwrap(), Vec::<Value>::new());
+    // A save within the debounce of an edit: the check sees the edit, and no parse publishes after it.
+    c.change(&u, 2, "x = BAD\n");
+    c.request(qb64rust_lsp::CHECK, check_params(&u));
+    assert_eq!(c.diagnostics(&u).unwrap().len(), 1);
+    assert_eq!(c.diagnostics(&u), None, "a parse published after the check");
+    c.shutdown().unwrap();
+}
+
+#[test]
+fn two_checks_in_a_row() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "x = BAD ' SLOW\n");
+    assert_eq!(c.diagnostics(&u).unwrap(), Vec::<Value>::new());
+    // The first check is still running when the second comes.
+    let first = c.send_request(qb64rust_lsp::CHECK, check_params(&u));
+    let second = c.send_request(qb64rust_lsp::CHECK, check_params(&u));
+    assert_eq!(error_code(c.response(&first)), ErrorCode::ContentModified as i32);
+    assert_eq!(c.response(&second).response_result.unwrap()["errors"], 1);
+    assert_eq!(c.diagnostics(&u).unwrap().len(), 1);
+    assert_eq!(c.diagnostics(&u), None, "the first check published too");
+    c.shutdown().unwrap();
+}
+
+#[test]
+fn cancelled_check_publishes_the_parse_only() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "x = BAD ' SLOW\n");
+    assert_eq!(c.diagnostics(&u).unwrap(), Vec::<Value>::new());
+    let id = c.send_request(qb64rust_lsp::CHECK, check_params(&u));
+    let n: i32 = id.to_string().parse().unwrap();
+    c.notify("$/cancelRequest", json!({ "id": n }));
+    assert_eq!(error_code(c.response(&id)), ErrorCode::RequestCanceled as i32);
+    // The parse made in its place publishes the parser's diagnostics (none), not the check's.
+    assert_eq!(
+        c.diagnostics(&u).unwrap(),
+        Vec::<Value>::new(),
+        "the cancelled check published"
+    );
+    assert_eq!(c.diagnostics(&u), None);
+    c.shutdown().unwrap();
+}
+
+#[test]
+fn cancelled_check_after_an_edit_parses_the_edit() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "x = 1 ' SLOW\n");
+    assert_eq!(c.diagnostics(&u).unwrap(), Vec::<Value>::new());
+    // The check takes the place of the edit's parse; when it is cancelled, the edit is parsed all the same.
+    c.change(&u, 2, "x = ( ' SLOW\n");
+    let id = c.send_request(qb64rust_lsp::CHECK, check_params(&u));
+    let n: i32 = id.to_string().parse().unwrap();
+    c.notify("$/cancelRequest", json!({ "id": n }));
+    assert_eq!(error_code(c.response(&id)), ErrorCode::RequestCanceled as i32);
+    assert_eq!(c.diagnostics(&u).unwrap().len(), 1);
+    c.shutdown().unwrap();
+}
+
+#[test]
+fn failed_check_parses_and_answers_the_waiting_requests() {
+    let dir = temp();
+    let (mut c, _) = Client::start_with(dir.path(), Value::Null, never);
+    let u = uri(dir.path(), "p.bas");
+    // A check before the first parse, and an outline request while it runs: the request waits.
+    c.open(&u, "SUB s\r\nEND SUB\r\nx = (\r\n");
+    let check = c.send_request(qb64rust_lsp::CHECK, check_params(&u));
+    let symbols = c.send_request("textDocument/documentSymbol", json!({ "textDocument": { "uri": u } }));
+    assert_eq!(error_code(c.response(&check)), ErrorCode::InternalError as i32);
+    let names = c.response(&symbols).response_result.unwrap();
+    assert_eq!(names.as_array().unwrap().len(), 1, "{names}");
+    assert_eq!(c.diagnostics(&u).unwrap().len(), 1);
     c.shutdown().unwrap();
 }
 
@@ -205,6 +410,19 @@ fn error_in_an_included_file_on_disk() {
     let d = c.diagnostics(&uri(dir.path(), "lib.bi")).unwrap();
     assert_eq!(d.len(), 1);
     assert_eq!(at(&d[0]).0, 2);
+    c.shutdown().unwrap();
+}
+
+#[test]
+fn include_after_a_built_in_file() {
+    // `$COLOR` adds QB64pe's constants as a file of the map before the include is loaded.
+    let dir = temp();
+    std::fs::write(dir.path().join("lib.bi"), "x = (\n").unwrap();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let main = uri(dir.path(), "main.bas");
+    c.open(&main, "$COLOR:0\n'$INCLUDE: 'lib.bi'\n");
+    assert_eq!(c.diagnostics(&main).unwrap(), Vec::<Value>::new());
+    assert_eq!(c.diagnostics(&uri(dir.path(), "lib.bi")).unwrap().len(), 1);
     c.shutdown().unwrap();
 }
 

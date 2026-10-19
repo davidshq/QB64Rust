@@ -337,6 +337,14 @@ version,session,change,category,actions,bytes
 1,28041ce0,m1-vscode-extension-v0,measurement runs,2,0
 1,28041ce0,m1-vscode-extension-v0,other commands,6,0
 1,28041ce0,m1-vscode-extension-v0,test runs,1,0
+1,28377963,extension-diagnostics,builds,4,0
+1,28377963,extension-diagnostics,documents and planning,3,1659
+1,28377963,extension-diagnostics,other commands,49,0
+1,28377963,extension-diagnostics,product code,44,30132
+1,28377963,extension-diagnostics,reading,15,0
+1,28377963,extension-diagnostics,scratch files,2,408
+1,28377963,extension-diagnostics,test runs,25,0
+1,28377963,extension-diagnostics,tests and fixtures,9,18052
 1,28867a87,,other commands,1,0
 1,28867a87,m3-versioninfo,builds,3,0
 1,28867a87,m3-versioninfo,documents and planning,17,12585
@@ -1201,13 +1209,13 @@ version,session,change,category,actions,bytes
 1,7837fe7e,,scratch files,2,2537
 1,7837fe7e,,test runs,3,0
 1,7837fe7e,libqb-copy,builds,6,0
-1,7837fe7e,libqb-copy,documents and planning,35,35465
+1,7837fe7e,libqb-copy,documents and planning,36,36215
 1,7837fe7e,libqb-copy,measurement runs,1,0
 1,7837fe7e,libqb-copy,other,7,317
 1,7837fe7e,libqb-copy,other commands,78,0
 1,7837fe7e,libqb-copy,product code,29,15776
-1,7837fe7e,libqb-copy,reading,27,0
-1,7837fe7e,libqb-copy,test runs,34,0
+1,7837fe7e,libqb-copy,reading,28,0
+1,7837fe7e,libqb-copy,test runs,35,0
 1,7837fe7e,libqb-copy,tests and fixtures,18,22614
 1,78821586,,documents and planning,3,268
 1,78821586,,other commands,5,0
@@ -1449,6 +1457,13 @@ version,session,change,category,actions,bytes
 1,92864cf3,,test runs,1,0
 1,92864cf3,m2-defxxx-common-arrays,other commands,4,0
 1,92864cf3,m2-defxxx-common-arrays,reading,3,0
+1,934eb9b0,,other commands,1,0
+1,934eb9b0,libqb-copy,documents and planning,4,689
+1,934eb9b0,libqb-copy,other commands,19,0
+1,934eb9b0,libqb-copy,product code,2,1061
+1,934eb9b0,libqb-copy,reading,6,0
+1,934eb9b0,libqb-copy,test runs,5,0
+1,934eb9b0,libqb-copy,tests and fixtures,1,19
 1,978f40ab,,other commands,2,0
 1,978f40ab,m2-control-flow-slice,documents and planning,2,1781
 1,978f40ab,m2-control-flow-slice,other commands,23,0
@@ -1923,6 +1938,12 @@ version,session,change,category,actions,bytes
 1,cf4bfa06,m3-declare-library,other commands,24,0
 1,cf4bfa06,m3-declare-library,reading,1,0
 1,cf4bfa06,m3-declare-library,test runs,2,0
+1,cf844802,extension-diagnostics,documents and planning,2,1823
+1,cf844802,extension-diagnostics,other commands,25,0
+1,cf844802,extension-diagnostics,product code,13,4095
+1,cf844802,extension-diagnostics,reading,13,0
+1,cf844802,extension-diagnostics,test runs,9,0
+1,cf844802,extension-diagnostics,tests and fixtures,2,1966
 1,d0d88245,,reading,1,0
 1,d0d88245,m2-language-server,builds,6,0
 1,d0d88245,m2-language-server,documents and planning,18,19884
@@ -2091,6 +2112,12 @@ version,session,change,category,actions,bytes
 1,e2889731,m2-core-builtins,scratch files,6,5620
 1,e2889731,m2-core-builtins,test runs,51,0
 1,e2889731,m2-core-builtins,tests and fixtures,44,47008
+1,e2dfbd1b,,measurement runs,1,0
+1,e2dfbd1b,,other,1,0
+1,e2dfbd1b,,other commands,19,0
+1,e2dfbd1b,extension-diagnostics,documents and planning,5,25202
+1,e2dfbd1b,extension-diagnostics,other commands,8,0
+1,e2dfbd1b,extension-diagnostics,test runs,1,0
 1,e3222661,,other commands,1,0
 1,e3272f48,,other commands,2,0
 1,e3272f48,m3-errorline-chr-const,documents and planning,12,4200
@@ -2141,6 +2168,7 @@ version,session,change,category,actions,bytes
 1,e71524e4,m3-typefields,other commands,3,0
 1,e71524e4,m3-typefields,test runs,2,0
 1,e71524e4,m3-typefields,tests and fixtures,1,1046
+1,e78e4584,,other commands,1,0
 1,e8192520,,other commands,2,0
 1,e8192520,m3-mem,builds,2,0
 1,e8192520,m3-mem,documents and planning,10,4625
@@ -2285,6 +2313,12 @@ version,session,change,category,actions,bytes
 1,fb6e3f78,m2-control-flow-slice,reading,1,0
 1,fb7d1b9e,,other commands,1,0
 1,fb7d1b9e,m3-sound,other commands,1,0
+1,fbf4dc49,,other commands,1,0
+1,fbf4dc49,libqb-copy,documents and planning,5,5618
+1,fbf4dc49,libqb-copy,other commands,5,0
+1,fbf4dc49,libqb-copy,reading,3,0
+1,fbf4dc49,libqb-copy,scratch files,1,1118
+1,fbf4dc49,libqb-copy,test runs,1,0
 1,fc016671,m3-sound-handles,builds,3,0
 1,fc016671,m3-sound-handles,documents and planning,37,27231
 1,fc016671,m3-sound-handles,measurement preparation,8,15089

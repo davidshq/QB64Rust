@@ -1,10 +1,12 @@
 //! The message loop (design D2, D5): the document store, a parse of each changed program after a debounce on a
-//! worker thread, diagnostics per file, and requests answered from the last parse of their document.
+//! worker thread, diagnostics per file, and requests answered from the last parse of their document. A check
+//! (`qb64rust/check`, design D3 of `extension-diagnostics`) is a parse followed by the rest of the front end, on
+//! the same worker.
 
 use crate::analysis::{Analysis, OpenFile, analyze};
 use crate::encoding::Encoding;
-use crate::uri::uri_key;
-use crate::{definition, folding, symbols};
+use crate::uri::{to_path, uri_key};
+use crate::{Check, definition, folding, symbols};
 use lsp_server::{Connection, ErrorCode, Message, Notification, Request, RequestId, Response};
 use lsp_types::notification::{
     Cancel, DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, Notification as _, PublishDiagnostics,
@@ -16,6 +18,7 @@ use lsp_types::{
     InitializeParams, Location, NumberOrString, PublishDiagnosticsParams, ServerCapabilities, TextDocumentSyncKind,
     Uri,
 };
+use qb64rust_base::{Diagnostics, FileId, Severity};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -26,6 +29,10 @@ use std::time::{Duration, Instant};
 
 /// The extension's notification of a document's encoding (design D3).
 pub const DOCUMENT_ENCODING: &str = "qb64rust/documentEncoding";
+
+/// The request that runs the whole front end over a document's program: `{ uri }`, answered with
+/// `{ errors, warnings }` (spec `editor/language-server`, "Check request").
+pub const CHECK: &str = "qb64rust/check";
 
 /// How long after a change a parse starts; a newer change in that time starts the wait again.
 pub const DEBOUNCE: Duration = Duration::from_millis(100);
@@ -48,8 +55,9 @@ pub fn capabilities() -> ServerCapabilities {
 }
 
 /// Runs the server on `conn` until `exit`. `default_root` is the include root when the client names none (the
-/// folder of the `qb64rust` binary, the compiler's own rule). An `exit` without `shutdown` before it is an error.
-pub fn serve(conn: Connection, default_root: PathBuf) -> Result<(), String> {
+/// folder of the `qb64rust` binary, the compiler's own rule); `check` the front end a check runs after the parse.
+/// An `exit` without `shutdown` before it is an error.
+pub fn serve(conn: Connection, default_root: PathBuf, check: Check) -> Result<(), String> {
     let (id, params) = conn.initialize_start().map_err(|e| e.to_string())?;
     let params: InitializeParams = serde_json::from_value(params).map_err(|e| e.to_string())?;
     // The client's `initializationOptions` (design D6): `encoding`, VS Code's encoding id for documents the client
@@ -79,7 +87,7 @@ pub fn serve(conn: Connection, default_root: PathBuf) -> Result<(), String> {
         }
         let _ = forward.send(Event::Disconnected);
     });
-    let jobs = start_worker(events);
+    let jobs = start_worker(events, check);
     Server::new(conn, jobs, root, default).run(&inbox)
 }
 
@@ -89,6 +97,13 @@ enum Event {
         key: String,
         seq: u64,
         result: Result<Analysis, String>,
+    },
+    /// The result of a check: its parse and every diagnostic of the front end.
+    Checked {
+        key: String,
+        seq: u64,
+        id: RequestId,
+        result: Result<(Analysis, Diagnostics), String>,
     },
     Disconnected,
 }
@@ -100,34 +115,56 @@ struct Job {
     open: Arc<HashMap<String, OpenFile>>,
     root: PathBuf,
     default: Encoding,
+    /// The check request this job answers; `None` for a parse.
+    check: Option<RequestId>,
+}
+
+/// The message of a panic caught on the worker.
+fn panic_message(e: &(dyn std::any::Any + Send), doing: &str) -> String {
+    let msg = e
+        .downcast_ref::<&str>()
+        .map(|s| (*s).to_string())
+        .or_else(|| e.downcast_ref::<String>().cloned())
+        .unwrap_or_default();
+    format!("internal error while {doing}: {msg}")
 }
 
 /// The parse worker: one program at a time, on a thread with the compiler's stack size (the parser's depth limits
-/// are tuned for it). A panic in the parser is reported for that job; the worker goes on.
-fn start_worker(events: mpsc::Sender<Event>) -> mpsc::Sender<Job> {
+/// are tuned for it). A panic in the parser, or in `check` for a check, is reported for that job; the worker goes
+/// on.
+fn start_worker(events: mpsc::Sender<Event>, check: Check) -> mpsc::Sender<Job> {
     let (jobs, queue) = mpsc::channel::<Job>();
     std::thread::Builder::new()
         .name("qb64rust-parse".into())
         .stack_size(qb64rust_base::STACK_SIZE)
         .spawn(move || {
             for job in queue {
-                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    analyze(&job.key, &job.main, &job.open, &job.root, job.default)
-                }))
-                .map_err(|e| {
-                    let msg = e
-                        .downcast_ref::<&str>()
-                        .map(|s| (*s).to_string())
-                        .or_else(|| e.downcast_ref::<String>().cloned())
-                        .unwrap_or_default();
-                    format!("internal error while parsing: {msg}")
-                });
-                let parsed = Event::Parsed {
-                    key: job.key,
-                    seq: job.seq,
-                    result,
+                let parse = || analyze(&job.key, &job.main, &job.open, &job.root, job.default);
+                let event = match &job.check {
+                    None => Event::Parsed {
+                        key: job.key.clone(),
+                        seq: job.seq,
+                        result: std::panic::catch_unwind(std::panic::AssertUnwindSafe(parse))
+                            .map_err(|e| panic_message(&*e, "parsing")),
+                    },
+                    Some(id) => {
+                        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            let a = parse();
+                            // No disk checks for a document that is not a file (`untitled:`).
+                            let path = to_path(&job.main.uri);
+                            let diagnostics = check(&a.map, &a.parsed, path.as_deref());
+                            (a, diagnostics)
+                        }))
+                        .map_err(|e| panic_message(&*e, "checking"));
+                        Event::Checked {
+                            key: job.key.clone(),
+                            seq: job.seq,
+                            id: id.clone(),
+                            result,
+                        }
+                    }
                 };
-                if events.send(parsed).is_err() {
+                if events.send(event).is_err() {
                     return;
                 }
             }
@@ -165,6 +202,8 @@ struct Server {
     /// The number of the last job sent for each program, until its result comes; a result of an older one is
     /// dropped.
     latest_job: HashMap<String, u64>,
+    /// The last check sent for each program, with its job's number, until it is answered.
+    checks: HashMap<String, (u64, RequestId)>,
     seq: u64,
     waiting: Vec<Waiting>,
     /// For each file with diagnostics published: the program whose parse published them, and its URI.
@@ -184,6 +223,7 @@ impl Server {
             analyses: HashMap::new(),
             pending: HashMap::new(),
             latest_job: HashMap::new(),
+            checks: HashMap::new(),
             seq: 0,
             waiting: Vec::new(),
             published: HashMap::new(),
@@ -217,6 +257,7 @@ impl Server {
                 }
                 Some(Event::Message(Message::Response(_))) => {}
                 Some(Event::Parsed { key, seq, result }) => self.parsed(key, seq, result),
+                Some(Event::Checked { key, seq, id, result }) => self.checked(key, seq, id, result),
                 Some(Event::Disconnected) => return Err("connection closed without exit".into()),
             }
         }
@@ -282,10 +323,19 @@ impl Server {
                         NumberOrString::Number(i) => i.into(),
                         NumberOrString::String(s) => s.into(),
                     };
+                    let code = ErrorCode::RequestCanceled as i32;
                     if let Some(i) = self.waiting.iter().position(|w| w.req.id == id) {
                         let w = self.waiting.remove(i);
-                        let code = ErrorCode::RequestCanceled as i32;
                         self.send(Response::new_err(w.req.id, code, "cancelled".into()));
+                    }
+                    // A check under way runs to its end; its result is dropped, and the parse it stood for is
+                    // made instead, after the debounce: a client that cancels a check to send a newer one sends
+                    // the newer one at once, which then takes that parse's place again.
+                    let check = self.checks.iter().find(|(_, (_, c))| *c == id).map(|(k, _)| k.clone());
+                    if let Some(key) = check {
+                        self.checks.remove(&key);
+                        self.send(Response::new_err(id, code, "cancelled".into()));
+                        self.pending.insert(key, Instant::now() + DEBOUNCE);
                     }
                 }
             }
@@ -313,6 +363,10 @@ impl Server {
         self.docs.remove(key);
         self.pending.remove(key);
         self.latest_job.remove(key);
+        if let Some((_, id)) = self.checks.remove(key) {
+            let code = ErrorCode::ContentModified as i32;
+            self.send(Response::new_err(id, code, "the document was closed".into()));
+        }
         // Programs that included it now read it from disk.
         self.changed(key);
         self.pending.remove(key);
@@ -385,6 +439,7 @@ impl Server {
                 open: Arc::clone(&open),
                 root: self.root.clone(),
                 default: self.default,
+                check: None,
             };
             if self.jobs.send(job).is_err() {
                 // The worker is gone (it never panics out of its loop); nothing more can be parsed.
@@ -398,24 +453,68 @@ impl Server {
             return;
         }
         self.latest_job.remove(&key);
-        let analysis = match result {
-            Ok(a) => a,
+        match result {
+            Ok(analysis) => {
+                let diagnostics = analysis.parse_diagnostics();
+                self.publish_program(key, analysis, diagnostics);
+            }
+            Err(msg) => self.failed(&key, &msg),
+        }
+    }
+
+    /// A parse of program `key` failed: the requests waiting for it get the error.
+    fn failed(&mut self, key: &str, msg: &str) {
+        eprintln!("qb64rust: {msg} ({key})");
+        let (mine, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut self.waiting)
+            .into_iter()
+            .partition(|w| w.key == key);
+        self.waiting = rest;
+        for w in mine {
+            self.send(Response::new_err(
+                w.req.id,
+                ErrorCode::InternalError as i32,
+                msg.to_string(),
+            ));
+        }
+    }
+
+    /// The result of a check (design D4): published as a parse's would be, but with the whole front end's
+    /// diagnostics, and answered with their counts. A check that is no longer the program's last (a newer one
+    /// came, it was cancelled, or the document closed) was answered already and publishes nothing. A check that
+    /// failed is answered with the error, and the program is parsed again (a check takes the place of a pending
+    /// parse), which answers the requests waiting for it.
+    fn checked(&mut self, key: String, seq: u64, id: RequestId, result: Result<(Analysis, Diagnostics), String>) {
+        if self.checks.get(&key).is_none_or(|(s, _)| *s != seq) {
+            return;
+        }
+        self.checks.remove(&key);
+        let (analysis, diagnostics) = match result {
+            Ok(r) => r,
             Err(msg) => {
                 eprintln!("qb64rust: {msg} ({key})");
-                let (mine, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut self.waiting)
-                    .into_iter()
-                    .partition(|w| w.key == key);
-                self.waiting = rest;
-                for w in mine {
-                    self.send(Response::new_err(
-                        w.req.id,
-                        ErrorCode::InternalError as i32,
-                        msg.clone(),
-                    ));
-                }
+                self.send(Response::new_err(id, ErrorCode::InternalError as i32, msg));
+                self.pending.insert(key, Instant::now());
                 return;
             }
         };
+        // In the CLI's order (`Frontend::render`): by file, then by offset.
+        let mut list = diagnostics.list().to_vec();
+        list.sort_by_key(|d| (d.span.file.0, d.span.start));
+        let warnings = list.iter().filter(|d| d.severity == Severity::Warning).count();
+        let per_file = analysis.lsp_diagnostics(&list);
+        self.publish_program(key, analysis, per_file);
+        let answer = serde_json::json!({ "errors": diagnostics.error_count(), "warnings": warnings });
+        self.send(Response::new_ok(id, answer));
+    }
+
+    /// Publishes `diagnostics` for each file of program `key`'s new `analysis`, which replaces its last one, and
+    /// answers the requests waiting for it.
+    fn publish_program(
+        &mut self,
+        key: String,
+        analysis: Analysis,
+        diagnostics: Vec<(FileId, Vec<lsp_types::Diagnostic>)>,
+    ) {
         // Diagnostics of every file the parse covered; files the program's previous parse covered and this one
         // does not lose the ones it published (unless another program covers them).
         let covered: Vec<String> = analysis.files.iter().map(|f| f.key.clone()).collect();
@@ -431,7 +530,7 @@ impl Server {
                 self.release(file, uri, &key);
             }
         }
-        for (file, diags) in analysis.diagnostics() {
+        for (file, diags) in diagnostics {
             let info = analysis.info(file);
             self.published.insert(info.key.clone(), (key.clone(), info.uri.clone()));
             self.publish(info.uri.clone(), diags);
@@ -467,6 +566,10 @@ impl Server {
                 self.send(Response::new_ok(req.id, ()));
                 return;
             }
+            CHECK => {
+                self.check(req);
+                return;
+            }
             DocumentSymbolRequest::METHOD => {
                 serde_json::from_value::<DocumentSymbolParams>(req.params.clone()).map(|p| p.text_document.uri)
             }
@@ -495,15 +598,50 @@ impl Server {
         let key = uri_key(&uri);
         match self.analyses.get(&key) {
             Some(a) => self.answer(req, Some(a)),
-            // The first parse is still to come: the request waits for it. (After a parse that failed, none comes
-            // until the next change.)
+            // The first parse (or a check, which parses) is still to come: the request waits for it. (After a parse
+            // that failed, none comes until the next change.)
             None if self.docs.contains_key(&key)
-                && (self.pending.contains_key(&key) || self.latest_job.contains_key(&key)) =>
+                && (self.pending.contains_key(&key)
+                    || self.latest_job.contains_key(&key)
+                    || self.checks.contains_key(&key)) =>
             {
                 self.waiting.push(Waiting { key, req });
             }
             None => self.answer(req, None),
         }
+    }
+
+    /// `qb64rust/check { uri }` (design D3): a job that parses the document's program and runs the front end. A
+    /// newer check of the same program replaces an older one, which is answered at once with `ContentModified`.
+    fn check(&mut self, req: Request) {
+        let uri = field(&req.params, "uri").and_then(|u| Uri::from_str(u).ok());
+        let Some(key) = uri.map(|u| uri_key(&u)).filter(|k| self.docs.contains_key(k)) else {
+            let msg = "qb64rust/check needs the uri of an open document".to_string();
+            self.send(Response::new_err(req.id, ErrorCode::InvalidParams as i32, msg));
+            return;
+        };
+        if let Some((_, older)) = self.checks.remove(&key) {
+            let code = ErrorCode::ContentModified as i32;
+            self.send(Response::new_err(older, code, "a newer check replaced it".into()));
+        }
+        // The check parses the program as it is now: a parse of it still to come after the debounce would only
+        // publish the parser's diagnostics over the check's.
+        self.pending.remove(&key);
+        let open: Arc<HashMap<String, OpenFile>> =
+            Arc::new(self.docs.iter().map(|(k, d)| (k.clone(), open_file(d))).collect());
+        self.seq += 1;
+        self.checks.insert(key.clone(), (self.seq, req.id.clone()));
+        let job = Job {
+            main: open_file(&self.docs[&key]),
+            key,
+            seq: self.seq,
+            open,
+            root: self.root.clone(),
+            default: self.default,
+            check: Some(req.id),
+        };
+        // The worker is gone (it never panics out of its loop): the check stays unanswered.
+        let _ = self.jobs.send(job);
     }
 
     /// Answers a request from a parse of its document, or with an empty result without one.

@@ -3,7 +3,7 @@
 Edit, check, format, build and run QB64 programs in VS Code with the installed QB64pe compiler. Milestone M1 of the
 QB64Rust project made the extension a thin client around the existing compiler; with the new compiler's binary
 (`qb64rust`) it also runs a language server for syntax errors as you type, the outline, folding and go to
-definition. The language server will take over checking and formatting later.
+definition, and the check on save is the new compiler's. The language server will take over formatting later.
 
 ## Features
 
@@ -14,11 +14,17 @@ definition. The language server will take over checking and formatting later.
   `DECLARE LIBRARY` blocks fold (with the language server, every block does; see below).
 - **CP437 by default.** QB64 programs store box-drawing and other extended characters as CP437 bytes, so files
   of this language open and save as `cp437` unless you choose another encoding.
-- **Problems on save** (source `qb64pe`). Each save runs `qb64pe -z` (C++ generation only, no build, well under
-  two seconds) and shows the compiler's error or warnings at the right file and line, including errors inside
-  `$INCLUDE` files.
-  The old compiler reports one error at a time and no column; the whole line is marked. These diagnostics are
-  cleared when you edit the file.
+- **Problems on save**, and with the command **QB64: Check Program** (`qb64rust.check`). When the language server runs
+  (see below), each save asks it to check the program with the new compiler's whole front end (source
+  `qb64rust`): every error and warning in one run, each at its column, also in `$INCLUDE` files, with the old
+  compiler's wording as a second line (`QB64pe: …`) where it is known. A check of a large program (Civil War
+  Strategy, about 5,000 lines) takes under a tenth of a second. The result stands until your next edit, after
+  which only syntax errors are shown again until the next save. The command checks the editor's text as it is,
+  saved or not.
+- Without the language server, each save runs `qb64pe -z` (source `qb64pe`; C++ generation only, no build, well
+  under two seconds) and shows the compiler's error or warnings at the right file and line, including errors
+  inside `$INCLUDE` files. The old compiler reports one error at a time and no column; the whole line is marked.
+  These diagnostics are cleared when you edit the file.
 - **Format Document** uses the compiler's own formatter (`qb64pe -y`), which lays code out the way the QB64pe IDE
   does: indentation, spacing and keyword case (`PRINT` → `Print`). Unsaved changes are formatted; the file on disk
   is not touched. If the program has an error, the document is left unchanged and the error is shown.
@@ -42,9 +48,9 @@ When the `qb64rust` binary is found (setting `qb64rust.path`, or `qb64rust` on `
 - **Syntax errors as you type** (source `qb64rust`), without saving, at the exact column, also in `$INCLUDE` files
   (an included file that is open is read from the editor, unsaved changes included; one that is not open is read
   from disk when the including file changes, so a change made to it outside the editor shows at the next edit of
-  the including file). Only syntax errors: whether
-  the new compiler can compile a statement yet is not shown. After a save, the old compiler's message (source
-  `qb64pe`) can stand beside the server's for the same error; the next edit removes the `qb64pe` one.
+  the including file). Only syntax errors as you type; type errors and the rest come with the check on save
+  (above). After a build, the old compiler's message (source `qb64pe`) can stand beside the server's for the same
+  error; the next edit removes the `qb64pe` one.
 - **Outline** (and breadcrumbs, Go to Symbol in Editor): `SUB` and `FUNCTION` with the labels inside them,
   `TYPE` blocks with their members, labels of the main module.
 - **Folding** of every block: `IF`, `FOR`, `DO`, `WHILE`, `SELECT CASE` and each `CASE`, `$IF` regions, and runs of
@@ -78,8 +84,8 @@ workspaces (folders opened from a remote repository without a local copy, e.g. o
 | Setting | Default | Meaning |
 |---|---|---|
 | `qb64rust.compilerPath` | `""` | Path to `qb64pe.exe` or its folder. Empty: look up `qb64pe` on `PATH`. |
-| `qb64rust.checkOnSave` | `true` | Check the program when a file is saved. |
-| `qb64rust.checkTimeoutSeconds` | `30` | Stop a check or format that takes longer. |
+| `qb64rust.checkOnSave` | `true` | Check the program when a file is saved: with the language server when it runs, else with `qb64pe -z`. |
+| `qb64rust.checkTimeoutSeconds` | `30` | Stop a check or format that takes longer (a check by the language server: stop waiting for it). |
 | `qb64rust.runArguments` | `""` | Arguments for Run (the program sees them as `COMMAND$`). |
 | `qb64rust.noPrompt` | `false` | Run with `QB64PE_NOPROMPT=y`: untrapped runtime errors are printed instead of shown in a dialog. |
 | `qb64rust.path` | `""` | Path to the `qb64rust` binary, which runs the language server. Empty: look up `qb64rust` on `PATH`. |

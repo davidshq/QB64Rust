@@ -4,7 +4,7 @@
 use crate::encoding::{Columns, Encoding};
 use crate::uri::{from_path, path_key, to_path};
 use lsp_types::{DiagnosticSeverity, Range, Uri};
-use qb64rust_base::{FileId, MAX_SOURCE_LEN, Severity, SourceMap, Span};
+use qb64rust_base::{Diagnostic, FileId, MAX_SOURCE_LEN, Severity, SourceMap, Span};
 use qb64rust_syntax::{LoadError, Loader, ParsedProgram, include_name, parse_settled};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -45,32 +45,42 @@ impl Analysis {
         Range::new(columns.position(file, span.start), columns.position(file, span.end))
     }
 
-    /// The parser's diagnostics of every file this parse covered, each file once (an empty list for a file
-    /// without errors), in [`FileId`] order. A file included twice reports an error once.
-    pub fn diagnostics(&self) -> Vec<(FileId, Vec<lsp_types::Diagnostic>)> {
+    /// The parser's diagnostics, as [`Analysis::lsp_diagnostics`] publishes them.
+    pub fn parse_diagnostics(&self) -> Vec<(FileId, Vec<lsp_types::Diagnostic>)> {
+        let list: Vec<Diagnostic> = self
+            .parsed
+            .trees
+            .iter()
+            .flat_map(|t| t.diagnostics.list().iter().cloned())
+            .collect();
+        self.lsp_diagnostics(&list)
+    }
+
+    /// The diagnostics `list` (the parser's, or a check's) for every file this parse covered, each file once (an
+    /// empty list for a file without any), in [`FileId`] order; within a file in the order of `list`. A diagnostic
+    /// given twice (a file included twice) is published once.
+    pub fn lsp_diagnostics(&self, list: &[Diagnostic]) -> Vec<(FileId, Vec<lsp_types::Diagnostic>)> {
         let mut per_file: Vec<Vec<lsp_types::Diagnostic>> = self.files.iter().map(|_| Vec::new()).collect();
         let mut seen = std::collections::HashSet::new();
-        for tree in &self.parsed.trees {
-            for d in tree.diagnostics.list() {
-                if !seen.insert((d.span, d.message.clone())) {
-                    continue;
-                }
-                let mark = if d.unsupported { "not supported yet: " } else { "" };
-                per_file[d.span.file.0 as usize].push(lsp_types::Diagnostic {
-                    range: self.range(d.span),
-                    severity: Some(match d.severity {
-                        Severity::Error => DiagnosticSeverity::ERROR,
-                        Severity::Warning => DiagnosticSeverity::WARNING,
-                    }),
-                    source: Some("qb64rust".to_string()),
-                    // The old compiler's wording on a line of its own, as the CLI's note (`m3-old-wording-notes`).
-                    message: match d.old_wording() {
-                        Some(old) => format!("{mark}{}\nQB64pe: {old}", d.message),
-                        None => format!("{mark}{}", d.message),
-                    },
-                    ..lsp_types::Diagnostic::default()
-                });
+        for d in list {
+            if !seen.insert((d.span, d.message.clone())) {
+                continue;
             }
+            let mark = if d.unsupported { "not supported yet: " } else { "" };
+            per_file[d.span.file.0 as usize].push(lsp_types::Diagnostic {
+                range: self.range(d.span),
+                severity: Some(match d.severity {
+                    Severity::Error => DiagnosticSeverity::ERROR,
+                    Severity::Warning => DiagnosticSeverity::WARNING,
+                }),
+                source: Some("qb64rust".to_string()),
+                // The old compiler's wording on a line of its own, as the CLI's note (`m3-old-wording-notes`).
+                message: match d.old_wording() {
+                    Some(old) => format!("{mark}{}\nQB64pe: {old}", d.message),
+                    None => format!("{mark}{}", d.message),
+                },
+                ..lsp_types::Diagnostic::default()
+            });
         }
         per_file
             .into_iter()
@@ -113,6 +123,7 @@ pub fn analyze(
         main.encoding,
     );
     let parsed = parse_settled(&mut map, id, &mut loader);
+    loader.record_builtins(&map, map.files().count());
     Analysis {
         map,
         parsed,
@@ -143,6 +154,17 @@ impl DocLoader<'_> {
         self.files.push(FileInfo { uri, key, columns });
         self.dirs.push(path.and_then(Path::parent).map(Path::to_path_buf));
     }
+
+    /// Records the files the parser added to the map itself, up to the file `end` (QB64pe's built-in files: the
+    /// constants of `$COLOR`, `afterlastline.bm`). Each is named under the compiler root, as the CLI names it
+    /// relative to it; it is no file of the editor's.
+    fn record_builtins(&mut self, map: &SourceMap, end: usize) {
+        while self.files.len() < end {
+            let id = FileId(qb64rust_base::to_u32(self.files.len()));
+            let path = self.root.join(&map.file(id).name);
+            self.record(map, id, from_path(&path), path_key(&path), None, Encoding::DEFAULT);
+        }
+    }
 }
 
 impl Loader for DocLoader<'_> {
@@ -170,6 +192,7 @@ impl Loader for DocLoader<'_> {
             if bytes.len() > MAX_SOURCE_LEN {
                 return Err(LoadError::Unreadable(format!("larger than {MAX_SOURCE_LEN} bytes")));
             }
+            self.record_builtins(map, map.files().count());
             let id = map.add(candidate.to_string_lossy().into_owned(), bytes);
             self.seen.insert(key.clone(), id);
             self.record(map, id, uri, key, Some(&candidate), enc);

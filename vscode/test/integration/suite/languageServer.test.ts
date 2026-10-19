@@ -1,17 +1,21 @@
-// The language server (change m2-language-server, tasks 4.2 and 4.3), started from the binary that
-// QB64RUST_TEST_QB64RUST names. Skipped when it is unset.
+// The language server (change m2-language-server, tasks 4.2 and 4.3; its check on save and by command,
+// extension-diagnostics task 4.3), started from the binary that QB64RUST_TEST_QB64RUST names. Skipped when it is
+// unset.
 import * as assert from "assert";
 import * as vscode from "vscode";
 import {
     api,
     closeAll,
     compiler,
+    dismissingNotifications,
     open,
     qb64peDiagnostics,
     qb64rustDiagnostics,
     saveAndCheck,
     server,
+    setSetting,
     setText,
+    sleep,
     waitFor,
     waitForAsync,
     writeFile,
@@ -48,7 +52,7 @@ describe("language server", function () {
         assert.strictEqual((await api()).server.text, "qb64rust");
     });
 
-    it("syntax errors as you type, beside the old compiler's on save", async function () {
+    it("syntax errors as you type, beside the old compiler's from a build", async function () {
         const editor = await open(writeFile("ls/diag.bas", "PRINT 1\r\n"));
         const uri = editor.document.uri;
         // Without a save: the server's error appears.
@@ -56,9 +60,13 @@ describe("language server", function () {
         const live = await waitFor("a qb64rust diagnostic", () => qb64rustDiagnostics(uri).length > 0 && qb64rustDiagnostics(uri));
         assert.strictEqual(live[0].range.start.line, 1);
         assert.deepStrictEqual(qb64peDiagnostics(uri), []);
+        // On save, the server's check: still its error alone.
+        await saveAndCheck(editor);
+        assert.strictEqual(qb64rustDiagnostics(uri).length, 1);
+        assert.deepStrictEqual(qb64peDiagnostics(uri), []);
         if (compiler) {
-            // On save the old compiler's appears beside it; neither replaces the other.
-            await saveAndCheck(editor);
+            // A build's error (spec "Two sources") appears beside it; neither replaces the other.
+            await dismissingNotifications(vscode.commands.executeCommand("qb64rust.build"));
             assert.strictEqual(qb64peDiagnostics(uri).length, 1);
             assert.strictEqual(qb64rustDiagnostics(uri).length, 1);
         }
@@ -67,8 +75,87 @@ describe("language server", function () {
         assert.deepStrictEqual(qb64peDiagnostics(uri), []);
         await waitFor("the qb64rust diagnostic to go", () => qb64rustDiagnostics(uri).length === 0);
         if (!compiler) {
-            this.test!.title += " (without qb64pe: the on-save part skipped)";
+            this.test!.title += " (without qb64pe: the build part skipped)";
         }
+    });
+
+    /** Counts the old compiler's checks the run queue starts while `body` runs. */
+    async function qb64peChecks(body: () => Promise<void>): Promise<number> {
+        const queue = (await api()).queue;
+        const run = queue.run.bind(queue);
+        let checks = 0;
+        queue.run = (request) => {
+            if (request.kind === "check") {
+                checks++;
+            }
+            return run(request);
+        };
+        try {
+            await body();
+        } finally {
+            queue.run = run;
+        }
+        return checks;
+    }
+
+    it("error on save from the new compiler: every error, each at its column", async () => {
+        const editor = await open(writeFile("ls/save.bas", "PRINT 1\r\n"));
+        const uri = editor.document.uri;
+        await setText(editor, "PRINT 1\r\nx$ = 1\r\nGOTO nowhere\r\n");
+        const checks = await qb64peChecks(() => saveAndCheck(editor));
+        assert.strictEqual(checks, 0, "the old compiler was run");
+        const diags = await waitFor("the check's diagnostics", () => qb64rustDiagnostics(uri).length === 2 && qb64rustDiagnostics(uri));
+        // `qb64rust` reports both at column 6: `$` and `nowhere`.
+        assert.deepStrictEqual(
+            diags.map((d) => [d.range.start.line, d.range.start.character, d.severity]),
+            [
+                [1, 5, vscode.DiagnosticSeverity.Error],
+                [2, 5, vscode.DiagnosticSeverity.Error],
+            ],
+        );
+        assert.match(diags[0].message, /^cannot store a number in a string variable\nQB64pe: /);
+        assert.deepStrictEqual(qb64peDiagnostics(uri), []);
+    });
+
+    it("fixed on save", async () => {
+        const editor = await open(writeFile("ls/fix.bas", "PRINT 1\r\n"));
+        const uri = editor.document.uri;
+        await setText(editor, "PRINT 1\r\nx$ = 1\r\n");
+        await saveAndCheck(editor);
+        await waitFor("the type error", () => qb64rustDiagnostics(uri).length === 1);
+        await setText(editor, 'PRINT 1\r\nx$ = "1"\r\n');
+        await saveAndCheck(editor);
+        await waitFor("no diagnostic", () => qb64rustDiagnostics(uri).length === 0);
+    });
+
+    it("checkOnSave false: saving runs no check", async () => {
+        const a = await api();
+        await setSetting("qb64rust", "checkOnSave", false);
+        try {
+            const editor = await open(writeFile("ls/off.bas", "PRINT 1\r\n"));
+            const uri = editor.document.uri;
+            await setText(editor, "PRINT 1\r\nx$ = 1\r\n");
+            const before = a.diagnostics.lastCheck.get(uri.toString());
+            const checks = await qb64peChecks(async () => {
+                await editor.document.save();
+                await sleep(1500);
+            });
+            assert.strictEqual(checks, 0);
+            assert.strictEqual(a.diagnostics.lastCheck.get(uri.toString()), before);
+            // The live parse finds nothing in `x$ = 1`; only a check would.
+            assert.deepStrictEqual(qb64rustDiagnostics(uri), []);
+        } finally {
+            await setSetting("qb64rust", "checkOnSave", undefined);
+        }
+    });
+
+    it("command qb64rust.check on a saved document without changes", async () => {
+        const editor = await open(writeFile("ls/command.bas", "PRINT 1\r\nx$ = 1\r\n"));
+        const uri = editor.document.uri;
+        assert.strictEqual(editor.document.isDirty, false);
+        await vscode.commands.executeCommand("qb64rust.check");
+        await waitFor("the command's diagnostics", () => qb64rustDiagnostics(uri).length === 1);
+        assert.strictEqual(qb64rustDiagnostics(uri)[0].range.start.line, 1);
     });
 
     it("outline", async () => {

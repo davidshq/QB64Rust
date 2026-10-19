@@ -3,19 +3,19 @@
 Made by `python tools\testtime\test_time.py` from the transcripts of the Claude Code sessions; do not edit.
 What the columns mean, and what the numbers cannot say: `README.md` beside this file.
 
-322 sessions from 2026-10-02 to 2026-10-19; 5589 runs on record.
+328 sessions from 2026-10-02 to 2026-10-19; 5655 runs on record.
 
 ## In all
 
 | | Time | Share of active time |
 |---|---|---|
-| Active time (Claude working, the user not waited for) | 109 h 16 min | |
-| Inside commands of any kind | 46 h 38 min | 43% |
-| **Waiting for test runs** | 20 h 05 min | 18% |
+| Active time (Claude working, the user not waited for) | 110 h 18 min | |
+| Inside commands of any kind | 46 h 59 min | 43% |
+| **Waiting for test runs** | 20 h 18 min | 18% |
 | Waiting for measurements with the old compiler | 3 h 51 min | 4% |
-| Waiting for builds | 3 h 20 min | 3% |
-| Everything else (reading, thinking, writing code and documents, other commands) | 81 h 58 min | 75% |
-| Test runs and measurements in the background (not waited for) | 15 h 17 min | |
+| Waiting for builds | 3 h 21 min | 3% |
+| Everything else (reading, thinking, writing code and documents, other commands) | 82 h 47 min | 75% |
+| Test runs and measurements in the background (not waited for) | 15 h 23 min | |
 
 ## By day
 
@@ -37,8 +37,8 @@ What the columns mean, and what the numbers cannot say: `README.md` beside this 
 | 2026-10-15 | 22 | 5 h 48 min | 1 h 03 min | 4 min 07 s | 9 min 39 s | 18% | 210 | 11 min 07 s |
 | 2026-10-16 | 28 | 8 h 06 min | 2 h 16 min | 7 min 58 s | 6 min 55 s | 28% | 287 | 2 h 30 min |
 | 2026-10-17 | 30 | 11 h 13 min | 1 h 17 min | 10 min 07 s | 21 min 44 s | 12% | 338 | 3 h 05 min |
-| 2026-10-18 | 8 | 2 h 22 min | 42 min 59 s | 54 s | 7 min 58 s | 30% | 117 | 35 min 46 s |
-| 2026-10-19 | 0 | 0 s | 25 min 41 s | 11 s | 3 min 19 s | - | 31 | 29 min 24 s |
+| 2026-10-18 | 8 | 2 h 23 min | 42 min 59 s | 54 s | 7 min 58 s | 30% | 117 | 35 min 46 s |
+| 2026-10-19 | 6 | 1 h 01 min | 38 min 20 s | 12 s | 4 min 11 s | 63% | 91 | 34 min 35 s |
 
 A day's runs are those started on it; a session that runs past midnight has its active time on the day it
 started, so a share above 100% can show on the day after.
@@ -47,36 +47,36 @@ started, so a share above 100% can show on the day after.
 
 | Bucket | Kind | Runs | Total | Median | Longest | Passed | Failed | Result not known |
 |---|---|---|---|---|---|---|---|---|
-| test | slice list | 155 | 7 h 01 min | 2 min 07 s | 10 min 22 s | 98 | 7 | 50 |
-| test | tier 1, part (cargo test -p) | 801 | 4 h 51 min | 6 s | 2 h 05 min | 510 | 174 | 117 |
-| test | tier 1 (cargo test) | 654 | 3 h 29 min | 14 s | 2 min 29 s | 152 | 192 | 310 |
-| test | upstream pass list | 83 | 2 h 46 min | 1 min 39 s | 10 min 22 s | 54 | 2 | 27 |
-| test | call-site check | 136 | 2 h 02 min | 15 s | 10 min 04 s | 87 | 29 | 20 |
-| test | repo check | 598 | 1 h 44 min | 5 s | 3 min 45 s | 524 | 44 | 30 |
+| test | slice list | 156 | 7 h 01 min | 2 min 05 s | 10 min 22 s | 99 | 7 | 50 |
+| test | tier 1, part (cargo test -p) | 816 | 4 h 56 min | 6 s | 2 h 05 min | 521 | 178 | 117 |
+| test | tier 1 (cargo test) | 655 | 3 h 30 min | 14 s | 2 min 29 s | 152 | 192 | 311 |
+| test | upstream pass list | 84 | 2 h 47 min | 1 min 38 s | 10 min 22 s | 55 | 2 | 27 |
+| test | call-site check | 137 | 2 h 03 min | 15 s | 10 min 04 s | 88 | 29 | 20 |
+| test | repo check | 609 | 1 h 45 min | 6 s | 3 min 45 s | 533 | 45 | 31 |
 | test | full corpus | 34 | 1 h 21 min | 1 min 18 s | 14 min 36 s | 0 | 22 | 12 |
-| test | fmt | 495 | 1 h 15 min | 5 s | 2 min 30 s | 1 | 55 | 439 |
+| test | fmt | 506 | 1 h 15 min | 5 s | 2 min 30 s | 1 | 57 | 448 |
 | test | differential pass list | 54 | 1 h 11 min | 53 s | 6 min 15 s | 28 | 3 | 23 |
-| test | clippy | 420 | 1 h 04 min | 6 s | 1 min 50 s | 86 | 67 | 267 |
+| test | clippy | 426 | 1 h 05 min | 6 s | 1 min 50 s | 88 | 68 | 270 |
+| test | extension tests (npm) | 117 | 50 min 04 s | 14 s | 8 min 52 s | 73 | 8 | 36 |
 | test | full upstream suite | 34 | 45 min 24 s | 43 s | 8 min 48 s | 0 | 23 | 11 |
-| test | extension tests (npm) | 110 | 45 min 04 s | 14 s | 8 min 52 s | 68 | 8 | 34 |
 | test | corpus, selected programs | 193 | 44 min 07 s | 7 s | 2 min 02 s | 156 | 21 | 16 |
-| test | openspec validate | 274 | 25 min 30 s | 3 s | 39 s | 180 | 68 | 26 |
+| test | openspec validate | 276 | 25 min 52 s | 3 s | 39 s | 181 | 69 | 26 |
 | test | upstream, selected programs | 70 | 17 min 20 s | 10 s | 56 s | 44 | 20 | 6 |
-| test | tests of the Python tools | 102 | 15 min 20 s | 4 s | 1 min 01 s | 75 | 18 | 9 |
+| test | tests of the Python tools | 106 | 15 min 36 s | 4 s | 1 min 01 s | 79 | 18 | 9 |
 | test | call-site self-test | 22 | 5 min 31 s | 6 s | 1 min 58 s | 21 | 0 | 1 |
 | test | pass list checked from a full run | 14 | 30 s | 1 s | 7 s | 3 | 11 | 0 |
 | test | other suite | 1 | 20 s | 20 s | 20 s | 1 | 0 | 0 |
 | measure | verification programs (old compiler) | 216 | 1 h 58 min | 9 s | 24 min 51 s | | | |
 | measure | full corpus (old compiler) | 14 | 1 h 48 min | 6 min 14 s | 15 min 56 s | | | |
 | measure | recording expected results (old compiler) | 173 | 1 h 41 min | 7 s | 21 min 41 s | | | |
-| measure | old compiler run directly | 219 | 1 h 13 min | 3 s | 10 min 03 s | | | |
+| measure | old compiler run directly | 220 | 1 h 13 min | 3 s | 10 min 03 s | | | |
 | measure | other suite (old compiler) | 4 | 37 min 14 s | 8 s | 36 min 57 s | | | |
 | measure | corpus, selected programs (old compiler) | 63 | 35 min 39 s | 15 s | 6 min 26 s | | | |
 | measure | slice list (old compiler) | 6 | 21 min 36 s | 3 min 00 s | 6 min 51 s | | | |
 | measure | upstream pass list (old compiler) | 4 | 14 min 43 s | 2 min 38 s | 6 min 51 s | | | |
 | measure | full upstream suite (old compiler) | 4 | 9 min 33 s | 3 min 00 s | 3 min 31 s | | | |
 | measure | upstream, selected programs (old compiler) | 5 | 18 s | 4 s | 6 s | | | |
-| build | cargo build | 613 | 3 h 41 min | 11 s | 10 min 02 s | 186 | 115 | 312 |
+| build | cargo build | 618 | 3 h 42 min | 11 s | 10 min 02 s | 188 | 115 | 315 |
 | build | extension build (npm) | 18 | 5 min 20 s | 20 s | 41 s | 0 | 0 | 18 |
 
 ## Runs repeated with nothing edited
@@ -183,8 +183,9 @@ shows it archived (by `openspec archive` or by moving its folder); it ends where
 | m3-network-embed | archived, not seen | 6 | 2026-10-17 13:55 | 2026-10-17 19:04 (last seen) | 5 h 08 min | 1 h 49 min | 19 min 06 s | 2 min 04 s | 8 min 20 s | 41 min 39 s | 5 | 1 min 41 s | 2 (28 min 42 s) | 20 min 47 s |  |
 | test-while-building | archived, not seen | 4 | 2026-10-17 17:22 | 2026-10-17 19:01 (last seen) | 1 h 38 min | 23 min 13 s | 7 min 27 s | 0 s | 1 min 12 s | 24 min 27 s | 1 | 1 min 25 s | 0 (0 s) | 0 s |  |
 | m3-constant-evaluation | archived | 5 | 2026-10-17 19:57 | 2026-10-18 17:33 | 21 h 35 min | 2 h 19 min | 38 min 26 s | 2 min 31 s | 8 min 20 s | 41 min 44 s | 9 | 2 min 05 s | 10 (18 h 20 min) | 10 h 00 min | 1 h 19 min |
-| libqb-copy | open | 1 | 2026-10-18 18:08 | 2026-10-19 00:58 (last seen) | 6 h 49 min | 1 h 08 min | 28 min 17 s | 11 s | 3 min 19 s | 29 min 39 s | 16 | 10 min 04 s | 5 (5 h 41 min) | 4 h 04 min |  |
-| (no change named) |  | 322 | 2026-10-02 14:19 | 2026-10-18 18:08 |  | 25 h 50 min | 1 h 41 min | 1 h 27 min | 11 min 21 s | 2 h 49 min | 56 | 10 min 01 s | 44 (19 h 15 min) | 6 h 14 min |  |
+| libqb-copy | archived | 3 | 2026-10-18 18:08 | 2026-10-19 01:20 | 7 h 11 min | 1 h 23 min | 29 min 14 s | 11 s | 3 min 19 s | 29 min 39 s | 16 | 10 min 04 s | 5 (5 h 41 min) | 4 h 04 min | 11 min 49 s |
+| extension-diagnostics | open | 3 | 2026-10-19 01:29 | 2026-10-19 09:07 (last seen) | 7 h 37 min | 44 min 12 s | 11 min 43 s | 0 s | 52 s | 5 min 11 s | 0 | 2 min 05 s | 1 (10 min 03 s) | 10 min 03 s |  |
+| (no change named) |  | 328 | 2026-10-02 14:19 | 2026-10-19 08:44 |  | 25 h 54 min | 1 h 41 min | 1 h 27 min | 11 min 21 s | 2 h 49 min | 56 | 10 min 01 s | 44 (19 h 15 min) | 6 h 14 min |  |
 
 ## By kind of work
 
@@ -193,24 +194,25 @@ are not shares of time: the transcript does not say how long a piece of writing 
 
 | Kind of work | Actions | Bytes written | Share of bytes written |
 |---|---|---|---|
-| product code | 3454 | 3015771 | 29% |
-| tests and fixtures | 2340 | 1894183 | 18% |
+| product code | 3513 | 3051059 | 29% |
+| tests and fixtures | 2352 | 1914220 | 18% |
 | measurement preparation | 528 | 508444 | 5% |
-| documents and planning | 3425 | 3963733 | 38% |
+| documents and planning | 3445 | 3999474 | 38% |
 | generated files | 3 | 293 | 0% |
-| scratch files | 598 | 1159357 | 11% |
-| reading | 4246 | 0 |  |
-| test runs | 2787 | 0 |  |
-| measurement runs | 584 | 0 |  |
-| builds | 464 | 0 |  |
-| other commands | 10371 | 0 |  |
-| other | 185 | 6541 | 0% |
+| scratch files | 601 | 1160883 | 11% |
+| reading | 4284 | 0 |  |
+| test runs | 2829 | 0 |  |
+| measurement runs | 585 | 0 |  |
+| builds | 468 | 0 |  |
+| other commands | 10499 | 0 |  |
+| other | 186 | 6541 | 0% |
 
 Actions per change:
 
 | Change | product code | tests and fixtures | measurement preparation | documents and planning | generated files | scratch files | reading | test runs | measurement runs | builds | other commands | other |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| libqb-copy | 29 | 18 | 0 | 35 | 0 | 0 | 27 | 34 | 1 | 6 | 78 | 7 |
+| extension-diagnostics | 57 | 11 | 0 | 10 | 0 | 2 | 28 | 35 | 0 | 4 | 82 | 0 |
+| libqb-copy | 31 | 19 | 0 | 45 | 0 | 1 | 37 | 41 | 1 | 6 | 102 | 7 |
 | m1-vscode-extension-v0 | 85 | 2 | 2 | 82 | 0 | 17 | 95 | 44 | 2 | 1 | 170 | 2 |
 | m2-arrays-and-types | 92 | 33 | 1 | 56 | 0 | 20 | 48 | 67 | 10 | 25 | 188 | 2 |
 | m2-builtin-statements | 135 | 100 | 39 | 126 | 0 | 30 | 225 | 106 | 41 | 15 | 207 | 3 |
@@ -251,4 +253,4 @@ Actions per change:
 | m3-window-output | 40 | 77 | 1 | 91 | 0 | 23 | 118 | 38 | 9 | 5 | 71 | 2 |
 | test-parallel-runs | 0 | 10 | 0 | 15 | 0 | 0 | 14 | 6 | 0 | 0 | 20 | 1 |
 | test-while-building | 7 | 10 | 0 | 14 | 0 | 1 | 9 | 15 | 0 | 1 | 30 | 0 |
-| (no change named) | 254 | 506 | 180 | 529 | 0 | 144 | 1296 | 383 | 131 | 32 | 2723 | 87 |
+| (no change named) | 254 | 506 | 180 | 529 | 0 | 144 | 1296 | 383 | 132 | 32 | 2745 | 88 |

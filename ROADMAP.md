@@ -145,7 +145,7 @@ The areas built from the unsupported report at the close of `m3-arraycopy`:
 The first point at which someone would choose this over QB64pe (user, 2026-10-18, tenth review `study\35` §3
 item 1). Three changes, in this order, before the work of M4 goes on:
 
-- [ ] Plain copy of QB64pe's `internal\c` into this repo at the reference clone's commit (`DECISIONS.md`
+- [x] Plain copy of QB64pe's `internal\c` into this repo at the reference clone's commit (`DECISIONS.md`
       2026-10-02 and 2026-10-09)
 - [ ] The extension's diagnostics on save from the new compiler instead of `qb64pe -z`: columns and several
       errors per run (`DECISIONS.md` 2026-10-02)

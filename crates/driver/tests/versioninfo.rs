@@ -70,7 +70,7 @@ fn resource_files_equal_the_old_compilers() {
         let file = format!("{name}.bas");
         let bytes = std::fs::read(path).unwrap();
         let mut fe = frontend_with(&file, bytes, |f| Box::new(FileLoader::new(&dir, f, path)));
-        qb64rust_driver::check_exe_icon(&mut fe, path);
+        qb64rust_driver::check_exe_icon(&fe.program, &mut fe.diagnostics, path);
         let errors = fe.render_diagnostics();
         let recorded_rc = rc.join(format!("{name}.icon.rc"));
         if REFUSED.contains(&name.as_str()) {

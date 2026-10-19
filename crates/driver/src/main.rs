@@ -8,7 +8,7 @@
 //!
 //! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
 
-use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit_ir, frontend_with, lower, report};
+use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit_ir, frontend_at, lower, report};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -184,7 +184,9 @@ fn lsp(arg_count: usize) -> ExitCode {
         .ok()
         .and_then(|e| e.parent().map(Path::to_path_buf))
         .unwrap_or_default();
-    match qb64rust_driver::with_stack(move || qb64rust_lsp::run_stdio(root)) {
+    // A check runs the CLI's own front end (design D2 of `extension-diagnostics`).
+    let check = qb64rust_driver::check_for_server;
+    match qb64rust_driver::with_stack(move || qb64rust_lsp::run_stdio(root, check)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(msg) => {
             eprintln!("qb64rust lsp: {msg}");
@@ -252,11 +254,12 @@ fn run() -> Result<ExitCode, String> {
         return Ok(ExitCode::SUCCESS);
     }
     let include_root = include_root(&o)?;
-    let mut fe = frontend_with(&name, bytes, |file| {
-        Box::new(FileLoader::new(&include_root, file, &input))
-    });
-    qb64rust_driver::check_exe_icon(&mut fe, &input);
-    qb64rust_driver::check_embedded_files(&mut fe, &input);
+    let mut fe = frontend_at(
+        &name,
+        bytes,
+        |file| Box::new(FileLoader::new(&include_root, file, &input)),
+        Some(&input),
+    );
     // The files of the program's `DECLARE LIBRARY` blocks, looked for from the clone as the old compiler's folder,
     // for a build, `-z` and the `cpp` dump; the other dumps need none, nor does a block with no name.
     let resolved = if matches!(o.dump.as_deref(), None | Some("cpp"))

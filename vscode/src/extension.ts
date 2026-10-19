@@ -24,9 +24,9 @@ export function activate(context: vscode.ExtensionContext): Api {
     const queue = new RunQueue();
     const status = new CompilerStatus();
     queue.onBusyChange = (kind) => status.setBusy(kind ? BUSY_TEXT[kind] : undefined);
-    const diagnostics = new Diagnostics(queue, status);
-    const builder = new Builder(queue, status, diagnostics);
     server = new LanguageServer();
+    const diagnostics = new Diagnostics(queue, status, server);
+    const builder = new Builder(queue, status, diagnostics);
     context.subscriptions.push(
         { dispose: () => queue.dispose() },
         status,

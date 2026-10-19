@@ -1,5 +1,6 @@
-// The extension's part of the language server's protocol (design D3 and D6 of m2-language-server): the
-// initialization options and the encoding notification. No VS Code import, so it is unit-tested without it.
+// The extension's part of the language server's protocol (design D3 and D6 of m2-language-server, D5 of
+// extension-diagnostics): the initialization options, the encoding notification and the check request. No VS Code
+// import, so it is unit-tested without it.
 import * as path from "path";
 
 /** The notification that tells the server a document's encoding (VS Code's encoding id). */
@@ -8,6 +9,25 @@ export const DOCUMENT_ENCODING = "qb64rust/documentEncoding";
 export interface DocumentEncodingParams {
     uri: string;
     encoding: string;
+}
+
+/** The request that runs the new compiler's whole front end over a document's program and publishes what it finds
+ * (spec editor/language-server, "Check request"). */
+export const CHECK = "qb64rust/check";
+
+export interface CheckParams {
+    /** The document as the client names it to the server (its `didOpen` uri). */
+    uri: string;
+}
+
+/** The answer: how many errors and warnings the check published. */
+export interface CheckResult {
+    errors: number;
+    warnings: number;
+}
+
+export function checkParams(uri: string): CheckParams {
+    return { uri };
 }
 
 export interface InitializationOptions {

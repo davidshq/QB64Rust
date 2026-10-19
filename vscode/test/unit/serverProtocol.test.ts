@@ -1,9 +1,14 @@
 import * as assert from "assert";
-import { DOCUMENT_ENCODING, EncodingTracker, initializationOptions } from "../../src/server/protocol";
+import { CHECK, DOCUMENT_ENCODING, EncodingTracker, checkParams, initializationOptions } from "../../src/server/protocol";
 
 describe("language server protocol", () => {
     it("names the server's encoding notification", () => {
         assert.strictEqual(DOCUMENT_ENCODING, "qb64rust/documentEncoding");
+    });
+
+    it("names the check request, whose parameter is the document's uri", () => {
+        assert.strictEqual(CHECK, "qb64rust/check");
+        assert.deepStrictEqual(checkParams("file:///c%3A/p/a.bas"), { uri: "file:///c%3A/p/a.bas" });
     });
 
     it("initialization options: the default encoding, cp437 when none is set", () => {

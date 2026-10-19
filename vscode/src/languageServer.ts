@@ -1,11 +1,12 @@
 // The new compiler's language server (design D6 of m2-language-server): `qb64rust lsp` started over stdio when the
 // binary is found, its diagnostics live in their own collection (source `qb64rust`), and the outline, folding
-// ranges and go to definition come from it. Without the binary nothing changes from M1.
+// ranges and go to definition come from it. Without the binary nothing changes from M1. While it runs, a check on
+// save or by command is its `qb64rust/check` (design D5 of extension-diagnostics).
 import * as vscode from "vscode";
-import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node";
+import { LSPErrorCodes, LanguageClient, LanguageClientOptions, ResponseError, ServerOptions } from "vscode-languageclient/node";
 import * as config from "./config";
 import { Discovery, QB64RUST, findCompiler } from "./compiler/discovery";
-import { DOCUMENT_ENCODING, EncodingTracker, initializationOptions } from "./server/protocol";
+import { CHECK, CheckResult, DOCUMENT_ENCODING, EncodingTracker, checkParams, initializationOptions } from "./server/protocol";
 
 type State = { kind: "stopped" } | { kind: "untrusted" } | { kind: "starting" } | { kind: "running" } | { kind: "failed"; reason: string };
 
@@ -20,6 +21,8 @@ export class LanguageServer implements vscode.Disposable {
     private generation = 0;
     /** Resolves when the last start or restart has finished; for tests. */
     ready: Promise<void>;
+    /** The check under way for each document, to cancel when a newer one starts. */
+    private readonly checks = new Map<string, vscode.CancellationTokenSource>();
 
     constructor() {
         this.item.name = "QB64 language server";
@@ -104,6 +107,40 @@ export class LanguageServer implements vscode.Disposable {
             this.state = { kind: "failed", reason: failure };
         }
         this.render();
+    }
+
+    /**
+     * Asks the server to check a document's program; the server publishes the diagnostics into its own collection.
+     * Undefined when the server does not run, or the check was cancelled: after `timeoutMs`, by a newer check of the
+     * same document (the server then answers the older one with ContentModified), or by the server stopping.
+     * Throws when the check failed otherwise (an internal error of the server, which it logs).
+     */
+    async check(uri: vscode.Uri, timeoutMs: number): Promise<CheckResult | undefined> {
+        const client = this.running;
+        if (!client) {
+            return undefined;
+        }
+        const key = uri.toString();
+        this.checks.get(key)?.cancel();
+        const source = new vscode.CancellationTokenSource();
+        this.checks.set(key, source);
+        const timer = setTimeout(() => source.cancel(), timeoutMs);
+        try {
+            const params = checkParams(client.code2ProtocolConverter.asUri(uri));
+            return await client.sendRequest<CheckResult>(CHECK, params, source.token);
+        } catch (e) {
+            const cancelled = e instanceof ResponseError && (e.code === LSPErrorCodes.RequestCancelled || e.code === LSPErrorCodes.ContentModified);
+            if (cancelled || source.token.isCancellationRequested || this.running !== client) {
+                return undefined;
+            }
+            throw e;
+        } finally {
+            clearTimeout(timer);
+            if (this.checks.get(key) === source) {
+                this.checks.delete(key);
+            }
+            source.dispose();
+        }
     }
 
     private tellEncoding(doc: vscode.TextDocument): void {
