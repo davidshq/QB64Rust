@@ -23,7 +23,6 @@ sub_name_colon_errors.bas:34:1: error: duplicate label: `t6`
 sub_name_colon_errors.bas:34:1: note: QB64pe: Duplicate label (t6)
 sub_name_colon_errors.bas:37:1: error: duplicate label: `t7`
 sub_name_colon_errors.bas:37:1: note: QB64pe: Duplicate label (t7)
-sub_name_colon_errors.bas:38:4: error: not supported yet: `ON STRIG` (device input)
 sub_name_colon_errors.bas:40:1: error: duplicate label: `t9`
 sub_name_colon_errors.bas:40:1: note: QB64pe: Duplicate label (t9)
 sub_name_colon_errors.bas:43:1: error: duplicate label: `t10`

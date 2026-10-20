@@ -10,7 +10,14 @@ lists in tests/upstream (pass.list, deferred.list, README.md).
 It refuses to run when the clone's HEAD is not the commit named in SOURCE.md, unless given --commit-ok (then
 SOURCE.md names the new commit). A second run on the same commit changes no file.
 
-Usage: python tools/upstream/copy_upstream_tests.py [--commit-ok] [<QB64pe clone>]   (default clone: ../QB64pe)
+tests/upstream/root/ is the compiler root of the upstream tests: a mirror of compile_tests/extra, and the files of
+ROOT_FILES, which upstream programs name relative to the compiler's own folder ($EXEICON, $EMBED; design D3 of
+m4-devices-continue-paths), copied from the clone byte for byte, the two icons among them. With --check the script
+writes nothing and says whether each of ROOT_FILES is named by an upstream program of the copy and equals the
+clone's file.
+
+Usage: python tools/upstream/copy_upstream_tests.py [--commit-ok | --check] [<QB64pe clone>]   (default clone:
+../QB64pe)
 """
 
 import argparse
@@ -37,6 +44,37 @@ EXTENSIONS = [
     ".md",
 ]
 COMMIT_LINE = re.compile(r"^Commit: `([0-9a-f]+)`", re.MULTILINE)
+# The files upstream programs name relative to the compiler's folder, as paths under the clone (and under root/).
+ROOT_FILES = [
+    "tests/compile_tests/embed/test.output",
+    "tests/compile_tests/icon/qb64pe.ico",
+    "tests/compile_tests/winresource/qb64pe.ico",
+]
+
+
+def unnamed_root_files(copy: pathlib.Path, files=ROOT_FILES) -> list[str]:
+    """The entries of files that no program of the copy (its .bas files) names in quotes."""
+    text = b"\n".join(p.read_bytes() for p in sorted(copy.rglob("*.bas")))
+    return [f for f in files if f"'{f}'".encode() not in text]
+
+
+def differing_root_files(clone: pathlib.Path, root: pathlib.Path, files=ROOT_FILES) -> list[str]:
+    """The entries of files whose copy under root is missing or differs from the clone's file."""
+    return [
+        f
+        for f in files
+        if not (root / f).is_file() or (root / f).read_bytes() != (clone / f).read_bytes()
+    ]
+
+
+def check(clone: pathlib.Path) -> int:
+    """--check: 0 when every root file is named by an upstream program and equals the clone's."""
+    problems = [f"{f}: named by no upstream program" for f in unnamed_root_files(DEST / "compile_tests")]
+    problems += [f"{f}: not the clone's bytes" for f in differing_root_files(clone, DEST / "root")]
+    for p in problems:
+        print(p)
+    print("ok" if not problems else f"{len(problems)} problem(s)")
+    return 1 if problems else 0
 
 
 def git(clone, *args):
@@ -55,12 +93,15 @@ def main():
     ap.add_argument(
         "--commit-ok", action="store_true", help="accept a clone HEAD other than SOURCE.md's commit"
     )
+    ap.add_argument("--check", action="store_true", help="write nothing; check the files of ROOT_FILES")
     a = ap.parse_args()
 
     clone = pathlib.Path(a.clone).resolve()
     suite = clone / SUITE
     if not suite.is_dir():
         sys.exit(f"no {SUITE} in the clone given")
+    if a.check:
+        sys.exit(check(clone))
     head = git(clone, "rev-parse", "--short=10", "HEAD")
     date = git(clone, "log", "-1", "--format=%cs", "HEAD")
 
@@ -96,6 +137,12 @@ def main():
     if root.exists():
         shutil.rmtree(root)
     shutil.copytree(out / "extra", root / SUITE / "extra")
+    missing = unnamed_root_files(out)
+    if missing:
+        sys.exit(f"named by no upstream program: {', '.join(missing)}")
+    for f in ROOT_FILES:
+        (root / f).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(clone / f, root / f)
 
     shutil.copyfile(clone / "licenses" / "license_qb64.txt", DEST / "LICENSE-QB64pe.txt")
 
@@ -111,7 +158,12 @@ upstream tests that need them are run from the clone (`tools/legacy_tests/run_le
 
 `root/tests/compile_tests/extra/` mirrors `compile_tests/extra/`: it is the compiler root for these tests
 (`--include-root tests/upstream/root`), where `include_paths/include_fixed_compile_location` and
-`include_multiple` find `'tests/compile_tests/extra/…'`, as the old compiler finds it under its own folder.
+`include_multiple` find `'tests/compile_tests/extra/…'`, as the old compiler finds it under its own folder. It
+also holds, under the same paths as in the clone, the files upstream programs name that way in `$EXEICON` and
+`$EMBED` (`icon/test`, `winresource/test`, `embed/test`), byte for byte; the two `.ico` files are the only binary
+files of the copy (`--check` checks them):
+
+{chr(10).join(f'- `{f}`' for f in ROOT_FILES)}
 
 Licence: MIT, QB64pe's `licenses/license_qb64.txt`, copied as `LICENSE-QB64pe.txt` (decision of 2026-10-04 in
 `DECISIONS.md`; `study/archive/22` §4).

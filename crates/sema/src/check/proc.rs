@@ -373,6 +373,11 @@ impl Checker<'_> {
             Some((p, ProcKind::Sub)) if suffix.is_none() => {
                 if let Some(bad) = stmt.unparsed_args() {
                     let span = bad.span();
+                    if self.text(span).first() == Some(&b'.') {
+                        // `a . b 3`, a call of the SUB `a.b` written with blanks around its dot (`v47_x18`).
+                        let msg = format!("a call of the SUB `{shown}.…` written with blanks around `.`");
+                        return Err(self.unsupported(span, msg));
+                    }
                     let msg = format!("cannot read the arguments of `{shown}`; expected expressions separated by `,`");
                     return Err(self.error(span, msg));
                 }

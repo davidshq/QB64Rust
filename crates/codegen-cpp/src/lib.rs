@@ -140,6 +140,7 @@ pub fn emit_with(
         stmt_at: (None, 0, None),
         on_timer: events::EventCode::default(),
         on_key: events::EventCode::default(),
+        on_strig: events::EventCode::default(),
         coverage: coverage.map(coverage::Counters::new),
     };
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
@@ -233,6 +234,8 @@ pub fn emit_with(
         ("ontimerj.txt", std::mem::take(&mut e.on_timer.jumpers)),
         ("onkey.txt", std::mem::take(&mut e.on_key.cases)),
         ("onkeyj.txt", std::mem::take(&mut e.on_key.jumpers)),
+        ("onstrig.txt", std::mem::take(&mut e.on_strig.cases)),
+        ("onstrigj.txt", std::mem::take(&mut e.on_strig.jumpers)),
     ] {
         files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
     }
@@ -301,6 +304,7 @@ struct Emitter<'a> {
     /// The handlers of `ON TIMER` and of `ON KEY` (`events.rs`).
     on_timer: events::EventCode,
     on_key: events::EventCode,
+    on_strig: events::EventCode,
     /// The counters of a coverage build (`coverage.rs`), `None` in any other.
     coverage: Option<coverage::Counters<'a>>,
 }

@@ -77,8 +77,7 @@ accepts and the new one still marks "not supported yet", and what is compiled bu
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A relative `$EXEICON` name that does not start with `./` or `.\` (`$EXEICON:'icons/game.ico'`), one with a single leading slash, and one with a drive and no slash after it (`C:game.ico`) | The old compiler looks for the first in its own folder, for the second on its own drive and for the third in the folder it stands in on that drive (read in `qb64pe.bas` 3854–3873, not measured), which has no counterpart here (user, `DECISIONS.md` 2026-10-13). Also under "QB64pe behaviours to review" below | `verification\v29_e02`, `e03`, `e08`, `e18`; the upstream tests `icon` and `winresource` name their icon so |
-| The language server does not check that the icon of `$EXEICON` is there | The check is the driver's (`check_exe_icon`), because `sema` reads no file; the server would need the folder of the main file behind its loader | Design D4 of `m3-sound` |
+| An `$EXEICON` name with a drive and no slash after it (`C:game.ico`) | The old compiler looks for it in the folder it stands in on that drive (read in `qb64pe.bas` 3854–3873, not measured), which has no counterpart here. The other relative names are looked for under the compiler root since `m4-devices-continue-paths` (`DECISIONS.md` 2026-10-20) | `sema\src\check\mod.rs` `exe_icon_meta` |
 | `ON PLAY(n) GOSUB 10` and any `ON … GOSUB` or `ON … GOTO` whose target is a line number | Line numbers are not compiled yet, whatever the number of the `ON` is; with a label the statement compiles | `verification\v29_x64`; `tests\frontend\sound_typed.bas` |
 | `VARPTR$` in a `PLAY` string (`PLAY "X" + VARPTR$(a$)`) | `VARPTR$` is not compiled (the table above) | Not measured |
 | `BEEP` is compiled, and no test runs it | It rings the system's bell, which no volume silences (user, `DECISIONS.md` 2026-10-13). Its call is compared by `tests\callsite\beep_*.bas`, and `s74_sound_queue` holds it as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
@@ -173,7 +172,6 @@ version resource and manifest). Nothing the old compiler builds into a working e
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `winresource/test` (`$VERSIONINFO` with `$EXEICON:'tests/compile_tests/winresource/qb64pe.ico'`) | Held back by its `$EXEICON` name, which neither starts with `./` nor is absolute (the row of `m3-sound` above) | proposal |
 | `$VERSIONINFO` on other systems than Windows | The old compiler writes the files on Windows only and ignores the lines elsewhere | design Non-Goals |
 | `s130_versioninfo` on a machine without PowerShell | It reads the version resource back with a PowerShell script; every Windows machine and GitHub's runner have one | design, risks |
 
@@ -189,7 +187,6 @@ marked; left out:
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `ON STRIG(…) GOSUB label` or `… sub`, and `STRIG[(…)] ON\|OFF\|STOP` | libqb's device-input part is not built, nor its other names (`STICK`, `STRIG()`, `_DEVICES`, …): a later device-input change (user, `DECISIONS.md` 2026-10-17) | `verification\v42_x11` |
 | A line number as a handler (`ON TIMER(1) GOSUB 10`) | Line numbers are not compiled yet (the row of `ON PLAY` above) | `verification\v42_x46` |
 | A SUB of a `DECLARE LIBRARY` block as a handler | Not measured | `sema\src\check\events.rs` |
 
@@ -199,7 +196,7 @@ left out:
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A relative `$EMBED` name that does not start with `./` or `.\` (`$EMBED:'data/f.txt','h'`), so `embed/test` stays held back, beside `icon/test` and `winresource/test` | The old compiler looks for it in its own folder, as for `$EXEICON` (the row of `m3-sound` above, and "QB64pe behaviours to review") | `verification\v44_x26` |
+| A `$EMBED` name with a drive and no slash after it (`$EMBED:'C:f.txt','h'`) | As for `$EXEICON` (the row of `m3-sound` above); the other relative names are looked for under the compiler root since `m4-devices-continue-paths` | `sema\src\check\embed.rs` `embed_meta` |
 | `_EMBEDDED` without its `$` (`x19`) and `_OPENCLIENT&("x")` (`x46`), "Invalid array name" in the old compiler | Every `_name(...)` that names no array is "not supported yet", as `_DEFLATE("x")` (`v33_x25`–`x29`) | `tests\frontend\network_errors.bas` |
 | `_EMBEDDED$` with its argument in parentheses (`_EMBEDDED$(("h"))`) | Not measured | `sema\src\check\embed.rs` |
 | Two absolute `$EMBED` names of one file written differently (`<drive>/d/f` and `<drive>\d\f`, or with `..`): "was already embedded" in the old compiler, which resolves the folder first (`CHDIR`, `_CWD$`, `qb64pe.bas` 3765–3777); compared as written here, so both are accepted | Not measured: a recording would hold a local folder (`CLAUDE.md` rule 2); `sema` reads no folder | `sema\src\check\embed.rs` `same_file` |
@@ -215,6 +212,19 @@ old compiler accepts and the new one still marks "not supported yet":
 | `_RED`, `_GREEN`, `_BLUE` of a colour from 256 to 65535 in screen mode 0 in a `CONST` (`_RED(2222, 0)`) | A text image's mask lets the index through, and libqb reads past its 256-entry palette (the old compiler gave 0 once) | `verification\v45_x64`; `sema\src\colors.rs` |
 | A string argument to a colour function in a `CONST` (`_RGB32("a")`), which the evaluator's varying argument count lets through | Not measured | `sema\src\colors.rs` |
 | A math function or a power of an infinite value in a `CONST` (`SIN(1F+4000 * 1F+4000)` inside an expression is the old compiler's error already; as a function argument not measured) | Not measured | `sema\src\certify.rs` |
+
+**Left marked by `m4-devices-continue-paths`** (2026-10-20: `_CONTINUE`, blanks around `.` after a name, relative
+`$EXEICON` and `$EMBED` names, device input and `ON STRIG`). What the old compiler accepts and the new one still
+marks "not supported yet", and what is left out:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A declaration with blanks around its dot: `DIM a . b AS LONG`, `SUB a . b` and its call `a . b 3` (the old compiler drops the blanks) | The parser reads a name with blanks around a dot only where an expression or an assignment's target stands; the design left declarations out | `verification\v47_x17`, `x18`; `syntax\src\parser\decl.rs` `dim_item`, `proc.rs` `proc_header` |
+| `p . q(1)` written with blanks where no array `p.q` is declared (an array used without `DIM`) | Not measured | `sema\src\check\places.rs` `field_place` |
+| `c . k` or `f . g` written with blanks where `c.k` is a `CONST` or `f.g` a SUB or FUNCTION (the old compiler drops the blanks before it reads the statement, `qb64pe.bas` 4196–4241, so it would be the constant or the procedure) | Not measured; found in the change's review, where such a name was read as a new variable | `sema\src\check\places.rs` `plain_spelled`; `tests\frontend\dot_blanks_errors.bas` |
+| `ON STRIG(1 GOSUB h` and `ON TIMER(1 GOSUB h`: a keyword where `,` or `)` is expected in an argument list is "not supported yet" (the old compiler: "Expected )") | The parser's general mark for a word inside an argument list, not `ON STRIG`'s | `verification\v47_x08` |
+| `C:name` in `$EXEICON` and `$EMBED` | The rows of `m3-sound` and `m3-network-embed` above | design D3 |
+| A test with a game controller attached | The tests run with none; the call-site check holds every call (`event_strig_*`, `stick_*`, `strig_*`, `device*`, …) | design Non-Goals |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -294,7 +304,8 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `GET (1, 2)-(3, 4), 5` is "UNEXPECTED INTERNAL COMPILER ERROR!"; an error here. `BLOAD` and `POKE` write where the segment and offset say, past the end of the array they were taken from too (inside libqb's block of conventional memory) | A plain error message; the writes are what `BLOAD` and `POKE` are for | `verification\v28_x15`, `v28_b_bload` |
 | On the console `TAB(n)` is n - 1 blanks wherever the line stands, because `POS(0)` is always 1 there; in a window and in a file it moves to column n | The column the program has written to | `m3-get-put-bload` task 1.1 (`verification\v28_a_tab_spc`) |
 | A plain variable, an undeclared name or a string where graphics `GET` and `PUT` take an array is accepted: the picture is read from or written over that variable's few bytes | An error, as for a `CONST` or an expression | `verification\v28_x23`, `x59` (not compiled here: marked) |
-| A relative `$EXEICON` name without `./` is looked for in the compiler's own folder, not beside the program (`$EXEICON:'game.ico'` with `game.ico` beside the source is "File 'game.ico' not found") | Look beside the main source file, as for a name with `./`. Marked "not supported yet" until decided | `verification\v29_e02`, `e03`, `e08`, `e18`; `qb64pe.bas` 3852 |
+| A relative `$EXEICON` or `$EMBED` name without `./` is looked for in the compiler's own folder, not beside the program (`$EXEICON:'game.ico'` with `game.ico` beside the source is "File 'game.ico' not found"); one with a single leading slash on the compiler's drive. Here under the compiler root, its counterpart (`DECISIONS.md` 2026-10-20) | Look beside the main source file, as for a name with `./` | `verification\v29_e02`, `e03`, `e08`, `e18`, `v44_x26`, `v47_e01`, `e02`; `qb64pe.bas` 3852 |
+| An odd button number of `ON STRIG` or the `STRIG` switch (`ON STRIG(1) GOSUB h`, a button's "currently down" state) compiles and raises error 5 when it runs, in libqb's `onstrig_setup` and `sub_strig` | A compile error for a constant odd number | `m4-devices-continue-paths` (`verification\v47_x13`, `x27`) |
 | `$EXEICON` drops the rest of its line, a statement after a colon included (`$EXEICON:'./a.ico': PRINT 1` prints nothing), and takes any line that starts with the word (`$EXEICONS:'…'`, `$EXEICON '…'` without the colon) | Reject what is not `$EXEICON:'name'` alone on its line, as the console metacommands are | `verification\v29_e08`, `e09`, `e20`, `e24` |
 | A `PLAY` with more than one string never holds the program, even for a voice in the foreground, and ends a `SOUND WAIT`; a `PLAY` string takes a tempo and an octave outside QuickBASIC's range (`T31`, `T256`, `O7`: `DIVERGENCES-QB45.md` Q-011) | Wait for the longest foreground voice; raise error 5 for the values QuickBASIC rejects | `verification\v29_g_voice`, `v29_h_sound_ranges`, `v29_c_sound_errors`; `PlayMML` in libqb's `audio.cpp` |
 | A sound handle that is not open (0, negative, never opened, closed) raises no error: a statement does nothing and a function gives 0; a missing file or a sound bank that is not there is silently 0 or ignored | Error 5 or 52 for a bad handle, as QuickBASIC raises for a bad file number | `m3-sound-handles` (`verification\v39_a_handles` 5., 6., 13.; `IsHandleValid` in libqb's `audio.cpp`) |

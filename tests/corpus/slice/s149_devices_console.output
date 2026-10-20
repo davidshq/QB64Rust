@@ -1,0 +1,20 @@
+-1 
+[KEYBOARD][BUTTON]
+[MOUSE][BUTTON][AXIS][WHEEL]
+ 512  0  0 
+ 8  2  4 
+ 128  128  128 
+ 0  0  0 
+error 5 
+error 5 
+error 5 
+error 5 
+error 5 
+error 5 
+error 5 
+error 5 
+[MOUSE][BUTTON][AXIS][WHEEL]
+ 2 
+error 5 
+error 5 
+end

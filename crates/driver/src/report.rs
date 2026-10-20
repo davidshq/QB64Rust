@@ -71,7 +71,7 @@ pub fn outcome(path: &Path, include_root: &Path) -> Result<Outcome, String> {
         &name,
         bytes,
         |file| Box::new(FileLoader::new(include_root, file, path)),
-        Some(path),
+        Some((path, include_root)),
     );
     let unsupported = fe
         .diagnostics

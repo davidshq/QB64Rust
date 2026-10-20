@@ -839,18 +839,28 @@ impl Checker<'_> {
                 self.clear_member_array(array, alone, span, node)?;
                 continue;
             }
-            let name = match target {
-                ast::EraseTarget::Name { name, parens: false } => name,
+            let (t, array_name, suffix) = match target {
+                ast::EraseTarget::Name { name, parens: false } => {
+                    let t = self.need(name.name(), node.span())?;
+                    let (array_name, suffix) = self.split_name(t)?;
+                    (t, array_name, suffix)
+                }
                 ast::EraseTarget::Name { name, parens: true } => {
                     let span = name.node().span();
                     return Err(self.error(span, "`ERASE` takes the array's name without `()`"));
+                }
+                // `ERASE p . q`: the plain dotted array `P.Q` (design D2 of `m4-devices-continue-paths`,
+                // `verification\v47_x28`).
+                ast::EraseTarget::Other(ast::Expr::Field(f))
+                    if f.arg_list().is_none()
+                        && let Some((array_name, suffix, t)) = self.plain_spelled(f)? =>
+                {
+                    (t, array_name, suffix)
                 }
                 ast::EraseTarget::Other(other) => {
                     return Err(self.error(other.node().span(), "`ERASE` takes a whole array, by its name"));
                 }
             };
-            let t = self.need(name.name(), node.span())?;
-            let (array_name, suffix) = self.split_name(t)?;
             let Some(array) = self.find_array(&array_name, suffix) else {
                 let shown = show_bytes(self.text(t.span));
                 if self.implicit_names.contains(&array_name) {

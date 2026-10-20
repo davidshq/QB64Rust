@@ -855,6 +855,8 @@ pub enum RuntimePart {
     Sockets,
     /// The files built into the executable.
     Embed,
+    /// Game controllers, the keyboard and the mouse as devices.
+    DeviceInput,
 }
 
 impl Program {

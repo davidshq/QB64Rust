@@ -1,0 +1,17 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+devices_errors.bas:7:5: error: `_BUTTON` takes 0 or 1 arguments
+devices_errors.bas:7:5: note: QB64pe: Incorrect number of arguments - Reference: _BUTTON(button_number%)
+devices_errors.bas:8:5: error: `STICK` takes 1 or 2 arguments
+devices_errors.bas:8:5: note: QB64pe: Incorrect number of arguments - Reference: STICK(direction%) or STICK(direction%, axis_number%)
+devices_errors.bas:9:5: error: `STICK` takes 1 or 2 arguments
+devices_errors.bas:9:5: note: QB64pe: Incorrect number of arguments - Reference: STICK(direction%) or STICK(direction%, axis_number%)
+devices_errors.bas:10:5: error: `_DEVICES` takes 0 arguments
+devices_errors.bas:10:5: note: QB64pe: Incorrect number of arguments - Reference: _DEVICES
+devices_errors.bas:11:11: error: `_AXIS` needs a number
+devices_errors.bas:11:11: note: QB64pe: Number required for function
+devices_errors.bas:12:11: error: argument 1 of `STRIG` needs a number
+devices_errors.bas:13:6: error: `_DEVICE$` takes 0 or 1 arguments
+devices_errors.bas:14:11: error: this `STRIG` statement matches none of its forms: `STRIG [(?[,?])]{On|Off|Stop}`

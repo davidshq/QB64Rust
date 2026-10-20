@@ -307,6 +307,23 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_MOUSEMOVEMENTY", Rule::Plain),
     ("_MOUSEHIDDEN", Rule::Plain),
     ("_MOUSEDISABLED", Rule::Plain),
+    // Device input (design D4 of `m4-devices-continue-paths`; `verification\v47_b_devices`, `v47_x14`–`x23`): the
+    // keyboard, the mouse and game controllers as numbered devices, and the joystick the QuickBASIC way. The
+    // table's templates give the forms and the "passed" flags; each argument is converted to LONG. `_DEVICE$` a
+    // string, `_AXIS` and `_WHEEL` DOUBLE, the others LONG; each needs libqb's device-input part
+    // ([`crate::RuntimePart::DeviceInput`]), set through its dependency.
+    ("_DEVICES", Rule::Plain),
+    ("_DEVICE$", Rule::Plain),
+    ("_DEVICEINPUT", Rule::Plain),
+    ("_LASTBUTTON", Rule::Plain),
+    ("_LASTAXIS", Rule::Plain),
+    ("_LASTWHEEL", Rule::Plain),
+    ("_BUTTON", Rule::Plain),
+    ("_BUTTONCHANGE", Rule::Plain),
+    ("_AXIS", Rule::Plain),
+    ("_WHEEL", Rule::Plain),
+    ("STICK", Rule::Plain),
+    ("STRIG", Rule::Plain),
     // An image of the desktop or of the clipboard (same design, `v31_x01_accepted`): LONG each, with libqb's
     // screen-image part ([`crate::RuntimePart::ScreenImage`]). Compiled and never run ([`NEVER_RUN`]).
     ("_SCREENIMAGE", Rule::Plain),
@@ -486,9 +503,11 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("BEEP", StmtRule::Plain),
     // The event switches (design D2 of `m3-events`; `verification\v42_a`, `v42_b`, `v42_d`, `x15`, `x16`, `x49`):
     // `TIMER[(n)] ON|OFF|STOP|FREE` and `KEY(k) ON|OFF|STOP`, each the plain call of its row and template. `KEY`'s
-    // own forms are a node of their own (`check\events.rs`); `STRIG` waits for device input.
+    // own forms are a node of their own (`check\events.rs`). `STRIG[(b[, c])] ON|OFF|STOP` likewise, with libqb's
+    // device-input part (design D4 of `m4-devices-continue-paths`; `verification\v47_x13`, `x19`, `x30`).
     ("TIMER", StmtRule::Plain),
     ("KEY", StmtRule::Plain),
+    ("STRIG", StmtRule::Plain),
     // Sound handles (design D1 of `m3-sound-handles`; `verification\v39_x01_accepted`, `x02`–`x72`): each the plain
     // call of its row and template, with libqb's audio part. The arrays of `_WAVE` and `_SNDRAWBATCH` are the bytes
     // from an element to the array's end ([`Slot::Block`]), of one element type each (D2, `check\builtins.rs`).

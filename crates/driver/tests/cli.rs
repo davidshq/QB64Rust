@@ -807,8 +807,51 @@ fn exe_icon_name_forms() {
     );
     std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\n$EXEICON:'C:game.ico'\nSYSTEM\n").unwrap();
     let o = qb64rust(&d, &["p.bas", "--dump", "ir"]);
+    assert_eq!(
+        stdout(&o),
+        "p.bas:2:1: error: not supported yet: a `$EXEICON` name with a drive and no slash after it\n\
+         1 error (1 not supported yet)\n"
+    );
+}
+
+/// Spec `compiler/cli`, "Compiler root for included files", scenario "An icon under the root", and
+/// `language/embedded-files`, "Relative to the compiler's folder" (design D3 of `m4-devices-continue-paths`): a
+/// relative name without `./` is looked for under `--include-root`, whatever the working directory is, and not
+/// beside the program; missing there, the error names it as written. A name with one leading slash goes to the root
+/// of the compiler root's drive, where this test puts nothing.
+#[test]
+fn relative_names_under_the_compiler_root() {
+    let d = scratch("names-under-root");
+    let root = d.join("root");
+    std::fs::create_dir_all(root.join("icons")).unwrap();
+    std::fs::create_dir_all(d.join("work").join("icons")).unwrap();
+    std::fs::write(root.join("icons").join("a.ico"), icon_16([1, 2, 3, 255])).unwrap();
+    std::fs::write(root.join("icons").join("t.txt"), "t").unwrap();
+    // Beside the program it is not looked for: the old compiler's `v29_e02`.
+    std::fs::write(d.join("work").join("icons").join("b.ico"), icon_16([1, 2, 3, 255])).unwrap();
+    let root_arg = root.to_str().unwrap();
+    let program = |text: &str| std::fs::write(d.join("work").join("p.bas"), text).unwrap();
+    program("$CONSOLE:ONLY\n$EXEICON:'icons/a.ico'\n$EMBED:'icons/t.txt','h'\nPRINT _EMBEDDED$(\"h\")\nSYSTEM\n");
+    let o = qb64rust(&d.join("work"), &["--include-root", root_arg, "p.bas", "--dump", "ir"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(stdout(&o).contains("an icon for the executable"), "{}", stdout(&o));
+    program("$CONSOLE:ONLY\n$EXEICON:'icons/b.ico'\n$EMBED:'icons/none.txt','h'\nSYSTEM\n");
+    let o = qb64rust(&d.join("work"), &["--include-root", root_arg, "p.bas", "--dump", "ir"]);
+    assert_eq!(
+        stdout(&o),
+        "p.bas:2:1: error: the file `icons/b.ico` of `$EXEICON` is not found\n\
+         p.bas:3:1: error: the file `icons/none.txt` of `$EMBED` is not found\n2 errors\n"
+    );
+    program("$CONSOLE:ONLY\n$EXEICON:'/qb64rust-test-none/a.ico'\nSYSTEM\n");
+    let o = qb64rust(&d.join("work"), &["--include-root", root_arg, "p.bas", "--dump", "ir"]);
+    assert_eq!(
+        stdout(&o),
+        "p.bas:2:1: error: the file `/qb64rust-test-none/a.ico` of `$EXEICON` is not found\n1 error\n"
+    );
+    program("$CONSOLE:ONLY\n$EMBED:'C:t.txt','h'\nSYSTEM\n");
+    let o = qb64rust(&d.join("work"), &["--include-root", root_arg, "p.bas", "--dump", "ir"]);
     assert!(
-        stdout(&o).contains("neither starts with `./` nor is absolute"),
+        stdout(&o).contains("not supported yet: a `$EMBED` file name with a drive and no slash after it"),
         "{}",
         stdout(&o)
     );
@@ -1180,6 +1223,20 @@ fn event_handlers_run() {
                    SUB show (k AS INTEGER)\nPRINT \"show\"; k\nEND SUB\n\
                    SUB setup\nON TIMER(0.3) GOSUB tick\nEND SUB\n";
     assert_eq!(build_and_run(&d, program), "e 5 \nshow 7 \ntick\n 1 \n");
+}
+
+/// `ON STRIG` built and run (design D4 of `m4-devices-continue-paths`; `verification\v47_x13`, `x30`): its C++
+/// builds with libqb's device-input part, a label and a SUB handler set up, the switch, and an odd button number
+/// raising error 5 in libqb. No game controller fires an event.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn strig_handlers_build_and_run() {
+    let d = scratch("strig-handlers");
+    let program = "$CONSOLE:ONLY\nON ERROR GOTO oops\nON STRIG(0) GOSUB h\nON STRIG(4, 2) s 3\nSTRIG(0) ON\n\
+                   ON STRIG(1) GOSUB h\nPRINT _DEVICES > 1\nSYSTEM\n\
+                   oops:\nPRINT \"e\"; ERR\nRESUME NEXT\nh:\nRETURN\n\
+                   SUB s (k AS INTEGER)\nPRINT k\nEND SUB\n";
+    assert_eq!(build_and_run(&d, program), "e 5 \n-1 \n");
 }
 
 /// A whole-array assignment of arrays of an owner type with other bounds raises error 9 and copies the target's

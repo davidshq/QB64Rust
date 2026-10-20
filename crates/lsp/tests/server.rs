@@ -28,7 +28,7 @@ struct Client {
 /// The front end of a check in these tests (the real one is the driver's, tested in `crates\driver\tests`): an
 /// error at each word `BAD`, a warning at each `WARN`, in every file of the program; a check of a program with
 /// `SLOW` in it takes half a second.
-fn stand_in(map: &SourceMap, _: &ParsedProgram, _: Option<&Path>) -> Diagnostics {
+fn stand_in(map: &SourceMap, _: &ParsedProgram, _: Option<&Path>, _: &Path) -> Diagnostics {
     let mut d = Diagnostics::new();
     for (id, file) in map.files() {
         let text = &file.bytes;
@@ -50,7 +50,7 @@ fn stand_in(map: &SourceMap, _: &ParsedProgram, _: Option<&Path>) -> Diagnostics
 }
 
 /// A check that must not run: the live parse never calls it.
-fn never(_: &SourceMap, _: &ParsedProgram, _: Option<&Path>) -> Diagnostics {
+fn never(_: &SourceMap, _: &ParsedProgram, _: Option<&Path>, _: &Path) -> Diagnostics {
     panic!("the check ran")
 }
 

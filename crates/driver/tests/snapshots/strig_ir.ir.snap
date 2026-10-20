@@ -1,0 +1,24 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window, runtime parts: deviceinput
+Stmt line 2
+  SelectConsole
+Stmt line 7
+  Assign D:F64 = (Const 4:I16 -> Convert F64 Nearest)
+Stmt line 8 may_raise
+  Builtin STRIG [Absent, Absent, Word 0]
+Stmt line 9 may_raise
+  Builtin STRIG [Value(Const 0:I32), Absent, Word 1]
+Stmt line 10 may_raise
+  Builtin STRIG [Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(Const 2:I32), Word 2]
+Stmt line 11 may_raise
+  OnEvent Strig Const 0:I32 -> Gosub H
+Stmt line 12 may_raise
+  OnEvent Strig ((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate) of controller Const 1:I32 -> Gosub H
+Stmt line 13
+  System
+Label H line 14
+Stmt line 15 may_raise
+  Return

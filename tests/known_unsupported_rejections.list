@@ -4,9 +4,6 @@
 corpus/runtime_comparison/218_fre.bas
 snippets/qb64fresh/arrays__redim_dynamic_array.bas
 snippets/qb64fresh/arrays__redim_preserve.bas
-snippets/qb64fresh/continue_statement__continue_do.bas
-snippets/qb64fresh/continue_statement__continue_for.bas
-snippets/qb64fresh/continue_statement__continue_while.bas
 snippets/qb64fresh/error_detection__invalid_syntax.bas
 snippets/qb64fresh/error_detection__undefined_sub_call.bas
 snippets/qb64fresh/file_io_runtime_stubs__shellhide_generates_ffi_call.bas

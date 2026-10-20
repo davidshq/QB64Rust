@@ -36,6 +36,7 @@ fn settings(s: &Settings) -> String {
                 RuntimePart::DataProcessing => "data processing",
                 RuntimePart::Sockets => "sockets",
                 RuntimePart::Embed => "embedded files",
+                RuntimePart::DeviceInput => "deviceinput",
             })
             .collect();
         parts.push(format!("runtime parts: {}", names.join(", ")));
@@ -429,6 +430,14 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                             seconds,
                         } => format!("Timer {} every {}", val(p, n), val(p, seconds)),
                         Event::Key { key } => format!("Key {}", val(p, key)),
+                        Event::Strig {
+                            button,
+                            controller: None,
+                        } => format!("Strig {}", val(p, button)),
+                        Event::Strig {
+                            button,
+                            controller: Some(c),
+                        } => format!("Strig {} of controller {}", val(p, button), val(p, c)),
                     };
                     let handler = match handler {
                         EventHandler::Label(l) => format!("Gosub {}", label(&p.main, *l)),

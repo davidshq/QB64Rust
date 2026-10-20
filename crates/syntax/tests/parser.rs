@@ -452,6 +452,16 @@ fn loops() {
     ));
 }
 
+/// `_CONTINUE` (design D1 of `m4-devices-continue-paths`): in each loop kind, through a single-line `IF` and a
+/// `SELECT`, in lower case; an error outside a loop and in a SUB whose only loop is around its call
+/// (`verification\v47_x01`, `x02`); with an argument, an error (`v47_x03`).
+#[test]
+fn continue_forms() {
+    insta::assert_snapshot!(tree(
+        "FOR i = 1 TO 3: IF i = 2 THEN _CONTINUE\nNEXT\nDO\n  SELECT CASE n\n    CASE 1: _CONTINUE\n  END SELECT\nLOOP UNTIL n\nWHILE c: _continue: WEND\n_CONTINUE\nFOR i = 1 TO 2: _CONTINUE 1: NEXT\nSUB s\n  _CONTINUE\nEND SUB\n"
+    ));
+}
+
 /// Spec `compiler/pipeline`, "Statement not compiled yet": a `DoBlock` holding a `SwapStmt` (`sema` marks the `SWAP`,
 /// `tests\frontend\blocks_not_compiled_yet.bas`).
 #[test]

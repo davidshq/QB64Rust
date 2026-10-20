@@ -190,7 +190,9 @@ compiler writes for it: the statements `_SCREENHIDE`, `_SCREENSHOW`, `_SCREENICO
 A line `$EXEICON:'name'` SHALL give the program's executable the icon in the file `name`, and SHALL be, where it
 stands, the statement `_ICON` with no argument, as in the old compiler. The name stands between the first two
 single quotes of the line; what follows the second SHALL be dropped. A name that starts with `./` or `.\` SHALL
-be looked for in the folder of the main source file. A line in a `$IF` branch that is not taken SHALL NOT count.
+be looked for in the folder of the main source file. Any other relative name SHALL be looked for relative to the
+compiler root, as the old compiler looks in its own folder; a name with a single leading slash, on the compiler
+root's drive. A line in a `$IF` branch that is not taken SHALL NOT count.
 
 #### Scenario: The game's line
 - **WHEN** a program with `$EXEICON: './cws.ico'` is compiled and `cws.ico` lies beside it
@@ -228,12 +230,17 @@ be looked for in the folder of the main source file. A line in a `$IF` branch th
 - **WHEN** `$EXEICON:'./missing.ico'` stands between `$IF 0 THEN` and `$END IF`
 - **THEN** there is no diagnostic and the executable carries no icon of the program's
 
+#### Scenario: Relative to the compiler root
+- **WHEN** a program has `$EXEICON:'tests/compile_tests/icon/qb64pe.ico'` and is compiled with
+  `--include-root tests/upstream/root`, under which that file lies
+- **THEN** there is no diagnostic and the executable carries that icon (`icon/test`, `winresource/test`)
+
 ### Requirement: Errors of $EXEICON
 The compiler SHALL report an error that is not "not supported yet" for a `$EXEICON` line without a name between
 single quotes, for a second `$EXEICON` line of a program (whatever it names), for a name whose file is not
 there, and for a file that is there but is no icon file, each at the line, as the old compiler does (for the
-last, its C++ build fails). A relative name that does not start with `./` or `.\` SHALL be
-reported "not supported yet". The line rules of every metacommand SHALL hold for it.
+last, its C++ build fails). A name with a drive and no slash after it (`C:icon.ico`) SHALL be reported "not
+supported yet". The line rules of every metacommand SHALL hold for it.
 
 #### Scenario: No name
 - **WHEN** a program has `$EXEICON`, `$EXEICON:''`, `$EXEICON:"./icon.ico"` or `$EXEICON:'./icon.ico`
@@ -254,9 +261,15 @@ reported "not supported yet". The line rules of every metacommand SHALL hold for
   gives no diagnostic
 
 #### Scenario: A relative name without ./
-- **WHEN** a program has `$EXEICON:'icons/icon.ico'` or `$EXEICON:'/icons/icon.ico'`
-- **THEN** the compiler reports "not supported yet" at the line (the old compiler looks in its own folder, or on
-  its own drive)
+- **WHEN** a program has `$EXEICON:'v29_inc/icon.ico'`, `$EXEICON:'missing.ico'` or `$EXEICON:'v29_none/icon.ico'`
+  and no such file lies under the compiler root
+- **THEN** the compiler reports that the file is not found, as the old compiler does (`verification\v29_e02`,
+  `e03`, `e08`, `e18`)
+
+#### Scenario: A drive with no slash after it
+- **WHEN** a program has `$EXEICON:'C:icon.ico'`
+- **THEN** the compiler reports "not supported yet" at the line (the old compiler looks in the folder it stands
+  in on that drive)
 
 #### Scenario: After a colon, and a tab before it
 - **WHEN** a program has `l = 1: $EXEICON:'./icon.ico'` or a tab before `$EXEICON`

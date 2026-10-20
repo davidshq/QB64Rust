@@ -1,0 +1,151 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"FOR i = 1 TO 3: IF i = 2 THEN _CONTINUE\\nNEXT\\nDO\\n  SELECT CASE n\\n    CASE 1: _CONTINUE\\n  END SELECT\\nLOOP UNTIL n\\nWHILE c: _continue: WEND\\n_CONTINUE\\nFOR i = 1 TO 2: _CONTINUE 1: NEXT\\nSUB s\\n  _CONTINUE\\nEND SUB\\n\")"
+---
+SourceFile 0..207
+  ForBlock 0..45
+    ForHeader 0..14
+      Ident FOR
+      Whitespace  
+      NameRef 4..5
+        Ident i
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 8..9
+        Number 1
+      Whitespace  
+      Ident TO
+      Whitespace  
+      Literal 13..14
+        Number 3
+    Colon :
+    Whitespace  
+    IfStmt 16..39
+      IfHeader 16..29
+        Ident IF
+        Whitespace  
+        BinExpr 19..24
+          NameRef 19..20
+            Ident i
+          Whitespace  
+          Eq =
+          Whitespace  
+          Literal 23..24
+            Number 2
+        Whitespace  
+        Ident THEN
+      Whitespace  
+      LineBranch 30..39
+        ContinueStmt 30..39
+          Ident _CONTINUE
+    Newline \x0A
+    NextStmt 40..44
+      Ident NEXT
+    Newline \x0A
+  DoBlock 45..112
+    DoHeader 45..47
+      Ident DO
+    Newline \x0A
+    Whitespace   
+    SelectBlock 50..99
+      SelectHeader 50..63
+        Ident SELECT
+        Whitespace  
+        Ident CASE
+        Whitespace  
+        NameRef 62..63
+          Ident n
+      Newline \x0A
+      Whitespace     
+      CaseClause 68..86
+        CaseHeader 68..74
+          Ident CASE
+          Whitespace  
+          CaseItem 73..74
+            Literal 73..74
+              Number 1
+        Colon :
+        Whitespace  
+        ContinueStmt 76..85
+          Ident _CONTINUE
+        Newline \x0A
+      Whitespace   
+      BlockEnd 88..98
+        Ident END
+        Whitespace  
+        Ident SELECT
+      Newline \x0A
+    LoopStmt 99..111
+      Ident LOOP
+      Whitespace  
+      Ident UNTIL
+      Whitespace  
+      NameRef 110..111
+        Ident n
+    Newline \x0A
+  WhileBlock 112..137
+    WhileHeader 112..119
+      Ident WHILE
+      Whitespace  
+      NameRef 118..119
+        Ident c
+    Colon :
+    Whitespace  
+    ContinueStmt 121..130
+      Ident _continue
+    Colon :
+    Whitespace  
+    BlockEnd 132..136
+      Ident WEND
+    Newline \x0A
+  ContinueStmt 137..146
+    Ident _CONTINUE
+  Newline \x0A
+  ForBlock 147..181
+    ForHeader 147..161
+      Ident FOR
+      Whitespace  
+      NameRef 151..152
+        Ident i
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 155..156
+        Number 1
+      Whitespace  
+      Ident TO
+      Whitespace  
+      Literal 160..161
+        Number 2
+    Colon :
+    Whitespace  
+    ContinueStmt 163..174
+      Ident _CONTINUE
+      Whitespace  
+      Error 173..174
+        Number 1
+    Colon :
+    Whitespace  
+    NextStmt 176..180
+      Ident NEXT
+    Newline \x0A
+  ProcDef 181..207
+    ProcHeader 181..186
+      Ident SUB
+      Whitespace  
+      Ident s
+    Newline \x0A
+    Whitespace   
+    ContinueStmt 189..198
+      Ident _CONTINUE
+    Newline \x0A
+    ProcEnd 199..206
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+t.bas:9:1: error: `_CONTINUE` outside a `DO`, `FOR` or `WHILE` loop
+t.bas:10:17: error: `_CONTINUE` stands alone on its statement
+t.bas:10:17: note: QB64pe: Command not implemented
+t.bas:12:3: error: `_CONTINUE` outside a `DO`, `FOR` or `WHILE` loop

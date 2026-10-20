@@ -134,6 +134,8 @@ pub enum SyntaxKind {
     RunStmt,
     /// `EXIT SUB|FUNCTION|FOR|DO|WHILE|SELECT|CASE|DEF`
     ExitStmt,
+    /// `_CONTINUE` alone on its statement: the next pass of the innermost open loop.
+    ContinueStmt,
     /// `DECLARE SUB|FUNCTION <header>`
     DeclareStmt,
     /// `SHARED name [AS type], ...` inside a procedure; items are `DimItem`s.

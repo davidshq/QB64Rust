@@ -62,6 +62,7 @@ node_wrapper!(
     ProcEnd,
     CallStmt,
     ExitStmt,
+    ContinueStmt,
     DeclareStmt,
     SharedStmt,
     StaticStmt,

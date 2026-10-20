@@ -152,7 +152,7 @@ fn start_worker(events: mpsc::Sender<Event>, check: Check) -> mpsc::Sender<Job> 
                             let a = parse();
                             // No disk checks for a document that is not a file (`untitled:`).
                             let path = to_path(&job.main.uri);
-                            let diagnostics = check(&a.map, &a.parsed, path.as_deref());
+                            let diagnostics = check(&a.map, &a.parsed, path.as_deref(), &job.root);
                             (a, diagnostics)
                         }))
                         .map_err(|e| panic_message(&*e, "checking"));

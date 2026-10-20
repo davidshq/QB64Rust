@@ -87,6 +87,11 @@ it records, with any other compiler it compares (verification_compare). Recordin
     "exit=<code>"; or "(not compiled)" when there is no exe), and prints the latter
   * exit codes are written as Git Bash reports them (bash_exit_code): the files were recorded by a
     shell script and stay comparable. One program at a time
+  * <name>.root: files the program names relative to the compiler's own folder ($EXEICON, $EMBED), one
+    path relative to verification/ per line ('#' starts a comment); each is copied to the same path under
+    the clone for the compile and removed after, with the folders it made (a file already there, or a
+    listed file that is missing, is an error before anything is copied). The compare copies them under
+    <results>/verification/<name>/root/ and gives qb64rust that folder as --include-root
 Comparing (tests/verification/README.md; spec testing/verification-suite):
   * each program is compiled with -x -q -m in a fresh folder <results>/verification/<name>/ holding the
     program, its .stdin and .noprompt and the support items of its family, of no family, and of another
@@ -1279,14 +1284,22 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
     env["QB64PE_NOPROMPT"] = "y"
     # Both go to the results folder first: a compile that times out leaves the recorded files alone.
     compile_out = results / f"{name}-compile.txt"
-    rc, timed_out = run_proc(
-        [str(args.qb64), "-x", "-q", "-m", bas.name, "-o", str(exe)],
-        tdir,
-        compile_out,
-        COMPILE_TIMEOUT,
-        env=env,
-        merge_stderr=True,
-    )
+    try:
+        placed = place_root_files(tdir, name, qb_root)
+    except (FileExistsError, FileNotFoundError) as e:
+        r.status, r.stage, r.detail = "FAIL", "expected", f"{e}; nothing recorded"
+        return r
+    try:
+        rc, timed_out = run_proc(
+            [str(args.qb64), "-x", "-q", "-m", bas.name, "-o", str(exe)],
+            tdir,
+            compile_out,
+            COMPILE_TIMEOUT,
+            env=env,
+            merge_stderr=True,
+        )
+    finally:
+        remove_placed(placed)
     if timed_out:
         r.status, r.stage, r.detail = "FAIL", "compile", "timeout; nothing recorded"
         r.seconds = round(time.time() - t0, 1)
@@ -1326,6 +1339,52 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
 
 
 NOT_COMPILED = b"(not compiled)\n"
+
+
+def root_files(root: Path, name: str) -> list[str]:
+    """The paths <name>.root lists (module docstring): files named relative to the compiler's folder."""
+    sidecar = root / f"{name}.root"
+    if not sidecar.is_file():
+        return []
+    lines = (line.split("#", 1)[0].strip() for line in sidecar.read_text("latin-1").splitlines())
+    return [line for line in lines if line]
+
+
+def place_root_files(root: Path, name: str, compiler_root: Path) -> list[Path]:
+    """Copies the files of <name>.root from root to the same paths under compiler_root; returns what it
+    made (files, then the folders it made, innermost first) for remove_placed. A file already there, or
+    a listed file missing from root, is an error, raised before anything is copied; a copy that fails
+    after that removes what was made before the error goes on."""
+    paths = root_files(root, name)
+    for rel in paths:
+        if not (root / rel).is_file():
+            raise FileNotFoundError(f"{rel}, listed in {name}.root, is not there")
+        if (compiler_root / rel).exists():
+            raise FileExistsError(f"{rel} is already under the compiler's folder")
+    made: list[Path] = []
+    folders: list[Path] = []
+    try:
+        for rel in paths:
+            dst = compiler_root / rel
+            missing = [p for p in reversed(dst.parents) if not p.exists()]
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            folders[:0] = reversed(missing)
+            shutil.copyfile(root / rel, dst)
+            made.append(dst)
+    except BaseException:
+        remove_placed(made + folders)
+        raise
+    return made + folders
+
+
+def remove_placed(placed: list[Path]) -> None:
+    """Removes what place_root_files made."""
+    for p in placed:
+        if p.is_dir():
+            with contextlib.suppress(OSError):
+                p.rmdir()
+        else:
+            p.unlink(missing_ok=True)
 
 
 def mask_folder(data: bytes, folder: Path) -> bytes:
@@ -1369,6 +1428,7 @@ SUPPORT_SKIP_SUFFIXES = (
     ".sh",
     ".stdin",
     ".noprompt",
+    ".root",
 )
 SUPPORT_SKIP_NAMES = frozenset({"__pycache__", "v40_rc"})
 
@@ -1477,8 +1537,12 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
     compile_out = results / f"{name}-compile.txt"
     env = dict(os.environ)
     env["QB64PE_NOPROMPT"] = "y"
+    # The files the old compiler found in its own folder, under a root of their own.
+    root_args = []
+    if place_root_files(root, name, work / "root"):
+        root_args = ["--include-root", str(work / "root")]
     rc, timed_out = run_proc(
-        [str(args.qb64), "-x", "-q", "-m", bas.name, "-o", str(exe)],
+        [str(args.qb64), "-x", "-q", "-m", *root_args, bas.name, "-o", str(exe)],
         work,
         compile_out,
         COMPILE_TIMEOUT,
@@ -1523,6 +1587,7 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
             env["QB64PE_NOPROMPT"].encode(),
             read(normalize),
             read(divergences),
+            read(root / f"{name}.root"),
             tree_digest(support),
             helper.read_bytes() if os.name == "nt" else None,
         ]

@@ -567,6 +567,8 @@ impl<'a> Parser<'a, '_> {
             call::call_stmt(self)
         } else if self.at_word("EXIT") {
             proc::exit_stmt(self)
+        } else if self.at_word("_CONTINUE") {
+            proc::continue_stmt(self)
         } else if self.at_word("ON") {
             errors::on_stmt(self)
         } else if self.at_word("RESUME") {

@@ -57,6 +57,18 @@ Small programs behind `study\09`, `study\10` and later measurements:
   queue their length and play out in it, as `v29_d` found for plain strings. That the volume holds for later
   statements (no game string holds a `V`, no `SOUND` gives a volume) and nothing is heard is read in libqb's
   `audio.cpp`: one amplitude per voice, set only by `V` and `SOUND`'s third argument
+- `v47*`: the four parts of `m4-devices-continue-paths`, measured as its task 1.1: `v47_a_continue` `_CONTINUE` in
+  every kind of loop (through `IF` and `SELECT`, the innermost loop, in a SUB and a FUNCTION, the tests of `LOOP
+  WHILE`/`UNTIL` still run), `v47_b_devices` the device functions, `STICK` and `STRIG` with no game controller (the
+  keyboard and the mouse are devices 1 and 2 with libqb's fixed counts; the error 5 cases; nothing that counts
+  controllers, `CLAUDE.md` working rule 12), `v47_c_dot_blanks` blanks around a dot after a plain name (a member
+  array's element and bounds, a by-reference argument, nested members, plain dotted names), `v47_e01`, `e02` a
+  relative `$EXEICON` and `$EMBED` name found under the compiler's folder (each names its file in a `.root`
+  sidecar, which the runner puts there for the compile, `tools\legacy_tests\README.md`; the files in
+  `v47_files\`), `v47_x01`–`x31` one accepted or rejected form each (`_CONTINUE` outside a loop, with an
+  argument, as a variable; `ON STRIG`'s operand and handler errors; an odd button number of `ON STRIG` or the
+  switch, error 5 at run time in libqb, `x13`, `x27`; the device functions' argument errors; `DIM a . b` and
+  `SUB a . b`, both accepted; `s$ . x`, rejected)
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

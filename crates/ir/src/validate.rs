@@ -591,6 +591,12 @@ impl Validator<'_> {
                 self.typed_value(seconds, Ty::F64, "timer interval", owner, at);
             }
             Event::Key { key } => self.typed_value(key, Ty::F64, "key number", owner, at),
+            Event::Strig { button, controller } => {
+                self.typed_value(button, Ty::I32, "button number", owner, at);
+                if let Some(c) = controller {
+                    self.typed_value(c, Ty::I32, "controller number", owner, at);
+                }
+            }
         }
         match handler {
             EventHandler::Label(l) => self.main_label(*l, at, "event handler"),

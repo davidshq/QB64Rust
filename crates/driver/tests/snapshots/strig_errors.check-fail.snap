@@ -1,0 +1,17 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+strig_errors.bas:7:1: error: `ON STRIG` needs its operands in parentheses
+strig_errors.bas:7:1: note: QB64pe: Expected (
+strig_errors.bas:8:9: error: `ON STRIG` takes a button number, or a button and a controller number
+strig_errors.bas:9:9: error: `ON STRIG` takes a button number, or a button and a controller number
+strig_errors.bas:10:9: error: `ON STRIG` takes a button number, or a button and a controller number
+strig_errors.bas:11:12: error: expected `GOSUB` and a label, or a SUB's name
+strig_errors.bas:12:10: error: the button number of `ON STRIG` must be a number
+strig_errors.bas:12:10: note: QB64pe: Illegal string-number conversion
+strig_errors.bas:13:13: error: the SUB `s1` needs its argument after its name
+strig_errors.bas:13:13: note: QB64pe: Expected argument after SUB
+strig_errors.bas:14:16: error: the SUB `s0` has no parameter
+strig_errors.bas:15:13: error: the parameter of the SUB `sf` of an event handler must be an integer
+strig_errors.bas:15:13: note: QB64pe: Only SUB arguments of integer-type allowed

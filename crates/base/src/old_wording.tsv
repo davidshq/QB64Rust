@@ -67,6 +67,7 @@
 `MKDIR` needs a string	String required for sub
 `NEXT` while the `IF` on line {#} is still open; expected `END IF` first	NEXT without FOR
 `ON KEY` takes one key number	Invalid expression
+`ON STRIG` needs its operands in parentheses	Expected (
 `ON TIMER` needs its operands in parentheses	Expected (
 `PCOPY` takes {#} arguments	Syntax error - Reference: PCOPY sourcePage%, destinationPage%
 `PEEK` needs a number	Number required for function
@@ -100,6 +101,7 @@
 `SQR` in a `CONST` cannot take a negative number	Argument to SQR cannot be negative
 `SQR` needs a number	Number required for function
 `STATIC` cannot stand after a declaration in `{}`	STATIC cannot be used in a library declaration
+`STICK` takes {#} or {#} arguments	Incorrect number of arguments - Reference: STICK(direction%) or STICK(direction%, axis_number%)
 `SWAP` cannot exchange `_BIT` variables	Cannot SWAP bit-length variables
 `SWAP` needs a variable here	Expected variable
 `TAB` needs a number	Number required for function
@@ -124,12 +126,15 @@
 `_ADLER32` needs a string	String required for function
 `_ARCCSC` in a `CONST` needs a value of at least {#} in size	ABS(_ARCCSC) value < {1:=|U|P|PU|S|SU}
 `_ARCSEC` in a `CONST` needs a value of at least {#} in size	ABS(_ARCSEC) value < {1:=|U|P|PU|S|SU}
+`_AXIS` needs a number	Number required for function
 `_BLEND` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _BLEND[(imageHandle&)]
+`_BUTTON` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _BUTTON(button_number%)
 `_CEIL` takes {#} argument	Incorrect number of arguments - Reference: _CEIL(expression)
 `_CLAMP` cannot be used in a `CONST`	Unexpected element '_CLAMP'
 `_CLAMP` takes {#} arguments	Incorrect number of arguments - Reference: _Clamp(value, minimum, maximum)
 `_CLEARCOLOR` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _CLEARCOLOR[(sourceHandle&)]
 `_CLIPBOARDIMAGE` takes {#} arguments	Incorrect number of arguments - Reference: _CLIPBOARDIMAGE
+`_CONTINUE` stands alone on its statement	Command not implemented
 `_COPYIMAGE` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _COPYIMAGE(imageHandle&[, mode])
 `_CV` needs a string	_CV requires a STRING argument
 `_CV` takes a numeric type	_CV cannot return STRING type!
@@ -137,6 +142,7 @@
 `_DESKTOPWIDTH` takes {#} arguments	Incorrect number of arguments - Reference: _DESKTOPWIDTH
 `_DEST` needs a number	Number required for sub
 `_DEST` takes {#} arguments	Incorrect number of arguments - Reference: _DEST
+`_DEVICES` takes {#} arguments	Incorrect number of arguments - Reference: _DEVICES
 `_DISPLAY` takes {#} arguments	SUB does not require any arguments
 `_DYNAMIC` and `_STATIC` mark member arrays only	_Dynamic and _Static can only be used on array members inside TYPE
 `_ECHO` needs a program with `$CONSOLE` or `$CONSOLE:ONLY`	_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first
@@ -321,6 +327,7 @@
 `{}`: `_SNDPLAY` is a built-in statement	Invalid array name
 `{}`: `{}` is an array; a member needs an index	Invalid expression
 `{}`: a member array takes its bounds by `REDIM`	DIM: Expected ,
+`{}`: a type suffix before `.`	Invalid symbol
 `{}`: more than one SUB, FUNCTION or the main module has a label `{}`	Ambiguous DATA label
 `{}`: the member is LONG, not INTEGER	Incorrect symbol after element name
 a SUB name cannot have a type suffix: `{}`	Type symbols after a SUB name are invalid
@@ -439,6 +446,7 @@ name already in use: `WAIT`	Name already in use (WAIT)
 name already in use: `{}` (a `CONST` of this name follows on line {#})	Name already in use ({1:S})
 name already in use: `{}```	Name already in use ({1:S})
 names starting with `_` are reserved: `_CONSOLE`	Expected variable =, look for conflict with a CONST name
+names starting with `_` are reserved: `_CONTINUE`	Invalid variable name
 names starting with `_` are reserved: `_CWD`	Invalid variable name
 names starting with `_` are reserved: `_ERRORLINE`	Expected variable =, look for conflict with a CONST name
 names starting with `_` are reserved: `_INCLERRORFILE`	Invalid variable name
@@ -466,6 +474,7 @@ the array `{}` (STRING * {#}) cannot be passed to an array parameter of type STR
 the array `{}` (STRING * {#}) cannot be passed to an array parameter of type STRING * {#}	Incorrect array type passed to sub
 the array `{}` (STRING) cannot be passed to an array parameter of type STRING * {#}	Incorrect array type passed to sub
 the bounds of the member array `{}` are ({#} TO {#}): a `REDIM` cannot change them	Cannot change the number of elements an array has!
+the button number of `ON STRIG` must be a number	Illegal string-number conversion
 the condition of `IF` must be a number, not a string	Expected IF LEN(stringexpression) THEN
 the condition of `LOOP` must be a number, not a string	LOOP ERROR! Cannot accept a STRING type.
 the condition of `WHILE` must be a number, not a string	WHILE ERROR! Cannot accept a STRING type.
@@ -515,6 +524,7 @@ this `SCREEN` statement matches none of its forms: `{}`	Syntax error - Reference
 this `SEEK` statement matches none of its forms: `SEEK [#]?,?`	Syntax error - Reference: SEEK filenumber&, position
 this `SLEEP` statement matches none of its forms: `SLEEP [?]`	Syntax error - Reference: SLEEP seconds%
 this `SOUND` statement matches none of its forms: `{}`	Syntax error - Reference: SOUND [frequency!, duration![, volume!][, panPosition!][, waveform&][, waveformParameters!][, voice&]] [{Wait|Resume}]
+this `STRIG` statement matches none of its forms: `{}`	Syntax error - Reference: STRIG(button%) {On|Off|Stop}
 this `TIMER` statement matches none of its forms: `{}`	Syntax error - Reference: TIMER[(number%)] {On|Off|Stop|Free}
 this `WIDTH` statement matches none of its forms: `{}`	Syntax error - Reference: WIDTH [columns%][, rows%] or WIDTH {file_number|device}, columnwidth%
 this `_ASSERT` statement matches none of its forms: `_ASSERT ?[,?]`	Syntax error - Reference: _ASSERT condition[, errorMessage$]

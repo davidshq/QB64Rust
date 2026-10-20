@@ -86,6 +86,7 @@ pub fn lower(p: &sema::Program) -> Program {
                     sema::RuntimePart::DataProcessing => crate::RuntimePart::DataProcessing,
                     sema::RuntimePart::Sockets => crate::RuntimePart::Sockets,
                     sema::RuntimePart::Embed => crate::RuntimePart::Embed,
+                    sema::RuntimePart::DeviceInput => crate::RuntimePart::DeviceInput,
                 })
                 .collect(),
             exe_icon: p.settings.exe_icon.is_some(),
@@ -120,8 +121,9 @@ struct Lowerer<'a> {
     counts: &'a mut Counts,
     labels: Vec<Label>,
     stmts: Vec<Stmt>,
-    /// The exit labels of the loops around the statement being lowered, innermost last.
-    exits: Vec<(sema::LoopKind, LabelId)>,
+    /// The exit labels of the loops around the statement being lowered, innermost last, each with its continue
+    /// label, made by the first `_CONTINUE` that targets the loop (design D1 of `m4-devices-continue-paths`).
+    exits: Vec<(sema::LoopKind, LabelId, Option<LabelId>)>,
     /// The `CASE` bodies around the statement being lowered, innermost last: the end label of each one's
     /// `SELECT`, and whether it is a `CASE ELSE`. A loop inside a `CASE` does not hide it, and a `SELECT` inside
     /// a loop does not hide the loop from `EXIT FOR`.
@@ -219,6 +221,16 @@ impl<'a> Lowerer<'a> {
             at: usize::MAX,
         });
         LabelId(to_u32(self.labels.len() - 1))
+    }
+
+    /// Closes the innermost loop's entry in `exits`, placing its continue label (if a `_CONTINUE` made one) before
+    /// the loop's bottom statement: before the step of `NEXT`, the test or jump back of `LOOP` and the jump back of
+    /// `WEND`, the old compiler's `fornext_continue_`, `dl_continue_` and `ww_continue_` (`qb64pe.bas` 6246, 6315,
+    /// 6398, 6405).
+    fn place_continue(&mut self) {
+        if let Some((_, _, Some(cont))) = self.exits.pop() {
+            self.place(cont);
+        }
     }
 
     /// Puts a label before the next statement.
@@ -336,13 +348,25 @@ impl<'a> Lowerer<'a> {
                 return self.select(s, parts);
             }
             sema::StmtKind::ExitLoop(kind) => {
-                let (_, exit) = *self
+                let (_, exit, _) = *self
                     .exits
                     .iter()
                     .rev()
-                    .find(|(k, _)| k == kind)
+                    .find(|(k, _, _)| k == kind)
                     .expect("the parser checked that a loop of this kind is open");
                 Op::Jump(exit)
+            }
+            sema::StmtKind::Continue => {
+                let open = self.exits.last().map(|e| e.2);
+                let cont = match open.expect("the parser checked that a loop is open") {
+                    Some(l) => l,
+                    None => {
+                        let l = self.label(s.line);
+                        self.exits.last_mut().unwrap().2 = Some(l);
+                        l
+                    }
+                };
+                Op::Jump(cont)
             }
             sema::StmtKind::ExitSelect { case } => {
                 let &(end, in_else) = self
@@ -560,9 +584,9 @@ impl<'a> Lowerer<'a> {
             };
             self.emit(s.span, s.line, vec![branch]);
         }
-        self.exits.push((kind, exit));
+        self.exits.push((kind, exit, None));
         self.stmts_of(body);
-        self.exits.pop();
+        self.place_continue();
         let back = match test.filter(|t| t.at == sema::TestAt::Bottom) {
             // `LOOP WHILE c` goes back when `c` is not zero, `LOOP UNTIL c` when it is.
             Some(t) => Op::Branch {
@@ -624,9 +648,9 @@ impl<'a> Lowerer<'a> {
         self.emit(s.span, s.line, header);
 
         self.place(lbody);
-        self.exits.push((sema::LoopKind::For, exit));
+        self.exits.push((sema::LoopKind::For, exit, None));
         self.stmts_of(body);
-        self.exits.pop();
+        self.place_continue();
 
         // The step is added to the variable's current value (measured: `k = k + 1` in the body counts on from it).
         let current = m.convert(m.var(f.var, var_ty), f.temp);

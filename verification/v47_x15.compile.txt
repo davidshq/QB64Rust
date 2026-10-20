@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: STICK(direction%) or STICK(direction%, axis_number%)
+Caused by (or after):X = STICK ( 1 , 2 , 3 )
+LINE 3:x = STICK(1, 2, 3)
+exit=1

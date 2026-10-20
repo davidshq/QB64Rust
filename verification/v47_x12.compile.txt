@@ -1,0 +1,5 @@
+
+Only SUB arguments of integer-type allowed
+Caused by (or after):ON STRIG ( 1 ) S 3
+LINE 3:ON STRIG(1) s 3
+exit=1

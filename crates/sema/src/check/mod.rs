@@ -1165,6 +1165,9 @@ impl Checker<'_> {
             self.call_stmt(s)
         } else if ast::ExitStmt::cast(node).is_some() {
             self.exit(node)
+        } else if ast::ContinueStmt::cast(node).is_some() {
+            self.push(node, StmtKind::Continue);
+            Ok(())
         } else if ast::DeclareStmt::cast(node).is_some() {
             // Ignored, as by the old compiler: calls are checked against the definition (measured).
             Ok(())
@@ -1368,13 +1371,12 @@ impl Checker<'_> {
         #[expect(clippy::disallowed_methods, reason = "a file name, not BASIC source")]
         let name = String::from_utf8_lossy(written).into_owned();
         let shown = show_bytes(written);
-        let absolute = matches!(written, [drive, b':', b'/' | b'\\', ..] if drive.is_ascii_alphabetic())
-            || matches!(written, [b'/' | b'\\', b'/' | b'\\', ..]);
-        if crate::ExeIcon::beside_source(&name).is_none() && !absolute {
-            // The old compiler looks for such a name in its own folder, for one with a single leading slash on
-            // its own drive (`e02`, `e03`, `e08`, `e18`) and for one with a drive and no slash after it
-            // (`C:game.ico`) in the folder it stands in on that drive, none of which has a counterpart here.
-            let msg = "a `$EXEICON` name that neither starts with `./` nor is absolute";
+        if crate::drive_without_slash(written) {
+            // The old compiler looks for `C:game.ico` in the folder it stands in on that drive, which has no
+            // counterpart here. Any other relative name is looked for under the compiler root, as the old
+            // compiler looks in its own folder (`e02`, `e03`, `e08`, `e18`; design D3 of
+            // `m4-devices-continue-paths`): the driver's to find, as every icon file is.
+            let msg = "a `$EXEICON` name with a drive and no slash after it";
             return Err(self.unsupported(tok.span, msg));
         }
         self.absent_stmt(node, "_ICON")?;

@@ -504,3 +504,6 @@ slice/s143_const_funcs
 slice/s144_color0
 slice/s145_color32
 slice/s146_const_edges
+slice/s147_continue
+slice/s148_dot_blanks
+slice/s149_devices_console

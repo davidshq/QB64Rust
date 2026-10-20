@@ -1,6 +1,7 @@
-//! Event trapping (design D2 of `m3-events`; measured, `verification\v42_*`, `study\00` §5): `ON TIMER` and
-//! `ON KEY` with a label of the main module or a SUB as the handler, and the forms of `KEY` outside its template.
-//! The switches (`TIMER ON`, `KEY(1) OFF`) and `_FREETIMER` are plain built-ins of the table (`builtins.rs`).
+//! Event trapping (design D2 of `m3-events`; measured, `verification\v42_*`, `study\00` §5): `ON TIMER`, `ON KEY`
+//! and `ON STRIG` (design D4 of `m4-devices-continue-paths`, `v47_x04`–`x13`, `x21`, `x27`, `x30`, `x31`) with a
+//! label of the main module or a SUB as the handler, and the forms of `KEY` outside its template. The switches
+//! (`TIMER ON`, `KEY(1) OFF`, `STRIG(0) ON`) and `_FREETIMER` are plain built-ins of the table (`builtins.rs`).
 
 use super::{Checker, R};
 use crate::{Event, Handler, KeyForm, ProcKind, StmtKind, Ty};
@@ -18,8 +19,10 @@ impl Checker<'_> {
         let word = self.word(ev);
         match word.as_str() {
             "TIMER" | "KEY" => {}
-            // libqb's device-input part is not built (user, 2026-10-17).
-            "STRIG" => return Err(self.unsupported(ev.span, "`ON STRIG` (device input)")),
+            // With libqb's device-input part, set before the operands are read (`qb64pe.bas` 7535).
+            "STRIG" => {
+                self.settings.runtime_parts.insert(crate::RuntimePart::DeviceInput);
+            }
             // Measured: "Name already in use (PEN)" (`v42_x17`–`x19`).
             _ => {
                 return Err(self.error(
@@ -46,6 +49,23 @@ impl Checker<'_> {
                 // Measured: "Expected ... )", "Expected ... ,", "Expected )" (`v42_x27`, `x28`).
                 _ => {
                     let msg = "`ON TIMER` takes the seconds, or a timer number and the seconds";
+                    return Err(self.error(list.node().span(), msg));
+                }
+            }
+        } else if word == "STRIG" {
+            // Design D4 of `m4-devices-continue-paths`: a button number, or a button and a controller, each LONG.
+            match operands[..] {
+                [Some(button)] => Event::Strig {
+                    button: self.event_operand(button, Ty::I32, "the button number of `ON STRIG`")?,
+                    controller: None,
+                },
+                [Some(button), Some(controller)] => Event::Strig {
+                    button: self.event_operand(button, Ty::I32, "the button number of `ON STRIG`")?,
+                    controller: Some(self.event_operand(controller, Ty::I32, "the controller number of `ON STRIG`")?),
+                },
+                // Measured: "Expected ... )", "Expected ... ,", "Expected )" (`verification\v47_x05`–`x08`).
+                _ => {
+                    let msg = "`ON STRIG` takes a button number, or a button and a controller number";
                     return Err(self.error(list.node().span(), msg));
                 }
             }

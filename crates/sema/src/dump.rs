@@ -307,6 +307,7 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
             }
             StmtKind::Exit => line(out, "Exit"),
             StmtKind::ExitLoop(k) => line(out, &format!("Exit {k:?}")),
+            StmtKind::Continue => line(out, "Continue"),
             StmtKind::ExitSelect { case } => line(out, if *case { "Exit Case" } else { "Exit Select" }),
             StmtKind::OnError(Some(l)) => line(out, &format!("OnError {}", p.label(*l).name)),
             StmtKind::OnError(None) => line(out, "OnError 0"),
@@ -669,6 +670,15 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                         line(out, &format!("OnKey {target}"));
                         heading(out, "Key");
                         expr(p, key, d + 2, out);
+                    }
+                    Event::Strig { button, controller } => {
+                        line(out, &format!("OnStrig {target}"));
+                        heading(out, "Button");
+                        expr(p, button, d + 2, out);
+                        if let Some(c) = controller {
+                            heading(out, "Controller");
+                            expr(p, c, d + 2, out);
+                        }
                     }
                 }
                 if let Handler::Sub { arg: Some(a), .. } = handler {

@@ -13,6 +13,7 @@ arrays/03_integer_family_3d
 arrays/03_option_base1_affects_later_classic_udt_member_arrays
 arrays/03_redim_integer
 arrays/03_udt_member_arrays
+arrays/04_float_family
 arrays/04_option_base1_affects_later_as_list_member_arrays
 arrays/04_option_base_explicit_bounds
 arrays/04_redim_uinteger
@@ -26,6 +27,7 @@ arrays/07_nested_udt
 arrays/07_option_base1_as_list_udt_two_dimensions
 arrays/07_redim_integer64
 arrays/08_redim_uinteger64
+arrays/08_whole_member_array_memops_numeric
 arrays/09_layout_and_mixed_members
 arrays/09_redim_single
 arrays/10_redim_double
@@ -218,10 +220,12 @@ basic/val_typed_floating_precision
 basic/val_typed_large_integer_decimal
 basic/val_typed_nondecimal_precision
 basic/val_typed_tostr_overload
+colors/color_with_dest
 colors/test
 console/test
 console_only/audio_out
 console_only/data
+console_only/devices
 console_only/image
 console_only/libz
 console_only/midi
@@ -253,7 +257,9 @@ declare_library_header/test-compile-base
 declare_library_header/test-compile-base-directory
 declare_library_header/test-include
 declare_library_static/test
+deviceinput/test
 dollar$sign$test/dollar$sign
+embed/test
 embed_relative/test
 environ/set_environ
 filename/filename.extra.extension
@@ -285,6 +291,7 @@ glut/windowhasfocus
 glut/windowsizelimit
 http/invalid_url
 http/statuscode_invalid_handle
+icon/test
 icon_relative/test
 iif/iif_test
 image/curico_test
@@ -356,3 +363,4 @@ versioninfo2/test
 versioninfo3/test
 view/window_view_mandelbrot
 view/window_view_screen_line
+winresource/test

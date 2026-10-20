@@ -1189,6 +1189,9 @@ pub enum Event {
     Timer { number: Option<Expr>, seconds: Expr },
     /// `ON KEY(key)`: `key` DOUBLE, which libqb's `int32` parameter cuts toward zero.
     Key { key: Expr },
+    /// `ON STRIG(button[, controller])`: both LONG (design D4 of `m4-devices-continue-paths`; `qb64pe.bas`
+    /// 7534–7700).
+    Strig { button: Expr, controller: Option<Expr> },
 }
 
 /// What runs when the event is serviced.
@@ -1444,6 +1447,9 @@ pub enum StmtKind {
     /// `EXIT FOR`, `EXIT DO`, `EXIT WHILE`: leaves the innermost loop of that kind (the parser checked there is
     /// one).
     ExitLoop(LoopKind),
+    /// `_CONTINUE`: the next pass of the innermost loop of any kind (the parser checked there is one; design D1 of
+    /// `m4-devices-continue-paths`). The lowering knows which loop that is.
+    Continue,
     /// `EXIT SELECT` (`case` false) or `EXIT CASE` (design D5 of `m3-console-files`; measured,
     /// `verification\v30_f_exit_select`, `v30_x60`–`x65`; `qb64pe.bas` 7491–7520). It stands inside a `CASE` or
     /// `CASE ELSE` of a `SELECT` of its body, also within loops and `IF`s there (the parser checked that).
@@ -1664,10 +1670,16 @@ pub struct ExeIcon {
 }
 
 impl ExeIcon {
-    /// The rest of a name that starts with `./` or `.\`; `None` for an absolute name.
+    /// The rest of a name that starts with `./` or `.\`; `None` for any other name.
     pub fn beside_source(name: &str) -> Option<&str> {
         name.strip_prefix("./").or_else(|| name.strip_prefix(".\\"))
     }
+}
+
+/// Whether a file name of `$EXEICON` or `$EMBED` has a drive and no slash after it (`C:icon.ico`): the one kind of
+/// name still "not supported yet" (design D3 of `m4-devices-continue-paths`).
+pub fn drive_without_slash(name: &[u8]) -> bool {
+    matches!(name, [drive, b':', rest @ ..] if drive.is_ascii_alphabetic() && !matches!(rest.first(), Some(b'/' | b'\\')))
 }
 
 /// An optional part of the runtime that a built-in needs linked in.
@@ -1692,6 +1704,9 @@ pub enum RuntimePart {
     Sockets,
     /// The files built into the executable (`_EMBEDDED$`; the old compiler's `DEPENDENCY_EMBED`).
     Embed,
+    /// Game controllers, the keyboard and the mouse as devices (`_DEVICES`, `STICK`, `STRIG`, `ON STRIG`; the
+    /// old compiler's `DEPENDENCY_DEVICEINPUT`).
+    DeviceInput,
 }
 
 impl RuntimePart {
@@ -1707,6 +1722,7 @@ impl RuntimePart {
             "DEPENDENCY_ZLIB" => Some(RuntimePart::DataProcessing),
             "DEPENDENCY_SOCKETS" => Some(RuntimePart::Sockets),
             "DEPENDENCY_EMBED" => Some(RuntimePart::Embed),
+            "DEPENDENCY_DEVICEINPUT" => Some(RuntimePart::DeviceInput),
             _ => None,
         }
     }

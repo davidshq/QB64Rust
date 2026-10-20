@@ -1,0 +1,102 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 8: Assign S:F32
+  Convert Nearest : F32
+    Float 1.5E+0 : F64 (qb F32)
+line 9: Assign X:I32
+  Call _DEVICES : I32
+line 10: Print newline
+  Str
+    Call _DEVICE : Str
+      (absent)
+  Str
+    Call _DEVICE : Str
+      Int 1 : I32
+  Str
+    Call _DEVICE : Str
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+line 11: Assign X:I32
+  Call _DEVICEINPUT : I32
+    (absent)
+line 12: Assign X:I32
+  Call _DEVICEINPUT : I32
+    Int 2 : I32
+line 13: Assign X:I32
+  Binary Add : I32 (qb I64)
+    Call _LASTBUTTON : I32
+      (absent)
+    Call _LASTBUTTON : I32
+      Int 1 : I32
+line 14: Assign X:I32
+  Binary Add : I32 (qb I64)
+    Call _LASTAXIS : I32
+      (absent)
+    Call _LASTAXIS : I32
+      Int 2 : I32
+line 15: Assign X:I32
+  Binary Add : I32 (qb I64)
+    Call _LASTWHEEL : I32
+      (absent)
+    Call _LASTWHEEL : I32
+      Int 2 : I32
+line 16: Assign X:I32
+  Binary Add : I32 (qb I64)
+    Call _BUTTON : I32
+      (absent)
+    Call _BUTTON : I32
+      Int 1 : I32
+line 17: Assign X:I32
+  Binary Add : I32 (qb I64)
+    Call _BUTTONCHANGE : I32
+      (absent)
+    Call _BUTTONCHANGE : I32
+      Int 1 : I32
+line 18: Assign D:F64
+  Binary Add : F64
+    Call _AXIS : F64
+      (absent)
+    Call _AXIS : F64
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+line 19: Assign D:F64
+  Binary Add : F64
+    Call _WHEEL : F64
+      (absent)
+    Call _WHEEL : F64
+      Int 1 : I32
+line 20: Assign X:I32
+  Binary Add : I32 (qb I64)
+    Call STICK : I32
+      Int 0 : I32
+      (absent)
+    Call STICK : I32
+      Int 1 : I32
+      Int 2 : I32
+line 21: Assign X:I32
+  Binary Add : I32 (qb I64)
+    Call STRIG : I32
+      Int 0 : I32
+      (absent)
+    Call STRIG : I32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+      Int 2 : I32
+line 22: Builtin STRIG
+  (absent)
+  (absent)
+  word 0
+line 23: Builtin STRIG
+  Int 0 : I32
+  (absent)
+  word 1
+line 24: Builtin STRIG
+  Int 4 : I32
+  Int 1 : I32
+  word 2

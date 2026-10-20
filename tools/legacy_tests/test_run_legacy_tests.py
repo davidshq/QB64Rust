@@ -1391,6 +1391,19 @@ class VerificationCompare(VerificationFixture):
         r = self.run_test(Tools(runs=[f"{work}/v99_p.exe\r\n".encode()]))
         self.assertEqual(r.status, "PASS", r.detail)
 
+    def test_root_files_are_under_an_include_root_of_their_own(self):
+        self.recorded(b"1\nexit=0\n")
+        (self.root / "v99_files").mkdir()
+        (self.root / "v99_files" / "t.txt").write_bytes(b"t")
+        (self.root / "v99_p.root").write_bytes(b"v99_files/t.txt\n")
+        tools = Tools(runs=[b"2\n"])
+        self.assert_fail(self.run_test(tools), "result")
+        work = self.results / "v99_p"
+        self.assertEqual((work / "root" / "v99_files" / "t.txt").read_bytes(), b"t")
+        i = tools.compile_cmd.index("--include-root")
+        self.assertEqual(tools.compile_cmd[i + 1], str(work / "root"))
+        self.assertFalse((work / "v99_p.root").exists())
+
     def test_the_support_files_and_sidecars_are_copied(self):
         self.recorded(b"1\nexit=0\n")
         for name, data in (
@@ -1496,6 +1509,80 @@ class VerificationCompare(VerificationFixture):
         self.assertEqual((r.status, r.kind), ("PASS", "recorded"), r.detail)
         self.assertEqual((self.root / "v99_p.out.txt").read_bytes(), b"1\r\nexit=0\n")
         self.assertEqual(tools.run_cmds[0], [str(self.root / "v99_p.exe")])
+
+    def record(self, tools, clone: Path):
+        args = SimpleNamespace(qb64=Path("qb64pe.exe"))
+        with mock.patch.object(rlt, "run_proc", tools):
+            return rlt.run_suite_test(
+                "verification",
+                self.bas,
+                args=args,
+                results=self.results,
+                qb_root=clone,
+                corpus_root=self.results,
+                known={},
+            )[0]
+
+    def test_root_files_are_under_the_clone_for_the_compile_only(self):
+        (self.root / "v99_files").mkdir()
+        (self.root / "v99_files" / "i.ico").write_bytes(b"icon")
+        (self.root / "v99_p.root").write_bytes(b"# what the compiler finds in its folder\nv99_files/i.ico\n")
+        clone = self.results / "clone"
+        (clone / "internal" / "temp").mkdir(parents=True)
+        seen = []
+
+        class Seeing(Tools):
+            def __call__(self, args, cwd, stdout_path, timeout, **kw):
+                if "-x" in args:
+                    seen.append((clone / "v99_files" / "i.ico").read_bytes())
+                return super().__call__(args, cwd, stdout_path, timeout, **kw)
+
+        r = self.record(Seeing(runs=[b"ok\r\n"]), clone)
+        self.assertEqual((r.status, r.kind), ("PASS", "recorded"), r.detail)
+        self.assertEqual(seen, [b"icon"])
+        self.assertFalse((clone / "v99_files").exists())
+
+    def test_a_root_file_already_under_the_clone_is_an_error(self):
+        (self.root / "v99_p.root").write_bytes(b"v99_x.ico\n")
+        (self.root / "v99_x.ico").write_bytes(b"new")
+        clone = self.results / "clone"
+        clone.mkdir()
+        (clone / "v99_x.ico").write_bytes(b"theirs")
+        tools = Tools()
+        r = self.record(tools, clone)
+        self.assertEqual((r.status, r.stage), ("FAIL", "expected"), r.detail)
+        self.assertEqual(tools.compile_cmd, [])
+        self.assertEqual((clone / "v99_x.ico").read_bytes(), b"theirs")
+
+    def test_a_root_file_missing_from_verification_is_an_error_before_any_copy(self):
+        (self.root / "v99_files").mkdir()
+        (self.root / "v99_files" / "a.ico").write_bytes(b"a")
+        (self.root / "v99_p.root").write_bytes(b"v99_files/a.ico\nv99_files/gone.ico\n")
+        clone = self.results / "clone"
+        clone.mkdir()
+        tools = Tools()
+        r = self.record(tools, clone)
+        self.assertEqual((r.status, r.stage), ("FAIL", "expected"), r.detail)
+        self.assertEqual(tools.compile_cmd, [])
+        self.assertFalse((clone / "v99_files").exists())
+
+    def test_a_copy_that_fails_removes_what_it_made(self):
+        (self.root / "v99_files").mkdir()
+        (self.root / "v99_files" / "a.ico").write_bytes(b"a")
+        (self.root / "v99_files" / "b.ico").write_bytes(b"b")
+        (self.root / "v99_p.root").write_bytes(b"v99_files/a.ico\nv99_files/b.ico\n")
+        clone = self.results / "clone"
+        clone.mkdir()
+        real = shutil.copyfile
+
+        def copy_once(src, dst):
+            if Path(src).name == "b.ico":
+                raise OSError("disk full")
+            return real(src, dst)
+
+        with mock.patch.object(rlt.shutil, "copyfile", copy_once), self.assertRaises(OSError):
+            rlt.place_root_files(self.root, "v99_p", clone)
+        self.assertEqual(list(clone.iterdir()), [])
 
 
 class VerificationLists(VerificationFixture):

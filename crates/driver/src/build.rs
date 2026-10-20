@@ -343,6 +343,9 @@ pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Font) {
         flags.push("DEP_FONT=y");
     }
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::DeviceInput) {
+        flags.push("DEP_DEVICEINPUT=y");
+    }
     if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::DataProcessing) {
         flags.push("DEP_ZLIB=y");
     }
@@ -1454,6 +1457,23 @@ mod tests {
         let mut s = program_settings(false, true, false);
         s.runtime_parts.insert(DataProcessing);
         assert_eq!(make_flags(&s), ["DEP_ZLIB=y"]);
+    }
+
+    /// The device-input part stands after `DEP_FONT=y` and before `DEP_ZLIB=y`, as the old compiler orders them
+    /// (`qb64pe.bas` 13714; design D4 of `m4-devices-continue-paths`). Its build of `console_only/devices` links
+    /// the same libqb variant (`libqb_make_00100001.o`) and `game_controller.a`.
+    #[test]
+    fn make_flags_of_the_device_input_part() {
+        use qb64rust_ir::RuntimePart::{DataProcessing, DeviceInput, Font};
+        let mut s = program_settings(true, false, false);
+        s.runtime_parts.insert(DeviceInput);
+        assert_eq!(
+            make_flags(&s),
+            ["DEP_CONSOLE_ONLY=y", "DEP_DEVICEINPUT=y", "DEP_CONSOLE=y"]
+        );
+        let mut s = program_settings(false, true, false);
+        s.runtime_parts.extend([DeviceInput, Font, DataProcessing]);
+        assert_eq!(make_flags(&s), ["DEP_FONT=y", "DEP_DEVICEINPUT=y", "DEP_ZLIB=y"]);
     }
 
     /// The embed part stands after `DEP_ZLIB=y` and before `DEP_CONSOLE=y`, as the old compiler orders them

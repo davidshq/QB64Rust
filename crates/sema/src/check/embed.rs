@@ -59,12 +59,6 @@ fn handle_error(handle: &[u8]) -> Option<String> {
         .then(|| format!("the embed handle `{shown}` may hold only letters A to Z and digits"))
 }
 
-/// Whether a `$EMBED` file name is absolute: a drive, a colon and a slash, or two slashes.
-fn absolute(name: &[u8]) -> bool {
-    matches!(name, [drive, b':', b'/' | b'\\', ..] if drive.is_ascii_alphabetic())
-        || matches!(name, [b'/' | b'\\', b'/' | b'\\', ..])
-}
-
 /// Whether a `$EMBED` file name starts with `./` or `.\`: the main source file's folder.
 fn beside_source(name: &[u8]) -> bool {
     name.starts_with(b"./") || name.starts_with(b".\\")
@@ -165,10 +159,10 @@ impl Checker<'_> {
         let Some((file, handle)) = parts(self.text(tok.span)) else {
             return Err(self.error(tok.span, "expected `$EMBED:'filename','handle'`"));
         };
-        if !beside_source(&file) && !absolute(&file) {
-            // The old compiler looks for such a name in its own folder (`x26`), which has no counterpart here (as
-            // for `$EXEICON`, design D4 of `m3-sound`).
-            let msg = "a `$EMBED` file name that neither starts with `./` nor is absolute";
+        if crate::drive_without_slash(&file) {
+            // As for `$EXEICON`: any other relative name is looked for under the compiler root (`x26`; design D3
+            // of `m4-devices-continue-paths`), one with a drive and no slash after it has no counterpart here.
+            let msg = "a `$EMBED` file name with a drive and no slash after it";
             return Err(self.unsupported(tok.span, msg));
         }
         if let Some(msg) = handle_error(&handle) {

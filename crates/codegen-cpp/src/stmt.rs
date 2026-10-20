@@ -172,6 +172,7 @@ impl Emitter<'_> {
                 let operands = match event {
                     Event::Timer { number, seconds } => number.as_ref().is_some_and(strings) || strings(seconds),
                     Event::Key { key } => strings(key),
+                    Event::Strig { button, controller } => strings(button) || controller.as_ref().is_some_and(strings),
                 };
                 if operands || matches!(handler, EventHandler::Sub { arg: Some(a), .. } if strings(a)) {
                     out.push("qbs_cleanup(qbs_tmp_base,0);".into());

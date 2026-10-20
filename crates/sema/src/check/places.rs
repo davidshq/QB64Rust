@@ -1190,6 +1190,9 @@ impl Checker<'_> {
                 }
             }
             ast::Expr::Field(f) if f.arg_list().is_none_or(|l| l.args().is_empty()) => {
+                if self.plain_spelled(f)?.is_some() {
+                    return Ok(None);
+                }
                 let (place, t) = self.field_member(f)?;
                 (place, f.arg_list().is_some(), t)
             }
@@ -1217,6 +1220,9 @@ impl Checker<'_> {
             return Ok(None);
         };
         let (head, path) = (&name[..dot], &name[dot + 1..]);
+        if !self.user_head(head) {
+            return Ok(None);
+        }
         if let Some(v) = self.lookup_var(head.to_string(), None)
             && matches!(self.prog.var(v).ty, Ty::User(_))
         {
@@ -1231,19 +1237,26 @@ impl Checker<'_> {
                 format!("`{shown}`: `{head}` is an array; a member needs an index"),
             ));
         }
-        let hidden_main = self.cur.is_some()
-            && self
-                .main
-                .vars
-                .keys()
-                .any(|(n, ty)| n == head && matches!(ty, Ty::User(_)));
-        if hidden_main {
-            // In a procedure, beside a main-module `TYPE` variable the procedure does not see: not measured.
-            let shown = show_bytes(self.text(t.span));
-            let msg = format!("`{shown}` in a SUB or FUNCTION that does not share the `TYPE` variable `{head}`");
-            return Err(self.unsupported(t.span, msg));
-        }
-        Ok(None)
+        // In a procedure, beside a main-module `TYPE` variable the procedure does not see (the last case of
+        // `user_head`): not measured.
+        let shown = show_bytes(self.text(t.span));
+        let msg = format!("`{shown}` in a SUB or FUNCTION that does not share the `TYPE` variable `{head}`");
+        Err(self.unsupported(t.span, msg))
+    }
+
+    /// Whether `head`, the part of a dotted name before its first dot, names a `TYPE` variable or array where the
+    /// name stands, or (in a procedure) a main-module `TYPE` variable the procedure does not see. When it does not,
+    /// the dotted name is a plain variable's ([`Self::dotted_any`], [`Self::plain_spelled`]).
+    fn user_head(&mut self, head: &str) -> bool {
+        self.lookup_var(head.to_string(), None)
+            .is_some_and(|v| matches!(self.prog.var(v).ty, Ty::User(_)))
+            || matches!(self.array_key_ty(head, None), Ty::User(_)) && self.find_array(head, None).is_some()
+            || self.cur.is_some()
+                && self
+                    .main
+                    .vars
+                    .keys()
+                    .any(|(n, ty)| n == head && matches!(ty, Ty::User(_)))
     }
 
     /// The members `path` (`b` or `b.c`, upper case) of `base`; `suffix` is on the last one, which must be its own
@@ -1288,16 +1301,121 @@ impl Checker<'_> {
         Ok(base)
     }
 
-    /// `base(…).member…` (a `FieldExpr`), with the index of a member array after it (`a(1).v(2)`).
+    /// The dotted name a chain of member accesses on a plain name spells (design D2 of
+    /// `m4-devices-continue-paths`): `a . s` and `a . w . v` are `A.S` and `A.W.V`, as `a.s` and `a.w.v` are,
+    /// since the old compiler drops the blanks around such a dot (`verification\v19_dot_blanks_*`,
+    /// `v47_c_dot_blanks`). The suffix is the last part's; one before a dot is an error, as to the old compiler
+    /// (`s$ . x`, "Invalid symbol", `v47_x29`). The token is made to cover the whole name, for spans and the text
+    /// shown. `None` when the chain's base is no plain name, or a part before the last has parentheses after it
+    /// (`a(1) . s`, `a . s(1) . v`): those keep the path of a member of a place.
+    pub(super) fn spelled_name(&mut self, f: ast::FieldExpr) -> R<Option<(String, Option<Ty>, Tok)>> {
+        let span = f.node().span();
+        let mut parts = vec![self.need(f.member(), span)?];
+        let mut cur = f;
+        let base = loop {
+            match self.need(cur.base(), span)? {
+                ast::Expr::NameRef(n) => break self.need(n.name(), span)?,
+                ast::Expr::Field(inner) if inner.arg_list().is_none() => {
+                    parts.push(self.need(inner.member(), span)?);
+                    cur = inner;
+                }
+                ast::Expr::Literal(_)
+                | ast::Expr::Call(_)
+                | ast::Expr::Field(_)
+                | ast::Expr::Paren(_)
+                | ast::Expr::Prefix(_)
+                | ast::Expr::Bin(_) => return Ok(None),
+            }
+        };
+        parts.push(base);
+        parts.reverse();
+        let last = *parts.last().unwrap();
+        let t = Tok {
+            kind: base.kind,
+            span: base.span.cover(last.span),
+        };
+        let mut name = String::new();
+        let mut suffix = None;
+        for (i, &p) in parts.iter().enumerate() {
+            let (part, s) = self.split_name(p)?;
+            if s.is_some() && i + 1 < parts.len() {
+                let shown = show_bytes(self.text(t.span));
+                return Err(self.error(t.span, format!("`{shown}`: a type suffix before `.`")));
+            }
+            if i > 0 {
+                name.push('.');
+            }
+            name.push_str(&part);
+            suffix = s;
+        }
+        Ok(Some((name, suffix, t)))
+    }
+
+    /// The plain dotted name a member access on a plain name spells when no `TYPE` variable of its first part is
+    /// visible ([`Self::spelled_name`], [`Self::dotted_any`]): `p . q` with no `TYPE` variable `p` is the variable
+    /// or array `P.Q`. `None` for anything else; a member it names is left to [`Self::field_member`]. A name of a
+    /// procedure or a visible `CONST` is "not supported yet": the old compiler drops the blanks before it reads the
+    /// statement (`qb64pe.bas` 4196–4241), so `a . b` would be that procedure or constant, which only the reading
+    /// of a whole name (`a.b`) resolves here; not measured.
+    pub(super) fn plain_spelled(&mut self, f: ast::FieldExpr) -> R<Option<(String, Option<Ty>, Tok)>> {
+        let Some((name, suffix, t)) = self.spelled_name(f)? else {
+            return Ok(None);
+        };
+        let head = &name[..name.find('.').expect("a spelled name has a dot")];
+        if self.user_head(head) {
+            return Ok(None);
+        }
+        let what = if self.procs_by_name.contains_key(&name) {
+            Some("SUB or FUNCTION")
+        } else if self.visible_const(&name).is_some() {
+            Some("`CONST`")
+        } else {
+            None
+        };
+        if let Some(what) = what {
+            let shown = show_bytes(self.text(t.span));
+            let msg = format!("`{shown}`, the name of a {what} written with blanks around `.`");
+            return Err(self.unsupported(t.span, msg));
+        }
+        Ok(Some((name, suffix, t)))
+    }
+
+    /// `base(…).member…` (a `FieldExpr`), with the index of a member array after it (`a(1).v(2)`). On a plain
+    /// name with no `TYPE` variable of that name, the plain dotted variable or array element it spells (design D2
+    /// of `m4-devices-continue-paths`).
     pub(super) fn field_place(&mut self, f: ast::FieldExpr) -> R<Place> {
         let span = f.node().span();
+        if let Some((name, suffix, t)) = self.plain_spelled(f)? {
+            let Some(list) = f.arg_list() else {
+                return Ok(Place::Var(self.variable(t, name, suffix)?));
+            };
+            let args = self.present_args(Some(list))?;
+            let Some(array) = self.find_array(&name, suffix).filter(|_| !args.is_empty()) else {
+                let shown = show_bytes(self.text(t.span));
+                return Err(self.unsupported(span, format!("`{shown}(…)`, written with blanks around `.`, here")));
+            };
+            return self.element_at(array, args, t, span);
+        }
         let (place, t) = self.field_member(f)?;
         self.member_element(place, f.arg_list().map(Some), span, t)
     }
 
-    /// The member a `FieldExpr` names, without what stands in parentheses after it, and the member's token.
+    /// The member a `FieldExpr` names, without what stands in parentheses after it, and the member's token (for a
+    /// member access on a plain name, one covering the whole name).
     pub(super) fn field_member(&mut self, f: ast::FieldExpr) -> R<(Place, Tok)> {
         let span = f.node().span();
+        if let Some((name, suffix, t)) = self.spelled_name(f)? {
+            // `a . s`: the member `S` of the `TYPE` variable `a` (design D2 of `m4-devices-continue-paths`).
+            return match self.dotted_any(t, &name, suffix)? {
+                Some(place) => Ok((place, t)),
+                // A plain dotted name written with blanks where only a member was looked for (the callers that
+                // take a plain name look with [`Self::plain_spelled`] first).
+                None => {
+                    let shown = show_bytes(self.text(t.span));
+                    Err(self.unsupported(t.span, format!("`{shown}`, written with blanks around `.`, here")))
+                }
+            };
+        }
         let base = match self.need(f.base(), span)? {
             // A member of a block a built-in gives (`_MEMNEW(4).SIZE`): measured, "Invalid expression"
             // (`verification\v32_x02`, `x114`).
@@ -1312,10 +1430,7 @@ impl Checker<'_> {
             }
             ast::Expr::Call(c) => self.call_place(c)?,
             ast::Expr::Field(inner) => self.field_place(inner)?,
-            ast::Expr::NameRef(n) => {
-                // `a . s`: the old compiler drops the blanks, so this is the name `a.s` (`v19_dot_blanks_*`).
-                return Err(self.unsupported(n.node().span(), "blanks around `.` after a name"));
-            }
+            ast::Expr::NameRef(_) => unreachable!("a member access on a plain name is spelled above"),
             other @ (ast::Expr::Literal(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_)) => {
                 return Err(self.unsupported(other.node().span(), "a member of this expression"));
             }
@@ -1660,6 +1775,25 @@ impl Checker<'_> {
         })
     }
 
+    /// The array `LBOUND` or `UBOUND` names by `name` (written `t`, in `node`).
+    fn bound_array(&mut self, t: Tok, name: &str, suffix: Option<Ty>, node: Node, span: Span) -> R<ArrayRef> {
+        let a = match self.find_array(name, suffix) {
+            Some(a) => a,
+            // Measured: `LBOUND(x)` of a name that is no array makes an array of one dimension, used
+            // without `DIM` (`v18_f_*`, `v24_f_implicit`).
+            None => self.implicit_array(t, name, suffix, 1, node)?,
+        };
+        // The bounds of an array parameter say nothing about its number of dimensions (measured,
+        // `verification\v24_x153`, `x293`), nor do those of an array listed by `COMMON a()` (`x298`,
+        // `x301`, `x302`); those of one listed by `STATIC a()` make it one (`x282`, `x297`).
+        let common = self.prog.var(a).storage == Storage::Main;
+        if !self.open_dims(a) && !common {
+            self.settle_dims(a, 1, t, span);
+        }
+        self.stmt.names.push((SymbolKind::Var(a), t.span));
+        Ok(ArrayRef::Var(a))
+    }
+
     /// `LBOUND(array[, dimension])` and `UBOUND(…)` (design D4, measured `v18_e_bounds*`, `v18_f_*`). The array
     /// may be a member array, also written with empty parentheses (`verification\v24_h_member_arrays`,
     /// `v24_x201`, `x311`).
@@ -1676,26 +1810,27 @@ impl Checker<'_> {
         if !(required..=slots.len()).contains(&args.len()) {
             return Err(self.unsupported(span, format!("`{word}` with {} arguments", args.len())));
         }
+        let plain = match args[0] {
+            ast::Expr::Field(f) if f.arg_list().is_none() => self.plain_spelled(f)?,
+            ast::Expr::Literal(_)
+            | ast::Expr::NameRef(_)
+            | ast::Expr::Call(_)
+            | ast::Expr::Field(_)
+            | ast::Expr::Paren(_)
+            | ast::Expr::Prefix(_)
+            | ast::Expr::Bin(_) => None,
+        };
         let array = match (self.member_array(args[0])?, args[0]) {
             (Some((array, _, _)), _) => array,
             (None, ast::Expr::NameRef(n)) => {
                 let t = self.need(n.name(), span)?;
                 let (name, suffix) = self.split_name(t)?;
-                let a = match self.find_array(&name, suffix) {
-                    Some(a) => a,
-                    // Measured: `LBOUND(x)` of a name that is no array makes an array of one dimension, used
-                    // without `DIM` (`v18_f_*`, `v24_f_implicit`).
-                    None => self.implicit_array(t, &name, suffix, 1, n.node())?,
-                };
-                // The bounds of an array parameter say nothing about its number of dimensions (measured,
-                // `verification\v24_x153`, `x293`), nor do those of an array listed by `COMMON a()` (`x298`,
-                // `x301`, `x302`); those of one listed by `STATIC a()` make it one (`x282`, `x297`).
-                let common = self.prog.var(a).storage == Storage::Main;
-                if !self.open_dims(a) && !common {
-                    self.settle_dims(a, 1, t, span);
-                }
-                self.stmt.names.push((SymbolKind::Var(a), t.span));
-                ArrayRef::Var(a)
+                self.bound_array(t, &name, suffix, n.node(), span)?
+            }
+            // `LBOUND(p . q)`: the plain dotted array `P.Q` (design D2 of `m4-devices-continue-paths`).
+            (None, ast::Expr::Field(f)) if plain.is_some() => {
+                let (name, suffix, t) = plain.unwrap();
+                self.bound_array(t, &name, suffix, f.node(), span)?
             }
             (None, ast::Expr::Call(c)) if c.arg_list().is_some_and(|l| l.args().is_empty()) => {
                 // Measured: "Expected ." (`v18_e_bounds_empty_parens`, `v18_e_bounds_type_array`).

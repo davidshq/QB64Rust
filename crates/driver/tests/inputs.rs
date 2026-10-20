@@ -191,7 +191,7 @@ fn run(name: String, path: &Path, verdict: Verdict) -> Outcome {
         // The icon `$EXEICON` names is looked for only for the real programs, which are here whole. The upstream
         // copy holds no binary files, and a corpus program's data files lie in a folder of their own until it runs.
         if name.starts_with("programs/") {
-            qb64rust_driver::check_exe_icon(&fe.program, &mut fe.diagnostics, &base);
+            qb64rust_driver::check_exe_icon(&fe.program, &mut fe.diagnostics, &base, &root);
         }
         // Every tree prints its own file back (spec compiler/pipeline, "Lossless syntax tree").
         let round_trip = fe
@@ -376,7 +376,7 @@ fn real_programs_have_no_diagnostics() {
         let mut fe = frontend_with(&name, std::fs::read(&path).unwrap(), |file| {
             Box::new(FileLoader::new(&inc, file, &path))
         });
-        qb64rust_driver::check_exe_icon(&fe.program, &mut fe.diagnostics, &path);
+        qb64rust_driver::check_exe_icon(&fe.program, &mut fe.diagnostics, &path, &inc);
         assert!(
             fe.diagnostics.list().is_empty(),
             "{name}:\n{}",

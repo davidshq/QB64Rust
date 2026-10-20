@@ -1,0 +1,5 @@
+
+1st function argument requires a number
+Caused by (or after):X = STRIG ( "a",1 )
+LINE 3:x = STRIG("a")
+exit=1

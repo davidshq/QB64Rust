@@ -50,9 +50,12 @@ push shows them (the user is not concerned with CI, working rule 9).
 ## Next
 
 1. M4's parity work. Its first step, `m4-checker-groups` (the checker's state in four groups, and how a value is
-   used an argument of the expression check, `ROADMAP.md`'s M4 item), is built and waits to be archived. The
-   upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, blanks
-   around `.` and `_CONTINUE` (2 programs each). `tests\verification\known.list` (215 programs, each with its
+   used an argument of the expression check, `ROADMAP.md`'s M4 item), is built and archived
+   (`openspec\changes\archive\2026-10-20-m4-checker-groups`). Its second, `m4-devices-continue-paths`
+   (`_CONTINUE`, blanks around `.`, relative `$EXEICON` and `$EMBED` names, device input and `ON STRIG`), is built
+   and its closing set passes (`close.py --check`); it waits for the user's review before it is archived. The
+   upstream report's first line now is `REDIM i` without bounds in a SUB or FUNCTION (2 programs), then one program
+   each (`_CAST`, `_CLIPBOARD$`, `_FILES$`, …). `tests\verification\known.list` (209 programs, each with its
    reason) holds more such lines.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
