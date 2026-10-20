@@ -390,17 +390,36 @@ fn real_programs_have_no_diagnostics() {
     }
 }
 
-#[test]
-fn slice_list_programs_have_no_diagnostics() {
-    let root = repo().join("tests/corpus");
+/// The programs `tests/corpus/slice.list` names, each once: an entry `<group>/<name>`, or `<group>/<name>.<script>`
+/// for a script of a screen program, which runs `<group>/<name>.bas` (`tools/legacy_tests/README.md`, "Scripts of a
+/// screen program").
+fn slice_programs() -> Vec<String> {
     #[expect(clippy::disallowed_methods, reason = "a list of file names, not BASIC source")]
-    let list = std::fs::read_to_string(root.join("slice.list")).unwrap();
-    let mut n = 0;
+    let list = std::fs::read_to_string(repo().join("tests/corpus/slice.list")).unwrap();
+    let mut out: Vec<String> = Vec::new();
     for line in list.lines() {
         let line = line.split('#').next().unwrap().trim();
         if line.is_empty() {
             continue;
         }
+        let (folder, file) = line.rsplit_once('/').unwrap_or(("", line));
+        let program = match file.split_once('.') {
+            Some((name, _script)) if folder.is_empty() => name.to_string(),
+            Some((name, _script)) => format!("{folder}/{name}"),
+            None => line.to_string(),
+        };
+        if !out.contains(&program) {
+            out.push(program);
+        }
+    }
+    out
+}
+
+#[test]
+fn slice_list_programs_have_no_diagnostics() {
+    let root = repo().join("tests/corpus");
+    let mut n = 0;
+    for line in slice_programs() {
         let name = format!("{line}.bas");
         let path = root.join(&name);
         let inc = repo().join("tests/upstream/root");
@@ -901,12 +920,8 @@ const OWN_NODE: &[&str] = &["LPRINT", "FIELD", "LSET", "RSET"];
 #[test]
 fn every_supported_builtin_is_covered() {
     let corpus = repo().join("tests/corpus");
-    #[expect(clippy::disallowed_methods, reason = "a list of file names, not BASIC source")]
-    let list = std::fs::read_to_string(corpus.join("slice.list")).unwrap();
-    let slice: Vec<String> = list
-        .lines()
-        .map(|l| l.split('#').next().unwrap().trim())
-        .filter(|l| !l.is_empty())
+    let slice: Vec<String> = slice_programs()
+        .iter()
         .map(|l| code_only(&std::fs::read(corpus.join(format!("{l}.bas"))).unwrap()))
         .collect();
     let typed: Vec<String> = files(&repo().join("tests/frontend"), &["bas"])

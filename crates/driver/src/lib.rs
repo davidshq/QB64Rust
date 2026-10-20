@@ -286,18 +286,60 @@ pub fn emit(fe: &Frontend, resolved: &Resolved) -> qb64rust_codegen_cpp::Fragmen
 
 /// The C++ fragments of `ir`, the IR of `fe`'s program.
 pub fn emit_ir(fe: &Frontend, ir: &qb64rust_ir::Program, resolved: &Resolved) -> qb64rust_codegen_cpp::Fragments {
+    emit_ir_with(fe, ir, resolved, false)
+}
+
+/// [`emit_ir`], with a counter at each source statement for `--coverage` (design D1 of `cws-whole-game`).
+pub fn emit_ir_with(
+    fe: &Frontend,
+    ir: &qb64rust_ir::Program,
+    resolved: &Resolved,
+    coverage: bool,
+) -> qb64rust_codegen_cpp::Fragments {
     let included = fe
         .map
         .files()
         .filter(|&(id, _)| id != fe.file)
         .map(|(id, f)| (id, f.name.clone()))
         .collect();
-    qb64rust_codegen_cpp::emit(ir, &fe.map.file(fe.file).name, &included, resolved)
+    let position = |span: qb64rust_base::Span| fe.map.file(span.file).line_col(span.start);
+    let coverage = coverage.then(|| qb64rust_codegen_cpp::Coverage {
+        files: coverage_files(fe),
+        position: &position,
+    });
+    qb64rust_codegen_cpp::emit_with(ir, &fe.map.file(fe.file).name, &included, resolved, coverage.as_ref())
 }
 
-/// `--dump cpp`.
-pub fn dump_cpp(fe: &Frontend, resolved: &Resolved) -> String {
-    qb64rust_codegen_cpp::dump(&emit(fe, resolved))
+/// Each file of the program by its index, for a coverage record: its path relative to the main file's folder (an
+/// included file found elsewhere, in the compiler root, as it was found), with `/` between folders, and the FNV-1a
+/// 64 hash of its bytes as 16 hex digits, which `tools\coverage\coverage.py` checks against the file it reads.
+pub fn coverage_files(fe: &Frontend) -> Vec<(String, String)> {
+    let main_dir = Path::new(&fe.map.file(fe.file).name)
+        .parent()
+        .map_or_else(PathBuf::new, Path::to_path_buf);
+    fe.map
+        .files()
+        .map(|(_, f)| {
+            let name = Path::new(&f.name);
+            let rel = name.strip_prefix(&main_dir).unwrap_or(name);
+            (
+                rel.to_string_lossy().replace('\\', "/"),
+                format!("{:016x}", fnv1a64(&f.bytes)),
+            )
+        })
+        .collect()
+}
+
+/// The 64-bit FNV-1a hash.
+pub fn fnv1a64(bytes: &[u8]) -> u64 {
+    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, &b| {
+        (h ^ u64::from(b)).wrapping_mul(0x0000_0100_0000_01b3)
+    })
+}
+
+/// `--dump cpp`; with `coverage`, the C++ of a `--coverage` build.
+pub fn dump_cpp(fe: &Frontend, resolved: &Resolved, coverage: bool) -> String {
+    qb64rust_codegen_cpp::dump(&emit_ir_with(fe, &lower(fe), resolved, coverage))
 }
 
 #[cfg(test)]

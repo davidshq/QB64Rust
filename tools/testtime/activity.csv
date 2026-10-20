@@ -444,6 +444,17 @@ version,session,change,category,actions,bytes
 1,34da0406,m3-declare-library,reading,12,0
 1,34da0406,m3-declare-library,scratch files,1,426
 1,34da0406,m3-declare-library,test runs,7,0
+1,36ac8a27,cws-whole-game,builds,2,0
+1,36ac8a27,cws-whole-game,documents and planning,11,4442
+1,36ac8a27,cws-whole-game,measurement preparation,3,3680
+1,36ac8a27,cws-whole-game,measurement runs,13,0
+1,36ac8a27,cws-whole-game,other,1,0
+1,36ac8a27,cws-whole-game,other commands,215,0
+1,36ac8a27,cws-whole-game,product code,12,6258
+1,36ac8a27,cws-whole-game,reading,79,0
+1,36ac8a27,cws-whole-game,scratch files,27,31683
+1,36ac8a27,cws-whole-game,test runs,36,0
+1,36ac8a27,cws-whole-game,tests and fixtures,53,83233
 1,3814c23a,,documents and planning,17,15207
 1,3814c23a,,other,5,0
 1,3814c23a,,other commands,28,0
@@ -668,6 +679,15 @@ version,session,change,category,actions,bytes
 1,46972112,m2-defxxx-common-arrays,test runs,8,0
 1,46972112,m2-defxxx-common-arrays,tests and fixtures,2,1521
 1,490e3a42,m3-images-fonts-mouse,other commands,1,0
+1,4a9a821b,,other commands,1,0
+1,4a9a821b,verification-compare,documents and planning,1,152
+1,4a9a821b,verification-compare,measurement preparation,2,357
+1,4a9a821b,verification-compare,measurement runs,1,0
+1,4a9a821b,verification-compare,other commands,30,0
+1,4a9a821b,verification-compare,product code,4,1102
+1,4a9a821b,verification-compare,reading,3,0
+1,4a9a821b,verification-compare,test runs,9,0
+1,4a9a821b,verification-compare,tests and fixtures,4,1665
 1,4c15903c,,builds,1,0
 1,4c15903c,,other,1,0
 1,4c15903c,,other commands,16,0
@@ -1877,6 +1897,15 @@ version,session,change,category,actions,bytes
 1,c3c2ea20,,scratch files,5,13798
 1,c3c2ea20,,test runs,18,0
 1,c3c2ea20,,tests and fixtures,51,73759
+1,c47bc2ae,,other commands,1,0
+1,c47bc2ae,cws-whole-game,documents and planning,6,32129
+1,c47bc2ae,cws-whole-game,other commands,3,0
+1,c47bc2ae,cws-whole-game,test runs,1,0
+1,c47bc2ae,verification-compare,builds,1,0
+1,c47bc2ae,verification-compare,measurement runs,1,0
+1,c47bc2ae,verification-compare,other,2,0
+1,c47bc2ae,verification-compare,other commands,43,0
+1,c47bc2ae,verification-compare,test runs,9,0
 1,c5364f40,,documents and planning,2,797
 1,c5364f40,,other commands,20,0
 1,c5364f40,,product code,1,106
@@ -2098,7 +2127,7 @@ version,session,change,category,actions,bytes
 1,dad4678a,verification-compare,measurement preparation,2,4404
 1,dad4678a,verification-compare,measurement runs,12,0
 1,dad4678a,verification-compare,other,3,0
-1,dad4678a,verification-compare,other commands,86,0
+1,dad4678a,verification-compare,other commands,87,0
 1,dad4678a,verification-compare,product code,5,3669
 1,dad4678a,verification-compare,reading,34,0
 1,dad4678a,verification-compare,scratch files,2,6183

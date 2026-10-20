@@ -1272,6 +1272,7 @@ mod tests {
             include_line: None,
             ops,
             may_raise: false,
+            own: false,
         }
     }
 

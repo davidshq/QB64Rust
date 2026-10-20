@@ -136,7 +136,8 @@ impl Checker<'_> {
         });
         let body = self.block_body(b.body(), skips);
         let next = b.next();
-        let end_line = next.map_or(0, |n| self.line(first_token_span(n.node())));
+        let end_at = next.map(|n| first_token_span(n.node()));
+        let end_line = end_at.map_or(0, |s| self.line(s));
         let Some(((var, name), temp, start, end, step)) = parts else {
             return;
         };
@@ -163,6 +164,7 @@ impl Checker<'_> {
             step,
             body,
             end_line,
+            end_at,
         };
         self.push(b.node(), kind);
     }
@@ -260,11 +262,18 @@ impl Checker<'_> {
             let e = end.expect("checked");
             c.loop_test(e.cond_word(), e.condition(), e.node().span(), TestAt::Bottom)
         });
-        let end_line = end.map_or(0, |e| self.line(first_token_span(e.node())));
+        let end_at = end.map(|e| first_token_span(e.node()));
+        let end_line = end_at.map_or(0, |s| self.line(s));
         if let (Some(top), Some(bottom)) = (top, bottom) {
             // The parser reports a condition at both ends.
             let test = top.or(bottom);
-            self.push(b.node(), StmtKind::Do { test, body, end_line });
+            let kind = StmtKind::Do {
+                test,
+                body,
+                end_line,
+                end_at,
+            };
+            self.push(b.node(), kind);
         }
     }
 
@@ -292,9 +301,16 @@ impl Checker<'_> {
             c.condition(h.condition(), h.node().span(), "WHILE")
         });
         let body = self.block_body(b.body(), skips);
-        let end_line = b.end().map_or(0, |e| self.line(first_token_span(e.node())));
+        let end_at = b.end().map(|e| first_token_span(e.node()));
+        let end_line = end_at.map_or(0, |s| self.line(s));
         if let Some(cond) = cond {
-            self.push(b.node(), StmtKind::While { cond, body, end_line });
+            let kind = StmtKind::While {
+                cond,
+                body,
+                end_line,
+                end_at,
+            };
+            self.push(b.node(), kind);
         }
     }
 

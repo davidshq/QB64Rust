@@ -11,7 +11,7 @@ programs) and the old compiler's own source (`qb64pe.bas`, the M4 exit criterion
 ## How they are used
 
 A real program waits for keys, seeds from the clock and plays sound, so it is not a recorded-output test as it
-stands. Three stages (`study\archive\28` §4):
+stands. Four stages (`study\archive\28` §4; the fourth `cws-whole-game`):
 
 1. **Tier 1** (`cargo test`, `crates\driver\tests\inputs.rs`): the front end reads every `.bas` here without a
    panic and prints its tree back byte for byte (set `programs/`), and since `m3-sound` with **no diagnostic at
@@ -26,6 +26,34 @@ stands. Three stages (`study\archive\28` §4):
    an empty `SUB TICK`, and a line before each of its 14 waits for a key that announces the wait). Its keys file
    plays two turns from a new game, and 23 states of its screen are compared with the old compiler's
    (`tools\screen\README.md`, "Prompts"). The game here is still never run by a test.
+4. **Done: the whole game, measured by line coverage** (`cws-whole-game`). The copy also plays silently
+   (`PLAY "V0"`, `verification\v46_a_play_v0`), writes a fixed date into its history, and names the place and
+   menu of each wait. Its scripts, `tests\corpus\screen\g12_game.<script>.keys`, each a test of its own on the slice
+   list, play whole games by rules (`tools\screen\README.md`, "Places and rules") and are compared state for state
+   and digest for digest with the old compiler's build:
+
+   | Script | What it plays |
+   |---|---|
+   | `union_time` | the Union against a passive enemy to the time limit; the main menu's F3, F4, F7 |
+   | `union_events` | the same with random events for the Union at Balance Rebel ++; a capital moved, a commerce raid, three recruits a month |
+   | `options` | every entry of the Utility menu, then a game with sound, other colours and history on (about 26 s) |
+   | `commands` | each command, report, ships built and sailed, a railroad move, an invasion |
+   | `files` | Resume Saved Game, Save, Load's "-", Quit No, New Game, the history file and Recap |
+   | `two_player` | two players to the time limit; the Rebels' Detach |
+   | `rebel` | the Rebels attack Washington and lose: the force-ratio ending, No-Override, Press Onward, the Union's victory screen |
+   | `navy` | ships attack New Orleans and land an army there |
+   | `endings` | three games in one run: income, a captured capital, annihilation |
+
+   `python tools\coverage\coverage.py --check` builds the copy with `--coverage`, runs every script and checks that
+   each line of `CWSTRAT.BAS` with a statement ran in full or is listed in `civil-war-strategy.unreached`, beside
+   this folder, with its reason (`tools\coverage\README.md`). Measured 2026-10-19: of 3761 lines with a statement,
+   3250 run, 239 partly run, 272 not run; the list names 511 lines (455 `rare`, 41 `dead`, 14 `edit`, 1 `file`).
+
+   **Adding a script:** write `g12_game.<script>.keys` (rules for the waits, `play until` the menu to act at,
+   `digest` at each month's main menu, at most six `state`s), try it on a build of the copy until it ends with the
+   game (`QB64_SCREEN_KEYS`, a run that stops names the place it had no rule for), record it with
+   `run_legacy_tests.py --suite corpus --record --glob "g12_game.<script>.bas"`, compare it with the new compiler, put it
+   on `tests\corpus\slice.list`, then run `coverage.py --check` and take the lines it now reaches out of the list.
 
 ## Measured (2026-10-09)
 

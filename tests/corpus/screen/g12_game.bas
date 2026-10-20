@@ -215,7 +215,7 @@ vptotal = vptotal + cityv(i)
 NEXT i
 CLOSE #1: CALL clrbot
 
-RANDOMIZE 1861
+RANDOMIZE 1861: PLAY "V0"
 TICK .3
 wtype = 2
 hilite = 15
@@ -238,7 +238,7 @@ IF history = 1 THEN
 	CLS
 	IF _FILEEXISTS("cws.his") THEN SHELL "copy cws.his oldhist.ory"
 	OPEN "O", 2, "cws.his"
-	PRINT #2, TAB(20); "[ HISTORY OF GAME BEGUN "; DATE$; " ]"
+	PRINT #2, TAB(20); "[ HISTORY OF GAME BEGUN "; "10-19-2026"; " ]"
 	CLOSE #2
 ELSE
 	SCREEN 12: CLS
@@ -659,7 +659,7 @@ utile:
 		 a$ = "": IF randbal = 0 THEN a$ = "OFF"
 		 COLOR 11: PRINT "Random Events : "; a$; " "; t$;
 		 COLOR 14: PRINT "			press a key";
-		 DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
+		 DEF SEG = 0: POKE 1265, 1: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
 		 CLS
 		 CALL usa
 		 choose = 29
@@ -826,7 +826,7 @@ blanken:        c = 1: IF side = 2 THEN c = 7
 		LINE (100, 200)-(500, 300), 8 - c, B
 		COLOR 7: LOCATE 14, 31: PRINT " "; month$(month); year
 		COLOR 11: LOCATE 17, 30: PRINT force$(side); " PLAYER TURN"
-		DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
+		DEF SEG = 0: POKE 1265, 2: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
 		RETURN
 '............................................................................
 DATA "U2E2F2D2BU1L3","U4R3F1G1L2BR2BF1G1L2","H1U2E1R2F1BD2G1L1"
@@ -999,7 +999,7 @@ a$ = LTRIM$(RTRIM$(STR$(a))) + "%"
 COLOR 14: LOCATE 27, y: PRINT "Odds:  "; a$;
 LINE (530, 412)-(635, 435), 14, B
 LINE (528, 410)-(637, 437), 14, B
-DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
+DEF SEG = 0: POKE 1265, 3: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
 IF graf > 2 THEN
 	CALL cannon
 	k = fort(armyloc(defend))
@@ -1088,7 +1088,7 @@ a$ = city$(armyloc(defend)) + ": " + mtx$(3) + mtx$(1) + " defeats " + mtx$(4) +
 CALL scribe(a$, 0)
 
 IF player = 1 AND (side = 1 AND attack > 20) OR (side = 2 AND attack < 21) THEN
-COLOR 14: CALL clrbot: PRINT "hit any key to continue"; : DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
+COLOR 14: CALL clrbot: PRINT "hit any key to continue"; : DEF SEG = 0: POKE 1265, 4: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
 END IF
 
 armysize(attack) = armysize(attack) - killa
@@ -2459,7 +2459,7 @@ END IF
 COLOR 14: LOCATE 1, 1: PRINT SPACE$(80);
 LOCATE 1, 20: PRINT "Update for "; month$(month); ","; year
 CALL clrbot: PRINT "press any key for "; month$(month); ","; year; " events";
-DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
+DEF SEG = 0: POKE 1265, 5: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
 GOSUB upbox
 '==========================================================================
 '                       Assign Time of Action
@@ -2716,7 +2716,7 @@ IF victory(1) < 1 THEN victory(1) = 0
 victory(2) = .8 * victory(2) + .3 * (income(2) + control(2))
 IF control(2) > 29 THEN victory(2) = victory(2) + 50: IF control(2) > 34 THEN victory(2) = victory(1) + 100
 IF side = 1 AND control(2) < 11 THEN aggress! = aggress! + .7
-IF player = 2 THEN CALL clrbot: COLOR 14: PRINT "press a key"; : DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
+IF player = 2 THEN CALL clrbot: COLOR 14: PRINT "press a key"; : DEF SEG = 0: POKE 1265, 6: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
 END SUB
 
 SUB armyxy (x, y, z)
@@ -3124,7 +3124,7 @@ IF realism > 0 AND year = 1862 AND month < 3 THEN
 	COLOR 14: CALL clrbot
 	PRINT "SPECIAL DEVELOPMENT : IRONCLAD ships now available";
 	IF noise > 0 THEN FOR k = 1 TO 5: SOUND 140, 1: SOUND 37, 1: NEXT k
-	DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
+	DEF SEG = 0: POKE 1265, 7: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
 	EXIT SUB
 END IF
 IF randbal = 0 THEN EXIT SUB
@@ -3260,10 +3260,10 @@ END SELECT
 
 dull2:
 	IF noise = 2 THEN PLAY "MNMFL16o2T120dd.dd.co1b.o2do3g.ab.bb.ag"
-	DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP: EXIT SUB
+	DEF SEG = 0: POKE 1265, 8: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP: EXIT SUB
 dull1:
 	IF noise = 2 THEN PLAY "MNMFT160o2L16geL8ccL16cdefL8ggge"
-	DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
+	DEF SEG = 0: POKE 1265, 9: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
 END SUB
 
 SUB flags (who, w, a)
@@ -3363,7 +3363,7 @@ NEXT k
 END SUB
 
 SUB maxx
-COLOR 14: LOCATE 28, 1: PRINT "press a key"; : DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
+COLOR 14: LOCATE 28, 1: PRINT "press a key"; : DEF SEG = 0: POKE 1265, 10: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
 SCREEN 0: COLOR 14, 5: CLS : COLOR 11, 0
 
 LOCATE 2, 7: PRINT STRING$(57, "|")
@@ -3391,7 +3391,7 @@ FOR i = 1 TO 6: LOCATE 2 + i, 7: PRINT "|"; SPACE$(55); "|": NEXT i
 			PRINT "New Entry into "; force$(s); " HALL of FAME in place "; i
 			IF player = 1 AND s <> side THEN a$ = "COMPUTER": PRINT a$; " was "; force$(s); " commander": GOTO automate
 who4:
-			PRINT "What is name of "; force$(s); " commander"; : DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: INPUT a$: IF a$ = "" GOTO who4
+			PRINT "What is name of "; force$(s); " commander"; : DEF SEG = 0: POKE 1265, 11: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: INPUT a$: IF a$ = "" GOTO who4
 automate:
 			city$(5 * (s - 1) + i) = a$
 			matrix(s, i) = victory(s): GOTO foun
@@ -3405,7 +3405,7 @@ foun:
 			FOR i = 1 TO 5
 			WRITE #1, city$(5 * (s - 1) + i), matrix(s, i)
 			NEXT i
-		NEXT s: CLOSE #1: PRINT "Game Over": DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP: pcode = 1
+		NEXT s: CLOSE #1: PRINT "Game Over": DEF SEG = 0: POKE 1265, 12: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP: pcode = 1
 END SUB
 
 SUB occupy (x)
@@ -3672,7 +3672,7 @@ CLOSE #2
 
 endrep:
 COLOR 14: LOCATE 29, 29: PRINT "press a key";
-DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
+DEF SEG = 0: POKE 1265, 13: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO WHILE INKEY$ = "": LOOP
 IF who < 3 THEN
 	CLS
 	CALL usa
@@ -4852,7 +4852,7 @@ reglr:
 
 	choose = row
 	GOTO sel1
-crsr: DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO: a$ = INKEY$: LOOP WHILE a$ = ""
+crsr: DEF SEG = 0: POKE 1265, 14: POKE 1266, ASC(mtx$(0) + CHR$(0)): POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG: DO: a$ = INKEY$: LOOP WHILE a$ = ""
 	IF ASC(a$) = 13 THEN RETURN
 	IF LEN(a$) = 2 GOTO arrows
 	IF switch = 3 THEN choose = -ASC(UCASE$(a$)): GOTO called
@@ -5076,7 +5076,10 @@ END SUB
 
 ' Copied from Civil War Strategy by tools/screen/cut_game.py.
 ' Civil War Strategy played from a keys file (tools/screen/README.md, "Prompts"). Edits:
-' a fixed seed; no _FULLSCREEN (a test does not take the screen); SUB TICK returns at once
-' (its pauses only wait, and a key that came while one waits would be eaten); and before
-' each of the 14 places the game waits for a key, a line that announces the wait in byte
-' &H4F0 of conventional memory, which the keys file's prompt steps wait for.
+' a fixed seed and silent sound (PLAY "V0": every PLAY and SOUND takes its time, unheard);
+' no _FULLSCREEN (a test does not take the screen); SUB TICK returns at once (its pauses
+' only wait, and a key that came while one waits would be eaten); a fixed date in the
+' history; and before each of the 14 places the game waits for a key, a line that writes
+' the place (and at the menu the first letter of its title) to bytes &H4F1 and &H4F2 and
+' announces the wait in byte &H4F0 of conventional memory, which the keys file's prompt,
+' rule and play until steps read.

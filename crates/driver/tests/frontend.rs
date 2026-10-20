@@ -4,7 +4,8 @@
 //! - `parse-ok`: no syntax errors, and the tree prints back to the file's bytes;
 //! - `check-ok`: no errors after `sema`;
 //! - `check-fail`: at least one error; the diagnostics are a snapshot;
-//! - `typed`, `ir`, `cpp`: no errors; the typed tree, the IR or the emitted fragments are a snapshot.
+//! - `typed`, `ir`, `cpp`: no errors; the typed tree, the IR or the emitted fragments are a snapshot;
+//! - `coverage`: no errors; the fragments of a `--coverage` build are a snapshot (design D1 of `cws-whole-game`).
 //!
 //! Snapshots live in `tests/snapshots/` next to this file, named after the `.bas` file; review changes with
 //! `cargo insta review`. `QB64RUST_FRONTEND_DIR` points the harness at another folder (used once to check that
@@ -14,7 +15,7 @@ use qb64rust_driver::{FileLoader, Linkage, Resolved, ResolvedLibrary, dump_cpp, 
 use qb64rust_syntax::tree::print;
 use std::path::{Path, PathBuf};
 
-const MODES: &[&str] = &["parse-ok", "check-ok", "check-fail", "typed", "ir", "cpp"];
+const MODES: &[&str] = &["parse-ok", "check-ok", "check-fail", "typed", "ir", "cpp", "coverage"];
 
 fn frontend_dir() -> PathBuf {
     match std::env::var_os("QB64RUST_FRONTEND_DIR") {
@@ -63,7 +64,8 @@ fn run(name: &str, path: &Path, bytes: Vec<u8>, mode: &str) -> Result<Option<Str
                 "check-ok" => None,
                 "typed" => Some(qb64rust_sema::dump_typed(&fe.program)),
                 "ir" => Some(dump_ir(&fe)),
-                "cpp" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program))),
+                "cpp" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), false)),
+                "coverage" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), true)),
                 _ => unreachable!(),
             })
         }

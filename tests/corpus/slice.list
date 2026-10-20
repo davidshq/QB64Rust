@@ -359,6 +359,8 @@ screen/c09_off_the_end
 screen/c10_runtime_error
 screen/c11_screenhide
 screen/c12_prompts
+screen/c13_rules
+screen/c14_digest
 screen/d01_print_window
 screen/d02_color_locate
 screen/d03_cls_view_print
@@ -389,6 +391,15 @@ screen/g09_faces_forts
 screen/g10_snapshot
 screen/g11_city_report
 screen/g12_game
+screen/g12_game.commands
+screen/g12_game.endings
+screen/g12_game.files
+screen/g12_game.navy
+screen/g12_game.options
+screen/g12_game.rebel
+screen/g12_game.two_player
+screen/g12_game.union_events
+screen/g12_game.union_time
 screen/m00_width_80_50
 screen/m01_screen_1
 screen/m02_screen_2

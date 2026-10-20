@@ -47,7 +47,11 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. M4's parity work; the upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, blanks
+1. `cws-whole-game` is built (Civil War Strategy as whole games: ten tests of `g12_game`, all equal to the old
+   compiler's; line coverage from `qb64rust --coverage`, 3250 of 3761 lines with a statement run in full, the rest
+   listed with reasons; `tests\programs\README.md`) and archived with `verification-compare` (2026-10-20): the
+   user commits it.
+2. M4's parity work; the upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, blanks
    around `.` and `_CONTINUE` (2 programs each). The verification families are a suite of the new compiler since
    `verification-compare` (`tests\verification\`); its `known.list` holds more such lines.
 

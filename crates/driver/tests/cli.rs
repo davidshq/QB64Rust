@@ -522,6 +522,47 @@ fn screen_state_prompt_that_never_comes() {
     );
 }
 
+/// Spec `testing/screen-state`, scenario "A wait no rule answers" (design D4 of `cws-whole-game`): during `play until
+/// 14:M` the program waits at place 9, for which the keys file has no rule; the run ends with exit code 125 and a
+/// last line in the state file that names the place and the line of the `play until`. The wait at place 7 before it
+/// is answered by its rule.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn screen_state_wait_no_rule_answers() {
+    let d = scratch("no-rule");
+    let wait = |place: u8| {
+        format!(
+            "DEF SEG = 0: POKE 1265, {place}: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG\n\
+             DO: k$ = INKEY$: LOOP WHILE k$ = \"\"\n"
+        )
+    };
+    std::fs::write(d.join("p.bas"), format!("SCREEN 13\n{}{}SYSTEM\n", wait(7), wait(9))).unwrap();
+    std::fs::write(d.join("p.keys"), "rule 7 key space\nplay until 14:M\ntext e\n").unwrap();
+    let exe = d.join("p.exe");
+    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
+    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
+    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let state = d.join("state.txt");
+    let run = run(
+        unattended(&exe)
+            .current_dir(&d)
+            .env("QB64_SCREEN_STATE", &state)
+            .env("QB64_SCREEN_KEYS", d.join("p.keys")),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
+    assert_eq!(run.status.code(), Some(125));
+    let text = std::fs::read(&state).unwrap();
+    assert!(text.starts_with(b"screen-state 1\n"), "{}", text.escape_ascii());
+    assert!(
+        text.ends_with(b"p.keys line 2: no rule for the wait at place 9\n"),
+        "{}",
+        text.escape_ascii()
+    );
+}
+
 /// Spec `testing/screen-state`, scenario "A mistake in a mouse step" (design D4 of `m3-images-fonts-mouse`): a
 /// button that is not 1 to 3, or a `mouse` step without its second number, ends the program with exit code 125
 /// before it runs, and stderr names the keys file and the line. The keys file is read when the program starts,
@@ -861,6 +902,51 @@ fn build_and_run_tracing(d: &Path, program: &str, rows: &str) -> String {
         .collect();
     assert_eq!(taken, rows.as_bytes(), "the rows of DIVERGENCES.md the program took");
     stdout(&run).replace("\r\n", "\n")
+}
+
+/// A `--coverage` build (spec `compiler/cli`, "Coverage build"): three statements, the second inside a false `IF`,
+/// counted 1, 0 and 1; a second run appends a second record; a statement of an included file is named by that file
+/// and its own line; without `QB64RUST_COVERAGE` nothing is written. The `IF` block's own jump to `END IF` gets no
+/// entry (design D1 of `cws-whole-game`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn coverage_build_counts_statements() {
+    let d = scratch("coverage");
+    std::fs::write(d.join("inc.bi"), "\nPRINT \"inc\"\n").unwrap();
+    let program = "$CONSOLE:ONLY\nPRINT \"a\"\nIF 0 THEN\n    PRINT \"b\"\nEND IF\n'$INCLUDE: 'inc.bi'\nSYSTEM\n";
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["-q", "-x", "--coverage", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let counts = d.join("c.txt");
+    let run_it = |with: bool| {
+        let mut cmd = unattended(&exe);
+        cmd.current_dir(&d).env_remove("QB64RUST_COVERAGE");
+        if with {
+            cmd.env("QB64RUST_COVERAGE", &counts);
+        }
+        let r = run(&mut cmd, None, PROGRAM_LIMIT, "program");
+        assert_eq!(r.status.code(), Some(0), "{}", stdout(&r));
+        assert_eq!(stdout(&r).replace("\r\n", "\n"), "a\ninc\n");
+    };
+    run_it(false);
+    assert!(!counts.exists(), "a run without QB64RUST_COVERAGE writes no counts");
+    run_it(true);
+    let hash = |bytes: &[u8]| format!("{:016x}", qb64rust_driver::fnv1a64(bytes));
+    let record = format!(
+        "coverage 1\nfile\t0\t{}\tp.bas\nfile\t1\t{}\tinc.bi\n0\t1\t1\t1\n0\t2\t1\t1\n0\t3\t4\t1\n0\t4\t5\t0\n\
+         1\t2\t1\t1\n0\t7\t1\t1\nend\n",
+        hash(program.as_bytes()),
+        hash(b"\nPRINT \"inc\"\n")
+    );
+    let read = || text(&std::fs::read(&counts).unwrap()).replace("\r\n", "\n");
+    assert_eq!(read(), record);
+    run_it(true);
+    assert_eq!(
+        read(),
+        format!("{record}{record}"),
+        "a second run appends a second record"
+    );
 }
 
 /// `a IMP b IMP c` is `(a IMP b) IMP c` (`DIVERGENCES.md` D-005: the old compiler computes `5 OR 3 OR 0`, 7, so this

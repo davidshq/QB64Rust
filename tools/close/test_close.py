@@ -107,6 +107,33 @@ class Plan(unittest.TestCase):
         self.assertTrue(needs_nofold(["crates/sema/src/check/constants.rs"]))
         self.assertFalse(needs_nofold(["crates/sema/src/check/mod.rs", "STATUS.md"]))
 
+    def test_coverage_by_files(self):
+        # Civil War Strategy's coverage check (design D2 of cws-whole-game), only when what it rests on changed.
+        for f in (
+            "tests/corpus/screen/g12_game.bas",
+            "tests/corpus/screen/g12_game.navy.keys",
+            "tests/corpus/screen/g12_game.files/CWS.CFG",
+            "tests/programs/civil-war-strategy.unreached",
+            "tools/screen/cut_game.py",
+            "tools/screen/screen_state.cpp",
+            "tools/coverage/coverage.py",
+            "crates/codegen-cpp/src/procs.rs",
+            "crates/ir/src/lower.rs",
+            "crates/driver/src/main.rs",
+        ):
+            self.assertTrue(close.needs_coverage([f]), f)
+        for f in ("tests/corpus/screen/g12_gamex.bas", "tools/screen/state_to_png.py", "crates/sema/src/lib.rs"):
+            self.assertFalse(close.needs_coverage([f]), f)
+        names = [s.name for s in steps(False, True)]
+        self.assertLess(names.index("verification"), names.index("coverage"))
+        self.assertNotIn("coverage", [s.name for s in steps(False)])
+        step = next(s for s in steps(False, True) if s.name == "coverage")
+        self.assertEqual(step.command, "python tools/coverage/coverage.py --check > target/close/coverage.log 2>&1")
+        self.assertTrue(step.copy)
+        self.assertEqual(judge("coverage", "...\ncheck: PASS (0 problem(s))\n", set()), (True, "check PASS, 0 problems"))
+        self.assertFalse(judge("coverage", "check: FAIL (3 problem(s))\n", set())[0])
+        self.assertFalse(judge("coverage", "coverage: the counts are of another text\n", set())[0])
+
     def test_order(self):
         names = [s.name for s in steps(True)]
         # What changes the compiler or the lists comes before the build, the build before every run.

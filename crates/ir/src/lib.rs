@@ -779,6 +779,9 @@ pub struct Stmt {
     pub include_line: Option<u32>,
     pub ops: Vec<Op>,
     pub may_raise: bool,
+    /// Made by the lowering for a block, standing for no source statement of its own: the jump at the end of a
+    /// `THEN` part and the end of a `CASE`. A coverage build gives it no counter (design D1 of `cws-whole-game`).
+    pub own: bool,
 }
 
 /// A sequence of statements: the main module's, or a procedure's.

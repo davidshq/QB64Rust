@@ -1,0 +1,517 @@
+# The lines of CWSTRAT.BAS (line n of tests/corpus/screen/g12_game.bas) that the scripts of g12_game do not run
+# in full, each with its reason (tools/coverage/README.md; OpenSpec change cws-whole-game, design D2):
+# <line>[:<column>,...]<TAB><reason> <note>. The columns are those of the statements that do not run. Written by
+# coverage measurements and kept by hand: take a line out when a script reaches it (the check fails until then).
+# rare: the note names the state that reaches the line: its own condition, or the line that guards its block.
+143	file MTN.VGA missing; the game ships it
+156:34	rare when player < 1 OR player > 2
+157:32	rare when player = 2 OR side = 0
+159:18	rare when side = 2
+160:21	rare when turbo! < 1
+161:37	rare when side = 1 AND difficult < 3
+162:37	rare when side = 2 AND difficult > 3
+185	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+186	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+187	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+188	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+189	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+190	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+191	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+192	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+193	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+194	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+195	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+196	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+197	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+199	edit the title tune: needs sound on in the configuration the game starts with; the copy's CWS.CFG turns it off
+223:20	rare when player = 2
+234	dead after GOTO loader on the same IF block: never reached
+258:25	rare when cash(i) > 19999
+259:21	rare when cash(i) < 0
+286:33	rare when player = 2 AND side = 0
+294:38,56,73	rare when mflag > 0; mflag > 0; chosit = 23
+295:73	rare when chosit = 24
+311:40,52	rare when cash(side) < 100 OR rflag < 0; cash(side) < 100 OR rflag < 0
+329:26	rare when side = 2
+337	rare under: ELSE
+346:60,73	rare when choose <> 1; choose <> 1
+387:27,37,50,87	rare when cash(side) < 200; cash(side) < 200; cash(side) < 200; cash(side) < 200
+405	rare under: END IF
+406	rare under: END IF
+417	rare under: IF armyloc(i) = 0 OR supply(i) > 1 GOTO alone
+418	rare under: IF armyloc(i) = 0 OR supply(i) > 1 GOTO alone
+419	rare under: IF armyloc(i) = 0 OR supply(i) > 1 GOTO alone
+421	rare under: END IF
+422	rare under: END IF
+423	rare under: END IF
+424	rare under: END IF
+428	rare under: IF size = 0 THEN COLOR 11: CALL clrbot: PRINT "All eligible "; force$(side); " armies have
+429	rare under: IF size = 0 THEN COLOR 11: CALL clrbot: PRINT "All eligible "; force$(side); " armies have
+430	rare under: IF size = 0 THEN COLOR 11: CALL clrbot: PRINT "All eligible "; force$(side); " armies have
+431	rare under: IF size = 0 THEN COLOR 11: CALL clrbot: PRINT "All eligible "; force$(side); " armies have
+432	rare under: IF size = 0 THEN COLOR 11: CALL clrbot: PRINT "All eligible "; force$(side); " armies have
+433	rare under: IF size = 0 THEN COLOR 11: CALL clrbot: PRINT "All eligible "; force$(side); " armies have
+435	rare under: END IF
+436	rare under: END IF
+441:48,61,71,102	rare when capcity(side) = 0 OR cash(side) < 500; capcity(side) = 0 OR cash(side) < 500; capcity(side) = 0 OR cash(side) 
+448:15	rare when IF index = 0 GOTO menu0
+461:31,44,75,94	rare when armysize(index) < 65; armysize(index) < 65; armysize(index) < 65; armysize(index) < 65
+462:41	rare when CALL commander(2, empty): IF empty = 0 GOTO menu0
+463:111	rare when supply(index) < 0
+469:167	rare when noise > 0
+479:34,44,57,124	rare when target < 1 OR index < 1; target < 1 OR index < 1; target < 1 OR index < 1; target < 1 OR index < 1
+480:70,80,93,178	rare when armyexper(index) > 5 OR armyexper(index) >= armylead(index); armyexper(index) > 5 OR armyexper(index) >= armyl
+482:120	rare when noise > 0
+534:17	rare when IF player = 2 GOTO menu0
+562:71	rare when noise > 0
+575:17	rare when IF choose < 1 GOTO menu0
+620:17	rare when IF choose < 1 GOTO menu0
+639:50	rare when randbal = 3
+682	rare under: FOR k = 21 TO 6
+683	rare under: FOR k = 21 TO 6
+684	rare under: FOR k = 21 TO 6
+686:3	rare under: FOR k = 21 TO 6
+688:51	rare when navysize(1) = 0
+697:20	rare when RND > .7
+700:79	rare when rating(k) > 9
+701:25	rare when rating(k) < 1
+711:41	rare when jancam = 1
+726:52	rare when side = 2 AND randbal = 1 AND randbal < 5
+805	rare under: '............................................................................
+806	rare under: '............................................................................
+807	rare under: '............................................................................
+808	rare under: '............................................................................
+809	rare under: '............................................................................
+820:56	rare when player = 2
+859:21	rare when turbo! > 1
+868	rare under: CALL movefrom(index, target): IF target > 0 AND index > 0 GOTO tent
+869	rare under: CALL movefrom(index, target): IF target > 0 AND index > 0 GOTO tent
+882:15	rare when IF choose < 0 GOTO dudd
+883:67,77,90,125,139,152	rare when month < 3 AND jancam = 0 AND cityp(array(choose)) <> side; month < 3 AND jancam = 0 AND cityp(array(choose)) <
+886:19,35	rare when noise > 0; noise > 0
+901:27	rare when supply(index) < 2
+915:30	rare when armysize(defend) < 1
+916:30	rare when armysize(attack) < 1
+924:45	rare when x > TCR
+926:122	rare when x > TCR
+927:58	rare when x > TCR
+929:31,46,59	rare when armysize(attack) < 15; armysize(attack) < 15; x > TCR
+932:76	rare when x > TCR
+940:52	rare when attack < 21 AND side = 2 AND difficult > 3
+943:17	rare when x > TCR
+947:104	rare when x1 > 20
+953:125	rare when x1 > TCR
+954:61	rare when x1 > TCR
+968	rare under: CASE IS < .2
+970:17	rare when x1 < 1
+971:19	rare when x1 > TCR
+976:16	rare when x1 < 1
+978:52	rare when defend < 21 AND side = 2 AND difficult > 3
+979:52	rare when defend > 20 AND side = 1 AND difficult < 3
+989:18	rare when x1 > TCR
+997:59	rare when a < 1
+1014	rare under: ELSE
+1043	rare under: CASE IS > 800
+1054	rare under: CASE IS > 800
+1061:52	rare when killa < 1
+1062:52	rare when killd < 1
+1063:27	rare when killa > 9 * killd
+1064:27	rare when killd > 5 * killa
+1069:37	rare when x < 1
+1096:30	rare when armysize(defend) < 1
+1125	rare under: IF who <> side THEN choose = 1 + INT(size * RND): GOTO join
+1126	rare under: IF who <> side THEN choose = 1 + INT(size * RND): GOTO join
+1127	rare under: IF who <> side THEN choose = 1 + INT(size * RND): GOTO join
+1129:17	rare when IF choose < 1 GOTO nocity2
+1139:44,57,115,134	rare when armysize(0) + armysize(j) > 1250; armysize(0) + armysize(j) > 1250; armysize(0) + armysize(j) > 1250; armysize
+1149:22	rare when IF armysize(0) < 1 GOTO dork1
+1163:36	rare when who <> side AND spin = 0
+1165	rare under: IF spin = 0 THEN
+1166	rare under: IF spin = 0 THEN
+1167	rare under: IF spin = 0 THEN
+1178	rare under: ELSE
+1180:22	rare when who = side
+1181:21	rare when noise > 0
+1235	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1236	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1237	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1238	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1239	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1240	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1242	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1243	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1244	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1245	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1246	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1247	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1248	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1249	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1250	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1251	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1252	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1253	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1254	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1256	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1257	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1258	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1259	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1260	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1263	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1264	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1265	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1266	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1267	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1268	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1270	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1271	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1272	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1273	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1274	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1275	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1276	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1277	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1278	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1279	dead loading a saved game: _FILEEXISTS("*.sav") takes no wildcard, so filer(2) always exits before it
+1289:21,30	rare when choose < 1; choose < 1
+1303:35	rare when myside < 1 OR myside > 2
+1319:26	rare when cityp(which) = 0
+1338:19,32,42,83	rare when size = 0; size = 0; size = 0; size = 0
+1343:17	rare when IF choose < 0 GOTO nocity
+1344:79	rare when target = array(choose): CALL occupy(target): x = occupied(target): IF 
+1345:28,41,104,118	rare when fort(target) > 1; fort(target) > 1; fort(target) > 1; fort(target) > 1
+1347:29,42,139,153	rare when cash(side) < cost; cash(side) < cost; cash(side) < cost; cash(side) < cost
+1363:13	rare when IF dest < 0 GOTO noshow
+1364:15	rare when IF from = 999 GOTO noshow
+1480:19,31	rare when size = 0; size = 0
+1494	rare under: IF size = 1 GOTO notarg
+1495	rare under: IF size = 1 GOTO notarg
+1496	rare under: IF size = 1 GOTO notarg
+1497	rare under: IF size = 1 GOTO notarg
+1498	rare under: IF size = 1 GOTO notarg
+1531:75	rare when chx = 3
+1536:83,93,115,149,179	rare when realism = 0 AND who = 2 AND navysize(who) > 1 AND cityp(navyloc(who)) = 0; realism = 0 AND who = 2 AND navysiz
+1540:35	rare when nflag > 0 AND choose <> 1
+1549:43	rare when IF cash(who) < cost OR navyloc(who) = 99 GOTO ahoy
+1550:40	rare when chx = 1 AND navysize(who) > 9
+1551:40	rare when chx = 0 AND navysize(who) > 9
+1554:33	rare when IF cityp(navyloc(who)) <> who GOTO ahoy
+1555:35	rare when IF matrix(navyloc(who), 7) < 99 GOTO ahoy
+1564	rare under: IF who = side THEN
+1565	rare under: IF who = side THEN
+1566	rare under: IF who = side THEN
+1567	rare under: IF who = side THEN
+1568	rare under: IF who = side THEN
+1569	rare under: IF who = side THEN
+1570	rare under: IF who = side THEN
+1571	rare under: IF who = side THEN
+1591	rare under: IF size < 1 THEN
+1592	rare under: IF size < 1 THEN
+1593	rare under: IF size < 1 THEN
+1595:18,32	rare when chx = 0; chx = 0
+1597:16	rare when IF choose < 1 GOTO ships
+1603:20	rare when noise > 0
+1617:23	rare when IF navyloc(who) = 99 GOTO ahoy
+1618:48	rare when chx = 2 AND cityp(navyloc(who)) = who
+1619:62,71	rare when chx = 2 AND occupied(navyloc(who)) > 0 AND RND > .5; chx = 2 AND occupied(navyloc(who)) > 0 AND RND > .5
+1620:46,55	rare when chx = 2 AND cityp(navyloc(who)) = 0; chx = 2 AND cityp(navyloc(who)) = 0
+1621:27	rare when navyloc(who) < 1
+1623:36	rare when IF cityp(navyloc(who)) <> 3 - who GOTO ahoy
+1628	rare under: target = navyloc(who): index = occupied(target): IF index = 0 GOTO deserted
+1629	rare under: target = navyloc(who): index = occupied(target): IF index = 0 GOTO deserted
+1630	rare under: target = navyloc(who): index = occupied(target): IF index = 0 GOTO deserted
+1631	rare under: target = navyloc(who): index = occupied(target): IF index = 0 GOTO deserted
+1632	rare under: target = navyloc(who): index = occupied(target): IF index = 0 GOTO deserted
+1633	rare under: target = navyloc(who): index = occupied(target): IF index = 0 GOTO deserted
+1634	rare under: target = navyloc(who): index = occupied(target): IF index = 0 GOTO deserted
+1641:20,34	rare when noise > 0; noise > 0
+1644	rare under: IF navysize(who) < 1 THEN
+1645	rare under: IF navysize(who) < 1 THEN
+1646	rare under: IF navysize(who) < 1 THEN
+1647	rare under: IF navysize(who) < 1 THEN
+1648	rare under: IF navysize(who) < 1 THEN
+1649	rare under: IF navysize(who) < 1 THEN
+1660:42,55,103,122	rare when navyloc(who) = capcity(3 - who); navyloc(who) = capcity(3 - who); navyloc(who) = capcity(3 - who); navyloc(who
+1671:40	rare when navysize(who) < 1 AND chx > 0
+1672:48,61,88,96	rare when navyloc(who) < 1 OR navysize(who) < 1; navyloc(who) < 1 OR navysize(who) < 1; navyloc(who) < 1 OR navysize(who
+1678:20	rare when size = 0
+1680:47	rare when GOSUB nest: IF choose > 0 GOTO admiral ELSE EXIT SUB
+1686	rare under: ELSE
+1691:49	rare when choose < 1
+1693:39	rare when array(choose) = navyloc(who)
+1695:23	rare when IF navysize(who) < 1 GOTO ships
+1703	rare under: ELSE
+1726	rare under: ELSE
+1736:40	rare when navysize(who) < 1 AND chx > 0
+1737:41	rare when IF navysize(who) < 1 OR commerce = who GOTO ahoy
+1752	rare under: CASE 73
+1758	rare under: ELSE
+1761:29	rare when IF navyloc(1) = navyloc(2) GOTO pirate
+1769:32,41	rare when chx > 0 AND empty = 0; chx > 0 AND empty = 0
+1821	rare under: IF chx > 0 THEN choose = 1: GOTO powder
+1832	rare under: IF RND <= .5 + pct! GOTO hitem ELSE GOTO hitme1
+1846:22	rare when who = side
+1850:44	rare when RIGHT$(fleet$(3 - who), 1) = "I"
+1855:28	rare when who = 1
+1865:39	rare when who <> side
+1869:40	rare when RIGHT$(fleet$(who), 1) = "I"
+1872	rare under: GOTO cannon
+1873	rare under: GOTO cannon
+1874	rare under: GOTO cannon
+1875	rare under: GOTO cannon
+1876	rare under: GOTO cannon
+1878	rare under: found1:
+1879	rare under: found1:
+1880	rare under: found1:
+1882	rare under: CASE ELSE
+1884	rare under: END SELECT
+1965	rare under: CASE IS = -27
+1975:24	rare when index > 40
+1977	rare under: x = x + 1: IF x < 39 GOTO spin2
+1980	rare under: NEXT k
+1992	rare under: CASE ELSE
+2032:45	rare when IF index = 0 OR max > .3 * armysize(index) GOTO toot
+2040:24	rare when GOSUB route: IF x = 0 GOTO puted
+2054:54,64,77,114	rare when a < 1 OR index < 1; a < 1 OR index < 1; a < 1 OR index < 1; a < 1 OR index < 1
+2055:28	rare when index > 20
+2057:34,47,96	rare when armysize(index) > limit; armysize(index) > limit; armysize(index) > limit
+2060	rare under: target = armyloc(index): GOSUB route: IF x > 1 GOTO aboard
+2063:56	rare when mtx$(0) = "To": from = target: x1 = from: IF from = 0 GOTO toot
+2064:43	rare when CALL newcity(x1): IF x1 = from OR x1 = 0 GOTO toot
+2067	rare under: target = x1: GOSUB route: IF x > 1 GOTO haul
+2068	rare under: target = x1: GOSUB route: IF x > 1 GOTO haul
+2080:35	rare when occupied(from) > 0
+2086:36	rare when occupied(rrfrom(who)) > 0
+2097:39	rare when cityp(armyloc(index)) <> who
+2099:39,55	rare when occupied(armyloc(index)) > 0; occupied(armyloc(index)) > 0
+2127:35,55,69,89,103,111,125	rare when who = side AND rflag > 0; who = side AND rflag > 0; who = side AND rflag > 0; who = side AND rflag > 0; who = 
+2132:63	rare when control(who) > 0
+2147:14	rare when IF size = 0 GOTO menu1
+2167:31	rare when IF who <> side AND empty = 0 GOTO menu1
+2168:15	rare when IF empty = 0 GOTO levy
+2180:17,28	rare when a < 1; a < 1
+2191:19	rare when a$ <> ""
+2212:18	rare when a < 1
+2216:18	rare when a < 1
+2221:26	rare when cash(who) < 100
+2225:37	rare when side = 2 AND difficult > 3
+2277:21	rare when IF cost > cash(who) GOTO signup
+2281:42	rare when IF cityp(target) = who GOTO capital ELSE GOTO city2
+2282	rare under: IF cityp(target) = who GOTO capital ELSE GOTO city2
+2295:22	rare when IF fort(target) > 1 GOTO signup
+2302:61	rare when IF who = 1 AND navysize(1) < 1 AND RND > .5 AND cash < 222 GOTO signup
+2308:55,75,91	rare when who = 1 AND navysize(1) < 1 AND cash(1) > 100; who = 1 AND navysize(1) < 1 AND cash(1) > 100; who = 1 AND navy
+2319:94,111,128	rare when side = 2 AND navyloc(1) = 0 AND navysize(1) < 1 AND cityp(30) = 1 AND cash(1) > 100; side = 2 AND navyloc(1) =
+2321	rare under: IF navyloc(who) = 99 THEN
+2322	rare under: IF navyloc(who) = 99 THEN
+2337	rare under: ELSE
+2338	rare under: ELSE
+2345	rare under: ELSE
+2364:48	rare when x = armysize(i): IF supply(i) < 1 AND RND > .1 GOTO deadman
+2372	rare under: IF target <> capcity(who) GOTO nocap
+2373	rare under: IF target <> capcity(who) GOTO nocap
+2374	rare under: IF target <> capcity(who) GOTO nocap
+2375	rare under: IF target <> capcity(who) GOTO nocap
+2376	rare under: IF target <> capcity(who) GOTO nocap
+2380:19	rare when best = 0
+2384:100,117	rare when armymove(y) = x; armymove(y) = x
+2385:65,82	rare when month = 1 AND jancam = 0 AND cityp(armymove(i)) <> who; month = 1 AND jancam = 0 AND cityp(armymove(i)) <> who
+2388	rare under: IF turbo! > 1 THEN
+2389	rare under: IF turbo! > 1 THEN
+2402	rare under: IF turbo! > 1 THEN
+2403	rare under: IF turbo! > 1 THEN
+2436:26	rare when tracks(who) = 0
+2456:45	rare when armyloc(i) > 0 AND armymove(i) > 0
+2474:43	rare when supply(i) < 1 AND armymove(i) > 0
+2479	rare under: CASE IS > 800
+2481	rare under: CASE IS > 1000
+2499:25	rare when IF armymove(active) < 1 GOTO digin
+2556:115	rare when armymove(defend) > 0
+2564:31	rare when armymove(defend) > 0
+2572	rare under: IF x > 0 AND (cityp(x) = 3 - s) AND cityv(x) > best THEN
+2573	rare under: IF x > 0 AND (cityp(x) = 3 - s) AND cityv(x) > best THEN
+2575	rare under: ELSE
+2580	rare under: IF flee = 0 GOTO deadmeat
+2636	rare under: IF player = 1 AND s = side AND fort(c) > 0 AND flag = 0 THEN
+2637	rare under: IF player = 1 AND s = side AND fort(c) > 0 AND flag = 0 THEN
+2638	rare under: IF player = 1 AND s = side AND fort(c) > 0 AND flag = 0 THEN
+2639	rare under: IF player = 1 AND s = side AND fort(c) > 0 AND flag = 0 THEN
+2640	rare under: IF player = 1 AND s = side AND fort(c) > 0 AND flag = 0 THEN
+2641	rare under: IF player = 1 AND s = side AND fort(c) > 0 AND flag = 0 THEN
+2642	rare under: IF player = 1 AND s = side AND fort(c) > 0 AND flag = 0 THEN
+2643	rare under: IF player = 1 AND s = side AND fort(c) > 0 AND flag = 0 THEN
+2644	rare under: IF player = 1 AND s = side AND fort(c) > 0 AND flag = 0 THEN
+2664	rare under: NEXT j
+2680:22	rare when raider < 1
+2683:51	rare when LEFT$(fleet$(commerce), 1) = "I"
+2685:21	rare when noise > 0
+2692:21,36,51	rare when noise > 0; noise > 0; noise > 0
+2712:79	rare when control(1) > 34
+2713:38	rare when side = 2 AND control(1) < 11
+2715:24	rare when victory(1) < 1
+2718:38	rare when side = 1 AND control(2) < 11
+2773:42,62	rare when LEN(a$) > 10; LEN(a$) > 10
+2791:42	rare when noise > 0
+2794	rare under: CASE ELSE
+2886:19	rare when noise = 2
+2888:19	rare when noise = 2
+2890:19	rare when noise = 2
+2894:19,85	rare when noise = 2; noise = 2
+2901:36	rare when active < 21 AND noise > 1
+2965	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+2966	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+2967	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+2968	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+2969	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+2970	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+2971	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+2972	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+2974	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+2975	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3059:61	rare when fort(a) = 3
+3063:23	rare when realism > 1
+3065	rare under: ELSE
+3068:34,47	rare when armysize(index) < 15; armysize(index) < 15
+3069:62	rare when bold < 3 AND armysize(index) < 40 AND odds! < .8
+3073:31	rare when supply(index) < 1
+3098:70	rare when armysize(c) > 0
+3101:35	rare when cityp(m) = capcity(side)
+3107:9	rare when NEXT j: max = 6
+3126:20,36,50,63	rare when noise > 0; noise > 0; noise > 0; noise > 0
+3130:21	rare when randbal = 0
+3132:62	rare when pct! > .9
+3143:36	rare when year = 1864 AND month = 1
+3144:36	rare when year = 1865 AND month = 1
+3149	rare under: IF RND > .2 OR navysize(2) > 9 GOTO mercen
+3150	rare under: IF RND > .2 OR navysize(2) > 9 GOTO mercen
+3151	rare under: IF RND > .2 OR navysize(2) > 9 GOTO mercen
+3152	rare under: IF RND > .2 OR navysize(2) > 9 GOTO mercen
+3153	rare under: IF RND > .2 OR navysize(2) > 9 GOTO mercen
+3154	rare under: IF RND > .2 OR navysize(2) > 9 GOTO mercen
+3156	rare under: float1:
+3157	rare under: float1:
+3158	rare under: float1:
+3159	rare under: float1:
+3160	rare under: float1:
+3161	rare under: float1:
+3162	rare under: float1:
+3165	rare under: IF RND > .1 OR control(2) < 30 GOTO money
+3166	rare under: IF RND > .1 OR control(2) < 30 GOTO money
+3167	rare under: IF RND > .1 OR control(2) < 30 GOTO money
+3168	rare under: IF RND > .1 OR control(2) < 30 GOTO money
+3169	rare under: IF RND > .1 OR control(2) < 30 GOTO money
+3184:36,105	rare when year = 1864 AND month > 5; year = 1864 AND month > 5
+3192:22	rare when realism = 0
+3193:27	rare when control(who) = 1
+3197	rare under: IF cityo(x) <> who AND cityp(x) = who AND occupied(x) = 0 THEN
+3198	rare under: IF cityo(x) <> who AND cityp(x) = who AND occupied(x) = 0 THEN
+3199	rare under: IF cityo(x) <> who AND cityp(x) = who AND occupied(x) = 0 THEN
+3200	rare under: IF cityo(x) <> who AND cityp(x) = who AND occupied(x) = 0 THEN
+3201	rare under: IF cityo(x) <> who AND cityp(x) = who AND occupied(x) = 0 THEN
+3202	rare under: IF cityo(x) <> who AND cityp(x) = who AND occupied(x) = 0 THEN
+3203	rare under: IF cityo(x) <> who AND cityp(x) = who AND occupied(x) = 0 THEN
+3204	rare under: IF cityo(x) <> who AND cityp(x) = who AND occupied(x) = 0 THEN
+3205	rare under: IF cityo(x) <> who AND cityp(x) = who AND occupied(x) = 0 THEN
+3214	rare under: IF RND > .1 OR navyloc(1) = 0 OR navysize(1) > 9 GOTO event2
+3215	rare under: IF RND > .1 OR navyloc(1) = 0 OR navysize(1) > 9 GOTO event2
+3216	rare under: IF RND > .1 OR navyloc(1) = 0 OR navysize(1) > 9 GOTO event2
+3217	rare under: IF RND > .1 OR navyloc(1) = 0 OR navysize(1) > 9 GOTO event2
+3218	rare under: IF RND > .1 OR navyloc(1) = 0 OR navysize(1) > 9 GOTO event2
+3219	rare under: IF RND > .1 OR navyloc(1) = 0 OR navysize(1) > 9 GOTO event2
+3220	rare under: IF RND > .1 OR navyloc(1) = 0 OR navysize(1) > 9 GOTO event2
+3226:10	rare when NEXT i: GOTO dull2
+3237	rare under: IF year = 1864 AND month = 11 THEN
+3238	rare under: IF year = 1864 AND month = 11 THEN
+3239	rare under: IF year = 1864 AND month = 11 THEN
+3262:20	rare when noise = 2
+3271:16	rare when a <> 0
+3310:19,30	rare when wide > 59; wide > 59
+3334:31,53,122,133	rare when matrix(index, k) = 0; matrix(index, k) = 0; matrix(index, k) = 0; matrix(index, k) = 0
+3336	rare under: NEXT k
+3342	rare under: IF x + y = 0 THEN PRINT "ALL MAP LINKS ARE OK": EXIT SUB
+3343	rare under: IF x + y = 0 THEN PRINT "ALL MAP LINKS ARE OK": EXIT SUB
+3394:166	rare when PRINT "What is name of "; force$(s); " commander"; : DEF SEG = 0: POKE
+3428:31	rare when LEN(mtx$(size)) > 11
+3433:18	rare when size = 0
+3439:20	rare when choose < 1
+3451:31	rare when LEN(mtx$(size)) > 11
+3461:15	rare when IF choose < 1 GOTO have2
+3465:30	rare when armyexper(index) > 0
+3488	rare under: CASE IS < 0
+3489	rare under: CASE IS < 0
+3490	rare under: CASE IS < 0
+3502:15	rare when IF choose < 0 GOTO endrep
+3503:15	rare when IF choose = 4 GOTO frep
+3511	rare under: IF x = 0 THEN
+3541:40	rare when MID$(fleet$(who), k, 1) = "I"
+3543:15	rare when x > 0
+3544:86	rare when navyloc(who) > 0 AND navyloc(who) < 99
+3577:25	rare when side = 2
+3587:17	rare when y > 26
+3664:24	rare when INSTR(a$, ">")
+3665:25	rare when INSTR(a$, "..")
+3666:24	rare when INSTR(a$, "!")
+3669:16	rare when x > 27
+3686:18	rare when a < 1
+3690:17,30,103	rare when x < 1; x < 1; x < 1
+3692:87	rare when noise > 0
+3694:44	rare when cash(who) < 0
+3700:67	rare when (side = 1 AND defend > 20) OR (side = 2 AND defend < 21)
+3715:38,45	rare when choose < 0 OR choose > size; choose < 0 OR choose > size
+3720	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3721	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3722	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3724	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3725	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3726	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3727	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3728	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3729	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3730	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3731	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3732	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3733	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3734	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3735	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3737	rare when a side recruits a new army when every free army slot's named leader has died (generic leaders)
+3740	rare under: add1s:
+3741	rare under: add1s:
+3833	rare under: ' Shenandoah
+3834	rare under: ' Shenandoah
+3835	rare under: ' Shenandoah
+3836	rare under: ' Shenandoah
+3837	rare under: ' Shenandoah
+3838	rare under: ' Shenandoah
+3839	rare under: ' Shenandoah
+3840	rare under: ' Shenandoah
+3841	rare under: ' Shenandoah
+3842	rare under: ' Shenandoah
+3843	rare under: ' Shenandoah
+3885:25,34,43	rare when navyloc(s) = 17; navyloc(s) = 17; navyloc(s) = 17
+4051:41	rare when victory(i) < 0
+4136:21,41	rare when realism = 0; realism = 0
+4140:19	rare when limit > x
+4141:23	rare when limit < x \ 4
+4487:18,25	rare when y = 0; y = 0
+4491:18,25	rare when x = 0; x = 0
+4492:31,38	rare when y / x > vicflag(6); y / x > vicflag(6)
+4559:18	rare when j = 5
+4627:35,59	rare when wtype > 10; wtype > 10
+4752:21	rare when colour = 0
+4754:23	rare when mtx$(0) = ""
+4761:32	rare when row < 1
+4767:26	rare when tly + size > 26
+4772:36,60	rare when wtype > 10; wtype > 10
+4797:27	rare when LEN(t$) > wide
+4808:11	rare when CASE 4: CALL armystat(array(row))
+4809:11,21,34	rare when CASE 5: COLOR 11: CALL clrbot: PRINT armyname$(index); " Exp="; armyex; CASE 5: COLOR 11: CALL clrbot: PRINT a
+4822	rare under: IF side = 2 THEN
+4823	rare under: IF side = 2 THEN
+4850	rare under: CASE 6
+4870:20,29,43	rare when a$ = "I"; a$ = "I"; a$ = "I"
+4872:20,32,46	rare when a$ = "Q"; a$ = "Q"; a$ = "Q"
+4883	rare under: GOTO called
+4891	rare under: END IF
+4894:21	rare when row > size
+4901	rare under: boss1:
+4902	rare under: boss1:
+4903	rare under: boss1:

@@ -46,6 +46,18 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     LF), and a run that writes none fails. <name>.keys, when present, is given to it as
     QB64_SCREEN_KEYS (the keys it reads); a .keys without a .screen is an error in the test.
     --record writes .screen when both runs wrote equal states
+  * <name>.<script>.keys beside a screen program <name>.bas: a script of it (spec testing/screen-state,
+    "Scripts of a screen program"), a test of its own named <group>/<name>.<script>, judged by its
+    own <name>.<script>.screen, .output and other sidecars by the rules for a screen program, and
+    run from <name>.bas with <name>.files. The tests of one program share one build in a run
+    (<results>/<group>-<name>-build/). --glob, --list, --record, --pass-cache and --check-list
+    take the test name. A script without its .screen fails at stage "expected" (--record writes it)
+  * --full-states <group>/<name>[.<script>]: that test's `digest` steps write full states
+    (QB64_SCREEN_DIGEST_AS_STATE=1), kept in the results folder to look at; the test fails at stage
+    "screen" with their file named, as its states are not compared
+  * --coverage <file> (qb64rust): every program is built with --coverage and each run's counts
+    (QB64RUST_COVERAGE, a file in the results folder) are appended to <file> once it has passed
+    or failed, one record per run (tools/coverage); not with --record or --pass-cache
   * <name>.files: a folder of data files the program reads (the pictures a game loads with
     BLOAD). Everything in it is copied into the program's folder before it is compiled, with
     either compiler, when checking and when recording; beside an .err or a .norun it is an
@@ -826,14 +838,72 @@ def data_files(folder: Path) -> bytes | None:
     return h.digest()
 
 
+def script_of(bas: Path) -> tuple[Path, str] | None:
+    """For the test of a script, <name>.<script>.bas (no such file), the program <name>.bas and the
+    script's name; None for a program."""
+    prog, dot, script = bas.stem.partition(".")
+    if not dot or "." in script or bas.is_file():
+        return None
+    src = bas.with_name(f"{prog}.bas")
+    return (src, script) if src.is_file() else None
+
+
+def scripts(bas: Path) -> list[Path]:
+    """The tests of the scripts of program bas: <name>.<script>.bas for each <name>.<script>.keys
+    beside it (a script name holds no dot)."""
+    found = []
+    for keys in bas.parent.glob(f"{glob.escape(bas.stem)}.*.keys"):
+        script = keys.name[len(bas.stem) + 1 : -len(".keys")]
+        if script and "." not in script:
+            found.append(bas.with_name(f"{bas.stem}.{script}.bas"))
+    return sorted(found)
+
+
+def corpus_tests(root: Path, pattern: str) -> list[Path]:
+    """The tests of the corpus folder root whose names match pattern: each program, and each
+    script of a program (scripts)."""
+    tests = []
+    for bas in root.rglob("*.bas"):
+        tests += [t for t in [bas, *scripts(bas)] if fnmatch.fnmatch(t.name, pattern)]
+    return sorted(tests)
+
+
+class SharedBuilds:
+    """The builds a run makes once for all the tests of a program with scripts: (rc, timed out,
+    executable, compiler output) by build folder, the first test of the program builds and the
+    others wait for it."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.locks: dict[Path, threading.Lock] = {}
+        self.done: dict[Path, tuple] = {}
+
+    def get(self, folder: Path, build):
+        with self.lock:
+            lock = self.locks.setdefault(folder, threading.Lock())
+        with lock:
+            if folder not in self.done:
+                self.done[folder] = build()
+            return self.done[folder]
+
+
+# One append at a time to the --coverage file: each run's record goes in whole.
+COVERAGE_LOCK = threading.Lock()
+
+
 def corpus_test(
     bas: Path, args, results: Path, qb_root: Path, corpus_root: Path, known: dict[str, str]
 ) -> Result:
-    """Runs (or with --record, records) one program of the corpus suite (module docstring)."""
+    """Runs (or with --record, records) one program of the corpus suite, or one script of a
+    program (module docstring)."""
     group = bas.parent.relative_to(corpus_root).as_posix()
     name = bas.stem
     tdir = bas.parent
     key = f"{group.replace('/', '-')}-{name}"
+    # A script's test runs its program's source, with the program's data files.
+    script = script_of(bas)
+    src = script[0] if script else bas
+    prog = src.stem
     err_file = tdir / f"{name}.err"
     out_file = tdir / f"{name}.output"
     norun = (tdir / f"{name}.norun").is_file()
@@ -861,13 +931,17 @@ def corpus_test(
     # it leaves is compared as well as its output.
     screen_file = tdir / f"{name}.screen"
     screen = screen_file.is_file()
+    if script and not screen_file.is_file():
+        if not args.record:
+            return fail("expected", f"no {screen_file.name} (record it with --record)")
+        screen = True
     if screen and (norun or err_file.is_file()):
         return fail("expected", f".screen beside {present[0]}: a screen program runs")
     keys_file = tdir / f"{name}.keys"
     if keys_file.is_file() and not screen:
         return fail("expected", ".keys without .screen: only a screen program is given keys")
     # <name>.files: the data files the program reads, copied beside it before it is compiled.
-    files_dir = tdir / f"{name}.files"
+    files_dir = tdir / f"{prog}.files"
     if files_dir.is_dir() and (norun or err_file.is_file()):
         return fail("expected", f".files beside {present[0]}: a program with data files runs")
     exitcode_file = tdir / f"{name}.exitcode"
@@ -884,46 +958,75 @@ def corpus_test(
     if work.exists():
         shutil.rmtree(work)
     work.mkdir(parents=True)
-    shutil.copyfile(bas, work / bas.name)
+    shutil.copyfile(src, work / src.name)
     if files_dir.is_dir():
         shutil.copytree(files_dir, work, dirs_exist_ok=True)
     exe = work / f"{name}.exe"
-    compile_out = results / f"{key}-compile_result.txt"
 
     old = is_old_compiler(args.qb64)
     flags = ["-f:OptimizeCppProgram=true"] if args.cpp_opt else []
     if screen:
         flags.append(f"-f:ExtraLinkerFlags={SCREEN_STATE_SOURCE.as_posix()}")
-    with contextlib.ExitStack() as stack:
-        # Only qb64pe builds in its own internal/temp: the clone's, or with --jobs this worker's
-        # private copy's (CompilerCopies).
-        qb64, build_root = args.qb64, qb_root
-        if old and args.copies:
-            build_root = stack.enter_context(args.copies.lease())
-            qb64 = build_root / "qb64pe.exe"
-        if old:
-            clear_temp(build_root)
-        rc, timed_out = run_proc(
-            [
-                str(qb64),
-                *flags,
-                "-q",
-                "-m",
-                "-x",
-                *include_root_args(args.qb64),
-                bas.name,
-                "-o",
-                str(exe),
-            ],
-            work,
-            compile_out,
-            COMPILE_TIMEOUT,
-        )
-        if old:
-            copy_if_exists(
-                build_root / "internal" / "temp" / "compilelog.txt",
-                results / f"{key}-compilelog.txt",
+    coverage = getattr(args, "coverage", None)
+    if coverage:
+        flags.append("--coverage")
+
+    def build(folder: Path, out: Path, build_key: str) -> tuple[int | None, bool, Path]:
+        """Compiles the program in folder (which holds it and its data files) into out."""
+        compile_out = results / f"{build_key}-compile_result.txt"
+        with contextlib.ExitStack() as stack:
+            # Only qb64pe builds in its own internal/temp: the clone's, or with --jobs this worker's
+            # private copy's (CompilerCopies).
+            qb64, build_root = args.qb64, qb_root
+            if old and args.copies:
+                build_root = stack.enter_context(args.copies.lease())
+                qb64 = build_root / "qb64pe.exe"
+            if old:
+                clear_temp(build_root)
+            rc, timed_out = run_proc(
+                [
+                    str(qb64),
+                    *flags,
+                    "-q",
+                    "-m",
+                    "-x",
+                    *include_root_args(args.qb64),
+                    src.name,
+                    "-o",
+                    str(out),
+                ],
+                folder,
+                compile_out,
+                COMPILE_TIMEOUT,
             )
+            if old:
+                copy_if_exists(
+                    build_root / "internal" / "temp" / "compilelog.txt",
+                    results / f"{build_key}-compilelog.txt",
+                )
+        return rc, timed_out, compile_out
+
+    # The tests of a program with scripts share one build in a run: in a folder of its own, from
+    # which each copies the executable.
+    builds = getattr(args, "builds", None)
+    if builds is not None and (script or scripts(bas)):
+        prog_key = f"{group.replace('/', '-')}-{prog}"
+        folder = results / f"{prog_key}-build"
+
+        def build_once():
+            if folder.exists():
+                shutil.rmtree(folder)
+            folder.mkdir(parents=True)
+            shutil.copyfile(src, folder / src.name)
+            if files_dir.is_dir():
+                shutil.copytree(files_dir, folder, dirs_exist_ok=True)
+            return build(folder, folder / f"{prog}.exe", prog_key)
+
+        rc, timed_out, compile_out = builds.get(folder, build_once)
+        if (folder / f"{prog}.exe").is_file():
+            shutil.copyfile(folder / f"{prog}.exe", exe)
+    else:
+        rc, timed_out, compile_out = build(work, exe, key)
     if timed_out:
         return fail("compile", "timeout")
 
@@ -986,7 +1089,7 @@ def corpus_test(
             return p.read_bytes() if p.is_file() else None
 
         parts = [
-            bas.read_bytes(),
+            src.read_bytes(),
             read(out_file),
             read(screen_file),
             read(keys_file),
@@ -1021,6 +1124,10 @@ def corpus_test(
         keys_copy = results / f"{key}-keys.txt"
         shutil.copyfile(keys_file, keys_copy)
         env["QB64_SCREEN_KEYS"] = str(keys_copy)
+    # --full-states: this test's digests are full states, to look at.
+    full_states = getattr(args, "full_states", None) == f"{group}/{name}"
+    if full_states:
+        env["QB64_SCREEN_DIGEST_AS_STATE"] = "1"
     if os.name == "nt":
         # END waits for a console key event, which the null device never sends (press_any_key.py).
         cmd = [sys.executable, str(Path(__file__).with_name("press_any_key.py"))]
@@ -1037,7 +1144,7 @@ def corpus_test(
     states: list[bytes] = []
     codes: list[int] = []
     for run in range(1, 3 if args.record else 2):
-        reset_folder(work, {bas.name, exe.name})
+        reset_folder(work, {src.name, exe.name})
         if files_dir.is_dir():
             # Fresh for every run: the first one may have changed or removed a data file.
             shutil.copytree(files_dir, work, dirs_exist_ok=True)
@@ -1048,6 +1155,10 @@ def corpus_test(
         if screen:
             state_out.unlink(missing_ok=True)
             env["QB64_SCREEN_STATE"] = str(state_out)
+        counts = results / f"{key}-run{run}-coverage.txt"
+        if coverage:
+            counts.unlink(missing_ok=True)
+            env["QB64RUST_COVERAGE"] = str(counts)
         rc, timed_out = run_proc(
             cmd,
             work,
@@ -1058,6 +1169,10 @@ def corpus_test(
             creationflags=flags,
             stdin_path=stdin_copy if os.name != "nt" else None,
         )
+        # A run cut short may have left half a record: its counts are left out, the timeout fails the test.
+        if coverage and counts.is_file() and not timed_out:
+            with COVERAGE_LOCK, open(coverage, "ab") as f:
+                f.write(counts.read_bytes())
         if timed_out:
             return fail("run", "timeout")
         # A recording takes any code (two runs must agree); a check wants the .exitcode's, or 0.
@@ -1086,9 +1201,8 @@ def corpus_test(
             exitcode_file.unlink()
             changes.append(f"removed {exitcode_file.name}")
         if screen:
-            first = (
-                screen_file.stat().st_size == 0
-            )  # the empty file that marks a new screen program
+            # The empty file that marks a new screen program, or none for a new script.
+            first = not screen_file.is_file() or screen_file.stat().st_size == 0
             change = write_recorded(screen_file, states[0])
             changes.append(f"recorded new {screen_file.name}" if first and change else change)
         return passed("; ".join(c for c in changes if c))
@@ -1097,6 +1211,8 @@ def corpus_test(
     odd = unexpected_rows(trace, allowed_rows(tdir / f"{name}.divergences"))
     if odd:
         return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES.md")
+    if full_states:
+        return fail("screen", f"--full-states: the states are in {state_out.name}, not compared")
     if screen and norm_output(screen_file.read_bytes()) != norm_output(states[0]):
         return fail("screen", "screen state differs from .screen")
     if remembered:
@@ -1487,7 +1603,11 @@ def load_list(path: Path, root: Path) -> set[Path]:
         if not line:
             continue
         bas = (root / f"{line}.bas").resolve()
-        if not bas.is_file():
+        # A script of a corpus program: <group>/<name>.<script>, with its .keys.
+        script = script_of(bas)
+        if script and not bas.with_suffix(".keys").is_file():
+            script = None
+        if not bas.is_file() and not script:
             raise ValueError(f"{path.name} line {n}: no program {line}.bas in {root.name}")
         wanted.add(bas)
     return wanted
@@ -1538,6 +1658,11 @@ def program_inputs(suite: str, bas: Path) -> list[Path]:
     sidecars kept elsewhere (a compile-suite program's .divergences, a verification program's
     .divergences and .normalize). An included file is not among them."""
     found = [p for p in bas.parent.glob(f"{glob.escape(bas.stem)}.*") if p.is_file()]
+    # A script's test: also the program it runs.
+    script = script_of(bas) if suite == "corpus" else None
+    if script:
+        found.append(script[0])
+        bas = script[0]
     data = bas.with_name(bas.stem + ".files")
     if data.is_dir():
         found += [p for p in data.rglob("*") if p.is_file()]
@@ -1581,9 +1706,10 @@ def check_list(
         problems.append("the runner has changed since the run")
     if run.get("no_fold") != fold_is_off():
         problems.append(f"the run had QB64RUST_NO_FOLD={'1' if run.get('no_fold') else 'unset'}")
-    if run.get("pass_cache") or run.get("record") or run.get("cpp_opt"):
+    if any(run.get(k) for k in ("pass_cache", "record", "cpp_opt", "coverage", "full_states")):
         problems.append(
-            "a run with --pass-cache, --record or --cpp-opt cannot stand for a run of the list"
+            "a run with --pass-cache, --record, --cpp-opt, --coverage or --full-states cannot "
+            "stand for a run of the list"
         )
     if problems:
         return problems, [], 0
@@ -1894,6 +2020,20 @@ def main() -> int:
         "every program",
     )
     ap.add_argument(
+        "--full-states",
+        metavar="TEST",
+        help="corpus, not with --record: the digests of this screen test (<group>/<name> or "
+        "<group>/<name>.<script>) are written as full states, kept in the results folder; the "
+        "test fails, as its states are not compared",
+    )
+    ap.add_argument(
+        "--coverage",
+        type=Path,
+        metavar="FILE",
+        help="corpus with qb64rust, not with --record or --pass-cache: build each program with "
+        "--coverage and append the counts of each run to FILE (tools/coverage)",
+    )
+    ap.add_argument(
         "--pass-cache",
         type=Path,
         help="corpus, compile and a verification compare: a folder that remembers which programs passed, by "
@@ -1910,6 +2050,14 @@ def main() -> int:
         return 2
     if args.jobs < 1:
         print("--jobs must be 1 or more", file=sys.stderr)
+        return 2
+    if args.full_states and (args.suite != "corpus" or args.record):
+        print("--full-states applies to --suite corpus without --record", file=sys.stderr)
+        return 2
+    if args.coverage and (args.suite != "corpus" or args.record or args.pass_cache):
+        print(
+            "--coverage applies to --suite corpus without --record or --pass-cache", file=sys.stderr
+        )
         return 2
     if args.category and args.suite in ("qbasic", "verification", "all"):
         print("--category applies to the compile, format and corpus suites only", file=sys.stderr)
@@ -2017,6 +2165,12 @@ def main() -> int:
         )
         return 2
     args.copies = None  # set per suite below
+    args.builds = SharedBuilds()
+    if args.coverage:
+        if is_old_compiler(args.qb64):
+            print("--coverage applies to qb64rust only", file=sys.stderr)
+            return 2
+        args.coverage = args.coverage.resolve()
     if args.build_cache:
         if is_old_compiler(args.qb64):
             print("--build-cache applies to qb64rust only", file=sys.stderr)
@@ -2044,7 +2198,7 @@ def main() -> int:
             if not root.is_dir():
                 print(f"no such corpus folder: {root}", file=sys.stderr)
                 return 2
-            tests = sorted(p for p in root.rglob("*.bas") if fnmatch.fnmatch(p.name, args.glob))
+            tests = corpus_tests(root, args.glob)
             if args.list:
                 try:
                     wanted = load_list(args.list, corpus_root)
@@ -2260,6 +2414,8 @@ def main() -> int:
         "jobs": args.jobs,
         "build_cache": bool(args.build_cache),
         "pass_cache": bool(args.pass_cache),
+        "coverage": bool(args.coverage),
+        "full_states": args.full_states,
         "compiler_sha256": file_sha256(args.qb64),
         "runner_sha256": file_sha256(Path(__file__).resolve()),
         "started": round(started, 3),

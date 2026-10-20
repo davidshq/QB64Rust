@@ -177,31 +177,53 @@ KEYS = {"g06_message_box": "text x\n"}
 # what that text becomes). The script stops when a line no longer holds its text. Line n of the copy
 # is line n of the game; what the copy is, is said in comments after its last line. Its keys file
 # (<name>.keys) is written by hand, not here.
-ANNOUNCE = "DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG"
+#
+# An announcement (OpenSpec change cws-whole-game, design D4) writes the place of the wait to byte
+# &H4F1 and a letter to &H4F2, then counts the wait in &H4F0. The place is the wait's number, 1 to 14,
+# in the order of the game's lines (PLACES); the letter is the first letter of the menu's title at the
+# menu's crsr: (place 14; ASC of the title and a CHR$(0), so an empty title gives 0), 0 elsewhere.
+def announce(place: int, letter: str = "0") -> str:
+    return (
+        f"DEF SEG = 0: POKE 1265, {place}: POKE 1266, {letter}: "
+        "POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG"
+    )
+
+
 WAIT = 'DO WHILE INKEY$ = "": LOOP'
+# The lines of the game that wait for a key, by place: 1 random events, 2 a side's turn, 3 and 4 a battle
+# (its picture, "hit any key to continue"), 5 and 6 the month's update, 7 to 9 events (ironclads, the
+# two endings of SUB events), 10 to 12 SUB maxx (the high scores, the commander's name, "Game Over"),
+# 13 a report, 14 the menu.
+PLACES = [662, 829, 1002, 1091, 2462, 2719, 3127, 3263, 3266, 3366, 3394, 3408, 3675, 4855]
+MENU_LETTER = 'ASC(mtx$(0) + CHR$(0))'
 COPIES = {
     "g12_game": (
         [
             "Civil War Strategy played from a keys file (tools/screen/README.md, \"Prompts\"). Edits:",
-            "a fixed seed; no _FULLSCREEN (a test does not take the screen); SUB TICK returns at once",
-            "(its pauses only wait, and a key that came while one waits would be eaten); and before",
-            "each of the 14 places the game waits for a key, a line that announces the wait in byte",
-            "&H4F0 of conventional memory, which the keys file's prompt steps wait for.",
+            "a fixed seed and silent sound (PLAY \"V0\": every PLAY and SOUND takes its time, unheard);",
+            "no _FULLSCREEN (a test does not take the screen); SUB TICK returns at once (its pauses",
+            "only wait, and a key that came while one waits would be eaten); a fixed date in the",
+            "history; and before each of the 14 places the game waits for a key, a line that writes",
+            "the place (and at the menu the first letter of its title) to bytes &H4F1 and &H4F2 and",
+            "announces the wait in byte &H4F0 of conventional memory, which the keys file's prompt,",
+            "rule and play until steps read.",
         ],
         [
             (168, "_FULLSCREEN _SQUAREPIXELS, _SMOOTH", "' _FULLSCREEN _SQUAREPIXELS, _SMOOTH"),
-            (218, "RANDOMIZE TIMER", "RANDOMIZE 1861"),
+            (218, "RANDOMIZE TIMER", 'RANDOMIZE 1861: PLAY "V0"'),
+            (241, "DATE$", '"10-19-2026"'),
             *[
-                (n, WAIT, f"{ANNOUNCE}: {WAIT}")
-                for n in (662, 829, 1002, 1091, 2462, 2719, 3127, 3263, 3266, 3366, 3408, 3675)
+                (n, WAIT, f"{announce(place)}: {WAIT}")
+                for place, n in enumerate(PLACES, 1)
+                if n not in (3394, 4855)
             ],
-            (3394, "INPUT a$", f"{ANNOUNCE}: INPUT a$"),
+            (3394, "INPUT a$", f"{announce(PLACES.index(3394) + 1)}: INPUT a$"),
             (4037, "start! = TIMER", "' start! = TIMER"),
             (4038, "DO WHILE TIMER", "' DO WHILE TIMER"),
             (
                 4855,
                 'crsr:   a$ = INKEY$: IF a$ = "" GOTO crsr',
-                f'crsr: {ANNOUNCE}: DO: a$ = INKEY$: LOOP WHILE a$ = ""',
+                f'crsr: {announce(PLACES.index(4855) + 1, MENU_LETTER)}: DO: a$ = INKEY$: LOOP WHILE a$ = ""',
             ),
         ],
     ),

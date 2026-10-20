@@ -82,7 +82,8 @@ def corpus_membership() -> list[str]:
             ]
         )
     return [
-        f"`slice.list` names **{len(slice_list)}** programs. By folder:",
+        f"`slice.list` names **{len(slice_list)}** tests (a program, or a script of a screen program: "
+        "`<name>.<script>.keys`). By folder:",
         "",
         *table(
             [

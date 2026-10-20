@@ -237,7 +237,18 @@ impl<'a> Lowerer<'a> {
 
     /// A statement of `ops`, after the operations joined to it ([`Lowerer::joined`]).
     fn emit(&mut self, span: Span, line: u32, ops: Vec<Op>) {
+        self.emit_as(span, line, ops, false);
+    }
+
+    /// [`Self::emit`] of a statement of the lowering's own, which stands for no source statement ([`Stmt::own`]);
+    /// one that operations were joined to is not.
+    fn emit_own(&mut self, span: Span, line: u32, ops: Vec<Op>) {
+        self.emit_as(span, line, ops, true);
+    }
+
+    fn emit_as(&mut self, span: Span, line: u32, ops: Vec<Op>, own: bool) {
         let mut joined: Vec<Op> = std::mem::take(&mut self.joined).into_iter().map(|j| j.2).collect();
+        let own = own && joined.is_empty();
         joined.extend(ops);
         let ops = joined;
         let may_raise = ops.iter().any(Op::may_raise);
@@ -247,6 +258,7 @@ impl<'a> Lowerer<'a> {
             include_line: self.include_line,
             ops,
             may_raise,
+            own,
         });
     }
 
@@ -262,16 +274,28 @@ impl<'a> Lowerer<'a> {
                 else_,
                 end_line,
             } => return self.if_block(s, branches, else_.as_deref(), *end_line),
-            sema::StmtKind::While { cond, body, end_line } => {
+            sema::StmtKind::While {
+                cond,
+                body,
+                end_line,
+                end_at,
+            } => {
                 let test = sema::LoopTest {
                     at: sema::TestAt::Top,
                     until: false,
                     cond: cond.clone(),
                 };
-                return self.loop_block(s, sema::LoopKind::While, Some(&test), body, *end_line);
+                let end = (*end_line, end_at.unwrap_or(s.span));
+                return self.loop_block(s, sema::LoopKind::While, Some(&test), body, end);
             }
-            sema::StmtKind::Do { test, body, end_line } => {
-                return self.loop_block(s, sema::LoopKind::Do, test.as_ref(), body, *end_line);
+            sema::StmtKind::Do {
+                test,
+                body,
+                end_line,
+                end_at,
+            } => {
+                let end = (*end_line, end_at.unwrap_or(s.span));
+                return self.loop_block(s, sema::LoopKind::Do, test.as_ref(), body, end);
             }
             sema::StmtKind::For {
                 var,
@@ -281,6 +305,7 @@ impl<'a> Lowerer<'a> {
                 step,
                 body,
                 end_line,
+                end_at,
             } => {
                 let parts = ForParts {
                     var: VarId(var.0),
@@ -289,7 +314,7 @@ impl<'a> Lowerer<'a> {
                     end,
                     step: step.as_ref(),
                 };
-                return self.for_loop(s, parts, body, *end_line);
+                return self.for_loop(s, parts, body, (*end_line, end_at.unwrap_or(s.span)));
             }
             sema::StmtKind::OnJump { value, gosub, targets } => return self.on_jump(s, value, *gosub, targets),
             sema::StmtKind::Select {
@@ -500,7 +525,7 @@ impl<'a> Lowerer<'a> {
             self.emit(b.cond.span, b.line, vec![branch]);
             self.stmts_of(&b.body);
             if next != end {
-                self.emit(s.span, end_line, vec![Op::Jump(end)]);
+                self.emit_own(s.span, end_line, vec![Op::Jump(end)]);
                 self.place(next);
             }
         }
@@ -511,14 +536,15 @@ impl<'a> Lowerer<'a> {
     }
 
     /// `WHILE` and `DO`: a test at the top leaves the loop, a test at the bottom repeats it; without a test at the
-    /// bottom the loop jumps back to its top. The bottom statement carries the `WEND` or `LOOP` line.
+    /// bottom the loop jumps back to its top. The bottom statement carries the `WEND` or `LOOP` line and keyword
+    /// (`end`), so that a coverage build counts it apart from the top on a one-line loop.
     fn loop_block(
         &mut self,
         s: &sema::Stmt,
         kind: sema::LoopKind,
         test: Option<&sema::LoopTest>,
         body: &[sema::Stmt],
-        end_line: u32,
+        (end_line, end_at): (u32, Span),
     ) {
         let top = self.label(s.line);
         let exit = self.label(end_line);
@@ -547,7 +573,7 @@ impl<'a> Lowerer<'a> {
             },
             None => Op::Jump(top),
         };
-        self.emit(s.span, end_line, vec![back]);
+        self.emit(end_at, end_line, vec![back]);
         self.place(exit);
     }
 
@@ -564,7 +590,8 @@ impl<'a> Lowerer<'a> {
     ///
     /// The header is one statement, so `RESUME` re-runs all of it (measured). With an error pending its jump is
     /// not taken: the body runs with `v` unassigned, after the limits were stored from the placeholder values.
-    fn for_loop(&mut self, s: &sema::Stmt, f: ForParts, body: &[sema::Stmt], end_line: u32) {
+    /// The step statement carries the `NEXT` line and keyword (`end`).
+    fn for_loop(&mut self, s: &sema::Stmt, f: ForParts, body: &[sema::Stmt], (end_line, end_at): (u32, Span)) {
         let lbody = self.label(s.line);
         let entry = self.label(end_line);
         let exit = self.label(end_line);
@@ -607,7 +634,7 @@ impl<'a> Lowerer<'a> {
             place: Place::Var(t),
             value: m.binary(BinOp::Add, f.temp, m.var(st, f.temp), current),
         };
-        self.emit(s.span, end_line, vec![next]);
+        self.emit(end_at, end_line, vec![next]);
 
         self.place(entry);
         let store = Op::Assign {
@@ -724,7 +751,7 @@ impl<'a> Lowerer<'a> {
                 },
                 None => Op::Jump(end),
             };
-            self.emit(s.span, sel.end_line, vec![leave]);
+            self.emit_own(s.span, sel.end_line, vec![leave]);
             self.place(next);
         }
         if let Some(body) = sel.else_ {
@@ -735,7 +762,7 @@ impl<'a> Lowerer<'a> {
                     to: end,
                     on_error: OnError::UseValue,
                 };
-                self.emit(s.span, sel.end_line, vec![skip]);
+                self.emit_own(s.span, sel.end_line, vec![skip]);
             }
             self.selects.push((end, true));
             self.stmts_of(body);

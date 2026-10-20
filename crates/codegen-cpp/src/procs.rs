@@ -239,11 +239,16 @@ impl<'a> Emitter<'a> {
                 raised |= op.may_raise();
             }
             let file = Some(s.span.file);
+            // A coverage build counts the statement before it runs, outside its `do{…}while(r);`, so a retry by the
+            // runtime is not counted again.
+            let count = self.coverage.as_mut().and_then(|c| c.count(s));
             if !checked {
+                body.splice(0..0, count);
                 self.lines_in(file, s.line, &body, out);
                 continue;
             }
-            let mut lines = vec!["do{".to_string()];
+            let mut lines: Vec<String> = count.into_iter().collect();
+            lines.push("do{".to_string());
             lines.extend(body);
             lines.push(format!(
                 "if(!qbevent)break;evnt({});}}while(r);",

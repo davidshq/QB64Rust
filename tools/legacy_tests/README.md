@@ -57,6 +57,19 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   On Windows a screen program runs on a desktop of its own that is never shown (`press_any_key.py
   --hidden-desktop`), so its window does not appear and the user's keys and mouse cannot reach it;
   `QB64RUST_SHOW_WINDOWS=1` shows the windows again (`tools\screen\README.md`, "Where the window goes").
+- **Scripts of a screen program** (`cws-whole-game`, design D3): `<name>.<script>.keys` beside a screen program is a
+  test of its own, `<group>/<name>.<script>`, judged by its own `<name>.<script>.screen`, `.output` and other
+  sidecars as a screen program is, and run from `<name>.bas` with `<name>.files`. The tests of one program share
+  one build in a run (`<results>\corpus\<group>-<name>-build\`). `--glob` matches the test name
+  (`--glob "g12_game*.bas"` takes the program and all its scripts), and `--list`, `--record`, `--pass-cache` and
+  `--check-list` name it as `screen/g12_game.union_time`. A script without its `.screen` fails at stage
+  `expected`; `--record` writes it (no empty file needed).
+- `--full-states <group>/<name>[.<script>]`: that test's `digest` steps write full states
+  (`QB64_SCREEN_DIGEST_AS_STATE=1`) into its `-run1-screen.txt` in the results folder, to look at with
+  `state_to_png.py` when a digest differs; the test then fails at stage `screen`, its states not compared.
+- `--coverage <file>` (qb64rust, not with `--record` or `--pass-cache`): each program is built with `--coverage`,
+  and each run's counts are appended to `<file>` (`tools\coverage\README.md`). A run with it, or with
+  `--full-states`, cannot stand for a run of a pass list (`--check-list`).
 - `<name>.files`, a folder beside a program that runs: the data files it reads (a picture loaded with `BLOAD`).
   Everything in it, folders too, is copied into the program's folder before the compile and again before each
   run (the folder is emptied between the two runs of `--record`, and a run may have changed a file), with either
