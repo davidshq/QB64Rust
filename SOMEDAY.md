@@ -153,7 +153,7 @@ Windows). What the old compiler accepts and the new one still marks "not support
 | Form | Why it waits | Details |
 |---|---|---|
 | A library FUNCTION beside a program SUB of the same name (`x22`) | The old compiler accepts both; which one a use names was not measured | `verification\v37_x22`; `sema\src\check\library.rs` |
-| `ALIAS` in a `DECLARE SUB` outside a library block (`DECLARE SUB s ALIAS t ()`, `x08`) | The old compiler accepts it and ignores it; this compiler keeps the parser's error it gave before the change ("expected the end of the statement"; design D1, task 2.2) | `verification\v37_x08` |
+| `ALIAS` in a `DECLARE SUB` outside a library block (`DECLARE SUB s ALIAS t ()`, `x08`) | The old compiler accepts it and ignores it; this compiler marks it "not supported yet" (user, `verification-compare`; until then the parser's error "expected the end of the statement", `m3-declare-library` design D1, task 2.2) | `verification\v37_x08`; `tests\frontend\declare_alias_marked.bas` |
 | `on_error/errtest`, the ninth upstream program with a block | It also needs `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`, which stay "not supported yet" (left out of the change, user, 2026-10-15) | `DECISIONS.md` 2026-10-15 |
 | Linux and macOS libraries (`.so`, `.dylib`, `/usr/lib`, `dlopen`) and the IDE's folder in the lookup | The project is Windows only | design Non-Goals |
 
@@ -343,6 +343,7 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 |---|---|
 | "Skip lines" debugger feature (no Debug Adapter Protocol equivalent) | `study\06-vscode-parity.md` |
 | Accept two `DECLARE LIBRARY` forms whose build fails with the old compiler: a header named by two blocks included once (it is included once per block, and a header without a guard fails in C++; was D-023), and a name looked up in every library of a block (the old compiler looks only in the last; was D-024); and two `DYNAMIC` blocks of one DLL sharing its handle (each declares it, and the C++ fails, `verification\v37_x67`). Kept the old compiler's way for now, so code that compiles here compiles with QB64pe; the unguarded header that defines something (one that only declares builds, `v37_x68`), the doubled handle and a block without a header whose last name finds no file (`v37_x69`) are rejected before the C++ with an error that says why | User, `DECISIONS.md` 2026-10-16 (`m3-declare-library` proposal) |
+| The CI `tier2` job runs `tests\verification\pass.list` too. Left out of `verification-compare`: the job is at its 45-minute limit already, and the list adds about a thousand C++ builds; to be decided at a merge into `main` | `verification-compare`, design "Open Questions" (`DECISIONS.md` 2026-10-19) |
 | New compiler compiles the old `qb64pe.bas` as a stress test | `study\07-expert-panel.md` R10 |
 | Build the compiler that the new compiler makes from `qb64pe.bas` and run it against the suite. Taken out of M4's exit criterion, which keeps `qb64pe.bas` compiling with no diagnostic: debugging a 30,000-line program nobody ships, as self-hosting and the text-mode IDE are out of scope | User, `DECISIONS.md` 2026-10-18 (tenth review `study\35` §3 item 5) |
 | Redesign the runtime ABI (variables as pointers, `qbs` moving heap, `passed` bitmasks) once the old compiler is no longer a producer | `study\07-expert-panel.md` R6 |

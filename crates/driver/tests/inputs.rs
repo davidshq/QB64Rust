@@ -687,6 +687,104 @@ fn upstream_progress() {
     assert!(pass.len() <= in_reach);
 }
 
+/// The reasons a line of `tests\verification\known.list` may give (spec `testing/verification-suite`): a row of
+/// `DIVERGENCES.md`, or one of these words, each optionally followed by `: <more>`; `bug` needs the `: <what>`.
+const VERIFICATION_REASONS: &[&str] = &[
+    "not supported yet",
+    "varies",
+    "not recorded",
+    "recorded elsewhere",
+    "bug",
+];
+
+/// Whether `reason` is a reason of [`VERIFICATION_REASONS`] or a row `D-0nn`.
+fn verification_reason_ok(reason: &str) -> bool {
+    let (word, more) = match reason.split_once(": ") {
+        Some((w, m)) => (w, Some(m.trim())),
+        None => (reason, None),
+    };
+    if more == Some("") {
+        return false;
+    }
+    let row = word.len() == 5 && word.starts_with("D-") && word[2..].bytes().all(|b| b.is_ascii_digit());
+    (row || VERIFICATION_REASONS.contains(&word)) && (word != "bug" || more.is_some())
+}
+
+/// "Every program is accounted for" (spec `testing/verification-suite`): each program of `verification\` is named
+/// exactly once across `tests\verification\pass.list` and `known.list`, each name is a program, and each line of
+/// `known.list` (`<name><TAB><reason>`) gives a reason of the vocabulary.
+#[test]
+fn verification_lists_are_exact() {
+    let lists = repo().join("tests/verification");
+    #[expect(clippy::disallowed_methods, reason = "a list of file names, not BASIC source")]
+    let read = |file: &str| std::fs::read_to_string(lists.join(file)).unwrap_or_default();
+    let mut named: Vec<(String, &str)> = Vec::new();
+    let mut problems = Vec::new();
+    let pass_text = read("pass.list");
+    for line in pass_text.lines() {
+        let name = line.split('#').next().unwrap().trim();
+        if !name.is_empty() {
+            named.push((name.to_string(), "pass.list"));
+        }
+    }
+    let known_text = read("known.list");
+    for line in known_text
+        .lines()
+        .filter(|l| !l.trim().is_empty() && !l.starts_with('#'))
+    {
+        let Some((name, reason)) = line.split_once('\t') else {
+            problems.push(format!("known.list: no tab between name and reason: {line}"));
+            continue;
+        };
+        if !verification_reason_ok(reason.trim()) {
+            problems.push(format!("known.list: {name}: not a reason of the vocabulary: {reason}"));
+        }
+        named.push((name.trim().to_string(), "known.list"));
+    }
+    let programs: Vec<String> = std::fs::read_dir(repo().join("verification"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| has_ext(p, &["bas"]))
+        .map(|p| p.file_stem().unwrap().to_string_lossy().into_owned())
+        .collect();
+    for (name, list) in &named {
+        if !programs.contains(name) {
+            problems.push(format!("{list}: no program verification/{name}.bas"));
+        }
+    }
+    for p in &programs {
+        let lists: Vec<&str> = named.iter().filter(|(n, _)| n == p).map(|(_, l)| *l).collect();
+        match lists.len() {
+            1 => {}
+            0 => problems.push(format!("in neither pass.list nor known.list: {p}")),
+            _ => problems.push(format!("named {} times ({}): {p}", lists.len(), lists.join(", "))),
+        }
+    }
+    assert!(
+        programs.len() >= 2842,
+        "found only {} verification programs",
+        programs.len()
+    );
+    assert!(problems.is_empty(), "{}", problems.join("\n"));
+}
+
+#[test]
+fn verification_reasons() {
+    for ok in [
+        "D-026",
+        "D-004: the index",
+        "not supported yet",
+        "varies: TIMER",
+        "not recorded",
+        "bug: PRINT USING",
+    ] {
+        assert!(verification_reason_ok(ok), "{ok}");
+    }
+    for bad in ["bug", "bug: ", "D-26", "D-0261", "flaky", "", "varies:"] {
+        assert!(!verification_reason_ok(bad), "{bad}");
+    }
+}
+
 /// Programs that compile cleanly but are known not to pass tier 2, each with its reason (`study\archive\26` §3).
 const CLEAN_NOT_PASSING: &str = "known_clean_not_passing.list";
 

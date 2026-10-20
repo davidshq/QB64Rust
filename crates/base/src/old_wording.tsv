@@ -320,6 +320,7 @@
 `{}`: `_LIMIT` is a built-in statement	Invalid array name
 `{}`: `_SNDPLAY` is a built-in statement	Invalid array name
 `{}`: `{}` is an array; a member needs an index	Invalid expression
+`{}`: a member array takes its bounds by `REDIM`	DIM: Expected ,
 `{}`: more than one SUB, FUNCTION or the main module has a label `{}`	Ambiguous DATA label
 `{}`: the member is LONG, not INTEGER	Incorrect symbol after element name
 a SUB name cannot have a type suffix: `{}`	Type symbols after a SUB name are invalid
@@ -360,6 +361,7 @@ a string is required for this parameter of a FUNCTION	String required for functi
 a value of `{}` is required here	Expected = similar user defined type
 a width of `FIELD` must be a number	Illegal string-number conversion
 an `_OFFSET` suffix cannot follow a number	Cannot use _OFFSET symbols after numbers
+an array cannot be of a `_BIT` type of more than {#} bits (`_BIT * 64`)	Cannot create a _BIT array of size > {1:=|U|P|PU|S|SU} bits
 an array cannot be passed to a library: `{}`	Arrays cannot be passed to a library
 an array index must be a number	Illegal string-number conversion
 an array parameter's parentheses cannot hold `(` or `AS`	Syntax error - too many opening brackets

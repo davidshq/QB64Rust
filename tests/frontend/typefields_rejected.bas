@@ -5,8 +5,8 @@ $UNSTABLE:TYPEFIELDS
 ' task 5.2): REDIM of the member without TO and without AS (verification\v35_x18), with another type (x19), LEN
 ' of a variable and of an element (x20, x64), _OFFSET of a variable (x68), in COMMON as a variable and as an array
 ' (x39, x63), the member alone as a value (x41), PUT and GET of one value, on a random and on a binary file (x43, x46, x50, x54), and PUT of a
-' whole array of a type with a _DYNAMIC member of STRING (x48). Each is an error of the program, none "not
-' supported yet"; the messages are new.
+' whole array of a type with a _DYNAMIC member of STRING (x48), and DIM of the member (x37, found by
+' verification-compare). Each is an error of the program, none "not supported yet"; the messages are new.
 TYPE t
     v(1) _DYNAMIC AS LONG
 END TYPE
@@ -20,6 +20,7 @@ REDIM p(1) AS t
 REDIM q(1) AS s
 REDIM x.v(5)
 REDIM x.v(0 TO 5) AS INTEGER
+DIM x.v(3) AS LONG
 PRINT LEN(x)
 PRINT LEN(p(0))
 PRINT _OFFSET(x)

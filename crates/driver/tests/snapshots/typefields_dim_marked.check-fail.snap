@@ -1,0 +1,7 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+typefields_dim_marked.bas:13:5: error: not supported yet: `DIM x.nope` with the name of a `TYPE` variable before the dot
+typefields_dim_marked.bas:14:5: error: not supported yet: `DIM x.n` with the name of a `TYPE` variable before the dot
+typefields_dim_marked.bas:15:5: error: not supported yet: `DIM x.v&` with the name of a `TYPE` variable before the dot

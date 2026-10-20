@@ -44,6 +44,36 @@ class Blocks(unittest.TestCase):
             counts.replace_block(twice, "x", ["a"])
 
 
+class VerificationMembership(unittest.TestCase):
+    def test_the_lists_and_the_reasons_of_known_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, lists = Path(tmp, "verification"), Path(tmp, "lists")
+            root.mkdir()
+            lists.mkdir()
+            for name in ("v01_a", "v01_b", "v02_c", "v02_d"):
+                (root / f"{name}.bas").write_bytes(b"")
+            (lists / "pass.list").write_text("v01_a\n# a comment\n", encoding="utf-8")
+            (lists / "known.list").write_text(
+                "v01_b\tD-026\nv02_c\tbug: PRINT USING\nv02_d\tbug: LOCATE\n", encoding="utf-8"
+            )
+            with (
+                mock.patch.object(counts, "VERIFICATION_ROOT", root),
+                mock.patch.object(counts, "VERIFICATION", lists),
+            ):
+                lines = counts.verification_membership()
+        self.assertEqual(
+            lines,
+            [
+                "Of the 4 programs of `verification\\`, `pass.list` names **1** and `known.list` 3.",
+                "",
+                "| Reason in `known.list` | Programs |",
+                "|---|---|",
+                "| `D-026` | 1 |",
+                "| `bug` | 2 |",
+            ],
+        )
+
+
 class Results(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

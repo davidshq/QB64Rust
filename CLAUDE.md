@@ -84,17 +84,16 @@ changing direction, design or scope.**
      from memory: the `verification` family was not checked as the rule says, and `cargo test` stopped at a
      failing test binary, so about 230 tests never ran, one of them failing.
    - **The closing set** (`study\archive\32` §4 item 1, user, 2026-10-17): tier 1 with fmt and clippy; the CLI tests
-     that build (`--ignored`); the change's own new programs and its `verification` family (the runner records
-     the old compiler only, so the new compiler's side is the slice programs and front-end tests made from the
-     family; an accepted program of the family that none of them covers is run by hand, as the runner would run
-     it, and named in the report); the call-site check;
-     the slice list and the upstream pass list **with `--pass-cache target\pass-cache`** and
-     `--build-cache target\build-cache`; the run without folding (`QB64RUST_NO_FOLD=1`) **only when** the change
+     that build (`--ignored`); the change's own new programs, and the programs of its `verification` family put in
+     `tests\verification\pass.list` or `known.list` (`tests\verification\README.md`); the call-site check;
+     the slice list, the upstream pass list and `tests\verification\pass.list` **with
+     `--pass-cache target\pass-cache`** and `--build-cache target\build-cache`; the run without folding (`QB64RUST_NO_FOLD=1`) **only when** the change
      touched `sema`'s constant evaluation or a numeric conversion; the demand reports, the shrink-only lists and
      the wording table as before.
    - **At each merge of `changes` (or `m3`) into `main`**, every two or three changes (`study\archive\32` §4 item 2): the
-     full set, no pass cache: both full suites with the slice list and the upstream pass list judged from them
-     (`--check-list`, `tools\legacy_tests\README.md`), the run without folding, the differential pass list and the
+     full set, no pass cache: the three full suites (corpus, upstream, verification) with the slice list, the
+     upstream pass list and `tests\verification\pass.list` judged from them (`--check-list`,
+     `tools\legacy_tests\README.md`), the run without folding, the differential pass list and the
      call-site check. A failure there is found among the merged changes with the build cache. The pass cache is
      left out there because it cannot see a result that depends on time or load. They may run in a worktree of the
      merge commit beside this repo while the next change goes on here (`tools\legacy_tests\README.md`, "The runs
@@ -191,7 +190,8 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `tests\known_false_errors.list`, `tests\known_unsupported_rejections.list`, `tests\known_parse_gaps.list`, `tests\known_clean_not_passing.list` | Shrink-only lists of tier 1: programs the old compiler accepts that get a real error, programs it rejects that get only "not supported yet" errors, accepted programs (plus the old compiler's sources) that do not parse cleanly (`tests\upstream\README.md`), and programs that compile cleanly but are on no pass list, with the reason (kept by hand) |
 | `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure; format tests 24 of 24) |
 | `verification\` | Measurement programs of the old compiler, each with its recorded output, and `run.sh` (starts the runner's `--suite verification`, which records them); the catalogue of the families, `v13*` to the newest, is `verification\README.md` |
-| `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler), the golden corpus and the verification programs (`--suite verification`, a recorder), its own tests (`test_run_legacy_tests.py`: a change to a comparison or recording rule comes with a change to its test), and its `known_failures.txt`; `--check-list` judges a pass list from a full run's results; `counts.py` writes the count blocks of the test READMEs (`test_counts.py`) |
+| `tests\verification\` | What the new compiler is held to against `verification\` (`README.md`): `pass.list` (the programs it passes), `known.list` (every other program with its reason), and `divergences\`, `normalize\` sidecars; each program is named once across the two lists (tier 1) |
+| `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler), the golden corpus and the verification programs (`--suite verification`: records with `qb64pe`, compares any other compiler), its own tests (`test_run_legacy_tests.py`: a change to a comparison or recording rule comes with a change to its test), and its `known_failures.txt`; `--check-list` judges a pass list from a full run's results; `counts.py` writes the count blocks of the test READMEs (`test_counts.py`) |
 | `tools\close\` | `close.py`: the closing runs of a change (working rule 9) as a plan (`--plan`, the commands in order, each run by its own command) and a check (`--check`, each log: ran on the current build, and passed); its own tests (`test_close.py`; `README.md`) |
 | `tools\libqb\` | `copy_libqb.py`: writes `libqb\` from the clone at a commit with the copy's own edits (`edits\*.edit`, each with its reason and divergence row) and, with `--check`, says whether it still equals them; its own tests (`test_copy_libqb.py`) |
 | `tools\callsite\` | `callsite.py`: compares the libqb call the new compiler writes for each program of `tests\callsite\` with the old compiler's (`-z` on both, nothing built or run); part of tier 2 (`README.md`: the normalisation rules and what it does not compare) |

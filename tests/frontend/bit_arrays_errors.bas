@@ -3,8 +3,11 @@ $CONSOLE:ONLY
 ' `_BIT` arrays (m2-defxxx-common-arrays task 4.2; measured, verification\v24_x82, v24_b_bit_arrays): they are
 ' declared by AS or by suffix, signed or unsigned, of one bit or n; SWAP of two elements is "Cannot SWAP bit-length
 ' variables", LEN of one "Variable/element cannot be _BIT aligned", and console INPUT into one "INPUT cannot handle
-' _BIT array elements" (v24_x253). READ and INPUT # store into one (v24_x251, x252).
+' _BIT array elements" (v24_x253). READ and INPUT # store into one (v24_x251, x252). An array of more than 63 bits
+' is "Cannot create a _BIT array of size > 63 bits" (v21_x27, found by verification-compare), also by suffix.
 DIM f(7) AS _BIT
+DIM w(3) AS _BIT * 64
+DIM w2`64(3)
 DIM g(3) AS _UNSIGNED _BIT * 9
 DIM h`5(2)
 f(1) = g(2) + h`5(0)

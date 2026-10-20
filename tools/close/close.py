@@ -103,6 +103,14 @@ def steps(nofold: bool) -> list[Step]:
             "runner",
             copy=True,
         ),
+        # The verification programs the new compiler passes (tests/verification), in place of the hand runs of a
+        # family's accepted programs.
+        Step(
+            "verification",
+            f"{RUNNER} --suite verification {NEW} {CACHE} --list tests/verification/pass.list > {log('verification')} 2>&1",
+            "runner",
+            copy=True,
+        ),
     ]
     if nofold:
         out.append(
@@ -323,7 +331,7 @@ def plan(nofold: bool) -> int:
         if s.alone:
             note.append("alone")
         if s.name == "slice":
-            note.append("beside upstream")
+            note.append("beside upstream and verification")
         print(f"{s.command}" + (f"    # {', '.join(note)}" if note else ""))
     if not need:
         print(

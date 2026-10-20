@@ -7,6 +7,10 @@ line here says what it shows. This file
 is the catalogue of the families, moved here from `CLAUDE.md`'s layout table on 2026-10-16 (`study\archive\30` §2).
 A new family, or new numbers in one, gets a line here, not in `CLAUDE.md`.
 
+The new compiler is compared against these recordings by the same runner (`--suite verification` with
+`qb64rust`); what it is held to, the pass list and the known differences, is in `tests\verification\` (change
+`verification-compare`). A new family's programs go on one of its lists.
+
 Small programs behind `study\09`, `study\10` and later measurements:
 
 - `v13*`: type suffixes on DIMmed names

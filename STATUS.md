@@ -47,9 +47,9 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. **The verification families as a suite of the new compiler** (`study\35` §3 item 2, approved).
-2. Then M4's parity work; the upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, blanks
-   around `.` and `_CONTINUE` (2 programs each).
+1. M4's parity work; the upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, blanks
+   around `.` and `_CONTINUE` (2 programs each). The verification families are a suite of the new compiler since
+   `verification-compare` (`tests\verification\`); its `known.list` holds more such lines.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 
@@ -160,7 +160,10 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 ## Known bugs
 
-None known (the stale libqb objects are fixed by `libqb-object-flags`).
+- **A program whose C++ build fails in both compilers gets no error before the C++** (found by
+  `verification-compare`, user 2026-10-19): an `$EXEICON` file that is no icon (`v29_e16_not_an_icon`), and five
+  `DECLARE LIBRARY` forms whose C++ fails (`v37_x04`, `x17`, `x23`, `x30`, `x31`). The new compiler should reject
+  each with an error that says why; `tests\verification\known.list` names them.
 
 ## Queued for later milestones
 

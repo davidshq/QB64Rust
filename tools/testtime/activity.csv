@@ -1107,11 +1107,11 @@ version,session,change,category,actions,bytes
 1,6d586be5,m3-errorline-chr-const,test runs,23,0
 1,6d586be5,m3-errorline-chr-const,tests and fixtures,27,33611
 1,6d5aabb1,,builds,1,0
-1,6d5aabb1,,documents and planning,4,877
-1,6d5aabb1,,other commands,19,0
+1,6d5aabb1,,documents and planning,5,1553
+1,6d5aabb1,,other commands,20,0
 1,6d5aabb1,,reading,1,0
 1,6d5aabb1,,scratch files,1,2246
-1,6d5aabb1,,test runs,7,0
+1,6d5aabb1,,test runs,8,0
 1,6e612bb3,extension-vsix,builds,1,0
 1,6e612bb3,extension-vsix,documents and planning,9,2677
 1,6e612bb3,extension-vsix,other commands,33,0
@@ -2093,6 +2093,17 @@ version,session,change,category,actions,bytes
 1,da921c4d,m2-demand-report-and-runner-tests,product code,2,1459
 1,da921c4d,m2-demand-report-and-runner-tests,test runs,2,0
 1,da921c4d,m2-demand-report-and-runner-tests,tests and fixtures,2,1861
+1,dad4678a,verification-compare,builds,7,0
+1,dad4678a,verification-compare,documents and planning,12,7970
+1,dad4678a,verification-compare,measurement preparation,2,4404
+1,dad4678a,verification-compare,measurement runs,12,0
+1,dad4678a,verification-compare,other,3,0
+1,dad4678a,verification-compare,other commands,86,0
+1,dad4678a,verification-compare,product code,5,3669
+1,dad4678a,verification-compare,reading,34,0
+1,dad4678a,verification-compare,scratch files,2,6183
+1,dad4678a,verification-compare,test runs,35,0
+1,dad4678a,verification-compare,tests and fixtures,55,53301
 1,dafb8d57,m3-console-files,builds,9,0
 1,dafb8d57,m3-console-files,documents and planning,41,59263
 1,dafb8d57,m3-console-files,measurement preparation,5,11028
@@ -2103,6 +2114,13 @@ version,session,change,category,actions,bytes
 1,dafb8d57,m3-console-files,scratch files,4,10500
 1,dafb8d57,m3-console-files,test runs,72,0
 1,dafb8d57,m3-console-files,tests and fixtures,50,59721
+1,dba50711,,other,2,0
+1,dba50711,,other commands,15,0
+1,dba50711,,reading,3,0
+1,dba50711,verification-compare,documents and planning,6,26000
+1,dba50711,verification-compare,other commands,10,0
+1,dba50711,verification-compare,reading,1,0
+1,dba50711,verification-compare,test runs,1,0
 1,dd21ec04,,reading,1,0
 1,dd21ec04,m2-arrays-and-types,builds,3,0
 1,dd21ec04,m2-arrays-and-types,documents and planning,1,425
