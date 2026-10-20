@@ -9,19 +9,21 @@ typefields_rejected.bas:17:15: note: QB64pe: _MEM cannot reference a TYPE value 
 typefields_rejected.bas:21:11: error: a `REDIM` of the member array `x.v` names its bounds as `lower TO upper`, or its type with `AS`
 typefields_rejected.bas:22:19: error: the member array `x.v` is declared LONG: a `REDIM` cannot give it another type
 typefields_rejected.bas:22:19: note: QB64pe: REDIM type does not match the declared TYPE member array
-typefields_rejected.bas:23:11: error: `LEN` of a `TYPE T` value: a `TYPE` with a dynamic member array has no fixed size
-typefields_rejected.bas:23:11: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
+typefields_rejected.bas:23:5: error: `DIM x.v`: a member array takes its bounds by `REDIM`
+typefields_rejected.bas:23:5: note: QB64pe: DIM: Expected ,
 typefields_rejected.bas:24:11: error: `LEN` of a `TYPE T` value: a `TYPE` with a dynamic member array has no fixed size
 typefields_rejected.bas:24:11: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
-typefields_rejected.bas:25:15: error: `_OFFSET` of a `TYPE T` value: a `TYPE` with a dynamic member array has no fixed address
-typefields_rejected.bas:25:15: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
-typefields_rejected.bas:26:7: error: `x.v` is a member array: an index is expected after it
-typefields_rejected.bas:28:12: error: `PUT` of one `TYPE T` value: a `TYPE` with a dynamic member array goes to a file only as a whole array
-typefields_rejected.bas:28:12: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
-typefields_rejected.bas:31:12: error: `PUT` of one `TYPE T` value: a `TYPE` with a dynamic member array goes to a file only as a whole array
-typefields_rejected.bas:31:12: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
+typefields_rejected.bas:25:11: error: `LEN` of a `TYPE T` value: a `TYPE` with a dynamic member array has no fixed size
+typefields_rejected.bas:25:11: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
+typefields_rejected.bas:26:15: error: `_OFFSET` of a `TYPE T` value: a `TYPE` with a dynamic member array has no fixed address
+typefields_rejected.bas:26:15: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
+typefields_rejected.bas:27:7: error: `x.v` is a member array: an index is expected after it
+typefields_rejected.bas:29:12: error: `PUT` of one `TYPE T` value: a `TYPE` with a dynamic member array goes to a file only as a whole array
+typefields_rejected.bas:29:12: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
 typefields_rejected.bas:32:12: error: `PUT` of one `TYPE T` value: a `TYPE` with a dynamic member array goes to a file only as a whole array
 typefields_rejected.bas:32:12: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
-typefields_rejected.bas:33:12: error: `GET` of one `TYPE T` value: a `TYPE` with a dynamic member array goes to a file only as a whole array
+typefields_rejected.bas:33:12: error: `PUT` of one `TYPE T` value: a `TYPE` with a dynamic member array goes to a file only as a whole array
 typefields_rejected.bas:33:12: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
-typefields_rejected.bas:34:12: error: `PUT` of a `TYPE S` value: a `TYPE` with a `STRING` member has no fixed size
+typefields_rejected.bas:34:12: error: `GET` of one `TYPE T` value: a `TYPE` with a dynamic member array goes to a file only as a whole array
+typefields_rejected.bas:34:12: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
+typefields_rejected.bas:35:12: error: `PUT` of a `TYPE S` value: a `TYPE` with a `STRING` member has no fixed size

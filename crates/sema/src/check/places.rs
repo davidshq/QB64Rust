@@ -430,6 +430,14 @@ impl Checker<'_> {
             return Err(self.unsupported(name_tok.span, format!("an array with a constant's name: `{shown}`")));
         }
         self.reserved(name_tok, &name, suffix)?;
+        if let Ty::Bit { width, .. } = ty
+            && width > 63
+        {
+            // Measured: "Cannot create a _BIT array of size > 63 bits" (`verification\v21_x27`); in `dim2` for every
+            // array, by `AS` or by suffix (`qb64pe.bas`).
+            let msg = format!("an array cannot be of a `_BIT` type of more than 63 bits (`_BIT * {width}`)");
+            return Err(self.error(name_tok.span, msg));
+        }
         // Measured (`v09` test 3, `v24_x48`): a `REDIM` without a type takes the type of an array of the name
         // declared with `AS`, by `REDIM` or by `DIM`. With `AS` and another type than that array's it is "Name
         // already in use", between `STRING` and `STRING * n` or two lengths "Type mismatch" (`v24_x39`, `x41`,

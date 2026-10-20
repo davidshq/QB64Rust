@@ -5,7 +5,9 @@ use super::proc::{FIXED_LEN_ERROR, fixed_len, fixed_name, suffix_fits};
 use super::{Checker, Failed, R, Scope};
 use crate::consteval::Value;
 use crate::literal::{self, NumLit};
-use crate::{AllocMode, ArrayRef, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId};
+use crate::{
+    AllocMode, ArrayRef, MemberId, Place, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId,
+};
 use qb64rust_base::{show_bytes, to_u32};
 use qb64rust_builtins::{Kind, auto_constant, find_any, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
@@ -556,6 +558,33 @@ impl Checker<'_> {
             }
             let name_tok = self.need(item.name(), item.node().span())?;
             let (name, suffix) = self.split_var_name(name_tok)?;
+            if by == Declarer::Dim
+                && item.bounds().is_some()
+                && let Some(dot) = name.find('.')
+                && let Some(v) = self.lookup_var(name[..dot].to_string(), None)
+                && let Ty::User(tid) = self.prog.var(v).ty
+            {
+                let shown = show_bytes(self.text(name_tok.span));
+                // Looked up without reporting: only the measured form, one member array without a suffix, is an
+                // error; a name that is no member, a path or a suffix is not measured.
+                let path = &name[dot + 1..];
+                let member = (suffix.is_none())
+                    .then(|| self.prog.user_type(tid).members.iter().position(|m| m.name == path))
+                    .flatten()
+                    .map(|i| Place::Member {
+                        base: Box::new(Place::Var(v)),
+                        member: MemberId(to_u32(i)),
+                    });
+                if member.is_some_and(|p| self.is_member_array(&p)) {
+                    // Measured: "DIM: Expected ," (`verification\v35_x37`, found by `verification-compare`); a member
+                    // array takes its bounds by `REDIM`.
+                    let msg = format!("`DIM {shown}`: a member array takes its bounds by `REDIM`");
+                    return Err(self.error(name_tok.span, msg));
+                }
+                // Not measured: `DIM` of another member, of a name that is no member, of a path or with a suffix.
+                let msg = format!("`DIM {shown}` with the name of a `TYPE` variable before the dot");
+                return Err(self.unsupported(name_tok.span, msg));
+            }
             let as_clause = item.as_clause();
             let ty = match list_ty {
                 Some(t) => self.list_item_type(name_tok, suffix, as_clause, t)?,

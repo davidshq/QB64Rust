@@ -46,6 +46,18 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     LF), and a run that writes none fails. <name>.keys, when present, is given to it as
     QB64_SCREEN_KEYS (the keys it reads); a .keys without a .screen is an error in the test.
     --record writes .screen when both runs wrote equal states
+  * <name>.<script>.keys beside a screen program <name>.bas: a script of it (spec testing/screen-state,
+    "Scripts of a screen program"), a test of its own named <group>/<name>.<script>, judged by its
+    own <name>.<script>.screen, .output and other sidecars by the rules for a screen program, and
+    run from <name>.bas with <name>.files. The tests of one program share one build in a run
+    (<results>/<group>-<name>-build/). --glob, --list, --record, --pass-cache and --check-list
+    take the test name. A script without its .screen fails at stage "expected" (--record writes it)
+  * --full-states <group>/<name>[.<script>]: that test's `digest` steps write full states
+    (QB64_SCREEN_DIGEST_AS_STATE=1), kept in the results folder to look at; the test fails at stage
+    "screen" with their file named, as its states are not compared
+  * --coverage <file> (qb64rust): every program is built with --coverage and each run's counts
+    (QB64RUST_COVERAGE, a file in the results folder) are appended to <file> once it has passed
+    or failed, one record per run (tools/coverage); not with --record or --pass-cache
   * <name>.files: a folder of data files the program reads (the pictures a game loads with
     BLOAD). Everything in it is copied into the program's folder before it is compiled, with
     either compiler, when checking and when recording; beside an .err or a .norun it is an
@@ -64,8 +76,8 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     (no .bas), '#' starts a comment; also for --suite compile, with <category>/<name>
     (e.g. tests/upstream/pass.list); a list that names no program runs nothing and passes
     (a list whose programs --category or --glob leave out is still an error)
-The verification suite (verification/ of this repo; verification/run.sh only starts it). It records
-and compares nothing:
+The verification suite (verification/ of this repo; verification/run.sh only starts it). With qb64pe
+it records, with any other compiler it compares (verification_compare). Recording:
   * the programs named on the command line (no .bas), or every *.bas of the folder, are compiled
     where they are with qb64pe -x -q -m, so that their included files are found; <name>.exe is
     written beside the program and runs there with stdin from the null device (or <name>.stdin),
@@ -74,7 +86,19 @@ and compares nothing:
     <name>.out.txt (the program's stdout and stderr, "(timed out after 60 s)" after a timeout, then
     "exit=<code>"; or "(not compiled)" when there is no exe), and prints the latter
   * exit codes are written as Git Bash reports them (bash_exit_code): the files were recorded by a
-    shell script and stay comparable. qb64pe only, one program at a time
+    shell script and stay comparable. One program at a time
+Comparing (tests/verification/README.md; spec testing/verification-suite):
+  * each program is compiled with -x -q -m in a fresh folder <results>/verification/<name>/ holding the
+    program, its .stdin and .noprompt and the support items of its family, of no family, and of another
+    family that its source names (verification_support); nothing is written into verification/
+  * it runs as recorded, through press_any_key.py --no-keys --hidden-desktop: stdin from the null
+    device or the .stdin, the recorded QB64PE_NOPROMPT, a 60 s timeout, no key presses
+  * "(not compiled)" passes on a rejection by the rule above; any other recording passes when the run's
+    verification_text (the folder masked, the exit= line as Git Bash writes it) equals it, CRLF as LF,
+    after tests/verification/normalize/<name>.normalize on both sides; no <name>.out.txt fails
+  * the trace of divergences as in the corpus, the sidecar tests/verification/divergences/<name>.divergences;
+    a program of tests/verification/known.list that fails is a known failure (KFAIL)
+  * --list (one name per line), --jobs, --build-cache, --pass-cache and --check-list as for the corpus
 Speed (corpus and compile suites; the C++ build is most of each program's time):
   * --jobs N runs N programs at a time, after the first one alone (it builds any libqb object the
     clone lacks); results are printed as they finish. Compile tests of one folder run (not build)
@@ -146,6 +170,9 @@ CORPUS_RUN_TIMEOUT = 60
 # Linked into every screen program of the corpus (tools/screen/README.md).
 SCREEN_STATE_SOURCE = Path(__file__).resolve().parent.parent / "screen" / "screen_state.cpp"
 VERIFICATION_RUN_TIMEOUT = 60
+# What holds the new compiler to the verification programs (tests/verification/README.md): pass.list, known.list
+# and the sidecars divergences/<name>.divergences and normalize/<name>.normalize.
+VERIFICATION_LISTS = Path(__file__).resolve().parents[2] / "tests" / "verification"
 
 
 @dataclass
@@ -811,14 +838,72 @@ def data_files(folder: Path) -> bytes | None:
     return h.digest()
 
 
+def script_of(bas: Path) -> tuple[Path, str] | None:
+    """For the test of a script, <name>.<script>.bas (no such file), the program <name>.bas and the
+    script's name; None for a program."""
+    prog, dot, script = bas.stem.partition(".")
+    if not dot or "." in script or bas.is_file():
+        return None
+    src = bas.with_name(f"{prog}.bas")
+    return (src, script) if src.is_file() else None
+
+
+def scripts(bas: Path) -> list[Path]:
+    """The tests of the scripts of program bas: <name>.<script>.bas for each <name>.<script>.keys
+    beside it (a script name holds no dot)."""
+    found = []
+    for keys in bas.parent.glob(f"{glob.escape(bas.stem)}.*.keys"):
+        script = keys.name[len(bas.stem) + 1 : -len(".keys")]
+        if script and "." not in script:
+            found.append(bas.with_name(f"{bas.stem}.{script}.bas"))
+    return sorted(found)
+
+
+def corpus_tests(root: Path, pattern: str) -> list[Path]:
+    """The tests of the corpus folder root whose names match pattern: each program, and each
+    script of a program (scripts)."""
+    tests = []
+    for bas in root.rglob("*.bas"):
+        tests += [t for t in [bas, *scripts(bas)] if fnmatch.fnmatch(t.name, pattern)]
+    return sorted(tests)
+
+
+class SharedBuilds:
+    """The builds a run makes once for all the tests of a program with scripts: (rc, timed out,
+    executable, compiler output) by build folder, the first test of the program builds and the
+    others wait for it."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.locks: dict[Path, threading.Lock] = {}
+        self.done: dict[Path, tuple] = {}
+
+    def get(self, folder: Path, build):
+        with self.lock:
+            lock = self.locks.setdefault(folder, threading.Lock())
+        with lock:
+            if folder not in self.done:
+                self.done[folder] = build()
+            return self.done[folder]
+
+
+# One append at a time to the --coverage file: each run's record goes in whole.
+COVERAGE_LOCK = threading.Lock()
+
+
 def corpus_test(
     bas: Path, args, results: Path, qb_root: Path, corpus_root: Path, known: dict[str, str]
 ) -> Result:
-    """Runs (or with --record, records) one program of the corpus suite (module docstring)."""
+    """Runs (or with --record, records) one program of the corpus suite, or one script of a
+    program (module docstring)."""
     group = bas.parent.relative_to(corpus_root).as_posix()
     name = bas.stem
     tdir = bas.parent
     key = f"{group.replace('/', '-')}-{name}"
+    # A script's test runs its program's source, with the program's data files.
+    script = script_of(bas)
+    src = script[0] if script else bas
+    prog = src.stem
     err_file = tdir / f"{name}.err"
     out_file = tdir / f"{name}.output"
     norun = (tdir / f"{name}.norun").is_file()
@@ -846,13 +931,17 @@ def corpus_test(
     # it leaves is compared as well as its output.
     screen_file = tdir / f"{name}.screen"
     screen = screen_file.is_file()
+    if script and not screen_file.is_file():
+        if not args.record:
+            return fail("expected", f"no {screen_file.name} (record it with --record)")
+        screen = True
     if screen and (norun or err_file.is_file()):
         return fail("expected", f".screen beside {present[0]}: a screen program runs")
     keys_file = tdir / f"{name}.keys"
     if keys_file.is_file() and not screen:
         return fail("expected", ".keys without .screen: only a screen program is given keys")
     # <name>.files: the data files the program reads, copied beside it before it is compiled.
-    files_dir = tdir / f"{name}.files"
+    files_dir = tdir / f"{prog}.files"
     if files_dir.is_dir() and (norun or err_file.is_file()):
         return fail("expected", f".files beside {present[0]}: a program with data files runs")
     exitcode_file = tdir / f"{name}.exitcode"
@@ -869,46 +958,75 @@ def corpus_test(
     if work.exists():
         shutil.rmtree(work)
     work.mkdir(parents=True)
-    shutil.copyfile(bas, work / bas.name)
+    shutil.copyfile(src, work / src.name)
     if files_dir.is_dir():
         shutil.copytree(files_dir, work, dirs_exist_ok=True)
     exe = work / f"{name}.exe"
-    compile_out = results / f"{key}-compile_result.txt"
 
     old = is_old_compiler(args.qb64)
     flags = ["-f:OptimizeCppProgram=true"] if args.cpp_opt else []
     if screen:
         flags.append(f"-f:ExtraLinkerFlags={SCREEN_STATE_SOURCE.as_posix()}")
-    with contextlib.ExitStack() as stack:
-        # Only qb64pe builds in its own internal/temp: the clone's, or with --jobs this worker's
-        # private copy's (CompilerCopies).
-        qb64, build_root = args.qb64, qb_root
-        if old and args.copies:
-            build_root = stack.enter_context(args.copies.lease())
-            qb64 = build_root / "qb64pe.exe"
-        if old:
-            clear_temp(build_root)
-        rc, timed_out = run_proc(
-            [
-                str(qb64),
-                *flags,
-                "-q",
-                "-m",
-                "-x",
-                *include_root_args(args.qb64),
-                bas.name,
-                "-o",
-                str(exe),
-            ],
-            work,
-            compile_out,
-            COMPILE_TIMEOUT,
-        )
-        if old:
-            copy_if_exists(
-                build_root / "internal" / "temp" / "compilelog.txt",
-                results / f"{key}-compilelog.txt",
+    coverage = getattr(args, "coverage", None)
+    if coverage:
+        flags.append("--coverage")
+
+    def build(folder: Path, out: Path, build_key: str) -> tuple[int | None, bool, Path]:
+        """Compiles the program in folder (which holds it and its data files) into out."""
+        compile_out = results / f"{build_key}-compile_result.txt"
+        with contextlib.ExitStack() as stack:
+            # Only qb64pe builds in its own internal/temp: the clone's, or with --jobs this worker's
+            # private copy's (CompilerCopies).
+            qb64, build_root = args.qb64, qb_root
+            if old and args.copies:
+                build_root = stack.enter_context(args.copies.lease())
+                qb64 = build_root / "qb64pe.exe"
+            if old:
+                clear_temp(build_root)
+            rc, timed_out = run_proc(
+                [
+                    str(qb64),
+                    *flags,
+                    "-q",
+                    "-m",
+                    "-x",
+                    *include_root_args(args.qb64),
+                    src.name,
+                    "-o",
+                    str(out),
+                ],
+                folder,
+                compile_out,
+                COMPILE_TIMEOUT,
             )
+            if old:
+                copy_if_exists(
+                    build_root / "internal" / "temp" / "compilelog.txt",
+                    results / f"{build_key}-compilelog.txt",
+                )
+        return rc, timed_out, compile_out
+
+    # The tests of a program with scripts share one build in a run: in a folder of its own, from
+    # which each copies the executable.
+    builds = getattr(args, "builds", None)
+    if builds is not None and (script or scripts(bas)):
+        prog_key = f"{group.replace('/', '-')}-{prog}"
+        folder = results / f"{prog_key}-build"
+
+        def build_once():
+            if folder.exists():
+                shutil.rmtree(folder)
+            folder.mkdir(parents=True)
+            shutil.copyfile(src, folder / src.name)
+            if files_dir.is_dir():
+                shutil.copytree(files_dir, folder, dirs_exist_ok=True)
+            return build(folder, folder / f"{prog}.exe", prog_key)
+
+        rc, timed_out, compile_out = builds.get(folder, build_once)
+        if (folder / f"{prog}.exe").is_file():
+            shutil.copyfile(folder / f"{prog}.exe", exe)
+    else:
+        rc, timed_out, compile_out = build(work, exe, key)
     if timed_out:
         return fail("compile", "timeout")
 
@@ -971,7 +1089,7 @@ def corpus_test(
             return p.read_bytes() if p.is_file() else None
 
         parts = [
-            bas.read_bytes(),
+            src.read_bytes(),
             read(out_file),
             read(screen_file),
             read(keys_file),
@@ -1006,6 +1124,10 @@ def corpus_test(
         keys_copy = results / f"{key}-keys.txt"
         shutil.copyfile(keys_file, keys_copy)
         env["QB64_SCREEN_KEYS"] = str(keys_copy)
+    # --full-states: this test's digests are full states, to look at.
+    full_states = getattr(args, "full_states", None) == f"{group}/{name}"
+    if full_states:
+        env["QB64_SCREEN_DIGEST_AS_STATE"] = "1"
     if os.name == "nt":
         # END waits for a console key event, which the null device never sends (press_any_key.py).
         cmd = [sys.executable, str(Path(__file__).with_name("press_any_key.py"))]
@@ -1022,7 +1144,7 @@ def corpus_test(
     states: list[bytes] = []
     codes: list[int] = []
     for run in range(1, 3 if args.record else 2):
-        reset_folder(work, {bas.name, exe.name})
+        reset_folder(work, {src.name, exe.name})
         if files_dir.is_dir():
             # Fresh for every run: the first one may have changed or removed a data file.
             shutil.copytree(files_dir, work, dirs_exist_ok=True)
@@ -1033,6 +1155,10 @@ def corpus_test(
         if screen:
             state_out.unlink(missing_ok=True)
             env["QB64_SCREEN_STATE"] = str(state_out)
+        counts = results / f"{key}-run{run}-coverage.txt"
+        if coverage:
+            counts.unlink(missing_ok=True)
+            env["QB64RUST_COVERAGE"] = str(counts)
         rc, timed_out = run_proc(
             cmd,
             work,
@@ -1043,6 +1169,10 @@ def corpus_test(
             creationflags=flags,
             stdin_path=stdin_copy if os.name != "nt" else None,
         )
+        # A run cut short may have left half a record: its counts are left out, the timeout fails the test.
+        if coverage and counts.is_file() and not timed_out:
+            with COVERAGE_LOCK, open(coverage, "ab") as f:
+                f.write(counts.read_bytes())
         if timed_out:
             return fail("run", "timeout")
         # A recording takes any code (two runs must agree); a check wants the .exitcode's, or 0.
@@ -1071,9 +1201,8 @@ def corpus_test(
             exitcode_file.unlink()
             changes.append(f"removed {exitcode_file.name}")
         if screen:
-            first = (
-                screen_file.stat().st_size == 0
-            )  # the empty file that marks a new screen program
+            # The empty file that marks a new screen program, or none for a new script.
+            first = not screen_file.is_file() or screen_file.stat().st_size == 0
             change = write_recorded(screen_file, states[0])
             changes.append(f"recorded new {screen_file.name}" if first and change else change)
         return passed("; ".join(c for c in changes if c))
@@ -1082,6 +1211,8 @@ def corpus_test(
     odd = unexpected_rows(trace, allowed_rows(tdir / f"{name}.divergences"))
     if odd:
         return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES.md")
+    if full_states:
+        return fail("screen", f"--full-states: the states are in {state_out.name}, not compared")
     if screen and norm_output(screen_file.read_bytes()) != norm_output(states[0]):
         return fail("screen", "screen state differs from .screen")
     if remembered:
@@ -1161,20 +1292,10 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
         r.seconds = round(time.time() - t0, 1)
         return r
 
-    # The compiler names an included file by its full path; no local path goes into the repo
-    # (CLAUDE.md, rule 2). Any spelling of the folder: either slash, any letter case.
-    folder = re.compile(
-        rb"[\\/]+".join(re.escape(p.encode()) for p in re.split(r"[\\/]+", str(tdir))),
-        re.IGNORECASE,
-    )
-
-    def masked(data: bytes) -> bytes:
-        return folder.sub(b"<verification>", data)
-
     changes = [
         write_recorded(
             tdir / f"{name}.compile.txt",
-            masked(compile_out.read_bytes()) + f"exit={bash_exit_code(rc)}\n".encode(),
+            mask_folder(compile_out.read_bytes(), tdir) + f"exit={bash_exit_code(rc)}\n".encode(),
         )
     ]
     if exe.is_file():
@@ -1195,17 +1316,280 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
             stdin_path=stdin_file if stdin_file.is_file() else None,
             ask_first=True,  # as `timeout` did under run.sh: the pending prompt is recorded
         )
-        out = masked(run_out.read_bytes())
-        if timed_out:
-            out += f"(timed out after {VERIFICATION_RUN_TIMEOUT} s)\nexit=124\n".encode()
-        else:
-            out += f"exit={bash_exit_code(rc)}\n".encode()
+        out = verification_text(run_out.read_bytes(), rc, timed_out, tdir)
     else:
-        out = b"(not compiled)\n"
+        out = NOT_COMPILED
     changes.append(write_recorded(tdir / f"{name}.out.txt", out))
     r.detail = "; ".join(c for c in changes if c)
     r.seconds = round(time.time() - t0, 1)
     return r
+
+
+NOT_COMPILED = b"(not compiled)\n"
+
+
+def mask_folder(data: bytes, folder: Path) -> bytes:
+    """data with every spelling of folder (either slash, any letter case) replaced by <verification>.
+
+    The compiler names an included file by its full path, and a program may print its own; no local
+    path goes into the repo (CLAUDE.md, rule 2), and a compare runs in another folder."""
+    pattern = re.compile(
+        rb"[\\/]+".join(re.escape(p.encode()) for p in re.split(r"[\\/]+", str(folder))),
+        re.IGNORECASE,
+    )
+    return pattern.sub(b"<verification>", data)
+
+
+def verification_text(out: bytes, rc: int | None, timed_out: bool, folder: Path) -> bytes:
+    """The text of <name>.out.txt for a run that printed out in folder and ended with rc (or timed
+    out): written by the recorder, and built the same way by the compare to set against it."""
+    text = mask_folder(out, folder)
+    if timed_out:
+        return text + f"(timed out after {VERIFICATION_RUN_TIMEOUT} s)\nexit=124\n".encode()
+    return text + f"exit={bash_exit_code(rc)}\n".encode()
+
+
+def family(name: str) -> str | None:
+    """The family number of a verification program or support file: v16 for v16_m8_a, v16_inc and
+    v16_y.bi, v37 for v37c.a, v02 for v02b_idiv_zero; None for a name that has none."""
+    m = re.match(r"v\d+", name, re.IGNORECASE)
+    return m.group(0).lower() if m else None
+
+
+# What the verification folder holds besides support files: programs, recorded files (.txt), executables
+# and their build folders (.exe.qb64rust), the scripts that write recorded files, documents, the sidecars a
+# program takes as its own, and the recorded resource files of v40.
+SUPPORT_SKIP_SUFFIXES = (
+    ".bas",
+    ".txt",
+    ".exe",
+    ".qb64rust",
+    ".py",
+    ".md",
+    ".sh",
+    ".stdin",
+    ".noprompt",
+)
+SUPPORT_SKIP_NAMES = frozenset({"__pycache__", "v40_rc"})
+
+
+@functools.cache
+def support_items(root: Path) -> tuple[Path, ...]:
+    """The support files and folders of a verification folder (taken once per run)."""
+    return tuple(
+        sorted(
+            p
+            for p in root.iterdir()
+            if p.name not in SUPPORT_SKIP_NAMES
+            and not p.name.lower().endswith(SUPPORT_SKIP_SUFFIXES)
+        )
+    )
+
+
+def verification_support(root: Path, name: str) -> list[Path]:
+    """The support items a compared program gets in its folder: those of its own family (v16_inc\\ and
+    v16_y.bi for v16_m8_a; v37c.a and v37_lib\\ for v37_x01), those of no family (cp437_all_bytes.bin),
+    and those of another family that its source names (v29_inc\\ for $EXEICON:'./v29_inc/icon.ico' in
+    v40_f_with_icon)."""
+    own = family(name)
+    source = (
+        (root / f"{name}.bas").read_bytes().lower() if (root / f"{name}.bas").is_file() else b""
+    )
+    return [
+        p
+        for p in support_items(root)
+        if family(p.name) in (own, None) or p.name.lower().encode() in source
+    ]
+
+
+# Built by verification/v37_lib/build_libs.py (git-ignored); the v37 programs name them.
+V37_LIBRARIES = ("v37c.a", "v37s.a", "v37o.o", "v37cpp.a", "v37dll.dll")
+
+
+def tree_digest(paths: list[Path]) -> bytes:
+    """What a set of files and folders holds, for pass_key: every file by its path and bytes."""
+    h = hashlib.sha256()
+    for top in paths:
+        files = [top] if top.is_file() else sorted(q for q in top.rglob("*") if q.is_file())
+        for p in files:
+            for part in (p.relative_to(top.parent).as_posix().encode(), p.read_bytes()):
+                h.update(len(part).to_bytes(8, "little"))
+                h.update(part)
+    return h.digest()
+
+
+def first_difference(want: bytes, got: bytes) -> str:
+    """The first line where two outputs differ, for a failure's detail."""
+    a, b = want.split(b"\n"), got.split(b"\n")
+    for n, (x, y) in enumerate(zip(a, b), 1):
+        if x != y:
+            return f"line {n}: recorded {x[:60]!r}, got {y[:60]!r}"
+    n = min(len(a), len(b)) + 1
+    return f"line {n}: " + ("the recording goes on" if len(a) > len(b) else "the run goes on")
+
+
+def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Result:
+    """Compares the new compiler with one recorded verification program (module docstring)."""
+    name = bas.stem
+    root = bas.parent
+    recorded_file = root / f"{name}.out.txt"
+    recorded = recorded_file.read_bytes() if recorded_file.is_file() else None
+    rejected = recorded is not None and recorded.replace(b"\r\n", b"\n") == NOT_COMPILED
+    r = Result("verification", name, "error" if rejected else "output")
+    t0 = time.time()
+
+    def finish(status="PASS", stage="", detail=""):
+        r.status, r.stage, r.detail = status, stage, detail
+        r.seconds = round(time.time() - t0, 1)
+        return r
+
+    def fail(stage, detail=""):
+        return finish("FAIL", stage, detail)
+
+    if recorded is None:
+        return fail("expected", f"nothing recorded to compare: no {recorded_file.name}")
+    if family(name) == "v37":
+        missing = [lib for lib in V37_LIBRARIES if not (root / lib).is_file()]
+        if missing:
+            return fail(
+                "expected",
+                f"no {', '.join(missing)}: run verification/v37_lib/build_libs.py first",
+            )
+
+    # A fresh folder per program, with the family's support files: nothing written in the verification
+    # folder, nothing shared between programs run side by side.
+    work = results / name
+    if work.exists():
+        shutil.rmtree(work)
+    work.mkdir(parents=True)
+    shutil.copyfile(bas, work / bas.name)
+    stdin_file = root / f"{name}.stdin"
+    np_file = root / f"{name}.noprompt"
+    for sidecar in (stdin_file, np_file):
+        copy_if_exists(sidecar, work / sidecar.name)
+    support = verification_support(root, name)
+    for item in support:
+        if item.is_dir():
+            shutil.copytree(item, work / item.name, ignore=shutil.ignore_patterns("__pycache__"))
+        else:
+            shutil.copyfile(item, work / item.name)
+    exe = work / f"{name}.exe"
+    compile_out = results / f"{name}-compile.txt"
+    env = dict(os.environ)
+    env["QB64PE_NOPROMPT"] = "y"
+    rc, timed_out = run_proc(
+        [str(args.qb64), "-x", "-q", "-m", bas.name, "-o", str(exe)],
+        work,
+        compile_out,
+        COMPILE_TIMEOUT,
+        env=env,
+        merge_stderr=True,
+    )
+    if timed_out:
+        return fail("compile", "timeout")
+
+    def passed(detail=""):
+        shutil.rmtree(work, ignore_errors=True)
+        return finish(detail=detail)
+
+    if rejected:
+        if rc == 0:
+            return fail("compile", "compiled successfully; the old compiler rejected it")
+        if exe.exists():
+            return fail("exe exists", "exe produced although the compile failed")
+        why = new_compiler_rejection(rc, compile_out.read_bytes())
+        return fail("error result", why) if why else passed()
+    if rc != 0:
+        return fail("compile", f"exit code {rc}; the old compiler built it")
+    if not exe.exists():
+        return fail("exe exists", "no executable produced")
+
+    if np_file.is_file():
+        env["QB64PE_NOPROMPT"] = np_file.read_text(encoding="latin-1").strip()
+    normalize = VERIFICATION_LISTS / "normalize" / f"{name}.normalize"
+    divergences = VERIFICATION_LISTS / "divergences" / f"{name}.divergences"
+    helper = Path(__file__).with_name("press_any_key.py")
+    remembered = None
+    pass_cache = getattr(args, "pass_cache", None)
+    if pass_cache:
+
+        def read(p: Path) -> bytes | None:
+            return p.read_bytes() if p.is_file() else None
+
+        parts = [
+            bas.read_bytes(),
+            recorded,
+            read(stdin_file),
+            env["QB64PE_NOPROMPT"].encode(),
+            read(normalize),
+            read(divergences),
+            tree_digest(support),
+            helper.read_bytes() if os.name == "nt" else None,
+        ]
+        remembered = pass_cache / pass_key(exe, parts)
+        if remembered.is_file():
+            return passed(PASSED_BEFORE)
+
+    # Run as recorded (stdin from the null device or the .stdin copy, no key presses: a program waiting
+    # at END times out as it did), with its window on a desktop that is never shown (press_any_key.py
+    # --no-keys). The helper shares this runner's console, as the recorded program did, so that
+    # run_proc's Ctrl+Break reaches the program and it writes out a pending prompt before the timeout.
+    run_stdin = work / stdin_file.name if stdin_file.is_file() else None
+    if os.name == "nt":
+        cmd = [sys.executable, str(helper), "--no-keys"]
+        if os.environ.get("QB64RUST_SHOW_WINDOWS") != "1":
+            cmd.append("--hidden-desktop")
+        cmd.append(str(exe))
+        if run_stdin:
+            cmd.append(str(run_stdin))
+    else:
+        cmd = [str(exe)]
+    run_out = results / f"{name}-out.txt"
+    trace = results / f"{name}-divergences.txt"
+    set_trace(env, trace)
+    rc, timed_out = run_proc(
+        cmd,
+        work,
+        run_out,
+        VERIFICATION_RUN_TIMEOUT,
+        env=env,
+        merge_stderr=True,
+        stdin_path=run_stdin if os.name != "nt" else None,
+        ask_first=True,
+    )
+    actual = verification_text(run_out.read_bytes(), rc, timed_out, work)
+    rules = load_normalize(normalize)
+    want = norm_output(apply_normalize(recorded, rules))
+    got = norm_output(apply_normalize(actual, rules))
+    if want != got:
+        return fail("result", f"differs from {recorded_file.name}, {first_difference(want, got)}")
+    odd = unexpected_rows(trace, allowed_rows(divergences))
+    if odd:
+        return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES.md")
+    if remembered:
+        remembered.parent.mkdir(parents=True, exist_ok=True)
+        remembered.touch()
+    return passed()
+
+
+def load_known_list(path: Path) -> dict[str, str]:
+    """Reads tests/verification/known.list into {"verification:<name>": reason} (empty if it does not
+    exist). Lines: <name><TAB><reason>; '#' lines and blank lines are skipped."""
+    known: dict[str, str] = {}
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip() or line.startswith("#"):
+                continue
+            name, _, reason = line.partition("\t")
+            known[f"verification:{name.strip()}"] = reason.strip()
+    return known
+
+
+def pass_is_news(key: str, reason: str) -> bool:
+    """Whether a pass of a program listed as a known failure is named at the end of the run. A
+    verification program listed as `varies` passes on some runs and not on others: its pass is no
+    reason to move it to pass.list."""
+    return not (key.startswith("verification:") and reason.split(":", 1)[0].strip() == "varies")
 
 
 def load_list(path: Path, root: Path) -> set[Path]:
@@ -1219,7 +1603,11 @@ def load_list(path: Path, root: Path) -> set[Path]:
         if not line:
             continue
         bas = (root / f"{line}.bas").resolve()
-        if not bas.is_file():
+        # A script of a corpus program: <group>/<name>.<script>, with its .keys.
+        script = script_of(bas)
+        if script and not bas.with_suffix(".keys").is_file():
+            script = None
+        if not bas.is_file() and not script:
             raise ValueError(f"{path.name} line {n}: no program {line}.bas in {root.name}")
         wanted.add(bas)
     return wanted
@@ -1255,18 +1643,26 @@ def fold_is_off() -> bool:
 
 
 def result_key(suite: str, bas: Path, root: Path) -> tuple[str, str]:
-    """(suite, test) as a corpus or compile-suite result names the program."""
+    """(suite, test) as a corpus, compile-suite or verification result names the program."""
     if suite == "corpus":
         return "corpus", bas.relative_to(root).with_suffix("").as_posix()
+    if suite == "verification":
+        return "verification", bas.stem
     return "compile_tests", f"{bas.parent.name}/{bas.stem}"
 
 
 def program_inputs(suite: str, bas: Path) -> list[Path]:
     """The files of a program that decide its result besides the compiler and the runner: the
-    program, every file beside it named <name>.<anything> (expected output, keys, sidecars), the
-    files of <name>.files/, and a compile-suite program's .divergences sidecar. An included file is
-    not among them."""
+    program, every file beside it named <name>.<anything> (expected output, keys, sidecars; for a
+    verification program not its .exe, which a recording writes), the files of <name>.files/, and the
+    sidecars kept elsewhere (a compile-suite program's .divergences, a verification program's
+    .divergences and .normalize). An included file is not among them."""
     found = [p for p in bas.parent.glob(f"{glob.escape(bas.stem)}.*") if p.is_file()]
+    # A script's test: also the program it runs.
+    script = script_of(bas) if suite == "corpus" else None
+    if script:
+        found.append(script[0])
+        bas = script[0]
     data = bas.with_name(bas.stem + ".files")
     if data.is_dir():
         found += [p for p in data.rglob("*") if p.is_file()]
@@ -1274,6 +1670,12 @@ def program_inputs(suite: str, bas: Path) -> list[Path]:
         sidecar = compile_sidecar(bas.parent.name, bas.stem)
         if sidecar.is_file():
             found.append(sidecar)
+    if suite == "verification":
+        found = [p for p in found if p.suffix.lower() != ".exe"]
+        for kind in ("divergences", "normalize"):
+            sidecar = VERIFICATION_LISTS / kind / f"{bas.stem}.{kind}"
+            if sidecar.is_file():
+                found.append(sidecar)
     return found
 
 
@@ -1304,9 +1706,10 @@ def check_list(
         problems.append("the runner has changed since the run")
     if run.get("no_fold") != fold_is_off():
         problems.append(f"the run had QB64RUST_NO_FOLD={'1' if run.get('no_fold') else 'unset'}")
-    if run.get("pass_cache") or run.get("record") or run.get("cpp_opt"):
+    if any(run.get(k) for k in ("pass_cache", "record", "cpp_opt", "coverage", "full_states")):
         problems.append(
-            "a run with --pass-cache, --record or --cpp-opt cannot stand for a run of the list"
+            "a run with --pass-cache, --record, --cpp-opt, --coverage or --full-states cannot "
+            "stand for a run of the list"
         )
     if problems:
         return problems, [], 0
@@ -1383,7 +1786,9 @@ def run_suite_test(
         if suite == "corpus":
             return [corpus_test(bas, args, results, qb_root, corpus_root, known)]
         if suite == "verification":
-            return [verification_test(bas, args, results, qb_root)]
+            if is_old_compiler(args.qb64):
+                return [verification_test(bas, args, results, qb_root)]
+            return [verification_compare(bas, args, results, qb_root)]
         return [qbasic_test(bas, args, results, qb_root)]
     # One broken test must not lose a long run's results. Named like the suite's own results, so
     # that known_failures.txt entries match.
@@ -1519,12 +1924,12 @@ def main() -> int:
         "--suite",
         choices=["compile", "qbasic", "format", "corpus", "verification", "all"],
         default="compile",
-        help="'all' is the four test suites; verification records and is run on its own",
+        help="'all' is the four test suites; verification (on its own) records with qb64pe and compares with any other compiler",
     )
     ap.add_argument(
         "names",
         nargs="*",
-        help="verification: the programs to record, without .bas (default: all, or --glob)",
+        help="verification: the programs to record or compare, without .bas (default: all, or --glob)",
     )
     ap.add_argument(
         "--verification-root",
@@ -1575,13 +1980,13 @@ def main() -> int:
     ap.add_argument(
         "--list",
         type=Path,
-        help="corpus and compile: run only the programs named in this file "
-        "(<group>/<name> per line)",
+        help="corpus, compile and a verification compare: run only the programs named in this "
+        "file (<group>/<name> per line; <name> for verification)",
     )
     ap.add_argument(
         "--check-list",
         type=Path,
-        help="corpus and compile: run nothing; judge the programs of this pass list from the "
+        help="corpus, compile and verification: run nothing; judge the programs of this pass list from the "
         "suite's last full run (results-<suite>.json under --results), which must be of this "
         "compiler build, runner, root and folding, and newer than every listed program's files",
     )
@@ -1589,7 +1994,8 @@ def main() -> int:
         "--jobs",
         type=int,
         default=1,
-        help="corpus and compile: run this many programs at a time. With qb64pe: corpus "
+        help="corpus, compile and a verification compare: run this many programs at a time. With "
+        "qb64pe: corpus "
         "only, each worker compiling with a private copy of the compiler (--copies-dir)",
     )
     ap.add_argument(
@@ -1614,19 +2020,44 @@ def main() -> int:
         "every program",
     )
     ap.add_argument(
+        "--full-states",
+        metavar="TEST",
+        help="corpus, not with --record: the digests of this screen test (<group>/<name> or "
+        "<group>/<name>.<script>) are written as full states, kept in the results folder; the "
+        "test fails, as its states are not compared",
+    )
+    ap.add_argument(
+        "--coverage",
+        type=Path,
+        metavar="FILE",
+        help="corpus with qb64rust, not with --record or --pass-cache: build each program with "
+        "--coverage and append the counts of each run to FILE (tools/coverage)",
+    )
+    ap.add_argument(
         "--pass-cache",
         type=Path,
-        help="corpus and compile: a folder that remembers which programs passed, by "
+        help="corpus, compile and a verification compare: a folder that remembers which programs passed, by "
         "executable, source and expected files; such a program is compiled and built and "
         "not run again. For work and a change's close; the runs at a merge into main go "
         "without it: it would hide a result that depends on time or load. Not with --record",
     )
     args = ap.parse_args()
-    if args.pass_cache and (args.suite not in ("corpus", "compile") or args.record):
-        print("--pass-cache applies to --suite corpus or compile without --record", file=sys.stderr)
+    if args.pass_cache and (args.suite not in ("corpus", "compile", "verification") or args.record):
+        print(
+            "--pass-cache applies to --suite corpus, compile or verification without --record",
+            file=sys.stderr,
+        )
         return 2
     if args.jobs < 1:
         print("--jobs must be 1 or more", file=sys.stderr)
+        return 2
+    if args.full_states and (args.suite != "corpus" or args.record):
+        print("--full-states applies to --suite corpus without --record", file=sys.stderr)
+        return 2
+    if args.coverage and (args.suite != "corpus" or args.record or args.pass_cache):
+        print(
+            "--coverage applies to --suite corpus without --record or --pass-cache", file=sys.stderr
+        )
         return 2
     if args.category and args.suite in ("qbasic", "verification", "all"):
         print("--category applies to the compile, format and corpus suites only", file=sys.stderr)
@@ -1640,8 +2071,11 @@ def main() -> int:
     if (args.record or args.cpp_opt) and args.suite != "corpus":
         print("--record and --cpp-opt apply to --suite corpus only", file=sys.stderr)
         return 2
-    if args.list and args.suite not in ("corpus", "compile"):
-        print("--list applies to --suite corpus and --suite compile only", file=sys.stderr)
+    if args.list and args.suite not in ("corpus", "compile", "verification"):
+        print("--list applies to --suite corpus, compile and verification only", file=sys.stderr)
+        return 2
+    if args.list and args.names:
+        print("give program names or --list, not both", file=sys.stderr)
         return 2
     if args.record and args.cpp_opt:
         print(
@@ -1649,8 +2083,9 @@ def main() -> int:
         )
         return 2
     if args.check_list and (
-        args.suite not in ("corpus", "compile")
+        args.suite not in ("corpus", "compile", "verification")
         or args.list
+        or args.names
         or args.category
         or args.glob != "*.bas"
         or args.record
@@ -1658,8 +2093,8 @@ def main() -> int:
         or args.pass_cache
     ):
         print(
-            "--check-list takes --suite corpus or compile, and no --list, --category, --glob, "
-            "--record, --cpp-opt or --pass-cache",
+            "--check-list takes --suite corpus, compile or verification, and no --list, program "
+            "names, --category, --glob, --record, --cpp-opt or --pass-cache",
             file=sys.stderr,
         )
         return 2
@@ -1671,11 +2106,12 @@ def main() -> int:
         print(f"compiler not found: {args.qb64}", file=sys.stderr)
         return 2
     if args.check_list:
-        root = (
-            args.corpus_root.resolve()
-            if args.suite == "corpus"
-            else (args.compile_tests or qb_root / "tests" / "compile_tests").resolve()
-        )
+        if args.suite == "corpus":
+            root = args.corpus_root.resolve()
+        elif args.suite == "verification":
+            root = args.verification_root.resolve()
+        else:
+            root = (args.compile_tests or qb_root / "tests" / "compile_tests").resolve()
         try:
             wanted = load_list(args.check_list, root)
         except (ValueError, OSError) as e:
@@ -1691,16 +2127,30 @@ def main() -> int:
             print(f"{source.name}: {p}", flush=True)
         for key, why in failures:
             print(f"[check] FAIL {key}  {why}", flush=True)
-        name = "corpus" if args.suite == "corpus" else "compile_tests"
+        name = "compile_tests" if args.suite == "compile" else args.suite
         failed = len(wanted) - passed
         print(json.dumps({name: {"PASS": passed, "FAIL": failed, "KFAIL": 0}}))
         print(f"{args.check_list.name}: {passed} of {len(wanted)} passed in {source.name}")
         return 0 if failed == 0 else 1
-    if args.suite == "verification" and not is_old_compiler(args.qb64):
-        print("--suite verification records the old compiler: it needs qb64pe", file=sys.stderr)
+    # --suite verification records with qb64pe and compares with any other compiler (verification_compare).
+    recording_verification = args.suite == "verification" and is_old_compiler(args.qb64)
+    if recording_verification and (args.pass_cache or args.list):
+        print(
+            "--pass-cache and --list compare the verification programs: they need a compiler other "
+            "than qb64pe",
+            file=sys.stderr,
+        )
         return 2
-    if args.jobs > 1 and (args.record or args.suite not in ("corpus", "compile")):
-        print("--jobs above 1 needs --suite corpus or compile, and no --record", file=sys.stderr)
+    if args.jobs > 1 and (
+        args.record
+        or recording_verification
+        or args.suite not in ("corpus", "compile", "verification")
+    ):
+        print(
+            "--jobs above 1 needs --suite corpus or compile, or a compare of --suite verification, "
+            "and no --record",
+            file=sys.stderr,
+        )
         return 2
     # The compile suite's programs include files relative to the compiler's folder and some compile
     # from the clone's root; a copy has neither.
@@ -1715,6 +2165,12 @@ def main() -> int:
         )
         return 2
     args.copies = None  # set per suite below
+    args.builds = SharedBuilds()
+    if args.coverage:
+        if is_old_compiler(args.qb64):
+            print("--coverage applies to qb64rust only", file=sys.stderr)
+            return 2
+        args.coverage = args.coverage.resolve()
     if args.build_cache:
         if is_old_compiler(args.qb64):
             print("--build-cache applies to qb64rust only", file=sys.stderr)
@@ -1742,7 +2198,7 @@ def main() -> int:
             if not root.is_dir():
                 print(f"no such corpus folder: {root}", file=sys.stderr)
                 return 2
-            tests = sorted(p for p in root.rglob("*.bas") if fnmatch.fnmatch(p.name, args.glob))
+            tests = corpus_tests(root, args.glob)
             if args.list:
                 try:
                     wanted = load_list(args.list, corpus_root)
@@ -1778,6 +2234,16 @@ def main() -> int:
                     return 2
             else:
                 tests = sorted(p for p in root.glob("*.bas") if fnmatch.fnmatch(p.name, args.glob))
+            if args.list:
+                try:
+                    wanted = load_list(args.list, root)
+                except (ValueError, OSError) as e:
+                    print(e, file=sys.stderr)
+                    return 2
+                tests = [p for p in tests if p.resolve() in wanted]
+            if not recording_verification:
+                # A failure of a program that tests/verification/known.list names is a known one.
+                known.update(load_known_list(VERIFICATION_LISTS / "known.list"))
         else:
             tests = qbasic_sources(qb_root)
         if not tests and wanted is not None and not wanted:
@@ -1876,7 +2342,7 @@ def main() -> int:
                 if r.status == "FAIL" and key in known:
                     r.status = "KFAIL"
                     r.detail += f" (known: {known[key]})"
-                elif r.status == "PASS" and key in known:
+                elif r.status == "PASS" and key in known and pass_is_news(key, known[key]):
                     known_passed.append(key)
                 line = f"[{i}/{len(tests)}] {r.status} {key} ({r.kind}, {r.seconds}s)"
                 if r.status != "PASS":
@@ -1884,7 +2350,7 @@ def main() -> int:
                 elif r.detail:  # corpus --record: what was written
                     line += f"  {r.detail}"
                 print(line, flush=True)
-                if suite == "verification" and r.status == "PASS":
+                if recording_verification and r.status == "PASS":
                     # What was recorded, for reading along: the program's bytes as they are.
                     sys.stdout.buffer.write((tests[idx].with_suffix(".out.txt")).read_bytes())
                     sys.stdout.buffer.flush()
@@ -1937,13 +2403,19 @@ def main() -> int:
         "version": RUN_RECORD_VERSION,
         "suite": args.suite,
         "selection": selection,
-        "roots": {"corpus": repo_relative(corpus_root), "compile": repo_relative(compile_root)},
+        "roots": {
+            "corpus": repo_relative(corpus_root),
+            "compile": repo_relative(compile_root),
+            "verification": repo_relative(args.verification_root.resolve()),
+        },
         "no_fold": fold_is_off(),
         "cpp_opt": args.cpp_opt,
         "record": args.record,
         "jobs": args.jobs,
         "build_cache": bool(args.build_cache),
         "pass_cache": bool(args.pass_cache),
+        "coverage": bool(args.coverage),
+        "full_states": args.full_states,
         "compiler_sha256": file_sha256(args.qb64),
         "runner_sha256": file_sha256(Path(__file__).resolve()),
         "started": round(started, 3),
@@ -1962,7 +2434,12 @@ def main() -> int:
     )
     print(json.dumps(summary))
     for key in known_passed:
-        print(f"note: {key} passed but is listed in {args.known_failures.name}; remove the entry")
+        if key.startswith("verification:"):
+            print(f"note: {key} passed but is listed in known.list; move it to pass.list")
+        else:
+            print(
+                f"note: {key} passed but is listed in {args.known_failures.name}; remove the entry"
+            )
     for key in retried_passed:
         print(f"note: {key} failed with --jobs and passed alone; find out why")
     for key in timing_passed:

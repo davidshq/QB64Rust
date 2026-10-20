@@ -7,6 +7,10 @@ line here says what it shows. This file
 is the catalogue of the families, moved here from `CLAUDE.md`'s layout table on 2026-10-16 (`study\archive\30` §2).
 A new family, or new numbers in one, gets a line here, not in `CLAUDE.md`.
 
+The new compiler is compared against these recordings by the same runner (`--suite verification` with
+`qb64rust`); what it is held to, the pass list and the known differences, is in `tests\verification\` (change
+`verification-compare`). A new family's programs go on one of its lists.
+
 Small programs behind `study\09`, `study\10` and later measurements:
 
 - `v13*`: type suffixes on DIMmed names
@@ -48,6 +52,11 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `v45_b_color32` the colour constants, `v45_x01`–`x66` one accepted or rejected form each (functions, colours,
   `$COLOR`), an included file in `v45_inc\`; as its task 1.3 `v45_sample` the library results behind the
   certification of the functions
+- `v46*`: Civil War Strategy as a whole game (`cws-whole-game`): `v46_a_play_v0` the game's own `PLAY` strings and
+  `SOUND`s after one `PLAY "V0"`, the edit of its copy: the foreground ones take their time, the background ones
+  queue their length and play out in it, as `v29_d` found for plain strings. That the volume holds for later
+  statements (no game string holds a `V`, no `SOUND` gives a volume) and nothing is heard is read in libqb's
+  `audio.cpp`: one amplitude per voice, set only by `V` and `SOUND`'s third argument
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

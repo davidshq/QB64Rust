@@ -22,7 +22,7 @@ pub(crate) fn proc_def(p: &mut Parser) -> bool {
     p.start_node(ProcDef);
     let header_span = p.current_span().cover(p.next_span(1));
     let word = if p.at_word("SUB") { "SUB" } else { "FUNCTION" };
-    proc_header(p, false);
+    proc_header(p, false, false);
     p.header_end();
     p.push_block(Block::Proc, header_span);
     let nested = loop {
@@ -80,8 +80,9 @@ fn proc_end(p: &mut Parser, word: &str) {
 }
 
 /// `SUB name [(params)]` or `FUNCTION name[suffix] [(params)]`, at `SUB` or `FUNCTION`. Inside `DECLARE LIBRARY`
-/// (`library`) the name may be followed by `ALIAS "c_name"` or `ALIAS c_name`, and parameters may be `BYVAL`.
-pub(super) fn proc_header(p: &mut Parser, library: bool) {
+/// (`library`) the name may be followed by `ALIAS "c_name"` or `ALIAS c_name`, and parameters may be `BYVAL`. In a
+/// `DECLARE SUB` or `FUNCTION` outside a library (`declare`) an `ALIAS` is marked "not supported yet".
+pub(super) fn proc_header(p: &mut Parser, library: bool, declare: bool) {
     p.start_node(ProcHeader);
     p.bump(); // SUB or FUNCTION
     if !p.at(Ident) {
@@ -97,6 +98,19 @@ pub(super) fn proc_header(p: &mut Parser, library: bool) {
         } else {
             p.syntax_error("expected a name after `ALIAS`");
         }
+    } else if declare && p.at_word("ALIAS") {
+        // Measured: the old compiler accepts it and ignores it (`verification\v37_x08`); not built here (user,
+        // `verification-compare`).
+        let mut span = p.current_span();
+        p.bump();
+        if p.at(StringLit) || p.at(Ident) {
+            span = span.cover(p.current_span());
+            p.bump();
+        }
+        p.unsupported_at(
+            span,
+            "`ALIAS` in a `DECLARE SUB` or `FUNCTION` outside `DECLARE LIBRARY`",
+        );
     }
     if p.at(LParen) {
         param_list(p, library);
@@ -214,7 +228,7 @@ pub(crate) fn declare_stmt(p: &mut Parser) -> bool {
     if p.nth_is_word(1, "SUB") || p.nth_is_word(1, "FUNCTION") {
         p.start_node(DeclareStmt);
         p.bump(); // DECLARE
-        proc_header(p, false);
+        proc_header(p, false, true);
         p.recover();
         p.finish_node();
         false
@@ -280,7 +294,7 @@ fn declare_library_block(p: &mut Parser) {
             break;
         }
         if p.at_proc_start() {
-            proc_header(p, true);
+            proc_header(p, true, false);
             p.header_end();
             continue;
         }

@@ -1,0 +1,14 @@
+# A digest of the box, then the full state of the same screen.
+prompt
+digest
+state
+text a
+# A digest after the circle was drawn: another hash.
+prompt
+digest
+text b
+# The same screen twice: the same line twice.
+prompt
+digest
+digest
+text c

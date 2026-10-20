@@ -57,6 +57,19 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   On Windows a screen program runs on a desktop of its own that is never shown (`press_any_key.py
   --hidden-desktop`), so its window does not appear and the user's keys and mouse cannot reach it;
   `QB64RUST_SHOW_WINDOWS=1` shows the windows again (`tools\screen\README.md`, "Where the window goes").
+- **Scripts of a screen program** (`cws-whole-game`, design D3): `<name>.<script>.keys` beside a screen program is a
+  test of its own, `<group>/<name>.<script>`, judged by its own `<name>.<script>.screen`, `.output` and other
+  sidecars as a screen program is, and run from `<name>.bas` with `<name>.files`. The tests of one program share
+  one build in a run (`<results>\corpus\<group>-<name>-build\`). `--glob` matches the test name
+  (`--glob "g12_game*.bas"` takes the program and all its scripts), and `--list`, `--record`, `--pass-cache` and
+  `--check-list` name it as `screen/g12_game.union_time`. A script without its `.screen` fails at stage
+  `expected`; `--record` writes it (no empty file needed).
+- `--full-states <group>/<name>[.<script>]`: that test's `digest` steps write full states
+  (`QB64_SCREEN_DIGEST_AS_STATE=1`) into its `-run1-screen.txt` in the results folder, to look at with
+  `state_to_png.py` when a digest differs; the test then fails at stage `screen`, its states not compared.
+- `--coverage <file>` (qb64rust, not with `--record` or `--pass-cache`): each program is built with `--coverage`,
+  and each run's counts are appended to `<file>` (`tools\coverage\README.md`). A run with it, or with
+  `--full-states`, cannot stand for a run of a pass list (`--check-list`).
 - `<name>.files`, a folder beside a program that runs: the data files it reads (a picture loaded with `BLOAD`).
   Everything in it, folders too, is copied into the program's folder before the compile and again before each
   run (the folder is emptied between the two runs of `--record`, and a run may have changed a file), with either
@@ -70,7 +83,8 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   A corpus program's sidecar lies beside it; a compile-suite program's is
   `tests\upstream\divergences\<category>\<name>.divergences`, since its own folder is the clone's or the copy that
   `tools\upstream\copy_upstream_tests.py` remakes.
-  The verification suite records the old compiler only and does not set it.
+  A compare of the verification suite sets it too, with the sidecar
+  `tests\verification\divergences\<name>.divergences`; its recording does not.
 - A program listed in `known_failures.txt` that has no expected file (it hangs or loops forever, so nothing can
   be recorded) is compiled but never run, and reported as KFAIL `not run`. To try it again, remove the entry and
   record it.
@@ -121,16 +135,24 @@ python -m unittest discover -s tools/legacy_tests -p "test_*.py"
   are not remembered;
 - every outcome of one screen program, the stand-in writing the state file the environment names: equal and
   different state, no state, a state left by an earlier run, the keys file passed on, `.screen` beside `.err` or
-  `.norun`, `.keys` without `.screen`, and `--record` with equal states, differing states and a run without one.
+  `.norun`, `.keys` without `.screen`, and `--record` with equal states, differing states and a run without one;
+- every rule of the verification compare (spec `testing/verification-suite`): a rejection by both, one with only
+  marked errors, a build where the old compiler rejected, equal and different output, a different exit code, a
+  timeout on both sides, nothing recorded, the folder mask, the support files and sidecars copied, the run out of
+  sight without key presses, the verification folder left unwritten, a `.normalize` sidecar, a divergence not
+  listed, a `v37` program without its libraries, `--pass-cache`, and the recorder still used with `qb64pe`; and
+  `verification_text`, the family rule of the support files, `known.list`, `--check-list` and the inputs of a
+  verification program; `press_any_key.py --no-keys` with a stand-in that waits for a key and times out.
 
 **A change to one of these rules comes with a change to its test** (spec `testing/golden-corpus`). Not covered: the
 locks and the private copies of `qb64pe` (they need the clone; the full runs cover them), and the functions of
-the compile, qbasic, format and verification suites that are not shared with the corpus suite.
+the compile, qbasic and format suites that are not shared with the corpus suite.
 
 ### Verification programs (`--suite verification`)
 
-Records the programs of `verification\` (`--verification-root` for another folder) with the old compiler; it
-compares nothing. `verification\run.sh [name ...]` starts it, so both spellings do the same.
+With `qb64pe` it records the programs of `verification\` (`--verification-root` for another folder); with any
+other compiler it compares that compiler against the recordings (below, change `verification-compare`).
+`verification\run.sh [name ...]` starts the recording, so both spellings do the same.
 
 ```
 python tools\legacy_tests\run_legacy_tests.py --suite verification v01_numeric v02_errors   # these two
@@ -159,22 +181,56 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification              
 - `exit=` holds the code as Git Bash reports it, since the files were first recorded by a shell script: the low
   byte of an ordinary code, 124 for a timeout, 139 for an access violation, 127 for most other crashes
   (`bash_exit_code` in the runner).
-- `qb64pe` only, one program at a time, in the reference clone: these files are recorded truth, like
-  `--record`. `--suite all` does not include it. A run of named programs or with `--glob` writes
-  `results-partial.json`; a full one `results-verification.json`.
+- A recording is one program at a time, in the reference clone: these files are recorded truth, like
+  `--record`. `--suite all` does not include the suite. A run of named programs, with `--glob` or with `--list`
+  writes `results-partial.json`; a full one `results-verification.json`.
+
+**The compare** (any compiler other than `qb64pe`; `tests\verification\README.md` holds the lists it is judged by):
+
+```
+python tools\legacy_tests\run_legacy_tests.py --suite verification --qb64 target\release\qb64rust.exe ^
+    --list tests\verification\pass.list --jobs 8 --build-cache target\build-cache --pass-cache target\pass-cache
+```
+
+- Each program is compiled with `-x -q -m` in a fresh folder `target\legacy-tests\verification\<name>\`, removed
+  on a pass, which holds the program, its `.stdin` and `.noprompt`, and the support items of its family: the files
+  and folders of `verification\` whose name begins with its family number (`v16_inc\` and `v16_y.bi` for
+  `v16_m8_a`; `v37c.a` and `v37_lib\` for a `v37` program) and those with no family number
+  (`cp437_all_bytes.bin`), leaving out programs, `.txt` files, executables and their build folders, scripts,
+  documents, other programs' `.stdin` and `.noprompt`, and `v40_rc\` (`verification_support`). Nothing is
+  written into `verification\`, and programs run side by side cannot see each other's files. A `v37` program
+  whose libraries are missing fails with "run verification/v37_lib/build_libs.py first".
+- The run is the recording's: stdin from the null device or the `.stdin`, `QB64PE_NOPROMPT` from `.noprompt` or
+  `y`, a 60 s timeout with Ctrl+Break and 5 s before the kill, and no key presses, so a program waiting at `END`
+  times out as it did. It starts through `press_any_key.py --no-keys --hidden-desktop`: the window goes on a
+  desktop that is never shown (`QB64RUST_SHOW_WINDOWS=1` shows it), and the helper shares this runner's console,
+  as the recorded program did, so the Ctrl+Break reaches the program.
+- Judged by the recorded `<name>.out.txt`: `(not compiled)` passes when the compile fails, writes no executable
+  and reports at least one error not marked "not supported yet" (the corpus rule; the text is not compared);
+  any other recording passes when the build runs and `verification_text` of the run (the folder masked as
+  `<verification>`, the `exit=` line as Git Bash reports it, the timeout lines) equals it, CRLF as LF and
+  trailing newlines ignored, after the rules of `tests\verification\normalize\<name>.normalize` on both sides.
+  A recorded timeout passes only on a timeout. No `<name>.out.txt` fails ("nothing recorded to compare").
+  `<name>.compile.txt` is not read. A failure at the stage `result` names the first line that differs.
+- The trace of divergences as in the corpus, with the sidecar in `tests\verification\divergences\`.
+- `--list` (one name per line), `--glob`, program names, `--jobs`, `--build-cache`, `--pass-cache` (the key also
+  holds the recording, the sidecars, the `.stdin`, the `.noprompt` and every support item) and `--check-list`
+  work as for the corpus. A program of `tests\verification\known.list` that fails is a known failure (`KFAIL`);
+  one that passes is named at the end, to move to `pass.list`.
 
 Results (executables, compiler output, run output, a JSON summary) go to `target\legacy-tests\` (ignored by
 git). The summary is `results.json` for `--suite all`, `results-<suite>.json` for one whole suite, and
 `results-partial.json` when `--category`, `--glob`, `--list` or program names narrow the run, so a partial run never
 overwrites a full one. Since 2026-10-16 the summary holds a `run` record (format 1): the selection, the roots of the
-corpus and compile suites (relative to the repo), `QB64RUST_NO_FOLD`, `--cpp-opt`, `--record`, `--jobs`, whether a
+corpus, compile and verification suites (relative to the repo), `QB64RUST_NO_FOLD`, `--cpp-opt`, `--record`, `--jobs`, whether a
 build or pass cache was used, the SHA-256 of the compiler and of this runner, and when the run started and ended.
 
-**A pass list judged from a full run** (`--check-list <list>`, corpus and compile suites, `study\archive\31` item 3): runs
+**A pass list judged from a full run** (`--check-list <list>`, corpus, compile and verification suites, `study\archive\31` item 3): runs
 nothing, and judges every program of the list from the suite's last full summary, `results-<suite>.json`. Each
 listed program must have `PASS` there, run (not kept by `--pass-cache`); a known failure fails it (a pass list needs
 a pass), as do a missing result and any file of the program (the `.bas`, every `<name>.*` beside it, its
-`<name>.files\`, a compile-suite sidecar) changed after the run started. And the run must be the same as a run of
+`<name>.files\`, a compile-suite sidecar, a verification program's two sidecars; not its `.exe`) changed after
+the run started. And the run must be the same as a run of
 the list would be: a full run, the same root, the same compiler build and runner (by hash), the same
 `QB64RUST_NO_FOLD`, and no `--pass-cache`, `--record` or `--cpp-opt`; a summary written before the `run` record fails.
 It prints the failures, the runner's summary line and `<list>: n of m passed in results-<suite>.json`; exit code 0
@@ -188,7 +244,8 @@ as the list runs of that build passed; about a second each. The run without fold
 
 **The count blocks of the test READMEs** (`counts.py`, `study\archive\31` item 2): `python tools\legacy_tests\counts.py`
 rewrites the text between `<!-- counts:NAME -->` and `<!-- /counts:NAME -->` in `tests\corpus\README.md`,
-`tests\upstream\README.md` and `tests\differential\README.md`, and nothing outside them; `--check` compares and
+`tests\upstream\README.md`, `tests\differential\README.md` and `tests\verification\README.md`, and nothing outside
+them; `--check` compares and
 writes nothing (exit code 1 when a block differs). Membership blocks come from the lists and the folders (the
 upstream "x of y": `pass.list` of the copy's programs less `deferred.list`). Result blocks come from the suite's
 last full summary and are written only when it is of the release build at `target\release\qb64rust.exe` and of

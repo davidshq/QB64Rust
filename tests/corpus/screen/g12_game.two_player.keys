@@ -1,0 +1,79 @@
+# Civil War Strategy as a game of two players (cws-whole-game, task 5.1; tools/screen/README.md, "Places and rules").
+# In the Utility menu: 2 Player. Each month the Union plays, then the screen is blanked for the Rebel player ("press
+# a key"), who plays too. In the first Rebel turn: COMMANDS, Detach (the Rebels' own command) of the army at Front
+# Royal, then Detach again, left. Then END TURN for both sides by rules: 47 main menus to the time limit, the end
+# screen, a Hall of Fame name for each side, Game Over, Quit.
+
+# The waits: a space each (2 is the blank screen before a player's turn); a Retreat menu: the city it starts on; a
+# main menu: END TURN; the End Turn and End Game menus: Yes; the Options at the end: Quit this Game.
+rule 1 key space
+rule 2 key space
+rule 3 key space
+rule 4 key space
+rule 5 key space
+rule 6 key space
+rule 7 key space
+rule 8 key space
+rule 9 key space
+rule 10 key space
+rule 12 key space
+rule 13 key space
+rule 14:M text e
+rule 14:E text y
+rule 14:R key enter
+rule 14:O text q
+
+# The title menu: Start NEW Game; March 1861, the Union's main menu: UTILITY, 2 Player, out.
+play until 14:C
+digest
+text s
+play until 14:M
+digest
+text u
+prompt
+text 1
+prompt
+digest
+key esc
+# The Union: END TURN, Yes.
+prompt
+text e
+prompt
+text y
+# The Rebel turn (after the blank screen): COMMANDS, Detach from Front Royal; Detach again (the cursor is on it), Esc.
+play until 14:M
+digest
+text c
+prompt
+text d
+prompt
+digest
+key enter
+prompt
+digest
+key enter
+prompt
+key esc
+# Both sides' turns: the main menu, END TURN (and Yes by the rule).
+repeat 47
+play until 14:M
+digest
+text e
+end
+# March 1865: time expired; End Game (Yes by the rule), the Options: Quit.
+play until 14:O
+state
+text q
+# A name for each side's Hall of Fame; Game Over; the title menu: Quit; END's key.
+play until 11
+state
+text Grant
+key enter
+play until 11
+state
+text Lee
+key enter
+play until 14:C
+digest
+text q
+repeat space

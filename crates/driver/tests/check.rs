@@ -223,7 +223,17 @@ fn missing_icon() {
     let d = &checked.published[0];
     assert_eq!((d.1, d.4), (0, 1));
     assert!(d.3.contains("./game.ico"), "{}", d.3);
-    // With the icon beside the program, the check is clean.
+    // A file that is no icon is an error too (design D1 of `cpp-failure-errors`).
     std::fs::write(dir.path().join("game.ico"), [0u8; 4]).unwrap();
+    let checked = same_as_cli(&path, dir.path());
+    assert_eq!(checked.answer["errors"], 1);
+    assert!(
+        checked.published[0].3.contains("not an icon"),
+        "{}",
+        checked.published[0].3
+    );
+    // With the icon beside the program, the check is clean.
+    let icon = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/frontend/inc/exeicon.ico");
+    std::fs::copy(icon, dir.path().join("game.ico")).unwrap();
     assert_eq!(same_as_cli(&path, dir.path()).answer["errors"], 0);
 }

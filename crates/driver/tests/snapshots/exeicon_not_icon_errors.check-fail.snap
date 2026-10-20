@@ -1,0 +1,8 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+exeicon_not_icon_errors.bas:8:1: error: the file `./inc/not_an_icon.ico` of `$EXEICON` is not an icon file
+exeicon_not_icon_errors.bas:9:5: error: cannot store a string in a number variable
+exeicon_not_icon_errors.bas:9:5: note: QB64pe: Illegal string-number conversion

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Runs a QB64pe console program on Windows and answers its "Press any key to continue".
 
-Usage: press_any_key.py [--hidden-desktop] <exe> [<stdin file>]
+Usage: press_any_key.py [--hidden-desktop] [--no-keys] <exe> [<stdin file>]
 (exit code = the program's exit code; 125 if this helper fails)
 
 On Windows, END in a $CONSOLE program prints "Press any key to continue" and waits for a key
@@ -28,6 +28,13 @@ program's keys and its state need no window (tools/screen/screen_state.cpp calls
 and a run there wrote the same states as on the user's desktop (2026-10-17). The helper holds the
 desktop until the program ends; it goes when nothing uses it any more. The console stays this
 helper's own, so the key presses still reach END.
+
+With --no-keys (the compare of the verification suite) no key press is written and the console is not
+opened: the program runs as the verification programs were recorded, with stdin from the null device
+or the file given, and a program waiting at END waits until the runner's timeout. The runner starts
+the helper in the runner's console, not one of its own, so that its Ctrl+Break at the timeout reaches
+the program (which writes out what it has printed so far); the helper ignores it and waits for the
+program to end.
 """
 
 from __future__ import annotations
@@ -36,6 +43,7 @@ import contextlib
 import ctypes
 import msvcrt
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -214,13 +222,19 @@ class DesktopProcess:
 
 def main() -> int:
     args = sys.argv[1:]
-    hidden = bool(args) and args[0] == "--hidden-desktop"
-    if hidden:
-        args = args[1:]
+    options = set()
+    while args and args[0] in ("--hidden-desktop", "--no-keys"):
+        options.add(args.pop(0))
+    hidden = "--hidden-desktop" in options
     if len(args) not in (1, 2):
-        print("usage: press_any_key.py [--hidden-desktop] <exe> [<stdin file>]", file=sys.stderr)
+        print(
+            "usage: press_any_key.py [--hidden-desktop] [--no-keys] <exe> [<stdin file>]",
+            file=sys.stderr,
+        )
         return 125
     k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    if "--no-keys" in options:
+        return run_without_keys(k32, args, hidden)
     k32.CreateFileW.restype = wintypes.HANDLE
     k32.CreateFileW.argtypes = [
         wintypes.LPCWSTR,
@@ -286,6 +300,25 @@ def main() -> int:
             )
             p.kill()
             return 125
+        time.sleep(0.05)
+    return exit_status(p.returncode)
+
+
+def run_without_keys(k32, args: list[str], hidden: bool) -> int:
+    """--no-keys: starts the program (on the hidden desktop with hidden) with stdin from the file
+    args[1] or the null device, and waits for it; no key press is written."""
+    # The runner's Ctrl+Break before a timeout goes to the program; this helper waits for it to end.
+    signal.signal(signal.SIGBREAK, signal.SIG_IGN)
+    with open(args[1] if len(args) == 2 else os.devnull, "rb") as stdin:
+        try:
+            if hidden:
+                p = DesktopProcess(k32, args[0], msvcrt.get_osfhandle(stdin.fileno()))
+            else:
+                p = subprocess.Popen([args[0]], stdin=stdin)
+        except OSError as e:
+            print(f"press_any_key: {e}", file=sys.stderr)
+            return 125
+    while p.poll() is None:
         time.sleep(0.05)
     return exit_status(p.returncode)
 

@@ -1,0 +1,53 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 2: ConsoleOnly
+line 6: Print newline
+  Num
+    Convert Widen : I64
+      CallProc FB3 : I32 (qb Bit3)
+        temp
+          Convert Nearest : F32
+            Int 5 : I16
+  Num
+    Convert Widen : I64
+      CallProc FB3 : I32 (qb Bit3)
+        temp
+          Convert Nearest : F32
+            Float 3.5E+0 : F64 (qb F32)
+line 7: Print newline
+  Num
+    Convert Widen : I64
+      CallProc FUB3 : U32 (qb UBit3)
+        temp
+          Convert Nearest : F32
+            Int 13 : I16
+  Num
+    Convert Widen : I64
+      CallProc FUB3 : U32 (qb UBit3)
+        temp
+          Convert Nearest : F32
+            Int -1 : I16
+line 8: Print newline
+  Str
+    Call HEX : Str
+      CallProc FB3 : I32 (qb Bit3)
+        temp
+          Convert Nearest : F32
+            Int -2 : I16
+line 9: System
+FUNCTION FB3 : Bit3
+  param X:F32
+  result FB3:Bit3
+line 12: Assign FB3 (result):Bit3
+  Convert Truncate : I32
+    Convert RoundEven : I64
+      Var X (param) : F32
+FUNCTION FUB3 : UBit3
+  param X:F32
+  result FUB3:UBit3
+line 16: Assign FUB3 (result):UBit3
+  Convert Truncate : U32
+    Convert RoundEven : I64
+      Var X (param) : F32

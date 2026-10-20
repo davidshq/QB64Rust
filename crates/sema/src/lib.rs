@@ -1420,6 +1420,8 @@ pub enum StmtKind {
         body: Vec<Stmt>,
         /// 1-based source line of the `NEXT` that closes the loop.
         end_line: u32,
+        /// The span of the `NEXT` keyword, which the step statement carries; `None` without one.
+        end_at: Option<Span>,
     },
     /// `DO` … `LOOP`, with at most one condition, at the top or at the bottom.
     Do {
@@ -1427,6 +1429,8 @@ pub enum StmtKind {
         body: Vec<Stmt>,
         /// 1-based source line of the `LOOP`.
         end_line: u32,
+        /// The span of the `LOOP` keyword, which the bottom statement carries; `None` without one.
+        end_at: Option<Span>,
     },
     /// `WHILE cond` … `WEND`.
     While {
@@ -1434,6 +1438,8 @@ pub enum StmtKind {
         body: Vec<Stmt>,
         /// 1-based source line of the `WEND`.
         end_line: u32,
+        /// The span of the `WEND` keyword, which the bottom statement carries; `None` without one.
+        end_at: Option<Span>,
     },
     /// `EXIT FOR`, `EXIT DO`, `EXIT WHILE`: leaves the innermost loop of that kind (the parser checked there is
     /// one).

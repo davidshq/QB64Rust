@@ -317,7 +317,9 @@ class RunAgainAlone(unittest.TestCase):
 
     def test_a_settled_failure_does_not_run_again(self):
         tests = [self.program("p", "PRINT 1\n"), self.program("q", "PRINT 2\n")]
-        wrong_err = rlt.Result("corpus", "g/p", "error", "FAIL", "error result", "differs from .err")
+        wrong_err = rlt.Result(
+            "corpus", "g/p", "error", "FAIL", "error result", "differs from .err"
+        )
         layout = rlt.Result("corpus", "g/q", "output", "FAIL", "expected", "no .output")
         by_test, ran, result = self.outcomes(tests, [wrong_err, layout], [])
         self.assertEqual(ran, [])
@@ -498,8 +500,12 @@ class Tools:
         states=(),
         exe_bytes=b"",
         trace=None,
+        counts=None,
     ):
         self.exe_bytes = exe_bytes
+        # What each run writes to the coverage counts (the file QB64RUST_COVERAGE names).
+        self.counts = counts
+        self.compiles = 0
         # What each run writes to the trace of divergences (the file QB64RUST_DIVERGENCES names).
         self.trace = trace
         self.rc, self.compile_out, self.exe = rc, compile_out, exe
@@ -514,6 +520,7 @@ class Tools:
 
     def __call__(self, args, cwd, stdout_path, timeout, env=None, stdin_path=None, **_):
         if "-x" in args:
+            self.compiles += 1
             self.compile_cmd = list(args)
             stdout_path.write_bytes(self.compile_out)
             if self.exe:
@@ -528,6 +535,8 @@ class Tools:
             Path(env["QB64_SCREEN_STATE"]).write_bytes(state)
         if self.trace is not None and rlt.TRACE_ENV in (env or {}):
             Path(env[rlt.TRACE_ENV]).write_bytes(self.trace)
+        if self.counts is not None and "QB64RUST_COVERAGE" in (env or {}):
+            Path(env["QB64RUST_COVERAGE"]).write_bytes(self.counts)
         if self.run_times_out:
             return None, True
         return self.run_rc, False
@@ -561,13 +570,20 @@ class CorpusFixture(unittest.TestCase):
         cpp_opt=False,
         known=None,
         pass_cache=None,
+        bas=None,
+        **more,
     ):
         args = SimpleNamespace(
-            qb64=Path(qb64), record=record, cpp_opt=cpp_opt, copies=None, pass_cache=pass_cache
+            qb64=Path(qb64),
+            record=record,
+            cpp_opt=cpp_opt,
+            copies=None,
+            pass_cache=pass_cache,
+            **more,
         )
         with mock.patch.object(rlt, "run_proc", tools):
             return rlt.corpus_test(
-                self.bas, args, self.results, self.clone, self.corpus, known or {}
+                bas or self.bas, args, self.results, self.clone, self.corpus, known or {}
             )
 
     def assert_fail(self, r, stage: str, detail: str = ""):
@@ -1071,6 +1087,526 @@ class ScreenProgram(CorpusFixture):
     def test_a_blank_in_the_path_of_the_state_file_is_refused(self):
         with mock.patch.object(rlt, "SCREEN_STATE_SOURCE", Path("my repo/screen_state.cpp")):
             self.assert_fail(self.run_test(Tools(states=[STATE])), "screen", "a blank in the path")
+
+
+class Scripts(CorpusFixture):
+    """The scripts of a screen program, <name>.<script>.keys (spec testing/screen-state, "Scripts of a
+    screen program"), --full-states and --coverage."""
+
+    def setUp(self):
+        super().setUp()
+        self.sidecar("output", b"")
+        self.sidecar("screen", STATE)
+        self.script = self.group / "p.s1.bas"  # the test of script s1; no such file
+        self.sidecar("s1.keys", b"text a\n")
+        self.sidecar("s1.output", b"")
+
+    def test_a_script_is_a_test_judged_by_its_own_files(self):
+        self.sidecar("s1.screen", STATE)
+        tools = Tools(states=[STATE])
+        r = self.run_test(tools, bas=self.script)
+        self.assertEqual((r.status, r.test), ("PASS", "g/p.s1"), r.detail)
+        self.assertIn("p.bas", tools.compile_cmd)
+        self.assertEqual((self.results / "g-p.s1-keys.txt").read_bytes(), b"text a\n")
+        other = STATE.replace(b"display 0", b"display 1")
+        self.assert_fail(self.run_test(Tools(states=[other]), bas=self.script), "screen")
+
+    def test_a_script_without_its_screen_file(self):
+        # The spec's scenario: that test fails at stage "expected", and the program's own test runs.
+        r = self.run_test(Tools(states=[STATE]), bas=self.script)
+        self.assert_fail(r, "expected", "p.s1.screen")
+        self.assertEqual(self.run_test(Tools(states=[STATE])).status, "PASS")
+
+    def test_record_writes_a_new_scripts_screen(self):
+        (self.group / "p.s1.output").unlink()
+        r = self.run_test(
+            Tools(states=[STATE, STATE]), qb64="qb64pe.exe", record=True, bas=self.script
+        )
+        self.assertEqual(
+            (r.status, r.detail), ("PASS", "recorded new p.s1.output; recorded new p.s1.screen")
+        )
+        self.assertEqual((self.group / "p.s1.screen").read_bytes(), STATE)
+
+    def test_the_tests_of_a_program_share_one_build(self):
+        # The spec's scenario "One build, two scripts".
+        self.sidecar("s1.screen", STATE)
+        self.sidecar("s2.keys", b"text b\n")
+        self.sidecar("s2.output", b"")
+        self.sidecar("s2.screen", STATE)
+        tools = Tools(states=[STATE], exe_bytes=b"exe")
+        builds = rlt.SharedBuilds()
+        tests = rlt.corpus_tests(self.corpus, "*.bas")
+        self.assertEqual([t.name for t in tests], ["p.bas", "p.s1.bas", "p.s2.bas"])
+        results = [self.run_test(tools, bas=t, builds=builds) for t in tests]
+        self.assertEqual(
+            [(r.status, r.test) for r in results],
+            [("PASS", "g/p"), ("PASS", "g/p.s1"), ("PASS", "g/p.s2")],
+        )
+        self.assertEqual(tools.compiles, 1)
+        # Without the shared builds (one test alone), each test builds.
+        self.run_test(tools, bas=self.script)
+        self.assertEqual(tools.compiles, 2)
+
+    def test_glob_and_lists_take_the_test_name(self):
+        def names(pattern):
+            return [t.name for t in rlt.corpus_tests(self.corpus, pattern)]
+
+        self.assertEqual(names("p.bas"), ["p.bas"])
+        self.assertEqual(names("p.s*.bas"), ["p.s1.bas"])
+        lst = self.corpus / "pass.list"
+        lst.write_text("g/p\ng/p.s1\n", encoding="utf-8")
+        self.assertEqual(
+            rlt.load_list(lst, self.corpus), {self.bas.resolve(), self.script.resolve()}
+        )
+        lst.write_text("g/p.s9\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "no program g/p.s9.bas"):
+            rlt.load_list(lst, self.corpus)
+        self.assertEqual(rlt.result_key("corpus", self.script, self.corpus), ("corpus", "g/p.s1"))
+
+    def test_a_scripts_inputs_hold_its_program(self):
+        inputs = {p.name for p in rlt.program_inputs("corpus", self.script)}
+        self.assertEqual(inputs, {"p.s1.keys", "p.s1.output", "p.bas"})
+
+    def test_the_pass_cache_reads_the_programs_source(self):
+        self.sidecar("s1.screen", STATE)
+        cache = Path(self.tmp.name) / "passes"
+
+        def runs():
+            tools = Tools(states=[STATE], exe_bytes=b"exe")
+            self.assertEqual(
+                self.run_test(tools, bas=self.script, pass_cache=cache).status, "PASS"
+            )
+            return len(tools.run_cmds)
+
+        self.assertEqual(runs(), 1)
+        self.assertEqual(runs(), 0)
+        self.bas.write_bytes(b"PRINT 2\n")
+        self.assertEqual(runs(), 1)
+
+    def test_full_states_for_one_test(self):
+        self.sidecar("s1.screen", STATE)
+        tools = Tools(states=[STATE])
+        r = self.run_test(tools, bas=self.script, full_states="g/p.s1")
+        self.assert_fail(r, "screen", "--full-states: the states are in g-p.s1-run1-screen.txt")
+        self.assertEqual(tools.run_envs[0]["QB64_SCREEN_DIGEST_AS_STATE"], "1")
+        tools = Tools(states=[STATE])
+        self.assertEqual(self.run_test(tools, full_states="g/p.s1").status, "PASS")
+        self.assertNotIn("QB64_SCREEN_DIGEST_AS_STATE", tools.run_envs[0])
+
+    def test_coverage_builds_with_the_option_and_appends_each_runs_counts(self):
+        self.sidecar("s1.screen", STATE)
+        counts = Path(self.tmp.name) / "counts.txt"
+        for bas, record in ((self.bas, b"one\n"), (self.script, b"two\n")):
+            tools = Tools(states=[STATE], counts=record)
+            self.assertEqual(self.run_test(tools, bas=bas, coverage=counts).status, "PASS")
+            self.assertIn("--coverage", tools.compile_cmd)
+        self.assertEqual(counts.read_bytes(), b"one\ntwo\n")
+        tools = Tools(states=[STATE], counts=b"x\n")
+        self.run_test(tools)
+        self.assertNotIn("--coverage", tools.compile_cmd)
+        self.assertNotIn("QB64RUST_COVERAGE", tools.run_envs[0])
+
+    def test_coverage_leaves_out_the_counts_of_a_run_that_timed_out(self):
+        # A run killed by the timeout may have been writing its record: half a record would stop the merge.
+        self.sidecar("s1.screen", STATE)
+        counts = Path(self.tmp.name) / "counts.txt"
+        tools = Tools(states=[STATE], counts=b"coverage 1\nfile", run_times_out=True)
+        self.assert_fail(self.run_test(tools, bas=self.bas, coverage=counts), "run", "timeout")
+        self.assertFalse(counts.exists())
+
+
+class VerificationText(unittest.TestCase):
+    """verification_text: the text of <name>.out.txt, written by the recorder and built by the compare."""
+
+    def test_the_folder_is_masked_in_any_spelling(self):
+        folder = Path("Work/Some Folder/verification")
+        out = b"work\\some folder\\VERIFICATION/v.exe and Work/Some Folder//verification x\r\n"
+        self.assertEqual(
+            rlt.verification_text(out, 0, False, folder),
+            b"<verification>/v.exe and <verification> x\r\nexit=0\n",
+        )
+
+    def test_exit_codes_as_git_bash_reports_them(self):
+        self.assertEqual(rlt.verification_text(b"", 0xC0000005, False, Path("x")), b"exit=139\n")
+        self.assertEqual(rlt.verification_text(b"a\n", 256 + 3, False, Path("x")), b"a\nexit=3\n")
+
+    def test_a_timeout(self):
+        self.assertEqual(
+            rlt.verification_text(b"Press", None, True, Path("x")),
+            b"Press(timed out after 60 s)\nexit=124\n",
+        )
+
+
+class VerificationSupport(unittest.TestCase):
+    def test_family_numbers(self):
+        self.assertEqual(rlt.family("v16_m8_a"), "v16")
+        self.assertEqual(rlt.family("v37c.a"), "v37")
+        self.assertEqual(rlt.family("v02b_idiv_zero"), "v02")
+        self.assertEqual(rlt.family("V44_files"), "v44")
+        self.assertIsNone(rlt.family("cp437_all_bytes.bin"))
+
+    def test_the_family_and_no_family_without_programs_records_or_scripts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in (
+                "v16_inc/a.bi",
+                "v16_y.bi",
+                "v16_p.bas",
+                "v16_p.out.txt",
+                "v16_p.exe",
+                "v16_p.exe.qb64rust/x.cpp",
+                "v16_p.stdin",
+                "v16_p.noprompt",
+                "v16_names.py",
+                "v160_z.bi",
+                "v17_z.bi",
+                "cp437_all_bytes.bin",
+                "README.md",
+                "run.sh",
+                "__pycache__/x.pyc",
+            ):
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / name).write_bytes(b"")
+            got = [p.name for p in rlt.verification_support(root, "v16_m8_a")]
+            self.assertEqual(got, ["cp437_all_bytes.bin", "v16_inc", "v16_y.bi"])
+            # Another family's item that the source names comes too.
+            (root / "v16_m8_a.bas").write_bytes(b"$EXEICON:'./V17_Z.bi'\n")
+            got = [p.name for p in rlt.verification_support(root, "v16_m8_a")]
+            self.assertEqual(got, ["cp437_all_bytes.bin", "v16_inc", "v16_y.bi", "v17_z.bi"])
+
+
+class VerificationFixture(unittest.TestCase):
+    """One program v99_p of a verification folder in a scratch folder, and the compare run on it."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        base = Path(self.tmp.name)
+        self.addCleanup(self.tmp.cleanup)
+        self.root, self.results, self.lists = (
+            base / "verification",
+            base / "results",
+            base / "lists",
+        )
+        for d in (self.root, self.results, self.lists):
+            d.mkdir()
+        self.bas = self.root / "v99_p.bas"
+        self.bas.write_bytes(b"PRINT 1\n")
+        patch = mock.patch.object(rlt, "VERIFICATION_LISTS", self.lists)
+        patch.start()
+        self.addCleanup(patch.stop)
+        rlt.support_items.cache_clear()
+        self.addCleanup(rlt.support_items.cache_clear)
+
+    def recorded(self, data: bytes) -> None:
+        (self.root / "v99_p.out.txt").write_bytes(data)
+
+    def sidecar(self, kind: str, data: bytes) -> None:
+        path = self.lists / kind / f"v99_p.{kind}"
+        path.parent.mkdir(exist_ok=True)
+        path.write_bytes(data)
+
+    def run_test(self, tools: Tools, pass_cache=None):
+        rlt.support_items.cache_clear()
+        args = SimpleNamespace(qb64=Path("qb64rust.exe"), pass_cache=pass_cache)
+        with mock.patch.object(rlt, "run_proc", tools):
+            return rlt.run_suite_test(
+                "verification",
+                self.bas,
+                args=args,
+                results=self.results,
+                qb_root=self.results,
+                corpus_root=self.results,
+                known={},
+            )[0]
+
+    def assert_fail(self, r, stage: str, detail: str = ""):
+        self.assertEqual((r.status, r.stage), ("FAIL", stage), r.detail)
+        self.assertIn(detail, r.detail)
+
+    def snapshot(self) -> dict:
+        return {p: p.read_bytes() for p in sorted(self.root.rglob("*")) if p.is_file()}
+
+
+class VerificationCompare(VerificationFixture):
+    """verification_compare: every rule of the compare (spec testing/verification-suite)."""
+
+    def test_a_rejection_by_both_passes(self):
+        self.recorded(b"(not compiled)\n")
+        r = self.run_test(Tools(rc=1, compile_out=b"p.bas:1:1: error: x\n1 error\n", exe=False))
+        self.assertEqual(
+            (r.status, r.kind, r.suite, r.test), ("PASS", "error", "verification", "v99_p")
+        )
+        self.assertFalse((self.results / "v99_p").exists())
+
+    def test_a_rejection_with_only_marked_errors_fails(self):
+        self.recorded(b"(not compiled)\r\n")
+        tools = Tools(rc=1, compile_out=b"2 errors (2 not supported yet)\n", exe=False)
+        self.assert_fail(
+            self.run_test(tools), "error result", "only errors marked not supported yet"
+        )
+
+    def test_a_program_the_old_compiler_rejected_must_not_build(self):
+        self.recorded(b"(not compiled)\n")
+        self.assert_fail(self.run_test(Tools()), "compile", "the old compiler rejected it")
+        tools = Tools(rc=1, compile_out=b"1 error\n", exe=True)
+        self.assert_fail(self.run_test(tools), "exe exists")
+
+    def test_equal_output_passes_and_the_work_folder_goes(self):
+        self.recorded(b"1\n\nexit=0\n")
+        tools = Tools(runs=[b"1\r\n\r\n"])
+        r = self.run_test(tools)
+        self.assertEqual((r.status, r.kind), ("PASS", "output"), r.detail)
+        self.assertFalse((self.results / "v99_p").exists())
+        self.assertEqual(tools.compile_cmd[:5], ["qb64rust.exe", "-x", "-q", "-m", "v99_p.bas"])
+        self.assertNotIn("--include-root", tools.compile_cmd)
+
+    def test_different_output_fails_and_the_work_folder_stays(self):
+        self.recorded(b"1\nexit=0\n")
+        r = self.run_test(Tools(runs=[b"2\r\n"]))
+        self.assert_fail(r, "result", "line 1: recorded b'1', got b'2'")
+        self.assertTrue((self.results / "v99_p" / "v99_p.bas").is_file())
+
+    def test_a_different_exit_code_fails(self):
+        self.recorded(b"1\nexit=0\n")
+        self.assert_fail(self.run_test(Tools(runs=[b"1\n"], run_rc=3)), "result", "exit=3")
+        self.recorded(b"exit=139\n")
+        self.assertEqual(self.run_test(Tools(runs=[b""], run_rc=0xC0000005)).status, "PASS")
+
+    def test_a_timeout_on_both_sides_passes(self):
+        self.recorded(b"Press any key(timed out after 60 s)\nexit=124\n")
+        r = self.run_test(Tools(runs=[b"Press any key"], run_times_out=True))
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assert_fail(self.run_test(Tools(runs=[b"Press any key"])), "result")
+        self.recorded(b"exit=0\n")
+        self.assert_fail(self.run_test(Tools(runs=[b""], run_times_out=True)), "result")
+
+    def test_nothing_recorded_fails(self):
+        tools = Tools()
+        self.assert_fail(self.run_test(tools), "expected", "nothing recorded to compare")
+        self.assertEqual(tools.compile_cmd, [])
+
+    def test_the_run_folder_is_masked(self):
+        self.recorded(b"<verification>/v99_p.exe\nexit=0\n")
+        work = str(self.results / "v99_p").upper().replace("\\", "/")
+        r = self.run_test(Tools(runs=[f"{work}/v99_p.exe\r\n".encode()]))
+        self.assertEqual(r.status, "PASS", r.detail)
+
+    def test_the_support_files_and_sidecars_are_copied(self):
+        self.recorded(b"1\nexit=0\n")
+        for name, data in (
+            ("v99_inc/a.bi", b"a"),
+            ("v99_y.bi", b"y"),
+            ("v98_z.bi", b"z"),
+            ("cp437_all_bytes.bin", b"c"),
+            ("v99_p.stdin", b"42\r\n"),
+            ("v99_p.noprompt", b"continue\n"),
+            ("v99_q.stdin", b"q"),
+        ):
+            (self.root / name).parent.mkdir(exist_ok=True)
+            (self.root / name).write_bytes(data)
+        tools = Tools(runs=[b"2\n"])
+        self.assert_fail(self.run_test(tools), "result")
+        work = self.results / "v99_p"
+        self.assertEqual(
+            sorted(p.relative_to(work).as_posix() for p in work.rglob("*") if p.is_file()),
+            [
+                "cp437_all_bytes.bin",
+                "v99_inc/a.bi",
+                "v99_p.bas",
+                "v99_p.exe",
+                "v99_p.noprompt",
+                "v99_p.stdin",
+                "v99_y.bi",
+            ],
+        )
+        self.assertEqual(tools.run_envs[0]["QB64PE_NOPROMPT"], "continue")
+        given = tools.run_cmds[0][-1] if os.name == "nt" else str(tools.run_stdin[0])
+        self.assertEqual(given, str(work / "v99_p.stdin"))
+
+    @unittest.skipUnless(os.name == "nt", "press_any_key.py runs on Windows only")
+    def test_the_run_is_out_of_sight_without_key_presses(self):
+        self.recorded(b"exit=0\n")
+        tools = Tools(runs=[b""])
+        self.run_test(tools)
+        self.assertEqual(tools.run_cmds[0][2:4], ["--no-keys", "--hidden-desktop"])
+        self.assertEqual(tools.run_cmds[0][-1], str(self.results / "v99_p" / "v99_p.exe"))
+
+    def test_the_verification_folder_is_left_alone(self):
+        self.recorded(b"1\nexit=0\n")
+        (self.root / "v99_inc").mkdir()
+        (self.root / "v99_inc" / "a.bi").write_bytes(b"a")
+        before = self.snapshot()
+        self.run_test(Tools(runs=[b"1\n"]))
+        self.run_test(Tools(runs=[b"2\n"]))
+        self.recorded(b"(not compiled)\n")
+        before[self.root / "v99_p.out.txt"] = b"(not compiled)\n"
+        self.run_test(Tools(rc=1, compile_out=b"1 error\n", exe=False))
+        self.assertEqual(self.snapshot(), before)
+
+    def test_a_normalize_sidecar_applies_to_both_sides(self):
+        self.recorded(b"took 12 ms\nexit=0\n")
+        self.sidecar("normalize", b"\\d+ ms\t<t> ms\n")
+        self.assertEqual(self.run_test(Tools(runs=[b"took 31 ms\r\n"])).status, "PASS")
+
+    def test_a_divergence_not_listed_fails(self):
+        self.recorded(b"1\nexit=0\n")
+        tools = Tools(runs=[b"1\n"], trace=b"D-026\n")
+        self.assert_fail(self.run_test(tools), "divergences", "took D-026 of DIVERGENCES.md")
+        self.assertIn(rlt.TRACE_ENV, tools.run_envs[0])
+        self.sidecar("divergences", b"D-026  # the math functions\n")
+        self.assertEqual(self.run_test(Tools(runs=[b"1\n"], trace=b"D-026\n")).status, "PASS")
+
+    def test_a_v37_program_needs_its_libraries(self):
+        self.bas = self.root / "v37_x01.bas"
+        self.bas.write_bytes(b"")
+        (self.root / "v37_x01.out.txt").write_bytes(b"exit=0\n")
+        self.assert_fail(
+            self.run_test(Tools(runs=[b""])), "expected", "v37_lib/build_libs.py first"
+        )
+        for lib in rlt.V37_LIBRARIES:
+            (self.root / lib).write_bytes(b"")
+        self.assertEqual(self.run_test(Tools(runs=[b""])).status, "PASS")
+        self.assertFalse((self.results / "v37_x01").exists())
+
+    def test_the_pass_cache(self):
+        cache = Path(self.tmp.name) / "passes"
+        self.recorded(b"1\nexit=0\n")
+        (self.root / "v99_y.bi").write_bytes(b"y")
+        self.assertEqual(self.run_test(Tools(runs=[b"1\n"]), cache).detail, "")
+        tools = Tools(runs=[b"wrong\n"])
+        r = self.run_test(tools, cache)
+        self.assertEqual((r.status, r.detail, len(tools.run_cmds)), ("PASS", rlt.PASSED_BEFORE, 0))
+        # A changed support file runs it again.
+        (self.root / "v99_y.bi").write_bytes(b"z")
+        self.assert_fail(self.run_test(Tools(runs=[b"wrong\n"]), cache), "result")
+
+    def test_the_recorder_still_records_with_qb64pe(self):
+        tools = Tools(runs=[b"1\r\n"])
+        args = SimpleNamespace(qb64=Path("qb64pe.exe"))
+        with mock.patch.object(rlt, "run_proc", tools):
+            r = rlt.run_suite_test(
+                "verification",
+                self.bas,
+                args=args,
+                results=self.results,
+                qb_root=self.results,
+                corpus_root=self.results,
+                known={},
+            )[0]
+        self.assertEqual((r.status, r.kind), ("PASS", "recorded"), r.detail)
+        self.assertEqual((self.root / "v99_p.out.txt").read_bytes(), b"1\r\nexit=0\n")
+        self.assertEqual(tools.run_cmds[0], [str(self.root / "v99_p.exe")])
+
+
+class VerificationLists(VerificationFixture):
+    """The lists of tests/verification as the runner reads them."""
+
+    def test_known_list(self):
+        path = self.lists / "known.list"
+        path.write_text("# comment\n\nv01_a\tD-026\nv02_b\tbug: PRINT USING ;\n", encoding="utf-8")
+        self.assertEqual(
+            rlt.load_known_list(path),
+            {"verification:v01_a": "D-026", "verification:v02_b": "bug: PRINT USING ;"},
+        )
+        self.assertEqual(rlt.load_known_list(self.lists / "none.list"), {})
+
+    def test_a_pass_of_a_program_that_varies_is_no_news(self):
+        self.assertTrue(rlt.pass_is_news("verification:v01_a", "D-026"))
+        self.assertTrue(rlt.pass_is_news("verification:v01_a", "bug: PRINT USING"))
+        self.assertFalse(rlt.pass_is_news("verification:v29_b", "varies: SOUND's time"))
+        self.assertFalse(rlt.pass_is_news("verification:v29_b", "varies"))
+        # known_failures.txt of the other suites keeps its note.
+        self.assertTrue(rlt.pass_is_news("corpus:slice/s01", "varies"))
+
+    def test_result_key_and_inputs(self):
+        self.assertEqual(
+            rlt.result_key("verification", self.bas, self.root), ("verification", "v99_p")
+        )
+        for name in (
+            "v99_p.out.txt",
+            "v99_p.compile.txt",
+            "v99_p.exe",
+            "v99_p.stdin",
+            "v99_pq.bas",
+        ):
+            (self.root / name).write_bytes(b"")
+        self.sidecar("normalize", b"")
+        self.sidecar("divergences", b"")
+        got = sorted(p.name for p in rlt.program_inputs("verification", self.bas))
+        self.assertEqual(
+            got,
+            [
+                "v99_p.bas",
+                "v99_p.compile.txt",
+                "v99_p.divergences",
+                "v99_p.normalize",
+                "v99_p.out.txt",
+                "v99_p.stdin",
+            ],
+        )
+
+    def test_check_list(self):
+        compiler = Path(self.tmp.name) / "qb64rust.exe"
+        compiler.write_bytes(b"build")
+        run = {
+            "version": rlt.RUN_RECORD_VERSION,
+            "suite": "verification",
+            "selection": {},
+            "roots": {"verification": rlt.repo_relative(self.root.resolve())},
+            "no_fold": False,
+            "compiler_sha256": rlt.file_sha256(compiler),
+            "runner_sha256": rlt.file_sha256(Path(rlt.__file__).resolve()),
+            "started": time.time() + 60,
+        }
+        result = {
+            "suite": "verification",
+            "test": "v99_p",
+            "status": "PASS",
+            "detail": "",
+            "stage": "",
+        }
+        data = {"run": run, "results": [result]}
+        wanted = {self.bas.resolve()}
+        self.assertEqual(
+            rlt.check_list("verification", wanted, self.root, data, compiler), ([], [], 1)
+        )
+        result["status"] = "KFAIL"
+        _, failures, _ = rlt.check_list("verification", wanted, self.root, data, compiler)
+        self.assertEqual(failures[0][0], "verification:v99_p")
+
+    def test_load_list_takes_plain_names(self):
+        path = self.lists / "pass.list"
+        path.write_text("v99_p  # a comment\n", encoding="utf-8")
+        self.assertEqual(rlt.load_list(path, self.root), {self.bas.resolve()})
+
+
+@unittest.skipUnless(os.name == "nt", "press_any_key.py runs on Windows only")
+class NoKeys(unittest.TestCase):
+    def test_a_program_waiting_for_a_key_times_out(self):
+        # The stand-in waits at its "END" for a console key, as a QB64pe program does; with --no-keys no
+        # key press comes, so it runs into the timeout, and what it printed before is kept. python.exe
+        # runs the script it reads from its stdin file.
+        with tempfile.TemporaryDirectory() as tmp:
+            script, out = Path(tmp, "wait.py"), Path(tmp, "out.txt")
+            script.write_text(
+                "import msvcrt, sys, time\n"
+                "print('Press any key', flush=True)\n"
+                "try:\n"
+                "    msvcrt.getch()\n"
+                "except OSError:\n"
+                "    pass\n"
+                "time.sleep(60)\n",  # without a console getch fails at once; the stand-in waits anyway
+                encoding="ascii",
+            )
+            helper = Path(__file__).with_name("press_any_key.py")
+            cmd = [sys.executable, str(helper), "--no-keys", "--hidden-desktop", sys.executable]
+            t0 = time.time()
+            rc, timed_out = rlt.run_proc(
+                cmd + [str(script)], tmp, out, 3, merge_stderr=True, ask_first=True
+            )
+            self.assertEqual((rc, timed_out), (None, True), out.read_bytes())
+            self.assertGreaterEqual(time.time() - t0, 3)
+            self.assertIn(b"Press any key", out.read_bytes())
 
 
 if __name__ == "__main__":

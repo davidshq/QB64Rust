@@ -31,6 +31,7 @@
 // The emitter by concern (design D6 of `m2-core-builtins`): each module adds the `Emitter` methods of its part.
 mod arrays;
 mod builtins;
+mod coverage;
 mod decl;
 mod events;
 mod io;
@@ -43,6 +44,7 @@ mod procs;
 mod stmt;
 mod value;
 
+pub use coverage::Coverage;
 pub use library::{Linkage, Resolved, ResolvedLibrary, dll_handle, strip_version};
 pub use names::{c_type, proc_name, var_name};
 
@@ -97,6 +99,18 @@ impl Fragments {
 /// v19_include_runtime_error`: "Line: 3 (in raise.bi)"). `resolved` is what the driver found for the program's
 /// `DECLARE LIBRARY` blocks.
 pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>, resolved: &Resolved) -> Fragments {
+    emit_with(p, source_name, included, resolved, None)
+}
+
+/// [`emit`], with a counter at each source statement when `coverage` is given (design D1 of `cws-whole-game`,
+/// `coverage.rs`). Without it the fragments are [`emit`]'s.
+pub fn emit_with(
+    p: &Program,
+    source_name: &str,
+    included: &HashMap<FileId, String>,
+    resolved: &Resolved,
+    coverage: Option<&Coverage>,
+) -> Fragments {
     let included = included
         .iter()
         .map(|(&f, name)| {
@@ -126,6 +140,7 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>, 
         stmt_at: (None, 0, None),
         on_timer: events::EventCode::default(),
         on_key: events::EventCode::default(),
+        coverage: coverage.map(coverage::Counters::new),
     };
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
     let mut set = |name: &str, text: String| files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
@@ -224,6 +239,10 @@ pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>, 
     // Also last: the temporaries of blocks are counted while the bodies are emitted.
     let global = &mut files.iter_mut().find(|(n, _)| n == "global.txt").unwrap().1;
     global.extend(e.func_decls.drain(..));
+    // Also last: the statements are numbered while the bodies are emitted.
+    if let Some(c) = &e.coverage {
+        global.push_str(&c.table());
+    }
     Fragments { files }
 }
 
@@ -282,4 +301,6 @@ struct Emitter<'a> {
     /// The handlers of `ON TIMER` and of `ON KEY` (`events.rs`).
     on_timer: events::EventCode,
     on_key: events::EventCode,
+    /// The counters of a coverage build (`coverage.rs`), `None` in any other.
+    coverage: Option<coverage::Counters<'a>>,
 }

@@ -1,0 +1,12 @@
+# A later rule for the same place replaces the earlier one: each battle gets a space, not an x.
+rule 7 text x
+rule 7 key space
+# The retreat menu gets a, and the wait after it (the confirmation at place 5) the rule's second key, y.
+rule 14:R text ay
+# Any other menu but the main menu: esc.
+rule 14 key esc
+# Three months: answer by the rules up to the main menu, then end the turn there.
+repeat 3
+play until 14:M
+text e
+end

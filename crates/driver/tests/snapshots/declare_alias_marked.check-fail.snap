@@ -1,0 +1,6 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+declare_alias_marked.bas:5:15: error: not supported yet: `ALIAS` in a `DECLARE SUB` or `FUNCTION` outside `DECLARE LIBRARY`
+declare_alias_marked.bas:6:21: error: not supported yet: `ALIAS` in a `DECLARE SUB` or `FUNCTION` outside `DECLARE LIBRARY`

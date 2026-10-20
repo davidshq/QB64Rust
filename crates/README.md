@@ -10,7 +10,7 @@ The new compiler, `qb64rust`. One crate per pipeline stage, so the layering is e
 | `builtins` | `qb64rust-builtins` | The built-in table, generated at build time from `tools\builtins\builtins.json`; the grammar of the `specialformat` templates (`template.rs`, checked for every template by `build.rs`); the names of QB64pe's auto-included files |
 | `sema` | `qb64rust-sema` | Procedure table, scopes (main, procedure, `STATIC`, `SHARED`), variables (a name plus a type), arrays, user types, places (variable, element, member), labels, constants (`CONST`, `consteval.rs`), literal typing, computation types, explicit conversions, by-reference or by-value arguments, integer constant folding; the typed tree; the symbol table (`symbols.rs`: definition and references of every variable, procedure, label and constant, `Symbols::at` for a position, `dump_symbols`) |
 | `ir` | `qb64rust-ir` | The ABI-neutral IR (no libqb names, no C types: procedures, storage classes, places and their store rules, handlers and `RESUME` as statement-level rules; values, places and arguments are `sema`'s typed tree) and its lowering from the typed tree; `validate` checks its structure |
-| `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...): `lib.rs` the entry points and the fragment set, one module per concern adding the emitter's methods (`names.rs`: C types, identifiers, labels, literals, `#line`; `decl.rs`: sizes, declarations, allocation, temporaries; `procs.rs`: procedures, bodies, labels, `retK.txt`; `stmt.rs`: operations and stores; `place.rs`: places; `value.rs`: values and procedure arguments; `builtins.rs`: built-in calls; `owner.rs`: values that own dynamic member arrays) |
+| `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...): `lib.rs` the entry points and the fragment set, one module per concern adding the emitter's methods (`names.rs`: C types, identifiers, labels, literals, `#line`; `coverage.rs`: the counters of `--coverage`; `decl.rs`: sizes, declarations, allocation, temporaries; `procs.rs`: procedures, bodies, labels, `retK.txt`; `stmt.rs`: operations and stores; `place.rs`: places; `value.rs`: values and procedure arguments; `builtins.rs`: built-in calls; `owner.rs`: values that own dynamic member arrays) |
 | `lsp` | `qb64rust-lsp` | The language server (`qb64rust lsp`, OpenSpec change `m2-language-server`): the message loop with debounce, a parse worker and cancellation (`server.rs`), one program's parse with included files from open documents first (`analysis.rs`), the encoding boundary (`encoding.rs`: tables generated from `iconv-lite` by `tools\encodings\gen_tables.js`, UTF-16 columns), `file:` URIs (`uri.rs`), the check (`qb64rust/check`: the whole front end, a function the driver passes to `serve`), and the features from the trees alone: diagnostics, document symbols (`symbols.rs`), folding ranges (`folding.rs`), go to definition for procedures and labels (`definition.rs`) |
 | `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, the file loader for included files (`FileLoader`), build through the copy of libqb's `Makefile` (`libqb\`) with the clone's toolchain; `qb64rust lsp` starts the language server, passing it `check_for_server` (the front end after the parse, `check_program`, the CLI's own) |
 | `difftest` | `qb64rust-difftest` | Not part of the compiler: the generator of the differential programs in `tests\differential` (binary `qb64rust-difftest`, `gen [--check]`; design D2 of `m2-numeric-types`, `tests\differential\README.md`): the numeric type list with each type's `AS` name, literal suffix and value slots (extremes, -1, 0, 1, two seeded random values from a fixed-seed xorshift), the operators and the exclusions; `for_sema` maps every `sema::Ty` exhaustively, so a new numeric type fails its build until the generator covers it |
@@ -54,6 +54,7 @@ cargo build --release
 target\release\qb64rust.exe -x prog.bas -o prog.exe        # compile (needs ..\QB64pe, see below)
 target\release\qb64rust.exe -z prog.bas                    # write the C++ fragments only, print their folder (kept)
 target\release\qb64rust.exe --dump typed prog.bas          # tokens | tree | typed | ir | cpp
+target\release\qb64rust.exe -x --coverage prog.bas         # count each statement run (QB64RUST_COVERAGE=<file>)
 target\release\qb64rust.exe lsp                            # the language server, over stdin and stdout
 target\release\qb64rust.exe --report unsupported tests\corpus tests\programs   # what these programs still need
 ```
@@ -97,6 +98,14 @@ contents of a file it names; a relative name is the clone's file, as `qb64pe` li
 parts the program links, moved beside the executable as `<exe>.license.txt` (`build.rs`, `license_path`; the build
 cache keeps the file with its executable, and an entry without it is no hit for a build that asks for it);
 `-f:StripDebugSymbols=...` is ignored; other `-f:` settings are "not supported yet".
+
+`--coverage` (`codegen-cpp\src\coverage.rs`, `cws-whole-game`) builds a program that counts each source statement
+it runs; at exit, when `QB64RUST_COVERAGE` names a file, it appends one record to it: each source file with its path
+relative to the main file's folder and the FNV-1a 64 hash of its text, then each statement as file, line, column
+and count (unrun ones included). Statements at one position share an entry; the jumps the lowering adds for a
+block (`Stmt::own`) have none. Without the option the C++ is unchanged; with it the fragments differ, so the build
+cache keeps the two builds apart. `--dump cpp --coverage` shows that C++. The records are read by
+`tools\coverage\coverage.py`.
 
 ## What the compiler supports
 
@@ -220,6 +229,7 @@ it, the clone sets would run in release only.
 | `check-ok` | no errors after `sema` |
 | `check-fail` | at least one error; the diagnostics are a snapshot |
 | `typed`, `ir`, `cpp` | no errors; the typed tree, the IR or the C++ fragments are a snapshot |
+| `coverage` | no errors; the C++ fragments of a `--coverage` build are a snapshot |
 
 The mode line is a comment, so `qb64pe.exe` ignores it.
 

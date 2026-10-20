@@ -24,8 +24,9 @@ tenth review `study\35` §3 item 1; the areas it left are M4's). Twenty-two M3 s
 cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` and `5d3730f`) are archived too.
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
 Civil War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same
-23 screens as the old compiler's build. Upstream is at 356 of 399. `main` is at the merge of `m3-newest` (pull
-request 9, `61ae7be`, 2026-10-18), which holds every change up to `m3-constant-evaluation`.
+23 screens as the old compiler's build. Upstream is at 355 of 399. `main` is at the merge of `newer-changes` (pull
+request 10, `5db547a`, 2026-10-19), which holds every change up to `libqb-object-flags` and `const-rulings`; the
+extension's first release is tagged `vscode-v0.2.0` there.
 
 ## Waiting on the user
 
@@ -34,9 +35,7 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 11).
 
-- **The first release of the extension** (`extension-vsix`, `DECISIONS.md` 2026-10-19): after the merge into
-  `main`, push the tag `vscode-v0.2.0`; `.github\workflows\release-vsix.yml` then attaches
-  `qb64rust-win32-x64-0.2.0.vsix` to a GitHub release (`vscode\DEVELOPMENT.md`, "Package").
+Nothing.
 
 **The `tier2` job on `m3`** (`study\archive\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -48,19 +47,15 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. **Three changes to make the compiler usable** (`ROADMAP.md`, "After M3"), all built: the plain copy of
-   `internal\c` (`libqb-copy`, archived, `89ec865`); the extension's diagnostics on save from the new compiler
-   (`extension-diagnostics`, archived, `32a4849`); the `.vsix` (`extension-vsix`, archived, `b3666e9`: a
-   `win32-x64` package carrying `qb64rust.exe` and the copy of libqb, Build and Run through `qb64rust` under
-   `qb64rust.buildWith`, releases from a tag `vscode-v<version>`; the repository became MIT-licensed with it).
-2. **Built and closed, not archived:** `libqb-object-flags` (the driver's flags reach the program's own objects
-   only; a stamp rebuilds a copy's libqb objects built otherwise) and `const-rulings` (D-027 to D-031; the copy of
-   libqb's first edit, `_COTH`, a supported built-in now); `close.py --check` passes. Then their archive and the
-   merge of `newer-changes` into `main` with its full runs.
-   Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
-3. **The verification families as a suite of the new compiler** (`study\35` §3 item 2, approved).
-4. Then M4's parity work; the upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, blanks
-   around `.` and `_CONTINUE` (2 programs each).
+1. `cpp-failure-errors` is built (a C++ build that fails in both compilers is an error in the program: an
+   `$EXEICON` file that is no icon before the C++, and the toolchain's errors that name a `DECLARE LIBRARY`
+   function at the BASIC line; the six programs of the known bug on `tests\verification\pass.list`): the user
+   commits it. Pull request 11 (`verification-compare`, `cws-whole-game`) waits on the full set of a merge.
+2. M4's parity work; the upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, blanks
+   around `.` and `_CONTINUE` (2 programs each). The verification families are a suite of the new compiler since
+   `verification-compare` (`tests\verification\`); its `known.list` holds more such lines.
+
+Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 
 **M3's steps** (user, `DECISIONS.md` 2026-10-12, and one row per later step). Done, each archived under
 `openspec\changes\archive\` with its `tasks.md` and `design.md`; its measurements in `study\00` §5; what stayed
@@ -92,6 +87,13 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 22 | `2026-10-18-m3-constant-evaluation` | the `CONST` evaluator in full: `_FLOAT` in software, its lanes and typing by text, every function (math functions certified, else D-026), suffixed constants, the auto-included constants, `$COLOR`; the dependency `astro-float-num` |
 
 ## Numbers at the last full runs
+
+**At the merge into `main` of pull request 10** (2026-10-19, the full set on the tree of `5db547a`, no pass cache,
+`--jobs 8 --build-cache`): the full corpus suite 477 pass, 5 known failures and `218_fre` (only marked errors),
+`slice.list` judged from it 458 of 458, and 458 of 458 with `QB64RUST_NO_FOLD=1`; the full upstream suite 355
+pass, 48 rejected or with only marked errors or, for `const/math_funcs` alone, an output that differs (D-031), 1
+known failure, `pass.list` judged from it 355 of 355; the differential pass list 59 of 59; the call-site check
+1888 of 1888 equal. Tier 1 and fmt and clippy passed in CI on the merge commit.
 
 **At the merge into `main` of pull request 9** (2026-10-18, `61ae7be`; the compiler is the one of the change's
 close, the commits after it touched comments and documents only): the differential pass list 59 of 59. The full
@@ -162,7 +164,7 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 ## Known bugs
 
-None known (the stale libqb objects are fixed by `libqb-object-flags`).
+None.
 
 ## Queued for later milestones
 

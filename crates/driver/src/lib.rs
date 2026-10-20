@@ -1,6 +1,7 @@
 //! The compiler pipeline as a library, so that tests can run each stage; `main.rs` is the command line.
 
 pub mod build;
+pub mod cpp_errors;
 pub mod library;
 pub mod report;
 
@@ -220,16 +221,41 @@ fn beside(main_path: &Path, rest: &str) -> PathBuf {
 /// The check `sema` cannot make, since it reads no file: the icon `$EXEICON` names is there. A missing file is an
 /// error at the metacommand's line, counted with the others. It names the file as the program writes it, where
 /// the old compiler names the folder it looked in (`DIVERGENCES.md`): no diagnostic holds a folder of the machine.
+/// A file that is there but is no icon ([`is_icon`]) is an error too, where both compilers' C++ build fails
+/// (`verification\v29_e16_not_an_icon`; design D1 of `cpp-failure-errors`). A file that cannot be read is left to
+/// the build.
 pub fn check_exe_icon(program: &Program, diagnostics: &mut Diagnostics, main_path: &Path) {
-    let Some(path) = icon_path(program, main_path) else {
+    let (Some(path), Some(icon)) = (icon_path(program, main_path), &program.settings.exe_icon) else {
         return;
     };
-    if !path.is_file()
-        && let Some(icon) = &program.settings.exe_icon
-    {
+    if !path.is_file() {
         let msg = format!("the file `{}` of `$EXEICON` is not found", icon.shown);
         diagnostics.error(icon.span, msg);
+    } else if std::fs::read(&path).is_ok_and(|bytes| !is_icon(&bytes)) {
+        let msg = format!("the file `{}` of `$EXEICON` is not an icon file", icon.shown);
+        diagnostics.error(icon.span, msg);
     }
+}
+
+/// The bytes start with an icon directory that `llvm-rc` can read the images of: reserved word 0, type 1, at least
+/// one image, each image's 16-byte entry inside the file and its bytes (size at entry offset 8, offset at 12)
+/// too. What the images hold is not looked at.
+pub fn is_icon(bytes: &[u8]) -> bool {
+    let word = |at: usize| bytes.get(at..at + 2).map(|b| u16::from_le_bytes([b[0], b[1]]));
+    let dword = |at: usize| {
+        bytes
+            .get(at..at + 4)
+            .map(|b| u64::from(u32::from_le_bytes([b[0], b[1], b[2], b[3]])))
+    };
+    let (Some(0), Some(1), Some(count)) = (word(0), word(2), word(4)) else {
+        return false;
+    };
+    count > 0
+        && (0..usize::from(count)).all(|i| {
+            let entry = 6 + 16 * i;
+            matches!((dword(entry + 8), dword(entry + 12)),
+                (Some(size), Some(offset)) if offset + size <= bytes.len() as u64)
+        })
 }
 
 /// Where a file a `$EMBED` line names lies, as for the icon ([`exe_icon_path`]; design D3 of `m3-network-embed`).
@@ -286,23 +312,109 @@ pub fn emit(fe: &Frontend, resolved: &Resolved) -> qb64rust_codegen_cpp::Fragmen
 
 /// The C++ fragments of `ir`, the IR of `fe`'s program.
 pub fn emit_ir(fe: &Frontend, ir: &qb64rust_ir::Program, resolved: &Resolved) -> qb64rust_codegen_cpp::Fragments {
+    emit_ir_with(fe, ir, resolved, false)
+}
+
+/// [`emit_ir`], with a counter at each source statement for `--coverage` (design D1 of `cws-whole-game`).
+pub fn emit_ir_with(
+    fe: &Frontend,
+    ir: &qb64rust_ir::Program,
+    resolved: &Resolved,
+    coverage: bool,
+) -> qb64rust_codegen_cpp::Fragments {
     let included = fe
         .map
         .files()
         .filter(|&(id, _)| id != fe.file)
         .map(|(id, f)| (id, f.name.clone()))
         .collect();
-    qb64rust_codegen_cpp::emit(ir, &fe.map.file(fe.file).name, &included, resolved)
+    let position = |span: qb64rust_base::Span| fe.map.file(span.file).line_col(span.start);
+    let coverage = coverage.then(|| qb64rust_codegen_cpp::Coverage {
+        files: coverage_files(fe),
+        position: &position,
+    });
+    qb64rust_codegen_cpp::emit_with(ir, &fe.map.file(fe.file).name, &included, resolved, coverage.as_ref())
 }
 
-/// `--dump cpp`.
-pub fn dump_cpp(fe: &Frontend, resolved: &Resolved) -> String {
-    qb64rust_codegen_cpp::dump(&emit(fe, resolved))
+/// Each file of the program by its index, for a coverage record: its path relative to the main file's folder (an
+/// included file found elsewhere, in the compiler root, as it was found), with `/` between folders, and the FNV-1a
+/// 64 hash of its bytes as 16 hex digits, which `tools\coverage\coverage.py` checks against the file it reads.
+pub fn coverage_files(fe: &Frontend) -> Vec<(String, String)> {
+    let main_dir = Path::new(&fe.map.file(fe.file).name)
+        .parent()
+        .map_or_else(PathBuf::new, Path::to_path_buf);
+    fe.map
+        .files()
+        .map(|(_, f)| {
+            let name = Path::new(&f.name);
+            let rel = name.strip_prefix(&main_dir).unwrap_or(name);
+            (
+                rel.to_string_lossy().replace('\\', "/"),
+                format!("{:016x}", fnv1a64(&f.bytes)),
+            )
+        })
+        .collect()
+}
+
+/// The 64-bit FNV-1a hash.
+pub fn fnv1a64(bytes: &[u8]) -> u64 {
+    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, &b| {
+        (h ^ u64::from(b)).wrapping_mul(0x0000_0100_0000_01b3)
+    })
+}
+
+/// `--dump cpp`; with `coverage`, the C++ of a `--coverage` build.
+pub fn dump_cpp(fe: &Frontend, resolved: &Resolved, coverage: bool) -> String {
+    qb64rust_codegen_cpp::dump(&emit_ir_with(fe, &lower(fe), resolved, coverage))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// An icon directory with `count` entries, each of `size` bytes at `offset`, padded with zeros to `len` bytes.
+    fn icon(kind: u16, count: u16, size: u32, offset: u32, len: usize) -> Vec<u8> {
+        let mut b = [0u16.to_le_bytes(), kind.to_le_bytes(), count.to_le_bytes()].concat();
+        for _ in 0..count {
+            b.extend([0u8; 8]);
+            b.extend(size.to_le_bytes());
+            b.extend(offset.to_le_bytes());
+        }
+        b.resize(len.max(b.len()), 0);
+        b
+    }
+
+    /// What an icon file is for `$EXEICON` (design D1 of `cpp-failure-errors`).
+    #[test]
+    fn icon_files() {
+        assert!(is_icon(&icon(1, 1, 40, 22, 62)));
+        assert!(is_icon(&icon(1, 5, 40, 86, 126)));
+        assert!(!is_icon(b"this file is text, not an icon\r\n"));
+        assert!(!is_icon(&[0, 0, 1, 0]));
+        assert!(!is_icon(&icon(2, 1, 40, 22, 62)), "a cursor");
+        assert!(!is_icon(&icon(1, 0, 0, 0, 6)), "no image");
+        assert!(!is_icon(&icon(1, 1, 40, 22, 61)), "an image past the end");
+        // Two entries end at byte 38; cut at 30, the first (an empty image) is inside, the second is not.
+        let mut cut = icon(1, 2, 0, 0, 0);
+        cut.truncate(30);
+        assert!(!is_icon(&cut), "an entry past the end");
+    }
+
+    /// The repo's icons are icon files.
+    #[test]
+    fn repo_icons_are_icons() {
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        for f in [
+            "tests/programs/civil-war-strategy/cws.ico",
+            "tests/frontend/inc/exeicon.ico",
+            "verification/v29_inc/icon.ico",
+        ] {
+            assert!(is_icon(&std::fs::read(repo.join(f)).unwrap()), "{f}");
+        }
+        assert!(!is_icon(
+            &std::fs::read(repo.join("verification/v29_inc/not_an_icon.ico")).unwrap()
+        ));
+    }
 
     /// Where a `./` name of `$EXEICON` lies, by the form of the source file's name.
     #[test]

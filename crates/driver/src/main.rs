@@ -1,14 +1,14 @@
 //! `qb64rust`: the command line (design D9, spec `compiler/cli`).
 //!
 //! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
-//! [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build]`
+//! [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build] [--coverage]`
 //!
 //! `qb64rust --report unsupported <file or folder>... [--include-root <dir>]`: what a set of programs still needs
 //! (`report.rs`).
 //!
 //! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
 
-use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit_ir, frontend_at, lower, report};
+use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit_ir_with, frontend_at, lower, report};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -16,7 +16,7 @@ use std::sync::Mutex;
 
 const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
-[--keep-build]\n\
+[--keep-build] [--coverage]\n\
        qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
        qb64rust lsp    (the language server, over stdin and stdout)";
 
@@ -36,6 +36,9 @@ struct Options {
     /// `--include-root`: where included files are looked up after the including file's folder.
     include_root: Option<PathBuf>,
     keep_build: bool,
+    /// `--coverage`: a counter at each statement, written at exit to the file `QB64RUST_COVERAGE` names (design D1
+    /// of `cws-whole-game`). The fragments differ, so the build cache's key does too.
+    coverage: bool,
     /// `-w`: print the warnings too (spec `compiler/cli`).
     warnings: bool,
     /// `-f:<setting>=<value>` as given, checked by [`build_settings`].
@@ -97,6 +100,7 @@ fn parse_args() -> Result<Options, String> {
             "--libqb-root" => o.libqb_root = Some(PathBuf::from(value("--libqb-root")?)),
             "--include-root" => o.include_root = Some(PathBuf::from(value("--include-root")?)),
             "--keep-build" => o.keep_build = true,
+            "--coverage" => o.coverage = true,
             "--report" => {
                 let r = value("--report")?.to_string_lossy().to_string();
                 if r != "unsupported" {
@@ -296,7 +300,7 @@ fn run() -> Result<ExitCode, String> {
             _ if errors > 0 => {}
             "typed" => print!("{}", qb64rust_sema::dump_typed(&fe.program)),
             "ir" => print!("{}", dump_ir(&fe)),
-            "cpp" => print!("{}", dump_cpp(&fe, &resolved)),
+            "cpp" => print!("{}", dump_cpp(&fe, &resolved, o.coverage)),
             _ => unreachable!(),
         }
         report(&fe);
@@ -323,7 +327,7 @@ fn run() -> Result<ExitCode, String> {
 
     let ir = lower(&fe);
     settings.flags = build::make_flags(&ir.settings);
-    let fragments = emit_ir(&fe, &ir, &resolved);
+    let fragments = emit_ir_with(&fe, &ir, &resolved, o.coverage);
     let build_dir = build::build_dir(&exe);
     if o.cpp_only {
         let temp = build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
@@ -349,7 +353,24 @@ fn run() -> Result<ExitCode, String> {
         &exe_name,
     )?;
     build::write_embedded(&build_dir, &qb64rust_driver::used_embedded_files(&fe, &input)?)?;
-    build::build(&roots, &build_dir, &exe, o.quiet, &settings)?;
+    if let Err(e) = build::build(&roots, &build_dir, &exe, o.quiet, &settings) {
+        // A failure that names only library functions is the program's (design D4 of `cpp-failure-errors`): its
+        // errors as the front end's, with the summary; the build folder goes as after a build that worked.
+        if let build::BuildError::Toolchain { output, .. } = &e
+            && let Some(errors) = qb64rust_driver::cpp_errors::diagnostics(&fe, output)
+        {
+            for d in errors {
+                fe.diagnostics.push(d);
+            }
+            print!("{}", fe.render_diagnostics());
+            println!("{}", fe.diagnostics.summary());
+            if !o.keep_build {
+                let _ = std::fs::remove_dir_all(&build_dir);
+            }
+            return Ok(ExitCode::FAILURE);
+        }
+        return Err(e.to_string());
+    }
     if !o.keep_build {
         let _ = std::fs::remove_dir_all(&build_dir);
     }

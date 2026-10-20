@@ -1,0 +1,18 @@
+PLAY(0) after V0 alone: 0 
+line 2605 (about 2.2 s) took over 1.8 s: yes, under 3 s: yes
+line 2685 (about 2.1 s) took over 1.7 s: yes, under 2.7 s: yes
+line 2692 (3 x 0.5 ticks) took under 0.5 s: yes
+two SOUNDs of 9.1 ticks (1 s) took over 0.7 s: yes, under 1.5 s: yes
+lines 469, 860, 886 took under 0.5 s: yes
+line 187: 5 
+line 189: 12 
+line 191: 21 
+line 193: 41 
+line 195: 30 
+line 197: 55 
+line 2886: 33 
+line 2888: 37 
+line 2901: 21 
+line 2902: 17 
+the queue played out in its time (within 15%): yes
+exit=0

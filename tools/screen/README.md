@@ -31,7 +31,8 @@ A program built this way behaves as before unless one of two environment variabl
 |---|---|
 | `QB64_SCREEN_STATE=<file>` | At exit (`SYSTEM`, `END`, off the end, the window closed, a runtime error) the state is written to the file, after the states the keys file's `state` steps wrote |
 | `QB64_SCREEN_KEYS=<file>` | The keys of the file are given to the program as if typed, its mouse steps as if the mouse moved over the window |
-| `QB64_SCREEN_PROMPT_MS=<n>` | How long a `prompt` step, or a mouse step waiting for the window, waits (default 30000); for a test of the time limit |
+| `QB64_SCREEN_PROMPT_MS=<n>` | How long a `prompt` step, a wait of `play until`, or a mouse step waiting for the window, waits (default 30000); for a test of the time limit |
+| `QB64_SCREEN_DIGEST_AS_STATE=1` | Each `digest` step writes the full state instead, to look at when a digest differs (the runner's `--full-states`) |
 
 The corpus runner does all of this for a program with a `<name>.screen` file (`tools\legacy_tests\README.md`).
 
@@ -67,6 +68,10 @@ end
 - A file may hold several states, one after the other, each from `screen-state 1` to `end`: those of the keys
   file's `state` steps, then the one at exit. A run that a `prompt` ended has a last line `stopped <keys> line
   <n>: <why>`.
+- A `digest` step writes one line `digest <16 hex digits>` in its place among the states: the FNV-1a 64 hash of
+  the bytes a `state` step would write at that moment (from `screen-state 1` to `end`). The same screen gives the
+  same line; a screen that differs by one pixel gives another. A long game is compared at many points this way
+  without a full state for each (design D5 of `cws-whole-game`; `tests\corpus\screen\c14_digest`).
 
 Not in the state: sound (checked by what a program can observe of it, `tests\corpus\slice\s74_sound_queue`,
 `s75_sound_wait` and `s76_sound_errors`; what is heard is checked by no test); the window (title, size, full
@@ -84,6 +89,10 @@ One step per line; `#` starts a comment.
 | `wait <ms>` | A pause |
 | `prompt` | Wait until the program announces its next wait for a key (below) |
 | `state` | Write the state of the screen now, before the state at exit |
+| `digest` | Write a hash of the state now (above) |
+| `rule <place>[:<letter>] <keys>` | From now on, a wait at that place (and letter) that `play until` meets is answered by these keys: `key <name>` parts, then at most one `text <characters>` part, as `key down key enter` or `text ay`. It replaces an earlier rule for the same place and letter |
+| `play until <place>[:<letter>]` | Answer each wait the program announces by its rule until one at that place (below) |
+| `repeat <n>` … `end` | The steps between, n times (blocks may nest) |
 | `repeat <name>` | Last line only: the key every 100 ms until the program exits, for `END`'s "Press any key to continue" |
 | `mouse <x> <y>` | The mouse moves to pixel x, y of the window's content (0 to 999999 each) |
 | `press <button>`, `release <button>` | A button goes down or up at the last `mouse` position: 1 left, 2 right, 3 middle |
@@ -138,6 +147,39 @@ waits than that (a key was given without a `prompt`) ends it with exit code 125.
 written, with the reason as the file's last line (libqb points stderr at the console the program was started
 from, so a pipe does not see it). `tests\corpus\screen\c12_prompts` shows the steps; `g12_game` plays Civil War
 Strategy with them.
+
+**Places and rules** (design D4 of `cws-whole-game`). A program may also say where it waits: before the count it
+writes the place of the wait (1 to 255) to byte `&H4F1` and a letter to `&H4F2`:
+
+```
+DEF SEG = 0: POKE 1265, 7: POKE 1266, 0: POKE 1264, (PEEK(1264) + 1) AND 255: DEF SEG
+```
+
+A program that writes neither waits at place 0, so a program that only counts behaves as before (`c12_prompts`).
+`play until <place>[:<letter>]` takes each announced wait in turn: a wait at the named place (any letter when none
+is named) ends it and counts as a `prompt`, so the steps after it answer that wait; any other wait gets the first
+key of its rule (the rule for its place and letter, else the rule for its place with no letter), and the rule's
+other keys go one by one to the waits that follow, before any rule is looked at or the place checked again. A
+wait no rule answers ends the run with exit code 125 and the last line `stopped <keys> line <n>: no rule for the
+wait at place <place>` (n the line of the `play until`); a wait that does not come in 30 s ends it with 124. So a
+script need not know how many waits a month of a game brings: it gives rules for the waits that may come and plays
+until the menu it acts at. The keys depend only on the places the program announces, which depend only on its
+state, so `--record`'s two equal runs show that the rules leave nothing to timing. A rule answers a wait for one
+key; a wait that reads several (an `INPUT`) is answered by plain steps after a `play until` that stops there.
+`tests\corpus\screen\c13_rules` shows the steps: months with one to three waits each, a menu whose rule answers it
+and the wait after it, a rule for any other letter, and `repeat 3` around `play until 14:M`.
+
+**Civil War Strategy's scripts** (`cws-whole-game`). The copy `g12_game` names its 14 waits by place, in the order
+of the game's lines: 1 random events, 2 a player's turn (two players), 3 and 4 a battle, 5 and 6 the month's update,
+7 to 9 events, 10 to 12 the high scores (11 is the commander's name, an `INPUT`), 13 a report, 14 every menu, with
+the first letter of its title (`14:M` the main menu, `14:E` End Turn and End Game, `14:O` the Options at a game's
+end and the Files menu, `14:C` the title menu and COMMANDS, `14:R` Retreat and others). Its scripts are
+`tests\corpus\screen\g12_game.<script>.keys`, each a test of its own (`tools\legacy_tests\README.md`, "Scripts of a
+screen program"); `tests\programs\README.md` lists them and says how to add one, and `tools\coverage\README.md` how
+their coverage is checked. What a script writer meets in the game's menus: a menu takes Up, Down, PgUp and PgDn (not
+Home or End) and the first letter of an entry, which chooses it at once; a "-" entry is chosen by the key `-`; a
+letter that matches no entry is ignored, and the menu announces its wait again, so the next step meets the same
+menu.
 
 Limits: a key is pressed and released at once (`_KEYDOWN` never sees it held); no Shift, Ctrl or Alt combinations;
 a program that never reads `INKEY$`, `INPUT` or `LINE INPUT` gets the first key only. No mouse step for the

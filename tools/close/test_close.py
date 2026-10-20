@@ -107,6 +107,33 @@ class Plan(unittest.TestCase):
         self.assertTrue(needs_nofold(["crates/sema/src/check/constants.rs"]))
         self.assertFalse(needs_nofold(["crates/sema/src/check/mod.rs", "STATUS.md"]))
 
+    def test_coverage_by_files(self):
+        # Civil War Strategy's coverage check (design D2 of cws-whole-game), only when what it rests on changed.
+        for f in (
+            "tests/corpus/screen/g12_game.bas",
+            "tests/corpus/screen/g12_game.navy.keys",
+            "tests/corpus/screen/g12_game.files/CWS.CFG",
+            "tests/programs/civil-war-strategy.unreached",
+            "tools/screen/cut_game.py",
+            "tools/screen/screen_state.cpp",
+            "tools/coverage/coverage.py",
+            "crates/codegen-cpp/src/procs.rs",
+            "crates/ir/src/lower.rs",
+            "crates/driver/src/main.rs",
+        ):
+            self.assertTrue(close.needs_coverage([f]), f)
+        for f in ("tests/corpus/screen/g12_gamex.bas", "tools/screen/state_to_png.py", "crates/sema/src/lib.rs"):
+            self.assertFalse(close.needs_coverage([f]), f)
+        names = [s.name for s in steps(False, True)]
+        self.assertLess(names.index("verification"), names.index("coverage"))
+        self.assertNotIn("coverage", [s.name for s in steps(False)])
+        step = next(s for s in steps(False, True) if s.name == "coverage")
+        self.assertEqual(step.command, "python tools/coverage/coverage.py --check > target/close/coverage.log 2>&1")
+        self.assertTrue(step.copy)
+        self.assertEqual(judge("coverage", "...\ncheck: PASS (0 problem(s))\n", set()), (True, "check PASS, 0 problems"))
+        self.assertFalse(judge("coverage", "check: FAIL (3 problem(s))\n", set())[0])
+        self.assertFalse(judge("coverage", "coverage: the counts are of another text\n", set())[0])
+
     def test_order(self):
         names = [s.name for s in steps(True)]
         # What changes the compiler or the lists comes before the build, the build before every run.
@@ -122,6 +149,9 @@ class Plan(unittest.TestCase):
         self.assertIn("--locked", by["tier1"])
         self.assertIn("--pass-cache", by["slice"])
         self.assertIn("--pass-cache", by["upstream"])
+        self.assertIn("--pass-cache", by["verification"])
+        self.assertIn("--suite verification", by["verification"])
+        self.assertIn("--list tests/verification/pass.list", by["verification"])
         self.assertNotIn("--pass-cache", by["nofold"])
         self.assertIn("--wait", by["callsite"])
         for s in steps(True):
@@ -172,6 +202,7 @@ class Check(unittest.TestCase):
             "wording-check": "1 notes on recorded rejections, 0 not the recorded message\n",
             "slice": '{"corpus": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
             "upstream": '{"compile_tests": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
+            "verification": '{"verification": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
             "callsite": "1 programs: 1 equal, 0 differ, 0 not compared\n",
             "cli": CARGO_OK,
         }
@@ -326,7 +357,7 @@ class Check(unittest.TestCase):
 
     def test_copy_steps(self):
         copies = {s.name for s in steps(True) if s.copy}
-        self.assertEqual(copies, {"slice", "upstream", "nofold", "callsite"})
+        self.assertEqual(copies, {"slice", "upstream", "verification", "nofold", "callsite"})
 
     def test_a_step_before_the_build_is_not_stale_by_what_one_writes(self):
         # `wording` at 150, then `lists` rewrote a list at 160 and ended at 170, then the build at 200.

@@ -718,9 +718,10 @@ impl Checker<'_> {
         let ProcKind::Function(ty) = self.prog.proc(p).kind else {
             return Err(self.in_use(t));
         };
-        // Measured: a `_BIT` FUNCTION is declared, but any call of it is "Name already in use" (`verification\v21_x16`,
-        // `x17`, `x47`; uncalled it compiles, `x48`).
-        if suffix.is_some_and(|s| !suffix_fits(s, ty)) || matches!(ty, Ty::Bit { .. }) {
+        // Measured: a one-bit FUNCTION (`` ` ``, `` ~` ``) is declared, but any call of it is "Name already in use"
+        // (`verification\v21_x16`, `x17`, `x47`; uncalled it compiles, `x48`). A `_BIT * n` FUNCTION (`` `3 ``,
+        // `` ~`3 ``) is called as any other (`v21_a_functions`).
+        if suffix.is_some_and(|s| !suffix_fits(s, ty)) || matches!(ty, Ty::Bit { width: 1, .. }) {
             return Err(self.in_use(t));
         }
         let proc = self.prog.proc(p);

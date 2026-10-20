@@ -35,6 +35,8 @@ REPO = rlt.REPO
 CORPUS = REPO / "tests" / "corpus"
 UPSTREAM = REPO / "tests" / "upstream"
 DIFFERENTIAL = REPO / "tests" / "differential"
+VERIFICATION = REPO / "tests" / "verification"
+VERIFICATION_ROOT = REPO / "verification"
 RESULTS = REPO / "target" / "legacy-tests"
 COMPILER = REPO / "target" / "release" / "qb64rust.exe"
 
@@ -80,7 +82,8 @@ def corpus_membership() -> list[str]:
             ]
         )
     return [
-        f"`slice.list` names **{len(slice_list)}** programs. By folder:",
+        f"`slice.list` names **{len(slice_list)}** tests (a program, or a script of a screen program: "
+        "`<name>.<script>.keys`). By folder:",
         "",
         *table(
             [
@@ -114,6 +117,26 @@ def differential_membership() -> list[str]:
     programs = len(list(DIFFERENTIAL.rglob("*.bas")))
     passing = len(list_names(DIFFERENTIAL / "pass.list"))
     return [f"`pass.list` names **{passing}** of the {programs} programs."]
+
+
+def verification_membership() -> list[str]:
+    programs = len(list(VERIFICATION_ROOT.glob("*.bas")))
+    passing = len(list_names(VERIFICATION / "pass.list"))
+    known = rlt.load_known_list(VERIFICATION / "known.list")
+    reasons: dict[str, int] = {}
+    for reason in known.values():
+        word = reason.split(": ", 1)[0]
+        reasons[word] = reasons.get(word, 0) + 1
+    lines = [
+        (
+            f"Of the {programs} programs of `verification\\`, `pass.list` names **{passing}** and "
+            f"`known.list` {len(known)}."
+        )
+    ]
+    if reasons:
+        rows = [[f"`{word}`", n] for word, n in sorted(reasons.items())]
+        lines += ["", *table(["Reason in `known.list`", "Programs"], rows)]
+    return lines
 
 
 def full_run(suite: str) -> tuple[dict | None, str]:
@@ -200,6 +223,20 @@ BLOCKS = [
         "differential-membership",
         "membership",
         lambda: (differential_membership(), ""),
+    ),
+    (
+        VERIFICATION / "README.md",
+        "verification-membership",
+        "membership",
+        lambda: (verification_membership(), ""),
+    ),
+    (
+        VERIFICATION / "README.md",
+        "verification-results",
+        "results",
+        lambda: results_block(
+            "verification", VERIFICATION_ROOT.resolve(), VERIFICATION / "pass.list"
+        ),
     ),
 ]
 

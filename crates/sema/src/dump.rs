@@ -600,6 +600,7 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 step,
                 body,
                 end_line,
+                ..
             } => {
                 let v = p.var(*var);
                 line(
@@ -622,7 +623,9 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 heading(out, "Body");
                 stmts(p, body, d + 2, out);
             }
-            StmtKind::Do { test, body, end_line } => {
+            StmtKind::Do {
+                test, body, end_line, ..
+            } => {
                 line(out, &format!("Do (LOOP line {end_line})"));
                 if let Some(t) = test {
                     let word = if t.until { "Until" } else { "While" };
@@ -632,7 +635,9 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 heading(out, "Body");
                 stmts(p, body, d + 2, out);
             }
-            StmtKind::While { cond, body, end_line } => {
+            StmtKind::While {
+                cond, body, end_line, ..
+            } => {
                 line(out, &format!("While (WEND line {end_line})"));
                 heading(out, "Cond");
                 expr(p, cond, d + 2, out);

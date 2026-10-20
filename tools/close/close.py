@@ -12,7 +12,9 @@ step older than a later edit that cannot affect it is accepted with --not-repeat
 (rule 9: "say which runs were not repeated and why"); a failing one never is.
 
 Whether the run without folding is needed follows from the files changed against HEAD (sema's constant evaluation
-or a numeric conversion, rule 9); --nofold asks for it anyway.
+or a numeric conversion, rule 9); --nofold asks for it anyway. So does the coverage check of Civil War Strategy's
+scripts (tools/coverage): only when the game's copy or its scripts, the screen-state file, cut_game.py, the coverage
+tool, codegen-cpp, ir or driver changed; --coverage asks for it anyway.
 """
 
 from __future__ import annotations
@@ -40,8 +42,13 @@ CACHE = "--pass-cache target/pass-cache"
 NOFOLD_FILES = re.compile(r"^crates/sema/src/(consteval\.rs|literal\.rs|check/constants\.rs|check/auto\.rs|check/ops\.rs)$")
 # Changed files that make a run stale: what the compiler and the tests are built from. Documents and the
 # test-time record are written during the close and do not.
-INPUTS = re.compile(r"^(crates/|tests/|tools/(legacy_tests|callsite|diagnostics|builtins)/|Cargo\.(toml|lock)$)")
+INPUTS = re.compile(r"^(crates/|tests/|tools/(legacy_tests|callsite|diagnostics|builtins|screen|coverage)/|Cargo\.(toml|lock)$)")
 NOT_INPUTS = re.compile(r"(\.md$|^tools/testtime/)")
+# Files whose change asks for the coverage check of Civil War Strategy's scripts (design D2 of cws-whole-game).
+COVERAGE_FILES = re.compile(
+    r"^(tests/corpus/screen/g12_game[./]|tests/programs/civil-war-strategy\.unreached$|tools/screen/(cut_game\.py|"
+    r"screen_state\.cpp)$|tools/coverage/|crates/(codegen-cpp|ir|driver)/)"
+)
 # Changed inputs that reach a run only through the release build: a run of a copy is judged by the build's hash.
 BUILT_FROM = r"^(crates/|Cargo\.(toml|lock)$)"
 
@@ -67,7 +74,7 @@ def log(name: str) -> str:
     return f"{LOGS}/{name}.log"
 
 
-def steps(nofold: bool) -> list[Step]:
+def steps(nofold: bool, coverage: bool = False) -> list[Step]:
     out = [
         # The table of the old wording (from the messages of the release build there is) and the shrink-only lists
         # are written before the build: the build and tier 1 read them.
@@ -103,6 +110,14 @@ def steps(nofold: bool) -> list[Step]:
             "runner",
             copy=True,
         ),
+        # The verification programs the new compiler passes (tests/verification), in place of the hand runs of a
+        # family's accepted programs.
+        Step(
+            "verification",
+            f"{RUNNER} --suite verification {NEW} {CACHE} --list tests/verification/pass.list > {log('verification')} 2>&1",
+            "runner",
+            copy=True,
+        ),
     ]
     if nofold:
         out.append(
@@ -112,6 +127,11 @@ def steps(nofold: bool) -> list[Step]:
                 "runner",
                 copy=True,
             )
+        )
+    if coverage:
+        # Every script of g12_game built with --coverage and run, then the check against the list of unreached lines.
+        out.append(
+            Step("coverage", f"python tools/coverage/coverage.py --check > {log('coverage')} 2>&1", "coverage", copy=True)
         )
     out += [
         Step("callsite", f"python tools/callsite/callsite.py --wait > {log('callsite')} 2>&1", "callsite", copy=True),
@@ -143,6 +163,10 @@ def changed_files() -> list[str]:
 
 def needs_nofold(files: list[str]) -> bool:
     return any(NOFOLD_FILES.match(f) for f in files)
+
+
+def needs_coverage(files: list[str]) -> bool:
+    return any(COVERAGE_FILES.match(f) for f in files)
 
 
 def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
@@ -191,6 +215,11 @@ def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
         if not m:
             return False, "no summary"
         return (m.group(3) == "0" and m.group(4) == "0", m.group(0))
+    if kind == "coverage":
+        m = re.search(r"^check: (PASS|FAIL) \((\d+) problem", text, re.M)
+        if not m:
+            return False, "no check line"
+        return (m.group(1) == "PASS", f"check {m.group(1)}, {m.group(2)} problems")
     if kind == "wording":
         m = re.search(r"(\d+) notes on recorded rejections, (\d+) not the recorded message", text)
         if not m:
@@ -240,18 +269,21 @@ def when(t: float) -> str:
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(t))
 
 
-def check(nofold: bool, known: set[str], not_repeated: dict[str, str] | None = None) -> int:
+def check(
+    nofold: bool, known: set[str], not_repeated: dict[str, str] | None = None, coverage: bool = False
+) -> int:
     not_repeated = not_repeated or {}
     files = changed_files()
     need = nofold or needs_nofold(files)
+    cov = coverage or needs_coverage(files)
     after, why = stamp(files)
     exe = REPO / EXE
     problems = 0
     # Each reason given with --not-repeated, numbered, and the steps it was used for.
     reasons: dict[str, tuple[int, list[str]]] = {}
     # What the steps before the build write (`lists` writes after `wording` has run).
-    written = "|".join(f"(?:{s.writes})" for s in steps(need) if s.writes)
-    for s in steps(need):
+    written = "|".join(f"(?:{s.writes})" for s in steps(need, cov) if s.writes)
+    for s in steps(need, cov):
         path = REPO / log(s.name)
         if not path.is_file():
             print(f"MISSING  {s.name}: {log(s.name)} not written")
@@ -311,25 +343,28 @@ def check(nofold: bool, known: set[str], not_repeated: dict[str, str] | None = N
     return 1 if problems else 0
 
 
-def plan(nofold: bool) -> int:
+def plan(nofold: bool, coverage: bool = False) -> int:
     files = changed_files()
     need = nofold or needs_nofold(files)
+    cov = coverage or needs_coverage(files)
     print("# Bash (Git Bash, the Bash tool), not PowerShell: `VAR=1 command` and `mkdir -p` are Bash. One command each.")
     print(f"mkdir -p {LOGS}")
-    for s in steps(need):
+    for s in steps(need, cov):
         note = []
         if s.before_build:
             note.append("before the build")
         if s.alone:
             note.append("alone")
         if s.name == "slice":
-            note.append("beside upstream")
+            note.append("beside upstream and verification")
         print(f"{s.command}" + (f"    # {', '.join(note)}" if note else ""))
     if not need:
         print(
             "# no run without folding: no file of sema's constant evaluation, literals or operators changed;"
             " pass --nofold when the change touched a numeric conversion elsewhere"
         )
+    if not cov:
+        print("# no coverage check: no file of Civil War Strategy's copy, its scripts or the tools they need changed")
     print("python tools/close/close.py --check")
     print("python tools/testtime/test_time.py")
     return 0
@@ -341,6 +376,7 @@ def main(argv: list[str]) -> int:
     mode.add_argument("--plan", action="store_true", help="print the closing commands in order")
     mode.add_argument("--check", action="store_true", help="judge the logs of the closing commands")
     ap.add_argument("--nofold", action="store_true", help="ask for the run without folding whatever changed")
+    ap.add_argument("--coverage", action="store_true", help="ask for the coverage check whatever changed")
     ap.add_argument("--known", action="append", default=[], help="a failing test that is known and not the change's")
     ap.add_argument(
         "--not-repeated",
@@ -351,18 +387,18 @@ def main(argv: list[str]) -> int:
     )
     a = ap.parse_args(argv)
     if a.plan:
-        return plan(a.nofold)
+        return plan(a.nofold, a.coverage)
     not_repeated = {}
     for item in a.not_repeated:
         names, sep, reason = item.partition("=")
         if not sep or not reason.strip():
             ap.error(f"--not-repeated {item!r}: give STEP[,STEP...]=REASON")
-        known_steps = {s.name for s in steps(True)}
+        known_steps = {s.name for s in steps(True, True)}
         for step in names.split(","):
             if step not in known_steps:
                 ap.error(f"--not-repeated: no step {step!r} (the steps: {', '.join(sorted(known_steps))})")
             not_repeated[step] = reason.strip()
-    return check(a.nofold, set(a.known), not_repeated)
+    return check(a.nofold, set(a.known), not_repeated, a.coverage)
 
 
 if __name__ == "__main__":
