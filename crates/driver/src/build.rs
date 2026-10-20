@@ -402,7 +402,7 @@ pub fn license_path(exe: &Path) -> PathBuf {
 
 /// Builds the executable. The executable is linked inside the build folder (whose name has no spaces, see
 /// [`build_dir`]) and then moved to `exe`. On failure the build folder is kept and the make output is returned.
-pub fn build(roots: &Roots, build: &Path, exe: &Path, quiet: bool, settings: &Settings) -> Result<(), String> {
+pub fn build(roots: &Roots, build: &Path, exe: &Path, quiet: bool, settings: &Settings) -> Result<(), BuildError> {
     let cache = std::env::var_os(CACHE_ENV).map(PathBuf::from);
     // A build that writes a licence file first removes the one at the output path, so it is never an earlier
     // build's; a build that writes none leaves it, as `qb64pe` does (measured 2026-10-16).
@@ -774,7 +774,13 @@ fn extra_link_args(clone: &Path, extra: &str) -> String {
         .join(" ")
 }
 
-fn build_with_make(roots: &Roots, build: &Path, exe: &Path, quiet: bool, settings: &Settings) -> Result<(), String> {
+fn build_with_make(
+    roots: &Roots,
+    build: &Path,
+    exe: &Path,
+    quiet: bool,
+    settings: &Settings,
+) -> Result<(), BuildError> {
     let c = build.join("c");
     std::fs::create_dir_all(&c).map_err(|e| e.to_string())?;
     std::fs::copy(roots.libqb.join("internal/c/qbx.cpp"), c.join("qbx.cpp"))
@@ -833,7 +839,7 @@ fn build_with_make(roots: &Roots, build: &Path, exe: &Path, quiet: bool, setting
         }
         std::fs::rename(&linked, exe).map_err(|e| {
             let _ = std::fs::remove_file(license_path(exe));
-            format!("moving the executable to {}: {e}", exe.display())
+            BuildError::Other(format!("moving the executable to {}: {e}", exe.display()))
         })
     } else {
         let _ = std::fs::remove_file(exe);
@@ -845,11 +851,42 @@ fn build_with_make(roots: &Roots, build: &Path, exe: &Path, quiet: bool, setting
             String::from_utf8_lossy(&out.stdout),
             String::from_utf8_lossy(&out.stderr),
         );
-        Err(format!(
-            "C++ build failed (make exit status {:?}); build folder kept: {}\n{stdout}{stderr}",
-            out.status.code(),
-            build.display(),
-        ))
+        Err(BuildError::Toolchain {
+            status: out.status.code(),
+            folder: build.to_path_buf(),
+            output: format!("{stdout}{stderr}"),
+        })
+    }
+}
+
+/// Why a build failed (design D2 of `cpp-failure-errors`): `make` ran and failed, with what the toolchain printed,
+/// which may name errors of the program (`cpp_errors`); or anything else.
+#[derive(Debug)]
+pub enum BuildError {
+    Toolchain {
+        status: Option<i32>,
+        folder: PathBuf,
+        output: String,
+    },
+    Other(String),
+}
+
+impl From<String> for BuildError {
+    fn from(msg: String) -> BuildError {
+        BuildError::Other(msg)
+    }
+}
+
+impl std::fmt::Display for BuildError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BuildError::Toolchain { status, folder, output } => write!(
+                f,
+                "C++ build failed (make exit status {status:?}); build folder kept: {}\n{output}",
+                folder.display()
+            ),
+            BuildError::Other(msg) => f.write_str(msg),
+        }
     }
 }
 

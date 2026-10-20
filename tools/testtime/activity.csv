@@ -149,6 +149,7 @@ version,session,change,category,actions,bytes
 1,0b62e185,m3-sound,reading,2,0
 1,0b62e185,m3-sound,scratch files,2,7127
 1,0b62e185,m3-sound,test runs,2,0
+1,0ce06980,,other commands,1,0
 1,0d0a3828,,other commands,1,0
 1,0d0a3828,m3-constant-evaluation,other commands,1,0
 1,0e4635d2,,other commands,1,0
@@ -449,11 +450,11 @@ version,session,change,category,actions,bytes
 1,36ac8a27,cws-whole-game,measurement preparation,3,3680
 1,36ac8a27,cws-whole-game,measurement runs,13,0
 1,36ac8a27,cws-whole-game,other,1,0
-1,36ac8a27,cws-whole-game,other commands,215,0
+1,36ac8a27,cws-whole-game,other commands,216,0
 1,36ac8a27,cws-whole-game,product code,12,6258
 1,36ac8a27,cws-whole-game,reading,79,0
 1,36ac8a27,cws-whole-game,scratch files,27,31683
-1,36ac8a27,cws-whole-game,test runs,36,0
+1,36ac8a27,cws-whole-game,test runs,37,0
 1,36ac8a27,cws-whole-game,tests and fixtures,53,83233
 1,3814c23a,,documents and planning,17,15207
 1,3814c23a,,other,5,0
@@ -1584,6 +1585,19 @@ version,session,change,category,actions,bytes
 1,9a0abdcc,,product code,11,6138
 1,9a0abdcc,,reading,7,0
 1,9a0abdcc,,test runs,9,0
+1,9a5cc32b,,other,1,0
+1,9a5cc32b,,other commands,24,0
+1,9a5cc32b,,product code,17,5254
+1,9a5cc32b,,reading,12,0
+1,9a5cc32b,,test runs,2,0
+1,9a5cc32b,,tests and fixtures,6,1237
+1,9a5cc32b,cws-whole-game,builds,1,0
+1,9a5cc32b,cws-whole-game,documents and planning,4,828
+1,9a5cc32b,cws-whole-game,other commands,24,0
+1,9a5cc32b,cws-whole-game,reading,15,0
+1,9a5cc32b,cws-whole-game,scratch files,1,224
+1,9a5cc32b,cws-whole-game,test runs,13,0
+1,9a5cc32b,cws-whole-game,tests and fixtures,13,2011
 1,9ac445ec,,other commands,11,0
 1,9ac445ec,,reading,1,0
 1,9ac445ec,m3-images-fonts-mouse,documents and planning,4,500
@@ -1843,6 +1857,12 @@ version,session,change,category,actions,bytes
 1,ba3a97a7,m2-control-flow-slice,reading,6,0
 1,ba3a97a7,m2-control-flow-slice,test runs,14,0
 1,ba3a97a7,m2-control-flow-slice,tests and fixtures,7,4435
+1,bad8f5fc,,other commands,1,0
+1,bad8f5fc,verification-compare,documents and planning,1,130
+1,bad8f5fc,verification-compare,other,1,0
+1,bad8f5fc,verification-compare,other commands,6,0
+1,bad8f5fc,verification-compare,scratch files,1,3618
+1,bad8f5fc,verification-compare,test runs,1,0
 1,bbbe9d60,,other commands,1,0
 1,bbbe9d60,,reading,1,0
 1,bbbe9d60,m2-builtin-statements,documents and planning,7,1396
@@ -1975,6 +1995,19 @@ version,session,change,category,actions,bytes
 1,ca80ec7e,,other commands,14,0
 1,ca80ec7e,,reading,5,0
 1,ca80ec7e,,test runs,3,0
+1,cac03501,,measurement runs,1,0
+1,cac03501,,other,2,0
+1,cac03501,,other commands,36,0
+1,cac03501,,scratch files,1,1939
+1,cac03501,cpp-failure-errors,builds,5,0
+1,cac03501,cpp-failure-errors,documents and planning,11,20426
+1,cac03501,cpp-failure-errors,measurement runs,4,0
+1,cac03501,cpp-failure-errors,other commands,52,0
+1,cac03501,cpp-failure-errors,product code,19,22020
+1,cac03501,cpp-failure-errors,reading,5,0
+1,cac03501,cpp-failure-errors,scratch files,1,1076
+1,cac03501,cpp-failure-errors,test runs,28,0
+1,cac03501,cpp-failure-errors,tests and fixtures,3,1130
 1,cae3a7f6,,reading,1,0
 1,cae3a7f6,m2-numeric-types,builds,4,0
 1,cae3a7f6,m2-numeric-types,documents and planning,3,2186
@@ -2236,6 +2269,11 @@ version,session,change,category,actions,bytes
 1,e3272f48,m3-errorline-chr-const,scratch files,2,1912
 1,e3272f48,m3-errorline-chr-const,test runs,2,0
 1,e386a939,,other commands,1,0
+1,e3961321,cpp-failure-errors,documents and planning,1,550
+1,e3961321,cpp-failure-errors,other commands,6,0
+1,e3961321,cpp-failure-errors,product code,4,1020
+1,e3961321,cpp-failure-errors,reading,2,0
+1,e3961321,cpp-failure-errors,test runs,3,0
 1,e3fa5b59,,measurement preparation,9,18729
 1,e3fa5b59,,measurement runs,1,0
 1,e3fa5b59,,other commands,22,0

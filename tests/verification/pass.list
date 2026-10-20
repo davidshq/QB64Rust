@@ -1306,6 +1306,7 @@ v29_e12_in_included_file
 v29_e13_after_colon
 v29_e14_in_comment
 v29_e15_in_sub
+v29_e16_not_an_icon
 v29_e17_double_quotes
 v29_e19_no_closing_quote
 v29_e20_letters_after_word
@@ -2094,6 +2095,7 @@ v37_j_no_function
 v37_x01
 v37_x02
 v37_x03
+v37_x04
 v37_x05
 v37_x06
 v37_x07
@@ -2105,16 +2107,20 @@ v37_x13
 v37_x14
 v37_x15
 v37_x16
+v37_x17
 v37_x18
 v37_x19
 v37_x20
 v37_x21
+v37_x23
 v37_x24
 v37_x25
 v37_x26
 v37_x27
 v37_x28
 v37_x29
+v37_x30
+v37_x31
 v37_x32
 v37_x33
 v37_x34

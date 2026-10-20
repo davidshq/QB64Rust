@@ -353,7 +353,24 @@ fn run() -> Result<ExitCode, String> {
         &exe_name,
     )?;
     build::write_embedded(&build_dir, &qb64rust_driver::used_embedded_files(&fe, &input)?)?;
-    build::build(&roots, &build_dir, &exe, o.quiet, &settings)?;
+    if let Err(e) = build::build(&roots, &build_dir, &exe, o.quiet, &settings) {
+        // A failure that names only library functions is the program's (design D4 of `cpp-failure-errors`): its
+        // errors as the front end's, with the summary; the build folder goes as after a build that worked.
+        if let build::BuildError::Toolchain { output, .. } = &e
+            && let Some(errors) = qb64rust_driver::cpp_errors::diagnostics(&fe, output)
+        {
+            for d in errors {
+                fe.diagnostics.push(d);
+            }
+            print!("{}", fe.render_diagnostics());
+            println!("{}", fe.diagnostics.summary());
+            if !o.keep_build {
+                let _ = std::fs::remove_dir_all(&build_dir);
+            }
+            return Ok(ExitCode::FAILURE);
+        }
+        return Err(e.to_string());
+    }
     if !o.keep_build {
         let _ = std::fs::remove_dir_all(&build_dir);
     }

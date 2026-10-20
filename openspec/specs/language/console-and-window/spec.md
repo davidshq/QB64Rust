@@ -230,8 +230,9 @@ be looked for in the folder of the main source file. A line in a `$IF` branch th
 
 ### Requirement: Errors of $EXEICON
 The compiler SHALL report an error that is not "not supported yet" for a `$EXEICON` line without a name between
-single quotes, for a second `$EXEICON` line of a program (whatever it names), and for a name whose file is not
-there, each at the line, as the old compiler does. A relative name that does not start with `./` or `.\` SHALL be
+single quotes, for a second `$EXEICON` line of a program (whatever it names), for a name whose file is not
+there, and for a file that is there but is no icon file, each at the line, as the old compiler does (for the
+last, its C++ build fails). A relative name that does not start with `./` or `.\` SHALL be
 reported "not supported yet". The line rules of every metacommand SHALL hold for it.
 
 #### Scenario: No name
@@ -245,6 +246,12 @@ reported "not supported yet". The line rules of every metacommand SHALL hold for
 #### Scenario: A missing file
 - **WHEN** a program has `$EXEICON:'./missing.ico'` and no such file lies beside it
 - **THEN** the compiler reports that the file is not found, naming it as it is written in the program
+
+#### Scenario: A file that is no icon
+- **WHEN** a program has `$EXEICON:'./v29_inc/not_an_icon.ico'` and that file holds text
+- **THEN** the compiler reports at the line, before any C++ is built, that the file is not an icon file, naming
+  it as it is written in the program (`verification\v29_e16_not_an_icon`); an icon file of one or of five images
+  gives no diagnostic
 
 #### Scenario: A relative name without ./
 - **WHEN** a program has `$EXEICON:'icons/icon.ico'` or `$EXEICON:'/icons/icon.ico'`

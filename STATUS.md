@@ -47,10 +47,10 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. `cws-whole-game` is built (Civil War Strategy as whole games: ten tests of `g12_game`, all equal to the old
-   compiler's; line coverage from `qb64rust --coverage`, 3250 of 3761 lines with a statement run in full, the rest
-   listed with reasons; `tests\programs\README.md`) and archived with `verification-compare` (2026-10-20): the
-   user commits it.
+1. `cpp-failure-errors` is built (a C++ build that fails in both compilers is an error in the program: an
+   `$EXEICON` file that is no icon before the C++, and the toolchain's errors that name a `DECLARE LIBRARY`
+   function at the BASIC line; the six programs of the known bug on `tests\verification\pass.list`): the user
+   commits it. Pull request 11 (`verification-compare`, `cws-whole-game`) waits on the full set of a merge.
 2. M4's parity work; the upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, blanks
    around `.` and `_CONTINUE` (2 programs each). The verification families are a suite of the new compiler since
    `verification-compare` (`tests\verification\`); its `known.list` holds more such lines.
@@ -164,10 +164,7 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 ## Known bugs
 
-- **A program whose C++ build fails in both compilers gets no error before the C++** (found by
-  `verification-compare`, user 2026-10-19): an `$EXEICON` file that is no icon (`v29_e16_not_an_icon`), and five
-  `DECLARE LIBRARY` forms whose C++ fails (`v37_x04`, `x17`, `x23`, `x30`, `x31`). The new compiler should reject
-  each with an error that says why; `tests\verification\known.list` names them.
+None.
 
 ## Queued for later milestones
 

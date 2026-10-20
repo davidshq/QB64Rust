@@ -124,7 +124,6 @@ v29_b_sound_wait	varies: SOUND's time, the old build's too
 v29_e02_plain_path	not supported yet
 v29_e03_missing_plain_name	not supported yet
 v29_e08_no_colon	not supported yet
-v29_e16_not_an_icon	bug: the C++ build fails, as in the old compiler, with no error before it
 v29_e18_missing_folder	not supported yet
 v29_x64_on_play_gosub	not supported yet
 v29_x78_beep_goto	not supported yet
@@ -175,13 +174,8 @@ v36_x44_suffix_declared_as	not supported yet
 v36_x48_member_index_outside	D-004
 v36_x52_owner_bounds_differ	D-022
 v37_b_types	not supported yet
-v37_x04	bug: the C++ build fails, as in the old compiler, with no error before it
 v37_x08	not supported yet
-v37_x17	bug: the C++ build fails, as in the old compiler, with no error before it
 v37_x22	not supported yet
-v37_x23	bug: the C++ build fails, as in the old compiler, with no error before it
-v37_x30	bug: the C++ build fails, as in the old compiler, with no error before it
-v37_x31	bug: the C++ build fails, as in the old compiler, with no error before it
 v37_x57	D-032
 v37_x70	recorded elsewhere
 v38_b_file_dims	D-019
